@@ -24,3 +24,14 @@ export interface MovementAxes {
   forward: { x: number; z: number };
   right: { x: number; z: number };
 }
+
+export const HOUSE_BODY_WIDTH = 0.9;
+export const HOUSE_BODY_HEIGHT = 0.55;
+export const HOUSE_BODY_DEPTH = 0.9;
+export const HOUSE_ROOF_HEIGHT = 0.4;
+export const HOUSE_ROOF_RADIUS = 0.72; // half-diagonal-ish so the pyramid overhangs the walls slightly
+
+export const HOUSE_BODY_COLOR = 0xd9c8a0;
+export const HOUSE_ROOF_COLOR = 0x8a4a3d;
+export const HOUSE_DOOR_COLOR = 0x4a3222;
+export const HOUSE_WINDOW_COLOR = 0xbfe3ff;

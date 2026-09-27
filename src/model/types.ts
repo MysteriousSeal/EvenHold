@@ -11,3 +11,10 @@ export interface Tree {
   rotationY: number;
   scale: number;
 }
+
+export interface House {
+  x: number;
+  z: number;
+  groundHeight: number;
+  rotationY: number;
+}

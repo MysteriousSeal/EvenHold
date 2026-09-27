@@ -6,17 +6,21 @@
 import { createNoise2D } from 'simplex-noise';
 import { mulberry32 } from '../util/random';
 import { MAP_WIDTH, MAP_DEPTH, HERO_SPEED, LAKE_THRESHOLD_MIN, LAKE_THRESHOLD_MAX, SPAWN_X, SPAWN_Z } from './constants';
-import type { Hero, Tree } from './types';
+import type { Hero, Tree, House } from './types';
 import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
+import { generateVillages } from './villages';
 import { generateTrees } from './trees';
 
 export class GameModel {
   readonly seed: number;
   readonly heightMap: number[][];
   readonly lakeMap: boolean[][];
+  readonly houses: House[];
   readonly trees: Tree[];
   readonly hero: Hero;
+
+  private readonly houseCells: ReadonlySet<string>;
 
   constructor(seed: number) {
     this.seed = seed;
@@ -32,7 +36,9 @@ export class GameModel {
     smoothHeightMap(this.heightMap);
 
     this.lakeMap = generateLakeMap(this.heightMap, noise2D, lakeThreshold, SPAWN_X, SPAWN_Z);
-    this.trees = generateTrees(this.heightMap, this.lakeMap, rng, SPAWN_X, SPAWN_Z);
+    this.houses = generateVillages(this.heightMap, this.lakeMap, rng, SPAWN_X, SPAWN_Z);
+    this.houseCells = new Set(this.houses.map((house) => `${house.x},${house.z}`));
+    this.trees = generateTrees(this.heightMap, this.lakeMap, this.houseCells, rng, SPAWN_X, SPAWN_Z);
 
     this.hero = { x: SPAWN_X, z: SPAWN_Z, y: 0 };
     this.hero.y = this.getHeightAt(this.hero.x, this.hero.z);
@@ -50,6 +56,16 @@ export class GameModel {
     return this.lakeMap[cx][cz];
   }
 
+  isHouse(x: number, z: number): boolean {
+    const cx = Math.min(MAP_WIDTH - 1, Math.max(0, Math.round(x)));
+    const cz = Math.min(MAP_DEPTH - 1, Math.max(0, Math.round(z)));
+    return this.houseCells.has(`${cx},${cz}`);
+  }
+
+  private isBlocked(x: number, z: number): boolean {
+    return this.isWater(x, z) || this.isHouse(x, z);
+  }
+
   // dirX/dirZ: world-space direction (not necessarily normalized), dt: seconds
   move(dirX: number, dirZ: number, dt: number): void {
     const len = Math.hypot(dirX, dirZ);
@@ -63,10 +79,11 @@ export class GameModel {
     const candidateX = Math.min(MAP_WIDTH - 1 - margin, Math.max(margin, this.hero.x + nx * dist));
     const candidateZ = Math.min(MAP_DEPTH - 1 - margin, Math.max(margin, this.hero.z + nz * dist));
 
-    // Axis-separated collision against water so the hero can slide along a shoreline
-    // instead of getting stuck the instant either component would enter a lake.
-    if (!this.isWater(candidateX, this.hero.z)) this.hero.x = candidateX;
-    if (!this.isWater(this.hero.x, candidateZ)) this.hero.z = candidateZ;
+    // Axis-separated collision (against water and houses) so the hero can
+    // slide along an obstacle's edge instead of getting stuck the instant
+    // either component alone would move into it.
+    if (!this.isBlocked(candidateX, this.hero.z)) this.hero.x = candidateX;
+    if (!this.isBlocked(this.hero.x, candidateZ)) this.hero.z = candidateZ;
 
     this.hero.y = this.getHeightAt(this.hero.x, this.hero.z);
   }

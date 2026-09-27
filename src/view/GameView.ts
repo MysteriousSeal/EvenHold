@@ -10,6 +10,7 @@ import { createCamera, computeMovementAxes, resizeCamera } from './camera';
 import { addLights } from './lighting';
 import { buildTerrain } from './terrainMesh';
 import { buildTrees } from './treeMesh';
+import { buildHouses } from './houseMesh';
 import { buildHero } from './heroMesh';
 
 export class GameView {
@@ -32,6 +33,7 @@ export class GameView {
     addLights(this.scene);
     buildTerrain(this.scene, model);
     buildTrees(this.scene, model);
+    buildHouses(this.scene, model);
     this.heroMesh = buildHero();
     this.scene.add(this.heroMesh);
 
