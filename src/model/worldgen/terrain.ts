@@ -1,7 +1,8 @@
 // Base terrain height generation and smoothing. Pure functions over a
 // height grid — no lake/tree/hero knowledge.
 
-import { MAP_WIDTH, MAP_DEPTH, MAX_HEIGHT, NOISE_SCALE } from './constants';
+import { MAP_WIDTH, MAP_DEPTH, MAX_HEIGHT, NOISE_SCALE } from '../constants';
+import { NEIGHBORS_4, inBounds } from '../grid';
 
 export function generateHeightMap(noise2D: (x: number, y: number) => number): number[][] {
   const map: number[][] = [];
@@ -28,17 +29,9 @@ export function generateHeightMap(noise2D: (x: number, y: number) => number): nu
 // Each pass sweeps in-place (Gauss-Seidel style), so a height correction
 // only propagates in the direction of the sweep within a single pass.
 // Alternating the sweep direction every iteration lets corrections
-// propagate both ways, so the grid reaches a fully stable state (no
-// violations left anywhere) in a handful of passes instead of needing one
-// pass per row/column of the map.
+// propagate both ways, so the grid reaches a fully stable state in a
+// handful of passes instead of needing one pass per row/column of the map.
 export function smoothHeightMap(map: number[][]): void {
-  const offsets: Array<[number, number]> = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ];
-
   for (let iteration = 0; iteration < 16; iteration++) {
     let changed = false;
     const reverse = iteration % 2 === 1;
@@ -48,38 +41,29 @@ export function smoothHeightMap(map: number[][]): void {
       for (let zi = 0; zi < MAP_DEPTH; zi++) {
         const z = reverse ? MAP_DEPTH - 1 - zi : zi;
 
-        const neighborHeights: number[] = [];
-        for (const [dx, dz] of offsets) {
-          const nx = x + dx;
-          const nz = z + dz;
-          if (nx >= 0 && nx < MAP_WIDTH && nz >= 0 && nz < MAP_DEPTH) {
-            neighborHeights.push(map[nx][nz]);
-          }
+        let minNeighbor = Infinity;
+        let maxNeighbor = -Infinity;
+        for (const [dx, dz] of NEIGHBORS_4) {
+          if (!inBounds(x + dx, z + dz)) continue;
+          const nh = map[x + dx][z + dz];
+          minNeighbor = Math.min(minNeighbor, nh);
+          maxNeighbor = Math.max(maxNeighbor, nh);
         }
-        if (neighborHeights.length === 0) continue;
-
-        const minNeighbor = Math.min(...neighborHeights);
-        const maxNeighbor = Math.max(...neighborHeights);
-        const h = map[x][z];
 
         // h must be within 1 of every neighbor at once, i.e. within
         // [maxNeighbor - 1, minNeighbor + 1]. Checking only against the
-        // aggregate min/max (the old approach) misses a cell sitting
-        // "between" two neighbors that are themselves far apart — e.g.
-        // heights 0, 2, 4 in a row: the middle 2 looks fine against the
-        // {0, 4} range but is still 2 away from each individually.
+        // aggregate min/max misses a cell sitting "between" two neighbors
+        // that are themselves far apart — e.g. heights 0, 2, 4 in a row.
+        const h = map[x][z];
         const targetLow = maxNeighbor - 1;
         const targetHigh = minNeighbor + 1;
 
-        let next: number;
-        if (targetLow <= targetHigh) {
-          next = Math.min(targetHigh, Math.max(targetLow, h));
-        } else {
-          // The neighbors themselves are more than 2 apart, so no single h
-          // can satisfy both; nudge toward their midpoint and let the
-          // neighbors converge toward each other over later passes.
-          next = Math.round((minNeighbor + maxNeighbor) / 2);
-        }
+        const next =
+          targetLow <= targetHigh
+            ? Math.min(targetHigh, Math.max(targetLow, h))
+            : // Neighbors are more than 2 apart, so no single h satisfies both;
+              // nudge toward their midpoint and let them converge over later passes.
+              Math.round((minNeighbor + maxNeighbor) / 2);
 
         if (next !== h) {
           changed = true;

@@ -20,11 +20,6 @@ export const FOLIAGE_LAYERS = [
   { yOffset: 1.08, radius: 0.24, color: 0x5aa15c },
 ];
 
-export interface MovementAxes {
-  forward: { x: number; z: number };
-  right: { x: number; z: number };
-}
-
 export const HOUSE_BODY_WIDTH = 0.9;
 export const HOUSE_BODY_HEIGHT = 0.55;
 export const HOUSE_BODY_DEPTH = 0.9;

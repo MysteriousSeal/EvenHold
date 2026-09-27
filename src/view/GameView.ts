@@ -1,17 +1,17 @@
 // View: owns Three.js scene/camera/renderer. No game rules, no input
-// handling. Mesh construction is delegated to terrainMesh/treeMesh/heroMesh;
-// this class wires them together and drives the per-frame render.
+// handling. Mesh construction is delegated to meshes/; this class wires
+// them together and drives the per-frame render.
 
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import { CAMERA_OFFSET } from './constants';
-import type { MovementAxes } from './constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './camera';
+import type { MovementAxes } from './camera';
 import { addLights } from './lighting';
-import { buildTerrain } from './terrainMesh';
-import { buildTrees } from './treeMesh';
-import { buildHouses } from './houseMesh';
-import { buildHero } from './heroMesh';
+import { buildTerrain } from './meshes/terrainMesh';
+import { buildTrees } from './meshes/treeMesh';
+import { buildHouses } from './meshes/houseMesh';
+import { buildHero } from './meshes/heroMesh';
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;

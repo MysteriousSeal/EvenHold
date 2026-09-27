@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import type { GameModel } from '../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL } from '../model/constants';
-import { TERRAIN_COLORS, WATER_COLOR } from './constants';
+import type { GameModel } from '../../model/GameModel';
+import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL } from '../../model/constants';
+import { TERRAIN_COLORS, WATER_COLOR } from '../constants';
 
 // Every lake cell renders at a fixed WATER_LEVEL height regardless of its
 // actual bed tier (0 or 1), so the lake surface stays flat — using each

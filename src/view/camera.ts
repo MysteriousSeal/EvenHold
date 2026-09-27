@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { CAMERA_OFFSET, FRUSTUM_SIZE } from './constants';
-import type { MovementAxes } from './constants';
+
+export interface MovementAxes {
+  forward: { x: number; z: number };
+  right: { x: number; z: number };
+}
 
 export function createCamera(): THREE.OrthographicCamera {
   const camera = new THREE.OrthographicCamera(-FRUSTUM_SIZE, FRUSTUM_SIZE, FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 100);

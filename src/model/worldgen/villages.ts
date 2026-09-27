@@ -12,8 +12,9 @@ import {
   VILLAGE_MIN_DIST_FROM_SPAWN,
   VILLAGE_MIN_DIST_BETWEEN,
   VILLAGE_MAP_MARGIN,
-} from './constants';
-import type { House } from './types';
+} from '../constants';
+import { cellKey, inBounds } from '../grid';
+import type { House } from '../types';
 
 // A village needs a patch of dry, level ground to sit on — otherwise houses
 // end up straddling a slope or half in a lake. "Flat" here means every cell
@@ -25,20 +26,16 @@ function isFlatDrySite(heightMap: number[][], lakeMap: boolean[][], cx: number, 
     for (let dz = -VILLAGE_FLAT_RADIUS; dz <= VILLAGE_FLAT_RADIUS; dz++) {
       const x = cx + dx;
       const z = cz + dz;
-      if (x < 0 || x >= MAP_WIDTH || z < 0 || z >= MAP_DEPTH) return false;
-      if (lakeMap[x][z] || heightMap[x][z] !== targetHeight) return false;
+      if (!inBounds(x, z) || lakeMap[x][z] || heightMap[x][z] !== targetHeight) return false;
     }
   }
   return true;
 }
 
-// A fully flat, dry 5x5+ patch is rare — often under 1% of the map. Blindly
-// guessing random coordinates and rejecting bad ones (as this used to do)
-// needs on the order of hundreds of attempts to reliably find such a sparse
-// site, so a fixed small attempt budget silently produced zero villages on
-// most seeds even when good sites existed. Scanning once for every valid
-// site and shuffling that list instead guarantees every available site gets
-// a fair chance of being picked.
+// Scans once for every valid site rather than guessing random coordinates:
+// flat dry patches can be sparse, and rejection sampling with a fixed
+// attempt budget silently misses them. Shuffling this list gives every
+// available site a fair chance of being picked.
 function findCandidateSites(
   heightMap: number[][],
   lakeMap: boolean[][],
@@ -101,7 +98,7 @@ export function generateVillages(
       const dz = Math.round((rng() * 2 - 1) * VILLAGE_FLAT_RADIUS);
       const x = center.x + dx;
       const z = center.z + dz;
-      const key = `${x},${z}`;
+      const key = cellKey(x, z);
 
       // findCandidateSites already guaranteed every cell in this radius is
       // dry and level, so the only thing left to check is that no other

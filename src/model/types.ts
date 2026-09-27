@@ -18,3 +18,10 @@ export interface House {
   groundHeight: number;
   rotationY: number;
 }
+
+export interface World {
+  heightMap: number[][];
+  lakeMap: boolean[][];
+  houses: House[];
+  trees: Tree[];
+}

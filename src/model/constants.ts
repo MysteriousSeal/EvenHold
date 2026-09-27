@@ -1,6 +1,7 @@
 export const MAP_WIDTH = 80;
 export const MAP_DEPTH = 80;
 export const HERO_SPEED = 4; // units per second
+export const HERO_RADIUS = 0.25; // collision footprint half-width
 export const MAX_HEIGHT = 4;
 export const WATER_LEVEL = 1; // tiers at or below this are low ground; only some of it floods
 export const NOISE_SCALE = 24; // wavelength of the base terrain features

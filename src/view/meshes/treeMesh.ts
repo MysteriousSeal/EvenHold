@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import type { GameModel } from '../model/GameModel';
-import { FOLIAGE_LAYERS } from './constants';
+import type { GameModel } from '../../model/GameModel';
+import { FOLIAGE_LAYERS } from '../constants';
 
 export function buildTrees(scene: THREE.Scene, model: GameModel): void {
   const count = model.trees.length;

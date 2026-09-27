@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameModel } from '../model/GameModel';
+import type { GameModel } from '../../model/GameModel';
 import {
   HOUSE_BODY_WIDTH,
   HOUSE_BODY_HEIGHT,
@@ -10,7 +10,7 @@ import {
   HOUSE_ROOF_COLOR,
   HOUSE_DOOR_COLOR,
   HOUSE_WINDOW_COLOR,
-} from './constants';
+} from '../constants';
 
 // A box body with a square pyramid roof (a 4-sided cone rotated 45° so its
 // edges line up with the box below), plus a door on the local -Z wall and a
@@ -51,11 +51,11 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
     quaternion.setFromAxisAngle(upAxis, house.rotationY);
     base.set(house.x, house.groundHeight, house.z);
 
-    position.copy(base).add(new THREE.Vector3(0, HOUSE_BODY_HEIGHT / 2, 0));
+    position.set(base.x, base.y + HOUSE_BODY_HEIGHT / 2, base.z);
     matrix.compose(position, quaternion, scaleOne);
     bodyMesh.setMatrixAt(i, matrix);
 
-    position.copy(base).add(new THREE.Vector3(0, HOUSE_BODY_HEIGHT + HOUSE_ROOF_HEIGHT / 2, 0));
+    position.set(base.x, base.y + HOUSE_BODY_HEIGHT + HOUSE_ROOF_HEIGHT / 2, base.z);
     matrix.compose(position, quaternion, scaleOne);
     roofMesh.setMatrixAt(i, matrix);
 

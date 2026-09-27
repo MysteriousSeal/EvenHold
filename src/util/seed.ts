@@ -8,8 +8,9 @@ const SEED_PARAM = 'seed';
 // the same URL later reproduces the same map, Minecraft-style.
 export function resolveSeed(): number {
   const params = new URLSearchParams(window.location.search);
-  const raw = params.get(SEED_PARAM);
-  const parsed = raw === null ? NaN : Number(raw);
+  const raw = params.get(SEED_PARAM)?.trim();
+  // Number('') is 0, so an empty ?seed= must be treated as "no seed", not seed 0.
+  const parsed = raw ? Number(raw) : NaN;
 
   if (Number.isInteger(parsed)) {
     return parsed;

@@ -11,8 +11,4 @@ seedLabel.textContent = `seed: ${seed}`;
 
 const model = new GameModel(seed);
 const view = new GameView(canvas, model);
-const controller = new GameController(model, view);
-
-view.update(model);
-view.render();
-controller.start();
+new GameController(model, view).start();

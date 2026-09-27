@@ -1,37 +1,19 @@
-import { GameModel } from '../model/GameModel';
-import { GameView } from '../view/GameView';
+// Controller: turns input into model updates and drives the frame loop.
 
-const KEY_BINDINGS: Record<string, 'up' | 'down' | 'left' | 'right'> = {
-  KeyW: 'up',
-  ArrowUp: 'up',
-  KeyS: 'down',
-  ArrowDown: 'down',
-  KeyA: 'left',
-  ArrowLeft: 'left',
-  KeyD: 'right',
-  ArrowRight: 'right',
-};
+import type { GameModel } from '../model/GameModel';
+import type { GameView } from '../view/GameView';
+import { KeyboardInput } from './KeyboardInput';
+
+const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 
 export class GameController {
-  private readonly model: GameModel;
-  private readonly view: GameView;
-  private readonly pressed = new Set<'up' | 'down' | 'left' | 'right'>();
+  private readonly input = new KeyboardInput();
   private lastTime = 0;
 
-  constructor(model: GameModel, view: GameView) {
-    this.model = model;
-    this.view = view;
-
-    window.addEventListener('keydown', (e) => this.onKey(e, true));
-    window.addEventListener('keyup', (e) => this.onKey(e, false));
-  }
-
-  private onKey(e: KeyboardEvent, isDown: boolean): void {
-    const action = KEY_BINDINGS[e.code];
-    if (!action) return;
-    if (isDown) this.pressed.add(action);
-    else this.pressed.delete(action);
-  }
+  constructor(
+    private readonly model: GameModel,
+    private readonly view: GameView,
+  ) {}
 
   start(): void {
     this.lastTime = performance.now();
@@ -39,37 +21,39 @@ export class GameController {
   }
 
   private tick = (now: number): void => {
-    const dt = Math.min(0.1, (now - this.lastTime) / 1000);
+    // rAF's timestamp is the frame's start time, which can be slightly
+    // earlier than the performance.now() taken in start(); clamp so the
+    // first frame never gets a negative dt.
+    const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - this.lastTime) / 1000));
     this.lastTime = now;
 
     this.step(dt);
-
     requestAnimationFrame(this.tick);
   };
 
   private step(dt: number): void {
-    const axes = this.view.getMovementAxes();
+    const { forward, right } = this.view.getMovementAxes();
 
-    let inputX = 0;
-    let inputZ = 0;
-    if (this.pressed.has('up')) {
-      inputX += axes.forward.x;
-      inputZ += axes.forward.z;
+    let dirX = 0;
+    let dirZ = 0;
+    if (this.input.isPressed('up')) {
+      dirX += forward.x;
+      dirZ += forward.z;
     }
-    if (this.pressed.has('down')) {
-      inputX -= axes.forward.x;
-      inputZ -= axes.forward.z;
+    if (this.input.isPressed('down')) {
+      dirX -= forward.x;
+      dirZ -= forward.z;
     }
-    if (this.pressed.has('right')) {
-      inputX += axes.right.x;
-      inputZ += axes.right.z;
+    if (this.input.isPressed('right')) {
+      dirX += right.x;
+      dirZ += right.z;
     }
-    if (this.pressed.has('left')) {
-      inputX -= axes.right.x;
-      inputZ -= axes.right.z;
+    if (this.input.isPressed('left')) {
+      dirX -= right.x;
+      dirZ -= right.z;
     }
 
-    this.model.move(inputX, inputZ, dt);
+    this.model.move(dirX, dirZ, dt);
     this.view.update(this.model);
     this.view.render();
   }
