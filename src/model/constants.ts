@@ -1,5 +1,5 @@
-export const MAP_WIDTH = 40;
-export const MAP_DEPTH = 40;
+export const MAP_WIDTH = 80;
+export const MAP_DEPTH = 80;
 export const HERO_SPEED = 4; // units per second
 export const MAX_HEIGHT = 4;
 export const WATER_LEVEL = 1; // tiers at or below this are low ground; only some of it floods
