@@ -1,12 +1,12 @@
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
-import { generateRandomSeed } from './util/random';
+import { resolveSeed } from './util/seed';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
 const seedLabel = document.getElementById('seed-label') as HTMLDivElement;
 
-const seed = generateRandomSeed();
+const seed = resolveSeed();
 seedLabel.textContent = `seed: ${seed}`;
 
 const model = new GameModel(seed);
