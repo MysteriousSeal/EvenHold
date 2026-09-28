@@ -3,20 +3,18 @@ import type { WorldSink } from '../../world/chunkLayer';
 import { allChunkKeys, chunkTiles } from '../../world/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
-import { hashCell } from '../../../util/random';
 import { TERRAIN_COLORS } from '../../constants';
-import { createGrassTexture, type GrassTexture } from './grassTexture';
+import { addVoxelGround } from './voxelGround';
 
-const TILE_SHADE_JITTER = 0.03; // ± per-tile brightness, breaks up the repeating texture
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
 
-// Land tiles get the grass texture on their top face only (stretched over a
-// column's tall sides it would streak), with the color lifted so the
-// texture's darkening averages out to the original shade.
-function tileMaterial(tier: number, grass: GrassTexture): THREE.Material[] {
+// Land tiles get voxel-shaded grass on their top face only (voxelGround.ts);
+// the column's sides stay plain.
+function tileMaterial(tier: number): THREE.Material[] {
   const color = new THREE.Color(TERRAIN_COLORS[tier % TERRAIN_COLORS.length]);
   const side = new THREE.MeshStandardMaterial({ color });
-  const top = new THREE.MeshStandardMaterial({ color: color.clone().multiplyScalar(1 / grass.meanBrightness), map: grass.texture });
+  const top = new THREE.MeshStandardMaterial({ color });
+  addVoxelGround(top);
   const materials: THREE.Material[] = Array(6).fill(side);
   materials[BOX_TOP_FACE] = top;
   return materials;
@@ -26,16 +24,14 @@ function tileMaterial(tier: number, grass: GrassTexture): THREE.Material[] {
 // drawn by water/waterMesh.ts; roads and village squares are voxel tiles
 // laid on top by roadMesh.ts.
 export function buildTerrain(scene: WorldSink, model: GameModel): void {
-  const grass = createGrassTexture();
   const matrix = new THREE.Matrix4();
-  const shade = new THREE.Color();
   // Per tier: a column reaching from one tier below ground up to the tile's
   // surface, and its materials, made the first time a chunk has that tier.
   const tiers = new Map<number, { geometry: THREE.BufferGeometry; material: THREE.Material[] }>();
   const tierOf = (tier: number) => {
     let entry = tiers.get(tier);
     if (!entry) {
-      entry = { geometry: new THREE.BoxGeometry(1, (tier + 1) * TILE_HEIGHT, 1), material: tileMaterial(tier, grass) };
+      entry = { geometry: new THREE.BoxGeometry(1, (tier + 1) * TILE_HEIGHT, 1), material: tileMaterial(tier) };
       tiers.set(tier, entry);
     }
     return entry;
@@ -63,8 +59,6 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
         const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
         cells.forEach((cell, i) => {
           mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, tier * TILE_HEIGHT - columnHeight / 2, cell.z));
-          const jitter = ((hashCell(cell.x, cell.z, 1) % 1000) / 1000 - 0.5) * 2 * TILE_SHADE_JITTER;
-          mesh.setColorAt(i, shade.setScalar(1 + jitter));
         });
         return mesh;
       });
