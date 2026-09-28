@@ -20,11 +20,27 @@ export interface MenuAction {
   current?(): { detail?: string; icon?: MenuIcon; value?: string };
 }
 
+// One square of a grid of slots (an inventory, a shop): its icon, how many,
+// and what its tooltip says (shown beside it on hover or when selected).
+export interface MenuSlot {
+  icon: MenuIcon;
+  count?: number;
+  title: string;
+  tone?: string; // colors the title (e.g. an item quality: 'junk')
+  lines?: string[];
+  // If given, the slot can be dragged out of the menu and let go outside
+  // it (e.g. onto the world, to drop it).
+  dragOut?(): void;
+}
+
 export interface MenuTab {
   name: string;
   icon?: MenuIcon;
   actions?: MenuAction[];
   facts?(): Array<[string, string]>; // a ledger, refreshed when shown
+  // A grid of slots (null: an empty one), refreshed when shown; the
+  // arrow keys move around it.
+  slots?(): { cells: Array<MenuSlot | null>; columns: number };
 }
 
 export interface MenuOptions {
@@ -71,6 +87,11 @@ export function createMenu(options: MenuOptions): Menu {
   let tabIndex = 0;
   let selected = 0;
   let rows: HTMLButtonElement[] = [];
+  let grid: { buttons: HTMLButtonElement[]; cells: Array<MenuSlot | null>; columns: number; selected: number } | null = null;
+  // A slot's tooltip, beside it (outside the panel, so nothing clips it).
+  const tooltip = el('div', 'menu-tooltip');
+  tooltip.hidden = true;
+  document.body.append(tooltip);
 
   const tabButtons = options.tabs.map((tab, i) => {
     const button = el('button', 'menu-tab');
@@ -96,6 +117,9 @@ export function createMenu(options: MenuOptions): Menu {
       }
       list.append(ledger);
     }
+    grid = null;
+    list.classList.toggle('grid', !!tab.slots);
+    if (tab.slots) showSlots(tab.slots());
     rows = (tab.actions ?? []).map((action, j) => {
       const row = el('button', 'menu-row');
       const icon = el('span', 'menu-icon');
@@ -112,6 +136,78 @@ export function createMenu(options: MenuOptions): Menu {
     });
     select(0);
     refresh();
+  }
+
+  function showSlots({ cells, columns }: { cells: Array<MenuSlot | null>; columns: number }): void {
+    const box = el('div', 'menu-grid');
+    box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    const buttons = cells.map((cell, i) => {
+      const button = el('button', cell ? 'menu-slot' : 'menu-slot empty');
+      if (cell) {
+        button.append(cell.icon(44));
+        if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
+      }
+      button.addEventListener('mouseenter', () => selectSlot(i));
+      if (cell?.dragOut) {
+        button.classList.add('draggable');
+        button.addEventListener('pointerdown', (event) => startDrag(event, cell));
+      }
+      box.append(button);
+      return button;
+    });
+    box.addEventListener('mouseleave', () => (tooltip.hidden = true));
+    list.append(box);
+    grid = { buttons, cells, columns, selected: 0 };
+    selectSlot(0, false);
+  }
+
+  // Dragging a slot: its icon follows the pointer; let go outside the menu
+  // and the slot's dragOut runs (the grid is then redrawn), let go inside
+  // and nothing happens.
+  let justDropped = false;
+  function startDrag(event: PointerEvent, cell: MenuSlot): void {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    tooltip.hidden = true;
+    const ghost = el('div', 'menu-drag');
+    ghost.append(cell.icon(52));
+    const follow = (e: PointerEvent) => (ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`);
+    follow(event);
+    document.body.append(ghost);
+    const move = (e: PointerEvent) => follow(e);
+    const up = (e: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      ghost.remove();
+      const panel = menu.getBoundingClientRect();
+      const outside = e.clientX < panel.left || e.clientX > panel.right || e.clientY < panel.top || e.clientY > panel.bottom;
+      if (!outside || !cell.dragOut) return;
+      justDropped = true; // the release's click on the backdrop mustn't close the menu
+      cell.dragOut();
+      const keep = grid?.selected ?? 0;
+      showTab(tabIndex);
+      selectSlot(keep, false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  // Selects a slot and, unless `tip` is false, shows its tooltip beside it:
+  // to the right, or the left when there's no room.
+  function selectSlot(i: number, tip = true): void {
+    if (!grid) return;
+    grid.selected = Math.max(0, Math.min(grid.buttons.length - 1, i));
+    grid.buttons.forEach((b, j) => b.classList.toggle('selected', j === grid!.selected));
+    const cell = grid.cells[grid.selected];
+    tooltip.hidden = !tip || !cell;
+    if (!cell || !tip) return;
+    const title = el('b', undefined, cell.title);
+    if (cell.tone) title.dataset.tone = cell.tone;
+    tooltip.replaceChildren(title, ...(cell.lines ?? []).map((line) => el('small', undefined, line)));
+    const slot = grid.buttons[grid.selected].getBoundingClientRect();
+    const width = tooltip.offsetWidth;
+    const left = slot.right + 8 + width <= window.innerWidth ? slot.right + 8 : slot.left - 8 - width;
+    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(slot.top)}px)`;
   }
 
   function select(i: number): void {
@@ -155,6 +251,7 @@ export function createMenu(options: MenuOptions): Menu {
     },
     close() {
       backdrop.hidden = true;
+      tooltip.hidden = true;
       options.onOpenChange?.(false);
     },
     toggle() {
@@ -164,6 +261,10 @@ export function createMenu(options: MenuOptions): Menu {
   };
 
   backdrop.addEventListener('click', (e) => {
+    if (justDropped) {
+      justDropped = false;
+      return;
+    }
     if (e.target === backdrop) api.close(); // click outside the menu
   });
 
@@ -181,7 +282,10 @@ export function createMenu(options: MenuOptions): Menu {
       event.preventDefault();
       if (event.repeat && !event.code.startsWith('Arrow')) return;
       if (event.code === 'Escape') api.close();
-      else if (event.code === 'ArrowRight') showTab(tabIndex + 1);
+      else if (grid && event.code.startsWith('Arrow')) {
+        const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: grid.columns, ArrowUp: -grid.columns }[event.code] ?? 0;
+        selectSlot(grid.selected + step);
+      } else if (event.code === 'ArrowRight') showTab(tabIndex + 1);
       else if (event.code === 'ArrowLeft') showTab(tabIndex - 1);
       else if (event.code === 'ArrowDown') select(selected + 1);
       else if (event.code === 'ArrowUp') select(selected - 1);
