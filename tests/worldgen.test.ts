@@ -95,7 +95,7 @@ describe('world generation', () => {
 });
 
 describe('villages', () => {
-  it.each(worlds)('seed %i: every door opens onto the square', (_, world) => {
+  it.each(worlds)('seed %i: every door opens onto a lane or the square', (_, world) => {
     // Local -Z (the door side) rotated into world space.
     const bad = world.houses.filter((house) => {
       const frontX = house.x + Math.round(-Math.sin(house.rotationY));
@@ -103,6 +103,28 @@ describe('villages', () => {
       return world.surfaceMap[frontX][frontZ] === 'natural';
     });
     expect(bad).toEqual([]);
+  });
+
+  it.each(worlds)('seed %i: lanes lead out of every square, lined with houses', (_, world) => {
+    const bad = world.villages.filter((village) => {
+      // Lane mouths: road tiles right outside the square's edge.
+      const r = VILLAGE_OUTER_RADIUS + 1;
+      let mouths = 0;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) === r && world.surfaceMap[village.x + dx]?.[village.z + dz] === 'path') mouths++;
+        }
+      }
+      return mouths < 2;
+    });
+    expect(bad).toEqual([]);
+    // Most houses front a lane rather than the square.
+    const onLane = world.houses.filter((house) => {
+      const frontX = house.x + Math.round(-Math.sin(house.rotationY));
+      const frontZ = house.z + Math.round(-Math.cos(house.rotationY));
+      return world.surfaceMap[frontX][frontZ] === 'path';
+    });
+    expect(onLane.length).toBeGreaterThan(world.houses.length / 2);
   });
 
   it.each(worlds)('seed %i: houses never touch, not even diagonally', (_, world) => {
