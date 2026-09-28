@@ -133,3 +133,36 @@ describe('villages', () => {
     expect(reachedSquare).toBe(true);
   });
 });
+
+describe('bushes', () => {
+  it.each(worlds)('seed %i: only on open grass, never near spawn, and never blocking a trail', (_, world) => {
+    expect(world.bushes.length).toBeGreaterThan(20);
+    const taken = new Set([...world.houses, ...world.trees, ...world.villages].map((o) => cellKey(o.x, o.z)));
+    const seen = new Set<string>();
+    for (const bush of world.bushes) {
+      const key = cellKey(bush.x, bush.z);
+      expect(world.lakeMap[bush.x][bush.z]).toBe(false);
+      expect(world.surfaceMap[bush.x][bush.z]).toBe('natural'); // so never on a trail or square
+      expect(taken.has(key)).toBe(false);
+      expect(seen.has(key)).toBe(false);
+      expect(Math.max(Math.abs(bush.x - SPAWN_X), Math.abs(bush.z - SPAWN_Z))).toBeGreaterThan(1);
+      expect(world.heightMap[bush.x][bush.z]).toBe(bush.groundTier);
+      seen.add(key);
+    }
+  });
+});
+
+describe('trees', () => {
+  it('pines dominate high ground, oaks the lowlands', () => {
+    const all = worlds.flatMap(([, world]) => world.trees);
+    const high = all.filter((t) => t.groundTier >= 3);
+    const low = all.filter((t) => t.groundTier < 3);
+    const pineShare = (ts: typeof all) => ts.filter((t) => t.kind === 'pine').length / ts.length;
+    expect(pineShare(high)).toBeGreaterThan(0.6);
+    expect(pineShare(low)).toBeLessThan(0.3);
+  });
+
+  it.each(worlds)('seed %i: trees are rotated in quarter turns only', (_, world) => {
+    for (const tree of world.trees) expect([0, 1, 2, 3]).toContain(tree.quarterTurns);
+  });
+});

@@ -1,8 +1,16 @@
 // Tree placement. Depends on the height grid, lake map, and house cells.
 
-import { MAP_WIDTH, MAP_DEPTH, MAX_TIER, TREE_CHANCE } from '../constants';
+import { MAP_WIDTH, MAP_DEPTH, MAX_TIER, TREE_CHANCE, TREE_SHAPES } from '../constants';
 import { cellKey } from '../grid';
-import type { Surface, Tree } from '../types';
+import { hashCell } from '../../util/random';
+import type { Surface, Tree, TreeKind } from '../types';
+
+const HIGH_GROUND_TIER = 3; // pines dominate from here up, oaks below
+
+function pickKind(tier: number, roll: number): TreeKind {
+  const pineChance = tier >= HIGH_GROUND_TIER ? 0.8 : 0.15;
+  return roll < pineChance ? 'pine' : 'oak';
+}
 
 // Runs after villages and trails, so trees stay off houses, wells, paths and squares.
 export function generateTrees(
@@ -23,9 +31,12 @@ export function generateTrees(
       const isSpawn = x === spawnX && z === spawnZ;
       const isBlocked = lakeMap[x][z] || surfaceMap[x][z] !== 'natural' || blockedCells.has(cellKey(x, z));
       if (!isBlocked && h < MAX_TIER && !isSpawn && roll < TREE_CHANCE) {
-        const rotationY = rng() * Math.PI * 2;
-        const scale = 0.85 + rng() * 0.3;
-        trees.push({ x, z, groundTier: h, rotationY, scale });
+        // Exactly two rng draws per tree, as before voxel trees existed, so
+        // every seed keeps its tree positions (and all later rng draws).
+        const quarterTurns = Math.floor(rng() * 4);
+        const kind = pickKind(h, rng());
+        const shape = hashCell(x, z, 4) % TREE_SHAPES;
+        trees.push({ x, z, groundTier: h, kind, shape, quarterTurns });
       }
     }
   }

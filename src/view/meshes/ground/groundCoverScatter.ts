@@ -8,11 +8,9 @@ import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
 import { NEIGHBORS_4, cellKey, inBounds } from '../../../model/grid';
 import { ROAD_WIDTH } from '../../constants';
 import { solidCells } from '../../../model/worldgen/world';
-import { createNoise2D } from 'simplex-noise';
+import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
 
-const MEADOW_SCALE = 9; // wavelength of the lush / bare grass patches, in tiles
-const MEADOW_SEED_SALT = 0x9e3779b9;
 const MAX_CLUMPS_PER_TILE = 5;
 const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
 const CLUMP_SCALE_CENTER = 1.2; // clump size in the lushest part
@@ -56,16 +54,9 @@ function onRoad(model: GameModel, x: number, z: number, ox: number, oz: number):
 // don't sit inside a trunk; tufts around a tree's base look natural. Road
 // tiles are only half dirt, so their grassy margins get a steady line of
 // clumps (whatever the meadow density), making roads cut through the grass.
-// 0 on bare ground, 1 in the lushest meadow. Low-frequency noise shifted
-// down a little so bare areas are common and meadows have soft edges.
-function meadowDensity(noise2D: (x: number, y: number) => number, x: number, z: number): number {
-  const n = noise2D(x / MEADOW_SCALE, z / MEADOW_SCALE);
-  return Math.min(1, Math.max(0, (n + 0.2) / 0.8));
-}
-
 export function scatterGroundCover(model: GameModel): GroundCover {
-  const meadowNoise = createNoise2D(mulberry32(model.seed ^ MEADOW_SEED_SALT));
-  const solid = solidCells(model.houses, model.villages);
+  const meadowDensity = createMeadowDensity(model.seed);
+  const solid = solidCells(model.houses, model.villages, model.bushes);
   const treeCells = new Set(model.trees.map((t) => cellKey(t.x, t.z)));
   const cover: GroundCover = { tufts: [], flowers: [], pebbles: [] };
 
@@ -102,7 +93,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 
       // Lush meadows get up to MAX_CLUMPS_PER_TILE, their edges a stray
       // clump or two, bare ground none.
-      const density = meadowDensity(meadowNoise, x, z);
+      const density = meadowDensity(x, z);
       const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE + rng() * 0.99);
       // Clumps also grow with the meadow: small at the thin edges, largest
       // in the lush centers, so patches read as mounds rather than dots.

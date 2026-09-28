@@ -13,6 +13,11 @@ export const LAKE_THRESHOLD_MIN = -0.3; // low threshold => most low ground floo
 export const LAKE_THRESHOLD_MAX = 0.6; // high threshold => almost no low ground floods (dry world)
 export const MIN_LAKE_SIZE = 6; // lake blobs smaller than this many connected tiles are dropped
 export const TREE_CHANCE = 0.08; // probability a given eligible cell grows a tree
+export const TREE_SHAPES = 3; // voxel shape variants per tree kind
+export const TREE_COLLISION_HALF = 0.1; // trees block only their trunk (a 0.2x0.2 square), not the canopy
+export const BUSH_CHANCE = 0.14; // probability a meadow-edge cell grows a bush
+export const BUSH_SHAPES = 2; // voxel shape variants per bush kind
+export const BUSH_COLLISION_HALF = 0.2; // bushes block a 0.4x0.4 square (their foliage), not their whole tile
 
 export const VILLAGE_MIN_COUNT = 3;
 export const VILLAGE_MAX_COUNT = 5; // inclusive

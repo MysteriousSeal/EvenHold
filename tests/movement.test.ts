@@ -1,15 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { HERO_RADIUS, MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../src/model/constants';
+import { BUSH_COLLISION_HALF, HERO_RADIUS, MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT, TREE_COLLISION_HALF } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
 
 const FRAME = 1 / 60;
 
-// Same solid-tile rule the game uses (water, houses, wells), so this can't drift from it.
+// Tiles to keep the test path clear of: the game's solid-tile rule (water,
+// houses, wells, bushes) plus trees, whose trunks block too.
 function solidCellCheck(model: GameModel): (x: number, z: number) => boolean {
-  const solid = solidCells(model.houses, model.villages);
-  return (x, z) => model.lakeMap[x][z] || solid.has(cellKey(x, z));
+  const solid = solidCells(model.houses, model.villages, model.bushes);
+  for (const t of model.trees) solid.add(cellKey(t.x, t.z));
+  const inMap = (x: number, z: number) => x >= 0 && z >= 0 && x < model.heightMap.length && z < model.heightMap[0].length;
+  return (x, z) => !inMap(x, z) || model.lakeMap[x][z] || solid.has(cellKey(x, z));
 }
 
 describe('hero collision', () => {
@@ -38,6 +41,43 @@ describe('hero collision', () => {
     model.update(1, 0, -0.01);
     model.update(1, 0, 0);
     expect(model.hero).toEqual({ x, y, z });
+  });
+});
+
+describe('bush collision', () => {
+  // Bushes block only their foliage, not their whole tile: the hero should
+  // walk right up to the leaves.
+  it('stops the hero at the bush foliage, not the tile edge', () => {
+    const model = new GameModel(1);
+    const isSolid = solidCellCheck(model);
+    const bush = model.bushes.find((b) => !isSolid(b.x - 1, b.z) && !isSolid(b.x - 2, b.z));
+    expect(bush).toBeDefined();
+
+    model.hero.x = bush!.x - 2;
+    model.hero.z = bush!.z;
+    for (let i = 0; i < 120; i++) model.update(1, 0, FRAME);
+
+    const foliageEdge = bush!.x - BUSH_COLLISION_HALF;
+    expect(model.hero.x + HERO_RADIUS).toBeLessThanOrEqual(foliageEdge);
+    expect(model.hero.x + HERO_RADIUS).toBeGreaterThan(foliageEdge - 0.1); // got right up to it
+  });
+});
+
+describe('tree collision', () => {
+  // Trees block only their trunk: the hero walks under the canopy up to the trunk.
+  it('stops the hero at the trunk, not the tile edge', () => {
+    const model = new GameModel(1);
+    const isSolid = solidCellCheck(model);
+    const tree = model.trees.find((t) => !isSolid(t.x - 1, t.z) && !isSolid(t.x - 2, t.z));
+    expect(tree).toBeDefined();
+
+    model.hero.x = tree!.x - 2;
+    model.hero.z = tree!.z;
+    for (let i = 0; i < 120; i++) model.update(1, 0, FRAME);
+
+    const trunkEdge = tree!.x - TREE_COLLISION_HALF;
+    expect(model.hero.x + HERO_RADIUS).toBeLessThanOrEqual(trunkEdge);
+    expect(model.hero.x + HERO_RADIUS).toBeGreaterThan(trunkEdge - 0.1);
   });
 });
 

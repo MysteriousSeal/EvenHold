@@ -9,11 +9,12 @@ import { createCamera, computeMovementAxes, resizeCamera } from './camera';
 import type { MovementAxes } from './camera';
 import { addLights } from './lighting';
 import { buildTerrain } from './meshes/ground/terrainMesh';
-import { buildTrees } from './meshes/treeMesh';
+import { buildTrees } from './meshes/tree/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
 import { buildWells } from './meshes/well/wellMesh';
 import { buildGroundDecals } from './meshes/ground/groundDecals';
 import { buildGroundCover } from './meshes/ground/groundCoverMesh';
+import { buildBushes } from './meshes/bush/bushMesh';
 import { buildHero } from './meshes/heroMesh';
 
 export class GameView {
@@ -46,6 +47,7 @@ export class GameView {
     buildGroundDecals(this.scene, model);
     this.animations.push(buildGroundCover(this.scene, model));
     buildTrees(this.scene, model);
+    buildBushes(this.scene, model);
     buildHouses(this.scene, model);
     buildWells(this.scene, model);
     this.heroMesh = buildHero();

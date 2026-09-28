@@ -7,6 +7,8 @@ import {
   MAP_DEPTH,
   HERO_SPEED,
   HERO_RADIUS,
+  BUSH_COLLISION_HALF,
+  TREE_COLLISION_HALF,
   HOP_DURATION,
   HOP_HEIGHT,
   SPAWN_X,
@@ -14,7 +16,7 @@ import {
   TILE_HEIGHT,
 } from './constants';
 import { cellKey, toCellX, toCellZ } from './grid';
-import type { Hero, Tree, House, Surface, Village } from './types';
+import type { Bush, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
 
 export class GameModel {
@@ -26,9 +28,13 @@ export class GameModel {
   readonly villages: Village[];
   readonly houses: House[];
   readonly trees: Tree[];
+  readonly bushes: Bush[];
   readonly hero: Hero;
 
-  private readonly solidCells: ReadonlySet<string>;
+  private readonly solidCells: ReadonlySet<string>; // tiles blocked edge to edge
+  // Props smaller than a tile (bushes, tree trunks): tile key -> half-size of
+  // the square they block, centered on the tile.
+  private readonly propFootprints: ReadonlyMap<string, number>;
   private hop: { fromY: number; toY: number; elapsed: number } | null = null;
 
   constructor(seed: number) {
@@ -42,7 +48,14 @@ export class GameModel {
     this.villages = world.villages;
     this.houses = world.houses;
     this.trees = world.trees;
+    this.bushes = world.bushes;
+    // Houses and wells nearly fill their tile, so they block all of it;
+    // bushes and tree trunks are much smaller, so they get their own footprint.
     this.solidCells = solidCells(this.houses, this.villages);
+    this.propFootprints = new Map([
+      ...this.bushes.map((b): [string, number] => [cellKey(b.x, b.z), BUSH_COLLISION_HALF]),
+      ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
+    ]);
 
     this.hero = { x: SPAWN_X, z: SPAWN_Z, y: 0 };
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
@@ -64,12 +77,23 @@ export class GameModel {
   // house or water tile before the center crosses the cell boundary.
   private isBlocked(x: number, z: number): boolean {
     const r = HERO_RADIUS;
-    return (
-      this.isSolidCell(x - r, z - r) ||
-      this.isSolidCell(x + r, z - r) ||
-      this.isSolidCell(x - r, z + r) ||
-      this.isSolidCell(x + r, z + r)
-    );
+    const corners: Array<[number, number]> = [
+      [x - r, z - r],
+      [x + r, z - r],
+      [x - r, z + r],
+      [x + r, z + r],
+    ];
+    if (corners.some(([cx, cz]) => this.isSolidCell(cx, cz))) return true;
+
+    // Props: overlap between the hero's square and the prop's smaller
+    // square, checked for the prop on every tile the hero's corners touch
+    // (a prop square lies inside its tile, so that's the only way to overlap).
+    return corners.some(([cx, cz]) => {
+      const px = toCellX(cx);
+      const pz = toCellZ(cz);
+      const half = this.propFootprints.get(cellKey(px, pz));
+      return half !== undefined && Math.abs(x - px) < r + half && Math.abs(z - pz) < r + half;
+    });
   }
 
   // Advances the hero one frame. dirX/dirZ: world-space input direction

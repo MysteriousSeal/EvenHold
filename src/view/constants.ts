@@ -16,15 +16,6 @@ export const ROAD_WIDTH = 0.5; // dirt trail strip width, in world units (a tile
 export const PATH_COLOR = 0xb89668; // worn dirt
 export const RUT_COLOR = 0x8f7250; // wheel ruts, darker packed dirt
 
-// Rounded, faceted canopy blobs stacked over a tapered trunk — closer to
-// Tunic's soft low-poly foliage than a sharp cartoon cone.
-export const TREE_TRUNK_COLOR = 0x6b4a30;
-export const FOLIAGE_LAYERS = [
-  { yOffset: 0.5, radius: 0.46, color: 0x2f6b3a },
-  { yOffset: 0.82, radius: 0.36, color: 0x3c8049 },
-  { yOffset: 1.08, radius: 0.24, color: 0x5aa15c },
-];
-
 export const HOUSE_PLASTER_COLOR = 0xe9dfc6; // limewash
 export const HOUSE_TIMBER_COLOR = 0x3a281c; // dark oak
 export const HOUSE_STONE_COLOR = 0x8e8b82;

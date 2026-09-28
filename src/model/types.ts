@@ -4,12 +4,15 @@ export interface Hero {
   y: number;
 }
 
+export type TreeKind = 'oak' | 'pine';
+
 export interface Tree {
   x: number;
   z: number;
   groundTier: number;
-  rotationY: number;
-  scale: number;
+  kind: TreeKind;
+  shape: number; // which voxel shape variant to draw
+  quarterTurns: number; // 0-3, rotation about Y in 90-degree steps (grid-aligned)
 }
 
 export interface House {
@@ -17,6 +20,17 @@ export interface House {
   z: number;
   groundTier: number;
   rotationY: number;
+}
+
+export type BushKind = 'leafy' | 'berry' | 'flowering';
+
+export interface Bush {
+  x: number;
+  z: number;
+  groundTier: number;
+  kind: BushKind;
+  shape: number; // which voxel shape variant to draw
+  quarterTurns: number; // 0-3, rotation about Y in 90-degree steps (grid-aligned)
 }
 
 // A village's center tile, where its well stands in the middle of the square.
@@ -38,4 +52,5 @@ export interface World {
   villages: Village[];
   houses: House[];
   trees: Tree[];
+  bushes: Bush[];
 }
