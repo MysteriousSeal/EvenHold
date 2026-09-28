@@ -47,7 +47,8 @@ function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: n
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, fog: false });
+    // Never hidden by what's around (a shelf, a tree): drawn over everything, like the HUD.
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
     entry = { material, aspect: canvas.width / canvas.height };
     nameMaterials.set(name, entry);
   }
@@ -59,6 +60,7 @@ export function nameLabel(name: string, height = NAME_HEIGHT): THREE.Sprite {
   const { material, aspect } = nameMaterial(name);
   const label = new THREE.Sprite(material);
   label.scale.set(height * aspect, height, 1);
+  label.renderOrder = 10; // after everything else, so nothing draws over it
   return label;
 }
 
