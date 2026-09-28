@@ -1,13 +1,13 @@
 // The hero's health, level and experience. Health grows with each level;
-// each level takes more experience than the last. Hurt, the hero heals by
-// itself once out of the fight for a while. Levelling up heals fully.
+// each level takes more experience than the last. Hardcore: health never
+// comes back by itself, only by eating and drinking (provisions.ts), sleeping
+// in a bed, and levelling up, which heals fully.
 
 import type { Hero } from '../types';
 
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;
-const REGEN_DELAY = 5; // seconds after the last hit before healing starts
-const REGEN_RATE = 1; // hit points per second while healing
+const SLEEP_RATE = 0.25; // hit points per second while asleep in a bed
 
 export function maxHpAt(level: number): number {
   return BASE_HP + (level - 1) * HP_PER_LEVEL;
@@ -43,9 +43,9 @@ export function hurt(hero: Hero, damage: number): boolean {
   return hero.hp === 0;
 }
 
-// Timers, and healing once it's been a while since the last hit.
-export function recover(hero: Hero, dt: number): void {
+// Timers, and healing while `asleep` in a bed (nothing else heals over time).
+export function recover(hero: Hero, dt: number, asleep = false): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
   hero.sinceHurt += dt;
-  if (hero.sinceHurt >= REGEN_DELAY) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + REGEN_RATE * dt);
+  if (asleep) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + SLEEP_RATE * dt);
 }

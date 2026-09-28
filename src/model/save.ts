@@ -33,6 +33,7 @@ export interface SaveData {
     z: number;
     facing: number;
     inside: number | null; // the building they're in, by its door's index among the world's
+    lastInn?: number | null; // the last inn they entered (where they wake after a fall)
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
   loot: Array<{ item: BagItem; x: number; z: number }>;
@@ -63,6 +64,7 @@ export function snapshot(model: GameModel): SaveData {
       z: model.inside?.seated?.from.z ?? hero.z,
       facing: hero.facing,
       inside: door(model.inside?.entrance),
+      lastInn: door(model.lastInn),
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
     enemies: {
@@ -112,6 +114,7 @@ export function restore(model: GameModel, data: SaveData): void {
     hp: saved.hp,
     facing: saved.facing,
   });
+  model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
     model.inside = { entrance: building, ...layoutOf(model.seed, building), seated: null };

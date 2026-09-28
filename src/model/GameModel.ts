@@ -21,7 +21,7 @@ import {
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
-import { spawnEnemies } from './enemies/enemies';
+import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './hero/heroStats';
 import { HERO_LOOK } from './human/humanoid';
@@ -45,6 +45,7 @@ import { PROVISIONS, isProvision } from './loot/provisions';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
+const DEATH_TOLL = 0.2; // of their coins, lost in a fall
 
 export class GameModel {
   readonly seed: number;
@@ -66,6 +67,7 @@ export class GameModel {
   readonly coins: GroundCoins[] = []; // dropped coins, picked up by walking near them
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (npcs/tavernShop.ts)
+  lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -186,7 +188,7 @@ export class GameModel {
       this.moveInside(dirX, dirZ, dt);
       this.advanceAttack(dt);
       stepNpcs(this.npcs, this, dt);
-      recover(this.hero, dt);
+      recover(this.hero, dt, !!this.inside?.seated?.seat.lying); // asleep in a bed, the only rest that heals
       return;
     }
     this.moveHorizontally(dirX, dirZ, dt);
@@ -225,22 +227,10 @@ export class GameModel {
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.
     const free = (x: number, z: number) =>
-      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !this.bumpsEnemy(x, z) && !bumpsNpc(this.npcs, null, this.hero, x, z, HERO_RADIUS));
+      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.npcs, null, this.hero, x, z, HERO_RADIUS));
     if (free(candidateX, this.hero.z)) this.hero.x = candidateX;
     if (free(this.hero.x, candidateZ)) this.hero.z = candidateZ;
     this.hero.facing = Math.atan2(dirX, dirZ);
-  }
-
-  // Living enemies are solid to the hero: a step is refused if it would
-  // overlap one and bring the two closer. Stepping away from an enemy
-  // already pressed against the hero is always allowed, so the hero can't
-  // get pinned.
-  private bumpsEnemy(x: number, z: number): boolean {
-    return this.enemies.some((enemy) => {
-      const reach = HERO_RADIUS + ENEMY_STATS[enemy.kind].radius;
-      if (enemy.state === 'dead' || Math.abs(enemy.x - x) >= reach || Math.abs(enemy.z - z) >= reach) return false;
-      return Math.hypot(enemy.x - x, enemy.z - z) < Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z);
-    });
   }
 
   // The blow lands on the nearest living enemy within reach and roughly in
@@ -378,14 +368,18 @@ export class GameModel {
       hero.facing = Math.atan2(entrance.outX, entrance.outZ);
       return true;
     }
+    this.enterRoom(entrance);
+    return true;
+  }
+
+  // In through a building's door, onto the floor just inside it, facing in.
+  private enterRoom(entrance: Entrance): void {
     const { room, furniture } = layoutOf(this.seed, entrance);
     this.inside = { entrance, room, furniture, seated: null };
+    if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusedId = null;
-    hero.x = room.door;
-    hero.z = room.depth - 1;
-    hero.y = 0;
-    hero.facing = Math.PI; // into the room (-Z)
-    return true;
+    this.hop = null;
+    Object.assign(this.hero, { x: room.door, z: room.depth - 1, y: 0, facing: Math.PI }); // into the room (-Z)
   }
 
   // Indoors: the hero walks the room's floor (getting up first if seated);
@@ -478,8 +472,12 @@ export class GameModel {
     if (this.godMode) return;
     this.events.push({ kind: 'hit', on: 'hero', amount: enemy.damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
     if (!hurt(this.hero, enemy.damage)) return;
+    // Fallen: a share of their coins lost, they wake in the last inn they
+    // entered (or at spawn, before any), healed; the foes lose interest.
+    this.hero.money -= Math.floor(this.hero.money * DEATH_TOLL);
     const spawn = spawnOf(this.size);
-    this.teleport(spawn.x, spawn.z);
+    if (this.lastInn) this.enterRoom(this.lastInn);
+    else this.teleport(spawn.x, spawn.z);
     this.hero.hp = maxHpAt(this.hero.level);
     for (const e of this.enemies) if (e.state === 'chase') e.state = 'wander';
   }

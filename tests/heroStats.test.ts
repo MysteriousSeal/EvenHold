@@ -31,13 +31,15 @@ describe('hero stats', () => {
     expect(maxHpAt(3)).toBeGreaterThan(maxHpAt(1));
   });
 
-  it('heals only once out of the fight for a while, never past full', () => {
+  it('never heals by itself (hardcore): only asleep in a bed, never past full', () => {
     const { hero } = fresh();
     hero.hp = 4;
     hero.sinceHurt = 0;
-    for (let t = 0; t < 4; t += FRAME) recover(hero, FRAME);
+    for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME);
     expect(hero.hp).toBe(4);
-    for (let t = 0; t < 30; t += FRAME) recover(hero, FRAME);
+    for (let t = 0; t < 4; t += FRAME) recover(hero, FRAME, true);
+    expect(hero.hp).toBeCloseTo(5, 1);
+    for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME, true);
     expect(hero.hp).toBe(maxHpAt(1));
   });
 });
@@ -57,14 +59,29 @@ describe('enemies hurt the hero', () => {
     expect(safe.hero.hp).toBe(maxHpAt(1));
   });
 
-  it('out of health, the hero wakes at spawn, healed', () => {
+  it('out of health, the hero loses a fifth of their coins and wakes at spawn (before any inn), healed', () => {
     const model = fresh();
     alone(model, nearest(model, 'wolf'));
     const spawn = spawnOf(model.size);
+    model.hero.money = 1000;
     model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
     for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
     expect(model.hero.hp).toBe(maxHpAt(1));
+    expect(model.hero.money).toBe(800);
     expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
+  });
+
+  it('out of health, the hero wakes in the last inn they entered', () => {
+    const model = fresh();
+    const inn = model.entrances.find((e) => e.type === 'inn')!;
+    model.teleport(inn.x, inn.z);
+    model.useDoor(); // in...
+    model.useDoor(); // ...and out again
+    expect(model.lastInn).toBe(inn);
+    alone(model, nearest(model, 'wolf'));
+    model.hero.hp = ENEMY_STATS.wolf.damage;
+    for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
+    expect(model.inside?.entrance).toBe(inn);
   });
 
   it('a kill is worth experience', () => {

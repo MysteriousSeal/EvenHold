@@ -282,3 +282,15 @@ export function campPalisade(camp: Camp): Array<{ x: number; z: number; side: nu
   }
   return edges;
 }
+
+// Whether a step of a walker of half-width r from `from` to (x, z) bumps a
+// living enemy: refused if it would overlap one and bring the two closer
+// (stepping away from one pressed against them is always allowed, so no one
+// gets pinned).
+export function bumpsEnemy(enemies: readonly Enemy[], from: { x: number; z: number }, x: number, z: number, r: number): boolean {
+  return enemies.some((enemy) => {
+    const reach = r + ENEMY_STATS[enemy.kind].radius;
+    if (enemy.state === 'dead' || Math.abs(enemy.x - x) >= reach || Math.abs(enemy.z - z) >= reach) return false;
+    return Math.hypot(enemy.x - x, enemy.z - z) < Math.hypot(enemy.x - from.x, enemy.z - from.z);
+  });
+}
