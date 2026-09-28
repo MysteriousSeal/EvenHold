@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { HERO_RADIUS } from '../src/model/constants';
 import {
   ARMOR_SLOTS,
+  BANDIT_GEAR,
   BANDIT_OUTFIT,
   EQUIP_SLOTS,
   ITEMS,
@@ -46,17 +47,29 @@ describe('equipment', () => {
     }
   });
 
-  it('starts the hero naked and dresses every bandit in the outfit, each with their own look', async () => {
+  it('starts the hero naked and dresses every bandit in their own mix of gear, each with their own look', async () => {
     const { GameModel } = await import('../src/model/GameModel');
     const { TEST_MAP_SIZE } = await import('./support/testWorld');
     const model = new GameModel(1, TEST_MAP_SIZE);
     expect(model.hero.equipment).toEqual({});
     expect(model.hero.look).toEqual(HERO_LOOK);
 
-    const bandits = Array.from({ length: 12 }, (_, i) => makeEnemy(i, 'bandit', i * 7, i * 3));
-    for (const bandit of bandits) expect(bandit.human?.equipment).toEqual(outfit(BANDIT_OUTFIT));
-    bandits[0].human!.equipment.head = undefined; // outfits aren't shared
-    expect(bandits[1].human?.equipment.head).toBe('banditHood');
+    const bandits = Array.from({ length: 40 }, (_, i) => makeEnemy(i, 'bandit', i * 7, i * 3));
+    for (const bandit of bandits) {
+      const equipment = bandit.human!.equipment;
+      for (const slot of EQUIP_SLOTS) {
+        const allowed = BANDIT_GEAR[slot].map(([item]) => item ?? undefined);
+        expect(allowed).toContain(equipment[slot]);
+      }
+      expect(equipment.torso).toBeDefined(); // always dressed and armed
+      expect(equipment.mainHand).toBeDefined();
+    }
+    const outfits = bandits.map((b) => JSON.stringify(b.human!.equipment));
+    expect(new Set(outfits).size).toBeGreaterThan(20);
+    for (const [item] of Object.values(BANDIT_GEAR).flat()) {
+      if (item) expect(outfits.some((o) => o.includes(`"${item}"`)), `${item} shows up`).toBe(true);
+    }
+    expect(makeEnemy(3, 'bandit', 21, 9).human).toEqual(bandits[3].human); // same place, same bandit
     expect(new Set(bandits.map((b) => JSON.stringify(b.human?.look))).size).toBeGreaterThan(3);
     expect(makeEnemy(99, 'wolf', 0, 0).human).toBeNull();
   });
