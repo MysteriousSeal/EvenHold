@@ -1,4 +1,4 @@
-// Crop fields (see fieldVoxels.ts): wheat tiles swaying in the wind, a
+// Crop fields (see fieldVoxels.ts): wheat tiles swaying in the wind (and parting around the hero), a
 // hay-and-tools corner tile, and fence segments along each field's border
 // with a gap at the gate. Every model is meshed once and instanced per map
 // chunk. Crops are walkable; the fences block (see GameModel).
@@ -25,7 +25,8 @@ import {
 // Tile-centered, standing on the tile top.
 const ORIGIN = new THREE.Vector3((-FIELD_GRID[0] * FIELD_VOXEL_SIZE) / 2, 0, (-FIELD_GRID[2] * FIELD_VOXEL_SIZE) / 2);
 // Wheat sways a little less than meadow grass, slower.
-const WHEAT_WIND = { height: FIELD_GRID[1] * FIELD_VOXEL_SIZE, strength: 0.035, speed: 1.3 };
+// The wheat parts around the hero wading through it.
+const WHEAT_WIND = { height: FIELD_GRID[1] * FIELD_VOXEL_SIZE, strength: 0.035, speed: 1.3, push: { radius: 1.1, strength: 0.1 } };
 // Quarter turns that bring the fence's local -Z edge to each NEIGHBORS_4
 // side (+x, -x, +z, -z).
 const FENCE_TURNS = [3, 1, 2, 0];

@@ -19,6 +19,7 @@ import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
 import { buildLanterns } from './meshes/plaza/lanternMesh';
 import { buildFields } from './meshes/field/fieldMesh';
+import { setWindPusher } from './meshes/common/wind';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
@@ -234,6 +235,7 @@ export class GameView {
       return; // the world outside stands still
     }
     this.world.update(hero.x, hero.z);
+    setWindPusher(hero.x, hero.z); // crops part around them
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);
