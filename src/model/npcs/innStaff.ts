@@ -27,7 +27,7 @@ const sat = (npcs: readonly Npc[], inn: Npc['home'], piece: Furniture) => npcs.s
 // round she's already at her first spot: at work when the inn opens).
 export function staffSteps(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const steps = rounds(npc, npcs, seed);
-  if (npc.stop === 2 && steps[0].kind === 'go') {
+  if (npc.stop === 1 && steps[0].kind === 'go') {
     npc.x = steps[0].to.x;
     npc.z = steps[0].to.z;
   }

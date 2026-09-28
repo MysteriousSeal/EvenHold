@@ -93,7 +93,7 @@ export function nameAt(x: number, z: number, seed = 0): string {
 
 // One villager for every house, living in the village it stands in (the
 // nearest), going to that village's inn; each starts at home, at a point
-// of the routine from their house, so a village isn't all in step. Then two
+// of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
 export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[]): Npc[] {
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
@@ -114,7 +114,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     facing: 0,
     seat: null,
     stood: null,
-    stop: 1, // home, where they start, done
+    stop: 0,
     steps: [],
     path: null,
     waited: 0,
@@ -129,6 +129,8 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       if (!village) return [];
       const inn = nearest(inns, village.x, village.z);
       const npc = person(id, 'villager', home, inn && Math.hypot(inn.x - village.x, inn.z - village.z) < 6 ? inn : null, village, home);
+      // At home to begin with, a while, then on from a point of the routine of their own.
+      npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
       return [npc];
     });

@@ -38,6 +38,8 @@ const HOME_TIME: [number, number] = [30, 90]; // seconds settled at home
 const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
 const SIT_CHANCE = 0.75;
+const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
+const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
 
 // A roll for a villager at this point of their routine, the same every time on a seed.
 const roll = (npc: Npc, salt: number) => hashUnit(npc.id, npc.stop * 7 + salt, npc.salt);
@@ -71,8 +73,11 @@ function doorTile(seed: number, entrance: Entrance): Point {
 }
 
 // The steps for the next stop of the routine.
-function plan(npc: Npc, world: NpcWorld): NpcStep[] {
-  const stop = ROUTINE[npc.stop % ROUTINE.length];
+// The inn is only now and then, and never past full: otherwise that stop's
+// spent at home or on the square instead.
+function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
+  let stop = ROUTINE[npc.stop % ROUTINE.length];
+  if (stop === 'inn' && (roll(npc, 13) >= INN_CHANCE || !npc.inn || patrons(npcs, npc.inn) >= INN_CAP)) stop = roll(npc, 14) < 0.5 ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
@@ -90,6 +95,11 @@ function plan(npc: Npc, world: NpcWorld): NpcStep[] {
   }
   steps.push({ kind: 'settle', for: between(npc, building === npc.home ? HOME_TIME : INN_TIME, 12) });
   return steps;
+}
+
+// Villagers at an inn, or on their way in.
+function patrons(npcs: readonly Npc[], inn: Entrance): number {
+  return npcs.filter((o) => o.role === 'villager' && o.inn === inn && (o.where === inn || o.steps.some((s) => s.kind === 'enter' && s.entrance === inn))).length;
 }
 
 // Somewhere open on the village square (around the well), from the routine.
@@ -141,7 +151,7 @@ function roomFree(seed: number, entrance: Entrance, staff = false): (x: number, 
 
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
-  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, world) : staffSteps(npc, npcs, world.seed);
+  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : staffSteps(npc, npcs, world.seed);
   const step = npc.steps[0];
   const done = () => {
     npc.steps.shift();

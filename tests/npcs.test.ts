@@ -51,6 +51,9 @@ describe('villagers', () => {
           expect(npc.x).toBeLessThan(room.width - 0.5);
         }
       }
+      for (const inn of model.entrances.filter((e) => e.type === 'inn')) {
+        expect(model.npcs.filter((n) => n.role === 'villager' && n.where === inn).length).toBeLessThanOrEqual(4); // never crowded
+      }
       const seats = model.npcs.filter((n) => n.seat).map((n) => n.seat!.piece);
       expect(new Set(seats).size).toBe(seats.length);
     }
