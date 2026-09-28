@@ -240,3 +240,15 @@
 /* A slot being dragged: its icon under the pointer. */
 .menu-drag { position: fixed; top: 0; left: 0; z-index: 31; pointer-events: none; filter: drop-shadow(2px 3px 0 rgba(46, 31, 20, 0.45)); }
 .menu-slot.draggable { cursor: grab; }
+
+/* A modeless menu (the bag): tucked in the bottom right corner, no
+   dimming, and the world around it stays clickable; only the panel takes
+   the pointer. */
+.menu-backdrop.modeless {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px 16px 84px; /* the bottom right corner, above the seed and stats */
+  background: none;
+  pointer-events: none;
+}
+.menu-backdrop.modeless .menu { pointer-events: auto; }

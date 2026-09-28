@@ -48,6 +48,10 @@ export interface MenuOptions {
   tabs: MenuTab[];
   toggleKey?: string; // a key code that opens and closes this menu
   keyHints?: boolean; // the line of key hints along the bottom (default: shown)
+  // Modal (the default): the world dims, clicks outside close the menu, and
+  // it takes every key. Modeless (false): the world stays clear and playable
+  // around it, and only Escape and its toggle key reach the menu.
+  modal?: boolean;
   onOpenChange?(open: boolean): void;
 }
 
@@ -93,7 +97,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 };
 
 export function createMenu(options: MenuOptions): Menu {
-  const backdrop = el('div', 'menu-backdrop');
+  const modal = options.modal !== false;
+  const backdrop = el('div', modal ? 'menu-backdrop' : 'menu-backdrop modeless');
   backdrop.hidden = true;
   const menu = el('div', 'menu');
   menu.setAttribute('role', 'dialog');
@@ -315,6 +320,7 @@ export function createMenu(options: MenuOptions): Menu {
         return;
       }
       if (!api.isOpen) return;
+      if (!modal && event.code !== 'Escape') return; // the game keeps its keys
       event.stopImmediatePropagation();
       event.preventDefault();
       if (event.repeat && !event.code.startsWith('Arrow')) return;
