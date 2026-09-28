@@ -41,29 +41,33 @@ interface Lane {
 
 const R = VILLAGE_OUTER_RADIUS;
 
-// The whole square needs level, dry ground.
-function isFlatDrySite(heightMap: number[][], lakeMap: boolean[][], cx: number, cz: number): boolean {
-  const tier = heightMap[cx][cz];
-  for (let dx = -VILLAGE_FLAT_RADIUS; dx <= VILLAGE_FLAT_RADIUS; dx++) {
-    for (let dz = -VILLAGE_FLAT_RADIUS; dz <= VILLAGE_FLAT_RADIUS; dz++) {
-      const x = cx + dx;
-      const z = cz + dz;
-      if (!inBounds(sizeOf(heightMap), x, z) || lakeMap[x][z] || heightMap[x][z] !== tier) return false;
+// Every site whose whole square (VILLAGE_FLAT_RADIUS around it) is level,
+// dry ground, found in one pass rather than re-checking the full square at
+// every tile (which is slow on big maps): first, along each row, how many
+// equal-tier dry tiles run up to each tile; a tile's row segment is level
+// when that run covers it; a site is level when the segments of the rows
+// around it are level and share its tier.
+function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX: number, spawnZ: number): Site[] {
+  const size = sizeOf(heightMap);
+  const r = VILLAGE_FLAT_RADIUS;
+  const span = 2 * r + 1;
+  const run = new Uint16Array(size.depth);
+  // levelRow[x][z]: tiles (x, z - r .. z + r) are dry and share (x, z)'s tier.
+  const levelRow = Array.from({ length: size.width }, () => new Uint8Array(size.depth));
+  for (let x = 0; x < size.width; x++) {
+    for (let z = 0; z < size.depth; z++) {
+      const dry = !lakeMap[x][z];
+      run[z] = !dry ? 0 : z > 0 && run[z - 1] > 0 && heightMap[x][z - 1] === heightMap[x][z] ? run[z - 1] + 1 : 1;
+      if (z >= span - 1 && run[z] >= span) levelRow[x][z - r] = 1;
     }
   }
-  return true;
-}
-
-// Scans once for every valid site rather than guessing random coordinates:
-// flat dry patches can be sparse, and rejection sampling with a fixed
-// attempt budget silently misses them.
-function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX: number, spawnZ: number): Site[] {
   const candidates: Site[] = [];
-  const size = sizeOf(heightMap);
   for (let x = VILLAGE_MAP_MARGIN; x < size.width - VILLAGE_MAP_MARGIN; x++) {
     for (let z = VILLAGE_MAP_MARGIN; z < size.depth - VILLAGE_MAP_MARGIN; z++) {
       if (Math.hypot(x - spawnX, z - spawnZ) < VILLAGE_MIN_DIST_FROM_SPAWN) continue;
-      if (isFlatDrySite(heightMap, lakeMap, x, z)) candidates.push({ x, z });
+      let level = true;
+      for (let dx = -r; dx <= r && level; dx++) level = levelRow[x + dx][z] === 1 && heightMap[x + dx][z] === heightMap[x][z];
+      if (level) candidates.push({ x, z });
     }
   }
   return candidates;
@@ -159,14 +163,32 @@ export function generateVillages(
   const baseCount = VILLAGE_MIN_COUNT + Math.floor(rng() * (VILLAGE_MAX_COUNT - VILLAGE_MIN_COUNT + 1));
   const villageCount = Math.round((baseCount * size.width * size.depth) / VILLAGE_COUNT_AREA);
 
+  // Sites are drawn in random order, shuffling lazily (a big map has
+  // millions of candidates but needs only a few thousand), and spacing is
+  // checked against a coarse grid of placed villages rather than all of them.
   const candidates = findCandidateSites(heightMap, lakeMap, spawnX, spawnZ);
-  shuffle(candidates, rng);
-
   const villages: Village[] = [];
-  for (const c of candidates) {
-    if (villages.length >= villageCount) break;
-    if (villages.some((v) => Math.hypot(v.x - c.x, v.z - c.z) < VILLAGE_MIN_DIST_BETWEEN)) continue;
-    villages.push({ x: c.x, z: c.z, groundTier: heightMap[c.x][c.z] });
+  const cell = VILLAGE_MIN_DIST_BETWEEN;
+  const placed = new Map<string, Village[]>();
+  const tooClose = (x: number, z: number) => {
+    const gx = Math.floor(x / cell);
+    const gz = Math.floor(z / cell);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        for (const v of placed.get(`${gx + dx},${gz + dz}`) ?? []) if (Math.hypot(v.x - x, v.z - z) < VILLAGE_MIN_DIST_BETWEEN) return true;
+      }
+    }
+    return false;
+  };
+  for (let i = 0; i < candidates.length && villages.length < villageCount; i++) {
+    const j = i + Math.floor(rng() * (candidates.length - i));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    const c = candidates[i];
+    if (tooClose(c.x, c.z)) continue;
+    const village = { x: c.x, z: c.z, groundTier: heightMap[c.x][c.z] };
+    villages.push(village);
+    const key = `${Math.floor(c.x / cell)},${Math.floor(c.z / cell)}`;
+    placed.set(key, [...(placed.get(key) ?? []), village]);
   }
 
   // Squares first, so no village's lanes run across another's square.

@@ -4,7 +4,7 @@
 // through its own rng, so it never shifts the main world-generation stream.
 
 import { MAX_TIER, TREE_CHANCE, TREE_SHAPES } from '../constants';
-import { cellKey } from '../grid';
+import { cellLookup, sizeOf } from '../grid';
 import { createNoise2D } from 'simplex-noise';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Surface, Tree, TreeKind } from '../types';
@@ -50,14 +50,18 @@ export function generateTrees(
   spawnZ: number,
 ): Tree[] {
   const trees: Tree[] = [];
+  const blocked = cellLookup(sizeOf(heightMap), blockedCells);
   for (let x = 0; x < heightMap.length; x++) {
     for (let z = 0; z < heightMap[x].length; z++) {
       const h = heightMap[x][z];
       const roll = rng();
       // Skip lakes, paths/squares, buildings, the highest tier (bare summit), and the spawn cell.
       const isSpawn = x === spawnX && z === spawnZ;
-      const isBlocked = lakeMap[x][z] || surfaceMap[x][z] !== 'natural' || blockedCells.has(cellKey(x, z));
-      if (!isBlocked && h < MAX_TIER && !isSpawn && roll < forestDensity(x, z)) {
+      // Cheapest tests first: the forest noise is only sampled when the roll
+      // could possibly pass (density never exceeds FOREST_CHANCE).
+      if (roll >= FOREST_CHANCE || isSpawn || h >= MAX_TIER) continue;
+      if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural' || blocked(x, z)) continue;
+      if (roll < forestDensity(x, z)) {
         // Exactly two rng draws per tree, as before voxel trees existed, so
         // every seed keeps its tree positions (and all later rng draws).
         const quarterTurns = Math.floor(rng() * 4);

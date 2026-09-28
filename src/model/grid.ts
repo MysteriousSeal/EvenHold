@@ -33,6 +33,17 @@ export function cellKey(x: number, z: number): string {
   return `${x},${z}`;
 }
 
+// A fast lookup for a set of "x,z" cell keys, as a flat grid: on big maps,
+// building a key string for every tile to test against a Set is slow.
+export function cellLookup(size: MapSize, keys: Iterable<string>): (x: number, z: number) => boolean {
+  const grid = new Uint8Array(size.width * size.depth);
+  for (const key of keys) {
+    const [x, z] = key.split(',').map(Number);
+    if (inBounds(size, x, z)) grid[x * size.depth + z] = 1;
+  }
+  return (x, z) => inBounds(size, x, z) && grid[x * size.depth + z] === 1;
+}
+
 // Continuous world coordinate -> index of the grid cell it falls in, clamped to the map.
 export function toCellX(size: MapSize, x: number): number {
   return Math.min(size.width - 1, Math.max(0, Math.round(x)));

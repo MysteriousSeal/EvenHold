@@ -4,7 +4,7 @@
 // so adding bushes didn't reshuffle any seed's existing map.
 
 import { BUSH_CHANCE, BUSH_SHAPES } from '../constants';
-import { cellKey } from '../grid';
+import { cellKey, cellLookup, sizeOf } from '../grid';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Bush, BushKind, Surface, Tree } from '../types';
 import type { MeadowDensity } from './meadows';
@@ -28,21 +28,24 @@ export function generateBushes(
   spawnX: number,
   spawnZ: number,
 ): Bush[] {
-  const treeCells = new Set(trees.map((t) => cellKey(t.x, t.z)));
+  const size = sizeOf(heightMap);
+  const blocked = cellLookup(size, blockedCells);
+  const hasTree = cellLookup(size, trees.map((t) => cellKey(t.x, t.z)));
   const bushes: Bush[] = [];
 
   for (let x = 0; x < heightMap.length; x++) {
     for (let z = 0; z < heightMap[x].length; z++) {
+      // The tile's own roll first: it's cheap and fails for most tiles, so
+      // the meadow noise below is only sampled where a bush could grow.
+      const rng = mulberry32(hashCell(x, z, BUSH_SALT));
+      if (rng() >= BUSH_CHANCE) continue;
       if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural') continue;
-      if (blockedCells.has(cellKey(x, z)) || treeCells.has(cellKey(x, z))) continue;
+      if (blocked(x, z) || hasTree(x, z)) continue;
       // Keep the spawn tile and its neighbors clear so the hero never starts boxed in.
       if (Math.abs(x - spawnX) <= 1 && Math.abs(z - spawnZ) <= 1) continue;
 
       const density = meadowDensity(x, z);
       if (density < EDGE_MIN || density > EDGE_MAX) continue;
-
-      const rng = mulberry32(hashCell(x, z, BUSH_SALT));
-      if (rng() >= BUSH_CHANCE) continue;
       bushes.push({
         x,
         z,

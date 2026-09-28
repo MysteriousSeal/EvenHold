@@ -21,40 +21,53 @@ export function generateLakeMap(
 ): boolean[][] {
   const size = sizeOf(heightMap);
   const map: boolean[][] = heightMap.map((row) => row.map(() => false));
-  const visited: boolean[][] = heightMap.map((row) => row.map(() => false));
+  // Flat typed arrays (index x * depth + z): a big map has millions of tiles.
+  const visited = new Uint8Array(size.width * size.depth);
+  const stack = new Int32Array(size.width * size.depth);
+  const basin = new Int32Array(size.width * size.depth);
+  const spawn = spawnX * size.depth + spawnZ;
 
   for (let x = 0; x < size.width; x++) {
     for (let z = 0; z < size.depth; z++) {
-      if (heightMap[x][z] > WATER_LEVEL || visited[x][z]) continue;
+      const start = x * size.depth + z;
+      if (heightMap[x][z] > WATER_LEVEL || visited[start]) continue;
 
-      const basin: Array<[number, number]> = [];
-      const stack: Array<[number, number]> = [[x, z]];
-      visited[x][z] = true;
-
-      while (stack.length > 0) {
-        const [cx, cz] = stack.pop()!;
-        basin.push([cx, cz]);
-
+      let top = 0;
+      let count = 0;
+      let containsSpawn = false;
+      stack[top++] = start;
+      visited[start] = 1;
+      while (top > 0) {
+        const cell = stack[--top];
+        basin[count++] = cell;
+        if (cell === spawn) containsSpawn = true;
+        const cx = Math.floor(cell / size.depth);
+        const cz = cell - cx * size.depth;
         for (const [dx, dz] of NEIGHBORS_4) {
           const nx = cx + dx;
           const nz = cz + dz;
-          if (inBounds(size, nx, nz) && heightMap[nx][nz] <= WATER_LEVEL && !visited[nx][nz]) {
-            visited[nx][nz] = true;
-            stack.push([nx, nz]);
-          }
+          if (!inBounds(size, nx, nz) || heightMap[nx][nz] > WATER_LEVEL) continue;
+          const next = nx * size.depth + nz;
+          if (visited[next]) continue;
+          visited[next] = 1;
+          stack[top++] = next;
         }
       }
 
-      const containsSpawn = basin.some(([cx, cz]) => cx === spawnX && cz === spawnZ);
-      if (basin.length < MIN_LAKE_SIZE || containsSpawn) continue;
+      if (count < MIN_LAKE_SIZE || containsSpawn) continue;
 
       let blobSum = 0;
-      for (const [cx, cz] of basin) {
+      for (let i = 0; i < count; i++) {
+        const cx = Math.floor(basin[i] / size.depth);
+        const cz = basin[i] - cx * size.depth;
         blobSum += noise2D(cx / LAKE_NOISE_SCALE + 500, cz / LAKE_NOISE_SCALE + 500);
       }
 
-      if (blobSum / basin.length > lakeThreshold) {
-        for (const [cx, cz] of basin) map[cx][cz] = true;
+      if (blobSum / count > lakeThreshold) {
+        for (let i = 0; i < count; i++) {
+          const cx = Math.floor(basin[i] / size.depth);
+          map[cx][basin[i] - cx * size.depth] = true;
+        }
       }
     }
   }
