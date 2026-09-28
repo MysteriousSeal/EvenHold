@@ -1,4 +1,4 @@
-// The focused enemy's frame, beside the hero's (styles in heroHud.css): its
+// The focused enemy's frame, beside the hero's (styles in hud.css): its
 // portrait facing the hero (a wolf's head, or the bandit's own head and
 // shoulders, as dressed), its name and health. Hidden with no focus.
 

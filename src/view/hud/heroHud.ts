@@ -1,10 +1,10 @@
 // The hero's HUD, top left: a portrait (the hero's own voxel head and
 // shoulders, redrawn when what they wear changes) with their level on its
 // corner, a health bar and an experience bar.
-// Styles in heroHud.css. Updated every frame, touching the page only when
+// Styles in hud.css. Updated every frame, touching the page only when
 // something shown has changed.
 
-import './heroHud.css';
+import './hud.css';
 import type { Hero } from '../../model/types';
 import { maxHpAt, xpToNext } from '../../model/heroStats';
 import { humanBust } from '../meshes/human/humanFigure';
