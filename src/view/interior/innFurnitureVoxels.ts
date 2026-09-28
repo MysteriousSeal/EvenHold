@@ -3,7 +3,7 @@
 // hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board).
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, tankard, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, type Box } from './furniturePalette';
 
 export type InnKind = 'counter' | 'keg' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
 
@@ -11,14 +11,14 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
   // middle of its tiles), panelled on the customers' side, under a thick
   // overhanging top with a lit edge, a brass foot rail along its foot, and
-  // tankards standing on it.
+  // tankards and empty mugs standing on it.
   counter: (box, len) => {
     box(1, 1, 9, len - 2, 2, 16, WOOD_DARK); // kick plinth
     box(1, 3, 8, len - 2, 11, 16, (u, y, v) => (v === 16 && (u % 10 === 0 || y === 3 || y === 11) ? WOOD_DARK : WOOD)); // panels, framed
     box(0, 12, 7, len - 1, 13, 18, (_u, y, v) => (y === 12 ? WOOD_DARK : v === 18 ? WOOD_LIGHT : WOOD)); // the top
     box(1, 4, 18, len - 2, 4, 18, BRASS); // foot rail
     for (let u = 4; u < len - 2; u += 12) box(u, 3, 17, u, 3, 17, BRASS_DARK); // its brackets
-    for (let u = 10; u < len - 6; u += 30) tankard(box, u, 14, 10);
+    for (let u = 10, i = 0; u < len - 6; u += 30, i++) drink(box, u, 14, 10, i);
   },
   // A keg on its side on a wooden cradle, pointing out into the room: an
   // eight-sided body of staves (v along its length), two iron hoops, the
@@ -139,7 +139,7 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
       }
     }
   },
-  // A tavern table laid for a meal: two pewter plates, a loaf and a roast, tankards, a candle.
+  // A tavern table laid for a meal: two pewter plates, a loaf and a roast, a tankard and a mug, a candle.
   tavernTable: (box) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
     box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
@@ -147,7 +147,7 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
     box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
     box(16, 12, 16, 19, 13, 18, (_u, y) => (y === 13 ? ROAST : CLAY_DARK)); // a roast on the other,
     box(20, 13, 17, 21, 13, 17, BONE); // its bone sticking out
-    for (const [u, v] of [[17, 4], [4, 17]]) tankard(box, u, 11, v);
+    [[17, 4], [4, 17]].forEach(([u, v], i) => drink(box, u, 11, v, i)); // a full tankard and an empty mug
     box(11, 11, 11, 12, 15, 12, LINEN); // candle
     box(11, 16, 11, 11, 16, 11, EMBER);
   },

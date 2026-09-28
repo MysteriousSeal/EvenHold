@@ -44,12 +44,23 @@ export const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, 
 export const [RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK] =
   FURNITURE_PALETTE.slice(16).map((_, i) => 30 + i);
 
-// A tankard of ale standing at (u, y, v): a wooden body with iron hoops,
-// a white head of foam, and a handle on its side.
-export function tankard(box: Box, u: number, y: number, v: number): void {
-  box(u, y, v, u + 2, y + 3, v + 2, (_u, yy) => (yy === y || yy === y + 3 ? IRON : WOOD_LIGHT));
-  box(u, y + 4, v, u + 2, y + 4, v + 2, LINEN); // foam
+// A tankard standing at (u, y, v): a wooden body with iron hoops and a
+// handle on its side; full, a white head of foam on top; empty, open at the
+// top, its dark bottom showing. Full or empty, the same shape.
+export function tankard(box: Box, u: number, y: number, v: number, full: boolean): void {
+  box(u, y, v, u + 2, y + 3, v + 2, (_u, yy) => (yy === y || yy === y + 2 ? IRON : WOOD_LIGHT)); // a wooden lip on top
   box(u + 3, y + 1, v + 1, u + 3, y + 2, v + 1, IRON); // handle
+  if (full) box(u, y + 4, v, u + 2, y + 4, v + 2, LINEN); // foam
+  else {
+    box(u + 1, y + 2, v + 1, u + 1, y + 3, v + 1, 0); // open
+    box(u + 1, y + 1, v + 1, u + 1, y + 1, v + 1, WOOD_DARK); // down to its bottom
+  }
+}
+
+// A drink set down at (u, y, v): full and empty by turns (`i` counts them),
+// so there are as many of each.
+export function drink(box: Box, u: number, y: number, v: number, i: number): void {
+  tankard(box, u, y, v, i % 2 === 0);
 }
 
 export type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
