@@ -58,6 +58,33 @@ export interface Menu {
   toggle(): void;
 }
 
+// The close button's X: two thick strokes with square ends and a soft drop
+// shadow, drawn smooth on a canvas (crisp at any screen density) in `color`.
+function closeCross(size: number, color: string, shadow: string): HTMLCanvasElement {
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = Math.round(size * ratio);
+  canvas.style.width = canvas.style.height = `${size}px`;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  const s = canvas.width;
+  const inset = s * 0.24;
+  const draw = (offset: number, stroke: string) => {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = s * 0.17;
+    ctx.lineCap = 'butt';
+    ctx.beginPath();
+    ctx.moveTo(inset, inset + offset);
+    ctx.lineTo(s - inset, s - inset + offset);
+    ctx.moveTo(s - inset, inset + offset);
+    ctx.lineTo(inset, s - inset + offset);
+    ctx.stroke();
+  };
+  draw(s * 0.06, shadow);
+  draw(0, color);
+  return canvas;
+}
+
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -73,6 +100,11 @@ export function createMenu(options: MenuOptions): Menu {
   menu.setAttribute('aria-label', options.title);
   const header = el('div', 'menu-header');
   header.append(el('h2', 'menu-title', options.title));
+  const closeButton = el('button', 'menu-close');
+  closeButton.setAttribute('aria-label', 'Close');
+  // Two drawings of the X: at rest, and lit on hover (CSS shows one).
+  closeButton.append(closeCross(24, '#a4502f', 'rgba(46, 31, 20, 0.25)'), closeCross(24, '#7a3520', 'rgba(46, 31, 20, 0.3)'));
+  header.append(closeButton);
   const tabBar = el('div', 'menu-tabs');
   const body = el('div', 'menu-body');
   const list = el('div', 'menu-list');
@@ -121,6 +153,7 @@ export function createMenu(options: MenuOptions): Menu {
     }
     grid = null;
     list.classList.toggle('grid', !!tab.slots);
+    body.classList.toggle('grid', !!tab.slots);
     if (tab.slots) showSlots(tab.slots());
     rows = (tab.actions ?? []).map((action, j) => {
       const row = el('button', 'menu-row');
@@ -261,6 +294,8 @@ export function createMenu(options: MenuOptions): Menu {
       else api.open();
     },
   };
+
+  closeButton.addEventListener('click', () => api.close());
 
   backdrop.addEventListener('click', (e) => {
     if (justDropped) {

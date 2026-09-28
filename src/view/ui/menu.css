@@ -42,11 +42,38 @@
 }
 
 .menu-header {
-  padding: 12px 20px 10px;
+  position: relative;
+  padding: 12px 20px 16px; /* 4px more below, for the dark band along the bottom */
   text-align: center;
   background: var(--clay);
   box-shadow: inset 0 -4px 0 var(--clay-dark);
 }
+/* The close button, on the right of the header band (centered above its
+   dark edge): a raised sand tile with the X in clay. On hover it lights up
+   in lantern gold, rises, and the X deepens; pressed, it sinks. */
+.menu-close {
+  position: absolute;
+  top: calc(50% - 2px);
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--sand);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink), inset 0 -3px 0 var(--sand-dark);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.menu-close canvas { display: block; grid-area: 1 / 1; }
+.menu-close canvas:last-child { visibility: hidden; }
+.menu-close:hover { background: var(--lantern); box-shadow: 0 4px 0 var(--ink), inset 0 -3px 0 var(--ember); transform: translateY(calc(-50% - 1px)); }
+.menu-close:hover canvas:first-child { visibility: hidden; }
+.menu-close:hover canvas:last-child { visibility: visible; }
+.menu-close:active { box-shadow: 0 1px 0 var(--ink), inset 0 -2px 0 var(--ember); transform: translateY(calc(-50% + 2px)); }
+.menu-close:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+
 .menu-title {
   margin: 0;
   font-size: 28px;
@@ -94,6 +121,8 @@
 }
 
 .menu-body { padding: 14px 14px 6px; overflow-y: auto; }
+.menu-body.grid { padding: 14px; } /* nothing under a grid: even all round */
+.menu-tabs[hidden] { display: none; } /* a single tab needs no tab bar */
 .menu-list { display: flex; flex-direction: column; gap: 2px; min-height: 296px; }
 
 .menu-row {
