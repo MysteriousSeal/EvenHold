@@ -25,9 +25,9 @@ export const FENCE_THICKNESS = 0.06; // fences block a strip this thick along th
 export const LANTERN_COLLISION_HALF = 0.08; // square lantern posts block a small square around the post
 export const BUSH_COLLISION_HALF = 0.2; // bushes block a 0.4x0.4 square (their foliage), not their whole tile
 
-// About one village per ~1,300-2,100 tiles (30-50 per 256x256 of map); spacing below keeps them spread out.
-export const VILLAGE_MIN_COUNT = 30; // per VILLAGE_COUNT_AREA; scaled with the map's area
-export const VILLAGE_MAX_COUNT = 50; // inclusive
+// About one village per ~5,500-8,200 tiles (8-12 per 256x256 of map), with countryside between them.
+export const VILLAGE_MIN_COUNT = 8; // per VILLAGE_COUNT_AREA; scaled with the map's area
+export const VILLAGE_MAX_COUNT = 12; // inclusive
 export const VILLAGE_COUNT_AREA = 256 * 256; // the area the count range above is for
 export const LANE_LENGTH_MIN = 3; // lanes run this many tiles out from the square...
 export const LANE_LENGTH_MAX = 7; // ...up to this many (inclusive), plus any jog
@@ -37,6 +37,6 @@ export const VILLAGE_FLAT_RADIUS = 3; // a village site must be flat within this
 export const VILLAGE_PLAZA_RADIUS = 1; // open ground around the well kept free of houses (3x3)
 export const VILLAGE_OUTER_RADIUS = 3; // buildings sit on the rings out to this radius; the square covers it all (7x7)
 export const VILLAGE_MIN_DIST_FROM_SPAWN = 10;
-export const VILLAGE_MIN_DIST_BETWEEN = 14;
+export const VILLAGE_MIN_DIST_BETWEEN = 30;
 export const VILLAGE_MAP_MARGIN = 6; // keep villages away from the map edge
 
