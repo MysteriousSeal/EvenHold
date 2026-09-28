@@ -199,6 +199,24 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   shelf: [0, 0.34],
 };
 
+// Seats pulled up to what they face (a chair to its table, a stool to the
+// bar) fill only part of their tile: a span across it and a span toward what
+// they face (0 at the back of the tile, 1 at the front), as they're drawn.
+const PULLED_UP: Partial<Record<FurnitureKind, { across: [number, number]; forward: [number, number] }>> = {
+  chair: { across: [0.24, 0.72], forward: [0.48, 0.96] },
+  barStool: { across: [0.28, 0.72], forward: [0.56, 1] },
+};
+
+// A seat's footprint within its tile, as tile fractions [x0, x1, z0, z1],
+// its front turned toward `facing`.
+function seatSpan(across: [number, number], forward: [number, number], [dx, dz]: [number, number]): [number, number, number, number] {
+  const flip = ([a, b]: [number, number]): [number, number] => [1 - b, 1 - a];
+  if (dz === 1) return [...across, ...forward];
+  if (dz === -1) return [...flip(across), ...flip(forward)];
+  if (dx === 1) return [...forward, ...flip(across)];
+  return [...flip(forward), ...across];
+}
+
 // Whether a walker of half-width r at (x, z) bumps into solid furniture.
 export function bumpsFurniture(items: readonly Furniture[], x: number, z: number, r: number): boolean {
   const inset = 0.08; // pieces don't quite fill their tiles
@@ -208,6 +226,11 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
     const slim = SLIM[f.kind];
     if (slim && f.wall === 'left') [x0, x1] = [f.x - 0.5 + slim[0], f.x - 0.5 + slim[1]];
     if (slim && f.wall === 'back') [z0, z1] = [f.z - 0.5 + slim[0], f.z - 0.5 + slim[1]];
+    const seat = PULLED_UP[f.kind];
+    if (seat && f.facing) {
+      const [a0, a1, b0, b1] = seatSpan(seat.across, seat.forward, f.facing);
+      [x0, x1, z0, z1] = [f.x - 0.5 + a0, f.x - 0.5 + a1, f.z - 0.5 + b0, f.z - 0.5 + b1];
+    }
     return x + r > x0 && x - r < x1 && z + r > z0 && z - r < z1;
   });
 }

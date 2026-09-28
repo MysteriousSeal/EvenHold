@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { roomFor } from '../src/model/interiors/interiors';
+import type { Furniture } from '../src/model/interiors/furniture';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const FRAME = 1 / 60;
@@ -72,5 +73,14 @@ describe('interiors', () => {
       }
     }
     expect(inns).toBeGreaterThan(0);
+  });
+
+  it('lets the hero past a chair behind its back, but not through it', async () => {
+    const { bumpsFurniture } = await import('../src/model/interiors/furniture');
+    const r = 0.25; // about the hero's half-width indoors
+    // A chair on tile (3, 3) facing its table at (2, 3): it fills the half toward the table.
+    const items: Furniture[] = [{ kind: 'chair', x: 3, z: 3, w: 1, d: 1, wall: 'none', solid: true, facing: [-1, 0] }];
+    expect(bumpsFurniture(items, 2.9, 3, r)).toBe(true); // into the seat
+    expect(bumpsFurniture(items, 3.5, 3, r)).toBe(false); // past its back, where it's not drawn
   });
 });
