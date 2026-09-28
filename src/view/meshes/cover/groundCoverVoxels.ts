@@ -2,6 +2,8 @@
 // - Grass tufts: clusters of 1x1 upright blades, taller toward the middle,
 //   shaded root -> tip. The palette is near-white multipliers; each tuft is
 //   tinted with its tile's green, so one model serves every tier.
+// - Sprigs: a few lone blades one or two voxels tall, strewn over all the
+//   grass so even bare ground has some texture. Tinted like tufts.
 // - Flowers: a short stem with a cross-shaped bloom around a heart.
 // - Pebbles: clusters of 2-4 small stepped stones, some with mossy tops.
 // Straight, grid-aligned voxels only.
@@ -44,6 +46,22 @@ export const FLOWER_GRID: [number, number, number] = [3, 5, 3];
 export const FLOWER_HEIGHTS = 2; // stem-length variants
 export const PEBBLE_GRID: [number, number, number] = [8, 3, 8];
 export const PEBBLE_SHAPES = 6; // the upper half are mossy
+export const SPRIG_GRID: [number, number, number] = [5, 2, 5];
+export const SPRIG_SHAPES = 6;
+
+export function buildSprig(shape: number): VoxelGrid {
+  const grid = createGrid(SPRIG_GRID);
+  const rng = mulberry32(0x5b41 + shape * 7727);
+  const blades = 3 + Math.floor(rng() * 3);
+  for (let n = 0; n < blades; n++) {
+    const i = Math.floor(rng() * 5);
+    const k = Math.floor(rng() * 5);
+    const tall = rng() < 0.45;
+    setColor(grid, i, 0, k, tall ? BLADE[1] : BLADE[2]);
+    if (tall) setColor(grid, i, 1, k, BLADE[2]);
+  }
+  return grid;
+}
 
 export function buildTuft(size: number, shape: number): VoxelGrid {
   const grid = createGrid(TUFT_GRID);

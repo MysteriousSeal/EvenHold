@@ -1,5 +1,5 @@
-// Draws the scattered ground cover as voxel models: grass tufts that sway
-// in the wind, wildflowers and pebble clusters. Positions come from
+// Draws the scattered ground cover as voxel models: grass tufts and sprigs
+// that sway in the wind, wildflowers and pebble clusters. Positions come from
 // groundCoverScatter.ts; here they're snapped to the 0.04 voxel grid and
 // turned in quarter turns only, and each item's size picks a model rather
 // than scaling one, so every voxel stays the same size as the world's.
@@ -21,11 +21,14 @@ import {
   FLOWER_HEIGHTS,
   PEBBLE_GRID,
   PEBBLE_SHAPES,
+  SPRIG_GRID,
+  SPRIG_SHAPES,
   TUFT_GRID,
   TUFT_SHAPES,
   TUFT_SIZES,
   buildFlower,
   buildPebbles,
+  buildSprig,
   buildTuft,
 } from './groundCoverVoxels';
 
@@ -46,6 +49,7 @@ function geometry(grid: ReturnType<typeof buildTuft>, size: [number, number, num
 export const buildTuftGeometry = (size: number, shape: number) => geometry(buildTuft(size, shape), TUFT_GRID);
 export const buildFlowerGeometry = (color: number, height: number) => geometry(buildFlower(color, height), FLOWER_GRID);
 export const buildPebbleGeometry = (shape: number) => geometry(buildPebbles(shape), PEBBLE_GRID);
+export const buildSprigGeometry = (shape: number) => geometry(buildSprig(shape), SPRIG_GRID);
 
 // Tuft size class from the scatter's scale: small at meadow edges, large in lush centers.
 export function tuftSize(scale: number): number {
@@ -68,7 +72,7 @@ function place(item: ScatterItem, tint?: THREE.Color): VoxelPlacement {
 
 // Returns a per-frame callback that advances the wind animation.
 export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
-  // Scattered per chunk when the chunk is built; the three layers ask for
+  // Scattered per chunk when the chunk is built; the layers ask for
   // the same chunk in turn, so the last one is kept.
   const scatter = createCoverScatter(model);
   let last: { key: string; cover: GroundCover } | null = null;
@@ -84,16 +88,22 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
 
   const grassMaterial = plain();
   const windTime = addWindSway(grassMaterial, GRASS_WIND);
+  const grassTint = (item: ScatterItem) =>
+    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT);
+  scene.layer(voxelLayer(
+    keys,
+    (key) => coverIn(key).sprigs,
+    (s) => `sprig:${itemHash(s) % SPRIG_SHAPES}`,
+    (s) => buildSprigGeometry(itemHash(s) % SPRIG_SHAPES),
+    (s) => place(s, grassTint(s)),
+    grassMaterial,
+  ));
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).tufts,
     (t) => `tuft:${tuftSize(t.scale)}:${itemHash(t) % TUFT_SHAPES}`,
     (t) => buildTuftGeometry(tuftSize(t.scale), itemHash(t) % TUFT_SHAPES),
-    (t) =>
-      place(
-        t,
-        new THREE.Color(TERRAIN_COLORS[t.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[t.variant] * TUFT_ROOT_LIFT),
-      ),
+    (t) => place(t, grassTint(t)),
     grassMaterial,
   ));
   scene.layer(voxelLayer(

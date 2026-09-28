@@ -16,6 +16,7 @@ const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
 const CLUMP_SCALE_CENTER = 1.2; // clump size in the lushest part
 const FLOWER_CHANCE = 0.05;
 const PEBBLE_CHANCE = 0.04;
+const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few)
 const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
 const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
@@ -33,6 +34,7 @@ export interface ScatterItem {
 
 export interface GroundCover {
   tufts: ScatterItem[];
+  sprigs: ScatterItem[];
   flowers: ScatterItem[];
   pebbles: ScatterItem[];
 }
@@ -54,7 +56,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
   const solid = cellLookup(model.size, solidCells(model, model.bushes));
   const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
   return (x0, z0, x1, z1) => {
-  const cover: GroundCover = { tufts: [], flowers: [], pebbles: [] };
+  const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [] };
 
   for (let x = x0; x < x1; x++) {
     for (let z = z0; z < z1; z++) {
@@ -113,6 +115,8 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         const count = rng() < 0.3 ? 2 : 1;
         for (let i = 0; i < count; i++) cover.pebbles.push(item(offset(), offset(), 0.025 + rng() * 0.025, Math.floor(rng() * 3)));
       }
+      // Rolled last, so every tuft, flower and pebble keeps its place.
+      for (let i = 0; i < SPRIGS_PER_TILE; i++) cover.sprigs.push(item(offset(), offset(), 1, rng() < 0.5 ? 0 : 1));
     }
   }
   return cover;
