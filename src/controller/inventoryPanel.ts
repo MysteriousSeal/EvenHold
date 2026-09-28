@@ -9,7 +9,7 @@ import type { GameModel } from '../model/GameModel';
 import type { BagItem } from '../model/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
-import { createMenu, type MenuSlot } from '../view/ui/menu';
+import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
 import { bagIcon, isLoot } from '../view/ui/itemIcons';
 
 const COLUMNS = 6;
@@ -45,8 +45,9 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
   };
 }
 
-// Returns the function to call each frame: it redraws the bag when what's in it changed.
-export function createInventoryPanel(model: GameModel): () => void {
+// Returns the bag's menu, and the function to call each frame (it redraws
+// the bag when what's in it changed).
+export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void } {
   const menu = createMenu({
     title: 'Bag',
     toggleKey: 'KeyB',
@@ -65,10 +66,11 @@ export function createInventoryPanel(model: GameModel): () => void {
     ],
   });
   let shown = '';
-  return () => {
+  const update = () => {
     const contents = JSON.stringify(model.hero.bag);
     if (contents === shown) return;
     shown = contents;
     menu.refresh();
   };
+  return { menu, update };
 }

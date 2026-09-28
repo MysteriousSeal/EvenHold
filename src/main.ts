@@ -8,6 +8,9 @@ import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt } from './view/hud/lootPrompt';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createHeroSheet } from './controller/heroSheet';
+import { createPauseMenu } from './controller/pauseMenu';
+import { createToolbar } from './view/hud/toolbar';
+import { bagToolIcon, heroBustIcon, pauseIcon } from './view/ui/itemIcons';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 
@@ -44,14 +47,21 @@ async function boot(): Promise<void> {
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
-  const updateBag = createInventoryPanel(model);
-  const updateSheet = createHeroSheet(model);
+  const bag = createInventoryPanel(model);
+  const sheet = createHeroSheet(model);
+  const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused) });
+  const updateToolbar = createToolbar([
+    { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
+    { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
+    { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
+  ]);
   const onFrame = () => {
     countFrame();
     updateHud();
     updateTarget(model.focused);
-    updateBag();
-    updateSheet();
+    bag.update();
+    sheet.update();
+    updateToolbar();
     lootPrompt.update(model.lootInReach, (x, y, z) => view.toScreen(x, y, z));
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item) });

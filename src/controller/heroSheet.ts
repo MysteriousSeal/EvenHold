@@ -10,7 +10,7 @@ import { ITEMS, SLOT_NAMES, type EquipSlot } from '../model/human/equipment';
 import { maxHpAt, xpToNext } from '../model/heroStats';
 import { humanFigure } from '../view/meshes/human/humanFigure';
 import { gearIcon, slotPlaceholder } from '../view/ui/itemIcons';
-import { createMenu, type DollSlot } from '../view/ui/menu';
+import { createMenu, type DollSlot, type Menu } from '../view/ui/menu';
 import { FigureStage } from '../view/ui/figureStage';
 
 const LEFT: EquipSlot[] = ['head', 'neck', 'shoulders', 'torso'];
@@ -19,7 +19,7 @@ const BOTTOM: EquipSlot[] = ['mainHand', 'offHand'];
 
 // Returns the function to call each frame: it redraws the sheet when the
 // hero's gear or stats changed.
-export function createHeroSheet(model: GameModel): () => void {
+export function createHeroSheet(model: GameModel): { menu: Menu; update(): void } {
   const { hero } = model;
   const stage = new FigureStage(180, 250); // the hero, turning slowly
   let dressedAs = '';
@@ -76,11 +76,12 @@ export function createHeroSheet(model: GameModel): () => void {
     ],
   });
   let shown = '';
-  return () => {
+  const update = () => {
     if (menu.isOpen) stage.render();
     const state = `${JSON.stringify(hero.equipment)}|${hero.level}|${hero.xp}|${Math.floor(hero.hp)}`;
     if (state === shown) return;
     shown = state;
     menu.refresh();
   };
+  return { menu, update };
 }
