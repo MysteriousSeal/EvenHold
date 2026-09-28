@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
-import { ENEMY_DAMAGE, ENEMY_XP, gainXp, maxHpAt, recover, xpToNext } from '../src/model/heroStats';
+import { gainXp, maxHpAt, recover, xpToNext } from '../src/model/heroStats';
 import { spawnOf } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
@@ -47,7 +47,7 @@ describe('enemies hurt the hero', () => {
     const model = fresh();
     alone(model, nearest(model, 'bandit'));
     for (let t = 0; t < ENEMY_STATS.bandit.swing + FRAME && model.hero.hp === maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
-    expect(model.hero.hp).toBe(maxHpAt(1) - ENEMY_DAMAGE.bandit);
+    expect(model.hero.hp).toBe(maxHpAt(1) - ENEMY_STATS.bandit.damage);
     expect(model.hero.hurtFor).toBeGreaterThan(0);
 
     const safe = fresh();
@@ -61,7 +61,7 @@ describe('enemies hurt the hero', () => {
     const model = fresh();
     alone(model, nearest(model, 'wolf'));
     const spawn = spawnOf(model.size);
-    model.hero.hp = ENEMY_DAMAGE.wolf; // one bite left
+    model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
     for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
     expect(model.hero.hp).toBe(maxHpAt(1));
     expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
@@ -79,6 +79,6 @@ describe('enemies hurt the hero', () => {
       for (let t = 0; t < ATTACK_DURATION + FRAME; t += FRAME) model.update(0, 0, FRAME);
     }
     expect(wolf.state).toBe('dead');
-    expect(model.hero.xp).toBe(ENEMY_XP.wolf);
+    expect(model.hero.xp).toBe(ENEMY_STATS.wolf.xp);
   });
 });

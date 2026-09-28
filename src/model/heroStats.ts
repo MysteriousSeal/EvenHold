@@ -2,16 +2,12 @@
 // each level takes more experience than the last. Hurt, the hero heals by
 // itself once out of the fight for a while. Levelling up heals fully.
 
-import type { EnemyKind, Hero } from './types';
+import type { Hero } from './types';
 
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;
 const REGEN_DELAY = 5; // seconds after the last hit before healing starts
 const REGEN_RATE = 1; // hit points per second while healing
-
-// Damage each kind of enemy deals per blow, and the experience it's worth.
-export const ENEMY_DAMAGE: Record<EnemyKind, number> = { wolf: 1, bandit: 2 };
-export const ENEMY_XP: Record<EnemyKind, number> = { wolf: 10, bandit: 20 };
 
 export function maxHpAt(level: number): number {
   return BASE_HP + (level - 1) * HP_PER_LEVEL;

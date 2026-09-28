@@ -4,12 +4,13 @@ export const MAP_WIDTH = 2048;
 export const MAP_DEPTH = 2048;
 export const HERO_SPEED = 4; // units per second
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size
-// Per enemy kind: hit points, collision half-size, speeds, how near the hero
+// Per enemy kind: hit points, damage per blow, experience for a kill,
+// collision half-size, speeds, how near the hero
 // must come for a chase, how far it gives up, how far it wanders from home,
 // and how close it stops (arm's reach for bandits).
 export const ENEMY_STATS = {
-  wolf: { hp: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 5, giveUp: 9, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
-  bandit: { hp: 5, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 10, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
+  wolf: { hp: 3, damage: 1, xp: 10, radius: 0.18, walk: 1.1, run: 3.2, sight: 5, giveUp: 9, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
+  bandit: { hp: 5, damage: 2, xp: 20, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 10, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)
