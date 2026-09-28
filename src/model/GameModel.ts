@@ -61,6 +61,7 @@ export class GameModel {
   readonly camps: Camp[];
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
   readonly coins: GroundCoins[] = []; // dropped coins, picked up by walking near them
+  readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -269,11 +270,12 @@ export class GameModel {
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
+      this.slain.add(target.id);
       gainXp(this.hero, target.xp);
       const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
       if (item) this.dropLoot(item, target.x, target.z);
       const amount = coinDrop(target);
-      if (amount > 0) this.coins.push({ id: this.nextLootId++, amount, x: target.x + 0.25, z: target.z + 0.15, y: this.getGroundY(target.x + 0.25, target.z + 0.15) });
+      if (amount > 0) this.dropCoins(amount, target.x + 0.25, target.z + 0.15);
     }
     const d = Math.max(best, 1e-6);
     this.director.move(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
@@ -282,6 +284,11 @@ export class GameModel {
   // Puts an item on the ground at (x, z).
   dropLoot(item: BagItem, x: number, z: number): void {
     this.loot.push({ id: this.nextLootId++, item, x, z, y: this.getGroundY(x, z) });
+  }
+
+  // Puts `amount` copper in coins on the ground at (x, z).
+  dropCoins(amount: number, x: number, z: number): void {
+    this.coins.push({ id: this.nextLootId++, amount, x, z, y: this.getGroundY(x, z) });
   }
 
   // The loot nearest the hero within reach to pick up, or null.
