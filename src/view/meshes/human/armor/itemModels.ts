@@ -5,10 +5,11 @@ import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
 import { SLOT_BANDS, buildShell } from './armorShell';
 import { BANDIT_MODELS } from './banditOutfit';
+import { BANDIT_WEAPON_MODELS } from './banditWeapons';
 import type { ItemModel } from './itemModel';
 import { STARTER_MODELS } from './starterSet';
 
-export const ITEM_MODELS: Record<ItemId, ItemModel> = { ...STARTER_MODELS, ...BANDIT_MODELS };
+export const ITEM_MODELS: Record<ItemId, ItemModel> = { ...STARTER_MODELS, ...BANDIT_MODELS, ...BANDIT_WEAPON_MODELS };
 
 // The shell a worn item puts on one body part (on the given side), or null
 // if it doesn't cover that part.
