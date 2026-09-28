@@ -178,6 +178,11 @@ export class GameModel {
     this.hop = null;
   }
 
+  // Whether a walker of half-width r can't stand at (x, z) (wildlife walk by it).
+  isBlocked(x: number, z: number, r: number): boolean {
+    return this.obstacles.isBlocked(x, z, r);
+  }
+
   // A tile the hero can stand in the middle of: on the map, dry, and free
   // of buildings, wells, trees, bushes and lamp posts.
   isOpenTile(x: number, z: number): boolean {

@@ -64,6 +64,7 @@ function makeDuck(id: number, variant: DuckVariant, x: number, z: number, headin
     homeX: x,
     homeZ: z,
     pack: [],
+    mother: null,
     target: null,
     restFor: hashUnit(Math.round(x * 10), Math.round(z * 10), 37) * 3,
     dabble: null,

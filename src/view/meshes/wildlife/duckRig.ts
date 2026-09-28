@@ -71,14 +71,15 @@ export class DuckRig {
   private time: number;
 
   constructor(duck: Wildlife, look: DuckLook) {
-    const { body, head } = look.parts[duck.variant];
+    const variant = duck.variant as DuckVariant;
+    const { body, head } = look.parts[variant];
     this.body.add(new THREE.Mesh(body, look.material));
-    const neck = NECK[duck.variant];
+    const neck = NECK[variant];
     this.head.position.set(neck[0] * V, neck[1] * V, neck[2] * V);
     this.head.add(new THREE.Mesh(head, look.material));
     this.body.add(this.head);
     // The wake, in voxel-sized strips: a bow ripple, side lines, a stern ripple.
-    this.size = BODY_GRID[duck.variant];
+    this.size = BODY_GRID[variant];
     const [w, , l] = this.size;
     const strip = (material: THREE.Material, x: number, z: number, width: number, depth: number) => {
       const mesh = new THREE.Mesh(look.foam, material);
