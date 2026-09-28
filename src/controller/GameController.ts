@@ -4,8 +4,10 @@ import type { BagItem } from '../model/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
+import { stepZoom } from '../view/render/zoom';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
+const WHEEL_STEP = 100; // scroll (in wheel deltas) to a zoom step
 
 // Uncapped frames are scheduled as message-channel tasks: unlike setTimeout
 // they aren't clamped to 4 ms, and unlike requestAnimationFrame they aren't
@@ -47,6 +49,21 @@ export class GameController {
     window.addEventListener('keydown', (event) => {
       if (event.code === 'Escape' && !this.paused) model.focus(null);
     });
+    // The mouse wheel steps the zoom outdoors: up, closer. Small scrolls (a
+    // trackpad's) add up to a whole step first.
+    let scrolled = 0;
+    view.canvas.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        if (this.paused || model.inside) return; // indoors the camera keeps the room's own zoom
+        scrolled += event.deltaY;
+        if (Math.abs(scrolled) < WHEEL_STEP) return;
+        stepZoom(scrolled < 0 ? 1 : -1);
+        scrolled = 0;
+      },
+      { passive: false },
+    );
   }
 
   start(): void {

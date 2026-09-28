@@ -49,7 +49,7 @@ async function boot(): Promise<void> {
   const lootPrompt = createLootPrompt();
   const bag = createInventoryPanel(model);
   const sheet = createHeroSheet(model);
-  const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused) });
+  const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused), redraw: () => view.render() });
   const updateToolbar = createToolbar([
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
