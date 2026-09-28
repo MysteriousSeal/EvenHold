@@ -32,6 +32,9 @@ export interface MenuSlot {
   // If given, the slot can be dragged out of the menu; let go outside it,
   // this runs with what's under the pointer (another menu, or the world).
   dragOut?(over: Element | null): void;
+  // Which kind of doll slot it fits (e.g. 'head'): while it's dragged, that
+  // slot glows, and hovering a doll slot shows green if it fits, red if not.
+  fits?: string;
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -40,6 +43,7 @@ export interface DollSlot {
   label: string;
   slot: MenuSlot | null;
   placeholder?: MenuIcon;
+  accepts?: string; // what can be dropped in it: a dragged slot whose `fits` matches
 }
 
 export interface MenuTab {
@@ -257,9 +261,10 @@ export function createMenu(options: MenuOptions): Menu {
     const doll = el('div', 'menu-doll');
     const column = (slots: DollSlot[], className: string) => {
       const box = el('div', className);
-      for (const { label, slot, placeholder } of slots) {
+      for (const { label, slot, placeholder, accepts } of slots) {
         const index = slotButtons.length;
         const button = slotButton(slot, 40, () => showTip(index));
+        if (accepts) button.dataset.accepts = accepts;
         button.addEventListener('mouseleave', hideTip);
         if (!slot) {
           if (placeholder) button.append(placeholder(40));
@@ -290,11 +295,27 @@ export function createMenu(options: MenuOptions): Menu {
     const follow = (e: PointerEvent) => (ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`);
     follow(event);
     document.body.append(ghost); // above every menu, so it shows over another one it's dragged to
-    const move = (e: PointerEvent) => follow(e);
+    // Doll slots on any menu: the one it fits glows; the one under the
+    // pointer shows green if it fits, red if not.
+    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-accepts]'));
+    for (const target of targets) target.classList.toggle('drop-hint', !!cell.fits && target.dataset.accepts === cell.fits);
+    let hovered: HTMLElement | null = null;
+    const mark = (e: PointerEvent) => {
+      const target = (document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-accepts]') as HTMLElement | null) ?? null;
+      if (target === hovered) return;
+      hovered?.classList.remove('drop-ok', 'drop-bad');
+      hovered = target;
+      if (target && cell.fits) target.classList.add(target.dataset.accepts === cell.fits ? 'drop-ok' : 'drop-bad');
+    };
+    const move = (e: PointerEvent) => {
+      follow(e);
+      mark(e);
+    };
     const up = (e: PointerEvent) => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       ghost.remove();
+      for (const target of targets) target.classList.remove('drop-hint', 'drop-ok', 'drop-bad');
       const panel = menu.getBoundingClientRect();
       const outside = e.clientX < panel.left || e.clientX > panel.right || e.clientY < panel.top || e.clientY > panel.bottom;
       if (!outside || !cell.dragOut) return;

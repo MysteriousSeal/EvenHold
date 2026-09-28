@@ -285,3 +285,9 @@
 .menu-doll + .menu-ledger { margin-top: 14px; padding: 12px 10px 4px; border-top: 2px dashed var(--line); }
 /* Empty doll slots show their silhouette at full strength. */
 .menu-doll .menu-slot.empty { opacity: 1; }
+
+/* While gear is dragged: the slot it fits glows; hovered, a slot shows green
+   if it fits, red if not. */
+.menu-slot.drop-hint { border-color: var(--lantern); box-shadow: 0 0 0 3px rgba(255, 217, 138, 0.7), inset 0 -4px 0 var(--sand-dark); }
+.menu-slot.drop-ok { border-color: #3f9a4a; box-shadow: 0 0 0 3px rgba(63, 154, 74, 0.55), inset 0 -4px 0 var(--sand-dark); }
+.menu-slot.drop-bad { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.5), inset 0 -4px 0 var(--sand-dark); }
