@@ -2,6 +2,8 @@ import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { resolveSeed } from './util/seed';
+import { randomLook } from './model/human/humanoid';
+import { randomName } from './model/npcs/npcs';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
@@ -26,6 +28,9 @@ async function boot(): Promise<void> {
   loading.show(0, 'Shaping the land');
   await nextPaint();
   const model = new GameModel(seed);
+  // A new hero every game: any look, a name to match.
+  model.hero.look = randomLook();
+  model.hero.name = randomName(model.hero.look.build);
   const options = readRenderOptions();
   const view = new GameView(canvas, model, options);
 

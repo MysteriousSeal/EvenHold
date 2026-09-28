@@ -51,6 +51,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
       portrait.querySelector('canvas')?.remove();
       portrait.prepend(canvas);
     }
+    if (name.textContent !== hero.name) name.textContent = hero.name; // a new hero (a cheat)
     const max = maxHpAt(hero.level);
     const need = xpToNext(hero.level);
     // Whole points only, in both the bar and the label, so they always agree

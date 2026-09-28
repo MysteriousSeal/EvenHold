@@ -37,7 +37,8 @@ import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
 import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
-import { HERO_LOOK, STYLES_OF, type HairStyle } from '../../model/human/humanoid';
+import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
+import { randomName } from '../../model/npcs/npcs';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
@@ -127,6 +128,16 @@ export function createCheatPanel(model: GameModel): void {
             title: 'Gain a level',
             detail: 'Just enough experience for the next',
             run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
+          },
+          {
+            icon: ICON.undress,
+            title: 'New character',
+            detail: 'Another look and name, at random',
+            run: () => {
+              model.hero.look = randomLook();
+              model.hero.name = randomName(model.hero.look.build);
+              return `Now ${model.hero.name}.`;
+            },
           },
           {
             icon: ICON.heroine,
