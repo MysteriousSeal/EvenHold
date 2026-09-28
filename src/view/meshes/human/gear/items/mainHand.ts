@@ -5,7 +5,7 @@
 // shafts held in the middle sit a voxel outside the hand, so what runs back
 // past the fist clears the hips.
 
-import type { MAIN_HAND_ITEMS } from '../../../../../model/items/held';
+import type { MAIN_HAND_ITEMS } from '../../../../../model/human/items/held';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';

@@ -1,6 +1,6 @@
 // What the model knows about an item: its name, the slot it goes in, and
 // who wears it out in the world. How it looks is the view's business
-// (view/meshes/human/gear/, one file per slot like here).
+// (view/meshes/human/gear/items/, one file per slot).
 
 import type { EquipSlot } from '../equipment';
 

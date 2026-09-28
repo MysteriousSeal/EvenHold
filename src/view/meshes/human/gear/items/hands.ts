@@ -2,7 +2,7 @@
 // -1 to 1 (-1 under the fist, 1 the wrist; x -1..2, z -1..2 with 2 the
 // front; the side toward the body stays open).
 
-import type { HANDS_ITEMS } from '../../../../../model/items/armor';
+import type { HANDS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mail, mod } from '../patterns';

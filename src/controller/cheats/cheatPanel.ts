@@ -4,7 +4,7 @@
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
 
-import type { GameModel } from '../model/GameModel';
+import type { GameModel } from '../../model/GameModel';
 import {
   nearestCamp,
   nearestLakeShore,
@@ -15,7 +15,7 @@ import {
   spawnTile,
   villageEntrance,
   type Tile,
-} from '../model/cheats';
+} from '../../model/cheats';
 import {
   BANDIT_OUTFIT,
   EQUIP_SLOTS,
@@ -27,9 +27,9 @@ import {
   slotOf,
   wear,
   type ItemId,
-} from '../model/equipment';
-import type { Village } from '../model/types';
-import { createMenu, type MenuAction } from '../view/ui/menu';
+} from '../../model/human/equipment';
+import type { Village } from '../../model/types';
+import { createMenu, type MenuAction } from '../../view/ui/menu';
 import { ICONS as ICON, itemIcon } from './cheatIcons';
 
 const SPEED_BOOST = 3;
@@ -46,8 +46,8 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
     model.teleport(tile.x, tile.z);
     return `Travelled to ${where}.`;
   };
+  let banditDraws = 0; // for "Random bandit": a new outfit each time
   // Replaces everything the hero wears with `items`.
-  let banditDraws = 0;
   const dress = (items: readonly ItemId[]) => {
     for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
     for (const item of items) wear(model.hero.equipment, item);
@@ -68,7 +68,7 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
     tabs: [
       {
         name: 'Travel',
-        icon: ICON.map,
+        icon: ICON.travel,
         actions: [
           {
             icon: ICON.village,
@@ -81,8 +81,8 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
           },
           { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
           { icon: ICON.camp, title: 'Bandit camp', detail: 'Just outside the nearest gate', run: () => travel(nearestCamp(model, here()), 'a bandit camp') },
-          { icon: ICON.paw, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
-          { icon: ICON.flag, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') },
+          { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+          { icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') },
         ],
       },
       {
@@ -90,31 +90,31 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
         icon: ICON.hero,
         actions: [
           {
-            icon: ICON.boot,
+            icon: ICON.swiftFeet,
             title: 'Swift feet',
             detail: `Walk ${SPEED_BOOST}× faster`,
             ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Swift feet on.', 'Swift feet off.'),
           },
-          { icon: ICON.ghost, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
-          { icon: ICON.shield, title: 'Invulnerable', detail: 'For when foes can hurt you', ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+          { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
+          { icon: ICON.invulnerable, title: 'Invulnerable', detail: 'For when foes can hurt you', ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
         ],
       },
       {
         name: 'Enemies',
-        icon: ICON.sword,
+        icon: ICON.enemies,
         actions: [
           { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
           { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
-          { icon: ICON.skull, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
-          { icon: ICON.frost, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
+          { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
+          { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
         ],
       },
       {
         name: 'Wardrobe',
         icon: ICON.wardrobe,
         actions: [
-          { icon: ICON.naked, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
-          { icon: ICON.starter, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
+          { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
+          { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
           { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
           {
             icon: ICON.bandit,
@@ -148,7 +148,7 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
       },
       {
         name: 'World',
-        icon: ICON.scroll,
+        icon: ICON.world,
         facts: () => {
           const { hero } = model;
           const tx = Math.round(hero.x);

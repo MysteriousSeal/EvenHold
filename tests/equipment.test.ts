@@ -16,8 +16,8 @@ import {
   type ArmorSlot,
   type Equipment,
   type ItemId,
-} from '../src/model/equipment';
-import { HERO_LOOK, lookAt } from '../src/model/humanoid';
+} from '../src/model/human/equipment';
+import { HERO_LOOK, lookAt } from '../src/model/human/humanoid';
 import { makeEnemy } from '../src/model/enemies';
 import { SLOT_BANDS } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';

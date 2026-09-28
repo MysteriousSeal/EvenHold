@@ -2,7 +2,7 @@
 // (7 is over the crown) and z -1..7 (7 is in front of the face); the face
 // has eyes at x 2 and 4 on rows 2-3, cheeks and mouth on row 1.
 
-import type { HEAD_ITEMS } from '../../../../../model/items/armor';
+import type { HEAD_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette, type ShellCell } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { mail, mod, weave } from '../patterns';

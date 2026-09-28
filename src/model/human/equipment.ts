@@ -6,7 +6,7 @@
 // The items themselves are in the catalog (items/); how each one looks is
 // the view's business (view/meshes/human/gear/).
 
-import { hashUnit } from '../util/random';
+import { hashUnit } from '../../util/random';
 import { ITEMS, ITEM_IDS, type ItemId, type Wearer } from './items';
 
 export { ITEMS, ITEM_IDS, type ItemId, type Wearer };
@@ -17,6 +17,10 @@ export type ArmorSlot = (typeof ARMOR_SLOTS)[number];
 export type HeldSlot = (typeof HELD_SLOTS)[number];
 export type EquipSlot = ArmorSlot | HeldSlot;
 export const EQUIP_SLOTS: readonly EquipSlot[] = [...ARMOR_SLOTS, ...HELD_SLOTS];
+
+export function isHeldSlot(slot: EquipSlot): slot is HeldSlot {
+  return slot === 'mainHand' || slot === 'offHand';
+}
 
 export const SLOT_NAMES: Record<EquipSlot, string> = {
   head: 'Head',
@@ -50,7 +54,7 @@ export function gearOf(wearer: Wearer): Record<EquipSlot, Options> {
   if (!gear) {
     gear = Object.fromEntries(EQUIP_SLOTS.map((slot) => [slot, [] as Options])) as Record<EquipSlot, Options>;
     for (const item of ITEM_IDS) {
-      const weight = (ITEMS[item] as { wornBy?: Partial<Record<Wearer, number>> }).wornBy?.[wearer];
+      const weight = ITEMS[item].wornBy?.[wearer];
       if (weight) gear[ITEMS[item].slot].push([item, weight]);
     }
     for (const slot of EQUIP_SLOTS) {

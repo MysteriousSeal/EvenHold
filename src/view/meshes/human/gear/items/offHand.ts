@@ -4,7 +4,7 @@
 // the parrying dagger points forward like the main hand's blades. Grips
 // follow the rules in itemModel.ts.
 
-import type { OFF_HAND_ITEMS } from '../../../../../model/items/held';
+import type { OFF_HAND_ITEMS } from '../../../../../model/human/items/held';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';

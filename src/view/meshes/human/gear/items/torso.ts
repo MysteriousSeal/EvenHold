@@ -3,7 +3,7 @@
 // plus 6 over the shoulder (x -1..2, z -1..2; the side toward the body
 // stays open, so a sleeve's flank is always its outer side).
 
-import type { TORSO_ITEMS } from '../../../../../model/items/armor';
+import type { TORSO_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mail, mod } from '../patterns';

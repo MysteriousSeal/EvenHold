@@ -4,21 +4,21 @@
 // assembled from its body parts; a lake tile and an ice crystal are small
 // models made just for icons.
 
-import { BANDIT_OUTFIT, ITEMS, STARTER_SET, outfit, type Equipment, type ItemId } from '../model/equipment';
-import { HERO_LOOK, type BodyLook } from '../model/humanoid';
-import type { MenuIcon } from '../view/ui/menu';
-import { voxelIcon, type VoxelModel } from '../view/ui/voxelIcon';
-import type { VoxelGrid } from '../view/meshes/voxel/greedyMesh';
-import { createGrid, fillBox, setColor } from '../view/meshes/voxel/voxelShapes';
-import { humanFigure } from '../view/meshes/human/humanFigure';
-import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../view/meshes/enemy/wolfVoxels';
-import { HOUSE_LAYOUTS, buildHouseVoxels } from '../view/meshes/building/houseVoxels';
-import { HOUSE_PALETTE } from '../view/meshes/building/housePalette';
-import { WELL_PALETTE, buildWellVoxels } from '../view/meshes/well/wellVoxels';
-import { CAMP_PALETTE, buildTent } from '../view/meshes/camp/campVoxels';
-import { LANTERN_PALETTE, buildLanternPost } from '../view/meshes/plaza/lanternVoxels';
-import { TREE_PALETTE, buildTreeVoxels } from '../view/meshes/tree/treeVoxels';
-import { WATER_DECOR_PALETTE, buildLilyPad } from '../view/meshes/water/waterVoxels';
+import { BANDIT_OUTFIT, ITEMS, STARTER_SET, outfit, type Equipment, type ItemId } from '../../model/human/equipment';
+import { HERO_LOOK, type BodyLook } from '../../model/human/humanoid';
+import type { MenuIcon } from '../../view/ui/menu';
+import { voxelIcon, type VoxelModel } from '../../view/ui/voxelIcon';
+import type { VoxelGrid } from '../../view/meshes/voxel/greedyMesh';
+import { createGrid, fillBox, setColor } from '../../view/meshes/voxel/voxelShapes';
+import { humanFigure } from '../../view/meshes/human/humanFigure';
+import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../../view/meshes/enemy/wolfVoxels';
+import { HOUSE_LAYOUTS, buildHouseVoxels } from '../../view/meshes/building/houseVoxels';
+import { HOUSE_PALETTE } from '../../view/meshes/building/housePalette';
+import { WELL_PALETTE, buildWellVoxels } from '../../view/meshes/well/wellVoxels';
+import { CAMP_PALETTE, buildTent } from '../../view/meshes/camp/campVoxels';
+import { LANTERN_PALETTE, buildLanternPost } from '../../view/meshes/plaza/lanternVoxels';
+import { TREE_PALETTE, buildTreeVoxels } from '../../view/meshes/tree/treeVoxels';
+import { WATER_DECOR_PALETTE, buildLilyPad } from '../../view/meshes/water/waterVoxels';
 
 // Copies several part grids into one, each at its voxel offset.
 function compose(size: [number, number, number], parts: Array<[VoxelGrid, number, number, number]>): VoxelGrid {
@@ -91,30 +91,33 @@ const icon = (key: string, model: () => VoxelModel): MenuIcon => (size) => voxel
 // An item on its own, as it sits when worn or held.
 export const itemIcon = (item: ItemId): MenuIcon => icon(`item:${item}`, person(null, { [ITEMS[item].slot]: item }));
 
+// Named by what they stand for in the menu.
+const wolf = icon('wolf', wolfModel);
+const hero = icon('hero', person(HERO_LOOK, {}));
 export const ICONS = {
   // Tabs
-  map: icon('well', () => ({ grid: buildWellVoxels(), palette: WELL_PALETTE })),
-  hero: icon('hero', person(HERO_LOOK, {})),
-  sword: icon('wolf', wolfModel),
-  scroll: icon('oak', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE })),
+  travel: icon('well', () => ({ grid: buildWellVoxels(), palette: WELL_PALETTE })),
+  hero,
+  enemies: wolf,
+  wardrobe: itemIcon('gambeson'),
+  world: icon('oak', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE })),
   // Travel
   village: icon('house', () => ({ grid: buildHouseVoxels(HOUSE_LAYOUTS[0], 0), palette: HOUSE_PALETTE })),
   lake: icon('lake', lakeModel),
   camp: icon('tent', () => ({ grid: buildTent(), palette: CAMP_PALETTE })),
-  paw: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
-  flag: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
+  wolfPack: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
+  spawn: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
   // Hero
-  boot: itemIcon('leatherBoots'),
-  ghost: icon('ghost', () => ({ ...humanFigure(HERO_LOOK, {}), alpha: 0.45 })),
-  shield: itemIcon('plankShield'),
+  swiftFeet: itemIcon('leatherBoots'),
+  noclip: icon('ghost', () => ({ ...humanFigure(HERO_LOOK, {}), alpha: 0.45 })),
+  invulnerable: itemIcon('plankShield'),
   // Enemies
-  wolf: icon('wolf', wolfModel),
+  wolf,
   bandit: icon('bandit', person(BANDIT_FACE, outfit(BANDIT_OUTFIT))),
-  skull: itemIcon('shortSword'),
-  frost: icon('ice', iceModel),
+  slay: itemIcon('shortSword'),
+  freeze: icon('ice', iceModel),
   // Wardrobe
-  wardrobe: itemIcon('gambeson'),
-  naked: icon('naked', person(HERO_LOOK, {})),
-  starter: icon('starter', person(HERO_LOOK, outfit(STARTER_SET))),
+  undress: hero,
+  starterSet: icon('starter', person(HERO_LOOK, outfit(STARTER_SET))),
   banditOutfit: icon('banditOutfit', person(HERO_LOOK, outfit(BANDIT_OUTFIT))),
 };

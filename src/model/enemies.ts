@@ -8,8 +8,8 @@ import { ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
 import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from './types';
 import { createForestDensity } from './worldgen/trees';
 import { hashUnit } from '../util/random';
-import { pickOutfit } from './equipment';
-import { lookAt } from './humanoid';
+import { pickOutfit } from './human/equipment';
+import { lookAt } from './human/humanoid';
 import type { MapSize } from './grid';
 
 interface Sites {

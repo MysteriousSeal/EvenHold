@@ -3,7 +3,7 @@
 // toes and z 3 on row 1 is over them; the side toward the other foot stays
 // open). Nothing goes under the sole.
 
-import type { FEET_ITEMS } from '../../../../../model/items/armor';
+import type { FEET_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette, type ShellCell } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mod } from '../patterns';

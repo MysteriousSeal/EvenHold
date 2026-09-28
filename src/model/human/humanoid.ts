@@ -3,7 +3,7 @@
 // they wear goes on over it (equipment.ts). The look is stored as indices;
 // the view owns the actual colors (view/meshes/human/bodyVoxels.ts).
 
-import { hashUnit } from '../util/random';
+import { hashUnit } from '../../util/random';
 import type { Equipment } from './equipment';
 
 export const SKIN_TONE_COUNT = 4;

@@ -1,7 +1,7 @@
 // Every item's look, by id (one file per slot in items/, like the catalog
-// in model/items/), and the voxel grids each one is made of.
+// in model/human/items/), and the voxel grids each one is made of.
 
-import { ITEMS, type ArmorSlot, type ItemId } from '../../../../model/equipment';
+import { ITEMS, type ArmorSlot, type ItemId } from '../../../../model/human/equipment';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
 import { SLOT_BANDS, buildShell } from './armorShell';

@@ -3,7 +3,7 @@
 // and each leg's rows 2-4 (x -1..3, z -1..3 with 3 the front of the shin;
 // the side toward the other leg stays open).
 
-import type { LEGS_ITEMS } from '../../../../../model/items/armor';
+import type { LEGS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { mail, mod } from '../patterns';

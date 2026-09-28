@@ -11,8 +11,8 @@
 // - Limbs leave the side facing the body open, so the shells of two legs,
 //   or of an arm and the chest, never overlap.
 
-import type { ArmorSlot } from '../../../../model/equipment';
-import { HERO_LOOK } from '../../../../model/humanoid';
+import type { ArmorSlot } from '../../../../model/human/equipment';
+import { HERO_LOOK } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../../voxel/voxelShapes';
 import { buildBodyPart, type BodyPart, type Side } from '../bodyVoxels';
