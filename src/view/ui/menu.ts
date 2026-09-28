@@ -63,6 +63,8 @@ export interface MenuOptions {
   title: string;
   tabs: MenuTab[];
   toggleKey?: string; // a key code that opens and closes this menu
+  // With Escape as its toggle key (a pause menu), it only opens when no other
+  // menu is open: Escape closes those first.
   keyHints?: boolean; // the line of key hints along the bottom (default: shown)
   // Modal (the default): the world dims, clicks outside close the menu, and
   // it takes every key. Modeless (false): the world stays clear and playable
@@ -115,6 +117,13 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   if (text !== undefined) node.textContent = text;
   return node;
 };
+
+// Menus open right now, most recent last.
+const openMenus: Menu[] = [];
+
+export function anyMenuOpen(): boolean {
+  return openMenus.length > 0;
+}
 
 export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
@@ -376,12 +385,15 @@ export function createMenu(options: MenuOptions): Menu {
       return !backdrop.hidden;
     },
     open() {
+      if (!openMenus.includes(api)) openMenus.push(api);
       backdrop.hidden = false;
       status.textContent = '';
       showTab(tabIndex);
       options.onOpenChange?.(true);
     },
     close() {
+      const at = openMenus.indexOf(api);
+      if (at >= 0) openMenus.splice(at, 1);
       backdrop.hidden = true;
       hideTip();
       options.onOpenChange?.(false);
@@ -414,6 +426,9 @@ export function createMenu(options: MenuOptions): Menu {
   window.addEventListener(
     'keydown',
     (event) => {
+      // Escape as a toggle key opens only when nothing else is open.
+      const escapeMenu = options.toggleKey === 'Escape';
+      if (escapeMenu && !api.isOpen && anyMenuOpen()) return;
       if (options.toggleKey && event.code === options.toggleKey) {
         event.stopImmediatePropagation();
         if (!event.repeat) api.toggle();

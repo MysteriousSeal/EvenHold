@@ -8,7 +8,7 @@ import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
 
-const PORTRAIT_SIZE = 64;
+const PORTRAIT_SIZE = 84; // as the hero's
 const NAMES = { wolf: 'Wolf', bandit: 'Bandit' } as const;
 
 function portrait(enemy: Enemy): HTMLCanvasElement {

@@ -5,7 +5,8 @@ import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment'
 import type { LootId } from '../../model/loot/loot';
 import { LOOT } from '../../model/loot/loot';
 import type { BagItem } from '../../model/bag';
-import { humanFigure } from '../meshes/human/humanFigure';
+import { humanBust, humanFigure } from '../meshes/human/humanFigure';
+import type { BodyLook } from '../../model/human/humanoid';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { ITEM_MODELS } from '../meshes/human/gear/itemModels';
@@ -138,3 +139,27 @@ export const slotPlaceholder = (slot: EquipSlot): MenuIcon => (size) =>
 export const isLoot = (item: BagItem): item is LootId => item in LOOT;
 
 export const bagIcon = (item: BagItem): MenuIcon => (isLoot(item) ? lootIcon(item) : gearIcon(item as ItemId));
+
+// The toolbar's icons: the hero's head and shoulders, a pouch for the bag,
+// an hourglass for the pause menu.
+export const heroBustIcon = (look: BodyLook): MenuIcon => (size) => voxelIcon(`bust:toolbar`, () => humanBust(look, {}), size);
+export const bagToolIcon: MenuIcon = (size) => lootIcon('tornPouch')(size);
+export const pauseIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'tool:pause',
+    () => {
+      // Wood 1, glass 2, sand 3: a frame, two glass bulbs meeting at a waist, sand in the lower one.
+      const grid = createGrid([7, 11, 7]);
+      fillBox(grid, 0, 0, 0, 6, 0, 6, 1);
+      fillBox(grid, 0, 10, 0, 6, 10, 6, 1);
+      for (const [x, z] of [[0, 0], [6, 0], [0, 6], [6, 6]]) fillBox(grid, x, 1, z, x, 9, z, 1);
+      fillBox(grid, 1, 1, 1, 5, 2, 5, 3); // sand fallen
+      fillBox(grid, 2, 3, 2, 4, 3, 4, 3);
+      fillBox(grid, 3, 4, 3, 3, 6, 3, 3); // trickling through the waist
+      fillBox(grid, 2, 7, 2, 4, 7, 4, 2);
+      fillBox(grid, 1, 8, 1, 5, 9, 5, 2); // the empty upper bulb
+      fillBox(grid, 2, 8, 2, 4, 8, 4, 3); // a little sand left
+      return { grid, palette: [0x8a5a35, 0xcfe8e0, 0xe8c070], alpha: 1 };
+    },
+    size,
+  );

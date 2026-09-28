@@ -32,6 +32,9 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     bars.append(node);
     return { node, fill, label };
   };
+  const name = el('div', 'target-hud-name');
+  name.textContent = hero.name;
+  bars.append(name);
   const hp = bar('hero-hud-hp');
   const xp = bar('hero-hud-xp');
   portrait.append(level);

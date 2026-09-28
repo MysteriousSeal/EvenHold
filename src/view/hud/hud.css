@@ -10,8 +10,8 @@
   top: 16px;
   left: 16px;
   display: flex;
-  align-items: center;
   gap: 40px;
+  align-items: flex-start; /* frames line up along the top, so both names sit at one height */
   pointer-events: none;
 }
 
@@ -62,7 +62,8 @@
   box-shadow: inset -3px -3px 0 var(--lake-dark);
 }
 
-.hero-hud-bars { display: flex; flex-direction: column; gap: 8px; }
+.hero-hud-bars { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+.hero-hud, .target-hud { align-items: flex-start; }
 
 .hero-hud-bar {
   position: relative;
@@ -96,7 +97,6 @@
 /* The focused enemy's frame: the hero's mirrored (bars, then a smaller
    portrait), its name over the health bar. */
 .target-hud[hidden] { display: none; }
-.target-hud .hero-hud-portrait { width: 76px; height: 76px; }
 .target-hud .hero-hud-bar { width: 220px; }
 .target-hud-name {
   font-size: 16px;
@@ -147,3 +147,39 @@
   border: 2px solid #2e1f14;
   pointer-events: none;
 }
+
+/* The toolbar, bottom right: raised sand tiles, a voxel icon each and its
+   key in the corner; lit on hover, pressed in while its window is open. */
+.toolbar {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 25;
+  display: flex;
+  gap: 8px;
+}
+.toolbar-button {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: #efdcb8;
+  border: 2px solid #2e1f14;
+  box-shadow: 0 4px 0 #2e1f14, inset 0 -4px 0 #d6bb8e;
+  cursor: pointer;
+}
+.toolbar-button canvas { display: block; }
+.toolbar-button:hover { background: #ffd98a; box-shadow: 0 5px 0 #2e1f14, inset 0 -4px 0 #e8903a; transform: translateY(-1px); }
+.toolbar-button.open { background: #ffd98a; box-shadow: 0 1px 0 #2e1f14, inset 0 3px 0 #e8903a; transform: translateY(3px); }
+.toolbar-button:focus-visible { outline: 2px solid #ffd98a; outline-offset: 2px; }
+.toolbar-key {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font: 700 11px 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  text-shadow: 1px 1px 0 #f8ecd4;
+}
+.target-hud .target-hud-name { text-align: right; } /* mirrored: the name sits by the portrait */
