@@ -1,6 +1,7 @@
 // Dev-only cheat menu (travel, hero powers, enemies, the wardrobe, world
 // facts), toggled with the backquote key (`), built on the shared EvenHold
-// menu (view/ui/menu.ts). The game pauses while it's open.
+// menu (view/ui/menu.ts). The game keeps running while it's open, so a
+// teleport or a summon shows at once.
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
 
@@ -32,21 +33,19 @@ import type { Village } from '../../model/types';
 import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/bag';
-import { createMenu, type MenuAction } from '../../view/ui/menu';
+import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
 import { ICONS as ICON, itemIcon } from './cheatIcons';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
 
-export interface CheatPanelHooks {
-  setPaused(paused: boolean): void;
-}
-
-export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void {
+export function createCheatPanel(model: GameModel): void {
   const here = (): Tile => ({ x: model.hero.x, z: model.hero.z });
+  // Teleports there and closes the menu, so the new place is seen at once.
   const travel = (tile: Tile | null, where: string) => {
     if (!tile) return `There's no ${where} in this world.`;
     model.teleport(tile.x, tile.z);
+    menu.close();
     return `Travelled to ${where}.`;
   };
   let banditDraws = 0; // for "Random bandit": a new outfit each time
@@ -64,10 +63,9 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
     },
   });
 
-  createMenu({
+  const menu: Menu = createMenu({
     title: 'Cheats',
     toggleKey: 'Backquote',
-    onOpenChange: (open) => hooks.setPaused(open),
     tabs: [
       {
         name: 'Travel',

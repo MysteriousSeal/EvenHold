@@ -83,9 +83,7 @@ async function boot(): Promise<void> {
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {
-    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) =>
-      createCheatPanel(model, { setPaused: (paused) => (controller.paused = paused) }),
-    );
+    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model));
   }
 }
 
