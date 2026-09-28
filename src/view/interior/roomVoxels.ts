@@ -77,10 +77,12 @@ function floorColor(style: Room['floor'], x: number, z: number): number {
   return plank % 2 === 0 ? BOARD : BOARD_DARK;
 }
 
+// A quick integer hash, for plank lengths, knots and tones.
+const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
+
 // The inn's floor: planks five voxels wide along x in random lengths and
 // three close tones, a pair of nail heads at each plank's end, and the odd knot.
 function tavernFloor(x: number, z: number): number {
-  const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
   const row = Math.floor(z / 5);
   if (z % 5 === 0) return SEAM;
   // Where along its row this plank starts and ends (lengths 30-70 voxels).
@@ -108,7 +110,6 @@ function tavernFloor(x: number, z: number): number {
 // - stone: irregular coursed stones in four shades, dark mortar between.
 function wallColor(style: Room['wall'], u: number, y: number): number {
   if (y < 3) return 13; // skirting
-  const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
   if (style === 'stone') {
     const course = Math.floor(y / 4);
     if (y % 4 === 0) return 7; // mortar between courses

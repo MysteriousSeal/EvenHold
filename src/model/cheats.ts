@@ -2,11 +2,11 @@
 // model, so they're testable and the panel stays a thin UI.
 
 import type { BuildingType, Entrance } from './interiors/interiors';
-import { enemyLevel } from './enemyLevels';
+import { enemyLevel } from './enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './grid';
-import { campPieces, makeEnemy } from './enemies';
+import { campPieces, makeEnemy } from './enemies/enemies';
 import type { EnemyKind, Village } from './types';
 
 export interface Tile {
@@ -136,10 +136,9 @@ export function enterNearest(model: GameModel, type: BuildingType, visited: Set<
     visited.clear();
     if (current && all.length > 1) visited.add(current);
   }
-  const { hero } = model;
   const next = all
     .filter((e) => !visited.has(e))
-    .reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) < Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null)!;
+    .reduce((best, e) => (distance(e, model.hero) < distance(best, model.hero) ? e : best));
   visited.add(next);
   model.teleport(next.x, next.z);
   return model.useDoor();

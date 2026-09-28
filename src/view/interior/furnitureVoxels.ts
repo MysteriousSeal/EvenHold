@@ -203,15 +203,6 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
       const edge = Math.min(u - 4, v - 4, len - 5 - u, dep - 5 - v);
       return edge < 2 ? RED : edge < 4 ? LINEN : TEAL;
     }),
-  longTable: (box, len) => {
-    for (const u of [3, len - 5]) box(u, 1, 10, u + 1, 8, 14, WOOD_DARK);
-    box(1, 9, 3, len - 2, 10, 21, (u) => (u % 7 === 0 ? WOOD_DARK : WOOD));
-    tankard(box, 8, 11, 8);
-  },
-  bench: (box, len) => {
-    for (const u of [3, len - 5]) box(u, 1, 9, u + 1, 4, 15, WOOD_DARK);
-    box(1, 5, 8, len - 2, 6, 16, WOOD);
-  },
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
   // middle of its tiles) under an overhanging lighter top, tankards on it.
   counter: (box, len) => {

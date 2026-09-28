@@ -4,14 +4,14 @@
 // attack once within reach. Placed from hashes and
 // noise, not the world rng, so they don't change the world.
 
-import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
-import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from './types';
-import { createForestDensity } from './worldgen/trees';
-import { hashUnit } from '../util/random';
-import { pickOutfit } from './human/equipment';
-import { lookAt } from './human/humanoid';
+import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
+import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from '../types';
+import { createForestDensity } from '../worldgen/trees';
+import { hashUnit } from '../../util/random';
+import { pickOutfit } from '../human/equipment';
+import { lookAt } from '../human/humanoid';
 import { enemyLevel, enemyPower } from './enemyLevels';
-import type { MapSize } from './grid';
+import type { MapSize } from '../grid';
 
 interface Sites {
   grid: number; // one candidate site per grid x grid tiles

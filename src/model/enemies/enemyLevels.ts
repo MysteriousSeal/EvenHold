@@ -2,9 +2,9 @@
 // (a level every LEVEL_DISTANCE tiles, give or take one), and each level
 // adds health, damage and the experience it's worth.
 
-import { ENEMY_STATS } from './constants';
-import type { EnemyKind } from './types';
-import { hashUnit } from '../util/random';
+import { ENEMY_STATS } from '../constants';
+import type { EnemyKind } from '../types';
+import { hashUnit } from '../../util/random';
 
 const LEVEL_DISTANCE = 50; // tiles from spawn per level
 const HP_PER_LEVEL = 0.2; // +20% of the base per level

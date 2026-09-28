@@ -1,12 +1,13 @@
 // What stands in a room, rolled from the same seed as the room itself, so
 // it's always the same for everyone on that seed. Each kind of building is
 // furnished its own way: a home has a hearth, a bed, a table with chairs, a
-// chest, a shelf, barrels and a rug; the inn long tables and benches, a
-// counter, kegs and a big hearth; the smithy a forge, an anvil, a trough, a
-// weapon rack and a heap of coal. Big pieces stand against the back (-Z) or
+// chest, a shelf, barrels and a rug; the inn a bar (bottle shelves, a
+// counter, stools, kegs), a hearth corner with a bear rug and armchairs,
+// tavern tables with chairs, and things hung on its walls; the smithy a
+// forge, an anvil, a trough, a weapon rack and a heap of coal. Big pieces stand against the back (-Z) or
 // left (-X) wall; nothing blocks the door or the way in from it.
 
-import { hashCell, mulberry32 } from '../../util/random';
+import { hashCell, mulberry32, shuffle } from '../../util/random';
 import type { Entrance, Room } from './interiors';
 
 export type FurnitureKind =
@@ -18,8 +19,6 @@ export type FurnitureKind =
   | 'shelf'
   | 'barrel'
   | 'rug'
-  | 'longTable'
-  | 'bench'
   | 'counter'
   | 'keg'
   | 'forge'
@@ -67,11 +66,8 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   };
   const items: Furniture[] = [];
   // Places a piece at the first free spot among `spots` (shuffled), marking its tiles taken.
-  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>, shuffle = true): Furniture | null => {
-    for (let i = shuffle ? spots.length - 1 : 0; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [spots[i], spots[j]] = [spots[j], spots[i]];
-    }
+  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>, shuffled = true): Furniture | null => {
+    if (shuffled) shuffle(spots, rng);
     const rug = RUGS.includes(kind) || WALL_HUNG.includes(kind);
     for (const [x, z] of spots) {
       if (!fits(x, z, w, d, rug)) continue;
@@ -102,10 +98,7 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
       [table.x, table.z - 1, 0, 1],
       [table.x, table.z + table.d, 0, -1],
     ];
-    for (let i = sides.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [sides[i], sides[j]] = [sides[j], sides[i]];
-    }
+    shuffle(sides, rng);
     let wanted = 2 + Math.floor(rng() * 3);
     for (const [x, z, dx, dz] of sides) {
       if (wanted === 0) break;

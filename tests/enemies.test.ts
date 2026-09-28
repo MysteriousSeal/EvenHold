@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
-import { campPalisade, campPieces } from '../src/model/enemies';
+import { campPalisade, campPieces } from '../src/model/enemies/enemies';
 import { cellKey } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy, EnemyKind } from '../src/model/types';
@@ -218,7 +218,7 @@ describe('enemy collisions', () => {
 
 describe('enemy levels', () => {
   it('rise with distance from spawn, and each level makes them tougher and worth more', async () => {
-    const { enemyLevel, enemyPower } = await import('../src/model/enemyLevels');
+    const { enemyLevel, enemyPower } = await import('../src/model/enemies/enemyLevels');
     const spawn = { x: 1000, z: 1000 };
     const avg = (d: number) => Array.from({ length: 30 }, (_, id) => enemyLevel(spawn, spawn.x + d, spawn.z, id)).reduce((a, b) => a + b) / 30;
     expect(avg(0)).toBeLessThan(2);

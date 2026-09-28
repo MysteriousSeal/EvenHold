@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { campPalisade, campPieces } from '../../../model/enemies';
+import { campPalisade, campPieces } from '../../../model/enemies/enemies';
 import { HOUSE_WINDOW_GLOW } from '../../constants';
 import type { WorldSink } from '../../world/chunkLayer';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';

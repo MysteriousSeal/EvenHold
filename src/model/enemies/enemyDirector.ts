@@ -6,20 +6,19 @@
 // the hero. The dead lie a while, then are gone.
 
 import {
+  EDGE_MARGIN,
   ENEMY_ACTIVE_RADIUS,
   ENEMY_CORPSE_TIME,
   ENEMY_PATH_RADIUS,
   ENEMY_PATH_REFRESH,
   ENEMY_SEPARATION_SPEED,
   ENEMY_STATS,
-} from './constants';
+} from '../constants';
 import { stepEnemy, type EnemyActions } from './enemies';
-import type { MapSize } from './grid';
-import { clearLine, type Obstacles, type Point } from './obstacles';
-import { findPath } from './pathfinding';
-import type { Enemy, Hero } from './types';
-
-const EDGE_MARGIN = 0.4; // how close to the map's edge anyone may go
+import type { MapSize } from '../grid';
+import { clearLine, type Obstacles, type Point } from '../obstacles';
+import { findPath } from '../pathfinding';
+import type { Enemy, Hero } from '../types';
 
 export class EnemyDirector {
   frozen = false; // dev cheat: enemies stand still

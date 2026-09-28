@@ -18,7 +18,7 @@ import {
   type ItemId,
 } from '../src/model/human/equipment';
 import { HERO_LOOK, lookAt } from '../src/model/human/humanoid';
-import { makeEnemy } from '../src/model/enemies';
+import { makeEnemy } from '../src/model/enemies/enemies';
 import { SLOT_BANDS, bandFor } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';
 import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, type BodyPart } from '../src/view/meshes/human/bodyVoxels';

@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { campPieces } from '../../../model/enemies';
+import { campPieces } from '../../../model/enemies/enemies';
 import { FireEffect } from '../common/fire';
 
 const VIEW_RADIUS = 30;

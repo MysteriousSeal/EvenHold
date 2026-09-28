@@ -5,6 +5,7 @@
 // What blocks movement and sight is kept in obstacles.ts.
 
 import {
+  EDGE_MARGIN,
   HERO_SPEED,
   HERO_RADIUS,
   INDOOR_SCALE,
@@ -30,8 +31,8 @@ import {
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
-import { campPalisade, campPieces, spawnEnemies } from './enemies';
-import { EnemyDirector } from './enemyDirector';
+import { campPalisade, campPieces, spawnEnemies } from './enemies/enemies';
+import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
@@ -46,7 +47,6 @@ import { onPaving } from './roads';
 import { ENTER_RANGE, entrancesOf, roomFor, type Entrance, type Room } from './interiors/interiors';
 import { bumpsFurniture, furnish, type Furniture } from './interiors/furniture';
 
-const EDGE_MARGIN = 0.4; // how close to the map's edge the hero may go
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
 export class GameModel {
@@ -197,22 +197,12 @@ export class GameModel {
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
-      if (this.attackElapsed !== null) {
-        this.attackElapsed += dt;
-        if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
-      }
+      this.advanceAttack(dt);
       recover(this.hero, dt);
       return;
     }
     this.moveHorizontally(dirX, dirZ, dt);
-    if (this.attackElapsed !== null) {
-      this.attackElapsed += dt;
-      if (!this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
-        this.attackLanded = true;
-        this.landBlow();
-      }
-      if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
-    }
+    this.advanceAttack(dt);
     this.director.update(dt);
     recover(this.hero, dt);
     this.keepFocus();
@@ -220,6 +210,18 @@ export class GameModel {
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
     this.updateHop(dt);
+  }
+
+  // Moves the current blow along; outdoors it lands partway through (there's
+  // no one to hit indoors, so there the swing just plays out).
+  private advanceAttack(dt: number): void {
+    if (this.attackElapsed === null) return;
+    this.attackElapsed += dt;
+    if (!this.inside && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
+      this.attackLanded = true;
+      this.landBlow();
+    }
+    if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
   }
 
   private moveHorizontally(dirX: number, dirZ: number, dt: number): void {
