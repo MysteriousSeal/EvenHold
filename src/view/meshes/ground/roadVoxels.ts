@@ -1,0 +1,172 @@
+// Voxel road and cobble tiles, at the world's 0.04 voxel scale: 25x25
+// voxels span exactly one tile. Palette first, then shape:
+// - Road tiles: a dirt band two voxels thick (the cross of center + arms
+//   toward connected neighbors), two wheel ruts carved a voxel deeper and
+//   darker, a few raised pebbles, and edges that fray into the grass.
+// - Cobble tiles: 4x4-voxel stones on a 5-voxel grid with mortar gaps. 25
+//   is a multiple of 5, so the pattern repeats exactly every tile and no
+//   stone is ever cut at a tile boundary.
+// A tile's look depends only on its connections and a variant number, so
+// each distinct tile is built and meshed once, then instanced.
+
+import { NEIGHBORS_4 } from '../../../model/grid';
+import { mulberry32 } from '../../../util/random';
+import type { VoxelGrid } from '../voxel/greedyMesh';
+import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
+
+export const ROAD_VOXEL_SIZE = 0.04;
+const N = 25; // voxels per tile edge
+const MID = 12; // center voxel
+const HALF_BAND = 6; // band = 13 voxels (~0.5 wide)
+const RUT = 3; // ruts sit 3 voxels either side of the center line
+export const ROAD_TILE_GRID: [number, number, number] = [N, 3, N];
+
+// Palette (index + 1 is stored in the grid; 0 = empty).
+export const ROAD_PALETTE = [
+  0xb08c5e, // 1 dirt
+  0xc2a071, // 2 dirt, lighter speck
+  0x8f7048, // 3 dirt, darker edge / speck
+  0x7a5f40, // 4 rut floor
+  0xcbbfa7, // 5 pebble
+  0x7d6a52, // 6 mortar
+  0x9d998f, // 7 stone
+  0x8f8b82, // 8 stone
+  0xaaa69b, // 9 stone
+  0x86827a, // 10 stone
+];
+const DIRT = 1;
+const DIRT_LIGHT = 2;
+const DIRT_DARK = 3;
+const RUT_FLOOR = 4;
+const PEBBLE = 5;
+const MORTAR = 6;
+const STONES = [7, 8, 9, 10];
+
+// Arms in NEIGHBORS_4 order (+x, -x, +z, -z), as bits of a connection mask.
+const [EAST, WEST, SOUTH, NORTH] = [0, 1, 2, 3];
+const OPPOSITE = [WEST, EAST, NORTH, SOUTH];
+const PERPENDICULAR = [
+  [SOUTH, NORTH],
+  [SOUTH, NORTH],
+  [EAST, WEST],
+  [EAST, WEST],
+];
+
+const has = (mask: number, arm: number) => (mask & (1 << arm)) !== 0;
+
+// Voxel (i, k) at `along` voxels out from the center along an arm, and
+// `lateral` voxels to the side (+ toward +x / +z).
+function armVoxel(arm: number, along: number, lateral: number): [number, number] {
+  const [dx, dz] = NEIGHBORS_4[arm];
+  return dx !== 0 ? [MID + dx * along, MID + lateral] : [MID + lateral, MID + dz * along];
+}
+
+function inBand(mask: number, i: number, k: number): boolean {
+  const di = i - MID;
+  const dk = k - MID;
+  if (Math.abs(di) <= HALF_BAND && Math.abs(dk) <= HALF_BAND) return true;
+  return (
+    (has(mask, EAST) && di > 0 && Math.abs(dk) <= HALF_BAND) ||
+    (has(mask, WEST) && di < 0 && Math.abs(dk) <= HALF_BAND) ||
+    (has(mask, SOUTH) && dk > 0 && Math.abs(di) <= HALF_BAND) ||
+    (has(mask, NORTH) && dk < 0 && Math.abs(di) <= HALF_BAND)
+  );
+}
+
+// Rut voxels. Each arm's two ruts run from the tile edge inward; where they
+// start depends on the other arms:
+// - straight through (opposite arm): from the center, joining it seamlessly;
+// - T-junction (both perpendicular arms): at the nearer through-rut;
+// - corner (one perpendicular arm): the inner rut stops early and the
+//   outer one late, so the two arms' ruts meet as two nested L-shapes;
+// - dead end: both run past the center and are joined into a U.
+function rutVoxels(mask: number): Array<[number, number]> {
+  const ruts: Array<[number, number]> = [];
+  for (let arm = 0; arm < 4; arm++) {
+    if (!has(mask, arm)) continue;
+    const [p1, p2] = PERPENDICULAR[arm];
+    const perpendiculars = [p1, p2].filter((p) => has(mask, p));
+
+    for (const side of [-RUT, RUT]) {
+      let start: number;
+      if (has(mask, OPPOSITE[arm])) start = 0;
+      else if (perpendiculars.length === 2) start = RUT;
+      else if (perpendiculars.length === 1) {
+        const [pdx, pdz] = NEIGHBORS_4[perpendiculars[0]];
+        const towardPerpendicular = Math.sign(side) === pdx + pdz; // perpendicular arm's own axis sign
+        start = towardPerpendicular ? RUT : -RUT;
+      } else start = -RUT;
+
+      for (let along = start; along <= MID; along++) ruts.push(armVoxel(arm, along, side));
+    }
+    if (perpendiculars.length === 0 && !has(mask, OPPOSITE[arm])) {
+      for (let lateral = -RUT; lateral <= RUT; lateral++) ruts.push(armVoxel(arm, -RUT, lateral)); // U-turn
+    }
+  }
+  return ruts;
+}
+
+export function buildRoadTile(mask: number, variant: number): VoxelGrid {
+  const grid = createGrid(ROAD_TILE_GRID);
+  const rng = mulberry32(0x70ad + mask * 131 + variant * 7919);
+
+  // Dirt band, two voxels thick, with a light sprinkle of lighter/darker specks.
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < N; k++) {
+      if (!inBand(mask, i, k)) continue;
+      setColor(grid, i, 0, k, DIRT);
+      const roll = rng();
+      setColor(grid, i, 1, k, roll < 0.05 ? DIRT_LIGHT : roll < 0.08 ? DIRT_DARK : DIRT);
+    }
+  }
+
+  // Frayed edges: band-edge voxels sometimes lose their top layer (showing
+  // the darker packed earth below), and a few loose clods spill onto the
+  // grass just outside. Edges only run along the road's sides, never across
+  // a tile boundary the road continues through, so tiles join seamlessly.
+  const edge = (i: number, k: number) =>
+    inBand(mask, i, k) && NEIGHBORS_4.some(([dx, dz]) => !inBand(mask, i + dx, k + dz));
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < N; k++) {
+      if (edge(i, k) && rng() < 0.45) {
+        setColor(grid, i, 1, k, 0);
+        setColor(grid, i, 0, k, DIRT_DARK);
+      } else if (!inBand(mask, i, k) && NEIGHBORS_4.some(([dx, dz]) => inBand(mask, i + dx, k + dz)) && rng() < 0.25) {
+        setColor(grid, i, 0, k, DIRT_DARK);
+      }
+    }
+  }
+
+  // Ruts: carved one voxel down, darker floor.
+  for (const [i, k] of rutVoxels(mask)) {
+    if (i < 0 || k < 0 || i >= N || k >= N) continue;
+    setColor(grid, i, 1, k, 0);
+    setColor(grid, i, 0, k, RUT_FLOOR);
+  }
+
+  // A few pebbles sitting on the dirt (not in the ruts).
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < N; k++) {
+      if (colorAt(grid, i, 1, k) !== 0 && rng() < 0.025) setColor(grid, i, 2, k, PEBBLE);
+    }
+  }
+  return grid;
+}
+
+export function buildCobbleTile(variant: number): VoxelGrid {
+  const grid = createGrid(ROAD_TILE_GRID);
+  const rng = mulberry32(0xc0bb + variant * 104729);
+  const stoneColors = new Map<number, number>();
+
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < N; k++) {
+      setColor(grid, i, 0, k, MORTAR);
+      if (i % 5 === 4 || k % 5 === 4) continue; // mortar gap
+      const stone = Math.floor(i / 5) + 5 * Math.floor(k / 5);
+      if (!stoneColors.has(stone)) stoneColors.set(stone, STONES[Math.floor(rng() * STONES.length)]);
+      setColor(grid, i, 0, k, stoneColors.get(stone)!);
+      setColor(grid, i, 1, k, stoneColors.get(stone)!);
+    }
+  }
+  return grid;
+}

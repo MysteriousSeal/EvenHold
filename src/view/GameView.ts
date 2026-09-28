@@ -12,7 +12,7 @@ import { buildTerrain } from './meshes/ground/terrainMesh';
 import { buildTrees } from './meshes/tree/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
 import { buildWells } from './meshes/well/wellMesh';
-import { buildGroundDecals } from './meshes/ground/groundDecals';
+import { buildRoads } from './meshes/ground/roadMesh';
 import { buildGroundCover } from './meshes/ground/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildHero } from './meshes/heroMesh';
@@ -44,7 +44,7 @@ export class GameView {
 
     addLights(this.scene);
     buildTerrain(this.scene, model);
-    buildGroundDecals(this.scene, model);
+    buildRoads(this.scene, model);
     this.animations.push(buildGroundCover(this.scene, model));
     buildTrees(this.scene, model);
     buildBushes(this.scene, model);

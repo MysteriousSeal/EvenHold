@@ -5,6 +5,7 @@ import { buildBushGeometry } from '../src/view/meshes/bush/bushMesh';
 import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxels';
 import type { BushKind, TreeKind } from '../src/model/types';
 import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
+import { buildRoadTile } from '../src/view/meshes/ground/roadVoxels';
 
 function grid(size: [number, number, number], voxels: Array<[number, number, number, number]>): VoxelGrid {
   const g: VoxelGrid = { size, cells: new Uint8Array(size[0] * size[1] * size[2]) };
@@ -87,5 +88,35 @@ describe('tree voxel models', () => {
   it.each(trees)('%s shape %i stays within a sane triangle budget', (kind, shape) => {
     // ~400 trees per map; greedy meshing keeps each model a few thousand triangles at most.
     expect(buildTreeGeometry(kind, shape).getAttribute('position').count / 3).toBeLessThan(4000);
+  });
+});
+
+describe('voxel road tiles', () => {
+  const EAST = 1;
+  const WEST = 2;
+  const SOUTH = 4;
+  const NORTH = 8;
+  const layouts = [EAST | WEST, NORTH | SOUTH, EAST | SOUTH, WEST | NORTH, EAST | WEST | SOUTH, EAST | WEST | SOUTH | NORTH, EAST];
+  // Rows of voxels across the road band at the tile edge a road leaves through.
+  const edgeRow = (tile: VoxelGrid, arm: number) => {
+    const n = tile.size[0];
+    const idx = (i: number, y: number, k: number) => tile.cells[voxelIndex(tile, i, y, k)];
+    const at = (lateral: number, y: number) =>
+      arm === EAST ? idx(n - 1, y, lateral) : arm === WEST ? idx(0, y, lateral) : arm === SOUTH ? idx(lateral, y, n - 1) : idx(lateral, y, 0);
+    return Array.from({ length: 13 }, (_, j) => [at(6 + j, 0), at(6 + j, 1)]);
+  };
+
+  it.each(layouts)('layout %i joins its neighbors seamlessly: solid dirt and matching ruts at every connected edge', (mask) => {
+    const tile = buildRoadTile(mask, 0);
+    for (const arm of [EAST, WEST, SOUTH, NORTH]) {
+      if (!(mask & arm)) continue;
+      const row = edgeRow(tile, arm);
+      row.forEach(([bottom, top], j) => {
+        expect(bottom).not.toBe(0); // no holes where the next tile continues
+        if (j === 0 || j === 12) return; // the road's own side edges fray randomly, by design
+        const isRut = j === 3 || j === 9; // ruts 3 voxels either side of center
+        expect(top === 0).toBe(isRut);
+      });
+    }
   });
 });

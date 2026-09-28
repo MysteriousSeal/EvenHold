@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import type { House } from '../../../model/types';
-import { TILE_HEIGHT } from '../../../model/constants';
 import {
   HOUSE_PLASTER_COLOR,
   HOUSE_TIMBER_COLOR,
@@ -70,7 +69,8 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
 
         chunk.forEach((house, i) => {
           quaternion.setFromAxisAngle(upAxis, house.rotationY);
-          position.set(house.x, house.groundTier * TILE_HEIGHT, house.z);
+          // Stands on the village cobbles, not the grass under them.
+          position.set(house.x, model.getGroundY(house.x, house.z), house.z);
           matrix.compose(position, quaternion, scale);
           mesh.setMatrixAt(i, matrix);
 

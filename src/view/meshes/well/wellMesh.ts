@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { TILE_HEIGHT } from '../../../model/constants';
 import {
   HOUSE_TIMBER_COLOR,
   HOUSE_DOOR_COLOR,
@@ -43,7 +42,8 @@ export function buildWells(scene: THREE.Scene, model: GameModel): void {
   for (const part of WELL_PARTS) {
     const mesh = new THREE.InstancedMesh(geometries[part], materials[part], count);
     model.villages.forEach((village, i) => {
-      matrix.makeTranslation(village.x, village.groundTier * TILE_HEIGHT, village.z);
+      // Stands on the village cobbles, not the grass under them.
+      matrix.makeTranslation(village.x, model.getGroundY(village.x, village.z), village.z);
       mesh.setMatrixAt(i, matrix);
     });
     scene.add(mesh);

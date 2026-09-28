@@ -36,8 +36,8 @@ function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material | T
 // adjacent water cells of different depths.
 //
 // Tiles are grouped by (tier, kind), and each group is instanced per chunk.
-// Paths and village squares aren't tile colors — they're thin overlays
-// drawn on top by groundDecals.ts, so they can be narrower than a tile.
+// Roads and village squares aren't tile colors — they're voxel tiles
+// laid on top by roadMesh.ts.
 export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
   const groups = new Map<string, TileGroup>();
 

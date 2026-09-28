@@ -14,10 +14,12 @@ import {
   SPAWN_X,
   SPAWN_Z,
   TILE_HEIGHT,
+  ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { cellKey, toCellX, toCellZ } from './grid';
 import type { Bush, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
+import { onPaving } from './roads';
 
 export class GameModel {
   readonly seed: number;
@@ -61,9 +63,11 @@ export class GameModel {
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
   }
 
-  // Ground surface height in world units (the height map itself is in tiers).
+  // Height of whatever the hero would stand on at (x, z), in world units:
+  // the tile's tier, plus the road/cobble paving where there is some.
   getGroundY(x: number, z: number): number {
-    return this.heightMap[toCellX(x)][toCellZ(z)] * TILE_HEIGHT;
+    const tile = this.heightMap[toCellX(x)][toCellZ(z)] * TILE_HEIGHT;
+    return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
 
   private isSolidCell(x: number, z: number): boolean {
@@ -134,10 +138,17 @@ export class GameModel {
     }
     if (!this.hop) return;
 
-    this.hop.elapsed += dt;
-    const p = Math.min(1, this.hop.elapsed / HOP_DURATION);
+    // Small height changes (stepping onto a road's paving) just ease up or
+    // down quickly; only a real terrain step gets the full arcing hop. The
+    // cut-off sits between the paving height (0.08) and a tier (0.15).
     const { fromY, toY } = this.hop;
-    this.hero.y = fromY + (toY - fromY) * p + HOP_HEIGHT * 4 * p * (1 - p);
+    const isStep = Math.abs(toY - fromY) >= TILE_HEIGHT * 0.75;
+    const duration = isStep ? HOP_DURATION : HOP_DURATION / 2;
+    const arc = isStep ? HOP_HEIGHT : 0;
+
+    this.hop.elapsed += dt;
+    const p = Math.min(1, this.hop.elapsed / duration);
+    this.hero.y = fromY + (toY - fromY) * p + arc * 4 * p * (1 - p);
 
     if (p >= 1) this.hop = null;
   }

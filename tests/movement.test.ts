@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BUSH_COLLISION_HALF, HERO_RADIUS, MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT, TREE_COLLISION_HALF } from '../src/model/constants';
+import {
+  BUSH_COLLISION_HALF,
+  HERO_RADIUS,
+  HOP_HEIGHT,
+  MAP_WIDTH,
+  MAP_DEPTH,
+  ROAD_SURFACE_HEIGHT,
+  TILE_HEIGHT,
+  TREE_COLLISION_HALF,
+} from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
 
@@ -114,5 +123,36 @@ describe('hero hop', () => {
 
     expect(maxY).toBeGreaterThan(upperY);
     expect(model.hero.y).toBeCloseTo(upperY, 10);
+  });
+});
+
+describe('road surface', () => {
+  it('the hero stands on top of village cobbles, not sunk into them', () => {
+    const model = new GameModel(1);
+    const village = model.villages[0];
+    const x = village.x + 1; // open square tile right next to the well
+    const z = village.z;
+    expect(model.getGroundY(x, z)).toBeCloseTo(village.groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT, 10);
+  });
+
+  it('stepping onto the road eases up gently, without the terrain-step hop arc', () => {
+    const model = new GameModel(1);
+    const [spawnX, spawnZ] = model.trails[0][0];
+    const grassY = model.heightMap[spawnX][spawnZ] * TILE_HEIGHT;
+    // Start on the grass margin of the spawn tile, then step onto the road band.
+    model.hero.x = spawnX;
+    model.hero.z = spawnZ - 0.4;
+    model.hero.y = model.getGroundY(model.hero.x, model.hero.z);
+    expect(model.hero.y).toBeCloseTo(grassY, 10);
+
+    let maxY = model.hero.y;
+    for (let i = 0; i < 40; i++) {
+      model.update(0, 1, FRAME / 4);
+      maxY = Math.max(maxY, model.hero.y);
+    }
+    for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);
+
+    expect(model.hero.y).toBeCloseTo(grassY + ROAD_SURFACE_HEIGHT, 10);
+    expect(maxY).toBeLessThan(grassY + ROAD_SURFACE_HEIGHT + HOP_HEIGHT / 2); // no big arc
   });
 });

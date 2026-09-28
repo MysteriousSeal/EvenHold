@@ -5,8 +5,8 @@
 
 import type { GameModel } from '../../../model/GameModel';
 import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
-import { NEIGHBORS_4, cellKey, inBounds } from '../../../model/grid';
-import { ROAD_WIDTH } from '../../constants';
+import { cellKey } from '../../../model/grid';
+import { onRoadBand, roadConnections } from '../../../model/roads';
 import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
@@ -35,18 +35,6 @@ export interface GroundCover {
   tufts: ScatterItem[];
   flowers: ScatterItem[];
   pebbles: ScatterItem[];
-}
-
-// A road tile's dirt strip covers a cross: the center square plus an arm
-// toward each connected road/square neighbor (see groundDecals.ts). True
-// if a point (offset from the tile center) is on that cross, plus clearance.
-function onRoad(model: GameModel, x: number, z: number, ox: number, oz: number): boolean {
-  const half = ROAD_WIDTH / 2 + ROAD_CLEARANCE;
-  if (Math.abs(ox) <= half && Math.abs(oz) <= half) return true;
-  return NEIGHBORS_4.some(([dx, dz]) => {
-    if (!inBounds(x + dx, z + dz) || model.surfaceMap[x + dx][z + dz] === 'natural') return false;
-    return dx !== 0 ? Math.sign(ox) === dx && Math.abs(oz) <= half : Math.sign(oz) === dz && Math.abs(ox) <= half;
-  });
 }
 
 // Grass, flowers and pebbles go on plain grass only: never water, village
@@ -82,11 +70,12 @@ export function scatterGroundCover(model: GameModel): GroundCover {
       const offset = () => (rng() - 0.5) * SCATTER_SPREAD;
 
       if (surface === 'path') {
+        const roadMask = roadConnections(model.surfaceMap, x, z);
         for (let i = 0; i < ROAD_EDGE_CANDIDATES; i++) {
           const ox = (rng() - 0.5) * 0.9;
           const oz = (rng() - 0.5) * 0.9;
           const scale = 0.7 + rng() * 0.25;
-          if (!onRoad(model, x, z, ox, oz)) cover.tufts.push(item(ox, oz, scale, rng() < 0.5 ? 0 : 1));
+          if (!onRoadBand(roadMask, ox, oz, ROAD_CLEARANCE)) cover.tufts.push(item(ox, oz, scale, rng() < 0.5 ? 0 : 1));
         }
         continue;
       }

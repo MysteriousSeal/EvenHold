@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { TILE_HEIGHT } from '../src/model/constants';
+import { ROAD_WIDTH, TILE_HEIGHT } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
 import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/ground/groundCoverScatter';
-import { ROAD_WIDTH } from '../src/view/constants';
 
 const models = [1, 7, 42].map((seed) => [seed, new GameModel(seed)] as const);
 

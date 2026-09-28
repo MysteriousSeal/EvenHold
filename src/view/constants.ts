@@ -12,9 +12,6 @@ export const CAMERA_Y_SMOOTHING = 8; // per second; higher = camera catches up t
 // not a film sitting on top of grass.
 export const TERRAIN_COLORS = [0x3e8e52, 0x4caf6d, 0x6fbf7a, 0x9bd18a, 0xc9c9a8];
 export const WATER_COLOR = 0x2f8fbf;
-export const ROAD_WIDTH = 0.5; // dirt trail strip width, in world units (a tile is 1)
-export const PATH_COLOR = 0xb89668; // worn dirt
-export const RUT_COLOR = 0x8f7250; // wheel ruts, darker packed dirt
 
 export const HOUSE_PLASTER_COLOR = 0xe9dfc6; // limewash
 export const HOUSE_TIMBER_COLOR = 0x3a281c; // dark oak
