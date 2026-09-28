@@ -2,7 +2,7 @@
 // menu (view/ui/menu.ts), one per kind of item carried, with its voxel icon
 // and how many; the selected one says what it is and what it sells for.
 // Drag a slot out of the bag to drop one of it on the ground.
-// The game pauses while it's open.
+// The game plays on around it: it only takes Escape and B.
 
 import type { GameModel } from '../model/GameModel';
 import { LOOT, LOOT_QUALITY, type LootId } from '../model/loot/loot';
@@ -16,12 +16,12 @@ const QUALITY_NAMES = { junk: 'Junk' } as const;
 
 const lootIcon = (item: LootId) => (size: number) => voxelIcon(`loot:${item}`, () => ({ grid: JUNK_MODELS[item].build(), palette: JUNK_MODELS[item].palette }), size);
 
-export function createInventoryPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): void {
+export function createInventoryPanel(model: GameModel): void {
   createMenu({
     title: 'Bag',
     toggleKey: 'KeyB',
     keyHints: false,
-    onOpenChange: (open) => hooks.setPaused(open),
+    modal: false,
     tabs: [
       {
         name: 'Bag',

@@ -56,7 +56,7 @@ async function boot(): Promise<void> {
   await nextPaint();
   loading.hide();
 
-  createInventoryPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  createInventoryPanel(model);
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {
