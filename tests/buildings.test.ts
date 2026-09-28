@@ -86,6 +86,6 @@ describe('inn and blacksmith models', () => {
   it('the inn is the tallest building in the village', () => {
     const height = (g: THREE.BufferGeometry) => (g.computeBoundingBox(), g.boundingBox!.max.y);
     const inn = height(buildBuildingGeometry('inn', false));
-    for (let layout = 0; layout < 3; layout++) expect(inn).toBeGreaterThan(height(buildHouseGeometry(layout, 0, false)));
+    for (let layout = 0; layout < HOUSE_LAYOUTS.length; layout++) expect(inn).toBeGreaterThan(height(buildHouseGeometry(layout, 0, false)));
   });
 });
