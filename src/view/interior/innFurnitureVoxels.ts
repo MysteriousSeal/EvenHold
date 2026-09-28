@@ -58,8 +58,11 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   },
   // A bear's pelt spread on the floor: its shape, stepped, in dark, mid and
   // light fur with a darker line down the spine, four legs splayed out with
-  // pale claws, and the head raised off the floor, facing into the room.
-  bearRug: (box, len) => {
+  // pale claws, and the head raised off the floor, toward the fire (drawn
+  // head toward +v, then flipped: the hearth is on the back wall, at -v).
+  bearRug: (paint, len, dep) => {
+    const box: Box = (u0, y0, v0, u1, y1, v1, color) =>
+      paint(u0, y0, dep - 1 - v1, u1, y1, dep - 1 - v0, typeof color === 'number' ? color : (u, y, v) => color(u, y, dep - 1 - v));
     const mid = len / 2 - 0.5;
     const half = (v: number) => (v >= 14 && v <= 36 ? 13 : v >= 12 && v <= 38 ? 11 : v >= 10 && v <= 40 ? 8 : -1);
     const fur = (u: number, v: number, edge: boolean) =>
