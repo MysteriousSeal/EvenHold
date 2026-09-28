@@ -1,6 +1,7 @@
 // Teleport destinations for the dev cheat panel. Pure queries over the
 // model, so they're testable and the panel stays a thin UI.
 
+import type { BuildingType, Entrance } from './interiors/interiors';
 import { enemyLevel } from './enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
@@ -119,4 +120,17 @@ export function slayNearby(model: GameModel, radius = 15): number {
     slain++;
   }
   return slain;
+}
+
+// Steps inside the nearest building of `type` (a house, the inn, a smithy),
+// leaving the one the hero's in first; returns whether there was one.
+export function enterNearest(model: GameModel, type: BuildingType): boolean {
+  if (model.inside) model.useDoor();
+  const { hero } = model;
+  const nearest = model.entrances
+    .filter((e) => e.type === type)
+    .reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) < Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null);
+  if (!nearest) return false;
+  model.teleport(nearest.x, nearest.z);
+  return model.useDoor();
 }

@@ -166,8 +166,10 @@ export class GameModel {
     return this.attackElapsed === null ? null : Math.min(1, this.attackElapsed / ATTACK_DURATION);
   }
 
-  // Moves the hero straight to (x, z), standing on the ground there.
+  // Moves the hero straight to (x, z), standing on the ground there
+  // (outdoors, leaving any room they were in).
   teleport(x: number, z: number): void {
+    this.inside = null;
     this.hero.x = x;
     this.hero.z = z;
     this.hero.y = this.getGroundY(x, z);
