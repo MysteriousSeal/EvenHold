@@ -1,0 +1,86 @@
+/* The hero's HUD, top left, in the menus' look (view/ui/menu.css): a
+   sandstone portrait frame with one ink outline and a hard shadow, a
+   lake-turquoise level gem on its corner, and chunky bars beside it:
+   health in clay red and experience in lake turquoise. Fredoka, numbers tabular. No animation
+   but a brief red edge when hurt. */
+
+.hero-hud {
+  --sand: #efdcb8;
+  --sand-dark: #d6bb8e;
+  --clay: #c0543a;
+  --clay-dark: #7a3520;
+  --lake: #3dbdb8;
+  --lake-dark: #217c98;
+  --ink: #2e1f14;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-hud-portrait {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  background: var(--sand);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -12px 0 var(--sand-dark);
+}
+.hero-hud.hurt .hero-hud-portrait { border-color: var(--clay); }
+
+.hero-hud-level {
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--lake);
+  border: 2px solid var(--ink);
+  box-shadow: inset -3px -3px 0 var(--lake-dark);
+}
+
+.hero-hud-bars { display: flex; flex-direction: column; gap: 8px; }
+
+.hero-hud-bar {
+  position: relative;
+  width: 280px;
+  background: var(--clay-dark);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 rgba(46, 31, 20, 0.45);
+}
+.hero-hud-bar i { display: block; height: 100%; }
+.hero-hud-bar span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.hero-hud-hp { height: 26px; }
+.hero-hud-hp i {
+  background: var(--clay);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18), inset 0 4px 0 rgba(255, 255, 255, 0.18);
+}
+
+.hero-hud-xp { height: 16px; background: #1d4a58; }
+.hero-hud-xp i { background: var(--lake); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15); }
+.hero-hud-xp span { font-size: 12px; }

@@ -3,6 +3,7 @@ import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { resolveSeed } from './util/seed';
 import { createFpsCounter } from './view/hud/fpsCounter';
+import { createHeroHud } from './view/hud/heroHud';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 
@@ -33,7 +34,12 @@ async function boot(): Promise<void> {
   await view.finish();
 
   const countFrame = createFpsCounter(document.getElementById('fps-label') as HTMLDivElement, () => view.getRenderStats());
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame: countFrame });
+  const updateHud = createHeroHud(model.hero);
+  const onFrame = () => {
+    countFrame();
+    updateHud();
+  };
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame });
   controller.start();
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.

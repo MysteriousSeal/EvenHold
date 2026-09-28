@@ -47,6 +47,9 @@ export class GameView {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
   private readonly hero: HumanRig; // dressed from the model's equipment every frame
+  private readonly heroLook = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  // A red glow while the hero's just been hit, like the enemies' flash.
+  private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
   private readonly world: ChunkStreamer;
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
@@ -87,7 +90,7 @@ export class GameView {
     this.movementAxes = computeMovementAxes();
 
     addLights(this.scene);
-    this.hero = new HumanRig(model.hero.look);
+    this.hero = new HumanRig(model.hero.look, this.heroLook);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
     this.enemies = new EnemyViews(this.scene);
@@ -124,7 +127,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.heroLook, this.heroFlash];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -160,6 +163,7 @@ export class GameView {
 
     const { hero } = model;
     this.hero.wear(hero.equipment);
+    this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress);
     this.world.update(hero.x, hero.z);
     this.enemies.update(model.enemies, hero.x, hero.z, dt);

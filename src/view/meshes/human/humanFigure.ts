@@ -73,3 +73,23 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
   }
   return { grid, palette };
 }
+
+// Head and shoulders only (a portrait): the figure above mid-chest, as worn,
+// leaving out what's held (a tall shield would cover the face). Turned a
+// quarter so it faces +X: icons are seen from the +X+Z corner, where +X
+// reads as facing right.
+export function humanBust(look: BodyLook, equipment: Equipment): Figure {
+  const figure = humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined });
+  const [sx, sy, sz] = figure.grid.size;
+  const chest = JOINTS.torso.at[1] + SHIFT[1] + 3; // rows below this go
+  const turned = createGrid([sz, sy, sx]);
+  for (let z = 0; z < sz; z++) {
+    for (let y = chest; y < sy; y++) {
+      for (let x = 0; x < sx; x++) {
+        const c = colorAt(figure.grid, x, y, z);
+        if (c) setColor(turned, z, y, sx - 1 - x, c); // front (+Z) to +X
+      }
+    }
+  }
+  return { grid: turned, palette: figure.palette };
+}
