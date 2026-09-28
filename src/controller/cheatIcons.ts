@@ -1,14 +1,16 @@
 // Icons for the cheat menu: isometric snapshots of the game's own voxel
-// models (view/ui/voxelIcon.ts), so they always match the world. The hero,
-// the bandit and the wolf are assembled from their body parts; a lake tile,
-// a shield and an ice crystal are small models made just for icons.
+// models (view/ui/voxelIcon.ts), so they always match the world. People
+// and items are drawn by humanFigure, exactly as they're worn; the wolf is
+// assembled from its body parts; a lake tile and an ice crystal are small
+// models made just for icons.
 
+import { BANDIT_OUTFIT, ITEMS, STARTER_SET, outfit, type Equipment, type ItemId } from '../model/equipment';
+import { HERO_LOOK, type BodyLook } from '../model/humanoid';
 import type { MenuIcon } from '../view/ui/menu';
 import { voxelIcon, type VoxelModel } from '../view/ui/voxelIcon';
 import type { VoxelGrid } from '../view/meshes/voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../view/meshes/voxel/voxelShapes';
-import { HERO_PALETTE, buildArm, buildHead, buildLeg, buildTorso } from '../view/meshes/hero/heroVoxels';
-import { BANDIT_PALETTE, BANDIT_PARTS, buildSword } from '../view/meshes/enemy/banditVoxels';
+import { humanFigure } from '../view/meshes/human/humanFigure';
 import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../view/meshes/enemy/wolfVoxels';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from '../view/meshes/building/houseVoxels';
 import { HOUSE_PALETTE } from '../view/meshes/building/housePalette';
@@ -35,21 +37,8 @@ function compose(size: [number, number, number], parts: Array<[VoxelGrid, number
   return out;
 }
 
-// A human on the rig's layout: legs, torso, arms at the sides (the right
-// hand on -X), head on top; all facing +Z.
-function human(parts: { leg(): VoxelGrid; torso(): VoxelGrid; arm(): VoxelGrid; head(): VoxelGrid }, extra: Array<[VoxelGrid, number, number, number]> = []): VoxelGrid {
-  return compose([11, 18, 15], [
-    [parts.leg(), 2, 0, 2],
-    [parts.leg(), 6, 0, 2],
-    [parts.torso(), 2, 5, 2],
-    [parts.arm(), 0, 5, 3],
-    [parts.arm(), 9, 5, 3],
-    [parts.head(), 2, 11, 0],
-    ...extra,
-  ]);
-}
-
-const heroModel = (): VoxelModel => ({ grid: human({ leg: buildLeg, torso: buildTorso, arm: buildArm, head: buildHead }), palette: HERO_PALETTE });
+const BANDIT_FACE: BodyLook = { skin: 1, hair: 1, hairStyle: 'short', beard: true };
+const person = (look: BodyLook | null, equipment: Equipment) => (): VoxelModel => humanFigure(look, equipment);
 
 function wolfModel(): VoxelModel {
   return {
@@ -84,31 +73,6 @@ function lakeModel(): VoxelModel {
   return { grid, palette };
 }
 
-// A kite shield in lake turquoise with a gold boss and iron rim.
-function shieldModel(): VoxelModel {
-  const grid = createGrid([9, 11, 2]);
-  for (let y = 0; y < 11; y++) {
-    const half = y >= 5 ? 4 : Math.max(0, Math.floor(y * 0.8));
-    for (let x = 4 - half; x <= 4 + half; x++) {
-      const rim = x === 4 - half || x === 4 + half || y === 10 || y === 0;
-      setColor(grid, x, y, 0, 4);
-      setColor(grid, x, y, 1, rim ? 4 : x < 4 ? 2 : 1);
-    }
-  }
-  fillBox(grid, 3, 5, 1, 5, 7, 1, 3); // gold boss
-  return { grid, palette: [0x3dbdb8, 0x217c98, 0xf0c64a, 0x8a9098] };
-}
-
-// A leather traveller's boot, toe toward +Z: sole, laced shaft, folded cuff.
-function bootModel(): VoxelModel {
-  const grid = createGrid([5, 10, 9]);
-  fillBox(grid, 0, 0, 0, 4, 0, 8, 4); // sole
-  fillBox(grid, 0, 1, 0, 4, 2, 8, (_x, y, z) => (z >= 7 && y === 2 ? 2 : 1)); // foot, toe cap
-  fillBox(grid, 0, 3, 0, 4, 7, 4, (x, y, z) => (z === 4 && x === 2 && y % 2 === 1 ? 3 : 1)); // shaft with lacing
-  fillBox(grid, 0, 8, 0, 4, 9, 4, 2); // folded cuff
-  return { grid, palette: [0x7a5236, 0x5e3f28, 0xc2a26b, 0x2e2420] };
-}
-
 // A cluster of ice crystals, tall in the middle.
 function iceModel(): VoxelModel {
   const grid = createGrid([7, 11, 7]);
@@ -124,10 +88,13 @@ function iceModel(): VoxelModel {
 // A menu icon for a model, rendered (and cached) on first use.
 const icon = (key: string, model: () => VoxelModel): MenuIcon => (size) => voxelIcon(key, model, size);
 
+// An item on its own, as it sits when worn or held.
+export const itemIcon = (item: ItemId): MenuIcon => icon(`item:${item}`, person(null, { [ITEMS[item].slot]: item }));
+
 export const ICONS = {
   // Tabs
   map: icon('well', () => ({ grid: buildWellVoxels(), palette: WELL_PALETTE })),
-  hero: icon('hero', heroModel),
+  hero: icon('hero', person(HERO_LOOK, {})),
   sword: icon('wolf', wolfModel),
   scroll: icon('oak', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE })),
   // Travel
@@ -137,12 +104,17 @@ export const ICONS = {
   paw: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
   flag: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
   // Hero
-  boot: icon('boot', bootModel),
-  ghost: icon('ghost', () => ({ ...heroModel(), alpha: 0.45 })),
-  shield: icon('shield', shieldModel),
+  boot: itemIcon('leatherBoots'),
+  ghost: icon('ghost', () => ({ ...humanFigure(HERO_LOOK, {}), alpha: 0.45 })),
+  shield: itemIcon('plankShield'),
   // Enemies
   wolf: icon('wolf', wolfModel),
-  bandit: icon('bandit', () => ({ grid: human(BANDIT_PARTS, [[buildSword(), 0, 5, 4]]), palette: BANDIT_PALETTE })),
-  skull: icon('sword', () => ({ grid: buildSword(), palette: BANDIT_PALETTE })),
+  bandit: icon('bandit', person(BANDIT_FACE, outfit(BANDIT_OUTFIT))),
+  skull: itemIcon('shortSword'),
   frost: icon('ice', iceModel),
+  // Wardrobe
+  wardrobe: itemIcon('gambeson'),
+  naked: icon('naked', person(HERO_LOOK, {})),
+  starter: icon('starter', person(HERO_LOOK, outfit(STARTER_SET))),
+  banditOutfit: icon('banditOutfit', person(HERO_LOOK, outfit(BANDIT_OUTFIT))),
 };

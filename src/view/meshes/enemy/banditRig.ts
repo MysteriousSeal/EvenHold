@@ -1,52 +1,43 @@
-// One bandit on screen: the hero's rig wearing the bandit's parts
-// (banditVoxels.ts), a short sword in the right hand, and the same swing
-// animation, driven by the bandit's own blow. Flashes red when hit, shows a
-// health bar over its head, and on death falls flat on its back and bursts into
-// voxel cubes.
+// One bandit on screen: the shared humanoid rig with the bandit's own look,
+// dressed in what the bandit wears (model: enemy.human), and the same swing
+// animation as the hero, driven by the bandit's own blow. Flashes red when
+// hit, shows a health bar over its head, and on death falls flat on its back
+// and bursts into voxel cubes of its colors.
 
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME, ENEMY_STATS } from '../../../model/constants';
+import { HERO_LOOK } from '../../../model/humanoid';
 import type { Enemy } from '../../../model/types';
-import { HeroRig } from '../hero/heroMesh';
-import { HERO_VOXEL_SIZE } from '../hero/heroVoxels';
-import { greedyMesh } from '../voxel/greedyMesh';
-import { BANDIT_PALETTE, BANDIT_PARTS, SWORD_GRID, buildSword } from './banditVoxels';
+import { HumanRig } from '../human/humanRig';
+import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 
-const V = HERO_VOXEL_SIZE;
-const HEIGHT = 18 * V;
+const HEIGHT = 18 * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4;
 const BURST_AT = 0.7;
 
 export interface BanditLook {
   normal: THREE.Material;
   flash: THREE.Material;
-  sword: THREE.BufferGeometry;
 }
 
 export function createBanditLook(flash: THREE.Material): BanditLook {
-  // Hilt at the hand, blade pointing forward (+Z).
-  const origin = new THREE.Vector3((-SWORD_GRID[0] * V) / 2, -V / 2, -V);
-  return {
-    normal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }),
-    flash,
-    sword: greedyMesh(buildSword(), BANDIT_PALETTE, V, origin),
-  };
+  return { normal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), flash };
 }
 
 export class BanditRig {
-  private readonly rig: HeroRig;
+  private readonly rig: HumanRig;
   private readonly bar = new HealthBar(ENEMY_STATS.bandit.hp, HEIGHT + 0.12);
   private readonly burst: VoxelBurst;
 
-  constructor(private readonly look: BanditLook) {
-    this.rig = new HeroRig(BANDIT_PARTS, look.normal);
-    const sword = new THREE.Mesh(look.sword, look.normal);
-    sword.position.y = -5 * V; // in the hand, at the end of the arm
-    this.rig.slots.rightArm.add(sword);
-    this.rig.meshes.push(sword);
+  constructor(
+    bandit: Enemy,
+    private readonly look: BanditLook,
+  ) {
+    this.rig = new HumanRig(bandit.human?.look ?? HERO_LOOK, look.normal);
+    this.rig.wear(bandit.human?.equipment ?? {});
     this.rig.root.add(this.bar.group);
-    this.burst = new VoxelBurst(this.rig.root, BANDIT_PALETTE.slice(2, 13), HEIGHT);
+    this.burst = new VoxelBurst(this.rig.root, this.rig.colors, HEIGHT);
   }
 
   get root(): THREE.Group {
@@ -67,6 +58,7 @@ export class BanditRig {
       this.burst.update((bandit.deadFor - BURST_AT) / (ENEMY_CORPSE_TIME - BURST_AT), dt);
       return;
     }
+    if (bandit.human) this.rig.wear(bandit.human.equipment);
     const swing = bandit.swingFor === null ? null : bandit.swingFor / ENEMY_STATS.bandit.swing;
     this.rig.update(bandit.x, bandit.y, bandit.z, dt, swing);
     this.rig.setMaterial(bandit.hurtFor > 0 ? this.look.flash : this.look.normal);

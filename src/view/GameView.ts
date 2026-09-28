@@ -20,7 +20,7 @@ import { buildFields } from './meshes/field/fieldMesh';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
-import { HeroRig } from './meshes/hero/heroMesh';
+import { HumanRig } from './meshes/human/humanRig';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
@@ -45,7 +45,7 @@ export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
-  private readonly hero = new HeroRig();
+  private readonly hero: HumanRig; // dressed from the model's equipment every frame
   private readonly world: ChunkStreamer;
   private readonly enemies: EnemyViews;
   private readonly movementAxes: MovementAxes;
@@ -85,6 +85,7 @@ export class GameView {
     this.movementAxes = computeMovementAxes();
 
     addLights(this.scene);
+    this.hero = new HumanRig(model.hero.look);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
     this.enemies = new EnemyViews(this.scene);
@@ -155,6 +156,7 @@ export class GameView {
     for (const animate of this.animations) animate(this.elapsed);
 
     const { hero } = model;
+    this.hero.wear(hero.equipment);
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress);
     this.world.update(hero.x, hero.z);
     this.enemies.update(model.enemies, hero.x, hero.z, dt);

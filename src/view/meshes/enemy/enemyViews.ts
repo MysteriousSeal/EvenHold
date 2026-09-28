@@ -33,7 +33,7 @@ export class EnemyViews {
       seen.add(enemy.id);
       let rig = this.rigs.get(enemy.id);
       if (!rig) {
-        rig = enemy.kind === 'wolf' ? new WolfRig(this.wolfLook) : new BanditRig(this.banditLook);
+        rig = enemy.kind === 'wolf' ? new WolfRig(this.wolfLook) : new BanditRig(enemy, this.banditLook);
         this.rigs.set(enemy.id, rig);
         this.scene.add(rig.root);
       }
