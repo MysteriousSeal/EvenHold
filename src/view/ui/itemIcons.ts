@@ -4,7 +4,7 @@
 import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
 import type { LootId } from '../../model/loot/loot';
 import { LOOT } from '../../model/loot/loot';
-import type { BagItem } from '../../model/bag';
+import type { BagItem } from '../../model/hero/bag';
 import { humanBust, humanFigure } from '../meshes/human/humanFigure';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';

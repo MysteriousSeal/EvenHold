@@ -5,9 +5,9 @@
 // onto the world to put it down. The
 // game plays on around it: it only takes Escape and B.
 
-import { coins } from '../model/money';
+import { coinParts } from '../view/ui/coins';
 import type { GameModel } from '../model/GameModel';
-import type { BagItem } from '../model/bag';
+import type { BagItem } from '../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
@@ -46,21 +46,11 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
   };
 }
 
-// The purse, under the bag: gold, silver and copper, each by its coin
-// (gold and silver only once there's some).
+// The purse, under the bag: gold, silver and copper, each by its coin.
 function purse(money: number): HTMLElement {
-  const { gold, silver, copper } = coins(money);
   const line = document.createElement('div');
   line.className = 'menu-purse';
-  const add = (amount: number, metal: string) => {
-    const coin = document.createElement('span');
-    coin.className = `coin ${metal}`;
-    coin.title = metal;
-    line.append(String(amount), coin);
-  };
-  if (gold > 0) add(gold, 'gold');
-  if (gold > 0 || silver > 0) add(silver, 'silver');
-  add(copper, 'copper');
+  line.append(...coinParts(money, true));
   return line;
 }
 

@@ -2,8 +2,8 @@
 // silver, 100 silver a gold), and coins dropped on the ground by slain foes,
 // picked up just by walking near them.
 
-import { hashUnit } from '../util/random';
-import type { Enemy } from './types';
+import { hashUnit } from '../../util/random';
+import type { Enemy } from '../types';
 
 export const COPPER_PER_SILVER = 100;
 export const SILVER_PER_GOLD = 100;

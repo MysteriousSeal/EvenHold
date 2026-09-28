@@ -32,12 +32,13 @@ import {
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
-import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
+import { gainXp, maxHpAt, xpToNext } from '../../model/hero/heroStats';
 import { LOOT_IDS } from '../../model/loot/loot';
-import { addToBag } from '../../model/bag';
+import { addToBag } from '../../model/hero/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
 import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
 import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
+import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
 import { randomName } from '../../model/npcs/npcs';
 
 const SPEED_BOOST = 3;
@@ -162,8 +163,8 @@ export function createCheatPanel(model: GameModel): void {
               return `Hair: ${STYLE_NAMES[next]}.`;
             },
           },
-          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += 10_000), 'A gold coin, added.') },
-          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 1_000), 'Ten silver, added.') },
+          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
+          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
           {
             icon: ICON.swiftFeet,
             title: 'Swift feet',

@@ -3,7 +3,7 @@
 // says what went into the bag. Styles in hud.css.
 
 import type { GroundLoot } from '../../model/loot/loot';
-import { nameOf, qualityOf, type BagItem } from '../../model/bag';
+import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
 
 const TOAST_SECONDS = 2;
 

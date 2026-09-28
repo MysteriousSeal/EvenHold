@@ -3,7 +3,7 @@
 // rising and drifting aside as it fades out. A new one near a fresh one goes
 // above it instead of on top.
 
-import { coins } from '../../model/money';
+import { coinParts } from '../ui/coins';
 
 const LIFE = 0.9; // seconds shown
 const RISE = 45; // screen pixels a second
@@ -25,6 +25,8 @@ export interface FloatingText {
   // Shows `content` in `color` over the world point `at`.
   spawn(at: { x: number; y: number; z: number }, content: Array<string | HTMLElement>, color: string): void;
   update(toScreen: ToScreen, dt: number): void;
+  // Takes it all away (going in or out a door: rooms have places of their own).
+  clear(): void;
 }
 
 export function createFloatingText(): FloatingText {
@@ -40,6 +42,10 @@ export function createFloatingText(): FloatingText {
       let lift = 0;
       for (const other of floaters) if (other.age < LIFE / 2 && Math.hypot(other.at.x - at.x, other.at.z - at.z) < 0.5) lift = Math.max(lift, other.lift + STACK);
       floaters.push({ element, at: { ...at }, lift, drift: (Math.random() * 2 - 1) * DRIFT, age: 0 });
+    },
+    clear() {
+      for (const f of floaters) f.element.remove();
+      floaters.length = 0;
     },
     update(toScreen, dt) {
       for (let i = floaters.length - 1; i >= 0; i--) {
@@ -59,17 +65,7 @@ export function createFloatingText(): FloatingText {
   };
 }
 
-// Coins looted, as floating text: "+" and each figure followed by its coin.
+// Coins looted, as floating text: "+" and the amount, each figure followed by its coin.
 export function coinText(copper: number): Array<string | HTMLElement> {
-  const { gold, silver, copper: left } = coins(copper);
-  const parts: Array<string | HTMLElement> = ['+'];
-  const add = (amount: number, metal: string) => {
-    const coin = document.createElement('span');
-    coin.className = `coin ${metal}`;
-    parts.push(`${amount}`, coin);
-  };
-  if (gold > 0) add(gold, 'gold');
-  if (silver > 0) add(silver, 'silver');
-  if (left > 0) add(left, 'copper');
-  return parts;
+  return ['+', ...coinParts(copper)];
 }

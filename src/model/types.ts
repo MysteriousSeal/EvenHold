@@ -1,6 +1,6 @@
 import type { MapSize } from './grid';
 import type { Humanoid } from './human/humanoid';
-import type { Bag } from './bag';
+import type { Bag } from './hero/bag';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {

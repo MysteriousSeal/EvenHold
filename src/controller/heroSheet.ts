@@ -7,7 +7,7 @@
 import type { GameModel } from '../model/GameModel';
 import { ATTACK_DURATION, HERO_DAMAGE, HERO_SPEED } from '../model/constants';
 import { ITEMS, SLOT_NAMES, type EquipSlot } from '../model/human/equipment';
-import { maxHpAt, xpToNext } from '../model/heroStats';
+import { maxHpAt, xpToNext } from '../model/hero/heroStats';
 import { humanFigure } from '../view/meshes/human/humanFigure';
 import { gearIcon, slotPlaceholder } from '../view/ui/itemIcons';
 import { createMenu, type DollSlot, type Menu } from '../view/ui/menu';

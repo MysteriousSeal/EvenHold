@@ -5,7 +5,7 @@
 // dropped when they're picked up or left behind.
 
 import * as THREE from 'three';
-import type { GroundCoins } from '../../../model/money';
+import type { GroundCoins } from '../../../model/hero/money';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { greedyMesh } from '../voxel/greedyMesh';
 

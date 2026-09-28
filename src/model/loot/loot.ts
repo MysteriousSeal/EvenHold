@@ -8,7 +8,7 @@
 
 import { hashUnit } from '../../util/random';
 import { JUNK_ITEMS } from './junk';
-import type { BagItem } from '../bag';
+import type { BagItem } from '../hero/bag';
 
 // Who drops what: families of enemies (ENEMY_STATS[kind].family).
 export type LootSource = 'beast' | 'humanoid';

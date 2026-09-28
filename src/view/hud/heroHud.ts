@@ -6,7 +6,7 @@
 
 import './hud.css';
 import type { Hero } from '../../model/types';
-import { maxHpAt, xpToNext } from '../../model/heroStats';
+import { maxHpAt, xpToNext } from '../../model/hero/heroStats';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
 

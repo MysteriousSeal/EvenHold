@@ -1,6 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
-import type { BagItem } from '../model/bag';
+import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameEvent } from '../model/types';
 import type { GameView } from '../view/GameView';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
-import { gainXp, maxHpAt, recover, xpToNext } from '../src/model/heroStats';
+import { gainXp, maxHpAt, recover, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy } from '../src/model/types';

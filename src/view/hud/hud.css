@@ -138,19 +138,7 @@
   -webkit-text-stroke: 3.5px rgb(30 20 40 / 0.9);
   paint-order: stroke fill;
 }
-.floating-text .coin {
-  display: inline-block;
-  width: 0.7em;
-  height: 0.7em;
-  margin-left: 0.2em;
-  vertical-align: -0.05em;
-  border-radius: 3px;
-  border: 1px solid #2e1f14;
-  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.18), inset 2px 2px 0 rgb(255 255 255 / 0.35);
-}
-.floating-text .gold { background: #e0b040; }
-.floating-text .silver { background: #c8ccd2; }
-.floating-text .copper { background: #c07040; }
+.floating-text .coin { margin-right: 0.15em; } /* the coins themselves: coins.css */
 .loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
 .loot-name[data-quality='common'] { color: #f8ecd4; }

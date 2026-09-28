@@ -56,6 +56,7 @@ async function boot(): Promise<void> {
   const floatingText = createFloatingText();
   const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4 }; // about two thirds of the way up them
   let lastFrame = performance.now();
+  let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused), redraw: () => view.render() });
@@ -90,6 +91,10 @@ async function boot(): Promise<void> {
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
     const now = performance.now();
+    if (model.inside?.entrance !== textSpace) {
+      textSpace = model.inside?.entrance;
+      floatingText.clear(); // a room's places aren't the world's
+    }
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };

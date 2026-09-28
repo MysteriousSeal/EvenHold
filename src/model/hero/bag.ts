@@ -1,8 +1,8 @@
 // The hero's bag: how many of each thing they carry, loot (loot/) and gear
 // (human/items/) alike. Their ids never clash, so one record holds both.
 
-import { ITEMS, type ItemId } from './human/equipment';
-import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from './loot/loot';
+import { ITEMS, type ItemId } from '../human/equipment';
+import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
 
 export type BagItem = LootId | ItemId;
 // How an item's name is colored: loot has its quality; gear is common.

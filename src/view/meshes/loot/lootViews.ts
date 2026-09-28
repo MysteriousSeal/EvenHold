@@ -6,7 +6,7 @@
 
 import * as THREE from 'three';
 import type { GroundLoot } from '../../../model/loot/loot';
-import { isLootItem, qualityOf, type BagItem, type Quality } from '../../../model/bag';
+import { isLootItem, qualityOf, type BagItem, type Quality } from '../../../model/hero/bag';
 import { ITEMS, type ItemId } from '../../../model/human/equipment';
 import { humanFigure } from '../human/humanFigure';
 import { ITEM_MODELS } from '../human/gear/itemModels';

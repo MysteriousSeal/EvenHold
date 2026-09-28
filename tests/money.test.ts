@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coinDrop, coins } from '../src/model/money';
+import { coinDrop, coins } from '../src/model/hero/money';
 import { HERO_DAMAGE } from '../src/model/constants';
 import type { Enemy } from '../src/model/types';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';

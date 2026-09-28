@@ -2,7 +2,7 @@
 // each level takes more experience than the last. Hurt, the hero heals by
 // itself once out of the fight for a while. Levelling up heals fully.
 
-import type { Hero } from './types';
+import type { Hero } from '../types';
 
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;

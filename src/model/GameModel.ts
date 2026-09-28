@@ -8,41 +8,32 @@ import {
   EDGE_MARGIN,
   HERO_SPEED,
   HERO_RADIUS,
-  BUSH_COLLISION_HALF,
-  TREE_COLLISION_HALF,
   ATTACK_DURATION,
   ATTACK_KNOCKBACK,
   ATTACK_REACH,
   ATTACK_STRIKE,
-  CAMPFIRE_COLLISION_HALF,
-  CAMP_PROP_COLLISION_HALF,
-  PALISADE_THICKNESS,
   ENEMY_STATS,
   HERO_DAMAGE,
   FOCUS_RANGE,
   FOCUS_TURN_RANGE,
-  LANTERN_COLLISION_HALF,
-  FENCE_THICKNESS,
-  FIELD_CORNER_COLLISION_HALF,
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
-import { campPalisade, campPieces, spawnEnemies } from './enemies/enemies';
+import { spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './hero/heroStats';
 import { HERO_LOOK } from './human/humanoid';
-import { Obstacles } from './obstacles';
-import { stepHop, type Hop } from './hop';
+import type { Obstacles } from './obstacles';
+import { addCampObstacles, worldObstacles } from './blockers';
+import { stepHop, type Hop } from './hero/hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
-import { addToBag, takeFromBag, type BagItem } from './bag';
-import { coinDrop, collectCoins, type GroundCoins } from './money';
+import { addToBag, takeFromBag, type BagItem } from './hero/bag';
+import { coinDrop, collectCoins, type GroundCoins } from './hero/money';
 import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
-import { fenceEdges } from './worldgen/fields';
-import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
 import { ENTER_RANGE, entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
@@ -111,18 +102,7 @@ export class GameModel {
     this.fields = world.fields;
     this.trees = world.trees;
     this.bushes = world.bushes;
-    // Houses and wells nearly fill their tile, so they block all of it;
-    // bushes, tree trunks and lamp posts are much smaller, so they get
-    // their own footprint (a field's corner, heaped with hay bales and tools,
-    // nearly all its tile); field fences run along tile edges.
-    this.obstacles = new Obstacles(this.size, this.lakeMap, new Set(solidCells(this)));
-    for (const b of this.bushes) this.obstacles.addProp(b.x, b.z, BUSH_COLLISION_HALF);
-    for (const t of this.trees) this.obstacles.addProp(t.x, t.z, TREE_COLLISION_HALF);
-    for (const v of this.villages) for (const [x, z] of squareLanterns(v)) this.obstacles.addProp(x, z, LANTERN_COLLISION_HALF);
-    for (const field of this.fields) {
-      for (const { x, z, side } of fenceEdges(field)) this.obstacles.addFenceStrip(x, z, side, FENCE_THICKNESS);
-      this.obstacles.addProp(field.corner[0], field.corner[1], FIELD_CORNER_COLLISION_HALF); // its hay bales and tools
-    }
+    this.obstacles = worldObstacles(this, solidCells(this)); // what blocks the way (blockers.ts)
 
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, money: 0, ...FRESH_HERO_STATS }; // starts naked
@@ -130,17 +110,7 @@ export class GameModel {
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
     this.camps = camps;
-    // Tents block their tile; the fire (too low to hide anyone), crates and
-    // rack a square in the middle of theirs; the palisade a strip along its
-    // edges. The loot pile and log seats don't block.
-    for (const camp of camps) {
-      for (const piece of campPieces(camp)) {
-        if (piece.kind === 'tent') this.obstacles.addSolid(piece.x, piece.z);
-        else if (piece.kind === 'fire') this.obstacles.addProp(piece.x, piece.z, CAMPFIRE_COLLISION_HALF, true);
-        else if (piece.kind !== 'loot') this.obstacles.addProp(piece.x, piece.z, CAMP_PROP_COLLISION_HALF);
-      }
-      for (const edge of campPalisade(camp)) this.obstacles.addFenceStrip(edge.x, edge.z, edge.side, PALISADE_THICKNESS);
-    }
+    addCampObstacles(this.obstacles, camps);
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
     this.wildlife = spawnWildlife(this);

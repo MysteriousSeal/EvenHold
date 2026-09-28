@@ -4,7 +4,7 @@
 // peaking HOP_HEIGHT above that line halfway through. A new change mid-move
 // restarts from the current height, so rapid multi-step climbs stay continuous.
 
-import { HOP_DURATION, HOP_HEIGHT, TILE_HEIGHT } from './constants';
+import { HOP_DURATION, HOP_HEIGHT, TILE_HEIGHT } from '../constants';
 
 export interface Hop {
   fromY: number;
