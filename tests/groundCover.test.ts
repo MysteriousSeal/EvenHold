@@ -3,7 +3,10 @@ import { GameModel } from '../src/model/GameModel';
 import { ROAD_WIDTH, TILE_HEIGHT } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
+import * as THREE from 'three';
 import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/ground/groundCoverScatter';
+import { buildFlowerGeometry, buildPebbleGeometry, buildTuftGeometry, tuftSize } from '../src/view/meshes/ground/groundCoverMesh';
+import { TUFT_SIZES } from '../src/view/meshes/ground/groundCoverVoxels';
 
 const models = [1, 7, 42].map((seed) => [seed, new GameModel(seed)] as const);
 
@@ -88,5 +91,28 @@ describe('ground cover scatter', () => {
   it('is deterministic', () => {
     const model = new GameModel(5);
     expect(scatterGroundCover(model)).toEqual(scatterGroundCover(model));
+  });
+});
+
+describe('voxel ground cover models', () => {
+  const box = (g: THREE.BufferGeometry) => {
+    g.computeBoundingBox();
+    return g.boundingBox!;
+  };
+
+  it.each([0, 1, 2].flatMap((size) => [0, 1, 2].map((shape) => [size, shape])))('tuft %i/%i: taller with size, small footprint', (size, shape) => {
+    const b = box(buildTuftGeometry(size, shape));
+    expect(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z)).toBeLessThanOrEqual(0.141);
+    expect(b.max.y).toBeLessThanOrEqual(TUFT_SIZES[size] * 0.04);
+    expect(b.max.y).toBeGreaterThan(0.05);
+  });
+
+  it('builds every flower and pebble model', () => {
+    for (let color = 0; color < 3; color++) for (let h = 0; h < 2; h++) expect(box(buildFlowerGeometry(color, h)).max.y).toBeGreaterThan(0.1);
+    for (let shape = 0; shape < 6; shape++) expect(box(buildPebbleGeometry(shape)).max.y).toBeLessThan(0.1);
+  });
+
+  it('maps scatter scale to tuft size classes', () => {
+    expect([0.5, 0.9, 1.3].map(tuftSize)).toEqual([0, 1, 2]);
   });
 });

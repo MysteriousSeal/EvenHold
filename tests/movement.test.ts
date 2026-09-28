@@ -77,7 +77,8 @@ describe('tree collision', () => {
   it('stops the hero at the trunk, not the tile edge', () => {
     const model = new GameModel(1);
     const isSolid = solidCellCheck(model);
-    const tree = model.trees.find((t) => !isSolid(t.x - 1, t.z) && !isSolid(t.x - 2, t.z));
+    // Away from the map border, where the hero is kept a radius inside the edge.
+    const tree = model.trees.find((t) => t.z > 1 && t.z < MAP_DEPTH - 2 && !isSolid(t.x - 1, t.z) && !isSolid(t.x - 2, t.z));
     expect(tree).toBeDefined();
 
     model.hero.x = tree!.x - 2;

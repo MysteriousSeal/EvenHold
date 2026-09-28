@@ -72,7 +72,7 @@ describe('bush voxel models', () => {
   });
 });
 
-const TREE_KINDS: TreeKind[] = ['oak', 'pine'];
+const TREE_KINDS: TreeKind[] = ['oak', 'pine', 'birch'];
 const trees = TREE_KINDS.flatMap((kind) => [0, 1, 2].map((shape) => [kind, shape] as const));
 
 describe('tree voxel models', () => {

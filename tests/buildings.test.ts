@@ -8,7 +8,7 @@ import { buildHouseGeometry } from '../src/view/meshes/house/houseMesh';
 import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/house/houseVoxels';
 import { C, ROOF_SETS } from '../src/view/meshes/house/housePalette';
 import { voxelIndex } from '../src/view/meshes/voxel/greedyMesh';
-import { buildWellParts, WELL_PARTS } from '../src/view/meshes/well/wellParts';
+import { buildWellGeometry } from '../src/view/meshes/well/wellMesh';
 
 const CELL_HALF = 0.5;
 const EPSILON = 1e-6;
@@ -61,10 +61,11 @@ describe('voxel houses', () => {
 });
 
 describe('well mesh', () => {
-  it('stays inside its cell', () => {
-    const parts = buildWellParts();
-    for (const part of WELL_PARTS) {
-      expect(horizontalExtent(parts[part]), part).toBeLessThanOrEqual(CELL_HALF + EPSILON);
+  it('stays inside its cell, with a glowing lantern', () => {
+    for (const glowing of [false, true]) {
+      const geometry = buildWellGeometry(glowing);
+      expect(geometry.getAttribute('position').count).toBeGreaterThan(0);
+      expect(horizontalExtent(geometry)).toBeLessThanOrEqual(CELL_HALF + EPSILON);
     }
   });
 });
