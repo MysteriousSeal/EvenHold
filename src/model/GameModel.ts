@@ -42,6 +42,7 @@ import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
+import { ENTER_RANGE, entrancesOf, roomFor, type Entrance, type Room } from './interiors/interiors';
 
 const EDGE_MARGIN = 0.4; // how close to the map's edge the hero may go
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -64,6 +65,10 @@ export class GameModel {
   readonly camps: Camp[];
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
   private nextLootId = 0;
+  readonly entrances: Entrance[]; // every door that can be gone through
+  // Where the hero is while indoors: the building's door and its room (the
+  // hero's x/z are then room coordinates); null outdoors.
+  inside: { entrance: Entrance; room: Room } | null = null;
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
@@ -131,6 +136,7 @@ export class GameModel {
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
     this.wildlife = spawnWildlife(this);
+    this.entrances = entrancesOf(this.houses, this.buildings);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
@@ -184,6 +190,16 @@ export class GameModel {
   // (not necessarily normalized, zero when idle); dt: seconds.
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
+    if (this.inside) {
+      // The world outside stands still while the hero's indoors.
+      this.moveInside(dirX, dirZ, dt);
+      if (this.attackElapsed !== null) {
+        this.attackElapsed += dt;
+        if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
+      }
+      recover(this.hero, dt);
+      return;
+    }
     this.moveHorizontally(dirX, dirZ, dt);
     if (this.attackElapsed !== null) {
       this.attackElapsed += dt;
@@ -275,6 +291,7 @@ export class GameModel {
 
   // The loot nearest the hero within reach to pick up, or null.
   get lootInReach(): GroundLoot | null {
+    if (this.inside) return null; // loot lies outdoors
     let best: GroundLoot | null = null;
     let bestDistance = PICKUP_RANGE;
     for (const loot of this.loot) {
@@ -290,6 +307,7 @@ export class GameModel {
   // Takes one `item` out of the hero's bag and puts it on the ground just in
   // front of them; returns whether they had one.
   dropFromBag(item: BagItem): boolean {
+    if (this.inside) return false; // nothing's dropped indoors (for now)
     if (!takeFromBag(this.hero.bag, item)) return false;
     this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
     return true;
@@ -317,6 +335,71 @@ export class GameModel {
     this.unequip(ITEMS[item].slot);
     wear(this.hero.equipment, item);
     return true;
+  }
+
+  // The door the hero can use right now: outdoors, one whose spot they stand
+  // on; indoors, the room's own door when they're by it. Null otherwise.
+  get doorInReach(): Entrance | null {
+    const { hero } = this;
+    if (this.inside) {
+      const { room, entrance } = this.inside;
+      return Math.abs(hero.x - room.door) < 0.6 && hero.z > room.depth - 1.4 ? entrance : null;
+    }
+    let best: Entrance | null = null;
+    let bestDistance = ENTER_RANGE;
+    for (const entrance of this.entrances) {
+      const d = Math.hypot(entrance.x - hero.x, entrance.z - hero.z);
+      if (d <= bestDistance) {
+        best = entrance;
+        bestDistance = d;
+      }
+    }
+    return best;
+  }
+
+  // Goes through the door in reach: in, onto the room's floor just inside
+  // it; or out, onto the spot outside it, facing away. Returns whether it did.
+  useDoor(): boolean {
+    const entrance = this.doorInReach;
+    if (!entrance) return false;
+    const { hero } = this;
+    this.hop = null;
+    if (this.inside) {
+      this.inside = null;
+      hero.x = entrance.x;
+      hero.z = entrance.z;
+      hero.y = this.getGroundY(hero.x, hero.z);
+      hero.facing = Math.atan2(entrance.outX, entrance.outZ);
+      return true;
+    }
+    const room = roomFor(this.seed, entrance);
+    this.inside = { entrance, room };
+    this.focusedId = null;
+    hero.x = room.door;
+    hero.z = room.depth - 1;
+    hero.y = 0;
+    hero.facing = Math.PI; // into the room (-Z)
+    return true;
+  }
+
+  // Indoors: the hero walks the room's floor, walled in but for the door;
+  // walking out through it goes back outside.
+  private moveInside(dirX: number, dirZ: number, dt: number): void {
+    const { room } = this.inside!;
+    const len = Math.hypot(dirX, dirZ);
+    if (len < 1e-6) return;
+    const dist = HERO_SPEED * this.speedMultiplier * dt;
+    const r = HERO_RADIUS;
+    const hero = this.hero;
+    hero.facing = Math.atan2(dirX, dirZ);
+    hero.x = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
+    const inDoorway = Math.abs(hero.x - room.door) < 0.5 - r;
+    const nz = hero.z + (dirZ / len) * dist;
+    if (inDoorway && nz >= room.depth - 0.5 - r) {
+      this.useDoor(); // out through the door
+      return;
+    }
+    hero.z = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
