@@ -8,12 +8,13 @@ import type { BodyLook } from '../../../model/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 import { HAND, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type Joint } from './bodyVoxels';
-import { ITEM_MODELS, wornGrid } from './armor/itemModels';
+import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
-// with space for shells, a sword held forward and a shield.
-const SIZE: [number, number, number] = [15, 21, 20];
-const SHIFT: [number, number, number] = [6.5, 1, 4.5];
+// with space for shells, shields, and poles held in the middle (a spear
+// or a staff reaches 12 voxels behind the hand and 20 ahead of it).
+const SIZE: [number, number, number] = [15, 22, 36];
+const SHIFT: [number, number, number] = [6.5, 1, 14];
 
 const HELD_BY: Record<'mainHand' | 'offHand', Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 

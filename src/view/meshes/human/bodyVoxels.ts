@@ -1,6 +1,6 @@
 // The one body every humanoid shares (the hero, bandits, villagers later),
 // naked but for undyed linen braies (medieval underwear). Nothing is ever
-// painted onto it: armor is worn over it as separate models (armor/). Only
+// painted onto it: armor is worn over it as separate models (gear/). Only
 // its look changes from person to person (model/humanoid.ts): the skin
 // tone, the hair color and style, a beard.
 //

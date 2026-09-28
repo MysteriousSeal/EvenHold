@@ -1,7 +1,7 @@
 // A humanoid on screen (the hero, a bandit): the shared naked body
 // (bodyVoxels.ts) on a simple rig of joints, so each part swings on its own
 // pivot, wearing whatever its equipment says. Worn pieces hang on the joints
-// of the parts they cover and held items in the hands (armor/), so they all
+// of the parts they cover and held items in the hands (gear/), so they all
 // move with the body; wear() swaps them as the equipment changes.
 //
 //   root (at the feet, turned to face where they walk)
@@ -19,8 +19,8 @@ import { EQUIP_SLOTS, ITEMS, type EquipSlot, type Equipment, type HeldSlot, type
 import { HERO_LOOK, type BodyLook } from '../../../model/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { HAND, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type BodyPart, type Joint } from './bodyVoxels';
-import { BODY_FILL, withBody } from './armor/armorShell';
-import { ITEM_MODELS, wornGrid } from './armor/itemModels';
+import { BODY_FILL, withBody } from './gear/armorShell';
+import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 const V = HUMAN_VOXEL_SIZE;
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
