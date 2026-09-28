@@ -17,7 +17,7 @@ import { OFFERS, MAX_ACTIVE, questAt, questProgress, type Quest, type QuestWorld
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 export const BOARD_RANGE = 1.6; // how close the hero must be to read a board
-const PACK = { wolf: 4, bandit: 3 }; // foes kept around a "bring" quest's spot
+const PACK = 2; // foes gathered for each still asked for
 const SPREAD = 2.5; // tiles round the spot a pack gathers in
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
 
@@ -37,7 +37,7 @@ export class QuestBook {
   readonly taken: TakenQuest[] = [];
   readonly events: GameEvent[] = []; // progress and rewards to show, drained with the model's (GameModel.takeEvents)
   private readonly offers = new Map<number, number[]>(); // each board's quest numbers (the seed's first five, until some are handed in)
-  private nextMobId = FIRST_MOB_ID;
+  private readonly gathered = new Map<string, number>(); // foes each quest has gathered so far, by key (their ids and places come from it)
 
   constructor(private readonly host: QuestHost) {}
 
@@ -62,6 +62,11 @@ export class QuestBook {
   // Whether a board has a quest the hero could take now (one not taken, and room for it).
   available(board: number): boolean {
     return !this.full && this.numbersAt(board).some((n) => !this.takenOf(`${board}:${n}`));
+  }
+
+  // Whether a quest taken from a board is done, to hand in there.
+  readyAt(board: number): boolean {
+    return this.taken.some((t) => t.quest.board === board && this.done(t));
   }
 
   takenOf(key: string): TakenQuest | null {
@@ -166,23 +171,30 @@ export class QuestBook {
     }
   }
 
-  // Foes the quest should have about: those still to slay, or a pack.
+  // Foes the quest should have about: twice those still to slay, or twice the things asked.
   private wanted(taken: TakenQuest): number {
-    return taken.quest.kind === 'kill' ? taken.quest.count - taken.kills : PACK[taken.quest.foe];
+    return PACK * (taken.quest.kind === 'kill' ? taken.quest.count - taken.kills : taken.quest.count);
   }
 
   private alive(taken: TakenQuest): number {
     return this.host.enemies.filter((e) => e.quest === taken.quest.key && e.state !== 'dead').length;
   }
 
-  // One more marked foe, somewhere open near the quest's spot.
+  // One more marked foe, somewhere open near the quest's spot. Who it is and
+  // where it stands come from the seed, the quest and how many it's gathered
+  // (so a given world's quests always play out alike): its id is unique to
+  // the quest and its count, and decides the loot it drops.
   private gather(taken: TakenQuest): void {
     const { quest } = taken;
-    const id = this.nextMobId++;
+    const count = this.gathered.get(quest.key) ?? 0;
+    this.gathered.set(quest.key, count + 1);
+    const [board, n] = quest.key.split(':').map(Number);
+    const id = FIRST_MOB_ID + (board * 10_000 + n) * 10_000 + count;
+    const salt = this.host.seed % 1_000_003;
     let [x, z] = [quest.x, quest.z];
     for (let t = 0; t < 10; t++) {
-      const tx = Math.round(quest.x + (hashUnit(id, t, 93) * 2 - 1) * SPREAD);
-      const tz = Math.round(quest.z + (hashUnit(id, t, 94) * 2 - 1) * SPREAD);
+      const tx = Math.round(quest.x + (hashUnit(id, salt + t, 93) * 2 - 1) * SPREAD);
+      const tz = Math.round(quest.z + (hashUnit(id, salt + t, 94) * 2 - 1) * SPREAD);
       if (this.host.isOpenTile(tx, tz)) {
         [x, z] = [tx, tz];
         break;
@@ -195,10 +207,10 @@ export class QuestBook {
   }
 
   // For saving: each board's offers, and the quests taken.
-  save(): { boards: Array<{ board: number; offers: number[] }>; taken: Array<{ key: string; kills: number }> } {
+  save(): { boards: Array<{ board: number; offers: number[] }>; taken: Array<{ key: string; kills: number; gathered?: number }> } {
     return {
       boards: [...this.offers].map(([board, offers]) => ({ board, offers: [...offers] })),
-      taken: this.taken.map((t) => ({ key: t.quest.key, kills: t.kills })),
+      taken: this.taken.map((t) => ({ key: t.quest.key, kills: t.kills, gathered: this.gathered.get(t.quest.key) ?? 0 })),
     };
   }
 
@@ -208,21 +220,14 @@ export class QuestBook {
     for (const { board, offers } of Array.isArray(data?.boards) ? data.boards : []) {
       if (whole(board) && board < boards && Array.isArray(offers) && offers.length === OFFERS && offers.every(whole)) this.offers.set(board, [...offers]);
     }
-    for (const { key, kills } of Array.isArray(data?.taken) ? data.taken : []) {
+    for (const { key, kills, gathered } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);
       if (!whole(board) || board >= boards || !this.numbersAt(board).includes(n) || this.full || this.takenOf(key)) continue;
-      if (this.accept(questAt(this.host, board, n))) {
-        const taken = this.taken[this.taken.length - 1];
-        taken.kills = whole(kills) ? Math.min(kills, taken.quest.count) : 0;
-        // Only the foes still to slay.
-        const extra = this.alive(taken) - this.wanted(taken);
-        for (let i = this.host.enemies.length - 1, left = extra; i >= 0 && left > 0; i--) {
-          if (this.host.enemies[i].quest === key) {
-            this.host.enemies.splice(i, 1);
-            left--;
-          }
-        }
-      }
+      const quest = questAt(this.host, board, n);
+      const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY };
+      this.taken.push(taken);
+      this.gathered.set(key, whole(gathered) ? gathered : 0); // the next foes are the ones that would have come next
+      for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
     }
   }
 }

@@ -33,6 +33,19 @@ describe('quests', () => {
     }
   });
 
+  it('plays out the same on the same seed: the same foes, in the same places', () => {
+    const foes = (reversed: boolean) => {
+      const model = fresh();
+      const [a, b] = model.quests.offersAt(0);
+      for (const q of reversed ? [b, a] : [a, b]) model.quests.accept(q); // whichever is taken first
+      return model.enemies.filter((e) => e.quest).map(({ id, quest, x, z, kind, level }) => ({ id, quest, x, z, kind, level })).sort((p, q) => p.id - q.id);
+    };
+    const first = foes(false);
+    expect(first.length).toBeGreaterThan(0);
+    expect(new Set(first.map((f) => f.id)).size).toBe(first.length); // no two alike
+    expect(foes(true)).toEqual(first);
+  });
+
   it('stands beside the inn, and is read up close', () => {
     const model = fresh();
     const spot = noticeBoards(model)[0];
@@ -48,7 +61,7 @@ describe('quests', () => {
     const model = fresh();
     const quest = { ...questAt(model, 0, 0), kind: 'kill' as const, item: null, count: 3 };
     expect(model.quests.accept(quest)).toBe(true);
-    expect(marked(model, quest.key)).toHaveLength(3);
+    expect(marked(model, quest.key)).toHaveLength(6); // twice as many as asked
     expect(marked(model, quest.key).every((e) => model.quests.marked(e))).toBe(true); // each wears the mark
     expect(model.quests.handIn(quest.key)).toBe(false); // not done
     slay(model, quest.key);
@@ -56,16 +69,18 @@ describe('quests', () => {
     expect(taken.kills).toBe(1);
     expect(model.takeEvents().some((e) => e.kind === 'quest' && e.text === '1/3 wolves'.replace('wolves', quest.foe === 'wolf' ? 'wolves' : 'bandits'))).toBe(true);
     expect(model.slain.size).toBe(0); // a quest's foes aren't the world's
-    // Two left to slay, two about: none comes back.
+    // Two left to slay, five about (more than the four wanted): none comes back.
     model.quests.update(RESPAWN_EVERY + 1);
-    expect(marked(model, quest.key)).toHaveLength(2);
-    // One wanders off for good (gone): one is back a minute later.
-    model.enemies.splice(model.enemies.indexOf(marked(model, quest.key)[0]), 1);
+    expect(marked(model, quest.key)).toHaveLength(5);
+    // Two wander off for good (gone): one is back a minute later.
+    for (let i = 0; i < 2; i++) model.enemies.splice(model.enemies.indexOf(marked(model, quest.key)[0]), 1);
     model.quests.update(RESPAWN_EVERY / 2);
-    expect(marked(model, quest.key)).toHaveLength(1);
+    expect(marked(model, quest.key)).toHaveLength(3);
     model.quests.update(RESPAWN_EVERY / 2 + 0.1);
-    expect(marked(model, quest.key)).toHaveLength(2);
+    expect(marked(model, quest.key)).toHaveLength(4);
+    expect(model.quests.readyAt(0)).toBe(false);
     taken.kills = 3;
+    expect(model.quests.readyAt(0)).toBe(true); // done: a "?" over its board
     expect(model.quests.marked(marked(model, quest.key)[0])).toBe(false); // done: no more marks
     const [money, xp, level] = [model.hero.money, model.hero.xp, model.hero.level];
     expect(model.quests.handIn(quest.key)).toBe(true);
@@ -98,6 +113,6 @@ describe('quests', () => {
     expect(again.quests.taken.map((t) => t.quest.key)).toEqual([a.key]);
     expect(again.quests.takenOf(a.key)!.kills).toBe(a.kind === 'kill' ? 1 : 1);
     expect(again.quests.takenOf(b.key)).toBeNull();
-    expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? a.count - 1 : marked(model, a.key).length);
+    expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? 2 * (a.count - 1) : 2 * a.count);
   });
 });
