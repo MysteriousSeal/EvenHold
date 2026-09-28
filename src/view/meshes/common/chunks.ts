@@ -20,3 +20,8 @@ export function groupByChunk<T extends { x: number; z: number }>(items: readonly
   }
   return [...chunks.values()];
 }
+
+// The chunk a map position falls in, as a key ("cx,cz").
+export function chunkKeyOf(x: number, z: number): string {
+  return `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
+}

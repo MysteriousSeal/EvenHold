@@ -4,6 +4,7 @@
 // on the village cobbles, not the grass under them.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { HOUSE_WINDOW_GLOW, WINDOW_GLOW_INTENSITY } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
@@ -16,7 +17,7 @@ export function buildWellGeometry(glowing: boolean): THREE.BufferGeometry {
   return greedyMesh(buildWellVoxels(), WELL_PALETTE, WELL_VOXEL_SIZE, ORIGIN, (c) => WELL_GLOWING.has(c) === glowing);
 }
 
-export function buildWells(scene: THREE.Scene, model: GameModel): void {
+export function buildWells(scene: WorldSink, model: GameModel): void {
   const place = (v: { x: number; z: number }) => ({ x: v.x, y: model.getGroundY(v.x, v.z), z: v.z, quarterTurns: 0 });
   addVoxelInstances(scene, model.villages, () => 'well', () => buildWellGeometry(false), place, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
   addVoxelInstances(

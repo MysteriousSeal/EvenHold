@@ -4,6 +4,7 @@
 // chunk, so off-screen road is culled. Village squares are plazaMesh.ts.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { roadConnections } from '../../../model/roads';
@@ -59,7 +60,7 @@ function pavedTiles(model: GameModel): PavedTile[] {
   return tiles;
 }
 
-export function buildRoads(scene: THREE.Scene, model: GameModel): void {
+export function buildRoads(scene: WorldSink, model: GameModel): void {
   addVoxelInstances(
     scene,
     pavedTiles(model),

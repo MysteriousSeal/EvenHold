@@ -14,12 +14,12 @@
 // rest of the visual-only decor so the world rng stream is untouched.
 
 import * as THREE from 'three';
+import { instanceLayer, type WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
 import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/grid';
 import { hashCell } from '../../../util/random';
 import { WATER_COLORS } from '../../constants';
-import { groupByChunk } from '../common/chunks';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
 import {
@@ -217,22 +217,21 @@ export function buildReedGeometry(variant: number): THREE.BufferGeometry {
 }
 
 // Returns the per-frame animation (water time).
-export function buildWater(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+export function buildWater(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const distance = shoreDistances(model.lakeMap);
   const time = { value: 0 };
   const material = waterMaterial(shoreTexture(distance, model.size), model.size, time);
 
   // Columns span from one tier below ground up to the flat lake surface.
   const columnHeight = (WATER_LEVEL + 1) * TILE_HEIGHT;
-  const geometry = new THREE.BoxGeometry(1, columnHeight, 1);
   const cells: Array<{ x: number; z: number }> = [];
   for (let x = 0; x < model.size.width; x++) for (let z = 0; z < model.size.depth; z++) if (model.lakeMap[x][z]) cells.push({ x, z });
   const matrix = new THREE.Matrix4();
-  for (const chunk of groupByChunk(cells)) {
-    const mesh = new THREE.InstancedMesh(geometry, material, chunk.length);
-    chunk.forEach((cell, i) => mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, SURFACE_Y - columnHeight / 2, cell.z)));
-    scene.add(mesh);
-  }
+  scene.layer(
+    instanceLayer(cells, () => new THREE.BoxGeometry(1, columnHeight, 1), material, (mesh, i, cell) =>
+      mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, SURFACE_Y - columnHeight / 2, cell.z)),
+    ),
+  );
 
   const { lilies, reeds } = placeDecor(model, distance);
   const decorMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });

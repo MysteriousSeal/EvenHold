@@ -23,6 +23,8 @@ import { HeroRig } from './meshes/hero/heroMesh';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
+import { ChunkStreamer } from './world/chunkStreamer';
+import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
 export interface BuildStep {
@@ -41,6 +43,7 @@ export class GameView {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
   private readonly hero = new HeroRig();
+  private readonly world: ChunkStreamer;
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -79,12 +82,15 @@ export class GameView {
 
     addLights(this.scene);
     this.scene.add(this.hero.root);
+    this.world = new ChunkStreamer(this.scene);
   }
 
-  // The world's meshes, in build order, each a step the loader can report.
+  // The world's layers, each a step the loader can report, and last the
+  // chunks around the hero: only those are built now, the rest stream in
+  // as the hero walks (see world/chunkStreamer.ts).
   buildSteps(): BuildStep[] {
-    const { scene, model } = this;
-    const animate = (build: (s: THREE.Scene, m: GameModel) => (t: number) => void) => () => {
+    const { world: scene, model } = this;
+    const animate = (build: (s: WorldSink, m: GameModel) => (t: number) => void) => () => {
       this.animations.push(build(scene, model));
     };
     return [
@@ -99,6 +105,7 @@ export class GameView {
       { label: 'Building the houses', run: () => buildHouses(scene, model) },
       { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
       { label: 'Digging the wells', run: () => buildWells(scene, model) },
+      { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
   }
 
@@ -106,11 +113,29 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    this.stylizer = stylize(this.scene);
+    const materials = this.world.materials();
+    this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
     window.addEventListener('resize', () => this.resize());
+
+    // Compile every world material now, including those of chunks not
+    // loaded yet, in both instance variants (with and without per-instance
+    // color), so walking into new land never stalls on a shader compile.
+    const warmUp = new THREE.Group();
+    const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+    for (const material of materials) {
+      warmUp.add(new THREE.InstancedMesh(box, material, 1));
+      const tinted = new THREE.InstancedMesh(box, material, 1);
+      tinted.setColorAt(0, new THREE.Color(1, 1, 1));
+      warmUp.add(tinted);
+    }
+    warmUp.position.copy(this.camera.position); // in view, so nothing culls it
+    this.scene.add(warmUp);
     await this.renderer.compileAsync(this.scene, this.camera);
+    this.scene.remove(warmUp);
+    warmUp.traverse((o) => (o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).dispose());
+    box.dispose();
   }
 
   getMovementAxes(): MovementAxes {
@@ -123,6 +148,7 @@ export class GameView {
 
     const { hero } = model;
     this.hero.update(hero.x, hero.y, hero.z, dt);
+    this.world.update(hero.x, hero.z);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay

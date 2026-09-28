@@ -4,6 +4,7 @@
 // the village cobbles. Each forge chimney puffs voxel smoke (smoke.ts).
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import type { Building, BuildingKind } from '../../../model/types';
 import { HOUSE_WINDOW_GLOW, WINDOW_GLOW_INTENSITY } from '../../constants';
@@ -31,7 +32,7 @@ export function buildBuildingGeometry(kind: BuildingKind, glowing: boolean, grid
 }
 
 // Returns the per-frame smoke animation.
-export function buildBuildings(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+export function buildBuildings(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const grids = new Map<BuildingKind, VoxelGrid>();
   const gridFor = (kind: BuildingKind) => {
     let grid = grids.get(kind);

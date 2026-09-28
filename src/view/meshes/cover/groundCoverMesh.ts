@@ -5,6 +5,7 @@
 // than scaling one, so every voxel stays the same size as the world's.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
@@ -65,7 +66,7 @@ function place(item: ScatterItem, tint?: THREE.Color): VoxelPlacement {
 }
 
 // Returns a per-frame callback that advances the wind animation.
-export function buildGroundCover(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const { tufts, flowers, pebbles } = scatterGroundCover(model);
   const plain = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
 

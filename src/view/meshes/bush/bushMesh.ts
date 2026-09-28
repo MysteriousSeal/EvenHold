@@ -3,6 +3,7 @@
 // drawn. Rotated in quarter turns only, so voxels stay on the tile grid.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import type { BushKind } from '../../../model/types';
 import { TILE_HEIGHT } from '../../../model/constants';
@@ -23,7 +24,7 @@ export function buildBushGeometry(kind: BushKind, shape: number): THREE.BufferGe
 }
 
 // Returns the per-frame wind animation.
-export function buildBushes(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+export function buildBushes(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const windTime = addWindSway(material, BUSH_WIND);
   addVoxelInstances(

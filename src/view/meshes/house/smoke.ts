@@ -5,6 +5,7 @@
 // a single mesh, moved each frame (a few hundred cubes at most).
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 
 const VOXEL = 0.04;
 const PUFFS_PER_CHIMNEY = 7;
@@ -16,7 +17,7 @@ const HAZE = new THREE.Color(0xd8d4cc);
 
 const snap = (v: number) => Math.round(v / VOXEL) * VOXEL;
 
-export function addChimneySmoke(scene: THREE.Scene, chimneys: THREE.Vector3[]): (elapsedSeconds: number) => void {
+export function addChimneySmoke(scene: WorldSink, chimneys: THREE.Vector3[]): (elapsedSeconds: number) => void {
   if (chimneys.length === 0) return () => {};
   const count = chimneys.length * PUFFS_PER_CHIMNEY;
   const mesh = new THREE.InstancedMesh(

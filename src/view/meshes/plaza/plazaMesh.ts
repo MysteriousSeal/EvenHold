@@ -6,6 +6,7 @@
 // which keeps startup fast however many villages the map has.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { inBounds } from '../../../model/grid';
@@ -34,7 +35,7 @@ const turn = ([dx, dz]: [number, number], quarterTurns: number): [number, number
   return p;
 };
 
-export function buildPlazas(scene: THREE.Scene, model: GameModel): void {
+export function buildPlazas(scene: WorldSink, model: GameModel): void {
   const squares = model.villages.map((village): Square => {
     const worldKind = (dx: number, dz: number): TileKind => {
       if (Math.max(Math.abs(dx), Math.abs(dz)) <= PLAZA_RADIUS) return 'plaza';

@@ -5,6 +5,7 @@
 // chunk, and houses stand on the village cobbles, not the grass under them.
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import type { House } from '../../../model/types';
 import { hashCell } from '../../../util/random';
@@ -32,7 +33,7 @@ function meshGrid(grid: VoxelGrid, glowing: boolean): THREE.BufferGeometry {
   return greedyMesh(grid, HOUSE_PALETTE, HOUSE_VOXEL_SIZE, ORIGIN, (color) => GLOWING.has(color) === glowing);
 }
 
-export function buildHouses(scene: THREE.Scene, model: GameModel): void {
+export function buildHouses(scene: WorldSink, model: GameModel): void {
   const grids = new Map<string, VoxelGrid>(); // each model's voxels, shared by its two meshes
   const key = (house: House) => {
     const { layout, roof } = looks(house);

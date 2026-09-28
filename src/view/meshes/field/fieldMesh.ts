@@ -4,6 +4,7 @@
 // chunk. Crops are walkable; the fences block (see GameModel).
 
 import * as THREE from 'three';
+import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { fenceEdges } from '../../../model/worldgen/fields';
@@ -46,7 +47,7 @@ export function buildFieldGeometry(model: string): THREE.BufferGeometry {
 }
 
 // Returns the per-frame wind animation.
-export function buildFields(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+export function buildFields(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const crops: Piece[] = [];
   const fences: Piece[] = [];
   for (const field of model.fields) {

@@ -50,21 +50,26 @@ export interface Stylizer {
   setFocusHeight(y: number): void;
 }
 
-export function stylize(scene: THREE.Scene): Stylizer {
+// `materials`: extra materials to patch that aren't in the scene yet (the
+// streamed world's, whose chunks load later).
+export function stylize(scene: THREE.Scene, materials: THREE.Material[] = []): Stylizer {
   scene.fog = new THREE.Fog(FOG_COLOR, FOG_NEAR, FOG_FAR);
   scene.background = new THREE.Color(FOG_COLOR);
 
   const focusY = { value: 0 };
   const patched = new Set<THREE.Material>();
-  scene.traverse((object) => {
-    const material = (object as THREE.Mesh).material;
-    if (!material) return;
-    for (const m of Array.isArray(material) ? material : [material]) {
+  const patchAll = (list: THREE.Material[]) => {
+    for (const m of list) {
       if (!(m instanceof THREE.MeshStandardMaterial) || patched.has(m)) continue;
       patched.add(m);
       patch(m, focusY);
     }
+  };
+  scene.traverse((object) => {
+    const material = (object as THREE.Mesh).material;
+    if (material) patchAll(Array.isArray(material) ? material : [material]);
   });
+  patchAll(materials);
   return { setFocusHeight: (y) => (focusY.value = y) };
 }
 
