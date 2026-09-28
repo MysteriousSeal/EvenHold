@@ -17,6 +17,7 @@ import {
   type Tile,
 } from '../model/cheats';
 import {
+  BANDIT_GEAR,
   BANDIT_OUTFIT,
   EQUIP_SLOTS,
   ITEMS,
@@ -24,6 +25,7 @@ import {
   SLOT_NAMES,
   STARTER_SET,
   isWorn,
+  pickOutfit,
   slotOf,
   takeOff,
   wear,
@@ -48,6 +50,7 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
     return `Travelled to ${where}.`;
   };
   // Replaces everything the hero wears with `items`.
+  let banditDraws = 0;
   const dress = (items: readonly ItemId[]) => {
     for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
     for (const item of items) wear(model.hero.equipment, item);
@@ -116,11 +119,17 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
           { icon: ICON.naked, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
           { icon: ICON.starter, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
           { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
+          {
+            icon: ICON.bandit,
+            title: 'Random bandit',
+            detail: 'A new mix of bandit gear each time',
+            run: () => (dress(Object.values(pickOutfit(BANDIT_GEAR, ++banditDraws, 7))), 'Dressed as a bandit.'),
+          },
           ...ITEM_IDS.map(
             (item): MenuAction => ({
               icon: itemIcon(item),
               title: ITEMS[item].name,
-              detail: `${SLOT_NAMES[slotOf(item)]} · ${STARTER_SET.includes(item) ? 'starter set' : 'bandit outfit'}`,
+              detail: `${SLOT_NAMES[slotOf(item)]} · ${STARTER_SET.includes(item) ? 'starter set' : 'bandit gear'}`,
               ...toggle(
                 () => isWorn(model.hero.equipment, item),
                 (on) => (on ? wear : takeOff)(model.hero.equipment, item),
