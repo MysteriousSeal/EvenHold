@@ -86,8 +86,8 @@ describe('striking the focused enemy', () => {
     model.startAttack();
     expect(Math.abs(Math.atan2(Math.sin(model.hero.facing - Math.PI), Math.cos(model.hero.facing - Math.PI)))).toBeLessThan(1e-6);
     for (let t = 0; t < ATTACK_DURATION + FRAME; t += FRAME) model.update(0, 0, FRAME);
-    expect(a.hp).toBe(ENEMY_STATS.wolf.hp - 1);
-    expect(b.hp).toBe(ENEMY_STATS.wolf.hp);
+    expect(a.hp).toBe(a.maxHp - 1);
+    expect(b.hp).toBe(b.maxHp);
   });
 
   it('keeps its facing when the focused enemy is far', () => {

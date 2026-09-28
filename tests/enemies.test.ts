@@ -8,7 +8,6 @@ import type { Enemy, EnemyKind } from '../src/model/types';
 
 const FRAME = 1 / 60;
 const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
-const WOLF_HP = ENEMY_STATS.wolf.hp;
 const WOLF_SIGHT = ENEMY_STATS.wolf.sight;
 const WOLF_GIVE_UP = ENEMY_STATS.wolf.giveUp;
 const nearest = (model: GameModel, kind: EnemyKind = 'wolf'): Enemy =>
@@ -35,7 +34,7 @@ describe('wolves', () => {
     const model = fresh();
     const wolf = nearest(model);
     expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(14);
-    expect(model.enemies.every((w) => w.hp === ENEMY_STATS[w.kind].hp && model.isOpenTile(Math.round(w.x), Math.round(w.z)))).toBe(true);
+    expect(model.enemies.every((w) => w.hp === w.maxHp && model.isOpenTile(Math.round(w.x), Math.round(w.z)))).toBe(true);
   });
 
   it('chases the hero on sight and gives up when outrun', () => {
@@ -60,8 +59,8 @@ describe('wolves', () => {
     faceToFace(model, wolf);
     model.startAttack();
     // Step until the blow lands, then look before the (now angry) wolf runs back in.
-    for (let t = 0; t < ATTACK_DURATION && wolf.hp === WOLF_HP; t += FRAME) model.update(0, 0, FRAME);
-    expect(wolf.hp).toBe(WOLF_HP - 1);
+    for (let t = 0; t < ATTACK_DURATION && wolf.hp === wolf.maxHp; t += FRAME) model.update(0, 0, FRAME);
+    expect(wolf.hp).toBe(wolf.maxHp - 1);
     expect(wolf.x - model.hero.x).toBeGreaterThan(0.6); // knocked away
     expect(wolf.state).toBe('chase');
   });
@@ -75,14 +74,14 @@ describe('wolves', () => {
     wolf.z = model.hero.z;
     model.startAttack();
     for (let t = 0; t < ATTACK_DURATION; t += FRAME) model.update(0, 0, FRAME);
-    expect(wolf.hp).toBe(WOLF_HP);
+    expect(wolf.hp).toBe(wolf.maxHp);
   });
 
   it('dies after its last hit point, then disappears once the death has played', () => {
     const model = fresh();
     const wolf = nearest(model);
     model.teleport(Math.round(wolf.x) - 1, Math.round(wolf.z));
-    for (let i = 0; i < WOLF_HP; i++) swing(model, wolf);
+    for (let i = 0; i < wolf.maxHp; i++) swing(model, wolf);
     expect(wolf.state).toBe('dead');
     expect(model.enemies).toContain(wolf);
     for (let t = 0; t < ENEMY_CORPSE_TIME + 0.1; t += FRAME) model.update(0, 0, FRAME);
@@ -150,8 +149,8 @@ describe('bandits', () => {
     model.teleport(Math.round(bandit.x) - 1, Math.round(bandit.z));
     bandit.swingFor = 0.1;
     swing(model, bandit);
-    expect(bandit.hp).toBe(ENEMY_STATS.bandit.hp - 1);
-    for (let i = 1; i < ENEMY_STATS.bandit.hp; i++) swing(model, bandit);
+    expect(bandit.hp).toBe(bandit.maxHp - 1);
+    for (let i = 1; i < bandit.maxHp; i++) swing(model, bandit);
     expect(bandit.state).toBe('dead');
   });
 });
@@ -214,5 +213,22 @@ describe('enemy collisions', () => {
       model.update(0, 0, FRAME);
       for (let i = 0; i < wolves.length; i++) for (let j = i + 1; j < wolves.length; j++) expect(gap(wolves[i], wolves[j])).toBeGreaterThan(-0.02);
     }
+  });
+});
+
+describe('enemy levels', () => {
+  it('rise with distance from spawn, and each level makes them tougher and worth more', async () => {
+    const { enemyLevel, enemyPower } = await import('../src/model/enemyLevels');
+    const spawn = { x: 1000, z: 1000 };
+    const avg = (d: number) => Array.from({ length: 30 }, (_, id) => enemyLevel(spawn, spawn.x + d, spawn.z, id)).reduce((a, b) => a + b) / 30;
+    expect(avg(0)).toBeLessThan(2);
+    expect(avg(200)).toBeGreaterThan(avg(50));
+    expect(avg(900)).toBeGreaterThan(15);
+    const low = enemyPower('bandit', 1);
+    const high = enemyPower('bandit', 10);
+    expect(low).toEqual({ maxHp: ENEMY_STATS.bandit.hp, damage: ENEMY_STATS.bandit.damage, xp: ENEMY_STATS.bandit.xp });
+    expect(high.maxHp).toBeGreaterThan(low.maxHp);
+    expect(high.damage).toBeGreaterThan(low.damage);
+    expect(high.xp).toBeGreaterThan(low.xp);
   });
 });

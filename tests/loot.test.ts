@@ -51,7 +51,7 @@ describe('picking up loot', () => {
     const wolf = model.enemies.find((e) => e.kind === 'wolf' && rollDrop('beast', e.id) !== null)!;
     model.enemies.splice(0, model.enemies.length, wolf);
     model.update(1, 0, 1e-6); // face +X
-    for (let blow = 0; blow < ENEMY_STATS.wolf.hp && wolf.state !== 'dead'; blow++) {
+    for (let blow = 0; blow < wolf.maxHp && wolf.state !== 'dead'; blow++) {
       wolf.x = model.hero.x + 0.6;
       wolf.z = model.hero.z;
       model.startAttack();
