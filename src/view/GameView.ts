@@ -18,6 +18,13 @@ import { buildBushes } from './meshes/bush/bushMesh';
 import { buildHero } from './meshes/heroMesh';
 import { stylize, type Stylizer } from './stylize';
 import { PostProcessing } from './postprocessing';
+import type { RenderOptions } from './renderOptions';
+
+export interface RenderStats {
+  drawCalls: number;
+  triangles: number;
+  pixelRatio: number;
+}
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -26,23 +33,28 @@ export class GameView {
   private readonly heroMesh: THREE.Group;
   private readonly movementAxes: MovementAxes;
   private readonly stylizer: Stylizer;
-  private readonly post: PostProcessing;
+  private readonly post: PostProcessing | null;
   private readonly pixelRatio: number;
   // Per-frame animations (e.g. grass swaying in the wind), fed the time since start.
   private readonly animations: Array<(elapsedSeconds: number) => void> = [];
   private elapsed = 0;
   private cameraY: number;
 
-  constructor(canvas: HTMLCanvasElement, model: GameModel) {
+  constructor(canvas: HTMLCanvasElement, model: GameModel, options: RenderOptions) {
     this.cameraY = model.hero.y;
 
-    // No canvas antialiasing: the scene renders into the post-processing
-    // composer's multisampled target instead.
-    this.renderer = new THREE.WebGLRenderer({ canvas });
-    // Beyond 2x the extra pixels are barely visible but cost a lot of GPU
-    // fill rate (a 3x screen would render 9x the pixels of 1x).
-    this.pixelRatio = Math.min(window.devicePixelRatio, 2);
+    // With post-processing, the scene renders into the composer's
+    // multisampled target, so canvas antialiasing would be wasted.
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !options.post });
+    // Stats cover the whole frame (scene plus every post pass), so they're
+    // reset once per frame in render() rather than per draw.
+    this.renderer.info.autoReset = false;
+    this.pixelRatio = options.pixelRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
+    // Upscaling by a whole factor (1x on a 2x screen) stays crisp, like the
+    // voxel art; a fractional one would shimmer, so it's left smooth.
+    const upscale = window.devicePixelRatio / this.pixelRatio;
+    canvas.style.imageRendering = upscale > 1 && Number.isInteger(upscale) ? 'pixelated' : 'auto';
 
     this.scene = new THREE.Scene();
     this.camera = createCamera();
@@ -59,7 +71,7 @@ export class GameView {
     this.heroMesh = buildHero();
     this.scene.add(this.heroMesh);
     this.stylizer = stylize(this.scene); // after every mesh exists, so all materials get patched
-    this.post = new PostProcessing(this.renderer, this.scene, this.camera);
+    this.post = options.post ? new PostProcessing(this.renderer, this.scene, this.camera, options) : null;
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -88,7 +100,14 @@ export class GameView {
   }
 
   render(): void {
-    this.post.render(this.elapsed);
+    this.renderer.info.reset();
+    if (this.post) this.post.render(this.elapsed);
+    else this.renderer.render(this.scene, this.camera);
+  }
+
+  getRenderStats(): RenderStats {
+    const { calls, triangles } = this.renderer.info.render;
+    return { drawCalls: calls, triangles, pixelRatio: this.pixelRatio };
   }
 
   private resize(): void {
@@ -96,6 +115,6 @@ export class GameView {
     const height = window.innerHeight;
     this.renderer.setSize(width, height);
     resizeCamera(this.camera, width, height);
-    this.post.setSize(width, height, this.pixelRatio);
+    this.post?.setSize(width, height, this.pixelRatio);
   }
 }

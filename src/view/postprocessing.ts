@@ -22,6 +22,7 @@ import {
   SHAFT_STRENGTH,
   SUN_DIRECTION,
 } from './constants';
+import type { RenderOptions } from './renderOptions';
 
 const LightShaftShader = {
   uniforms: {
@@ -65,7 +66,6 @@ const LightShaftShader = {
 export class PostProcessing {
   private readonly composer: EffectComposer;
   private readonly shafts: ShaderPass;
-  private readonly bloom: UnrealBloomPass;
   private readonly right = new THREE.Vector3();
   private readonly up = new THREE.Vector3();
 
@@ -73,17 +73,20 @@ export class PostProcessing {
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     private readonly camera: THREE.OrthographicCamera,
+    options: RenderOptions,
   ) {
     // Multisampled target: the composer bypasses the canvas's antialiasing.
-    const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+    const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: options.msaa });
     this.composer = new EffectComposer(renderer, target);
     this.composer.addPass(new RenderPass(scene, camera));
 
     this.shafts = new ShaderPass(LightShaftShader);
+    this.shafts.enabled = options.shafts;
     this.composer.addPass(this.shafts);
 
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
-    this.composer.addPass(this.bloom);
+    if (options.bloom) {
+      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD));
+    }
     this.composer.addPass(new OutputPass());
 
     // The camera never rotates, so its screen axes and the sun's on-screen

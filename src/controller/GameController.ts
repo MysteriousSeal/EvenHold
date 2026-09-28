@@ -6,18 +6,42 @@ import { KeyboardInput } from './KeyboardInput';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 
+// Uncapped frames are scheduled as message-channel tasks: unlike setTimeout
+// they aren't clamped to 4 ms, and unlike requestAnimationFrame they aren't
+// tied to the display refresh. A hidden tab falls back to requestAnimationFrame,
+// which the browser pauses, so the loop doesn't spin in the background.
+function uncappedScheduler(): (callback: (now: number) => void) => void {
+  const channel = new MessageChannel();
+  let pending: ((now: number) => void) | null = null;
+  channel.port1.onmessage = () => pending?.(performance.now());
+  return (callback) => {
+    if (document.hidden) {
+      requestAnimationFrame(callback);
+      return;
+    }
+    pending = callback;
+    channel.port2.postMessage(null);
+  };
+}
+
 export class GameController {
   private readonly input = new KeyboardInput();
   private lastTime = 0;
+  private readonly schedule: (callback: (now: number) => void) => void;
+  private readonly onFrame: () => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-  ) {}
+    options: { uncapped: boolean; onFrame?: () => void },
+  ) {
+    this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
+    this.onFrame = options.onFrame ?? (() => {});
+  }
 
   start(): void {
     this.lastTime = performance.now();
-    requestAnimationFrame(this.tick);
+    this.schedule(this.tick);
   }
 
   private tick = (now: number): void => {
@@ -28,7 +52,8 @@ export class GameController {
     this.lastTime = now;
 
     this.step(dt);
-    requestAnimationFrame(this.tick);
+    this.onFrame();
+    this.schedule(this.tick);
   };
 
   private step(dt: number): void {
