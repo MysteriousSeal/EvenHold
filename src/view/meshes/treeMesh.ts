@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../model/GameModel';
 import { TILE_HEIGHT } from '../../model/constants';
-import { FOLIAGE_LAYERS } from '../constants';
+import { FOLIAGE_LAYERS, TREE_TRUNK_COLOR } from '../constants';
 
 export function buildTrees(scene: THREE.Scene, model: GameModel): void {
   const count = model.trees.length;
   if (count === 0) return;
 
   const trunkGeometry = new THREE.CylinderGeometry(0.06, 0.12, 0.5, 6);
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4a30, flatShading: true, roughness: 1 });
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: TREE_TRUNK_COLOR, flatShading: true, roughness: 1 });
   const trunkMesh = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, count);
 
   const foliageMeshes = FOLIAGE_LAYERS.map((layer) => {

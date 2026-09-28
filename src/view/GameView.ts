@@ -27,7 +27,9 @@ export class GameView {
     this.cameraY = model.hero.y;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    // Beyond 2x the extra pixels are barely visible but cost a lot of GPU
+    // fill rate (a 3x screen would render 9x the pixels of 1x).
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1b1f2a);

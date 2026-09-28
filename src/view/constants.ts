@@ -16,6 +16,7 @@ export const PATH_COLOR = 0xb89668; // worn dirt
 
 // Rounded, faceted canopy blobs stacked over a tapered trunk — closer to
 // Tunic's soft low-poly foliage than a sharp cartoon cone.
+export const TREE_TRUNK_COLOR = 0x6b4a30;
 export const FOLIAGE_LAYERS = [
   { yOffset: 0.5, radius: 0.46, color: 0x2f6b3a },
   { yOffset: 0.82, radius: 0.36, color: 0x3c8049 },

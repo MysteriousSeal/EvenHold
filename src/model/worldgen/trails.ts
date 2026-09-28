@@ -8,7 +8,7 @@ import { NEIGHBORS_4, cellKey, inBounds } from '../grid';
 import { MinHeap } from '../../util/MinHeap';
 import type { Surface, Village } from '../types';
 
-const EXISTING_PATH_COST = 0.5; // cheaper than fresh ground, so the trail joins a village's door paths
+const EXISTING_PATH_COST = 0.5; // cheaper than fresh ground, so the trail cuts across a village square rather than skirting it
 const CLIMB_COST = 2; // per tier of height change, so trails wind around hills
 const TURN_COST = 4; // per change of direction, so trails run straight instead of zigzagging
 

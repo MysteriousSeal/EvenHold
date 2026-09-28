@@ -16,11 +16,10 @@ const SQUARE_HALF_SIZE = VILLAGE_OUTER_RADIUS + 0.5; // covers the house ring, s
 const THICKNESS = 0.012;
 const LIFT = 0.004; // above the tile top, so the overlay doesn't z-fight with it
 
-
-// Flat strip from (ax, az) to (bx, bz). `extendEnds` pushes each end out by
-// half the width, so two strips meeting at a corner overlap into a sharp
-// joint; pieces split at a tier change don't extend, so they never overhang
-// (and float above) the lower tile.
+// Flat strip from (ax, az) to (bx, bz). `extendStart`/`extendEnd` push that
+// end out by half the width, so two strips meeting at a corner overlap into
+// a sharp joint; ends where a run is split at a tier change don't extend,
+// so they never overhang (and float above) the lower tile.
 function strip(ax: number, az: number, bx: number, bz: number, y: number, extendStart = true, extendEnd = true): THREE.BufferGeometry {
   const length = Math.hypot(bx - ax, bz - az);
   const ext = PATH_WIDTH / 2;
