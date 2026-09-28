@@ -15,6 +15,7 @@ import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/ground/roadMesh';
 import { buildGroundCover } from './meshes/ground/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
+import { buildWater } from './meshes/water/waterMesh';
 import { buildHero } from './meshes/heroMesh';
 import { stylize, type Stylizer } from './stylize';
 import { PostProcessing } from './postprocessing';
@@ -62,6 +63,7 @@ export class GameView {
 
     addLights(this.scene);
     buildTerrain(this.scene, model);
+    this.animations.push(buildWater(this.scene, model));
     buildRoads(this.scene, model);
     this.animations.push(buildGroundCover(this.scene, model));
     buildTrees(this.scene, model);

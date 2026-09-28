@@ -51,7 +51,15 @@ export const MIST_STRENGTH = 0.35;
 // so it reads as its own voxel with visible side faces at the shoreline,
 // not a film sitting on top of grass.
 export const TERRAIN_COLORS = [0x4f8f3e, 0x62ad4c, 0x88bf5f, 0xb2cf76, 0xd6c99c]; // warm yellow-greens
-export const WATER_COLOR = 0x2f8fbf;
+// Lakes, warm turquoise: shallows near the bank deepen to teal in the middle.
+export const WATER_COLORS = {
+  foam: 0xeefaf2,
+  crest: 0x9be8da, // ripple crests
+  shallow: 0x6fd6c3,
+  mid: 0x3dbdb8,
+  deep: 0x2a9aac,
+  deepest: 0x217c98,
+};
 
 export const HOUSE_PLASTER_COLOR = 0xe9dfc6; // limewash
 export const HOUSE_TIMBER_COLOR = 0x3a281c; // dark oak

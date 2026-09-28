@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, TILE_HEIGHT } from '../../../model/constants';
+import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
 import { hashCell } from '../../../util/random';
-import { TERRAIN_COLORS, WATER_COLOR } from '../../constants';
+import { TERRAIN_COLORS } from '../../constants';
 import { createGrassTexture, type GrassTexture } from './grassTexture';
 import { groupByChunk } from '../common/chunks';
 
@@ -11,17 +11,13 @@ const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
 
 interface TileGroup {
   tier: number;
-  kind: 'water' | 'land';
   cells: Array<{ x: number; z: number }>;
 }
 
 // Land tiles get the grass texture on their top face only (stretched over a
 // column's tall sides it would streak), with the color lifted so the
 // texture's darkening averages out to the original shade.
-function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material | THREE.Material[] {
-  if (group.kind === 'water') {
-    return new THREE.MeshStandardMaterial({ color: WATER_COLOR, flatShading: true, roughness: 0.35, metalness: 0.1 });
-  }
+function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material[] {
   const color = new THREE.Color(TERRAIN_COLORS[group.tier % TERRAIN_COLORS.length]);
   const side = new THREE.MeshStandardMaterial({ color });
   const top = new THREE.MeshStandardMaterial({ color: color.clone().multiplyScalar(1 / grass.meanBrightness), map: grass.texture });
@@ -30,28 +26,20 @@ function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material | T
   return materials;
 }
 
-// Every lake cell renders at a fixed WATER_LEVEL height regardless of its
-// actual bed tier (0 or 1), so the lake surface stays flat — using each
-// cell's real tier here would carve a visible internal cliff between
-// adjacent water cells of different depths.
-//
-// Tiles are grouped by (tier, kind), and each group is instanced per chunk.
-// Roads and village squares aren't tile colors — they're voxel tiles
+// Land tiles, grouped by tier, each group instanced per chunk. Lakes are
+// drawn by water/waterMesh.ts; roads and village squares are voxel tiles
 // laid on top by roadMesh.ts.
 export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
-  const groups = new Map<string, TileGroup>();
+  const groups = new Map<number, TileGroup>();
 
   for (let x = 0; x < MAP_WIDTH; x++) {
     for (let z = 0; z < MAP_DEPTH; z++) {
-      const isLake = model.lakeMap[x][z];
-      const tier = isLake ? WATER_LEVEL : model.heightMap[x][z];
-      const kind = isLake ? 'water' : 'land';
-      const key = `${kind}:${tier}`;
-
-      let group = groups.get(key);
+      if (model.lakeMap[x][z]) continue;
+      const tier = model.heightMap[x][z];
+      let group = groups.get(tier);
       if (!group) {
-        group = { tier, kind, cells: [] };
-        groups.set(key, group);
+        group = { tier, cells: [] };
+        groups.set(tier, group);
       }
       group.cells.push({ x, z });
     }
@@ -74,10 +62,8 @@ export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
       cells.forEach((cell, i) => {
         matrix.makeTranslation(cell.x, group.tier * TILE_HEIGHT - columnHeight / 2, cell.z);
         mesh.setMatrixAt(i, matrix);
-        if (group.kind === 'land') {
-          const jitter = ((hashCell(cell.x, cell.z, 1) % 1000) / 1000 - 0.5) * 2 * TILE_SHADE_JITTER;
-          mesh.setColorAt(i, shade.setScalar(1 + jitter));
-        }
+        const jitter = ((hashCell(cell.x, cell.z, 1) % 1000) / 1000 - 0.5) * 2 * TILE_SHADE_JITTER;
+        mesh.setColorAt(i, shade.setScalar(1 + jitter));
       });
       scene.add(mesh);
     }
