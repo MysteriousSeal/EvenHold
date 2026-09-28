@@ -3,6 +3,7 @@
 export const MAP_WIDTH = 2048;
 export const MAP_DEPTH = 2048;
 export const HERO_SPEED = 4; // units per second
+export const INDOOR_SCALE = 1.8; // the hero's size indoors, where rooms are built at a roomier scale
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size
 // Per enemy kind: its family (which loot it drops, see loot/loot.ts), hit
 // points, damage per blow, experience for a kill,

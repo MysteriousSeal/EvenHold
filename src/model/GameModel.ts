@@ -7,6 +7,7 @@
 import {
   HERO_SPEED,
   HERO_RADIUS,
+  INDOOR_SCALE,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
   ATTACK_DURATION,
@@ -43,6 +44,7 @@ import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
 import { ENTER_RANGE, entrancesOf, roomFor, type Entrance, type Room } from './interiors/interiors';
+import { bumpsFurniture, furnish, type Furniture } from './interiors/furniture';
 
 const EDGE_MARGIN = 0.4; // how close to the map's edge the hero may go
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -68,7 +70,7 @@ export class GameModel {
   readonly entrances: Entrance[]; // every door that can be gone through
   // Where the hero is while indoors: the building's door and its room (the
   // hero's x/z are then room coordinates); null outdoors.
-  inside: { entrance: Entrance; room: Room } | null = null;
+  inside: { entrance: Entrance; room: Room; furniture: Furniture[] } | null = null;
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
@@ -373,7 +375,7 @@ export class GameModel {
       return true;
     }
     const room = roomFor(this.seed, entrance);
-    this.inside = { entrance, room };
+    this.inside = { entrance, room, furniture: furnish(this.seed, entrance, room) };
     this.focusedId = null;
     hero.x = room.door;
     hero.z = room.depth - 1;
@@ -385,21 +387,24 @@ export class GameModel {
   // Indoors: the hero walks the room's floor, walled in but for the door;
   // walking out through it goes back outside.
   private moveInside(dirX: number, dirZ: number, dt: number): void {
-    const { room } = this.inside!;
+    const { room, furniture } = this.inside!;
     const len = Math.hypot(dirX, dirZ);
     if (len < 1e-6) return;
     const dist = HERO_SPEED * this.speedMultiplier * dt;
-    const r = HERO_RADIUS;
+    const r = HERO_RADIUS * INDOOR_SCALE; // drawn bigger indoors, so bigger to bump into things too
     const hero = this.hero;
     hero.facing = Math.atan2(dirX, dirZ);
-    hero.x = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
+    // Axis by axis, so the hero slides along furniture instead of sticking to it.
+    const nx = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
+    if (!bumpsFurniture(furniture, nx, hero.z, r)) hero.x = nx;
     const inDoorway = Math.abs(hero.x - room.door) < 0.5 - r;
     const nz = hero.z + (dirZ / len) * dist;
     if (inDoorway && nz >= room.depth - 0.5 - r) {
       this.useDoor(); // out through the door
       return;
     }
-    hero.z = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
+    const clampedZ = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
+    if (!bumpsFurniture(furniture, hero.x, clampedZ, r)) hero.z = clampedZ;
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
