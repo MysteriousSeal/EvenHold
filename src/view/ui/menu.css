@@ -1,9 +1,9 @@
 /* EvenHold menus: the one layout every in-game menu shares (pause, cheats,
    and later inventory, quests, settings). Deliberately simple: a sandstone
    panel with one dark outline, a clay header band carrying the title in
-   blackletter (the single flourish), flat tabs where the active one wears a
+   bold Fredoka (the single flourish), flat tabs where the active one wears a
    lake-turquoise gem, plain rows with pixel icons, the chosen row lit by
-   lantern light. Fredoka for text, DM Mono for numbers. Instant: no
+   lantern light. Fredoka throughout (numbers tabular). Instant: no
    animations, no filters, so it stays light over the game. */
 
 .menu-backdrop {
@@ -49,10 +49,10 @@
 }
 .menu-title {
   margin: 0;
-  font-family: 'Grenze Gotisch', Georgia, serif;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1;
+  letter-spacing: 0.04em;
   color: var(--sand-light);
 }
 
@@ -121,7 +121,7 @@
 .menu-key {
   min-width: 22px;
   padding: 1px 6px;
-  font: 500 12px 'DM Mono', ui-monospace, monospace;
+  font: 500 12px 'Fredoka', system-ui, sans-serif;
   text-align: center;
   color: var(--ink-soft);
   border: 2px solid var(--line);
@@ -142,7 +142,7 @@
 .menu-fact { display: flex; align-items: baseline; gap: 8px; }
 .menu-fact dt { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
 .menu-fact i { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
-.menu-fact dd { margin: 0; font: 400 14px 'DM Mono', ui-monospace, monospace; }
+.menu-fact dd { margin: 0; font: 500 15px 'Fredoka', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 
 .menu-status { min-height: 1.5em; margin: 8px 0 0; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--clay); text-align: center; }
 .menu-footer {
