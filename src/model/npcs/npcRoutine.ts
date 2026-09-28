@@ -20,6 +20,7 @@ import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside } from '../interiors/indoors';
 import { NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
+import { staffSteps } from './innStaff';
 
 export interface NpcWorld {
   seed: number;
@@ -127,16 +128,20 @@ function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds: number
   return [{ kind: 'go', to: spot }, { kind: 'wait', for: seconds }];
 }
 
-// Where a villager fits in a building's room.
-function roomFree(seed: number, entrance: Entrance): (x: number, z: number) => boolean {
+// Where someone fits in a building's room. Behind the inn's bar (between
+// the counter and the wall, along its length) is the barmaids' alone.
+function roomFree(seed: number, entrance: Entrance, staff = false): (x: number, z: number) => boolean {
   const { room, furniture } = layoutOf(seed, entrance);
   const r = NPC_RADIUS * INDOOR_SCALE;
-  return (x, z) => x >= -0.5 + r && z >= -0.5 + r && x <= room.width - 0.5 - r && z <= room.depth - 0.5 - r && !bumpsFurniture(furniture, x, z, r);
+  const counter = staff ? undefined : furniture.find((f) => f.kind === 'counter');
+  const behindBar = (x: number, z: number) => !!counter && x - r < counter.x && z - r < counter.z + counter.d - 0.5;
+  return (x, z) =>
+    x >= -0.5 + r && z >= -0.5 + r && x <= room.width - 0.5 - r && z <= room.depth - 0.5 - r && !bumpsFurniture(furniture, x, z, r) && !behindBar(x, z);
 }
 
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
-  if (npc.steps.length === 0) npc.steps = plan(npc, world);
+  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, world) : staffSteps(npc, npcs, world.seed);
   const step = npc.steps[0];
   const done = () => {
     npc.steps.shift();
@@ -145,9 +150,14 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
   };
   switch (step.kind) {
     case 'go':
-      // Out of sight, they're simply there; in sight, they walk.
+      // Out of sight, they're simply there; in sight, they walk. Then they
+      // turn the way the step says, if it says.
       if (!seen) place(npc, world, step.to);
-      if (!seen || walk(npc, npcs, world, step.to, dt)) done();
+      if (!seen || walk(npc, npcs, world, step.to, dt, step.direct)) {
+        if (step.face !== undefined) npc.facing = step.face;
+        if (step.faceToward) npc.facing = Math.atan2(step.faceToward.x - npc.x, step.faceToward.z - npc.z);
+        done();
+      }
       return;
     case 'enter': {
       npc.where = step.entrance;
@@ -200,10 +210,10 @@ function place(npc: Npc, world: NpcWorld, at: Point): void {
 
 // One frame's walk toward `to`, along a path around what's in the way;
 // returns whether they've arrived (or given up on getting any closer).
-function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: number): boolean {
+function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: number, direct = false): boolean {
   const indoors = npc.where;
-  const free = indoors ? roomFree(world.seed, indoors) : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
-  if (!npc.path) npc.path = [...findPath(npc, to, PATH_RADIUS, free), to];
+  const free = indoors ? roomFree(world.seed, indoors, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
+  if (!npc.path) npc.path = direct ? [to] : [...findPath(npc, to, PATH_RADIUS, free), to];
   const scale = indoors ? INDOOR_SCALE : 1;
   // Someone standing on the next point: past it, or (the last) close enough.
   const taken = (p: Point) => npcs.some((o) => o !== npc && o.where === indoors && Math.hypot(o.x - p.x, o.z - p.z) < NPC_RADIUS * 2 * scale);

@@ -10,9 +10,10 @@ describe('villagers', () => {
   it('live one to a house, each in their own, named, naked, the same for a seed', () => {
     const model = withVillage();
     const homes = model.entrances.filter((e) => e.type === 'house');
-    expect(model.npcs).toHaveLength(homes.length);
-    expect(new Set(model.npcs.map((n) => n.home)).size).toBe(homes.length);
-    for (const npc of model.npcs) {
+    const villagers = model.npcs.filter((n) => n.role === 'villager');
+    expect(villagers).toHaveLength(homes.length);
+    expect(new Set(villagers.map((n) => n.home)).size).toBe(homes.length);
+    for (const npc of villagers) {
       expect(npc.name.length).toBeGreaterThan(2);
       expect(npc.equipment).toEqual({});
       expect(npc.where).toBe(npc.home); // at home, to begin with
@@ -100,5 +101,34 @@ describe('villagers', () => {
     }
     expect(closest).toBeGreaterThan(0.26); // never overlapping (two half-widths: 0.28)
     expect(Math.hypot(b.x - (x + 2), b.z - z)).toBeLessThan(0.1); // and got there
+  });
+
+  it('keep two barmaids in every inn: one behind the bar, one serving the tables; no one else goes behind the bar', () => {
+    const model = withVillage();
+    const inns = model.entrances.filter((e) => e.type === 'inn');
+    for (const inn of inns) {
+      const staff = model.npcs.filter((n) => n.home === inn && n.role !== 'villager');
+      expect(staff.map((n) => n.role).sort()).toEqual(['barkeep', 'server']);
+    }
+    const inn = inns[0];
+    const counter = layoutOf(model.seed, inn).furniture.find((f) => f.kind === 'counter')!;
+    const barEnd = counter.z + counter.d - 1;
+    model.teleport(inn.x, inn.z);
+    model.useDoor(); // watching from inside
+    const [barkeep, server] = ['barkeep', 'server'].map((role) => model.npcs.find((n) => n.home === inn && n.role === role)!);
+    const serverSpots = new Set<string>();
+    for (let t = 0; t < 180; t += 0.1) {
+      model.update(0, 0, 0.1);
+      expect(barkeep.where).toBe(inn);
+      expect(server.where).toBe(inn);
+      expect(barkeep.x).toBeLessThan(counter.x); // behind the counter
+      expect(barkeep.z).toBeLessThanOrEqual(barEnd + 0.5);
+      serverSpots.add(`${Math.round(server.x)},${Math.round(server.z)}`);
+      for (const npc of model.npcs) {
+        if (npc.where !== inn || npc.role !== 'villager' || npc.seat) continue;
+        expect(npc.x < counter.x && npc.z < barEnd + 0.5).toBe(false);
+      }
+    }
+    expect(serverSpots.size).toBeGreaterThan(2); // up and down between the counter and the tables
   });
 });
