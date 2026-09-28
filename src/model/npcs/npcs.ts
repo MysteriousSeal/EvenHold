@@ -8,7 +8,7 @@
 
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit } from '../../util/random';
-import { lookAt, type Humanoid } from '../human/humanoid';
+import { lookAt, type Build, type Humanoid } from '../human/humanoid';
 import type { Entrance } from '../interiors/interiors';
 import type { Seat } from '../interiors/furniture';
 import type { Point } from '../obstacles';
@@ -65,30 +65,46 @@ export interface Npc extends Humanoid {
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 
+// First parts: some anyone's, some only men's, some only women's.
 const FIRST = [
-  'Al', 'Bran', 'Ced', 'Ed', 'El', 'Gar', 'Hal', 'Is', 'Mar', 'Os', 'Ro', 'Wil', 'Ber', 'Ma', 'Gwen', 'Ada', 'Tho', 'Fen', 'Lu', 'Od', 'Ag',
-  'Wyn', 'Aethel', 'Alar', 'Ald', 'Alf', 'Ang', 'Ans', 'Ar', 'Ash', 'Aud', 'Bald', 'Bar', 'Bea', 'Bel', 'Bern', 'Bert', 'Bla', 'Bor', 'Bri',
-  'Bro', 'Cad', 'Cal', 'Car', 'Cath', 'Cel', 'Col', 'Con', 'Cor', 'Cuth', 'Dag', 'Dal', 'Dar', 'Del', 'Dor', 'Dun', 'Ead', 'Eal', 'Eld', 'Em',
-  'Er', 'Eth', 'Ev', 'Fal', 'Far', 'Fin', 'Fla', 'Fri', 'Gal', 'Gil', 'Gis', 'Gle', 'God', 'Gor', 'Gre', 'Gun', 'Guth', 'Had', 'Har', 'Hed',
-  'Hel', 'Her', 'Hil', 'Hro', 'Hug', 'Id', 'Ing', 'Ivo', 'Jor', 'Kat', 'Ken', 'Lan', 'Leo', 'Lin', 'Lor', 'Mab', 'Mal', 'Mel', 'Mil', 'Mor',
-  'Nor', 'Oda', 'Orm', 'Osw', 'Per', 'Quen', 'Rad', 'Ran', 'Reg', 'Ric', 'Ros', 'Sal', 'Sib', 'Sig', 'Tam', 'Tor', 'Ul', 'Wal', 'Wen', 'Wid',
-  'Win', 'Yse',
+  'Al', 'Ed', 'El', 'Mar', 'Os', 'Ro', 'Ber', 'Fen', 'Od', 'Ag', 'Wyn', 'Aethel', 'Alar', 'Ald', 'Ang', 'Ar', 'Ash', 'Aud', 'Bar', 'Bel',
+  'Bla', 'Bri', 'Cal', 'Car', 'Cath', 'Cel', 'Col', 'Dal', 'Del', 'Dor', 'Ead', 'Eal', 'Eld', 'Er', 'Eth', 'Fal', 'Fin', 'Fla', 'Fri', 'Gal',
+  'Gil', 'Gis', 'Gle', 'Gre', 'Hed', 'Hel', 'Her', 'Hil', 'Id', 'Ing', 'Lan', 'Lor', 'Mil', 'Nor', 'Quen', 'Sal', 'Wen', 'Win',
 ];
-const LAST = [
-  'ric', 'wyn', 'da', 'mund', 'bert', 'ia', 'ard', 'win', 'el', 'fred', 'gar', 'ine', 'ald', 'lyn', 'wen', 'ric', 'mer', 'ette', 'ach', 'ain',
-  'al', 'an', 'and', 'ane', 'ax', 'bald', 'bern', 'beth', 'bold', 'bur', 'by', 'can', 'cott', 'dane', 'del', 'den', 'dith', 'don', 'dor',
-  'dric', 'dun', 'ed', 'ella', 'en', 'er', 'eth', 'fast', 'ferd', 'fin', 'ford', 'frith', 'gard', 'geat', 'gith', 'gund', 'hard', 'helm',
-  'hild', 'hold', 'ian', 'ing', 'is', 'ith', 'ivar', 'la', 'lac', 'laf', 'land', 'leof', 'ley', 'lin', 'lo', 'ma', 'mar', 'mon', 'mond',
-  'mot', 'na', 'nard', 'ne', 'nor', 'old', 'on', 'or', 'ot', 'oth', 'ra', 'rad', 'ran', 'red', 'ren', 'rid', 'rin', 'rod', 'ron', 'ry', 'sa',
-  'sel', 'son', 'stan', 'ta', 'thor', 'ton', 'tram', 'trude', 'ulf', 'un', 'valde', 'ver', 'vin', 'ward', 'wald', 'wig', 'wine', 'wolf',
-  'wulf', 'bryn', 'cyn',
+const MALE_FIRST = [
+  'Bran', 'Ced', 'Gar', 'Hal', 'Wil', 'Tho', 'Bald', 'Bern', 'Bert', 'Cuth', 'Dag', 'Dun', 'Guth', 'Gun', 'God', 'Hro', 'Hug', 'Orm', 'Osw',
+  'Reg', 'Ric', 'Sig', 'Tor', 'Wal', 'Wid', 'Alf', 'Ans', 'Cad', 'Con', 'Cor', 'Dar', 'Far', 'Gor', 'Had', 'Har', 'Ivo', 'Jor', 'Ken', 'Leo',
+  'Mal', 'Mor', 'Per', 'Rad', 'Ran', 'Tam', 'Bor', 'Bro', 'Ul',
+];
+const FEMALE_FIRST = [
+  'Gwen', 'Ada', 'Ma', 'Mab', 'Mel', 'Kat', 'Sib', 'Yse', 'Bea', 'Oda', 'Em', 'Ev', 'Ros', 'Lin', 'Lu', 'Is',
+];
+// Endings for men's names, and for women's (Ead-ric, Ead-gith).
+const MALE_LAST = [
+  'ric', 'mund', 'bert', 'ard', 'win', 'el', 'fred', 'gar', 'ald', 'mer', 'ach', 'ain', 'al', 'an', 'and', 'ax', 'bald', 'bern', 'bold',
+  'bur', 'by', 'can', 'cott', 'dane', 'del', 'den', 'don', 'dor', 'dric', 'dun', 'ed', 'er', 'fast', 'ferd', 'fin', 'ford', 'gard', 'geat',
+  'gund', 'hard', 'helm', 'hold', 'ian', 'ing', 'ivar', 'lac', 'laf', 'land', 'leof', 'lo', 'mar', 'mon', 'mond', 'mot', 'nard', 'nor', 'old',
+  'on', 'or', 'ot', 'oth', 'rad', 'ran', 'red', 'rid', 'rin', 'rod', 'ron', 'son', 'stan', 'thor', 'ton', 'tram', 'ulf', 'un', 'valde', 'ver',
+  'vin', 'ward', 'wald', 'wig', 'wine', 'wolf', 'wulf', 'bryn', 'cyn',
+];
+const FEMALE_LAST = [
+  'wyn', 'ia', 'ine', 'lyn', 'wen', 'ette', 'ella', 'beth', 'dith', 'hild', 'gith', 'trude', 'la', 'ma', 'na', 'sa', 'ta', 'ra', 'frith',
+  'lin', 'a', 'ina', 'elle', 'ana', 'anna', 'ara', 'ea', 'eda', 'elda', 'enna', 'etta', 'eva', 'ilda', 'isa', 'ise', 'issa', 'iva', 'lina',
+  'lise', 'mina', 'nora', 'rada', 'rith', 'rune', 'sine', 'thea', 'tha', 'tilde', 'una', 'unn', 'vina', 'wara', 'wina', 'ynn', 'yth', 'ada',
+  'aine', 'alia', 'ayne', 'bera', 'bryd', 'cia', 'dis', 'drun', 'eyn', 'flaed', 'gunn', 'hilda', 'iel', 'leda', 'linde', 'lotte', 'lyse',
+  'nys', 'oda', 'rika', 'rose', 'ryth', 'sanne', 'sia', 'thild', 'ula', 'vera', 'ynne', 'yse', 'zelle', 'bella', 'eline', 'gifu', 'burh',
+  'swith', 'thryth', 'isolde', 'wynn', 'ota', 'wenna', 'elwyn', 'ilde', 'osa', 'leofa', 'ith', 'eth', 'da',
 ];
 
-// A name from the world's seed and where someone lives: the same house on
-// the same seed, the same name.
-export function nameAt(x: number, z: number, seed = 0): string {
+const MEN_FIRST = [...FIRST, ...MALE_FIRST];
+const WOMEN_FIRST = [...FIRST, ...FEMALE_FIRST];
+
+// A name from the world's seed and where someone lives (the same house on
+// the same seed, the same name), a man's or a woman's by their build.
+export function nameAt(x: number, z: number, seed = 0, build: Build = 'male'): string {
   const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(Math.round(x * 10), Math.round(z * 10), seed * 131 + salt) * list.length)];
-  return pick(FIRST, 71) + pick(LAST, 72);
+  const woman = build === 'female';
+  return pick(woman ? WOMEN_FIRST : MEN_FIRST, 71) + pick(woman ? FEMALE_LAST : MALE_LAST, 72);
 }
 
 // One villager for every house, living in the village it stands in (the
@@ -98,29 +114,32 @@ export function nameAt(x: number, z: number, seed = 0): string {
 export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[]): Npc[] {
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
     list.reduce<T | null>((best, v) => (!best || Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z) ? v : best), null);
-  const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => ({
-    id,
-    name: nameAt(at.x, at.z, seed),
-    role,
-    look: lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : 1), // about half the village's folk women; the inn's barmaids always
-    equipment: {}, // naked, for now
-    home,
-    inn,
-    village,
-    where: home,
-    x: 0,
-    z: 0,
-    y: 0,
-    facing: 0,
-    seat: null,
-    stood: null,
-    stop: 0,
-    steps: [],
-    path: null,
-    waited: 0,
-    moving: false,
-    salt: Math.floor(hashUnit(id, seed % 1_000_003, 74) * 1_000_000),
-  });
+  const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : 1); // about half the village's folk women; the inn's barmaids always
+    return {
+      id,
+      name: nameAt(at.x, at.z, seed, look.build),
+      role,
+      look,
+      equipment: {}, // naked, for now
+      home,
+      inn,
+      village,
+      where: home,
+      x: 0,
+      z: 0,
+      y: 0,
+      facing: 0,
+      seat: null,
+      stood: null,
+      stop: 0,
+      steps: [],
+      path: null,
+      waited: 0,
+      moving: false,
+      salt: Math.floor(hashUnit(id, seed % 1_000_003, 74) * 1_000_000),
+    };
+  };
   const inns = entrances.filter((e) => e.type === 'inn');
   const villagers = entrances
     .filter((e) => e.type === 'house')

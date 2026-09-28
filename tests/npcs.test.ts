@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
-import { spawnNpcs } from '../src/model/npcs/npcs';
+import { nameAt, spawnNpcs } from '../src/model/npcs/npcs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const withVillage = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'))!;
@@ -133,5 +133,16 @@ describe('villagers', () => {
       }
     }
     expect(serverSpots.size).toBeGreaterThan(2); // up and down between the counter and the tables
+  });
+
+  it('name women and men each their own way, from the seed', () => {
+    const model = withVillage();
+    const villagers = model.npcs.filter((n) => n.role === 'villager');
+    expect(villagers.some((n) => n.look.build === 'female')).toBe(true);
+    expect(villagers.some((n) => n.look.build === 'male')).toBe(true);
+    for (const npc of villagers) {
+      expect(npc.name).toBe(nameAt(npc.home.x, npc.home.z, model.seed, npc.look.build)); // their house, the seed, and whether they're a woman
+      expect(nameAt(npc.home.x, npc.home.z, model.seed, npc.look.build === 'female' ? 'male' : 'female')).not.toBe(npc.name); // a woman's ending, or a man's
+    }
   });
 });
