@@ -204,7 +204,7 @@
   /* A fixed size, so the window never changes with what's chosen. */
   flex: 0 0 260px;
   width: 260px;
-  min-height: 330px;
+  min-height: 400px; /* room for the most it shows (sold out: a line more), so the window never grows */
   box-sizing: border-box;
   overflow-wrap: anywhere;
   display: flex;
@@ -298,6 +298,8 @@
 .shop-talk-bubble {
   position: relative;
   flex: 1;
+  min-height: 84px; /* her name and two lines of talk: longer lines don't grow the window */
+  box-sizing: border-box;
   padding: 8px 14px;
   background: var(--sand-light);
   border: 2px solid var(--ink);
@@ -312,7 +314,7 @@
 }
 .shop-talk-bubble::before { left: -12px; border-width: 8px 12px 8px 0; border-right-color: var(--ink); }
 .shop-talk-bubble::after { left: -8px; border-width: 6px 9px 6px 0; border-right-color: var(--sand-light); }
-.shop-talk-name { font-size: 13px; font-weight: 700; color: var(--clay-dark); text-transform: uppercase; letter-spacing: 0.04em; }
+.shop-talk-name { font-size: 13px; font-weight: 700; color: var(--clay-dark); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 .shop-talk-says { font-size: 16px; font-style: italic; color: var(--ink); }
 
 /* In a shop: her purse on the left, yours on the right, each named. */

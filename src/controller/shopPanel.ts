@@ -7,7 +7,7 @@
 
 import type { GameModel } from '../model/GameModel';
 import type { Npc } from '../model/npcs/npcs';
-import { buy, buyPrice, sell, sellPrice, shopAt, type Shop } from '../model/npcs/tavernShop';
+import { buy, buyPrice, restockIn, sell, sellPrice, shopAt, type Shop } from '../model/npcs/tavernShop';
 import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../model/loot/provisions';
 import { coinParts } from '../view/ui/coins';
 import { bagIcon } from '../view/ui/itemIcons';
@@ -113,6 +113,12 @@ const ABOUT: Record<ProvisionId, readonly string[]> = {
 const offered = (name: string) => `A ${name.toLowerCase()}? I could use that.`;
 const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
 
+// A time left as minutes and seconds: "0:42".
+const clock = (ms: number) => {
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+
 const COLUMNS = 4;
 const ROWS = 2;
 
@@ -145,7 +151,8 @@ export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boo
     return { cells, columns: COLUMNS };
   };
   const slotOf = (id: ProvisionId, count: number, price: number): MenuSlot => {
-    const slot: MenuSlot = { icon: bagIcon(id), badge: count > 0 ? `×${count}` : 'Sold out', dim: count <= 0, title: PROVISIONS[id].name, tag: coinParts(price) };
+    // Sold out: faded, with the time until she has more in its corner.
+    const slot: MenuSlot = { icon: bagIcon(id), badge: count > 0 ? `×${count}` : `↻ ${clock(restockIn(shop()))}`, dim: count <= 0, title: PROVISIONS[id].name, tag: coinParts(price) };
     items.set(slot, id);
     return slot;
   };
@@ -180,9 +187,19 @@ export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boo
     };
     fact(selling ? 'She pays' : 'Price', coinParts(price));
     fact(item.drink ? 'Drink, heals' : 'Food, heals', [String(item.heal)]);
-    fact(selling ? 'You have' : 'In stock', [String(selling ? (model.hero.bag[id] ?? 0) : (shop().stock[id] ?? 0))]);
+    const soldOut = !selling && (shop().stock[id] ?? 0) <= 0;
+    fact(selling ? 'You have' : 'In stock', [selling ? String(model.hero.bag[id] ?? 0) : soldOut ? 'Sold out' : String(shop().stock[id])]);
+    if (soldOut) fact('Back in', [clock(restockIn(shop()))]);
     pane.append(icon, line('menu-detail-name', item.name), line('menu-detail-about', item.about), facts);
-    const why = selling ? (shop().money < price ? "She hasn't the coin for that." : '') : (shop().stock[id] ?? 0) <= 0 ? 'Sold out.' : model.hero.money < price ? "You can't afford that." : '';
+    const why = selling
+      ? shop().money < price
+        ? "She hasn't the coin for that."
+        : ''
+      : soldOut
+        ? `Sold out · back in ${clock(restockIn(shop()))}`
+        : model.hero.money < price
+          ? "You can't afford that."
+          : '';
     const button = document.createElement('button');
     button.className = 'menu-detail-button';
     button.textContent = selling ? 'Sell one' : 'Buy one';
@@ -205,10 +222,23 @@ export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boo
     saysLine = row.querySelector('.shop-talk-says');
     return row;
   };
+  // While open, and anything's sold out, the countdowns tick each second (quietly:
+  // she doesn't speak for it); when one runs out, what's restocked shows at once.
+  let ticker = 0;
+  const tick = () => {
+    if (!PROVISION_IDS.some((id) => (shop().stock[id] ?? 0) <= 0)) return;
+    trading = true;
+    menu.refresh();
+    trading = false;
+  };
   const menu = createMenu({
     title: 'Wares',
     keyHints: false,
-    onOpenChange: (open) => hooks.setPaused(open),
+    onOpenChange: (open) => {
+      hooks.setPaused(open);
+      window.clearInterval(ticker);
+      if (open) ticker = window.setInterval(tick, 1000);
+    },
     tabs: [
       {
         name: 'Buy',
