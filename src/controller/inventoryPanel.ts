@@ -34,10 +34,13 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
     icon: bagIcon(gear),
     count,
     title: ITEMS[gear].name,
-    lines: [SLOT_NAMES[ITEMS[gear].slot], 'Drag onto your hero to wear it'],
+    lines: [SLOT_NAMES[ITEMS[gear].slot], `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
+    fits: ITEMS[gear].slot,
+    // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {
-      if (over?.closest('.menu-doll')) model.equipFromBag(gear);
-      else if (!over?.closest('.menu')) model.dropFromBag(gear); // onto the world
+      const target = over?.closest<HTMLElement>('[data-accepts]');
+      if (target?.dataset.accepts === ITEMS[gear].slot) model.equipFromBag(gear);
+      else if (!over?.closest('.menu')) model.dropFromBag(gear);
     },
   };
 }

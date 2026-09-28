@@ -27,6 +27,7 @@ export function createHeroSheet(model: GameModel): () => void {
     const item = hero.equipment[which];
     return {
       label: SLOT_NAMES[which],
+      accepts: which,
       placeholder: slotPlaceholder(which),
       slot: item
         ? {
@@ -34,6 +35,7 @@ export function createHeroSheet(model: GameModel): () => void {
             title: ITEMS[item].name,
             lines: [SLOT_NAMES[which], 'Drag into your bag, or onto the ground'],
             // Onto another window (the bag): into the bag. Onto the world: on the ground.
+            fits: which,
             dragOut: (over) => void (over?.closest('.menu') ? model.unequip(which) : model.dropEquipped(which)),
           }
         : null,
