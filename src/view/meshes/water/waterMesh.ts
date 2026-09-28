@@ -14,7 +14,8 @@
 // rest of the visual-only decor so the world rng stream is untouched.
 
 import * as THREE from 'three';
-import { instanceLayer, type WorldSink } from '../../world/chunkLayer';
+import type { WorldSink } from '../../world/chunkLayer';
+import { allChunkKeys, chunkTiles } from '../common/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
 import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/grid';
@@ -224,14 +225,22 @@ export function buildWater(scene: WorldSink, model: GameModel): (elapsedSeconds:
 
   // Columns span from one tier below ground up to the flat lake surface.
   const columnHeight = (WATER_LEVEL + 1) * TILE_HEIGHT;
-  const cells: Array<{ x: number; z: number }> = [];
-  for (let x = 0; x < model.size.width; x++) for (let z = 0; z < model.size.depth; z++) if (model.lakeMap[x][z]) cells.push({ x, z });
   const matrix = new THREE.Matrix4();
-  scene.layer(
-    instanceLayer(cells, () => new THREE.BoxGeometry(1, columnHeight, 1), material, (mesh, i, cell) =>
-      mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, SURFACE_Y - columnHeight / 2, cell.z)),
-    ),
-  );
+  let column: THREE.BufferGeometry | null = null;
+  scene.layer({
+    materials: [material],
+    chunkKeys: () => allChunkKeys(model.size.width, model.size.depth),
+    build(key) {
+      const { x0, z0, x1, z1 } = chunkTiles(key, model.size.width, model.size.depth);
+      const cells: Array<[number, number]> = [];
+      for (let x = x0; x < x1; x++) for (let z = z0; z < z1; z++) if (model.lakeMap[x][z]) cells.push([x, z]);
+      if (cells.length === 0) return [];
+      column ??= new THREE.BoxGeometry(1, columnHeight, 1);
+      const mesh = new THREE.InstancedMesh(column, material, cells.length);
+      cells.forEach(([x, z], i) => mesh.setMatrixAt(i, matrix.makeTranslation(x, SURFACE_Y - columnHeight / 2, z)));
+      return [mesh];
+    },
+  });
 
   const { lilies, reeds } = placeDecor(model, distance);
   const decorMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });

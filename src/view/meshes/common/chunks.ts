@@ -7,18 +7,19 @@
 
 export const CHUNK_SIZE = 16; // tiles per chunk edge
 
-export function groupByChunk<T extends { x: number; z: number }>(items: readonly T[]): T[][] {
-  const chunks = new Map<string, T[]>();
-  for (const item of items) {
-    const key = `${Math.floor(item.x / CHUNK_SIZE)},${Math.floor(item.z / CHUNK_SIZE)}`;
-    let chunk = chunks.get(key);
-    if (!chunk) {
-      chunk = [];
-      chunks.set(key, chunk);
-    }
-    chunk.push(item);
-  }
-  return [...chunks.values()];
+// Every chunk key of a map, and the tile range [x0, x1) x [z0, z1) a key covers.
+export function* allChunkKeys(width: number, depth: number): Generator<string> {
+  for (let cx = 0; cx * CHUNK_SIZE < width; cx++) for (let cz = 0; cz * CHUNK_SIZE < depth; cz++) yield `${cx},${cz}`;
+}
+
+export function chunkTiles(key: string, width: number, depth: number): { x0: number; z0: number; x1: number; z1: number } {
+  const [cx, cz] = key.split(',').map(Number);
+  return {
+    x0: Math.max(0, cx * CHUNK_SIZE),
+    z0: Math.max(0, cz * CHUNK_SIZE),
+    x1: Math.min(width, (cx + 1) * CHUNK_SIZE),
+    z1: Math.min(depth, (cz + 1) * CHUNK_SIZE),
+  };
 }
 
 // The chunk a map position falls in, as a key ("cx,cz").

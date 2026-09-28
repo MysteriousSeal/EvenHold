@@ -5,7 +5,7 @@
 
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { cellKey } from '../../../model/grid';
+import { cellKey, cellLookup } from '../../../model/grid';
 import { onRoadBand, roadConnections } from '../../../model/roads';
 import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
@@ -43,15 +43,22 @@ export interface GroundCover {
 // tiles are only half dirt, so their grassy margins get a steady line of
 // clumps (whatever the meadow density), making roads cut through the grass.
 export function scatterGroundCover(model: GameModel): GroundCover {
+  return createCoverScatter(model)(0, 0, model.size.width, model.size.depth);
+}
+
+// Scatters a region [x0, x1) x [z0, z1) at a time: every tile rolls from its
+// own position hash, so any region gives the same items the whole map would,
+// and chunks can be scattered only when they're about to be seen.
+export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const solid = solidCells(model, model.bushes);
-  const treeCells = new Set(model.trees.map((t) => cellKey(t.x, t.z)));
+  const solid = cellLookup(model.size, solidCells(model, model.bushes));
+  const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
+  return (x0, z0, x1, z1) => {
   const cover: GroundCover = { tufts: [], flowers: [], pebbles: [] };
 
-  for (let x = 0; x < model.size.width; x++) {
-    for (let z = 0; z < model.size.depth; z++) {
-      const key = cellKey(x, z);
-      if (model.lakeMap[x][z] || solid.has(key)) continue;
+  for (let x = x0; x < x1; x++) {
+    for (let z = z0; z < z1; z++) {
+      if (model.lakeMap[x][z] || solid(x, z)) continue;
       const surface = model.surfaceMap[x][z];
       if (surface === 'plaza' || surface === 'field') continue; // paved, or crops
 
@@ -91,8 +98,8 @@ export function scatterGroundCover(model: GameModel): GroundCover {
         cover.tufts.push(item(offset(), offset(), meadowScale * (0.85 + rng() * 0.3), rng() < 0.5 ? 0 : 1));
       }
 
-      const hasTree = treeCells.has(key);
-      if (!hasTree && rng() < FLOWER_CHANCE) {
+      const treeHere = hasTree(x, z);
+      if (!treeHere && rng() < FLOWER_CHANCE) {
         // A small cluster of 1-3 flowers of one color.
         const cx = offset();
         const cz = offset();
@@ -102,11 +109,12 @@ export function scatterGroundCover(model: GameModel): GroundCover {
           cover.flowers.push(item(cx + (rng() - 0.5) * 0.16, cz + (rng() - 0.5) * 0.16, 0.85 + rng() * 0.3, color));
         }
       }
-      if (!hasTree && rng() < PEBBLE_CHANCE) {
+      if (!treeHere && rng() < PEBBLE_CHANCE) {
         const count = rng() < 0.3 ? 2 : 1;
         for (let i = 0; i < count; i++) cover.pebbles.push(item(offset(), offset(), 0.025 + rng() * 0.025, Math.floor(rng() * 3)));
       }
     }
   }
   return cover;
+  };
 }

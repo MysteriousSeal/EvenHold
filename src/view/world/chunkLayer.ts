@@ -43,27 +43,3 @@ export function bucketByChunk<T>(items: readonly T[], positionOf: (item: T) => {
   }
   return chunks;
 }
-
-// One InstancedMesh per chunk of a shared geometry (made on first use) and
-// material; `apply` sets each instance's matrix (and color, if any).
-export function instanceLayer<T extends { x: number; z: number }>(
-  items: readonly T[],
-  geometry: () => THREE.BufferGeometry,
-  material: THREE.Material | THREE.Material[],
-  apply: (mesh: THREE.InstancedMesh, index: number, item: T) => void,
-): ChunkLayer {
-  const chunks = bucketByChunk(items, (item) => item);
-  let shared: THREE.BufferGeometry | null = null;
-  return {
-    materials: Array.isArray(material) ? material : [material],
-    chunkKeys: () => chunks.keys(),
-    build(key) {
-      const bucket = chunks.get(key);
-      if (!bucket) return [];
-      shared ??= geometry();
-      const mesh = new THREE.InstancedMesh(shared, material, bucket.length);
-      bucket.forEach((item, i) => apply(mesh, i, item));
-      return [mesh];
-    },
-  };
-}

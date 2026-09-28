@@ -11,8 +11,9 @@ import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { TERRAIN_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
-import { addVoxelInstances, type VoxelPlacement } from '../voxel/voxelInstances';
-import { scatterGroundCover, type ScatterItem } from './groundCoverScatter';
+import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
+import { allChunkKeys, chunkTiles } from '../common/chunks';
+import { createCoverScatter, type GroundCover, type ScatterItem } from './groundCoverScatter';
 import {
   COVER_PALETTE,
   COVER_VOXEL_SIZE,
@@ -67,14 +68,25 @@ function place(item: ScatterItem, tint?: THREE.Color): VoxelPlacement {
 
 // Returns a per-frame callback that advances the wind animation.
 export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
-  const { tufts, flowers, pebbles } = scatterGroundCover(model);
+  // Scattered per chunk when the chunk is built; the three layers ask for
+  // the same chunk in turn, so the last one is kept.
+  const scatter = createCoverScatter(model);
+  let last: { key: string; cover: GroundCover } | null = null;
+  const coverIn = (key: string): GroundCover => {
+    if (last?.key !== key) {
+      const { x0, z0, x1, z1 } = chunkTiles(key, model.size.width, model.size.depth);
+      last = { key, cover: scatter(x0, z0, x1, z1) };
+    }
+    return last.cover;
+  };
+  const keys = () => allChunkKeys(model.size.width, model.size.depth);
   const plain = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
 
   const grassMaterial = plain();
   const windTime = addWindSway(grassMaterial, GRASS_WIND);
-  addVoxelInstances(
-    scene,
-    tufts,
+  scene.layer(voxelLayer(
+    keys,
+    (key) => coverIn(key).tufts,
     (t) => `tuft:${tuftSize(t.scale)}:${itemHash(t) % TUFT_SHAPES}`,
     (t) => buildTuftGeometry(tuftSize(t.scale), itemHash(t) % TUFT_SHAPES),
     (t) =>
@@ -83,23 +95,23 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
         new THREE.Color(TERRAIN_COLORS[t.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[t.variant] * TUFT_ROOT_LIFT),
       ),
     grassMaterial,
-  );
-  addVoxelInstances(
-    scene,
-    flowers,
+  ));
+  scene.layer(voxelLayer(
+    keys,
+    (key) => coverIn(key).flowers,
     (f) => `flower:${f.variant}:${itemHash(f) % FLOWER_HEIGHTS}`,
     (f) => buildFlowerGeometry(f.variant, itemHash(f) % FLOWER_HEIGHTS),
     (f) => place(f),
     plain(),
-  );
-  addVoxelInstances(
-    scene,
-    pebbles,
+  ));
+  scene.layer(voxelLayer(
+    keys,
+    (key) => coverIn(key).pebbles,
     (p) => `pebble:${itemHash(p) % PEBBLE_SHAPES}`,
     (p) => buildPebbleGeometry(itemHash(p) % PEBBLE_SHAPES),
     (p) => place(p),
     plain(),
-  );
+  ));
 
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
