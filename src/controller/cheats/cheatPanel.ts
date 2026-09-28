@@ -31,6 +31,7 @@ import {
   type ItemId,
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
+import type { Entrance } from '../../model/interiors/interiors';
 import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/bag';
@@ -56,6 +57,7 @@ export function createCheatPanel(model: GameModel): void {
     for (const item of items) wear(model.hero.equipment, item);
   };
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
+  const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const toggle = (get: () => boolean, set: (on: boolean) => void, on: string, off: string): Pick<MenuAction, 'run' | 'isOn'> => ({
     isOn: get,
     run: () => {
@@ -88,9 +90,9 @@ export function createCheatPanel(model: GameModel): void {
             (type): MenuAction => ({
               icon: ICON.village,
               title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'the inn' : 'a smithy'}`,
-              detail: 'The nearest one, through its door',
+              detail: 'The nearest one you haven’t visited',
               run: () => {
-                if (!enterNearest(model, type)) return `There's no ${type} in this world.`;
+                if (!enterNearest(model, type, entered)) return `There's no ${type} in this world.`;
                 menu.close();
                 return `Inside the ${type}.`;
               },

@@ -122,15 +122,25 @@ export function slayNearby(model: GameModel, radius = 15): number {
   return slain;
 }
 
-// Steps inside the nearest building of `type` (a house, the inn, a smithy),
-// leaving the one the hero's in first; returns whether there was one.
-export function enterNearest(model: GameModel, type: BuildingType): boolean {
+// Steps inside the nearest building of `type` (a house, the inn, a smithy)
+// not in `visited`, leaving the one the hero's in first; once every one has
+// been visited the tour starts over (visited is cleared, bar the one just
+// left). Returns whether there was one.
+export function enterNearest(model: GameModel, type: BuildingType, visited: Set<Entrance>): boolean {
+  const current = model.inside?.entrance;
   if (model.inside) model.useDoor();
+  const all = model.entrances.filter((e) => e.type === type);
+  if (all.length === 0) return false;
+  if (current) visited.add(current);
+  if (all.every((e) => visited.has(e))) {
+    visited.clear();
+    if (current && all.length > 1) visited.add(current);
+  }
   const { hero } = model;
-  const nearest = model.entrances
-    .filter((e) => e.type === type)
-    .reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) < Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null);
-  if (!nearest) return false;
-  model.teleport(nearest.x, nearest.z);
+  const next = all
+    .filter((e) => !visited.has(e))
+    .reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) < Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null)!;
+  visited.add(next);
+  model.teleport(next.x, next.z);
   return model.useDoor();
 }
