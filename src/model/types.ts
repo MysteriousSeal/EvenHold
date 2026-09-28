@@ -28,6 +28,8 @@ export interface Enemy {
   deadFor: number; // seconds since it died
   swingFor: number | null; // seconds into its own attack swing (bandits), or null
   cooldown: number; // seconds before it can swing again
+  path: Array<{ x: number; z: number }> | null; // while chasing around obstacles: tile centers still to walk
+  pathAge: number; // seconds since the path was found
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
 }
 

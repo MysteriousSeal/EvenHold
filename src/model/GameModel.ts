@@ -18,6 +18,8 @@ import {
   ENEMY_CORPSE_TIME,
   ENEMY_STATS,
   ENEMY_SEPARATION_SPEED,
+  ENEMY_PATH_RADIUS,
+  ENEMY_PATH_REFRESH,
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   HOP_DURATION,
@@ -34,6 +36,7 @@ import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
+import { findPath } from './pathfinding';
 
 export class GameModel {
   readonly seed: number;
@@ -297,7 +300,8 @@ export class GameModel {
         if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(i, 1);
         continue;
       }
-      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz));
+      enemy.pathAge += dt;
+      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz), (e) => this.chaseGoal(e));
     }
     if (!this.enemiesFrozen) this.separateEnemies(dt);
   }
@@ -324,6 +328,37 @@ export class GameModel {
         this.moveEnemy(b, ux * push, uz * push);
       }
     }
+  }
+
+  // Where a chasing enemy heads: straight at the hero when nothing's in the
+  // way, else the next tile of a path around it, found afresh twice a
+  // second so it follows the hero. With no way through, the path ends as
+  // close to the hero as it gets, and the enemy waits there.
+  private chaseGoal(enemy: Enemy): { x: number; z: number } {
+    const r = ENEMY_STATS[enemy.kind].radius;
+    const free = (x: number, z: number) => !this.isBlocked(x, z, r);
+    if (this.clearLine(enemy, this.hero, free)) {
+      enemy.path = null;
+      return this.hero;
+    }
+    if (!enemy.path || enemy.pathAge > ENEMY_PATH_REFRESH) {
+      enemy.path = findPath(enemy, this.hero, ENEMY_PATH_RADIUS, free);
+      enemy.pathAge = 0;
+    }
+    const path = enemy.path;
+    while (path.length > 0 && Math.hypot(path[0].x - enemy.x, path[0].z - enemy.z) < 0.12) path.shift();
+    return path[0] ?? enemy;
+  }
+
+  // Whether the walker fits all along the straight line from `a` to `b`.
+  private clearLine(a: { x: number; z: number }, b: { x: number; z: number }, free: (x: number, z: number) => boolean): boolean {
+    const d = Math.hypot(b.x - a.x, b.z - a.z);
+    const steps = Math.ceil(d / 0.2);
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      if (!free(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false;
+    }
+    return true;
   }
 
   // Living enemies are solid to each other, by the same rule as for the hero:

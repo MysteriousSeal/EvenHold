@@ -54,6 +54,8 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     deadFor: 0,
     swingFor: null,
     cooldown: 0,
+    path: null,
+    pathAge: 0,
     // Bandits: someone different each, in their own mix of bandit gear.
     human: kind === 'bandit' ? { look: lookAt(x, z), equipment: pickOutfit('bandit', x, z) } : null,
   };
@@ -143,6 +145,7 @@ export function stepEnemy(
   hero: { x: number; z: number },
   dt: number,
   move: (enemy: Enemy, dx: number, dz: number) => boolean,
+  steer: (enemy: Enemy) => { x: number; z: number } = () => hero,
 ): void {
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
@@ -166,8 +169,11 @@ export function stepEnemy(
     // A small margin: stepping exactly to `stop` can leave it a hair outside,
     // which would never count as in reach.
     if (toHero > stats.stop + 0.02) {
-      const step = Math.min(stats.run * dt, toHero - stats.stop);
-      move(enemy, ((hero.x - enemy.x) / toHero) * step, ((hero.z - enemy.z) / toHero) * step);
+      // Toward the hero, or the next point on the way around what's between.
+      const goal = steer(enemy);
+      const d = Math.hypot(goal.x - enemy.x, goal.z - enemy.z);
+      const step = Math.min(stats.run * dt, goal === hero ? toHero - stats.stop : d);
+      if (d > 1e-4) move(enemy, ((goal.x - enemy.x) / d) * step, ((goal.z - enemy.z) / d) * step);
     } else if (enemy.cooldown === 0) {
       enemy.swingFor = 0;
     }
