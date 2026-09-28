@@ -13,6 +13,7 @@ import type { BagItem } from './hero/bag';
 import type { Equipment } from './human/equipment';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
+import type { Shop } from './npcs/tavernShop';
 
 const VERSION = 1;
 
@@ -37,6 +38,7 @@ export interface SaveData {
   loot: Array<{ item: BagItem; x: number; z: number }>;
   coins: Array<{ amount: number; x: number; z: number }>;
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
+  shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
 }
 
 const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a tile: plenty, and a smaller save
@@ -75,6 +77,7 @@ export function snapshot(model: GameModel): SaveData {
     npcs: model.npcs
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
+    shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
   };
 }
 
@@ -127,6 +130,9 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   for (const { item, x, z } of data.loot) model.dropLoot(item, x, z);
   for (const { amount, x, z } of data.coins) model.dropCoins(amount, x, z);
+  for (const { inn, money, stock, restockedAt } of Array.isArray(data.shops) ? data.shops : []) {
+    if (typeof inn === 'number' && typeof money === 'number' && typeof restockedAt === 'number') model.shops.set(inn, { money, stock: { ...stock }, restockedAt });
+  }
   // Villagers pick up their day where they were in it.
   for (const saved of data.npcs) {
     const npc = model.npcs.find((n) => n.id === saved.id);

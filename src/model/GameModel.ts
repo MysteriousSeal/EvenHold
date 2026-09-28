@@ -40,8 +40,11 @@ import type { Seat } from './interiors/furniture';
 import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside } from './interiors/indoors';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
+import type { Shop } from './npcs/tavernShop';
+import { PROVISIONS, isProvision } from './loot/provisions';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
+const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
 
 export class GameModel {
   readonly seed: number;
@@ -62,6 +65,7 @@ export class GameModel {
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
   readonly coins: GroundCoins[] = []; // dropped coins, picked up by walking near them
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
+  readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (npcs/tavernShop.ts)
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -425,6 +429,19 @@ export class GameModel {
     const amount = collectCoins(this.coins, this.hero.x, this.hero.z);
     this.hero.money += amount;
     if (amount > 0) this.events.push({ kind: 'coins', amount });
+  }
+
+  // The barmaid, when the hero's at her bar (in her inn, close by); else null.
+  get barmaidInReach(): Npc | null {
+    const inside = this.inside;
+    return (inside && this.npcs.find((n) => n.role === 'barkeep' && n.where === inside.entrance && Math.hypot(n.x - this.hero.x, n.z - this.hero.z) < TALK_RANGE)) ?? null;
+  }
+
+  // Eats or drinks one of `item` from the bag, for the health it gives back; returns whether they did.
+  consume(item: BagItem): boolean {
+    if (!isProvision(item) || !takeFromBag(this.hero.bag, item)) return false;
+    this.hero.hp = Math.min(maxHpAt(this.hero.level), this.hero.hp + PROVISIONS[item].heal);
+    return true;
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
