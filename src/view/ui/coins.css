@@ -10,6 +10,8 @@
   border: 1px solid #2e1f14;
   box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.18), inset 2px 2px 0 rgb(255 255 255 / 0.35);
 }
+/* Room between one metal's coin and the next amount: "1 ■  95 ■". */
+.coin:not(:last-child) { margin-right: 0.5em; }
 .coin.gold { background: #e0b040; }
 .coin.silver { background: #c8ccd2; }
 .coin.copper { background: #c07040; }

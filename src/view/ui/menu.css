@@ -193,6 +193,26 @@
 /* A grid of slots (inventory): square sand wells, the selected one lit,
    the count in a corner; what's selected is described underneath. */
 .menu-grid { display: grid; gap: 6px; }
+/* A list (a grid of rows): each slot a row, its icon, its title over a
+   note, a tag at the right end and a badge above it. */
+.menu-grid.rows { gap: 8px; }
+.menu-grid.rows .menu-slot {
+  aspect-ratio: auto;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 8px 10px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+}
+.menu-grid.rows .menu-slot.empty { display: none; }
+.menu-slot-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.menu-slot-title { font-size: 15px; font-weight: 700; }
+.menu-slot-note { font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-grid.rows .menu-slot-tag { position: static; flex: 0 0 auto; padding: 3px 8px; margin-top: 14px; }
+.menu-grid.rows .menu-slot-badge { top: 5px; right: 12px; }
 
 /* A grid with the chosen slot told of beside it (a shop): the item large,
    its name, its lines, and a button to act on it. */
@@ -454,6 +474,9 @@
 .quest-pins i { width: 12px; height: 12px; background: var(--sand-dark, #d6bb8e); border: 2px solid var(--ink); }
 .quest-pins i.on { background: #f2b640; box-shadow: inset 0 -3px 0 #c07a18; }
 .quest-taken { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.menu-detail-facts.quest-facts { grid-template-columns: auto 1fr; row-gap: 12px; padding-top: 12px; margin-top: 8px; align-items: center; }
+.quest-facts dt { white-space: nowrap; } /* labels whole; a long value wraps instead */
+.quest-facts dd { overflow-wrap: normal; }
 .quest-danger { padding: 0 6px; color: #fff; text-shadow: 1px 1px 0 var(--ink); background: #7a6a58; border: 2px solid var(--ink); }
 .quest-danger[data-difficulty='trivial'] { background: #9a968e; }
 .quest-danger[data-difficulty='even'] { background: #3d9a6a; }

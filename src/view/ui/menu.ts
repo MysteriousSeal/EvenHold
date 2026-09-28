@@ -45,6 +45,7 @@ export interface MenuSlot {
   badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
   move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
+  note?: string; // in a list (rows), a line under its title (e.g. where a quest sends you)
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -63,7 +64,8 @@ export interface MenuTab {
   facts?(): Array<[string, string]>; // a ledger, refreshed when shown
   // A grid of slots (null: an empty one), refreshed when shown; the
   // arrow keys move around it.
-  slots?(): { cells: Array<MenuSlot | null>; columns: number };
+  // With `rows`, a list instead: a row each, its icon, title and note.
+  slots?(): { cells: Array<MenuSlot | null>; columns: number; rows?: boolean };
   // A figure with slots down its left and right and along the bottom (a
   // character sheet), shown above any facts.
   doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
@@ -180,10 +182,16 @@ export function createMenu(options: MenuOptions): Menu {
   }
 
   // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.
-  function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void): HTMLButtonElement {
+  function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void, row = false): HTMLButtonElement {
     const button = el('button', cell ? (cell.dim ? 'menu-slot dim' : 'menu-slot') : 'menu-slot empty');
     if (cell) {
       button.append(cell.icon(iconSize));
+      if (row) {
+        const text = el('span', 'menu-slot-text');
+        text.append(el('b', 'menu-slot-title', cell.title));
+        if (cell.note) text.append(el('span', 'menu-slot-note', cell.note));
+        button.append(text);
+      }
       if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
       if (cell.badge) button.append(el('span', 'menu-slot-badge', cell.badge));
       if (cell.tag) {
@@ -265,12 +273,13 @@ export function createMenu(options: MenuOptions): Menu {
 
   let detailPane: HTMLElement | null = null; // beside a grid whose tab has `detail`
 
-  function showSlots({ cells, columns }: { cells: Array<MenuSlot | null>; columns: number }): void {
-    const box = el('div', 'menu-grid');
+  function showSlots({ cells, columns, rows }: { cells: Array<MenuSlot | null>; columns: number; rows?: boolean }): void {
+    const box = el('div', rows ? 'menu-grid rows' : 'menu-grid');
+    if (rows) columns = 1;
     box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
     const detail = options.tabs[tabIndex].detail;
     const buttons = cells.map((cell, i) => {
-      const button = slotButton(cell, 44, detail ? () => {} : () => selectSlot(i));
+      const button = slotButton(cell, rows ? 40 : 44, detail ? () => {} : () => selectSlot(i), rows);
       if (detail) button.addEventListener('click', () => selectSlot(i, false));
       box.append(button);
       return button;

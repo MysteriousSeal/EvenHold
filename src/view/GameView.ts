@@ -36,6 +36,7 @@ import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
+import { BoardMarks } from './meshes/quest/questMarks';
 import { buildRoomScene } from './interior/roomView';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
@@ -72,6 +73,7 @@ export class GameView {
   private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
+  private readonly boardMarks: BoardMarks;
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -120,6 +122,7 @@ export class GameView {
     this.coins = new CoinViews(this.scene);
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
+    this.boardMarks = new BoardMarks(this.scene, model);
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -251,6 +254,7 @@ export class GameView {
     this.loot.update(model.loot, hero.x, hero.z, dt);
     this.coins.update(model.coins, hero.x, hero.z, dt);
     this.campFires.update(model, this.elapsed);
+    this.boardMarks.update(hero.x, hero.z, this.elapsed);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay

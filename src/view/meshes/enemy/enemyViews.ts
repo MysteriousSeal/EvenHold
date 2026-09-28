@@ -4,15 +4,14 @@
 
 import * as THREE from 'three';
 import type { Enemy } from '../../../model/types';
-import { BANDIT_BAR_HEIGHT, BanditRig, createBanditLook, type BanditLook } from './banditRig';
+import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
 import { ENEMY_BURST } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { WOLF_BAR_HEIGHT, WolfRig, createWolfLook, type WolfLook } from './wolfRig';
-import { MARK_GRID, MARK_PALETTE, QUEST_VOXEL_SIZE, buildQuestMark } from '../quest/questVoxels';
+import { WolfRig, createWolfLook, type WolfLook } from './wolfRig';
+import { pulseAuras, questAura } from '../quest/questMarks';
 
 const VIEW_RADIUS = 30;
-const MARK_ABOVE = { wolf: WOLF_BAR_HEIGHT + 0.3, bandit: BANDIT_BAR_HEIGHT + 0.3 }; // over the name
 
 type Rig = WolfRig | BanditRig;
 
@@ -23,8 +22,7 @@ export class EnemyViews {
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Map<number, Rig>();
   private readonly marker = focusMarker();
-  private readonly questMarks = new Map<number, THREE.Mesh>(); // the gold "!" over each marked foe
-  private readonly questMark = questMark();
+  private readonly questMarks = new Map<number, THREE.Mesh>(); // the amber aura under each marked foe
   private time = 0;
 
   constructor(private readonly scene: THREE.Scene) {
@@ -41,6 +39,7 @@ export class EnemyViews {
   // `marked`: whether a foe wears a quest's mark, a gold "!" bobbing over it.
   update(enemies: readonly Enemy[], heroX: number, heroZ: number, dt: number, focused: number | null = null, marked: (enemy: Enemy) => boolean = () => false): void {
     this.time += dt;
+    pulseAuras(this.time);
     const target = enemies.find((e) => e.id === focused && e.state !== 'dead');
     this.marker.visible = !!target;
     if (target) this.marker.position.set(target.x, target.y + 0.012, target.z);
@@ -69,7 +68,7 @@ export class EnemyViews {
     }
   }
 
-  // A gold "!" over a foe while `on`, bobbing gently (each a beat apart).
+  // An amber aura glowing under a foe's feet while `on` (a wolf's wider, as it's longer).
   private markQuest(enemy: Enemy, on: boolean): void {
     let mark = this.questMarks.get(enemy.id);
     if (!on) {
@@ -78,21 +77,12 @@ export class EnemyViews {
       return;
     }
     if (!mark) {
-      mark = new THREE.Mesh(this.questMark.geometry, this.questMark.material);
-      mark.renderOrder = 10; // over trees and roofs, like the names
+      mark = questAura(enemy.kind === 'wolf' ? 19 : 15);
       this.questMarks.set(enemy.id, mark);
       this.scene.add(mark);
     }
-    const bob = Math.round(Math.sin(this.time * 3 + enemy.id) * 1.5) * QUEST_VOXEL_SIZE * 0.5; // in half-voxel steps
-    mark.position.set(enemy.x, enemy.y + MARK_ABOVE[enemy.kind] + bob, enemy.z);
+    mark.position.set(enemy.x, enemy.y + 0.006, enemy.z); // under the focus brackets
   }
-}
-
-// The quest mark's mesh, unlit gold drawn over everything.
-function questMark(): THREE.Mesh {
-  const origin = new THREE.Vector3((-MARK_GRID[0] * QUEST_VOXEL_SIZE) / 2, 0, (-MARK_GRID[2] * QUEST_VOXEL_SIZE) / 2);
-  const geometry = greedyMesh(buildQuestMark(), MARK_PALETTE, QUEST_VOXEL_SIZE, origin);
-  return new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, depthTest: false, depthWrite: false, fog: false }));
 }
 
 // Four gold corner brackets on the ground around a focused enemy's feet,
@@ -110,4 +100,3 @@ function focusMarker(): THREE.Mesh {
   const geometry = greedyMesh(grid, [0xffd98a], V, new THREE.Vector3((-N * V) / 2, 0, (-N * V) / 2));
   return new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true }));
 }
-
