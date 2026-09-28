@@ -15,6 +15,7 @@ import { buildBuildings } from './meshes/house/buildingMesh';
 import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
+import { buildFields } from './meshes/field/fieldMesh';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
@@ -68,6 +69,7 @@ export class GameView {
     this.animations.push(buildWater(this.scene, model));
     buildRoads(this.scene, model);
     buildPlazas(this.scene, model);
+    this.animations.push(buildFields(this.scene, model));
     this.animations.push(buildGroundCover(this.scene, model));
     this.animations.push(buildTrees(this.scene, model));
     this.animations.push(buildBushes(this.scene, model));

@@ -53,7 +53,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
       const key = cellKey(x, z);
       if (model.lakeMap[x][z] || solid.has(key)) continue;
       const surface = model.surfaceMap[x][z];
-      if (surface === 'plaza') continue;
+      if (surface === 'plaza' || surface === 'field') continue; // paved, or crops
 
       const rng = mulberry32(hashCell(x, z, SCATTER_SALT));
       const tier = model.heightMap[x][z];

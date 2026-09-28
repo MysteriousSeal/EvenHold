@@ -31,8 +31,7 @@ export function buildPlazas(scene: THREE.Scene, model: GameModel): void {
       if (Math.max(Math.abs(dx), Math.abs(dz)) <= PLAZA_RADIUS) return 'plaza';
       const x = village.x + dx;
       const z = village.z + dz;
-      if (!inBounds(model.size, x, z) || model.surfaceMap[x][z] === 'natural') return 'natural';
-      return 'path';
+      return inBounds(model.size, x, z) && model.surfaceMap[x][z] === 'path' ? 'path' : 'natural';
     };
     // Road tiles in the ring just outside the square decide where the curb opens.
     const ring: string[] = [];

@@ -8,13 +8,15 @@ import { ROAD_WIDTH } from './constants';
 import { NEIGHBORS_4, inBounds, sizeOf, toCellX, toCellZ } from './grid';
 import type { Surface } from './types';
 
+const isPaved = (surface: Surface) => surface === 'path' || surface === 'plaza';
+
 // Which of the four neighbors a trail tile connects to, as a bitmask in
 // NEIGHBORS_4 order (+x, -x, +z, -z).
 export function roadConnections(surfaceMap: Surface[][], x: number, z: number): number {
   const size = sizeOf(surfaceMap);
   let mask = 0;
   NEIGHBORS_4.forEach(([dx, dz], i) => {
-    if (inBounds(size, x + dx, z + dz) && surfaceMap[x + dx][z + dz] !== 'natural') mask |= 1 << i;
+    if (inBounds(size, x + dx, z + dz) && isPaved(surfaceMap[x + dx][z + dz])) mask |= 1 << i;
   });
   return mask;
 }

@@ -7,14 +7,16 @@ import {
   HERO_RADIUS,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
+  FENCE_THICKNESS,
   HOP_DURATION,
   HOP_HEIGHT,
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
-import { DEFAULT_MAP_SIZE, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Building, Bush, Hero, Tree, House, Surface, Village } from './types';
+import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
+import type { Building, Bush, Field, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
+import { fenceEdges } from './worldgen/fields';
 import { onPaving } from './roads';
 
 export class GameModel {
@@ -27,6 +29,7 @@ export class GameModel {
   readonly villages: Village[];
   readonly houses: House[];
   readonly buildings: Building[];
+  readonly fields: Field[];
   readonly trees: Tree[];
   readonly bushes: Bush[];
   readonly hero: Hero;
@@ -50,6 +53,7 @@ export class GameModel {
     this.villages = world.villages;
     this.houses = world.houses;
     this.buildings = world.buildings;
+    this.fields = world.fields;
     this.trees = world.trees;
     this.bushes = world.bushes;
     // Houses and wells nearly fill their tile, so they block all of it;
@@ -59,6 +63,19 @@ export class GameModel {
       ...this.bushes.map((b): [string, number] => [cellKey(b.x, b.z), BUSH_COLLISION_HALF]),
       ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
     ]);
+
+    for (const field of this.fields) {
+      for (const { x, z, side } of fenceEdges(field)) {
+        const [dx, dz] = NEIGHBORS_4[side];
+        const t = FENCE_THICKNESS;
+        const rect: [number, number, number, number] =
+          dx !== 0
+            ? [dx > 0 ? x + 0.5 - t : x - 0.5, z - 0.5, dx > 0 ? x + 0.5 : x - 0.5 + t, z + 0.5]
+            : [x - 0.5, dz > 0 ? z + 0.5 - t : z - 0.5, x + 0.5, dz > 0 ? z + 0.5 : z - 0.5 + t];
+        const key = cellKey(x, z);
+        this.fences.set(key, [...(this.fences.get(key) ?? []), rect]);
+      }
+    }
 
     const spawn = spawnOf(this.size);
     this.hero = { x: spawn.x, z: spawn.z, y: 0 };
@@ -71,6 +88,10 @@ export class GameModel {
     const tile = this.heightMap[toCellX(this.size, x)][toCellZ(this.size, z)] * TILE_HEIGHT;
     return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
+
+  // Field fences, as thin axis-aligned rectangles [minX, minZ, maxX, maxZ]
+  // along tile edges, keyed by the tile they're in.
+  private readonly fences = new Map<string, Array<[number, number, number, number]>>();
 
   // Dev cheats: movement speed factor (1 = normal).
   speedMultiplier = 1;
@@ -112,12 +133,21 @@ export class GameModel {
     // Props: overlap between the hero's square and the prop's smaller
     // square, checked for the prop on every tile the hero's corners touch
     // (a prop square lies inside its tile, so that's the only way to overlap).
-    return corners.some(([cx, cz]) => {
+    const propHit = corners.some(([cx, cz]) => {
       const px = toCellX(this.size, cx);
       const pz = toCellZ(this.size, cz);
       const half = this.propFootprints.get(cellKey(px, pz));
       return half !== undefined && Math.abs(x - px) < r + half && Math.abs(z - pz) < r + half;
     });
+    if (propHit) return true;
+
+    // Fences: the hero's square against the fence strips of every tile its
+    // corners touch.
+    return corners.some(([cx, cz]) =>
+      (this.fences.get(cellKey(toCellX(this.size, cx), toCellZ(this.size, cz))) ?? []).some(
+        ([minX, minZ, maxX, maxZ]) => x + r > minX && x - r < maxX && z + r > minZ && z - r < maxZ,
+      ),
+    );
   }
 
   // Advances the hero one frame. dirX/dirZ: world-space input direction

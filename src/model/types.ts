@@ -57,7 +57,22 @@ export interface Village {
 }
 
 // What covers a dry tile's top. Water is tracked separately in lakeMap.
-export type Surface = 'natural' | 'path' | 'plaza';
+export type Surface = 'natural' | 'path' | 'plaza' | 'field';
+
+// A fenced crop plot near a village: tiles x0..x0+width-1, z0..z0+depth-1,
+// all on one tier. Crop rows run along the longer side. The fence has a gap
+// at `gate` (an edge tile facing the village), and hay and tools sit on the
+// `corner` tile.
+export interface Field {
+  x0: number;
+  z0: number;
+  width: number;
+  depth: number;
+  groundTier: number;
+  rowsAlongX: boolean;
+  gate: [number, number];
+  corner: [number, number];
+}
 
 export interface World {
   size: MapSize;
@@ -69,6 +84,7 @@ export interface World {
   villages: Village[];
   houses: House[];
   buildings: Building[];
+  fields: Field[];
   trees: Tree[];
   bushes: Bush[];
 }

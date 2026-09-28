@@ -13,6 +13,7 @@ import { generateVillages } from './villages';
 import { generateSpawnTrail } from './trails';
 import { createForestDensity, generateTrees } from './trees';
 import { generateBushes } from './bushes';
+import { generateFields } from './fields';
 import { createMeadowDensity } from './meadows';
 
 // Tiles nothing can walk through or grow on: houses, the inn and smithy,
@@ -44,9 +45,10 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   const { villages, houses, buildings } = generateVillages(heightMap, lakeMap, surfaceMap, rng, spawn.x, spawn.z);
   const solid = solidCells({ houses, buildings, villages });
   const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, spawn.x, spawn.z);
+  const fields = generateFields(heightMap, lakeMap, surfaceMap, solid, villages);
   const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, createForestDensity(seed), spawn.x, spawn.z);
   const meadowDensity = createMeadowDensity(seed);
   const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, trees, meadowDensity, spawn.x, spawn.z);
 
-  return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, buildings, trees, bushes };
+  return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, buildings, fields, trees, bushes };
 }
