@@ -9,6 +9,8 @@
 // along their foot.
 
 import type { Room } from '../../model/interiors/interiors';
+import type { Furniture } from '../../model/interiors/furniture';
+import { FURNITURE_PALETTE, paintFurniture } from './furnitureVoxels';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
@@ -18,7 +20,7 @@ const WALL = 5; // wall thickness, in voxels
 const HIGH = 34; // the back walls' height
 const LOW = 4; // the near walls'
 
-export const ROOM_PALETTE = [
+const ROOM_COLORS = [
   0x9a6a3e, // 1 plank
   0x87592f, // 2 plank, dark
   0xa87a4a, // 3 plank, light
@@ -33,6 +35,7 @@ export const ROOM_PALETTE = [
   0x7e786e, // 12 stone, dark
   0x4e2f1a, // 13 skirting
 ];
+export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE];
 
 // Floor color at a voxel (x, z) of the floor, by style.
 function floorColor(style: Room['floor'], x: number, z: number): number {
@@ -65,7 +68,7 @@ function wallColor(style: Room['wall'], u: number, y: number): number {
   return u % TILE === 0 || y === HIGH - 1 ? 10 : y % 9 === 0 ? 9 : 8; // plaster between posts
 }
 
-export function buildRoomVoxels(room: Room): VoxelGrid {
+export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []): VoxelGrid {
   const w = room.width * TILE;
   const d = room.depth * TILE;
   const grid = createGrid([w + WALL * 2, HIGH + 1, d + WALL * 2]);
@@ -82,6 +85,7 @@ export function buildRoomVoxels(room: Room): VoxelGrid {
   const doorX = x0 + room.door * TILE;
   fillBox(grid, doorX + 2, 1, z0 + d, doorX + TILE - 3, LOW, d + WALL * 2 - 1, 0); // the doorway
   fillBox(grid, doorX + 2, 0, z0 + d, doorX + TILE - 3, 0, d + WALL * 2 - 1, 4); // its threshold
+  paintFurniture(grid, furniture, x0, z0);
   return grid;
 }
 

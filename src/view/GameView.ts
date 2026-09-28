@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
+import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
 import { addLights } from './render/lighting';
@@ -46,6 +47,7 @@ export interface RenderStats {
   pixelRatio: number;
 }
 
+const INDOOR_ZOOM = 1.35; // the camera, closer indoors
 const PICK_RADIUS = 40; // pixels around an enemy that count as clicking it
 
 export class GameView {
@@ -210,6 +212,11 @@ export class GameView {
     const home = room ?? this.scene;
     if (this.hero.root.parent !== home) {
       home.add(this.hero.root);
+      // Rooms are built roomier than the world, so the hero's drawn bigger
+      // there, and the camera closes in.
+      this.hero.root.scale.setScalar(room ? INDOOR_SCALE : 1);
+      this.camera.zoom = room ? INDOOR_ZOOM : 1;
+      this.camera.updateProjectionMatrix();
       this.hero.update(hero.x, hero.y, hero.z, 0); // arrive in place, no walk from where it was
       this.cameraY = hero.y;
     }
@@ -244,7 +251,7 @@ export class GameView {
       this.room = null;
       return null;
     }
-    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, scene: buildRoomScene(inside.room) };
+    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, scene: buildRoomScene(inside.room, inside.furniture) };
     return this.room.scene;
   }
 
