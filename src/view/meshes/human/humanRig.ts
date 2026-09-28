@@ -43,7 +43,7 @@ const BOB = 0.012; // body rise at each step, world units
 const TURN_RATE = 14; // how fast they turn toward where they're walking (per second)
 const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
 // Seated: the legs (no knees) straight out in front, the hands resting forward.
-const SIT_LEGS = -1.45;
+const SIT_LEGS = -Math.PI / 2; // level, the thighs along the seat
 const SIT_ARMS = -0.45;
 
 // Working a field: leaning over the crops (legs kept upright under the
@@ -344,7 +344,8 @@ export class HumanRig {
       this.joints.rightLeg.rotation.x = legs;
       this.joints.leftArm.rotation.x = arms;
       this.joints.rightArm.rotation.x = arms;
-      if (pose === 'sit') this.body.position.y = -JOINTS.leftLeg.at[1] * V + breath; // hips down on the seat
+      // Hips down to the seat, lifted by the thighs' thickness so they rest on it rather than through it.
+      if (pose === 'sit') this.body.position.y = (BODIES[this.look.build].pivot.leg[2] - JOINTS.leftLeg.at[1]) * V + breath;
       else {
         // Tipped onto their back about the feet, head away from `facing`,
         // lifted so the back rests on the bed; breathing gently.
