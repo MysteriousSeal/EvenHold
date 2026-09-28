@@ -25,7 +25,7 @@ const MAX_BLOCKS = 10;
 const NAME_HEIGHT = 0.22; // world units tall, the name over the bar
 
 // A name drawn once onto a texture, white with an ink outline like the HUD's,
-// shared by every enemy that bears it.
+// shared by everyone who bears it.
 const nameMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
 function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: number } {
   let entry = nameMaterials.get(name);
@@ -54,6 +54,14 @@ function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: n
   return entry;
 }
 
+// A name floating in the world, facing the camera, `height` world units tall.
+export function nameLabel(name: string, height = NAME_HEIGHT): THREE.Sprite {
+  const { material, aspect } = nameMaterial(name);
+  const label = new THREE.Sprite(material);
+  label.scale.set(height * aspect, height, 1);
+  return label;
+}
+
 export class HealthBar {
   readonly group = new THREE.Group();
   private blocks: THREE.Mesh[] = [];
@@ -62,9 +70,7 @@ export class HealthBar {
   constructor(height: number, name?: string) {
     this.group.position.y = height;
     if (name) {
-      const { material, aspect } = nameMaterial(name);
-      const label = new THREE.Sprite(material);
-      label.scale.set(NAME_HEIGHT * aspect, NAME_HEIGHT, 1);
+      const label = nameLabel(name);
       label.position.y = 0.14;
       this.group.add(label);
     }

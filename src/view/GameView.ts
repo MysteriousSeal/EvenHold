@@ -30,6 +30,7 @@ import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
+import { NpcViews } from './meshes/npc/npcViews';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { buildRoomScene } from './interior/roomView';
@@ -63,6 +64,7 @@ export class GameView {
   private readonly world: ChunkStreamer;
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
+  private readonly npcs = new NpcViews();
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
   private readonly movementAxes: MovementAxes;
@@ -144,7 +146,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, ...this.loot.materials, this.heroLook, this.heroFlash];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, ...this.loot.materials, this.heroLook, this.heroFlash];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -230,6 +232,7 @@ export class GameView {
     const seated = model.inside?.seated?.seat;
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
+    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt);
     if (room) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
