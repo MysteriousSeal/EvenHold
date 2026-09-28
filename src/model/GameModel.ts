@@ -12,6 +12,8 @@ import {
   ATTACK_REACH,
   ATTACK_STRIKE,
   CAMPFIRE_COLLISION_HALF,
+  CAMP_PROP_COLLISION_HALF,
+  PALISADE_THICKNESS,
   ENEMY_ACTIVE_RADIUS,
   ENEMY_CORPSE_TIME,
   ENEMY_STATS,
@@ -24,7 +26,7 @@ import {
 } from './constants';
 import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
-import { spawnEnemies, stepEnemy } from './enemies';
+import { campPalisade, campPieces, spawnEnemies, stepEnemy } from './enemies';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
@@ -60,8 +62,13 @@ export class GameModel {
   private attackElapsed: number | null = null;
   private attackLanded = false;
 
-  // Dev cheats: movement speed factor (1 = normal).
+  // Dev cheats: movement speed factor (1 = normal); walking through
+  // everything; god mode (nothing hurts the hero yet, so just a flag); and
+  // enemies standing still.
   speedMultiplier = 1;
+  noclip = false;
+  godMode = false;
+  enemiesFrozen = false;
 
   // `size` defaults to the game's map; tests pass small worlds.
   constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE) {
@@ -89,16 +96,7 @@ export class GameModel {
     ]);
 
     for (const field of this.fields) {
-      for (const { x, z, side } of fenceEdges(field)) {
-        const [dx, dz] = NEIGHBORS_4[side];
-        const t = FENCE_THICKNESS;
-        const rect: [number, number, number, number] =
-          dx !== 0
-            ? [dx > 0 ? x + 0.5 - t : x - 0.5, z - 0.5, dx > 0 ? x + 0.5 : x - 0.5 + t, z + 0.5]
-            : [x - 0.5, dz > 0 ? z + 0.5 - t : z - 0.5, x + 0.5, dz > 0 ? z + 0.5 : z - 0.5 + t];
-        const key = cellKey(x, z);
-        this.fences.set(key, [...(this.fences.get(key) ?? []), rect]);
-      }
+      for (const { x, z, side } of fenceEdges(field)) this.addFenceStrip(x, z, side, FENCE_THICKNESS);
     }
 
     const spawn = spawnOf(this.size);
@@ -107,12 +105,31 @@ export class GameModel {
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
     this.camps = camps;
-    // Tents block their tile; campfires a smaller square in the middle of theirs.
+    // Tents block their tile; the fire, crates and rack a square in the
+    // middle of theirs; the palisade a strip along its edges. The loot pile
+    // and log seats don't block.
     for (const camp of camps) {
-      this.solidCells.add(cellKey(camp.tentX, camp.tentZ));
-      this.propFootprints.set(cellKey(camp.x, camp.z), CAMPFIRE_COLLISION_HALF);
+      for (const piece of campPieces(camp)) {
+        const key = cellKey(piece.x, piece.z);
+        if (piece.kind === 'tent') this.solidCells.add(key);
+        else if (piece.kind === 'fire') this.propFootprints.set(key, CAMPFIRE_COLLISION_HALF);
+        else if (piece.kind !== 'loot') this.propFootprints.set(key, CAMP_PROP_COLLISION_HALF);
+      }
+      for (const edge of campPalisade(camp)) this.addFenceStrip(edge.x, edge.z, edge.side, PALISADE_THICKNESS);
     }
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
+  }
+
+  // A blocking strip `thickness` thick along one edge of a tile (a fence).
+  private addFenceStrip(x: number, z: number, side: number, thickness: number): void {
+    const [dx, dz] = NEIGHBORS_4[side];
+    const t = thickness;
+    const rect: [number, number, number, number] =
+      dx !== 0
+        ? [dx > 0 ? x + 0.5 - t : x - 0.5, z - 0.5, dx > 0 ? x + 0.5 : x - 0.5 + t, z + 0.5]
+        : [x - 0.5, dz > 0 ? z + 0.5 - t : z - 0.5, x + 0.5, dz > 0 ? z + 0.5 : z - 0.5 + t];
+    const key = cellKey(x, z);
+    this.fences.set(key, [...(this.fences.get(key) ?? []), rect]);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
@@ -218,8 +235,9 @@ export class GameModel {
 
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.
-    if (!this.isBlocked(candidateX, this.hero.z) && !this.bumpsEnemy(candidateX, this.hero.z)) this.hero.x = candidateX;
-    if (!this.isBlocked(this.hero.x, candidateZ) && !this.bumpsEnemy(this.hero.x, candidateZ)) this.hero.z = candidateZ;
+    const free = (x: number, z: number) => this.noclip || (!this.isBlocked(x, z) && !this.bumpsEnemy(x, z));
+    if (free(candidateX, this.hero.z)) this.hero.x = candidateX;
+    if (free(this.hero.x, candidateZ)) this.hero.z = candidateZ;
     this.hero.facing = Math.atan2(dirX, dirZ);
   }
 
@@ -273,7 +291,7 @@ export class GameModel {
         if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(i, 1);
         continue;
       }
-      stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz));
+      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz));
     }
   }
 

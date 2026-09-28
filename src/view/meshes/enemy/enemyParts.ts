@@ -1,5 +1,5 @@
 // Pieces every enemy on screen shares: a small voxel health bar that floats
-// over it once it's hurt, and the burst of voxel cubes it breaks into when
+// over its head, and the burst of voxel cubes it breaks into when
 // it dies.
 
 import * as THREE from 'three';
@@ -16,15 +16,12 @@ const BLOCK = new THREE.BoxGeometry(0.07, 0.035, 0.02);
 const CUBE = new THREE.BoxGeometry(1, 1, 1);
 
 // One block per hit point, red while it lasts. Turned to face the camera
-// whichever way its owner faces; shown only once hurt.
+// whichever way its owner faces; shown for as long as the owner lives.
 export class HealthBar {
   readonly group = new THREE.Group();
   private readonly blocks: THREE.Mesh[] = [];
 
-  constructor(
-    private readonly max: number,
-    height: number,
-  ) {
+  constructor(max: number, height: number) {
     for (let i = 0; i < max; i++) {
       const block = new THREE.Mesh(BLOCK, ENEMY_BAR);
       block.position.x = (i - (max - 1) / 2) * 0.085;
@@ -35,7 +32,7 @@ export class HealthBar {
   }
 
   update(hp: number, alive: boolean, ownerHeading: number): void {
-    this.group.visible = alive && hp < this.max;
+    this.group.visible = alive;
     this.group.rotation.y = CAMERA_YAW - ownerHeading;
     this.blocks.forEach((block, i) => (block.material = i < hp ? ENEMY_BAR : ENEMY_BAR_EMPTY));
   }

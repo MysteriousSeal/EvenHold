@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { ATTACK_DURATION, BANDIT_SWING_TIME, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
+import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
+import { campPalisade, campPieces } from '../src/model/enemies';
 import { cellKey } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy, EnemyKind } from '../src/model/types';
@@ -117,9 +118,11 @@ describe('bandits', () => {
   it('camp near spawn: a fire and a tent that block, with bandits around', () => {
     const model = fresh();
     const camp = model.camps[0];
-    expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(14);
-    expect(model.isOpenTile(camp.x, camp.z)).toBe(false);
-    expect(model.isOpenTile(camp.tentX, camp.tentZ)).toBe(false);
+    expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
+    // Everything but the loot blocks; a palisade rings the camp but for the entrance.
+    for (const piece of campPieces(camp)) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot');
+    expect(campPalisade(camp).length).toBe(19); // 5 edges on each of 4 sides, less the entrance
+
     const around = model.enemies.filter((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 4);
     expect(around.length).toBeGreaterThanOrEqual(2);
     expect(new Set(model.enemies.map((e) => cellKey(e.x, e.z))).size).toBe(model.enemies.length); // one per tile
@@ -135,7 +138,7 @@ describe('bandits', () => {
       swung = bandit.swingFor !== null;
     }
     expect(swung).toBe(true);
-    for (let t = 0; t <= BANDIT_SWING_TIME; t += FRAME) model.update(0, 0, FRAME);
+    for (let t = 0; t <= ENEMY_STATS.bandit.swing; t += FRAME) model.update(0, 0, FRAME);
     expect(bandit.swingFor).toBeNull();
     expect(bandit.cooldown).toBeGreaterThan(0);
   });
@@ -150,5 +153,31 @@ describe('bandits', () => {
     expect(bandit.hp).toBe(ENEMY_STATS.bandit.hp - 1);
     for (let i = 1; i < ENEMY_STATS.bandit.hp; i++) swing(model, bandit);
     expect(bandit.state).toBe('dead');
+  });
+});
+
+describe('wolf bite', () => {
+  it('lunges once in reach, then waits', () => {
+    const model = fresh();
+    const wolf = nearest(model);
+    model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
+    let bit = false;
+    for (let i = 0; i < 120 && !bit; i++) {
+      model.update(0, 0, FRAME);
+      bit = wolf.swingFor !== null;
+    }
+    expect(bit).toBe(true);
+    for (let t = 0; t <= ENEMY_STATS.wolf.swing; t += FRAME) model.update(0, 0, FRAME);
+    expect(wolf.swingFor).toBeNull();
+    expect(wolf.cooldown).toBeGreaterThan(0);
+  });
+});
+
+describe('enemy spawning', () => {
+  it.each([1, 2, 5, 11, 42, 99, 123, 777])('seed %i: generates without error', (seed) => {
+    // Seeds 1, 5, 11 and 42 once crashed on a camp site past the map's far
+    // edge. (A tiny test world may have no flat spot for a camp at all.)
+    const model = new GameModel(seed, TEST_MAP_SIZE);
+    expect(model.enemies.length).toBeGreaterThan(0);
   });
 });

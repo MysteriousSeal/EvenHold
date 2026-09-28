@@ -8,14 +8,14 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // must come for a chase, how far it gives up, how far it wanders from home,
 // and how close it stops (arm's reach for bandits).
 export const ENEMY_STATS = {
-  wolf: { hp: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 5, giveUp: 9, wander: 4, stop: 0.55 },
-  bandit: { hp: 5, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 10, wander: 3, stop: 0.6 },
+  wolf: { hp: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 5, giveUp: 9, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
+  bandit: { hp: 5, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 10, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_CORPSE_TIME = 2.2; // seconds from death until it's gone
-export const BANDIT_SWING_TIME = 0.75; // seconds of a bandit's blow, wind-up to recovery
-export const BANDIT_SWING_COOLDOWN = 1.1;
 export const CAMPFIRE_COLLISION_HALF = 0.22;
+export const CAMP_PROP_COLLISION_HALF = 0.3; // crate stacks and the weapon rack
+export const PALISADE_THICKNESS = 0.1;
 export const ATTACK_REACH = 0.85; // how far a blow lands in front of the hero
 export const ATTACK_STRIKE = 0.5; // point of the blow (0..1) where it lands
 export const ATTACK_KNOCKBACK = 0.35;

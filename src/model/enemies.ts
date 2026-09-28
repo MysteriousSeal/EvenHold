@@ -1,11 +1,11 @@
 // Enemies: wolf packs in the forests and bandit camps in the open
 // countryside, each with one of either near spawn to meet early. They
-// wander around home, chase the hero on sight and give up if outrun;
-// bandits also swing at the hero once within reach. Placed from hashes and
+// wander around home, chase the hero on sight, give up if outrun, and
+// attack once within reach. Placed from hashes and
 // noise, not the world rng, so they don't change the world.
 
-import { BANDIT_SWING_COOLDOWN, BANDIT_SWING_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
-import type { Camp, Enemy, EnemyKind, Village } from './types';
+import { ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
+import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from './types';
 import { createForestDensity } from './worldgen/trees';
 import { hashUnit } from '../util/random';
 import type { MapSize } from './grid';
@@ -16,8 +16,12 @@ interface Sites {
   forest: (density: number) => boolean; // which land it likes
   clearance: number; // from villages
 }
-const PACKS: Sites = { grid: 24, chance: 0.6, forest: (d) => d >= 0.25, clearance: 18 };
-const CAMPS: Sites = { grid: 40, chance: 0.35, forest: (d) => d < 0.15, clearance: 20 };
+// Dense enough that walking any direction meets something every so often:
+// wolf packs in the woods, fewer out on open ground, and bandit camps in the
+// countryside between villages.
+const PACKS: Sites = { grid: 18, chance: 0.7, forest: (d) => d >= 0.2, clearance: 14 };
+const MEADOW_PACKS: Sites = { grid: 32, chance: 0.35, forest: (d) => d < 0.2, clearance: 14 };
+const CAMPS: Sites = { grid: 26, chance: 0.4, forest: (d) => d < 0.15, clearance: 12 };
 const SPAWN_CLEARANCE = 20;
 
 export interface EnemyWorld {
@@ -25,7 +29,30 @@ export interface EnemyWorld {
   size: MapSize;
   villages: Village[];
   hero: { x: number; z: number };
+  heightMap: number[][];
+  surfaceMap: Surface[][];
   isOpenTile(x: number, z: number): boolean;
+}
+
+// A fresh enemy of `kind` at (x, z), at home around (homeX, homeZ).
+export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, homeX = x, homeZ = z): Enemy {
+  return {
+    id,
+    kind,
+    x,
+    z,
+    y: 0,
+    homeX,
+    homeZ,
+    hp: ENEMY_STATS[kind].hp,
+    state: 'wander',
+    target: null,
+    restFor: hashUnit(x, z, 3) * 3,
+    hurtFor: 0,
+    deadFor: 0,
+    swingFor: null,
+    cooldown: 0,
+  };
 }
 
 export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp[] } {
@@ -45,41 +72,45 @@ export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp
           const z = cz + dz;
           if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || !open(x, z) || hashUnit(x, z, salt) >= 0.6) continue;
           taken.add(`${x},${z}`);
-          enemies.push({
-            id: enemies.length,
-            kind,
-            x,
-            z,
-            y: 0,
-            homeX: cx,
-            homeZ: cz,
-            hp: ENEMY_STATS[kind].hp,
-            state: 'wander',
-            target: null,
-            restFor: hashUnit(x, z, 3) * 3,
-            hurtFor: 0,
-            deadFor: 0,
-            swingFor: null,
-            cooldown: 0,
-          });
+          enemies.push(makeEnemy(enemies.length, kind, x, z, cx, cz));
           placed++;
         }
       }
     }
   };
-  // A camp: fire in the middle, tent beside it, bandits around the fire.
-  const camp = (cx: number, cz: number, count: number, salt: number) => {
-    if (!open(cx, cz) || !open(cx + 1, cz)) return;
-    camps.push({ x: cx, z: cz, tentX: cx + 1, tentZ: cz });
-    taken.add(`${cx},${cz}`);
-    taken.add(`${cx + 1},${cz}`);
+  // A camp needs a flat 5x5 patch of open grass; bandits start inside.
+  const camp = (cx: number, cz: number, count: number, salt: number): boolean => {
+    const tier = world.heightMap[cx]?.[cz];
+    if (tier === undefined) return false; // off the map (sites near its far edge)
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        const x = cx + dx;
+        const z = cz + dz;
+        if (!open(x, z) || world.surfaceMap[x]?.[z] !== 'natural' || world.heightMap[x][z] !== tier) return false;
+      }
+    }
+    const site: Camp = { x: cx, z: cz, quarterTurns: Math.floor(hashUnit(cx, cz, salt + 9) * 4) };
+    camps.push(site);
+    for (const piece of campPieces(site)) taken.add(`${piece.x},${piece.z}`);
     group('bandit', cx, cz, count, salt, 1);
+    return true;
   };
 
   // One of each a short walk from spawn, so there's something to fight right away.
   const { x: sx, z: sz } = world.hero;
   group('wolf', Math.round(sx + 7), Math.round(sz - 6), 2, 41);
-  camp(Math.round(sx - 8), Math.round(sz + 7), 3, 47);
+  // A camp takes the nearest good site within `reach` of its spot: a flat,
+  // open 5x5 is rarely exactly where you'd like it.
+  const campNear = (x: number, z: number, reach: number, count: number, salt: number) => {
+    for (let r = 0; r <= reach; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) === r && camp(x + dx, z + dz, count, salt)) return;
+        }
+      }
+    }
+  };
+  campNear(Math.round(sx - 9), Math.round(sz + 9), 12, 3, 47);
 
   const scatter = (sites: Sites, salt: number, place: (x: number, z: number, big: boolean) => void) => {
     for (let gx = 0; gx * sites.grid < world.size.width; gx++) {
@@ -95,12 +126,13 @@ export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp
     }
   };
   scatter(PACKS, 42, (x, z, big) => group('wolf', x, z, big ? 3 : 2, 46));
-  scatter(CAMPS, 52, (x, z, big) => camp(x, z, big ? 4 : 2, 56));
+  scatter(MEADOW_PACKS, 62, (x, z) => group('wolf', x, z, 2, 66));
+  scatter(CAMPS, 52, (x, z, big) => campNear(x, z, 5, big ? 4 : 2, 56));
   return { enemies, camps };
 }
 
-// One frame of a living enemy: chase the hero when close (a bandit in reach
-// swings instead), otherwise wander between spots around home, resting in
+// One frame of a living enemy: chase the hero when close (once in reach it
+// attacks instead: a bandit swings, a wolf lunges and bites), otherwise wander between spots around home, resting in
 // between. `move` walks it with collisions and returns whether it got anywhere.
 export function stepEnemy(
   enemy: Enemy,
@@ -112,9 +144,9 @@ export function stepEnemy(
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
   if (enemy.swingFor !== null) {
     enemy.swingFor += dt;
-    if (enemy.swingFor >= BANDIT_SWING_TIME) {
+    if (enemy.swingFor >= stats.swing) {
       enemy.swingFor = null;
-      enemy.cooldown = BANDIT_SWING_COOLDOWN;
+      enemy.cooldown = stats.cooldown;
     }
     return; // committed to the blow
   }
@@ -132,7 +164,7 @@ export function stepEnemy(
     if (toHero > stats.stop + 0.02) {
       const step = Math.min(stats.run * dt, toHero - stats.stop);
       move(enemy, ((hero.x - enemy.x) / toHero) * step, ((hero.z - enemy.z) / toHero) * step);
-    } else if (enemy.kind === 'bandit' && enemy.cooldown === 0) {
+    } else if (enemy.cooldown === 0) {
       enemy.swingFor = 0;
     }
     return;
@@ -156,4 +188,49 @@ export function stepEnemy(
     enemy.target = null;
     enemy.restFor = 1.5 + hashUnit(enemy.id, Math.floor(enemy.x * 10), 7) * 2.5;
   }
+}
+
+// Turns a local camp offset by the camp's quarter turns (as three.js turns an
+// instance: (x, z) -> (z, -x) per turn).
+function turn(dx: number, dz: number, quarterTurns: number): [number, number] {
+  let [x, z] = [dx, dz];
+  for (let q = 0; q < quarterTurns; q++) [x, z] = [z, -x];
+  return [x, z];
+}
+
+// The camp's layout, local offsets before turning (entrance at local +Z):
+// the fire in the middle, two tents and the weapon rack along the back, crates
+// on one side and the loot pile on the other.
+const LAYOUT: Array<[CampPieceKind, number, number]> = [
+  ['fire', 0, 0],
+  ['tent', -1, -2],
+  ['tent', 1, -2],
+  ['rack', 0, -2],
+  ['crates', -2, 0],
+  ['loot', 2, 0],
+];
+
+export function campPieces(camp: Camp): CampPiece[] {
+  return LAYOUT.map(([kind, dx, dz]) => {
+    const [ox, oz] = turn(dx, dz, camp.quarterTurns);
+    return { kind, x: camp.x + ox, z: camp.z + oz, quarterTurns: camp.quarterTurns };
+  });
+}
+
+// The palisade: every outer edge of the camp's border tiles, except the
+// entrance (the middle of the local +Z side), as (tile, side) with sides
+// in NEIGHBORS_4 order (+x, -x, +z, -z).
+export function campPalisade(camp: Camp): Array<{ x: number; z: number; side: number }> {
+  const [ex, ez] = turn(0, 2, camp.quarterTurns);
+  const edges: Array<{ x: number; z: number; side: number }> = [];
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      if (dx === ex && dz === ez) continue;
+      if (dx === 2) edges.push({ x: camp.x + dx, z: camp.z + dz, side: 0 });
+      if (dx === -2) edges.push({ x: camp.x + dx, z: camp.z + dz, side: 1 });
+      if (dz === 2) edges.push({ x: camp.x + dx, z: camp.z + dz, side: 2 });
+      if (dz === -2) edges.push({ x: camp.x + dx, z: camp.z + dz, side: 3 });
+    }
+  }
+  return edges;
 }

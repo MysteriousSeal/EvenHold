@@ -2,7 +2,9 @@
 // its model state each frame:
 // - trotting legs in diagonal pairs, paced by distance moved, a head bob,
 //   a tail that wags when idle and rides high when chasing;
-// - a red flash while hurt, and a voxel health bar once damaged;
+// - an attack: rears back, lunges forward with a snapping head and front
+//   legs off the ground, then recovers;
+// - a red flash while hurt, and a voxel health bar over its head;
 // - on death, it rolls onto its side, then bursts into voxel cubes.
 
 import * as THREE from 'three';
@@ -99,6 +101,7 @@ export class WolfRig {
       this.phase += moved * STRIDE;
     }
     this.root.rotation.y = this.heading;
+    this.body.rotation.x = 0;
 
     // Trot: diagonal pairs swing together.
     const walking = moved > 1e-4 ? 1 : 0;
@@ -113,13 +116,34 @@ export class WolfRig {
     this.tail.rotation.x = chasing ? 0.3 : -0.35; // up when running at you, low when calm
     this.tail.rotation.y = chasing ? 0 : Math.sin(this.time * 6) * 0.35; // idle wag
 
+    if (wolf.swingFor !== null) this.lunge(wolf.swingFor / ENEMY_STATS.wolf.swing);
+    else this.body.position.z = 0;
+
     const material = wolf.hurtFor > 0 ? this.look.flash : this.look.normal;
     for (const mesh of this.meshes) mesh.material = material;
+  }
+
+  // The bite, over its progress p (0..1): crouch and draw back, spring
+  // forward with the front legs up and the head snapping down, recover.
+  private lunge(p: number): void {
+    // From rest to `back` (wind-up), to `forward` (the bite), back to rest.
+    const key = (back: number, forward: number) =>
+      p < 0.35 ? back * (p / 0.35) : p < 0.6 ? back + (forward - back) * ((p - 0.35) / 0.25) : forward * (1 - (p - 0.6) / 0.4);
+    this.body.position.z = key(-0.05, 0.12);
+    this.body.rotation.x = key(0.12, -0.2); // rear back, then pitch into the bite
+    this.body.position.y = key(-0.02, 0.03);
+    this.head.rotation.x = key(-0.35, 0.45); // head up, then snaps down
+    this.legs[0].rotation.x = key(0.3, -0.9); // front legs reach
+    this.legs[1].rotation.x = key(0.3, -0.9);
+    this.legs[2].rotation.x = key(-0.2, 0.5); // back legs push
+    this.legs[3].rotation.x = key(-0.2, 0.5);
   }
 
   // Death: roll onto the side, then burst into voxel pieces.
   private die(t: number, dt: number): void {
     for (const mesh of this.meshes) mesh.material = this.look.normal;
+    this.body.rotation.x = 0;
+    this.body.position.z = 0;
     const fall = Math.min(1, t / TOPPLE_TIME);
     this.body.rotation.z = (fall * fall * Math.PI) / 2;
     this.body.position.y = -fall * 0.08;

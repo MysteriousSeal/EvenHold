@@ -28,12 +28,20 @@ export interface Enemy {
   cooldown: number; // seconds before it can swing again
 }
 
-// A bandit camp: a campfire on the center tile and a tent beside it.
+// A 5x5 bandit camp around a campfire on (x, z), its layout turned by
+// `quarterTurns` (the entrance faces local +Z before turning).
 export interface Camp {
   x: number;
   z: number;
-  tentX: number;
-  tentZ: number;
+  quarterTurns: number;
+}
+
+export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot';
+export interface CampPiece {
+  kind: CampPieceKind;
+  x: number;
+  z: number;
+  quarterTurns: number; // faces the camp's center (local +Z)
 }
 
 export type TreeKind = 'oak' | 'pine' | 'birch';

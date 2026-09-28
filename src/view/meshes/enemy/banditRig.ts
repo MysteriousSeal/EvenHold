@@ -1,11 +1,11 @@
 // One bandit on screen: the hero's rig wearing the bandit's parts
 // (banditVoxels.ts), a short sword in the right hand, and the same swing
 // animation, driven by the bandit's own blow. Flashes red when hit, shows a
-// health bar once hurt, and on death falls flat on its back and bursts into
+// health bar over its head, and on death falls flat on its back and bursts into
 // voxel cubes.
 
 import * as THREE from 'three';
-import { BANDIT_SWING_TIME, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../../../model/constants';
+import { ENEMY_CORPSE_TIME, ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { HeroRig } from '../hero/heroMesh';
 import { HERO_VOXEL_SIZE } from '../hero/heroVoxels';
@@ -67,7 +67,7 @@ export class BanditRig {
       this.burst.update((bandit.deadFor - BURST_AT) / (ENEMY_CORPSE_TIME - BURST_AT), dt);
       return;
     }
-    const swing = bandit.swingFor === null ? null : bandit.swingFor / BANDIT_SWING_TIME;
+    const swing = bandit.swingFor === null ? null : bandit.swingFor / ENEMY_STATS.bandit.swing;
     this.rig.update(bandit.x, bandit.y, bandit.z, dt, swing);
     this.rig.setMaterial(bandit.hurtFor > 0 ? this.look.flash : this.look.normal);
   }

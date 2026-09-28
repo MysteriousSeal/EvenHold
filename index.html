@@ -25,35 +25,172 @@
         padding: 4px 8px;
         border-radius: 4px;
       }
-      #cheat-panel {
+      /* Dev cheat menu: a centered RPG panel in voxel style. Carved wooden
+         frame with grain, iron rivets and a gem, textured parchment, a red
+         ribbon banner, rows with pixel-art icons, a gold selection glow. */
+      #cheat-backdrop {
         position: fixed;
-        top: 10px;
-        right: 12px;
+        inset: 0;
         display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-width: 190px;
-        padding: 10px;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, rgba(30, 18, 8, 0.35), rgba(20, 12, 6, 0.7));
+        z-index: 20;
+      }
+      #cheat-backdrop[hidden] { display: none; }
+      #cheat-panel {
+        position: relative;
+        width: min(400px, calc(100vw - 48px));
+        padding: 38px 26px 20px;
+        color: #3e2818;
+        font-family: Georgia, 'Times New Roman', serif;
+        /* Parchment with faint fibres and a darker rim. */
+        background:
+          repeating-linear-gradient(0deg, rgba(120, 84, 40, 0.05) 0 2px, transparent 2px 5px),
+          repeating-linear-gradient(90deg, rgba(120, 84, 40, 0.04) 0 3px, transparent 3px 7px),
+          radial-gradient(circle at 50% 40%, #f3e2bd, #e2c996 75%, #cfb07a);
+        /* Wooden frame in stepped layers, with a hard voxel drop shadow. */
+        box-shadow:
+          0 0 0 4px #8a6038,
+          0 0 0 8px #5a3a22,
+          0 0 0 12px #3a281c,
+          12px 12px 0 12px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 3px #caa876;
+        animation: cheat-pop 0.24s steps(4) both;
+      }
+      #cheat-panel::before {
+        /* Wood grain along the frame. */
+        content: '';
+        position: absolute;
+        inset: -12px;
+        z-index: -1;
+        background: repeating-linear-gradient(90deg, #6e4a2c 0 6px, #5f3f25 6px 9px, #74502f 9px 14px);
+      }
+      @keyframes cheat-pop {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .cheat-rivet {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #9aa0a8;
+        box-shadow: inset -2px -2px 0 #5c6068, inset 2px 2px 0 #d4d8de;
+      }
+      .cheat-gem {
+        position: absolute;
+        bottom: -18px;
+        left: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translateX(-50%) rotate(0deg);
+        background: #3dbdb8;
+        box-shadow: 0 0 0 4px #3a281c, inset -4px -4px 0 #217c98, inset 4px 4px 0 #9be8da, 0 0 14px rgba(61, 189, 184, 0.7);
+      }
+      #cheat-panel h2 {
+        position: absolute;
+        top: -26px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        padding: 8px 30px;
+        font-size: 19px;
+        letter-spacing: 0.18em;
+        font-weight: normal;
+        color: #fbeccb;
+        text-shadow: 2px 2px 0 #5e2419;
+        white-space: nowrap;
+        background: linear-gradient(#a8513c 0 4px, #8b3a2b 4px calc(100% - 4px), #6e2a1f calc(100% - 4px));
+        box-shadow: 0 0 0 4px #4a1a12, 6px 6px 0 4px rgba(0, 0, 0, 0.3);
+      }
+      #cheat-panel h2::before,
+      #cheat-panel h2::after {
+        /* Notched ribbon tails. */
+        content: '';
+        position: absolute;
+        top: 10px;
+        width: 22px;
+        height: 100%;
+        background: #6e2a1f;
+        box-shadow: 0 0 0 4px #4a1a12;
+        z-index: -1;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%);
+      }
+      #cheat-panel h2::before { left: -30px; }
+      #cheat-panel h2::after { right: -30px; transform: scaleX(-1); }
+      #cheat-panel .cheat-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        margin: 10px 0;
+        padding: 8px 10px;
+        font: inherit;
+        text-align: left;
+        color: #3e2818;
+        cursor: pointer;
+        border: 0;
+        background: linear-gradient(#e2c690, #d2b27a);
+        box-shadow: inset 0 3px 0 #efdcae, inset 0 -3px 0 #a7864f, 0 4px 0 #6e4e2c;
+        transition: transform 0.08s steps(2);
+      }
+      #cheat-panel .cheat-row.selected {
+        background: linear-gradient(#f2d99c, #e4c47f);
+        box-shadow: inset 0 3px 0 #fbeabf, inset 0 -3px 0 #b8914f, 0 4px 0 #6e4e2c, 0 0 0 3px #f0c64a, 0 0 16px rgba(240, 198, 74, 0.55);
+        transform: translateX(6px);
+      }
+      #cheat-panel .cheat-row.selected::before {
+        /* Pixel pointer arrow. */
+        content: '';
+        position: absolute;
+        left: -20px;
+        top: 50%;
+        width: 10px;
+        height: 14px;
+        margin-top: -7px;
+        background: #f0c64a;
+        clip-path: polygon(0 0, 100% 50%, 0 100%);
+        filter: drop-shadow(2px 2px 0 #5a3a22);
+      }
+      #cheat-panel .cheat-row:active { transform: translate(6px, 3px); }
+      #cheat-panel .cheat-row.on .cheat-icon { background: #b9d18a; box-shadow: inset 0 0 0 3px #56703a; }
+      .cheat-icon {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        background: #f5e6c4;
+        box-shadow: inset 0 0 0 3px #5a3a22, inset 3px 3px 0 3px #fff4d8;
+      }
+      .cheat-icon svg { width: 28px; height: 28px; shape-rendering: crispEdges; }
+      .cheat-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+      .cheat-text b { font-size: 15px; font-weight: bold; letter-spacing: 0.02em; }
+      .cheat-text small { font-size: 12px; font-style: italic; opacity: 0.75; }
+      #cheat-panel kbd {
+        flex: none;
+        min-width: 24px;
+        padding: 3px 0;
+        text-align: center;
         font-family: monospace;
         font-size: 13px;
-        color: #e8e8e8;
-        background: rgba(0, 0, 0, 0.55);
-        border-radius: 6px;
+        color: #f5e6c4;
+        background: #5a3a22;
+        box-shadow: inset 0 -3px 0 #3a281c, inset 0 3px 0 #76502f;
       }
-      #cheat-panel[hidden] { display: none; }
-      #cheat-panel button {
-        font: inherit;
-        color: inherit;
-        text-align: left;
-        padding: 4px 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        cursor: pointer;
+      #cheat-panel .cheat-status {
+        min-height: 1.3em;
+        margin-top: 16px;
+        padding: 6px;
+        font-size: 13px;
+        font-style: italic;
+        text-align: center;
+        background: rgba(90, 58, 34, 0.1);
+        box-shadow: inset 0 0 0 2px rgba(90, 58, 34, 0.25);
       }
-      #cheat-panel button:hover { background: rgba(255, 255, 255, 0.2); }
-      .cheat-title { opacity: 0.7; }
-      .cheat-status { min-height: 1em; opacity: 0.8; }
+      #cheat-panel .cheat-hint { margin-top: 10px; font-size: 12px; text-align: center; opacity: 0.7; }
+      #cheat-panel .cheat-hint kbd { min-width: 20px; margin: 0 2px; font-size: 11px; }
       /* Loading screen: plain HTML/CSS (plus a tiny inline script building
          the voxel island), so it paints before the game bundle arrives. Its
          animations are CSS transforms, which keep running on the compositor
