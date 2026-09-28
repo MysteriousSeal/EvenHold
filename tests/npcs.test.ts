@@ -145,4 +145,22 @@ describe('villagers', () => {
       expect(nameAt(npc.home.x, npc.home.z, model.seed, npc.look.build === 'female' ? 'male' : 'female')).not.toBe(npc.name); // a woman's ending, or a man's
     }
   });
+
+  it('have farmers, who go out and work their field', () => {
+    const model = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.npcs.some((n) => n.field))!;
+    const farmer = model.npcs.find((n) => n.field)!;
+    const field = farmer.field!;
+    const inField = () => farmer.where === null && farmer.x > field.x0 - 0.5 && farmer.x < field.x0 + field.width - 0.5 && farmer.z > field.z0 - 0.5 && farmer.z < field.z0 + field.depth - 0.5;
+    model.teleport(field.x0 + field.width / 2, field.z0 - 2); // watching from beside it
+    let worked = false;
+    for (let t = 0; t < 900 && !worked; t += 0.1) {
+      model.update(0, 0, 0.1);
+      if (farmer.working) {
+        expect(inField()).toBe(true); // at work only in their field
+        worked = true;
+      }
+    }
+    expect(worked).toBe(true);
+    expect(model.npcs.filter((n) => n.field).length).toBeLessThan(model.npcs.filter((n) => n.role === 'villager').length); // some, not all
+  });
 });

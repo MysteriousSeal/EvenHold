@@ -1,7 +1,8 @@
 // A villager's day, one step at a time (npcs.ts NpcStep). At each stop of
 // the routine they get their steps: to go home or to the inn, out of where
 // they are, to its door, in, and settling down there a while; to the
-// square, out and to two spots on it in turn, pausing at each. Settling
+// square, out and to two spots on it in turn, pausing at each; to a
+// farmer's field, out and to a few spots in it, working each a while. Settling
 // takes a free seat (a chair, an armchair, a bar stool, or at home their
 // bed), else somewhere to stand.
 //
@@ -15,11 +16,11 @@ import { ENEMY_ACTIVE_RADIUS, HERO_RADIUS, INDOOR_SCALE, VILLAGE_OUTER_RADIUS } 
 import { hashUnit } from '../../util/random';
 import { findPath } from '../pathfinding';
 import type { Point } from '../obstacles';
-import type { Village } from '../types';
+import type { Field, Village } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside } from '../interiors/indoors';
-import { NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
+import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from './innStaff';
 
 export interface NpcWorld {
@@ -37,6 +38,7 @@ const STUCK_TIME = 3; // seconds without getting anywhere before skipping ahead
 const HOME_TIME: [number, number] = [30, 90]; // seconds settled at home
 const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
+const FIELD_WORK: [number, number] = [6, 14]; // seconds at each spot in a field
 const SIT_CHANCE = 0.75;
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
@@ -76,13 +78,21 @@ function doorTile(seed: number, entrance: Entrance): Point {
 // The inn is only now and then, and never past full: otherwise that stop's
 // spent at home or on the square instead.
 function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
-  let stop = ROUTINE[npc.stop % ROUTINE.length];
+  const routine = npc.field ? FARMER_ROUTINE : ROUTINE;
+  let stop = routine[npc.stop % routine.length];
   if (stop === 'inn' && (roll(npc, 13) >= INN_CHANCE || !npc.inn || patrons(npcs, npc.inn) >= INN_CAP)) stop = roll(npc, 14) < 0.5 ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
     if (npc.where) steps.push({ kind: 'go', to: doorTile(world.seed, npc.where) }, { kind: 'exit' });
   };
+  if (stop === 'field' && npc.field) {
+    // Out to their field, and a few spots in it worked in turn.
+    leave();
+    const spots = 3 + Math.floor(roll(npc, 15) * 2);
+    for (let k = 0; k < spots; k++) steps.push({ kind: 'go', to: fieldSpot(npc, npc.field, k) }, { kind: 'work', for: between(npc, FIELD_WORK, 16 + k) });
+    return steps;
+  }
   if (stop === 'square') {
     leave();
     for (const k of [0, 1]) steps.push({ kind: 'go', to: squareSpot(npc, world, k) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 10 + k) });
@@ -95,6 +105,16 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   }
   steps.push({ kind: 'settle', for: between(npc, building === npc.home ? HOME_TIME : INN_TIME, 12) });
   return steps;
+}
+
+// A tile of wheat in a field (not its corner, heaped with bales), from the routine.
+function fieldSpot(npc: Npc, field: Field, k: number): Point {
+  for (let tries = 0; tries < 8; tries++) {
+    const x = field.x0 + Math.floor(roll(npc, 70 + k * 11 + tries) * field.width);
+    const z = field.z0 + Math.floor(roll(npc, 90 + k * 11 + tries) * field.depth);
+    if (x !== field.corner[0] || z !== field.corner[1]) return { x, z };
+  }
+  return { x: field.gate[0], z: field.gate[1] };
 }
 
 // Villagers at an inn, or on their way in.
@@ -205,8 +225,13 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       }
       return;
     case 'wait':
+    case 'work':
+      npc.working = step.kind === 'work';
       npc.waited += dt;
-      if (npc.waited >= step.for) done();
+      if (npc.waited >= step.for) {
+        npc.working = false;
+        done();
+      }
       return;
   }
 }

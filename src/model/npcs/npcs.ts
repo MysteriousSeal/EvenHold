@@ -1,7 +1,8 @@
 // Villagers: one to every house in a village, each living in their own, and
 // two barmaids in every inn, who live and work there (innStaff.ts). Villagers
 // go about a simple routine (npcRoutine.ts): a while at home, a stroll on
-// the village square, a sit at the inn, the square again, then home. Each
+// the village square, a sit at the inn, the square again, then home; some
+// are farmers, working a field by the village instead of strolling. Each
 // has a name and a look of their own, from the world's seed and where their
 // house stands, so a village's folk are the same for everyone on that seed
 // (and different on another). For now they wear nothing.
@@ -12,7 +13,7 @@ import { lookAt, type Build, type Humanoid } from '../human/humanoid';
 import type { Entrance } from '../interiors/interiors';
 import type { Seat } from '../interiors/furniture';
 import type { Point } from '../obstacles';
-import type { Village } from '../types';
+import type { Field, Village } from '../types';
 
 export const NPC_RADIUS = 0.14; // as wide as the hero
 export const NPC_NEAR = 2.2; // how close the hero comes to see a villager's name
@@ -29,10 +30,15 @@ export type NpcStep =
   | { kind: 'exit' }
   | { kind: 'settle'; for: number }
   | { kind: 'sit'; seat: Seat; for: number }
+  | { kind: 'work'; for: number } // bent over the crops, in a field
   | { kind: 'wait'; for: number };
 
-export type NpcStop = 'home' | 'square' | 'inn';
+export type NpcStop = 'home' | 'square' | 'inn' | 'field';
 export const ROUTINE: readonly NpcStop[] = ['home', 'square', 'inn', 'square'];
+// A farmer's day: their field instead of the square.
+export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'field'];
+const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
+const FIELD_NEAR = 15; // tiles from the village's middle
 
 export type NpcRole = 'villager' | 'barkeep' | 'server';
 
@@ -50,6 +56,7 @@ export interface Npc extends Humanoid {
   home: Entrance; // their house's door (a barmaid's, the inn's)
   inn: Entrance | null; // their village's
   village: Village;
+  field: Field | null; // the one they work, a farmer's (null for everyone else)
   where: Entrance | null; // the building they're in, or null outdoors
   x: number; // world coordinates outdoors, the room's indoors
   z: number;
@@ -62,6 +69,7 @@ export interface Npc extends Humanoid {
   path: Point[] | null; // tiles still to walk, while going somewhere
   waited: number; // seconds into the current wait
   moving: boolean;
+  working: boolean; // bent over the crops
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 
@@ -111,7 +119,7 @@ export function nameAt(x: number, z: number, seed = 0, build: Build = 'male'): s
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
-export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[]): Npc[] {
+export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = []): Npc[] {
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
     list.reduce<T | null>((best, v) => (!best || Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z) ? v : best), null);
   const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
@@ -125,6 +133,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       home,
       inn,
       village,
+      field: null,
       where: home,
       x: 0,
       z: 0,
@@ -137,6 +146,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       path: null,
       waited: 0,
       moving: false,
+      working: false,
       salt: Math.floor(hashUnit(id, seed % 1_000_003, 74) * 1_000_000),
     };
   };
@@ -151,6 +161,9 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       // At home to begin with, a while, then on from a point of the routine of their own.
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
+      // Some work the field nearest their village, if there's one near.
+      const field = nearest(fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })), village.x, village.z);
+      if (field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE) npc.field = field.f;
       return [npc];
     });
   const staff = inns.flatMap((inn, i) => {

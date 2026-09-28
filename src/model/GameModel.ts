@@ -143,7 +143,7 @@ export class GameModel {
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
-    this.npcs = spawnNpcs(this.seed, this.entrances, this.villages);
+    this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
