@@ -28,7 +28,7 @@ async function boot(): Promise<void> {
     await nextPaint();
     step.run();
   }
-  loading.show((total - 1) / total, 'Lighting the lanterns');
+  loading.show((total - 1) / total, 'Warming the hearths');
   await nextPaint();
   await view.finish();
 

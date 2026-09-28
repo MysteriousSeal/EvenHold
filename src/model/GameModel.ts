@@ -7,6 +7,7 @@ import {
   HERO_RADIUS,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
+  LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   HOP_DURATION,
   HOP_HEIGHT,
@@ -17,6 +18,7 @@ import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toC
 import type { Building, Bush, Field, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
+import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
 
 export class GameModel {
@@ -62,6 +64,7 @@ export class GameModel {
     this.propFootprints = new Map([
       ...this.bushes.map((b): [string, number] => [cellKey(b.x, b.z), BUSH_COLLISION_HALF]),
       ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
+      ...this.villages.flatMap((v) => squareLanterns(v).map(([x, z]): [string, number] => [cellKey(x, z), LANTERN_COLLISION_HALF])),
     ]);
 
     for (const field of this.fields) {

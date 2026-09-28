@@ -15,6 +15,7 @@ import { buildBuildings } from './meshes/house/buildingMesh';
 import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
+import { buildLanterns } from './meshes/plaza/lanternMesh';
 import { buildFields } from './meshes/field/fieldMesh';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
@@ -105,6 +106,7 @@ export class GameView {
       { label: 'Building the houses', run: () => buildHouses(scene, model) },
       { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
       { label: 'Digging the wells', run: () => buildWells(scene, model) },
+      { label: 'Lighting the lanterns', run: () => buildLanterns(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
   }

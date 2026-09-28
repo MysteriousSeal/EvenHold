@@ -285,3 +285,14 @@ export function generateVillages(
 
   return { villages, houses, buildings };
 }
+
+// The square's lantern posts: one on each corner tile (always free, since
+// no building stands on a diagonal of the square).
+export function squareLanterns(village: Village): Array<[number, number]> {
+  return [
+    [village.x - R, village.z - R],
+    [village.x + R, village.z - R],
+    [village.x - R, village.z + R],
+    [village.x + R, village.z + R],
+  ];
+}
