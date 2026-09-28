@@ -28,6 +28,7 @@ import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toC
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
 import { campPalisade, campPieces, spawnEnemies, stepEnemy } from './enemies';
 import { HERO_LOOK } from './human/humanoid';
+import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
@@ -49,6 +50,7 @@ export class GameModel {
   readonly hero: Hero;
   readonly enemies: Enemy[];
   readonly camps: Camp[];
+  readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
 
   private readonly solidCells: Set<string>; // tiles blocked edge to edge
   // Props smaller than a tile (bushes, tree trunks, lamp posts): tile key ->
@@ -119,6 +121,7 @@ export class GameModel {
       for (const edge of campPalisade(camp)) this.addFenceStrip(edge.x, edge.z, edge.side, PALISADE_THICKNESS);
     }
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
+    this.wildlife = spawnWildlife(this);
   }
 
   // A blocking strip `thickness` thick along one edge of a tile (a fence).
@@ -220,6 +223,7 @@ export class GameModel {
       if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
     }
     this.updateEnemies(dt);
+    stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
     this.updateHop(dt);
