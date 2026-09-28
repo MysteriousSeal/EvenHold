@@ -7,6 +7,7 @@ import type { BushKind, TreeKind } from '../src/model/types';
 import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
 import { buildRoadTile } from '../src/view/meshes/road/roadVoxels';
 import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
+import { eagerSink } from '../src/view/world/chunkLayer';
 import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
 import { addWindSway } from '../src/view/meshes/common/wind';
 
@@ -131,7 +132,7 @@ describe('voxel instancing', () => {
     const items = Array.from({ length: 200 }, (_, i) => ({ x: (i * 7) % 64, z: (i * 13) % 64, model: i % 3 }));
     let builds = 0;
     addVoxelInstances(
-      scene,
+      eagerSink(scene),
       items,
       (item) => String(item.model),
       () => {

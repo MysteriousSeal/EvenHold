@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { TEST_SEEDS, testModel } from './support/testWorld';
 import { buildPlazas } from '../src/view/meshes/plaza/plazaMesh';
+import { eagerSink } from '../src/view/world/chunkLayer';
 import { PLAZA_GRID, PLAZA_RADIUS, buildPlaza } from '../src/view/meshes/plaza/plazaVoxels';
 import { colorAt } from '../src/view/meshes/voxel/voxelShapes';
 
@@ -9,8 +10,9 @@ describe('voxel village squares', () => {
   it.each(TEST_SEEDS.slice(0, 3))('seed %i: builds a square for every village', (seed) => {
     const model = testModel(seed);
     const scene = new THREE.Scene();
-    buildPlazas(scene, model);
-    expect(scene.children.length).toBe(model.villages.length);
+    buildPlazas(eagerSink(scene), model);
+    const instances = (scene.children as THREE.InstancedMesh[]).reduce((sum, mesh) => sum + mesh.count, 0);
+    expect(instances).toBe(model.villages.length);
   });
 
   it('paves only square tiles, curbs grass edges and leaves road entrances open', () => {
