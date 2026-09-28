@@ -51,7 +51,7 @@ export class WolfRig {
   private readonly tail = new THREE.Group();
   private readonly legs: THREE.Group[] = [];
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar = new HealthBar(ENEMY_STATS.wolf.hp, LEG_H + BODY_H + 0.2);
+  private readonly bar = new HealthBar(LEG_H + BODY_H + 0.2);
   private readonly burst = new VoxelBurst(this.root, WOLF_PALETTE.slice(0, 5), LEG_H + BODY_H);
   private readonly last = new THREE.Vector2(Number.NaN, 0);
   private heading = 0;
@@ -88,7 +88,7 @@ export class WolfRig {
     const dz = Number.isNaN(this.last.x) ? 0 : wolf.z - this.last.y;
     this.last.set(wolf.x, wolf.z);
     const moved = Math.hypot(dx, dz);
-    this.bar.update(wolf.hp, wolf.state !== 'dead', this.heading);
+    this.bar.update(wolf.hp, wolf.maxHp, wolf.state !== 'dead', this.heading);
 
     if (wolf.state === 'dead') {
       this.die(wolf.deadFor, dt);

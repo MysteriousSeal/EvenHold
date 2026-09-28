@@ -58,7 +58,7 @@ async function boot(): Promise<void> {
   const onFrame = () => {
     countFrame();
     updateHud();
-    updateTarget(model.focused);
+    updateTarget(model.focused, model.hero.level);
     bag.update();
     sheet.update();
     updateToolbar();

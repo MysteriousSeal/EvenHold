@@ -26,7 +26,7 @@ export function createBanditLook(flash: THREE.Material): BanditLook {
 
 export class BanditRig {
   private readonly rig: HumanRig;
-  private readonly bar = new HealthBar(ENEMY_STATS.bandit.hp, HEIGHT + 0.12);
+  private readonly bar = new HealthBar(HEIGHT + 0.12);
   private readonly burst: VoxelBurst;
 
   constructor(
@@ -44,7 +44,7 @@ export class BanditRig {
   }
 
   update(bandit: Enemy, dt: number): void {
-    this.bar.update(bandit.hp, bandit.state !== 'dead', this.rig.root.rotation.y);
+    this.bar.update(bandit.hp, bandit.maxHp, bandit.state !== 'dead', this.rig.root.rotation.y);
     if (bandit.state === 'dead') {
       this.rig.root.position.set(bandit.x, bandit.y, bandit.z);
       this.rig.setMaterial(this.look.normal);
