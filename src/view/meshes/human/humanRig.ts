@@ -45,7 +45,14 @@ const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
 const SIT_LEGS = -1.45;
 const SIT_ARMS = -0.45;
 
-export type Pose = 'stand' | 'sit' | 'lie';
+// Working a field: leaning over the crops (legs kept upright under the
+// lean), reaching down, the right arm swinging as if reaping.
+const WORK_LEAN = 0.4;
+const WORK_REACH = -0.9; // arms down in front
+const WORK_SWING = 0.45;
+const WORK_PACE = 3.2; // swings a second, in radians of the swing's cycle
+
+export type Pose = 'stand' | 'sit' | 'lie' | 'work';
 
 // The blow, keyed over its progress (0..1): the right arm winds up overhead
 // and slightly back, strikes forward and down fast, then recovers; the body
@@ -313,6 +320,19 @@ export class HumanRig {
     this.body.rotation.set(0, 0, 0);
     this.joints.head.rotation.x = breath * 4; // the head nods slightly with it
 
+    if (pose === 'work') {
+      if (facing !== undefined) this.heading = facing;
+      this.root.rotation.y = this.heading;
+      this.shade.rotation.y = -this.heading;
+      this.swing = 0;
+      this.body.rotation.x = WORK_LEAN;
+      for (const leg of [this.joints.leftLeg, this.joints.rightLeg]) leg.rotation.x = -WORK_LEAN;
+      const cut = Math.sin(this.time * WORK_PACE);
+      this.joints.rightArm.rotation.x = WORK_REACH + cut * WORK_SWING;
+      this.joints.leftArm.rotation.x = WORK_REACH * 0.7 - cut * WORK_SWING * 0.3;
+      this.joints.head.rotation.x = 0.15; // eyes on the crops
+      return;
+    }
     if (pose !== 'stand') {
       if (facing !== undefined) this.heading = facing;
       this.root.rotation.y = this.heading;

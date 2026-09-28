@@ -43,7 +43,7 @@ export class NpcViews {
         rig.shaded = !where; // outdoors, the shade on the ground under them
         rig.update(npc.x, npc.y, npc.z, 0); // arrive in place, no walk from where it was
       }
-      const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : 'stand';
+      const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : npc.working ? 'work' : 'stand';
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
       label.visible = Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
     }
