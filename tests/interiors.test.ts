@@ -37,4 +37,26 @@ describe('interiors', () => {
     expect(model.inside).toBeNull();
     expect(Math.hypot(model.hero.x - door.x, model.hero.z - door.z)).toBeLessThan(0.01);
   });
+
+  it('furnishes each room the same every time, never in the way of the door, nothing overlapping', async () => {
+    const { furnish } = await import('../src/model/interiors/furniture');
+    const model = withHouses();
+    for (const entrance of model.entrances) {
+      const room = roomFor(model.seed, entrance);
+      const items = furnish(model.seed, entrance, room);
+      expect(furnish(model.seed, entrance, room)).toEqual(items);
+      expect(items.length).toBeGreaterThan(2);
+      const taken = new Set<string>();
+      for (const item of items.filter((i) => i.solid)) {
+        for (let x = item.x; x < item.x + item.w; x++) {
+          for (let z = item.z; z < item.z + item.d; z++) {
+            expect(x === room.door, `${item.kind} on the door's way`).toBe(false);
+            expect(x >= 0 && z >= 0 && x < room.width && z < room.depth).toBe(true);
+            expect(taken.has(`${x},${z}`), `${item.kind} overlaps`).toBe(false);
+            taken.add(`${x},${z}`);
+          }
+        }
+      }
+    }
+  });
 });
