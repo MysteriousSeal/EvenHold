@@ -262,11 +262,18 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
     if (style === 'cropped') {
       fillBox(grid, 0, 7, 0, L, 9, 0, (x, y) => strands(x, y)); // close-cropped: a band around the back
       for (const x of [0, L]) fillBox(grid, x, 8, 0, x, 9, 5, C.hair);
+    } else if (style === 'bob') {
+      // Cut straight at the chin all round, a straight fringe across the brow.
+      fillBox(grid, 0, 2, 0, L, L - 1, 1, (x, y) => strands(x, y));
+      for (const x of [0, L]) fillBox(grid, x, 2, 0, x, L - 1, L - 1, (_x, y, z) => (y === 2 ? C.hairDark : strands(z, y)));
+      fillBox(grid, 1, 9, L, L - 1, 9, L, (x) => (x % 3 === 0 ? C.hairLight : C.hair));
     } else {
       // Down the back (to the nape, or the neck when long) and the sides.
-      const long = style === 'long';
+      // Twin braids hang from hair brought down over the sides, in front of the ears.
+      const long = style === 'long' || style === 'waves';
+      const sides = long ? { low: 2, forward: 8 } : style === 'twinBraids' ? { low: 3, forward: 8 } : { low: 7, forward: 6 };
       fillBox(grid, 0, long ? 0 : 2, 0, L, L - 1, 1, (x, y) => strands(x, y));
-      for (const x of [0, L]) fillBox(grid, x, long ? 2 : 7, 0, x, L - 1, long ? 8 : 6, (_x, y, z) => strands(z, y));
+      for (const x of [0, L]) fillBox(grid, x, sides.low, 0, x, L - 1, sides.forward, (_x, y, z) => strands(z, y));
       fillBox(grid, 1, 9, L, L - 1, 9, L, (x) => (x === M ? C.skinShade : x === M - 1 || x === M + 1 ? C.hairLight : C.hair)); // the fringe, parted
     }
   }
@@ -308,30 +315,84 @@ export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'ha
   return part === 'arm' ? buildArm(look.build) : buildLeg(look.build);
 }
 
-// Hair gathered up past the head (a bun, a ponytail, a braid), as its own
-// piece on the head's joint, left off under anything worn on the head; or
-// null for styles that stay within it. Its grid spans the head's width,
-// from 9 below it to 4 over, and 4 behind it; `pivot` is the head's joint
-// in it.
-export const HAIR_PIECE_GRID: [number, number, number] = [11, 24, 4];
-export const HAIR_PIECE_PIVOT: [number, number, number] = [5.5, 9, 9.5];
+// Hair gathered up past the head (a bun, a ponytail, braids, pigtails, a
+// crown braid, loose waves, a topknot), as its own piece on the head's
+// joint, left off under anything worn on the head; or null for styles that
+// stay within it. Its grid spans 2 either side of the head, from 9 below it
+// to 5 over, and from 4 behind it to 1 in front; `pivot` is the head's
+// joint in it.
+export const HAIR_PIECE_GRID: [number, number, number] = [15, 25, 16];
+export const HAIR_PIECE_PIVOT: [number, number, number] = [7.5, 9, 9.5];
+const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot'] as const;
 export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
-  if (style !== 'bun' && style !== 'ponytail' && style !== 'braid') return null;
+  if (!(GATHERED as readonly string[]).includes(style)) return null;
   const grid = createGrid(HAIR_PIECE_GRID);
-  // Head coordinates (y 0..10 up the head, z -1 just behind it) into the grid's.
-  const at = (x: number, y: number, z: number, color: number) => setColor(grid, x, y + 9, z + 4, color);
-  const strand = (y: number) => (y % 3 === 0 ? C.hairDark : y % 3 === 1 ? C.hair : C.hairLight);
-  if (style === 'bun') {
-    for (let x = 4; x <= 6; x++) for (let y = 8; y <= 11; y++) for (const z of [-1, -2, -3]) at(x, y, z, (x + y + z) % 3 === 0 ? C.hairLight : (x + y) % 4 === 0 ? C.hairDark : C.hair);
-    for (const x of [3, 7]) for (let y = 9; y <= 10; y++) at(x, y, -2, C.hair); // rounder in the middle
-  } else if (style === 'ponytail') {
-    at(5, 8, -1, C.cord); // tied at the back of the crown
-    for (let y = 8; y >= -3; y--) at(5, y, -2, strand(y)); // hanging down the back
-    for (const x of [4, 6]) for (let y = 6; y >= 0; y--) at(x, y, -2, strand(y + 1)); // fuller in the middle
-  } else {
-    for (let y = 6; y >= -8; y--) at(5, y, -1, strand(y)); // a braid down past the shoulders
-    for (let y = 5; y >= -7; y -= 2) at(y % 4 === 1 ? 4 : 6, y, -1, C.hairDark); // plaited
-    at(5, -9, -1, C.cord); // tied at its end
+  // Head coordinates (x, y, z 0..10 across the head's cube; -1 just outside it) into the grid's.
+  const at = (x: number, y: number, z: number, color: number) => {
+    const [gx, gy, gz] = [x + 2, y + 9, z + 4];
+    if (gx < 0 || gy < 0 || gz < 0 || gx >= HAIR_PIECE_GRID[0] || gy >= HAIR_PIECE_GRID[1] || gz >= HAIR_PIECE_GRID[2]) throw new Error(`${style} reaches past its grid`);
+    setColor(grid, gx, gy, gz, color);
+  };
+  const strand = (y: number) => [C.hairDark, C.hair, C.hairLight][((y % 3) + 3) % 3];
+  // A braid hanging from `top` down to `bottom`, thick enough to read from
+  // afar (x0..x1 across, z0..z1 deep), plaited: its strands cross, light and
+  // dark zigzagging down it; tied at its end.
+  const braid = (x0: number, x1: number, z0: number, z1: number, top: number, bottom: number) => {
+    for (let y = top; y >= bottom; y--) {
+      for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) at(x, y, z, (x + z + y) % 2 === 0 ? C.hairLight : y % 2 === 0 ? C.hair : C.hairDark);
+    }
+    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) at(x, bottom - 1, z, C.cord);
+  };
+  switch (style) {
+    case 'bun':
+      for (let x = 4; x <= 6; x++) for (let y = 8; y <= 11; y++) for (const z of [-1, -2, -3]) at(x, y, z, (x + y + z) % 3 === 0 ? C.hairLight : (x + y) % 4 === 0 ? C.hairDark : C.hair);
+      for (const x of [3, 7]) for (let y = 9; y <= 10; y++) at(x, y, -2, C.hair); // rounder in the middle
+      break;
+    case 'ponytail':
+      at(5, 8, -1, C.cord); // tied at the back of the crown
+      for (let y = 8; y >= -3; y--) at(5, y, -2, strand(y)); // hanging down the back
+      for (const x of [4, 6]) for (let y = 6; y >= 0; y--) at(x, y, -2, strand(y + 1)); // fuller in the middle
+      break;
+    case 'braid':
+      braid(4, 6, -2, -1, 7, -8); // one thick braid down the back, past the shoulders
+      break;
+    case 'twinBraids':
+      // A braid either side, from the hair at the side of the crown, falling in front of the shoulders.
+      braid(-2, -1, 6, 7, 9, -6);
+      braid(11, 12, 6, 7, 9, -6);
+      break;
+    case 'crownBraid':
+      // A braid wound round the head above the brow, two rows deep, plaited.
+      for (let i = -1; i <= 11; i++) {
+        for (const y of [8, 9]) {
+          const plait = (i + y) % 2 === 0 ? C.hairLight : C.hairDark;
+          at(i, y, -1, plait);
+          at(i, y, 11, plait);
+          at(-1, y, i, plait);
+          at(11, y, i, plait);
+        }
+      }
+      break;
+    case 'waves': {
+      // Long and full, down past the shoulders at the back and over the
+      // sides: its tones in diagonal bands, rolling like waves.
+      const wave = (a: number, y: number) => strand(y + Math.floor(a / 2));
+      for (let x = 0; x <= 10; x++) for (let y = 10; y >= -4; y--) at(x, y, -1, wave(x, y));
+      for (const x of [-1, 11]) for (let y = 9; y >= 0; y--) for (let z = 0; z <= 6; z++) at(x, y, z, wave(z, y));
+      break;
+    }
+    case 'pigtails':
+      // Tied behind the ears, a full tail hanging from each.
+      for (const x of [-1, 11]) {
+        at(x, 7, 3, C.cord);
+        for (let y = 7; y >= 1; y--) for (const z of [2, 3]) at(x < 0 ? -2 : 12, y, z, strand(y + z));
+      }
+      break;
+    case 'topknot':
+      // Pulled up into a knot on top of the crown.
+      for (let x = 4; x <= 6; x++) for (let z = 4; z <= 6; z++) at(x, 11, z, C.cord);
+      for (let x = 4; x <= 6; x++) for (let y = 12; y <= 14; y++) for (let z = 4; z <= 6; z++) at(x, y, z, (x + y + z) % 3 === 0 ? C.hairLight : C.hair);
+      break;
   }
   return grid;
 }
