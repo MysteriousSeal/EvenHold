@@ -6,6 +6,11 @@
 // wind blows the same world direction for every instance, whatever its
 // quarter-turn rotation. Displacement depends only on a vertex's position,
 // so voxel faces sharing a corner stay joined, with no cracks.
+//
+// The options are baked into the GLSL, so each set gets its own program
+// cache key: three.js reuses compiled programs by key, and the default key
+// (this patch function's source) is identical for grass, trees and bushes,
+// which would otherwise all render with whichever compiled first.
 
 import * as THREE from 'three';
 
@@ -40,5 +45,7 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         transformed += windDir * windAmount * windBend;`,
       );
   };
+  material.customProgramCacheKey = () =>
+    `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}`;
   return time;
 }
