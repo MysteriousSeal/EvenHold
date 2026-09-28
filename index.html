@@ -28,121 +28,129 @@
         padding: 4px 8px;
         border-radius: 4px;
       }
-      /* Loading screen: plain HTML/CSS (plus a tiny inline script building
-         the voxel island), so it paints before the game bundle arrives. Its
-         animations are CSS transforms, which keep running on the compositor
-         while the world is being built. */
+      /* Loading screen: plain HTML/CSS in the game's own look (sand, clay,
+         ink, Fredoka), so it paints before the game bundle arrives: a sun
+         glowing over rows of stepped hills drifting by, motes rising. Only
+         transforms and opacity animate, so it stays smooth on the compositor
+         while the world is built. */
       #loading {
         position: fixed;
         inset: 0;
+        z-index: 10;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 22px;
-        background: radial-gradient(circle at 50% 42%, #fbe7d2, #eec5a2 55%, #d9a57f);
-        color: #4a3222;
-        font-family: Georgia, 'Times New Roman', serif;
-        transition: opacity 0.7s ease;
-        z-index: 10;
+        gap: 18px;
+        background: radial-gradient(circle at 50% 40%, #f8ecd4, #efdcb8 50%, #d6bb8e);
+        color: #2e1f14;
+        font-family: 'Fredoka', system-ui, sans-serif;
+        transition: opacity 0.6s ease;
         overflow: hidden;
       }
       #loading.done { opacity: 0; pointer-events: none; }
+      #loading-stage {
+        position: relative;
+        width: min(560px, 90vw);
+        height: 230px;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+      }
+      /* The sun, a soft glow that slowly breathes. */
+      #loading-stage .sun {
+        position: absolute;
+        left: 50%;
+        top: 22px;
+        width: 150px;
+        height: 150px;
+        margin-left: -75px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff3c8 0 22%, rgba(255, 217, 138, 0.75) 36%, rgba(255, 217, 138, 0) 70%);
+        animation: breathe 5s ease-in-out infinite;
+      }
+      /* Three rows of stepped hills drifting by, the nearer the faster. */
+      #loading-stage .hills {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: calc(100% + 480px); /* one pattern wider than the view, */
+        height: 120px;
+        background-repeat: repeat-x;
+        background-position: left bottom;
+        animation: drift linear infinite;
+        will-change: transform;
+      }
+      #loading-stage .far { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='120' viewBox='0 0 480 120'><path d='M0,120 L0,70 L60,70 L60,58 L100,58 L100,48 L160,48 L160,56 L200,56 L200,66 L280,66 L280,52 L320,52 L320,44 L380,44 L380,54 L420,54 L420,64 L480,64 L480,120 Z' fill='%23b7cf9a'/></svg>"); animation-duration: 40s; bottom: 34px; }
+      #loading-stage .mid { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='120' viewBox='0 0 480 120'><path d='M0,120 L0,86 L50,86 L50,76 L90,76 L90,68 L140,68 L140,78 L200,78 L200,88 L240,88 L240,74 L290,74 L290,64 L350,64 L350,74 L390,74 L390,82 L440,82 L440,86 L480,86 L480,120 Z' fill='%238bbf6a'/></svg>"); animation-duration: 24s; bottom: 12px; }
+      #loading-stage .near { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='120' viewBox='0 0 480 120'><path d='M0,120 L0,104 L40,104 L40,96 L100,96 L100,90 L140,90 L140,100 L200,100 L200,108 L240,108 L240,98 L300,98 L300,92 L340,92 L340,102 L400,102 L400,106 L440,106 L440,104 L480,104 L480,120 Z' fill='%235f9f4c'/></svg>"); animation-duration: 13s; }
+      /* Golden motes rising and fading. */
+      #loading-stage .mote {
+        position: absolute;
+        bottom: 20px;
+        width: 5px;
+        height: 5px;
+        background: #ffd98a;
+        box-shadow: 0 0 6px #ffd98a;
+        opacity: 0;
+        animation: rise 6s ease-in infinite;
+      }
+      #loading-stage .mote:nth-child(5) { left: 22%; animation-delay: 0s; }
+      #loading-stage .mote:nth-child(6) { left: 38%; animation-delay: 1.5s; }
+      #loading-stage .mote:nth-child(7) { left: 55%; animation-delay: 3s; }
+      #loading-stage .mote:nth-child(8) { left: 71%; animation-delay: 4.5s; }
+      #loading-stage .mote:nth-child(9) { left: 46%; animation-delay: 2.2s; }
+      @keyframes breathe { 0%, 100% { transform: scale(0.94); opacity: 0.85; } 50% { transform: scale(1.06); opacity: 1; } }
+      @keyframes drift { to { transform: translateX(-480px); } } /* and shifted by exactly one pattern: a seamless loop */
+      @keyframes rise { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.9; } 100% { transform: translateY(-170px); opacity: 0; } }
       #loading h1 {
         margin: 0;
-        font-size: 46px;
-        font-weight: normal;
-        letter-spacing: 0.1em;
-        color: #5a3a22;
-        text-shadow: 2px 2px 0 #d9a57f, 4px 4px 0 #b9825c, 6px 6px 0 rgba(90, 58, 34, 0.25);
+        font-size: 60px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #a4502f;
+        text-shadow: 0 4px 0 #7a3520, 0 7px 0 rgba(46, 31, 20, 0.35);
       }
-      .stage { width: 260px; height: 230px; display: flex; align-items: center; justify-content: center; animation: bob 3.2s ease-in-out infinite; }
-      #island { position: relative; width: 0; height: 0; transform-style: preserve-3d; animation: turn 26s linear infinite; }
-      .v { position: absolute; transform-style: preserve-3d; }
-      .v > i { position: absolute; left: 0; top: 0; width: 20px; height: 20px; transform-origin: 0 0; }
-      @keyframes turn { from { transform: rotateX(58deg) rotateZ(0deg); } to { transform: rotateX(58deg) rotateZ(360deg); } }
-      @keyframes bob { 0%, 100% { transform: translateY(6px); } 50% { transform: translateY(-6px); } }
-      #loading-bar { display: flex; gap: 4px; }
-      #loading-bar span {
-        width: 18px;
-        height: 18px;
-        background: rgba(90, 58, 34, 0.14);
-        box-shadow: inset 0 -4px 0 rgba(90, 58, 34, 0.12);
-        transition: background 0.2s ease, transform 0.2s ease;
+      #loading-bar {
+        width: 320px;
+        height: 22px;
+        background: #7a3520;
+        border: 3px solid #2e1f14;
+        box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.35);
       }
-      #loading-bar span.on { background: #e0b54e; box-shadow: inset 0 -4px 0 #b88a32, inset 0 4px 0 #f5d98a; transform: translateY(-3px); }
-      #loading-step { font-size: 15px; font-style: italic; min-height: 1.2em; opacity: 0.85; }
-      @media (prefers-reduced-motion: reduce) { .stage, #island { animation: none; } #island { transform: rotateX(58deg) rotateZ(35deg); } }
+      #loading-bar i {
+        display: block;
+        width: 0;
+        height: 100%;
+        background: #ffd98a;
+        box-shadow: inset 0 -5px 0 #e8903a, inset 0 3px 0 rgba(255, 255, 255, 0.35);
+        transition: width 0.25s ease;
+      }
+      #loading-step { font-size: 17px; font-weight: 600; min-height: 1.2em; }
+      #loading-tip {
+        max-width: 420px;
+        min-height: 1.2em;
+        padding: 6px 14px;
+        font-size: 14px;
+        text-align: center;
+        color: #f8ecd4;
+        background: rgba(38, 26, 17, 0.9);
+        border: 2px solid #efdcb8;
+        box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.35);
+      }
+      #loading-tip:empty { visibility: hidden; }
+      @media (prefers-reduced-motion: reduce) { #loading-stage * { animation: none !important; } }
     </style>
   </head>
   <body>
     <canvas id="app"></canvas>
     <div id="loading">
-      <div class="stage"><div id="island"></div></div>
+      <div id="loading-stage"><div class="sun"></div><div class="hills far"></div><div class="hills mid"></div><div class="hills near"></div><i class="mote"></i><i class="mote"></i><i class="mote"></i><i class="mote"></i><i class="mote"></i></div>
       <h1>EvenHold</h1>
-      <div id="loading-bar"></div>
+      <div id="loading-bar"><i></i></div>
       <div id="loading-step">Waking the realm…</div>
+      <div id="loading-tip"></div>
     </div>
-    <script>
-      // The loading screen's voxel island, as CSS 3D cubes: grass and dirt,
-      // a half-timbered house, an oak, wheat, a pool and the hero. Faces hidden
-      // behind a neighbour aren't drawn; each face gets a fixed shade.
-      (function () {
-        var S = 20;
-        var C = { grass: '#62ad4c', dirt: '#7d5838', stone: '#8e8b82', plaster: '#e9dfc6', timber: '#3a281c', roof: '#9b4a32', ridge: '#b65c3c',
-          trunk: '#5c4030', leaf: '#468744', leafLight: '#5c9f4c', wheat: '#e0bb52', water: '#3dbdb8', hero: '#e8823c', head: '#f5e4c8', door: '#5a3a22' };
-        var voxels = {};
-        function put(x, y, z, c) { voxels[x + ',' + y + ',' + z] = c; }
-        for (var x = 0; x < 7; x++) for (var y = 0; y < 7; y++) {
-          if ((x === 0 || x === 6) && (y === 0 || y === 6)) continue; // rounded-off corners, still square voxels
-          put(x, y, 0, 'dirt');
-          if (!(x >= 5 && y <= 2 && !(x === 6 && y === 0))) put(x, y, 1, 'grass');
-        }
-        put(5, 1, 1, 'water'); put(5, 2, 1, 'water'); put(6, 1, 1, 'water'); put(6, 2, 1, 'water');
-        for (var hx = 1; hx <= 3; hx++) for (var hy = 1; hy <= 2; hy++) for (var hz = 2; hz <= 3; hz++) {
-          put(hx, hy, hz, hz === 2 && hx === 2 && hy === 2 ? 'door' : (hx === 2 ? 'plaster' : 'timber'));
-        }
-        for (var rx = 0; rx <= 4; rx++) { put(rx, 1, 4, 'roof'); put(rx, 2, 4, 'roof'); put(rx, 1, 5, 'ridge'); }
-        put(3, 1, 6, 'stone');
-        put(5, 5, 2, 'trunk'); put(5, 5, 3, 'trunk');
-        for (var lx = 4; lx <= 6; lx++) for (var ly = 4; ly <= 6; ly++) put(lx, ly, 4, 'leaf');
-        put(5, 5, 5, 'leafLight'); put(4, 5, 5, 'leaf'); put(5, 4, 5, 'leaf'); put(5, 5, 6, 'leafLight');
-        put(1, 4, 2, 'wheat'); put(1, 5, 2, 'wheat'); put(2, 5, 2, 'wheat'); put(2, 4, 2, 'wheat');
-        put(4, 3, 2, 'hero'); put(4, 3, 3, 'head');
-
-        function shade(hex, k) {
-          var n = parseInt(hex.slice(1), 16);
-          var r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k);
-          return 'rgb(' + r + ',' + g + ',' + b + ')';
-        }
-        // [neighbour offset, face transform, shade]
-        var faces = [
-          [[0, 0, 1], 'translateZ(' + S + 'px)', 1],
-          [[0, -1, 0], 'rotateX(90deg)', 0.66],
-          [[0, 1, 0], 'translateY(' + S + 'px) rotateX(90deg)', 0.78],
-          [[-1, 0, 0], 'rotateY(-90deg)', 0.72],
-          [[1, 0, 0], 'translateX(' + S + 'px) rotateY(-90deg)', 0.86],
-        ];
-        var island = document.getElementById('island');
-        Object.keys(voxels).forEach(function (key) {
-          var p = key.split(',').map(Number);
-          var color = C[voxels[key]];
-          var cube = document.createElement('div');
-          cube.className = 'v';
-          cube.style.transform = 'translate3d(' + (p[0] - 3.5) * S + 'px,' + (p[1] - 3.5) * S + 'px,' + p[2] * S + 'px)';
-          faces.forEach(function (f) {
-            if (voxels[(p[0] + f[0][0]) + ',' + (p[1] + f[0][1]) + ',' + (p[2] + f[0][2])]) return; // hidden
-            var face = document.createElement('i');
-            face.style.transform = f[1];
-            face.style.background = shade(color, f[2]);
-            cube.appendChild(face);
-          });
-          island.appendChild(cube);
-        });
-        var bar = document.getElementById('loading-bar');
-        for (var i = 0; i < 12; i++) bar.appendChild(document.createElement('span'));
-      })();
-    </script>
     <div id="hud">
       <div id="seed-label"></div>
       <div id="fps-label"></div>

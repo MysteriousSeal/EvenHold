@@ -1,6 +1,17 @@
-// Drives the loading screen from index.html (which shows it, voxel island
-// and all, before any game script runs): lights up the voxel progress bar,
-// shows the current step, then fades out.
+// Drives the loading screen from index.html (which shows it, scene, title,
+// bar and all, before any game script runs): fills the progress bar, shows
+// the current step and a gameplay tip, then fades out.
+
+const TIPS = [
+  'Press E by a door to step inside.',
+  'Click a foe to focus it; Space strikes the one you focus.',
+  'Foes farther from where you began are tougher, and worth more.',
+  'Open your bag with B and your hero sheet with C.',
+  'Drag gear from your bag onto its slot to wear it.',
+  'Out of sight is out of mind: walls and trees hide you from foes.',
+  'Ducks keep to the water, and away from you.',
+];
+const TIP_SECONDS = 3.5;
 
 export interface LoadingScreen {
   show(progress: number, label: string): void; // progress in [0, 1]
@@ -9,15 +20,22 @@ export interface LoadingScreen {
 
 export function loadingScreen(): LoadingScreen {
   const root = document.getElementById('loading') as HTMLDivElement;
-  const blocks = Array.from(document.querySelectorAll<HTMLSpanElement>('#loading-bar span'));
+  const fill = document.querySelector('#loading-bar i') as HTMLElement;
   const step = document.getElementById('loading-step') as HTMLDivElement;
+  const tip = document.getElementById('loading-tip') as HTMLDivElement;
+  let tipIndex = Math.floor(Math.random() * TIPS.length);
+  tip.textContent = TIPS[tipIndex];
+  const timer = window.setInterval(() => {
+    tipIndex = (tipIndex + 1) % TIPS.length;
+    tip.textContent = TIPS[tipIndex];
+  }, TIP_SECONDS * 1000);
   return {
     show(progress, label) {
-      const lit = Math.round(progress * blocks.length);
-      blocks.forEach((block, i) => block.classList.toggle('on', i < lit));
+      fill.style.width = `${Math.round(progress * 100)}%`;
       step.textContent = `${label}…`;
     },
     hide() {
+      window.clearInterval(timer);
       root.classList.add('done');
       root.addEventListener('transitionend', () => root.remove(), { once: true });
     },
