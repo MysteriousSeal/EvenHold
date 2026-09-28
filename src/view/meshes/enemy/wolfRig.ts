@@ -51,7 +51,7 @@ export class WolfRig {
   private readonly tail = new THREE.Group();
   private readonly legs: THREE.Group[] = [];
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar = new HealthBar(LEG_H + BODY_H + 0.2);
+  private readonly bar = new HealthBar(LEG_H + BODY_H + 0.2, 'Wolf');
   private readonly burst = new VoxelBurst(this.root, WOLF_PALETTE.slice(0, 5), LEG_H + BODY_H);
   private readonly last = new THREE.Vector2(Number.NaN, 0);
   private heading = 0;

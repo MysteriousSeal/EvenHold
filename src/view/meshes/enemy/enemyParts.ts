@@ -17,31 +17,76 @@ export const ENEMY_BURST = new THREE.MeshStandardMaterial({ color: 0xffffff, rou
 const BLOCK = new THREE.BoxGeometry(0.07, 0.035, 0.02);
 const CUBE = new THREE.BoxGeometry(1, 1, 1);
 
-// Five blocks, red for the share of health left (a block lit while any of
-// its fifth remains). Turned to face the camera whichever way its owner
-// faces; shown for as long as the owner lives.
-const BAR_BLOCKS = 5;
+// One block per hit point, red while it lasts; past MAX_BLOCKS hit points,
+// each block stands for a share of them (lit while any of it is left).
+// Turned to face the camera whichever way its owner faces; shown for as
+// long as the owner lives.
+const MAX_BLOCKS = 10;
+const NAME_HEIGHT = 0.22; // world units tall, the name over the bar
+
+// A name drawn once onto a texture, white with an ink outline like the HUD's,
+// shared by every enemy that bears it.
+const nameMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
+function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: number } {
+  let entry = nameMaterials.get(name);
+  if (!entry) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const font = "700 88px 'Fredoka', system-ui, sans-serif";
+    ctx.font = font;
+    canvas.width = Math.ceil(ctx.measureText(name).width) + 28;
+    canvas.height = 116;
+    ctx.font = font; // resizing the canvas resets it
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = '#2e1f14';
+    ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
+    ctx.fillStyle = '#f8ecd4';
+    ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, fog: false });
+    entry = { material, aspect: canvas.width / canvas.height };
+    nameMaterials.set(name, entry);
+  }
+  return entry;
+}
 
 export class HealthBar {
   readonly group = new THREE.Group();
-  private readonly blocks: THREE.Mesh[] = [];
+  private blocks: THREE.Mesh[] = [];
 
-  constructor(height: number) {
-    const max = BAR_BLOCKS;
-    for (let i = 0; i < max; i++) {
-      const block = new THREE.Mesh(BLOCK, ENEMY_BAR);
-      block.position.x = (i - (max - 1) / 2) * 0.085;
-      this.group.add(block);
-      this.blocks.push(block);
-    }
+  // `name`, if given, floats just above the bar.
+  constructor(height: number, name?: string) {
     this.group.position.y = height;
+    if (name) {
+      const { material, aspect } = nameMaterial(name);
+      const label = new THREE.Sprite(material);
+      label.scale.set(NAME_HEIGHT * aspect, NAME_HEIGHT, 1);
+      label.position.y = 0.14;
+      this.group.add(label);
+    }
   }
 
   update(hp: number, maxHp: number, alive: boolean, ownerHeading: number): void {
+    const count = Math.min(maxHp, MAX_BLOCKS);
+    if (count !== this.blocks.length) this.build(count);
     this.group.visible = alive;
     this.group.rotation.y = CAMERA_YAW - ownerHeading;
-    const lit = Math.ceil((Math.max(0, hp) / maxHp) * BAR_BLOCKS);
+    const lit = Math.ceil((Math.max(0, hp) / maxHp) * count);
     this.blocks.forEach((block, i) => (block.material = i < lit ? ENEMY_BAR : ENEMY_BAR_EMPTY));
+  }
+
+  private build(count: number): void {
+    for (const block of this.blocks) block.removeFromParent();
+    this.blocks = Array.from({ length: count }, (_, i) => {
+      const block = new THREE.Mesh(BLOCK, ENEMY_BAR);
+      block.position.x = (i - (count - 1) / 2) * 0.085;
+      this.group.add(block);
+      return block;
+    });
   }
 }
 

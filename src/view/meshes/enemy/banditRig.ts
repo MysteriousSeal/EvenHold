@@ -26,7 +26,7 @@ export function createBanditLook(flash: THREE.Material): BanditLook {
 
 export class BanditRig {
   private readonly rig: HumanRig;
-  private readonly bar = new HealthBar(HEIGHT + 0.12);
+  private readonly bar = new HealthBar(HEIGHT + 0.12, 'Bandit');
   private readonly burst: VoxelBurst;
 
   constructor(
