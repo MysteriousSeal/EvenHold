@@ -76,3 +76,42 @@ describe('dev cheats', () => {
     expect(walk(3)).toBeCloseTo(walk(1) * 3, 5);
   });
 });
+
+describe('more dev cheats', () => {
+  it('summons a wolf just ahead, and slays only foes nearby', async () => {
+    const { spawnEnemyNear, slayNearby } = await import('../src/model/cheats');
+    const model = fresh();
+    const before = model.enemies.length;
+    spawnEnemyNear(model, 'wolf');
+    const wolf = model.enemies[model.enemies.length - 1];
+    expect(model.enemies.length).toBe(before + 1);
+    expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(5);
+    const slain = slayNearby(model, 15);
+    expect(slain).toBeGreaterThan(0);
+    expect(model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - model.hero.x, e.z - model.hero.z) <= 15)).toEqual([]);
+  });
+
+  it('travels to open ground outside the nearest camp', async () => {
+    const { nearestCamp } = await import('../src/model/cheats');
+    const model = TEST_SEEDS.map((s) => fresh(s)).find((m) => m.camps.length > 0)!;
+    const tile = nearestCamp(model, model.hero)!;
+    expect(model.isOpenTile(tile.x, tile.z)).toBe(true);
+  });
+
+  it('noclip walks through anything; frozen foes stay put', () => {
+    const model = fresh();
+    const house = model.houses[0];
+    model.teleport(house.x - 1, house.z);
+    model.noclip = true;
+    for (let i = 0; i < 30; i++) model.update(1, 0, 1 / 60);
+    expect(model.hero.x).toBeGreaterThan(house.x - 0.5); // into the house tile
+
+    model.noclip = false;
+    model.enemiesFrozen = true;
+    const enemy = model.enemies[0];
+    model.teleport(Math.round(enemy.x) - 2, Math.round(enemy.z));
+    const { x, z } = enemy;
+    for (let i = 0; i < 60; i++) model.update(0, 0, 1 / 60);
+    expect([enemy.x, enemy.z]).toEqual([x, z]);
+  });
+});
