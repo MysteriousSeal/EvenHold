@@ -40,7 +40,7 @@ function compose(size: [number, number, number], parts: Array<[VoxelGrid, number
 
 // The hero as a woman (a cheat), her hair in a braid.
 export const HEROINE_LOOK: BodyLook = { ...HERO_LOOK, build: 'female', hairStyle: 'braid', beard: false };
-const BANDIT_FACE: BodyLook = { build: 'male', skin: 1, hair: 1, hairStyle: 'short', beard: true };
+const BANDIT_FACE: BodyLook = { build: 'male', dye: 3, skin: 1, hair: 1, hairStyle: 'short', beard: true };
 const person = (look: BodyLook | null, equipment: Equipment) => (): VoxelModel => humanFigure(look, equipment);
 
 function wolfModel(): VoxelModel {

@@ -9,6 +9,7 @@ import type { Equipment } from './equipment';
 
 export const SKIN_TONE_COUNT = 4;
 export const HAIR_COLOR_COUNT = 5;
+export const DYE_COUNT = 6; // what their underwear's dyed (bodyVoxels.ts DYES)
 export const HAIR_STYLES = ['short', 'long', 'cropped', 'bald', 'braid', 'bun', 'ponytail'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Build = 'male' | 'female';
@@ -22,6 +23,7 @@ export interface BodyLook {
   build: Build;
   skin: number; // 0 .. SKIN_TONE_COUNT - 1
   hair: number; // 0 .. HAIR_COLOR_COUNT - 1
+  dye: number; // their braies (and her breast band): 0 .. DYE_COUNT - 1
   hairStyle: HairStyle;
   beard: boolean;
 }
@@ -31,7 +33,7 @@ export interface Humanoid {
   equipment: Equipment;
 }
 
-export const HERO_LOOK: Readonly<BodyLook> = { build: 'male', skin: 0, hair: 0, hairStyle: 'short', beard: false };
+export const HERO_LOOK: Readonly<BodyLook> = { build: 'male', skin: 0, hair: 0, dye: 1, hairStyle: 'short', beard: false };
 
 // A look picked from a place (e.g. where someone spawned): the same spot
 // always gives the same person. `seed`, if given, makes it the world's own:
@@ -45,6 +47,7 @@ export function lookAt(x: number, z: number, seed = 0, female = 0): BodyLook {
     build,
     skin: pick(SKIN_TONE_COUNT, 41),
     hair: pick(HAIR_COLOR_COUNT, 42),
+    dye: pick(DYE_COUNT, 46),
     hairStyle: styles[pick(styles.length, 43)],
     beard: build === 'male' && hashUnit(x, z, seed * 131 + 44) < 0.5,
   };
