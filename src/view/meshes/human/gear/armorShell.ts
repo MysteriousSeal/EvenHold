@@ -21,11 +21,20 @@ import { buildBodyPart, type BodyPart, type Side } from '../bodyVoxels';
 // part and its height the layer over it) each slot may cover on each part.
 export const SLOT_BANDS: Record<ArmorSlot, Partial<Record<BodyPart, [number, number]>>> = {
   head: { head: [0, 7] }, // all of it, crown included; nothing under the chin
+  shoulders: { arm: [5, 6] }, // the top of each arm; the sleeves yield it (bandFor)
   torso: { torso: [2, 5], arm: [2, 6] }, // chest and waist; sleeves and shoulders
   hands: { arm: [-1, 1] }, // the hand, the fist's underside included
   legs: { torso: [0, 1], leg: [2, 4] }, // hips; knees to thighs
   feet: { leg: [0, 1] }, // ankles and feet, not the sole
 };
+
+// The rows a slot covers on a part, given whether shoulders are worn: they
+// take the top of each arm (rows 5-6) from the torso's sleeves, which then
+// stop at row 4. Without shoulders, sleeves keep their own caps.
+export function bandFor(slot: ArmorSlot, part: BodyPart, shouldered: boolean): [number, number] | undefined {
+  const band = SLOT_BANDS[slot][part];
+  return band && slot === 'torso' && part === 'arm' && shouldered ? [band[0], 4] : band;
+}
 
 // One shell voxel, in the part's own voxel coordinates (so the shell's
 // outer layers are -1 and the part's size), and which way it faces.

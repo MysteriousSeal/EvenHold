@@ -9,6 +9,7 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 const COS30 = Math.cos(Math.PI / 6);
 const SHADE = { top: 1, x: 0.82, z: 0.64 }; // light from above, then the +X side
 const PAD = 0.1; // share of the icon left empty around the model
+const SHADOW_FLATTEN = 0.4; // the ground shadow's height to width, seen from above
 
 export interface VoxelModel {
   grid: VoxelGrid;
@@ -67,17 +68,26 @@ function render(model: VoxelModel, px: number): HTMLCanvasElement {
   canvas.height = px;
   const ctx = canvas.getContext('2d');
   if (!ctx || faces.length === 0) return canvas;
+  // Fit the model with room below it for its shadow: a flat ellipse under
+  // its lowest point, as wide as the model's footprint.
   const room = px * (1 - 2 * PAD);
-  const scale = room / Math.max(maxX - minX, (maxY - minY) * 1.08);
+  const shadowRise = SHADOW_FLATTEN * 0.5; // the shadow's reach below the model, as a share of its width
+  const scale = room / Math.max(maxX - minX, (maxY - minY) + (maxX - minX) * shadowRise);
   const ox = px / 2 - ((minX + maxX) / 2) * scale;
-  const oy = px / 2 - ((minY + maxY) / 2) * scale - px * 0.03;
+  const shadowReach = (maxX - minX) * scale * shadowRise;
+  const oy = px / 2 - ((minY + maxY) / 2) * scale - shadowReach / 2;
 
-  // Soft ground shadow under the model.
-  const shadow = ctx.createRadialGradient(px / 2, oy + maxY * scale, 0, px / 2, oy + maxY * scale, room * 0.4);
-  shadow.addColorStop(0, 'rgba(46,31,20,0.32)');
+  const radius = ((maxX - minX) * scale) / 2;
+  const footY = oy + maxY * scale;
+  ctx.save();
+  ctx.translate(px / 2, footY);
+  ctx.scale(1, SHADOW_FLATTEN);
+  const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  shadow.addColorStop(0, 'rgba(46,31,20,0.34)');
   shadow.addColorStop(1, 'rgba(46,31,20,0)');
   ctx.fillStyle = shadow;
-  ctx.fillRect(0, 0, px, px);
+  ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+  ctx.restore();
 
   ctx.globalAlpha = model.alpha ?? 1;
   faces.sort((a, b) => a.depth - b.depth);

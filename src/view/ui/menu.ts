@@ -50,7 +50,7 @@ export interface MenuTab {
   slots?(): { cells: Array<MenuSlot | null>; columns: number };
   // A figure with slots down its left and right and along the bottom (a
   // character sheet), shown above any facts.
-  doll?(): { figure: MenuIcon; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
+  doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
 }
 
 export interface MenuOptions {
@@ -250,7 +250,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   // The paper doll: the figure in the middle, slots down each side and
   // along the bottom; empty ones show their name.
-  function showDoll({ figure, left, right, bottom }: { figure: MenuIcon; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] }): void {
+  function showDoll({ figure, left, right, bottom }: { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] }): void {
     const doll = el('div', 'menu-doll');
     const column = (slots: DollSlot[], className: string) => {
       const box = el('div', className);
@@ -264,7 +264,7 @@ export function createMenu(options: MenuOptions): Menu {
       return box;
     };
     const stage = el('div', 'menu-doll-figure');
-    stage.append(figure(150));
+    stage.append(figure);
     doll.append(column(left, 'menu-doll-side'), stage, column(right, 'menu-doll-side'), column(bottom, 'menu-doll-bottom'));
     list.append(doll);
   }

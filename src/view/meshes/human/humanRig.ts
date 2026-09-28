@@ -15,7 +15,7 @@
 // speed (including the dev speed boost) and stops the moment they do.
 
 import * as THREE from 'three';
-import { EQUIP_SLOTS, ITEMS, isHeldSlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, ITEMS, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { HAND, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type BodyPart, type Joint } from './bodyVoxels';
@@ -80,10 +80,10 @@ function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
 // A worn item's shell on one joint's part, or null if it doesn't cover it:
 // meshed around the (undrawn) body, so no faces press against the skin.
 // The shell's grid starts one voxel before the part, so its pivot is one further in.
-function wornGeometry(item: ItemId, joint: Joint): THREE.BufferGeometry | null {
+function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean): THREE.BufferGeometry | null {
   const { part, side } = JOINTS[joint];
-  return cached(`${item}:${part}:${side}`, () => {
-    const grid = wornGrid(item, part, side);
+  return cached(`${item}:${part}:${side}:${shouldered}`, () => {
+    const grid = wornGrid(item, part, side, shouldered);
     const pivot = PART_PIVOT[part].map((p) => p + 1) as [number, number, number];
     return grid && meshAround(withBody(grid, part), ITEM_MODELS[item].palette, pivot, (c) => c !== BODY_FILL);
   });
@@ -99,6 +99,7 @@ export class HumanRig {
   readonly joints: Record<Joint, THREE.Group>;
   readonly meshes: THREE.Mesh[] = []; // the body's, then everything worn
   private readonly worn = new Map<EquipSlot, { item: ItemId; meshes: THREE.Mesh[] }>();
+  private shouldered = false; // shoulders worn: sleeves leave them the top of the arms
   private readonly body = new THREE.Group();
   private readonly last = new THREE.Vector3(Number.NaN, 0, 0);
   private phase = 0;
@@ -126,10 +127,15 @@ export class HumanRig {
   // Dresses the body in `equipment`: takes off what's no longer in it and
   // puts on what's new, leaving unchanged slots alone (cheap every frame).
   wear(equipment: Equipment): void {
+    // Shoulders going on or off change where the sleeves stop, so the
+    // torso's piece is put on again to match.
+    const shouldered = !!equipment.shoulders;
+    const refit = shouldered !== this.shouldered;
+    this.shouldered = shouldered;
     for (const slot of EQUIP_SLOTS) {
       const item = equipment[slot];
       const current = this.worn.get(slot);
-      if (current?.item === item) continue;
+      if (current?.item === item && !(refit && slot === 'torso')) continue;
       if (current) {
         for (const mesh of current.meshes) {
           mesh.removeFromParent();
@@ -152,6 +158,7 @@ export class HumanRig {
   private putOn(slot: EquipSlot, item: ItemId): THREE.Mesh[] {
     if (ITEMS[item].slot !== slot) throw new Error(`${item} doesn't go in the ${slot} slot`);
     const meshes: THREE.Mesh[] = [];
+    if (isJewelrySlot(slot)) return meshes; // too small to show on the body
     if (isHeldSlot(slot)) {
       const geometry = heldGeometry(item);
       if (geometry) {
@@ -163,7 +170,7 @@ export class HumanRig {
       return meshes;
     }
     for (const joint of JOINT_NAMES) {
-      const geometry = wornGeometry(item, joint);
+      const geometry = wornGeometry(item, joint, this.shouldered);
       if (!geometry) continue;
       const mesh = this.mesh(geometry);
       this.joints[joint].add(mesh);

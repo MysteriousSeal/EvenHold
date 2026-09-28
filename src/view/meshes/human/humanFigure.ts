@@ -3,7 +3,7 @@
 // at its joint (bodyVoxels.ts JOINTS), rounded to whole voxels. Drop the
 // body (look = null) to show just what's worn, as it sits on someone.
 
-import { EQUIP_SLOTS, isHeldSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import type { BodyLook } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
@@ -55,9 +55,10 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
       place(buildBodyPart(part, look), colors, at, PART_PIVOT[part]);
     }
   }
+  const shouldered = !!equipment.shoulders;
   for (const slot of EQUIP_SLOTS) {
     const item: ItemId | undefined = equipment[slot];
-    if (!item) continue;
+    if (!item || isJewelrySlot(slot)) continue; // jewelry doesn't show on the body
     const model = ITEM_MODELS[item];
     if (isHeldSlot(slot)) {
       if (!model.held) continue;
@@ -67,7 +68,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
     }
     for (const joint of JOINT_NAMES) {
       const { part, side, at } = JOINTS[joint];
-      const shell = wornGrid(item, part, side);
+      const shell = wornGrid(item, part, side, shouldered);
       if (shell) place(shell, model.palette, at, PART_PIVOT[part].map((p) => p + 1));
     }
   }

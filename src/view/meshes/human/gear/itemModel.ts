@@ -19,6 +19,7 @@ import type { Painter } from './armorShell';
 export interface ItemModel {
   palette: number[];
   worn?: Partial<Record<BodyPart, Painter>>;
+  jewel?: { build(): VoxelGrid }; // jewelry: not on the body, just its own model (for icons)
   held?: {
     build(): VoxelGrid;
     // The point (in voxels within the grid) that sits in the middle of the hand.

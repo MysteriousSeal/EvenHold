@@ -255,7 +255,7 @@
   justify-content: flex-start;
   padding: 150px 16px 16px; /* the left side, under the hero's HUD */
 }
-.menu-backdrop.place-left .menu { width: min(400px, 100%); }
+.menu-backdrop.place-left .menu { width: min(420px, 100%); }
 .menu-backdrop.modeless .menu { pointer-events: auto; }
 
 /* A paper doll: slots down each side of the figure, and along the bottom. */
@@ -269,6 +269,7 @@
 .menu-doll-side { display: flex; flex-direction: column; gap: 8px; }
 .menu-doll-bottom { grid-column: 1 / -1; display: flex; justify-content: center; gap: 8px; }
 .menu-doll .menu-slot { width: 58px; min-width: 58px; }
+.menu-doll-figure canvas { display: block; }
 .menu-doll-figure {
   display: grid;
   place-items: center;
