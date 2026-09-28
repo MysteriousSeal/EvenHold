@@ -181,3 +181,38 @@ describe('enemy spawning', () => {
     expect(model.enemies.length).toBeGreaterThan(0);
   });
 });
+
+describe('enemy collisions', () => {
+  const gap = (a: Enemy, b: Enemy) => Math.hypot(a.x - b.x, a.z - b.z) - ENEMY_STATS[a.kind].radius - ENEMY_STATS[b.kind].radius;
+
+  it('eases apart enemies left on top of each other, wolves and bandits alike', () => {
+    const model = fresh();
+    const [a, b, c] = [nearest(model, 'wolf'), ...model.enemies.filter((e) => e.kind === 'wolf').slice(1, 2), nearest(model, 'bandit')];
+    model.enemiesFrozen = false;
+    for (const e of [a, b, c]) {
+      e.x = a.x;
+      e.z = a.z;
+    }
+    model.teleport(Math.round(a.x) + 8, Math.round(a.z)); // near enough to be awake, out of sight
+    model.enemies.splice(0, model.enemies.length, a, b, c);
+    for (let t = 0; t < 2; t += FRAME) model.update(0, 0, FRAME);
+    for (const [p, q] of [[a, b], [a, c], [b, c]]) expect(gap(p, q)).toBeGreaterThan(-0.02);
+  });
+
+  it('never lets a pack closing in on the hero pile up', () => {
+    const model = fresh();
+    const wolves = model.enemies.filter((e) => e.kind === 'wolf').slice(0, 3);
+    const lead = wolves[0];
+    model.teleport(Math.round(lead.x) + 3, Math.round(lead.z));
+    model.enemies.splice(0, model.enemies.length, ...wolves);
+    wolves.forEach((w, i) => {
+      w.x = lead.x - 0.4 * i;
+      w.z = lead.z;
+    });
+    model.godMode = true;
+    for (let t = 0; t < 4; t += FRAME) {
+      model.update(0, 0, FRAME);
+      for (let i = 0; i < wolves.length; i++) for (let j = i + 1; j < wolves.length; j++) expect(gap(wolves[i], wolves[j])).toBeGreaterThan(-0.02);
+    }
+  });
+});
