@@ -1,12 +1,13 @@
-// Geometry invariants for the procedural building meshes. Buildings are
-// instanced one per grid cell, so anything poking past the cell edge would
-// clip into a neighbor.
+// Geometry invariants for the building models (voxel houses, the well).
+// Buildings are instanced one per grid cell, so anything poking past the
+// cell edge would clip into a neighbor.
 
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { buildHouseParts } from '../src/view/meshes/house/parts';
-import { HOUSE_PARTS } from '../src/view/meshes/house/houseTypes';
-import { HOUSE_VARIANTS } from '../src/view/meshes/house/variants';
+import { buildHouseGeometry } from '../src/view/meshes/house/houseMesh';
+import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/house/houseVoxels';
+import { C, ROOF_SETS } from '../src/view/meshes/house/housePalette';
+import { voxelIndex } from '../src/view/meshes/voxel/greedyMesh';
 import { buildWellParts, WELL_PARTS } from '../src/view/meshes/well/wellParts';
 
 const CELL_HALF = 0.5;
@@ -18,36 +19,41 @@ function horizontalExtent(geometry: THREE.BufferGeometry): number {
   return Math.max(-min.x, max.x, -min.z, max.z);
 }
 
-describe('house meshes', () => {
-  it.each(HOUSE_VARIANTS.map((v, i) => [i, v] as const))('variant %i: everything but the roof overhang stays in its cell', (_, variant) => {
-    const parts = buildHouseParts(variant);
-    for (const part of HOUSE_PARTS) {
-      // Roof shingles and the bargeboards (timber) along them overhang the walls by design.
-      if (part === 'roof' || part === 'timber') continue;
-      expect(horizontalExtent(parts[part]), part).toBeLessThanOrEqual(CELL_HALF + EPSILON);
+const houseModels = HOUSE_LAYOUTS.flatMap((_, layout) => ROOF_SETS.map((__, roof) => [layout, roof] as const));
+
+describe('voxel houses', () => {
+  it.each(houseModels)('layout %i, roof %i: stays inside its tile and stands on the ground', (layout, roof) => {
+    for (const glowing of [false, true]) {
+      const geometry = buildHouseGeometry(layout, roof, glowing);
+      expect(horizontalExtent(geometry)).toBeLessThanOrEqual(CELL_HALF + EPSILON);
+      expect(geometry.boundingBox!.min.y).toBeGreaterThanOrEqual(-EPSILON);
     }
   });
 
-  it.each(HOUSE_VARIANTS.map((v, i) => [i, v] as const))('variant %i: decor carries per-vertex colors', (_, variant) => {
-    const decor = buildHouseParts(variant).decor;
-    expect(decor.getAttribute('color')?.count).toBe(decor.getAttribute('position').count);
+  it.each(houseModels)('layout %i, roof %i: glass is meshed only in the glowing mesh', (layout, roof) => {
+    const main = buildHouseGeometry(layout, roof, false);
+    const glow = buildHouseGeometry(layout, roof, true);
+    expect(glow.getAttribute('position').count).toBeGreaterThan(0);
+    // The glowing mesh holds only glass-colored faces; the main mesh none.
+    const glass = new THREE.Color(0xffd98a);
+    const isGlass = (g: THREE.BufferGeometry, i: number) => {
+      const c = g.getAttribute('color');
+      return Math.abs(c.getX(i) - glass.r) + Math.abs(c.getY(i) - glass.g) + Math.abs(c.getZ(i) - glass.b) < 1e-4;
+    };
+    for (let i = 0; i < glow.getAttribute('position').count; i++) expect(isGlass(glow, i)).toBe(true);
+    for (let i = 0; i < main.getAttribute('position').count; i++) expect(isGlass(main, i)).toBe(false);
   });
 
-  it.each(HOUSE_VARIANTS.map((v, i) => [i, v] as const))('variant %i: roof never sinks below the gable slope', (_, variant) => {
-    const roof = buildHouseParts(variant).roof;
-    const wallTop = 0.1 + variant.height;
-    const ridgeY = wallTop + variant.roofHeight;
-    const halfSpan = (variant.twoStorey ? variant.depth + 0.1 : variant.depth) / 2;
-    const slope = Math.hypot(halfSpan, variant.roofHeight);
-    const position = roof.getAttribute('position');
-
-    for (let i = 0; i < position.count; i++) {
-      const z = Math.abs(position.getZ(i));
-      if (z > halfSpan) continue; // eave overhang, beyond the gable
-      // Signed distance from the gable's sloped face (positive = outside it).
-      const distance = z * (variant.roofHeight / slope) + (position.getY(i) - ridgeY) * (halfSpan / slope);
-      expect(distance).toBeGreaterThanOrEqual(-EPSILON);
+  it.each(HOUSE_LAYOUTS.map((l, i) => [i, l] as const))('layout %i: its door is on the front (-Z) wall', (index, layout) => {
+    const grid = buildHouseVoxels(layout, 0);
+    const [sx, sy, sz] = grid.size;
+    let doorZ = Infinity;
+    for (let z = 0; z < sz; z++) {
+      for (let y = 0; y < sy; y++) {
+        for (let x = 0; x < sx; x++) if (grid.cells[voxelIndex(grid, x, y, z)] === C.doorDark) doorZ = Math.min(doorZ, z);
+      }
     }
+    expect(doorZ, `layout ${index}`).toBeLessThan(sz / 2);
   });
 });
 

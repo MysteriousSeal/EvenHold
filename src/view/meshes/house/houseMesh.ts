@@ -1,87 +1,80 @@
+// Voxel houses. Each (layout, roof color) model is built once and meshed
+// twice from the same grid: everything but the glass with a plain material,
+// and the window glass and lanterns with a glowing one (the shared grid
+// means no faces are hidden between the two). Both are instanced per map
+// chunk, and houses stand on the village cobbles, not the grass under them.
+
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import type { House } from '../../../model/types';
-import {
-  HOUSE_PLASTER_COLOR,
-  HOUSE_TIMBER_COLOR,
-  HOUSE_STONE_COLOR,
-  HOUSE_DOOR_COLOR,
-  HOUSE_WINDOW_COLOR,
-  HOUSE_WINDOW_GLOW,
-  HOUSE_ROOF_COLORS,
-  IRON_COLOR,
-} from '../../constants';
-import { buildHouseParts } from './parts';
-import { HOUSE_PARTS, type HousePart } from './houseTypes';
-import { HOUSE_VARIANTS } from './variants';
-import { groupByChunk } from '../common/chunks';
 import { hashCell } from '../../../util/random';
+import { HOUSE_WINDOW_GLOW } from '../../constants';
+import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
+import { addVoxelInstances, type VoxelPlacement } from '../voxel/voxelInstances';
+import { GLOWING, HOUSE_PALETTE, ROOF_SETS } from './housePalette';
+import { HOUSE_GRID, HOUSE_LAYOUTS, HOUSE_VOXEL_SIZE, buildHouseVoxels } from './houseVoxels';
 
-function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
-  return {
-    plaster: new THREE.MeshStandardMaterial({ color: HOUSE_PLASTER_COLOR, flatShading: true, roughness: 0.95 }),
-    timber: new THREE.MeshStandardMaterial({ color: HOUSE_TIMBER_COLOR, flatShading: true, roughness: 0.9 }),
-    stone: new THREE.MeshStandardMaterial({ color: HOUSE_STONE_COLOR, flatShading: true, roughness: 1 }),
-    // White base so the per-instance roof color (setColorAt) comes through unchanged.
-    roof: new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 0.85 }),
-    door: new THREE.MeshStandardMaterial({ color: HOUSE_DOOR_COLOR, flatShading: true, roughness: 0.9 }),
-    iron: new THREE.MeshStandardMaterial({ color: IRON_COLOR, flatShading: true, roughness: 0.6 }),
-    // Per-vertex colors: flowers, barrels, logs, signs etc. in one draw call.
-    decor: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }),
-    window: new THREE.MeshStandardMaterial({
-      color: HOUSE_WINDOW_COLOR,
+const ORIGIN = new THREE.Vector3((-HOUSE_GRID[0] * HOUSE_VOXEL_SIZE) / 2, 0, (-HOUSE_GRID[2] * HOUSE_VOXEL_SIZE) / 2);
+
+// A house's look comes from a hash of its grid position rather than being
+// stored in the model: it's purely visual, and drawing it from the world
+// rng would shift every later placement for every existing seed.
+function looks(house: House): { layout: number; roof: number } {
+  const h = hashCell(house.x, house.z);
+  return { layout: h % HOUSE_LAYOUTS.length, roof: (h >>> 8) % ROOF_SETS.length };
+}
+
+export function buildHouseGeometry(layout: number, roof: number, glowing: boolean): THREE.BufferGeometry {
+  return meshGrid(buildHouseVoxels(HOUSE_LAYOUTS[layout], roof), glowing);
+}
+
+function meshGrid(grid: VoxelGrid, glowing: boolean): THREE.BufferGeometry {
+  return greedyMesh(grid, HOUSE_PALETTE, HOUSE_VOXEL_SIZE, ORIGIN, (color) => GLOWING.has(color) === glowing);
+}
+
+export function buildHouses(scene: THREE.Scene, model: GameModel): void {
+  const grids = new Map<string, VoxelGrid>(); // each model's voxels, shared by its two meshes
+  const key = (house: House) => {
+    const { layout, roof } = looks(house);
+    return `${layout}:${roof}`;
+  };
+  const gridFor = (house: House) => {
+    const k = key(house);
+    let grid = grids.get(k);
+    if (!grid) {
+      const { layout, roof } = looks(house);
+      grid = buildHouseVoxels(HOUSE_LAYOUTS[layout], roof);
+      grids.set(k, grid);
+    }
+    return grid;
+  };
+  // Doors face local -Z; house rotations are always multiples of 90 degrees.
+  const place = (house: House): VoxelPlacement => ({
+    x: house.x,
+    y: model.getGroundY(house.x, house.z),
+    z: house.z,
+    quarterTurns: ((Math.round(house.rotationY / (Math.PI / 2)) % 4) + 4) % 4,
+  });
+
+  addVoxelInstances(
+    scene,
+    model.houses,
+    key,
+    (house) => meshGrid(gridFor(house), false),
+    place,
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
+  );
+  addVoxelInstances(
+    scene,
+    model.houses,
+    key,
+    (house) => meshGrid(gridFor(house), true),
+    place,
+    new THREE.MeshStandardMaterial({
+      vertexColors: true,
       emissive: HOUSE_WINDOW_GLOW,
       emissiveIntensity: 0.9,
       roughness: 0.5,
     }),
-  };
-}
-
-// A house's look comes from a hash of its grid position rather than being
-// stored in the model: it's purely visual, and drawing it from the world
-// rng would shift every later placement (trees) for every existing seed.
-//
-// Houses are grouped by variant; each variant draws one InstancedMesh per
-// material per map chunk (see chunks.ts), so off-screen villages are culled.
-export function buildHouses(scene: THREE.Scene, model: GameModel): void {
-  if (model.houses.length === 0) return;
-
-  const materials = createMaterials();
-  const housesByVariant: House[][] = HOUSE_VARIANTS.map(() => []);
-  for (const house of model.houses) {
-    housesByVariant[hashCell(house.x, house.z) % HOUSE_VARIANTS.length].push(house);
-  }
-
-  const matrix = new THREE.Matrix4();
-  const quaternion = new THREE.Quaternion();
-  const upAxis = new THREE.Vector3(0, 1, 0);
-  const position = new THREE.Vector3();
-  const scale = new THREE.Vector3(1, 1, 1);
-  const roofColor = new THREE.Color();
-
-  housesByVariant.forEach((houses, variantIndex) => {
-    if (houses.length === 0) return;
-    const geometries = buildHouseParts(HOUSE_VARIANTS[variantIndex]);
-
-    for (const part of HOUSE_PARTS) {
-      for (const chunk of groupByChunk(houses)) {
-        const mesh = new THREE.InstancedMesh(geometries[part], materials[part], chunk.length);
-
-        chunk.forEach((house, i) => {
-          quaternion.setFromAxisAngle(upAxis, house.rotationY);
-          // Stands on the village cobbles, not the grass under them.
-          position.set(house.x, model.getGroundY(house.x, house.z), house.z);
-          matrix.compose(position, quaternion, scale);
-          mesh.setMatrixAt(i, matrix);
-
-          if (part === 'roof') {
-            const colorIndex = (hashCell(house.x, house.z) >>> 8) % HOUSE_ROOF_COLORS.length;
-            mesh.setColorAt(i, roofColor.setHex(HOUSE_ROOF_COLORS[colorIndex]));
-          }
-        });
-
-        scene.add(mesh);
-      }
-    }
-  });
+  );
 }
