@@ -114,6 +114,7 @@ export function createMenu(options: MenuOptions): Menu {
     if (rows.length === 0) return;
     selected = (i + rows.length) % rows.length;
     rows.forEach((row, j) => row.classList.toggle('selected', j === selected));
+    rows[selected].scrollIntoView?.({ block: 'nearest' }); // long lists scroll to follow the keyboard
   }
 
   function use(i: number): void {

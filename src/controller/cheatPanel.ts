@@ -1,5 +1,6 @@
-// Dev-only cheat menu, toggled with the backquote key (`), built on the
-// shared EvenHold menu (view/ui/menu.ts). The game pauses while it's open.
+// Dev-only cheat menu (travel, hero powers, enemies, the wardrobe, world
+// facts), toggled with the backquote key (`), built on the shared EvenHold
+// menu (view/ui/menu.ts). The game pauses while it's open.
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
 
@@ -15,9 +16,22 @@ import {
   villageEntrance,
   type Tile,
 } from '../model/cheats';
+import {
+  BANDIT_OUTFIT,
+  EQUIP_SLOTS,
+  ITEMS,
+  ITEM_IDS,
+  SLOT_NAMES,
+  STARTER_SET,
+  isWorn,
+  slotOf,
+  takeOff,
+  wear,
+  type ItemId,
+} from '../model/equipment';
 import type { Village } from '../model/types';
 import { createMenu, type MenuAction } from '../view/ui/menu';
-import { ICONS as ICON } from './cheatIcons';
+import { ICONS as ICON, itemIcon } from './cheatIcons';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
@@ -32,6 +46,11 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
     if (!tile) return `There's no ${where} in this world.`;
     model.teleport(tile.x, tile.z);
     return `Travelled to ${where}.`;
+  };
+  // Replaces everything the hero wears with `items`.
+  const dress = (items: readonly ItemId[]) => {
+    for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
+    for (const item of items) wear(model.hero.equipment, item);
   };
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const toggle = (get: () => boolean, set: (on: boolean) => void, on: string, off: string): Pick<MenuAction, 'run' | 'isOn'> => ({
@@ -88,6 +107,28 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
           { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
           { icon: ICON.skull, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
           { icon: ICON.frost, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
+        ],
+      },
+      {
+        name: 'Wardrobe',
+        icon: ICON.wardrobe,
+        actions: [
+          { icon: ICON.naked, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
+          { icon: ICON.starter, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
+          { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
+          ...ITEM_IDS.map(
+            (item): MenuAction => ({
+              icon: itemIcon(item),
+              title: ITEMS[item].name,
+              detail: `${SLOT_NAMES[slotOf(item)]} · ${STARTER_SET.includes(item) ? 'starter set' : 'bandit outfit'}`,
+              ...toggle(
+                () => isWorn(model.hero.equipment, item),
+                (on) => (on ? wear : takeOff)(model.hero.equipment, item),
+                `${ITEMS[item].name} on.`,
+                `${ITEMS[item].name} off.`,
+              ),
+            }),
+          ),
         ],
       },
       {
