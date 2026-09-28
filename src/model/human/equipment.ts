@@ -11,12 +11,20 @@ import { ITEMS, ITEM_IDS, type ItemId, type Wearer } from './items';
 
 export { ITEMS, ITEM_IDS, type ItemId, type Wearer };
 
-export const ARMOR_SLOTS = ['head', 'torso', 'hands', 'legs', 'feet'] as const;
+// Armor is drawn on the body; jewelry is too small to show, so it's only
+// on the hero sheet; held things are in the hands.
+export const ARMOR_SLOTS = ['head', 'shoulders', 'torso', 'hands', 'legs', 'feet'] as const;
+export const JEWELRY_SLOTS = ['neck', 'ring'] as const;
 export const HELD_SLOTS = ['mainHand', 'offHand'] as const;
 export type ArmorSlot = (typeof ARMOR_SLOTS)[number];
+export type JewelrySlot = (typeof JEWELRY_SLOTS)[number];
 export type HeldSlot = (typeof HELD_SLOTS)[number];
-export type EquipSlot = ArmorSlot | HeldSlot;
-export const EQUIP_SLOTS: readonly EquipSlot[] = [...ARMOR_SLOTS, ...HELD_SLOTS];
+export type EquipSlot = ArmorSlot | JewelrySlot | HeldSlot;
+export const EQUIP_SLOTS: readonly EquipSlot[] = [...ARMOR_SLOTS, ...JEWELRY_SLOTS, ...HELD_SLOTS];
+
+export function isJewelrySlot(slot: EquipSlot): slot is JewelrySlot {
+  return slot === 'neck' || slot === 'ring';
+}
 
 export function isHeldSlot(slot: EquipSlot): slot is HeldSlot {
   return slot === 'mainHand' || slot === 'offHand';
@@ -24,10 +32,13 @@ export function isHeldSlot(slot: EquipSlot): slot is HeldSlot {
 
 export const SLOT_NAMES: Record<EquipSlot, string> = {
   head: 'Head',
+  shoulders: 'Shoulders',
   torso: 'Torso',
   hands: 'Hands',
   legs: 'Legs',
   feet: 'Feet',
+  neck: 'Neck',
+  ring: 'Ring',
   mainHand: 'Main hand',
   offHand: 'Off hand',
 };
@@ -41,7 +52,7 @@ export const BANDIT_OUTFIT: readonly ItemId[] = ['maskedHood', 'leatherVest', 'r
 // How often each kind of wearer leaves a slot empty, as a weight against the
 // items it wears there (ItemEntry.wornBy). Slots not listed are always filled.
 export const EMPTY_SLOT_WEIGHT: Record<Wearer, Partial<Record<EquipSlot, number>>> = {
-  bandit: { head: 2, hands: 3, offHand: 9 },
+  bandit: { head: 2, shoulders: 8, hands: 3, neck: 9, ring: 9, offHand: 9 },
 };
 
 type Options = Array<[ItemId | null, number]>;

@@ -15,6 +15,19 @@ export const HEAD_ITEMS = slotItems('head', {
   circlet: { name: 'Gold circlet' },
 });
 
+export const SHOULDERS_ITEMS = slotItems('shoulders', {
+  leatherPauldrons: { name: 'Leather pauldrons', wornBy: { bandit: 2 } },
+  ironPauldrons: { name: 'Iron pauldrons' },
+  furMantle: { name: 'Fur mantle', wornBy: { bandit: 1 } },
+  quiltedPads: { name: 'Quilted pads' },
+  mailMantle: { name: 'Mail mantle' },
+  bronzeSpaulders: { name: 'Bronze spaulders' },
+  woolShawl: { name: 'Wool shawl' },
+  studdedPauldrons: { name: 'Studded pauldrons', wornBy: { bandit: 1 } },
+  goldEpaulettes: { name: 'Gold epaulettes' },
+  ropeWraps: { name: 'Rope wraps', wornBy: { bandit: 1 } },
+});
+
 export const TORSO_ITEMS = slotItems('torso', {
   gambeson: { name: 'Gambeson' },
   leatherVest: { name: 'Leather vest', wornBy: { bandit: 3 } },
