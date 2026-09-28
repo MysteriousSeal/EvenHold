@@ -33,6 +33,7 @@ import { EnemyDirector } from './enemyDirector';
 import { FRESH_HERO_STATS, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
+import { PICKUP_RANGE, addToBag, rollDrop, type GroundLoot, type LootId } from './loot/loot';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
@@ -40,6 +41,7 @@ import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
 
 const EDGE_MARGIN = 0.4; // how close to the map's edge the hero may go
+const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
 export class GameModel {
   readonly seed: number;
@@ -57,6 +59,8 @@ export class GameModel {
   readonly hero: Hero;
   readonly enemies: Enemy[];
   readonly camps: Camp[];
+  readonly loot: GroundLoot[] = []; // on the ground, until picked up
+  private nextLootId = 0;
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
@@ -105,7 +109,7 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, ...FRESH_HERO_STATS }; // starts naked
+    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
@@ -252,9 +256,52 @@ export class GameModel {
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
-    if (target.state === 'dead') gainXp(this.hero, ENEMY_STATS[target.kind].xp);
+    if (target.state === 'dead') {
+      gainXp(this.hero, ENEMY_STATS[target.kind].xp);
+      const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
+      if (item) this.dropLoot(item, target.x, target.z);
+    }
     const d = Math.max(best, 1e-6);
     this.director.move(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
+  }
+
+  // Puts an item on the ground at (x, z).
+  dropLoot(item: LootId, x: number, z: number): void {
+    this.loot.push({ id: this.nextLootId++, item, x, z, y: this.getGroundY(x, z) });
+  }
+
+  // The loot nearest the hero within reach to pick up, or null.
+  get lootInReach(): GroundLoot | null {
+    let best: GroundLoot | null = null;
+    let bestDistance = PICKUP_RANGE;
+    for (const loot of this.loot) {
+      const d = Math.hypot(loot.x - this.hero.x, loot.z - this.hero.z);
+      if (d <= bestDistance) {
+        best = loot;
+        bestDistance = d;
+      }
+    }
+    return best;
+  }
+
+  // Takes one `item` out of the hero's bag and puts it on the ground just in
+  // front of them; returns whether they had one.
+  dropFromBag(item: LootId): boolean {
+    const count = this.hero.bag[item] ?? 0;
+    if (count <= 0) return false;
+    if (count === 1) delete this.hero.bag[item];
+    else this.hero.bag[item] = count - 1;
+    this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
+    return true;
+  }
+
+  // Picks up the loot in reach into the hero's bag; returns what it was, or null.
+  pickUp(): LootId | null {
+    const loot = this.lootInReach;
+    if (!loot) return null;
+    this.loot.splice(this.loot.indexOf(loot), 1);
+    addToBag(this.hero.bag, loot.item);
+    return loot.item;
   }
 
   get focused(): Enemy | null {
@@ -267,10 +314,11 @@ export class GameModel {
     this.focusedId = enemy && enemy.state !== 'dead' ? enemy.id : null;
   }
 
-  // Drops the focus once its enemy is gone (its corpse cleared) or far off.
+  // Drops the focus the moment its enemy dies (so the next to strike takes
+  // it), or once it's gone or far off.
   private keepFocus(): void {
     const enemy = this.focused;
-    if (!enemy || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
+    if (!enemy || enemy.state === 'dead' || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
   }
 
   // An enemy's blow lands if the hero is still within its reach (a step

@@ -1,5 +1,6 @@
 import type { MapSize } from './grid';
 import type { Humanoid } from './human/humanoid';
+import type { Bag } from './loot/loot';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
@@ -12,6 +13,7 @@ export interface Hero extends Humanoid {
   xp: number; // toward the next level
   hurtFor: number; // seconds left of the hit flash
   sinceHurt: number; // seconds since the last hit
+  bag: Bag; // what they've picked up
 }
 
 export type EnemyKind = 'wolf' | 'bandit';
