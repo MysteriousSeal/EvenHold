@@ -151,6 +151,8 @@ export function createCheatPanel(model: GameModel): void {
               return `Hair: ${STYLE_NAMES[next]}.`;
             },
           },
+          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += 10_000), 'A gold coin, added.') },
+          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 1_000), 'Ten silver, added.') },
           {
             icon: ICON.swiftFeet,
             title: 'Swift feet',

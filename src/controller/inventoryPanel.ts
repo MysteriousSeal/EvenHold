@@ -5,6 +5,7 @@
 // onto the world to put it down. The
 // game plays on around it: it only takes Escape and B.
 
+import { coins } from '../model/money';
 import type { GameModel } from '../model/GameModel';
 import type { BagItem } from '../model/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
@@ -45,6 +46,24 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
   };
 }
 
+// The purse, under the bag: gold, silver and copper, each by its coin
+// (gold and silver only once there's some).
+function purse(money: number): HTMLElement {
+  const { gold, silver, copper } = coins(money);
+  const line = document.createElement('div');
+  line.className = 'menu-purse';
+  const add = (amount: number, metal: string) => {
+    const coin = document.createElement('span');
+    coin.className = `coin ${metal}`;
+    coin.title = metal;
+    line.append(String(amount), coin);
+  };
+  if (gold > 0) add(gold, 'gold');
+  if (gold > 0 || silver > 0) add(silver, 'silver');
+  add(copper, 'copper');
+  return line;
+}
+
 // Returns the bag's menu, and the function to call each frame (it redraws
 // the bag when what's in it changed).
 export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void } {
@@ -62,12 +81,13 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           while (cells.length < COLUMNS * ROWS) cells.push(null);
           return { cells, columns: COLUMNS };
         },
+        footer: () => purse(model.hero.money),
       },
     ],
   });
   let shown = '';
   const update = () => {
-    const contents = JSON.stringify(model.hero.bag);
+    const contents = JSON.stringify([model.hero.bag, model.hero.money]);
     if (contents === shown) return;
     shown = contents;
     menu.refresh();
