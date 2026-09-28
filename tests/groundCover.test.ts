@@ -27,7 +27,7 @@ function tileOf(item: ScatterItem): [number, number] {
 
 describe('ground cover scatter', () => {
   it.each(models)('seed %i: never on water, squares or buildings, and at ground height', (_, model) => {
-    const solid = solidCells(model.houses, model.villages);
+    const solid = solidCells(model);
     const { tufts, flowers, pebbles } = cover(model);
     expect(tufts.length).toBeGreaterThan(0);
 

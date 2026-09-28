@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { generateWorld } from '../src/model/worldgen/world';
-import { WATER_LEVEL, MIN_LAKE_SIZE } from '../src/model/constants';
+import { WATER_LEVEL, MIN_LAKE_SIZE, VILLAGE_OUTER_RADIUS } from '../src/model/constants';
 import { NEIGHBORS_4, inBounds, cellKey, spawnOf } from '../src/model/grid';
 import type { GameModel } from '../src/model/GameModel';
 import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';
@@ -139,6 +139,41 @@ describe('villages', () => {
       for (const [dx, dz] of NEIGHBORS_4) if (inBounds(world.size, x + dx, z + dz)) stack.push([x + dx, z + dz]);
     }
     expect(reachedSquare).toBe(true);
+  });
+});
+
+describe('inn and blacksmith', () => {
+  it.each(worlds)('seed %i: every village has one of each on the square edge, door toward the well', (_, world) => {
+    const bad = world.villages.flatMap((village) => {
+      const mine = world.buildings.filter((b) => Math.max(Math.abs(b.x - village.x), Math.abs(b.z - village.z)) <= VILLAGE_OUTER_RADIUS);
+      const kinds = mine.map((b) => b.kind).sort();
+      if (kinds.join() !== 'inn,smithy') return [`village ${village.x},${village.z}: ${kinds.join()}`];
+      return mine.flatMap((b) => {
+        const problems: string[] = [];
+        for (const [x, z] of b.tiles) {
+          if (Math.max(Math.abs(x - village.x), Math.abs(z - village.z)) !== VILLAGE_OUTER_RADIUS) problems.push(`${b.kind} tile ${x},${z} off the edge`);
+          if (world.surfaceMap[x][z] !== 'plaza') problems.push(`${b.kind} tile ${x},${z} not on the square`);
+        }
+        // Local -Z (the door side) rotated into world space: one step toward the well.
+        const angle = (b.quarterTurns * Math.PI) / 2;
+        const [fx, fz] = [Math.round(-Math.sin(angle)), Math.round(-Math.cos(angle))];
+        const front = b.tiles.map(([x, z]) => [x + fx, z + fz]);
+        if (front.some(([x, z]) => Math.max(Math.abs(x - village.x), Math.abs(z - village.z)) !== VILLAGE_OUTER_RADIUS - 1)) {
+          problems.push(`${b.kind} door faces away from the well`);
+        }
+        return problems;
+      });
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it.each(worlds)('seed %i: no house touches them, and their doors open onto free square', (_, world) => {
+    const buildingCells = new Set(world.buildings.flatMap((b) => b.tiles.map(([x, z]) => cellKey(x, z))));
+    const touching = world.houses.filter((h) => {
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (buildingCells.has(cellKey(h.x + dx, h.z + dz))) return true;
+      return false;
+    });
+    expect(touching).toEqual([]);
   });
 });
 

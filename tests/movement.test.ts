@@ -20,7 +20,7 @@ const freshModel = () => new GameModel(1, TEST_MAP_SIZE);
 // Tiles to keep the test path clear of: the game's solid-tile rule (water,
 // houses, wells, bushes) plus trees, whose trunks block too.
 function solidCellCheck(model: GameModel): (x: number, z: number) => boolean {
-  const solid = solidCells(model.houses, model.villages, model.bushes);
+  const solid = solidCells(model, model.bushes);
   for (const t of model.trees) solid.add(cellKey(t.x, t.z));
   const inMap = (x: number, z: number) => x >= 0 && z >= 0 && x < model.heightMap.length && z < model.heightMap[0].length;
   return (x, z) => !inMap(x, z) || model.lakeMap[x][z] || solid.has(cellKey(x, z));
@@ -140,17 +140,21 @@ describe('road surface', () => {
 
   it('stepping onto the road eases up gently, without the terrain-step hop arc', () => {
     const model = freshModel();
-    const [spawnX, spawnZ] = model.trails[0][0];
+    const [[spawnX, spawnZ], [nextX]] = model.trails[0];
     const grassY = model.heightMap[spawnX][spawnZ] * TILE_HEIGHT;
-    // Start on the grass margin of the spawn tile, then step onto the road band.
-    model.hero.x = spawnX;
-    model.hero.z = spawnZ - 0.4;
+    // Start on the grass margin beside the trail's first leg, then step
+    // sideways across onto the road band.
+    const alongX = nextX !== spawnX;
+    model.hero.x = spawnX - (alongX ? 0 : 0.4);
+    model.hero.z = spawnZ - (alongX ? 0.4 : 0);
     model.hero.y = model.getGroundY(model.hero.x, model.hero.z);
     expect(model.hero.y).toBeCloseTo(grassY, 10);
 
     let maxY = model.hero.y;
-    for (let i = 0; i < 40; i++) {
-      model.update(0, 1, FRAME / 4);
+    // 25 quarter-frames at hero speed cover ~0.42: from 0.4 off the
+    // center line to just past it, ending on the dirt.
+    for (let i = 0; i < 25; i++) {
+      model.update(alongX ? 0 : 1, alongX ? 1 : 0, FRAME / 4);
       maxY = Math.max(maxY, model.hero.y);
     }
     for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);

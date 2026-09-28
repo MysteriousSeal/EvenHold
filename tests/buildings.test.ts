@@ -9,6 +9,7 @@ import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/house/houseV
 import { C, ROOF_SETS } from '../src/view/meshes/house/housePalette';
 import { voxelIndex } from '../src/view/meshes/voxel/greedyMesh';
 import { buildWellGeometry } from '../src/view/meshes/well/wellMesh';
+import { buildBuildingGeometry } from '../src/view/meshes/house/buildingMesh';
 
 const CELL_HALF = 0.5;
 const EPSILON = 1e-6;
@@ -67,5 +68,24 @@ describe('well mesh', () => {
       expect(geometry.getAttribute('position').count).toBeGreaterThan(0);
       expect(horizontalExtent(geometry)).toBeLessThanOrEqual(CELL_HALF + EPSILON);
     }
+  });
+});
+
+describe('inn and blacksmith models', () => {
+  it.each(['inn', 'smithy'] as const)('%s fits its two tiles and has glowing parts', (kind) => {
+    const main = buildBuildingGeometry(kind, false);
+    const glow = buildBuildingGeometry(kind, true);
+    main.computeBoundingBox();
+    const box = main.boundingBox!;
+    expect(Math.max(-box.min.x, box.max.x)).toBeLessThanOrEqual(1 + EPSILON); // two tiles along X
+    expect(Math.max(-box.min.z, box.max.z)).toBeLessThanOrEqual(CELL_HALF + EPSILON);
+    expect(box.min.y).toBeGreaterThanOrEqual(-EPSILON);
+    expect(glow.getAttribute('position').count).toBeGreaterThan(0);
+  });
+
+  it('the inn is the tallest building in the village', () => {
+    const height = (g: THREE.BufferGeometry) => (g.computeBoundingBox(), g.boundingBox!.max.y);
+    const inn = height(buildBuildingGeometry('inn', false));
+    for (let layout = 0; layout < 3; layout++) expect(inn).toBeGreaterThan(height(buildHouseGeometry(layout, 0, false)));
   });
 });
