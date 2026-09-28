@@ -74,11 +74,11 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
-    // E: pick up what's in reach, else go through the door in reach.
+    // E: pick up what's in reach, else sit down or get up, else go through the door in reach.
     if (this.input.consumePickup()) {
       const item = this.model.pickUp();
       if (item) this.onPickUp(item);
-      else this.model.useDoor();
+      else if (!this.model.sitOrStand()) this.model.useDoor();
     }
 
     const { forward, right } = this.view.getMovementAxes();

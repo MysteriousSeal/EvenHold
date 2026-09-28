@@ -29,6 +29,9 @@ const ARM_SWING = 0.55;
 const BOB = 0.012; // body rise at each step, world units
 const TURN_RATE = 14; // how fast they turn toward where they're walking (per second)
 const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
+// Seated: the legs (no knees) straight out in front, the hands resting forward.
+const SIT_LEGS = -1.45;
+const SIT_ARMS = -0.45;
 
 // The blow, keyed over its progress (0..1): the right arm winds up overhead
 // and slightly back, strikes forward and down fast, then recovers; the body
@@ -106,6 +109,7 @@ export class HumanRig {
   private swing = 0; // 0 standing .. 1 full stride, eased
   private heading = 0;
   private time = 0;
+  private seated = false;
 
   constructor(
     readonly look: BodyLook = HERO_LOOK,
@@ -202,8 +206,14 @@ export class HumanRig {
   // since last frame (facing, walk cycle, bob, or idle breathing) and, while
   // attacking, from how far through the blow they are (0..1). `facing`, if
   // given, is the way they strike: they turn to it quickly while attacking.
-  update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number): void {
+  // Seated, (x, y, z) is where the hips rest and `facing` the way the seat
+  // faces: they sit still, legs out in front.
+  update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, seated = false): void {
     this.time += dt;
+    if (seated !== this.seated) {
+      this.seated = seated;
+      this.last.x = Number.NaN; // sitting down or getting up isn't a step
+    }
     const dx = Number.isNaN(this.last.x) ? 0 : x - this.last.x;
     const dz = Number.isNaN(this.last.x) ? 0 : z - this.last.z;
     this.last.set(x, y, z);
@@ -236,6 +246,18 @@ export class HumanRig {
     this.body.position.z = 0;
     this.body.rotation.y = 0;
     this.joints.head.rotation.x = breath * 4; // the head nods slightly with it
+
+    if (seated) {
+      if (facing !== undefined) this.heading = facing;
+      this.root.rotation.y = this.heading;
+      this.swing = 0;
+      this.joints.leftLeg.rotation.x = SIT_LEGS;
+      this.joints.rightLeg.rotation.x = SIT_LEGS;
+      this.joints.leftArm.rotation.x = SIT_ARMS;
+      this.joints.rightArm.rotation.x = SIT_ARMS;
+      this.body.position.y = -JOINTS.leftLeg.at[1] * V + breath; // hips down on the seat
+      return;
+    }
 
     if (attack !== null) {
       // Blend in over the first tenth and out over the last fifth, so the

@@ -234,3 +234,52 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
     return x + r > x0 && x - r < x1 && z + r > z0 && z - r < z1;
   });
 }
+
+// Where someone sits on a seat: the top of its seat (as drawn), a little
+// toward its front, facing the way it faces. A bed is lain on instead: on
+// the mattress, head on the pillow (by the headboard, at the low end along
+// the wall), (x, z) then where the feet go and `facing` from head to feet.
+export interface Seat {
+  piece: Furniture;
+  x: number;
+  z: number;
+  y: number; // the seat's top, where the hips rest (or the back, lying down)
+  facing: number; // yaw, as the hero's facing (atan2(dx, dz))
+  lying: boolean;
+}
+
+const MATTRESS = 0.32; // the bed's blanket top
+const HEAD_TO_FEET = 1.0; // from the headboard end of the bed to where the feet lie
+
+const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>> = {
+  chair: { height: 0.36, forward: 0.2 },
+  armchair: { height: 0.32, forward: 0.08 },
+  barStool: { height: 0.56, forward: 0.26 },
+};
+
+// The seat on a piece of furniture, or null if it's not something to sit on.
+export function seatOf(piece: Furniture): Seat | null {
+  if (piece.kind === 'bed') {
+    const alongZ = piece.wall === 'left';
+    const head = (alongZ ? piece.z : piece.x) - 0.5;
+    return {
+      piece,
+      x: alongZ ? piece.x : head + HEAD_TO_FEET,
+      z: alongZ ? head + HEAD_TO_FEET : piece.z,
+      y: MATTRESS,
+      facing: alongZ ? 0 : Math.PI / 2,
+      lying: true,
+    };
+  }
+  const seat = SEATS[piece.kind];
+  if (!seat || !piece.facing) return null;
+  const [dx, dz] = piece.facing;
+  return { piece, x: piece.x + dx * seat.forward, z: piece.z + dz * seat.forward, y: seat.height, facing: Math.atan2(dx, dz), lying: false };
+}
+
+// How far (x, z) is from a piece's tiles (0 on them).
+export function distanceTo(piece: Furniture, x: number, z: number): number {
+  const dx = Math.max(piece.x - 0.5 - x, 0, x - (piece.x + piece.w - 0.5));
+  const dz = Math.max(piece.z - 0.5 - z, 0, z - (piece.z + piece.d - 0.5));
+  return Math.hypot(dx, dz);
+}

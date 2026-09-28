@@ -226,7 +226,7 @@ export class GameView {
       this.hero.update(hero.x, hero.y, hero.z, 0); // arrive in place, no walk from where it was
       this.cameraY = hero.y;
     }
-    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing);
+    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, !!model.inside?.seated);
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     if (room) {
       this.followHero(hero, 0, dt);

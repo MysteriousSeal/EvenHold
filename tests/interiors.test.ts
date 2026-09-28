@@ -83,4 +83,42 @@ describe('interiors', () => {
     expect(bumpsFurniture(items, 2.9, 3, r)).toBe(true); // into the seat
     expect(bumpsFurniture(items, 3.5, 3, r)).toBe(false); // past its back, where it's not drawn
   });
+
+  it('sits on a chair by it, facing its table, and gets up by walking off', () => {
+    const model = withHouses();
+    const inn = model.entrances.find((e) => e.type === 'inn')!;
+    model.teleport(inn.x, inn.z);
+    model.useDoor();
+    const chair = model.inside!.furniture.find((f) => f.kind === 'chair')!;
+    model.hero.x = chair.x;
+    model.hero.z = chair.z + 0.6;
+    const seat = model.seatInReach!;
+    expect(seat).not.toBeNull();
+    expect(model.sitOrStand()).toBe(true);
+    expect(model.inside!.seated?.seat.piece).toBe(seat.piece);
+    expect([model.hero.x, model.hero.z, model.hero.y]).toEqual([seat.x, seat.z, seat.y]);
+    expect(model.startAttack()).toBe(false); // no swinging from a chair
+    model.update(1, 0, FRAME); // walking gets them up, back where they stood
+    expect(model.inside!.seated).toBeNull();
+    expect(model.hero.y).toBe(0);
+    expect(Math.hypot(model.hero.x - chair.x, model.hero.z - chair.z - 0.6)).toBeLessThan(0.1);
+  });
+
+  it('lies down in bed, head on the pillow by the headboard, and gets up again', () => {
+    const model = withHouses();
+    const house = model.entrances.find((e) => e.type === 'house')!;
+    model.teleport(house.x, house.z);
+    model.useDoor();
+    const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
+    model.hero.x = bed.x + 0.8; // by its open side
+    model.hero.z = bed.z + 0.5;
+    const from = { x: model.hero.x, z: model.hero.z };
+    expect(model.seatInReach?.lying).toBe(true);
+    expect(model.sitOrStand()).toBe(true);
+    expect(model.hero.x).toBe(bed.x); // down the middle of the bed
+    expect(model.hero.facing).toBe(0); // feet toward +z, away from the headboard
+    expect(model.sitOrStand()).toBe(true); // E again: up
+    expect(model.inside!.seated).toBeNull();
+    expect(model.hero).toMatchObject({ ...from, y: 0 });
+  });
 });

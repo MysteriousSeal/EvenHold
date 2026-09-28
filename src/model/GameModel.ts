@@ -8,7 +8,6 @@ import {
   EDGE_MARGIN,
   HERO_SPEED,
   HERO_RADIUS,
-  INDOOR_SCALE,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
   ATTACK_DURATION,
@@ -44,8 +43,9 @@ import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
-import { ENTER_RANGE, entrancesOf, roomFor, type Entrance, type Room } from './interiors/interiors';
-import { bumpsFurniture, furnish, type Furniture } from './interiors/furniture';
+import { ENTER_RANGE, entrancesOf, roomFor, type Entrance } from './interiors/interiors';
+import { furnish, type Seat } from './interiors/furniture';
+import { seatInReach, sitDown, standUp, walkInside, type Inside } from './interiors/indoors';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
@@ -68,9 +68,8 @@ export class GameModel {
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
-  // Where the hero is while indoors: the building's door and its room (the
-  // hero's x/z are then room coordinates); null outdoors.
-  inside: { entrance: Entrance; room: Room; furniture: Furniture[] } | null = null;
+  // Where the hero is while indoors (indoors.ts); null outdoors.
+  inside: Inside | null = null;
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
@@ -151,7 +150,7 @@ export class GameModel {
   // Starts a blow unless one is already under way (returns whether it did),
   // turned to face the focused enemy if it's close by.
   startAttack(): boolean {
-    if (this.attackElapsed !== null) return false;
+    if (this.attackElapsed !== null || this.inside?.seated) return false;
     this.attackElapsed = 0;
     this.attackLanded = false;
     const focus = this.focused;
@@ -379,7 +378,7 @@ export class GameModel {
       return true;
     }
     const room = roomFor(this.seed, entrance);
-    this.inside = { entrance, room, furniture: furnish(this.seed, entrance, room) };
+    this.inside = { entrance, room, furniture: furnish(this.seed, entrance, room), seated: null };
     this.focusedId = null;
     hero.x = room.door;
     hero.z = room.depth - 1;
@@ -388,27 +387,31 @@ export class GameModel {
     return true;
   }
 
-  // Indoors: the hero walks the room's floor, walled in but for the door;
-  // walking out through it goes back outside.
+  // Indoors: the hero walks the room's floor (getting up first if seated);
+  // walking out through the door goes back outside.
   private moveInside(dirX: number, dirZ: number, dt: number): void {
-    const { room, furniture } = this.inside!;
-    const len = Math.hypot(dirX, dirZ);
-    if (len < 1e-6) return;
-    const dist = HERO_SPEED * this.speedMultiplier * dt;
-    const r = HERO_RADIUS * INDOOR_SCALE; // drawn bigger indoors, so bigger to bump into things too
-    const hero = this.hero;
-    hero.facing = Math.atan2(dirX, dirZ);
-    // Axis by axis, so the hero slides along furniture instead of sticking to it.
-    const nx = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
-    if (!bumpsFurniture(furniture, nx, hero.z, r)) hero.x = nx;
-    const inDoorway = Math.abs(hero.x - room.door) < 0.5 - r;
-    const nz = hero.z + (dirZ / len) * dist;
-    if (inDoorway && nz >= room.depth - 0.5 - r) {
-      this.useDoor(); // out through the door
-      return;
+    const inside = this.inside!;
+    if (Math.hypot(dirX, dirZ) < 1e-6) return;
+    standUp(inside, this.hero);
+    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * dt) === 'door') this.useDoor();
+  }
+
+  // The seat the hero could sit on right now, or null (outdoors, or seated).
+  get seatInReach(): Seat | null {
+    return this.inside ? seatInReach(this.inside, this.hero) : null;
+  }
+
+  // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
+  sitOrStand(): boolean {
+    const inside = this.inside;
+    if (!inside) return false;
+    if (inside.seated) {
+      standUp(inside, this.hero);
+      return true;
     }
-    const clampedZ = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
-    if (!bumpsFurniture(furniture, hero.x, clampedZ, r)) hero.z = clampedZ;
+    const seat = seatInReach(inside, this.hero);
+    if (seat) sitDown(inside, this.hero, seat);
+    return !!seat;
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
