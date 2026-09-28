@@ -15,6 +15,7 @@ export interface Hero extends Humanoid {
   hurtFor: number; // seconds left of the hit flash
   sinceHurt: number; // seconds since the last hit
   bag: Bag; // what they've picked up
+  money: number; // their purse, in copper (money.ts)
 }
 
 export type EnemyKind = 'wolf' | 'bandit';

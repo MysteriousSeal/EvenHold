@@ -37,6 +37,7 @@ import { Obstacles } from './obstacles';
 import { stepHop, type Hop } from './hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, takeFromBag, type BagItem } from './bag';
+import { COIN_PICKUP_RANGE, coinDrop, type GroundCoins } from './money';
 import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
@@ -68,6 +69,7 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
+  readonly coins: GroundCoins[] = []; // dropped coins, picked up by walking near them
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -123,7 +125,7 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, ...FRESH_HERO_STATS }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, money: 0, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
@@ -216,6 +218,7 @@ export class GameModel {
     this.advanceAttack(dt);
     this.director.update(dt);
     stepNpcs(this.npcs, this, dt);
+    this.scoopCoins();
     recover(this.hero, dt);
     this.keepFocus();
     stepWildlife(this.wildlife, this, this.hero, dt);
@@ -298,6 +301,8 @@ export class GameModel {
       gainXp(this.hero, target.xp);
       const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
       if (item) this.dropLoot(item, target.x, target.z);
+      const amount = coinDrop(target);
+      if (amount > 0) this.coins.push({ id: this.nextLootId++, amount, x: target.x + 0.25, z: target.z + 0.15, y: this.getGroundY(target.x + 0.25, target.z + 0.15) });
     }
     const d = Math.max(best, 1e-6);
     this.director.move(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
@@ -427,6 +432,16 @@ export class GameModel {
     const seat = this.seatInReach;
     if (seat) sitDown(inside, this.hero, seat);
     return !!seat;
+  }
+
+  // Coins near the hero go into their purse (no need to stop for them).
+  private scoopCoins(): void {
+    for (let i = this.coins.length - 1; i >= 0; i--) {
+      const pile = this.coins[i];
+      if (Math.hypot(pile.x - this.hero.x, pile.z - this.hero.z) > COIN_PICKUP_RANGE) continue;
+      this.hero.money += pile.amount;
+      this.coins.splice(i, 1);
+    }
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
