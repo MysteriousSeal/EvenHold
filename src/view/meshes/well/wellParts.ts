@@ -131,15 +131,15 @@ export function buildWellParts(): Record<WellPart, THREE.BufferGeometry> {
     // Sits well below the rim so it reads as deep water inside the shaft.
     water: [cylinder(0.22, 0.22, 0.02, 12, 0, RIM_TOP - 0.07, 0), ...spareBucket.water],
     rope: [
-      cylinder(0.05, 0.05, 0.16, 10, 0, AXLE_Y, 0, true), // coil around the axle
+      cylinder(0.05, 0.05, 0.16, 10, 0, AXLE_Y, 0, 'x'), // coil around the axle
       box(0.012, AXLE_Y - 0.05 - 0.54, 0.012, 0, (AXLE_Y - 0.05 + 0.54) / 2, 0), // down to the bucket
     ],
     iron: [
       ...hangingBucket.iron,
       ...spareBucket.iron,
-      cylinder(0.03, 0.03, POST_X * 2 + 0.16, 8, 0, AXLE_Y, 0, true), // axle, long enough to reach the crank
+      cylinder(0.03, 0.03, POST_X * 2 + 0.16, 8, 0, AXLE_Y, 0, 'x'), // axle, long enough to reach the crank
       box(0.025, 0.13, 0.025, POST_X + 0.07, AXLE_Y - 0.055, 0), // crank arm
-      cylinder(0.014, 0.014, 0.07, 6, POST_X + 0.1, AXLE_Y - 0.11, 0, true), // crank handle
+      cylinder(0.014, 0.014, 0.07, 6, POST_X + 0.1, AXLE_Y - 0.11, 0, 'x'), // crank handle
       // Lantern bracket on the -X post, the lantern's base plate and cap.
       box(0.02, 0.02, 0.14, -POST_X, 0.74, -0.07),
       box(0.075, 0.015, 0.075, -POST_X, 0.64, -0.14),

@@ -1,43 +1,34 @@
 // Builds one medieval house variant's geometry in house-local space (origin
-// at the ground under the house's center, door facing -Z), merged per
-// material so each material is a single draw call per variant when instanced.
+// at the ground under the house's center, door facing -Z, ridge along X),
+// merged per material so each material is a single draw call per variant
+// when instanced. Structure lives here; small details live in details.ts.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { HouseVariant } from './variants';
-import { box, beam as beamBetween, nonIndexed } from '../geometry';
+import { box, beam, cylinder, nonIndexed, tint } from '../geometry';
+import {
+  BEAM,
+  BRACE,
+  FOUNDATION_HEIGHT,
+  HOUSE_PARTS,
+  INSET,
+  addTo,
+  emptyBuckets,
+  type HousePart,
+  type PartBuckets,
+  type Storey,
+  type WindowSpot,
+} from './houseTypes';
+import { doorDetails, props, quoins, windowDetails } from './details';
 
-export const HOUSE_PARTS = ['plaster', 'timber', 'stone', 'roof', 'door', 'window'] as const;
-export type HousePart = (typeof HOUSE_PARTS)[number];
-
-const FOUNDATION_HEIGHT = 0.1;
 const OVERHANG = 0.08;
-const ROOF_THICKNESS = 0.05;
-const BEAM = 0.05;
-const BRACE = 0.035;
-const PANE = 0.13;
-const SHUTTER_WIDTH = 0.055;
-const INSET = 0.012; // how far wall-mounted details stand proud of the wall
+const SHINGLE_ROWS = 4;
+const SHINGLE_THICKNESS = 0.03;
 const JETTY = 0.05; // how far a two-storey house's upper floor overhangs its stone ground floor
-const DOOR_WIDTH = 0.19;
-const DOOR_HEIGHT = 0.3;
+const CHIMNEY_POT_COLOR = 0xa0522d;
 
 type Wall = 'front' | 'back' | 'left' | 'right';
-
-// A plaster-walled box the timber frame is wrapped around.
-interface Storey {
-  width: number;
-  depth: number;
-  bottom: number;
-  top: number;
-}
-
-interface WindowSpot {
-  x: number;
-  y: number;
-  z: number;
-  facing: 'x' | 'z'; // axis of the wall's outward normal
-}
 
 // Triangular prism filling the attic under the roof: triangle in the YZ
 // plane (base = depth, apex up), running along X. Built by hand rather than
@@ -69,33 +60,58 @@ function gable(depth: number, height: number, length: number, baseY: number): TH
   return nonIndexed(g);
 }
 
-// Two thick panels meeting at the ridge, each tilted to the gable's pitch
-// and extended past the eaves by OVERHANG, plus a cap to hide the seam.
-function roofPanels(width: number, depth: number, roofHeight: number, wallTop: number): THREE.BufferGeometry[] {
+// Each slope is built from overlapping shingle rows, each lower row lifted
+// a little further off the gable so its bottom edge shows, extending past
+// the eaves by OVERHANG. A ridge cap hides the seam, and timber
+// bargeboards trim both gable edges.
+function shingledRoof(width: number, depth: number, roofHeight: number, wallTop: number): Partial<PartBuckets> {
   const halfSpan = depth / 2;
   const slope = Math.hypot(halfSpan, roofHeight);
   const pitch = Math.atan2(roofHeight, halfSpan);
-  const panelLength = slope + OVERHANG;
+  const along = slope + OVERHANG; // ridge to eave, down the slope
+  const rowLength = along / SHINGLE_ROWS + 0.03;
   const panelWidth = width + 2 * OVERHANG;
   const ridgeY = wallTop + roofHeight;
+  const down = { z: halfSpan / slope, y: -roofHeight / slope }; // unit step down the +Z slope
+  const outward = { z: roofHeight / slope, y: halfSpan / slope }; // unit normal of the +Z slope
 
-  const panels = [1, -1].map((side) => {
-    // Midpoint of the panel along the slope, pushed outward by half its
-    // thickness so its underside rests on the gable's sloped face.
-    const t = panelLength / 2;
-    const z = side * (halfSpan / slope) * t + side * (roofHeight / slope) * (ROOF_THICKNESS / 2);
-    const y = ridgeY - (roofHeight / slope) * t + (halfSpan / slope) * (ROOF_THICKNESS / 2);
-    return box(panelWidth, ROOF_THICKNESS, panelLength, 0, y, z, side * pitch);
-  });
+  const roof: THREE.BufferGeometry[] = [];
+  const timber: THREE.BufferGeometry[] = [];
 
-  const ridgeCap = box(panelWidth, 0.045, 0.1, 0, ridgeY + ROOF_THICKNESS * 0.8, 0);
-  return [...panels, ridgeCap];
+  for (const side of [1, -1]) {
+    for (let row = 0; row < SHINGLE_ROWS; row++) {
+      const t = (row + 0.5) * (along / SHINGLE_ROWS);
+      const lift = SHINGLE_THICKNESS * (0.5 + row * 0.5);
+      const z = side * (down.z * t + outward.z * lift);
+      const y = ridgeY + down.y * t + outward.y * lift;
+      roof.push(box(panelWidth, SHINGLE_THICKNESS, rowLength, 0, y, z, side * pitch));
+    }
+
+    const lift = SHINGLE_THICKNESS * 2.2;
+    for (const sx of [-1, 1]) {
+      const x = sx * (panelWidth / 2);
+      timber.push(
+        beam(
+          x,
+          ridgeY + outward.y * lift,
+          side * outward.z * lift,
+          x,
+          ridgeY + down.y * along + outward.y * lift,
+          side * (down.z * along + outward.z * lift),
+          0.04,
+        ),
+      );
+    }
+  }
+
+  roof.push(box(panelWidth + 0.02, 0.05, 0.11, 0, ridgeY + SHINGLE_THICKNESS * 1.1, 0));
+  return { roof, timber };
 }
 
 // Corner posts, sill and head beams around the storey, plus a pair of
 // diagonal braces on each braced wall rising from the bottom corners
-// toward the middle — the classic medieval half-timbered pattern — while
-// leaving the wall's center clear for its window.
+// toward the middle — the classic half-timbered pattern — while leaving
+// the wall's center clear for its window.
 function timberFrame(s: Storey, bracedWalls: Wall[]): THREE.BufferGeometry[] {
   const hw = s.width / 2;
   const hd = s.depth / 2;
@@ -117,33 +133,25 @@ function timberFrame(s: Storey, bracedWalls: Wall[]): THREE.BufferGeometry[] {
   for (const wall of bracedWalls) {
     if (wall === 'front' || wall === 'back') {
       const z = wall === 'front' ? -hd : hd;
-      parts.push(beamBetween(-hw + BEAM / 2, lo, z, -0.12, hi, z, BRACE), beamBetween(hw - BEAM / 2, lo, z, 0.12, hi, z, BRACE));
+      parts.push(beam(-hw + BEAM / 2, lo, z, -0.12, hi, z, BRACE), beam(hw - BEAM / 2, lo, z, 0.12, hi, z, BRACE));
     } else {
       const x = wall === 'left' ? -hw : hw;
-      parts.push(beamBetween(x, lo, -hd + BEAM / 2, x, hi, -0.12, BRACE), beamBetween(x, lo, hd - BEAM / 2, x, hi, 0.12, BRACE));
+      parts.push(beam(x, lo, -hd + BEAM / 2, x, hi, -0.12, BRACE), beam(x, lo, hd - BEAM / 2, x, hi, 0.12, BRACE));
     }
   }
   return parts;
 }
 
-// Glowing panes plus a wooden shutter on each side.
-function windows(spots: WindowSpot[]): { panes: THREE.BufferGeometry[]; shutters: THREE.BufferGeometry[] } {
-  const panes: THREE.BufferGeometry[] = [];
-  const shutters: THREE.BufferGeometry[] = [];
-  const shutterOffset = PANE / 2 + SHUTTER_WIDTH / 2 + 0.01;
-
-  for (const { x, y, z, facing } of spots) {
-    if (facing === 'z') {
-      const out = Math.sign(z) * 0.008;
-      panes.push(box(PANE, PANE, 0.03, x, y, z));
-      for (const side of [-1, 1]) shutters.push(box(SHUTTER_WIDTH, PANE + 0.02, 0.02, x + side * shutterOffset, y, z + out));
-    } else {
-      const out = Math.sign(x) * 0.008;
-      panes.push(box(0.03, PANE, PANE, x, y, z));
-      for (const side of [-1, 1]) shutters.push(box(0.02, PANE + 0.02, SHUTTER_WIDTH, x + out, y, z + side * shutterOffset));
-    }
+// King post and two raking struts on each plaster gable triangle.
+function gableTimbering(s: Storey, roofHeight: number): THREE.BufferGeometry[] {
+  const hd = s.depth / 2;
+  const parts: THREE.BufferGeometry[] = [];
+  for (const sx of [-1, 1]) {
+    const x = sx * (s.width / 2 + 0.006);
+    parts.push(beam(x, s.top, 0, x, s.top + roofHeight * 0.85, 0, BRACE));
+    for (const sz of [-1, 1]) parts.push(beam(x, s.top + 0.02, sz * hd * 0.72, x, s.top + roofHeight * 0.48, 0, BRACE));
   }
-  return { panes, shutters };
+  return parts;
 }
 
 // Four windows around a storey at height y (front one optional, since the
@@ -179,7 +187,6 @@ export function buildHouseParts(v: HouseVariant): Record<HousePart, THREE.Buffer
         ...windowRing(upper, FOUNDATION_HEIGHT + v.height * 0.75, 0),
       ]
     : windowRing(upper, FOUNDATION_HEIGHT + v.height * 0.55, v.width * 0.22);
-  const { panes, shutters } = windows(windowSpots);
   const bracedWalls: Wall[] = v.twoStorey ? ['front', 'back', 'left', 'right'] : ['back', 'left', 'right'];
 
   // Chimney pokes through the back (+Z) slope near one gable end.
@@ -188,35 +195,32 @@ export function buildHouseParts(v: HouseVariant): Record<HousePart, THREE.Buffer
   const chimneyBottom = wallTop + v.roofHeight / 2 - 0.05;
   const chimneyTop = wallTop + v.roofHeight + 0.14;
 
-  const doorFrontZ = -hd - INSET;
-  const parts: Record<HousePart, THREE.BufferGeometry[]> = {
-    plaster: [
-      box(upper.width, upper.top - upper.bottom, upper.depth, 0, (upper.top + upper.bottom) / 2, 0),
-      gable(upper.depth, v.roofHeight, upper.width, wallTop),
-    ],
-    timber: [
-      ...timberFrame(upper, bracedWalls),
-      // Door frame: two jambs and a lintel.
-      box(0.035, DOOR_HEIGHT + 0.03, 0.04, doorX - DOOR_WIDTH / 2 - 0.02, FOUNDATION_HEIGHT + DOOR_HEIGHT / 2, doorFrontZ),
-      box(0.035, DOOR_HEIGHT + 0.03, 0.04, doorX + DOOR_WIDTH / 2 + 0.02, FOUNDATION_HEIGHT + DOOR_HEIGHT / 2, doorFrontZ),
-      box(DOOR_WIDTH + 0.1, 0.045, 0.04, doorX, FOUNDATION_HEIGHT + DOOR_HEIGHT + 0.02, doorFrontZ),
-    ],
-    stone: [
-      // Sunk slightly into the ground so no gap shows on the tile edge.
-      box(v.width + 0.08, FOUNDATION_HEIGHT + 0.03, v.depth + 0.08, 0, (FOUNDATION_HEIGHT - 0.03) / 2, 0),
-      ...(v.twoStorey ? [box(ground.width, ground.top - ground.bottom, ground.depth, 0, (ground.top + ground.bottom) / 2, 0)] : []),
-      box(0.13, chimneyTop - chimneyBottom, 0.13, chimneyX, (chimneyTop + chimneyBottom) / 2, chimneyZ),
-      box(0.17, 0.04, 0.17, chimneyX, chimneyTop + 0.02, chimneyZ),
-      box(0.3, 0.07, 0.1, doorX, 0.035, -hd - 0.08), // door step
-    ],
-    roof: roofPanels(upper.width, upper.depth, v.roofHeight, wallTop),
-    door: [box(DOOR_WIDTH, DOOR_HEIGHT, 0.03, doorX, FOUNDATION_HEIGHT + DOOR_HEIGHT / 2, doorFrontZ), ...shutters],
-    window: panes,
-  };
+  const buckets = emptyBuckets();
+  buckets.plaster.push(
+    box(upper.width, upper.top - upper.bottom, upper.depth, 0, (upper.top + upper.bottom) / 2, 0),
+    gable(upper.depth, v.roofHeight, upper.width, wallTop),
+  );
+  buckets.timber.push(...timberFrame(upper, bracedWalls), ...gableTimbering(upper, v.roofHeight));
+  buckets.stone.push(
+    // Sunk slightly into the ground so no gap shows on the tile edge.
+    box(v.width + 0.08, FOUNDATION_HEIGHT + 0.03, v.depth + 0.08, 0, (FOUNDATION_HEIGHT - 0.03) / 2, 0),
+    box(0.13, chimneyTop - chimneyBottom, 0.13, chimneyX, (chimneyTop + chimneyBottom) / 2, chimneyZ),
+    box(0.155, 0.03, 0.155, chimneyX, chimneyTop - 0.07, chimneyZ), // band
+    box(0.17, 0.04, 0.17, chimneyX, chimneyTop + 0.02, chimneyZ), // cap
+    box(0.3, 0.07, 0.1, doorX, 0.035, -hd - 0.08), // door step
+  );
+  buckets.decor.push(tint(cylinder(0.028, 0.034, 0.06, 8, chimneyX, chimneyTop + 0.07, chimneyZ), CHIMNEY_POT_COLOR));
+  if (v.twoStorey) {
+    buckets.stone.push(box(ground.width, ground.top - ground.bottom, ground.depth, 0, (ground.top + ground.bottom) / 2, 0));
+    addTo(buckets, quoins(ground));
+  }
+
+  addTo(buckets, shingledRoof(upper.width, upper.depth, v.roofHeight, wallTop));
+  addTo(buckets, windowDetails(windowSpots));
+  addTo(buckets, doorDetails(doorX, hd));
+  addTo(buckets, props(v, upper, doorX));
 
   const merged = {} as Record<HousePart, THREE.BufferGeometry>;
-  for (const part of HOUSE_PARTS) {
-    merged[part] = mergeGeometries(parts[part])!;
-  }
+  for (const part of HOUSE_PARTS) merged[part] = mergeGeometries(buckets[part])!;
   return merged;
 }

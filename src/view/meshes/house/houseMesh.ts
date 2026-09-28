@@ -10,9 +10,10 @@ import {
   HOUSE_WINDOW_COLOR,
   HOUSE_WINDOW_GLOW,
   HOUSE_ROOF_COLORS,
+  IRON_COLOR,
 } from '../../constants';
-import { HOUSE_PARTS, buildHouseParts } from './parts';
-import type { HousePart } from './parts';
+import { buildHouseParts } from './parts';
+import { HOUSE_PARTS, type HousePart } from './houseTypes';
 import { HOUSE_VARIANTS, houseHash } from './variants';
 
 function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
@@ -23,6 +24,9 @@ function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
     // White base so the per-instance roof color (setColorAt) comes through unchanged.
     roof: new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 0.85 }),
     door: new THREE.MeshStandardMaterial({ color: HOUSE_DOOR_COLOR, flatShading: true, roughness: 0.9 }),
+    iron: new THREE.MeshStandardMaterial({ color: IRON_COLOR, flatShading: true, roughness: 0.6 }),
+    // Per-vertex colors: flowers, barrels, logs, signs etc. in one draw call.
+    decor: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }),
     window: new THREE.MeshStandardMaterial({
       color: HOUSE_WINDOW_COLOR,
       emissive: HOUSE_WINDOW_GLOW,

@@ -34,7 +34,7 @@ export function beam(
   return nonIndexed(g);
 }
 
-// Upright cylinder (optionally tapered), or lying along X when `alongX` is set.
+// Cylinder (optionally tapered) whose axis runs along Y by default, or along X / Z.
 export function cylinder(
   radiusTop: number,
   radiusBottom: number,
@@ -43,10 +43,27 @@ export function cylinder(
   x: number,
   y: number,
   z: number,
-  alongX = false,
+  axis: 'x' | 'y' | 'z' = 'y',
 ): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments);
-  if (alongX) g.rotateZ(Math.PI / 2);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
   g.translate(x, y, z);
   return nonIndexed(g);
+}
+
+// Paints a geometry one solid color via a per-vertex color attribute, so
+// many differently colored small details can share a single
+// vertexColors material (and draw call).
+export function tint(g: THREE.BufferGeometry, hex: number): THREE.BufferGeometry {
+  const color = new THREE.Color(hex); // converted to linear, matching material colors
+  const count = g.getAttribute('position').count;
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return g;
 }
