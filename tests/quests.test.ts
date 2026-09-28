@@ -49,6 +49,7 @@ describe('quests', () => {
     const quest = { ...questAt(model, 0, 0), kind: 'kill' as const, item: null, count: 3 };
     expect(model.quests.accept(quest)).toBe(true);
     expect(marked(model, quest.key)).toHaveLength(3);
+    expect(marked(model, quest.key).every((e) => model.quests.marked(e))).toBe(true); // each wears the mark
     expect(model.quests.handIn(quest.key)).toBe(false); // not done
     slay(model, quest.key);
     const taken = model.quests.takenOf(quest.key)!;

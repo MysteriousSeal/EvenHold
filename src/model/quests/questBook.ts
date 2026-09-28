@@ -59,6 +59,11 @@ export class QuestBook {
     return i < 0 ? null : i;
   }
 
+  // Whether a board has a quest the hero could take now (one not taken, and room for it).
+  available(board: number): boolean {
+    return !this.full && this.numbersAt(board).some((n) => !this.takenOf(`${board}:${n}`));
+  }
+
   takenOf(key: string): TakenQuest | null {
     return this.taken.find((t) => t.quest.key === key) ?? null;
   }
