@@ -27,6 +27,7 @@ import {
 import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
 import { campPalisade, campPieces, spawnEnemies, stepEnemy } from './enemies';
+import { HERO_LOOK } from './humanoid';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
@@ -100,7 +101,7 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0 };
+    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {} }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;

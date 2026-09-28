@@ -1,6 +1,8 @@
 import type { MapSize } from './grid';
+import type { Humanoid } from './humanoid';
 
-export interface Hero {
+// The hero is a humanoid: a look, and what they wear (naked at first).
+export interface Hero extends Humanoid {
   x: number;
   z: number;
   y: number;
@@ -26,6 +28,7 @@ export interface Enemy {
   deadFor: number; // seconds since it died
   swingFor: number | null; // seconds into its own attack swing (bandits), or null
   cooldown: number; // seconds before it can swing again
+  human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
 }
 
 // A 5x5 bandit camp around a campfire on (x, z), its layout turned by
