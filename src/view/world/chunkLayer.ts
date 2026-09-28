@@ -5,7 +5,7 @@
 // so startup only pays for what's around spawn.
 
 import * as THREE from 'three';
-import { chunkKeyOf } from '../meshes/common/chunks';
+import { chunkKeyOf } from './chunks';
 
 export interface ChunkLayer {
   readonly materials: THREE.Material[];

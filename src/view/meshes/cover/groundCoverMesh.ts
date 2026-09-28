@@ -7,12 +7,12 @@
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
-import { hashCell } from '../../../util/random';
+import { hashCell, snapTo } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { TERRAIN_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
-import { allChunkKeys, chunkTiles } from '../common/chunks';
+import { allChunkKeys, chunkTiles } from '../../world/chunks';
 import { createCoverScatter, type GroundCover, type ScatterItem } from './groundCoverScatter';
 import {
   COVER_PALETTE,
@@ -52,7 +52,7 @@ export function tuftSize(scale: number): number {
   return scale < 0.8 ? 0 : scale < 1.1 ? 1 : 2;
 }
 
-const snap = (v: number) => Math.round(v / COVER_VOXEL_SIZE) * COVER_VOXEL_SIZE;
+const snap = (v: number) => snapTo(v, COVER_VOXEL_SIZE);
 // A per-item hash (from its snapped position) picks the model shape.
 const itemHash = (item: ScatterItem) => hashCell(Math.round(item.x * 25), Math.round(item.z * 25), 13);
 

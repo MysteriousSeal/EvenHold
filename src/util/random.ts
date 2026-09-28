@@ -29,6 +29,18 @@ export function hashCell(x: number, z: number, salt = 0): number {
   return (h ^ (h >>> 15)) >>> 0;
 }
 
+// hashCell as a number in [0, 1): per-voxel or per-tile noise for
+// dithering and scattering details in procedural models.
+export function hashUnit(x: number, z: number, salt = 0): number {
+  return hashCell(x, z, salt) / 4294967296;
+}
+
+// Rounds v to the nearest multiple of `step` (e.g. snapping a prop onto a
+// voxel grid).
+export function snapTo(v: number, step: number): number {
+  return Math.round(v / step) * step;
+}
+
 export function generateRandomSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
 }

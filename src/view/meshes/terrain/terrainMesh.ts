@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
-import { allChunkKeys, chunkTiles } from '../common/chunks';
+import { allChunkKeys, chunkTiles } from '../../world/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
 import { hashCell } from '../../../util/random';

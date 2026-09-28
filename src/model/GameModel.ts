@@ -38,10 +38,18 @@ export class GameModel {
   readonly hero: Hero;
 
   private readonly solidCells: ReadonlySet<string>; // tiles blocked edge to edge
-  // Props smaller than a tile (bushes, tree trunks): tile key -> half-size of
-  // the square they block, centered on the tile.
+  // Props smaller than a tile (bushes, tree trunks, lamp posts): tile key ->
+  // half-size of the square they block, centered on the tile.
   private readonly propFootprints: ReadonlyMap<string, number>;
   private hop: { fromY: number; toY: number; elapsed: number } | null = null;
+  // Field fences, as thin axis-aligned rectangles [minX, minZ, maxX, maxZ]
+  // along tile edges, keyed by the tile they're in.
+  private readonly fences = new Map<string, Array<[number, number, number, number]>>();
+  // Time into the current attack, or null when not attacking.
+  private attackElapsed: number | null = null;
+
+  // Dev cheats: movement speed factor (1 = normal).
+  speedMultiplier = 1;
 
   // `size` defaults to the game's map; tests pass small worlds.
   constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE) {
@@ -93,13 +101,6 @@ export class GameModel {
     return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
 
-  // Field fences, as thin axis-aligned rectangles [minX, minZ, maxX, maxZ]
-  // along tile edges, keyed by the tile they're in.
-  private readonly fences = new Map<string, Array<[number, number, number, number]>>();
-
-  // Time into the current attack, or null when not attacking.
-  private attackElapsed: number | null = null;
-
   // Starts a blow unless one is already under way; returns whether it did.
   startAttack(): boolean {
     if (this.attackElapsed !== null) return false;
@@ -112,9 +113,6 @@ export class GameModel {
     return this.attackElapsed === null ? null : Math.min(1, this.attackElapsed / ATTACK_DURATION);
   }
 
-  // Dev cheats: movement speed factor (1 = normal).
-  speedMultiplier = 1;
-
   // Moves the hero straight to (x, z), standing on the ground there.
   teleport(x: number, z: number): void {
     this.hero.x = x;
@@ -124,7 +122,7 @@ export class GameModel {
   }
 
   // A tile the hero can stand in the middle of: on the map, dry, and free
-  // of houses, wells, trees and bushes.
+  // of buildings, wells, trees, bushes and lamp posts.
   isOpenTile(x: number, z: number): boolean {
     const key = cellKey(x, z);
     return inBounds(this.size, x, z) && !this.lakeMap[x][z] && !this.solidCells.has(key) && !this.propFootprints.has(key);

@@ -10,8 +10,8 @@ import type { MovementAxes } from './render/camera';
 import { addLights } from './render/lighting';
 import { buildTerrain } from './meshes/terrain/terrainMesh';
 import { buildTrees } from './meshes/tree/treeMesh';
-import { buildHouses } from './meshes/house/houseMesh';
-import { buildBuildings } from './meshes/house/buildingMesh';
+import { buildHouses } from './meshes/building/houseMesh';
+import { buildBuildings } from './meshes/building/buildingMesh';
 import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
@@ -144,7 +144,8 @@ export class GameView {
     return this.movementAxes;
   }
 
-  update(model: GameModel, dt: number): void {
+  update(dt: number): void {
+    const { model } = this;
     this.elapsed += dt;
     for (const animate of this.animations) animate(this.elapsed);
 

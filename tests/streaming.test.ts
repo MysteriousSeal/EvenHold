@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import type { ChunkLayer } from '../src/view/world/chunkLayer';
 import { ChunkStreamer } from '../src/view/world/chunkStreamer';
-import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
+import { CHUNK_SIZE } from '../src/view/world/chunks';
 
 // A layer with one marker mesh in every chunk of a 16x16-chunk world,
 // counting how many chunks it was asked to build.

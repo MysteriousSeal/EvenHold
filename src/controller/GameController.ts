@@ -81,7 +81,7 @@ export class GameController {
     }
 
     this.model.update(dirX, dirZ, dt);
-    this.view.update(this.model, dt);
+    this.view.update(dt);
     this.view.render();
   }
 }

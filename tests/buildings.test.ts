@@ -4,12 +4,12 @@
 
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { buildHouseGeometry } from '../src/view/meshes/house/houseMesh';
-import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/house/houseVoxels';
-import { C, ROOF_SETS } from '../src/view/meshes/house/housePalette';
+import { buildHouseGeometry } from '../src/view/meshes/building/houseMesh';
+import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/building/houseVoxels';
+import { C, ROOF_SETS } from '../src/view/meshes/building/housePalette';
 import { voxelIndex } from '../src/view/meshes/voxel/greedyMesh';
 import { buildWellGeometry } from '../src/view/meshes/well/wellMesh';
-import { buildBuildingGeometry } from '../src/view/meshes/house/buildingMesh';
+import { buildBuildingGeometry } from '../src/view/meshes/building/buildingMesh';
 
 const CELL_HALF = 0.5;
 const EPSILON = 1e-6;

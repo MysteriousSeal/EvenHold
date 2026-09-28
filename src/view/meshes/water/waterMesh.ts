@@ -15,11 +15,11 @@
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
-import { allChunkKeys, chunkTiles } from '../common/chunks';
+import { allChunkKeys, chunkTiles } from '../../world/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
 import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/grid';
-import { hashCell } from '../../../util/random';
+import { hashCell, snapTo } from '../../../util/random';
 import { WATER_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
@@ -172,7 +172,7 @@ interface Decor {
 }
 
 // Voxel offsets keep decor on the 0.04 grid, like everything else.
-const snap = (v: number) => Math.round(v / WATER_DECOR_VOXEL_SIZE) * WATER_DECOR_VOXEL_SIZE;
+const snap = (v: number) => snapTo(v, WATER_DECOR_VOXEL_SIZE);
 
 function placeDecor(model: GameModel, distance: Uint16Array): { lilies: Decor[]; reeds: Decor[] } {
   const lilies: Decor[] = [];

@@ -5,6 +5,7 @@
 // a single mesh, moved each frame (a few hundred cubes at most).
 
 import * as THREE from 'three';
+import { snapTo } from '../../../util/random';
 import type { WorldSink } from '../../world/chunkLayer';
 
 const VOXEL = 0.04;
@@ -15,7 +16,7 @@ const DRIFT = new THREE.Vector3(0.32, 0, 0.19); // downwind travel over a lifeti
 const SOOT = new THREE.Color(0x6a6560);
 const HAZE = new THREE.Color(0xd8d4cc);
 
-const snap = (v: number) => Math.round(v / VOXEL) * VOXEL;
+const snap = (v: number) => snapTo(v, VOXEL);
 
 export function addChimneySmoke(scene: WorldSink, chimneys: THREE.Vector3[]): (elapsedSeconds: number) => void {
   if (chimneys.length === 0) return () => {};

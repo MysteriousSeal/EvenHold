@@ -7,6 +7,7 @@
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { fillBox, setColor, voxelLine } from '../voxel/voxelShapes';
+import { hashUnit } from '../../../util/random';
 import { C, ROOF_SETS } from './housePalette';
 
 export const MID = 12;
@@ -36,13 +37,6 @@ export function put(grid: VoxelGrid, [x, y, z]: Voxel, color: number): void {
 // Coursed stonework: blocks four voxels long, every other course offset by
 // two, mostly mid stone with some dark and a few light blocks, so walls read
 // as masonry without turning noisy. Runs around corners.
-// Deterministic per-voxel noise in [0, 1), for dithering colors.
-export function speck(x: number, y: number, z: number): number {
-  let h = Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791);
-  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
-  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
-}
-
 export function masonry(x: number, y: number, z: number): number {
   const block = Math.floor((x + z + (y % 2) * 2) / 4);
   const pick = (block * 7 + y * 3) % 7;
@@ -139,7 +133,7 @@ export function timberStorey(grid: VoxelGrid, b: Box): void {
   // hand-applied rather than flat paint.
   fillBox(grid, b.x0 + 1, b.y0, b.z0 + 1, b.x1 - 1, b.y1, b.z1 - 1, (x, y, z) => {
     if (y === b.y0 || y === b.y1 - 1) return C.plasterShade;
-    const h = speck(x, y, z);
+    const h = hashUnit(x, y, z);
     return h < 0.06 ? C.plasterShade : h < 0.14 ? C.plasterWarm : C.plaster;
   });
   for (const [x, z] of [
@@ -179,8 +173,8 @@ export function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: num
         if (dz === lastRow) return shades.dark;
         if (dz === 0) return shades.highlight; // ridge cap
         const shingle = Math.floor((x + dz * 2) / 3);
-        const h = speck(shingle, dz, side);
-        const moss = speck(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
+        const h = hashUnit(shingle, dz, side);
+        const moss = hashUnit(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
         if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
         const light = Math.floor(dz / 2) % 2 === 1;
         return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;

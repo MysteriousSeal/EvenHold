@@ -8,7 +8,7 @@ import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
 import { buildRoadTile } from '../src/view/meshes/road/roadVoxels';
 import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
 import { eagerSink } from '../src/view/world/chunkLayer';
-import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
+import { CHUNK_SIZE } from '../src/view/world/chunks';
 import { addWindSway } from '../src/view/meshes/common/wind';
 
 function grid(size: [number, number, number], voxels: Array<[number, number, number, number]>): VoxelGrid {

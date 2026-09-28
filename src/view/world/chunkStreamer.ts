@@ -5,7 +5,7 @@
 // model geometry stays cached for when the hero comes back).
 
 import * as THREE from 'three';
-import { CHUNK_SIZE } from '../meshes/common/chunks';
+import { CHUNK_SIZE } from './chunks';
 import type { ChunkLayer, WorldSink } from './chunkLayer';
 
 // The camera shows about 15 tiles from the hero at most (fog hides the

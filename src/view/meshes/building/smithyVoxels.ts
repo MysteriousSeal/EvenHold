@@ -5,6 +5,7 @@
 // a quench barrel, a tool rack and stacked iron bars. A sign with an anvil
 // hangs off the corner post. Door faces -Z; the ridge runs along X.
 
+import { hashUnit } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { C, ROOF_SETS } from './housePalette';
@@ -15,12 +16,6 @@ const ROOF = 1; // slate
 const YARD_X = [26, 48];
 // Top of the forge chimney, in voxels: where the smoke comes out.
 export const SMITHY_SMOKE_ORIGIN: [number, number, number] = [30, 34, 17];
-
-// Deterministic per-voxel noise in [0, 1), for scattering yard details.
-function speck(x: number, z: number): number {
-  const h = Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
-  return (Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0) / 4294967296;
-}
 
 export function buildSmithyVoxels(): VoxelGrid {
   const grid = createGrid(SMITHY_GRID);
@@ -49,7 +44,7 @@ export function buildSmithyVoxels(): VoxelGrid {
 function yard(grid: VoxelGrid): void {
   const [x0, x1] = YARD_X;
   fillBox(grid, x0, 0, 0, x1 + 1, 0, 21, (x, _y, z) => {
-    const n = speck(x, z);
+    const n = hashUnit(x, z);
     return n < 0.07 ? C.stone : n < 0.12 ? C.stoneDark : n < 0.2 ? C.soot : n < 0.23 ? C.iron : n < 0.55 ? C.earthDark : C.earth;
   });
   fillBox(grid, x0, 1, 19, x1, 13, 19, (x, y) => (y % 4 === 0 ? C.timber : x % 2 === 0 ? C.door : C.doorDark));
@@ -68,7 +63,7 @@ function forge(grid: VoxelGrid): void {
   const [sx, sy, sz] = SMITHY_SMOKE_ORIGIN;
   fillBox(grid, 27, 1, 12, 33, 5, 18, masonry);
   fillBox(grid, 28, 5, 13, 32, 5, 17, (x, _y, z) => {
-    const n = speck(x, z);
+    const n = hashUnit(x, z);
     return n < 0.3 ? C.emberHot : n < 0.8 ? C.ember : C.coal;
   });
   fillBox(grid, 27, 9, 13, 33, 12, 18, masonry); // hood
