@@ -6,9 +6,9 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { TERRAIN_COLORS } from '../../constants';
-import { cylinder } from '../geometry';
+import { cylinder } from '../common/geometry';
 import { scatterGroundCover, type ScatterItem } from './groundCoverScatter';
-import { groupByChunk } from '../chunks';
+import { groupByChunk } from '../common/chunks';
 import { mulberry32 } from '../../../util/random';
 
 const TUFT_SHADES = [0.92, 1.06]; // slight per-clump variation of the tile's green

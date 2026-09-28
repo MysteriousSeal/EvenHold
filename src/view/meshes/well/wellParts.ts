@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { box, beam, cylinder } from '../geometry';
+import { box, beam, cylinder } from '../common/geometry';
 
 export const WELL_PARTS = ['stoneLight', 'stoneDark', 'timber', 'wood', 'roof', 'water', 'rope', 'iron', 'glow'] as const;
 export type WellPart = (typeof WELL_PARTS)[number];

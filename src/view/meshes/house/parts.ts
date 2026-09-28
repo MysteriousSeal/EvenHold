@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { HouseVariant } from './variants';
-import { box, beam, cylinder, nonIndexed, tint } from '../geometry';
+import { box, beam, cylinder, nonIndexed, tint } from '../common/geometry';
 import {
   BEAM,
   BRACE,

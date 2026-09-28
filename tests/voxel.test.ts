@@ -6,6 +6,8 @@ import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxel
 import type { BushKind, TreeKind } from '../src/model/types';
 import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
 import { buildRoadTile } from '../src/view/meshes/ground/roadVoxels';
+import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
+import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
 
 function grid(size: [number, number, number], voxels: Array<[number, number, number, number]>): VoxelGrid {
   const g: VoxelGrid = { size, cells: new Uint8Array(size[0] * size[1] * size[2]) };
@@ -117,6 +119,40 @@ describe('voxel road tiles', () => {
         const isRut = j === 3 || j === 9; // ruts 3 voxels either side of center
         expect(top === 0).toBe(isRut);
       });
+    }
+  });
+});
+
+describe('voxel instancing', () => {
+  it('draws every item once, builds each model once, and never spans chunks', () => {
+    const scene = new THREE.Scene();
+    const items = Array.from({ length: 200 }, (_, i) => ({ x: (i * 7) % 64, z: (i * 13) % 64, model: i % 3 }));
+    let builds = 0;
+    addVoxelInstances(
+      scene,
+      items,
+      (item) => String(item.model),
+      () => {
+        builds++;
+        return new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      },
+      (item) => ({ x: item.x, y: 0, z: item.z, quarterTurns: 0 }),
+      new THREE.MeshStandardMaterial(),
+    );
+
+    const meshes = scene.children as THREE.InstancedMesh[];
+    expect(builds).toBe(3);
+    expect(meshes.reduce((sum, m) => sum + m.count, 0)).toBe(items.length);
+    const position = new THREE.Vector3();
+    const matrix = new THREE.Matrix4();
+    for (const mesh of meshes) {
+      const chunks = new Set<string>();
+      for (let i = 0; i < mesh.count; i++) {
+        mesh.getMatrixAt(i, matrix);
+        position.setFromMatrixPosition(matrix);
+        chunks.add(`${Math.floor(position.x / CHUNK_SIZE)},${Math.floor(position.z / CHUNK_SIZE)}`);
+      }
+      expect(chunks.size).toBe(1);
     }
   });
 });

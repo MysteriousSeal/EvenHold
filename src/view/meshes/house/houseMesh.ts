@@ -14,7 +14,7 @@ import {
 import { buildHouseParts } from './parts';
 import { HOUSE_PARTS, type HousePart } from './houseTypes';
 import { HOUSE_VARIANTS } from './variants';
-import { groupByChunk } from '../chunks';
+import { groupByChunk } from '../common/chunks';
 import { hashCell } from '../../../util/random';
 
 function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {

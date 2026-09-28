@@ -3,7 +3,7 @@
 // in house-local space: door on the -Z wall, ridge along X.
 
 import type * as THREE from 'three';
-import { box, cylinder, tint } from '../geometry';
+import { box, cylinder, tint } from '../common/geometry';
 import {
   DOOR_HEIGHT,
   DOOR_WIDTH,

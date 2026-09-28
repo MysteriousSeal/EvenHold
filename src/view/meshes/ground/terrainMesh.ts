@@ -4,7 +4,7 @@ import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, TILE_HEIGHT } from '../../../model/c
 import { hashCell } from '../../../util/random';
 import { TERRAIN_COLORS, WATER_COLOR } from '../../constants';
 import { createGrassTexture, type GrassTexture } from './grassTexture';
-import { groupByChunk } from '../chunks';
+import { groupByChunk } from '../common/chunks';
 
 const TILE_SHADE_JITTER = 0.03; // ± per-tile brightness, breaks up the repeating texture
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z

@@ -1,6 +1,6 @@
-// Small geometry helpers shared by the house and well builders. Every
-// helper returns non-indexed geometry, since mergeGeometries needs all of
-// its inputs to agree on that.
+// Small geometry helpers shared by the house, well and ground-cover
+// builders. Every helper returns non-indexed geometry, since
+// mergeGeometries needs all of its inputs to agree on that.
 
 import * as THREE from 'three';
 

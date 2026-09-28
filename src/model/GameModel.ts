@@ -125,11 +125,11 @@ export class GameModel {
     if (!this.isBlocked(this.hero.x, candidateZ)) this.hero.z = candidateZ;
   }
 
-  // Whenever the ground under the hero changes tier, hop to it along an arc:
-  // a straight line from the old height to the new one, plus a parabola that
-  // peaks HOP_HEIGHT above that line halfway through. Stepping onto another
-  // tier mid-hop restarts the hop from the current height, so rapid
-  // multi-step climbs stay continuous.
+  // Whenever the ground height under the hero changes, move to it over a
+  // short time: a straight line from the old height to the new one, plus —
+  // for a real terrain step — a parabola peaking HOP_HEIGHT above that line
+  // halfway through. A new change mid-move restarts from the current
+  // height, so rapid multi-step climbs stay continuous.
   private updateHop(dt: number): void {
     const groundY = this.getGroundY(this.hero.x, this.hero.z);
     const currentTarget = this.hop ? this.hop.toY : this.hero.y;
