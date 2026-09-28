@@ -37,7 +37,7 @@ import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
 import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
-import { HERO_LOOK } from '../../model/human/humanoid';
+import { HERO_LOOK, STYLES_OF, type HairStyle } from '../../model/human/humanoid';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
@@ -59,6 +59,21 @@ export function createCheatPanel(model: GameModel): void {
   };
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
+  const STYLE_NAMES: Record<HairStyle, string> = {
+    short: 'Short',
+    long: 'Long',
+    cropped: 'Cropped',
+    bald: 'Bald',
+    braid: 'Braid',
+    bun: 'Bun',
+    ponytail: 'Ponytail',
+    twinBraids: 'Twin braids',
+    crownBraid: 'Crown braid',
+    waves: 'Loose waves',
+    pigtails: 'Pigtails',
+    bob: 'Bob',
+    topknot: 'Topknot',
+  };
   const toggle = (get: () => boolean, set: (on: boolean) => void, on: string, off: string): Pick<MenuAction, 'run' | 'isOn'> => ({
     isOn: get,
     run: () => {
@@ -123,6 +138,18 @@ export function createCheatPanel(model: GameModel): void {
               'The hero is a woman.',
               'The hero is a man.',
             ),
+          },
+          {
+            icon: ICON.heroine,
+            title: 'Hairstyle',
+            detail: 'Each click, the next style',
+            current: () => ({ value: STYLE_NAMES[model.hero.look.hairStyle] }),
+            run: () => {
+              const styles = STYLES_OF[model.hero.look.build];
+              const next = styles[(styles.indexOf(model.hero.look.hairStyle) + 1) % styles.length];
+              model.hero.look = { ...model.hero.look, hairStyle: next };
+              return `Hair: ${STYLE_NAMES[next]}.`;
+            },
           },
           {
             icon: ICON.swiftFeet,

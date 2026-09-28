@@ -10,13 +10,13 @@ import type { Equipment } from './equipment';
 export const SKIN_TONE_COUNT = 4;
 export const HAIR_COLOR_COUNT = 5;
 export const DYE_COUNT = 6; // what their underwear's dyed (bodyVoxels.ts DYES)
-export const HAIR_STYLES = ['short', 'long', 'cropped', 'bald', 'braid', 'bun', 'ponytail'] as const;
+export const HAIR_STYLES = ['short', 'long', 'cropped', 'bald', 'braid', 'bun', 'ponytail', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'bob', 'topknot'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Build = 'male' | 'female';
 // The styles each build is drawn with (anyone can wear any, e.g. by a cheat).
-const STYLES_OF: Record<Build, readonly HairStyle[]> = {
+export const STYLES_OF: Record<Build, readonly HairStyle[]> = {
   male: ['short', 'long', 'cropped', 'bald'],
-  female: ['long', 'braid', 'bun', 'ponytail', 'short'],
+  female: ['long', 'braid', 'bun', 'ponytail', 'short', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'bob', 'topknot'],
 };
 
 export interface BodyLook {
