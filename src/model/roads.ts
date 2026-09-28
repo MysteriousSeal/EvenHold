@@ -5,15 +5,16 @@
 // cover (grass lines the road but never grows on it), and the road mesh.
 
 import { ROAD_WIDTH } from './constants';
-import { NEIGHBORS_4, inBounds, toCellX, toCellZ } from './grid';
+import { NEIGHBORS_4, inBounds, sizeOf, toCellX, toCellZ } from './grid';
 import type { Surface } from './types';
 
 // Which of the four neighbors a trail tile connects to, as a bitmask in
 // NEIGHBORS_4 order (+x, -x, +z, -z).
 export function roadConnections(surfaceMap: Surface[][], x: number, z: number): number {
+  const size = sizeOf(surfaceMap);
   let mask = 0;
   NEIGHBORS_4.forEach(([dx, dz], i) => {
-    if (inBounds(x + dx, z + dz) && surfaceMap[x + dx][z + dz] !== 'natural') mask |= 1 << i;
+    if (inBounds(size, x + dx, z + dz) && surfaceMap[x + dx][z + dz] !== 'natural') mask |= 1 << i;
   });
   return mask;
 }
@@ -31,8 +32,9 @@ export function onRoadBand(mask: number, ox: number, oz: number, clearance = 0):
 
 // Is a world position on road or square paving (as opposed to grass)?
 export function onPaving(surfaceMap: Surface[][], x: number, z: number): boolean {
-  const cx = toCellX(x);
-  const cz = toCellZ(z);
+  const size = sizeOf(surfaceMap);
+  const cx = toCellX(size, x);
+  const cz = toCellZ(size, z);
   const surface = surfaceMap[cx][cz];
   if (surface === 'plaza') return true;
   if (surface !== 'path') return false;

@@ -4,8 +4,8 @@
 
 import { createNoise2D } from 'simplex-noise';
 import { mulberry32 } from '../../util/random';
-import { LAKE_THRESHOLD_MIN, LAKE_THRESHOLD_MAX, SPAWN_X, SPAWN_Z } from '../constants';
-import { cellKey } from '../grid';
+import { LAKE_THRESHOLD_MIN, LAKE_THRESHOLD_MAX } from '../constants';
+import { DEFAULT_MAP_SIZE, cellKey, spawnOf, type MapSize } from '../grid';
 import type { Bush, House, Surface, Village, World } from '../types';
 import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
@@ -24,7 +24,8 @@ export function solidCells(houses: House[], villages: Village[], bushes: Bush[] 
   ]);
 }
 
-export function generateWorld(seed: number): World {
+export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): World {
+  const spawn = spawnOf(size);
   const rng = mulberry32(seed);
   const noise2D = createNoise2D(rng);
 
@@ -32,18 +33,18 @@ export function generateWorld(seed: number): World {
   // lakes, others are nearly dry.
   const lakeThreshold = LAKE_THRESHOLD_MIN + rng() * (LAKE_THRESHOLD_MAX - LAKE_THRESHOLD_MIN);
 
-  const heightMap = generateHeightMap(noise2D);
+  const heightMap = generateHeightMap(noise2D, size);
   smoothHeightMap(heightMap);
 
-  const lakeMap = generateLakeMap(heightMap, noise2D, lakeThreshold, SPAWN_X, SPAWN_Z);
+  const lakeMap = generateLakeMap(heightMap, noise2D, lakeThreshold, spawn.x, spawn.z);
   const surfaceMap: Surface[][] = heightMap.map((row) => row.map((): Surface => 'natural'));
 
-  const { villages, houses } = generateVillages(heightMap, lakeMap, surfaceMap, rng, SPAWN_X, SPAWN_Z);
+  const { villages, houses } = generateVillages(heightMap, lakeMap, surfaceMap, rng, spawn.x, spawn.z);
   const solid = solidCells(houses, villages);
-  const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, SPAWN_X, SPAWN_Z);
-  const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, createForestDensity(seed), SPAWN_X, SPAWN_Z);
+  const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, spawn.x, spawn.z);
+  const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, createForestDensity(seed), spawn.x, spawn.z);
   const meadowDensity = createMeadowDensity(seed);
-  const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, trees, meadowDensity, SPAWN_X, SPAWN_Z);
+  const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, trees, meadowDensity, spawn.x, spawn.z);
 
-  return { heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, trees, bushes };
+  return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, trees, bushes };
 }

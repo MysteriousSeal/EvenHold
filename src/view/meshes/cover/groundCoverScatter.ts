@@ -4,7 +4,7 @@
 // own seeded meadow noise. No three.js here, so it's easy to test.
 
 import type { GameModel } from '../../../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
+import { TILE_HEIGHT } from '../../../model/constants';
 import { cellKey } from '../../../model/grid';
 import { onRoadBand, roadConnections } from '../../../model/roads';
 import { solidCells } from '../../../model/worldgen/world';
@@ -48,8 +48,8 @@ export function scatterGroundCover(model: GameModel): GroundCover {
   const treeCells = new Set(model.trees.map((t) => cellKey(t.x, t.z)));
   const cover: GroundCover = { tufts: [], flowers: [], pebbles: [] };
 
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < model.size.width; x++) {
+    for (let z = 0; z < model.size.depth; z++) {
       const key = cellKey(x, z);
       if (model.lakeMap[x][z] || solid.has(key)) continue;
       const surface = model.surfaceMap[x][z];

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
+import { TILE_HEIGHT } from '../../../model/constants';
 import { hashCell } from '../../../util/random';
 import { TERRAIN_COLORS } from '../../constants';
 import { createGrassTexture, type GrassTexture } from './grassTexture';
@@ -32,8 +32,8 @@ function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material[] {
 export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
   const groups = new Map<number, TileGroup>();
 
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < model.size.width; x++) {
+    for (let z = 0; z < model.size.depth; z++) {
       if (model.lakeMap[x][z]) continue;
       const tier = model.heightMap[x][z];
       let group = groups.get(tier);

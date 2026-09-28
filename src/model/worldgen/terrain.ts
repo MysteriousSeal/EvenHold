@@ -1,14 +1,14 @@
 // Base terrain height generation and smoothing. Pure functions over a
 // height grid — no lake/tree/hero knowledge.
 
-import { MAP_WIDTH, MAP_DEPTH, MAX_TIER, NOISE_SCALE } from '../constants';
-import { NEIGHBORS_4, inBounds } from '../grid';
+import { MAX_TIER, NOISE_SCALE } from '../constants';
+import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../grid';
 
-export function generateHeightMap(noise2D: (x: number, y: number) => number): number[][] {
+export function generateHeightMap(noise2D: (x: number, y: number) => number, size: MapSize): number[][] {
   const map: number[][] = [];
-  for (let x = 0; x < MAP_WIDTH; x++) {
+  for (let x = 0; x < size.width; x++) {
     const row: number[] = [];
-    for (let z = 0; z < MAP_DEPTH; z++) {
+    for (let z = 0; z < size.depth; z++) {
       const base = noise2D(x / NOISE_SCALE, z / NOISE_SCALE);
       const detail = noise2D(x / (NOISE_SCALE / 3), z / (NOISE_SCALE / 3)) * 0.3;
       const normalized = Math.min(1, Math.max(0, (base + detail + 1.3) / 2.6));
@@ -32,19 +32,20 @@ export function generateHeightMap(noise2D: (x: number, y: number) => number): nu
 // propagate both ways, so the grid reaches a fully stable state in a
 // handful of passes instead of needing one pass per row/column of the map.
 export function smoothHeightMap(map: number[][]): void {
+  const size = sizeOf(map);
   for (let iteration = 0; iteration < 16; iteration++) {
     let changed = false;
     const reverse = iteration % 2 === 1;
 
-    for (let xi = 0; xi < MAP_WIDTH; xi++) {
-      const x = reverse ? MAP_WIDTH - 1 - xi : xi;
-      for (let zi = 0; zi < MAP_DEPTH; zi++) {
-        const z = reverse ? MAP_DEPTH - 1 - zi : zi;
+    for (let xi = 0; xi < size.width; xi++) {
+      const x = reverse ? size.width - 1 - xi : xi;
+      for (let zi = 0; zi < size.depth; zi++) {
+        const z = reverse ? size.depth - 1 - zi : zi;
 
         let minNeighbor = Infinity;
         let maxNeighbor = -Infinity;
         for (const [dx, dz] of NEIGHBORS_4) {
-          if (!inBounds(x + dx, z + dz)) continue;
+          if (!inBounds(size, x + dx, z + dz)) continue;
           const nh = map[x + dx][z + dz];
           minNeighbor = Math.min(minNeighbor, nh);
           maxNeighbor = Math.max(maxNeighbor, nh);

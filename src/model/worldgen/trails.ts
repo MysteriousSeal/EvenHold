@@ -3,8 +3,8 @@
 // each other. Runs after villages (routes around houses and wells) and
 // before trees (which avoid trails).
 
-import { MAP_WIDTH, MAP_DEPTH, VILLAGE_PLAZA_RADIUS } from '../constants';
-import { NEIGHBORS_4, cellKey, inBounds } from '../grid';
+import { VILLAGE_PLAZA_RADIUS } from '../constants';
+import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../grid';
 import { MinHeap } from '../../util/MinHeap';
 import type { Surface, Village } from '../types';
 
@@ -19,8 +19,8 @@ interface TrailGrid {
   solidCells: ReadonlySet<string>;
 }
 
-function index(x: number, z: number): number {
-  return x * MAP_DEPTH + z;
+function index(size: MapSize, x: number, z: number): number {
+  return x * size.depth + z;
 }
 
 function plazaCells(village: Village): Array<[number, number]> {
@@ -49,11 +49,12 @@ function findTrail(
   [startX, startZ]: [number, number],
   targets: ReadonlySet<number>,
 ): Array<[number, number]> | null {
-  const dist = new Float64Array(MAP_WIDTH * MAP_DEPTH * 5).fill(Infinity);
-  const prev = new Int32Array(MAP_WIDTH * MAP_DEPTH * 5).fill(-1);
+  const size = sizeOf(grid.heightMap);
+  const dist = new Float64Array(size.width * size.depth * 5).fill(Infinity);
+  const prev = new Int32Array(size.width * size.depth * 5).fill(-1);
   const heap = new MinHeap();
 
-  const start = state(index(startX, startZ), NO_DIRECTION);
+  const start = state(index(size, startX, startZ), NO_DIRECTION);
   dist[start] = 0;
   heap.push(start, 0);
 
@@ -67,23 +68,23 @@ function findTrail(
       const route: Array<[number, number]> = [];
       for (let s = current; s !== -1; s = prev[s]) {
         const c = Math.floor(s / 5);
-        route.push([Math.floor(c / MAP_DEPTH), c % MAP_DEPTH]);
+        route.push([Math.floor(c / size.depth), c % size.depth]);
       }
       return route;
     }
 
-    const x = Math.floor(cell / MAP_DEPTH);
-    const z = cell % MAP_DEPTH;
+    const x = Math.floor(cell / size.depth);
+    const z = cell % size.depth;
     NEIGHBORS_4.forEach(([dx, dz], dir) => {
       const nx = x + dx;
       const nz = z + dz;
-      if (!inBounds(nx, nz) || grid.lakeMap[nx][nz] || grid.solidCells.has(cellKey(nx, nz))) return;
+      if (!inBounds(size, nx, nz) || grid.lakeMap[nx][nz] || grid.solidCells.has(cellKey(nx, nz))) return;
 
       const stepCost =
         (grid.surfaceMap[nx][nz] === 'natural' ? 1 : EXISTING_PATH_COST) +
         CLIMB_COST * Math.abs(grid.heightMap[nx][nz] - grid.heightMap[x][z]) +
         (arrivedDir !== NO_DIRECTION && arrivedDir !== dir ? TURN_COST : 0);
-      const next = state(index(nx, nz), dir);
+      const next = state(index(size, nx, nz), dir);
       if (d + stepCost < dist[next]) {
         dist[next] = d + stepCost;
         prev[next] = current;
@@ -110,7 +111,8 @@ export function generateSpawnTrail(
   spawnZ: number,
 ): Array<[number, number]> | null {
   if (villages.length === 0) return null;
-  const targets = new Set(villages.flatMap(plazaCells).map(([x, z]) => index(x, z)));
+  const size = sizeOf(grid.heightMap);
+  const targets = new Set(villages.flatMap(plazaCells).map(([x, z]) => index(size, x, z)));
   const route = findTrail(grid, [spawnX, spawnZ], targets);
   if (!route) return null;
   route.reverse(); // reconstructed target-to-start

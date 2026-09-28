@@ -17,7 +17,7 @@ export function buildPlazas(scene: THREE.Scene, model: GameModel): void {
     const kindAt = (dx: number, dz: number): TileKind => {
       const x = village.x + dx;
       const z = village.z + dz;
-      if (!inBounds(x, z)) return 'natural';
+      if (!inBounds(model.size, x, z)) return 'natural';
       const surface = model.surfaceMap[x][z];
       // Only this village's own square tiles (same tier, within its radius) are paved.
       if (surface === 'plaza' && Math.max(Math.abs(dx), Math.abs(dz)) <= PLAZA_RADIUS) return 'plaza';

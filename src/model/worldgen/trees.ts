@@ -3,7 +3,7 @@
 // forest: patches of a low-frequency noise seeded from the world seed
 // through its own rng, so it never shifts the main world-generation stream.
 
-import { MAP_WIDTH, MAP_DEPTH, MAX_TIER, TREE_CHANCE, TREE_SHAPES } from '../constants';
+import { MAX_TIER, TREE_CHANCE, TREE_SHAPES } from '../constants';
 import { cellKey } from '../grid';
 import { createNoise2D } from 'simplex-noise';
 import { hashCell, mulberry32 } from '../../util/random';
@@ -50,8 +50,8 @@ export function generateTrees(
   spawnZ: number,
 ): Tree[] {
   const trees: Tree[] = [];
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < heightMap.length; x++) {
+    for (let z = 0; z < heightMap[x].length; z++) {
       const h = heightMap[x][z];
       const roll = rng();
       // Skip lakes, paths/squares, buildings, the highest tier (bare summit), and the spawn cell.

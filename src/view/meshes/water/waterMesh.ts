@@ -15,8 +15,8 @@
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { MAP_DEPTH, MAP_WIDTH, TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
-import { NEIGHBORS_4, inBounds } from '../../../model/grid';
+import { TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
+import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/grid';
 import { hashCell } from '../../../util/random';
 import { WATER_COLORS } from '../../constants';
 import { groupByChunk } from '../common/chunks';
@@ -41,37 +41,39 @@ const REED_CHANCE = 0.4;
 // Chebyshev distance, in tiles, from each lake tile to the nearest land tile
 // (0 on land), by breadth-first search from all land at once.
 export function shoreDistances(lakeMap: boolean[][]): Uint16Array {
-  const distance = new Uint16Array(MAP_WIDTH * MAP_DEPTH).fill(0xffff);
+  const size = sizeOf(lakeMap);
+  const width = size.width;
+  const distance = new Uint16Array(size.width * size.depth).fill(0xffff);
   const queue: number[] = [];
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < size.width; x++) {
+    for (let z = 0; z < size.depth; z++) {
       if (!lakeMap[x][z]) {
-        distance[x + z * MAP_WIDTH] = 0;
-        queue.push(x + z * MAP_WIDTH);
+        distance[x + z * width] = 0;
+        queue.push(x + z * width);
       }
     }
   }
   for (let head = 0; head < queue.length; head++) {
     const cell = queue[head];
-    const x = cell % MAP_WIDTH;
-    const z = (cell - x) / MAP_WIDTH;
+    const x = cell % width;
+    const z = (cell - x) / width;
     for (let dx = -1; dx <= 1; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
         const nx = x + dx;
         const nz = z + dz;
-        if (!inBounds(nx, nz) || distance[nx + nz * MAP_WIDTH] !== 0xffff) continue;
-        distance[nx + nz * MAP_WIDTH] = distance[cell] + 1;
-        queue.push(nx + nz * MAP_WIDTH);
+        if (!inBounds(size, nx, nz) || distance[nx + nz * width] !== 0xffff) continue;
+        distance[nx + nz * width] = distance[cell] + 1;
+        queue.push(nx + nz * width);
       }
     }
   }
   return distance;
 }
 
-function shoreTexture(distance: Uint16Array): THREE.DataTexture {
+function shoreTexture(distance: Uint16Array, size: MapSize): THREE.DataTexture {
   const data = new Uint8Array(distance.length);
   distance.forEach((d, i) => (data[i] = Math.min(255, d * DISTANCE_SCALE)));
-  const texture = new THREE.DataTexture(data, MAP_WIDTH, MAP_DEPTH, THREE.RedFormat, THREE.UnsignedByteType);
+  const texture = new THREE.DataTexture(data, size.width, size.depth, THREE.RedFormat, THREE.UnsignedByteType);
   texture.magFilter = THREE.LinearFilter;
   texture.minFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
@@ -80,7 +82,7 @@ function shoreTexture(distance: Uint16Array): THREE.DataTexture {
 
 const color = (hex: number) => ({ value: new THREE.Color(hex) });
 
-function waterMaterial(shore: THREE.DataTexture, time: { value: number }): THREE.MeshStandardMaterial {
+function waterMaterial(shore: THREE.DataTexture, size: MapSize, time: { value: number }): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, {
@@ -130,7 +132,7 @@ function waterMaterial(shore: THREE.DataTexture, time: { value: number }): THREE
         vec2 cell = floor((vWaterWorld.xz + 0.5) * 25.0);
         vec2 center = (cell + 0.5) / 25.0 - 0.5;
         float n = waterHash(cell);
-        float shore = texture2D(uShore, (center + 0.5) / vec2(${MAP_WIDTH.toFixed(1)}, ${MAP_DEPTH.toFixed(1)})).r
+        float shore = texture2D(uShore, (center + 0.5) / vec2(${size.width.toFixed(1)}, ${size.depth.toFixed(1)})).r
           * ${(255 / DISTANCE_SCALE).toFixed(4)} - 0.5;
 
         // Depth bands, their edges dithered per voxel.
@@ -174,16 +176,16 @@ const snap = (v: number) => Math.round(v / WATER_DECOR_VOXEL_SIZE) * WATER_DECOR
 function placeDecor(model: GameModel, distance: Uint16Array): { lilies: Decor[]; reeds: Decor[] } {
   const lilies: Decor[] = [];
   const reeds: Decor[] = [];
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < model.size.width; x++) {
+    for (let z = 0; z < model.size.depth; z++) {
       if (!model.lakeMap[x][z]) continue;
-      const d = distance[x + z * MAP_WIDTH];
+      const d = distance[x + z * model.size.width];
       const h = hashCell(x, z, 11);
       const roll = (h % 1000) / 1000;
       const quarterTurns = (h >>> 10) & 3;
 
       // Reeds grow against a bank the tile shares an edge with.
-      const banks = NEIGHBORS_4.filter(([dx, dz]) => inBounds(x + dx, z + dz) && !model.lakeMap[x + dx][z + dz]);
+      const banks = NEIGHBORS_4.filter(([dx, dz]) => inBounds(model.size, x + dx, z + dz) && !model.lakeMap[x + dx][z + dz]);
       if (banks.length > 0 && roll < REED_CHANCE) {
         const [dx, dz] = banks[(h >>> 12) % banks.length];
         reeds.push({ x: x + dx * 0.32, z: z + dz * 0.32, variant: (h >>> 14) % REED_VARIANTS, quarterTurns });
@@ -218,13 +220,13 @@ export function buildReedGeometry(variant: number): THREE.BufferGeometry {
 export function buildWater(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
   const distance = shoreDistances(model.lakeMap);
   const time = { value: 0 };
-  const material = waterMaterial(shoreTexture(distance), time);
+  const material = waterMaterial(shoreTexture(distance, model.size), model.size, time);
 
   // Columns span from one tier below ground up to the flat lake surface.
   const columnHeight = (WATER_LEVEL + 1) * TILE_HEIGHT;
   const geometry = new THREE.BoxGeometry(1, columnHeight, 1);
   const cells: Array<{ x: number; z: number }> = [];
-  for (let x = 0; x < MAP_WIDTH; x++) for (let z = 0; z < MAP_DEPTH; z++) if (model.lakeMap[x][z]) cells.push({ x, z });
+  for (let x = 0; x < model.size.width; x++) for (let z = 0; z < model.size.depth; z++) if (model.lakeMap[x][z]) cells.push({ x, z });
   const matrix = new THREE.Matrix4();
   for (const chunk of groupByChunk(cells)) {
     const mesh = new THREE.InstancedMesh(geometry, material, chunk.length);

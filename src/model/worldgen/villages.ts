@@ -3,8 +3,6 @@
 // which both avoid what it places.
 
 import {
-  MAP_WIDTH,
-  MAP_DEPTH,
   VILLAGE_MIN_COUNT,
   VILLAGE_MAX_COUNT,
   HOUSES_PER_VILLAGE_MIN,
@@ -15,8 +13,9 @@ import {
   VILLAGE_MIN_DIST_FROM_SPAWN,
   VILLAGE_MIN_DIST_BETWEEN,
   VILLAGE_MAP_MARGIN,
+  VILLAGE_COUNT_AREA,
 } from '../constants';
-import { cellKey, inBounds } from '../grid';
+import { cellKey, inBounds, sizeOf } from '../grid';
 import { shuffle } from '../../util/random';
 import type { House, Surface, Village } from '../types';
 
@@ -39,7 +38,7 @@ function isFlatDrySite(heightMap: number[][], lakeMap: boolean[][], cx: number, 
     for (let dz = -VILLAGE_FLAT_RADIUS; dz <= VILLAGE_FLAT_RADIUS; dz++) {
       const x = cx + dx;
       const z = cz + dz;
-      if (!inBounds(x, z) || lakeMap[x][z] || heightMap[x][z] !== tier) return false;
+      if (!inBounds(sizeOf(heightMap), x, z) || lakeMap[x][z] || heightMap[x][z] !== tier) return false;
     }
   }
   return true;
@@ -50,8 +49,9 @@ function isFlatDrySite(heightMap: number[][], lakeMap: boolean[][], cx: number, 
 // attempt budget silently misses them.
 function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX: number, spawnZ: number): Site[] {
   const candidates: Site[] = [];
-  for (let x = VILLAGE_MAP_MARGIN; x < MAP_WIDTH - VILLAGE_MAP_MARGIN; x++) {
-    for (let z = VILLAGE_MAP_MARGIN; z < MAP_DEPTH - VILLAGE_MAP_MARGIN; z++) {
+  const size = sizeOf(heightMap);
+  for (let x = VILLAGE_MAP_MARGIN; x < size.width - VILLAGE_MAP_MARGIN; x++) {
+    for (let z = VILLAGE_MAP_MARGIN; z < size.depth - VILLAGE_MAP_MARGIN; z++) {
       if (Math.hypot(x - spawnX, z - spawnZ) < VILLAGE_MIN_DIST_FROM_SPAWN) continue;
       if (isFlatDrySite(heightMap, lakeMap, x, z)) candidates.push({ x, z });
     }
@@ -103,7 +103,11 @@ export function generateVillages(
   spawnX: number,
   spawnZ: number,
 ): { villages: Village[]; houses: House[] } {
-  const villageCount = VILLAGE_MIN_COUNT + Math.floor(rng() * (VILLAGE_MAX_COUNT - VILLAGE_MIN_COUNT + 1));
+  const size = sizeOf(heightMap);
+  // The count range is per VILLAGE_COUNT_AREA of map, so smaller worlds
+  // (tests) get proportionally fewer; it's still one rng draw.
+  const baseCount = VILLAGE_MIN_COUNT + Math.floor(rng() * (VILLAGE_MAX_COUNT - VILLAGE_MIN_COUNT + 1));
+  const villageCount = Math.round((baseCount * size.width * size.depth) / VILLAGE_COUNT_AREA);
 
   const candidates = findCandidateSites(heightMap, lakeMap, spawnX, spawnZ);
   shuffle(candidates, rng);
@@ -131,7 +135,7 @@ export function generateVillages(
       const x = village.x + slot.dx;
       const z = village.z + slot.dz;
       // Slots beyond VILLAGE_FLAT_RADIUS aren't guaranteed level and dry.
-      if (!inBounds(x, z) || lakeMap[x][z] || heightMap[x][z] !== village.groundTier) continue;
+      if (!inBounds(size, x, z) || lakeMap[x][z] || heightMap[x][z] !== village.groundTier) continue;
       // Keep a free tile between houses (diagonals too): roofs overhang their
       // walls, so neighbors would touch and read as one long building.
       if (hasHouseNearby(houseCells, x, z)) continue;
@@ -146,7 +150,7 @@ export function generateVillages(
       for (let dz = -VILLAGE_OUTER_RADIUS; dz <= VILLAGE_OUTER_RADIUS; dz++) {
         const x = village.x + dx;
         const z = village.z + dz;
-        if (inBounds(x, z) && !lakeMap[x][z] && heightMap[x][z] === village.groundTier) surfaceMap[x][z] = 'plaza';
+        if (inBounds(size, x, z) && !lakeMap[x][z] && heightMap[x][z] === village.groundTier) surfaceMap[x][z] = 'plaza';
       }
     }
   }

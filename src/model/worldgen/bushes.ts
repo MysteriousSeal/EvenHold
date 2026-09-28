@@ -3,7 +3,7 @@
 // Each cell rolls from a hash of its position rather than the world rng,
 // so adding bushes didn't reshuffle any seed's existing map.
 
-import { MAP_WIDTH, MAP_DEPTH, BUSH_CHANCE, BUSH_SHAPES } from '../constants';
+import { BUSH_CHANCE, BUSH_SHAPES } from '../constants';
 import { cellKey } from '../grid';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Bush, BushKind, Surface, Tree } from '../types';
@@ -31,8 +31,8 @@ export function generateBushes(
   const treeCells = new Set(trees.map((t) => cellKey(t.x, t.z)));
   const bushes: Bush[] = [];
 
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < heightMap.length; x++) {
+    for (let z = 0; z < heightMap[x].length; z++) {
       if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural') continue;
       if (blockedCells.has(cellKey(x, z)) || treeCells.has(cellKey(x, z))) continue;
       // Keep the spawn tile and its neighbors clear so the hero never starts boxed in.

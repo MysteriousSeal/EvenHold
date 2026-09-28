@@ -1,3 +1,5 @@
+import type { MapSize } from './grid';
+
 export interface Hero {
   x: number;
   z: number;
@@ -44,6 +46,7 @@ export interface Village {
 export type Surface = 'natural' | 'path' | 'plaza';
 
 export interface World {
+  size: MapSize;
   heightMap: number[][];
   lakeMap: boolean[][];
   surfaceMap: Surface[][];

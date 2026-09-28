@@ -1,7 +1,7 @@
 // Lake/basin generation. Depends on the height grid, not on trees or the hero.
 
-import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, LAKE_NOISE_SCALE, MIN_LAKE_SIZE } from '../constants';
-import { NEIGHBORS_4, inBounds } from '../grid';
+import { WATER_LEVEL, LAKE_NOISE_SCALE, MIN_LAKE_SIZE } from '../constants';
+import { NEIGHBORS_4, inBounds, sizeOf } from '../grid';
 
 // Water physically can't flood part of a connected low-lying basin and
 // leave the rest dry — it finds its own level. So instead of deciding
@@ -19,11 +19,12 @@ export function generateLakeMap(
   spawnX: number,
   spawnZ: number,
 ): boolean[][] {
+  const size = sizeOf(heightMap);
   const map: boolean[][] = heightMap.map((row) => row.map(() => false));
   const visited: boolean[][] = heightMap.map((row) => row.map(() => false));
 
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < size.width; x++) {
+    for (let z = 0; z < size.depth; z++) {
       if (heightMap[x][z] > WATER_LEVEL || visited[x][z]) continue;
 
       const basin: Array<[number, number]> = [];
@@ -37,7 +38,7 @@ export function generateLakeMap(
         for (const [dx, dz] of NEIGHBORS_4) {
           const nx = cx + dx;
           const nz = cz + dz;
-          if (inBounds(nx, nz) && heightMap[nx][nz] <= WATER_LEVEL && !visited[nx][nz]) {
+          if (inBounds(size, nx, nz) && heightMap[nx][nz] <= WATER_LEVEL && !visited[nx][nz]) {
             visited[nx][nz] = true;
             stack.push([nx, nz]);
           }

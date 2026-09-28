@@ -3,26 +3,23 @@
 // plus the hero, and exposes the per-frame runtime API (movement, lookups).
 
 import {
-  MAP_WIDTH,
-  MAP_DEPTH,
   HERO_SPEED,
   HERO_RADIUS,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
   HOP_DURATION,
   HOP_HEIGHT,
-  SPAWN_X,
-  SPAWN_Z,
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
-import { cellKey, toCellX, toCellZ } from './grid';
+import { DEFAULT_MAP_SIZE, cellKey, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Bush, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './roads';
 
 export class GameModel {
   readonly seed: number;
+  readonly size: MapSize;
   readonly heightMap: number[][];
   readonly lakeMap: boolean[][];
   readonly surfaceMap: Surface[][];
@@ -39,10 +36,12 @@ export class GameModel {
   private readonly propFootprints: ReadonlyMap<string, number>;
   private hop: { fromY: number; toY: number; elapsed: number } | null = null;
 
-  constructor(seed: number) {
+  // `size` defaults to the game's map; tests pass small worlds.
+  constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE) {
     this.seed = seed;
 
-    const world = generateWorld(seed);
+    const world = generateWorld(seed, size);
+    this.size = world.size;
     this.heightMap = world.heightMap;
     this.lakeMap = world.lakeMap;
     this.surfaceMap = world.surfaceMap;
@@ -59,20 +58,21 @@ export class GameModel {
       ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
     ]);
 
-    this.hero = { x: SPAWN_X, z: SPAWN_Z, y: 0 };
+    const spawn = spawnOf(this.size);
+    this.hero = { x: spawn.x, z: spawn.z, y: 0 };
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
   // the tile's tier, plus the road/cobble paving where there is some.
   getGroundY(x: number, z: number): number {
-    const tile = this.heightMap[toCellX(x)][toCellZ(z)] * TILE_HEIGHT;
+    const tile = this.heightMap[toCellX(this.size, x)][toCellZ(this.size, z)] * TILE_HEIGHT;
     return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
 
   private isSolidCell(x: number, z: number): boolean {
-    const cx = toCellX(x);
-    const cz = toCellZ(z);
+    const cx = toCellX(this.size, x);
+    const cz = toCellZ(this.size, z);
     return this.lakeMap[cx][cz] || this.solidCells.has(cellKey(cx, cz));
   }
 
@@ -93,8 +93,8 @@ export class GameModel {
     // square, checked for the prop on every tile the hero's corners touch
     // (a prop square lies inside its tile, so that's the only way to overlap).
     return corners.some(([cx, cz]) => {
-      const px = toCellX(cx);
-      const pz = toCellZ(cz);
+      const px = toCellX(this.size, cx);
+      const pz = toCellZ(this.size, cz);
       const half = this.propFootprints.get(cellKey(px, pz));
       return half !== undefined && Math.abs(x - px) < r + half && Math.abs(z - pz) < r + half;
     });
@@ -116,8 +116,8 @@ export class GameModel {
 
     const dist = HERO_SPEED * dt;
     const margin = 0.4;
-    const candidateX = Math.min(MAP_WIDTH - 1 - margin, Math.max(margin, this.hero.x + (dirX / len) * dist));
-    const candidateZ = Math.min(MAP_DEPTH - 1 - margin, Math.max(margin, this.hero.z + (dirZ / len) * dist));
+    const candidateX = Math.min(this.size.width - 1 - margin, Math.max(margin, this.hero.x + (dirX / len) * dist));
+    const candidateZ = Math.min(this.size.depth - 1 - margin, Math.max(margin, this.hero.z + (dirZ / len) * dist));
 
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.

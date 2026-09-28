@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
+import { TILE_HEIGHT } from '../../../model/constants';
 import { roadConnections } from '../../../model/roads';
 import { hashCell } from '../../../util/random';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
@@ -33,8 +33,8 @@ function tileOrigin(drops: number): THREE.Vector3 {
 
 function pavedTiles(model: GameModel): PavedTile[] {
   const tiles: PavedTile[] = [];
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let z = 0; z < MAP_DEPTH; z++) {
+  for (let x = 0; x < model.size.width; x++) {
+    for (let z = 0; z < model.size.depth; z++) {
       const surface = model.surfaceMap[x][z];
       const tier = model.heightMap[x][z];
       if (surface === 'path') {
