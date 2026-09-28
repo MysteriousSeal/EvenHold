@@ -8,6 +8,7 @@ import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
+import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createHeroSheet } from './controller/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
@@ -52,6 +53,9 @@ async function boot(): Promise<void> {
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
+  const floatingText = createFloatingText();
+  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4 }; // about two thirds of the way up them
+  let lastFrame = performance.now();
   const bag = createInventoryPanel(model);
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused), redraw: () => view.render() });
@@ -85,8 +89,21 @@ async function boot(): Promise<void> {
     sheet.update();
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
+    const now = performance.now();
+    floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
+    lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item) });
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onEvent: (event) => {
+      // Floating text, as in FarHold: coins looted in gold over the hero's
+      // head; a blow's damage in white over the enemy, or in red over the
+      // hero ("-3"). Over their heads, higher indoors where the hero's drawn bigger.
+      const { hero } = model;
+      const head = model.inside ? 0.95 : 0.6;
+      if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
+      else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
+      else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + ENEMY_TEXT_HEIGHT[event.on], z: event.z }, [`${event.amount}`], '#ffffff');
+    },
+  });
   controller.start();
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.

@@ -123,6 +123,34 @@
   white-space: nowrap; /* colors and edge: the shared tooltip look (menu.css) */
 }
 .loot-prompt[hidden], .loot-toast[hidden] { display: none; }
+/* Floating text over the world (floatingText.ts), like FarHold's: bold
+   Fredoka with a dark outline, in the color of what it tells. */
+.floating-text {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  -webkit-text-stroke: 3.5px rgb(30 20 40 / 0.9);
+  paint-order: stroke fill;
+}
+.floating-text .coin {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.2em;
+  vertical-align: -0.05em;
+  border-radius: 3px;
+  border: 1px solid #2e1f14;
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.18), inset 2px 2px 0 rgb(255 255 255 / 0.35);
+}
+.floating-text .gold { background: #e0b040; }
+.floating-text .silver { background: #c8ccd2; }
+.floating-text .copper { background: #c07040; }
 .loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
 .loot-name[data-quality='common'] { color: #f8ecd4; }

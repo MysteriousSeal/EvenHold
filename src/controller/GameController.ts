@@ -2,6 +2,7 @@
 
 import type { BagItem } from '../model/bag';
 import type { GameModel } from '../model/GameModel';
+import type { GameEvent } from '../model/types';
 import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
@@ -33,15 +34,17 @@ export class GameController {
   private readonly schedule: (callback: (now: number) => void) => void;
   private readonly onFrame: () => void;
   private readonly onPickUp: (item: BagItem) => void;
+  private readonly onEvent: (event: GameEvent) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
     this.onPickUp = options.onPickUp ?? (() => {});
+    this.onEvent = options.onEvent ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && !model.inside) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
@@ -120,6 +123,7 @@ export class GameController {
     }
 
     this.model.update(dirX, dirZ, dt);
+    for (const event of this.model.takeEvents()) this.onEvent(event);
     this.view.update(dt);
     this.view.render();
   }
