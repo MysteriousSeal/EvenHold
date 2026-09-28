@@ -12,6 +12,7 @@ export const ENEMY_STATS = {
   bandit: { hp: 5, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 10, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
+export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)
 export const ENEMY_CORPSE_TIME = 2.2; // seconds from death until it's gone
 export const CAMPFIRE_COLLISION_HALF = 0.22;
 export const CAMP_PROP_COLLISION_HALF = 0.3; // crate stacks and the weapon rack

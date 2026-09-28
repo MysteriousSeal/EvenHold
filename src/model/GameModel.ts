@@ -17,6 +17,7 @@ import {
   ENEMY_ACTIVE_RADIUS,
   ENEMY_CORPSE_TIME,
   ENEMY_STATS,
+  ENEMY_SEPARATION_SPEED,
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   HOP_DURATION,
@@ -298,6 +299,43 @@ export class GameModel {
       }
       if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz));
     }
+    if (!this.enemiesFrozen) this.separateEnemies(dt);
+  }
+
+  // Enemies that overlap (spawned close, or shoved together) ease apart,
+  // each moving half the way, so a group closing in spreads around the hero.
+  private separateEnemies(dt: number): void {
+    const near = this.enemies.filter(
+      (e) => e.state !== 'dead' && Math.abs(e.x - this.hero.x) <= ENEMY_ACTIVE_RADIUS && Math.abs(e.z - this.hero.z) <= ENEMY_ACTIVE_RADIUS,
+    );
+    for (let i = 0; i < near.length; i++) {
+      for (let j = i + 1; j < near.length; j++) {
+        const a = near[i];
+        const b = near[j];
+        const reach = ENEMY_STATS[a.kind].radius + ENEMY_STATS[b.kind].radius;
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const d = Math.hypot(dx, dz);
+        if (d >= reach) continue;
+        // Exactly on top of each other: part along a direction from their ids.
+        const [ux, uz] = d > 1e-6 ? [dx / d, dz / d] : [Math.cos(a.id + b.id), Math.sin(a.id + b.id)];
+        const push = Math.min(reach - d, ENEMY_SEPARATION_SPEED * dt) / 2;
+        this.moveEnemy(a, -ux * push, -uz * push);
+        this.moveEnemy(b, ux * push, uz * push);
+      }
+    }
+  }
+
+  // Living enemies are solid to each other, by the same rule as for the hero:
+  // no step that overlaps another and brings the two closer.
+  private bumpsOtherEnemy(enemy: Enemy, x: number, z: number): boolean {
+    return this.enemies.some((other) => {
+      if (other === enemy || other.state === 'dead') return false;
+      const reach = ENEMY_STATS[enemy.kind].radius + ENEMY_STATS[other.kind].radius;
+      if (Math.abs(other.x - x) >= reach || Math.abs(other.z - z) >= reach) return false;
+      const after = Math.hypot(other.x - x, other.z - z);
+      return after < reach && after < Math.hypot(other.x - enemy.x, other.z - enemy.z);
+    });
   }
 
   // Moves an enemy with the same collisions as the hero (axis by axis, so it
@@ -309,8 +347,8 @@ export class GameModel {
     const margin = 0.4;
     const nx = Math.min(this.size.width - 1 - margin, Math.max(margin, enemy.x + dx));
     const nz = Math.min(this.size.depth - 1 - margin, Math.max(margin, enemy.z + dz));
-    if (!this.isBlocked(nx, enemy.z, r)) enemy.x = nx;
-    if (!this.isBlocked(enemy.x, nz, r)) enemy.z = nz;
+    if (!this.isBlocked(nx, enemy.z, r) && !this.bumpsOtherEnemy(enemy, nx, enemy.z)) enemy.x = nx;
+    if (!this.isBlocked(enemy.x, nz, r) && !this.bumpsOtherEnemy(enemy, enemy.x, nz)) enemy.z = nz;
     enemy.y = this.getGroundY(enemy.x, enemy.z);
     return enemy.x !== x0 || enemy.z !== z0;
   }
