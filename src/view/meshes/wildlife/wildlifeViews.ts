@@ -4,18 +4,20 @@
 import * as THREE from 'three';
 import type { Wildlife } from '../../../model/wildlife/wildlife';
 import { DuckRig, createDuckLook, type DuckLook } from './duckRig';
+import { DeerRig, createDeerLook, type DeerLook } from './deerRig';
 
 const VIEW_RADIUS = 30;
 
 export class WildlifeViews {
   private readonly duckLook: DuckLook = createDuckLook();
-  private readonly rigs = new Map<number, DuckRig>();
+  private readonly deerLook: DeerLook = createDeerLook();
+  private readonly rigs = new Map<number, DuckRig | DeerRig>();
 
   constructor(private readonly scene: THREE.Scene) {}
 
   // Every lit material wildlife uses, so it can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.duckLook.material];
+    return [this.duckLook.material, this.deerLook.material];
   }
 
   update(wildlife: readonly Wildlife[], heroX: number, heroZ: number, dt: number): void {
@@ -25,7 +27,7 @@ export class WildlifeViews {
       seen.add(animal.id);
       let rig = this.rigs.get(animal.id);
       if (!rig) {
-        rig = new DuckRig(animal, this.duckLook);
+        rig = animal.kind === 'duck' ? new DuckRig(animal, this.duckLook) : new DeerRig(animal, this.deerLook);
         this.rigs.set(animal.id, rig);
         this.scene.add(rig.root);
       }

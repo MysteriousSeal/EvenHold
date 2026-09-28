@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { DABBLE_TIME, WATER_Y, spawnDucks, stepDuckPack, swimmable, type DuckWorld } from '../src/model/wildlife/ducks';
-import { stepWildlife, type Wildlife } from '../src/model/wildlife/wildlife';
+import { stepWildlife, type Wildlife, type WildlifeWorld } from '../src/model/wildlife/wildlife';
 import { DuckRig, createDuckLook } from '../src/view/meshes/wildlife/duckRig';
+import { DeerRig, createDeerLook } from '../src/view/meshes/wildlife/deerRig';
+import { GameModel } from '../src/model/GameModel';
+import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 // A 60x60 world: a lake with a 4-tile shore all round and a small island.
 function lakeWorld(seed = 1): DuckWorld {
@@ -81,7 +84,7 @@ describe('ducks', () => {
   it('only act near the hero', () => {
     const own = spawnDucks(world, 0);
     const before = JSON.stringify(own.map((d) => [d.x, d.z]));
-    for (let t = 0; t < 5; t += FRAME) stepWildlife(own, world, { x: 500, z: 500 }, FRAME);
+    for (let t = 0; t < 5; t += FRAME) stepWildlife(own, world as WildlifeWorld, { x: 500, z: 500 }, FRAME); // only ducks here
     expect(JSON.stringify(own.map((d) => [d.x, d.z]))).toBe(before);
   });
 
@@ -145,5 +148,67 @@ describe('duck rig', () => {
     drake.speed = 0;
     for (let i = 0; i < 90; i++) rig.update(drake, FRAME);
     expect(wake.visible).toBe(false); // gone once it's still
+  });
+});
+
+describe('deer', () => {
+  const models = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));
+  const deerOf = (model: GameModel) => model.wildlife.filter((a) => a.kind === 'deer');
+  const all = models.flatMap(deerOf);
+
+  it('graze in herds of one to seven, every fawn by a doe, its mother', () => {
+    expect(all.length).toBeGreaterThan(0);
+    for (const herd of new Set(all.map((d) => d.pack))) {
+      expect(herd.length).toBeGreaterThanOrEqual(1);
+      expect(herd.length).toBeLessThanOrEqual(7);
+      expect(herd[0].variant).not.toBe('fawn'); // never a fawn alone, or leading
+      for (const deer of herd) {
+        if (deer.variant !== 'fawn') expect(deer.mother).toBeNull();
+        else {
+          expect(deer.mother?.variant).toBe('doe');
+          expect(herd).toContain(deer.mother);
+        }
+      }
+    }
+  });
+
+  it('stand on open land, the same for a seed every time', () => {
+    models.forEach((model, i) => {
+      for (const deer of deerOf(model)) expect(model.isBlocked(deer.x, deer.z, 0.1)).toBe(false);
+      const again = new GameModel(TEST_SEEDS[i], TEST_MAP_SIZE);
+      expect(deerOf(again).map((d) => [d.x, d.z, d.variant])).toEqual(deerOf(model).map((d) => [d.x, d.z, d.variant]));
+    });
+  });
+
+  it('bound away together when the hero comes near, fawns keeping by their mothers', () => {
+    const model = models.find((m) => deerOf(m).some((d) => d.variant === 'fawn'))!;
+    const herd = deerOf(model).find((d) => d.variant === 'fawn')!.pack;
+    const hero = { x: herd[0].x + 2, z: herd[0].z };
+    const before = Math.hypot(herd[0].x - hero.x, herd[0].z - hero.z);
+    for (let t = 0; t < 2; t += FRAME) stepWildlife(herd, model, hero, FRAME);
+    expect(herd.every((d) => d.fleeing)).toBe(true);
+    expect(Math.hypot(herd[0].x - hero.x, herd[0].z - hero.z)).toBeGreaterThan(before + 1);
+    for (const deer of herd) {
+      expect(model.isBlocked(deer.x, deer.z, 0.1)).toBe(false);
+      if (deer.mother) expect(Math.hypot(deer.x - deer.mother.x, deer.z - deer.mother.z)).toBeLessThan(1.5);
+    }
+  });
+});
+
+describe('deer rig', () => {
+  const look = createDeerLook();
+  const height = (variant: 'stag' | 'doe' | 'fawn') => {
+    const deer = { id: 1, kind: 'deer', variant, x: 0, z: 0, y: 0, heading: 0, dabble: null, fleeing: false } as unknown as Wildlife;
+    const rig = new DeerRig(deer, look);
+    rig.update(deer, FRAME);
+    rig.root.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(rig.root).max.y;
+  };
+
+  it('stands on the ground, the antlered stag tallest, the fawn smallest', () => {
+    const [stag, doe, fawn] = [height('stag'), height('doe'), height('fawn')];
+    expect(stag).toBeGreaterThan(doe);
+    expect(doe).toBeGreaterThan(fawn);
+    expect(fawn).toBeGreaterThan(0.1);
   });
 });
