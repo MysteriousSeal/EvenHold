@@ -69,6 +69,11 @@ export function buildPlazas(scene: THREE.Scene, model: GameModel): void {
     (s) => s.key,
     (s) => greedyMesh(buildPlaza(s.kindAt, 0x5a1a + Number(s.key.split('|')[1])), PLAZA_PALETTE, PLAZA_VOXEL_SIZE, ORIGIN),
     (s) => ({ x: s.village.x, y: s.village.groundTier * TILE_HEIGHT, z: s.village.z, quarterTurns: s.quarterTurns }),
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
+    // Buildings stand on the paving, and their floors (the smithy's yard,
+    // the stable, plinths) lie exactly level with raised stones and curbs
+    // underneath. Pushing the paving back a hair in depth makes whatever
+    // sits on it always win those ties, instead of flickering as the camera
+    // moves; visible paving is unaffected.
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
   );
 }
