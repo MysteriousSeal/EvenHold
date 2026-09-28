@@ -6,11 +6,14 @@ import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import type { BushKind } from '../../../model/types';
 import { TILE_HEIGHT } from '../../../model/constants';
+import { addWindSway } from '../common/wind';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
 import { BUSH_GRID, BUSH_PALETTE, BUSH_VOXEL_SIZE, buildBushVoxels } from './bushVoxels';
 
 const SINK = 0.01; // bottom slightly below the tile top, so no gap shows at the base
+// Bushes rustle a little: less than grass, a touch quicker than trees.
+const BUSH_WIND = { height: BUSH_GRID[1] * BUSH_VOXEL_SIZE, strength: 0.02, speed: 1.4, flutter: 0.003 };
 
 export function buildBushGeometry(kind: BushKind, shape: number): THREE.BufferGeometry {
   const [sx, , sz] = BUSH_GRID;
@@ -19,13 +22,19 @@ export function buildBushGeometry(kind: BushKind, shape: number): THREE.BufferGe
   return greedyMesh(buildBushVoxels(kind, shape), BUSH_PALETTE, BUSH_VOXEL_SIZE, origin);
 }
 
-export function buildBushes(scene: THREE.Scene, model: GameModel): void {
+// Returns the per-frame wind animation.
+export function buildBushes(scene: THREE.Scene, model: GameModel): (elapsedSeconds: number) => void {
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  const windTime = addWindSway(material, BUSH_WIND);
   addVoxelInstances(
     scene,
     model.bushes,
     (bush) => `${bush.kind}:${bush.shape}`,
     (bush) => buildBushGeometry(bush.kind, bush.shape),
     (bush) => ({ x: bush.x, y: bush.groundTier * TILE_HEIGHT, z: bush.z, quarterTurns: bush.quarterTurns }),
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
+    material,
   );
+  return (elapsedSeconds) => {
+    windTime.value = elapsedSeconds;
+  };
 }
