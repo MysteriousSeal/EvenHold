@@ -59,4 +59,18 @@ describe('interiors', () => {
       }
     }
   });
+
+  it('lays out every inn with at least three tables', async () => {
+    const { furnish } = await import('../src/model/interiors/furniture');
+    let inns = 0;
+    for (const seed of TEST_SEEDS) {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      for (const entrance of model.entrances.filter((e) => e.type === 'inn')) {
+        inns++;
+        const items = furnish(model.seed, entrance, roomFor(model.seed, entrance));
+        expect(items.filter((i) => i.kind === 'tavernTable').length).toBeGreaterThanOrEqual(3);
+      }
+    }
+    expect(inns).toBeGreaterThan(0);
+  });
 });

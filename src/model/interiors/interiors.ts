@@ -21,7 +21,7 @@ export interface Entrance {
   outZ: number;
 }
 
-export type FloorStyle = 'planks' | 'boards' | 'flagstones';
+export type FloorStyle = 'planks' | 'boards' | 'flagstones' | 'tavern';
 export type WallStyle = 'plaster' | 'timber' | 'stone';
 
 export interface Room {
@@ -54,10 +54,10 @@ export function entrancesOf(houses: readonly House[], buildings: readonly Buildi
 // Sizes by kind of building: [min, max] tiles across and deep.
 const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, number] }> = {
   house: { width: [5, 8], depth: [4, 6] },
-  inn: { width: [9, 12], depth: [6, 8] },
+  inn: { width: [11, 13], depth: [8, 10] }, // roomy: a bar, a hearth corner and the tables
   smithy: { width: [7, 9], depth: [6, 7] },
 };
-const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['planks', 'boards'], smithy: ['flagstones'] };
+const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
 const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['timber', 'plaster'], smithy: ['stone'] };
 
 // The room behind a door: the same for a given seed and door, always.

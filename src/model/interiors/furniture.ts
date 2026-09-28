@@ -26,7 +26,17 @@ export type FurnitureKind =
   | 'anvil'
   | 'trough'
   | 'rack'
-  | 'coal';
+  | 'coal'
+  // The inn's own
+  | 'armchair'
+  | 'bearRug'
+  | 'barStool'
+  | 'bottleShelf'
+  | 'tavernTable'
+  | 'antlers'
+  | 'wallShield'
+  | 'noticeBoard'
+  | 'wallLantern';
 
 export interface Furniture {
   kind: FurnitureKind;
@@ -39,7 +49,9 @@ export interface Furniture {
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
 }
 
-const RUGS: FurnitureKind[] = ['rug'];
+const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
+// Hung on a wall, above everything on the floor: they take no floor tiles.
+const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern'];
 
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed + 7919));
@@ -60,10 +72,14 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
       const j = Math.floor(rng() * (i + 1));
       [spots[i], spots[j]] = [spots[j], spots[i]];
     }
-    const rug = RUGS.includes(kind);
+    const rug = RUGS.includes(kind) || WALL_HUNG.includes(kind);
     for (const [x, z] of spots) {
       if (!fits(x, z, w, d, rug)) continue;
       const item: Furniture = { kind, x, z, w, d, wall, solid: !rug };
+      if (WALL_HUNG.includes(kind)) {
+        // Hung pieces only need their spot on the wall free of other hung pieces.
+        if (items.some((o) => WALL_HUNG.includes(o.kind) && o.wall === wall && o.x === x && o.z === z)) continue;
+      }
       if (!rug) for (let a = x; a < x + w; a++) for (let b = z; b < z + d; b++) taken.add(key(a, b));
       items.push(item);
       return item;
@@ -79,7 +95,7 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   };
   // Two to four chairs round a table, on its free sides (in a rolled order),
   // each facing it.
-  const chairs = (table: Furniture) => {
+  const chairs = (table: Furniture, kind: FurnitureKind = 'chair') => {
     const sides: Array<[number, number, number, number]> = [
       [table.x - 1, table.z, 1, 0],
       [table.x + table.w, table.z, -1, 0],
@@ -93,7 +109,7 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     let wanted = 2 + Math.floor(rng() * 3);
     for (const [x, z, dx, dz] of sides) {
       if (wanted === 0) break;
-      const chair = place('chair', 1, 1, 'none', [[x, z]]);
+      const chair = place(kind, 1, 1, 'none', [[x, z]]);
       if (!chair) continue;
       chair.facing = [dx, dz];
       wanted--;
@@ -120,15 +136,56 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     if (rng() < 0.7) place('shelf', 1, 1, 'back', along(0));
     for (let n = 1 + Math.floor(rng() * 2); n > 0; n--) place('barrel', 1, 1, 'none', [[room.width - 1, 0], [0, room.depth - 1], [room.width - 1, room.depth - 1], ...along(0)]);
   } else if (entrance.type === 'inn') {
-    place('hearth', 2, 1, 'back', along(0));
-    place('counter', 1, 3, 'left', down(0));
-    for (let n = 2 + Math.floor(rng() * 2); n > 0; n--) place('keg', 1, 1, 'back', along(0));
-    for (let n = 2 + Math.floor(rng() * 2); n > 0; n--) {
-      const table = place('longTable', 2, 1, 'none', inside());
-      if (!table) break;
-      place('bench', 2, 1, 'none', [[table.x, table.z - 1]]);
-      place('bench', 2, 1, 'none', [[table.x, table.z + 1]]);
+    // The bar, along the left wall: shelves of bottles against it, the
+    // counter just in front of them, and stools facing it.
+    const barEnd = Math.min(room.depth - 3, 5);
+    for (let z = 1; z + 1 <= barEnd; z += 2) place('bottleShelf', 1, 2, 'left', [[0, z]]);
+    const counter = place('counter', 1, barEnd + 1, 'left', [[1, 0]]); // from the back wall
+    for (let z = counter ? counter.z : barEnd + 1; counter && z < counter.z + counter.d; z++) {
+      if (rng() >= 0.75) continue;
+      const stool = place('barStool', 1, 1, 'none', [[2, z]]);
+      if (stool) stool.facing = [-1, 0]; // toward the bar
     }
+    place('keg', 1, 1, 'left', [[0, 0]]); // behind the bar, its tap facing the counter
+    place('keg', 1, 1, 'back', [[2, 0]]); // and one beside it
+    // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs facing it.
+    const hearth = place('hearth', 2, 1, 'back', along(0).filter(([x]) => x >= 5 && x <= room.width - 3));
+    if (hearth) {
+      // The rug before the fire, and the two armchairs side by side on it,
+      // a tile back from the hearth, facing the fire.
+      place('bearRug', 2, 2, 'none', [[hearth.x, 1]]);
+      for (const x of [hearth.x, hearth.x + 1]) {
+        const chair = place('armchair', 1, 1, 'none', [[x, 2]]);
+        if (chair) chair.facing = [0, -1];
+      }
+    }
+    // Tavern tables, laid for a meal, with chairs round them; each at least
+    // three tiles from anything else, so its chairs have room and there's a
+    // walkway between one table and the next.
+    const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
+      items.every(
+        (o) => !o.solid || (pastChairs && o.kind === 'chair') || Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1)) >= gap,
+      );
+    // At least three, up to five: spaced three tiles apart in the open
+    // floor where the room allows; to fit three, closer (two apart), a
+    // little further toward the bar and the hearth, and right by others' chairs.
+    const wanted = 3 + Math.floor(rng() * 3);
+    let tables = 0;
+    for (const pass of [{ gap: 3, x: 5, z: 3 }, { gap: 2, x: 5, z: 3 }, { gap: 2, x: 4, z: 2, pastChairs: true }]) {
+      while (tables < wanted && (pass.gap === 3 || tables < 3)) {
+        const spots = inside().filter(([x, z]) => x >= pass.x && z >= pass.z && clearOf(x, z, pass.gap, pass.pastChairs));
+        const table = place('tavernTable', 1, 1, 'none', spots);
+        if (!table) break;
+        chairs(table);
+        tables++;
+      }
+    }
+    // On the walls: antlers and a shield over the room, lanterns, a notice board by the door.
+    place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+    place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+    for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+    place('wallLantern', 1, 1, 'left', down(0).filter(([, z]) => z > barEnd));
+    place('noticeBoard', 1, 1, 'left', [[0, room.depth - 2]]);
   } else {
     const forge = place('forge', 2, 1, 'back', along(0));
     if (forge) place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);
@@ -140,10 +197,24 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   return items;
 }
 
+// Slim pieces against a wall block only the part of their tiles they fill,
+// as a span out from the wall (0 at the wall, 1 at the far side of the
+// tile); everything else blocks its whole tiles (a touch inset).
+const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
+  bottleShelf: [0, 0.42],
+  counter: [0.26, 0.74],
+  shelf: [0, 0.34],
+};
+
 // Whether a walker of half-width r at (x, z) bumps into solid furniture.
 export function bumpsFurniture(items: readonly Furniture[], x: number, z: number, r: number): boolean {
   const inset = 0.08; // pieces don't quite fill their tiles
-  return items.some(
-    (f) => f.solid && x + r > f.x - 0.5 + inset && x - r < f.x + f.w - 0.5 - inset && z + r > f.z - 0.5 + inset && z - r < f.z + f.d - 0.5 - inset,
-  );
+  return items.some((f) => {
+    if (!f.solid) return false;
+    let [x0, x1, z0, z1] = [f.x - 0.5 + inset, f.x + f.w - 0.5 - inset, f.z - 0.5 + inset, f.z + f.d - 0.5 - inset];
+    const slim = SLIM[f.kind];
+    if (slim && f.wall === 'left') [x0, x1] = [f.x - 0.5 + slim[0], f.x - 0.5 + slim[1]];
+    if (slim && f.wall === 'back') [z0, z1] = [f.z - 0.5 + slim[0], f.z - 0.5 + slim[1]];
+    return x + r > x0 && x - r < x1 && z + r > z0 && z - r < z1;
+  });
 }
