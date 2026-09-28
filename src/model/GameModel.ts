@@ -12,7 +12,7 @@ import {
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
-import { DEFAULT_MAP_SIZE, cellKey, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
+import { DEFAULT_MAP_SIZE, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Bush, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './roads';
@@ -70,6 +70,24 @@ export class GameModel {
     return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
 
+  // Dev cheats: movement speed factor (1 = normal).
+  speedMultiplier = 1;
+
+  // Moves the hero straight to (x, z), standing on the ground there.
+  teleport(x: number, z: number): void {
+    this.hero.x = x;
+    this.hero.z = z;
+    this.hero.y = this.getGroundY(x, z);
+    this.hop = null;
+  }
+
+  // A tile the hero can stand in the middle of: on the map, dry, and free
+  // of houses, wells, trees and bushes.
+  isOpenTile(x: number, z: number): boolean {
+    const key = cellKey(x, z);
+    return inBounds(this.size, x, z) && !this.lakeMap[x][z] && !this.solidCells.has(key) && !this.propFootprints.has(key);
+  }
+
   private isSolidCell(x: number, z: number): boolean {
     const cx = toCellX(this.size, x);
     const cz = toCellZ(this.size, z);
@@ -114,7 +132,7 @@ export class GameModel {
     const len = Math.hypot(dirX, dirZ);
     if (len < 1e-6) return;
 
-    const dist = HERO_SPEED * dt;
+    const dist = HERO_SPEED * this.speedMultiplier * dt;
     const margin = 0.4;
     const candidateX = Math.min(this.size.width - 1 - margin, Math.max(margin, this.hero.x + (dirX / len) * dist));
     const candidateZ = Math.min(this.size.depth - 1 - margin, Math.max(margin, this.hero.z + (dirZ / len) * dist));

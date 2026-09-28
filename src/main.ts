@@ -16,3 +16,8 @@ const options = readRenderOptions();
 const view = new GameView(canvas, model, options);
 const countFrame = createFpsCounter(document.getElementById('fps-label') as HTMLDivElement, () => view.getRenderStats());
 new GameController(model, view, { uncapped: options.uncapped, onFrame: countFrame }).start();
+
+// Dev-only tools, loaded on demand so production builds don't include them.
+if (import.meta.env.DEV) {
+  void import('./controller/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model));
+}
