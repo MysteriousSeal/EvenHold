@@ -1,6 +1,6 @@
 // What stands in a room, rolled from the same seed as the room itself, so
 // it's always the same for everyone on that seed. Each kind of building is
-// furnished its own way: a home has a hearth, a bed, a table with stools, a
+// furnished its own way: a home has a hearth, a bed, a table with chairs, a
 // chest, a shelf, barrels and a rug; the inn long tables and benches, a
 // counter, kegs and a big hearth; the smithy a forge, an anvil, a trough, a
 // weapon rack and a heap of coal. Big pieces stand against the back (-Z) or
@@ -13,7 +13,7 @@ export type FurnitureKind =
   | 'hearth'
   | 'bed'
   | 'table'
-  | 'stool'
+  | 'chair'
   | 'chest'
   | 'shelf'
   | 'barrel'
@@ -36,6 +36,7 @@ export interface Furniture {
   d: number; // along z
   wall: 'back' | 'left' | 'none'; // which wall it stands against (and faces away from)
   solid: boolean; // blocks walking (rugs don't)
+  facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
 }
 
 const RUGS: FurnitureKind[] = ['rug'];
@@ -43,18 +44,19 @@ const RUGS: FurnitureKind[] = ['rug'];
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed + 7919));
   const taken = new Set<string>();
+  const kept = new Set<string>(); // left free around a piece (a bed's side), for nothing to crowd it
   const key = (x: number, z: number) => `${x},${z}`;
   // Kept clear: the door's column (the way in) and the tiles either side of the doorway.
   const clear = (x: number, z: number) => x === room.door || (z >= room.depth - 1 && Math.abs(x - room.door) <= 1);
   const fits = (x: number, z: number, w: number, d: number, onRug = false) => {
     if (x < 0 || z < 0 || x + w > room.width || z + d > room.depth) return false;
-    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if (clear(i, k) || (!onRug && taken.has(key(i, k)))) return false;
+    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if (clear(i, k) || kept.has(key(i, k)) || (!onRug && taken.has(key(i, k)))) return false;
     return true;
   };
   const items: Furniture[] = [];
   // Places a piece at the first free spot among `spots` (shuffled), marking its tiles taken.
-  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>): Furniture | null => {
-    for (let i = spots.length - 1; i > 0; i--) {
+  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>, shuffle = true): Furniture | null => {
+    for (let i = shuffle ? spots.length - 1 : 0; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [spots[i], spots[j]] = [spots[j], spots[i]];
     }
@@ -75,19 +77,43 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     for (let x = 1; x < room.width - 1; x++) for (let z = 1; z < room.depth - 1; z++) spots.push([x, z]);
     return spots;
   };
-  // Seats around a table: free tiles beside it.
-  const seats = (table: Furniture, kind: FurnitureKind, chance: number) => {
-    for (const [x, z] of [[table.x - 1, table.z], [table.x + table.w, table.z], [table.x, table.z - 1], [table.x, table.z + table.d]]) {
-      if (rng() < chance) place(kind, 1, 1, 'none', [[x, z]]);
+  // Two to four chairs round a table, on its free sides (in a rolled order),
+  // each facing it.
+  const chairs = (table: Furniture) => {
+    const sides: Array<[number, number, number, number]> = [
+      [table.x - 1, table.z, 1, 0],
+      [table.x + table.w, table.z, -1, 0],
+      [table.x, table.z - 1, 0, 1],
+      [table.x, table.z + table.d, 0, -1],
+    ];
+    for (let i = sides.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [sides[i], sides[j]] = [sides[j], sides[i]];
+    }
+    let wanted = 2 + Math.floor(rng() * 3);
+    for (const [x, z, dx, dz] of sides) {
+      if (wanted === 0) break;
+      const chair = place('chair', 1, 1, 'none', [[x, z]]);
+      if (!chair) continue;
+      chair.facing = [dx, dz];
+      wanted--;
     }
   };
 
   if (entrance.type === 'house') {
+    // The bed first, into the back corner if it can, else along the left
+    // wall; then the tiles along its open side and at its ends are kept free.
+    const bedSpots = down(0).filter(([, z]) => z > 0);
+    const bed = place('bed', 1, 2, 'left', [[0, 0]], false) ?? place('bed', 1, 2, 'left', bedSpots);
+    if (bed) {
+      for (let z = bed.z - 1; z <= bed.z + bed.d; z++) kept.add(key(1, z));
+      kept.add(key(0, bed.z - 1));
+      kept.add(key(0, bed.z + bed.d));
+    }
     place('hearth', 2, 1, 'back', along(0));
-    place('bed', 1, 2, 'left', down(0));
     const table = place('table', 1, 1, 'none', inside());
     if (table) {
-      seats(table, 'stool', 0.6);
+      chairs(table);
       if (rng() < 0.7) place('rug', 3, 3, 'none', [[table.x - 1, table.z - 1]]);
     }
     place('chest', 1, 1, 'back', along(0));
