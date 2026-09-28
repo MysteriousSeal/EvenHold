@@ -18,8 +18,10 @@ export class NpcViews {
   readonly material = personMaterial();
   private readonly shown = new Map<number, { rig: HumanRig; label: THREE.Sprite }>();
 
-  // `where`: the building the hero's in (null outdoors); `scene`: the one they're drawn in.
-  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number): void {
+  // `where`: the building the hero's in (null outdoors); `scene`: the one
+  // they're drawn in; `talking`: whoever the hero can talk to now, whose name
+  // gives way to the "Talk to" prompt over them.
+  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null): void {
     const seen = new Set<number>();
     const scale = where ? INDOOR_SCALE : 1;
     for (const npc of npcs) {
@@ -45,7 +47,7 @@ export class NpcViews {
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : npc.working ? 'work' : 'stand';
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
-      label.visible = Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
+      label.visible = npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
     }
     for (const [id, view] of this.shown) {
       if (seen.has(id)) continue;
