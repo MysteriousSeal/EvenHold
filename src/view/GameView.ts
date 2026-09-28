@@ -19,7 +19,7 @@ import { buildFields } from './meshes/field/fieldMesh';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
-import { buildHero } from './meshes/hero/heroMesh';
+import { HeroRig } from './meshes/hero/heroMesh';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
@@ -40,7 +40,7 @@ export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
-  private readonly heroMesh: THREE.Group;
+  private readonly hero = new HeroRig();
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -78,8 +78,7 @@ export class GameView {
     this.movementAxes = computeMovementAxes();
 
     addLights(this.scene);
-    this.heroMesh = buildHero();
-    this.scene.add(this.heroMesh);
+    this.scene.add(this.hero.root);
   }
 
   // The world's meshes, in build order, each a step the loader can report.
@@ -123,7 +122,7 @@ export class GameView {
     for (const animate of this.animations) animate(this.elapsed);
 
     const { hero } = model;
-    this.heroMesh.position.set(hero.x, hero.y, hero.z);
+    this.hero.update(hero.x, hero.y, hero.z, dt);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay
