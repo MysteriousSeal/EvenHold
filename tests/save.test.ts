@@ -63,4 +63,19 @@ describe('saving', () => {
     expect(parseSave(JSON.stringify({ ...JSON.parse(good), version: 99 }), model.seed)).toBeNull();
     expect(parseSave(JSON.stringify({ ...JSON.parse(good), hero: { name: 1 } }), model.seed)).toBeNull();
   });
+
+  it('drops what the game no longer knows from an old save, and keeps the rest', () => {
+    const model = fresh();
+    model.hero.bag = { gambeson: 1 };
+    model.hero.equipment = { head: 'leatherCap' };
+    const data = JSON.parse(JSON.stringify(snapshot(model)));
+    data.hero.bag.goldenGoose = 3; // renamed or removed since
+    data.hero.equipment.torso = 'leatherCap'; // not a torso piece
+    data.loot.push({ item: 'goldenGoose', x: 5, z: 5 });
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(data), model.seed)!);
+    expect(again.hero.bag).toEqual({ gambeson: 1 });
+    expect(again.hero.equipment).toEqual({ head: 'leatherCap' });
+    expect(again.loot).toHaveLength(0);
+  });
 });

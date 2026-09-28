@@ -10,7 +10,9 @@
 
 import type { GameModel } from './GameModel';
 import type { BagItem } from './hero/bag';
-import type { Equipment } from './human/equipment';
+import { ITEMS, type Equipment, type ItemId } from './human/equipment';
+import { LOOT } from './loot/loot';
+import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import type { Shop } from './npcs/tavernShop';
@@ -103,42 +105,49 @@ export function parseSave(raw: string | null, seed: number): SaveData | null {
 export function restore(model: GameModel, data: SaveData): void {
   const { hero } = model;
   const saved = data.hero;
+  // Only things the game still knows (a save may be older than a change to
+  // them), worn in the slot they go in, carried in whole numbers.
+  const known = (item: string): item is BagItem => item in LOOT || item in ITEMS;
+  const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
+  const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && ITEMS[item as ItemId]?.slot === slot));
   Object.assign(hero, {
     name: saved.name,
     look: { ...saved.look },
-    equipment: { ...saved.equipment },
-    bag: { ...saved.bag },
-    money: saved.money,
-    level: saved.level,
-    xp: saved.xp,
-    hp: saved.hp,
+    equipment,
+    bag,
+    money: Math.max(0, Math.floor(saved.money)),
+    level: Math.max(1, Math.floor(saved.level)),
+    xp: Math.max(0, saved.xp),
     facing: saved.facing,
   });
+  hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
     model.inside = { entrance: building, ...layoutOf(model.seed, building), seated: null };
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {
-    model.teleport(saved.x, saved.z);
+    model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
   }
   // Foes: the slain gone, the hurt and the wandered where they were.
   const gone = new Set(data.enemies.gone);
   for (let i = model.enemies.length - 1; i >= 0; i--) if (gone.has(model.enemies[i].id)) model.enemies.splice(i, 1);
   for (const id of gone) model.slain.add(id);
+  const enemies = new Map(model.enemies.map((e) => [e.id, e]));
   for (const change of data.enemies.changed) {
-    const enemy = model.enemies.find((e) => e.id === change.id);
+    const enemy = enemies.get(change.id);
     if (!enemy) continue;
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
   }
-  for (const { item, x, z } of data.loot) model.dropLoot(item, x, z);
+  for (const { item, x, z } of data.loot) if (known(item)) model.dropLoot(item, x, z);
   for (const { amount, x, z } of data.coins) model.dropCoins(amount, x, z);
   for (const { inn, money, stock, restockedAt } of Array.isArray(data.shops) ? data.shops : []) {
     if (typeof inn === 'number' && typeof money === 'number' && typeof restockedAt === 'number') model.shops.set(inn, { money, stock: { ...stock }, restockedAt });
   }
   // Villagers pick up their day where they were in it.
+  const npcs = new Map(model.npcs.map((n) => [n.id, n]));
   for (const saved of data.npcs) {
-    const npc = model.npcs.find((n) => n.id === saved.id);
+    const npc = npcs.get(saved.id);
     if (!npc) continue;
     npc.where = saved.inside === null ? null : (model.entrances[saved.inside] ?? null);
     Object.assign(npc, { x: saved.x, z: saved.z, stop: saved.stop, steps: [], path: null, seat: null, stood: null, waited: 0, working: false });
