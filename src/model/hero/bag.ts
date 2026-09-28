@@ -25,3 +25,27 @@ export function takeFromBag(bag: Bag, item: BagItem): boolean {
   else bag[item] = count - 1;
   return true;
 }
+
+// Where each thing sits in the bag, slot by slot (null: an empty slot), from
+// the order the hero's put them in: what has no place yet (just picked up)
+// takes the first free slot, and what's gone leaves its slot empty. Never
+// fewer than `size` slots; more, if the bag holds more kinds than that.
+export function bagLayout(bag: Bag, order: ReadonlyArray<BagItem | null>, size: number): Array<BagItem | null> {
+  const carried = (item: BagItem | null): item is BagItem => !!item && (bag[item] ?? 0) > 0;
+  const slots: Array<BagItem | null> = Array.from({ length: Math.max(size, order.length) }, (_, i) => (carried(order[i]) ? order[i] : null));
+  for (const item of Object.keys(bag) as BagItem[]) {
+    if (!carried(item) || slots.includes(item)) continue;
+    const free = slots.indexOf(null);
+    if (free >= 0) slots[free] = item;
+    else slots.push(item);
+  }
+  return slots;
+}
+
+// The bag's order with the thing in slot `from` moved to slot `to` (swapping
+// with what's there, if anything).
+export function moveInBag(bag: Bag, order: ReadonlyArray<BagItem | null>, from: number, to: number, size: number): Array<BagItem | null> {
+  const slots = bagLayout(bag, order, size);
+  [slots[from], slots[to]] = [slots[to] ?? null, slots[from] ?? null];
+  return slots;
+}

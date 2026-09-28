@@ -27,6 +27,7 @@ export interface SaveData {
     look: BodyLook;
     equipment: Equipment;
     bag: Partial<Record<BagItem, number>>;
+    bagOrder?: Array<BagItem | null>; // where each thing sits in it
     money: number;
     level: number;
     xp: number;
@@ -58,6 +59,7 @@ export function snapshot(model: GameModel): SaveData {
       look: { ...hero.look },
       equipment: { ...hero.equipment },
       bag: { ...hero.bag },
+      bagOrder: [...hero.bagOrder],
       money: hero.money,
       level: hero.level,
       xp: hero.xp,
@@ -115,6 +117,7 @@ export function restore(model: GameModel, data: SaveData): void {
     look: { ...saved.look },
     equipment,
     bag,
+    bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),

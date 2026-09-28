@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { addToBag, takeFromBag } from '../src/model/hero/bag';
+import { addToBag, bagLayout, moveInBag, takeFromBag, type Bag } from '../src/model/hero/bag';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -58,5 +58,22 @@ describe('wearing gear from the bag', () => {
     expect(model.pickUp()).toBe('leatherCap');
     expect(hero.bag).toEqual({ leatherCap: 1 });
     expect(model.dropEquipped('head')).toBe(false);
+  });
+});
+
+describe('bag order', () => {
+  it('keeps each thing in its slot: new things fill the first gap, gone things leave theirs empty', () => {
+    const bag: Bag = { wolfFang: 1, bread: 2 };
+    expect(bagLayout(bag, [], 4)).toEqual(['wolfFang', 'bread', null, null]);
+    expect(bagLayout(bag, [null, 'bread', null, 'wolfFang'], 4)).toEqual([null, 'bread', null, 'wolfFang']); // where they were put
+    expect(bagLayout({ ...bag, ale: 1 }, [null, 'bread', null, 'wolfFang'], 4)).toEqual(['ale', 'bread', null, 'wolfFang']); // the new one in the first gap
+    expect(bagLayout({ bread: 2 }, [null, 'bread', null, 'wolfFang'], 4)).toEqual([null, 'bread', null, null]); // the fang's gone
+  });
+
+  it('moves a thing to another slot, swapping with what was there', () => {
+    const bag: Bag = { wolfFang: 1, bread: 2, ale: 1 };
+    const order = bagLayout(bag, [], 4); // fang, bread, ale, -
+    expect(moveInBag(bag, order, 0, 3, 4)).toEqual([null, 'bread', 'ale', 'wolfFang']); // into the empty slot
+    expect(moveInBag(bag, order, 0, 2, 4)).toEqual(['ale', 'bread', 'wolfFang', null]); // swapped
   });
 });

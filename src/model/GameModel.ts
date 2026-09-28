@@ -112,7 +112,7 @@ export class GameModel {
     this.obstacles = worldObstacles(this, solidCells(this)); // what blocks the way (blockers.ts)
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, money: 0, ...FRESH_HERO_STATS }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;

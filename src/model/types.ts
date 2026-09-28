@@ -1,6 +1,6 @@
 import type { MapSize } from './grid';
 import type { Humanoid } from './human/humanoid';
-import type { Bag } from './hero/bag';
+import type { Bag, BagItem } from './hero/bag';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
@@ -14,6 +14,7 @@ export interface Hero extends Humanoid {
   xp: number; // toward the next level
   hurtFor: number; // seconds left of the hit flash
   bag: Bag; // what they've picked up
+  bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)
 }
 

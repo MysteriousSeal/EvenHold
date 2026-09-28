@@ -19,6 +19,7 @@ describe('saving', () => {
     hero.look = { ...hero.look, build: 'female', hairStyle: 'braid', beard: false };
     hero.equipment.head = 'leatherCap';
     hero.bag.gambeson = 2;
+    hero.bagOrder = [null, 'gambeson'];
     model.teleport(hero.x + 1, hero.z);
     const foe = model.enemies[0];
     foe.state = 'dead';
@@ -31,6 +32,7 @@ describe('saving', () => {
     expect(again.hero.look).toEqual(hero.look);
     expect(again.hero.equipment).toEqual({ head: 'leatherCap' });
     expect(again.hero.bag).toEqual({ gambeson: 2 });
+    expect(again.hero.bagOrder).toEqual([null, 'gambeson']);
     expect(again.enemies.some((e) => e.id === foe.id)).toBe(false); // slain stays slain
     expect(again.loot.map(({ item, x, z }) => ({ item, x, z }))).toEqual([{ item: 'gambeson', x: 10, z: 10 }]);
     expect(again.coins.map(({ amount, x, z }) => ({ amount, x, z }))).toEqual([{ amount: 42, x: 11, z: 11 }]);
