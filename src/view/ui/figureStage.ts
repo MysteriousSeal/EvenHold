@@ -35,17 +35,23 @@ export class FigureStage {
     this.camera.lookAt(0, 0, 0);
   }
 
-  // Shows a figure (a voxel grid, standing on y = 0, facing +Z).
-  show(figure: { grid: VoxelGrid; palette: number[] }): void {
+  // Shows a figure (a voxel grid, standing on y = 0, facing +Z), framed
+  // and turning around `core` (the same grid with only what should set the
+  // size, e.g. the bare body): its middle is the axis, and it fills the
+  // stage with a voxel and a half to spare all round (room for armor), so
+  // what's worn never changes the scale. Anything held out may swing past
+  // the edge.
+  show(figure: { grid: VoxelGrid; palette: number[] }, core: { grid: VoxelGrid; palette: number[] } = figure): void {
     this.mesh?.geometry.dispose();
     this.mesh?.removeFromParent();
-    const [sx, sy, sz] = figure.grid.size;
-    // Centered on the turntable's axis, half height at the stage's middle.
-    const origin = new THREE.Vector3((-sx * VOXEL) / 2, (-sy * VOXEL) / 2, (-sz * VOXEL) / 2);
+    const origin = new THREE.Vector3();
     this.mesh = new THREE.Mesh(greedyMesh(figure.grid, figure.palette, VOXEL, origin), this.material);
     this.turntable.add(this.mesh);
-    // Frame what's actually there (the figure's grid has room to spare).
-    const box = new THREE.Box3().setFromObject(this.mesh);
+    const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);
+    coreGeometry.computeBoundingBox();
+    const box = coreGeometry.boundingBox!;
+    coreGeometry.dispose();
+    box.expandByScalar(VOXEL * 1.5);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     this.mesh.position.set(-center.x, -center.y, -center.z);

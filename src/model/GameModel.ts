@@ -34,8 +34,8 @@ import { EnemyDirector } from './enemyDirector';
 import { FRESH_HERO_STATS, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
-import { PICKUP_RANGE, rollDrop, type GroundLoot, type LootId } from './loot/loot';
-import { addToBag, takeFromBag } from './bag';
+import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
+import { addToBag, takeFromBag, type BagItem } from './bag';
 import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
@@ -269,7 +269,7 @@ export class GameModel {
   }
 
   // Puts an item on the ground at (x, z).
-  dropLoot(item: LootId, x: number, z: number): void {
+  dropLoot(item: BagItem, x: number, z: number): void {
     this.loot.push({ id: this.nextLootId++, item, x, z, y: this.getGroundY(x, z) });
   }
 
@@ -289,7 +289,7 @@ export class GameModel {
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
   // front of them; returns whether they had one.
-  dropFromBag(item: LootId): boolean {
+  dropFromBag(item: BagItem): boolean {
     if (!takeFromBag(this.hero.bag, item)) return false;
     this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
     return true;
@@ -304,6 +304,12 @@ export class GameModel {
     return true;
   }
 
+  // Takes off what's worn in `slot` and puts it on the ground in front of the hero.
+  dropEquipped(slot: EquipSlot): boolean {
+    const item = this.hero.equipment[slot];
+    return !!item && this.unequip(slot) && this.dropFromBag(item);
+  }
+
   // Wears `item` from the bag, putting what was in its slot back in the bag;
   // returns whether the bag had one.
   equipFromBag(item: ItemId): boolean {
@@ -314,7 +320,7 @@ export class GameModel {
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
-  pickUp(): LootId | null {
+  pickUp(): BagItem | null {
     const loot = this.lootInReach;
     if (!loot) return null;
     this.loot.splice(this.loot.indexOf(loot), 1);

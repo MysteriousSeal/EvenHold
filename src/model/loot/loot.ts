@@ -8,6 +8,7 @@
 
 import { hashUnit } from '../../util/random';
 import { JUNK_ITEMS } from './junk';
+import type { BagItem } from '../bag';
 
 // Who drops what: families of enemies (ENEMY_STATS[kind].family).
 export type LootSource = 'beast' | 'humanoid';
@@ -27,10 +28,10 @@ export const LOOT_QUALITY: Record<LootId, LootQuality> = Object.fromEntries(LOOT
 export const DROP_CHANCE = 0.5;
 export const PICKUP_RANGE = 0.9; // how close the hero must be to pick something up
 
-// An item lying on the ground.
+// Something lying on the ground: loot, or gear put down.
 export interface GroundLoot {
   id: number;
-  item: LootId;
+  item: BagItem;
   x: number;
   y: number;
   z: number;

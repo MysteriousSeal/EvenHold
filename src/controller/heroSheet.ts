@@ -50,7 +50,8 @@ export function createHeroSheet(model: GameModel): () => void {
           const dressed = JSON.stringify(hero.equipment);
           if (dressed !== dressedAs) {
             dressedAs = dressed;
-            stage.show(humanFigure(hero.look, hero.equipment));
+            // Framed on the bare body, so whatever's worn or held never changes its size or tilts its turn.
+            stage.show(humanFigure(hero.look, hero.equipment), humanFigure(hero.look, {}));
           }
           return {
             figure: stage.canvas,
