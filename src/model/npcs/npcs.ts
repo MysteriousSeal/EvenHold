@@ -115,6 +115,12 @@ export function nameAt(x: number, z: number, seed = 0, build: Build = 'male'): s
   return pick(woman ? WOMEN_FIRST : MEN_FIRST, 71) + pick(woman ? FEMALE_LAST : MALE_LAST, 72);
 }
 
+// A name picked at random, a man's or a woman's by their build (the hero's, each game).
+export function randomName(build: Build): string {
+  const roll = () => Math.random() * 100_000;
+  return nameAt(roll(), roll(), Math.floor(roll()), build);
+}
+
 // One villager for every house, living in the village it stands in (the
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two

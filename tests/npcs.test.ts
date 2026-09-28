@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
-import { nameAt, spawnNpcs } from '../src/model/npcs/npcs';
+import { nameAt, randomName, spawnNpcs } from '../src/model/npcs/npcs';
+import { randomLook } from '../src/model/human/humanoid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const withVillage = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'))!;
@@ -162,5 +163,14 @@ describe('villagers', () => {
     }
     expect(worked).toBe(true);
     expect(model.npcs.filter((n) => n.field).length).toBeLessThan(model.npcs.filter((n) => n.role === 'villager').length); // some, not all
+  });
+
+  it('give the hero a new random look and name each game: men and women, no two alike', () => {
+    const looks = Array.from({ length: 200 }, () => randomLook());
+    expect(looks.some((l) => l.build === 'female')).toBe(true);
+    expect(looks.some((l) => l.build === 'male')).toBe(true);
+    expect(looks.filter((l) => l.build === 'female').every((l) => !l.beard)).toBe(true);
+    const names = new Set(looks.map((l) => randomName(l.build)));
+    expect(names.size).toBeGreaterThan(150);
   });
 });

@@ -35,6 +35,12 @@ export interface Humanoid {
 
 export const HERO_LOOK: Readonly<BodyLook> = { build: 'male', skin: 0, hair: 0, dye: 1, hairStyle: 'short', beard: false };
 
+// A look picked at random (a new hero each game): a man or a woman, anyone.
+export function randomLook(): BodyLook {
+  const roll = () => Math.floor(Math.random() * 1_000_000);
+  return lookAt(roll(), roll(), roll(), 0.5);
+}
+
 // A look picked from a place (e.g. where someone spawned): the same spot
 // always gives the same person. `seed`, if given, makes it the world's own:
 // the same spot in another world gives someone else. `female`: the chance
