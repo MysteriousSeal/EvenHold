@@ -29,7 +29,8 @@ import {
 } from './constants';
 import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
-import { campPalisade, campPieces, spawnEnemies, stepEnemy } from './enemies';
+import { campPalisade, campPieces, spawnEnemies, stepEnemy, type EnemyActions } from './enemies';
+import { ENEMY_DAMAGE, ENEMY_XP, FRESH_HERO_STATS, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
@@ -108,7 +109,7 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {} }; // starts naked
+    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
@@ -231,6 +232,7 @@ export class GameModel {
       if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
     }
     this.updateEnemies(dt);
+    recover(this.hero, dt);
     stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
@@ -289,8 +291,27 @@ export class GameModel {
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
+    if (target.state === 'dead') gainXp(this.hero, ENEMY_XP[target.kind]);
     const d = Math.max(best, 1e-6);
     this.moveEnemy(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
+  }
+
+  private readonly enemyActions: EnemyActions = {
+    move: (e, dx, dz) => this.moveEnemy(e, dx, dz),
+    steer: (e, quarry) => this.chaseGoal(e, quarry),
+    sees: (e) => this.canSee(e),
+    strike: (e) => this.enemyStrikes(e),
+  };
+
+  // An enemy's blow lands if the hero is still within its reach (a step
+  // back in time dodges it). Out of health, the hero wakes at spawn, healed.
+  private enemyStrikes(enemy: Enemy): void {
+    if (this.godMode || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+    if (!hurt(this.hero, ENEMY_DAMAGE[enemy.kind])) return;
+    const spawn = spawnOf(this.size);
+    this.teleport(spawn.x, spawn.z);
+    this.hero.hp = maxHpAt(this.hero.level);
+    for (const e of this.enemies) if (e.state === 'chase') e.state = 'wander';
   }
 
   // Enemies near the hero act; the dead lie a while, then are gone.
@@ -305,7 +326,7 @@ export class GameModel {
         continue;
       }
       enemy.pathAge += dt;
-      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz), (e, quarry) => this.chaseGoal(e, quarry), (e) => this.canSee(e));
+      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, this.enemyActions);
     }
     if (!this.enemiesFrozen) this.separateEnemies(dt);
   }

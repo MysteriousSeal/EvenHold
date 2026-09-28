@@ -142,18 +142,28 @@ export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp
 // One frame of a living enemy: chase the hero when close (once in reach it
 // attacks instead: a bandit swings, a wolf lunges and bites), otherwise wander between spots around home, resting in
 // between. `move` walks it with collisions and returns whether it got anywhere.
-export function stepEnemy(
-  enemy: Enemy,
-  hero: { x: number; z: number },
-  dt: number,
-  move: (enemy: Enemy, dx: number, dz: number) => boolean,
-  steer: (enemy: Enemy, quarry: { x: number; z: number }) => { x: number; z: number } = (_e, quarry) => quarry,
-  sees: (enemy: Enemy) => boolean = () => true,
-): void {
+// What an enemy can do in the world, supplied by the game model.
+export interface EnemyActions {
+  // Walks it with collisions; returns whether it got anywhere.
+  move(enemy: Enemy, dx: number, dz: number): boolean;
+  // Where to head for `quarry`: itself if the way is clear, else the next point around what's between.
+  steer(enemy: Enemy, quarry: { x: number; z: number }): { x: number; z: number };
+  // Whether it can see the hero.
+  sees(enemy: Enemy): boolean;
+  // Its blow lands, halfway through the swing.
+  strike(enemy: Enemy): void;
+}
+
+export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
+
+export function stepEnemy(enemy: Enemy, hero: { x: number; z: number }, dt: number, actions: EnemyActions): void {
+  const { move, steer, sees } = actions;
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
   if (enemy.swingFor !== null) {
+    const before = enemy.swingFor;
     enemy.swingFor += dt;
+    if (before < stats.swing * ENEMY_STRIKE && enemy.swingFor >= stats.swing * ENEMY_STRIKE) actions.strike(enemy);
     if (enemy.swingFor >= stats.swing) {
       enemy.swingFor = null;
       enemy.cooldown = stats.cooldown;

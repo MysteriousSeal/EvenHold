@@ -7,6 +7,11 @@ export interface Hero extends Humanoid {
   z: number;
   y: number;
   facing: number; // yaw toward the last direction moved (atan2(dx, dz))
+  hp: number; // up to maxHpAt(level) (heroStats.ts); may be fractional while healing
+  level: number;
+  xp: number; // toward the next level
+  hurtFor: number; // seconds left of the hit flash
+  sinceHurt: number; // seconds since the last hit
 }
 
 export type EnemyKind = 'wolf' | 'bandit';
