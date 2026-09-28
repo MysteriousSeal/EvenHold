@@ -75,13 +75,15 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
 }
 
 // Head and shoulders only (a portrait): the figure above mid-chest, as worn,
-// leaving out what's held (a tall shield would cover the face). Turned a
-// quarter so it faces +X: icons are seen from the +X+Z corner, where +X
-// reads as facing right.
-export function humanBust(look: BodyLook, equipment: Equipment): Figure {
+// leaving out what's held (a tall shield would cover the face). Icons are
+// seen from the +X+Z corner, where a figure's own +Z front reads as facing
+// left; facing right, it's turned a quarter so its front is +X.
+export function humanBust(look: BodyLook, equipment: Equipment, facing: 'left' | 'right' = 'right'): Figure {
   const figure = humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined });
   const [sx, sy, sz] = figure.grid.size;
   const chest = JOINTS.torso.at[1] + SHIFT[1] + 3; // rows below this go
+  for (let z = 0; z < sz; z++) for (let y = 0; y < Math.min(chest, sy); y++) for (let x = 0; x < sx; x++) figure.grid.cells[x + sx * (y + sy * z)] = 0;
+  if (facing === 'left') return figure;
   const turned = createGrid([sz, sy, sx]);
   for (let z = 0; z < sz; z++) {
     for (let y = chest; y < sy; y++) {

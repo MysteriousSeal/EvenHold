@@ -19,7 +19,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string) =
 };
 
 // Returns the function to call each frame.
-export function createHeroHud(hero: Hero): () => void {
+export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
   const root = el('div', 'hero-hud');
   const portrait = el('div', 'hero-hud-portrait');
   const level = el('div', 'hero-hud-level');
@@ -36,7 +36,7 @@ export function createHeroHud(hero: Hero): () => void {
   const xp = bar('hero-hud-xp');
   portrait.append(level);
   root.append(portrait, bars);
-  document.body.append(root);
+  parent.append(root);
 
   let shown = '';
   let dressed = '';

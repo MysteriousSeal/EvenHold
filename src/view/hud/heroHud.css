@@ -4,6 +4,17 @@
    health in clay red and experience in lake turquoise. Fredoka, numbers tabular. No animation
    but a brief red edge when hurt. */
 
+/* The row along the top left: the hero's frame, then the focused enemy's. */
+.hud-top {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  pointer-events: none;
+}
+
 .hero-hud {
   --sand: #efdcb8;
   --sand-dark: #d6bb8e;
@@ -12,9 +23,6 @@
   --lake: #3dbdb8;
   --lake-dark: #217c98;
   --ink: #2e1f14;
-  position: fixed;
-  top: 16px;
-  left: 16px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -84,3 +92,15 @@
 .hero-hud-xp { height: 16px; background: #1d4a58; }
 .hero-hud-xp i { background: var(--lake); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15); }
 .hero-hud-xp span { font-size: 12px; }
+
+/* The focused enemy's frame: the hero's mirrored (bars, then a smaller
+   portrait), its name over the health bar. */
+.target-hud[hidden] { display: none; }
+.target-hud .hero-hud-portrait { width: 76px; height: 76px; }
+.target-hud .hero-hud-bar { width: 220px; }
+.target-hud-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink);
+}

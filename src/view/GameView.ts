@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
+import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
@@ -41,6 +42,8 @@ export interface RenderStats {
   triangles: number;
   pixelRatio: number;
 }
+
+const PICK_RADIUS = 40; // pixels around an enemy that count as clicking it
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -152,6 +155,32 @@ export class GameView {
     box.dispose();
   }
 
+  // The living enemy drawn nearest to a point on screen (a click), within
+  // PICK_RADIUS pixels, or null. Judged on screen, not by hitting the
+  // model exactly, as enemies are small from the isometric camera.
+  pickEnemy(clientX: number, clientY: number, enemies: readonly Enemy[]): number | null {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const at = new THREE.Vector3();
+    let best: number | null = null;
+    let bestDistance = PICK_RADIUS;
+    for (const enemy of enemies) {
+      if (enemy.state === 'dead') continue;
+      at.set(enemy.x, enemy.y + 0.18, enemy.z).project(this.camera);
+      const x = rect.left + ((at.x + 1) / 2) * rect.width;
+      const y = rect.top + ((1 - at.y) / 2) * rect.height;
+      const d = Math.hypot(x - clientX, y - clientY);
+      if (d < bestDistance) {
+        best = enemy.id;
+        bestDistance = d;
+      }
+    }
+    return best;
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this.renderer.domElement;
+  }
+
   getMovementAxes(): MovementAxes {
     return this.movementAxes;
   }
@@ -164,9 +193,9 @@ export class GameView {
     const { hero } = model;
     this.hero.wear(hero.equipment);
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
-    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress);
+    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing);
     this.world.update(hero.x, hero.z);
-    this.enemies.update(model.enemies, hero.x, hero.z, dt);
+    this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
 
     // The camera eases toward the ground height rather than tracking hero.y

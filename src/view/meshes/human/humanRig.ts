@@ -28,6 +28,7 @@ const LEG_SWING = 0.7; // radians at full stride: long, loping steps
 const ARM_SWING = 0.55;
 const BOB = 0.012; // body rise at each step, world units
 const TURN_RATE = 14; // how fast they turn toward where they're walking (per second)
+const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
 
 // The blow, keyed over its progress (0..1): the right arm winds up overhead
 // and slightly back, strikes forward and down fast, then recovers; the body
@@ -192,8 +193,9 @@ export class HumanRig {
 
   // Places the body at (x, y, z) and animates from how far they moved
   // since last frame (facing, walk cycle, bob, or idle breathing) and, while
-  // attacking, from how far through the blow they are (0..1).
-  update(x: number, y: number, z: number, dt: number, attack: number | null = null): void {
+  // attacking, from how far through the blow they are (0..1). `facing`, if
+  // given, is the way they strike: they turn to it quickly while attacking.
+  update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number): void {
     this.time += dt;
     const dx = Number.isNaN(this.last.x) ? 0 : x - this.last.x;
     const dz = Number.isNaN(this.last.x) ? 0 : z - this.last.z;
@@ -208,6 +210,10 @@ export class HumanRig {
       const diff = Math.atan2(Math.sin(target - this.heading), Math.cos(target - this.heading));
       this.heading += diff * Math.min(1, TURN_RATE * dt);
       this.phase += moved * STRIDE;
+    }
+    if (attack !== null && facing !== undefined) {
+      const diff = Math.atan2(Math.sin(facing - this.heading), Math.cos(facing - this.heading));
+      this.heading += diff * Math.min(1, ATTACK_TURN_RATE * dt);
     }
     this.root.rotation.y = this.heading;
     this.swing += ((walking ? 1 : 0) - this.swing) * Math.min(1, 12 * dt);
