@@ -8,6 +8,7 @@ import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
 import { buildRoadTile } from '../src/view/meshes/road/roadVoxels';
 import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
 import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
+import { addWindSway } from '../src/view/meshes/common/wind';
 
 function grid(size: [number, number, number], voxels: Array<[number, number, number, number]>): VoxelGrid {
   const g: VoxelGrid = { size, cells: new Uint8Array(size[0] * size[1] * size[2]) };
@@ -155,5 +156,17 @@ describe('voxel instancing', () => {
       }
       expect(chunks.size).toBe(1);
     }
+  });
+});
+
+describe('wind sway', () => {
+  it('gives each set of wind options its own shader program', () => {
+    const keyFor = (height: number) => {
+      const material = new THREE.MeshStandardMaterial();
+      addWindSway(material, { height, strength: 0.03, speed: 1 });
+      return material.customProgramCacheKey();
+    };
+    expect(keyFor(0.3)).not.toBe(keyFor(1.5));
+    expect(keyFor(0.3)).toBe(keyFor(0.3));
   });
 });
