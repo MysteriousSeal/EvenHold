@@ -29,6 +29,8 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { LootViews } from './meshes/loot/lootViews';
+import { buildRoomScene } from './interior/roomView';
+import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
 import type { WorldSink } from './world/chunkLayer';
 
@@ -203,7 +205,19 @@ export class GameView {
     const { hero } = model;
     this.hero.wear(hero.equipment);
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
+    // Indoors, the hero is moved into the room's scene; back out, into the world's.
+    const room = this.roomScene(model);
+    const home = room ?? this.scene;
+    if (this.hero.root.parent !== home) {
+      home.add(this.hero.root);
+      this.hero.update(hero.x, hero.y, hero.z, 0); // arrive in place, no walk from where it was
+      this.cameraY = hero.y;
+    }
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing);
+    if (room) {
+      this.followHero(hero, 0, dt);
+      return; // the world outside stands still
+    }
     this.world.update(hero.x, hero.z);
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
@@ -212,17 +226,32 @@ export class GameView {
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay
     // keeps the feel the same at any frame rate.
-    const groundY = model.getGroundY(hero.x, hero.z);
-    this.cameraY += (groundY - this.cameraY) * (1 - Math.exp(-CAMERA_Y_SMOOTHING * dt));
+    this.followHero(hero, model.getGroundY(hero.x, hero.z), dt);
+    this.stylizer?.setFocusHeight(this.cameraY);
+  }
 
+  private followHero(hero: { x: number; z: number }, groundY: number, dt: number): void {
+    this.cameraY += (groundY - this.cameraY) * (1 - Math.exp(-CAMERA_Y_SMOOTHING * dt));
     this.camera.position.set(hero.x + CAMERA_OFFSET.x, this.cameraY + CAMERA_OFFSET.y, hero.z + CAMERA_OFFSET.z);
     this.camera.lookAt(hero.x, this.cameraY, hero.z);
-    this.stylizer?.setFocusHeight(this.cameraY);
+  }
+
+  // The scene of the room the hero's in, built when they step in, or null outdoors.
+  private room: { entrance: Entrance; scene: THREE.Scene } | null = null;
+  private roomScene(model: GameModel): THREE.Scene | null {
+    const inside = model.inside;
+    if (!inside) {
+      this.room = null;
+      return null;
+    }
+    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, scene: buildRoomScene(inside.room) };
+    return this.room.scene;
   }
 
   render(): void {
     this.renderer.info.reset();
-    if (this.post) this.post.render(this.elapsed);
+    if (this.room) this.renderer.render(this.room.scene, this.camera); // indoors: just the room
+    else if (this.post) this.post.render(this.elapsed);
     else this.renderer.render(this.scene, this.camera);
   }
 

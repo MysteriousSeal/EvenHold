@@ -107,33 +107,37 @@
   text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink);
 }
 
-/* Over loot in reach: its name in its quality's color, and the key. */
+/* Over what E would do: a keycap, then the action (loot names in their
+   quality's color, anything else in cream). */
 .loot-prompt {
   position: fixed;
   top: 0;
   left: 0;
   display: flex;
+  flex-direction: row-reverse; /* the key first */
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  font: 600 14px 'Fredoka', system-ui, sans-serif;
-  background: rgba(46, 31, 20, 0.78);
-  border: 2px solid #2e1f14;
-  pointer-events: none;
-  white-space: nowrap;
+  gap: 8px;
+  padding: 5px 12px 5px 6px;
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap; /* colors and edge: the shared tooltip look (menu.css) */
 }
 .loot-prompt[hidden], .loot-toast[hidden] { display: none; }
+.loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
 .loot-name[data-quality='common'] { color: #f8ecd4; }
 .loot-key {
-  min-width: 20px;
+  min-width: 26px;
+  height: 26px;
   padding: 0 5px;
-  font-size: 12px;
-  text-align: center;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  font: 700 15px/1 'Fredoka', system-ui, sans-serif;
   color: #2e1f14;
-  background: #efdcb8;
+  background: #ffd98a;
   border: 2px solid #2e1f14;
-  box-shadow: inset 0 -2px 0 #d6bb8e;
+  box-shadow: inset 0 -3px 0 #e8903a;
 }
 
 /* What just went into the bag, low in the middle of the screen. */
@@ -143,11 +147,8 @@
   bottom: 72px;
   transform: translateX(-50%);
   padding: 5px 12px;
-  font: 600 15px 'Fredoka', system-ui, sans-serif;
-  color: #efdcb8;
-  background: rgba(46, 31, 20, 0.78);
-  border: 2px solid #2e1f14;
-  pointer-events: none;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 /* The toolbar, bottom right: raised sand tiles, a voxel icon each and its
@@ -206,3 +207,16 @@
 .target-hud .hero-hud-level[data-difficulty='tough'] { background: #e0b830; box-shadow: inset -3px -3px 0 #a8862e; }
 .target-hud .hero-hud-level[data-difficulty='hard'] { background: #e07a2a; box-shadow: inset -3px -3px 0 #a8551c; }
 .target-hud .hero-hud-level[data-difficulty='deadly'] { background: #c8362a; box-shadow: inset -3px -3px 0 #8a2218; }
+
+/* A toolbar tile's label, over it on hover. */
+.toolbar-tip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  visibility: hidden;
+}
+.toolbar-button:hover .toolbar-tip { visibility: visible; }

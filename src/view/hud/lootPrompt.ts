@@ -1,5 +1,5 @@
-// Over the loot within the hero's reach: its name, in its quality's color
-// (grey for junk), and the key to pick it up. After a pickup, a short line
+// Over what the hero can use with E: loot in reach (its name, in its
+// quality's color, grey for junk), or a door ("Enter house", "Leave"). After a pickup, a short line
 // says what went into the bag. Styles in hud.css.
 
 import type { GroundLoot } from '../../model/loot/loot';
@@ -7,10 +7,25 @@ import { nameOf, qualityOf, type BagItem } from '../../model/bag';
 
 const TOAST_SECONDS = 2;
 
+// What E would do right now: its label (colored by `quality` for loot),
+// shown over a point in the world.
+export interface PromptTarget {
+  label: string;
+  quality?: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface LootPrompt {
-  // Each frame: the loot in reach (or null), and where on screen to put it.
-  update(loot: GroundLoot | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
+  // Each frame: what E does (or null), and where on screen to put it.
+  update(target: PromptTarget | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
   pickedUp(item: BagItem): void;
+}
+
+// The prompt for loot on the ground: its name, in its quality's color.
+export function lootTarget(loot: GroundLoot): PromptTarget {
+  return { label: nameOf(loot.item), quality: qualityOf(loot.item), x: loot.x, y: loot.y + 0.35, z: loot.z };
 }
 
 export function createLootPrompt(): LootPrompt {
@@ -24,18 +39,15 @@ export function createLootPrompt(): LootPrompt {
   toast.hidden = true;
   document.body.append(prompt, toast);
   let toastTimer = 0;
-  let shownItem: BagItem | null = null;
 
   return {
-    update(loot, toScreen) {
-      prompt.hidden = !loot;
-      if (!loot) return;
-      if (loot.item !== shownItem) {
-        shownItem = loot.item;
-        name.textContent = nameOf(loot.item);
-        name.dataset.quality = qualityOf(loot.item);
-      }
-      const at = toScreen(loot.x, loot.y + 0.35, loot.z);
+    update(target, toScreen) {
+      prompt.hidden = !target;
+      if (!target) return;
+      if (name.textContent !== target.label) name.textContent = target.label;
+      if (target.quality) name.dataset.quality = target.quality;
+      else delete name.dataset.quality;
+      const at = toScreen(target.x, target.y, target.z);
       prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px) translate(-50%, -100%)`;
     },
     pickedUp(item) {

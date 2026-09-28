@@ -20,12 +20,14 @@ export function createToolbar(buttons: ToolbarButton[]): () => void {
   const tiles = buttons.map((button) => {
     const tile = document.createElement('button');
     tile.className = 'toolbar-button';
-    tile.title = `${button.label} (${button.key})`;
     tile.setAttribute('aria-label', button.label);
+    const tip = document.createElement('span');
+    tip.className = 'toolbar-tip'; // the shared tooltip look, over the tile on hover
+    tip.textContent = button.label;
     const key = document.createElement('span');
     key.className = 'toolbar-key';
     key.textContent = button.key;
-    tile.append(button.icon(40), key);
+    tile.append(button.icon(40), key, tip);
     tile.addEventListener('click', () => button.toggle());
     // Keep the click off the game (no focusing the enemy behind the button).
     tile.addEventListener('pointerdown', (event) => event.stopPropagation());
