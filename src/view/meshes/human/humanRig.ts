@@ -15,10 +15,10 @@
 // speed (including the dev speed boost) and stops the moment they do.
 
 import * as THREE from 'three';
-import { EQUIP_SLOTS, ITEMS, type EquipSlot, type Equipment, type HeldSlot, type ItemId } from '../../../model/equipment';
-import { HERO_LOOK, type BodyLook } from '../../../model/humanoid';
+import { EQUIP_SLOTS, ITEMS, isHeldSlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HAND, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type BodyPart, type Joint } from './bodyVoxels';
+import { HAND, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type BodyPart, type Joint } from './bodyVoxels';
 import { BODY_FILL, withBody } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
@@ -56,9 +56,6 @@ function key(keys: Keys, p: number): number {
   }
   return keys[keys.length - 1][1];
 }
-
-// Which arm holds each hand's item.
-const HELD_BY: Record<HeldSlot, Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 
 // Geometries are shared by everyone with the same look, or wearing the
 // same item, and live as long as the page.
@@ -154,7 +151,7 @@ export class HumanRig {
   private putOn(slot: EquipSlot, item: ItemId): THREE.Mesh[] {
     if (ITEMS[item].slot !== slot) throw new Error(`${item} doesn't go in the ${slot} slot`);
     const meshes: THREE.Mesh[] = [];
-    if (slot === 'mainHand' || slot === 'offHand') {
+    if (isHeldSlot(slot)) {
       const geometry = heldGeometry(item);
       if (geometry) {
         const mesh = this.mesh(geometry);

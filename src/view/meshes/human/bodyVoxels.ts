@@ -1,7 +1,7 @@
 // The one body every humanoid shares (the hero, bandits, villagers later),
 // naked but for undyed linen braies (medieval underwear). Nothing is ever
 // painted onto it: armor is worn over it as separate models (gear/). Only
-// its look changes from person to person (model/humanoid.ts): the skin
+// its look changes from person to person (model/human/humanoid.ts): the skin
 // tone, the hair color and style, a beard.
 //
 // 0.025 voxels, finer than the world's 0.04: at world scale the 0.45-tall
@@ -13,7 +13,8 @@
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
-import { HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook } from '../../../model/humanoid';
+import type { HeldSlot } from '../../../model/human/equipment';
+import { HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook } from '../../../model/human/humanoid';
 
 export const HUMAN_VOXEL_SIZE = 0.025;
 
@@ -51,8 +52,10 @@ export const JOINTS: Record<Joint, { part: BodyPart; side: Side; at: [number, nu
 };
 export const JOINT_NAMES = Object.keys(JOINTS) as Joint[];
 
-// The middle of the hand, in voxels from the arm's joint (the shoulder).
+// The middle of the hand, in voxels from the arm's joint (the shoulder),
+// and which arm holds each hand's item.
 export const HAND: [number, number, number] = [0, -5, 0];
+export const HELD_BY: Record<HeldSlot, Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 
 // Skin tones, fair to deep, each with its shading, highlight, cheeks and mouth.
 const SKIN_TONES: Array<[skin: number, shade: number, light: number, cheek: number, mouth: number]> = [
@@ -69,7 +72,7 @@ const HAIR_COLORS: Array<[hair: number, light: number]> = [
   [0x8a3a22, 0xa85232],
   [0x9a948a, 0xb8b2a6],
 ];
-if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_COUNT) throw new Error('body palettes out of step with model/humanoid.ts');
+if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_COUNT) throw new Error('body palettes out of step with model/human/humanoid.ts');
 
 const EYE = 0x2b2522;
 const LINEN = 0xe8dcc0;

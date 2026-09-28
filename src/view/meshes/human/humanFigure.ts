@@ -3,11 +3,11 @@
 // at its joint (bodyVoxels.ts JOINTS), rounded to whole voxels. Drop the
 // body (look = null) to show just what's worn, as it sits on someone.
 
-import { EQUIP_SLOTS, type Equipment, type ItemId } from '../../../model/equipment';
-import type { BodyLook } from '../../../model/humanoid';
+import { EQUIP_SLOTS, isHeldSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import type { BodyLook } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { HAND, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type Joint } from './bodyVoxels';
+import { HAND, HELD_BY, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
@@ -15,8 +15,6 @@ import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 // or a staff reaches 12 voxels behind the hand and 20 ahead of it).
 const SIZE: [number, number, number] = [15, 22, 36];
 const SHIFT: [number, number, number] = [6.5, 1, 14];
-
-const HELD_BY: Record<'mainHand' | 'offHand', Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 
 export interface Figure {
   grid: VoxelGrid;
@@ -26,11 +24,17 @@ export interface Figure {
 export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure {
   const grid = createGrid(SIZE);
   const palette: number[] = [];
-  // Copies `part` in with its colors after the ones already used, placing
+  const bases = new Map<number[], number>(); // where each palette starts in the figure's, added once
+  // Copies `part` in with its colors (after the ones already used), placing
   // its voxel `pivot` at figure point `at`.
   const place = (part: VoxelGrid, colors: number[], at: number[], pivot: number[]) => {
-    const base = palette.length;
-    palette.push(...colors);
+    let base = bases.get(colors);
+    if (base === undefined) {
+      base = palette.length;
+      if (base + colors.length > 255) throw new Error('figure has too many colors');
+      bases.set(colors, base);
+      palette.push(...colors);
+    }
     const [ox, oy, oz] = [0, 1, 2].map((a) => Math.round(at[a] + SHIFT[a] - pivot[a]));
     const [sx, sy, sz] = part.size;
     if (ox < 0 || oy < 0 || oz < 0 || ox + sx > SIZE[0] || oy + sy > SIZE[1] || oz + sz > SIZE[2]) throw new Error('figure too small for this part');
@@ -55,7 +59,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
     const item: ItemId | undefined = equipment[slot];
     if (!item) continue;
     const model = ITEM_MODELS[item];
-    if (slot === 'mainHand' || slot === 'offHand') {
+    if (isHeldSlot(slot)) {
       if (!model.held) continue;
       const arm = JOINTS[HELD_BY[slot]].at;
       place(model.held.build(), model.palette, [arm[0] + HAND[0], arm[1] + HAND[1], arm[2] + HAND[2]], model.held.grip);
