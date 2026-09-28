@@ -17,6 +17,7 @@ import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZ
 const V = WOLF_VOXEL_SIZE;
 const LEG_H = LEG_GRID[1] * V;
 const BODY_H = BODY_GRID[1] * V;
+export const WOLF_BAR_HEIGHT = LEG_H + BODY_H + 0.2;
 const BODY_L = BODY_GRID[2] * V;
 const STRIDE = 6; // trot-cycle radians per world unit
 const LEG_SWING = 0.6;
@@ -51,7 +52,7 @@ export class WolfRig {
   private readonly tail = new THREE.Group();
   private readonly legs: THREE.Group[] = [];
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar = new HealthBar(LEG_H + BODY_H + 0.2, 'Wolf');
+  private readonly bar = new HealthBar(WOLF_BAR_HEIGHT, 'Wolf');
   private readonly burst = new VoxelBurst(this.root, WOLF_PALETTE.slice(0, 5), LEG_H + BODY_H);
   private readonly last = new THREE.Vector2(Number.NaN, 0);
   private heading = 0;

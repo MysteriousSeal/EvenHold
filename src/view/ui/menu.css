@@ -391,6 +391,7 @@
 .menu-tooltip[hidden] { display: none; }
 .menu-tooltip b { font-size: 17px; font-weight: 600; color: #f8ecd4; }
 .menu-tooltip b[data-tone='junk'] { color: #b4b0a8; }
+.menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
 .menu-tooltip small { font-size: 13px; color: #d6bb8e; }
 
 /* A slot being dragged: its icon under the pointer. */
@@ -443,3 +444,30 @@
 .menu-slot.drop-hint { border-color: var(--lantern); box-shadow: 0 0 0 3px rgba(255, 217, 138, 0.7), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-ok { border-color: #3f9a4a; box-shadow: 0 0 0 3px rgba(63, 154, 74, 0.55), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-bad { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.5), inset 0 -4px 0 var(--sand-dark); }
+
+/* The notice board (questBoardPanel.ts): a lead line and the quests taken
+   as pins over the notices; a danger word in its difficulty's color; the
+   hand-in button with a quiet abandon beside it. */
+.quest-board-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.quest-board-lead { flex: 1; font-size: 14px; font-style: italic; color: var(--ink-soft); line-height: 1.3; }
+.quest-pins { display: inline-flex; gap: 5px; }
+.quest-pins i { width: 12px; height: 12px; background: var(--sand-dark, #d6bb8e); border: 2px solid var(--ink); }
+.quest-pins i.on { background: #f2b640; box-shadow: inset 0 -3px 0 #c07a18; }
+.quest-taken { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.quest-danger { padding: 0 6px; color: #fff; text-shadow: 1px 1px 0 var(--ink); background: #7a6a58; border: 2px solid var(--ink); }
+.quest-danger[data-difficulty='trivial'] { background: #9a968e; }
+.quest-danger[data-difficulty='even'] { background: #3d9a6a; }
+.quest-danger[data-difficulty='tough'] { background: #d0a020; }
+.quest-danger[data-difficulty='hard'] { background: #e07a2a; }
+.quest-danger[data-difficulty='deadly'] { background: #c8362a; }
+.quest-buttons { display: flex; gap: 8px; align-items: stretch; }
+.quest-buttons .menu-detail-button { flex: 1; }
+.quest-abandon {
+  font: 600 13px 'Fredoka', system-ui, sans-serif;
+  color: var(--clay-dark);
+  background: transparent;
+  border: 2px solid var(--clay-dark);
+  padding: 0 10px;
+  cursor: pointer;
+}
+.quest-abandon:hover { background: rgba(192, 84, 58, 0.12); }

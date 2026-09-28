@@ -18,7 +18,7 @@ function portrait(enemy: Enemy): HTMLCanvasElement {
 }
 
 // How dangerous an enemy is for a hero of `heroLevel`, by the gap in level.
-function difficulty(level: number, heroLevel: number): string {
+export function difficulty(level: number, heroLevel: number): string {
   const gap = level - heroLevel;
   return gap <= -3 ? 'trivial' : gap <= 0 ? 'even' : gap <= 2 ? 'tough' : gap <= 4 ? 'hard' : 'deadly';
 }

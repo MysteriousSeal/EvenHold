@@ -18,6 +18,7 @@ import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
 import { buildLanterns } from './meshes/plaza/lanternMesh';
+import { buildNoticeBoards } from './meshes/quest/noticeBoardMesh';
 import { buildFields } from './meshes/field/fieldMesh';
 import { setWindPusher } from './meshes/common/wind';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
@@ -142,6 +143,7 @@ export class GameView {
       { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
       { label: 'Digging the wells', run: () => buildWells(scene, model) },
       { label: 'Lighting the lanterns', run: () => buildLanterns(scene, model) },
+      { label: 'Pinning up the notices', run: () => buildNoticeBoards(scene, model) },
       { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
@@ -244,7 +246,7 @@ export class GameView {
     }
     this.world.update(hero.x, hero.z);
     setWindPusher(hero.x, hero.z); // crops part around them
-    this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
+    this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null, (e) => model.quests.marked(e));
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);
     this.coins.update(model.coins, hero.x, hero.z, dt);
