@@ -1,5 +1,5 @@
 // The hero sheet, opened and closed with C, like an MMO's character panel:
-// the hero as dressed, with a slot for each piece of gear around them (drag
+// the hero as dressed, turning slowly, with a slot for each piece of gear around them (drag
 // one off to put it in the bag; drag gear from the bag onto the hero to wear
 // it), and their stats underneath. It sits on the left, under the HUD, and
 // the game plays on around it.
@@ -11,16 +11,18 @@ import { maxHpAt, xpToNext } from '../model/heroStats';
 import { humanFigure } from '../view/meshes/human/humanFigure';
 import { gearIcon } from '../view/ui/itemIcons';
 import { createMenu, type DollSlot } from '../view/ui/menu';
-import { voxelIcon } from '../view/ui/voxelIcon';
+import { FigureStage } from '../view/ui/figureStage';
 
-const LEFT: EquipSlot[] = ['head', 'torso', 'hands'];
-const RIGHT: EquipSlot[] = ['legs', 'feet'];
+const LEFT: EquipSlot[] = ['head', 'neck', 'shoulders', 'torso'];
+const RIGHT: EquipSlot[] = ['hands', 'legs', 'feet', 'ring'];
 const BOTTOM: EquipSlot[] = ['mainHand', 'offHand'];
 
 // Returns the function to call each frame: it redraws the sheet when the
 // hero's gear or stats changed.
 export function createHeroSheet(model: GameModel): () => void {
   const { hero } = model;
+  const stage = new FigureStage(180, 250); // the hero, turning slowly
+  let dressedAs = '';
   const slot = (which: EquipSlot): DollSlot => {
     const item = hero.equipment[which];
     return {
@@ -46,8 +48,12 @@ export function createHeroSheet(model: GameModel): () => void {
         name: 'Hero',
         doll: () => {
           const dressed = JSON.stringify(hero.equipment);
+          if (dressed !== dressedAs) {
+            dressedAs = dressed;
+            stage.show(humanFigure(hero.look, hero.equipment));
+          }
           return {
-            figure: (size) => voxelIcon(`sheet:${JSON.stringify(hero.look)}:${dressed}`, () => humanFigure(hero.look, hero.equipment), size),
+            figure: stage.canvas,
             left: LEFT.map(slot),
             right: RIGHT.map(slot),
             bottom: BOTTOM.map(slot),
@@ -66,6 +72,7 @@ export function createHeroSheet(model: GameModel): () => void {
   });
   let shown = '';
   return () => {
+    if (menu.isOpen) stage.render();
     const state = `${JSON.stringify(hero.equipment)}|${hero.level}|${hero.xp}|${Math.floor(hero.hp)}`;
     if (state === shown) return;
     shown = state;
