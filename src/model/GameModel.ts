@@ -8,6 +8,13 @@ import {
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
   ATTACK_DURATION,
+  ATTACK_KNOCKBACK,
+  ATTACK_REACH,
+  ATTACK_STRIKE,
+  CAMPFIRE_COLLISION_HALF,
+  ENEMY_ACTIVE_RADIUS,
+  ENEMY_CORPSE_TIME,
+  ENEMY_STATS,
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   HOP_DURATION,
@@ -16,7 +23,8 @@ import {
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, NEIGHBORS_4, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Building, Bush, Field, Hero, Tree, House, Surface, Village } from './types';
+import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
+import { spawnEnemies, stepEnemy } from './enemies';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
@@ -36,17 +44,21 @@ export class GameModel {
   readonly trees: Tree[];
   readonly bushes: Bush[];
   readonly hero: Hero;
+  readonly enemies: Enemy[];
+  readonly camps: Camp[];
 
-  private readonly solidCells: ReadonlySet<string>; // tiles blocked edge to edge
+  private readonly solidCells: Set<string>; // tiles blocked edge to edge
   // Props smaller than a tile (bushes, tree trunks, lamp posts): tile key ->
   // half-size of the square they block, centered on the tile.
-  private readonly propFootprints: ReadonlyMap<string, number>;
+  private readonly propFootprints: Map<string, number>;
   private hop: { fromY: number; toY: number; elapsed: number } | null = null;
   // Field fences, as thin axis-aligned rectangles [minX, minZ, maxX, maxZ]
   // along tile edges, keyed by the tile they're in.
   private readonly fences = new Map<string, Array<[number, number, number, number]>>();
-  // Time into the current attack, or null when not attacking.
+  // Time into the current attack, or null when not attacking; whether the
+  // current blow has landed yet (each blow hits at most once).
   private attackElapsed: number | null = null;
+  private attackLanded = false;
 
   // Dev cheats: movement speed factor (1 = normal).
   speedMultiplier = 1;
@@ -69,7 +81,7 @@ export class GameModel {
     this.bushes = world.bushes;
     // Houses and wells nearly fill their tile, so they block all of it;
     // bushes and tree trunks are much smaller, so they get their own footprint.
-    this.solidCells = solidCells(this);
+    this.solidCells = new Set(solidCells(this));
     this.propFootprints = new Map([
       ...this.bushes.map((b): [string, number] => [cellKey(b.x, b.z), BUSH_COLLISION_HALF]),
       ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
@@ -90,8 +102,17 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { x: spawn.x, z: spawn.z, y: 0 };
+    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0 };
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
+    const { enemies, camps } = spawnEnemies(this);
+    this.enemies = enemies;
+    this.camps = camps;
+    // Tents block their tile; campfires a smaller square in the middle of theirs.
+    for (const camp of camps) {
+      this.solidCells.add(cellKey(camp.tentX, camp.tentZ));
+      this.propFootprints.set(cellKey(camp.x, camp.z), CAMPFIRE_COLLISION_HALF);
+    }
+    for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
@@ -105,6 +126,7 @@ export class GameModel {
   startAttack(): boolean {
     if (this.attackElapsed !== null) return false;
     this.attackElapsed = 0;
+    this.attackLanded = false;
     return true;
   }
 
@@ -137,8 +159,7 @@ export class GameModel {
   // Tests all four corners of the hero's square footprint, not just its
   // center — a center-only check lets the hero's body sink halfway into a
   // house or water tile before the center crosses the cell boundary.
-  private isBlocked(x: number, z: number): boolean {
-    const r = HERO_RADIUS;
+  private isBlocked(x: number, z: number, r = HERO_RADIUS): boolean {
     const corners: Array<[number, number]> = [
       [x - r, z - r],
       [x + r, z - r],
@@ -174,8 +195,13 @@ export class GameModel {
     this.moveHorizontally(dirX, dirZ, dt);
     if (this.attackElapsed !== null) {
       this.attackElapsed += dt;
+      if (!this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
+        this.attackLanded = true;
+        this.landBlow();
+      }
       if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
     }
+    this.updateEnemies(dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
     this.updateHop(dt);
@@ -192,8 +218,78 @@ export class GameModel {
 
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.
-    if (!this.isBlocked(candidateX, this.hero.z)) this.hero.x = candidateX;
-    if (!this.isBlocked(this.hero.x, candidateZ)) this.hero.z = candidateZ;
+    if (!this.isBlocked(candidateX, this.hero.z) && !this.bumpsEnemy(candidateX, this.hero.z)) this.hero.x = candidateX;
+    if (!this.isBlocked(this.hero.x, candidateZ) && !this.bumpsEnemy(this.hero.x, candidateZ)) this.hero.z = candidateZ;
+    this.hero.facing = Math.atan2(dirX, dirZ);
+  }
+
+  // Living enemies are solid to the hero: a step is refused if it would
+  // overlap one and bring the two closer. Stepping away from an enemy
+  // already pressed against the hero is always allowed, so the hero can't
+  // get pinned.
+  private bumpsEnemy(x: number, z: number): boolean {
+    return this.enemies.some((enemy) => {
+      const reach = HERO_RADIUS + ENEMY_STATS[enemy.kind].radius;
+      if (enemy.state === 'dead' || Math.abs(enemy.x - x) >= reach || Math.abs(enemy.z - z) >= reach) return false;
+      return Math.hypot(enemy.x - x, enemy.z - z) < Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z);
+    });
+  }
+
+  // The blow lands on the nearest living enemy within reach and roughly in
+  // front of the hero (within 70 degrees of facing): one hit point off, a
+  // shove away, and a brief flash. At zero it dies.
+  private landBlow(): void {
+    const fx = Math.sin(this.hero.facing);
+    const fz = Math.cos(this.hero.facing);
+    let target: Enemy | null = null;
+    let best = Infinity;
+    for (const enemy of this.enemies) {
+      if (enemy.state === 'dead') continue;
+      const dx = enemy.x - this.hero.x;
+      const dz = enemy.z - this.hero.z;
+      const d = Math.hypot(dx, dz);
+      if (d > ATTACK_REACH + ENEMY_STATS[enemy.kind].radius || d >= best) continue;
+      if (d > 1e-6 && (dx * fx + dz * fz) / d < Math.cos((70 * Math.PI) / 180)) continue;
+      target = enemy;
+      best = d;
+    }
+    if (!target) return;
+    target.hp -= 1;
+    target.hurtFor = 0.25;
+    target.swingFor = null; // a hit interrupts its own blow
+    target.state = target.hp <= 0 ? 'dead' : 'chase';
+    const d = Math.max(best, 1e-6);
+    this.moveEnemy(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
+  }
+
+  // Enemies near the hero act; the dead lie a while, then are gone.
+  private updateEnemies(dt: number): void {
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      if (Math.abs(enemy.x - this.hero.x) > ENEMY_ACTIVE_RADIUS || Math.abs(enemy.z - this.hero.z) > ENEMY_ACTIVE_RADIUS) continue;
+      enemy.hurtFor = Math.max(0, enemy.hurtFor - dt);
+      if (enemy.state === 'dead') {
+        enemy.deadFor += dt;
+        if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(i, 1);
+        continue;
+      }
+      stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz));
+    }
+  }
+
+  // Moves an enemy with the same collisions as the hero (axis by axis, so it
+  // slides along obstacles); returns whether it moved at all.
+  private moveEnemy(enemy: Enemy, dx: number, dz: number): boolean {
+    const x0 = enemy.x;
+    const z0 = enemy.z;
+    const r = ENEMY_STATS[enemy.kind].radius;
+    const margin = 0.4;
+    const nx = Math.min(this.size.width - 1 - margin, Math.max(margin, enemy.x + dx));
+    const nz = Math.min(this.size.depth - 1 - margin, Math.max(margin, enemy.z + dz));
+    if (!this.isBlocked(nx, enemy.z, r)) enemy.x = nx;
+    if (!this.isBlocked(enemy.x, nz, r)) enemy.z = nz;
+    enemy.y = this.getGroundY(enemy.x, enemy.z);
+    return enemy.x !== x0 || enemy.z !== z0;
   }
 
   // Whenever the ground height under the hero changes, move to it over a

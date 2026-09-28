@@ -4,6 +4,36 @@ export interface Hero {
   x: number;
   z: number;
   y: number;
+  facing: number; // yaw toward the last direction moved (atan2(dx, dz))
+}
+
+export type EnemyKind = 'wolf' | 'bandit';
+export type EnemyState = 'wander' | 'chase' | 'dead';
+
+export interface Enemy {
+  id: number;
+  kind: EnemyKind;
+  x: number;
+  z: number;
+  y: number;
+  homeX: number; // where it wanders around, and returns to
+  homeZ: number;
+  hp: number;
+  state: EnemyState;
+  target: { x: number; z: number } | null; // wander goal
+  restFor: number; // seconds before picking a new wander goal
+  hurtFor: number; // seconds left of the hit flash
+  deadFor: number; // seconds since it died
+  swingFor: number | null; // seconds into its own attack swing (bandits), or null
+  cooldown: number; // seconds before it can swing again
+}
+
+// A bandit camp: a campfire on the center tile and a tent beside it.
+export interface Camp {
+  x: number;
+  z: number;
+  tentX: number;
+  tentZ: number;
 }
 
 export type TreeKind = 'oak' | 'pine' | 'birch';

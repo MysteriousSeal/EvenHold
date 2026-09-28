@@ -25,6 +25,8 @@ import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
+import { EnemyViews } from './meshes/enemy/enemyViews';
+import { buildCamps } from './meshes/camp/campMesh';
 import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
@@ -45,6 +47,7 @@ export class GameView {
   private readonly camera: THREE.OrthographicCamera;
   private readonly hero = new HeroRig();
   private readonly world: ChunkStreamer;
+  private readonly enemies: EnemyViews;
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -84,6 +87,7 @@ export class GameView {
     addLights(this.scene);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
+    this.enemies = new EnemyViews(this.scene);
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -107,6 +111,7 @@ export class GameView {
       { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
       { label: 'Digging the wells', run: () => buildWells(scene, model) },
       { label: 'Lighting the lanterns', run: () => buildLanterns(scene, model) },
+      { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
   }
@@ -115,7 +120,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = this.world.materials();
+    const materials = [...this.world.materials(), ...this.enemies.materials];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -152,6 +157,7 @@ export class GameView {
     const { hero } = model;
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress);
     this.world.update(hero.x, hero.z);
+    this.enemies.update(model.enemies, hero.x, hero.z, dt);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay

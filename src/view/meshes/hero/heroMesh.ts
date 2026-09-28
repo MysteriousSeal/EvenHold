@@ -58,14 +58,27 @@ export type HeroSlot = 'head' | 'torso' | 'leftArm' | 'rightArm' | 'leftLeg' | '
 
 // Meshes a part so that `pivot` (in voxels, within its grid) sits at the
 // part's local origin: the joint it swings around.
-function part(grid: VoxelGrid, pivot: [number, number, number], material: THREE.Material): THREE.Mesh {
+function part(grid: VoxelGrid, palette: number[], pivot: [number, number, number], material: THREE.Material): THREE.Mesh {
   const origin = new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V);
-  return new THREE.Mesh(greedyMesh(grid, HERO_PALETTE, V, origin), material);
+  return new THREE.Mesh(greedyMesh(grid, palette, V, origin), material);
 }
+
+// A human body's voxel parts (same grid sizes as the hero's), so the rig
+// can wear another outfit: the hero, or a bandit.
+export interface HumanParts {
+  palette: number[];
+  leg(): VoxelGrid;
+  torso(): VoxelGrid;
+  arm(): VoxelGrid;
+  head(): VoxelGrid;
+}
+
+export const HERO_PARTS: HumanParts = { palette: HERO_PALETTE, leg: buildLeg, torso: buildTorso, arm: buildArm, head: buildHead };
 
 export class HeroRig {
   readonly root = new THREE.Group();
   readonly slots: Record<HeroSlot, THREE.Group>;
+  readonly meshes: THREE.Mesh[] = [];
   private readonly body = new THREE.Group();
   private readonly last = new THREE.Vector3(Number.NaN, 0, 0);
   private phase = 0;
@@ -73,27 +86,43 @@ export class HeroRig {
   private heading = 0;
   private time = 0;
 
-  constructor() {
-    const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  constructor(
+    parts: HumanParts = HERO_PARTS,
+    material: THREE.Material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }),
+  ) {
+    const { palette } = parts;
     const joint = (x: number, y: number, z: number, mesh: THREE.Mesh) => {
       const group = new THREE.Group();
       group.position.set(x, y, z);
       group.add(mesh);
+      this.meshes.push(mesh);
       this.body.add(group);
       return group;
     };
     const legPivot: [number, number, number] = [1.5, LEG_GRID[1], 1.5];
     const armPivot: [number, number, number] = [1, ARM_GRID[1], 1];
     this.slots = {
-      torso: joint(0, HIP_Y, 0, part(buildTorso(), [TORSO_GRID[0] / 2, 0, TORSO_GRID[2] / 2], material)),
-      head: joint(0, NECK_Y, 0, part(buildHead(), [HEAD_GRID[0] / 2, 0, HEAD_GRID[2] / 2], material)),
-      // The hero faces +Z, so their right side is -X.
-      rightArm: joint(-4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
-      leftArm: joint(4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
-      rightLeg: joint(-2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
-      leftLeg: joint(2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
+      torso: joint(0, HIP_Y, 0, part(parts.torso(), palette, [TORSO_GRID[0] / 2, 0, TORSO_GRID[2] / 2], material)),
+      head: joint(0, NECK_Y, 0, part(parts.head(), palette, [HEAD_GRID[0] / 2, 0, HEAD_GRID[2] / 2], material)),
+      // The body faces +Z, so its right side is -X.
+      rightArm: joint(-4.5 * V, SHOULDER_Y, 0, part(parts.arm(), palette, armPivot, material)),
+      leftArm: joint(4.5 * V, SHOULDER_Y, 0, part(parts.arm(), palette, armPivot, material)),
+      rightLeg: joint(-2 * V, HIP_Y, 0, part(parts.leg(), palette, legPivot, material)),
+      leftLeg: joint(2 * V, HIP_Y, 0, part(parts.leg(), palette, legPivot, material)),
     };
     this.root.add(this.body);
+  }
+
+  // Every body part drawn with `material` (e.g. a hit flash).
+  setMaterial(material: THREE.Material): void {
+    for (const mesh of this.meshes) mesh.material = material;
+  }
+
+  // Falls flat on its back as `progress` goes 0 -> 1 (a death), pivoting at the feet.
+  fall(progress: number): void {
+    const p = Math.min(1, progress);
+    this.body.rotation.set(-(p * p * Math.PI) / 2, 0, 0);
+    this.body.position.set(0, 0, 0);
   }
 
   // Places the hero at (x, y, z) and animates from how far they moved
