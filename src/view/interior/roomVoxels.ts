@@ -19,6 +19,7 @@ const TILE = 25;
 const WALL = 5; // wall thickness, in voxels
 const HIGH = 34; // the back walls' height
 const LOW = 4; // the near walls'
+const DOOR_HEIGHT = 28; // the door frame, standing tall above the near wall
 
 const ROOM_COLORS = [
   0x9a6a3e, // 1 plank
@@ -85,6 +86,24 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
   const doorX = x0 + room.door * TILE;
   fillBox(grid, doorX + 2, 1, z0 + d, doorX + TILE - 3, LOW, d + WALL * 2 - 1, 0); // the doorway
   fillBox(grid, doorX + 2, 0, z0 + d, doorX + TILE - 3, 0, d + WALL * 2 - 1, 4); // its threshold
+  // The door, standing tall over the cut-down wall: a timber frame (posts
+  // and a lintel) with the planked door shut in it, iron hinges and a ring
+  // on the face the camera sees, and a woven mat before it.
+  const TIMBER = 10;
+  const DOOR = 15; // dark wood
+  const DOOR_LIGHT = 14;
+  const IRON = 22;
+  const MAT = 17;
+  const MAT_EDGE = 19;
+  for (const x of [doorX, doorX + TILE - 2]) fillBox(grid, x, 0, z0 + d, x + 1, DOOR_HEIGHT, z0 + d + WALL - 1, TIMBER); // posts
+  fillBox(grid, doorX, DOOR_HEIGHT + 1, z0 + d, doorX + TILE - 1, DOOR_HEIGHT + 2, z0 + d + WALL - 1, TIMBER); // lintel
+  const leaf = { x0: doorX + 2, x1: doorX + TILE - 3, z0: z0 + d + 1, z1: z0 + d + 2 };
+  fillBox(grid, leaf.x0, 1, leaf.z0, leaf.x1, DOOR_HEIGHT, leaf.z1, (x) => ((x - leaf.x0) % 5 === 0 ? DOOR : DOOR_LIGHT)); // planks, shut
+  for (const y of [5, DOOR_HEIGHT - 4]) fillBox(grid, leaf.x0, y, leaf.z1 + 1, leaf.x0 + 8, y, leaf.z1 + 1, IRON); // hinges
+  fillBox(grid, leaf.x1 - 4, 12, leaf.z1 + 1, leaf.x1 - 3, 13, leaf.z1 + 1, IRON); // ring handle
+  fillBox(grid, doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
+    x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
+  ); // doormat
   paintFurniture(grid, furniture, x0, z0);
   return grid;
 }

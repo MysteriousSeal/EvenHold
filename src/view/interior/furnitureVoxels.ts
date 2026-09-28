@@ -67,9 +67,13 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
     box(1, 9, 1, 23, 10, 23, (u) => (u % 5 === 0 ? WOOD_DARK : WOOD));
   },
-  stool: (box) => {
-    for (const [u, v] of [[8, 8], [15, 8], [8, 15], [15, 15]]) box(u, 1, v, u + 1, 4, v + 1, WOOD_DARK);
-    box(7, 5, 7, 17, 5, 17, WOOD);
+  // A chair, its back at v = 0 and its seat facing +v (turned toward its table in paintFurniture).
+  chair: (box) => {
+    for (const [u, v] of [[7, 7], [16, 7], [7, 16], [16, 16]]) box(u, 1, v, u + 1, 6, v + 1, WOOD_DARK); // legs
+    box(6, 7, 6, 17, 8, 17, WOOD); // seat
+    for (const u of [6, 16]) box(u, 9, 6, u + 1, 20, 7, WOOD_DARK); // back posts
+    box(6, 14, 6, 17, 15, 7, WOOD); // back rails
+    box(6, 19, 6, 17, 20, 7, WOOD);
   },
   // A wooden chest: a planked body, a lid stepped up in the middle like a
   // rounded top, two iron bands wrapping over it and down the front, iron
@@ -182,6 +186,10 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
     const dep = (onLeft ? item.w : item.d) * TILE;
     const ox = x0 + item.x * TILE;
     const oz = z0 + item.z * TILE;
+    if (item.facing) {
+      paintFacing(grid, item, ox, oz);
+      continue;
+    }
     // u along the wall, v out from it: back wall u = x, v = z; left wall u = z, v = x.
     const box: Box = (u0, y0, v0, u1, y1, v1, color) => {
       const paint = typeof color === 'number' ? color : (x: number, y: number, z: number) => (onLeft ? color(z - oz, y, x - ox) : color(x - ox, y, z - oz));
@@ -190,6 +198,25 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
     };
     PAINTERS[item.kind](box, len, dep);
   }
+}
+
+// A one-tile piece drawn with its back at v = 0 and its front toward +v,
+// turned to face `item.facing`.
+function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number): void {
+  const [dx, dz] = item.facing!;
+  const last = TILE - 1;
+  // Local (u, v) to the tile's (x, z): the front (+v) turned toward (dx, dz).
+  const toTile = (u: number, v: number): [number, number] =>
+    dz === 1 ? [u, v] : dz === -1 ? [last - u, last - v] : dx === 1 ? [v, last - u] : [last - v, u];
+  const box: Box = (u0, y0, v0, u1, y1, v1, color) => {
+    for (let u = u0; u <= u1; u++) {
+      for (let v = v0; v <= v1; v++) {
+        const [x, z] = toTile(u, v);
+        fillBox(grid, ox + x, y0, oz + z, ox + x, y1, oz + z, typeof color === 'number' ? color : (_x, y) => color(u, y, v));
+      }
+    }
+  };
+  PAINTERS[item.kind](box, TILE, TILE);
 }
 
 // Where a room's fire burns (in its hearth, or on its forge), in floor-tile
