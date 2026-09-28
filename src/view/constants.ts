@@ -24,8 +24,8 @@ export const BLOOM_THRESHOLD = 0.9;
 
 // Light shafts: faint golden beams slanting along the sun's direction.
 export const SHAFT_COLOR = 0xffd27a;
-export const SHAFT_STRENGTH = 0.1;
-export const SHAFT_SPACING = 2.5; // world units between beams, roughly
+export const SHAFT_STRENGTH = 0.17;
+export const SHAFT_SPACING = 1.8; // world units between beams, roughly
 export const SHAFT_DRIFT = 0.15; // beam drift speed
 
 // Cel shading ramp: [sun N·L threshold, sun light level]. With the sun's

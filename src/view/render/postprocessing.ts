@@ -56,8 +56,8 @@ const LightShaftShader = {
       // Two incommensurate waves give irregular beam widths and gaps; a slow
       // wave along the beam breaks them into long, fading segments.
       float wave = sin(across * 6.2832 + uTime * ${SHAFT_DRIFT.toFixed(3)}) * 0.6 + sin(across * 2.63 + 1.7 - uTime * ${(SHAFT_DRIFT * 0.7).toFixed(3)}) * 0.4;
-      float beam = smoothstep(0.35, 0.95, wave);
-      float segment = smoothstep(-0.2, 0.8, sin(along * 0.18 + across * 0.9));
+      float beam = smoothstep(0.15, 0.85, wave);
+      float segment = smoothstep(-0.5, 0.6, sin(along * 0.18 + across * 0.9));
       color.rgb += uColor * beam * segment * ${SHAFT_STRENGTH.toFixed(3)};
       gl_FragColor = color;
     }`,
