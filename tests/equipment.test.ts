@@ -19,7 +19,7 @@ import {
 } from '../src/model/human/equipment';
 import { HERO_LOOK, lookAt } from '../src/model/human/humanoid';
 import { makeEnemy } from '../src/model/enemies';
-import { SLOT_BANDS } from '../src/view/meshes/human/gear/armorShell';
+import { SLOT_BANDS, bandFor } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';
 import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
 import { humanFigure } from '../src/view/meshes/human/humanFigure';
@@ -90,12 +90,15 @@ describe('equipment', () => {
 });
 
 describe('armor models', () => {
-  it('gives every item a look of its kind: a worn shell, or something to hold', () => {
+  it('gives every item a look of its kind: a worn shell, something to hold, or a jewel', () => {
     for (const item of ITEM_IDS) {
       const model = ITEM_MODELS[item];
-      const held = ITEMS[item].slot === 'mainHand' || ITEMS[item].slot === 'offHand';
+      const slot = ITEMS[item].slot;
+      const held = slot === 'mainHand' || slot === 'offHand';
+      const jewel = slot === 'neck' || slot === 'ring';
       expect(Boolean(model.held), item).toBe(held);
-      expect(Boolean(model.worn), item).toBe(!held);
+      expect(Boolean(model.jewel), item).toBe(jewel);
+      expect(Boolean(model.worn), item).toBe(!held && !jewel);
     }
   });
 
@@ -109,13 +112,15 @@ describe('armor models', () => {
   });
 
   it('gives each slot its own rows of each part, so pieces never share a voxel', () => {
-    for (const part of PARTS) {
+    // With shoulders worn or not (sleeves yield the top of the arms to them).
+    for (const [part, shouldered] of PARTS.flatMap((part) => [[part, true], [part, false]] as const)) {
       const rows = new Set<number>();
       for (const slot of ARMOR_SLOTS) {
-        const band = SLOT_BANDS[slot][part];
+        if (slot === 'shoulders' && !shouldered) continue;
+        const band = bandFor(slot, part, shouldered);
         if (!band) continue;
         for (let y = band[0]; y <= band[1]; y++) {
-          expect(rows.has(y), `${slot} row ${y} of ${part}`).toBe(false);
+          expect(rows.has(y), `${slot} row ${y} of ${part}${shouldered ? ', with shoulders' : ''}`).toBe(false);
           rows.add(y);
         }
       }
@@ -155,7 +160,10 @@ describe('armor models', () => {
 
   it('draws every set and every item on its own as a still figure (for icons)', () => {
     for (const set of [STARTER_SET, BANDIT_OUTFIT]) expect(filled(humanFigure(HERO_LOOK, outfit(set)).grid)).toBeGreaterThan(filled(humanFigure(HERO_LOOK, {}).grid));
-    for (const item of ITEM_IDS) expect(filled(humanFigure(null, outfit([item])).grid), item).toBeGreaterThan(0);
+    for (const item of ITEM_IDS) {
+      const jewel = ITEM_MODELS[item].jewel; // jewelry doesn't show on the body: it has its own model
+      expect(filled(jewel ? jewel.build() : humanFigure(null, outfit([item])).grid), item).toBeGreaterThan(0);
+    }
   });
 
   it('fits every look: skin tones, hair colors and styles all build', () => {
@@ -287,6 +295,16 @@ describe('dressed rig', () => {
       for (const b of ITEM_IDS.slice(i + 1)) {
         if (ITEMS[a].slot === ITEMS[b].slot) continue;
         pairs++;
+        const slots = new Set([ITEMS[a].slot, ITEMS[b].slot]);
+        if (slots.has('shoulders') && slots.has('torso')) {
+          // Worn together, the torso's sleeves yield to the shoulders: check them on one rig.
+          const rig = new HumanRig();
+          const naked = rig.meshes.length;
+          rig.wear(outfit([a, b]));
+          const faces = facesOf(rig, naked);
+          expect(clashes(faces, faces).filter((_, i) => i % 2 === 0), `${a} + ${b}`).toEqual([]);
+          continue;
+        }
         // Mesh numbers only mean something within one rig: offset b's so they never match a's.
         const bFaces = new Map([...items.get(b)!].map(([key, faces]) => [key, faces.map((f) => ({ ...f, mesh: f.mesh + 1000 }))]));
         expect(clashes(items.get(a)!, bFaces), `${a} + ${b}`).toEqual([]);
@@ -301,6 +319,6 @@ describe('dressed rig', () => {
   });
 
   it('knows every slot', () => {
-    expect(EQUIP_SLOTS).toHaveLength(7);
+    expect(EQUIP_SLOTS).toHaveLength(10);
   });
 });
