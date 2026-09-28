@@ -1,5 +1,5 @@
-// Lantern posts on each square's four corners (see lanternVoxels.ts), both
-// arms reaching into the square, meshed twice like the well: plain, and
+// Lamp posts on each square's four corners (see lanternVoxels.ts), their
+// lanterns shining on all sides, meshed twice like the well: plain, and
 // glowing glass that catches the bloom. Streamed with the world's chunks.
 
 import * as THREE from 'three';
@@ -23,10 +23,8 @@ export function buildLanterns(scene: WorldSink, model: GameModel): void {
     squareLanterns(village).map(([x, z]) => ({
       x,
       z,
-      // Standing on the paving, turned so the model's +X and +Z arms point
-      // into the square from this corner.
-      y: village.groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT,
-      quarterTurns: x < village.x ? (z < village.z ? 0 : 1) : z < village.z ? 3 : 2,
+      y: village.groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT, // on the paving
+      quarterTurns: 0, // symmetric: glass on every side
     })),
   );
   const place = (p: (typeof posts)[number]) => p;
