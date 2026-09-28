@@ -1,5 +1,5 @@
 // Draws the scattered ground cover: low-poly grass clumps that sway in the
-// wind, wildflowers and pebbles, each kind a single InstancedMesh with
+// wind, wildflowers and pebbles, instanced per map chunk with
 // per-instance colors. Sized to the 0.45-tall hero: meadow-center grass
 // reaches about mid-thigh.
 
@@ -8,6 +8,7 @@ import type { GameModel } from '../../../model/GameModel';
 import { TERRAIN_COLORS } from '../../constants';
 import { cylinder } from '../geometry';
 import { scatterGroundCover, type ScatterItem } from './groundCoverScatter';
+import { groupByChunk } from '../chunks';
 import { mulberry32 } from '../../../util/random';
 
 const TUFT_SHADES = [0.92, 1.06]; // slight per-clump variation of the tile's green
@@ -84,14 +85,15 @@ function addWindSway(material: THREE.MeshStandardMaterial): { value: number } {
   return time;
 }
 
+// One InstancedMesh per map chunk (sharing geometry and material), so
+// ground cover outside the camera's view is frustum-culled.
 function instanced(
   geometry: THREE.BufferGeometry,
   material: THREE.Material,
   items: ScatterItem[],
   colorOf: (item: ScatterItem) => number | THREE.Color,
   scaleOf: (item: ScatterItem, out: THREE.Vector3) => THREE.Vector3,
-): THREE.InstancedMesh {
-  const mesh = new THREE.InstancedMesh(geometry, material, items.length);
+): THREE.InstancedMesh[] {
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -99,15 +101,18 @@ function instanced(
   const scale = new THREE.Vector3();
   const color = new THREE.Color();
 
-  items.forEach((item, i) => {
-    quaternion.setFromAxisAngle(up, item.rotation);
-    position.set(item.x, item.y, item.z);
-    matrix.compose(position, quaternion, scaleOf(item, scale));
-    mesh.setMatrixAt(i, matrix);
-    const c = colorOf(item);
-    mesh.setColorAt(i, typeof c === 'number' ? color.setHex(c) : c);
+  return groupByChunk(items).map((chunk) => {
+    const mesh = new THREE.InstancedMesh(geometry, material, chunk.length);
+    chunk.forEach((item, i) => {
+      quaternion.setFromAxisAngle(up, item.rotation);
+      position.set(item.x, item.y, item.z);
+      matrix.compose(position, quaternion, scaleOf(item, scale));
+      mesh.setMatrixAt(i, matrix);
+      const c = colorOf(item);
+      mesh.setColorAt(i, typeof c === 'number' ? color.setHex(c) : c);
+    });
+    return mesh;
   });
-  return mesh;
 }
 
 // Returns a per-frame callback that advances the wind animation.
@@ -128,7 +133,7 @@ export function buildGroundCover(scene: THREE.Scene, model: GameModel): (elapsed
     });
     windTime = addWindSway(grassMaterial);
     scene.add(
-      instanced(
+      ...instanced(
         grassClumpGeometry(),
         grassMaterial,
         tufts,
@@ -139,10 +144,10 @@ export function buildGroundCover(scene: THREE.Scene, model: GameModel): (elapsed
   }
 
   if (flowers.length > 0) {
-    scene.add(instanced(cylinder(0.004, 0.004, 0.05, 3, 0, 0.025, 0), material(), flowers, () => STEM_COLOR, uniform));
+    scene.add(...instanced(cylinder(0.004, 0.004, 0.05, 3, 0, 0.025, 0), material(), flowers, () => STEM_COLOR, uniform));
     const head = new THREE.BoxGeometry(0.022, 0.018, 0.022);
     head.translate(0, 0.058, 0);
-    scene.add(instanced(head, material(), flowers, (f) => FLOWER_COLORS[f.variant], uniform));
+    scene.add(...instanced(head, material(), flowers, (f) => FLOWER_COLORS[f.variant], uniform));
   }
 
   if (pebbles.length > 0) {
@@ -150,7 +155,7 @@ export function buildGroundCover(scene: THREE.Scene, model: GameModel): (elapsed
     const pebble = new THREE.IcosahedronGeometry(1, 0);
     pebble.translate(0, 0.25, 0);
     scene.add(
-      instanced(pebble, material(), pebbles, (p) => PEBBLE_COLORS[p.variant], (p, out) => out.set(p.scale, p.scale * 0.5, p.scale * 0.75)),
+      ...instanced(pebble, material(), pebbles, (p) => PEBBLE_COLORS[p.variant], (p, out) => out.set(p.scale, p.scale * 0.5, p.scale * 0.75)),
     );
   }
 

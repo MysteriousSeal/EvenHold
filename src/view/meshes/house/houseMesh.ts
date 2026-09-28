@@ -15,6 +15,7 @@ import {
 import { buildHouseParts } from './parts';
 import { HOUSE_PARTS, type HousePart } from './houseTypes';
 import { HOUSE_VARIANTS } from './variants';
+import { groupByChunk } from '../chunks';
 import { hashCell } from '../../../util/random';
 
 function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
@@ -42,8 +43,7 @@ function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
 // rng would shift every later placement (trees) for every existing seed.
 //
 // Houses are grouped by variant; each variant draws one InstancedMesh per
-// material, so the whole village set costs at most
-// variants × materials draw calls regardless of how many houses exist.
+// material per map chunk (see chunks.ts), so off-screen villages are culled.
 export function buildHouses(scene: THREE.Scene, model: GameModel): void {
   if (model.houses.length === 0) return;
 
@@ -65,21 +65,23 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
     const geometries = buildHouseParts(HOUSE_VARIANTS[variantIndex]);
 
     for (const part of HOUSE_PARTS) {
-      const mesh = new THREE.InstancedMesh(geometries[part], materials[part], houses.length);
+      for (const chunk of groupByChunk(houses)) {
+        const mesh = new THREE.InstancedMesh(geometries[part], materials[part], chunk.length);
 
-      houses.forEach((house, i) => {
-        quaternion.setFromAxisAngle(upAxis, house.rotationY);
-        position.set(house.x, house.groundTier * TILE_HEIGHT, house.z);
-        matrix.compose(position, quaternion, scale);
-        mesh.setMatrixAt(i, matrix);
+        chunk.forEach((house, i) => {
+          quaternion.setFromAxisAngle(upAxis, house.rotationY);
+          position.set(house.x, house.groundTier * TILE_HEIGHT, house.z);
+          matrix.compose(position, quaternion, scale);
+          mesh.setMatrixAt(i, matrix);
 
-        if (part === 'roof') {
-          const colorIndex = (hashCell(house.x, house.z) >>> 8) % HOUSE_ROOF_COLORS.length;
-          mesh.setColorAt(i, roofColor.setHex(HOUSE_ROOF_COLORS[colorIndex]));
-        }
-      });
+          if (part === 'roof') {
+            const colorIndex = (hashCell(house.x, house.z) >>> 8) % HOUSE_ROOF_COLORS.length;
+            mesh.setColorAt(i, roofColor.setHex(HOUSE_ROOF_COLORS[colorIndex]));
+          }
+        });
 
-      scene.add(mesh);
+        scene.add(mesh);
+      }
     }
   });
 }

@@ -1,5 +1,5 @@
-export const MAP_WIDTH = 80;
-export const MAP_DEPTH = 80;
+export const MAP_WIDTH = 256;
+export const MAP_DEPTH = 256;
 export const HERO_SPEED = 4; // units per second
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size
 export const HOP_DURATION = 0.18; // seconds to hop between terrain tiers
@@ -19,8 +19,9 @@ export const BUSH_CHANCE = 0.14; // probability a meadow-edge cell grows a bush
 export const BUSH_SHAPES = 2; // voxel shape variants per bush kind
 export const BUSH_COLLISION_HALF = 0.2; // bushes block a 0.4x0.4 square (their foliage), not their whole tile
 
-export const VILLAGE_MIN_COUNT = 3;
-export const VILLAGE_MAX_COUNT = 5; // inclusive
+// About one village per ~1,300-2,100 tiles (30-50 on a 256x256 map); spacing below keeps them spread out.
+export const VILLAGE_MIN_COUNT = 30;
+export const VILLAGE_MAX_COUNT = 50; // inclusive
 export const HOUSES_PER_VILLAGE_MIN = 3;
 export const HOUSES_PER_VILLAGE_MAX = 6; // inclusive
 export const VILLAGE_FLAT_RADIUS = 2; // a village site must be flat within this many cells of its center

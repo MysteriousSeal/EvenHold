@@ -6,7 +6,9 @@ import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, MIN_LAKE_SIZE, SPAWN_X, SPAWN_Z } fr
 import { NEIGHBORS_4, inBounds, cellKey } from '../src/model/grid';
 import type { World } from '../src/model/types';
 
-const SEEDS = Array.from({ length: 30 }, (_, i) => i + 1);
+// Each 256x256 world has as many tiles as 10 of the original 80x80 maps,
+// so a handful of seeds already covers a lot of generated terrain.
+const SEEDS = Array.from({ length: 10 }, (_, i) => i + 1);
 const worlds: Array<[number, World]> = SEEDS.map((seed) => [seed, generateWorld(seed)]);
 
 function lowGroundBasins(heightMap: number[][]): Array<Array<[number, number]>> {

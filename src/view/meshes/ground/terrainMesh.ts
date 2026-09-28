@@ -4,6 +4,7 @@ import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, TILE_HEIGHT } from '../../../model/c
 import { hashCell } from '../../../util/random';
 import { TERRAIN_COLORS, WATER_COLOR } from '../../constants';
 import { createGrassTexture, type GrassTexture } from './grassTexture';
+import { groupByChunk } from '../chunks';
 
 const TILE_SHADE_JITTER = 0.03; // ± per-tile brightness, breaks up the repeating texture
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
@@ -34,8 +35,7 @@ function tileMaterial(group: TileGroup, grass: GrassTexture): THREE.Material | T
 // cell's real tier here would carve a visible internal cliff between
 // adjacent water cells of different depths.
 //
-// Tiles are grouped by (tier, kind) and each group is one InstancedMesh, so
-// the draw call count stays at a handful no matter how large the map is.
+// Tiles are grouped by (tier, kind), and each group is instanced per chunk.
 // Paths and village squares aren't tile colors — they're thin overlays
 // drawn on top by groundDecals.ts, so they can be narrower than a tile.
 export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
@@ -65,17 +65,21 @@ export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
     // Column spans from one tier below ground level up to the tile's surface.
     const columnHeight = (group.tier + 1) * TILE_HEIGHT;
     const geometry = new THREE.BoxGeometry(1, columnHeight, 1);
-    const mesh = new THREE.InstancedMesh(geometry, tileMaterial(group, grass), group.cells.length);
+    const material = tileMaterial(group, grass);
 
-    group.cells.forEach((cell, i) => {
-      matrix.makeTranslation(cell.x, group.tier * TILE_HEIGHT - columnHeight / 2, cell.z);
-      mesh.setMatrixAt(i, matrix);
-      if (group.kind === 'land') {
-        const jitter = ((hashCell(cell.x, cell.z, 1) % 1000) / 1000 - 0.5) * 2 * TILE_SHADE_JITTER;
-        mesh.setColorAt(i, shade.setScalar(1 + jitter));
-      }
-    });
-
-    scene.add(mesh);
+    // One InstancedMesh per chunk (sharing geometry and material), so
+    // off-screen chunks are frustum-culled.
+    for (const cells of groupByChunk(group.cells)) {
+      const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
+      cells.forEach((cell, i) => {
+        matrix.makeTranslation(cell.x, group.tier * TILE_HEIGHT - columnHeight / 2, cell.z);
+        mesh.setMatrixAt(i, matrix);
+        if (group.kind === 'land') {
+          const jitter = ((hashCell(cell.x, cell.z, 1) % 1000) / 1000 - 0.5) * 2 * TILE_SHADE_JITTER;
+          mesh.setColorAt(i, shade.setScalar(1 + jitter));
+        }
+      });
+      scene.add(mesh);
+    }
   }
 }

@@ -1,7 +1,7 @@
 // Voxel bushes: each (kind, shape) model is voxelized and greedy-meshed
-// once, then drawn as one InstancedMesh for every bush using it, so all
-// bushes cost at most kinds x shapes draw calls. Rotated in quarter turns
-// only, so voxels stay aligned with the tile grid.
+// once, then instanced per map chunk (see chunks.ts), so only bushes near
+// the camera are drawn. Rotated in quarter turns only, so voxels
+// stay aligned with the tile grid.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
@@ -9,6 +9,7 @@ import type { Bush, BushKind } from '../../../model/types';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { BUSH_GRID, BUSH_PALETTE, BUSH_VOXEL_SIZE, buildBushVoxels } from './bushVoxels';
+import { groupByChunk } from '../chunks';
 
 const SINK = 0.01; // bottom slightly below the tile top, so no gap shows at the base
 
@@ -35,13 +36,16 @@ export function buildBushes(scene: THREE.Scene, model: GameModel): void {
 
   for (const bushes of groups.values()) {
     const { kind, shape } = bushes[0];
-    const mesh = new THREE.InstancedMesh(buildBushGeometry(kind, shape), material, bushes.length);
-    bushes.forEach((bush, i) => {
-      quaternion.setFromAxisAngle(up, (bush.quarterTurns * Math.PI) / 2);
-      position.set(bush.x, bush.groundTier * TILE_HEIGHT, bush.z);
-      matrix.compose(position, quaternion, scale);
-      mesh.setMatrixAt(i, matrix);
-    });
-    scene.add(mesh);
+    const geometry = buildBushGeometry(kind, shape);
+    for (const chunk of groupByChunk(bushes)) {
+      const mesh = new THREE.InstancedMesh(geometry, material, chunk.length);
+      chunk.forEach((bush, i) => {
+        quaternion.setFromAxisAngle(up, (bush.quarterTurns * Math.PI) / 2);
+        position.set(bush.x, bush.groundTier * TILE_HEIGHT, bush.z);
+        matrix.compose(position, quaternion, scale);
+        mesh.setMatrixAt(i, matrix);
+      });
+      scene.add(mesh);
+    }
   }
 }

@@ -1,7 +1,7 @@
 // Voxel trees: each (kind, shape) model is voxelized and greedy-meshed
-// once, then drawn as one InstancedMesh for every tree using it, so all
-// trees cost at most kinds x shapes draw calls. Rotated in quarter turns
-// only, so voxels stay aligned with the tile grid.
+// once, then instanced per map chunk (see chunks.ts), so only trees near
+// the camera are drawn. Rotated in quarter turns only, so voxels
+// stay aligned with the tile grid.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
@@ -10,6 +10,7 @@ import { TILE_HEIGHT } from '../../../model/constants';
 import { hashCell } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
+import { groupByChunk } from '../chunks';
 
 const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
@@ -47,14 +48,17 @@ export function buildTrees(scene: THREE.Scene, model: GameModel): void {
 
   for (const trees of groups.values()) {
     const { kind, shape } = trees[0];
-    const mesh = new THREE.InstancedMesh(buildTreeGeometry(kind, shape), material, trees.length);
-    trees.forEach((tree, i) => {
-      quaternion.setFromAxisAngle(up, (tree.quarterTurns * Math.PI) / 2);
-      position.set(tree.x, tree.groundTier * TILE_HEIGHT, tree.z);
-      matrix.compose(position, quaternion, scale);
-      mesh.setMatrixAt(i, matrix);
-      mesh.setColorAt(i, treeTint(tree, tint));
-    });
-    scene.add(mesh);
+    const geometry = buildTreeGeometry(kind, shape);
+    for (const chunk of groupByChunk(trees)) {
+      const mesh = new THREE.InstancedMesh(geometry, material, chunk.length);
+      chunk.forEach((tree, i) => {
+        quaternion.setFromAxisAngle(up, (tree.quarterTurns * Math.PI) / 2);
+        position.set(tree.x, tree.groundTier * TILE_HEIGHT, tree.z);
+        matrix.compose(position, quaternion, scale);
+        mesh.setMatrixAt(i, matrix);
+        mesh.setColorAt(i, treeTint(tree, tint));
+      });
+      scene.add(mesh);
+    }
   }
 }

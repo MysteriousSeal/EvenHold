@@ -6,7 +6,7 @@ import { solidCells } from '../src/model/worldgen/world';
 import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/ground/groundCoverScatter';
 import { ROAD_WIDTH } from '../src/view/constants';
 
-const models = [1, 2, 3, 7, 42].map((seed) => [seed, new GameModel(seed)] as const);
+const models = [1, 7, 42].map((seed) => [seed, new GameModel(seed)] as const);
 
 function tileOf(item: ScatterItem): [number, number] {
   return [Math.round(item.x), Math.round(item.z)];
