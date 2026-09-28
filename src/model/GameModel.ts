@@ -18,6 +18,8 @@ import {
   ENEMY_CORPSE_TIME,
   ENEMY_STATS,
   ENEMY_SEPARATION_SPEED,
+  FOCUS_RANGE,
+  FOCUS_TURN_RANGE,
   ENEMY_PATH_RADIUS,
   ENEMY_PATH_REFRESH,
   LANTERN_COLLISION_HALF,
@@ -56,6 +58,9 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
+  // The enemy the hero has focused (clicked, or the first to hit them since
+  // focus last cleared), shown in the HUD; null when none.
+  private focusedId: number | null = null;
 
   private readonly solidCells: Set<string>; // tiles blocked edge to edge
   // Props smaller than a tile (bushes, tree trunks, lamp posts): tile key ->
@@ -153,10 +158,15 @@ export class GameModel {
   }
 
   // Starts a blow unless one is already under way; returns whether it did.
+  // Starts a blow, turned to face the focused enemy if it's close by.
   startAttack(): boolean {
     if (this.attackElapsed !== null) return false;
     this.attackElapsed = 0;
     this.attackLanded = false;
+    const focus = this.focused;
+    if (focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= FOCUS_TURN_RANGE) {
+      this.hero.facing = Math.atan2(focus.x - this.hero.x, focus.z - this.hero.z);
+    }
     return true;
   }
 
@@ -233,6 +243,7 @@ export class GameModel {
     }
     this.updateEnemies(dt);
     recover(this.hero, dt);
+    this.keepFocus();
     stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
@@ -286,6 +297,12 @@ export class GameModel {
       target = enemy;
       best = d;
     }
+    // The focused enemy takes the blow whenever it's within reach.
+    const focus = this.focused;
+    if (focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= ATTACK_REACH + ENEMY_STATS[focus.kind].radius) {
+      target = focus;
+      best = Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z);
+    }
     if (!target) return;
     target.hp -= 1;
     target.hurtFor = 0.25;
@@ -294,6 +311,22 @@ export class GameModel {
     if (target.state === 'dead') gainXp(this.hero, ENEMY_XP[target.kind]);
     const d = Math.max(best, 1e-6);
     this.moveEnemy(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
+  }
+
+  get focused(): Enemy | null {
+    return this.enemies.find((e) => e.id === this.focusedId) ?? null;
+  }
+
+  // Focuses a living enemy by id; null (or a dead one) clears the focus.
+  focus(id: number | null): void {
+    const enemy = this.enemies.find((e) => e.id === id);
+    this.focusedId = enemy && enemy.state !== 'dead' ? enemy.id : null;
+  }
+
+  // Drops the focus once its enemy is gone (its corpse cleared) or far off.
+  private keepFocus(): void {
+    const enemy = this.focused;
+    if (!enemy || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
   }
 
   private readonly enemyActions: EnemyActions = {
@@ -306,7 +339,9 @@ export class GameModel {
   // An enemy's blow lands if the hero is still within its reach (a step
   // back in time dodges it). Out of health, the hero wakes at spawn, healed.
   private enemyStrikes(enemy: Enemy): void {
-    if (this.godMode || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+    if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+    if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
+    if (this.godMode) return;
     if (!hurt(this.hero, ENEMY_DAMAGE[enemy.kind])) return;
     const spawn = spawnOf(this.size);
     this.teleport(spawn.x, spawn.z);
