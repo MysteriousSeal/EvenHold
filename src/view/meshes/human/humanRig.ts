@@ -21,6 +21,7 @@ import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import {
   BODIES,
   HAIR_PIECE_PIVOT,
+  HELD_VOXEL_SIZE,
   HELD_BY,
   HUMAN_VOXEL_SIZE,
   JOINTS,
@@ -112,8 +113,8 @@ function cached(key: string, make: () => THREE.BufferGeometry | null): THREE.Buf
 
 // Meshes `grid` so that `pivot` (in voxels within the grid) sits at the
 // origin, drawing only the colors `include` accepts.
-function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, number], include?: (color: number) => boolean): THREE.BufferGeometry {
-  return greedyMesh(grid, palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V), include);
+function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, number], include?: (color: number) => boolean, voxel = V): THREE.BufferGeometry {
+  return greedyMesh(grid, palette, voxel, new THREE.Vector3(-pivot[0] * voxel, -pivot[1] * voxel, -pivot[2] * voxel), include);
 }
 
 function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
@@ -143,7 +144,7 @@ function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean, build: Bu
 
 function heldGeometry(item: ItemId): THREE.BufferGeometry | null {
   const { held, palette } = ITEM_MODELS[item];
-  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip) : null));
+  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, HELD_VOXEL_SIZE) : null));
 }
 
 export class HumanRig {

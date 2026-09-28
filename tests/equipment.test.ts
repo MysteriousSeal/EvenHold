@@ -172,7 +172,7 @@ describe('armor models', () => {
     for (const hairStyle of ['short', 'long', 'cropped', 'bald'] as const) {
       for (const beard of [false, true]) {
         const look = { ...HERO_LOOK, hairStyle, beard };
-        expect(filled(buildBodyPart('head', look))).toBe(7 * 7 * 7); // always the full cube armor is fitted to
+        expect(filled(buildBodyPart('head', look))).toBe(PART_GRID.head[0] ** 3); // always the full cube armor is fitted to
       }
     }
     for (let skin = 0; skin < 4; skin++) expect(bodyPalette({ ...HERO_LOOK, skin })[0]).toBeTypeOf('number');
@@ -378,7 +378,7 @@ describe('female build', () => {
   it('wears her hair up past her head (a bun, a ponytail, a braid), off under a hat', () => {
     for (const hairStyle of HAIR_STYLES) {
       const look = { ...FEMALE, hairStyle };
-      expect(filled(buildBodyPart('head', look))).toBe(7 * 7 * 7); // the head's still the full cube
+      expect(filled(buildBodyPart('head', look))).toBe(PART_GRID.head[0] ** 3); // the head's still the full cube
       const piece = buildHairPiece(hairStyle);
       expect(piece !== null, hairStyle).toBe(hairStyle === 'bun' || hairStyle === 'ponytail' || hairStyle === 'braid');
     }

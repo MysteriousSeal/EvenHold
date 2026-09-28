@@ -9,10 +9,10 @@ import { ENEMY_STATS } from '../../../model/constants';
 import { HERO_LOOK } from '../../../model/human/humanoid';
 import type { Enemy } from '../../../model/types';
 import { HumanRig, personMaterial } from '../human/humanRig';
-import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
+import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 
-const HEIGHT = 18 * HUMAN_VOXEL_SIZE;
+const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4; // seconds to fall flat on its back
 
 export interface BanditLook {

@@ -17,8 +17,17 @@ import type { VoxelGrid } from '../../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../../voxel/voxelShapes';
 import { buildBodyPart, type BodyPart, type Side } from '../bodyVoxels';
 
-// Rows (inclusive, in the part's own voxels, where -1 is the layer under the
-// part and its height the layer over it) each slot may cover on each part.
+// Pieces are designed on the body as it once was, coarser (LEGACY: its part
+// sizes): their painters and bands speak in its voxels. Each shell is
+// built around today's finer body, and each of its voxels mapped back to
+// that body's to ask what color it is, so every piece fits unchanged.
+const LEGACY: Record<BodyPart, [number, number, number]> = { leg: [3, 5, 4], torso: [7, 6, 4], arm: [2, 6, 2], head: [7, 7, 7] };
+// A coordinate along a part `size` voxels long, in a legacy part `old` long
+// (the layers just outside it stay just outside).
+const legacy = (v: number, size: number, old: number) => (v < 0 ? -1 : v >= size ? old : Math.min(old - 1, Math.floor((v * old) / size)));
+
+// Rows (inclusive, in the legacy part's voxels, where -1 is the layer under
+// the part and its height the layer over it) each slot may cover on each part.
 export const SLOT_BANDS: Record<ArmorSlot, Partial<Record<BodyPart, [number, number]>>> = {
   head: { head: [0, 7] }, // all of it, crown included; nothing under the chin
   shoulders: { arm: [5, 6] }, // the top of each arm; the sleeves yield it (bandFor)
@@ -83,11 +92,15 @@ export function buildShell(part: BodyPart, band: [number, number], side: Side, p
     for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (colorAt(body, x + dx, y + dy, z + dz)) return true;
     return false;
   };
+  const [ox, oy, oz] = LEGACY[part];
   for (let z = -1; z <= sz; z++) {
-    for (let y = Math.max(-1, band[0]); y <= Math.min(sy, band[1]); y++) {
+    for (let y = -1; y <= sy; y++) {
+      const ly = legacy(y, sy, oy);
+      if (ly < band[0] || ly > band[1]) continue;
       for (let x = -1; x <= sx; x++) {
         if (x === inner || colorAt(body, x, y, z) || !touches(x, y, z)) continue;
-        const color = paint({ x, y, z, front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy, center: x * 2 === sx - 1 });
+        const lx = legacy(x, sx, ox);
+        const color = paint({ x: lx, y: ly, z: legacy(z, sz, oz), front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy, center: x * 2 === sx - 1 });
         if (color) setColor(grid, x + 1, y + 1, z + 1, color);
       }
     }

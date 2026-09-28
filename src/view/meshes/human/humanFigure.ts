@@ -7,14 +7,31 @@ import { EQUIP_SLOTS, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } f
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
+import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
 // with space for shells, shields, and poles held in the middle (a spear
 // or a staff reaches 12 voxels behind the hand and 20 ahead of it).
-const SIZE: [number, number, number] = [15, 22, 36];
-const SHIFT: [number, number, number] = [6.5, 1, 14];
+const SIZE: [number, number, number] = [24, 34, 56];
+const SHIFT: [number, number, number] = [11, 2, 21];
+// What's held is modelled in coarser voxels (bodyVoxels.ts HELD_VOXEL_SIZE):
+// scaled up to the figure's, blocky, so it keeps its size beside the body.
+const HELD_SCALE = HELD_VOXEL_SIZE / HUMAN_VOXEL_SIZE;
+function scaled(grid: VoxelGrid, by: number): VoxelGrid {
+  const [sx, sy, sz] = grid.size;
+  const out = createGrid([Math.ceil(sx * by), Math.ceil(sy * by), Math.ceil(sz * by)]);
+  const [ox, oy, oz] = out.size;
+  for (let z = 0; z < oz; z++) {
+    for (let y = 0; y < oy; y++) {
+      for (let x = 0; x < ox; x++) {
+        const c = colorAt(grid, Math.floor(x / by), Math.floor(y / by), Math.floor(z / by));
+        if (c) setColor(out, x, y, z, c);
+      }
+    }
+  }
+  return out;
+}
 
 export interface Figure {
   grid: VoxelGrid;
@@ -68,7 +85,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
     if (isHeldSlot(slot)) {
       if (!model.held) continue;
       const arm = joints[HELD_BY[slot]].at;
-      place(model.held.build(), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip);
+      place(scaled(model.held.build(), HELD_SCALE), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip.map((g) => g * HELD_SCALE));
       continue;
     }
     for (const joint of only) {
@@ -87,7 +104,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
 export function humanBust(look: BodyLook, equipment: Equipment, facing: 'left' | 'right' = 'right'): Figure {
   const figure = humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined });
   const [sx, sy, sz] = figure.grid.size;
-  const chest = JOINTS.torso.at[1] + SHIFT[1] + 3; // rows below this go
+  const chest = JOINTS.torso.at[1] + SHIFT[1] + 5; // rows below mid-chest go
   for (let z = 0; z < sz; z++) for (let y = 0; y < Math.min(chest, sy); y++) for (let x = 0; x < sx; x++) figure.grid.cells[x + sx * (y + sy * z)] = 0;
   if (facing === 'left') return figure;
   const turned = createGrid([sz, sy, sx]);
