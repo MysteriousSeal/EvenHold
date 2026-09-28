@@ -56,14 +56,13 @@ export class GameController {
     this.schedule(this.tick);
   };
 
-  // Set while a pause menu is open: the world stands still, but keeps drawing.
+  // Set while a pause menu is open: the world stands still and nothing is
+  // redrawn (the last frame stays on screen), leaving the page free to
+  // respond instantly to the menu.
   paused = false;
 
   private step(dt: number): void {
-    if (this.paused) {
-      this.view.render();
-      return;
-    }
+    if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
 
     const { forward, right } = this.view.getMovementAxes();

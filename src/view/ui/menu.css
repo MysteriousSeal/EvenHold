@@ -1,0 +1,155 @@
+/* EvenHold menus: the one layout every in-game menu shares (pause, cheats,
+   and later inventory, quests, settings). Deliberately simple: a sandstone
+   panel with one dark outline, a clay header band carrying the title in
+   blackletter (the single flourish), flat tabs where the active one wears a
+   lake-turquoise gem, plain rows with pixel icons, the chosen row lit by
+   lantern light. Fredoka for text, DM Mono for numbers. Instant: no
+   animations, no filters, so it stays light over the game. */
+
+.menu-backdrop {
+  --sand: #efdcb8;
+  --sand-light: #f8ecd4;
+  --sand-dark: #d6bb8e;
+  --line: #b89872;
+  --clay: #a4502f;
+  --clay-dark: #7a3520;
+  --lake: #3dbdb8;
+  --lake-dark: #217c98;
+  --lantern: #ffd98a;
+  --ember: #e8903a;
+  --ink: #2e1f14;
+  --ink-soft: #7a5a3c;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(24, 12, 4, 0.55);
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+}
+.menu-backdrop[hidden] { display: none; }
+
+.menu {
+  width: min(440px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--sand);
+  box-shadow: 0 0 0 3px var(--ink), 8px 8px 0 3px rgba(24, 12, 4, 0.35);
+}
+
+.menu-header {
+  padding: 12px 20px 10px;
+  text-align: center;
+  background: var(--clay);
+  box-shadow: inset 0 -4px 0 var(--clay-dark);
+}
+.menu-title {
+  margin: 0;
+  font-family: 'Grenze Gotisch', Georgia, serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--sand-light);
+}
+
+.menu-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--line);
+}
+.menu-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 12px;
+  font: 500 12px 'Fredoka', system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.menu-tab svg { width: 20px; height: 20px; shape-rendering: crispEdges; opacity: 0.6; }
+.menu-tab:hover { color: var(--ink); }
+.menu-tab.active { color: var(--ink); background: var(--sand-light); }
+.menu-tab.active svg { opacity: 1; }
+.menu-tab.active::after {
+  /* The gem marking the active tab. */
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--lake);
+  box-shadow: 0 0 0 2px var(--ink), inset -2px -2px 0 var(--lake-dark);
+}
+
+.menu-body { padding: 14px 14px 6px; overflow-y: auto; }
+.menu-list { display: flex; flex-direction: column; gap: 2px; min-height: 296px; }
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.menu-row.selected { background: var(--lantern); box-shadow: inset 3px 0 0 var(--ember); }
+.menu-row:focus-visible { outline: 2px solid var(--lake-dark); outline-offset: 1px; }
+.menu-icon { display: grid; place-items: center; width: 30px; height: 30px; }
+.menu-icon svg { width: 24px; height: 24px; shape-rendering: crispEdges; }
+.menu-text { display: flex; flex-direction: column; min-width: 0; }
+.menu-text b { font-size: 17px; font-weight: 600; }
+.menu-text small { font-size: 13px; color: var(--ink-soft); }
+
+.menu-key {
+  min-width: 22px;
+  padding: 1px 6px;
+  font: 500 12px 'DM Mono', ui-monospace, monospace;
+  text-align: center;
+  color: var(--ink-soft);
+  border: 2px solid var(--line);
+}
+.menu-row.selected .menu-key { color: var(--ink); border-color: var(--ember); }
+/* Toggle: a gem, grey when off, lake turquoise when on. */
+.menu-toggle {
+  width: 14px;
+  height: 14px;
+  margin: 0 4px;
+  background: #9a9ca3;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.menu-row.on .menu-toggle { background: var(--lake); box-shadow: 0 0 0 2px var(--ink), inset -2px -2px 0 var(--lake-dark); }
+
+/* A ledger of facts: label, dotted leader, value. */
+.menu-ledger { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 6px 10px; }
+.menu-fact { display: flex; align-items: baseline; gap: 8px; }
+.menu-fact dt { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.menu-fact i { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
+.menu-fact dd { margin: 0; font: 400 14px 'DM Mono', ui-monospace, monospace; }
+
+.menu-status { min-height: 1.5em; margin: 8px 0 0; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--clay); text-align: center; }
+.menu-footer {
+  padding: 10px 14px 12px;
+  border-top: 2px solid var(--line);
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.menu-footer .menu-key { margin: 0 2px; padding: 0 4px; border-width: 1px; }
