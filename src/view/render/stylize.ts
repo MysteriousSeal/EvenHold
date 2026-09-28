@@ -11,7 +11,7 @@
 // patch (the grass wind sway), with a distinct program cache key per chain.
 
 import * as THREE from 'three';
-import { CEL_BANDS, FOG_COLOR, FOG_FAR, FOG_NEAR, MIST_DEPTH, MIST_START, MIST_STRENGTH } from './constants';
+import { CEL_BANDS, FOG_COLOR, FOG_FAR, FOG_NEAR, MIST_DEPTH, MIST_START, MIST_STRENGTH } from '../constants';
 
 // GLSL ramp: each band is [N·L threshold, light level]; below the first
 // threshold the sun contributes nothing. A narrow smoothstep keeps band

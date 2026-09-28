@@ -3,7 +3,7 @@
 // frame it runs (so an uncapped loop is measured, not the display refresh),
 // and the label refreshes twice a second so the numbers are readable.
 
-import type { RenderStats } from './GameView';
+import type { RenderStats } from '../GameView';
 
 const REFRESH_SECONDS = 0.5;
 

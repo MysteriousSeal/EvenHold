@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GameModel } from '../src/model/GameModel';
-import { buildPlazas } from '../src/view/meshes/ground/plazaMesh';
-import { PLAZA_GRID, buildPlaza } from '../src/view/meshes/ground/plazaVoxels';
+import { buildPlazas } from '../src/view/meshes/plaza/plazaMesh';
+import { PLAZA_GRID, buildPlaza } from '../src/view/meshes/plaza/plazaVoxels';
 import { colorAt } from '../src/view/meshes/voxel/voxelShapes';
 
 describe('voxel village squares', () => {

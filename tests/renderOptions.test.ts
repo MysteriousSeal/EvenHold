@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readRenderOptions } from '../src/view/renderOptions';
+import { readRenderOptions } from '../src/view/render/renderOptions';
 
 describe('render options', () => {
   it('defaults to 1x resolution with every effect on', () => {

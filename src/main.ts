@@ -2,8 +2,8 @@ import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { resolveSeed } from './util/seed';
-import { createFpsCounter } from './view/fpsCounter';
-import { readRenderOptions } from './view/renderOptions';
+import { createFpsCounter } from './view/hud/fpsCounter';
+import { readRenderOptions } from './view/render/renderOptions';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
 const seedLabel = document.getElementById('seed-label') as HTMLDivElement;

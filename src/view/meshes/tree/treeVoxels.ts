@@ -9,6 +9,7 @@
 
 import type { TreeKind } from '../../../model/types';
 import { mulberry32 } from '../../../util/random';
+import { SUN_DIRECTION } from '../../constants';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, forEachVoxel, nibble, setColor } from '../voxel/voxelShapes';
 
@@ -62,12 +63,8 @@ const PINE_DITHER = 0.22; // per-voxel jitter of the shade, so needles read as t
 // Temporary per-puff / per-tier markers while building (never left in the grid).
 const MARKER = 40;
 
-// Direction the scene's sun comes from (see lighting.ts), normalized.
-const SUN = (() => {
-  const [x, y, z] = [20, 30, 10];
-  const len = Math.hypot(x, y, z);
-  return [x / len, y / len, z / len];
-})();
+// Direction the scene's sun comes from, so baked shading matches the lighting.
+const SUN = SUN_DIRECTION.toArray();
 
 const CENTER = TREE_GRID[0] / 2;
 

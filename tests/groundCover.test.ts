@@ -4,9 +4,9 @@ import { ROAD_WIDTH, TILE_HEIGHT } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
 import * as THREE from 'three';
-import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/ground/groundCoverScatter';
-import { buildFlowerGeometry, buildPebbleGeometry, buildTuftGeometry, tuftSize } from '../src/view/meshes/ground/groundCoverMesh';
-import { TUFT_SIZES } from '../src/view/meshes/ground/groundCoverVoxels';
+import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/cover/groundCoverScatter';
+import { buildFlowerGeometry, buildPebbleGeometry, buildTuftGeometry, tuftSize } from '../src/view/meshes/cover/groundCoverMesh';
+import { TUFT_SIZES } from '../src/view/meshes/cover/groundCoverVoxels';
 
 const models = [1, 7, 42].map((seed) => [seed, new GameModel(seed)] as const);
 

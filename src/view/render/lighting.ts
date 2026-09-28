@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GROUND_BOUNCE_COLOR, SKY_COLOR, SKY_INTENSITY, SUN_COLOR, SUN_DIRECTION, SUN_INTENSITY } from './constants';
+import { GROUND_BOUNCE_COLOR, SKY_COLOR, SKY_INTENSITY, SUN_COLOR, SUN_DIRECTION, SUN_INTENSITY } from '../constants';
 
 // Soft, diffuse daylight: a strong sky/ground hemisphere fill does most of
 // the work, and a warm sun adds the cel-shaded bands on top.

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA_OFFSET, FRUSTUM_SIZE } from './constants';
+import { CAMERA_OFFSET, FRUSTUM_SIZE } from '../constants';
 
 export interface MovementAxes {
   forward: { x: number; z: number };

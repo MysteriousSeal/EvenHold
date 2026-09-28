@@ -5,22 +5,22 @@
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
-import { createCamera, computeMovementAxes, resizeCamera } from './camera';
-import type { MovementAxes } from './camera';
-import { addLights } from './lighting';
-import { buildTerrain } from './meshes/ground/terrainMesh';
+import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
+import type { MovementAxes } from './render/camera';
+import { addLights } from './render/lighting';
+import { buildTerrain } from './meshes/terrain/terrainMesh';
 import { buildTrees } from './meshes/tree/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
 import { buildWells } from './meshes/well/wellMesh';
-import { buildRoads } from './meshes/ground/roadMesh';
-import { buildPlazas } from './meshes/ground/plazaMesh';
-import { buildGroundCover } from './meshes/ground/groundCoverMesh';
+import { buildRoads } from './meshes/road/roadMesh';
+import { buildPlazas } from './meshes/plaza/plazaMesh';
+import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
-import { buildHero } from './meshes/heroMesh';
-import { stylize, type Stylizer } from './stylize';
-import { PostProcessing } from './postprocessing';
-import type { RenderOptions } from './renderOptions';
+import { buildHero } from './meshes/hero/heroMesh';
+import { stylize, type Stylizer } from './render/stylize';
+import { PostProcessing } from './render/postprocessing';
+import type { RenderOptions } from './render/renderOptions';
 
 export interface RenderStats {
   drawCalls: number;

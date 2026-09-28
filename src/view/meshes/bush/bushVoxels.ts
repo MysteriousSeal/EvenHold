@@ -8,6 +8,7 @@
 
 import type { BushKind } from '../../../model/types';
 import { mulberry32 } from '../../../util/random';
+import { SUN_DIRECTION } from '../../constants';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, forEachVoxel, insideEllipsoid, isSurface, nibble, setColor, type Ellipsoid } from '../voxel/voxelShapes';
 
@@ -30,7 +31,7 @@ const BERRIES = [7, 8];
 const BLOSSOMS = [9, 10];
 const HEART = 11;
 const DITHER = 0.22;
-const SUN = [20 / Math.hypot(20, 30, 10), 30 / Math.hypot(20, 30, 10), 10 / Math.hypot(20, 30, 10)];
+const SUN = SUN_DIRECTION.toArray(); // baked shading matches the scene's sun
 const FOLIAGE = 20; // temporary marker while building
 
 export const BUSH_VOXEL_SIZE = 0.04; // ~3-4 screen pixels per voxel at gameplay zoom

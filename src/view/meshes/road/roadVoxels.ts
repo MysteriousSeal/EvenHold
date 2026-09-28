@@ -19,7 +19,7 @@ const N = 25; // voxels per tile edge
 const MID = 12; // center voxel
 const HALF_BAND = 6; // band = 13 voxels (~0.5 wide)
 const RUT = 3; // ruts sit 3 voxels either side of the center line
-export const ROAD_TILE_GRID: [number, number, number] = [N, 3, N];
+const ROAD_TILE_GRID: [number, number, number] = [N, 3, N];
 // Staircase down one tier (0.15 = ~4 voxels): 4 steps out over the lower
 // tile, each one voxel lower, so a drop tile's grid gets this much padding
 // around and below the tile.

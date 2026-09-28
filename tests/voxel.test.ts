@@ -5,7 +5,7 @@ import { buildBushGeometry } from '../src/view/meshes/bush/bushMesh';
 import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxels';
 import type { BushKind, TreeKind } from '../src/model/types';
 import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
-import { buildRoadTile } from '../src/view/meshes/ground/roadVoxels';
+import { buildRoadTile } from '../src/view/meshes/road/roadVoxels';
 import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
 import { CHUNK_SIZE } from '../src/view/meshes/common/chunks';
 
