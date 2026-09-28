@@ -20,6 +20,7 @@ export function createInventoryPanel(model: GameModel, hooks: { setPaused(paused
   createMenu({
     title: 'Bag',
     toggleKey: 'KeyB',
+    keyHints: false,
     onOpenChange: (open) => hooks.setPaused(open),
     tabs: [
       {

@@ -47,6 +47,7 @@ export interface MenuOptions {
   title: string;
   tabs: MenuTab[];
   toggleKey?: string; // a key code that opens and closes this menu
+  keyHints?: boolean; // the line of key hints along the bottom (default: shown)
   onOpenChange?(open: boolean): void;
 }
 
@@ -80,7 +81,8 @@ export function createMenu(options: MenuOptions): Menu {
   const footer = el('div', 'menu-footer');
   footer.innerHTML =
     '<span class="menu-key">←</span><span class="menu-key">→</span> tabs · <span class="menu-key">↑</span><span class="menu-key">↓</span> choose · <span class="menu-key">Enter</span> use · <span class="menu-key">Esc</span> close';
-  menu.append(header, tabBar, body, footer);
+  menu.append(header, tabBar, body);
+  if (options.keyHints !== false) menu.append(footer);
   backdrop.append(menu);
   document.body.append(backdrop);
 
