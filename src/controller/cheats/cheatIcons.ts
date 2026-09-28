@@ -38,7 +38,9 @@ function compose(size: [number, number, number], parts: Array<[VoxelGrid, number
   return out;
 }
 
-const BANDIT_FACE: BodyLook = { skin: 1, hair: 1, hairStyle: 'short', beard: true };
+// The hero as a woman (a cheat), her hair in a braid.
+export const HEROINE_LOOK: BodyLook = { ...HERO_LOOK, build: 'female', hairStyle: 'braid', beard: false };
+const BANDIT_FACE: BodyLook = { build: 'male', skin: 1, hair: 1, hairStyle: 'short', beard: true };
 const person = (look: BodyLook | null, equipment: Equipment) => (): VoxelModel => humanFigure(look, equipment);
 
 function wolfModel(): VoxelModel {
@@ -110,6 +112,7 @@ export const ICONS = {
   spawn: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
   // Hero
   swiftFeet: itemIcon('leatherBoots'),
+  heroine: icon('heroine', person(HEROINE_LOOK, {})),
   noclip: icon('ghost', () => ({ ...humanFigure(HERO_LOOK, {}), alpha: 0.45 })),
   invulnerable: itemIcon('plankShield'),
   // Enemies

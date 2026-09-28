@@ -65,7 +65,7 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     lastSeen: null,
     lostFor: 0,
     // Bandits: someone different each, in their own mix of bandit gear.
-    human: kind === 'bandit' ? { look: lookAt(x, z), equipment: pickOutfit('bandit', x, z) } : null,
+    human: kind === 'bandit' ? { look: lookAt(x, z, 0, 0.25), equipment: pickOutfit('bandit', x, z) } : null, // a woman one time in four
   };
 }
 

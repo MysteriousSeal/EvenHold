@@ -36,7 +36,8 @@ import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
-import { ICONS as ICON, itemIcon } from './cheatIcons';
+import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
+import { HERO_LOOK } from '../../model/human/humanoid';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
@@ -111,6 +112,17 @@ export function createCheatPanel(model: GameModel): void {
             title: 'Gain a level',
             detail: 'Just enough experience for the next',
             run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
+          },
+          {
+            icon: ICON.heroine,
+            title: 'A woman',
+            detail: 'The hero in a woman\'s body',
+            ...toggle(
+              () => model.hero.look.build === 'female',
+              (on) => (model.hero.look = on ? { ...HEROINE_LOOK } : { ...HERO_LOOK }),
+              'The hero is a woman.',
+              'The hero is a man.',
+            ),
           },
           {
             icon: ICON.swiftFeet,

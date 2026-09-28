@@ -102,7 +102,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     id,
     name: nameAt(at.x, at.z, seed),
     role,
-    look: lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed),
+    look: lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : 1), // about half the village's folk women; the inn's barmaids always
     equipment: {}, // naked, for now
     home,
     inn,
