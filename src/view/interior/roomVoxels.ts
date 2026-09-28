@@ -45,15 +45,19 @@ const FLOOR_COLORS = [
   0x8f8c84, // 33 flagstone
   0x86837b, // 34 flagstone, a shade darker
   0x7a776f, // 35 mortar
+  0xaa8456, // 36 board, a shade lighter
+  0x6b4a2c, // 37 nail head, knot
+  0x7e5a36, // 38 beam
 ];
 export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS];
-const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR] = FLOOR_COLORS.map(
+const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, BOARD_LIGHT, NAIL, BEAM] = FLOOR_COLORS.map(
   (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
 );
 
 // Floor color at a voxel (x, z) of the floor, by style: long boards or
 // flagstones, their seams only a shade off, so furniture stands out.
 function floorColor(style: Room['floor'], x: number, z: number): number {
+  if (style === 'tavern') return tavernFloor(x, z);
   if (style === 'flagstones') {
     // Stones 10-14 voxels across in staggered rows, a voxel of soft mortar between.
     const row = Math.floor(z / 12);
@@ -72,6 +76,31 @@ function floorColor(style: Room['floor'], x: number, z: number): number {
   const offset = (plank * 29) % length;
   if (z % 6 === 0 || (x + offset) % length === 0) return SEAM;
   return plank % 2 === 0 ? BOARD : BOARD_DARK;
+}
+
+// The inn's floor: planks five voxels wide along x in random lengths and
+// three close tones, a pair of nail heads at each plank's end, the odd knot,
+// and a darker beam board every two tiles, splitting the floor into bays.
+function tavernFloor(x: number, z: number): number {
+  const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
+  const row = Math.floor(z / 5);
+  if (row % 10 === 9) return z % 5 === 0 ? SEAM : BEAM; // a beam board, every two tiles
+  if (z % 5 === 0) return SEAM;
+  // Where along its row this plank starts and ends (lengths 30-70 voxels).
+  let start = -(hash(row, 1) % 40);
+  let plank = 0;
+  for (;;) {
+    const length = 30 + (hash(row, plank + 2) % 41);
+    if (x < start + length) {
+      if (x === start) return SEAM; // the joint
+      const dz = z % 5;
+      if ((x === start + 2 || x === start + length - 2) && (dz === 1 || dz === 3)) return NAIL; // nail heads at each end
+      if (hash(row * 31 + plank, x) % 211 === 0) return NAIL; // a knot
+      return [BOARD, BOARD_DARK, BOARD_LIGHT][hash(row, plank) % 3];
+    }
+    start += length;
+    plank++;
+  }
 }
 
 // Wall color at a voxel along a wall (u along it, y up), by style:
@@ -154,3 +183,11 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
 
 // Where floor tile (0, 0)'s middle is in the grid, in voxels (x, z).
 export const ROOM_ORIGIN_VOXELS = WALL + TILE / 2;
+
+// Only the given pieces, on an empty grid the size of the room's: meshed on
+// their own (the wall lanterns, which mustn't shadow the wall behind them).
+export function buildPieceVoxels(room: Room, pieces: readonly Furniture[]): VoxelGrid {
+  const grid = createGrid([room.width * TILE + WALL * 2, HIGH + 1, room.depth * TILE + WALL * 2]);
+  paintFurniture(grid, pieces, WALL, WALL);
+  return grid;
+}

@@ -9,18 +9,24 @@ import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { Furniture } from '../../model/interiors/furniture';
 import { fireOf } from './furnitureVoxels';
 import { FireEffect, flicker } from '../meshes/common/fire';
-import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildRoomVoxels } from './roomVoxels';
+import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels } from './roomVoxels';
 
 // The room's scene, and what to call each frame (its fire burning).
 export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void } {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
-  const geometry = greedyMesh(buildRoomVoxels(room, furniture), ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(offset, -ROOM_VOXEL, offset));
-  const room3d = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
+  const origin = new THREE.Vector3(offset, -ROOM_VOXEL, offset);
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  const lamps = furniture.filter((f) => f.kind === 'wallLantern');
+  const geometry = greedyMesh(buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern')), ROOM_PALETTE, ROOM_VOXEL, origin);
+  const room3d = new THREE.Mesh(geometry, material);
   room3d.castShadow = true; // furniture and walls block the firelight,
   room3d.receiveShadow = true; // and the floor shows it
   scene.add(room3d);
+  // The wall lanterns, meshed apart and casting no shadow: their own light
+  // shines from them, and a lantern's shadow on the wall behind it looks wrong.
+  if (lamps.length > 0) scene.add(new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps), ROOM_PALETTE, ROOM_VOXEL, origin), material));
   // Warm light from above, a hearth glow from the back corner.
   scene.add(new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
   const sun = new THREE.DirectionalLight(0xffd7a0, 1.4);
@@ -46,9 +52,33 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
     fire.group.position.set(spot.x, spot.y, spot.z);
     scene.add(fire.group);
   }
+  // Wall lanterns light the room around them and cast their own shadows
+  // (at a lower resolution than the fire's), each light just out in front of
+  // its lantern's glass so the lantern itself doesn't block it.
+  const lanterns = furniture
+    .filter((f) => f.kind === 'wallLantern')
+    .map((f) => {
+      const light = new THREE.PointLight(0xffc070, 1.8, 4, 1.5);
+      const out = 0.42; // off the wall, past the lantern
+      light.position.set(f.wall === 'left' ? f.x - 0.5 + out : f.x, 0.62, f.wall === 'left' ? f.z : f.z - 0.5 + out);
+      light.castShadow = true;
+      light.shadow.mapSize.set(512, 512);
+      light.shadow.bias = -0.004;
+      light.shadow.normalBias = 0.02;
+      light.shadow.radius = 3;
+      light.shadow.camera.near = 0.05;
+      light.shadow.camera.far = 6;
+      // A softer light between lantern and wall (no shadow), so the wall behind glows too.
+      const back = new THREE.PointLight(0xffc070, 0.9, 1.4, 1.6);
+      const behind = 0.1;
+      back.position.set(f.wall === 'left' ? f.x - 0.5 + behind : f.x, 0.72, f.wall === 'left' ? f.z : f.z - 0.5 + behind);
+      scene.add(light, back);
+      return light;
+    });
   return {
     scene,
     update(time) {
+      lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       fire?.update(time);
       glow.intensity = 4.5 * flicker(time);
     },
