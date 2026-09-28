@@ -40,6 +40,7 @@ const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
 const FIELD_WORK: [number, number] = [6, 14]; // seconds at each spot in a field
 const SIT_CHANCE = 0.75;
+const EASE_SPEED = 1.2; // how fast a villager eases off the hero, when they overlap
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
 
@@ -169,8 +170,37 @@ function roomFree(seed: number, entrance: Entrance, staff = false): (x: number, 
     x >= -0.5 + r && z >= -0.5 + r && x <= room.width - 0.5 - r && z <= room.depth - 0.5 - r && !bumpsFurniture(furniture, x, z, r) && !behindBar(x, z);
 }
 
+// Whether the hero stands on (x, z) in `where` (a building, or outdoors):
+// nowhere to put a villager down.
+function heroOn(world: NpcWorld, where: Entrance | null, x: number, z: number): boolean {
+  if ((world.inside?.entrance ?? null) !== where) return false;
+  const reach = (NPC_RADIUS + HERO_RADIUS) * (where ? INDOOR_SCALE : 1);
+  return Math.hypot(world.hero.x - x, world.hero.z - z) < reach;
+}
+
+// A villager overlapping the hero (put down on them, or pressed together)
+// eases away from them, and does nothing else meanwhile; returns whether it did.
+function easeOffHero(npc: Npc, world: NpcWorld, dt: number): boolean {
+  if (npc.seat || !heroOn(world, npc.where, npc.x, npc.z)) return false;
+  const reach = (NPC_RADIUS + HERO_RADIUS) * (npc.where ? INDOOR_SCALE : 1);
+  const dx = npc.x - world.hero.x;
+  const dz = npc.z - world.hero.z;
+  const d = Math.hypot(dx, dz);
+  const [ux, uz] = d > 1e-4 ? [dx / d, dz / d] : [Math.sin(npc.id), Math.cos(npc.id)]; // right on them: off some way of its own
+  const step = Math.min(reach - d, EASE_SPEED * dt);
+  const free = npc.where ? roomFree(world.seed, npc.where, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
+  const [nx, nz] = [npc.x + ux * step, npc.z + uz * step];
+  if (free(nx, nz)) {
+    npc.x = nx;
+    npc.z = nz;
+    if (!npc.where) npc.y = world.getGroundY(nx, nz);
+  }
+  return true;
+}
+
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
+  if (seen && easeOffHero(npc, world, dt)) return;
   if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : staffSteps(npc, npcs, world.seed);
   const step = npc.steps[0];
   const done = () => {
@@ -190,14 +220,17 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       }
       return;
     case 'enter': {
+      const inside = doorTile(world.seed, step.entrance);
+      if (heroOn(world, step.entrance, inside.x, inside.z)) return; // the hero's in the doorway: wait
       npc.where = step.entrance;
-      place(npc, world, doorTile(world.seed, step.entrance));
+      place(npc, world, inside);
       npc.facing = Math.PI; // into the room
       done();
       return;
     }
     case 'exit': {
       const door = npc.where!;
+      if (heroOn(world, null, door.x, door.z)) return; // the hero's outside the door: wait
       npc.where = null;
       place(npc, world, door);
       npc.facing = Math.atan2(door.outX, door.outZ);
@@ -217,7 +250,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
         npc.facing = step.seat.facing;
       }
       npc.waited += dt;
-      if (npc.waited >= step.for) {
+      if (npc.waited >= step.for && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) {
         place(npc, world, npc.stood!);
         npc.seat = null;
         npc.stood = null;
@@ -301,6 +334,7 @@ function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: nu
   npc.waited += dt;
   if (npc.waited < STUCK_TIME) return false;
   npc.waited = 0;
+  if (heroOn(world, npc.where, npc.path[0].x, npc.path[0].z)) return false; // not onto the hero
   place(npc, world, npc.path.shift()!);
   return npc.path.length === 0;
 }

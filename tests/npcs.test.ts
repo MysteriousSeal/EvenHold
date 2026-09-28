@@ -173,4 +173,26 @@ describe('villagers', () => {
     const names = new Set(looks.map((l) => randomName(l.build)));
     expect(names.size).toBeGreaterThan(150);
   });
+
+  it('never stay in the hero: put down on them, they ease off; a door the hero stands in, they wait for', () => {
+    const model = withVillage();
+    const npc = model.npcs.find((n) => n.role === 'villager')!;
+    // Right on top of the hero, outdoors: eased off within a moment.
+    const { village } = npc;
+    model.teleport(village.x + 2, village.z + 2);
+    for (const n of model.npcs) n.steps = [{ kind: 'wait', for: 1000 }];
+    Object.assign(npc, { where: null, x: model.hero.x, z: model.hero.z });
+    for (let t = 0; t < 1; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(Math.hypot(npc.x - model.hero.x, npc.z - model.hero.z)).toBeGreaterThanOrEqual(0.27);
+    // The hero just inside a house's door: a villager coming in waits.
+    const door = npc.home;
+    model.teleport(door.x, door.z);
+    model.useDoor();
+    Object.assign(npc, { where: null, x: door.x, z: door.z, steps: [{ kind: 'enter', entrance: door }, { kind: 'wait', for: 1000 }] });
+    for (let t = 0; t < 1; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(npc.where).toBeNull();
+    model.hero.z -= 1.5; // out of the doorway
+    for (let t = 0; t < 0.2; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(npc.where).toBe(door);
+  });
 });
