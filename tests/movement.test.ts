@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
+import { TEST_MAP_SIZE } from './support/testWorld';
 import {
   BUSH_COLLISION_HALF,
   HERO_RADIUS,
   HOP_HEIGHT,
-  MAP_WIDTH,
-  MAP_DEPTH,
   ROAD_SURFACE_HEIGHT,
   TILE_HEIGHT,
   TREE_COLLISION_HALF,
@@ -14,6 +13,9 @@ import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
 
 const FRAME = 1 / 60;
+
+// Each test moves the hero, so each gets a fresh small world (not the cached one).
+const freshModel = () => new GameModel(1, TEST_MAP_SIZE);
 
 // Tiles to keep the test path clear of: the game's solid-tile rule (water,
 // houses, wells, bushes) plus trees, whose trunks block too.
@@ -28,7 +30,7 @@ describe('hero collision', () => {
   // Walks the hero east into the west face of a house and checks its body
   // stops outside the house's cell rather than sinking into it.
   it('stops the hero body at the edge of a house cell', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const isSolid = solidCellCheck(model);
 
     const house = model.houses.find((h) => !isSolid(h.x - 1, h.z) && !isSolid(h.x - 2, h.z));
@@ -45,7 +47,7 @@ describe('hero collision', () => {
   });
 
   it('ignores non-positive dt', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const { x, y, z } = model.hero;
     model.update(1, 0, -0.01);
     model.update(1, 0, 0);
@@ -57,7 +59,7 @@ describe('bush collision', () => {
   // Bushes block only their foliage, not their whole tile: the hero should
   // walk right up to the leaves.
   it('stops the hero at the bush foliage, not the tile edge', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const isSolid = solidCellCheck(model);
     const bush = model.bushes.find((b) => !isSolid(b.x - 1, b.z) && !isSolid(b.x - 2, b.z));
     expect(bush).toBeDefined();
@@ -75,10 +77,10 @@ describe('bush collision', () => {
 describe('tree collision', () => {
   // Trees block only their trunk: the hero walks under the canopy up to the trunk.
   it('stops the hero at the trunk, not the tile edge', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const isSolid = solidCellCheck(model);
     // Away from the map border, where the hero is kept a radius inside the edge.
-    const tree = model.trees.find((t) => t.z > 1 && t.z < MAP_DEPTH - 2 && !isSolid(t.x - 1, t.z) && !isSolid(t.x - 2, t.z));
+    const tree = model.trees.find((t) => t.z > 1 && t.z < model.size.depth - 2 && !isSolid(t.x - 1, t.z) && !isSolid(t.x - 2, t.z));
     expect(tree).toBeDefined();
 
     model.hero.x = tree!.x - 2;
@@ -93,13 +95,13 @@ describe('tree collision', () => {
 
 describe('hero hop', () => {
   it('arcs above the upper tier when stepping up, and lands on it even after input stops', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const isSolid = solidCellCheck(model);
 
     // Find open ground where the tile to the east is exactly one tier higher.
     let start: { x: number; z: number } | undefined;
-    for (let x = 1; x < MAP_WIDTH - 2 && !start; x++) {
-      for (let z = 1; z < MAP_DEPTH - 1 && !start; z++) {
+    for (let x = 1; x < model.size.width - 2 && !start; x++) {
+      for (let z = 1; z < model.size.depth - 1 && !start; z++) {
         const stepsUp = model.heightMap[x + 1][z] === model.heightMap[x][z] + 1;
         if (stepsUp && !isSolid(x, z) && !isSolid(x + 1, z)) start = { x, z };
       }
@@ -129,7 +131,7 @@ describe('hero hop', () => {
 
 describe('road surface', () => {
   it('the hero stands on top of village cobbles, not sunk into them', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const village = model.villages[0];
     const x = village.x + 1; // open square tile right next to the well
     const z = village.z;
@@ -137,7 +139,7 @@ describe('road surface', () => {
   });
 
   it('stepping onto the road eases up gently, without the terrain-step hop arc', () => {
-    const model = new GameModel(1);
+    const model = freshModel();
     const [spawnX, spawnZ] = model.trails[0][0];
     const grassY = model.heightMap[spawnX][spawnZ] * TILE_HEIGHT;
     // Start on the grass margin of the spawn tile, then step onto the road band.

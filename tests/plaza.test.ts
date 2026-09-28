@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { GameModel } from '../src/model/GameModel';
+import { TEST_SEEDS, testModel } from './support/testWorld';
 import { buildPlazas } from '../src/view/meshes/plaza/plazaMesh';
 import { PLAZA_GRID, buildPlaza } from '../src/view/meshes/plaza/plazaVoxels';
 import { colorAt } from '../src/view/meshes/voxel/voxelShapes';
 
 describe('voxel village squares', () => {
-  it.each([1, 7, 8, 42])('seed %i: builds a square for every village', (seed) => {
-    const model = new GameModel(seed);
+  it.each(TEST_SEEDS.slice(0, 3))('seed %i: builds a square for every village', (seed) => {
+    const model = testModel(seed);
     const scene = new THREE.Scene();
     buildPlazas(scene, model);
     expect(scene.children.length).toBe(model.villages.length);

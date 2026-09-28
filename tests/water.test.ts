@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { MAP_DEPTH, MAP_WIDTH } from '../src/model/constants';
 import { buildLilyGeometry, buildReedGeometry, shoreDistances } from '../src/view/meshes/water/waterMesh';
 import { LILY_VARIANTS, REED_VARIANTS } from '../src/view/meshes/water/waterVoxels';
 
 describe('voxel water', () => {
   it('measures each lake tile’s Chebyshev distance to the nearest land', () => {
-    const lakeMap = Array.from({ length: MAP_WIDTH }, () => Array<boolean>(MAP_DEPTH).fill(false));
+    const width = 32; // any size works: the distance field takes it from the map
+    const lakeMap = Array.from({ length: width }, () => Array<boolean>(width).fill(false));
     for (let x = 10; x <= 16; x++) for (let z = 10; z <= 16; z++) lakeMap[x][z] = true; // a 7x7 lake
     const d = shoreDistances(lakeMap);
-    const at = (x: number, z: number) => d[x + z * MAP_WIDTH];
+    const at = (x: number, z: number) => d[x + z * width];
     expect(at(0, 0)).toBe(0);
     expect(at(10, 10)).toBe(1);
     expect(at(11, 12)).toBe(2);
