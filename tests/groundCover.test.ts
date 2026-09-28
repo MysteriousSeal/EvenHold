@@ -28,10 +28,11 @@ function tileOf(item: ScatterItem): [number, number] {
 describe('ground cover scatter', () => {
   it.each(models)('seed %i: never on water, squares or buildings, and at ground height', (_, model) => {
     const solid = solidCells(model);
-    const { tufts, flowers, pebbles } = cover(model);
+    const { tufts, sprigs, flowers, pebbles } = cover(model);
     expect(tufts.length).toBeGreaterThan(0);
+    expect(sprigs.length).toBeGreaterThan(tufts.length); // on all grass, not just meadows
 
-    const misplaced = [...tufts, ...flowers, ...pebbles].filter((item) => {
+    const misplaced = [...tufts, ...sprigs, ...flowers, ...pebbles].filter((item) => {
       const [x, z] = tileOf(item);
       return (
         model.lakeMap[x][z] ||
@@ -41,8 +42,8 @@ describe('ground cover scatter', () => {
       );
     });
     expect(misplaced).toEqual([]);
-    // Flowers and pebbles stay on plain grass; only grass lines the roads.
-    expect([...flowers, ...pebbles].filter((item) => model.surfaceMap[tileOf(item)[0]][tileOf(item)[1]] !== 'natural')).toEqual([]);
+    // Sprigs, flowers and pebbles stay on plain grass; only tufts line the roads.
+    expect([...sprigs, ...flowers, ...pebbles].filter((item) => model.surfaceMap[tileOf(item)[0]][tileOf(item)[1]] !== 'natural')).toEqual([]);
   });
 
   it.each(models)('seed %i: grass lines the roads without growing on the dirt', (_, model) => {
