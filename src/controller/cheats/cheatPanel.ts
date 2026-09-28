@@ -29,6 +29,7 @@ import {
   type ItemId,
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
+import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
 import { createMenu, type MenuAction } from '../../view/ui/menu';
 import { ICONS as ICON, itemIcon } from './cheatIcons';
 
@@ -89,6 +90,13 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
         name: 'Hero',
         icon: ICON.hero,
         actions: [
+          { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
+          {
+            icon: ICON.starterSet,
+            title: 'Gain a level',
+            detail: 'Just enough experience for the next',
+            run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
+          },
           {
             icon: ICON.swiftFeet,
             title: 'Swift feet',
@@ -96,7 +104,7 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
             ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Swift feet on.', 'Swift feet off.'),
           },
           { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
-          { icon: ICON.invulnerable, title: 'Invulnerable', detail: 'For when foes can hurt you', ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+          { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
         ],
       },
       {
