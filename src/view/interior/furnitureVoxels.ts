@@ -42,8 +42,10 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     box(len - 8, 3, 0, len - 3, 20, 9, (u, y) => ((u + y) % 6 === 0 ? STONE_DARK : STONE));
     box(1, 21, 0, len - 2, 23, 11, WOOD_DARK); // mantel
     box(8, 3, 0, len - 9, 20, 2, SOOT); // the back of the fire
-    box(10, 3, 3, len - 11, 4, 8, EMBER);
-    box(12, 5, 4, len - 13, 9, 6, (u, y) => ((u + y) % 3 === 0 ? EMBER : FIRE)); // flames
+    box(10, 3, 3, len - 11, 3, 8, (u, _y, v) => ((u + v) % 3 === 0 ? FIRE : EMBER)); // a bed of embers
+    box(11, 4, 4, len - 12, 5, 5, WOOD_DARK); // logs, one across the back,
+    box(13, 4, 6, len - 14, 5, 7, WOOD); // one in front
+    box(15, 6, 5, len - 16, 6, 6, (u) => (u % 4 === 0 ? SOOT : WOOD_DARK)); // one on top, charred; the flames rise from them (fire.ts)
     box(5, 24, 0, len - 6, 33, 6, (u, y) => ((u * 3 + y) % 7 === 0 ? STONE_DARK : STONE)); // chimney breast
   },
   // A wooden bed, lengthwise along the wall: a tall headboard at one end
@@ -190,8 +192,11 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
   }
 }
 
-// Where a room's fire is (its hearth or forge), in floor-tile coordinates, if any.
-export function fireOf(items: readonly Furniture[]): { x: number; z: number } | null {
+// Where a room's fire burns (in its hearth, or on its forge), in floor-tile
+// coordinates and world height, if it has one.
+export function fireOf(items: readonly Furniture[]): { x: number; y: number; z: number; forge: boolean } | null {
   const fire = items.find((f) => f.kind === 'hearth' || f.kind === 'forge');
-  return fire ? { x: fire.x + fire.w / 2 - 0.5, z: fire.z + 0.1 } : null;
+  if (!fire) return null;
+  const forge = fire.kind === 'forge';
+  return { x: fire.x + fire.w / 2 - 0.5, y: (forge ? 12 : 6) * 0.04, z: fire.z - 0.5 + (forge ? 8 : 5) / 25, forge };
 }

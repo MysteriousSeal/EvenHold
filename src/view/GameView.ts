@@ -30,6 +30,7 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { LootViews } from './meshes/loot/lootViews';
+import { CampFires } from './meshes/camp/campFires';
 import { buildRoomScene } from './interior/roomView';
 import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
@@ -62,6 +63,7 @@ export class GameView {
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
   private readonly loot: LootViews;
+  private readonly campFires: CampFires;
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -105,6 +107,7 @@ export class GameView {
     this.enemies = new EnemyViews(this.scene);
     this.wildlife = new WildlifeViews(this.scene);
     this.loot = new LootViews(this.scene);
+    this.campFires = new CampFires(this.scene);
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -229,6 +232,7 @@ export class GameView {
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);
+    this.campFires.update(model, this.elapsed);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay
@@ -244,14 +248,15 @@ export class GameView {
   }
 
   // The scene of the room the hero's in, built when they step in, or null outdoors.
-  private room: { entrance: Entrance; scene: THREE.Scene } | null = null;
+  private room: { entrance: Entrance; scene: THREE.Scene; update(time: number): void } | null = null;
   private roomScene(model: GameModel): THREE.Scene | null {
     const inside = model.inside;
     if (!inside) {
       this.room = null;
       return null;
     }
-    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, scene: buildRoomScene(inside.room, inside.furniture) };
+    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture) };
+    this.room.update(this.elapsed);
     return this.room.scene;
   }
 

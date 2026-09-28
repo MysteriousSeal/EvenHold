@@ -8,9 +8,11 @@ import type { Room } from '../../model/interiors/interiors';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { Furniture } from '../../model/interiors/furniture';
 import { fireOf } from './furnitureVoxels';
+import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildRoomVoxels } from './roomVoxels';
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): THREE.Scene {
+// The room's scene, and what to call each frame (its fire burning).
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void } {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
@@ -22,10 +24,21 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
   sun.position.set(room.width * 0.6, 6, room.depth * 0.8);
   sun.target.position.set(room.width / 2, 0, room.depth / 2);
   scene.add(sun, sun.target);
-  // The fire's glow, from the hearth or forge if there's one.
-  const fire = fireOf(furniture) ?? { x: 0.3, z: 0.3 };
-  const hearth = new THREE.PointLight(0xff9a4a, 3.5, 6, 1.5);
-  hearth.position.set(fire.x, 0.45, fire.z + 0.4);
-  scene.add(hearth);
-  return scene;
+  // The fire, burning in the hearth or on the forge, and its flickering glow.
+  const spot = fireOf(furniture);
+  const glow = new THREE.PointLight(0xff9a4a, 3.5, 6, 1.5);
+  glow.position.set(spot?.x ?? 0.3, 0.45, (spot?.z ?? 0.3) + 0.4);
+  scene.add(glow);
+  const fire = spot ? new FireEffect(spot.forge ? 0.3 : 0.36, spot.forge ? 0.22 : 0.3, 0.05) : null;
+  if (fire && spot) {
+    fire.group.position.set(spot.x, spot.y, spot.z);
+    scene.add(fire.group);
+  }
+  return {
+    scene,
+    update(time) {
+      fire?.update(time);
+      glow.intensity = 3.5 * flicker(time);
+    },
+  };
 }
