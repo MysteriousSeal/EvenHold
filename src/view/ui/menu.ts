@@ -8,6 +8,7 @@
 
 import './menu.css';
 import { closeCross } from './closeCross';
+import { dragSlot } from './slotDrag';
 // An icon: makes a canvas showing it at `size` CSS pixels (e.g. voxelIcon).
 export type MenuIcon = (size: number) => HTMLCanvasElement;
 
@@ -43,6 +44,7 @@ export interface MenuSlot {
   tag?: Array<string | HTMLElement>; // a label in a band along its bottom (e.g. a price)
   badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
+  move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -313,53 +315,28 @@ export function createMenu(options: MenuOptions): Menu {
     list.append(doll);
   }
 
-  // Dragging a slot: its icon follows the pointer; let go outside the menu
-  // and the slot's dragOut runs (the grid is then redrawn), let go inside
-  // and nothing happens.
+  // Dragging a slot (slotDrag.ts): let go outside the menu and its dragOut
+  // runs; onto another slot of its grid, its move; either way the grid is
+  // redrawn. Let go anywhere else in the menu and nothing happens.
   let justDropped = false;
   function startDrag(event: PointerEvent, cell: MenuSlot): void {
     if (event.button !== 0) return;
     event.preventDefault();
     hideTip();
-    // The whole slot comes along under the pointer: its tile, icon and count.
-    const ghost = el('div', 'menu-slot menu-drag');
-    ghost.append(cell.icon(44));
-    if (cell.count && cell.count > 1) ghost.append(el('span', 'menu-slot-count', String(cell.count)));
-    const follow = (e: PointerEvent) => (ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`);
-    follow(event);
-    document.body.append(ghost); // above every menu, so it shows over another one it's dragged to
-    // Doll slots on any menu: the one it fits glows; the one under the
-    // pointer shows green if it fits, red if not.
-    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-accepts]'));
-    for (const target of targets) target.classList.toggle('drop-hint', !!cell.fits && target.dataset.accepts === cell.fits);
-    let hovered: HTMLElement | null = null;
-    const mark = (e: PointerEvent) => {
-      const target = (document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-accepts]') as HTMLElement | null) ?? null;
-      if (target === hovered) return;
-      hovered?.classList.remove('drop-ok', 'drop-bad');
-      hovered = target;
-      if (target && cell.fits) target.classList.add(target.dataset.accepts === cell.fits ? 'drop-ok' : 'drop-bad');
-    };
-    const move = (e: PointerEvent) => {
-      follow(e);
-      mark(e);
-    };
-    const up = (e: PointerEvent) => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      ghost.remove();
-      for (const target of targets) target.classList.remove('drop-hint', 'drop-ok', 'drop-bad');
+    dragSlot(event, cell, (e) => {
       const panel = menu.getBoundingClientRect();
       const outside = e.clientX < panel.left || e.clientX > panel.right || e.clientY < panel.top || e.clientY > panel.bottom;
-      if (!outside || !cell.dragOut) return;
-      justDropped = true; // the release's click on the backdrop mustn't close the menu
-      cell.dragOut(document.elementFromPoint(e.clientX, e.clientY));
-      const keep = grid?.selected ?? 0;
+      // Onto another slot of the same grid: moved there (if it can be).
+      const onto = grid?.buttons.indexOf(document.elementFromPoint(e.clientX, e.clientY)?.closest('.menu-slot') as HTMLButtonElement) ?? -1;
+      if (!outside && onto >= 0 && cell.move) cell.move(onto);
+      else if (outside && cell.dragOut) {
+        justDropped = true; // the release's click on the backdrop mustn't close the menu
+        cell.dragOut(document.elementFromPoint(e.clientX, e.clientY));
+      } else return;
+      const keep = onto >= 0 ? onto : (grid?.selected ?? 0);
       showTab(tabIndex);
       selectSlot(keep, false);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    });
   }
 
   // Selects a slot and, unless `tip` is false, shows its tooltip beside it:
