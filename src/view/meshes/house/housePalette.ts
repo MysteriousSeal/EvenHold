@@ -36,6 +36,21 @@ const ENTRIES = {
   endGrain: 0xd9b98a,
   clayPot: 0xa0522d,
   sign: 0x8a6238,
+  ember: 0xff8a3a, // forge coals (glowing)
+  emberHot: 0xffc85a, // forge heart (glowing)
+  coal: 0x2b2522,
+  soot: 0x3a3431,
+  earth: 0x5e4630, // packed-earth forge yard
+  earthDark: 0x4a3624,
+  anvil: 0x4a4a52,
+  anvilLight: 0x70707a,
+  quench: 0x2a9aac,
+  hay: 0xd9b95a,
+  hayDark: 0xb89440,
+  pewter: 0xb8bcc2,
+  beer: 0xd89a2c,
+  beerFoam: 0xf6f0de,
+  tableWood: 0x7a5433,
   roofMoss: 0x6f9148,
   roofMossLight: 0x88a955,
 } as const;
@@ -62,4 +77,4 @@ export const ROOF_SETS: Array<{ base: number; light: number; dark: number; highl
 });
 
 // Colors meshed with the emissive (glowing) material.
-export const GLOWING = new Set([C.glass]);
+export const GLOWING = new Set([C.glass, C.ember, C.emberHot]);

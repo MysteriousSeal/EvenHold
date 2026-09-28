@@ -8,13 +8,14 @@
 // - two square rings of patterned stones around the well.
 // Everything is grid-aligned: rings are squares, not circles.
 
+import { VILLAGE_OUTER_RADIUS } from '../../../model/constants';
 import { mulberry32 } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
 export const PLAZA_VOXEL_SIZE = 0.04;
 const TILE = 25; // voxels per tile
-export const PLAZA_RADIUS = 2; // tiles from the well to the square's edge
+export const PLAZA_RADIUS = VILLAGE_OUTER_RADIUS; // tiles from the well to the square's edge
 const SIZE = (2 * PLAZA_RADIUS + 1) * TILE;
 const CENTER = Math.floor(SIZE / 2);
 export const PLAZA_GRID: [number, number, number] = [SIZE, 4, SIZE];

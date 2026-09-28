@@ -15,9 +15,9 @@ import {
   VILLAGE_MAP_MARGIN,
   VILLAGE_COUNT_AREA,
 } from '../constants';
-import { cellKey, inBounds, sizeOf } from '../grid';
+import { NEIGHBORS_4, cellKey, inBounds, sizeOf } from '../grid';
 import { shuffle } from '../../util/random';
-import type { House, Surface, Village } from '../types';
+import type { Building, BuildingKind, House, Surface, Village } from '../types';
 
 interface Offset {
   dx: number;
@@ -93,6 +93,33 @@ function hasHouseNearby(houseCells: ReadonlySet<string>, x: number, z: number): 
   return false;
 }
 
+// The inn and the smithy stand on two different sides of the square's
+// outer ring, each covering the ring tile straight out from the well and
+// the next one along the edge, door facing the well.
+function landmarkBuildings(village: Village, rng: () => number): Building[] {
+  const sides = [0, 1, 2, 3];
+  shuffle(sides, rng);
+  const kinds: BuildingKind[] = ['inn', 'smithy'];
+  return kinds.map((kind, i) => {
+    const [dx, dz] = NEIGHBORS_4[sides[i]];
+    const along = { dx: Math.abs(dz), dz: Math.abs(dx) }; // the edge's direction
+    const x0 = village.x + dx * VILLAGE_OUTER_RADIUS;
+    const z0 = village.z + dz * VILLAGE_OUTER_RADIUS;
+    const facing = rotationFacing({ dx: -dx, dz: -dz });
+    return {
+      kind,
+      x: x0 + along.dx / 2,
+      z: z0 + along.dz / 2,
+      tiles: [
+        [x0, z0],
+        [x0 + along.dx, z0 + along.dz],
+      ],
+      groundTier: village.groundTier,
+      quarterTurns: ((Math.round(facing / (Math.PI / 2)) % 4) + 4) % 4,
+    };
+  });
+}
+
 // Marks each village's area as 'plaza' in surfaceMap. A seed with little
 // flat ground just ends up with fewer villages rather than failing.
 export function generateVillages(
@@ -102,7 +129,7 @@ export function generateVillages(
   rng: () => number,
   spawnX: number,
   spawnZ: number,
-): { villages: Village[]; houses: House[] } {
+): { villages: Village[]; houses: House[]; buildings: Building[] } {
   const size = sizeOf(heightMap);
   // The count range is per VILLAGE_COUNT_AREA of map, so smaller worlds
   // (tests) get proportionally fewer; it's still one rng draw.
@@ -120,9 +147,16 @@ export function generateVillages(
   }
 
   const houses: House[] = [];
-  const houseCells = new Set<string>();
+  const buildings: Building[] = [];
+  const houseCells = new Set<string>(); // every building tile, houses included
 
   for (const village of villages) {
+    // The whole square is flat and dry (VILLAGE_FLAT_RADIUS covers it), so
+    // the inn and smithy always fit; houses keep their distance from them.
+    for (const building of landmarkBuildings(village, rng)) {
+      buildings.push(building);
+      for (const [x, z] of building.tiles) houseCells.add(cellKey(x, z));
+    }
     const houseCount =
       HOUSES_PER_VILLAGE_MIN + Math.floor(rng() * (HOUSES_PER_VILLAGE_MAX - HOUSES_PER_VILLAGE_MIN + 1));
     const slots = houseSlots();
@@ -155,5 +189,5 @@ export function generateVillages(
     }
   }
 
-  return { villages, houses };
+  return { villages, houses, buildings };
 }

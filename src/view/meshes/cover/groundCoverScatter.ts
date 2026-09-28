@@ -44,7 +44,7 @@ export interface GroundCover {
 // clumps (whatever the meadow density), making roads cut through the grass.
 export function scatterGroundCover(model: GameModel): GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const solid = solidCells(model.houses, model.villages, model.bushes);
+  const solid = solidCells(model, model.bushes);
   const treeCells = new Set(model.trees.map((t) => cellKey(t.x, t.z)));
   const cover: GroundCover = { tufts: [], flowers: [], pebbles: [] };
 

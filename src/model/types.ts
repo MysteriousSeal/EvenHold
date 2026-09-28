@@ -24,6 +24,20 @@ export interface House {
   rotationY: number;
 }
 
+// The inn and the blacksmith: two tiles long, standing on the square's
+// outer ring with their door (local -Z) facing the well and their long side
+// (local X) along the square's edge.
+export type BuildingKind = 'inn' | 'smithy';
+
+export interface Building {
+  kind: BuildingKind;
+  x: number; // center, halfway between its two tiles
+  z: number;
+  tiles: Array<[number, number]>;
+  groundTier: number;
+  quarterTurns: number; // rotation about Y in 90-degree steps
+}
+
 export type BushKind = 'leafy' | 'berry' | 'flowering';
 
 export interface Bush {
@@ -54,6 +68,7 @@ export interface World {
   trails: Array<Array<[number, number]>>;
   villages: Village[];
   houses: House[];
+  buildings: Building[];
   trees: Tree[];
   bushes: Bush[];
 }

@@ -11,6 +11,7 @@ import { addLights } from './render/lighting';
 import { buildTerrain } from './meshes/terrain/terrainMesh';
 import { buildTrees } from './meshes/tree/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
+import { buildBuildings } from './meshes/house/buildingMesh';
 import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
@@ -71,6 +72,7 @@ export class GameView {
     this.animations.push(buildTrees(this.scene, model));
     this.animations.push(buildBushes(this.scene, model));
     buildHouses(this.scene, model);
+    this.animations.push(buildBuildings(this.scene, model));
     buildWells(this.scene, model);
     this.heroMesh = buildHero();
     this.scene.add(this.heroMesh);

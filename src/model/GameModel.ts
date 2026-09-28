@@ -13,7 +13,7 @@ import {
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, cellKey, inBounds, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Bush, Hero, Tree, House, Surface, Village } from './types';
+import type { Building, Bush, Hero, Tree, House, Surface, Village } from './types';
 import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './roads';
 
@@ -26,6 +26,7 @@ export class GameModel {
   readonly trails: Array<Array<[number, number]>>;
   readonly villages: Village[];
   readonly houses: House[];
+  readonly buildings: Building[];
   readonly trees: Tree[];
   readonly bushes: Bush[];
   readonly hero: Hero;
@@ -48,11 +49,12 @@ export class GameModel {
     this.trails = world.trails;
     this.villages = world.villages;
     this.houses = world.houses;
+    this.buildings = world.buildings;
     this.trees = world.trees;
     this.bushes = world.bushes;
     // Houses and wells nearly fill their tile, so they block all of it;
     // bushes and tree trunks are much smaller, so they get their own footprint.
-    this.solidCells = solidCells(this.houses, this.villages);
+    this.solidCells = solidCells(this);
     this.propFootprints = new Map([
       ...this.bushes.map((b): [string, number] => [cellKey(b.x, b.z), BUSH_COLLISION_HALF]),
       ...this.trees.map((t): [string, number] => [cellKey(t.x, t.z), TREE_COLLISION_HALF]),
