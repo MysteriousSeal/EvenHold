@@ -1,6 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
-import type { LootId } from '../model/loot/loot';
+import type { BagItem } from '../model/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
@@ -30,12 +30,12 @@ export class GameController {
   private lastTime = 0;
   private readonly schedule: (callback: (now: number) => void) => void;
   private readonly onFrame: () => void;
-  private readonly onPickUp: (item: LootId) => void;
+  private readonly onPickUp: (item: BagItem) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: LootId) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});

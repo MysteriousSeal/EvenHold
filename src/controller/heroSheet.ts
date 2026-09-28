@@ -1,15 +1,15 @@
 // The hero sheet, opened and closed with C, like an MMO's character panel:
-// the hero as dressed, turning slowly, with a slot for each piece of gear around them (drag
-// one off to put it in the bag; drag gear from the bag onto the hero to wear
-// it), and their stats underneath. It sits on the left, under the HUD, and
-// the game plays on around it.
+// the hero as dressed, turning slowly, with a slot for each piece of gear
+// around them (drag one into the bag, or onto the ground; drag gear from the
+// bag onto the hero to wear it), and their stats underneath. It sits on
+// the left, under the HUD, and the game plays on around it.
 
 import type { GameModel } from '../model/GameModel';
 import { ATTACK_DURATION, HERO_DAMAGE, HERO_SPEED } from '../model/constants';
 import { ITEMS, SLOT_NAMES, type EquipSlot } from '../model/human/equipment';
 import { maxHpAt, xpToNext } from '../model/heroStats';
 import { humanFigure } from '../view/meshes/human/humanFigure';
-import { gearIcon } from '../view/ui/itemIcons';
+import { gearIcon, slotPlaceholder } from '../view/ui/itemIcons';
 import { createMenu, type DollSlot } from '../view/ui/menu';
 import { FigureStage } from '../view/ui/figureStage';
 
@@ -27,12 +27,14 @@ export function createHeroSheet(model: GameModel): () => void {
     const item = hero.equipment[which];
     return {
       label: SLOT_NAMES[which],
+      placeholder: slotPlaceholder(which),
       slot: item
         ? {
             icon: gearIcon(item),
             title: ITEMS[item].name,
-            lines: [SLOT_NAMES[which], 'Drag off to put it in your bag'],
-            dragOut: () => void model.unequip(which),
+            lines: [SLOT_NAMES[which], 'Drag into your bag, or onto the ground'],
+            // Onto another window (the bag): into the bag. Onto the world: on the ground.
+            dragOut: (over) => void (over?.closest('.menu') ? model.unequip(which) : model.dropEquipped(which)),
           }
         : null,
     };

@@ -1,7 +1,8 @@
 // The hero's bag, opened and closed with B: a grid of slots in the shared
 // menu (view/ui/menu.ts), one per kind of thing carried, loot and gear, with
 // its voxel icon and how many; hover one for what it is. Drag loot out onto
-// the world to drop it; drag gear onto the hero sheet (C) to wear it. The
+// the world to drop it; drag gear onto the hero sheet (C) to wear it, or
+// onto the world to put it down. The
 // game plays on around it: it only takes Escape and B.
 
 import type { GameModel } from '../model/GameModel';
@@ -36,6 +37,7 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
     lines: [SLOT_NAMES[ITEMS[gear].slot], 'Drag onto your hero to wear it'],
     dragOut: (over) => {
       if (over?.closest('.menu-doll')) model.equipFromBag(gear);
+      else if (!over?.closest('.menu')) model.dropFromBag(gear); // onto the world
     },
   };
 }
