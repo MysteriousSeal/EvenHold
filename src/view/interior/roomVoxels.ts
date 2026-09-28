@@ -36,37 +36,85 @@ const ROOM_COLORS = [
   0x7e786e, // 12 stone, dark
   0x4e2f1a, // 13 skirting
 ];
-export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE];
+// Floors, kept calm (seams only a shade off the boards) so what stands on
+// them reads clearly, and each with its shadow tones for under furniture.
+const FLOOR_COLORS = [
+  0xa27a4e, // 30 board
+  0x9a7248, // 31 board, a shade darker
+  0x8c663f, // 32 seam
+  0x8f8c84, // 33 flagstone
+  0x86837b, // 34 flagstone, a shade darker
+  0x7a776f, // 35 mortar
+  0x6e5236, // 36 shadow on wood
+  0x80613f, // 37 shadow's edge on wood
+  0x5f5d57, // 38 shadow on stone
+  0x74716a, // 39 shadow's edge on stone
+];
+export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS];
+const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, SHADOW_WOOD, SHADOW_WOOD_EDGE, SHADOW_STONE, SHADOW_STONE_EDGE] = FLOOR_COLORS.map(
+  (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
+);
 
-// Floor color at a voxel (x, z) of the floor, by style.
+// Floor color at a voxel (x, z) of the floor, by style: long boards or
+// flagstones, their seams only a shade off, so furniture stands out.
 function floorColor(style: Room['floor'], x: number, z: number): number {
   if (style === 'flagstones') {
-    // Stones 8-12 voxels across in staggered rows, a voxel of mortar between.
-    const row = Math.floor(z / 10);
-    const shifted = x + (row % 2) * 5;
-    if (z % 10 === 0 || shifted % 12 === 0) return 7;
-    return (row * 7 + Math.floor(shifted / 12) * 3) % 4 === 0 ? 6 : 5;
+    // Stones 10-14 voxels across in staggered rows, a voxel of soft mortar between.
+    const row = Math.floor(z / 12);
+    const shifted = x + (row % 2) * 7;
+    if (z % 12 === 0 || shifted % 14 === 0) return FLAG_MORTAR;
+    return (row * 7 + Math.floor(shifted / 14) * 3) % 3 === 0 ? FLAG_DARK : FLAG;
   }
   if (style === 'boards') {
-    // Wide boards laid along z, eight voxels across, seams between.
-    const board = Math.floor(x / 8);
-    if (x % 8 === 0) return 4;
-    return [1, 2, 3][board % 3];
+    // Wide boards laid along z, eight voxels across.
+    if (x % 8 === 0) return SEAM;
+    return Math.floor(x / 8) % 2 === 0 ? BOARD : BOARD_DARK;
   }
-  // Long planks along x, five voxels wide, their ends staggered.
-  const plank = Math.floor(z / 5);
-  const length = 30 + (plank % 3) * 10;
-  const offset = (plank * 17) % length;
-  if (z % 5 === 0 || (x + offset) % length === 0) return 4;
-  return [1, 3, 2][plank % 3];
+  // Long planks along x, six voxels wide, their ends staggered far apart.
+  const plank = Math.floor(z / 6);
+  const length = 60 + (plank % 3) * 15;
+  const offset = (plank * 29) % length;
+  if (z % 6 === 0 || (x + offset) % length === 0) return SEAM;
+  return plank % 2 === 0 ? BOARD : BOARD_DARK;
 }
 
-// Wall color at a voxel along a wall (u along it, y up), by style.
+// Wall color at a voxel along a wall (u along it, y up), by style:
+// - timber: planks of varying widths in three tones, dark gaps between, the
+//   odd knot;
+// - plaster: wooden wainscot panels to knee height under a dado rail, then
+//   dappled plaster between timber posts (one a tile), a beam along the top;
+// - stone: irregular coursed stones in four shades, dark mortar between.
 function wallColor(style: Room['wall'], u: number, y: number): number {
   if (y < 3) return 13; // skirting
-  if (style === 'stone') return y % 6 === 0 || (u + (Math.floor(y / 6) % 2) * 6) % 12 === 0 ? 12 : 11;
-  if (style === 'timber') return u % 8 === 0 ? 2 : u % 8 < 4 ? 10 : 1;
-  return u % TILE === 0 || y === HIGH - 1 ? 10 : y % 9 === 0 ? 9 : 8; // plaster between posts
+  const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
+  if (style === 'stone') {
+    const course = Math.floor(y / 4);
+    if (y % 4 === 0) return 7; // mortar between courses
+    const shifted = u + course * 5;
+    const width = 6 + (course % 3);
+    if (shifted % width === 0) return 7;
+    return [11, 12, 5, 6][hash(Math.floor(shifted / width), course) % 4];
+  }
+  if (style === 'timber') {
+    // Planks 5-7 voxels wide, each its own tone.
+    let start = 0;
+    let plank = 0;
+    for (;;) {
+      const width = 5 + (hash(plank, 7) % 3);
+      if (u < start + width) break;
+      start += width;
+      plank++;
+    }
+    if (u === start) return 4; // the gap
+    if (hash(plank, y) % 97 === 0) return 15; // a knot
+    return [1, 2, 3][hash(plank, 3) % 3];
+  }
+  // Plaster over wainscoting.
+  if (y < 10) return u % 8 === 0 ? 15 : y === 3 || y === 9 ? 15 : 14; // panels, framed
+  if (y === 10 || y === 11) return 16; // dado rail
+  if (u % TILE === 0 || u % TILE === 1) return 10; // posts
+  if (y >= HIGH - 2) return 10; // top beam
+  return hash(u, y) % 11 === 0 ? 9 : 8; // plaster, dappled
 }
 
 export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []): VoxelGrid {
@@ -105,7 +153,32 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
   ); // doormat
   paintFurniture(grid, furniture, x0, z0);
+  shadeUnder(grid, room, furniture, x0, z0);
   return grid;
+}
+
+// A soft shadow on the floor under each solid piece: a dark patch under
+// its footprint and a lighter ring round it, so it sits on the floor.
+function shadeUnder(grid: VoxelGrid, room: Room, furniture: readonly Furniture[], x0: number, z0: number): void {
+  const stone = room.floor === 'flagstones';
+  const [core, edge] = stone ? [SHADOW_STONE, SHADOW_STONE_EDGE] : [SHADOW_WOOD, SHADOW_WOOD_EDGE];
+  const [sx, , sz] = grid.size;
+  for (const item of furniture) {
+    if (!item.solid) continue;
+    const ax = x0 + item.x * TILE + 2;
+    const bx = x0 + (item.x + item.w) * TILE - 3;
+    const az = z0 + item.z * TILE + 2;
+    const bz = z0 + (item.z + item.d) * TILE - 3;
+    for (let z = az - 2; z <= bz + 2; z++) {
+      for (let x = ax - 2; x <= bx + 2; x++) {
+        if (x < x0 || z < z0 || x >= sx || z >= sz) continue;
+        const i = x + sx * (0 + grid.size[1] * z);
+        if (!grid.cells[i] || grid.cells[i + sx] ) continue; // only bare floor (nothing standing on it)
+        const inner = x >= ax && x <= bx && z >= az && z <= bz;
+        grid.cells[i] = inner ? core : edge;
+      }
+    }
+  }
 }
 
 // Where floor tile (0, 0)'s middle is in the grid, in voxels (x, z).

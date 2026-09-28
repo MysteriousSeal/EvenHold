@@ -34,19 +34,72 @@ type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: numb
 
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
 const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) => void> = {
-  // A stone fireplace: a hearth slab, sides and a mantel, fire and embers
-  // inside, the chimney breast rising to the top of the wall.
-  hearth: (box, len) => {
-    box(1, 1, 0, len - 2, 2, 12, (u, _y, v) => ((u + v) % 5 === 0 ? STONE_DARK : STONE)); // slab
-    box(2, 3, 0, 7, 20, 9, (u, y) => ((u + y) % 6 === 0 ? STONE_DARK : STONE)); // sides
-    box(len - 8, 3, 0, len - 3, 20, 9, (u, y) => ((u + y) % 6 === 0 ? STONE_DARK : STONE));
-    box(1, 21, 0, len - 2, 23, 11, WOOD_DARK); // mantel
-    box(8, 3, 0, len - 9, 20, 2, SOOT); // the back of the fire
-    box(10, 3, 3, len - 11, 3, 8, (u, _y, v) => ((u + v) % 3 === 0 ? FIRE : EMBER)); // a bed of embers
-    box(11, 4, 4, len - 12, 5, 5, WOOD_DARK); // logs, one across the back,
-    box(13, 4, 6, len - 14, 5, 7, WOOD); // one in front
-    box(15, 6, 5, len - 16, 6, 6, (u) => (u % 4 === 0 ? SOOT : WOOD_DARK)); // one on top, charred; the flames rise from them (fire.ts)
-    box(5, 24, 0, len - 6, 33, 6, (u, y) => ((u * 3 + y) % 7 === 0 ? STONE_DARK : STONE)); // chimney breast
+  // A rustic stone fireplace: irregular stones in mixed shades and dark
+  // mortar, a stepped arch over the opening (sooted above), a thick timber
+  // mantel with a candle, a clay pot and a pewter plate, a chimney breast
+  // narrowing upward. Inside, logs on a bed of embers (the flames rise from
+  // them, fire.ts) and an iron pot hung from a crane; split logs stacked
+  // against the right side.
+  hearth: (box) => {
+    const MORTAR = 7;
+    const shades = [STONE, STONE_DARK, 11, 5];
+    // Irregular stones: courses 4 high, blocks 5-8 wide, their joints staggered by course.
+    const stone = (u: number, y: number) => {
+      const course = Math.floor(y / 4);
+      if (y % 4 === 0) return MORTAR;
+      const shifted = u + course * 3;
+      const width = 5 + (course % 4);
+      if (shifted % width === 0) return MORTAR;
+      return shades[(course * 7 + Math.floor(shifted / width) * 5) % shades.length];
+    };
+    const stones = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number) => box(u0, y0, v0, u1, y1, v1, (u, y) => stone(u, y));
+    // The stepped arch's underside over the opening (u 12-37): higher toward the middle.
+    const archTop = (u: number) => 14 + Math.min(4, Math.floor(Math.min(u - 12, 37 - u) / 3));
+    box(1, 1, 0, 48, 2, 15, (u, _y, v) => ((u + v * 3) % 9 === 0 ? MORTAR : (u * 3 + v) % 5 === 0 ? STONE_DARK : STONE)); // hearth slab
+    stones(3, 3, 0, 11, 20, 11); // left jamb
+    stones(38, 3, 0, 46, 20, 11); // right jamb
+    for (let u = 12; u <= 37; u++) stones(u, archTop(u) + 1, 0, u, 20, 11); // the arch
+    for (let u = 12; u <= 37; u++) box(u, archTop(u) + 1, 11, u, archTop(u) + 2, 11, SOOT); // soot above the opening
+    box(12, 3, 0, 37, 16, 2, SOOT); // the back of the fire
+    // Mantel, with a candle, a clay pot and a pewter plate on it.
+    box(1, 21, 0, 48, 23, 13, (u, y) => (y === 21 ? WOOD_DARK : u % 11 === 0 ? WOOD_DARK : WOOD));
+    box(7, 24, 8, 8, 27, 9, LINEN); // candle
+    box(7, 28, 8, 7, 28, 8, EMBER); // its flame
+    box(19, 24, 5, 23, 27, 9, RED); // clay pot
+    box(20, 28, 6, 22, 28, 8, WOOD_DARK); // its lid
+    box(32, 24, 3, 37, 29, 3, IRON_LIGHT); // pewter plate, standing
+    // Chimney breast, narrowing.
+    stones(6, 24, 0, 43, 28, 7);
+    stones(10, 29, 0, 39, 33, 5);
+    // The fire: a bed of embers, logs on it.
+    box(13, 3, 3, 36, 3, 9, (u, _y, v) => ((u + v) % 3 === 0 ? FIRE : EMBER));
+    box(15, 4, 4, 34, 5, 5, WOOD_DARK);
+    box(17, 4, 6, 32, 5, 7, WOOD);
+    box(19, 6, 5, 30, 6, 6, (u) => (u % 4 === 0 ? SOOT : WOOD_DARK));
+    // An iron crane from the left jamb, a black pot hanging over the fire.
+    box(12, 3, 3, 12, 15, 3, IRON); // upright
+    box(12, 15, 3, 18, 15, 3, IRON); // arm, swung to the side of the flames
+    box(16, 12, 3, 16, 14, 3, IRON); // chain
+    box(13, 7, 1, 19, 11, 5, (_u, y) => (y === 11 ? IRON : SOOT)); // pot, rim on top
+    // Three big logs stacked against the right jamb (two, and one resting
+    // in the groove between them), lying toward the room: a rounded end
+    // five voxels across, dark bark with a knot or two, and a cut face of
+    // pale wood rings around a darker heart. Staggered in depth.
+    const log = (u0: number, y0: number, front: number) => {
+      for (let du = 0; du < 5; du++) {
+        for (let dy = 0; dy < 5; dy++) {
+          if ((du === 0 || du === 4) && (dy === 0 || dy === 4)) continue; // rounded corners
+          const ring = Math.max(Math.abs(du - 2), Math.abs(dy - 2)); // 0 heart, 1 inner, 2 bark
+          box(u0 + du, y0 + dy, 11, u0 + du, y0 + dy, front, (_u, _y, v) => {
+            if (v === front) return ring === 0 ? WOOD : ring === 1 ? WOOD_LIGHT : WOOD_DARK; // the cut end
+            return (v * 3 + du + u0) % 9 === 0 ? SOOT : WOOD_DARK; // bark, and a knot
+          });
+        }
+      }
+    };
+    log(38, 1, 17);
+    log(43, 1, 16);
+    log(40, 5, 17);
   },
   // A wooden bed, lengthwise along the wall: a tall headboard at one end
   // and a low footboard at the other, a thick straw mattress, a pillow at
@@ -63,14 +116,21 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     box(17, 8, 3, len - 5, 8, dep - 4, (_u, _y, v) => (v === 3 || v === dep - 4 ? TEAL : RED)); // blanket
     for (const v of [2, dep - 3]) box(17, 5, v, len - 5, 8, v, RED); // hanging over the sides
   },
+  // A table: dark legs, a rich wooden top, a linen runner down the middle with
+  // a red edge, a lit candle on it and a wooden bowl.
   table: (box) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
-    box(1, 9, 1, 23, 10, 23, (u) => (u % 5 === 0 ? WOOD_DARK : WOOD));
+    box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD)); // richer than the floor, so it stands out
+    box(1, 11, 8, 23, 11, 16, (_u, _y, v) => (v === 8 || v === 16 ? RED : LINEN)); // runner
+    box(11, 12, 11, 12, 16, 12, LINEN); // candle
+    box(11, 17, 11, 11, 17, 11, EMBER); // its flame
+    box(16, 12, 3, 20, 13, 7, (u, y, v) => (y === 13 && u > 16 && u < 20 && v > 3 && v < 7 ? SOOT : WOOD_DARK)); // a bowl
   },
   // A chair, its back at v = 0 and its seat facing +v (turned toward its table in paintFurniture).
   chair: (box) => {
     for (const [u, v] of [[7, 7], [16, 7], [7, 16], [16, 16]]) box(u, 1, v, u + 1, 6, v + 1, WOOD_DARK); // legs
     box(6, 7, 6, 17, 8, 17, WOOD); // seat
+    box(7, 9, 8, 16, 9, 16, RED); // a red cushion
     for (const u of [6, 16]) box(u, 9, 6, u + 1, 20, 7, WOOD_DARK); // back posts
     box(6, 14, 6, 17, 15, 7, WOOD); // back rails
     box(6, 19, 6, 17, 20, 7, WOOD);
