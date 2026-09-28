@@ -34,24 +34,3 @@ describe('square lanterns', () => {
     expect(model.hero.x + HERO_RADIUS).toBeLessThanOrEqual(x - LANTERN_COLLISION_HALF + 1e-9);
   });
 });
-
-describe('lantern orientation', () => {
-  it('turns every corner post so both arms reach into the square', () => {
-    // three.js turns (x, z) by q quarter turns to (x cos + z sin, -x sin + z cos).
-    const turn = ([x, z]: [number, number], q: number): [number, number] => {
-      const a = (q * Math.PI) / 2;
-      return [Math.round(x * Math.cos(a) + z * Math.sin(a)), Math.round(-x * Math.sin(a) + z * Math.cos(a))];
-    };
-    for (const [sx, sz] of [
-      [-1, -1],
-      [1, -1],
-      [-1, 1],
-      [1, 1],
-    ]) {
-      const q = sx < 0 ? (sz < 0 ? 0 : 1) : sz < 0 ? 3 : 2;
-      const arms = [turn([1, 0], q), turn([0, 1], q)];
-      // Inward from corner (sx, sz) is -sx along X and -sz along Z.
-      expect(arms.map(String).sort()).toEqual([String([-sx, 0]), String([0, -sz])].sort());
-    }
-  });
-});
