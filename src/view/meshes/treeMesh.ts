@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../model/GameModel';
+import { TILE_HEIGHT } from '../../model/constants';
 import { FOLIAGE_LAYERS } from '../constants';
 
 export function buildTrees(scene: THREE.Scene, model: GameModel): void {
@@ -24,16 +25,17 @@ export function buildTrees(scene: THREE.Scene, model: GameModel): void {
 
   model.trees.forEach((tree, i) => {
     quaternion.setFromAxisAngle(upAxis, tree.rotationY);
+    const groundY = tree.groundTier * TILE_HEIGHT;
 
     scaleVec.set(tree.scale, tree.scale, tree.scale);
-    position.set(tree.x, tree.groundHeight + 0.25 * tree.scale, tree.z);
+    position.set(tree.x, groundY + 0.25 * tree.scale, tree.z);
     matrix.compose(position, quaternion, scaleVec);
     trunkMesh.setMatrixAt(i, matrix);
 
     FOLIAGE_LAYERS.forEach((layer, layerIndex) => {
       const radius = layer.radius * tree.scale;
       scaleVec.set(radius, radius, radius);
-      position.set(tree.x, tree.groundHeight + layer.yOffset * tree.scale, tree.z);
+      position.set(tree.x, groundY + layer.yOffset * tree.scale, tree.z);
       matrix.compose(position, quaternion, scaleVec);
       foliageMeshes[layerIndex].setMatrixAt(i, matrix);
     });

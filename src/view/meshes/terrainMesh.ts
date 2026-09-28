@@ -1,54 +1,63 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../model/GameModel';
-import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL } from '../../model/constants';
+import { MAP_WIDTH, MAP_DEPTH, WATER_LEVEL, TILE_HEIGHT } from '../../model/constants';
 import { TERRAIN_COLORS, WATER_COLOR } from '../constants';
+
+interface TileGroup {
+  tier: number;
+  kind: 'water' | 'land';
+  cells: Array<{ x: number; z: number }>;
+}
+
+function tileMaterial(group: TileGroup): THREE.MeshStandardMaterial {
+  switch (group.kind) {
+    case 'water':
+      return new THREE.MeshStandardMaterial({ color: WATER_COLOR, flatShading: true, roughness: 0.35, metalness: 0.1 });
+    case 'land':
+      return new THREE.MeshStandardMaterial({ color: TERRAIN_COLORS[group.tier % TERRAIN_COLORS.length] });
+  }
+}
 
 // Every lake cell renders at a fixed WATER_LEVEL height regardless of its
 // actual bed tier (0 or 1), so the lake surface stays flat — using each
 // cell's real tier here would carve a visible internal cliff between
 // adjacent water cells of different depths.
 //
-// There are only a handful of distinct tile types (one per height tier,
-// plus water), so every cell of a given type is drawn as one instance of a
-// shared InstancedMesh rather than its own THREE.Mesh. That keeps the draw
-// call count constant (a handful) no matter how large the map grid gets,
-// instead of scaling linearly with cell count.
+// Tiles are grouped by (tier, kind) and each group is one InstancedMesh, so
+// the draw call count stays at a handful no matter how large the map is.
+// Paths and village squares aren't tile colors — they're thin overlays
+// drawn on top by groundDecals.ts, so they can be narrower than a tile.
 export function buildTerrain(scene: THREE.Scene, model: GameModel): void {
-  const cellsByKey = new Map<string, Array<{ x: number; z: number }>>();
-  const heightByKey = new Map<string, number>();
+  const groups = new Map<string, TileGroup>();
 
   for (let x = 0; x < MAP_WIDTH; x++) {
     for (let z = 0; z < MAP_DEPTH; z++) {
       const isLake = model.lakeMap[x][z];
-      const h = isLake ? WATER_LEVEL : model.heightMap[x][z];
-      const key = isLake ? 'water' : `land:${h}`;
+      const tier = isLake ? WATER_LEVEL : model.heightMap[x][z];
+      const kind = isLake ? 'water' : 'land';
+      const key = `${kind}:${tier}`;
 
-      let cells = cellsByKey.get(key);
-      if (!cells) {
-        cells = [];
-        cellsByKey.set(key, cells);
-        heightByKey.set(key, h);
+      let group = groups.get(key);
+      if (!group) {
+        group = { tier, kind, cells: [] };
+        groups.set(key, group);
       }
-      cells.push({ x, z });
+      group.cells.push({ x, z });
     }
   }
 
   const matrix = new THREE.Matrix4();
-  for (const [key, cells] of cellsByKey) {
-    const h = heightByKey.get(key)!;
-    const isLake = key === 'water';
+  for (const group of groups.values()) {
+    // Column spans from one tier below ground level up to the tile's surface.
+    const columnHeight = (group.tier + 1) * TILE_HEIGHT;
+    const geometry = new THREE.BoxGeometry(1, columnHeight, 1);
+    const mesh = new THREE.InstancedMesh(geometry, tileMaterial(group), group.cells.length);
 
-    const geometry = new THREE.BoxGeometry(1, h + 1, 1);
-    const material = isLake
-      ? new THREE.MeshStandardMaterial({ color: WATER_COLOR, flatShading: true, roughness: 0.35, metalness: 0.1 })
-      : new THREE.MeshStandardMaterial({ color: TERRAIN_COLORS[h % TERRAIN_COLORS.length] });
-
-    const instancedMesh = new THREE.InstancedMesh(geometry, material, cells.length);
-    cells.forEach((cell, i) => {
-      matrix.makeTranslation(cell.x, (h + 1) / 2 - 1, cell.z);
-      instancedMesh.setMatrixAt(i, matrix);
+    group.cells.forEach((cell, i) => {
+      matrix.makeTranslation(cell.x, group.tier * TILE_HEIGHT - columnHeight / 2, cell.z);
+      mesh.setMatrixAt(i, matrix);
     });
 
-    scene.add(instancedMesh);
+    scene.add(mesh);
   }
 }

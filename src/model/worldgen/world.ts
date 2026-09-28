@@ -6,11 +6,17 @@ import { createNoise2D } from 'simplex-noise';
 import { mulberry32 } from '../../util/random';
 import { LAKE_THRESHOLD_MIN, LAKE_THRESHOLD_MAX, SPAWN_X, SPAWN_Z } from '../constants';
 import { cellKey } from '../grid';
-import type { World } from '../types';
+import type { House, Surface, Village, World } from '../types';
 import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
 import { generateVillages } from './villages';
+import { generateSpawnTrail } from './trails';
 import { generateTrees } from './trees';
+
+// Tiles nothing can walk through or grow on: houses and village wells.
+export function solidCells(houses: House[], villages: Village[]): Set<string> {
+  return new Set([...houses.map((h) => cellKey(h.x, h.z)), ...villages.map((v) => cellKey(v.x, v.z))]);
+}
 
 export function generateWorld(seed: number): World {
   const rng = mulberry32(seed);
@@ -24,9 +30,12 @@ export function generateWorld(seed: number): World {
   smoothHeightMap(heightMap);
 
   const lakeMap = generateLakeMap(heightMap, noise2D, lakeThreshold, SPAWN_X, SPAWN_Z);
-  const houses = generateVillages(heightMap, lakeMap, rng, SPAWN_X, SPAWN_Z);
-  const houseCells = new Set(houses.map((house) => cellKey(house.x, house.z)));
-  const trees = generateTrees(heightMap, lakeMap, houseCells, rng, SPAWN_X, SPAWN_Z);
+  const surfaceMap: Surface[][] = heightMap.map((row) => row.map((): Surface => 'natural'));
 
-  return { heightMap, lakeMap, houses, trees };
+  const { villages, houses } = generateVillages(heightMap, lakeMap, surfaceMap, rng, SPAWN_X, SPAWN_Z);
+  const solid = solidCells(houses, villages);
+  const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, SPAWN_X, SPAWN_Z);
+  const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, SPAWN_X, SPAWN_Z);
+
+  return { heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, trees };
 }

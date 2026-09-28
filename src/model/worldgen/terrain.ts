@@ -1,7 +1,7 @@
 // Base terrain height generation and smoothing. Pure functions over a
 // height grid — no lake/tree/hero knowledge.
 
-import { MAP_WIDTH, MAP_DEPTH, MAX_HEIGHT, NOISE_SCALE } from '../constants';
+import { MAP_WIDTH, MAP_DEPTH, MAX_TIER, NOISE_SCALE } from '../constants';
 import { NEIGHBORS_4, inBounds } from '../grid';
 
 export function generateHeightMap(noise2D: (x: number, y: number) => number): number[][] {
@@ -12,7 +12,7 @@ export function generateHeightMap(noise2D: (x: number, y: number) => number): nu
       const base = noise2D(x / NOISE_SCALE, z / NOISE_SCALE);
       const detail = noise2D(x / (NOISE_SCALE / 3), z / (NOISE_SCALE / 3)) * 0.3;
       const normalized = Math.min(1, Math.max(0, (base + detail + 1.3) / 2.6));
-      const h = Math.min(MAX_HEIGHT, Math.floor(normalized * (MAX_HEIGHT + 1)));
+      const h = Math.min(MAX_TIER, Math.floor(normalized * (MAX_TIER + 1)));
       row.push(h);
     }
     map.push(row);

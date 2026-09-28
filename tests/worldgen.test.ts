@@ -76,8 +76,60 @@ describe('world generation', () => {
       expect(world.lakeMap[house.x][house.z]).toBe(false);
       expect(treeCells.has(key)).toBe(false);
       expect(houseCells.has(key)).toBe(false);
-      expect(world.heightMap[house.x][house.z]).toBe(house.groundHeight);
+      expect(world.heightMap[house.x][house.z]).toBe(house.groundTier);
       houseCells.add(key);
     }
+  });
+});
+
+describe('villages', () => {
+  it.each(worlds)('seed %i: every door opens onto the square', (_, world) => {
+    for (const house of world.houses) {
+      // Local -Z (the door side) rotated into world space.
+      const frontX = house.x + Math.round(-Math.sin(house.rotationY));
+      const frontZ = house.z + Math.round(-Math.cos(house.rotationY));
+      expect(world.surfaceMap[frontX][frontZ]).not.toBe('natural');
+    }
+  });
+
+  it.each(worlds)('seed %i: houses never touch, not even diagonally', (_, world) => {
+    for (const a of world.houses) {
+      for (const b of world.houses) {
+        if (a !== b) expect(Math.max(Math.abs(a.x - b.x), Math.abs(a.z - b.z))).toBeGreaterThan(1);
+      }
+    }
+  });
+
+  it.each(worlds)('seed %i: each well stands at its village center, ringed by square tiles', (_, world) => {
+    expect(world.villages.length).toBeGreaterThan(0);
+    for (const village of world.villages) {
+      for (const [dx, dz] of NEIGHBORS_4) {
+        expect(world.surfaceMap[village.x + dx][village.z + dz]).toBe('plaza');
+      }
+      expect(world.trees.some((t) => t.x === village.x && t.z === village.z)).toBe(false);
+    }
+  });
+
+  it.each(worlds)('seed %i: paths avoid water, and trees avoid paths and squares', (_, world) => {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      for (let z = 0; z < MAP_DEPTH; z++) {
+        if (world.surfaceMap[x][z] !== 'natural') expect(world.lakeMap[x][z]).toBe(false);
+      }
+    }
+    for (const tree of world.trees) expect(world.surfaceMap[tree.x][tree.z]).toBe('natural');
+  });
+
+  it.each(worlds)('seed %i: a trail leads from spawn to a village square', (_, world) => {
+    const seen = new Set<string>();
+    const stack: Array<[number, number]> = [[SPAWN_X, SPAWN_Z]];
+    let reachedSquare = false;
+    while (stack.length && !reachedSquare) {
+      const [x, z] = stack.pop()!;
+      if (seen.has(cellKey(x, z)) || world.surfaceMap[x][z] === 'natural') continue;
+      seen.add(cellKey(x, z));
+      reachedSquare = world.surfaceMap[x][z] === 'plaza';
+      for (const [dx, dz] of NEIGHBORS_4) if (inBounds(x + dx, z + dz)) stack.push([x + dx, z + dz]);
+    }
+    expect(reachedSquare).toBe(true);
   });
 });

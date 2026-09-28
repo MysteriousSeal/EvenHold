@@ -53,8 +53,8 @@ export class GameController {
       dirZ -= right.z;
     }
 
-    this.model.move(dirX, dirZ, dt);
-    this.view.update(this.model);
+    this.model.update(dirX, dirZ, dt);
+    this.view.update(this.model, dt);
     this.view.render();
   }
 }
