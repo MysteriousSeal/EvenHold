@@ -17,17 +17,14 @@ import {
   type Tile,
 } from '../model/cheats';
 import {
-  BANDIT_GEAR,
   BANDIT_OUTFIT,
   EQUIP_SLOTS,
   ITEMS,
   ITEM_IDS,
   SLOT_NAMES,
   STARTER_SET,
-  isWorn,
   pickOutfit,
   slotOf,
-  takeOff,
   wear,
   type ItemId,
 } from '../model/equipment';
@@ -122,22 +119,31 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
           {
             icon: ICON.bandit,
             title: 'Random bandit',
-            detail: 'A new mix of bandit gear each time',
-            run: () => (dress(Object.values(pickOutfit(BANDIT_GEAR, ++banditDraws, 7))), 'Dressed as a bandit.'),
+            detail: 'A new mix of what bandits wear, each time',
+            run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.'),
           },
-          ...ITEM_IDS.map(
-            (item): MenuAction => ({
-              icon: itemIcon(item),
-              title: ITEMS[item].name,
-              detail: `${SLOT_NAMES[slotOf(item)]} · ${STARTER_SET.includes(item) ? 'starter set' : 'bandit gear'}`,
-              ...toggle(
-                () => isWorn(model.hero.equipment, item),
-                (on) => (on ? wear : takeOff)(model.hero.equipment, item),
-                `${ITEMS[item].name} on.`,
-                `${ITEMS[item].name} off.`,
-              ),
-            }),
-          ),
+          // One row per slot: each use puts on the slot's next item (then nothing, then round again).
+          ...EQUIP_SLOTS.map((slot): MenuAction => {
+            const choices = [undefined, ...ITEM_IDS.filter((item) => slotOf(item) === slot)];
+            const worn = () => model.hero.equipment[slot];
+            return {
+              title: SLOT_NAMES[slot],
+              run: () => {
+                const next = choices[(choices.indexOf(worn()) + 1) % choices.length];
+                if (next) wear(model.hero.equipment, next);
+                else delete model.hero.equipment[slot];
+                return next ? `${ITEMS[next].name} on.` : `Nothing on the ${SLOT_NAMES[slot].toLowerCase()}.`;
+              },
+              current: () => {
+                const item = worn();
+                return {
+                  detail: item ? ITEMS[item].name : 'Nothing',
+                  icon: item ? itemIcon(item) : undefined,
+                  value: `${choices.indexOf(item)} of ${choices.length - 1}`,
+                };
+              },
+            };
+          }),
         ],
       },
       {
