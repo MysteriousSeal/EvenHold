@@ -8,7 +8,7 @@
 // - on death, it rolls onto its side, then bursts into voxel cubes.
 
 import * as THREE from 'three';
-import { ENEMY_CORPSE_TIME, ENEMY_STATS } from '../../../model/constants';
+import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { HealthBar, VoxelBurst } from './enemyParts';
@@ -21,7 +21,6 @@ const BODY_L = BODY_GRID[2] * V;
 const STRIDE = 6; // trot-cycle radians per world unit
 const LEG_SWING = 0.6;
 const TOPPLE_TIME = 0.35; // seconds to fall onto its side
-export const BURST_AT = 0.7; // seconds after death when it breaks apart
 
 export interface WolfLook {
   normal: THREE.Material;
@@ -147,12 +146,7 @@ export class WolfRig {
     const fall = Math.min(1, t / TOPPLE_TIME);
     this.body.rotation.z = (fall * fall * Math.PI) / 2;
     this.body.position.y = -fall * 0.08;
-    if (t < BURST_AT) return;
-    if (!this.burst.started) {
-      this.body.visible = false;
-      this.burst.start();
-    }
-    this.burst.update((t - BURST_AT) / (ENEMY_CORPSE_TIME - BURST_AT), dt);
+    if (this.burst.play(t, dt)) this.body.visible = false;
   }
 
   dispose(): void {

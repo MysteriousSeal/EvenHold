@@ -5,16 +5,15 @@
 // and bursts into voxel cubes of its colors.
 
 import * as THREE from 'three';
-import { ENEMY_CORPSE_TIME, ENEMY_STATS } from '../../../model/constants';
-import { HERO_LOOK } from '../../../model/humanoid';
+import { ENEMY_STATS } from '../../../model/constants';
+import { HERO_LOOK } from '../../../model/human/humanoid';
 import type { Enemy } from '../../../model/types';
 import { HumanRig } from '../human/humanRig';
 import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 
 const HEIGHT = 18 * HUMAN_VOXEL_SIZE;
-const FALL_TIME = 0.4;
-const BURST_AT = 0.7;
+const FALL_TIME = 0.4; // seconds to fall flat on its back
 
 export interface BanditLook {
   normal: THREE.Material;
@@ -50,12 +49,7 @@ export class BanditRig {
       this.rig.root.position.set(bandit.x, bandit.y, bandit.z);
       this.rig.setMaterial(this.look.normal);
       this.rig.fall(bandit.deadFor / FALL_TIME);
-      if (bandit.deadFor < BURST_AT) return;
-      if (!this.burst.started) {
-        for (const mesh of this.rig.meshes) mesh.visible = false;
-        this.burst.start();
-      }
-      this.burst.update((bandit.deadFor - BURST_AT) / (ENEMY_CORPSE_TIME - BURST_AT), dt);
+      if (this.burst.play(bandit.deadFor, dt)) for (const mesh of this.rig.meshes) mesh.visible = false;
       return;
     }
     if (bandit.human) this.rig.wear(bandit.human.equipment);

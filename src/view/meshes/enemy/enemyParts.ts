@@ -3,10 +3,12 @@
 // it dies.
 
 import * as THREE from 'three';
+import { ENEMY_CORPSE_TIME } from '../../../model/constants';
 
 const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const PIECES = 30;
 const GRAVITY = 3.5;
+const BURST_AT = 0.7; // seconds after death when an enemy breaks apart
 
 // Shared by every enemy's bar and burst.
 export const ENEMY_BAR = new THREE.MeshBasicMaterial({ color: 0xd8342c });
@@ -53,11 +55,17 @@ export class VoxelBurst {
     private readonly height: number,
   ) {}
 
-  get started(): boolean {
-    return this.mesh !== null;
+  // Plays the burst for an enemy dead for `deadFor` seconds: nothing until
+  // BURST_AT, then the spray over the rest of its corpse time. True once it
+  // has burst, when the body should be hidden.
+  play(deadFor: number, dt: number): boolean {
+    if (deadFor < BURST_AT) return false;
+    if (!this.mesh) this.start();
+    this.update((deadFor - BURST_AT) / (ENEMY_CORPSE_TIME - BURST_AT), dt);
+    return true;
   }
 
-  start(): void {
+  private start(): void {
     this.mesh = new THREE.InstancedMesh(CUBE, ENEMY_BURST, PIECES);
     const color = new THREE.Color();
     for (let i = 0; i < PIECES; i++) {
@@ -71,7 +79,7 @@ export class VoxelBurst {
     this.parent.add(this.mesh);
   }
 
-  update(life: number, dt: number): void {
+  private update(life: number, dt: number): void {
     if (!this.mesh) return;
     const size = Math.max(0.001, 0.05 * (1 - Math.min(1, life)));
     this.pieces.forEach((piece, i) => {
