@@ -4,7 +4,8 @@
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './grid';
-import type { Village } from './types';
+import { campPieces, makeEnemy } from './enemies';
+import type { EnemyKind, Village } from './types';
 
 export interface Tile {
   x: number;
@@ -76,4 +77,44 @@ function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number)
     if (ring.length > 0) return ring.sort((a, b) => distance(a, from) - distance(b, from))[0];
   }
   return null;
+}
+
+// The entrance of the nearest bandit camp (just outside its palisade gap),
+// or null if there are none.
+export function nearestCamp(model: GameModel, from: Tile): Tile | null {
+  if (model.camps.length === 0) return null;
+  const camp = model.camps.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
+  const fire = campPieces(camp)[0];
+  // The entrance faces local +Z; three tiles out from the fire along it.
+  const [dx, dz] = [[0, 3], [3, 0], [0, -3], [-3, 0]][camp.quarterTurns];
+  return nearestOpenTile(model, { x: fire.x + dx, z: fire.z + dz });
+}
+
+// A few tiles from the nearest living wolf, or null if there are none.
+export function nearestPack(model: GameModel, from: Tile): Tile | null {
+  const wolves = model.enemies.filter((e) => e.kind === 'wolf' && e.state !== 'dead');
+  if (wolves.length === 0) return null;
+  const wolf = wolves.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
+  return nearestOpenTile(model, { x: Math.round(wolf.x) - 4, z: Math.round(wolf.z) });
+}
+
+// Adds a new enemy on open ground a couple of tiles in front of the hero.
+export function spawnEnemyNear(model: GameModel, kind: EnemyKind): void {
+  const ahead = { x: Math.round(model.hero.x + Math.sin(model.hero.facing) * 2), z: Math.round(model.hero.z + Math.cos(model.hero.facing) * 2) };
+  const at = nearestOpenTile(model, ahead);
+  const enemy = makeEnemy(Math.max(-1, ...model.enemies.map((e) => e.id)) + 1, kind, at.x, at.z);
+  enemy.y = model.getGroundY(at.x, at.z);
+  model.enemies.push(enemy);
+}
+
+// Kills every living enemy within `radius` tiles; returns how many.
+export function slayNearby(model: GameModel, radius = 15): number {
+  let slain = 0;
+  for (const enemy of model.enemies) {
+    if (enemy.state === 'dead' || distance(enemy, model.hero) > radius) continue;
+    enemy.hp = 0;
+    enemy.state = 'dead';
+    slain++;
+  }
+  return slain;
 }

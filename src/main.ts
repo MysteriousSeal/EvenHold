@@ -33,7 +33,8 @@ async function boot(): Promise<void> {
   await view.finish();
 
   const countFrame = createFpsCounter(document.getElementById('fps-label') as HTMLDivElement, () => view.getRenderStats());
-  new GameController(model, view, { uncapped: options.uncapped, onFrame: countFrame }).start();
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame: countFrame });
+  controller.start();
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.
   await nextPaint();
@@ -41,7 +42,9 @@ async function boot(): Promise<void> {
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {
-    void import('./controller/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model));
+    void import('./controller/cheatPanel').then(({ createCheatPanel }) =>
+      createCheatPanel(model, { setPaused: (paused) => (controller.paused = paused) }),
+    );
   }
 }
 

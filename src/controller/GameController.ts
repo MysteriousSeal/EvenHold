@@ -56,7 +56,14 @@ export class GameController {
     this.schedule(this.tick);
   };
 
+  // Set while a pause menu is open: the world stands still, but keeps drawing.
+  paused = false;
+
   private step(dt: number): void {
+    if (this.paused) {
+      this.view.render();
+      return;
+    }
     if (this.input.consumeAttack()) this.model.startAttack();
 
     const { forward, right } = this.view.getMovementAxes();
