@@ -1,7 +1,7 @@
 // Default world size in tiles. Worlds take their size as a parameter (tests
 // use small ones), so nothing should assume this is the map's size.
-export const MAP_WIDTH = 256;
-export const MAP_DEPTH = 256;
+export const MAP_WIDTH = 2048;
+export const MAP_DEPTH = 2048;
 export const HERO_SPEED = 4; // units per second
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size
 export const HOP_DURATION = 0.18; // seconds to hop between terrain tiers
@@ -24,10 +24,10 @@ export const BUSH_SHAPES = 2; // voxel shape variants per bush kind
 export const FENCE_THICKNESS = 0.06; // fences block a strip this thick along the field's border, inside its tiles
 export const BUSH_COLLISION_HALF = 0.2; // bushes block a 0.4x0.4 square (their foliage), not their whole tile
 
-// About one village per ~1,300-2,100 tiles (30-50 on a 256x256 map); spacing below keeps them spread out.
+// About one village per ~1,300-2,100 tiles (30-50 per 256x256 of map); spacing below keeps them spread out.
 export const VILLAGE_MIN_COUNT = 30; // per VILLAGE_COUNT_AREA; scaled with the map's area
 export const VILLAGE_MAX_COUNT = 50; // inclusive
-export const VILLAGE_COUNT_AREA = MAP_WIDTH * MAP_DEPTH;
+export const VILLAGE_COUNT_AREA = 256 * 256; // the area the count range above is for
 export const LANE_LENGTH_MIN = 3; // lanes run this many tiles out from the square...
 export const LANE_LENGTH_MAX = 7; // ...up to this many (inclusive), plus any jog
 export const LANE_HOUSE_CHANCE = 0.75; // each free spot along a lane gets a house; the rest stay gardens
