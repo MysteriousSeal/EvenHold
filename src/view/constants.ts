@@ -29,3 +29,9 @@ export const HOUSE_DOOR_COLOR = 0x5a3a22; // doors and shutters
 export const HOUSE_WINDOW_COLOR = 0xffd98a;
 export const HOUSE_WINDOW_GLOW = 0xffa940;
 export const HOUSE_ROOF_COLORS = [0x8b3a2b, 0x4b505c, 0xb08a4a]; // clay tile, slate, straw thatch
+
+export const WELL_STONE_LIGHT_COLOR = 0x9d998f;
+export const WELL_STONE_DARK_COLOR = 0x76736b;
+export const WELL_WATER_COLOR = 0x285f7a; // darker than lakes, reads as deep
+export const WELL_ROPE_COLOR = 0xc2a26b;
+export const IRON_COLOR = 0x3d3d42;

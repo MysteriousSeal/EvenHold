@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { HouseVariant } from './variants';
+import { box, beam as beamBetween, nonIndexed } from '../geometry';
 
 export const HOUSE_PARTS = ['plaster', 'timber', 'stone', 'roof', 'door', 'window'] as const;
 export type HousePart = (typeof HOUSE_PARTS)[number];
@@ -38,29 +39,6 @@ interface WindowSpot {
   facing: 'x' | 'z'; // axis of the wall's outward normal
 }
 
-// mergeGeometries needs every input to be non-indexed (or all indexed).
-function nonIndexed(g: THREE.BufferGeometry): THREE.BufferGeometry {
-  return g.index ? g.toNonIndexed() : g;
-}
-
-function box(w: number, h: number, d: number, x: number, y: number, z: number, rotX = 0): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(w, h, d);
-  if (rotX !== 0) g.rotateX(rotX);
-  g.translate(x, y, z);
-  return nonIndexed(g);
-}
-
-const Z_AXIS = new THREE.Vector3(0, 0, 1);
-
-// Square-section beam between two arbitrary points (used for diagonal braces).
-function beam(ax: number, ay: number, az: number, bx: number, by: number, bz: number): THREE.BufferGeometry {
-  const dir = new THREE.Vector3(bx - ax, by - ay, bz - az);
-  const g = new THREE.BoxGeometry(BRACE, BRACE, dir.length());
-  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Z_AXIS, dir.normalize()));
-  g.translate((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
-  return nonIndexed(g);
-}
-
 // Triangular prism filling the attic under the roof: triangle in the YZ
 // plane (base = depth, apex up), running along X. Built by hand rather than
 // with ExtrudeGeometry, which pulls three.js's whole shape-triangulation
@@ -88,7 +66,7 @@ function gable(depth: number, height: number, length: number, baseY: number): TH
   // mergeGeometries requires the same attributes as the BoxGeometry parts.
   g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array((positions.length / 3) * 2), 2));
   g.computeVertexNormals();
-  return g;
+  return nonIndexed(g);
 }
 
 // Two thick panels meeting at the ridge, each tilted to the gable's pitch
@@ -139,10 +117,10 @@ function timberFrame(s: Storey, bracedWalls: Wall[]): THREE.BufferGeometry[] {
   for (const wall of bracedWalls) {
     if (wall === 'front' || wall === 'back') {
       const z = wall === 'front' ? -hd : hd;
-      parts.push(beam(-hw + BEAM / 2, lo, z, -0.12, hi, z), beam(hw - BEAM / 2, lo, z, 0.12, hi, z));
+      parts.push(beamBetween(-hw + BEAM / 2, lo, z, -0.12, hi, z, BRACE), beamBetween(hw - BEAM / 2, lo, z, 0.12, hi, z, BRACE));
     } else {
       const x = wall === 'left' ? -hw : hw;
-      parts.push(beam(x, lo, -hd + BEAM / 2, x, hi, -0.12), beam(x, lo, hd - BEAM / 2, x, hi, 0.12));
+      parts.push(beamBetween(x, lo, -hd + BEAM / 2, x, hi, -0.12, BRACE), beamBetween(x, lo, hd - BEAM / 2, x, hi, 0.12, BRACE));
     }
   }
   return parts;

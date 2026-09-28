@@ -11,7 +11,7 @@ import { addLights } from './lighting';
 import { buildTerrain } from './meshes/terrainMesh';
 import { buildTrees } from './meshes/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
-import { buildWells } from './meshes/wellMesh';
+import { buildWells } from './meshes/well/wellMesh';
 import { buildGroundDecals } from './meshes/groundDecals';
 import { buildHero } from './meshes/heroMesh';
 
