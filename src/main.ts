@@ -4,6 +4,7 @@ import { GameController } from './controller/GameController';
 import { resolveSeed } from './util/seed';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
+import { loadGame, startAutoSave } from './controller/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
@@ -29,9 +30,11 @@ async function boot(): Promise<void> {
   loading.show(0, 'Shaping the land');
   await nextPaint();
   const model = new GameModel(seed);
-  // A new hero every game: any look, a name to match.
-  model.hero.look = randomLook();
-  model.hero.name = randomName(model.hero.look.build);
+  // This world's saved game, if it was played before; else a new hero: any look, a name to match.
+  if (!loadGame(model)) {
+    model.hero.look = randomLook();
+    model.hero.name = randomName(model.hero.look.build);
+  }
   const options = readRenderOptions();
   const view = new GameView(canvas, model, options);
 
@@ -59,7 +62,14 @@ async function boot(): Promise<void> {
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
   const sheet = createHeroSheet(model);
-  const pause = createPauseMenu({ setPaused: (paused) => (controller.paused = paused), redraw: () => view.render() });
+  const pause = createPauseMenu({
+    setPaused: (paused) => (controller.paused = paused),
+    redraw: () => view.render(),
+    newGame: () => {
+      autoSave.forget();
+      window.location.reload();
+    },
+  });
   const updateToolbar = createToolbar([
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
@@ -110,6 +120,7 @@ async function boot(): Promise<void> {
     },
   });
   controller.start();
+  const autoSave = startAutoSave(model);
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.
   await nextPaint();
