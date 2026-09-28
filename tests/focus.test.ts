@@ -39,6 +39,22 @@ describe('enemy focus', () => {
     expect(model.focused).toBe(bandit); // a second attacker doesn't take the focus
   });
 
+  it('lets go the moment its enemy dies, so the next one to strike takes the focus', () => {
+    const model = fresh();
+    model.godMode = true;
+    const [a, b] = model.enemies.filter((e) => e.kind === 'bandit');
+    model.enemies.splice(0, model.enemies.length, a, b);
+    model.focus(a.id);
+    a.state = 'dead';
+    model.update(0, 0, FRAME);
+    expect(model.focused).toBeNull();
+    b.x = model.hero.x + 0.5;
+    b.z = model.hero.z;
+    b.state = 'chase';
+    for (let t = 0; t < ENEMY_STATS.bandit.swing + FRAME && !model.focused; t += FRAME) model.update(0, 0, FRAME);
+    expect(model.focused).toBe(b);
+  });
+
   it('lets go of an enemy that is far off or gone', () => {
     const model = fresh();
     const [a] = model.enemies;
