@@ -1,9 +1,9 @@
 // Villagers: one to every house in a village, each living in their own. They
 // go about a simple routine (npcRoutine.ts): a while at home, a stroll on
 // the village square, a sit at the inn, the square again, then home. Each
-// has a name and a look of their own, both from where their house stands,
-// so a village's folk are the same for everyone on that seed. For now they
-// wear nothing.
+// has a name and a look of their own, from the world's seed and where their
+// house stands, so a village's folk are the same for everyone on that seed
+// (and different on another). For now they wear nothing.
 
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit } from '../../util/random';
@@ -49,21 +49,39 @@ export interface Npc extends Humanoid {
   path: Point[] | null; // tiles still to walk, while going somewhere
   waited: number; // seconds into the current wait
   moving: boolean;
+  salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 
-const FIRST = ['Al', 'Bran', 'Ced', 'Ed', 'El', 'Gar', 'Hal', 'Is', 'Mar', 'Os', 'Ro', 'Wil', 'Ber', 'Ma', 'Gwen', 'Ada', 'Tho', 'Fen', 'Lu', 'Od', 'Ag', 'Wyn'];
-const LAST = ['ric', 'wyn', 'da', 'mund', 'bert', 'ia', 'ard', 'win', 'el', 'fred', 'gar', 'ine', 'ald', 'lyn', 'wen', 'ric', 'mer', 'ette'];
+const FIRST = [
+  'Al', 'Bran', 'Ced', 'Ed', 'El', 'Gar', 'Hal', 'Is', 'Mar', 'Os', 'Ro', 'Wil', 'Ber', 'Ma', 'Gwen', 'Ada', 'Tho', 'Fen', 'Lu', 'Od', 'Ag',
+  'Wyn', 'Aethel', 'Alar', 'Ald', 'Alf', 'Ang', 'Ans', 'Ar', 'Ash', 'Aud', 'Bald', 'Bar', 'Bea', 'Bel', 'Bern', 'Bert', 'Bla', 'Bor', 'Bri',
+  'Bro', 'Cad', 'Cal', 'Car', 'Cath', 'Cel', 'Col', 'Con', 'Cor', 'Cuth', 'Dag', 'Dal', 'Dar', 'Del', 'Dor', 'Dun', 'Ead', 'Eal', 'Eld', 'Em',
+  'Er', 'Eth', 'Ev', 'Fal', 'Far', 'Fin', 'Fla', 'Fri', 'Gal', 'Gil', 'Gis', 'Gle', 'God', 'Gor', 'Gre', 'Gun', 'Guth', 'Had', 'Har', 'Hed',
+  'Hel', 'Her', 'Hil', 'Hro', 'Hug', 'Id', 'Ing', 'Ivo', 'Jor', 'Kat', 'Ken', 'Lan', 'Leo', 'Lin', 'Lor', 'Mab', 'Mal', 'Mel', 'Mil', 'Mor',
+  'Nor', 'Oda', 'Orm', 'Osw', 'Per', 'Quen', 'Rad', 'Ran', 'Reg', 'Ric', 'Ros', 'Sal', 'Sib', 'Sig', 'Tam', 'Tor', 'Ul', 'Wal', 'Wen', 'Wid',
+  'Win', 'Yse',
+];
+const LAST = [
+  'ric', 'wyn', 'da', 'mund', 'bert', 'ia', 'ard', 'win', 'el', 'fred', 'gar', 'ine', 'ald', 'lyn', 'wen', 'ric', 'mer', 'ette', 'ach', 'ain',
+  'al', 'an', 'and', 'ane', 'ax', 'bald', 'bern', 'beth', 'bold', 'bur', 'by', 'can', 'cott', 'dane', 'del', 'den', 'dith', 'don', 'dor',
+  'dric', 'dun', 'ed', 'ella', 'en', 'er', 'eth', 'fast', 'ferd', 'fin', 'ford', 'frith', 'gard', 'geat', 'gith', 'gund', 'hard', 'helm',
+  'hild', 'hold', 'ian', 'ing', 'is', 'ith', 'ivar', 'la', 'lac', 'laf', 'land', 'leof', 'ley', 'lin', 'lo', 'ma', 'mar', 'mon', 'mond',
+  'mot', 'na', 'nard', 'ne', 'nor', 'old', 'on', 'or', 'ot', 'oth', 'ra', 'rad', 'ran', 'red', 'ren', 'rid', 'rin', 'rod', 'ron', 'ry', 'sa',
+  'sel', 'son', 'stan', 'ta', 'thor', 'ton', 'tram', 'trude', 'ulf', 'un', 'valde', 'ver', 'vin', 'ward', 'wald', 'wig', 'wine', 'wolf',
+  'wulf', 'bryn', 'cyn',
+];
 
-// A name from where someone lives: the same house, the same name.
-export function nameAt(x: number, z: number): string {
-  const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(Math.round(x * 10), Math.round(z * 10), salt) * list.length)];
+// A name from the world's seed and where someone lives: the same house on
+// the same seed, the same name.
+export function nameAt(x: number, z: number, seed = 0): string {
+  const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(Math.round(x * 10), Math.round(z * 10), seed * 131 + salt) * list.length)];
   return pick(FIRST, 71) + pick(LAST, 72);
 }
 
 // One villager for every house, living in the village it stands in (the
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine from their house, so a village isn't all in step.
-export function spawnNpcs(entrances: readonly Entrance[], villages: readonly Village[]): Npc[] {
+export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[]): Npc[] {
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
     list.reduce<T | null>((best, v) => (!best || Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z) ? v : best), null);
   const inns = entrances.filter((e) => e.type === 'inn');
@@ -75,8 +93,8 @@ export function spawnNpcs(entrances: readonly Entrance[], villages: readonly Vil
       const inn = nearest(inns, village.x, village.z);
       const npc: Npc = {
         id,
-        name: nameAt(home.x, home.z),
-        look: lookAt(Math.round(home.x * 10), Math.round(home.z * 10)),
+        name: nameAt(home.x, home.z, seed),
+        look: lookAt(Math.round(home.x * 10), Math.round(home.z * 10), seed),
         equipment: {}, // naked, for now
         home,
         inn: inn && Math.hypot(inn.x - village.x, inn.z - village.z) < 6 ? inn : null,
@@ -89,10 +107,11 @@ export function spawnNpcs(entrances: readonly Entrance[], villages: readonly Vil
         seat: null,
         stood: null,
         stop: 1, // home, where they start, done
-        steps: [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), 73) * 40 }],
+        steps: [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }],
         path: null,
         waited: 0,
         moving: false,
+        salt: Math.floor(hashUnit(id, seed % 1_000_003, 74) * 1_000_000),
       };
       return [npc];
     });

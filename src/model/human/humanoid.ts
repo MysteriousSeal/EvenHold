@@ -27,12 +27,14 @@ export const HERO_LOOK: Readonly<BodyLook> = { skin: 0, hair: 0, hairStyle: 'sho
 
 // A look picked from a place (e.g. where someone spawned): the same spot
 // always gives the same person.
-export function lookAt(x: number, z: number): BodyLook {
-  const pick = (count: number, salt: number) => Math.floor(hashUnit(x, z, salt) * count);
+// `seed`, if given, makes it the world's own: the same spot in another world
+// gives someone else.
+export function lookAt(x: number, z: number, seed = 0): BodyLook {
+  const pick = (count: number, salt: number) => Math.floor(hashUnit(x, z, seed * 131 + salt) * count);
   return {
     skin: pick(SKIN_TONE_COUNT, 41),
     hair: pick(HAIR_COLOR_COUNT, 42),
     hairStyle: HAIR_STYLES[pick(HAIR_STYLES.length, 43)],
-    beard: hashUnit(x, z, 44) < 0.5,
+    beard: hashUnit(x, z, seed * 131 + 44) < 0.5,
   };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
+import { spawnNpcs } from '../src/model/npcs/npcs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const withVillage = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'))!;
@@ -18,6 +19,15 @@ describe('villagers', () => {
     }
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
     expect(again.npcs.map((n) => [n.name, n.look])).toEqual(model.npcs.map((n) => [n.name, n.look]));
+  });
+
+  it('are the world seed\'s own: the same houses on another seed hold other people', () => {
+    const model = withVillage();
+    const other = spawnNpcs(model.seed + 1, model.entrances, model.villages);
+    const same = spawnNpcs(model.seed, model.entrances, model.villages);
+    expect(same.map((n) => [n.name, n.look, n.salt])).toEqual(model.npcs.map((n) => [n.name, n.look, n.salt]));
+    const renamed = other.filter((n, i) => n.name !== model.npcs[i].name).length;
+    expect(renamed).toBeGreaterThan(model.npcs.length / 2);
   });
 
   it('go about their routine: home, the square, the inn, never two on one seat', () => {
@@ -64,5 +74,31 @@ describe('villagers', () => {
     const x = model.hero.x;
     for (let t = 0; t < 0.2; t += 1 / 60) model.update(-1, 0, 1 / 60); // and back away
     expect(model.hero.x).toBeLessThan(x);
+  });
+
+  it('are solid to each other: one walking past another goes round, not through', () => {
+    const model = withVillage();
+    const [a, b] = model.npcs;
+    // A clear row of three open tiles on the square: one stands in the middle, the other walks along it.
+    const { village } = a;
+    let row: [number, number] | null = null;
+    for (let dx = -3; dx <= 1 && !row; dx++) {
+      for (let dz = -3; dz <= 3 && !row; dz++) {
+        const [x, z] = [village.x + dx, village.z + dz];
+        if ([0, 1, 2].every((i) => model.isOpenTile(x + i, z))) row = [x, z];
+      }
+    }
+    const [x, z] = row!;
+    for (const npc of model.npcs) npc.steps = [{ kind: 'wait', for: 1000 }]; // everyone else stays put
+    Object.assign(a, { where: null, x: x + 1, z, steps: [{ kind: 'wait', for: 1000 }] });
+    Object.assign(b, { where: null, x, z, village, steps: [{ kind: 'go', to: { x: x + 2, z } }, { kind: 'wait', for: 1000 }], path: null });
+    model.teleport(village.x + 0.5, village.z + 0.5 + 6); // watching from nearby
+    let closest = Infinity;
+    for (let t = 0; t < 3; t += 1 / 60) {
+      model.update(0, 0, 1 / 60);
+      closest = Math.min(closest, Math.hypot(a.x - b.x, a.z - b.z));
+    }
+    expect(closest).toBeGreaterThan(0.26); // never overlapping (two half-widths: 0.28)
+    expect(Math.hypot(b.x - (x + 2), b.z - z)).toBeLessThan(0.1); // and got there
   });
 });

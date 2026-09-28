@@ -9,7 +9,7 @@
 // or outdoors while the hero is in), they don't walk but arrive at once,
 // so they cost next to nothing but keep their routine. In sight, they walk
 // tile paths around what's in the way (pathfinding.ts), step round the
-// hero, and never stay stuck long.
+// hero and each other, and never stay stuck long.
 
 import { ENEMY_ACTIVE_RADIUS, HERO_RADIUS, INDOOR_SCALE, VILLAGE_OUTER_RADIUS } from '../constants';
 import { hashUnit } from '../../util/random';
@@ -19,7 +19,7 @@ import type { Village } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside } from '../interiors/indoors';
-import { NPC_RADIUS, ROUTINE, type Npc, type NpcStep } from './npcs';
+import { NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 
 export interface NpcWorld {
   seed: number;
@@ -38,8 +38,8 @@ const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
 const SIT_CHANCE = 0.75;
 
-// A roll for a villager at this point of their routine, the same every time.
-const roll = (npc: Npc, salt: number) => hashUnit(npc.id, npc.stop * 7 + salt, 81);
+// A roll for a villager at this point of their routine, the same every time on a seed.
+const roll = (npc: Npc, salt: number) => hashUnit(npc.id, npc.stop * 7 + salt, npc.salt);
 const between = (npc: Npc, [a, b]: [number, number], salt: number) => a + roll(npc, salt) * (b - a);
 
 // Villagers by village, gathered once, so only villages near the hero are looked at.
@@ -145,10 +145,9 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
   };
   switch (step.kind) {
     case 'go':
-      if (!seen || walk(npc, world, step.to, dt)) {
-        place(npc, world, step.to);
-        done();
-      }
+      // Out of sight, they're simply there; in sight, they walk.
+      if (!seen) place(npc, world, step.to);
+      if (!seen || walk(npc, npcs, world, step.to, dt)) done();
       return;
     case 'enter': {
       npc.where = step.entrance;
@@ -201,10 +200,18 @@ function place(npc: Npc, world: NpcWorld, at: Point): void {
 
 // One frame's walk toward `to`, along a path around what's in the way;
 // returns whether they've arrived (or given up on getting any closer).
-function walk(npc: Npc, world: NpcWorld, to: Point, dt: number): boolean {
+function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: number): boolean {
   const indoors = npc.where;
   const free = indoors ? roomFree(world.seed, indoors) : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
   if (!npc.path) npc.path = [...findPath(npc, to, PATH_RADIUS, free), to];
+  const scale = indoors ? INDOOR_SCALE : 1;
+  // Someone standing on the next point: past it, or (the last) close enough.
+  const taken = (p: Point) => npcs.some((o) => o !== npc && o.where === indoors && Math.hypot(o.x - p.x, o.z - p.z) < NPC_RADIUS * 2 * scale);
+  while (npc.path.length > 0 && taken(npc.path[0])) {
+    if (npc.path.length === 1 && Math.hypot(npc.path[0].x - npc.x, npc.path[0].z - npc.z) < 0.8 * scale) return true;
+    if (npc.path.length === 1) break;
+    npc.path.shift();
+  }
   const next = npc.path[0];
   const dx = next.x - npc.x;
   const dz = next.z - npc.z;
@@ -216,14 +223,27 @@ function walk(npc: Npc, world: NpcWorld, to: Point, dt: number): boolean {
   const step = Math.min(WALK_SPEED * dt, d);
   const x0 = npc.x;
   const z0 = npc.z;
-  // Round the hero, never into them (by the same rule as they bump villagers).
+  // Round the hero and each other, never into them (by the same rule as the
+  // hero bumps villagers: no step that overlaps and brings two closer).
   const hero = world.hero;
-  const reach = (NPC_RADIUS + HERO_RADIUS) * (indoors ? INDOOR_SCALE : 1);
-  const clear = (x: number, z: number) => free(x, z) && !(Math.hypot(hero.x - x, hero.z - z) < reach && Math.hypot(hero.x - x, hero.z - z) < Math.hypot(hero.x - npc.x, hero.z - npc.z));
-  const nx = npc.x + (dx / d) * step;
-  const nz = npc.z + (dz / d) * step;
-  if (clear(nx, npc.z)) npc.x = nx;
-  if (clear(npc.x, nz)) npc.z = nz;
+  const reach = (NPC_RADIUS + HERO_RADIUS) * scale;
+  const clear = (x: number, z: number) =>
+    free(x, z) &&
+    !(Math.hypot(hero.x - x, hero.z - z) < reach && Math.hypot(hero.x - x, hero.z - z) < Math.hypot(hero.x - npc.x, hero.z - npc.z)) &&
+    !bumpsNpc(npcs, indoors, npc, x, z, NPC_RADIUS * scale);
+  // Straight on if the way's clear; else veering round whoever's in the way
+  // (each villager favoring a side of their own, so they don't dither);
+  // else sliding along a wall, axis by axis.
+  const side = npc.id % 2 === 0 ? 1 : -1;
+  const heading = Math.atan2(dx, dz);
+  const veer = [0, 0.8, -0.8, 1.6, -1.6].map((turn) => heading + turn * side).find((a) => clear(npc.x + Math.sin(a) * step, npc.z + Math.cos(a) * step));
+  if (veer !== undefined) {
+    npc.x += Math.sin(veer) * step;
+    npc.z += Math.cos(veer) * step;
+  } else {
+    if (clear(npc.x + (dx / d) * step, npc.z)) npc.x += (dx / d) * step;
+    if (clear(npc.x, npc.z + (dz / d) * step)) npc.z += (dz / d) * step;
+  }
   const moved = Math.hypot(npc.x - x0, npc.z - z0);
   if (moved > 1e-5) {
     npc.facing = Math.atan2(npc.x - x0, npc.z - z0);
