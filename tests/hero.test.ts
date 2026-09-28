@@ -40,3 +40,44 @@ describe('hero rig', () => {
     expect(Math.abs(rig.slots.leftLeg.rotation.x)).toBeLessThan(0.01);
   });
 });
+
+describe('hero attack', () => {
+  it('runs one blow at a time, from 0 to done, without stopping the hero moving', async () => {
+    const { GameModel } = await import('../src/model/GameModel');
+    const { ATTACK_DURATION } = await import('../src/model/constants');
+    const { TEST_MAP_SIZE } = await import('./support/testWorld');
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    expect(model.attackProgress).toBeNull();
+    expect(model.startAttack()).toBe(true);
+    expect(model.attackProgress).toBe(0);
+    model.update(0, 0, ATTACK_DURATION / 2);
+    expect(model.attackProgress).toBeCloseTo(0.5, 5);
+    expect(model.startAttack()).toBe(false); // mid-swing: ignored
+    const x = model.hero.x;
+    const z = model.hero.z;
+    model.update(1, 1, ATTACK_DURATION); // still moves while finishing the blow
+    expect(Math.hypot(model.hero.x - x, model.hero.z - z)).toBeGreaterThan(0);
+    expect(model.attackProgress).toBeNull();
+    expect(model.startAttack()).toBe(true); // ready for the next one
+  });
+
+  it('winds the arm up overhead, strikes forward, and settles back', () => {
+    const rig = new HeroRig();
+    rig.update(0, 0, 0, 1 / 60, 0.35);
+    expect(rig.slots.rightArm.rotation.x).toBeLessThan(-2.5); // raised up and back
+    rig.update(0, 0, 0, 1 / 60, 0.52);
+    expect(rig.slots.rightArm.rotation.x).toBeGreaterThan(-1.2); // struck forward
+    expect(rig.slots.rightArm.rotation.x).toBeLessThan(-0.5);
+    rig.update(0, 0, 0, 1 / 60, null);
+    expect(rig.slots.rightArm.rotation.x).toBeCloseTo(0, 5);
+  });
+});
+
+describe('hero sides', () => {
+  it('has its right arm and leg on its right (-X, since it faces +Z)', () => {
+    const rig = new HeroRig();
+    expect(rig.slots.rightArm.position.x).toBeLessThan(0);
+    expect(rig.slots.rightLeg.position.x).toBeLessThan(0);
+    expect(rig.slots.leftArm.position.x).toBeGreaterThan(0);
+  });
+});
