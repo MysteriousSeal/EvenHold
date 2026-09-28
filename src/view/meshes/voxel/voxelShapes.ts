@@ -1,5 +1,5 @@
 // Building blocks for procedural voxel models (bushes, trees): fill a
-// shape, nibble its outline, shade it in height bands. Colors are palette
+// shape, nibble its outline. Colors are palette
 // index + 1 (0 = empty), as the greedy mesher expects.
 
 import { voxelIndex, type VoxelGrid } from './greedyMesh';
@@ -90,26 +90,4 @@ export function nibble(grid: VoxelGrid, rng: () => number, chance: number, minY:
     if (y >= minY && colorAt(grid, x, y, z) === color && isSurface(grid, x, y, z) && rng() < chance) doomed.push([x, y, z]);
   });
   for (const [x, y, z] of doomed) setColor(grid, x, y, z, 0);
-}
-
-// Recolors voxels of `from` into `bands` (darkest first) by height between
-// bottom and top, with a small `jitter` chance of landing one band off.
-// Keep jitter low: greedy meshing only merges faces of the same color, so
-// every speckle costs triangles.
-export function shadeBands(
-  grid: VoxelGrid,
-  from: number,
-  bands: readonly number[],
-  bottom: number,
-  top: number,
-  rng: () => number,
-  jitter: number,
-): void {
-  forEachVoxel(grid, (x, y, z) => {
-    if (colorAt(grid, x, y, z) !== from) return;
-    const t = (y - bottom) / Math.max(1, top - bottom + 1);
-    let band = Math.min(bands.length - 1, Math.max(0, Math.floor(t * bands.length)));
-    if (rng() < jitter) band = Math.min(bands.length - 1, Math.max(0, band + (rng() < 0.5 ? -1 : 1)));
-    setColor(grid, x, y, z, bands[band]);
-  });
 }
