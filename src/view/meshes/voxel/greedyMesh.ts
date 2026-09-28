@@ -31,10 +31,25 @@ const CORNER_SIGNS = [
   [-1, 1],
 ];
 
-function cellAt(grid: VoxelGrid, p: [number, number, number]): number {
+// Plain coordinates, no tuple: this runs several times per voxel face, and
+// allocating there dominated meshing time on large grids.
+// Quad corners p0..p3 as (u, v) steps, and the two ways to split a quad
+// into triangles (along p0-p2 or p1-p3), in each winding.
+const CORNER_UV = [
+  [0, 0],
+  [1, 0],
+  [1, 1],
+  [0, 1],
+];
+const SPLIT_02 = [0, 1, 2, 0, 2, 3];
+const SPLIT_13 = [0, 1, 3, 1, 2, 3];
+const SPLIT_02_FLIPPED = [...SPLIT_02].reverse();
+const SPLIT_13_FLIPPED = [...SPLIT_13].reverse();
+
+function cellAt(grid: VoxelGrid, x: number, y: number, z: number): number {
   const [sx, sy, sz] = grid.size;
-  if (p[0] < 0 || p[1] < 0 || p[2] < 0 || p[0] >= sx || p[1] >= sy || p[2] >= sz) return 0;
-  return grid.cells[voxelIndex(grid, p[0], p[1], p[2])];
+  if (x < 0 || y < 0 || z < 0 || x >= sx || y >= sy || z >= sz) return 0;
+  return grid.cells[x + sx * (y + sy * z)];
 }
 
 // `origin` is the world position of the grid's (0,0,0) corner; each voxel
@@ -54,6 +69,8 @@ export function greedyMesh(
   const normals: number[] = [];
   const colors: number[] = [];
   const linearPalette = palette.map((hex) => new THREE.Color(hex));
+  const quadSize = [0, 0, 0];
+  const ao = [1, 1, 1, 1];
 
   for (let d = 0; d < 3; d++) {
     const u = (d + 1) % 3;
@@ -68,20 +85,26 @@ export function greedyMesh(
     const q: [number, number, number] = [0, 0, 0];
     q[d] = 1;
 
+    // Walk the grid by flat index: the voxel at x and its +d neighbour.
+    const { cells } = grid;
+    const stride = [1, grid.size[0], grid.size[0] * grid.size[1]];
     for (x[d] = -1; x[d] < grid.size[d]; ) {
       let n = 0;
+      const aInside = x[d] >= 0;
+      const bInside = x[d] + 1 < grid.size[d];
       for (x[v] = 0; x[v] < height; x[v]++) {
-        for (x[u] = 0; x[u] < width; x[u]++, n++) {
-          const a = cellAt(grid, x);
-          const b = cellAt(grid, [x[0] + q[0], x[1] + q[1], x[2] + q[2]]);
+        let index = x[d] * stride[d] + x[v] * stride[v];
+        for (x[u] = 0; x[u] < width; x[u]++, n++, index += stride[u]) {
+          const a = aInside ? cells[index] : 0;
+          const b = bInside ? cells[index + stride[d]] : 0;
           const face = a !== 0 && b === 0 && include(a) ? a : a === 0 && b !== 0 && include(b) ? -b : 0;
           if (face === 0) {
             mask[n] = 0;
             continue;
           }
           // AO samples the layer of empty voxels the face looks into.
-          const air: [number, number, number] = face > 0 ? [x[0] + q[0], x[1] + q[1], x[2] + q[2]] : [x[0], x[1], x[2]];
-          const ao = cornerOcclusion(grid, air, u, v);
+          const s = face > 0 ? 1 : 0;
+          const ao = cornerOcclusion(grid, x[0] + q[0] * s, x[1] + q[1] * s, x[2] + q[2] * s, u, v);
           mask[n] = Math.sign(face) * (Math.abs(face) | (ao << 8));
         }
       }
@@ -108,32 +131,26 @@ export function greedyMesh(
 
           x[u] = i;
           x[v] = j;
-          const du: [number, number, number] = [0, 0, 0];
-          const dv: [number, number, number] = [0, 0, 0];
-          du[u] = w;
-          dv[v] = h;
-          const corner = (a: number, b: number): THREE.Vector3 =>
-            new THREE.Vector3(x[0] + du[0] * a + dv[0] * b, x[1] + du[1] * a + dv[1] * b, x[2] + du[2] * a + dv[2] * b)
-              .multiplyScalar(voxelSize)
-              .add(origin);
-          const p0 = corner(0, 0);
-          const p1 = corner(1, 0);
-          const p2 = corner(1, 1);
-          const p3 = corner(0, 1);
+          // Corner c of the quad in world space, written straight into the
+          // output (no per-quad objects: large grids emit tens of thousands).
+          quadSize[u] = w;
+          quadSize[v] = h;
+          quadSize[d] = 0;
           const key = Math.abs(face);
-          const ao = [0, 1, 2, 3].map((c) => AO_LEVELS[(key >> (8 + c * 2)) & 3]);
+          for (let c = 0; c < 4; c++) ao[c] = AO_LEVELS[(key >> (8 + c * 2)) & 3];
           // Split along the darker diagonal, so a single occluded corner
-          // shades both triangles symmetrically instead of one.
-          const corners = ao[0] + ao[2] > ao[1] + ao[3] ? [0, 1, 3, 1, 2, 3] : [0, 1, 2, 0, 2, 3];
-          if (face < 0) corners.reverse(); // e_u x e_v = e_d; flip winding for -d faces
-          const points = [p0, p1, p2, p3];
-          const normal = [0, 0, 0];
-          normal[d] = face > 0 ? 1 : -1;
+          // shades both triangles symmetrically instead of one; flip the
+          // winding for -d faces (e_u x e_v = e_d).
+          const order = ao[0] + ao[2] > ao[1] + ao[3] ? (face > 0 ? SPLIT_13 : SPLIT_13_FLIPPED) : face > 0 ? SPLIT_02 : SPLIT_02_FLIPPED;
           const color = linearPalette[(key & 255) - 1];
-          for (const c of corners) {
-            const p = points[c];
-            positions.push(p.x, p.y, p.z);
-            normals.push(...normal);
+          const sign = face > 0 ? 1 : -1;
+          for (const c of order) {
+            const [a, b] = CORNER_UV[c];
+            for (let axis = 0; axis < 3; axis++) {
+              const along = axis === u ? a * quadSize[u] : axis === v ? b * quadSize[v] : 0;
+              positions.push(origin.getComponent(axis) + (x[axis] + along) * voxelSize);
+              normals.push(axis === d ? sign : 0);
+            }
             colors.push(color.r * ao[c], color.g * ao[c], color.b * ao[c]);
           }
 
@@ -152,21 +169,21 @@ export function greedyMesh(
   return geometry;
 }
 
-// Packed 2-bit AO per face corner (3 = fully open). A corner boxed in by both
+// Packed 2-bit AO per face corner (3 = fully open), sampled around the
+// empty voxel (ax, ay, az) the face looks into. A corner boxed in by both
 // side neighbours is fully occluded whatever the diagonal holds.
-function cornerOcclusion(grid: VoxelGrid, air: [number, number, number], u: number, v: number): number {
+function cornerOcclusion(grid: VoxelGrid, ax: number, ay: number, az: number, u: number, v: number): number {
+  const du = [0, 0, 0];
+  const dv = [0, 0, 0];
   let packed = 0;
-  CORNER_SIGNS.forEach(([su, sv], c) => {
-    const side1: [number, number, number] = [air[0], air[1], air[2]];
-    const side2: [number, number, number] = [air[0], air[1], air[2]];
-    side1[u] += su;
-    side2[v] += sv;
-    const diagonal: [number, number, number] = [side1[0], side1[1], side1[2]];
-    diagonal[v] += sv;
-    const s1 = cellAt(grid, side1) !== 0 ? 1 : 0;
-    const s2 = cellAt(grid, side2) !== 0 ? 1 : 0;
-    const level = s1 && s2 ? 0 : 3 - s1 - s2 - (cellAt(grid, diagonal) !== 0 ? 1 : 0);
-    packed |= level << (c * 2);
-  });
+  for (let c = 0; c < 4; c++) {
+    const [su, sv] = CORNER_SIGNS[c];
+    du[u] = su;
+    dv[v] = sv;
+    const s1 = cellAt(grid, ax + du[0], ay + du[1], az + du[2]) !== 0 ? 1 : 0;
+    const s2 = cellAt(grid, ax + dv[0], ay + dv[1], az + dv[2]) !== 0 ? 1 : 0;
+    const diagonal = cellAt(grid, ax + du[0] + dv[0], ay + du[1] + dv[1], az + du[2] + dv[2]) !== 0 ? 1 : 0;
+    packed |= (s1 && s2 ? 0 : 3 - s1 - s2 - diagonal) << (c * 2);
+  }
   return packed;
 }
