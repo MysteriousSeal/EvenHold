@@ -5,7 +5,11 @@
 // up or left behind.
 
 import * as THREE from 'three';
-import { LOOT_QUALITY, type GroundLoot, type LootId, type LootQuality } from '../../../model/loot/loot';
+import type { GroundLoot } from '../../../model/loot/loot';
+import { isLootItem, qualityOf, type BagItem, type Quality } from '../../../model/bag';
+import { ITEMS, type ItemId } from '../../../model/human/equipment';
+import { humanFigure } from '../human/humanFigure';
+import { ITEM_MODELS } from '../human/gear/itemModels';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { JUNK_MODELS, LOOT_VOXEL_SIZE } from './junkVoxels';
@@ -14,7 +18,8 @@ const VIEW_RADIUS = 30;
 const SPIN = 1.4; // radians per second
 const HOVER = 0.1; // above the ground
 const BOB = 0.02;
-const QUALITY_COLOR: Record<LootQuality, number> = { junk: 0xd8d4cc };
+const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, common: 0xfff1d6 };
+const GEAR_VOXEL = 0.035; // gear on the ground, a little larger than worn
 const RING_VOXEL = 0.04; // the world's grid
 const RING_SIZE = 13; // voxels across
 const BEAM_HEIGHT = 1.4;
@@ -47,12 +52,12 @@ function beamGeometry(): THREE.BufferGeometry {
 
 export class LootViews {
   private readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 });
-  private readonly geometries = new Map<LootId, THREE.BufferGeometry>();
+  private readonly geometries = new Map<BagItem, THREE.BufferGeometry>();
   private readonly shown = new Map<number, { group: THREE.Group; item: THREE.Mesh }>();
   private readonly ring = ringGeometry();
   private readonly beam = beamGeometry();
-  private readonly ringLight = new Map<LootQuality, THREE.MeshBasicMaterial>();
-  private readonly beamLight = new Map<LootQuality, THREE.MeshBasicMaterial>();
+  private readonly ringLight = new Map<Quality, THREE.MeshBasicMaterial>();
+  private readonly beamLight = new Map<Quality, THREE.MeshBasicMaterial>();
   private time = 0;
 
   constructor(private readonly scene: THREE.Scene) {}
@@ -88,8 +93,8 @@ export class LootViews {
   }
 
   private show(loot: GroundLoot): { group: THREE.Group; item: THREE.Mesh } {
-    const quality = LOOT_QUALITY[loot.item];
-    const light = (lights: Map<LootQuality, THREE.MeshBasicMaterial>) => {
+    const quality = qualityOf(loot.item);
+    const light = (lights: Map<Quality, THREE.MeshBasicMaterial>) => {
       let material = lights.get(quality);
       if (!material) {
         material = glow(QUALITY_COLOR[quality]);
@@ -107,15 +112,22 @@ export class LootViews {
     return { group, item };
   }
 
-  // Each item's mesh, centered on its middle so it spins in place.
-  private geometry(item: LootId): THREE.BufferGeometry {
+  // Each item's mesh, centered on its middle so it spins in place, resting on
+  // y = 0: junk from its model, gear as it looks worn or held (or its jewel).
+  private geometry(item: BagItem): THREE.BufferGeometry {
     let geometry = this.geometries.get(item);
     if (!geometry) {
-      const model = JUNK_MODELS[item];
-      const grid = model.build();
-      const [sx, , sz] = grid.size;
-      const V = LOOT_VOXEL_SIZE;
-      geometry = greedyMesh(grid, model.palette, V, new THREE.Vector3((-sx * V) / 2, 0, (-sz * V) / 2));
+      if (isLootItem(item)) {
+        const model = JUNK_MODELS[item];
+        geometry = greedyMesh(model.build(), model.palette, LOOT_VOXEL_SIZE, new THREE.Vector3());
+      } else {
+        const gear = ITEM_MODELS[item as ItemId];
+        const figure = gear.jewel ? { grid: gear.jewel.build(), palette: gear.palette } : humanFigure(null, { [ITEMS[item as ItemId].slot]: item });
+        geometry = greedyMesh(figure.grid, figure.palette, GEAR_VOXEL, new THREE.Vector3());
+      }
+      geometry.computeBoundingBox();
+      const box = geometry.boundingBox!;
+      geometry.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
       this.geometries.set(item, geometry);
     }
     return geometry;

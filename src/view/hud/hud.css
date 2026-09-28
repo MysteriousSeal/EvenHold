@@ -122,6 +122,7 @@
 }
 .loot-prompt[hidden], .loot-toast[hidden] { display: none; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
+.loot-name[data-quality='common'] { color: #f8ecd4; }
 .loot-key {
   min-width: 20px;
   padding: 0 5px;

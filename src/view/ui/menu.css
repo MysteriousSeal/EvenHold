@@ -6,7 +6,9 @@
    lantern light. Fredoka throughout (numbers tabular). Instant: no
    animations, no filters, so it stays light over the game. */
 
-.menu-backdrop {
+/* The palette, shared by menus and what floats over them (a dragged slot). */
+.menu-backdrop,
+.menu-drag {
   --sand: #efdcb8;
   --sand-light: #f8ecd4;
   --sand-dark: #d6bb8e;
@@ -19,6 +21,8 @@
   --ember: #e8903a;
   --ink: #2e1f14;
   --ink-soft: #7a5a3c;
+}
+.menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -278,5 +282,6 @@
   border: 2px solid var(--line);
   box-shadow: inset 0 -6px 0 var(--sand-dark);
 }
-.menu-slot-label { font-size: 11px; font-weight: 600; color: var(--ink-soft); text-align: center; line-height: 1.1; }
 .menu-doll + .menu-ledger { margin-top: 14px; padding: 12px 10px 4px; border-top: 2px dashed var(--line); }
+/* Empty doll slots show their silhouette at full strength. */
+.menu-doll .menu-slot.empty { opacity: 1; }

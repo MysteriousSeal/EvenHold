@@ -34,10 +34,12 @@ export interface MenuSlot {
   dragOut?(over: Element | null): void;
 }
 
-// A slot around a paper doll: its name (shown while empty) and what's in it.
+// A slot around a paper doll: its name, what's in it, and what shows while
+// it's empty (a faded silhouette); hovering an empty one names it.
 export interface DollSlot {
   label: string;
   slot: MenuSlot | null;
+  placeholder?: MenuIcon;
 }
 
 export interface MenuTab {
@@ -147,17 +149,18 @@ export function createMenu(options: MenuOptions): Menu {
   document.body.append(tooltip);
   // Every slot button drawn (grid or doll), in order, so a redraw can show
   // the tooltip again on the one that had it.
-  let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null }> = [];
+  let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null; tip?: { title: string; lines: string[] } }> = [];
   let tipped: number | null = null;
 
   function showTip(index: number): void {
     const entry = slotButtons[index];
-    tipped = entry?.cell ? index : null;
+    const cell = entry?.cell ?? entry?.tip; // an empty slot may still say what it's for
+    tipped = cell ? index : null;
     tooltip.hidden = tipped === null;
-    if (!entry?.cell) return;
-    const { cell, button } = entry;
+    if (!cell) return;
+    const { button } = entry;
     const title = el('b', undefined, cell.title);
-    if (cell.tone) title.dataset.tone = cell.tone;
+    if ('tone' in cell && cell.tone) title.dataset.tone = cell.tone;
     tooltip.replaceChildren(title, ...(cell.lines ?? []).map((line) => el('small', undefined, line)));
     const slot = button.getBoundingClientRect();
     const width = tooltip.offsetWidth;
@@ -254,11 +257,14 @@ export function createMenu(options: MenuOptions): Menu {
     const doll = el('div', 'menu-doll');
     const column = (slots: DollSlot[], className: string) => {
       const box = el('div', className);
-      for (const { label, slot } of slots) {
+      for (const { label, slot, placeholder } of slots) {
         const index = slotButtons.length;
         const button = slotButton(slot, 40, () => showTip(index));
         button.addEventListener('mouseleave', hideTip);
-        if (!slot) button.append(el('span', 'menu-slot-label', label));
+        if (!slot) {
+          if (placeholder) button.append(placeholder(40));
+          slotButtons[index].tip = { title: label, lines: ['Empty'] };
+        }
         box.append(button);
       }
       return box;
@@ -283,7 +289,7 @@ export function createMenu(options: MenuOptions): Menu {
     if (cell.count && cell.count > 1) ghost.append(el('span', 'menu-slot-count', String(cell.count)));
     const follow = (e: PointerEvent) => (ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`);
     follow(event);
-    backdrop.append(ghost); // inside the menu's layer, so it wears the menu's colors
+    document.body.append(ghost); // above every menu, so it shows over another one it's dragged to
     const move = (e: PointerEvent) => follow(e);
     const up = (e: PointerEvent) => {
       window.removeEventListener('pointermove', move);
