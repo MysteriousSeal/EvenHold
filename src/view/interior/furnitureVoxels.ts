@@ -6,42 +6,42 @@
 import type { Furniture } from '../../model/interiors/furniture';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { fillBox } from '../meshes/voxel/voxelShapes';
+import {
+  WOOD,
+  WOOD_DARK,
+  WOOD_LIGHT,
+  RED,
+  TEAL,
+  LINEN,
+  FIRE,
+  EMBER,
+  IRON,
+  IRON_LIGHT,
+  SOOT,
+  BRASS,
+  WATER,
+  COAL,
+  STONE,
+  STONE_DARK,
+  RED_DARK,
+  RED_LIGHT,
+  FUR,
+  FUR_LIGHT,
+  CLAY,
+  CLAY_DARK,
+  GLASS_GREEN,
+  WINE,
+  BREAD,
+  PARCHMENT,
+  type Box,
+} from './furniturePalette';
+import { INN_PAINTERS } from './innFurnitureVoxels';
 
 const TILE = 25;
 
-// Colors, after the room's own (roomVoxels.ts ROOM_PALETTE): palette index + 1.
-export const FURNITURE_PALETTE = [
-  0x8a5a35, // 14 wood
-  0x5e3f28, // 15 wood, dark
-  0xb08a5a, // 16 wood, light
-  0x9a3a2a, // 17 red cloth
-  0x2f9c9a, // 18 teal cloth
-  0xe8dcc0, // 19 linen
-  0xff8a2a, // 20 fire
-  0xffd070, // 21 embers
-  0x5a5e66, // 22 iron
-  0x8d939c, // 23 iron, light
-  0x2e2a28, // 24 soot
-  0xd4b060, // 25 brass
-  0x3dbdb8, // 26 water
-  0x1e1c1a, // 27 coal
-  0x9a948a, // 28 stone
-  0x7e786e, // 29 stone, dark
-];
-const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, WATER, COAL, STONE, STONE_DARK] = FURNITURE_PALETTE.map((_, i) => 14 + i);
-
-// A tankard of ale standing at (u, y, v): a wooden body with iron hoops,
-// a white head of foam, and a handle on its side.
-function tankard(box: Box, u: number, y: number, v: number): void {
-  box(u, y, v, u + 2, y + 3, v + 2, (_u, yy) => (yy === y || yy === y + 3 ? IRON : WOOD_LIGHT));
-  box(u, y + 4, v, u + 2, y + 4, v + 2, LINEN); // foam
-  box(u + 3, y + 1, v + 1, u + 3, y + 2, v + 1, IRON); // handle
-}
-
-type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
-
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
 const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) => void> = {
+  ...INN_PAINTERS,
   // A rustic stone fireplace: irregular stones in mixed shades and dark
   // mortar, a stepped arch over the opening (sooted above), a thick timber
   // mantel with a candle, a clay pot and a pewter plate, a chimney breast
@@ -109,30 +109,39 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     log(43, 1, 16);
     log(40, 5, 17);
   },
-  // A wooden bed, lengthwise along the wall: a tall headboard at one end
-  // and a low footboard at the other, a thick straw mattress, a pillow at
-  // the head, a red blanket folded back at the top and hanging over the
-  // sides, edged in teal.
+  // A wooden bed, lengthwise along the wall: posts with round knobs at its
+  // four corners, a panelled headboard and a low footboard, a straw
+  // mattress in striped ticking, a plump pillow at the head, and a red wool
+  // blanket, its fold catching the light, hanging over the sides in shadow,
+  // edged in teal.
   bed: (box, len, dep) => {
     box(1, 1, 2, len - 2, 4, dep - 3, WOOD); // the frame
-    box(1, 1, 2, 3, 14, dep - 3, WOOD_DARK); // headboard
-    box(1, 15, 3, 3, 15, dep - 4, WOOD); // its top rail
-    box(len - 4, 1, 2, len - 2, 8, dep - 3, WOOD_DARK); // footboard
-    box(4, 5, 3, len - 5, 7, dep - 4, WOOD_LIGHT); // straw mattress
-    box(5, 8, 5, 12, 10, dep - 6, LINEN); // pillow
+    box(2, 1, 3, 3, 13, dep - 4, (_u, y, v) => (y === 13 || v === 3 || v === dep - 4 ? WOOD_DARK : WOOD)); // headboard, panelled
+    box(len - 4, 1, 3, len - 3, 8, dep - 4, WOOD_DARK); // footboard
+    for (const u of [1, len - 2]) {
+      for (const v of [2, dep - 3]) {
+        const top = u === 1 ? 15 : 10;
+        box(u, 1, v, u, top, v, WOOD_DARK); // a post
+        box(u, top + 1, v, u, top + 1, v, WOOD_LIGHT); // its knob
+      }
+    }
+    box(4, 5, 3, len - 5, 7, dep - 4, (u) => (u % 3 === 0 ? PARCHMENT : LINEN)); // mattress, in ticking
+    box(5, 8, 5, 12, 10, dep - 6, (_u, y, v) => (y === 8 || v === 5 ? PARCHMENT : LINEN)); // pillow
     box(14, 8, 3, 16, 8, dep - 4, LINEN); // the sheet, turned down
-    box(17, 8, 3, len - 5, 8, dep - 4, (_u, _y, v) => (v === 3 || v === dep - 4 ? TEAL : RED)); // blanket
-    for (const v of [2, dep - 3]) box(17, 5, v, len - 5, 8, v, RED); // hanging over the sides
+    box(17, 8, 3, len - 5, 8, dep - 4, (u, _y, v) => (v === 3 || v === dep - 4 ? TEAL : u === 17 ? RED_LIGHT : RED)); // blanket, its fold lit
+    for (const v of [2, dep - 3]) box(17, 5, v, len - 5, 8, v, (_u, y) => (y === 5 ? TEAL : RED_DARK)); // hanging over the sides
   },
   // A table: dark legs, a rich wooden top, a linen runner down the middle with
-  // a red edge, a lit candle on it and a wooden bowl.
+  // a red edge, a candle in a brass stick, and a clay bowl of apples.
   table: (box) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
-    box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD)); // richer than the floor, so it stands out
+    box(1, 9, 1, 23, 10, 23, (u, y) => (y === 9 ? WOOD_DARK : u % 6 === 0 ? WOOD_DARK : WOOD)); // richer than the floor, so it stands out
     box(1, 11, 8, 23, 11, 16, (_u, _y, v) => (v === 8 || v === 16 ? RED : LINEN)); // runner
-    box(11, 12, 11, 12, 16, 12, LINEN); // candle
-    box(11, 17, 11, 11, 17, 11, EMBER); // its flame
-    box(16, 12, 3, 20, 13, 7, (u, y, v) => (y === 13 && u > 16 && u < 20 && v > 3 && v < 7 ? SOOT : WOOD_DARK)); // a bowl
+    box(10, 12, 10, 13, 12, 13, BRASS); // candlestick
+    box(11, 13, 11, 12, 17, 12, LINEN); // candle
+    box(11, 18, 11, 11, 18, 11, EMBER); // its flame
+    box(15, 12, 3, 21, 13, 8, (u, y, v) => (y === 13 && u > 15 && u < 21 && v > 3 && v < 8 ? CLAY_DARK : CLAY)); // a bowl
+    for (const [u, v, color] of [[16, 4, RED], [18, 5, RED_LIGHT], [17, 6, GLASS_GREEN], [19, 4, RED]]) box(u, 14, v, u + 1, 15, v + 1, color); // apples
   },
   // A chair, its back toward v = 0 and its seat facing +v (turned toward its
   // table in paintFurniture), pulled up to the front of its tile so it sits
@@ -141,7 +150,7 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     const f = 6; // pulled forward, toward the table
     for (const [u, v] of [[7, 7 + f], [16, 7 + f], [7, 16 + f], [16, 16 + f]]) box(u, 1, v, u + 1, 6, v + 1, WOOD_DARK); // legs
     box(6, 7, 6 + f, 17, 8, 17 + f, WOOD); // seat
-    box(7, 9, 8 + f, 16, 9, 16 + f, RED); // a red cushion
+    box(7, 9, 8 + f, 16, 9, 16 + f, (u, _y, v) => (v === 16 + f ? RED_LIGHT : u === 7 || u === 16 || v === 8 + f ? RED_DARK : RED)); // a red cushion
     for (const u of [6, 16]) box(u, 9, 6 + f, u + 1, 20, 7 + f, WOOD_DARK); // back posts
     box(6, 14, 6 + f, 17, 15, 7 + f, WOOD); // back rails
     box(6, 19, 6 + f, 17, 20, 7 + f, WOOD);
@@ -159,13 +168,31 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     box(11, 6, 20, 13, 9, 20, BRASS); // lock plate
     box(12, 7, 20, 12, 7, 20, SOOT); // keyhole
   },
-  // A tall shelf against the wall, pots and a book on it.
+  // A dresser against the wall: sides and a back, a crown along its top and
+  // a base, three shelves: clay jars, a row of leather-bound books with gilt
+  // bands, a wheel of cheese and a bundle of candles.
   shelf: (box) => {
-    for (const u of [2, 22]) box(u, 1, 1, u, 26, 7, WOOD_DARK);
-    for (const y of [8, 16, 24]) box(2, y, 1, 22, y, 7, WOOD);
-    box(5, 9, 2, 8, 12, 5, STONE); // a pot
-    box(14, 17, 2, 16, 21, 6, RED); // a book
-    box(17, 17, 2, 19, 20, 6, TEAL);
+    box(3, 1, 0, 21, 27, 0, WOOD_DARK); // back
+    for (const u of [2, 22]) box(u, 1, 0, u, 27, 7, WOOD); // sides
+    box(1, 28, 0, 23, 29, 8, (_u, y) => (y === 29 ? WOOD_LIGHT : WOOD_DARK)); // crown
+    box(2, 1, 1, 22, 2, 7, WOOD_DARK); // base
+    for (const y of [9, 18]) box(3, y, 1, 21, y, 7, (_u, _y, v) => (v === 7 ? WOOD_LIGHT : WOOD)); // shelves, their lit edges
+    // The bottom: two clay jars, one tall, with dark necks.
+    box(4, 3, 2, 7, 7, 5, (_u, y) => (y === 7 ? CLAY_DARK : CLAY));
+    box(10, 3, 2, 12, 5, 4, (_u, y) => (y === 5 ? CLAY_DARK : CLAY));
+    box(15, 3, 3, 19, 4, 6, (_u, y) => (y === 4 ? BREAD : PARCHMENT)); // a cheese
+    // The middle: books upright, their spines out, gilt bands across them.
+    [RED_DARK, FUR, TEAL, WINE, FUR_LIGHT, GLASS_GREEN].forEach((color, i) => {
+      const u = 4 + i * 2;
+      const top = 15 + (i % 3 === 1 ? 1 : 0);
+      box(u, 10, 2, u + 1, top, 6, (_u, y, v) => (v === 6 && y === 12 ? BRASS : color));
+    });
+    box(17, 10, 3, 20, 10, 6, WOOD_LIGHT); // a book lying flat
+    // The top: a bundle of candles and a jug.
+    box(4, 19, 3, 6, 22, 5, LINEN);
+    box(5, 23, 4, 5, 23, 4, SOOT);
+    box(14, 19, 2, 17, 23, 5, (_u, y) => (y === 21 ? CLAY_DARK : CLAY));
+    box(18, 20, 3, 18, 22, 3, CLAY_DARK); // its handle
   },
   // A barrel: an eight-sided body in stepped voxels, bulging at the
   // middle, of vertical staves, two iron hoops, a lid with a rim and a bung.
@@ -197,40 +224,25 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
       }
     }
   },
-  // A woven rug, flat on the floor: a teal field, a red border, a linen band.
-  rug: (box, len, dep) =>
+  // A woven rug, flat on the floor: a teal field, a red border (darker at
+  // its edge), a linen band, a red medallion in the middle, and linen
+  // fringes along its two short ends.
+  rug: (box, len, dep) => {
+    const cu = (len - 1) / 2;
+    const cv = (dep - 1) / 2;
     box(4, 1, 4, len - 5, 1, dep - 5, (u, _y, v) => {
       const edge = Math.min(u - 4, v - 4, len - 5 - u, dep - 5 - v);
-      return edge < 2 ? RED : edge < 4 ? LINEN : TEAL;
-    }),
-  // The inn's counter: a slim wooden bar (a third of a tile deep, in the
-  // middle of its tiles) under an overhanging lighter top, tankards on it.
-  counter: (box, len) => {
-    box(1, 1, 8, len - 2, 11, 16, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
-    box(0, 12, 7, len - 1, 12, 17, WOOD_LIGHT);
-    for (let u = 10; u < len - 6; u += 30) tankard(box, u, 13, 10);
-  },
-  // A keg on its side on a wooden cradle, pointing out into the room: an
-  // eight-sided body of staves (v along its length), two iron hoops, the
-  // front end in lighter wood with a dark rim and a brass tap.
-  keg: (box) => {
-    for (const v of [5, 16]) box(4, 1, v, 20, 3, v + 1, WOOD_DARK); // the cradle's two chocks
-    const cu = 12;
-    const cy = 10; // the keg's axis
-    const r = 7;
-    for (let du = -r; du <= r; du++) {
-      for (let dy = -r; dy <= r; dy++) {
-        if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
-        const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
-        box(cu + du, cy + dy, 2, cu + du, cy + dy, 21, (_u, _y, v) => {
-          if (v === 21) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
-          if (v === 6 || v === 17) return IRON; // hoops
-          return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
-        });
-      }
+      if (edge < 1) return RED_DARK;
+      if (edge < 2) return RED;
+      if (edge < 4) return LINEN;
+      const mu = Math.abs(u - cu);
+      const mv = Math.abs(v - cv);
+      if (mu <= 4 && mv <= 3) return mu <= 1 && mv <= 1 ? LINEN : RED; // the medallion
+      return TEAL;
+    });
+    for (const u of [2, 3, len - 4, len - 3]) {
+      for (let v = 5; v <= dep - 6; v += 2) box(u, 1, v, u, 1, v, LINEN); // fringes
     }
-    box(11, 7, 22, 13, 9, 22, BRASS); // the tap
-    box(12, 5, 23, 12, 7, 23, BRASS); // its spout, pointing down
   },
   // The forge: a stone base, glowing coals in its hearth, a hood and a flue up the wall.
   forge: (box, len) => {
@@ -253,109 +265,6 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
     for (const u of [3, len - 4]) box(u, 1, 1, u, 20, 3, WOOD_DARK);
     for (const y of [8, 16]) box(3, y, 3, len - 4, y, 4, WOOD);
     for (let u = 8; u < len - 8; u += 7) box(u, 4, 5, u, 21, 5, IRON_LIGHT);
-  },
-  // An armchair turned to the fire: a deep red seat and back, wooden arms and legs.
-  armchair: (box) => {
-    for (const [u, v] of [[4, 5], [19, 5], [4, 19], [19, 19]]) box(u, 1, v, u + 1, 4, v + 1, WOOD_DARK); // legs
-    box(4, 5, 5, 20, 8, 20, RED); // seat
-    box(4, 9, 4, 20, 20, 7, (u, y) => (y >= 19 || u === 4 || u === 20 ? WOOD_DARK : RED)); // back, framed
-    for (const u of [3, 21]) box(u, 5, 5, u, 12, 20, WOOD); // arms
-  },
-  // A bear's hide spread on the floor: a brown pelt, darker at the edges, the head at the far end.
-  bearRug: (box, len, dep) => {
-    box(6, 1, 4, len - 7, 1, dep - 5, (u, _y, v) => (u === 6 || u === len - 7 || v === 4 || v === dep - 5 ? WOOD_DARK : (u + v) % 5 === 0 ? WOOD_DARK : WOOD));
-    for (const [u, v] of [[3, 6], [len - 5, 6], [3, dep - 9], [len - 5, dep - 9]]) box(u, 1, v, u + 2, 1, v + 3, WOOD_DARK); // paws
-    box(len / 2 - 4, 1, dep - 4, len / 2 + 3, 3, dep - 1, WOOD_DARK); // head
-    box(len / 2 - 2, 3, dep - 1, len / 2 + 1, 3, dep - 1, SOOT); // its snout
-  },
-  // A tall stool at the bar, a footrest round its legs, pulled up to the
-  // front of its tile so it sits right at the counter.
-  barStool: (box) => {
-    const f = 7; // toward the bar
-    for (const [u, v] of [[8, 8 + f], [15, 8 + f], [8, 15 + f], [15, 15 + f]]) box(u, 1, v, u + 1, 11, v + 1, WOOD_DARK);
-    box(8, 5, 8 + f, 16, 5, 16 + f, WOOD); // footrest
-    box(7, 12, 7 + f, 17, 13, 17 + f, WOOD); // seat
-    box(8, 14, 9 + f, 16, 14, 16 + f, RED); // cushion
-  },
-  // Shelves of bottles behind the bar: a dark back panel in a framed case
-  // under a crown moulding, three lipped shelves stocked with tall bottles
-  // (turquoise, red wine, amber or clear glass, each corked), squat clay jugs
-  // with handles and little flasks.
-  bottleShelf: (box, len) => {
-    box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
-    for (const u of [1, len - 2]) box(u, 1, 0, u, 31, 8, WOOD); // sides
-    box(0, 32, 0, len - 1, 33, 9, WOOD_DARK); // crown moulding
-    box(1, 1, 0, len - 2, 2, 8, WOOD); // plinth
-    const shelves = [10, 20];
-    for (const y of shelves) {
-      box(2, y, 1, len - 3, y, 7, WOOD);
-      box(2, y + 1, 7, len - 3, y + 1, 7, WOOD_DARK); // a lip along the front
-    }
-    const glass = [TEAL, RED, BRASS, WATER];
-    // Stock each shelf (and the floor of the case) with a run of vessels.
-    for (const y of [3, 11, 21]) {
-      let u = 4;
-      let n = y;
-      while (u < len - 6) {
-        const kind = n % 5;
-        if (kind === 0 || kind === 2 || kind === 4) {
-          // A tall bottle: body, shoulder, neck, cork.
-          const color = glass[(n + u) % glass.length];
-          box(u, y, 3, u + 1, y + 4, 4, color);
-          box(u, y + 5, 3, u, y + 6, 3, color);
-          box(u, y + 7, 3, u, y + 7, 3, WOOD_DARK);
-          u += 4;
-        } else if (kind === 1) {
-          // A squat clay jug with a handle.
-          box(u, y, 2, u + 2, y + 3, 4, RED);
-          box(u + 1, y + 4, 3, u + 1, y + 4, 3, RED);
-          box(u + 3, y + 1, 3, u + 3, y + 2, 3, WOOD_DARK);
-          u += 6;
-        } else {
-          // A little flask.
-          box(u, y, 3, u + 1, y + 2, 4, LINEN);
-          box(u, y + 3, 3, u, y + 3, 3, WOOD_DARK);
-          u += 4;
-        }
-        n++;
-      }
-    }
-  },
-  // A tavern table laid for a meal: two plates, a loaf of bread, tankards, a candle.
-  tavernTable: (box) => {
-    for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
-    box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
-    for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
-    box(4, 12, 4, 7, 13, 6, WOOD_LIGHT); // bread on one
-    box(16, 12, 16, 19, 12, 18, EMBER); // a roast on the other
-    for (const [u, v] of [[17, 4], [4, 17]]) tankard(box, u, 11, v);
-    box(11, 11, 11, 12, 15, 12, LINEN); // candle
-    box(11, 16, 11, 11, 16, 11, EMBER);
-  },
-  // Antlers mounted on a wooden shield, high on the wall.
-  antlers: (box) => {
-    box(9, 18, 0, 15, 24, 1, WOOD); // plaque
-    box(11, 20, 2, 13, 22, 3, WOOD_DARK); // the skull
-    for (const [u0, u1] of [[3, 10], [14, 21]]) box(u0, 25, 2, u1, 25, 2, LINEN); // beams
-    for (const u of [3, 6, 18, 21]) box(u, 25, 2, u, 29, 2, LINEN); // tines
-  },
-  // A kite shield on the wall, EvenHold's turquoise with a sand stripe, crossed swords behind.
-  wallShield: (box) => {
-    for (const y of [16, 30]) box(3, y, 0, 21, y, 1, IRON_LIGHT); // swords, crossed flat behind
-    box(7, 18, 1, 17, 28, 2, (u, y) => (u === 7 || u === 17 || y === 28 ? IRON : u === 12 ? LINEN : TEAL));
-    box(9, 16, 1, 15, 17, 2, TEAL); // tapering to its foot
-    box(11, 15, 1, 13, 15, 2, IRON);
-  },
-  // A notice board by the door: a framed board with pinned papers.
-  noticeBoard: (box) => {
-    box(3, 10, 0, 21, 24, 1, (u, y) => (u === 3 || u === 21 || y === 10 || y === 24 ? WOOD_DARK : WOOD));
-    for (const [u, y] of [[5, 18], [12, 13], [15, 19]]) box(u, y, 2, u + 4, y + 4, 2, LINEN); // papers
-    for (const [u, y] of [[7, 22], [14, 17], [17, 23]]) box(u, y, 3, u, y, 3, RED); // pins
-  },
-  // A lantern on an iron bracket, glowing (its light is added in roomView.ts).
-  wallLantern: (box) => {
-    box(11, 22, 0, 13, 22, 5, IRON); // bracket
-    box(10, 15, 4, 14, 21, 8, (u, y, v) => (y === 15 || y === 21 || (u === 10 || u === 14) && (v === 4 || v === 8) ? IRON : EMBER));
   },
   coal: (box) => {
     box(3, 1, 3, 21, 3, 21, COAL);

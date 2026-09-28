@@ -10,7 +10,8 @@
 
 import type { Room } from '../../model/interiors/interiors';
 import type { Furniture } from '../../model/interiors/furniture';
-import { FURNITURE_PALETTE, paintFurniture } from './furnitureVoxels';
+import { FURNITURE_PALETTE } from './furniturePalette';
+import { paintFurniture } from './furnitureVoxels';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
