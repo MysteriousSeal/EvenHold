@@ -193,6 +193,32 @@
 /* A grid of slots (inventory): square sand wells, the selected one lit,
    the count in a corner; what's selected is described underneath. */
 .menu-grid { display: grid; gap: 6px; }
+
+/* The purse under a bag: amounts, each followed by its coin. */
+.menu-purse {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.menu-purse .coin {
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 3px;
+  border: 1px solid var(--ink);
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.18), inset 2px 2px 0 rgb(255 255 255 / 0.35);
+}
+.menu-purse .coin:last-child { margin-right: 0; }
+.menu-purse .gold { background: #e0b040; }
+.menu-purse .silver { background: #c8ccd2; }
+.menu-purse .copper { background: #c07040; }
 .menu-slot {
   position: relative;
   aspect-ratio: 1;

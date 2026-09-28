@@ -57,6 +57,8 @@ export interface MenuTab {
   // A figure with slots down its left and right and along the bottom (a
   // character sheet), shown above any facts.
   doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
+  // A line under everything else (e.g. the purse under a bag), refreshed when shown.
+  footer?(): HTMLElement;
 }
 
 export interface MenuOptions {
@@ -232,6 +234,7 @@ export function createMenu(options: MenuOptions): Menu {
     list.classList.toggle('grid', !!tab.slots || !!tab.doll);
     body.classList.toggle('grid', !!tab.slots || !!tab.doll);
     if (tab.slots) showSlots(tab.slots());
+    if (tab.footer) list.append(tab.footer());
     rows = (tab.actions ?? []).map((action, j) => {
       const row = el('button', 'menu-row');
       const icon = el('span', 'menu-icon');

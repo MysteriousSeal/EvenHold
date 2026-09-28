@@ -31,6 +31,7 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
+import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
@@ -67,6 +68,7 @@ export class GameView {
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
   private readonly npcs = new NpcViews();
+  private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
   private readonly movementAxes: MovementAxes;
@@ -114,6 +116,7 @@ export class GameView {
     this.world = new ChunkStreamer(this.scene);
     this.enemies = new EnemyViews(this.scene);
     this.wildlife = new WildlifeViews(this.scene);
+    this.coins = new CoinViews(this.scene);
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
   }
@@ -148,7 +151,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, ...this.loot.materials, this.heroLook, this.heroFlash];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -244,6 +247,7 @@ export class GameView {
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);
+    this.coins.update(model.coins, hero.x, hero.z, dt);
     this.campFires.update(model, this.elapsed);
 
     // The camera eases toward the ground height rather than tracking hero.y
