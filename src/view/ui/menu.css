@@ -248,8 +248,8 @@
   box-shadow: inset 0 -3px 0 var(--clay-dark);
   cursor: pointer;
 }
-.menu-detail-button:hover:not(:disabled) { background: var(--ember); }
-.menu-detail-button:disabled { opacity: 0.5; cursor: default; }
+.menu-detail-button:hover:not(:disabled):not(.unavailable) { background: var(--ember); }
+.menu-detail-button:disabled, .menu-detail-button.unavailable { opacity: 0.5; cursor: not-allowed; }
 
 /* A price along a slot's bottom (a shop's): a dark band, light figures and the coin. */
 .menu-slot-tag {
@@ -268,6 +268,10 @@
   background: rgb(46 31 20 / 0.82);
   font-variant-numeric: tabular-nums;
 }
+/* A slot that's there but not to be had (sold out): faded, its mark in clay. */
+.menu-slot.dim > canvas, .menu-slot.dim .menu-slot-tag { opacity: 0.4; }
+.menu-slot.dim .menu-slot-badge { color: var(--clay-dark); }
+
 /* How many, in a slot's top-right corner (a shop's stock): "×6". */
 .menu-slot-badge {
   position: absolute;
@@ -278,6 +282,39 @@
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
+/* In a shop, over everything: the keeper talking, her face beside a speech
+   bubble (square, its tail pointing at her) with her name and her words. */
+.shop-talk { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.shop-talk-face {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  background: var(--sand-light);
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 -3px 0 var(--sand-dark);
+}
+.shop-talk-bubble {
+  position: relative;
+  flex: 1;
+  padding: 8px 14px;
+  background: var(--sand-light);
+  border: 2px solid var(--ink);
+}
+.shop-talk-bubble::before, .shop-talk-bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  border-style: solid;
+  border-color: transparent;
+  transform: translateY(-50%);
+}
+.shop-talk-bubble::before { left: -12px; border-width: 8px 12px 8px 0; border-right-color: var(--ink); }
+.shop-talk-bubble::after { left: -8px; border-width: 6px 9px 6px 0; border-right-color: var(--sand-light); }
+.shop-talk-name { font-size: 13px; font-weight: 700; color: var(--clay-dark); text-transform: uppercase; letter-spacing: 0.04em; }
+.shop-talk-says { font-size: 16px; font-style: italic; color: var(--ink); }
+
 /* In a shop: her purse on the left, yours on the right, each named. */
 .menu-purse.shop-purses { justify-content: space-between; }
 .shop-purse { display: inline-flex; align-items: center; gap: 3px; }

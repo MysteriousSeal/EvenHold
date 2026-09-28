@@ -42,6 +42,7 @@ export interface MenuSlot {
   alt?(): string | void;
   tag?: Array<string | HTMLElement>; // a label in a band along its bottom (e.g. a price)
   badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
+  dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -64,7 +65,9 @@ export interface MenuTab {
   // A figure with slots down its left and right and along the bottom (a
   // character sheet), shown above any facts.
   doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
-  // A line under everything else (e.g. the purse under a bag), refreshed when shown.
+  // A line over everything else (e.g. a shopkeeper talking), and one under
+  // it all (e.g. the purse under a bag), refreshed when shown.
+  header?(): HTMLElement;
   footer?(): HTMLElement;
   // With a grid: a panel beside it telling of the slot chosen (clicked, or
   // with the arrows), e.g. an item and a button to buy it; no tooltips then.
@@ -176,7 +179,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.
   function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void): HTMLButtonElement {
-    const button = el('button', cell ? 'menu-slot' : 'menu-slot empty');
+    const button = el('button', cell ? (cell.dim ? 'menu-slot dim' : 'menu-slot') : 'menu-slot empty');
     if (cell) {
       button.append(cell.icon(iconSize));
       if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
@@ -224,6 +227,7 @@ export function createMenu(options: MenuOptions): Menu {
     const tab = options.tabs[tabIndex];
     list.replaceChildren();
     slotButtons = [];
+    if (tab.header) list.append(tab.header());
     if (tab.doll) showDoll(tab.doll());
     if (tab.facts) {
       const ledger = el('dl', 'menu-ledger');
