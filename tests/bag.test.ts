@@ -46,4 +46,17 @@ describe('wearing gear from the bag', () => {
     expect(hero.bag).toEqual({ armingSword: 1 });
     expect(model.unequip('mainHand')).toBe(false);
   });
+
+  it('puts worn gear on the ground, to be picked up again into the bag', () => {
+    const model = fresh();
+    const { hero } = model;
+    hero.equipment.head = 'leatherCap';
+    expect(model.dropEquipped('head')).toBe(true);
+    expect(hero.equipment.head).toBeUndefined();
+    expect(hero.bag).toEqual({});
+    expect(model.loot.map((l) => l.item)).toEqual(['leatherCap']);
+    expect(model.pickUp()).toBe('leatherCap');
+    expect(hero.bag).toEqual({ leatherCap: 1 });
+    expect(model.dropEquipped('head')).toBe(false);
+  });
 });
