@@ -54,9 +54,6 @@ const questIcon = (q: Quest): MenuIcon => (size) => {
   return voxelIcon(`quest:bandit:${q.x}:${q.z}`, () => humanBust(human!.look, human!.equipment, 'right'), size);
 };
 
-const COLUMNS = 3;
-const ROWS = 2;
-
 export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
   const { quests } = model;
   const shown = new WeakMap<MenuSlot, Quest>();
@@ -72,6 +69,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       title: questTitle(q),
       badge: taken ? (have >= q.count ? '✓ Done' : `${have}/${q.count}`) : undefined,
       tag: coinParts(q.copper),
+      note: `${q.where.replace(/^./, (c) => c.toUpperCase())} · level ${q.level}`,
     };
     shown.set(slot, q);
     return slot;
@@ -92,7 +90,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     icon.className = 'menu-detail-icon';
     icon.append(questIcon(q)(72));
     const facts = document.createElement('dl');
-    facts.className = 'menu-detail-facts';
+    facts.className = 'menu-detail-facts quest-facts';
     const fact = (label: string, value: Array<string | HTMLElement>) => {
       const dt = document.createElement('dt');
       dt.textContent = label;
@@ -101,13 +99,12 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       facts.append(dt, dd);
     };
     const spot = noticeBoards(model)[q.board];
-    fact('Where', [`${q.where.replace(/ of the village$/, '')}, ${Math.round(Math.hypot(q.x - spot.x, q.z - spot.z))} paces`]);
+    fact('Where', [`${Math.round(Math.hypot(q.x - spot.x, q.z - spot.z))} paces ${q.where.replace(/ of the village$/, '')}`]);
     const danger = document.createElement('span');
     danger.className = 'quest-danger';
     danger.dataset.difficulty = difficulty(q.level, model.hero.level);
     danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${q.level}`;
     fact('Danger', [danger]);
-    if (q.item) fact('Drops', ['About half the time']);
     fact('Reward', coinParts(q.copper));
     fact('Experience', [`${q.xp} XP`]);
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
@@ -165,9 +162,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       {
         name: 'Notices',
         slots: () => {
-          const cells: Array<MenuSlot | null> = quests.offersAt(board).map(slotOf);
-          while (cells.length < COLUMNS * ROWS) cells.push(null);
-          return { cells, columns: COLUMNS };
+          return { cells: quests.offersAt(board).map(slotOf), columns: 1, rows: true };
         },
         detail,
         header,
