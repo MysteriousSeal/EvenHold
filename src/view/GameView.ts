@@ -24,6 +24,12 @@ import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
 
+// One named chunk of world building, run by the loader between repaints.
+export interface BuildStep {
+  label: string;
+  run: () => void;
+}
+
 export interface RenderStats {
   drawCalls: number;
   triangles: number;
@@ -36,15 +42,22 @@ export class GameView {
   private readonly camera: THREE.OrthographicCamera;
   private readonly heroMesh: THREE.Group;
   private readonly movementAxes: MovementAxes;
-  private readonly stylizer: Stylizer;
-  private readonly post: PostProcessing | null;
+  private stylizer: Stylizer | null = null;
+  private post: PostProcessing | null = null;
   private readonly pixelRatio: number;
   // Per-frame animations (e.g. grass swaying in the wind), fed the time since start.
   private readonly animations: Array<(elapsedSeconds: number) => void> = [];
   private elapsed = 0;
   private cameraY: number;
 
-  constructor(canvas: HTMLCanvasElement, model: GameModel, options: RenderOptions) {
+  // Sets up the renderer and an empty scene; the world is added by running
+  // buildSteps() and then finish(), which the loader spreads across frames
+  // so the page stays responsive and can show progress.
+  constructor(
+    canvas: HTMLCanvasElement,
+    private readonly model: GameModel,
+    private readonly options: RenderOptions,
+  ) {
     this.cameraY = model.hero.y;
 
     // With post-processing, the scene renders into the composer's
@@ -65,24 +78,40 @@ export class GameView {
     this.movementAxes = computeMovementAxes();
 
     addLights(this.scene);
-    buildTerrain(this.scene, model);
-    this.animations.push(buildWater(this.scene, model));
-    buildRoads(this.scene, model);
-    buildPlazas(this.scene, model);
-    this.animations.push(buildFields(this.scene, model));
-    this.animations.push(buildGroundCover(this.scene, model));
-    this.animations.push(buildTrees(this.scene, model));
-    this.animations.push(buildBushes(this.scene, model));
-    buildHouses(this.scene, model);
-    this.animations.push(buildBuildings(this.scene, model));
-    buildWells(this.scene, model);
     this.heroMesh = buildHero();
     this.scene.add(this.heroMesh);
-    this.stylizer = stylize(this.scene); // after every mesh exists, so all materials get patched
-    this.post = options.post ? new PostProcessing(this.renderer, this.scene, this.camera, options) : null;
+  }
 
+  // The world's meshes, in build order, each a step the loader can report.
+  buildSteps(): BuildStep[] {
+    const { scene, model } = this;
+    const animate = (build: (s: THREE.Scene, m: GameModel) => (t: number) => void) => () => {
+      this.animations.push(build(scene, model));
+    };
+    return [
+      { label: 'Laying the ground', run: () => buildTerrain(scene, model) },
+      { label: 'Filling the lakes', run: animate(buildWater) },
+      { label: 'Treading the roads', run: () => buildRoads(scene, model) },
+      { label: 'Paving the squares', run: () => buildPlazas(scene, model) },
+      { label: 'Sowing the fields', run: animate(buildFields) },
+      { label: 'Growing the meadows', run: animate(buildGroundCover) },
+      { label: 'Planting the forests', run: animate(buildTrees) },
+      { label: 'Tending the bushes', run: animate(buildBushes) },
+      { label: 'Building the houses', run: () => buildHouses(scene, model) },
+      { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
+      { label: 'Digging the wells', run: () => buildWells(scene, model) },
+    ];
+  }
+
+  // After every build step: applies the stylized look (it patches every
+  // material in the scene, so it runs last), sets up post-processing, and
+  // compiles all shaders up front so the first frames don't hitch.
+  async finish(): Promise<void> {
+    this.stylizer = stylize(this.scene);
+    this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    await this.renderer.compileAsync(this.scene, this.camera);
   }
 
   getMovementAxes(): MovementAxes {
@@ -104,7 +133,7 @@ export class GameView {
 
     this.camera.position.set(hero.x + CAMERA_OFFSET.x, this.cameraY + CAMERA_OFFSET.y, hero.z + CAMERA_OFFSET.z);
     this.camera.lookAt(hero.x, this.cameraY, hero.z);
-    this.stylizer.setFocusHeight(this.cameraY);
+    this.stylizer?.setFocusHeight(this.cameraY);
   }
 
   render(): void {
