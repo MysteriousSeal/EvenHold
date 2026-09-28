@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import type { House } from '../../../model/types';
 import { hashCell } from '../../../util/random';
-import { HOUSE_WINDOW_GLOW } from '../../constants';
+import { HOUSE_WINDOW_GLOW, WINDOW_GLOW_INTENSITY } from '../../constants';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { addVoxelInstances, type VoxelPlacement } from '../voxel/voxelInstances';
 import { GLOWING, HOUSE_PALETTE, ROOF_SETS } from './housePalette';
@@ -73,7 +73,7 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
     new THREE.MeshStandardMaterial({
       vertexColors: true,
       emissive: HOUSE_WINDOW_GLOW,
-      emissiveIntensity: 0.9,
+      emissiveIntensity: WINDOW_GLOW_INTENSITY,
       roughness: 0.5,
     }),
   );

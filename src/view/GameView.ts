@@ -16,6 +16,8 @@ import { buildRoads } from './meshes/ground/roadMesh';
 import { buildGroundCover } from './meshes/ground/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildHero } from './meshes/heroMesh';
+import { stylize, type Stylizer } from './stylize';
+import { PostProcessing } from './postprocessing';
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -23,6 +25,9 @@ export class GameView {
   private readonly camera: THREE.OrthographicCamera;
   private readonly heroMesh: THREE.Group;
   private readonly movementAxes: MovementAxes;
+  private readonly stylizer: Stylizer;
+  private readonly post: PostProcessing;
+  private readonly pixelRatio: number;
   // Per-frame animations (e.g. grass swaying in the wind), fed the time since start.
   private readonly animations: Array<(elapsedSeconds: number) => void> = [];
   private elapsed = 0;
@@ -31,14 +36,15 @@ export class GameView {
   constructor(canvas: HTMLCanvasElement, model: GameModel) {
     this.cameraY = model.hero.y;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // No canvas antialiasing: the scene renders into the post-processing
+    // composer's multisampled target instead.
+    this.renderer = new THREE.WebGLRenderer({ canvas });
     // Beyond 2x the extra pixels are barely visible but cost a lot of GPU
     // fill rate (a 3x screen would render 9x the pixels of 1x).
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.pixelRatio = Math.min(window.devicePixelRatio, 2);
+    this.renderer.setPixelRatio(this.pixelRatio);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1b1f2a);
-
     this.camera = createCamera();
     this.movementAxes = computeMovementAxes();
 
@@ -52,6 +58,8 @@ export class GameView {
     buildWells(this.scene, model);
     this.heroMesh = buildHero();
     this.scene.add(this.heroMesh);
+    this.stylizer = stylize(this.scene); // after every mesh exists, so all materials get patched
+    this.post = new PostProcessing(this.renderer, this.scene, this.camera);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -76,10 +84,11 @@ export class GameView {
 
     this.camera.position.set(hero.x + CAMERA_OFFSET.x, this.cameraY + CAMERA_OFFSET.y, hero.z + CAMERA_OFFSET.z);
     this.camera.lookAt(hero.x, this.cameraY, hero.z);
+    this.stylizer.setFocusHeight(this.cameraY);
   }
 
   render(): void {
-    this.renderer.render(this.scene, this.camera);
+    this.post.render(this.elapsed);
   }
 
   private resize(): void {
@@ -87,5 +96,6 @@ export class GameView {
     const height = window.innerHeight;
     this.renderer.setSize(width, height);
     resizeCamera(this.camera, width, height);
+    this.post.setSize(width, height, this.pixelRatio);
   }
 }

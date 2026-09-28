@@ -88,8 +88,9 @@ describe('tree voxel models', () => {
   });
 
   it.each(trees)('%s shape %i stays within a sane triangle budget', (kind, shape) => {
-    // ~400 trees per map; greedy meshing keeps each model a few thousand triangles at most.
-    expect(buildTreeGeometry(kind, shape).getAttribute('position').count / 3).toBeLessThan(4000);
+    // ~400 trees per map; greedy meshing keeps each model a few thousand
+    // triangles at most (baked AO splits some merges, hence the headroom).
+    expect(buildTreeGeometry(kind, shape).getAttribute('position').count / 3).toBeLessThan(6000);
   });
 });
 

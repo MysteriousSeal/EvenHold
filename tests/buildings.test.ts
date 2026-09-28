@@ -35,10 +35,13 @@ describe('voxel houses', () => {
     const glow = buildHouseGeometry(layout, roof, true);
     expect(glow.getAttribute('position').count).toBeGreaterThan(0);
     // The glowing mesh holds only glass-colored faces; the main mesh none.
+    // Baked ambient occlusion darkens corners, so a glass vertex is the glass
+    // color scaled by some light level in (0, 1].
     const glass = new THREE.Color(0xffd98a);
     const isGlass = (g: THREE.BufferGeometry, i: number) => {
       const c = g.getAttribute('color');
-      return Math.abs(c.getX(i) - glass.r) + Math.abs(c.getY(i) - glass.g) + Math.abs(c.getZ(i) - glass.b) < 1e-4;
+      const k = c.getX(i) / glass.r;
+      return k > 0 && k <= 1 + 1e-4 && Math.abs(c.getY(i) - glass.g * k) + Math.abs(c.getZ(i) - glass.b * k) < 1e-4;
     };
     for (let i = 0; i < glow.getAttribute('position').count; i++) expect(isGlass(glow, i)).toBe(true);
     for (let i = 0; i < main.getAttribute('position').count; i++) expect(isGlass(main, i)).toBe(false);

@@ -6,6 +6,7 @@ import {
   HOUSE_ROOF_COLORS,
   HOUSE_WINDOW_COLOR,
   HOUSE_WINDOW_GLOW,
+  WINDOW_GLOW_INTENSITY,
   WELL_STONE_LIGHT_COLOR,
   WELL_STONE_DARK_COLOR,
   WELL_WATER_COLOR,
@@ -26,7 +27,7 @@ function createMaterials(): Record<WellPart, THREE.MeshStandardMaterial> {
     water: new THREE.MeshStandardMaterial({ color: WELL_WATER_COLOR, roughness: 0.2, metalness: 0.1 }),
     rope: flat(WELL_ROPE_COLOR, 1),
     iron: flat(IRON_COLOR, 0.6),
-    glow: new THREE.MeshStandardMaterial({ color: HOUSE_WINDOW_COLOR, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.1 }),
+    glow: new THREE.MeshStandardMaterial({ color: HOUSE_WINDOW_COLOR, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: WINDOW_GLOW_INTENSITY }),
   };
 }
 
