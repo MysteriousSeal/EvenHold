@@ -3,12 +3,12 @@ import * as THREE from 'three';
 import { HERO_RADIUS } from '../src/model/constants';
 import {
   ARMOR_SLOTS,
-  BANDIT_GEAR,
   BANDIT_OUTFIT,
   EQUIP_SLOTS,
   ITEMS,
   ITEM_IDS,
   STARTER_SET,
+  gearOf,
   isWorn,
   outfit,
   takeOff,
@@ -19,8 +19,8 @@ import {
 } from '../src/model/equipment';
 import { HERO_LOOK, lookAt } from '../src/model/humanoid';
 import { makeEnemy } from '../src/model/enemies';
-import { SLOT_BANDS } from '../src/view/meshes/human/armor/armorShell';
-import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/armor/itemModels';
+import { SLOT_BANDS } from '../src/view/meshes/human/gear/armorShell';
+import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';
 import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
 import { humanFigure } from '../src/view/meshes/human/humanFigure';
 import { HumanRig } from '../src/view/meshes/human/humanRig';
@@ -33,12 +33,22 @@ describe('equipment', () => {
   it('holds one item per slot: wearing replaces, taking off only removes the one worn', () => {
     const equipment: Equipment = {};
     wear(equipment, 'leatherCap');
-    wear(equipment, 'banditHood');
-    expect(equipment.head).toBe('banditHood');
+    wear(equipment, 'maskedHood');
+    expect(equipment.head).toBe('maskedHood');
     takeOff(equipment, 'leatherCap'); // not the one worn: nothing happens
-    expect(isWorn(equipment, 'banditHood')).toBe(true);
-    takeOff(equipment, 'banditHood');
+    expect(isWorn(equipment, 'maskedHood')).toBe(true);
+    takeOff(equipment, 'maskedHood');
     expect(equipment).toEqual({});
+  });
+
+  it('has at least ten items for every slot, and not all of them for bandits', () => {
+    for (const slot of EQUIP_SLOTS) {
+      const items = ITEM_IDS.filter((item) => ITEMS[item].slot === slot);
+      expect(items.length, slot).toBeGreaterThanOrEqual(10);
+      const banditItems = gearOf('bandit')[slot].filter(([item]) => item);
+      expect(banditItems.length, slot).toBeGreaterThan(0);
+      expect(banditItems.length, slot).toBeLessThan(items.length);
+    }
   });
 
   it('has sets that fill each slot once', () => {
@@ -54,19 +64,19 @@ describe('equipment', () => {
     expect(model.hero.equipment).toEqual({});
     expect(model.hero.look).toEqual(HERO_LOOK);
 
-    const bandits = Array.from({ length: 40 }, (_, i) => makeEnemy(i, 'bandit', i * 7, i * 3));
+    const bandits = Array.from({ length: 200 }, (_, i) => makeEnemy(i, 'bandit', i * 7, i * 3));
     for (const bandit of bandits) {
       const equipment = bandit.human!.equipment;
       for (const slot of EQUIP_SLOTS) {
-        const allowed = BANDIT_GEAR[slot].map(([item]) => item ?? undefined);
+        const allowed = gearOf('bandit')[slot].map(([item]) => item ?? undefined);
         expect(allowed).toContain(equipment[slot]);
       }
       expect(equipment.torso).toBeDefined(); // always dressed and armed
       expect(equipment.mainHand).toBeDefined();
     }
     const outfits = bandits.map((b) => JSON.stringify(b.human!.equipment));
-    expect(new Set(outfits).size).toBeGreaterThan(20);
-    for (const [item] of Object.values(BANDIT_GEAR).flat()) {
+    expect(new Set(outfits).size).toBeGreaterThan(150);
+    for (const [item] of Object.values(gearOf('bandit')).flat()) {
       if (item) expect(outfits.some((o) => o.includes(`"${item}"`)), `${item} shows up`).toBe(true);
     }
     expect(makeEnemy(3, 'bandit', 21, 9).human).toEqual(bandits[3].human); // same place, same bandit
@@ -176,7 +186,7 @@ describe('dressed rig', () => {
     expect(meshesOn(rig)).toBe(naked + 3); // torso and both sleeves
     expect(rig.meshes).toHaveLength(naked + 3);
 
-    wear(equipment, 'banditVest'); // same slot: replaces it
+    wear(equipment, 'leatherVest'); // same slot: replaces it
     rig.wear(equipment);
     expect(meshesOn(rig)).toBe(naked + 3);
 
@@ -206,33 +216,31 @@ describe('dressed rig', () => {
     for (const mesh of rig.meshes) expect(mesh.material).toBe(flash);
   });
 
-  it('stays within one voxel of the collision box, fully dressed', () => {
-    for (const set of [STARTER_SET, BANDIT_OUTFIT]) {
+  it('stays within one voxel of the collision box, whatever it wears', () => {
+    for (const set of [STARTER_SET, BANDIT_OUTFIT, ...ITEM_IDS.map((item) => [item])]) {
       const rig = new HumanRig();
       rig.wear(outfit(set));
       rig.update(0, 0, 0, 1 / 60);
       const box = bounds(rig);
-      expect(Math.max(-box.min.x, box.max.x)).toBeLessThanOrEqual(HERO_RADIUS + HUMAN_VOXEL_SIZE + 1e-6);
-      expect(box.min.y).toBeCloseTo(0, 2); // boots don't lift the feet
-      expect(box.max.y).toBeLessThan(0.5);
+      expect(Math.max(-box.min.x, box.max.x), set.join()).toBeLessThanOrEqual(HERO_RADIUS + HUMAN_VOXEL_SIZE + 1e-6);
+      expect(box.min.y, set.join()).toBeCloseTo(0, 2); // nothing lifts the feet or reaches into the ground
+      expect(box.max.y, set.join()).toBeLessThan(0.5);
     }
   });
 
   // Two faces on the same plane, facing the same way, from different meshes
-  // would flicker (z-fighting). A clash always takes two meshes, so wearing
-  // every pair of items (from different slots) covers every outfit. Checked
-  // on the rig at rest, face by face (the mesher writes each face as 6 vertices).
+  // would flicker (z-fighting). A clash always takes two meshes, so it's
+  // enough to check each item against the body and itself, then every pair
+  // of items from different slots: that covers every outfit. Faces are read
+  // off the rig at rest, one item at a time (the mesher writes each face as
+  // 6 vertices), and bucketed by plane so pairs compare quickly.
   it('never puts two faces on the same spot, facing the same way (no flicker)', () => {
-    type Face = { mesh: number; axis: number; sign: number; at: number; min: number[]; max: number[] };
-    const pairs = ITEM_IDS.flatMap((a, i) => ITEM_IDS.slice(i + 1).filter((b) => ITEMS[a].slot !== ITEMS[b].slot).map((b) => [a, b]));
-    expect(pairs.length).toBeGreaterThan(50);
-    for (const set of pairs) {
-      const rig = new HumanRig();
-      rig.wear(outfit(set));
+    type Face = { mesh: number; min: number[]; max: number[]; axis: number };
+    const facesOf = (rig: HumanRig, from: number) => {
       rig.root.updateMatrixWorld(true);
-      const faces: Face[] = [];
+      const planes = new Map<string, Face[]>();
       const p = new THREE.Vector3();
-      rig.meshes.forEach((mesh, index) => {
+      rig.meshes.slice(from).forEach((mesh, index) => {
         const position = mesh.geometry.getAttribute('position');
         const normal = mesh.geometry.getAttribute('normal');
         for (let i = 0; i < position.count; i += 6) {
@@ -247,21 +255,44 @@ describe('dressed rig', () => {
               max[a] = Math.max(max[a], p.getComponent(a));
             }
           }
-          faces.push({ mesh: index, axis, sign: n[axis], at: min[axis], min, max });
+          const key = `${axis}:${n[axis]}:${Math.round(min[axis] * 1e5)}`;
+          if (!planes.has(key)) planes.set(key, []);
+          planes.get(key)!.push({ mesh: from + index, min, max, axis });
         }
       });
-      const clashes: string[] = [];
-      for (let i = 0; i < faces.length; i++) {
-        for (let j = i + 1; j < faces.length; j++) {
-          const a = faces[i];
-          const b = faces[j];
-          if (a.mesh === b.mesh || a.axis !== b.axis || a.sign !== b.sign || Math.abs(a.at - b.at) > 1e-6) continue;
-          const overlaps = [0, 1, 2].every((k) => k === a.axis || Math.min(a.max[k], b.max[k]) - Math.max(a.min[k], b.min[k]) > 1e-6);
-          if (overlaps) clashes.push(`meshes ${a.mesh}/${b.mesh} axis ${a.axis} at ${a.at.toFixed(4)}`);
-        }
+      return planes;
+    };
+    const overlap = (a: Face, b: Face) => [0, 1, 2].every((k) => k === a.axis || Math.min(a.max[k], b.max[k]) - Math.max(a.min[k], b.min[k]) > 1e-6);
+    const clashes = (a: Map<string, Face[]>, b: Map<string, Face[]>) => {
+      const found: string[] = [];
+      for (const [key, faces] of a) {
+        for (const f of faces) for (const g of b.get(key) ?? []) if (f.mesh !== g.mesh && overlap(f, g)) found.push(`meshes ${f.mesh}/${g.mesh} on ${key}`);
       }
-      expect(clashes, set.join(', ')).toEqual([]);
+      return found;
+    };
+
+    const body = facesOf(new HumanRig(), 0);
+    const items = new Map<ItemId, Map<string, Face[]>>();
+    for (const item of ITEM_IDS) {
+      const rig = new HumanRig();
+      const naked = rig.meshes.length;
+      rig.wear(outfit([item]));
+      const faces = facesOf(rig, naked);
+      items.set(item, faces);
+      const own = clashes(faces, faces).filter((_, i) => i % 2 === 0); // each clash within one item shows up twice
+      expect([...clashes(faces, body), ...own], item).toEqual([]);
     }
+    let pairs = 0;
+    for (const [i, a] of ITEM_IDS.entries()) {
+      for (const b of ITEM_IDS.slice(i + 1)) {
+        if (ITEMS[a].slot === ITEMS[b].slot) continue;
+        pairs++;
+        // Mesh numbers only mean something within one rig: offset b's so they never match a's.
+        const bFaces = new Map([...items.get(b)!].map(([key, faces]) => [key, faces.map((f) => ({ ...f, mesh: f.mesh + 1000 }))]));
+        expect(clashes(items.get(a)!, bFaces), `${a} + ${b}`).toEqual([]);
+      }
+    }
+    expect(pairs).toBeGreaterThan(1500);
   });
 
   it('refuses an item in the wrong slot', () => {
