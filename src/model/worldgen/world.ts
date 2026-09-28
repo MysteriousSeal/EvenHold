@@ -11,7 +11,7 @@ import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
 import { generateVillages } from './villages';
 import { generateSpawnTrail } from './trails';
-import { generateTrees } from './trees';
+import { createForestDensity, generateTrees } from './trees';
 import { generateBushes } from './bushes';
 import { createMeadowDensity } from './meadows';
 
@@ -41,7 +41,7 @@ export function generateWorld(seed: number): World {
   const { villages, houses } = generateVillages(heightMap, lakeMap, surfaceMap, rng, SPAWN_X, SPAWN_Z);
   const solid = solidCells(houses, villages);
   const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, SPAWN_X, SPAWN_Z);
-  const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, SPAWN_X, SPAWN_Z);
+  const trees = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, createForestDensity(seed), SPAWN_X, SPAWN_Z);
   const meadowDensity = createMeadowDensity(seed);
   const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, trees, meadowDensity, SPAWN_X, SPAWN_Z);
 

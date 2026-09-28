@@ -1,7 +1,9 @@
 // Voxel tree models, at the same voxel scale as the bushes. Built
 // silhouette-first: oaks are several separate leaf puffs on visible
 // branches over a flared, slightly leaning trunk; pines are lobed, drooping
-// tiers. The key to making them read as volumes is shading each puff/tier
+// tiers; birches are slender white trunks with small airy puffs climbing
+// them. Foliage is dithered per voxel (so leaves read as texture), lit
+// where open to the sky and kept dark on the undersides. The key to making them read as volumes is shading each puff/tier
 // on its own — dark underside, warm highlight on the side facing the sun —
 // rather than one gradient over the whole tree.
 
@@ -18,22 +20,45 @@ export const TREE_PALETTE = [
   0x5c4030, // 1 bark
   0x3f2b1e, // 2 bark in shadow / roots
   0x76553b, // 3 bark in sunlight
-  0x234427, // 4 oak deep shadow
-  0x2f5d33, // 5 oak shadow
-  0x42783f, // 6 oak mid
-  0x5d964a, // 7 oak light
-  0x86b95a, // 8 oak sunlit highlight
-  0x17392e, // 9 pine deep shadow
-  0x21503d, // 10 pine shadow
-  0x2c654b, // 11 pine mid
-  0x3b7c5a, // 12 pine light
-  0x559a6c, // 13 pine sunlit tips
+  0x1e4430, // 4 oak deep shadow, cool
+  0x285a34, // 5 oak shadow
+  0x35703a, // 6 oak mid
+  0x468744, // 7 oak mid-light
+  0x5c9f4c, // 8 oak light
+  0x173f3a, // 9 pine deep shadow, cool teal
+  0x1f5446, // 10 pine shadow
+  0x286a50, // 11 pine mid
+  0x33805a, // 12 pine mid-light
+  0x459865, // 13 pine light
+  0x62b170, // 14 pine sunlit
+  0x8fcb7f, // 15 pine sunlit highlight, warm
+  0x74bd72, // 16 fresh branch tips
+  0x7a4e2c, // 17 pine cone
+  0x7cb85a, // 18 oak sunlit
+  0xa5d06c, // 19 oak sunlit highlight, warm
+  0xece6d6, // 20 birch bark
+  0xc7c0ae, // 21 birch bark, shaded
+  0x2f2b27, // 22 birch bark marks
+  0x4d7d33, // 23 birch leaves, shadow
+  0x5f933b, // 24 birch leaves
+  0x76aa46, // 25 birch leaves, mid
+  0x90bf55, // 26 birch leaves, light
+  0xadd46a, // 27 birch leaves, sunlit
+  0xcde487, // 28 birch leaves, highlight
 ];
 const BARK = 1;
 const BARK_DARK = 2;
 const BARK_LIGHT = 3;
-const OAK_BANDS = [4, 5, 6, 7, 8];
-const PINE_BANDS = [9, 10, 11, 12, 13];
+const OAK_BANDS = [4, 5, 6, 7, 8, 18, 19];
+const BIRCH_BARK = 20;
+const BIRCH_BARK_SHADE = 21;
+const BIRCH_MARK = 22;
+const BIRCH_BANDS = [23, 24, 25, 26, 27, 28];
+const LEAF_DITHER = 0.2;
+const PINE_BANDS = [9, 10, 11, 12, 13, 14, 15];
+const PINE_TIP = 16;
+const PINE_CONE = 17;
+const PINE_DITHER = 0.22; // per-voxel jitter of the shade, so needles read as texture
 // Temporary per-puff / per-tier markers while building (never left in the grid).
 const MARKER = 40;
 
@@ -179,10 +204,65 @@ function oak(shape: number): VoxelGrid {
   });
 
   puffs.forEach((p, i) => nibble(grid, rng, 0.06, Math.floor(p.cy - p.ry * 0.5), MARKER + i));
+  shadeFoliage(grid, rng, puffs, OAK_BANDS);
+  return grid;
+}
+
+// Colors every marked foliage voxel by its puff's lighting, dithered, lit
+// where open to the sky and darkened on the underside.
+function shadeFoliage(grid: VoxelGrid, rng: () => number, puffs: Volume[], bands: readonly number[]): void {
   forEachVoxel(grid, (x, y, z) => {
     const c = colorAt(grid, x, y, z);
-    if (c >= MARKER) setColor(grid, x, y, z, band(OAK_BANDS, lighting(puffs[c - MARKER], x, y, z)));
+    if (c < MARKER) return;
+    const p = puffs[c - MARKER];
+    let shade = lighting(p, x, y, z) + (rng() - 0.5) * LEAF_DITHER;
+    if (colorAt(grid, x, y + 1, z) === 0) shade += 0.35;
+    if (y + 0.5 < p.cy && colorAt(grid, x, y - 1, z) === 0) shade = Math.min(shade, -0.55);
+    setColor(grid, x, y, z, band(bands, shade));
   });
+}
+
+// Birch: a slender 2x2 white trunk with dark bark marks and a gentle kink,
+// small leaf puffs climbing it on alternating sides, and one on top.
+function birch(shape: number): VoxelGrid {
+  const grid = createGrid(TREE_GRID);
+  const rng = mulberry32(0xb1c4 + shape * 15485863);
+  const height = 27 + (shape % 3) * 2;
+  const base = Math.floor(CENTER) - 1;
+  const kink: [number, number] = [[1, 0], [0, 1], [-1, 0]][shape % 3] as [number, number];
+  let [ox, oz] = [0, 0];
+  for (let y = 0; y <= height; y++) {
+    if (y === Math.floor(height * 0.6)) [ox, oz] = kink;
+    const markRow = rng() < 0.28;
+    for (let dx = 0; dx < 2; dx++) {
+      for (let dz = 0; dz < 2; dz++) {
+        const sunward = dx === 1 || dz === 1;
+        const mark = markRow && rng() < 0.6;
+        setColor(grid, base + dx + ox, y, base + dz + oz, y === 0 || mark ? BIRCH_MARK : sunward ? BIRCH_BARK : BIRCH_BARK_SHADE);
+      }
+    }
+  }
+  const tx = base + 1 + ox;
+  const tz = base + 1 + oz;
+
+  const puffs: Volume[] = [{ cx: tx, cy: height + 2, cz: tz, rx: 4, ry: 4.2, rz: 4 }];
+  const count = 5 + Math.floor(rng() * 2);
+  for (let i = 0; i < count; i++) {
+    const angle = i * 2.4 + rng() * 0.5; // golden-angle spiral around the trunk
+    const reach = 3 + rng() * 1.5;
+    const r = 3 + rng() * 1.1;
+    const cy = 13 + ((height - 12) * i) / count + rng() * 2;
+    const p = { cx: tx + Math.cos(angle) * reach, cy, cz: tz + Math.sin(angle) * reach, rx: r, ry: r * 1.15, rz: r };
+    puffs.push(p);
+    branch(grid, [tx, cy - 3, tz], [p.cx, p.cy - 1, p.cz], 0.6);
+  }
+  forEachVoxel(grid, (x, y, z) => {
+    if (colorAt(grid, x, y, z) !== 0) return;
+    const i = puffs.findIndex((p) => Math.hypot((x + 0.5 - p.cx) / p.rx, (y + 0.5 - p.cy) / p.ry, (z + 0.5 - p.cz) / p.rz) <= 1);
+    if (i >= 0) setColor(grid, x, y, z, MARKER + i);
+  });
+  puffs.forEach((p, i) => nibble(grid, rng, 0.12, Math.floor(p.cy - p.ry), MARKER + i)); // airy, see-through crowns
+  shadeFoliage(grid, rng, puffs, BIRCH_BANDS);
   return grid;
 }
 
@@ -221,9 +301,12 @@ function pine(shape: number): VoxelGrid {
   const cz = tz + 0.5;
 
   // Each tier is a cone whose outline is lobed (like clumps of branches)
-  // rather than a perfect circle, with branch tips drooping a voxel below
-  // its base. Higher tiers overwrite the top of the one below, so each
-  // tier's dark skirt sits over the lighter top of the next tier down.
+  // rather than a perfect circle, with branch tips drooping below its base
+  // and further out. Higher tiers overwrite the top of the one below, so
+  // each tier's dark skirt sits over the lighter top of the next tier down.
+  const tips: Array<[number, number, number]> = [];
+  const inGrid = (x: number, y: number, z: number) =>
+    x >= 0 && y >= 0 && z >= 0 && x < grid.size[0] && y < grid.size[1] && z < grid.size[2];
   tiers.forEach(([base, height, radius], i) => {
     const lobes = 6 + Math.floor(rng() * 2);
     const phase = rng() * Math.PI * 2;
@@ -238,9 +321,15 @@ function pine(shape: number): VoxelGrid {
     });
     for (let l = 0; l < lobes; l++) {
       const angle = (l / lobes) * Math.PI * 2 + (Math.PI / 2 - phase) / lobes;
-      const x = Math.floor(cx + Math.cos(angle) * radius * 1.02);
-      const z = Math.floor(cz + Math.sin(angle) * radius * 1.02);
-      if (base >= 1 && x >= 0 && z >= 0 && x < grid.size[0] && z < grid.size[2]) setColor(grid, x, base - 1, z, MARKER + i);
+      const at = (reach: number): [number, number] => [
+        Math.floor(cx + Math.cos(angle) * radius * reach),
+        Math.floor(cz + Math.sin(angle) * radius * reach),
+      ];
+      const [x, z] = at(1.02);
+      if (inGrid(x, base - 1, z)) {
+        setColor(grid, x, base - 1, z, MARKER + i);
+        tips.push([x, base - 1, z]); // a fresh, light branch tip
+      }
     }
   });
   const spireX = Math.floor(cx);
@@ -253,11 +342,29 @@ function pine(shape: number): VoxelGrid {
     if (c < MARKER) return;
     const [base, height, radius] = tiers[c - MARKER];
     const tier: Volume = { cx, cy: base + height * 0.35, cz, rx: radius, ry: height * 0.65, rz: radius };
-    setColor(grid, x, y, z, band(PINE_BANDS, lighting(tier, x, y, z)));
+    let shade = lighting(tier, x, y, z) + (rng() - 0.5) * PINE_DITHER;
+    // Needles open to the sky catch the light; each tier's bottom edge
+    // stays in deep shade, so the tiers stack clearly.
+    if (colorAt(grid, x, y + 1, z) === 0) shade += 0.6;
+    if (y < base + 1 && colorAt(grid, x, y - 1, z) === 0) shade = Math.min(shade, -0.7);
+    setColor(grid, x, y, z, band(PINE_BANDS, shade));
+  });
+  for (const [x, y, z] of tips) setColor(grid, x, y, z, PINE_TIP);
+
+  // A few cones hanging under the lower tiers, half-hidden near the trunk.
+  tiers.slice(0, -1).forEach(([base, , radius]) => {
+    for (let n = 0; n < 2; n++) {
+      const angle = rng() * Math.PI * 2;
+      const x = Math.floor(cx + Math.cos(angle) * radius * 0.55);
+      const z = Math.floor(cz + Math.sin(angle) * radius * 0.55);
+      if (inGrid(x, base - 1, z) && colorAt(grid, x, base - 1, z) === 0 && colorAt(grid, x, base, z) !== 0) {
+        setColor(grid, x, base - 1, z, PINE_CONE);
+      }
+    }
   });
   return grid;
 }
 
 export function buildTreeVoxels(kind: TreeKind, shape: number): VoxelGrid {
-  return kind === 'oak' ? oak(shape) : pine(shape);
+  return kind === 'oak' ? oak(shape) : kind === 'birch' ? birch(shape) : pine(shape);
 }

@@ -68,7 +68,7 @@ export class GameView {
     buildRoads(this.scene, model);
     buildPlazas(this.scene, model);
     this.animations.push(buildGroundCover(this.scene, model));
-    buildTrees(this.scene, model);
+    this.animations.push(buildTrees(this.scene, model));
     buildBushes(this.scene, model);
     buildHouses(this.scene, model);
     buildWells(this.scene, model);

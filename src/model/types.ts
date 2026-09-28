@@ -4,7 +4,7 @@ export interface Hero {
   y: number;
 }
 
-export type TreeKind = 'oak' | 'pine';
+export type TreeKind = 'oak' | 'pine' | 'birch';
 
 export interface Tree {
   x: number;
