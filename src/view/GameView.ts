@@ -31,6 +31,7 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
+import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { buildRoomScene } from './interior/roomView';
@@ -226,8 +227,6 @@ export class GameView {
       // Rooms are built roomier than the world, so the hero's drawn bigger
       // there, and the camera closes in.
       this.hero.root.scale.setScalar(room ? INDOOR_SCALE : 1);
-      this.camera.zoom = room ? INDOOR_ZOOM : 1;
-      this.camera.updateProjectionMatrix();
       this.hero.update(hero.x, hero.y, hero.z, 0); // arrive in place, no walk from where it was
       this.cameraY = hero.y;
     }
@@ -285,6 +284,12 @@ export class GameView {
   }
 
   render(): void {
+    // The player's zoom (zoom.ts) outdoors; indoors, always the room's own.
+    const zoom = this.room ? INDOOR_ZOOM : zoomLevel().zoom;
+    if (this.camera.zoom !== zoom) {
+      this.camera.zoom = zoom;
+      this.camera.updateProjectionMatrix();
+    }
     this.renderer.info.reset();
     if (this.room) this.renderer.render(this.room.scene, this.camera); // indoors: just the room
     else if (this.post) this.post.render(this.elapsed);
