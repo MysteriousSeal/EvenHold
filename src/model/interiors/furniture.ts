@@ -250,12 +250,12 @@ export interface Seat {
   lying: boolean;
 }
 
-const MATTRESS = 0.32; // the bed's blanket top
-const HEAD_TO_FEET = 1.0; // from the headboard end of the bed to where the feet lie
+const MATTRESS = 0.24; // where a sleeper's back lies: a little under the blanket's top (0.32), so they're tucked in, face and chest above it
+const HEAD_TO_FEET = 1.12; // from the headboard end of the bed to where the feet lie (the head a little clear of the headboard)
 
 const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>> = {
-  chair: { height: 0.36, forward: 0.2 },
-  armchair: { height: 0.32, forward: 0.08 },
+  chair: { height: 0.36, forward: 0.26 }, // forward enough that the head clears the chair's back
+  armchair: { height: 0.32, forward: -0.05 }, // back against its backrest
   barStool: { height: 0.56, forward: 0.26 },
 };
 
