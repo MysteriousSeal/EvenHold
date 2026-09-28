@@ -25,6 +25,7 @@ export const ENEMY_CORPSE_TIME = 2.2; // seconds from death until it's gone
 export const CAMPFIRE_COLLISION_HALF = 0.22;
 export const CAMP_PROP_COLLISION_HALF = 0.3; // crate stacks and the weapon rack
 export const PALISADE_THICKNESS = 0.1;
+export const HERO_DAMAGE = 1; // hit points a blow of the hero's takes off
 export const ATTACK_REACH = 0.85; // how far a blow lands in front of the hero
 export const ATTACK_STRIKE = 0.5; // point of the blow (0..1) where it lands
 export const ATTACK_KNOCKBACK = 0.35;

@@ -1,5 +1,5 @@
 // Loot: things enemies drop when they die, lying on the ground until the
-// hero picks them up (with E, when close) into their bag. For now only
+// hero picks them up (with E, when close) into their bag (bag.ts). For now only
 // junk (junk.ts), which is only good for selling.
 //
 // Each item says which families of enemies drop it (droppedBy); a kill
@@ -49,11 +49,4 @@ export function rollDrop(source: LootSource, enemyId: number): LootId | null {
     if (roll < 0) return id;
   }
   return null;
-}
-
-// The hero's bag: how many of each item they carry.
-export type Bag = Partial<Record<LootId, number>>;
-
-export function addToBag(bag: Bag, item: LootId): void {
-  bag[item] = (bag[item] ?? 0) + 1;
 }

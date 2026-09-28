@@ -17,6 +17,7 @@ import {
   CAMP_PROP_COLLISION_HALF,
   PALISADE_THICKNESS,
   ENEMY_STATS,
+  HERO_DAMAGE,
   FOCUS_RANGE,
   FOCUS_TURN_RANGE,
   LANTERN_COLLISION_HALF,
@@ -33,7 +34,9 @@ import { EnemyDirector } from './enemyDirector';
 import { FRESH_HERO_STATS, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
-import { PICKUP_RANGE, addToBag, rollDrop, type GroundLoot, type LootId } from './loot/loot';
+import { PICKUP_RANGE, rollDrop, type GroundLoot, type LootId } from './loot/loot';
+import { addToBag, takeFromBag } from './bag';
+import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
@@ -252,7 +255,7 @@ export class GameModel {
       best = Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z);
     }
     if (!target) return;
-    target.hp -= 1;
+    target.hp -= HERO_DAMAGE;
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
@@ -287,11 +290,26 @@ export class GameModel {
   // Takes one `item` out of the hero's bag and puts it on the ground just in
   // front of them; returns whether they had one.
   dropFromBag(item: LootId): boolean {
-    const count = this.hero.bag[item] ?? 0;
-    if (count <= 0) return false;
-    if (count === 1) delete this.hero.bag[item];
-    else this.hero.bag[item] = count - 1;
+    if (!takeFromBag(this.hero.bag, item)) return false;
     this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
+    return true;
+  }
+
+  // Takes off what's worn in `slot`, into the bag; returns whether there was something.
+  unequip(slot: EquipSlot): boolean {
+    const item = this.hero.equipment[slot];
+    if (!item) return false;
+    delete this.hero.equipment[slot];
+    addToBag(this.hero.bag, item);
+    return true;
+  }
+
+  // Wears `item` from the bag, putting what was in its slot back in the bag;
+  // returns whether the bag had one.
+  equipFromBag(item: ItemId): boolean {
+    if (!takeFromBag(this.hero.bag, item)) return false;
+    this.unequip(ITEMS[item].slot);
+    wear(this.hero.equipment, item);
     return true;
   }
 
