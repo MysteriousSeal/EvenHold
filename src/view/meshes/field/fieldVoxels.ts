@@ -32,6 +32,8 @@ export const FIELD_PALETTE = [
   0x8a6238, // 13 barrow wood
   0x3d3d42, // 14 iron
   0xa47a45, // 15 basket
+  0x6e4a2a, // 16 twine
+  0xecd27e, // 17 hay, sunlit
 ];
 const SOIL = 1;
 const FURROW = 2;
@@ -45,6 +47,23 @@ const HAY_SHADE = 12;
 const BARROW = 13;
 const IRON = 14;
 const BASKET = 15;
+const TWINE = 16;
+const HAY_LIGHT = 17;
+
+// A square bale of hay from (x0, y0, z0) to (x1, y1, z1), lying along x or
+// z: straw streaks running its length, two twine bands round it, and its cut
+// ends flecked with darker stalk ends.
+function bale(grid: VoxelGrid, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, alongX: boolean): void {
+  const [a0, a1] = alongX ? [x0, x1] : [z0, z1];
+  const bands = [a0 + Math.round((a1 - a0) * 0.25), a1 - Math.round((a1 - a0) * 0.25)];
+  fillBox(grid, x0, y0, z0, x1, y1, z1, (x, y, z) => {
+    const [along, across] = alongX ? [x, z] : [z, x];
+    if (bands.includes(along)) return TWINE;
+    if (along === a0 || along === a1) return (across + y) % 3 === 0 ? HAY_SHADE : HAY; // the cut ends
+    if (y === y1 && (along * 7 + across * 3) % 5 === 0) return HAY_LIGHT; // sunlit straws on top
+    return (across * 3 + y * 5) % 7 === 0 ? HAY_SHADE : HAY; // streaks along its length
+  });
+}
 
 // Tilled soil: a repeating 4-voxel row pattern across Z (furrow, two crop
 // rows, ridge), so rows line up across neighboring tiles.
@@ -82,11 +101,11 @@ export function buildWheatTile(variant: number): VoxelGrid {
 export function buildCornerTile(): VoxelGrid {
   const grid = createGrid(FIELD_GRID);
   soil(grid);
-  // Stepped haystack: each layer one voxel narrower, with shaded courses.
-  for (let y = 1; y <= 8; y++) {
-    const r = Math.max(1, 6 - Math.floor(y / 2));
-    fillBox(grid, 8 - r, y, 12 - r, 8 + r, y, 12 + r, y % 3 === 0 ? HAY_SHADE : HAY);
-  }
+  // Hay bales: three side by side, a fourth across them on top, and a few
+  // loose wisps of straw on the ground round them.
+  for (const z of [4, 9, 14]) bale(grid, 2, 1, z, 13, 4, z + 4, true);
+  bale(grid, 5, 5, 6, 9, 8, 17, false);
+  for (const [x, z] of [[1, 10], [3, 19], [12, 3], [14, 16], [9, 20]]) setColor(grid, x, 1, z, HAY_SHADE);
   // Wheelbarrow: a tray on a wheel with two handles.
   fillBox(grid, 16, 3, 4, 21, 5, 8, BARROW);
   fillBox(grid, 17, 5, 5, 20, 5, 7, 0); // hollow tray
