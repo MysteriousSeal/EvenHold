@@ -4,6 +4,7 @@ import type { Bag } from './bag';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
+  name: string;
   x: number;
   z: number;
   y: number;

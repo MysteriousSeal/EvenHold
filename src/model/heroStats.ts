@@ -18,6 +18,8 @@ export function xpToNext(level: number): number {
   return 15 + level * 15;
 }
 
+export const HERO_NAME = 'Hero'; // shown over the health bar
+
 export const FRESH_HERO_STATS = { hp: BASE_HP, level: 1, xp: 0, hurtFor: 0, sinceHurt: Infinity };
 
 // Adds experience; returns how many levels were gained.

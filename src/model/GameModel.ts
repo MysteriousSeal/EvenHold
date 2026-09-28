@@ -31,7 +31,7 @@ import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './gri
 import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
 import { campPalisade, campPieces, spawnEnemies } from './enemies';
 import { EnemyDirector } from './enemyDirector';
-import { FRESH_HERO_STATS, gainXp, hurt, maxHpAt, recover } from './heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
@@ -112,7 +112,7 @@ export class GameModel {
     }
 
     const spawn = spawnOf(this.size);
-    this.hero = { x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, ...FRESH_HERO_STATS }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     const { enemies, camps } = spawnEnemies(this);
     this.enemies = enemies;
