@@ -15,6 +15,9 @@ export interface MenuAction {
   detail?: string;
   run(): string | void; // may return a line for the status bar
   isOn?(): boolean; // present for toggles
+  // For rows showing a setting (e.g. what's worn in a slot): its current
+  // detail, icon and value (shown at the right), refreshed after every use.
+  current?(): { detail?: string; icon?: MenuIcon; value?: string };
 }
 
 export interface MenuTab {
@@ -99,8 +102,9 @@ export function createMenu(options: MenuOptions): Menu {
       if (action.icon) icon.append(action.icon(34));
       const text = el('span', 'menu-text');
       text.append(el('b', undefined, action.title));
-      if (action.detail) text.append(el('small', undefined, action.detail));
-      row.append(icon, text, action.isOn ? el('span', 'menu-toggle') : el('span', 'menu-key', String(j + 1)));
+      if (action.detail || action.current) text.append(el('small', undefined, action.detail));
+      const end = action.isOn ? el('span', 'menu-toggle') : action.current ? el('span', 'menu-value') : el('span', 'menu-key', String(j + 1));
+      row.append(icon, text, end);
       row.addEventListener('mouseenter', () => select(j));
       row.addEventListener('click', () => use(j));
       list.append(row);
@@ -126,7 +130,17 @@ export function createMenu(options: MenuOptions): Menu {
   }
 
   function refresh(): void {
-    options.tabs[tabIndex].actions?.forEach((action, j) => rows[j]?.classList.toggle('on', action.isOn?.() ?? false));
+    options.tabs[tabIndex].actions?.forEach((action, j) => {
+      const row = rows[j];
+      if (!row) return;
+      row.classList.toggle('on', action.isOn?.() ?? false);
+      const live = action.current?.();
+      if (!live) return;
+      const icon = live.icon ?? action.icon;
+      row.querySelector('.menu-icon')?.replaceChildren(...(icon ? [icon(34)] : []));
+      row.querySelector('.menu-text small')!.textContent = live.detail ?? action.detail ?? '';
+      row.querySelector('.menu-value')!.textContent = live.value ?? '';
+    });
   }
 
   const api: Menu = {

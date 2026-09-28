@@ -127,6 +127,9 @@
   border: 2px solid var(--line);
 }
 .menu-row.selected .menu-key { color: var(--ink); border-color: var(--ember); }
+/* A setting's value, e.g. which of a slot's items is worn. */
+.menu-value { font: 500 13px 'Fredoka', system-ui, sans-serif; color: var(--ink-soft); white-space: nowrap; }
+.menu-row.selected .menu-value { color: var(--ink); }
 /* Toggle: a gem, grey when off, lake turquoise when on. */
 .menu-toggle {
   width: 14px;
