@@ -6,9 +6,12 @@ import type { Joint } from '../src/view/meshes/human/bodyVoxels';
 
 const SLOTS: Joint[] = ['head', 'torso', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'];
 
+// The body and what it wears (not the shade on the ground under it).
 function bounds(rig: HumanRig): THREE.Box3 {
   rig.root.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(rig.root);
+  const box = new THREE.Box3();
+  for (const mesh of rig.meshes) box.expandByObject(mesh);
+  return box;
 }
 
 describe('hero rig', () => {
@@ -20,6 +23,18 @@ describe('hero rig', () => {
     expect(box.max.y).toBeLessThan(0.48);
     expect(box.min.y).toBeCloseTo(0, 2);
     expect(Math.max(-box.min.x, box.max.x)).toBeLessThanOrEqual(HERO_RADIUS + 1e-6);
+  });
+
+  it('has a shade on the ground under it, square to the world whichever way it faces, off indoors', () => {
+    const rig = new HumanRig();
+    rig.update(0, 0, 0, 1 / 60);
+    rig.update(0.3, 0, 0.1, 0.1); // walking off at an angle turns it
+    rig.root.updateMatrixWorld(true);
+    const shade = rig.root.children.find((c) => !(c instanceof THREE.Mesh) && c.children.every((s) => s instanceof THREE.Mesh && !rig.meshes.includes(s)))!;
+    expect(rig.root.rotation.y).not.toBeCloseTo(0, 2);
+    expect(new THREE.Euler().setFromQuaternion(shade.getWorldQuaternion(new THREE.Quaternion())).y).toBeCloseTo(0, 5);
+    rig.shaded = false;
+    expect(shade.visible).toBe(false);
   });
 
   it('has a joint for every body part, ready for armor', () => {

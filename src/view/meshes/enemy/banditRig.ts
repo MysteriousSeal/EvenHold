@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import { HERO_LOOK } from '../../../model/human/humanoid';
 import type { Enemy } from '../../../model/types';
-import { HumanRig } from '../human/humanRig';
+import { HumanRig, personMaterial } from '../human/humanRig';
 import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 
@@ -21,7 +21,7 @@ export interface BanditLook {
 }
 
 export function createBanditLook(flash: THREE.Material): BanditLook {
-  return { normal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), flash };
+  return { normal: personMaterial(), flash };
 }
 
 export class BanditRig {

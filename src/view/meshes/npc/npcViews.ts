@@ -8,14 +8,14 @@ import * as THREE from 'three';
 import { INDOOR_SCALE } from '../../../model/constants';
 import type { Entrance } from '../../../model/interiors/interiors';
 import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
-import { HumanRig } from '../human/humanRig';
+import { HumanRig, personMaterial } from '../human/humanRig';
 import { nameLabel } from '../enemy/enemyParts';
 
 const VIEW_RADIUS = 30;
 const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
 
 export class NpcViews {
-  readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  readonly material = personMaterial();
   private readonly shown = new Map<number, { rig: HumanRig; label: THREE.Sprite }>();
 
   // `where`: the building the hero's in (null outdoors); `scene`: the one they're drawn in.
@@ -40,6 +40,7 @@ export class NpcViews {
         scene.add(rig.root);
         rig.root.scale.setScalar(scale);
         for (const mesh of rig.meshes) mesh.castShadow = !!where; // in the firelight indoors
+        rig.shaded = !where; // outdoors, the shade on the ground under them
         rig.update(npc.x, npc.y, npc.z, 0); // arrive in place, no walk from where it was
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : 'stand';

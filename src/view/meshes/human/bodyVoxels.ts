@@ -1,8 +1,8 @@
 // The body humanoids have (the hero, bandits, villagers), in two builds:
 // male, and a slimmer female one (a narrow torso with a waist and a bust,
 // thin arms, slim legs; the same height and the same head, so what's worn
-// on the head fits both). Naked but for undyed linen braies (medieval
-// underwear), and on her a linen breast band. Nothing is ever painted onto
+// on the head fits both). Naked but for dyed braies (medieval underwear),
+// and on her a breast band of the same cloth. Nothing is ever painted onto
 // it: armor is worn over it as separate models (gear/), fitted to either
 // build. Only its look changes from person to person (model/human/humanoid.ts):
 // the build, the skin tone, the hair color and style, a beard.
@@ -17,7 +17,7 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
 import type { HeldSlot } from '../../../model/human/equipment';
-import { HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook, type Build } from '../../../model/human/humanoid';
+import { DYE_COUNT, HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook, type Build } from '../../../model/human/humanoid';
 
 export const HUMAN_VOXEL_SIZE = 0.025;
 
@@ -100,49 +100,61 @@ const HAIR_COLORS: Array<[hair: number, light: number]> = [
   [0x8a3a22, 0xa85232],
   [0x9a948a, 0xb8b2a6],
 ];
-if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_COUNT) throw new Error('body palettes out of step with model/human/humanoid.ts');
+// Dyes for the braies (and her breast band), each with its shading: madder
+// red, woad blue, weld green, walnut brown, charcoal, EvenHold's turquoise.
+// Strong against the sandstone and grass, so people stand out from the ground.
+const DYES: Array<[dye: number, shade: number]> = [
+  [0x9c3b2e, 0x7e2e24],
+  [0x3d5f8c, 0x2f4a6e],
+  [0x6f7f34, 0x566429],
+  [0x6b4a30, 0x533824],
+  [0x45423f, 0x33312f],
+  [0x2f8a86, 0x236a67],
+];
+if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_COUNT || DYES.length !== DYE_COUNT) {
+  throw new Error('body palettes out of step with model/human/humanoid.ts');
+}
 
 const EYE = 0x2b2522;
-const LINEN = 0xe8dcc0;
-const LINEN_SHADE = 0xcfc0a0;
 const CORD = 0x8a6a45;
 
 // Palette indices + 1, in the order bodyPalette() lists the colors.
-const C = { skin: 1, skinShade: 2, skinLight: 3, hair: 4, hairLight: 5, eye: 6, cheek: 7, mouth: 8, linen: 9, linenShade: 10, cord: 11 };
+const C = { skin: 1, skinShade: 2, skinLight: 3, hair: 4, hairLight: 5, eye: 6, cheek: 7, mouth: 8, cloth: 9, clothShade: 10, cord: 11 };
 
 export function bodyPalette(look: BodyLook): number[] {
   const [skin, shade, light, cheek, mouth] = SKIN_TONES[look.skin % SKIN_TONE_COUNT];
   const [hair, hairLight] = HAIR_COLORS[look.hair % HAIR_COLOR_COUNT];
-  return [skin, shade, light, hair, hairLight, EYE, cheek, mouth, LINEN, LINEN_SHADE, CORD];
+  const [dye, dyeShade] = DYES[look.dye % DYE_COUNT];
+  return [skin, shade, light, hair, hairLight, EYE, cheek, mouth, dye, dyeShade, CORD];
 }
 
-// A leg: linen braies over the thigh, bare shin, a foot one voxel longer
+// A leg: braies over the thigh, bare shin, a foot one voxel longer
 // toward the front (+Z). Shaded on its outer side so the two legs separate.
 export function buildLeg(build: Build = 'male'): VoxelGrid {
   const [w, , d] = BODIES[build].grid.leg;
   const grid = createGrid(BODIES[build].grid.leg);
-  fillBox(grid, 0, 1, 0, w - 1, 4, d - 2, (x, y) => (y >= 3 ? (x === 0 ? C.linenShade : C.linen) : x === 0 ? C.skinShade : C.skin));
+  fillBox(grid, 0, 1, 0, w - 1, 4, d - 2, (x, y) => (y >= 3 ? (x === 0 ? C.clothShade : C.cloth) : x === 0 ? C.skinShade : C.skin));
   fillBox(grid, 0, 0, 0, w - 1, 0, d - 1, (x, _y, z) => (z === d - 1 ? C.skinLight : x === 0 ? C.skinShade : C.skin)); // foot
   return grid;
 }
 
 // The torso: braies up to the waist, tied with a cord, bare chest above
 // with a hint of shading at the sides, a navel and collarbones. Hers: hips
-// in braies, a narrow waist with the cord, a linen band over the bust
+// in braies, a narrow waist with the cord, a band over the bust
 // (standing out in front), bare shoulders.
 export function buildTorso(build: Build = 'male'): VoxelGrid {
   const grid = createGrid(BODIES[build].grid.torso);
   if (build === 'female') {
-    fillBox(grid, 0, 0, 0, 4, 1, 2, (x, _y, z) => (x === 0 || z === 0 ? C.linenShade : C.linen)); // hips
+    fillBox(grid, 0, 0, 0, 4, 1, 2, (x, _y, z) => (x === 0 || z === 0 ? C.clothShade : C.cloth)); // hips
     fillBox(grid, 1, 2, 0, 3, 2, 2, C.cord); // the waist, tied
-    fillBox(grid, 0, 3, 0, 4, 4, 2, (x, _y, z) => (x === 0 || z === 0 ? C.linenShade : C.linen)); // the band
-    fillBox(grid, 1, 3, 3, 3, 4, 3, (x, y) => (y === 4 && x === 2 ? C.linenShade : C.linen)); // over the bust
+    fillBox(grid, 0, 3, 0, 4, 4, 2, (x, _y, z) => (x === 0 || z === 0 ? C.clothShade : C.cloth)); // the band
+    fillBox(grid, 1, 3, 3, 3, 4, 3, (x, y) => (y === 4 && x === 2 ? C.clothShade : C.cloth)); // over the bust
     fillBox(grid, 0, 5, 0, 4, 5, 2, (x, _y, z) => (x === 0 || x === 4 || z === 0 ? C.skinShade : C.skin)); // shoulders
     fillBox(grid, 1, 5, 2, 3, 5, 2, C.skinLight); // collarbones
     return grid;
   }
   fillBox(grid, 0, 0, 0, 6, 5, 3, (x, y, z) => {
-    if (y <= 1) return x === 0 || z === 0 ? C.linenShade : C.linen;
+    if (y <= 1) return x === 0 || z === 0 ? C.clothShade : C.cloth;
     if (y === 2) return C.cord;
     return x === 0 || x === 6 || z === 0 ? C.skinShade : C.skin;
   });

@@ -23,7 +23,7 @@ import { setWindPusher } from './meshes/common/wind';
 import { buildGroundCover } from './meshes/cover/groundCoverMesh';
 import { buildBushes } from './meshes/bush/bushMesh';
 import { buildWater } from './meshes/water/waterMesh';
-import { HumanRig } from './meshes/human/humanRig';
+import { HumanRig, personMaterial } from './meshes/human/humanRig';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
@@ -60,7 +60,7 @@ export class GameView {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
   private hero: HumanRig; // dressed from the model's equipment every frame (rebuilt if their look changes)
-  private readonly heroLook = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  private readonly heroLook = personMaterial();
   // A red glow while the hero's just been hit, like the enemies' flash.
   private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
   private readonly world: ChunkStreamer;
@@ -233,6 +233,7 @@ export class GameView {
     const seated = model.inside?.seated?.seat;
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
+    this.hero.shaded = !room; // outdoors, the shade on the ground under them
     this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt);
     if (room) {
       this.followHero(hero, 0, dt);

@@ -75,6 +75,26 @@ function key(keys: Keys, p: number): number {
   return keys[keys.length - 1][1];
 }
 
+// What people are drawn in: their voxel colors lifted a little over the
+// world's (a touch brighter, and warm light in their shade), so they stand
+// out from the ground they're on.
+export function personMaterial(): THREE.MeshStandardMaterial {
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, emissive: 0x2a1e14 });
+  material.color.setRGB(1.12, 1.1, 1.06);
+  return material;
+}
+
+// A soft square of shade on the ground under someone's feet (two squares, the
+// inner one darker), square to the world whichever way they face; outdoors,
+// where nothing else casts a shadow, it sets them apart from the ground.
+const SHADE = [
+  { size: 0.36, opacity: 0.16 },
+  { size: 0.24, opacity: 0.2 },
+].map(({ size, opacity }) => ({
+  geometry: new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+  material: new THREE.MeshBasicMaterial({ color: 0x1a1008, transparent: true, opacity, depthWrite: false }),
+}));
+
 // Geometries are shared by everyone with the same look, or wearing the
 // same item, and live as long as the page.
 const geometries = new Map<string, THREE.BufferGeometry | null>();
@@ -90,7 +110,7 @@ function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, 
 }
 
 function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
-  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.hairStyle}:${look.beard}:${part}`;
+  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${part}`;
   return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), BODIES[look.build].pivot[part]))!;
 }
 
@@ -133,10 +153,11 @@ export class HumanRig {
   private time = 0;
   private pose: Pose = 'stand';
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
+  private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
 
   constructor(
     readonly look: BodyLook = HERO_LOOK,
-    private material: THREE.Material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }),
+    private material: THREE.Material = personMaterial(),
   ) {
     const joints = {} as Record<Joint, THREE.Group>;
     for (const joint of JOINT_NAMES) {
@@ -149,6 +170,12 @@ export class HumanRig {
     }
     this.joints = joints;
     this.root.add(this.body);
+    for (const [i, { geometry, material }] of SHADE.entries()) {
+      const square = new THREE.Mesh(geometry, material);
+      square.position.y = 0.004 + i * 0.002; // just clear of the ground, the inner one over the outer
+      this.shade.add(square);
+    }
+    this.root.add(this.shade);
     const hair = hairGeometry(look);
     if (hair) {
       this.hair = this.mesh(hair);
@@ -178,6 +205,11 @@ export class HumanRig {
       }
       if (item) this.worn.set(slot, { item, meshes: this.putOn(slot, item) });
     }
+  }
+
+  // Whether the shade under their feet shows (indoors, the firelight casts real shadows).
+  set shaded(on: boolean) {
+    this.shade.visible = on;
   }
 
   // Every color on the body as dressed now (skin, hair and what's worn),
@@ -266,6 +298,7 @@ export class HumanRig {
       this.heading += diff * Math.min(1, (attack !== null ? ATTACK_TURN_RATE : TURN_RATE) * dt);
     }
     this.root.rotation.y = this.heading;
+    this.shade.rotation.y = -this.heading; // square to the world
     this.swing += ((walking ? 1 : 0) - this.swing) * Math.min(1, 12 * dt);
 
     const s = Math.sin(this.phase) * this.swing;
@@ -283,6 +316,7 @@ export class HumanRig {
     if (pose !== 'stand') {
       if (facing !== undefined) this.heading = facing;
       this.root.rotation.y = this.heading;
+      this.shade.rotation.y = -this.heading;
       this.swing = 0;
       const [legs, arms] = pose === 'sit' ? [SIT_LEGS, SIT_ARMS] : [0, 0];
       this.joints.leftLeg.rotation.x = legs;

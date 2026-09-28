@@ -180,9 +180,12 @@ describe('armor models', () => {
 });
 
 describe('dressed rig', () => {
+  // The body and what it wears (not the shade on the ground under it).
   const bounds = (rig: HumanRig) => {
     rig.root.updateMatrixWorld(true);
-    return new THREE.Box3().setFromObject(rig.root);
+    const box = new THREE.Box3();
+    for (const mesh of rig.meshes) box.expandByObject(mesh);
+    return box;
   };
   const meshesOn = (rig: HumanRig) => JOINT_NAMES.reduce((n, joint) => n + rig.joints[joint].children.length, 0);
 
@@ -326,9 +329,12 @@ describe('dressed rig', () => {
 });
 
 describe('female build', () => {
+  // The body and what it wears (not the shade on the ground under it).
   const bounds = (rig: HumanRig) => {
     rig.root.updateMatrixWorld(true);
-    return new THREE.Box3().setFromObject(rig.root);
+    const box = new THREE.Box3();
+    for (const mesh of rig.meshes) box.expandByObject(mesh);
+    return box;
   };
 
   it('fits every piece to her, outside her body, the inner side of limbs open', () => {
