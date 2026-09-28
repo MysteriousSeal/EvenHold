@@ -11,6 +11,7 @@ import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
+import { createShopPanel } from './controller/shopPanel';
 import { createHeroSheet } from './controller/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
 import { createToolbar } from './view/hud/toolbar';
@@ -61,6 +62,7 @@ async function boot(): Promise<void> {
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
+  const shop = createShopPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({
     setPaused: (paused) => (controller.paused = paused),
@@ -82,12 +84,15 @@ async function boot(): Promise<void> {
     if (loot) return lootTarget(loot);
     const { hero } = model;
     const seated = model.inside?.seated;
-    if (seated) return { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
+    const barmaid = model.barmaidInReach;
+    const talk = barmaid && { label: `Talk to ${barmaid.name}`, x: barmaid.x, y: 1.1, z: barmaid.z };
+    if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
     const seat = model.seatInReach;
     if (seat) {
       const { piece } = seat;
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + 0.5, z: piece.z + (piece.d - 1) / 2 };
     }
+    if (talk) return talk;
     const door = model.doorInReach;
     if (!door) return null;
     return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };
@@ -108,7 +113,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => shop.open(barmaid), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"). Over their heads, higher indoors where the hero's drawn bigger.

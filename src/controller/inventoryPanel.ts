@@ -10,12 +10,13 @@ import type { GameModel } from '../model/GameModel';
 import type { BagItem } from '../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
+import { PROVISIONS, isProvision } from '../model/loot/provisions';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
 import { bagIcon, isLoot } from '../view/ui/itemIcons';
 
 const COLUMNS = 6;
 const ROWS = 4;
-const QUALITY_NAMES = { junk: 'Junk' } as const;
+const QUALITY_NAMES = { junk: 'Junk', common: 'Food & drink' } as const;
 
 function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
   if (isLoot(item)) {
@@ -24,7 +25,12 @@ function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
       count,
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
-      lines: [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · sells for ${LOOT[item].value} copper${count > 1 ? ' each' : ''}`],
+      lines: isProvision(item)
+        ? [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · heals ${PROVISIONS[item].heal}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
+        : [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · sells for ${LOOT[item].value} copper${count > 1 ? ' each' : ''}`],
+      alt: isProvision(item)
+        ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : '')
+        : undefined,
       dragOut: (over) => {
         if (!over?.closest('.menu')) model.dropFromBag(item); // onto the world, not another window
       },
