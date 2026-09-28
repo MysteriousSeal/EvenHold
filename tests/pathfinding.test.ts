@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findPath } from '../src/model/pathfinding';
 import { GameModel } from '../src/model/GameModel';
-import { ENEMY_STATS } from '../src/model/constants';
+import { ENEMY_LOSE_TIME, ENEMY_STATS } from '../src/model/constants';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 // A wall along x = 5 up to z = 9, with a gap at z = 7.
@@ -28,34 +28,79 @@ describe('findPath', () => {
   });
 });
 
-describe('enemies chase around obstacles', () => {
-  it('a bandit walks out of its camp gate to reach a hero behind the palisade', () => {
-    let tried = 0;
-    for (const seed of TEST_SEEDS) {
-      const model = new GameModel(seed, TEST_MAP_SIZE);
-      for (const camp of model.camps) {
-        // The side opposite the gate (local -Z, turned like the camp), 3.5 tiles out.
-        let [bx, bz] = [0, -3.5];
-        for (let q = 0; q < camp.quarterTurns; q++) [bx, bz] = [bz, -bx];
-        const hx = camp.x + bx;
-        const hz = camp.z + bz;
-        if (!model.isOpenTile(Math.round(hx), Math.round(hz))) continue;
-        const bandit = model.enemies.find((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 2.5);
-        if (!bandit) continue;
-        tried++;
-        model.enemies.splice(0, model.enemies.length, bandit);
-        model.teleport(Math.round(hx), Math.round(hz));
-        model.godMode = true;
-        bandit.state = 'chase';
-        let reached = false;
-        for (let t = 0; t < 20 && !reached; t += 1 / 30) {
-          model.update(0, 0, 1 / 30);
-          reached = Math.hypot(bandit.x - model.hero.x, bandit.z - model.hero.z) <= ENEMY_STATS.bandit.stop + 0.1;
-        }
-        expect(reached, `seed ${seed} camp ${camp.x},${camp.z}`).toBe(true);
-        if (tried >= 2) return;
-      }
+// A camp near spawn with a bandit inside it, and an open tile 3.5 tiles out
+// behind its palisade (opposite the gate), or null.
+function campScene() {
+  for (const seed of TEST_SEEDS) {
+    const model = new GameModel(seed, TEST_MAP_SIZE);
+    for (const camp of model.camps) {
+      let [bx, bz] = [0, -3.5];
+      for (let q = 0; q < camp.quarterTurns; q++) [bx, bz] = [bz, -bx];
+      const behind = { x: Math.round(camp.x + bx), z: Math.round(camp.z + bz) };
+      if (!model.isOpenTile(behind.x, behind.z)) continue;
+      const bandit = model.enemies.find((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 2.5);
+      if (!bandit) continue;
+      model.enemies.splice(0, model.enemies.length, bandit);
+      model.godMode = true;
+      return { model, camp, bandit, behind };
     }
-    expect(tried).toBeGreaterThan(0);
+  }
+  return null;
+}
+const FRAME = 1 / 30;
+
+describe('enemies chase around obstacles', () => {
+  it('a bandit that knows where the hero is walks out of its camp gate to reach them', () => {
+    const scene = campScene()!;
+    expect(scene).not.toBeNull();
+    const { model, bandit, behind } = scene;
+    model.teleport(behind.x, behind.z);
+    bandit.state = 'chase';
+    let reached = false;
+    for (let t = 0; t < 20 && !reached; t += FRAME) {
+      bandit.lastSeen = { x: model.hero.x, z: model.hero.z }; // someone keeps telling it
+      bandit.lostFor = FRAME;
+      model.update(0, 0, FRAME);
+      reached = Math.hypot(bandit.x - model.hero.x, bandit.z - model.hero.z) <= ENEMY_STATS.bandit.stop + 0.1;
+    }
+    expect(reached).toBe(true);
+  });
+});
+
+describe('enemy sight', () => {
+  it("doesn't notice a hero hidden behind the palisade, but does one in plain view", () => {
+    const { model, bandit, behind } = campScene()!;
+    model.teleport(behind.x, behind.z);
+    for (let t = 0; t < 1; t += FRAME) model.update(0, 0, FRAME);
+    expect(bandit.state).toBe('wander');
+    // Out in the open beside the hero, with nothing between: seen.
+    const open = [[0, 3], [3, 0], [0, -3], [-3, 0]].find(([dx, dz]) =>
+      [1, 2, 3].every((k) => model.isOpenTile(behind.x + (dx / 3) * k, behind.z + (dz / 3) * k)),
+    );
+    expect(open).toBeDefined();
+    bandit.x = behind.x + open![0];
+    bandit.z = behind.z + open![1];
+    model.update(0, 0, FRAME);
+    expect(bandit.state).toBe('chase');
+  });
+
+  it('hears a hero right next to it, even through cover', () => {
+    const { model, bandit, behind } = campScene()!;
+    model.teleport(behind.x, behind.z);
+    bandit.x = model.hero.x + 1.2; // within hearing, whatever's between
+    bandit.z = model.hero.z;
+    model.update(0, 0, FRAME);
+    expect(bandit.state).toBe('chase');
+  });
+
+  it('hunts where it last saw the hero, then gives up and goes home', () => {
+    const { model, bandit, behind } = campScene()!;
+    model.teleport(behind.x, behind.z);
+    bandit.state = 'chase';
+    bandit.lastSeen = { x: bandit.x + 0.3, z: bandit.z }; // lost sight just there
+    bandit.lostFor = FRAME;
+    for (let t = 0; t < ENEMY_LOSE_TIME + 1 && bandit.state === 'chase'; t += FRAME) model.update(0, 0, FRAME);
+    expect(bandit.state).toBe('wander'); // gave up, heading home
+    expect(bandit.lastSeen).toBeNull();
   });
 });

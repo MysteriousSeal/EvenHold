@@ -30,6 +30,8 @@ export interface Enemy {
   cooldown: number; // seconds before it can swing again
   path: Array<{ x: number; z: number }> | null; // while chasing around obstacles: tile centers still to walk
   pathAge: number; // seconds since the path was found
+  lastSeen: { x: number; z: number } | null; // while chasing: where it last saw (or heard) the hero
+  lostFor: number; // seconds since then
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
 }
 

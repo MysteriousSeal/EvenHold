@@ -60,6 +60,7 @@ export class GameModel {
   // Props smaller than a tile (bushes, tree trunks, lamp posts): tile key ->
   // half-size of the square they block, centered on the tile.
   private readonly propFootprints: Map<string, number>;
+  private readonly lowProps = new Set<string>(); // props too low to hide anyone (campfires)
   private hop: { fromY: number; toY: number; elapsed: number } | null = null;
   // Field fences, as thin axis-aligned rectangles [minX, minZ, maxX, maxZ]
   // along tile edges, keyed by the tile they're in.
@@ -119,7 +120,10 @@ export class GameModel {
       for (const piece of campPieces(camp)) {
         const key = cellKey(piece.x, piece.z);
         if (piece.kind === 'tent') this.solidCells.add(key);
-        else if (piece.kind === 'fire') this.propFootprints.set(key, CAMPFIRE_COLLISION_HALF);
+        else if (piece.kind === 'fire') {
+          this.propFootprints.set(key, CAMPFIRE_COLLISION_HALF);
+          this.lowProps.add(key);
+        }
         else if (piece.kind !== 'loot') this.propFootprints.set(key, CAMP_PROP_COLLISION_HALF);
       }
       for (const edge of campPalisade(camp)) this.addFenceStrip(edge.x, edge.z, edge.side, PALISADE_THICKNESS);
@@ -301,7 +305,7 @@ export class GameModel {
         continue;
       }
       enemy.pathAge += dt;
-      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz), (e) => this.chaseGoal(e));
+      if (!this.enemiesFrozen) stepEnemy(enemy, this.hero, dt, (e, dx, dz) => this.moveEnemy(e, dx, dz), (e, quarry) => this.chaseGoal(e, quarry), (e) => this.canSee(e));
     }
     if (!this.enemiesFrozen) this.separateEnemies(dt);
   }
@@ -334,15 +338,15 @@ export class GameModel {
   // way, else the next tile of a path around it, found afresh twice a
   // second so it follows the hero. With no way through, the path ends as
   // close to the hero as it gets, and the enemy waits there.
-  private chaseGoal(enemy: Enemy): { x: number; z: number } {
+  private chaseGoal(enemy: Enemy, quarry: { x: number; z: number }): { x: number; z: number } {
     const r = ENEMY_STATS[enemy.kind].radius;
     const free = (x: number, z: number) => !this.isBlocked(x, z, r);
-    if (this.clearLine(enemy, this.hero, free)) {
+    if (this.clearLine(enemy, quarry, free)) {
       enemy.path = null;
-      return this.hero;
+      return quarry;
     }
     if (!enemy.path || enemy.pathAge > ENEMY_PATH_REFRESH) {
-      enemy.path = findPath(enemy, this.hero, ENEMY_PATH_RADIUS, free);
+      enemy.path = findPath(enemy, quarry, ENEMY_PATH_RADIUS, free);
       enemy.pathAge = 0;
     }
     const path = enemy.path;
@@ -350,10 +354,27 @@ export class GameModel {
     return path[0] ?? enemy;
   }
 
-  // Whether the walker fits all along the straight line from `a` to `b`.
-  private clearLine(a: { x: number; z: number }, b: { x: number; z: number }, free: (x: number, z: number) => boolean): boolean {
+  // Whether an enemy can see the hero: nothing solid (a building, a
+  // palisade or fence, a tree trunk, a bush, a tent...) on the line between.
+  // Water, crops and campfires don't hide anyone.
+  private canSee(enemy: Enemy): boolean {
+    return this.clearLine(enemy, this.hero, (x, z) => !this.blocksSight(x, z), 0.05); // fine steps, so a thin fence can't slip between
+  }
+
+  private blocksSight(x: number, z: number): boolean {
+    const cx = toCellX(this.size, x);
+    const cz = toCellZ(this.size, z);
+    const key = cellKey(cx, cz);
+    if (this.solidCells.has(key)) return true;
+    const half = this.lowProps.has(key) ? undefined : this.propFootprints.get(key);
+    if (half !== undefined && Math.abs(x - cx) < half && Math.abs(z - cz) < half) return true;
+    return (this.fences.get(key) ?? []).some(([minX, minZ, maxX, maxZ]) => x >= minX && x <= maxX && z >= minZ && z <= maxZ);
+  }
+
+  // Whether `free` holds all along the straight line from `a` to `b`, checked every `step`.
+  private clearLine(a: { x: number; z: number }, b: { x: number; z: number }, free: (x: number, z: number) => boolean, step = 0.2): boolean {
     const d = Math.hypot(b.x - a.x, b.z - a.z);
-    const steps = Math.ceil(d / 0.2);
+    const steps = Math.ceil(d / step);
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       if (!free(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false;

@@ -4,7 +4,7 @@
 // attack once within reach. Placed from hashes and
 // noise, not the world rng, so they don't change the world.
 
-import { ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
+import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
 import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from './types';
 import { createForestDensity } from './worldgen/trees';
 import { hashUnit } from '../util/random';
@@ -56,6 +56,8 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     cooldown: 0,
     path: null,
     pathAge: 0,
+    lastSeen: null,
+    lostFor: 0,
     // Bandits: someone different each, in their own mix of bandit gear.
     human: kind === 'bandit' ? { look: lookAt(x, z), equipment: pickOutfit('bandit', x, z) } : null,
   };
@@ -145,7 +147,8 @@ export function stepEnemy(
   hero: { x: number; z: number },
   dt: number,
   move: (enemy: Enemy, dx: number, dz: number) => boolean,
-  steer: (enemy: Enemy) => { x: number; z: number } = () => hero,
+  steer: (enemy: Enemy, quarry: { x: number; z: number }) => { x: number; z: number } = (_e, quarry) => quarry,
+  sees: (enemy: Enemy) => boolean = () => true,
 ): void {
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
@@ -158,19 +161,38 @@ export function stepEnemy(
     return; // committed to the blow
   }
 
+  // It notices the hero in sight range with nothing solid in between, or
+  // close enough to hear whatever's in the way.
   const toHero = Math.hypot(hero.x - enemy.x, hero.z - enemy.z);
-  if (enemy.state === 'wander' && toHero < stats.sight) enemy.state = 'chase';
-  if (enemy.state === 'chase' && toHero > stats.giveUp) {
-    enemy.state = 'wander';
-    enemy.target = { x: enemy.homeX, z: enemy.homeZ };
+  const noticed = toHero < ENEMY_HEARING || (toHero < stats.sight && sees(enemy));
+  if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
+  if (enemy.state === 'chase') {
+    if (noticed || (toHero < stats.giveUp && sees(enemy))) {
+      enemy.lastSeen = { x: hero.x, z: hero.z };
+      enemy.lostFor = 0;
+    } else {
+      enemy.lostFor += dt;
+    }
+    // Out of range, or lost from view too long (or searched where it was
+    // last seen, and it's not there): back home.
+    const searched = !!enemy.lastSeen && enemy.lostFor > 0 && Math.hypot(enemy.lastSeen.x - enemy.x, enemy.lastSeen.z - enemy.z) < 0.25;
+    if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched) {
+      enemy.state = 'wander';
+      enemy.target = { x: enemy.homeX, z: enemy.homeZ };
+      enemy.lastSeen = null;
+      enemy.lostFor = 0;
+      enemy.path = null;
+    }
   }
 
   if (enemy.state === 'chase') {
     // A small margin: stepping exactly to `stop` can leave it a hair outside,
     // which would never count as in reach.
-    if (toHero > stats.stop + 0.02) {
-      // Toward the hero, or the next point on the way around what's between.
-      const goal = steer(enemy);
+    if (toHero > stats.stop + 0.02 || enemy.lostFor > 0) {
+      // Toward the hero (or where it was last seen), or the next point on
+      // the way around what's between.
+      const quarry = enemy.lostFor > 0 && enemy.lastSeen ? enemy.lastSeen : hero;
+      const goal = steer(enemy, quarry);
       const d = Math.hypot(goal.x - enemy.x, goal.z - enemy.z);
       const step = Math.min(stats.run * dt, goal === hero ? toHero - stats.stop : d);
       if (d > 1e-4) move(enemy, ((goal.x - enemy.x) / d) * step, ((goal.z - enemy.z) / d) * step);
