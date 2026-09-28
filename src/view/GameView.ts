@@ -252,14 +252,16 @@ export class GameView {
   }
 
   // The scene of the room the hero's in, built when they step in, or null outdoors.
-  private room: { entrance: Entrance; scene: THREE.Scene; update(time: number): void } | null = null;
+  // The one before is freed when they leave it (or go straight into another).
+  private room: ({ entrance: Entrance } & ReturnType<typeof buildRoomScene>) | null = null;
   private roomScene(model: GameModel): THREE.Scene | null {
     const inside = model.inside;
-    if (!inside) {
+    if (this.room && this.room.entrance !== inside?.entrance) {
+      this.room.dispose();
       this.room = null;
-      return null;
     }
-    if (this.room?.entrance !== inside.entrance) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture) };
+    if (!inside) return null;
+    if (!this.room) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture) };
     this.room.update(this.elapsed);
     return this.room.scene;
   }

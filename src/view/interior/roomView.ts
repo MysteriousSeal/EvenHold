@@ -11,8 +11,10 @@ import { fireOf } from './furnitureVoxels';
 import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels } from './roomVoxels';
 
-// The room's scene, and what to call each frame (its fire burning).
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void } {
+// The room's scene, what to call each frame (its fire burning), and how to
+// free it once the hero's left (it disposes only what it made: the hero, moved
+// in from the world, isn't touched).
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void; dispose(): void } {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
@@ -26,7 +28,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
   scene.add(room3d);
   // The wall lanterns, meshed apart and casting no shadow: their own light
   // shines from them, and a lantern's shadow on the wall behind it looks wrong.
-  if (lamps.length > 0) scene.add(new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps), ROOM_PALETTE, ROOM_VOXEL, origin), material));
+  const lamps3d = lamps.length > 0 ? new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps), ROOM_PALETTE, ROOM_VOXEL, origin), material) : null;
+  if (lamps3d) scene.add(lamps3d);
   // Warm light from above, a hearth glow from the back corner.
   scene.add(new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
   const sun = new THREE.DirectionalLight(0xffd7a0, 1.4);
@@ -55,9 +58,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
   // Wall lanterns light the room around them and cast their own shadows
   // (at a lower resolution than the fire's), each light just out in front of
   // its lantern's glass so the lantern itself doesn't block it.
-  const lanterns = furniture
-    .filter((f) => f.kind === 'wallLantern')
-    .map((f) => {
+  const lanterns = lamps.map((f) => {
       const light = new THREE.PointLight(0xffc070, 1.8, 4, 1.5);
       const out = 0.42; // off the wall, past the lantern
       light.position.set(f.wall === 'left' ? f.x - 0.5 + out : f.x, 0.62, f.wall === 'left' ? f.z : f.z - 0.5 + out);
@@ -81,6 +82,13 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       fire?.update(time);
       glow.intensity = 4.5 * flicker(time);
+    },
+    dispose() {
+      geometry.dispose();
+      lamps3d?.geometry.dispose();
+      material.dispose();
+      for (const light of [glow, ...lanterns]) light.dispose(); // their shadow maps
+      fire?.dispose();
     },
   };
 }
