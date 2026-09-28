@@ -7,6 +7,7 @@ import {
   HERO_RADIUS,
   BUSH_COLLISION_HALF,
   TREE_COLLISION_HALF,
+  ATTACK_DURATION,
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   HOP_DURATION,
@@ -96,6 +97,21 @@ export class GameModel {
   // along tile edges, keyed by the tile they're in.
   private readonly fences = new Map<string, Array<[number, number, number, number]>>();
 
+  // Time into the current attack, or null when not attacking.
+  private attackElapsed: number | null = null;
+
+  // Starts a blow unless one is already under way; returns whether it did.
+  startAttack(): boolean {
+    if (this.attackElapsed !== null) return false;
+    this.attackElapsed = 0;
+    return true;
+  }
+
+  // How far through the current attack the hero is, 0..1, or null.
+  get attackProgress(): number | null {
+    return this.attackElapsed === null ? null : Math.min(1, this.attackElapsed / ATTACK_DURATION);
+  }
+
   // Dev cheats: movement speed factor (1 = normal).
   speedMultiplier = 1;
 
@@ -158,6 +174,10 @@ export class GameModel {
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
     this.moveHorizontally(dirX, dirZ, dt);
+    if (this.attackElapsed !== null) {
+      this.attackElapsed += dt;
+      if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
+    }
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
     this.updateHop(dt);

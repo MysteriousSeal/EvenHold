@@ -149,7 +149,7 @@ export class GameView {
     for (const animate of this.animations) animate(this.elapsed);
 
     const { hero } = model;
-    this.hero.update(hero.x, hero.y, hero.z, dt);
+    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress);
     this.world.update(hero.x, hero.z);
 
     // The camera eases toward the ground height rather than tracking hero.y

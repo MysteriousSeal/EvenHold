@@ -26,6 +26,34 @@ const ARM_SWING = 0.55;
 const BOB = 0.012; // body rise at each step, world units
 const TURN_RATE = 14; // how fast the hero turns toward where they're walking (per second)
 
+// The blow, keyed over its progress (0..1): the right arm winds up overhead
+// and slightly back, strikes forward and down fast, then recovers; the body
+// twists into it, dips and leans in at the strike, and the legs brace.
+// Arm angles: negative swings the arm forward and up (the hero faces +Z).
+type Keys = Array<[number, number]>;
+const ATTACK = {
+  rightArm: [[0, 0], [0.35, -3.3], [0.52, -0.9], [0.75, -0.7], [1, 0]] as Keys,
+  leftArm: [[0, 0], [0.35, -0.4], [0.52, 0.55], [1, 0]] as Keys,
+  twist: [[0, 0], [0.35, -0.4], [0.52, 0.35], [1, 0]] as Keys, // body turn about Y: right shoulder back, then through
+  dip: [[0, 0], [0.35, 0.01], [0.55, -0.018], [1, 0]] as Keys, // body rise
+  lunge: [[0, 0], [0.35, -0.01], [0.55, 0.03], [1, 0]] as Keys, // body shift forward
+  frontLeg: [[0, 0], [0.4, -0.35], [0.8, -0.35], [1, 0]] as Keys,
+  backLeg: [[0, 0], [0.4, 0.3], [0.8, 0.3], [1, 0]] as Keys,
+};
+
+// Smoothly interpolated value of `keys` at `p`.
+function key(keys: Keys, p: number): number {
+  for (let i = 1; i < keys.length; i++) {
+    const [p1, v1] = keys[i];
+    if (p <= p1) {
+      const [p0, v0] = keys[i - 1];
+      const t = (p - p0) / (p1 - p0);
+      return v0 + (v1 - v0) * t * t * (3 - 2 * t);
+    }
+  }
+  return keys[keys.length - 1][1];
+}
+
 export type HeroSlot = 'head' | 'torso' | 'leftArm' | 'rightArm' | 'leftLeg' | 'rightLeg';
 
 // Meshes a part so that `pivot` (in voxels, within its grid) sits at the
@@ -59,17 +87,19 @@ export class HeroRig {
     this.slots = {
       torso: joint(0, HIP_Y, 0, part(buildTorso(), [TORSO_GRID[0] / 2, 0, TORSO_GRID[2] / 2], material)),
       head: joint(0, NECK_Y, 0, part(buildHead(), [HEAD_GRID[0] / 2, 0, HEAD_GRID[2] / 2], material)),
-      leftArm: joint(-4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
-      rightArm: joint(4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
-      leftLeg: joint(-2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
-      rightLeg: joint(2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
+      // The hero faces +Z, so their right side is -X.
+      rightArm: joint(-4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
+      leftArm: joint(4.5 * V, SHOULDER_Y, 0, part(buildArm(), armPivot, material)),
+      rightLeg: joint(-2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
+      leftLeg: joint(2 * V, HIP_Y, 0, part(buildLeg(), legPivot, material)),
     };
     this.root.add(this.body);
   }
 
   // Places the hero at (x, y, z) and animates from how far they moved
-  // since last frame: facing, walk cycle, bob, or idle breathing.
-  update(x: number, y: number, z: number, dt: number): void {
+  // since last frame (facing, walk cycle, bob, or idle breathing) and, while
+  // attacking, from how far through the blow they are (0..1).
+  update(x: number, y: number, z: number, dt: number, attack: number | null = null): void {
     this.time += dt;
     const dx = Number.isNaN(this.last.x) ? 0 : x - this.last.x;
     const dz = Number.isNaN(this.last.x) ? 0 : z - this.last.z;
@@ -96,6 +126,23 @@ export class HeroRig {
     // A rise at each footfall while walking; a slow breath while idle.
     const breath = Math.sin(this.time * 2.2) * 0.004 * (1 - this.swing);
     this.body.position.y = Math.abs(Math.sin(this.phase)) * BOB * this.swing + breath;
+    this.body.position.z = 0;
+    this.body.rotation.y = 0;
     this.slots.head.rotation.x = breath * 4; // the head nods slightly with it
+
+    if (attack !== null) {
+      // Blend in over the first tenth and out over the last fifth, so the
+      // blow picks up from (and hands back to) the walk without a snap.
+      const w = Math.min(1, attack / 0.1, (1 - attack) / 0.2);
+      const mix = (from: number, to: number) => from + (to - from) * w;
+      const s = this.slots;
+      s.rightArm.rotation.x = mix(s.rightArm.rotation.x, key(ATTACK.rightArm, attack));
+      s.leftArm.rotation.x = mix(s.leftArm.rotation.x, key(ATTACK.leftArm, attack));
+      s.leftLeg.rotation.x = mix(s.leftLeg.rotation.x, key(ATTACK.frontLeg, attack));
+      s.rightLeg.rotation.x = mix(s.rightLeg.rotation.x, key(ATTACK.backLeg, attack));
+      this.body.rotation.y = key(ATTACK.twist, attack) * w;
+      this.body.position.y += key(ATTACK.dip, attack) * w;
+      this.body.position.z = key(ATTACK.lunge, attack) * w;
+    }
   }
 }

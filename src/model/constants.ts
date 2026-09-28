@@ -4,6 +4,7 @@ export const MAP_WIDTH = 2048;
 export const MAP_DEPTH = 2048;
 export const HERO_SPEED = 4; // units per second
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size
+export const ATTACK_DURATION = 0.42; // seconds for one blow, wind-up to recovery
 export const HOP_DURATION = 0.18; // seconds to hop between terrain tiers
 export const HOP_HEIGHT = 0.12; // extra height at the top of the hop arc
 export const MAX_TIER = 4; // highest terrain tier; tiers are integers 0..MAX_TIER

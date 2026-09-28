@@ -57,6 +57,8 @@ export class GameController {
   };
 
   private step(dt: number): void {
+    if (this.input.consumeAttack()) this.model.startAttack();
+
     const { forward, right } = this.view.getMovementAxes();
 
     let dirX = 0;
