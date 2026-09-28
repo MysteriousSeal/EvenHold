@@ -37,7 +37,7 @@ const ROOM_COLORS = [
   0x4e2f1a, // 13 skirting
 ];
 // Floors, kept calm (seams only a shade off the boards) so what stands on
-// them reads clearly, and each with its shadow tones for under furniture.
+// them reads clearly.
 const FLOOR_COLORS = [
   0xa27a4e, // 30 board
   0x9a7248, // 31 board, a shade darker
@@ -45,13 +45,9 @@ const FLOOR_COLORS = [
   0x8f8c84, // 33 flagstone
   0x86837b, // 34 flagstone, a shade darker
   0x7a776f, // 35 mortar
-  0x6e5236, // 36 shadow on wood
-  0x80613f, // 37 shadow's edge on wood
-  0x5f5d57, // 38 shadow on stone
-  0x74716a, // 39 shadow's edge on stone
 ];
 export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS];
-const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, SHADOW_WOOD, SHADOW_WOOD_EDGE, SHADOW_STONE, SHADOW_STONE_EDGE] = FLOOR_COLORS.map(
+const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR] = FLOOR_COLORS.map(
   (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
 );
 
@@ -153,32 +149,7 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
   ); // doormat
   paintFurniture(grid, furniture, x0, z0);
-  shadeUnder(grid, room, furniture, x0, z0);
   return grid;
-}
-
-// A soft shadow on the floor under each solid piece: a dark patch under
-// its footprint and a lighter ring round it, so it sits on the floor.
-function shadeUnder(grid: VoxelGrid, room: Room, furniture: readonly Furniture[], x0: number, z0: number): void {
-  const stone = room.floor === 'flagstones';
-  const [core, edge] = stone ? [SHADOW_STONE, SHADOW_STONE_EDGE] : [SHADOW_WOOD, SHADOW_WOOD_EDGE];
-  const [sx, , sz] = grid.size;
-  for (const item of furniture) {
-    if (!item.solid) continue;
-    const ax = x0 + item.x * TILE + 2;
-    const bx = x0 + (item.x + item.w) * TILE - 3;
-    const az = z0 + item.z * TILE + 2;
-    const bz = z0 + (item.z + item.d) * TILE - 3;
-    for (let z = az - 2; z <= bz + 2; z++) {
-      for (let x = ax - 2; x <= bx + 2; x++) {
-        if (x < x0 || z < z0 || x >= sx || z >= sz) continue;
-        const i = x + sx * (0 + grid.size[1] * z);
-        if (!grid.cells[i] || grid.cells[i + sx] ) continue; // only bare floor (nothing standing on it)
-        const inner = x >= ax && x <= bx && z >= az && z <= bz;
-        grid.cells[i] = inner ? core : edge;
-      }
-    }
-  }
 }
 
 // Where floor tile (0, 0)'s middle is in the grid, in voxels (x, z).

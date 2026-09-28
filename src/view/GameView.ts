@@ -89,6 +89,9 @@ export class GameView {
     // Stats cover the whole frame (scene plus every post pass), so they're
     // reset once per frame in render() rather than per draw.
     this.renderer.info.autoReset = false;
+    // Only the firelight indoors casts shadows (roomView.ts); nothing outdoors does.
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.pixelRatio = options.pixelRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
     // Upscaling by a whole factor (1x on a 2x screen) stays crisp, like the
@@ -224,6 +227,7 @@ export class GameView {
       this.cameraY = hero.y;
     }
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing);
+    for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     if (room) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
