@@ -209,7 +209,8 @@ export class HumanRig {
   // Places the body at (x, y, z) and animates from how far they moved
   // since last frame (facing, walk cycle, bob, or idle breathing) and, while
   // attacking, from how far through the blow they are (0..1). `facing`, if
-  // given, is the way they strike: they turn to it quickly while attacking.
+  // given, is the way they strike (they turn to it quickly while attacking)
+  // or look (they turn to it when standing still).
   // Seated, (x, y, z) is where the hips rest and `facing` the way the seat
   // faces: they sit still, legs out in front. Lying down, (x, y, z) is where
   // the feet rest, on the bed, and `facing` points from head to feet.
@@ -233,9 +234,10 @@ export class HumanRig {
       this.heading += diff * Math.min(1, TURN_RATE * dt);
       this.phase += moved * STRIDE;
     }
-    if (attack !== null && facing !== undefined) {
+    if (facing !== undefined && (attack !== null || !walking)) {
+      // Toward where they strike, quickly; standing still, toward where they look.
       const diff = Math.atan2(Math.sin(facing - this.heading), Math.cos(facing - this.heading));
-      this.heading += diff * Math.min(1, ATTACK_TURN_RATE * dt);
+      this.heading += diff * Math.min(1, (attack !== null ? ATTACK_TURN_RATE : TURN_RATE) * dt);
     }
     this.root.rotation.y = this.heading;
     this.swing += ((walking ? 1 : 0) - this.swing) * Math.min(1, 12 * dt);

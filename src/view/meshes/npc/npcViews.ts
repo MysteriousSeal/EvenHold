@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { INDOOR_SCALE } from '../../../model/constants';
 import type { Entrance } from '../../../model/interiors/interiors';
-import { NPC_NEAR, type Npc } from '../../../model/npcs/npcs';
+import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
 import { HumanRig } from '../human/humanRig';
 import { nameLabel } from '../enemy/enemyParts';
 
@@ -29,7 +29,7 @@ export class NpcViews {
       if (!view) {
         const rig = new HumanRig(npc.look, this.material);
         rig.wear(npc.equipment);
-        const label = nameLabel(npc.name, 0.16);
+        const label = nameLabel(titleOf(npc), 0.16);
         label.position.y = LABEL_Y;
         rig.root.add(label);
         view = { rig, label };
@@ -43,7 +43,7 @@ export class NpcViews {
         rig.update(npc.x, npc.y, npc.z, 0); // arrive in place, no walk from where it was
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : 'stand';
-      rig.update(npc.x, npc.y, npc.z, dt, null, npc.seat ? npc.facing : undefined, pose);
+      rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
       label.visible = Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
     }
     for (const [id, view] of this.shown) {
