@@ -1,4 +1,4 @@
-// Voxel road and cobble tiles, at the world's 0.04 voxel scale: 25x25
+// Voxel road tiles, at the world's 0.04 voxel scale: 25x25
 // voxels span exactly one tile. Palette first, then shape:
 // - Road tiles: a dirt band two voxels thick (the cross of center + arms
 //   toward connected neighbors), two wheel ruts carved a voxel deeper and
@@ -6,9 +6,6 @@
 // - Where the road runs onto a neighbor one tier lower, it steps down the
 //   drop as a short dirt staircase built out over the lower tile, instead
 //   of ending at the cliff edge above it.
-// - Cobble tiles: 4x4-voxel stones on a 5-voxel grid with mortar gaps. 25
-//   is a multiple of 5, so the pattern repeats exactly every tile and no
-//   stone is ever cut at a tile boundary.
 // A tile's look depends only on its connections and a variant number, so
 // each distinct tile is built and meshed once, then instanced.
 
@@ -37,19 +34,12 @@ export const ROAD_PALETTE = [
   0x8f7048, // 3 dirt, darker edge / speck
   0x7a5f40, // 4 rut floor
   0xcbbfa7, // 5 pebble
-  0x7d6a52, // 6 mortar
-  0x9d998f, // 7 stone
-  0x8f8b82, // 8 stone
-  0xaaa69b, // 9 stone
-  0x86827a, // 10 stone
 ];
 const DIRT = 1;
 const DIRT_LIGHT = 2;
 const DIRT_DARK = 3;
 const RUT_FLOOR = 4;
 const PEBBLE = 5;
-const MORTAR = 6;
-const STONES = [7, 8, 9, 10];
 
 // Arms in NEIGHBORS_4 order (+x, -x, +z, -z), as bits of a connection mask.
 const [EAST, WEST, SOUTH, NORTH] = [0, 1, 2, 3];
@@ -191,22 +181,4 @@ function addStairs(set: (i: number, j: number, k: number, color: number) => void
       set(i, tread, k, rut ? RUT_FLOOR : DIRT);
     }
   }
-}
-
-export function buildCobbleTile(variant: number): VoxelGrid {
-  const grid = createGrid(ROAD_TILE_GRID);
-  const rng = mulberry32(0xc0bb + variant * 104729);
-  const stoneColors = new Map<number, number>();
-
-  for (let i = 0; i < N; i++) {
-    for (let k = 0; k < N; k++) {
-      setColor(grid, i, 0, k, MORTAR);
-      if (i % 5 === 4 || k % 5 === 4) continue; // mortar gap
-      const stone = Math.floor(i / 5) + 5 * Math.floor(k / 5);
-      if (!stoneColors.has(stone)) stoneColors.set(stone, STONES[Math.floor(rng() * STONES.length)]);
-      setColor(grid, i, 0, k, stoneColors.get(stone)!);
-      setColor(grid, i, 1, k, stoneColors.get(stone)!);
-    }
-  }
-  return grid;
 }

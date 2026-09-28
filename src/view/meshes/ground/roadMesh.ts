@@ -1,8 +1,7 @@
-// Voxel roads and village squares. Each trail tile's layout comes from
-// which neighbors it connects to (a 4-bit mask), plus a small variant
-// number from its position hash; square tiles pick one of a few cobble
-// variants. Every distinct tile is greedy-meshed once and instanced per
-// map chunk, so off-screen road is culled.
+// Voxel roads. Each trail tile's layout comes from which neighbors it
+// connects to (a 4-bit mask), plus a small variant number from its position
+// hash. Every distinct tile is greedy-meshed once and instanced per map
+// chunk, so off-screen road is culled. Village squares are plazaMesh.ts.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
@@ -12,10 +11,9 @@ import { hashCell } from '../../../util/random';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
 import { NEIGHBORS_4 } from '../../../model/grid';
-import { ROAD_PALETTE, ROAD_VOXEL_SIZE, buildCobbleTile, buildRoadTile, roadTileOffset } from './roadVoxels';
+import { ROAD_PALETTE, ROAD_VOXEL_SIZE, buildRoadTile, roadTileOffset } from './roadVoxels';
 
 const ROAD_VARIANTS = 3;
-const COBBLE_VARIANTS = 4;
 
 interface PavedTile {
   x: number;
@@ -39,10 +37,7 @@ function pavedTiles(model: GameModel): PavedTile[] {
     for (let z = 0; z < MAP_DEPTH; z++) {
       const surface = model.surfaceMap[x][z];
       const tier = model.heightMap[x][z];
-      if (surface === 'plaza') {
-        const variant = hashCell(x, z, 6) % COBBLE_VARIANTS;
-        tiles.push({ x, z, tier, model: `cobble:${variant}`, build: () => buildCobbleTile(variant), drops: 0 });
-      } else if (surface === 'path') {
+      if (surface === 'path') {
         const mask = roadConnections(model.surfaceMap, x, z);
         const variant = hashCell(x, z, 7) % ROAD_VARIANTS;
         // Terrain smoothing keeps neighbors within one tier, so a drop is always one step.
