@@ -50,13 +50,15 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     }
     const max = maxHpAt(hero.level);
     const need = xpToNext(hero.level);
-    const health = Math.floor(hero.hp); // whole points only once healed to them
-    const state = `${hero.hp.toFixed(2)}/${max}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}`;
+    // Whole points only, in both the bar and the label, so they always agree
+    // (healing fills in a point at a time).
+    const health = Math.floor(hero.hp);
+    const state = `${health}/${max}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}`;
     if (state === shown) return;
     shown = state;
     root.classList.toggle('hurt', hero.hurtFor > 0);
     level.textContent = String(hero.level);
-    hp.fill.style.width = `${(hero.hp / max) * 100}%`;
+    hp.fill.style.width = `${(health / max) * 100}%`;
     hp.label.textContent = `${health} / ${max}`;
     xp.fill.style.width = `${(hero.xp / need) * 100}%`;
     xp.label.textContent = `${hero.xp} / ${need} xp`;
