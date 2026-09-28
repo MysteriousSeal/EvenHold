@@ -1,6 +1,7 @@
 // EvenHold menus (styles in menu.css): the one layout every in-game menu
-// shares. A menu has a title and tabs; a tab shows either rows (actions,
-// some of them on/off toggles) or a ledger of facts. The menu owns its
+// shares. A menu has a title and tabs; a tab shows rows (actions, some of
+// them on/off toggles), a ledger of facts, a grid of slots (a bag), or a
+// paper doll (a figure with its slots around it). The menu owns its
 // keyboard: left/right switch tabs, up/down choose, Enter or Space uses,
 // number keys pick directly, Escape closes; the mouse works too. While open
 // it takes every key, so none reaches the game.
@@ -28,9 +29,15 @@ export interface MenuSlot {
   title: string;
   tone?: string; // colors the title (e.g. an item quality: 'junk')
   lines?: string[];
-  // If given, the slot can be dragged out of the menu and let go outside
-  // it (e.g. onto the world, to drop it).
-  dragOut?(): void;
+  // If given, the slot can be dragged out of the menu; let go outside it,
+  // this runs with what's under the pointer (another menu, or the world).
+  dragOut?(over: Element | null): void;
+}
+
+// A slot around a paper doll: its name (shown while empty) and what's in it.
+export interface DollSlot {
+  label: string;
+  slot: MenuSlot | null;
 }
 
 export interface MenuTab {
@@ -41,6 +48,9 @@ export interface MenuTab {
   // A grid of slots (null: an empty one), refreshed when shown; the
   // arrow keys move around it.
   slots?(): { cells: Array<MenuSlot | null>; columns: number };
+  // A figure with slots down its left and right and along the bottom (a
+  // character sheet), shown above any facts.
+  doll?(): { figure: MenuIcon; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
 }
 
 export interface MenuOptions {
@@ -52,6 +62,7 @@ export interface MenuOptions {
   // it takes every key. Modeless (false): the world stays clear and playable
   // around it, and only Escape and its toggle key reach the menu.
   modal?: boolean;
+  place?: 'center' | 'left' | 'bottom-right'; // where a modeless menu sits (default: bottom right)
   onOpenChange?(open: boolean): void;
 }
 
@@ -60,6 +71,9 @@ export interface Menu {
   open(): void;
   close(): void;
   toggle(): void;
+  // Redraws the open tab (after what it shows has changed), keeping the
+  // tooltip of the slot under the pointer.
+  refresh(): void;
 }
 
 // The close button's X: two thick strokes with square ends and a soft drop
@@ -98,7 +112,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 
 export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
-  const backdrop = el('div', modal ? 'menu-backdrop' : 'menu-backdrop modeless');
+  const backdrop = el('div', modal ? 'menu-backdrop' : `menu-backdrop modeless place-${options.place ?? 'bottom-right'}`);
   backdrop.hidden = true;
   const menu = el('div', 'menu');
   menu.setAttribute('role', 'dialog');
@@ -131,6 +145,46 @@ export function createMenu(options: MenuOptions): Menu {
   const tooltip = el('div', 'menu-tooltip');
   tooltip.hidden = true;
   document.body.append(tooltip);
+  // Every slot button drawn (grid or doll), in order, so a redraw can show
+  // the tooltip again on the one that had it.
+  let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null }> = [];
+  let tipped: number | null = null;
+
+  function showTip(index: number): void {
+    const entry = slotButtons[index];
+    tipped = entry?.cell ? index : null;
+    tooltip.hidden = tipped === null;
+    if (!entry?.cell) return;
+    const { cell, button } = entry;
+    const title = el('b', undefined, cell.title);
+    if (cell.tone) title.dataset.tone = cell.tone;
+    tooltip.replaceChildren(title, ...(cell.lines ?? []).map((line) => el('small', undefined, line)));
+    const slot = button.getBoundingClientRect();
+    const width = tooltip.offsetWidth;
+    const left = slot.right + 8 + width <= window.innerWidth ? slot.right + 8 : slot.left - 8 - width;
+    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(slot.top)}px)`;
+  }
+
+  function hideTip(): void {
+    tipped = null;
+    tooltip.hidden = true;
+  }
+
+  // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.
+  function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void): HTMLButtonElement {
+    const button = el('button', cell ? 'menu-slot' : 'menu-slot empty');
+    if (cell) {
+      button.append(cell.icon(iconSize));
+      if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
+    }
+    button.addEventListener('mouseenter', onHover);
+    if (cell?.dragOut) {
+      button.classList.add('draggable');
+      button.addEventListener('pointerdown', (event) => startDrag(event, cell));
+    }
+    slotButtons.push({ button, cell });
+    return button;
+  }
 
   const tabButtons = options.tabs.map((tab, i) => {
     const button = el('button', 'menu-tab');
@@ -147,6 +201,8 @@ export function createMenu(options: MenuOptions): Menu {
     tabButtons.forEach((b, j) => b.classList.toggle('active', j === tabIndex));
     const tab = options.tabs[tabIndex];
     list.replaceChildren();
+    slotButtons = [];
+    if (tab.doll) showDoll(tab.doll());
     if (tab.facts) {
       const ledger = el('dl', 'menu-ledger');
       for (const [label, value] of tab.facts()) {
@@ -157,8 +213,8 @@ export function createMenu(options: MenuOptions): Menu {
       list.append(ledger);
     }
     grid = null;
-    list.classList.toggle('grid', !!tab.slots);
-    body.classList.toggle('grid', !!tab.slots);
+    list.classList.toggle('grid', !!tab.slots || !!tab.doll);
+    body.classList.toggle('grid', !!tab.slots || !!tab.doll);
     if (tab.slots) showSlots(tab.slots());
     rows = (tab.actions ?? []).map((action, j) => {
       const row = el('button', 'menu-row');
@@ -182,23 +238,35 @@ export function createMenu(options: MenuOptions): Menu {
     const box = el('div', 'menu-grid');
     box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
     const buttons = cells.map((cell, i) => {
-      const button = el('button', cell ? 'menu-slot' : 'menu-slot empty');
-      if (cell) {
-        button.append(cell.icon(44));
-        if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
-      }
-      button.addEventListener('mouseenter', () => selectSlot(i));
-      if (cell?.dragOut) {
-        button.classList.add('draggable');
-        button.addEventListener('pointerdown', (event) => startDrag(event, cell));
-      }
+      const button = slotButton(cell, 44, () => selectSlot(i));
       box.append(button);
       return button;
     });
-    box.addEventListener('mouseleave', () => (tooltip.hidden = true));
+    box.addEventListener('mouseleave', hideTip);
     list.append(box);
     grid = { buttons, cells, columns, selected: 0 };
     selectSlot(0, false);
+  }
+
+  // The paper doll: the figure in the middle, slots down each side and
+  // along the bottom; empty ones show their name.
+  function showDoll({ figure, left, right, bottom }: { figure: MenuIcon; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] }): void {
+    const doll = el('div', 'menu-doll');
+    const column = (slots: DollSlot[], className: string) => {
+      const box = el('div', className);
+      for (const { label, slot } of slots) {
+        const index = slotButtons.length;
+        const button = slotButton(slot, 40, () => showTip(index));
+        button.addEventListener('mouseleave', hideTip);
+        if (!slot) button.append(el('span', 'menu-slot-label', label));
+        box.append(button);
+      }
+      return box;
+    };
+    const stage = el('div', 'menu-doll-figure');
+    stage.append(figure(150));
+    doll.append(column(left, 'menu-doll-side'), stage, column(right, 'menu-doll-side'), column(bottom, 'menu-doll-bottom'));
+    list.append(doll);
   }
 
   // Dragging a slot: its icon follows the pointer; let go outside the menu
@@ -208,12 +276,14 @@ export function createMenu(options: MenuOptions): Menu {
   function startDrag(event: PointerEvent, cell: MenuSlot): void {
     if (event.button !== 0) return;
     event.preventDefault();
-    tooltip.hidden = true;
-    const ghost = el('div', 'menu-drag');
-    ghost.append(cell.icon(52));
+    hideTip();
+    // The whole slot comes along under the pointer: its tile, icon and count.
+    const ghost = el('div', 'menu-slot menu-drag');
+    ghost.append(cell.icon(44));
+    if (cell.count && cell.count > 1) ghost.append(el('span', 'menu-slot-count', String(cell.count)));
     const follow = (e: PointerEvent) => (ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`);
     follow(event);
-    document.body.append(ghost);
+    backdrop.append(ghost); // inside the menu's layer, so it wears the menu's colors
     const move = (e: PointerEvent) => follow(e);
     const up = (e: PointerEvent) => {
       window.removeEventListener('pointermove', move);
@@ -223,7 +293,7 @@ export function createMenu(options: MenuOptions): Menu {
       const outside = e.clientX < panel.left || e.clientX > panel.right || e.clientY < panel.top || e.clientY > panel.bottom;
       if (!outside || !cell.dragOut) return;
       justDropped = true; // the release's click on the backdrop mustn't close the menu
-      cell.dragOut();
+      cell.dragOut(document.elementFromPoint(e.clientX, e.clientY));
       const keep = grid?.selected ?? 0;
       showTab(tabIndex);
       selectSlot(keep, false);
@@ -238,16 +308,11 @@ export function createMenu(options: MenuOptions): Menu {
     if (!grid) return;
     grid.selected = Math.max(0, Math.min(grid.buttons.length - 1, i));
     grid.buttons.forEach((b, j) => b.classList.toggle('selected', j === grid!.selected));
-    const cell = grid.cells[grid.selected];
-    tooltip.hidden = !tip || !cell;
-    if (!cell || !tip) return;
-    const title = el('b', undefined, cell.title);
-    if (cell.tone) title.dataset.tone = cell.tone;
-    tooltip.replaceChildren(title, ...(cell.lines ?? []).map((line) => el('small', undefined, line)));
-    const slot = grid.buttons[grid.selected].getBoundingClientRect();
-    const width = tooltip.offsetWidth;
-    const left = slot.right + 8 + width <= window.innerWidth ? slot.right + 8 : slot.left - 8 - width;
-    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(slot.top)}px)`;
+    if (!tip) {
+      hideTip();
+      return;
+    }
+    showTip(slotButtons.findIndex((entry) => entry.button === grid!.buttons[grid!.selected]));
   }
 
   function select(i: number): void {
@@ -291,12 +356,20 @@ export function createMenu(options: MenuOptions): Menu {
     },
     close() {
       backdrop.hidden = true;
-      tooltip.hidden = true;
+      hideTip();
       options.onOpenChange?.(false);
     },
     toggle() {
       if (api.isOpen) api.close();
       else api.open();
+    },
+    refresh() {
+      if (!api.isOpen) return;
+      const tip = tipped;
+      const keep = grid?.selected ?? 0;
+      showTab(tabIndex);
+      if (grid) selectSlot(keep, false);
+      if (tip !== null) showTip(tip);
     },
   };
 
