@@ -5,7 +5,8 @@
 
 import type { GameModel } from '../../../model/GameModel';
 import { MAP_WIDTH, MAP_DEPTH, TILE_HEIGHT } from '../../../model/constants';
-import { cellKey } from '../../../model/grid';
+import { NEIGHBORS_4, cellKey, inBounds } from '../../../model/grid';
+import { ROAD_WIDTH } from '../../constants';
 import { solidCells } from '../../../model/worldgen/world';
 import { createNoise2D } from 'simplex-noise';
 import { hashCell, mulberry32 } from '../../../util/random';
@@ -19,6 +20,8 @@ const FLOWER_CHANCE = 0.05;
 const PEBBLE_CHANCE = 0.04;
 const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
+const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
+const ROAD_CLEARANCE = 0.04; // keep lining grass this far off the dirt
 
 export interface ScatterItem {
   x: number;
@@ -36,9 +39,23 @@ export interface GroundCover {
   pebbles: ScatterItem[];
 }
 
-// Only plain grass: never water, paths, village squares or buildings.
-// Flowers and pebbles also skip tree tiles so they don't sit inside a trunk;
-// tufts around a tree's base look natural.
+// A road tile's dirt strip covers a cross: the center square plus an arm
+// toward each connected road/square neighbor (see groundDecals.ts). True
+// if a point (offset from the tile center) is on that cross, plus clearance.
+function onRoad(model: GameModel, x: number, z: number, ox: number, oz: number): boolean {
+  const half = ROAD_WIDTH / 2 + ROAD_CLEARANCE;
+  if (Math.abs(ox) <= half && Math.abs(oz) <= half) return true;
+  return NEIGHBORS_4.some(([dx, dz]) => {
+    if (!inBounds(x + dx, z + dz) || model.surfaceMap[x + dx][z + dz] === 'natural') return false;
+    return dx !== 0 ? Math.sign(ox) === dx && Math.abs(oz) <= half : Math.sign(oz) === dz && Math.abs(ox) <= half;
+  });
+}
+
+// Grass, flowers and pebbles go on plain grass only: never water, village
+// squares or buildings. Flowers and pebbles also skip tree tiles so they
+// don't sit inside a trunk; tufts around a tree's base look natural. Road
+// tiles are only half dirt, so their grassy margins get a steady line of
+// clumps (whatever the meadow density), making roads cut through the grass.
 // 0 on bare ground, 1 in the lushest meadow. Low-frequency noise shifted
 // down a little so bare areas are common and meadows have soft edges.
 function meadowDensity(noise2D: (x: number, y: number) => number, x: number, z: number): number {
@@ -55,7 +72,9 @@ export function scatterGroundCover(model: GameModel): GroundCover {
   for (let x = 0; x < MAP_WIDTH; x++) {
     for (let z = 0; z < MAP_DEPTH; z++) {
       const key = cellKey(x, z);
-      if (model.lakeMap[x][z] || model.surfaceMap[x][z] !== 'natural' || solid.has(key)) continue;
+      if (model.lakeMap[x][z] || solid.has(key)) continue;
+      const surface = model.surfaceMap[x][z];
+      if (surface === 'plaza') continue;
 
       const rng = mulberry32(hashCell(x, z, SCATTER_SALT));
       const tier = model.heightMap[x][z];
@@ -70,6 +89,16 @@ export function scatterGroundCover(model: GameModel): GroundCover {
         variant,
       });
       const offset = () => (rng() - 0.5) * SCATTER_SPREAD;
+
+      if (surface === 'path') {
+        for (let i = 0; i < ROAD_EDGE_CANDIDATES; i++) {
+          const ox = (rng() - 0.5) * 0.9;
+          const oz = (rng() - 0.5) * 0.9;
+          const scale = 0.7 + rng() * 0.25;
+          if (!onRoad(model, x, z, ox, oz)) cover.tufts.push(item(ox, oz, scale, rng() < 0.5 ? 0 : 1));
+        }
+        continue;
+      }
 
       // Lush meadows get up to MAX_CLUMPS_PER_TILE, their edges a stray
       // clump or two, bare ground none.
