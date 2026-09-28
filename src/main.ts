@@ -5,6 +5,8 @@ import { resolveSeed } from './util/seed';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
+import { createLootPrompt } from './view/hud/lootPrompt';
+import { createInventoryPanel } from './controller/inventoryPanel';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 
@@ -40,17 +42,21 @@ async function boot(): Promise<void> {
   document.body.append(hudTop);
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateTarget = createTargetHud(hudTop);
+  const lootPrompt = createLootPrompt();
   const onFrame = () => {
     countFrame();
     updateHud();
     updateTarget(model.focused);
+    lootPrompt.update(model.lootInReach, (x, y, z) => view.toScreen(x, y, z));
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame });
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item) });
   controller.start();
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.
   await nextPaint();
   loading.hide();
+
+  createInventoryPanel(model, { setPaused: (paused) => (controller.paused = paused) });
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {

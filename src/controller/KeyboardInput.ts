@@ -12,10 +12,12 @@ const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
 };
 
 const ATTACK_KEY = 'Space';
+const PICKUP_KEY = 'KeyE';
 
 export class KeyboardInput {
   private readonly pressed = new Set<Direction>();
   private attackRequested = false;
+  private pickupRequested = false;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -36,7 +38,18 @@ export class KeyboardInput {
     return requested;
   }
 
+  // True once per press of the pick-up key.
+  consumePickup(): boolean {
+    const requested = this.pickupRequested;
+    this.pickupRequested = false;
+    return requested;
+  }
+
   private onKey(e: KeyboardEvent, isDown: boolean): void {
+    if (e.code === PICKUP_KEY) {
+      if (isDown && !e.repeat) this.pickupRequested = true;
+      return;
+    }
     if (e.code === ATTACK_KEY) {
       e.preventDefault(); // no page scroll, no re-clicking a focused button
       if (isDown && !e.repeat) this.attackRequested = true;

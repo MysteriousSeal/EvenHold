@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import type { LootId } from '../model/loot/loot';
 import type { GameModel } from '../model/GameModel';
 import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
@@ -29,14 +30,16 @@ export class GameController {
   private lastTime = 0;
   private readonly schedule: (callback: (now: number) => void) => void;
   private readonly onFrame: () => void;
+  private readonly onPickUp: (item: LootId) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: LootId) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
+    this.onPickUp = options.onPickUp ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
@@ -71,6 +74,10 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
+    if (this.input.consumePickup()) {
+      const item = this.model.pickUp();
+      if (item) this.onPickUp(item);
+    }
 
     const { forward, right } = this.view.getMovementAxes();
 

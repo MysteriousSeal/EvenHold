@@ -30,6 +30,7 @@ import {
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
+import { LOOT_IDS } from '../../model/loot/loot';
 import { createMenu, type MenuAction } from '../../view/ui/menu';
 import { ICONS as ICON, itemIcon } from './cheatIcons';
 
@@ -113,6 +114,18 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
         actions: [
           { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
           { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
+          {
+            icon: ICON.camp,
+            title: 'Scatter junk',
+            detail: 'One of every junk item around you',
+            run: () => {
+              LOOT_IDS.forEach((item, i) => {
+                const a = (i / LOOT_IDS.length) * Math.PI * 2;
+                model.dropLoot(item, model.hero.x + Math.cos(a) * 1.2, model.hero.z + Math.sin(a) * 1.2);
+              });
+              return 'Junk everywhere.';
+            },
+          },
           { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
           { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
         ],
@@ -174,6 +187,7 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
             ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
             ['World', `${model.size.width}×${model.size.depth}`],
             ['Villages · camps', `${model.villages.length} · ${model.camps.length}`],
+            ['In the bag', `${Object.values(model.hero.bag).reduce((n, c) => n + (c ?? 0), 0)} items`],
           ];
         },
       },
