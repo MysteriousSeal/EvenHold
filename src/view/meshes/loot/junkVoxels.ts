@@ -2,25 +2,8 @@
 // voxels, about the world's), so a fang or a spoon is easy to spot on the ground.
 
 import type { JUNK_ITEMS } from '../../../model/loot/junk';
-import type { VoxelGrid } from '../voxel/greedyMesh';
-import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
-
-export const LOOT_VOXEL_SIZE = 0.045;
-
-export interface LootModel {
-  palette: number[];
-  build(): VoxelGrid;
-}
-
-// A model from a palette and a painter over a grid of `size`.
-const model = (palette: number[], size: [number, number, number], paint: (grid: VoxelGrid) => void): LootModel => ({
-  palette,
-  build: () => {
-    const grid = createGrid(size);
-    paint(grid);
-    return grid;
-  },
-});
+import { fillBox, setColor } from '../voxel/voxelShapes';
+import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
   // A long ivory tooth, yellowed at the root, stepping to a point.

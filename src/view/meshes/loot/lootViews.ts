@@ -12,7 +12,8 @@ import { humanFigure } from '../human/humanFigure';
 import { ITEM_MODELS } from '../human/gear/itemModels';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { greedyMesh } from '../voxel/greedyMesh';
-import { JUNK_MODELS, LOOT_VOXEL_SIZE } from './junkVoxels';
+import { LOOT_VOXEL_SIZE } from './lootModel';
+import { LOOT_MODELS } from './lootModels';
 
 const VIEW_RADIUS = 30;
 const SPIN = 1.4; // radians per second
@@ -118,7 +119,7 @@ export class LootViews {
     let geometry = this.geometries.get(item);
     if (!geometry) {
       if (isLootItem(item)) {
-        const model = JUNK_MODELS[item];
+        const model = LOOT_MODELS[item];
         geometry = greedyMesh(model.build(), model.palette, LOOT_VOXEL_SIZE, new THREE.Vector3());
       } else {
         const gear = ITEM_MODELS[item as ItemId];

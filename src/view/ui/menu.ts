@@ -7,6 +7,7 @@
 // it takes every key, so none reaches the game.
 
 import './menu.css';
+import { closeCross } from './closeCross';
 // An icon: makes a canvas showing it at `size` CSS pixels (e.g. voxelIcon).
 export type MenuIcon = (size: number) => HTMLCanvasElement;
 
@@ -35,6 +36,12 @@ export interface MenuSlot {
   // Which kind of doll slot it fits (e.g. 'head'): while it's dragged, that
   // slot glows, and hovering a doll slot shows green if it fits, red if not.
   fits?: string;
+  // Clicked (or Enter): e.g. buy it; a right-click: e.g. eat it. Each may
+  // return a line for the status bar; the menu's redrawn after.
+  use?(): string | void;
+  alt?(): string | void;
+  tag?: Array<string | HTMLElement>; // a label in a band along its bottom (e.g. a price)
+  badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -59,6 +66,9 @@ export interface MenuTab {
   doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
   // A line under everything else (e.g. the purse under a bag), refreshed when shown.
   footer?(): HTMLElement;
+  // With a grid: a panel beside it telling of the slot chosen (clicked, or
+  // with the arrows), e.g. an item and a button to buy it; no tooltips then.
+  detail?(slot: MenuSlot | null): HTMLElement;
 }
 
 export interface MenuOptions {
@@ -84,33 +94,8 @@ export interface Menu {
   // Redraws the open tab (after what it shows has changed), keeping the
   // tooltip of the slot under the pointer.
   refresh(): void;
-}
-
-// The close button's X: two thick strokes with square ends and a soft drop
-// shadow, drawn smooth on a canvas (crisp at any screen density) in `color`.
-function closeCross(size: number, color: string, shadow: string): HTMLCanvasElement {
-  const ratio = Math.max(1, window.devicePixelRatio || 1);
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = Math.round(size * ratio);
-  canvas.style.width = canvas.style.height = `${size}px`;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return canvas;
-  const s = canvas.width;
-  const inset = s * 0.24;
-  const draw = (offset: number, stroke: string) => {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = s * 0.17;
-    ctx.lineCap = 'butt';
-    ctx.beginPath();
-    ctx.moveTo(inset, inset + offset);
-    ctx.lineTo(s - inset, s - inset + offset);
-    ctx.moveTo(s - inset, inset + offset);
-    ctx.lineTo(inset, s - inset + offset);
-    ctx.stroke();
-  };
-  draw(s * 0.06, shadow);
-  draw(0, color);
-  return canvas;
+  // A new title (e.g. whose wares these are).
+  setTitle(title: string): void;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) => {
@@ -135,7 +120,8 @@ export function createMenu(options: MenuOptions): Menu {
   menu.setAttribute('role', 'dialog');
   menu.setAttribute('aria-label', options.title);
   const header = el('div', 'menu-header');
-  header.append(el('h2', 'menu-title', options.title));
+  const titleText = el('h2', 'menu-title', options.title);
+  header.append(titleText);
   const closeButton = el('button', 'menu-close');
   closeButton.setAttribute('aria-label', 'Close');
   // Two drawings of the X: at rest, and lit on hover (CSS shows one).
@@ -194,8 +180,26 @@ export function createMenu(options: MenuOptions): Menu {
     if (cell) {
       button.append(cell.icon(iconSize));
       if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
+      if (cell.badge) button.append(el('span', 'menu-slot-badge', cell.badge));
+      if (cell.tag) {
+        const tag = el('span', 'menu-slot-tag');
+        tag.append(...cell.tag);
+        button.append(tag);
+      }
     }
     button.addEventListener('mouseenter', onHover);
+    const act = (action: (() => string | void) | undefined) => {
+      if (!action) return;
+      status.textContent = action() ?? '';
+      api.refresh();
+    };
+    if (cell?.use) button.addEventListener('click', () => act(cell.use));
+    if (cell?.alt) {
+      button.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        act(cell.alt);
+      });
+    }
     if (cell?.dragOut) {
       button.classList.add('draggable');
       button.addEventListener('pointerdown', (event) => startDrag(event, cell));
@@ -253,16 +257,29 @@ export function createMenu(options: MenuOptions): Menu {
     refresh();
   }
 
+  let detailPane: HTMLElement | null = null; // beside a grid whose tab has `detail`
+
   function showSlots({ cells, columns }: { cells: Array<MenuSlot | null>; columns: number }): void {
     const box = el('div', 'menu-grid');
     box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    const detail = options.tabs[tabIndex].detail;
     const buttons = cells.map((cell, i) => {
-      const button = slotButton(cell, 44, () => selectSlot(i));
+      const button = slotButton(cell, 44, detail ? () => {} : () => selectSlot(i));
+      if (detail) button.addEventListener('click', () => selectSlot(i, false));
       box.append(button);
       return button;
     });
     box.addEventListener('mouseleave', hideTip);
-    list.append(box);
+    if (detail) {
+      // The grid on the left, the chosen slot told of on the right.
+      detailPane = el('div', 'menu-detail');
+      const split = el('div', 'menu-split');
+      split.append(box, detailPane);
+      list.append(split);
+    } else {
+      detailPane = null;
+      list.append(box);
+    }
     grid = { buttons, cells, columns, selected: 0 };
     selectSlot(0, false);
   }
@@ -347,6 +364,7 @@ export function createMenu(options: MenuOptions): Menu {
     if (!grid) return;
     grid.selected = Math.max(0, Math.min(grid.buttons.length - 1, i));
     grid.buttons.forEach((b, j) => b.classList.toggle('selected', j === grid!.selected));
+    detailPane?.replaceChildren(options.tabs[tabIndex].detail!(grid.cells[grid.selected]));
     if (!tip) {
       hideTip();
       return;
@@ -384,6 +402,10 @@ export function createMenu(options: MenuOptions): Menu {
   }
 
   const api: Menu = {
+    setTitle(title) {
+      titleText.textContent = title;
+      menu.setAttribute('aria-label', title);
+    },
     get isOpen() {
       return !backdrop.hidden;
     },
@@ -450,6 +472,7 @@ export function createMenu(options: MenuOptions): Menu {
       else if (event.code === 'ArrowLeft') showTab(tabIndex - 1);
       else if (event.code === 'ArrowDown') select(selected + 1);
       else if (event.code === 'ArrowUp') select(selected - 1);
+      else if (grid && (event.code === 'Enter' || event.code === 'Space')) (detailPane?.querySelector('button') ?? slotButtons[grid.selected]?.button)?.click(); // the chosen slot's button, or the slot
       else if (event.code === 'Enter' || event.code === 'Space') use(selected);
       else {
         const pick = Number(event.key) - 1;

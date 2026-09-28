@@ -10,7 +10,7 @@ import type { BodyLook } from '../../model/human/humanoid';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { ITEM_MODELS } from '../meshes/human/gear/itemModels';
-import { JUNK_MODELS } from '../meshes/loot/junkVoxels';
+import { LOOT_MODELS } from '../meshes/loot/lootModels';
 import type { MenuIcon } from './menu';
 import { voxelIcon } from './voxelIcon';
 
@@ -26,7 +26,7 @@ export const gearIcon = (item: ItemId): MenuIcon => (size) =>
   );
 
 export const lootIcon = (item: LootId): MenuIcon => (size) =>
-  voxelIcon(`loot:${item}`, () => ({ grid: JUNK_MODELS[item].build(), palette: JUNK_MODELS[item].palette }), size);
+  voxelIcon(`loot:${item}`, () => ({ grid: LOOT_MODELS[item].build(), palette: LOOT_MODELS[item].palette }), size);
 
 // What an empty slot shows: a small voxel model of what goes there (a
 // helmet, a gauntlet, a boot...), made just for that, rendered like every

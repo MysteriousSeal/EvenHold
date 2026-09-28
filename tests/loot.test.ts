@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
 import { DROP_CHANCE, LOOT, LOOT_IDS, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
-import { JUNK_MODELS } from '../src/view/meshes/loot/junkVoxels';
+import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const FRAME = 1 / 60;
@@ -27,7 +27,7 @@ describe('loot drops', () => {
   it('wolves are beasts and bandits humanoids, and every item has a model', () => {
     expect(ENEMY_STATS.wolf.family).toBe('beast');
     expect(ENEMY_STATS.bandit.family).toBe('humanoid');
-    for (const id of LOOT_IDS) expect(JUNK_MODELS[id].build().cells.some((c) => c > 0)).toBe(true);
+    for (const id of LOOT_IDS) expect(LOOT_MODELS[id].build().cells.some((c) => c > 0)).toBe(true);
   });
 });
 
