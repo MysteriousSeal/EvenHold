@@ -25,10 +25,9 @@ export function coins(copper: number): { gold: number; silver: number; copper: n
   return { gold, silver, copper: copper % COPPER_PER_SILVER };
 }
 
-// What a slain foe drops, in copper (0: nothing): now and then a few coins,
-// more from tougher foes and from bandits (who carry a purse).
+// What a slain foe drops, in copper: always a few coins, more from tougher
+// foes and from bandits (who carry a purse).
 export function coinDrop(enemy: Enemy): number {
-  if (hashUnit(enemy.id, 0, 91) >= 0.65) return 0;
   const per = enemy.kind === 'bandit' ? 6 : 3;
   return Math.max(1, Math.round((1 + hashUnit(enemy.id, 0, 92) * 2) * per * enemy.level));
 }

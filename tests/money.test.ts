@@ -10,12 +10,9 @@ describe('money', () => {
     expect(coins(1234567)).toEqual({ gold: 123, silver: 45, copper: 67 });
   });
 
-  it('comes from slain foes now and then, more from bandits and tougher ones', () => {
+  it('comes from every slain foe, more from bandits and tougher ones', () => {
     const foe = (id: number, kind: Enemy['kind'], level: number) => ({ id, kind, level }) as Enemy;
-    const drops = Array.from({ length: 300 }, (_, id) => coinDrop(foe(id, 'wolf', 1)));
-    const some = drops.filter((d) => d > 0).length;
-    expect(some).toBeGreaterThan(150);
-    expect(some).toBeLessThan(250);
+    expect(Array.from({ length: 300 }, (_, id) => coinDrop(foe(id, 'wolf', 1))).every((d) => d > 0)).toBe(true);
     const sum = (kind: Enemy['kind'], level: number) => Array.from({ length: 300 }, (_, id) => coinDrop(foe(id, kind, level))).reduce((a, b) => a + b, 0);
     expect(sum('bandit', 1)).toBeGreaterThan(sum('wolf', 1));
     expect(sum('wolf', 5)).toBeGreaterThan(sum('wolf', 1));
