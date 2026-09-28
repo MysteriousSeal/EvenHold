@@ -12,14 +12,14 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // must come for a chase, how far it gives up, how far it wanders from home,
 // and how close it stops (arm's reach for bandits).
 export const ENEMY_STATS = {
-  wolf: { family: 'beast', hp: 3, damage: 1, xp: 10, radius: 0.18, walk: 1.1, run: 3.2, sight: 3.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
-  bandit: { family: 'humanoid', hp: 5, damage: 2, xp: 20, radius: 0.14, walk: 0.9, run: 2.4, sight: 4, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
+  wolf: { family: 'beast', hp: 3, damage: 1, xp: 10, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
+  bandit: { family: 'humanoid', hp: 5, damage: 2, xp: 20, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)
 export const ENEMY_PATH_RADIUS = 20; // tiles an enemy looks around for a way to the hero
 export const ENEMY_PATH_REFRESH = 0.5; // seconds between fresh paths while chasing
-export const ENEMY_HEARING = 1.5; // enemies notice the hero this close even through cover
+export const ENEMY_HEARING = 1; // enemies notice the hero this close even through cover
 export const ENEMY_LOSE_TIME = 4; // seconds a chaser hunts for a hero it can't see before giving up
 export const FOCUS_RANGE = 10; // a focused enemy farther than this is let go
 export const FOCUS_TURN_RANGE = 2; // the hero turns to face a focused enemy this close when striking

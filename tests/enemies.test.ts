@@ -40,7 +40,7 @@ describe('wolves', () => {
   it('chases the hero on sight and gives up when outrun', () => {
     const model = fresh();
     const wolf = nearest(model);
-    model.teleport(Math.round(wolf.x) - 3, Math.round(wolf.z));
+    model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
     const before = Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z);
     expect(before).toBeLessThan(WOLF_SIGHT);
     for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);
@@ -48,7 +48,7 @@ describe('wolves', () => {
     expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(before);
 
     model.teleport(wolf.x + WOLF_GIVE_UP + 5, wolf.z);
-    model.update(0, 0, FRAME);
+    for (let i = 0; i < 60; i++) model.update(0, 0, FRAME); // any bite under way is finished first
     expect(wolf.state).toBe('wander');
   });
 
