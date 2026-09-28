@@ -37,17 +37,19 @@ export class GameController {
   private readonly onPickUp: (item: BagItem) => void;
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
+  private readonly onRead: (board: number) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
     this.onPickUp = options.onPickUp ?? (() => {});
     this.onEvent = options.onEvent ?? (() => {});
     this.onTalk = options.onTalk ?? (() => {});
+    this.onRead = options.onRead ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && !model.inside) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
@@ -98,14 +100,17 @@ export class GameController {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
-    // else sit down or get up; else talk to her from her bar; else go through the door in reach.
+    // else sit down or get up; else talk to her from her bar; else read the
+    // notice board in reach; else go through the door in reach.
     if (this.input.consumePickup()) {
       const item = this.model.pickUp();
       const barmaid = this.model.barmaidInReach;
       if (item) this.onPickUp(item);
       else if (barmaid && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(barmaid);
       else if (!this.model.sitOrStand()) {
+        const board = this.model.boardInReach;
         if (barmaid) this.onTalk(barmaid);
+        else if (board !== null) this.onRead(board);
         else this.model.useDoor();
       }
     }

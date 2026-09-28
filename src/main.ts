@@ -12,6 +12,9 @@ import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/loot
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
+import { createQuestBoardPanel } from './controller/questBoardPanel';
+import { createQuestTracker } from './view/hud/questTracker';
+import { noticeBoards } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
 import { createToolbar } from './view/hud/toolbar';
@@ -63,6 +66,8 @@ async function boot(): Promise<void> {
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
   const shop = createShopPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const updateQuests = createQuestTracker(model);
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({
     setPaused: (paused) => (controller.paused = paused),
@@ -93,6 +98,11 @@ async function boot(): Promise<void> {
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + 0.5, z: piece.z + (piece.d - 1) / 2 };
     }
     if (talk) return talk;
+    const read = model.boardInReach;
+    if (read !== null) {
+      const spot = noticeBoards(model)[read];
+      return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
+    }
     const door = model.doorInReach;
     if (!door) return null;
     return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };
@@ -105,6 +115,7 @@ async function boot(): Promise<void> {
     sheet.update();
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
+    updateQuests((x, y, z) => view.toScreen(x, y, z));
     const now = performance.now();
     if (model.inside?.entrance !== textSpace) {
       textSpace = model.inside?.entrance;
@@ -113,13 +124,14 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => shop.open(barmaid), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => shop.open(barmaid), onRead: (at) => board.open(at), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
-      // hero ("-3"). Over their heads, higher indoors where the hero's drawn bigger.
+      // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.
       const { hero } = model;
       const head = model.inside ? 0.95 : 0.6;
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
+      else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + ENEMY_TEXT_HEIGHT[event.on], z: event.z }, [`${event.amount}`], '#ffffff');
     },
