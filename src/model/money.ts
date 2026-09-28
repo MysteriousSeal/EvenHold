@@ -18,6 +18,17 @@ export interface GroundCoins {
   y: number;
 }
 
+// Picks up the coins within reach of (x, z), returning how much they came to.
+export function collectCoins(piles: GroundCoins[], x: number, z: number): number {
+  let total = 0;
+  for (let i = piles.length - 1; i >= 0; i--) {
+    if (Math.hypot(piles[i].x - x, piles[i].z - z) > COIN_PICKUP_RANGE) continue;
+    total += piles[i].amount;
+    piles.splice(i, 1);
+  }
+  return total;
+}
+
 // A copper amount as gold, silver and copper.
 export function coins(copper: number): { gold: number; silver: number; copper: number } {
   const gold = Math.floor(copper / (COPPER_PER_SILVER * SILVER_PER_GOLD));

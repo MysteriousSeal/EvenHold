@@ -28,7 +28,7 @@ import {
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Building, Bush, Camp, Enemy, Field, Hero, Tree, House, Surface, Village } from './types';
+import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { campPalisade, campPieces, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './heroStats';
@@ -37,7 +37,7 @@ import { Obstacles } from './obstacles';
 import { stepHop, type Hop } from './hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, takeFromBag, type BagItem } from './bag';
-import { COIN_PICKUP_RANGE, coinDrop, type GroundCoins } from './money';
+import { coinDrop, collectCoins, type GroundCoins } from './money';
 import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
@@ -294,6 +294,7 @@ export class GameModel {
     }
     if (!target) return;
     target.hp -= HERO_DAMAGE;
+    this.events.push({ kind: 'hit', on: target.kind, amount: HERO_DAMAGE, x: target.x, y: target.y, z: target.z });
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
@@ -434,14 +435,19 @@ export class GameModel {
     return !!seat;
   }
 
+  // What's happened since takeEvents() was last asked (for floating text).
+  private events: GameEvent[] = [];
+  takeEvents(): GameEvent[] {
+    const events = this.events;
+    this.events = [];
+    return events;
+  }
+
   // Coins near the hero go into their purse (no need to stop for them).
   private scoopCoins(): void {
-    for (let i = this.coins.length - 1; i >= 0; i--) {
-      const pile = this.coins[i];
-      if (Math.hypot(pile.x - this.hero.x, pile.z - this.hero.z) > COIN_PICKUP_RANGE) continue;
-      this.hero.money += pile.amount;
-      this.coins.splice(i, 1);
-    }
+    const amount = collectCoins(this.coins, this.hero.x, this.hero.z);
+    this.hero.money += amount;
+    if (amount > 0) this.events.push({ kind: 'coins', amount });
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
@@ -476,6 +482,7 @@ export class GameModel {
     if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
     if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
     if (this.godMode) return;
+    this.events.push({ kind: 'hit', on: 'hero', amount: enemy.damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
     if (!hurt(this.hero, enemy.damage)) return;
     const spawn = spawnOf(this.size);
     this.teleport(spawn.x, spawn.z);

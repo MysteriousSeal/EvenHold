@@ -19,6 +19,12 @@ export interface Hero extends Humanoid {
 }
 
 export type EnemyKind = 'wolf' | 'bandit';
+
+// Something that just happened worth showing (e.g. as floating text): coins
+// looted, or a blow landing on an enemy or on the hero, at where they are.
+export type GameEvent =
+  | { kind: 'coins'; amount: number }
+  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number };
 export type EnemyState = 'wander' | 'chase' | 'dead';
 
 export interface Enemy {
