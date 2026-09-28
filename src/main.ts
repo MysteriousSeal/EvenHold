@@ -5,7 +5,7 @@ import { resolveSeed } from './util/seed';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
-import { createLootPrompt } from './view/hud/lootPrompt';
+import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createHeroSheet } from './controller/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
@@ -55,6 +55,16 @@ async function boot(): Promise<void> {
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
+  // What E does right now: pick up loot in reach, else go through a door.
+  const DOOR_NAMES = { house: 'Enter house', inn: 'Enter the inn', smithy: 'Enter the smithy' } as const;
+  const promptTarget = (): PromptTarget | null => {
+    const loot = model.lootInReach;
+    if (loot) return lootTarget(loot);
+    const door = model.doorInReach;
+    if (!door) return null;
+    const { hero } = model;
+    return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };
+  };
   const onFrame = () => {
     countFrame();
     updateHud();
@@ -62,7 +72,7 @@ async function boot(): Promise<void> {
     bag.update();
     sheet.update();
     updateToolbar();
-    lootPrompt.update(model.lootInReach, (x, y, z) => view.toScreen(x, y, z));
+    lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item) });
   controller.start();
