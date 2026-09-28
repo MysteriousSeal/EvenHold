@@ -8,11 +8,12 @@ import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './camera';
 import type { MovementAxes } from './camera';
 import { addLights } from './lighting';
-import { buildTerrain } from './meshes/terrainMesh';
+import { buildTerrain } from './meshes/ground/terrainMesh';
 import { buildTrees } from './meshes/treeMesh';
 import { buildHouses } from './meshes/house/houseMesh';
 import { buildWells } from './meshes/well/wellMesh';
-import { buildGroundDecals } from './meshes/groundDecals';
+import { buildGroundDecals } from './meshes/ground/groundDecals';
+import { buildGroundCover } from './meshes/ground/groundCoverMesh';
 import { buildHero } from './meshes/heroMesh';
 
 export class GameView {
@@ -21,6 +22,9 @@ export class GameView {
   private readonly camera: THREE.OrthographicCamera;
   private readonly heroMesh: THREE.Group;
   private readonly movementAxes: MovementAxes;
+  // Per-frame animations (e.g. grass swaying in the wind), fed the time since start.
+  private readonly animations: Array<(elapsedSeconds: number) => void> = [];
+  private elapsed = 0;
   private cameraY: number;
 
   constructor(canvas: HTMLCanvasElement, model: GameModel) {
@@ -40,6 +44,7 @@ export class GameView {
     addLights(this.scene);
     buildTerrain(this.scene, model);
     buildGroundDecals(this.scene, model);
+    this.animations.push(buildGroundCover(this.scene, model));
     buildTrees(this.scene, model);
     buildHouses(this.scene, model);
     buildWells(this.scene, model);
@@ -55,6 +60,9 @@ export class GameView {
   }
 
   update(model: GameModel, dt: number): void {
+    this.elapsed += dt;
+    for (const animate of this.animations) animate(this.elapsed);
+
     const { hero } = model;
     this.heroMesh.position.set(hero.x, hero.y, hero.z);
 

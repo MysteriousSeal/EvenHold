@@ -19,6 +19,16 @@ export function shuffle<T>(items: T[], rng: () => number): void {
   }
 }
 
+// Stable hash of a grid cell (plus an optional salt, to get independent
+// values for different uses of the same cell). For purely visual variety
+// derived from position, without drawing from — and so shifting — the
+// world generation rng.
+export function hashCell(x: number, z: number, salt = 0): number {
+  let h = Math.imul(x, 73856093) ^ Math.imul(z, 19349663) ^ Math.imul(salt, 83492791);
+  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
+  return (h ^ (h >>> 15)) >>> 0;
+}
+
 export function generateRandomSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
 }

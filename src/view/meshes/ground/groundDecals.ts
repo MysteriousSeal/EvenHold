@@ -5,11 +5,11 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { GameModel } from '../../model/GameModel';
-import type { Village } from '../../model/types';
-import { TILE_HEIGHT, VILLAGE_OUTER_RADIUS } from '../../model/constants';
-import { toCellX, toCellZ } from '../../model/grid';
-import { PATH_COLOR } from '../constants';
+import type { GameModel } from '../../../model/GameModel';
+import type { Village } from '../../../model/types';
+import { TILE_HEIGHT, VILLAGE_OUTER_RADIUS } from '../../../model/constants';
+import { toCellX, toCellZ } from '../../../model/grid';
+import { PATH_COLOR } from '../../constants';
 
 const PATH_WIDTH = 0.34;
 const SQUARE_HALF_SIZE = VILLAGE_OUTER_RADIUS + 0.5; // covers the house ring, so houses stand on it

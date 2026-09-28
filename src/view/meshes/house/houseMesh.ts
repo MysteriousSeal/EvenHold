@@ -14,7 +14,8 @@ import {
 } from '../../constants';
 import { buildHouseParts } from './parts';
 import { HOUSE_PARTS, type HousePart } from './houseTypes';
-import { HOUSE_VARIANTS, houseHash } from './variants';
+import { HOUSE_VARIANTS } from './variants';
+import { hashCell } from '../../../util/random';
 
 function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
   return {
@@ -36,6 +37,10 @@ function createMaterials(): Record<HousePart, THREE.MeshStandardMaterial> {
   };
 }
 
+// A house's look comes from a hash of its grid position rather than being
+// stored in the model: it's purely visual, and drawing it from the world
+// rng would shift every later placement (trees) for every existing seed.
+//
 // Houses are grouped by variant; each variant draws one InstancedMesh per
 // material, so the whole village set costs at most
 // variants × materials draw calls regardless of how many houses exist.
@@ -45,7 +50,7 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
   const materials = createMaterials();
   const housesByVariant: House[][] = HOUSE_VARIANTS.map(() => []);
   for (const house of model.houses) {
-    housesByVariant[houseHash(house.x, house.z) % HOUSE_VARIANTS.length].push(house);
+    housesByVariant[hashCell(house.x, house.z) % HOUSE_VARIANTS.length].push(house);
   }
 
   const matrix = new THREE.Matrix4();
@@ -69,7 +74,7 @@ export function buildHouses(scene: THREE.Scene, model: GameModel): void {
         mesh.setMatrixAt(i, matrix);
 
         if (part === 'roof') {
-          const colorIndex = (houseHash(house.x, house.z) >>> 8) % HOUSE_ROOF_COLORS.length;
+          const colorIndex = (hashCell(house.x, house.z) >>> 8) % HOUSE_ROOF_COLORS.length;
           mesh.setColorAt(i, roofColor.setHex(HOUSE_ROOF_COLORS[colorIndex]));
         }
       });
