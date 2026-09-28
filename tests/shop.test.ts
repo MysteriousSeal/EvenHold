@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { buy, buyPrice, sell, sellPrice, shopAt } from '../src/model/npcs/tavernShop';
+import { RESTOCK_EVERY, buy, buyPrice, restockIn, sell, sellPrice, shopAt } from '../src/model/npcs/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -46,10 +46,10 @@ describe("the barmaid's shop", () => {
     const usual = shop.stock.cheese!;
     shop.stock.cheese = 0;
     shop.money = 0;
-    const later = shopAt(model.shops, model.seed, 0, 2 * 60_000); // two minutes on
+    const later = shopAt(model.shops, model.seed, 0, 2 * RESTOCK_EVERY); // two restocks on
     expect(later.stock.cheese).toBe(Math.min(usual, 2));
     expect(later.money).toBeGreaterThan(0);
-    expect(shopAt(model.shops, model.seed, 0, 600 * 60_000).stock.cheese).toBe(usual);
+    expect(shopAt(model.shops, model.seed, 0, 600 * RESTOCK_EVERY).stock.cheese).toBe(usual);
   });
 
   it('lets the hero eat and drink from the bag, for health', () => {
@@ -60,5 +60,13 @@ describe("the barmaid's shop", () => {
     expect(hero.hp).toBe(Math.min(maxHpAt(hero.level), 4));
     expect(hero.bag.meatPie).toBeUndefined();
     expect(model.consume('meatPie')).toBe(false);
+  });
+
+  it("tells how long until she restocks (the countdown for what she's sold out of)", () => {
+    const { model, shop } = setup(); // restocked at 0
+    expect(restockIn(shop, 18_000)).toBe(RESTOCK_EVERY - 18_000);
+    expect(restockIn(shop, RESTOCK_EVERY)).toBe(0);
+    shopAt(model.shops, model.seed, 0, RESTOCK_EVERY); // a restock...
+    expect(restockIn(shop, RESTOCK_EVERY)).toBe(RESTOCK_EVERY); // ...and the next one five minutes on
   });
 });

@@ -2,7 +2,7 @@
 // sells, and buys back. She has only so much of each, and only so much
 // money: it grows when the hero buys, shrinks when she buys from them. Her
 // wares and purse start from the seed and slowly come back toward that as
-// real time passes (a minute at a time), even between visits.
+// real time passes (five minutes at a time), even between visits.
 
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
@@ -16,8 +16,8 @@ export interface Shop {
   restockedAt: number; // when she last restocked (ms, wall clock)
 }
 
-const RESTOCK_EVERY = 60_000; // ms: each minute, a little back toward her usual
-const PURSE_DRIFT = 0.1; // of the way back to her usual purse, each minute
+export const RESTOCK_EVERY = 5 * 60_000; // ms: every five minutes, one more of each she's short of
+const PURSE_DRIFT = 0.1; // of the way back to her usual purse, each restock
 
 // What she starts with, and restocks toward: a few silver, a few of each.
 function usual(seed: number, inn: number): { money: number; stock: Record<ProvisionId, number> } {
@@ -39,11 +39,16 @@ export function shopAt(shops: Map<number, Shop>, seed: number, inn: number, now 
 }
 
 function restock(shop: Shop, base: ReturnType<typeof usual>, now: number): void {
-  const minutes = Math.floor((now - shop.restockedAt) / RESTOCK_EVERY);
-  if (minutes <= 0) return;
-  for (const id of PROVISION_IDS) shop.stock[id] = Math.min(base.stock[id], (shop.stock[id] ?? 0) + minutes);
-  for (let i = 0; i < Math.min(minutes, 60); i++) shop.money += Math.round((base.money - shop.money) * PURSE_DRIFT);
-  shop.restockedAt += minutes * RESTOCK_EVERY;
+  const restocks = Math.floor((now - shop.restockedAt) / RESTOCK_EVERY);
+  if (restocks <= 0) return;
+  for (const id of PROVISION_IDS) shop.stock[id] = Math.min(base.stock[id], (shop.stock[id] ?? 0) + restocks);
+  for (let i = 0; i < Math.min(restocks, 60); i++) shop.money += Math.round((base.money - shop.money) * PURSE_DRIFT);
+  shop.restockedAt += restocks * RESTOCK_EVERY;
+}
+
+// How long until her next restock (ms): what's sold out comes back then.
+export function restockIn(shop: Shop, now = Date.now()): number {
+  return Math.max(0, shop.restockedAt + RESTOCK_EVERY - now);
 }
 
 export const buyPrice = (id: ProvisionId): number => PROVISIONS[id].value;
