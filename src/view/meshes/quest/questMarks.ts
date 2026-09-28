@@ -8,15 +8,17 @@ import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT } from '../../../model/constants';
 import { noticeBoards } from '../../../model/quests/noticeBoards';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
-import { BOARD_GRID, MARK_GRID, MARK_PALETTE, QUEST_VOXEL_SIZE, buildQuestMark } from './questVoxels';
+import { ASK_GRID, BOARD_GRID, MARK_GRID, MARK_PALETTE, QUEST_VOXEL_SIZE, buildQuestMark, buildTurnInMark } from './questVoxels';
+import type { VoxelGrid } from '../voxel/greedyMesh';
 
 const NEAR = 30; // tiles: boards further off aren't looked at
-const BOARD_MARK_SCALE = 0.75; // smaller over a board than over a foe
+const BOARD_MARK_SCALE = 0.75; // small, over the board's roof
 const ABOVE_BOARD = BOARD_GRID[1] * QUEST_VOXEL_SIZE + 0.12;
 
-export function questMarkMesh(): THREE.Mesh {
-  const origin = new THREE.Vector3((-MARK_GRID[0] * QUEST_VOXEL_SIZE) / 2, 0, (-MARK_GRID[2] * QUEST_VOXEL_SIZE) / 2);
-  const geometry = greedyMesh(buildQuestMark(), MARK_PALETTE, QUEST_VOXEL_SIZE, origin);
+// A mark ("!" or "?") centered over where it's placed.
+function markMesh(grid: VoxelGrid, size: [number, number, number]): THREE.Mesh {
+  const origin = new THREE.Vector3((-size[0] * QUEST_VOXEL_SIZE) / 2, 0, (-size[2] * QUEST_VOXEL_SIZE) / 2);
+  const geometry = greedyMesh(grid, MARK_PALETTE, QUEST_VOXEL_SIZE, origin);
   const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, depthTest: false, depthWrite: false, fog: false, transparent: true }));
   mesh.renderOrder = 10; // after the world (a transparent pass), so nothing draws over it: trees, roofs, the foe itself
   return mesh;
@@ -60,30 +62,37 @@ export function pulseAuras(time: number): void {
 // A slow, smooth bob, a beat apart for each `phase`.
 export const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
 
+// Over each notice board: a "?" when a quest taken from it is done (to hand
+// in), else a "!" when it has a quest the hero could take; else nothing.
 export class BoardMarks {
-  private readonly marks: THREE.Mesh[] = [];
+  private readonly marks: Array<{ offer: THREE.Mesh; turnIn: THREE.Mesh; y: number }> = [];
 
   constructor(scene: THREE.Scene, private readonly model: GameModel) {
-    const template = questMarkMesh();
+    const offer = markMesh(buildQuestMark(), MARK_GRID);
+    const turnIn = markMesh(buildTurnInMark(), ASK_GRID);
     for (const [i, spot] of noticeBoards(model).entries()) {
-      const mark = template.clone();
-      mark.scale.setScalar(BOARD_MARK_SCALE);
-      mark.position.set(spot.x, model.villages[i].groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT + ABOVE_BOARD, spot.z);
-      mark.visible = false;
-      scene.add(mark);
-      this.marks.push(mark);
+      const y = model.villages[i].groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT + ABOVE_BOARD;
+      const [a, b] = [offer.clone(), turnIn.clone()];
+      for (const mark of [a, b]) {
+        mark.scale.setScalar(BOARD_MARK_SCALE);
+        mark.rotation.y = (spot.quarterTurns * Math.PI) / 2; // facing the square, as the board does
+        mark.position.set(spot.x, y, spot.z);
+        mark.visible = false;
+        scene.add(mark);
+      }
+      this.marks.push({ offer: a, turnIn: b, y });
     }
   }
 
   update(heroX: number, heroZ: number, time: number): void {
     const { quests } = this.model;
     const spots = noticeBoards(this.model);
-    for (const [i, mark] of this.marks.entries()) {
+    for (const [i, { offer, turnIn, y }] of this.marks.entries()) {
       const near = Math.abs(spots[i].x - heroX) <= NEAR && Math.abs(spots[i].z - heroZ) <= NEAR;
-      const shown = near && quests.available(i);
-      if (shown && !mark.visible) mark.userData.baseY = mark.userData.baseY ?? mark.position.y;
-      mark.visible = shown;
-      if (shown) mark.position.y = mark.userData.baseY + markBob(time, i);
+      const ready = near && quests.readyAt(i);
+      turnIn.visible = ready;
+      offer.visible = near && !ready && quests.available(i);
+      offer.position.y = turnIn.position.y = y + markBob(time, i);
     }
   }
 }

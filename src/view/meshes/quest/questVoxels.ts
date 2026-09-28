@@ -54,3 +54,22 @@ export function buildQuestMark(): VoxelGrid {
   fillBox(g, 0, 3, 0, 1, 8, 1, (_x, y) => (y === 3 ? 3 : y === 8 ? 2 : 1)); // the bar
   return g;
 }
+
+// The "?" over a board with a quest to hand in: the same gold, a stroke two
+// voxels thick hooking round and down to its dot.
+export const ASK_GRID: [number, number, number] = [5, 8, 2];
+const ASK_ROWS = ['.###.', '##.##', '...##', '..##.', '..##.', '.....', '..##.', '..##.']; // top to bottom
+
+export function buildTurnInMark(): VoxelGrid {
+  const g = createGrid(ASK_GRID);
+  ASK_ROWS.forEach((row, i) => {
+    const y = ASK_ROWS.length - 1 - i;
+    for (let x = 0; x < row.length; x++) {
+      if (row[x] !== '#') continue;
+      const above = ASK_ROWS[i - 1]?.[x] === '#';
+      const below = ASK_ROWS[i + 1]?.[x] === '#';
+      fillBox(g, x, y, 0, x, y, 1, !above ? 2 : !below ? 3 : 1); // lit on top, shaded under
+    }
+  });
+  return g;
+}
