@@ -50,6 +50,7 @@ export const TREE_COLLISION_HALF = 0.1; // trees block only their trunk (a 0.2x0
 export const BUSH_CHANCE = 0.14; // probability a meadow-edge cell grows a bush
 export const BUSH_SHAPES = 2; // voxel shape variants per bush kind
 export const FENCE_THICKNESS = 0.06; // fences block a strip this thick along the field's border, inside its tiles
+export const FIELD_CORNER_COLLISION_HALF = 0.4; // a field's corner tile: its hay bales, wheelbarrow and basket
 export const LANTERN_COLLISION_HALF = 0.08; // square lantern posts block a small square around the post
 export const BUSH_COLLISION_HALF = 0.2; // bushes block a 0.4x0.4 square (their foliage), not their whole tile
 

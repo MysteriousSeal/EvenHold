@@ -23,6 +23,7 @@ import {
   FOCUS_TURN_RANGE,
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
+  FIELD_CORNER_COLLISION_HALF,
   HOP_DURATION,
   HOP_HEIGHT,
   TILE_HEIGHT,
@@ -108,13 +109,15 @@ export class GameModel {
     this.bushes = world.bushes;
     // Houses and wells nearly fill their tile, so they block all of it;
     // bushes, tree trunks and lamp posts are much smaller, so they get
-    // their own footprint; field fences run along tile edges.
+    // their own footprint (a field's corner, heaped with hay bales and tools,
+    // nearly all its tile); field fences run along tile edges.
     this.obstacles = new Obstacles(this.size, this.lakeMap, new Set(solidCells(this)));
     for (const b of this.bushes) this.obstacles.addProp(b.x, b.z, BUSH_COLLISION_HALF);
     for (const t of this.trees) this.obstacles.addProp(t.x, t.z, TREE_COLLISION_HALF);
     for (const v of this.villages) for (const [x, z] of squareLanterns(v)) this.obstacles.addProp(x, z, LANTERN_COLLISION_HALF);
     for (const field of this.fields) {
       for (const { x, z, side } of fenceEdges(field)) this.obstacles.addFenceStrip(x, z, side, FENCE_THICKNESS);
+      this.obstacles.addProp(field.corner[0], field.corner[1], FIELD_CORNER_COLLISION_HALF); // its hay bales and tools
     }
 
     const spawn = spawnOf(this.size);
