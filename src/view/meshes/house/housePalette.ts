@@ -16,6 +16,7 @@ import {
 const ENTRIES = {
   plaster: HOUSE_PLASTER_COLOR,
   plasterShade: 0xd6caad,
+  plasterWarm: 0xf3e4c4,
   timber: HOUSE_TIMBER_COLOR,
   timberLight: 0x4e3726,
   stone: HOUSE_STONE_COLOR,
@@ -35,6 +36,8 @@ const ENTRIES = {
   endGrain: 0xd9b98a,
   clayPot: 0xa0522d,
   sign: 0x8a6238,
+  roofMoss: 0x6f9148,
+  roofMossLight: 0x88a955,
 } as const;
 
 type Entry = keyof typeof ENTRIES;
@@ -44,9 +47,9 @@ export const HOUSE_PALETTE: number[] = [...Object.values(ENTRIES)];
 // Palette index + 1 for each named color.
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<Entry, number>;
 
-// Roofs: one set of [base, light, dark] per roof color (clay tile, slate,
-// straw thatch), appended after the named entries.
-export const ROOF_SETS: Array<{ base: number; light: number; dark: number }> = HOUSE_ROOF_COLORS.map((hex) => {
+// Roofs: one set of [base, light, dark, highlight] per roof color (clay
+// tile, slate, straw thatch), appended after the named entries.
+export const ROOF_SETS: Array<{ base: number; light: number; dark: number; highlight: number }> = HOUSE_ROOF_COLORS.map((hex) => {
   const shade = (factor: number) => {
     const r = Math.min(255, Math.round(((hex >> 16) & 255) * factor));
     const g = Math.min(255, Math.round(((hex >> 8) & 255) * factor));
@@ -54,8 +57,8 @@ export const ROOF_SETS: Array<{ base: number; light: number; dark: number }> = H
     return (r << 16) | (g << 8) | b;
   };
   const start = HOUSE_PALETTE.length;
-  HOUSE_PALETTE.push(hex, shade(1.15), shade(0.8));
-  return { base: start + 1, light: start + 2, dark: start + 3 };
+  HOUSE_PALETTE.push(hex, shade(1.15), shade(0.8), shade(1.3));
+  return { base: start + 1, light: start + 2, dark: start + 3, highlight: start + 4 };
 });
 
 // Colors meshed with the emissive (glowing) material.

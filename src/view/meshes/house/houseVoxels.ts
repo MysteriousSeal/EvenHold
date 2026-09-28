@@ -51,6 +51,13 @@ function put(grid: VoxelGrid, [x, y, z]: Voxel, color: number): void {
 // Coursed stonework: blocks four voxels long, every other course offset by
 // two, mostly mid stone with some dark and a few light blocks, so walls read
 // as masonry without turning noisy. Runs around corners.
+// Deterministic per-voxel noise in [0, 1), for dithering colors.
+function speck(x: number, y: number, z: number): number {
+  let h = Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791);
+  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
 function masonry(x: number, y: number, z: number): number {
   const block = Math.floor((x + z + (y % 2) * 2) / 4);
   const pick = (block * 7 + y * 3) % 7;
@@ -143,9 +150,13 @@ function braces(grid: VoxelGrid, wall: Wall, uMin: number, uMax: number, y0: num
 // base and under the top beam), with corner posts and top/bottom beams on
 // the outer face.
 function timberStorey(grid: VoxelGrid, b: Box): void {
-  fillBox(grid, b.x0 + 1, b.y0, b.z0 + 1, b.x1 - 1, b.y1, b.z1 - 1, (_x, y) =>
-    y === b.y0 || y === b.y1 - 1 ? C.plasterShade : C.plaster,
-  );
+  // Limewash, lightly dithered with warm and shaded specks so it reads as
+  // hand-applied rather than flat paint.
+  fillBox(grid, b.x0 + 1, b.y0, b.z0 + 1, b.x1 - 1, b.y1, b.z1 - 1, (x, y, z) => {
+    if (y === b.y0 || y === b.y1 - 1) return C.plasterShade;
+    const h = speck(x, y, z);
+    return h < 0.06 ? C.plasterShade : h < 0.14 ? C.plasterWarm : C.plaster;
+  });
   for (const [x, z] of [
     [b.x0, b.z0],
     [b.x0, b.z1],
@@ -163,8 +174,10 @@ function timberStorey(grid: VoxelGrid, b: Box): void {
 }
 
 // Stepped shingle roof over `b`: two voxels thick, overhanging the eaves and
-// gable ends by two, courses alternating shade every two steps, darker at
-// the ridge and eave edge. The attic under it is plaster, with a king post
+// gable ends by two. Each course is cut into 3-voxel shingles, staggered
+// course to course, each with its own shade (courses still alternate
+// lighter and darker every two steps); the eave is dark, the ridge capped
+// light, and moss creeps up from the eaves. The attic under it is plaster, with a king post
 // and raking struts on each gable face.
 function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: number): number {
   const shades = ROOF_SETS[roofIndex];
@@ -175,10 +188,18 @@ function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: number): n
 
   for (let dz = 0; dz <= lastRow; dz++) {
     const top = rowTop(dz);
-    const color = dz === 0 || dz === lastRow ? shades.dark : Math.floor(dz / 2) % 2 === 0 ? shades.base : shades.light;
     for (const side of [-1, 1]) {
       const z = MID + side * dz;
-      fillBox(grid, b.x0 - 2, top - 1, z, b.x1 + 2, top, z, color);
+      fillBox(grid, b.x0 - 2, top - 1, z, b.x1 + 2, top, z, (x) => {
+        if (dz === lastRow) return shades.dark;
+        if (dz === 0) return shades.highlight; // ridge cap
+        const shingle = Math.floor((x + dz * 2) / 3);
+        const h = speck(shingle, dz, side);
+        const moss = speck(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
+        if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
+        const light = Math.floor(dz / 2) % 2 === 1;
+        return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;
+      });
       if (dz <= halfSpan) fillBox(grid, b.x0 + 1, b.y1 + 1, z, b.x1 - 1, top - 2, z, C.plaster);
     }
   }

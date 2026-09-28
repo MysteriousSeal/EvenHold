@@ -68,6 +68,6 @@ export const HOUSE_DOOR_COLOR = 0x5a3a22; // doors and shutters
 export const HOUSE_WINDOW_COLOR = 0xffd98a;
 export const HOUSE_WINDOW_GLOW = 0xffa940;
 export const WINDOW_GLOW_INTENSITY = 1.5; // bright enough to bloom: lit, inviting windows
-export const HOUSE_ROOF_COLORS = [0x8b3a2b, 0x4b505c, 0xb08a4a]; // clay tile, slate, straw thatch
+export const HOUSE_ROOF_COLORS = [0x9b4a32, 0x5f6672, 0xb58f4e]; // clay tile, warm slate, straw thatch
 
 export const IRON_COLOR = 0x3d3d42;
