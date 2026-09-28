@@ -24,7 +24,8 @@ export type EnemyKind = 'wolf' | 'bandit';
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
-  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number };
+  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number }
+  | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number };
 export type EnemyState = 'wander' | 'chase' | 'dead';
 
 export interface Enemy {
@@ -52,6 +53,7 @@ export interface Enemy {
   lastSeen: { x: number; z: number } | null; // while chasing: where it last saw (or heard) the hero
   lostFor: number; // seconds since then
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
+  quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 
 // A 5x5 bandit camp around a campfire on (x, z), its layout turned by

@@ -20,8 +20,11 @@ import { Obstacles } from './obstacles';
 import type { Bush, Camp, Field, Tree, Village } from './types';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
+import { noticeBoards, type BoardWorld } from './quests/noticeBoards';
 
-export interface BlockerWorld {
+const BOARD_COLLISION_HALF = 0.3;
+
+export interface BlockerWorld extends BoardWorld {
   size: MapSize;
   lakeMap: boolean[][];
   bushes: readonly Bush[];
@@ -37,6 +40,7 @@ export function worldObstacles(world: BlockerWorld, solid: Iterable<string>): Ob
   for (const b of world.bushes) obstacles.addProp(b.x, b.z, BUSH_COLLISION_HALF);
   for (const t of world.trees) obstacles.addProp(t.x, t.z, TREE_COLLISION_HALF);
   for (const v of world.villages) for (const [x, z] of squareLanterns(v)) obstacles.addProp(x, z, LANTERN_COLLISION_HALF);
+  for (const { x, z } of noticeBoards(world)) obstacles.addProp(x, z, BOARD_COLLISION_HALF); // the notice boards, by the inns
   for (const field of world.fields) {
     for (const { x, z, side } of fenceEdges(field)) obstacles.addFenceStrip(x, z, side, FENCE_THICKNESS);
     obstacles.addProp(field.corner[0], field.corner[1], FIELD_CORNER_COLLISION_HALF); // its hay bales and tools

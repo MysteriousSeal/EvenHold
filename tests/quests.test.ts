@@ -1,0 +1,102 @@
+import { describe, expect, it } from 'vitest';
+import { GameModel } from '../src/model/GameModel';
+import { parseSave, restore, snapshot } from '../src/model/save';
+import { MAX_ACTIVE, OFFERS, questAt } from '../src/model/quests/quests';
+import { noticeBoards } from '../src/model/quests/noticeBoards';
+import { RESPAWN_EVERY } from '../src/model/quests/questBook';
+import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+
+const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+const marked = (model: GameModel, key: string) => model.enemies.filter((e) => e.quest === key && e.state !== 'dead');
+const slay = (model: GameModel, key: string) => {
+  const foe = marked(model, key)[0];
+  model.teleport(foe.x, foe.z);
+  foe.hp = 1;
+  model.focus(foe.id);
+  model.startAttack();
+  model.update(0, 0, 1);
+};
+
+describe('quests', () => {
+  it('offers five quests a board, the same on the same seed, with a reward that grows with danger', () => {
+    const model = fresh();
+    expect(model.villages.length).toBeGreaterThan(0);
+    const offers = model.quests.offersAt(0);
+    expect(offers).toHaveLength(OFFERS);
+    expect(fresh().quests.offersAt(0)).toEqual(offers);
+    for (const q of offers) {
+      expect(q.count).toBeGreaterThan(0);
+      expect(q.copper).toBeGreaterThan(0);
+      expect(q.xp).toBeGreaterThan(0);
+      expect(q.where).toMatch(/of the village$/);
+      expect(q.kind === 'collect').toBe(q.item !== null);
+    }
+  });
+
+  it('stands beside the inn, and is read up close', () => {
+    const model = fresh();
+    const spot = noticeBoards(model)[0];
+    const inn = model.buildings.find((b) => b.kind === 'inn' && Math.hypot(b.x - model.villages[0].x, b.z - model.villages[0].z) < 5)!;
+    expect(Math.min(...inn.tiles.map(([x, z]) => Math.abs(x - spot.x) + Math.abs(z - spot.z)))).toBeLessThanOrEqual(2);
+    expect(model.isOpenTile(spot.x, spot.z)).toBe(false); // the board stands there
+    const free = [[0, 1], [0, -1], [1, 0], [-1, 0]].find(([dx, dz]) => model.isOpenTile(spot.x + dx, spot.z + dz))!;
+    model.teleport(spot.x + free[0], spot.z + free[1]);
+    expect(model.boardInReach).toBe(0);
+  });
+
+  it('gathers a marked pack, counts kills, brings them back after a minute, and pays on hand-in', () => {
+    const model = fresh();
+    const quest = { ...questAt(model, 0, 0), kind: 'kill' as const, item: null, count: 3 };
+    expect(model.quests.accept(quest)).toBe(true);
+    expect(marked(model, quest.key)).toHaveLength(3);
+    expect(model.quests.handIn(quest.key)).toBe(false); // not done
+    slay(model, quest.key);
+    const taken = model.quests.takenOf(quest.key)!;
+    expect(taken.kills).toBe(1);
+    expect(model.takeEvents().some((e) => e.kind === 'quest' && e.text === '1/3 wolves'.replace('wolves', quest.foe === 'wolf' ? 'wolves' : 'bandits'))).toBe(true);
+    expect(model.slain.size).toBe(0); // a quest's foes aren't the world's
+    // Two left to slay, two about: none comes back.
+    model.quests.update(RESPAWN_EVERY + 1);
+    expect(marked(model, quest.key)).toHaveLength(2);
+    // One wanders off for good (gone): one is back a minute later.
+    model.enemies.splice(model.enemies.indexOf(marked(model, quest.key)[0]), 1);
+    model.quests.update(RESPAWN_EVERY / 2);
+    expect(marked(model, quest.key)).toHaveLength(1);
+    model.quests.update(RESPAWN_EVERY / 2 + 0.1);
+    expect(marked(model, quest.key)).toHaveLength(2);
+    taken.kills = 3;
+    expect(model.quests.marked(marked(model, quest.key)[0])).toBe(false); // done: no more marks
+    const [money, xp, level] = [model.hero.money, model.hero.xp, model.hero.level];
+    expect(model.quests.handIn(quest.key)).toBe(true);
+    expect(model.hero.money).toBe(money + quest.copper);
+    expect(model.hero.xp !== xp || model.hero.level > level).toBe(true);
+    expect(model.quests.taken).toHaveLength(0);
+    expect(model.quests.offersAt(0).map((q) => q.key)).not.toContain(quest.key); // a new one pinned up
+  });
+
+  it('takes at most three, and "bring" quests take what was brought', () => {
+    const model = fresh();
+    const offers = model.quests.offersAt(0);
+    for (const q of offers.slice(0, MAX_ACTIVE)) expect(model.quests.accept(q)).toBe(true);
+    expect(model.quests.accept(offers[MAX_ACTIVE])).toBe(false);
+    model.quests.abandon(offers[0].key);
+    const bring = { ...offers[MAX_ACTIVE], kind: 'collect' as const, item: 'wolfPelt' as const, count: 2 };
+    expect(model.quests.accept(bring)).toBe(true);
+    model.hero.bag.wolfPelt = 3;
+    expect(model.quests.handIn(bring.key)).toBe(true);
+    expect(model.hero.bag.wolfPelt).toBe(1);
+  });
+
+  it('keeps the boards and the quests taken in a save', () => {
+    const model = fresh();
+    const [a, b] = model.quests.offersAt(0);
+    model.quests.accept(a);
+    model.quests.takenOf(a.key)!.kills = 1;
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.quests.taken.map((t) => t.quest.key)).toEqual([a.key]);
+    expect(again.quests.takenOf(a.key)!.kills).toBe(a.kind === 'kill' ? 1 : 1);
+    expect(again.quests.takenOf(b.key)).toBeNull();
+    expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? a.count - 1 : marked(model, a.key).length);
+  });
+});

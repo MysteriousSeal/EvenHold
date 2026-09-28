@@ -42,6 +42,7 @@ import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './npcs/tavernShop';
 import { PROVISIONS, isProvision } from './loot/provisions';
+import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
@@ -68,6 +69,7 @@ export class GameModel {
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (npcs/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
+  readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -123,6 +125,7 @@ export class GameModel {
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
+    this.quests = new QuestBook(this);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
@@ -194,6 +197,7 @@ export class GameModel {
     this.moveHorizontally(dirX, dirZ, dt);
     this.advanceAttack(dt);
     this.director.update(dt);
+    this.quests.update(dt);
     stepNpcs(this.npcs, this, dt);
     this.scoopCoins();
     recover(this.hero, dt);
@@ -264,8 +268,10 @@ export class GameModel {
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
-      this.slain.add(target.id);
+      if (target.quest === undefined && target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes aren't the world's
       gainXp(this.hero, target.xp);
+      const wanted = this.quests.onKill(target);
+      if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
       const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
       if (item) this.dropLoot(item, target.x, target.z);
       const amount = coinDrop(target);
@@ -413,7 +419,7 @@ export class GameModel {
   // What's happened since takeEvents() was last asked (for floating text).
   private events: GameEvent[] = [];
   takeEvents(): GameEvent[] {
-    const events = this.events;
+    const events = [...this.events, ...this.quests.events.splice(0)];
     this.events = [];
     return events;
   }
@@ -431,6 +437,11 @@ export class GameModel {
     return (inside && this.npcs.find((n) => n.role === 'barkeep' && n.where === inside.entrance && Math.hypot(n.x - this.hero.x, n.z - this.hero.z) < TALK_RANGE)) ?? null;
   }
 
+  // The notice board the hero's at (outdoors), by its village's index; else null.
+  get boardInReach(): number | null {
+    return this.inside ? null : this.quests.boardInReach();
+  }
+
   // Eats or drinks one of `item` from the bag, for the health it gives back; returns whether they did.
   consume(item: BagItem): boolean {
     if (!isProvision(item) || !takeFromBag(this.hero.bag, item)) return false;
@@ -444,6 +455,7 @@ export class GameModel {
     if (!loot) return null;
     this.loot.splice(this.loot.indexOf(loot), 1);
     addToBag(this.hero.bag, loot.item);
+    this.quests.onPickUp(loot.item);
     return loot.item;
   }
 

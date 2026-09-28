@@ -16,6 +16,7 @@ import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import type { Shop } from './npcs/tavernShop';
+import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
 
 const VERSION = 1;
 
@@ -43,6 +44,7 @@ export interface SaveData {
   coins: Array<{ amount: number; x: number; z: number }>;
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
+  quests?: ReturnType<QuestBook['save']>; // the boards' offers, and the quests taken
 }
 
 const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a tile: plenty, and a smaller save
@@ -74,7 +76,7 @@ export function snapshot(model: GameModel): SaveData {
     enemies: {
       gone: [...model.slain],
       changed: model.enemies
-        .filter((e) => e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05))
+        .filter((e) => e.id < FIRST_MOB_ID && e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05))
         .map((e) => ({ id: e.id, x: round(e.x), z: round(e.z), hp: e.hp })),
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
@@ -84,6 +86,7 @@ export function snapshot(model: GameModel): SaveData {
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
+    quests: model.quests.save(),
   };
 }
 
@@ -147,6 +150,7 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { inn, money, stock, restockedAt } of Array.isArray(data.shops) ? data.shops : []) {
     if (typeof inn === 'number' && typeof money === 'number' && typeof restockedAt === 'number') model.shops.set(inn, { money, stock: { ...stock }, restockedAt });
   }
+  if (data.quests) model.quests.load(data.quests, model.villages.length);
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));
   for (const saved of data.npcs) {
