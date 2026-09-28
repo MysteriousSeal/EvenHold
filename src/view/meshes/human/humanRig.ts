@@ -32,6 +32,10 @@ const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
 // Seated: the legs (no knees) straight out in front, the hands resting forward.
 const SIT_LEGS = -1.45;
 const SIT_ARMS = -0.45;
+// Lying on their back: how far the back of the torso is behind the joints.
+const BACK = PART_PIVOT.torso[2] * V;
+
+export type Pose = 'stand' | 'sit' | 'lie';
 
 // The blow, keyed over its progress (0..1): the right arm winds up overhead
 // and slightly back, strikes forward and down fast, then recovers; the body
@@ -109,7 +113,7 @@ export class HumanRig {
   private swing = 0; // 0 standing .. 1 full stride, eased
   private heading = 0;
   private time = 0;
-  private seated = false;
+  private pose: Pose = 'stand';
 
   constructor(
     readonly look: BodyLook = HERO_LOOK,
@@ -207,12 +211,13 @@ export class HumanRig {
   // attacking, from how far through the blow they are (0..1). `facing`, if
   // given, is the way they strike: they turn to it quickly while attacking.
   // Seated, (x, y, z) is where the hips rest and `facing` the way the seat
-  // faces: they sit still, legs out in front.
-  update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, seated = false): void {
+  // faces: they sit still, legs out in front. Lying down, (x, y, z) is where
+  // the feet rest, on the bed, and `facing` points from head to feet.
+  update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, pose: Pose = 'stand'): void {
     this.time += dt;
-    if (seated !== this.seated) {
-      this.seated = seated;
-      this.last.x = Number.NaN; // sitting down or getting up isn't a step
+    if (pose !== this.pose) {
+      this.pose = pose;
+      this.last.x = Number.NaN; // sitting or lying down, or getting up, isn't a step
     }
     const dx = Number.isNaN(this.last.x) ? 0 : x - this.last.x;
     const dz = Number.isNaN(this.last.x) ? 0 : z - this.last.z;
@@ -244,18 +249,25 @@ export class HumanRig {
     const breath = Math.sin(this.time * 2.2) * 0.004 * (1 - this.swing);
     this.body.position.y = Math.abs(Math.sin(this.phase)) * BOB * this.swing + breath;
     this.body.position.z = 0;
-    this.body.rotation.y = 0;
+    this.body.rotation.set(0, 0, 0);
     this.joints.head.rotation.x = breath * 4; // the head nods slightly with it
 
-    if (seated) {
+    if (pose !== 'stand') {
       if (facing !== undefined) this.heading = facing;
       this.root.rotation.y = this.heading;
       this.swing = 0;
-      this.joints.leftLeg.rotation.x = SIT_LEGS;
-      this.joints.rightLeg.rotation.x = SIT_LEGS;
-      this.joints.leftArm.rotation.x = SIT_ARMS;
-      this.joints.rightArm.rotation.x = SIT_ARMS;
-      this.body.position.y = -JOINTS.leftLeg.at[1] * V + breath; // hips down on the seat
+      const [legs, arms] = pose === 'sit' ? [SIT_LEGS, SIT_ARMS] : [0, 0];
+      this.joints.leftLeg.rotation.x = legs;
+      this.joints.rightLeg.rotation.x = legs;
+      this.joints.leftArm.rotation.x = arms;
+      this.joints.rightArm.rotation.x = arms;
+      if (pose === 'sit') this.body.position.y = -JOINTS.leftLeg.at[1] * V + breath; // hips down on the seat
+      else {
+        // Tipped onto their back about the feet, head away from `facing`,
+        // lifted so the back rests on the bed; breathing gently.
+        this.body.rotation.x = -Math.PI / 2;
+        this.body.position.y = BACK + breath * 0.5;
+      }
       return;
     }
 
