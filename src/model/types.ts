@@ -13,7 +13,6 @@ export interface Hero extends Humanoid {
   level: number;
   xp: number; // toward the next level
   hurtFor: number; // seconds left of the hit flash
-  sinceHurt: number; // seconds since the last hit
   bag: Bag; // what they've picked up
   money: number; // their purse, in copper (money.ts)
 }

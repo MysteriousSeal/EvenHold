@@ -34,7 +34,6 @@ describe('hero stats', () => {
   it('never heals by itself (hardcore): only asleep in a bed, never past full', () => {
     const { hero } = fresh();
     hero.hp = 4;
-    hero.sinceHurt = 0;
     for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME);
     expect(hero.hp).toBe(4);
     for (let t = 0; t < 4; t += FRAME) recover(hero, FRAME, true);

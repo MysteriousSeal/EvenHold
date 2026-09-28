@@ -20,7 +20,7 @@ export function xpToNext(level: number): number {
 
 export const HERO_NAME = 'Hero'; // shown over the health bar
 
-export const FRESH_HERO_STATS = { hp: BASE_HP, level: 1, xp: 0, hurtFor: 0, sinceHurt: Infinity };
+export const FRESH_HERO_STATS = { hp: BASE_HP, level: 1, xp: 0, hurtFor: 0 };
 
 // Adds experience; returns how many levels were gained.
 export function gainXp(hero: Hero, amount: number): number {
@@ -39,13 +39,11 @@ export function gainXp(hero: Hero, amount: number): number {
 export function hurt(hero: Hero, damage: number): boolean {
   hero.hp = Math.max(0, hero.hp - damage);
   hero.hurtFor = 0.25;
-  hero.sinceHurt = 0;
   return hero.hp === 0;
 }
 
 // Timers, and healing while `asleep` in a bed (nothing else heals over time).
 export function recover(hero: Hero, dt: number, asleep = false): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
-  hero.sinceHurt += dt;
   if (asleep) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + SLEEP_RATE * dt);
 }
