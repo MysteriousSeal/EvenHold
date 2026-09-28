@@ -10,6 +10,7 @@ import { createForestDensity } from './worldgen/trees';
 import { hashUnit } from '../util/random';
 import { pickOutfit } from './human/equipment';
 import { lookAt } from './human/humanoid';
+import { enemyLevel, enemyPower } from './enemyLevels';
 import type { MapSize } from './grid';
 
 interface Sites {
@@ -36,8 +37,9 @@ export interface EnemyWorld {
   isOpenTile(x: number, z: number): boolean;
 }
 
-// A fresh enemy of `kind` at (x, z), at home around (homeX, homeZ).
-export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, homeX = x, homeZ = z): Enemy {
+// A fresh enemy of `kind` at `level` at (x, z), at home around (homeX, homeZ).
+export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, homeX = x, homeZ = z, level = 1): Enemy {
+  const power = enemyPower(kind, level);
   return {
     id,
     kind,
@@ -46,7 +48,11 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     y: 0,
     homeX,
     homeZ,
-    hp: ENEMY_STATS[kind].hp,
+    level,
+    maxHp: power.maxHp,
+    hp: power.maxHp,
+    damage: power.damage,
+    xp: power.xp,
     state: 'wander',
     target: null,
     restFor: hashUnit(x, z, 3) * 3,
@@ -80,7 +86,7 @@ export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp
           const z = cz + dz;
           if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || !open(x, z) || hashUnit(x, z, salt) >= 0.6) continue;
           taken.add(`${x},${z}`);
-          enemies.push(makeEnemy(enemies.length, kind, x, z, cx, cz));
+          enemies.push(makeEnemy(enemies.length, kind, x, z, cx, cz, enemyLevel(world.hero, cx, cz, enemies.length)));
           placed++;
         }
       }

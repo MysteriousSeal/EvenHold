@@ -28,7 +28,11 @@ export interface Enemy {
   y: number;
   homeX: number; // where it wanders around, and returns to
   homeZ: number;
+  level: number; // from how far from spawn it lives (enemyLevels.ts)
+  maxHp: number;
   hp: number;
+  damage: number; // per blow
+  xp: number; // for killing it
   state: EnemyState;
   target: { x: number; z: number } | null; // wander goal
   restFor: number; // seconds before picking a new wander goal

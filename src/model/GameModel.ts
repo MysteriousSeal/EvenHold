@@ -260,7 +260,7 @@ export class GameModel {
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
-      gainXp(this.hero, ENEMY_STATS[target.kind].xp);
+      gainXp(this.hero, target.xp);
       const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
       if (item) this.dropLoot(item, target.x, target.z);
     }
@@ -351,7 +351,7 @@ export class GameModel {
     if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
     if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
     if (this.godMode) return;
-    if (!hurt(this.hero, ENEMY_STATS[enemy.kind].damage)) return;
+    if (!hurt(this.hero, enemy.damage)) return;
     const spawn = spawnOf(this.size);
     this.teleport(spawn.x, spawn.z);
     this.hero.hp = maxHpAt(this.hero.level);

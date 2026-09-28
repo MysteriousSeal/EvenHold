@@ -1,6 +1,7 @@
 // Teleport destinations for the dev cheat panel. Pure queries over the
 // model, so they're testable and the panel stays a thin UI.
 
+import { enemyLevel } from './enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './grid';
@@ -102,7 +103,8 @@ export function nearestPack(model: GameModel, from: Tile): Tile | null {
 export function spawnEnemyNear(model: GameModel, kind: EnemyKind): void {
   const ahead = { x: Math.round(model.hero.x + Math.sin(model.hero.facing) * 2), z: Math.round(model.hero.z + Math.cos(model.hero.facing) * 2) };
   const at = nearestOpenTile(model, ahead);
-  const enemy = makeEnemy(Math.max(-1, ...model.enemies.map((e) => e.id)) + 1, kind, at.x, at.z);
+  const id = Math.max(-1, ...model.enemies.map((e) => e.id)) + 1;
+  const enemy = makeEnemy(id, kind, at.x, at.z, at.x, at.z, enemyLevel(spawnOf(model.size), at.x, at.z, id));
   enemy.y = model.getGroundY(at.x, at.z);
   model.enemies.push(enemy);
 }
