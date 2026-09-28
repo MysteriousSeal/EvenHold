@@ -8,7 +8,7 @@ import { ENEMY_STATS, VILLAGE_OUTER_RADIUS } from './constants';
 import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from './types';
 import { createForestDensity } from './worldgen/trees';
 import { hashUnit } from '../util/random';
-import { BANDIT_GEAR, pickOutfit } from './equipment';
+import { pickOutfit } from './equipment';
 import { lookAt } from './humanoid';
 import type { MapSize } from './grid';
 
@@ -55,7 +55,7 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     swingFor: null,
     cooldown: 0,
     // Bandits: someone different each, in their own mix of bandit gear.
-    human: kind === 'bandit' ? { look: lookAt(x, z), equipment: pickOutfit(BANDIT_GEAR, x, z) } : null,
+    human: kind === 'bandit' ? { look: lookAt(x, z), equipment: pickOutfit('bandit', x, z) } : null,
   };
 }
 

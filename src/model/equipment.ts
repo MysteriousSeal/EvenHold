@@ -3,10 +3,13 @@
 // down the body, plus one item held in each hand. A slot holds one item at
 // a time, so wearing an item replaces whatever was in its slot.
 //
-// The model only knows items by id and slot; how each one looks is the
-// view's business (view/meshes/human/armor/).
+// The items themselves are in the catalog (items/); how each one looks is
+// the view's business (view/meshes/human/gear/).
 
 import { hashUnit } from '../util/random';
+import { ITEMS, ITEM_IDS, type ItemId, type Wearer } from './items';
+
+export { ITEMS, ITEM_IDS, type ItemId, type Wearer };
 
 export const ARMOR_SLOTS = ['head', 'torso', 'hands', 'legs', 'feet'] as const;
 export const HELD_SLOTS = ['mainHand', 'offHand'] as const;
@@ -25,58 +28,39 @@ export const SLOT_NAMES: Record<EquipSlot, string> = {
   offHand: 'Off hand',
 };
 
-interface ItemInfo {
-  name: string;
-  slot: EquipSlot;
-}
-
-export const ITEMS = {
-  // The hero's starter set: padded linen, leather and wool.
-  leatherCap: { name: 'Leather cap', slot: 'head' },
-  gambeson: { name: 'Gambeson', slot: 'torso' },
-  woolHose: { name: 'Wool hose', slot: 'legs' },
-  leatherBoots: { name: 'Leather boots', slot: 'feet' },
-  armingSword: { name: 'Arming sword', slot: 'mainHand' },
-  plankShield: { name: 'Plank shield', slot: 'offHand' },
-  // Bandit gear: each bandit wears a mix of it (BANDIT_GEAR).
-  banditHood: { name: 'Hood and mask', slot: 'head' },
-  redBandana: { name: 'Red bandana', slot: 'head' },
-  ironCap: { name: 'Nasal cap', slot: 'head' },
-  banditVest: { name: 'Leather vest', slot: 'torso' },
-  patchedTunic: { name: 'Patched tunic', slot: 'torso' },
-  furJerkin: { name: 'Fur-collared jerkin', slot: 'torso' },
-  banditGloves: { name: 'Riding gloves', slot: 'hands' },
-  banditTrousers: { name: 'Belted trousers', slot: 'legs' },
-  ropeTrousers: { name: 'Rope-belted trousers', slot: 'legs' },
-  banditBoots: { name: 'Black boots', slot: 'feet' },
-  footWraps: { name: 'Foot wraps', slot: 'feet' },
-  shortSword: { name: 'Short sword', slot: 'mainHand' },
-  hatchet: { name: 'Hatchet', slot: 'mainHand' },
-  club: { name: 'Knotted club', slot: 'mainHand' },
-  dagger: { name: 'Dagger', slot: 'mainHand' },
-  buckler: { name: 'Buckler', slot: 'offHand' },
-} as const satisfies Record<string, ItemInfo>;
-
-export type ItemId = keyof typeof ITEMS;
-export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
-
 // Which item is in each slot; an empty slot is simply missing.
 export type Equipment = Partial<Record<EquipSlot, ItemId>>;
 
 export const STARTER_SET: readonly ItemId[] = ['leatherCap', 'gambeson', 'woolHose', 'leatherBoots', 'armingSword', 'plankShield'];
-export const BANDIT_OUTFIT: readonly ItemId[] = ['banditHood', 'banditVest', 'banditGloves', 'banditTrousers', 'banditBoots', 'shortSword'];
+export const BANDIT_OUTFIT: readonly ItemId[] = ['maskedHood', 'leatherVest', 'ridingGloves', 'beltedTrousers', 'blackBoots', 'shortSword'];
 
-// What a bandit may have in each slot, with weights (null: nothing there).
-// Every bandit is dressed from this by pickOutfit, so no two gangs match.
-export const BANDIT_GEAR: Record<EquipSlot, Array<[ItemId | null, number]>> = {
-  head: [['banditHood', 3], ['redBandana', 2], ['ironCap', 2], [null, 2]],
-  torso: [['banditVest', 3], ['patchedTunic', 2], ['furJerkin', 2]],
-  hands: [['banditGloves', 1], [null, 1]],
-  legs: [['banditTrousers', 1], ['ropeTrousers', 1]],
-  feet: [['banditBoots', 2], ['footWraps', 1]],
-  mainHand: [['shortSword', 3], ['hatchet', 2], ['club', 2], ['dagger', 2]],
-  offHand: [['buckler', 1], [null, 3]],
+// How often each kind of wearer leaves a slot empty, as a weight against the
+// items it wears there (ItemEntry.wornBy). Slots not listed are always filled.
+export const EMPTY_SLOT_WEIGHT: Record<Wearer, Partial<Record<EquipSlot, number>>> = {
+  bandit: { head: 2, hands: 3, offHand: 9 },
 };
+
+type Options = Array<[ItemId | null, number]>;
+const gearCache = new Map<Wearer, Record<EquipSlot, Options>>();
+
+// What a kind of wearer may have in each slot, with weights (null: empty),
+// gathered from the catalog.
+export function gearOf(wearer: Wearer): Record<EquipSlot, Options> {
+  let gear = gearCache.get(wearer);
+  if (!gear) {
+    gear = Object.fromEntries(EQUIP_SLOTS.map((slot) => [slot, [] as Options])) as Record<EquipSlot, Options>;
+    for (const item of ITEM_IDS) {
+      const weight = (ITEMS[item] as { wornBy?: Partial<Record<Wearer, number>> }).wornBy?.[wearer];
+      if (weight) gear[ITEMS[item].slot].push([item, weight]);
+    }
+    for (const slot of EQUIP_SLOTS) {
+      const empty = EMPTY_SLOT_WEIGHT[wearer][slot];
+      if (empty) gear[slot].push([null, empty]);
+    }
+    gearCache.set(wearer, gear);
+  }
+  return gear;
+}
 
 export function slotOf(item: ItemId): EquipSlot {
   return ITEMS[item].slot;
@@ -96,9 +80,10 @@ export function takeOff(equipment: Equipment, item: ItemId): void {
   if (isWorn(equipment, item)) delete equipment[slotOf(item)];
 }
 
-// An outfit drawn from `gear`, one weighted pick per slot, from a place
+// An outfit for a kind of wearer, one weighted pick per slot, from a place
 // (e.g. where someone spawned): the same spot always gives the same outfit.
-export function pickOutfit(gear: Record<EquipSlot, Array<[ItemId | null, number]>>, x: number, z: number): Equipment {
+export function pickOutfit(wearer: Wearer, x: number, z: number): Equipment {
+  const gear = gearOf(wearer);
   const equipment: Equipment = {};
   EQUIP_SLOTS.forEach((slot, i) => {
     const options = gear[slot];
