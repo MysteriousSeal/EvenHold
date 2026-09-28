@@ -1,13 +1,13 @@
 // A humanoid as one still voxel model (standing, facing +Z), dressed like
 // the rig, for icons and portraits: every part, shell and held item placed
-// at its joint (bodyVoxels.ts JOINTS), rounded to whole voxels. Drop the
+// at its joint (bodyVoxels.ts BODIES), rounded to whole voxels. Drop the
 // body (look = null) to show just what's worn, as it sits on someone.
 
 import { EQUIP_SLOTS, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } from '../../../model/human/equipment';
-import type { BodyLook } from '../../../model/human/humanoid';
+import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { HAND, HELD_BY, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type Joint } from './bodyVoxels';
+import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
@@ -21,8 +21,10 @@ export interface Figure {
   palette: number[];
 }
 
-// `only`: draw just these body parts (and what's worn on them).
-export function humanFigure(look: BodyLook | null, equipment: Equipment, only: readonly Joint[] = JOINT_NAMES): Figure {
+// `only`: draw just these body parts (and what's worn on them). `build`:
+// whose body what's worn is fitted to (the look's, when there's one).
+export function humanFigure(look: BodyLook | null, equipment: Equipment, only: readonly Joint[] = JOINT_NAMES, build: Build = look?.build ?? 'male'): Figure {
+  const { joints, pivot, hand } = BODIES[build];
   const grid = createGrid(SIZE);
   const palette: number[] = [];
   const bases = new Map<number[], number>(); // where each palette starts in the figure's, added once
@@ -52,9 +54,11 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
   if (look) {
     const colors = bodyPalette(look);
     for (const joint of only) {
-      const { part, at } = JOINTS[joint];
-      place(buildBodyPart(part, look), colors, at, PART_PIVOT[part]);
+      const { part, at } = joints[joint];
+      place(buildBodyPart(part, look), colors, at, pivot[part]);
     }
+    const hair = buildHairPiece(look.hairStyle);
+    if (hair && only.includes('head') && !equipment.head) place(hair, colors, joints.head.at, HAIR_PIECE_PIVOT); // up past the head, off under a hat
   }
   const shouldered = !!equipment.shoulders;
   for (const slot of EQUIP_SLOTS) {
@@ -63,14 +67,14 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
     const model = ITEM_MODELS[item];
     if (isHeldSlot(slot)) {
       if (!model.held) continue;
-      const arm = JOINTS[HELD_BY[slot]].at;
-      place(model.held.build(), model.palette, [arm[0] + HAND[0], arm[1] + HAND[1], arm[2] + HAND[2]], model.held.grip);
+      const arm = joints[HELD_BY[slot]].at;
+      place(model.held.build(), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip);
       continue;
     }
     for (const joint of only) {
-      const { part, side, at } = JOINTS[joint];
-      const shell = wornGrid(item, part, side, shouldered);
-      if (shell) place(shell, model.palette, at, PART_PIVOT[part].map((p) => p + 1));
+      const { part, side, at } = joints[joint];
+      const shell = wornGrid(item, part, side, shouldered, build);
+      if (shell) place(shell, model.palette, at, pivot[part].map((p) => p + 1));
     }
   }
   return { grid, palette };

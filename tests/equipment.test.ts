@@ -17,17 +17,19 @@ import {
   type Equipment,
   type ItemId,
 } from '../src/model/human/equipment';
-import { HERO_LOOK, lookAt } from '../src/model/human/humanoid';
+import { HAIR_STYLES, HERO_LOOK, lookAt, type BodyLook } from '../src/model/human/humanoid';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { SLOT_BANDS, bandFor } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';
-import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
+import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
 import { humanFigure } from '../src/view/meshes/human/humanFigure';
 import { HumanRig } from '../src/view/meshes/human/humanRig';
 import type { VoxelGrid } from '../src/view/meshes/voxel/greedyMesh';
 
 const filled = (grid: VoxelGrid) => grid.cells.reduce((n, c) => n + (c ? 1 : 0), 0);
 const PARTS = Object.keys(PART_GRID) as BodyPart[];
+
+const FEMALE: BodyLook = { ...HERO_LOOK, build: 'female' };
 
 describe('equipment', () => {
   it('holds one item per slot: wearing replaces, taking off only removes the one worn', () => {
@@ -242,7 +244,7 @@ describe('dressed rig', () => {
   // of items from different slots: that covers every outfit. Faces are read
   // off the rig at rest, one item at a time (the mesher writes each face as
   // 6 vertices), and bucketed by plane so pairs compare quickly.
-  it('never puts two faces on the same spot, facing the same way (no flicker)', () => {
+  it.each([HERO_LOOK, FEMALE])('never puts two faces on the same spot, facing the same way (no flicker): $build build', (look) => {
     type Face = { mesh: number; min: number[]; max: number[]; axis: number };
     const facesOf = (rig: HumanRig, from: number) => {
       rig.root.updateMatrixWorld(true);
@@ -279,10 +281,10 @@ describe('dressed rig', () => {
       return found;
     };
 
-    const body = facesOf(new HumanRig(), 0);
+    const body = facesOf(new HumanRig(look), 0);
     const items = new Map<ItemId, Map<string, Face[]>>();
     for (const item of ITEM_IDS) {
-      const rig = new HumanRig();
+      const rig = new HumanRig(look);
       const naked = rig.meshes.length;
       rig.wear(outfit([item]));
       const faces = facesOf(rig, naked);
@@ -298,7 +300,7 @@ describe('dressed rig', () => {
         const slots = new Set([ITEMS[a].slot, ITEMS[b].slot]);
         if (slots.has('shoulders') && slots.has('torso')) {
           // Worn together, the torso's sleeves yield to the shoulders: check them on one rig.
-          const rig = new HumanRig();
+          const rig = new HumanRig(look);
           const naked = rig.meshes.length;
           rig.wear(outfit([a, b]));
           const faces = facesOf(rig, naked);
@@ -320,5 +322,78 @@ describe('dressed rig', () => {
 
   it('knows every slot', () => {
     expect(EQUIP_SLOTS).toHaveLength(10);
+  });
+});
+
+describe('female build', () => {
+  const bounds = (rig: HumanRig) => {
+    rig.root.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(rig.root);
+  };
+
+  it('fits every piece to her, outside her body, the inner side of limbs open', () => {
+    for (const item of ITEM_IDS) {
+      for (const part of Object.keys(ITEM_MODELS[item].worn ?? {}) as BodyPart[]) {
+        const shell = wornGrid(item, part, 'center', false, 'female')!;
+        expect(filled(shell), `${item} on ${part}`).toBeGreaterThan(0);
+        const body = buildBodyPart(part, FEMALE);
+        const [sx, sy, sz] = body.size;
+        const [gx, gy] = shell.size;
+        for (let z = 0; z < sz; z++) {
+          for (let y = 0; y < sy; y++) {
+            for (let x = 0; x < sx; x++) {
+              if (body.cells[x + sx * (y + sy * z)]) expect(shell.cells[x + 1 + gx * (y + 1 + gy * (z + 1))], `${item} inside ${part}`).toBe(0);
+            }
+          }
+        }
+      }
+    }
+    const right = wornGrid('woolHose', 'leg', 'right', false, 'female')!;
+    const [gx, gy, gz] = right.size;
+    for (let z = 0; z < gz; z++) for (let y = 0; y < gy; y++) expect(right.cells[gx - 1 + gx * (y + gy * z)]).toBe(0);
+  });
+
+  it('is slimmer than his, as tall, and dressed stays within the collision box', () => {
+    const his = bounds(new HumanRig(HERO_LOOK));
+    const hers = bounds(new HumanRig(FEMALE));
+    expect(hers.max.x - hers.min.x).toBeLessThan(his.max.x - his.min.x);
+    expect(hers.max.y).toBeCloseTo(his.max.y, 3);
+    for (const set of [STARTER_SET, BANDIT_OUTFIT, ...ITEM_IDS.map((item) => [item])]) {
+      const rig = new HumanRig(FEMALE);
+      rig.wear(outfit(set));
+      rig.update(0, 0, 0, 1 / 60);
+      const box = bounds(rig);
+      expect(Math.max(-box.min.x, box.max.x), set.join()).toBeLessThanOrEqual(HERO_RADIUS + HUMAN_VOXEL_SIZE + 1e-6);
+      expect(box.min.y, set.join()).toBeCloseTo(0, 2);
+      expect(filled(humanFigure(FEMALE, outfit(set)).grid), set.join()).toBeGreaterThan(0); // and draws as a figure
+    }
+  });
+
+  it('wears her hair up past her head (a bun, a ponytail, a braid), off under a hat', () => {
+    for (const hairStyle of HAIR_STYLES) {
+      const look = { ...FEMALE, hairStyle };
+      expect(filled(buildBodyPart('head', look))).toBe(7 * 7 * 7); // the head's still the full cube
+      const piece = buildHairPiece(hairStyle);
+      expect(piece !== null, hairStyle).toBe(hairStyle === 'bun' || hairStyle === 'ponytail' || hairStyle === 'braid');
+    }
+    const rig = new HumanRig({ ...FEMALE, hairStyle: 'braid' });
+    expect(rig.joints.head.children).toHaveLength(2); // the head and her braid
+    rig.wear({ head: 'leatherCap' });
+    expect(rig.joints.head.children.filter((c) => c.visible)).toHaveLength(2); // the head and the cap, the braid tucked away
+  });
+
+  it('is who looks say: never bearded, and as often as asked for', () => {
+    let women = 0;
+    for (let i = 0; i < 400; i++) {
+      const look = lookAt(i, i * 7, 5, 0.5);
+      if (look.build === 'female') {
+        women++;
+        expect(look.beard).toBe(false);
+      }
+      expect(lookAt(i, i * 7, 5, 1).build).toBe('female');
+      expect(lookAt(i, i * 7, 5).build).toBe('male');
+    }
+    expect(women).toBeGreaterThan(150);
+    expect(women).toBeLessThan(250);
   });
 });

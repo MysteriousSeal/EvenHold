@@ -1,7 +1,7 @@
 // Armor is worn, never painted on the body. Each piece is its own voxel
 // shell, one voxel out from the body part it covers, meshed on its own and
-// hung on the part's joint, so it moves with the body. The same shell fits
-// every humanoid, since they all share one body shape.
+// hung on the part's joint, so it moves with the body. Each is fitted to the
+// build that wears it (male or female, bodyVoxels.ts).
 //
 // Two rules keep pieces from ever sharing a voxel (which would flicker
 // where their faces meet):
@@ -12,7 +12,7 @@
 //   or of an arm and the chest, never overlap.
 
 import type { ArmorSlot } from '../../../../model/human/equipment';
-import { HERO_LOOK } from '../../../../model/human/humanoid';
+import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../../voxel/voxelShapes';
 import { buildBodyPart, type BodyPart, type Side } from '../bodyVoxels';
@@ -46,6 +46,7 @@ export interface ShellCell {
   back: boolean;
   flank: boolean; // beside it, left or right
   top: boolean; // over it
+  center: boolean; // in the part's middle column (on the torso: under the chin, the buckle's place)
 }
 
 // Picks a shell voxel's color (a palette index + 1), or 0 to leave it open.
@@ -58,12 +59,12 @@ export function namedPalette<T extends Record<string, number>>(entries: T): { pa
   return { palette: names.map((name) => entries[name]), c };
 }
 
-const shapes = new Map<BodyPart, VoxelGrid>();
-function bodyShape(part: BodyPart): VoxelGrid {
-  let shape = shapes.get(part);
+const shapes = new Map<string, VoxelGrid>();
+function bodyShape(part: BodyPart, build: Build): VoxelGrid {
+  let shape = shapes.get(`${build}:${part}`);
   if (!shape) {
-    shape = buildBodyPart(part, HERO_LOOK); // every look has the same shape
-    shapes.set(part, shape);
+    shape = buildBodyPart(part, { build, hairStyle: 'short', beard: false }); // every look of a build has its shape
+    shapes.set(`${build}:${part}`, shape);
   }
   return shape;
 }
@@ -73,8 +74,8 @@ function bodyShape(part: BodyPart): VoxelGrid {
 // (`side` left or right), the side facing the body stays open. The grid is
 // one voxel bigger than the part on every side: part voxel (x, y, z) is
 // grid voxel (x + 1, y + 1, z + 1).
-export function buildShell(part: BodyPart, band: [number, number], side: Side, paint: Painter): VoxelGrid {
-  const body = bodyShape(part);
+export function buildShell(part: BodyPart, band: [number, number], side: Side, paint: Painter, build: Build = 'male'): VoxelGrid {
+  const body = bodyShape(part, build);
   const [sx, sy, sz] = body.size;
   const grid = createGrid([sx + 2, sy + 2, sz + 2]);
   const inner = side === 'right' ? sx : side === 'left' ? -1 : null; // the right side is -X, so it faces the body at +X
@@ -86,7 +87,7 @@ export function buildShell(part: BodyPart, band: [number, number], side: Side, p
     for (let y = Math.max(-1, band[0]); y <= Math.min(sy, band[1]); y++) {
       for (let x = -1; x <= sx; x++) {
         if (x === inner || colorAt(body, x, y, z) || !touches(x, y, z)) continue;
-        const color = paint({ x, y, z, front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy });
+        const color = paint({ x, y, z, front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy, center: x * 2 === sx - 1 });
         if (color) setColor(grid, x + 1, y + 1, z + 1, color);
       }
     }
@@ -101,8 +102,8 @@ export const BODY_FILL = 255;
 // BODY_FILL left out, the body counts as solid but isn't drawn, so the shell
 // gets no faces against the skin (they'd never be seen) and is shaded
 // where it meets the body.
-export function withBody(shell: VoxelGrid, part: BodyPart): VoxelGrid {
-  const body = bodyShape(part);
+export function withBody(shell: VoxelGrid, part: BodyPart, build: Build = 'male'): VoxelGrid {
+  const body = bodyShape(part, build);
   const [sx, sy, sz] = body.size;
   const grid = { size: shell.size, cells: shell.cells.slice() };
   for (let z = 0; z < sz; z++) for (let y = 0; y < sy; y++) for (let x = 0; x < sx; x++) if (colorAt(body, x, y, z)) setColor(grid, x + 1, y + 1, z + 1, BODY_FILL);

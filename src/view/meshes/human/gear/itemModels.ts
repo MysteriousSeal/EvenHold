@@ -2,6 +2,7 @@
 // in model/human/items/), and the voxel grids each one is made of.
 
 import { ITEMS, type ArmorSlot, type ItemId } from '../../../../model/human/equipment';
+import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
 import { bandFor, buildShell } from './armorShell';
@@ -29,11 +30,11 @@ export const ITEM_MODELS: Record<ItemId, ItemModel> = {
 };
 
 // The shell a worn item puts on one body part (on the given side), or null
-// if it doesn't cover that part. `shouldered`: shoulders are worn too
-// (sleeves then leave the top of the arms to them).
-export function wornGrid(item: ItemId, part: BodyPart, side: Side, shouldered = false): VoxelGrid | null {
+// if it doesn't cover that part, fitted to the wearer's build. `shouldered`:
+// shoulders are worn too (sleeves then leave the top of the arms to them).
+export function wornGrid(item: ItemId, part: BodyPart, side: Side, shouldered = false, build: Build = 'male'): VoxelGrid | null {
   const paint = ITEM_MODELS[item].worn?.[part];
   const slot = ITEMS[item].slot as ArmorSlot;
   const band = paint ? bandFor(slot, part, shouldered) : undefined;
-  return paint && band ? buildShell(part, band, side, paint) : null;
+  return paint && band ? buildShell(part, band, side, paint, build) : null;
 }

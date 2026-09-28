@@ -13,9 +13,9 @@ const hose = namedPalette({ wool: 0x5a7196, shade: 0x485c7c, belt: 0x5e3f28, buc
 const woolHose: ItemModel = {
   palette: hose.palette,
   worn: {
-    torso: ({ x, y, front, flank }) => {
+    torso: ({ y, front, flank, center }) => {
       const { c } = hose;
-      if (y === 1) return front && x === 3 ? c.buckle : c.belt;
+      if (y === 1) return front && center ? c.buckle : c.belt;
       return flank ? c.shade : c.wool;
     },
     leg: ({ flank, back }) => (flank || back ? hose.c.shade : hose.c.wool),
@@ -28,7 +28,7 @@ function trousers(cloth: number, dark: number, belt: number, buckle: number): It
   return {
     palette,
     worn: {
-      torso: ({ x, y, front }) => (y === 1 ? (front && x === 3 ? c.buckle : c.belt) : c.cloth),
+      torso: ({ y, front, center }) => (y === 1 ? (front && center ? c.buckle : c.belt) : c.cloth),
       leg: ({ flank }) => (flank ? c.dark : c.cloth),
     },
   };
@@ -39,9 +39,9 @@ const rope = namedPalette({ cloth: 0x5e6450, dark: 0x4b5040, rope: 0xb89a6a, rop
 const ropeTrousers: ItemModel = {
   palette: rope.palette,
   worn: {
-    torso: ({ x, y, z, front, flank }) => {
+    torso: ({ x, y, z, front, flank, center }) => {
       const { c } = rope;
-      if (y === 1) return front && x === 3 ? c.ropeDark : mod(x + z, 2) === 0 ? c.rope : c.ropeDark; // twisted rope, knot in front
+      if (y === 1) return front && center ? c.ropeDark : mod(x + z, 2) === 0 ? c.rope : c.ropeDark; // twisted rope, knot in front
       return flank ? c.dark : c.cloth;
     },
     leg: ({ x, y, z, flank }) => {
@@ -66,7 +66,7 @@ const plate = namedPalette({ steel: 0xb4bac2, bright: 0xd2d6dc, dark: 0x7d838c, 
 const plateGreaves: ItemModel = {
   palette: plate.palette,
   worn: {
-    torso: ({ x, y, front }) => (y === 1 ? (front && x === 3 ? plate.c.buckle : plate.c.dark) : plate.c.leather),
+    torso: ({ y, front, center }) => (y === 1 ? (front && center ? plate.c.buckle : plate.c.dark) : plate.c.leather),
     leg: ({ y, z, flank }) => (z === 3 && y === 3 ? plate.c.bright : flank ? plate.c.dark : plate.c.steel),
   },
 };
@@ -87,7 +87,7 @@ const breeches = namedPalette({ leather: 0xa07850, dark: 0x7e5c3a, buckle: 0xd4b
 const leatherBreeches: ItemModel = {
   palette: breeches.palette,
   worn: {
-    torso: ({ x, y, front }) => (y === 1 ? (front && x === 3 ? breeches.c.buckle : breeches.c.dark) : breeches.c.leather),
+    torso: ({ y, front, center }) => (y === 1 ? (front && center ? breeches.c.buckle : breeches.c.dark) : breeches.c.leather),
     leg: ({ y, flank }) => (y < 3 ? 0 : y === 3 ? breeches.c.dark : flank ? breeches.c.dark : breeches.c.leather),
   },
 };

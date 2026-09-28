@@ -34,6 +34,7 @@ import { NpcViews } from './meshes/npc/npcViews';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { buildRoomScene } from './interior/roomView';
+import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
 import type { WorldSink } from './world/chunkLayer';
@@ -57,7 +58,7 @@ export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
-  private readonly hero: HumanRig; // dressed from the model's equipment every frame
+  private hero: HumanRig; // dressed from the model's equipment every frame (rebuilt if their look changes)
   private readonly heroLook = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
   // A red glow while the hero's just been hit, like the enemies' flash.
   private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
@@ -214,6 +215,7 @@ export class GameView {
     for (const animate of this.animations) animate(this.elapsed);
 
     const { hero } = model;
+    if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
     this.hero.wear(hero.equipment);
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
     // Indoors, the hero is moved into the room's scene; back out, into the world's.
@@ -249,6 +251,16 @@ export class GameView {
     // keeps the feel the same at any frame rate.
     this.followHero(hero, model.getGroundY(hero.x, hero.z), dt);
     this.stylizer?.setFocusHeight(this.cameraY);
+  }
+
+  // Rebuilds the hero's rig for a new look, where the old one stood.
+  private reshapeHero(look: BodyLook): void {
+    const old = this.hero;
+    this.hero = new HumanRig(look, this.heroLook);
+    this.hero.root.scale.copy(old.root.scale);
+    old.root.parent?.add(this.hero.root);
+    old.root.removeFromParent();
+    this.hero.update(old.root.position.x, old.root.position.y, old.root.position.z, 0);
   }
 
   private followHero(hero: { x: number; z: number }, groundY: number, dt: number): void {

@@ -16,9 +16,21 @@
 
 import * as THREE from 'three';
 import { EQUIP_SLOTS, ITEMS, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
-import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
+import { HERO_LOOK, type BodyLook, type Build } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HAND, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type BodyPart, type Joint } from './bodyVoxels';
+import {
+  BODIES,
+  HAIR_PIECE_PIVOT,
+  HELD_BY,
+  HUMAN_VOXEL_SIZE,
+  JOINTS,
+  JOINT_NAMES,
+  bodyPalette,
+  buildBodyPart,
+  buildHairPiece,
+  type BodyPart,
+  type Joint,
+} from './bodyVoxels';
 import { BODY_FILL, withBody } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
@@ -32,8 +44,6 @@ const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
 // Seated: the legs (no knees) straight out in front, the hands resting forward.
 const SIT_LEGS = -1.45;
 const SIT_ARMS = -0.45;
-// Lying on their back: how far the back of the torso is behind the joints.
-const BACK = PART_PIVOT.torso[2] * V;
 
 export type Pose = 'stand' | 'sit' | 'lie';
 
@@ -80,19 +90,27 @@ function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, 
 }
 
 function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
-  const key = `body:${look.skin}:${look.hair}:${look.hairStyle}:${look.beard}:${part}`;
-  return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), PART_PIVOT[part]))!;
+  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.hairStyle}:${look.beard}:${part}`;
+  return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), BODIES[look.build].pivot[part]))!;
+}
+
+// Hair gathered past the head (a bun, a ponytail, a braid), or null.
+function hairGeometry(look: BodyLook): THREE.BufferGeometry | null {
+  return cached(`hair:${look.hair}:${look.hairStyle}`, () => {
+    const grid = buildHairPiece(look.hairStyle);
+    return grid && meshAround(grid, bodyPalette(look), HAIR_PIECE_PIVOT);
+  });
 }
 
 // A worn item's shell on one joint's part, or null if it doesn't cover it:
 // meshed around the (undrawn) body, so no faces press against the skin.
 // The shell's grid starts one voxel before the part, so its pivot is one further in.
-function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean): THREE.BufferGeometry | null {
+function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean, build: Build): THREE.BufferGeometry | null {
   const { part, side } = JOINTS[joint];
-  return cached(`${item}:${part}:${side}:${shouldered}`, () => {
-    const grid = wornGrid(item, part, side, shouldered);
-    const pivot = PART_PIVOT[part].map((p) => p + 1) as [number, number, number];
-    return grid && meshAround(withBody(grid, part), ITEM_MODELS[item].palette, pivot, (c) => c !== BODY_FILL);
+  return cached(`${item}:${build}:${part}:${side}:${shouldered}`, () => {
+    const grid = wornGrid(item, part, side, shouldered, build);
+    const pivot = BODIES[build].pivot[part].map((p) => p + 1) as [number, number, number];
+    return grid && meshAround(withBody(grid, part, build), ITEM_MODELS[item].palette, pivot, (c) => c !== BODY_FILL);
   });
 }
 
@@ -114,6 +132,7 @@ export class HumanRig {
   private heading = 0;
   private time = 0;
   private pose: Pose = 'stand';
+  private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
 
   constructor(
     readonly look: BodyLook = HERO_LOOK,
@@ -121,7 +140,7 @@ export class HumanRig {
   ) {
     const joints = {} as Record<Joint, THREE.Group>;
     for (const joint of JOINT_NAMES) {
-      const { part, at } = JOINTS[joint];
+      const { part, at } = BODIES[look.build].joints[joint];
       const group = new THREE.Group();
       group.position.set(at[0] * V, at[1] * V, at[2] * V);
       group.add(this.mesh(bodyGeometry(look, part)));
@@ -130,6 +149,11 @@ export class HumanRig {
     }
     this.joints = joints;
     this.root.add(this.body);
+    const hair = hairGeometry(look);
+    if (hair) {
+      this.hair = this.mesh(hair);
+      joints.head.add(this.hair);
+    }
   }
 
   // Dresses the body in `equipment`: takes off what's no longer in it and
@@ -137,6 +161,7 @@ export class HumanRig {
   wear(equipment: Equipment): void {
     // Shoulders going on or off change where the sleeves stop, so the
     // torso's piece is put on again to match.
+    if (this.hair) this.hair.visible = !equipment.head;
     const shouldered = !!equipment.shoulders;
     const refit = shouldered !== this.shouldered;
     this.shouldered = shouldered;
@@ -171,14 +196,15 @@ export class HumanRig {
       const geometry = heldGeometry(item);
       if (geometry) {
         const mesh = this.mesh(geometry);
-        mesh.position.set(HAND[0] * V, HAND[1] * V, HAND[2] * V);
+        const hand = BODIES[this.look.build].hand;
+        mesh.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
         this.joints[HELD_BY[slot]].add(mesh);
         meshes.push(mesh);
       }
       return meshes;
     }
     for (const joint of JOINT_NAMES) {
-      const geometry = wornGeometry(item, joint, this.shouldered);
+      const geometry = wornGeometry(item, joint, this.shouldered, this.look.build);
       if (!geometry) continue;
       const mesh = this.mesh(geometry);
       this.joints[joint].add(mesh);
@@ -268,7 +294,7 @@ export class HumanRig {
         // Tipped onto their back about the feet, head away from `facing`,
         // lifted so the back rests on the bed; breathing gently.
         this.body.rotation.x = -Math.PI / 2;
-        this.body.position.y = BACK + breath * 0.5;
+        this.body.position.y = BODIES[this.look.build].pivot.torso[2] * V + breath * 0.5; // the back of the torso, behind the joints
       }
       return;
     }

@@ -44,7 +44,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
   let shown = '';
   let dressed = '';
   return () => {
-    const outfit = JSON.stringify(hero.equipment);
+    const outfit = JSON.stringify([hero.look, hero.equipment]); // their look (a cheat can change it) and what they wear
     if (outfit !== dressed) {
       dressed = outfit;
       const canvas = voxelIcon(`bust:${outfit}`, () => humanBust(hero.look, hero.equipment), PORTRAIT_SIZE);

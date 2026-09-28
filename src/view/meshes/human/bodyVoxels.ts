@@ -1,8 +1,11 @@
-// The one body every humanoid shares (the hero, bandits, villagers later),
-// naked but for undyed linen braies (medieval underwear). Nothing is ever
-// painted onto it: armor is worn over it as separate models (gear/). Only
-// its look changes from person to person (model/human/humanoid.ts): the skin
-// tone, the hair color and style, a beard.
+// The body humanoids have (the hero, bandits, villagers), in two builds:
+// male, and a slimmer female one (a narrow torso with a waist and a bust,
+// thin arms, slim legs; the same height and the same head, so what's worn
+// on the head fits both). Naked but for undyed linen braies (medieval
+// underwear), and on her a linen breast band. Nothing is ever painted onto
+// it: armor is worn over it as separate models (gear/), fitted to either
+// build. Only its look changes from person to person (model/human/humanoid.ts):
+// the build, the skin tone, the hair color and style, a beard.
 //
 // 0.025 voxels, finer than the world's 0.04: at world scale the 0.45-tall
 // body would be 11 voxels, too coarse for a face or armor detail. Proportions
@@ -14,7 +17,7 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
 import type { HeldSlot } from '../../../model/human/equipment';
-import { HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook } from '../../../model/human/humanoid';
+import { HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook, type Build } from '../../../model/human/humanoid';
 
 export const HUMAN_VOXEL_SIZE = 0.025;
 
@@ -22,39 +25,64 @@ export type BodyPart = 'head' | 'torso' | 'arm' | 'leg';
 export type Side = 'left' | 'right' | 'center';
 export type Joint = 'head' | 'torso' | 'leftArm' | 'rightArm' | 'leftLeg' | 'rightLeg';
 
-// Part sizes in voxels [x, y, z].
-export const PART_GRID: Record<BodyPart, [number, number, number]> = {
-  leg: [3, 5, 4], // the foot sticks out forward
-  torso: [7, 6, 4],
-  arm: [2, 6, 2],
-  head: [7, 7, 7],
-};
+// Part sizes in voxels [x, y, z], per build.
+type Sizes = Record<BodyPart, [number, number, number]>;
+type JointAt = Record<Joint, { part: BodyPart; side: Side; at: [number, number, number] }>;
+export interface BodyShape {
+  grid: Sizes;
+  pivot: Sizes; // the joint each part swings around, in voxels within its grid
+  joints: JointAt; // where each joint sits, in voxels from between the feet
+  hand: [number, number, number]; // the middle of the hand, from the arm's joint: where held items go
+}
 
-// The joint each part swings around, in voxels within its grid: hips at the
-// bottom of the torso, the neck under the head, shoulders and hips at the
-// tops of the limbs.
-export const PART_PIVOT: Record<BodyPart, [number, number, number]> = {
-  torso: [3.5, 0, 2],
-  head: [3.5, 0, 3.5],
-  arm: [1, 6, 1],
-  leg: [1.5, 5, 1.5],
+// Hips at the bottom of the torso, the neck under the head, shoulders and
+// hips at the tops of the limbs. The body faces +Z, so its right side is -X.
+export const BODIES: Record<Build, BodyShape> = {
+  male: {
+    grid: {
+      leg: [3, 5, 4], // the foot sticks out forward
+      torso: [7, 6, 4],
+      arm: [2, 6, 2],
+      head: [7, 7, 7],
+    },
+    pivot: { torso: [3.5, 0, 2], head: [3.5, 0, 3.5], arm: [1, 6, 1], leg: [1.5, 5, 1.5] },
+    joints: {
+      torso: { part: 'torso', side: 'center', at: [0, 5, 0] },
+      head: { part: 'head', side: 'center', at: [0, 11, 0] },
+      rightArm: { part: 'arm', side: 'right', at: [-4.5, 10.5, 0] },
+      leftArm: { part: 'arm', side: 'left', at: [4.5, 10.5, 0] },
+      rightLeg: { part: 'leg', side: 'right', at: [-2, 5, 0] },
+      leftLeg: { part: 'leg', side: 'left', at: [2, 5, 0] },
+    },
+    hand: [0, -5, 0],
+  },
+  female: {
+    grid: {
+      leg: [2, 5, 3], // slimmer, the foot forward
+      torso: [5, 6, 4], // narrower and shallower; the bust in its front layer
+      arm: [1, 6, 2], // thin
+      head: [7, 7, 7],
+    },
+    pivot: { torso: [2.5, 0, 1.5], head: [3.5, 0, 3.5], arm: [0.5, 6, 1], leg: [1, 5, 1] },
+    joints: {
+      torso: { part: 'torso', side: 'center', at: [0, 5, 0] },
+      head: { part: 'head', side: 'center', at: [0, 11, 0] },
+      // A voxel out from her sides: the layer between is where what's worn on her chest goes.
+      rightArm: { part: 'arm', side: 'right', at: [-4, 10.5, 0] },
+      leftArm: { part: 'arm', side: 'left', at: [4, 10.5, 0] },
+      rightLeg: { part: 'leg', side: 'right', at: [-1.5, 5, 0] },
+      leftLeg: { part: 'leg', side: 'left', at: [1.5, 5, 0] },
+    },
+    hand: [0.25, -5, 0.25], // a quarter voxel over and forward, so what she holds never shares faces with her arm or hips
+  },
 };
-
-// Where each joint sits, in voxels from between the feet, and the part
-// hanging from it. The body faces +Z, so its right side is -X.
-export const JOINTS: Record<Joint, { part: BodyPart; side: Side; at: [number, number, number] }> = {
-  torso: { part: 'torso', side: 'center', at: [0, 5, 0] },
-  head: { part: 'head', side: 'center', at: [0, 11, 0] },
-  rightArm: { part: 'arm', side: 'right', at: [-4.5, 10.5, 0] },
-  leftArm: { part: 'arm', side: 'left', at: [4.5, 10.5, 0] },
-  rightLeg: { part: 'leg', side: 'right', at: [-2, 5, 0] },
-  leftLeg: { part: 'leg', side: 'left', at: [2, 5, 0] },
-};
+// The male build's, for what doesn't depend on who wears it.
+export const PART_GRID: Sizes = BODIES.male.grid;
+export const PART_PIVOT: Sizes = BODIES.male.pivot;
+export const JOINTS: JointAt = BODIES.male.joints;
 export const JOINT_NAMES = Object.keys(JOINTS) as Joint[];
 
-// The middle of the hand, in voxels from the arm's joint (the shoulder),
-// and which arm holds each hand's item.
-export const HAND: [number, number, number] = [0, -5, 0];
+// Which arm holds each hand's item (the hand's middle is the build's `hand`).
 export const HELD_BY: Record<HeldSlot, Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 
 // Skin tones, fair to deep, each with its shading, highlight, cheeks and mouth.
@@ -90,17 +118,29 @@ export function bodyPalette(look: BodyLook): number[] {
 
 // A leg: linen braies over the thigh, bare shin, a foot one voxel longer
 // toward the front (+Z). Shaded on its outer side so the two legs separate.
-export function buildLeg(): VoxelGrid {
-  const grid = createGrid(PART_GRID.leg);
-  fillBox(grid, 0, 1, 0, 2, 4, 2, (x, y) => (y >= 3 ? (x === 0 ? C.linenShade : C.linen) : x === 0 ? C.skinShade : C.skin));
-  fillBox(grid, 0, 0, 0, 2, 0, 3, (x, _y, z) => (z === 3 ? C.skinLight : x === 0 ? C.skinShade : C.skin)); // foot
+export function buildLeg(build: Build = 'male'): VoxelGrid {
+  const [w, , d] = BODIES[build].grid.leg;
+  const grid = createGrid(BODIES[build].grid.leg);
+  fillBox(grid, 0, 1, 0, w - 1, 4, d - 2, (x, y) => (y >= 3 ? (x === 0 ? C.linenShade : C.linen) : x === 0 ? C.skinShade : C.skin));
+  fillBox(grid, 0, 0, 0, w - 1, 0, d - 1, (x, _y, z) => (z === d - 1 ? C.skinLight : x === 0 ? C.skinShade : C.skin)); // foot
   return grid;
 }
 
 // The torso: braies up to the waist, tied with a cord, bare chest above
-// with a hint of shading at the sides, a navel and collarbones.
-export function buildTorso(): VoxelGrid {
-  const grid = createGrid(PART_GRID.torso);
+// with a hint of shading at the sides, a navel and collarbones. Hers: hips
+// in braies, a narrow waist with the cord, a linen band over the bust
+// (standing out in front), bare shoulders.
+export function buildTorso(build: Build = 'male'): VoxelGrid {
+  const grid = createGrid(BODIES[build].grid.torso);
+  if (build === 'female') {
+    fillBox(grid, 0, 0, 0, 4, 1, 2, (x, _y, z) => (x === 0 || z === 0 ? C.linenShade : C.linen)); // hips
+    fillBox(grid, 1, 2, 0, 3, 2, 2, C.cord); // the waist, tied
+    fillBox(grid, 0, 3, 0, 4, 4, 2, (x, _y, z) => (x === 0 || z === 0 ? C.linenShade : C.linen)); // the band
+    fillBox(grid, 1, 3, 3, 3, 4, 3, (x, y) => (y === 4 && x === 2 ? C.linenShade : C.linen)); // over the bust
+    fillBox(grid, 0, 5, 0, 4, 5, 2, (x, _y, z) => (x === 0 || x === 4 || z === 0 ? C.skinShade : C.skin)); // shoulders
+    fillBox(grid, 1, 5, 2, 3, 5, 2, C.skinLight); // collarbones
+    return grid;
+  }
   fillBox(grid, 0, 0, 0, 6, 5, 3, (x, y, z) => {
     if (y <= 1) return x === 0 || z === 0 ? C.linenShade : C.linen;
     if (y === 2) return C.cord;
@@ -112,9 +152,10 @@ export function buildTorso(): VoxelGrid {
 }
 
 // An arm hanging from the shoulder, the hand a lighter voxel pair at the end.
-export function buildArm(): VoxelGrid {
-  const grid = createGrid(PART_GRID.arm);
-  fillBox(grid, 0, 0, 0, 1, 5, 1, (x, y) => (y <= 1 ? C.skinLight : x === 0 ? C.skinShade : C.skin));
+export function buildArm(build: Build = 'male'): VoxelGrid {
+  const [w, , d] = BODIES[build].grid.arm;
+  const grid = createGrid(BODIES[build].grid.arm);
+  fillBox(grid, 0, 0, 0, w - 1, 5, d - 1, (x, y) => (y <= 1 ? C.skinLight : x === 0 && w > 1 ? C.skinShade : C.skin));
   return grid;
 }
 
@@ -152,8 +193,34 @@ export function buildHead(look: Pick<BodyLook, 'hairStyle' | 'beard'>): VoxelGri
   return grid;
 }
 
-export function buildBodyPart(part: BodyPart, look: BodyLook): VoxelGrid {
+export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>): VoxelGrid {
   if (part === 'head') return buildHead(look);
-  if (part === 'torso') return buildTorso();
-  return part === 'arm' ? buildArm() : buildLeg();
+  if (part === 'torso') return buildTorso(look.build);
+  return part === 'arm' ? buildArm(look.build) : buildLeg(look.build);
+}
+
+// Hair gathered up past the head (a bun, a ponytail, a braid), as its own
+// piece on the head's joint, left off under anything worn on the head; or
+// null for styles that stay within it. Its grid spans the head's width,
+// from 6 below it to 2 over, and 3 behind it; `pivot` is the head's joint
+// in it.
+export const HAIR_PIECE_GRID: [number, number, number] = [7, 15, 3];
+export const HAIR_PIECE_PIVOT: [number, number, number] = [3.5, 6, 6.5];
+export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
+  if (style !== 'bun' && style !== 'ponytail' && style !== 'braid') return null;
+  const grid = createGrid(HAIR_PIECE_GRID);
+  // Head coordinates (y 0..6 up the head, z -1 just behind it) into the grid's.
+  const at = (x: number, y: number, z: number, color: number) => setColor(grid, x, y + 6, z + 3, color);
+  const strand = (y: number) => (y % 2 === 0 ? C.hair : C.hairLight);
+  if (style === 'bun') {
+    for (let x = 2; x <= 4; x++) for (let y = 5; y <= 7; y++) for (const z of [-1, -2]) at(x, y, z, (x + y + z) % 3 === 0 ? C.hairLight : C.hair);
+  } else if (style === 'ponytail') {
+    at(3, 5, -1, C.cord); // tied at the back of the crown
+    for (let y = 5; y >= -2; y--) at(3, y, -2, strand(y)); // hanging down the back
+    for (const x of [2, 4]) for (let y = 3; y >= 0; y--) at(x, y, -2, C.hair); // fuller in the middle
+  } else {
+    for (let y = 3; y >= -5; y--) at(3, y, -1, strand(y)); // a braid down past the shoulders
+    at(3, -6, -1, C.cord); // tied at its end
+  }
+  return grid;
 }
