@@ -104,3 +104,45 @@
   color: #fff;
   text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink);
 }
+
+/* Over loot in reach: its name in its quality's color, and the key. */
+.loot-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font: 600 14px 'Fredoka', system-ui, sans-serif;
+  background: rgba(46, 31, 20, 0.78);
+  border: 2px solid #2e1f14;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.loot-prompt[hidden], .loot-toast[hidden] { display: none; }
+.loot-name[data-quality='junk'] { color: #b4b0a8; }
+.loot-key {
+  min-width: 20px;
+  padding: 0 5px;
+  font-size: 12px;
+  text-align: center;
+  color: #2e1f14;
+  background: #efdcb8;
+  border: 2px solid #2e1f14;
+  box-shadow: inset 0 -2px 0 #d6bb8e;
+}
+
+/* What just went into the bag, low in the middle of the screen. */
+.loot-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  font: 600 15px 'Fredoka', system-ui, sans-serif;
+  color: #efdcb8;
+  background: rgba(46, 31, 20, 0.78);
+  border: 2px solid #2e1f14;
+  pointer-events: none;
+}

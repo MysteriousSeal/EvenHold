@@ -28,6 +28,7 @@ import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
+import { LootViews } from './meshes/loot/lootViews';
 import { buildCamps } from './meshes/camp/campMesh';
 import type { WorldSink } from './world/chunkLayer';
 
@@ -56,6 +57,7 @@ export class GameView {
   private readonly world: ChunkStreamer;
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
+  private readonly loot: LootViews;
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -98,6 +100,7 @@ export class GameView {
     this.world = new ChunkStreamer(this.scene);
     this.enemies = new EnemyViews(this.scene);
     this.wildlife = new WildlifeViews(this.scene);
+    this.loot = new LootViews(this.scene);
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -130,7 +133,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.heroLook, this.heroFlash];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, ...this.loot.materials, this.heroLook, this.heroFlash];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -177,6 +180,13 @@ export class GameView {
     return best;
   }
 
+  // Where a point in the world is on screen, in page pixels.
+  toScreen(x: number, y: number, z: number): { x: number; y: number } {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const at = new THREE.Vector3(x, y, z).project(this.camera);
+    return { x: rect.left + ((at.x + 1) / 2) * rect.width, y: rect.top + ((1 - at.y) / 2) * rect.height };
+  }
+
   get canvas(): HTMLCanvasElement {
     return this.renderer.domElement;
   }
@@ -197,6 +207,7 @@ export class GameView {
     this.world.update(hero.x, hero.z);
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
+    this.loot.update(model.loot, hero.x, hero.z, dt);
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay
