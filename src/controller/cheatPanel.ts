@@ -17,34 +17,10 @@ import {
 } from '../model/cheats';
 import type { Village } from '../model/types';
 import { createMenu, type MenuAction } from '../view/ui/menu';
+import { ICONS as ICON } from './cheatIcons';
 
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
-
-// Pixel-art icons (8x8, '.' empty) and their colors, in the game's palette.
-const PALETTE: Record<string, string> = {
-  k: '#2e1f14', r: '#a4502f', R: '#c26a45', w: '#f3e3c4', y: '#ffd98a', b: '#3dbdb8', B: '#217c98',
-  g: '#62ad4c', G: '#3e7a34', s: '#f0c49a', h: '#6b4226', c: '#e8dcc0', i: '#d0d5dc', I: '#8a9098',
-  t: '#5a3a22', f: '#80838b', F: '#5d6068', m: '#c9b89a', o: '#ffa940',
-};
-const ICON = {
-  map: ['kkkkkkkk', 'kwwgwwbk', 'kwggwbbk', 'kwwwrwwk', 'kwgwwwgk', 'kbbwwggk', 'kwwwwwwk', 'kkkkkkkk'],
-  hero: ['..hhhh..', '.hsssh..', '.skskk..', '.sssss..', '..ccc...', '.scccs..', '..c.c...', '..s.s...'],
-  sword: ['......ik', '.....iI.', '....iI..', '...iI...', 't.iI....', '.tI.....', '.kt.....', 'k..t....'],
-  scroll: ['.kkkkkk.', 'kwwwwwwk', '.wkkkwk.', '.wwwwwk.', '.wkkwk..', '.wwwwk..', 'kwwwwwwk', '.kkkkkk.'],
-  village: ['...rR...', '..rRRr..', '.rRRRRr.', 'rRRRRRRr', '.wwtwww.', '.wytwyw.', '.wwttww.', '.wwttww.'],
-  lake: ['...b....', '...b....', '..bbb...', '..bbbb..', '.bbbbbB.', '.bbbbbB.', '..bbbB..', '...BB...'],
-  camp: ['...r....', '..rRr...', '..rRr...', '.rRkRr..', '.rRkRr..', 'rRRkRRr.', '...o....', '..ooo...'],
-  paw: ['.f..f...', 'fF.fF...', '........', 'f.ff.f..', '.ffff...', '.ffff...', '..ff....', '........'],
-  flag: ['.tRRRR..', '.tRRRRR.', '.tRrRRR.', '.tRRRRR.', '.tRR....', '.t......', '.t......', 'gggggggg'],
-  boot: ['c.......', 'cc......', 'ic......', '..t.hhh.', '...hhhh.', '..hhhhh.', '.tttttt.', '.kkkkkk.'],
-  ghost: ['..wwww..', '.wwwwww.', '.wkwwkw.', '.wwwwww.', '.wwkkww.', '.wwwwww.', '.wwwwww.', '.w.ww.w.'],
-  shield: ['.IIIIII.', '.IbbbbI.', '.IbBbbI.', '.IbbbbI.', '.IbbbbI.', '..IbbI..', '..IbbI..', '...II...'],
-  wolf: ['.f....f.', '.ff..ff.', '.ffffff.', 'fyffyff.', 'fffffff.', '.ffffkf.', '..ffff..', '...ff...'],
-  bandit: ['..hhhh..', '.hhhhhh.', '.hskskh.', '.hkkkkh.', '.hkkkkh.', '..hhhh..', '.tttttt.', 'tttttttt'],
-  skull: ['..cccc..', '.cccccc.', 'ckkcckkc', 'ckkcckkc', '.cccccc.', '..ckkc..', '..cccc..', '..c..c..'],
-  frost: ['...b....', '.b.b.b..', '..bbb...', 'bbbBbbb.', '..bbb...', '.b.b.b..', '...b....', '........'],
-};
 
 export interface CheatPanelHooks {
   setPaused(paused: boolean): void;
@@ -68,7 +44,6 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
 
   createMenu({
     title: 'Cheats',
-    palette: PALETTE,
     toggleKey: 'Backquote',
     onOpenChange: (open) => hooks.setPaused(open),
     tabs: [

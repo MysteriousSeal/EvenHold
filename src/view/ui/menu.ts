@@ -6,9 +6,11 @@
 // it takes every key, so none reaches the game.
 
 import './menu.css';
+// An icon: makes a canvas showing it at `size` CSS pixels (e.g. voxelIcon).
+export type MenuIcon = (size: number) => HTMLCanvasElement;
 
 export interface MenuAction {
-  icon?: string[]; // 8x8 pixel art, see pixelIcon
+  icon?: MenuIcon;
   title: string;
   detail?: string;
   run(): string | void; // may return a line for the status bar
@@ -17,7 +19,7 @@ export interface MenuAction {
 
 export interface MenuTab {
   name: string;
-  icon?: string[];
+  icon?: MenuIcon;
   actions?: MenuAction[];
   facts?(): Array<[string, string]>; // a ledger, refreshed when shown
 }
@@ -25,7 +27,6 @@ export interface MenuTab {
 export interface MenuOptions {
   title: string;
   tabs: MenuTab[];
-  palette: Record<string, string>; // colors for the pixel icons
   toggleKey?: string; // a key code that opens and closes this menu
   onOpenChange?(open: boolean): void;
 }
@@ -35,24 +36,6 @@ export interface Menu {
   open(): void;
   close(): void;
   toggle(): void;
-}
-
-// 8x8 pixel art as crisp SVG: one character per pixel, looked up in
-// `palette`; '.' is empty.
-export function pixelIcon(rows: string[], palette: Record<string, string>): SVGSVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 8 8');
-  svg.setAttribute('aria-hidden', 'true');
-  rows.forEach((row, y) =>
-    [...row].forEach((c, x) => {
-      if (c === '.' || !palette[c]) return;
-      const px = document.createElementNS(ns, 'rect');
-      for (const [k, v] of Object.entries({ x, y, width: 1, height: 1, fill: palette[c] })) px.setAttribute(k, String(v));
-      svg.append(px);
-    }),
-  );
-  return svg;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) => {
@@ -88,7 +71,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   const tabButtons = options.tabs.map((tab, i) => {
     const button = el('button', 'menu-tab');
-    if (tab.icon) button.append(pixelIcon(tab.icon, options.palette));
+    if (tab.icon) button.append(tab.icon(28));
     button.append(tab.name);
     button.addEventListener('click', () => showTab(i));
     tabBar.append(button);
@@ -113,7 +96,7 @@ export function createMenu(options: MenuOptions): Menu {
     rows = (tab.actions ?? []).map((action, j) => {
       const row = el('button', 'menu-row');
       const icon = el('span', 'menu-icon');
-      if (action.icon) icon.append(pixelIcon(action.icon, options.palette));
+      if (action.icon) icon.append(action.icon(34));
       const text = el('span', 'menu-text');
       text.append(el('b', undefined, action.title));
       if (action.detail) text.append(el('small', undefined, action.detail));
