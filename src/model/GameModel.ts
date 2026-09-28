@@ -24,8 +24,6 @@ import {
   LANTERN_COLLISION_HALF,
   FENCE_THICKNESS,
   FIELD_CORNER_COLLISION_HALF,
-  HOP_DURATION,
-  HOP_HEIGHT,
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
@@ -36,6 +34,7 @@ import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import { Obstacles } from './obstacles';
+import { stepHop, type Hop } from './hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, takeFromBag, type BagItem } from './bag';
 import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
@@ -44,9 +43,11 @@ import { generateWorld, solidCells } from './worldgen/world';
 import { fenceEdges } from './worldgen/fields';
 import { squareLanterns } from './worldgen/villages';
 import { onPaving } from './roads';
-import { ENTER_RANGE, entrancesOf, roomFor, type Entrance } from './interiors/interiors';
-import { furnish, type Seat } from './interiors/furniture';
-import { seatInReach, sitDown, standUp, walkInside, type Inside } from './interiors/indoors';
+import { ENTER_RANGE, entrancesOf, type Entrance } from './interiors/interiors';
+import type { Seat } from './interiors/furniture';
+import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside } from './interiors/indoors';
+import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
+import { stepNpcs } from './npcs/npcRoutine';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
@@ -69,6 +70,7 @@ export class GameModel {
   readonly loot: GroundLoot[] = []; // on the ground, until picked up
   private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
+  readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
   // Where the hero is while indoors (indoors.ts); null outdoors.
   inside: Inside | null = null;
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
@@ -78,7 +80,7 @@ export class GameModel {
 
   private readonly obstacles: Obstacles;
   private readonly director: EnemyDirector;
-  private hop: { fromY: number; toY: number; elapsed: number } | null = null;
+  private hop: Hop | null = null;
   // Time into the current attack, or null when not attacking; whether the
   // current blow has landed yet (each blow hits at most once).
   private attackElapsed: number | null = null;
@@ -141,6 +143,7 @@ export class GameModel {
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
+    this.npcs = spawnNpcs(this.entrances, this.villages);
   }
 
   // Height of whatever the hero would stand on at (x, z), in world units:
@@ -205,18 +208,20 @@ export class GameModel {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
       this.advanceAttack(dt);
+      stepNpcs(this.npcs, this, dt);
       recover(this.hero, dt);
       return;
     }
     this.moveHorizontally(dirX, dirZ, dt);
     this.advanceAttack(dt);
     this.director.update(dt);
+    stepNpcs(this.npcs, this, dt);
     recover(this.hero, dt);
     this.keepFocus();
     stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
-    this.updateHop(dt);
+    ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
   }
 
   // Moves the current blow along; outdoors it lands partway through (there's
@@ -241,7 +246,8 @@ export class GameModel {
 
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.
-    const free = (x: number, z: number) => this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !this.bumpsEnemy(x, z));
+    const free = (x: number, z: number) =>
+      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !this.bumpsEnemy(x, z) && !bumpsNpc(this.npcs, null, this.hero, x, z, HERO_RADIUS));
     if (free(candidateX, this.hero.z)) this.hero.x = candidateX;
     if (free(this.hero.x, candidateZ)) this.hero.z = candidateZ;
     this.hero.facing = Math.atan2(dirX, dirZ);
@@ -385,8 +391,8 @@ export class GameModel {
       hero.facing = Math.atan2(entrance.outX, entrance.outZ);
       return true;
     }
-    const room = roomFor(this.seed, entrance);
-    this.inside = { entrance, room, furniture: furnish(this.seed, entrance, room), seated: null };
+    const { room, furniture } = layoutOf(this.seed, entrance);
+    this.inside = { entrance, room, furniture, seated: null };
     this.focusedId = null;
     hero.x = room.door;
     hero.z = room.depth - 1;
@@ -401,12 +407,13 @@ export class GameModel {
     const inside = this.inside!;
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
-    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * dt) === 'door') this.useDoor();
+    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
+    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * dt, bumps) === 'door') this.useDoor();
   }
 
   // The seat the hero could sit on right now, or null (outdoors, or seated).
   get seatInReach(): Seat | null {
-    return this.inside ? seatInReach(this.inside, this.hero) : null;
+    return this.inside ? seatInReach(this.inside, this.hero, (piece) => this.npcs.some((n) => n.seat?.piece === piece)) : null;
   }
 
   // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
@@ -417,7 +424,7 @@ export class GameModel {
       standUp(inside, this.hero);
       return true;
     }
-    const seat = seatInReach(inside, this.hero);
+    const seat = this.seatInReach;
     if (seat) sitDown(inside, this.hero, seat);
     return !!seat;
   }
@@ -459,33 +466,5 @@ export class GameModel {
     this.teleport(spawn.x, spawn.z);
     this.hero.hp = maxHpAt(this.hero.level);
     for (const e of this.enemies) if (e.state === 'chase') e.state = 'wander';
-  }
-
-  // Whenever the ground height under the hero changes, move to it over a
-  // short time: a straight line from the old height to the new one, plus —
-  // for a real terrain step — a parabola peaking HOP_HEIGHT above that line
-  // halfway through. A new change mid-move restarts from the current
-  // height, so rapid multi-step climbs stay continuous.
-  private updateHop(dt: number): void {
-    const groundY = this.getGroundY(this.hero.x, this.hero.z);
-    const currentTarget = this.hop ? this.hop.toY : this.hero.y;
-    if (groundY !== currentTarget) {
-      this.hop = { fromY: this.hero.y, toY: groundY, elapsed: 0 };
-    }
-    if (!this.hop) return;
-
-    // Small height changes (stepping onto a road's paving) just ease up or
-    // down quickly; only a real terrain step gets the full arcing hop. The
-    // cut-off sits between the paving height (0.08) and a tier (0.15).
-    const { fromY, toY } = this.hop;
-    const isStep = Math.abs(toY - fromY) >= TILE_HEIGHT * 0.75;
-    const duration = isStep ? HOP_DURATION : HOP_DURATION / 2;
-    const arc = isStep ? HOP_HEIGHT : 0;
-
-    this.hop.elapsed += dt;
-    const p = Math.min(1, this.hop.elapsed / duration);
-    this.hero.y = fromY + (toY - fromY) * p + arc * 4 * p * (1 - p);
-
-    if (p >= 1) this.hop = null;
   }
 }
