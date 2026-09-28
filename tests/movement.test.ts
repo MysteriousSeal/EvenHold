@@ -51,7 +51,7 @@ describe('hero collision', () => {
     const { x, y, z } = model.hero;
     model.update(1, 0, -0.01);
     model.update(1, 0, 0);
-    expect(model.hero).toEqual({ x, y, z });
+    expect({ x: model.hero.x, y: model.hero.y, z: model.hero.z }).toEqual({ x, y, z });
   });
 });
 
