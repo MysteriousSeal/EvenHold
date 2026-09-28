@@ -152,21 +152,23 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
         if (chair) chair.facing = [0, -1];
       }
     }
-    // Tavern tables, laid for a meal, with chairs round them; each at least
-    // three tiles from anything else, so its chairs have room and there's a
-    // walkway between one table and the next.
+    // Tavern tables, laid for a meal, with chairs round them, filling the
+    // floor (out to the right-hand wall): each three tiles from the next
+    // table, two from anything else. Others' chairs don't count: chairs pull
+    // up to their own table, so two back to back between tables still leave
+    // a walkway.
+    const gapTo = (o: Furniture, x: number, z: number) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
     const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
-      items.every(
-        (o) => !o.solid || (pastChairs && o.kind === 'chair') || Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1)) >= gap,
-      );
-    // At least three, up to five: spaced three tiles apart in the open
-    // floor where the room allows; to fit three, closer (two apart), a
-    // little further toward the bar and the hearth, and right by others' chairs.
-    const wanted = 3 + Math.floor(rng() * 3);
+      items.every((o) => !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
+    const floor: Array<[number, number]> = [];
+    for (let x = 1; x < room.width; x++) for (let z = 1; z < room.depth - 1; z++) floor.push([x, z]);
+    // As many as fit, up to ten; and at least three: if the room's too
+    // small, closer (two apart), a little further toward the bar and the hearth.
+    const MAX_TABLES = 10;
     let tables = 0;
-    for (const pass of [{ gap: 3, x: 5, z: 3 }, { gap: 2, x: 5, z: 3 }, { gap: 2, x: 4, z: 2, pastChairs: true }]) {
-      while (tables < wanted && (pass.gap === 3 || tables < 3)) {
-        const spots = inside().filter(([x, z]) => x >= pass.x && z >= pass.z && clearOf(x, z, pass.gap, pass.pastChairs));
+    for (const pass of [{ gap: 3, x: 4, z: 2, pastChairs: true }, { gap: 2, x: 5, z: 3 }, { gap: 2, x: 4, z: 2, pastChairs: true }]) {
+      while (tables < MAX_TABLES && (pass.gap === 3 || tables < 3)) {
+        const spots = floor.filter(([x, z]) => x >= pass.x && z >= pass.z && clearOf(x, z, pass.gap, pass.pastChairs));
         const table = place('tavernTable', 1, 1, 'none', spots);
         if (!table) break;
         chairs(table);

@@ -10,6 +10,7 @@ import { hashUnit } from '../../util/random';
 import type { Point } from '../obstacles';
 import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
+import type { Room } from '../interiors/interiors';
 import type { Npc, NpcStep } from './npcs';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
@@ -36,7 +37,7 @@ export function staffSteps(npc: Npc, npcs: readonly Npc[], seed: number): NpcSte
 
 function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   npc.stop++;
-  const { furniture } = layoutOf(seed, npc.home);
+  const { room, furniture } = layoutOf(seed, npc.home);
   const counter = furniture.find((f) => f.kind === 'counter');
   if (!counter) return [{ kind: 'wait', for: 10 }];
   const barEnd = counter.z + counter.d - 1;
@@ -59,12 +60,12 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
     { kind: 'go', to: pickup, face: Math.PI }, // facing the counter's end
     { kind: 'wait', for: between(npc, TABLE_WAIT, 5) },
   ];
-  if (table) steps.push({ kind: 'go', to: beside(table, furniture), faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
+  if (table) steps.push({ kind: 'go', to: beside(table, furniture, room), faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
   return steps;
 }
 
-// A spot by a table to serve it from: a tile next to it with nothing on it.
-function beside(table: Furniture, furniture: readonly Furniture[]): Point {
+// A spot by a table to serve it from: a tile next to it, in the room, with nothing on it.
+function beside(table: Furniture, furniture: readonly Furniture[], room: Room): Point {
   const around: Point[] = [
     { x: table.x, z: table.z + 1 },
     { x: table.x + 1, z: table.z },
@@ -73,5 +74,6 @@ function beside(table: Furniture, furniture: readonly Furniture[]): Point {
     { x: table.x + 1, z: table.z + 1 },
     { x: table.x - 1, z: table.z + 1 },
   ];
-  return around.find((p) => !furniture.some((f) => f.solid && distanceTo(f, p.x, p.z) === 0)) ?? { x: table.x, z: table.z + 1 };
+  const inRoom = (p: Point) => p.x >= 0 && p.z >= 0 && p.x < room.width && p.z < room.depth - 1;
+  return around.find((p) => inRoom(p) && !furniture.some((f) => f.solid && distanceTo(f, p.x, p.z) === 0)) ?? { x: table.x, z: table.z };
 }
