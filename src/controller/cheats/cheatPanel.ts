@@ -15,6 +15,7 @@ import {
   spawnEnemyNear,
   spawnTile,
   villageEntrance,
+  enterNearest,
   type Tile,
 } from '../../model/cheats';
 import {
@@ -83,6 +84,18 @@ export function createCheatPanel(model: GameModel): void {
           { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
           { icon: ICON.camp, title: 'Bandit camp', detail: 'Just outside the nearest gate', run: () => travel(nearestCamp(model, here()), 'a bandit camp') },
           { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+          ...(['house', 'inn', 'smithy'] as const).map(
+            (type): MenuAction => ({
+              icon: ICON.village,
+              title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'the inn' : 'a smithy'}`,
+              detail: 'The nearest one, through its door',
+              run: () => {
+                if (!enterNearest(model, type)) return `There's no ${type} in this world.`;
+                menu.close();
+                return `Inside the ${type}.`;
+              },
+            }),
+          ),
           { icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') },
         ],
       },
