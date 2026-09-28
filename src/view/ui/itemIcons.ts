@@ -5,8 +5,9 @@ import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment'
 import type { LootId } from '../../model/loot/loot';
 import { LOOT } from '../../model/loot/loot';
 import type { BagItem } from '../../model/bag';
-import { humanFigure, type Figure } from '../meshes/human/humanFigure';
-import { HERO_LOOK } from '../../model/human/humanoid';
+import { humanFigure } from '../meshes/human/humanFigure';
+import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
+import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { ITEM_MODELS } from '../meshes/human/gear/itemModels';
 import { JUNK_MODELS } from '../meshes/loot/junkVoxels';
 import type { MenuIcon } from './menu';
@@ -26,62 +27,113 @@ export const gearIcon = (item: ItemId): MenuIcon => (size) =>
 export const lootIcon = (item: LootId): MenuIcon => (size) =>
   voxelIcon(`loot:${item}`, () => ({ grid: JUNK_MODELS[item].build(), palette: JUNK_MODELS[item].palette }), size);
 
-// What an empty slot shows: a typical item for it, worn on the part of the
-// body it covers (a capped head, a booted foot...), as one faded sand-toned
-// silhouette, so the shape says what goes there. Weapons and jewelry show
-// on their own.
-const TYPICAL: Record<EquipSlot, ItemId> = {
-  head: 'leatherCap',
-  shoulders: 'ironPauldrons',
-  torso: 'gambeson',
-  hands: 'workGloves',
-  legs: 'woolHose',
-  feet: 'leatherBoots',
-  neck: 'silverLocket',
-  ring: 'goldRing',
-  mainHand: 'armingSword',
-  offHand: 'plankShield',
-};
-const SILHOUETTE = 0x8a6a45;
-// The part of a dressed figure (humanFigure's voxels: x across, y up) that
-// shows the slot: [x0, x1, y0, y1], inclusive.
-const CROP: Partial<Record<EquipSlot, [number, number, number, number]>> = {
-  head: [0, 14, 12, 21],
-  shoulders: [0, 14, 8, 13],
-  torso: [0, 14, 5, 12],
-  hands: [0, 3, 4, 9], // the right arm and fist
-  legs: [0, 14, 0, 7], // up to the belt
-  feet: [0, 14, 0, 2],
+// What an empty slot shows: a small voxel model of what goes there (a
+// helmet, a gauntlet, a boot...), made just for that, rendered like every
+// other icon but all in one faded sand tone, like an empty slot's ghost.
+const GHOST = 0x8a6a45;
+
+// Fills a box and gives back the grid, for building the models below.
+function shape(size: [number, number, number], draw: (box: (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, on?: boolean) => void) => void): VoxelGrid {
+  const grid = createGrid(size);
+  draw((x0, y0, z0, x1, y1, z1, on = true) => fillBox(grid, x0, y0, z0, x1, y1, z1, on ? 1 : 0));
+  return grid;
+}
+
+const GHOSTS: Record<EquipSlot, () => VoxelGrid> = {
+  // A stepped dome of a helmet, a rim at the bottom, the face open around a nose guard.
+  head: () =>
+    shape([12, 12, 12], (box) => {
+      box(0, 0, 0, 11, 0, 11);
+      box(1, 1, 1, 10, 8, 10);
+      box(2, 9, 2, 9, 9, 9);
+      box(3, 10, 3, 8, 10, 8);
+      box(4, 11, 4, 7, 11, 7);
+      box(3, 2, 9, 8, 5, 10, false); // the face
+      box(5, 2, 9, 6, 5, 10); // nose guard
+    }),
+  // A pair of pauldrons, stepped domes on a strap across the back.
+  shoulders: () =>
+    shape([16, 6, 7], (box) => {
+      for (const x of [0, 10]) {
+        box(x, 0, 0, x + 5, 3, 6);
+        box(x + 1, 4, 1, x + 4, 4, 5);
+        box(x + 2, 5, 2, x + 3, 5, 4);
+      }
+      box(6, 3, 1, 9, 4, 2);
+    }),
+  // A breastplate with shoulders and a notch for the neck.
+  torso: () =>
+    shape([14, 13, 6], (box) => {
+      box(2, 0, 0, 11, 10, 5);
+      box(0, 7, 0, 13, 11, 5);
+      box(5, 9, 3, 8, 11, 5, false);
+      box(2, 0, 5, 11, 0, 5, false);
+    }),
+  // A gauntlet: a flared cuff, the back of the hand, four fingers and a thumb.
+  hands: () =>
+    shape([9, 14, 5], (box) => {
+      box(0, 0, 0, 7, 3, 4);
+      box(1, 4, 0, 6, 9, 3);
+      for (const x of [1, 3, 5]) box(x, 10, 0, x, 13, 2);
+      box(6, 10, 0, 6, 12, 2);
+      box(7, 5, 1, 8, 8, 2); // thumb
+    }),
+  // Trousers: a belted waist and two legs.
+  legs: () =>
+    shape([11, 14, 5], (box) => {
+      box(0, 10, 0, 10, 13, 4);
+      box(0, 0, 0, 4, 10, 4);
+      box(6, 0, 0, 10, 10, 4);
+    }),
+  // A tall boot, its toe to the front, a turned-down cuff at the top.
+  feet: () =>
+    shape([6, 14, 11], (box) => {
+      box(0, 0, 0, 5, 3, 10);
+      box(0, 4, 0, 5, 12, 5);
+      box(0, 13, 0, 5, 13, 6);
+      box(0, 0, 10, 5, 1, 10, false);
+    }),
+  // An amulet: a chain loop and a stone hanging from it.
+  neck: () =>
+    shape([11, 17, 3], (box) => {
+      box(0, 7, 1, 0, 16, 1);
+      box(10, 7, 1, 10, 16, 1);
+      box(0, 16, 1, 10, 16, 1);
+      box(1, 6, 1, 2, 6, 1);
+      box(8, 6, 1, 9, 6, 1);
+      box(3, 0, 0, 7, 5, 2);
+      box(4, 6, 0, 6, 6, 2);
+    }),
+  // A ring standing up: a thick band, a stone on top in its setting.
+  ring: () =>
+    shape([11, 14, 3], (box) => {
+      box(0, 0, 0, 10, 10, 2);
+      box(2, 2, 0, 8, 8, 2, false);
+      box(3, 11, 0, 7, 11, 2);
+      box(4, 12, 0, 6, 13, 2);
+    }),
+  // A sword standing up: pommel, grip, crossguard, a long blade.
+  mainHand: () =>
+    shape([8, 20, 2], (box) => {
+      box(2, 0, 0, 5, 1, 1);
+      box(3, 2, 0, 4, 4, 1);
+      box(0, 5, 0, 7, 6, 1);
+      box(2, 7, 0, 5, 18, 1);
+      box(3, 19, 0, 4, 19, 1);
+    }),
+  // A shield narrowing to its foot in steps, a boss in the middle.
+  offHand: () =>
+    shape([12, 16, 3], (box) => {
+      box(0, 5, 0, 11, 15, 1);
+      box(1, 3, 0, 10, 4, 1);
+      box(3, 1, 0, 8, 2, 1);
+      box(5, 0, 0, 6, 0, 1);
+      box(4, 8, 2, 7, 11, 2);
+    }),
 };
 
 export const slotPlaceholder = (slot: EquipSlot): MenuIcon => (size) =>
-  voxelIcon(
-    `empty:${slot}`,
-    () => {
-      const item = TYPICAL[slot];
-      const jewel = ITEM_MODELS[item].jewel;
-      const crop = CROP[slot];
-      const model = jewel
-        ? { grid: jewel.build(), palette: ITEM_MODELS[item].palette }
-        : crop
-          ? cropped(humanFigure(HERO_LOOK, { [slot]: item }), crop)
-          : humanFigure(null, { [slot]: item });
-      return { grid: model.grid, palette: model.palette.map(() => SILHOUETTE), alpha: 0.6 };
-    },
-    size,
-  );
-
-// Only the voxels of `figure` within `crop`.
-function cropped(figure: Figure, [x0, x1, y0, y1]: [number, number, number, number]): Figure {
-  const [sx, sy, sz] = figure.grid.size;
-  const cells = figure.grid.cells.slice();
-  for (let z = 0; z < sz; z++) {
-    for (let y = 0; y < sy; y++) {
-      for (let x = 0; x < sx; x++) if (x < x0 || x > x1 || y < y0 || y > y1) cells[x + sx * (y + sy * z)] = 0;
-    }
-  }
-  return { grid: { size: figure.grid.size, cells }, palette: figure.palette };
-}
+  voxelIcon(`ghost:${slot}`, () => ({ grid: GHOSTS[slot](), palette: [GHOST], alpha: 0.5 }), size);
 
 export const isLoot = (item: BagItem): item is LootId => item in LOOT;
 

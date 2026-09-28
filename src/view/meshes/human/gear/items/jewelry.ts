@@ -1,7 +1,8 @@
 // How jewelry looks: small voxel models of their own (it's too small to
 // show on the body), for icons on the hero sheet and in the bag.
 // Amulets stand upright, facing +Z: a square chain loop and a pendant
-// hanging below. Rings lie flat: a square band, maybe with a stone on top.
+// hanging below. Rings stand upright too: a band two voxels deep with a
+// raised setting on top, and a stone in it if they have one.
 
 import type { NECK_ITEMS, RING_ITEMS } from '../../../../../model/human/items/jewelry';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
@@ -28,16 +29,18 @@ function amulet(chain: number, pendant: number, accent: number, w = 3, h = 3): I
   };
 }
 
-// A ring: a 5x5 band lying flat, a stone raised in the middle of one side.
+// A ring standing up: a 5x5 band two voxels deep, open in the middle, a
+// setting on top (three wide) holding the stone, or a plain crest.
 function ring(band: number, stone?: number): ItemModel {
   const { palette, c } = namedPalette({ band, stone: stone ?? band });
   return {
     palette,
     jewel: {
       build: () => {
-        const grid = createGrid([5, 2, 5]);
-        fillBox(grid, 0, 0, 0, 4, 0, 4, (x, _y, z) => (x === 0 || x === 4 || z === 0 || z === 4 ? c.band : 0));
-        if (stone !== undefined) fillBox(grid, 1, 1, 4, 3, 1, 4, (x) => (x === 2 ? c.stone : c.band));
+        const grid = createGrid([5, 7, 2]);
+        fillBox(grid, 0, 0, 0, 4, 4, 1, (x, y) => (x === 0 || x === 4 || y === 0 || y === 4 ? c.band : 0));
+        fillBox(grid, 1, 5, 0, 3, 5, 1, c.band); // the setting
+        if (stone !== undefined) fillBox(grid, 2, 5, 1, 2, 6, 1, c.stone);
         return grid;
       },
     },

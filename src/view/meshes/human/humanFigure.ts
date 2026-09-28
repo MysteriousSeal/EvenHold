@@ -7,7 +7,7 @@ import { EQUIP_SLOTS, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } f
 import type { BodyLook } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { HAND, HELD_BY, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart } from './bodyVoxels';
+import { HAND, HELD_BY, JOINTS, JOINT_NAMES, PART_PIVOT, bodyPalette, buildBodyPart, type Joint } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
@@ -21,7 +21,8 @@ export interface Figure {
   palette: number[];
 }
 
-export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure {
+// `only`: draw just these body parts (and what's worn on them).
+export function humanFigure(look: BodyLook | null, equipment: Equipment, only: readonly Joint[] = JOINT_NAMES): Figure {
   const grid = createGrid(SIZE);
   const palette: number[] = [];
   const bases = new Map<number[], number>(); // where each palette starts in the figure's, added once
@@ -50,7 +51,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
 
   if (look) {
     const colors = bodyPalette(look);
-    for (const joint of JOINT_NAMES) {
+    for (const joint of only) {
       const { part, at } = JOINTS[joint];
       place(buildBodyPart(part, look), colors, at, PART_PIVOT[part]);
     }
@@ -66,7 +67,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment): Figure
       place(model.held.build(), model.palette, [arm[0] + HAND[0], arm[1] + HAND[1], arm[2] + HAND[2]], model.held.grip);
       continue;
     }
-    for (const joint of JOINT_NAMES) {
+    for (const joint of only) {
       const { part, side, at } = JOINTS[joint];
       const shell = wornGrid(item, part, side, shouldered);
       if (shell) place(shell, model.palette, at, PART_PIVOT[part].map((p) => p + 1));
