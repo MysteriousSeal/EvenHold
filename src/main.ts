@@ -7,6 +7,7 @@ import { createHeroHud } from './view/hud/heroHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt } from './view/hud/lootPrompt';
 import { createInventoryPanel } from './controller/inventoryPanel';
+import { createHeroSheet } from './controller/heroSheet';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 
@@ -43,10 +44,14 @@ async function boot(): Promise<void> {
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
+  const updateBag = createInventoryPanel(model);
+  const updateSheet = createHeroSheet(model);
   const onFrame = () => {
     countFrame();
     updateHud();
     updateTarget(model.focused);
+    updateBag();
+    updateSheet();
     lootPrompt.update(model.lootInReach, (x, y, z) => view.toScreen(x, y, z));
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item) });
@@ -55,8 +60,6 @@ async function boot(): Promise<void> {
   // Fade out once the first frame is on screen.
   await nextPaint();
   loading.hide();
-
-  createInventoryPanel(model);
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {

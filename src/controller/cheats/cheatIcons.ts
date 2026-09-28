@@ -4,10 +4,11 @@
 // assembled from its body parts; a lake tile and an ice crystal are small
 // models made just for icons.
 
-import { BANDIT_OUTFIT, ITEMS, STARTER_SET, outfit, type Equipment, type ItemId } from '../../model/human/equipment';
+import { BANDIT_OUTFIT, STARTER_SET, outfit, type Equipment } from '../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../model/human/humanoid';
 import type { MenuIcon } from '../../view/ui/menu';
 import { voxelIcon, type VoxelModel } from '../../view/ui/voxelIcon';
+import { gearIcon } from '../../view/ui/itemIcons';
 import type { VoxelGrid } from '../../view/meshes/voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../../view/meshes/voxel/voxelShapes';
 import { humanFigure } from '../../view/meshes/human/humanFigure';
@@ -89,7 +90,7 @@ function iceModel(): VoxelModel {
 const icon = (key: string, model: () => VoxelModel): MenuIcon => (size) => voxelIcon(key, model, size);
 
 // An item on its own, as it sits when worn or held.
-export const itemIcon = (item: ItemId): MenuIcon => icon(`item:${item}`, person(null, { [ITEMS[item].slot]: item }));
+export const itemIcon = gearIcon;
 
 // Named by what they stand for in the menu.
 const wolf = icon('wolf', wolfModel);

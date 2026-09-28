@@ -31,6 +31,7 @@ import {
 import type { Village } from '../../model/types';
 import { gainXp, maxHpAt, xpToNext } from '../../model/heroStats';
 import { LOOT_IDS } from '../../model/loot/loot';
+import { addToBag } from '../../model/bag';
 import { createMenu, type MenuAction } from '../../view/ui/menu';
 import { ICONS as ICON, itemIcon } from './cheatIcons';
 
@@ -135,6 +136,15 @@ export function createCheatPanel(model: GameModel, hooks: CheatPanelHooks): void
         icon: ICON.wardrobe,
         actions: [
           { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
+          {
+            icon: ICON.wardrobe,
+            title: 'Gear in the bag',
+            detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
+            run: () => {
+              for (const item of [...STARTER_SET, ...BANDIT_OUTFIT]) addToBag(model.hero.bag, item);
+              return 'Your bag is full of gear.';
+            },
+          },
           { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
           { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
           {
