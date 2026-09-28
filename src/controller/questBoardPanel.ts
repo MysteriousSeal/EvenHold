@@ -40,9 +40,9 @@ const NOTICES = {
     "Proof or it didn't happen: bring back their tokens.",
   ],
 } as const;
-const notice = (q: Quest) => {
+const notice = (q: Quest, seed: number) => {
   const lines = NOTICES[`${q.kind}:${q.foe}`];
-  return lines[Math.floor(hashUnit(q.board, Number(q.key.split(':')[1]), 97) * lines.length)];
+  return lines[Math.floor(hashUnit(q.board * 131 + Number(q.key.split(':')[1]), seed % 1_000_003, 97) * lines.length)];
 };
 const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
 
@@ -108,7 +108,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     fact('Reward', coinParts(q.copper));
     fact('Experience', [`${q.xp} XP`]);
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
-    pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q)}”`), facts);
+    pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
 
     const why = taken ? (done ? '' : `Not done yet: ${questProgress(q, have).text}.`) : quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : '';
     const buttons = document.createElement('div');
