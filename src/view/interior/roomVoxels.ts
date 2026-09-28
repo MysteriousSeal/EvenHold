@@ -47,10 +47,9 @@ const FLOOR_COLORS = [
   0x7a776f, // 35 mortar
   0xaa8456, // 36 board, a shade lighter
   0x6b4a2c, // 37 nail head, knot
-  0x7e5a36, // 38 beam
 ];
 export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS];
-const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, BOARD_LIGHT, NAIL, BEAM] = FLOOR_COLORS.map(
+const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, BOARD_LIGHT, NAIL] = FLOOR_COLORS.map(
   (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
 );
 
@@ -79,12 +78,10 @@ function floorColor(style: Room['floor'], x: number, z: number): number {
 }
 
 // The inn's floor: planks five voxels wide along x in random lengths and
-// three close tones, a pair of nail heads at each plank's end, the odd knot,
-// and a darker beam board every two tiles, splitting the floor into bays.
+// three close tones, a pair of nail heads at each plank's end, and the odd knot.
 function tavernFloor(x: number, z: number): number {
   const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
   const row = Math.floor(z / 5);
-  if (row % 10 === 9) return z % 5 === 0 ? SEAM : BEAM; // a beam board, every two tiles
   if (z % 5 === 0) return SEAM;
   // Where along its row this plank starts and ends (lengths 30-70 voxels).
   let start = -(hash(row, 1) % 40);
