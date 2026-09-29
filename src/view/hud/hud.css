@@ -124,6 +124,7 @@
   white-space: nowrap; /* colors and edge: the shared tooltip look (menu.css) */
 }
 .loot-prompt[hidden], .loot-toast[hidden] { display: none; }
+.loot-prompt.muted { opacity: 0.6; } /* not to be done now (sold out) */
 /* Floating text over the world (floatingText.ts), like FarHold's: bold
    Fredoka with a dark outline, in the color of what it tells. */
 .floating-text {
@@ -139,7 +140,34 @@
   -webkit-text-stroke: 3.5px rgb(30 20 40 / 0.9);
   paint-order: stroke fill;
 }
-.floating-text .coin { margin-right: 0.15em; } /* the coins themselves: coins.css */
+.floating-text .coin { margin-right: 0.15em; }
+/* What someone says (floatingText.ts speak): a sand bubble with an ink edge
+   and a hard shadow, like the HUD's cards, its tail pointing down at them. */
+.speech-bubble {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 16;
+  max-width: 240px;
+  padding: 7px 12px 8px;
+  pointer-events: none;
+  font: 600 15px/1.25 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  text-align: center;
+  background: #f8ecd4;
+  border: 2px solid #2e1f14;
+  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -3px 0 #e8d6b4;
+  margin-top: -10px; /* room for the tail below */
+}
+.speech-bubble::before, .speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  border-style: solid;
+  border-color: transparent;
+}
+.speech-bubble::before { bottom: -12px; margin-left: -9px; border-width: 12px 9px 0; border-top-color: #2e1f14; }
+.speech-bubble::after { bottom: -8px; margin-left: -6px; border-width: 9px 6px 0; border-top-color: #f8ecd4; } /* the coins themselves: coins.css */
 .loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
 .loot-name[data-quality='common'] { color: #f8ecd4; }

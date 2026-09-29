@@ -212,6 +212,11 @@ export class GameView {
     return { x: rect.left + ((at.x + 1) / 2) * rect.width, y: rect.top + ((1 - at.y) / 2) * rect.height };
   }
 
+  // The hero drinks (an ale ordered at the bar): a tankard raised to the lips a moment.
+  heroDrinks(): void {
+    this.hero.drink();
+  }
+
   get canvas(): HTMLCanvasElement {
     return this.renderer.domElement;
   }

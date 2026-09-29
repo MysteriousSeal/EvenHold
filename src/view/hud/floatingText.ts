@@ -1,7 +1,8 @@
 // Floating text in the world (like FarHold's): a short line, e.g. coins
 // looted, appearing over a point (the hero's head), popping in a little big,
 // rising and drifting aside as it fades out. A new one near a fresh one goes
-// above it instead of on top.
+// above it instead of on top. And speech: what someone says, in a bubble
+// over their head that stays a while (the barmaid at the bar).
 
 import { coinParts } from '../ui/coins';
 
@@ -10,6 +11,7 @@ const RISE = 45; // screen pixels a second
 const DRIFT = 20; // at most, sideways, pixels a second
 const POP = 0.12; // seconds it takes to shrink from popping in
 const STACK = 18; // screen pixels a new text goes above a fresh one
+const SPEECH = { life: 3.2, rise: 6, fade: 0.4 }; // a speech bubble: seconds shown, pixels a second it rises, seconds it fades
 
 type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
@@ -19,11 +21,14 @@ interface Floater {
   lift: number; // pixels above that, to clear a fresh one
   drift: number;
   age: number;
+  speech: boolean; // a speech bubble: steadier and longer-lived
 }
 
 export interface FloatingText {
   // Shows `content` in `color` over the world point `at`.
   spawn(at: { x: number; y: number; z: number }, content: Array<string | HTMLElement>, color: string): void;
+  // Someone saying `text`, in a bubble over the world point `at` (a new one from there replaces the last).
+  speak(at: { x: number; y: number; z: number }, text: string): void;
   update(toScreen: ToScreen, dt: number): void;
   // Takes it all away (going in or out a door: rooms have places of their own).
   clear(): void;
@@ -41,7 +46,19 @@ export function createFloatingText(): FloatingText {
       // Over a fresh one nearby: above it instead.
       let lift = 0;
       for (const other of floaters) if (other.age < LIFE / 2 && Math.hypot(other.at.x - at.x, other.at.z - at.z) < 0.5) lift = Math.max(lift, other.lift + STACK);
-      floaters.push({ element, at: { ...at }, lift, drift: (Math.random() * 2 - 1) * DRIFT, age: 0 });
+      floaters.push({ element, at: { ...at }, lift, drift: (Math.random() * 2 - 1) * DRIFT, age: 0, speech: false });
+    },
+    speak(at, text) {
+      for (let i = floaters.length - 1; i >= 0; i--) {
+        if (!floaters[i].speech || Math.hypot(floaters[i].at.x - at.x, floaters[i].at.z - at.z) > 0.5) continue;
+        floaters[i].element.remove(); // what they said before gives way
+        floaters.splice(i, 1);
+      }
+      const element = document.createElement('div');
+      element.className = 'speech-bubble';
+      element.textContent = text;
+      document.body.append(element);
+      floaters.push({ element, at: { ...at }, lift: 0, drift: 0, age: 0, speech: true });
     },
     clear() {
       for (const f of floaters) f.element.remove();
@@ -51,15 +68,18 @@ export function createFloatingText(): FloatingText {
       for (let i = floaters.length - 1; i >= 0; i--) {
         const f = floaters[i];
         f.age += dt;
-        if (f.age >= LIFE) {
+        const life = f.speech ? SPEECH.life : LIFE;
+        if (f.age >= life) {
           f.element.remove();
           floaters.splice(i, 1);
           continue;
         }
         const p = toScreen(f.at.x, f.at.y, f.at.z);
-        const scale = f.age < POP ? 1 + (POP - f.age) * 5 : 1;
-        f.element.style.transform = `translate(${p.x + f.drift * f.age}px, ${p.y - f.lift - RISE * f.age}px) translate(-50%, -100%) scale(${scale})`;
-        f.element.style.opacity = String(Math.min(1, ((LIFE - f.age) / LIFE) * 2)); // fading over its second half
+        const scale = f.age < POP ? 1 + (POP - f.age) * (f.speech ? 2 : 5) : 1;
+        const rise = f.speech ? SPEECH.rise : RISE;
+        f.element.style.transform = `translate(${p.x + f.drift * f.age}px, ${p.y - f.lift - rise * f.age}px) translate(-50%, -100%) scale(${scale})`;
+        // Fading: text over its second half; a bubble only at the very end.
+        f.element.style.opacity = String(f.speech ? Math.min(1, (life - f.age) / SPEECH.fade) : Math.min(1, ((LIFE - f.age) / LIFE) * 2));
       }
     },
   };

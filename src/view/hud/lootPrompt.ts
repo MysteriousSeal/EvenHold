@@ -12,6 +12,7 @@ const TOAST_SECONDS = 2;
 export interface PromptTarget {
   label: string;
   quality?: string;
+  muted?: boolean; // there, but not to be done now (e.g. sold out): shown faded
   x: number;
   y: number;
   z: number;
@@ -28,11 +29,12 @@ export function lootTarget(loot: GroundLoot): PromptTarget {
   return { label: nameOf(loot.item), quality: qualityOf(loot.item), x: loot.x, y: loot.y + 0.35, z: loot.z };
 }
 
-export function createLootPrompt(): LootPrompt {
+// `key`: the key it's for; `under`: shown just below the E prompt (a second thing to do there).
+export function createLootPrompt(key = 'E', under = false): LootPrompt {
   const prompt = document.createElement('div');
   prompt.className = 'loot-prompt';
   prompt.hidden = true;
-  prompt.innerHTML = '<span class="loot-name"></span><span class="loot-key">E</span>';
+  prompt.innerHTML = `<span class="loot-name"></span><span class="loot-key">${key}</span>`;
   const name = prompt.querySelector('.loot-name') as HTMLElement;
   const toast = document.createElement('div');
   toast.className = 'loot-toast';
@@ -47,8 +49,9 @@ export function createLootPrompt(): LootPrompt {
       if (name.textContent !== target.label) name.textContent = target.label;
       if (target.quality) name.dataset.quality = target.quality;
       else delete name.dataset.quality;
+      prompt.classList.toggle('muted', !!target.muted);
       const at = toScreen(target.x, target.y, target.z);
-      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px) translate(-50%, -100%)`;
+      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
     },
     pickedUp(item) {
       toast.textContent = `Picked up ${nameOf(item)}`;
