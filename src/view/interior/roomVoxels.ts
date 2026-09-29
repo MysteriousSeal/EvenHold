@@ -21,11 +21,11 @@ const WALL = 5; // wall thickness, in voxels
 const HIGH = 34; // the back walls' height
 const HEADROOM = 8; // over them, for what reaches up into the floor above (the stairs' handrail)
 const DEEP = 16; // under the floor, for what goes down through it (the stairwell's steps), where there's any
+const LOW = 4; // the near walls'
+const DOOR_HEIGHT = 28; // the door frame, standing tall above the near wall
 
 // How far the grid reaches under the floor: DEEP with a stairwell, else nothing.
 export const sunkBelow = (furniture: readonly Furniture[]): number => (furniture.some((f) => f.kind === 'stairwell') ? DEEP : 0);
-const LOW = 4; // the near walls'
-const DOOR_HEIGHT = 28; // the door frame, standing tall above the near wall
 
 const ROOM_COLORS = [
   0x9a6a3e, // 1 plank
