@@ -55,7 +55,7 @@ async function boot(): Promise<void> {
   await nextPaint();
   await view.finish();
 
-  const countFrame = createFpsCounter(document.getElementById('fps-label') as HTMLDivElement, () => view.getRenderStats());
+  const countFrame = createFpsCounter(document.getElementById('fps-label') as HTMLDivElement, () => view.getRenderStats(), model.hero);
   const hudTop = document.createElement('div');
   hudTop.className = 'hud-top';
   document.body.append(hudTop);
