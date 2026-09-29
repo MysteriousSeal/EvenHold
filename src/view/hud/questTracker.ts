@@ -1,7 +1,8 @@
-// The quests taken and tracked (journal.ts), top right (styles in hud.css): a card each, with what
-// it asks, a bar of how far along it is, and where to go: an arrow turned
-// toward it on screen (the nearest marked foe, else the spot they gather;
-// once done, back to its board) and how many paces off. Indoors, where the
+// The quests taken and tracked (journal.ts), on the left under the hero's
+// frame (styles in hud.css): a card each, with what it asks, a bar of how
+// far along it is, and where to go: an arrow turned toward it on screen
+// (the nearest marked foe, else the spot they gather; once done, back to
+// its board) and how many paces off. Indoors, where the
 // world's out of sight, only the words.
 
 import type { GameModel } from '../../model/GameModel';

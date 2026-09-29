@@ -471,8 +471,8 @@
 .menu:has(.quest-board-head) .menu-detail { min-height: 480px; } /* the board's window: a bit taller than a shop's */
 .quest-board-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .quest-board-lead { flex: 1; font-size: 14px; font-style: italic; color: var(--ink-soft); line-height: 1.3; }
-.quest-pins { display: inline-flex; gap: 5px; }
-.quest-pins i { width: 12px; height: 12px; background: var(--sand-dark, #d6bb8e); border: 2px solid var(--ink); }
+.quest-pins { display: inline-flex; gap: 3px; }
+.quest-pins i { width: 9px; height: 9px; background: var(--sand-dark, #d6bb8e); border: 2px solid var(--ink); }
 .quest-pins i.on { background: #f2b640; box-shadow: inset 0 -3px 0 #c07a18; }
 .quest-taken { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .menu-detail-facts.quest-facts { grid-template-columns: auto 1fr; row-gap: 12px; padding-top: 12px; margin-top: 8px; align-items: center; }
@@ -501,6 +501,7 @@
    a board's window; Abandon lit in clay once it asks to be sure. */
 .menu-backdrop.place-left .menu:has(.journal-head) { width: min(640px, 100%); }
 .menu:has(.journal-head) .menu-detail { flex-basis: 250px; width: 250px; min-height: 440px; }
+.menu:has(.journal-head) .menu-grid.rows { max-height: 480px; overflow-y: auto; padding-right: 4px; } /* ten quests: the list scrolls, the panel stays */
 .quest-abandon.armed { color: #fff; background: var(--clay); border-color: var(--clay-dark); }
 /* With the hero's sheet open too (it holds the left, 420px wide), the
    journal moves over to sit beside it, at once. */

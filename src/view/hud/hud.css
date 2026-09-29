@@ -238,17 +238,19 @@
 }
 .toolbar-button:hover .toolbar-tip { visibility: visible; }
 
-/* The quests taken (questTracker.ts), top right: sand cards in the HUD's
+/* The quests taken (questTracker.ts), on the left under the hero's frame: sand cards in the HUD's
    look, an ink tile with a gold arrow toward where to go, the quest's
    words and a chunky gold bar of how far along it is; turquoise once done. */
 .quest-tracker {
   position: fixed;
-  top: 16px;
-  right: 16px;
+  top: 150px; /* under the hero's frame, where the side panels open too */
+  left: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 280px;
+  max-height: calc(100vh - 220px); /* never down over the seed and stats: past that, quests are left off (hide some in the journal) */
+  overflow: hidden;
   pointer-events: none;
   user-select: none;
   font-family: 'Fredoka', system-ui, sans-serif;
