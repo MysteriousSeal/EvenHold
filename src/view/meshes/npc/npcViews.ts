@@ -13,6 +13,7 @@ import { nameLabel } from '../enemy/enemyParts';
 
 const VIEW_RADIUS = 30;
 const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
+const LABEL_HEIGHT = 0.16; // the name's height in the world, indoors as out
 
 export class NpcViews {
   readonly material = personMaterial();
@@ -31,7 +32,7 @@ export class NpcViews {
       if (!view) {
         const rig = new HumanRig(npc.look, this.material);
         rig.wear(npc.equipment);
-        const label = nameLabel(titleOf(npc), 0.16);
+        const label = nameLabel(titleOf(npc), LABEL_HEIGHT);
         label.position.y = LABEL_Y;
         rig.root.add(label);
         view = { rig, label };
@@ -41,6 +42,7 @@ export class NpcViews {
       if (rig.root.parent !== scene) {
         scene.add(rig.root);
         rig.root.scale.setScalar(scale);
+        label.scale.divideScalar(label.scale.y / LABEL_HEIGHT).divideScalar(scale); // drawn bigger indoors, but the name at its own size
         for (const mesh of rig.meshes) mesh.castShadow = !!where; // in the firelight indoors
         rig.shaded = !where; // outdoors, the shade on the ground under them
         rig.update(npc.x, npc.y, npc.z, 0); // arrive in place, no walk from where it was
