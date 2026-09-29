@@ -14,7 +14,8 @@ import type { EnemyKind, Village } from '../types';
 import type { QuestItemId } from './questItems';
 
 export const OFFERS = 6; // quests a board has, for good
-export const MAX_ACTIVE = 3; // quests the hero can have taken at once
+export const MAX_ACTIVE = 10; // quests the hero can have taken at once (the journal holds ten)
+export const MAX_PER_BOARD = 3; // of them, from any one board
 const NEAR = 14; // tiles from the village, the nearest a quest's foes gather
 const FAR = 26; // and the farthest
 const DIRECTIONS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];

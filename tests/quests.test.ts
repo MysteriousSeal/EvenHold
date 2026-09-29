@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { MAX_ACTIVE, OFFERS, questAt } from '../src/model/quests/quests';
+import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
 import { RESPAWN_EVERY } from '../src/model/quests/questBook';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -93,13 +93,19 @@ describe('quests', () => {
     expect(model.quests.accept(quest)).toBe(false);
   });
 
-  it('takes at most three, and "bring" quests take what was brought', () => {
+  it('takes at most three from a board and ten in all, and "bring" quests take what was brought', () => {
     const model = fresh();
-    const offers = model.quests.offersAt(0);
-    for (const q of offers.slice(0, MAX_ACTIVE)) expect(model.quests.accept(q)).toBe(true);
-    expect(model.quests.accept(offers[MAX_ACTIVE])).toBe(false);
-    model.quests.abandon(offers[0].key);
-    const bring = { ...offers[MAX_ACTIVE], kind: 'collect' as const, item: 'wolfPelt' as const, count: 2 };
+    const [first] = model.quests.offersAt(0);
+    for (const q of model.quests.offersAt(0).slice(0, MAX_PER_BOARD)) expect(model.quests.accept(q)).toBe(true);
+    expect(model.quests.accept(model.quests.offersAt(0)[MAX_PER_BOARD])).toBe(false); // three from this board already
+    expect(model.quests.available(0)).toBe(false);
+    // Up to ten in all, one each from further boards (as if the world had more).
+    const elsewhere = (board: number) => ({ ...first, board, key: `${board}:0` });
+    for (let b = 1; b <= MAX_ACTIVE - MAX_PER_BOARD; b++) expect(model.quests.accept(elsewhere(b))).toBe(true);
+    expect(model.quests.full).toBe(true);
+    expect(model.quests.accept(elsewhere(MAX_ACTIVE))).toBe(false);
+    model.quests.abandon(first.key);
+    const bring = { ...model.quests.offersAt(0)[MAX_PER_BOARD], kind: 'collect' as const, item: 'wolfPelt' as const, count: 2 };
     expect(model.quests.accept(bring)).toBe(true);
     model.hero.bag.wolfPelt = 3;
     expect(model.quests.handIn(bring.key)).toBe(true);

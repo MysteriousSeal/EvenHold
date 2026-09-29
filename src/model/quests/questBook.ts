@@ -1,7 +1,7 @@
 // The hero's dealings with the notice boards: what each board offers (its
 // six quests, all it will ever have: once one's handed in it's done for
 // good, and a board whose six are done has nothing more), the quests
-// taken (three at most), and the foes each gathers where it sends the hero,
+// taken (ten at most, three from any one board), and the foes each gathers where it sends the hero,
 // marked for it. While a quest isn't done its pack is kept up: a marked foe
 // slain comes back a minute later, so there's always something to hunt.
 // Slaying marked foes counts for "slay" quests; for "bring" quests they drop
@@ -14,7 +14,7 @@ import { gainXp } from '../hero/heroStats';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
-import { OFFERS, MAX_ACTIVE, questAt, questProgress, type Quest, type QuestWorld } from './quests';
+import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 export const BOARD_RANGE = 1.6; // how close the hero must be to read a board
@@ -62,7 +62,7 @@ export class QuestBook {
 
   // Whether a board has a quest the hero could take now (one neither taken nor done, and room for it).
   available(board: number): boolean {
-    return !this.full && Array.from({ length: OFFERS }, (_, n) => `${board}:${n}`).some((key) => !this.takenOf(key) && !this.completed.has(key));
+    return !this.full && !this.fullAt(board) && Array.from({ length: OFFERS }, (_, n) => `${board}:${n}`).some((key) => !this.takenOf(key) && !this.completed.has(key));
   }
 
   // Whether a quest taken from a board is done, to hand in there.
@@ -85,13 +85,22 @@ export class QuestBook {
     return this.progress(taken) >= taken.quest.count;
   }
 
+  // How many quests are taken from a board; whether that's all it allows.
+  takenAt(board: number): number {
+    return this.taken.filter((t) => t.quest.board === board).length;
+  }
+
+  fullAt(board: number): boolean {
+    return this.takenAt(board) >= MAX_PER_BOARD;
+  }
+
   get full(): boolean {
     return this.taken.length >= MAX_ACTIVE;
   }
 
   // Takes a quest from the board: its foes gather at once.
   accept(quest: Quest): boolean {
-    if (this.full || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
+    if (this.full || this.fullAt(quest.board) || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
     const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: true };
     this.taken.push(taken);
     for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
