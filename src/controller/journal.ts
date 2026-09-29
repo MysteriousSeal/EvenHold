@@ -26,7 +26,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       icon: questIcon(quest),
       title: questTitle(quest),
       badge: have >= quest.count ? '✓ Done' : `${have}/${quest.count}`,
-      note: t.tracked ? cap(quest.where) : `${cap(quest.where)} · hidden`,
+      note: t.tracked ? cap(quest.where) : `${cap(quest.where)} · untracked`,
       dim: !t.tracked,
     };
     shown.set(slot, t);
@@ -70,7 +70,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     buttons.className = 'quest-buttons';
     const track = document.createElement('button');
     track.className = 'menu-detail-button';
-    track.textContent = t.tracked ? 'Hide on screen' : 'Show on screen';
+    track.textContent = t.tracked ? 'Untrack' : 'Track';
     track.addEventListener('click', () => {
       t.tracked = !t.tracked;
       menu.refresh();
