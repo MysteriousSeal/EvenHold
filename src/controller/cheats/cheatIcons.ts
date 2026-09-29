@@ -12,6 +12,7 @@ import { gearIcon } from '../../view/ui/itemIcons';
 import type { VoxelGrid } from '../../view/meshes/voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../../view/meshes/voxel/voxelShapes';
 import { humanFigure } from '../../view/meshes/human/humanFigure';
+import { BOAR_PALETTE, buildBoarHead } from '../../view/meshes/enemy/boarVoxels';
 import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../../view/meshes/enemy/wolfVoxels';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from '../../view/meshes/building/houseVoxels';
 import { HOUSE_PALETTE } from '../../view/meshes/building/housePalette';
@@ -109,6 +110,7 @@ export const ICONS = {
   lake: icon('lake', lakeModel),
   camp: icon('tent', () => ({ grid: buildTent(), palette: CAMP_PALETTE })),
   wolfPack: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
+  boar: icon('boarHead', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE })),
   spawn: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
   // Hero
   swiftFeet: itemIcon('leatherBoots'),

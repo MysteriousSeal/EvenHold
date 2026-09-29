@@ -216,6 +216,7 @@ export function createCheatPanel(model: GameModel): void {
         actions: [
           { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
           { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
+          { icon: ICON.boar, title: 'Summon a boar', detail: 'Appears just ahead of you (passive until struck)', run: () => (spawnEnemyNear(model, 'boar'), 'A boar appears.') },
           { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
           { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
         ],
@@ -273,7 +274,7 @@ export function createCheatPanel(model: GameModel): void {
             ['Seed', String(model.seed)],
             ['Position', `${hero.x.toFixed(1)}, ${hero.z.toFixed(1)}`],
             ['Ground', `tier ${model.heightMap[tx]?.[tz] ?? '?'} · ${model.lakeMap[tx]?.[tz] ? 'water' : (model.surfaceMap[tx]?.[tz] ?? '?')}`],
-            ['Foes near', `${near.filter((e) => e.kind === 'wolf').length} wolves · ${near.filter((e) => e.kind === 'bandit').length} bandits`],
+            ['Foes near', `${near.filter((e) => e.kind === 'wolf').length} wolves · ${near.filter((e) => e.kind === 'bandit').length} bandits · ${near.filter((e) => e.kind === 'boar').length} boars`],
             ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
             ['World', `${model.size.width}×${model.size.depth}`],
             ['Villages · camps', `${model.villages.length} · ${model.camps.length}`],
