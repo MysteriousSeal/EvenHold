@@ -72,6 +72,12 @@ export interface Npc extends Humanoid {
   moving: boolean;
   working: boolean; // bent over the crops
   carrying?: boolean; // a tankard in hand (the barmaid, bringing an ale)
+  serving?: boolean; // the barkeep, seeing to an order (barOrders.ts)
+  // At the bar (barPatrons.ts): waiting on an ale, about to pick it up (seconds), sipping it.
+  awaiting?: boolean;
+  pickup?: number;
+  drinking?: { left: number; seconds: number } | null;
+  drinks?: number; // ales had this time at the bar
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 

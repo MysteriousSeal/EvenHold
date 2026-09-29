@@ -7,6 +7,8 @@ import { ALE_SECONDS, barmaidHere, callForAle, orderAle, orderLabel } from '../s
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { AT_KEG, AT_SINK, pourFor } from '../src/model/npcs/innStaff';
 import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/npcs/barMugs';
+import { seatOf } from '../src/model/interiors/furniture';
+import { callBarkeep, ordersAt, placeOrder } from '../src/model/npcs/barOrders';
 import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { INDOOR_SCALE } from '../src/model/constants';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
@@ -135,4 +137,42 @@ describe('an ale at the bar', () => {
     expect(handed).toBe(true);
     expect(mugsAt(inn).some((m) => m.z === stool.z)).toBe(false); // the old one's gone (the new one's handed straight over)
   }, 60_000);
+
+  it('serves the queue first come, first served', () => {
+    const model = atTheInn();
+    const inn = model.inside!.entrance;
+    const barmaid = barmaidHere(model)!;
+    const stools = model.inside!.furniture.filter((f) => f.kind === 'barStool');
+    const served: number[] = [];
+    stools.slice(0, 2).forEach((stool, i) => placeOrder(inn, { stool, by: null, served: () => served.push(i) }));
+    callBarkeep(barmaid);
+    for (let t = 0; t < 90 && served.length < 2; t += 0.05) model.update(0, 0, 0.05);
+    expect(served).toEqual([0, 1]);
+    expect(ordersAt(inn)).toEqual([]);
+  }, 60_000);
+
+  it('has a villager sat at the bar order too, wait, and drink it, leaving the empty mug', () => {
+    const model = atTheInn();
+    const inn = model.inside!.entrance;
+    const stool = model.inside!.furniture.find((f) => f.kind === 'barStool')!;
+    const villager = model.npcs.find((n) => n.role === 'villager' && n.inn === inn)!; // one of this village's (only folk near the hero act)
+    Object.assign(villager, { where: inn, x: stool.x + 1, z: stool.z, steps: [{ kind: 'sit', seat: seatOf(stool)!, for: 5 }], path: null, waited: 0 });
+    const barmaid = barmaidHere(model)!;
+    let ordered = false;
+    let drank = false;
+    let talked = false; // she came over to them first, before the keg
+    let poured = false;
+    for (let t = 0; t < 120; t += 0.1) {
+      model.update(0, 0, 0.1);
+      ordered ||= ordersAt(inn).some((o) => o.by === villager);
+      poured ||= barmaid.working && barmaid.z < 1;
+      talked ||= !poured && !barmaid.working && Math.abs(barmaid.z - stool.z) < 0.1 && Math.abs(barmaid.facing - Math.PI / 2) < 0.01;
+      drank ||= !!villager.drinking;
+      if (t > 1 && villager.seat === null) break;
+    }
+    expect(ordered).toBe(true);
+    expect(talked).toBe(true);
+    expect(drank).toBe(true); // they waited for it: their 5 seconds' stay only counted once served
+    expect(mugsAt(inn).some((m) => m.z === stool.z && !m.full)).toBe(true); // the empty mug left
+  }, 120_000);
 });

@@ -22,7 +22,7 @@ import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside, type Seated } from '../interiors/indoors';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
-import { setMug } from './barMugs';
+import { atBar, busyAtBar, sitAtBar } from './barPatrons';
 import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from './innStaff';
 
@@ -268,12 +268,13 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for));
       return;
     case 'sit':
-      if (npc.waited === 0 && heroOnPiece(world, npc.where, step.seat.piece)) {
+      const sitting = npc.seat === step.seat; // down already (not by the clock: at the bar, it waits on the ale)
+      if (!sitting && heroOnPiece(world, npc.where, step.seat.piece)) {
         npc.steps.splice(0, 1, { kind: 'wait', for: step.for }); // the hero took it meanwhile: stand instead
         return;
       }
-      if (npc.waited === 0) {
-        if (npc.where && step.seat.piece.kind === 'barStool') setMug(npc.where, step.seat.piece.z, true); // a drink before them at the bar
+      if (!sitting) {
+        if (npc.where && step.seat.piece.kind === 'barStool') sitAtBar(npc, npcs, step.seat.piece); // an ale ordered
         npc.stood = { x: npc.x, z: npc.z };
         npc.seat = step.seat;
         npc.x = step.seat.x;
@@ -281,9 +282,10 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
         npc.y = step.seat.y;
         npc.facing = step.seat.facing;
       }
-      npc.waited += dt;
-      if (npc.waited >= step.for && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) {
-        if (npc.where && step.seat.piece.kind === 'barStool') setMug(npc.where, step.seat.piece.z, false, 2 + Math.floor(roll(npc, 19) * 3)); // its empty mug left
+      // At the bar, the stay counts only once served; they don't get up still waiting, or mid-drink.
+      const atTheBar = !!npc.where && step.seat.piece.kind === 'barStool';
+      if (!atTheBar || atBar(npc, npcs, step.seat.piece, dt, step.for - npc.waited)) npc.waited += dt;
+      if (npc.waited >= step.for && !(atTheBar && busyAtBar(npc)) && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) {
         place(npc, world, npc.stood!);
         npc.seat = null;
         npc.stood = null;
