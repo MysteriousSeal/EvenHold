@@ -152,13 +152,13 @@ export function createBar(model: GameModel, view: BarView) {
       callBarkeep(barmaid);
       const served = () => {
         if (!atTheBar(model)) return void (coming = false); // got up meanwhile: no ale
-        setMug(here, stool.z, true); // set down before them, full
+        setMug(here, stool.z, true); // set down before them, full, with her word
+        view.speak(barmaid, pick(POURED));
         window.setTimeout(() => {
           coming = false;
           if (!atTheBar(model)) return; // up before picking it up: it's left there
-          const { said, drank } = orderAle(model);
-          view.speak(barmaid, said);
-          if (!drank) return;
+          const { said, drank } = orderAle(model); // paid for as it's picked up
+          if (!drank) return view.speak(barmaid, said); // (the coin gone meanwhile, say)
           takeMug(here, stool.z); // picked up
           view.heroDrinks(ALE_SECONDS);
         }, SET_DOWN_MS);
