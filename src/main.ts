@@ -91,14 +91,14 @@ async function boot(): Promise<void> {
     const loot = model.lootInReach;
     if (loot) return lootTarget(loot);
     const { hero } = model;
-    const seated = model.inside?.seated;
+    const seated = model.seated;
     const barmaid = model.barmaidInReach;
     const talk = barmaid && { label: `Talk to ${barmaid.name}`, x: barmaid.x, y: 1.1, z: barmaid.z };
     if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
     const seat = model.seatInReach;
     if (seat) {
       const { piece } = seat;
-      return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + 0.5, z: piece.z + (piece.d - 1) / 2 };
+      return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
     }
     if (talk) return talk;
     const read = model.boardInReach;

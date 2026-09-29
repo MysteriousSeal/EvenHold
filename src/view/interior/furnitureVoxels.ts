@@ -42,6 +42,7 @@ const TILE = 25;
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
 const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) => void> = {
   ...INN_PAINTERS,
+  bench: () => {}, // outdoors only, on the squares (meshes/plaza/benchVoxels.ts): never in a room
   // A rustic stone fireplace: irregular stones in mixed shades and dark
   // mortar, a stepped arch over the opening (sooted above), a thick timber
   // mantel with a candle, a clay pot and a pewter plate, a chimney breast

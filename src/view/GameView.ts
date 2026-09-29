@@ -18,6 +18,7 @@ import { buildWells } from './meshes/well/wellMesh';
 import { buildRoads } from './meshes/road/roadMesh';
 import { buildPlazas } from './meshes/plaza/plazaMesh';
 import { buildLanterns } from './meshes/plaza/lanternMesh';
+import { buildBenches } from './meshes/plaza/benchMesh';
 import { buildNoticeBoards } from './meshes/quest/noticeBoardMesh';
 import { buildFields } from './meshes/field/fieldMesh';
 import { setWindPusher } from './meshes/common/wind';
@@ -147,6 +148,7 @@ export class GameView {
       { label: 'Digging the wells', run: () => buildWells(scene, model) },
       { label: 'Lighting the lanterns', run: () => buildLanterns(scene, model) },
       { label: 'Pinning up the notices', run: () => buildNoticeBoards(scene, model) },
+      { label: 'Setting out the benches', run: () => buildBenches(scene, model) },
       { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
@@ -238,7 +240,7 @@ export class GameView {
       this.hero.update(hero.x, hero.y, hero.z, 0); // arrive in place, no walk from where it was
       this.cameraY = hero.y;
     }
-    const seated = model.inside?.seated?.seat;
+    const seated = model.seated?.seat;
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
