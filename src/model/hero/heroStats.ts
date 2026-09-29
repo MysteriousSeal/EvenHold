@@ -18,6 +18,16 @@ export function xpToNext(level: number): number {
   return 15 + level * 15;
 }
 
+// Experience for beating something of `foeLevel` (a foe, or a quest's foes),
+// by how it measures up to the hero: full at their own level, more above,
+// less and less below, and a token 1 once it's trivial (3 or more below).
+export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): number {
+  const gap = foeLevel - heroLevel;
+  if (gap <= -3) return 1;
+  const factor = gap >= 3 ? 1.3 : gap >= 1 ? 1.15 : gap === 0 ? 1 : gap === -1 ? 0.7 : 0.4;
+  return Math.max(1, Math.round(xp * factor));
+}
+
 export const HERO_NAME = 'Hero'; // shown over the health bar
 
 export const FRESH_HERO_STATS = { hp: BASE_HP, level: 1, xp: 0, hurtFor: 0 };

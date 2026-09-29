@@ -23,7 +23,7 @@ import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './gri
 import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover } from './hero/heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover, xpAgainst } from './hero/heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { addCampObstacles, worldObstacles } from './blockers';
@@ -276,7 +276,7 @@ export class GameModel {
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
       if (target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes (even let go) aren't the world's
-      gainXp(this.hero, xpGained(this.hero, target.xp));
+      gainXp(this.hero, xpGained(this.hero, xpAgainst(target.xp, target.level, this.hero.level))); // less, the weaker the foe
       healOnKill(this.hero);
       const wanted = this.quests.onKill(target);
       if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);

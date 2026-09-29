@@ -10,7 +10,7 @@
 import { hashUnit } from '../../util/random';
 import { makeEnemy } from '../enemies/enemies';
 import type { BagItem } from '../hero/bag';
-import { gainXp } from '../hero/heroStats';
+import { gainXp, xpAgainst } from '../hero/heroStats';
 import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
@@ -160,9 +160,15 @@ export class QuestBook {
     this.completed.add(key);
     const { hero } = this.host;
     hero.money += quest.copper;
-    gainXp(hero, xpGained(hero, quest.xp));
+    gainXp(hero, this.xpFor(quest));
     this.events.push({ kind: 'coins', amount: quest.copper });
     return true;
+  }
+
+  // What a quest's experience is worth to the hero now: less once they've outgrown its foes, more with Wise mind.
+  xpFor(quest: Quest): number {
+    const { hero } = this.host;
+    return xpGained(hero, xpAgainst(quest.xp, quest.level, hero.level));
   }
 
   // A marked foe slain: counts toward its "slay" quest, or, for a "bring"

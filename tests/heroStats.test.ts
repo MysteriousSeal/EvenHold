@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
-import { gainXp, maxHpAt, recover, xpToNext } from '../src/model/hero/heroStats';
+import { gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
@@ -96,5 +96,15 @@ describe('enemies hurt the hero', () => {
     }
     expect(wolf.state).toBe('dead');
     expect(model.hero.xp).toBe(ENEMY_STATS.wolf.xp);
+  });
+
+  it('gives less experience for weaker foes: full at the same level, more above, a token 1 once trivial', () => {
+    expect(xpAgainst(20, 5, 5)).toBe(20);
+    expect(xpAgainst(20, 6, 5)).toBe(23);
+    expect(xpAgainst(20, 9, 5)).toBe(26);
+    expect(xpAgainst(20, 4, 5)).toBe(14);
+    expect(xpAgainst(20, 3, 5)).toBe(8);
+    expect(xpAgainst(20, 2, 5)).toBe(1);
+    expect(xpAgainst(10, 1, 9)).toBe(1); // a level 1 wolf, to a level 9 hero
   });
 });
