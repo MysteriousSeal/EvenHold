@@ -73,6 +73,14 @@ export interface BarView {
   countdown(drinking: GameModel['hero']['drinking'], hero: GameModel['hero']): void;
 }
 
+// Her word when there's a wait: `ahead` orders before the hero's, the first
+// of them the one she's already fetching if she's `serving`.
+function waitLine(ahead: number, serving: boolean): string {
+  if (!serving) return `After ${ahead === 1 ? 'this one' : `these ${ahead}`}, love.`;
+  const more = ahead - 1; // besides the one she's on
+  return more === 0 ? 'Right after this one, love.' : `After this one and ${more === 1 ? 'one more' : `${more} more`}, love.`;
+}
+
 const SET_DOWN_MS = 800; // the full tankard on the bar before the hero picks it up
 
 // The bar, from the order to the empty mug: F calls her over; she fetches
@@ -113,7 +121,7 @@ export function createBar(model: GameModel, view: BarView) {
       const here = inn;
       // In the queue, first come first served: told if there's a wait.
       const ahead = placeOrder(here, { stool, by: null, served: () => served() });
-      view.speak(barmaid, ahead > 0 ? `I'll be with you after ${ahead === 1 ? 'this one' : `these ${ahead}`}, love.` : call.said);
+      view.speak(barmaid, ahead > 0 ? waitLine(ahead, !!barmaid.serving) : call.said);
       callBarkeep(barmaid);
       const served = () => {
         if (!atTheBar(model)) return void (coming = false); // got up meanwhile: no ale
