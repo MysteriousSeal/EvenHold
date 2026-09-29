@@ -1,5 +1,6 @@
-// The hero's dealings with the notice boards: what each board offers (six
-// quests, a taken one staying pinned up until it's handed in), the quests
+// The hero's dealings with the notice boards: what each board offers (its
+// six quests, all it will ever have: once one's handed in it's done for
+// good, and a board whose six are done has nothing more), the quests
 // taken (three at most), and the foes each gathers where it sends the hero,
 // marked for it. While a quest isn't done its pack is kept up: a marked foe
 // slain comes back a minute later, so there's always something to hunt.
@@ -36,20 +37,19 @@ export interface QuestHost extends QuestWorld, BoardWorld {
 export class QuestBook {
   readonly taken: TakenQuest[] = [];
   readonly events: GameEvent[] = []; // progress and rewards to show, drained with the model's (GameModel.takeEvents)
-  private readonly offers = new Map<number, number[]>(); // each board's quest numbers (the seed's first six, until some are handed in)
+  private readonly completed = new Set<string>(); // quests handed in, by key: done for good
   private readonly gathered = new Map<string, number>(); // foes each quest has gathered so far, by key (their ids and places come from it)
 
   constructor(private readonly host: QuestHost) {}
 
   // A board's six quests, in order.
   offersAt(board: number): Quest[] {
-    return this.numbersAt(board).map((n) => questAt(this.host, board, n));
+    return Array.from({ length: OFFERS }, (_, n) => questAt(this.host, board, n));
   }
 
-  private numbersAt(board: number): number[] {
-    let numbers = this.offers.get(board);
-    if (!numbers) this.offers.set(board, (numbers = Array.from({ length: OFFERS }, (_, n) => n)));
-    return numbers;
+  // Whether a quest's been handed in (done for good).
+  isCompleted(key: string): boolean {
+    return this.completed.has(key);
   }
 
   // The board the hero is standing at (outdoors), by its village's index; else null.
@@ -59,9 +59,9 @@ export class QuestBook {
     return i < 0 ? null : i;
   }
 
-  // Whether a board has a quest the hero could take now (one not taken, and room for it).
+  // Whether a board has a quest the hero could take now (one neither taken nor done, and room for it).
   available(board: number): boolean {
-    return !this.full && this.numbersAt(board).some((n) => !this.takenOf(`${board}:${n}`));
+    return !this.full && Array.from({ length: OFFERS }, (_, n) => `${board}:${n}`).some((key) => !this.takenOf(key) && !this.completed.has(key));
   }
 
   // Whether a quest taken from a board is done, to hand in there.
@@ -90,7 +90,7 @@ export class QuestBook {
 
   // Takes a quest from the board: its foes gather at once.
   accept(quest: Quest): boolean {
-    if (this.full || this.takenOf(quest.key)) return false;
+    if (this.full || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
     const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY };
     this.taken.push(taken);
     for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
@@ -106,7 +106,7 @@ export class QuestBook {
   }
 
   // Hands a done quest in: what was brought is given up, the reward paid
-  // (coins, experience), and the board pins up a new quest in its place.
+  // (coins, experience), and the quest is done for good.
   // Returns whether it was (it must be done).
   handIn(key: string): boolean {
     const taken = this.takenOf(key);
@@ -119,9 +119,7 @@ export class QuestBook {
       else delete bag[quest.item];
     }
     this.abandon(key);
-    const numbers = this.numbersAt(quest.board);
-    const n = Number(key.split(':')[1]);
-    numbers[numbers.indexOf(n)] = Math.max(...numbers) + 1;
+    this.completed.add(key);
     const { hero } = this.host;
     hero.money += quest.copper;
     gainXp(hero, quest.xp);
@@ -206,10 +204,10 @@ export class QuestBook {
     this.host.enemies.push(enemy);
   }
 
-  // For saving: each board's offers, and the quests taken.
-  save(): { boards: Array<{ board: number; offers: number[] }>; taken: Array<{ key: string; kills: number; gathered?: number }> } {
+  // For saving: the quests handed in, and those taken.
+  save(): { completed: string[]; taken: Array<{ key: string; kills: number; gathered?: number }> } {
     return {
-      boards: [...this.offers].map(([board, offers]) => ({ board, offers: [...offers] })),
+      completed: [...this.completed],
       taken: this.taken.map((t) => ({ key: t.quest.key, kills: t.kills, gathered: this.gathered.get(t.quest.key) ?? 0 })),
     };
   }
@@ -217,15 +215,14 @@ export class QuestBook {
   // Back from a save: the boards as they were, the quests taken again (their foes gathering anew).
   load(data: ReturnType<QuestBook['save']>, boards: number): void {
     const whole = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
-    for (const { board, offers } of Array.isArray(data?.boards) ? data.boards : []) {
-      if (!whole(board) || board >= boards || !Array.isArray(offers) || offers.length === 0 || offers.length > OFFERS || !offers.every(whole)) continue;
-      const numbers = [...offers];
-      while (numbers.length < OFFERS) numbers.push(Math.max(...numbers) + 1); // a board saved with fewer: the next notices pinned up
-      this.offers.set(board, numbers);
-    }
+    const valid = (key: unknown) => {
+      const [board, n] = String(key).split(':').map(Number);
+      return whole(board) && board < boards && whole(n) && n < OFFERS;
+    };
+    for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key)) this.completed.add(key);
     for (const { key, kills, gathered } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);
-      if (!whole(board) || board >= boards || !this.numbersAt(board).includes(n) || this.full || this.takenOf(key)) continue;
+      if (!valid(key) || this.full || this.takenOf(key) || this.completed.has(key)) continue;
       const quest = questAt(this.host, board, n);
       const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY };
       this.taken.push(taken);

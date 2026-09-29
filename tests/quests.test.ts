@@ -25,7 +25,9 @@ describe('quests', () => {
     expect(offers).toHaveLength(OFFERS);
     expect(fresh().quests.offersAt(0)).toEqual(offers);
     for (const q of offers) {
-      expect(q.count).toBeGreaterThan(0);
+      const [least, most] = q.kind === 'kill' ? [6, 8] : [4, 6];
+      expect(q.count).toBeGreaterThanOrEqual(least);
+      expect(q.count).toBeLessThanOrEqual(most);
       expect(q.copper).toBeGreaterThan(0);
       expect(q.xp).toBeGreaterThan(0);
       expect(q.where).toMatch(/of the village$/);
@@ -87,7 +89,8 @@ describe('quests', () => {
     expect(model.hero.money).toBe(money + quest.copper);
     expect(model.hero.xp !== xp || model.hero.level > level).toBe(true);
     expect(model.quests.taken).toHaveLength(0);
-    expect(model.quests.offersAt(0).map((q) => q.key)).not.toContain(quest.key); // a new one pinned up
+    expect(model.quests.isCompleted(quest.key)).toBe(true); // done for good
+    expect(model.quests.accept(quest)).toBe(false);
   });
 
   it('takes at most three, and "bring" quests take what was brought', () => {
@@ -103,10 +106,23 @@ describe('quests', () => {
     expect(model.hero.bag.wolfPelt).toBe(1);
   });
 
-  it('tops up a board saved with fewer notices', () => {
+  it('has six quests for good: one handed in is done, and a board with all six done has no more', () => {
     const model = fresh();
-    model.quests.load({ boards: [{ board: 0, offers: [0, 1, 2, 3, 7] }], taken: [] }, model.villages.length);
-    expect(model.quests.offersAt(0).map((q) => q.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:7', '0:8']);
+    const offers = model.quests.offersAt(0);
+    for (const q of offers) {
+      model.quests.accept(q);
+      model.quests.takenOf(q.key)!.kills = q.count;
+      if (q.item) model.hero.bag[q.item] = q.count;
+      expect(model.quests.handIn(q.key)).toBe(true);
+      expect(model.quests.isCompleted(q.key)).toBe(true);
+      expect(model.quests.accept(q)).toBe(false); // not again
+    }
+    expect(model.quests.offersAt(0)).toHaveLength(OFFERS); // still listed, all done
+    expect(model.quests.available(0)).toBe(false);
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.quests.available(0)).toBe(false);
+    expect(offers.every((q) => again.quests.isCompleted(q.key))).toBe(true);
   });
 
   it('keeps the boards and the quests taken in a save', () => {

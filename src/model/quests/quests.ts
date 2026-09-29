@@ -1,4 +1,4 @@
-// The quests a village's notice board offers, six at a time: slay so many
+// The quests a village's notice board offers, six in all: slay so many
 // of a kind of foe, or bring back so many of what they carry, from a spot
 // out beyond the village (said in words: "north-east of the village"). Each
 // is rolled from the seed, the board and its number, so a board offers the
@@ -13,7 +13,7 @@ import { spawnOf } from '../grid';
 import type { EnemyKind, Village } from '../types';
 import type { QuestItemId } from './questItems';
 
-export const OFFERS = 6; // quests on a board at once
+export const OFFERS = 6; // quests a board has, for good
 export const MAX_ACTIVE = 3; // quests the hero can have taken at once
 const NEAR = 14; // tiles from the village, the nearest a quest's foes gather
 const FAR = 26; // and the farthest
@@ -63,7 +63,7 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   }
   const where = `${DIRECTIONS[Math.round(((angle / (Math.PI * 2)) * 8) % 8) % 8]} of the village`; // north is -z
   const level = enemyLevel(spawnOf(world.size), x, z, board * 997 + n);
-  const count = kind === 'kill' ? (foe === 'wolf' ? 4 + Math.floor(roll(3) * 4) : 3 + Math.floor(roll(3) * 3)) : 3 + Math.floor(roll(3) * 3);
+  const count = kind === 'kill' ? 6 + Math.floor(roll(3) * 3) : 4 + Math.floor(roll(3) * 3); // slay 6 to 8, bring 4 to 6
   const item: QuestItemId | null = kind === 'collect' ? (foe === 'wolf' ? 'wolfPelt' : 'banditToken') : null;
   const dropChance = 0.45;
   // Rewards: more for tougher foes and places, and for fetching (more to slay on average).
