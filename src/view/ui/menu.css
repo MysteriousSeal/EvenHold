@@ -502,3 +502,6 @@
 .menu-backdrop.place-left .menu:has(.journal-head) { width: min(640px, 100%); }
 .menu:has(.journal-head) .menu-detail { flex-basis: 250px; width: 250px; min-height: 440px; }
 .quest-abandon.armed { color: #fff; background: var(--clay); border-color: var(--clay-dark); }
+/* With the hero's sheet open too (it holds the left, 420px wide), the
+   journal moves over to sit beside it, at once. */
+body:has(.menu-backdrop.place-left:not([hidden]) .menu[aria-label='Hero']) .menu-backdrop.place-left:has(.journal-head) { padding-left: calc(16px + min(420px, 100vw) + 12px); }
