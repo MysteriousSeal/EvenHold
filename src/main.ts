@@ -1,4 +1,4 @@
-import { stairsInReach } from './model/interiors/indoors';
+import { stairsInReach } from './model/interiors/upstairs';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';

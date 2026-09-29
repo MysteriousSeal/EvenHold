@@ -1,6 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
-import { takeStairs } from '../model/interiors/indoors';
+import { takeStairs } from '../model/interiors/upstairs';
 import { atTheBar, barmaidHere } from './barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';

@@ -13,7 +13,7 @@ const SIT_RANGE = 0.4; // how close to a seat (or bed) the hero must stand to us
 // hero's x/z are then room coordinates), and the seat they're on, if any,
 // with the spot they stood on before sitting down (where they get up to).
 export interface Inside {
-  entrance: Entrance; // the room's own (upstairs, a door of its own: upstairsOf)
+  entrance: Entrance; // the room's own (upstairs, a door of its own: upstairs.ts)
   room: Room;
   furniture: Furniture[];
   seated: Seated;
@@ -95,81 +95,4 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
   hero.z = at.seated.from.z;
   hero.y = y;
   at.seated = null;
-}
-
-// Upstairs in a building (the inn): a room of its own, so no one below is
-// in it, nor any mugs on a bar; made once for each building, the same
-// size, empty but for the stairwell where the stairs come up.
-const upper = new WeakMap<Entrance, Entrance>();
-export function upstairsOf(below: Entrance): Entrance {
-  let floor = upper.get(below);
-  if (!floor) upper.set(below, (floor = { ...below }));
-  return floor;
-}
-
-const STAIRS_REACH = 0.75; // from the stairs (or stairwell), to take them
-
-// The stairs in a room (up, or the stairwell down), if it has any.
-export const stairsOf = (inside: Inside) => inside.furniture.find((f) => f.kind === 'stairs' || f.kind === 'stairwell');
-
-// Whether the hero, standing, is by the stairs.
-export function stairsInReach(inside: Inside, hero: Hero): boolean {
-  const stairs = stairsOf(inside);
-  return !!stairs && !inside.seated && distanceTo(stairs, hero.x, hero.z) <= STAIRS_REACH;
-}
-
-// The floor above's furniture: the stairwell where the stairs come up, and
-// a lantern every other tile along the left wall, out from it both ways
-// (none over it), and along the back wall.
-export function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
-  const lantern = (wall: 'left' | 'back', x: number, z: number): Furniture => ({ kind: 'wallLantern', x, z, w: 1, d: 1, wall, solid: false });
-  const lanterns: Furniture[] = [];
-  for (let z = stairs.z - 1; z >= 0; z -= 2) lanterns.push(lantern('left', 0, z));
-  for (let z = stairs.z + stairs.d; z < room.depth; z += 2) lanterns.push(lantern('left', 0, z));
-  for (let x = 1; x < room.width; x += 2) lanterns.push(lantern('back', x, 0));
-  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room)];
-}
-
-const HALL = 2; // the hallway's width, in tiles
-const DOOR_EVERY = 3; // a room's door along it, every so many tiles
-
-// Upstairs, a hallway along the left and back walls (the stairwell in it),
-// walled off from the rooms beyond by a low wall, a door every few tiles
-// along the back, each into a room of its own.
-function hallway(room: Room): Furniture[] {
-  const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
-  const walls: Furniture[] = [];
-  for (let z = HALL; z < room.depth; z++) walls.push(piece('left', HALL, z, false)); // by the stairwell: no doors
-  for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1 && x > HALL));
-  // Between the rooms, halfway from door to door, the same low wall, from the hallway to the front.
-  for (let x = HALL + DOOR_EVERY; x < room.width; x += DOOR_EVERY) for (let z = HALL; z < room.depth; z++) walls.push(piece('left', x, z, false));
-  return walls;
-}
-
-// Takes the stairs by the hero: up to the floor above (beside the top of
-// the stairwell, by the wall, where its railing's open: its far side), or back down (just past the
-// foot of the stairs, in the room). Returns whether they did.
-export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: number }): boolean {
-  const inside = model.inside;
-  if (!inside || !stairsInReach(inside, model.hero)) return false;
-  const stairs = stairsOf(inside)!;
-  const foot = { x: stairs.x + stairs.w - 0.5 + HERO_RADIUS * INDOOR_SCALE + 0.05, z: stairs.z }; // right at their foot (they climb from the room, +x, toward the wall)
-  const top = { x: stairs.x, z: stairs.z - 1 }; // off its top, where the railing's open (its far side)
-  if (inside.below) {
-    const { room, furniture } = layoutOf(model.seed, inside.below);
-    model.inside = { entrance: inside.below, room, furniture, seated: null };
-    Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: Math.PI / 2 }); // stepped off them, facing away
-  } else {
-    model.inside = { entrance: upstairsOf(inside.entrance), room: inside.room, furniture: upstairsFurniture(stairs, inside.room), seated: null, below: inside.entrance };
-    Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
-  }
-  return true;
-}
-
-// The spot, or the nearest free one round it (something may stand there).
-function clearOf(furniture: readonly Furniture[], room: Room, at: { x: number; z: number }): { x: number; z: number } {
-  const r = HERO_RADIUS * INDOOR_SCALE;
-  const around = [[0, 0], [0, 1], [1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [-1, 0]].map(([dx, dz]) => ({ x: at.x + dx, z: at.z + dz }));
-  const inRoom = (p: { x: number; z: number }) => p.x >= -0.5 + r && p.z >= -0.5 + r && p.x <= room.width - 0.5 - r && p.z <= room.depth - 0.5 - r; // as far as one walks
-  return around.find((p) => inRoom(p) && !bumpsFurniture(furniture, p.x, p.z, r)) ?? at;
 }

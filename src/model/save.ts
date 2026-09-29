@@ -14,7 +14,8 @@ import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
-import { layoutOf, upstairsFurniture, upstairsOf } from './interiors/indoors';
+import { layoutOf } from './interiors/indoors';
+import { upstairsInside } from './interiors/upstairs';
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
@@ -144,7 +145,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const { room, furniture } = layoutOf(model.seed, building);
     const stairs = furniture.find((f) => f.kind === 'stairs');
     model.inside = saved.upstairs && stairs
-      ? { entrance: upstairsOf(building), room, furniture: upstairsFurniture(stairs, room), seated: null, below: building } // on the floor above
+      ? upstairsInside(building, room, stairs) // on the floor above
       : { entrance: building, room, furniture, seated: null };
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {
