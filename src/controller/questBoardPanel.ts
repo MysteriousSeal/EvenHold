@@ -5,7 +5,7 @@
 // A window in the middle of the screen; the game waits while it's open.
 
 import type { GameModel } from '../model/GameModel';
-import { MAX_ACTIVE, MAX_PER_BOARD, questProgress, questTitle, type Quest } from '../model/quests/quests';
+import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Quest } from '../model/quests/quests';
 import { noticeBoards } from '../model/quests/noticeBoards';
 import { coinParts } from '../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
@@ -58,7 +58,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       facts.append(dt, dd);
     };
     const spot = noticeBoards(model)[q.board];
-    fact('Where', [`${Math.round(Math.hypot(q.x - spot.x, q.z - spot.z))} paces ${q.where.replace(/ of the village$/, '')}`]);
+    fact('Where', [`${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
     const danger = document.createElement('span');
     danger.className = 'quest-danger';
     danger.dataset.difficulty = difficulty(q.level, model.hero.level);

@@ -87,3 +87,7 @@ export function questProgress(quest: Quest, have: number): { text: string; done:
   const what = quest.kind === 'kill' ? (quest.foe === 'wolf' ? 'wolves' : 'bandits') : quest.item === 'wolfPelt' ? 'wolf pelts' : 'bandit tokens';
   return { text: `${Math.min(have, quest.count)}/${quest.count} ${what}`, done: have >= quest.count };
 }
+
+// A distance in tiles, told in meters (a tile is two): "40 m".
+export const METERS_PER_TILE = 2;
+export const inMeters = (tiles: number) => `${Math.round(tiles * METERS_PER_TILE)} m`;

@@ -2,17 +2,17 @@
 // frame (styles in hud.css): a card each, with what it asks, a bar of how
 // far along it is, and where to go: an arrow turned toward it on screen
 // (the nearest marked foe, else the spot they gather; once done, back to
-// its board) and how many paces off. Indoors, where the
+// its board) and how far off, in meters. Indoors, where the
 // world's out of sight, only the words.
 
 import type { GameModel } from '../../model/GameModel';
 import { noticeBoards } from '../../model/quests/noticeBoards';
-import { questTitle } from '../../model/quests/quests';
+import { inMeters, questTitle } from '../../model/quests/quests';
 import type { TakenQuest } from '../../model/quests/questBook';
 
 type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
-const HERE = 2.5; // paces: close enough that the arrow gives way to "here"
+const HERE = 2.5; // tiles: close enough that the arrow gives way to "here"
 
 // The arrow, pointing up (turned to face the way): a notched arrowhead,
 // gold, its left facet lit and its right one shaded, in a thick ink
@@ -106,10 +106,10 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       const have = model.quests.progress(t);
       const done = have >= t.quest.count;
       const to = goal(t, done);
-      const paces = Math.round(Math.hypot(to.x - hero.x, to.z - hero.z));
+      const tiles = Math.hypot(to.x - hero.x, to.z - hero.z);
       const outdoors = !model.inside;
-      const here = outdoors && paces <= HERE;
-      const distance = outdoors ? (here ? 'here' : `${paces} paces`) : '';
+      const here = outdoors && tiles <= HERE;
+      const distance = outdoors ? (here ? 'here' : inMeters(tiles)) : '';
       const text = `${questTitle(t.quest)}|${have}|${distance}|${done}`;
       if (text !== c.shown) {
         c.shown = text;
