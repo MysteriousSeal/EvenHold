@@ -327,7 +327,8 @@ export class GameModel {
   get doorInReach(): Entrance | null {
     const { hero } = this;
     if (this.inside) {
-      const { room, entrance } = this.inside;
+      const { room, entrance, below } = this.inside;
+      if (below) return null; // upstairs: no door to the street
       return Math.abs(hero.x - room.door) < 0.6 && hero.z > room.depth - 1.4 ? entrance : null;
     }
     let best: Entrance | null = null;

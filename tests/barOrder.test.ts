@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
+import { stairsInReach, takeStairs } from '../src/model/interiors/indoors';
+import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { ALE_SECONDS, barmaidHere, callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
@@ -178,4 +180,24 @@ describe('an ale at the bar', () => {
     expect(drank).toBe(true); // they waited for it: their 5 seconds' stay only counted once served
     expect(mugsAt(inn).some((m) => m.z === stool.z && !m.full)).toBe(true); // the empty mug left
   }, 120_000);
+
+  it('has stairs past the bar, climbing from the room toward the wall: E by them goes up to an empty floor (no door there), and back down; kept in a save', () => {
+    const model = atTheInn();
+    const inn = model.inside!.entrance;
+    const stairs = model.inside!.furniture.find((f) => f.kind === 'stairs')!;
+    expect(stairs).toBeTruthy();
+    expect([stairs.w, stairs.d, stairs.x]).toEqual([2, 1, 0]); // out from the left wall, climbing toward it
+    Object.assign(model.hero, { x: stairs.x + stairs.w, z: stairs.z }); // at its foot, in the room
+    expect(stairsInReach(model.inside!, model.hero)).toBe(true);
+    expect(takeStairs(model)).toBe(true);
+    expect(model.inside!.below).toBe(inn); // upstairs
+    expect(model.inside!.furniture.map((f) => f.kind)).toEqual(['stairwell']); // empty but for where the stairs come up
+    expect(model.doorInReach).toBeNull();
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.inside?.below).toBe(again.entrances[model.entrances.indexOf(inn)]);
+    expect(takeStairs(model)).toBe(true); // back down
+    expect(model.inside!.entrance).toBe(inn);
+    expect(model.inside!.below).toBeUndefined();
+  });
 });

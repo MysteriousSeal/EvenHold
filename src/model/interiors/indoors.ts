@@ -13,10 +13,11 @@ const SIT_RANGE = 0.4; // how close to a seat (or bed) the hero must stand to us
 // hero's x/z are then room coordinates), and the seat they're on, if any,
 // with the spot they stood on before sitting down (where they get up to).
 export interface Inside {
-  entrance: Entrance;
+  entrance: Entrance; // the room's own (upstairs, a door of its own: upstairsOf)
   room: Room;
   furniture: Furniture[];
   seated: Seated;
+  below?: Entrance; // upstairs: the building it's the upper floor of
 }
 
 // Where the hero's sitting (or lying), and the spot they sat down from; null standing.
@@ -94,4 +95,52 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
   hero.z = at.seated.from.z;
   hero.y = y;
   at.seated = null;
+}
+
+// Upstairs in a building (the inn): a room of its own, so no one below is
+// in it, nor any mugs on a bar; made once for each building, the same
+// size, empty but for the stairwell where the stairs come up.
+const upper = new WeakMap<Entrance, Entrance>();
+export function upstairsOf(below: Entrance): Entrance {
+  let floor = upper.get(below);
+  if (!floor) upper.set(below, (floor = { ...below }));
+  return floor;
+}
+
+const STAIRS_REACH = 0.75; // from the stairs (or stairwell), to take them
+
+// The stairs in a room (up, or the stairwell down), if it has any.
+export const stairsOf = (inside: Inside) => inside.furniture.find((f) => f.kind === 'stairs' || f.kind === 'stairwell');
+
+// Whether the hero, standing, is by the stairs.
+export function stairsInReach(inside: Inside, hero: Hero): boolean {
+  const stairs = stairsOf(inside);
+  return !!stairs && !inside.seated && distanceTo(stairs, hero.x, hero.z) <= STAIRS_REACH;
+}
+
+// Takes the stairs by the hero: up to the floor above (beside the top of
+// the stairwell, by the wall, on its open side, toward the door), or back down (just past the
+// foot of the stairs, in the room). Returns whether they did.
+export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: number }): boolean {
+  const inside = model.inside;
+  if (!inside || !stairsInReach(inside, model.hero)) return false;
+  const stairs = stairsOf(inside)!;
+  const foot = { x: stairs.x + stairs.w, z: stairs.z }; // the stairs climb from the room (+x) toward the wall
+  const top = { x: stairs.x, z: stairs.z + 1 }; // on the open side (the rail's on the bar's side)
+  if (inside.below) {
+    const { room, furniture } = layoutOf(model.seed, inside.below);
+    model.inside = { entrance: inside.below, room, furniture, seated: null };
+    Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: -Math.PI / 2 }); // facing the stairs
+  } else {
+    model.inside = { entrance: upstairsOf(inside.entrance), room: inside.room, furniture: [{ ...stairs, kind: 'stairwell' }], seated: null, below: inside.entrance };
+    Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
+  }
+  return true;
+}
+
+// The spot, or the nearest free one round it (something may stand there).
+function clearOf(furniture: readonly Furniture[], room: Room, at: { x: number; z: number }): { x: number; z: number } {
+  const r = HERO_RADIUS * INDOOR_SCALE;
+  const around = [[0, 0], [0, 1], [1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [-1, 0]].map(([dx, dz]) => ({ x: at.x + dx, z: at.z + dz }));
+  return around.find((p) => p.x >= 0 && p.z >= 0 && p.x < room.width && p.z < room.depth - 1 && !bumpsFurniture(furniture, p.x, p.z, r)) ?? at;
 }

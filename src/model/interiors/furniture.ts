@@ -22,6 +22,8 @@ export type FurnitureKind =
   | 'counter'
   | 'keg'
   | 'sink' // behind the bar, where the empty mugs go
+  | 'stairs' // up to the inn's upper floor, along the wall past the bar
+  | 'stairwell' // where they come up, upstairs
   | 'forge'
   | 'anvil'
   | 'trough'
@@ -144,6 +146,9 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     }
     place('keg', 1, 1, 'left', [[0, 0]]); // behind the bar, its tap facing the counter
     place('keg', 1, 1, 'back', [[2, 0]]); // and one beside it
+    // Past the bar's end (a row left free there, where the server picks up), the stairs up: two
+    // long, out from the left wall into the room, climbing from the room toward the wall.
+    place('stairs', 2, 1, 'none', [[0, Math.min(barEnd + 2, room.depth - 1)]]);
     // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs facing it.
     const hearth = place('hearth', 2, 1, 'back', along(0).filter(([x]) => x >= 5 && x <= room.width - 3));
     if (hearth) {
@@ -183,7 +188,6 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
-    place('wallLantern', 1, 1, 'left', down(0).filter(([, z]) => z > barEnd));
   } else {
     const forge = place('forge', 2, 1, 'back', along(0));
     if (forge) place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);

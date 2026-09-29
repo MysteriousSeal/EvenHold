@@ -14,7 +14,7 @@ import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
-import { layoutOf } from './interiors/indoors';
+import { layoutOf, upstairsOf } from './interiors/indoors';
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
@@ -38,6 +38,7 @@ export interface SaveData {
     z: number;
     facing: number;
     inside: number | null; // the building they're in, by its door's index among the world's
+    upstairs?: boolean; // on its upper floor
     lastInn?: number | null; // the last inn they entered (where they wake after a fall)
     blessings?: Blessing[]; // a well's, and how long it has left
   };
@@ -73,7 +74,8 @@ export function snapshot(model: GameModel): SaveData {
       x: model.seated?.from.x ?? hero.x,
       z: model.seated?.from.z ?? hero.z,
       facing: hero.facing,
-      inside: door(model.inside?.entrance),
+      inside: door(model.inside?.below ?? model.inside?.entrance),
+      upstairs: !!model.inside?.below,
       lastInn: door(model.lastInn),
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
     },
@@ -139,7 +141,11 @@ export function restore(model: GameModel, data: SaveData): void {
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
-    model.inside = { entrance: building, ...layoutOf(model.seed, building), seated: null };
+    const { room, furniture } = layoutOf(model.seed, building);
+    const stairs = furniture.find((f) => f.kind === 'stairs');
+    model.inside = saved.upstairs && stairs
+      ? { entrance: upstairsOf(building), room, furniture: [{ ...stairs, kind: 'stairwell' }], seated: null, below: building } // on the floor above
+      : { entrance: building, room, furniture, seated: null };
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
