@@ -178,12 +178,12 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
         tables++;
       }
     }
-    // On the walls: antlers and a shield over the room, lanterns, a notice board by the door.
+    // On the back wall, over the room: antlers, a shield, the notice board, lanterns (the left wall by the door kept clear).
     place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+    place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     place('wallLantern', 1, 1, 'left', down(0).filter(([, z]) => z > barEnd));
-    place('noticeBoard', 1, 1, 'left', [[0, room.depth - 2]]);
   } else {
     const forge = place('forge', 2, 1, 'back', along(0));
     if (forge) place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);

@@ -35,9 +35,9 @@ export function layoutOf(seed: number, entrance: Entrance): { room: Room; furnit
   return layout;
 }
 
-// Walks the hero `dist` along (dirX, dirZ) on the room's floor, walled in but
-// for the door (and not into anyone `bumps` says is in the way); returns
-// 'door' if they walked out through it.
+// Walks the hero `dist` along (dirX, dirZ) on the room's floor, walled in,
+// the doorway too (they leave with E at the door, not by walking into it),
+// and not into anyone `bumps` says is in the way.
 export function walkInside(
   inside: Inside,
   hero: Hero,
@@ -45,7 +45,7 @@ export function walkInside(
   dirZ: number,
   dist: number,
   bumps: (x: number, z: number, r: number) => boolean = () => false,
-): 'moved' | 'door' {
+): void {
   const { room, furniture } = inside;
   const len = Math.hypot(dirX, dirZ);
   const r = HERO_RADIUS * INDOOR_SCALE; // drawn bigger indoors, so bigger to bump into things too
@@ -53,12 +53,9 @@ export function walkInside(
   // Axis by axis, so the hero slides along furniture instead of sticking to it.
   const nx = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
   if (!bumpsFurniture(furniture, nx, hero.z, r) && !bumps(nx, hero.z, r)) hero.x = nx;
-  const inDoorway = Math.abs(hero.x - room.door) < 0.5 - r;
   const nz = hero.z + (dirZ / len) * dist;
-  if (inDoorway && nz >= room.depth - 0.5 - r) return 'door';
   const clampedZ = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
   if (!bumpsFurniture(furniture, hero.x, clampedZ, r) && !bumps(hero.x, clampedZ, r)) hero.z = clampedZ;
-  return 'moved';
 }
 
 // The nearest seat the hero could sit on from where they stand (one no one

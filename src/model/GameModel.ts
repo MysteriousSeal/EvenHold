@@ -370,13 +370,13 @@ export class GameModel {
   }
 
   // Indoors: the hero walks the room's floor (getting up first if seated);
-  // walking out through the door goes back outside.
+  // out only through the door, with E (useDoor).
   private moveInside(dirX: number, dirZ: number, dt: number): void {
     const inside = this.inside!;
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
-    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt, bumps) === 'door') this.useDoor();
+    walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.

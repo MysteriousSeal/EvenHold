@@ -21,7 +21,7 @@ describe('interiors', () => {
     expect(rooms.size).toBeGreaterThan(1); // not all alike
   });
 
-  it('goes in from the door spot, stays walled in, and walks back out the door', () => {
+  it('goes in from the door spot, stays walled in, even at the doorway, and leaves with the door (E)', () => {
     const model = withHouses();
     const door = model.entrances[0];
     model.teleport(door.x, door.z);
@@ -32,9 +32,13 @@ describe('interiors', () => {
     for (let t = 0; t < 5; t += FRAME) model.update(0, -1, FRAME);
     expect(model.inside).not.toBeNull();
     expect(model.hero.z).toBeGreaterThan(-0.5);
-    // Back to the doorway and out.
+    // Walking into the doorway: stopped there, the door in reach, still in.
     model.hero.x = room.door;
-    for (let t = 0; t < 5 && model.inside; t += FRAME) model.update(0, 1, FRAME);
+    for (let t = 0; t < 5; t += FRAME) model.update(0, 1, FRAME);
+    expect(model.inside).not.toBeNull();
+    expect(model.doorInReach).toBe(door);
+    // Out with the door.
+    expect(model.useDoor()).toBe(true);
     expect(model.inside).toBeNull();
     expect(Math.hypot(model.hero.x - door.x, model.hero.z - door.z)).toBeLessThan(0.01);
   });
