@@ -54,9 +54,15 @@ describe('quests', () => {
     const inn = model.buildings.find((b) => b.kind === 'inn' && Math.hypot(b.x - model.villages[0].x, b.z - model.villages[0].z) < 5)!;
     expect(Math.min(...inn.tiles.map(([x, z]) => Math.abs(x - spot.x) + Math.abs(z - spot.z)))).toBeLessThanOrEqual(2);
     expect(model.isOpenTile(spot.x, spot.z)).toBe(false); // the board stands there
-    const free = [[0, 1], [0, -1], [1, 0], [-1, 0]].find(([dx, dz]) => model.isOpenTile(spot.x + dx, spot.z + dz))!;
-    model.teleport(spot.x + free[0], spot.z + free[1]);
+    // Read from the tile in front (the square's side), not from behind, nor from afar.
+    model.teleport(spot.x + spot.front.dx * 0.6, spot.z + spot.front.dz * 0.6); // up against its face
     expect(model.boardInReach).toBe(0);
+    model.teleport(spot.x + spot.front.dx, spot.z + spot.front.dz); // a whole tile off: too far
+    expect(model.boardInReach).toBeNull();
+    model.teleport(spot.x - spot.front.dx, spot.z - spot.front.dz);
+    expect(model.boardInReach).toBeNull();
+    model.teleport(spot.x + spot.front.dx * 3, spot.z + spot.front.dz * 3);
+    expect(model.boardInReach).toBeNull();
   });
 
   it('gathers a marked pack, counts kills, brings them back after a minute, and pays on hand-in', () => {

@@ -17,7 +17,8 @@ import { noticeBoards, type BoardWorld } from './noticeBoards';
 import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
-export const BOARD_RANGE = 1.6; // how close the hero must be to read a board
+const READ_FROM = [0.3, 0.8]; // how far out in front of a board (tiles) the hero can read it: right up against it
+const READ_ASIDE = 0.45; // and how far to either side of straight out
 const PACK = 2; // foes gathered for each still asked for
 const SPREAD = 2.5; // tiles round the spot a pack gathers in
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
@@ -53,10 +54,15 @@ export class QuestBook {
     return this.completed.has(key);
   }
 
-  // The board the hero is standing at (outdoors), by its village's index; else null.
+  // The board the hero is standing in front of (on the tile its notes face,
+  // the square's side), by its village's index; else null.
   boardInReach(): number | null {
     const { hero } = this.host;
-    const i = noticeBoards(this.host).findIndex((spot) => Math.hypot(spot.x - hero.x, spot.z - hero.z) <= BOARD_RANGE);
+    const i = noticeBoards(this.host).findIndex(({ x, z, front }) => {
+      const out = (hero.x - x) * front.dx + (hero.z - z) * front.dz; // straight out from its face
+      const aside = (hero.x - x) * front.dz - (hero.z - z) * front.dx;
+      return out >= READ_FROM[0] && out <= READ_FROM[1] && Math.abs(aside) <= READ_ASIDE;
+    });
     return i < 0 ? null : i;
   }
 

@@ -12,6 +12,7 @@ export interface BoardSpot {
   x: number;
   z: number;
   quarterTurns: number; // 0: its faces toward ±z; 1: toward ±x
+  front: { dx: number; dz: number }; // the way its face looks out onto the square: read from the tile there
 }
 
 export interface BoardWorld {
@@ -47,8 +48,13 @@ function boardBy(village: Village, buildings: readonly Building[], solid: Set<st
     const quarterTurns = inX !== 0 ? 1 : 0; // its faces toward the well
     for (const [x, z] of [...ends, ...ends.map(([x, z]): [number, number] => [x + inX, z + inZ])]) {
       const corner = Math.abs(x - village.x) === R && Math.abs(z - village.z) === R; // a lantern's
-      if (!corner && !solid.has(cellKey(x, z))) return { x, z, quarterTurns };
+      if (!corner && !solid.has(cellKey(x, z))) return { x, z, quarterTurns, front: facing(village, x, z, quarterTurns) };
     }
   }
-  return { x: village.x + 1, z: village.z - 1, quarterTurns: 0 };
+  return { x: village.x + 1, z: village.z - 1, quarterTurns: 0, front: facing(village, village.x + 1, village.z - 1, 0) };
+}
+
+// Which of a board's two faces looks toward the well (along the axis it faces).
+function facing(village: Village, x: number, z: number, quarterTurns: number): { dx: number; dz: number } {
+  return quarterTurns === 1 ? { dx: Math.sign(village.x - x) || 1, dz: 0 } : { dx: 0, dz: Math.sign(village.z - z) || 1 };
 }
