@@ -5,7 +5,7 @@
 // the game goes on while it's open, and it keeps up with the hunt.
 
 import type { GameModel } from '../model/GameModel';
-import { MAX_ACTIVE, questProgress, questTitle } from '../model/quests/quests';
+import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../model/quests/quests';
 import type { TakenQuest } from '../model/quests/questBook';
 import { coinParts } from '../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
@@ -18,6 +18,12 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   const { quests } = model;
   const shown = new WeakMap<MenuSlot, TakenQuest>();
   let armed: string | null = null; // the quest whose Abandon was clicked once: a second click abandons it
+  let told = ''; // why tracking was refused, until the next try
+  const FULL = `You can track ${MAX_TRACKED} quests at once. Untrack one first.`;
+  // Tracks a quest, or stops: refused (and told why) with three tracked already.
+  const toggle = (t: TakenQuest) => {
+    told = quests.setTracked(t.quest.key, !t.tracked) ? '' : FULL;
+  };
 
   const slotOf = (t: TakenQuest): MenuSlot => {
     const { quest } = t;
@@ -26,8 +32,13 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       icon: questIcon(quest),
       title: questTitle(quest),
       badge: have >= quest.count ? '✓ Done' : `${have}/${quest.count}`,
-      note: t.tracked ? cap(quest.where) : `${cap(quest.where)} · untracked`,
-      dim: !t.tracked,
+      note: cap(quest.where),
+      check: {
+        on: t.tracked,
+        locked: !t.tracked && quests.tracked >= MAX_TRACKED,
+        label: t.tracked ? 'Tracked on screen: click to untrack' : quests.tracked >= MAX_TRACKED ? FULL : 'Click to track on screen',
+        toggle: () => toggle(t),
+      },
     };
     shown.set(slot, t);
     return slot;
@@ -71,8 +82,9 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     const track = document.createElement('button');
     track.className = 'menu-detail-button';
     track.textContent = t.tracked ? 'Untrack' : 'Track';
+    track.classList.toggle('unavailable', !t.tracked && quests.tracked >= MAX_TRACKED); // a click still says why
     track.addEventListener('click', () => {
-      t.tracked = !t.tracked;
+      toggle(t);
       menu.refresh();
     });
     const drop = document.createElement('button');
@@ -86,7 +98,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       menu.refresh();
     });
     buttons.append(track, drop);
-    pane.append(line('menu-detail-said', done ? 'Done. Hand it in at the notice board you took it from.' : ''), buttons);
+    pane.append(line('menu-detail-said', told || (done ? 'Done. Hand it in at the notice board you took it from.' : '')), buttons);
     return pane;
   };
 
@@ -101,7 +113,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       pin.classList.toggle('on', i < quests.taken.length);
       pins.append(pin);
     }
-    row.append(line('quest-board-lead', 'Hand quests in at the notice board they came from.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE}`));
+    row.append(line('quest-board-lead', 'Hand quests in at the notice board they came from.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked}/${MAX_TRACKED} tracked`));
     return row;
   };
 
