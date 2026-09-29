@@ -195,4 +195,23 @@ describe('villagers', () => {
     for (let t = 0; t < 0.2; t += 1 / 60) model.update(0, 0, 1 / 60);
     expect(npc.where).toBe(door);
   });
+
+  it("don't wait on the hero: standing by the well, no one's held up for long", () => {
+    const model = new GameModel(TEST_SEEDS[2], TEST_MAP_SIZE);
+    const v = model.villages[0];
+    const [x, z] = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dz]) => [v.x + dx, v.z + dz]).find(([x, z]) => model.isOpenTile(x, z))!;
+    model.teleport(x, z);
+    const since = new Map<number, { x: number; z: number; t: number }>();
+    let longest = 0;
+    for (let t = 0; t < 300; t += 0.05) {
+      model.update(0, 0, 0.05);
+      for (const n of model.npcs) {
+        const s = since.get(n.id);
+        // Only while walking outdoors: waiting, or sitting, isn't being held up.
+        if (n.where || n.steps[0]?.kind !== 'go' || !s || Math.hypot(s.x - n.x, s.z - n.z) > 0.6) since.set(n.id, { x: n.x, z: n.z, t });
+        else longest = Math.max(longest, t - s.t);
+      }
+    }
+    expect(longest).toBeLessThan(10);
+  }, 60_000);
 });

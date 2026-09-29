@@ -35,6 +35,9 @@ export interface NpcWorld {
 const WALK_SPEED = 1.1;
 const PATH_RADIUS = 24; // tiles searched for a way
 const STUCK_TIME = 3; // seconds without getting anywhere before skipping ahead
+const PROGRESS = 0.02; // tiles nearer the next point that count as getting somewhere
+// How near each villager has come to the point they're walking to (a new point starts afresh).
+const closest = new WeakMap<Npc, { to: Point; d: number }>();
 const HOME_TIME: [number, number] = [30, 90]; // seconds settled at home
 const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
@@ -281,7 +284,8 @@ function place(npc: Npc, world: NpcWorld, at: Point): void {
 function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: number, direct = false): boolean {
   const indoors = npc.where;
   const free = indoors ? roomFree(world.seed, indoors, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
-  if (!npc.path) npc.path = direct ? [to] : [...findPath(npc, to, PATH_RADIUS, free), to];
+  // The way there goes round the hero too, where they stand now.
+  if (!npc.path) npc.path = direct ? [to] : [...findPath(npc, to, PATH_RADIUS, (x, z) => free(x, z) && !heroOn(world, indoors, x, z)), to];
   const scale = indoors ? INDOOR_SCALE : 1;
   // Someone standing on the next point: past it, or (the last) close enough.
   const taken = (p: Point) => npcs.some((o) => o !== npc && o.where === indoors && Math.hypot(o.x - p.x, o.z - p.z) < NPC_RADIUS * 2 * scale);
@@ -326,15 +330,32 @@ function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: nu
   if (moved > 1e-5) {
     npc.facing = Math.atan2(npc.x - x0, npc.z - z0);
     npc.moving = true;
-    npc.waited = 0;
+    // Only getting closer counts as getting anywhere: shuffling along a wall
+    // (or round the hero) without nearing the point runs the stuck clock on.
+    const now = Math.hypot(next.x - npc.x, next.z - npc.z);
+    const best = closest.get(npc);
+    if (!best || best.to !== next || now < best.d - PROGRESS) {
+      closest.set(npc, { to: next, d: now });
+      npc.waited = 0;
+    } else npc.waited += dt;
     if (!indoors) npc.y = world.getGroundY(npc.x, npc.z);
-    return false;
+    if (npc.waited < STUCK_TIME) return false;
+  } else {
+    npc.waited += dt;
+    if (npc.waited < STUCK_TIME) return false;
   }
   // Stuck: past this point after a while (or done, if it was the last).
-  npc.waited += dt;
-  if (npc.waited < STUCK_TIME) return false;
   npc.waited = 0;
-  if (heroOn(world, npc.where, npc.path[0].x, npc.path[0].z)) return false; // not onto the hero
+  closest.delete(npc);
+  if (heroOn(world, npc.where, next.x, next.z)) {
+    // The hero's standing there: that'll do, if it was where they were going; else a way round them.
+    if (npc.path.length === 1) {
+      npc.path = [];
+      return true;
+    }
+    npc.path = null;
+    return false;
+  }
   place(npc, world, npc.path.shift()!);
   return npc.path.length === 0;
 }
