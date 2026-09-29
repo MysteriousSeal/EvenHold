@@ -309,13 +309,13 @@
 .blessing-hud { position: fixed; top: 16px; right: 22px; display: flex; gap: 22px; font-family: 'Fredoka', system-ui, sans-serif; }
 .blessing-card { position: relative; }
 .blessing-hud-icon {
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   background: #efdcb8;
   border: 3px solid #2e1f14;
-  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -8px 0 #d6bb8e;
+  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -6px 0 #d6bb8e;
 }
 .blessing-hud-icon canvas { display: block; }
 .blessing-hud-time {
@@ -342,4 +342,4 @@
 .blessing-card:hover .blessing-tip { visibility: visible; }
 .blessing-tip b { color: #ffd35a; font-weight: 700; }
 .blessing-tip span { color: #f8ecd4; font-weight: 500; }
-.blessing-coin { width: 28px; height: 28px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }
+.blessing-coin { width: 24px; height: 24px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }

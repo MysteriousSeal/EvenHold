@@ -40,7 +40,7 @@ export function createBlessingHud(hero: Hero): () => void {
     root.className = 'blessing-card';
     const tile = document.createElement('div');
     tile.className = 'blessing-hud-icon';
-    tile.append(ICONS[kind](44));
+    tile.append(ICONS[kind](36));
     const left = document.createElement('span');
     left.className = 'blessing-hud-time';
     const tip = document.createElement('div');
