@@ -22,6 +22,7 @@ const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
 export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg at 0, 0 reaches out to x 0.12), clear of it and the counter (she's 0.25 wide indoors)
 const POUR_TIME = 1.4; // seconds bent over the tap
+const LINGER = 2; // seconds she stays before whoever she's served, having set it down
 const TAKE_ORDER = 2.4; // seconds taking a villager's order, across the bar from them (her question, their answer)
 // What's said over an order: her question (by name, often), their answer, her word as it's set down.
 const ASK_NAMED = [
@@ -168,10 +169,12 @@ function serve(barkeep: Npc, order: BarOrder): NpcStep[] {
   return [...take, ...aleFor(barkeep, order.stool, () => {
     const queue = ordersAt(barkeep.home);
     queue.splice(queue.indexOf(order), 1);
-    barkeep.serving = false;
     if (by) say(barkeep, pick(HANDED, n + 3)); // setting it down before them
     order.served();
-  })];
+  }),
+    { kind: 'wait', for: LINGER }, // a moment there with them, for her word (and their thanks): not to be called away
+    { kind: 'hand', then: () => (barkeep.serving = false) },
+  ];
 }
 
 // An ale for whoever's sat on `stool`, now, ahead of any queue (the barkeep
