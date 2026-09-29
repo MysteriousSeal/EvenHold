@@ -46,6 +46,7 @@ export interface SaveData {
   coins: Array<{ amount: number; x: number; z: number }>;
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
+  minutes?: number; // the game's clock
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 
@@ -91,6 +92,7 @@ export function snapshot(model: GameModel): SaveData {
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
     quests: model.quests.save(),
+    minutes: Math.floor(model.minutes),
   };
 }
 
@@ -158,6 +160,7 @@ export function restore(model: GameModel, data: SaveData): void {
     if (typeof inn === 'number' && typeof money === 'number' && typeof restockedAt === 'number') model.shops.set(inn, { money, stock: { ...stock }, restockedAt });
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
+  if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));
   for (const saved of data.npcs) {

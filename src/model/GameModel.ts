@@ -47,6 +47,7 @@ import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
+import { START_MINUTES } from './clock';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
@@ -74,6 +75,7 @@ export class GameModel {
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (inn/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
+  minutes = START_MINUTES; // the game's clock (clock.ts): a minute to each second played
   readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
@@ -192,6 +194,7 @@ export class GameModel {
   // (not necessarily normalized, zero when idle); dt: seconds.
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
+    this.minutes += dt; // a second played, a minute on the clock
     tickBlessing(this.hero, dt); // a well's, wearing off
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
