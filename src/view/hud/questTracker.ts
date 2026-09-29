@@ -14,23 +14,35 @@ type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
 const HERE = 2.5; // paces: close enough that the arrow gives way to "here"
 
-// A chunky pixel arrow pointing up, gold edged in ink, drawn once.
+// The arrow, pointing up (turned to face the way): a notched arrowhead,
+// gold, its left facet lit and its right one shaded, in a thick ink
+// outline; drawn smooth on a canvas (crisp at any angle and screen density).
+const ARROW_SIZE = 28;
 function arrowCanvas(): HTMLCanvasElement {
-  const rows = ['...##...', '..####..', '.######.', '########', '..####..', '..####..', '..####..', '..####..'];
-  const px = 3;
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = (rows.length + 2) * px;
+  canvas.width = canvas.height = Math.round(ARROW_SIZE * ratio);
+  canvas.style.width = canvas.style.height = `${ARROW_SIZE}px`;
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
-  const at = (x: number, y: number) => rows[y]?.[x] === '#';
-  for (let y = -1; y <= rows.length; y++) {
-    for (let x = -1; x <= rows.length; x++) {
-      const edge = !at(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => at(x + dx, y + dy));
-      if (!at(x, y) && !edge) continue;
-      ctx.fillStyle = edge ? '#2e1f14' : y < 4 ? '#ffe08a' : '#f2b640';
-      ctx.fillRect((x + 1) * px, (y + 1) * px, px, px);
-    }
-  }
+  const s = canvas.width;
+  const [tip, left, notch, right] = [[0.5, 0.1], [0.16, 0.86], [0.5, 0.68], [0.84, 0.86]].map(([x, y]) => [x * s, y * s] as const);
+  const shape = (points: ReadonlyArray<readonly [number, number]>) => {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+  };
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = s * 0.13;
+  ctx.strokeStyle = '#2e1f14';
+  shape([tip, left, notch, right]);
+  ctx.stroke(); // the outline, under the faces
+  ctx.fillStyle = '#ffe08a';
+  shape([tip, left, notch]);
+  ctx.fill(); // the lit facet
+  ctx.fillStyle = '#e8a030';
+  shape([tip, notch, right]);
+  ctx.fill(); // the shaded one
   return canvas;
 }
 
