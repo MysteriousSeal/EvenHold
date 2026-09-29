@@ -17,7 +17,7 @@ import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZ
 const V = WOLF_VOXEL_SIZE;
 const LEG_H = LEG_GRID[1] * V;
 const BODY_H = BODY_GRID[1] * V;
-export const WOLF_BAR_HEIGHT = LEG_H + BODY_H + 0.2;
+const WOLF_BAR_HEIGHT = LEG_H + BODY_H + 0.2;
 const BODY_L = BODY_GRID[2] * V;
 const STRIDE = 6; // trot-cycle radians per world unit
 const LEG_SWING = 0.6;

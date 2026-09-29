@@ -60,7 +60,7 @@ export function pulseAuras(time: number): void {
 }
 
 // A slow, smooth bob, a beat apart for each `phase`.
-export const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
+const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
 
 // Over each notice board: a "?" when a quest taken from it is done (to hand
 // in), else a "!" when it has a quest the hero could take; else nothing.

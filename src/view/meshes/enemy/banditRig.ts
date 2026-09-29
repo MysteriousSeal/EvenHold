@@ -13,7 +13,7 @@ import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
-export const BANDIT_BAR_HEIGHT = HEIGHT + 0.12;
+const BANDIT_BAR_HEIGHT = HEIGHT + 0.12;
 const FALL_TIME = 0.4; // seconds to fall flat on its back
 
 export interface BanditLook {
