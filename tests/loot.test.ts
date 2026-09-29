@@ -3,11 +3,21 @@ import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
 import { DROP_CHANCE, LOOT, LOOT_IDS, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
 import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
+import { JUNK_ITEMS } from '../src/model/loot/junk';
+import { PROVISIONS } from '../src/model/loot/provisions';
+import { QUEST_ITEMS } from '../src/model/quests/questItems';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const FRAME = 1 / 60;
 const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 const drops = (source: LootSource) => Array.from({ length: 400 }, (_, id) => rollDrop(source, id));
+
+describe('loot ids', () => {
+  it('are never shared between junk, provisions and quest items (one would hide the other)', () => {
+    const ids = [...Object.keys(JUNK_ITEMS), ...Object.keys(PROVISIONS), ...Object.keys(QUEST_ITEMS)];
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
 
 describe('loot drops', () => {
   it('drops about half the time, only what that family of enemy carries', () => {

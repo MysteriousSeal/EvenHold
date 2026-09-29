@@ -1,5 +1,5 @@
 // Quest items in voxels (questItems.ts), grid-aligned only, each its own
-// silhouette: from wolves, a pelt folded flat, a long ivory fang, a paw's
+// silhouette: from wolves, a pelt folded flat, an alpha's long ivory fang, a paw's
 // black claws, a bushy tawny tail; from bandits, a tin token struck with a
 // skull, a knotted red bandanna, a rolled case of lockpicks, a letter sealed in wax.
 
@@ -27,8 +27,8 @@ export const QUEST_MODELS: Record<QuestItemId, LootModel> = {
     fillBox(g, 2, 5, 0, 2, 5, 1, 5); // the cord's knot
     setColor(g, 1, 5, 1, 5);
   }),
-  // A fang: a dark root, a curving ivory point stepping to its tip.
-  wolfFang: model([0xf0e8d0, 0xc8bc98, 0x7a5a3c], [3, 7, 2], (g) => {
+  // An alpha's fang: a dark root, a long curving ivory point stepping to its tip.
+  alphaFang: model([0xf0e8d0, 0xc8bc98, 0x7a5a3c], [3, 7, 2], (g) => {
     fillBox(g, 0, 0, 0, 2, 1, 1, (_x, y) => (y === 0 ? 3 : 2)); // the root
     fillBox(g, 0, 2, 0, 2, 3, 1, (x) => (x === 2 ? 2 : 1));
     fillBox(g, 1, 4, 0, 2, 5, 1, (x) => (x === 2 ? 2 : 1)); // curving over

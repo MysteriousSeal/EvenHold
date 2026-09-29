@@ -9,7 +9,7 @@ const item = (name: string): LootEntry => ({ name, value: 0, droppedBy: {} });
 
 export const QUEST_ITEMS = {
   wolfPelt: item('Wolf pelt'),
-  wolfFang: item('Wolf fang'),
+  alphaFang: item('Alpha fang'), // not the junk "Wolf fang" (junk.ts): ids are shared by all loot
   wolfClaw: item('Wolf claw'),
   wolfTail: item('Wolf tail'),
   banditToken: item('Bandit token'),
@@ -23,14 +23,14 @@ export const isQuestItem = (item: string): item is QuestItemId => item in QUEST_
 
 // What each kind of foe can be asked for.
 export const QUEST_ITEMS_OF: Record<EnemyKind, readonly QuestItemId[]> = {
-  wolf: ['wolfPelt', 'wolfFang', 'wolfClaw', 'wolfTail'],
+  wolf: ['wolfPelt', 'alphaFang', 'wolfClaw', 'wolfTail'],
   bandit: ['banditToken', 'redBandanna', 'lockpicks', 'stolenLetter'],
 };
 
 // Several of an item, in words: "wolf pelts", "lockpicks".
 export const PLURALS: Record<QuestItemId, string> = {
   wolfPelt: 'wolf pelts',
-  wolfFang: 'wolf fangs',
+  alphaFang: 'alpha fangs',
   wolfClaw: 'wolf claws',
   wolfTail: 'wolf tails',
   banditToken: 'bandit tokens',

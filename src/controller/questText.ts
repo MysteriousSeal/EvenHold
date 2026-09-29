@@ -27,7 +27,7 @@ const NOTICES = {
 // What a "bring" notice says, by what it asks for (one of two).
 const WANTED: Record<QuestItemId, readonly string[]> = {
   wolfPelt: ['The tanner wants pelts before the frost. Good ones, mind, not moth-eaten.', "Winter's coming and the children need warm cloaks. Bring wolf pelts."],
-  wolfFang: ['The healer grinds wolf fangs into her remedies. Do not ask what for.', 'Fangs for the smith: he sets them in charms for the militia.'],
+  alphaFang: ['The healer grinds the fangs of pack leaders into her remedies. Do not ask what for.', 'Alpha fangs for the smith: he sets them in charms for the militia.'],
   wolfClaw: ['Claws, to prove the pack is thinning. The reeve pays for each.', 'The old hunter wants claws for his necklace. He is running out of room.'],
   wolfTail: ['Tails for the harvest dance. Bushy ones, if you please.', "A tail for every hen they've taken. The farmer is keeping count."],
   banditToken: ['Every one of those bandits wears a tin token. Bring them back as proof.', 'The reeve pays for tokens taken off bandits, no questions asked.'],
