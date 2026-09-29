@@ -26,6 +26,7 @@ export interface TakenQuest {
   quest: Quest;
   kills: number; // marked foes slain (slay quests)
   respawnIn: number; // seconds before the next marked foe comes back
+  tracked: boolean; // shown on screen (the quest tracker); set in the journal
 }
 
 export interface QuestHost extends QuestWorld, BoardWorld {
@@ -91,7 +92,7 @@ export class QuestBook {
   // Takes a quest from the board: its foes gather at once.
   accept(quest: Quest): boolean {
     if (this.full || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
-    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY };
+    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: true };
     this.taken.push(taken);
     for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
     return true;
@@ -205,10 +206,10 @@ export class QuestBook {
   }
 
   // For saving: the quests handed in, and those taken.
-  save(): { completed: string[]; taken: Array<{ key: string; kills: number; gathered?: number }> } {
+  save(): { completed: string[]; taken: Array<{ key: string; kills: number; gathered?: number; tracked?: boolean }> } {
     return {
       completed: [...this.completed],
-      taken: this.taken.map((t) => ({ key: t.quest.key, kills: t.kills, gathered: this.gathered.get(t.quest.key) ?? 0 })),
+      taken: this.taken.map((t) => ({ key: t.quest.key, kills: t.kills, gathered: this.gathered.get(t.quest.key) ?? 0, tracked: t.tracked })),
     };
   }
 
@@ -220,11 +221,11 @@ export class QuestBook {
       return whole(board) && board < boards && whole(n) && n < OFFERS;
     };
     for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key)) this.completed.add(key);
-    for (const { key, kills, gathered } of Array.isArray(data?.taken) ? data.taken : []) {
+    for (const { key, kills, gathered, tracked } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);
       if (!valid(key) || this.full || this.takenOf(key) || this.completed.has(key)) continue;
       const quest = questAt(this.host, board, n);
-      const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY };
+      const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY, tracked: tracked !== false };
       this.taken.push(taken);
       this.gathered.set(key, whole(gathered) ? gathered : 0); // the next foes are the ones that would have come next
       for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);

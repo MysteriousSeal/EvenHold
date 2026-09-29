@@ -130,11 +130,13 @@ describe('quests', () => {
     const [a, b] = model.quests.offersAt(0);
     model.quests.accept(a);
     model.quests.takenOf(a.key)!.kills = 1;
+    model.quests.takenOf(a.key)!.tracked = false;
     const again = fresh();
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.quests.taken.map((t) => t.quest.key)).toEqual([a.key]);
     expect(again.quests.takenOf(a.key)!.kills).toBe(a.kind === 'kill' ? 1 : 1);
     expect(again.quests.takenOf(b.key)).toBeNull();
+    expect(again.quests.takenOf(a.key)!.tracked).toBe(false);
     expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? 2 * (a.count - 1) : 2 * a.count);
   });
 });
