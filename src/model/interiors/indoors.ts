@@ -119,18 +119,18 @@ export function stairsInReach(inside: Inside, hero: Hero): boolean {
 }
 
 // Takes the stairs by the hero: up to the floor above (beside the top of
-// the stairwell, by the wall, on its open side, toward the door), or back down (just past the
+// the stairwell, by the wall, where its railing's open: its far side), or back down (just past the
 // foot of the stairs, in the room). Returns whether they did.
 export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: number }): boolean {
   const inside = model.inside;
   if (!inside || !stairsInReach(inside, model.hero)) return false;
   const stairs = stairsOf(inside)!;
-  const foot = { x: stairs.x + stairs.w, z: stairs.z }; // the stairs climb from the room (+x) toward the wall
-  const top = { x: stairs.x, z: stairs.z + 1 }; // on the open side (the rail's on the bar's side)
+  const foot = { x: stairs.x + stairs.w - 0.5 + HERO_RADIUS * INDOOR_SCALE + 0.05, z: stairs.z }; // right at their foot (they climb from the room, +x, toward the wall)
+  const top = { x: stairs.x, z: stairs.z - 1 }; // off its top, where the railing's open (its far side)
   if (inside.below) {
     const { room, furniture } = layoutOf(model.seed, inside.below);
     model.inside = { entrance: inside.below, room, furniture, seated: null };
-    Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: -Math.PI / 2 }); // facing the stairs
+    Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: Math.PI / 2 }); // stepped off them, facing away
   } else {
     model.inside = { entrance: upstairsOf(inside.entrance), room: inside.room, furniture: [{ ...stairs, kind: 'stairwell' }], seated: null, below: inside.entrance };
     Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
@@ -142,5 +142,6 @@ export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: num
 function clearOf(furniture: readonly Furniture[], room: Room, at: { x: number; z: number }): { x: number; z: number } {
   const r = HERO_RADIUS * INDOOR_SCALE;
   const around = [[0, 0], [0, 1], [1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [-1, 0]].map(([dx, dz]) => ({ x: at.x + dx, z: at.z + dz }));
-  return around.find((p) => p.x >= 0 && p.z >= 0 && p.x < room.width && p.z < room.depth - 1 && !bumpsFurniture(furniture, p.x, p.z, r)) ?? at;
+  const inRoom = (p: { x: number; z: number }) => p.x >= -0.5 + r && p.z >= -0.5 + r && p.x <= room.width - 0.5 - r && p.z <= room.depth - 0.5 - r; // as far as one walks
+  return around.find((p) => inRoom(p) && !bumpsFurniture(furniture, p.x, p.z, r)) ?? at;
 }
