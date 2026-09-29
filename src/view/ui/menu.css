@@ -484,6 +484,7 @@
 .quest-danger[data-difficulty='tough'] { background: #d0a020; }
 .quest-danger[data-difficulty='hard'] { background: #e07a2a; }
 .quest-danger[data-difficulty='deadly'] { background: #c8362a; }
+.menu-detail-said.quest-completed { color: #217c98; font-weight: 600; }
 .quest-buttons { display: flex; gap: 8px; align-items: stretch; }
 .quest-buttons .menu-detail-button { flex: 1; }
 .quest-abandon {

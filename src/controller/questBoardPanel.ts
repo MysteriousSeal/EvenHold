@@ -67,7 +67,8 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const slot: MenuSlot = {
       icon: questIcon(q),
       title: questTitle(q),
-      badge: taken ? (have >= q.count ? '✓ Done' : `${have}/${q.count}`) : undefined,
+      badge: quests.isCompleted(q.key) ? 'Completed' : taken ? (have >= q.count ? '✓ Done' : `${have}/${q.count}`) : undefined,
+      dim: quests.isCompleted(q.key), // done for good: shown, faded
       tag: coinParts(q.copper),
       note: `${q.where.replace(/^./, (c) => c.toUpperCase())} · level ${q.level}`,
     };
@@ -109,6 +110,10 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     fact('Experience', [`${q.xp} XP`]);
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
+    if (quests.isCompleted(q.key)) {
+      pane.append(line('menu-detail-said quest-completed', said || 'Completed. The villagers thank you.'));
+      return pane;
+    }
 
     const why = !taken && quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : '';
     const unfinished = !!taken && !done; // its progress shows above: the button just waits
@@ -120,7 +125,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     main.classList.toggle('unavailable', !!why || unfinished); // still clickable when full: it says why not
     main.addEventListener('click', () => {
       if (unfinished) return;
-      said = why || (taken ? (quests.handIn(q.key), 'Reward paid. A new notice goes up.') : (quests.accept(q), 'Taken. Look for the gold marks.'));
+      said = why || (taken ? (quests.handIn(q.key), 'Reward paid. The villagers thank you.') : (quests.accept(q), 'Taken. Look for the gold marks.'));
       saidFor = q.key;
       menu.refresh();
     });
@@ -152,7 +157,9 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       pin.classList.toggle('on', i < quests.taken.length);
       pins.append(pin);
     }
-    row.append(line('quest-board-lead', 'Notices from the villagers. Take one on, then come back here once it is done.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} taken`));
+    const left = quests.offersAt(board).filter((q) => !quests.isCompleted(q.key)).length;
+    const lead = left > 0 ? 'Notices from the villagers. Take one on, then come back here once it is done.' : 'Every notice here has been seen to. There is nothing more to do.';
+    row.append(line('quest-board-lead', lead), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} taken`));
     return row;
   };
 
