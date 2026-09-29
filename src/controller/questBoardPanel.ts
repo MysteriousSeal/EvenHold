@@ -1,4 +1,4 @@
-// Reading a village's notice board (E by it): its five notices in a grid
+// Reading a village's notice board (E by it): its six notices in a list
 // on the left, the one chosen on the right (what's asked, where, how
 // dangerous, the reward) with the button to take it on, or to hand it in
 // once done; the quests taken counted over it all, the hero's purse under.
@@ -110,14 +110,16 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
 
-    const why = taken ? (done ? '' : `Not done yet: ${questProgress(q, have).text}.`) : quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : '';
+    const why = !taken && quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : '';
+    const unfinished = !!taken && !done; // its progress shows above: the button just waits
     const buttons = document.createElement('div');
     buttons.className = 'quest-buttons';
     const main = document.createElement('button');
     main.className = 'menu-detail-button';
     main.textContent = taken ? 'Hand in' : 'Accept';
-    main.classList.toggle('unavailable', !!why); // still clickable: it says why not
+    main.classList.toggle('unavailable', !!why || unfinished); // still clickable when full: it says why not
     main.addEventListener('click', () => {
+      if (unfinished) return;
       said = why || (taken ? (quests.handIn(q.key), 'Reward paid. A new notice goes up.') : (quests.accept(q), 'Taken. Look for the gold marks.'));
       saidFor = q.key;
       menu.refresh();

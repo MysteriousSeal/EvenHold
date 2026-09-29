@@ -468,6 +468,7 @@
 /* The notice board (questBoardPanel.ts): a lead line and the quests taken
    as pins over the notices; a danger word in its difficulty's color; the
    hand-in button with a quiet abandon beside it. */
+.menu:has(.quest-board-head) .menu-detail { min-height: 480px; } /* the board's window: a bit taller than a shop's */
 .quest-board-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .quest-board-lead { flex: 1; font-size: 14px; font-style: italic; color: var(--ink-soft); line-height: 1.3; }
 .quest-pins { display: inline-flex; gap: 5px; }
