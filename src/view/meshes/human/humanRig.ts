@@ -310,6 +310,17 @@ export class HumanRig {
     this.drinkFor = this.drinkTotal = seconds;
   }
 
+  // Drinking as the model says (a villager at the bar): sipping while
+  // `drinking` lasts, the tankard put away once it doesn't.
+  sipping(drinking: { left: number; seconds: number } | null): void {
+    if (!drinking) {
+      if (this.drinkFor > 0) this.stopDrinking();
+      return;
+    }
+    this.showTankard();
+    [this.drinkFor, this.drinkTotal] = [drinking.left, drinking.seconds];
+  }
+
   // Puts the tankard down, not finished (the hero got up).
   stopDrinking(): void {
     this.drinkFor = 0;
