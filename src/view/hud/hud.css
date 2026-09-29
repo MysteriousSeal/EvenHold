@@ -318,6 +318,7 @@
   font-family: 'Fredoka', system-ui, sans-serif;
 }
 .blessing-card { position: relative; }
+.blessing-card:hover { z-index: 1; } /* its tooltip over the cards after it (the next row's too) */
 .blessing-hud-icon {
   width: 52px;
   height: 52px;
