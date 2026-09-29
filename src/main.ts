@@ -8,6 +8,7 @@ import { loadGame, startAutoSave } from './controller/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
+import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { coinText, createFloatingText } from './view/hud/floatingText';
@@ -63,6 +64,7 @@ async function boot(): Promise<void> {
   document.body.append(hudTop);
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateBlessing = createBlessingHud(model.hero);
+  const updateClock = createClockHud();
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: over the hero's head
@@ -132,6 +134,7 @@ async function boot(): Promise<void> {
     countFrame();
     updateHud();
     updateBlessing();
+    updateClock(model.minutes);
     updateTarget(model.focused, model.hero.level);
     bag.update();
     journal.update();

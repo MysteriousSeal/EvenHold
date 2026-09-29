@@ -337,7 +337,7 @@
    does on hover. */
 .blessing-hud {
   position: fixed;
-  top: 16px;
+  top: 70px; /* under the clock */
   right: 22px;
   display: flex;
   flex-wrap: wrap; /* five to a row (each card 58px, 22px apart), more below */
@@ -402,3 +402,23 @@
 .drink-timer[hidden] { display: none; }
 .drink-timer i { position: absolute; inset: 0 auto 0 0; background: #e8a830; box-shadow: inset 0 -3px 0 #b87a18, inset 0 3px 0 #f8d078; }
 .drink-timer span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 1px 1px 0 #2e1f14; font-variant-numeric: tabular-nums; }
+
+/* The game's clock, top right (clockHud.ts): a small sand card like the
+   HUD's others, the day in soft ink, the time bold and tabular. */
+.clock-hud {
+  position: fixed;
+  top: 16px;
+  right: 22px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 12px 8px;
+  pointer-events: none;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  background: #efdcb8;
+  border: 3px solid #2e1f14;
+  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -4px 0 #d6bb8e;
+}
+.clock-hud span { font-size: 14px; font-weight: 600; color: #6a5238; }
+.clock-hud b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
