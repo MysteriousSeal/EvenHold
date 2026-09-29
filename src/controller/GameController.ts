@@ -89,7 +89,7 @@ export class GameController {
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - this.lastTime) / 1000));
     this.lastTime = now;
 
-    this.step(dt);
+    this.step(dt * this.timeScale);
     this.onFrame();
     this.schedule(this.tick);
   };
@@ -98,6 +98,7 @@ export class GameController {
   // redrawn (the last frame stays on screen), leaving the page free to
   // respond instantly to the menu.
   paused = false;
+  timeScale = 1; // a dev cheat: the game running this many times as fast
 
   private step(dt: number): void {
     if (this.paused) return;

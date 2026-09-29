@@ -47,7 +47,8 @@ import { randomName } from '../../model/npcs/npcs';
 const SPEED_BOOST = 3;
 const NEARBY = 15; // tiles, for "nearby foes"
 
-export function createCheatPanel(model: GameModel): void {
+// `time`: the game's speed (a multiple of real time), to read and set.
+export function createCheatPanel(model: GameModel, time: { scale: number }): void {
   const here = (): Tile => ({ x: model.hero.x, z: model.hero.z });
   // Teleports there and closes the menu, so the new place is seen at once.
   const travel = (tile: Tile | null, where: string) => {
@@ -127,6 +128,13 @@ export function createCheatPanel(model: GameModel): void {
         icon: ICON.hero,
         actions: [
           { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
+          {
+            icon: ICON.freeze,
+            title: 'Game speed',
+            detail: 'Each click, faster: ×1, ×2, ×3, ×4',
+            current: () => ({ value: `×${time.scale}` }),
+            run: () => ((time.scale = time.scale >= 4 ? 1 : time.scale + 1), `The game runs at ×${time.scale}.`),
+          },
           { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
           {
             icon: ICON.starterSet,
