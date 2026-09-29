@@ -131,6 +131,18 @@ describe('quests', () => {
     expect(offers.every((q) => again.quests.isCompleted(q.key))).toBe(true);
   });
 
+  it('tracks three at most: the fourth taken is untracked, and can only be tracked once one is let go', () => {
+    const model = fresh();
+    const offers = [...model.quests.offersAt(0).slice(0, 3), ...model.quests.offersAt(1).slice(0, 1)];
+    for (const q of offers) model.quests.accept(q);
+    expect(model.quests.taken.map((t) => t.tracked)).toEqual([true, true, true, false]);
+    const [first, , , fourth] = offers;
+    expect(model.quests.setTracked(fourth.key, true)).toBe(false);
+    expect(model.quests.setTracked(first.key, false)).toBe(true);
+    expect(model.quests.setTracked(fourth.key, true)).toBe(true);
+    expect(model.quests.tracked).toBe(3);
+  });
+
   it('keeps the boards and the quests taken in a save', () => {
     const model = fresh();
     const [a, b] = model.quests.offersAt(0);

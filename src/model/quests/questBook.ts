@@ -14,7 +14,7 @@ import { gainXp } from '../hero/heroStats';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
-import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, questAt, questProgress, type Quest, type QuestWorld } from './quests';
+import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 export const BOARD_RANGE = 1.6; // how close the hero must be to read a board
@@ -94,6 +94,20 @@ export class QuestBook {
     return this.takenAt(board) >= MAX_PER_BOARD;
   }
 
+  // How many are tracked (shown on screen), three at most.
+  get tracked(): number {
+    return this.taken.filter((t) => t.tracked).length;
+  }
+
+  // Tracks a quest taken, or stops; returns whether it's as asked (not with three tracked already).
+  setTracked(key: string, on: boolean): boolean {
+    const taken = this.takenOf(key);
+    if (!taken) return false;
+    if (on && !taken.tracked && this.tracked >= MAX_TRACKED) return false;
+    taken.tracked = on;
+    return true;
+  }
+
   get full(): boolean {
     return this.taken.length >= MAX_ACTIVE;
   }
@@ -101,7 +115,7 @@ export class QuestBook {
   // Takes a quest from the board: its foes gather at once.
   accept(quest: Quest): boolean {
     if (this.full || this.fullAt(quest.board) || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
-    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: true };
+    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: this.tracked < MAX_TRACKED }; // tracked, if there's room
     this.taken.push(taken);
     for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
     return true;
@@ -234,7 +248,7 @@ export class QuestBook {
       const [board, n] = String(key).split(':').map(Number);
       if (!valid(key) || this.full || this.takenOf(key) || this.completed.has(key)) continue;
       const quest = questAt(this.host, board, n);
-      const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY, tracked: tracked !== false };
+      const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY, tracked: tracked !== false && this.tracked < MAX_TRACKED };
       this.taken.push(taken);
       this.gathered.set(key, whole(gathered) ? gathered : 0); // the next foes are the ones that would have come next
       for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
