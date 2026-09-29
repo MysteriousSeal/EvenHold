@@ -20,6 +20,10 @@ const TILE = 25;
 const WALL = 5; // wall thickness, in voxels
 const HIGH = 34; // the back walls' height
 const HEADROOM = 8; // over them, for what reaches up into the floor above (the stairs' handrail)
+const DEEP = 16; // under the floor, for what goes down through it (the stairwell's steps), where there's any
+
+// How far the grid reaches under the floor: DEEP with a stairwell, else nothing.
+export const sunkBelow = (furniture: readonly Furniture[]): number => (furniture.some((f) => f.kind === 'stairwell') ? DEEP : 0);
 const LOW = 4; // the near walls'
 const DOOR_HEIGHT = 28; // the door frame, standing tall above the near wall
 
@@ -146,21 +150,25 @@ function wallColor(style: Room['wall'], u: number, y: number): number {
 export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = [], door = true): VoxelGrid {
   const w = room.width * TILE;
   const d = room.depth * TILE;
-  const grid = createGrid([w + WALL * 2, HIGH + 1 + HEADROOM, d + WALL * 2]);
+  const below = sunkBelow(furniture);
+  const grid = createGrid([w + WALL * 2, below + HIGH + 1 + HEADROOM, d + WALL * 2]);
+  // Filled from the floor up (the grid reaching `below` under it).
+  const fill = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | ((x: number, y: number, z: number) => number)) =>
+    fillBox(grid, x0, y0 + below, z0, x1, y1 + below, z1, typeof c === 'number' ? c : (x, y, z) => c(x, y - below, z));
   const x0 = WALL;
   const z0 = WALL;
   // The floor, one voxel thick, at y 0.
-  fillBox(grid, x0, 0, z0, x0 + w - 1, 0, z0 + d - 1, (x, _y, z) => floorColor(room.floor, x - x0, z - z0));
+  fill(x0, 0, z0, x0 + w - 1, 0, z0 + d - 1, (x, _y, z) => floorColor(room.floor, x - x0, z - z0));
   // Back walls, full height: along -Z (the far one) and -X (the left one).
-  fillBox(grid, 0, 0, 0, w + WALL * 2 - 1, HIGH, WALL - 1, (x, y) => wallColor(room.wall, x, y));
-  fillBox(grid, 0, 0, 0, WALL - 1, HIGH, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
+  fill(0, 0, 0, w + WALL * 2 - 1, HIGH, WALL - 1, (x, y) => wallColor(room.wall, x, y));
+  fill(0, 0, 0, WALL - 1, HIGH, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
   // Near walls, cut low: +X, and +Z with the doorway.
-  fillBox(grid, x0 + w, 0, 0, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
-  fillBox(grid, 0, 0, z0 + d, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (x, y) => wallColor(room.wall, x, y));
+  fill(x0 + w, 0, 0, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
+  fill(0, 0, z0 + d, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (x, y) => wallColor(room.wall, x, y));
   if (door) {
     const doorX = x0 + room.door * TILE;
-    fillBox(grid, doorX + 2, 1, z0 + d, doorX + TILE - 3, LOW, d + WALL * 2 - 1, 0); // the doorway
-    fillBox(grid, doorX + 2, 0, z0 + d, doorX + TILE - 3, 0, d + WALL * 2 - 1, 4); // its threshold
+    fill(doorX + 2, 1, z0 + d, doorX + TILE - 3, LOW, d + WALL * 2 - 1, 0); // the doorway
+    fill(doorX + 2, 0, z0 + d, doorX + TILE - 3, 0, d + WALL * 2 - 1, 4); // its threshold
     // The door, standing tall over the cut-down wall: a timber frame (posts
     // and a lintel) with the planked door shut in it, iron hinges and a ring
     // on the face the camera sees, and a woven mat before it.
@@ -170,17 +178,17 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     const IRON = 22;
     const MAT = 17;
     const MAT_EDGE = 19;
-    for (const x of [doorX, doorX + TILE - 2]) fillBox(grid, x, 0, z0 + d, x + 1, DOOR_HEIGHT, z0 + d + WALL - 1, TIMBER); // posts
-    fillBox(grid, doorX, DOOR_HEIGHT + 1, z0 + d, doorX + TILE - 1, DOOR_HEIGHT + 2, z0 + d + WALL - 1, TIMBER); // lintel
+    for (const x of [doorX, doorX + TILE - 2]) fill(x, 0, z0 + d, x + 1, DOOR_HEIGHT, z0 + d + WALL - 1, TIMBER); // posts
+    fill(doorX, DOOR_HEIGHT + 1, z0 + d, doorX + TILE - 1, DOOR_HEIGHT + 2, z0 + d + WALL - 1, TIMBER); // lintel
     const leaf = { x0: doorX + 2, x1: doorX + TILE - 3, z0: z0 + d + 1, z1: z0 + d + 2 };
-    fillBox(grid, leaf.x0, 1, leaf.z0, leaf.x1, DOOR_HEIGHT, leaf.z1, (x) => ((x - leaf.x0) % 5 === 0 ? DOOR : DOOR_LIGHT)); // planks, shut
-    for (const y of [5, DOOR_HEIGHT - 4]) fillBox(grid, leaf.x0, y, leaf.z1 + 1, leaf.x0 + 8, y, leaf.z1 + 1, IRON); // hinges
-    fillBox(grid, leaf.x1 - 4, 12, leaf.z1 + 1, leaf.x1 - 3, 13, leaf.z1 + 1, IRON); // ring handle
-    fillBox(grid, doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
+    fill(leaf.x0, 1, leaf.z0, leaf.x1, DOOR_HEIGHT, leaf.z1, (x) => ((x - leaf.x0) % 5 === 0 ? DOOR : DOOR_LIGHT)); // planks, shut
+    for (const y of [5, DOOR_HEIGHT - 4]) fill(leaf.x0, y, leaf.z1 + 1, leaf.x0 + 8, y, leaf.z1 + 1, IRON); // hinges
+    fill(leaf.x1 - 4, 12, leaf.z1 + 1, leaf.x1 - 3, 13, leaf.z1 + 1, IRON); // ring handle
+    fill(doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
   }
-  paintFurniture(grid, furniture, x0, z0);
+  paintFurniture(grid, furniture, x0, z0, below);
   return grid;
 }
 
@@ -189,8 +197,8 @@ export const ROOM_ORIGIN_VOXELS = WALL + TILE / 2;
 
 // Only the given pieces, on an empty grid the size of the room's: meshed on
 // their own (the wall lanterns, which mustn't shadow the wall behind them).
-export function buildPieceVoxels(room: Room, pieces: readonly Furniture[]): VoxelGrid {
-  const grid = createGrid([room.width * TILE + WALL * 2, HIGH + 1 + HEADROOM, room.depth * TILE + WALL * 2]);
-  paintFurniture(grid, pieces, WALL, WALL);
+export function buildPieceVoxels(room: Room, pieces: readonly Furniture[], below = 0): VoxelGrid {
+  const grid = createGrid([room.width * TILE + WALL * 2, below + HIGH + 1 + HEADROOM, room.depth * TILE + WALL * 2]);
+  paintFurniture(grid, pieces, WALL, WALL, below);
   return grid;
 }

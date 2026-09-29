@@ -9,7 +9,7 @@ import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { Furniture } from '../../model/interiors/furniture';
 import { fireOf } from './furnitureVoxels';
 import { FireEffect, flicker } from '../meshes/common/fire';
-import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels } from './roomVoxels';
+import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { tankard } from './furniturePalette';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
@@ -29,9 +29,11 @@ function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
 
 export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
+  const DARK = 0x1c130c;
+  scene.background = new THREE.Color(DARK); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
-  const origin = new THREE.Vector3(offset, -ROOM_VOXEL, offset);
+  const below = sunkBelow(furniture); // the grid reaching under the floor (a stairwell)
+  const origin = new THREE.Vector3(offset, -ROOM_VOXEL * (1 + below), offset);
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const lamps = furniture.filter((f) => f.kind === 'wallLantern');
   const geometry = greedyMesh(buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern'), door), ROOM_PALETTE, ROOM_VOXEL, origin);
@@ -41,8 +43,23 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   scene.add(room3d);
   // The wall lanterns, meshed apart and casting no shadow: their own light
   // shines from them, and a lantern's shadow on the wall behind it looks wrong.
-  const lamps3d = lamps.length > 0 ? new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps), ROOM_PALETTE, ROOM_VOXEL, origin), material) : null;
+  const lamps3d = lamps.length > 0 ? new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps, below), ROOM_PALETTE, ROOM_VOXEL, origin), material) : null;
   if (lamps3d) scene.add(lamps3d);
+  // What's under the floor (a stairwell's shaft) hidden from outside: a
+  // curtain the colour of the dark beyond, unlit, down the room's two near
+  // sides (looking down into the shaft, the eye passes over it).
+  const curtain = new THREE.MeshBasicMaterial({ color: DARK, toneMapped: false });
+  const drapes: THREE.PlaneGeometry[] = [];
+  if (below > 0) {
+    const out = ROOM_ORIGIN_VOXELS * ROOM_VOXEL - 1; // the near walls' outer faces, past the last tiles' edge
+    const [x0, x1, z0, z1] = [offset, room.width + out, offset, room.depth + out];
+    const h = below * ROOM_VOXEL + 0.01;
+    const y = -ROOM_VOXEL - h / 2; // from the floor's underside down
+    const front = new THREE.PlaneGeometry(x1 - x0, h).translate((x0 + x1) / 2, y, z1 + 0.001);
+    const side = new THREE.PlaneGeometry(z1 - z0, h).rotateY(Math.PI / 2).translate(x1 + 0.001, y, (z0 + z1) / 2);
+    drapes.push(front, side);
+    for (const g of drapes) scene.add(new THREE.Mesh(g, curtain));
+  }
   // Warm light from above, a hearth glow from the back corner.
   scene.add(new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
   const sun = new THREE.DirectionalLight(0xffd7a0, 1.4);
@@ -62,7 +79,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   glow.shadow.radius = 4;
   glow.shadow.camera.near = 0.05;
   glow.shadow.camera.far = 10;
-  scene.add(glow);
+  if (spot) scene.add(glow); // no fire (upstairs), no glow: else a warm spot on the bare floor
   const fire = spot ? new FireEffect(spot.forge ? 0.3 : 0.36, spot.forge ? 0.22 : 0.3, 0.05) : null;
   if (fire && spot) {
     fire.group.position.set(spot.x, spot.y, spot.z);
@@ -116,6 +133,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     dispose() {
       geometry.dispose();
       lamps3d?.geometry.dispose();
+      for (const g of drapes) g.dispose();
+      curtain.dispose();
       mugShapes.full.dispose();
       mugShapes.empty.dispose();
       material.dispose();

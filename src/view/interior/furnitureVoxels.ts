@@ -275,7 +275,8 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
 };
 
 // Paints `items` into the room's grid, whose floor tile (0, 0) starts at voxel (x0, z0).
-export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0: number, z0: number): void {
+// `floor`: the floor's height in the grid (above room to paint under it: the stairwell's steps).
+export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0: number, z0: number, floor = 0): void {
   for (const item of items) {
     const onLeft = item.wall === 'left';
     const len = (onLeft ? item.d : item.w) * TILE;
@@ -283,14 +284,14 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
     const ox = x0 + item.x * TILE;
     const oz = z0 + item.z * TILE;
     if (item.facing) {
-      paintFacing(grid, item, ox, oz);
+      paintFacing(grid, item, ox, oz, floor);
       continue;
     }
     // u along the wall, v out from it: back wall u = x, v = z; left wall u = z, v = x.
     const box: Box = (u0, y0, v0, u1, y1, v1, color) => {
-      const paint = typeof color === 'number' ? color : (x: number, y: number, z: number) => (onLeft ? color(z - oz, y, x - ox) : color(x - ox, y, z - oz));
-      if (onLeft) fillBox(grid, ox + v0, y0, oz + u0, ox + v1, y1, oz + u1, paint);
-      else fillBox(grid, ox + u0, y0, oz + v0, ox + u1, y1, oz + v1, paint);
+      const paint = typeof color === 'number' ? color : (x: number, y: number, z: number) => (onLeft ? color(z - oz, y - floor, x - ox) : color(x - ox, y - floor, z - oz));
+      if (onLeft) fillBox(grid, ox + v0, y0 + floor, oz + u0, ox + v1, y1 + floor, oz + u1, paint);
+      else fillBox(grid, ox + u0, y0 + floor, oz + v0, ox + u1, y1 + floor, oz + v1, paint);
     };
     PAINTERS[item.kind](box, len, dep);
   }
@@ -298,7 +299,7 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
 
 // A one-tile piece drawn with its back at v = 0 and its front toward +v,
 // turned to face `item.facing`.
-function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number): void {
+function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number, floor: number): void {
   const [dx, dz] = item.facing!;
   const last = TILE - 1;
   // Local (u, v) to the tile's (x, z): the front (+v) turned toward (dx, dz).
@@ -308,7 +309,7 @@ function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number): 
     for (let u = u0; u <= u1; u++) {
       for (let v = v0; v <= v1; v++) {
         const [x, z] = toTile(u, v);
-        fillBox(grid, ox + x, y0, oz + z, ox + x, y1, oz + z, typeof color === 'number' ? color : (_x, y) => color(u, y, v));
+        fillBox(grid, ox + x, y0 + floor, oz + z, ox + x, y1 + floor, oz + z, typeof color === 'number' ? color : (_x, y) => color(u, y - floor, v));
       }
     }
   };

@@ -3,7 +3,7 @@
 // hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board).
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 
 export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
 
@@ -144,21 +144,45 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
     }
     box(len - 2, 0, 1, len - 1, rise + RAIL + 1, 2, (_u, y) => (y === rise + RAIL + 1 ? WOOD_LIGHT : WOOD_DARK)); // the newel post at the foot, capped
   },
-  // Upstairs, where the stairs come up: a dark opening in the floor, the top
-  // steps' edges catching the light just inside, a railing along its far
-  // side (v = 1) and across its lower end; the side toward the camera left
-  // open, to step up from at the top (u = 0).
+  // Upstairs, where the stairs come up: a shaft down through the floor
+  // (the room's grid reaching under it, roomVoxels.ts DEEP), boarded, the
+  // stairs going down in it, each tread a rise lower and a shade darker, its
+  // nosing lit and its riser toward the camera, into the dark; a lit lip
+  // along its open side, and a railing right at its far side (v = 0) and
+  // across its lower end, the far side's left open by the top two treads
+  // (u = 0, by the wall), to step down from.
   stairwell: (box, len, dep) => {
     const v1 = dep - 2;
-    const run = Math.floor(len / Math.max(2, Math.floor(len / 6))); // the stairs' treads, below
-    box(0, 0, 4, len - 1, 0, v1, SOOT); // the opening
-    box(run, 0, 4, run, 0, v1, WOOD); // the top step's edge, just inside
-    box(2 * run, 0, 4, 2 * run, 0, v1, WOOD_DARK); // and the next, deeper down
-    for (let u = len - 1; u >= 0; u -= run) box(u, 1, 1, u, 11, 1, WOOD_DARK); // balusters along its far side, a tread apart
-    box(0, 12, 1, len - 1, 13, 1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK)); // the rail, lit on top
-    for (let v = 1 + run; v < v1; v += run) box(len - 1, 1, v, len - 1, 11, v, WOOD_DARK); // across its lower end
-    box(len - 1, 12, 1, len - 1, 13, v1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK));
-    for (const u of [0, len - 2]) box(u, 0, 1, u + 1, 14, 2, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK)); // newel posts at its ends
+    const steps = Math.max(2, Math.floor(len / 6));
+    const run = Math.floor(len / steps); // the stairs' treads, below (the top one the longer)
+    const rise = 4;
+    const DEEP = 16; // as far down as it's drawn: the dark beyond
+    const open = len - (steps - 2) * run; // the top two treads, no rail by them
+    const TOP = [WOOD, FUR_LIGHT, WOOD_DARK, FUR_DARK]; // treads, going down
+    const NOSE = [WOOD_LIGHT, WOOD, FUR_LIGHT, WOOD_DARK];
+    const RISER = [WOOD_DARK, FUR_DARK, SOOT, COAL];
+    box(0, 0, 1, len - 2, 0, v1, 0); // the opening, as wide as the steps below (a rim of floor left at its lower end, under the railing)
+    // Its boarded sides, darker down, a seam every few boards.
+    const board = (a: number, y: number) => (y > -6 ? (a % 5 === 0 ? FUR_DARK : WOOD_DARK) : y > -11 ? (a % 5 === 0 ? SOOT : FUR_DARK) : COAL);
+    box(0, -DEEP, 0, len - 1, -1, 0, (u, y) => board(u, y)); // the far side, toward the camera
+    box(0, -DEEP, v1 + 1, len - 1, -1, v1 + 1, (u, y) => board(u, y));
+    box(-1, -DEEP, 0, -1, -1, v1 + 1, (_u, y, v) => board(v, y)); // the top end, under the wall
+    box(len - 1, -DEEP, 0, len - 1, -1, v1 + 1, COAL);
+    box(0, -DEEP, 1, len - 2, -DEEP, v1, COAL); // the dark, further down
+    for (let i = 0; i < steps; i++) {
+      const k = steps - 1 - i; // treads down from the top
+      const top = -rise * (k + 1);
+      if (top < -DEEP) continue;
+      const u1 = len - 1 - i * run;
+      const u0 = i === steps - 1 ? 0 : u1 - run + 1;
+      box(u0, -DEEP, 1, u1, top, v1, (u, y) => (y === top ? (u === u1 ? NOSE[k] : TOP[k]) : u === u1 ? RISER[k] : COAL)); // a step, its nosing lit, its riser below
+    }
+    box(0, 0, v1 + 1, len - 1, 0, v1 + 1, WOOD_LIGHT); // the lip along its open side
+    for (let u = len - 1; u > open + 1; u -= run) box(u, 1, 0, u, 11, 0, WOOD_DARK); // balusters along its far side, a tread apart
+    box(open, 12, 0, len - 1, 13, 0, (_u, y) => (y === 13 ? WOOD : WOOD_DARK)); // the rail, lit on top
+    for (let v = run; v < v1; v += run) box(len - 1, 1, v, len - 1, 11, v, WOOD_DARK); // across its lower end
+    box(len - 1, 12, 0, len - 1, 13, v1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK));
+    for (const u of [open, len - 2]) box(u, 0, 0, u + 1, 14, 1, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK)); // newel posts at its ends
     box(len - 2, 0, v1 - 1, len - 1, 14, v1, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK));
   },
   bottleShelf: (box, len) => {
