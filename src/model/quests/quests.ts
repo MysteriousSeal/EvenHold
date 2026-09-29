@@ -11,7 +11,7 @@ import { enemyLevel, enemyPower } from '../enemies/enemyLevels';
 import type { MapSize } from '../grid';
 import { spawnOf } from '../grid';
 import type { EnemyKind, Village } from '../types';
-import type { QuestItemId } from './questItems';
+import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 
 export const OFFERS = 6; // quests a board has, for good
 export const MAX_ACTIVE = 10; // quests the hero can have taken at once (the journal holds ten)
@@ -66,7 +66,9 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   const where = `${DIRECTIONS[Math.round(((angle / (Math.PI * 2)) * 8) % 8) % 8]} of the village`; // north is -z
   const level = enemyLevel(spawnOf(world.size), x, z, board * 997 + n);
   const count = kind === 'kill' ? 6 + Math.floor(roll(3) * 3) : 4 + Math.floor(roll(3) * 3); // slay 6 to 8, bring 4 to 6
-  const item: QuestItemId | null = kind === 'collect' ? (foe === 'wolf' ? 'wolfPelt' : 'banditToken') : null;
+  // What to bring: one of the foe's four, turned round per board so its notices ask for different things.
+  const turn = Math.floor(hashUnit(board * 131, world.seed % 1_000_003, 250) * 4);
+  const item: QuestItemId | null = kind === 'collect' ? QUEST_ITEMS_OF[foe][(turn + n) % 4] : null;
   const dropChance = 0.45;
   // Rewards: more for tougher foes and places, and for fetching (more to slay on average).
   const perFoe = enemyPower(foe, level).xp;
@@ -79,12 +81,12 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
 // What the quest asks, in a line: "Slay 6 wolves" / "Bring 4 wolf pelts".
 export function questTitle(quest: Quest): string {
   if (quest.kind === 'kill') return `Slay ${quest.count} ${quest.foe === 'wolf' ? 'wolves' : 'bandits'}`;
-  return `Bring ${quest.count} ${quest.item === 'wolfPelt' ? 'wolf pelts' : 'bandit tokens'}`;
+  return `Bring ${quest.count} ${PLURALS[quest.item!]}`;
 }
 
 // A quest's progress, for floating text: "4/6 wolves", and whether that's all.
 export function questProgress(quest: Quest, have: number): { text: string; done: boolean } {
-  const what = quest.kind === 'kill' ? (quest.foe === 'wolf' ? 'wolves' : 'bandits') : quest.item === 'wolfPelt' ? 'wolf pelts' : 'bandit tokens';
+  const what = quest.kind === 'kill' ? (quest.foe === 'wolf' ? 'wolves' : 'bandits') : PLURALS[quest.item!];
   return { text: `${Math.min(have, quest.count)}/${quest.count} ${what}`, done: have >= quest.count };
 }
 

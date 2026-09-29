@@ -74,11 +74,18 @@ export class QuestBook {
     return this.taken.find((t) => t.quest.key === key) ?? null;
   }
 
-  // How far along a quest is: foes slain, or things carried (capped at what's asked).
+  // How far along a quest is: foes slain, or things carried (capped at what's
+  // asked). Two quests wanting the same thing share what's carried: the one
+  // taken first counts it first, the other only what's over.
   progress(taken: TakenQuest): number {
     const { quest } = taken;
-    const have = quest.kind === 'kill' ? taken.kills : (this.host.hero.bag[quest.item as BagItem] ?? 0);
-    return Math.min(quest.count, have);
+    if (quest.kind === 'kill') return Math.min(quest.count, taken.kills);
+    let left = this.host.hero.bag[quest.item as BagItem] ?? 0;
+    for (const t of this.taken) {
+      if (t === taken) break;
+      if (t.quest.item === quest.item) left -= Math.min(t.quest.count, left);
+    }
+    return Math.min(quest.count, left);
   }
 
   done(taken: TakenQuest): boolean {
@@ -163,10 +170,18 @@ export class QuestBook {
     return null;
   }
 
-  // Something picked up: if a quest wants it, how far along that is now.
+  // Something picked up: if a quest wants it, how far along that is now:
+  // the quest it counts for, the first (in the order taken) whose share of
+  // what's carried it falls in.
   onPickUp(item: BagItem): void {
-    const taken = isQuestItem(item) ? this.taken.find((t) => t.quest.item === item) : null;
-    if (taken) this.tell(taken, this.host.hero);
+    if (!isQuestItem(item)) return;
+    const carried = this.host.hero.bag[item] ?? 0;
+    let shares = 0;
+    for (const t of this.taken) {
+      if (t.quest.item !== item) continue;
+      shares += t.quest.count;
+      if (carried <= shares) return this.tell(t, this.host.hero);
+    }
   }
 
   private tell(taken: TakenQuest, at: { x: number; y: number; z: number }): void {

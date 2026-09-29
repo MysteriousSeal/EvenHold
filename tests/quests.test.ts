@@ -143,6 +143,26 @@ describe('quests', () => {
     expect(model.quests.tracked).toBe(3);
   });
 
+  it('shares what two quests both want: the first taken counts it first, and handing it in leaves the other its own', () => {
+    const model = fresh();
+    const [one, two] = model.quests.offersAt(0);
+    const first = { ...one, kind: 'collect' as const, item: 'banditToken' as const, count: 4 };
+    const second = { ...two, kind: 'collect' as const, item: 'banditToken' as const, count: 5 };
+    model.quests.accept(first);
+    model.quests.accept(second);
+    const [a, b] = model.quests.taken;
+    model.hero.bag.banditToken = 6;
+    expect([model.quests.progress(a), model.quests.progress(b)]).toEqual([4, 2]); // not 4 and 5 from the same six
+    expect(model.quests.handIn(first.key)).toBe(true);
+    expect(model.quests.progress(b)).toBe(2); // still its two
+  });
+
+  it('asks for more than a pelt and a token across the boards', () => {
+    const model = fresh();
+    const items = model.villages.flatMap((_, board) => model.quests.offersAt(board).flatMap((q) => (q.item ? [q.item] : [])));
+    expect(new Set(items).size).toBeGreaterThan(2);
+  });
+
   it('keeps the boards and the quests taken in a save', () => {
     const model = fresh();
     const [a, b] = model.quests.offersAt(0);
