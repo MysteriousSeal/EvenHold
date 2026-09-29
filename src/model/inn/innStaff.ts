@@ -11,10 +11,10 @@ import type { Point } from '../obstacles';
 import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';
-import type { Npc, NpcStep } from './npcs';
+import type { Npc, NpcStep } from '../npcs/npcs';
 import { mugsAt, roundOnBar, takeMug } from './barMugs';
 import { ordersAt, type BarOrder } from './barOrders';
-import { say } from './speech';
+import { say } from '../npcs/speech';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];

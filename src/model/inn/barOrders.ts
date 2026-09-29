@@ -5,7 +5,7 @@
 
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
-import type { Npc } from './npcs';
+import type { Npc } from '../npcs/npcs';
 
 export interface BarOrder {
   stool: Furniture; // where it goes

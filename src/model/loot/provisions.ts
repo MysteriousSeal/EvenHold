@@ -1,5 +1,5 @@
 // Provisions: food and drink, bought and sold at the inn (the barmaid's
-// shop, npcs/tavernShop.ts), and eaten or drunk from the bag to get health
+// shop, inn/tavernShop.ts), and eaten or drunk from the bag to get health
 // back (food more than drink). Nothing drops them (yet).
 
 import type { LootEntry } from './loot';

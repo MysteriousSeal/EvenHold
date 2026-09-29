@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { buyPrice, shopAt } from '../src/model/npcs/tavernShop';
+import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { ALE_SECONDS, barmaidHere, callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
 import { PROVISIONS } from '../src/model/loot/provisions';
-import { AT_KEG, AT_SINK, pourFor } from '../src/model/npcs/innStaff';
-import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/npcs/barMugs';
+import { AT_KEG, AT_SINK, pourFor } from '../src/model/inn/innStaff';
+import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/inn/barMugs';
 import { seatOf } from '../src/model/interiors/furniture';
-import { callBarkeep, ordersAt, placeOrder } from '../src/model/npcs/barOrders';
+import { callBarkeep, ordersAt, placeOrder } from '../src/model/inn/barOrders';
 import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { INDOOR_SCALE } from '../src/model/constants';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
@@ -174,7 +174,7 @@ describe('an ale at the bar', () => {
     }
     expect(ordered).toBe(true);
     expect(talked).toBe(true);
-    expect(spoken.slice(0, 3)).toEqual(['her', 'them', 'her']); // she asks, they answer, she hands it over
+    expect(spoken.slice(0, 4)).toEqual(['her', 'them', 'her', 'them']); // she asks, they answer, she hands it over, they thank her
     expect(drank).toBe(true); // they waited for it: their 5 seconds' stay only counted once served
     expect(mugsAt(inn).some((m) => m.z === stool.z && !m.full)).toBe(true); // the empty mug left
   }, 120_000);

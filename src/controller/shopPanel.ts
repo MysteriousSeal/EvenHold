@@ -2,13 +2,13 @@
 // food and drink to sell her, in a grid on the left; the one chosen is told
 // of on the right, with the button to buy (or sell) it at its price; her
 // purse and the hero's shown under them. She has only so much of each and only so
-// much money (npcs/tavernShop.ts). A window in the middle of the screen;
+// much money (inn/tavernShop.ts). A window in the middle of the screen;
 // the game waits while it's open.
 
 import './shopPanel.css';
 import type { GameModel } from '../model/GameModel';
 import type { Npc } from '../model/npcs/npcs';
-import { buy, buyPrice, restockIn, sell, sellPrice, shopAt, type Shop } from '../model/npcs/tavernShop';
+import { buy, buyPrice, restockIn, sell, sellPrice, shopAt, type Shop } from '../model/inn/tavernShop';
 import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../model/loot/provisions';
 import { coinParts } from '../view/ui/coins';
 import { bagIcon } from '../view/ui/itemIcons';

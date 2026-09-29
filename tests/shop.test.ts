@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { RESTOCK_EVERY, buy, buyPrice, restockAll, restockIn, sell, sellPrice, shopAt } from '../src/model/npcs/tavernShop';
+import { RESTOCK_EVERY, buy, buyPrice, restockAll, restockIn, sell, sellPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 

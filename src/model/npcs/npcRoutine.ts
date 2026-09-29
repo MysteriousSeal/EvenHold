@@ -22,9 +22,9 @@ import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside, type Seated } from '../interiors/indoors';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
-import { atBar, busyAtBar, sitAtBar } from './barPatrons';
+import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
 import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
-import { staffSteps } from './innStaff';
+import { staffSteps } from '../inn/innStaff';
 
 export interface NpcWorld extends BenchWorld {
   seed: number;

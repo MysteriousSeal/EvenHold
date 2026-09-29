@@ -2,7 +2,7 @@
 // handling. Mesh construction is delegated to meshes/; this class wires
 // them together and drives the per-frame render.
 
-import { mugsAt } from '../model/npcs/barMugs';
+import { mugsAt } from '../model/inn/barMugs';
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';

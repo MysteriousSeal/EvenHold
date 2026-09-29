@@ -1,7 +1,7 @@
 // Villagers sat at an inn's bar, drinking like the hero does: on sitting
 // they order an ale (barOrders.ts, first come first served) and wait for
 // it; the barkeep sets it down full before them; a moment later they pick
-// it up and sip it over ALE_SECONDS, then put the empty mug down; staying a
+// it up (thanking her) and sip it over ALE_SECONDS, then put the empty mug down; staying a
 // while yet, now and then they order another. Their stay at the bar only
 // counts once served, and they never get up mid-drink or still waiting.
 
@@ -9,11 +9,16 @@ import { hashUnit } from '../../util/random';
 import type { Furniture } from '../interiors/furniture';
 import { setMug, takeMug } from './barMugs';
 import { callBarkeep, placeOrder } from './barOrders';
-import type { Npc } from './npcs';
+import { say } from '../npcs/speech';
+import type { Npc } from '../npcs/npcs';
 
 export const ALE_SECONDS = 15; // an ale at the bar, sipped over this long (the hero's too)
 const PICKUP = 0.8; // seconds it stands before them, full, before they pick it up
 const AGAIN = 0.4; // of ordering another, with time enough left to drink it
+// Their thanks, picking it up (by her name, often).
+const THANKS_NAMED = ['Thanks, {name}.', "You're a treasure, {name}.", 'Cheers, {name}!', "{name}, you've saved my life."];
+const THANKS = ['Thank you kindly.', 'Much obliged.', "Ah, that's the stuff.", 'Bless you, love.'];
+const pick = (lines: readonly string[], n: number) => lines[Math.floor(hashUnit(n, lines.length, 43) * lines.length)];
 
 // The inn's barkeep.
 const barkeepOf = (npcs: readonly Npc[], inn: Npc['where']) => npcs.find((n) => n.role === 'barkeep' && n.home === inn);
@@ -49,7 +54,10 @@ export function atBar(npc: Npc, npcs: readonly Npc[], stool: Furniture, dt: numb
   if ((npc.pickup ?? 0) > 0) {
     npc.pickup! -= dt;
     if (npc.pickup! <= 0) {
-      takeMug(inn, stool.z); // picked up
+      takeMug(inn, stool.z); // picked up, with thanks
+      const barkeep = barkeepOf(npcs, inn);
+      const n = npc.id * 7 + (npc.drinks ?? 0);
+      say(npc, barkeep && hashUnit(n, 1, 41) < 0.5 ? pick(THANKS_NAMED, n).replace('{name}', barkeep.name) : pick(THANKS, n));
       npc.drinking = { left: ALE_SECONDS, seconds: ALE_SECONDS };
     }
     return true;

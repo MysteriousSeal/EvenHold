@@ -89,7 +89,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
       scene.add(light, back);
       return light;
     });
-  // The drinks on the bar (npcs/barMugs.ts): a mesh each, made as needed and reused.
+  // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();
   const mugs: THREE.Mesh[] = [];
   return {

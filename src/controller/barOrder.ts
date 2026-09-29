@@ -1,21 +1,21 @@
 // Ordering an ale, sat on a stool at the bar (F): the barmaid calls that
-// she's coming, fetches one from her stock (npcs/tavernShop.ts), at her
+// she's coming, fetches one from her stock (inn/tavernShop.ts), at her
 // price, and the hero sips it there over ALE_SECONDS, its good coming back
 // as they do; she says a word either way. Sold out, she says when the next
 // barrel's up; too poor, she says so.
 
 import type { GameModel } from '../model/GameModel';
-import { buy, buyPrice, restockIn, shopAt, type Shop } from '../model/npcs/tavernShop';
+import { buy, buyPrice, restockIn, shopAt, type Shop } from '../model/inn/tavernShop';
 import type { Npc } from '../model/npcs/npcs';
 import type { Entrance } from '../model/interiors/interiors';
-import { setMug, takeMug } from '../model/npcs/barMugs';
-import { callBarkeep, ordersAhead, placeOrder } from '../model/npcs/barOrders';
+import { setMug, takeMug } from '../model/inn/barMugs';
+import { callBarkeep, ordersAhead, placeOrder } from '../model/inn/barOrders';
 import { takeFromBag } from '../model/hero/bag';
 import { startDrinking } from '../model/hero/heroStats';
 import { PROVISIONS } from '../model/loot/provisions';
 
-export { ALE_SECONDS } from '../model/npcs/barPatrons';
-import { ALE_SECONDS } from '../model/npcs/barPatrons';
+export { ALE_SECONDS } from '../model/inn/barPatrons';
+import { ALE_SECONDS } from '../model/inn/barPatrons';
 
 const POURED = [
   "Here's your ale, love.",
@@ -92,7 +92,7 @@ export function orderAle(model: GameModel): { said: string; drank: boolean } {
 
 // What the bar needs from the view: the hero's tankard, speech over the
 // barmaid, and the countdown over the hero. (The drinks on the bar are the
-// inn's own, in the model: npcs/barMugs.ts.)
+// inn's own, in the model: inn/barMugs.ts.)
 export interface BarView {
   heroDrinks(seconds: number): void;
   heroStopsDrinking(): void;

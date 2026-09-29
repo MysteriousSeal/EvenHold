@@ -40,7 +40,7 @@ import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
 import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
 import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
 import { blessAll } from '../../model/hero/blessing';
-import { restockAll } from '../../model/npcs/tavernShop';
+import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 
