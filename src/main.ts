@@ -12,13 +12,14 @@ import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/loot
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
+import { createJournal } from './controller/journal';
 import { createQuestBoardPanel } from './controller/questBoardPanel';
 import { createQuestTracker } from './view/hud/questTracker';
 import { noticeBoards } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
 import { createToolbar } from './view/hud/toolbar';
-import { bagToolIcon, heroBustIcon, pauseIcon } from './view/ui/itemIcons';
+import { bagToolIcon, heroBustIcon, journalIcon, pauseIcon } from './view/ui/itemIcons';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 
@@ -68,6 +69,7 @@ async function boot(): Promise<void> {
   const shop = createShopPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
+  const journal = createJournal(model);
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({
     setPaused: (paused) => (controller.paused = paused),
@@ -80,6 +82,7 @@ async function boot(): Promise<void> {
   const updateToolbar = createToolbar([
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
+    { label: 'Journal', key: 'L', icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
   // What E does right now: pick up loot in reach, else sit or lie down (or get up), else go through a door.
@@ -112,6 +115,7 @@ async function boot(): Promise<void> {
     updateHud();
     updateTarget(model.focused, model.hero.level);
     bag.update();
+    journal.update();
     sheet.update();
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
