@@ -30,7 +30,8 @@ export type GameEvent =
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number }
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
-  | { kind: 'poor'; text: string }; // something the hero couldn't pay for
+  | { kind: 'poor'; text: string } // something the hero couldn't pay for
+  | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
 
 export interface Enemy {

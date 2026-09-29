@@ -161,6 +161,7 @@ describe('an ale at the bar', () => {
     let ordered = false;
     let drank = false;
     let talked = false; // she came over to them first, before the keg
+    const spoken: string[] = []; // who said what, in turn
     let poured = false;
     for (let t = 0; t < 120; t += 0.1) {
       model.update(0, 0, 0.1);
@@ -168,10 +169,12 @@ describe('an ale at the bar', () => {
       poured ||= barmaid.working && barmaid.z < 1;
       talked ||= !poured && !barmaid.working && Math.abs(barmaid.z - stool.z) < 0.1 && Math.abs(barmaid.facing - Math.PI / 2) < 0.01;
       drank ||= !!villager.drinking;
+      for (const e of model.takeEvents()) if (e.kind === 'say') spoken.push(e.speaker === villager ? 'them' : e.speaker === barmaid ? 'her' : '?');
       if (t > 1 && villager.seat === null) break;
     }
     expect(ordered).toBe(true);
     expect(talked).toBe(true);
+    expect(spoken.slice(0, 3)).toEqual(['her', 'them', 'her']); // she asks, they answer, she hands it over
     expect(drank).toBe(true); // they waited for it: their 5 seconds' stay only counted once served
     expect(mugsAt(inn).some((m) => m.z === stool.z && !m.full)).toBe(true); // the empty mug left
   }, 120_000);

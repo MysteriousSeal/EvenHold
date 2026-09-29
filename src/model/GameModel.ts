@@ -45,6 +45,7 @@ import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './npcs/tavernShop';
 import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
+import { takeSpeech } from './npcs/speech';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
@@ -412,7 +413,7 @@ export class GameModel {
   // What's happened since takeEvents() was last asked (for floating text).
   private events: GameEvent[] = [];
   takeEvents(): GameEvent[] {
-    const events = [...this.events, ...this.quests.events.splice(0)];
+    const events = [...this.events, ...this.quests.events.splice(0), ...takeSpeech()];
     this.events = [];
     return events;
   }

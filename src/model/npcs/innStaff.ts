@@ -14,6 +14,7 @@ import type { Room } from '../interiors/interiors';
 import type { Npc, NpcStep } from './npcs';
 import { mugsAt, roundOnBar, takeMug } from './barMugs';
 import { ordersAt, type BarOrder } from './barOrders';
+import { say } from './speech';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];
@@ -21,7 +22,14 @@ const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
 export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg at 0, 0 reaches out to x 0.12), clear of it and the counter (she's 0.25 wide indoors)
 const POUR_TIME = 1.4; // seconds bent over the tap
-const TAKE_ORDER = 1.5; // seconds taking a villager's order, across the bar from them
+const TAKE_ORDER = 2.4; // seconds taking a villager's order, across the bar from them (her question, their answer)
+// What's said over an order: her question (by name, often), their answer, her word as it's set down.
+const ASK_NAMED = ["What'll it be, {name}?", 'The usual, {name}?', 'Thirsty, {name}?', 'Back again, {name}? What are you having?'];
+const ASK = ['What can I get you, love?', 'What are you having?', "What'll it be?", 'Something to wet the throat?'];
+const ANSWERS = ['An ale, please.', 'Ale, and keep it cold.', 'The usual.', 'An ale, if you would.', "Whatever's frothing."];
+const HANDED = ['There you go.', 'Enjoy, love.', 'Mind the foam.', 'One ale, as asked.'];
+const pick = (lines: readonly string[], n: number) => lines[Math.floor(hashUnit(n, lines.length, 29) * lines.length)];
+const asks = (by: Npc, n: number) => (hashUnit(by.id, n, 31) < 0.5 ? pick(ASK_NAMED, n).replace('{name}', by.name) : pick(ASK, n));
 const PUT_AWAY = 1.2; // seconds washing an empty mug at the sink
 export const AT_SINK = { x: AISLE_X, z: 1.5 }; // before the washstand behind the bar (its two tiles at 0, 1..2), facing it
 
@@ -109,16 +117,23 @@ function aleFor(barkeep: Npc, stool: Furniture, then: () => void): NpcStep[] {
 // the order done.
 function serve(barkeep: Npc, order: BarOrder): NpcStep[] {
   barkeep.serving = true;
-  const take: NpcStep[] = order.by
+  // A word with a villager first: she asks what they'll have, they answer.
+  const by = order.by;
+  const n = barkeep.stop; // (to vary her words)
+  const take: NpcStep[] = by
     ? [
         { kind: 'go', to: { x: AISLE_X, z: order.stool.z }, direct: true, face: TO_COUNTER },
-        { kind: 'wait', for: TAKE_ORDER }, // a word with them
+        { kind: 'hand', then: () => say(barkeep, asks(by, n)) },
+        { kind: 'wait', for: TAKE_ORDER / 2 },
+        { kind: 'hand', then: () => say(by, pick(ANSWERS, n + by.id)) },
+        { kind: 'wait', for: TAKE_ORDER / 2 },
       ]
     : [];
   return [...take, ...aleFor(barkeep, order.stool, () => {
     const queue = ordersAt(barkeep.home);
     queue.splice(queue.indexOf(order), 1);
     barkeep.serving = false;
+    if (by) say(barkeep, pick(HANDED, n + 3)); // setting it down before them
     order.served();
   })];
 }

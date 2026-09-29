@@ -1,0 +1,17 @@
+// What villagers and staff say aloud (a barmaid taking an order, the patron
+// answering), for speech bubbles over them: said here, gathered with the
+// model's events (GameModel.takeEvents), shown only in the room they're in.
+
+import type { GameEvent } from '../types';
+import type { Npc } from './npcs';
+
+const said: GameEvent[] = [];
+
+// `who` says `text` (where they are: a room, or outdoors).
+export function say(who: Npc, text: string): void {
+  said.push({ kind: 'say', speaker: who, where: who.where, text });
+}
+
+// What's been said since last asked, and forgotten.
+export const takeSpeech = (): GameEvent[] => said.splice(0);
+
