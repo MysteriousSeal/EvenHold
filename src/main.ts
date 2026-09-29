@@ -1,3 +1,4 @@
+import { stairsInReach } from './model/interiors/indoors';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
@@ -126,6 +127,7 @@ async function boot(): Promise<void> {
     }
     const well = model.wellInReach;
     if (well !== null) return { label: 'Toss a silver coin', x: model.villages[well].x, y: hero.y + 0.8, z: model.villages[well].z };
+    if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
     if (!door) return null;
     return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };

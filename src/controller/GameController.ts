@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import { takeStairs } from '../model/interiors/indoors';
 import { atTheBar, barmaidHere } from './barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
@@ -127,7 +128,7 @@ export class GameController {
         if (barmaid) this.onTalk(barmaid);
         else if (board !== null) this.onRead(board);
         else if (this.model.wellInReach !== null) this.model.tossCoin();
-        else this.model.useDoor();
+        else if (!takeStairs(this.model)) this.model.useDoor(); // up or down the stairs by them, else the door
       }
     }
 
