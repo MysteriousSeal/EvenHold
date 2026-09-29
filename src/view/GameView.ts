@@ -301,7 +301,7 @@ export class GameView {
       this.room = null;
     }
     if (!inside) return null;
-    if (!this.room) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture) };
+    if (!this.room) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
     this.room.update(this.elapsed);
     this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;

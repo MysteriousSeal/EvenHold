@@ -5,7 +5,7 @@
 
 import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -121,6 +121,45 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
     for (const u of [32, 37, 42]) box(u, 14, 1, u + 2, 16, 3, (_u, y) => (y === 15 ? IRON : WOOD_LIGHT)); // mugs, upside down to dry
     box(10, 0, 2, 16, 5, 7, (_u, y) => (y === 1 || y === 4 ? IRON : WOOD)); // the bucket beneath
     box(11, 5, 3, 15, 5, 6, WATER); // water in it
+  },
+  // Stairs up to the floor above, rising from their foot toward u = 0 (out
+  // in the room, climbing to the wall), up into the ceiling: chunky steps
+  // with lit nosings, the side toward the camera (+v) dark as a stringer,
+  // and a handrail on posts along the far side (v = 1), stepping with them.
+  stairs: (box, len, dep) => {
+    const steps = Math.max(2, Math.floor(len / 6));
+    const run = Math.floor(len / steps); // every tread the same length (the spare voxels to the top one, a landing)
+    const rise = Math.round(30 / steps); // up to just under the back walls' top (34): into the floor above
+    const v1 = dep - 2; // the steps' width, from the rail's side (v = 1)
+    const RAIL = 9; // the handrail's top, over each tread (at the top, over the walls: up into the floor above)
+    for (let i = 0; i < steps; i++) {
+      const u1 = len - 1 - i * run;
+      const u0 = i === steps - 1 ? 0 : u1 - run + 1;
+      const h = (i + 1) * rise;
+      box(u0, 0, 1, u1, h - 1, v1, (u, y, v) => (y === h - 1 ? (u === u1 ? WOOD_LIGHT : WOOD) : v === v1 ? WOOD_DARK : WOOD)); // a step, its nosing lit
+      // The handrail follows the steps: flat over the tread, two voxels thick with a lit top, rising at the next nosing.
+      box(u0, h + RAIL - 1, 1, u1, h + RAIL, 1, (_u, y) => (y === h + RAIL ? WOOD : WOOD_DARK));
+      if (i < steps - 1) box(u0 - 1, h + RAIL - 1, 1, u0 - 1, h + rise + RAIL, 1, WOOD_DARK);
+      if (i > 0) box(u1 - 1, h, 1, u1 - 1, h + RAIL - 2, 1, WOOD_DARK); // a baluster on each tread, against the rail's rise at its nosing (the foot's is the newel)
+    }
+    box(len - 2, 0, 1, len - 1, rise + RAIL + 1, 2, (_u, y) => (y === rise + RAIL + 1 ? WOOD_LIGHT : WOOD_DARK)); // the newel post at the foot, capped
+  },
+  // Upstairs, where the stairs come up: a dark opening in the floor, the top
+  // steps' edges catching the light just inside, a railing along its far
+  // side (v = 1) and across its lower end; the side toward the camera left
+  // open, to step up from at the top (u = 0).
+  stairwell: (box, len, dep) => {
+    const v1 = dep - 2;
+    const run = Math.floor(len / Math.max(2, Math.floor(len / 6))); // the stairs' treads, below
+    box(0, 0, 4, len - 1, 0, v1, SOOT); // the opening
+    box(run, 0, 4, run, 0, v1, WOOD); // the top step's edge, just inside
+    box(2 * run, 0, 4, 2 * run, 0, v1, WOOD_DARK); // and the next, deeper down
+    for (let u = len - 1; u >= 0; u -= run) box(u, 1, 1, u, 11, 1, WOOD_DARK); // balusters along its far side, a tread apart
+    box(0, 12, 1, len - 1, 13, 1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK)); // the rail, lit on top
+    for (let v = 1 + run; v < v1; v += run) box(len - 1, 1, v, len - 1, 11, v, WOOD_DARK); // across its lower end
+    box(len - 1, 12, 1, len - 1, 13, v1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK));
+    for (const u of [0, len - 2]) box(u, 0, 1, u + 1, 14, 2, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK)); // newel posts at its ends
+    box(len - 2, 0, v1 - 1, len - 1, 14, v1, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK));
   },
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel

@@ -27,14 +27,14 @@ function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
   return { full: mesh(true), empty: mesh(false) };
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
   const origin = new THREE.Vector3(offset, -ROOM_VOXEL, offset);
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const lamps = furniture.filter((f) => f.kind === 'wallLantern');
-  const geometry = greedyMesh(buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern')), ROOM_PALETTE, ROOM_VOXEL, origin);
+  const geometry = greedyMesh(buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern'), door), ROOM_PALETTE, ROOM_VOXEL, origin);
   const room3d = new THREE.Mesh(geometry, material);
   room3d.castShadow = true; // furniture and walls block the firelight,
   room3d.receiveShadow = true; // and the floor shows it
