@@ -1,4 +1,3 @@
-import { DRINK_TIME } from './view/meshes/human/humanRig';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
@@ -14,7 +13,8 @@ import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/loot
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
-import { atTheBar, callForAle, orderAle, orderLabel } from './controller/barOrder';
+import { createBar, orderLabel } from './controller/barOrder';
+import { createDrinkTimer } from './view/hud/drinkTimer';
 import { pourFor } from './model/npcs/innStaff';
 import { createJournal } from './controller/journal';
 import { createQuestBoardPanel } from './controller/questBoardPanel';
@@ -67,8 +67,17 @@ async function boot(): Promise<void> {
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: over the hero's head
-  let aleComing = false; // she's on her way with an ale
-  const SET_DOWN_MS = 800; // the full tankard on the bar before the hero picks it up
+  const drinkTimer = createDrinkTimer();
+  const bar = createBar(
+    model,
+    {
+      heroDrinks: (seconds) => view.heroDrinks(seconds),
+      heroStopsDrinking: () => view.heroStopsDrinking(),
+      speak: (barmaid, text) => floatingText.speak(barmaid, 1.35, text), // over her, following her
+      countdown: (drinking, hero) => drinkTimer(drinking, drinking ? view.toScreen(hero.x, hero.y + 1.15, hero.z) : null),
+    },
+    pourFor,
+  );
   const floatingText = createFloatingText();
   const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3 }; // about two thirds of the way up them
   let lastFrame = performance.now();
@@ -102,6 +111,7 @@ async function boot(): Promise<void> {
     const seated = model.seated;
     const barmaid = model.barmaidInReach;
     const talk = barmaid && { label: `Talk to ${barmaid.name}`, x: barmaid.x, y: 1.1, z: barmaid.z };
+    if (seated && seated.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
     if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
     const seat = model.seatInReach;
     if (seat) {
@@ -131,8 +141,8 @@ async function boot(): Promise<void> {
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale, the prompt over the hero's head.
-    const order = atTheBar(model) && !aleComing ? orderLabel(model) : null; // gone while she fetches one
-    if (!atTheBar(model)) view.barMug(null); // up from the bar: the mug's cleared
+    const order = bar.canOrder ? orderLabel(model) : null; // gone while she fetches one, or it's being drunk
+    bar.update();
     const { hero } = model;
     orderPrompt.update(order ? { label: order.label, muted: order.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z));
     updateQuests((x, y, z) => view.toScreen(x, y, z));
@@ -144,34 +154,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => shop.open(barmaid), onRead: (at) => board.open(at), onOrder: (barmaid) => {
-      // She calls back over her head (coming, or why not); coming, she goes
-      // to the keg, pours it, and brings it back across the bar, setting it
-      // down full before the stool: a moment later, if the hero's still sat
-      // there, they pay and drink it, leaving the empty mug on the bar.
-      if (aleComing) return;
-      view.barMug(null); // the last one's cleared away
-      const say = (text: string) => floatingText.speak(barmaid, 1.35, text); // over her, following her
-      const call = callForAle(model);
-      say(call.said);
-      const stool = model.inside?.seated?.seat.piece;
-      if (!call.coming || !stool) return;
-      aleComing = true;
-      pourFor(barmaid, stool, () => {
-        if (!atTheBar(model)) return void (aleComing = false); // got up meanwhile: no ale
-        view.barMug(stool.z, true); // set down before them, full
-        window.setTimeout(() => {
-          aleComing = false;
-          view.barMug(null); // picked up
-          if (!atTheBar(model)) return;
-          const { said, drank } = orderAle(model);
-          say(said);
-          if (!drank) return;
-          view.heroDrinks();
-          window.setTimeout(() => atTheBar(model) && view.barMug(stool.z, false), DRINK_TIME * 1000); // drunk: the empty mug put down
-        }, SET_DOWN_MS);
-      });
-    }, onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => !bar.busy && shop.open(barmaid), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.

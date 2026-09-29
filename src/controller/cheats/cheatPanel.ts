@@ -127,6 +127,7 @@ export function createCheatPanel(model: GameModel): void {
         icon: ICON.hero,
         actions: [
           { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
+          { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
           {
             icon: ICON.starterSet,
             title: 'Gain a level',
