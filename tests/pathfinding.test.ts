@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findPath } from '../src/model/pathfinding';
 import { GameModel } from '../src/model/GameModel';
-import { ENEMY_LOSE_TIME, ENEMY_STATS } from '../src/model/constants';
+import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS } from '../src/model/constants';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 // A wall along x = 5 up to z = 9, with a gap at z = 7.
@@ -73,9 +73,10 @@ describe('enemy sight', () => {
     model.teleport(behind.x, behind.z);
     for (let t = 0; t < 1; t += FRAME) model.update(0, 0, FRAME);
     expect(bandit.state).toBe('wander');
-    // Out in the open beside the hero, with nothing between: seen.
-    const open = [[0, 3], [3, 0], [0, -3], [-3, 0]].find(([dx, dz]) =>
-      [1, 2, 3].every((k) => model.isOpenTile(behind.x + (dx / 3) * k, behind.z + (dz / 3) * k)),
+    // Out in the open beside the hero, within sight, with nothing between: seen.
+    const near = Math.floor(ENEMY_STATS.bandit.sight);
+    const open = [[0, near], [near, 0], [0, -near], [-near, 0]].find(([dx, dz]) =>
+      Array.from({ length: near }, (_, k) => k + 1).every((k) => model.isOpenTile(behind.x + (dx / near) * k, behind.z + (dz / near) * k)),
     );
     expect(open).toBeDefined();
     bandit.x = behind.x + open![0];
@@ -87,7 +88,7 @@ describe('enemy sight', () => {
   it('hears a hero right next to it, even through cover', () => {
     const { model, bandit, behind } = campScene()!;
     model.teleport(behind.x, behind.z);
-    bandit.x = model.hero.x + 1.2; // within hearing, whatever's between
+    bandit.x = model.hero.x + ENEMY_HEARING * 0.8; // within hearing, whatever's between
     bandit.z = model.hero.z;
     model.update(0, 0, FRAME);
     expect(bandit.state).toBe('chase');
