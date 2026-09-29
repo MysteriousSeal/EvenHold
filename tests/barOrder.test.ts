@@ -117,4 +117,22 @@ describe('an ale at the bar', () => {
     expect(model.inside!.furniture.some((f) => f.kind === 'sink')).toBe(true);
     expect(bumpsFurniture(model.inside!.furniture, AT_SINK.x, AT_SINK.z, NPC_RADIUS * INDOOR_SCALE)).toBe(false); // she fits before it
   }, 60_000);
+
+  it.each([false, true])("clears the mug before the stool first (full: %s), when there's one, then fetches the ale", (full) => {
+    const model = atTheInn();
+    const inn = model.inside!.entrance;
+    const stool = model.inside!.furniture.find((f) => f.kind === 'barStool')!;
+    const barmaid = barmaidHere(model)!;
+    setMug(inn, stool.z, full);
+    let washed = false; // at the sink, bent over it, before the ale's handed over
+    let handed = false;
+    pourFor(barmaid, stool, () => (handed = true));
+    for (let t = 0; t < 40 && !handed; t += 0.05) {
+      model.update(0, 0, 0.05);
+      washed ||= barmaid.working && Math.abs(barmaid.z - AT_SINK.z) < 0.1;
+    }
+    expect(washed).toBe(true);
+    expect(handed).toBe(true);
+    expect(mugsAt(inn).some((m) => m.z === stool.z)).toBe(false); // the old one's gone (the new one's handed straight over)
+  }, 60_000);
 });

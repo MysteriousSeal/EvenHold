@@ -12,7 +12,7 @@ import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';
 import type { Npc, NpcStep } from './npcs';
-import { roundOnBar, takeMug } from './barMugs';
+import { mugsAt, roundOnBar, takeMug } from './barMugs';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];
@@ -49,15 +49,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   if (npc.role === 'barkeep') {
     // An empty mug left a while: over to take it, and to the sink to wash it.
     const mug = roundOnBar(npc.home);
-    if (mug) {
-      return [
-        { kind: 'go', to: { x: AISLE_X, z: mug.z }, direct: true, face: TO_COUNTER },
-        { kind: 'hand', then: () => takeMug(npc.home, mug.z) && (npc.carrying = true) },
-        { kind: 'go', to: AT_SINK, direct: true, face: -Math.PI / 2 }, // facing the washstand
-        { kind: 'work', for: PUT_AWAY },
-        { kind: 'hand', then: () => (npc.carrying = false) },
-      ];
-    }
+    if (mug) return clearMug(npc, mug.z);
     // Opposite a patron at the bar, or somewhere along it.
     const patrons = furniture.filter((f) => f.kind === 'barStool' && sat(npcs, npc.home, f));
     const z = patrons.length > 0 ? patrons[Math.floor(roll(npc, 1) * patrons.length)].z : 1 + Math.floor(roll(npc, 2) * barEnd);
@@ -80,11 +72,25 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   return steps;
 }
 
+// Clearing the mug at a row: over to take it, to the sink to wash it.
+function clearMug(barkeep: Npc, z: number): NpcStep[] {
+  return [
+    { kind: 'go', to: { x: AISLE_X, z }, direct: true, face: TO_COUNTER },
+    { kind: 'hand', then: () => takeMug(barkeep.home, z) && (barkeep.carrying = true) },
+    { kind: 'go', to: AT_SINK, direct: true, face: -Math.PI / 2 }, // facing the washstand
+    { kind: 'work', for: PUT_AWAY },
+    { kind: 'hand', then: () => (barkeep.carrying = false) },
+  ];
+}
+
 // An ale for whoever's sat on `stool`: the barkeep leaves what she was doing,
-// goes to the keg and pours it, brings it back across the bar to them, and
-// hands it over (`then`: the hero drinks it).
+// clears away the mug before them first, if there's one (empty or full), goes to the
+// keg and pours it, brings it back across the bar to them, and hands it over
+// (`then`: the hero drinks it).
 export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void {
+  const left = mugsAt(barkeep.home).some((m) => m.z === stool.z); // a mug before them already, empty or not
   barkeep.steps = [
+    ...(left ? clearMug(barkeep, stool.z) : []),
     { kind: 'go', to: AT_KEG, direct: true, face: -Math.PI / 2 }, // facing the keg's tap
     { kind: 'work', for: POUR_TIME }, // at the tap
     { kind: 'hand', then: () => (barkeep.carrying = true) },
