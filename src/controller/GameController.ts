@@ -101,7 +101,8 @@ export class GameController {
     if (this.input.consumeAttack()) this.model.startAttack();
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
-    // notice board in reach; else go through the door in reach.
+    // notice board in reach; else toss a coin in the well beside; else go
+    // through the door in reach.
     if (this.input.consumePickup()) {
       const item = this.model.pickUp();
       const barmaid = this.model.barmaidInReach;
@@ -111,6 +112,7 @@ export class GameController {
         const board = this.model.boardInReach;
         if (barmaid) this.onTalk(barmaid);
         else if (board !== null) this.onRead(board);
+        else if (this.model.wellInReach !== null) this.model.tossCoin();
         else this.model.useDoor();
       }
     }

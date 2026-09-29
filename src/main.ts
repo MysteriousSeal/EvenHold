@@ -7,6 +7,7 @@ import { randomName } from './model/npcs/npcs';
 import { loadGame, startAutoSave } from './controller/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
+import { createBlessingHud } from './view/hud/blessingHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { coinText, createFloatingText } from './view/hud/floatingText';
@@ -59,6 +60,7 @@ async function boot(): Promise<void> {
   hudTop.className = 'hud-top';
   document.body.append(hudTop);
   const updateHud = createHeroHud(model.hero, hudTop);
+  const updateBlessing = createBlessingHud(model.hero);
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const floatingText = createFloatingText();
@@ -106,6 +108,8 @@ async function boot(): Promise<void> {
       const spot = noticeBoards(model)[read];
       return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
     }
+    const well = model.wellInReach;
+    if (well !== null) return { label: 'Toss a silver coin', x: model.villages[well].x, y: hero.y + 0.8, z: model.villages[well].z };
     const door = model.doorInReach;
     if (!door) return null;
     return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };
@@ -113,6 +117,7 @@ async function boot(): Promise<void> {
   const onFrame = () => {
     countFrame();
     updateHud();
+    updateBlessing();
     updateTarget(model.focused, model.hero.level);
     bag.update();
     journal.update();
@@ -136,6 +141,8 @@ async function boot(): Promise<void> {
       const head = model.inside ? 0.95 : 0.6;
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
+      else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
+      else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + ENEMY_TEXT_HEIGHT[event.on], z: event.z }, [`${event.amount}`], '#ffffff');
     },

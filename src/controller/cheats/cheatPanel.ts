@@ -39,6 +39,7 @@ import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
 import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
 import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
 import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
+import { blessAll } from '../../model/hero/blessing';
 import { randomName } from '../../model/npcs/npcs';
 
 const SPEED_BOOST = 3;
@@ -124,6 +125,7 @@ export function createCheatPanel(model: GameModel): void {
         icon: ICON.hero,
         actions: [
           { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
+          { icon: ICON.hero, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Blessed four times over.') },
           {
             icon: ICON.starterSet,
             title: 'Gain a level',
