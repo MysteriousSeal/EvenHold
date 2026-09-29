@@ -2,11 +2,13 @@
 // frame (styles in hud.css): a card each, with what it asks, a bar of how
 // far along it is, and where to go: an arrow turned toward it on screen
 // (the nearest marked foe, else the spot they gather; once done, back to
-// its board) and how far off, in meters. Indoors, the arrow points to the
-// room's door (the way out to it), and says so.
+// its board) and how far off, in meters. Indoors, the arrow points the way
+// out (the room's door; upstairs, the stairs down), and says so.
 
 import type { GameModel } from '../../model/GameModel';
 import { noticeBoards } from '../../model/quests/noticeBoards';
+import type { Inside } from '../../model/interiors/indoors';
+import { stairsOf } from '../../model/interiors/upstairs';
 import { inMeters, questTitle } from '../../model/quests/quests';
 import type { TakenQuest } from '../../model/quests/questBook';
 
@@ -54,6 +56,12 @@ interface Card {
   count: HTMLElement;
   distance: HTMLElement;
   shown: string; // what the text says now, to touch the page only on change
+}
+
+// Indoors, where the way out is: the room's door, or upstairs the stairs down.
+function wayOut(inside: Inside): { x: number; z: number } {
+  const stairs = inside.below ? stairsOf(inside) : undefined;
+  return stairs ? { x: stairs.x, z: stairs.z } : { x: inside.room.door, z: inside.room.depth - 0.5 };
 }
 
 export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => void {
@@ -106,7 +114,7 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       const have = model.quests.progress(t);
       const done = have >= t.quest.count;
       const inside = model.inside;
-      const to = inside ? { x: inside.room.door, z: inside.room.depth - 0.5 } : goal(t, done); // indoors: the way out
+      const to = inside ? wayOut(inside) : goal(t, done); // indoors: the way out
       const tiles = Math.hypot(to.x - hero.x, to.z - hero.z);
       const here = !inside && tiles <= HERE;
       const distance = inside ? 'exit' : here ? 'here' : inMeters(tiles);
