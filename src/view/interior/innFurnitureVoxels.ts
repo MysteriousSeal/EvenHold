@@ -5,7 +5,13 @@
 
 import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'hallWall' | 'hallDoor' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+
+// A stretch of the hallway's low wall, u0..u1 along it, five voxels thick.
+function hallWall(box: Box, u0: number, u1: number): void {
+  box(u0, 0, 0, u1, 5, 4, (u) => (u <= 1 ? FUR_DARK : WOOD_DARK)); // boards, a post at the tile's end (as the room's walls)
+  box(u0, 6, 0, u1, 6, 4, WOOD_LIGHT); // the rail on top
+}
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -184,6 +190,23 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
     box(len - 1, 12, 0, len - 1, 13, v1, (_u, y) => (y === 13 ? WOOD : WOOD_DARK));
     for (const u of [open, len - 2]) box(u, 0, 0, u + 1, 14, 1, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK)); // newel posts at its ends
     box(len - 2, 0, v1 - 1, len - 1, 14, v1, (_u, y) => (y === 14 ? WOOD_LIGHT : WOOD_DARK));
+  },
+  // Upstairs, between the hallway and the rooms off it: a low wall of dark
+  // boards (cut low like the room's near walls, to see over), a lit rail on top.
+  hallWall: (box, len) => hallWall(box, 0, len - 1),
+  // A room's door in it: timber posts and a lintel standing tall, the
+  // planked door shut between them, iron hinges and a ring on both faces.
+  hallDoor: (box, len) => {
+    hallWall(box, 0, 3);
+    hallWall(box, len - 4, len - 1);
+    for (const u of [4, len - 6]) box(u, 0, 0, u + 1, 28, 4, FUR_DARK); // posts
+    box(3, 29, 0, len - 4, 30, 4, (_u, y) => (y === 30 ? WOOD_LIGHT : FUR_DARK)); // lintel, past the posts, lit on top
+    box(6, 0, 0, len - 7, 0, 4, WOOD_LIGHT); // threshold
+    box(6, 1, 1, len - 7, 27, 3, (u) => ((u - 6) % 4 === 0 ? WOOD_DARK : WOOD)); // the door, planked
+    for (const v of [0, 4]) {
+      for (const y of [6, 21]) box(6, y, v, len - 9, y + 1, v, (u) => (u === 6 ? IRON_LIGHT : IRON)); // strap hinges, across the planks
+      box(len - 10, 13, v, len - 9, 14, v, BRASS); // ring
+    }
   },
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
