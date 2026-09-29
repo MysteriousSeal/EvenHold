@@ -13,11 +13,13 @@ const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
 
 const ATTACK_KEY = 'Space';
 const PICKUP_KEY = 'KeyE';
+const ORDER_KEY = 'KeyF'; // at the bar: order a drink
 
 export class KeyboardInput {
   private readonly pressed = new Set<Direction>();
   private attackRequested = false;
   private pickupRequested = false;
+  private orderRequested = false;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -45,7 +47,18 @@ export class KeyboardInput {
     return requested;
   }
 
+  // True once per press of the order key.
+  consumeOrder(): boolean {
+    const requested = this.orderRequested;
+    this.orderRequested = false;
+    return requested;
+  }
+
   private onKey(e: KeyboardEvent, isDown: boolean): void {
+    if (e.code === ORDER_KEY) {
+      if (isDown && !e.repeat) this.orderRequested = true;
+      return;
+    }
     if (e.code === PICKUP_KEY) {
       if (isDown && !e.repeat) this.pickupRequested = true;
       return;

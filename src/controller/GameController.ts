@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import { atTheBar, barmaidHere } from './barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameEvent } from '../model/types';
@@ -38,11 +39,12 @@ export class GameController {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
+  private readonly onOrder: (npc: Npc) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -50,6 +52,7 @@ export class GameController {
     this.onEvent = options.onEvent ?? (() => {});
     this.onTalk = options.onTalk ?? (() => {});
     this.onRead = options.onRead ?? (() => {});
+    this.onOrder = options.onOrder ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && !model.inside) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
@@ -99,6 +102,11 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
+    // F, sat on a stool at the bar: order an ale from the inn's barmaid.
+    if (this.input.consumeOrder() && atTheBar(this.model)) {
+      const barmaid = barmaidHere(this.model);
+      if (barmaid) this.onOrder(barmaid);
+    }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
     // notice board in reach; else toss a coin in the well beside; else go
