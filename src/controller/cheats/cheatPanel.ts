@@ -1,5 +1,5 @@
-// Dev-only cheat menu (travel, hero powers, enemies, the wardrobe, world
-// facts), toggled with the backquote key (`), built on the shared EvenHold
+// Dev-only cheat menu (travel, hero powers, looks, riches, enemies, the
+// wardrobe, world facts; wide, its rows in two columns), toggled with the backquote key (`), built on the shared EvenHold
 // menu (view/ui/menu.ts). The game keeps running while it's open, so a
 // teleport or a summon shows at once.
 // main.ts loads this module only when Vite runs in dev mode, so production
@@ -125,13 +125,26 @@ export function createCheatPanel(model: GameModel): void {
         icon: ICON.hero,
         actions: [
           { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
-          { icon: ICON.hero, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Blessed four times over.') },
           {
             icon: ICON.starterSet,
             title: 'Gain a level',
             detail: 'Just enough experience for the next',
             run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
           },
+          {
+            icon: ICON.swiftFeet,
+            title: 'Run fast',
+            detail: `Walk ${SPEED_BOOST}× faster (not the well's Swift feet)`,
+            ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Running fast.', 'Back to walking.'),
+          },
+          { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
+          { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+        ],
+      },
+      {
+        name: 'Look',
+        icon: ICON.heroine,
+        actions: [
           {
             icon: ICON.undress,
             title: 'New character',
@@ -165,24 +178,24 @@ export function createCheatPanel(model: GameModel): void {
               return `Hair: ${STYLE_NAMES[next]}.`;
             },
           },
-          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
-          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
-          {
-            icon: ICON.swiftFeet,
-            title: 'Swift feet',
-            detail: `Walk ${SPEED_BOOST}× faster`,
-            ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Swift feet on.', 'Swift feet off.'),
-          },
-          { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
-          { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
         ],
       },
       {
-        name: 'Enemies',
-        icon: ICON.enemies,
+        name: 'Riches',
+        icon: itemIcon('goldRing'),
         actions: [
-          { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
-          { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
+          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
+          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
+          { icon: ICON.hero, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
+          {
+            icon: ICON.wardrobe,
+            title: 'Gear in the bag',
+            detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
+            run: () => {
+              for (const item of [...STARTER_SET, ...BANDIT_OUTFIT]) addToBag(model.hero.bag, item);
+              return 'Your bag is full of gear.';
+            },
+          },
           {
             icon: ICON.camp,
             title: 'Scatter junk',
@@ -195,6 +208,14 @@ export function createCheatPanel(model: GameModel): void {
               return 'Junk everywhere.';
             },
           },
+        ],
+      },
+      {
+        name: 'Enemies',
+        icon: ICON.enemies,
+        actions: [
+          { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
+          { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
           { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
           { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
         ],
@@ -204,15 +225,6 @@ export function createCheatPanel(model: GameModel): void {
         icon: ICON.wardrobe,
         actions: [
           { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
-          {
-            icon: ICON.wardrobe,
-            title: 'Gear in the bag',
-            detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
-            run: () => {
-              for (const item of [...STARTER_SET, ...BANDIT_OUTFIT]) addToBag(model.hero.bag, item);
-              return 'Your bag is full of gear.';
-            },
-          },
           { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
           { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
           {
