@@ -1,20 +1,24 @@
 // Wildlife: peaceful animals that make the world feel alive. They can't be
 // hurt and never block anyone; they just go about their lives and keep away
-// from the hero. Each kind has its own file (ducks.ts, deer.ts); this one
+// from the hero (cats mind them less). Each kind has its own file (ducks.ts,
+// deer.ts, cats.ts); this one
 // holds what they share and runs them each frame.
 
 import { ENEMY_ACTIVE_RADIUS } from '../constants';
 import { spawnDucks, stepDuckPack, type DuckWorld } from './ducks';
 import { spawnDeer, stepDeerHerd, type DeerWorld } from './deer';
+import { spawnCats, stepCat, type CatPose, type CatWorld } from './cats';
+import type { Seat } from '../interiors/furniture';
 
-export type WildlifeKind = 'duck' | 'deer';
+export type WildlifeKind = 'duck' | 'deer' | 'cat';
 export type DuckVariant = 'drake' | 'hen' | 'duckling';
 export type DeerVariant = 'stag' | 'doe' | 'fawn';
+export type CatVariant = 'ginger' | 'tabby' | 'black' | 'white'; // its coat
 
 export interface Wildlife {
   id: number;
   kind: WildlifeKind;
-  variant: DuckVariant | DeerVariant;
+  variant: DuckVariant | DeerVariant | CatVariant;
   x: number;
   z: number;
   y: number;
@@ -28,13 +32,19 @@ export interface Wildlife {
   dabble: number | null; // seconds into feeding (a duck dabbling, a deer grazing), or null
   fleeing: boolean; // hurrying away from the hero
   speed: number; // how fast it moved last frame, for the wake
+  // Cats (cats.ts): what it's doing when not walking (null walking), the
+  // bench seat it's on or heading up to, and how far the hero was last frame.
+  pose?: CatPose | null;
+  perch?: Seat | null;
+  heroWas?: number;
 }
 
-export type WildlifeWorld = DuckWorld & DeerWorld;
+export type WildlifeWorld = DuckWorld & DeerWorld & CatWorld;
 
 export function spawnWildlife(world: WildlifeWorld): Wildlife[] {
   const ducks = spawnDucks(world, 0);
-  return [...ducks, ...spawnDeer(world, ducks.length)];
+  const deer = spawnDeer(world, ducks.length);
+  return [...ducks, ...deer, ...spawnCats(world, ducks.length + deer.length)];
 }
 
 // Every pack near the hero acts, led by its first member.
@@ -43,6 +53,7 @@ export function stepWildlife(wildlife: readonly Wildlife[], world: WildlifeWorld
     if (animal.pack[0] !== animal) continue;
     if (Math.abs(animal.x - hero.x) > ENEMY_ACTIVE_RADIUS || Math.abs(animal.z - hero.z) > ENEMY_ACTIVE_RADIUS) continue;
     if (animal.kind === 'duck') stepDuckPack(animal.pack, world, hero, dt);
-    else stepDeerHerd(animal.pack, world, hero, dt);
+    else if (animal.kind === 'deer') stepDeerHerd(animal.pack, world, hero, dt);
+    else stepCat(animal, world, hero, dt);
   }
 }
