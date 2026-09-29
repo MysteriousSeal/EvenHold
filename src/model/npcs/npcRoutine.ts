@@ -287,6 +287,10 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
         done();
       }
       return;
+    case 'hand':
+      step.then();
+      done();
+      return;
     case 'wait':
     case 'work':
       npc.working = step.kind === 'work';

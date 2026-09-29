@@ -200,6 +200,7 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   bottleShelf: [0, 0.42],
   counter: [0.26, 0.74],
   shelf: [0, 0.34],
+  keg: [0, 0.62], // on its side, reaching 0.6 of its tile out (tap and all)
 };
 
 // Seats pulled up to what they face (a chair to its table, a stool to the

@@ -17,6 +17,8 @@ const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at 
 const SERVE_WAIT: [number, number] = [4, 10];
 const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
+export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg at 0, 0 reaches out to x 0.12), clear of it and the counter (she's 0.25 wide indoors)
+const POUR_TIME = 1.4; // seconds bent over the tap
 
 const roll = (npc: Npc, salt: number) => hashUnit(npc.id, npc.stop * 7 + salt, npc.salt);
 const between = (npc: Npc, [a, b]: [number, number], salt: number) => a + roll(npc, salt) * (b - a);
@@ -62,6 +64,20 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   ];
   if (table) steps.push({ kind: 'go', to: beside(table, furniture, room), faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
   return steps;
+}
+
+// An ale for whoever's sat on `stool`: the barkeep leaves what she was doing,
+// goes to the keg and pours it, brings it back across the bar to them, and
+// hands it over (`then`: the hero drinks it).
+export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void {
+  barkeep.steps = [
+    { kind: 'go', to: AT_KEG, direct: true, face: -Math.PI / 2 }, // facing the keg's tap
+    { kind: 'work', for: POUR_TIME }, // at the tap
+    { kind: 'hand', then: () => (barkeep.carrying = true) },
+    { kind: 'go', to: { x: AISLE_X, z: stool.z }, direct: true, face: TO_COUNTER },
+    { kind: 'hand', then: () => ((barkeep.carrying = false), then()) },
+  ];
+  Object.assign(barkeep, { path: null, waited: 0, working: false });
 }
 
 // A spot by a table to serve it from: a tile next to it, in the room, with nothing on it.

@@ -31,7 +31,8 @@ export type NpcStep =
   | { kind: 'settle'; for: number }
   | { kind: 'sit'; seat: Seat; for: number }
   | { kind: 'work'; for: number } // bent over the crops, in a field
-  | { kind: 'wait'; for: number };
+  | { kind: 'wait'; for: number }
+  | { kind: 'hand'; then(): void }; // something done there and then (a drink picked up, handed over)
 
 export type NpcStop = 'home' | 'square' | 'inn' | 'field';
 export const ROUTINE: readonly NpcStop[] = ['home', 'square', 'inn', 'square'];
@@ -70,6 +71,7 @@ export interface Npc extends Humanoid {
   waited: number; // seconds into the current wait
   moving: boolean;
   working: boolean; // bent over the crops
+  carrying?: boolean; // a tankard in hand (the barmaid, bringing an ale)
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 

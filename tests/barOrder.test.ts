@@ -3,7 +3,11 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { buyPrice, shopAt } from '../src/model/npcs/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
-import { callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
+import { barmaidHere, callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
+import { AT_KEG, pourFor } from '../src/model/npcs/innStaff';
+import { bumpsFurniture } from '../src/model/interiors/furniture';
+import { INDOOR_SCALE } from '../src/model/constants';
+import { NPC_RADIUS } from '../src/model/npcs/npcs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 // In the nearest inn, as if sat at the bar.
@@ -49,5 +53,27 @@ describe('an ale at the bar', () => {
     expect(orderLabel(model).soldOut).toBe(true);
     expect(orderAle(model)).toMatchObject({ drank: false });
     expect(model.hero.money).toBe(100);
+  });
+
+  it('is fetched: she goes to the keg, pours, and carries it back across the bar to the stool', () => {
+    const model = atTheInn();
+    const stool = model.inside!.furniture.find((f) => f.kind === 'barStool')!;
+    const barmaid = barmaidHere(model)!;
+    expect(barmaid).toBeTruthy();
+    expect(bumpsFurniture(model.inside!.furniture, AT_KEG.x, AT_KEG.z, NPC_RADIUS * INDOOR_SCALE)).toBe(false); // she fits before the keg (no shuffling into it)
+    let handed = false;
+    let carried = false;
+    let atKeg = false;
+    pourFor(barmaid, stool, () => (handed = true));
+    for (let t = 0; t < 30 && !handed; t += 0.05) {
+      model.update(0, 0, 0.05);
+      carried ||= !!barmaid.carrying;
+      atKeg ||= barmaid.working && barmaid.z < 1; // bent over the tap, at the head of the bar
+    }
+    expect(atKeg).toBe(true);
+    expect(carried).toBe(true);
+    expect(handed).toBe(true);
+    expect(barmaid.carrying).toBe(false);
+    expect(Math.abs(barmaid.z - stool.z)).toBeLessThan(0.2); // across the bar from it
   });
 });

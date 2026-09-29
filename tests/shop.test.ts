@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { RESTOCK_EVERY, buy, buyPrice, restockIn, sell, sellPrice, shopAt } from '../src/model/npcs/tavernShop';
+import { RESTOCK_EVERY, buy, buyPrice, restockAll, restockIn, sell, sellPrice, shopAt } from '../src/model/npcs/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -68,5 +68,15 @@ describe("the barmaid's shop", () => {
     expect(restockIn(shop, RESTOCK_EVERY)).toBe(0);
     shopAt(model.shops, model.seed, 0, RESTOCK_EVERY); // a restock...
     expect(restockIn(shop, RESTOCK_EVERY)).toBe(RESTOCK_EVERY); // ...and the next one five minutes on
+  });
+
+  it('restocks every barmaid at once (a cheat): wares and purse back to her usual', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const shop = shopAt(model.shops, model.seed, 0, 0);
+    const [usualAle, usualMoney] = [shop.stock.ale, shop.money];
+    shop.stock.ale = 0;
+    shop.money = 1;
+    expect(restockAll(model.shops, model.seed, 5)).toBe(1);
+    expect([shop.stock.ale, shop.money]).toEqual([usualAle, usualMoney]);
   });
 });

@@ -38,6 +38,16 @@ export function shopAt(shops: Map<number, Shop>, seed: number, inn: number, now 
   return shop;
 }
 
+// Every barmaid back to her usual wares and purse at once (a cheat); those
+// not yet visited start that way anyway. Returns how many were restocked.
+export function restockAll(shops: Map<number, Shop>, seed: number, now = Date.now()): number {
+  for (const [inn, shop] of shops) {
+    const base = usual(seed, inn);
+    Object.assign(shop, { money: base.money, stock: { ...base.stock }, restockedAt: now });
+  }
+  return shops.size;
+}
+
 function restock(shop: Shop, base: ReturnType<typeof usual>, now: number): void {
   const restocks = Math.floor((now - shop.restockedAt) / RESTOCK_EVERY);
   if (restocks <= 0) return;
