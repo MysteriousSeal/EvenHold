@@ -2,7 +2,7 @@
 // the foes a quest marks. Worth nothing to anyone but the board. Four from
 // each kind of foe, so two quests seldom want the same thing.
 
-import type { EnemyKind } from '../types';
+import type { QuestFoe } from './quests';
 import type { LootEntry } from '../loot/loot';
 
 const item = (name: string): LootEntry => ({ name, value: 0, droppedBy: {} });
@@ -22,7 +22,7 @@ export type QuestItemId = keyof typeof QUEST_ITEMS;
 export const isQuestItem = (item: string): item is QuestItemId => item in QUEST_ITEMS;
 
 // What each kind of foe can be asked for.
-export const QUEST_ITEMS_OF: Record<EnemyKind, readonly QuestItemId[]> = {
+export const QUEST_ITEMS_OF: Record<QuestFoe, readonly QuestItemId[]> = {
   wolf: ['wolfPelt', 'alphaFang', 'wolfClaw', 'wolfTail'],
   bandit: ['banditToken', 'redBandanna', 'lockpicks', 'stolenLetter'],
 };

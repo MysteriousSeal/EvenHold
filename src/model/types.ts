@@ -20,7 +20,7 @@ export interface Hero extends Humanoid {
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
 }
 
-export type EnemyKind = 'wolf' | 'bandit';
+export type EnemyKind = 'wolf' | 'bandit' | 'boar';
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.

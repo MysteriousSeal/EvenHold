@@ -10,10 +10,13 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // points, damage per blow, experience for a kill,
 // collision half-size, speeds, how near the hero
 // must come for a chase, how far it gives up, how far it wanders from home,
-// and how close it stops (arm's reach for bandits).
+// and how close it stops (arm's reach for bandits); passive ones (boars)
+// never start a fight, but fight back once hit; and `coins`, copper per
+// level it drops (bandits carry a purse).
 export const ENEMY_STATS = {
-  wolf: { family: 'beast', hp: 3, damage: 1, xp: 10, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
-  bandit: { family: 'humanoid', hp: 5, damage: 2, xp: 20, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
+  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
+  bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
+  boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)

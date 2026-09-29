@@ -2,6 +2,7 @@
 // silver, 100 silver a gold), and coins dropped on the ground by slain foes,
 // picked up just by walking near them.
 
+import { ENEMY_STATS } from '../constants';
 import { hashUnit } from '../../util/random';
 import type { Enemy } from '../types';
 
@@ -37,8 +38,8 @@ export function coins(copper: number): { gold: number; silver: number; copper: n
 }
 
 // What a slain foe drops, in copper: always a few coins, more from tougher
-// foes and from bandits (who carry a purse).
+// foes, and by kind (constants.ts ENEMY_STATS coins: bandits carry a purse).
 export function coinDrop(enemy: Enemy): number {
-  const per = enemy.kind === 'bandit' ? 6 : 3;
+  const per = ENEMY_STATS[enemy.kind].coins;
   return Math.max(1, Math.round((1 + hashUnit(enemy.id, 0, 92) * 2) * per * enemy.level));
 }

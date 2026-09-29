@@ -14,7 +14,7 @@ import { QUEST_ITEMS, isQuestItem, type QuestItemId } from '../quests/questItems
 import type { BagItem } from '../hero/bag';
 
 // Who drops what: families of enemies (ENEMY_STATS[kind].family).
-export type LootSource = 'beast' | 'humanoid';
+export type LootSource = 'beast' | 'humanoid' | 'boar';
 export type LootQuality = 'junk' | 'common' | 'quest';
 
 export interface LootEntry {

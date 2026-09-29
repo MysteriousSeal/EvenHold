@@ -1,4 +1,5 @@
-// Enemies: wolf packs in the forests and bandit camps in the open
+// Enemies: wolf packs in the forests, boars rooting in the woods (passive:
+// they fight only once hit), and bandit camps in the open
 // countryside, each with one of either near spawn to meet early. They
 // wander around home, chase the hero on sight, give up if outrun, and
 // attack once within reach. Placed from hashes and
@@ -25,6 +26,7 @@ interface Sites {
 // countryside between villages.
 const PACKS: Sites = { grid: 18, chance: 0.7, forest: (d) => d >= 0.2, clearance: 14 };
 const MEADOW_PACKS: Sites = { grid: 32, chance: 0.35, forest: (d) => d < 0.2, clearance: 14 };
+const BOARS: Sites = { grid: 22, chance: 0.55, forest: (d) => d >= 0.12, clearance: 12 }; // rooting about the woods
 const CAMPS: Sites = { grid: 26, chance: 0.4, forest: (d) => d < 0.15, clearance: 12 };
 const SPAWN_CLEARANCE = 20;
 
@@ -142,6 +144,7 @@ export function spawnEnemies(world: EnemyWorld): { enemies: Enemy[]; camps: Camp
   };
   scatter(PACKS, 42, (x, z, big) => group('wolf', x, z, big ? 3 : 2, 46));
   scatter(MEADOW_PACKS, 62, (x, z) => group('wolf', x, z, 2, 66));
+  scatter(BOARS, 72, (x, z) => group('boar', x, z, 1 + Math.floor(hashUnit(x, z, 73) * 3), 76)); // one to three
   scatter(CAMPS, 52, (x, z, big) => campNear(x, z, 5, big ? 4 : 2, 56));
   return { enemies, camps };
 }
@@ -182,7 +185,8 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   // close enough to hear whatever's in the way.
   const toHero = Math.hypot(hero.x - enemy.x, hero.z - enemy.z);
   const quiet = noticeFactor(hero); // a well's Quiet step halves how far it sees and hears
-  const noticed = toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy));
+  // (A passive one never notices: only a blow sets it chasing.)
+  const noticed = !stats.passive && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
   if (enemy.state === 'chase') {
     if (noticed || (toHero < stats.giveUp && sees(enemy))) {

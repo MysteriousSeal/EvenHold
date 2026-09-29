@@ -10,7 +10,7 @@ import { COPPER_PER_SILVER } from '../hero/money';
 import { enemyLevel, enemyPower } from '../enemies/enemyLevels';
 import type { MapSize } from '../grid';
 import { spawnOf } from '../grid';
-import type { EnemyKind, Village } from '../types';
+import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 
 export const OFFERS = 6; // quests a board has, for good
@@ -21,11 +21,13 @@ const NEAR = 14; // tiles from the village, the nearest a quest's foes gather
 const FAR = 26; // and the farthest
 const DIRECTIONS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 
+export type QuestFoe = 'wolf' | 'bandit'; // what quests ask to be slain (or robbed)
+
 export interface Quest {
   key: string; // `${board}:${n}`: which board, and which of its quests
   board: number; // its village's index
   kind: 'kill' | 'collect';
-  foe: EnemyKind;
+  foe: QuestFoe;
   count: number; // foes to slay, or items to bring
   item: QuestItemId | null; // what to bring (collect quests)
   dropChance: number; // of a marked foe dropping it
@@ -48,7 +50,7 @@ export interface QuestWorld {
 export function questAt(world: QuestWorld, board: number, n: number): Quest {
   const village = world.villages[board];
   const roll = (salt: number) => hashUnit(board * 131 + n, world.seed % 1_000_003, 200 + salt);
-  const foe: EnemyKind = roll(1) < 0.55 ? 'wolf' : 'bandit';
+  const foe: QuestFoe = roll(1) < 0.55 ? 'wolf' : 'bandit';
   const kind = roll(2) < 0.5 ? 'kill' : 'collect';
   // A spot out beyond the village, open ground (trying a few directions).
   let x = village.x;
