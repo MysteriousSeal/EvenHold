@@ -11,6 +11,7 @@ import { hashUnit } from '../../util/random';
 import { makeEnemy } from '../enemies/enemies';
 import type { BagItem } from '../hero/bag';
 import { gainXp } from '../hero/heroStats';
+import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
@@ -159,7 +160,7 @@ export class QuestBook {
     this.completed.add(key);
     const { hero } = this.host;
     hero.money += quest.copper;
-    gainXp(hero, quest.xp);
+    gainXp(hero, xpGained(hero, quest.xp));
     this.events.push({ kind: 'coins', amount: quest.copper });
     return true;
   }
@@ -170,7 +171,7 @@ export class QuestBook {
     const taken = enemy.quest ? this.takenOf(enemy.quest) : null;
     if (!taken || this.done(taken)) return null;
     const { quest } = taken;
-    if (quest.kind === 'collect') return hashUnit(enemy.id, this.host.seed % 1_000_003, 91) < quest.dropChance ? quest.item : null;
+    if (quest.kind === 'collect') return hashUnit(enemy.id, this.host.seed % 1_000_003, 91) < quest.dropChance * dropFactor(this.host.hero) ? quest.item : null;
     taken.kills++;
     this.tell(taken, enemy);
     return null;

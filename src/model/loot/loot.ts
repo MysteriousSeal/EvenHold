@@ -41,8 +41,8 @@ export interface GroundLoot {
 }
 
 // What a slain enemy of `source`'s family drops, or null: decided by its id.
-export function rollDrop(source: LootSource, enemyId: number): LootId | null {
-  if (hashUnit(enemyId, 0, 71) >= DROP_CHANCE) return null;
+export function rollDrop(source: LootSource, enemyId: number, chance = DROP_CHANCE): LootId | null {
+  if (hashUnit(enemyId, 0, 71) >= chance) return null;
   const options = LOOT_IDS.flatMap((id): Array<[LootId, number]> => {
     const weight = LOOT[id].droppedBy[source];
     return weight ? [[id, weight]] : [];

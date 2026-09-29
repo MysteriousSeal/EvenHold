@@ -28,7 +28,7 @@ import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { addCampObstacles, worldObstacles } from './blockers';
 import { stepHop, type Hop } from './hero/hop';
-import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
+import { DROP_CHANCE, PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
 import { coinDrop, collectCoins, type GroundCoins } from './hero/money';
 import type { EquipSlot, ItemId } from './human/equipment';
@@ -43,7 +43,7 @@ import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './npcs/tavernShop';
-import { BLESSINGS, blowDamage, coinsFound, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
+import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -276,10 +276,11 @@ export class GameModel {
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
       if (target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes (even let go) aren't the world's
-      gainXp(this.hero, target.xp);
+      gainXp(this.hero, xpGained(this.hero, target.xp));
+      healOnKill(this.hero);
       const wanted = this.quests.onKill(target);
       if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
-      const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
+      const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(this.hero));
       if (item) this.dropLoot(item, target.x, target.z);
       const amount = coinsFound(this.hero, coinDrop(target));
       if (amount > 0) this.dropCoins(amount, target.x + 0.25, target.z + 0.15);

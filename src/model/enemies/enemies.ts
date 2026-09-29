@@ -4,6 +4,7 @@
 // attack once within reach. Placed from hashes and
 // noise, not the world rng, so they don't change the world.
 
+import { noticeFactor, type Blessing } from '../hero/blessing';
 import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
 import type { Camp, CampPiece, CampPieceKind, Enemy, EnemyKind, Surface, Village } from '../types';
 import { createForestDensity } from '../worldgen/trees';
@@ -162,7 +163,7 @@ export interface EnemyActions {
 
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
 
-export function stepEnemy(enemy: Enemy, hero: { x: number; z: number }, dt: number, actions: EnemyActions): void {
+export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?: Blessing[] }, dt: number, actions: EnemyActions): void {
   const { move, steer, sees } = actions;
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
@@ -180,7 +181,8 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number }, dt: numb
   // It notices the hero in sight range with nothing solid in between, or
   // close enough to hear whatever's in the way.
   const toHero = Math.hypot(hero.x - enemy.x, hero.z - enemy.z);
-  const noticed = toHero < ENEMY_HEARING || (toHero < stats.sight && sees(enemy));
+  const quiet = noticeFactor(hero); // a well's Quiet step halves how far it sees and hears
+  const noticed = toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
   if (enemy.state === 'chase') {
     if (noticed || (toHero < stats.giveUp && sees(enemy))) {
