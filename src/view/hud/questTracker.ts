@@ -1,4 +1,4 @@
-// The quests taken, top right (styles in hud.css): a card each, with what
+// The quests taken and tracked (journal.ts), top right (styles in hud.css): a card each, with what
 // it asks, a bar of how far along it is, and where to go: an arrow turned
 // toward it on screen (the nearest marked foe, else the spot they gather;
 // once done, back to its board) and how many paces off. Indoors, where the
@@ -75,7 +75,7 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
   };
 
   return (toScreen) => {
-    const { taken } = model.quests;
+    const taken = model.quests.taken.filter((t) => t.tracked); // those the journal hasn't hidden
     root.hidden = taken.length === 0;
     for (const [key, c] of cards) {
       if (taken.some((t) => t.quest.key === key)) continue;

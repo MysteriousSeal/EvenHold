@@ -141,9 +141,28 @@ export const isLoot = (item: BagItem): item is LootId => item in LOOT;
 export const bagIcon = (item: BagItem): MenuIcon => (isLoot(item) ? lootIcon(item) : gearIcon(item as ItemId));
 
 // The toolbar's icons: the hero's head and shoulders, a pouch for the bag,
-// an hourglass for the pause menu.
+// a book for the journal, an hourglass for the pause menu.
 export const heroBustIcon = (look: BodyLook): MenuIcon => (size) => voxelIcon(`bust:toolbar`, () => humanBust(look, {}), size);
 export const bagToolIcon: MenuIcon = (size) => lootIcon('tornPouch')(size);
+export const journalIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'tool:journal',
+    () => {
+      // Leather 1, its dark spine 2, pages 3, gold 4, a red ribbon 5: a closed book standing, a gold "!" on its cover.
+      const grid = createGrid([8, 11, 4]);
+      fillBox(grid, 0, 0, 0, 6, 10, 3, 1); // the covers
+      fillBox(grid, 0, 0, 0, 0, 10, 3, 2); // the spine
+      fillBox(grid, 1, 1, 1, 7, 9, 2, 3); // the pages, showing at the edge
+      fillBox(grid, 6, 0, 0, 6, 10, 0, 2);
+      fillBox(grid, 6, 0, 3, 6, 10, 3, 2);
+      for (const y of [1, 9]) fillBox(grid, 1, y, 3, 5, y, 3, 4); // gold bands on the front
+      fillBox(grid, 3, 5, 3, 3, 7, 3, 4); // the "!"
+      fillBox(grid, 3, 3, 3, 3, 3, 3, 4);
+      fillBox(grid, 4, 0, 1, 4, 0, 2, 5); // the ribbon, hanging out below
+      return { grid, palette: [0x8a3a24, 0x5a2416, 0xf2e6c8, 0xf2b640, 0xc8302a], alpha: 1 };
+    },
+    size,
+  );
 export const pauseIcon: MenuIcon = (size) =>
   voxelIcon(
     'tool:pause',

@@ -496,3 +496,9 @@
   cursor: pointer;
 }
 .quest-abandon:hover { background: rgba(192, 84, 58, 0.12); }
+
+/* The quest journal (journal.ts): a side panel on the left, narrower than
+   a board's window; Abandon lit in clay once it asks to be sure. */
+.menu-backdrop.place-left .menu:has(.journal-head) { width: min(640px, 100%); }
+.menu:has(.journal-head) .menu-detail { flex-basis: 250px; width: 250px; min-height: 440px; }
+.quest-abandon.armed { color: #fff; background: var(--clay); border-color: var(--clay-dark); }
