@@ -21,7 +21,23 @@ const NEAR = 14; // tiles from the village, the nearest a quest's foes gather
 const FAR = 26; // and the farthest
 const DIRECTIONS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 
-export type QuestFoe = 'wolf' | 'bandit'; // what quests ask to be slain (or robbed)
+export type QuestFoe = 'wolf' | 'bandit' | 'boar'; // what quests ask to be slain (or robbed)
+
+// Per foe: how often a quest is about it (weights), what it pays in copper
+// per foe and level, and what they're called, several of them.
+const FOES: Record<QuestFoe, { weight: number; pay: number; plural: string }> = {
+  wolf: { weight: 0.45, pay: 5, plural: 'wolves' },
+  bandit: { weight: 0.3, pay: 7, plural: 'bandits' },
+  boar: { weight: 0.25, pay: 6, plural: 'boars' },
+};
+const FOE_KINDS = Object.keys(FOES) as QuestFoe[];
+
+// A foe for a quest, from a roll in 0..1, by the weights.
+function foeOf(roll: number): QuestFoe {
+  let left = roll * FOE_KINDS.reduce((sum, f) => sum + FOES[f].weight, 0);
+  for (const foe of FOE_KINDS) if ((left -= FOES[foe].weight) < 0) return foe;
+  return FOE_KINDS[FOE_KINDS.length - 1];
+}
 
 export interface Quest {
   key: string; // `${board}:${n}`: which board, and which of its quests
@@ -50,7 +66,7 @@ export interface QuestWorld {
 export function questAt(world: QuestWorld, board: number, n: number): Quest {
   const village = world.villages[board];
   const roll = (salt: number) => hashUnit(board * 131 + n, world.seed % 1_000_003, 200 + salt);
-  const foe: QuestFoe = roll(1) < 0.55 ? 'wolf' : 'bandit';
+  const foe = foeOf(roll(1));
   const kind = roll(2) < 0.5 ? 'kill' : 'collect';
   // A spot out beyond the village, open ground (trying a few directions).
   let x = village.x;
@@ -76,19 +92,19 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   const perFoe = enemyPower(foe, level).xp;
   const foes = kind === 'kill' ? count : Math.ceil(count / dropChance);
   const xp = Math.round(perFoe * foes * 1.5);
-  const copper = Math.round((foe === 'bandit' ? 7 : 5) * level * foes + COPPER_PER_SILVER * 0.2 * level);
+  const copper = Math.round(FOES[foe].pay * level * foes + COPPER_PER_SILVER * 0.2 * level);
   return { key: `${board}:${n}`, board, kind, foe, count, item, dropChance, x, z, where, level, copper, xp };
 }
 
 // What the quest asks, in a line: "Slay 6 wolves" / "Bring 4 wolf pelts".
 export function questTitle(quest: Quest): string {
-  if (quest.kind === 'kill') return `Slay ${quest.count} ${quest.foe === 'wolf' ? 'wolves' : 'bandits'}`;
+  if (quest.kind === 'kill') return `Slay ${quest.count} ${FOES[quest.foe].plural}`;
   return `Bring ${quest.count} ${PLURALS[quest.item!]}`;
 }
 
 // A quest's progress, for floating text: "4/6 wolves", and whether that's all.
 export function questProgress(quest: Quest, have: number): { text: string; done: boolean } {
-  const what = quest.kind === 'kill' ? (quest.foe === 'wolf' ? 'wolves' : 'bandits') : PLURALS[quest.item!];
+  const what = quest.kind === 'kill' ? FOES[quest.foe].plural : PLURALS[quest.item!];
   return { text: `${Math.min(have, quest.count)}/${quest.count} ${what}`, done: have >= quest.count };
 }
 

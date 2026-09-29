@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt } from '../src/model/quests/quests';
+import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
 import { RESPAWN_EVERY } from '../src/model/quests/questBook';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -75,7 +75,7 @@ describe('quests', () => {
     slay(model, quest.key);
     const taken = model.quests.takenOf(quest.key)!;
     expect(taken.kills).toBe(1);
-    expect(model.takeEvents().some((e) => e.kind === 'quest' && e.text === '1/3 wolves'.replace('wolves', quest.foe === 'wolf' ? 'wolves' : 'bandits'))).toBe(true);
+    expect(model.takeEvents().some((e) => e.kind === 'quest' && e.text === questProgress(quest, 1).text)).toBe(true); // "1/3 boars", or whichever
     expect(model.slain.size).toBe(0); // a quest's foes aren't the world's
     // Two left to slay, five about (more than the four wanted): none comes back.
     model.quests.update(RESPAWN_EVERY + 1);
@@ -161,6 +161,16 @@ describe('quests', () => {
     expect([model.quests.progress(a), model.quests.progress(b)]).toEqual([4, 2]); // not 4 and 5 from the same six
     expect(model.quests.handIn(first.key)).toBe(true);
     expect(model.quests.progress(b)).toBe(2); // still its two
+  });
+
+  it('sends the hero after boars too, for their hides, bristles, truffles and tusks', () => {
+    const quests = TEST_SEEDS.flatMap((seed) => {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      return model.villages.flatMap((_, board) => model.quests.offersAt(board));
+    });
+    const boars = quests.filter((q) => q.foe === 'boar');
+    expect(boars.length).toBeGreaterThan(0);
+    for (const q of boars) if (q.item) expect(['boarHide', 'bristleTuft', 'wildTruffle', 'greatTusk']).toContain(q.item);
   });
 
   it('asks for more than a pelt and a token across the boards', () => {

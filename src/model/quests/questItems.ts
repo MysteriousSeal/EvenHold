@@ -16,6 +16,10 @@ export const QUEST_ITEMS = {
   redBandanna: item('Red bandanna'),
   lockpicks: item('Lockpicks'),
   stolenLetter: item('Stolen letter'),
+  boarHide: item('Boar hide'),
+  bristleTuft: item('Bristle tuft'),
+  wildTruffle: item('Wild truffle'), // what they root up
+  greatTusk: item('Great tusk'), // not the junk "Boar tusk" (junk.ts)
 } satisfies Record<string, LootEntry>;
 
 export type QuestItemId = keyof typeof QUEST_ITEMS;
@@ -25,6 +29,7 @@ export const isQuestItem = (item: string): item is QuestItemId => item in QUEST_
 export const QUEST_ITEMS_OF: Record<QuestFoe, readonly QuestItemId[]> = {
   wolf: ['wolfPelt', 'alphaFang', 'wolfClaw', 'wolfTail'],
   bandit: ['banditToken', 'redBandanna', 'lockpicks', 'stolenLetter'],
+  boar: ['boarHide', 'bristleTuft', 'wildTruffle', 'greatTusk'],
 };
 
 // Several of an item, in words: "wolf pelts", "lockpicks".
@@ -37,4 +42,8 @@ export const PLURALS: Record<QuestItemId, string> = {
   redBandanna: 'red bandannas',
   lockpicks: 'sets of lockpicks',
   stolenLetter: 'stolen letters',
+  boarHide: 'boar hides',
+  bristleTuft: 'bristle tufts',
+  wildTruffle: 'wild truffles',
+  greatTusk: 'great tusks',
 };
