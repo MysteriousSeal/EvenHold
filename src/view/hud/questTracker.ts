@@ -2,8 +2,8 @@
 // frame (styles in hud.css): a card each, with what it asks, a bar of how
 // far along it is, and where to go: an arrow turned toward it on screen
 // (the nearest marked foe, else the spot they gather; once done, back to
-// its board) and how far off, in meters. Indoors, where the
-// world's out of sight, only the words.
+// its board) and how far off, in meters. Indoors, the arrow points to the
+// room's door (the way out to it), and says so.
 
 import type { GameModel } from '../../model/GameModel';
 import { noticeBoards } from '../../model/quests/noticeBoards';
@@ -105,11 +105,11 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       if (root.children[i] !== c.root) root.insertBefore(c.root, root.children[i] ?? null); // in the order taken (moved only when out of place)
       const have = model.quests.progress(t);
       const done = have >= t.quest.count;
-      const to = goal(t, done);
+      const inside = model.inside;
+      const to = inside ? { x: inside.room.door, z: inside.room.depth - 0.5 } : goal(t, done); // indoors: the way out
       const tiles = Math.hypot(to.x - hero.x, to.z - hero.z);
-      const outdoors = !model.inside;
-      const here = outdoors && tiles <= HERE;
-      const distance = outdoors ? (here ? 'here' : inMeters(tiles)) : '';
+      const here = !inside && tiles <= HERE;
+      const distance = inside ? 'exit' : here ? 'here' : inMeters(tiles);
       const text = `${questTitle(t.quest)}|${have}|${distance}|${done}`;
       if (text !== c.shown) {
         c.shown = text;
@@ -119,8 +119,8 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
         c.distance.textContent = distance;
         c.root.classList.toggle('done', done);
       }
-      c.arrow.hidden = !outdoors || here;
-      if (outdoors && !here) {
+      c.arrow.hidden = here;
+      if (!here) {
         const a = toScreen(to.x, hero.y, to.z);
         const b = toScreen(hero.x, hero.y, hero.z);
         c.arrow.style.transform = `rotate(${Math.atan2(a.x - b.x, b.y - a.y)}rad)`;
