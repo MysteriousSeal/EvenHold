@@ -7,12 +7,14 @@
 import { BLESSINGS, type BlessingKind } from '../../model/hero/blessing';
 import type { Hero } from '../../model/types';
 import { gearIcon } from '../ui/itemIcons';
+import { voxelIcon } from '../ui/voxelIcon';
+import { armModel, bootModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
 
-// Each blessing's picture, from what's already drawn: boots, a war hammer, a shield, a gold coin.
+// Each blessing's picture: a winged boot and a flexed arm (blessingVoxels.ts), a shield, a gold coin.
 const ICONS: Record<BlessingKind, MenuIcon> = {
-  swift: gearIcon('leatherBoots'),
-  strong: gearIcon('warHammer'),
+  swift: (size) => voxelIcon('blessing:swift', bootModel, size),
+  strong: (size) => voxelIcon('blessing:strong', armModel, size),
   tough: gearIcon('heaterShield'),
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger
