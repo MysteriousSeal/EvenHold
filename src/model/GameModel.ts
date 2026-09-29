@@ -268,7 +268,7 @@ export class GameModel {
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
     if (target.state === 'dead') {
-      if (target.quest === undefined && target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes aren't the world's
+      if (target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes (even let go) aren't the world's
       gainXp(this.hero, target.xp);
       const wanted = this.quests.onKill(target);
       if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);

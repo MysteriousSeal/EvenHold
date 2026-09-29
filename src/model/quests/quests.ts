@@ -89,5 +89,5 @@ export function questProgress(quest: Quest, have: number): { text: string; done:
 }
 
 // A distance in tiles, told in meters (a tile is two): "40 m".
-export const METERS_PER_TILE = 2;
+const METERS_PER_TILE = 2;
 export const inMeters = (tiles: number) => `${Math.round(tiles * METERS_PER_TILE)} m`;

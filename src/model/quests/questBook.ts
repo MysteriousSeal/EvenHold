@@ -1,8 +1,8 @@
 // The hero's dealings with the notice boards: what each board offers (its
 // six quests, all it will ever have: once one's handed in it's done for
 // good, and a board whose six are done has nothing more), the quests
-// taken (ten at most, three from any one board), and the foes each gathers where it sends the hero,
-// marked for it. While a quest isn't done its pack is kept up: a marked foe
+// taken (ten at most, three from any one board), and the foes each
+// gathers where it sends the hero, marked for it. While a quest isn't done its pack is kept up: a marked foe
 // slain comes back a minute later, so there's always something to hunt.
 // Slaying marked foes counts for "slay" quests; for "bring" quests they drop
 // what's wanted now and then, and what's in the bag counts.
@@ -246,7 +246,7 @@ export class QuestBook {
     for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key)) this.completed.add(key);
     for (const { key, kills, gathered, tracked } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);
-      if (!valid(key) || this.full || this.takenOf(key) || this.completed.has(key)) continue;
+      if (!valid(key) || this.full || this.fullAt(board) || this.takenOf(key) || this.completed.has(key)) continue;
       const quest = questAt(this.host, board, n);
       const taken = { quest, kills: whole(kills) ? Math.min(kills, quest.count) : 0, respawnIn: RESPAWN_EVERY, tracked: tracked !== false && this.tracked < MAX_TRACKED };
       this.taken.push(taken);

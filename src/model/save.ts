@@ -44,9 +44,10 @@ export interface SaveData {
   coins: Array<{ amount: number; x: number; z: number }>;
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
-  quests?: ReturnType<QuestBook['save']>; // the boards' offers, and the quests taken
+  quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 
+const MAX_BAG_SLOTS = 256; // a saved bag order longer than any bag is cut there
 const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a tile: plenty, and a smaller save
 
 // The game as it stands, to save.
@@ -120,7 +121,7 @@ export function restore(model: GameModel, data: SaveData): void {
     look: { ...saved.look },
     equipment,
     bag,
-    bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
+    bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),
