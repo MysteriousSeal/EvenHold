@@ -32,9 +32,11 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     const { quest } = t;
     const have = quests.progress(t);
     const slot: MenuSlot = {
+      key: quest.key,
       icon: questIcon(quest),
       title: questTitle(quest),
-      badge: have >= quest.count ? '✓ Done' : `${have}/${quest.count}`,
+      badge: have >= quest.count ? '✓ Ready' : `${have}/${quest.count}`,
+      badgeTone: have >= quest.count ? 'ready' : 'progress',
       note: cap(quest.where),
       check: {
         on: t.tracked,
@@ -127,7 +129,23 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     keyHints: false,
     modal: false,
     place: 'left',
-    tabs: [{ name: 'Quests', slots: () => ({ cells: quests.taken.map(slotOf), columns: 1, rows: true }), detail, header }],
+    tabs: [
+      {
+        name: 'Quests',
+        // Those ready to hand in first (the next thing to do), then those under way, each under its header.
+        slots: () => {
+          const ready = quests.taken.filter((t) => quests.done(t));
+          const going = quests.taken.filter((t) => !quests.done(t));
+          const sections = [
+            ...(ready.length ? [{ title: `Ready to hand in · ${ready.length}`, from: 0 }] : []),
+            ...(going.length ? [{ title: `In progress · ${going.length}`, from: ready.length }] : []),
+          ];
+          return { cells: [...ready, ...going].map(slotOf), columns: 1, rows: true, sections };
+        },
+        detail,
+        header,
+      },
+    ],
   });
   // Kept up with the hunt while open: redrawn when a quest moves along.
   let seen = '';

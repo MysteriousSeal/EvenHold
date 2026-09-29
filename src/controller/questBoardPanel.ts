@@ -24,9 +24,11 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const taken = quests.takenOf(q.key);
     const have = taken ? quests.progress(taken) : 0;
     const slot: MenuSlot = {
+      key: q.key,
       icon: questIcon(q),
       title: questTitle(q),
-      badge: quests.isCompleted(q.key) ? 'Completed' : taken ? (have >= q.count ? '✓ Done' : `${have}/${q.count}`) : undefined,
+      badge: quests.isCompleted(q.key) ? 'Completed' : taken ? (have >= q.count ? '✓ Ready' : `${have}/${q.count}`) : undefined,
+      badgeTone: quests.isCompleted(q.key) ? 'past' : taken ? (have >= q.count ? 'ready' : 'progress') : undefined,
       dim: quests.isCompleted(q.key), // done for good: shown, faded
       tag: coinParts(q.copper),
       note: `${q.where.replace(/^./, (c) => c.toUpperCase())} · level ${q.level}`,
@@ -130,8 +132,22 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     tabs: [
       {
         name: 'Notices',
+        // In sections, what to do next first: ready to hand in, under way, still to take, then those done for good.
         slots: () => {
-          return { cells: quests.offersAt(board).map(slotOf), columns: 1, rows: true };
+          const state = (q: Quest) => {
+            const taken = quests.takenOf(q.key);
+            return quests.isCompleted(q.key) ? 3 : taken ? (quests.done(taken) ? 0 : 1) : 2;
+          };
+          const titles = ['Ready to hand in', 'In progress', 'Available', 'Completed'];
+          const offers = quests.offersAt(board);
+          const groups = titles.map((_, i) => offers.filter((q) => state(q) === i));
+          const sections: Array<{ title: string; from: number }> = [];
+          let from = 0;
+          groups.forEach((group, i) => {
+            if (group.length) sections.push({ title: `${titles[i]} · ${group.length}`, from });
+            from += group.length;
+          });
+          return { cells: groups.flat().map(slotOf), columns: 1, rows: true, sections };
         },
         detail,
         header,
