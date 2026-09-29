@@ -57,7 +57,6 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       facts.append(dt, dd);
     };
     fact('Progress', [done ? 'Done' : questProgress(quest, have).text]);
-    fact('Where', [cap(quest.where)]);
     const danger = document.createElement('span');
     danger.className = 'quest-danger';
     danger.dataset.difficulty = difficulty(quest.level, model.hero.level);

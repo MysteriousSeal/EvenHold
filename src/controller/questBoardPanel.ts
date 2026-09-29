@@ -5,7 +5,7 @@
 // A window in the middle of the screen; the game waits while it's open.
 
 import type { GameModel } from '../model/GameModel';
-import { MAX_ACTIVE, questProgress, questTitle, type Quest } from '../model/quests/quests';
+import { MAX_ACTIVE, MAX_PER_BOARD, questProgress, questTitle, type Quest } from '../model/quests/quests';
 import { noticeBoards } from '../model/quests/noticeBoards';
 import { coinParts } from '../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
@@ -73,7 +73,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       return pane;
     }
 
-    const why = !taken && quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : '';
+    const why = taken ? '' : quests.full ? `You've taken ${MAX_ACTIVE} quests already.` : quests.fullAt(q.board) ? `You've taken ${MAX_PER_BOARD} quests from this board already.` : '';
     const unfinished = !!taken && !done; // its progress shows above: the button just waits
     const buttons = document.createElement('div');
     buttons.className = 'quest-buttons';
@@ -104,20 +104,21 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     return pane;
   };
 
-  // How many quests are taken, as pins: gold for each, empty for the rest.
+  // How many quests are taken from this board, as pins (gold for each, empty
+  // for the rest), and how many in all.
   const header = () => {
     const row = document.createElement('div');
     row.className = 'quest-board-head';
     const pins = document.createElement('span');
     pins.className = 'quest-pins';
-    for (let i = 0; i < MAX_ACTIVE; i++) {
+    for (let i = 0; i < MAX_PER_BOARD; i++) {
       const pin = document.createElement('i');
-      pin.classList.toggle('on', i < quests.taken.length);
+      pin.classList.toggle('on', i < quests.takenAt(board));
       pins.append(pin);
     }
     const left = quests.offersAt(board).filter((q) => !quests.isCompleted(q.key)).length;
     const lead = left > 0 ? 'Notices from the villagers. Take one on, then come back here once it is done.' : 'Every notice here has been seen to. There is nothing more to do.';
-    row.append(line('quest-board-lead', lead), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} taken`));
+    row.append(line('quest-board-lead', lead), pins, line('quest-taken', `${quests.takenAt(board)}/${MAX_PER_BOARD} here · ${quests.taken.length}/${MAX_ACTIVE} in all`));
     return row;
   };
 
