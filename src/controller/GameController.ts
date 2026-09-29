@@ -10,6 +10,7 @@ import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
+const MAX_STEP = 1 / 30; // the longest step the game takes at once (a sped-up frame is several)
 const WHEEL_STEP = 100; // scroll (in wheel deltas) to a zoom step
 
 // Uncapped frames are scheduled as message-channel tasks: unlike setTimeout
@@ -89,7 +90,11 @@ export class GameController {
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - this.lastTime) / 1000));
     this.lastTime = now;
 
-    this.step(dt * this.timeScale);
+    // Sped up (the game speed cheat), in small steps, so nothing moves far enough in one to pass through a wall.
+    let left = dt * this.timeScale;
+    do this.step(Math.min(left, MAX_STEP)); // at least once a frame (the first has no time to it)
+    while ((left -= MAX_STEP) > 1e-6);
+    if (!this.paused) this.view.render(); // once a frame, however many steps
     this.onFrame();
     this.schedule(this.tick);
   };
@@ -150,6 +155,5 @@ export class GameController {
     this.model.update(dirX, dirZ, dt);
     for (const event of this.model.takeEvents()) this.onEvent(event);
     this.view.update(dt);
-    this.view.render();
   }
 }

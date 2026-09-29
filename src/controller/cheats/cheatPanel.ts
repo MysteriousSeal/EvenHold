@@ -45,6 +45,7 @@ import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 
 const SPEED_BOOST = 3;
+const SPEEDS = [1, 2, 3, 4, 10]; // the game speed cheat's steps
 const NEARBY = 15; // tiles, for "nearby foes"
 
 // `time`: the game's speed (a multiple of real time), to read and set.
@@ -131,9 +132,9 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           {
             icon: ICON.freeze,
             title: 'Game speed',
-            detail: 'Each click, faster: ×1, ×2, ×3, ×4',
+            detail: 'Each click, faster: ×1, ×2, ×3, ×4, ×10',
             current: () => ({ value: `×${time.scale}` }),
-            run: () => ((time.scale = time.scale >= 4 ? 1 : time.scale + 1), `The game runs at ×${time.scale}.`),
+            run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
           },
           { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
           {
