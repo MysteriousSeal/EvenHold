@@ -301,3 +301,45 @@
 .quest-card-distance { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: #6a5238; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .quest-card.done .quest-card-bar i { background: #3dbdb8; box-shadow: inset 0 -3px 0 #217c98; }
 .quest-card.done .quest-card-distance { color: #217c98; }
+
+/* A well's blessing in the top right corner (blessingHud.ts): its icon on
+   a sand card like the hero's portrait, the time left in a green pill on its
+   corner (as the level gem sits on the portrait's); its name and what it
+   does on hover. */
+.blessing-hud { position: fixed; top: 16px; right: 22px; display: flex; gap: 22px; font-family: 'Fredoka', system-ui, sans-serif; }
+.blessing-card { position: relative; }
+.blessing-hud-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  background: #efdcb8;
+  border: 3px solid #2e1f14;
+  box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -8px 0 #d6bb8e;
+}
+.blessing-hud-icon canvas { display: block; }
+.blessing-hud-time {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  min-width: 32px;
+  height: 26px;
+  padding: 0 7px 3px 5px; /* the shaded inner edge takes 3px right and below: center in what's left */
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 1px 1px 0 #2e1f14;
+  background: #5aa84a;
+  border: 2px solid #2e1f14;
+  box-shadow: inset -3px -3px 0 #3a7a2e;
+}
+.blessing-tip { position: absolute; top: calc(100% + 16px); right: 0; padding: 5px 10px; font-size: 14px; white-space: nowrap; visibility: hidden; display: flex; flex-direction: column; gap: 2px; }
+.blessing-card:hover .blessing-tip { visibility: visible; }
+.blessing-tip b { color: #ffd35a; font-weight: 700; }
+.blessing-tip span { color: #f8ecd4; font-weight: 500; }
+.blessing-coin { width: 28px; height: 28px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }

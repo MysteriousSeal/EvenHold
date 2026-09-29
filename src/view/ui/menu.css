@@ -377,7 +377,8 @@
 .menu-tooltip,
 .loot-prompt,
 .loot-toast,
-.toolbar-tip {
+.toolbar-tip,
+.blessing-tip {
   font-family: 'Fredoka', system-ui, sans-serif;
   color: #f8ecd4;
   background: rgba(38, 26, 17, 0.94);
