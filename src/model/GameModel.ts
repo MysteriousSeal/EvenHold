@@ -31,13 +31,15 @@ import { stepHop, type Hop } from './hero/hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, takeFromBag, type BagItem } from './hero/bag';
 import { coinDrop, collectCoins, type GroundCoins } from './hero/money';
-import { ITEMS, wear, type EquipSlot, type ItemId } from './human/equipment';
+import type { EquipSlot, ItemId } from './human/equipment';
+import { putOn, takeOff } from './hero/wearing';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './roads';
 import { ENTER_RANGE, entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
-import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside } from './interiors/indoors';
+import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
+import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './npcs/tavernShop';
@@ -75,6 +77,7 @@ export class GameModel {
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
   // Where the hero is while indoors (indoors.ts); null outdoors.
   inside: Inside | null = null;
+  readonly outdoors: { seated: Seated } = { seated: null }; // on a bench, on a village square
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
@@ -138,7 +141,7 @@ export class GameModel {
   // Starts a blow unless one is already under way (returns whether it did),
   // turned to face the focused enemy if it's close by.
   startAttack(): boolean {
-    if (this.attackElapsed !== null || this.inside?.seated) return false;
+    if (this.attackElapsed !== null || this.seated) return false;
     this.attackElapsed = 0;
     this.attackLanded = false;
     const focus = this.focused;
@@ -157,6 +160,7 @@ export class GameModel {
   // (outdoors, leaving any room they were in).
   teleport(x: number, z: number): void {
     this.inside = null;
+    this.outdoors.seated = null;
     this.hero.x = x;
     this.hero.z = z;
     this.hero.y = this.getGroundY(x, z);
@@ -194,7 +198,8 @@ export class GameModel {
       recover(this.hero, dt, !!this.inside?.seated?.seat.lying); // asleep in a bed, the only rest that heals
       return;
     }
-    this.moveHorizontally(dirX, dirZ, dt);
+    if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
+    if (!this.outdoors.seated) this.moveHorizontally(dirX, dirZ, dt);
     this.advanceAttack(dt);
     this.director.update(dt);
     this.quests.update(dt);
@@ -205,7 +210,7 @@ export class GameModel {
     stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
-    ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
+    if (!this.outdoors.seated) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
   }
 
   // Moves the current blow along; outdoors it lands partway through (there's
@@ -315,28 +320,14 @@ export class GameModel {
     return true;
   }
 
-  // Takes off what's worn in `slot`, into the bag; returns whether there was something.
-  unequip(slot: EquipSlot): boolean {
-    const item = this.hero.equipment[slot];
-    if (!item) return false;
-    delete this.hero.equipment[slot];
-    addToBag(this.hero.bag, item);
-    return true;
-  }
+  // Gear taken off into the bag, or worn from it (hero/wearing.ts); each returns whether it was.
+  unequip = (slot: EquipSlot): boolean => takeOff(this.hero, slot);
+  equipFromBag = (item: ItemId): boolean => putOn(this.hero, item);
 
   // Takes off what's worn in `slot` and puts it on the ground in front of the hero.
   dropEquipped(slot: EquipSlot): boolean {
     const item = this.hero.equipment[slot];
     return !!item && this.unequip(slot) && this.dropFromBag(item);
-  }
-
-  // Wears `item` from the bag, putting what was in its slot back in the bag;
-  // returns whether the bag had one.
-  equipFromBag(item: ItemId): boolean {
-    if (!takeFromBag(this.hero.bag, item)) return false;
-    this.unequip(ITEMS[item].slot);
-    wear(this.hero.equipment, item);
-    return true;
   }
 
   // The door the hero can use right now: outdoors, one whose spot they stand
@@ -382,6 +373,7 @@ export class GameModel {
   private enterRoom(entrance: Entrance): void {
     const { room, furniture } = layoutOf(this.seed, entrance);
     this.inside = { entrance, room, furniture, seated: null };
+    this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusedId = null;
     this.hop = null;
@@ -398,21 +390,27 @@ export class GameModel {
     if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * dt, bumps) === 'door') this.useDoor();
   }
 
-  // The seat the hero could sit on right now, or null (outdoors, or seated).
+  // Where the hero sits (indoors, or on a bench outdoors), or null standing.
+  get seated(): Seated {
+    return (this.inside ?? this.outdoors).seated;
+  }
+
+  // The free seat the hero could sit on right now (in the room, or a bench's), or null (seated).
   get seatInReach(): Seat | null {
-    return this.inside ? seatInReach(this.inside, this.hero, (piece) => this.npcs.some((n) => n.seat?.piece === piece)) : null;
+    const taken = (piece: Seat['piece']) => this.npcs.some((n) => n.seat?.piece === piece);
+    if (this.inside) return seatInReach(this.inside, this.hero, taken);
+    return this.outdoors.seated ? null : benchSeatInReach(squareBenches(this), this.hero, (seat) => taken(seat.piece)); // the squares' benches
   }
 
   // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
   sitOrStand(): boolean {
-    const inside = this.inside;
-    if (!inside) return false;
-    if (inside.seated) {
-      standUp(inside, this.hero);
+    const at = this.inside ?? this.outdoors;
+    if (at.seated) {
+      standUp(at, this.hero, this.inside ? 0 : this.getGroundY(at.seated.from.x, at.seated.from.z));
       return true;
     }
     const seat = this.seatInReach;
-    if (seat) sitDown(inside, this.hero, seat);
+    if (seat) sitDown(at, this.hero, seat);
     return !!seat;
   }
 

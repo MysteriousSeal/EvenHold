@@ -16,8 +16,11 @@ export interface Inside {
   entrance: Entrance;
   room: Room;
   furniture: Furniture[];
-  seated: { seat: Seat; from: { x: number; z: number } } | null;
+  seated: Seated;
 }
+
+// Where the hero's sitting (or lying), and the spot they sat down from; null standing.
+export type Seated = { seat: Seat; from: { x: number; z: number } } | null;
 
 // A building's room and its furniture, rolled once and shared by everyone
 // in it (the hero and villagers alike, so a seat taken is the same seat).
@@ -76,20 +79,22 @@ export function seatInReach(inside: Inside, hero: Hero, taken: (piece: Furniture
   return best;
 }
 
-// Sits the hero down on `seat`, facing the way it faces (or lays them in bed).
-export function sitDown(inside: Inside, hero: Hero, seat: Seat): void {
-  inside.seated = { seat, from: { x: hero.x, z: hero.z } };
+// Sits the hero down on `seat`, facing the way it faces (or lays them in
+// bed); `at` keeps where (a room, or outdoors on a bench).
+export function sitDown(at: { seated: Seated }, hero: Hero, seat: Seat): void {
+  at.seated = { seat, from: { x: hero.x, z: hero.z } };
   hero.x = seat.x;
   hero.z = seat.z;
   hero.y = seat.y;
   hero.facing = seat.facing;
 }
 
-// Gets the hero up, back onto the spot they sat down from.
-export function standUp(inside: Inside, hero: Hero): void {
-  if (!inside.seated) return;
-  hero.x = inside.seated.from.x;
-  hero.z = inside.seated.from.z;
-  hero.y = 0;
-  inside.seated = null;
+// Gets the hero up, back onto the spot they sat down from, on the floor
+// (or the ground, outdoors: `y`).
+export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
+  if (!at.seated) return;
+  hero.x = at.seated.from.x;
+  hero.z = at.seated.from.z;
+  hero.y = y;
+  at.seated = null;
 }

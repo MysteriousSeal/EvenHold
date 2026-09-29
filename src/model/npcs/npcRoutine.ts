@@ -1,7 +1,8 @@
 // A villager's day, one step at a time (npcs.ts NpcStep). At each stop of
 // the routine they get their steps: to go home or to the inn, out of where
 // they are, to its door, in, and settling down there a while; to the
-// square, out and to two spots on it in turn, pausing at each; to a
+// square, out and to two spots on it in turn, pausing at each (the
+// second, sometimes, a free seat on one of its benches); to a
 // farmer's field, out and to a few spots in it, working each a while. Settling
 // takes a free seat (a chair, an armchair, a bar stool, or at home their
 // bed), else somewhere to stand.
@@ -19,14 +20,16 @@ import type { Point } from '../obstacles';
 import type { Field, Village } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
-import { layoutOf, type Inside } from '../interiors/indoors';
+import { layoutOf, type Inside, type Seated } from '../interiors/indoors';
+import { squareBenches, type BenchWorld } from '../worldgen/benches';
 import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from './innStaff';
 
-export interface NpcWorld {
+export interface NpcWorld extends BenchWorld {
   seed: number;
   hero: { x: number; z: number };
   inside: Inside | null; // the hero's
+  outdoors: { seated: Seated }; // the hero on a bench
   isBlocked(x: number, z: number, r: number): boolean;
   isOpenTile(x: number, z: number): boolean;
   getGroundY(x: number, z: number): number;
@@ -43,6 +46,8 @@ const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
 const FIELD_WORK: [number, number] = [6, 14]; // seconds at each spot in a field
 const SIT_CHANCE = 0.75;
+const BENCH_CHANCE = 0.5; // of sitting on a bench, for the second spot on the square
+const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to sit down
 const EASE_SPEED = 1.2; // how fast a villager eases off the hero, when they overlap
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
@@ -99,7 +104,11 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   }
   if (stop === 'square') {
     leave();
-    for (const k of [0, 1]) steps.push({ kind: 'go', to: squareSpot(npc, world, k) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 10 + k) });
+    steps.push({ kind: 'go', to: squareSpot(npc, world, 0) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 10) });
+    const seat = roll(npc, 17) < BENCH_CHANCE ? benchSeat(npc, npcs, world) : null;
+    const [fx, fz] = seat?.piece.facing ?? [0, 0];
+    if (seat) steps.push({ kind: 'go', to: { x: seat.x + fx * BEFORE_BENCH, z: seat.z + fz * BEFORE_BENCH } }, { kind: 'sit', seat, for: between(npc, SQUARE_WAIT, 11) });
+    else steps.push({ kind: 'go', to: squareSpot(npc, world, 1) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 11) });
     return steps;
   }
   const building = stop === 'inn' && npc.inn ? npc.inn : npc.home;
@@ -137,10 +146,24 @@ function squareSpot(npc: Npc, world: NpcWorld, k: number): Point {
   return { x: npc.home.x, z: npc.home.z };
 }
 
-// Whether someone else is on a piece of furniture, or on their way to it.
-function claimed(piece: Furniture, npc: Npc, npcs: readonly Npc[], world: NpcWorld): boolean {
-  if (world.inside?.entrance === npc.where && world.inside?.seated?.seat.piece === piece) return true;
-  return npcs.some((o) => o !== npc && o.where === npc.where && (o.seat?.piece === piece || o.steps.some((s) => s.kind === 'sit' && s.seat.piece === piece)));
+// A free seat on one of their village's benches, picked from the routine; else null.
+function benchSeat(npc: Npc, npcs: readonly Npc[], world: NpcWorld): Seat | null {
+  const seats = squareBenches(world)
+    .filter((b) => world.villages[b.village] === npc.village)
+    .flatMap((b) => b.seats)
+    .filter((seat) => !claimed(seat.piece, npc, npcs, world, null)); // outdoors, wherever they are now
+  return seats[Math.floor(roll(npc, 18) * seats.length)] ?? null;
+}
+
+// Whether the hero's on a piece of furniture (or a bench seat), where `where` is.
+function heroOnPiece(world: NpcWorld, where: Entrance | null, piece: Furniture): boolean {
+  return where ? world.inside?.entrance === where && world.inside.seated?.seat.piece === piece : world.outdoors.seated?.seat.piece === piece;
+}
+
+// Whether someone else is on a piece of furniture (in `where`: a room, or null outdoors), or on their way to it.
+function claimed(piece: Furniture, npc: Npc, npcs: readonly Npc[], world: NpcWorld, where = npc.where): boolean {
+  if (heroOnPiece(world, where, piece)) return true;
+  return npcs.some((o) => o !== npc && (o.seat?.piece === piece || o.steps.some((s) => s.kind === 'sit' && s.seat.piece === piece)));
 }
 
 // Settling in a room: a free seat (their own bed only at home) and the free
@@ -244,6 +267,10 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for));
       return;
     case 'sit':
+      if (npc.waited === 0 && heroOnPiece(world, npc.where, step.seat.piece)) {
+        npc.steps.splice(0, 1, { kind: 'wait', for: step.for }); // the hero took it meanwhile: stand instead
+        return;
+      }
       if (npc.waited === 0) {
         npc.stood = { x: npc.x, z: npc.z };
         npc.seat = step.seat;

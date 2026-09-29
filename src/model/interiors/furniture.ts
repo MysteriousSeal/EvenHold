@@ -30,6 +30,7 @@ export type FurnitureKind =
   | 'armchair'
   | 'bearRug'
   | 'barStool'
+  | 'bench' // on the village squares, outdoors (worldgen/benches.ts)
   | 'bottleShelf'
   | 'tavernTable'
   | 'antlers'
