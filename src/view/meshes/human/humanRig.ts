@@ -37,7 +37,7 @@ import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 import { PROVISION_MODELS } from '../loot/provisionVoxels';
 
 const V = HUMAN_VOXEL_SIZE;
-const DRINK_TIME = 2.2; // seconds an ale takes, raised to the lips
+export const DRINK_TIME = 2.2; // seconds an ale takes, raised to the lips
 const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth
 const HOLD_ARM = -0.7; // the right arm's swing, carrying a tankard out before them
 const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand

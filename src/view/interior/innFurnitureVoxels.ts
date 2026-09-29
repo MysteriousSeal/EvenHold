@@ -10,15 +10,14 @@ export type InnKind = 'counter' | 'keg' | 'armchair' | 'bearRug' | 'barStool' | 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
   // middle of its tiles), panelled on the customers' side, under a thick
-  // overhanging top with a lit edge, a brass foot rail along its foot, and
-  // tankards and empty mugs standing on it.
+  // overhanging top with a lit edge, and a brass foot rail along its foot;
+  // bare on top (the barmaid brings drinks as they're ordered).
   counter: (box, len) => {
     box(1, 1, 9, len - 2, 2, 16, WOOD_DARK); // kick plinth
     box(1, 3, 8, len - 2, 11, 16, (u, y, v) => (v === 16 && (u % 10 === 0 || y === 3 || y === 11) ? WOOD_DARK : WOOD)); // panels, framed
     box(0, 12, 7, len - 1, 13, 18, (_u, y, v) => (y === 12 ? WOOD_DARK : v === 18 ? WOOD_LIGHT : WOOD)); // the top
     box(1, 4, 18, len - 2, 4, 18, BRASS); // foot rail
     for (let u = 4; u < len - 2; u += 12) box(u, 3, 17, u, 3, 17, BRASS_DARK); // its brackets
-    for (let u = 10, i = 0; u < len - 6; u += 30, i++) drink(box, u, 14, 10, i);
   },
   // A keg on its side on a wooden cradle, pointing out into the room: an
   // eight-sided body of staves (v along its length), two iron hoops, the
