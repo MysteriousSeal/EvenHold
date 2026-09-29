@@ -239,7 +239,7 @@
 .toolbar-button:hover .toolbar-tip { visibility: visible; }
 
 /* The quests taken (questTracker.ts), on the left under the hero's frame: sand cards in the HUD's
-   look, an ink tile with a gold arrow toward where to go, the quest's
+   look, a gold arrow at the right toward where to go, the quest's
    words and a chunky gold bar of how far along it is; turquoise once done. */
 .quest-tracker {
   position: fixed;
@@ -261,7 +261,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px 8px 8px;
+  flex-direction: row-reverse; /* the arrow at the right end */
+  padding: 8px 8px 8px 10px;
   background: #efdcb8;
   border: 2px solid #2e1f14;
   box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -4px 0 #d6bb8e;
