@@ -100,6 +100,7 @@
    portrait), its name over the health bar. */
 .target-hud[hidden] { display: none; }
 .target-hud .hero-hud-bar { width: 220px; }
+.target-hud.passive .hero-hud-hp i { background: #e0b830; } /* a passive foe's, as over its head */
 .target-hud-name {
   font-size: 16px;
   font-weight: 700;

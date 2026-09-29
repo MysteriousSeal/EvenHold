@@ -6,6 +6,13 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
+  // A boar's tusk: a dark root, curving up to an ivory point (stepped, on the grid).
+  boarTusk: model([0xf0e6cc, 0xc8bc98, 0x6a4a34], [5, 5, 2], (g) => {
+    fillBox(g, 0, 0, 0, 1, 0, 1, 3); // the root
+    fillBox(g, 2, 0, 0, 2, 1, 1, 2);
+    fillBox(g, 3, 1, 0, 3, 2, 1, 1); // curving up
+    fillBox(g, 4, 3, 0, 4, 4, 1, (_x, y) => (y === 4 ? 1 : 2)); // to the point
+  }),
   // A long ivory tooth, yellowed at the root, stepping to a point.
   wolfFang: model([0xefe6cc, 0xd6c79a, 0xfffbee], [3, 6, 3], (g) => {
     fillBox(g, 0, 0, 0, 2, 1, 2, 2);

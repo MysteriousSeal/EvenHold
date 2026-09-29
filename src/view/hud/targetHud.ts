@@ -2,20 +2,27 @@
 // portrait facing the hero (a wolf's head, or the bandit's own head and
 // shoulders, as dressed), its name and health. Hidden with no focus.
 
-import type { Enemy } from '../../model/types';
+import type { Enemy, EnemyKind } from '../../model/types';
 import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
+import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
+import { ENEMY_STATS } from '../../model/constants';
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
-const NAMES = { wolf: 'Wolf', bandit: 'Bandit' } as const;
+const NAMES = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar' } as const;
 
-function portrait(enemy: Enemy): HTMLCanvasElement {
-  if (enemy.kind === 'wolf') return voxelIcon('target:wolf', () => ({ grid: buildHead(), palette: WOLF_PALETTE }), PORTRAIT_SIZE);
-  const human = enemy.human!;
-  const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;
-  return voxelIcon(key, () => humanBust(human.look, human.equipment, 'left'), PORTRAIT_SIZE);
-}
+// Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
+const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
+  wolf: () => voxelIcon('target:wolf', () => ({ grid: buildHead(), palette: WOLF_PALETTE }), PORTRAIT_SIZE),
+  boar: () => voxelIcon('target:boar', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE }), PORTRAIT_SIZE),
+  bandit: (enemy) => {
+    const human = enemy.human!;
+    const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;
+    return voxelIcon(key, () => humanBust(human.look, human.equipment, 'left'), PORTRAIT_SIZE);
+  },
+};
+const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 
 // How dangerous an enemy is for a hero of `heroLevel`, by the gap in level.
 export function difficulty(level: number, heroLevel: number): string {
@@ -52,6 +59,7 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
       frame.querySelector('canvas')?.remove();
       frame.prepend(portrait(enemy));
       levelGem.textContent = String(enemy.level);
+      root.classList.toggle('passive', ENEMY_STATS[enemy.kind].passive); // a yellow bar: it only fights back
     }
     const max = enemy.maxHp;
     const hp = Math.max(0, enemy.hp);

@@ -3,22 +3,30 @@
 // they leave it or vanish.
 
 import * as THREE from 'three';
-import type { Enemy } from '../../../model/types';
+import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
 import { ENEMY_BURST } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { WolfRig, createWolfLook, type WolfLook } from './wolfRig';
+import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from './beastRig';
 import { pulseAuras, questAura } from '../quest/questMarks';
 
 const VIEW_RADIUS = 30;
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-type Rig = WolfRig | BanditRig;
+type Rig = BeastRig | BanditRig;
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
   private readonly flash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
-  private readonly wolfLook: WolfLook = createWolfLook(this.flash);
+  private readonly wolfLook: BeastLook = createBeastLook(WOLF_SPEC, this.flash);
+  private readonly boarLook: BeastLook = createBeastLook(BOAR_SPEC, this.flash);
+  // How each kind is drawn.
+  private readonly rigOf: Record<EnemyKind, (enemy: Enemy) => Rig> = {
+    wolf: () => new BeastRig(this.wolfLook),
+    boar: () => new BeastRig(this.boarLook),
+    bandit: (enemy) => new BanditRig(enemy, this.banditLook),
+  };
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Map<number, Rig>();
   private readonly marker = focusMarker();
@@ -32,7 +40,7 @@ export class EnemyViews {
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.banditLook.normal, this.flash, ENEMY_BURST];
+    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.flash, ENEMY_BURST];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.
@@ -49,7 +57,7 @@ export class EnemyViews {
       seen.add(enemy.id);
       let rig = this.rigs.get(enemy.id);
       if (!rig) {
-        rig = enemy.kind === 'wolf' ? new WolfRig(this.wolfLook) : new BanditRig(enemy, this.banditLook);
+        rig = this.rigOf[enemy.kind](enemy);
         this.rigs.set(enemy.id, rig);
         this.scene.add(rig.root);
       }
@@ -77,7 +85,7 @@ export class EnemyViews {
       return;
     }
     if (!mark) {
-      mark = questAura(enemy.kind === 'wolf' ? 19 : 15);
+      mark = questAura(AURA_SIZE[enemy.kind]);
       this.questMarks.set(enemy.id, mark);
       this.scene.add(mark);
     }

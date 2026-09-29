@@ -12,6 +12,7 @@ const BURST_AT = 0.7; // seconds after death when an enemy breaks apart
 
 // Shared by every enemy's bar and burst.
 export const ENEMY_BAR = new THREE.MeshBasicMaterial({ color: 0xd8342c });
+export const PASSIVE_BAR = new THREE.MeshBasicMaterial({ color: 0xe8c030 }); // a passive foe's: it only fights back
 export const ENEMY_BAR_EMPTY = new THREE.MeshBasicMaterial({ color: 0x3a2522 });
 export const ENEMY_BURST = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
 const BLOCK = new THREE.BoxGeometry(0.07, 0.035, 0.02);
@@ -68,8 +69,8 @@ export class HealthBar {
   readonly group = new THREE.Group();
   private blocks: THREE.Mesh[] = [];
 
-  // `name`, if given, floats just above the bar.
-  constructor(height: number, name?: string) {
+  // `name`, if given, floats just above the bar; `passive`, the bar's yellow.
+  constructor(height: number, name?: string, private readonly passive = false) {
     this.group.position.y = height;
     if (name) {
       const label = nameLabel(name);
@@ -84,7 +85,7 @@ export class HealthBar {
     this.group.visible = alive;
     this.group.rotation.y = CAMERA_YAW - ownerHeading;
     const lit = Math.ceil((Math.max(0, hp) / maxHp) * count);
-    this.blocks.forEach((block, i) => (block.material = i < lit ? ENEMY_BAR : ENEMY_BAR_EMPTY));
+    this.blocks.forEach((block, i) => (block.material = i < lit ? (this.passive ? PASSIVE_BAR : ENEMY_BAR) : ENEMY_BAR_EMPTY));
   }
 
   private build(count: number): void {
