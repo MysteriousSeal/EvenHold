@@ -23,7 +23,7 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   second: { name: 'Second wind', about: 'Each foe you slay heals you 1.' },
   keen: { name: 'Keen eye', about: 'Foes drop loot and quest items more often.' },
 };
-export const BLESSING_KINDS = Object.keys(BLESSINGS) as BlessingKind[];
+const BLESSING_KINDS = Object.keys(BLESSINGS) as BlessingKind[];
 export const BLESSING_TIME = 30 * 60; // seconds
 export const WELL_TOSS = COPPER_PER_SILVER; // a silver coin
 const WELL_REACH = 1.15; // from the well's middle: right beside it

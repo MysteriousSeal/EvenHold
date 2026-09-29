@@ -17,7 +17,7 @@ import { solidCells } from './world';
 const PER_SQUARE = 3; // benches on a square, at most
 const SEAT_HEIGHT = 0.2; // where the hips rest, above the paving (a chair indoors, at the outdoor scale)
 const SEAT_APART = 0.19; // each seat's middle from the bench's, along it
-export const BENCH_REACH = 0.8; // how close the hero must be to a free seat to sit on it
+const BENCH_REACH = 0.8; // how close the hero must be to a free seat to sit on it
 
 export interface Bench {
   village: number; // its village's index
