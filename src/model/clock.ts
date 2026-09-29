@@ -13,3 +13,11 @@ export function clockAt(minutes: number): { day: number; time: string } {
   const mm = String(inDay % 60).padStart(2, '0');
   return { day: Math.floor(whole / (24 * 60)) + 1, time: `${hh}:${mm}` };
 }
+
+export type TimeOfDay = 'morning' | 'day' | 'evening' | 'night';
+
+// Which part of the day it is at `minutes`: morning 6–11, day 11–17, evening 17–21, night 21–6.
+export function timeOfDay(minutes: number): TimeOfDay {
+  const hour = Math.floor(minutes / 60) % 24;
+  return hour >= 6 && hour < 11 ? 'morning' : hour >= 11 && hour < 17 ? 'day' : hour >= 17 && hour < 21 ? 'evening' : 'night';
+}

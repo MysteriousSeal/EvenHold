@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { clockAt } from '../src/model/clock';
+import { clockAt, timeOfDay } from '../src/model/clock';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
@@ -90,5 +90,6 @@ describe('saving', () => {
     model.minutes = 2 * 24 * 60 + 14 * 60 + 5;
     expect(clockAt(model.minutes)).toEqual({ day: 3, time: '14:05' });
     expect(reload(model).minutes).toBe(model.minutes);
+    expect([5, 6, 10, 11, 16, 17, 20, 21, 0].map((h) => timeOfDay(h * 60))).toEqual(['night', 'morning', 'morning', 'day', 'day', 'evening', 'evening', 'night', 'night']);
   });
 });
