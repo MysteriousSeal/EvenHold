@@ -16,6 +16,7 @@ import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import type { Shop } from './npcs/tavernShop';
+import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
 
 const VERSION = 1;
@@ -38,6 +39,7 @@ export interface SaveData {
     facing: number;
     inside: number | null; // the building they're in, by its door's index among the world's
     lastInn?: number | null; // the last inn they entered (where they wake after a fall)
+    blessings?: Blessing[]; // a well's, and how long it has left
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
   loot: Array<{ item: BagItem; x: number; z: number }>;
@@ -72,6 +74,7 @@ export function snapshot(model: GameModel): SaveData {
       facing: hero.facing,
       inside: door(model.inside?.entrance),
       lastInn: door(model.lastInn),
+      blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
     enemies: {
@@ -126,6 +129,9 @@ export function restore(model: GameModel, data: SaveData): void {
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),
     facing: saved.facing,
+    blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
+      .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
+      .map((b) => ({ kind: b.kind, left: Math.min(BLESSING_TIME, b.left) })),
   });
   hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;

@@ -29,7 +29,7 @@ import type { Obstacles } from './obstacles';
 import { addCampObstacles, worldObstacles } from './blockers';
 import { stepHop, type Hop } from './hero/hop';
 import { PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
-import { addToBag, takeFromBag, type BagItem } from './hero/bag';
+import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
 import { coinDrop, collectCoins, type GroundCoins } from './hero/money';
 import type { EquipSlot, ItemId } from './human/equipment';
 import { putOn, takeOff } from './hero/wearing';
@@ -43,7 +43,7 @@ import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './npcs/tavernShop';
-import { PROVISIONS, isProvision } from './loot/provisions';
+import { BLESSINGS, blowDamage, coinsFound, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -190,6 +190,7 @@ export class GameModel {
   // (not necessarily normalized, zero when idle); dt: seconds.
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
+    tickBlessing(this.hero, dt); // a well's, wearing off
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
@@ -229,7 +230,7 @@ export class GameModel {
     const len = Math.hypot(dirX, dirZ);
     if (len < 1e-6) return;
 
-    const dist = HERO_SPEED * this.speedMultiplier * dt;
+    const dist = HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt;
     const candidateX = Math.min(this.size.width - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.x + (dirX / len) * dist));
     const candidateZ = Math.min(this.size.depth - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.z + (dirZ / len) * dist));
 
@@ -267,8 +268,9 @@ export class GameModel {
       best = Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z);
     }
     if (!target) return;
-    target.hp -= HERO_DAMAGE;
-    this.events.push({ kind: 'hit', on: target.kind, amount: HERO_DAMAGE, x: target.x, y: target.y, z: target.z });
+    const damage = blowDamage(this.hero, HERO_DAMAGE);
+    target.hp -= damage;
+    this.events.push({ kind: 'hit', on: target.kind, amount: damage, x: target.x, y: target.y, z: target.z });
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
@@ -279,7 +281,7 @@ export class GameModel {
       if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
       const item = rollDrop(ENEMY_STATS[target.kind].family, target.id);
       if (item) this.dropLoot(item, target.x, target.z);
-      const amount = coinDrop(target);
+      const amount = coinsFound(this.hero, coinDrop(target));
       if (amount > 0) this.dropCoins(amount, target.x + 0.25, target.z + 0.15);
     }
     const d = Math.max(best, 1e-6);
@@ -299,16 +301,8 @@ export class GameModel {
   // The loot nearest the hero within reach to pick up, or null.
   get lootInReach(): GroundLoot | null {
     if (this.inside) return null; // loot lies outdoors
-    let best: GroundLoot | null = null;
-    let bestDistance = PICKUP_RANGE;
-    for (const loot of this.loot) {
-      const d = Math.hypot(loot.x - this.hero.x, loot.z - this.hero.z);
-      if (d <= bestDistance) {
-        best = loot;
-        bestDistance = d;
-      }
-    }
-    return best;
+    const d = (loot: GroundLoot) => Math.hypot(loot.x - this.hero.x, loot.z - this.hero.z);
+    return this.loot.reduce<GroundLoot | null>((best, loot) => (d(loot) <= PICKUP_RANGE && (!best || d(loot) < d(best)) ? loot : best), null);
   }
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
@@ -387,7 +381,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
-    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * dt, bumps) === 'door') this.useDoor();
+    if (walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt, bumps) === 'door') this.useDoor();
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.
@@ -440,11 +434,19 @@ export class GameModel {
     return this.inside ? null : this.quests.boardInReach();
   }
 
-  // Eats or drinks one of `item` from the bag, for the health it gives back; returns whether they did.
-  consume(item: BagItem): boolean {
-    if (!isProvision(item) || !takeFromBag(this.hero.bag, item)) return false;
-    this.hero.hp = Math.min(maxHpAt(this.hero.level), this.hero.hp + PROVISIONS[item].heal);
-    return true;
+  // Eats or drinks one of `item` from the bag, for the health it gives back (hero/bag.ts); returns whether they did.
+  consume = (item: BagItem): boolean => eatOrDrink(this.hero, item);
+
+  // The village well the hero's beside (outdoors), by its village's index; else null.
+  get wellInReach(): number | null {
+    return this.inside ? null : wellInReach(this.villages, this.hero);
+  }
+
+  // A silver coin into the well in reach, for a blessing (blessing.ts); returns it, or null (none in reach, or no silver).
+  tossCoin(roll = Math.random()): BlessingKind | null {
+    const kind = this.wellInReach === null ? null : tossCoin(this.hero, roll);
+    this.events.push(kind ? { kind: 'blessing', name: BLESSINGS[kind].name } : { kind: 'poor', text: 'Not a silver coin to toss' });
+    return kind;
   }
 
   // Picks up the loot in reach into the hero's bag; returns what it was, or null.
@@ -480,8 +482,9 @@ export class GameModel {
     if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
     if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
     if (this.godMode) return;
-    this.events.push({ kind: 'hit', on: 'hero', amount: enemy.damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
-    if (!hurt(this.hero, enemy.damage)) return;
+    const damage = hitTaken(this.hero, enemy.damage);
+    this.events.push({ kind: 'hit', on: 'hero', amount: damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
+    if (!hurt(this.hero, damage)) return;
     // Fallen: a share of their coins lost, they wake in the last inn they
     // entered (or at spawn, before any), healed; the foes lose interest.
     this.hero.money -= Math.floor(this.hero.money * DEATH_TOLL);

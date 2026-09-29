@@ -1,3 +1,4 @@
+import type { Blessing } from './hero/blessing';
 import type { MapSize } from './grid';
 import type { Humanoid } from './human/humanoid';
 import type { Bag, BagItem } from './hero/bag';
@@ -16,6 +17,7 @@ export interface Hero extends Humanoid {
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)
+  blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
 }
 
 export type EnemyKind = 'wolf' | 'bandit';
@@ -25,7 +27,9 @@ export type EnemyKind = 'wolf' | 'bandit';
 export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number }
-  | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number };
+  | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
+  | { kind: 'blessing'; name: string } // a well's, just given
+  | { kind: 'poor'; text: string }; // something the hero couldn't pay for
 export type EnemyState = 'wander' | 'chase' | 'dead';
 
 export interface Enemy {
