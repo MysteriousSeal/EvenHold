@@ -15,7 +15,6 @@ import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
 import { createBar, orderLabel } from './controller/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
-import { pourFor } from './model/npcs/innStaff';
 import { createJournal } from './controller/journal';
 import { createQuestBoardPanel } from './controller/questBoardPanel';
 import { createQuestTracker } from './view/hud/questTracker';
@@ -76,7 +75,6 @@ async function boot(): Promise<void> {
       speak: (barmaid, text) => floatingText.speak(barmaid, 1.35, text), // over her, following her
       countdown: (drinking, hero) => drinkTimer(drinking, drinking ? view.toScreen(hero.x, hero.y + 1.15, hero.z) : null),
     },
-    pourFor,
   );
   const floatingText = createFloatingText();
   const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3 }; // about two thirds of the way up them
@@ -141,7 +139,8 @@ async function boot(): Promise<void> {
     updateToolbar();
     lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale, the prompt over the hero's head.
-    const order = bar.canOrder ? orderLabel(model) : null; // gone while she fetches one, or it's being drunk
+    // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being drunk.
+    const order = bar.canOrder ? orderLabel(model) : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
     bar.update();
     const { hero } = model;
     orderPrompt.update(order ? { label: order.label, muted: order.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z));
