@@ -46,6 +46,8 @@ export interface MenuSlot {
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
   move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
   note?: string; // in a list (rows), a line under its title (e.g. where a quest sends you)
+  // In a list, a checkbox at the row's start (e.g. a quest tracked on screen), toggled on its own.
+  check?: { on: boolean; label: string; locked?: boolean; toggle(): void }; // locked: can't be ticked now (shown so; a click still tries, to say why)
 }
 
 // A slot around a paper doll: its name, what's in it, and what shows while
@@ -186,6 +188,19 @@ export function createMenu(options: MenuOptions): Menu {
     const button = el('button', cell ? (cell.dim ? 'menu-slot dim' : 'menu-slot') : 'menu-slot empty');
     if (cell) {
       button.append(cell.icon(iconSize));
+      if (row && cell.check) {
+        const { on, label, locked, toggle } = cell.check;
+        const box = el('span', `menu-slot-check${on ? ' on' : ''}${locked ? ' locked' : ''}`);
+        box.setAttribute('role', 'checkbox');
+        box.setAttribute('aria-checked', String(on));
+        box.title = label;
+        box.addEventListener('click', (event) => {
+          event.stopPropagation(); // just the box: the row isn't chosen for it
+          toggle();
+          api.refresh();
+        });
+        button.prepend(box);
+      }
       if (row) {
         const text = el('span', 'menu-slot-text');
         text.append(el('b', 'menu-slot-title', cell.title));

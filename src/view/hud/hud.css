@@ -296,6 +296,8 @@
   color: #fff;
   text-shadow: 1px 1px 0 #2e1f14;
 }
-.quest-card-hint { font-size: 12px; font-weight: 500; color: #6a5238; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.quest-card-head { display: flex; align-items: baseline; gap: 8px; }
+.quest-card-head .quest-card-title { flex: 1; min-width: 0; }
+.quest-card-distance { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: #6a5238; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .quest-card.done .quest-card-bar i { background: #3dbdb8; box-shadow: inset 0 -3px 0 #217c98; }
-.quest-card.done .quest-card-hint { color: #217c98; font-weight: 600; }
+.quest-card.done .quest-card-distance { color: #217c98; }

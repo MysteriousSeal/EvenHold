@@ -52,7 +52,7 @@ interface Card {
   title: HTMLElement;
   fill: HTMLElement;
   count: HTMLElement;
-  hint: HTMLElement;
+  distance: HTMLElement;
   shown: string; // what the text says now, to touch the page only on change
 }
 
@@ -66,11 +66,11 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
     const el = document.createElement('div');
     el.className = 'quest-card';
     el.innerHTML =
-      '<div class="quest-card-arrow"></div><div class="quest-card-text"><div class="quest-card-title"></div><div class="quest-card-bar"><i></i><span></span></div><div class="quest-card-hint"></div></div>';
+      '<div class="quest-card-arrow"></div><div class="quest-card-text"><div class="quest-card-head"><div class="quest-card-title"></div><div class="quest-card-distance"></div></div><div class="quest-card-bar"><i></i><span></span></div></div>';
     const arrow = el.querySelector('.quest-card-arrow') as HTMLElement;
     arrow.append(arrowCanvas());
     const q = (s: string) => el.querySelector(s) as HTMLElement;
-    return { root: el, arrow, title: q('.quest-card-title'), fill: q('.quest-card-bar i'), count: q('.quest-card-bar span'), hint: q('.quest-card-hint'), shown: '' };
+    return { root: el, arrow, title: q('.quest-card-title'), fill: q('.quest-card-bar i'), count: q('.quest-card-bar span'), distance: q('.quest-card-distance'), shown: '' };
   };
 
   // Where the quest sends the hero now.
@@ -109,15 +109,14 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       const paces = Math.round(Math.hypot(to.x - hero.x, to.z - hero.z));
       const outdoors = !model.inside;
       const here = outdoors && paces <= HERE;
-      const where = done ? 'Hand it in at the notice board' : t.quest.where.replace(/^./, (c) => c.toUpperCase());
-      const hint = outdoors ? `${where} · ${here ? 'here' : `${paces} paces`}` : where;
-      const text = `${questTitle(t.quest)}|${have}|${hint}|${done}`;
+      const distance = outdoors ? (here ? 'here' : `${paces} paces`) : '';
+      const text = `${questTitle(t.quest)}|${have}|${distance}|${done}`;
       if (text !== c.shown) {
         c.shown = text;
         c.title.textContent = questTitle(t.quest);
         c.fill.style.width = `${(have / t.quest.count) * 100}%`;
         c.count.textContent = done ? 'Done' : `${have}/${t.quest.count}`;
-        c.hint.textContent = hint;
+        c.distance.textContent = distance;
         c.root.classList.toggle('done', done);
       }
       c.arrow.hidden = !outdoors || here;
