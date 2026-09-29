@@ -43,9 +43,11 @@ export interface MenuSlot {
   alt?(): string | void;
   tag?: Array<string | HTMLElement>; // a label in a band along its bottom (e.g. a price)
   badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
+  badgeTone?: 'progress' | 'ready' | 'past'; // in a list, a pill: under way, done (to hand in), over with
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
   move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
   note?: string; // in a list (rows), a line under its title (e.g. where a quest sends you)
+  key?: string; // who it is: redrawn, the one chosen stays chosen wherever it's moved to
   // In a list, a checkbox at the row's start (e.g. a quest tracked on screen), toggled on its own.
   check?: { on: boolean; label: string; locked?: boolean; toggle(): void }; // locked: can't be ticked now (shown so; a click still tries, to say why)
 }
@@ -66,8 +68,9 @@ export interface MenuTab {
   facts?(): Array<[string, string]>; // a ledger, refreshed when shown
   // A grid of slots (null: an empty one), refreshed when shown; the
   // arrow keys move around it.
-  // With `rows`, a list instead: a row each, its icon, title and note.
-  slots?(): { cells: Array<MenuSlot | null>; columns: number; rows?: boolean };
+  // With `rows`, a list instead: a row each, its icon, title and note;
+  // `sections` put a header before the cell each starts at.
+  slots?(): { cells: Array<MenuSlot | null>; columns: number; rows?: boolean; sections?: Array<{ title: string; from: number }> };
   // A figure with slots down its left and right and along the bottom (a
   // character sheet), shown above any facts.
   doll?(): { figure: HTMLElement; left: DollSlot[]; right: DollSlot[]; bottom: DollSlot[] };
@@ -208,7 +211,7 @@ export function createMenu(options: MenuOptions): Menu {
         button.append(text);
       }
       if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
-      if (cell.badge) button.append(el('span', 'menu-slot-badge', cell.badge));
+      if (cell.badge) button.append(el('span', cell.badgeTone ? `menu-slot-badge pill ${cell.badgeTone}` : 'menu-slot-badge', cell.badge));
       if (cell.tag) {
         const tag = el('span', 'menu-slot-tag');
         tag.append(...cell.tag);
@@ -288,7 +291,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   let detailPane: HTMLElement | null = null; // beside a grid whose tab has `detail`
 
-  function showSlots({ cells, columns, rows }: { cells: Array<MenuSlot | null>; columns: number; rows?: boolean }): void {
+  function showSlots({ cells, columns, rows, sections = [] }: { cells: Array<MenuSlot | null>; columns: number; rows?: boolean; sections?: Array<{ title: string; from: number }> }): void {
     const box = el('div', rows ? 'menu-grid rows' : 'menu-grid');
     if (rows) columns = 1;
     box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
@@ -296,6 +299,7 @@ export function createMenu(options: MenuOptions): Menu {
     const buttons = cells.map((cell, i) => {
       const button = slotButton(cell, rows ? 40 : 44, detail ? () => {} : () => selectSlot(i), rows);
       if (detail) button.addEventListener('click', () => selectSlot(i, false));
+      for (const section of sections) if (section.from === i) box.append(el('div', 'menu-section', section.title));
       box.append(button);
       return button;
     });
@@ -436,8 +440,10 @@ export function createMenu(options: MenuOptions): Menu {
       if (!api.isOpen) return;
       const tip = tipped;
       const keep = grid?.selected ?? 0;
+      const key = grid?.cells[keep]?.key;
       showTab(tabIndex);
-      if (grid) selectSlot(keep, false);
+      const moved = key ? (grid?.cells.findIndex((c) => c?.key === key) ?? -1) : -1;
+      if (grid) selectSlot(moved >= 0 ? moved : keep, false);
       if (tip !== null) showTip(tip);
     },
   };

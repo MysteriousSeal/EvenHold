@@ -208,6 +208,9 @@
   color: var(--ink);
 }
 .menu-grid.rows .menu-slot.empty { display: none; }
+/* A section's header in a list: small caps in soft ink over a thin rule. */
+.menu-section { margin-top: 6px; padding-bottom: 3px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.menu-section:first-child { margin-top: 0; }
 .menu-slot-check {
   /* A checkbox at a row's start: an inset sand square, and when on, gold
      with an ink check; it lights on hover to show it can be clicked. */
@@ -242,6 +245,20 @@
 .menu-slot-note { font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .menu-grid.rows .menu-slot-tag { position: static; flex: 0 0 auto; padding: 3px 8px; margin-top: 14px; }
 .menu-grid.rows .menu-slot-badge { top: 5px; right: 12px; }
+/* A list row's badge as a pill: under way (sand, ink figures), ready to hand
+   in (lake turquoise, as the tracker shows a done quest), over with (grey). */
+.menu-slot-badge.pill {
+  top: 6px;
+  padding: 1px 7px 2px;
+  font-size: 12px;
+  line-height: 1.2;
+  border: 2px solid var(--ink);
+}
+.menu-slot-badge.pill.progress { color: var(--ink); background: var(--sand-light); box-shadow: inset 0 -2px 0 var(--sand-dark); }
+.menu-slot-badge.pill.ready { color: #fff; text-shadow: 1px 1px 0 var(--ink); background: #3dbdb8; box-shadow: inset 0 -3px 0 #217c98; }
+.menu-slot-badge.pill.past { color: #f0ece4; background: #9a968e; border-color: #75726b; box-shadow: none; }
+.menu-slot.dim .menu-slot-badge.pill.past { color: #f0ece4; }
+.menu-grid.rows .menu-slot:has(.menu-slot-badge.pill) .menu-slot-tag { margin-top: 26px; } /* the reward clear of the pill above it */
 
 /* A grid with the chosen slot told of beside it (a shop): the item large,
    its name, its lines, and a button to act on it. */
