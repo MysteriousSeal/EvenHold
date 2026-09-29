@@ -24,10 +24,46 @@ export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg
 const POUR_TIME = 1.4; // seconds bent over the tap
 const TAKE_ORDER = 2.4; // seconds taking a villager's order, across the bar from them (her question, their answer)
 // What's said over an order: her question (by name, often), their answer, her word as it's set down.
-const ASK_NAMED = ["What'll it be, {name}?", 'The usual, {name}?', 'Thirsty, {name}?', 'Back again, {name}? What are you having?'];
-const ASK = ['What can I get you, love?', 'What are you having?', "What'll it be?", 'Something to wet the throat?'];
-const ANSWERS = ['An ale, please.', 'Ale, and keep it cold.', 'The usual.', 'An ale, if you would.', "Whatever's frothing."];
-const HANDED = ['There you go.', 'Enjoy, love.', 'Mind the foam.', 'One ale, as asked.'];
+const ASK_NAMED = [
+  "What'll it be, {name}?",
+  'The usual, {name}?',
+  'Thirsty, {name}?',
+  'Back again, {name}? What are you having?',
+  "{name}! I was wondering when you'd turn up.",
+  'Long day, {name}? What can I pour you?',
+  "Don't tell me, {name}. An ale?",
+  "Evening, {name}. Your stool's still warm from last time.",
+]
+const ASK = [
+  'What can I get you, love?',
+  'What are you having?',
+  "What'll it be?",
+  'Something to wet the throat?',
+  "You look parched, love. What'll it be?",
+  'Name your poison.',
+  "Sit yourself down. What'll you have?",
+  "What's it to be tonight?",
+]
+const ANSWERS = [
+  'An ale, please.',
+  'Ale, and keep it cold.',
+  'The usual.',
+  'An ale, if you would.',
+  "Whatever's frothing.",
+  'An ale. A big one.',
+  "Ale. It's been that sort of day.",
+  'Just an ale, love. And a smile.',
+]
+const HANDED = [
+  'There you go.',
+  'Enjoy, love.',
+  'Mind the foam.',
+  'One ale, as asked.',
+  "Drink up, there's more where that came from.",
+  'Fresh from the keg.',
+  "Careful, it's a strong one tonight.",
+  "Here. Don't say I never do anything for you.",
+]
 const pick = (lines: readonly string[], n: number) => lines[Math.floor(hashUnit(n, lines.length, 29) * lines.length)];
 const asks = (by: Npc, n: number) => (hashUnit(by.id, n, 31) < 0.5 ? pick(ASK_NAMED, n).replace('{name}', by.name) : pick(ASK, n));
 const PUT_AWAY = 1.2; // seconds washing an empty mug at the sink
