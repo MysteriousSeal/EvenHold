@@ -5,6 +5,7 @@
 // much money (npcs/tavernShop.ts). A window in the middle of the screen;
 // the game waits while it's open.
 
+import './shopPanel.css';
 import type { GameModel } from '../model/GameModel';
 import type { Npc } from '../model/npcs/npcs';
 import { buy, buyPrice, restockIn, sell, sellPrice, shopAt, type Shop } from '../model/npcs/tavernShop';

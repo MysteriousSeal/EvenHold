@@ -4,6 +4,7 @@
 // once done; the quests taken counted over it all, the hero's purse under.
 // A window in the middle of the screen; the game waits while it's open.
 
+import './questPanels.css';
 import type { GameModel } from '../model/GameModel';
 import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Quest } from '../model/quests/quests';
 import { noticeBoards } from '../model/quests/noticeBoards';

@@ -4,6 +4,7 @@
 // tracker) and to abandon it (a second click to be sure). A side panel:
 // the game goes on while it's open, and it keeps up with the hunt.
 
+import './questPanels.css';
 import type { GameModel } from '../model/GameModel';
 import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../model/quests/quests';
 import type { TakenQuest } from '../model/quests/questBook';
@@ -18,11 +19,13 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   const { quests } = model;
   const shown = new WeakMap<MenuSlot, TakenQuest>();
   let armed: string | null = null; // the quest whose Abandon was clicked once: a second click abandons it
-  let told = ''; // why tracking was refused, until the next try
+  let told = ''; // why tracking was refused, until the next try or another quest is picked
+  let toldFor = '';
   const FULL = `You can track ${MAX_TRACKED} quests at once. Untrack one first.`;
   // Tracks a quest, or stops: refused (and told why) with three tracked already.
   const toggle = (t: TakenQuest) => {
     told = quests.setTracked(t.quest.key, !t.tracked) ? '' : FULL;
+    toldFor = t.quest.key;
   };
 
   const slotOf = (t: TakenQuest): MenuSlot => {
@@ -52,6 +55,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       return pane;
     }
     if (armed !== t.quest.key) armed = null;
+    if (toldFor !== t.quest.key) told = '';
     const { quest } = t;
     const have = quests.progress(t);
     const done = have >= quest.count;
