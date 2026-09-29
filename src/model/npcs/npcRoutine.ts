@@ -47,6 +47,7 @@ const INN_TIME: [number, number] = [30, 70];
 const SQUARE_WAIT: [number, number] = [5, 15];
 const FIELD_WORK: [number, number] = [6, 14]; // seconds at each spot in a field
 const SIT_CHANCE = 0.75;
+const BAR_PULL = 0.5; // at the inn, of making for a stool at the bar (rather than any seat)
 const BENCH_CHANCE = 0.5; // of sitting on a bench, for the second spot on the square
 const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to sit down
 const EASE_SPEED = 1.2; // how fast a villager eases off the hero, when they overlap
@@ -174,16 +175,26 @@ function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds: number
   const free = roomFree(world.seed, npc.where!);
   const tiles: Point[] = [];
   for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth - 1; z++) if (free(x, z)) tiles.push({ x, z });
-  if (roll(npc, 30) < SIT_CHANCE) {
+  const atInn = npc.where !== npc.home; // at the inn: always a seat, if there's one free
+  if (atInn || roll(npc, 30) < SIT_CHANCE) {
     const seats = furniture
       .map((piece) => seatOf(piece))
       .filter((seat): seat is Seat => !!seat && (!seat.lying || npc.where === npc.home) && !claimed(seat.piece, npc, npcs, world));
-    const seat = seats[Math.floor(roll(npc, 31) * seats.length)];
-    const from = seat && tiles.filter((t) => distanceTo(seat.piece, t.x, t.z) <= 0.6).sort((a, b) => distanceTo(seat.piece, a.x, a.z) - distanceTo(seat.piece, b.x, b.z))[0];
-    if (seat && from) return [{ kind: 'go', to: from }, { kind: 'sit', seat, for: seconds }];
+    // At the inn, the bar draws them: often a free stool there first, then any seat.
+    const stools = seats.filter((seat) => seat.piece.kind === 'barStool');
+    const first = stools.length > 0 && roll(npc, 33) < BAR_PULL ? stools : seats;
+    const start = Math.floor(roll(npc, 31) * first.length);
+    const order = [...first.slice(start), ...first.slice(0, start), ...seats.filter((seat) => !first.includes(seat))];
+    // The first of them with a free tile beside it to sit down from.
+    for (const seat of order) {
+      const from = tiles.filter((t) => distanceTo(seat.piece, t.x, t.z) <= 0.6).sort((a, b) => distanceTo(seat.piece, a.x, a.z) - distanceTo(seat.piece, b.x, b.z))[0];
+      if (from) return [{ kind: 'go', to: from }, { kind: 'sit', seat, for: seconds }];
+    }
   }
+  // Nowhere to sit: standing, at the inn turned to the bar (waiting on a place there).
   const spot = tiles[Math.floor(roll(npc, 32) * tiles.length)] ?? doorTile(world.seed, npc.where!);
-  return [{ kind: 'go', to: spot }, { kind: 'wait', for: seconds }];
+  const counter = atInn ? furniture.find((f) => f.kind === 'counter') : undefined;
+  return [{ kind: 'go', to: spot, ...(counter && { faceToward: { x: counter.x, z: spot.z } }) }, { kind: 'wait', for: seconds }];
 }
 
 // Where someone fits in a building's room. Behind the inn's bar (between
