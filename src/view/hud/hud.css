@@ -306,7 +306,17 @@
    a sand card like the hero's portrait, the time left in a green pill on its
    corner (as the level gem sits on the portrait's); its name and what it
    does on hover. */
-.blessing-hud { position: fixed; top: 16px; right: 22px; display: flex; gap: 22px; font-family: 'Fredoka', system-ui, sans-serif; }
+.blessing-hud {
+  position: fixed;
+  top: 16px;
+  right: 22px;
+  display: flex;
+  flex-wrap: wrap; /* five to a row (each card 58px, 22px apart), more below */
+  justify-content: flex-end;
+  gap: 22px;
+  max-width: calc(5 * 58px + 4 * 22px);
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
 .blessing-card { position: relative; }
 .blessing-hud-icon {
   width: 52px;

@@ -1,7 +1,8 @@
 // Pictures for the wells' blessings (blessingHud.ts), in voxels drawn by
 // row as seen from the side, a few voxels thick, so the icon view shows
 // their profile: a winged leather boot for Swift feet, a flexed arm for
-// Strong arm. Grid-aligned only.
+// Strong arm, an open book for Wise mind, a feather for Quiet step, a heart
+// for Second wind, an eye for Keen eye. Grid-aligned only.
 
 import type { VoxelModel } from '../ui/voxelIcon';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -61,4 +62,63 @@ export const armModel = (): VoxelModel =>
     4,
     { L: 1, S: 2, H: 3, F: 1, K: 2, R: 4 },
     [0xe0a878, 0xb87c52, 0xf4c898, 0x9a3a2a],
+  );
+
+// An open book: cream pages fanning up from the spine, lines of ink on
+// them, a blue leather cover under, gold motes of wisdom rising.
+export const bookModel = (): VoxelModel =>
+  fromRows(
+    [
+      '...G.....G...',
+      '......G......',
+      'PPP.......PPP',
+      'PlPPP...PPPlP',
+      'PPlPPP.PPPlPP',
+      'PPPPPPPPPPPPP',
+      'CCCCCCCCCCCCC',
+      '.DDDDDDDDDDD.',
+    ],
+    5,
+    { P: 1, l: 2, C: 3, D: 4, G: 5 },
+    [0xf2e6c8, 0x8a6a4a, 0x3a5aa0, 0x28407a, 0xffd35a],
+  );
+
+// A soft white feather, stepping up to the right, shaded along one edge,
+// on a brown quill.
+export const featherModel = (): VoxelModel =>
+  fromRows(
+    [
+      '........VVV',
+      '.......VVVV',
+      '......VVVVS',
+      '.....VVVVS.',
+      '....VVVVS..',
+      '...VVVVS...',
+      '..VVVVS....',
+      '..VVVS.....',
+      '.QVS.......',
+      'Q..........',
+    ],
+    2,
+    { V: 1, S: 2, Q: 3 },
+    [0xf2f0ea, 0xa8b4c8, 0x8a6a4a],
+  );
+
+// A red heart, darker down its right, a pink shine at its top left.
+export const heartModel = (): VoxelModel =>
+  fromRows(
+    ['.RRR.RRR.', 'RRSRRRRRR', 'RSSRRRRRD', 'RRRRRRRRD', '.RRRRRRD.', '..RRRRD..', '...RRD...', '....D....'],
+    3,
+    { R: 1, D: 2, S: 3 },
+    [0xd03a3a, 0x9a2424, 0xffb0b0],
+  );
+
+// A wide eye: a dark lid round it, the white, a blue iris, a black pupil
+// with a glint.
+export const eyeModel = (): VoxelModel =>
+  fromRows(
+    ['...LLLLL...', '.LLWWWWWLL.', 'LWWWIHIWWWL', 'LWWIIPIIWWL', 'LWWWIIIWWWL', '.LLWWWWWLL.', '...LLLLL...'],
+    2,
+    { L: 1, W: 2, I: 3, P: 4, H: 2 },
+    [0x2e241c, 0xf6f2ea, 0x3a7ac8, 0x1a1a22],
   );

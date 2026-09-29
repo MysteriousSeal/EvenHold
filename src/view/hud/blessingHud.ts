@@ -8,12 +8,16 @@ import { BLESSINGS, type BlessingKind } from '../../model/hero/blessing';
 import type { Hero } from '../../model/types';
 import { gearIcon } from '../ui/itemIcons';
 import { voxelIcon } from '../ui/voxelIcon';
-import { armModel, bootModel } from './blessingVoxels';
+import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
 
-// Each blessing's picture: a winged boot and a flexed arm (blessingVoxels.ts), a shield, a gold coin.
+// Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin.
 const ICONS: Record<BlessingKind, MenuIcon> = {
   swift: (size) => voxelIcon('blessing:swift', bootModel, size),
+  wise: (size) => voxelIcon('blessing:wise', bookModel, size),
+  quiet: (size) => voxelIcon('blessing:quiet', featherModel, size),
+  second: (size) => voxelIcon('blessing:second', heartModel, size),
+  keen: (size) => voxelIcon('blessing:keen', eyeModel, size),
   strong: (size) => voxelIcon('blessing:strong', armModel, size),
   tough: gearIcon('heaterShield'),
   lucky: () => {
