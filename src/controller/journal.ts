@@ -78,7 +78,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${quest.level}`;
     fact('Danger', [danger]);
     fact('Reward', coinParts(quest.copper));
-    fact('Experience', [`${quest.xp} XP`]);
+    fact('Experience', [`${quests.xpFor(quest)} XP`]); // to the hero now
     pane.append(icon, line('menu-detail-name', questTitle(quest)), line('menu-detail-about', `“${notice(quest, model.seed)}”`), facts);
 
     const buttons = document.createElement('div');

@@ -66,7 +66,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${q.level}`;
     fact('Danger', [danger]);
     fact('Reward', coinParts(q.copper));
-    fact('Experience', [`${q.xp} XP`]);
+    fact('Experience', [`${quests.xpFor(q)} XP`]); // to the hero now
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
     if (quests.isCompleted(q.key)) {
