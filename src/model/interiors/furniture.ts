@@ -24,6 +24,8 @@ export type FurnitureKind =
   | 'sink' // behind the bar, where the empty mugs go
   | 'stairs' // up to the inn's upper floor, along the wall past the bar
   | 'stairwell' // where they come up, upstairs
+  | 'hallWall' // upstairs: a low wall between the hallway and the rooms off it
+  | 'hallDoor' // and a room's door in it
   | 'forge'
   | 'anvil'
   | 'trough'
@@ -207,6 +209,8 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   counter: [0.26, 0.74],
   shelf: [0, 0.34],
   keg: [0, 0.62],
+  hallWall: [0, 0.2], // a wall's thickness, at the tile's edge
+  hallDoor: [0, 0.2],
   sink: [0, 0.42], // slim against the wall, like the shelves // on its side, reaching 0.6 of its tile out (tap and all)
 };
 

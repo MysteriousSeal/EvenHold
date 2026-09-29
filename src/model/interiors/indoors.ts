@@ -118,6 +118,34 @@ export function stairsInReach(inside: Inside, hero: Hero): boolean {
   return !!stairs && !inside.seated && distanceTo(stairs, hero.x, hero.z) <= STAIRS_REACH;
 }
 
+// The floor above's furniture: the stairwell where the stairs come up, and
+// a lantern every other tile along the left wall, out from it both ways
+// (none over it), and along the back wall.
+export function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
+  const lantern = (wall: 'left' | 'back', x: number, z: number): Furniture => ({ kind: 'wallLantern', x, z, w: 1, d: 1, wall, solid: false });
+  const lanterns: Furniture[] = [];
+  for (let z = stairs.z - 1; z >= 0; z -= 2) lanterns.push(lantern('left', 0, z));
+  for (let z = stairs.z + stairs.d; z < room.depth; z += 2) lanterns.push(lantern('left', 0, z));
+  for (let x = 1; x < room.width; x += 2) lanterns.push(lantern('back', x, 0));
+  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room)];
+}
+
+const HALL = 2; // the hallway's width, in tiles
+const DOOR_EVERY = 3; // a room's door along it, every so many tiles
+
+// Upstairs, a hallway along the left and back walls (the stairwell in it),
+// walled off from the rooms beyond by a low wall, a door every few tiles
+// along the back, each into a room of its own.
+function hallway(room: Room): Furniture[] {
+  const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
+  const walls: Furniture[] = [];
+  for (let z = HALL; z < room.depth; z++) walls.push(piece('left', HALL, z, false)); // by the stairwell: no doors
+  for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1 && x > HALL));
+  // Between the rooms, halfway from door to door, the same low wall, from the hallway to the front.
+  for (let x = HALL + DOOR_EVERY; x < room.width; x += DOOR_EVERY) for (let z = HALL; z < room.depth; z++) walls.push(piece('left', x, z, false));
+  return walls;
+}
+
 // Takes the stairs by the hero: up to the floor above (beside the top of
 // the stairwell, by the wall, where its railing's open: its far side), or back down (just past the
 // foot of the stairs, in the room). Returns whether they did.
@@ -132,7 +160,7 @@ export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: num
     model.inside = { entrance: inside.below, room, furniture, seated: null };
     Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: Math.PI / 2 }); // stepped off them, facing away
   } else {
-    model.inside = { entrance: upstairsOf(inside.entrance), room: inside.room, furniture: [{ ...stairs, kind: 'stairwell' }], seated: null, below: inside.entrance };
+    model.inside = { entrance: upstairsOf(inside.entrance), room: inside.room, furniture: upstairsFurniture(stairs, inside.room), seated: null, below: inside.entrance };
     Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
   }
   return true;

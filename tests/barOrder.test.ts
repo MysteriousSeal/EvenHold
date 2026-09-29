@@ -191,7 +191,13 @@ describe('an ale at the bar', () => {
     expect(stairsInReach(model.inside!, model.hero)).toBe(true);
     expect(takeStairs(model)).toBe(true);
     expect(model.inside!.below).toBe(inn); // upstairs
-    expect(model.inside!.furniture.map((f) => f.kind)).toEqual(['stairwell']); // empty but for where the stairs come up
+    const [well, ...rest] = model.inside!.furniture; // the stairwell, lanterns along the left and back walls (none over it), and a hallway
+    const lanterns = rest.filter((f) => f.kind === 'wallLantern');
+    expect(rest.some((f) => f.kind === 'hallWall') && rest.some((f) => f.kind === 'hallDoor')).toBe(true);
+    expect(well.kind).toBe('stairwell');
+    expect(lanterns.length).toBeGreaterThan(0);
+    expect(lanterns.every((f) => f.kind === 'wallLantern' && (f.wall === 'back' || f.z !== well.z))).toBe(true);
+    expect(new Set(lanterns.map((f) => f.wall))).toEqual(new Set(['left', 'back']));
     expect(model.doorInReach).toBeNull();
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
