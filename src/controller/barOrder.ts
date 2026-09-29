@@ -17,9 +17,36 @@ import { PROVISIONS } from '../model/loot/provisions';
 export { ALE_SECONDS } from '../model/npcs/barPatrons';
 import { ALE_SECONDS } from '../model/npcs/barPatrons';
 
-const POURED = ["Here's your ale, love.", 'One ale, frothing over.', "Drink up, it's a cold night out there.", 'Fresh from the cellar. Mind the foam.', "On its way. Don't spill it on the floor, it's new."];
-const COMING = ['Coming, love!', "One moment, I'll be right with you.", 'Just a tick, pouring it now.'];
-const TOO_POOR = ["That's not enough coin for an ale, love.", 'Short a copper or two there.', "I don't pour on a promise, love."];
+const POURED = [
+  "Here's your ale, love.",
+  'One ale, frothing over.',
+  "Drink up, it's a cold night out there.",
+  'Fresh from the cellar. Mind the foam.',
+  "On its way. Don't spill it on the floor, it's new.",
+  "There. Best in the valley, whatever the other inns say.",
+  'Poured it myself. Well, I pour them all.',
+  "Get that down you, you'll feel a new soul.",
+]
+const COMING = [
+  'Coming, love!',
+  "One moment, I'll be right with you.",
+  'Just a tick, pouring it now.',
+  "Ale for you? On its way!",
+  'Right you are, one ale.',
+  "Keep your seat, I'll bring it over.",
+  'Say no more, love.',
+  "An ale it is. Don't go anywhere.",
+]
+const TOO_POOR = [
+  "That's not enough coin for an ale, love.",
+  'Short a copper or two there.',
+  "I don't pour on a promise, love.",
+  'Come back when your purse jingles.',
+  "Coin first, ale after. That's the way of it.",
+  "Not even the price of the foam, love.",
+  "The keg's full, it's your purse that's empty.",
+  "No slates here, I'm afraid. Find a few coppers.",
+]
 const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
 const clock = (ms: number) => {
   const s = Math.ceil(ms / 1000);
