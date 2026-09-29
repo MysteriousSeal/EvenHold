@@ -40,6 +40,8 @@ import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
 import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
 import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
 import { blessAll } from '../../model/hero/blessing';
+import { restockAll } from '../../model/npcs/tavernShop';
+import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 
 const SPEED_BOOST = 3;
@@ -185,6 +187,7 @@ export function createCheatPanel(model: GameModel): void {
         icon: itemIcon('goldRing'),
         actions: [
           { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
+          { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
           { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
           { icon: ICON.hero, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
           {
