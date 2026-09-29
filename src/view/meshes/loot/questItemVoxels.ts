@@ -1,7 +1,8 @@
 // Quest items in voxels (questItems.ts), grid-aligned only, each its own
 // silhouette: from wolves, a pelt folded flat, an alpha's long ivory fang, a paw's
 // black claws, a bushy tawny tail; from bandits, a tin token struck with a
-// skull, a knotted red bandanna, a rolled case of lockpicks, a letter sealed in wax.
+// skull, a knotted red bandanna, a rolled case of lockpicks, a letter sealed in wax;
+// from boars, a folded hide, a bound tuft of bristles, a cut truffle, a great tusk.
 
 import type { QuestItemId } from '../../../model/quests/questItems';
 import { fillBox, setColor } from '../voxel/voxelShapes';
@@ -68,5 +69,32 @@ export const QUEST_MODELS: Record<QuestItemId, LootModel> = {
   stolenLetter: model([0xf2e6c8, 0xd8c69c, 0x5a4632, 0xb02a24, 0x7a1a16], [7, 2, 5], (g) => {
     fillBox(g, 0, 0, 0, 6, 0, 4, (x, _y, z) => (x === 0 || z === 0 ? 2 : (z === 1 || z === 3) && x > 1 && x < 5 ? 3 : 1));
     fillBox(g, 4, 1, 2, 5, 1, 3, (x) => (x === 5 ? 5 : 4)); // the seal
+  }),
+  // A boar's hide folded flat: dark bristly brown, a black ridge stripe down the fold, the pale flesh side showing at its edge.
+  boarHide: model([0x5a4232, 0x3e2c22, 0x2a2220, 0xc8a080], [7, 2, 5], (g) => {
+    fillBox(g, 0, 0, 0, 6, 0, 4, (x, _y, z) => (z === 0 || x === 0 ? 4 : 2)); // under, its pale edge peeking out
+    fillBox(g, 1, 1, 1, 5, 1, 3, (_x, _y, z) => (z === 2 ? 3 : 1)); // the fold, the ridge along it
+  }),
+  // A tuft of bristles bound with twine: near-black, greying at the tips, ragged along the top.
+  bristleTuft: model([0x2a2220, 0x6a5e56, 0xd8c08a], [4, 6, 3], (g) => {
+    fillBox(g, 0, 0, 0, 3, 4, 2, (_x, y) => (y === 2 ? 3 : y === 4 ? 2 : 1));
+    for (let x = 0; x < 4; x++) for (let z = 0; z < 3; z++) if ((x + z) % 2 === 0) setColor(g, x, 5, z, 2); // the ragged tips
+  }),
+  // A wild truffle: a knobbly dark lump, cut open on one side to its cream, brown-veined flesh, soil at its foot.
+  wildTruffle: model([0x3a2a24, 0x241a16, 0xe8dcc0, 0x8a6a5a, 0x6a5238], [5, 4, 5], (g) => {
+    fillBox(g, 0, 0, 0, 3, 2, 4, (x, y, z) => ((x === 0 || x === 3) && (z === 0 || z === 4) && y === 2 ? 0 : (x + y + z) % 3 === 0 ? 2 : 1));
+    setColor(g, 1, 3, 1, 1); // knobs
+    setColor(g, 2, 3, 3, 2);
+    fillBox(g, 4, 0, 1, 4, 2, 3, (_x, y, z) => ((y + z) % 2 === 0 ? 4 : 3)); // the cut face, marbled
+    setColor(g, 0, 0, 4, 5); // crumbs of soil
+    setColor(g, 3, 0, 0, 5);
+  }),
+  // A great tusk: from a thick dark root, a long ivory sweep curving up to its point.
+  greatTusk: model([0xf0e6cc, 0xc8bc98, 0x5a3e2c], [7, 7, 2], (g) => {
+    fillBox(g, 0, 0, 0, 1, 1, 1, 3); // the root
+    fillBox(g, 2, 0, 0, 3, 1, 1, (_x, y) => (y === 0 ? 2 : 1)); // thick near it
+    fillBox(g, 4, 1, 0, 4, 2, 1, 1);
+    fillBox(g, 5, 2, 0, 5, 4, 1, (_x, y) => (y === 2 ? 2 : 1)); // curving up
+    fillBox(g, 6, 5, 0, 6, 6, 1, (_x, y) => (y === 6 ? 1 : 2)); // to the point
   }),
 };
