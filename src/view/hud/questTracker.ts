@@ -96,13 +96,13 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       cards.delete(key);
     }
     const { hero } = model;
-    for (const t of taken) {
+    for (const [i, t] of taken.entries()) {
       let c = cards.get(t.quest.key);
       if (!c) {
         c = card();
         cards.set(t.quest.key, c);
       }
-      if (c.root.parentElement !== root || root.lastElementChild !== c.root) root.append(c.root); // in the order taken
+      if (root.children[i] !== c.root) root.insertBefore(c.root, root.children[i] ?? null); // in the order taken (moved only when out of place)
       const have = model.quests.progress(t);
       const done = have >= t.quest.count;
       const to = goal(t, done);
