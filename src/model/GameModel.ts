@@ -28,9 +28,10 @@ import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { addCampObstacles, worldObstacles } from './blockers';
 import { stepHop, type Hop } from './hero/hop';
-import { DROP_CHANCE, PICKUP_RANGE, rollDrop, type GroundLoot } from './loot/loot';
+import { DROP_CHANCE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
-import { coinDrop, collectCoins, type GroundCoins } from './hero/money';
+import { coinDrop } from './hero/money';
+import { Ground } from './loot/ground';
 import type { EquipSlot, ItemId } from './human/equipment';
 import { putOn, takeOff } from './hero/wearing';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
@@ -42,7 +43,7 @@ import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type 
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
-import type { Shop } from './npcs/tavernShop';
+import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
@@ -67,13 +68,13 @@ export class GameModel {
   readonly hero: Hero;
   readonly enemies: Enemy[];
   readonly camps: Camp[];
-  readonly loot: GroundLoot[] = []; // on the ground, until picked up
-  readonly coins: GroundCoins[] = []; // dropped coins, picked up by walking near them
+  readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
+  readonly loot = this.ground.loot; // on the ground, until picked up
+  readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
-  readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (npcs/tavernShop.ts)
+  readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (inn/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
   readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
-  private nextLootId = 0;
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
   // Where the hero is while indoors (indoors.ts); null outdoors.
@@ -290,21 +291,13 @@ export class GameModel {
     this.director.move(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
   }
 
-  // Puts an item on the ground at (x, z).
-  dropLoot(item: BagItem, x: number, z: number): void {
-    this.loot.push({ id: this.nextLootId++, item, x, z, y: this.getGroundY(x, z) });
-  }
+  // An item, or `amount` copper in coins, put on the ground at (x, z).
+  dropLoot = (item: BagItem, x: number, z: number): void => this.ground.drop(item, x, z);
+  dropCoins = (amount: number, x: number, z: number): void => this.ground.dropCoins(amount, x, z);
 
-  // Puts `amount` copper in coins on the ground at (x, z).
-  dropCoins(amount: number, x: number, z: number): void {
-    this.coins.push({ id: this.nextLootId++, amount, x, z, y: this.getGroundY(x, z) });
-  }
-
-  // The loot nearest the hero within reach to pick up, or null.
+  // The loot nearest the hero within reach to pick up (outdoors), or null.
   get lootInReach(): GroundLoot | null {
-    if (this.inside) return null; // loot lies outdoors
-    const d = (loot: GroundLoot) => Math.hypot(loot.x - this.hero.x, loot.z - this.hero.z);
-    return this.loot.reduce<GroundLoot | null>((best, loot) => (d(loot) <= PICKUP_RANGE && (!best || d(loot) < d(best)) ? loot : best), null);
+    return this.inside ? null : this.ground.nearest(this.hero.x, this.hero.z);
   }
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
@@ -420,7 +413,7 @@ export class GameModel {
 
   // Coins near the hero go into their purse (no need to stop for them).
   private scoopCoins(): void {
-    const amount = collectCoins(this.coins, this.hero.x, this.hero.z);
+    const amount = this.ground.scoop(this.hero.x, this.hero.z);
     this.hero.money += amount;
     if (amount > 0) this.events.push({ kind: 'coins', amount });
   }
@@ -455,7 +448,7 @@ export class GameModel {
   pickUp(): BagItem | null {
     const loot = this.lootInReach;
     if (!loot) return null;
-    this.loot.splice(this.loot.indexOf(loot), 1);
+    this.ground.take(loot);
     addToBag(this.hero.bag, loot.item);
     this.quests.onPickUp(loot.item);
     return loot.item;
