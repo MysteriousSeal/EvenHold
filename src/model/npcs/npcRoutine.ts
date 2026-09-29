@@ -22,6 +22,7 @@ import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf, type Inside, type Seated } from '../interiors/indoors';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
+import { setMug } from './barMugs';
 import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from './innStaff';
 
@@ -272,6 +273,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
         return;
       }
       if (npc.waited === 0) {
+        if (npc.where && step.seat.piece.kind === 'barStool') setMug(npc.where, step.seat.piece.z, true); // a drink before them at the bar
         npc.stood = { x: npc.x, z: npc.z };
         npc.seat = step.seat;
         npc.x = step.seat.x;
@@ -281,6 +283,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       }
       npc.waited += dt;
       if (npc.waited >= step.for && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) {
+        if (npc.where && step.seat.piece.kind === 'barStool') setMug(npc.where, step.seat.piece.z, false, 2 + Math.floor(roll(npc, 19) * 3)); // its empty mug left
         place(npc, world, npc.stood!);
         npc.seat = null;
         npc.stood = null;

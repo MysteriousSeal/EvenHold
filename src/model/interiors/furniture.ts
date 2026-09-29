@@ -21,6 +21,7 @@ export type FurnitureKind =
   | 'rug'
   | 'counter'
   | 'keg'
+  | 'sink' // behind the bar, where the empty mugs go
   | 'forge'
   | 'anvil'
   | 'trough'
@@ -130,10 +131,11 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     if (rng() < 0.7) place('shelf', 1, 1, 'back', along(0));
     for (let n = 1 + Math.floor(rng() * 2); n > 0; n--) place('barrel', 1, 1, 'none', [[room.width - 1, 0], [0, room.depth - 1], [room.width - 1, room.depth - 1], ...along(0)]);
   } else if (entrance.type === 'inn') {
-    // The bar, along the left wall: shelves of bottles against it, the
+    // The bar, along the left wall: a washstand and shelves of bottles against it, the
     // counter just in front of them, and stools facing it.
     const barEnd = Math.min(room.depth - 3, 5);
-    for (let z = 1; z + 1 <= barEnd; z += 2) place('bottleShelf', 1, 2, 'left', [[0, z]]);
+    place('sink', 1, 2, 'left', [[0, 1]]); // nearest the keg: the washstand, where the empty mugs go
+    for (let z = 3; z + 1 <= barEnd; z += 2) place('bottleShelf', 1, 2, 'left', [[0, z]]); // then bottle shelves
     const counter = place('counter', 1, barEnd + 1, 'left', [[1, 0]]); // from the back wall
     for (let z = counter ? counter.z : barEnd + 1; counter && z < counter.z + counter.d; z++) {
       if (rng() >= 0.75) continue;
@@ -200,7 +202,8 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   bottleShelf: [0, 0.42],
   counter: [0.26, 0.74],
   shelf: [0, 0.34],
-  keg: [0, 0.62], // on its side, reaching 0.6 of its tile out (tap and all)
+  keg: [0, 0.62],
+  sink: [0, 0.42], // slim against the wall, like the shelves // on its side, reaching 0.6 of its tile out (tap and all)
 };
 
 // Seats pulled up to what they face (a chair to its table, a stool to the

@@ -12,6 +12,7 @@ import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';
 import type { Npc, NpcStep } from './npcs';
+import { roundOnBar, takeMug } from './barMugs';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];
@@ -19,6 +20,8 @@ const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
 export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg at 0, 0 reaches out to x 0.12), clear of it and the counter (she's 0.25 wide indoors)
 const POUR_TIME = 1.4; // seconds bent over the tap
+const PUT_AWAY = 1.2; // seconds washing an empty mug at the sink
+export const AT_SINK = { x: AISLE_X, z: 1.5 }; // before the washstand behind the bar (its two tiles at 0, 1..2), facing it
 
 const roll = (npc: Npc, salt: number) => hashUnit(npc.id, npc.stop * 7 + salt, npc.salt);
 const between = (npc: Npc, [a, b]: [number, number], salt: number) => a + roll(npc, salt) * (b - a);
@@ -44,6 +47,17 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   if (!counter) return [{ kind: 'wait', for: 10 }];
   const barEnd = counter.z + counter.d - 1;
   if (npc.role === 'barkeep') {
+    // An empty mug left a while: over to take it, and to the sink to wash it.
+    const mug = roundOnBar(npc.home);
+    if (mug) {
+      return [
+        { kind: 'go', to: { x: AISLE_X, z: mug.z }, direct: true, face: TO_COUNTER },
+        { kind: 'hand', then: () => takeMug(npc.home, mug.z) && (npc.carrying = true) },
+        { kind: 'go', to: AT_SINK, direct: true, face: -Math.PI / 2 }, // facing the washstand
+        { kind: 'work', for: PUT_AWAY },
+        { kind: 'hand', then: () => (npc.carrying = false) },
+      ];
+    }
     // Opposite a patron at the bar, or somewhere along it.
     const patrons = furniture.filter((f) => f.kind === 'barStool' && sat(npcs, npc.home, f));
     const z = patrons.length > 0 ? patrons[Math.floor(roll(npc, 1) * patrons.length)].z : 1 + Math.floor(roll(npc, 2) * barEnd);
@@ -77,7 +91,7 @@ export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void 
     { kind: 'go', to: { x: AISLE_X, z: stool.z }, direct: true, face: TO_COUNTER },
     { kind: 'hand', then: () => ((barkeep.carrying = false), then()) },
   ];
-  Object.assign(barkeep, { path: null, waited: 0, working: false });
+  Object.assign(barkeep, { path: null, waited: 0, working: false, carrying: false }); // (a mug she was taking away, put down)
 }
 
 // A spot by a table to serve it from: a tile next to it, in the room, with nothing on it.

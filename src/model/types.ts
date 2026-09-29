@@ -18,6 +18,7 @@ export interface Hero extends Humanoid {
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
+  drinking?: { heal: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (heroStats.ts)
 }
 
 export type EnemyKind = 'wolf' | 'bandit' | 'boar';

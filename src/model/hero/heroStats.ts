@@ -56,4 +56,18 @@ export function hurt(hero: Hero, damage: number): boolean {
 export function recover(hero: Hero, dt: number, asleep = false): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
   if (asleep) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + SLEEP_RATE * dt);
+  // A drink being sipped: its health back a little at a time, all of it once it's empty.
+  const drink = hero.drinking;
+  if (drink) {
+    const step = Math.min(dt, drink.left);
+    hero.hp = Math.min(maxHpAt(hero.level), hero.hp + (drink.heal * step) / drink.seconds);
+    drink.left -= step;
+    if (drink.left <= 0) hero.drinking = null;
+  }
+}
+
+// Starts sipping a drink worth `heal` health over `seconds` (stopped by
+// setting hero.drinking to null: what's left is left).
+export function startDrinking(hero: Hero, heal: number, seconds: number): void {
+  hero.drinking = { heal, left: seconds, seconds };
 }

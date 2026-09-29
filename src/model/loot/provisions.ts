@@ -16,9 +16,9 @@ const PROVISION_TABLE = {
   apple: { name: 'Apple', value: 2, heal: 1, droppedBy: {}, about: 'Red and crisp, from the orchard behind the inn.' },
   roastLeg: { name: 'Roast leg', value: 12, heal: 4, droppedBy: {}, about: 'Slow-roasted over the hearth, dripping and hot.' },
   meatPie: { name: 'Meat pie', value: 9, heal: 3, droppedBy: {}, about: 'Golden crust, rich with meat and gravy.' },
-  ale: { name: 'Ale', value: 3, heal: 1, drink: true, droppedBy: {}, about: 'A frothing tankard of the house brew.' },
-  mead: { name: 'Mead', value: 7, heal: 2, drink: true, droppedBy: {}, about: 'Sweet honey wine, warming to the toes.' },
-  wine: { name: 'Wine', value: 15, heal: 3, drink: true, droppedBy: {}, about: 'A dark red from the south, sealed in wax.' },
+  ale: { name: 'Ale', value: 3, heal: 3, drink: true, droppedBy: {}, about: 'A frothing tankard of the house brew.' },
+  mead: { name: 'Mead', value: 7, heal: 5, drink: true, droppedBy: {}, about: 'Sweet honey wine, warming to the toes.' },
+  wine: { name: 'Wine', value: 15, heal: 8, drink: true, droppedBy: {}, about: 'A dark red from the south, sealed in wax.' },
 } satisfies Record<string, Provision>;
 
 export type ProvisionId = keyof typeof PROVISION_TABLE;
