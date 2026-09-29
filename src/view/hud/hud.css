@@ -337,7 +337,7 @@
    does on hover. */
 .blessing-hud {
   position: fixed;
-  top: 70px; /* under the clock */
+  top: 88px; /* under the clock (16 + its 50 tall), as far below it as the rows of cards are apart (22) */
   right: 22px;
   display: flex;
   flex-wrap: wrap; /* five to a row (each card 58px, 22px apart), more below */
@@ -420,5 +420,11 @@
   border: 3px solid #2e1f14;
   box-shadow: 3px 3px 0 rgba(46, 31, 20, 0.45), inset 0 -4px 0 #d6bb8e;
 }
+.clock-hud { pointer-events: auto; align-items: center; box-sizing: border-box; width: 184px; height: 50px; } /* a set width (up to "Day 999"): nothing shifts as the numbers change */
+.clock-hud span { flex: 1; font-variant-numeric: tabular-nums; } /* the day, between the sign and the time */
+.clock-hud-sign { position: relative; display: grid; place-items: center; width: 30px; height: 30px; }
+.clock-hud-sign canvas { display: block; }
+.clock-hud-tip { position: absolute; top: calc(100% + 12px); right: -8px; padding: 4px 10px; font: 600 14px 'Fredoka', system-ui, sans-serif; font-style: normal; white-space: nowrap; visibility: hidden; }
+.clock-hud-sign:hover .clock-hud-tip { visibility: visible; }
 .clock-hud span { font-size: 14px; font-weight: 600; color: #6a5238; }
 .clock-hud b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
