@@ -383,3 +383,22 @@
 .blessing-tip b { color: #ffd35a; font-weight: 700; }
 .blessing-tip span { color: #f8ecd4; font-weight: 500; }
 .blessing-coin { width: 24px; height: 24px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }
+
+/* The drink being sipped at the bar (drinkTimer.ts), over the hero's head:
+   a small pill, an amber bar draining as it empties, the seconds left. */
+.drink-timer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 14;
+  width: 64px;
+  height: 20px;
+  pointer-events: none;
+  background: #5a3a20;
+  border: 2px solid #2e1f14;
+  box-shadow: 2px 2px 0 rgba(46, 31, 20, 0.45);
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
+.drink-timer[hidden] { display: none; }
+.drink-timer i { position: absolute; inset: 0 auto 0 0; background: #e8a830; box-shadow: inset 0 -3px 0 #b87a18, inset 0 3px 0 #f8d078; }
+.drink-timer span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 1px 1px 0 #2e1f14; font-variant-numeric: tabular-nums; }

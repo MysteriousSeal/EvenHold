@@ -16,20 +16,18 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 // The room's scene, what to call each frame (its fire burning), and how to
 // free it once the hero's left (it disposes only what it made: the hero, moved
 // in from the world, isn't touched).
-// A drink on the bar's counter before a stool: a full tankard, or the empty mug it leaves.
+// The drinks on the bar's counter, before the stools: full tankards, and the empty mugs they leave.
 const MUG_AT = { x: 1.1, y: 0.52 }; // over the counter's top, on the customers' side
-function mugMeshes(material: THREE.Material): Record<'full' | 'empty', THREE.Mesh> {
+function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
   const mesh = (full: boolean) => {
     const grid = createGrid([4, 5, 3]);
     tankard((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color), 0, 0, 0, full);
-    const m = new THREE.Mesh(greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(-2 * ROOM_VOXEL, 0, -1.5 * ROOM_VOXEL)), material);
-    m.visible = false;
-    return m;
+    return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(-2 * ROOM_VOXEL, 0, -1.5 * ROOM_VOXEL));
   };
   return { full: mesh(true), empty: mesh(false) };
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void; dispose(): void; barMug(z: number | null, full?: boolean): void } {
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = []): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1c130c); // darkness beyond the walls
   const offset = -ROOM_ORIGIN_VOXELS * ROOM_VOXEL;
@@ -91,16 +89,24 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
       scene.add(light, back);
       return light;
     });
-  // The drink before a stool at the bar (the barmaid's set it down), hidden till then.
-  const mugs = mugMeshes(material);
-  scene.add(mugs.full, mugs.empty);
+  // The drinks on the bar (npcs/barMugs.ts): a mesh each, made as needed and reused.
+  const mugShapes = mugGeometries();
+  const mugs: THREE.Mesh[] = [];
   return {
     scene,
-    barMug(z, full = true) {
-      for (const [kind, mug] of Object.entries(mugs)) {
-        mug.visible = z !== null && (kind === 'full') === full;
-        if (z !== null) mug.position.set(MUG_AT.x, MUG_AT.y, z);
+    showMugs(list) {
+      while (mugs.length < list.length) {
+        const mug = new THREE.Mesh(mugShapes.full, material);
+        scene.add(mug);
+        mugs.push(mug);
       }
+      mugs.forEach((mug, i) => {
+        const at = list[i];
+        mug.visible = !!at;
+        if (!at) return;
+        mug.geometry = at.full ? mugShapes.full : mugShapes.empty;
+        mug.position.set(MUG_AT.x, MUG_AT.y, at.z);
+      });
     },
     update(time) {
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
@@ -110,8 +116,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [])
     dispose() {
       geometry.dispose();
       lamps3d?.geometry.dispose();
-      mugs.full.geometry.dispose();
-      mugs.empty.geometry.dispose();
+      mugShapes.full.dispose();
+      mugShapes.empty.dispose();
       material.dispose();
       for (const light of [glow, ...lanterns]) light.dispose(); // their shadow maps
       fire?.dispose();

@@ -2,6 +2,7 @@
 // handling. Mesh construction is delegated to meshes/; this class wires
 // them together and drives the per-frame render.
 
+import { mugsAt } from '../model/npcs/barMugs';
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
@@ -212,15 +213,13 @@ export class GameView {
     return { x: rect.left + ((at.x + 1) / 2) * rect.width, y: rect.top + ((1 - at.y) / 2) * rect.height };
   }
 
-  // A drink on the bar before the stool at `z` (full, or the empty mug it
-  // leaves), or none (null): in the room the hero's in.
-  barMug(z: number | null, full = true): void {
-    this.room?.barMug(z, full);
+  // The hero drinks (an ale ordered at the bar), sip after sip over `seconds`; or stops, leaving the rest.
+  heroDrinks(seconds: number): void {
+    this.hero.drink(seconds);
   }
 
-  // The hero drinks (an ale ordered at the bar): a tankard raised to the lips a moment.
-  heroDrinks(): void {
-    this.hero.drink();
+  heroStopsDrinking(): void {
+    this.hero.stopDrinking();
   }
 
   get canvas(): HTMLCanvasElement {
@@ -304,6 +303,7 @@ export class GameView {
     if (!inside) return null;
     if (!this.room) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture) };
     this.room.update(this.elapsed);
+    this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;
   }
 

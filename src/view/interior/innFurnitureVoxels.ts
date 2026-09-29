@@ -3,9 +3,9 @@
 // hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board).
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 
-export type InnKind = 'counter' | 'keg' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -99,6 +99,29 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   // under a crown moulding, three lipped shelves stocked with tall bottles
   // (green, amber, wine-dark or clear glass, each corked), squat clay jugs
   // with a darker band and handles, and little clear flasks.
+  // The washstand behind the bar, where the empty mugs go: a counter-high
+  // stand on dark legs (slim, against the wall like the shelves) with a lit
+  // front edge; a stone basin sunk in its top, water deep in it; a linen rag over the
+  // front; a drying rack at the far end with mugs turned upside down on it;
+  // an iron-hooped bucket of water beneath.
+  sink: (box, len) => {
+    for (const u of [1, len - 3]) box(u, 0, 6, u + 1, 8, 7, WOOD_DARK); // legs
+    box(0, 1, 0, len - 1, 8, 0, WOOD_DARK); // its back against the wall
+    box(0, 9, 0, len - 1, 10, 9, (_u, y, v) => (v === 9 && y === 10 ? WOOD_LIGHT : WOOD)); // the top
+    // The basin, sunk into the top: a stone rim standing proud, darker
+    // walls going down inside, the water two below the rim, shaded along
+    // the far edge where the rim shadows it.
+    box(4, 9, 1, 24, 12, 8, (u, _y, v) => (u === 4 || u === 24 || v === 1 || v === 8 ? STONE : STONE_DARK));
+    box(5, 11, 2, 23, 12, 7, 0); // hollowed out
+    box(5, 10, 2, 23, 10, 7, (_u, _y, v) => (v === 2 ? TEAL : WATER)); // the water
+    box(26, 6, 10, 28, 10, 10, LINEN); // a rag over the front
+    for (const u of [30, len - 4]) box(u, 11, 0, u, 17, 1, WOOD_DARK); // the rack's posts
+    box(30, 17, 0, len - 4, 17, 1, WOOD); // and its rail
+    box(31, 13, 0, len - 5, 13, 3, WOOD); // its shelf
+    for (const u of [32, 37, 42]) box(u, 14, 1, u + 2, 16, 3, (_u, y) => (y === 15 ? IRON : WOOD_LIGHT)); // mugs, upside down to dry
+    box(10, 0, 2, 16, 5, 7, (_u, y) => (y === 1 || y === 4 ? IRON : WOOD)); // the bucket beneath
+    box(11, 5, 3, 15, 5, 6, WATER); // water in it
+  },
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
     for (const u of [1, len - 2]) box(u, 1, 0, u, 31, 8, WOOD); // sides

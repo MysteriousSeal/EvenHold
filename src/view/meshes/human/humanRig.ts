@@ -37,8 +37,10 @@ import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 import { PROVISION_MODELS } from '../loot/provisionVoxels';
 
 const V = HUMAN_VOXEL_SIZE;
-export const DRINK_TIME = 2.2; // seconds an ale takes, raised to the lips
-const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth
+const SIPS_EVERY = 2.5; // seconds from one sip to the next
+const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth (tipping further as it empties)
+const TIP_MORE = 0.5; // how much further, the last sip
+const REST_ARM = -0.9; // between sips: the tankard resting on the bar before them
 const HOLD_ARM = -0.7; // the right arm's swing, carrying a tankard out before them
 const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
@@ -167,6 +169,7 @@ export class HumanRig {
   private pose: Pose = 'stand';
   private tankard: THREE.Mesh | null = null; // in the right hand, while drinking
   private drinkFor = 0; // seconds of drinking left
+  private drinkTotal = 1; // and in all
   private holding = false; // carrying the tankard (not drinking)
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
   private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
@@ -301,10 +304,16 @@ export class HumanRig {
     else if (this.tankard && this.drinkFor <= 0) this.tankard.visible = false;
   }
 
-  // Raises a tankard to the lips for a couple of seconds (an ale at the bar).
-  drink(): void {
+  // Drinks a tankard over `seconds` (an ale at the bar): sip after sip.
+  drink(seconds: number): void {
     this.showTankard();
-    this.drinkFor = DRINK_TIME;
+    this.drinkFor = this.drinkTotal = seconds;
+  }
+
+  // Puts the tankard down, not finished (the hero got up).
+  stopDrinking(): void {
+    this.drinkFor = 0;
+    if (this.tankard && !this.holding) this.tankard.visible = false;
   }
 
   private showTankard(): void {
@@ -320,8 +329,9 @@ export class HumanRig {
     this.tankard.visible = true;
   }
 
-  // While drinking: the right arm up to the mouth (the tankard tipping with
-  // it), a little bob at each sip; the tankard gone once done.
+  // While drinking, sip after sip: the tankard up to the lips (tipping
+  // further as it empties, a little bob as they drink), then down to rest
+  // on the bar a moment; gone once it's empty.
   private sip(dt: number): void {
     if (!this.tankard) return;
     if (this.holding) {
@@ -331,9 +341,15 @@ export class HumanRig {
     this.drinkFor -= dt;
     this.tankard.visible = this.drinkFor > 0;
     if (this.drinkFor <= 0) return;
-    const t = DRINK_TIME - this.drinkFor;
-    const raise = Math.min(1, t / 0.3, this.drinkFor / 0.3); // up, and back down at the end
-    this.joints.rightArm.rotation.x = this.joints.rightArm.rotation.x * (1 - raise) + (DRINK_ARM + Math.sin(t * 9) * 0.08) * raise;
+    const t = this.drinkTotal - this.drinkFor;
+    const emptied = t / this.drinkTotal;
+    const phase = (t % SIPS_EVERY) / SIPS_EVERY; // up (to 0.15), sipping (to 0.55), down (to 0.7), resting
+    const ease = (a: number) => a * a * (3 - 2 * a);
+    const up = phase < 0.15 ? ease(phase / 0.15) : phase < 0.55 ? 1 : phase < 0.7 ? 1 - ease((phase - 0.55) / 0.15) : 0;
+    const sipping = DRINK_ARM - TIP_MORE * emptied + (phase >= 0.15 && phase < 0.55 ? Math.sin(t * 9) * 0.06 : 0);
+    const arm = REST_ARM + (sipping - REST_ARM) * up;
+    const start = Math.min(1, t / 0.3); // from wherever the arm was, at first
+    this.joints.rightArm.rotation.x = this.joints.rightArm.rotation.x * (1 - start) + arm * start;
   }
 
   private animate(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, pose: Pose = 'stand'): void {
