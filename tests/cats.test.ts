@@ -49,6 +49,29 @@ describe('cats', () => {
     expect(cat.fleeing).toBe(true);
   });
 
+  it('never share a bench seat: one on it, or on its way up, keeps it from another', () => {
+    const model = fresh();
+    const cat = catsOf(model)[0];
+    const village = homeOf(model, cat);
+    const seats = squareBenches(model).filter((b) => model.villages[b.village] === village).flatMap((b) => b.seats);
+    const [free, ...rest] = seats;
+    rest.forEach((seat, i) => (model.npcs[i].seat = seat)); // every seat but one taken by villagers
+    // How often the cat goes for the free seat, from a spread of spots round the square (its choices come from where it is).
+    const tries = () => {
+      let picked = 0;
+      for (let i = 0; i < 200; i++) {
+        Object.assign(cat, { x: village.x + ((i % 13) - 6) * 0.37, z: village.z + (Math.floor(i / 13) - 7) * 0.29, target: null, restFor: 0, pose: 'sit', perch: null });
+        stepCat(cat, model, { x: village.x + 40, z: village.z }, 0.1);
+        if (cat.perch === free) picked++;
+      }
+      return picked;
+    };
+    expect(tries()).toBeGreaterThan(0); // it does go for it, when it's free
+    const other = { ...cat, id: cat.id + 999, perch: free }; // another cat, on its way up to it
+    model.wildlife.push(other);
+    expect(tries()).toBe(0);
+  });
+
   it('get down off a bench as someone comes to sit', () => {
     const model = fresh();
     const cat = catsOf(model)[0];

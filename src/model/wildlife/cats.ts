@@ -27,6 +27,7 @@ export interface CatWorld extends BenchWorld {
   getGroundY(x: number, z: number): number;
   npcs?: ReadonlyArray<{ seat: Seat | null }>; // who sits where (villagers)
   seated?: Seated; // and the hero
+  wildlife?: readonly Wildlife[]; // and other cats, on a seat or on their way up
 }
 
 const RADIUS = 0.08; // a cat's footprint
@@ -94,10 +95,13 @@ function walkToward(cat: Wildlife, world: CatWorld, tx: number, tz: number, spee
   return moved;
 }
 
-// Whether someone (a villager, or the hero) sits on a seat.
+// Whether someone sits on a seat (a villager, or the hero).
 function sat(world: CatWorld, seat: Seat): boolean {
   return world.seated?.seat.piece === seat.piece || !!world.npcs?.some((n) => n.seat?.piece === seat.piece);
 }
+
+// Whether another cat is on a seat, or on its way up to it.
+const perched = (world: CatWorld, seat: Seat, cat: Wildlife) => !!world.wildlife?.some((o) => o !== cat && o.perch?.piece === seat.piece);
 
 // Down off its bench seat, onto the ground just in front of it.
 function hopDown(cat: Wildlife, world: CatWorld): void {
@@ -124,7 +128,7 @@ function nextThing(cat: Wildlife, world: CatWorld, hero: { x: number; z: number 
     const free = squareBenches(world)
       .filter((b) => Math.hypot(b.x - cat.homeX, b.z - cat.homeZ) < ROAM)
       .flatMap((b) => b.seats)
-      .filter((s) => !sat(world, s));
+      .filter((s) => !sat(world, s) && !perched(world, s, cat));
     const seat = free[Math.floor(rollAt(cat, 83) * free.length)];
     if (seat) {
       const [fx, fz] = seat.piece.facing ?? [0, 0];
@@ -187,7 +191,7 @@ export function stepCat(cat: Wildlife, world: CatWorld, hero: { x: number; z: nu
     const there = Math.hypot(cat.target.x - cat.x, cat.target.z - cat.z) < 0.05;
     if (there || moved === 0) {
       const seat = cat.perch;
-      if (seat && there && !sat(world, seat)) {
+      if (seat && there && !sat(world, seat) && !perched(world, seat, cat)) {
         // Up onto the bench, facing out as a sitter would.
         Object.assign(cat, { x: seat.x, z: seat.z, y: seat.y, heading: seat.facing });
         settle(cat, 'loaf');
