@@ -1,4 +1,4 @@
-// The quests a village's notice board offers, five at a time: slay so many
+// The quests a village's notice board offers, six at a time: slay so many
 // of a kind of foe, or bring back so many of what they carry, from a spot
 // out beyond the village (said in words: "north-east of the village"). Each
 // is rolled from the seed, the board and its number, so a board offers the
@@ -13,7 +13,7 @@ import { spawnOf } from '../grid';
 import type { EnemyKind, Village } from '../types';
 import type { QuestItemId } from './questItems';
 
-export const OFFERS = 5; // quests on a board at once
+export const OFFERS = 6; // quests on a board at once
 export const MAX_ACTIVE = 3; // quests the hero can have taken at once
 const NEAR = 14; // tiles from the village, the nearest a quest's foes gather
 const FAR = 26; // and the farthest

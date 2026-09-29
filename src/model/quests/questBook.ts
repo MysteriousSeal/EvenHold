@@ -1,4 +1,4 @@
-// The hero's dealings with the notice boards: what each board offers (five
+// The hero's dealings with the notice boards: what each board offers (six
 // quests, a taken one staying pinned up until it's handed in), the quests
 // taken (three at most), and the foes each gathers where it sends the hero,
 // marked for it. While a quest isn't done its pack is kept up: a marked foe
@@ -36,12 +36,12 @@ export interface QuestHost extends QuestWorld, BoardWorld {
 export class QuestBook {
   readonly taken: TakenQuest[] = [];
   readonly events: GameEvent[] = []; // progress and rewards to show, drained with the model's (GameModel.takeEvents)
-  private readonly offers = new Map<number, number[]>(); // each board's quest numbers (the seed's first five, until some are handed in)
+  private readonly offers = new Map<number, number[]>(); // each board's quest numbers (the seed's first six, until some are handed in)
   private readonly gathered = new Map<string, number>(); // foes each quest has gathered so far, by key (their ids and places come from it)
 
   constructor(private readonly host: QuestHost) {}
 
-  // A board's five quests, in order.
+  // A board's six quests, in order.
   offersAt(board: number): Quest[] {
     return this.numbersAt(board).map((n) => questAt(this.host, board, n));
   }
@@ -218,7 +218,10 @@ export class QuestBook {
   load(data: ReturnType<QuestBook['save']>, boards: number): void {
     const whole = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
     for (const { board, offers } of Array.isArray(data?.boards) ? data.boards : []) {
-      if (whole(board) && board < boards && Array.isArray(offers) && offers.length === OFFERS && offers.every(whole)) this.offers.set(board, [...offers]);
+      if (!whole(board) || board >= boards || !Array.isArray(offers) || offers.length === 0 || offers.length > OFFERS || !offers.every(whole)) continue;
+      const numbers = [...offers];
+      while (numbers.length < OFFERS) numbers.push(Math.max(...numbers) + 1); // a board saved with fewer: the next notices pinned up
+      this.offers.set(board, numbers);
     }
     for (const { key, kills, gathered } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);

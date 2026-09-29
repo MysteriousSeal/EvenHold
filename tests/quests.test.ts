@@ -18,7 +18,7 @@ const slay = (model: GameModel, key: string) => {
 };
 
 describe('quests', () => {
-  it('offers five quests a board, the same on the same seed, with a reward that grows with danger', () => {
+  it('offers six quests a board, the same on the same seed, with a reward that grows with danger', () => {
     const model = fresh();
     expect(model.villages.length).toBeGreaterThan(0);
     const offers = model.quests.offersAt(0);
@@ -101,6 +101,12 @@ describe('quests', () => {
     model.hero.bag.wolfPelt = 3;
     expect(model.quests.handIn(bring.key)).toBe(true);
     expect(model.hero.bag.wolfPelt).toBe(1);
+  });
+
+  it('tops up a board saved with fewer notices', () => {
+    const model = fresh();
+    model.quests.load({ boards: [{ board: 0, offers: [0, 1, 2, 3, 7] }], taken: [] }, model.villages.length);
+    expect(model.quests.offersAt(0).map((q) => q.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:7', '0:8']);
   });
 
   it('keeps the boards and the quests taken in a save', () => {
