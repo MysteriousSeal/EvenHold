@@ -47,6 +47,7 @@ export class NpcViews {
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : npc.working ? 'work' : 'stand';
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
+      rig.hold(!!npc.carrying); // a tankard in hand (the barmaid, bringing an ale)
       label.visible = npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
     }
     for (const [id, view] of this.shown) {

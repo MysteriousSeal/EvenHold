@@ -39,6 +39,7 @@ import { PROVISION_MODELS } from '../loot/provisionVoxels';
 const V = HUMAN_VOXEL_SIZE;
 const DRINK_TIME = 2.2; // seconds an ale takes, raised to the lips
 const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth
+const HOLD_ARM = -0.7; // the right arm's swing, carrying a tankard out before them
 const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
 const LEG_SWING = 0.7; // radians at full stride: long, loping steps
@@ -166,6 +167,7 @@ export class HumanRig {
   private pose: Pose = 'stand';
   private tankard: THREE.Mesh | null = null; // in the right hand, while drinking
   private drinkFor = 0; // seconds of drinking left
+  private holding = false; // carrying the tankard (not drinking)
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
   private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
 
@@ -291,8 +293,21 @@ export class HumanRig {
     this.sip(dt);
   }
 
+  // Carries a tankard (the barmaid bringing an ale), held out a little, or puts it away.
+  hold(on: boolean): void {
+    if (on === this.holding) return;
+    this.holding = on;
+    if (on) this.showTankard();
+    else if (this.tankard && this.drinkFor <= 0) this.tankard.visible = false;
+  }
+
   // Raises a tankard to the lips for a couple of seconds (an ale at the bar).
   drink(): void {
+    this.showTankard();
+    this.drinkFor = DRINK_TIME;
+  }
+
+  private showTankard(): void {
     if (!this.tankard) {
       const model = PROVISION_MODELS.ale;
       const grid = model.build();
@@ -302,13 +317,17 @@ export class HumanRig {
       this.tankard.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
       this.joints.rightArm.add(this.tankard);
     }
-    this.drinkFor = DRINK_TIME;
+    this.tankard.visible = true;
   }
 
   // While drinking: the right arm up to the mouth (the tankard tipping with
   // it), a little bob at each sip; the tankard gone once done.
   private sip(dt: number): void {
     if (!this.tankard) return;
+    if (this.holding) {
+      this.joints.rightArm.rotation.x = HOLD_ARM; // held out before them
+      return;
+    }
     this.drinkFor -= dt;
     this.tankard.visible = this.drinkFor > 0;
     if (this.drinkFor <= 0) return;

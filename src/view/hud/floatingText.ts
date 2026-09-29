@@ -2,7 +2,7 @@
 // looted, appearing over a point (the hero's head), popping in a little big,
 // rising and drifting aside as it fades out. A new one near a fresh one goes
 // above it instead of on top. And speech: what someone says, in a bubble
-// over their head that stays a while (the barmaid at the bar).
+// over their head that stays a while and goes where they go (the barmaid at the bar).
 
 import { coinParts } from '../ui/coins';
 
@@ -22,13 +22,14 @@ interface Floater {
   drift: number;
   age: number;
   speech: boolean; // a speech bubble: steadier and longer-lived
+  speaker?: { x: number; z: number }; // whom a speech bubble follows
 }
 
 export interface FloatingText {
   // Shows `content` in `color` over the world point `at`.
   spawn(at: { x: number; y: number; z: number }, content: Array<string | HTMLElement>, color: string): void;
-  // Someone saying `text`, in a bubble over the world point `at` (a new one from there replaces the last).
-  speak(at: { x: number; y: number; z: number }, text: string): void;
+  // `speaker` saying `text`, in a bubble `height` over them that follows them about (a new one from them replaces the last).
+  speak(speaker: { x: number; z: number }, height: number, text: string): void;
   update(toScreen: ToScreen, dt: number): void;
   // Takes it all away (going in or out a door: rooms have places of their own).
   clear(): void;
@@ -48,9 +49,9 @@ export function createFloatingText(): FloatingText {
       for (const other of floaters) if (other.age < LIFE / 2 && Math.hypot(other.at.x - at.x, other.at.z - at.z) < 0.5) lift = Math.max(lift, other.lift + STACK);
       floaters.push({ element, at: { ...at }, lift, drift: (Math.random() * 2 - 1) * DRIFT, age: 0, speech: false });
     },
-    speak(at, text) {
+    speak(speaker, height, text) {
       for (let i = floaters.length - 1; i >= 0; i--) {
-        if (!floaters[i].speech || Math.hypot(floaters[i].at.x - at.x, floaters[i].at.z - at.z) > 0.5) continue;
+        if (floaters[i].speaker !== speaker) continue;
         floaters[i].element.remove(); // what they said before gives way
         floaters.splice(i, 1);
       }
@@ -58,7 +59,7 @@ export function createFloatingText(): FloatingText {
       element.className = 'speech-bubble';
       element.textContent = text;
       document.body.append(element);
-      floaters.push({ element, at: { ...at }, lift: 0, drift: 0, age: 0, speech: true });
+      floaters.push({ element, at: { x: speaker.x, y: height, z: speaker.z }, lift: 0, drift: 0, age: 0, speech: true, speaker });
     },
     clear() {
       for (const f of floaters) f.element.remove();
@@ -74,6 +75,7 @@ export function createFloatingText(): FloatingText {
           floaters.splice(i, 1);
           continue;
         }
+        if (f.speaker) [f.at.x, f.at.z] = [f.speaker.x, f.speaker.z]; // over them, wherever they've gone
         const p = toScreen(f.at.x, f.at.y, f.at.z);
         const scale = f.age < POP ? 1 + (POP - f.age) * (f.speech ? 2 : 5) : 1;
         const rise = f.speech ? SPEECH.rise : RISE;

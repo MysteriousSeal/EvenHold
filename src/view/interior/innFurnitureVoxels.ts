@@ -22,25 +22,26 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   },
   // A keg on its side on a wooden cradle, pointing out into the room: an
   // eight-sided body of staves (v along its length), two iron hoops, the
-  // front end in lighter wood with a dark rim and a brass tap.
+  // front end in lighter wood with a dark rim and a brass tap. Short, so
+  // it reaches only 0.6 of its tile out (the barmaid pours beside its tap).
   keg: (box) => {
-    for (const v of [5, 16]) box(4, 1, v, 20, 3, v + 1, WOOD_DARK); // the cradle's two chocks
+    for (const v of [3, 9]) box(5, 1, v, 19, 2, v + 1, WOOD_DARK); // the cradle's two chocks
     const cu = 12;
-    const cy = 10; // the keg's axis
-    const r = 7;
+    const cy = 9; // the keg's axis
+    const r = 6;
     for (let du = -r; du <= r; du++) {
       for (let dy = -r; dy <= r; dy++) {
         if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
         const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
-        box(cu + du, cy + dy, 2, cu + du, cy + dy, 21, (_u, _y, v) => {
-          if (v === 21) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
-          if (v === 6 || v === 17) return IRON; // hoops
+        box(cu + du, cy + dy, 1, cu + du, cy + dy, 12, (_u, _y, v) => {
+          if (v === 12) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
+          if (v === 3 || v === 10) return IRON; // hoops
           return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
         });
       }
     }
-    box(11, 7, 22, 13, 9, 22, BRASS); // the tap
-    box(12, 5, 23, 12, 7, 23, BRASS); // its spout, pointing down
+    box(11, 6, 13, 13, 8, 13, BRASS); // the tap
+    box(12, 4, 14, 12, 6, 14, BRASS); // its spout, pointing down
   },
   // A wingback armchair turned to the fire: a tall tufted back with wings
   // out either side at the top, plump rolled arms with brass studs, a deep
