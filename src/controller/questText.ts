@@ -3,6 +3,7 @@
 
 import { makeEnemy } from '../model/enemies/enemies';
 import type { Quest } from '../model/quests/quests';
+import type { QuestItemId } from '../model/quests/questItems';
 import { hashUnit } from '../util/random';
 import { lootIcon } from '../view/ui/itemIcons';
 import type { MenuIcon } from '../view/ui/menu';
@@ -10,7 +11,7 @@ import { voxelIcon } from '../view/ui/voxelIcon';
 import { humanBust } from '../view/meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../view/meshes/enemy/wolfVoxels';
 
-// What each notice says, by what it asks (one of three, the same for a given notice).
+// What a "slay" notice says, by its foe (one of three; for any notice, the same one always).
 const NOTICES = {
   'kill:wolf': [
     'The wolves took three sheep this week. Thin the pack before they come for the lambs.',
@@ -22,19 +23,21 @@ const NOTICES = {
     'Cutthroats are camped too close for comfort. Clear them out.',
     "They took the tax chest, and the tax collector's boots. Deal with them.",
   ],
-  'collect:wolf': [
-    'The tanner wants pelts before the frost. Good ones, mind, not moth-eaten.',
-    "Winter's coming and the children need warm cloaks. Bring wolf pelts.",
-    "Pelts from the pack that's been at the flock. The shepherd will sleep better.",
-  ],
-  'collect:bandit': [
-    'Every one of those bandits wears a tin token. Bring them back as proof.',
-    'The reeve pays for tokens taken off bandits, no questions asked.',
-    "Proof or it didn't happen: bring back their tokens.",
-  ],
 } as const;
+// What a "bring" notice says, by what it asks for (one of two).
+const WANTED: Record<QuestItemId, readonly string[]> = {
+  wolfPelt: ['The tanner wants pelts before the frost. Good ones, mind, not moth-eaten.', "Winter's coming and the children need warm cloaks. Bring wolf pelts."],
+  wolfFang: ['The healer grinds wolf fangs into her remedies. Do not ask what for.', 'Fangs for the smith: he sets them in charms for the militia.'],
+  wolfClaw: ['Claws, to prove the pack is thinning. The reeve pays for each.', 'The old hunter wants claws for his necklace. He is running out of room.'],
+  wolfTail: ['Tails for the harvest dance. Bushy ones, if you please.', "A tail for every hen they've taken. The farmer is keeping count."],
+  banditToken: ['Every one of those bandits wears a tin token. Bring them back as proof.', 'The reeve pays for tokens taken off bandits, no questions asked.'],
+  redBandanna: ['They tie red rags round their faces. Bring them back, and we will know how many are left.', 'The weaver swears those bandannas were cut from her stolen cloth.'],
+  lockpicks: ['Someone keeps opening our cellars at night. Take their lockpicks away.', 'Bring back their picks and the doors in this village can stay shut.'],
+  stolenLetter: ['They robbed the courier and took his letters. Bring them back, unopened.', "Letters meant for the lord's steward. He would like them back before he is missed."],
+};
+
 export const notice = (q: Quest, seed: number) => {
-  const lines = NOTICES[`${q.kind}:${q.foe}`];
+  const lines = q.item ? WANTED[q.item] : NOTICES[`kill:${q.foe}`];
   return lines[Math.floor(hashUnit(q.board * 131 + Number(q.key.split(':')[1]), seed % 1_000_003, 97) * lines.length)];
 };
 export const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
