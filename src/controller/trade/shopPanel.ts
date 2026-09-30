@@ -2,11 +2,11 @@
 // the hero's to sell her (the window: tradePanel.ts). She has only so much of
 // each and only so much money (inn/tavernShop.ts).
 
-import type { GameModel } from '../model/GameModel';
-import type { Npc } from '../model/npcs/npcs';
-import { buy, buyPrice, sell, sellPrice, shopAt } from '../model/inn/tavernShop';
-import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../model/loot/provisions';
-import type { Menu } from '../view/ui/menu';
+import type { GameModel } from '../../model/GameModel';
+import type { Npc } from '../../model/npcs/npcs';
+import { buy, buyPrice, sell, sellPrice, shopAt } from '../../model/inn/tavernShop';
+import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../../model/loot/provisions';
+import type { Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What she says: a greeting when the window opens, and her answer to each trade.

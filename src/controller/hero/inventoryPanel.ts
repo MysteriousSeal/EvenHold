@@ -9,16 +9,16 @@
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 // A button by the purse tidies it (bag.ts: sortedBag).
 
-import { coinParts, coinWords } from '../view/ui/coins';
-import type { GameModel } from '../model/GameModel';
-import { bagLayout, moveInBag, sortedBag, type BagItem } from '../model/hero/bag';
-import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
-import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
-import { PROVISIONS, isProvision } from '../model/loot/provisions';
-import { sellValue } from '../model/shops/sellValue';
+import { coinParts, coinWords } from '../../view/ui/coins';
+import type { GameModel } from '../../model/GameModel';
+import { bagLayout, moveInBag, sortedBag, type BagItem } from '../../model/hero/bag';
+import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
+import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
+import { PROVISIONS, isProvision } from '../../model/loot/provisions';
+import { sellValue } from '../../model/shops/sellValue';
 import { gearLines } from './gearLines';
-import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
-import { bagIcon, isLoot } from '../view/ui/itemIcons';
+import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
+import { bagIcon, isLoot } from '../../view/ui/itemIcons';
 
 const COLUMNS = 6;
 const ROWS = 4;
@@ -89,7 +89,7 @@ function footer(money: number, tidy: () => void): HTMLElement {
   const line = document.createElement('div');
   line.className = 'menu-purse bag-footer';
   const sort = document.createElement('button');
-  sort.className = 'bag-sort';
+  sort.className = 'menu-button bag-sort';
   sort.textContent = 'Sort';
   sort.title = 'Tidy the bag: gear, food and drink, ingredients, quest items, junk';
   sort.addEventListener('click', tidy);

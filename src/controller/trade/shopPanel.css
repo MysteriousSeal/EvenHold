@@ -53,20 +53,6 @@
 .shop-bar { display: flex; align-items: center; gap: 28px; margin-top: 10px; } /* (wide enough that the buttons' reach, past their edges, never meet) */
 .shop-pager { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .shop-page { font-size: 14px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.shop-page-turn, .shop-junk {
-  padding: 6px 14px;
-  font: 600 14px 'Fredoka', system-ui, sans-serif;
-  color: var(--ink);
-  background: var(--sand-light);
-  border: 2px solid var(--ink);
-  box-shadow: 0 3px 0 var(--ink);
-  cursor: pointer;
-}
-.shop-page-turn:hover:not(:disabled), .shop-junk:hover:not(:disabled) { background: var(--lantern); }
-.shop-page-turn:active:not(:disabled), .shop-junk:active:not(:disabled) { box-shadow: 0 1px 0 var(--ink); transform: translateY(2px); }
-.shop-page-turn:disabled, .shop-junk:disabled { opacity: 0.4; cursor: default; }
-/* Clickable well past its edges, its rim (a shadow, not the button) and the 2px it sinks
-   when pressed: a pointer just off it still turns the page, and one pressed at its edge
-   doesn't slip off it as it sinks, losing the click. (Clear of the grid above, the purses below.) */
-.shop-page-turn, .shop-junk { position: relative; }
-.shop-page-turn::after, .shop-junk::after { content: ''; position: absolute; inset: -10px -12px -12px; }
+/* The page turns and Sell junk (.menu-buttons, menu.css): clickable well past their edges, so a
+   pointer just off one still turns the page. (Clear of the list above, the purses below.) */
+.shop-page-turn::after, .shop-junk::after { inset: -10px -12px -12px; }

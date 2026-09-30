@@ -1,18 +1,18 @@
 // What quests look like and say, in the board's window and the journal:
 // a quest's picture, its notice's words, and how dangerous it is in a word.
 
-import { makeEnemy } from '../model/enemies/enemies';
-import { coinParts } from '../view/ui/coins';
-import { difficulty } from '../view/hud/targetHud';
-import type { Quest, QuestFoe } from '../model/quests/quests';
-import type { QuestItemId } from '../model/quests/questItems';
-import { hashUnit } from '../util/random';
-import { lootIcon } from '../view/ui/itemIcons';
-import type { MenuIcon } from '../view/ui/menu';
-import { voxelIcon } from '../view/ui/voxelIcon';
-import { humanBust } from '../view/meshes/human/humanFigure';
-import { WOLF_PALETTE, buildHead } from '../view/meshes/enemy/wolfVoxels';
-import { BOAR_PALETTE, buildBoarHead } from '../view/meshes/enemy/boarVoxels';
+import { makeEnemy } from '../../model/enemies/enemies';
+import { coinParts } from '../../view/ui/coins';
+import { difficulty } from '../../view/hud/targetHud';
+import type { Quest, QuestFoe } from '../../model/quests/quests';
+import type { QuestItemId } from '../../model/quests/questItems';
+import { hashUnit } from '../../util/random';
+import { lootIcon } from '../../view/ui/itemIcons';
+import type { MenuIcon } from '../../view/ui/menu';
+import { voxelIcon } from '../../view/ui/voxelIcon';
+import { humanBust } from '../../view/meshes/human/humanFigure';
+import { WOLF_PALETTE, buildHead } from '../../view/meshes/enemy/wolfVoxels';
+import { BOAR_PALETTE, buildBoarHead } from '../../view/meshes/enemy/boarVoxels';
 
 // What a "slay" notice says, by its foe (one of three; for any notice, the same one always).
 const NOTICES: Record<QuestFoe, readonly string[]> = {

@@ -6,20 +6,20 @@
 // out, she says when there's more; too poor, she says so. One table (MENU)
 // for both: the same steps, their own words.
 
-import type { GameModel } from '../model/GameModel';
-import { buy, buyPrice, restockIn, shopAt, type Shop } from '../model/inn/tavernShop';
-import type { Npc } from '../model/npcs/npcs';
-import type { Entrance } from '../model/interiors/interiors';
-import { setMug, takeMug } from '../model/inn/barMugs';
-import { callBarkeep, ordersAhead, placeOrder } from '../model/inn/barOrders';
-import { takeFromBag } from '../model/hero/bag';
-import { startDrinking } from '../model/hero/heroStats';
-import type { ProvisionId } from '../model/loot/provisions';
+import type { GameModel } from '../../model/GameModel';
+import { buy, buyPrice, restockIn, shopAt, type Shop } from '../../model/inn/tavernShop';
+import type { Npc } from '../../model/npcs/npcs';
+import type { Entrance } from '../../model/interiors/interiors';
+import { setMug, takeMug } from '../../model/inn/barMugs';
+import { callBarkeep, ordersAhead, placeOrder } from '../../model/inn/barOrders';
+import { takeFromBag } from '../../model/hero/bag';
+import { startDrinking } from '../../model/hero/heroStats';
+import type { ProvisionId } from '../../model/loot/provisions';
 
-export { ALE_SECONDS } from '../model/inn/barPatrons';
-import { ALE_HEALS, ALE_SECONDS, PIE_ENERGY } from '../model/inn/barPatrons';
-import { maxEnergyOf, maxHpOf } from '../model/hero/attributes';
-import type { Hero } from '../model/types';
+export { ALE_SECONDS } from '../../model/inn/barPatrons';
+import { ALE_HEALS, ALE_SECONDS, PIE_ENERGY } from '../../model/inn/barPatrons';
+import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
+import type { Hero } from '../../model/types';
 import { clock, pick } from './tradePanel';
 
 // What the hero can order at the bar.

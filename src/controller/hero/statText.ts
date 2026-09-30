@@ -1,7 +1,7 @@
 // What each stat does, in words (their effects: model/hero/attributes.ts):
 // on the hero sheet's tooltips, and in the level-up window.
 
-import type { Stat } from '../model/hero/statKinds';
+import type { Stat } from '../../model/hero/statKinds';
 
 export const STAT_DOES: Record<Stat, string> = {
   strength: 'Harder blows: +1 damage for every 3',

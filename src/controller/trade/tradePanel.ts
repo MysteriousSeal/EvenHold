@@ -10,18 +10,20 @@
 // shuts. What's traded, at what price, and what they say, is the shop's own (a Trade).
 
 import './shopPanel.css';
-import type { GameModel } from '../model/GameModel';
-import type { Npc } from '../model/npcs/npcs';
-import { nameOf, qualityOf, type BagItem } from '../model/hero/bag';
-import { BUYBACK, buyBack, restockIn, sellTo, type Sale, type Shop } from '../model/shops/shopStock';
-import { isJunk, sellValue } from '../model/shops/sellValue';
-import { TALK_RANGE } from '../model/npcs/talk';
-import { coinParts, coinWords } from '../view/ui/coins';
-import { bagIcon } from '../view/ui/itemIcons';
-import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
-import { voxelIcon } from '../view/ui/voxelIcon';
-import { humanBust } from '../view/meshes/human/humanFigure';
-import type { Seller } from './inventoryPanel';
+import type { GameModel } from '../../model/GameModel';
+import type { Npc } from '../../model/npcs/npcs';
+import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
+import { BUYBACK, buyBack, restockIn, sellTo, type Sale, type Shop } from '../../model/shops/shopStock';
+import { isJunk, sellValue } from '../../model/shops/sellValue';
+import { TALK_RANGE } from '../../model/npcs/talk';
+import { coinParts, coinWords } from '../../view/ui/coins';
+import { bagIcon } from '../../view/ui/itemIcons';
+import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
+import { voxelIcon } from '../../view/ui/voxelIcon';
+import { humanBust } from '../../view/meshes/human/humanFigure';
+import type { Seller } from '../hero/inventoryPanel';
+import { line } from '../../view/ui/dom';
+import { plural } from '../../view/ui/words';
 
 // What a trade's keeper says, by occasion: on opening, and answering each trade.
 export type TradeLines = Record<'hello' | 'bought' | 'sold' | 'sold out' | 'too poor' | 'short', readonly string[]>;
@@ -50,9 +52,6 @@ export interface TradeBag {
 }
 
 export const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
-
-// Several of a thing: "wolf fangs", "torn pouches"; a name already plural ("leather gloves") as it is.
-export const plural = (name: string) => (name.endsWith('s') ? name : /(x|ch|sh)$/.test(name) ? `${name}es` : `${name}s`);
 
 // A time left as minutes and seconds: "0:42".
 export const clock = (ms: number) => {
@@ -110,7 +109,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     const bar = document.createElement('div');
     bar.className = 'shop-bar';
     const junk = document.createElement('button');
-    junk.className = 'shop-junk';
+    junk.className = 'menu-button shop-junk';
     junk.textContent = 'Sell junk';
     junk.disabled = !(Object.keys(model.hero.bag) as BagItem[]).some(isJunk);
     junk.addEventListener('click', sellJunk);
@@ -122,7 +121,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       pager.className = 'shop-pager';
       const turn = (label: string, to: number) => {
         const button = document.createElement('button');
-        button.className = 'shop-page-turn';
+        button.className = 'menu-button shop-page-turn';
         button.textContent = label;
         button.disabled = to < 0 || to >= page.of;
         button.addEventListener('click', () => {
@@ -276,9 +275,3 @@ function talk(npc: Npc, says: string, tab: 'buy' | 'buyback'): HTMLElement {
   return row;
 }
 
-function line(className: string, text: string): HTMLElement {
-  const node = document.createElement('div');
-  node.className = className;
-  node.textContent = text;
-  return node;
-}

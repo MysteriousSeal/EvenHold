@@ -13,23 +13,24 @@ import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { coinText, createFloatingText } from './view/hud/floatingText';
-import { createInventoryPanel } from './controller/inventoryPanel';
-import { createShopPanel } from './controller/shopPanel';
-import { createLevelUpPanel } from './controller/levelUpPanel';
-import { createSmithPanel } from './controller/smithPanel';
+import { createInventoryPanel } from './controller/hero/inventoryPanel';
+import { createShopPanel } from './controller/trade/shopPanel';
+import { createLevelUpPanel } from './controller/hero/levelUpPanel';
+import { createSmithPanel } from './controller/trade/smithPanel';
 import { talkPrompt, talkingTo } from './model/npcs/talk';
-import { createBar, orderLabel } from './controller/barOrder';
+import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
-import { createJournal } from './controller/journal';
-import { createQuestBoardPanel } from './controller/questBoardPanel';
+import { createJournal } from './controller/quests/journal';
+import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createQuestTracker } from './view/hud/questTracker';
 import { noticeBoards } from './model/quests/noticeBoards';
-import { createHeroSheet } from './controller/heroSheet';
+import { createHeroSheet } from './controller/hero/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
 import { createToolbar } from './view/hud/toolbar';
 import { bagToolIcon, heroBustIcon, journalIcon, levelUpIcon, pauseIcon } from './view/ui/itemIcons';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
+import { counted } from './view/ui/words';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -195,7 +196,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
-      else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${event.points} point${event.points === 1 ? '' : 's'} to spend (P)`], '#5ae0d8');
+      else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (P)`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + ENEMY_TEXT_HEIGHT[event.on as keyof typeof ENEMY_TEXT_HEIGHT] + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');

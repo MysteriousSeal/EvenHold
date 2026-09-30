@@ -5,12 +5,13 @@
 // the game goes on while it's open, and it keeps up with the hunt.
 
 import './questPanels.css';
-import type { GameModel } from '../model/GameModel';
-import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../model/quests/quests';
-import type { TakenQuest } from '../model/quests/questBook';
-import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
+import type { GameModel } from '../../model/GameModel';
+import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../../model/quests/quests';
+import type { TakenQuest } from '../../model/quests/questBook';
+import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { notice, questFacts, questIcon } from './questText';
-import { detailParts } from '../view/ui/menuDetail';
+import { detailParts } from '../../view/ui/menuDetail';
+import { line } from '../../view/ui/dom';
 
 const cap = (text: string) => text.replace(/^./, (c) => c.toUpperCase());
 
@@ -141,9 +142,3 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   return { menu, update };
 }
 
-function line(className: string, text: string): HTMLElement {
-  const node = document.createElement('div');
-  node.className = className;
-  node.textContent = text;
-  return node;
-}

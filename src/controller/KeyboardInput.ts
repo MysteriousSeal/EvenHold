@@ -1,4 +1,4 @@
-import type { BarMenuItem } from './barOrder';
+import type { BarMenuItem } from './trade/barOrder';
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 

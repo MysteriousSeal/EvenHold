@@ -3,12 +3,12 @@
 // him (the window: tradePanel.ts). He has only so much of each and only so
 // much money (smithy/smithShop.ts).
 
-import type { GameModel } from '../model/GameModel';
-import type { Npc } from '../model/npcs/npcs';
-import { ITEMS, type EquipSlot, type ItemId } from '../model/human/equipment';
-import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../model/smithy/smithShop';
-import type { Menu } from '../view/ui/menu';
-import { gearLines } from './gearLines';
+import type { GameModel } from '../../model/GameModel';
+import type { Npc } from '../../model/npcs/npcs';
+import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
+import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../../model/smithy/smithShop';
+import type { Menu } from '../../view/ui/menu';
+import { gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.

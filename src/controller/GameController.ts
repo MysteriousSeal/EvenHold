@@ -2,7 +2,7 @@
 
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
-import { atTheBar, barmaidHere, type BarMenuItem } from './barOrder';
+import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameEvent } from '../model/types';

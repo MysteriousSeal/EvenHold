@@ -5,13 +5,14 @@
 // A window in the middle of the screen; the game waits while it's open.
 
 import './questPanels.css';
-import type { GameModel } from '../model/GameModel';
-import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Quest } from '../model/quests/quests';
-import { noticeBoards } from '../model/quests/noticeBoards';
-import { coinParts } from '../view/ui/coins';
-import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
+import type { GameModel } from '../../model/GameModel';
+import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Quest } from '../../model/quests/quests';
+import { noticeBoards } from '../../model/quests/noticeBoards';
+import { coinParts } from '../../view/ui/coins';
+import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { notice, questFacts, questIcon } from './questText';
-import { detailParts } from '../view/ui/menuDetail';
+import { detailParts } from '../../view/ui/menuDetail';
+import { line } from '../../view/ui/dom';
 
 export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
   const { quests } = model;
@@ -153,9 +154,3 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
   };
 }
 
-function line(className: string, text: string): HTMLElement {
-  const node = document.createElement('div');
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
