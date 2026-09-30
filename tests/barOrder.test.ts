@@ -6,7 +6,7 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { ALE_SECONDS, barmaidHere, callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
-import { PROVISIONS } from '../src/model/loot/provisions';
+import { ALE_HEALS } from '../src/model/inn/barPatrons';
 import { AT_KEG, AT_SINK, pourFor } from '../src/model/inn/innStaff';
 import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/inn/barMugs';
 import { seatOf } from '../src/model/interiors/furniture';
@@ -36,13 +36,12 @@ describe('an ale at the bar', () => {
     expect(shop.stock.ale).toBe(stock - 1);
     expect(model.hero.money).toBe(100 - buyPrice('ale'));
     expect(model.hero.bag.ale ?? 0).toBe(0); // sipped there, not carried off
-    // Sipped over ALE_SECONDS: its health back a little at a time, all of it once empty.
+    // Sipped over ALE_SECONDS: 60% of their most health back, a little at a time, all of it once empty.
+    const heals = maxHpAt(model.hero.level) * ALE_HEALS;
     model.update(0, 0, ALE_SECONDS / 2);
-    const halfway = model.hero.hp;
-    expect(halfway).toBeGreaterThan(1);
-    expect(halfway).toBeLessThan(1 + PROVISIONS.ale.heal);
+    expect(model.hero.hp).toBeCloseTo(1 + heals / 2);
     model.update(0, 0, ALE_SECONDS / 2 + 0.1);
-    expect(model.hero.hp).toBeCloseTo(Math.min(maxHpAt(model.hero.level), 1 + PROVISIONS.ale.heal));
+    expect(model.hero.hp).toBeCloseTo(Math.min(maxHpAt(model.hero.level), 1 + heals));
     expect(model.hero.drinking).toBeNull();
   });
 
