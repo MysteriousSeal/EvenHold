@@ -2,7 +2,7 @@
 // shop, inn/tavernShop.ts), and eaten or drunk from the bag to get health
 // back (food more than drink). Nothing drops them (yet).
 
-import type { LootEntry } from './loot';
+import type { LootEntry } from './lootEntry';
 
 export interface Provision extends LootEntry {
   heal: number; // health it gives back

@@ -3,7 +3,7 @@
 // and rolls from where they stand, so choices vary as they move but repeat exactly.
 
 import { hashUnit } from '../../util/random';
-import type { Wildlife } from './wildlife';
+import type { Wildlife } from './animal';
 
 type Fits = (x: number, z: number) => boolean;
 

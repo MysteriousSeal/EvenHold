@@ -14,16 +14,11 @@ import { JUNK_ITEMS } from './junk';
 import { PROVISIONS, isProvision, type ProvisionId } from './provisions';
 import { QUEST_ITEMS, isQuestItem, type QuestItemId } from '../quests/questItems';
 import type { BagItem } from '../hero/bag';
+import type { LootEntry, LootSource } from './lootEntry';
 
-// Who drops what: families of enemies (ENEMY_STATS[kind].family).
-export type LootSource = 'beast' | 'humanoid' | 'boar';
 export type LootQuality = 'junk' | 'ingredient' | 'common' | 'quest';
 
-export interface LootEntry {
-  name: string;
-  value: number; // copper pieces when sold
-  droppedBy: Partial<Record<LootSource, number>>; // weights among what that family drops
-}
+export type { LootEntry, LootSource } from './lootEntry';
 
 export type LootId = keyof typeof JUNK_ITEMS | IngredientId | ProvisionId | QuestItemId;
 export const LOOT: Record<LootId, LootEntry> = { ...JUNK_ITEMS, ...INGREDIENTS, ...PROVISIONS, ...QUEST_ITEMS };

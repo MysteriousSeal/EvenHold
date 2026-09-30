@@ -3,7 +3,7 @@
 // same kind of enemy can drop), so adding an item never means touching a
 // central table.
 
-import type { LootEntry } from './loot';
+import type { LootEntry } from './lootEntry';
 
 export const JUNK_ITEMS = {
   // From beasts (wolves).

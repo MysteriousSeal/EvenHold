@@ -1,7 +1,7 @@
 // Ingredients: raw food for cooking (none yet), dropped by foes and, till
 // then, only good for selling. Each says who drops it and how often, as junk does.
 
-import type { LootEntry } from './loot';
+import type { LootEntry } from './lootEntry';
 
 export const INGREDIENTS = {
   // From boars: a raw haunch, the likeliest thing a boar leaves.

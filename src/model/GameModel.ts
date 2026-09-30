@@ -38,9 +38,9 @@ import { putOn, takeOff } from './hero/wearing';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './roads';
-import { ENTER_RANGE, entrancesOf, type Entrance } from './interiors/interiors';
+import { entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
-import { layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
+import { doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
@@ -328,25 +328,9 @@ export class GameModel {
     return !!item && this.unequip(slot) && this.dropFromBag(item);
   }
 
-  // The door the hero can use right now: outdoors, one whose spot they stand
-  // on; indoors, the room's own door when they're by it. Null otherwise.
+  // The door the hero can use right now (indoors.ts), or null.
   get doorInReach(): Entrance | null {
-    const { hero } = this;
-    if (this.inside) {
-      const { room, entrance, below } = this.inside;
-      if (below) return null; // upstairs: no door to the street
-      return Math.abs(hero.x - room.door) < 0.6 && hero.z > room.depth - 1.4 ? entrance : null;
-    }
-    let best: Entrance | null = null;
-    let bestDistance = ENTER_RANGE;
-    for (const entrance of this.entrances) {
-      const d = Math.hypot(entrance.x - hero.x, entrance.z - hero.z);
-      if (d <= bestDistance) {
-        best = entrance;
-        bestDistance = d;
-      }
-    }
-    return best;
+    return doorInReach(this.inside, this.entrances, this.hero);
   }
 
   // Goes through the door in reach: in, onto the room's floor just inside

@@ -14,7 +14,7 @@ import type { Surface, Tree, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { stepGroup } from './group';
 import { stepToward } from './moving';
-import type { DeerVariant, Wildlife } from './wildlife';
+import type { DeerVariant, Wildlife } from './animal';
 
 export interface DeerWorld {
   seed: number;

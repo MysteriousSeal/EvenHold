@@ -5,7 +5,7 @@
 // seconds into it (or, below 0, till it starts).
 
 import { fleeTarget, rollAt } from './moving';
-import type { Wildlife } from './wildlife';
+import type { Wildlife } from './animal';
 
 export interface GroupWays {
   fits(x: number, z: number): boolean; // room for one there

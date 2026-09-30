@@ -4,7 +4,7 @@
 
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import type { Hero } from '../types';
-import { roomFor, type Entrance, type Room } from './interiors';
+import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
 import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
 
@@ -96,4 +96,12 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
   hero.z = at.seated.from.z;
   hero.y = y;
   at.seated = null;
+}
+
+// The door the hero can use right now: outdoors, the nearest one whose spot
+// they stand on; indoors, the room's own door when they're by it (none upstairs).
+export function doorInReach(inside: Inside | null, entrances: readonly Entrance[], hero: Hero): Entrance | null {
+  if (inside) return !inside.below && Math.abs(hero.x - inside.room.door) < 0.6 && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;
+  const near = entrances.filter((e) => Math.hypot(e.x - hero.x, e.z - hero.z) <= ENTER_RANGE);
+  return near.reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) <= Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null);
 }

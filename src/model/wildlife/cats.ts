@@ -16,9 +16,8 @@ import type { MapSize } from '../grid';
 import type { Village } from '../types';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
 import { rollAt, stepToward } from './moving';
-import type { CatVariant, Wildlife } from './wildlife';
+import type { CatPose, CatVariant, Wildlife } from './animal';
 
-export type CatPose = 'sit' | 'groom' | 'nap' | 'loaf';
 
 export interface CatWorld extends BenchWorld {
   seed: number;

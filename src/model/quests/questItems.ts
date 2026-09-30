@@ -3,7 +3,7 @@
 // each kind of foe, so two quests seldom want the same thing.
 
 import type { QuestFoe } from './quests';
-import type { LootEntry } from '../loot/loot';
+import type { LootEntry } from '../loot/lootEntry';
 
 const item = (name: string): LootEntry => ({ name, value: 0, droppedBy: {} });
 

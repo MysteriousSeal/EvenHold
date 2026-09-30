@@ -13,7 +13,7 @@ import { inBounds, type MapSize } from '../grid';
 import { hashUnit } from '../../util/random';
 import { stepGroup } from './group';
 import { stepToward } from './moving';
-import type { DuckVariant, Wildlife } from './wildlife';
+import type { DuckVariant, Wildlife } from './animal';
 
 export interface DuckWorld {
   seed: number;
