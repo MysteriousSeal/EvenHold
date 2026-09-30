@@ -172,7 +172,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // The smithy at work: sparks off the anvil, steam off the trough (as the smith hammers, or quenches).
   const anvil = furniture.find((f) => f.kind === 'anvil');
   const trough = furniture.find((f) => f.kind === 'trough');
-  const smithy = new SmithyEffects(scene, anvil ? new THREE.Vector3(anvil.x, 11 * ROOM_VOXEL, anvil.z) : null, trough ? new THREE.Vector3(trough.x + (trough.w - 1) / 2, 7 * ROOM_VOXEL, trough.z) : null);
+  const smithy = new SmithyEffects(scene, anvil ? new THREE.Vector3(anvil.x, 11 * ROOM_VOXEL, anvil.z) : null, trough ? new THREE.Vector3(trough.x + (trough.w - 1) / 2, 7 * ROOM_VOXEL, trough.z - (trough.wall === 'back' ? 0.2 : 0)) : null);
   let forging = { hammering: false, quenching: false };
   // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();

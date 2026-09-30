@@ -4,11 +4,12 @@
 // board of tools), and what he sells, on show (a wall of weapons, a suit of
 // armour on a stand). The forge, anvil, trough and rack are furnitureVoxels.ts'.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS, BRASS_DARK, FUR_DARK, CLAY, CLAY_DARK, PARCHMENT, INK, COAL, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS, BRASS_DARK, FUR_DARK, CLAY, CLAY_DARK, RED, RED_DARK, PARCHMENT, INK, COAL, WATER, type Box } from './furniturePalette';
+import type { Furniture } from '../../model/interiors/furniture';
 
 export type SmithyKind = 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard';
 
-export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: number) => void> = {
+export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // Two tiles of oak, its front (+v, toward the door) banded in iron under a
   // lit top; on it an open ledger and a brass scale.
   smithCounter: (box, len) => {
@@ -47,20 +48,55 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     box(17, 25, 2, 19, 25, 2, IRON); // socket,
     box(18, 26, 2, 18, 27, 2, IRON_LIGHT); // and point
   },
-  // A suit of armour on a stand: a cross foot, a post, a mail shirt belted
-  // in leather with a brass buckle, a helm with its eye slit toward the room.
-  armorStand: (box) => {
-    box(5, 1, 11, 19, 2, 13, WOOD_DARK); // the foot, crossed
-    box(11, 1, 5, 13, 2, 19, WOOD_DARK);
-    box(11, 3, 11, 13, 14, 13, WOOD); // the post
-    box(7, 15, 9, 17, 25, 15, (u, y) => ((u + y) % 2 === 0 ? IRON_LIGHT : IRON)); // mail
-    box(5, 24, 9, 19, 26, 15, (u, y) => ((u + y) % 2 === 0 ? IRON_LIGHT : IRON)); // its shoulders
-    box(7, 17, 9, 17, 17, 15, FUR_DARK); // the belt
-    box(12, 17, 16, 12, 17, 16, BRASS); // its buckle
-    box(11, 27, 11, 13, 27, 13, WOOD); // the neck
-    box(8, 28, 8, 16, 32, 16, (_u, y, v) => (v === 16 && y === 30 ? COAL : IRON)); // the helm, its slit
-    box(9, 33, 9, 15, 33, 15, IRON_LIGHT); // its crown, lit
+  // A suit of armour on a stand, backed against the wall, its front toward
+  // the room: a cross foot and a post, and one of four suits (`suit`), each
+  // its own at a glance: chain mail and a nasal cap; plate, broad pauldrons
+  // and a great helm; studded leather and a leather cap; a red brigandine
+  // riveted in brass under a wide-brimmed kettle helm.
+  armorStand: (box, _len, _dep, item) => {
+    const c = 10; // its middle, out from the wall
+    const front = c + 3; // the torso's front face
+    box(5, 1, c - 1, 19, 2, c + 1, WOOD_DARK); // the foot, crossed
+    box(11, 1, c - 7, 13, 2, c + 7, WOOD_DARK);
+    box(11, 3, c - 1, 13, 14, c + 1, WOOD); // the post
+    box(10, 26, c - 2, 14, 29, c + 2, WOOD); // the head
+    const torso = (color: (u: number, y: number, v: number) => number) => box(7, 15, c - 3, 17, 25, c + 3, color);
+    const belt = (color: number) => {
+      box(7, 17, c - 3, 17, 17, c + 3, color);
+      box(12, 17, front + 1, 12, 17, front + 1, BRASS); // its buckle
+    };
+    switch (item.suit ?? 0) {
+      case 1: // plate
+        torso((u, y) => (u === 7 || u === 17 || y === 15 ? IRON : u === 12 ? IRON_LIGHT : y > 21 ? IRON_LIGHT : IRON)); // smooth, a ridge down its middle
+        box(4, 23, c - 4, 20, 27, c + 4, (_u, y) => (y === 27 ? IRON_LIGHT : IRON)); // broad pauldrons, their tops lit
+        box(7, 16, c - 3, 17, 16, c + 3, IRON); // a plate belt
+        box(8, 27, c - 4, 16, 33, c + 4, (u, y, v) => (y === 33 ? IRON_LIGHT : v === c + 4 && y === 30 && u > 8 && u < 16 ? COAL : v === c + 4 && y === 28 && (u === 11 || u === 13) ? COAL : IRON)); // the great helm, flat-topped: its slit and breaths
+        break;
+      case 2: // studded leather
+        torso((u, y, v) => (v === front && (u + y) % 3 === 0 ? BRASS : u === 7 || u === 17 ? CLAY_DARK : CLAY));
+        box(6, 24, c - 3, 18, 25, c + 3, CLAY_DARK); // leather shoulders
+        belt(FUR_DARK);
+        box(9, 29, c - 3, 15, 31, c + 3, CLAY_DARK); // the cap,
+        box(10, 32, c - 2, 14, 32, c + 2, CLAY); // its crown
+        break;
+      case 3: // brigandine
+        torso((u, y, v) => (v === front && u % 2 === 0 && y % 3 === 0 ? BRASS : u === 7 || u === 17 ? RED_DARK : RED)); // red cloth, riveted
+        box(6, 24, c - 3, 18, 25, c + 3, RED_DARK); // its shoulders
+        belt(FUR_DARK);
+        box(6, 29, c - 6, 18, 29, c + 6, IRON); // the kettle helm's brim,
+        box(9, 30, c - 3, 15, 32, c + 3, IRON); // its dome,
+        box(10, 33, c - 2, 14, 33, c + 2, IRON_LIGHT); // lit on top
+        break;
+      default: // chain mail
+        torso((u, y) => ((u + y) % 2 === 0 ? IRON_LIGHT : IRON));
+        box(5, 24, c - 3, 19, 26, c + 3, (u, y) => ((u + y) % 2 === 0 ? IRON_LIGHT : IRON)); // mail over the shoulders
+        belt(FUR_DARK);
+        box(9, 29, c - 3, 15, 31, c + 3, IRON); // the nasal cap,
+        box(10, 32, c - 2, 14, 32, c + 2, IRON_LIGHT); // its crown lit,
+        box(12, 26, c + 3, 12, 28, c + 3, IRON_LIGHT); // its nose guard
+    }
   },
+
   // A stone wheel on an axle between two posts, over a little trough of
   // water, a crank to one side and a pedal at its foot.
   grindstone: (box) => {

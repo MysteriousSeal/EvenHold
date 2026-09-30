@@ -268,13 +268,16 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
 
   // The quench trough: heavy planks on a dark foot, bound in iron all
   // round, a lit rim, water standing inside.
-  trough: (box, len) => {
-    box(2, 1, 5, len - 3, 1, 19, WOOD_DARK); // the foot
-    box(2, 2, 5, len - 3, 9, 19, (u, y) => (u % 16 === 8 || y === 4 ? IRON : WOOD)); // the sides, banded
-    box(2, 9, 5, len - 3, 9, 19, WOOD_LIGHT); // the rim
-    box(4, 2, 7, len - 5, 9, 17, 0); // hollow,
-    box(4, 2, 7, len - 5, 7, 17, WATER); // and full of water
+  trough: (box, len, _dep, item) => {
+    const back = item.wall === 'back' ? -5 : 0; // against the back wall: drawn right up to it
+    const b: Box = (u0, y0, v0, u1, y1, v1, color) => box(u0, y0, v0 + back, u1, y1, v1 + back, typeof color === 'number' ? color : (u, y, v) => color(u, y, v - back));
+    b(2, 1, 5, len - 3, 1, 19, WOOD_DARK); // the foot
+    b(2, 2, 5, len - 3, 9, 19, (u, y) => (u % 16 === 8 || y === 4 ? IRON : WOOD)); // the sides, banded
+    b(2, 9, 5, len - 3, 9, 19, WOOD_LIGHT); // the rim
+    b(4, 2, 7, len - 5, 9, 17, 0); // hollow,
+    b(4, 2, 7, len - 5, 7, 17, WATER); // and full of water
   },
+
 
   // A weapon rack against the wall: two uprights, crossbars, blades resting on them.
   // A weapon rack against the wall: two posts, a slotted base and a lit top
