@@ -17,9 +17,28 @@ const headFar = (box: Box, len: number): Box => (u0, y0, v0, u1, y1, v1, color) 
 const offWall = (box: Box): Box => (u0, y0, v0, u1, y1, v1, color) =>
   box(u0, y0, v0 + HALL_WALL, u1, y1, v1 + HALL_WALL, typeof color === 'number' ? color : (u, y, v) => color(u, y, v - HALL_WALL));
 
-// A stretch of the hallway's low wall, u0..u1 along it, five voxels thick.
-function hallWall(box: Box, u0: number, u1: number): void {
-  box(u0, 0, 0, u1, 5, 4, (u) => (u <= 1 ? FUR_DARK : WOOD_DARK)); // boards, a post at the tile's end (as the room's walls)
+const WALL_TOP = 34; // a full-height inner wall's top, as high as the back walls
+// The room's own wall colours (roomVoxels.ts ROOM_COLORS), for the full-height walls to match the building's.
+const [PLASTER, PLASTER_SHADE, TIMBER, SKIRTING] = [8, 9, 10, 13];
+const dapple = (u: number, y: number) => (((Math.imul(u, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 11 === 0);
+
+// A full-height inner wall as the inn's own walls are: a dark skirting,
+// framed panels up to a lit dado rail, then dappled plaster between timber
+// posts (each tile's end) under a timber beam.
+function plasterWall(u: number, y: number): number {
+  if (y < 3) return SKIRTING;
+  if (y < 10) return u % 8 === 0 || y === 3 || y === 9 ? WOOD_DARK : WOOD; // panels, framed
+  if (y < 12) return WOOD_LIGHT; // dado rail
+  if (u % 25 <= 1 || y >= WALL_TOP - 2) return TIMBER; // posts, top beam
+  return dapple(u, y) ? PLASTER_SHADE : PLASTER;
+}
+
+// A stretch of the hallway's wall, u0..u1 along it, five voxels thick, from
+// `from` up: low (dark boards, a post at each tile's end, a lit rail on top),
+// or full height (`tall`, the walls option) and like the inn's own walls.
+function hallWall(box: Box, u0: number, u1: number, tall = false, from = 0): void {
+  if (tall) return box(u0, from, 0, u1, WALL_TOP, 4, (u, y) => plasterWall(u, y));
+  box(u0, from, 0, u1, 5, 4, (u) => (u % 25 <= 1 ? FUR_DARK : WOOD_DARK)); // boards
   box(u0, 6, 0, u1, 6, 4, WOOD_LIGHT); // the rail on top
 }
 
@@ -215,13 +234,14 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   },
   // Upstairs, between the hallway and the rooms off it: a low wall of dark
   // boards (cut low like the room's near walls, to see over), a lit rail on top.
-  hallWall: (box, len) => hallWall(box, 0, len - 1),
+  hallWall: (box, len, _dep, item) => hallWall(box, 0, len - 1, item.tall),
   // A room's door in it: timber posts and a lintel standing tall over a
   // threshold (the door itself meshed apart, to swing: paintDoorLeaf).
-  hallDoor: (box, len) => {
+  hallDoor: (box, len, _dep, item) => {
     const o = Math.floor((len - 25) / 2); // the door a tile wide, in the middle of its piece (one tile, or two across their joint)
-    hallWall(box, 0, o + 3);
-    hallWall(box, o + 21, len - 1);
+    hallWall(box, 0, o + 3, item.tall);
+    hallWall(box, o + 21, len - 1, item.tall);
+    if (item.tall) hallWall(box, o + 4, o + 20, true, 31); // full height: the wall on over the lintel
     for (const u of [o + 4, o + 19]) box(u, 0, 0, u + 1, 28, 4, FUR_DARK); // posts
     box(o + 3, 29, 0, o + 21, 30, 4, (_u, y) => (y === 30 ? WOOD_LIGHT : FUR_DARK)); // lintel, past the posts, lit on top
     box(o + 6, 0, 0, o + 18, 0, 4, WOOD_LIGHT); // threshold

@@ -293,15 +293,15 @@ export class GameView {
 
   // The scene of the room the hero's in, built when they step in, or null outdoors.
   // The one before is freed when they leave it (or go straight into another).
-  private room: ({ entrance: Entrance } & ReturnType<typeof buildRoomScene>) | null = null;
+  private room: ({ entrance: Entrance; fullWalls: boolean } & ReturnType<typeof buildRoomScene>) | null = null;
   private roomScene(model: GameModel): THREE.Scene | null {
     const inside = model.inside;
-    if (this.room && this.room.entrance !== inside?.entrance) {
+    if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls)) { // left, or the walls option changed
       this.room.dispose();
       this.room = null;
     }
     if (!inside) return null;
-    if (!this.room) this.room = { entrance: inside.entrance, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
+    if (!this.room) this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
     this.room.update(this.elapsed);
     this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;
