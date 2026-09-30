@@ -51,11 +51,12 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   // Ruins in the wilds, and the bandits' camps; the trees and bushes that
   // would stand on them (or right up to their walls) cleared away after
   // (grown as ever, so the rest of the world's the same).
-  const cleared = new Set<string>();
-  const isOpenTile = (x: number, z: number) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(cellKey(x, z)); // (dry, clear of buildings and of what's placed before)
+  const cleared = new Set<number>(); // (tiles as x * depth + z: numbers, not keys, for the half-million trees checked against it)
+  const tile = (x: number, z: number) => (x + 64) * (size.depth + 128) + (z + 64); // (distinct just off the map too: what's cleared round a camp can reach past its edge)
+  const isOpenTile = (x: number, z: number) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(tile(x, z)); // (dry, clear of buildings and of what's placed before)
   const ruins = placeRuins({ seed, size, heightMap, surfaceMap, villages, isOpenTile });
   const clear = (x0: number, z0: number, x1: number, z1: number) => {
-    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) cleared.add(cellKey(x, z));
+    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) cleared.add(tile(x, z));
   };
   for (const r of ruins) clear(r.x - 1, r.z - 1, r.x + r.w, r.z + r.d);
   // The bandits' camps likewise (clear of the ruins).
@@ -63,9 +64,9 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   const camps = placeCamps({ seed, size, heightMap, surfaceMap, villages, forest, isOpenTile });
   for (const c of camps) clear(c.x - 3, c.z - 3, c.x + 3, c.z + 3);
   const grown = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, forest, spawn.x, spawn.z);
-  const trees = grown.filter((t) => !cleared.has(cellKey(Math.round(t.x), Math.round(t.z))));
+  const trees = grown.filter((t) => !cleared.has(tile(Math.round(t.x), Math.round(t.z))));
   const meadowDensity = createMeadowDensity(seed);
-  const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, grown, meadowDensity, spawn.x, spawn.z).filter((b) => !cleared.has(cellKey(b.x, b.z)));
+  const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, grown, meadowDensity, spawn.x, spawn.z).filter((b) => !cleared.has(tile(b.x, b.z)));
 
   return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, buildings, fields, ruins, camps, trees, bushes };
 }

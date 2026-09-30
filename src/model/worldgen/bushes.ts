@@ -4,8 +4,8 @@
 // so adding bushes didn't reshuffle any seed's existing map.
 
 import { BUSH_CHANCE, BUSH_SHAPES } from '../constants';
-import { cellKey, cellLookup, sizeOf } from '../grid';
-import { hashCell, mulberry32 } from '../../util/random';
+import { cellLookup, sizeOf } from '../grid';
+import { firstRoll, hashCell, mulberry32 } from '../../util/random';
 import type { Bush, BushKind, Surface, Tree } from '../types';
 import type { MeadowDensity } from './meadows';
 
@@ -30,15 +30,18 @@ export function generateBushes(
 ): Bush[] {
   const size = sizeOf(heightMap);
   const blocked = cellLookup(size, blockedCells);
-  const hasTree = cellLookup(size, trees.map((t) => cellKey(t.x, t.z)));
+  const treeAt = new Uint8Array(size.width * size.depth); // (a grid, not keys: there are hundreds of thousands)
+  for (const t of trees) treeAt[t.x * size.depth + t.z] = 1;
+  const hasTree = (x: number, z: number) => treeAt[x * size.depth + z] === 1;
   const bushes: Bush[] = [];
 
   for (let x = 0; x < heightMap.length; x++) {
     for (let z = 0; z < heightMap[x].length; z++) {
       // The tile's own roll first: it's cheap and fails for most tiles, so
-      // the meadow noise below is only sampled where a bush could grow.
-      const rng = mulberry32(hashCell(x, z, BUSH_SALT));
-      if (rng() >= BUSH_CHANCE) continue;
+      // the meadow noise below is only sampled where a bush could grow (and
+      // its generator made only then, its first number already rolled).
+      const seed = hashCell(x, z, BUSH_SALT);
+      if (firstRoll(seed) >= BUSH_CHANCE) continue;
       if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural') continue;
       if (blocked(x, z) || hasTree(x, z)) continue;
       // Keep the spawn tile and its neighbors clear so the hero never starts boxed in.
@@ -46,6 +49,8 @@ export function generateBushes(
 
       const density = meadowDensity(x, z);
       if (density < EDGE_MIN || density > EDGE_MAX) continue;
+      const rng = mulberry32(seed);
+      rng(); // (the roll above)
       bushes.push({
         x,
         z,

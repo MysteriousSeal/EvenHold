@@ -137,8 +137,17 @@ export function randomName(build: Build): string {
 // of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
 export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = []): Npc[] {
-  const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
-    list.reduce<T | null>((best, v) => (!best || Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z) ? v : best), null);
+  // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
+  // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.
+  const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number): T | null => {
+    let best: T | null = null;
+    let bestD = Infinity;
+    for (const v of list) {
+      const d = (v.x - x) * (v.x - x) + (v.z - z) * (v.z - z);
+      if (d < bestD || (d === bestD && best && Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z))) [best, bestD] = [v, d];
+    }
+    return best;
+  };
   const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
     const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : role === 'smith' ? 0 : 1); // about half the village's folk women; the inn's barmaids always, the smith never
     return {
@@ -168,6 +177,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     };
   };
   const inns = entrances.filter((e) => e.type === 'inn');
+  const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
   const villagers = entrances
     .filter((e) => e.type === 'house')
     .flatMap((home, id) => {
@@ -179,7 +189,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
       // Some work the field nearest their village, if there's one near.
-      const field = nearest(fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })), village.x, village.z);
+      const field = nearest(fieldCenters, village.x, village.z);
       if (field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE) npc.field = field.f;
       return [npc];
     });

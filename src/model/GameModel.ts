@@ -19,7 +19,7 @@ import {
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
+import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
@@ -112,10 +112,10 @@ export class GameModel {
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
   // `size` defaults to the game's map; tests pass small worlds.
-  constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE) {
+  // `world`: the seed's, made already (kept from an earlier visit: controller/worldCache.ts), else made now.
+  constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE, world: World = generateWorld(seed, size)) {
     this.seed = seed;
 
-    const world = generateWorld(seed, size);
     this.size = world.size;
     this.heightMap = world.heightMap;
     this.lakeMap = world.lakeMap;

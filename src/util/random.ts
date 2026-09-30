@@ -11,6 +11,15 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+// The first number mulberry32(seed) would give, without making the
+// generator: for a roll per tile over millions of tiles, most failing at once.
+export function firstRoll(seed: number): number {
+  const a = ((seed | 0) + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 // In-place Fisher-Yates shuffle driven by the given (seeded) rng.
 export function shuffle<T>(items: T[], rng: () => number): void {
   for (let i = items.length - 1; i > 0; i--) {

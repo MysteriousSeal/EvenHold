@@ -2,20 +2,20 @@
 // height grid — no lake/tree/hero knowledge.
 
 import { MAX_TIER, NOISE_SCALE } from '../constants';
-import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../grid';
+import { sizeOf, type MapSize } from '../grid';
 
 export function generateHeightMap(noise2D: (x: number, y: number) => number, size: MapSize): number[][] {
-  const map: number[][] = [];
+  const map: number[][] = new Array(size.width);
   for (let x = 0; x < size.width; x++) {
-    const row: number[] = [];
+    const row: number[] = new Array(size.depth);
     for (let z = 0; z < size.depth; z++) {
       const base = noise2D(x / NOISE_SCALE, z / NOISE_SCALE);
       const detail = noise2D(x / (NOISE_SCALE / 3), z / (NOISE_SCALE / 3)) * 0.3;
       const normalized = Math.min(1, Math.max(0, (base + detail + 1.3) / 2.6));
       const h = Math.min(MAX_TIER, Math.floor(normalized * (MAX_TIER + 1)));
-      row.push(h);
+      row[z] = h;
     }
-    map.push(row);
+    map[x] = row;
   }
   return map;
 }
@@ -32,30 +32,46 @@ export function generateHeightMap(noise2D: (x: number, y: number) => number, siz
 // propagate both ways, so the grid reaches a fully stable state in a
 // handful of passes instead of needing one pass per row/column of the map.
 export function smoothHeightMap(map: number[][]): void {
-  const size = sizeOf(map);
+  const { width, depth } = sizeOf(map);
   for (let iteration = 0; iteration < 16; iteration++) {
     let changed = false;
     const reverse = iteration % 2 === 1;
 
-    for (let xi = 0; xi < size.width; xi++) {
-      const x = reverse ? size.width - 1 - xi : xi;
-      for (let zi = 0; zi < size.depth; zi++) {
-        const z = reverse ? size.depth - 1 - zi : zi;
+    for (let xi = 0; xi < width; xi++) {
+      const x = reverse ? width - 1 - xi : xi;
+      for (let zi = 0; zi < depth; zi++) {
+        const z = reverse ? depth - 1 - zi : zi;
 
+        // Its four neighbors on the map (written out, not looped: this runs millions of times).
         let minNeighbor = Infinity;
         let maxNeighbor = -Infinity;
-        for (const [dx, dz] of NEIGHBORS_4) {
-          if (!inBounds(size, x + dx, z + dz)) continue;
-          const nh = map[x + dx][z + dz];
-          minNeighbor = Math.min(minNeighbor, nh);
-          maxNeighbor = Math.max(maxNeighbor, nh);
+        const column = map[x];
+        if (x + 1 < width) {
+          const nh = map[x + 1][z];
+          if (nh < minNeighbor) minNeighbor = nh;
+          if (nh > maxNeighbor) maxNeighbor = nh;
+        }
+        if (x > 0) {
+          const nh = map[x - 1][z];
+          if (nh < minNeighbor) minNeighbor = nh;
+          if (nh > maxNeighbor) maxNeighbor = nh;
+        }
+        if (z + 1 < depth) {
+          const nh = column[z + 1];
+          if (nh < minNeighbor) minNeighbor = nh;
+          if (nh > maxNeighbor) maxNeighbor = nh;
+        }
+        if (z > 0) {
+          const nh = column[z - 1];
+          if (nh < minNeighbor) minNeighbor = nh;
+          if (nh > maxNeighbor) maxNeighbor = nh;
         }
 
         // h must be within 1 of every neighbor at once, i.e. within
         // [maxNeighbor - 1, minNeighbor + 1]. Checking only against the
         // aggregate min/max misses a cell sitting "between" two neighbors
         // that are themselves far apart — e.g. heights 0, 2, 4 in a row.
-        const h = map[x][z];
+        const h = column[z];
         const targetLow = maxNeighbor - 1;
         const targetHigh = minNeighbor + 1;
 
@@ -68,7 +84,7 @@ export function smoothHeightMap(map: number[][]): void {
 
         if (next !== h) {
           changed = true;
-          map[x][z] = next;
+          column[z] = next;
         }
       }
     }

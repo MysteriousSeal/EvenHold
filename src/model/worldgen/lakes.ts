@@ -1,7 +1,7 @@
 // Lake/basin generation. Depends on the height grid, not on trees or the hero.
 
 import { WATER_LEVEL, LAKE_NOISE_SCALE, MIN_LAKE_SIZE } from '../constants';
-import { NEIGHBORS_4, inBounds, sizeOf } from '../grid';
+import { sizeOf } from '../grid';
 
 // Water physically can't flood part of a connected low-lying basin and
 // leave the rest dry — it finds its own level. So instead of deciding
@@ -20,7 +20,7 @@ export function generateLakeMap(
   spawnZ: number,
 ): boolean[][] {
   const size = sizeOf(heightMap);
-  const map: boolean[][] = heightMap.map((row) => row.map(() => false));
+  const map: boolean[][] = Array.from({ length: size.width }, () => new Array<boolean>(size.depth).fill(false));
   // Flat typed arrays (index x * depth + z): a big map has millions of tiles.
   const visited = new Uint8Array(size.width * size.depth);
   const stack = new Int32Array(size.width * size.depth);
@@ -43,15 +43,18 @@ export function generateLakeMap(
         if (cell === spawn) containsSpawn = true;
         const cx = Math.floor(cell / size.depth);
         const cz = cell - cx * size.depth;
-        for (const [dx, dz] of NEIGHBORS_4) {
-          const nx = cx + dx;
-          const nz = cz + dz;
-          if (!inBounds(size, nx, nz) || heightMap[nx][nz] > WATER_LEVEL) continue;
+        // Its four neighbors, in NEIGHBORS_4's order (+x, -x, +z, -z), written out: this runs millions of times.
+        const push = (nx: number, nz: number) => {
+          if (heightMap[nx][nz] > WATER_LEVEL) return;
           const next = nx * size.depth + nz;
-          if (visited[next]) continue;
+          if (visited[next]) return;
           visited[next] = 1;
           stack[top++] = next;
-        }
+        };
+        if (cx + 1 < size.width) push(cx + 1, cz);
+        if (cx > 0) push(cx - 1, cz);
+        if (cz + 1 < size.depth) push(cx, cz + 1);
+        if (cz > 0) push(cx, cz - 1);
       }
 
       if (count < MIN_LAKE_SIZE || containsSpawn) continue;

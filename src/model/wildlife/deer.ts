@@ -54,13 +54,14 @@ const go = (deer: Wildlife, world: DeerWorld, tx: number, tz: number, speed: num
   stepToward(deer, (x, z) => walkable(world, x, z), tx, tz, speed, dt, (x, z) => world.getGroundY(x, z));
 
 // Open grass with a few trees nearby (`trees`: the tiles with one), far from people.
-function meadow(world: DeerWorld, trees: Set<number>, x: number, z: number): boolean {
+function meadow(world: DeerWorld, trees: Uint8Array, x: number, z: number): boolean {
   if (!inBounds(world.size, x, z) || !world.isOpenTile(x, z) || world.surfaceMap[x][z] !== 'natural') return false;
-  if (world.villages.some((v) => Math.hypot(v.x - x, v.z - z) < AWAY_FROM_VILLAGES)) return false;
-  if (world.camps.some((c) => Math.hypot(c.x - x, c.z - z) < AWAY_FROM_CAMPS)) return false;
+  // (squared: the same answer as the distance for tiles, far cheaper against hundreds of villages)
+  if (world.villages.some((v) => (v.x - x) ** 2 + (v.z - z) ** 2 < AWAY_FROM_VILLAGES ** 2)) return false;
+  if (world.camps.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < AWAY_FROM_CAMPS ** 2)) return false;
   let near = 0;
   for (let dx = -WOODS_NEAR; dx <= WOODS_NEAR; dx++) {
-    for (let dz = -WOODS_NEAR; dz <= WOODS_NEAR; dz++) if (trees.has((x + dx) * world.size.depth + z + dz) && ++near >= 3) return true;
+    for (let dz = -WOODS_NEAR; dz <= WOODS_NEAR; dz++) if (trees[(x + dx) * world.size.depth + z + dz] === 1 && ++near >= 3) return true;
   }
   return false;
 }
@@ -112,7 +113,8 @@ function place(deer: Wildlife): [number, number] {
 export function spawnDeer(world: DeerWorld, firstId: number): Wildlife[] {
   const deer: Wildlife[] = [];
   const salt = world.seed % 1000;
-  const trees = new Set(world.trees.map((t) => t.x * world.size.depth + t.z));
+  const trees = new Uint8Array(world.size.width * world.size.depth); // (a grid of the half-million trees, by x * depth + z)
+  for (const t of world.trees) trees[t.x * world.size.depth + t.z] = 1;
   for (let gx = 0; gx < world.size.width; gx += GRID) {
     for (let gz = 0; gz < world.size.depth; gz += GRID) {
       const roll = (n: number) => hashUnit(gx, gz, salt + n);

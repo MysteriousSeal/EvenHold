@@ -49,8 +49,10 @@ export function squareBenches(world: BenchWorld): Bench[] {
   return benches;
 }
 
-function benchesOn(world: BenchWorld, village: Village, index: number, solid: Set<string>, doors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Bench[] {
+function benchesOn(world: BenchWorld, village: Village, index: number, solid: Set<string>, allDoors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Bench[] {
   const path = (x: number, z: number) => world.surfaceMap[x]?.[z] === 'path';
+  // Only this square's doors can be before a spot on its edge (not the world's thousands).
+  const doors = allDoors.filter((d) => Math.abs(d.x - village.x) <= R + 1 && Math.abs(d.z - village.z) <= R + 1);
   const spots: Array<{ x: number; z: number; front: [number, number]; order: number }> = [];
   for (const [dx, dz] of NEIGHBORS_4) {
     for (let t = -(R - 1); t <= R - 1; t++) {
