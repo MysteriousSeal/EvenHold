@@ -73,14 +73,19 @@ export function createMenu(options: MenuOptions): Menu {
     tipped = cell ? index : null;
     tooltip.hidden = tipped === null;
     if (!cell) return;
-    const { button } = entry;
-    const title = el('b', undefined, cell.title);
-    if ('tone' in cell && cell.tone) title.dataset.tone = cell.tone;
-    tooltip.replaceChildren(title, ...(cell.lines ?? []).map((line) => el('small', undefined, line)));
-    const slot = button.getBoundingClientRect();
+    placeTip(entry.button, cell.title, cell.lines ?? [], 'tone' in cell ? cell.tone : undefined);
+  }
+
+  // The tooltip beside `anchor`: a title (in its tone), and lines under it; on the right, else the left if there's no room.
+  function placeTip(anchor: HTMLElement, text: string, lines: string[], tone?: string): void {
+    const title = el('b', undefined, text);
+    if (tone) title.dataset.tone = tone;
+    tooltip.replaceChildren(title, ...lines.map((line) => el('small', undefined, line)));
+    tooltip.hidden = false;
+    const at = anchor.getBoundingClientRect();
     const width = tooltip.offsetWidth;
-    const left = slot.right + 8 + width <= window.innerWidth ? slot.right + 8 : slot.left - 8 - width;
-    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(slot.top)}px)`;
+    const left = at.right + 8 + width <= window.innerWidth ? at.right + 8 : at.left - 8 - width;
+    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(at.top)}px)`;
   }
 
   function hideTip(): void {
@@ -163,9 +168,13 @@ export function createMenu(options: MenuOptions): Menu {
     if (tab.doll) showDoll(tab.doll());
     if (tab.facts) {
       const ledger = el('dl', 'menu-ledger');
-      for (const [label, value] of tab.facts()) {
+      for (const [label, value, lines] of tab.facts()) {
         const fact = el('div', 'menu-fact');
         fact.append(el('dt', undefined, label), el('i'), el('dd', undefined, value));
+        if (lines) {
+          fact.addEventListener('mouseenter', () => placeTip(fact, `${label} ${value}`, lines));
+          fact.addEventListener('mouseleave', hideTip);
+        }
         ledger.append(fact);
       }
       list.append(ledger);

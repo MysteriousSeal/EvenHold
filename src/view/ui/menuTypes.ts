@@ -58,7 +58,7 @@ export interface MenuTab {
   name: string;
   icon?: MenuIcon;
   actions?: MenuAction[];
-  facts?(): Array<[string, string]>; // a ledger, refreshed when shown
+  facts?(): Array<[string, string, string[]?]>; // a ledger, refreshed when shown: each label, its value, and lines telling of it on hover
   // A grid of slots (null: an empty one), refreshed when shown; the
   // arrow keys move around it.
   // With `rows`, a list instead: a row each, its icon, title and note (`columns` of them side by side);

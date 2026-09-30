@@ -7,7 +7,8 @@
 
 import './hud.css';
 import type { Hero } from '../../model/types';
-import { MAX_ENERGY, maxHpAt, xpToNext } from '../../model/hero/heroStats';
+import { xpToNext } from '../../model/hero/heroStats';
+import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
 
@@ -53,7 +54,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
       portrait.prepend(canvas);
     }
     if (name.textContent !== hero.name) name.textContent = hero.name; // a new hero (a cheat)
-    const max = maxHpAt(hero.level);
+    const max = maxHpOf(hero);
     const need = xpToNext(hero.level);
     // Whole points only, in both the bar and the label, so they always agree
     // (healing fills in a point at a time).
@@ -66,8 +67,9 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     level.textContent = String(hero.level);
     hp.fill.style.width = `${(health / max) * 100}%`;
     hp.label.textContent = `${health} / ${max}`;
-    energy.fill.style.width = `${(awake / MAX_ENERGY) * 100}%`;
-    energy.label.textContent = `${awake} / ${MAX_ENERGY}`;
+    const most = maxEnergyOf(hero);
+    energy.fill.style.width = `${(awake / most) * 100}%`;
+    energy.label.textContent = `${awake} / ${most}`;
     xp.fill.style.width = `${(hero.xp / need) * 100}%`;
     xp.label.textContent = `${hero.xp} / ${need} xp`;
   };
