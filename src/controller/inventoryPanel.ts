@@ -5,7 +5,8 @@
 // onto the world to put it down; drag it onto another slot of the bag to
 // move it there. The game plays on around it: it only takes Escape and B.
 // While trading (a shop's window open beside it), right-clicking what the
-// keeper would buy, or dragging it onto their window, sells it.
+// keeper would buy, or dragging it onto their window, sells it; what they
+// wouldn't is greyed out.
 
 import { coinParts, coinWords } from '../view/ui/coins';
 import type { GameModel } from '../model/GameModel';
@@ -32,7 +33,8 @@ const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelect
 
 function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null): MenuSlot {
   const slot = baseSlot(model, item, count);
-  if (!seller?.wants(item)) return slot;
+  if (!seller) return slot;
+  if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), 'Not bought here'] };
   // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
   const dragOut = slot.dragOut;
   return {
