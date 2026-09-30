@@ -1,7 +1,7 @@
 // Whoever the hero can talk to right now (E), one rule for all who talk:
 // someone of a role that talks (the barmaid, the smith), in the hero's room,
-// within reach (across her bar, his counter); the nearest. While they can be
-// talked to, their name gives way to the prompt over them.
+// within reach (across her bar, his counter); the nearest. While the prompt
+// shown is to talk to them, their name gives way to it.
 
 import type { Inside } from '../interiors/indoors';
 import type { Npc, NpcRole } from './npcs';
