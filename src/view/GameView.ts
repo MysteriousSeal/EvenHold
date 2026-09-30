@@ -42,6 +42,7 @@ import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { buildRoomScene } from './interior/roomView';
+import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
@@ -244,8 +245,9 @@ export class GameView {
     this.hero.wear(hero.equipment);
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
     // Indoors, the hero is moved into the room's scene; back out, into the world's.
-    const room = this.roomScene(model);
-    const home = room ?? this.scene;
+    const yard = this.yardScene(model);
+    const room = yard ? null : this.roomScene(model);
+    const home = yard ?? room ?? this.scene;
     if (this.hero.root.parent !== home) {
       home.add(this.hero.root);
       // Rooms are built roomier than the world, so the hero's drawn bigger
@@ -258,6 +260,10 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
+    if (yard) {
+      this.followHero(hero, 0, dt);
+      return; // the world outside stands still
+    }
     this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.followHero(hero, 0, dt);
@@ -300,6 +306,22 @@ export class GameView {
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
 
   private room: ({ entrance: Entrance; fullWalls: boolean } & ReturnType<typeof buildRoomScene>) | null = null;
+  private yardView: ReturnType<typeof buildFurnitureYard> | null = null;
+  // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
+  private yardScene(model: GameModel): THREE.Scene | null {
+    if (!model.yard) {
+      this.yardView?.dispose();
+      this.yardView = null;
+      return null;
+    }
+    if (this.room) {
+      this.room.dispose();
+      this.room = null;
+    }
+    if (!this.yardView) this.yardView = buildFurnitureYard(model.yard.furniture);
+    return this.yardView.scene;
+  }
+
   private roomScene(model: GameModel): THREE.Scene | null {
     const inside = model.inside;
     if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls)) { // left, or the walls option changed
@@ -326,7 +348,8 @@ export class GameView {
       this.camera.updateProjectionMatrix();
     }
     this.renderer.info.reset();
-    if (this.room) this.renderer.render(this.room.scene, this.camera); // indoors: just the room
+    if (this.yardView) this.renderer.render(this.yardView.scene, this.camera); // the furniture yard: flat grass, no world
+    else if (this.room) this.renderer.render(this.room.scene, this.camera); // indoors: just the room
     else if (this.post) this.post.render(this.elapsed);
     else this.renderer.render(this.scene, this.camera);
   }
