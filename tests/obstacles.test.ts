@@ -1,8 +1,8 @@
 // What blocks walking and sight (obstacles.ts), on a small map of its own,
 // and the grid everything's laid out on (grid.ts).
 import { describe, expect, it } from 'vitest';
-import { Obstacles, clearLine } from '../src/model/obstacles';
-import { NEIGHBORS_4, cellKey, cellLookup, inBounds, sizeOf, spawnOf, toCellX, toCellZ } from '../src/model/grid';
+import { Obstacles, clearLine } from '../src/model/map/obstacles';
+import { NEIGHBORS_4, cellKey, cellLookup, inBounds, sizeOf, spawnOf, toCellX, toCellZ } from '../src/model/map/grid';
 
 const SIZE = { width: 12, depth: 12 };
 const R = 0.2; // a walker's half-width

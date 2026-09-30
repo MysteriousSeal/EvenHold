@@ -6,7 +6,7 @@
 
 import { GameModel } from '../../src/model/GameModel';
 import { ATTACK_DURATION } from '../../src/model/constants';
-import type { MapSize } from '../../src/model/grid';
+import type { MapSize } from '../../src/model/map/grid';
 import type { Enemy, EnemyKind } from '../../src/model/types';
 
 export const TEST_MAP_SIZE: MapSize = { width: 96, depth: 96 };

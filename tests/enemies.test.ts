@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
-import { cellKey } from '../src/model/grid';
+import { cellKey } from '../src/model/map/grid';
 import { FRAME, TEST_MAP_SIZE, fresh, nearest, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 

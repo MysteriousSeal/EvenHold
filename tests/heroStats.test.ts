@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
-import { spawnOf } from '../src/model/grid';
+import { spawnOf } from '../src/model/map/grid';
 import { FRAME, fresh, nearest, slay, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 

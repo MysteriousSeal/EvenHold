@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { nextRuin } from '../src/model/cheats';
-import { spawnOf } from '../src/model/grid';
+import { spawnOf } from '../src/model/map/grid';
 import { VILLAGE_OUTER_RADIUS } from '../src/model/constants';
 import type { Ruin } from '../src/model/ruins/ruins';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { TEST_SEEDS, testModel } from './support/testWorld';
 import { ROAD_WIDTH, TILE_HEIGHT } from '../src/model/constants';
-import { cellKey } from '../src/model/grid';
+import { cellKey } from '../src/model/map/grid';
 import { solidCells } from '../src/model/worldgen/world';
 import * as THREE from 'three';
 import { scatterGroundCover, type ScatterItem } from '../src/view/meshes/cover/groundCoverScatter';

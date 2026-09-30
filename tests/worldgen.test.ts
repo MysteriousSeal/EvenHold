@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateWorld } from '../src/model/worldgen/world';
 import { WATER_LEVEL, MIN_LAKE_SIZE, VILLAGE_OUTER_RADIUS } from '../src/model/constants';
-import { NEIGHBORS_4, inBounds, cellKey, spawnOf } from '../src/model/grid';
+import { NEIGHBORS_4, inBounds, cellKey, spawnOf } from '../src/model/map/grid';
 import type { GameModel } from '../src/model/GameModel';
 import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';
 

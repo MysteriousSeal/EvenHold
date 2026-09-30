@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { VILLAGE_OUTER_RADIUS } from '../src/model/constants';
-import { NEIGHBORS_4 } from '../src/model/grid';
+import { NEIGHBORS_4 } from '../src/model/map/grid';
 import { nearestLakeShore, nextVillage, spawnTile, villageEntrance } from '../src/model/cheats';
 import type { Village } from '../src/model/types';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';

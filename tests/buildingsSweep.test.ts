@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { spawnOf } from '../src/model/grid';
+import { spawnOf } from '../src/model/map/grid';
 import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { HERO_RADIUS, INDOOR_SCALE } from '../src/model/constants';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';

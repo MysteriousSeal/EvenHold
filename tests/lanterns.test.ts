@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { HERO_RADIUS, LANTERN_COLLISION_HALF } from '../src/model/constants';
-import { cellKey } from '../src/model/grid';
+import { cellKey } from '../src/model/map/grid';
 import { squareLanterns } from '../src/model/worldgen/villages';
 import { buildLanternGeometry } from '../src/view/meshes/plaza/lanternMesh';
 import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';

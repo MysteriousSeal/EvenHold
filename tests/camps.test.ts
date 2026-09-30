@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { spawnOf } from '../src/model/grid';
+import { spawnOf } from '../src/model/map/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const worlds = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));

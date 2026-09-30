@@ -10,7 +10,7 @@ import {
   TREE_COLLISION_HALF,
   HERO_SPEED,
 } from '../src/model/constants';
-import { cellKey } from '../src/model/grid';
+import { cellKey } from '../src/model/map/grid';
 import { solidCells } from '../src/model/worldgen/world';
 
 // Each test moves the hero, so each gets a fresh small world (not the cached one).

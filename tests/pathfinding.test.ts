@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findPath } from '../src/model/pathfinding';
+import { findPath } from '../src/model/map/pathfinding';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS } from '../src/model/constants';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';

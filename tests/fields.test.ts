@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { FENCE_THICKNESS, HERO_RADIUS } from '../src/model/constants';
 import { TEST_MAP_SIZE } from './support/testWorld';
-import { cellKey } from '../src/model/grid';
+import { cellKey } from '../src/model/map/grid';
 import { buildFieldGeometry } from '../src/view/meshes/field/fieldMesh';
 import { WHEAT_VARIANTS } from '../src/view/meshes/field/fieldVoxels';
 import { scatterGroundCover } from '../src/view/meshes/cover/groundCoverScatter';
