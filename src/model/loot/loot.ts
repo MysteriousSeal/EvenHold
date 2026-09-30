@@ -1,6 +1,7 @@
 // Loot: things enemies drop when they die, lying on the ground until the
 // hero picks them up (with E, when close) into their bag (bag.ts). For now only
-// junk (junk.ts), which is only good for selling. Provisions (provisions.ts),
+// junk (junk.ts), which is only good for selling, and ingredients
+// (ingredients.ts), raw food to cook one day. Provisions (provisions.ts),
 // food and drink from the inn, are loot too, so they go in the bag the same way.
 //
 // Each item says which families of enemies drop it (droppedBy); a kill
@@ -8,6 +9,7 @@
 // same fight always gives the same loot.
 
 import { hashUnit } from '../../util/random';
+import { INGREDIENTS, isIngredient, type IngredientId } from './ingredients';
 import { JUNK_ITEMS } from './junk';
 import { PROVISIONS, isProvision, type ProvisionId } from './provisions';
 import { QUEST_ITEMS, isQuestItem, type QuestItemId } from '../quests/questItems';
@@ -15,7 +17,7 @@ import type { BagItem } from '../hero/bag';
 
 // Who drops what: families of enemies (ENEMY_STATS[kind].family).
 export type LootSource = 'beast' | 'humanoid' | 'boar';
-export type LootQuality = 'junk' | 'common' | 'quest';
+export type LootQuality = 'junk' | 'ingredient' | 'common' | 'quest';
 
 export interface LootEntry {
   name: string;
@@ -23,10 +25,10 @@ export interface LootEntry {
   droppedBy: Partial<Record<LootSource, number>>; // weights among what that family drops
 }
 
-export type LootId = keyof typeof JUNK_ITEMS | ProvisionId | QuestItemId;
-export const LOOT: Record<LootId, LootEntry> = { ...JUNK_ITEMS, ...PROVISIONS, ...QUEST_ITEMS };
+export type LootId = keyof typeof JUNK_ITEMS | IngredientId | ProvisionId | QuestItemId;
+export const LOOT: Record<LootId, LootEntry> = { ...JUNK_ITEMS, ...INGREDIENTS, ...PROVISIONS, ...QUEST_ITEMS };
 export const LOOT_IDS = Object.keys(LOOT) as LootId[];
-export const LOOT_QUALITY: Record<LootId, LootQuality> = Object.fromEntries(LOOT_IDS.map((id) => [id, isProvision(id) ? 'common' : isQuestItem(id) ? 'quest' : 'junk'])) as Record<LootId, LootQuality>;
+export const LOOT_QUALITY: Record<LootId, LootQuality> = Object.fromEntries(LOOT_IDS.map((id) => [id, isProvision(id) ? 'common' : isQuestItem(id) ? 'quest' : isIngredient(id) ? 'ingredient' : 'junk'])) as Record<LootId, LootQuality>;
 
 export const DROP_CHANCE = 0.5;
 export const PICKUP_RANGE = 0.9; // how close the hero must be to pick something up
