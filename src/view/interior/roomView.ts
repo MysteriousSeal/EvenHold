@@ -10,6 +10,7 @@ import type { Furniture } from '../../model/interiors/furniture';
 import { facingPoint, fireOf } from './furnitureVoxels';
 import { CANDLE_FLAME } from './bedVoxels';
 import { CandleFlames } from './candleFlame';
+import { SmithyEffects } from './smithyEffects';
 import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, ROOM_WALL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { WallCuts, clearUpper } from './innerWallCuts';
@@ -47,7 +48,7 @@ function doorLeafGeometry(): THREE.BufferGeometry {
   return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void; seeHero(x: number, z: number): void } {
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void; seeHero(x: number, z: number): void; forge(hammering: boolean, quenching: boolean): void } {
   const scene = new THREE.Scene();
   const DARK = 0x1c130c;
   scene.background = new THREE.Color(DARK); // darkness beyond the walls
@@ -168,6 +169,11 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     scene.add(light);
     return light;
   });
+  // The smithy at work: sparks off the anvil, steam off the trough (as the smith hammers, or quenches).
+  const anvil = furniture.find((f) => f.kind === 'anvil');
+  const trough = furniture.find((f) => f.kind === 'trough');
+  const smithy = new SmithyEffects(scene, anvil ? new THREE.Vector3(anvil.x, 11 * ROOM_VOXEL, anvil.z) : null, trough ? new THREE.Vector3(trough.x + (trough.w - 1) / 2, 7 * ROOM_VOXEL, trough.z) : null);
+  let forging = { hammering: false, quenching: false };
   // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();
   const mugs: THREE.Mesh[] = [];
@@ -187,6 +193,10 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
         mug.position.set(MUG_AT.x, MUG_AT.y, at.z);
       });
     },
+    // What the smith's at: hammering at the anvil, quenching at the trough.
+    forge(hammering: boolean, quenching: boolean) {
+      forging = { hammering, quenching };
+    },
     // Where the hero is, for the walls in their way to turn see-through.
     seeHero(x: number, z: number) {
       [hero.x, hero.z] = [x, z];
@@ -195,6 +205,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       const dt = lastTime === null ? 0 : Math.max(0, time - lastTime);
       swingDoors(dt);
       walls.update(hero.x, hero.z, CAMERA_OFFSET.x, CAMERA_OFFSET.z);
+      smithy.update(dt, forging.hammering, forging.quenching);
       lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       candles.forEach((light, i) => (light.intensity = 0.9 * flicker(time * 1.3, i * 7 + 3)));
@@ -208,6 +219,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       for (const g of drapes) g.dispose();
       leafShape.dispose();
       walls.dispose();
+      smithy.dispose();
       flames.dispose();
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();

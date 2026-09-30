@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
+import { smithWorking } from '../model/smithy/smithWork';
 import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
@@ -303,6 +304,10 @@ export class GameView {
     if (!inside) return null;
     if (!this.room) this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
+    const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
+    const [anvil, trough] = [at('anvil'), at('trough')];
+    const smiths = model.npcs.filter((n) => n.role === 'smith' && n.where === inside.entrance);
+    this.room.forge(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
     this.room.update(this.elapsed);
     this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;

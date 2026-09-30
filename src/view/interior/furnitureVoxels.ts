@@ -36,6 +36,7 @@ import {
   type Box,
 } from './furniturePalette';
 import { INN_PAINTERS } from './innFurnitureVoxels';
+import { SMITHY_PAINTERS } from './smithyVoxels';
 import { paintBed, paintNightstand } from './bedVoxels';
 
 const TILE = 25;
@@ -43,6 +44,7 @@ const TILE = 25;
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
 const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, item: Furniture) => void> = {
   ...INN_PAINTERS,
+  ...SMITHY_PAINTERS,
   bench: () => {}, // outdoors only, on the squares (meshes/plaza/benchVoxels.ts): never in a room
   // A rustic stone fireplace: irregular stones in mixed shades and dark
   // mortar, a stepped arch over the opening (sooted above), a thick timber
@@ -233,32 +235,80 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
     }
   },
   // The forge: a stone base, glowing coals in its hearth, a hood and a flue up the wall.
+  // A stone forge on the back wall: its hearth laid in courses (joints
+  // staggered), a glowing firebox mouth at its front, a bed of coals on top
+  // ringed in black (the fire burns there: fireOf), a stepped iron hood on
+  // two posts, its rim lit, and a sooty flue up the wall.
   forge: (box, len) => {
-    box(1, 1, 0, len - 2, 11, 16, (u, y) => ((u + y) % 6 === 0 ? STONE_DARK : STONE));
-    box(8, 11, 4, len - 9, 12, 12, (u, _y, v) => ((u + v) % 3 === 0 ? FIRE : EMBER));
-    box(4, 20, 0, len - 5, 24, 14, IRON); // hood
-    box(15, 25, 0, len - 16, 33, 7, SOOT); // flue
+    box(1, 1, 0, len - 2, 10, 16, (u, y) => (y % 3 === 1 || (u + Math.floor(y / 3) * 4) % 8 === 0 ? STONE_DARK : STONE)); // the hearth, coursed
+    box(0, 11, 0, len - 1, 11, 17, (_u, _y, v) => (v >= 13 ? STONE : STONE_DARK)); // its top, the front ledge lit
+    box(18, 3, 13, len - 19, 8, 17, 0); // the firebox mouth,
+    box(18, 3, 13, len - 19, 8, 13, (_u, y) => (y === 3 ? EMBER : SOOT)); // glowing at its foot
+    box(8, 12, 3, len - 9, 12, 12, (u, _y, v) => (u === 8 || u === len - 9 || v === 3 || v === 12 ? COAL : (u + v) % 3 === 0 ? FIRE : EMBER)); // the bed of coals, ringed
+    for (const u of [5, len - 7]) box(u, 12, 13, u + 1, 19, 14, IRON); // the hood's posts
+    for (let y = 20; y <= 24; y++) {
+      const inset = Math.floor((y - 20) * 1.5);
+      box(4 + inset, y, 0, len - 5 - inset, y, 14 - inset * 2, (_u, yy, v) => (yy === 20 && v === 14 ? IRON_LIGHT : IRON)); // the hood, stepped in, its rim lit
+    }
+    box(18, 25, 0, len - 19, 33, 6, (_u, y) => (y === 33 ? IRON : SOOT)); // the flue
   },
+
+  // An anvil on a stump: the stump banded in iron, its top ringed; a narrow
+  // iron waist, a broad face (its working top lit), a horn stepping to a
+  // point on one side, a square heel on the other, the hardy hole in it.
   anvil: (box) => {
-    box(9, 1, 9, 15, 5, 15, WOOD_DARK); // stump
-    box(10, 6, 11, 14, 7, 13, IRON);
-    box(5, 8, 10, 19, 10, 14, (u) => (u < 8 ? IRON_LIGHT : IRON)); // the horn at one end
+    box(8, 1, 8, 16, 6, 16, (u, y, v) => (y === 3 ? IRON : y === 6 ? ((u + v) % 3 === 0 ? WOOD_DARK : WOOD_LIGHT) : WOOD_DARK)); // the stump
+    box(10, 7, 10, 14, 8, 14, IRON); // the waist
+    box(6, 9, 9, 19, 11, 15, (_u, y) => (y === 11 ? IRON_LIGHT : IRON)); // the face
+    box(3, 10, 10, 5, 11, 14, IRON); // the horn,
+    box(1, 10, 11, 2, 10, 13, IRON_LIGHT); // to its point
+    box(20, 9, 10, 21, 11, 14, IRON); // the heel
+    box(17, 11, 12, 17, 11, 12, COAL); // the hardy hole
   },
+
+  // The quench trough: heavy planks on a dark foot, bound in iron all
+  // round, a lit rim, water standing inside.
   trough: (box, len) => {
-    box(2, 1, 5, len - 3, 8, 19, WOOD);
-    box(4, 5, 7, len - 5, 7, 17, WATER);
+    box(2, 1, 5, len - 3, 1, 19, WOOD_DARK); // the foot
+    box(2, 2, 5, len - 3, 9, 19, (u, y) => (u % 16 === 8 || y === 4 ? IRON : WOOD)); // the sides, banded
+    box(2, 9, 5, len - 3, 9, 19, WOOD_LIGHT); // the rim
+    box(4, 2, 7, len - 5, 9, 17, 0); // hollow,
+    box(4, 2, 7, len - 5, 7, 17, WATER); // and full of water
   },
+
   // A weapon rack against the wall: two uprights, crossbars, blades resting on them.
+  // A weapon rack against the wall: two posts, a slotted base and a lit top
+  // rail, swords and spears standing in it by turns, leaning on the rail.
   rack: (box, len) => {
-    for (const u of [3, len - 4]) box(u, 1, 1, u, 20, 3, WOOD_DARK);
-    for (const y of [8, 16]) box(3, y, 3, len - 4, y, 4, WOOD);
-    for (let u = 8; u < len - 8; u += 7) box(u, 4, 5, u, 21, 5, IRON_LIGHT);
+    box(2, 1, 2, len - 3, 2, 9, (u) => (u % 8 === 0 ? SOOT : WOOD_DARK)); // the base, slotted
+    for (const u of [2, len - 3]) box(u, 1, 2, u + 1, 18, 4, WOOD_DARK); // the posts
+    box(2, 18, 2, len - 3, 19, 4, (_u, y) => (y === 19 ? WOOD_LIGHT : WOOD)); // the rail
+    for (let i = 0, u = 8; u < len - 6; u += 8, i++) {
+      if (i % 2 === 0) {
+        box(u, 3, 5, u, 13, 5, IRON_LIGHT); // a sword: its blade,
+        box(u - 1, 14, 5, u + 1, 14, 5, BRASS); // guard,
+        box(u, 15, 4, u, 17, 4, WOOD_DARK); // grip, against the rail
+      } else {
+        box(u, 3, 5, u, 17, 4, WOOD); // a spear: its shaft,
+        box(u, 20, 3, u, 22, 3, IRON_LIGHT); // its point, over the rail
+      }
+    }
   },
+
+  // A heap of coal, stepping up to a peak, flecked with soot, a shovel
+  // stuck in it.
   coal: (box) => {
-    box(3, 1, 3, 21, 3, 21, COAL);
-    box(7, 4, 7, 17, 5, 17, COAL);
-    box(10, 6, 10, 14, 6, 14, SOOT);
+    const layers: Array<[number, number]> = [[3, 2], [6, 4], [9, 5], [11, 6]]; // [inset, top] of each step
+    let from = 1;
+    for (const [inset, top] of layers) {
+      box(inset, from, inset, 24 - inset, top, 24 - inset, (u, y, v) => ((u === inset || u === 24 - inset) && (v === inset || v === 24 - inset) ? 0 : (u * 7 + v * 3 + y) % 5 === 0 ? SOOT : COAL));
+      from = top + 1;
+    }
+    box(16, 4, 11, 18, 5, 13, IRON); // the shovel's blade, in the heap,
+    box(17, 6, 12, 17, 15, 12, WOOD); // its handle
+    box(16, 16, 12, 18, 16, 12, WOOD_DARK); // its grip
   },
+
 };
 
 // Paints `items` into the room's grid, whose floor tile (0, 0) starts at voxel (x0, z0).
