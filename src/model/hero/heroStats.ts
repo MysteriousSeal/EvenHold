@@ -8,8 +8,8 @@ import type { Hero } from '../types';
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;
 export const MAX_ENERGY = 100;
-const ENERGY_SPENT = MAX_ENERGY / (16 * 60); // a second awake (a game minute): all of it over 16 hours of the day
-const ENERGY_SLEPT = MAX_ENERGY / (8 * 60); // a second asleep in a bed: all of it back over 8 hours
+const ENERGY_SPENT = MAX_ENERGY / (24 * 60); // a second awake (a game minute): all of it over a whole day, 24 hours
+const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a collapse): all of it back in under a minute
 
 export function maxHpAt(level: number): number {
   return BASE_HP + (level - 1) * HP_PER_LEVEL;

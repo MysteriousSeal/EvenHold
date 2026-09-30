@@ -42,13 +42,13 @@ describe('hero stats', () => {
   it('spends energy through the day awake, and sleeps it back in bed, never past full', () => {
     const { hero } = fresh();
     expect(hero.energy).toBe(MAX_ENERGY);
-    for (let t = 0; t < 8 * 60; t += 1) recover(hero, 1); // 8 hours of the day (a game minute a second)
+    for (let t = 0; t < 12 * 60; t += 1) recover(hero, 1); // half the day, 12 hours (a game minute a second)
     expect(hero.energy).toBeCloseTo(MAX_ENERGY / 2, 0);
-    for (let t = 0; t < 2 * 60; t += 1) recover(hero, 1, true); // 2 hours' sleep
-    expect(hero.energy).toBeCloseTo(MAX_ENERGY * 0.75, 0);
-    for (let t = 0; t < 12 * 60; t += 1) recover(hero, 1, true);
+    for (let t = 0; t < 10; t += 1) recover(hero, 1, true); // 10 seconds' sleep: 2 a second
+    expect(hero.energy).toBeCloseTo(MAX_ENERGY / 2 + 20, 0);
+    for (let t = 0; t < 60; t += 1) recover(hero, 1, true);
     expect(hero.energy).toBe(MAX_ENERGY);
-    for (let t = 0; t < 24 * 60; t += 1) recover(hero, 1);
+    for (let t = 0; t < 25 * 60; t += 1) recover(hero, 1); // past a whole day awake
     expect(hero.energy).toBe(0); // never below empty
   });
 
