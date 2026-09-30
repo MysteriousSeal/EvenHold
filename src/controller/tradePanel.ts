@@ -1,17 +1,21 @@
 // Trading with a shopkeeper (the barmaid, the smith), the way of the old
 // vendors: their wares in a list two to a row, 12 to a page with buttons
 // to turn them, each with its price; hover one for what it is, right-click
-// to buy it. The hero's bag opens beside it: right-click there (or drag onto
-// this window) to sell. A Buyback tab holds what they last sold, at what they
-// got. Both purses under it all, the keeper's face and word over it. A window
-// in the middle of the screen; the game waits while it's open. What's traded,
-// at what price, and what they say, is the shop's own (a Trade).
+// to buy it (its price in red when it's more than the hero has). The hero's
+// bag opens beside it: right-click there (or drag onto this window) to sell,
+// or sell every bit of junk at once (anyone buys junk). A Buyback tab holds
+// what they last sold, at what they got, in its 12 slots. Both purses under it
+// all, the keeper's face and word over it. A window in the middle of the
+// screen, but the game plays on around it: walk away from the keeper, and it
+// shuts. What's traded, at what price, and what they say, is the shop's own (a Trade).
 
 import './shopPanel.css';
 import type { GameModel } from '../model/GameModel';
 import type { Npc } from '../model/npcs/npcs';
-import { nameOf, type BagItem } from '../model/hero/bag';
-import { BUYBACK, buyBack, restockIn, type Shop } from '../model/shops/shopStock';
+import { nameOf, qualityOf, type BagItem } from '../model/hero/bag';
+import { BUYBACK, buyBack, restockIn, sellTo, type Sale, type Shop } from '../model/shops/shopStock';
+import { isJunk, sellValue } from '../model/shops/sellValue';
+import { TALK_RANGE } from '../model/npcs/talk';
 import { coinParts, coinWords } from '../view/ui/coins';
 import { bagIcon } from '../view/ui/itemIcons';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
@@ -53,7 +57,7 @@ export const clock = (ms: number) => {
 
 const COLUMNS = 2;
 export const PAGE = { buy: COLUMNS * 6, buyback: BUYBACK }; // to a page: wares, and sales to buy back (all of them)
-const LEAST = COLUMNS * 2; // an empty list is still two rows high
+const LEAST = COLUMNS * 2; // an empty list of wares is still two rows high
 
 // Both purses, the keeper's on the left and the hero's on the right, each named.
 function purses(name: string, shop: Shop, hero: number): HTMLElement {
@@ -71,7 +75,7 @@ function purses(name: string, shop: Shop, hero: number): HTMLElement {
   return row;
 }
 
-export function createTradePanel(model: GameModel, hooks: { setPaused(paused: boolean): void; bag?: TradeBag }, trade: Trade): { open(keeper: Npc): void; menu: Menu } {
+export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, trade: Trade): { open(keeper: Npc): void; update(): void; menu: Menu } {
   const shop = () => trade.shop();
   let keeper: Npc | null = null;
   let says = ''; // what they're saying: a greeting, or an answer to a trade
@@ -80,20 +84,33 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
     says = word ?? (result in trade.lines ? pick(trade.lines[result as keyof TradeLines]) : says);
     menu.refresh();
   };
-  // Each tab's page (Buy, Buyback), how many it has now, and how many rows to one.
-  const pages = [{ at: 0, of: 1, size: PAGE.buy }, { at: 0, of: 1, size: PAGE.buyback }];
+  // Each tab's page (Buy, Buyback), how many it has now, how many rows to one, and how many at least
+  // (Buyback: all its slots, empty or not).
+  const pages = [
+    { at: 0, of: 1, size: PAGE.buy, least: LEAST },
+    { at: 0, of: 1, size: PAGE.buyback, least: BUYBACK },
+  ];
   // One page of a tab's rows; more than a page, every page is a whole one, so the window keeps its size.
   const fill = (tab: number, all: MenuSlot[]) => {
     const page = pages[tab];
     page.of = Math.max(1, Math.ceil(all.length / page.size));
     page.at = Math.min(page.at, page.of - 1); // (bought back the last of a page's)
     const cells: Array<MenuSlot | null> = all.slice(page.at * page.size, (page.at + 1) * page.size);
-    while (cells.length < (page.of > 1 ? page.size : LEAST) || cells.length % COLUMNS) cells.push(null);
+    while (cells.length < (page.of > 1 ? page.size : page.least) || cells.length % COLUMNS) cells.push(null);
     return { cells, columns: COLUMNS, rows: true };
   };
-  // Under the list: the buttons to turn the pages (if there's more than one), then both purses.
+  // Under the list: a button to sell all junk, the buttons to turn the pages (if there's more than one), then both purses.
   const footer = (tab: number) => () => {
     const box = document.createElement('div');
+    const bar = document.createElement('div');
+    bar.className = 'shop-bar';
+    const junk = document.createElement('button');
+    junk.className = 'shop-junk';
+    junk.textContent = 'Sell junk';
+    junk.disabled = !(Object.keys(model.hero.bag) as BagItem[]).some(isJunk);
+    junk.addEventListener('click', sellJunk);
+    bar.append(junk);
+    box.append(bar);
     const page = pages[tab];
     if (page.of > 1) {
       const pager = document.createElement('div');
@@ -110,7 +127,7 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
         return button;
       };
       pager.append(turn('‹ Previous', page.at - 1), line('shop-page', `Page ${page.at + 1} of ${page.of}`), turn('Next ›', page.at + 1));
-      box.append(pager);
+      bar.append(pager);
     }
     box.append(purses(keeper!.name, shop(), model.hero.money));
     return box;
@@ -124,10 +141,12 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
     return {
       icon: bagIcon(id),
       title: nameOf(id),
+      tone: qualityOf(id),
       key: id,
       tag: coinParts(price),
       badge: count > 0 ? `×${count}` : `↻ ${back}`,
       dim: count <= 0,
+      warn: count > 0 && model.hero.money < price,
       lines: [
         trade.blurb(id),
         ...trade.facts(id).map(([label, value]) => `${label}: ${value}`),
@@ -140,24 +159,41 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
       },
     };
   };
-  // One of the hero's last sales here: right-click to buy it back, at what they got.
-  const sale = ({ id, price }: { id: BagItem; price: number }, i: number): MenuSlot => ({
-    icon: bagIcon(id),
-    title: nameOf(id),
-    key: `${i}:${id}`,
-    tag: coinParts(price),
-    lines: [`You sold it for ${coinWords(price)}`, model.hero.money < price ? "You can't afford it" : 'Right-click to buy it back'],
-    alt: () => answer(buyBack(shop(), model.hero, i)),
-  });
-  // Selling from the bag beside the window.
+  // One of the hero's last sales here (a stack of the same, sold at the same price): right-click to buy it all back, at what they got.
+  const sale = ({ id, price, count }: Sale, i: number): MenuSlot => {
+    const cost = price * count;
+    const them = count > 1 ? `${count}, ${coinWords(price)} each` : 'it';
+    return {
+      icon: bagIcon(id),
+      title: nameOf(id),
+      tone: qualityOf(id),
+      key: `${i}:${id}`,
+      tag: coinParts(cost),
+      badge: count > 1 ? `×${count}` : undefined,
+      warn: model.hero.money < cost,
+      lines: [`You sold ${them} for ${coinWords(cost)}`, model.hero.money < cost ? "You can't afford it" : `Right-click to buy ${count > 1 ? 'them' : 'it'} back`],
+      alt: () => answer(buyBack(shop(), model.hero, i)),
+    };
+  };
+  // Selling from the bag beside the window: what the shop deals in at its price, and junk (anyone's) at what it's worth.
+  const sellOne = (id: BagItem) => (isJunk(id) ? sellTo(shop(), model.hero, id, sellValue(id)!) : trade.trade(id, true));
   const seller: Seller = {
-    wants: (id) => trade.wanted(id),
-    price: (id) => trade.price(id, true),
+    wants: (id) => trade.wanted(id) || isJunk(id),
+    price: (id) => (isJunk(id) ? sellValue(id)! : trade.price(id, true)),
     sell: (id) => {
-      const result = trade.trade(id, true);
+      const result = sellOne(id);
       answer(result, result === 'sold' ? trade.offered(nameOf(id)) : undefined);
     },
   };
+  // Every bit of junk in the bag, sold while the keeper's purse holds.
+  function sellJunk(): void {
+    let result = 'none';
+    for (const id of (Object.keys(model.hero.bag) as BagItem[]).filter(isJunk)) {
+      while ((model.hero.bag[id] ?? 0) > 0 && (result = sellOne(id)) === 'sold');
+      if (result === 'short') break;
+    }
+    answer(result);
+  }
   // While open, and anything's sold out, the countdowns tick each second; when one runs out, what's restocked shows at once.
   let ticker = 0;
   const tick = () => {
@@ -167,8 +203,9 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
   const menu = createMenu({
     title: trade.title,
     keyHints: false,
+    modal: false, // the game plays on around it
+    place: 'center',
     onOpenChange: (open) => {
-      hooks.setPaused(open);
       window.clearInterval(ticker);
       if (open) ticker = window.setInterval(tick, 1000);
       // The bag opens beside the window, to sell from, and shuts with it (unless it was open already).
@@ -184,13 +221,13 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
       {
         name: 'Buy',
         slots: () => fill(0, trade.wares().map(ware)),
-        header: () => talk(keeper!, says),
+        header: () => talk(keeper!, says, 'buy'),
         footer: footer(0),
       },
       {
         name: 'Buyback',
         slots: () => fill(1, (shop().buyback ?? []).map(sale)),
-        header: () => talk(keeper!, says),
+        header: () => talk(keeper!, says, 'buyback'),
         footer: footer(1),
       },
     ],
@@ -198,19 +235,26 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
   return {
     menu,
     open(npc) {
+      if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
       says = pick(trade.lines.hello);
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
-      menu.open();
+      menu.open(0); // on Buy, whichever tab it was left on
+    },
+    // Each frame: the hero walked off (out of the keeper's reach, or out of the room), the window shuts.
+    update() {
+      if (!menu.isOpen || !keeper) return;
+      const { hero, inside } = model;
+      if (inside?.entrance !== keeper.where || Math.hypot(hero.x - keeper.x, hero.z - keeper.z) > TALK_RANGE + 0.5) menu.close();
     },
   };
 }
 
-// The keeper, talking: their face on the left, their name and what they say in a bubble.
-function talk(npc: Npc, says: string): HTMLElement {
+// The keeper, talking: their face on the left, their name and what they say in a bubble (over `tab`).
+function talk(npc: Npc, says: string, tab: 'buy' | 'buyback'): HTMLElement {
   const row = document.createElement('div');
-  row.className = 'shop-talk';
+  row.className = `shop-talk ${tab}`;
   const face = document.createElement('div');
   face.className = 'shop-talk-face';
   face.append(voxelIcon(`npc:${npc.id}`, () => humanBust(npc.look, npc.equipment, 'right'), 56));

@@ -86,8 +86,8 @@ async function boot(): Promise<void> {
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
-  const shop = createShopPanel(model, { setPaused: (paused) => (controller.paused = paused), bag });
-  const forge = createSmithPanel(model, { setPaused: (paused) => (controller.paused = paused), bag });
+  const shop = createShopPanel(model, { bag });
+  const forge = createSmithPanel(model, { bag });
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
@@ -154,6 +154,8 @@ async function boot(): Promise<void> {
     updateClock(model.minutes);
     updateTarget(model.focused, model.hero.level);
     bag.update();
+    shop.update(); // (walked away from the keeper: the shop shuts)
+    forge.update();
     journal.update();
     sheet.update();
     updateToolbar();

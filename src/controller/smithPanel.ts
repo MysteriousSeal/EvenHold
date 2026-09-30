@@ -39,7 +39,7 @@ const ABOUT: Partial<Record<EquipSlot, readonly string[]>> = {
 };
 const SLOT_NAMES: Record<EquipSlot, string> = { head: 'Head', shoulders: 'Shoulders', torso: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', neck: 'Neck', ring: 'Finger', mainHand: 'Weapon hand', offHand: 'Off hand' };
 
-export function createSmithPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; bag?: TradeBag }): { open(smith: Npc): void; menu: Menu } {
+export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(smith: Npc): void; update(): void; menu: Menu } {
   const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
   return createTradePanel(model, hooks, {
     title: 'Wares',

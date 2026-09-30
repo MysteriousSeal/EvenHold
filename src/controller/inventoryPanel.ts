@@ -6,7 +6,7 @@
 // move it there. The game plays on around it: it only takes Escape and B.
 // While trading (a shop's window open beside it), right-clicking what the
 // keeper would buy, or dragging it onto their window, sells it; what they
-// wouldn't is greyed out.
+// wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 
 import { coinParts, coinWords } from '../view/ui/coins';
 import type { GameModel } from '../model/GameModel';
@@ -14,6 +14,7 @@ import { bagLayout, moveInBag, type BagItem } from '../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
 import { PROVISIONS, isProvision } from '../model/loot/provisions';
+import { sellValue } from '../model/shops/sellValue';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
 import { bagIcon, isLoot } from '../view/ui/itemIcons';
 
@@ -32,14 +33,16 @@ export interface Seller {
 const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelector('.shop-talk');
 
 function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null): MenuSlot {
-  const slot = baseSlot(model, item, count);
+  const base = baseSlot(model, item, count);
+  const value = sellValue(item);
+  const slot = value === null ? base : { ...base, lines: [...(base.lines ?? []), `Sell price: ${coinWords(value)}`] };
   if (!seller) return slot;
   if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), 'Not bought here'] };
   // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
   const dragOut = slot.dragOut;
   return {
     ...slot,
-    lines: [...(slot.lines ?? []).filter((line) => !line.startsWith('Right-click')), `Right-click to sell for ${coinWords(seller.price(item))}`],
+    lines: [...(slot.lines ?? []).filter((line) => !line.startsWith('Right-click') && !line.startsWith('Sell price')), `Right-click to sell for ${coinWords(seller.price(item))}`],
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };

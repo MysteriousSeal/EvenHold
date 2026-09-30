@@ -104,7 +104,7 @@ const ABOUT: Record<ProvisionId, readonly string[]> = {
   ],
 };
 
-export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; bag?: TradeBag }): { open(barmaid: Npc): void; menu: Menu } {
+export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(barmaid: Npc): void; update(): void; menu: Menu } {
   const shop = () => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
   return createTradePanel(model, hooks, {
     title: 'Wares',
