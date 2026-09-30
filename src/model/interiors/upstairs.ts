@@ -52,13 +52,16 @@ const DOOR_EVERY = 3; // a room's door along it, every so many tiles
 // walled off from the rooms beyond by a low wall: a row of rooms along the
 // back, a door into each from the hallway, the last two made one, the
 // biggest, front to back; and one long room along the front behind the
-// others, through a door next to the stairwell.
+// others, through a door up the hall from the stairwell.
 function hallway(room: Room, stairs: Furniture): Furniture[] {
   const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
   const walls: Furniture[] = [];
   const mid = HALL + Math.floor((room.depth - HALL) / 2); // halfway to the front
-  const byStairs = Math.max(mid, stairs.z - 1); // the front room's door: next to the stairwell, up the hall from its end
-  for (let z = HALL; z < room.depth; z++) walls.push(piece('left', HALL, z, z === byStairs));
+  // The front room's door, up the hall from the stairwell: across the joint of
+  // the two tiles before it, out of the stairs' reach, clear of the cross wall.
+  const door = Math.max(mid, stairs.z - 2);
+  for (let z = HALL; z < room.depth; z++) if (z !== door && z !== door + 1) walls.push(piece('left', HALL, z, false));
+  walls.push({ ...piece('left', HALL, door, true), d: 2 });
   for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1));
   // Between the back rooms, halfway from door to door, the same low wall; the
   // last two rooms one, the biggest, front to back (its wall on to the front,
