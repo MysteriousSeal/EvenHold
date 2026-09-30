@@ -30,7 +30,7 @@ function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
 
 const TILE_VOXELS = 25;
 const SWING = (100 * Math.PI) / 180; // how far a door swings open
-const SWING_TIME = 0.4; // seconds, to open or close
+const SWING_TIME = 0.7; // seconds, to open or close
 
 // A hallway door's leaf, hung from its hinge edge (x 0), standing on the floor, its thickness centred.
 function doorLeafGeometry(): THREE.BufferGeometry {
@@ -93,7 +93,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const swingDoors = (dt: number) => {
     for (const d of doors) {
       d.t = Math.min(1, Math.max(0, d.t + (d.f.open ? dt : -dt) / SWING_TIME));
-      const eased = d.t * d.t * (3 - 2 * d.t);
+      const eased = (1 - Math.cos(d.t * Math.PI)) / 2; // eased in and out, gently (one curve both ways: no jump turning back mid-swing)
       d.hinge.rotation.y = d.base + d.way * SWING * eased;
     }
   };
