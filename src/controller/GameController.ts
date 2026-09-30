@@ -1,6 +1,7 @@
 // Controller: turns input into model updates and drives the frame loop.
 
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
+import { smithAt } from '../model/smithy/smithWork';
 import { atTheBar, barmaidHere } from './barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
@@ -41,12 +42,13 @@ export class GameController {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
+  private readonly onSmith: (smith: Npc) => void;
   private readonly onOrder: (npc: Npc) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onSmith?: (smith: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -54,6 +56,7 @@ export class GameController {
     this.onEvent = options.onEvent ?? (() => {});
     this.onTalk = options.onTalk ?? (() => {});
     this.onRead = options.onRead ?? (() => {});
+    this.onSmith = options.onSmith ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
@@ -116,6 +119,7 @@ export class GameController {
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
+    // smith by his counter (to trade); else read the
     // notice board in reach; else toss a coin in the well beside; else go
     // through the door in reach.
     if (this.input.consumePickup()) {
@@ -125,7 +129,9 @@ export class GameController {
       else if (barmaid && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(barmaid);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
+        const smith = smithAt(this.model.npcs, this.model.inside, this.model.hero);
         if (barmaid) this.onTalk(barmaid);
+        else if (smith) this.onSmith(smith);
         else if (board !== null) this.onRead(board);
         else if (this.model.wellInReach !== null) this.model.tossCoin();
         else if (!useHallDoor(this.model) && !takeStairs(this.model)) this.model.useDoor(); // a door upstairs, else the stairs by them, else the way out
