@@ -58,3 +58,9 @@ export const critChanceOf = chance;
 
 // A blow of `damage` as it lands through their armour.
 export const throughArmor = (hero: Pick<Hero, 'equipment'>, damage: number): number => Math.max(1, damage - Math.floor(armorOf(hero) / ARMOR_PER_DAMAGE));
+
+// Health and energy no more than their most (after gear came off, or points were had back).
+export function fitToMost(hero: Hero): void {
+  hero.hp = Math.min(hero.hp, maxHpOf(hero));
+  hero.energy = Math.min(hero.energy, maxEnergyOf(hero));
+}

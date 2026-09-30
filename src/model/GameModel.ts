@@ -11,7 +11,6 @@ import {
   HERO_RADIUS,
   ATTACK_DURATION,
   ATTACK_KNOCKBACK,
-  ATTACK_REACH,
   ATTACK_STRIKE,
   ENEMY_STATS,
   FOCUS_RANGE,
@@ -25,7 +24,8 @@ import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
 import { untrained } from './hero/training';
-import { blowOf, critChanceOf, dodgeChanceOf, maxHpOf, throughArmor } from './hero/attributes';
+import { maxHpOf } from './hero/attributes';
+import { blowTaken, blowTarget, heroBlow } from './hero/combat';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { worldObstacles } from './blockers';
@@ -47,7 +47,7 @@ import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
+import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
@@ -271,33 +271,13 @@ export class GameModel {
     this.hero.facing = Math.atan2(dirX, dirZ);
   }
 
-  // The blow lands on the nearest living enemy within reach and roughly in
-  // front of the hero (within 70 degrees of facing): one hit point off, a
-  // shove away, and a brief flash. At zero it dies.
+  // The blow lands on the foe in reach (combat.ts): off its health, a shove
+  // away, and a brief flash. At zero it dies, and leaves what it leaves.
   private landBlow(): void {
-    const fx = Math.sin(this.hero.facing);
-    const fz = Math.cos(this.hero.facing);
-    let target: Enemy | null = null;
-    let best = Infinity;
-    for (const enemy of this.enemies) {
-      if (enemy.state === 'dead') continue;
-      const dx = enemy.x - this.hero.x;
-      const dz = enemy.z - this.hero.z;
-      const d = Math.hypot(dx, dz);
-      if (d > ATTACK_REACH + ENEMY_STATS[enemy.kind].radius || d >= best) continue;
-      if (d > 1e-6 && (dx * fx + dz * fz) / d < Math.cos((70 * Math.PI) / 180)) continue;
-      target = enemy;
-      best = d;
-    }
-    // The focused enemy takes the blow whenever it's within reach.
-    const focus = this.focused;
-    if (focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= ATTACK_REACH + ENEMY_STATS[focus.kind].radius) {
-      target = focus;
-      best = Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z);
-    }
-    if (!target) return;
-    const crit = this.random() < critChanceOf(this.hero); // (Agility)
-    const damage = blowDamage(this.hero, blowOf(this.hero)) * (crit ? 2 : 1);
+    const hit = blowTarget(this.hero, this.enemies, this.focused);
+    if (!hit) return;
+    const { target, distance: best } = hit;
+    const { damage, crit } = heroBlow(this.hero, this.random());
     target.hp -= damage;
     this.events.push({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
     target.hurtFor = 0.25;
@@ -488,11 +468,8 @@ export class GameModel {
     if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
     if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
     if (this.godMode) return;
-    if (this.random() < dodgeChanceOf(this.hero)) {
-      this.events.push({ kind: 'dodge', x: this.hero.x, y: this.hero.y, z: this.hero.z }); // (Agility)
-      return;
-    }
-    const damage = throughArmor(this.hero, hitTaken(this.hero, enemy.damage));
+    const { dodged, damage } = blowTaken(this.hero, enemy.damage, this.random());
+    if (dodged) return void this.events.push({ kind: 'dodge', x: this.hero.x, y: this.hero.y, z: this.hero.z }); // (Agility)
     this.events.push({ kind: 'hit', on: 'hero', amount: damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
     if (!hurt(this.hero, damage)) return;
     // Fallen: a share of their coins lost, they wake in the last inn they
