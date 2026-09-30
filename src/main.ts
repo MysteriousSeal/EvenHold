@@ -16,7 +16,7 @@ import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
 import { createSmithPanel } from './controller/smithPanel';
-import { smithAt } from './model/smithy/smithWork';
+import { talkPrompt, talkingTo } from './model/npcs/talk';
 import { createBar, orderLabel } from './controller/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/journal';
@@ -123,8 +123,8 @@ async function boot(): Promise<void> {
     if (loot) return lootTarget(loot);
     const { hero } = model;
     const seated = model.seated;
-    const barmaid = model.barmaidInReach;
-    const talk = barmaid && { label: `Talk to ${barmaid.name}`, x: barmaid.x, y: 1.1, z: barmaid.z };
+    const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
+    const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z };
     if (seated && seated.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
     if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
     const seat = model.seatInReach;
@@ -133,8 +133,6 @@ async function boot(): Promise<void> {
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
     }
     if (talk) return talk;
-    const smith = smithAt(model.npcs, model.inside, hero);
-    if (smith) return { label: `Trade with ${smith.name}`, x: smith.x, y: 1.1, z: smith.z };
     const read = model.boardInReach;
     if (read !== null) {
       const spot = noticeBoards(model)[read];
@@ -175,7 +173,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => !bar.busy && shop.open(barmaid), onSmith: (smith) => forge.open(smith), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.
