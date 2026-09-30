@@ -147,7 +147,7 @@ export function createBar(model: GameModel, view: BarView) {
       [inn, at] = [model.inside.entrance, stool.z];
       const here = inn;
       // In the queue, first come first served: told if there's a wait.
-      const ahead = placeOrder(here, { stool, by: null, served: () => served() });
+      const ahead = placeOrder(here, { stool, by: null, drink: 'ale', served: () => served() });
       view.speak(barmaid, ahead > 0 ? waitLine(ahead, !!barmaid.serving) : call.said);
       callBarkeep(barmaid);
       const served = () => {
