@@ -2,7 +2,7 @@
 
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
-import { atTheBar, barmaidHere } from './barOrder';
+import { atTheBar, barmaidHere, type BarMenuItem } from './barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
 import type { GameEvent } from '../model/types';
@@ -42,12 +42,12 @@ export class GameController {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
-  private readonly onOrder: (npc: Npc) => void;
+  private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -110,10 +110,11 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
-    // F, sat on a stool at the bar: order an ale from the inn's barmaid.
-    if (this.input.consumeOrder() && atTheBar(this.model)) {
+    // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid.
+    const wanted = this.input.consumeOrder();
+    if (wanted && atTheBar(this.model)) {
       const barmaid = barmaidHere(this.model);
-      if (barmaid) this.onOrder(barmaid);
+      if (barmaid) this.onOrder(barmaid, wanted);
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the

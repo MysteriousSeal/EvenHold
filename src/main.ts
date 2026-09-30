@@ -71,12 +71,13 @@ async function boot(): Promise<void> {
   const updateClock = createClockHud();
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
-  const orderPrompt = createLootPrompt('F'); // sat at the bar: over the hero's head
+  const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
+  const piePrompt = createLootPrompt('G', false, orderPrompt); // and a meat pie, stacked over it
   const drinkTimer = createDrinkTimer();
   const bar = createBar(
     model,
     {
-      heroDrinks: (seconds) => view.heroDrinks(seconds),
+      heroDrinks: (seconds, what) => view.heroDrinks(seconds, what),
       heroStopsDrinking: () => view.heroStopsDrinking(),
       speak: (barmaid, text) => floatingText.speak(barmaid, 1.35, text), // over her, following her
       countdown: (drinking, hero) => drinkTimer(drinking, drinking ? view.toScreen(hero.x, hero.y + 1.15, hero.z) : null),
@@ -165,12 +166,14 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
-    // Sat on a stool at the bar: F orders an ale, the prompt over the hero's head.
-    // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being drunk.
-    const order = bar.canOrder ? orderLabel(model) : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
+    // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
+    // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
+    const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
+    const pie = bar.canOrder ? orderLabel(model, 'pie') : null;
     bar.update();
     const { hero } = model;
     orderPrompt.update(order ? { label: order.label, muted: order.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z));
+    piePrompt.update(pie ? { label: pie.label, muted: pie.soldOut, x: hero.x, y: hero.y + 1.05, z: hero.z } : null, (x, y, z) => view.toScreen(x, y, z)); // (at the ale's, stacked over it)
     updateQuests((x, y, z) => view.toScreen(x, y, z));
     const now = performance.now();
     if (model.inside?.entrance !== textSpace) {
@@ -180,7 +183,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.

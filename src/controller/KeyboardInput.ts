@@ -1,3 +1,5 @@
+import type { BarMenuItem } from './barOrder';
+
 export type Direction = 'up' | 'down' | 'left' | 'right';
 
 const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
@@ -13,13 +15,13 @@ const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
 
 const ATTACK_KEY = 'Space';
 const PICKUP_KEY = 'KeyE';
-const ORDER_KEY = 'KeyF'; // at the bar: order a drink
+const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
 
 export class KeyboardInput {
   private readonly pressed = new Set<Direction>();
   private attackRequested = false;
   private pickupRequested = false;
-  private orderRequested = false;
+  private orderRequested: BarMenuItem | null = null;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -47,16 +49,16 @@ export class KeyboardInput {
     return requested;
   }
 
-  // True once per press of the order key.
-  consumeOrder(): boolean {
+  // What's ordered, once per press of an order key (F: an ale, G: a pie); else null.
+  consumeOrder(): BarMenuItem | null {
     const requested = this.orderRequested;
-    this.orderRequested = false;
+    this.orderRequested = null;
     return requested;
   }
 
   private onKey(e: KeyboardEvent, isDown: boolean): void {
-    if (e.code === ORDER_KEY) {
-      if (isDown && !e.repeat) this.orderRequested = true;
+    if (e.code in ORDER_KEYS) {
+      if (isDown && !e.repeat) this.orderRequested = ORDER_KEYS[e.code];
       return;
     }
     if (e.code === PICKUP_KEY) {
