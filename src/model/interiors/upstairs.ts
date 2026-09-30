@@ -5,7 +5,7 @@
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import type { Hero } from '../types';
 import type { Entrance, Room } from './interiors';
-import { bumpsFurniture, distanceTo, type Furniture } from './furniture';
+import { bumpsFurniture, clothFor, distanceTo, type Furniture } from './furniture';
 import { layoutOf, type Inside } from './indoors';
 
 // Upstairs in a building (the inn): a room of its own, so no one below is
@@ -42,8 +42,9 @@ function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
 
 // The floor above `below` (its room, with `stairs` up to it), as the hero's
 // there, its doors as they were left.
-export function upstairsInside(below: Entrance, room: Room, stairs: Furniture): Inside {
+export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, seed: number): Inside {
   const furniture = upstairsFurniture(stairs, room);
+  for (const f of furniture) if (f.kind === 'roomBed' || f.kind === 'doubleBed') f.cloth = clothFor(seed, below, f.x, f.z, 1); // each its own blanket
   const open = opened.get(below);
   for (const f of furniture) if (f.kind === 'hallDoor' && open?.has(doorKey(f))) f.open = true;
   return { entrance: upstairsOf(below), room, furniture, seated: null, below };
@@ -96,7 +97,7 @@ const DOOR_EVERY = 3; // a room's door along it, every so many tiles
 // walled off from the rooms beyond by a low wall: a row of rooms along the
 // back, a door into each from the hallway, the last two made one, the
 // biggest, front to back; and one long room along the front behind the
-// others, through a door up the hall from the stairwell.
+// others, through a door up the hall from the stairwell; a bed in each.
 function hallway(room: Room, stairs: Furniture): Furniture[] {
   const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
   const walls: Furniture[] = [];
@@ -119,7 +120,18 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   }
   // Halfway to the front, up to the biggest room: the back rooms from the long front one.
   for (let x = HALL; x < big; x++) walls.push(piece('back', x, mid, false));
-  return walls;
+  // A bed in each room, in a corner clear of its door, its head against a
+  // wall (drawn at its far end): a single along a back room's left wall, head
+  // to its front; a double in the big room's front corner, head to the
+  // house's front; and along the long front room's back wall, head to its end.
+  const bed = (kind: 'roomBed' | 'doubleBed', wall: 'left' | 'back', x: number, z: number, w: number): Furniture => ({ kind, x, z, w, d: 2, wall, solid: true });
+  // Each with a nightstand beside its head, its back to the same wall (facing away from it).
+  const stand = (x: number, z: number, facing: [number, number]): Furniture => ({ kind: 'nightstand', x, z, w: 1, d: 1, wall: 'none', solid: true, facing });
+  const beds: Furniture[] = [];
+  if (mid - 2 >= HALL) for (const x of [HALL, ...dividers.filter((x) => x < big)]) beds.push(bed('roomBed', 'left', x, mid - 2, 1), stand(x + 1, mid - 1, [0, -1]));
+  if (big + 2 < room.width) beds.push(bed('doubleBed', 'left', big, room.depth - 2, 2), stand(big + 2, room.depth - 1, [0, -1]));
+  if (big - 2 > HALL && mid + 2 < room.depth) beds.push(bed('doubleBed', 'back', big - 2, mid, 2), stand(big - 1, mid + 2, [-1, 0]));
+  return [...walls, ...beds];
 }
 
 // Takes the stairs by the hero: up to the floor above (beside the top of
@@ -136,7 +148,7 @@ export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: num
     model.inside = { entrance: inside.below, room, furniture, seated: null };
     Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: Math.PI / 2 }); // stepped off them, facing away
   } else {
-    model.inside = upstairsInside(inside.entrance, inside.room, stairs);
+    model.inside = upstairsInside(inside.entrance, inside.room, stairs, model.seed);
     Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
   }
   return true;

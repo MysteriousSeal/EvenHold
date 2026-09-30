@@ -13,6 +13,7 @@ import type { Entrance, Room } from './interiors';
 export type FurnitureKind =
   | 'hearth'
   | 'bed'
+  | 'nightstand' // by a bed's head
   | 'table'
   | 'chair'
   | 'chest'
@@ -26,6 +27,8 @@ export type FurnitureKind =
   | 'stairwell' // where they come up, upstairs
   | 'hallWall' // upstairs: a low wall between the hallway and the rooms off it
   | 'hallDoor' // and a room's door in it
+  | 'roomBed' // and in the rooms, a bed
+  | 'doubleBed' // or, in the bigger ones, a double
   | 'forge'
   | 'anvil'
   | 'trough'
@@ -53,11 +56,16 @@ export interface Furniture {
   solid: boolean; // blocks walking (rugs don't)
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
   open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
+  cloth?: number; // a bed: its blanket's colour, of four (clothFor)
 }
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
 // Hung on a wall, above everything on the floor: they take no floor tiles.
 const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern'];
+
+// A bed's blanket colour (of four), the same each time for the world (`seed`), its building and where it stands.
+export const clothFor = (seed: number, entrance: Entrance, x: number, z: number, salt = 0): number =>
+  hashCell(Math.round(entrance.x * 4) + x * 31, Math.round(entrance.z * 4) + z * 17, seed + 104729 + salt) % 4;
 
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed + 7919));
@@ -122,6 +130,7 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     const bedSpots = down(0).filter(([, z]) => z > 0);
     const bed = place('bed', 1, 2, 'left', [[0, 0]], false) ?? place('bed', 1, 2, 'left', bedSpots);
     if (bed) {
+      bed.cloth = clothFor(seed, entrance, bed.x, bed.z);
       for (let z = bed.z - 1; z <= bed.z + bed.d; z++) kept.add(key(1, z));
       kept.add(key(0, bed.z - 1));
       kept.add(key(0, bed.z + bed.d));
@@ -283,15 +292,17 @@ const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>>
 
 // The seat on a piece of furniture, or null if it's not something to sit on.
 export function seatOf(piece: Furniture): Seat | null {
-  if (piece.kind === 'bed') {
+  if (piece.kind === 'bed' || piece.kind === 'roomBed' || piece.kind === 'doubleBed') {
     const alongZ = piece.wall === 'left';
-    const head = (alongZ ? piece.z : piece.x) - 0.5;
+    const far = piece.kind !== 'bed'; // upstairs, its head at its far end, against the wall there
+    const start = (alongZ ? piece.z : piece.x) - 0.5;
+    const feet = far ? start + (alongZ ? piece.d : piece.w) - HEAD_TO_FEET : start + HEAD_TO_FEET;
     return {
       piece,
-      x: alongZ ? piece.x : head + HEAD_TO_FEET,
-      z: alongZ ? head + HEAD_TO_FEET : piece.z,
+      x: alongZ ? piece.x - 0.5 + piece.w / 2 : feet, // down its middle
+      z: alongZ ? feet : piece.z - 0.5 + piece.d / 2,
       y: MATTRESS,
-      facing: alongZ ? 0 : Math.PI / 2,
+      facing: (alongZ ? 0 : Math.PI / 2) + (far ? Math.PI : 0),
       lying: true,
     };
   }

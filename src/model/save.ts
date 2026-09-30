@@ -151,7 +151,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const { room, furniture } = layoutOf(model.seed, building);
     const stairs = furniture.find((f) => f.kind === 'stairs');
     model.inside = saved.upstairs && stairs
-      ? upstairsInside(building, room, stairs) // on the floor above
+      ? upstairsInside(building, room, stairs, model.seed) // on the floor above
       : { entrance: building, room, furniture, seated: null };
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {
