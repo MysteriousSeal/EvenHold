@@ -39,3 +39,24 @@
 .menu-purse.shop-purses { justify-content: space-between; }
 .shop-purse { display: inline-flex; align-items: center; gap: 3px; }
 .shop-purse b { margin-right: 6px; color: var(--ink-soft); font-weight: 600; }
+
+/* A shop's window never scrolls (unlike other menus): its wares turn in pages instead. */
+.menu:has(.shop-talk) { max-height: none; }
+.menu:has(.shop-talk) .menu-body { overflow: visible; }
+
+/* Under a grid of more than a page, and only under it (clear of the panel beside it: its
+   260px and the 14px gap): the buttons turning the pages, Next at its bottom right. */
+.shop-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 274px 0 0; }
+.shop-page { font-size: 14px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.shop-page-turn {
+  padding: 6px 14px;
+  font: 600 14px 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--sand-light);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  cursor: pointer;
+}
+.shop-page-turn:hover:not(:disabled) { background: var(--lantern); }
+.shop-page-turn:active:not(:disabled) { box-shadow: 0 1px 0 var(--ink); transform: translateY(2px); }
+.shop-page-turn:disabled { opacity: 0.4; cursor: default; }

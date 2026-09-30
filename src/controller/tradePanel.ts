@@ -1,7 +1,7 @@
 // Trading with a shopkeeper (the barmaid, the smith): their wares to buy,
 // and what the hero has they'll take, in a grid on the left; the one chosen
 // is told of on the right, with the button to buy (or sell) it at its price;
-// both purses under them, and the keeper's face and word over them. A
+// PAGE of them to a page, with buttons to turn the pages; both purses under them, and the keeper's face and word over them. A
 // window in the middle of the screen; the game waits while it's open. What's
 // traded, at what price, and what they say, is the shop's own (a Trade).
 
@@ -47,7 +47,8 @@ export const clock = (ms: number) => {
 };
 
 const COLUMNS = 4;
-const ROWS = 2;
+const ROWS = 2; // at least, so an empty tab isn't a sliver
+const PAGE = COLUMNS * 5; // wares to a page
 
 // Both purses, the keeper's on the left and the hero's on the right, each named.
 function purses(name: string, shop: Shop, hero: number): HTMLElement {
@@ -73,9 +74,40 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
   let saysLine: HTMLElement | null = null; // where it's shown now
   let drawn = false; // the tab was just drawn: its first pick is the menu's, not the hero's
   let trading = false; // redrawing after a trade: its picks are the menu's too
-  const fill = (cells: Array<MenuSlot | null>) => {
-    while (cells.length < COLUMNS * ROWS) cells.push(null);
+  // Each tab's page (Buy, Sell), and how many it has now.
+  const pages = [{ at: 0, of: 1 }, { at: 0, of: 1 }];
+  // One page of a tab's slots; more than a page, every page is a whole one, so the window keeps its size.
+  const fill = (tab: number, all: MenuSlot[]) => {
+    const page = pages[tab];
+    page.of = Math.max(1, Math.ceil(all.length / PAGE));
+    page.at = Math.min(page.at, page.of - 1); // (sold the last of a page's)
+    const cells: Array<MenuSlot | null> = all.slice(page.at * PAGE, (page.at + 1) * PAGE);
+    while (cells.length < (page.of > 1 ? PAGE : COLUMNS * ROWS)) cells.push(null);
     return { cells, columns: COLUMNS };
+  };
+  // Under the grid: the buttons to turn the pages (if there's more than one), then both purses.
+  const footer = (tab: number) => () => {
+    const box = document.createElement('div');
+    const page = pages[tab];
+    if (page.of > 1) {
+      const pager = document.createElement('div');
+      pager.className = 'shop-pager';
+      const turn = (label: string, to: number) => {
+        const button = document.createElement('button');
+        button.className = 'shop-page-turn';
+        button.textContent = label;
+        button.disabled = to < 0 || to >= page.of;
+        button.addEventListener('click', () => {
+          page.at = to;
+          menu.refresh();
+        });
+        return button;
+      };
+      pager.append(turn('‹ Previous', page.at - 1), line('shop-page', `Page ${page.at + 1} of ${page.of}`), turn('Next ›', page.at + 1));
+      box.append(pager);
+    }
+    box.append(purses(keeper!.name, shop(), model.hero.money));
+    return box;
   };
   const slotOf = (id: BagItem, count: number, price: number): MenuSlot => {
     // Sold out: faded, with the time until there's more in its corner.
@@ -156,17 +188,17 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
     tabs: [
       {
         name: 'Buy',
-        slots: () => fill(trade.wares().map((id) => slotOf(id, shop().stock[id] ?? 0, trade.price(id, false)))),
+        slots: () => fill(0, trade.wares().map((id) => slotOf(id, shop().stock[id] ?? 0, trade.price(id, false)))),
         detail: detail(false),
         header: () => header(),
-        footer: () => purses(keeper!.name, shop(), model.hero.money),
+        footer: footer(0),
       },
       {
         name: 'Sell',
-        slots: () => fill((Object.keys(model.hero.bag) as string[]).filter((id): id is BagItem => trade.wanted(id) && (model.hero.bag[id] ?? 0) > 0).map((id) => slotOf(id, model.hero.bag[id]!, trade.price(id, true)))),
+        slots: () => fill(1, (Object.keys(model.hero.bag) as string[]).filter((id): id is BagItem => trade.wanted(id) && (model.hero.bag[id] ?? 0) > 0).map((id) => slotOf(id, model.hero.bag[id]!, trade.price(id, true)))),
         detail: detail(true),
         header: () => header(),
-        footer: () => purses(keeper!.name, shop(), model.hero.money),
+        footer: footer(1),
       },
     ],
   });
@@ -174,6 +206,7 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
     menu,
     open(npc) {
       keeper = npc;
+      for (const page of pages) page.at = 0;
       says = pick(trade.lines.hello);
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open();
