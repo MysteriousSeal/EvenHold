@@ -6,6 +6,8 @@ import type { EquipSlot } from '../equipment';
 
 // Kinds of people who dress themselves from the item catalog.
 export type Wearer = 'bandit';
+// Those who sell items: the smith (weapons, shields, armour: smithy/smithShop.ts).
+export type Merchant = 'smith';
 
 export interface ItemEntry {
   name: string;
@@ -14,6 +16,9 @@ export interface ItemEntry {
   // EMPTY_SLOT_WEIGHT in equipment.ts). Anyone not listed never picks it,
   // though the hero can wear anything.
   wornBy?: Partial<Record<Wearer, number>>;
+  value?: number; // what it's worth, in copper (sold at it, bought back at half); none: only bought back cheap
+  // Who sells it, and how many they usually keep in stock.
+  soldBy?: Partial<Record<Merchant, number>>;
 }
 
 // A slot's items, each tagged with the slot.

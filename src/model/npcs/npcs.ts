@@ -41,10 +41,10 @@ export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'fiel
 const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
 const FIELD_NEAR = 15; // tiles from the village's middle
 
-export type NpcRole = 'villager' | 'barkeep' | 'server';
+export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith';
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)".
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress' };
+const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith' };
 export function titleOf(npc: Npc): string {
   const title = TITLES[npc.role];
   return title ? `${npc.name} (${title})` : npc.name;
@@ -140,7 +140,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number) =>
     list.reduce<T | null>((best, v) => (!best || Math.hypot(v.x - x, v.z - z) < Math.hypot(best.x - x, best.z - z) ? v : best), null);
   const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
-    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : 1); // about half the village's folk women; the inn's barmaids always
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : role === 'smith' ? 0 : 1); // about half the village's folk women; the inn's barmaids always, the smith never
     return {
       id,
       name: nameAt(at.x, at.z, seed, look.build),
@@ -189,7 +189,13 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const id = entrances.length + i * 2;
     return (['barkeep', 'server'] as const).map((role, k) => person(id + k, role, inn, inn, village, { x: inn.x + 0.3 * (k + 1), z: inn.z - 0.2 }));
   });
-  return [...villagers, ...staff];
+  // A smith in each smithy, always at work in it.
+  const smithies = entrances.filter((e) => e.type === 'smithy');
+  const smiths = smithies.flatMap((smithy, i) => {
+    const village = nearest(villages, smithy.x, smithy.z);
+    return village ? [person(entrances.length + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 })] : [];
+  });
+  return [...villagers, ...staff, ...smiths];
 }
 
 // Whether a step of a walker of half-width r from `from` to (x, z), in

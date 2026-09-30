@@ -25,6 +25,7 @@ import { squareBenches, type BenchWorld } from '../worldgen/benches';
 import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
 import { FARMER_ROUTINE, NPC_RADIUS, ROUTINE, bumpsNpc, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from '../inn/innStaff';
+import { smithSteps } from '../smithy/smithWork';
 
 export interface NpcWorld extends BenchWorld {
   seed: number;
@@ -239,7 +240,7 @@ function easeOffHero(npc: Npc, world: NpcWorld, dt: number): boolean {
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
   if (seen && easeOffHero(npc, world, dt)) return;
-  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : staffSteps(npc, npcs, world.seed);
+  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : npc.role === 'smith' ? smithSteps(npc, world) : staffSteps(npc, npcs, world.seed);
   const step = npc.steps[0];
   const done = () => {
     npc.steps.shift();

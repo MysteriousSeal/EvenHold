@@ -33,6 +33,12 @@ export type FurnitureKind =
   | 'framedPicture' // a picture propped on a wall's rail,
   | 'bathtub' // and a wooden tub
   | 'forge'
+  | 'bellows' // beside the forge
+  | 'smithCounter' // where the smith trades, by the door
+  | 'weaponWall' // his weapons on show, hung on a wall
+  | 'armorStand' // a suit of his armour on a stand
+  | 'grindstone'
+  | 'toolBoard' // his tongs and hammers, hung on a wall
   | 'anvil'
   | 'trough'
   | 'rack'
@@ -65,7 +71,7 @@ export interface Furniture {
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
 // Hung on a wall, above everything on the floor: they take no floor tiles.
-const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern'];
+const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard'];
 
 // A bed's blanket colour (of four), the same each time for the world (`seed`), its building and where it stands.
 export const clothFor = (seed: number, entrance: Entrance, x: number, z: number, salt = 0): number =>
@@ -204,12 +210,28 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
     for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   } else {
+    // Where the smith works (smithy/smithWork.ts), each with the tile before it kept free to stand on.
+    const before = (piece: Furniture | null) => piece && kept.add(key(piece.x, piece.z + piece.d));
     const forge = place('forge', 2, 1, 'back', along(0));
-    if (forge) place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);
-    place('trough', 2, 1, 'none', inside());
-    place('rack', 1, 2, 'left', down(0));
+    if (forge) {
+      place('bellows', 1, 1, 'back', [[forge.x - 1, 0], [forge.x + 2, 0]], false);
+      const anvil = place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);
+      before(anvil);
+      if (anvil) kept.add(key(anvil.x === forge.x ? forge.x + 1 : forge.x, 1)); // before the fire, beside the anvil
+    }
+    // By the door, the counter where he trades: a row behind it for him, one before it for the hero.
+    const counter = place('smithCounter', 2, 1, 'none', [[room.door + 1, room.depth - 3], [room.door - 2, room.depth - 3]], false);
+    if (counter) for (let x = counter.x; x < counter.x + counter.w; x++) [counter.z - 1, counter.z + 1].forEach((z) => kept.add(key(x, z)));
+    before(place('trough', 2, 1, 'none', inside()));
+    before(place('grindstone', 1, 1, 'none', inside()));
+    place('armorStand', 1, 1, 'none', inside());
+    const rack = place('rack', 1, 2, 'left', down(0));
     place('coal', 1, 1, 'none', [[room.width - 1, 0], ...along(0)]);
     place('barrel', 1, 1, 'none', [[room.width - 1, room.depth - 1], [0, room.depth - 1]]);
+    // On the walls: his weapons on show on the back wall (not over the fire), his tools on the left (not over the rack).
+    const byFire = (x: number) => !!forge && x >= forge.x - 1 && x <= forge.x + 2;
+    for (let n = 2; n > 0; n--) place('weaponWall', 1, 1, 'back', along(0).filter(([x]) => !byFire(x)));
+    place('toolBoard', 1, 1, 'left', down(0).filter(([, z]) => z >= 1 && z < room.depth - 2 && !(rack && z >= rack.z && z < rack.z + rack.d)));
   }
   return items;
 }
@@ -223,6 +245,7 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   shelf: [0, 0.34],
   keg: [0, 0.62],
   hallWall: [0, 0.2], // a wall's thickness, at the tile's edge
+  smithCounter: [0.24, 0.84], // (standing free, its span across z) only as deep as it's drawn
   hallDoor: [0, 0.2],
   sink: [0, 0.42], // slim against the wall, like the shelves // on its side, reaching 0.6 of its tile out (tap and all)
 };
@@ -258,7 +281,7 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
     let [x0, x1, z0, z1] = [f.x - 0.5 + inset, f.x + f.w - 0.5 - inset, f.z - 0.5 + inset, f.z + f.d - 0.5 - inset];
     const slim = SLIM[f.kind];
     if (slim && f.wall === 'left') [x0, x1] = [f.x - 0.5 + slim[0], f.x - 0.5 + slim[1]];
-    if (slim && f.wall === 'back') [z0, z1] = [f.z - 0.5 + slim[0], f.z - 0.5 + slim[1]];
+    if (slim && f.wall !== 'left') [z0, z1] = [f.z - 0.5 + slim[0], f.z - 0.5 + slim[1]]; // back wall (or standing free: across z)
     const seat = PULLED_UP[f.kind];
     if (seat && f.facing) {
       const [a0, a1, b0, b1] = seatSpan(seat.across, seat.forward, f.facing);
