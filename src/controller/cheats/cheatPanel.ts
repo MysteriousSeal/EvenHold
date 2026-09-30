@@ -7,7 +7,7 @@
 
 import type { GameModel } from '../../model/GameModel';
 import {
-  nearestCamp,
+  nextCamp,
   nextRuin,
   nearestLakeShore,
   nearestPack,
@@ -45,6 +45,7 @@ import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 import type { Ruin } from '../../model/ruins/ruins';
+import type { Camp } from '../../model/camps/camps';
 
 const SPEED_BOOST = 3;
 const SPEEDS = [1, 2, 3, 4, 10]; // the game speed cheat's steps
@@ -68,6 +69,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   };
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
+  const campsSeen = new Set<Camp>(); // and the camps'
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const STYLE_NAMES: Record<HairStyle, string> = {
     short: 'Short',
@@ -110,7 +112,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             },
           },
           { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
-          { icon: ICON.camp, title: 'Bandit camp', detail: 'Just outside the nearest gate', run: () => travel(nearestCamp(model, here()), 'a bandit camp') },
+          { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
           { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
           { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
           ...(['house', 'inn', 'smithy'] as const).map(
