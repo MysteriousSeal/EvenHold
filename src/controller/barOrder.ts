@@ -1,7 +1,7 @@
 // Ordering an ale, sat on a stool at the bar (F): the barmaid calls that
 // she's coming, fetches one from her stock (inn/tavernShop.ts), at her
-// price, and the hero sips it there over ALE_SECONDS, its good coming back
-// as they do; she says a word either way. Sold out, she says when the next
+// price, and the hero sips it there over ALE_SECONDS, 60% of their most
+// health coming back as they do (ALE_HEALS); she says a word either way. Sold out, she says when the next
 // barrel's up; too poor, she says so.
 
 import type { GameModel } from '../model/GameModel';
@@ -12,10 +12,10 @@ import { setMug, takeMug } from '../model/inn/barMugs';
 import { callBarkeep, ordersAhead, placeOrder } from '../model/inn/barOrders';
 import { takeFromBag } from '../model/hero/bag';
 import { startDrinking } from '../model/hero/heroStats';
-import { PROVISIONS } from '../model/loot/provisions';
 
 export { ALE_SECONDS } from '../model/inn/barPatrons';
-import { ALE_SECONDS } from '../model/inn/barPatrons';
+import { ALE_HEALS, ALE_SECONDS } from '../model/inn/barPatrons';
+import { maxHpOf } from '../model/hero/attributes';
 import { clock, pick } from './tradePanel';
 
 const POURED = [
@@ -82,7 +82,7 @@ export function orderAle(model: GameModel): { said: string; drank: boolean } {
   if (result === 'sold out') return { said: `The barrel's dry, love. Back in ${clock(restockIn(shop))}.`, drank: false };
   if (result === 'too poor') return { said: pick(TOO_POOR), drank: false };
   takeFromBag(model.hero.bag, 'ale'); // not carried off: sipped there, its health coming back as it goes
-  startDrinking(model.hero, PROVISIONS.ale.heal, ALE_SECONDS);
+  startDrinking(model.hero, maxHpOf(model.hero) * ALE_HEALS, ALE_SECONDS); // a sit-down ale: much of their health back as it's sipped
   return { said: pick(POURED), drank: true };
 }
 
