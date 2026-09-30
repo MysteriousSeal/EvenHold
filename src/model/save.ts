@@ -11,6 +11,8 @@
 import type { GameModel } from './GameModel';
 import type { BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
+import { POINTS_PER_LEVEL, untrained } from './hero/training';
+import { STATS, type Stat } from './hero/statKinds';
 import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxEnergyOf, maxHpOf } from './hero/attributes';
@@ -37,6 +39,8 @@ export interface SaveData {
     money: number;
     level: number;
     xp: number;
+    statPoints?: number; // gained with levels, not yet spent (older saves: none kept, so every level's given back)
+    trained?: Partial<Record<Stat, number>>; // spent on each stat
     hp: number;
     energy?: number; // spent through the day, slept back
     x: number;
@@ -80,6 +84,8 @@ export function snapshot(model: GameModel): SaveData {
       money: hero.money,
       level: hero.level,
       xp: hero.xp,
+      statPoints: hero.statPoints,
+      trained: { ...hero.trained },
       hp: hero.hp,
       energy: Math.round(hero.energy),
       x: spot?.x ?? model.seated?.from.x ?? hero.x,
@@ -146,6 +152,7 @@ export function restore(model: GameModel, data: SaveData): void {
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),
+    ...pointsOf(saved),
     facing: saved.facing,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
@@ -218,4 +225,18 @@ function foesOf(model: GameModel): string {
     fingerprints.set(model, print);
   }
   return print;
+}
+
+// A saved hero's stat points: spent and not; a save from before them, all its levels' to spend.
+// Never more in all than their level's earned (a save from when levels gave more): what's
+// unspent cut to fit; if even what's spent is more, every point back to spend again.
+function pointsOf(saved: SaveData['hero']): { statPoints: number; trained: Record<Stat, number> } {
+  const whole = (n: unknown) => (typeof n === 'number' && Number.isInteger(n) && n >= 0 ? n : 0);
+  const earned = POINTS_PER_LEVEL * (Math.max(1, Math.floor(saved.level)) - 1);
+  if (saved.statPoints === undefined) return { statPoints: earned, trained: untrained() };
+  const trained = untrained();
+  for (const s of STATS) trained[s] = whole(saved.trained?.[s]);
+  const spent = STATS.reduce((sum, s) => sum + trained[s], 0);
+  if (spent > earned) return { statPoints: earned, trained: untrained() };
+  return { statPoints: Math.min(whole(saved.statPoints), earned - spent), trained };
 }

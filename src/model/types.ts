@@ -4,6 +4,7 @@ import type { Humanoid } from './human/humanoid';
 import type { Bag, BagItem } from './hero/bag';
 import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
+import type { Stat } from './hero/statKinds';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
@@ -16,6 +17,8 @@ export interface Hero extends Humanoid {
   energy: number; // up to maxEnergyOf (attributes.ts): spent through the day, slept back
   level: number;
   xp: number; // toward the next level
+  statPoints: number; // gained with levels, not yet spent (training.ts)
+  trained: Record<Stat, number>; // points spent on each stat
   hurtFor: number; // seconds left of the hit flash
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
@@ -32,6 +35,7 @@ export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
+  | { kind: 'levelUp'; level: number; points: number } // the hero's levelled up: their points to spend now
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'poor'; text: string } // something the hero couldn't pay for

@@ -24,6 +24,7 @@ import type { Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surfac
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
+import { untrained } from './hero/training';
 import { blowOf, critChanceOf, dodgeChanceOf, maxHpOf, throughArmor } from './hero/attributes';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
@@ -133,7 +134,7 @@ export class GameModel {
     addCampObstacles(this.obstacles, this.camps);
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
@@ -418,7 +419,10 @@ export class GameModel {
 
   // What's happened since takeEvents() was last asked (for floating text).
   private events: GameEvent[] = [];
+  private seenLevel: number | null = null; // the hero's level when events were last taken (null: not yet: whatever it is, it's not news)
   takeEvents(): GameEvent[] {
+    if (this.seenLevel !== null && this.hero.level > this.seenLevel) this.events.push({ kind: 'levelUp', level: this.hero.level, points: this.hero.statPoints });
+    this.seenLevel = this.hero.level;
     const events = [...this.events, ...this.quests.events.splice(0), ...takeSpeech()];
     this.events = [];
     return events;

@@ -5,18 +5,14 @@
 // in a bed, and levelling up, which heals fully.
 
 import type { Hero } from '../types';
-import { drainOf, maxEnergyOf, maxHpOf } from './attributes';
+import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
+import { POINTS_PER_LEVEL } from './training';
 
-const BASE_HP = 10;
-const HP_PER_LEVEL = 2;
 export const MAX_ENERGY = 100; // a level-1 hero's, with nothing on (more with Endurance: maxEnergyOf)
 const ENERGY_SPENT = MAX_ENERGY / (24 * 60); // a second awake (a game minute): all of it over a whole day, 24 hours
 const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a collapse): all of it back in under a minute
 
-// A hero's health at `level`, with nothing on (more with Stamina: maxHpOf).
-export function maxHpAt(level: number): number {
-  return BASE_HP + (level - 1) * HP_PER_LEVEL;
-}
+export { maxHpAt }; // a hero's health at `level`, with nothing on and no Stamina (more with it: maxHpOf)
 
 // Experience from `level` to the next: 30, 45, 60, ...
 export function xpToNext(level: number): number {
@@ -35,9 +31,9 @@ export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): numb
 
 export const HERO_NAME = 'Hero'; // shown over the health bar
 
-export const FRESH_HERO_STATS = { hp: BASE_HP, energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0 };
+export const FRESH_HERO_STATS = { hp: maxHpAt(1), energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0, statPoints: 0 }; // (and `trained`: untrained(), its own)
 
-// Adds experience; returns how many levels were gained.
+// Adds experience; returns how many levels were gained (each, points to spend on their stats).
 export function gainXp(hero: Hero, amount: number): number {
   hero.xp += amount;
   let gained = 0;
@@ -46,6 +42,7 @@ export function gainXp(hero: Hero, amount: number): number {
     hero.level++;
     gained++;
   }
+  hero.statPoints += gained * POINTS_PER_LEVEL;
   if (gained > 0) hero.hp = maxHpOf(hero);
   return gained;
 }
