@@ -21,13 +21,13 @@ import {
   ROAD_SURFACE_HEIGHT,
 } from './constants';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
-import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
+import type { Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, tiredPace, xpAgainst } from './hero/heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
-import { addCampObstacles, worldObstacles } from './blockers';
+import { worldObstacles } from './blockers';
 import { stepHop, type Hop } from './hero/hop';
 import { DROP_CHANCE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
@@ -50,6 +50,8 @@ import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { liveOn } from './hero/exhaustion';
+import { addRuinObstacles, type Ruin } from './ruins/ruins';
+import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const DEATH_TOLL = 0.2; // of their coins, lost in a fall
@@ -70,6 +72,7 @@ export class GameModel {
   readonly hero: Hero;
   readonly enemies: Enemy[];
   readonly camps: Camp[];
+  readonly ruins: Ruin[]; // old keeps and chapels out in the wilds (ruins/ruins.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
@@ -121,14 +124,15 @@ export class GameModel {
     this.trees = world.trees;
     this.bushes = world.bushes;
     this.obstacles = worldObstacles(this, solidCells(this)); // what blocks the way (blockers.ts)
+    this.ruins = world.ruins;
+    this.camps = world.camps;
+    addRuinObstacles(this.obstacles, this.ruins); // (before the foes, to stand clear of them)
+    addCampObstacles(this.obstacles, this.camps);
 
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
-    const { enemies, camps } = spawnEnemies(this);
-    this.enemies = enemies;
-    this.camps = camps;
-    addCampObstacles(this.obstacles, camps);
+    this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
     this.wildlife = spawnWildlife(this);

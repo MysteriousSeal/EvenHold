@@ -10,7 +10,8 @@
 
 import { hashUnit } from '../../util/random';
 import { inBounds, type MapSize } from '../grid';
-import type { Camp, Surface, Tree, Village } from '../types';
+import type { Surface, Tree, Village } from '../types';
+import type { Camp } from '../camps/camps';
 import type { DeerVariant, Wildlife } from './wildlife';
 
 export interface DeerWorld {

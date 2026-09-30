@@ -2,6 +2,8 @@ import type { Blessing } from './hero/blessing';
 import type { MapSize } from './grid';
 import type { Humanoid } from './human/humanoid';
 import type { Bag, BagItem } from './hero/bag';
+import type { Ruin } from './ruins/ruins';
+import type { Camp } from './camps/camps';
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
@@ -65,20 +67,6 @@ export interface Enemy {
 
 // A 5x5 bandit camp around a campfire on (x, z), its layout turned by
 // `quarterTurns` (the entrance faces local +Z before turning).
-export interface Camp {
-  x: number;
-  z: number;
-  quarterTurns: number;
-}
-
-export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot';
-export interface CampPiece {
-  kind: CampPieceKind;
-  x: number;
-  z: number;
-  quarterTurns: number; // faces the camp's center (local +Z)
-}
-
 export type TreeKind = 'oak' | 'pine' | 'birch';
 
 export interface Tree {
@@ -158,6 +146,8 @@ export interface World {
   houses: House[];
   buildings: Building[];
   fields: Field[];
+  ruins: Ruin[]; // old keeps and chapels in the wilds (ruins/ruins.ts)
+  camps: Camp[]; // the bandits' (camps/camps.ts)
   trees: Tree[];
   bushes: Bush[];
 }

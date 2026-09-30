@@ -6,8 +6,9 @@ import { enemyLevel } from './enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './grid';
-import { campPieces, makeEnemy } from './enemies/enemies';
+import { makeEnemy } from './enemies/enemies';
 import type { EnemyKind, Village } from './types';
+import type { Ruin } from './ruins/ruins';
 
 export interface Tile {
   x: number;
@@ -81,15 +82,21 @@ function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number)
   return null;
 }
 
-// The entrance of the nearest bandit camp (just outside its palisade gap),
-// or null if there are none.
+// The next ruin on the tour: the nearest not yet visited (all of them seen,
+// round again); where to arrive, just outside its way in. Null if there are none.
+export function nextRuin(model: GameModel, from: Tile, visited: Set<Ruin>): Tile | null {
+  if (model.ruins.length === 0) return null;
+  if (visited.size >= model.ruins.length) visited.clear();
+  const ruin = model.ruins.filter((r) => !visited.has(r)).sort((a, b) => distance(a.way, from) - distance(b.way, from))[0];
+  visited.add(ruin);
+  return nearestOpenTile(model, ruin.way);
+}
+
+// Just outside the nearest bandit camp's way in, or null if there are none.
 export function nearestCamp(model: GameModel, from: Tile): Tile | null {
   if (model.camps.length === 0) return null;
   const camp = model.camps.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
-  const fire = campPieces(camp)[0];
-  // The entrance faces local +Z; three tiles out from the fire along it.
-  const [dx, dz] = [[0, 3], [3, 0], [0, -3], [-3, 0]][camp.quarterTurns];
-  return nearestOpenTile(model, { x: fire.x + dx, z: fire.z + dz });
+  return nearestOpenTile(model, camp.way);
 }
 
 // A few tiles from the nearest living wolf, or null if there are none.
