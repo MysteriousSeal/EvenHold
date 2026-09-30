@@ -197,17 +197,19 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   // A room's door in it: timber posts and a lintel standing tall, the
   // planked door shut between them, iron hinges and a ring on both faces.
   hallDoor: (box, len) => {
-    hallWall(box, 0, 3);
-    hallWall(box, len - 4, len - 1);
-    for (const u of [4, len - 6]) box(u, 0, 0, u + 1, 28, 4, FUR_DARK); // posts
-    box(3, 29, 0, len - 4, 30, 4, (_u, y) => (y === 30 ? WOOD_LIGHT : FUR_DARK)); // lintel, past the posts, lit on top
-    box(6, 0, 0, len - 7, 0, 4, WOOD_LIGHT); // threshold
-    box(6, 1, 1, len - 7, 27, 3, (u) => ((u - 6) % 4 === 0 ? WOOD_DARK : WOOD)); // the door, planked
+    const o = Math.floor((len - 25) / 2); // the door a tile wide, in the middle of its piece (one tile, or two across their joint)
+    hallWall(box, 0, o + 3);
+    hallWall(box, o + 21, len - 1);
+    for (const u of [o + 4, o + 19]) box(u, 0, 0, u + 1, 28, 4, FUR_DARK); // posts
+    box(o + 3, 29, 0, o + 21, 30, 4, (_u, y) => (y === 30 ? WOOD_LIGHT : FUR_DARK)); // lintel, past the posts, lit on top
+    box(o + 6, 0, 0, o + 18, 0, 4, WOOD_LIGHT); // threshold
+    box(o + 6, 1, 1, o + 18, 27, 3, (u) => ((u - o - 6) % 4 === 0 ? WOOD_DARK : WOOD)); // the door, planked
     for (const v of [0, 4]) {
-      for (const y of [6, 21]) box(6, y, v, len - 9, y + 1, v, (u) => (u === 6 ? IRON_LIGHT : IRON)); // strap hinges, across the planks
-      box(len - 10, 13, v, len - 9, 14, v, BRASS); // ring
+      for (const y of [6, 21]) box(o + 6, y, v, o + 16, y + 1, v, (u) => (u === o + 6 ? IRON_LIGHT : IRON)); // strap hinges, across the planks
+      box(o + 15, 13, v, o + 16, 14, v, BRASS); // ring
     }
   },
+
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
     for (const u of [1, len - 2]) box(u, 1, 0, u, 31, 8, WOOD); // sides
