@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createHeroSheet } from '../src/controller/heroSheet';
 import { createLevelUpPanel } from '../src/controller/levelUpPanel';
 import { maxHpOf } from '../src/model/hero/attributes';
+import { resetCost } from '../src/model/hero/training';
 import { ITEMS } from '../src/model/human/equipment';
 import { fresh } from './support/testWorld';
 
@@ -60,7 +61,7 @@ describe('the level-up window', () => {
     expect(health.querySelector('dd')!.textContent).toBe(`${maxHpOf(model.hero)} → ${maxHpOf(model.hero) + 4}`);
     expect(model.hero.trained.stamina).toBe(0); // only planned
     button(row('Stamina'), '−').click();
-    button(levelUp(), 'Reset').click();
+    button(levelUp(), 'Clear').click();
     expect(row('Strength').querySelector('.levelup-value')!.textContent).toBe('0');
     button(row('Stamina'), '+').click();
     const hp = model.hero.hp;
@@ -68,6 +69,23 @@ describe('the level-up window', () => {
     expect([model.hero.statPoints, model.hero.trained.stamina, model.hero.hp]).toEqual([2, 1, hp + 2]); // spent, and the health it adds with it
     panel.menu.close();
     expect(paused).toEqual([true, false]);
+  });
+
+  it('has every point spent back for coin by the level, on a second click', () => {
+    document.body.replaceChildren();
+    const model = fresh();
+    Object.assign(model.hero, { level: 5, statPoints: 0, money: 1_000 });
+    model.hero.trained.strength = 4;
+    const panel = createLevelUpPanel(model, { setPaused: () => {} });
+    panel.menu.open();
+    const respec = () => levelUp().querySelector<HTMLButtonElement>('.levelup-button.respec')!;
+    expect(respec().textContent).toContain('Reset points');
+    respec().click(); // asks…
+    expect(respec().textContent).toContain('to reset?');
+    expect(model.hero.trained.strength).toBe(4);
+    respec().click(); // …and pays
+    expect([model.hero.trained.strength, model.hero.statPoints, model.hero.money]).toEqual([0, 4, 1_000 - resetCost(5)]);
+    expect(respec().disabled).toBe(true); // none spent now
   });
 
   it('opens from the hero sheet when there are points to spend', () => {

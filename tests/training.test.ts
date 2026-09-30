@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gainXp, xpToNext } from '../src/model/hero/heroStats';
-import { POINTS_PER_LEVEL, refundPoints, spendPoints } from '../src/model/hero/training';
+import { POINTS_PER_LEVEL, refundPoints, resetCost, resetPoints, spendPoints } from '../src/model/hero/training';
+import { maxHpAt } from '../src/model/hero/heroStats';
 import { statsOf } from '../src/model/hero/attributes';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { fresh } from './support/testWorld';
@@ -64,5 +65,18 @@ describe('stat points', () => {
     expect(load(9, 20, 2)).toEqual([earned - 2, 2]); // what's unspent, cut to fit
     expect(load(9, 0, 30)).toEqual([earned, 0]); // spent more than earned: all back to spend
     expect(load(9, 1, 2)).toEqual([1, 2]); // within: as saved
+  });
+
+  it('are had back for coin, dearer the higher the level, health cut to the new most', () => {
+    const { hero } = fresh();
+    expect(resetCost(9)).toBeGreaterThan(resetCost(2));
+    Object.assign(hero, { level: 9, statPoints: 0, money: 0 });
+    expect(resetPoints(hero)).toBe('none'); // nothing spent
+    hero.trained.stamina = 8;
+    hero.hp = maxHpAt(9) + 16; // full, with the Stamina
+    expect(resetPoints(hero)).toBe('too poor');
+    hero.money = resetCost(9) + 5;
+    expect(resetPoints(hero)).toBe('reset');
+    expect([hero.money, hero.statPoints, hero.trained.stamina, hero.hp]).toEqual([5, 8, 0, maxHpAt(9)]);
   });
 });
