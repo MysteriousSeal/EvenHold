@@ -71,6 +71,7 @@
   cursor: pointer;
 }
 .menu-close canvas { display: block; grid-area: 1 / 1; }
+.menu-close::after { content: ''; position: absolute; inset: -4px -2px -5px; } /* clickable over its rim and the 2px it sinks: pressed at its edge, the click isn't lost */
 .menu-close canvas:last-child { visibility: hidden; }
 .menu-close:hover { background: var(--lantern); box-shadow: 0 4px 0 var(--ink), inset 0 -3px 0 var(--ember); transform: translateY(calc(-50% - 1px)); }
 .menu-close:hover canvas:first-child { visibility: hidden; }
