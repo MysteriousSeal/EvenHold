@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
-import { FRAME, TEST_MAP_SIZE, fresh, nearest } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, fresh, nearest, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 
 const WOLF_SIGHT = ENEMY_STATS.wolf.sight;
@@ -26,25 +26,27 @@ function swing(model: GameModel, wolf: Enemy): void {
 
 describe('wolves', () => {
   it('a pack waits near spawn, on open ground, at full health', () => {
-    const model = fresh();
-    const wolf = nearest(model);
-    expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(14);
-    expect(model.enemies.every((w) => w.hp === w.maxHp && model.isOpenTile(Math.round(w.x), Math.round(w.z)))).toBe(true);
+    eachSeed((model) => {
+      const wolf = nearest(model);
+      expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(14);
+      expect(model.enemies.every((w) => w.hp === w.maxHp && model.isOpenTile(Math.round(w.x), Math.round(w.z)))).toBe(true);
+    });
   });
 
   it('chases the hero on sight and gives up when outrun', () => {
-    const model = fresh();
-    const wolf = nearest(model);
-    model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
-    const before = Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z);
-    expect(before).toBeLessThan(WOLF_SIGHT);
-    for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);
-    expect(wolf.state).toBe('chase');
-    expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(before);
+    eachSeed((model) => {
+      const wolf = nearest(model);
+      model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
+      const before = Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z);
+      expect(before).toBeLessThan(WOLF_SIGHT);
+      for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);
+      expect(wolf.state).toBe('chase');
+      expect(Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z)).toBeLessThan(before);
 
-    model.teleport(wolf.x + WOLF_GIVE_UP + 5, wolf.z);
-    for (let i = 0; i < 60; i++) model.update(0, 0, FRAME); // any bite under way is finished first
-    expect(wolf.state).toBe('wander');
+      model.teleport(wolf.x + WOLF_GIVE_UP + 5, wolf.z);
+      for (let i = 0; i < 60; i++) model.update(0, 0, FRAME); // any bite under way is finished first
+      expect(wolf.state).toBe('wander');
+    });
   });
 
   it('loses a hit point per blow in front of the hero, and is shoved back', () => {
@@ -110,16 +112,17 @@ describe('wolf collision', () => {
 
 describe('bandits', () => {
   it('camp near spawn: a fire and a tent that block, with bandits around', () => {
-    const model = fresh();
-    const camp = model.camps[0];
-    expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
-    // Everything but the loot blocks; a palisade rings the camp but for the entrance.
-    for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot');
-    expect(camp.pieces.filter((p) => p.kind === 'palisade').length).toBe(19); // 5 edges on each of 4 sides, less the entrance
+    eachSeed((model) => {
+      const camp = model.camps[0];
+      expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
+      // Everything but the loot blocks; a palisade rings the camp but for the entrance.
+      for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot');
+      expect(camp.pieces.filter((p) => p.kind === 'palisade').length).toBe(19); // 5 edges on each of 4 sides, less the entrance
 
-    const around = model.enemies.filter((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 4);
-    expect(around.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(model.enemies.map((e) => cellKey(e.x, e.z))).size).toBe(model.enemies.length); // one per tile
+      const around = model.enemies.filter((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 4);
+      expect(around.length).toBeGreaterThanOrEqual(2);
+      expect(new Set(model.enemies.map((e) => cellKey(e.x, e.z))).size).toBe(model.enemies.length); // one per tile
+    });
   });
 
   it('swings when in reach, then waits before swinging again', () => {
@@ -197,20 +200,21 @@ describe('enemy collisions', () => {
   });
 
   it('never lets a pack closing in on the hero pile up', () => {
-    const model = fresh();
-    const wolves = model.enemies.filter((e) => e.kind === 'wolf').slice(0, 3);
-    const lead = wolves[0];
-    model.teleport(Math.round(lead.x) + 3, Math.round(lead.z));
-    model.enemies.splice(0, model.enemies.length, ...wolves);
-    wolves.forEach((w, i) => {
-      w.x = lead.x - 0.4 * i;
-      w.z = lead.z;
+    eachSeed((model) => {
+      const wolves = model.enemies.filter((e) => e.kind === 'wolf').slice(0, 3);
+      const lead = wolves[0];
+      model.teleport(Math.round(lead.x) + 3, Math.round(lead.z));
+      model.enemies.splice(0, model.enemies.length, ...wolves);
+      wolves.forEach((w, i) => {
+        w.x = lead.x - 0.4 * i;
+        w.z = lead.z;
+      });
+      model.godMode = true;
+      for (let t = 0; t < 4; t += FRAME) {
+        model.update(0, 0, FRAME);
+        for (let i = 0; i < wolves.length; i++) for (let j = i + 1; j < wolves.length; j++) expect(gap(wolves[i], wolves[j])).toBeGreaterThan(-0.02);
+      }
     });
-    model.godMode = true;
-    for (let t = 0; t < 4; t += FRAME) {
-      model.update(0, 0, FRAME);
-      for (let i = 0; i < wolves.length; i++) for (let j = i + 1; j < wolves.length; j++) expect(gap(wolves[i], wolves[j])).toBeGreaterThan(-0.02);
-    }
   });
 });
 

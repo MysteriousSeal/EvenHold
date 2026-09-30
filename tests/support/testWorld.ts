@@ -45,3 +45,15 @@ export function slay(model: GameModel, enemy: Enemy): void {
     for (let t = 0; t < ATTACK_DURATION + FRAME; t += FRAME) model.update(0, 0, FRAME);
   }
 }
+
+// Runs `check` in a fresh world of every test seed, saying which seed when it fails.
+export function eachSeed(check: (model: GameModel, seed: number) => void): void {
+  for (const seed of TEST_SEEDS) {
+    try {
+      check(new GameModel(seed, TEST_MAP_SIZE), seed);
+    } catch (error) {
+      if (error instanceof Error) error.message = `seed ${seed}: ${error.message}`;
+      throw error;
+    }
+  }
+}

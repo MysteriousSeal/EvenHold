@@ -4,7 +4,7 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
 import { RESPAWN_EVERY } from '../src/model/quests/questBook';
-import { TEST_MAP_SIZE, TEST_SEEDS, fresh } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, fresh, eachSeed } from './support/testWorld';
 
 const marked = (model: GameModel, key: string) => model.enemies.filter((e) => e.quest === key && e.state !== 'dead');
 const slay = (model: GameModel, key: string) => {
@@ -47,21 +47,23 @@ describe('quests', () => {
     expect(foes(true)).toEqual(first);
   });
 
-  it('stands beside the inn, and is read up close', () => {
-    const model = fresh();
-    const spot = noticeBoards(model)[0];
-    const inn = model.buildings.find((b) => b.kind === 'inn' && Math.hypot(b.x - model.villages[0].x, b.z - model.villages[0].z) < 5)!;
-    expect(Math.min(...inn.tiles.map(([x, z]) => Math.abs(x - spot.x) + Math.abs(z - spot.z)))).toBeLessThanOrEqual(2);
-    expect(model.isOpenTile(spot.x, spot.z)).toBe(false); // the board stands there
-    // Read from the tile in front (the square's side), not from behind, nor from afar.
-    model.teleport(spot.x + spot.front.dx * 0.6, spot.z + spot.front.dz * 0.6); // up against its face
-    expect(model.boardInReach).toBe(0);
-    model.teleport(spot.x + spot.front.dx, spot.z + spot.front.dz); // a whole tile off: too far
-    expect(model.boardInReach).toBeNull();
-    model.teleport(spot.x - spot.front.dx, spot.z - spot.front.dz);
-    expect(model.boardInReach).toBeNull();
-    model.teleport(spot.x + spot.front.dx * 3, spot.z + spot.front.dz * 3);
-    expect(model.boardInReach).toBeNull();
+  it("stands beside each village's inn, and is read up close", () => {
+    eachSeed((model) => {
+      noticeBoards(model).forEach((spot, i) => {
+        const inn = model.buildings.find((b) => b.kind === 'inn' && Math.hypot(b.x - model.villages[i].x, b.z - model.villages[i].z) < 5)!;
+        expect(Math.min(...inn.tiles.map(([x, z]) => Math.abs(x - spot.x) + Math.abs(z - spot.z)))).toBeLessThanOrEqual(2);
+        expect(model.isOpenTile(spot.x, spot.z)).toBe(false); // the board stands there
+        // Read from the tile in front (the square's side), not from behind, nor from afar.
+        model.teleport(spot.x + spot.front.dx * 0.6, spot.z + spot.front.dz * 0.6); // up against its face
+        expect(model.boardInReach).toBe(i);
+        model.teleport(spot.x + spot.front.dx, spot.z + spot.front.dz); // a whole tile off: too far
+        expect(model.boardInReach).toBeNull();
+        model.teleport(spot.x - spot.front.dx, spot.z - spot.front.dz);
+        expect(model.boardInReach).toBeNull();
+        model.teleport(spot.x + spot.front.dx * 3, spot.z + spot.front.dz * 3);
+        expect(model.boardInReach).toBeNull();
+      });
+    });
   });
 
   it('gathers a marked pack, counts kills, brings them back after a minute, and pays on hand-in', () => {

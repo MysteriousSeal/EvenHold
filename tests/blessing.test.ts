@@ -5,7 +5,7 @@ import { stepEnemy } from '../src/model/enemies/enemies';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { BLESSING_TIME, WELL_TOSS, blessAll, blowDamage, dropFactor, healOnKill, noticeFactor, xpGained, coinsFound, hitTaken, walkFactor } from '../src/model/hero/blessing';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { fresh } from './support/testWorld';
+import { fresh, eachSeed } from './support/testWorld';
 
 // The hero beside the first village's well (on an open tile next to it).
 const atWell = (model: GameModel) => {
@@ -16,17 +16,18 @@ const atWell = (model: GameModel) => {
 
 describe("a well's blessing", () => {
   it('is had for a silver coin, beside a well only', () => {
-    const model = fresh();
-    model.hero.money = WELL_TOSS * 2;
-    expect(model.tossCoin(0)).toBeNull(); // no well near
-    atWell(model);
-    expect(model.wellInReach).toBe(0);
-    expect(model.tossCoin(0)).toBe('swift');
-    expect(model.hero.money).toBe(WELL_TOSS);
-    expect(model.tossCoin(0.99)).toBe('keen'); // tossing again rerolls it
-    expect(model.hero.blessings).toEqual([{ kind: 'keen', left: BLESSING_TIME }]); // the one
-    expect(model.tossCoin(0.5)).toBeNull(); // no silver left
-    expect(model.takeEvents().map((e) => e.kind)).toEqual(['poor', 'blessing', 'blessing', 'poor']);
+    eachSeed((model) => {
+      model.hero.money = WELL_TOSS * 2;
+      expect(model.tossCoin(0)).toBeNull(); // no well near
+      atWell(model);
+      expect(model.wellInReach).toBe(0);
+      expect(model.tossCoin(0)).toBe('swift');
+      expect(model.hero.money).toBe(WELL_TOSS);
+      expect(model.tossCoin(0.99)).toBe('keen'); // tossing again rerolls it
+      expect(model.hero.blessings).toEqual([{ kind: 'keen', left: BLESSING_TIME }]); // the one
+      expect(model.tossCoin(0.5)).toBeNull(); // no silver left
+      expect(model.takeEvents().map((e) => e.kind)).toEqual(['poor', 'blessing', 'blessing', 'poor']);
+    });
   });
 
   it('does what it says, for half an hour of play', () => {

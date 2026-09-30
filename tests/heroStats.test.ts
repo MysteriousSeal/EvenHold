@@ -3,7 +3,7 @@ import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/grid';
-import { FRAME, fresh, nearest, slay } from './support/testWorld';
+import { FRAME, fresh, nearest, slay, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 
 // One enemy right beside the hero, the only one in the world.
@@ -62,14 +62,15 @@ describe('hero stats', () => {
   });
 
   it("out of energy, collapses and wakes lying before the nearest inn's hearth, some energy back", () => {
-    const model = fresh();
-    model.hero.energy = 0.0001;
-    model.update(0, 0, FRAME);
-    expect(model.inside?.entrance.type).toBe('inn');
-    expect(model.inside?.seated?.seat.lying).toBe(true);
-    const hearth = model.inside!.furniture.find((f) => f.kind === 'hearth')!;
-    expect(Math.abs(model.hero.z - hearth.z)).toBeLessThan(1.5); // before it
-    expect(model.hero.energy).toBeGreaterThan(0);
+    eachSeed((model) => {
+      model.hero.energy = 0.0001;
+      model.update(0, 0, FRAME);
+      expect(model.inside?.entrance.type).toBe('inn');
+      expect(model.inside?.seated?.seat.lying).toBe(true);
+      const hearth = model.inside!.furniture.find((f) => f.kind === 'hearth')!;
+      expect(Math.abs(model.hero.z - hearth.z)).toBeLessThan(1.5); // before it
+      expect(model.hero.energy).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -89,28 +90,30 @@ describe('enemies hurt the hero', () => {
   });
 
   it('out of health, the hero loses a fifth of their coins and wakes at spawn (before any inn), healed', () => {
-    const model = fresh();
-    alone(model, nearest(model, 'wolf'));
-    const spawn = spawnOf(model.size);
-    model.hero.money = 1000;
-    model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
-    for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
-    expect(model.hero.hp).toBe(maxHpAt(1));
-    expect(model.hero.money).toBe(800);
-    expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
+    eachSeed((model) => {
+      alone(model, nearest(model, 'wolf'));
+      const spawn = spawnOf(model.size);
+      model.hero.money = 1000;
+      model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
+      for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
+      expect(model.hero.hp).toBe(maxHpAt(1));
+      expect(model.hero.money).toBe(800);
+      expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
+    });
   });
 
   it('out of health, the hero wakes in the last inn they entered', () => {
-    const model = fresh();
-    const inn = model.entrances.find((e) => e.type === 'inn')!;
-    model.teleport(inn.x, inn.z);
-    model.useDoor(); // in...
-    model.useDoor(); // ...and out again
-    expect(model.lastInn).toBe(inn);
-    alone(model, nearest(model, 'wolf'));
-    model.hero.hp = ENEMY_STATS.wolf.damage;
-    for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
-    expect(model.inside?.entrance).toBe(inn);
+    eachSeed((model) => {
+      const inn = model.entrances.find((e) => e.type === 'inn')!;
+      model.teleport(inn.x, inn.z);
+      model.useDoor(); // in...
+      model.useDoor(); // ...and out again
+      expect(model.lastInn).toBe(inn);
+      alone(model, nearest(model, 'wolf'));
+      model.hero.hp = ENEMY_STATS.wolf.damage;
+      for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
+      expect(model.inside?.entrance).toBe(inn);
+    });
   });
 
   it('a kill is worth experience', () => {
