@@ -11,6 +11,7 @@ import {
   ENEMY_CORPSE_TIME,
   ENEMY_PATH_RADIUS,
   ENEMY_PATH_REFRESH,
+  ENEMY_WANDER_PATH_RADIUS,
   ENEMY_SEPARATION_SPEED,
   ENEMY_STATS,
 } from '../constants';
@@ -24,7 +25,7 @@ export class EnemyDirector {
   frozen = false; // dev cheat: enemies stand still
   private readonly actions: EnemyActions = {
     move: (e, dx, dz) => this.move(e, dx, dz),
-    steer: (e, quarry) => this.chaseGoal(e, quarry),
+    steer: (e, quarry, still) => this.chaseGoal(e, quarry, still),
     sees: (e) => this.canSee(e),
     strike: (e) => this.onStrike(e),
   };
@@ -109,16 +110,17 @@ export class EnemyDirector {
   // Where a chaser heads for `quarry`: straight at it when nothing's in the
   // way, else the next tile of a path around, found afresh twice a second
   // so it follows along. With no way through, the path ends as close as it
-  // gets, and the enemy waits there.
-  private chaseGoal(enemy: Enemy, quarry: Point): Point {
+  // gets, and the enemy waits there. A still spot (a wanderer's) needs only
+  // a short look round, and the one path.
+  private chaseGoal(enemy: Enemy, quarry: Point, still = false): Point {
     const r = ENEMY_STATS[enemy.kind].radius;
     const free = (x: number, z: number) => !this.obstacles.isBlocked(x, z, r);
     if (clearLine(enemy, quarry, free)) {
       enemy.path = null;
       return quarry;
     }
-    if (!enemy.path || enemy.pathAge > ENEMY_PATH_REFRESH) {
-      enemy.path = findPath(enemy, quarry, ENEMY_PATH_RADIUS, free);
+    if (!enemy.path || (!still && enemy.pathAge > ENEMY_PATH_REFRESH)) {
+      enemy.path = findPath(enemy, quarry, still ? ENEMY_WANDER_PATH_RADIUS : ENEMY_PATH_RADIUS, free);
       enemy.pathAge = 0;
     }
     const path = enemy.path;

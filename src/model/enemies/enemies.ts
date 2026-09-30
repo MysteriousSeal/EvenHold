@@ -138,7 +138,8 @@ export interface EnemyActions {
   // Walks it with collisions; returns whether it got anywhere.
   move(enemy: Enemy, dx: number, dz: number): boolean;
   // Where to head for `quarry`: itself if the way is clear, else the next point around what's between.
-  steer(enemy: Enemy, quarry: { x: number; z: number }): { x: number; z: number };
+  // `still`: a spot it's walking to, not the hero chased (a nearer look round, and one path will do).
+  steer(enemy: Enemy, quarry: { x: number; z: number }, still?: boolean): { x: number; z: number };
   // Whether it can see the hero.
   sees(enemy: Enemy): boolean;
   // Its blow lands, halfway through the swing.
@@ -214,13 +215,30 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
       z: enemy.homeZ + (hashUnit(Math.floor(t * 10), enemy.id, 6) - 0.5) * 2 * stats.wander,
     };
   }
-  const dx = enemy.target.x - enemy.x;
-  const dz = enemy.target.z - enemy.z;
-  const d = Math.hypot(dx, dz);
-  const step = Math.min(stats.walk * dt, d);
-  // Arrived, or stuck against something: rest a while, then go elsewhere.
-  if (d < 0.05 || !move(enemy, (dx / d) * step, (dz / d) * step)) {
+  // Toward it (home, or a spot round home): straight on while it can, and
+  // once something's in the way (a camp's palisade), round it as when
+  // chasing (a path to the gate), till it's there.
+  // Held back to a crawl (sliding along a post into a narrow gap), it
+  // sidesteps at full pace instead, so it lines up with the gap at once.
+  const walk = (to: { x: number; z: number }) => {
+    const [dx, dz] = [to.x - enemy.x, to.z - enemy.z];
+    const d = Math.hypot(dx, dz);
+    const step = Math.min(stats.walk * dt, d);
+    if (d < 1e-4) return false;
+    const [x0, z0] = [enemy.x, enemy.z];
+    const went = move(enemy, (dx / d) * step, (dz / d) * step);
+    if (Math.hypot(enemy.x - x0, enemy.z - z0) >= step / 2) return true;
+    const side = (a: number) => Math.sign(a) * Math.min(step, Math.abs(a));
+    return move(enemy, side(to.x - enemy.x), 0) || move(enemy, 0, side(to.z - enemy.z)) || went;
+  };
+  const target = enemy.target;
+  const arrived = Math.hypot(target.x - enemy.x, target.z - enemy.z) < 0.05;
+  const went = !arrived && ((!enemy.path && walk(target)) || walk(steer(enemy, target, true)));
+  // Arrived, or no way nearer (it's somewhere it can't stand, or can't be
+  // reached): rest a while, then go elsewhere.
+  if (!went) {
     enemy.target = null;
+    enemy.path = null;
     enemy.restFor = 1.5 + hashUnit(enemy.id, Math.floor(enemy.x * 10), 7) * 2.5;
   }
 }

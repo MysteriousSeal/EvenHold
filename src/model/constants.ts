@@ -22,6 +22,7 @@ export const ENEMY_STATS = {
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)
 export const ENEMY_PATH_RADIUS = 20; // tiles an enemy looks around for a way to the hero
+export const ENEMY_WANDER_PATH_RADIUS = 8; // tiles a wanderer looks around for a way (round a camp's palisade)
 export const ENEMY_PATH_REFRESH = 0.5; // seconds between fresh paths while chasing
 export const ENEMY_HEARING = 1; // enemies notice the hero this close even through cover
 export const ENEMY_LOSE_TIME = 4; // seconds a chaser hunts for a hero it can't see before giving up
