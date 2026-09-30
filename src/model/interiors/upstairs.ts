@@ -133,7 +133,14 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   if (mid - 2 >= HALL) for (const x of [HALL, ...dividers.filter((x) => x < big)]) beds.push(bed('roomBed', 'left', x, mid - 2, 1), stand(x + 1, mid - 1, [0, -1]));
   if (big + 2 < room.width) beds.push(bed('doubleBed', 'left', big, room.depth - 2, 2), stand(big + 2, room.depth - 1, [0, -1]));
   if (big - 2 > HALL && mid + 2 < room.depth) beds.push(bed('doubleBed', 'back', big - 2, mid, 2), stand(big - 1, mid + 2, [-1, 0]));
-  return [...walls, ...beds];
+  // The two bigger rooms, besides: a wardrobe in a corner clear of the doors,
+  // a picture on a wall, a wooden tub along a wall (the right one, or the
+  // front), a way round it and the bed left clear.
+  const piece2 = (kind: 'wardrobe' | 'framedPicture' | 'bathtub', wall: 'left' | 'back' | 'none', x: number, z: number, w = 1, d = 1, solid = true): Furniture => ({ kind, x, z, w, d, wall, solid });
+  const extras: Furniture[] = [];
+  if (big + 3 < room.width) extras.push(piece2('wardrobe', 'left', big, HALL), piece2('framedPicture', 'left', big, HALL + 2, 1, 1, false), piece2('bathtub', 'none', room.width - 1, HALL + 1, 1, 2));
+  if (big - 2 > HALL + 3 && mid + 1 < room.depth) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'back', HALL + 1, mid, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
+  return [...walls, ...beds, ...extras];
 }
 
 // Takes the stairs by the hero: up to the floor above (beside the top of

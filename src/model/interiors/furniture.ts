@@ -29,6 +29,9 @@ export type FurnitureKind =
   | 'hallDoor' // and a room's door in it
   | 'roomBed' // and in the rooms, a bed
   | 'doubleBed' // or, in the bigger ones, a double
+  | 'wardrobe' // and in the bigger ones, a wardrobe,
+  | 'framedPicture' // a picture propped on a wall's rail,
+  | 'bathtub' // and a wooden tub
   | 'forge'
   | 'anvil'
   | 'trough'
