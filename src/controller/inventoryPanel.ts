@@ -16,7 +16,7 @@ import { bagIcon, isLoot } from '../view/ui/itemIcons';
 
 const COLUMNS = 6;
 const ROWS = 4;
-const QUALITY_NAMES = { junk: 'Junk', common: 'Food & drink', quest: 'Quest item' } as const;
+const QUALITY_NAMES = { junk: 'Junk', ingredient: 'Cooking ingredient', common: 'Food & drink', quest: 'Quest item' } as const;
 
 function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
   if (isLoot(item)) {
