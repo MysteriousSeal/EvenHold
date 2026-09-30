@@ -4,13 +4,12 @@
 // and while the hero's by his counter, behind it, to trade (E: smithShop.ts).
 
 import { distanceTo, type Furniture } from '../interiors/furniture';
-import { layoutOf, type Inside } from '../interiors/indoors';
+import { layoutOf } from '../interiors/indoors';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { NpcWorld } from '../npcs/npcRoutine';
 
 const AT_COUNTER = 0.6; // tiles behind his counter's middle he stands, up against its back (it's a third of a tile deep)
 const SERVE_NEAR = 2.5; // tiles from his counter the hero draws him to it
-const TALK_RANGE = 2.2; // room tiles: across the counter from him
 const TOWARD_BACK = Math.PI; // facing the back wall (-z): the forge, and what stands before it
 const TOWARD_DOOR = 0; // facing the door (+z), from behind his counter
 // His round, and how long he's at each (seconds).
@@ -55,12 +54,6 @@ export function smithSteps(npc: Npc, world: NpcWorld): NpcStep[] {
     { kind: 'go', to: spot, face: TOWARD_BACK },
     { kind: 'work', for: job.for },
   ];
-}
-
-// The smith in the room the hero's in, near enough to trade with (E), if any.
-export function smithAt(npcs: readonly Npc[], inside: Inside | null, hero: { x: number; z: number }): Npc | null {
-  if (!inside) return null;
-  return npcs.find((n) => n.role === 'smith' && n.where === inside.entrance && Math.hypot(n.x - hero.x, n.z - hero.z) < TALK_RANGE) ?? null;
 }
 
 // Whether a smith is hammering at his anvil (sparks), or quenching at his trough (steam), right now.

@@ -4,7 +4,7 @@ import { enterNearest } from '../src/model/cheats';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { ITEMS } from '../src/model/human/equipment';
 import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
-import { smithAt } from '../src/model/smithy/smithWork';
+import { talkingTo } from '../src/model/npcs/talk';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -27,7 +27,7 @@ describe('the smithy', () => {
     for (const smithy of smithies) {
       expect(model.npcs.filter((n) => n.role === 'smith' && n.home === smithy)).toHaveLength(1);
       const { room, furniture } = layoutOf(model.seed, smithy);
-      for (const kind of ['smithCounter', 'forge', 'anvil', 'trough'] as const) expect(furniture.some((f) => f.kind === kind)).toBe(true);
+      for (const kind of ['smithCounter', 'forge', 'bellows', 'anvil', 'grindstone', 'trough', 'rack', 'coal', 'barrel', 'weaponWall', 'toolBoard'] as const) expect(furniture.some((f) => f.kind === kind), kind).toBe(true);
       const anvil = furniture.find((f) => f.kind === 'anvil')!;
       const grindstone = furniture.find((f) => f.kind === 'grindstone')!;
       expect([grindstone.z, Math.abs(grindstone.x - anvil.x)]).toEqual([anvil.z, 1]); // side by side
@@ -73,6 +73,6 @@ describe('the smithy', () => {
     for (let t = 0; t < 20; t += FRAME) model.update(0, 0, FRAME);
     const smith = model.npcs.find((n) => n.role === 'smith' && n.where === model.inside!.entrance)!;
     expect(Math.abs(smith.z - (counter.z - 0.6))).toBeLessThan(0.05); // up against its back
-    expect(smithAt(model.npcs, model.inside, model.hero)).toBe(smith);
+    expect(talkingTo(model.npcs, model.inside, model.hero)).toBe(smith);
   });
 });

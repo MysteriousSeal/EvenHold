@@ -52,7 +52,6 @@ import { START_MINUTES } from './clock';
 import { liveOn } from './hero/exhaustion';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
-const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
 const DEATH_TOLL = 0.2; // of their coins, lost in a fall
 
 export class GameModel {
@@ -423,12 +422,6 @@ export class GameModel {
     const amount = this.ground.scoop(this.hero.x, this.hero.z);
     this.hero.money += amount;
     if (amount > 0) this.events.push({ kind: 'coins', amount });
-  }
-
-  // The barmaid, when the hero's at her bar (in her inn, close by); else null.
-  get barmaidInReach(): Npc | null {
-    const inside = this.inside;
-    return (inside && this.npcs.find((n) => n.role === 'barkeep' && n.where === inside.entrance && Math.hypot(n.x - this.hero.x, n.z - this.hero.z) < TALK_RANGE)) ?? null;
   }
 
   // The notice board the hero's at (outdoors), by its village's index; else null.
