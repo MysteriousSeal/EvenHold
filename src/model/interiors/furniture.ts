@@ -247,6 +247,8 @@ function seatSpan(across: [number, number], forward: [number, number], [dx, dz]:
   return [...flip(forward), ...across];
 }
 
+const LEAF_HINGE = 6; // voxels in from the door's tile, where its leaf hangs (innFurnitureVoxels.ts DOOR_LEAF)
+const LEAF_REACH = 0.52; // tiles out from its wall the leaf reaches, swung open
 const DOORWAY = 0.36; // half an open door's passable width, from its middle (out to its posts: the walker's a squeeze through the leaf's own)
 
 // Whether a walker of half-width r at (x, z) bumps into solid furniture.
@@ -265,9 +267,18 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
     }
     const hit = (a0: number, a1: number, b0: number, b1: number) => x + r > a0 && x - r < a1 && z + r > b0 && z - r < b1;
     if (f.open) {
-      // An open door: through its doorway, but not the wall either side of it.
-      const mid = f.wall === 'left' ? f.z - 0.5 + f.d / 2 : f.x - 0.5 + f.w / 2;
-      return f.wall === 'left' ? hit(x0, x1, z0, mid - DOORWAY) || hit(x0, x1, mid + DOORWAY, z1) : hit(x0, mid - DOORWAY, z0, z1) || hit(mid + DOORWAY, x1, z0, z1);
+      // An open door: through its doorway, but not the wall either side of it,
+      // nor its leaf, swung out into the room (just clear of the doorway itself).
+      const left = f.wall === 'left';
+      const start = (left ? f.z : f.x) - 0.5;
+      const len = left ? f.d : f.w;
+      const mid = start + len / 2;
+      const hinge = start + (Math.floor((len * 25 - 25) / 2) + LEAF_HINGE) / 25; // along the wall
+      const face = (left ? f.x : f.z) - 0.5 + 0.1; // the wall's middle
+      const [a0, a1, c0, c1] = [hinge - 0.15, hinge - 0.02, face + 0.1, face + LEAF_REACH]; // the swung leaf: along, then out
+      return left
+        ? hit(x0, x1, z0, mid - DOORWAY) || hit(x0, x1, mid + DOORWAY, z1) || hit(c0, c1, a0, a1)
+        : hit(x0, mid - DOORWAY, z0, z1) || hit(mid + DOORWAY, x1, z0, z1) || hit(a0, a1, c0, c1);
     }
     return hit(x0, x1, z0, z1);
   });

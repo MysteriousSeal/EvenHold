@@ -223,6 +223,7 @@ describe('an ale at the bar', () => {
     expect(door.open).toBe(true);
     expect(bumpsFurniture(model.inside!.furniture, through.x, through.z, r)).toBe(false); // open: through
     expect(bumpsFurniture(model.inside!.furniture, door.x - 0.5 + r, through.z, r)).toBe(true); // but not the wall beside it
+    expect(bumpsFurniture(model.inside!.furniture, door.x - 0.5 + 0.1, door.z - 0.4 + 0.4, 0.05)).toBe(true); // nor its leaf, swung into the room
     model.fullWalls = true; // the walls option, kept in the save too
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
