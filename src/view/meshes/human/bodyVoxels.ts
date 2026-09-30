@@ -86,7 +86,6 @@ export const BODIES: Record<Build, BodyShape> = {
 };
 // The male build's, for what doesn't depend on who wears it.
 export const PART_GRID: Sizes = BODIES.male.grid;
-export const PART_PIVOT: Sizes = BODIES.male.pivot;
 export const JOINTS: JointAt = BODIES.male.joints;
 export const JOINT_NAMES = Object.keys(JOINTS) as Joint[];
 
