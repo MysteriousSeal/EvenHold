@@ -15,6 +15,8 @@ import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/loot
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
+import { createSmithPanel } from './controller/smithPanel';
+import { smithAt } from './model/smithy/smithWork';
 import { createBar, orderLabel } from './controller/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/journal';
@@ -85,6 +87,7 @@ async function boot(): Promise<void> {
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
   const shop = createShopPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const forge = createSmithPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
@@ -130,6 +133,8 @@ async function boot(): Promise<void> {
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
     }
     if (talk) return talk;
+    const smith = smithAt(model.npcs, model.inside, hero);
+    if (smith) return { label: `Trade with ${smith.name}`, x: smith.x, y: 1.1, z: smith.z };
     const read = model.boardInReach;
     if (read !== null) {
       const spot = noticeBoards(model)[read];
@@ -170,7 +175,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => !bar.busy && shop.open(barmaid), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (barmaid) => !bar.busy && shop.open(barmaid), onSmith: (smith) => forge.open(smith), onRead: (at) => board.open(at), onOrder: (barmaid) => bar.order(barmaid), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.
