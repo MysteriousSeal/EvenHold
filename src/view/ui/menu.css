@@ -431,7 +431,7 @@
 /* A modeless menu (the bag, the hero sheet): no dimming, and the world
    around it stays clickable; only the panel takes the pointer. It sits
    where `place` says. */
-.menu-backdrop.modeless { background: none; pointer-events: none; }
+.menu-backdrop.modeless { background: none; pointer-events: none; z-index: 21; } /* over a modal window's dimming: the bag stays usable beside a shop */
 .menu-backdrop.place-bottom-right {
   align-items: flex-end;
   justify-content: flex-end;

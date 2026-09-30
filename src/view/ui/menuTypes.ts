@@ -60,7 +60,7 @@ export interface MenuTab {
   facts?(): Array<[string, string]>; // a ledger, refreshed when shown
   // A grid of slots (null: an empty one), refreshed when shown; the
   // arrow keys move around it.
-  // With `rows`, a list instead: a row each, its icon, title and note;
+  // With `rows`, a list instead: a row each, its icon, title and note (`columns` of them side by side);
   // `sections` put a header before the cell each starts at.
   slots?(): MenuSlots;
   // A figure with slots down its left and right and along the bottom (a

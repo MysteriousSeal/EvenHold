@@ -195,7 +195,6 @@ export function createMenu(options: MenuOptions): Menu {
 
   function showSlots({ cells, columns, rows, sections = [] }: MenuSlots): void {
     const box = el('div', rows ? 'menu-grid rows' : 'menu-grid');
-    if (rows) columns = 1;
     box.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
     const detail = options.tabs[tabIndex].detail;
     const buttons = cells.map((cell, i) => {

@@ -20,3 +20,10 @@ export function coinParts(copper: number, purse = false): Array<string | HTMLEle
   if (left > 0 || purse) add(left, 'copper');
   return parts;
 }
+
+// Money in words, for a line of text (a tooltip): "1 silver 20 copper".
+export function coinWords(copper: number): string {
+  const { gold, silver, copper: left } = coins(copper);
+  const words = [gold && `${gold} gold`, silver && `${silver} silver`, (left || copper === 0) && `${left} copper`].filter(Boolean);
+  return words.join(' ');
+}
