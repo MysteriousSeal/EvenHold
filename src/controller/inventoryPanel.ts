@@ -4,8 +4,10 @@
 // the world to drop it; drag gear onto the hero sheet (C) to wear it, or
 // onto the world to put it down; drag it onto another slot of the bag to
 // move it there. The game plays on around it: it only takes Escape and B.
+// While trading (a shop's window open beside it), right-clicking what the
+// keeper would buy, or dragging it onto their window, sells it.
 
-import { coinParts } from '../view/ui/coins';
+import { coinParts, coinWords } from '../view/ui/coins';
 import type { GameModel } from '../model/GameModel';
 import { bagLayout, moveInBag, type BagItem } from '../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
@@ -18,7 +20,30 @@ const COLUMNS = 6;
 const ROWS = 4;
 const QUALITY_NAMES = { junk: 'Junk', ingredient: 'Cooking ingredient', common: 'Food & drink', quest: 'Quest item' } as const;
 
-function slotFor(model: GameModel, item: BagItem, count: number): MenuSlot {
+// A shop the hero's trading with: what its keeper would buy, for how much, and selling it them.
+export interface Seller {
+  wants(item: BagItem): boolean;
+  price(item: BagItem): number;
+  sell(item: BagItem): void;
+}
+
+// Onto the shop's window (the one with its keeper talking).
+const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelector('.shop-talk');
+
+function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null): MenuSlot {
+  const slot = baseSlot(model, item, count);
+  if (!seller?.wants(item)) return slot;
+  // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
+  const dragOut = slot.dragOut;
+  return {
+    ...slot,
+    lines: [...(slot.lines ?? []).filter((line) => !line.startsWith('Right-click')), `Right-click to sell for ${coinWords(seller.price(item))}`],
+    alt: () => seller.sell(item),
+    dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
+  };
+}
+
+function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
   if (isLoot(item)) {
     return {
       icon: bagIcon(item),
@@ -62,7 +87,9 @@ function purse(money: number): HTMLElement {
 
 // Returns the bag's menu, and the function to call each frame (it redraws
 // the bag when what's in it changed).
-export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void } {
+// `trade(seller)`: a shop opened beside it (null: closed).
+export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void; trade(seller: Seller | null): void } {
+  let seller: Seller | null = null;
   const menu = createMenu({
     title: 'Bag',
     toggleKey: 'KeyB',
@@ -77,7 +104,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           const { hero } = model;
           const cells = bagLayout(hero.bag, hero.bagOrder, COLUMNS * ROWS).map((item, i): MenuSlot | null => {
             if (!item) return null;
-            const slot = slotFor(model, item, hero.bag[item]!);
+            const slot = slotFor(model, item, hero.bag[item]!, seller);
             slot.move = (to) => (hero.bagOrder = moveInBag(hero.bag, hero.bagOrder, i, to, COLUMNS * ROWS));
             return slot;
           });
@@ -94,5 +121,9 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
     shown = contents;
     menu.refresh();
   };
-  return { menu, update };
+  const trade = (next: Seller | null) => {
+    seller = next;
+    menu.refresh();
+  };
+  return { menu, update, trade };
 }

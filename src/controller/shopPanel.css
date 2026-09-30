@@ -40,13 +40,14 @@
 .shop-purse { display: inline-flex; align-items: center; gap: 3px; }
 .shop-purse b { margin-right: 6px; color: var(--ink-soft); font-weight: 600; }
 
-/* A shop's window never scrolls (unlike other menus): its wares turn in pages instead. */
-.menu:has(.shop-talk) { max-height: none; }
+/* A shop's window never scrolls (unlike other menus): its wares turn in pages instead.
+   Wide enough for its list two to a row, whose empty rows keep their room, so every page is as tall. */
+.menu:has(.shop-talk) { max-height: none; width: min(640px, 100%); }
+.menu:has(.shop-talk) .menu-grid.rows .menu-slot.empty { display: flex; visibility: hidden; }
 .menu:has(.shop-talk) .menu-body { overflow: visible; }
 
-/* Under a grid of more than a page, and only under it (clear of the panel beside it: its
-   260px and the 14px gap): the buttons turning the pages, Next at its bottom right. */
-.shop-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 274px 0 0; }
+/* Under a list of more than a page: the buttons turning the pages, Next at its bottom right. */
+.shop-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .shop-page { font-size: 14px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .shop-page-turn {
   padding: 6px 14px;

@@ -7,7 +7,7 @@ import type { Npc } from '../model/npcs/npcs';
 import { buy, buyPrice, sell, sellPrice, shopAt } from '../model/inn/tavernShop';
 import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../model/loot/provisions';
 import type { Menu } from '../view/ui/menu';
-import { createTradePanel, pick, type TradeLines } from './tradePanel';
+import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What she says: a greeting when the window opens, and her answer to each trade.
 const LINES: TradeLines = {
@@ -51,9 +51,8 @@ const LINES: TradeLines = {
     "Not today, love. I've barely enough to pay the cook.",
   ],
 };
-// What she says of each of her wares when the hero picks it out (one of
-// several, at random); and of
-// what the hero offers her, when selling.
+// What she says of each of her wares when the hero buys one (one of
+// several, at random).
 const ABOUT: Record<ProvisionId, readonly string[]> = {
   bread: [
     'Fresh from the oven this morning, still soft.',
@@ -105,7 +104,7 @@ const ABOUT: Record<ProvisionId, readonly string[]> = {
   ],
 };
 
-export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(barmaid: Npc): void; menu: Menu } {
+export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; bag?: TradeBag }): { open(barmaid: Npc): void; menu: Menu } {
   const shop = () => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
   return createTradePanel(model, hooks, {
     title: 'Wares',
@@ -122,8 +121,5 @@ export function createShopPanel(model: GameModel, hooks: { setPaused(paused: boo
     offered: (name) => `A ${name.toLowerCase()}? I could use that.`,
     blurb: (id) => PROVISIONS[id as ProvisionId].about,
     facts: (id) => [[PROVISIONS[id as ProvisionId].drink ? 'Drink, heals' : 'Food, heals', String(PROVISIONS[id as ProvisionId].heal)]],
-    pays: 'She pays',
-    cantPay: "She hasn't the coin for that.",
-    none: { buy: 'She has nothing left.', sell: 'You have no food or drink to sell.' },
   });
 }

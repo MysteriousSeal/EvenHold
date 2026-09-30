@@ -8,7 +8,7 @@ import type { Npc } from '../model/npcs/npcs';
 import { ITEMS, type EquipSlot, type ItemId } from '../model/human/equipment';
 import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../model/smithy/smithShop';
 import type { Menu } from '../view/ui/menu';
-import { createTradePanel, pick, type TradeLines } from './tradePanel';
+import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.
 const LINES: TradeLines = {
@@ -26,7 +26,7 @@ const LINES: TradeLines = {
   short: ["I can't pay for that right now.", "My purse is empty. Come back after I've sold a few blades.", 'Not today. The ore merchant took the rest.'],
 };
 
-// His word on what's picked out, by what it's worn on.
+// His word on what's just been bought, by what it's worn on.
 const ABOUT: Partial<Record<EquipSlot, readonly string[]>> = {
   mainHand: ['Balanced right, that one. Feel the weight.', 'Folded and quenched twice. It holds an edge.', "Swing it a few times. You'll see."],
   offHand: ["Oak and iron. It'll turn a blow.", 'Put your shoulder behind it and nothing gets through.', 'Strapped tight, rimmed in iron.'],
@@ -39,7 +39,7 @@ const ABOUT: Partial<Record<EquipSlot, readonly string[]>> = {
 };
 const SLOT_NAMES: Record<EquipSlot, string> = { head: 'Head', shoulders: 'Shoulders', torso: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', neck: 'Neck', ring: 'Finger', mainHand: 'Weapon hand', offHand: 'Off hand' };
 
-export function createSmithPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(smith: Npc): void; menu: Menu } {
+export function createSmithPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; bag?: TradeBag }): { open(smith: Npc): void; menu: Menu } {
   const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
   return createTradePanel(model, hooks, {
     title: 'Wares',
@@ -56,8 +56,5 @@ export function createSmithPanel(model: GameModel, hooks: { setPaused(paused: bo
     offered: (name) => `${name}? I'll give you what the iron's worth.`,
     blurb: (id) => (ITEMS[id as ItemId].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
     facts: (id) => [['Worn on', SLOT_NAMES[ITEMS[id as ItemId].slot]]],
-    pays: 'He pays',
-    cantPay: "He hasn't the coin for that.",
-    none: { buy: 'He has nothing left on the wall.', sell: 'You have no weapons or armour to sell.' },
   });
 }
