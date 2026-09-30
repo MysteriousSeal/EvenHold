@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
-import { gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
+import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
@@ -31,15 +31,50 @@ describe('hero stats', () => {
     expect(maxHpAt(3)).toBeGreaterThan(maxHpAt(1));
   });
 
-  it('never heals by itself (hardcore): only asleep in a bed, never past full', () => {
+  it('never heals by itself (hardcore), not even in bed', () => {
     const { hero } = fresh();
     hero.hp = 4;
     for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME);
-    expect(hero.hp).toBe(4);
-    for (let t = 0; t < 4; t += FRAME) recover(hero, FRAME, true);
-    expect(hero.hp).toBeCloseTo(5, 1);
     for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME, true);
-    expect(hero.hp).toBe(maxHpAt(1));
+    expect(hero.hp).toBe(4);
+  });
+
+  it('spends energy through the day awake, and sleeps it back in bed, never past full', () => {
+    const { hero } = fresh();
+    expect(hero.energy).toBe(MAX_ENERGY);
+    for (let t = 0; t < 8 * 60; t += 1) recover(hero, 1); // 8 hours of the day (a game minute a second)
+    expect(hero.energy).toBeCloseTo(MAX_ENERGY / 2, 0);
+    for (let t = 0; t < 2 * 60; t += 1) recover(hero, 1, true); // 2 hours' sleep
+    expect(hero.energy).toBeCloseTo(MAX_ENERGY * 0.75, 0);
+    for (let t = 0; t < 12 * 60; t += 1) recover(hero, 1, true);
+    expect(hero.energy).toBe(MAX_ENERGY);
+    for (let t = 0; t < 24 * 60; t += 1) recover(hero, 1);
+    expect(hero.energy).toBe(0); // never below empty
+  });
+
+  it('keeps their energy sat down, neither spent nor won back', () => {
+    const { hero } = fresh();
+    hero.energy = 60;
+    for (let t = 0; t < 60; t += 1) recover(hero, 1, false, true);
+    expect(hero.energy).toBe(60);
+  });
+
+  it('tired under a quarter of their energy, walks slower', () => {
+    const { hero } = fresh();
+    expect(tiredPace(hero)).toBe(1);
+    hero.energy = MAX_ENERGY / 4 - 1;
+    expect(tiredPace(hero)).toBeLessThan(1);
+  });
+
+  it("out of energy, collapses and wakes lying before the nearest inn's hearth, some energy back", () => {
+    const model = fresh();
+    model.hero.energy = 0.0001;
+    model.update(0, 0, FRAME);
+    expect(model.inside?.entrance.type).toBe('inn');
+    expect(model.inside?.seated?.seat.lying).toBe(true);
+    const hearth = model.inside!.furniture.find((f) => f.kind === 'hearth')!;
+    expect(Math.abs(model.hero.z - hearth.z)).toBeLessThan(1.5); // before it
+    expect(model.hero.energy).toBeGreaterThan(0);
   });
 });
 

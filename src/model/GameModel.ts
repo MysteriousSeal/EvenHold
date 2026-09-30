@@ -23,7 +23,7 @@ import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './gri
 import type { Building, Bush, Camp, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, recover, xpAgainst } from './hero/heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, tiredPace, xpAgainst } from './hero/heroStats';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { addCampObstacles, worldObstacles } from './blockers';
@@ -48,6 +48,7 @@ import { BLESSINGS, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, ti
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
+import { liveOn } from './hero/exhaustion';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 const TALK_RANGE = 2.2; // room tiles: across the bar from the barmaid
@@ -202,7 +203,7 @@ export class GameModel {
       this.moveInside(dirX, dirZ, dt);
       this.advanceAttack(dt);
       stepNpcs(this.npcs, this, dt);
-      recover(this.hero, dt, !!this.inside?.seated?.seat.lying); // asleep in a bed, the only rest that heals
+      liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
@@ -212,7 +213,7 @@ export class GameModel {
     this.quests.update(dt);
     stepNpcs(this.npcs, this, dt);
     this.scoopCoins();
-    recover(this.hero, dt);
+    if (liveOn(this, dt)) return; // out of energy: to the nearest inn's hearth
     this.keepFocus();
     stepWildlife(this.wildlife, this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
@@ -236,7 +237,7 @@ export class GameModel {
     const len = Math.hypot(dirX, dirZ);
     if (len < 1e-6) return;
 
-    const dist = HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt;
+    const dist = HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt;
     const candidateX = Math.min(this.size.width - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.x + (dirX / len) * dist));
     const candidateZ = Math.min(this.size.depth - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.z + (dirZ / len) * dist));
 
@@ -364,7 +365,7 @@ export class GameModel {
   }
 
   // In through a building's door, onto the floor just inside it, facing in.
-  private enterRoom(entrance: Entrance): void {
+  enterRoom(entrance: Entrance): void {
     const { room, furniture } = layoutOf(this.seed, entrance);
     this.inside = { entrance, room, furniture, seated: null };
     this.outdoors.seated = null;
@@ -381,7 +382,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
-    walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * dt, bumps); // (out only with E at the door)
+    walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.

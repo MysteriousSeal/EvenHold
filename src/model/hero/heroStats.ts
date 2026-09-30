@@ -7,7 +7,9 @@ import type { Hero } from '../types';
 
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;
-const SLEEP_RATE = 0.25; // hit points per second while asleep in a bed
+export const MAX_ENERGY = 100;
+const ENERGY_SPENT = MAX_ENERGY / (16 * 60); // a second awake (a game minute): all of it over 16 hours of the day
+const ENERGY_SLEPT = MAX_ENERGY / (8 * 60); // a second asleep in a bed: all of it back over 8 hours
 
 export function maxHpAt(level: number): number {
   return BASE_HP + (level - 1) * HP_PER_LEVEL;
@@ -30,7 +32,7 @@ export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): numb
 
 export const HERO_NAME = 'Hero'; // shown over the health bar
 
-export const FRESH_HERO_STATS = { hp: BASE_HP, level: 1, xp: 0, hurtFor: 0 };
+export const FRESH_HERO_STATS = { hp: BASE_HP, energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0 };
 
 // Adds experience; returns how many levels were gained.
 export function gainXp(hero: Hero, amount: number): number {
@@ -52,10 +54,18 @@ export function hurt(hero: Hero, damage: number): boolean {
   return hero.hp === 0;
 }
 
-// Timers, and healing while `asleep` in a bed (nothing else heals over time).
-export function recover(hero: Hero, dt: number, asleep = false): void {
+const TIRED = MAX_ENERGY / 4; // under it, tired: a slower walk
+const TIRED_PACE = 0.7;
+
+// How much slower the hero walks for being tired (1: not).
+export const tiredPace = (hero: Hero): number => (hero.energy < TIRED ? TIRED_PACE : 1);
+
+// Timers, and energy: spent while up and about, kept `sitting` down,
+// slept back `asleep` (lying in a bed, or on the floor after a collapse).
+export function recover(hero: Hero, dt: number, asleep = false, sitting = false): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
-  if (asleep) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + SLEEP_RATE * dt);
+  const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT;
+  hero.energy = Math.min(MAX_ENERGY, Math.max(0, hero.energy + rate * dt));
   // A drink being sipped: its health back a little at a time, all of it once it's empty.
   const drink = hero.drinking;
   if (drink) {

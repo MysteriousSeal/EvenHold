@@ -11,6 +11,7 @@ export interface Hero extends Humanoid {
   y: number;
   facing: number; // yaw toward the last direction moved (atan2(dx, dz))
   hp: number; // up to maxHpAt(level) (heroStats.ts); may be fractional while healing
+  energy: number; // up to MAX_ENERGY (heroStats.ts): spent through the day, slept back
   level: number;
   xp: number; // toward the next level
   hurtFor: number; // seconds left of the hit flash

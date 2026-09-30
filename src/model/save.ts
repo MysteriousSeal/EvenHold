@@ -12,7 +12,7 @@ import type { GameModel } from './GameModel';
 import type { BagItem } from './hero/bag';
 import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
-import { maxHpAt } from './hero/heroStats';
+import { MAX_ENERGY, maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
@@ -35,6 +35,7 @@ export interface SaveData {
     level: number;
     xp: number;
     hp: number;
+    energy?: number; // spent through the day, slept back
     x: number;
     z: number;
     facing: number;
@@ -74,6 +75,7 @@ export function snapshot(model: GameModel): SaveData {
       level: hero.level,
       xp: hero.xp,
       hp: hero.hp,
+      energy: Math.round(hero.energy),
       x: model.seated?.from.x ?? hero.x,
       z: model.seated?.from.z ?? hero.z,
       facing: hero.facing,
@@ -143,6 +145,7 @@ export function restore(model: GameModel, data: SaveData): void {
       .map((b) => ({ kind: b.kind, left: Math.min(BLESSING_TIME, b.left) })),
   });
   hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
+  if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(MAX_ENERGY, Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
   model.fullWalls = data.fullWalls === true;
   for (const { inn, open } of data.doors ?? []) {
