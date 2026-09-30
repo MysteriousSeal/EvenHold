@@ -44,12 +44,18 @@ function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
 
 // The floor above `below` (its room, with `stairs` up to it), as the hero's
 // there, its doors as they were left.
-export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, seed: number): Inside {
+export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, seed: number, fullWalls = false): Inside {
   const furniture = upstairsFurniture(stairs, room);
+  innerWalls(furniture, fullWalls);
   for (const f of furniture) if (f.kind === 'roomBed' || f.kind === 'doubleBed') f.cloth = clothFor(seed, below, f.x, f.z, 1); // each its own blanket
   const open = opened.get(below);
   for (const f of furniture) if (f.kind === 'hallDoor' && open?.has(doorKey(f))) f.open = true;
   return { entrance: upstairsOf(below), room, furniture, seated: null, below };
+}
+
+// The inner walls (the hallway's, between the rooms) full height or cut low, as the option says.
+export function innerWalls(furniture: readonly Furniture[], full: boolean): void {
+  for (const f of furniture) if (f.kind === 'hallWall' || f.kind === 'hallDoor') f.tall = full;
 }
 
 // The doors upstairs left open, by building (its door below), each by where it stands; kept in the save.
@@ -139,14 +145,15 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   const piece2 = (kind: 'wardrobe' | 'framedPicture' | 'bathtub', wall: 'left' | 'back' | 'none', x: number, z: number, w = 1, d = 1, solid = true): Furniture => ({ kind, x, z, w, d, wall, solid });
   const extras: Furniture[] = [];
   if (big + 3 < room.width) extras.push(piece2('wardrobe', 'left', big, HALL), piece2('framedPicture', 'left', big, HALL + 2, 1, 1, false), piece2('bathtub', 'none', room.width - 1, HALL + 1, 1, 2));
-  if (big - 2 > HALL + 3 && mid + 1 < room.depth) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'back', HALL + 1, mid, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
+  const onSide = [...Array(room.depth - mid).keys()].map((i) => mid + i).find((z) => z !== door && z !== door + 1) ?? mid; // the front room's side wall, clear of its door
+  if (big - 2 > HALL + 3 && mid + 1 < room.depth) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'left', HALL, onSide, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
   return [...walls, ...beds, ...extras];
 }
 
 // Takes the stairs by the hero: up to the floor above (beside the top of
 // the stairwell, by the wall, where its railing's open: its far side), or back down (just past the
 // foot of the stairs, in the room). Returns whether they did.
-export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: number }): boolean {
+export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: number; fullWalls: boolean }): boolean {
   const inside = model.inside;
   if (!inside || !stairsInReach(inside, model.hero)) return false;
   const stairs = stairsOf(inside)!;
@@ -157,7 +164,7 @@ export function takeStairs(model: { inside: Inside | null; hero: Hero; seed: num
     model.inside = { entrance: inside.below, room, furniture, seated: null };
     Object.assign(model.hero, { ...clearOf(furniture, room, foot), y: 0, facing: Math.PI / 2 }); // stepped off them, facing away
   } else {
-    model.inside = upstairsInside(inside.entrance, inside.room, stairs, model.seed);
+    model.inside = upstairsInside(inside.entrance, inside.room, stairs, model.seed, model.fullWalls);
     Object.assign(model.hero, { ...clearOf(model.inside.furniture, inside.room, top), y: 0, facing: Math.PI });
   }
   return true;

@@ -50,6 +50,7 @@ export interface SaveData {
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
   minutes?: number; // the game's clock
   doors?: Array<{ inn: number; open: string[] }>; // the doors left open upstairs, by building
+  fullWalls?: boolean; // the option: rooms' inner walls full height
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 
@@ -97,6 +98,7 @@ export function snapshot(model: GameModel): SaveData {
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
+    fullWalls: model.fullWalls,
     doors: model.entrances.map((e, inn) => ({ inn, open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
   };
 }
@@ -142,6 +144,7 @@ export function restore(model: GameModel, data: SaveData): void {
   });
   hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
+  model.fullWalls = data.fullWalls === true;
   for (const { inn, open } of data.doors ?? []) {
     const building = model.entrances[inn];
     if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));
@@ -151,7 +154,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const { room, furniture } = layoutOf(model.seed, building);
     const stairs = furniture.find((f) => f.kind === 'stairs');
     model.inside = saved.upstairs && stairs
-      ? upstairsInside(building, room, stairs, model.seed) // on the floor above
+      ? upstairsInside(building, room, stairs, model.seed, model.fullWalls) // on the floor above
       : { entrance: building, room, furniture, seated: null };
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {

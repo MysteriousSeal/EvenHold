@@ -76,6 +76,7 @@ export class GameModel {
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (inn/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
   minutes = START_MINUTES; // the game's clock (clock.ts): a minute to each second played
+  fullWalls = false; // the pause menu's option: rooms' inner walls full height, else cut low (upstairs.ts innerWalls)
   readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)

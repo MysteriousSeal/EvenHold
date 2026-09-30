@@ -60,6 +60,7 @@ export interface Furniture {
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
   open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
+  tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low
 }
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
