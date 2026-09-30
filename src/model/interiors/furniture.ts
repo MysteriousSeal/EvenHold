@@ -290,17 +290,27 @@ const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>>
   barStool: { height: 0.56, forward: 0.26 },
 };
 
-// The seat on a piece of furniture, or null if it's not something to sit on.
-export function seatOf(piece: Furniture): Seat | null {
+const DOUBLE_SIDES = [0.7, 1.48]; // a double bed's two sleepers, each under a pillow, in tiles out from its wall's edge
+
+// The seat on a piece of furniture, or null if it's not something to sit on;
+// on a double bed, the side nearest `near` (the one standing by it).
+export function seatOf(piece: Furniture, near?: { x: number; z: number }): Seat | null {
   if (piece.kind === 'bed' || piece.kind === 'roomBed' || piece.kind === 'doubleBed') {
     const alongZ = piece.wall === 'left';
     const far = piece.kind !== 'bed'; // upstairs, its head at its far end, against the wall there
     const start = (alongZ ? piece.z : piece.x) - 0.5;
     const feet = far ? start + (alongZ ? piece.d : piece.w) - HEAD_TO_FEET : start + HEAD_TO_FEET;
+    const edge = (alongZ ? piece.x : piece.z) - 0.5; // its wall's side
+    let across = edge + (alongZ ? piece.w : piece.d) / 2; // down its middle
+    if (piece.kind === 'doubleBed') {
+      const sides = DOUBLE_SIDES.map((s) => edge + s);
+      const at = near ? (alongZ ? near.x : near.z) : sides[0];
+      across = Math.abs(at - sides[0]) <= Math.abs(at - sides[1]) ? sides[0] : sides[1]; // the nearer side
+    }
     return {
       piece,
-      x: alongZ ? piece.x - 0.5 + piece.w / 2 : feet, // down its middle
-      z: alongZ ? feet : piece.z - 0.5 + piece.d / 2,
+      x: alongZ ? across : feet,
+      z: alongZ ? feet : across,
       y: MATTRESS,
       facing: (alongZ ? 0 : Math.PI / 2) + (far ? Math.PI : 0),
       lying: true,

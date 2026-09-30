@@ -66,7 +66,7 @@ export function seatInReach(inside: Inside, hero: Hero, taken: (piece: Furniture
   let best: Seat | null = null;
   let bestDistance = SIT_RANGE;
   for (const piece of inside.furniture) {
-    const seat = seatOf(piece);
+    const seat = seatOf(piece, hero); // (a double bed: the side they're by)
     if (!seat || taken(piece)) continue;
     const d = distanceTo(piece, hero.x, hero.z);
     if (d <= bestDistance) {
