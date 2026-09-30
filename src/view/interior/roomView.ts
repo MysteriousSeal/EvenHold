@@ -11,6 +11,7 @@ import { fireOf } from './furnitureVoxels';
 import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { tankard } from './furniturePalette';
+import { DOOR_LEAF, paintDoorLeaf } from './innFurnitureVoxels';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
 // The room's scene, what to call each frame (its fire burning), and how to
@@ -25,6 +26,18 @@ function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
     return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(-2 * ROOM_VOXEL, 0, -1.5 * ROOM_VOXEL));
   };
   return { full: mesh(true), empty: mesh(false) };
+}
+
+const TILE_VOXELS = 25;
+const SWING = (100 * Math.PI) / 180; // how far a door swings open
+const SWING_TIME = 0.4; // seconds, to open or close
+
+// A hallway door's leaf, hung from its hinge edge (x 0), standing on the floor, its thickness centred.
+function doorLeafGeometry(): THREE.BufferGeometry {
+  const { width, height, thick } = DOOR_LEAF;
+  const grid = createGrid([width, height, thick]);
+  paintDoorLeaf((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color));
+  return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
 }
 
 export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
@@ -60,6 +73,32 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     drapes.push(front, side);
     for (const g of drapes) scene.add(new THREE.Mesh(g, curtain));
   }
+  // The doors upstairs, each hung from its hinge, meshed apart to swing
+  // (into the room behind it) as it's opened or closed.
+  const leafShape = doorLeafGeometry();
+  const doors = furniture.filter((f) => f.kind === 'hallDoor').map((f) => {
+    const left = f.wall === 'left';
+    const len = (left ? f.d : f.w) * TILE_VOXELS;
+    const along = (left ? f.z : f.x) - 0.5 + (Math.floor((len - TILE_VOXELS) / 2) + DOOR_LEAF.hinge) * ROOM_VOXEL;
+    const across = (left ? f.x : f.z) - 0.5 + (DOOR_LEAF.thick / 2) * ROOM_VOXEL; // in its wall's middle
+    const leaf = new THREE.Mesh(leafShape, material);
+    leaf.castShadow = leaf.receiveShadow = true;
+    const hinge = new THREE.Group();
+    hinge.position.set(left ? across : along, 0, left ? along : across);
+    hinge.add(leaf);
+    scene.add(hinge);
+    // Along the wall (+z on the left one, +x on the back), swung toward +x or +z.
+    return { f, hinge, base: left ? -Math.PI / 2 : 0, way: left ? 1 : -1, t: f.open ? 1 : 0 };
+  });
+  const swingDoors = (dt: number) => {
+    for (const d of doors) {
+      d.t = Math.min(1, Math.max(0, d.t + (d.f.open ? dt : -dt) / SWING_TIME));
+      const eased = d.t * d.t * (3 - 2 * d.t);
+      d.hinge.rotation.y = d.base + d.way * SWING * eased;
+    }
+  };
+  swingDoors(0);
+  let lastTime: number | null = null;
   // Warm light from above, a hearth glow from the back corner.
   scene.add(new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
   const sun = new THREE.DirectionalLight(0xffd7a0, 1.4);
@@ -126,6 +165,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       });
     },
     update(time) {
+      swingDoors(lastTime === null ? 0 : Math.max(0, time - lastTime));
+      lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       fire?.update(time);
       glow.intensity = 4.5 * flicker(time);
@@ -134,6 +175,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       geometry.dispose();
       lamps3d?.geometry.dispose();
       for (const g of drapes) g.dispose();
+      leafShape.dispose();
       curtain.dispose();
       mugShapes.full.dispose();
       mugShapes.empty.dispose();

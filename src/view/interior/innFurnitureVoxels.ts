@@ -13,6 +13,18 @@ function hallWall(box: Box, u0: number, u1: number): void {
   box(u0, 6, 0, u1, 6, 4, WOOD_LIGHT); // the rail on top
 }
 
+// A hallway door's leaf, on its own (from its hinge side, u 0, and its foot,
+// y 0): planked, iron strap hinges and a brass ring on both faces.
+export const DOOR_LEAF = { width: 13, height: 27, thick: 5, hinge: 6 }; // its size in voxels; `hinge`: where it hangs in the door's tile
+export function paintDoorLeaf(box: Box): void {
+  const { width, height } = DOOR_LEAF;
+  box(0, 0, 1, width - 1, height - 1, 3, (u) => (u % 4 === 0 ? WOOD_DARK : WOOD)); // planks
+  for (const v of [0, 4]) {
+    for (const y of [5, 20]) box(0, y, v, width - 3, y + 1, v, (u) => (u === 0 ? IRON_LIGHT : IRON)); // strap hinges, across the planks
+    box(width - 4, 12, v, width - 3, 13, v, BRASS); // ring
+  }
+}
+
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
   // middle of its tiles), panelled on the customers' side, under a thick
@@ -194,8 +206,8 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   // Upstairs, between the hallway and the rooms off it: a low wall of dark
   // boards (cut low like the room's near walls, to see over), a lit rail on top.
   hallWall: (box, len) => hallWall(box, 0, len - 1),
-  // A room's door in it: timber posts and a lintel standing tall, the
-  // planked door shut between them, iron hinges and a ring on both faces.
+  // A room's door in it: timber posts and a lintel standing tall over a
+  // threshold (the door itself meshed apart, to swing: paintDoorLeaf).
   hallDoor: (box, len) => {
     const o = Math.floor((len - 25) / 2); // the door a tile wide, in the middle of its piece (one tile, or two across their joint)
     hallWall(box, 0, o + 3);
@@ -203,12 +215,8 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
     for (const u of [o + 4, o + 19]) box(u, 0, 0, u + 1, 28, 4, FUR_DARK); // posts
     box(o + 3, 29, 0, o + 21, 30, 4, (_u, y) => (y === 30 ? WOOD_LIGHT : FUR_DARK)); // lintel, past the posts, lit on top
     box(o + 6, 0, 0, o + 18, 0, 4, WOOD_LIGHT); // threshold
-    box(o + 6, 1, 1, o + 18, 27, 3, (u) => ((u - o - 6) % 4 === 0 ? WOOD_DARK : WOOD)); // the door, planked
-    for (const v of [0, 4]) {
-      for (const y of [6, 21]) box(o + 6, y, v, o + 16, y + 1, v, (u) => (u === o + 6 ? IRON_LIGHT : IRON)); // strap hinges, across the planks
-      box(o + 15, 13, v, o + 16, 14, v, BRASS); // ring
-    }
   },
+
 
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
