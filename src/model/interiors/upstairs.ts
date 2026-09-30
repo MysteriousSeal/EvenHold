@@ -83,13 +83,23 @@ export function doorAt(inside: Inside, hero: Hero): Furniture | null {
   return best;
 }
 
-// Opens the door by the hero, or closes it (not on them, stood in its
-// doorway); returns whether there was one.
+// Opens the door by the hero, or closes it (pushing them out of its doorway,
+// to the side of it they're on, if they're stood in it); returns whether there was one.
 export function useHallDoor(model: { inside: Inside | null; hero: Hero }): boolean {
   const inside = model.inside;
   const door = inside?.below ? doorAt(inside, model.hero) : null;
   if (!inside?.below || !door) return false;
-  if (door.open && bumpsFurniture([{ ...door, open: false }], model.hero.x, model.hero.z, HERO_RADIUS * INDOOR_SCALE)) return true; // in its way
+  const { hero } = model;
+  const r = HERO_RADIUS * INDOOR_SCALE;
+  if (door.open && bumpsFurniture([{ ...door, open: false }], hero.x, hero.z, r)) {
+    const left = door.wall === 'left';
+    const middle = (left ? door.x : door.z) - 0.4; // the wall's
+    const at = left ? hero.x : hero.z;
+    const out = at < middle ? middle - 0.1 - r - 0.02 : middle + 0.1 + r + 0.02; // just clear of it, on their side
+    const to = left ? { x: out, z: hero.z } : { x: hero.x, z: out };
+    if (bumpsFurniture(inside.furniture.filter((f) => f !== door), to.x, to.z, r)) return true; // nowhere to go: left open
+    Object.assign(hero, to);
+  }
   door.open = !door.open;
   const open = opened.get(inside.below) ?? new Set<string>();
   opened.set(inside.below, open);

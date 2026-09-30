@@ -306,6 +306,7 @@ const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>>
   barStool: { height: 0.56, forward: 0.26 },
 };
 
+const OFF_WALL = 0.2; // tiles upstairs beds are drawn out from the wall they stand against (off its thickness)
 const DOUBLE_SIDES = [0.7, 1.48]; // a double bed's two sleepers, each under a pillow, in tiles out from its wall's edge
 
 // The seat on a piece of furniture, or null if it's not something to sit on;
@@ -317,7 +318,7 @@ export function seatOf(piece: Furniture, near?: { x: number; z: number }): Seat 
     const start = (alongZ ? piece.z : piece.x) - 0.5;
     const feet = far ? start + (alongZ ? piece.d : piece.w) - HEAD_TO_FEET : start + HEAD_TO_FEET;
     const edge = (alongZ ? piece.x : piece.z) - 0.5; // its wall's side
-    let across = edge + (alongZ ? piece.w : piece.d) / 2; // down its middle
+    let across = edge + (alongZ ? piece.w : piece.d) / 2 + (piece.kind === 'roomBed' ? OFF_WALL : 0); // down its middle (upstairs, drawn off the wall)
     if (piece.kind === 'doubleBed') {
       const sides = DOUBLE_SIDES.map((s) => edge + s);
       const at = near ? (alongZ ? near.x : near.z) : sides[0];

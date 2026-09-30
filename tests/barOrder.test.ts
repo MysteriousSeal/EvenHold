@@ -230,7 +230,10 @@ describe('an ale at the bar', () => {
     expect(again.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.x === door.x && f.z === door.z)?.open).toBe(true);
     expect(again.fullWalls).toBe(true);
     expect(again.inside!.furniture.filter((f) => f.kind === 'hallWall').every((f) => f.tall)).toBe(true);
+    Object.assign(model.hero, { x: through.x, z: through.z - 0.05 }); // stood in its doorway, on the hallway's side of it
     expect(useHallDoor(model)).toBe(true);
-    expect(door.open).toBe(false); // shut again
+    expect(door.open).toBe(false); // shut again,
+    expect(bumpsFurniture(model.inside!.furniture, model.hero.x, model.hero.z, r)).toBe(false); // pushed out of its way
+    expect(model.hero.z).toBeLessThan(door.z - 0.4); // back to the hallway side, where they came from
   });
 });
