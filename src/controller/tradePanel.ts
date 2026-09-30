@@ -13,6 +13,7 @@ import { restockIn, type Shop } from '../model/shops/shopStock';
 import { coinParts } from '../view/ui/coins';
 import { bagIcon } from '../view/ui/itemIcons';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
+import { detailParts } from '../view/ui/menuDetail';
 import { voxelIcon } from '../view/ui/voxelIcon';
 import { humanBust } from '../view/meshes/human/humanFigure';
 
@@ -40,7 +41,7 @@ export interface Trade {
 export const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
 
 // A time left as minutes and seconds: "0:42".
-const clock = (ms: number) => {
+export const clock = (ms: number) => {
   const s = Math.ceil(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
@@ -97,19 +98,7 @@ export function createTradePanel(model: GameModel, hooks: { setPaused(paused: bo
       return pane;
     }
     const price = trade.price(id, selling);
-    const icon = document.createElement('div');
-    icon.className = 'menu-detail-icon';
-    icon.append(bagIcon(id)(72));
-    // Its facts, label on the left and value on the right.
-    const facts = document.createElement('dl');
-    facts.className = 'menu-detail-facts';
-    const fact = (label: string, value: Array<string | HTMLElement>) => {
-      const dt = document.createElement('dt');
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.append(...value);
-      facts.append(dt, dd);
-    };
+    const { icon, facts, fact } = detailParts(bagIcon(id)(72));
     fact(selling ? trade.pays : 'Price', coinParts(price));
     for (const [label, value] of trade.facts(id)) fact(label, [value]);
     const soldOut = !selling && (shop().stock[id] ?? 0) <= 0;

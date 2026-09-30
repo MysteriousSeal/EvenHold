@@ -2,6 +2,8 @@
 // a quest's picture, its notice's words, and how dangerous it is in a word.
 
 import { makeEnemy } from '../model/enemies/enemies';
+import { coinParts } from '../view/ui/coins';
+import { difficulty } from '../view/hud/targetHud';
 import type { Quest, QuestFoe } from '../model/quests/quests';
 import type { QuestItemId } from '../model/quests/questItems';
 import { hashUnit } from '../util/random';
@@ -50,7 +52,7 @@ export const notice = (q: Quest, seed: number) => {
   const lines = q.item ? WANTED[q.item] : NOTICES[q.foe];
   return lines[Math.floor(hashUnit(q.board * 131 + Number(q.key.split(':')[1]), seed % 1_000_003, 97) * lines.length)];
 };
-export const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
+const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
 
 // A quest's picture: the foe's head to slay, or the thing to bring.
 const FOE_ICONS: Record<QuestFoe, (q: Quest, size: number) => HTMLCanvasElement> = {
@@ -65,3 +67,14 @@ export const questIcon = (q: Quest): MenuIcon => (size) => {
   if (q.item) return lootIcon(q.item)(size);
   return FOE_ICONS[q.foe](q, size);
 };
+
+// A quest's danger (against the hero's level), reward and experience, as facts in its detail pane.
+export function questFacts(fact: (label: string, value: Array<string | HTMLElement>) => void, q: Quest, heroLevel: number, xp: number): void {
+  const danger = document.createElement('span');
+  danger.className = 'quest-danger';
+  danger.dataset.difficulty = difficulty(q.level, heroLevel);
+  danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${q.level}`;
+  fact('Danger', [danger]);
+  fact('Reward', coinParts(q.copper));
+  fact('Experience', [`${xp} XP`]); // to the hero now
+}

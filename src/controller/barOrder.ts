@@ -16,6 +16,7 @@ import { PROVISIONS } from '../model/loot/provisions';
 
 export { ALE_SECONDS } from '../model/inn/barPatrons';
 import { ALE_SECONDS } from '../model/inn/barPatrons';
+import { clock, pick } from './tradePanel';
 
 const POURED = [
   "Here's your ale, love.",
@@ -47,11 +48,6 @@ const TOO_POOR = [
   "The keg's full, it's your purse that's empty.",
   "No slates here, I'm afraid. Find a few coppers.",
 ]
-const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
-const clock = (ms: number) => {
-  const s = Math.ceil(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-};
 
 // The barmaid's shop, where the hero is (in her inn).
 const shopHere = (model: GameModel): Shop => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));

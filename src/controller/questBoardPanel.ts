@@ -10,8 +10,8 @@ import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Qu
 import { noticeBoards } from '../model/quests/noticeBoards';
 import { coinParts } from '../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
-import { DANGER, notice, questIcon } from './questText';
-import { difficulty } from '../view/hud/targetHud';
+import { notice, questFacts, questIcon } from './questText';
+import { detailParts } from '../view/ui/menuDetail';
 
 export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
   const { quests } = model;
@@ -48,27 +48,10 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const taken = quests.takenOf(q.key);
     const have = taken ? quests.progress(taken) : 0;
     const done = have >= q.count;
-    const icon = document.createElement('div');
-    icon.className = 'menu-detail-icon';
-    icon.append(questIcon(q)(72));
-    const facts = document.createElement('dl');
-    facts.className = 'menu-detail-facts quest-facts';
-    const fact = (label: string, value: Array<string | HTMLElement>) => {
-      const dt = document.createElement('dt');
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.append(...value);
-      facts.append(dt, dd);
-    };
+    const { icon, facts, fact } = detailParts(questIcon(q)(72), 'menu-detail-facts quest-facts');
     const spot = noticeBoards(model)[q.board];
     fact('Where', [`${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
-    const danger = document.createElement('span');
-    danger.className = 'quest-danger';
-    danger.dataset.difficulty = difficulty(q.level, model.hero.level);
-    danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${q.level}`;
-    fact('Danger', [danger]);
-    fact('Reward', coinParts(q.copper));
-    fact('Experience', [`${quests.xpFor(q)} XP`]); // to the hero now
+    questFacts(fact, q, model.hero.level, quests.xpFor(q));
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
     if (quests.isCompleted(q.key)) {

@@ -8,10 +8,9 @@ import './questPanels.css';
 import type { GameModel } from '../model/GameModel';
 import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../model/quests/quests';
 import type { TakenQuest } from '../model/quests/questBook';
-import { coinParts } from '../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
-import { difficulty } from '../view/hud/targetHud';
-import { DANGER, notice, questIcon } from './questText';
+import { notice, questFacts, questIcon } from './questText';
+import { detailParts } from '../view/ui/menuDetail';
 
 const cap = (text: string) => text.replace(/^./, (c) => c.toUpperCase());
 
@@ -61,26 +60,9 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     const { quest } = t;
     const have = quests.progress(t);
     const done = have >= quest.count;
-    const icon = document.createElement('div');
-    icon.className = 'menu-detail-icon';
-    icon.append(questIcon(quest)(64));
-    const facts = document.createElement('dl');
-    facts.className = 'menu-detail-facts quest-facts';
-    const fact = (label: string, value: Array<string | HTMLElement>) => {
-      const dt = document.createElement('dt');
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.append(...value);
-      facts.append(dt, dd);
-    };
+    const { icon, facts, fact } = detailParts(questIcon(quest)(64), 'menu-detail-facts quest-facts');
     fact('Progress', [done ? 'Done' : questProgress(quest, have).text]);
-    const danger = document.createElement('span');
-    danger.className = 'quest-danger';
-    danger.dataset.difficulty = difficulty(quest.level, model.hero.level);
-    danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${quest.level}`;
-    fact('Danger', [danger]);
-    fact('Reward', coinParts(quest.copper));
-    fact('Experience', [`${quests.xpFor(quest)} XP`]); // to the hero now
+    questFacts(fact, quest, model.hero.level, quests.xpFor(quest));
     pane.append(icon, line('menu-detail-name', questTitle(quest)), line('menu-detail-about', `“${notice(quest, model.seed)}”`), facts);
 
     const buttons = document.createElement('div');
