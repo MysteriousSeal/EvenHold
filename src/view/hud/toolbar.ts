@@ -1,5 +1,6 @@
 // The toolbar, bottom right: a tile per window (the hero sheet, the bag,
-// the pause menu), each a voxel icon with its key in the corner. Clicking
+// the journal, the level-up window, the pause menu), each a voxel icon with
+// its key in the corner, and a mark on the other while it has news (points to spend). Clicking
 // one opens or closes its window; it stays pressed while the window's open.
 // Styles in hud.css.
 
@@ -11,6 +12,7 @@ export interface ToolbarButton {
   icon: MenuIcon;
   isOpen(): boolean;
   toggle(): void;
+  marked?(): boolean; // a mark on its corner while it's true (e.g. points to spend)
 }
 
 // Returns the function to call each frame (it keeps each tile's pressed look in step).
@@ -35,5 +37,9 @@ export function createToolbar(buttons: ToolbarButton[]): () => void {
     return tile;
   });
   document.body.append(bar);
-  return () => buttons.forEach((button, i) => tiles[i].classList.toggle('open', button.isOpen()));
+  return () =>
+    buttons.forEach((button, i) => {
+      tiles[i].classList.toggle('open', button.isOpen());
+      tiles[i].classList.toggle('marked', !!button.marked?.());
+    });
 }

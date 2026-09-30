@@ -455,3 +455,6 @@
 .clock-hud-sign:hover .clock-hud-tip { visibility: visible; }
 .clock-hud span { flex: 1; font-size: 14px; font-weight: 600; color: #6a5238; font-variant-numeric: tabular-nums; } /* the day, between the sign and the time */
 .clock-hud b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* A toolbar tile with news (the level-up window, with points to spend): the HUD level's lantern pip, on its top-left corner. */
+.toolbar-button.marked::before { content: '+'; position: absolute; top: -8px; left: -8px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; font: 700 13px/1 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #ffd98a; border: 2px solid #2e1f14; }

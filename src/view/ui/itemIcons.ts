@@ -163,6 +163,19 @@ export const journalIcon: MenuIcon = (size) =>
     },
     size,
   );
+export const levelUpIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'tool:levelUp',
+    () => {
+      // Lake turquoise 1, its dark back 2, a pale highlight 3: a chunky arrow pointing up, stepped to a point.
+      const grid = createGrid([9, 12, 3]);
+      const paint = (x0: number, x1: number, y: number) => fillBox(grid, x0, y, 0, x1, y, 2, (x, _y, z) => (z === 0 ? 2 : x === x0 && z === 2 ? 3 : 1));
+      for (let y = 0; y <= 5; y++) paint(3, 5, y); // the shaft
+      for (let k = 0; k <= 4; k++) paint(k, 8 - k, 6 + k); // the head, a step in each side each row
+      return { grid, palette: [0x3dbdb8, 0x217c98, 0xbff0e8], alpha: 1 };
+    },
+    size,
+  );
 export const pauseIcon: MenuIcon = (size) =>
   voxelIcon(
     'tool:pause',
