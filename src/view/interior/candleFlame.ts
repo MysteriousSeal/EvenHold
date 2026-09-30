@@ -14,7 +14,7 @@ const FRAMES = [
   ['FFFF', 'EEE.', '.E..'],
   ['FFFF', 'EEEE', '..EE', '..F.'],
 ];
-const FPS = 8;
+const FPS = 4; // frames a second: a calm flame
 
 export class CandleFlames {
   private readonly frames: THREE.BufferGeometry[];
