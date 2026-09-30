@@ -370,6 +370,22 @@
   color: var(--ink);
 }
 .menu-purse .coin { margin-right: 8px; }
+/* The bag's: the button tidying it on the left, the coins on the right. */
+.menu-purse.bag-footer { justify-content: space-between; }
+.bag-coins { display: inline-flex; align-items: center; gap: 4px; }
+.bag-sort {
+  padding: 3px 10px;
+  font: 600 13px 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--sand-light);
+  border: 2px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+  cursor: pointer;
+  position: relative;
+}
+.bag-sort:hover { background: var(--lantern); }
+.bag-sort:active { box-shadow: 0 0 0 var(--ink); transform: translateY(2px); }
+.bag-sort::after { content: ''; position: absolute; inset: -6px -8px -8px; } /* clickable past its edges and as it sinks */
 .menu-purse .coin:last-child { margin-right: 0; }
 .menu-slot {
   position: relative;
