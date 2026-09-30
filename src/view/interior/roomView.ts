@@ -14,22 +14,25 @@ import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, ROOM_WALL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { WallCuts, clearUpper } from './innerWallCuts';
 import { CAMERA_OFFSET } from '../constants';
-import { tankard } from './furniturePalette';
+import { goblet, tankard } from './furniturePalette';
+import type { Drink } from '../../model/npcs/npcs';
 import { DOOR_LEAF, paintDoorLeaf } from './innFurnitureVoxels';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
 // The room's scene, what to call each frame (its fire burning), and how to
 // free it once the hero's left (it disposes only what it made: the hero, moved
 // in from the world, isn't touched).
-// The drinks on the bar's counter, before the stools: full tankards, and the empty mugs they leave.
+// The drinks on the bar's counter, before the stools: full tankards and
+// glasses of wine, and the empty cups they leave.
 const MUG_AT = { x: 1.1, y: 0.52 }; // over the counter's top, on the customers' side
-function mugGeometries(): Record<'full' | 'empty', THREE.BufferGeometry> {
-  const mesh = (full: boolean) => {
+type CupShape = `${Drink}:${'full' | 'empty'}`;
+function mugGeometries(): Record<CupShape, THREE.BufferGeometry> {
+  const mesh = (drink: Drink, full: boolean) => {
     const grid = createGrid([4, 5, 3]);
-    tankard((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color), 0, 0, 0, full);
+    (drink === 'wine' ? goblet : tankard)((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color), 0, 0, 0, full);
     return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(-2 * ROOM_VOXEL, 0, -1.5 * ROOM_VOXEL));
   };
-  return { full: mesh(true), empty: mesh(false) };
+  return { 'ale:full': mesh('ale', true), 'ale:empty': mesh('ale', false), 'wine:full': mesh('wine', true), 'wine:empty': mesh('wine', false) };
 }
 
 const TILE_VOXELS = 25;
@@ -44,7 +47,7 @@ function doorLeafGeometry(): THREE.BufferGeometry {
   return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void; seeHero(x: number, z: number): void } {
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void; seeHero(x: number, z: number): void } {
   const scene = new THREE.Scene();
   const DARK = 0x1c130c;
   scene.background = new THREE.Color(DARK); // darkness beyond the walls
@@ -172,7 +175,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     scene,
     showMugs(list) {
       while (mugs.length < list.length) {
-        const mug = new THREE.Mesh(mugShapes.full, material);
+        const mug = new THREE.Mesh(mugShapes['ale:full'], material);
         scene.add(mug);
         mugs.push(mug);
       }
@@ -180,7 +183,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
         const at = list[i];
         mug.visible = !!at;
         if (!at) return;
-        mug.geometry = at.full ? mugShapes.full : mugShapes.empty;
+        mug.geometry = mugShapes[`${at.drink}:${at.full ? 'full' : 'empty'}`];
         mug.position.set(MUG_AT.x, MUG_AT.y, at.z);
       });
     },
@@ -207,8 +210,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       walls.dispose();
       flames.dispose();
       curtain.dispose();
-      mugShapes.full.dispose();
-      mugShapes.empty.dispose();
+      for (const g of Object.values(mugShapes)) g.dispose();
       material.dispose();
       for (const light of [glow, ...lanterns, ...candles]) light.dispose(); // their shadow maps
       fire?.dispose();

@@ -76,3 +76,13 @@ export const PROVISION_MODELS: Record<keyof typeof PROVISIONS, LootModel> = {
     setColor(g, 1, 7, 1, 5); // the wax seal
   }),
 };
+
+// A glass of wine in hand (a villager at the bar, or the barmaid bringing
+// it): a clear foot and stem, the bowl dark with wine, a bright glint, a clear rim.
+export const WINE_GLASS_MODEL: LootModel = model([0xa4d0c6, 0xd8f0ea, 0x6a1e2e, 0xa83a48], [3, 6, 3], (g) => {
+  disc(g, 0, 0, 0, 3, () => 1); // the foot
+  fillBox(g, 1, 1, 1, 1, 2, 1, 1); // the stem
+  disc(g, 0, 3, 0, 3, () => 3); // the bowl
+  disc(g, 0, 4, 0, 3, (x, z) => (x === 0 && z === 1 ? 4 : 3)); // its belly, a glint
+  disc(g, 0, 5, 0, 3, (x, z) => (x === 1 && z === 1 ? 3 : 2)); // the rim, the wine's top in it
+});

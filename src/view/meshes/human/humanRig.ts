@@ -34,7 +34,8 @@ import {
 } from './bodyVoxels';
 import { BODY_FILL, withBody } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
-import { PROVISION_MODELS } from '../loot/provisionVoxels';
+import { PROVISION_MODELS, WINE_GLASS_MODEL } from '../loot/provisionVoxels';
+import type { Drink } from '../../../model/npcs/npcs';
 
 const V = HUMAN_VOXEL_SIZE;
 const SIPS_EVERY = 2.5; // seconds from one sip to the next
@@ -167,7 +168,8 @@ export class HumanRig {
   private heading = 0;
   private time = 0;
   private pose: Pose = 'stand';
-  private tankard: THREE.Mesh | null = null; // in the right hand, while drinking
+  private tankard: THREE.Mesh | null = null; // the cup in the right hand, while drinking or carrying one (a tankard, or a glass of wine)
+  private cups: Partial<Record<Drink, THREE.BufferGeometry>> = {}; // its shapes, made as needed
   private drinkFor = 0; // seconds of drinking left
   private drinkTotal = 1; // and in all
   private holding = false; // carrying the tankard (not drinking)
@@ -296,11 +298,12 @@ export class HumanRig {
     this.sip(dt);
   }
 
-  // Carries a tankard (the barmaid bringing an ale), held out a little, or puts it away.
-  hold(on: boolean): void {
-    if (on === this.holding) return;
-    this.holding = on;
-    if (on) this.showTankard();
+  // Carries a cup (the barmaid bringing a drink, or clearing it away), held
+  // out a little: `cup` a tankard ('ale') or a glass ('wine'); false, puts it away.
+  hold(cup: false | Drink): void {
+    if (!!cup === this.holding && (!cup || this.showing === cup)) return;
+    this.holding = !!cup;
+    if (cup) this.showTankard(cup);
     else if (this.tankard && this.drinkFor <= 0) this.tankard.visible = false;
   }
 
@@ -312,12 +315,12 @@ export class HumanRig {
 
   // Drinking as the model says (a villager at the bar): sipping while
   // `drinking` lasts, the tankard put away once it doesn't.
-  sipping(drinking: { left: number; seconds: number } | null): void {
+  sipping(drinking: { left: number; seconds: number; drink?: Drink } | null): void {
     if (!drinking) {
       if (this.drinkFor > 0) this.stopDrinking();
       return;
     }
-    this.showTankard();
+    this.showTankard(drinking.drink ?? 'ale');
     [this.drinkFor, this.drinkTotal] = [drinking.left, drinking.seconds];
   }
 
@@ -327,16 +330,22 @@ export class HumanRig {
     if (this.tankard && !this.holding) this.tankard.visible = false;
   }
 
-  private showTankard(): void {
-    if (!this.tankard) {
-      const model = PROVISION_MODELS.ale;
+  private showing: Drink = 'ale'; // the cup in hand
+  private showTankard(drink: Drink = 'ale'): void {
+    if (!this.cups[drink]) {
+      const model = drink === 'wine' ? WINE_GLASS_MODEL : PROVISION_MODELS.ale;
       const grid = model.build();
       const size = V * TANKARD_SCALE;
-      this.tankard = this.mesh(greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2))); // follows the rig's material
+      this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));
+    }
+    if (!this.tankard) {
+      this.tankard = this.mesh(this.cups[drink]!); // follows the rig's material
       const hand = BODIES[this.look.build].hand;
       this.tankard.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
       this.joints.rightArm.add(this.tankard);
     }
+    this.tankard.geometry = this.cups[drink]!;
+    this.showing = drink;
     this.tankard.visible = true;
   }
 

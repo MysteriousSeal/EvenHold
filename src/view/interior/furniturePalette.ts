@@ -68,6 +68,22 @@ export function tankard(box: Box, u: number, y: number, v: number, full: boolean
   }
 }
 
+// A glass of wine standing at (u, y, v), as tall as a tankard: a foot, a
+// stem, a bowl widening to its rim; full, the wine showing through the glass
+// and at its top; empty, the bowl clear and hollow.
+export function goblet(box: Box, u: number, y: number, v: number, full: boolean): void {
+  const cross = (yy: number, color: number) => {
+    box(u + 1, yy, v, u + 1, yy, v + 2, color);
+    box(u, yy, v + 1, u + 2, yy, v + 1, color);
+  };
+  cross(y, GLASS_CLEAR); // the foot
+  box(u + 1, y + 1, v + 1, u + 1, y + 1, v + 1, GLASS_CLEAR); // the stem
+  cross(y + 2, full ? WINE : GLASS_CLEAR); // the bowl's bottom
+  box(u, y + 3, v, u + 2, y + 3, v + 2, (uu, _y, vv) => ((uu === u || uu === u + 2) && (vv === v || vv === v + 2) ? 0 : full ? WINE : uu === u + 1 && vv === v + 1 ? 0 : GLASS_CLEAR)); // its belly
+  cross(y + 4, GLASS_CLEAR); // the rim
+  box(u + 1, y + 4, v + 1, u + 1, y + 4, v + 1, full ? WINE : 0); // the wine's top, or the hollow
+}
+
 // A drink set down at (u, y, v): full and empty by turns (`i` counts them),
 // so there are as many of each.
 export function drink(box: Box, u: number, y: number, v: number, i: number): void {
