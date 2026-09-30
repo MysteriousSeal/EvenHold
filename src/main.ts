@@ -124,7 +124,7 @@ async function boot(): Promise<void> {
     const { hero } = model;
     const seated = model.seated;
     const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
-    const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z };
+    const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
     if (seated && seated.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
     if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
     const seat = model.seatInReach;
@@ -157,7 +157,9 @@ async function boot(): Promise<void> {
     journal.update();
     sheet.update();
     updateToolbar();
-    lootPrompt.update(promptTarget(), (x, y, z) => view.toScreen(x, y, z));
+    const prompt = promptTarget();
+    view.prompted = prompt?.npc ?? null; // (their name gives way to it)
+    lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale, the prompt over the hero's head.
     // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being drunk.
     const order = bar.canOrder ? orderLabel(model) : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
