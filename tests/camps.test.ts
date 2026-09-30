@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest';
+import { GameModel } from '../src/model/GameModel';
+import { spawnOf } from '../src/model/grid';
+import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+
+const worlds = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));
+
+describe('bandit camps in every test world', () => {
+  it('have one a short walk from spawn', () => {
+    for (const model of worlds) {
+      const spawn = spawnOf(model.size);
+      expect(model.camps.length, `seed ${model.seed}`).toBeGreaterThan(0);
+      expect(Math.hypot(model.camps[0].x - spawn.x, model.camps[0].z - spawn.z)).toBeLessThan(25);
+    }
+  });
+
+  it('have their fire, tents, rack, crates, loot and a palisade (open at the way in), on level grass', () => {
+    for (const model of worlds) {
+      for (const camp of model.camps) {
+        const kinds = camp.pieces.map((p) => p.kind);
+        for (const kind of ['fire', 'rack', 'crates', 'loot'] as const) expect(kinds.filter((k) => k === kind)).toHaveLength(1);
+        expect(kinds.filter((k) => k === 'tent')).toHaveLength(2);
+        expect(kinds.filter((k) => k === 'palisade')).toHaveLength(19);
+        const tier = model.heightMap[camp.x][camp.z];
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+          expect(model.heightMap[camp.x + dx][camp.z + dz]).toBe(tier);
+          expect(model.surfaceMap[camp.x + dx][camp.z + dz]).toBe('natural');
+        }
+      }
+    }
+  });
+
+  it('stand in a clearing of their own, clear of the ruins and of each other', () => {
+    for (const model of worlds) {
+      for (const [i, camp] of model.camps.entries()) {
+        const near = (x: number, z: number) => Math.abs(x - camp.x) <= 3 && Math.abs(z - camp.z) <= 3;
+        expect(model.trees.some((t) => near(Math.round(t.x), Math.round(t.z)))).toBe(false);
+        expect(model.bushes.some((b) => near(b.x, b.z))).toBe(false);
+        for (const r of model.ruins) expect(camp.x + 3 < r.x || camp.x - 3 >= r.x + r.w || camp.z + 3 < r.z || camp.z - 3 >= r.z + r.d, 'a camp in a ruin').toBe(true);
+        for (const other of model.camps.slice(i + 1)) expect(Math.max(Math.abs(other.x - camp.x), Math.abs(other.z - camp.z))).toBeGreaterThan(4);
+      }
+    }
+  });
+
+  it('can be walked into by their way in, and have their bandits inside', () => {
+    for (const model of worlds) {
+      for (const camp of model.camps) {
+        expect(model.isOpenTile(camp.way.x, camp.way.z)).toBe(true);
+        expect(Math.max(Math.abs(camp.way.x - camp.x), Math.abs(camp.way.z - camp.z))).toBe(3); // just outside
+        const bandits = model.enemies.filter((e) => e.kind === 'bandit' && Math.max(Math.abs(e.x - camp.x), Math.abs(e.z - camp.z)) <= 2);
+        expect(bandits.length).toBeGreaterThanOrEqual(Math.min(2, camp.bandits));
+      }
+    }
+  });
+
+  it('are the same every time for a world', () => {
+    expect(new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE).camps).toEqual(worlds[0].camps);
+  });
+});

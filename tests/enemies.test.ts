@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
-import { campPalisade, campPieces } from '../src/model/enemies/enemies';
 import { cellKey } from '../src/model/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import type { Enemy, EnemyKind } from '../src/model/types';
@@ -119,8 +118,8 @@ describe('bandits', () => {
     const camp = model.camps[0];
     expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
     // Everything but the loot blocks; a palisade rings the camp but for the entrance.
-    for (const piece of campPieces(camp)) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot');
-    expect(campPalisade(camp).length).toBe(19); // 5 edges on each of 4 sides, less the entrance
+    for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot');
+    expect(camp.pieces.filter((p) => p.kind === 'palisade').length).toBe(19); // 5 edges on each of 4 sides, less the entrance
 
     const around = model.enemies.filter((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 4);
     expect(around.length).toBeGreaterThanOrEqual(2);
@@ -130,7 +129,10 @@ describe('bandits', () => {
   it('swings when in reach, then waits before swinging again', () => {
     const model = fresh();
     const bandit = nearest(model, 'bandit');
-    model.teleport(Math.round(bandit.x) - 2, Math.round(bandit.z));
+    // Beside it (on open ground, not behind its camp's palisade).
+    const [bx, bz] = [Math.round(bandit.x), Math.round(bandit.z)];
+    const beside = [[bx - 1, bz], [bx + 1, bz], [bx, bz - 1], [bx, bz + 1]].find(([x, z]) => model.isOpenTile(x, z))!;
+    model.teleport(beside[0], beside[1]);
     let swung = false;
     for (let i = 0; i < 120 && !swung; i++) {
       model.update(0, 0, FRAME);
