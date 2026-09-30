@@ -1,6 +1,7 @@
 // The hero's HUD, top left: a portrait (the hero's own voxel head and
 // shoulders, redrawn when what they wear changes) with their level on its
-// corner, a health bar, an energy bar and an experience bar.
+// corner and their name on a ribbon over it, and beside it, within its
+// height, a health bar, an energy bar and an experience bar.
 // Styles in hud.css. Updated every frame, touching the page only when
 // something shown has changed.
 
@@ -32,13 +33,12 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     bars.append(node);
     return { node, fill, label };
   };
-  const name = el('div', 'target-hud-name');
+  const name = el('div', 'hero-hud-name'); // on a ribbon over the portrait's top
   name.textContent = hero.name;
-  bars.append(name);
   const hp = bar('hero-hud-hp');
   const energy = bar('hero-hud-energy');
   const xp = bar('hero-hud-xp');
-  portrait.append(level);
+  portrait.append(level, name);
   root.append(portrait, bars);
   parent.append(root);
 
