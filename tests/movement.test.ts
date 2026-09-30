@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { TEST_MAP_SIZE } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE } from './support/testWorld';
 import {
   BUSH_COLLISION_HALF,
   HERO_RADIUS,
@@ -12,8 +12,6 @@ import {
 } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
-
-const FRAME = 1 / 60;
 
 // Each test moves the hero, so each gets a fresh small world (not the cached one).
 const freshModel = () => new GameModel(1, TEST_MAP_SIZE);

@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { clockAt, timeOfDay } from '../src/model/clock';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { fresh } from './support/testWorld';
 
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 // Saved, stored as text and read back into a new game of the same world.
 const reload = (model: GameModel) => {
   const again = fresh();

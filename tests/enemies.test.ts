@@ -2,15 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
-import type { Enemy, EnemyKind } from '../src/model/types';
+import { FRAME, TEST_MAP_SIZE, fresh, nearest } from './support/testWorld';
+import type { Enemy } from '../src/model/types';
 
-const FRAME = 1 / 60;
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 const WOLF_SIGHT = ENEMY_STATS.wolf.sight;
 const WOLF_GIVE_UP = ENEMY_STATS.wolf.giveUp;
-const nearest = (model: GameModel, kind: EnemyKind = 'wolf'): Enemy =>
-  model.enemies.filter((e) => e.kind === kind).reduce((a, b) => (Math.hypot(a.x - model.hero.x, a.z - model.hero.z) < Math.hypot(b.x - model.hero.x, b.z - model.hero.z) ? a : b));
 
 // Puts the wolf right in front of the hero (hero facing +X) and holds it there.
 function faceToFace(model: GameModel, wolf: Enemy): void {

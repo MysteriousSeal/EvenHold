@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS, FOCUS_RANGE } from '../src/model/constants';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
-
-const FRAME = 1 / 60;
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+import { FRAME, fresh } from './support/testWorld';
 
 describe('enemy focus', () => {
   it('focuses a living enemy by id; not a dead one, and null lets go', () => {

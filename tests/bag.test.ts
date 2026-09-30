@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GameModel } from '../src/model/GameModel';
 import { addToBag, bagLayout, moveInBag, takeFromBag, type Bag } from '../src/model/hero/bag';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
-
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+import { fresh } from './support/testWorld';
 
 describe('the bag', () => {
   it('holds loot and gear under ids that never clash', () => {

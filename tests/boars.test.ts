@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { LOOT, LOOT_QUALITY, rollDrop } from '../src/model/loot/loot';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const FRAME = 1 / 60;
 const fresh = (seed = TEST_SEEDS[0]) => new GameModel(seed, TEST_MAP_SIZE);
 const boarsOf = (model: GameModel) => model.enemies.filter((e) => e.kind === 'boar');
 

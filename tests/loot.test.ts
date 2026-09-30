@@ -1,16 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { GameModel } from '../src/model/GameModel';
-import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
+import { ENEMY_STATS } from '../src/model/constants';
 import { DROP_CHANCE, LOOT, LOOT_IDS, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
 import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { QUEST_ITEMS } from '../src/model/quests/questItems';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { fresh, slay } from './support/testWorld';
 
-const FRAME = 1 / 60;
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 const drops = (source: LootSource) => Array.from({ length: 400 }, (_, id) => rollDrop(source, id));
 
 describe('loot ids', () => {
@@ -61,13 +58,7 @@ describe('picking up loot', () => {
     model.godMode = true;
     const wolf = model.enemies.find((e) => e.kind === 'wolf' && rollDrop('beast', e.id) !== null)!;
     model.enemies.splice(0, model.enemies.length, wolf);
-    model.update(1, 0, 1e-6); // face +X
-    for (let blow = 0; blow < wolf.maxHp && wolf.state !== 'dead'; blow++) {
-      wolf.x = model.hero.x + 0.6;
-      wolf.z = model.hero.z;
-      model.startAttack();
-      for (let t = 0; t < ATTACK_DURATION + FRAME; t += FRAME) model.update(0, 0, FRAME);
-    }
+    slay(model, wolf);
     expect(model.loot).toHaveLength(1);
     expect(model.loot[0].item).toBe(rollDrop('beast', wolf.id));
     expect(Math.hypot(model.loot[0].x - wolf.x, model.loot[0].z - wolf.z)).toBeLessThan(0.5);

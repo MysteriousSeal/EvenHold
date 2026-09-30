@@ -5,9 +5,8 @@ import { stepEnemy } from '../src/model/enemies/enemies';
 import { maxHpAt } from '../src/model/hero/heroStats';
 import { BLESSING_TIME, WELL_TOSS, blessAll, blowDamage, dropFactor, healOnKill, noticeFactor, xpGained, coinsFound, hitTaken, walkFactor } from '../src/model/hero/blessing';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { fresh } from './support/testWorld';
 
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 // The hero beside the first village's well (on an open tile next to it).
 const atWell = (model: GameModel) => {
   const v = model.villages[0];

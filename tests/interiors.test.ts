@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { roomFor } from '../src/model/interiors/interiors';
 import type { Furniture } from '../src/model/interiors/furniture';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const FRAME = 1 / 60;
 const withHouses = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 0)!;
 
 describe('interiors', () => {

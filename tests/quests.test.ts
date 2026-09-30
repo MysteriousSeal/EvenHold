@@ -4,9 +4,8 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
 import { RESPAWN_EVERY } from '../src/model/quests/questBook';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, fresh } from './support/testWorld';
 
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 const marked = (model: GameModel, key: string) => model.enemies.filter((e) => e.quest === key && e.state !== 'dead');
 const slay = (model: GameModel, key: string) => {
   const foe = marked(model, key)[0];

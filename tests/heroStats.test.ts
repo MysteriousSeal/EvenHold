@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { ATTACK_DURATION, ENEMY_STATS } from '../src/model/constants';
+import { ENEMY_STATS } from '../src/model/constants';
 import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/grid';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { FRAME, fresh, nearest, slay } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
-
-const FRAME = 1 / 60;
-const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
-const nearest = (model: GameModel, kind: 'wolf' | 'bandit') =>
-  model.enemies.filter((e) => e.kind === kind).reduce((a, b) => (Math.hypot(a.x - model.hero.x, a.z - model.hero.z) < Math.hypot(b.x - model.hero.x, b.z - model.hero.z) ? a : b));
 
 // One enemy right beside the hero, the only one in the world.
 function alone(model: GameModel, enemy: Enemy): Enemy {
@@ -122,13 +117,7 @@ describe('enemies hurt the hero', () => {
     const model = fresh();
     model.godMode = true;
     const wolf = alone(model, nearest(model, 'wolf'));
-    model.update(1, 0, 1e-6); // face +X, toward it
-    for (let blow = 0; blow < wolf.maxHp && wolf.state !== 'dead'; blow++) {
-      wolf.x = model.hero.x + 0.6;
-      wolf.z = model.hero.z;
-      model.startAttack();
-      for (let t = 0; t < ATTACK_DURATION + FRAME; t += FRAME) model.update(0, 0, FRAME);
-    }
+    slay(model, wolf);
     expect(wolf.state).toBe('dead');
     expect(model.hero.xp).toBe(ENEMY_STATS.wolf.xp);
   });
