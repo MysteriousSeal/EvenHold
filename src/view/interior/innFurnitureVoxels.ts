@@ -3,11 +3,11 @@
 // hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board).
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, MOSS, MOSS_DARK, type Box } from './furniturePalette';
 import { paintBed } from './bedVoxels';
 import type { Furniture } from '../../model/interiors/furniture';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'hallWall' | 'hallDoor' | 'roomBed' | 'doubleBed' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'hallWall' | 'hallDoor' | 'roomBed' | 'doubleBed' | 'wardrobe' | 'framedPicture' | 'bathtub' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
 
 const HALL_WALL = 5; // the hallway's walls' thickness, in voxels
 // A painter's frame turned end for end along its wall (u), to put a bed's head at its far end.
@@ -233,6 +233,41 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   // tiles' edge), its head at its far end (u), against the wall there.
   roomBed: (box, len, dep, item) => paintBed(offWall(headFar(box, len)), len, dep, false, item.cloth),
   doubleBed: (box, len, dep, item) => paintBed(offWall(headFar(box, len)), len, dep - HALL_WALL, true, item.cloth),
+  // A wardrobe, off the wall behind it: a tall dark body on a plinth under a
+  // lit crown, two lighter doors, iron hinges, brass knobs where they meet.
+  wardrobe: (box) => {
+    const b = offWall(box); // all of it off the wall
+    b(4, 1, 0, 22, 2, 12, WOOD_DARK); // plinth
+    b(5, 3, 0, 21, 29, 11, WOOD_DARK); // the body
+    b(4, 30, 0, 22, 31, 13, (_u, y, v) => (y === 31 && v === 13 ? WOOD_LIGHT : y === 31 ? WOOD : WOOD_DARK)); // the crown, overhanging, lit
+    for (const [u0, u1] of [[6, 12], [14, 20]]) b(u0, 4, 12, u1, 28, 12, (u, y) => (u === u0 || u === u1 || y === 4 || y === 28 ? WOOD : WOOD_LIGHT)); // the doors, framed
+    for (const [u, y] of [[6, 8], [6, 23], [20, 8], [20, 23]]) b(u, y, 13, u, y + 1, 13, IRON); // hinges
+    for (const u of [12, 14]) b(u, 15, 13, u, 16, 13, BRASS); // knobs
+  },
+  // A small picture propped on the rail of the low wall it's on: a gilded
+  // frame round a landscape (moss hills under a pale sky, a sun), toward the room (+v).
+  framedPicture: (box) => {
+    box(6, 7, 1, 18, 20, 3, (u, y) => (y === 7 || u === 6 ? BRASS_DARK : BRASS)); // the frame, shaded at its foot
+    box(8, 9, 3, 16, 18, 3, (u, y) => {
+      if (u === 14 && y === 16) return EMBER; // the sun
+      const hill = u < 12 ? 12 - Math.abs(u - 10) : 11 - Math.abs(u - 14) / 2; // two hills, the near one higher
+      return y <= hill ? (y <= 10 ? MOSS_DARK : MOSS) : PARCHMENT;
+    });
+  },
+  // A wooden tub, two tiles long, rounded: staves (every third a shade
+  // darker) bound by two iron hoops, a lit rim, water inside.
+  bathtub: (box, len, dep) => {
+    const [cu, cv] = [(len - 1) / 2, (dep - 1) / 2];
+    const [a, b] = [cu - 3, cv - 3]; // its half length and width
+    const inTub = (u: number, v: number, a: number, b: number) => (Math.abs(u - cu) / a) ** 4 + (Math.abs(v - cv) / b) ** 4 <= 1;
+    for (let u = 0; u < len; u++) {
+      for (let v = 0; v < dep; v++) {
+        if (!inTub(u, v, a, b)) continue;
+        if (inTub(u, v, a - 2, b - 2)) box(u, 1, v, u, 7, v, WATER); // the water
+        else box(u, 1, v, u, 10, v, (_u, y) => (y === 10 ? WOOD_LIGHT : y === 3 || y === 8 ? IRON : (u + v) % 3 === 0 ? WOOD_DARK : WOOD));
+      }
+    }
+  },
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
     for (const u of [1, len - 2]) box(u, 1, 0, u, 31, 8, WOOD); // sides
