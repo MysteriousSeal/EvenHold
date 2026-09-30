@@ -11,8 +11,8 @@
 
 import { hashCell, mulberry32 } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS } from '../constants';
-import { spawnOf, type MapSize } from '../grid';
-import type { Obstacles } from '../obstacles';
+import { spawnOf, type MapSize } from '../map/grid';
+import type { Obstacles } from '../map/obstacles';
 import type { Surface, Village } from '../types';
 
 export const RUIN_REGION = 512; // tiles a side of the stretch that has one

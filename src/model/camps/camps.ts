@@ -9,8 +9,8 @@
 // bandits are placed with the other foes (enemies/enemies.ts).
 
 import { CAMPFIRE_COLLISION_HALF, CAMP_PROP_COLLISION_HALF, PALISADE_THICKNESS, VILLAGE_OUTER_RADIUS } from '../constants';
-import { spawnOf, type MapSize } from '../grid';
-import type { Obstacles } from '../obstacles';
+import { spawnOf, type MapSize } from '../map/grid';
+import type { Obstacles } from '../map/obstacles';
 import type { Surface, Village } from '../types';
 import type { ForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';

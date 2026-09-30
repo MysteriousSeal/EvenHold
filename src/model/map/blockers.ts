@@ -10,14 +10,14 @@ import {
   FIELD_CORNER_COLLISION_HALF,
   LANTERN_COLLISION_HALF,
   TREE_COLLISION_HALF,
-} from './constants';
+} from '../constants';
 import type { MapSize } from './grid';
 import { Obstacles } from './obstacles';
-import type { Bush, Field, Tree, Village } from './types';
-import { fenceEdges } from './worldgen/fields';
-import { squareLanterns } from './worldgen/villages';
-import { noticeBoards, type BoardWorld } from './quests/noticeBoards';
-import { squareBenches, type BenchWorld } from './worldgen/benches';
+import type { Bush, Field, Tree, Village } from '../types';
+import { fenceEdges } from '../worldgen/fields';
+import { squareLanterns } from '../worldgen/villages';
+import { noticeBoards, type BoardWorld } from '../quests/noticeBoards';
+import { squareBenches, type BenchWorld } from '../worldgen/benches';
 
 const BOARD_COLLISION_HALF = 0.3;
 const BENCH_COLLISION_HALF = 0.3;

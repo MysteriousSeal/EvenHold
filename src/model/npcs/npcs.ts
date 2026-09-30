@@ -12,7 +12,7 @@ import { hashUnit } from '../../util/random';
 import { lookAt, type Build, type Humanoid } from '../human/humanoid';
 import type { Entrance } from '../interiors/interiors';
 import type { Seat } from '../interiors/furniture';
-import type { Point } from '../obstacles';
+import type { Point } from '../map/obstacles';
 import type { Field, Village } from '../types';
 
 export const NPC_RADIUS = 0.14; // as wide as the hero

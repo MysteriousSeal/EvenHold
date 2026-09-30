@@ -4,7 +4,7 @@
 // tile edges), and a diagonal only if both straight steps around it are
 // clear too, so it never cuts a corner.
 
-import { MinHeap } from '../util/MinHeap';
+import { MinHeap } from '../../util/MinHeap';
 
 export interface Point {
   x: number;

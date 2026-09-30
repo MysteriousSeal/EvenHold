@@ -23,7 +23,7 @@ import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
 import { spawnEnemies } from './enemies/enemies';
-import { spawnOf } from './grid';
+import { spawnOf } from './map/grid';
 
 const VERSION = 1;
 

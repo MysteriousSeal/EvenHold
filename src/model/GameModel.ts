@@ -18,7 +18,7 @@ import {
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
 } from './constants';
-import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './grid';
+import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
@@ -27,8 +27,8 @@ import { untrained } from './hero/training';
 import { maxHpOf } from './hero/attributes';
 import { blowTaken, blowTarget, heroBlow } from './hero/combat';
 import { HERO_LOOK } from './human/humanoid';
-import type { Obstacles } from './obstacles';
-import { worldObstacles } from './blockers';
+import type { Obstacles } from './map/obstacles';
+import { worldObstacles } from './map/blockers';
 import { stepHop, type Hop } from './hero/hop';
 import { DROP_CHANCE, rollDrop, type GroundLoot } from './loot/loot';
 import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
@@ -38,7 +38,7 @@ import type { EquipSlot, ItemId } from './human/equipment';
 import { putOn, takeOff } from './hero/wearing';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
-import { onPaving } from './roads';
+import { onPaving } from './map/roads';
 import { entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
 import { doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
@@ -112,7 +112,7 @@ export class GameModel {
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
   // `size` defaults to the game's map; tests pass small worlds.
-  // `world`: the seed's, made already (kept from an earlier visit: controller/worldCache.ts), else made now.
+  // `world`: the seed's, made already (kept from an earlier visit: controller/storage/worldCache.ts), else made now.
   constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE, world: World = generateWorld(seed, size)) {
     this.seed = seed;
 

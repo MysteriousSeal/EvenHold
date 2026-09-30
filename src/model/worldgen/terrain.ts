@@ -2,7 +2,7 @@
 // height grid — no lake/tree/hero knowledge.
 
 import { MAX_TIER, NOISE_SCALE } from '../constants';
-import { sizeOf, type MapSize } from '../grid';
+import { sizeOf, type MapSize } from '../map/grid';
 
 export function generateHeightMap(noise2D: (x: number, y: number) => number, size: MapSize): number[][] {
   const map: number[][] = new Array(size.width);

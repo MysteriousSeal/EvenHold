@@ -4,7 +4,7 @@
 // so adding bushes didn't reshuffle any seed's existing map.
 
 import { BUSH_CHANCE, BUSH_SHAPES } from '../constants';
-import { cellLookup, sizeOf } from '../grid';
+import { cellLookup, sizeOf } from '../map/grid';
 import { firstRoll, hashCell, mulberry32 } from '../../util/random';
 import type { Bush, BushKind, Surface, Tree } from '../types';
 import type { MeadowDensity } from './meadows';

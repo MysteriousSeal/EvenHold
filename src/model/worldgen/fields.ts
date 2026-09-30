@@ -4,7 +4,7 @@
 // bushes (which then keep off the crops). Choices come from a per-village
 // hash, not the world rng, so fields don't shift anything drawn after them.
 
-import { NEIGHBORS_4, cellLookup, inBounds, sizeOf } from '../grid';
+import { NEIGHBORS_4, cellLookup, inBounds, sizeOf } from '../map/grid';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Field, Surface, Village } from '../types';
 

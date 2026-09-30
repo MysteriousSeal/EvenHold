@@ -8,8 +8,8 @@
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { enemyLevel, enemyPower } from '../enemies/enemyLevels';
-import type { MapSize } from '../grid';
-import { spawnOf } from '../grid';
+import type { MapSize } from '../map/grid';
+import { spawnOf } from '../map/grid';
 import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 

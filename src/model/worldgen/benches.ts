@@ -6,7 +6,7 @@
 // the hero (E), or villagers on their stroll round the square.
 
 import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, VILLAGE_OUTER_RADIUS as R } from '../constants';
-import { NEIGHBORS_4, cellKey } from '../grid';
+import { NEIGHBORS_4, cellKey } from '../map/grid';
 import type { Seat } from '../interiors/furniture';
 import { entrancesOf } from '../interiors/interiors';
 import { noticeBoards, type BoardWorld } from '../quests/noticeBoards';

@@ -9,7 +9,7 @@
 // choices come from hashes of where they are, so tests are repeatable.
 
 import { hashUnit } from '../../util/random';
-import { inBounds, type MapSize } from '../grid';
+import { inBounds, type MapSize } from '../map/grid';
 import type { Surface, Tree, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { stepGroup } from './group';

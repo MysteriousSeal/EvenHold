@@ -5,7 +5,7 @@ import type { BuildingType, Entrance } from './interiors/interiors';
 import { enemyLevel } from './enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
-import { NEIGHBORS_4, spawnOf } from './grid';
+import { NEIGHBORS_4, spawnOf } from './map/grid';
 import { makeEnemy } from './enemies/enemies';
 import type { EnemyKind, Village } from './types';
 import type { Ruin } from './ruins/ruins';

@@ -4,9 +4,9 @@
 // Shared by collision height (the hero walks on top of the road), ground
 // cover (grass lines the road but never grows on it), and the road mesh.
 
-import { ROAD_WIDTH } from './constants';
+import { ROAD_WIDTH } from '../constants';
 import { NEIGHBORS_4, inBounds, sizeOf, toCellX, toCellZ } from './grid';
-import type { Surface } from './types';
+import type { Surface } from '../types';
 
 const isPaved = (surface: Surface) => surface === 'path' || surface === 'plaza';
 

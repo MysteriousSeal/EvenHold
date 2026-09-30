@@ -4,7 +4,7 @@
 // through its own rng, so it never shifts the main world-generation stream.
 
 import { MAX_TIER, TREE_CHANCE, TREE_SHAPES } from '../constants';
-import { cellLookup, sizeOf } from '../grid';
+import { cellLookup, sizeOf } from '../map/grid';
 import { createNoise2D } from 'simplex-noise';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Surface, Tree, TreeKind } from '../types';

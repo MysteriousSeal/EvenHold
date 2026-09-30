@@ -1,7 +1,7 @@
 // Lake/basin generation. Depends on the height grid, not on trees or the hero.
 
 import { WATER_LEVEL, LAKE_NOISE_SCALE, MIN_LAKE_SIZE } from '../constants';
-import { sizeOf } from '../grid';
+import { sizeOf } from '../map/grid';
 
 // Water physically can't flood part of a connected low-lying basin and
 // leave the rest dry — it finds its own level. So instead of deciding

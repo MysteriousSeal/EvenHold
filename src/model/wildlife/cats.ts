@@ -12,7 +12,7 @@
 import { hashUnit } from '../../util/random';
 import type { Seat } from '../interiors/furniture';
 import type { Seated } from '../interiors/indoors';
-import type { MapSize } from '../grid';
+import type { MapSize } from '../map/grid';
 import type { Village } from '../types';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
 import { rollAt, stepToward } from './moving';

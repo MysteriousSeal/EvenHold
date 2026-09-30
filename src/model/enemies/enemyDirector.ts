@@ -16,9 +16,9 @@ import {
   ENEMY_STATS,
 } from '../constants';
 import { stepEnemy, type EnemyActions } from './enemies';
-import type { MapSize } from '../grid';
-import { clearLine, type Obstacles, type Point } from '../obstacles';
-import { findPath } from '../pathfinding';
+import type { MapSize } from '../map/grid';
+import { clearLine, type Obstacles, type Point } from '../map/obstacles';
+import { findPath } from '../map/pathfinding';
 import type { Enemy, Hero } from '../types';
 
 export class EnemyDirector {

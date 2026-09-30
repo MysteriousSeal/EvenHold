@@ -4,7 +4,7 @@
 // before trees (which avoid trails).
 
 import { VILLAGE_PLAZA_RADIUS } from '../constants';
-import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../grid';
+import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../map/grid';
 import { MinHeap } from '../../util/MinHeap';
 import type { Surface, Village } from '../types';
 

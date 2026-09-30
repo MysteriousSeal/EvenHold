@@ -9,7 +9,7 @@
 // choices come from hashes of where they are, so tests are repeatable.
 
 import { TILE_HEIGHT, WATER_LEVEL } from '../constants';
-import { inBounds, type MapSize } from '../grid';
+import { inBounds, type MapSize } from '../map/grid';
 import { hashUnit } from '../../util/random';
 import { stepGroup } from './group';
 import { stepToward } from './moving';

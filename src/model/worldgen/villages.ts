@@ -19,7 +19,7 @@ import {
   LANE_HOUSE_CHANCE,
   SQUARE_HOUSE_CHANCE,
 } from '../constants';
-import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../grid';
+import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../map/grid';
 import { shuffle } from '../../util/random';
 import type { Building, BuildingKind, House, Surface, Village } from '../types';
 

@@ -4,8 +4,8 @@
 // easing off the hero when they overlap. And where they fit in a room.
 
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
-import { findPath } from '../pathfinding';
-import type { Point } from '../obstacles';
+import { findPath } from '../map/pathfinding';
+import type { Point } from '../map/obstacles';
 import type { Entrance } from '../interiors/interiors';
 import { bumpsFurniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';

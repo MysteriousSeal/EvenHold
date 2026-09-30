@@ -14,7 +14,7 @@ import { hashUnit } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
 import { lookAt } from '../human/humanoid';
 import { enemyLevel, enemyPower } from './enemyLevels';
-import type { MapSize } from '../grid';
+import type { MapSize } from '../map/grid';
 
 interface Sites {
   grid: number; // one candidate site per grid x grid tiles

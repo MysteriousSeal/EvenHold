@@ -1,4 +1,4 @@
-import { MAP_DEPTH, MAP_WIDTH } from './constants';
+import { MAP_DEPTH, MAP_WIDTH } from '../constants';
 
 // A world's size in tiles. Every map in a world (heights, lakes, surfaces)
 // is indexed [x][z] with these dimensions.

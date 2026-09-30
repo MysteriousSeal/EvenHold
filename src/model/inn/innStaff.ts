@@ -7,7 +7,7 @@
 //   tables, the ones with folk sat round them first, pausing at each.
 
 import { hashUnit } from '../../util/random';
-import type { Point } from '../obstacles';
+import type { Point } from '../map/obstacles';
 import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';

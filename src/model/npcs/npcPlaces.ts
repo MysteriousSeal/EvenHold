@@ -5,7 +5,7 @@
 
 import { VILLAGE_OUTER_RADIUS } from '../constants';
 import { hashUnit } from '../../util/random';
-import type { Point } from '../obstacles';
+import type { Point } from '../map/obstacles';
 import type { Field } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';

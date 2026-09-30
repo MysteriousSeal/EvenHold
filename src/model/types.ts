@@ -1,5 +1,5 @@
 import type { Blessing } from './hero/blessing';
-import type { MapSize } from './grid';
+import type { MapSize } from './map/grid';
 import type { Humanoid } from './human/humanoid';
 import type { Bag, BagItem } from './hero/bag';
 import type { Ruin } from './ruins/ruins';

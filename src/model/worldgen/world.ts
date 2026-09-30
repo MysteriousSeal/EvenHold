@@ -5,7 +5,7 @@
 import { createNoise2D } from 'simplex-noise';
 import { mulberry32 } from '../../util/random';
 import { LAKE_THRESHOLD_MIN, LAKE_THRESHOLD_MAX } from '../constants';
-import { DEFAULT_MAP_SIZE, cellKey, spawnOf, type MapSize } from '../grid';
+import { DEFAULT_MAP_SIZE, cellKey, spawnOf, type MapSize } from '../map/grid';
 import type { Bush, Surface, World } from '../types';
 import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
