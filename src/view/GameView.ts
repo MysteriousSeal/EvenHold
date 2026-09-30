@@ -8,6 +8,7 @@ import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
 import { smithWorking } from '../model/smithy/smithWork';
+import { talkingTo } from '../model/npcs/talk';
 import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
@@ -255,7 +256,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
-    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, model.barmaidInReach);
+    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, talkingTo(model.npcs, model.inside, model.hero)); // (whoever can be talked to: their name gives way to the prompt)
     if (room) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still

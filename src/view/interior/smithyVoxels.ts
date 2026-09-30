@@ -112,16 +112,18 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     box(20, 10, 12, 20, 13, 12, WOOD_LIGHT); // the crank's handle
     box(3, 1, 17, 9, 1, 19, WOOD_LIGHT); // the pedal
   },
-  // Hung on a wall: a board of his tools, tongs, two hammers and a file.
+  // Hung on a wall: a board of his tools, tongs, two hammers and a file
+  // (its foot over a counter's top, should one stand below).
   toolBoard: (box) => {
-    box(3, 13, 0, 21, 29, 1, (u, y) => (u === 3 || u === 21 || y === 13 || y === 29 ? WOOD_DARK : WOOD)); // the board, framed
-    for (const u of [6, 8]) box(u, 15, 2, u, 26, 2, IRON); // the tongs' jaws and handles,
-    box(6, 22, 2, 8, 22, 2, IRON_LIGHT); // their pivot
-    box(12, 15, 2, 12, 24, 2, WOOD_DARK); // a hammer: its handle,
-    box(10, 25, 2, 14, 27, 2, IRON); // its head
-    box(17, 16, 2, 17, 26, 2, IRON_LIGHT); // a file,
-    box(17, 14, 2, 17, 15, 2, WOOD_DARK); // its handle
-    box(20, 17, 2, 20, 23, 2, WOOD); // a small hammer
-    box(19, 24, 2, 20, 25, 2, IRON);
+    box(3, 17, 0, 21, 30, 1, (u, y) => (u === 3 || u === 21 || y === 17 || y === 30 ? WOOD_DARK : WOOD)); // the board, framed
+    for (const u of [6, 8]) box(u, 19, 2, u, 28, 2, IRON); // the tongs' jaws and handles,
+    box(6, 25, 2, 8, 25, 2, IRON_LIGHT); // their pivot
+    box(12, 19, 2, 12, 25, 2, WOOD_DARK); // a hammer: its handle,
+    box(10, 26, 2, 14, 28, 2, IRON); // its head
+    box(17, 21, 2, 17, 28, 2, IRON_LIGHT); // a file,
+    box(17, 19, 2, 17, 20, 2, WOOD_DARK); // its handle
+    box(20, 20, 2, 20, 25, 2, WOOD); // a small hammer
+    box(19, 26, 2, 20, 27, 2, IRON);
   },
+
 };
