@@ -35,6 +35,7 @@ import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
 import { gainXp, xpToNext } from '../../model/hero/heroStats';
 import { maxHpOf } from '../../model/hero/attributes';
+import { refundPoints } from '../../model/hero/training';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/hero/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
@@ -160,6 +161,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             detail: 'Just enough experience for the next',
             run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
           },
+          { icon: ICON.hero, title: 'Take back stat points', detail: 'Every point spent, back to spend again', run: () => (refundPoints(model.hero), `${model.hero.statPoints} points to spend.`) },
           {
             icon: ICON.swiftFeet,
             title: 'Run fast',

@@ -1,0 +1,56 @@
+/* The level-up window (levelUpPanel.ts), over menu.css's look: a row for each
+   stat (its name and what it does, its value, − and +), what the plan comes
+   to under them, and Reset and Confirm. */
+
+.menu[aria-label='Level up'] { width: min(520px, 100%); }
+.levelup { display: flex; flex-direction: column; gap: 8px; }
+.levelup-points { font-size: 15px; font-weight: 700; color: var(--clay-dark); text-align: center; margin-bottom: 4px; }
+
+.levelup-stat {
+  display: grid;
+  grid-template-columns: 1fr auto 36px 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--sand-light);
+  border: 1px solid var(--line);
+}
+.levelup-stat.planned { background: #fff6dc; border-color: var(--ember); }
+.levelup-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.levelup-name { font-size: 15px; }
+.levelup-does { font-size: 12px; color: var(--ink-soft); }
+.levelup-value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+.levelup-stat.planned .levelup-value { color: #217c98; }
+
+.levelup-step, .levelup-button {
+  position: relative;
+  font: 700 16px 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--sand);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  cursor: pointer;
+}
+.levelup-step { width: 36px; height: 32px; padding: 0; }
+.levelup-step:hover:not(:disabled), .levelup-button:hover:not(:disabled) { background: var(--lantern); }
+.levelup-step:active:not(:disabled), .levelup-button:active:not(:disabled) { box-shadow: 0 1px 0 var(--ink); transform: translateY(2px); }
+.levelup-step:disabled, .levelup-button:disabled { opacity: 0.35; cursor: default; }
+.levelup-step::after, .levelup-button::after { content: ''; position: absolute; inset: -4px -3px -6px; } /* clickable over its rim and as it sinks */
+
+.levelup-effects {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 10px 0 4px;
+  border-top: 2px dashed var(--line);
+  text-align: center;
+}
+.levelup-effect dt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.levelup-effect dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.levelup-effect.up dd { color: #217c98; }
+
+.levelup-buttons { display: flex; justify-content: space-between; margin-top: 8px; }
+.levelup-button { padding: 7px 18px; font-size: 15px; }
+.levelup-button.confirm:not(:disabled) { color: #fff; background: #3dbdb8; text-shadow: 1px 1px 0 var(--ink); }
+.levelup-button.confirm:hover:not(:disabled) { background: #5ad0cb; }

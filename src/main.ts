@@ -15,6 +15,7 @@ import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/loot
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/inventoryPanel';
 import { createShopPanel } from './controller/shopPanel';
+import { createLevelUpPanel } from './controller/levelUpPanel';
 import { createSmithPanel } from './controller/smithPanel';
 import { talkPrompt, talkingTo } from './model/npcs/talk';
 import { createBar, orderLabel } from './controller/barOrder';
@@ -91,7 +92,8 @@ async function boot(): Promise<void> {
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
-  const sheet = createHeroSheet(model);
+  const levelUp = createLevelUpPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
   const pause = createPauseMenu({
     setPaused: (paused) => (controller.paused = paused),
     redraw: () => {
@@ -189,6 +191,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
+      else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${event.points} point${event.points === 1 ? '' : 's'} to spend (P)`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + ENEMY_TEXT_HEIGHT[event.on as keyof typeof ENEMY_TEXT_HEIGHT] + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');

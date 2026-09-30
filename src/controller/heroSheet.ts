@@ -11,7 +11,11 @@ import { ITEMS, SLOT_NAMES, type EquipSlot } from '../model/human/equipment';
 import { xpToNext } from '../model/hero/heroStats';
 import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf } from '../model/hero/attributes';
 import { STATS, STAT_NAMES, type Stat } from '../model/hero/statKinds';
+import { POINTS_PER_LEVEL } from '../model/hero/training';
+
+const pointsWord = (n: number) => `${n} point${n === 1 ? '' : 's'}`; // "1 point", "3 points"
 import { gearLines } from './gearLines';
+import { STAT_DOES } from './statText';
 import { humanFigure } from '../view/meshes/human/humanFigure';
 import { gearIcon, slotPlaceholder } from '../view/ui/itemIcons';
 import { createMenu, type DollSlot, type Menu } from '../view/ui/menu';
@@ -23,7 +27,8 @@ const BOTTOM: EquipSlot[] = ['mainHand', 'offHand'];
 
 // Returns the function to call each frame: it redraws the sheet when the
 // hero's gear or stats changed.
-export function createHeroSheet(model: GameModel): { menu: Menu; update(): void } {
+// `levelUp`: opens the level-up window (P), to spend points.
+export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = {}): { menu: Menu; update(): void } {
   const { hero } = model;
   const stage = new FigureStage(180, 250); // the hero, turning slowly
   let dressedAs = '';
@@ -73,27 +78,34 @@ export function createHeroSheet(model: GameModel): { menu: Menu; update(): void 
           const gear = gearStats(hero);
           const percent = (chance: number) => `${Math.round(chance * 100)}%`;
           const armor = armorOf(hero);
-          const soFrom = (s: Stat) => `${stats[s] - gear[s]} from your level${gear[s] ? `, +${gear[s]} from your gear` : ''}`; // (0 at level 1)
-          // What each stat does, on hover.
-          const DOES: Record<Stat, string> = {
-            strength: 'Harder blows: +1 damage for every 3',
-            agility: 'A 1% chance a point to dodge a blow, and to land a critical one (double damage)',
-            stamina: '+2 health a point',
-            endurance: '+5 energy a point, and slower to tire',
-          };
+          const soFrom = (s: Stat) => `${stats[s] - gear[s]} from points you've spent${gear[s] ? `, +${gear[s]} from your gear` : ''}`;
           // Two columns (menu.css): the hero on the left, their stats and what they come to on the right.
           return [
-            ['Level', String(hero.level), ['Each level past the first: a point more in every stat, and health back in full']],
+            ['Level', String(hero.level), [`Each level: ${pointsWord(POINTS_PER_LEVEL)} to spend on your stats (P), 2 more health, and health back in full`]],
             ['Experience', `${hero.xp} / ${xpToNext(hero.level)}`, [`${xpToNext(hero.level) - hero.xp} more to level ${hero.level + 1}`, 'Won by slaying foes and handing in quests']],
             ['Health', `${Math.floor(hero.hp)} / ${maxHpOf(hero)}`, ['More with Stamina', 'Never comes back by itself: eat, drink, or sleep in a bed']],
             ['Energy', `${Math.floor(hero.energy)} / ${maxEnergyOf(hero)}`, ['More with Endurance', 'Spent through the day, slept back in a bed', 'Under a quarter: tired, a slower walk']],
             ['Armour', String(armor), [`${Math.floor(armor / 5)} less damage from each blow taken (1 for every 5), never under 1`, 'From what you wear']],
             ['Damage', `${blowOf(hero)} a blow`, ['More with Strength', 'Double on a critical blow']],
             ['Speed', `${HERO_SPEED} a second`, ['Tiles walked in a second (slower when tired)']],
-            ...STATS.map((s): [string, string, string[]] => [STAT_NAMES[s], gear[s] ? `${stats[s]} (+${gear[s]})` : String(stats[s]), [DOES[s], soFrom(s)]]),
+            ['Points', String(hero.statPoints), [`To spend on your stats, in the level-up window (P)`, `${pointsWord(POINTS_PER_LEVEL)} more with each level`]],
+            ...STATS.map((s): [string, string, string[]] => [STAT_NAMES[s], gear[s] ? `${stats[s]} (+${gear[s]})` : String(stats[s]), [STAT_DOES[s], soFrom(s)]]),
             ['Dodge', percent(dodgeChanceOf(hero)), ['The chance an enemy\'s blow misses you', 'More with Agility (at most 40%)']],
             ['Critical', percent(critChanceOf(hero)), ['The chance a blow of yours does double damage', 'More with Agility (at most 40%)']],
           ];
+        },
+        // Points to spend: a button to the level-up window.
+        footer: () => {
+          const box = document.createElement('div');
+          box.className = 'sheet-points';
+          if (hero.statPoints > 0 && hooks.levelUp) {
+            const button = document.createElement('button');
+            button.className = 'sheet-spend';
+            button.textContent = `Spend ${hero.statPoints} point${hero.statPoints > 1 ? 's' : ''} (P)`;
+            button.addEventListener('click', () => hooks.levelUp!());
+            box.append(button);
+          }
+          return box;
         },
       },
     ],
@@ -101,7 +113,7 @@ export function createHeroSheet(model: GameModel): { menu: Menu; update(): void 
   let shown = '';
   const update = () => {
     if (menu.isOpen) stage.render();
-    const state = `${JSON.stringify(hero.equipment)}|${hero.level}|${hero.xp}|${Math.floor(hero.hp)}|${Math.floor(hero.energy)}`;
+    const state = `${JSON.stringify(hero.equipment)}|${hero.level}|${hero.xp}|${Math.floor(hero.hp)}|${Math.floor(hero.energy)}|${hero.statPoints}|${JSON.stringify(hero.trained)}`;
     if (state === shown) return;
     shown = state;
     menu.refresh();
