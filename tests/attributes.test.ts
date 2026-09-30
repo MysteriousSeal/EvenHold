@@ -29,11 +29,14 @@ describe("the hero's stats", () => {
     expect([armorOf(hero), maxHpOf(hero), maxEnergyOf(hero), blowOf(hero), dodgeChanceOf(hero), critChanceOf(hero)]).toEqual([0, maxHpAt(1), MAX_ENERGY, 1, 0, 0]);
   });
 
-  it('grow a point each a level, health as it always did', () => {
+  it("don't grow by themselves with levels (points do: training.ts); health does, as it always did", () => {
     const { hero } = fresh();
     hero.level = 4;
-    expect(Object.values(statsOf(hero))).toEqual([3, 3, 3, 3]);
+    expect(Object.values(statsOf(hero))).toEqual([0, 0, 0, 0]);
     expect(maxHpOf(hero)).toBe(maxHpAt(4));
+    hero.trained.stamina = 2;
+    expect(statsOf(hero).stamina).toBe(2);
+    expect(maxHpOf(hero)).toBe(maxHpAt(4) + 4);
   });
 
   it('take what gear adds: Strength for harder blows, Stamina for health, Agility for dodges and critical blows, Endurance for energy; armour off blows taken', () => {

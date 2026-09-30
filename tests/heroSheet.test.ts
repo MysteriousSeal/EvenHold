@@ -2,6 +2,8 @@
 // The hero sheet (C) in a stand-in page: its figure and icons are plain canvases.
 import { describe, expect, it, vi } from 'vitest';
 import { createHeroSheet } from '../src/controller/heroSheet';
+import { createLevelUpPanel } from '../src/controller/levelUpPanel';
+import { maxHpOf } from '../src/model/hero/attributes';
 import { ITEMS } from '../src/model/human/equipment';
 import { fresh } from './support/testWorld';
 
@@ -32,5 +34,52 @@ describe('the hero sheet', () => {
     expect(tip()).toContain('less damage from each blow');
     fact('Armour').dispatchEvent(new MouseEvent('mouseleave'));
     expect(tip()).toBe('');
+  });
+});
+
+const levelUp = () => Array.from(document.querySelectorAll<HTMLElement>('.menu')).find((m) => m.getAttribute('aria-label') === 'Level up')!;
+const row = (name: string) => Array.from(levelUp().querySelectorAll<HTMLElement>('.levelup-stat')).find((r) => r.querySelector('.levelup-name')!.textContent === name)!;
+const button = (within: HTMLElement, text: string) => Array.from(within.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === text)!;
+
+describe('the level-up window', () => {
+  it('plans points on the stats, shows what they come to, and spends them only on Confirm', () => {
+    document.body.replaceChildren();
+    const model = fresh();
+    model.hero.statPoints = 3;
+    const paused: boolean[] = [];
+    const panel = createLevelUpPanel(model, { setPaused: (p) => paused.push(p) });
+    panel.menu.open();
+    expect(paused).toEqual([true]);
+    expect(levelUp().querySelector('.levelup-points')!.textContent).toBe('3 of 3 points left to spend');
+    button(row('Stamina'), '+').click();
+    button(row('Stamina'), '+').click();
+    button(row('Strength'), '+').click();
+    expect(button(row('Agility'), '+').disabled).toBe(true); // none left
+    expect(row('Stamina').querySelector('.levelup-value')!.textContent).toBe('0 → 2');
+    const health = Array.from(levelUp().querySelectorAll('.levelup-effect')).find((e) => e.querySelector('dt')!.textContent === 'Health')!;
+    expect(health.querySelector('dd')!.textContent).toBe(`${maxHpOf(model.hero)} → ${maxHpOf(model.hero) + 4}`);
+    expect(model.hero.trained.stamina).toBe(0); // only planned
+    button(row('Stamina'), '−').click();
+    button(levelUp(), 'Reset').click();
+    expect(row('Strength').querySelector('.levelup-value')!.textContent).toBe('0');
+    button(row('Stamina'), '+').click();
+    const hp = model.hero.hp;
+    button(levelUp(), 'Confirm').click();
+    expect([model.hero.statPoints, model.hero.trained.stamina, model.hero.hp]).toEqual([2, 1, hp + 2]); // spent, and the health it adds with it
+    panel.menu.close();
+    expect(paused).toEqual([true, false]);
+  });
+
+  it('opens from the hero sheet when there are points to spend', () => {
+    document.body.replaceChildren();
+    const model = fresh();
+    let opened = 0;
+    const sheet = createHeroSheet(model, { levelUp: () => opened++ });
+    sheet.menu.open();
+    expect(document.querySelector('.sheet-spend')).toBeNull(); // none to spend
+    model.hero.statPoints = 3;
+    sheet.menu.refresh();
+    document.querySelector<HTMLButtonElement>('.sheet-spend')!.click();
+    expect(opened).toBe(1);
   });
 });
