@@ -3,7 +3,7 @@
 // seeded randomness under world generation, and the seed in the URL.
 import { describe, expect, it } from 'vitest';
 import { MinHeap } from '../src/util/MinHeap';
-import { generateRandomSeed, hashCell, hashUnit, mulberry32, shuffle, snapTo } from '../src/util/random';
+import { firstRoll, generateRandomSeed, hashCell, hashUnit, mulberry32, shuffle, snapTo } from '../src/util/random';
 import { resolveSeed } from '../src/util/seed';
 
 describe('the min-heap', () => {
@@ -133,5 +133,11 @@ describe('the seed in the URL', () => {
     expect(Number.isInteger(seed)).toBe(true);
     expect(new URLSearchParams(window.location.search).get('seed')).toBe(String(seed));
     expect(resolveSeed()).toBe(seed); // the same page, the same world
+  });
+});
+
+describe('the first roll', () => {
+  it.each([0, 1, 7, 12345, -9, 2 ** 31 - 1, 0xdeadbeef])("is mulberry32(%i)'s first number, without making it", (seed) => {
+    expect(firstRoll(seed)).toBe(mulberry32(seed)());
   });
 });
