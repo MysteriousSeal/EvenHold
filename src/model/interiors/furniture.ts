@@ -161,7 +161,6 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
       if (stool) stool.facing = [-1, 0]; // toward the bar
     }
     place('keg', 1, 1, 'left', [[0, 0]]); // behind the bar, its tap facing the counter
-    place('keg', 1, 1, 'back', [[2, 0]]); // and one beside it
     // In the front corner past the bar, the stairs up: two long, out from the left wall into the
     // room, climbing from the room toward the wall (the floor above's stairwell in the same corner).
     place('stairs', 2, 1, 'none', [[0, room.depth - 1]]);
