@@ -19,6 +19,8 @@ import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs'
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
+import { spawnEnemies } from './enemies/enemies';
+import { spawnOf } from './grid';
 
 const VERSION = 1;
 
@@ -45,6 +47,7 @@ export interface SaveData {
     blessings?: Blessing[]; // a well's, and how long it has left
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
+  foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
   loot: Array<{ item: BagItem; x: number; z: number }>;
   coins: Array<{ amount: number; x: number; z: number }>;
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
@@ -85,6 +88,7 @@ export function snapshot(model: GameModel): SaveData {
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
+    foes: foesOf(model),
     enemies: {
       gone: [...model.slain],
       changed: model.enemies
@@ -163,12 +167,15 @@ export function restore(model: GameModel, data: SaveData): void {
   } else {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
   }
-  // Foes: the slain gone, the hurt and the wandered where they were.
-  const gone = new Set(data.enemies.gone);
+  // Foes: the slain gone, the hurt and the wandered where they were; but only
+  // if the world's foes are those the save knew (the game since changed how
+  // they're spawned, or an older save: they're left as the seed makes them).
+  const sameFoes = data.foes === foesOf(model);
+  const gone = new Set(sameFoes ? data.enemies.gone : []);
   for (let i = model.enemies.length - 1; i >= 0; i--) if (gone.has(model.enemies[i].id)) model.enemies.splice(i, 1);
   for (const id of gone) model.slain.add(id);
   const enemies = new Map(model.enemies.map((e) => [e.id, e]));
-  for (const change of data.enemies.changed) {
+  for (const change of sameFoes ? data.enemies.changed : []) {
     const enemy = enemies.get(change.id);
     if (!enemy) continue;
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
@@ -189,4 +196,20 @@ export function restore(model: GameModel, data: SaveData): void {
     Object.assign(npc, { x: saved.x, z: saved.z, stop: saved.stop, steps: [], path: null, seat: null, stood: null, waited: 0, working: false });
     npc.y = npc.where ? 0 : model.getGroundY(npc.x, npc.z);
   }
+}
+
+// A fingerprint of the world's foes as its seed spawns them (each one's id,
+// kind and home): a save's foes (by id) only fit a world with the same. Worked
+// out once a game (spawning them afresh, the hero at the start, as the world did).
+const fingerprints = new WeakMap<GameModel, string>();
+function foesOf(model: GameModel): string {
+  let print = fingerprints.get(model);
+  if (print === undefined) {
+    const world = { seed: model.seed, size: model.size, villages: model.villages, camps: model.camps, hero: spawnOf(model.size), isOpenTile: (x: number, z: number) => model.isOpenTile(x, z) };
+    let h = 2166136261;
+    for (const e of spawnEnemies(world)) for (const n of [e.id, e.kind.length, e.kind.charCodeAt(0), Math.round(e.homeX * 4), Math.round(e.homeZ * 4)]) h = Math.imul(h ^ n, 16777619) >>> 0;
+    print = h.toString(36);
+    fingerprints.set(model, print);
+  }
+  return print;
 }

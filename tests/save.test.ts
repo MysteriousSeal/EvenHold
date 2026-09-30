@@ -13,6 +13,26 @@ const reload = (model: GameModel) => {
 };
 
 describe('saving', () => {
+  it("sets aside its foes if the world's are no longer the ones it knew (an older save), keeping the rest", () => {
+    const model = fresh();
+    Object.assign(model.hero, { level: 3, money: 777 });
+    const foe = model.enemies[0];
+    foe.state = 'dead';
+    model.slain.add(foe.id);
+    model.enemies[1].hp = 1;
+    const data = snapshot(model);
+    const stale = { ...data, foes: 'another world' }; // (as if the game spawned its foes otherwise since)
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(stale), model.seed)!);
+    expect(again.hero).toMatchObject({ level: 3, money: 777 }); // the hero kept
+    expect(again.enemies.some((e) => e.id === foe.id)).toBe(true); // the foes as the seed makes them
+    expect(again.enemies.find((e) => e.id === model.enemies[1].id)?.hp).toBe(again.enemies.find((e) => e.id === model.enemies[1].id)?.maxHp);
+    const older = { ...data, foes: undefined }; // a save from before foes were fingerprinted
+    const third = fresh();
+    restore(third, parseSave(JSON.stringify(older), model.seed)!);
+    expect(third.enemies.some((e) => e.id === foe.id)).toBe(true);
+  });
+
   it('keeps the hero and the world as they were changed', () => {
     const model = fresh();
     const { hero } = model;
