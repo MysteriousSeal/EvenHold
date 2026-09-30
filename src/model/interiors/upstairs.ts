@@ -37,7 +37,7 @@ function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
   for (let z = stairs.z - 1; z >= 0; z -= 2) lanterns.push(lantern('left', 0, z));
   for (let z = stairs.z + stairs.d; z < room.depth; z += 2) lanterns.push(lantern('left', 0, z));
   for (let x = 1; x < room.width; x += 2) lanterns.push(lantern('back', x, 0));
-  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room)];
+  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room, stairs)];
 }
 
 // The floor above `below` (its room, with `stairs` up to it), as the hero's there.
@@ -49,15 +49,29 @@ const HALL = 2; // the hallway's width, in tiles
 const DOOR_EVERY = 3; // a room's door along it, every so many tiles
 
 // Upstairs, a hallway along the left and back walls (the stairwell in it),
-// walled off from the rooms beyond by a low wall, a door every few tiles
-// along the back, each into a room of its own.
-function hallway(room: Room): Furniture[] {
+// walled off from the rooms beyond by a low wall: a row of rooms along the
+// back, a door into each from the hallway, the last two made one, the
+// biggest, front to back; and one long room along the front behind the
+// others, through a door next to the stairwell.
+function hallway(room: Room, stairs: Furniture): Furniture[] {
   const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
   const walls: Furniture[] = [];
-  for (let z = HALL; z < room.depth; z++) walls.push(piece('left', HALL, z, false)); // by the stairwell: no doors
+  const mid = HALL + Math.floor((room.depth - HALL) / 2); // halfway to the front
+  const byStairs = Math.max(mid, stairs.z - 1); // the front room's door: next to the stairwell, up the hall from its end
+  for (let z = HALL; z < room.depth; z++) walls.push(piece('left', HALL, z, z === byStairs));
   for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1));
-  // Between the rooms, halfway from door to door, the same low wall, from the hallway to the front.
-  for (let x = HALL + DOOR_EVERY; x < room.width; x += DOOR_EVERY) for (let z = HALL; z < room.depth; z++) walls.push(piece('left', x, z, false));
+  // Between the back rooms, halfway from door to door, the same low wall; the
+  // last two rooms one, the biggest, front to back (its wall on to the front,
+  // the long front room stopping short of it).
+  const dividers: number[] = [];
+  for (let x = HALL + DOOR_EVERY; x < room.width; x += DOOR_EVERY) dividers.push(x);
+  const big = dividers.length >= 2 ? dividers[dividers.length - 2] : room.width; // where the biggest room starts
+  for (const x of dividers) {
+    if (x > big) continue; // inside it
+    for (let z = HALL; z < (x === big ? room.depth : mid); z++) walls.push(piece('left', x, z, false));
+  }
+  // Halfway to the front, up to the biggest room: the back rooms from the long front one.
+  for (let x = HALL; x < big; x++) walls.push(piece('back', x, mid, false));
   return walls;
 }
 
