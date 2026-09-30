@@ -44,7 +44,7 @@ describe('interiors', () => {
   });
 
   it('furnishes each room the same every time, never in the way of the door, nothing overlapping', async () => {
-    const { furnish } = await import('../src/model/interiors/furniture');
+    const { furnish } = await import('../src/model/interiors/furnish');
     const model = withHouses();
     for (const entrance of model.entrances) {
       const room = roomFor(model.seed, entrance);
@@ -66,7 +66,7 @@ describe('interiors', () => {
   });
 
   it('lays out every inn with at least three tables', async () => {
-    const { furnish } = await import('../src/model/interiors/furniture');
+    const { furnish } = await import('../src/model/interiors/furnish');
     let inns = 0;
     for (const seed of TEST_SEEDS) {
       const model = new GameModel(seed, TEST_MAP_SIZE);
