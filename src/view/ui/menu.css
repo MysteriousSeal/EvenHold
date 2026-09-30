@@ -493,6 +493,23 @@
 .menu-doll + .menu-ledger { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(7, auto); grid-auto-flow: column; gap: 6px 22px; padding-top: 10px; }
 .menu-doll + .menu-ledger .menu-fact dt { font-size: 11px; }
 .menu-doll + .menu-ledger .menu-fact dd { font-size: 14px; white-space: nowrap; }
+/* Points to spend, under the hero sheet's facts: a button to the level-up window. */
+.sheet-points:empty { display: none; }
+.sheet-points { display: flex; justify-content: center; margin-top: 10px; }
+.sheet-spend {
+  position: relative;
+  padding: 6px 16px;
+  font: 700 14px 'Fredoka', system-ui, sans-serif;
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+  background: var(--lake);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  cursor: pointer;
+}
+.sheet-spend:hover { background: #5ad0cb; }
+.sheet-spend:active { box-shadow: 0 1px 0 var(--ink); transform: translateY(2px); }
+.sheet-spend::after { content: ''; position: absolute; inset: -4px -3px -6px; }
 /* A menu on the left, under the HUD: never past the bottom of the screen (it scrolls, if it must). */
 .menu-backdrop.place-left .menu { max-height: calc(100vh - 166px); }
 /* Empty doll slots show their silhouette at full strength. */

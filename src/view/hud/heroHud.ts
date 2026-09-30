@@ -60,11 +60,12 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     // (healing fills in a point at a time).
     const health = Math.floor(hero.hp);
     const awake = Math.ceil(hero.energy);
-    const state = `${health}/${max}/${awake}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}`;
+    const state = `${health}/${max}/${awake}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}/${hero.statPoints > 0}/${maxEnergyOf(hero)}`;
     if (state === shown) return;
     shown = state;
     root.classList.toggle('hurt', hero.hurtFor > 0);
     level.textContent = String(hero.level);
+    level.classList.toggle('points', hero.statPoints > 0); // points to spend: a mark on it
     hp.fill.style.width = `${(health / max) * 100}%`;
     hp.label.textContent = `${health} / ${max}`;
     const most = maxEnergyOf(hero);
