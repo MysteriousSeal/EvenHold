@@ -58,7 +58,7 @@ export class GameController {
     this.onOrder = options.onOrder ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
-      if (event.button === 0 && !this.paused && !model.inside) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
+      if (event.button === 0 && !this.paused && !model.inside && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.enemies));
     });
     window.addEventListener('keydown', (event) => {
       if (event.code === 'Escape' && !this.paused) model.focus(null);

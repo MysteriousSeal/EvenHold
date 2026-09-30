@@ -128,6 +128,16 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             }),
           ),
           { icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') },
+          {
+            icon: ICON.village,
+            title: 'Furniture yard',
+            detail: 'Flat grass, every piece up close. Click again to return',
+            run: () => {
+              const said = model.toggleFurnitureYard();
+              menu.close();
+              return said;
+            },
+          },
         ],
       },
       {
