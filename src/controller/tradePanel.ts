@@ -40,7 +40,7 @@ export interface Trade {
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
   boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
   blurb(id: BagItem): string; // what it is
-  facts(id: BagItem): Array<[string, string]>; // besides its price and count
+  facts(id: BagItem): string[]; // lines on what it is and does ("Armour 4"), besides its price and count
 }
 
 // The hero's bag, as a shop's window opens it beside itself.
@@ -154,7 +154,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       warn: count > 0 && model.hero.money < price,
       lines: [
         trade.blurb(id),
-        ...trade.facts(id).map(([label, value]) => `${label}: ${value}`),
+        ...trade.facts(id),
         count > 0 ? `${count} in stock` : `Sold out · back in ${back}`,
         model.hero.money < price ? "You can't afford it" : 'Right-click to buy one',
       ],

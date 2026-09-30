@@ -16,6 +16,7 @@ import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
 import { PROVISIONS, isProvision } from '../model/loot/provisions';
 import { sellValue } from '../model/shops/sellValue';
+import { gearLines } from './gearLines';
 import { createMenu, type Menu, type MenuSlot } from '../view/ui/menu';
 import { bagIcon, isLoot } from '../view/ui/itemIcons';
 
@@ -72,7 +73,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
     icon: bagIcon(gear),
     count,
     title: ITEMS[gear].name,
-    lines: [SLOT_NAMES[ITEMS[gear].slot], `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
+    lines: [SLOT_NAMES[ITEMS[gear].slot], ...gearLines(gear), `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
     fits: ITEMS[gear].slot,
     // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {

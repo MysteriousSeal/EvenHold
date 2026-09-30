@@ -157,6 +157,6 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     blurb: (id) => PROVISIONS[id as ProvisionId].about,
-    facts: (id) => [[PROVISIONS[id as ProvisionId].drink ? 'Drink, heals' : 'Food, heals', String(PROVISIONS[id as ProvisionId].heal)]],
+    facts: (id) => [`${PROVISIONS[id as ProvisionId].drink ? 'Drink, heals' : 'Food, heals'} ${PROVISIONS[id as ProvisionId].heal}`],
   });
 }

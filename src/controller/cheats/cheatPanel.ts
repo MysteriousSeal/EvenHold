@@ -33,7 +33,8 @@ import {
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
-import { gainXp, maxHpAt, xpToNext } from '../../model/hero/heroStats';
+import { gainXp, xpToNext } from '../../model/hero/heroStats';
+import { maxHpOf } from '../../model/hero/attributes';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/hero/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
@@ -144,7 +145,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         name: 'Hero',
         icon: ICON.hero,
         actions: [
-          { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpAt(model.hero.level)), 'Healed.') },
+          { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpOf(model.hero)), 'Healed.') },
           {
             icon: ICON.freeze,
             title: 'Game speed',
