@@ -7,10 +7,11 @@
 // While trading (a shop's window open beside it), right-clicking what the
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
+// A button by the purse tidies it (bag.ts: sortedBag).
 
 import { coinParts, coinWords } from '../view/ui/coins';
 import type { GameModel } from '../model/GameModel';
-import { bagLayout, moveInBag, type BagItem } from '../model/hero/bag';
+import { bagLayout, moveInBag, sortedBag, type BagItem } from '../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../model/loot/loot';
 import { PROVISIONS, isProvision } from '../model/loot/provisions';
@@ -82,11 +83,19 @@ function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
   };
 }
 
-// The purse, under the bag: gold, silver and copper, each by its coin.
-function purse(money: number): HTMLElement {
+// Under the bag: the button to tidy it, and the purse (gold, silver and copper, each by its coin).
+function footer(money: number, tidy: () => void): HTMLElement {
   const line = document.createElement('div');
-  line.className = 'menu-purse';
-  line.append(...coinParts(money, true));
+  line.className = 'menu-purse bag-footer';
+  const sort = document.createElement('button');
+  sort.className = 'bag-sort';
+  sort.textContent = 'Sort';
+  sort.title = 'Tidy the bag: gear, food and drink, ingredients, quest items, junk';
+  sort.addEventListener('click', tidy);
+  const coins = document.createElement('span');
+  coins.className = 'bag-coins';
+  coins.append(...coinParts(money, true));
+  line.append(sort, coins);
   return line;
 }
 
@@ -115,7 +124,11 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           });
           return { cells, columns: COLUMNS };
         },
-        footer: () => purse(model.hero.money),
+        footer: () =>
+          footer(model.hero.money, () => {
+            model.hero.bagOrder = sortedBag(model.hero.bag);
+            menu.refresh();
+          }),
       },
     ],
   });

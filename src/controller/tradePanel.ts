@@ -37,6 +37,8 @@ export interface Trade {
   lines: TradeLines;
   about(id: BagItem): string; // their word on one of their wares, just bought
   offered(name: string): string; // their word on what the hero's just sold them
+  junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
+  boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
   blurb(id: BagItem): string; // what it is
   facts(id: BagItem): Array<[string, string]>; // besides its price and count
 }
@@ -48,6 +50,9 @@ export interface TradeBag {
 }
 
 export const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
+
+// Several of a thing: "wolf fangs", "torn pouches"; a name already plural ("leather gloves") as it is.
+export const plural = (name: string) => (name.endsWith('s') ? name : /(x|ch|sh)$/.test(name) ? `${name}es` : `${name}s`);
 
 // A time left as minutes and seconds: "0:42".
 export const clock = (ms: number) => {
@@ -172,7 +177,11 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       badge: count > 1 ? `×${count}` : undefined,
       warn: model.hero.money < cost,
       lines: [`You sold ${them} for ${coinWords(cost)}`, model.hero.money < cost ? "You can't afford it" : `Right-click to buy ${count > 1 ? 'them' : 'it'} back`],
-      alt: () => answer(buyBack(shop(), model.hero, i)),
+      alt: () => {
+        const result = buyBack(shop(), model.hero, i);
+        const what = count > 1 ? `${count} ${plural(nameOf(id).toLowerCase())}` : nameOf(id).toLowerCase();
+        answer(result, result === 'bought' ? trade.boughtBack(what, coinWords(cost)) : undefined);
+      },
     };
   };
   // Selling from the bag beside the window: what the shop deals in at its price, and junk (anyone's) at what it's worth.
@@ -182,17 +191,19 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     price: (id) => (isJunk(id) ? sellValue(id)! : trade.price(id, true)),
     sell: (id) => {
       const result = sellOne(id);
-      answer(result, result === 'sold' ? trade.offered(nameOf(id)) : undefined);
+      answer(result, result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id))) : undefined);
     },
   };
   // Every bit of junk in the bag, sold while the keeper's purse holds.
   function sellJunk(): void {
     let result = 'none';
+    const before = model.hero.money;
     for (const id of (Object.keys(model.hero.bag) as BagItem[]).filter(isJunk)) {
       while ((model.hero.bag[id] ?? 0) > 0 && (result = sellOne(id)) === 'sold');
       if (result === 'short') break;
     }
-    answer(result);
+    const paid = model.hero.money - before;
+    answer(result, result !== 'short' && paid > 0 ? trade.junk(null, coinWords(paid)) : undefined); // (their purse ran dry: they say so)
   }
   // While open, and anything's sold out, the countdowns tick each second; when one runs out, what's restocked shows at once.
   let ticker = 0;

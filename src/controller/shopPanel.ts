@@ -104,6 +104,41 @@ const ABOUT: Record<ProvisionId, readonly string[]> = {
   ],
 };
 
+// Her word on junk the hero sells her, one thing ({it}: what it is; {paid}: what she gives, "3 copper")…
+const JUNK_LINES = [
+  "A {it}? Well, the rag man comes by on market day. {paid} for it.",
+  "Ooh, a {it}. Not for the stew, I hope! {paid}, love.",
+  "A {it}? I'll put it with the odds and ends. Here's {paid}.",
+  "Where do you find these things? Fine, {paid} for a {it}.",
+  "A {it}! Oh, the things you carry around.",
+  "A {it}? I'll find it a home, don't you worry.",
+  "Just set the {it} on the bar, love.",
+  "A {it}. The children in the village might like it.",
+  "Bless you, a {it}. I'll take it.",
+];
+// Her word on the hero buying back what they sold her ({it}: what; {paid}: for how much).
+const BOUGHT_BACK = [
+  "Missed your {it} already? {paid} and it's yours again, love.",
+  "Your {it}! I kept it aside. {paid}, same as I paid.",
+  "Can't part with your {it}? I understand. {paid}.",
+  "There's your {it}, safe and sound.",
+  "I knew you'd come back for your {it}!",
+  "Your {it}, love. I wasn't going to sell it on.",
+  "Here's your {it}. Don't lose it again!",
+  "Your {it}, just as you left it.",
+];
+// …and a whole lot at once.
+const JUNK_LOT = [
+  "Clearing out your pockets, are we? {paid} for the lot.",
+  "What a heap! The rag man will be pleased. Here's {paid}.",
+  "All that? Bless you. {paid} for your trouble.",
+  "My, what a pile! I'll take it all, love.",
+  "All that for me? You shouldn't have. Really.",
+  "Let me clear a space on the bar for it.",
+  "Oh my. Well, it's gone now. Feel lighter?",
+  "Such a lot! I'll sort through it later.",
+];
+
 export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(barmaid: Npc): void; update(): void; menu: Menu } {
   const shop = () => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
   return createTradePanel(model, hooks, {
@@ -119,6 +154,8 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     lines: LINES,
     about: (id) => pick(ABOUT[id as ProvisionId]),
     offered: (name) => `A ${name.toLowerCase()}? I could use that.`,
+    junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
+    boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     blurb: (id) => PROVISIONS[id as ProvisionId].about,
     facts: (id) => [[PROVISIONS[id as ProvisionId].drink ? 'Drink, heals' : 'Food, heals', String(PROVISIONS[id as ProvisionId].heal)]],
   });
