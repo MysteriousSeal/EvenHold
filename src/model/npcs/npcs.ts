@@ -51,7 +51,7 @@ export function titleOf(npc: Npc): string {
 }
 
 // What's drunk at an inn's bar: an ale (a tankard, from the keg) or, for a villager, a glass of wine (from the bottle shelf).
-export type Drink = 'ale' | 'wine';
+export type Drink = 'ale' | 'wine' | 'pie'; // what's asked for at the bar (villagers drink; the hero may eat a pie too)
 
 export interface Npc extends Humanoid {
   id: number;
