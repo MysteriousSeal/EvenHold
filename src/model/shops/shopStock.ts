@@ -2,7 +2,8 @@
 // building's door (its index among the world's doors) and saved: only so
 // much of each thing and only so much money, the purse growing as the hero
 // buys and shrinking as they sell; both drift back to the shop's usual as
-// real time passes (every RESTOCK_EVERY), even between visits.
+// real time passes (every RESTOCK_EVERY), even between visits. What the hero
+// last sold can be bought back at what they got for it (not saved: gone on reloading).
 
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
@@ -11,7 +12,10 @@ export interface Shop {
   money: number; // copper in the keeper's purse
   stock: Partial<Record<BagItem, number>>;
   restockedAt: number; // when last restocked (ms, wall clock)
+  buyback?: Array<{ id: BagItem; price: number }>; // the hero's last sales here, latest first, BUYBACK at most
 }
+
+export const BUYBACK = 12;
 
 // What a shop starts with, and restocks toward.
 export interface Usual {
@@ -70,5 +74,19 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   hero.money += price;
   shop.money -= price;
   shop.stock[id] = (shop.stock[id] ?? 0) + 1;
+  shop.buyback = [{ id, price }, ...(shop.buyback ?? [])].slice(0, BUYBACK);
   return 'sold';
+}
+
+// The hero buys back the `index`th of their last sales, at what they got for it.
+export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' {
+  const sale = shop.buyback?.[index];
+  if (!sale) return 'none';
+  if (hero.money < sale.price) return 'too poor';
+  hero.money -= sale.price;
+  shop.money += sale.price;
+  shop.stock[sale.id] = Math.max(0, (shop.stock[sale.id] ?? 0) - 1);
+  shop.buyback!.splice(index, 1);
+  addToBag(hero.bag, sale.id);
+  return 'bought';
 }
