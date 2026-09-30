@@ -15,6 +15,7 @@ import type { Seated } from '../interiors/indoors';
 import type { MapSize } from '../grid';
 import type { Village } from '../types';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
+import { rollAt, stepToward } from './moving';
 import type { CatVariant, Wildlife } from './wildlife';
 
 export type CatPose = 'sit' | 'groom' | 'nap' | 'loaf';
@@ -51,6 +52,10 @@ function walkable(world: CatWorld, x: number, z: number): boolean {
   return x > 0.5 && z > 0.5 && x < world.size.width - 1.5 && z < world.size.depth - 1.5 && !world.isBlocked(x, z, RADIUS);
 }
 
+// Toward (tx, tz) at up to `speed`; returns how far it went.
+const go = (cat: Wildlife, world: CatWorld, tx: number, tz: number, speed: number, dt: number) =>
+  stepToward(cat, (x, z) => walkable(world, x, z), tx, tz, speed, dt, (x, z) => world.getGroundY(x, z));
+
 export function spawnCats(world: CatWorld, firstId: number): Wildlife[] {
   const cats: Wildlife[] = [];
   const salt = world.seed % 1000;
@@ -74,26 +79,7 @@ export function spawnCats(world: CatWorld, firstId: number): Wildlife[] {
 }
 
 // A roll from where a cat is now, so choices vary as it moves but repeat exactly.
-const rollAt = (cat: Wildlife, salt: number) => hashUnit(Math.round(cat.x * 100), Math.round(cat.z * 100), salt + cat.id);
 const lasting = (cat: Wildlife, pose: CatPose) => HOW_LONG[pose][0] + rollAt(cat, 80) * (HOW_LONG[pose][1] - HOW_LONG[pose][0]);
-
-// Moves a cat toward (tx, tz) at `speed`, sliding along what's in the way; returns how far it went.
-function walkToward(cat: Wildlife, world: CatWorld, tx: number, tz: number, speed: number, dt: number): number {
-  const dx = tx - cat.x;
-  const dz = tz - cat.z;
-  const d = Math.hypot(dx, dz);
-  if (d < 1e-4) return 0;
-  const step = Math.min(speed * dt, d);
-  const [x0, z0] = [cat.x, cat.z];
-  if (walkable(world, cat.x + (dx / d) * step, cat.z)) cat.x += (dx / d) * step;
-  if (walkable(world, cat.x, cat.z + (dz / d) * step)) cat.z += (dz / d) * step;
-  const moved = Math.hypot(cat.x - x0, cat.z - z0);
-  if (moved > 1e-6) {
-    cat.heading = Math.atan2(cat.x - x0, cat.z - z0);
-    cat.y = world.getGroundY(cat.x, cat.z);
-  }
-  return moved;
-}
 
 // Whether someone sits on a seat (a villager, or the hero).
 function sat(world: CatWorld, seat: Seat): boolean {
@@ -173,7 +159,7 @@ export function stepCat(cat: Wildlife, world: CatWorld, hero: { x: number; z: nu
     cat.target = { x: cat.x + Math.sin(away) * CALM * 1.2, z: cat.z + Math.cos(away) * CALM * 1.2 };
   }
   if (cat.fleeing) {
-    moved = cat.target ? walkToward(cat, world, cat.target.x, cat.target.z, BOLT_SPEED, dt) : 0;
+    moved = cat.target ? go(cat, world, cat.target.x, cat.target.z, BOLT_SPEED, dt) : 0;
     if (moved === 0 || toHero > CALM) {
       cat.fleeing = false;
       settle(cat, 'sit');
@@ -187,7 +173,7 @@ export function stepCat(cat: Wildlife, world: CatWorld, hero: { x: number; z: nu
     }
   } else if (cat.target) {
     cat.pose = null;
-    moved = walkToward(cat, world, cat.target.x, cat.target.z, WALK_SPEED, dt);
+    moved = go(cat, world, cat.target.x, cat.target.z, WALK_SPEED, dt);
     const there = Math.hypot(cat.target.x - cat.x, cat.target.z - cat.z) < 0.05;
     if (there || moved === 0) {
       const seat = cat.perch;

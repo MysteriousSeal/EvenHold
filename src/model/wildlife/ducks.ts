@@ -11,6 +11,8 @@
 import { TILE_HEIGHT, WATER_LEVEL } from '../constants';
 import { inBounds, type MapSize } from '../grid';
 import { hashUnit } from '../../util/random';
+import { stepGroup } from './group';
+import { stepToward } from './moving';
 import type { DuckVariant, Wildlife } from './wildlife';
 
 export interface DuckWorld {
@@ -43,6 +45,9 @@ export function swimmable(world: DuckWorld, x: number, z: number): boolean {
   }
   return true;
 }
+
+// Toward (tx, tz) at up to `speed`, afloat; returns how far it went.
+const go = (duck: Wildlife, world: DuckWorld, tx: number, tz: number, speed: number, dt: number) => stepToward(duck, (x, z) => swimmable(world, x, z), tx, tz, speed, dt);
 
 // A tile with water all around it.
 function openWater(world: DuckWorld, x: number, z: number): boolean {
@@ -99,114 +104,33 @@ export function spawnDucks(world: DuckWorld, firstId: number): Wildlife[] {
   return ducks;
 }
 
-// Moves a duck by (dx, dz), axis by axis so it slides along the bank;
-// returns how far it went.
-function swim(duck: Wildlife, world: DuckWorld, dx: number, dz: number): number {
-  const x0 = duck.x;
-  const z0 = duck.z;
-  if (swimmable(world, duck.x + dx, duck.z)) duck.x += dx;
-  if (swimmable(world, duck.x, duck.z + dz)) duck.z += dz;
-  const moved = Math.hypot(duck.x - x0, duck.z - z0);
-  if (moved > 1e-6) duck.heading = Math.atan2(duck.x - x0, duck.z - z0);
-  return moved;
-}
-
-// Heads toward (tx, tz) at up to `speed`; returns how far it went.
-function swimToward(duck: Wildlife, world: DuckWorld, tx: number, tz: number, speed: number, dt: number): number {
-  const dx = tx - duck.x;
-  const dz = tz - duck.z;
-  const d = Math.hypot(dx, dz);
-  if (d < 1e-4) return 0;
-  const step = Math.min(speed * dt, d);
-  return swim(duck, world, (dx / d) * step, (dz / d) * step);
-}
-
-// Somewhere out on the water, away from the hero: straight away if there's
-// water there, else turning a little either way, else closer.
-function fleeTarget(duck: Wildlife, world: DuckWorld, hero: { x: number; z: number }): { x: number; z: number } | null {
-  const away = Math.atan2(duck.x - hero.x, duck.z - hero.z);
-  for (const distance of [FLEE_DISTANCE, FLEE_DISTANCE * 0.6, FLEE_DISTANCE * 0.35]) {
-    for (const turn of [0, 0.5, -0.5, 1, -1, 1.5, -1.5]) {
-      const x = duck.x + Math.sin(away + turn) * distance;
-      const z = duck.z + Math.cos(away + turn) * distance;
-      if (swimmable(world, x, z)) return { x, z };
-    }
-  }
-  return null;
-}
-
-// A roll from where a duck is now, so choices vary as it moves but repeat exactly.
-const rollAt = (duck: Wildlife, salt: number) => hashUnit(Math.round(duck.x * 100), Math.round(duck.z * 100), salt + duck.id);
-
-// One frame for a pack: fleeing or calm, the leader's wandering and resting,
-// the others keeping their places in line, and everyone's dabbling.
+// One frame for a pack (group.ts): the others in line behind the leader.
 export function stepDuckPack(pack: Wildlife[], world: DuckWorld, hero: { x: number; z: number }, dt: number): void {
-  const leader = pack[0];
-  const near = Math.min(...pack.map((d) => Math.hypot(d.x - hero.x, d.z - hero.z)));
-  if (!leader.fleeing && near < FLEE_RADIUS) {
-    for (const duck of pack) {
-      duck.fleeing = true;
-      duck.dabble = null;
-    }
-    leader.target = null;
-  } else if (leader.fleeing && near > CALM_RADIUS) {
-    for (const duck of pack) duck.fleeing = false;
-    leader.target = null;
-    leader.restFor = 1 + rollAt(leader, 40) * 2;
-  }
-
-  for (const duck of pack) {
-    if (duck.dabble === null) continue;
-    duck.dabble += dt;
-    if (duck.dabble >= DABBLE_TIME) duck.dabble = null;
-  }
-
-  // The leader.
-  let moved = 0;
-  if (leader.fleeing) {
-    if (!leader.target || Math.hypot(leader.target.x - leader.x, leader.target.z - leader.z) < 0.1) leader.target = fleeTarget(leader, world, hero);
-    if (leader.target) moved = swimToward(leader, world, leader.target.x, leader.target.z, FLEE_SPEED, dt);
-    if (leader.target && moved === 0) leader.target = null; // cornered: look again next frame
-  } else if (!leader.target) {
-    leader.restFor -= dt;
-    if (leader.restFor <= 0) {
-      const x = leader.homeX + (rollAt(leader, 41) - 0.5) * 2 * WANDER;
-      const z = leader.homeZ + (rollAt(leader, 42) - 0.5) * 2 * WANDER;
-      if (swimmable(world, x, z)) leader.target = { x, z };
-      else leader.restFor = 0.3; // try somewhere else shortly
-    }
-  } else {
-    moved = swimToward(leader, world, leader.target.x, leader.target.z, PADDLE_SPEED, dt);
-    if (moved === 0 || Math.hypot(leader.target.x - leader.x, leader.target.z - leader.z) < 0.05) {
-      // Arrived (or the bank's in the way): rest, and maybe feed. The
-      // others may feed too, each starting a moment later.
-      leader.target = null;
-      leader.restFor = 2 + rollAt(leader, 43) * 3;
-      moved = 0; // that last step brought it to a stop
-      pack.forEach((duck, i) => {
-        if (rollAt(duck, 44) < 0.5) duck.dabble = i === 0 ? 0 : -rollAt(duck, 45) * 1.5;
-      });
-    }
-  }
-  leader.speed = moved / dt;
-
-  // The others: each to its place in line behind the leader.
-  const pace = (leader.fleeing ? FLEE_SPEED : PADDLE_SPEED) * FOLLOW_CATCH_UP;
-  pack.forEach((duck, i) => {
-    if (i === 0) return;
-    const side = i % 2 === 0 ? -0.1 : 0.1;
-    const sx = leader.x - Math.sin(leader.heading) * SPACING * i + Math.cos(leader.heading) * side;
-    const sz = leader.z - Math.cos(leader.heading) * SPACING * i - Math.sin(leader.heading) * side;
-    // Paddle once its place has drifted SLACK away, and keep going until
-    // right on it, so it doesn't stop and start every frame.
-    const off = Math.hypot(sx - duck.x, sz - duck.z);
-    const step = off > (duck.speed > 0 ? 0.02 : SLACK) ? swimToward(duck, world, sx, sz, pace, dt) : 0;
-    duck.speed = step / dt;
-    // Close to its place it faces the way the leader does, rather than
-    // turning to every little correction (which could point it backwards).
-    if (off < SLACK * 1.5) duck.heading = leader.heading;
-  });
-
-  // Ducks on the move stop feeding (one still settling may yet start).
-  for (const duck of pack) if (duck.speed > 0.05 && duck.dabble !== null && duck.dabble >= 0) duck.dabble = null;
+  stepGroup(pack, {
+    fits: (x, z) => swimmable(world, x, z),
+    go: (duck, tx, tz, speed, t) => go(duck, world, tx, tz, speed, t),
+    place: (_duck, i, leader) => {
+      const side = i % 2 === 0 ? -0.1 : 0.1;
+      return {
+        x: leader.x - Math.sin(leader.heading) * SPACING * i + Math.cos(leader.heading) * side,
+        z: leader.z - Math.cos(leader.heading) * SPACING * i - Math.sin(leader.heading) * side,
+      };
+    },
+    walk: PADDLE_SPEED,
+    flee: FLEE_SPEED,
+    catchUp: FOLLOW_CATCH_UP,
+    slack: SLACK,
+    settle: 0.02,
+    wander: WANDER,
+    fleeRadius: FLEE_RADIUS,
+    calmRadius: CALM_RADIUS,
+    fleeDistance: FLEE_DISTANCE,
+    fleeNear: 0.1,
+    rest: [2, 3],
+    feedTime: DABBLE_TIME,
+    feedChance: 0.5,
+    feedLag: 1.5,
+    salt: 40,
+    faceLeader: true,
+  }, hero, dt);
 }
