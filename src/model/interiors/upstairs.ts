@@ -28,15 +28,17 @@ export function stairsInReach(inside: Inside, hero: Hero): boolean {
   return !!stairs && !inside.seated && distanceTo(stairs, hero.x, hero.z) <= STAIRS_REACH;
 }
 
+const LANTERN_EVERY = 4; // tiles between the lanterns along the hallway's walls
+
 // The floor above's furniture: the stairwell where the stairs come up, and
-// a lantern every other tile along the left wall, out from it both ways
+// a lantern every few tiles along the left wall, out from it both ways
 // (none over it), and along the back wall.
 function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
   const lantern = (wall: 'left' | 'back', x: number, z: number): Furniture => ({ kind: 'wallLantern', x, z, w: 1, d: 1, wall, solid: false });
   const lanterns: Furniture[] = [];
-  for (let z = stairs.z - 1; z >= 0; z -= 2) lanterns.push(lantern('left', 0, z));
-  for (let z = stairs.z + stairs.d; z < room.depth; z += 2) lanterns.push(lantern('left', 0, z));
-  for (let x = 1; x < room.width; x += 2) lanterns.push(lantern('back', x, 0));
+  for (let z = stairs.z - 1; z >= 0; z -= LANTERN_EVERY) lanterns.push(lantern('left', 0, z));
+  for (let z = stairs.z + stairs.d; z < room.depth; z += LANTERN_EVERY) lanterns.push(lantern('left', 0, z));
+  for (let x = 1; x < room.width; x += LANTERN_EVERY) lanterns.push(lantern('back', x, 0));
   return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room, stairs)];
 }
 
