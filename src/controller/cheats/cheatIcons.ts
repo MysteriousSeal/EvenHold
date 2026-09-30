@@ -21,6 +21,7 @@ import { CAMP_PALETTE, buildTent } from '../../view/meshes/camp/campVoxels';
 import { LANTERN_PALETTE, buildLanternPost } from '../../view/meshes/plaza/lanternVoxels';
 import { TREE_PALETTE, buildTreeVoxels } from '../../view/meshes/tree/treeVoxels';
 import { WATER_DECOR_PALETTE, buildLilyPad } from '../../view/meshes/water/waterVoxels';
+import { RUIN_PALETTE, buildRuinPiece } from '../../view/meshes/ruin/ruinVoxels';
 
 // Copies several part grids into one, each at its voxel offset.
 function compose(size: [number, number, number], parts: Array<[VoxelGrid, number, number, number]>): VoxelGrid {
@@ -109,6 +110,7 @@ export const ICONS = {
   village: icon('house', () => ({ grid: buildHouseVoxels(HOUSE_LAYOUTS[0], 0), palette: HOUSE_PALETTE })),
   lake: icon('lake', lakeModel),
   camp: icon('tent', () => ({ grid: buildTent(), palette: CAMP_PALETTE })),
+  ruin: icon('ruinArch', () => ({ grid: buildRuinPiece('arch', 0), palette: RUIN_PALETTE })),
   wolfPack: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
   boar: icon('boarHead', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE })),
   spawn: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),

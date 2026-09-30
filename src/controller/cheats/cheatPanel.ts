@@ -8,6 +8,7 @@
 import type { GameModel } from '../../model/GameModel';
 import {
   nearestCamp,
+  nextRuin,
   nearestLakeShore,
   nearestPack,
   nextVillage,
@@ -43,6 +44,7 @@ import { blessAll } from '../../model/hero/blessing';
 import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
+import type { Ruin } from '../../model/ruins/ruins';
 
 const SPEED_BOOST = 3;
 const SPEEDS = [1, 2, 3, 4, 10]; // the game speed cheat's steps
@@ -65,6 +67,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     for (const item of items) wear(model.hero.equipment, item);
   };
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
+  const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const STYLE_NAMES: Record<HairStyle, string> = {
     short: 'Short',
@@ -108,6 +111,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           },
           { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
           { icon: ICON.camp, title: 'Bandit camp', detail: 'Just outside the nearest gate', run: () => travel(nearestCamp(model, here()), 'a bandit camp') },
+          { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
           { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
           ...(['house', 'inn', 'smithy'] as const).map(
             (type): MenuAction => ({
@@ -290,7 +294,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             ['Foes near', `${near.filter((e) => e.kind === 'wolf').length} wolves · ${near.filter((e) => e.kind === 'bandit').length} bandits · ${near.filter((e) => e.kind === 'boar').length} boars`],
             ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
             ['World', `${model.size.width}×${model.size.depth}`],
-            ['Villages · camps', `${model.villages.length} · ${model.camps.length}`],
+            ['Villages · camps · ruins', `${model.villages.length} · ${model.camps.length} · ${model.ruins.length}`],
             ['In the bag', `${Object.values(model.hero.bag).reduce((n, c) => n + (c ?? 0), 0)} items`],
           ];
         },
