@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import { INDOOR_SCALE } from '../../../model/constants';
 import type { Entrance } from '../../../model/interiors/interiors';
 import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
-import { HumanRig, personMaterial } from '../human/humanRig';
+import { HumanRig } from '../human/humanRig';
+import { personMaterial } from '../human/humanParts';
 import { nameLabel } from '../enemy/enemyParts';
 import { Nearby } from '../common/nearby';
 

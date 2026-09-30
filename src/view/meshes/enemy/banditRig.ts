@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import { HERO_LOOK } from '../../../model/human/humanoid';
 import type { Enemy } from '../../../model/types';
-import { HumanRig, personMaterial } from '../human/humanRig';
+import { HumanRig } from '../human/humanRig';
+import { personMaterial } from '../human/humanParts';
 import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst } from './enemyParts';
 

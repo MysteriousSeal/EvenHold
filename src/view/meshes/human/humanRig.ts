@@ -13,37 +13,18 @@
 //
 // Walking is driven by distance actually moved, so the stride matches any
 // speed (including the dev speed boost) and stops the moment they do.
+// Its meshes are made in humanParts.ts; the cup in hand is cupInHand.ts.
 
 import * as THREE from 'three';
 import { EQUIP_SLOTS, ITEMS, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
-import { HERO_LOOK, type BodyLook, type Build } from '../../../model/human/humanoid';
-import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import {
-  BODIES,
-  HAIR_PIECE_PIVOT,
-  HELD_VOXEL_SIZE,
-  HELD_BY,
-  HUMAN_VOXEL_SIZE,
-  JOINTS,
-  JOINT_NAMES,
-  bodyPalette,
-  buildBodyPart,
-  buildHairPiece,
-  type BodyPart,
-  type Joint,
-} from './bodyVoxels';
-import { BODY_FILL, withBody } from './gear/armorShell';
-import { ITEM_MODELS, wornGrid } from './gear/itemModels';
-import { PROVISION_MODELS, WINE_GLASS_MODEL } from '../loot/provisionVoxels';
+import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
+import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type Joint } from './bodyVoxels';
+import { ITEM_MODELS } from './gear/itemModels';
+import { SHADE, bodyGeometry, hairGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
+import { CupInHand } from './cupInHand';
 import type { Drink } from '../../../model/npcs/npcs';
 
 const V = HUMAN_VOXEL_SIZE;
-const SIPS_EVERY = 2.5; // seconds from one sip to the next
-const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth (tipping further as it empties)
-const TIP_MORE = 0.5; // how much further, the last sip
-const REST_ARM = -0.9; // between sips: the tankard resting on the bar before them
-const HOLD_ARM = -0.7; // the right arm's swing, carrying a tankard out before them
-const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
 const LEG_SWING = 0.7; // radians at full stride: long, loping steps
 const ARM_SWING = 0.55;
@@ -91,70 +72,6 @@ function key(keys: Keys, p: number): number {
   return keys[keys.length - 1][1];
 }
 
-// What people are drawn in: their voxel colors lifted a little over the
-// world's (a touch brighter, and warm light in their shade), so they stand
-// out from the ground they're on.
-export function personMaterial(): THREE.MeshStandardMaterial {
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, emissive: 0x2a1e14 });
-  material.color.setRGB(1.12, 1.1, 1.06);
-  return material;
-}
-
-// A soft square of shade on the ground under someone's feet (two squares, the
-// inner one darker), square to the world whichever way they face; outdoors,
-// where nothing else casts a shadow, it sets them apart from the ground.
-const SHADE = [
-  { size: 0.36, opacity: 0.16 },
-  { size: 0.24, opacity: 0.2 },
-].map(({ size, opacity }) => ({
-  geometry: new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
-  material: new THREE.MeshBasicMaterial({ color: 0x1a1008, transparent: true, opacity, depthWrite: false }),
-}));
-
-// Geometries are shared by everyone with the same look, or wearing the
-// same item, and live as long as the page.
-const geometries = new Map<string, THREE.BufferGeometry | null>();
-function cached(key: string, make: () => THREE.BufferGeometry | null): THREE.BufferGeometry | null {
-  if (!geometries.has(key)) geometries.set(key, make());
-  return geometries.get(key) ?? null;
-}
-
-// Meshes `grid` so that `pivot` (in voxels within the grid) sits at the
-// origin, drawing only the colors `include` accepts.
-function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, number], include?: (color: number) => boolean, voxel = V): THREE.BufferGeometry {
-  return greedyMesh(grid, palette, voxel, new THREE.Vector3(-pivot[0] * voxel, -pivot[1] * voxel, -pivot[2] * voxel), include);
-}
-
-function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
-  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${part}`;
-  return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), BODIES[look.build].pivot[part]))!;
-}
-
-// Hair gathered past the head (a bun, a ponytail, a braid), or null.
-function hairGeometry(look: BodyLook): THREE.BufferGeometry | null {
-  return cached(`hair:${look.hair}:${look.hairStyle}`, () => {
-    const grid = buildHairPiece(look.hairStyle);
-    return grid && meshAround(grid, bodyPalette(look), HAIR_PIECE_PIVOT);
-  });
-}
-
-// A worn item's shell on one joint's part, or null if it doesn't cover it:
-// meshed around the (undrawn) body, so no faces press against the skin.
-// The shell's grid starts one voxel before the part, so its pivot is one further in.
-function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean, build: Build): THREE.BufferGeometry | null {
-  const { part, side } = JOINTS[joint];
-  return cached(`${item}:${build}:${part}:${side}:${shouldered}`, () => {
-    const grid = wornGrid(item, part, side, shouldered, build);
-    const pivot = BODIES[build].pivot[part].map((p) => p + 1) as [number, number, number];
-    return grid && meshAround(withBody(grid, part, build), ITEM_MODELS[item].palette, pivot, (c) => c !== BODY_FILL);
-  });
-}
-
-function heldGeometry(item: ItemId): THREE.BufferGeometry | null {
-  const { held, palette } = ITEM_MODELS[item];
-  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, HELD_VOXEL_SIZE) : null));
-}
-
 export class HumanRig {
   readonly root = new THREE.Group();
   readonly joints: Record<Joint, THREE.Group>;
@@ -168,11 +85,7 @@ export class HumanRig {
   private heading = 0;
   private time = 0;
   private pose: Pose = 'stand';
-  private tankard: THREE.Mesh | null = null; // the cup in the right hand, while drinking or carrying one (a tankard, or a glass of wine)
-  private cups: Partial<Record<Drink, THREE.BufferGeometry>> = {}; // its shapes, made as needed
-  private drinkFor = 0; // seconds of drinking left
-  private drinkTotal = 1; // and in all
-  private holding = false; // carrying the tankard (not drinking)
+  private readonly cup: CupInHand; // in the right hand, carried or drunk from
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
   private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
 
@@ -197,6 +110,8 @@ export class HumanRig {
       this.shade.add(square);
     }
     this.root.add(this.shade);
+    const hand = BODIES[look.build].hand;
+    this.cup = new CupInHand(joints.rightArm, new THREE.Vector3(hand[0] * V, hand[1] * V, hand[2] * V), (geometry) => this.mesh(geometry));
     const hair = hairGeometry(look);
     if (hair) {
       this.hair = this.mesh(hair);
@@ -295,81 +210,24 @@ export class HumanRig {
   // the feet rest, on the bed, and `facing` points from head to feet.
   update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, pose: Pose = 'stand'): void {
     this.animate(x, y, z, dt, attack, facing, pose);
-    this.sip(dt);
+    this.cup.update(dt);
   }
 
-  // Carries a cup (the barmaid bringing a drink, or clearing it away), held
-  // out a little: `cup` a tankard ('ale'), a glass ('wine') or a pie ('pie'); false, puts it away.
+  // The cup in hand (cupInHand.ts): carrying one, drinking (or eating) at the bar.
   hold(cup: false | Drink): void {
-    if (!!cup === this.holding && (!cup || this.showing === cup)) return;
-    this.holding = !!cup;
-    if (cup) this.showTankard(cup);
-    else if (this.tankard && this.drinkFor <= 0) this.tankard.visible = false;
+    this.cup.hold(cup);
   }
 
-  // Drinks a tankard over `seconds` (an ale at the bar): sip after sip; or eats `what` (a pie), bite after bite.
   drink(seconds: number, what: Drink = 'ale'): void {
-    this.showTankard(what);
-    this.drinkFor = this.drinkTotal = seconds;
+    this.cup.drink(seconds, what);
   }
 
-  // Drinking as the model says (a villager at the bar): sipping while
-  // `drinking` lasts, the tankard put away once it doesn't.
   sipping(drinking: { left: number; seconds: number; drink?: Drink } | null): void {
-    if (!drinking) {
-      if (this.drinkFor > 0) this.stopDrinking();
-      return;
-    }
-    this.showTankard(drinking.drink ?? 'ale');
-    [this.drinkFor, this.drinkTotal] = [drinking.left, drinking.seconds];
+    this.cup.sipping(drinking);
   }
 
-  // Puts the tankard down, not finished (the hero got up).
   stopDrinking(): void {
-    this.drinkFor = 0;
-    if (this.tankard && !this.holding) this.tankard.visible = false;
-  }
-
-  private showing: Drink = 'ale'; // the cup in hand
-  private showTankard(drink: Drink = 'ale'): void {
-    if (!this.cups[drink]) {
-      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : PROVISION_MODELS.ale;
-      const grid = model.build();
-      const size = V * TANKARD_SCALE;
-      this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));
-    }
-    if (!this.tankard) {
-      this.tankard = this.mesh(this.cups[drink]!); // follows the rig's material
-      const hand = BODIES[this.look.build].hand;
-      this.tankard.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
-      this.joints.rightArm.add(this.tankard);
-    }
-    this.tankard.geometry = this.cups[drink]!;
-    this.showing = drink;
-    this.tankard.visible = true;
-  }
-
-  // While drinking, sip after sip: the tankard up to the lips (tipping
-  // further as it empties, a little bob as they drink), then down to rest
-  // on the bar a moment; gone once it's empty.
-  private sip(dt: number): void {
-    if (!this.tankard) return;
-    if (this.holding) {
-      this.joints.rightArm.rotation.x = HOLD_ARM; // held out before them
-      return;
-    }
-    this.drinkFor -= dt;
-    this.tankard.visible = this.drinkFor > 0;
-    if (this.drinkFor <= 0) return;
-    const t = this.drinkTotal - this.drinkFor;
-    const emptied = t / this.drinkTotal;
-    const phase = (t % SIPS_EVERY) / SIPS_EVERY; // up (to 0.15), sipping (to 0.55), down (to 0.7), resting
-    const ease = (a: number) => a * a * (3 - 2 * a);
-    const up = phase < 0.15 ? ease(phase / 0.15) : phase < 0.55 ? 1 : phase < 0.7 ? 1 - ease((phase - 0.55) / 0.15) : 0;
-    const sipping = DRINK_ARM - TIP_MORE * emptied + (phase >= 0.15 && phase < 0.55 ? Math.sin(t * 9) * 0.06 : 0);
-    const arm = REST_ARM + (sipping - REST_ARM) * up;
-    const start = Math.min(1, t / 0.3); // from wherever the arm was, at first
-    this.joints.rightArm.rotation.x = this.joints.rightArm.rotation.x * (1 - start) + arm * start;
+    this.cup.stopDrinking();
   }
 
   private animate(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, pose: Pose = 'stand'): void {
