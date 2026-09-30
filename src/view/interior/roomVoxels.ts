@@ -18,6 +18,7 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 export const ROOM_VOXEL = 0.04;
 const TILE = 25;
 const WALL = 5; // wall thickness, in voxels
+export const ROOM_WALL = WALL;
 const HIGH = 34; // the back walls' height
 const HEADROOM = 8; // over them, for what reaches up into the floor above (the stairs' handrail)
 const DEEP = 16; // under the floor, for what goes down through it (the stairwell's steps), where there's any

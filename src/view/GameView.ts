@@ -302,6 +302,7 @@ export class GameView {
     }
     if (!inside) return null;
     if (!this.room) this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
+    this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     this.room.update(this.elapsed);
     this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;

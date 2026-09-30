@@ -264,16 +264,21 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     for (const [u, y] of [[6, 8], [6, 23], [20, 8], [20, 23]]) b(u, y, 13, u, y + 1, 13, IRON); // hinges
     for (const u of [12, 14]) b(u, 15, 13, u, 16, 13, BRASS); // knobs
   },
-  // A small picture propped on the rail of the low wall it's on: a gilded
-  // frame round a landscape (moss hills under a pale sky, a sun), toward the room (+v).
-  framedPicture: (box) => {
-    box(6, 7, 1, 18, 20, 3, (u, y) => (y === 7 || u === 6 ? BRASS_DARK : BRASS)); // the frame, shaded at its foot
-    box(8, 9, 3, 16, 18, 3, (u, y) => {
+  // A small picture on the wall it's on: propped on a low wall's rail, or
+  // on a full one hung on its face at eye height; a gilded frame round a
+  // landscape (moss hills under a pale sky, a sun), toward the room (+v).
+  framedPicture: (box, _len, _dep, item) => {
+    const [dy, dv] = item.tall ? [10, 4] : [0, 0]; // hung: up, and out of the wall onto its face
+    const p: Box = (u0, y0, v0, u1, y1, v1, color) =>
+      box(u0, y0 + dy, v0 + dv, u1, y1 + dy, v1 + dv, typeof color === 'number' ? color : (u, y, v) => color(u, y - dy, v - dv));
+    p(6, 7, 1, 18, 20, 3, (u, y) => (y === 7 || u === 6 ? BRASS_DARK : BRASS)); // the frame, shaded at its foot
+    p(8, 9, 3, 16, 18, 3, (u, y) => {
       if (u === 14 && y === 16) return EMBER; // the sun
       const hill = u < 12 ? 12 - Math.abs(u - 10) : 11 - Math.abs(u - 14) / 2; // two hills, the near one higher
       return y <= hill ? (y <= 10 ? MOSS_DARK : MOSS) : PARCHMENT;
     });
   },
+
   // A wooden tub, two tiles long, rounded: staves (every third a shade
   // darker) bound by two iron hoops, a lit rim, water inside.
   bathtub: (box, len, dep) => {

@@ -11,7 +11,9 @@ import { facingPoint, fireOf } from './furnitureVoxels';
 import { CANDLE_FLAME } from './bedVoxels';
 import { CandleFlames } from './candleFlame';
 import { FireEffect, flicker } from '../meshes/common/fire';
-import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
+import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, ROOM_WALL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
+import { WallCuts, clearUpper } from './innerWallCuts';
+import { CAMERA_OFFSET } from '../constants';
 import { tankard } from './furniturePalette';
 import { DOOR_LEAF, paintDoorLeaf } from './innFurnitureVoxels';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -42,7 +44,7 @@ function doorLeafGeometry(): THREE.BufferGeometry {
   return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void } {
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean }>): void; seeHero(x: number, z: number): void } {
   const scene = new THREE.Scene();
   const DARK = 0x1c130c;
   scene.background = new THREE.Color(DARK); // darkness beyond the walls
@@ -51,7 +53,9 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const origin = new THREE.Vector3(offset, -ROOM_VOXEL * (1 + below), offset);
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const lamps = furniture.filter((f) => f.kind === 'wallLantern');
-  const geometry = greedyMesh(buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern'), door), ROOM_PALETTE, ROOM_VOXEL, origin);
+  const grid = buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern'), door);
+  clearUpper(grid, furniture, ROOM_WALL, ROOM_WALL, below); // full-height inner walls' tops, meshed apart to turn see-through (WallCuts)
+  const geometry = greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, origin);
   const room3d = new THREE.Mesh(geometry, material);
   room3d.castShadow = true; // furniture and walls block the firelight,
   room3d.receiveShadow = true; // and the floor shows it
@@ -75,6 +79,9 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     drapes.push(front, side);
     for (const g of drapes) scene.add(new THREE.Mesh(g, curtain));
   }
+  // The full-height inner walls' tops, see-through where in the hero's way.
+  const walls = new WallCuts(scene, furniture, ROOM_PALETTE, ROOM_VOXEL, material);
+  const hero = { x: 0, z: 0 };
   // The doors upstairs, each hung from its hinge, meshed apart to swing
   // (into the room behind it) as it's opened or closed.
   const leafShape = doorLeafGeometry();
@@ -177,8 +184,14 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
         mug.position.set(MUG_AT.x, MUG_AT.y, at.z);
       });
     },
+    // Where the hero is, for the walls in their way to turn see-through.
+    seeHero(x: number, z: number) {
+      [hero.x, hero.z] = [x, z];
+    },
     update(time) {
-      swingDoors(lastTime === null ? 0 : Math.max(0, time - lastTime));
+      const dt = lastTime === null ? 0 : Math.max(0, time - lastTime);
+      swingDoors(dt);
+      walls.update(hero.x, hero.z, CAMERA_OFFSET.x, CAMERA_OFFSET.z);
       lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       candles.forEach((light, i) => (light.intensity = 0.9 * flicker(time * 1.3, i * 7 + 3)));
@@ -191,6 +204,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       lamps3d?.geometry.dispose();
       for (const g of drapes) g.dispose();
       leafShape.dispose();
+      walls.dispose();
       flames.dispose();
       curtain.dispose();
       mugShapes.full.dispose();
