@@ -59,3 +59,25 @@ describe('bandit camps in every test world', () => {
     expect(layouts.size).toBe(worlds.length); // each world's camps its own
   });
 });
+
+describe('a bandit away from its camp', () => {
+  it('walks home round the palisade, in through the gate, not stuck against the back of it', () => {
+    const problems: string[] = [];
+    for (const seed of TEST_SEEDS) {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      model.godMode = true;
+      const camp = model.camps[0];
+      const bandit = model.enemies.find((e) => e.kind === 'bandit' && e.homeX === camp.x && e.homeZ === camp.z)!;
+      // Just behind the palisade, on the side away from the gate; the hero well out of its sight and hearing.
+      const [bx, bz] = [2 * camp.x - camp.way.x, 2 * camp.z - camp.way.z];
+      if (!model.isOpenTile(bx, bz)) continue; // (nowhere to stand there)
+      Object.assign(bandit, { x: bx, z: bz, state: 'wander', target: { x: camp.x, z: camp.z }, restFor: 0, path: null });
+      // Alone (its mates could stand in the gate, and it'd rightly go elsewhere).
+      model.enemies.splice(0, model.enemies.length, bandit);
+      model.teleport(camp.x + (camp.way.x - camp.x) * 4, camp.z + (camp.way.z - camp.z) * 4);
+      for (let t = 0; t < 30 && !(Math.abs(bandit.x - camp.x) <= 2 && Math.abs(bandit.z - camp.z) <= 2); t += 1 / 30) model.update(0, 0, 1 / 30);
+      if (!(Math.abs(bandit.x - camp.x) <= 2 && Math.abs(bandit.z - camp.z) <= 2)) problems.push(`seed ${seed}: still outside at ${bandit.x.toFixed(1)},${bandit.z.toFixed(1)} (${bandit.state})`);
+    }
+    expect(problems).toEqual([]);
+  });
+});
