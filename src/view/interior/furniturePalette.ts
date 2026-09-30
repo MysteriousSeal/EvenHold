@@ -84,6 +84,22 @@ export function goblet(box: Box, u: number, y: number, v: number, full: boolean)
   box(u + 1, y + 4, v + 1, u + 1, y + 4, v + 1, full ? WINE : 0); // the wine's top, or the hollow
 }
 
+// A meat pie on a plate at (u, y, v), as wide as a tankard and low: full,
+// a golden crust crimped darker round its edge, domed, a steam vent on top;
+// eaten, the plate and a crumb or two.
+export function piePlate(box: Box, u: number, y: number, v: number, full: boolean): void {
+  box(u, y, v, u + 3, y, v + 2, LINEN); // the plate
+  if (!full) {
+    box(u + 1, y + 1, v, u + 1, y + 1, v, BREAD); // crumbs
+    box(u + 2, y + 1, v + 2, u + 2, y + 1, v + 2, BREAD);
+    return;
+  }
+  const edge = (uu: number, vv: number) => uu === u || uu === u + 3 || vv === v || vv === v + 2;
+  box(u, y + 1, v, u + 3, y + 1, v + 2, (uu, _y, vv) => (edge(uu, vv) && (uu + vv) % 2 === 0 ? ROAST : BREAD)); // the crust, crimped
+  box(u + 1, y + 2, v, u + 2, y + 2, v + 2, BREAD); // its dome
+  box(u + 1, y + 2, v + 1, u + 1, y + 2, v + 1, ROAST); // the steam vent
+}
+
 // A drink set down at (u, y, v): full and empty by turns (`i` counts them),
 // so there are as many of each.
 export function drink(box: Box, u: number, y: number, v: number, i: number): void {

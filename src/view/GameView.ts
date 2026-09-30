@@ -8,7 +8,7 @@ import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
 import { smithWorking } from '../model/smithy/smithWork';
-import type { Npc } from '../model/npcs/npcs';
+import type { Drink, Npc } from '../model/npcs/npcs';
 import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
@@ -218,9 +218,9 @@ export class GameView {
     return { x: rect.left + ((at.x + 1) / 2) * rect.width, y: rect.top + ((1 - at.y) / 2) * rect.height };
   }
 
-  // The hero drinks (an ale ordered at the bar), sip after sip over `seconds`; or stops, leaving the rest.
-  heroDrinks(seconds: number): void {
-    this.hero.drink(seconds);
+  // The hero drinks (an ale ordered at the bar), sip after sip over `seconds`, or eats (a pie); or stops, leaving the rest.
+  heroDrinks(seconds: number, what: Drink = 'ale'): void {
+    this.hero.drink(seconds, what);
   }
 
   heroStopsDrinking(): void {

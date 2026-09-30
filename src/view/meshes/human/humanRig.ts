@@ -299,7 +299,7 @@ export class HumanRig {
   }
 
   // Carries a cup (the barmaid bringing a drink, or clearing it away), held
-  // out a little: `cup` a tankard ('ale') or a glass ('wine'); false, puts it away.
+  // out a little: `cup` a tankard ('ale'), a glass ('wine') or a pie ('pie'); false, puts it away.
   hold(cup: false | Drink): void {
     if (!!cup === this.holding && (!cup || this.showing === cup)) return;
     this.holding = !!cup;
@@ -307,9 +307,9 @@ export class HumanRig {
     else if (this.tankard && this.drinkFor <= 0) this.tankard.visible = false;
   }
 
-  // Drinks a tankard over `seconds` (an ale at the bar): sip after sip.
-  drink(seconds: number): void {
-    this.showTankard();
+  // Drinks a tankard over `seconds` (an ale at the bar): sip after sip; or eats `what` (a pie), bite after bite.
+  drink(seconds: number, what: Drink = 'ale'): void {
+    this.showTankard(what);
     this.drinkFor = this.drinkTotal = seconds;
   }
 
@@ -333,7 +333,7 @@ export class HumanRig {
   private showing: Drink = 'ale'; // the cup in hand
   private showTankard(drink: Drink = 'ale'): void {
     if (!this.cups[drink]) {
-      const model = drink === 'wine' ? WINE_GLASS_MODEL : PROVISION_MODELS.ale;
+      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : PROVISION_MODELS.ale;
       const grid = model.build();
       const size = V * TANKARD_SCALE;
       this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));

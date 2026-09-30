@@ -15,7 +15,7 @@ import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, ROOM_WALL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { WallCuts, clearUpper } from './innerWallCuts';
 import { CAMERA_OFFSET } from '../constants';
-import { goblet, tankard } from './furniturePalette';
+import { goblet, piePlate, tankard } from './furniturePalette';
 import type { Drink } from '../../model/npcs/npcs';
 import { DOOR_LEAF, paintDoorLeaf } from './upstairsVoxels';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -24,16 +24,16 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 // free it once the hero's left (it disposes only what it made: the hero, moved
 // in from the world, isn't touched).
 // The drinks on the bar's counter, before the stools: full tankards and
-// glasses of wine, and the empty cups they leave.
+// glasses of wine (and the hero's meat pie on its plate), and the empty cups (and plate) they leave.
 const MUG_AT = { x: 1.1, y: 0.52 }; // over the counter's top, on the customers' side
 type CupShape = `${Drink}:${'full' | 'empty'}`;
 function mugGeometries(): Record<CupShape, THREE.BufferGeometry> {
   const mesh = (drink: Drink, full: boolean) => {
     const grid = createGrid([4, 5, 3]);
-    (drink === 'wine' ? goblet : tankard)((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color), 0, 0, 0, full);
+    (drink === 'wine' ? goblet : drink === 'pie' ? piePlate : tankard)((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color), 0, 0, 0, full);
     return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(-2 * ROOM_VOXEL, 0, -1.5 * ROOM_VOXEL));
   };
-  return { 'ale:full': mesh('ale', true), 'ale:empty': mesh('ale', false), 'wine:full': mesh('wine', true), 'wine:empty': mesh('wine', false) };
+  return { 'ale:full': mesh('ale', true), 'ale:empty': mesh('ale', false), 'wine:full': mesh('wine', true), 'wine:empty': mesh('wine', false), 'pie:full': mesh('pie', true), 'pie:empty': mesh('pie', false) };
 }
 
 const TILE_VOXELS = 25;

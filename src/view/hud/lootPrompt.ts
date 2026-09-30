@@ -21,18 +21,22 @@ export interface PromptTarget {
 }
 
 export interface LootPrompt {
+  readonly element: HTMLElement; // (for another stacked over it)
   // Each frame: what E does (or null), and where on screen to put it.
   update(target: PromptTarget | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
   pickedUp(item: BagItem): void;
 }
 
 // The prompt for loot on the ground: its name, in its quality's color.
+const STACK_GAP = 8; // px between prompts stacked one over another
+
 export function lootTarget(loot: GroundLoot): PromptTarget {
   return { label: nameOf(loot.item), quality: qualityOf(loot.item), x: loot.x, y: loot.y + 0.35, z: loot.z };
 }
 
-// `key`: the key it's for; `under`: shown just below the E prompt (a second thing to do there).
-export function createLootPrompt(key = 'E', under = false): LootPrompt {
+// `key`: the key it's for; `under`: shown just below the E prompt (a second thing to do there);
+// `over`: another prompt it's stacked on, just above it on screen (a gap between), when that one shows.
+export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): LootPrompt {
   const prompt = document.createElement('div');
   prompt.className = 'loot-prompt';
   prompt.hidden = true;
@@ -45,6 +49,7 @@ export function createLootPrompt(key = 'E', under = false): LootPrompt {
   let toastTimer = 0;
 
   return {
+    element: prompt,
     update(target, toScreen) {
       prompt.hidden = !target;
       if (!target) return;
@@ -53,7 +58,8 @@ export function createLootPrompt(key = 'E', under = false): LootPrompt {
       else delete name.dataset.quality;
       prompt.classList.toggle('muted', !!target.muted);
       const at = toScreen(target.x, target.y, target.z);
-      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
+      const lift = over && !over.element.hidden ? over.element.offsetHeight + STACK_GAP : 0;
+      prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y - lift)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
     },
     pickedUp(item) {
       toast.textContent = `Picked up ${nameOf(item)}`;
