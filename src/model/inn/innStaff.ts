@@ -11,7 +11,7 @@ import type { Point } from '../obstacles';
 import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';
-import type { Npc, NpcStep } from '../npcs/npcs';
+import type { Drink, Npc, NpcStep } from '../npcs/npcs';
 import { mugsAt, roundOnBar, takeMug } from './barMugs';
 import { ordersAt, type BarOrder } from './barOrders';
 import { say } from '../npcs/speech';
@@ -55,6 +55,13 @@ const ANSWERS = [
   "Ale. It's been that sort of day.",
   'Just an ale, love. And a smile.',
 ]
+const WINE_ANSWERS = [
+  'A glass of wine, please.',
+  'Wine tonight, I think. The red.',
+  "Something finer than ale. Wine, if you've any.",
+  "A glass of red. I've earned it.",
+]
+const HANDED_WINE = ['Your wine, love.', 'A glass of the red.', "Mind, it's the good stuff.", 'Sip it slow, now.']
 const HANDED = [
   'There you go.',
   'Enjoy, love.',
@@ -96,7 +103,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   if (npc.role === 'barkeep') {
     // An order waiting: first come, first served.
     const order = ordersAt(npc.home)[0];
-    if (order) return serve(npc, order);
+    if (order) return serve(npc, order, furniture.find((f) => f.kind === 'bottleShelf'));
     npc.serving = false;
     // An empty mug left a while: over to take it, and to the sink to wash it.
     const mug = roundOnBar(npc.home);
@@ -127,32 +134,34 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
 function clearMug(barkeep: Npc, z: number): NpcStep[] {
   return [
     { kind: 'go', to: { x: AISLE_X, z }, direct: true, face: TO_COUNTER },
-    { kind: 'hand', then: () => takeMug(barkeep.home, z) && (barkeep.carrying = true) },
+    { kind: 'hand', then: () => (barkeep.carrying = takeMug(barkeep.home, z)?.drink ?? false) }, // the empty cup, in hand
     { kind: 'go', to: AT_SINK, direct: true, face: -Math.PI / 2 }, // facing the washstand
     { kind: 'work', for: PUT_AWAY },
     { kind: 'hand', then: () => (barkeep.carrying = false) },
   ];
 }
 
-// The steps of an ale for whoever's sat on `stool`: clear away the mug
+// The steps of a drink for whoever's sat on `stool`: clear away the cup
 // before them first, if there's one (empty or full), go to the keg and pour
-// it, bring it back across the bar to them, and hand it over (`then`).
-function aleFor(barkeep: Npc, stool: Furniture, then: () => void): NpcStep[] {
-  const left = mugsAt(barkeep.home).some((m) => m.z === stool.z); // a mug before them already, empty or not
+// an ale (or to the bottle shelf, `shelf`, for a glass of wine), bring it
+// back across the bar to them, and hand it over (`then`).
+function drinkFor(barkeep: Npc, stool: Furniture, then: () => void, drink: Drink = 'ale', shelf?: Furniture): NpcStep[] {
+  const left = mugsAt(barkeep.home).some((m) => m.z === stool.z); // a cup before them already, empty or not
+  const pour: Point = drink === 'wine' && shelf ? { x: AISLE_X, z: shelf.z + shelf.d / 2 - 0.5 } : AT_KEG; // before the bottles, or the keg's tap
   return [
     ...(left ? clearMug(barkeep, stool.z) : []),
-    { kind: 'go', to: AT_KEG, direct: true, face: -Math.PI / 2 }, // facing the keg's tap
-    { kind: 'work', for: POUR_TIME }, // at the tap
-    { kind: 'hand', then: () => (barkeep.carrying = true) },
+    { kind: 'go', to: pour, direct: true, face: -Math.PI / 2 }, // facing the tap, or the bottles
+    { kind: 'work', for: POUR_TIME },
+    { kind: 'hand', then: () => (barkeep.carrying = drink) },
     { kind: 'go', to: { x: AISLE_X, z: stool.z }, direct: true, face: TO_COUNTER },
     { kind: 'hand', then: () => ((barkeep.carrying = false), then()) },
   ];
 }
 
 // Serving the front order: a villager's taken first, across the bar from
-// them (the hero calls theirs out); then the ale fetched and handed over,
+// them (the hero calls theirs out); then the drink fetched and handed over,
 // the order done.
-function serve(barkeep: Npc, order: BarOrder): NpcStep[] {
+function serve(barkeep: Npc, order: BarOrder, shelf?: Furniture): NpcStep[] {
   barkeep.serving = true;
   // A word with a villager first: she asks what they'll have, they answer.
   const by = order.by;
@@ -162,16 +171,16 @@ function serve(barkeep: Npc, order: BarOrder): NpcStep[] {
         { kind: 'go', to: { x: AISLE_X, z: order.stool.z }, direct: true, face: TO_COUNTER },
         { kind: 'hand', then: () => say(barkeep, asks(by, n)) },
         { kind: 'wait', for: TAKE_ORDER / 2 },
-        { kind: 'hand', then: () => say(by, pick(ANSWERS, n + by.id)) },
+        { kind: 'hand', then: () => say(by, pick(order.drink === 'wine' ? WINE_ANSWERS : ANSWERS, n + by.id)) },
         { kind: 'wait', for: TAKE_ORDER / 2 },
       ]
     : [];
-  return [...take, ...aleFor(barkeep, order.stool, () => {
+  return [...take, ...drinkFor(barkeep, order.stool, () => {
     const queue = ordersAt(barkeep.home);
     queue.splice(queue.indexOf(order), 1);
-    if (by) say(barkeep, pick(HANDED, n + 3)); // setting it down before them
+    if (by) say(barkeep, pick(order.drink === 'wine' ? HANDED_WINE : HANDED, n + 3)); // setting it down before them
     order.served();
-  }),
+  }, order.drink, shelf),
     { kind: 'wait', for: LINGER }, // a moment there with them, for her word (and their thanks): not to be called away
     { kind: 'hand', then: () => (barkeep.serving = false) },
   ];
@@ -180,7 +189,7 @@ function serve(barkeep: Npc, order: BarOrder): NpcStep[] {
 // An ale for whoever's sat on `stool`, now, ahead of any queue (the barkeep
 // leaves what she was doing): `then` once it's handed over.
 export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void {
-  barkeep.steps = aleFor(barkeep, stool, then);
+  barkeep.steps = drinkFor(barkeep, stool, then);
   Object.assign(barkeep, { path: null, waited: 0, working: false, carrying: false }); // (a mug she was taking away, put down)
 }
 

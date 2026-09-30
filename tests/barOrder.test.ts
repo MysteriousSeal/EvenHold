@@ -94,10 +94,10 @@ describe('an ale at the bar', () => {
     const inn = model.inside!.entrance;
     setMug(inn, 2, true);
     setMug(inn, 2, false, 2); // drunk: the empty mug in its place
-    expect(mugsAt(inn).filter((m) => m.z === 2)).toEqual([{ z: 2, full: false, wait: 2 }]);
+    expect(mugsAt(inn).filter((m) => m.z === 2)).toEqual([{ z: 2, full: false, wait: 2, drink: 'ale' }]);
     expect(roundOnBar(inn)).toBeNull(); // not yet
     expect(roundOnBar(inn)?.z).toBe(2); // two of her rounds on: ready to clear
-    expect(takeMug(inn, 2)).toBe(true);
+    expect(takeMug(inn, 2)).toBeTruthy(); // picked up (the cup it was)
     expect(mugsAt(inn)).toEqual([]);
   });
 
@@ -146,7 +146,7 @@ describe('an ale at the bar', () => {
     const barmaid = barmaidHere(model)!;
     const stools = model.inside!.furniture.filter((f) => f.kind === 'barStool');
     const served: number[] = [];
-    stools.slice(0, 2).forEach((stool, i) => placeOrder(inn, { stool, by: null, served: () => served.push(i) }));
+    stools.slice(0, 2).forEach((stool, i) => placeOrder(inn, { stool, by: null, drink: 'ale', served: () => served.push(i) }));
     callBarkeep(barmaid);
     for (let t = 0; t < 90 && served.length < 2; t += 0.05) model.update(0, 0, 0.05);
     expect(served).toEqual([0, 1]);

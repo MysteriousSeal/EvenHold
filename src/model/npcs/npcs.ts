@@ -50,6 +50,9 @@ export function titleOf(npc: Npc): string {
   return title ? `${npc.name} (${title})` : npc.name;
 }
 
+// What's drunk at an inn's bar: an ale (a tankard, from the keg) or, for a villager, a glass of wine (from the bottle shelf).
+export type Drink = 'ale' | 'wine';
+
 export interface Npc extends Humanoid {
   id: number;
   name: string;
@@ -71,13 +74,13 @@ export interface Npc extends Humanoid {
   waited: number; // seconds into the current wait
   moving: boolean;
   working: boolean; // bent over the crops
-  carrying?: boolean; // a tankard in hand (the barmaid, bringing an ale)
+  carrying?: false | Drink; // a drink in hand (the barmaid, bringing one or clearing it away): its cup
   serving?: boolean; // the barkeep, seeing to an order (barOrders.ts)
   // At the bar (barPatrons.ts): waiting on an ale, about to pick it up (seconds), sipping it.
   awaiting?: boolean;
   pickup?: number;
-  drinking?: { left: number; seconds: number } | null;
-  drinks?: number; // ales had this time at the bar
+  drinking?: { left: number; seconds: number; drink?: Drink } | null;
+  drinks?: number; // drinks had this time at the bar
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
 }
 

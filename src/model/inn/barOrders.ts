@@ -1,15 +1,16 @@
 // The orders at an inn's bar, first come first served: whoever sits at the
-// bar (a villager, or the hero) and asks for an ale joins the queue; the
+// bar (a villager, or the hero) and asks for a drink joins the queue; the
 // barkeep takes the front one as soon as she's free (innStaff.ts), and
 // hands it over to them (`served`). Kept per inn while the world runs.
 
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
-import type { Npc } from '../npcs/npcs';
+import type { Drink, Npc } from '../npcs/npcs';
 
 export interface BarOrder {
   stool: Furniture; // where it goes
   by: Npc | null; // who's asking (null: the hero)
+  drink: Drink; // what they asked for
   served(): void; // set down before them
 }
 

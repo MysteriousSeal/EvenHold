@@ -4,6 +4,8 @@
 
 import type { GameModel } from '../GameModel';
 import { MAX_ENERGY, recover } from './heroStats';
+import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
+import { bumpsFurniture } from '../interiors/furniture';
 
 const WAKE_ENERGY = MAX_ENERGY * 0.3; // what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
@@ -31,7 +33,10 @@ function collapseIfSpent(model: GameModel): boolean {
   if (!hearth) return true;
   const rug = inside.furniture.find((f) => f.kind === 'bearRug') ?? hearth;
   const at = { x: hearth.x + hearth.w / 2 - 0.5, z: hearth.z + 1.2 }; // before the fire, along it
-  inside.seated = { seat: { piece: rug, x: at.x, z: at.z, y: FLOOR, facing: Math.PI / 2, lying: true }, from: { x: at.x, z: at.z + 0.8 } };
+  // Up again on the spot (the rug, before the fire, clear of the armchairs round it), or beside it if that's taken.
+  const r = HERO_RADIUS * INDOOR_SCALE;
+  const up = [0, -0.6, 0.6, -1.2, 1.2].map((dx) => ({ x: at.x + dx, z: at.z })).find((p) => !bumpsFurniture(inside.furniture, p.x, p.z, r)) ?? at;
+  inside.seated = { seat: { piece: rug, x: at.x, z: at.z, y: FLOOR, facing: Math.PI / 2, lying: true }, from: up };
   Object.assign(hero, { x: at.x, z: at.z, y: FLOOR, facing: Math.PI / 2 });
   return true;
 }
