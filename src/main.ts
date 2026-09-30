@@ -5,7 +5,7 @@ import { GameController } from './controller/GameController';
 import { resolveSeed } from './util/seed';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
-import { loadGame, startAutoSave } from './controller/saveGame';
+import { loadGame, startAutoSave } from './controller/storage/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
@@ -31,9 +31,9 @@ import { bagToolIcon, heroBustIcon, journalIcon, levelUpIcon, pauseIcon } from '
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 import { counted } from './view/ui/words';
-import { keepWorld, loadWorld } from './controller/worldCache';
+import { keepWorld, loadWorld } from './controller/storage/worldCache';
 import { generateWorld } from './model/worldgen/world';
-import { DEFAULT_MAP_SIZE } from './model/grid';
+import { DEFAULT_MAP_SIZE } from './model/map/grid';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of

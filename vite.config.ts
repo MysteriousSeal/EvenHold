@@ -2,13 +2,13 @@ import { defineConfig } from 'vite';
 import { readFileSync, readdirSync } from 'node:fs';
 
 // The fingerprint of the code that makes worlds, worked out at build time for
-// the built game (controller/worldCache.ts works it out live while developing).
+// the built game (controller/storage/worldCache.ts works it out live while developing).
 // The same files, the same way.
 const MAKERS = ['src/model/worldgen', 'src/model/ruins', 'src/model/camps']
   .flatMap((dir) => readdirSync(dir).filter((f) => f.endsWith('.ts')).map((f) => `${dir}/${f}`))
-  .concat(['src/model/constants.ts', 'src/model/grid.ts', 'src/util/random.ts']);
-function worldVersion(): string {
-  const text = MAKERS.map((path) => ({ key: path.replace(/^src\/(model|util)\//, (_, dir) => (dir === 'util' ? '../util/' : '../model/')), path }))
+  .concat(['src/model/constants.ts', 'src/model/map/grid.ts', 'src/util/random.ts']);
+export function worldVersion(): string {
+  const text = MAKERS.map((path) => ({ key: path.replace(/^src\/(model|util)\//, (_, dir) => (dir === 'util' ? '../../util/' : '../../model/')), path }))
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
     .map(({ key, path }) => `${key}\n${readFileSync(path, 'utf8')}`)
     .join('\n');

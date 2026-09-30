@@ -5,12 +5,12 @@
 // is kept under a fingerprint of the code that makes worlds: change any of
 // it, and every kept world is made afresh (and the old ones dropped).
 
-import type { Bush, BushKind, Surface, Tree, TreeKind, World } from '../model/types';
-import type { MapSize } from '../model/grid';
+import type { Bush, BushKind, Surface, Tree, TreeKind, World } from '../../model/types';
+import type { MapSize } from '../../model/map/grid';
 
 // The code that makes a world (worldgen/, ruins, camps, the constants, the grid, randomness), as text: its
 // fingerprint, worked out live while developing (so a change shows at once); the built game has it worked out already (vite.config.ts).
-const MAKERS = import.meta.glob(['../model/worldgen/*.ts', '../model/ruins/*.ts', '../model/camps/*.ts', '../model/constants.ts', '../model/grid.ts', '../util/random.ts'], {
+const MAKERS = import.meta.glob(['../../model/worldgen/*.ts', '../../model/ruins/*.ts', '../../model/camps/*.ts', '../../model/constants.ts', '../../model/map/grid.ts', '../../util/random.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -96,15 +96,26 @@ export function unpackWorld(packed: PackedWorld): World {
 }
 
 const DB = 'evenhold';
-const STORE = 'worlds';
+const WORLDS = 'worlds'; // the packed worlds, big
+const KEPT = 'kept'; // a small note of each: what code made it, and when it was last played (to drop the oldest by)
 const KEEP = 3; // worlds kept, the latest played
 const keyOf = (seed: number, size: MapSize) => `${seed}:${size.width}x${size.depth}`;
+
+interface Kept {
+  version: string;
+  at: number; // last played (ms)
+}
 
 function open(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
   return new Promise((resolve) => {
-    const request = indexedDB.open(DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+    const request = indexedDB.open(DB, 2);
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(WORLDS)) db.createObjectStore(WORLDS);
+      else if (event.oldVersion < 2) request.transaction!.objectStore(WORLDS).clear(); // (kept before the notes: made again)
+      if (!db.objectStoreNames.contains(KEPT)) db.createObjectStore(KEPT);
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => resolve(null);
   });
@@ -116,30 +127,43 @@ const done = <T>(request: IDBRequest<T>): Promise<T | null> =>
     request.onerror = () => resolve(null);
   });
 
-// The world kept for `seed` at `size`, if there's one made by today's code; else null.
+// The world kept for `seed` at `size`, if there's one made by today's code (marked played now); else null.
 export async function loadWorld(seed: number, size: MapSize): Promise<World | null> {
   try {
     const db = await open();
     if (!db) return null;
-    const kept = (await done(db.transaction(STORE).objectStore(STORE).get(keyOf(seed, size)))) as { packed: PackedWorld } | null;
+    const key = keyOf(seed, size);
+    const tx = db.transaction([WORLDS, KEPT], 'readwrite');
+    const note = (await done(tx.objectStore(KEPT).get(key))) as Kept | null;
+    const packed = note?.version === WORLD_VERSION ? ((await done(tx.objectStore(WORLDS).get(key))) as PackedWorld | null) : null;
+    if (packed) tx.objectStore(KEPT).put({ version: note!.version, at: Date.now() }, key);
     db.close();
-    return kept && kept.packed.version === WORLD_VERSION && kept.packed.width === size.width && kept.packed.depth === size.depth ? unpackWorld(kept.packed) : null;
+    return packed && packed.version === WORLD_VERSION && packed.width === size.width && packed.depth === size.depth ? unpackWorld(packed) : null;
   } catch {
     return null; // (storage refused, or something odd kept: the world's just made)
   }
 }
 
-// Keeps `world` for next time, the oldest dropped past KEEP (and any made by older code).
+// Keeps `world` for next time; past KEEP, the least lately played are dropped (and any made by older code),
+// going by the small notes alone (the worlds themselves are never read back for it).
 export async function keepWorld(seed: number, size: MapSize, world: World): Promise<void> {
   try {
     const db = await open();
     if (!db) return;
-    const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
-    await done(store.put({ packed: packWorld(world), at: Date.now() }, keyOf(seed, size)));
-    const keys = ((await done(store.getAllKeys())) ?? []) as string[];
-    const all = ((await done(store.getAll())) ?? []) as Array<{ packed: PackedWorld; at: number }>;
-    const byAge = keys.map((key, i) => ({ key, at: all[i].at, stale: all[i].packed.version !== WORLD_VERSION })).sort((a, b) => b.at - a.at);
-    for (const [i, { key, stale }] of byAge.entries()) if (stale || i >= KEEP) store.delete(key);
+    const tx = db.transaction([WORLDS, KEPT], 'readwrite');
+    const [worlds, kept] = [tx.objectStore(WORLDS), tx.objectStore(KEPT)];
+    const key = keyOf(seed, size);
+    worlds.put(packWorld(world), key);
+    await done(kept.put({ version: WORLD_VERSION, at: Date.now() }, key));
+    const keys = ((await done(kept.getAllKeys())) ?? []) as string[];
+    const notes = ((await done(kept.getAll())) ?? []) as Kept[];
+    const byAge = keys.map((k, i) => ({ key: k, ...notes[i] })).sort((a, b) => b.at - a.at);
+    let fresh = 0;
+    for (const note of byAge) {
+      if (note.version === WORLD_VERSION && fresh++ < KEEP) continue;
+      worlds.delete(note.key);
+      kept.delete(note.key);
+    }
     db.close();
   } catch {
     // (storage full or refused: next time it's just made again)

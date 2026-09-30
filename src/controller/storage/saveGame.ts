@@ -4,8 +4,8 @@
 // reloaded, or hidden). Storage may be unavailable (a private window, full):
 // then the game simply isn't kept.
 
-import type { GameModel } from '../model/GameModel';
-import { parseSave, restore, snapshot } from '../model/save';
+import type { GameModel } from '../../model/GameModel';
+import { parseSave, restore, snapshot } from '../../model/save';
 
 const EVERY = 5_000; // milliseconds between saves while playing
 const keyOf = (seed: number) => `evenhold.save.${seed}`;
