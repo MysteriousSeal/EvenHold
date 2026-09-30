@@ -10,6 +10,7 @@
 
 import type { GameModel } from './GameModel';
 import type { BagItem } from './hero/bag';
+import { BUYBACK } from './shops/shopStock';
 import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { MAX_ENERGY, maxHpAt } from './hero/heroStats';
@@ -103,7 +104,7 @@ export function snapshot(model: GameModel): SaveData {
     npcs: model.npcs
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
-    shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
+    shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })) })),
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
@@ -184,8 +185,11 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   for (const { item, x, z } of data.loot) if (known(item)) model.dropLoot(item, x, z);
   for (const { amount, x, z } of data.coins) model.dropCoins(amount, x, z);
-  for (const { inn, money, stock, restockedAt } of Array.isArray(data.shops) ? data.shops : []) {
-    if (typeof inn === 'number' && typeof money === 'number' && typeof restockedAt === 'number') model.shops.set(inn, { money, stock: { ...stock }, restockedAt });
+  for (const { inn, money, stock, restockedAt, buyback } of Array.isArray(data.shops) ? data.shops : []) {
+    if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
+    // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
+    const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
+    model.shops.set(inn, { money, stock: { ...stock }, restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })) }); // (older saves: one of each)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;

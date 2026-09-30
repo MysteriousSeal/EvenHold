@@ -3,7 +3,7 @@
 // much of each thing and only so much money, the purse growing as the hero
 // buys and shrinking as they sell; both drift back to the shop's usual as
 // real time passes (every RESTOCK_EVERY), even between visits. What the hero
-// last sold can be bought back at what they got for it (not saved: gone on reloading).
+// last sold can be bought back at what they got for it (saved too).
 
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
@@ -12,7 +12,14 @@ export interface Shop {
   money: number; // copper in the keeper's purse
   stock: Partial<Record<BagItem, number>>;
   restockedAt: number; // when last restocked (ms, wall clock)
-  buyback?: Array<{ id: BagItem; price: number }>; // the hero's last sales here, latest first, BUYBACK at most
+  buyback?: Sale[]; // the hero's last sales here, latest first, BUYBACK at most
+}
+
+// One of the hero's sales (or several of the same thing at the same price, stacked): to buy back, each at `price`.
+export interface Sale {
+  id: BagItem;
+  price: number;
+  count: number;
 }
 
 export const BUYBACK = 12;
@@ -74,19 +81,23 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   hero.money += price;
   shop.money -= price;
   shop.stock[id] = (shop.stock[id] ?? 0) + 1;
-  shop.buyback = [{ id, price }, ...(shop.buyback ?? [])].slice(0, BUYBACK);
+  // Stacked with the same thing sold at the same price (junk sold a handful at a time), to the front.
+  const sales = shop.buyback ?? [];
+  const same = sales.find((s) => s.id === id && s.price === price);
+  shop.buyback = [same ? { ...same, count: same.count + 1 } : { id, price, count: 1 }, ...sales.filter((s) => s !== same)].slice(0, BUYBACK);
   return 'sold';
 }
 
-// The hero buys back the `index`th of their last sales, at what they got for it.
+// The hero buys back the `index`th of their last sales, the whole stack, at what they got for it.
 export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' {
   const sale = shop.buyback?.[index];
   if (!sale) return 'none';
-  if (hero.money < sale.price) return 'too poor';
-  hero.money -= sale.price;
-  shop.money += sale.price;
-  shop.stock[sale.id] = Math.max(0, (shop.stock[sale.id] ?? 0) - 1);
+  const cost = sale.price * sale.count;
+  if (hero.money < cost) return 'too poor';
+  hero.money -= cost;
+  shop.money += cost;
+  shop.stock[sale.id] = Math.max(0, (shop.stock[sale.id] ?? 0) - sale.count);
   shop.buyback!.splice(index, 1);
-  addToBag(hero.bag, sale.id);
+  for (let i = 0; i < sale.count; i++) addToBag(hero.bag, sale.id);
   return 'bought';
 }

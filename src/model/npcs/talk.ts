@@ -6,7 +6,7 @@
 import type { Inside } from '../interiors/indoors';
 import type { Npc, NpcRole } from './npcs';
 
-const TALK_RANGE = 2.2; // room tiles: across a bar or a counter
+export const TALK_RANGE = 2.2; // room tiles: across a bar or a counter
 
 // Those who talk, and what the prompt calls it.
 const TALKS: Partial<Record<NpcRole, string>> = { barkeep: 'Talk to', smith: 'Trade with' };
