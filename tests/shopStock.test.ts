@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { RESTOCK_EVERY, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
+import { BUYBACK, RESTOCK_EVERY, buyBack, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
 import { restockAll, shopAt } from '../src/model/inn/tavernShop';
 import { SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
@@ -46,6 +46,21 @@ describe('a shop', () => {
     shop.money = 5;
     expect(sellTo(shop, h, 'ale', 1)).toBe('sold');
     expect([h.money, shop.money, shop.stock.ale, h.bag.ale ?? 0]).toEqual([3, 4, 1, 0]);
+  });
+
+  it('keeps the last sales, latest first, to be bought back at what they fetched', () => {
+    const h = hero();
+    const shop: Shop = { money: 1_000, stock: {}, restockedAt: 0 };
+    h.bag.ale = BUYBACK + 2;
+    for (let i = 0; i < BUYBACK + 2; i++) sellTo(shop, h, 'ale', i + 1); // each a copper dearer
+    expect(shop.buyback!.map((s) => s.price)).toEqual(Array.from({ length: BUYBACK }, (_, i) => BUYBACK + 2 - i)); // only the last BUYBACK
+    const money = h.money;
+    h.money = 0;
+    expect(buyBack(shop, h, 0)).toBe('too poor');
+    h.money = money;
+    expect(buyBack(shop, h, 0)).toBe('bought');
+    expect([h.money, h.bag.ale, shop.stock.ale, shop.buyback!.length]).toEqual([money - (BUYBACK + 2), 1, BUYBACK + 1, BUYBACK - 1]);
+    expect(buyBack(shop, h, 99)).toBe('none');
   });
 });
 
