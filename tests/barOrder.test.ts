@@ -5,7 +5,9 @@ import { doorAt, stairsInReach, takeStairs, useHallDoor } from '../src/model/int
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
-import { ALE_SECONDS, barmaidHere, callForAle, orderAle, orderLabel } from '../src/controller/barOrder';
+import { ALE_SECONDS, MENU, barmaidHere, callFor, orderLabel, serveOrder } from '../src/controller/barOrder';
+import { maxEnergyOf } from '../src/model/hero/attributes';
+import { PIE_ENERGY } from '../src/model/inn/barPatrons';
 import { ALE_HEALS } from '../src/model/inn/barPatrons';
 import { AT_KEG, AT_SINK, pourFor } from '../src/model/inn/innStaff';
 import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/inn/barMugs';
@@ -24,6 +26,42 @@ const atTheInn = () => {
   return model;
 };
 
+describe('a meat pie at the bar', () => {
+  it('is served from her stock, paid for, and eaten on the spot: 60% of the most energy back over as long as an ale', () => {
+    const model = atTheInn();
+    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const stock = shop.stock.meatPie!;
+    Object.assign(model.hero, { money: 100, energy: 10, hp: 1 });
+    expect(orderLabel(model, 'pie')).toEqual({ label: `Order a meat pie · ${buyPrice('meatPie')} copper`, soldOut: false });
+    expect(callFor(model, 'pie').coming).toBe(true);
+    expect(serveOrder(model, 'pie').drank).toBe(true);
+    expect([shop.stock.meatPie, model.hero.money, model.hero.bag.meatPie ?? 0]).toEqual([stock - 1, 100 - buyPrice('meatPie'), 0]);
+    const gives = maxEnergyOf(model.hero) * PIE_ENERGY;
+    model.update(0, 0, ALE_SECONDS / 2);
+    expect(model.hero.energy).toBeGreaterThan(10 + gives / 2 - 1); // (a little spent meanwhile, sat or not)
+    model.update(0, 0, ALE_SECONDS / 2 + 0.1);
+    expect(model.hero.energy).toBeGreaterThan(10 + gives - 2); // all of it (less the little spent, standing)
+    expect(model.hero.energy).toBeLessThanOrEqual(10 + gives);
+    expect(model.hero.hp).toBe(1); // food for energy, not health
+  });
+
+  it('is only to be had while she has some: sold out, the prompt says when there\'s more, and she won\'t take the order', () => {
+    const model = atTheInn();
+    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    shop.stock.meatPie = 0;
+    model.hero.money = 100;
+    expect(orderLabel(model, 'pie')).toMatchObject({ soldOut: true, label: expect.stringMatching(/^Out of meat pies · back in \d+:\d\d$/) });
+    expect(callFor(model, 'pie')).toMatchObject({ coming: false, said: expect.stringContaining('Not a pie left') });
+    expect(serveOrder(model, 'pie').drank).toBe(false);
+    expect(orderLabel(model, 'ale').soldOut).toBe(false); // the ale's still to be had
+  });
+
+  it('is on the same menu as the ale, each with its own words', () => {
+    expect(MENU.pie.item).toBe('meatPie');
+    for (const lines of [MENU.pie.coming, MENU.pie.served, MENU.pie.tooPoor]) expect(lines.every((l) => !/ale\b/i.test(l))).toBe(true);
+  });
+});
+
 describe('an ale at the bar', () => {
   it('is poured from her stock, paid for, and drunk on the spot', () => {
     const model = atTheInn();
@@ -32,7 +70,7 @@ describe('an ale at the bar', () => {
     model.hero.money = 100;
     model.hero.hp = 1;
     expect(orderLabel(model)).toEqual({ label: `Order an ale · ${buyPrice('ale')} copper`, soldOut: false });
-    expect(orderAle(model).drank).toBe(true);
+    expect(serveOrder(model).drank).toBe(true);
     expect(shop.stock.ale).toBe(stock - 1);
     expect(model.hero.money).toBe(100 - buyPrice('ale'));
     expect(model.hero.bag.ale ?? 0).toBe(0); // sipped there, not carried off
@@ -48,21 +86,21 @@ describe('an ale at the bar', () => {
   it("is called for first: she says she's coming, and nothing's paid till she pours", () => {
     const model = atTheInn();
     model.hero.money = 100;
-    expect(callForAle(model).coming).toBe(true);
+    expect(callFor(model).coming).toBe(true);
     expect(model.hero.money).toBe(100);
     model.hero.money = 0;
-    expect(callForAle(model).coming).toBe(false); // too poor: she says so at once
+    expect(callFor(model).coming).toBe(false); // too poor: she says so at once
   });
 
   it("isn't, without the coin, or with the barrel dry", () => {
     const model = atTheInn();
     const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
     model.hero.money = 0;
-    expect(orderAle(model).drank).toBe(false);
+    expect(serveOrder(model).drank).toBe(false);
     model.hero.money = 100;
     shop.stock.ale = 0;
     expect(orderLabel(model).soldOut).toBe(true);
-    expect(orderAle(model)).toMatchObject({ drank: false });
+    expect(serveOrder(model)).toMatchObject({ drank: false });
     expect(model.hero.money).toBe(100);
   });
 
