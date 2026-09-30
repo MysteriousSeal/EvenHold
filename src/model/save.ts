@@ -65,6 +65,8 @@ const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a t
 export function snapshot(model: GameModel): SaveData {
   const { hero } = model;
   const door = (entrance: GameModel['entrances'][number] | null | undefined) => (entrance ? model.entrances.indexOf(entrance) : null);
+  const indoors = model.yard ? model.yard.back.inside : model.inside; // a save from the yard keeps where they came from
+  const spot = model.yard?.back;
   return {
     version: VERSION,
     seed: model.seed,
@@ -79,11 +81,11 @@ export function snapshot(model: GameModel): SaveData {
       xp: hero.xp,
       hp: hero.hp,
       energy: Math.round(hero.energy),
-      x: model.seated?.from.x ?? hero.x,
-      z: model.seated?.from.z ?? hero.z,
-      facing: hero.facing,
-      inside: door(model.inside?.below ?? model.inside?.entrance),
-      upstairs: !!model.inside?.below,
+      x: spot?.x ?? model.seated?.from.x ?? hero.x,
+      z: spot?.z ?? model.seated?.from.z ?? hero.z,
+      facing: spot?.facing ?? hero.facing,
+      inside: door(indoors?.below ?? indoors?.entrance),
+      upstairs: !!indoors?.below,
       lastInn: door(model.lastInn),
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
     },

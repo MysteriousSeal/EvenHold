@@ -41,6 +41,7 @@ import { onPaving } from './roads';
 import { entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
 import { doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
+import { stepYard, toggleYard, type YardStay } from './interiors/furnitureYard';
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
@@ -86,6 +87,7 @@ export class GameModel {
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
   // Where the hero is while indoors (indoors.ts); null outdoors.
   inside: Inside | null = null;
+  yard: YardStay | null = null; // dev cheat: flat grass off the map, every furniture on it
   readonly outdoors: { seated: Seated } = { seated: null }; // on a bench, on a village square
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
   // The enemy the hero has focused (clicked, or the first to hit them since
@@ -170,11 +172,19 @@ export class GameModel {
   // (outdoors, leaving any room they were in).
   teleport(x: number, z: number): void {
     this.inside = null;
+    this.yard = null;
     this.outdoors.seated = null;
     this.hero.x = x;
     this.hero.z = z;
     this.hero.y = this.getGroundY(x, z);
     this.hop = null;
+  }
+
+  // Dev cheat: the flat grass yard, or back to where the hero was.
+  toggleFurnitureYard(): string {
+    this.hop = null;
+    this.focusedId = null;
+    return toggleYard(this);
   }
 
   // Whether a walker of half-width r can't stand at (x, z) (wildlife walk by it).
@@ -210,6 +220,11 @@ export class GameModel {
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }
+    if (this.yard) {
+      stepYard(this.hero, this.yard.furniture, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt);
+      this.advanceAttack(dt);
+      return;
+    }
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated) this.moveHorizontally(dirX, dirZ, dt);
     this.advanceAttack(dt);
@@ -230,7 +245,7 @@ export class GameModel {
   private advanceAttack(dt: number): void {
     if (this.attackElapsed === null) return;
     this.attackElapsed += dt;
-    if (!this.inside && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
+    if (!this.inside && !this.yard && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
       this.attackLanded = true;
       this.landBlow();
     }
@@ -306,13 +321,13 @@ export class GameModel {
 
   // The loot nearest the hero within reach to pick up (outdoors), or null.
   get lootInReach(): GroundLoot | null {
-    return this.inside ? null : this.ground.nearest(this.hero.x, this.hero.z);
+    return this.inside || this.yard ? null : this.ground.nearest(this.hero.x, this.hero.z);
   }
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
   // front of them; returns whether they had one.
   dropFromBag(item: BagItem): boolean {
-    if (this.inside) return false; // nothing's dropped indoors (for now)
+    if (this.inside || this.yard) return false; // nothing's dropped indoors, or in the furniture yard
     if (!takeFromBag(this.hero.bag, item)) return false;
     this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
     return true;
@@ -330,7 +345,7 @@ export class GameModel {
 
   // The door the hero can use right now (indoors.ts), or null.
   get doorInReach(): Entrance | null {
-    return doorInReach(this.inside, this.entrances, this.hero);
+    return this.yard ? null : doorInReach(this.inside, this.entrances, this.hero);
   }
 
   // Goes through the door in reach: in, onto the room's floor just inside
@@ -354,6 +369,7 @@ export class GameModel {
 
   // In through a building's door, onto the floor just inside it, facing in.
   enterRoom(entrance: Entrance): void {
+    this.yard = null;
     const { room, furniture } = layoutOf(this.seed, entrance);
     this.inside = { entrance, room, furniture, seated: null };
     this.outdoors.seated = null;
@@ -380,6 +396,7 @@ export class GameModel {
 
   // The free seat the hero could sit on right now (in the room, or a bench's), or null (seated).
   get seatInReach(): Seat | null {
+    if (this.yard) return null;
     const taken = (piece: Seat['piece']) => this.npcs.some((n) => n.seat?.piece === piece);
     if (this.inside) return seatInReach(this.inside, this.hero, taken);
     return this.outdoors.seated ? null : benchSeatInReach(squareBenches(this), this.hero, (seat) => taken(seat.piece)); // the squares' benches
@@ -414,7 +431,7 @@ export class GameModel {
 
   // The notice board the hero's at (outdoors), by its village's index; else null.
   get boardInReach(): number | null {
-    return this.inside ? null : this.quests.boardInReach();
+    return this.inside || this.yard ? null : this.quests.boardInReach();
   }
 
   // Eats or drinks one of `item` from the bag, for the health it gives back (hero/bag.ts); returns whether they did.
@@ -422,7 +439,7 @@ export class GameModel {
 
   // The village well the hero's beside (outdoors), by its village's index; else null.
   get wellInReach(): number | null {
-    return this.inside ? null : wellInReach(this.villages, this.hero);
+    return this.inside || this.yard ? null : wellInReach(this.villages, this.hero);
   }
 
   // A silver coin into the well in reach, for a blessing (blessing.ts); returns it, or null (none in reach, or no silver).

@@ -5,50 +5,55 @@
 import { hashCell } from '../../util/random';
 import type { Entrance } from './interiors';
 
-export type FurnitureKind =
-  | 'hearth'
-  | 'bed'
-  | 'nightstand' // by a bed's head
-  | 'table'
-  | 'chair'
-  | 'chest'
-  | 'shelf'
-  | 'barrel'
-  | 'rug'
-  | 'counter'
-  | 'keg'
-  | 'sink' // behind the bar, where the empty mugs go
-  | 'stairs' // up to the inn's upper floor, along the wall past the bar
-  | 'stairwell' // where they come up, upstairs
-  | 'hallWall' // upstairs: a low wall between the hallway and the rooms off it
-  | 'hallDoor' // and a room's door in it
-  | 'roomBed' // and in the rooms, a bed
-  | 'doubleBed' // or, in the bigger ones, a double
-  | 'wardrobe' // and in the bigger ones, a wardrobe,
-  | 'framedPicture' // a picture propped on a wall's rail,
-  | 'bathtub' // and a wooden tub
-  | 'forge'
-  | 'bellows' // beside the forge
-  | 'smithCounter' // where the smith trades, by the door
-  | 'weaponWall' // his weapons on show, hung on a wall
-  | 'armorStand' // a suit of his armour on a stand
-  | 'grindstone'
-  | 'toolBoard' // his tongs and hammers, hung on a wall
-  | 'anvil'
-  | 'trough'
-  | 'rack'
-  | 'coal'
+// Every kind of furniture: add one here and it's part of the game, and of
+// the furniture yard (the dev cheat, furnitureYard.ts).
+export const FURNITURE_KINDS = [
+  'hearth',
+  'bed',
+  'nightstand', // by a bed's head
+  'table',
+  'chair',
+  'chest',
+  'shelf',
+  'barrel',
+  'rug',
+  'counter',
+  'keg',
+  'sink', // behind the bar, where the empty mugs go
+  'stairs', // up to the inn's upper floor, along the wall past the bar
+  'stairwell', // where they come up, upstairs
+  'hallWall', // upstairs: a low wall between the hallway and the rooms off it
+  'hallDoor', // and a room's door in it
+  'roomBed', // and in the rooms, a bed
+  'doubleBed', // or, in the bigger ones, a double
+  'wardrobe', // and in the bigger ones, a wardrobe,
+  'framedPicture', // a picture propped on a wall's rail,
+  'bathtub', // and a wooden tub
+  'forge',
+  'bellows', // beside the forge
+  'smithCounter', // where the smith trades, by the door
+  'weaponWall', // his weapons on show, hung on a wall
+  'armorStand', // a suit of his armour on a stand
+  'grindstone',
+  'toolBoard', // his tongs and hammers, hung on a wall
+  'anvil',
+  'trough',
+  'rack',
+  'coal',
   // The inn's own
-  | 'armchair'
-  | 'bearRug'
-  | 'barStool'
-  | 'bench' // on the village squares, outdoors (worldgen/benches.ts)
-  | 'bottleShelf'
-  | 'tavernTable'
-  | 'antlers'
-  | 'wallShield'
-  | 'noticeBoard'
-  | 'wallLantern';
+  'armchair',
+  'bearRug',
+  'barStool',
+  'bench', // on the village squares, outdoors (worldgen/benches.ts)
+  'bottleShelf',
+  'tavernTable',
+  'antlers',
+  'wallShield',
+  'noticeBoard',
+  'wallLantern',
+] as const;
+
+export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
 
 export interface Furniture {
   kind: FurnitureKind;
