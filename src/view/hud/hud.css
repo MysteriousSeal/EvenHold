@@ -194,6 +194,7 @@
 .speech-bubble::after { bottom: -8px; margin-left: -6px; border-width: 9px 6px 0; border-top-color: #f8ecd4; } /* the coins themselves: coins.css */
 .loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
+.loot-name[data-quality='ingredient'] { color: #e8a080; }
 .loot-name[data-quality='common'] { color: #f8ecd4; }
 .loot-name[data-quality='quest'] { color: #ffc94a; }
 .loot-key {

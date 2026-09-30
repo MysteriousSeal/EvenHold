@@ -419,6 +419,7 @@
 .menu-tooltip[hidden] { display: none; }
 .menu-tooltip b { font-size: 17px; font-weight: 600; color: #f8ecd4; }
 .menu-tooltip b[data-tone='junk'] { color: #b4b0a8; }
+.menu-tooltip b[data-tone='ingredient'] { color: #e8a080; }
 .menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
 .menu-tooltip small { font-size: 13px; color: #d6bb8e; }
 
