@@ -54,3 +54,9 @@
 .levelup-button { padding: 7px 18px; font-size: 15px; }
 .levelup-button.confirm:not(:disabled) { color: #fff; background: #3dbdb8; text-shadow: 1px 1px 0 var(--ink); }
 .levelup-button.confirm:hover:not(:disabled) { background: #5ad0cb; }
+
+/* Having every point back, for coin: a note on the left, the price on its button on the right; asked twice. */
+.levelup-respec { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 2px dashed var(--line); }
+.levelup-respec-note { font-size: 12px; color: var(--ink-soft); }
+.levelup-button.respec { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; padding: 6px 12px; }
+.levelup-button.respec.asking { background: #e8903a; color: #fff; text-shadow: 1px 1px 0 var(--ink); }

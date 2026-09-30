@@ -2,14 +2,16 @@
 // hero's levels have given them, to spend on Strength, Agility, Stamina and
 // Endurance. Each stat's row: what it does, what it is, and − and + to plan
 // points on it; under them, what the plan comes to (health, energy, damage,
-// dodge, critical: now → then). Nothing's spent until Confirm; Reset clears
-// the plan. The game waits while it's open.
+// dodge, critical: now → then). Nothing's spent until Confirm; Clear clears
+// the plan. Under it all, every point spent can be had back to spend again,
+// for coin by their level (training.ts), on a second click to be sure. The game waits while it's open.
 
 import './levelUpPanel.css';
 import type { GameModel } from '../model/GameModel';
 import { blowOf, critChanceOf, dodgeChanceOf, maxEnergyOf, maxHpOf, statsOf } from '../model/hero/attributes';
 import { STATS, STAT_NAMES, type Stat } from '../model/hero/statKinds';
-import { spendPoints, untrained } from '../model/hero/training';
+import { resetCost, resetPoints, spendPoints, untrained } from '../model/hero/training';
+import { coinParts, coinWords } from '../view/ui/coins';
 import { createMenu, type Menu } from '../view/ui/menu';
 import { STAT_DOES } from './statText';
 
@@ -67,9 +69,9 @@ export function createLevelUpPanel(model: GameModel, hooks: { setPaused(paused: 
       effects.append(fact);
     }
     box.append(effects);
-    // Reset the plan, or confirm it.
+    // Clear the plan, or confirm it.
     const buttons = el('div', 'levelup-buttons');
-    const reset = el('button', 'levelup-button', 'Reset');
+    const reset = el('button', 'levelup-button', 'Clear');
     reset.disabled = planned() === 0;
     reset.addEventListener('click', change(() => (plan = untrained())));
     const confirm = el('button', 'levelup-button confirm', 'Confirm');
@@ -84,8 +86,33 @@ export function createLevelUpPanel(model: GameModel, hooks: { setPaused(paused: 
       }),
     );
     buttons.append(reset, confirm);
-    box.append(buttons);
+    box.append(buttons, respec());
     return box;
+  };
+
+  // Every point spent back, for coin: a first click asks, a second pays.
+  let asking = false;
+  const respec = () => {
+    const row = el('div', 'levelup-respec');
+    const cost = resetCost(hero.level);
+    const spent = STATS.some((s) => hero.trained[s] > 0);
+    const note = el('small', 'levelup-respec-note', !spent ? 'No points spent yet' : hero.money < cost ? `You haven't the ${coinWords(cost)}` : 'Have every point you\'ve spent back, to spend again');
+    const button = el('button', `levelup-button respec${asking ? ' asking' : ''}`);
+    button.append(...(asking ? ['Pay ', ...coinParts(cost), ' to reset?'] : ['Reset points · ', ...coinParts(cost)]));
+    button.disabled = !spent || hero.money < cost;
+    button.addEventListener(
+      'click',
+      change(() => {
+        if (!asking) asking = true;
+        else {
+          asking = false;
+          plan = untrained();
+          resetPoints(hero);
+        }
+      }),
+    );
+    row.append(note, button);
+    return row;
   };
 
   const menu = createMenu({
@@ -94,7 +121,7 @@ export function createLevelUpPanel(model: GameModel, hooks: { setPaused(paused: 
     keyHints: false,
     onOpenChange: (open) => {
       hooks.setPaused(open);
-      if (!open) plan = untrained(); // shut unconfirmed: nothing spent
+      if (!open) [plan, asking] = [untrained(), false]; // shut unconfirmed: nothing spent, nothing reset
     },
     tabs: [{ name: 'Stats', header: body }],
   });
