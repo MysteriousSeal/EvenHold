@@ -5,7 +5,7 @@ import { MAX_ENERGY, maxHpAt, recover } from '../src/model/hero/heroStats';
 import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf, throughArmor } from '../src/model/hero/attributes';
 import { STATS } from '../src/model/hero/statKinds';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { gearLines } from '../src/controller/gearLines';
+import { gearLines } from '../src/controller/hero/gearLines';
 import type { Enemy } from '../src/model/types';
 import type { GameModel } from '../src/model/GameModel';
 import { FRAME, fresh, nearest } from './support/testWorld';

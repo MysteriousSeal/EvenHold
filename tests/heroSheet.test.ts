@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 // The hero sheet (C) in a stand-in page: its figure and icons are plain canvases.
 import { describe, expect, it, vi } from 'vitest';
-import { createHeroSheet } from '../src/controller/heroSheet';
-import { createLevelUpPanel } from '../src/controller/levelUpPanel';
+import { createHeroSheet } from '../src/controller/hero/heroSheet';
+import { createLevelUpPanel } from '../src/controller/hero/levelUpPanel';
 import { maxHpOf } from '../src/model/hero/attributes';
 import { resetCost } from '../src/model/hero/training';
 import { ITEMS } from '../src/model/human/equipment';

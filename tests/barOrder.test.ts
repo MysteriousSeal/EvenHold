@@ -5,7 +5,7 @@ import { doorAt, stairsInReach, takeStairs, useHallDoor } from '../src/model/int
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
-import { ALE_SECONDS, MENU, barmaidHere, callFor, orderLabel, serveOrder } from '../src/controller/barOrder';
+import { ALE_SECONDS, MENU, barmaidHere, callFor, orderLabel, serveOrder } from '../src/controller/trade/barOrder';
 import { maxEnergyOf } from '../src/model/hero/attributes';
 import { PIE_ENERGY } from '../src/model/inn/barPatrons';
 import { ALE_HEALS } from '../src/model/inn/barPatrons';

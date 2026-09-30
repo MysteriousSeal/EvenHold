@@ -11,10 +11,11 @@ import { LOOT } from '../src/model/loot/loot';
 import { sellPrice } from '../src/model/inn/tavernShop';
 import type { ItemId } from '../src/model/human/equipment';
 import type { Npc } from '../src/model/npcs/npcs';
-import { createSmithPanel } from '../src/controller/smithPanel';
-import { createShopPanel } from '../src/controller/shopPanel';
-import { createInventoryPanel } from '../src/controller/inventoryPanel';
-import { PAGE as PAGES, plural } from '../src/controller/tradePanel';
+import { createSmithPanel } from '../src/controller/trade/smithPanel';
+import { createShopPanel } from '../src/controller/trade/shopPanel';
+import { createInventoryPanel } from '../src/controller/hero/inventoryPanel';
+import { PAGE as PAGES } from '../src/controller/trade/tradePanel';
+import { plural } from '../src/view/ui/words';
 
 const PAGE = PAGES.buy;
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
