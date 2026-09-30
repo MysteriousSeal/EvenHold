@@ -31,6 +31,9 @@ import { bagToolIcon, heroBustIcon, journalIcon, levelUpIcon, pauseIcon } from '
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
 import { counted } from './view/ui/words';
+import { keepWorld, loadWorld } from './controller/worldCache';
+import { generateWorld } from './model/worldgen/world';
+import { DEFAULT_MAP_SIZE } from './model/grid';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -41,9 +44,16 @@ async function boot(): Promise<void> {
   const seed = resolveSeed();
   (document.getElementById('seed-label') as HTMLDivElement).textContent = `seed: ${seed}`;
 
-  loading.show(0, 'Shaping the land');
+  // The world as its seed made it: kept from an earlier visit (worldCache.ts), else made now and kept for next time.
+  loading.show(0, 'Unrolling the map');
   await nextPaint();
-  const model = new GameModel(seed);
+  const kept = await loadWorld(seed, DEFAULT_MAP_SIZE);
+  if (!kept) {
+    loading.show(0, 'Shaping the land');
+    await nextPaint();
+  }
+  const world = kept ?? generateWorld(seed, DEFAULT_MAP_SIZE);
+  const model = new GameModel(seed, DEFAULT_MAP_SIZE, world);
   // This world's saved game, if it was played before; else a new hero: any look, a name to match.
   if (!loadGame(model)) {
     model.hero.look = randomLook();
@@ -204,6 +214,7 @@ async function boot(): Promise<void> {
     },
   });
   controller.start();
+  if (!kept) window.setTimeout(() => void keepWorld(seed, DEFAULT_MAP_SIZE, world), 2000); // (once the game's under way)
   const autoSave = startAutoSave(model);
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.
