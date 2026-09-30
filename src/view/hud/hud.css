@@ -92,6 +92,10 @@
   box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18), inset 0 4px 0 rgba(255, 255, 255, 0.18);
 }
 
+.hero-hud-energy { height: 16px; background: #5a4a1a; }
+.hero-hud-energy i { background: #e8b830; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15), inset 0 2px 0 rgba(255, 255, 255, 0.2); } /* golden, like candlelight */
+.hero-hud-energy span { font-size: 12px; }
+
 .hero-hud-xp { height: 16px; background: #1d4a58; }
 .hero-hud-xp i { background: var(--lake); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15); }
 .hero-hud-xp span { font-size: 12px; }

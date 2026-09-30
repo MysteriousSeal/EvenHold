@@ -1,12 +1,12 @@
 // The hero's HUD, top left: a portrait (the hero's own voxel head and
 // shoulders, redrawn when what they wear changes) with their level on its
-// corner, a health bar and an experience bar.
+// corner, a health bar, an energy bar and an experience bar.
 // Styles in hud.css. Updated every frame, touching the page only when
 // something shown has changed.
 
 import './hud.css';
 import type { Hero } from '../../model/types';
-import { maxHpAt, xpToNext } from '../../model/hero/heroStats';
+import { MAX_ENERGY, maxHpAt, xpToNext } from '../../model/hero/heroStats';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
 
@@ -36,6 +36,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
   name.textContent = hero.name;
   bars.append(name);
   const hp = bar('hero-hud-hp');
+  const energy = bar('hero-hud-energy');
   const xp = bar('hero-hud-xp');
   portrait.append(level);
   root.append(portrait, bars);
@@ -57,13 +58,16 @@ export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
     // Whole points only, in both the bar and the label, so they always agree
     // (healing fills in a point at a time).
     const health = Math.floor(hero.hp);
-    const state = `${health}/${max}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}`;
+    const awake = Math.ceil(hero.energy);
+    const state = `${health}/${max}/${awake}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}`;
     if (state === shown) return;
     shown = state;
     root.classList.toggle('hurt', hero.hurtFor > 0);
     level.textContent = String(hero.level);
     hp.fill.style.width = `${(health / max) * 100}%`;
     hp.label.textContent = `${health} / ${max}`;
+    energy.fill.style.width = `${(awake / MAX_ENERGY) * 100}%`;
+    energy.label.textContent = `${awake} / ${MAX_ENERGY}`;
     xp.fill.style.width = `${(hero.xp / need) * 100}%`;
     xp.label.textContent = `${hero.xp} / ${need} xp`;
   };
