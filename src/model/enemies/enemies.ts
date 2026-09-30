@@ -102,7 +102,7 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (world.isOpenTile(camp.x + dx, camp.z + dz)) spots.push([camp.x + dx, camp.z + dz]);
     const roll = ([x, z]: [number, number]) => hashUnit(x, z, world.seed + 56);
     spots.sort((a, b) => roll(a) - roll(b));
-    for (const [x, z] of spots.slice(0, camp.bandits)) enemies.push(makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)));
+    for (const [x, z] of spots.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)), pen: 2 });
   };
 
   // One of each a short walk from spawn, so there's something to fight right away.
@@ -210,10 +210,14 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     enemy.restFor -= dt;
     if (enemy.restFor > 0) return;
     const t = enemy.id * 7.31 + enemy.x;
-    enemy.target = {
-      x: enemy.homeX + (hashUnit(Math.floor(t * 10), enemy.id, 5) - 0.5) * 2 * stats.wander,
-      z: enemy.homeZ + (hashUnit(Math.floor(t * 10), enemy.id, 6) - 0.5) * 2 * stats.wander,
-    };
+    const [hx, hz] = [hashUnit(Math.floor(t * 10), enemy.id, 5), hashUnit(Math.floor(t * 10), enemy.id, 6)];
+    // Kept in (a camp's bandits): a tile inside the palisade, so they stay
+    // in their camp, not crowding its gate going in and out. Else anywhere round home.
+    const pen = enemy.pen;
+    enemy.target =
+      pen !== undefined
+        ? { x: enemy.homeX + Math.floor(hx * (2 * pen + 1)) - pen, z: enemy.homeZ + Math.floor(hz * (2 * pen + 1)) - pen }
+        : { x: enemy.homeX + (hx - 0.5) * 2 * stats.wander, z: enemy.homeZ + (hz - 0.5) * 2 * stats.wander };
   }
   // Toward it (home, or a spot round home): straight on while it can, and
   // once something's in the way (a camp's palisade), round it as when

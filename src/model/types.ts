@@ -45,6 +45,7 @@ export interface Enemy {
   y: number;
   homeX: number; // where it wanders around, and returns to
   homeZ: number;
+  pen?: number; // if kept in (a camp's bandits): wanders only to the tiles this far round home, inside the palisade
   level: number; // from how far from spawn it lives (enemyLevels.ts)
   maxHp: number;
   hp: number;
