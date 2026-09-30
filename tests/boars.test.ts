@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
-import { LOOT } from '../src/model/loot/loot';
+import { LOOT, LOOT_QUALITY, rollDrop } from '../src/model/loot/loot';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const FRAME = 1 / 60;
@@ -42,5 +42,12 @@ describe('boars', () => {
   it('drop their tusks (wolves never do)', () => {
     expect(LOOT.boarTusk.droppedBy).toEqual({ boar: 3 });
     expect(Object.values(LOOT).some((item) => (item.droppedBy as Record<string, number>).boar)).toBe(true);
+  });
+
+  it('drop raw meat, a cooking ingredient, more often than anything else', () => {
+    expect(LOOT_QUALITY.rawBoarMeat).toBe('ingredient');
+    const drops = Array.from({ length: 600 }, (_, id) => rollDrop('boar', id)).filter((d) => d !== null);
+    const meat = drops.filter((d) => d === 'rawBoarMeat').length;
+    for (const other of ['boarTusk', 'mattedPelt'] as const) expect(meat).toBeGreaterThan(drops.filter((d) => d === other).length);
   });
 });
