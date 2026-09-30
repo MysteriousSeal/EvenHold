@@ -17,7 +17,7 @@ import { WallCuts, clearUpper } from './innerWallCuts';
 import { CAMERA_OFFSET } from '../constants';
 import { goblet, tankard } from './furniturePalette';
 import type { Drink } from '../../model/npcs/npcs';
-import { DOOR_LEAF, paintDoorLeaf } from './innFurnitureVoxels';
+import { DOOR_LEAF, paintDoorLeaf } from './upstairsVoxels';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
 // The room's scene, what to call each frame (its fire burning), and how to

@@ -36,6 +36,7 @@ import {
   type Box,
 } from './furniturePalette';
 import { INN_PAINTERS } from './innFurnitureVoxels';
+import { UPSTAIRS_PAINTERS } from './upstairsVoxels';
 import { SMITHY_PAINTERS } from './smithyVoxels';
 import { paintBed, paintNightstand } from './bedVoxels';
 
@@ -44,6 +45,7 @@ const TILE = 25;
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
 const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, item: Furniture) => void> = {
   ...INN_PAINTERS,
+  ...UPSTAIRS_PAINTERS,
   ...SMITHY_PAINTERS,
   bench: () => {}, // outdoors only, on the squares (meshes/plaza/benchVoxels.ts): never in a room
   // A rustic stone fireplace: irregular stones in mixed shades and dark
