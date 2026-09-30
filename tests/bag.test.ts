@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addToBag, bagLayout, moveInBag, takeFromBag, type Bag } from '../src/model/hero/bag';
+import { addToBag, bagLayout, moveInBag, sortedBag, takeFromBag, type Bag } from '../src/model/hero/bag';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { fresh } from './support/testWorld';
@@ -72,5 +72,12 @@ describe('bag order', () => {
     const order = bagLayout(bag, [], 4); // fang, bread, ale, -
     expect(moveInBag(bag, order, 0, 3, 4)).toEqual([null, 'bread', 'ale', 'wolfFang']); // into the empty slot
     expect(moveInBag(bag, order, 0, 2, 4)).toEqual(['ale', 'bread', 'wolfFang', null]); // swapped
+  });
+});
+
+describe('tidying the bag', () => {
+  it('packs it from the first slot: gear head to toe then held, food and drink, ingredients, quest items, junk last; alike by name', () => {
+    const bag: Bag = { wolfFang: 2, rustyBuckle: 1, bread: 3, ale: 1, rawBoarMeat: 1, alphaFang: 1, shortSword: 1, nasalCap: 1, leatherBoots: 1, apple: 0 };
+    expect(sortedBag(bag)).toEqual(['nasalCap', 'leatherBoots', 'shortSword', 'ale', 'bread', 'rawBoarMeat', 'alphaFang', 'rustyBuckle', 'wolfFang']);
   });
 });

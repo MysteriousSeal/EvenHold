@@ -14,7 +14,7 @@ import type { Npc } from '../src/model/npcs/npcs';
 import { createSmithPanel } from '../src/controller/smithPanel';
 import { createShopPanel } from '../src/controller/shopPanel';
 import { createInventoryPanel } from '../src/controller/inventoryPanel';
-import { PAGE as PAGES } from '../src/controller/tradePanel';
+import { PAGE as PAGES, plural } from '../src/controller/tradePanel';
 
 const PAGE = PAGES.buy;
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -245,6 +245,9 @@ describe('trading, the WoW way', () => {
       expect(shown().filter(Boolean)).toEqual(['loot:rustyBuckle', 'loot:wolfFang']);
       expect(rows()[1].querySelector('.menu-slot-badge')!.textContent).toBe('×3');
       rightClick(rows()[1]);
+      expect(says()).toContain('3 wolf fangs'); // bought back: they name it, and what it cost
+      expect(says().match(/\d+ copper/)?.[0] ?? `${3 * LOOT.wolfFang.value} copper`).toBe(`${3 * LOOT.wolfFang.value} copper`);
+      expect(says()).not.toContain('{');
       expect(model.hero.bag.wolfFang).toBe(3);
       expect(model.hero.money).toBe(2 * LOOT.rustyBuckle.value);
       panel.menu.close();
@@ -262,5 +265,46 @@ describe('trading, the WoW way', () => {
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sell price: ${LOOT.wolfFang.value} copper`);
     hover(inBag('loot:alphaFang')); // a quest item
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sell price');
+  });
+});
+
+describe('selling junk', () => {
+  it("gets the keeper's word on junk, naming it (not on iron, not on food); the whole lot, a word on the lot", () => {
+    for (const type of ['smithy', 'inn'] as const) {
+      document.body.replaceChildren();
+      const { model, keeper, panel, shop } = trading(type);
+      shop().money = 100_000;
+      Object.assign(model.hero, { bag: { mattedPelt: 1, wolfFang: 2 } });
+      panel.open(keeper);
+      model.hero.money = 0;
+      rightClick(inBag('loot:mattedPelt'));
+      expect(says()).toContain('matted pelt');
+      expect(says().match(/\d+ copper/)?.[0] ?? `${LOOT.mattedPelt.value} copper`).toBe(`${LOOT.mattedPelt.value} copper`); // what it fetched, if said
+      expect(says()).not.toMatch(/iron|could use that|\{/);
+      shopEl().querySelector<HTMLButtonElement>('.shop-junk')!.click();
+      expect(says()).not.toContain('wolf fang'); // the lot, not one thing
+      expect(says().match(/\d+ copper/)?.[0] ?? `${2 * LOOT.wolfFang.value} copper`).toBe(`${2 * LOOT.wolfFang.value} copper`); // and what the lot fetched, if said
+      expect(says()).toMatch(/^“[^{]+”$/);
+      panel.menu.close();
+    }
+  });
+});
+
+describe('the bag', () => {
+  it('tidies itself with its Sort button', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { wolfFang: 1, bread: 1, nasalCap: 1 }, bagOrder: [null, 'wolfFang', null, 'bread', 'nasalCap'] });
+    bag.menu.open();
+    bagEl().querySelector<HTMLButtonElement>('.bag-sort')!.click();
+    expect(model.hero.bagOrder).toEqual(['nasalCap', 'bread', 'wolfFang']);
+    const keys = Array.from(bagEl().querySelectorAll('.menu-slot')).map((s) => s.querySelector('canvas')?.dataset.key ?? null);
+    expect(keys.slice(0, 4)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]);
+  });
+});
+
+describe('naming several of a thing', () => {
+  it('makes it plural as English would', () => {
+    expect(['wolf fang', 'torn pouch', 'leather gloves', 'rusty buckle'].map(plural)).toEqual(['wolf fangs', 'torn pouches', 'leather gloves', 'rusty buckles']);
   });
 });
