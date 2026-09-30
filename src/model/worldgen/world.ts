@@ -51,15 +51,16 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   // Ruins in the wilds, and the bandits' camps; the trees and bushes that
   // would stand on them (or right up to their walls) cleared away after
   // (grown as ever, so the rest of the world's the same).
-  const ruins = placeRuins({ seed, size, heightMap, surfaceMap, villages, isOpenTile: (x, z) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) });
   const cleared = new Set<string>();
+  const isOpenTile = (x: number, z: number) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(cellKey(x, z)); // (dry, clear of buildings and of what's placed before)
+  const ruins = placeRuins({ seed, size, heightMap, surfaceMap, villages, isOpenTile });
   const clear = (x0: number, z0: number, x1: number, z1: number) => {
     for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) cleared.add(cellKey(x, z));
   };
   for (const r of ruins) clear(r.x - 1, r.z - 1, r.x + r.w, r.z + r.d);
   // The bandits' camps likewise (clear of the ruins).
   const forest = createForestDensity(seed);
-  const camps = placeCamps({ seed, size, heightMap, surfaceMap, villages, forest, isOpenTile: (x, z) => x >= 0 && z >= 0 && x < size.width && z < size.depth && !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(cellKey(x, z)) });
+  const camps = placeCamps({ seed, size, heightMap, surfaceMap, villages, forest, isOpenTile });
   for (const c of camps) clear(c.x - 3, c.z - 3, c.x + 3, c.z + 3);
   const grown = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, forest, spawn.x, spawn.z);
   const trees = grown.filter((t) => !cleared.has(cellKey(Math.round(t.x), Math.round(t.z))));

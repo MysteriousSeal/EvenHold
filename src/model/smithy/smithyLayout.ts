@@ -12,7 +12,7 @@ import { shuffle } from '../../util/random';
 import type { Planner } from '../interiors/roomPlanner';
 
 export function furnishSmithy(plan: Planner, room: Room): void {
-  const { rng, taken, kept, key, fits, items, place, along, down, walledIn, inside } = plan;
+  const { rng, taken, kept, key, fits, items, place, along, down, walledIn, inside, fillPocket } = plan;
   // Where the smith works (smithy/smithWork.ts), each with the tile before it kept free to stand on.
   const before = (piece: Furniture | null) => piece && kept.add(key(piece.x, piece.z + piece.d));
   // The forge on the back wall where its trough fits beside it (on its
@@ -93,7 +93,6 @@ export function furnishSmithy(plan: Planner, room: Room): void {
       taken.delete(key(stand.x, stand.z));
       continue;
     }
-    items.push({ kind: 'barrel', x: px, z: pz, w: 1, d: 1, wall: 'none', solid: true });
-    taken.add(key(px, pz));
+    fillPocket(px, pz);
   }
 }

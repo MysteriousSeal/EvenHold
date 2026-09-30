@@ -1,6 +1,7 @@
 // Bandit camps out in the open countryside: one a short walk from spawn (to
 // meet early), and more scattered between the villages. Placed in world
-// generation from hashes (not the world rng), before the trees, which are
+// generation from hashes of the seed and where they'd stand (not the world
+// rng), so each world's its own, before the trees, which are
 // cleared from where they stand (worldgen/world.ts), as round the ruins.
 // Each is a 5 x 5 patch of level grass: a fire in the middle, two tents and
 // a weapon rack at the back, crates on one side, the loot pile on the other,
@@ -60,7 +61,7 @@ export function placeCamps(world: CampWorld): Camp[] {
       for (let dx = -r; dx <= r; dx++) {
         for (let dz = -r; dz <= r; dz++) {
           if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
-          const camp = site(world, x + dx, z + dz, bandits, salt, taken);
+          const camp = site(world, x + dx, z + dz, bandits, world.seed + salt, taken);
           if (!camp) continue;
           camps.push(camp);
           for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) taken.add(`${camp.x + i},${camp.z + k}`); // and a tile round it
@@ -72,30 +73,35 @@ export function placeCamps(world: CampWorld): Camp[] {
   near(Math.round(spawn.x - 9), Math.round(spawn.z + 9), 12, 3, 47);
   for (let gx = 0; gx * GRID < world.size.width; gx++) {
     for (let gz = 0; gz * GRID < world.size.depth; gz++) {
-      if (hashUnit(gx, gz, 52) >= CHANCE) continue;
-      const x = Math.floor(gx * GRID + hashUnit(gx, gz, 53) * GRID);
-      const z = Math.floor(gz * GRID + hashUnit(gx, gz, 54) * GRID);
+      const roll = (salt: number) => hashUnit(gx, gz, world.seed + salt);
+      if (roll(52) >= CHANCE) continue;
+      const x = Math.floor(gx * GRID + roll(53) * GRID);
+      const z = Math.floor(gz * GRID + roll(54) * GRID);
       if (world.forest(x, z) >= OPEN_LAND) continue;
       if (Math.hypot(x - spawn.x, z - spawn.z) < CLEAR_OF_SPAWN) continue;
       if (world.villages.some((v) => Math.hypot(v.x - x, v.z - z) < CLEAR_OF_VILLAGES + VILLAGE_OUTER_RADIUS)) continue;
-      near(x, z, 5, hashUnit(gx, gz, 55) < 0.5 ? 4 : 2, 56);
+      near(x, z, 5, roll(55) < 0.5 ? 4 : 2, 56);
     }
   }
   return camps;
 }
 
-// A camp at (cx, cz) if it's a level 5 x 5 of open grass, free of others; else null.
+// A camp at (cx, cz) if it's a level 5 x 5 of open grass, free of others, its
+// way in onto open ground; else null.
 function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: number, taken: Set<string>): Camp | null {
   const tier = world.heightMap[cx]?.[cz];
   if (tier === undefined) return null; // off the map (sites near its far edge)
   for (let dx = -2; dx <= 2; dx++) {
     for (let dz = -2; dz <= 2; dz++) {
       const [x, z] = [cx + dx, cz + dz];
+      if (world.heightMap[x]?.[z] === undefined) return null; // off the map
       if (!world.isOpenTile(x, z) || taken.has(`${x},${z}`) || world.surfaceMap[x]?.[z] !== 'natural' || world.heightMap[x][z] !== tier) return null;
     }
   }
   const quarterTurns = Math.floor(hashUnit(cx, cz, salt + 9) * 4);
   const [wx, wz] = turn(0, 3, quarterTurns);
+  const [ox, oz] = [cx + wx, cz + wz]; // just outside its way in: open ground, or no camp here
+  if (world.heightMap[ox]?.[oz] === undefined || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.surfaceMap[ox][oz] !== 'natural') return null;
   return { x: cx, z: cz, quarterTurns, bandits, way: { x: cx + wx, z: cz + wz }, pieces: layOut(cx, cz, quarterTurns) };
 }
 

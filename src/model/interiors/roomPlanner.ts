@@ -85,14 +85,14 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
       wanted--;
     }
   };
-  // Every free tile walled off from the door (a corner, boxed in) gets a
-  // barrel: clutter where no one could go anyway.
-  const fillWalledIn = () => {
-    for (let pocket = walledIn(); pocket; pocket = walledIn()) {
-      const [x, z] = pocket;
-      items.push({ kind: 'barrel', x, z, w: 1, d: 1, wall: 'none', solid: true });
-      taken.add(key(x, z));
-    }
+  // A barrel on a free tile walled off from the door (a corner, boxed in):
+  // clutter where no one could go anyway. fillWalledIn: on every such tile.
+  const fillPocket = (x: number, z: number) => {
+    items.push({ kind: 'barrel', x, z, w: 1, d: 1, wall: 'none', solid: true });
+    taken.add(key(x, z));
   };
-  return { rng, taken, kept, key, fits, items, place, along, down, walledIn, fillWalledIn, inside, chairs };
+  const fillWalledIn = () => {
+    for (let pocket = walledIn(); pocket; pocket = walledIn()) fillPocket(...pocket);
+  };
+  return { rng, taken, kept, key, fits, items, place, along, down, walledIn, fillPocket, fillWalledIn, inside, chairs };
 }

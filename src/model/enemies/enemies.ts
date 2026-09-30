@@ -7,7 +7,7 @@
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
 import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
-import type { Enemy, EnemyKind, Surface, Village } from '../types';
+import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
@@ -35,8 +35,6 @@ export interface EnemyWorld {
   size: MapSize;
   villages: Village[];
   hero: { x: number; z: number };
-  heightMap: number[][];
-  surfaceMap: Surface[][];
   camps: readonly Camp[]; // (the bandits start in them)
   isOpenTile(x: number, z: number): boolean;
 }
