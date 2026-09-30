@@ -140,7 +140,7 @@ describe("the smith's window", () => {
   });
 
   it("sells from the bag beside it with a right-click (only what he'd take), and buys it back from the Buyback tab at what it fetched", () => {
-    const { model, keeper, panel, shop } = trading('smithy');
+    const { model, keeper, bag, panel, shop } = trading('smithy');
     const id = SMITH_WARES[0] as ItemId;
     model.hero.bag[id] = 2;
     model.hero.bag.bread = 1; // not his to buy
@@ -151,6 +151,9 @@ describe("the smith's window", () => {
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain('Right-click to sell for');
     hover(inBag('loot:bread'));
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('sell');
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain('Not bought here');
+    expect(inBag('loot:bread').classList.contains('dim')).toBe(true); // greyed out: he won't take it
+    expect(inBag(`item:${id}`).classList.contains('dim')).toBe(false);
     rightClick(inBag(`item:${id}`));
     expect(model.hero.bag[id]).toBe(1);
     expect(model.hero.money).toBe(gearSellPrice(id));
@@ -161,6 +164,10 @@ describe("the smith's window", () => {
     expect(model.hero.bag[id]).toBe(2);
     expect(model.hero.money).toBe(0); // paid back what it fetched
     expect(shown().filter(Boolean)).toEqual([]);
+    // Done trading: the bag, opened again, has nothing greyed out.
+    panel.menu.close();
+    bag.menu.open();
+    expect(inBag('loot:bread').classList.contains('dim')).toBe(false);
   });
 
   it('shows every sale to buy back on one page, 12 at most', () => {
