@@ -8,6 +8,7 @@ import {
   ROAD_SURFACE_HEIGHT,
   TILE_HEIGHT,
   TREE_COLLISION_HALF,
+  HERO_SPEED,
 } from '../src/model/constants';
 import { cellKey } from '../src/model/grid';
 import { solidCells } from '../src/model/worldgen/world';
@@ -114,8 +115,8 @@ describe('hero hop', () => {
     const upperY = (model.heightMap[start!.x][start!.z] + 1) * TILE_HEIGHT;
 
     let maxY = model.hero.y;
-    // Walk just past the tile boundary, then release input mid-hop.
-    for (let i = 0; i < 9; i++) {
+    // Walk just past the tile boundary (0.6 of a tile on), then release input mid-hop.
+    for (let i = 0; i < Math.ceil(0.6 / (HERO_SPEED * FRAME)); i++) {
       model.update(1, 0, FRAME);
       maxY = Math.max(maxY, model.hero.y);
     }

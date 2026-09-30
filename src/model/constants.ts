@@ -2,7 +2,8 @@
 // use small ones), so nothing should assume this is the map's size.
 export const MAP_WIDTH = 2048;
 export const MAP_DEPTH = 2048;
-export const HERO_SPEED = 4; // units per second
+export const HERO_SPEED = 3.2; // tiles a second, outdoors
+export const INDOOR_HERO_SPEED = 4; // room tiles a second (rooms are built roomier than the world)
 export const INDOOR_SCALE = 1.8; // the hero's size indoors, where rooms are built at a roomier scale
 export const EDGE_MARGIN = 0.4; // how close to the map's edge anyone (hero or enemy) may go
 export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step with the hero mesh size

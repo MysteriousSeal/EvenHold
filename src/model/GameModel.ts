@@ -7,6 +7,7 @@
 import {
   EDGE_MARGIN,
   HERO_SPEED,
+  INDOOR_HERO_SPEED,
   HERO_RADIUS,
   ATTACK_DURATION,
   ATTACK_KNOCKBACK,
@@ -382,7 +383,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
-    walkInside(inside, this.hero, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
+    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.
