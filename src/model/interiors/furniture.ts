@@ -55,6 +55,8 @@ export const FURNITURE_KINDS = [
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
 
+export const SIT_RANGE = 0.4; // how close to a seat (or bed) the hero must stand to use it
+
 export interface Furniture {
   kind: FurnitureKind;
   x: number; // its first floor tile

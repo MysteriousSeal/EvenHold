@@ -5,10 +5,9 @@
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import type { Hero } from '../types';
 import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
-import { bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
+import { SIT_RANGE, bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
 
-const SIT_RANGE = 0.4; // how close to a seat (or bed) the hero must stand to use it
 
 // Where the hero is while indoors: the building's door and its room (the
 // hero's x/z are then room coordinates), and the seat they're on, if any,
