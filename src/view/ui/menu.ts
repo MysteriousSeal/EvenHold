@@ -90,7 +90,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.
   function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void, row = false): HTMLButtonElement {
-    const button = el('button', cell ? (cell.dim ? 'menu-slot dim' : 'menu-slot') : 'menu-slot empty');
+    const button = el('button', cell ? `menu-slot${cell.dim ? ' dim' : ''}${cell.warn ? ' warn' : ''}` : 'menu-slot empty');
     if (cell) {
       button.append(cell.icon(iconSize));
       if (row && cell.check) {
@@ -108,7 +108,9 @@ export function createMenu(options: MenuOptions): Menu {
       }
       if (row) {
         const text = el('span', 'menu-slot-text');
-        text.append(el('b', 'menu-slot-title', cell.title));
+        const title = el('b', 'menu-slot-title', cell.title);
+        if (cell.tone) title.dataset.tone = cell.tone;
+        text.append(title);
         if (cell.note) text.append(el('span', 'menu-slot-note', cell.note));
         button.append(text);
       }
@@ -319,11 +321,11 @@ export function createMenu(options: MenuOptions): Menu {
     get isOpen() {
       return !backdrop.hidden;
     },
-    open() {
+    open(tab = tabIndex) {
       if (!openMenus.includes(api)) openMenus.push(api);
       backdrop.hidden = false;
       status.textContent = '';
-      showTab(tabIndex);
+      showTab(tab);
       options.onOpenChange?.(true);
     },
     close() {

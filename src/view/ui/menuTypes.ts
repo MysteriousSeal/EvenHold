@@ -37,6 +37,7 @@ export interface MenuSlot {
   badge?: string; // a small mark in its top-right corner (e.g. how many are left: "×6")
   badgeTone?: 'progress' | 'ready' | 'past'; // in a list, a pill: under way, done (to hand in), over with
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
+  warn?: boolean; // its icon and tag in red (e.g. a price the hero can't pay)
   move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
   note?: string; // in a list (rows), a line under its title (e.g. where a quest sends you)
   key?: string; // who it is: redrawn, the one chosen stays chosen wherever it's moved to
@@ -92,7 +93,7 @@ export interface MenuOptions {
 
 export interface Menu {
   readonly isOpen: boolean;
-  open(): void;
+  open(tab?: number): void; // on its `tab`th tab (else the one it was last on)
   close(): void;
   toggle(): void;
   // Redraws the open tab (after what it shows has changed), keeping the

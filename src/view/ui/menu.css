@@ -338,6 +338,13 @@
 /* A slot that's there but not to be had (sold out): faded, its mark in clay. */
 .menu-slot.dim > canvas, .menu-slot.dim .menu-slot-tag { opacity: 0.4; }
 .menu-slot.dim .menu-slot-badge { color: var(--clay-dark); }
+/* One the hero can't pay for: its price in red, its icon tinted red. */
+.menu-slot.warn .menu-slot-tag { color: #ff8a78; }
+.menu-slot.warn > canvas { filter: sepia(1) saturate(3) hue-rotate(-40deg); }
+/* A row's name in its quality's color (on the sand, darker than a tooltip's). */
+.menu-slot-title[data-tone='junk'] { color: #8a857c; }
+.menu-slot-title[data-tone='ingredient'] { color: #b8603a; }
+.menu-slot-title[data-tone='quest'] { color: #a8780e; }
 
 /* How many, in a slot's top-right corner (a shop's stock): "×6". */
 .menu-slot-badge {
