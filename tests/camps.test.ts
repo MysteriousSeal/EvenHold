@@ -53,7 +53,9 @@ describe('bandit camps in every test world', () => {
     }
   });
 
-  it('are the same every time for a world', () => {
+  it('are the same every time for a world, and differ from one world to the next', () => {
     expect(new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE).camps).toEqual(worlds[0].camps);
+    const layouts = new Set(worlds.map((m) => JSON.stringify(m.camps.map((c) => [c.x, c.z, c.quarterTurns]))));
+    expect(layouts.size).toBe(worlds.length); // each world's camps its own
   });
 });
