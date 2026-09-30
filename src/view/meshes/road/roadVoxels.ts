@@ -9,7 +9,7 @@
 // A tile's look depends only on its connections and a variant number, so
 // each distinct tile is built and meshed once, then instanced.
 
-import { NEIGHBORS_4 } from '../../../model/grid';
+import { NEIGHBORS_4 } from '../../../model/map/grid';
 import { mulberry32 } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';

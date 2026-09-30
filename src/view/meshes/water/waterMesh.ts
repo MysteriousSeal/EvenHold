@@ -18,7 +18,7 @@ import type { WorldSink } from '../../world/chunkLayer';
 import { allChunkKeys, chunkTiles } from '../../world/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT, WATER_LEVEL } from '../../../model/constants';
-import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/grid';
+import { NEIGHBORS_4, inBounds, sizeOf, type MapSize } from '../../../model/map/grid';
 import { hashCell, snapTo } from '../../../util/random';
 import { WATER_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';

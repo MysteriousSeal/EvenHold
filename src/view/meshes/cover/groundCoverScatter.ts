@@ -5,8 +5,8 @@
 
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { cellKey, cellLookup } from '../../../model/grid';
-import { onRoadBand, roadConnections } from '../../../model/roads';
+import { cellKey, cellLookup } from '../../../model/map/grid';
+import { onRoadBand, roadConnections } from '../../../model/map/roads';
 import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';

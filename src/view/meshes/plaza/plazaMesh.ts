@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { inBounds } from '../../../model/grid';
+import { inBounds } from '../../../model/map/grid';
 import type { Village } from '../../../model/types';
 import { hashCell } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';

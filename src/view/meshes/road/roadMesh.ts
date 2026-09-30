@@ -7,11 +7,11 @@ import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { roadConnections } from '../../../model/roads';
+import { roadConnections } from '../../../model/map/roads';
 import { hashCell } from '../../../util/random';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
-import { NEIGHBORS_4 } from '../../../model/grid';
+import { NEIGHBORS_4 } from '../../../model/map/grid';
 import { ROAD_PALETTE, ROAD_VOXEL_SIZE, buildRoadTile, roadTileOffset } from './roadVoxels';
 
 const ROAD_VARIANTS = 3;
