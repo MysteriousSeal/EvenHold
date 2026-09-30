@@ -5,7 +5,7 @@
 
 import type { Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
-import { maxHpAt } from './heroStats';
+import { maxHpOf } from './attributes';
 
 export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen';
 export interface Blessing {
@@ -39,7 +39,7 @@ export const dropFactor = (hero: Hero) => (on(hero, 'keen') ? 1.5 : 1); // on th
 
 // A foe slain: with Second wind, a little health back (never past their most).
 export function healOnKill(hero: Hero): void {
-  if (on(hero, 'second')) hero.hp = Math.min(maxHpAt(hero.level), hero.hp + 1);
+  if (on(hero, 'second')) hero.hp = Math.min(maxHpOf(hero), hero.hp + 1);
 }
 
 // Counts the blessings down; each gone once spent.

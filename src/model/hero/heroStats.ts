@@ -1,16 +1,19 @@
-// The hero's health, level and experience. Health grows with each level;
+// The hero's health, level and experience. Health grows with each level
+// (and with Stamina, and Endurance their energy: attributes.ts);
 // each level takes more experience than the last. Hardcore: health never
 // comes back by itself, only by eating and drinking (provisions.ts), sleeping
 // in a bed, and levelling up, which heals fully.
 
 import type { Hero } from '../types';
+import { drainOf, maxEnergyOf, maxHpOf } from './attributes';
 
 const BASE_HP = 10;
 const HP_PER_LEVEL = 2;
-export const MAX_ENERGY = 100;
+export const MAX_ENERGY = 100; // a level-1 hero's, with nothing on (more with Endurance: maxEnergyOf)
 const ENERGY_SPENT = MAX_ENERGY / (24 * 60); // a second awake (a game minute): all of it over a whole day, 24 hours
 const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a collapse): all of it back in under a minute
 
+// A hero's health at `level`, with nothing on (more with Stamina: maxHpOf).
 export function maxHpAt(level: number): number {
   return BASE_HP + (level - 1) * HP_PER_LEVEL;
 }
@@ -43,7 +46,7 @@ export function gainXp(hero: Hero, amount: number): number {
     hero.level++;
     gained++;
   }
-  if (gained > 0) hero.hp = maxHpAt(hero.level);
+  if (gained > 0) hero.hp = maxHpOf(hero);
   return gained;
 }
 
@@ -54,23 +57,23 @@ export function hurt(hero: Hero, damage: number): boolean {
   return hero.hp === 0;
 }
 
-const TIRED = MAX_ENERGY / 4; // under it, tired: a slower walk
+const TIRED = 1 / 4; // of their most energy: under it, tired, a slower walk
 const TIRED_PACE = 0.7;
 
 // How much slower the hero walks for being tired (1: not).
-export const tiredPace = (hero: Hero): number => (hero.energy < TIRED ? TIRED_PACE : 1);
+export const tiredPace = (hero: Hero): number => (hero.energy < maxEnergyOf(hero) * TIRED ? TIRED_PACE : 1);
 
 // Timers, and energy: spent while up and about, kept `sitting` down,
 // slept back `asleep` (lying in a bed, or on the floor after a collapse).
 export function recover(hero: Hero, dt: number, asleep = false, sitting = false): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
-  const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT;
-  hero.energy = Math.min(MAX_ENERGY, Math.max(0, hero.energy + rate * dt));
+  const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
+  hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
   // A drink being sipped: its health back a little at a time, all of it once it's empty.
   const drink = hero.drinking;
   if (drink) {
     const step = Math.min(dt, drink.left);
-    hero.hp = Math.min(maxHpAt(hero.level), hero.hp + (drink.heal * step) / drink.seconds);
+    hero.hp = Math.min(maxHpOf(hero), hero.hp + (drink.heal * step) / drink.seconds);
     drink.left -= step;
     if (drink.left <= 0) hero.drinking = null;
   }

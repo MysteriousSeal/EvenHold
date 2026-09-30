@@ -3,6 +3,7 @@
 // (view/meshes/human/gear/items/, one file per slot).
 
 import type { EquipSlot } from '../equipment';
+import type { Stat } from '../../hero/statKinds';
 
 // Kinds of people who dress themselves from the item catalog.
 export type Wearer = 'bandit';
@@ -19,6 +20,9 @@ export interface ItemEntry {
   value?: number; // what it's worth, in copper (sold at it, bought back at half); none: only bought back cheap
   // Who sells it, and how many they usually keep in stock.
   soldBy?: Partial<Record<Merchant, number>>;
+  // Worn by the hero: how much it shields them (armour, off each blow taken), and what it adds to their stats.
+  armor?: number;
+  stats?: Partial<Record<Stat, number>>;
 }
 
 // A slot's items, each tagged with the slot.

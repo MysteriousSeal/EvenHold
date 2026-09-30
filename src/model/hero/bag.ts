@@ -5,7 +5,7 @@ import { EQUIP_SLOTS, ITEMS, type ItemId } from '../human/equipment';
 import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
 import { PROVISIONS, isProvision } from '../loot/provisions';
 import type { Hero } from '../types';
-import { maxHpAt } from './heroStats';
+import { maxHpOf } from './attributes';
 
 export type BagItem = LootId | ItemId;
 // How an item's name is colored: loot has its quality; gear is common.
@@ -66,6 +66,6 @@ export function sortedBag(bag: Bag): BagItem[] {
 // back (up to their most); returns whether they did (it's food or drink, and carried).
 export function eatOrDrink(hero: Hero, item: BagItem): boolean {
   if (!isProvision(item) || !takeFromBag(hero.bag, item)) return false;
-  hero.hp = Math.min(maxHpAt(hero.level), hero.hp + PROVISIONS[item].heal);
+  hero.hp = Math.min(maxHpOf(hero), hero.hp + PROVISIONS[item].heal);
   return true;
 }

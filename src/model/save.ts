@@ -13,7 +13,7 @@ import type { BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
 import { ITEMS, type Equipment, type ItemId } from './human/equipment';
 import { LOOT } from './loot/loot';
-import { MAX_ENERGY, maxHpAt } from './hero/heroStats';
+import { maxEnergyOf, maxHpOf } from './hero/attributes';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
@@ -151,8 +151,8 @@ export function restore(model: GameModel, data: SaveData): void {
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
       .map((b) => ({ kind: b.kind, left: Math.min(BLESSING_TIME, b.left) })),
   });
-  hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
-  if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(MAX_ENERGY, Math.max(0, saved.energy));
+  hero.hp = Math.min(maxHpOf(hero), Math.max(1, saved.hp));
+  if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
   model.fullWalls = data.fullWalls === true;
   for (const { inn, open } of data.doors ?? []) {

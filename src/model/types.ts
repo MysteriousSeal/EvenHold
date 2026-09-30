@@ -12,8 +12,8 @@ export interface Hero extends Humanoid {
   z: number;
   y: number;
   facing: number; // yaw toward the last direction moved (atan2(dx, dz))
-  hp: number; // up to maxHpAt(level) (heroStats.ts); may be fractional while healing
-  energy: number; // up to MAX_ENERGY (heroStats.ts): spent through the day, slept back
+  hp: number; // up to maxHpOf (attributes.ts); may be fractional while healing
+  energy: number; // up to maxEnergyOf (attributes.ts): spent through the day, slept back
   level: number;
   xp: number; // toward the next level
   hurtFor: number; // seconds left of the hit flash
@@ -30,7 +30,8 @@ export type EnemyKind = 'wolf' | 'bandit' | 'boar';
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
-  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; x: number; y: number; z: number }
+  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
+  | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'poor'; text: string } // something the hero couldn't pay for

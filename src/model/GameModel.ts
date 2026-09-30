@@ -14,7 +14,6 @@ import {
   ATTACK_REACH,
   ATTACK_STRIKE,
   ENEMY_STATS,
-  HERO_DAMAGE,
   FOCUS_RANGE,
   FOCUS_TURN_RANGE,
   TILE_HEIGHT,
@@ -24,7 +23,8 @@ import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './gri
 import type { Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, maxHpAt, tiredPace, xpAgainst } from './hero/heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
+import { blowOf, critChanceOf, dodgeChanceOf, maxHpOf, throughArmor } from './hero/attributes';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './obstacles';
 import { worldObstacles } from './blockers';
@@ -108,6 +108,7 @@ export class GameModel {
   speedMultiplier = 1;
   noclip = false;
   godMode = false;
+  random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
   // `size` defaults to the game's map; tests pass small worlds.
   constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE) {
@@ -294,9 +295,10 @@ export class GameModel {
       best = Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z);
     }
     if (!target) return;
-    const damage = blowDamage(this.hero, HERO_DAMAGE);
+    const crit = this.random() < critChanceOf(this.hero); // (Agility)
+    const damage = blowDamage(this.hero, blowOf(this.hero)) * (crit ? 2 : 1);
     target.hp -= damage;
-    this.events.push({ kind: 'hit', on: target.kind, amount: damage, x: target.x, y: target.y, z: target.z });
+    this.events.push({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
     target.hurtFor = 0.25;
     target.swingFor = null; // a hit interrupts its own blow
     target.state = target.hp <= 0 ? 'dead' : 'chase';
@@ -482,7 +484,11 @@ export class GameModel {
     if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
     if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
     if (this.godMode) return;
-    const damage = hitTaken(this.hero, enemy.damage);
+    if (this.random() < dodgeChanceOf(this.hero)) {
+      this.events.push({ kind: 'dodge', x: this.hero.x, y: this.hero.y, z: this.hero.z }); // (Agility)
+      return;
+    }
+    const damage = throughArmor(this.hero, hitTaken(this.hero, enemy.damage));
     this.events.push({ kind: 'hit', on: 'hero', amount: damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
     if (!hurt(this.hero, damage)) return;
     // Fallen: a share of their coins lost, they wake in the last inn they
@@ -491,7 +497,7 @@ export class GameModel {
     const spawn = spawnOf(this.size);
     if (this.lastInn) this.enterRoom(this.lastInn);
     else this.teleport(spawn.x, spawn.z);
-    this.hero.hp = maxHpAt(this.hero.level);
+    this.hero.hp = maxHpOf(this.hero);
     for (const e of this.enemies) if (e.state === 'chase') e.state = 'wander';
   }
 }

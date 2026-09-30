@@ -3,11 +3,12 @@
 // back and more coming while they lie there (E to get up).
 
 import type { GameModel } from '../GameModel';
-import { MAX_ENERGY, recover } from './heroStats';
+import { recover } from './heroStats';
+import { maxEnergyOf } from './attributes';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { bumpsFurniture } from '../interiors/furniture';
 
-const WAKE_ENERGY = MAX_ENERGY * 0.3; // what they wake with
+const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
 
 // The hero's timers and energy over `dt` (recover: lying down, it comes
@@ -25,7 +26,7 @@ function collapseIfSpent(model: GameModel): boolean {
   const here = model.inside ? (model.inside.below ?? model.inside.entrance) : hero;
   const inns = model.entrances.filter((e) => e.type === 'inn');
   const inn = inns.reduce<(typeof inns)[number] | null>((best, e) => (!best || Math.hypot(e.x - here.x, e.z - here.z) < Math.hypot(best.x - here.x, best.z - here.z) ? e : best), null);
-  hero.energy = WAKE_ENERGY;
+  hero.energy = maxEnergyOf(hero) * WAKE_ENERGY;
   if (!inn) return true;
   model.enterRoom(inn);
   const inside = model.inside!;
