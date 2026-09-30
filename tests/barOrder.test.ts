@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { stairsInReach, takeStairs } from '../src/model/interiors/upstairs';
+import { doorAt, stairsInReach, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
@@ -205,5 +205,28 @@ describe('an ale at the bar', () => {
     expect(takeStairs(model)).toBe(true); // back down
     expect(model.inside!.entrance).toBe(inn);
     expect(model.inside!.below).toBeUndefined();
+  });
+
+  it('upstairs, E before a door opens it (its doorway then passable, the wall beside it not) and closes it; left open in a save', () => {
+    const model = atTheInn();
+    const stairs = model.inside!.furniture.find((f) => f.kind === 'stairs')!;
+    Object.assign(model.hero, { x: stairs.x + stairs.w, z: stairs.z });
+    takeStairs(model);
+    const door = model.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.wall === 'back')!;
+    const mid = door.x - 0.5 + door.w / 2;
+    Object.assign(model.hero, { x: mid, z: door.z - 0.8 }); // before it, in the hallway
+    expect(doorAt(model.inside!, model.hero)).toBe(door);
+    const r = 0.14 * INDOOR_SCALE;
+    const through = { x: mid, z: door.z - 0.4 }; // in its doorway
+    expect(bumpsFurniture(model.inside!.furniture, through.x, through.z, r)).toBe(true); // shut
+    expect(useHallDoor(model)).toBe(true);
+    expect(door.open).toBe(true);
+    expect(bumpsFurniture(model.inside!.furniture, through.x, through.z, r)).toBe(false); // open: through
+    expect(bumpsFurniture(model.inside!.furniture, door.x - 0.5 + r, through.z, r)).toBe(true); // but not the wall beside it
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.x === door.x && f.z === door.z)?.open).toBe(true);
+    expect(useHallDoor(model)).toBe(true);
+    expect(door.open).toBe(false); // shut again
   });
 });

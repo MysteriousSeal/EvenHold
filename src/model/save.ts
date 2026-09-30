@@ -15,7 +15,7 @@ import { LOOT } from './loot/loot';
 import { maxHpAt } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
-import { upstairsInside } from './interiors/upstairs';
+import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
@@ -49,6 +49,7 @@ export interface SaveData {
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
   minutes?: number; // the game's clock
+  doors?: Array<{ inn: number; open: string[] }>; // the doors left open upstairs, by building
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 
@@ -96,6 +97,7 @@ export function snapshot(model: GameModel): SaveData {
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt })),
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
+    doors: model.entrances.map((e, inn) => ({ inn, open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
   };
 }
 
@@ -140,6 +142,10 @@ export function restore(model: GameModel, data: SaveData): void {
   });
   hero.hp = Math.min(maxHpAt(hero.level), Math.max(1, saved.hp));
   model.lastInn = typeof saved.lastInn === 'number' ? (model.entrances[saved.lastInn] ?? null) : null;
+  for (const { inn, open } of data.doors ?? []) {
+    const building = model.entrances[inn];
+    if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));
+  }
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
     const { room, furniture } = layoutOf(model.seed, building);

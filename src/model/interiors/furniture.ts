@@ -52,6 +52,7 @@ export interface Furniture {
   wall: 'back' | 'left' | 'none'; // which wall it stands against (and faces away from)
   solid: boolean; // blocks walking (rugs don't)
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
+  open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
 }
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
@@ -232,6 +233,8 @@ function seatSpan(across: [number, number], forward: [number, number], [dx, dz]:
   return [...flip(forward), ...across];
 }
 
+const DOORWAY = 0.36; // half an open door's passable width, from its middle (out to its posts: the walker's a squeeze through the leaf's own)
+
 // Whether a walker of half-width r at (x, z) bumps into solid furniture.
 export function bumpsFurniture(items: readonly Furniture[], x: number, z: number, r: number): boolean {
   const inset = 0.08; // pieces don't quite fill their tiles
@@ -246,7 +249,13 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
       const [a0, a1, b0, b1] = seatSpan(seat.across, seat.forward, f.facing);
       [x0, x1, z0, z1] = [f.x - 0.5 + a0, f.x - 0.5 + a1, f.z - 0.5 + b0, f.z - 0.5 + b1];
     }
-    return x + r > x0 && x - r < x1 && z + r > z0 && z - r < z1;
+    const hit = (a0: number, a1: number, b0: number, b1: number) => x + r > a0 && x - r < a1 && z + r > b0 && z - r < b1;
+    if (f.open) {
+      // An open door: through its doorway, but not the wall either side of it.
+      const mid = f.wall === 'left' ? f.z - 0.5 + f.d / 2 : f.x - 0.5 + f.w / 2;
+      return f.wall === 'left' ? hit(x0, x1, z0, mid - DOORWAY) || hit(x0, x1, mid + DOORWAY, z1) : hit(x0, mid - DOORWAY, z0, z1) || hit(mid + DOORWAY, x1, z0, z1);
+    }
+    return hit(x0, x1, z0, z1);
   });
 }
 

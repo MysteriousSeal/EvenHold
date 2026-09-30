@@ -40,9 +40,53 @@ function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
   return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room, stairs)];
 }
 
-// The floor above `below` (its room, with `stairs` up to it), as the hero's there.
+// The floor above `below` (its room, with `stairs` up to it), as the hero's
+// there, its doors as they were left.
 export function upstairsInside(below: Entrance, room: Room, stairs: Furniture): Inside {
-  return { entrance: upstairsOf(below), room, furniture: upstairsFurniture(stairs, room), seated: null, below };
+  const furniture = upstairsFurniture(stairs, room);
+  const open = opened.get(below);
+  for (const f of furniture) if (f.kind === 'hallDoor' && open?.has(doorKey(f))) f.open = true;
+  return { entrance: upstairsOf(below), room, furniture, seated: null, below };
+}
+
+// The doors upstairs left open, by building (its door below), each by where it stands; kept in the save.
+const opened = new WeakMap<Entrance, Set<string>>();
+const doorKey = (f: Furniture) => `${f.x},${f.z}`;
+export const openDoorsAt = (building: Entrance): string[] => [...(opened.get(building) ?? [])];
+export const setOpenDoors = (building: Entrance, keys: readonly string[]) => void opened.set(building, new Set(keys));
+
+const DOOR_REACH = 0.6; // from a door's middle, to open or close it (from either side)
+
+// Where a door's middle is: halfway along it, in its wall.
+const doorway = (f: Furniture) => (f.wall === 'left' ? { x: f.x - 0.4, z: f.z - 0.5 + f.d / 2 } : { x: f.x - 0.5 + f.w / 2, z: f.z - 0.4 });
+
+// The door the hero, standing, is at (upstairs), if any: the nearest.
+export function doorAt(inside: Inside, hero: Hero): Furniture | null {
+  if (inside.seated) return null;
+  let best: Furniture | null = null;
+  let near = DOOR_REACH;
+  for (const f of inside.furniture) {
+    if (f.kind !== 'hallDoor') continue;
+    const p = doorway(f);
+    const d = Math.hypot(p.x - hero.x, p.z - hero.z);
+    if (d <= near) [best, near] = [f, d];
+  }
+  return best;
+}
+
+// Opens the door by the hero, or closes it (not on them, stood in its
+// doorway); returns whether there was one.
+export function useHallDoor(model: { inside: Inside | null; hero: Hero }): boolean {
+  const inside = model.inside;
+  const door = inside?.below ? doorAt(inside, model.hero) : null;
+  if (!inside?.below || !door) return false;
+  if (door.open && bumpsFurniture([{ ...door, open: false }], model.hero.x, model.hero.z, HERO_RADIUS * INDOOR_SCALE)) return true; // in its way
+  door.open = !door.open;
+  const open = opened.get(inside.below) ?? new Set<string>();
+  opened.set(inside.below, open);
+  if (door.open) open.add(doorKey(door));
+  else open.delete(doorKey(door));
+  return true;
 }
 
 const HALL = 2; // the hallway's width, in tiles
