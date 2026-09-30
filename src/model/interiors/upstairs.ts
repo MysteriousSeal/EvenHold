@@ -125,13 +125,14 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   const door = Math.max(mid, stairs.z - 2);
   for (let z = HALL; z < room.depth; z++) if (z !== door && z !== door + 1) walls.push(piece('left', HALL, z, false));
   walls.push({ ...piece('left', HALL, door, true), d: 2 });
-  for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1));
   // Between the back rooms, halfway from door to door, the same low wall; the
   // last two rooms one, the biggest, front to back (its wall on to the front,
   // the long front room stopping short of it).
   const dividers: number[] = [];
   for (let x = HALL + DOOR_EVERY; x < room.width; x += DOOR_EVERY) dividers.push(x);
   const big = dividers.length >= 2 ? dividers[dividers.length - 2] : room.width; // where the biggest room starts
+  // Along the back hallway, a door into each room (the biggest, two rooms wide, only the one).
+  for (let x = HALL; x < room.width; x++) walls.push(piece('back', x, HALL, (x - HALL) % DOOR_EVERY === 1 && (x < big || x === big + 1)));
   for (const x of dividers) {
     if (x > big) continue; // inside it
     for (let z = HALL; z < (x === big ? room.depth : mid); z++) walls.push(piece('left', x, z, false));
@@ -147,16 +148,26 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   const stand = (x: number, z: number, facing: [number, number]): Furniture => ({ kind: 'nightstand', x, z, w: 1, d: 1, wall: 'none', solid: true, facing });
   const beds: Furniture[] = [];
   if (mid - 2 >= HALL) for (const x of [HALL, ...dividers.filter((x) => x < big)]) beds.push(bed('roomBed', 'left', x, mid - 2, 1), stand(x + 1, mid - 1, [0, -1]));
-  if (big + 2 < room.width) beds.push(bed('doubleBed', 'left', big, room.depth - 2, 2), stand(big + 2, room.depth - 1, [0, -1]));
-  if (big - 2 > HALL && mid + 2 < room.depth) beds.push(bed('doubleBed', 'back', big - 2, mid, 2), stand(big - 1, mid + 2, [-1, 0]));
+  // The two bigger rooms are only so when wide enough for the lot (a double, a
+  // wardrobe, a tub); else a single bed there too, like the others.
+  const bigWide = big + 3 < room.width; // the biggest room, four tiles or more
+  const frontWide = big - HALL >= 6 && mid + 2 < room.depth; // the long front room, six or more
+  if (big + 1 < room.width) {
+    if (bigWide) beds.push(bed('doubleBed', 'left', big, room.depth - 2, 2), stand(big + 2, room.depth - 1, [0, -1]));
+    else beds.push(bed('roomBed', 'left', big, room.depth - 2, 1), stand(big + 1, room.depth - 1, [0, -1]));
+  }
+  if (big - 2 >= HALL && mid + 1 < room.depth) {
+    if (frontWide) beds.push(bed('doubleBed', 'back', big - 2, mid, 2), stand(big - 1, mid + 2, [-1, 0]));
+    else beds.push({ ...bed('roomBed', 'back', big - 2, mid, 2), d: 1 }, stand(big - 1, mid + 1, [-1, 0])); // along its back wall, head to its end
+  }
   // The two bigger rooms, besides: a wardrobe in a corner clear of the doors,
   // a picture on a wall, a wooden tub along a wall (the right one, or the
   // front), a way round it and the bed left clear.
   const piece2 = (kind: 'wardrobe' | 'framedPicture' | 'bathtub', wall: 'left' | 'back' | 'none', x: number, z: number, w = 1, d = 1, solid = true): Furniture => ({ kind, x, z, w, d, wall, solid });
   const extras: Furniture[] = [];
-  if (big + 3 < room.width) extras.push(piece2('wardrobe', 'left', big, HALL), piece2('framedPicture', 'left', big, HALL + 2, 1, 1, false), piece2('bathtub', 'none', room.width - 1, HALL + 1, 1, 2));
+  if (bigWide) extras.push(piece2('wardrobe', 'left', big, HALL), piece2('framedPicture', 'left', big, HALL + 2, 1, 1, false), piece2('bathtub', 'none', room.width - 1, HALL + 1, 1, 2));
   const onSide = [...Array(room.depth - mid).keys()].map((i) => mid + i).find((z) => z !== door && z !== door + 1) ?? mid; // the front room's side wall, clear of its door
-  if (big - 2 > HALL + 3 && mid + 1 < room.depth) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'left', HALL, onSide, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
+  if (frontWide) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'left', HALL, onSide, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
   return [...walls, ...beds, ...extras];
 }
 

@@ -9,7 +9,7 @@ import { type Furniture } from '../interiors/furniture';
 import type { Planner } from '../interiors/roomPlanner';
 
 export function furnishInn(plan: Planner, room: Room): void {
-  const { rng, items, place, along, chairs } = plan;
+  const { rng, items, place, along, chairs, fillWalledIn } = plan;
   // The bar, along the left wall: a washstand and shelves of bottles against it, the
   // counter just in front of them, and stools facing it.
   const barEnd = Math.min(room.depth - 3, 5);
@@ -64,4 +64,5 @@ export function furnishInn(plan: Planner, room: Room): void {
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+  fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
 }
