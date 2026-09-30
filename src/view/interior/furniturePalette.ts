@@ -39,10 +39,21 @@ export const FURNITURE_PALETTE = [
   0xe4d4a4, // 45 parchment
   0x6a5840, // 46 ink
   0x9a7834, // 47 brass, shadow
+  // Bed blankets, besides the red (bedVoxels.ts): main, shadow, light.
+  0x3e5a96, // 48 indigo
+  0x2a3e6c, // 49 indigo, shadow
+  0x5e7cba, // 50 indigo, light
+  0x4e7a3e, // 51 moss
+  0x36582a, // 52 moss, shadow
+  0x6e9a5a, // 53 moss, light
+  0x74406e, // 54 plum
+  0x522c50, // 55 plum, shadow
+  0x965e90, // 56 plum, light
 ];
 export const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, WATER, COAL, STONE, STONE_DARK] = FURNITURE_PALETTE.map((_, i) => 14 + i);
 export const [RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK] =
-  FURNITURE_PALETTE.slice(16).map((_, i) => 30 + i);
+  FURNITURE_PALETTE.slice(16, 34).map((_, i) => 30 + i);
+export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
 
 // A tankard standing at (u, y, v): a wooden body with iron hoops and a
 // handle on its side; full, a white head of foam on top; empty, open at the

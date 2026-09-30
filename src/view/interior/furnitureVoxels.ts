@@ -36,11 +36,12 @@ import {
   type Box,
 } from './furniturePalette';
 import { INN_PAINTERS } from './innFurnitureVoxels';
+import { paintBed, paintNightstand } from './bedVoxels';
 
 const TILE = 25;
 
 // How each piece looks, drawn in a frame `len` voxels along the wall and `dep` out from it.
-const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) => void> = {
+const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, item: Furniture) => void> = {
   ...INN_PAINTERS,
   bench: () => {}, // outdoors only, on the squares (meshes/plaza/benchVoxels.ts): never in a room
   // A rustic stone fireplace: irregular stones in mixed shades and dark
@@ -115,23 +116,9 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number) =
   // mattress in striped ticking, a plump pillow at the head, and a red wool
   // blanket, its fold catching the light, hanging over the sides in shadow,
   // edged in teal.
-  bed: (box, len, dep) => {
-    box(1, 1, 2, len - 2, 4, dep - 3, WOOD); // the frame
-    box(2, 1, 3, 3, 13, dep - 4, (_u, y, v) => (y === 13 || v === 3 || v === dep - 4 ? WOOD_DARK : WOOD)); // headboard, panelled
-    box(len - 4, 1, 3, len - 3, 8, dep - 4, WOOD_DARK); // footboard
-    for (const u of [1, len - 2]) {
-      for (const v of [2, dep - 3]) {
-        const top = u === 1 ? 15 : 10;
-        box(u, 1, v, u, top, v, WOOD_DARK); // a post
-        box(u, top + 1, v, u, top + 1, v, WOOD_LIGHT); // its knob
-      }
-    }
-    box(4, 5, 3, len - 5, 7, dep - 4, (u) => (u % 3 === 0 ? PARCHMENT : LINEN)); // mattress, in ticking
-    box(5, 8, 5, 12, 10, dep - 6, (_u, y, v) => (y === 8 || v === 5 ? PARCHMENT : LINEN)); // pillow
-    box(14, 8, 3, 16, 8, dep - 4, LINEN); // the sheet, turned down
-    box(17, 8, 3, len - 5, 8, dep - 4, (u, _y, v) => (v === 3 || v === dep - 4 ? TEAL : u === 17 ? RED_LIGHT : RED)); // blanket, its fold lit
-    for (const v of [2, dep - 3]) box(17, 5, v, len - 5, 8, v, (_u, y) => (y === 5 ? TEAL : RED_DARK)); // hanging over the sides
-  },
+  bed: (box, len, dep, item) => paintBed(box, len, dep, false, item.cloth),
+  nightstand: (box) => paintNightstand(box),
+
   // A table: dark legs, a rich wooden top, a linen runner down the middle with
   // a red edge, a candle in a brass stick, and a clay bowl of apples.
   table: (box) => {
@@ -293,18 +280,28 @@ export function paintFurniture(grid: VoxelGrid, items: readonly Furniture[], x0:
       if (onLeft) fillBox(grid, ox + v0, y0 + floor, oz + u0, ox + v1, y1 + floor, oz + u1, paint);
       else fillBox(grid, ox + u0, y0 + floor, oz + v0, ox + u1, y1 + floor, oz + v1, paint);
     };
-    PAINTERS[item.kind](box, len, dep);
+    PAINTERS[item.kind](box, len, dep, item);
   }
+}
+
+// A one-tile piece's local (u, v) in its tile's (x, z): its front (+v) turned toward (dx, dz).
+function turned(dx: number, dz: number, u: number, v: number): [number, number] {
+  const last = TILE - 1;
+  return dz === 1 ? [u, v] : dz === -1 ? [last - u, last - v] : dx === 1 ? [v, last - u] : [last - v, u];
+}
+
+// Where voxel (u, v) of a one-tile piece turned to face its `facing` is, in floor-tile coordinates (its middle).
+export function facingPoint(item: Furniture, u: number, v: number): { x: number; z: number } {
+  const [x, z] = turned(item.facing![0], item.facing![1], u, v);
+  return { x: item.x - 0.5 + (x + 0.5) / TILE, z: item.z - 0.5 + (z + 0.5) / TILE };
 }
 
 // A one-tile piece drawn with its back at v = 0 and its front toward +v,
 // turned to face `item.facing`.
 function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number, floor: number): void {
   const [dx, dz] = item.facing!;
-  const last = TILE - 1;
   // Local (u, v) to the tile's (x, z): the front (+v) turned toward (dx, dz).
-  const toTile = (u: number, v: number): [number, number] =>
-    dz === 1 ? [u, v] : dz === -1 ? [last - u, last - v] : dx === 1 ? [v, last - u] : [last - v, u];
+  const toTile = (u: number, v: number) => turned(dx, dz, u, v);
   const box: Box = (u0, y0, v0, u1, y1, v1, color) => {
     for (let u = u0; u <= u1; u++) {
       for (let v = v0; v <= v1; v++) {
@@ -313,7 +310,7 @@ function paintFacing(grid: VoxelGrid, item: Furniture, ox: number, oz: number, f
       }
     }
   };
-  PAINTERS[item.kind](box, TILE, TILE);
+  PAINTERS[item.kind](box, TILE, TILE, item);
 }
 
 // Where a room's fire burns (in its hearth, or on its forge), in floor-tile

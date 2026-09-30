@@ -4,8 +4,18 @@
 // what hangs on its walls (antlers, a shield, lanterns, a notice board).
 
 import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { paintBed } from './bedVoxels';
+import type { Furniture } from '../../model/interiors/furniture';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'hallWall' | 'hallDoor' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'stairs' | 'stairwell' | 'hallWall' | 'hallDoor' | 'roomBed' | 'doubleBed' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+
+const HALL_WALL = 5; // the hallway's walls' thickness, in voxels
+// A painter's frame turned end for end along its wall (u), to put a bed's head at its far end.
+const headFar = (box: Box, len: number): Box => (u0, y0, v0, u1, y1, v1, color) =>
+  box(len - 1 - u1, y0, v0, len - 1 - u0, y1, v1, typeof color === 'number' ? color : (u, y, v) => color(len - 1 - u, y, v));
+// A painter's frame moved out past a hallway wall, to stand against it.
+const offWall = (box: Box): Box => (u0, y0, v0, u1, y1, v1, color) =>
+  box(u0, y0, v0 + HALL_WALL, u1, y1, v1 + HALL_WALL, typeof color === 'number' ? color : (u, y, v) => color(u, y, v - HALL_WALL));
 
 // A stretch of the hallway's low wall, u0..u1 along it, five voxels thick.
 function hallWall(box: Box, u0: number, u1: number): void {
@@ -25,7 +35,7 @@ export function paintDoorLeaf(box: Box): void {
   }
 }
 
-export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) => void> = {
+export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
   // middle of its tiles), panelled on the customers' side, under a thick
   // overhanging top with a lit edge, and a brass foot rail along its foot;
@@ -218,6 +228,11 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number) 
   },
 
 
+  // Upstairs, in the rooms: a bed, single (the homes' own, as wide) or
+  // double, off the hallway's wall it stands against (that wall's inside its
+  // tiles' edge), its head at its far end (u), against the wall there.
+  roomBed: (box, len, dep, item) => paintBed(offWall(headFar(box, len)), len, dep, false, item.cloth),
+  doubleBed: (box, len, dep, item) => paintBed(offWall(headFar(box, len)), len, dep - HALL_WALL, true, item.cloth),
   bottleShelf: (box, len) => {
     box(1, 1, 0, len - 2, 31, 1, WOOD_DARK); // back panel
     for (const u of [1, len - 2]) box(u, 1, 0, u, 31, 8, WOOD); // sides
