@@ -8,7 +8,7 @@ import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
 import { smithWorking } from '../model/smithy/smithWork';
-import { talkingTo } from '../model/npcs/talk';
+import type { Npc } from '../model/npcs/npcs';
 import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
@@ -256,7 +256,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
-    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, talkingTo(model.npcs, model.inside, model.hero)); // (whoever can be talked to: their name gives way to the prompt)
+    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
@@ -295,6 +295,8 @@ export class GameView {
 
   // The scene of the room the hero's in, built when they step in, or null outdoors.
   // The one before is freed when they leave it (or go straight into another).
+  prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
+
   private room: ({ entrance: Entrance; fullWalls: boolean } & ReturnType<typeof buildRoomScene>) | null = null;
   private roomScene(model: GameModel): THREE.Scene | null {
     const inside = model.inside;

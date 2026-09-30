@@ -4,6 +4,7 @@
 
 import type { GroundLoot } from '../../model/loot/loot';
 import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
+import type { Npc } from '../../model/npcs/npcs';
 
 const TOAST_SECONDS = 2;
 
@@ -13,6 +14,7 @@ export interface PromptTarget {
   label: string;
   quality?: string;
   muted?: boolean; // there, but not to be done now (e.g. sold out): shown faded
+  npc?: Npc; // the villager it's about (talking to them): their name gives way to it
   x: number;
   y: number;
   z: number;
