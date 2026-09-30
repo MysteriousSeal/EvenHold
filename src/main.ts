@@ -1,4 +1,4 @@
-import { doorAt, stairsInReach } from './model/interiors/upstairs';
+import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
@@ -91,10 +91,20 @@ async function boot(): Promise<void> {
   const sheet = createHeroSheet(model);
   const pause = createPauseMenu({
     setPaused: (paused) => (controller.paused = paused),
-    redraw: () => view.render(),
+    redraw: () => {
+      view.update(0); // (the room rebuilt, walls changed) while the game stands still
+      view.render();
+    },
     newGame: () => {
       autoSave.forget();
       window.location.reload();
+    },
+    walls: {
+      full: () => model.fullWalls,
+      toggle: () => {
+        model.fullWalls = !model.fullWalls;
+        if (model.inside) innerWalls(model.inside.furniture, model.fullWalls);
+      },
     },
   });
   const updateToolbar = createToolbar([

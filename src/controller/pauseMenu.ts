@@ -1,13 +1,14 @@
 // The pause menu, on Escape when no other window is open (or the toolbar):
 // the game stands still behind it. Resume, start over, set how close the
-// camera is, or look up the controls. The game saves itself (saveGame.ts).
+// camera is and how tall the walls between rooms are, or look up the controls. The game saves itself (saveGame.ts).
 
 import { createMenu, type Menu } from '../view/ui/menu';
 import { stepZoom, zoomLevel } from '../view/render/zoom';
 
 // `redraw`: draws one frame, so a setting changed while paused shows at once.
 // `newGame`: forgets this world's save and starts over.
-export function createPauseMenu(hooks: { setPaused(paused: boolean): void; redraw(): void; newGame(): void }): Menu {
+// `walls`: the inner walls option (full height, or cut low), to read and switch.
+export function createPauseMenu(hooks: { setPaused(paused: boolean): void; redraw(): void; newGame(): void; walls: { full(): boolean; toggle(): void } }): Menu {
   const menu: Menu = createMenu({
     title: 'Paused',
     toggleKey: 'Escape',
@@ -27,6 +28,16 @@ export function createPauseMenu(hooks: { setPaused(paused: boolean): void; redra
               stepZoom(1, true); // closer, round to the farthest after the closest
               hooks.redraw();
               return `Zoom: ${zoomLevel().name}.`;
+            },
+          },
+          {
+            title: 'Inner walls',
+            detail: 'Walls between rooms indoors: cut low to see over, or full height',
+            current: () => ({ value: hooks.walls.full() ? 'Full' : 'Low' }),
+            run: () => {
+              hooks.walls.toggle();
+              hooks.redraw();
+              return `Inner walls: ${hooks.walls.full() ? 'full height' : 'low'}.`;
             },
           },
         ],
