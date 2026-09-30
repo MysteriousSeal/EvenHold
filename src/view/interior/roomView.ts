@@ -9,6 +9,7 @@ import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { Furniture } from '../../model/interiors/furniture';
 import { facingPoint, fireOf } from './furnitureVoxels';
 import { CANDLE_FLAME } from './bedVoxels';
+import { CandleFlames } from './candleFlame';
 import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { tankard } from './furniturePalette';
@@ -148,10 +149,12 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     });
   // The candles on the nightstands, lit: a small warm light just over each
   // flame (no shadows of its own), flickering faster than a lantern.
+  const flames = new CandleFlames(ROOM_PALETTE, ROOM_VOXEL);
   const candles = furniture.filter((f) => f.kind === 'nightstand' && f.facing).map((f) => {
     const light = new THREE.PointLight(0xffb060, 0.9, 2.2, 1.6);
     const at = facingPoint(f, CANDLE_FLAME.u, CANDLE_FLAME.v);
-    light.position.set(at.x, (CANDLE_FLAME.y + 1) * ROOM_VOXEL, at.z); // over the flame
+    flames.add(scene, at.x, (CANDLE_FLAME.y - 1) * ROOM_VOXEL, at.z); // on the candle's top
+    light.position.set(at.x, (CANDLE_FLAME.y + 1) * ROOM_VOXEL, at.z); // in the flame
     scene.add(light);
     return light;
   });
@@ -179,6 +182,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       candles.forEach((light, i) => (light.intensity = 0.9 * flicker(time * 1.3, i * 7 + 3)));
+      flames.update(time);
       fire?.update(time);
       glow.intensity = 4.5 * flicker(time);
     },
@@ -187,6 +191,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       lamps3d?.geometry.dispose();
       for (const g of drapes) g.dispose();
       leafShape.dispose();
+      flames.dispose();
       curtain.dispose();
       mugShapes.full.dispose();
       mugShapes.empty.dispose();

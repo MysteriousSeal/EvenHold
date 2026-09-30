@@ -4,7 +4,7 @@
 // trim and hanging over the sides. As wide as its piece: a double (two pillows, the headboard parted
 // by a stile) or a single.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, TEAL, LINEN, RED, RED_DARK, RED_LIGHT, PARCHMENT, BRASS, EMBER, INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, TEAL, LINEN, RED, RED_DARK, RED_LIGHT, PARCHMENT, BRASS, INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT, type Box } from './furniturePalette';
 
 // The blankets (a bed's `cloth`, 0-3): main, shadow, light, and the trim along their edges.
 const BLANKETS = [
@@ -40,7 +40,7 @@ export function paintBed(box: Box, len: number, dep: number, double = false, clo
 // cabinet on short dark legs, its top overhanging and lit, a drawer framed
 // in dark wood with a brass knob, and a candle on a brass dish; its top
 // between the mattress and the headboard's.
-export const CANDLE_FLAME = { u: 10, y: 19, v: 6 }; // where its candle's flame is
+export const CANDLE_FLAME = { u: 10.5, y: 19, v: 6.5 }; // where its candle's flame stands: over the candle's middle, on its top
 export function paintNightstand(box: Box): void {
   for (const u of [6, 17]) for (const v of [2, 11]) box(u, 1, v, u + 1, 2, v + 1, WOOD_DARK); // legs
   box(6, 3, 2, 18, 11, 12, (_u, y) => (y === 3 ? WOOD_DARK : WOOD)); // the cabinet, its foot shaded
@@ -49,5 +49,5 @@ export function paintNightstand(box: Box): void {
   box(12, 7, 14, 12, 8, 14, BRASS); // its knob
   box(9, 13, 5, 12, 13, 8, BRASS); // the candle's dish
   box(10, 14, 6, 11, 18, 7, LINEN); // the candle
-  box(CANDLE_FLAME.u, CANDLE_FLAME.y, CANDLE_FLAME.v, CANDLE_FLAME.u, CANDLE_FLAME.y, CANDLE_FLAME.v, EMBER); // its flame (lit: roomView.ts)
+  // (its flame, flickering, meshed apart: candleFlame.ts)
 }
