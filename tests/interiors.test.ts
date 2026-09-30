@@ -55,7 +55,7 @@ describe('interiors', () => {
       for (const item of items.filter((i) => i.solid)) {
         for (let x = item.x; x < item.x + item.w; x++) {
           for (let z = item.z; z < item.z + item.d; z++) {
-            expect(x === room.door, `${item.kind} on the door's way`).toBe(false);
+            expect(x === room.door && z > 0, `${item.kind} on the door's way`).toBe(false); // (its end, at the back wall, in no one's way)
             expect(x >= 0 && z >= 0 && x < room.width && z < room.depth).toBe(true);
             expect(taken.has(`${x},${z}`), `${item.kind} overlaps`).toBe(false);
             taken.add(`${x},${z}`);

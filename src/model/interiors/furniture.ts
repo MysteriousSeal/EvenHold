@@ -66,6 +66,7 @@ export interface Furniture {
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
   open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
+  suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
 
@@ -84,18 +85,19 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   const key = (x: number, z: number) => `${x},${z}`;
   // Kept clear: the door's column (the way in) and the tiles either side of the doorway.
   const clear = (x: number, z: number) => x === room.door || (z >= room.depth - 1 && Math.abs(x - room.door) <= 1);
-  const fits = (x: number, z: number, w: number, d: number, onRug = false) => {
+  // `backWall`: the door's column may be taken where it meets the back wall (nothing's in the way there).
+  const fits = (x: number, z: number, w: number, d: number, onRug = false, backWall = false) => {
     if (x < 0 || z < 0 || x + w > room.width || z + d > room.depth) return false;
-    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if (clear(i, k) || kept.has(key(i, k)) || (!onRug && taken.has(key(i, k)))) return false;
+    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if ((clear(i, k) && !(backWall && k === 0)) || kept.has(key(i, k)) || (!onRug && taken.has(key(i, k)))) return false;
     return true;
   };
   const items: Furniture[] = [];
   // Places a piece at the first free spot among `spots` (shuffled), marking its tiles taken.
-  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>, shuffled = true): Furniture | null => {
+  const place = (kind: FurnitureKind, w: number, d: number, wall: Furniture['wall'], spots: Array<[number, number]>, shuffled = true, backWall = false): Furniture | null => {
     if (shuffled) shuffle(spots, rng);
     const rug = RUGS.includes(kind) || WALL_HUNG.includes(kind);
     for (const [x, z] of spots) {
-      if (!fits(x, z, w, d, rug)) continue;
+      if (!fits(x, z, w, d, rug, backWall)) continue;
       const item: Furniture = { kind, x, z, w, d, wall, solid: !rug };
       if (WALL_HUNG.includes(kind)) {
         // Hung pieces only need their spot on the wall free of other hung pieces.
@@ -212,26 +214,63 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   } else {
     // Where the smith works (smithy/smithWork.ts), each with the tile before it kept free to stand on.
     const before = (piece: Furniture | null) => piece && kept.add(key(piece.x, piece.z + piece.d));
-    const forge = place('forge', 2, 1, 'back', along(0));
+    // The forge on the back wall where its trough fits beside it: on its right, else its left.
+    const wall = along(0);
+    shuffle(wall, rng);
+    const room2 = (x: number) => fits(x, 0, 2, 1, false, true);
+    const spot = wall.find(([x]) => room2(x) && room2(x + 2)) ?? wall.find(([x]) => room2(x) && room2(x - 2));
+    const forge = place('forge', 2, 1, 'back', spot ? [spot] : along(0), true, true);
     if (forge) {
-      place('bellows', 1, 1, 'back', [[forge.x - 1, 0], [forge.x + 2, 0]], false);
-      const anvil = place('anvil', 1, 1, 'none', [[forge.x, 1], [forge.x + 1, 1], ...inside()]);
+      // The quench trough along the back wall on the forge's right, the bellows on its left (the other way round if there's no room).
+      const right = fits(forge.x + forge.w, 0, 2, 1, false, true);
+      before(place('trough', 2, 1, 'back', right ? [[forge.x + forge.w, 0]] : [[forge.x - 2, 0]], false, true)); // against the wall
+      place('bellows', 1, 1, 'back', right ? [[forge.x - 1, 0], [forge.x + forge.w, 0]] : [[forge.x + forge.w, 0], [forge.x - 1, 0]], false);
+      // The row before the forge kept free (to work the fire, and see it);
+      // the anvil and the grindstone side by side across it from the fire,
+      // or else wherever two tiles side by side are free, nearest it (the
+      // tile before each free to stand on).
+      for (let x = forge.x; x < forge.x + forge.w; x++) kept.add(key(x, 1));
+      const two = ([x, g, z]: [number, number, number]) => fits(x, z, 1, 1) && fits(g, z, 1, 1) && fits(x, z + 1, 1, 1) && fits(g, z + 1, 1, 1);
+      const across: Array<[number, number, number]> = [[forge.x, forge.x + 1, 2], [forge.x + 1, forge.x, 2], [forge.x, forge.x - 1, 2], [forge.x + 1, forge.x + 2, 2]]; // [anvil, grindstone, row]
+      const anywhere = () => {
+        const pairs: Array<[number, number, number]> = [];
+        for (const [x, z] of inside()) for (const g of [x - 1, x + 1]) pairs.push([x, g, z]);
+        const far = ([x, , z]: [number, number, number]) => Math.hypot(x - forge.x - 0.5, z);
+        return pairs.filter(two).sort((a, b) => far(a) - far(b))[0];
+      };
+      const [ax, gx, az] = across.find(two) ?? anywhere() ?? [forge.x, -1, 2];
+      const anvil = place('anvil', 1, 1, 'none', [[ax, az], ...inside()], false);
       before(anvil);
-      if (anvil) kept.add(key(anvil.x === forge.x ? forge.x + 1 : forge.x, 1)); // before the fire, beside the anvil
+      if (anvil && gx >= 0) before(place('grindstone', 1, 1, 'none', [[gx, az]], false));
     }
     // By the door, the counter where he trades: a row behind it for him, one before it for the hero.
     const counter = place('smithCounter', 2, 1, 'none', [[room.door + 1, room.depth - 3], [room.door - 2, room.depth - 3]], false);
     if (counter) for (let x = counter.x; x < counter.x + counter.w; x++) [counter.z - 1, counter.z + 1].forEach((z) => kept.add(key(x, z)));
-    before(place('trough', 2, 1, 'none', inside()));
-    before(place('grindstone', 1, 1, 'none', inside()));
-    place('armorStand', 1, 1, 'none', inside());
+    // (No room for it beside the anvil: the free spot nearest the anvil, then.)
+    const anvil = items.find((f) => f.kind === 'anvil') ?? forge;
+    const nearAnvil = inside().sort(([ax, az], [bx, bz]) => (anvil ? Math.hypot(ax - anvil.x, az - anvil.z) - Math.hypot(bx - anvil.x, bz - anvil.z) : 0));
+    if (!items.some((f) => f.kind === 'grindstone')) before(place('grindstone', 1, 1, 'none', nearAnvil, false));
+    if (!items.some((f) => f.kind === 'trough')) before(place('trough', 2, 1, 'none', inside())); // (no room by the forge: out in the room)
     const rack = place('rack', 1, 2, 'left', down(0));
+    // His armour on stands, backed against the back and left walls (clear of the fire), each in a suit of its own.
+    const byFire = (x: number) => !!forge && x >= forge.x - 1 && x <= forge.x + 2;
+    const wallSpots = [...along(0).filter(([x]) => !byFire(x)).map((p) => ['back', p] as const), ...down(0).map((p) => ['left', p] as const)];
+    shuffle(wallSpots, rng);
+    const stands: Furniture[] = [];
+    const [many, first] = [2 + Math.floor(rng() * 2), Math.floor(rng() * 4)]; // how many, and the first's suit (the next ones the next suits)
+    for (const [wall, spot] of wallSpots) {
+      if (stands.length >= many) break;
+      const stand = place('armorStand', 1, 1, wall, [spot], false);
+      if (stand) stands.push(Object.assign(stand, { suit: (first + stands.length) % 4 }));
+    }
+    const standsOn = (wall: Furniture['wall'], x: number, z: number) => stands.some((s) => s.wall === wall && s.x === x && s.z === z);
     place('coal', 1, 1, 'none', [[room.width - 1, 0], ...along(0)]);
     place('barrel', 1, 1, 'none', [[room.width - 1, room.depth - 1], [0, room.depth - 1]]);
-    // On the walls: his weapons on show on the back wall (not over the fire), his tools on the left (not over the rack).
-    const byFire = (x: number) => !!forge && x >= forge.x - 1 && x <= forge.x + 2;
-    for (let n = 2; n > 0; n--) place('weaponWall', 1, 1, 'back', along(0).filter(([x]) => !byFire(x)));
-    place('toolBoard', 1, 1, 'left', down(0).filter(([, z]) => z >= 1 && z < room.depth - 2 && !(rack && z >= rack.z && z < rack.z + rack.d)));
+    // On the walls: his weapons on show on the back wall (not over the fire or the trough), his tools on the left (not over the rack); none over a stand.
+    const trough = items.find((f) => f.kind === 'trough' && f.wall === 'back');
+    const overTrough = (x: number) => !!trough && x >= trough.x && x < trough.x + trough.w;
+    for (let n = 2; n > 0; n--) place('weaponWall', 1, 1, 'back', along(0).filter(([x]) => !byFire(x) && !overTrough(x) && !standsOn('back', x, 0)));
+    place('toolBoard', 1, 1, 'left', down(0).filter(([, z]) => z >= 1 && z < room.depth - 2 && !(rack && z >= rack.z && z < rack.z + rack.d) && !standsOn('left', 0, z)));
   }
   return items;
 }

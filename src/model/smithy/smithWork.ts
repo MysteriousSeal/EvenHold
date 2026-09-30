@@ -23,11 +23,8 @@ const ROUND: Array<{ at: Furniture['kind']; for: number }> = [
 ];
 
 // The spot he stands on to work at a piece: the tile before it (kept free for him).
-function workSpot(piece: Furniture, furniture: readonly Furniture[]): { x: number; z: number } {
-  if (piece.kind === 'forge') {
-    const anvil = furniture.find((f) => f.kind === 'anvil');
-    return { x: anvil?.x === piece.x ? piece.x + 1 : piece.x, z: piece.z + 1 }; // before the fire, beside the anvil
-  }
+function workSpot(piece: Furniture): { x: number; z: number } {
+  if (piece.kind === 'forge') return { x: piece.x + (piece.w - 1) / 2, z: piece.z + 1 }; // before the fire, in the row kept free there
   return { x: piece.x, z: piece.z + piece.d };
 }
 
@@ -52,7 +49,7 @@ export function smithSteps(npc: Npc, world: NpcWorld): NpcStep[] {
   const job = ROUND[npc.stop % ROUND.length];
   const piece = furniture.find((f) => f.kind === job.at);
   if (!piece) return [{ kind: 'wait', for: 2 }];
-  const spot = workSpot(piece, furniture);
+  const spot = workSpot(piece);
   if (npc.stop === 1) [npc.x, npc.z] = [spot.x, spot.z]; // at work already when the smithy opens
   return [
     { kind: 'go', to: spot, face: TOWARD_BACK },

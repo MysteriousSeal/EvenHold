@@ -28,6 +28,17 @@ describe('the smithy', () => {
       expect(model.npcs.filter((n) => n.role === 'smith' && n.home === smithy)).toHaveLength(1);
       const { room, furniture } = layoutOf(model.seed, smithy);
       for (const kind of ['smithCounter', 'forge', 'anvil', 'trough'] as const) expect(furniture.some((f) => f.kind === kind)).toBe(true);
+      const anvil = furniture.find((f) => f.kind === 'anvil')!;
+      const grindstone = furniture.find((f) => f.kind === 'grindstone')!;
+      expect([grindstone.z, Math.abs(grindstone.x - anvil.x)]).toEqual([anvil.z, 1]); // side by side
+      const forge = furniture.find((f) => f.kind === 'forge')!;
+      expect(furniture.some((f) => f.solid && f.z <= 1 && f.z + f.d > 1 && f.x < forge.x + forge.w && f.x + f.w > forge.x)).toBe(false); // the row before the forge free
+      const trough = furniture.find((f) => f.kind === 'trough')!;
+      expect(trough.z === 0 && (trough.x === forge.x + forge.w || trough.x === forge.x - 2)).toBe(true); // along the back wall, by the forge
+      const stands = furniture.filter((f) => f.kind === 'armorStand');
+      expect(stands.length).toBeGreaterThanOrEqual(2); // armour on stands, against the walls, in suits of their own
+      expect(stands.every((f) => f.wall !== 'none')).toBe(true);
+      expect(new Set(stands.map((f) => f.suit)).size).toBe(stands.length);
       expect(furniture.every((f) => f.x > room.door || f.x + f.w <= room.door || f.z + f.d <= room.depth - 1 || !f.solid)).toBe(true); // the way in clear
     }
   });
