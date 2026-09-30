@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import type { DuckVariant, Wildlife } from '../../../model/wildlife/wildlife';
 import { DABBLE_TIME } from '../../../model/wildlife/ducks';
-import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
+import { AnimalRig, partMesher } from './animalRig';
 import { BODY_GRID, DUCK_VOXEL_SIZE, HEAD_GRID, SUBMERGED, buildDuckBody, buildDuckHead, duckPalette } from './duckVoxels';
 
 const V = DUCK_VOXEL_SIZE;
@@ -32,8 +32,7 @@ export interface DuckLook {
 
 // Meshed parts and the material shared by every duck on screen.
 export function createDuckLook(): DuckLook {
-  const mesh = (grid: VoxelGrid, palette: number[], pivot: [number, number, number]) =>
-    greedyMesh(grid, palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V));
+  const mesh = partMesher(V);
   const parts = {} as DuckLook['parts'];
   for (const variant of ['drake', 'hen', 'duckling'] as const) {
     const palette = duckPalette(variant);
@@ -55,8 +54,7 @@ export function createDuckLook(): DuckLook {
 // Where the neck sits on each body, in voxels from the body's pivot.
 const NECK: Record<DuckVariant, [number, number, number]> = { drake: [0, 2.5, 2.5], hen: [0, 2.5, 2.5], duckling: [0, 2, 1] };
 
-export class DuckRig {
-  readonly root = new THREE.Group();
+export class DuckRig extends AnimalRig {
   private readonly body = new THREE.Group(); // tips over to dabble
   private readonly head = new THREE.Group();
   private readonly wake = new THREE.Group();
@@ -66,11 +64,10 @@ export class DuckRig {
   private readonly stern: THREE.Mesh;
   private readonly size: [number, number, number]; // the body's voxels
   private wakeStrength = 0; // eased 0..1
-  private heading: number | null = null;
   private paddled = 0;
-  private time: number;
 
   constructor(duck: Wildlife, look: DuckLook) {
+    super(duck.id * 1.37); // so neighbours don't bob in step
     const variant = duck.variant as DuckVariant;
     const { body, head } = look.parts[variant];
     this.body.add(new THREE.Mesh(body, look.material));
@@ -94,16 +91,10 @@ export class DuckRig {
     this.wake.position.y = WAKE_LIFT;
     this.wake.visible = false;
     this.root.add(this.body, this.wake);
-    this.time = duck.id * 1.37; // so neighbours don't bob in step
   }
 
   update(duck: Wildlife, dt: number): void {
-    this.time += dt;
-    this.root.position.set(duck.x, duck.y, duck.z);
-    // Turn smoothly toward the model's heading, the short way round.
-    if (this.heading === null) this.heading = duck.heading;
-    this.heading += Math.atan2(Math.sin(duck.heading - this.heading), Math.cos(duck.heading - this.heading)) * Math.min(1, TURN_RATE * dt);
-    this.root.rotation.y = this.heading;
+    this.follow(duck, dt, TURN_RATE);
 
     // Bob and rock on the water.
     this.body.position.y = Math.sin(this.time * 2.4) * 0.004;
@@ -135,8 +126,8 @@ export class DuckRig {
     this.ripple.opacity = Math.max(0, s - 0.3) * 0.6; // only when it hurries
   }
 
-  dispose(): void {
-    this.root.removeFromParent();
+  override dispose(): void {
+    super.dispose();
     this.foam.dispose();
     this.ripple.dispose();
   }

@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import type { CatVariant, Wildlife } from '../../../model/wildlife/wildlife';
-import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
+import { AnimalRig, partMesher, type Leg } from './animalRig';
 import {
   BODY_PIVOT,
   CAT_VOXEL_SIZE,
@@ -43,8 +43,7 @@ export interface CatLook {
 
 // Meshed parts and the material shared by every cat on screen.
 export function createCatLook(): CatLook {
-  const mesh = (grid: VoxelGrid, palette: number[], pivot: [number, number, number]) =>
-    greedyMesh(grid, palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V));
+  const mesh = partMesher(V);
   const parts = {} as CatLook['parts'];
   for (const variant of ['ginger', 'tabby', 'black', 'white'] as const) {
     const palette = catPalette(variant);
@@ -59,23 +58,19 @@ export function createCatLook(): CatLook {
   return { material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), parts };
 }
 
-export class CatRig {
-  readonly root = new THREE.Group();
+export class CatRig extends AnimalRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly tail = new THREE.Group();
   private readonly tip = new THREE.Group();
-  private readonly legs: { group: THREE.Group; front: boolean; left: boolean }[] = [];
-  private heading: number | null = null;
-  private y: number | null = null;
+  private readonly legs: Leg[];
   private phase = 0;
   private swing = 0;
-  private time: number;
-  private readonly last = { x: Number.NaN, z: 0 };
   // The pose, eased: body height and tip, head tip, tail lift and curl, legs' reach.
   private readonly now = { bodyY: LEG_LENGTH * V, pitch: 0, head: 0, tail: -1.1, curl: 0, hind: 1, tuck: 1, paw: 0 };
 
   constructor(cat: Wildlife, look: CatLook) {
+    super(cat.id * 1.3);
     const { body, head, leg, tail, tip } = look.parts[cat.variant as CatVariant];
     this.body.add(new THREE.Mesh(body, look.material));
     this.head.position.set(HEAD_AT[0] * V, HEAD_AT[1] * V, HEAD_AT[2] * V);
@@ -88,31 +83,12 @@ export class CatRig {
     this.tail.add(this.tip);
     this.body.add(this.head, this.tail);
     this.root.add(this.body);
-    for (const front of [true, false]) {
-      for (const left of [true, false]) {
-        const group = new THREE.Group();
-        group.position.set((left ? LEGS_AT.side : -LEGS_AT.side) * V, LEG_LENGTH * V, (front ? LEGS_AT.front : LEGS_AT.back) * V);
-        group.add(new THREE.Mesh(leg, look.material));
-        this.root.add(group);
-        this.legs.push({ group, front, left });
-      }
-    }
-    this.time = cat.id * 1.3;
+    this.legs = this.addLegs(leg, look.material, { side: LEGS_AT.side * V, front: LEGS_AT.front * V, back: LEGS_AT.back * V }, LEG_LENGTH * V);
   }
 
   update(cat: Wildlife, dt: number): void {
-    this.time += dt;
-    const moved = Number.isNaN(this.last.x) ? 0 : Math.hypot(cat.x - this.last.x, cat.z - this.last.z);
-    this.last.x = cat.x;
-    this.last.z = cat.z;
-
     // Turning, and settling onto the ground (or up onto a bench).
-    if (this.heading === null) this.heading = cat.heading;
-    const diff = Math.atan2(Math.sin(cat.heading - this.heading), Math.cos(cat.heading - this.heading));
-    this.heading += diff * Math.min(1, TURN_RATE * dt);
-    this.y = this.y === null ? cat.y : this.y + (cat.y - this.y) * Math.min(1, Y_EASE * dt);
-    this.root.position.set(cat.x, this.y, cat.z);
-    this.root.rotation.y = this.heading;
+    const moved = this.follow(cat, dt, TURN_RATE, Y_EASE);
 
     // What the pose wants, eased into.
     const walking = moved > 1e-4;
@@ -151,9 +127,5 @@ export class CatRig {
       group.position.y = LEG_LENGTH * V * group.scale.y;
       group.rotation.x = s * SWING * (front === left ? 1 : -1) + (front && left ? now.paw : 0);
     }
-  }
-
-  dispose(): void {
-    this.root.removeFromParent();
   }
 }

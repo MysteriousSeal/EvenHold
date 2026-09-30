@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import type { DeerVariant, Wildlife } from '../../../model/wildlife/wildlife';
-import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
+import { AnimalRig, partMesher, type Leg } from './animalRig';
 import {
   BODY_PIVOT,
   DEER_VOXEL_SIZE,
@@ -41,8 +41,7 @@ export interface DeerLook {
 
 // Meshed parts and the material shared by every deer on screen.
 export function createDeerLook(): DeerLook {
-  const mesh = (grid: VoxelGrid, palette: number[], pivot: [number, number, number]) =>
-    greedyMesh(grid, palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V));
+  const mesh = partMesher(V);
   const parts = {} as DeerLook['parts'];
   for (const variant of ['stag', 'doe', 'fawn'] as const) {
     const palette = deerPalette(variant);
@@ -55,22 +54,18 @@ export function createDeerLook(): DeerLook {
   return { material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), parts };
 }
 
-export class DeerRig {
-  readonly root = new THREE.Group();
+export class DeerRig extends AnimalRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
-  private readonly legs: { group: THREE.Group; front: boolean; left: boolean }[] = [];
+  private readonly legs: Leg[];
   private readonly size: number;
-  private heading: number | null = null;
-  private y: number | null = null;
   private phase = 0;
   private swing = 0; // 0 standing .. 1 full stride, eased
   private bound = 0; // 0 walking .. 1 bounding, eased
   private pitch = 0;
-  private time: number;
-  private readonly last = { x: Number.NaN, z: 0 };
 
   constructor(deer: Wildlife, look: DeerLook) {
+    super(deer.id * 1.7); // so a herd doesn't glance about in step
     const variant = deer.variant as DeerVariant;
     const { body, head, leg } = look.parts[variant];
     this.size = SIZE[variant];
@@ -81,32 +76,13 @@ export class DeerRig {
     this.head.add(new THREE.Mesh(head, look.material));
     this.body.add(this.head);
     this.root.add(this.body);
-    for (const front of [true, false]) {
-      for (const left of [true, false]) {
-        const group = new THREE.Group();
-        group.position.set((left ? LEGS_AT.side : -LEGS_AT.side) * V, LEG_LENGTH * V, (front ? LEGS_AT.front : LEGS_AT.back) * V);
-        group.add(new THREE.Mesh(leg, look.material));
-        this.root.add(group);
-        this.legs.push({ group, front, left });
-      }
-    }
-    this.time = deer.id * 1.7; // so a herd doesn't glance about in step
+    this.legs = this.addLegs(leg, look.material, { side: LEGS_AT.side * V, front: LEGS_AT.front * V, back: LEGS_AT.back * V }, LEG_LENGTH * V);
   }
 
   update(deer: Wildlife, dt: number): void {
-    this.time += dt;
-    const moved = Number.isNaN(this.last.x) ? 0 : Math.hypot(deer.x - this.last.x, deer.z - this.last.z);
-    this.last.x = deer.x;
-    this.last.z = deer.z;
-    const speed = dt > 0 ? moved / dt : 0;
-
     // Turning and settling.
-    if (this.heading === null) this.heading = deer.heading;
-    const diff = Math.atan2(Math.sin(deer.heading - this.heading), Math.cos(deer.heading - this.heading));
-    this.heading += diff * Math.min(1, TURN_RATE * dt);
-    this.y = this.y === null ? deer.y : this.y + (deer.y - this.y) * Math.min(1, Y_EASE * dt);
-    this.root.position.set(deer.x, this.y, deer.z);
-    this.root.rotation.y = this.heading;
+    const moved = this.follow(deer, dt, TURN_RATE, Y_EASE);
+    const speed = dt > 0 ? moved / dt : 0;
 
     // Legs: a walk in diagonal pairs, or a bound with front and hind pairs together.
     const walking = moved > 1e-4;
@@ -131,9 +107,5 @@ export class DeerRig {
     this.head.rotation.x = this.pitch;
     const glance = !grazing && !deer.fleeing && !walking ? Math.sin(this.time * 0.6) * 0.45 : 0;
     this.head.rotation.y += (glance - this.head.rotation.y) * Math.min(1, 3 * dt);
-  }
-
-  dispose(): void {
-    this.root.removeFromParent();
   }
 }
