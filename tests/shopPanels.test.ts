@@ -7,6 +7,8 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { SMITH_WARES, gearPrice, gearSellPrice, smithShopAt } from '../src/model/smithy/smithShop';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
+import { LOOT } from '../src/model/loot/loot';
+import { sellPrice } from '../src/model/inn/tavernShop';
 import type { ItemId } from '../src/model/human/equipment';
 import type { Npc } from '../src/model/npcs/npcs';
 import { createSmithPanel } from '../src/controller/smithPanel';
@@ -33,11 +35,10 @@ function trading(type: 'smithy' | 'inn') {
     const keeper = model.npcs.find((n) => n.role === (type === 'smithy' ? 'smith' : 'barkeep') && n.where === model.inside!.entrance);
     if (!keeper) continue;
     const bag = createInventoryPanel(model);
-    const paused: boolean[] = [];
-    const hooks = { setPaused: (p: boolean) => paused.push(p), bag };
+    const hooks = { bag };
     const panel = type === 'smithy' ? createSmithPanel(model, hooks) : createShopPanel(model, hooks);
     const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
-    return { model, keeper: keeper as Npc, bag, panel, paused, shop };
+    return { model, keeper: keeper as Npc, bag, panel, shop };
   }
   throw new Error(`no ${type}`);
 }
@@ -59,11 +60,10 @@ const inBag = (key: string) => Array.from(bagEl().querySelectorAll<HTMLElement>(
 beforeEach(() => document.body.replaceChildren());
 
 describe("the smith's window", () => {
-  it('opens on his greeting, pausing the game, the bag beside it; his wares a list, two to a row, 12 to a page', () => {
+  it('opens on his greeting, the bag beside it; his wares a list, two to a row, 12 to a page', () => {
     expect(SMITH_WARES.length).toBeGreaterThan(PAGE);
-    const { keeper, bag, panel, paused } = trading('smithy');
+    const { keeper, bag, panel } = trading('smithy');
     panel.open(keeper);
-    expect(paused).toEqual([true]);
     expect(bag.menu.isOpen).toBe(true); // to sell from
     expect(shopEl().querySelector('.menu-title')!.textContent).toBe(`${keeper.name}'s wares`);
     expect(says()).toMatch(/^“.+”$/);
@@ -76,7 +76,6 @@ describe("the smith's window", () => {
     }
     expect(pager()!.textContent).toContain(`Page 1 of ${Math.ceil(SMITH_WARES.length / PAGE)}`);
     panel.menu.close();
-    expect(paused).toEqual([true, false]);
     expect(bag.menu.isOpen).toBe(false); // shut with it
   });
 
@@ -115,6 +114,12 @@ describe("the smith's window", () => {
     panel.menu.close();
     panel.open(keeper);
     expect(pager()!.textContent).toContain('Page 1 of');
+    // Left on Buyback, it opens on Buy again.
+    tab('Buyback');
+    panel.menu.close();
+    panel.open(keeper);
+    expect(shopEl().querySelector('.menu-tab.active')!.textContent!.trim()).toBe('Buy');
+    expect(shown()[0]).toBe(`item:${SMITH_WARES[0]}`);
   });
 
   it('buys with a right-click: coin to him, one fewer in stock, the page kept; sold out, nothing', () => {
@@ -172,7 +177,7 @@ describe("the smith's window", () => {
 
   it('shows every sale to buy back on one page, 12 at most', () => {
     const { keeper, panel, shop } = trading('smithy');
-    shop().buyback = (SMITH_WARES.slice(0, PAGES.buyback) as ItemId[]).map((id) => ({ id, price: 1 }));
+    shop().buyback = (SMITH_WARES.slice(0, PAGES.buyback) as ItemId[]).map((id) => ({ id, price: 1, count: 1 }));
     panel.open(keeper);
     tab('Buyback');
     expect(pager()).toBeNull();
@@ -188,6 +193,74 @@ describe("the barmaid's window", () => {
     expect(pager()).toBeNull();
     expect(shown().filter(Boolean)).toEqual(PROVISION_IDS.map((id) => `loot:${id}`));
     tab('Buyback');
-    expect(shown()).toEqual(Array(4).fill(null)); // two rows of two
+    expect(shown()).toEqual(Array(PAGES.buyback).fill(null)); // its slots all there, empty
+  });
+});
+
+describe('trading, the WoW way', () => {
+  it("doesn't stop the game, and shuts once the hero walks away from the keeper; opened again on them, it stays as it was", () => {
+    const { model, keeper, panel } = trading('smithy');
+    Object.assign(model.hero, { x: keeper.x, z: keeper.z + 1.5 });
+    panel.open(keeper);
+    turn('Next').click();
+    panel.update();
+    expect(panel.menu.isOpen).toBe(true); // still by him
+    panel.open(keeper); // (E again) keeps its page
+    expect(pager()!.textContent).toContain('Page 2 of');
+    Object.assign(model.hero, { x: keeper.x, z: keeper.z + 5 });
+    panel.update();
+    expect(panel.menu.isOpen).toBe(false);
+  });
+
+  it('shows in red what the hero can\'t pay for, and names things in their quality\'s color', () => {
+    const { model, keeper, panel, shop } = trading('smithy');
+    model.hero.money = 0;
+    shop().buyback = [{ id: 'wolfFang', price: 3, count: 1 }];
+    panel.open(keeper);
+    const inStock = rows().filter((r) => !r.classList.contains('dim'));
+    expect(inStock.length).toBeGreaterThan(0);
+    expect(inStock.every((r) => r.classList.contains('warn'))).toBe(true);
+    model.hero.money = 1_000_000;
+    panel.menu.refresh();
+    expect(rows().some((r) => r.classList.contains('warn'))).toBe(false);
+    tab('Buyback');
+    expect(rows()[0].querySelector<HTMLElement>('.menu-slot-title')!.dataset.tone).toBe('junk');
+  });
+
+  it('sells all junk at once, to the smith as to the barmaid, at what it\'s worth', () => {
+    for (const type of ['smithy', 'inn'] as const) {
+      document.body.replaceChildren(); // (the other shop's window gone)
+      const { model, keeper, panel, shop } = trading(type);
+      shop().money = 100_000;
+      Object.assign(model.hero, { money: 0, bag: { wolfFang: 3, rustyBuckle: 2, bread: 1 } });
+      panel.open(keeper);
+      const sellJunk = shopEl().querySelector<HTMLButtonElement>('.shop-junk')!;
+      expect(sellJunk.disabled).toBe(false);
+      sellJunk.click();
+      expect(model.hero.bag).toEqual({ bread: 1 }); // the junk gone, the bread kept
+      expect(model.hero.money).toBe(3 * LOOT.wolfFang.value + 2 * LOOT.rustyBuckle.value);
+      expect(shopEl().querySelector<HTMLButtonElement>('.shop-junk')!.disabled).toBe(true); // none left
+      // Buyback: each kind stacked, the last sold first, bought back whole.
+      tab('Buyback');
+      expect(shown().filter(Boolean)).toEqual(['loot:rustyBuckle', 'loot:wolfFang']);
+      expect(rows()[1].querySelector('.menu-slot-badge')!.textContent).toBe('×3');
+      rightClick(rows()[1]);
+      expect(model.hero.bag.wolfFang).toBe(3);
+      expect(model.hero.money).toBe(2 * LOOT.rustyBuckle.value);
+      panel.menu.close();
+    }
+  });
+
+  it('tells in every bag tooltip what a thing would fetch, away from any shop; what no one buys, nothing', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1 } });
+    bag.menu.open();
+    hover(inBag('loot:bread'));
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sell price: ${sellPrice('bread')} copper`);
+    hover(inBag('loot:wolfFang'));
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sell price: ${LOOT.wolfFang.value} copper`);
+    hover(inBag('loot:alphaFang')); // a quest item
+    expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sell price');
   });
 });

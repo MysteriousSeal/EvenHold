@@ -62,6 +62,34 @@ describe('a shop', () => {
     expect([h.money, h.bag.ale, shop.stock.ale, shop.buyback!.length]).toEqual([money - (BUYBACK + 2), 1, BUYBACK + 1, BUYBACK - 1]);
     expect(buyBack(shop, h, 99)).toBe('none');
   });
+
+  it('stacks the same thing sold at the same price, to the front, and buys the stack back whole', () => {
+    const h = hero();
+    const shop: Shop = { money: 1_000, stock: {}, restockedAt: 0 };
+    h.bag.wolfFang = 3;
+    h.bag.ale = 1;
+    sellTo(shop, h, 'wolfFang', 3);
+    sellTo(shop, h, 'ale', 1);
+    sellTo(shop, h, 'wolfFang', 3);
+    sellTo(shop, h, 'wolfFang', 3);
+    expect(shop.buyback).toEqual([{ id: 'wolfFang', price: 3, count: 3 }, { id: 'ale', price: 1, count: 1 }]);
+    h.money = 8;
+    expect(buyBack(shop, h, 0)).toBe('too poor'); // 9 for the three
+    h.money = 9;
+    expect(buyBack(shop, h, 0)).toBe('bought');
+    expect([h.money, h.bag.wolfFang, shop.stock.wolfFang, shop.buyback!.length]).toEqual([0, 3, 0, 1]);
+  });
+
+  it('keeps what can be bought back in a save, dropping what the game no longer knows', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const shop = smithShopAt(model.shops, model.seed, 0);
+    shop.buyback = [{ id: 'wolfFang', price: 3, count: 4 }, { id: SMITH_WARES[0], price: 40, count: 1 }];
+    const data = JSON.parse(JSON.stringify(snapshot(model)));
+    data.shops[0].buyback.push({ id: 'ancientRelic', price: 9 }); // gone from the game since
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(data), model.seed)!);
+    expect(smithShopAt(again.shops, again.seed, 0).buyback).toEqual([{ id: 'wolfFang', price: 3, count: 4 }, { id: SMITH_WARES[0], price: 40, count: 1 }]);
+  });
 });
 
 describe("the smith's shop", () => {
