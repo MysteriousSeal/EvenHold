@@ -60,3 +60,8 @@
 .shop-page-turn:hover:not(:disabled) { background: var(--lantern); }
 .shop-page-turn:active:not(:disabled) { box-shadow: 0 1px 0 var(--ink); transform: translateY(2px); }
 .shop-page-turn:disabled { opacity: 0.4; cursor: default; }
+/* Clickable well past its edges, its rim (a shadow, not the button) and the 2px it sinks
+   when pressed: a pointer just off it still turns the page, and one pressed at its edge
+   doesn't slip off it as it sinks, losing the click. (Clear of the grid above, the purses below.) */
+.shop-page-turn { position: relative; }
+.shop-page-turn::after { content: ''; position: absolute; inset: -10px -12px -12px; }
