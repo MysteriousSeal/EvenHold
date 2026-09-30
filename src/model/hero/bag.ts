@@ -1,7 +1,7 @@
 // The hero's bag: how many of each thing they carry, loot (loot/) and gear
 // (human/items/) alike. Their ids never clash, so one record holds both.
 
-import { ITEMS, type ItemId } from '../human/equipment';
+import { EQUIP_SLOTS, ITEMS, type ItemId } from '../human/equipment';
 import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
 import { PROVISIONS, isProvision } from '../loot/provisions';
 import type { Hero } from '../types';
@@ -51,6 +51,15 @@ export function moveInBag(bag: Bag, order: ReadonlyArray<BagItem | null>, from: 
   const slots = bagLayout(bag, order, size);
   [slots[from], slots[to]] = [slots[to] ?? null, slots[from] ?? null];
   return slots;
+}
+
+// The bag tidied (a button on it): everything packed from the first slot,
+// gear first (head to toe, then jewellery, then what's held), then food and
+// drink, ingredients, quest items, and junk last; alike things by name.
+export function sortedBag(bag: Bag): BagItem[] {
+  const GROUPS: Quality[] = ['common', 'ingredient', 'quest', 'junk'];
+  const rank = (item: BagItem) => (isLootItem(item) ? 1 + GROUPS.indexOf(LOOT_QUALITY[item]) : 0) * 100 + (isLootItem(item) ? 0 : EQUIP_SLOTS.indexOf(ITEMS[item].slot));
+  return (Object.keys(bag) as BagItem[]).filter((item) => (bag[item] ?? 0) > 0).sort((a, b) => rank(a) - rank(b) || nameOf(a).localeCompare(nameOf(b)));
 }
 
 // Eats or drinks one of `item` from the hero's bag, for the health it gives
