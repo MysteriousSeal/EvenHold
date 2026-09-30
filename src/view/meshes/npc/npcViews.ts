@@ -10,34 +10,31 @@ import type { Entrance } from '../../../model/interiors/interiors';
 import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
 import { HumanRig, personMaterial } from '../human/humanRig';
 import { nameLabel } from '../enemy/enemyParts';
+import { Nearby } from '../common/nearby';
 
-const VIEW_RADIUS = 30;
 const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
 const LABEL_HEIGHT = 0.16; // the name's height in the world, indoors as out
 
 export class NpcViews {
   readonly material = personMaterial();
-  private readonly shown = new Map<number, { rig: HumanRig; label: THREE.Sprite }>();
+  private readonly shown = new Nearby<Npc, { rig: HumanRig; label: THREE.Sprite }>(
+    (npc) => {
+      const rig = new HumanRig(npc.look, this.material);
+      rig.wear(npc.equipment);
+      const label = nameLabel(titleOf(npc), LABEL_HEIGHT);
+      label.position.y = LABEL_Y;
+      rig.root.add(label);
+      return { rig, label };
+    },
+    (view) => view.rig.root.removeFromParent(),
+  );
 
   // `where`: the building the hero's in (null outdoors); `scene`: the one
   // they're drawn in; `talking`: whoever the hero can talk to now, whose name
   // gives way to the "Talk to" prompt over them.
   update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null): void {
-    const seen = new Set<number>();
     const scale = where ? INDOOR_SCALE : 1;
-    for (const npc of npcs) {
-      if (npc.where !== where || Math.abs(npc.x - hero.x) > VIEW_RADIUS || Math.abs(npc.z - hero.z) > VIEW_RADIUS) continue;
-      seen.add(npc.id);
-      let view = this.shown.get(npc.id);
-      if (!view) {
-        const rig = new HumanRig(npc.look, this.material);
-        rig.wear(npc.equipment);
-        const label = nameLabel(titleOf(npc), LABEL_HEIGHT);
-        label.position.y = LABEL_Y;
-        rig.root.add(label);
-        view = { rig, label };
-        this.shown.set(npc.id, view);
-      }
+    const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite }) => {
       const { rig, label } = view;
       if (rig.root.parent !== scene) {
         scene.add(rig.root);
@@ -52,11 +49,7 @@ export class NpcViews {
       rig.hold(npc.carrying ?? false); // a cup in hand (the barmaid, bringing a drink or clearing one away)
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
       label.visible = npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
-    }
-    for (const [id, view] of this.shown) {
-      if (seen.has(id)) continue;
-      view.rig.root.removeFromParent();
-      this.shown.delete(id);
-    }
+    };
+    this.shown.update(npcs, hero.x, hero.z, each, (npc) => npc.where === where); // (those in the hero's room, or outdoors)
   }
 }

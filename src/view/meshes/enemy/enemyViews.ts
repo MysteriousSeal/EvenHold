@@ -10,8 +10,8 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from './beastRig';
 import { pulseAuras, questAura } from '../quest/questMarks';
+import { Nearby } from '../common/nearby';
 
-const VIEW_RADIUS = 30;
 const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
 type Rig = BeastRig | BanditRig;
@@ -28,7 +28,14 @@ export class EnemyViews {
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
   };
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
-  private readonly rigs = new Map<number, Rig>();
+  private readonly rigs = new Nearby<Enemy, Rig>(
+    (enemy) => {
+      const rig = this.rigOf[enemy.kind](enemy);
+      this.scene.add(rig.root);
+      return rig;
+    },
+    (rig) => rig.dispose(),
+  );
   private readonly marker = focusMarker();
   private readonly questMarks = new Map<number, THREE.Mesh>(); // the amber aura under each marked foe
   private time = 0;
@@ -51,28 +58,14 @@ export class EnemyViews {
     const target = enemies.find((e) => e.id === focused && e.state !== 'dead');
     this.marker.visible = !!target;
     if (target) this.marker.position.set(target.x, target.y + 0.012, target.z);
-    const seen = new Set<number>();
-    for (const enemy of enemies) {
-      if (Math.abs(enemy.x - heroX) > VIEW_RADIUS || Math.abs(enemy.z - heroZ) > VIEW_RADIUS) continue;
-      seen.add(enemy.id);
-      let rig = this.rigs.get(enemy.id);
-      if (!rig) {
-        rig = this.rigOf[enemy.kind](enemy);
-        this.rigs.set(enemy.id, rig);
-        this.scene.add(rig.root);
-      }
+    const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       rig.update(enemy, dt);
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
-    }
+    });
     for (const [id, mark] of this.questMarks) {
       if (seen.has(id)) continue;
       mark.removeFromParent();
       this.questMarks.delete(id);
-    }
-    for (const [id, rig] of this.rigs) {
-      if (seen.has(id)) continue;
-      rig.dispose();
-      this.rigs.delete(id);
     }
   }
 

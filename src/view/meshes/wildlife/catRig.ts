@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import type { CatVariant, Wildlife } from '../../../model/wildlife/wildlife';
-import { AnimalRig, partMesher, type Leg } from './animalRig';
+import { CreatureRig, partMesher, type Leg } from '../common/creatureRig';
 import {
   BODY_PIVOT,
   CAT_VOXEL_SIZE,
@@ -58,7 +58,7 @@ export function createCatLook(): CatLook {
   return { material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), parts };
 }
 
-export class CatRig extends AnimalRig {
+export class CatRig extends CreatureRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly tail = new THREE.Group();

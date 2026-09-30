@@ -8,8 +8,8 @@ import * as THREE from 'three';
 import type { GroundCoins } from '../../../model/hero/money';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { greedyMesh } from '../voxel/greedyMesh';
+import { Nearby } from '../common/nearby';
 
-const VIEW_RADIUS = 30;
 const VOXEL = 0.03;
 const BOB = 0.02;
 const SPIN = 1.2; // radians per second
@@ -76,7 +76,17 @@ export class CoinViews {
     blending: THREE.AdditiveBlending,
     alphaMap: ringMask(),
   });
-  private readonly shown = new Map<number, THREE.Group>();
+  private readonly shown = new Nearby<GroundCoins, THREE.Group>(
+    () => {
+      const group = new THREE.Group();
+      const glow = new THREE.Mesh(this.ring, this.light);
+      glow.position.y = 0.006; // just above the ground
+      group.add(glow, new THREE.Mesh(this.geometry, this.material));
+      this.scene.add(group);
+      return group;
+    },
+    (group) => group.removeFromParent(),
+  );
   private time = 0;
 
   constructor(private readonly scene: THREE.Scene) {}
@@ -84,28 +94,11 @@ export class CoinViews {
   update(coins: readonly GroundCoins[], heroX: number, heroZ: number, dt: number): void {
     this.time += dt;
     this.light.opacity = 0.45 + Math.sin(this.time * 2.6) * 0.2;
-    const seen = new Set<number>();
-    for (const pile of coins) {
-      if (Math.abs(pile.x - heroX) > VIEW_RADIUS || Math.abs(pile.z - heroZ) > VIEW_RADIUS) continue;
-      seen.add(pile.id);
-      let group = this.shown.get(pile.id);
-      if (!group) {
-        group = new THREE.Group();
-        const glow = new THREE.Mesh(this.ring, this.light);
-        glow.position.y = 0.006; // just above the ground
-        group.add(glow, new THREE.Mesh(this.geometry, this.material));
-        this.shown.set(pile.id, group);
-        this.scene.add(group);
-      }
+    this.shown.update(coins, heroX, heroZ, (pile, group) => {
       group.position.set(pile.x, pile.y, pile.z);
       const coins = group.children[1];
       coins.position.y = 0.03 + Math.sin(this.time * 2.4 + pile.id) * BOB;
       coins.rotation.y = this.time * SPIN + pile.id; // turning slowly
-    }
-    for (const [id, group] of this.shown) {
-      if (seen.has(id)) continue;
-      group.removeFromParent();
-      this.shown.delete(id);
-    }
+    });
   }
 }

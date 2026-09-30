@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import type { DeerVariant, Wildlife } from '../../../model/wildlife/wildlife';
-import { AnimalRig, partMesher, type Leg } from './animalRig';
+import { CreatureRig, partMesher, type Leg } from '../common/creatureRig';
 import {
   BODY_PIVOT,
   DEER_VOXEL_SIZE,
@@ -54,7 +54,7 @@ export function createDeerLook(): DeerLook {
   return { material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), parts };
 }
 
-export class DeerRig extends AnimalRig {
+export class DeerRig extends CreatureRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly legs: Leg[];

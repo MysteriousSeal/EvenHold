@@ -1,10 +1,10 @@
-// What every animal's rig shares (catRig, deerRig, duckRig): its parts meshed
-// round their pivots, four legs set out in pairs, and, each frame, turning
-// smoothly toward the model's heading (the short way round), settling onto
-// its height, and how far it went.
+// What every four-legged creature's rig shares, wildlife (catRig, deerRig,
+// duckRig) and foes alike (beastRig: wolves, boars): its parts meshed round
+// their pivots, four legs set out in pairs, and, each frame, turning smoothly
+// toward its heading (the model's, or else the way it went), the short way
+// round, settling onto its height, and how far it went.
 
 import * as THREE from 'three';
-import type { Wildlife } from '../../../model/wildlife/wildlife';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 
 // Meshes a part at voxel size `v`, round its pivot (in voxels).
@@ -13,7 +13,10 @@ export const partMesher = (v: number) => (grid: VoxelGrid, palette: number[], pi
 
 export type Leg = { group: THREE.Group; front: boolean; left: boolean };
 
-export abstract class AnimalRig {
+// Where a creature is, and (wildlife) which way the model has it face.
+type Walker = { x: number; y: number; z: number; heading?: number };
+
+export abstract class CreatureRig {
   readonly root = new THREE.Group();
   private heading: number | null = null;
   private y: number | null = null;
@@ -38,15 +41,23 @@ export abstract class AnimalRig {
     return legs;
   }
 
-  // Ticks its clock, turns it at `turnRate` and settles it onto the ground
-  // (at `yEase`, else at once); returns how far it went since last frame.
-  protected follow(animal: Wildlife, dt: number, turnRate: number, yEase?: number): number {
+  // Which way it faces now.
+  protected get facing(): number {
+    return this.heading ?? 0;
+  }
+
+  // Ticks its clock, turns it at `turnRate` (toward its heading, or the way
+  // it just went) and settles it onto the ground (at `yEase`, else at once);
+  // returns how far it went since last frame.
+  protected follow(animal: Walker, dt: number, turnRate: number, yEase?: number): number {
     this.time += dt;
-    const moved = Number.isNaN(this.last.x) ? 0 : Math.hypot(animal.x - this.last.x, animal.z - this.last.z);
+    const [dx, dz] = Number.isNaN(this.last.x) ? [0, 0] : [animal.x - this.last.x, animal.z - this.last.z];
+    const moved = Math.hypot(dx, dz);
     this.last.x = animal.x;
     this.last.z = animal.z;
-    if (this.heading === null) this.heading = animal.heading;
-    this.heading += Math.atan2(Math.sin(animal.heading - this.heading), Math.cos(animal.heading - this.heading)) * Math.min(1, turnRate * dt);
+    const toward = animal.heading ?? (moved > 1e-4 ? Math.atan2(dx, dz) : this.facing);
+    if (this.heading === null) this.heading = toward;
+    this.heading += Math.atan2(Math.sin(toward - this.heading), Math.cos(toward - this.heading)) * Math.min(1, turnRate * dt);
     this.y = this.y === null || yEase === undefined ? animal.y : this.y + (animal.y - this.y) * Math.min(1, yEase * dt);
     this.root.position.set(animal.x, this.y, animal.z);
     this.root.rotation.y = this.heading;

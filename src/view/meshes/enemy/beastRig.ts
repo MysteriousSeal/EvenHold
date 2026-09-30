@@ -10,6 +10,7 @@
 // - on death, it rolls onto its side, then bursts into voxel cubes.
 
 import * as THREE from 'three';
+import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
@@ -19,6 +20,7 @@ import { BOAR_BODY_GRID, BOAR_HEAD_GRID, BOAR_LEG_GRID, BOAR_PALETTE, BOAR_TAIL_
 
 const V = WOLF_VOXEL_SIZE; // the boar's voxels are the wolf's size
 const STRIDE = 6; // trot-cycle radians per world unit
+const TURN_RATE = 12; // how fast it turns the way it's going
 const LEG_SWING = 0.6;
 const TOPPLE_TIME = 0.35; // seconds to fall onto its side
 
@@ -89,8 +91,7 @@ export function createBeastLook(spec: BeastSpec, flash: THREE.Material): BeastLo
   };
 }
 
-export class BeastRig {
-  readonly root = new THREE.Group();
+export class BeastRig extends CreatureRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly tail = new THREE.Group();
@@ -98,12 +99,10 @@ export class BeastRig {
   private readonly meshes: THREE.Mesh[] = [];
   private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
-  private readonly last = new THREE.Vector2(Number.NaN, 0);
-  private heading = 0;
   private phase = 0;
-  private time = 0;
 
   constructor(private readonly look: BeastLook) {
+    super(0);
     const { spec } = look;
     const [LEG_H, BODY_H, BODY_L] = [spec.leg.size[1] * V, spec.body.size[1] * V, spec.body.size[2] * V];
     this.bar = new HealthBar(LEG_H + BODY_H + 0.2, spec.name, spec.passive);
@@ -126,24 +125,14 @@ export class BeastRig {
   }
 
   update(beast: Enemy, dt: number): void {
-    this.time += dt;
-    this.root.position.set(beast.x, beast.y, beast.z);
-    const dx = Number.isNaN(this.last.x) ? 0 : beast.x - this.last.x;
-    const dz = Number.isNaN(this.last.x) ? 0 : beast.z - this.last.y;
-    this.last.set(beast.x, beast.z);
-    const moved = Math.hypot(dx, dz);
-    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.heading);
+    const moved = this.follow(beast, dt, TURN_RATE); // turning the way it goes
+    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing);
 
     if (beast.state === 'dead') {
       this.die(beast.deadFor, dt);
       return;
     }
-    if (moved > 1e-4) {
-      const target = Math.atan2(dx, dz);
-      this.heading += Math.atan2(Math.sin(target - this.heading), Math.cos(target - this.heading)) * Math.min(1, 12 * dt);
-      this.phase += moved * STRIDE;
-    }
-    this.root.rotation.y = this.heading;
+    if (moved > 1e-4) this.phase += moved * STRIDE;
     this.body.rotation.x = 0;
 
     // Trot: diagonal pairs swing together.
@@ -193,8 +182,8 @@ export class BeastRig {
     if (this.burst.play(t, dt)) this.body.visible = false;
   }
 
-  dispose(): void {
-    this.root.removeFromParent();
+  override dispose(): void {
+    super.dispose();
     this.burst.dispose();
   }
 }

@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import type { DuckVariant, Wildlife } from '../../../model/wildlife/wildlife';
 import { DABBLE_TIME } from '../../../model/wildlife/ducks';
-import { AnimalRig, partMesher } from './animalRig';
+import { CreatureRig, partMesher } from '../common/creatureRig';
 import { BODY_GRID, DUCK_VOXEL_SIZE, HEAD_GRID, SUBMERGED, buildDuckBody, buildDuckHead, duckPalette } from './duckVoxels';
 
 const V = DUCK_VOXEL_SIZE;
@@ -54,7 +54,7 @@ export function createDuckLook(): DuckLook {
 // Where the neck sits on each body, in voxels from the body's pivot.
 const NECK: Record<DuckVariant, [number, number, number]> = { drake: [0, 2.5, 2.5], hen: [0, 2.5, 2.5], duckling: [0, 2, 1] };
 
-export class DuckRig extends AnimalRig {
+export class DuckRig extends CreatureRig {
   private readonly body = new THREE.Group(); // tips over to dabble
   private readonly head = new THREE.Group();
   private readonly wake = new THREE.Group();

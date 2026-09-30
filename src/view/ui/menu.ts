@@ -10,14 +10,9 @@ import './menu.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
 import type { DollSlot, Menu, MenuOptions, MenuSlot, MenuSlots } from './menuTypes';
+import { el } from './dom';
 export type { DollSlot, Menu, MenuAction, MenuIcon, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
 
-const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) => {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
 
 // Menus open right now, most recent last.
 const openMenus: Menu[] = [];

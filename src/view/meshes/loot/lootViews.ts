@@ -14,8 +14,8 @@ import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { LOOT_VOXEL_SIZE } from './lootModel';
 import { LOOT_MODELS } from './lootModels';
+import { Nearby } from '../common/nearby';
 
-const VIEW_RADIUS = 30;
 const SPIN = 1.4; // radians per second
 const HOVER = 0.1; // above the ground
 const BOB = 0.02;
@@ -54,7 +54,10 @@ function beamGeometry(): THREE.BufferGeometry {
 export class LootViews {
   private readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 });
   private readonly geometries = new Map<BagItem, THREE.BufferGeometry>();
-  private readonly shown = new Map<number, { group: THREE.Group; item: THREE.Mesh }>();
+  private readonly shown = new Nearby<GroundLoot, { group: THREE.Group; item: THREE.Mesh }>(
+    (loot) => this.show(loot),
+    (shown) => shown.group.removeFromParent(),
+  );
   private readonly ring = ringGeometry();
   private readonly beam = beamGeometry();
   private readonly ringLight = new Map<Quality, THREE.MeshBasicMaterial>();
@@ -72,25 +75,12 @@ export class LootViews {
     const pulse = 0.5 + Math.sin(this.time * 2.6) * 0.5;
     for (const light of this.ringLight.values()) light.opacity = 0.35 + pulse * 0.3;
     for (const light of this.beamLight.values()) light.opacity = 0.22 + pulse * 0.1;
-    const seen = new Set<number>();
-    for (const item of loot) {
-      if (Math.abs(item.x - heroX) > VIEW_RADIUS || Math.abs(item.z - heroZ) > VIEW_RADIUS) continue;
-      seen.add(item.id);
-      let shown = this.shown.get(item.id);
-      if (!shown) {
-        shown = this.show(item);
-        this.shown.set(item.id, shown);
-      }
+    this.shown.update(loot, heroX, heroZ, (item, shown) => {
       const phase = this.time + item.id * 0.7;
       shown.group.position.set(item.x, item.y, item.z);
       shown.item.position.y = HOVER + Math.sin(phase * 2.2) * BOB;
       shown.item.rotation.y = phase * SPIN;
-    }
-    for (const [id, shown] of this.shown) {
-      if (seen.has(id)) continue;
-      shown.group.removeFromParent();
-      this.shown.delete(id);
-    }
+    });
   }
 
   private show(loot: GroundLoot): { group: THREE.Group; item: THREE.Mesh } {

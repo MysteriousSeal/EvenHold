@@ -11,14 +11,10 @@ import { xpToNext } from '../../model/hero/heroStats';
 import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
+import { el } from '../ui/dom';
 
 const PORTRAIT_SIZE = 84;
 
-const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string) => {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  return node;
-};
 
 // Returns the function to call each frame.
 export function createHeroHud(hero: Hero, parent: HTMLElement): () => void {
