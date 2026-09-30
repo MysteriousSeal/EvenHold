@@ -161,9 +161,9 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
     }
     place('keg', 1, 1, 'left', [[0, 0]]); // behind the bar, its tap facing the counter
     place('keg', 1, 1, 'back', [[2, 0]]); // and one beside it
-    // Past the bar's end (a row left free there, where the server picks up), the stairs up: two
-    // long, out from the left wall into the room, climbing from the room toward the wall.
-    place('stairs', 2, 1, 'none', [[0, Math.min(barEnd + 2, room.depth - 1)]]);
+    // In the front corner past the bar, the stairs up: two long, out from the left wall into the
+    // room, climbing from the room toward the wall (the floor above's stairwell in the same corner).
+    place('stairs', 2, 1, 'none', [[0, room.depth - 1]]);
     // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs facing it.
     const hearth = place('hearth', 2, 1, 'back', along(0).filter(([x]) => x >= 5 && x <= room.width - 3));
     if (hearth) {
