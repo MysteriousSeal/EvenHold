@@ -60,7 +60,7 @@ export interface Furniture {
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
   open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
-  tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low
+  tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
@@ -234,6 +234,7 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
 const PULLED_UP: Partial<Record<FurnitureKind, { across: [number, number]; forward: [number, number] }>> = {
   chair: { across: [0.24, 0.72], forward: [0.48, 0.96] },
   barStool: { across: [0.28, 0.72], forward: [0.56, 1] },
+  nightstand: { across: [0.2, 0.8], forward: [0.04, 0.56] }, // (not a seat: its back to the wall, only as big as it's drawn)
 };
 
 // A seat's footprint within its tile, as tile fractions [x0, x1, z0, z1],

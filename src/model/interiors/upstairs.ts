@@ -53,9 +53,9 @@ export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, s
   return { entrance: upstairsOf(below), room, furniture, seated: null, below };
 }
 
-// The inner walls (the hallway's, between the rooms) full height or cut low, as the option says.
+// The inner walls (the hallway's, between the rooms) full height or cut low, as the option says (and the pictures on them hung, or propped on the rail).
 export function innerWalls(furniture: readonly Furniture[], full: boolean): void {
-  for (const f of furniture) if (f.kind === 'hallWall' || f.kind === 'hallDoor') f.tall = full;
+  for (const f of furniture) if (f.kind === 'hallWall' || f.kind === 'hallDoor' || f.kind === 'framedPicture') f.tall = full;
 }
 
 // The doors upstairs left open, by building (its door below), each by where it stands; kept in the save.
