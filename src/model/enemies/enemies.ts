@@ -93,9 +93,17 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
       }
     }
   };
-  // The bandits, in their camps (whose tiles no other foe starts on).
-  for (const camp of world.camps) for (const piece of camp.pieces) taken.add(`${piece.x},${piece.z}`);
-  const bandits = (camp: Camp) => group('bandit', camp.x, camp.z, camp.bandits, 56, 1);
+  // The bandits: each camp's own number of them, each on a free tile inside
+  // its palisade (not a tent, the fire, the crates or the rack), in an order
+  // rolled from the seed. No other foe starts inside a camp.
+  for (const camp of world.camps) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) taken.add(`${camp.x + dx},${camp.z + dz}`);
+  const bandits = (camp: Camp) => {
+    const spots: Array<[number, number]> = [];
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (world.isOpenTile(camp.x + dx, camp.z + dz)) spots.push([camp.x + dx, camp.z + dz]);
+    const roll = ([x, z]: [number, number]) => hashUnit(x, z, world.seed + 56);
+    spots.sort((a, b) => roll(a) - roll(b));
+    for (const [x, z] of spots.slice(0, camp.bandits)) enemies.push(makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)));
+  };
 
   // One of each a short walk from spawn, so there's something to fight right away.
   const { x: sx, z: sz } = world.hero;
