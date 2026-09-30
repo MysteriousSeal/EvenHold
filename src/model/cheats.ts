@@ -9,6 +9,7 @@ import { NEIGHBORS_4, spawnOf } from './grid';
 import { makeEnemy } from './enemies/enemies';
 import type { EnemyKind, Village } from './types';
 import type { Ruin } from './ruins/ruins';
+import type { Camp } from './camps/camps';
 
 export interface Tile {
   x: number;
@@ -82,22 +83,19 @@ function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number)
   return null;
 }
 
-// The next ruin on the tour: the nearest not yet visited (all of them seen,
-// round again); where to arrive, just outside its way in. Null if there are none.
-export function nextRuin(model: GameModel, from: Tile, visited: Set<Ruin>): Tile | null {
-  if (model.ruins.length === 0) return null;
-  if (visited.size >= model.ruins.length) visited.clear();
-  const ruin = model.ruins.filter((r) => !visited.has(r)).sort((a, b) => distance(a.way, from) - distance(b.way, from))[0];
-  visited.add(ruin);
-  return nearestOpenTile(model, ruin.way);
+// The next stop on a tour of `places` (ruins, camps): the nearest not yet
+// visited (all of them seen, round again); where to arrive, just outside its
+// way in. Null if there are none.
+function nextOn<T extends { way: Tile }>(model: GameModel, places: readonly T[], from: Tile, visited: Set<T>): Tile | null {
+  if (places.length === 0) return null;
+  if (visited.size >= places.length) visited.clear();
+  const place = places.filter((p) => !visited.has(p)).sort((a, b) => distance(a.way, from) - distance(b.way, from))[0];
+  visited.add(place);
+  return nearestOpenTile(model, place.way);
 }
 
-// Just outside the nearest bandit camp's way in, or null if there are none.
-export function nearestCamp(model: GameModel, from: Tile): Tile | null {
-  if (model.camps.length === 0) return null;
-  const camp = model.camps.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
-  return nearestOpenTile(model, camp.way);
-}
+export const nextRuin = (model: GameModel, from: Tile, visited: Set<Ruin>) => nextOn(model, model.ruins, from, visited);
+export const nextCamp = (model: GameModel, from: Tile, visited: Set<Camp>) => nextOn(model, model.camps, from, visited);
 
 // A few tiles from the nearest living wolf, or null if there are none.
 export function nearestPack(model: GameModel, from: Tile): Tile | null {

@@ -91,11 +91,18 @@ describe('more dev cheats', () => {
     expect(model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - model.hero.x, e.z - model.hero.z) <= 15)).toEqual([]);
   });
 
-  it('travels to open ground outside the nearest camp', async () => {
-    const { nearestCamp } = await import('../src/model/cheats');
-    const model = TEST_SEEDS.map((s) => fresh(s)).find((m) => m.camps.length > 0)!;
-    const tile = nearestCamp(model, model.hero)!;
-    expect(model.isOpenTile(tile.x, tile.z)).toBe(true);
+  it('tours the camps, nearest first, each once, landing on open ground at the gate', async () => {
+    const { nextCamp } = await import('../src/model/cheats');
+    const model = TEST_SEEDS.map((s) => fresh(s)).find((m) => m.camps.length > 1)!;
+    const seen = new Set<(typeof model.camps)[number]>();
+    for (let i = 0; i < model.camps.length; i++) {
+      const tile = nextCamp(model, model.hero, seen)!;
+      expect(model.isOpenTile(tile.x, tile.z)).toBe(true);
+      expect(model.camps.some((c) => Math.hypot(c.way.x - tile.x, c.way.z - tile.z) <= 2)).toBe(true);
+    }
+    expect(seen.size).toBe(model.camps.length); // each once
+    nextCamp(model, model.hero, seen);
+    expect(seen.size).toBe(1); // then round again
   });
 
   it('noclip walks through anything; frozen foes stay put', () => {
