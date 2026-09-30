@@ -45,6 +45,7 @@ import { buildRoomScene } from './interior/roomView';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
+import { buildRuins } from './meshes/ruin/ruinMesh';
 import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
@@ -153,6 +154,7 @@ export class GameView {
       { label: 'Pinning up the notices', run: () => buildNoticeBoards(scene, model) },
       { label: 'Setting out the benches', run: () => buildBenches(scene, model) },
       { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
+      { label: 'Crumbling the old ruins', run: () => buildRuins(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
   }

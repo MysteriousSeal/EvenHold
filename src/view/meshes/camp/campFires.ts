@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { campPieces } from '../../../model/enemies/enemies';
 import { FireEffect } from '../common/fire';
 
 const VIEW_RADIUS = 30;
@@ -20,7 +19,7 @@ export class CampFires {
     const seen = new Set<string>();
     for (const camp of model.camps) {
       if (Math.abs(camp.x - hero.x) > VIEW_RADIUS || Math.abs(camp.z - hero.z) > VIEW_RADIUS) continue;
-      const pit = campPieces(camp).find((p) => p.kind === 'fire');
+      const pit = camp.pieces.find((p) => p.kind === 'fire');
       if (!pit) continue;
       const key = `${pit.x},${pit.z}`;
       seen.add(key);
