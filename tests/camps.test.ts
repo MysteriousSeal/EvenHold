@@ -81,3 +81,25 @@ describe('a bandit away from its camp', () => {
     expect(problems).toEqual([]);
   });
 });
+
+describe("a camp's bandits, left alone", () => {
+  it('wander only inside their palisade, never out through the gate to crowd it', () => {
+    const problems: string[] = [];
+    for (const seed of TEST_SEEDS) {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      model.godMode = true;
+      const camp = model.camps[0];
+      const mine = model.enemies.filter((e) => e.kind === 'bandit' && e.homeX === camp.x && e.homeZ === camp.z);
+      // Well out of their sight and hearing, still near enough that they think.
+      model.teleport(camp.x + (camp.way.x - camp.x) * 5, camp.z + (camp.way.z - camp.z) * 5);
+      for (let t = 0; t < 120; t += 1 / 30) {
+        model.update(0, 0, 1 / 30);
+        for (const b of mine) {
+          if (b.state === 'wander' && (Math.abs(b.x - camp.x) > 2.5 || Math.abs(b.z - camp.z) > 2.5)) problems.push(`seed ${seed}: bandit ${b.id} out at ${b.x.toFixed(1)},${b.z.toFixed(1)}`);
+        }
+        if (problems.length) break;
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+});
