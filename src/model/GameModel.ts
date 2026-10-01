@@ -55,6 +55,7 @@ import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypt
 import { CRYPT_FOE_ID, CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
 import { SUMMONED, clearedShare } from './crypts/cryptLord';
 import { cryptHooks, foeStrikes, landBlow } from './hero/fighting';
+import { cycleFocus as turnFocus } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -478,6 +479,9 @@ export class GameModel {
     const enemy = this.foes.find((e) => e.id === id);
     this.focusedId = enemy && enemy.state !== 'dead' ? enemy.id : null;
   }
+
+  // Turns the focus to the next foe in sight, nearest first (Tab), or back (Shift+Tab: hero/focus.ts).
+  cycleFocus = (back = false): void => turnFocus(this, (foe) => (this.below?.run.director ?? this.director).inView(this.hero, foe), back);
 
   // Drops the focus the moment its enemy dies (so the next to strike takes
   // it), or once it's gone or far off.

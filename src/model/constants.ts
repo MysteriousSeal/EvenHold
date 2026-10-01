@@ -22,7 +22,8 @@ export const ENEMY_STATS = {
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.
   skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 2.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.6, swing: 0.8, cooldown: 1.2, rest: [4, 4], shove: 1, loot: 1 },
   // A crypt's lord (crypts/cryptLord.ts): eight skeletons' health, hard blows, big, slow to give up; his slam and rage are his own.
-  cryptLord: { family: 'undead', passive: false, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 1.5, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.3, loot: 2 },
+  // Risen, he stands before his tomb (passive, never wandering) till struck; then he's on the hero.
+  cryptLord: { family: 'undead', passive: true, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 0, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.3, loot: 2 },
   // A draugr (crypts/frostBreath.ts its breath): a withered warrior in mail with an axe; slow, twice a skeleton's health and more, hard blows, hardly moved by a blow; its own, better loot, more often (`loot`: the drop chance's factor).
   draugr: { family: 'draugr', passive: false, hp: 11, damage: 3, xp: 45, coins: 10, radius: 0.17, walk: 0.35, run: 1.4, sight: 6, giveUp: 12, wander: 2, stop: 0.7, swing: 1.1, cooldown: 1.6, rest: [5, 4], shove: 0.25, loot: 1.6 }, // (slower still, so longer at rest)
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },

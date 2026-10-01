@@ -159,6 +159,11 @@ export class EnemyDirector {
     return path[0] ?? enemy;
   }
 
+  // Whether `a` can see `b` here (nothing solid between: as a foe sees the hero).
+  inView(a: Point, b: Point): boolean {
+    return clearLine(a, b, (x, z) => !this.obstacles.blocksSight(x, z), 0.05);
+  }
+
   // Whether an enemy can see the hero: nothing solid on the line between,
   // checked in fine steps so a thin fence can't slip between two.
   private canSee(enemy: Enemy): boolean {
