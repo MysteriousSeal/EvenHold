@@ -3,6 +3,7 @@ import * as THREE from 'three';
 // Fixed isometric offset: camera always sits here relative to the hero,
 // and never rotates — Tunic-style pan-and-follow rather than orbit.
 export const CAMERA_OFFSET = new THREE.Vector3(14, 18, 14);
+export const CAMERA_YAW = Math.PI / 4; // the way it faces round: it looks along -X-Z (from CAMERA_OFFSET's side)
 export const FRUSTUM_SIZE = 9; // world units visible vertically; smaller = more zoomed in
 export const CAMERA_Y_SMOOTHING = 8; // per second; higher = camera catches up to height changes faster
 

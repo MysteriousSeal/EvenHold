@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import type { Ruin } from '../../../model/ruins/ruins';
 import { hashCell, mulberry32 } from '../../../util/random';
+import { hourAt } from '../../../model/clock';
 
 const WISPS = 54; // to a ruin
 const NEAR = 40; // tiles from a ruin's middle its mist is made
@@ -26,7 +27,7 @@ const NIGHT = 0xc4ccd8;
 // the morning to a lighter mist by midday (half as thick), gathering again through the evening.
 const THICKNESS: ReadonlyArray<readonly [number, number]> = [[0, 1], [7, 1], [11, 0.5], [17, 0.5], [21, 0.9], [24, 1]];
 export function mistAt(minutes: number): number {
-  const hour = ((minutes / 60) % 24 + 24) % 24;
+  const hour = hourAt(minutes);
   for (let i = 1; i < THICKNESS.length; i++) {
     const [[h0, a], [h1, b]] = [THICKNESS[i - 1], THICKNESS[i]];
     if (hour > h1) continue;

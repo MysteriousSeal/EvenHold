@@ -10,22 +10,19 @@ export function createSleepFade(): (whileDark: () => void, done: () => void) => 
   const veil = document.createElement('div');
   veil.className = 'sleep-fade';
   veil.innerHTML = '<span>You sleep till morning…</span>';
-  Object.assign(veil.style, { position: 'fixed', inset: '0', background: '#050302', opacity: '0', transition: `opacity ${FADE}s ease`, pointerEvents: 'none', display: 'grid', placeItems: 'center', zIndex: '50' });
-  Object.assign((veil.firstElementChild as HTMLElement).style, { color: '#f0e2c4', font: '500 22px Fredoka, sans-serif', letterSpacing: '0.04em', opacity: '0.9' });
+  veil.style.transitionDuration = `${FADE}s`; // (hud.css: the rest of its look)
   document.body.append(veil);
   let busy = false;
   return (whileDark, done) => {
     if (busy) return;
     busy = true;
-    veil.style.pointerEvents = 'auto';
-    veil.style.opacity = '1';
+    veil.classList.add('dark');
     window.setTimeout(() => {
       whileDark();
       window.setTimeout(() => {
         done(); // (the morning: going again, as it fades back in)
-        veil.style.opacity = '0';
+        veil.classList.remove('dark');
         window.setTimeout(() => {
-          veil.style.pointerEvents = 'none';
           busy = false;
         }, FADE * 1000);
       }, DARK * 1000);

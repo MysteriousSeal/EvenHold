@@ -8,16 +8,16 @@
 import * as THREE from 'three';
 import type { Furniture } from '../../model/interiors/furniture';
 import type { Room } from '../../model/interiors/interiors';
-import { roomsOff } from '../../model/interiors/upstairs';
+import { doorway, roomsOff } from '../../model/interiors/upstairs';
 import { letDoor } from '../../model/inn/roomLetting';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
+import { CAMERA_YAW } from '../constants';
 import type { VoxelModel } from '../ui/voxelIcon';
 
 const FADE = 0.5; // seconds to fade in (or out)
 const MARK_HEIGHT = 1.3; // the let room's arrow (its point), over its door
 const MARK_VOXEL = 0.022;
-const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const ON_THE_WALLS: ReadonlySet<string> = new Set(['hallWall', 'hallDoor', 'wallLantern']); // (the room's own: always seen)
 
 // Which of the floor's furniture is in one of its rooms (to be meshed apart: RoomContents).
@@ -65,8 +65,8 @@ export class LetMark {
     this.mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, depthTest: false, depthWrite: false, toneMapped: false }));
     this.mesh.renderOrder = 10;
     this.mesh.rotation.y = CAMERA_YAW; // (its face to the camera)
-    const d = this.door;
-    this.mesh.position.set(d.wall === 'left' ? d.x - 0.4 : d.x - 0.5 + d.w / 2, MARK_HEIGHT, d.wall === 'left' ? d.z - 0.5 + d.d / 2 : d.z - 0.4);
+    const at = doorway(this.door);
+    this.mesh.position.set(at.x, MARK_HEIGHT, at.z);
     scene.add(this.mesh);
   }
 

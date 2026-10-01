@@ -5,13 +5,13 @@
 
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
+import { CAMERA_YAW } from '../../constants';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
 import { INK, nameLabel } from '../common/overhead';
 import { voxelIcon } from '../../ui/voxelIcon';
 import { bossSkull } from './skeletonVoxels';
 
-const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const PIECES = 30;
 const GRAVITY = 3.5;
 const BURST_AT = 0.7; // seconds after death when an enemy breaks apart
