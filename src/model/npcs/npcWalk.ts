@@ -1,7 +1,8 @@
 // How villagers get about (npcRoutine.ts decides where): walking a tile path
 // round what's in the way (pathfinding.ts), round the hero and each other,
 // never stuck long; put down somewhere at once when out of the hero's sight;
-// easing off the hero when they overlap. And where they fit in a room.
+// easing off the hero when they overlap, making way when walked into. And
+// where they fit in a room.
 
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { findPath } from '../map/pathfinding';
@@ -20,6 +21,7 @@ const PROGRESS = 0.02; // tiles nearer the next point that count as getting some
 const closest = new WeakMap<Npc, { to: Point; d: number }>();
 const EASE_SPEED = 1.2; // how fast a villager eases off the hero, when they overlap
 const BARELY = 0.02; // overlapping the hero by less than this: just touching
+const MAKE_WAY = 0.12; // this near the hero (past touching), and in their way: making way (the hero's next step would touch)
 
 // Where someone fits in a building's room. Behind the inn's bar (between
 // the counter and the wall, along its length) is the barmaids' alone.
@@ -52,7 +54,27 @@ export function easeOffHero(npc: Npc, world: NpcWorld, dt: number): boolean {
   const d = Math.hypot(dx, dz);
   if (reach - d < BARELY) return false; // (just touching: not worth easing off, and it'd never quite get clear)
   const [ux, uz] = d > 1e-4 ? [dx / d, dz / d] : [Math.sin(npc.id), Math.cos(npc.id)]; // right on them: off some way of its own
-  const step = Math.min(reach - d, EASE_SPEED * dt);
+  return stepAway(npc, world, ux, uz, Math.min(reach - d, EASE_SPEED * dt));
+}
+
+// A villager the hero walks into (all but touching them, ahead of them) makes way:
+// steps off from them, as easing off, so the hero's never held up by
+// someone stood still. `dirX, dirZ`: the way the hero's pressing.
+export function makeWay(npcs: readonly Npc[], world: NpcWorld, dirX: number, dirZ: number, dt: number): void {
+  const where = world.inside?.entrance ?? null;
+  const reach = (NPC_RADIUS + HERO_RADIUS) * (where ? INDOOR_SCALE : 1) + MAKE_WAY;
+  const { hero } = world;
+  for (const npc of npcs) {
+    if (npc.where !== where || npc.seat || Math.abs(npc.x - hero.x) > reach || Math.abs(npc.z - hero.z) > reach) continue;
+    const [dx, dz] = [npc.x - hero.x, npc.z - hero.z];
+    const d = Math.hypot(dx, dz);
+    if (d >= reach || d < 1e-4 || dx * dirX + dz * dirZ <= 0) continue; // (not that near, or not in the way)
+    stepAway(npc, world, dx / d, dz / d, EASE_SPEED * dt);
+  }
+}
+
+// A step of `step` along (ux, uz), else aslant, else sideways, wherever there's room; returns whether it took one.
+function stepAway(npc: Npc, world: NpcWorld, ux: number, uz: number, step: number): boolean {
   const free = npc.where ? roomFree(world.seed, npc.where, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
   for (const turn of [0, 0.8, -0.8, 1.6, -1.6]) {
     const [cos, sin] = [Math.cos(turn), Math.sin(turn)];

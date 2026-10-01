@@ -46,6 +46,7 @@ import { stepYard, toggleYard, type YardStay } from './interiors/furnitureYard';
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
+import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
@@ -214,6 +215,7 @@ export class GameModel {
     if (dt <= 0) return;
     this.minutes += dt; // a second played, a minute on the clock
     tickBlessing(this.hero, dt); // a well's, wearing off
+    if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.npcs, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
