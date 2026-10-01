@@ -13,6 +13,8 @@ import { createPlaceBanner } from './view/hud/placeBanner';
 import { createCryptBar } from './view/hud/cryptBar';
 import { cryptAt } from './model/crypts/crypts';
 import { atWayOut } from './model/interiors/indoors';
+import { ROOM_PRICE, letBed, letUntil, sleepTillMorning } from './model/inn/roomLetting';
+import { createSleepFade } from './view/hud/sleepFade';
 import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
@@ -91,6 +93,8 @@ async function boot(): Promise<void> {
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
   const piePrompt = createLootPrompt('G', false, orderPrompt); // and a meat pie, stacked over it
+  const rentPrompt = createLootPrompt('G', false, lootPrompt); // stood by the barmaid: a room, stacked over her E; by the let room's bed: sleep
+  const sleepFade = createSleepFade();
   const drinkTimer = createDrinkTimer();
   const bar = createBar(
     model,
@@ -190,6 +194,11 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
+    const renting = prompt?.npc?.role === 'barkeep' && !model.seated && prompt; // (by her, stood: G, a room; let already, said so)
+    const taken = !!model.inside && letUntil(model.inside.entrance) !== null;
+    const bed = !renting && prompt && letBed(model); // (by the let room's bed, or in it, at night: G, sleep)
+    const g = renting ? { label: taken ? 'Your room is upstairs' : `Rent a room · ${ROOM_PRICE} copper`, muted: taken } : bed ? { label: 'Sleep till morning', muted: false } : null;
+    rentPrompt.update(g && prompt ? { ...g, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
     // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
     const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
@@ -207,7 +216,18 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onSleep: () => {
+      if (!model.seated) model.sitOrStand(); // (into the bed)
+      sleepFade(
+        () => {
+          controller.paused = true; // (the night passing, unseen)
+          sleepTillMorning(model);
+        },
+        () => (controller.paused = false), // (seen again, the morning, as it fades back in)
+      );
+    },
+    onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.

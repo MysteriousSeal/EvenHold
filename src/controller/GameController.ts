@@ -2,6 +2,8 @@
 
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
+import { letBed, rentRoom } from '../model/inn/roomLetting';
+import { shopAt } from '../model/inn/tavernShop';
 import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
 import type { GameModel } from '../model/GameModel';
@@ -43,11 +45,12 @@ export class GameController {
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
+  private readonly onSleep: () => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -56,6 +59,7 @@ export class GameController {
     this.onTalk = options.onTalk ?? (() => {});
     this.onRead = options.onRead ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
+    this.onSleep = options.onSleep ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && (!model.inside || model.crypt) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
@@ -112,11 +116,16 @@ export class GameController {
     if (this.input.consumeAttack()) this.model.startAttack();
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
     if (turn && (!this.model.inside || this.model.crypt) && !this.model.yard) this.model.cycleFocus(turn === 'back');
-    // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid.
+    // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
+    // by its bed, at night, G: a night's sleep.
     const wanted = this.input.consumeOrder();
     if (wanted && atTheBar(this.model)) {
       const barmaid = barmaidHere(this.model);
       if (barmaid) this.onOrder(barmaid, wanted);
+    } else if (wanted === 'pie') {
+      const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero);
+      if (talker?.role === 'barkeep') rentRoom(this.model, talker, shopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(this.model.inside!.entrance)));
+      else if (letBed(this.model)) this.onSleep(); // by (or in) the bed of the room let, at night: to sleep
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
