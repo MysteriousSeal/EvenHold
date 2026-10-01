@@ -22,6 +22,7 @@ import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, ty
 import { ITEM_MODELS } from './gear/itemModels';
 import { SHADE, bodyGeometry, hairGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
 import { CupInHand } from './cupInHand';
+import { stowedAt } from './sheathe';
 import type { Drink } from '../../../model/npcs/npcs';
 
 const V = HUMAN_VOXEL_SIZE;
@@ -150,6 +151,33 @@ export class HumanRig {
     }
   }
 
+  // Weapons put away (sheathe.ts: at the hip, across the back), or back in hand.
+  sheathe(on: boolean): void {
+    if (on === this.sheathed) return;
+    this.sheathed = on;
+    this.restow();
+  }
+  private sheathed = false;
+  private posed: 'stand' | 'sit' | 'lie' = 'stand'; // (what's put away goes where the pose lets it: sheathe.ts)
+  private restow(): void {
+    for (const [slot, { item, meshes }] of this.worn) if (isHeldSlot(slot) && meshes[0]) this.inHand(slot, item, meshes[0]);
+  }
+
+  // A held thing in its hand, or put away (sheathed) where it goes.
+  private inHand(slot: EquipSlot & ('mainHand' | 'offHand'), item: ItemId, mesh: THREE.Mesh): void {
+    const stowed = this.sheathed ? stowedAt(item, mesh.geometry, this.look.build, this.posed) : null;
+    if (stowed) {
+      mesh.position.copy(stowed.position);
+      mesh.quaternion.copy(stowed.quaternion);
+      this.joints.torso.add(mesh);
+      return;
+    }
+    const hand = BODIES[this.look.build].hand;
+    mesh.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
+    mesh.quaternion.identity();
+    this.joints[HELD_BY[slot]].add(mesh);
+  }
+
   // Whether the shade under their feet shows (indoors, the firelight casts real shadows).
   set shaded(on: boolean) {
     this.shade.visible = on;
@@ -171,9 +199,7 @@ export class HumanRig {
       const geometry = heldGeometry(item);
       if (geometry) {
         const mesh = this.mesh(geometry);
-        const hand = BODIES[this.look.build].hand;
-        mesh.position.set(hand[0] * V, hand[1] * V, hand[2] * V);
-        this.joints[HELD_BY[slot]].add(mesh);
+        this.inHand(slot, item, mesh);
         meshes.push(mesh);
       }
       return meshes;
@@ -216,6 +242,11 @@ export class HumanRig {
   // faces: they sit still, legs out in front. Lying down, (x, y, z) is where
   // the feet rest, on the bed, and `facing` points from head to feet.
   update(x: number, y: number, z: number, dt: number, attack: number | null = null, facing?: number, pose: Pose = 'stand'): void {
+    const posed = pose === 'sit' || pose === 'lie' ? pose : 'stand';
+    if (posed !== this.posed) {
+      this.posed = posed;
+      if (this.sheathed) this.restow();
+    }
     this.animate(x, y, z, dt, attack, facing, pose);
     this.cup.update(dt);
   }

@@ -44,6 +44,7 @@ import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
+import { armsSheathed } from '../model/interiors/indoors';
 import { buildRoomScene } from './interior/roomView';
 import { buildCryptScene } from './crypt/cryptView';
 import { CryptLife } from './crypt/cryptLife';
@@ -272,6 +273,7 @@ export class GameView {
       this.cameraY = hero.y;
     }
     const seated = model.seated?.seat;
+    this.hero.sheathe(armsSheathed(model.inside)); // (in an inn, weapons put away)
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
