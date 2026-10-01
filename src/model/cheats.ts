@@ -7,6 +7,8 @@ import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './map/grid';
 import { makeEnemy } from './enemies/enemies';
+import { CRYPT_FOE_ID } from './crypts/cryptFoes';
+import { SUMMONED } from './crypts/cryptLord';
 import type { EnemyKind, Village } from './types';
 import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
@@ -113,6 +115,22 @@ export function spawnEnemyNear(model: GameModel, kind: EnemyKind): void {
   const enemy = makeEnemy(id, kind, at.x, at.z, at.x, at.z, enemyLevel(spawnOf(model.size), at.x, at.z, id));
   enemy.y = model.getGroundY(at.x, at.z);
   model.enemies.push(enemy);
+}
+
+// A draugr at the hero's own level, a step ahead of them: down in a crypt, one more of its foes (its breath and
+// cleave its own; not the crypt's to count); out in the world, a foe there (its axe or sword alone).
+export function spawnDraugr(model: GameModel): void {
+  const { hero } = model;
+  if (!model.crypt) {
+    spawnEnemyNear(model, 'draugr');
+    const draugr = model.enemies[model.enemies.length - 1];
+    Object.assign(draugr, makeEnemy(draugr.id, 'draugr', draugr.x, draugr.z, draugr.homeX, draugr.homeZ, hero.level), { y: draugr.y });
+    return;
+  }
+  const ahead = { x: hero.x + Math.sin(hero.facing) * 1.5, z: hero.z + Math.cos(hero.facing) * 1.5 };
+  const at = model.crypt.free(ahead.x, ahead.z, 0.17) ? ahead : { x: hero.x, z: hero.z }; // (into the rock ahead: where they stand)
+  const id = CRYPT_FOE_ID + SUMMONED + 900_000 + model.foes.length;
+  model.foes.push({ ...makeEnemy(id, 'draugr', at.x, at.z, at.x, at.z, hero.level), state: 'chase' });
 }
 
 // Every crypt's guards back at their posts, none slain; the hero, if down in one, out at its stairs first.

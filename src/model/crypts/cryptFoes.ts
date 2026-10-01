@@ -186,6 +186,11 @@ export class CryptFoes {
     this.hooks.report({ kind: 'rises', name: this.lordName });
   }
 
+  // Whether a walker of half-width `r` could stand at (x, z): on the floor, clear of anything solid.
+  free(x: number, z: number, r: number): boolean {
+    return !cryptBlocks(this.inside, x, z, r);
+  }
+
   // His chest, if the hero's at it and it's not opened yet.
   chestInReach(hero: { x: number; z: number }): boolean {
     return !!this.chest && !this.chest.open && Math.hypot(hero.x - this.chest.x, hero.z - this.chest.z) < 0.9;
