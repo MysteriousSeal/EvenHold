@@ -19,7 +19,7 @@ import type { Village } from '../types';
 import type { Inside, Seated } from '../interiors/indoors';
 import type { BenchWorld } from '../worldgen/benches';
 import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
-import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcStep } from './npcs';
+import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcRole, type NpcStep } from './npcs';
 import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
 import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, settle, squareSpot } from './npcPlaces';
@@ -105,10 +105,19 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   return steps;
 }
 
+// What each kind of villager does next, when done with what they were doing.
+const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]> = {
+  villager: plan,
+  barkeep: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
+  server: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
+  smith: (npc, _npcs, world) => smithSteps(npc, world),
+  bouncer: (npc, _npcs, world) => bouncerSteps(npc, world.seed),
+};
+
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
   if (seen && easeOffHero(npc, world, dt)) return;
-  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : npc.role === 'smith' ? smithSteps(npc, world) : npc.role === 'bouncer' ? bouncerSteps(npc, world.seed) : staffSteps(npc, npcs, world.seed);
+  if (npc.steps.length === 0) npc.steps = ROUTINES[npc.role](npc, npcs, world);
   const step = npc.steps[0];
   const done = () => {
     npc.steps.shift();

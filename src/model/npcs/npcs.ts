@@ -194,8 +194,9 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       if (field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE) npc.field = field.f;
       return [npc];
     });
+  const innVillages = inns.map((inn) => nearest(villages, inn.x, inn.z)); // (each inn's: its barmaids' and its bouncer's)
   const staff = inns.flatMap((inn, i) => {
-    const village = nearest(villages, inn.x, inn.z);
+    const village = innVillages[i];
     if (!village) return [];
     const id = entrances.length + i * 2;
     return (['barkeep', 'server'] as const).map((role, k) => person(id + k, role, inn, inn, village, { x: inn.x + 0.3 * (k + 1), z: inn.z - 0.2 }));
@@ -208,7 +209,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   });
   // A bouncer in each inn, in his studded leathers, his hair cropped or shaved.
   const bouncers = inns.flatMap((inn, i) => {
-    const village = nearest(villages, inn.x, inn.z);
+    const village = innVillages[i];
     if (!village) return [];
     const at = { x: inn.x - 0.3, z: inn.z - 0.2 };
     const npc = person(entrances.length + inns.length * 2 + smithies.length + i, 'bouncer', inn, inn, village, at);
