@@ -5,8 +5,8 @@
 // between the walls of their pit, a low kerb along them, to its door, a round arch black inside,
 // each step darker than the last till they're lost in the dark; a rusted iron
 // gate at their head, its two leaves swung back along the kerbs. Behind, the
-// tomb itself: on a stepped plinth, walls of coursed stone with a pilaster at
-// each corner, a cornice round the top, and a gabled roof of stone slabs, its
+// tomb itself, of the ruins' own stone (ruinWallVoxels.ts): on a stepped plinth,
+// walls of ashlar with a pilaster at each corner, a coping round the top, and a gabled roof of stone slabs, its
 // gable over the door. Weathered: cracks down its walls, blocks gone from
 // them, a corner of the roof fallen in (by variant), moss on the roof and
 // the cornice and at its foot, ivy up its sides. By variant too: one gate
@@ -15,7 +15,8 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { hashUnit } from '../../../util/random';
-import { C, block, ivyAt, overgrown } from './ruinVoxels';
+import { C } from './ruinVoxels';
+import { ashlarBlock, ashlarStone } from './ruinWallVoxels';
 
 export const STAIRS_GRID: [number, number, number] = [50, 62, 50];
 export const SINK = 14; // voxels of it below the ground (the stairs going down into it): its ground level
@@ -42,51 +43,99 @@ export function buildCryptStairs(variant: number): VoxelGrid {
   fill(0, 0, 0, 49, 1, DOOR + 5, (u, y, v) => (v >= DOOR - 2 && u >= 6 && u <= 43 ? 0 : y === 0 && hashUnit(u, v, 71 + variant) < 0.3 ? C.moss : C.stoneDark));
   fill(1, 2, 1, 48, 2, DOOR + 5, (u, _y, v) => (v >= DOOR - 2 && u >= 6 && u <= 43 ? 0 : C.stone));
 
-  // The walls, coursed: ivy up the sides, cracks running down from the cornice, a block gone here and there.
+  // The walls, in the ruins' ashlar (ruinWallVoxels.ts), two thick: cracks running down from the cornice, a
+  // block gone here and there, ivy hanging in curtains from the top; a pilaster at each corner, as the ruins'.
   const crack = (along: number, y: number, salt: number) => along === Math.round(8 + salt * 9 + Math.sin(y * 0.9 + salt) * 1.5) && y > 8;
   for (let y = 3; y <= WALLS; y++) {
     for (let u = 2; u <= 47; u++) {
       for (let v = 2; v <= DOOR + 5; v++) {
-        const side = u === 2 || u === 47;
-        const back = v === 2;
+        const side = u <= 3 || u >= 46;
+        const back = v <= 3;
         if (!side && !back && v < DOOR) continue; // (hollow)
         if (inArch(u, y) && v >= DOOR) continue; // (the door)
+        const face = u === 2 || u === 47 || v === 2 || v === DOOR + 5;
+        const along = u === 2 || u === 47 ? v : u;
         const pilaster = (u <= 5 || u >= 44) && (v <= 5 || v >= DOOR + 2);
-        let color = block(side ? v : u, y, side ? u : v, 72);
-        if (pilaster) color = y % 4 === 0 ? C.mortar : C.stoneLight;
-        else if (side && crack(v, y, u === 2 ? 0 : 1)) color = C.slit;
-        else if (back && crack(u, y, 2 + variant % 2)) color = C.slit;
-        else if ((side || back) && hashUnit(Math.floor((side ? v : u) / 6), Math.floor(y / 4), 73 + u + variant) < 0.05) color = C.slit; // a block gone
-        else if (side) color = ivyAt(v, y - 3, variant, 74 + u) || color;
+        if (pilaster) {
+          const joint = (y - 2) % 4 === 0;
+          if (!(joint && face)) set(u, y, v, joint ? C.mortar : Math.floor((y - 2) / 4) % 2 ? C.stoneLight : C.stone);
+          continue;
+        }
+        let color = ashlarStone(along, y - 3, face, variant, 72);
+        if (!color) continue; // (a sunk joint)
+        const block = ashlarBlock(along, y - 3, variant);
+        if (face && (u === 2 || u === 47) && crack(v, y, u === 2 ? 0 : 1)) color = C.slit;
+        else if (face && v === 2 && crack(u, y, 2 + (variant % 2))) color = C.slit;
+        else if (face && y < WALLS - 3 && hashUnit(block, Math.floor((y - 3) / 5), 73 + u + variant) < 0.06) continue; // a block gone
         set(u, y, v, color);
       }
     }
   }
   // The pilasters stand out a voxel at the corners, front and back.
   for (const [u0, u1] of [[1, 5], [44, 48]]) {
-    fill(u0, 3, 1, u1, WALLS, 1, (_u, y) => (y % 4 === 0 ? C.mortar : C.stoneLight));
+    fill(u0, 3, 1, u1, WALLS, 1, (_u, y) => ((y - 2) % 4 === 0 ? C.mortar : Math.floor((y - 2) / 4) % 2 ? C.stoneLight : C.stone));
+  }
+  // Ivy hanging from the top down its sides and back, in curtains.
+  for (let k = 0; k < 50; k++) {
+    const curtain = Math.floor(k / 4);
+    if (hashUnit(curtain, variant, 74) >= 0.3 + variant * 0.1) continue;
+    const reach = 6 + Math.floor(hashUnit(curtain, variant, 78) * 16);
+    for (let y = WALLS - reach; y <= WALLS; y++) {
+      if (hashUnit(k, y, 79) >= 0.75) continue;
+      const color = hashUnit(k, y, 80) < 0.5 ? C.ivy : C.ivyLight;
+      if (k >= 6 && k <= 43) set(k, y, 1, color); // the back
+      if (k >= 6 && k <= DOOR) set(k < 25 ? 1 : 48, y, k < 25 ? k : k - 20, color); // a side
+    }
   }
   // Inside the door: the dark, the steps going on down into it.
   // (Inside the door: the pit, the dark beyond it: below.)
 
-  // The cornice: a course standing out all round the top, moss on it.
-  fill(1, WALLS + 1, 1, 48, WALLS + 2, DOOR + 6, (u, y, v) => (fallen(u, v) ? 0 : y === WALLS + 2 && hashUnit(u, v, 75 + variant) < 0.35 ? C.moss : C.stoneDark));
+  // The cornice: a coping as the ruins' walls have, standing out all round the top, light, moss on it and
+  // dripping over its edge.
+  fill(1, WALLS + 1, 1, 48, WALLS + 2, DOOR + 6, (u, y, v) => (fallen(u, v) ? 0 : y === WALLS + 2 ? (hashUnit(u, v, 75 + variant) < 0.4 ? C.moss : C.stoneLight) : C.stone));
+  for (let u = 1; u <= 48; u++) {
+    const drip = hashUnit(u, 1, 81 + variant) < 0.35 ? 1 + Math.floor(hashUnit(u, 2, 82) * 3) : 0;
+    for (let y = WALLS + 1 - drip; y <= WALLS; y++) set(u, y, 0, C.moss);
+  }
 
-  // The roof: stone slabs either side of a ridge running front to back, their joints across, moss on them;
-  // its gable over the door, light stone round a dark round window; a corner fallen in (by variant).
+  // The roof, of stone slabs: in courses down either slope from the ridge, each course's lower edge standing
+  // a voxel proud (one slab lapping the next), the joints between slabs sunk and staggered course to course,
+  // each slab its own tone, its upper edge lit; a cap of light blocks along the ridge; a light coping up both
+  // gables, standing over the slabs; the gables' ends ashlar, a round window in the front one; moss in the
+  // joints and in clumps; a corner fallen in (by variant).
   for (let u = 0; u <= 49; u++) {
     const top = roofAt(u);
+    const out = Math.abs(u - 24.5); // from the ridge
+    const ridge = out < 2;
+    const course = Math.floor((out - 2) / 5);
+    const lip = !ridge && (out - 2) % 5 >= 4; // a course's lower edge
     for (let v = 0; v <= DOOR + 6; v++) {
       if (fallen(u, v)) continue;
-      for (let y = WALLS + 3; y <= top; y++) {
-        const edge = y === top;
-        const gable = v === DOOR + 6;
-        let color = edge ? (Math.abs(u - 24.5) < 1 ? C.stoneLight : v % 5 === 0 ? C.mortar : hashUnit(Math.floor(u / 4), Math.floor(v / 5), 76 + variant) < 0.3 ? C.moss : C.stoneDark) : gable ? C.stone : C.stoneDark;
-        if (gable && edge) color = C.stoneLight;
-        if (gable && Math.hypot(u - 24.5, y - (WALLS + 6)) < 2.6) color = C.slit; // its window
-        else if (gable && Math.hypot(u - 24.5, y - (WALLS + 6)) < 3.6) color = C.stoneLight;
+      const gable = v === 0 || v === DOOR + 6;
+      const rake = v <= 1 || v >= DOOR + 5; // the gables' coping
+      const along = v + course * 3;
+      const joint = !ridge && !rake && along % 7 === 0;
+      const slab = Math.floor(along / 7) * 5 + course;
+      const tone = [C.stone, C.stoneDark, C.stone, C.stoneLight][Math.floor(hashUnit(slab, variant, 87) * 4)];
+      const high = top + (rake || ridge || lip ? 1 : 0);
+      for (let y = WALLS + 3; y <= high; y++) {
+        let color = tone === C.stoneLight ? C.stone : C.stoneDark; // (within)
+        if (gable && y < top) color = ashlarStone(u, y - WALLS - 3, true, variant, 88) || C.mortar;
+        if (y === high) {
+          if (rake || ridge) color = ridge && v % 6 === 0 && !rake ? C.mortar : C.stoneLight;
+          else if (joint) color = hashUnit(u, v, 89 + variant) < 0.5 ? C.moss : C.mortar;
+          else if (hashUnit(Math.floor(u / 3), Math.floor(v / 3), 90 + variant) < 0.18) color = hashUnit(u, v, 91) < 0.5 ? C.moss : C.mossDark;
+          else color = lip ? (tone === C.stoneDark ? C.stone : C.stoneLight) : tone;
+        }
+        if (v === DOOR + 6 && y < top) {
+          const r = Math.hypot(u - 24.5, y - (WALLS + 6));
+          if (r < 2.6) color = C.slit; // its window
+          else if (r < 3.6) color = C.stoneLight;
+        }
+        if (joint && y === high && !gable && hashUnit(u, v, 92) < 0.3) continue; // (a joint open)
         set(u, y, v, color);
       }
+      if (!rake && !ridge && hashUnit(u, v, 93 + variant) < 0.03) set(u, high + 1, v, C.moss); // a clump of it
     }
   }
   if (variant % 2 === 1) for (let k = 0; k < 4; k++) fill(36 + k * 3, 3, 3 + k * 2, 37 + k * 3, 3 + (k % 2), 4 + k * 2, k % 2 ? C.stone : C.stoneLight); // what fell, inside
@@ -99,13 +148,26 @@ export function buildCryptStairs(variant: number): VoxelGrid {
   for (const u of [ARCH[0] - 2, ARCH[0] - 1, ARCH[1] + 1, ARCH[1] + 2]) for (let y = 3; y < archTop(ARCH[0]); y++) set(u, y, FRONT, y % 5 === 0 ? C.mortar : C.stoneLight);
   fill(22, archTop(24), FRONT, 27, archTop(24) + 5, FRONT + 1, C.stoneLight);
   fill(23, archTop(24) + 1, FRONT + 1, 26, archTop(24) + 4, FRONT + 1, C.stone);
-  // Ivy up the door's front, either side.
-  for (const [u0, u1] of [[0, 7], [42, 49]]) for (let u = u0; u <= u1; u++) for (let y = 3; y <= WALLS; y++) { const g = ivyAt(u, y - 3, variant, 77); if (g) set(u, y, FRONT - 1, g); }
+  // Ivy hanging down the door's front, either side of it.
+  for (const [u0, u1] of [[1, 6], [43, 48]]) {
+    if (hashUnit(u0, variant, 77) >= 0.5 + variant * 0.1) continue;
+    const reach = 8 + Math.floor(hashUnit(u0, variant, 84) * 14);
+    for (let u = u0; u <= u1; u++) for (let y = WALLS - reach; y <= WALLS; y++) if (hashUnit(u, y, 85) < 0.7) set(u, y, FRONT, hashUnit(u, y, 86) < 0.5 ? C.ivy : C.ivyLight);
+  }
 
-  // The pit the stairs go down: its walls of coursed stone either side from its floor up, a low kerb
-  // standing above the ground along them, moss along its top.
+  // The pit the stairs go down: its walls of the ruins' ashlar either side from its floor up, a low kerb
+  // standing above the ground along them, coped, moss along its top.
   for (const [u0, u1] of [[0, 5], [44, 49]]) {
-    for (let u = u0; u <= u1; u++) for (let y = 0; y <= SINK + KERB; y++) for (let v = DOOR; v <= 49; v++) below(u, y, v, overgrown(u + v, y, SINK + KERB, variant, 61) || block(u + v * 3, y, u, 61));
+    for (let u = u0; u <= u1; u++) {
+      for (let y = 0; y <= SINK + KERB; y++) {
+        for (let v = DOOR; v <= 49; v++) {
+          const face = u === 5 || u === 44 || u === 0 || u === 49;
+          const coping = y >= SINK + KERB - 1;
+          const stone = coping ? (y === SINK + KERB ? (hashUnit(u, v, 83 + variant) < 0.4 ? C.moss : C.stoneLight) : C.stone) : ashlarStone(v, y, face, variant, 61);
+          if (stone) below(u, y, v, stone);
+        }
+      }
+    }
   }
   // The steps: six, three deep, down from the ground's level toward the door, two voxels each, each darker;
   // then the dark under the door, its far side black.

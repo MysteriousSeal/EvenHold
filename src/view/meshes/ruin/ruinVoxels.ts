@@ -9,6 +9,9 @@ import type { RuinKind } from '../../../model/ruins/ruins';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { hashUnit } from '../../../util/random';
+import { WALL, ashlarWall, crenellated } from './ruinWallVoxels';
+import { ruinFloor } from './ruinFloorVoxels';
+import { ruinTower } from './ruinTowerVoxels';
 
 export const RUIN_VOXEL_SIZE = 0.04;
 export const RUIN_GRID: [number, number, number] = [25, 40, 25];
@@ -35,7 +38,6 @@ const ENTRIES = {
 export const RUIN_PALETTE: number[] = Object.values(ENTRIES);
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 
-const WALL = 7; // a wall's thickness, from the tile's -Z edge
 const HIGH = [30, 27, 24, 21]; // a whole wall's height, by variant
 
 // Coursed stone: blocks 6 long and 4 high, their joints staggered each course, the tones varied block by block.
@@ -58,33 +60,16 @@ export const ivyAt = (u: number, y: number, variant: number, salt: number) => {
   return y < reach && hashUnit(u, y, salt + 5) < 0.7 ? (hashUnit(u, y, salt + 6) < 0.5 ? C.ivy : C.ivyLight) : 0;
 };
 
-// A stretch of wall along the -Z edge, from `from` to `to` across, its top at
-// `top(u)`, the side toward +Z (the ruin's middle) with its ivy.
-function wall(grid: VoxelGrid, variant: number, top: (u: number) => number, salt: number, v0 = 0, v1 = WALL - 1, u0 = 0, u1 = 24): void {
-  for (let u = u0; u <= u1; u++) {
-    const t = Math.max(0, top(u));
-    for (let y = 0; y <= t; y++) {
-      for (let v = v0; v <= v1; v++) {
-        const green = overgrown(u, y, t, variant, salt) || (v === v1 ? ivyAt(u, y, variant, salt) : 0);
-        fillBox(grid, u, y, v, u, y, v, green || block(u, y, v, salt));
-      }
-    }
-  }
-}
-
-// A ragged top: the whole height, less a few blocks' worth here and there.
-const ragged = (high: number, variant: number, salt: number, deep = 4) => (u: number) => high - Math.floor(hashUnit(Math.floor(u / 3), variant, salt) * deep);
-
 const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
   wall: (variant) => {
     const grid = createGrid(RUIN_GRID);
-    wall(grid, variant, ragged(HIGH[variant], variant, 11), 11);
+    ashlarWall(grid, variant, crenellated(HIGH[variant], variant, 11), 11);
     return grid;
   },
   // Broken down to a jagged stump, blocks fallen at its foot.
   wallBroken: (variant) => {
     const grid = createGrid(RUIN_GRID);
-    wall(grid, variant, (u) => 5 + Math.floor(hashUnit(Math.floor(u / 3), variant, 21) * (8 + variant * 3)), 21);
+    ashlarWall(grid, variant, (u) => 6 + Math.floor(hashUnit(Math.floor(u / 3), variant, 21) * (8 + variant * 3)), 21);
     for (let i = 0; i < 3 + variant; i++) {
       const u = Math.floor(hashUnit(i, variant, 22) * 20);
       const v = WALL + 1 + Math.floor(hashUnit(i, variant, 23) * 8);
@@ -95,48 +80,34 @@ const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
   // A whole wall with an arched window through it, its keystone lit, a sill.
   arch: (variant) => {
     const grid = createGrid(RUIN_GRID);
-    wall(grid, variant, ragged(HIGH[variant], variant, 31, 3), 31);
+    ashlarWall(grid, variant, crenellated(HIGH[variant], variant, 31), 31);
     const [cx, sill, spring, r] = [12, 8, 16, 4];
     for (let u = cx - r; u <= cx + r; u++) for (let y = sill; y <= spring + r; y++) {
       if (y <= spring || (u - cx) ** 2 + (y - spring) ** 2 <= r * r) fillBox(grid, u, y, 0, u, y, WALL - 1, 0); // the window, cut through
     }
     fillBox(grid, cx - r - 1, sill - 1, 0, cx + r + 1, sill - 1, WALL, C.stoneLight); // the sill, jutting
-    fillBox(grid, cx - 1, spring + r + 1, 0, cx + 1, spring + r + 2, WALL - 1, C.stoneLight); // the keystone
+    for (let u = cx - r - 1; u <= cx + r + 1; u++) for (let y = spring; y <= spring + r + 1; y++) {
+      const d = Math.hypot(u - cx, y - spring);
+      if (y > spring && d > r && d <= r + 1.5) fillBox(grid, u, y, 0, u, y, WALL - 1, (u + y) % 3 === 0 ? C.mortar : C.stoneLight); // its ring of wedge stones
+    }
+    fillBox(grid, cx - 1, spring + r + 1, 0, cx + 1, spring + r + 3, WALL, C.stoneLight); // the keystone, standing out
     return grid;
   },
   // Where two walls met: an L along the -Z and -X edges.
   corner: (variant) => {
     const grid = createGrid(RUIN_GRID);
-    const top = ragged(HIGH[variant] + 2, variant, 41);
-    wall(grid, variant, top, 41);
-    for (let v = 0; v <= 24; v++) {
-      const t = top(v + 50);
-      for (let y = 0; y <= t; y++) for (let u = 0; u < WALL; u++) fillBox(grid, u, y, v, u, y, v, overgrown(v, y, t, variant, 42) || block(v, y, u, 42));
-    }
+    ashlarWall(grid, variant, crenellated(HIGH[variant] + 2, variant, 41), 41);
+    ashlarWall(grid, variant, crenellated(HIGH[variant] + 2, variant, 42), 42, { alongX: false });
+    fillBox(grid, 0, 0, 0, WALL, HIGH[variant] + 5, WALL, (_u, y) => (y === HIGH[variant] + 5 ? C.moss : y % 4 === 0 ? C.mortar : C.stoneLight)); // the corner's pier, standing up over both
     return grid;
   },
-  // A tower's stump: round (stepped), thick, a dark arrow slit toward the
-  // middle, what's left of its battlements gapped along the top.
-  tower: (variant) => {
-    const grid = createGrid(RUIN_GRID);
-    const high = 32 + variant * 2;
-    for (let u = 1; u <= 23; u++) {
-      for (let v = 1; v <= 23; v++) {
-        const d = Math.hypot(u - 12, v - 12);
-        if (d > 11.5) continue;
-        const rim = d > 8.5;
-        const merlon = rim && Math.floor(Math.atan2(v - 12, u - 12) * 4) % 2 === 0 && hashUnit(u, v, variant + 51) < 0.7;
-        const top = rim ? high + (merlon ? 3 : 0) - Math.floor(hashUnit(Math.floor(u / 4), Math.floor(v / 4), variant + 52) * 3) : high - 1;
-        for (let y = 0; y <= top; y++) fillBox(grid, u, y, v, u, y, v, overgrown(u + v * 25, y, top, variant, 53) || block(u + v, y, u * v, 53));
-      }
-    }
-    fillBox(grid, 12, 12, 23, 12, 20, 23, C.slit); // the arrow slit, facing the middle
-    return grid;
-  },
+  // A tower's stump (ruinTowerVoxels.ts).
+  tower: (variant) => ruinTower(variant),
+
   // A thinner wall standing across the inside, in the tile's middle.
   innerWall: (variant) => {
     const grid = createGrid(RUIN_GRID);
-    wall(grid, variant, ragged(16 + variant * 2, variant, 61, 6), 61, 10, 14);
+    ashlarWall(grid, variant, (u) => 16 + variant * 2 - Math.floor(hashUnit(Math.floor(u / 3), variant, 61) * 6), 61, { from: 10, deep: 5, inner: true });
     return grid;
   },
   // A column: a stepped base, a fluted shaft, a capital.
@@ -191,19 +162,8 @@ const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
     }
     return grid;
   },
-  // Flagstones, cracked, grass in the joints, some gone to dirt.
-  floor: (variant) => {
-    const grid = createGrid(RUIN_GRID);
-    fillBox(grid, 0, 0, 0, 24, 0, 24, (u, _y, v) => {
-      const [su, sv] = [Math.floor(u / 6), Math.floor(v / 6)];
-      if (u % 6 === 0 || v % 6 === 0) return hashUnit(u, v, variant + 121) < 0.6 ? C.grass : 0; // the joints, grassed (or bare ground showing)
-      const gone = hashUnit(su, sv, variant + 122);
-      if (gone < 0.15) return hashUnit(u, v, 123) < 0.5 ? C.dirt : C.grass;
-      if ((u + v * 2 + variant) % 11 === 0) return C.mortar; // a crack
-      return gone < 0.5 ? C.stone : gone < 0.8 ? C.stoneLight : C.stoneDark;
-    });
-    return grid;
-  },
+  // Flagstones, worn (ruinFloorVoxels.ts).
+  floor: (variant) => ruinFloor(variant),
 };
 
 function columnBase(grid: VoxelGrid): void {
