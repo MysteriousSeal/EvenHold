@@ -69,8 +69,8 @@ export const setOpenDoors = (building: Entrance, keys: readonly string[]) => voi
 
 const DOOR_REACH = 0.6; // from a door's middle, to open or close it (from either side)
 
-// Where a door's middle is: halfway along it, in its wall.
-const doorway = (f: Furniture) => (f.wall === 'left' ? { x: f.x - 0.4, z: f.z - 0.5 + f.d / 2 } : { x: f.x - 0.5 + f.w / 2, z: f.z - 0.4 });
+// Where a door's middle is: halfway along it, in its wall; or `out` tiles out from it into the hallway (its side of it).
+export const doorway = (f: Furniture, out = 0) => (f.wall === 'left' ? { x: f.x - 0.4 - out, z: f.z - 0.5 + f.d / 2 } : { x: f.x - 0.5 + f.w / 2, z: f.z - 0.4 - out });
 
 // The door the hero, standing, is at (upstairs), if any: the nearest.
 export function doorAt(inside: Inside, hero: Hero): Furniture | null {

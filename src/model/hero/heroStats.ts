@@ -4,12 +4,13 @@
 // comes back by itself, only by eating and drinking (provisions.ts), sleeping
 // in a bed, and levelling up, which heals fully.
 
+import { DAY_MINUTES } from '../clock';
 import type { Hero } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
 import { POINTS_PER_LEVEL } from './training';
 
 export const MAX_ENERGY = 100; // a level-1 hero's, with nothing on (more with Endurance: maxEnergyOf)
-const ENERGY_SPENT = MAX_ENERGY / (24 * 60); // a second awake (a game minute): all of it over a whole day, 24 hours
+const ENERGY_SPENT = MAX_ENERGY / DAY_MINUTES; // a second awake (a game minute): all of it over a whole day, 24 hours
 const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a collapse): all of it back in under a minute
 
 export { maxHpAt }; // a hero's health at `level`, with nothing on and no Stamina (more with it: maxHpOf)

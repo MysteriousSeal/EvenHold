@@ -14,7 +14,9 @@ import type { Seat } from '../interiors/furniture';
 import { maxEnergyOf, maxHpOf } from '../hero/attributes';
 import type { Npc } from '../npcs/npcs';
 import { say } from '../npcs/speech';
-import { roomsOff } from '../interiors/upstairs';
+import { talkingTo } from '../npcs/talk';
+import { between, nextHour } from '../clock';
+import { doorway, roomsOff } from '../interiors/upstairs';
 
 export const ROOM_PRICE = 50; // copper, a night
 const LET_FROM = 16; // the hour rooms are let from
@@ -50,8 +52,12 @@ export const LINES = {
     "The quiet one's yours: first door along the back. Till ten in the morning.",
   ],
 } as const;
-let said = 0; // her lines taken in turn, from a different place each time
-const line = (lines: readonly string[]): string => lines[(said++ * 5 + Math.floor(Date.now() / 1000)) % lines.length];
+const turns = new WeakMap<readonly string[], number>(); // each of her lists taken in turn: every line comes round, never one twice running
+function line(lines: readonly string[]): string {
+  const n = turns.get(lines) ?? 0;
+  turns.set(lines, n + 1);
+  return lines[n % lines.length];
+}
 
 // Till when (game minutes) each inn's room is let, by the inn's door.
 const lets = new WeakMap<Entrance, number>();
@@ -59,22 +65,22 @@ export const letUntil = (inn: Entrance): number | null => lets.get(inn) ?? null;
 export const setLet = (inn: Entrance, until: number): void => void lets.set(inn, until);
 
 // Whether rooms are let at `minutes` (four in the afternoon through to six in the morning).
-export function lettingHours(minutes: number): boolean {
-  const hour = Math.floor(minutes / 60) % 24;
-  return hour >= LET_FROM || hour < LET_TILL;
-}
+export const lettingHours = (minutes: number): boolean => between(minutes, LET_FROM, LET_TILL);
 
 // The next ten in the morning after `minutes`.
-export function checkOutAfter(minutes: number): number {
-  const day = 24 * 60;
-  const ten = Math.floor(minutes / day) * day + CHECK_OUT * 60;
-  return ten > minutes ? ten : ten + day;
-}
+export const checkOutAfter = (minutes: number): number => nextHour(minutes, CHECK_OUT);
 
 // The room let: its door, the first along the hallway's back (a small room, a single bed in it).
 export function letDoor(furniture: readonly Furniture[]): Furniture | null {
   const doors = furniture.filter((f) => f.kind === 'hallDoor' && f.wall === 'back');
   return doors.reduce<Furniture | null>((first, f) => (!first || f.x < first.x ? f : first), null);
+}
+
+// Whether the tile (x, z) upstairs is in the room let (behind letDoor).
+function inLetRoom(inside: Inside, { x, z }: { x: number; z: number }): boolean {
+  const door = letDoor(inside.furniture);
+  const room = door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door));
+  return !!room && room.tiles.some(([tx, tz]) => tx === x && tz === z);
 }
 
 // The floor upstairs just made: its let room's door unlocked, if it's let.
@@ -107,26 +113,30 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
 }
 
 // Whether the night's for sleeping at `minutes` (from when rooms are let till eight in the morning).
-export function sleepingHours(minutes: number): boolean {
-  const hour = Math.floor(minutes / 60) % 24;
-  return hour >= LET_FROM || hour < WAKE_AT;
-}
+export const sleepingHours = (minutes: number): boolean => between(minutes, LET_FROM, WAKE_AT);
 
 // The bed in the room let to the hero, if they're by it (or lying in it), it's theirs and it's the night: to sleep in.
 export function letBed(model: { inside: Inside | null; seated: Seated; seatInReach: Seat | null; minutes: number }): Seat | null {
   const inside = model.inside;
   const seat = model.seated?.seat ?? model.seatInReach;
   if (!inside?.below || !seat?.lying || !lets.has(inside.below) || !sleepingHours(model.minutes)) return null;
-  const door = letDoor(inside.furniture);
-  const room = roomsOff(inside.furniture, inside.room).find((r) => door && r.doors.includes(door));
-  return room?.tiles.some(([x, z]) => x === seat.piece.x && z === seat.piece.z) ? seat : null;
+  return inLetRoom(inside, seat.piece) ? seat : null;
 }
+
+// What G does at the inn, if anything: stood by the barmaid, asks her for a room (`taken`: one's let already); by the
+// let room's bed (or lying in it) at night, sleeps. Its prompt's words with it.
+export type RoomAction = { kind: 'rent'; barmaid: Npc; taken: boolean } | { kind: 'sleep' };
+export function roomAction(model: Parameters<typeof letBed>[0] & { npcs: readonly Npc[]; hero: Hero }): RoomAction | null {
+  const talker = model.seated ? null : talkingTo(model.npcs, model.inside, model.hero);
+  if (talker?.role === 'barkeep') return { kind: 'rent', barmaid: talker, taken: !!model.inside && lets.has(model.inside.entrance) };
+  return letBed(model) ? { kind: 'sleep' } : null;
+}
+export const roomActionLabel = (action: RoomAction): string =>
+  action.kind === 'sleep' ? 'Sleep till morning' : action.taken ? 'Your room is upstairs' : `Rent a room · ${ROOM_PRICE} copper`;
 
 // A night's sleep in the let room's bed (lain in): all their health and energy back, and up at eight in the morning.
 export function sleepTillMorning(model: { hero: Hero; minutes: number }): void {
-  const day = 24 * 60;
-  const eight = Math.floor(model.minutes / day) * day + WAKE_AT * 60;
-  model.minutes = eight > model.minutes ? eight : eight + day;
+  model.minutes = nextHour(model.minutes, WAKE_AT);
   model.hero.hp = maxHpOf(model.hero);
   model.hero.energy = maxEnergyOf(model.hero);
 }
@@ -142,8 +152,6 @@ export function checkOut(model: { minutes: number; inside: Inside | null; hero: 
     if (!door) continue;
     door.locked = true;
     door.open = false;
-    const room = roomsOff(inside!.furniture, inside!.room).find((r) => r.doors.includes(door));
-    const here = [Math.round(model.hero.x), Math.round(model.hero.z)];
-    if (room?.tiles.some(([x, z]) => x === here[0] && z === here[1])) Object.assign(model.hero, { x: door.x - 0.5 + door.w / 2, z: door.z - 0.9 }); // (in it: out before its door)
+    if (inLetRoom(inside!, { x: Math.round(model.hero.x), z: Math.round(model.hero.z) })) Object.assign(model.hero, doorway(door, 0.5)); // (in it: out before its door)
   }
 }
