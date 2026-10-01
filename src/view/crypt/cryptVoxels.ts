@@ -10,6 +10,7 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { hashUnit } from '../../util/random';
 import type { CryptPropKind } from '../../model/crypts/cryptProps';
+import { scatteredBones, slumpedAgainstTheRock, stretchedOut } from './remainsVoxels';
 
 export const CRYPT_VOXEL = 0.04;
 export const TILE = 25; // voxels to a tile
@@ -22,7 +23,10 @@ const ENTRIES = {
   mortar: 0x3e3a37,
   flag: 0x5f5b56,
   flagDark: 0x55514c,
-  flagMortar: 0x3a3633,
+  flagMortar: 0x2f2c29,
+  flagLight: 0x6a6660, // a stone's worn middle
+  flagEdge: 0x4a4743, // its bevelled edge
+  dust: 0x77726b,
   cap: 0x2b2826,
   bone: 0xd9cfb6,
   boneShade: 0xb3a88e,
@@ -37,14 +41,17 @@ const ENTRIES = {
   gold: 0xc8a24a,
   lid: 0x7a7570,
   wax: 0xe6dcc2,
+  boneDark: 0x8e8470,
+  ironDark: 0x3e4246,
+  wood: 0x5a4030,
   flame: 0xffb347, // (glow)
   core: 0xfff0a0, // (glow)
 } as const;
 export const CRYPT_PALETTE: number[] = Object.values(ENTRIES);
-const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
+export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 export const GLOW: ReadonlySet<number> = new Set([C.flame, C.core]); // drawn unlit: the flames
 
-type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
+export type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
 const boxIn = (grid: VoxelGrid): Box => (u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, typeof color === 'number' ? () => color : color);
 
 // Coursed stone, blocks 6 long and 4 high, their joints staggered, tones by block.
@@ -55,19 +62,6 @@ function coursed(u: number, y: number, v: number, salt: number): number {
   if (along % 6 === 0) return C.mortar;
   const pick = hashUnit(Math.floor(along / 6), course, salt) * 3;
   return pick < 1 ? C.stone : pick < 2 ? C.stoneDark : C.stoneLight;
-}
-
-// A floor tile, one voxel thick: flagstones of 12 in staggered rows, mortar between; variant 2 a stone cracked, 3 mossy.
-export function floorTile(variant: number): VoxelGrid {
-  const grid = createGrid([TILE, 1, TILE]);
-  boxIn(grid)(0, 0, 0, TILE - 1, 0, TILE - 1, (u, _y, v) => {
-    const row = Math.floor(v / 12);
-    const along = u + (row % 2) * 6;
-    if (v % 12 === 0 || along % 12 === 0) return variant === 3 && hashUnit(u, v, 71) < 0.3 ? C.moss : C.flagMortar;
-    if (variant === 2 && u > 2 && u < 11 && v === 17 + Math.round(Math.sin(u * 1.3) * 1.2)) return C.flagMortar; // a short jagged crack across one stone (along the mortar's way: never up the screen)
-    return hashUnit(Math.floor(along / 12), row, 70 + variant) < 0.5 ? C.flag : C.flagDark;
-  });
-  return grid;
 }
 
 // A wall tile of rock, `high` voxels, its faces coursed stone, its top dark.
@@ -81,13 +75,16 @@ export function wallTile(high: number, variant: number): VoxelGrid {
 // (all it draws lies there, never in the rock, or its faces would fight the wall's).
 export const OUT = 5;
 export const ON_WALL: ReadonlySet<CryptPropKind> = new Set(['sconce', 'niche']);
+const SPARE = 10; // voxels beside a sarcophagus each side (its broken lid's pieces lie there)
 const PROP_SIZE: Record<CryptPropKind, [number, number, number]> = {
   sconce: [TILE, TALL, TILE + OUT],
   niche: [TILE, TALL, TILE + OUT],
   cobweb: [TILE, TALL, TILE],
-  bones: [TILE, 5, TILE],
+  skeleton: [TILE, 6, TILE],
+  slumped: [TILE, 16, TILE],
+  bones: [TILE, 6, TILE],
   stones: [TILE, 4, TILE],
-  sarcophagus: [TILE, 15, TILE * 2],
+  sarcophagus: [TILE + 2 * SPARE, 15, TILE * 2], // (spare each side: room for a broken lid's slab, slid off)
   urns: [TILE, 13, TILE],
   candles: [TILE, 12, TILE],
   rubble: [TILE, 11, TILE],
@@ -164,30 +161,27 @@ const PAINT: Record<CryptPropKind, (box: Box, variant: number) => void> = {
       }
     }
   },
-  // Bones strewn on the floor, a skull among them.
-  bones: (box, variant) => {
-    box(4, 0, 6, 15, 1, 7, C.bone);
-    box(14, 0, 4, 15, 2, 9, C.boneShade);
-    box(8, 0, 14, 9, 1, 22, C.bone);
-    if (variant % 2 === 0) box(16, 0, 15, 22, 1, 16, C.boneShade);
-    skull(box, 15 - variant * 2, 0, 16 - variant);
-  },
+  skeleton: (box, variant) => stretchedOut(box, variant),
+  slumped: (box, variant) => slumpedAgainstTheRock(box, variant),
+  bones: (box, variant) => scatteredBones(box, variant),
   // A few stones fallen from the vault.
   stones: (box, variant) => {
     box(3 + variant, 0, 4, 7 + variant, 2, 8, C.stoneDark);
     box(14, 0, 12 - variant, 18, 3, 16 - variant, C.stone);
     box(9, 0, 18, 11, 1, 20, C.stoneLight);
   },
-  // A stone coffin a tile across, two long, its lid edged and carved with a cross; variant 3 its lid cracked.
-  sarcophagus: (box, variant) => {
+  // A stone coffin a tile across, two long, its lid edged and carved with a cross; variant 3 broken open.
+  sarcophagus: (raw, variant) => {
+    const box: Box = (u0, y0, v0, u1, y1, v1, color) => raw(u0 + SPARE, y0, v0, u1 + SPARE, y1, v1, color); // (centred in its wider grid)
     box(3, 0, 3, 21, 9, 46, C.stone);
     box(3, 0, 3, 21, 1, 46, C.stoneDark); // the plinth
+    if (variant === 1) box(4, 0, 4, 6, 3, 45, C.moss);
+    if (variant === 3) return brokenOpen(box);
+    // Its lid, a cross carved on it.
     box(2, 10, 2, 22, 12, 47, C.lid);
     box(2, 13, 4, 22, 14, 45, C.stoneLight);
-    box(11, 15 - 1, 10, 13, 14, 38, C.stoneDark); // the cross's upright
+    box(11, 14, 10, 13, 14, 38, C.stoneDark); // the cross's upright
     box(6, 14, 16, 18, 14, 18, C.stoneDark); // its arm
-    if (variant === 3) box(2, 12, 30, 22, 14, 30, C.mortar);
-    if (variant === 1) box(4, 0, 4, 6, 3, 45, C.moss);
   },
   // Two or three clay urns against the wall.
   urns: (box, variant) => {
@@ -242,4 +236,38 @@ export function stairsUp(): VoxelGrid {
   const box = boxIn(grid);
   for (let k = 0; k < 5; k++) box(2, 0, 4 + k * 4, TILE * 2 - 3, 2 + k * 3, 7 + k * 4, k % 2 ? C.stone : C.stoneLight);
   return grid;
+}
+
+// A sarcophagus broken open: the dark inside it showing; its lid's head end still on, broken off
+// jagged; the middle of it fallen in, tilted down into the dark; the foot end slid off, stood on its
+// edge against the coffin's side, a piece of it flat on the floor; shards of it about.
+function brokenOpen(box: Box): void {
+  box(3, 9, 3, 21, 9, 46, C.stoneDark); // the rim
+  box(5, 9, 5, 19, 9, 44, C.socket); // the dark within
+  // The head end of the lid, still on: broken off jagged across.
+  for (let u = 2; u <= 22; u++) {
+    const edge = 17 + ((u * 7) % 5) - 2 + (u > 14 ? 2 : 0);
+    box(u, 10, 2, u, 12, edge, C.lid);
+    box(u, 13, 4, u, 14, edge - 1, C.stoneLight);
+  }
+  box(11, 14, 10, 13, 14, 15, C.stoneDark); // what's left of the cross: its head
+  box(6, 14, 14, 18, 14, 15, C.stoneDark);
+  // The middle, fallen in: tilted down from the break into the dark.
+  for (let v = 21; v <= 33; v++) {
+    const y = 8 - Math.floor((v - 21) / 3);
+    box(6, y - 1, v, 18, y, v, v % 4 === 0 ? C.stoneLight : C.lid);
+  }
+  // The foot end, slid off: a big slab of it stood on its edge against the coffin's side (upright,
+  // so no voxel steps), its top broken jagged; a smaller piece of it lying flat on the floor by it.
+  for (let v = 26; v <= 46; v++) {
+    const top = 13 - ((v * 5) % 4) + (v > 40 ? -2 : 0);
+    box(22, 0, v, 24, top, v, C.lid);
+    box(25, 0, v, 25, top - 1, v, C.stoneLight); // its carved face, turned out
+  }
+  box(26, 0, 10, 31, 2, 21, C.lid);
+  box(26, 2, 11, 30, 2, 20, C.stoneLight);
+  // Shards about.
+  box(24, 0, 24, 25, 1, 26, C.lid);
+  box(26, 0, 20, 26, 0, 21, C.stoneLight);
+  box(-2, 0, 36, -1, 1, 38, C.lid);
 }

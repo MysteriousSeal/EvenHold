@@ -13,7 +13,8 @@ import { flicker } from '../meshes/common/fire';
 import { isFloor, inFullView } from '../../model/crypts/cryptLayout';
 import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptProp } from '../../model/crypts/cryptProps';
-import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, floorTile, stairsUp, wallTile } from './cryptVoxels';
+import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, stairsUp, wallTile } from './cryptVoxels';
+import { FLOOR_DEEP, floorTile } from './floorVoxels';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const RELIGHT = 0.4; // tiles the hero moves before they're placed again
@@ -52,7 +53,7 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
     for (let z = -1; z <= plan.depth; z++) {
       if (floor(x, z)) {
         const variant = Math.floor(Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 4);
-        place(`floor:${variant}`, () => floorTile(variant), x, -CRYPT_VOXEL, z);
+        place(`floor:${variant}`, () => floorTile(variant), x, -FLOOR_DEEP * CRYPT_VOXEL, z); // (its top at the floor's level)
         continue;
       }
       const beside = [-1, 0, 1].some((dx) => [-1, 0, 1].some((dz) => floor(x + dx, z + dz)));
