@@ -11,10 +11,11 @@ import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { flicker } from '../meshes/common/fire';
 import { isFloor, inFullView } from '../../model/crypts/cryptLayout';
+import { FACINGS } from '../../model/map/grid';
 import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptProp } from '../../model/crypts/cryptProps';
 import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, stairsUp, wallTile } from './cryptVoxels';
-import { FLOOR_DEEP, floorTile } from './floorVoxels';
+import { FLOOR_DEEP, floorTile } from './cryptFloorVoxels';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const RELIGHT = 0.4; // tiles the hero moves before they're placed again
@@ -183,7 +184,7 @@ function turnsOf(p: CryptProp): number {
 // Where a light-giving prop's light shines from (a sconce: out from its wall, at its flame), and how strong.
 function lightAt(p: CryptProp): { x: number; y: number; z: number; strength: number } {
   if (p.kind === 'sconce') {
-    const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
+    const [ox, oz] = FACINGS[p.facing];
     return { x: p.x + ox * 0.6, y: 28 * CRYPT_VOXEL, z: p.z + oz * 0.6, strength: 2.6 };
   }
   return { x: p.x, y: 0.5, z: p.z, strength: 1.8 };

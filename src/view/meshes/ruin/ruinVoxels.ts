@@ -2,8 +2,11 @@
 // each one tile (25 x 25 voxels), drawn facing local +Z (the ruin's middle),
 // a wall along its -Z edge. Palette first: four stone tones (the deepest the
 // mortar and the shade), moss and ivy, grass in the cracks, bare dirt, a
-// candle's wax. Each piece in four variants (how broken, how overgrown), from
-// `variant`: no two stretches of wall alike.
+// candle's wax; rusted iron, and the dark a crypt's way down goes into. Each
+// piece in four variants (how broken, how overgrown), from `variant`: no two
+// stretches of wall alike. The walls in ruinWallVoxels.ts (their ashlar the
+// crypts' tombs' too: cryptStairsVoxels.ts), the floor in ruinFloorVoxels.ts,
+// the towers in ruinTowerVoxels.ts, the columns in ruinColumnVoxels.ts.
 
 import type { RuinKind } from '../../../model/ruins/ruins';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -40,26 +43,6 @@ export const RUIN_PALETTE: number[] = Object.values(ENTRIES);
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 
 const HIGH = [30, 27, 24, 21]; // a whole wall's height, by variant
-
-// Coursed stone: blocks 6 long and 4 high, their joints staggered each course, the tones varied block by block.
-export function block(u: number, y: number, v: number, salt: number): number {
-  if (y % 4 === 0) return C.mortar;
-  const course = Math.floor(y / 4);
-  const along = u + (course % 2) * 3;
-  if (along % 6 === 0) return C.mortar;
-  const pick = hashUnit(Math.floor(along / 6) * 7 + v, course, salt) * 3;
-  return pick < 1 ? C.stone : pick < 2 ? C.stoneDark : C.stoneLight;
-}
-
-// Moss on what's on top and at the foot, ivy creeping up a face in a patch or two.
-export const overgrown = (u: number, y: number, top: number, variant: number, salt: number) =>
-  y === top && hashUnit(u, variant, salt) < 0.45 + variant * 0.12 ? (hashUnit(u, y, salt) < 0.5 ? C.moss : C.mossDark) : y <= 1 && hashUnit(u, variant, salt + 1) < 0.35 ? C.moss : 0;
-export const ivyAt = (u: number, y: number, variant: number, salt: number) => {
-  const patch = Math.floor(u / 5);
-  if (hashUnit(patch, variant, salt + 3) > 0.35 + variant * 0.1) return 0;
-  const reach = 6 + Math.floor(hashUnit(patch, variant, salt + 4) * 14);
-  return y < reach && hashUnit(u, y, salt + 5) < 0.7 ? (hashUnit(u, y, salt + 6) < 0.5 ? C.ivy : C.ivyLight) : 0;
-};
 
 const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
   wall: (variant) => {
