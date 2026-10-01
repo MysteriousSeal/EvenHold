@@ -18,6 +18,7 @@ import { createShopPanel } from './controller/trade/shopPanel';
 import { createLevelUpPanel } from './controller/hero/levelUpPanel';
 import { createSmithPanel } from './controller/trade/smithPanel';
 import { talkPrompt, talkingTo } from './model/npcs/talk';
+import { bouncerSpeaks } from './model/inn/bouncer';
 import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
@@ -194,7 +195,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what), onEvent: (event) => {
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what), onEvent: (event) => {
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.
