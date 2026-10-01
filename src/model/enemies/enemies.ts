@@ -27,9 +27,9 @@ interface Sites {
 // Dense enough that walking any direction meets something every so often:
 // wolf packs in the woods, fewer out on open ground, and bandit camps in the
 // countryside between villages.
-const PACKS: Sites = { grid: 18, chance: 0.7, forest: (d) => d >= 0.2, clearance: 14 };
-const MEADOW_PACKS: Sites = { grid: 32, chance: 0.35, forest: (d) => d < 0.2, clearance: 14 };
-const BOARS: Sites = { grid: 22, chance: 0.55, forest: (d) => d >= 0.12, clearance: 12 }; // rooting about the woods
+const PACKS: Sites = { grid: 18, chance: 0.91, forest: (d) => d >= 0.2, clearance: 14 };
+const MEADOW_PACKS: Sites = { grid: 32, chance: 0.455, forest: (d) => d < 0.2, clearance: 14 };
+const BOARS: Sites = { grid: 22, chance: 0.715, forest: (d) => d >= 0.12, clearance: 12 }; // rooting about the woods
 const SPAWN_CLEARANCE = 20;
 
 export interface EnemyWorld {
