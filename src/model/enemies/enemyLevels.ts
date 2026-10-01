@@ -18,6 +18,12 @@ export function enemyLevel(spawn: { x: number; z: number }, x: number, z: number
   return Math.max(1, Math.floor(base) + spread);
 }
 
+// A village's level: how far it lies from spawn, as foes' levels go (without their spread).
+// Its board's quests are all of it: better paid ones are found farther out.
+export function villageLevel(spawn: { x: number; z: number }, village: { x: number; z: number }): number {
+  return Math.max(1, Math.floor(1 + Math.hypot(village.x - spawn.x, village.z - spawn.z) / LEVEL_DISTANCE));
+}
+
 // What a `kind` of enemy at `level` has: health, damage per blow, experience.
 export function enemyPower(kind: EnemyKind, level: number): { maxHp: number; damage: number; xp: number } {
   const stats = ENEMY_STATS[kind];

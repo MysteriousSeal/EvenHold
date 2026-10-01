@@ -7,7 +7,7 @@
 
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
-import { enemyLevel, enemyPower } from '../enemies/enemyLevels';
+import { enemyPower, villageLevel } from '../enemies/enemyLevels';
 import type { MapSize } from '../map/grid';
 import { NEIGHBORS_4, spawnOf } from '../map/grid';
 import { HERO_RADIUS } from '../constants';
@@ -121,7 +121,7 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
     break;
   }
   const where = `${DIRECTIONS[Math.round(((angle / (Math.PI * 2)) * 8) % 8) % 8]} of the village`; // north is -z
-  const level = enemyLevel(spawnOf(world.size), x, z, board * 997 + n);
+  const level = villageLevel(spawnOf(world.size), village); // (the village's: for better paid work, farther villages)
   const count = kind === 'kill' ? 6 + Math.floor(roll(3) * 3) : 4 + Math.floor(roll(3) * 3); // slay 6 to 8, bring 4 to 6
   // What to bring: one of the foe's four, turned round per board so its notices ask for different things.
   const turn = Math.floor(hashUnit(board * 131, world.seed % 1_000_003, 250) * 4);
