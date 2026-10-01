@@ -19,6 +19,8 @@ import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { HealthBar, VoxelBurst } from './enemyParts';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
+import { DRAUGR_FRAME, axeGeometry } from './draugrVoxels';
+import { BREATH_TELL } from '../../../model/crypts/frostBreath';
 import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
@@ -31,13 +33,14 @@ export interface SkeletonLook {
   flash: THREE.Material;
   rage: THREE.Material; // a crypt's lord, raging: a red glow
   greatsword: THREE.BufferGeometry;
+  axe: THREE.BufferGeometry; // a draugr's
   bow: THREE.BufferGeometry;
   arrow: THREE.BufferGeometry;
 }
 
 export function createSkeletonLook(flash: THREE.Material): SkeletonLook {
   const rage = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0x8a1a10, emissiveIntensity: 0.6 });
-  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
+  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), axe: axeGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
 }
 
 // A bow, held upright: its stave curving back at the tips, the string straight between them.
@@ -73,9 +76,10 @@ export class SkeletonRig {
     private readonly look: SkeletonLook,
   ) {
     const lord = skeleton.kind === 'cryptLord';
-    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : SKELETON_FRAME);
+    const draugr = skeleton.kind === 'draugr';
+    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : draugr ? DRAUGR_FRAME : SKELETON_FRAME);
     const archer = skeleton.kind === 'skeletonArcher';
-    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : 'Skeleton'));
+    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : draugr ? 'Draugr' : 'Skeleton'));
     this.rig.root.add(this.bar.group);
     if (archer) {
       const hand = BODIES.male.hand;
@@ -86,9 +90,9 @@ export class SkeletonRig {
       this.nocked.position.set(0, 0, 0.1);
       this.bow.add(this.nocked);
       this.rig.meshes.push(this.bow, this.nocked);
-    } else if (lord) {
+    } else if (lord || draugr) {
       const hand = BODIES.male.hand;
-      const sword = new THREE.Mesh(look.greatsword, look.normal);
+      const sword = new THREE.Mesh(lord ? look.greatsword : look.axe, look.normal);
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
       this.rig.joints.rightArm.add(sword);
       this.rig.meshes.push(sword);
@@ -115,6 +119,13 @@ export class SkeletonRig {
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
       this.rig.joints.leftArm.rotation.set(-Math.PI / 2, 0, 0);
       this.rig.joints.rightArm.rotation.set(-Math.PI / 2 + 0.25 * drawn, 0, -0.3 * drawn);
+    } else if (skeleton.windUp != null && skeleton.kind === 'draugr') {
+      // A draugr drawing breath: facing the hero, its head thrown back, its arms out.
+      this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
+      const drawn = Math.min(1, skeleton.windUp / BREATH_TELL);
+      this.rig.joints.head.rotation.set(-0.5 * drawn, 0, 0);
+      this.rig.joints.leftArm.rotation.set(0, 0, 0.4 * drawn);
+      this.rig.joints.rightArm.rotation.set(0, 0, -0.4 * drawn);
     } else if (skeleton.windUp != null) {
       // The lord's slam, told: his greatsword raised high in both hands, facing the hero, then down.
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));

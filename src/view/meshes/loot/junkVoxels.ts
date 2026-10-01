@@ -6,6 +6,27 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
+  // A silver torc, an open ring with knobbed ends, frost white on it.
+  frostTorc: model([0xc8ccd4, 0x8e949c, 0xe8f6ff], [7, 1, 7], (g) => {
+    for (let x = 0; x < 7; x++) for (let z = 0; z < 7; z++) {
+      const r = Math.hypot(x - 3, z - 3);
+      if (r > 2 && r < 3.6 && !(z === 6 && x >= 2 && x <= 4)) setColor(g, x, 0, z, (x + z) % 3 === 0 ? 3 : 1);
+    }
+    setColor(g, 2, 0, 6, 2); // its knobbed ends, either side of the gap
+    setColor(g, 4, 0, 6, 2);
+  }),
+  // A flat grey stone, a rune cut into it in pale blue.
+  runestone: model([0x6e6a66, 0x55514c, 0x8fd8ff], [5, 2, 6], (g) => {
+    fillBox(g, 0, 0, 0, 4, 1, 5, (x, y, z) => (y === 1 && (x === 0 || x === 4 || z === 0 || z === 5) ? 2 : 1));
+    for (const [x, z] of [[2, 1], [2, 2], [2, 3], [2, 4], [1, 2], [3, 3]]) setColor(g, x, 1, z, 3); // the rune
+  }),
+  // A worn silver coin, a face on it, darkened round its rim.
+  oldSilver: model([0xc0c4c8, 0x8a8e92, 0xe2e6ea], [5, 1, 5], (g) => {
+    for (let x = 0; x < 5; x++) for (let z = 0; z < 5; z++) {
+      const r = Math.hypot(x - 2, z - 2);
+      if (r <= 2.3) setColor(g, x, 0, z, r > 1.6 ? 2 : (x + z) % 2 ? 3 : 1);
+    }
+  }),
   // A broken blade, rusted through: its stub of a hilt dark, the blade stepping off orange and brown.
   rustedBlade: model([0x8a4a2a, 0x5e3420, 0x3a2a20, 0x9a9590], [9, 1, 3], (g) => {
     fillBox(g, 0, 0, 1, 1, 0, 1, 3); // the grip

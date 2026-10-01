@@ -13,10 +13,11 @@ import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from 
 import { pulseAuras, questAura } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, cryptLord: 22 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
 type Rig = BeastRig | BanditRig | SkeletonRig;
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
+const DRAUGR_SIZE = 1.15; // a draugr, over a man
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -31,13 +32,14 @@ export class EnemyViews {
     skeleton: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
     skeletonArcher: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
     cryptLord: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
+    draugr: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
   };
   private readonly skeletonLook: SkeletonLook = createSkeletonLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      rig.root.scale.setScalar(this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : 1));
+      rig.root.scale.setScalar(this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : enemy.kind === 'draugr' ? DRAUGR_SIZE : 1));
       this.scene.add(rig.root);
       return rig;
     },

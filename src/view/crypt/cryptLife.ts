@@ -13,6 +13,7 @@ import { LootViews } from '../meshes/loot/lootViews';
 import { CoinViews } from '../meshes/loot/coinViews';
 import { personMaterial } from '../meshes/human/humanParts';
 import { SLAM_RADIUS, SLAM_TELL } from '../../model/crypts/cryptLord';
+import { BREATH_REACH, BREATH_TELL, BREATH_WIDTH } from '../../model/crypts/frostBreath';
 import { CHEST_HINGE, chestBoxGeometry, chestLidGeometry } from './chestVoxels';
 
 const ARROW_HEIGHT = 0.3 * INDOOR_SCALE; // about a bowman's chest
@@ -33,6 +34,8 @@ export class CryptLife {
     new THREE.MeshBasicMaterial({ color: 0xff2010, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
   );
   private chest: { box: THREE.Mesh; lid: THREE.Mesh } | null = null;
+  private readonly fan = new THREE.CircleGeometry(BREATH_REACH, 24, -BREATH_WIDTH, BREATH_WIDTH * 2).rotateX(-Math.PI / 2); // a draugr's frost (along +X)
+  private readonly fans: THREE.Mesh[] = []; // a pool, one to a breath
 
   constructor(private readonly scene: THREE.Scene) {
     this.enemies = new EnemyViews(scene, INDOOR_SCALE);
@@ -61,6 +64,21 @@ export class CryptLife {
       (this.ring.material as THREE.MeshBasicMaterial).opacity = 0.4 + 0.6 * told;
       (this.zone.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.25 * told;
     }
+    // The draugr's frost breath: a faint fan on the floor as it draws breath, bright as the frost comes.
+    const breaths = crypt?.frost.breaths ?? [];
+    while (this.fans.length < breaths.length) {
+      const fan = new THREE.Mesh(this.fan, new THREE.MeshBasicMaterial({ color: 0x9fe4ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      this.scene.add(fan);
+      this.fans.push(fan);
+    }
+    this.fans.forEach((fan, i) => {
+      const breath = breaths[i];
+      fan.visible = !!breath;
+      if (!breath) return;
+      fan.position.set(breath.x, 0.014, breath.z);
+      fan.rotation.y = Math.atan2(-breath.dz, breath.dx);
+      (fan.material as THREE.MeshBasicMaterial).opacity = breath.t < BREATH_TELL ? 0.06 + 0.12 * (breath.t / BREATH_TELL) : 0.55 * (1 - (breath.t - BREATH_TELL) / 0.5);
+    });
     // His chest, once he's slain: shut, or its lid swung back.
     const chest = crypt?.chest ?? null;
     if (chest && !this.chest) {
@@ -90,6 +108,8 @@ export class CryptLife {
 
   dispose(): void {
     for (const arrow of this.arrows) arrow.removeFromParent();
+    for (const fan of this.fans) (fan.material as THREE.Material).dispose();
+    this.fan.dispose();
     for (const mesh of [this.ring, this.zone]) {
       mesh.geometry.dispose();
       (mesh.material as THREE.Material).dispose();
