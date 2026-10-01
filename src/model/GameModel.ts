@@ -52,7 +52,7 @@ import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
-import { CRYPT_FOE_ID, CryptFoes } from './crypts/cryptFoes';
+import { CRYPT_FOE_ID, CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
 import { foeStrikes, heroStruck, landBlow } from './hero/fighting';
 import { addCampObstacles, type Camp } from './camps/camps';
 
@@ -298,7 +298,16 @@ export class GameModel {
   get crypt(): CryptFoes | null { return this.below?.run ?? null; }
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   report = (event: GameEvent): void => void this.events.push(event);
-  slayGuard = (enemy: Enemy): void => void (this.below && enemy.id >= CRYPT_FOE_ID && this.cleared(this.below.key).add(CryptFoes.postOf(enemy)));
+  slayGuard = (enemy: Enemy): void => {
+    if (!this.below || enemy.id < CRYPT_FOE_ID || !this.inside) return;
+    const crypt = cryptInside(this.seed, this.inside.entrance);
+    if (this.cleared(this.below.key).add(CryptFoes.postOf(enemy)).size === guardCount(this.seed, crypt)) this.events.push({ kind: 'cleared', name: crypt.crypt.name });
+  };
+  // How much of a crypt is cleared (0..1): its guards slain, of all its posts (by its way in).
+  clearedShare = (entrance: Entrance): number => {
+    const crypt = cryptInside(this.seed, entrance);
+    return Math.min(1, this.cleared(cryptKey(crypt.crypt)).size / Math.max(1, guardCount(this.seed, crypt)));
+  };
   // A crypt's guards slain for good, by its key (its ruin's corner), by post.
   cleared = (key: string): Set<number> => this.cryptsCleared.get(key) ?? this.cryptsCleared.set(key, new Set()).get(key)!;
 
@@ -368,7 +377,7 @@ export class GameModel {
 
   // Down into a crypt: its guards not yet slain at their posts, its own floor for what they leave.
   private goDown(crypt: CryptInside): NonNullable<GameModel['below']> {
-    const key = `${crypt.crypt.ruin.x},${crypt.crypt.ruin.z}`;
+    const key = cryptKey(crypt.crypt);
     const run = new CryptFoes(this.seed, crypt, this.cleared(key), this.hero, (e) => foeStrikes(this, e), (arrow) => heroStruck(this, arrow.damage, null));
     return { key, run, ground: new Ground(() => 0) };
   }

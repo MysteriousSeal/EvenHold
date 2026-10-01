@@ -39,6 +39,7 @@ export type GameEvent =
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
+  | { kind: 'cleared'; name: string } // a crypt's last guard slain
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';

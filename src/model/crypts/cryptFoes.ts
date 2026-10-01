@@ -68,6 +68,16 @@ export function guardPosts(seed: number, inside: CryptInside): Array<{ x: number
   return posts;
 }
 
+// A crypt's key, for its record of the slain: its ruin's corner.
+export const cryptKey = (crypt: { ruin: { x: number; z: number } }): string => `${crypt.ruin.x},${crypt.ruin.z}`;
+
+// How many guards a crypt has, all told (its posts).
+const counted = new WeakMap<CryptInside, number>();
+export function guardCount(seed: number, inside: CryptInside): number {
+  if (!counted.has(inside)) counted.set(inside, guardPosts(seed, inside).length);
+  return counted.get(inside)!;
+}
+
 function tilesOf(x0: number, z0: number, x1: number, z1: number): string[] {
   const tiles: string[] = [];
   for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) tiles.push(cellKey(x, z));

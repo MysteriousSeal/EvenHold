@@ -1,9 +1,8 @@
 // Crypts under the ruins: in every ruin, on open floor inside it, a stone
 // stairway goes down into a little stone tomb (the stairs two tiles side by side, the tomb two behind
 // them; the spot before them to stand on, E to go down, as at any door); below, a crypt of the zone's level (how far out the
-// ruin lies, as a village's: enemyLevels.ts), named for whoever was laid to
-// rest there, laid out from the seed and the ruin (cryptLayout.ts, its plan;
-// cryptProps.ts, what's in it). No one down there, for now.
+// ruin lies, as a village's: enemyLevels.ts), named (cryptNames.ts), laid out from the seed and the ruin (cryptLayout.ts, its plan;
+// cryptProps.ts, what's in it); its guards, the dead at their posts (cryptFoes.ts).
 //
 // A crypt is gone into as a room is (interiors.ts): its plan's floor in room
 // tiles, the stairs up at its door; only the rock between its passages and
@@ -15,7 +14,7 @@ import type { Obstacles } from '../map/obstacles';
 import type { Entrance, Room } from '../interiors/interiors';
 import type { Ruin, RuinPiece } from '../ruins/ruins';
 import { zoneLevel } from '../enemies/enemyLevels';
-import { nameAt } from '../npcs/npcs';
+import { cryptName } from './cryptNames';
 import { isFloor, planCrypt, type CryptPlan } from './cryptLayout';
 import { furnishCrypt, type CryptProp } from './cryptProps';
 
@@ -31,7 +30,7 @@ export interface Crypt {
   quarterTurns: number; // which way they open (toward the spot), for their look
   ruin: Ruin;
   level: number;
-  name: string; // "the crypt of Aldric"
+  name: string; // "the tomb of Lady Morwen" (cryptNames.ts)
 }
 
 export interface CryptWorld {
@@ -79,7 +78,7 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
           const entrance: Entrance = { type: 'crypt', x: front.x + ox * STAIR_REACH, z: front.z + oz * STAIR_REACH, outX: ox, outZ: oz };
           const level = zoneLevel(spawn, { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 });
           const middle = { x: front.x - ox / 2, z: front.z - oz / 2 };
-          return [{ entrance, stairs: { x, z }, steps, tiles: all, middle, quarterTurns, ruin, level, name: `the crypt of ${nameAt(x, z, world.seed)}` }];
+          return [{ entrance, stairs: { x, z }, steps, tiles: all, middle, quarterTurns, ruin, level, name: cryptName(x, z, world.seed) }];
         }
       }
     }
