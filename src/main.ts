@@ -168,7 +168,9 @@ async function boot(): Promise<void> {
     if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
     if (!door) return null;
-    if (model.inside) return { label: model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
+    const exit = model.crypt?.exitOpen; // (a crypt's way out at the far end, its lord slain)
+    const atExit = !!exit && Math.hypot(hero.x - exit.x, hero.z - exit.z) < 0.8;
+    if (model.inside) return { label: atExit ? 'Take the way out' : model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
     const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : DOOR_NAMES[door.type];
     return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
