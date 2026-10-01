@@ -114,7 +114,7 @@ export class Checks {
       }
       if (!last || Math.hypot(n.x - last.x, n.z - last.z) > 0.5) this.stillFor.set(n.id, { x: n.x, z: n.z, t: 0 });
       else if ((last.t += dt) > 45) {
-        this.report(n.role === 'villager' ? 'villager stuck' : 'barmaid or smith stuck', `${n.name} (${n.role}) at ${at(n.x, n.z)} ${n.where ? `in the ${n.where.type}` : 'outdoors'}, going to ${JSON.stringify((n.steps[0] as { to?: unknown }).to)}`);
+        this.report(n.role === 'villager' ? 'villager stuck' : 'staff stuck', `${n.name} (${n.role}) at ${at(n.x, n.z)} ${n.where ? `in the ${n.where.type}` : 'outdoors'}, going to ${JSON.stringify((n.steps[0] as { to?: unknown }).to)}`);
         last.t = -1e9;
       }
     }
