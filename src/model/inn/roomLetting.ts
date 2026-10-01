@@ -22,6 +22,37 @@ const LET_TILL = 6; // and till
 const CHECK_OUT = 10; // the hour the next morning a room's to be left
 const WAKE_AT = 8; // the hour slept till
 
+// What she says: rooms not let yet (out of hours), one let already, one let just now; a different line each time.
+export const LINES = {
+  closed: [
+    'Rooms are let from four in the afternoon. Come back later.',
+    "The rooms are still being aired. Come back after four.",
+    "Too early for a bed, love. Rooms are let from four.",
+    "We're turning the beds over. Come back this afternoon.",
+    "No rooms till four. Have a drink while you wait?",
+    "The maid's still at the sheets. Four o'clock, come back then.",
+    'Rooms go at four and not a minute before. Come back later.',
+    "Sleeping in daylight? Not here. Come back at four.",
+  ],
+  taken: [
+    "Your room's ready: up the stairs, the first door along the back.",
+    "You've a room already. Up the stairs, first door on the back hall.",
+    'Already yours, that room. Up the stairs, first door along the back.',
+    "One room's enough for anyone. Yours is up the stairs, first on the back.",
+    "Forgot already? Up the stairs, the first door along the back.",
+  ],
+  let: [
+    'Up the stairs, the first door along the back. Till ten tomorrow.',
+    "There you are. First door along the back hall upstairs. Out by ten, mind.",
+    'Clean sheets and a candle. First door on the back hall, till ten tomorrow.',
+    "It's yours till ten. Up the stairs, first door along the back.",
+    'Sleep well. First door along the back upstairs, and out by ten.',
+    "The quiet one's yours: first door along the back. Till ten in the morning.",
+  ],
+} as const;
+let said = 0; // her lines taken in turn, from a different place each time
+const line = (lines: readonly string[]): string => lines[(said++ * 5 + Math.floor(Date.now() / 1000)) % lines.length];
+
 // Till when (game minutes) each inn's room is let, by the inn's door.
 const lets = new WeakMap<Entrance, number>();
 export const letUntil = (inn: Entrance): number | null => lets.get(inn) ?? null;
@@ -57,11 +88,11 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   const inn = model.inside?.entrance;
   if (!inn) return 'closed';
   if (lets.has(inn)) {
-    say(barmaid, 'Your room\'s ready: up the stairs, the first door along the back.');
+    say(barmaid, line(LINES.taken));
     return 'taken';
   }
   if (!lettingHours(model.minutes)) {
-    say(barmaid, 'Rooms are let from four in the afternoon. Come back later.');
+    say(barmaid, line(LINES.closed));
     return 'closed';
   }
   if (model.hero.money < ROOM_PRICE) {
@@ -71,7 +102,7 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   model.hero.money -= ROOM_PRICE;
   if (purse) purse.money += ROOM_PRICE; // (hers, the inn's)
   lets.set(inn, checkOutAfter(model.minutes));
-  say(barmaid, 'Up the stairs, the first door along the back. Till ten tomorrow.');
+  say(barmaid, line(LINES.let));
   return 'let';
 }
 
