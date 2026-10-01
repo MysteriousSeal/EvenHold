@@ -165,7 +165,7 @@ async function boot(): Promise<void> {
     const well = model.wellInReach;
     if (well !== null) return { label: 'Toss a silver coin', x: model.villages[well].x, y: hero.y + 0.8, z: model.villages[well].z };
     const hallDoor = model.inside?.below ? doorAt(model.inside, hero) : null;
-    if (hallDoor) return { label: hallDoor.open ? 'Close door' : 'Open door', x: hero.x, y: hero.y + 1.05, z: hero.z };
+    if (hallDoor) return { label: hallDoor.open ? 'Close door' : 'Open door', x: hero.x, y: hero.y + 1.05, z: hero.z }; // (a locked one too: tried, it's found locked)
     if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
     if (!door) return null;
@@ -216,6 +216,7 @@ async function boot(): Promise<void> {
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
+      else if (event.kind === 'locked') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ["It's locked"], '#f8ecd4');
       else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
       else if (event.kind === 'rises') placeBanner(`${event.name} rises`, 'From the great tomb');
       else if (event.kind === 'cleared') placeBanner('Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
