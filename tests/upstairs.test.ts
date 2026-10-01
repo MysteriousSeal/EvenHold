@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { bumpsFurniture, distanceTo, type Furniture } from '../src/model/interiors/furniture';
-import { innerWalls, stairsInReach, upstairsInside } from '../src/model/interiors/upstairs';
+import { HALL, innerWalls, roomsOff, stairsInReach, upstairsInside } from '../src/model/interiors/upstairs';
 import { HERO_RADIUS, INDOOR_SCALE } from '../src/model/constants';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const HALL = 2; // the hallway's width (upstairs.ts)
 const r = HERO_RADIUS * INDOOR_SCALE;
 
 // Every inn's floor above, over the test worlds.
@@ -111,35 +110,10 @@ describe('the floor above', () => {
 
   it('has exactly one door into each room, in every inn', () => {
     for (const { seed, room, up } of floors) {
-      const walls = up.furniture.filter((f) => f.kind === 'hallWall' || f.kind === 'hallDoor');
-      // A wall on a tile's west edge ('left' pieces) or north edge ('back' pieces).
-      const west = (x: number, z: number) => walls.some((f) => f.wall === 'left' && f.x === x && z >= f.z && z < f.z + f.d);
-      const north = (x: number, z: number) => walls.some((f) => f.wall === 'back' && f.z === z && x >= f.x && x < f.x + f.w);
-      // The rooms: the floor beyond the hallway, split by the walls between them.
-      const roomOf = new Map<string, number>();
-      let rooms = 0;
-      for (let x0 = HALL; x0 < room.width; x0++) for (let z0 = HALL; z0 < room.depth; z0++) {
-        if (roomOf.has(`${x0},${z0}`)) continue;
-        const todo: Array<[number, number]> = [[x0, z0]];
-        while (todo.length > 0) {
-          const [x, z] = todo.pop()!;
-          if (roomOf.has(`${x},${z}`)) continue;
-          roomOf.set(`${x},${z}`, rooms);
-          if (x + 1 < room.width && !west(x + 1, z)) todo.push([x + 1, z]);
-          if (x - 1 >= HALL && !west(x, z)) todo.push([x - 1, z]);
-          if (z + 1 < room.depth && !north(x, z + 1)) todo.push([x, z + 1]);
-          if (z - 1 >= HALL && !north(x, z)) todo.push([x, z - 1]);
-        }
-        rooms++;
-      }
-      // Each door opens onto the room its tiles are in.
-      const doorsInto = Array.from({ length: rooms }, () => 0);
-      for (const door of up.furniture.filter((f) => f.kind === 'hallDoor')) {
-        const into = new Set(Array.from({ length: door.w * door.d }, (_, i) => roomOf.get(`${door.x + (i % door.w)},${door.z + Math.floor(i / door.w)}`)));
-        for (const r of into) if (r !== undefined) doorsInto[r]++;
-      }
-      expect(rooms, `seed ${seed}`).toBeGreaterThan(1);
-      expect(doorsInto, `seed ${seed}: doors into each room`).toEqual(doorsInto.map(() => 1));
+      const rooms = roomsOff(up.furniture, room);
+      expect(rooms.flatMap((r) => r.tiles).length).toBe((room.width - HALL) * (room.depth - HALL)); // (every tile past the hallway in one)
+      expect(rooms.length, `seed ${seed}`).toBeGreaterThan(1);
+      expect(rooms.map((r) => r.doors.length), `seed ${seed}: doors into each room`).toEqual(rooms.map(() => 1));
     }
   });
 
