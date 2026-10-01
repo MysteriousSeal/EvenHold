@@ -34,7 +34,7 @@ const run = (model: GameModel, seconds: number, dx = 0, dz = 0) => {
 };
 
 describe('the crypts\' guards', () => {
-  it('stand at posts on open floor, away from the stairs, the same every time; a band in the great hall; swordsmen, bowmen and draugr (more of them deeper in, two in the great hall); none walled in (50 seeds)', () => {
+  it('stand at posts on open floor, away from the stairs, the same every time; a band in the great hall; swordsmen, bowmen and draugr (more of them deeper in); none in the great hall (its lord\'s alone), none walled in (50 seeds)', () => {
     let archers = 0;
     let swords = 0;
     const draugr: number[] = []; // where along the crypt each stood (0 the far end, 1 the stairs)
@@ -49,7 +49,7 @@ describe('the crypts\' guards', () => {
       const solid = solidTiles(props);
       const reached = floorReached(plan, solid);
       const great = plan.places.find((p) => p.kind === 'great')!;
-      expect(posts.filter((p) => p.x >= great.x0 && p.x <= great.x1 && p.z >= great.z0 && p.z <= great.z1).length).toBeGreaterThanOrEqual(5);
+      expect(posts.filter((p) => p.x >= great.x0 - 1 && p.x <= great.x1 + 1 && p.z >= great.z0 - 1 && p.z <= great.z1 + 1)).toEqual([]); // (the lord's alone)
       expect(new Set(posts.map((p) => `${p.x},${p.z}`)).size).toBe(posts.length);
       for (const p of posts) {
         expect(isFloor(plan, p.x, p.z) && !solid.has(`${p.x},${p.z}`)).toBe(true);
@@ -59,7 +59,6 @@ describe('the crypts\' guards', () => {
         else if (p.kind === 'draugr') draugr.push(p.z / plan.depth);
         else swords++;
       }
-      expect(posts.filter((p) => p.kind === 'draugr' && p.x >= great.x0 && p.x <= great.x1 && p.z >= great.z0 && p.z <= great.z1).length).toBeGreaterThanOrEqual(2);
     }
     expect(archers).toBeGreaterThan(50);
     expect(swords).toBeGreaterThan(archers);

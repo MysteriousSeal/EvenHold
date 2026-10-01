@@ -8,9 +8,11 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { cryptInside } from '../src/model/crypts/crypts';
 import { CryptFoes } from '../src/model/crypts/cryptFoes';
-import { LORD_POST, RISES_AT, SLAM_RADIUS, SLAM_TELL, lordName, lordSpot } from '../src/model/crypts/cryptLord';
+import { AWARD_POST, LORD_POST, RISES_AT, SLAM_RADIUS, SLAM_TELL, lordName, lordSpot } from '../src/model/crypts/cryptLord';
 import { enemyPower, isBoss } from '../src/model/enemies/enemyLevels';
+import { DAIS_TOP } from '../src/model/crypts/cryptProps';
 import { parseSave, restore, snapshot } from '../src/model/save';
+import { resetCrypts } from '../src/model/cheats';
 import { FRAME } from './support/testWorld';
 import { BURST, cryptProp } from '../src/view/crypt/cryptVoxels';
 import { tombBurst } from '../src/view/crypt/cryptLife';
@@ -61,6 +63,7 @@ describe('a crypt\'s lord', () => {
     expect([lord.homeX, lord.homeZ]).toEqual([spot.x, spot.z]);
     const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus')!;
     expect(spot).toEqual({ x: tomb.x + (tomb.w - 1) / 2, z: tomb.z + tomb.d }); // (centred at its foot)
+    expect(lord.y).toBe(DAIS_TOP); // (up on its dais, not sunk in it)
   });
 
   it('slams, told first: hard on the hero still in its ring, nothing to one who stepped out', () => {
@@ -151,7 +154,7 @@ describe('a crypt\'s lord', () => {
     expect(CryptFoes.postOf(lord)).toBe(LORD_POST);
   });
 
-  it('stands before his tomb, the hero in plain sight, till he\'s struck; then he\'s on the hero', () => {
+  it('stands before his tomb, the hero outside his hall, till he\'s struck; then he\'s on the hero', () => {
     const model = new GameModel(2, MID);
     goDown(model);
     clearTo(model, RISES_AT);
@@ -159,7 +162,8 @@ describe('a crypt\'s lord', () => {
     const lord = lordOf(model)!;
     for (const f of model.foes) if (f !== lord) f.state = 'dead';
     const home = { x: lord.x, z: lord.z };
-    Object.assign(model.hero, { x: lord.x, z: lord.z + 2.5 });
+    const great = cryptInside(model.seed, model.inside!.entrance).plan.places.find((p) => p.kind === 'great')!;
+    Object.assign(model.hero, { x: great.x0 - 3, z: (great.z0 + great.z1) / 2 }); // (outside his hall: the hall itself wakes him)
     for (let t = 0; t < 6; t += FRAME) model.crypt!.update(FRAME);
     expect(lord.state).not.toBe('chase');
     expect(Math.hypot(lord.x - home.x, lord.z - home.z)).toBeLessThan(0.05);
@@ -189,5 +193,50 @@ describe('a crypt\'s lord', () => {
   it('is a boss (marked so), as no other foe is', () => {
     expect(isBoss('cryptLord')).toBe(true);
     for (const kind of ['wolf', 'bandit', 'boar', 'skeleton', 'skeletonArcher', 'draugr'] as const) expect(isBoss(kind)).toBe(false);
+  });
+
+  it('slain the first time, gives the hero a point to spend, told; never again for that crypt (through the reset cheat, and a save)', () => {
+    const model = new GameModel(1, MID);
+    goDown(model);
+    const slayAll = () => {
+      clearTo(model, RISES_AT);
+      model.update(0, 0, FRAME);
+      clearTo(model, 1);
+      const lord = lordOf(model)!;
+      lord.state = 'dead';
+      model.takeEvents();
+      model.slayGuard(lord);
+      return model.takeEvents();
+    };
+    const points = model.hero.statPoints;
+    const told = slayAll();
+    expect(model.hero.statPoints).toBe(points + 1);
+    expect(told).toContainEqual(expect.objectContaining({ kind: 'point' }));
+    expect(told).toContainEqual(expect.objectContaining({ kind: 'cleared', point: true }));
+    resetCrypts(model);
+    goDown(model);
+    const again = slayAll();
+    expect(model.hero.statPoints).toBe(points + 1); // (once a crypt, ever)
+    expect(again.some((e) => e.kind === 'point')).toBe(false);
+    expect(again).toContainEqual(expect.objectContaining({ kind: 'cleared', point: false }));
+    const loaded = new GameModel(1, MID);
+    restore(loaded, parseSave(JSON.stringify(snapshot(model)), 1)!);
+    expect(loaded.cleared(`${model.crypts[0].ruin.x},${model.crypts[0].ruin.z}`).has(AWARD_POST)).toBe(true);
+  });
+
+  it('is set on the hero the moment they come into his great hall, not before', () => {
+    const model = new GameModel(2, MID);
+    const crypt = goDown(model);
+    clearTo(model, RISES_AT);
+    model.update(0, 0, FRAME);
+    const lord = lordOf(model)!;
+    for (const f of model.foes) if (f !== lord) f.state = 'dead';
+    const great = cryptInside(model.seed, crypt.entrance).plan.places.find((p) => p.kind === 'great')!;
+    Object.assign(model.hero, { x: great.x0 - 3, z: (great.z0 + great.z1) / 2 }); // (outside it)
+    model.crypt!.update(FRAME);
+    expect(lord.state).not.toBe('chase');
+    Object.assign(model.hero, { x: great.x0 + 1, z: (great.z0 + great.z1) / 2 }); // (in)
+    model.crypt!.update(FRAME);
+    expect(lord.state).toBe('chase');
   });
 });

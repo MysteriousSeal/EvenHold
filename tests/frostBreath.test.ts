@@ -144,6 +144,10 @@ describe('draugr', () => {
         foe.cooldown = 99;
         crypt.update(FRAME);
       }
+      for (let t = 0; t < 0.5; t += FRAME) {
+        foe.cooldown = 99;
+        model.update(0, 0, FRAME); // (the knock carried out over a moment)
+      }
       if (stay) {
         expect(hp - model.hero.hp).toBeGreaterThanOrEqual(foe.damage * 2 - 2); // (double, less what the hero's armour takes)
         const back = (model.hero.x - at.x) * cleave!.dx + (model.hero.z - at.z) * cleave!.dz;
