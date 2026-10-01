@@ -19,4 +19,8 @@ export const JUNK_ITEMS = {
   crackedFlask: { name: 'Cracked flask', value: 2, droppedBy: { humanoid: 3 } },
   bentSpoon: { name: 'Bent spoon', value: 3, droppedBy: { humanoid: 2 } },
   tornPouch: { name: 'Torn pouch', value: 2, droppedBy: { humanoid: 3 } },
+  // From the undead (the crypts' skeletons): their old gear, gone to rust and dust.
+  rustedBlade: { name: 'Rusted blade', value: 5, droppedBy: { undead: 3 } },
+  oldArrowhead: { name: 'Old arrowhead', value: 3, droppedBy: { undead: 3 } },
+  boneCharm: { name: 'Bone charm', value: 7, droppedBy: { undead: 2 } },
 } satisfies Record<string, LootEntry>;

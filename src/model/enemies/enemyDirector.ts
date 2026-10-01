@@ -20,6 +20,9 @@ import {
 import { stepEnemy, type EnemyActions } from './enemies';
 import type { MapSize } from '../map/grid';
 import { clearLine, type Obstacles, type Point } from '../map/obstacles';
+
+// Where foes are run: what blocks a walker of half-width r, and what blocks sight.
+export type Ground = Pick<Obstacles, 'isBlocked' | 'blocksSight'>;
 import { findPath } from '../map/pathfinding';
 import { Nearby } from '../../util/nearby';
 import type { Enemy, Hero } from '../types';
@@ -42,12 +45,17 @@ export class EnemyDirector {
   constructor(
     private readonly enemies: Enemy[],
     private readonly hero: Hero,
-    private readonly obstacles: Obstacles,
+    private readonly obstacles: Ground, // what blocks the way and sight: the world's obstacles, or a crypt's rock
     private readonly size: MapSize,
     private readonly groundY: (x: number, z: number) => number,
     private readonly onStrike: (enemy: Enemy) => void, // an enemy's blow lands (reach is the model's to judge)
   ) {
     this.near = new Nearby(enemies, (e) => e, ENEMY_ACTIVE_RADIUS + BUMP_MARGIN);
+  }
+
+  // Who they're after.
+  get quarry(): Hero {
+    return this.hero;
   }
 
   update(dt: number): void {

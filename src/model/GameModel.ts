@@ -10,9 +10,7 @@ import {
   INDOOR_HERO_SPEED,
   HERO_RADIUS,
   ATTACK_DURATION,
-  ATTACK_KNOCKBACK,
   ATTACK_STRIKE,
-  ENEMY_STATS,
   FOCUS_RANGE,
   FOCUS_TURN_RANGE,
   TILE_HEIGHT,
@@ -24,16 +22,14 @@ import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
+import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
-import { blowTaken, blowTarget, heroBlow } from './hero/combat';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './map/obstacles';
 import { worldObstacles } from './map/blockers';
 import { stepHop, type Hop } from './hero/hop';
-import { DROP_CHANCE, rollDrop, type GroundLoot } from './loot/loot';
+import type { GroundLoot } from './loot/loot';
 import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
-import { coinDrop } from './hero/money';
 import { Ground } from './loot/ground';
 import type { EquipSlot, ItemId } from './human/equipment';
 import { putOn, takeOff } from './hero/wearing';
@@ -49,13 +45,15 @@ import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
-import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
+import { BLESSINGS, tickBlessing, tossCoin, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
+import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
-import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt } from './crypts/crypts';
+import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
+import { CRYPT_FOE_ID, CryptFoes } from './crypts/cryptFoes';
+import { foeStrikes, heroStruck, landBlow } from './hero/fighting';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -99,6 +97,8 @@ export class GameModel {
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private focusedId: number | null = null;
+  private below: { key: string; run: CryptFoes; ground: Ground } | null = null; // down in a crypt: its guards, and its floor's loot
+  readonly cryptsCleared = new Map<string, Set<number>>(); // each crypt's guards slain for good, by post (saved)
 
   private readonly obstacles: Obstacles;
   private readonly director: EnemyDirector;
@@ -146,7 +146,7 @@ export class GameModel {
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
-    this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => this.enemyStrikes(e));
+    this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
@@ -230,6 +230,7 @@ export class GameModel {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
       this.advanceAttack(dt);
+      if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
       stepNpcs(this.folk, this, dt);
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
@@ -262,9 +263,9 @@ export class GameModel {
   private advanceAttack(dt: number): void {
     if (this.attackElapsed === null) return;
     this.attackElapsed += dt;
-    if (!this.inside && !this.yard && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
+    if ((!this.inside || this.below) && !this.yard && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
       this.attackLanded = true;
-      this.landBlow();
+      landBlow(this);
     }
     if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
   }
@@ -286,40 +287,24 @@ export class GameModel {
     this.hero.facing = Math.atan2(dirX, dirZ);
   }
 
-  // The blow lands on the foe in reach (combat.ts): off its health, a shove
-  // away, and a brief flash. At zero it dies, and leaves what it leaves.
-  private landBlow(): void {
-    const hit = blowTarget(this.hero, this.enemies, this.focused);
-    if (!hit) return;
-    const { target, distance: best } = hit;
-    const { damage, crit } = heroBlow(this.hero, this.random());
-    target.hp -= damage;
-    this.events.push({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
-    target.hurtFor = 0.25;
-    target.swingFor = null; // a hit interrupts its own blow
-    target.state = target.hp <= 0 ? 'dead' : 'chase';
-    if (target.state === 'dead') {
-      if (target.id < FIRST_MOB_ID) this.slain.add(target.id); // a quest's foes (even let go) aren't the world's
-      gainXp(this.hero, xpGained(this.hero, xpAgainst(target.xp, target.level, this.hero.level))); // less, the weaker the foe
-      healOnKill(this.hero);
-      const wanted = this.quests.onKill(target);
-      if (wanted) this.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
-      const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(this.hero));
-      if (item) this.dropLoot(item, target.x, target.z);
-      const amount = coinsFound(this.hero, coinDrop(target));
-      if (amount > 0) this.dropCoins(amount, target.x + 0.25, target.z + 0.15);
-    }
-    const d = Math.max(best, 1e-6);
-    this.director.move(target, ((target.x - this.hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - this.hero.z) / d) * ATTACK_KNOCKBACK);
-  }
-
   // An item, or `amount` copper in coins, put on the ground at (x, z).
-  dropLoot = (item: BagItem, x: number, z: number): void => this.ground.drop(item, x, z);
-  dropCoins = (amount: number, x: number, z: number): void => this.ground.dropCoins(amount, x, z);
+  dropLoot = (item: BagItem, x: number, z: number): void => this.groundHere.drop(item, x, z);
+  dropCoins = (amount: number, x: number, z: number): void => this.groundHere.dropCoins(amount, x, z);
+
+  // The foes about: a crypt's guards down there (crypts/cryptFoes.ts), else the world's; and the ground's loot here.
+  get foes(): Enemy[] { return this.below?.run.foes ?? this.enemies; }
+  get groundHere(): Ground { return this.below?.ground ?? this.ground; }
+  // A crypt's guards, its arrows in flight (while the hero's down in it), or null.
+  get crypt(): CryptFoes | null { return this.below?.run ?? null; }
+  shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
+  report = (event: GameEvent): void => void this.events.push(event);
+  slayGuard = (enemy: Enemy): void => void (this.below && enemy.id >= CRYPT_FOE_ID && this.cleared(this.below.key).add(CryptFoes.postOf(enemy)));
+  // A crypt's guards slain for good, by its key (its ruin's corner), by post.
+  cleared = (key: string): Set<number> => this.cryptsCleared.get(key) ?? this.cryptsCleared.set(key, new Set()).get(key)!;
 
   // The loot nearest the hero within reach to pick up (outdoors), or null.
   get lootInReach(): GroundLoot | null {
-    return this.inside || this.yard ? null : this.ground.nearest(this.hero.x, this.hero.z);
+    return (this.inside && !this.below) || this.yard ? null : this.groundHere.nearest(this.hero.x, this.hero.z);
   }
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
@@ -355,6 +340,7 @@ export class GameModel {
     this.hop = null;
     if (this.inside) {
       this.inside = null;
+      this.below = null;
       hero.x = entrance.x;
       hero.z = entrance.z;
       hero.y = this.getGroundY(hero.x, hero.z);
@@ -372,11 +358,19 @@ export class GameModel {
     const crypt = entrance.type === 'crypt' ? cryptInside(this.seed, entrance) : null;
     this.inside = { entrance, room, furniture, seated: null, ...(crypt && { walls: (x: number, z: number, r: number) => cryptBlocks(crypt, x, z, r) }) };
     if (crypt) this.events.push({ kind: 'arrive', name: crypt.crypt.name, level: crypt.crypt.level }); // (its name and level, as the hero comes down)
+    this.below = crypt && this.goDown(crypt);
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusedId = null;
     this.hop = null;
     Object.assign(this.hero, { x: room.door, z: room.depth - 1, y: 0, facing: Math.PI }); // into the room (-Z)
+  }
+
+  // Down into a crypt: its guards not yet slain at their posts, its own floor for what they leave.
+  private goDown(crypt: CryptInside): NonNullable<GameModel['below']> {
+    const key = `${crypt.crypt.ruin.x},${crypt.crypt.ruin.z}`;
+    const run = new CryptFoes(this.seed, crypt, this.cleared(key), this.hero, (e) => foeStrikes(this, e), (arrow) => heroStruck(this, arrow.damage, null));
+    return { key, run, ground: new Ground(() => 0) };
   }
 
   // Indoors: the hero walks the room's floor (getting up first if seated);
@@ -385,7 +379,7 @@ export class GameModel {
     const inside = this.inside!;
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
-    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r);
+    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r) || (!!this.below && bumpsEnemy(this.below.run.foes, this.hero, x, z, r));
     walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
@@ -427,7 +421,7 @@ export class GameModel {
 
   // Coins near the hero go into their purse (no need to stop for them).
   private scoopCoins(): void {
-    const amount = this.ground.scoop(this.hero.x, this.hero.z);
+    const amount = this.groundHere.scoop(this.hero.x, this.hero.z);
     this.hero.money += amount;
     if (amount > 0) this.events.push({ kind: 'coins', amount });
   }
@@ -456,19 +450,19 @@ export class GameModel {
   pickUp(): BagItem | null {
     const loot = this.lootInReach;
     if (!loot) return null;
-    this.ground.take(loot);
+    this.groundHere.take(loot);
     addToBag(this.hero.bag, loot.item);
     this.quests.onPickUp(loot.item);
     return loot.item;
   }
 
   get focused(): Enemy | null {
-    return this.enemies.find((e) => e.id === this.focusedId) ?? null;
+    return this.foes.find((e) => e.id === this.focusedId) ?? null;
   }
 
   // Focuses a living enemy by id; null (or a dead one) clears the focus.
   focus(id: number | null): void {
-    const enemy = this.enemies.find((e) => e.id === id);
+    const enemy = this.foes.find((e) => e.id === id);
     this.focusedId = enemy && enemy.state !== 'dead' ? enemy.id : null;
   }
 
@@ -477,18 +471,6 @@ export class GameModel {
   private keepFocus(): void {
     const enemy = this.focused;
     if (!enemy || enemy.state === 'dead' || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
-  }
-
-  // An enemy's blow lands if the hero is still within its reach (a step
-  // back in time dodges it). Out of health, the hero wakes at spawn, healed.
-  private enemyStrikes(enemy: Enemy): void {
-    if (Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
-    if (this.focusedId === null) this.focusedId = enemy.id; // whoever hits first gets the hero's attention
-    if (this.godMode) return;
-    const { dodged, damage } = blowTaken(this.hero, enemy.damage, this.random());
-    if (dodged) return void this.events.push({ kind: 'dodge', x: this.hero.x, y: this.hero.y, z: this.hero.z }); // (Agility)
-    this.events.push({ kind: 'hit', on: 'hero', amount: damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
-    if (hurt(this.hero, damage)) this.fall();
   }
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).

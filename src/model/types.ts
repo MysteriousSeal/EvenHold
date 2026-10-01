@@ -27,7 +27,7 @@ export interface Hero extends Humanoid {
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar';
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher'; // (the skeletons: the crypts' guards)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.

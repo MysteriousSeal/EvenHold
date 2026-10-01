@@ -115,10 +115,19 @@ export function spawnEnemyNear(model: GameModel, kind: EnemyKind): void {
   model.enemies.push(enemy);
 }
 
-// Kills every living enemy within `radius` tiles; returns how many.
+// Every crypt's guards back at their posts, none slain; the hero, if down in one, out at its stairs first.
+export function resetCrypts(model: GameModel): void {
+  if (model.crypt && model.inside) {
+    Object.assign(model.hero, { x: model.inside.room.door, z: model.inside.room.depth - 1 }); // (the foot of the stairs)
+    model.useDoor();
+  }
+  model.cryptsCleared.clear();
+}
+
+// Kills every living enemy within `radius` tiles (the world's, or a crypt's guards, down in one); returns how many.
 export function slayNearby(model: GameModel, radius = 15): number {
   let slain = 0;
-  for (const enemy of model.enemies) {
+  for (const enemy of model.foes) {
     if (enemy.state === 'dead' || distance(enemy, model.hero) > radius) continue;
     enemy.hp = 0;
     enemy.state = 'dead';

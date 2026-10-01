@@ -60,6 +60,7 @@ export interface SaveData {
   minutes?: number; // the game's clock
   doors?: Array<{ inn: number; open: string[] }>; // the doors left open upstairs, by building
   fullWalls?: boolean; // the option: rooms' inner walls full height
+  crypts?: Array<{ crypt: string; slain: number[] }>; // each crypt's guards slain for good (by its ruin's corner, by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 
@@ -114,6 +115,7 @@ export function snapshot(model: GameModel): SaveData {
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
+    crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     doors: model.entrances.map((e, inn) => ({ inn, open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
   };
 }
@@ -165,6 +167,9 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { inn, open } of data.doors ?? []) {
     const building = model.entrances[inn];
     if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));
+  }
+  for (const { crypt, slain } of Array.isArray(data.crypts) ? data.crypts : []) {
+    if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
   }
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
