@@ -1,4 +1,5 @@
-// A skeleton on screen (the crypts' guards): the human rig on a skeleton's
+// A skeleton on screen (the crypts' guards, and their lord: crowned and mantled, a greatsword
+// raised high for his slam, a red glow on him raging): the human rig on a skeleton's
 // body (skeletonVoxels.ts), a short sword in hand for a swordsman, swung as
 // anyone's; a bow for a bowman: drawing it, he turns to the hero, the bow
 // held out in his left hand, the string pulled back to his ear with an arrow
@@ -17,6 +18,8 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { HealthBar, VoxelBurst } from './enemyParts';
 import { SKELETON_FRAME } from './skeletonVoxels';
+import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
+import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4;
@@ -26,12 +29,15 @@ const BOW_PALETTE = [0x5a3f2a, 0x3e2b1c, 0xd8d0c0, 0x8a8f94, 0xe8e0d0]; // wood,
 export interface SkeletonLook {
   normal: THREE.Material;
   flash: THREE.Material;
+  rage: THREE.Material; // a crypt's lord, raging: a red glow
+  greatsword: THREE.BufferGeometry;
   bow: THREE.BufferGeometry;
   arrow: THREE.BufferGeometry;
 }
 
 export function createSkeletonLook(flash: THREE.Material): SkeletonLook {
-  return { normal: personMaterial(), flash, bow: bowGeometry(), arrow: arrowGeometry() };
+  const rage = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0x8a1a10, emissiveIntensity: 0.6 });
+  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
 }
 
 // A bow, held upright: its stave curving back at the tips, the string straight between them.
@@ -66,9 +72,10 @@ export class SkeletonRig {
     skeleton: Enemy,
     private readonly look: SkeletonLook,
   ) {
-    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, SKELETON_FRAME);
+    const lord = skeleton.kind === 'cryptLord';
+    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : SKELETON_FRAME);
     const archer = skeleton.kind === 'skeletonArcher';
-    this.bar = new HealthBar(HEIGHT + 0.12, archer ? 'Skeleton archer' : 'Skeleton');
+    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : 'Skeleton'));
     this.rig.root.add(this.bar.group);
     if (archer) {
       const hand = BODIES.male.hand;
@@ -79,6 +86,12 @@ export class SkeletonRig {
       this.nocked.position.set(0, 0, 0.1);
       this.bow.add(this.nocked);
       this.rig.meshes.push(this.bow, this.nocked);
+    } else if (lord) {
+      const hand = BODIES.male.hand;
+      const sword = new THREE.Mesh(look.greatsword, look.normal);
+      sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
+      this.rig.joints.rightArm.add(sword);
+      this.rig.meshes.push(sword);
     } else this.rig.wear({ mainHand: 'shortSword' });
     this.burst = new VoxelBurst(this.rig.root, this.rig.colors, HEIGHT);
   }
@@ -102,13 +115,20 @@ export class SkeletonRig {
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
       this.rig.joints.leftArm.rotation.set(-Math.PI / 2, 0, 0);
       this.rig.joints.rightArm.rotation.set(-Math.PI / 2 + 0.25 * drawn, 0, -0.3 * drawn);
+    } else if (skeleton.windUp != null) {
+      // The lord's slam, told: his greatsword raised high in both hands, facing the hero, then down.
+      this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
+      const up = Math.min(1, skeleton.windUp / (SLAM_TELL * 0.6));
+      this.rig.joints.rightArm.rotation.set(-Math.PI * up, 0, 0);
+      this.rig.joints.leftArm.rotation.set(-Math.PI * up, 0, 0);
     } else {
       const swing = skeleton.swingFor === null ? null : skeleton.swingFor / ENEMY_STATS[skeleton.kind].swing;
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, swing);
     }
     if (this.nocked) this.nocked.visible = drawn !== null;
     if (this.bow) this.bow.rotation.set(drawn !== null ? Math.PI / 2 : 0, 0, 0); // (held upright, out in front while drawing)
-    this.rig.setMaterial(skeleton.hurtFor > 0 ? this.look.flash : this.look.normal);
+    const raging = skeleton.kind === 'cryptLord' && skeleton.hp < skeleton.maxHp * RAGE;
+    this.rig.setMaterial(skeleton.hurtFor > 0 ? this.look.flash : raging ? this.look.rage : this.look.normal);
   }
 
   dispose(): void {

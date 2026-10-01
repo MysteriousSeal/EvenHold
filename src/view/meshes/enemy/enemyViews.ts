@@ -13,9 +13,10 @@ import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from 
 import { pulseAuras, questAura } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, cryptLord: 22 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
 type Rig = BeastRig | BanditRig | SkeletonRig;
+const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -29,13 +30,14 @@ export class EnemyViews {
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
     skeleton: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
     skeletonArcher: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
+    cryptLord: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
   };
   private readonly skeletonLook: SkeletonLook = createSkeletonLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      rig.root.scale.setScalar(this.scale);
+      rig.root.scale.setScalar(this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : 1));
       this.scene.add(rig.root);
       return rig;
     },
@@ -57,7 +59,7 @@ export class EnemyViews {
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.skeletonLook.normal, this.flash, ENEMY_BURST];
+    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.skeletonLook.normal, this.skeletonLook.rage, this.flash, ENEMY_BURST];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.

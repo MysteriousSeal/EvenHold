@@ -16,7 +16,7 @@ import { createGrid, fillBox } from '../voxel/voxelShapes';
 export const SKELETON_PALETTE = [0xdcd2b8, 0xb5aa90, 0x8a806b, 0x1c1612]; // bone, its shade, its cracks, the dark within
 const [BONE, SHADE, CRACK, DARK] = [1, 2, 3, 4];
 
-const PARTS: Record<BodyPart, (grid: VoxelGrid) => void> = {
+export const PARTS: Record<BodyPart, (grid: VoxelGrid) => void> = {
   // The skull: round, big, the jaw narrower under it; its face toward +Z.
   head: (g) => {
     fillBox(g, 2, 3, 1, 8, 10, 9, BONE);

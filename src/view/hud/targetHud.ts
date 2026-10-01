@@ -7,12 +7,13 @@ import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
 import { SKELETON_PALETTE, buildSkull } from '../meshes/enemy/skeletonVoxels';
+import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
 import { ENEMY_STATS } from '../../model/constants';
 import { difficulty } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
-const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer' };
+const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', cryptLord: 'Crypt lord' };
 
 // Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
 const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
@@ -25,6 +26,7 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   },
   skeleton: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
   skeletonArcher: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
+  cryptLord: () => voxelIcon('target:crownedSkull', () => ({ grid: buildCrownedSkull(), palette: LORD_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 
@@ -54,7 +56,7 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
     }
     if (enemy.id !== shownId) {
       shownId = enemy.id;
-      name.textContent = NAMES[enemy.kind];
+      name.textContent = enemy.name ?? NAMES[enemy.kind];
       frame.querySelector('canvas')?.remove();
       frame.prepend(portrait(enemy));
       levelGem.textContent = String(enemy.level);
