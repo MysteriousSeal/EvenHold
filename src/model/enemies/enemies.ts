@@ -6,7 +6,7 @@
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
+import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
@@ -142,6 +142,8 @@ export interface EnemyActions {
   steer(enemy: Enemy, quarry: { x: number; z: number }, still?: boolean): { x: number; z: number };
   // Whether it can see the hero.
   sees(enemy: Enemy): boolean;
+  // Whether it's waiting its turn: more than ENGAGED at once on the hero, the farther ones hang back.
+  waitsTurn?(enemy: Enemy): boolean;
   // Its blow lands, halfway through the swing.
   strike(enemy: Enemy): void;
 }
@@ -196,17 +198,21 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   }
 
   if (enemy.state === 'chase') {
+    // Waiting its turn (a pack's: only a few set on the hero at once): it closes
+    // in only to WAIT_DISTANCE, and doesn't swing.
+    const waiting = actions.waitsTurn?.(enemy) ?? false;
+    const stop = waiting ? WAIT_DISTANCE : stats.stop;
     // A small margin: stepping exactly to `stop` can leave it a hair outside,
     // which would never count as in reach.
-    if (toHero > stats.stop + 0.02 || enemy.lostFor > 0) {
+    if (toHero > stop + 0.02 || enemy.lostFor > 0) {
       // Toward the hero (or where it was last seen), or the next point on
       // the way around what's between.
       const quarry = enemy.lostFor > 0 && enemy.lastSeen ? enemy.lastSeen : hero;
       const goal = steer(enemy, quarry);
       const d = Math.hypot(goal.x - enemy.x, goal.z - enemy.z);
-      const step = Math.min(stats.run * dt, goal === hero ? toHero - stats.stop : d);
+      const step = Math.min(stats.run * dt, goal === hero ? toHero - stop : d);
       if (d > 1e-4) move(enemy, ((goal.x - enemy.x) / d) * step, ((goal.z - enemy.z) / d) * step);
-    } else if (enemy.cooldown === 0) {
+    } else if (!waiting && enemy.cooldown === 0) {
       enemy.swingFor = 0;
     }
     return;

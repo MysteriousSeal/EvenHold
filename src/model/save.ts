@@ -20,7 +20,7 @@ import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, BLESSING_TIME, type Blessing } from './hero/blessing';
+import { BLESSINGS, BLESSING_TIME, WEARY_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
 import { spawnEnemies } from './enemies/enemies';
 import { spawnOf } from './map/grid';
@@ -156,7 +156,7 @@ export function restore(model: GameModel, data: SaveData): void {
     facing: saved.facing,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
-      .map((b) => ({ kind: b.kind, left: Math.min(BLESSING_TIME, b.left) })),
+      .map((b) => ({ kind: b.kind, left: Math.min(b.kind === 'weary' ? WEARY_TIME : BLESSING_TIME, b.left) })),
   });
   hero.hp = Math.min(maxHpOf(hero), Math.max(1, saved.hp));
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));

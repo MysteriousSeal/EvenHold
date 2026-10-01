@@ -48,7 +48,7 @@ import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
+import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wearyAfterFall, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
@@ -57,7 +57,7 @@ import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
-const DEATH_TOLL = 0.2; // of their coins, lost in a fall
+const DEATH_TOLL = 0.25; // of their coins, lost in a fall
 
 export class GameModel {
   readonly seed: number;
@@ -473,10 +473,14 @@ export class GameModel {
     const { dodged, damage } = blowTaken(this.hero, enemy.damage, this.random());
     if (dodged) return void this.events.push({ kind: 'dodge', x: this.hero.x, y: this.hero.y, z: this.hero.z }); // (Agility)
     this.events.push({ kind: 'hit', on: 'hero', amount: damage, x: this.hero.x, y: this.hero.y, z: this.hero.z });
-    if (!hurt(this.hero, damage)) return;
-    // Fallen: a share of their coins lost, they wake in the last inn they
-    // entered (or at spawn, before any), healed; the foes lose interest.
+    if (hurt(this.hero, damage)) this.fall();
+  }
+
+  // Fallen: a share of their coins lost, they wake in the last inn they
+  // entered (or at spawn, before any), healed but Weary a while; the foes lose interest.
+  fall(): void {
     this.hero.money -= Math.floor(this.hero.money * DEATH_TOLL);
+    wearyAfterFall(this.hero);
     const spawn = spawnOf(this.size);
     if (this.lastInn) this.enterRoom(this.lastInn);
     else this.teleport(spawn.x, spawn.z);

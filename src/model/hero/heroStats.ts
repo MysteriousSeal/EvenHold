@@ -14,11 +14,12 @@ const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a col
 
 export { maxHpAt }; // a hero's health at `level`, with nothing on and no Stamina (more with it: maxHpOf)
 
-// Experience from `level` to the next: a steady climb through the first
-// levels (60, 70, 80 … 120 at level 7), then 15 more a level (135, 150, …),
-// so the start isn't over in minutes and there's no step up after it.
+// Experience from `level` to the next, paced for level 10 after about three
+// hours: what a hero earns a minute at that level (foes and quests pay more
+// as they go up, about 50 + 7 a level) times the minutes the level should
+// take (3 at first, 4 more each level): 171, 448, 781, 1170, 1615 …
 export function xpToNext(level: number): number {
-  return Math.max(50 + level * 10, 15 + level * 15);
+  return (50 + 7 * level) * (4 * level - 1);
 }
 
 // Experience for beating something of `foeLevel` (a foe, or a quest's foes),

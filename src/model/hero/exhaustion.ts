@@ -1,12 +1,14 @@
 // Out of energy, the hero collapses, and wakes in the nearest inn lying on
 // the floor before its hearth (on its bear rug), a little of their energy
-// back and more coming while they lie there (E to get up).
+// back and more coming while they lie there (E to get up), and Weary a while
+// (as after a fall: blessing.ts).
 
 import type { GameModel } from '../GameModel';
 import { recover } from './heroStats';
 import { maxEnergyOf } from './attributes';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { bumpsFurniture } from '../interiors/furniture';
+import { wearyAfterFall } from './blessing';
 
 const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
@@ -27,6 +29,7 @@ function collapseIfSpent(model: GameModel): boolean {
   const inns = model.entrances.filter((e) => e.type === 'inn');
   const inn = inns.reduce<(typeof inns)[number] | null>((best, e) => (!best || Math.hypot(e.x - here.x, e.z - here.z) < Math.hypot(best.x - here.x, best.z - here.z) ? e : best), null);
   hero.energy = maxEnergyOf(hero) * WAKE_ENERGY;
+  wearyAfterFall(hero);
   if (!inn) return true;
   model.enterRoom(inn);
   const inside = model.inside!;
