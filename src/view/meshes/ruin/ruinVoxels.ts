@@ -12,6 +12,7 @@ import { hashUnit } from '../../../util/random';
 import { WALL, ashlarWall, crenellated } from './ruinWallVoxels';
 import { ruinFloor } from './ruinFloorVoxels';
 import { ruinTower } from './ruinTowerVoxels';
+import { columnBroken, columnFallen, columnStanding } from './ruinColumnVoxels';
 
 export const RUIN_VOXEL_SIZE = 0.04;
 export const RUIN_GRID: [number, number, number] = [25, 40, 25];
@@ -110,38 +111,13 @@ const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
     ashlarWall(grid, variant, (u) => 16 + variant * 2 - Math.floor(hashUnit(Math.floor(u / 3), variant, 61) * 6), 61, { from: 10, deep: 5, inner: true });
     return grid;
   },
-  // A column: a stepped base, a fluted shaft, a capital.
-  column: (variant) => {
-    const grid = createGrid(RUIN_GRID);
-    columnBase(grid);
-    const top = 28 + variant;
-    shaft(grid, 3, top, variant, 71);
-    fillBox(grid, 8, top + 1, 8, 16, top + 2, 16, (u, y, v) => (y === top + 2 ? (hashUnit(u, v, variant + 72) < 0.25 + variant * 0.1 ? C.moss : C.stoneLight) : C.stone)); // the capital
-    return grid;
-  },
-  // A column snapped off, its stump jagged.
-  columnBroken: (variant) => {
-    const grid = createGrid(RUIN_GRID);
-    columnBase(grid);
-    const high = 8 + variant * 3;
-    for (let u = 10; u <= 14; u++) for (let v = 10; v <= 14; v++) {
-      const top = high - Math.floor(hashUnit(u, v, variant + 81) * 5);
-      for (let y = 3; y <= top; y++) fillBox(grid, u, y, v, u, y, v, y === top ? C.stoneLight : (u === 10 || u === 14) && (v === 10 || v === 14) ? C.stoneDark : C.stone);
-    }
-    return grid;
-  },
-  // A fallen column: its drums lying in a row, a little apart, along X.
-  columnFallen: (variant) => {
-    const grid = createGrid(RUIN_GRID);
-    for (const [u0, u1] of [[1, 7], [9, 15], [17, 23]]) {
-      const lean = Math.floor(hashUnit(u0, variant, 91) * 3) - 1;
-      for (let u = u0; u <= u1; u++) for (let y = 0; y <= 6; y++) for (let v = 9; v <= 15; v++) {
-        if ((y - 3) ** 2 + (v - 12 - lean) ** 2 > 10) continue;
-        fillBox(grid, u, y, v, u, y, v, y === 6 && hashUnit(u, v, variant + 92) < 0.4 ? C.moss : u === u0 || u === u1 ? C.stoneDark : y >= 5 ? C.stoneLight : C.stone);
-      }
-    }
-    return grid;
-  },
+  // A column standing, snapped off, or fallen (ruinColumnVoxels.ts).
+  column: (variant) => columnStanding(variant),
+
+  columnBroken: (variant) => columnBroken(variant),
+
+  columnFallen: (variant) => columnFallen(variant),
+
   // An altar: a carved block under a cracked slab, a candle stub on it.
   altar: (variant) => {
     const grid = createGrid(RUIN_GRID);
@@ -165,19 +141,6 @@ const BUILD: Record<RuinKind, (variant: number) => VoxelGrid> = {
   // Flagstones, worn (ruinFloorVoxels.ts).
   floor: (variant) => ruinFloor(variant),
 };
-
-function columnBase(grid: VoxelGrid): void {
-  fillBox(grid, 7, 0, 7, 17, 1, 17, (_u, y) => (y === 1 ? C.stoneLight : C.stoneDark));
-  fillBox(grid, 8, 2, 8, 16, 2, 16, C.stone);
-}
-
-function shaft(grid: VoxelGrid, from: number, to: number, variant: number, salt: number): void {
-  for (let y = from; y <= to; y++) for (let u = 10; u <= 14; u++) for (let v = 10; v <= 14; v++) {
-    const edge = u === 10 || u === 14 || v === 10 || v === 14;
-    const flute = edge && (u + v) % 2 === 0; // fluted, the grooves in shade
-    fillBox(grid, u, y, v, u, y, v, edge && ivyAt(u + v, y, variant, salt) ? C.ivy : flute ? C.stoneDark : C.stone);
-  }
-}
 
 export function buildRuinPiece(kind: RuinKind, variant: number): VoxelGrid {
   return BUILD[kind](variant % 4);
