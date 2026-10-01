@@ -298,6 +298,8 @@ export class GameModel {
   // A crypt's guards, its arrows in flight (while the hero's down in it), or null.
   get crypt(): CryptFoes | null { return this.below?.run ?? null; }
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
+  // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
+  push = (dx: number, dz: number, facing = this.hero.facing): void => void (this.inside && [walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false), (this.hero.facing = facing)]);
   report = (event: GameEvent): void => void this.events.push(event);
   slayGuard = (enemy: Enemy): void => {
     const post = CryptFoes.postOf(enemy);

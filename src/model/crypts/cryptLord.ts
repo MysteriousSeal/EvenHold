@@ -118,6 +118,6 @@ export class Lord {
       this.hooks.call(lord, CALLED);
     }
     if (this.raging) lord.cooldown = Math.min(lord.cooldown, 0.35); // (blow on blow)
-    lord.windUp = this.slam?.t ?? null; // (for his look)
+    Object.assign(lord, { windUp: this.slam?.t ?? null, told: this.slam ? 'slam' : null }); // (for his look)
   }
 }

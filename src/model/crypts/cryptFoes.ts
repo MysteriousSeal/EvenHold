@@ -12,6 +12,7 @@ import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import type { BagItem } from '../hero/bag';
 import { FrostBreaths } from './frostBreath';
+import { Cleaves } from './cleave';
 import { CHEST_POST, LORD_POST, Lord, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
@@ -108,6 +109,7 @@ export interface CryptHooks {
   arrow(arrow: Arrow): void; // an arrow strikes the hero
   slam(damage: number, lord: Enemy): void; // the lord's slam catches the hero
   frost(draugr: Enemy): void; // a draugr's frost breath catches the hero
+  cleave(draugr: Enemy, from: { dx: number; dz: number }): void; // a draugr's cleave comes down on the hero (knocked back along it)
   report(event: GameEvent): void;
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
@@ -119,7 +121,8 @@ export class CryptFoes {
   readonly arrows: Arrow[] = [];
   readonly director: EnemyDirector;
   lord: Lord | null = null; // risen
-  readonly frost = new FrostBreaths(); // the draugr's
+  readonly frost = new FrostBreaths(); // the draugr's breath
+  readonly cleaves = new Cleaves(); // and their cleave
   chest: { x: number; z: number; open: boolean } | null = null; // his, once he's slain
   private readonly plan: CryptPlan;
   private readonly guards: number; // all its posts
@@ -161,7 +164,8 @@ export class CryptFoes {
     const held = this.lord?.before() ?? null;
     this.director.update(dt);
     this.lord?.after(dt, held, hero);
-    this.frost.update(this.foes, hero, dt, (draugr) => this.hooks.frost(draugr));
+    this.frost.update(this.foes, hero, dt, (draugr) => this.hooks.frost(draugr), (draugr) => this.cleaves.cleaving(draugr));
+    this.cleaves.update(this.foes, hero, dt, (draugr) => this.frost.breaths.some((b) => b.draugr === draugr), (draugr, cleave) => this.hooks.cleave(draugr, cleave));
     if (this.lord && this.lord.enemy.state === 'dead' && !this.chest) this.chest = { ...lordSpot(this.inside), open: false }; // his chest, where he rose
     for (let i = this.arrows.length - 1; i >= 0; i--) if (this.fly(this.arrows[i], dt)) this.arrows.splice(i, 1);
   }

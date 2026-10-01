@@ -27,14 +27,14 @@ export class FrostBreaths {
   private readonly waits = new Map<Enemy, number>();
 
   // Each draugr's breath started, told and loosed.
-  update(foes: readonly Enemy[], hero: Hero, dt: number, frost: (draugr: Enemy) => void): void {
+  update(foes: readonly Enemy[], hero: Hero, dt: number, frost: (draugr: Enemy) => void, busy: (draugr: Enemy) => boolean = () => false): void {
     for (const draugr of foes) {
       if (draugr.kind !== 'draugr') continue;
       const wait = Math.max(0, (this.waits.get(draugr) ?? BREATH_EVERY / 2) - dt);
       this.waits.set(draugr, wait);
       const d = Math.hypot(hero.x - draugr.x, hero.z - draugr.z);
       const breathing = this.breaths.some((b) => b.draugr === draugr);
-      if (breathing || draugr.state !== 'chase' || draugr.swingFor !== null || wait > 0 || d > NEAR || d < 1e-6) continue;
+      if (breathing || busy(draugr) || draugr.state !== 'chase' || draugr.swingFor !== null || wait > 0 || d > NEAR || d < 1e-6) continue;
       this.breaths.push({ draugr, x: draugr.x, z: draugr.z, dx: (hero.x - draugr.x) / d, dz: (hero.z - draugr.z) / d, t: 0 });
       this.waits.set(draugr, BREATH_EVERY);
     }
@@ -45,10 +45,10 @@ export class FrostBreaths {
       const { draugr } = breath;
       if (draugr.state === 'dead' || draugr.hurtFor > 0.2) {
         this.breaths.splice(i, 1); // (struck, or slain: it's lost its breath)
-        draugr.windUp = null;
+        Object.assign(draugr, { windUp: null, told: null });
         continue;
       }
-      Object.assign(draugr, { x: breath.x, z: breath.z, swingFor: null, windUp: breath.t < BREATH_TELL ? breath.t : null }); // (still, breathing)
+      Object.assign(draugr, { x: breath.x, z: breath.z, swingFor: null, windUp: breath.t < BREATH_TELL ? breath.t : null, told: breath.t < BREATH_TELL ? 'breath' : null }); // (still, breathing)
       if (before < BREATH_TELL && breath.t >= BREATH_TELL && caught(breath, hero)) frost(draugr);
       if (breath.t >= BREATH_TELL + 0.5) this.breaths.splice(i, 1);
     }

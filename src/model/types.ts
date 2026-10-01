@@ -73,7 +73,8 @@ export interface Enemy {
   lostFor: number; // seconds since then
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
   name?: string; // its own name, if it has one (a crypt's lord), over its kind's
-  windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath), else null
+  windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath or cleave), else null
+  told?: 'slam' | 'breath' | 'cleave' | null; // which
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 

@@ -13,6 +13,7 @@ import type { BagItem } from './bag';
 import { FIRST_MOB_ID, type QuestBook } from '../quests/questBook';
 import type { CryptHooks } from '../crypts/cryptFoes';
 import { CHILL_FOR } from '../crypts/frostBreath';
+import { CLEAVE_KNOCK } from '../crypts/cleave';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -26,6 +27,7 @@ export interface Fight {
   report(event: GameEvent): void;
   focus(id: number | null): void;
   shove(enemy: Enemy, dx: number, dz: number): void; // moved with its collisions
+  push(dx: number, dz: number): void; // the hero knocked (dx, dz), with their own collisions
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
   slayGuard(enemy: Enemy): void; // a crypt's guard slain, for good
@@ -74,6 +76,10 @@ export function cryptHooks(fight: Fight): CryptHooks {
       heroStruck(fight, 1, draugr);
       makeChilled(fight.hero, CHILL_FOR);
       fight.report({ kind: 'chilled' });
+    },
+    cleave: (draugr, { dx, dz }) => {
+      heroStruck(fight, draugr.damage * 2, draugr);
+      fight.push(dx * CLEAVE_KNOCK, dz * CLEAVE_KNOCK); // (knocked back along the blow)
     },
     report: (event) => fight.report(event),
     dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
