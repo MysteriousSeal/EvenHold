@@ -43,6 +43,7 @@ import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
+import { RuinMist } from './meshes/ruin/ruinMist';
 import { buildRoomScene } from './interior/roomView';
 import { buildCryptScene } from './crypt/cryptView';
 import { CryptLife } from './crypt/cryptLife';
@@ -89,6 +90,7 @@ export class GameView {
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
   private readonly boardMarks: BoardMarks;
+  private readonly mist: RuinMist; // low mist in the old ruins
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -138,6 +140,7 @@ export class GameView {
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
     this.boardMarks = new BoardMarks(this.scene, model);
+    this.mist = new RuinMist(this.scene, model.ruins, model.heightMap);
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -293,6 +296,8 @@ export class GameView {
     this.coins.update(model.coins, hero.x, hero.z, dt);
     this.campFires.update(model, this.elapsed);
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
+    this.mist.update(hero.x, hero.z, model.minutes, dt);
+    this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay
