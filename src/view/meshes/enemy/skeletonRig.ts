@@ -25,6 +25,7 @@ import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4;
+const CARRY = 1.0; // radians a long weapon (the lord's greatsword, a draugr's axe) is tilted up from the hand
 const BOW_VOXEL = 0.025;
 const BOW_PALETTE = [0x5a3f2a, 0x3e2b1c, 0xd8d0c0, 0x8a8f94, 0xe8e0d0]; // wood, its grain, the string, the arrowhead, the fletching
 
@@ -94,6 +95,7 @@ export class SkeletonRig {
       const hand = BODIES.male.hand;
       const sword = new THREE.Mesh(lord ? look.greatsword : look.axe, look.normal);
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
+      sword.rotation.x = -CARRY; // carried tilted up: long as it is, never down through the floor as the arm swings walking
       this.rig.joints.rightArm.add(sword);
       this.rig.meshes.push(sword);
     } else this.rig.wear({ mainHand: 'shortSword' });

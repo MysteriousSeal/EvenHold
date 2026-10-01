@@ -224,7 +224,6 @@
   font-size: 15px;
   font-weight: 600;
 }
-body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.ts), not on it */
 
 /* The toolbar, bottom right: raised sand tiles, a voxel icon each and its
    key in the corner; lit on hover, pressed in while its window is open. */
@@ -315,6 +314,7 @@ body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.t
   color: #2e1f14;
 }
 .quest-tracker[hidden] { display: none; }
+body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /* under the crypt's bar (cryptBar.ts) */
 .quest-card {
   display: flex;
   align-items: center;
@@ -486,16 +486,16 @@ body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.t
 .place-banner b { font-size: 34px; font-weight: 700; letter-spacing: 0.5px; }
 .place-banner span { font-size: 18px; color: #c9b8a0; }
 
-/* While down in a crypt: its name, and how much of it is cleared (cryptBar.ts). At the bottom
-   middle: the top's the hero's and the focused foe's frames (the foe's reaching the middle). */
+/* While down in a crypt: its name, and how much of it is cleared (cryptBar.ts). On the left under
+   the hero's frame, as wide as the quests taken, which move down under it (.in-crypt). */
 .crypt-bar {
   position: fixed;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 150px;
+  left: 16px;
+  width: 280px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   pointer-events: none;
   font-family: 'Fredoka', system-ui, sans-serif;
@@ -503,11 +503,11 @@ body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.t
   text-shadow: 2px 2px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14;
 }
 .crypt-bar[hidden] { display: none; }
-.crypt-bar b { font-size: 22px; font-weight: 700; letter-spacing: 0.4px; }
+.crypt-bar b { font-size: 18px; font-weight: 700; letter-spacing: 0.4px; }
 .crypt-bar-track {
   position: relative;
-  width: 420px;
-  height: 28px;
+  width: 274px;
+  height: 22px;
   background: #3a332c;
   border: 3px solid #2e1f14;
   box-shadow: inset 0 3px 0 #2a2420, 0 3px 0 #1c1612;
@@ -524,7 +524,7 @@ body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.t
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
 }

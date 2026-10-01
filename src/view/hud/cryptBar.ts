@@ -1,4 +1,4 @@
-// While down in a crypt: how much of it is cleared, at the bottom of the screen
+// While down in a crypt: how much of it is cleared, on the left under the hero's frame, over the quests taken
 // (styles in hud.css): its name over a slim stone bar, filling as its guards
 // fall, "Cleared 40%" on it; gold once it's all cleared. Hidden elsewhere.
 
@@ -14,7 +14,7 @@ export function createCryptBar(): (crypt: { name: string; share: number } | null
   let shown = '';
   return (crypt) => {
     root.hidden = !crypt;
-    document.body.classList.toggle('in-crypt', !!crypt); // (what else sits low in the middle makes room: hud.css)
+    document.body.classList.toggle('in-crypt', !!crypt); // (the quests taken move down under it: hud.css)
     if (!crypt) return void (shown = '');
     const percent = Math.round(crypt.share * 100);
     const now = `${crypt.name}:${percent}`;
