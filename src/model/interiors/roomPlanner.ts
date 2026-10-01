@@ -49,15 +49,20 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
   const along = (z: number) => Array.from({ length: room.width }, (_, x): [number, number] => [x, z]); // spots along a row
   const down = (x: number) => Array.from({ length: room.depth }, (_, z): [number, number] => [x, z]); // along a column
   // A free floor tile no one could walk to from the door, if any (furniture all round it).
-  const walledIn = (): [number, number] | null => {
+  // The free floor reached from (x, z), tile to tile, round what's taken.
+  const floorFrom = (x0: number, z0: number): Set<string> => {
     const seen = new Set<string>();
-    const todo: Array<[number, number]> = [[room.door, room.depth - 1]];
+    const todo: Array<[number, number]> = [[x0, z0]];
     while (todo.length > 0) {
       const [x, z] = todo.pop()!;
       if (x < 0 || z < 0 || x >= room.width || z >= room.depth || seen.has(key(x, z)) || taken.has(key(x, z))) continue;
       seen.add(key(x, z));
       todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
     }
+    return seen;
+  };
+  const walledIn = (): [number, number] | null => {
+    const seen = floorFrom(room.door, room.depth - 1);
     for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth; z++) if (!taken.has(key(x, z)) && !seen.has(key(x, z))) return [x, z];
     return null;
   };
@@ -98,14 +103,7 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
   // one at the pocket's edge taken away at a time, till there's none (or none such walls it).
   const openWalledIn = (kind: FurnitureKind) => {
     for (let pocket = walledIn(); pocket; pocket = walledIn()) {
-      const region = new Set<string>();
-      const todo: Array<[number, number]> = [pocket];
-      while (todo.length > 0) {
-        const [x, z] = todo.pop()!;
-        if (x < 0 || z < 0 || x >= room.width || z >= room.depth || region.has(key(x, z)) || taken.has(key(x, z))) continue;
-        region.add(key(x, z));
-        todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-      }
+      const region = floorFrom(...pocket);
       const edge = items.findIndex((o) => o.kind === kind && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => region.has(key(o.x + dx, o.z + dz))));
       if (edge < 0) return;
       const [piece] = items.splice(edge, 1);

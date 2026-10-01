@@ -45,7 +45,7 @@ export function healOnKill(hero: Hero): void {
 }
 
 // A fall, or a collapse: Weary for a while (afresh, if already).
-export function wearyAfterFall(hero: Hero): void {
+export function makeWeary(hero: Hero): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'weary'), { kind: 'weary', left: WEARY_TIME }];
 }
 

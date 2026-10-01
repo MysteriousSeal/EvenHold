@@ -1,14 +1,17 @@
-// Out of energy, the hero collapses, and wakes in the nearest inn lying on
-// the floor before its hearth (on its bear rug), a little of their energy
-// back and more coming while they lie there (E to get up), and Weary a while
-// (as after a fall: blessing.ts).
+// The hero's setbacks, each waking them at an inn, Weary a while (blessing.ts):
+// out of energy, they collapse, and wake in the nearest inn lying on the floor
+// before its hearth (on its bear rug), a little of their energy back and more
+// coming while they lie there (E to get up); out of health, they fall, a share
+// of their coin lost, and wake in the last inn they entered (or at spawn,
+// before any), healed.
 
 import type { GameModel } from '../GameModel';
 import { recover } from './heroStats';
-import { maxEnergyOf } from './attributes';
+import { maxEnergyOf, maxHpOf } from './attributes';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { bumpsFurniture } from '../interiors/furniture';
-import { wearyAfterFall } from './blessing';
+import { makeWeary } from './blessing';
+import { spawnOf } from '../map/grid';
 
 const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
@@ -29,7 +32,7 @@ function collapseIfSpent(model: GameModel): boolean {
   const inns = model.entrances.filter((e) => e.type === 'inn');
   const inn = inns.reduce<(typeof inns)[number] | null>((best, e) => (!best || Math.hypot(e.x - here.x, e.z - here.z) < Math.hypot(best.x - here.x, best.z - here.z) ? e : best), null);
   hero.energy = maxEnergyOf(hero) * WAKE_ENERGY;
-  wearyAfterFall(hero);
+  makeWeary(hero);
   if (!inn) return true;
   model.enterRoom(inn);
   const inside = model.inside!;
@@ -43,4 +46,19 @@ function collapseIfSpent(model: GameModel): boolean {
   inside.seated = { seat: { piece: rug, x: at.x, z: at.z, y: FLOOR, facing: Math.PI / 2, lying: true }, from: up };
   Object.assign(hero, { x: at.x, z: at.z, y: FLOOR, facing: Math.PI / 2 });
   return true;
+}
+
+const FALL_TOLL = 0.25; // of their coins, lost in a fall
+
+// Fallen (out of health): a share of their coins lost, they wake in the last inn
+// they entered (or at spawn, before any), healed but Weary; the foes lose interest.
+export function fall(model: GameModel): void {
+  const { hero } = model;
+  hero.money -= Math.floor(hero.money * FALL_TOLL);
+  makeWeary(hero);
+  const spawn = spawnOf(model.size);
+  if (model.lastInn) model.enterRoom(model.lastInn);
+  else model.teleport(spawn.x, spawn.z);
+  hero.hp = maxHpOf(hero);
+  for (const e of model.enemies) if (e.state === 'chase') e.state = 'wander';
 }

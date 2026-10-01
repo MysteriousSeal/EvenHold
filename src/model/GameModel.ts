@@ -26,7 +26,6 @@ import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { FRESH_HERO_STATS, HERO_NAME, gainXp, hurt, tiredPace, xpAgainst } from './hero/heroStats';
 import { untrained } from './hero/training';
-import { maxHpOf } from './hero/attributes';
 import { blowTaken, blowTarget, heroBlow } from './hero/combat';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './map/obstacles';
@@ -50,16 +49,15 @@ import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wearyAfterFall, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
+import { BLESSINGS, coinsFound, dropFactor, healOnKill, tickBlessing, tossCoin, walkFactor, wellInReach, xpGained, type BlessingKind } from './hero/blessing';
 import { FIRST_MOB_ID, QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
-import { liveOn } from './hero/exhaustion';
+import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
-const DEATH_TOLL = 0.25; // of their coins, lost in a fall
 
 export class GameModel {
   readonly seed: number;
@@ -485,15 +483,8 @@ export class GameModel {
     if (hurt(this.hero, damage)) this.fall();
   }
 
-  // Fallen: a share of their coins lost, they wake in the last inn they
-  // entered (or at spawn, before any), healed but Weary a while; the foes lose interest.
+  // Out of health: fallen, waking at an inn (hero/setbacks.ts).
   fall(): void {
-    this.hero.money -= Math.floor(this.hero.money * DEATH_TOLL);
-    wearyAfterFall(this.hero);
-    const spawn = spawnOf(this.size);
-    if (this.lastInn) this.enterRoom(this.lastInn);
-    else this.teleport(spawn.x, spawn.z);
-    this.hero.hp = maxHpOf(this.hero);
-    for (const e of this.enemies) if (e.state === 'chase') e.state = 'wander';
+    fall(this);
   }
 }
