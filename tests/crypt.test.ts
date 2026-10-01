@@ -76,12 +76,16 @@ describe('crypts', () => {
       expect(got).toBe(open);
       const kinds = new Set(props.map((p) => p.kind));
       for (const kind of ['sconce', 'sarcophagus', 'candles', 'dais', 'greatSarcophagus', 'niche', 'cobweb'] as const) expect(kinds.has(kind), kind).toBe(true);
+      expect(['skeleton', 'slumped', 'bones'].some((k) => kinds.has(k as CryptProp['kind'])), 'the dead').toBe(true);
       for (const p of props) {
         if (p.kind === 'sconce' || p.kind === 'niche') {
           expect(isFloor(plan, p.x, p.z), `${p.kind} in the rock`).toBe(false);
           const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
           expect(isFloor(plan, p.x + ox, p.z + oz), `${p.kind} facing the floor`).toBe(true);
           expect(inFullView(plan, p.x, p.z), `${p.kind} on rock that fades (seen through)`).toBe(true);
+        } else if (p.kind === 'slumped') {
+          const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
+          expect(inFullView(plan, p.x - ox, p.z - oz), 'slumped against rock in full view').toBe(true); // (its back to it)
         } else if (p.kind === 'cobweb') {
           expect(inFullView(plan, p.x - 1, p.z) && inFullView(plan, p.x, p.z - 1), 'a cobweb hung on rock that fades').toBe(true);
         } else for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) expect(isFloor(plan, x, z), `${p.kind} on the floor`).toBe(true);
