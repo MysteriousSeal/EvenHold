@@ -10,9 +10,11 @@ import type { RuinPiece } from '../../../model/ruins/ruins';
 import type { WorldSink } from '../../world/chunkLayer';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
-import { RUIN_GRID, RUIN_PALETTE, RUIN_VOXEL_SIZE, buildCryptStairs, buildRuinPiece } from './ruinVoxels';
+import { RUIN_GRID, RUIN_PALETTE, RUIN_VOXEL_SIZE, buildRuinPiece } from './ruinVoxels';
+import { STAIRS_GRID, buildCryptStairs } from './cryptStairsVoxels';
 
 const ORIGIN = new THREE.Vector3((-RUIN_GRID[0] * RUIN_VOXEL_SIZE) / 2, 0, (-RUIN_GRID[2] * RUIN_VOXEL_SIZE) / 2);
+const STAIRS_ORIGIN = new THREE.Vector3((-STAIRS_GRID[0] * RUIN_VOXEL_SIZE) / 2, 0, (-STAIRS_GRID[2] * RUIN_VOXEL_SIZE) / 2);
 
 export function buildRuins(scene: WorldSink, model: GameModel): void {
   const pieces: RuinPiece[] = model.ruins.flatMap((ruin) => ruin.pieces);
@@ -24,13 +26,13 @@ export function buildRuins(scene: WorldSink, model: GameModel): void {
     (p) => ({ x: p.x, y: model.heightMap[p.x][p.z] * TILE_HEIGHT, z: p.z, quarterTurns: p.quarterTurns }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
-  // And in each, a crypt's way down (model/crypts/crypts.ts), turned to open toward the spot before it.
+  // And in each, a crypt's way down (model/crypts/crypts.ts: two tiles wide, drawn between them), turned to open toward the spot before it.
   addVoxelInstances(
     scene,
     model.crypts,
     (c) => `cryptStairs:${(c.stairs.x + c.stairs.z) % 4}`,
-    (c) => greedyMesh(buildCryptStairs((c.stairs.x + c.stairs.z) % 4), RUIN_PALETTE, RUIN_VOXEL_SIZE, ORIGIN),
-    (c) => ({ x: c.stairs.x, y: model.heightMap[c.stairs.x][c.stairs.z] * TILE_HEIGHT, z: c.stairs.z, quarterTurns: c.quarterTurns }),
+    (c) => greedyMesh(buildCryptStairs((c.stairs.x + c.stairs.z) % 4), RUIN_PALETTE, RUIN_VOXEL_SIZE, STAIRS_ORIGIN),
+    (c) => ({ x: c.middle.x, y: model.heightMap[c.stairs.x][c.stairs.z] * TILE_HEIGHT, z: c.middle.z, quarterTurns: c.quarterTurns }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
 }

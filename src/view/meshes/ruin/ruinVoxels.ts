@@ -26,16 +26,20 @@ const ENTRIES = {
   dirt: 0x6b5a44,
   wax: 0xe6dcc2,
   slit: 0x2a2724,
+  dark: 0x0b0a09, // the dark a way down goes into
+  iron: 0x45403c,
+  rust: 0x8a4a2a,
+  rustDark: 0x5e3420,
 } as const;
 
 export const RUIN_PALETTE: number[] = Object.values(ENTRIES);
-const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
+export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 
 const WALL = 7; // a wall's thickness, from the tile's -Z edge
 const HIGH = [30, 27, 24, 21]; // a whole wall's height, by variant
 
 // Coursed stone: blocks 6 long and 4 high, their joints staggered each course, the tones varied block by block.
-function block(u: number, y: number, v: number, salt: number): number {
+export function block(u: number, y: number, v: number, salt: number): number {
   if (y % 4 === 0) return C.mortar;
   const course = Math.floor(y / 4);
   const along = u + (course % 2) * 3;
@@ -45,9 +49,9 @@ function block(u: number, y: number, v: number, salt: number): number {
 }
 
 // Moss on what's on top and at the foot, ivy creeping up a face in a patch or two.
-const overgrown = (u: number, y: number, top: number, variant: number, salt: number) =>
+export const overgrown = (u: number, y: number, top: number, variant: number, salt: number) =>
   y === top && hashUnit(u, variant, salt) < 0.45 + variant * 0.12 ? (hashUnit(u, y, salt) < 0.5 ? C.moss : C.mossDark) : y <= 1 && hashUnit(u, variant, salt + 1) < 0.35 ? C.moss : 0;
-const ivyAt = (u: number, y: number, variant: number, salt: number) => {
+export const ivyAt = (u: number, y: number, variant: number, salt: number) => {
   const patch = Math.floor(u / 5);
   if (hashUnit(patch, variant, salt + 3) > 0.35 + variant * 0.1) return 0;
   const reach = 6 + Math.floor(hashUnit(patch, variant, salt + 4) * 14);
@@ -217,28 +221,4 @@ function shaft(grid: VoxelGrid, from: number, to: number, variant: number, salt:
 
 export function buildRuinPiece(kind: RuinKind, variant: number): VoxelGrid {
   return BUILD[kind](variant % 4);
-}
-
-// A crypt's way down (model/crypts/crypts.ts): steps going down into the dark
-// away from the opening (+Z, where the hero stands), between low coursed walls,
-// under a broken arch at the back; moss along its kerbs. Drawn in the tile's
-// own height: the steps fall from the kerb to blackness at the back.
-export function buildCryptStairs(variant: number): VoxelGrid {
-  const grid = createGrid(RUIN_GRID);
-  const side = (u0: number, u1: number, salt: number) => wall(grid, variant, () => 5, salt, 0, 24, u0, u1);
-  side(0, 3, 41);
-  side(21, 24, 42);
-  wall(grid, variant, () => 5, 43, 0, 3, 4, 20); // the back
-  // The arch over the back: two posts and a lintel, one post broken short by variant.
-  wall(grid, variant, () => (variant % 2 ? 17 : 24), 44, 0, 3, 0, 3);
-  wall(grid, variant, () => (variant % 2 ? 24 : 19), 45, 0, 3, 21, 24);
-  if (variant < 2) wall(grid, variant, () => 24, 46, 0, 3, 4, 20);
-  // The steps: from the kerb's height at the front down to the dark at the back, each 4 deep.
-  for (let k = 0; k < 5; k++) {
-    const v0 = 20 - k * 4;
-    const top = 4 - k;
-    fillBox(grid, 4, 0, v0, 20, Math.max(0, top), v0 + 3, (_u, y) => (top < 1 ? C.slit : y === top ? (k % 2 ? C.stone : C.stoneLight) : C.stoneDark));
-  }
-  fillBox(grid, 4, 0, 4, 20, 0, 7, C.slit); // the last of it: darkness
-  return grid;
 }
