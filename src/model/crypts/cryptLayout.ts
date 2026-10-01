@@ -174,6 +174,7 @@ function crop(owner: Int16Array, places: CryptPlan['places'], startX: number): C
   const [width, depth] = [x1 - x0 + 1, z1 - z0 + 1];
   const floor = new Uint8Array(width * depth);
   for (let x = 0; x < width; x++) for (let z = 0; z < depth; z++) if (owner[(x + x0) * CANVAS + (z + z0)] >= 0) floor[x * depth + z] = 1;
+  openIslands(floor, width, depth);
   return {
     width,
     depth,
@@ -181,6 +182,31 @@ function crop(owner: Int16Array, places: CryptPlan['places'], startX: number): C
     floor,
     places: places.map((p) => ({ ...p, x0: p.x0 - x0, z0: p.z0 - z0, x1: p.x1 - x0, z1: p.z1 - z0 })),
   };
+}
+
+// Rock not joined to the rock round the crypt (an island of it, left standing where the corridor and a
+// hall met round it) made floor: no block of rock stands alone in the middle of a room.
+function openIslands(floor: Uint8Array, width: number, depth: number): void {
+  const seen = new Uint8Array(width * depth);
+  const todo: number[] = [];
+  for (let x = 0; x < width; x++) for (let z = 0; z < depth; z++) {
+    const edge = x === 0 || z === 0 || x === width - 1 || z === depth - 1;
+    if (!edge || floor[x * depth + z]) continue;
+    seen[x * depth + z] = 1;
+    todo.push(x * depth + z);
+  }
+  while (todo.length > 0) {
+    const cell = todo.pop()!;
+    const [x, z] = [Math.floor(cell / depth), cell % depth];
+    for (const [nx, nz] of [[x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]]) {
+      if (nx < 0 || nz < 0 || nx >= width || nz >= depth) continue;
+      const next = nx * depth + nz;
+      if (floor[next] || seen[next]) continue;
+      seen[next] = 1;
+      todo.push(next);
+    }
+  }
+  for (let i = 0; i < floor.length; i++) if (!floor[i] && !seen[i]) floor[i] = 1;
 }
 
 // Whether (x, z) (a tile) is floor.
