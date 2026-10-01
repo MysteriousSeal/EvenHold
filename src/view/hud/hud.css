@@ -224,6 +224,7 @@
   font-size: 15px;
   font-weight: 600;
 }
+body.in-crypt .loot-toast { bottom: 118px; } /* over the crypt's bar (cryptBar.ts), not on it */
 
 /* The toolbar, bottom right: raised sand tiles, a voxel icon each and its
    key in the corner; lit on hover, pressed in while its window is open. */

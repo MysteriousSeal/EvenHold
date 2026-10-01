@@ -14,6 +14,7 @@ export function createCryptBar(): (crypt: { name: string; share: number } | null
   let shown = '';
   return (crypt) => {
     root.hidden = !crypt;
+    document.body.classList.toggle('in-crypt', !!crypt); // (what else sits low in the middle makes room: hud.css)
     if (!crypt) return void (shown = '');
     const percent = Math.round(crypt.share * 100);
     const now = `${crypt.name}:${percent}`;
