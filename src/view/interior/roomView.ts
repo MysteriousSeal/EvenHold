@@ -39,6 +39,7 @@ function mugGeometries(): Record<CupShape, THREE.BufferGeometry> {
 const TILE_VOXELS = 25;
 const SWING = (100 * Math.PI) / 180; // how far a door swings open
 const SWING_TIME = 0.7; // seconds, to open or close
+const RATTLE_TIME = 0.35; // seconds a locked door rattles, tried
 
 // A hallway door's leaf, hung from its hinge edge (x 0), standing on the floor, its thickness centred.
 function doorLeafGeometry(): THREE.BufferGeometry {
@@ -101,13 +102,17 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     hinge.add(leaf);
     scene.add(hinge);
     // Along the wall (+z on the left one, +x on the back), swung toward +x or +z.
-    return { f, hinge, base: left ? -Math.PI / 2 : 0, way: left ? 1 : -1, t: f.open ? 1 : 0 };
+    return { f, hinge, base: left ? -Math.PI / 2 : 0, way: left ? 1 : -1, t: f.open ? 1 : 0, tried: f.tried ?? 0, rattle: 0 };
   });
   const swingDoors = (dt: number) => {
     for (const d of doors) {
       d.t = Math.min(1, Math.max(0, d.t + (d.f.open ? dt : -dt) / SWING_TIME));
       const eased = (1 - Math.cos(d.t * Math.PI)) / 2; // eased in and out, gently (one curve both ways: no jump turning back mid-swing)
-      d.hinge.rotation.y = d.base + d.way * SWING * eased;
+      // Tried, locked: rattled in its frame a moment, the latch catching.
+      if ((d.f.tried ?? 0) !== d.tried) [d.tried, d.rattle] = [d.f.tried ?? 0, RATTLE_TIME];
+      d.rattle = Math.max(0, d.rattle - dt);
+      const shake = d.rattle > 0 ? Math.sin(d.rattle * 70) * 0.05 * (d.rattle / RATTLE_TIME) : 0;
+      d.hinge.rotation.y = d.base + d.way * (SWING * eased + Math.abs(shake));
     }
   };
   swingDoors(0);
