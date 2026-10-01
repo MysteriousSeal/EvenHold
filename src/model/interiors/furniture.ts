@@ -67,6 +67,8 @@ export interface Furniture {
   solid: boolean; // blocks walking (rugs don't)
   facing?: [number, number]; // a chair: the way its seat faces (toward its table), as (dx, dz)
   open?: boolean; // a door (upstairs, hallDoor): open, its doorway passable
+  locked?: boolean; // and locked: it won't open (the inn's rooms: upstairs.ts)
+  tried?: number; // how many times it's been tried, locked (each a rattle: roomView.ts)
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face

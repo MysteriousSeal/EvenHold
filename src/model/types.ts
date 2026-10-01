@@ -43,6 +43,7 @@ export type GameEvent =
   | { kind: 'cleared'; name: string; point?: boolean } // a crypt's last guard slain (its lord); `point`: a point to spend given for it
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
+  | { kind: 'locked' } // a door tried, locked (the inn's rooms upstairs)
   | { kind: 'chilled' } // the hero caught in a draugr's frost breath
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors

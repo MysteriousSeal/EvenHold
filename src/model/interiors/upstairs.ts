@@ -1,9 +1,10 @@
 // Upstairs (the inn's): the stairs up to it and the stairwell back down,
 // taken with E; its floor, a hallway along the left and back walls (the
-// stairwell in it, lanterns along it) walled off from the rooms off it.
+// stairwell in it, lanterns along it) walled off from the rooms off it,
+// their doors locked (tried, they only rattle).
 
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
-import type { Hero } from '../types';
+import type { GameEvent, Hero } from '../types';
 import type { Entrance, Room } from './interiors';
 import { bumpsFurniture, clothFor, distanceTo, type Furniture } from './furniture';
 import { layoutOf, type Inside } from './indoors';
@@ -49,7 +50,7 @@ export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, s
   innerWalls(furniture, fullWalls);
   for (const f of furniture) if (f.kind === 'roomBed' || f.kind === 'doubleBed') f.cloth = clothFor(seed, below, f.x, f.z, 1); // each its own blanket
   const open = opened.get(below);
-  for (const f of furniture) if (f.kind === 'hallDoor' && open?.has(doorKey(f))) f.open = true;
+  for (const f of furniture) if (f.kind === 'hallDoor' && !f.locked && open?.has(doorKey(f))) f.open = true; // (a locked one shut, whatever was left open)
   return { entrance: upstairsOf(below), room, furniture, seated: null, below };
 }
 
@@ -84,11 +85,17 @@ export function doorAt(inside: Inside, hero: Hero): Furniture | null {
 }
 
 // Opens the door by the hero, or closes it (pushing them out of its doorway,
-// to the side of it they're on, if they're stood in it); returns whether there was one.
-export function useHallDoor(model: { inside: Inside | null; hero: Hero }): boolean {
+// to the side of it they're on, if they're stood in it); locked, it's only
+// tried (rattled, told); returns whether there was one.
+export function useHallDoor(model: { inside: Inside | null; hero: Hero; report?(event: GameEvent): void }): boolean {
   const inside = model.inside;
   const door = inside?.below ? doorAt(inside, model.hero) : null;
   if (!inside?.below || !door) return false;
+  if (door.locked && !door.open) {
+    door.tried = (door.tried ?? 0) + 1;
+    model.report?.({ kind: 'locked' });
+    return true;
+  }
   const { hero } = model;
   const r = HERO_RADIUS * INDOOR_SCALE;
   if (door.open && bumpsFurniture([{ ...door, open: false }], hero.x, hero.z, r)) {
@@ -117,7 +124,7 @@ const DOOR_EVERY = 3; // a room's door along it, every so many tiles
 // biggest, front to back; and one long room along the front behind the
 // others, through a door up the hall from the stairwell; a bed in each.
 function hallway(room: Room, stairs: Furniture): Furniture[] {
-  const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true });
+  const piece = (wall: 'left' | 'back', x: number, z: number, door: boolean): Furniture => ({ kind: door ? 'hallDoor' : 'hallWall', x, z, w: 1, d: 1, wall, solid: true, ...(door && { locked: true }) }); // (every room's locked)
   const walls: Furniture[] = [];
   const mid = HALL + Math.floor((room.depth - HALL) / 2); // halfway to the front
   // The front room's door, up the hall from the stairwell: across the joint of
