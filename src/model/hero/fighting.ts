@@ -76,8 +76,7 @@ export function cryptHooks(fight: Fight): CryptHooks {
     },
     frost: (draugr) => {
       heroStruck(fight, 1, draugr);
-      makeChilled(fight.hero, CHILL_FOR);
-      fight.report({ kind: 'chilled' });
+      chill(fight, CHILL_FOR);
     },
     report: (event) => fight.report(event),
     dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
@@ -86,6 +85,12 @@ export function cryptHooks(fight: Fight): CryptHooks {
 }
 
 const GHOST_CHILL = 2.5; // seconds a ghost's touch chills the hero
+
+// The hero chilled (slowed) for `seconds`, told (a draugr's frost, a ghost's touch).
+function chill(fight: Fight, seconds: number): void {
+  makeChilled(fight.hero, seconds);
+  fight.report({ kind: 'chilled' });
+}
 
 export const KNOCK_TIME = 0.35; // seconds a knock carries the hero
 const KNOCK_HOP = 0.18; // how high they're thrown, at the most
@@ -115,10 +120,7 @@ export function foeStrikes(fight: Fight, enemy: Enemy): void {
   if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
   const hp = fight.hero.hp;
   heroStruck(fight, enemy.damage, enemy);
-  if (enemy.kind === 'ghost' && fight.hero.hp < hp) {
-    makeChilled(fight.hero, GHOST_CHILL);
-    fight.report({ kind: 'chilled' });
-  }
+  if (enemy.kind === 'ghost' && fight.hero.hp < hp) chill(fight, GHOST_CHILL);
 }
 
 // The hero struck for `damage` (by `by`, if it's someone to turn to): dodged maybe (Agility), else hurt;

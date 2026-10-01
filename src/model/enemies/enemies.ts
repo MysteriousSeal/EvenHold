@@ -172,14 +172,11 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   const { steer, sees } = actions;
   // Bound to a place (a ruin's ghost): never a step out of it, nor after the hero once they're out of it.
   const haunt = enemy.haunt;
-  const within = (p: { x: number; z: number }) => !haunt || (p.x >= haunt.x0 && p.x <= haunt.x1 && p.z >= haunt.z0 && p.z <= haunt.z1);
+  const kept = (p: { x: number; z: number }) => (haunt ? { x: Math.min(haunt.x1, Math.max(haunt.x0, p.x)), z: Math.min(haunt.z1, Math.max(haunt.z0, p.z)) } : p);
+  const within = (p: { x: number; z: number }) => kept(p).x === p.x && kept(p).z === p.z;
   const move = (e: Enemy, dx: number, dz: number) => {
-    if (haunt && !within({ x: e.x + dx, z: e.z + dz })) {
-      dx = Math.min(haunt.x1, Math.max(haunt.x0, e.x + dx)) - e.x;
-      dz = Math.min(haunt.z1, Math.max(haunt.z0, e.z + dz)) - e.z;
-      if (Math.hypot(dx, dz) < 1e-5) return false;
-    }
-    return actions.move(e, dx, dz);
+    const to = kept({ x: e.x + dx, z: e.z + dz });
+    return Math.hypot(to.x - e.x, to.z - e.z) >= 1e-5 && actions.move(e, to.x - e.x, to.z - e.z);
   };
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
@@ -261,7 +258,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
         pen !== undefined
           ? { x: enemy.homeX + Math.floor(hx * (2 * pen + 1)) - pen, z: enemy.homeZ + Math.floor(hz * (2 * pen + 1)) - pen }
           : { x: enemy.homeX + (hx - 0.5) * 2 * stats.wander, z: enemy.homeZ + (hz - 0.5) * 2 * stats.wander };
-      if (haunt) enemy.target = { x: Math.min(haunt.x1, Math.max(haunt.x0, enemy.target.x)), z: Math.min(haunt.z1, Math.max(haunt.z0, enemy.target.z)) };
+      enemy.target = kept(enemy.target);
       if (actions.standable?.(enemy, enemy.target.x, enemy.target.z)) break;
     }
   }

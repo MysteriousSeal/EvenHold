@@ -22,7 +22,7 @@ import { makeEnemy } from '../enemies/enemies';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { isFloor, type CryptPlan } from './cryptLayout';
 import { cryptBlocks, type CryptInside } from './crypts';
-import { floorHeight } from './cryptProps';
+import { exitDoor, floorHeight, solidTiles } from './cryptProps';
 
 export const CRYPT_FOE_ID = 3_000_000; // guards' ids: this plus their post's number (clear of the world's and the quests')
 const ARROW_SPEED = 7; // tiles a second
@@ -69,7 +69,7 @@ export interface Post {
 export function guardPosts(seed: number, inside: CryptInside): Post[] {
   const { plan, props, crypt } = inside;
   const rng = mulberry32(hashCell(crypt.ruin.x * 5 + 1, crypt.ruin.z * 3 + 7, seed + 4421));
-  const solid = new Set(props.filter((p) => p.solid).flatMap((p) => tilesOf(p.x, p.z, p.x + p.w - 1, p.z + p.d - 1)));
+  const solid = solidTiles(props);
   const taken = new Set<string>();
   const great = plan.places.find((p) => p.kind === 'great');
   const inGreat = (x: number, z: number) => !!great && x >= great.x0 - 1 && x <= great.x1 + 1 && z >= great.z0 - 1 && z <= great.z1 + 1; // (his alone)
@@ -105,23 +105,6 @@ export function guardPosts(seed: number, inside: CryptInside): Post[] {
     else post(place.x0, place.z0, place.x1, place.z1, 2 + (rng() < 0.25 ? 1 : 0));
   }
   return posts;
-}
-
-// Where a crypt's way out stands (its door, in the rock): in its great hall's back wall (low z) right behind the
-// great tomb, centred on it; else in a back corner; its floor before it open, either way; else none.
-export function exitDoor(inside: CryptInside): { x: number; z: number } | null {
-  const great = inside.plan.places.find((p) => p.kind === 'great');
-  if (!great) return null;
-  const solid = new Set(inside.props.filter((p) => p.solid || p.kind === 'dais').flatMap((p) => tilesOf(p.x, p.z, p.x + p.w - 1, p.z + p.d - 1)));
-  const fits = (x: number) => !isFloor(inside.plan, x, great.z0 - 1) && isFloor(inside.plan, x, great.z0) && !solid.has(cellKey(x, great.z0));
-  // Right behind the great tomb, centred on it (between its tiles, it being two wide), the floor behind it its step.
-  const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus');
-  if (tomb && [tomb.x, tomb.x + tomb.w - 1].every(fits)) return { x: tomb.x + (tomb.w - 1) / 2, z: great.z0 - 1 };
-  for (const x of [great.x0 + 1, great.x1 - 1, great.x0, great.x1]) {
-    const [rock, floor] = [{ x, z: great.z0 - 1 }, { x, z: great.z0 }];
-    if (!isFloor(inside.plan, rock.x, rock.z) && isFloor(inside.plan, floor.x, floor.z) && !solid.has(cellKey(floor.x, floor.z))) return rock;
-  }
-  return null;
 }
 
 // A crypt's key, for its record of the slain: its ruin's corner.
@@ -306,7 +289,7 @@ export class CryptFoes {
   get exitOpen(): { x: number; z: number } | null {
     return this.slain.has(LORD_POST) && this.exit ? { x: this.exit.x, z: this.exit.z + 1 } : null;
   }
-  readonly exit: { x: number; z: number } | null; // the door's tile, in the rock
+  readonly exit: { x: number; z: number } | null; // the door's tile, in the rock (cryptProps.ts: exitDoor)
 
   // His chest, if the hero's at it and it's not opened yet.
   chestInReach(hero: { x: number; z: number }): boolean {

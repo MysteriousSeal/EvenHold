@@ -143,11 +143,6 @@ function greatHall(hall: Rect, put: (kind: CryptPropKind, x: number, z: number, 
 // (no open floor left by a stretch of it, diagonally even: a row of urns along a wall), left out.
 function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
   const solid = new Set<string>();
-  const footprint = (p: CryptProp) => {
-    const tiles: string[] = [];
-    for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) tiles.push(cellKey(x, z));
-    return tiles;
-  };
   let open = plan.floor.reduce((a, b) => a + b, 0); // floor tiles nothing solid stands on
   const stillOpen = (p: CryptProp) => {
     const seen = flood([[plan.door, plan.depth - 1]], (x, z) => isFloor(plan, x, z) && !solid.has(cellKey(x, z)));
@@ -176,6 +171,32 @@ function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
     }
   }
   return kept;
+}
+
+// The floor tiles a prop stands on.
+function footprint(p: CryptProp): string[] {
+  const tiles: string[] = [];
+  for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) tiles.push(cellKey(x, z));
+  return tiles;
+}
+
+// The floor tiles something solid stands on (and those of whatever else `also` says).
+export function solidTiles(props: readonly CryptProp[], also: (p: CryptProp) => boolean = () => false): Set<string> {
+  return new Set(props.filter((p) => p.solid || also(p)).flatMap(footprint));
+}
+
+// Where a crypt's way out stands (its door, in the rock): in its great hall's back wall (low z) right behind the
+// great tomb, centred on it (between its tiles, it being two wide); else in a back corner; the floor before it
+// open (its step), either way; else none. Opened when its lord's slain (cryptFoes.ts); no niches round it (above).
+export function exitDoor({ plan, props }: { plan: CryptPlan; props: readonly CryptProp[] }): { x: number; z: number } | null {
+  const great = plan.places.find((p) => p.kind === 'great');
+  if (!great) return null;
+  const solid = solidTiles(props, (p) => p.kind === 'dais');
+  const fits = (x: number) => !isFloor(plan, x, great.z0 - 1) && isFloor(plan, x, great.z0) && !solid.has(cellKey(x, great.z0));
+  const tomb = props.find((p) => p.kind === 'greatSarcophagus');
+  if (tomb && [tomb.x, tomb.x + tomb.w - 1].every(fits)) return { x: tomb.x + (tomb.w - 1) / 2, z: great.z0 - 1 };
+  const corner = [great.x0 + 1, great.x1 - 1, great.x0, great.x1].find(fits);
+  return corner === undefined ? null : { x: corner, z: great.z0 - 1 };
 }
 
 // How high the floor stands at (x, z) (room tiles): the great hall's dais raised over the rest, its top a step
