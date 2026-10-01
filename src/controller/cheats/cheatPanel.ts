@@ -12,7 +12,7 @@ import {
   nearestLakeShore,
   nearestPack,
   nextVillage,
-  resetCrypts, slayNearby,
+  resetCrypts, slayNearby, spawnDraugr,
   spawnEnemyNear,
   spawnTile,
   villageEntrance,
@@ -251,6 +251,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         actions: [
           { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
           { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
+          { icon: ICON.slay, title: 'Summon a draugr', detail: 'At your level, just ahead of you (in a crypt: with its breath and cleave)', run: () => (spawnDraugr(model), `A draugr of level ${model.hero.level} rises.`) },
           { icon: ICON.boar, title: 'Summon a boar', detail: 'Appears just ahead of you (passive until struck)', run: () => (spawnEnemyNear(model, 'boar'), 'A boar appears.') },
           { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
           { icon: ICON.ruin, title: 'Reset crypts', detail: 'Every guard back at his post (out of a crypt first)', run: () => (resetCrypts(model), 'The crypts are guarded again.') },
