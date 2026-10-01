@@ -21,7 +21,7 @@ import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
-import { Nav, nearestBoard, nearestDoor, openNear } from './nav';
+import { Nav, heroState, nearestBoard, nearestDoor, openNear, standableNear } from './nav';
 import { Errands, power, type Status } from './errands';
 
 type Step = (dt: number) => Status;
@@ -56,6 +56,8 @@ export class Bot {
   private lastHp: number;
   private readonly shunned = new Set<Enemy>(); // foes found out of reach (across water, say): let be
   private defense: Step | null = null;
+  private readonly skipped = new Set<unknown>(); // loot it couldn't get at: let be
+  private plans: number[] = []; // when it last planned (game seconds), to catch it going round in circles
   private readonly errands: Errands; // fighting off a foe that's set on the hero, whatever else was going on
 
   constructor(
@@ -135,15 +137,18 @@ export class Bot {
   private plan(): void {
     const { hero, quests } = this.model;
     this.nav.reset();
+    // Planning afresh over and over (nothing it picks gets going): say so, once a while.
+    this.plans = [...this.plans.filter((at) => this.model.minutes - at < 5), this.model.minutes];
+    if (this.plans.length > 50) this.plans = (this.report('bot going round in circles', `${this.plans.length} plans in 5 s, last ${this.goal}${heroState(this.model)}`), []);
     const hurt = hero.hp < maxHpOf(hero) * 0.4;
     const tired = hero.energy < maxEnergyOf(hero) * 0.3;
     const done = quests.taken.find((t) => quests.done(t));
     const going = quests.taken.find((t) => !quests.done(t));
-    const loot = this.model.loot.find((l) => Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
+    const loot = this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
     const foe = this.nearestFoe(12);
     const pick = (): string => {
+      if (hurt) return 'heal'; // (in an inn already: at its bar)
       if (this.model.inside) return 'leave';
-      if (hurt) return 'heal';
       if (tired) return 'sleep';
       if (done) return 'hand in';
       if (loot) return 'loot';
@@ -164,8 +169,12 @@ export class Bot {
     switch (goal) {
       case 'leave':
         return this.leave();
-      case 'heal':
-        return [...this.enter(inn()), ...this.atTheBar('ale'), ...this.leave()];
+      case 'heal': {
+        const here = this.model.inside;
+        const atInn = here?.entrance.type === 'inn';
+        const getThere = atInn ? (here.below ? this.leave().slice(0, 1) : []) : [...this.leave(), ...this.enter(inn())]; // (upstairs: down first)
+        return [...getThere, ...this.atTheBar('ale'), ...this.leave()];
+      }
       case 'pie':
         return [...this.enter(inn()), ...this.atTheBar('pie'), ...this.leave()];
       case 'nap':
@@ -247,8 +256,8 @@ export class Bot {
       if (state === 'stuck') {
         const { hero, inside } = this.model;
         if (Math.hypot(target.x - hero.x, target.z - hero.z) < 1.5) return 'fail'; // (the last bit: up to what asked for it)
-        const hemmed = this.heroState().includes('against');
-        this.report(hemmed ? 'hero hemmed in by villagers' : 'hero stuck', `${this.goal}: at ${hero.x.toFixed(2)},${hero.z.toFixed(2)} ${inside ? `in the ${inside.entrance.type}${inside.below ? ' upstairs' : ''}` : 'outdoors'}, going to ${target.x.toFixed(2)},${target.z.toFixed(2)}${this.heroState()}`);
+        const hemmed = heroState(this.model).includes('against');
+        this.report(hemmed ? 'hero hemmed in by villagers' : 'hero stuck', `${this.goal}: at ${hero.x.toFixed(2)},${hero.z.toFixed(2)} ${inside ? `in the ${inside.entrance.type}${inside.below ? ' upstairs' : ''}` : 'outdoors'}, going to ${target.x.toFixed(2)},${target.z.toFixed(2)}${heroState(this.model)}`);
         return 'fail';
       }
       return state === 'no way' ? 'fail' : 'run';
@@ -434,7 +443,9 @@ export class Bot {
     if (this.model.pickUp()) return 'ok';
     const { hero } = this.model;
     const d = Math.hypot(loot.x - hero.x, loot.z - hero.z);
-    if (this.model.loot.includes(loot as never) && d > PICKUP_RANGE) this.report('loot out of reach', `at ${loot.x.toFixed(2)},${loot.z.toFixed(2)}, hero as near as ${d.toFixed(2)}${this.heroState()}`);
+    // (Somewhere in reach of it the hero could stand: the bot's way there's the trouble, not the game's.)
+    if (this.model.loot.includes(loot as never) && d > PICKUP_RANGE && !standableNear(this.model, loot, PICKUP_RANGE)) this.report('loot out of reach', `at ${loot.x.toFixed(2)},${loot.z.toFixed(2)}, hero as near as ${d.toFixed(2)}${heroState(this.model)}`);
+    this.skipped.add(loot);
     return 'fail';
   }
 
@@ -473,16 +484,6 @@ export class Bot {
   }
 
   // Helpers.
-
-  // What the hero's doing, for a report (only what's out of the ordinary).
-  private heroState(): string {
-    const { hero } = this.model;
-    const odd = [this.model.yard && 'in a yard', this.model.seated && 'seated', hero.drinking && 'drinking', hero.energy < 1 && `energy ${hero.energy.toFixed(1)}`, hero.hp < 1 && `health ${hero.hp.toFixed(1)}`];
-    const npcs = this.model.npcs.filter((n) => n.where === (this.model.inside?.entrance ?? null) && Math.hypot(n.x - hero.x, n.z - hero.z) < 0.9).map((n) => `${n.name} the ${n.role}`);
-    const foes = this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 1.5).map((e) => `a ${e.kind} (${e.state})`);
-    odd.push(...npcs.map((n) => `against ${n}`), ...foes.map((f) => `by ${f}`));
-    return odd.filter(Boolean).length ? ` (${odd.filter(Boolean).join(', ')})` : '';
-  }
 
   private nearestFoe(within: number): Enemy | null {
     const { hero } = this.model;

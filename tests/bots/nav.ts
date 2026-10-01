@@ -175,3 +175,19 @@ export function openNear(model: GameModel, rng: () => number, x: number, z: numb
   }
   return null;
 }
+
+// Whether the hero could stand somewhere within `reach` of a point (outdoors).
+export function standableNear(model: GameModel, at: Point, reach: number): boolean {
+  for (let r = 0.3; r < reach; r += 0.25) for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) if (!model.isBlocked(at.x + Math.cos(a) * r, at.z + Math.sin(a) * r, HERO_RADIUS)) return true;
+  return false;
+}
+
+// What the hero's doing, for a report (only what's out of the ordinary), and who's pressed up against them.
+export function heroState(model: GameModel): string {
+  const { hero } = model;
+  const odd = [model.yard && 'in a yard', model.seated && 'seated', hero.drinking && 'drinking', hero.energy < 1 && `energy ${hero.energy.toFixed(1)}`, hero.hp < 1 && `health ${hero.hp.toFixed(1)}`];
+  const npcs = model.npcs.filter((n) => n.where === (model.inside?.entrance ?? null) && Math.hypot(n.x - hero.x, n.z - hero.z) < 0.9).map((n) => `${n.name} the ${n.role}`);
+  const foes = model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 1.5).map((e) => `a ${e.kind} (${e.state})`);
+  odd.push(...npcs.map((n) => `against ${n}`), ...foes.map((f) => `by ${f}`));
+  return odd.filter(Boolean).length ? ` (${odd.filter(Boolean).join(', ')})` : '';
+}

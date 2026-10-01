@@ -29,10 +29,10 @@ export class Errands {
   // Its points all back, for a price (by level), and spent again at once (chores()).
   respec(): Status {
     const { hero } = this.model;
-    const [money, spent] = [hero.money, STATS.reduce((sum, s) => sum + hero.trained[s], 0)];
+    const [money, unspent, spent] = [hero.money, hero.statPoints, STATS.reduce((sum, s) => sum + hero.trained[s], 0)];
     const result = resetPoints(hero);
     if (result === 'reset') {
-      if (hero.statPoints !== spent) this.report('points reset wrong', `${spent} spent, ${hero.statPoints} back`);
+      if (hero.statPoints !== unspent + spent) this.report('points reset wrong', `${spent} spent and ${unspent} to spend, ${hero.statPoints} after`);
       if (hero.money !== money - resetCost(hero.level)) this.report('points reset charged wrong', `${money - hero.money} for ${resetCost(hero.level)}`);
     }
     return 'ok';
