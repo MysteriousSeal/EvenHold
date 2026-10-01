@@ -1,9 +1,7 @@
 // The ruins' outer walls (ruinVoxels.ts: wall, wallBroken, arch, corner), in
 // their strip along the tile's -Z edge (WALL deep, what blocks: ruins.ts),
-// jutting a voxel at most toward the ruin's middle. Ashlar: chunky blocks in
-// courses five high, of lengths varied course to course, the joints sunk a
-// voxel (shadowed) on both faces, each block's top edge catching the light
-// and its foot in shade; a plinth course along the bottom, jutting; at each
+// jutting a voxel at most toward the ruin's middle. Ashlar (voxel/ashlar.ts)
+// in the ruins' stone, on both faces; a plinth course along the bottom, jutting; at each
 // end of a tile half a pilaster (a whole one where two walls meet, so a wall
 // runs on with a pier every tile, never a seam); a coping course along the
 // top, overhanging, crenels gapped in it. Weathered: a block fallen out here
@@ -14,34 +12,14 @@ import type { VoxelGrid } from '../voxel/greedyMesh';
 import { fillBox } from '../voxel/voxelShapes';
 import { hashUnit } from '../../../util/random';
 import { C } from './ruinVoxels';
+import { ashlarBlock, ashlarStone as stoneOf, type Tones } from '../voxel/ashlar';
 
 export const WALL = 7; // a wall's thickness, from the tile's -Z edge
 const PLINTH = 2; // the plinth's top course
 const PIER = 2; // a half-pilaster's width, at each end
-// Where the joints fall along each course (between them, a block), by course: never in line course to course.
-const JOINTS = [
-  [8, 16],
-  [5, 12, 19],
-  [10, 17],
-  [6, 13, 20],
-];
-
-// Which block of its course `along` is in, at `y` up from the ashlar's foot (-1: a joint).
-export function ashlarBlock(along: number, y: number, variant: number): number {
-  const joints = JOINTS[(Math.floor(y / 5) + variant) % JOINTS.length];
-  const at = ((along % 25) + 25) % 25; // (the joints laid out a tile at a time)
-  return y % 5 === 4 || joints.includes(at) ? -1 : joints.filter((j) => j < at).length + Math.floor(along / 25) * 4;
-}
-
-// The stone of ashlar at `along` and `y` up from its foot: courses five high, chunky blocks, the joints in
-// mortar (sunk on its `face`: 0, nothing there); a block's top edge lit, its foot in shade, on the face.
-export function ashlarStone(along: number, y: number, face: boolean, variant: number, salt: number): number {
-  const block = ashlarBlock(along, y, variant);
-  if (block < 0) return face ? 0 : C.mortar;
-  const [course, row] = [Math.floor(y / 5), y % 5];
-  const tone = [C.stone, C.stoneDark, C.stone, C.stoneLight][Math.floor(hashUnit(block * 7 + course, variant, salt) * 4)];
-  return face && row === 3 ? (tone === C.stoneDark ? C.stone : C.stoneLight) : face && row === 0 ? C.stoneDark : tone;
-}
+const TONES = (): Tones => ({ stone: C.stone, dark: C.stoneDark, light: C.stoneLight, mortar: C.mortar }); // (when first wanted: ruinVoxels.ts and this need each other)
+export { ashlarBlock };
+export const ashlarStone = (along: number, y: number, face: boolean, variant: number, salt: number): number => stoneOf(TONES(), along, y, face, variant, salt);
 
 // A wall's crenellated top, `high` at its merlons: the piers a little higher, a crenel gapped in the middle,
 // worn ragged (by variant, how far).

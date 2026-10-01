@@ -16,6 +16,7 @@ import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptProp } from '../../model/crypts/cryptProps';
 import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, stairsUp, wallTile } from './cryptVoxels';
 import { FLOOR_DEEP, floorTile } from './cryptFloorVoxels';
+import { ARCADE } from './cryptWallVoxels';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const RELIGHT = 0.4; // tiles the hero moves before they're placed again
@@ -47,6 +48,7 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
     pieces.set(key, piece);
   };
 
+  const hung = new Set(props.filter((p) => ON_WALL.has(p.kind)).map((p) => `${p.x},${p.z}`)); // rock with a sconce or a niche on it
   const fading: Array<{ x: number; z: number; variant: number }> = []; // rock that can hide the hero: see-through when he's behind it
   // The floor, a flagstone tile in one of four looks per tile; the rock beside it.
   const floor = (x: number, z: number) => isFloor(plan, x, z);
@@ -61,9 +63,12 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
       if (!beside) continue;
       if (x === plan.door || x === plan.door + 1) if (z === plan.depth) continue; // (the stairs stand there)
       // All full height; those that can stand between the camera and the floor (not inFullView) fade when the hero's behind them.
-      const variant = (x * 7 + z * 13) % 2;
-      if (inFullView(plan, x, z)) place(`tall:${variant}`, () => wallTile(TALL, variant), x, -CRYPT_VOXEL, z);
-      else fading.push({ x, z, variant });
+      // A blind arch now and then, on the far rock only (facing the floor, where nothing hangs): never on what's seen from outside.
+      const plain = (x * 7 + z * 13) % 2;
+      if (inFullView(plan, x, z)) {
+        const variant = (x * 31 + z * 17) % 9 === 0 && !hung.has(`${x},${z}`) ? ARCADE : plain;
+        place(`tall:${variant}`, () => wallTile(TALL, variant), x, -CRYPT_VOXEL, z);
+      } else fading.push({ x, z, variant: plain });
     }
   }
   // The stairs up at the door, across the corridor's two tiles.
