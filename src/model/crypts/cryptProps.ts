@@ -1,8 +1,8 @@
 // What a crypt holds (cryptLayout.ts its plan), rolled from the same seed:
 // sconces along the corridor walls and niches of skulls in the rooms' walls
-// (both in the rock, facing the floor, on the walls always in full view), cobwebs in the far corners, bones and
+// (both in the rock, facing the floor, on the walls always in full view), cobwebs in the far corners, the dead (stretched out, slumped against the rock, or scattered bones) and
 // scattered stones on the floor; in the side rooms sarcophagi, urns, candles
-// and fallen rubble; in the halls on the way candles and bones; and in the
+// and fallen rubble; in the halls on the way candles and the dead; and in the
 // great hall at the end a dais with the great sarcophagus on it, rows of
 // sarcophagi either side and candles at its corners. Nothing solid is ever
 // left where it would shut the way on (checked, and taken out if it does).
@@ -10,7 +10,7 @@
 import { hashCell, mulberry32 } from '../../util/random';
 import { isFloor, inFullView, type CryptPlan, type Rect } from './cryptLayout';
 
-export type CryptPropKind = 'sconce' | 'niche' | 'cobweb' | 'bones' | 'stones' | 'sarcophagus' | 'urns' | 'candles' | 'rubble' | 'dais' | 'greatSarcophagus';
+export type CryptPropKind = 'sconce' | 'niche' | 'cobweb' | 'skeleton' | 'slumped' | 'bones' | 'stones' | 'sarcophagus' | 'urns' | 'candles' | 'rubble' | 'dais' | 'greatSarcophagus';
 
 export interface CryptProp {
   kind: CryptPropKind;
@@ -20,8 +20,11 @@ export interface CryptProp {
   d: number; // along z
   facing: number; // quarter turns: which way it faces (0 +z, 1 +x, 2 -z, 3 -x): a wall piece's, the floor it looks out on
   solid: boolean;
-  variant: number; // 0..3
+  variant: number; // 0..3 (the dead's: 0..11, its look by variant % 4, and its gear, if any, by variant >> 2: REMAINS)
 }
+
+// The dead's variants: four looks, each with nothing, or a rusty sword, or a helmet and shield beside it.
+export const REMAINS = 12;
 
 const SIDES: Array<[number, number]> = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // by facing
 const SCONCE_EVERY = 6; // corridor tiles between sconces
@@ -51,6 +54,16 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
     return tiles;
   };
   const byWall = (r: Rect) => tilesOf(r).filter(([x, z]) => wallsBeside(x, z).length > 0);
+  // Someone who died down here: slumped against the rock (where there's rock in full view beside them),
+  // else lying stretched out, else bones scattered; turned any way; now and then their rusted gear by them.
+  const theDead = (x: number, z: number) => {
+    const wall = farWallsBeside(x, z)[0];
+    const r = rng();
+    const kind: CryptPropKind = wall && r < 0.3 ? 'slumped' : r < 0.65 ? 'skeleton' : 'bones';
+    const facing = kind === 'slumped' ? wall.facing : Math.floor(rng() * 4);
+    if (!put(kind, x, z, 1, 1, facing)) return;
+    props[props.length - 1].variant = Math.floor(rng() * REMAINS);
+  };
 
   for (const place of plan.places) {
     if (place.kind === 'corridor') {
@@ -62,7 +75,7 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
           if (wall && !props.some((p) => p.x === wall.x && p.z === wall.z)) onWall('sconce', wall.x, wall.z, wall.facing);
         }
         const r = rng();
-        if (r < 0.04) put('bones', x, z);
+        if (r < 0.04) theDead(x, z);
         else if (r < 0.08) put('stones', x, z);
       });
       continue;
@@ -88,7 +101,7 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
       // A hall on the way: candles at two corners, bones about.
       put('candles', place.x0, place.z0);
       put('candles', place.x1, place.z1);
-      for (const [x, z] of tilesOf(place)) if (rng() < 0.05) put('bones', x, z);
+      for (const [x, z] of tilesOf(place)) if (rng() < 0.05) theDead(x, z);
     }
     // In the rooms' walls, niches of skulls every other tile or so.
     for (const [x, z] of byWall(place)) for (const wall of farWallsBeside(x, z)) if (rng() < 0.3 && !props.some((p) => p.x === wall.x && p.z === wall.z)) onWall('niche', wall.x, wall.z, wall.facing);
@@ -96,8 +109,8 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
   // Cobwebs in the far inner corners (floor with rock on its -x and -z sides: those seen).
   for (let x = 0; x < plan.width; x++) {
     for (let z = 0; z < plan.depth; z++) {
-      if (!floor(x, z) || taken.has(key(x, z))) continue;
-      if (inFullView(plan, x - 1, z) && inFullView(plan, x, z - 1) && rng() < 0.35) props.push({ kind: 'cobweb', x, z, w: 1, d: 1, facing: 0, solid: false, variant: Math.floor(rng() * 4) });
+      if (!floor(x, z)) continue; // (high up: over whatever stands there)
+      if (inFullView(plan, x - 1, z) && inFullView(plan, x, z - 1) && rng() < 0.4) props.push({ kind: 'cobweb', x, z, w: 1, d: 1, facing: 0, solid: false, variant: Math.floor(rng() * 4) });
     }
   }
   return keepTheWayOpen(plan, props);
