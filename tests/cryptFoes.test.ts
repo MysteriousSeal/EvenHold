@@ -171,4 +171,43 @@ describe('the crypts\' guards', () => {
     });
     expect(model.clearedShare(crypt.entrance)).toBe(1);
   });
+
+  it('shamble about their posts with no one near: off them now and then, a few tiles at most, slow, pausing long, never into the rock', () => {
+    const model = new GameModel(3, MID);
+    goDown(model);
+    const crypt = model.crypt!;
+    const { plan } = cryptInside(model.seed, model.inside!.entrance);
+    // Where the hero stands: the floor with the most guards near enough to stir (within 30 tiles), none within their sight (8).
+    let best = { x: plan.door, z: plan.depth - 1, count: -1 };
+    for (let x = 0; x < plan.width; x += 2) for (let z = 0; z < plan.depth; z += 2) {
+      if (!isFloor(plan, x, z) || model.foes.some((f) => Math.hypot(f.x - x, f.z - z) < 8)) continue;
+      const count = model.foes.filter((f) => Math.hypot(f.x - x, f.z - z) < 30).length;
+      if (count > best.count) best = { x, z, count };
+    }
+    Object.assign(model.hero, { x: best.x, z: best.z });
+    const near = model.foes.filter((f) => Math.hypot(f.x - best.x, f.z - best.z) < 30); // (those near enough to stir: the far ones think only once the hero comes near)
+    const posts = new Map(near.map((f) => [f, { x: f.homeX, z: f.homeZ }]));
+    const moved = new Set<unknown>();
+    let walking = 0;
+    let frames = 0;
+    for (let t = 0; t < 60; t += FRAME) {
+      const before = model.foes.map((f) => [f.x, f.z]);
+      crypt.update(FRAME);
+      model.foes.forEach((f, i) => {
+        if (f.state !== 'wander') return posts.delete(f); // (any that saw him: chasing, not roaming)
+        if (!posts.has(f)) return;
+        const step = Math.hypot(f.x - before[i][0], f.z - before[i][1]);
+        frames++;
+        if (step > 1e-6) walking++;
+        expect(step / FRAME).toBeLessThan(1); // (a shamble: well under their run, a sidestep round a corner or easing apart at most)
+        const post = posts.get(f)!;
+        expect(Math.hypot(f.x - post.x, f.z - post.z)).toBeLessThan(2.5 * Math.SQRT2 + 0.3);
+        expect(isFloor(plan, Math.round(f.x), Math.round(f.z))).toBe(true);
+        if (Math.hypot(f.x - post.x, f.z - post.z) > 0.5) moved.add(f);
+      });
+    }
+    expect(posts.size).toBeGreaterThan(5);
+    expect(moved.size).toBeGreaterThan(posts.size / 2); // (most get about)
+    expect(walking / frames).toBeLessThan(0.5); // (more paused than walking)
+  });
 });
