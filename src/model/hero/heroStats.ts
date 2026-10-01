@@ -14,18 +14,23 @@ const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a col
 
 export { maxHpAt }; // a hero's health at `level`, with nothing on and no Stamina (more with it: maxHpOf)
 
-// Experience from `level` to the next: 30, 45, 60, ...
+// Experience from `level` to the next: a steady climb through the first
+// levels (60, 70, 80 … 120 at level 7), then 15 more a level (135, 150, …),
+// so the start isn't over in minutes and there's no step up after it.
 export function xpToNext(level: number): number {
-  return 15 + level * 15;
+  return Math.max(50 + level * 10, 15 + level * 15);
 }
 
 // Experience for beating something of `foeLevel` (a foe, or a quest's foes),
 // by how it measures up to the hero: full at their own level, more above,
-// less and less below, and a token 1 once it's trivial (3 or more below).
+// less and less below (a little still at 3 and 4 below: what's about once
+// the hero's outgrown a place), and a token 1 once it's trivial (TRIVIAL below).
+export const TRIVIAL = 5; // levels below the hero, a foe's worth only a token
 export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): number {
   const gap = foeLevel - heroLevel;
-  if (gap <= -3) return 1;
-  const factor = gap >= 3 ? 1.3 : gap >= 1 ? 1.15 : gap === 0 ? 1 : gap === -1 ? 0.7 : 0.4;
+  if (gap <= -TRIVIAL) return 1;
+  const below = [1, 0.75, 0.55, 0.35, 0.2]; // by levels below: 0, 1, 2, 3, 4
+  const factor = gap >= 3 ? 1.3 : gap >= 1 ? 1.15 : below[-gap];
   return Math.max(1, Math.round(xp * factor));
 }
 
