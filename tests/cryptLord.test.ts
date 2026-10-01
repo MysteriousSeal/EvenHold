@@ -145,4 +145,24 @@ describe('a crypt\'s lord', () => {
     expect(loaded.cleared(`${crypt.ruin.x},${crypt.ruin.z}`).has(LORD_POST)).toBe(true);
     expect(CryptFoes.postOf(lord)).toBe(LORD_POST);
   });
+
+  it('stands before his tomb, the hero in plain sight, till he\'s struck; then he\'s on the hero', () => {
+    const model = new GameModel(2, MID);
+    goDown(model);
+    clearTo(model, RISES_AT);
+    model.update(0, 0, FRAME);
+    const lord = lordOf(model)!;
+    for (const f of model.foes) if (f !== lord) f.state = 'dead';
+    const home = { x: lord.x, z: lord.z };
+    Object.assign(model.hero, { x: lord.x, z: lord.z + 2.5 });
+    for (let t = 0; t < 6; t += FRAME) model.crypt!.update(FRAME);
+    expect(lord.state).not.toBe('chase');
+    expect(Math.hypot(lord.x - home.x, lord.z - home.z)).toBeLessThan(0.05);
+    Object.assign(model.hero, { x: lord.x, z: lord.z + 0.5, facing: Math.PI });
+    model.focus(lord.id);
+    model.startAttack();
+    for (let t = 0; t < 0.6; t += FRAME) model.update(0, 0, FRAME);
+    expect(lord.hp).toBeLessThan(lord.maxHp);
+    expect(lord.state).toBe('chase');
+  });
 });

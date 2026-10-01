@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMY_STATS, FOCUS_RANGE } from '../src/model/constants';
 import { FRAME, fresh } from './support/testWorld';
+import { cycleFocus } from '../src/model/hero/focus';
+import { makeEnemy } from '../src/model/enemies/enemies';
+import type { Enemy } from '../src/model/types';
 
 describe('enemy focus', () => {
   it('focuses a living enemy by id; not a dead one, and null lets go', () => {
@@ -118,5 +121,38 @@ describe('striking the focused enemy', () => {
     model.focus(a.id);
     model.startAttack();
     expect(model.hero.facing).toBe(facing);
+  });
+
+  it('turns with Tab to the next foe in sight, nearest first, round again; Shift+Tab back; none dead, too far or unseen', () => {
+    const at = { x: 0, z: 0 };
+    const foe = (id: number, x: number, more: Partial<Enemy> = {}): Enemy => ({ ...makeEnemy(id, 'wolf', x, 0), ...more });
+    const foes = [foe(1, 3), foe(2, 1), foe(3, 2), foe(4, 1.5, { state: 'dead' }), foe(5, FOCUS_RANGE + 2), foe(6, 2.5)];
+    let focused: Enemy | null = null;
+    const focusing = { hero: at, foes, get focused() { return focused; }, focus: (id: number | null) => void (focused = foes.find((f) => f.id === id) ?? null) };
+    const sees = (f: Enemy) => f.id !== 6; // (6 behind a wall)
+    const order: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      cycleFocus(focusing, sees);
+      order.push(focused!.id);
+    }
+    expect(order).toEqual([2, 3, 1, 2]); // nearest first (2 at 1, 3 at 2, 1 at 3), round again
+    cycleFocus(focusing, sees, true);
+    expect(focused!.id).toBe(1); // back
+    cycleFocus({ ...focusing, foes: [] }, sees);
+    expect(focused).toBeNull(); // nothing to focus: let go
+  });
+
+  it('turns with Tab in the game, among the foes in sight of the hero', () => {
+    const model = fresh();
+    const near = model.enemies.filter((e) => e.state !== 'dead').slice(0, 2);
+    model.enemies.splice(0, model.enemies.length, ...near);
+    Object.assign(near[0], { x: model.hero.x + 1, z: model.hero.z });
+    Object.assign(near[1], { x: model.hero.x + 2, z: model.hero.z });
+    model.cycleFocus();
+    expect(model.focused).toBe(near[0]);
+    model.cycleFocus();
+    expect(model.focused).toBe(near[1]);
+    model.cycleFocus(true);
+    expect(model.focused).toBe(near[0]);
   });
 });
