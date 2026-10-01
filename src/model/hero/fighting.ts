@@ -43,6 +43,7 @@ export function landBlow(fight: Fight): void {
   target.hurtFor = 0.25;
   target.swingFor = null; // a hit interrupts its own blow
   target.state = target.hp <= 0 ? 'dead' : 'chase';
+  if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
     if (target.id < FIRST_MOB_ID) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
     fight.slayGuard(target);
