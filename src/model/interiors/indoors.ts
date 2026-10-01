@@ -7,6 +7,7 @@ import type { Hero } from '../types';
 import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
 import { SIT_RANGE, bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
+import { cryptInside } from '../crypts/crypts';
 
 
 // Where the hero is while indoors: the building's door and its room (the
@@ -18,6 +19,7 @@ export interface Inside {
   furniture: Furniture[];
   seated: Seated;
   below?: Entrance; // upstairs: the building it's the upper floor of
+  walls?: (x: number, z: number, r: number) => boolean; // what else blocks, past the room's bounds and furniture (a crypt's rock and tombs)
 }
 
 // Where the hero's sitting (or lying), and the spot they sat down from; null standing.
@@ -29,8 +31,11 @@ const layouts = new WeakMap<Entrance, { room: Room; furniture: Furniture[] }>();
 export function layoutOf(seed: number, entrance: Entrance): { room: Room; furniture: Furniture[] } {
   let layout = layouts.get(entrance);
   if (!layout) {
-    const room = roomFor(seed, entrance);
-    layout = { room, furniture: furnish(seed, entrance, room) };
+    if (entrance.type === 'crypt') layout = { room: cryptInside(seed, entrance).room, furniture: [] }; // (its tombs are its own: crypts/)
+    else {
+      const room = roomFor(seed, entrance);
+      layout = { room, furniture: furnish(seed, entrance, room) };
+    }
     layouts.set(entrance, layout);
   }
   return layout;
@@ -53,10 +58,11 @@ export function walkInside(
   hero.facing = Math.atan2(dirX, dirZ);
   // Axis by axis, so the hero slides along furniture instead of sticking to it.
   const nx = Math.min(room.width - 0.5 - r, Math.max(-0.5 + r, hero.x + (dirX / len) * dist));
-  if (!bumpsFurniture(furniture, nx, hero.z, r) && !bumps(nx, hero.z, r)) hero.x = nx;
+  const blocked = (x: number, z: number) => bumpsFurniture(furniture, x, z, r) || bumps(x, z, r) || !!inside.walls?.(x, z, r);
+  if (!blocked(nx, hero.z)) hero.x = nx;
   const nz = hero.z + (dirZ / len) * dist;
   const clampedZ = Math.min(room.depth - 0.5 - r, Math.max(-0.5 + r, nz));
-  if (!bumpsFurniture(furniture, hero.x, clampedZ, r) && !bumps(hero.x, clampedZ, r)) hero.z = clampedZ;
+  if (!blocked(hero.x, clampedZ)) hero.z = clampedZ;
 }
 
 // The nearest seat the hero could sit on from where they stand (one no one

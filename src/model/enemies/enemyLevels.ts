@@ -19,10 +19,10 @@ export function enemyLevel(spawn: { x: number; z: number }, x: number, z: number
   return Math.max(1, Math.floor(base) + spread);
 }
 
-// A village's level: how far it lies from spawn, as foes' levels go (without their spread).
-// Its board's quests are all of it: better paid ones are found farther out.
-export function villageLevel(spawn: { x: number; z: number }, village: { x: number; z: number }): number {
-  return Math.max(1, Math.floor(1 + Math.hypot(village.x - spawn.x, village.z - spawn.z) / LEVEL_DISTANCE));
+// The level of a place (a village, a ruin's crypt): how far it lies from spawn, as foes'
+// levels go (without their spread). A village's quests are all of it: better paid ones farther out.
+export function zoneLevel(spawn: { x: number; z: number }, at: { x: number; z: number }): number {
+  return Math.max(1, Math.floor(1 + Math.hypot(at.x - spawn.x, at.z - spawn.z) / LEVEL_DISTANCE));
 }
 
 // What a `kind` of enemy at `level` has: health, damage per blow, experience.

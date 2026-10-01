@@ -170,9 +170,8 @@ export function restore(model: GameModel, data: SaveData): void {
   if (building) {
     const { room, furniture } = layoutOf(model.seed, building);
     const stairs = furniture.find((f) => f.kind === 'stairs');
-    model.inside = saved.upstairs && stairs
-      ? upstairsInside(building, room, stairs, model.seed, model.fullWalls) // on the floor above
-      : { entrance: building, room, furniture, seated: null };
+    if (saved.upstairs && stairs) model.inside = upstairsInside(building, room, stairs, model.seed, model.fullWalls); // on the floor above
+    else model.enterRoom(building); // (as going in: a crypt's walls with it)
     Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
   } else {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));

@@ -178,6 +178,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     };
   };
   const inns = entrances.filter((e) => e.type === 'inn');
+  const doors = entrances.filter((e) => e.type !== 'crypt').length; // (the buildings': staff ids count on from them, crypts or not)
   const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
   const villagers = entrances
     .filter((e) => e.type === 'house')
@@ -198,21 +199,21 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const staff = inns.flatMap((inn, i) => {
     const village = innVillages[i];
     if (!village) return [];
-    const id = entrances.length + i * 2;
+    const id = doors + i * 2;
     return (['barkeep', 'server'] as const).map((role, k) => person(id + k, role, inn, inn, village, { x: inn.x + 0.3 * (k + 1), z: inn.z - 0.2 }));
   });
   // A smith in each smithy, always at work in it.
   const smithies = entrances.filter((e) => e.type === 'smithy');
   const smiths = smithies.flatMap((smithy, i) => {
     const village = nearest(villages, smithy.x, smithy.z);
-    return village ? [person(entrances.length + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 })] : [];
+    return village ? [person(doors + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 })] : [];
   });
   // A bouncer in each inn, in his studded leathers, his hair cropped or shaved.
   const bouncers = inns.flatMap((inn, i) => {
     const village = innVillages[i];
     if (!village) return [];
     const at = { x: inn.x - 0.3, z: inn.z - 0.2 };
-    const npc = person(entrances.length + inns.length * 2 + smithies.length + i, 'bouncer', inn, inn, village, at);
+    const npc = person(doors + inns.length * 2 + smithies.length + i, 'bouncer', inn, inn, village, at);
     npc.look.hairStyle = hashUnit(npc.id, seed % 1_000_003, 77) < 0.5 ? 'cropped' : 'bald';
     npc.equipment = pickOutfit('bouncer', Math.round(at.x * 10), Math.round(at.z * 10));
     return [npc];

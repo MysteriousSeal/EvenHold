@@ -12,9 +12,10 @@ import { hashCell, mulberry32 } from '../../util/random';
 import type { Building, House } from '../types';
 
 export type BuildingType = 'house' | 'inn' | 'smithy';
+export type EntranceType = BuildingType | 'crypt'; // (a crypt's way in: stairs down in a ruin, crypts/crypts.ts)
 
 export interface Entrance {
-  type: BuildingType;
+  type: EntranceType;
   x: number; // just outside the door, where the hero stands to go in
   z: number;
   outX: number; // the way out of the door (a unit vector)
@@ -60,15 +61,17 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
 const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
 const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['timber', 'plaster'], smithy: ['stone'] };
 
-// The room behind a door: the same for a given seed and door, always.
+// The room behind a building's door: the same for a given seed and door, always.
+// (Never a crypt's: those are their own, crypts/crypts.ts.)
 export function roomFor(seed: number, entrance: Entrance): Room {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed));
   const roll = ([lo, hi]: [number, number]) => lo + Math.floor(rng() * (hi - lo + 1));
   const pick = <T>(options: T[]) => options[Math.floor(rng() * options.length)];
-  const size = SIZES[entrance.type];
+  const type = entrance.type as BuildingType;
+  const size = SIZES[type];
   const width = roll(size.width);
   const depth = roll(size.depth);
   const middle = Math.floor(width / 2);
   const door = width >= 7 ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle;
-  return { width, depth, door, floor: pick(FLOORS[entrance.type]), wall: pick(WALLS[entrance.type]) };
+  return { width, depth, door, floor: pick(FLOORS[type]), wall: pick(WALLS[type]) };
 }

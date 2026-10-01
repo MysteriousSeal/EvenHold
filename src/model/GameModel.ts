@@ -55,6 +55,7 @@ import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
+import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt } from './crypts/crypts';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -76,6 +77,7 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly ruins: Ruin[]; // old keeps and chapels out in the wilds (ruins/ruins.ts)
+  readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
@@ -135,6 +137,9 @@ export class GameModel {
     this.camps = world.camps;
     addRuinObstacles(this.obstacles, this.ruins); // (before the foes, to stand clear of them)
     addCampObstacles(this.obstacles, this.camps);
+    this.crypts = placeCrypts(this); // a stairway down in each ruin (its tile blocked: down with E)
+    addCryptObstacles(this.obstacles, this.crypts);
+    registerCrypts(this.crypts);
 
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
@@ -145,6 +150,7 @@ export class GameModel {
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
+    this.entrances.push(...this.crypts.map((c) => c.entrance)); // (the crypts' ways in, after the buildings' doors: they keep their places)
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
@@ -363,7 +369,9 @@ export class GameModel {
   enterRoom(entrance: Entrance): void {
     this.yard = null;
     const { room, furniture } = layoutOf(this.seed, entrance);
-    this.inside = { entrance, room, furniture, seated: null };
+    const crypt = entrance.type === 'crypt' ? cryptInside(this.seed, entrance) : null;
+    this.inside = { entrance, room, furniture, seated: null, ...(crypt && { walls: (x: number, z: number, r: number) => cryptBlocks(crypt, x, z, r) }) };
+    if (crypt) this.events.push({ kind: 'arrive', name: crypt.crypt.name, level: crypt.crypt.level }); // (its name and level, as the hero comes down)
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusedId = null;
