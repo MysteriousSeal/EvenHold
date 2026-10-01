@@ -9,6 +9,7 @@ import { maxHpOf } from '../../src/model/hero/attributes';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { Nav, heroState, standableNear } from './nav';
 import type { Status } from './errands';
+import { Balance } from './balance';
 
 export type Step = (dt: number) => Status;
 export type Report = (kind: string, detail: string) => void;
@@ -39,12 +40,14 @@ export class BotSteps {
   protected move: [number, number] = [0, 0]; // the keys pressed this frame
   protected readonly shunned = new Set<Enemy>(); // foes found out of reach (across water, say): let be
   protected readonly skipped = new Set<unknown>(); // loot it couldn't get at: let be
+  readonly balance: Balance; // what its game says about the balance
 
   constructor(
     protected readonly model: GameModel,
     protected readonly report: Report,
   ) {
     this.nav = new Nav(model);
+    this.balance = new Balance(model);
   }
 
   protected walk(to: () => { x: number; z: number }, near: number): Step {
@@ -84,13 +87,17 @@ export class BotSteps {
     let inReach = 0;
     let away = 0; // seconds after it, out of reach, since last landing a blow
     let hpThen = foe.hp;
+    let since: { at: number; health: number; lowest: number } | null = null; // since it first came in reach (for the balance)
+    const ended = (won: boolean) => since && this.balance.fight({ kind: foe.kind, foeLevel: foe.level, seconds: this.model.minutes - since.at, hurt: Math.max(0, since.health - since.lowest), won });
     return (dt) => {
       const { hero } = this.model;
+      if (since) since.lowest = Math.min(since.lowest, this.balance.health());
       if (foe.state === 'dead' || !this.model.enemies.includes(foe)) {
         if (foe.state === 'dead') this.stats.kills++;
+        ended(foe.state === 'dead');
         return 'ok';
       }
-      if (!toTheEnd && hero.hp < maxHpOf(hero) * 0.3) return 'fail'; // off to heal
+      if (!toTheEnd && hero.hp < maxHpOf(hero) * 0.3) return (ended(false), 'fail'); // off to heal
       const d = Math.hypot(foe.x - hero.x, foe.z - hero.z);
       if (d > ATTACK_REACH + ENEMY_STATS[foe.kind].radius - 0.15) {
         if ((away += dt) > 30) return (this.shunned.add(foe), 'fail'); // (out of reach: across water, say; let be)
@@ -98,6 +105,7 @@ export class BotSteps {
         if (step === 'fail') this.shunned.add(foe); // (no way there)
         return step === 'fail' ? 'fail' : 'run';
       }
+      since ??= { at: this.model.minutes, health: this.balance.health(), lowest: this.balance.health() };
       this.model.focus(foe.id);
       this.model.startAttack();
       if (foe.hp < hpThen) [hpThen, inReach, away] = [foe.hp, 0, 0];

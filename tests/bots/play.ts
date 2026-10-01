@@ -44,6 +44,7 @@ function play(seed: number, minutes: number) {
       if ((second += DT) >= 1) {
         checks.run(second);
         second = 0;
+        bot.balance.sample(t, bot.stats);
         if (VERBOSE) before = tell(bot, model, before, t, log);
       }
     } catch (error) {
@@ -52,7 +53,7 @@ function play(seed: number, minutes: number) {
     }
   }
   const { hero } = model;
-  return { seed, problems, counts, stats: bot.stats, level: hero.level, money: hero.money, seconds: Math.round((performance.now() - started) / 100) / 10 };
+  return { seed, problems, counts, stats: bot.stats, balance: bot.balance.data, level: hero.level, money: hero.money, seconds: Math.round((performance.now() - started) / 100) / 10 };
 }
 
 // What's changed in a bot's tally this second (kills, quests done, ales…), and once a game minute how it stands.

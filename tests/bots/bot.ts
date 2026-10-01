@@ -6,7 +6,7 @@
 // doesn't do what it should (checks.ts, and what it sees itself: a foe
 // that won't die, a barmaid who never serves, a quest that can't be done…).
 import type { GameModel } from '../../src/model/GameModel';
-import type { Entrance } from '../../src/model/interiors/interiors';
+import { ENTER_RANGE, type Entrance } from '../../src/model/interiors/interiors';
 import type { Enemy } from '../../src/model/types';
 import { ATTACK_REACH, ENEMY_STATS } from '../../src/model/constants';
 import { maxEnergyOf, maxHpOf } from '../../src/model/hero/attributes';
@@ -30,10 +30,9 @@ export type { BotStats } from './botSteps';
 export class Bot extends BotSteps {
   private steps: Step[] = [];
   private rng: () => number;
-  private lastHp: number;
   private defense: Step | null = null; // fighting off a foe that's set on the hero, whatever else was going on
   private readonly dry = new Map<Entrance, number>(); // inns with none of what it wanted: till when (game seconds) it doesn't go back
-  private plans: number[] = []; // when it last planned (game seconds), to catch it going round in circles
+  private plans: Array<{ at: number; x: number; z: number }> = []; // when (game seconds) and where it last planned, to catch it going round in circles
   private readonly errands: Errands;
 
   constructor(
@@ -43,17 +42,13 @@ export class Bot extends BotSteps {
     private readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (npm run bots:verbose)
   ) {
     super(model, report);
-    this.errands = new Errands(model, report, this.stats, rng);
+    this.errands = new Errands(model, report, this.stats, rng, this.balance);
     this.rng = rng;
-    this.lastHp = model.hero.hp;
   }
 
   // One frame: on with what it's doing (or something new), the keys pressed as it says.
   tick(dt: number): void {
     const { hero } = this.model;
-    // Fallen (health gone): woken elsewhere, healed; whatever it was doing, over.
-    if (hero.hp > this.lastHp + maxHpOf(hero) * 0.5 && this.lastHp < maxHpOf(hero) * 0.3 && !hero.drinking) this.fresh('fell');
-    this.lastHp = hero.hp;
     this.chores();
     if (this.steps.length === 0 || this.urgent()) this.plan();
     this.defend();
@@ -61,7 +56,17 @@ export class Bot extends BotSteps {
     const status = this.steps[0]?.(dt) ?? 'ok';
     if (status === 'ok') this.steps.shift();
     else if (status === 'fail') this.steps = [];
+    const before = { level: hero.level, xp: hero.xp, money: hero.money, hp: hero.hp, x: hero.x, z: hero.z };
+    const about = this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`);
     this.model.update(this.move[0], this.move[1], dt);
+    this.balance.xp('kills', before); // (all a frame brings: blows land in it)
+    // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
+    const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking;
+    if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : 'coins found', hero.money - before.money);
+    if (fell) {
+      this.balance.fell(about);
+      this.fresh('fell');
+    }
     for (const e of this.model.takeEvents()) if (e.kind === 'hit' && e.on !== 'hero' && !(e.amount > 0)) this.report('blow for nothing', `${e.on}: ${e.amount}`);
   }
 
@@ -118,8 +123,10 @@ export class Bot extends BotSteps {
     const { hero, quests } = this.model;
     this.nav.reset();
     // Planning afresh over and over (nothing it picks gets going): say so, once a while.
-    this.plans = [...this.plans.filter((at) => this.model.minutes - at < 5), this.model.minutes];
-    if (this.plans.length > 50) this.plans = (this.report('bot going round in circles', `${this.plans.length} plans in 5 s, last ${this.goal}${heroState(this.model)}`), []);
+    const { x, z } = hero;
+    this.plans = [...this.plans.filter((p) => this.model.minutes - p.at < 5), { at: this.model.minutes, x, z }];
+    const stayed = this.plans.every((p) => Math.hypot(p.x - x, p.z - z) < 1.5); // (getting nowhere, not just quick errands)
+    if (this.plans.length > 50 && stayed) this.plans = (this.report('bot going round in circles', `${this.plans.length} plans in 5 s, last ${this.goal}${heroState(this.model)}`), []);
     const hurt = hero.hp < maxHpOf(hero) * 0.4;
     const tired = hero.energy < maxEnergyOf(hero) * 0.3;
     const done = quests.taken.find((t) => quests.done(t));
@@ -181,6 +188,7 @@ export class Bot extends BotSteps {
           if (status === 'fail' && this.nav.unreachable) {
             this.report('quest spot out of reach', `${going}: ${taken.quest.kind} ${taken.quest.foe} at ${at.x},${at.z}, from ${hero.x.toFixed(0)},${hero.z.toFixed(0)}`);
             quests.abandon(going!);
+            this.balance.questEnded(going!, 'out of reach');
           }
           return status;
         };
@@ -231,7 +239,7 @@ export class Bot extends BotSteps {
   private enter(door: Entrance | null): Step[] {
     if (!door) return [() => 'fail'];
     return [
-      this.walk(() => door, 0.3),
+      this.walk(() => door, ENTER_RANGE * 0.9),
       () => {
         if (!this.model.useDoor()) {
           this.report('door not used', `at the ${door.type}'s door, ${this.model.hero.x.toFixed(2)},${this.model.hero.z.toFixed(2)}`);
@@ -311,7 +319,9 @@ export class Bot extends BotSteps {
         return 'fail';
       },
       () => {
+        const money = this.model.hero.money;
         const { drank, said } = serveOrder(this.model, what);
+        this.balance.coin(what === 'ale' ? 'ales' : 'pies', this.model.hero.money - money);
         if (!drank) return 'fail';
         if (!said) this.report('barmaid silent', what);
         what === 'ale' ? this.stats.ales++ : this.stats.pies++;

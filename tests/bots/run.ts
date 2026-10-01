@@ -1,5 +1,7 @@
 // The bots' playtest (npm run bots; npm run bots:quick for a short one;
-// npm run bots:verbose to watch what each is up to as it plays):
+// npm run bots:verbose to watch what each is up to as it plays; npm run bots:small
+// for 4 of them, an hour each, watched; npm run bots:long for 6, eight hours each,
+// watched; what each does: "scripts-info" in package.json):
 // BOTS bots, each on its own seed (fresh ones at random each run), playing BOT_MINUTES of game time as
 // fast as it goes, shared out among workers (play.ts), one per core but
 // one. Then a report of all that went wrong (by kind, with where and when,
@@ -11,6 +13,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Problem } from './checks';
 import type { BotStats } from './bot';
+import type { BalanceData } from './balance';
+import { balanceReport } from './balanceReport';
 import { generateRandomSeed } from '../../src/util/random';
 
 interface Result {
@@ -18,6 +22,7 @@ interface Result {
   problems: Problem[];
   counts: Record<string, number>;
   stats: BotStats;
+  balance?: BalanceData;
   level: number;
   money: number;
   seconds: number;
@@ -61,7 +66,8 @@ function worker(share: number[]): Promise<void> {
       for (const line of lines) {
         if (verbose && line.startsWith('LOG ')) {
           const [, seed, at, ...what] = line.split(' ');
-          console.log(`[seed ${seed.padStart(3)} ${at.padStart(5)}] ${what.join(' ')}`);
+          const n = String(seeds.indexOf(Number(seed)) + 1).padStart(String(bots).length); // (its number in this run)
+          console.log(`[bot ${n} · seed ${seed.padStart(3)} ${at.padStart(5)}] ${what.join(' ')}`);
         }
         if (!line.startsWith('BOT ')) continue;
         results.push(JSON.parse(line.slice(4)) as Result);
@@ -116,11 +122,13 @@ const dir = resolve('tests/bots/reports');
 mkdirSync(dir, { recursive: true });
 const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 writeFileSync(resolve(dir, `bots-${stamp}.md`), lines.join('\n'));
-writeFileSync(resolve(dir, `bots-${stamp}.json`), JSON.stringify(results, null, 1));
+writeFileSync(resolve(dir, `bots-${stamp}.json`), JSON.stringify(results));
+const balanced = played.filter((r) => r.balance).map((r) => ({ seed: r.seed, balance: r.balance!, goals: r.stats.goals }));
+if (balanced.length > 0) writeFileSync(resolve(dir, `balance-${stamp}.md`), balanceReport(balanced, minutes));
 
 console.log(`\n${doneOf.map((k) => `${k} ${total(k)}`).join(', ')}`);
 if (kinds.length === 0) console.log('\nNo problems.');
 for (const [kind, { count, bots: seen, examples }] of kinds) console.log(`\n${kind}: ${count} times, in ${seen.size} games — e.g. seed ${examples[0]?.seed} at ${examples[0]?.t} s: ${examples[0]?.detail}`);
-console.log(`\nReport: tests/bots/reports/bots-${stamp}.md`);
+console.log(`\nReport: tests/bots/reports/bots-${stamp}.md (balance: balance-${stamp}.md)`);
 if (kinds.length > 0) console.log(`To watch one of those games again: BOT_SEEDS=${kinds[0][1].examples[0]?.seed} npm run bots:verbose`);
 process.exitCode = kinds.length > 0 ? 1 : 0;

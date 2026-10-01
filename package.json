@@ -11,7 +11,22 @@
     "bots": "vite-node tests/bots/run.ts",
     "bots:quick": "BOT_QUICK=1 vite-node tests/bots/run.ts",
     "bots:verbose": "BOT_VERBOSE=1 vite-node tests/bots/run.ts",
-    "bots:quick:verbose": "BOT_QUICK=1 BOT_VERBOSE=1 vite-node tests/bots/run.ts"
+    "bots:quick:verbose": "BOT_QUICK=1 BOT_VERBOSE=1 vite-node tests/bots/run.ts",
+    "bots:small": "BOTS=4 BOT_MINUTES=60 BOT_VERBOSE=1 vite-node tests/bots/run.ts",
+    "bots:long": "BOTS=6 BOT_MINUTES=480 BOT_VERBOSE=1 vite-node tests/bots/run.ts"
+  },
+  "scripts-info": {
+    "dev": "Starts the game in the browser while developing (Vite, reloads on save).",
+    "build": "Type-checks, then builds the game for release into dist/.",
+    "preview": "Serves the built game from dist/, to try it as released.",
+    "test": "Runs every test once (vitest).",
+    "bots": "Bots playtest: 100 bots, 1 game hour each, on random seeds, quiet; report in tests/bots/reports/. Fails if anything went wrong.",
+    "bots:quick": "Bots playtest, short: 10 bots, 10 game minutes each, quiet.",
+    "bots:verbose": "As bots, but showing what every bot is up to, live.",
+    "bots:quick:verbose": "As bots:quick, but showing what every bot is up to, live.",
+    "bots:small": "4 bots, 1 game hour each, shown live.",
+    "bots:long": "6 bots, 8 game hours each, shown live.",
+    "(settings)": "Any bots script takes: BOTS=n (how many), BOT_MINUTES=n (game minutes each), BOT_SEEDS=a,b (play those games again, exactly), BOT_FIRST_SEED=n (seeds n, n+1…), BOT_VERBOSE=1 (live), e.g. BOT_SEEDS=123 npm run bots:verbose."
   },
   "dependencies": {
     "simplex-noise": "^4.0.3",

@@ -28,6 +28,7 @@ export class Nav {
   private noWay = 0;
   private reaches = false; // whether the last path found gets there (else: going as near as there's a way)
   private route: Point[] | null = null; // outdoors, the whole way there (tile by tile) when it's a long way round
+  private routedAt = -Infinity; // when (game seconds) the whole way was last worked out: not more than every few seconds (it's a big search)
   unreachable = false; // whether the goal's been found to be out of reach from here, the whole map over
 
   constructor(private readonly model: GameModel) {}
@@ -86,42 +87,69 @@ export class Nav {
       this.path = this.pathTo(to);
       const end = this.path[this.path.length - 1] ?? hero;
       this.reaches = Math.hypot(end.x - to.x, end.z - to.z) < 1;
-      if (this.reaches || inside) return;
+      if (this.reaches || inside || this.model.minutes - this.routedAt < 1) return; // (a whole way just worked out, for another goal: the near way for now)
       this.route = this.wholeWay(to);
       if (!this.route) return void (this.unreachable = true);
     }
-    // The farthest point of the route ahead within reach of a local path.
+    // On along the route itself, from the point of it nearest the hero (none left: there).
+    if (this.route.length === 0) return void (this.path = [to]);
     let nearest = 0;
     for (let i = 0; i < this.route.length; i++) if (Math.hypot(this.route[i].x - hero.x, this.route[i].z - hero.z) < Math.hypot(this.route[nearest].x - hero.x, this.route[nearest].z - hero.z)) nearest = i;
-    this.path = this.pathTo(this.route[Math.min(this.route.length - 1, nearest + 18)] ?? to);
+    if (Math.hypot(this.route[nearest].x - hero.x, this.route[nearest].z - hero.z) > 0.75 || !clearLine(hero, this.route[nearest], this.free(), 0.1)) {
+      // (off it, pushed about or round a fight: a fresh one from here)
+      if (this.model.minutes - this.routedAt < 3) return void (this.path = this.path.length ? this.path : [to]); // (just worked out: on as it is)
+      this.route = this.wholeWay(to);
+      if (!this.route) return void (this.unreachable = true);
+      if (this.route.length === 0) return void (this.path = [to]);
+      nearest = 0;
+    }
+    this.path = this.route.slice(nearest, nearest + 40);
     this.reaches = true;
   }
 
-  // The way to `to` across the whole map (tile to tile, as pathfinding.ts steps), or null if there's none.
+  // The way to `to` across the whole map, or null if there's none.
   private wholeWay(to: Point): Point[] | null {
-    const { width, depth } = this.model.size;
+    this.routedAt = this.model.minutes;
+    // On a half-tile lattice: through a wood, the way's between the trunks, not over the tiles' middles.
+    const STEP = 0.5;
+    const [w, d] = [this.model.size.width / STEP, this.model.size.depth / STEP];
     const free = (x: number, z: number) => !this.model.isBlocked(x, z, HERO_RADIUS);
-    const index = (x: number, z: number) => x * depth + z;
-    const came = new Int32Array(width * depth).fill(-1);
-    const [sx, sz, gx, gz] = [Math.round(this.model.hero.x), Math.round(this.model.hero.z), Math.round(to.x), Math.round(to.z)];
-    const queue = new Int32Array(width * depth);
+    const at = (cell: number): Point => ({ x: Math.floor(cell / d) * STEP, z: (cell % d) * STEP });
+    const came = new Int32Array(w * d).fill(-1);
+    const queue = new Int32Array(w * d);
     let [head, tail] = [0, 0];
-    queue[tail++] = index(sx, sz);
-    came[index(sx, sz)] = index(sx, sz);
+    const { hero } = this.model;
+    // From the lattice points round the hero they can walk straight to.
+    const [hi, hj] = [Math.round(hero.x / STEP), Math.round(hero.z / STEP)];
+    // Within the box round the hero and the goal, a good way out each side (round a lake, say): not the whole map every time.
+    const MARGIN = 80 / STEP;
+    const [gi, gj] = [Math.round(to.x / STEP), Math.round(to.z / STEP)];
+    const box = { i0: Math.max(2, Math.min(hi, gi) - MARGIN), j0: Math.max(2, Math.min(hj, gj) - MARGIN), i1: Math.min(w - 3, Math.max(hi, gi) + MARGIN), j1: Math.min(d - 3, Math.max(hj, gj) + MARGIN) };
+    for (let di = -2; di <= 2; di++) {
+      for (let dj = -2; dj <= 2; dj++) {
+        const cell = (hi + di) * d + (hj + dj);
+        const p = at(cell);
+        if (!free(p.x, p.z) || !clearLine(hero, p, free, 0.1)) continue;
+        came[cell] = cell; // (a start: comes from itself)
+        queue[tail++] = cell;
+      }
+    }
     while (head < tail) {
       const cell = queue[head++];
-      const [x, z] = [Math.floor(cell / depth), cell % depth];
-      if (Math.abs(x - gx) <= 1 && Math.abs(z - gz) <= 1) {
+      const p = at(cell);
+      if (Math.hypot(p.x - to.x, p.z - to.z) <= 0.75) {
         const way: Point[] = [];
-        for (let c = cell; c !== index(sx, sz); c = came[c]) way.push({ x: Math.floor(c / depth), z: c % depth });
+        for (let c = cell; came[c] !== c; c = came[c]) way.push(at(c));
         return way.reverse();
       }
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const [nx, nz] = [x + dx, z + dz];
-        if (nx < 1 || nz < 1 || nx >= width - 1 || nz >= depth - 1 || came[index(nx, nz)] >= 0) continue;
-        if (!free(nx, nz) || !free(x + dx / 2, z + dz / 2)) continue;
-        came[index(nx, nz)] = cell;
-        queue[tail++] = index(nx, nz);
+      const [i, j] = [Math.floor(cell / d), cell % d];
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const [ni, nj] = [i + di, j + dj];
+        if (ni < box.i0 || nj < box.j0 || ni > box.i1 || nj > box.j1 || came[ni * d + nj] >= 0) continue;
+        const [nx, nz] = [ni * STEP, nj * STEP];
+        if (!free(nx, nz) || !free((p.x + nx) / 2, (p.z + nz) / 2)) continue;
+        came[ni * d + nj] = cell;
+        queue[tail++] = ni * d + nj;
       }
     }
     return null;
@@ -149,9 +177,14 @@ export class Nav {
       this.age = 0;
       if (this.unreachable) return { dx: 0, dz: 0, state: 'no way' };
     }
-    while (this.path.length > 0 && Math.hypot(this.path[0].x - hero.x, this.path[0].z - hero.z) < 0.2) this.path.shift();
-    const next = d < 1.2 || this.path.length === 0 ? to : this.path[0];
-    if (this.path.length === 0 && d >= 1.2) {
+    // Points reached, or (near the goal) a tile just behind the hero the way started from: passed over, not gone back to.
+    const behind = (p: Point) => d < 2 && Math.hypot(p.x - hero.x, p.z - hero.z) < 1.2 && (p.x - hero.x) * (to.x - hero.x) + (p.z - hero.z) * (to.z - hero.z) < 0;
+    while (this.path.length > 0 && (Math.hypot(this.path[0].x - hero.x, this.path[0].z - hero.z) < 0.2 || behind(this.path[0]))) this.path.shift();
+    // The last bit straight on, if nothing's in the way (a wall's corner, say) up to just short of it (a door's spot is against its wall).
+    const short = { x: to.x + ((hero.x - to.x) / (d || 1)) * Math.min(0.35, d), z: to.z + ((hero.z - to.z) / (d || 1)) * Math.min(0.35, d) };
+    const straight = d < 1.2 && clearLine(hero, short, this.free(), 0.1);
+    const next = straight || this.path.length === 0 ? to : this.path[0];
+    if (this.path.length === 0 && !straight) {
       if ((this.noWay += dt) > 4) return { dx: 0, dz: 0, state: 'no way' };
     } else this.noWay = 0;
     const [dx, dz] = [next.x - hero.x, next.z - hero.z];
