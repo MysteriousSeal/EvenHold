@@ -20,7 +20,6 @@ export interface Hero extends Humanoid {
   statPoints: number; // gained with levels, not yet spent (training.ts)
   trained: Record<Stat, number>; // points spent on each stat
   hurtFor: number; // seconds left of the hit flash
-  chilledFor?: number; // seconds left of a draugr's frost on them (slowed: crypts/frostBreath.ts)
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)

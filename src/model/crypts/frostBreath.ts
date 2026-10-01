@@ -1,8 +1,8 @@
 // A draugr's frost breath (the crypts' draugr: cryptFoes.ts). Close to the
 // hero, now and then, it stops and draws breath (BREATH_TELL: a moment to step
 // aside), then breathes frost in a cone before it, the way it faced as it
-// drew: caught in it, the hero takes a little harm and is chilled, slowed a
-// while (CHILL_FOR, CHILL_PACE).
+// drew: caught in it, the hero takes a little harm and is Chilled, slowed a
+// while (CHILL_FOR: a bane, as a fall's Weary is: hero/blessing.ts).
 
 import type { Enemy, Hero } from '../types';
 
@@ -10,7 +10,6 @@ export const BREATH_TELL = 0.75; // seconds its drawn breath shows before the fr
 export const BREATH_REACH = 2.6; // tiles the frost reaches
 export const BREATH_WIDTH = 0.65; // radians either side of its heading the cone spreads
 export const CHILL_FOR = 4; // seconds the hero's slowed
-export const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 const BREATH_EVERY = 7; // seconds between breaths, at least
 const NEAR = 2.2; // tiles from the hero for it to breathe
 
@@ -27,9 +26,8 @@ export class FrostBreaths {
   readonly breaths: Breath[] = [];
   private readonly waits = new Map<Enemy, number>();
 
-  // Each draugr's breath started, told and loosed; the hero's chill worn off.
+  // Each draugr's breath started, told and loosed.
   update(foes: readonly Enemy[], hero: Hero, dt: number, frost: (draugr: Enemy) => void): void {
-    hero.chilledFor = Math.max(0, (hero.chilledFor ?? 0) - dt);
     for (const draugr of foes) {
       if (draugr.kind !== 'draugr') continue;
       const wait = Math.max(0, (this.waits.get(draugr) ?? BREATH_EVERY / 2) - dt);

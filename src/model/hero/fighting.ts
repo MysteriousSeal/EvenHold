@@ -6,7 +6,7 @@ import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
-import { coinsFound, dropFactor, healOnKill, xpGained } from './blessing';
+import { coinsFound, dropFactor, healOnKill, makeChilled, xpGained } from './blessing';
 import { coinDrop } from './money';
 import { DROP_CHANCE, rollDrop } from '../loot/loot';
 import type { BagItem } from './bag';
@@ -72,7 +72,7 @@ export function cryptHooks(fight: Fight): CryptHooks {
     slam: (damage, lord) => heroStruck(fight, damage, lord),
     frost: (draugr) => {
       heroStruck(fight, 1, draugr);
-      fight.hero.chilledFor = CHILL_FOR;
+      makeChilled(fight.hero, CHILL_FOR);
       fight.report({ kind: 'chilled' });
     },
     report: (event) => fight.report(event),

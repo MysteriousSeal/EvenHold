@@ -54,7 +54,6 @@ import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
 import { CRYPT_FOE_ID, CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
 import { SUMMONED, clearedShare } from './crypts/cryptLord';
-import { CHILL_PACE } from './crypts/frostBreath';
 import { cryptHooks, foeStrikes, landBlow } from './hero/fighting';
 import { addCampObstacles, type Camp } from './camps/camps';
 
@@ -392,7 +391,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r) || (!!this.below && bumpsEnemy(this.below.run.foes, this.hero, x, z, r));
-    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * (this.hero.chilledFor ? CHILL_PACE : 1) * dt, bumps); // (out only with E at the door)
+    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.

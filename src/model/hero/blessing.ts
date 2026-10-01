@@ -7,7 +7,7 @@ import type { Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
-export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary';
+export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled';
 export interface Blessing {
   kind: BlessingKind;
   left: number; // seconds of it left
@@ -23,15 +23,18 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   second: { name: 'Second wind', about: 'Each foe you slay heals you 1.' },
   keen: { name: 'Keen eye', about: 'Foes drop loot and quest items more often.' },
   weary: { name: 'Weary', about: 'After a fall or a collapse: your blows deal 1 less damage, and hits on you 1 more.' }, // (no well's: a fall's, or a collapse's, mark)
+  chilled: { name: 'Chilled', about: "A draugr's frost on you: you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts)
 };
-const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => k !== 'weary'); // the wells'
+const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled']); // a fall's mark, a draugr's frost: no well's, and kept through one
+const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k)); // the wells'
+const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 export const WEARY_TIME = 5 * 60; // seconds of play Weary after a fall (or collapsing, out of energy)
 export const BLESSING_TIME = 30 * 60; // seconds
 export const WELL_TOSS = COPPER_PER_SILVER; // a silver coin
 const WELL_REACH = 1.15; // from the well's middle: right beside it
 
 const on = (who: { blessings?: Blessing[] }, kind: BlessingKind) => !!who.blessings?.some((b) => b.kind === kind);
-export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1);
+export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1) * (on(hero, 'chilled') ? CHILL_PACE : 1);
 export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
 export const hitTaken = (hero: Hero, damage: number) => Math.max(1, damage - (on(hero, 'tough') ? 1 : 0) + (on(hero, 'weary') ? 1 : 0));
 export const coinsFound = (hero: Hero, copper: number) => (on(hero, 'lucky') ? Math.round(copper * 1.5) : copper);
@@ -48,6 +51,14 @@ export function healOnKill(hero: Hero): void {
 export function makeWeary(hero: Hero): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'weary'), { kind: 'weary', left: WEARY_TIME }];
 }
+
+// A draugr's frost: Chilled for `seconds` (afresh, if already).
+export function makeChilled(hero: Hero, seconds: number): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'chilled'), { kind: 'chilled', left: seconds }];
+}
+
+// Whether it's a bane (Weary, Chilled), not a gift.
+export const isBane = (kind: BlessingKind): boolean => BANES.has(kind);
 
 // Counts the blessings down; each gone once spent.
 export function tickBlessing(hero: Hero, dt: number): void {
@@ -73,6 +84,6 @@ export function tossCoin(hero: Hero, roll: number): BlessingKind | null {
   if (hero.money < WELL_TOSS) return null;
   hero.money -= WELL_TOSS;
   const kind = BLESSING_KINDS[Math.min(BLESSING_KINDS.length - 1, Math.floor(roll * BLESSING_KINDS.length))];
-  hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind === 'weary'), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary stays)
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, stay)
   return kind;
 }
