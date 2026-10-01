@@ -9,9 +9,11 @@ import { GameModel } from '../src/model/GameModel';
 import { cryptInside } from '../src/model/crypts/crypts';
 import { CryptFoes } from '../src/model/crypts/cryptFoes';
 import { LORD_POST, RISES_AT, SLAM_RADIUS, SLAM_TELL, lordName, lordSpot } from '../src/model/crypts/cryptLord';
-import { enemyPower } from '../src/model/enemies/enemyLevels';
+import { enemyPower, isBoss } from '../src/model/enemies/enemyLevels';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { FRAME } from './support/testWorld';
+import { BURST, cryptProp } from '../src/view/crypt/cryptVoxels';
+import { tombBurst } from '../src/view/crypt/cryptLife';
 
 const MID = { width: 512, depth: 512 };
 const goDown = (model: GameModel) => {
@@ -54,8 +56,11 @@ describe('a crypt\'s lord', () => {
     expect(lord.maxHp).toBe(enemyPower('skeleton', lord.level).maxHp * 8);
     expect(lord.name).toBe(lordName(crypt.name));
     expect(model.takeEvents()).toContainEqual({ kind: 'rises', name: lord.name });
-    const spot = lordSpot(cryptInside(model.seed, crypt.entrance));
+    const inside = cryptInside(model.seed, crypt.entrance);
+    const spot = lordSpot(inside);
     expect([lord.homeX, lord.homeZ]).toEqual([spot.x, spot.z]);
+    const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus')!;
+    expect(spot).toEqual({ x: tomb.x + (tomb.w - 1) / 2, z: tomb.z + tomb.d }); // (centred at its foot)
   });
 
   it('slams, told first: hard on the hero still in its ring, nothing to one who stepped out', () => {
@@ -164,5 +169,25 @@ describe('a crypt\'s lord', () => {
     for (let t = 0; t < 0.6; t += FRAME) model.update(0, 0, FRAME);
     expect(lord.hp).toBeLessThan(lord.maxHp);
     expect(lord.state).toBe('chase');
+  });
+
+  it('lies in a great tomb drawn whole, then burst open once he\'s risen', () => {
+    const [whole, burst] = [cryptProp('greatSarcophagus', 0), cryptProp('greatSarcophagus', BURST)];
+    const filled = (g: typeof whole) => g.cells.filter((c) => c !== 0).length;
+    expect(filled(whole)).toBeGreaterThan(0);
+    expect(filled(burst)).toBeGreaterThan(0);
+    expect(filled(burst)).not.toBe(filled(whole));
+    const model = new GameModel(1, MID);
+    goDown(model);
+    expect(tombBurst(model.crypt)).toBe(false);
+    clearTo(model, RISES_AT);
+    model.update(0, 0, FRAME);
+    expect(tombBurst(model.crypt)).toBe(true);
+    expect(tombBurst(null)).toBe(false);
+  });
+
+  it('is a boss (marked so), as no other foe is', () => {
+    expect(isBoss('cryptLord')).toBe(true);
+    for (const kind of ['wolf', 'bandit', 'boar', 'skeleton', 'skeletonArcher', 'draugr'] as const) expect(isBoss(kind)).toBe(false);
   });
 });
