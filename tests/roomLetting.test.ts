@@ -5,7 +5,7 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { roomsOff, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { LINES, ROOM_PRICE, checkOutAfter, letBed, letDoor, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
+import { LINES, ROOM_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { barmaidHere } from '../src/controller/trade/barOrder';
 import { takeSpeech } from '../src/model/npcs/speech';
@@ -112,5 +112,26 @@ describe('a room at the inn', () => {
     expect(model.hero.energy).toBe(maxEnergyOf(model.hero));
     expect(letBed(model)).toBeNull(); // (morning: no more sleeping)
     expect(letUntil(model.inside!.below!)).not.toBeNull(); // (the room theirs till ten still)
+  });
+
+  it('G by the barmaid asks for a room (said once let), by its bed at night sleeps; her lines in turn, every one, never twice running', () => {
+    const model = atTheInn(20);
+    model.hero.money = 500;
+    const barmaid = barmaidHere(model)!;
+    Object.assign(model.hero, { x: barmaid.x + 0.5, z: barmaid.z });
+    const asked = roomAction(model)!;
+    expect(asked).toMatchObject({ kind: 'rent', barmaid, taken: false });
+    expect(roomActionLabel(asked)).toBe(`Rent a room · ${ROOM_PRICE} copper`);
+    rentRoom(model, barmaid);
+    const again = roomAction(model)!;
+    expect(again).toMatchObject({ kind: 'rent', taken: true });
+    expect(roomActionLabel(again)).toBe('Your room is upstairs');
+    expect(roomActionLabel({ kind: 'sleep' })).toBe('Sleep till morning');
+    // Her lines: asked out of hours over and over, each said in turn.
+    const late = atTheInn(12);
+    takeSpeech();
+    const heard = Array.from({ length: LINES.closed.length * 2 }, () => (rentRoom(late, barmaidHere(late)!), said()[0]));
+    expect(new Set(heard).size).toBe(LINES.closed.length);
+    expect(heard.every((t, i) => i === 0 || t !== heard[i - 1])).toBe(true);
   });
 });

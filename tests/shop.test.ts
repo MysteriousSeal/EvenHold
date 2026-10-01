@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PROVISIONS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
 import { RESTOCK_EVERY, buy, buyPrice, restockAll, restockIn, sell, sellPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
@@ -52,14 +53,16 @@ describe("the barmaid's shop", () => {
     expect(shopAt(model.shops, model.seed, 0, 600 * RESTOCK_EVERY).stock.cheese).toBe(usual);
   });
 
-  it('lets the hero eat and drink from the bag, for health', () => {
+  it('lets the hero eat and drink from the bag: food for health, drink for energy', () => {
     const { model, hero } = setup();
-    hero.bag = { meatPie: 1 };
-    hero.hp = 1;
+    hero.bag = { meatPie: 1, ale: 1 };
+    Object.assign(hero, { hp: 1, energy: 1 });
     expect(model.consume('meatPie')).toBe(true);
-    expect(hero.hp).toBe(Math.min(maxHpAt(hero.level), 4));
+    expect(hero.hp).toBe(Math.min(maxHpAt(hero.level), 1 + PROVISIONS.meatPie.heal!));
     expect(hero.bag.meatPie).toBeUndefined();
     expect(model.consume('meatPie')).toBe(false);
+    expect(model.consume('ale')).toBe(true);
+    expect(hero.energy).toBe(1 + PROVISIONS.ale.energy!);
   });
 
   it("tells how long until she restocks (the countdown for what she's sold out of)", () => {
