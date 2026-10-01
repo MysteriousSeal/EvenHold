@@ -126,7 +126,7 @@ export class BeastRig extends CreatureRig {
 
   update(beast: Enemy, dt: number): void {
     const moved = this.follow(beast, dt, TURN_RATE); // turning the way it goes
-    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing);
+    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing, beast.level);
 
     if (beast.state === 'dead') {
       this.die(beast.deadFor, dt);

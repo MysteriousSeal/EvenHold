@@ -1,9 +1,11 @@
 // Pieces every enemy on screen shares: a small voxel health bar that floats
-// over its head, and the burst of voxel cubes it breaks into when
-// it dies.
+// over its head (its name above, its level just left of the name, coloured
+// by how dangerous it is for the hero, as the target panel has it), and the
+// burst of voxel cubes it breaks into when it dies.
 
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
+import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
 
 const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const PIECES = 30;
@@ -24,12 +26,19 @@ const CUBE = new THREE.BoxGeometry(1, 1, 1);
 // long as the owner lives.
 const MAX_BLOCKS = 10;
 const NAME_HEIGHT = 0.22; // world units tall, the name over the bar
+const NAME_Y = 0.14; // the name's height over the bar
+const LEVEL_GAP = 0.05; // between the level and the name
+const INK = '#f8ecd4'; // names' light ink
+// The level's colour by how dangerous the foe is (as the target panel's name, hud.css).
+const DANGER_INK: Record<Difficulty, string> = { trivial: '#b4b0a8', even: INK, tough: '#f2d15a', hard: '#f0913a', deadly: '#e8483a' };
+let heroLevel = 1; // the hero's, for the levels' colours (EnemyViews sets it each frame)
+export const setBarHeroLevel = (level: number) => void (heroLevel = level);
 
 // A name drawn once onto a texture, white with an ink outline like the HUD's,
 // shared by everyone who bears it.
 const nameMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
-function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: number } {
-  let entry = nameMaterials.get(name);
+function nameMaterial(name: string, ink = INK): { material: THREE.SpriteMaterial; aspect: number } {
+  let entry = nameMaterials.get(`${name}|${ink}`);
   if (!entry) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
@@ -44,21 +53,21 @@ function nameMaterial(name: string): { material: THREE.SpriteMaterial; aspect: n
     ctx.lineWidth = 14;
     ctx.strokeStyle = '#2e1f14';
     ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
-    ctx.fillStyle = '#f8ecd4';
+    ctx.fillStyle = ink;
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     // Never hidden by what's around (a shelf, a tree): drawn over everything, like the HUD.
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
     entry = { material, aspect: canvas.width / canvas.height };
-    nameMaterials.set(name, entry);
+    nameMaterials.set(`${name}|${ink}`, entry);
   }
   return entry;
 }
 
 // A name floating in the world, facing the camera, `height` world units tall.
-export function nameLabel(name: string, height = NAME_HEIGHT): THREE.Sprite {
-  const { material, aspect } = nameMaterial(name);
+export function nameLabel(name: string, height = NAME_HEIGHT, ink = INK): THREE.Sprite {
+  const { material, aspect } = nameMaterial(name, ink);
   const label = new THREE.Sprite(material);
   label.scale.set(height * aspect, height, 1);
   label.renderOrder = 10; // after everything else, so nothing draws over it
@@ -68,24 +77,41 @@ export function nameLabel(name: string, height = NAME_HEIGHT): THREE.Sprite {
 export class HealthBar {
   readonly group = new THREE.Group();
   private blocks: THREE.Mesh[] = [];
+  private level: THREE.Sprite | null = null;
+  private shown = ''; // the level and colour it shows (made afresh when either changes)
+  private nameWidth = 0; // the name's, to set the level beside it
 
   // `name`, if given, floats just above the bar; `passive`, the bar's yellow.
   constructor(height: number, name?: string, private readonly passive = false) {
     this.group.position.y = height;
     if (name) {
       const label = nameLabel(name);
-      label.position.y = 0.14;
+      label.position.y = NAME_Y;
+      this.nameWidth = label.scale.x;
       this.group.add(label);
     }
   }
 
-  update(hp: number, maxHp: number, alive: boolean, ownerHeading: number): void {
+  update(hp: number, maxHp: number, alive: boolean, ownerHeading: number, level?: number): void {
     const count = Math.min(maxHp, MAX_BLOCKS);
     if (count !== this.blocks.length) this.build(count);
+    if (level !== undefined) this.showLevel(level);
     this.group.visible = alive;
     this.group.rotation.y = CAMERA_YAW - ownerHeading;
     const lit = Math.ceil((Math.max(0, hp) / maxHp) * count);
     this.blocks.forEach((block, i) => (block.material = i < lit ? (this.passive ? PASSIVE_BAR : ENEMY_BAR) : ENEMY_BAR_EMPTY));
+  }
+
+  // The level, just left of the name (as tall), in its danger colour.
+  private showLevel(level: number): void {
+    const ink = DANGER_INK[difficulty(level, heroLevel)];
+    const key = `${level}|${ink}`;
+    if (key === this.shown) return;
+    this.shown = key;
+    this.level?.removeFromParent();
+    this.level = nameLabel(String(level), NAME_HEIGHT, ink);
+    this.level.position.set(-this.nameWidth / 2 - LEVEL_GAP - this.level.scale.x / 2, NAME_Y, 0);
+    this.group.add(this.level);
   }
 
   private build(count: number): void {

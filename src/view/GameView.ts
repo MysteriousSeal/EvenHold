@@ -35,6 +35,7 @@ import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
 import { EnemyViews } from './meshes/enemy/enemyViews';
+import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
 import { CoinViews } from './meshes/loot/coinViews';
@@ -272,6 +273,7 @@ export class GameView {
     }
     this.world.update(hero.x, hero.z);
     setWindPusher(hero.x, hero.z); // crops part around them
+    setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null, (e) => model.quests.marked(e));
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);

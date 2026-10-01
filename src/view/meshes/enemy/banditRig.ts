@@ -46,7 +46,7 @@ export class BanditRig {
   }
 
   update(bandit: Enemy, dt: number): void {
-    this.bar.update(bandit.hp, bandit.maxHp, bandit.state !== 'dead', this.rig.root.rotation.y);
+    this.bar.update(bandit.hp, bandit.maxHp, bandit.state !== 'dead', this.rig.root.rotation.y, bandit.level);
     if (bandit.state === 'dead') {
       this.rig.root.position.set(bandit.x, bandit.y, bandit.z);
       this.rig.setMaterial(this.look.normal);
