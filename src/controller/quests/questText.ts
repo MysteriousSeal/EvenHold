@@ -3,7 +3,7 @@
 
 import { makeEnemy } from '../../model/enemies/enemies';
 import { coinParts } from '../../view/ui/coins';
-import { difficulty } from '../../view/hud/targetHud';
+import { difficulty } from '../../model/enemies/enemyLevels';
 import type { Quest, QuestFoe } from '../../model/quests/quests';
 import type { QuestItemId } from '../../model/quests/questItems';
 import { hashUnit } from '../../util/random';
