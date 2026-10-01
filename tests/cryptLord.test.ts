@@ -7,13 +7,13 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { cryptInside } from '../src/model/crypts/crypts';
-import { CryptFoes, exitDoor } from '../src/model/crypts/cryptFoes';
+import { CryptFoes } from '../src/model/crypts/cryptFoes';
+import { atWayOut } from '../src/model/interiors/indoors';
 import { isFloor, planCrypt } from '../src/model/crypts/cryptLayout';
-import { furnishCrypt } from '../src/model/crypts/cryptProps';
 import { mulberry32 } from '../src/util/random';
 import { AWARD_POST, LORD_POST, RISES_AT, SLAM_RADIUS, SLAM_TELL, lordName, lordSpot } from '../src/model/crypts/cryptLord';
 import { enemyPower, isBoss } from '../src/model/enemies/enemyLevels';
-import { DAIS_TOP } from '../src/model/crypts/cryptProps';
+import { DAIS_TOP, exitDoor, furnishCrypt } from '../src/model/crypts/cryptProps';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { resetCrypts } from '../src/model/cheats';
 import { FRAME } from './support/testWorld';
@@ -273,6 +273,8 @@ describe('a crypt\'s lord', () => {
     const spot = run.exitOpen!;
     expect(spot).not.toBeNull();
     Object.assign(model.hero, spot);
+    expect(atWayOut(model.inside!, model.hero)).toBe(true);
+    expect(atWayOut(model.inside!, { x: spot.x + 1, z: spot.z + 1 })).toBe(false);
     expect(model.doorInReach).toBe(crypt.entrance);
     expect(model.useDoor()).toBe(true);
     expect(model.inside).toBeNull();
