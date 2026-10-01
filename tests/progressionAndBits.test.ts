@@ -47,14 +47,15 @@ describe.each(LEVELS.map((l) => [l]))('level %i', (level) => {
 describe('experience against foes', () => {
   it.each([
     [-5, 'a token 1, far below'],
-    [-3, 'a token 1, three below'],
+    [-5, 'a token 1, five below'],
+    [-3, 'less still, three below'],
     [-2, 'less, below'],
     [0, 'in full, the same level'],
     [2, 'more, above'],
     [5, 'more still, far above'],
   ])('%i levels apart: %s', (gap) => {
     const got = xpAgainst(20, 10 + gap, 10);
-    if (gap <= -3) expect(got).toBe(1);
+    if (gap <= -5) expect(got).toBe(1);
     else if (gap < 0) expect(got).toBeLessThan(20);
     else if (gap === 0) expect(got).toBe(20);
     else expect(got).toBeGreaterThan(20);

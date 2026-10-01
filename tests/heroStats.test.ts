@@ -26,6 +26,11 @@ describe('hero stats', () => {
     expect(maxHpAt(3)).toBeGreaterThan(maxHpAt(1));
   });
 
+  it('climbs steadily: 60 to level 2, 10 more a level to 120 at level 7, then 15 more a level, never a step back in the climb', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map(xpToNext)).toEqual([60, 70, 80, 90, 100, 110, 120, 135, 150]);
+    for (let level = 2; level < 30; level++) expect(xpToNext(level + 1) - xpToNext(level)).toBeGreaterThanOrEqual(xpToNext(level) - xpToNext(level - 1));
+  });
+
   it('never heals by itself (hardcore), not even in bed', () => {
     const { hero } = fresh();
     hero.hp = 4;
@@ -125,13 +130,15 @@ describe('enemies hurt the hero', () => {
     expect(model.hero.xp).toBe(ENEMY_STATS.wolf.xp);
   });
 
-  it('gives less experience for weaker foes: full at the same level, more above, a token 1 once trivial', () => {
+  it('gives less experience for weaker foes: full at the same level, more above, a little down to 4 below, a token 1 once trivial (5 below)', () => {
     expect(xpAgainst(20, 5, 5)).toBe(20);
     expect(xpAgainst(20, 6, 5)).toBe(23);
     expect(xpAgainst(20, 9, 5)).toBe(26);
-    expect(xpAgainst(20, 4, 5)).toBe(14);
-    expect(xpAgainst(20, 3, 5)).toBe(8);
-    expect(xpAgainst(20, 2, 5)).toBe(1);
+    expect(xpAgainst(20, 4, 5)).toBe(15);
+    expect(xpAgainst(20, 3, 5)).toBe(11);
+    expect(xpAgainst(20, 2, 5)).toBe(7); // three below: still something
+    expect(xpAgainst(20, 1, 5)).toBe(4);
+    expect(xpAgainst(20, 0, 5)).toBe(1); // five below: a token
     expect(xpAgainst(10, 1, 9)).toBe(1); // a level 1 wolf, to a level 9 hero
   });
 });
