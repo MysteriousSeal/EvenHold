@@ -34,9 +34,10 @@ const run = (model: GameModel, seconds: number, dx = 0, dz = 0) => {
 };
 
 describe('the crypts\' guards', () => {
-  it('stand at posts on open floor, away from the stairs, the same every time; a band in the great hall; swordsmen and bowmen; none walled in (50 seeds)', () => {
+  it('stand at posts on open floor, away from the stairs, the same every time; a band in the great hall; swordsmen, bowmen and draugr (more of them deeper in, two in the great hall); none walled in (50 seeds)', () => {
     let archers = 0;
     let swords = 0;
+    const draugr: number[] = []; // where along the crypt each stood (0 the far end, 1 the stairs)
     for (let i = 0; i < 50; i++) {
       const seed = Math.floor(mulberry32(8800 + i)() * 2 ** 31);
       const ruin = { x: 30 + i * 13, z: 40 + i * 7 };
@@ -48,25 +49,32 @@ describe('the crypts\' guards', () => {
       const solid = solidTiles(props);
       const reached = floorReached(plan, solid);
       const great = plan.places.find((p) => p.kind === 'great')!;
-      expect(posts.filter((p) => p.x >= great.x0 && p.x <= great.x1 && p.z >= great.z0 && p.z <= great.z1).length).toBeGreaterThanOrEqual(3);
+      expect(posts.filter((p) => p.x >= great.x0 && p.x <= great.x1 && p.z >= great.z0 && p.z <= great.z1).length).toBeGreaterThanOrEqual(5);
       expect(new Set(posts.map((p) => `${p.x},${p.z}`)).size).toBe(posts.length);
       for (const p of posts) {
         expect(isFloor(plan, p.x, p.z) && !solid.has(`${p.x},${p.z}`)).toBe(true);
         expect(reached.has(`${p.x},${p.z}`)).toBe(true);
         expect(Math.hypot(p.x - plan.door, p.z - (plan.depth - 1))).toBeGreaterThan(6);
-        if (p.archer) archers++;
+        if (p.kind === 'skeletonArcher') archers++;
+        else if (p.kind === 'draugr') draugr.push(p.z / plan.depth);
         else swords++;
       }
+      expect(posts.filter((p) => p.kind === 'draugr' && p.x >= great.x0 && p.x <= great.x1 && p.z >= great.z0 && p.z <= great.z1).length).toBeGreaterThanOrEqual(2);
     }
     expect(archers).toBeGreaterThan(50);
     expect(swords).toBeGreaterThan(archers);
+    // Draugr: about one guard in five, the more the deeper in (low z: far from the stairs).
+    const all = archers + swords + draugr.length;
+    expect(draugr.length / all).toBeGreaterThan(0.12);
+    expect(draugr.length / all).toBeLessThan(0.32);
+    expect(draugr.filter((z) => z < 0.5).length).toBeGreaterThan(draugr.filter((z) => z >= 0.5).length);
   });
 
   it('are there going down (the world\'s foes are not), of the crypt\'s level; gone again climbing out', () => {
     const model = new GameModel(1, MID);
     const crypt = goDown(model);
     expect(model.foes.length).toBeGreaterThan(5);
-    expect(model.foes.every((f) => (f.kind === 'skeleton' || f.kind === 'skeletonArcher') && f.level === crypt.level && f.id >= CRYPT_FOE_ID)).toBe(true);
+    expect(model.foes.every((f) => (f.kind === 'skeleton' || f.kind === 'skeletonArcher' || f.kind === 'draugr') && f.level === crypt.level && f.id >= CRYPT_FOE_ID)).toBe(true);
     expect(model.crypt).not.toBeNull();
     const { plan } = cryptInside(model.seed, crypt.entrance);
     Object.assign(model.hero, { x: plan.door, z: plan.depth - 1 });
