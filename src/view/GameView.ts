@@ -46,6 +46,7 @@ import { BoardMarks } from './meshes/quest/questMarks';
 import { buildRoomScene } from './interior/roomView';
 import { buildCryptScene } from './crypt/cryptView';
 import { CryptLife } from './crypt/cryptLife';
+import { FrostOnHero } from './meshes/human/frostOnHero';
 import { cryptInside } from '../model/crypts/crypts';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
@@ -77,6 +78,9 @@ export class GameView {
   private readonly heroLook = personMaterial();
   // A red glow while the hero's just been hit, like the enemies' flash.
   private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
+  // Chilled (a draugr's frost): an icy sheen over all of them, pale blue and a little aglow; and frost drifting round them.
+  private readonly heroFrost = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xb8e2ff, roughness: 0.35, emissive: 0x2a6a90, emissiveIntensity: 0.45 });
+  private readonly frost = new FrostOnHero();
   private readonly world: ChunkStreamer;
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
@@ -169,7 +173,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -248,7 +252,10 @@ export class GameView {
     const { hero } = model;
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
     this.hero.wear(hero.equipment);
-    this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : this.heroLook);
+    const chilled = !!hero.blessings?.some((b) => b.kind === 'chilled');
+    this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : chilled ? this.heroFrost : this.heroLook);
+    if (this.frost.group.parent !== this.hero.root) this.hero.root.add(this.frost.group); // (on whichever rig is theirs)
+    this.frost.update(chilled, dt);
     // Indoors, the hero is moved into the room's scene; back out, into the world's.
     const yard = this.yardScene(model);
     const room = yard ? null : this.roomScene(model);

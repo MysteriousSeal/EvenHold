@@ -414,6 +414,9 @@ body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /*
 .blessing-bane .blessing-hud-icon canvas { filter: grayscale(1) brightness(0.8); }
 .blessing-bane .blessing-hud-time { background: #b8443a; box-shadow: inset -3px -3px 0 #7e2a22; }
 .blessing-bane .blessing-tip b { color: #ff8a7a; }
+.blessing-chilled .blessing-hud-icon canvas { filter: none; } /* (its snowflake keeps its ice) */
+.blessing-chilled .blessing-hud-time { background: #3a8ab8; box-shadow: inset -3px -3px 0 #22587e; }
+.blessing-chilled .blessing-tip b { color: #9fe4ff; }
 .blessing-tip span { color: #f8ecd4; font-weight: 500; }
 .blessing-coin { width: 24px; height: 24px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }
 
