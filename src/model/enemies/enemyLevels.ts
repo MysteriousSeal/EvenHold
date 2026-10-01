@@ -3,6 +3,7 @@
 // adds health, damage and the experience it's worth.
 
 import { ENEMY_STATS } from '../constants';
+import { TRIVIAL } from '../hero/heroStats';
 import type { EnemyKind } from '../types';
 import { hashUnit } from '../../util/random';
 
@@ -33,4 +34,13 @@ export function enemyPower(kind: EnemyKind, level: number): { maxHp: number; dam
     damage: Math.max(1, Math.round(stats.damage * (1 + up * DAMAGE_PER_LEVEL))),
     xp: Math.round(stats.xp * (1 + up * XP_PER_LEVEL)),
   };
+}
+
+export type Difficulty = 'trivial' | 'even' | 'tough' | 'hard' | 'deadly';
+
+// How dangerous a foe of `level` is for a hero of `heroLevel`, by the gap in level
+// (trivial: worth a token only, heroStats.ts).
+export function difficulty(level: number, heroLevel: number): Difficulty {
+  const gap = level - heroLevel;
+  return gap <= -TRIVIAL ? 'trivial' : gap <= 0 ? 'even' : gap <= 2 ? 'tough' : gap <= 4 ? 'hard' : 'deadly';
 }
