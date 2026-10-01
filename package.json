@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bots": "vite-node tests/bots/run.ts",
+    "bots:quick": "BOT_QUICK=1 vite-node tests/bots/run.ts"
   },
   "dependencies": {
     "simplex-noise": "^4.0.3",

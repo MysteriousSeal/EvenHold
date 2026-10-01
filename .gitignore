@@ -16,3 +16,6 @@ skills-lock.json
 node_modules/
 dist/
 *.tsbuildinfo
+
+# The bots' playtest reports (npm run bots)
+tests/bots/reports/

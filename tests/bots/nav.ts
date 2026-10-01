@@ -1,0 +1,168 @@
+// A bot getting about as a player does, by the arrow keys' direction only:
+// outdoors along paths round what's in the way (the game's own pathfinding),
+// indoors round the furniture, through doors to go in and out. It tells
+// when it's there, and when it's stuck (pressing on and getting nowhere).
+import type { GameModel } from '../../src/model/GameModel';
+import { findPath } from '../../src/model/map/pathfinding';
+import { clearLine, type Point } from '../../src/model/map/obstacles';
+import { HERO_RADIUS, INDOOR_SCALE } from '../../src/model/constants';
+import { NPC_RADIUS } from '../../src/model/npcs/npcs';
+import { bumpsFurniture } from '../../src/model/interiors/furniture';
+import type { Entrance } from '../../src/model/interiors/interiors';
+import { noticeBoards } from '../../src/model/quests/noticeBoards';
+
+export type Arrival = 'going' | 'there' | 'stuck' | 'no way';
+
+const REPATH = 2.5; // seconds between fresh paths
+const STILL_TIME = 6; // seconds pressing on without moving: stuck
+const LOST_TIME = 40; // seconds without getting any nearer (round and round): stuck (not on a long way round)
+const PATH_RADIUS = 40;
+
+export class Nav {
+  private path: Point[] = [];
+  private age = Infinity;
+  private goal: Point | null = null;
+  private best = Infinity; // nearest yet to the goal
+  private sinceBetter = 0; // seconds since getting nearer
+  private still: Point & { t: number } = { x: 0, z: 0, t: 0 }; // where last seen moving, and seconds since
+  private noWay = 0;
+  private reaches = false; // whether the last path found gets there (else: going as near as there's a way)
+  private route: Point[] | null = null; // outdoors, the whole way there (tile by tile) when it's a long way round
+  unreachable = false; // whether the goal's been found to be out of reach from here, the whole map over
+
+  constructor(private readonly model: GameModel) {}
+
+  reset(): void {
+    [this.path, this.age, this.goal, this.best, this.sinceBetter, this.noWay] = [[], Infinity, null, Infinity, 0, 0];
+    this.still = { x: this.model.hero.x, z: this.model.hero.z, t: 0 };
+    [this.route, this.unreachable] = [null, false];
+  }
+
+  // Where the hero can stand, where they are now (a room's floor, or outdoors).
+  // Folk standing about count as in the way (the way round them, if there's one).
+  free(): (x: number, z: number) => boolean {
+    const { inside, hero } = this.model;
+    const where = inside?.entrance ?? null;
+    const reach = (HERO_RADIUS + NPC_RADIUS) * (inside ? INDOOR_SCALE : 1);
+    const folk = this.model.npcs.filter((n) => n.where === where && Math.hypot(n.x - hero.x, n.z - hero.z) > reach && Math.abs(n.x - hero.x) < 45 && Math.abs(n.z - hero.z) < 45);
+    // (and foes, but the one being gone for: at the goal)
+    const goal = this.goal;
+    const foes = inside ? [] : this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) > 0.6 && Math.abs(e.x - hero.x) < 45 && Math.abs(e.z - hero.z) < 45 && !(goal && Math.hypot(e.x - goal.x, e.z - goal.z) < 1.5));
+    const clear = (x: number, z: number) => !folk.some((n) => Math.hypot(n.x - x, n.z - z) < reach) && !foes.some((e) => Math.hypot(e.x - x, e.z - z) < 0.5);
+    if (!inside) return (x, z) => !this.model.isBlocked(x, z, HERO_RADIUS) && clear(x, z);
+    const r = HERO_RADIUS * INDOOR_SCALE;
+    const { width, depth } = inside.room;
+    return (x, z) => x >= -0.5 + r && z >= -0.5 + r && x <= width - 0.5 - r && z <= depth - 0.5 - r && !bumpsFurniture(inside.furniture, x, z, r) && clear(x, z);
+  }
+
+  // Tile centers to walk through: the pathfinding goes from the middle of
+  // the hero's tile, so if that's blocked (a prop there, the hero at its
+  // edge), first to the nearest clear middle the hero can walk straight to.
+  private pathTo(to: Point): Point[] {
+    const { hero } = this.model;
+    const free = this.free();
+    const radius = Math.min(PATH_RADIUS, Math.ceil(Math.hypot(to.x - hero.x, to.z - hero.z)) + 8); // (no farther round than need be)
+    const [tx, tz] = [Math.round(hero.x), Math.round(hero.z)];
+    if (free(tx, tz)) return findPath(hero, to, radius, free);
+    const near: Point[] = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) near.push({ x: tx + dx, z: tz + dz });
+    near.sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z));
+    const first = near.find((p) => free(p.x, p.z) && clearLine(hero, p, free, 0.1));
+    return first ? [first, ...findPath(first, to, radius, free)] : findPath(hero, to, radius, free);
+  }
+
+  // A fresh path: straight there round what's in the way; or, outdoors,
+  // when there's no way there near at hand, toward a point some way along
+  // the whole way round (found once).
+  private repath(to: Point): void {
+    const { hero, inside } = this.model;
+    if (!this.route) {
+      this.path = this.pathTo(to);
+      const end = this.path[this.path.length - 1] ?? hero;
+      this.reaches = Math.hypot(end.x - to.x, end.z - to.z) < 1;
+      if (this.reaches || inside) return;
+      this.route = this.wholeWay(to);
+      if (!this.route) return void (this.unreachable = true);
+    }
+    // The farthest point of the route ahead within reach of a local path.
+    let nearest = 0;
+    for (let i = 0; i < this.route.length; i++) if (Math.hypot(this.route[i].x - hero.x, this.route[i].z - hero.z) < Math.hypot(this.route[nearest].x - hero.x, this.route[nearest].z - hero.z)) nearest = i;
+    this.path = this.pathTo(this.route[Math.min(this.route.length - 1, nearest + 18)] ?? to);
+    this.reaches = true;
+  }
+
+  // The way to `to` across the whole map (tile to tile, as pathfinding.ts steps), or null if there's none.
+  private wholeWay(to: Point): Point[] | null {
+    const { width, depth } = this.model.size;
+    const free = (x: number, z: number) => !this.model.isBlocked(x, z, HERO_RADIUS);
+    const index = (x: number, z: number) => x * depth + z;
+    const came = new Int32Array(width * depth).fill(-1);
+    const [sx, sz, gx, gz] = [Math.round(this.model.hero.x), Math.round(this.model.hero.z), Math.round(to.x), Math.round(to.z)];
+    const queue = new Int32Array(width * depth);
+    let [head, tail] = [0, 0];
+    queue[tail++] = index(sx, sz);
+    came[index(sx, sz)] = index(sx, sz);
+    while (head < tail) {
+      const cell = queue[head++];
+      const [x, z] = [Math.floor(cell / depth), cell % depth];
+      if (Math.abs(x - gx) <= 1 && Math.abs(z - gz) <= 1) {
+        const way: Point[] = [];
+        for (let c = cell; c !== index(sx, sz); c = came[c]) way.push({ x: Math.floor(c / depth), z: c % depth });
+        return way.reverse();
+      }
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const [nx, nz] = [x + dx, z + dz];
+        if (nx < 1 || nz < 1 || nx >= width - 1 || nz >= depth - 1 || came[index(nx, nz)] >= 0) continue;
+        if (!free(nx, nz) || !free(x + dx / 2, z + dz / 2)) continue;
+        came[index(nx, nz)] = cell;
+        queue[tail++] = index(nx, nz);
+      }
+    }
+    return null;
+  }
+
+  // One frame toward `to`, within `near` of it: the way to press (dx, dz), and how it's going.
+  toward(to: Point, near: number, dt: number): { dx: number; dz: number; state: Arrival } {
+    const { hero } = this.model;
+    // (a new goal: afresh; the same one moved a little, a foe's say: kept on)
+    if (!this.goal || Math.hypot(this.goal.x - to.x, this.goal.z - to.z) > 1.5) {
+      this.reset();
+      this.goal = { ...to };
+    }
+    const d = Math.hypot(to.x - hero.x, to.z - hero.z);
+    if (d <= near) return { dx: 0, dz: 0, state: 'there' };
+    // Moving and getting nearer (round what's in the way, maybe farther for a while), or stuck.
+    if (d < this.best - 0.15) [this.best, this.sinceBetter] = [d, 0];
+    else if ((this.sinceBetter += dt) > LOST_TIME && !this.route) return { dx: 0, dz: 0, state: this.reaches ? 'stuck' : 'no way' };
+    if (Math.hypot(hero.x - this.still.x, hero.z - this.still.z) > 0.3) this.still = { x: hero.x, z: hero.z, t: 0 };
+    else if ((this.still.t += dt) > STILL_TIME) return { dx: 0, dz: 0, state: this.reaches ? 'stuck' : 'no way' };
+    // The way: straight on over the last stretch, else along a path round what's between.
+    this.age += dt;
+    if (this.age > REPATH || this.path.length === 0) {
+      this.repath(to);
+      this.age = 0;
+      if (this.unreachable) return { dx: 0, dz: 0, state: 'no way' };
+    }
+    while (this.path.length > 0 && Math.hypot(this.path[0].x - hero.x, this.path[0].z - hero.z) < 0.2) this.path.shift();
+    const next = d < 1.2 || this.path.length === 0 ? to : this.path[0];
+    if (this.path.length === 0 && d >= 1.2) {
+      if ((this.noWay += dt) > 4) return { dx: 0, dz: 0, state: 'no way' };
+    } else this.noWay = 0;
+    const [dx, dz] = [next.x - hero.x, next.z - hero.z];
+    const len = Math.hypot(dx, dz) || 1;
+    return { dx: dx / len, dz: dz / len, state: 'going' };
+  }
+}
+
+// The nearest door of a kind of building to the hero, if there's one.
+export function nearestDoor(model: GameModel, type: Entrance['type']): Entrance | null {
+  const { hero } = model;
+  return model.entrances.filter((e) => e.type === type).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
+}
+
+// The nearest notice board to the hero (its village's index).
+export function nearestBoard(model: GameModel): number {
+  const { hero } = model;
+  const boards = noticeBoards(model);
+  return boards.reduce((best, b, i) => (Math.hypot(b.x - hero.x, b.z - hero.z) < Math.hypot(boards[best].x - hero.x, boards[best].z - hero.z) ? i : best), 0);
+}
