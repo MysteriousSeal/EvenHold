@@ -21,12 +21,14 @@ import { stepEnemy, type EnemyActions } from './enemies';
 import type { MapSize } from '../map/grid';
 import { clearLine, type Obstacles, type Point } from '../map/obstacles';
 import { findPath } from '../map/pathfinding';
+import { Nearby } from '../../util/nearby';
 import type { Enemy, Hero } from '../types';
 
 const BUMP_MARGIN = 4; // past the active radius, still counted as maybe in the way (none gets from beyond it to touching one that's moving)
 
 export class EnemyDirector {
   frozen = false; // dev cheat: enemies stand still
+  private readonly near: Nearby<Enemy>; // those round the hero, kept to hand (the full map has thousands)
   private nearby: Enemy[] | null = null; // during an update: those that could be bumped into (the rest are far off)
   private waiting: Set<Enemy> | null = null; // during an update: chasers waiting their turn (past the nearest few set on the hero)
   private readonly actions: EnemyActions = {
@@ -44,22 +46,25 @@ export class EnemyDirector {
     private readonly size: MapSize,
     private readonly groundY: (x: number, z: number) => number,
     private readonly onStrike: (enemy: Enemy) => void, // an enemy's blow lands (reach is the model's to judge)
-  ) {}
+  ) {
+    this.near = new Nearby(enemies, (e) => e, ENEMY_ACTIVE_RADIUS + BUMP_MARGIN);
+  }
 
   update(dt: number): void {
+    const near = this.near.near(this.hero);
     const reach = ENEMY_ACTIVE_RADIUS + BUMP_MARGIN;
-    this.nearby = this.enemies.filter((e) => Math.abs(e.x - this.hero.x) <= reach && Math.abs(e.z - this.hero.z) <= reach);
+    this.nearby = near.filter((e) => Math.abs(e.x - this.hero.x) <= reach && Math.abs(e.z - this.hero.z) <= reach);
     // A pack comes on a few at a time: the nearest ENGAGED chasers (or those mid-blow) go for the hero, the rest hang back.
     const to = (e: Enemy) => Math.hypot(e.x - this.hero.x, e.z - this.hero.z);
     const chasers = this.nearby.filter((e) => e.state === 'chase' && e.lostFor === 0).sort((a, b) => (a.swingFor !== null ? -1 : 0) - (b.swingFor !== null ? -1 : 0) || to(a) - to(b));
     this.waiting = new Set(chasers.slice(ENGAGED));
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const enemy = this.enemies[i];
+    for (let i = near.length - 1; i >= 0; i--) {
+      const enemy = near[i];
       if (!this.nearHero(enemy)) continue;
       enemy.hurtFor = Math.max(0, enemy.hurtFor - dt);
       if (enemy.state === 'dead') {
         enemy.deadFor += dt;
-        if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(i, 1);
+        if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(this.enemies.indexOf(enemy), 1);
         continue;
       }
       enemy.pathAge += dt;

@@ -17,7 +17,9 @@ import {
   FOCUS_TURN_RANGE,
   TILE_HEIGHT,
   ROAD_SURFACE_HEIGHT,
+  ENEMY_ACTIVE_RADIUS,
 } from './constants';
+import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
@@ -92,6 +94,8 @@ export class GameModel {
   yard: YardStay | null = null; // dev cheat: flat grass off the map, every furniture on it
   readonly outdoors: { seated: Seated } = { seated: null }; // on a bench, on a village square
   readonly wildlife: Wildlife[]; // peaceful animals: they never block and can't be hurt
+  private readonly nearNpcs: Nearby<Npc>; // the villagers round the hero (of villages near enough to act, or be in the way), kept to hand
+  private readonly nearWildlife: Nearby<Wildlife>; // and the animals (the full map has tens of thousands of each)
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private focusedId: number | null = null;
@@ -143,6 +147,8 @@ export class GameModel {
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
+    this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
+    this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
   }
 
@@ -215,12 +221,12 @@ export class GameModel {
     if (dt <= 0) return;
     this.minutes += dt; // a second played, a minute on the clock
     tickBlessing(this.hero, dt); // a well's, wearing off
-    if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.npcs, this, dirX, dirZ, dt); // (folk stood in the way step aside)
+    if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
       this.advanceAttack(dt);
-      stepNpcs(this.npcs, this, dt);
+      stepNpcs(this.folk, this, dt);
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }
@@ -234,15 +240,18 @@ export class GameModel {
     this.advanceAttack(dt);
     this.director.update(dt);
     this.quests.update(dt);
-    stepNpcs(this.npcs, this, dt);
+    stepNpcs(this.folk, this, dt);
     this.scoopCoins();
     if (liveOn(this, dt)) return; // out of energy: to the nearest inn's hearth
     this.keepFocus();
-    stepWildlife(this.wildlife, this, this.hero, dt);
+    stepWildlife(this.nearWildlife.near(this.hero), this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
     // go still finishes instead of freezing mid-air.
     if (!this.outdoors.seated) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
   }
+
+  // The villagers round the hero (where they are on the map: a building, if in one).
+  private get folk(): readonly Npc[] { return this.nearNpcs.near(this.inside?.entrance ?? this.hero); }
 
   // Moves the current blow along; outdoors it lands partway through (there's
   // no one to hit indoors, so there the swing just plays out).
@@ -267,7 +276,7 @@ export class GameModel {
     // Axis-separated so the hero slides along an obstacle's edge instead of
     // stopping dead the instant either component alone would move into it.
     const free = (x: number, z: number) =>
-      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.npcs, null, this.hero, x, z, HERO_RADIUS));
+      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.folk, null, this.hero, x, z, HERO_RADIUS));
     if (free(candidateX, this.hero.z)) this.hero.x = candidateX;
     if (free(this.hero.x, candidateZ)) this.hero.z = candidateZ;
     this.hero.facing = Math.atan2(dirX, dirZ);
@@ -370,7 +379,7 @@ export class GameModel {
     const inside = this.inside!;
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
-    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.npcs, inside.entrance, this.hero, x, z, r);
+    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r);
     walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
   }
 
