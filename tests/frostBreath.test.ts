@@ -6,6 +6,7 @@ import { GameModel } from '../src/model/GameModel';
 import { BREATH_REACH, BREATH_TELL, CHILL_FOR, caught } from '../src/model/crypts/frostBreath';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { isBane, makeChilled } from '../src/model/hero/blessing';
+import { CLEAVE_KNOCK, CLEAVE_LENGTH, CLEAVE_TELL, onStrip } from '../src/model/crypts/cleave';
 import { DROP_CHANCE, LOOT, rollDrop } from '../src/model/loot/loot';
 import { ENEMY_STATS } from '../src/model/constants';
 import { landBlow } from '../src/model/hero/fighting';
@@ -109,5 +110,67 @@ describe('draugr', () => {
     makeChilled(model.hero, 3);
     makeChilled(model.hero, CHILL_FOR);
     expect(model.hero.blessings!.filter((b) => b.kind === 'chilled')).toEqual([{ kind: 'chilled', left: CHILL_FOR }]);
+  });
+
+  it('cleave along a strip before them: so long, so wide', () => {
+    const cleave = { x: 0, z: 0, dx: 0, dz: 1 };
+    expect(onStrip(cleave, { x: 0, z: 1.5 })).toBe(true);
+    expect(onStrip(cleave, { x: 0.3, z: 1 })).toBe(true);
+    expect(onStrip(cleave, { x: 0.8, z: 1 })).toBe(false); // (beside it)
+    expect(onStrip(cleave, { x: 0, z: CLEAVE_LENGTH + 0.3 })).toBe(false);
+    expect(onStrip(cleave, { x: 0, z: -0.6 })).toBe(false); // (behind)
+  });
+
+  it('raise the axe, then cleave: the hero still on the strip struck double and knocked back (still facing as they were), one who stepped aside spared; never while drawing breath', () => {
+    for (const stay of [true, false]) {
+      const { model, foe } = alone(4, 'draugr');
+      const crypt = model.crypt!;
+      foe.cooldown = 99;
+      Object.assign(model.hero, { x: foe.x, z: foe.z - 1.2, facing: 1 }); // (deeper in than it: open floor behind them to be knocked onto)
+      let cleave = null;
+      for (let t = 0; t < 10 && !cleave; t += FRAME) {
+        foe.cooldown = 99;
+        Object.assign(model.hero, { x: foe.x, z: foe.z - 1.2 });
+        crypt.update(FRAME);
+        cleave = crypt.cleaves.cleaves[0] ?? null;
+        expect(crypt.cleaves.cleaving(foe) && crypt.frost.breaths.some((b) => b.draugr === foe)).toBe(false); // (one or the other)
+      }
+      expect(cleave).not.toBeNull();
+      expect(foe.told).toBe('cleave');
+      if (!stay) Object.assign(model.hero, { x: cleave!.x + cleave!.dz * 1.2, z: cleave!.z - cleave!.dx * 1.2 }); // (aside)
+      crypt.frost.breaths.length = 0;
+      const [hp, at] = [model.hero.hp, { x: model.hero.x, z: model.hero.z }];
+      for (let t = 0; t < CLEAVE_TELL + 0.1; t += FRAME) {
+        foe.cooldown = 99;
+        crypt.update(FRAME);
+      }
+      if (stay) {
+        expect(hp - model.hero.hp).toBeGreaterThanOrEqual(foe.damage * 2 - 2); // (double, less what the hero's armour takes)
+        const back = (model.hero.x - at.x) * cleave!.dx + (model.hero.z - at.z) * cleave!.dz;
+        expect(back).toBeGreaterThan(CLEAVE_KNOCK * 0.5);
+        expect(model.hero.facing).toBe(1);
+      } else expect(model.hero.hp).toBe(hp);
+    }
+  });
+
+  it('lose the cleave if struck as they raise the axe', () => {
+    const { model, foe } = alone(4, 'draugr');
+    const crypt = model.crypt!;
+    Object.assign(model.hero, { x: foe.x, z: foe.z + 1.2 });
+    for (let t = 0; t < 10 && crypt.cleaves.cleaves.length === 0; t += FRAME) {
+      foe.cooldown = 99;
+      crypt.update(FRAME);
+    }
+    crypt.frost.breaths.length = 0;
+    const hp = model.hero.hp;
+    foe.hurtFor = 0.25; // (struck)
+    crypt.update(FRAME);
+    expect(crypt.cleaves.cleaves).toHaveLength(0);
+    expect(foe.told).toBeNull();
+    for (let t = 0; t < CLEAVE_TELL; t += FRAME) {
+      foe.cooldown = 99;
+      crypt.update(FRAME);
+    }
+    expect(model.hero.hp).toBe(hp);
   });
 });
