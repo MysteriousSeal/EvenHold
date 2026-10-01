@@ -23,7 +23,7 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   second: { name: 'Second wind', about: 'Each foe you slay heals you 1.' },
   keen: { name: 'Keen eye', about: 'Foes drop loot and quest items more often.' },
   weary: { name: 'Weary', about: 'After a fall or a collapse: your blows deal 1 less damage, and hits on you 1 more.' }, // (no well's: a fall's, or a collapse's, mark)
-  chilled: { name: 'Chilled', about: "A draugr's frost on you: you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts)
+  chilled: { name: 'Chilled', about: "Frost on you (a draugr's breath, a ghost's touch): you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts; a ghost's touch, hero/fighting.ts)
 };
 const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled']); // a fall's mark, a draugr's frost: no well's, and kept through one
 const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k)); // the wells'

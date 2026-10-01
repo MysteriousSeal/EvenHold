@@ -1,5 +1,6 @@
 // Enemies: wolf packs in the forests, boars rooting in the woods (passive:
-// they fight only once hit), and bandits in their camps (camps/camps.ts),
+// they fight only once hit), bandits in their camps (camps/camps.ts), ghosts
+// haunting the old ruins (bound to them: never out past their walls),
 // wolves and a camp near spawn to meet early. They
 // wander around home, chase the hero on sight, give up if outrun (or led too far from home), and
 // attack once within reach. Placed from hashes and
@@ -9,6 +10,7 @@ import { noticeFactor, type Blessing } from '../hero/blessing';
 import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
+import type { Ruin } from '../ruins/ruins';
 import { createForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
@@ -36,6 +38,7 @@ export interface EnemyWorld {
   villages: Village[];
   hero: { x: number; z: number };
   camps: readonly Camp[]; // (the bandits start in them)
+  ruins?: readonly Ruin[]; // (ghosts haunt them)
   isOpenTile(x: number, z: number): boolean;
 }
 
@@ -127,6 +130,19 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
   scatter(MEADOW_PACKS, 62, (x, z) => group('wolf', x, z, 2, 66));
   scatter(BOARS, 72, (x, z) => group('boar', x, z, 1 + Math.floor(hashUnit(x, z, 73) * 3), 76)); // one to three
   for (const camp of world.camps.slice(1)) bandits(camp);
+  // Ghosts haunting each old ruin, two to four, bound to it (within its walls); last, so the rest keep their ids.
+  for (const ruin of world.ruins ?? []) {
+    const [cx, cz] = [Math.floor(ruin.x + ruin.w / 2), Math.floor(ruin.z + ruin.d / 2)];
+    const haunt = { x0: ruin.x + 0.5, z0: ruin.z + 0.5, x1: ruin.x + ruin.w - 1.5, z1: ruin.z + ruin.d - 1.5 };
+    const count = 2 + Math.floor(hashUnit(ruin.x, ruin.z, 81) * 3);
+    const spots: Array<[number, number]> = [];
+    for (let x = Math.ceil(haunt.x0); x <= haunt.x1; x++) for (let z = Math.ceil(haunt.z0); z <= haunt.z1; z++) if (open(x, z)) spots.push([x, z]);
+    spots.sort((a, b) => hashUnit(a[0], a[1], 82) - hashUnit(b[0], b[1], 82));
+    for (const [x, z] of spots.slice(0, count)) {
+      taken.add(`${x},${z}`);
+      enemies.push({ ...makeEnemy(enemies.length, 'ghost', x, z, cx, cz, enemyLevel(world.hero, cx, cz, enemies.length)), haunt });
+    }
+  }
   return enemies;
 }
 
@@ -153,7 +169,18 @@ export interface EnemyActions {
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
 
 export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?: Blessing[] }, dt: number, actions: EnemyActions): void {
-  const { move, steer, sees } = actions;
+  const { steer, sees } = actions;
+  // Bound to a place (a ruin's ghost): never a step out of it, nor after the hero once they're out of it.
+  const haunt = enemy.haunt;
+  const within = (p: { x: number; z: number }) => !haunt || (p.x >= haunt.x0 && p.x <= haunt.x1 && p.z >= haunt.z0 && p.z <= haunt.z1);
+  const move = (e: Enemy, dx: number, dz: number) => {
+    if (haunt && !within({ x: e.x + dx, z: e.z + dz })) {
+      dx = Math.min(haunt.x1, Math.max(haunt.x0, e.x + dx)) - e.x;
+      dz = Math.min(haunt.z1, Math.max(haunt.z0, e.z + dz)) - e.z;
+      if (Math.hypot(dx, dz) < 1e-5) return false;
+    }
+    return actions.move(e, dx, dz);
+  };
   const stats = ENEMY_STATS[enemy.kind];
   enemy.cooldown = Math.max(0, enemy.cooldown - dt);
   if (enemy.swingFor !== null) {
@@ -175,7 +202,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   // still on its way back from too far, not till it's most of the way home.)
   const fromHome = Math.hypot(enemy.x - enemy.homeX, enemy.z - enemy.homeZ);
   const headingHome = enemy.state === 'wander' && fromHome > ENEMY_LEASH * 0.6;
-  const noticed = !stats.passive && !headingHome && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
+  const noticed = !stats.passive && !headingHome && within(hero) && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
   if (enemy.state === 'chase') {
     if (noticed || (toHero < stats.giveUp && sees(enemy))) {
@@ -190,7 +217,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     const searched = !!enemy.lastSeen && enemy.lostFor > 0 && Math.hypot(enemy.lastSeen.x - enemy.x, enemy.lastSeen.z - enemy.z) < 0.25;
     const leashed = fromHome > ENEMY_LEASH;
     if (leashed) enemy.hp = enemy.maxHp;
-    if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched || leashed) {
+    if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched || leashed || !within(hero)) {
       enemy.state = 'wander';
       enemy.target = { x: enemy.homeX, z: enemy.homeZ };
       enemy.lastSeen = null;
@@ -234,6 +261,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
         pen !== undefined
           ? { x: enemy.homeX + Math.floor(hx * (2 * pen + 1)) - pen, z: enemy.homeZ + Math.floor(hz * (2 * pen + 1)) - pen }
           : { x: enemy.homeX + (hx - 0.5) * 2 * stats.wander, z: enemy.homeZ + (hz - 0.5) * 2 * stats.wander };
+      if (haunt) enemy.target = { x: Math.min(haunt.x1, Math.max(haunt.x0, enemy.target.x)), z: Math.min(haunt.z1, Math.max(haunt.z0, enemy.target.z)) };
       if (actions.standable?.(enemy, enemy.target.x, enemy.target.z)) break;
     }
   }

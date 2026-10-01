@@ -28,7 +28,7 @@ export interface Hero extends Humanoid {
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen)
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.
@@ -57,6 +57,7 @@ export interface Enemy {
   homeX: number; // where it wanders around, and returns to
   homeZ: number;
   pen?: number; // if kept in (a camp's bandits): wanders only to the tiles this far round home, inside the palisade
+  haunt?: { x0: number; z0: number; x1: number; z1: number }; // if bound to a place (a ruin's ghosts): never leaves it, nor chases the hero out of it
   level: number; // from how far from spawn it lives (enemyLevels.ts)
   maxHp: number;
   hp: number;
@@ -66,7 +67,6 @@ export interface Enemy {
   target: { x: number; z: number } | null; // wander goal
   restFor: number; // seconds before picking a new wander goal
   hurtFor: number; // seconds left of the hit flash
-  knock?: { dx: number; dz: number; t: number }; // knocked back by a blow (a lord's charge, a draugr's cleave): carried so far over KNOCK_TIME (hero/fighting.ts)
   deadFor: number; // seconds since it died
   swingFor: number | null; // seconds into its own attack swing (bandits), or null
   cooldown: number; // seconds before it can swing again

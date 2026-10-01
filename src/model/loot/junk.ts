@@ -23,6 +23,10 @@ export const JUNK_ITEMS = {
   rustedBlade: { name: 'Rusted blade', value: 5, droppedBy: { undead: 3, draugr: 1 } },
   oldArrowhead: { name: 'Old arrowhead', value: 3, droppedBy: { undead: 3 } },
   boneCharm: { name: 'Bone charm', value: 7, droppedBy: { undead: 2, draugr: 1 } },
+  // From ghosts: keepsakes of the dead, what bound them there.
+  fadedLocket: { name: 'Faded locket', value: 9, droppedBy: { ghost: 2 } },
+  graveCandle: { name: 'Grave candle', value: 4, droppedBy: { ghost: 3 } },
+  tatteredShroud: { name: 'Tattered shroud', value: 6, droppedBy: { ghost: 3 } },
   // From draugr: what the old warriors were laid to rest with, worth far more.
   frostTorc: { name: 'Frost-rimed torc', value: 30, droppedBy: { draugr: 2 } },
   runestone: { name: "Draugr's runestone", value: 20, droppedBy: { draugr: 3 } },

@@ -85,6 +85,8 @@ export function cryptHooks(fight: Fight): CryptHooks {
   };
 }
 
+const GHOST_CHILL = 2.5; // seconds a ghost's touch chills the hero
+
 export const KNOCK_TIME = 0.35; // seconds a knock carries the hero
 const KNOCK_HOP = 0.18; // how high they're thrown, at the most
 
@@ -108,9 +110,15 @@ export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void
 }
 
 // A foe's blow lands if the hero is still within its reach (a step back in time dodges it).
+// A ghost's touch is cold: chilled a moment, if it lands.
 export function foeStrikes(fight: Fight, enemy: Enemy): void {
   if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+  const hp = fight.hero.hp;
   heroStruck(fight, enemy.damage, enemy);
+  if (enemy.kind === 'ghost' && fight.hero.hp < hp) {
+    makeChilled(fight.hero, GHOST_CHILL);
+    fight.report({ kind: 'chilled' });
+  }
 }
 
 // The hero struck for `damage` (by `by`, if it's someone to turn to): dodged maybe (Agility), else hurt;

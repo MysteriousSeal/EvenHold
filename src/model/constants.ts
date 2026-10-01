@@ -27,6 +27,10 @@ export const ENEMY_STATS = {
   cryptLord: { family: 'undead', passive: true, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 0, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.3, loot: 2 },
   // A draugr (crypts/frostBreath.ts its breath): a withered warrior in mail with an axe; slow, twice a skeleton's health and more, hard blows, hardly moved by a blow; its own, better loot, more often (`loot`: the drop chance's factor).
   draugr: { family: 'draugr', passive: false, hp: 11, damage: 3, xp: 45, coins: 10, radius: 0.17, walk: 0.35, run: 1.4, sight: 6, giveUp: 12, wander: 2, stop: 0.7, swing: 1.1, cooldown: 1.6, rest: [5, 4], shove: 0.25, loot: 1.6 }, // (slower still, so longer at rest)
+  // A ghost (enemies.ts): haunting an old ruin, bound to it (never out past its walls, nor after the hero once they're
+  // out); drifting about it, quick when set on the hero, its touch cold (chilling a moment: hero/fighting.ts); frail,
+  // its own loot (keepsakes of the dead).
+  ghost: { family: 'ghost', passive: false, hp: 5, damage: 2, xp: 28, coins: 3, radius: 0.15, walk: 0.55, run: 2.2, sight: 4, giveUp: 10, wander: 4, stop: 0.6, swing: 0.9, cooldown: 1.5, rest: [2, 3], shove: 0.7, loot: 1.2 },
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
