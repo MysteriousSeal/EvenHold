@@ -156,7 +156,7 @@ describe('the crypts\' guards', () => {
     expect(model.foes).toHaveLength(all);
   });
 
-  it('count toward how much of the crypt is cleared, all of it with the last of them, told once; the same at its way in', () => {
+  it('count toward how much of the crypt is cleared (its lord the one more: cryptLord.test.ts), never all of it without him; the same at its way in', () => {
     const model = new GameModel(1, MID);
     const crypt = goDown(model);
     const all = model.foes.length;
@@ -165,11 +165,10 @@ describe('the crypts\' guards', () => {
     model.foes.forEach((guard, i) => {
       guard.state = 'dead';
       model.slayGuard(guard);
-      expect(model.clearedShare(crypt.entrance)).toBeCloseTo((i + 1) / all);
-      const told = model.takeEvents().filter((e) => e.kind === 'cleared');
-      expect(told).toHaveLength(i === all - 1 ? 1 : 0);
+      expect(model.clearedShare(crypt.entrance)).toBeCloseTo((i + 1) / (all + 1));
+      expect(model.takeEvents().filter((e) => e.kind === 'cleared')).toHaveLength(0);
     });
-    expect(model.clearedShare(crypt.entrance)).toBe(1);
+    expect(model.clearedShare(crypt.entrance)).toBeCloseTo(all / (all + 1));
   });
 
   it('shamble about their posts with no one near: off them now and then, a few tiles at most, slow, pausing long, never into the rock', () => {
