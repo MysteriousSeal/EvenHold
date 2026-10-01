@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { WEARY_TIME } from '../src/model/hero/blessing';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
@@ -26,8 +27,8 @@ describe('hero stats', () => {
     expect(maxHpAt(3)).toBeGreaterThan(maxHpAt(1));
   });
 
-  it('climbs steadily: 60 to level 2, 10 more a level to 120 at level 7, then 15 more a level, never a step back in the climb', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map(xpToNext)).toEqual([60, 70, 80, 90, 100, 110, 120, 135, 150]);
+  it('climbs steadily, each level longer than the last: paced for level 10 after about three hours', () => {
+    expect([1, 2, 3, 4, 5, 9].map(xpToNext)).toEqual([171, 448, 781, 1170, 1615, 3955]);
     for (let level = 2; level < 30; level++) expect(xpToNext(level + 1) - xpToNext(level)).toBeGreaterThanOrEqual(xpToNext(level) - xpToNext(level - 1));
   });
 
@@ -66,7 +67,7 @@ describe('hero stats', () => {
     expect(tiredPace(hero)).toBeLessThan(1);
   });
 
-  it("out of energy, collapses and wakes lying before the nearest inn's hearth, some energy back", () => {
+  it("out of energy, collapses and wakes lying before the nearest inn's hearth, some energy back, and Weary a while", () => {
     eachSeed((model) => {
       model.hero.energy = 0.0001;
       model.update(0, 0, FRAME);
@@ -75,6 +76,7 @@ describe('hero stats', () => {
       const hearth = model.inside!.furniture.find((f) => f.kind === 'hearth')!;
       expect(Math.abs(model.hero.z - hearth.z)).toBeLessThan(1.5); // before it
       expect(model.hero.energy).toBeGreaterThan(0);
+      expect(model.hero.blessings?.find((b) => b.kind === 'weary')?.left).toBeGreaterThan(WEARY_TIME - 1);
     });
   });
 });
@@ -94,7 +96,7 @@ describe('enemies hurt the hero', () => {
     expect(safe.hero.hp).toBe(maxHpAt(1));
   });
 
-  it('out of health, the hero loses a fifth of their coins and wakes at spawn (before any inn), healed', () => {
+  it('out of health, the hero loses a quarter of their coins and wakes at spawn (before any inn), healed but Weary a while', () => {
     eachSeed((model) => {
       alone(model, nearest(model, 'wolf'));
       const spawn = spawnOf(model.size);
@@ -102,7 +104,8 @@ describe('enemies hurt the hero', () => {
       model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
       for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
       expect(model.hero.hp).toBe(maxHpAt(1));
-      expect(model.hero.money).toBe(800);
+      expect(model.hero.money).toBe(750);
+      expect(model.hero.blessings?.find((b) => b.kind === 'weary')?.left).toBe(WEARY_TIME);
       expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
     });
   });

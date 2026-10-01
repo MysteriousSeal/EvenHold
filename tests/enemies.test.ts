@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS } from '../src/model/constants';
+import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS, ENGAGED } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
 import { FRAME, TEST_MAP_SIZE, fresh, nearest, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
@@ -232,5 +232,25 @@ describe('enemy levels', () => {
     expect(high.maxHp).toBeGreaterThan(low.maxHp);
     expect(high.damage).toBeGreaterThan(low.damage);
     expect(high.xp).toBeGreaterThan(low.xp);
+  });
+});
+
+describe('packs', () => {
+  it('come on a few at a time: of four wolves set on the hero, only two close in and bite, the rest hang back', () => {
+    eachSeed((model) => {
+      const wolves = model.enemies.filter((e) => e.kind === 'wolf').slice(0, 4);
+      model.enemies.splice(0, model.enemies.length, ...wolves);
+      model.godMode = true;
+      const { x, z } = model.hero;
+      for (const [i, w] of wolves.entries()) Object.assign(w, { x: x + Math.cos(i * 1.6) * 2, z: z + Math.sin(i * 1.6) * 2, homeX: x, homeZ: z, state: 'chase', lostFor: 0 });
+      let most = 0;
+      for (let t = 0; t < 4; t += FRAME) {
+        model.update(0, 0, FRAME);
+        const near = (w: Enemy) => Math.hypot(w.x - model.hero.x, w.z - model.hero.z);
+        most = Math.max(most, wolves.filter((w) => w.state === 'chase' && (w.swingFor !== null || near(w) < ENEMY_STATS.wolf.stop + 0.3)).length);
+      }
+      expect(most).toBeLessThanOrEqual(ENGAGED);
+      expect(most).toBeGreaterThan(0);
+    });
   });
 });
