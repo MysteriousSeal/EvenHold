@@ -125,6 +125,7 @@ export class GameController {
       const item = this.model.pickUp();
       const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero); // the barmaid, the smith
       if (item) this.onPickUp(item);
+      else if (this.model.crypt?.chestInReach(this.model.hero)) this.model.crypt.openChest(); // a crypt lord's chest
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
