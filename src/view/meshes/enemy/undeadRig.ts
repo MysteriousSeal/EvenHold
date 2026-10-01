@@ -1,10 +1,13 @@
-// A skeleton on screen (the crypts' guards, and their lord: crowned and mantled, a greatsword
-// raised high for his slam, a red glow on him raging): the human rig on a skeleton's
-// body (skeletonVoxels.ts), a short sword in hand for a swordsman, swung as
-// anyone's; a bow for a bowman: drawing it, he turns to the hero, the bow
-// held out in his left hand, the string pulled back to his ear with an arrow
-// on it. Flashes when hit, a health bar and his name over him; falls and
-// bursts into bone when slain.
+// One of a crypt's dead on screen (model/crypts/): a skeleton, a bowman, a
+// draugr or the crypt's lord, each the human rig on its own body (the
+// skeleton's, skeletonVoxels.ts; the lord's, lordVoxels.ts; a draugr's,
+// draugrVoxels.ts), so they walk and swing as anyone does. A swordsman's
+// short sword; a bowman's bow, drawn to the ear facing the hero, an arrow on
+// it; the lord's greatsword and a draugr's axe carried tilted up (never through
+// the floor), raised high for his slam, keyed through a draugr's cleave (into
+// the floor); a draugr's head thrown back drawing breath. The lord glows red
+// raging. Flashes when hit, a health bar and its name over it (kept at its
+// own size, drawn bigger: common/overhead.ts); falls and bursts when slain.
 
 import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
@@ -59,7 +62,7 @@ function keyed(keys: Keys, t: number): number {
 const BOW_VOXEL = 0.025;
 const BOW_PALETTE = [0x5a3f2a, 0x3e2b1c, 0xd8d0c0, 0x8a8f94, 0xe8e0d0]; // wood, its grain, the string, the arrowhead, the fletching
 
-export interface SkeletonLook {
+export interface UndeadLook {
   normal: THREE.Material;
   flash: THREE.Material;
   rage: THREE.Material; // a crypt's lord, raging: a red glow
@@ -69,7 +72,7 @@ export interface SkeletonLook {
   arrow: THREE.BufferGeometry;
 }
 
-export function createSkeletonLook(flash: THREE.Material): SkeletonLook {
+export function createUndeadLook(flash: THREE.Material): UndeadLook {
   const rage = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0x8a1a10, emissiveIntensity: 0.6 });
   return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), axe: axeGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
 }
@@ -95,7 +98,7 @@ export function arrowGeometry(): THREE.BufferGeometry {
   return greedyMesh(grid, BOW_PALETTE, BOW_VOXEL, new THREE.Vector3(-1.5 * BOW_VOXEL, -1.5 * BOW_VOXEL, -8 * BOW_VOXEL));
 }
 
-export class SkeletonRig {
+export class UndeadRig {
   private readonly rig: HumanRig;
   private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
@@ -106,7 +109,7 @@ export class SkeletonRig {
 
   constructor(
     skeleton: Enemy,
-    private readonly look: SkeletonLook,
+    private readonly look: UndeadLook,
   ) {
     const lord = skeleton.kind === 'cryptLord';
     const draugr = skeleton.kind === 'draugr';

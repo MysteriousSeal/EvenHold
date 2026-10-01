@@ -5,6 +5,7 @@
 // up or left behind.
 
 import * as THREE from 'three';
+import { glowMaterial } from '../common/glow';
 import type { GroundLoot } from '../../../model/loot/loot';
 import { isLootItem, qualityOf, type BagItem, type Quality } from '../../../model/hero/bag';
 import { ITEMS, type ItemId } from '../../../model/human/equipment';
@@ -26,9 +27,8 @@ const RING_SIZE = 13; // voxels across
 const BEAM_HEIGHT = 1.4;
 const BEAM_WIDTH = 0.06;
 
-// Additive light that never hides what's behind it.
-const glow = (color: number) =>
-  new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true });
+// Additive light that never hides what's behind it (common/glow.ts), its voxels' colours tinted.
+const glow = (color: number) => glowMaterial(color, { vertexColors: true });
 
 // A square frame of voxels, flat on the ground, a voxel thick.
 function ringGeometry(): THREE.BufferGeometry {

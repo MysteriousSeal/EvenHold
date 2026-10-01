@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
-import { SkeletonRig, createSkeletonLook, type SkeletonLook } from './skeletonRig';
+import { UndeadRig, createUndeadLook, type UndeadLook } from './undeadRig';
 import { ENEMY_BURST } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
@@ -15,7 +15,7 @@ import { Nearby } from '../common/nearby';
 
 const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-type Rig = BeastRig | BanditRig | SkeletonRig;
+type Rig = BeastRig | BanditRig | UndeadRig;
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 const DRAUGR_SIZE = 1.15; // a draugr, over a man
 
@@ -29,18 +29,18 @@ export class EnemyViews {
     wolf: () => new BeastRig(this.wolfLook),
     boar: () => new BeastRig(this.boarLook),
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
-    skeleton: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
-    skeletonArcher: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
-    cryptLord: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
-    draugr: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
+    skeleton: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    skeletonArcher: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    cryptLord: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    draugr: (enemy) => new UndeadRig(enemy, this.undeadLook),
   };
-  private readonly skeletonLook: SkeletonLook = createSkeletonLook(this.flash);
+  private readonly undeadLook: UndeadLook = createUndeadLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
       const scale = this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : enemy.kind === 'draugr' ? DRAUGR_SIZE : 1);
-      if (rig instanceof SkeletonRig) rig.drawnAt(scale); // (its bar and name at their own size)
+      if (rig instanceof UndeadRig) rig.drawnAt(scale); // (its bar and name at their own size)
       else rig.root.scale.setScalar(scale);
       this.scene.add(rig.root);
       return rig;
@@ -63,7 +63,7 @@ export class EnemyViews {
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.skeletonLook.normal, this.skeletonLook.rage, this.flash, ENEMY_BURST];
+    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.

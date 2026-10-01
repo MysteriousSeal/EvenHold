@@ -4,6 +4,7 @@
 // (The icy sheen on the body itself is a material: GameView.ts.)
 
 import * as THREE from 'three';
+import { glowMaterial } from '../common/glow';
 
 const MOTES = 14;
 const HEIGHT = 0.5; // over the feet the motes start from, at most
@@ -13,7 +14,7 @@ export class FrostOnHero {
   readonly group = new THREE.Group();
   private readonly motes: Array<{ mesh: THREE.Mesh; age: number; life: number; x: number; z: number; y: number }> = [];
   private readonly geometry = new THREE.BoxGeometry(0.018, 0.018, 0.018);
-  private readonly material = new THREE.MeshBasicMaterial({ color: 0xcff2ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  private readonly material = glowMaterial(0xcff2ff);
   private time = 0;
 
   constructor() {

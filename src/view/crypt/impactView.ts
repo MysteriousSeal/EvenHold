@@ -4,6 +4,7 @@
 // floor, fading. Small voxel cubes, one instanced mesh; the ring, one mesh each.
 
 import * as THREE from 'three';
+import { cubeCloud } from '../meshes/common/cubes';
 
 const MAX = 240;
 const CHIPS = 26;
@@ -37,10 +38,7 @@ export class ImpactView {
   private readonly color = new THREE.Color();
 
   constructor(private readonly scene: THREE.Scene) {
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.9 }), MAX);
-    this.mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
-    this.mesh.frustumCulled = false;
-    this.mesh.count = 0;
+    this.mesh = cubeCloud(MAX, new THREE.MeshStandardMaterial({ roughness: 0.9 }));
     scene.add(this.mesh);
   }
 

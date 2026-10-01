@@ -8,8 +8,11 @@
 // nothing (they glow), added on (never darkening what's under them).
 
 import * as THREE from 'three';
+import { glowMaterial } from '../meshes/common/glow';
+import { cubeCloud } from '../meshes/common/cubes';
 import { INDOOR_SCALE } from '../../model/constants';
-import { BREATH_REACH, BREATH_TELL, BREATH_WIDTH, type Breath } from '../../model/crypts/frostBreath';
+import { BREATH_REACH, BREATH_TELL, BREATH_WIDTH } from '../../model/crypts/frostBreath';
+import type { Told as Breath } from '../../model/enemies/toldMoves';
 
 const MAX = 600; // motes at once
 const MOUTH = 0.42 * INDOOR_SCALE * 1.15; // its mouth's height (a draugr's, drawn big)
@@ -36,7 +39,7 @@ interface Mote {
 export class FrostBreathView {
   private readonly motes: Mote[] = [];
   private readonly mesh: THREE.InstancedMesh;
-  private readonly material = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  private readonly material = glowMaterial();
   private readonly fan = new THREE.CircleGeometry(BREATH_REACH, 32, -BREATH_WIDTH, BREATH_WIDTH * 2).rotateX(-Math.PI / 2); // (along +X)
   private readonly edge = new THREE.RingGeometry(BREATH_REACH - 0.06, BREATH_REACH, 32, 1, -BREATH_WIDTH, BREATH_WIDTH * 2).rotateX(-Math.PI / 2);
   private readonly sheets: Array<{ fan: THREE.Mesh; edge: THREE.Mesh; age: number; breath: Breath | null }> = [];
@@ -47,10 +50,7 @@ export class FrostBreathView {
   private time = 0;
 
   constructor(private readonly scene: THREE.Scene) {
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), this.material, MAX);
-    this.mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
-    this.mesh.frustumCulled = false;
-    this.mesh.count = 0;
+    this.mesh = cubeCloud(MAX, this.material);
     scene.add(this.mesh);
   }
 
@@ -86,7 +86,7 @@ export class FrostBreathView {
     }
     let glow = this.glows.get(breath);
     if (!glow) {
-      glow = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xbfeeff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      glow = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), glowMaterial(0xbfeeff));
       this.scene.add(glow);
       this.glows.set(breath, glow);
     }
@@ -119,7 +119,7 @@ export class FrostBreathView {
 
   private sheet(breath: Breath): { fan: THREE.Mesh; edge: THREE.Mesh } {
     const make = (geometry: THREE.BufferGeometry) => {
-      const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const mesh = new THREE.Mesh(geometry, glowMaterial(0x8fdcff));
       mesh.position.set(breath.x, 0.015, breath.z);
       mesh.rotation.y = Math.atan2(-breath.dz, breath.dx);
       this.scene.add(mesh);

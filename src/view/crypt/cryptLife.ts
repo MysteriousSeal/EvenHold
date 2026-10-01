@@ -5,10 +5,11 @@
 // the slain leave on its floor.
 
 import * as THREE from 'three';
+import { glowMaterial } from '../meshes/common/glow';
 import { INDOOR_SCALE } from '../../model/constants';
 import type { GameModel } from '../../model/GameModel';
 import { EnemyViews } from '../meshes/enemy/enemyViews';
-import { arrowGeometry } from '../meshes/enemy/skeletonRig';
+import { arrowGeometry } from '../meshes/enemy/undeadRig';
 import { LootViews } from '../meshes/loot/lootViews';
 import { CoinViews } from '../meshes/loot/coinViews';
 import { personMaterial } from '../meshes/human/humanParts';
@@ -30,11 +31,11 @@ export class CryptLife {
   private readonly arrows: THREE.Mesh[] = []; // a pool, as many shown as fly
   private readonly ring = new THREE.Mesh(
     new THREE.RingGeometry(SLAM_RADIUS - 0.1, SLAM_RADIUS, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0xff3020, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
+    glowMaterial(0xff3020),
   );
   private readonly zone = new THREE.Mesh(
     new THREE.CircleGeometry(SLAM_RADIUS, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0xff2010, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
+    glowMaterial(0xff2010),
   );
   private chest: { box: THREE.Mesh; lid: THREE.Mesh } | null = null;
   private readonly frost: FrostBreathView; // the draugr's breath
@@ -63,7 +64,7 @@ export class CryptLife {
     this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
     this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
     // The lord's slam, told.
-    const slam = crypt?.lord?.slam ?? null;
+    const slam = crypt?.slams.moves[0] ?? null;
     this.ring.visible = this.zone.visible = !!slam;
     if (slam) {
       const told = Math.min(1, slam.t / SLAM_TELL);
@@ -72,11 +73,11 @@ export class CryptLife {
       (this.ring.material as THREE.MeshBasicMaterial).opacity = 0.4 + 0.6 * told;
       (this.zone.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.25 * told;
     }
-    this.frost.update(crypt?.frost.breaths ?? [], dt); // the draugr's frost breath
+    this.frost.update(crypt?.frost.moves ?? [], dt); // the draugr's frost breath
     // The draugr's cleaves: a red strip where the axe will fall, brightening; a flash as it comes down, fading.
-    const cleaves = crypt?.cleaves.cleaves ?? [];
+    const cleaves = crypt?.cleaves.moves ?? [];
     while (this.strips.length < cleaves.length) {
-      const strip = new THREE.Mesh(this.strip, new THREE.MeshBasicMaterial({ color: 0xff3020, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const strip = new THREE.Mesh(this.strip, glowMaterial(0xff3020));
       this.scene.add(strip);
       this.strips.push(strip);
     }
