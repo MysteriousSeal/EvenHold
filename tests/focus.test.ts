@@ -35,6 +35,28 @@ describe('enemy focus', () => {
     expect(model.focused).toBe(bandit); // a second attacker doesn't take the focus
   });
 
+  it('focuses the foe the hero strikes, if none is focused; never steals it from the one that is', () => {
+    const model = fresh();
+    model.godMode = true;
+    const [a, b] = model.enemies.filter((e) => e.kind === 'bandit');
+    model.enemies.splice(0, model.enemies.length, a, b);
+    Object.assign(a, { x: model.hero.x, z: model.hero.z + 0.45, hp: 99, maxHp: 99 });
+    b.x = model.hero.x + 9;
+    model.hero.facing = 0; // (toward a)
+    model.startAttack();
+    for (let t = 0; t < 1; t += FRAME) model.update(0, 0, FRAME);
+    expect(a.hp).toBeLessThan(99);
+    expect(model.focused).toBe(a);
+    // Focused on b (clicked), a blow on a leaves the focus with b.
+    Object.assign(b, { x: model.hero.x + 2, z: model.hero.z });
+    model.focus(b.id);
+    Object.assign(model.hero, { facing: 0 });
+    Object.assign(a, { x: model.hero.x, z: model.hero.z + 0.45 });
+    model.startAttack();
+    for (let t = 0; t < 1; t += FRAME) model.update(0, 0, FRAME);
+    expect(model.focused).toBe(b);
+  });
+
   it('lets go the moment its enemy dies, so the next one to strike takes the focus', () => {
     const model = fresh();
     model.godMode = true;
