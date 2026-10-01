@@ -9,8 +9,8 @@ import type { Enemy } from '../src/model/types';
 // One enemy right beside the hero, the only one in the world.
 function alone(model: GameModel, enemy: Enemy): Enemy {
   model.enemies.splice(0, model.enemies.length, enemy);
-  enemy.x = model.hero.x + 0.5;
-  enemy.z = model.hero.z;
+  enemy.x = enemy.homeX = model.hero.x + 0.5; // (living here: not led off from home)
+  enemy.z = enemy.homeZ = model.hero.z;
   enemy.state = 'chase';
   return enemy;
 }

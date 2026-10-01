@@ -13,7 +13,7 @@ import { FRAME, fresh, nearest } from './support/testWorld';
 // One enemy right beside the hero, the only one in the world.
 function alone(model: GameModel, enemy: Enemy): Enemy {
   model.enemies.splice(0, model.enemies.length, enemy);
-  Object.assign(enemy, { x: model.hero.x + 0.5, z: model.hero.z, state: 'chase' });
+  Object.assign(enemy, { x: model.hero.x + 0.5, z: model.hero.z, homeX: model.hero.x + 0.5, homeZ: model.hero.z, state: 'chase' }); // (living here: not led off from home)
   return enemy;
 }
 // The hero wearing `items` (straight on, not from the bag).
