@@ -14,8 +14,9 @@ import { say } from '../npcs/speech';
 import type { Drink, Npc } from '../npcs/npcs';
 
 export const ALE_SECONDS = 15; // an ale at the bar, sipped over this long (the hero's too)
-export const ALE_HEALS = 0.6; // of the hero's most health: what an ale at the bar gives back, over its ALE_SECONDS
-export const PIE_ENERGY = 0.6; // of the hero's most energy: what a meat pie at the bar gives back, eaten over as long
+export const PIE_SECONDS = 15; // a meat pie at the bar, eaten over this long
+export const ALE_ENERGY = 0.6; // of the hero's most energy: what an ale at the bar gives back, over its ALE_SECONDS
+export const PIE_HEALS = 0.6; // of the hero's most health: what a meat pie at the bar gives back, over its PIE_SECONDS
 const PICKUP = 0.8; // seconds it stands before them, full, before they pick it up
 const AGAIN = 0.4; // of ordering another, with time enough left to drink it
 const WINE = 0.25; // of asking for a glass of wine, not an ale
