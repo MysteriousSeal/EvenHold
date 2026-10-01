@@ -21,6 +21,8 @@ export const ENEMY_STATS = {
   // The crypts' guards (crypts/cryptFoes.ts): shambling about their posts, slow, pausing long, seeing far down the dark passages.
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.
   skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 2.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.6, swing: 0.8, cooldown: 1.2, rest: [3, 3] },
+  // A crypt's lord (crypts/cryptLord.ts): eight skeletons' health, hard blows, big, slow to give up; his slam and rage are his own.
+  cryptLord: { family: 'undead', passive: false, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 1.5, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3] },
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [3, 3] },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think

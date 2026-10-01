@@ -27,7 +27,7 @@ export interface Hero extends Humanoid {
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher'; // (the skeletons: the crypts' guards)
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'cryptLord'; // (the skeletons: the crypts' guards; the lord: a crypt's own dead, risen)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.
@@ -39,7 +39,8 @@ export type GameEvent =
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
-  | { kind: 'cleared'; name: string } // a crypt's last guard slain
+  | { kind: 'cleared'; name: string } // a crypt's last guard slain (its lord)
+  | { kind: 'rises'; name: string } // a crypt's lord, risen
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
@@ -70,6 +71,8 @@ export interface Enemy {
   lastSeen: { x: number; z: number } | null; // while chasing: where it last saw (or heard) the hero
   lostFor: number; // seconds since then
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
+  name?: string; // its own name, if it has one (a crypt's lord), over its kind's
+  windUp?: number | null; // a crypt's lord: seconds into his slam's tell (crypts/cryptLord.ts), else null
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 
