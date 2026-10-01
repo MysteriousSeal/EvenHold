@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
+import { spawnOf } from '../src/model/map/grid';
+import { villageLevel } from '../src/model/enemies/enemyLevels';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
@@ -193,5 +195,18 @@ describe('quests', () => {
     expect(again.quests.takenOf(b.key)).toBeNull();
     expect(again.quests.takenOf(a.key)!.tracked).toBe(false);
     expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? 2 * (a.count - 1) : 2 * a.count);
+  });
+});
+
+describe('quest levels', () => {
+  it("are their village's: every quest on a board the same, farther villages higher (for better pay, farther out)", () => {
+    const model = new GameModel(TEST_SEEDS[0], { width: 512, depth: 512 });
+    const spawn = spawnOf(model.size);
+    for (const [b, village] of model.villages.entries()) {
+      const level = villageLevel(spawn, village);
+      for (let n = 0; n < OFFERS; n++) expect(questAt(model, b, n).level, `board ${b}`).toBe(level);
+    }
+    const byDistance = [...model.villages].sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z));
+    expect(villageLevel(spawn, byDistance[byDistance.length - 1])).toBeGreaterThan(villageLevel(spawn, byDistance[0]));
   });
 });
