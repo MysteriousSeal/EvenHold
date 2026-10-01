@@ -8,7 +8,7 @@ import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
 import { SKELETON_PALETTE, buildSkull } from '../meshes/enemy/skeletonVoxels';
 import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
-import { DRAUGR_PALETTE, buildDraugrHead } from '../meshes/enemy/draugrVoxels';
+import { DRAUGR_PALETTE, buildDraugrHead, draugrLook } from '../meshes/enemy/draugrVoxels';
 import { ENEMY_STATS } from '../../model/constants';
 import { difficulty } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { voxelIcon } from '../ui/voxelIcon';
@@ -27,7 +27,10 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   },
   skeleton: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
   skeletonArcher: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
-  draugr: () => voxelIcon('target:draugr', () => ({ grid: buildDraugrHead(), palette: DRAUGR_PALETTE }), PORTRAIT_SIZE),
+  draugr: (enemy) => {
+    const look = draugrLook(enemy.id); // (as it's dressed)
+    return voxelIcon(`target:draugr:${look.head}:${look.beard}`, () => ({ grid: buildDraugrHead(look), palette: DRAUGR_PALETTE }), PORTRAIT_SIZE);
+  },
   cryptLord: () => voxelIcon('target:crownedSkull', () => ({ grid: buildCrownedSkull(), palette: LORD_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);

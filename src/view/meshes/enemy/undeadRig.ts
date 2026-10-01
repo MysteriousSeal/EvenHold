@@ -23,7 +23,7 @@ import { HealthBar, VoxelBurst } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
-import { DRAUGR_FRAME, axeGeometry } from './draugrVoxels';
+import { axeGeometry, draugrFrame, draugrLook, longswordGeometry } from './draugrVoxels';
 import { BREATH_TELL } from '../../../model/crypts/frostBreath';
 import { CLEAVE_TELL } from '../../../model/crypts/cleave';
 import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
@@ -68,13 +68,14 @@ export interface UndeadLook {
   rage: THREE.Material; // a crypt's lord, raging: a red glow
   greatsword: THREE.BufferGeometry;
   axe: THREE.BufferGeometry; // a draugr's
+  longsword: THREE.BufferGeometry; // or that
   bow: THREE.BufferGeometry;
   arrow: THREE.BufferGeometry;
 }
 
 export function createUndeadLook(flash: THREE.Material): UndeadLook {
   const rage = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0x8a1a10, emissiveIntensity: 0.6 });
-  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), axe: axeGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
+  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), axe: axeGeometry(), longsword: longswordGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
 }
 
 // A bow, held upright: its stave curving back at the tips, the string straight between them.
@@ -113,7 +114,8 @@ export class UndeadRig {
   ) {
     const lord = skeleton.kind === 'cryptLord';
     const draugr = skeleton.kind === 'draugr';
-    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : draugr ? DRAUGR_FRAME : SKELETON_FRAME);
+    const dressed = draugr ? draugrLook(skeleton.id) : null; // (each draugr its own way)
+    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : dressed ? draugrFrame(dressed) : SKELETON_FRAME);
     const archer = skeleton.kind === 'skeletonArcher';
     this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : draugr ? 'Draugr' : 'Skeleton'));
     this.rig.root.add(this.bar.group);
@@ -128,7 +130,7 @@ export class UndeadRig {
       this.rig.meshes.push(this.bow, this.nocked);
     } else if (lord || draugr) {
       const hand = BODIES.male.hand;
-      const sword = new THREE.Mesh(lord ? look.greatsword : look.axe, look.normal);
+      const sword = new THREE.Mesh(lord ? look.greatsword : dressed?.sword ? look.longsword : look.axe, look.normal);
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
       sword.rotation.x = -CARRY; // carried tilted up: long as it is, never down through the floor as the arm swings walking
       this.weapon = sword;
