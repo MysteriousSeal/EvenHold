@@ -5,7 +5,7 @@
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { buy, buyPrice, sell, sellPrice, shopAt } from '../../model/inn/tavernShop';
-import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../../model/loot/provisions';
+import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
 import type { Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
@@ -157,6 +157,6 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     blurb: (id) => PROVISIONS[id as ProvisionId].about,
-    facts: (id) => [`${PROVISIONS[id as ProvisionId].drink ? 'Drink, heals' : 'Food, heals'} ${PROVISIONS[id as ProvisionId].heal}`],
+    facts: (id) => [`${PROVISIONS[id as ProvisionId].drink ? 'Drink' : 'Food'}, ${givesText(id as ProvisionId)}`],
   });
 }

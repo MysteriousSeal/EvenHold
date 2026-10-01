@@ -14,7 +14,7 @@ import type { GameModel } from '../../model/GameModel';
 import { bagLayout, moveInBag, sortedBag, type BagItem } from '../../model/hero/bag';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
-import { PROVISIONS, isProvision } from '../../model/loot/provisions';
+import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { sellValue } from '../../model/shops/sellValue';
 import { gearLines } from './gearLines';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
@@ -58,7 +58,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
       lines: isProvision(item)
-        ? [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · heals ${PROVISIONS[item].heal}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
+        ? [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · ${givesText(item)}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
         : [QUALITY_NAMES[LOOT_QUALITY[item]]],
       alt: isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : '')

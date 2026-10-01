@@ -1,8 +1,8 @@
 // Ordering at the bar, sat on a stool: an ale (F) or a meat pie (G). The
 // barmaid calls that she's coming, fetches it from her stock (inn/tavernShop.ts),
-// at her price, and the hero has it there over ALE_SECONDS: an ale gives back
-// 60% of their most health as it's sipped (ALE_HEALS), a pie 60% of their
-// most energy as it's eaten (PIE_ENERGY); she says a word either way. Sold
+// at her price, and the hero has it there over its time (ALE_SECONDS, PIE_SECONDS): an ale gives back
+// 60% of their most energy as it's sipped (ALE_ENERGY), a pie 60% of their
+// most health as it's eaten (PIE_HEALS); she says a word either way. Sold
 // out, she says when there's more; too poor, she says so. One table (MENU)
 // for both: the same steps, their own words.
 
@@ -16,8 +16,7 @@ import { takeFromBag } from '../../model/hero/bag';
 import { startDrinking } from '../../model/hero/heroStats';
 import type { ProvisionId } from '../../model/loot/provisions';
 
-export { ALE_SECONDS } from '../../model/inn/barPatrons';
-import { ALE_HEALS, ALE_SECONDS, PIE_ENERGY } from '../../model/inn/barPatrons';
+import { ALE_ENERGY, ALE_SECONDS, PIE_HEALS, PIE_SECONDS } from '../../model/inn/barPatrons';
 import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import type { Hero } from '../../model/types';
 import { clock, pick } from './tradePanel';
@@ -29,7 +28,8 @@ interface OnTheMenu {
   item: ProvisionId; // from her stock
   name: string; // "an ale"
   outOf: string; // the prompt, sold out: "Out of ale"
-  gives(hero: Hero): { heal?: number; energy?: number }; // over ALE_SECONDS
+  seconds: number; // how long it's had over (sipped, eaten)
+  gives(hero: Hero): { heal?: number; energy?: number }; // over its `seconds`
   soldOut(back: string): string; // her word, sold out
   coming: readonly string[]; // her word, on her way
   served: readonly string[]; // and setting it down
@@ -41,7 +41,8 @@ export const MENU: Record<BarMenuItem, OnTheMenu> = {
     item: 'ale',
     name: 'an ale',
     outOf: 'Out of ale',
-    gives: (hero) => ({ heal: maxHpOf(hero) * ALE_HEALS }), // a sit-down ale: much of their health back as it's sipped
+    seconds: ALE_SECONDS,
+    gives: (hero) => ({ energy: maxEnergyOf(hero) * ALE_ENERGY }), // a sit-down ale: much of their energy back as it's sipped
     soldOut: (back) => `The barrel's dry, love. Back in ${back}.`,
     coming: [
       'Coming, love!',
@@ -78,7 +79,8 @@ export const MENU: Record<BarMenuItem, OnTheMenu> = {
     item: 'meatPie',
     name: 'a meat pie',
     outOf: 'Out of meat pies',
-    gives: (hero) => ({ energy: maxEnergyOf(hero) * PIE_ENERGY }), // a hot meal: much of their energy back as it's eaten
+    seconds: PIE_SECONDS,
+    gives: (hero) => ({ heal: maxHpOf(hero) * PIE_HEALS }), // a hot meal: much of their health back as it's eaten
     soldOut: (back) => `Not a pie left, love. The next batch is out in ${back}.`,
     coming: [
       'A pie? Coming right up!',
@@ -134,12 +136,12 @@ export function callFor(model: GameModel, what: BarMenuItem = 'ale'): { said: st
 // Serves one (paid for as it's picked up): returns what she says, and whether the hero has it.
 export function serveOrder(model: GameModel, what: BarMenuItem = 'ale'): { said: string; drank: boolean } {
   const shop = shopHere(model);
-  const { item, soldOut, tooPoor, served, gives } = MENU[what];
+  const { item, soldOut, tooPoor, served, gives, seconds } = MENU[what];
   const result = buy(shop, model.hero, item);
   if (result === 'sold out') return { said: soldOut(clock(restockIn(shop))), drank: false };
   if (result === 'too poor') return { said: pick(tooPoor), drank: false };
   takeFromBag(model.hero.bag, item); // not carried off: had there, its good coming back as it goes
-  startDrinking(model.hero, ALE_SECONDS, gives(model.hero));
+  startDrinking(model.hero, seconds, gives(model.hero));
   return { said: pick(served), drank: true };
 }
 
@@ -165,7 +167,7 @@ const SET_DOWN_MS = 800; // the full tankard on the bar before the hero picks it
 
 // The bar, from the order to the empty mug: F calls her over; she fetches
 // the ale (innStaff.ts pourFor) and sets it down full before the stool; a
-// moment later the hero pays and sips it over ALE_SECONDS (the countdown
+// moment later the hero pays and has it over its time (the countdown
 // over their head), then puts the empty mug down on the bar, where it stays
 // till she clears it. Getting up mid-drink stops it (the rest of its good
 // lost), the mug put down empty all the same.
@@ -214,7 +216,7 @@ export function createBar(model: GameModel, view: BarView) {
           const { said, drank } = serveOrder(model, wanted); // paid for as it's picked up
           if (!drank) return view.speak(barmaid, said); // (the coin gone meanwhile, say)
           takeMug(here, stool.z); // picked up
-          view.heroDrinks(ALE_SECONDS, wanted);
+          view.heroDrinks(MENU[wanted].seconds, wanted);
         }, SET_DOWN_MS);
       };
     },
