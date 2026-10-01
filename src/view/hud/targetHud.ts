@@ -7,6 +7,7 @@ import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
 import { ENEMY_STATS } from '../../model/constants';
+import { TRIVIAL } from '../../model/hero/heroStats';
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
@@ -27,7 +28,7 @@ const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 // How dangerous an enemy is for a hero of `heroLevel`, by the gap in level.
 export function difficulty(level: number, heroLevel: number): string {
   const gap = level - heroLevel;
-  return gap <= -3 ? 'trivial' : gap <= 0 ? 'even' : gap <= 2 ? 'tough' : gap <= 4 ? 'hard' : 'deadly';
+  return gap <= -TRIVIAL ? 'trivial' : gap <= 0 ? 'even' : gap <= 2 ? 'tough' : gap <= 4 ? 'hard' : 'deadly'; // (trivial: worth a token only, heroStats.ts)
 }
 
 // Returns the function to call each frame with the focused enemy (or null)
