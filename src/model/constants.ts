@@ -15,13 +15,13 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // never start a fight, but fight back once hit; and `coins`, copper per
 // level it drops (bandits carry a purse).
 export const ENEMY_STATS = {
-  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3 },
-  bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1 },
-  boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6 },
-  // The crypts' guards (crypts/cryptFoes.ts): standing at their posts (no wandering), seeing far down the dark passages.
+  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5] },
+  bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5] },
+  boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6, rest: [1.5, 2.5] },
+  // The crypts' guards (crypts/cryptFoes.ts): shambling about their posts, slow, pausing long, seeing far down the dark passages.
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.
-  skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.8, run: 2.1, sight: 6, giveUp: 12, wander: 0, stop: 0.6, swing: 0.8, cooldown: 1.2 },
-  skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.8, run: 1.9, sight: 7, giveUp: 12, wander: 0, stop: 4.5, swing: 1.0, cooldown: 1.4 },
+  skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 2.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.6, swing: 0.8, cooldown: 1.2, rest: [3, 3] },
+  skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [3, 3] },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)

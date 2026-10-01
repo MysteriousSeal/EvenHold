@@ -34,13 +34,7 @@ export class EnemyDirector {
   private readonly near: Nearby<Enemy>; // those round the hero, kept to hand (the full map has thousands)
   private nearby: Enemy[] | null = null; // during an update: those that could be bumped into (the rest are far off)
   private waiting: Set<Enemy> | null = null; // during an update: chasers waiting their turn (past the nearest few set on the hero)
-  private readonly actions: EnemyActions = {
-    move: (e, dx, dz) => this.move(e, dx, dz),
-    steer: (e, quarry, still) => this.chaseGoal(e, quarry, still),
-    sees: (e) => this.canSee(e),
-    waitsTurn: (e) => !!this.waiting?.has(e),
-    strike: (e) => this.onStrike(e),
-  };
+  private readonly actions: EnemyActions; // what each can do here (made with the director's own settings)
 
   constructor(
     private readonly enemies: Enemy[],
@@ -49,8 +43,17 @@ export class EnemyDirector {
     private readonly size: MapSize,
     private readonly groundY: (x: number, z: number) => number,
     private readonly onStrike: (enemy: Enemy) => void, // an enemy's blow lands (reach is the model's to judge)
+    private readonly pickStandable = false, // wanderers' spots picked only where they could stand (a crypt's narrow passages)
   ) {
     this.near = new Nearby(enemies, (e) => e, ENEMY_ACTIVE_RADIUS + BUMP_MARGIN);
+    this.actions = {
+      move: (e, dx, dz) => this.move(e, dx, dz),
+      steer: (e, quarry, still) => this.chaseGoal(e, quarry, still),
+      sees: (e) => this.canSee(e),
+      waitsTurn: (e) => !!this.waiting?.has(e),
+      strike: (e) => this.onStrike(e),
+      ...(this.pickStandable && { standable: (e: Enemy, x: number, z: number) => !this.obstacles.isBlocked(x, z, ENEMY_STATS[e.kind].radius) }),
+    };
   }
 
   // Who they're after.

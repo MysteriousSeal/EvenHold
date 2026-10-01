@@ -108,7 +108,7 @@ export class CryptFoes {
       blocksSight: (x, z) => !isFloor(this.plan, Math.round(x), Math.round(z)),
     };
     const size = { width: this.plan.width, depth: this.plan.depth };
-    this.director = new EnemyDirector(this.foes, hero, ground, size, () => 0, (e) => (e.kind === 'skeletonArcher' ? this.loose(e, hero) : this.onStrike(e)));
+    this.director = new EnemyDirector(this.foes, hero, ground, size, () => 0, (e) => (e.kind === 'skeletonArcher' ? this.loose(e, hero) : this.onStrike(e)), true);
   }
 
   // Which post a guard stood at (for the save's record of the slain).

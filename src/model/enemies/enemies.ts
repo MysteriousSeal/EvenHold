@@ -146,6 +146,8 @@ export interface EnemyActions {
   waitsTurn?(enemy: Enemy): boolean;
   // Its blow lands, halfway through the swing.
   strike(enemy: Enemy): void;
+  // Whether it could stand at (x, z), for picking where to wander (given only where most spots round it can't be: a crypt).
+  standable?(enemy: Enemy, x: number, z: number): boolean;
 }
 
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
@@ -222,14 +224,18 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     enemy.restFor -= dt;
     if (enemy.restFor > 0) return;
     const t = enemy.id * 7.31 + enemy.x;
-    const [hx, hz] = [hashUnit(Math.floor(t * 10), enemy.id, 5), hashUnit(Math.floor(t * 10), enemy.id, 6)];
     // Kept in (a camp's bandits): a tile inside the palisade, so they stay
     // in their camp, not crowding its gate going in and out. Else anywhere round home.
+    // Where it could stand, if the place says (a crypt's narrow passages: a few rolls, else the last).
     const pen = enemy.pen;
-    enemy.target =
-      pen !== undefined
-        ? { x: enemy.homeX + Math.floor(hx * (2 * pen + 1)) - pen, z: enemy.homeZ + Math.floor(hz * (2 * pen + 1)) - pen }
-        : { x: enemy.homeX + (hx - 0.5) * 2 * stats.wander, z: enemy.homeZ + (hz - 0.5) * 2 * stats.wander };
+    for (let roll = 0; roll < (actions.standable ? 6 : 1); roll++) {
+      const [hx, hz] = [hashUnit(Math.floor(t * 10) + roll * 101, enemy.id, 5), hashUnit(Math.floor(t * 10) + roll * 101, enemy.id, 6)];
+      enemy.target =
+        pen !== undefined
+          ? { x: enemy.homeX + Math.floor(hx * (2 * pen + 1)) - pen, z: enemy.homeZ + Math.floor(hz * (2 * pen + 1)) - pen }
+          : { x: enemy.homeX + (hx - 0.5) * 2 * stats.wander, z: enemy.homeZ + (hz - 0.5) * 2 * stats.wander };
+      if (actions.standable?.(enemy, enemy.target.x, enemy.target.z)) break;
+    }
   }
   // Toward it (home, or a spot round home): straight on while it can, and
   // once something's in the way (a camp's palisade), round it as when
@@ -247,7 +253,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     const side = (a: number) => Math.sign(a) * Math.min(step, Math.abs(a));
     return move(enemy, side(to.x - enemy.x), 0) || move(enemy, 0, side(to.z - enemy.z)) || went;
   };
-  const target = enemy.target;
+  const target = enemy.target!; // (picked above, if it had none)
   const arrived = Math.hypot(target.x - enemy.x, target.z - enemy.z) < 0.05;
   const went = !arrived && ((!enemy.path && walk(target)) || walk(steer(enemy, target, true)));
   // Arrived, or no way nearer (it's somewhere it can't stand, or can't be
@@ -255,7 +261,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   if (!went) {
     enemy.target = null;
     enemy.path = null;
-    enemy.restFor = 1.5 + hashUnit(enemy.id, Math.floor(enemy.x * 10), 7) * 2.5;
+    enemy.restFor = stats.rest[0] + hashUnit(enemy.id, Math.floor(enemy.x * 10), 7) * stats.rest[1];
   }
 }
 
