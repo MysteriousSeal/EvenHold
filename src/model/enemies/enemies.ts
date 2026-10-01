@@ -27,9 +27,11 @@ interface Sites {
 // Dense enough that walking any direction meets something every so often:
 // wolf packs in the woods, fewer out on open ground, and bandit camps in the
 // countryside between villages.
-const PACKS: Sites = { grid: 18, chance: 0.91, forest: (d) => d >= 0.2, clearance: 14 };
-const MEADOW_PACKS: Sites = { grid: 32, chance: 0.455, forest: (d) => d < 0.2, clearance: 14 };
-const BOARS: Sites = { grid: 22, chance: 0.715, forest: (d) => d >= 0.12, clearance: 12 }; // rooting about the woods
+export const WILD_SITES: Record<'packs' | 'meadowPacks' | 'boars', Sites> = {
+  packs: { grid: 18, chance: 0.91, forest: (d) => d >= 0.2, clearance: 14 },
+  meadowPacks: { grid: 32, chance: 0.455, forest: (d) => d < 0.2, clearance: 14 },
+  boars: { grid: 22, chance: 0.715, forest: (d) => d >= 0.12, clearance: 12 }, // rooting about the woods
+};
 const SPAWN_CLEARANCE = 20;
 
 export interface EnemyWorld {
@@ -126,9 +128,9 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
       }
     }
   };
-  scatter(PACKS, 42, (x, z, big) => group('wolf', x, z, big ? 3 : 2, 46));
-  scatter(MEADOW_PACKS, 62, (x, z) => group('wolf', x, z, 2, 66));
-  scatter(BOARS, 72, (x, z) => group('boar', x, z, 1 + Math.floor(hashUnit(x, z, 73) * 3), 76)); // one to three
+  scatter(WILD_SITES.packs, 42, (x, z, big) => group('wolf', x, z, big ? 3 : 2, 46));
+  scatter(WILD_SITES.meadowPacks, 62, (x, z) => group('wolf', x, z, 2, 66));
+  scatter(WILD_SITES.boars, 72, (x, z) => group('boar', x, z, 1 + Math.floor(hashUnit(x, z, 73) * 3), 76)); // one to three
   for (const camp of world.camps.slice(1)) bandits(camp);
   // Ghosts haunting each old ruin, two to four, bound to it (within its walls); last, so the rest keep their ids.
   for (const ruin of world.ruins ?? []) {
