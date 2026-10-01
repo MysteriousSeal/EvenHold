@@ -1,10 +1,11 @@
-// Keeps a rig for every enemy near the hero (alive or dying): a WolfRig or
-// a BanditRig by kind, made as enemies come into range and dropped when
+// Keeps a rig for every enemy near the hero (alive or dying): a beast's, a
+// bandit's or a skeleton's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
+import { SkeletonRig, createSkeletonLook, type SkeletonLook } from './skeletonRig';
 import { ENEMY_BURST } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
@@ -12,9 +13,9 @@ import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from 
 import { pulseAuras, questAura } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-type Rig = BeastRig | BanditRig;
+type Rig = BeastRig | BanditRig | SkeletonRig;
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -26,11 +27,15 @@ export class EnemyViews {
     wolf: () => new BeastRig(this.wolfLook),
     boar: () => new BeastRig(this.boarLook),
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
+    skeleton: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
+    skeletonArcher: (enemy) => new SkeletonRig(enemy, this.skeletonLook),
   };
+  private readonly skeletonLook: SkeletonLook = createSkeletonLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
+      rig.root.scale.setScalar(this.scale);
       this.scene.add(rig.root);
       return rig;
     },
@@ -40,14 +45,19 @@ export class EnemyViews {
   private readonly questMarks = new Map<number, THREE.Mesh>(); // the amber aura under each marked foe
   private time = 0;
 
-  constructor(private readonly scene: THREE.Scene) {
+  // `scale`: how big they're drawn (in a room, as big as the hero is there).
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly scale = 1,
+  ) {
+    this.marker.scale.setScalar(scale);
     this.marker.visible = false;
     scene.add(this.marker);
   }
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.flash, ENEMY_BURST];
+    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.skeletonLook.normal, this.flash, ENEMY_BURST];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.
@@ -59,7 +69,7 @@ export class EnemyViews {
     this.marker.visible = !!target;
     if (target) this.marker.position.set(target.x, target.y + 0.012, target.z);
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
-      rig.update(enemy, dt);
+      rig.update(enemy, dt, heroX, heroZ);
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {
@@ -79,6 +89,7 @@ export class EnemyViews {
     }
     if (!mark) {
       mark = questAura(AURA_SIZE[enemy.kind]);
+      mark.scale.setScalar(this.scale);
       this.questMarks.set(enemy.id, mark);
       this.scene.add(mark);
     }

@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { EQUIP_SLOTS, ITEMS, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
-import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type Joint } from './bodyVoxels';
+import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type BodyPart, type Joint } from './bodyVoxels';
 import { ITEM_MODELS } from './gear/itemModels';
 import { SHADE, bodyGeometry, hairGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
 import { CupInHand } from './cupInHand';
@@ -43,6 +43,12 @@ const WORK_SWING = 0.45;
 const WORK_PACE = 3.2; // swings a second, in radians of the swing's cycle
 
 export type Pose = 'stand' | 'sit' | 'lie' | 'work';
+
+// A body other than the human one, on the same joints and sizes: each part's mesh (pivoted as the body's), its colours.
+export interface Frame {
+  part(part: BodyPart): THREE.BufferGeometry;
+  palette: number[];
+}
 
 // The blow, keyed over its progress (0..1): the right arm winds up overhead
 // and slightly back, strikes forward and down fast, then recovers; the body
@@ -92,13 +98,14 @@ export class HumanRig {
   constructor(
     readonly look: BodyLook = HERO_LOOK,
     private material: THREE.Material = personMaterial(),
+    private readonly frame?: Frame, // another body on the same joints (a skeleton's: enemy/skeletonVoxels.ts)
   ) {
     const joints = {} as Record<Joint, THREE.Group>;
     for (const joint of JOINT_NAMES) {
       const { part, at } = BODIES[look.build].joints[joint];
       const group = new THREE.Group();
       group.position.set(at[0] * V, at[1] * V, at[2] * V);
-      group.add(this.mesh(bodyGeometry(look, part)));
+      group.add(this.mesh(frame ? frame.part(part) : bodyGeometry(look, part)));
       this.body.add(group);
       joints[joint] = group;
     }
@@ -151,7 +158,7 @@ export class HumanRig {
   // Every color on the body as dressed now (skin, hair and what's worn),
   // e.g. for the voxels it bursts into.
   get colors(): number[] {
-    const colors = bodyPalette(this.look).slice(0, 5);
+    const colors = this.frame?.palette.slice() ?? bodyPalette(this.look).slice(0, 5);
     for (const { item } of this.worn.values()) colors.push(...ITEM_MODELS[item].palette);
     return colors;
   }

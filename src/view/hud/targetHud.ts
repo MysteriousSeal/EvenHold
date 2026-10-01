@@ -1,17 +1,18 @@
 // The focused enemy's frame, beside the hero's (styles in hud.css): its
-// portrait facing the hero (a wolf's head, or the bandit's own head and
-// shoulders, as dressed), its name and health. Hidden with no focus.
+// portrait facing the hero (a beast's head, a skull, or the bandit's own head
+// and shoulders, as dressed), its name and health. Hidden with no focus.
 
 import type { Enemy, EnemyKind } from '../../model/types';
 import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
+import { SKELETON_PALETTE, buildSkull } from '../meshes/enemy/skeletonVoxels';
 import { ENEMY_STATS } from '../../model/constants';
 import { difficulty } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
-const NAMES = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar' } as const;
+const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer' };
 
 // Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
 const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
@@ -22,6 +23,8 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
     const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;
     return voxelIcon(key, () => humanBust(human.look, human.equipment, 'left'), PORTRAIT_SIZE);
   },
+  skeleton: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
+  skeletonArcher: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 

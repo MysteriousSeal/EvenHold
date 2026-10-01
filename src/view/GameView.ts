@@ -45,6 +45,7 @@ import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { buildRoomScene } from './interior/roomView';
 import { buildCryptScene } from './crypt/cryptView';
+import { CryptLife } from './crypt/cryptLife';
 import { cryptInside } from '../model/crypts/crypts';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
@@ -270,6 +271,7 @@ export class GameView {
     }
     this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
+      this.room?.life?.update(model, dt); // (a crypt's guards, their arrows, what they leave)
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
     }
@@ -310,7 +312,7 @@ export class GameView {
   // The one before is freed when they leave it (or go straight into another).
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
 
-  private room: ({ entrance: Entrance; fullWalls: boolean } & ReturnType<typeof buildRoomScene>) | null = null;
+  private room: ({ entrance: Entrance; fullWalls: boolean; life: CryptLife | null } & ReturnType<typeof buildRoomScene>) | null = null;
   private yardView: ReturnType<typeof buildFurnitureYard> | null = null;
   // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
   private yardScene(model: GameModel): THREE.Scene | null {
@@ -321,6 +323,7 @@ export class GameView {
     }
     if (this.room) {
       this.room.dispose();
+      this.room.life?.dispose();
       this.room = null;
     }
     if (!this.yardView) this.yardView = buildFurnitureYard(model.yard.furniture);
@@ -331,13 +334,14 @@ export class GameView {
     const inside = model.inside;
     if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls)) { // left, or the walls option changed
       this.room.dispose();
+      this.room.life?.dispose();
       this.room = null;
     }
     if (!inside) return null;
     if (!this.room) {
       // A crypt's its own (crypt/cryptView.ts); a building's room built from its room and furniture (upstairs: no door).
       const built = inside.entrance.type === 'crypt' ? buildCryptScene(cryptInside(model.seed, inside.entrance)) : buildRoomScene(inside.room, inside.furniture, !inside.below);
-      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built };
+      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built, life: inside.entrance.type === 'crypt' ? new CryptLife(built.scene) : null };
     }
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);

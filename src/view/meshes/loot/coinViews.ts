@@ -82,6 +82,7 @@ export class CoinViews {
       const glow = new THREE.Mesh(this.ring, this.light);
       glow.position.y = 0.006; // just above the ground
       group.add(glow, new THREE.Mesh(this.geometry, this.material));
+      group.scale.setScalar(this.scale);
       this.scene.add(group);
       return group;
     },
@@ -89,7 +90,11 @@ export class CoinViews {
   );
   private time = 0;
 
-  constructor(private readonly scene: THREE.Scene) {}
+  // `scale`: how big they're drawn (in a room, as big as the hero is there).
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly scale = 1,
+  ) {}
 
   update(coins: readonly GroundCoins[], heroX: number, heroZ: number, dt: number): void {
     this.time += dt;

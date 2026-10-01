@@ -6,6 +6,27 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
+  // A broken blade, rusted through: its stub of a hilt dark, the blade stepping off orange and brown.
+  rustedBlade: model([0x8a4a2a, 0x5e3420, 0x3a2a20, 0x9a9590], [9, 1, 3], (g) => {
+    fillBox(g, 0, 0, 1, 1, 0, 1, 3); // the grip
+    fillBox(g, 2, 0, 0, 2, 0, 2, 4); // the guard
+    fillBox(g, 3, 0, 1, 8, 0, 1, (x) => (x % 3 === 0 ? 2 : 1));
+    setColor(g, 8, 0, 1, 0); // (snapped off)
+  }),
+  // An iron arrowhead, a stub of shaft still in it.
+  oldArrowhead: model([0x6e7276, 0x4a4e52, 0x5a4030], [5, 1, 3], (g) => {
+    fillBox(g, 0, 0, 1, 1, 0, 1, 3);
+    fillBox(g, 2, 0, 0, 3, 0, 2, 2);
+    setColor(g, 4, 0, 1, 1);
+  }),
+  // A charm of bone on a cord: a little carved skull, two dark eyes.
+  boneCharm: model([0xe0d6bc, 0xb5aa90, 0x1c1612, 0x5a4030], [4, 4, 2], (g) => {
+    fillBox(g, 0, 1, 0, 3, 3, 1, 1);
+    fillBox(g, 1, 0, 0, 2, 0, 1, 2);
+    setColor(g, 1, 2, 1, 3);
+    setColor(g, 2, 2, 1, 3);
+    setColor(g, 1, 3, 1, 4); // the cord's knot
+  }),
   // A boar's tusk: a dark root, curving up to an ivory point (stepped, on the grid).
   boarTusk: model([0xf0e6cc, 0xc8bc98, 0x6a4a34], [5, 5, 2], (g) => {
     fillBox(g, 0, 0, 0, 1, 0, 1, 3); // the root

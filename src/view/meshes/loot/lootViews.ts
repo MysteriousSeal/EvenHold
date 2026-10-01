@@ -64,7 +64,11 @@ export class LootViews {
   private readonly beamLight = new Map<Quality, THREE.MeshBasicMaterial>();
   private time = 0;
 
-  constructor(private readonly scene: THREE.Scene) {}
+  // `scale`: how big it's drawn (in a room, as big as the hero is there).
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly scale = 1,
+  ) {}
 
   get materials(): THREE.Material[] {
     return [this.material];
@@ -99,6 +103,7 @@ export class LootViews {
     ring.position.y = 0.006; // just above the grass
     const beam = new THREE.Mesh(this.beam, light(this.beamLight));
     group.add(ring, beam, item);
+    group.scale.setScalar(this.scale);
     this.scene.add(group);
     return { group, item };
   }
