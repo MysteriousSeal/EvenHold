@@ -7,7 +7,10 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { cryptInside } from '../src/model/crypts/crypts';
-import { CryptFoes } from '../src/model/crypts/cryptFoes';
+import { CryptFoes, exitDoor } from '../src/model/crypts/cryptFoes';
+import { isFloor, planCrypt } from '../src/model/crypts/cryptLayout';
+import { furnishCrypt } from '../src/model/crypts/cryptProps';
+import { mulberry32 } from '../src/util/random';
 import { AWARD_POST, LORD_POST, RISES_AT, SLAM_RADIUS, SLAM_TELL, lordName, lordSpot } from '../src/model/crypts/cryptLord';
 import { enemyPower, isBoss } from '../src/model/enemies/enemyLevels';
 import { DAIS_TOP } from '../src/model/crypts/cryptProps';
@@ -238,5 +241,41 @@ describe('a crypt\'s lord', () => {
     Object.assign(model.hero, { x: great.x0 + 1, z: (great.z0 + great.z1) / 2 }); // (in)
     model.crypt!.update(FRAME);
     expect(lord.state).toBe('chase');
+  });
+
+  it('opens a way out at the far end of his hall once slain: a door in its back wall right behind his tomb, floor before it; through it, out of the crypt', () => {
+    let behind = 0; // (right behind the great tomb, centred on it)
+    for (let i = 0; i < 50; i++) {
+      const seed = Math.floor(mulberry32(9500 + i)() * 2 ** 31);
+      const ruin = { x: 20 + i * 11, z: 30 + i * 13 };
+      const plan = planCrypt(seed, ruin);
+      const inside = { crypt: { ruin, level: 3 }, plan, props: furnishCrypt(seed, ruin, plan) } as unknown as Parameters<typeof exitDoor>[0];
+      const door = exitDoor(inside)!;
+      const great = plan.places.find((p) => p.kind === 'great')!;
+      expect(door).not.toBeNull();
+      expect(door.z).toBe(great.z0 - 1); // (in its back wall)
+      expect(isFloor(plan, Math.floor(door.x), door.z)).toBe(false);
+      expect(isFloor(plan, Math.floor(door.x), door.z + 1)).toBe(true);
+      const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus')!;
+      behind += door.x === tomb.x + (tomb.w - 1) / 2 ? 1 : 0;
+      expect(inside.props.filter((p) => p.kind === 'niche' && p.z === great.z0 - 1 && p.x >= tomb.x - 1 && p.x <= tomb.x + tomb.w)).toEqual([]); // (none in the wall behind it)
+    }
+    expect(behind).toBeGreaterThan(45);
+    const model = new GameModel(1, MID);
+    const crypt = goDown(model);
+    const run = model.crypt!;
+    expect(run.exitOpen).toBeNull(); // (shut, while he's up)
+    clearTo(model, RISES_AT);
+    model.update(0, 0, FRAME);
+    const lord = lordOf(model)!;
+    lord.state = 'dead';
+    model.slayGuard(lord);
+    const spot = run.exitOpen!;
+    expect(spot).not.toBeNull();
+    Object.assign(model.hero, spot);
+    expect(model.doorInReach).toBe(crypt.entrance);
+    expect(model.useDoor()).toBe(true);
+    expect(model.inside).toBeNull();
+    expect(Math.hypot(model.hero.x - crypt.entrance.x, model.hero.z - crypt.entrance.z)).toBeLessThan(0.01); // (out at the stairs)
   });
 });
