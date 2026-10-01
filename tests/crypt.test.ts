@@ -64,6 +64,17 @@ describe('crypts', () => {
       expect(kinds).toContain('great');
       expect(isFloor(plan, plan.door, plan.depth - 1)).toBe(true); // the foot of the stairs
       expect(reached(plan, []).reached).toBe(tiles); // all one crypt
+      // No island of rock: all of it joined to the rock round the crypt.
+      const rock = new Set<string>();
+      const todo: Array<[number, number]> = [];
+      for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if ((x === 0 || z === 0 || x === plan.width - 1 || z === plan.depth - 1) && !isFloor(plan, x, z)) todo.push([x, z]);
+      while (todo.length) {
+        const [x, z] = todo.pop()!;
+        if (x < 0 || z < 0 || x >= plan.width || z >= plan.depth || isFloor(plan, x, z) || rock.has(`${x},${z}`)) continue;
+        rock.add(`${x},${z}`);
+        todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+      }
+      expect(rock.size + tiles).toBe(plan.width * plan.depth);
     }
   });
 
