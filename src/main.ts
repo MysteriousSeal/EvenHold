@@ -9,6 +9,8 @@ import { loadGame, startAutoSave } from './controller/storage/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
+import { createPlaceBanner } from './view/hud/placeBanner';
+import { cryptAt } from './model/crypts/crypts';
 import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
 import { createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
@@ -81,6 +83,7 @@ async function boot(): Promise<void> {
   const updateHud = createHeroHud(model.hero, hudTop);
   const updateBlessing = createBlessingHud(model.hero);
   const updateClock = createClockHud();
+  const placeBanner = createPlaceBanner();
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
@@ -161,7 +164,9 @@ async function boot(): Promise<void> {
     if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
     if (!door) return null;
-    return model.inside ? { label: 'Leave', x: hero.x, y: 0.75, z: hero.z } : { label: DOOR_NAMES[door.type], x: door.x, y: hero.y + 0.75, z: door.z };
+    if (model.inside) return { label: model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
+    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1})` : DOOR_NAMES[door.type];
+    return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
   const onFrame = () => {
     countFrame();
@@ -203,6 +208,7 @@ async function boot(): Promise<void> {
       const head = model.inside ? 0.95 : 0.6;
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
+      else if (event.kind === 'arrive') placeBanner(event.name, event.level);
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them

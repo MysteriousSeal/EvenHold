@@ -13,7 +13,7 @@ import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { notice, questFacts, questIcon } from './questText';
 import { detailParts } from '../../view/ui/menuDetail';
 import { line } from '../../view/ui/dom';
-import { villageLevel } from '../../model/enemies/enemyLevels';
+import { zoneLevel } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
 
 export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
@@ -108,7 +108,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const left = quests.offersAt(board).filter((q) => !quests.isCompleted(q.key)).length;
     const said = left > 0 ? 'Notices from the villagers. Take one on, then come back here once it is done.' : 'Every notice here has been seen to. There is nothing more to do.';
     // The village's level: all its quests are of it (for better paid work, villages farther out).
-    const level = villageLevel(spawnOf(model.size), model.villages[board]);
+    const level = zoneLevel(spawnOf(model.size), model.villages[board]);
     const lead = `A level ${level} village (farther ones pay better). ${said}`;
     row.append(line('quest-board-lead', lead), pins, line('quest-taken', `${quests.takenAt(board)}/${MAX_PER_BOARD} here · ${quests.taken.length}/${MAX_ACTIVE} in all`));
     return row;

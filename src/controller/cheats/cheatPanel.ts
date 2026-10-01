@@ -34,6 +34,7 @@ import {
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
 import { gainXp, xpToNext } from '../../model/hero/heroStats';
+import { maxEnergyOf } from '../../model/hero/attributes';
 import { maxHpOf } from '../../model/hero/attributes';
 import { refundPoints } from '../../model/hero/training';
 import { LOOT_IDS } from '../../model/loot/loot';
@@ -155,6 +156,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
           },
           { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
+          { icon: ICON.hero, title: 'Full energy', detail: 'Rested at once, as after a night in bed', run: () => ((model.hero.energy = maxEnergyOf(model.hero)), 'Full of energy.') },
           { icon: ICON.hero, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
           {
             icon: ICON.starterSet,
