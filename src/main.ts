@@ -10,6 +10,7 @@ import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
+import { createCryptBar } from './view/hud/cryptBar';
 import { cryptAt } from './model/crypts/crypts';
 import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
@@ -84,6 +85,7 @@ async function boot(): Promise<void> {
   const updateBlessing = createBlessingHud(model.hero);
   const updateClock = createClockHud();
   const placeBanner = createPlaceBanner();
+  const updateCryptBar = createCryptBar();
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
@@ -165,7 +167,7 @@ async function boot(): Promise<void> {
     const door = model.doorInReach;
     if (!door) return null;
     if (model.inside) return { label: model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
-    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1})` : DOOR_NAMES[door.type];
+    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : DOOR_NAMES[door.type];
     return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
   const onFrame = () => {
@@ -174,6 +176,8 @@ async function boot(): Promise<void> {
     updateBlessing();
     updateClock(model.minutes);
     updateTarget(model.focused, model.hero.level);
+    const crypt = model.crypt && model.inside && cryptAt(model.inside.entrance);
+    updateCryptBar(crypt ? { name: crypt.name, share: model.clearedShare(model.inside!.entrance) } : null); // (down in one: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
@@ -208,7 +212,8 @@ async function boot(): Promise<void> {
       const head = model.inside ? 0.95 : 0.6;
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
-      else if (event.kind === 'arrive') placeBanner(event.name, event.level);
+      else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
+      else if (event.kind === 'cleared') placeBanner('Crypt cleared', event.name.charAt(0).toUpperCase() + event.name.slice(1));
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them
