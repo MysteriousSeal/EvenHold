@@ -18,6 +18,8 @@ const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, s
 type Rig = BeastRig | BanditRig | UndeadRig;
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 const DRAUGR_SIZE = 1.15; // a draugr, over a man
+const MARKER_MOST = DRAUGR_SIZE; // the focus brackets, at their biggest (a draugr's, the lord's)
+const sizeOf = (kind: EnemyKind) => (kind === 'cryptLord' ? LORD_SIZE : kind === 'draugr' ? DRAUGR_SIZE : 1); // how big each kind's drawn, over the rest
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -39,7 +41,7 @@ export class EnemyViews {
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      const scale = this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : enemy.kind === 'draugr' ? DRAUGR_SIZE : 1);
+      const scale = this.scale * sizeOf(enemy.kind);
       if (rig instanceof UndeadRig) rig.drawnAt(scale); // (its bar and name at their own size)
       else rig.root.scale.setScalar(scale);
       this.scene.add(rig.root);
@@ -73,7 +75,10 @@ export class EnemyViews {
     pulseAuras(this.time);
     const target = enemies.find((e) => e.id === focused && e.state !== 'dead');
     this.marker.visible = !!target;
-    if (target) this.marker.position.set(target.x, target.y + 0.012, target.z);
+    if (target) {
+      this.marker.position.set(target.x, target.y + 0.012, target.z);
+      this.marker.scale.setScalar(this.scale * Math.min(MARKER_MOST, sizeOf(target.kind))); // (round a big one's feet; the lord's as a draugr's)
+    }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       rig.update(enemy, dt, heroX, heroZ);
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');

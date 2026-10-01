@@ -26,7 +26,7 @@ import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
 import { axeGeometry, draugrFrame, draugrLook, longswordGeometry } from './draugrVoxels';
 import { BREATH_TELL } from '../../../model/crypts/frostBreath';
 import { CLEAVE_TELL } from '../../../model/crypts/cleave';
-import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
+import { BARRAGE_TELL, CHARGE_TELL, ERUPTION_TELL, RAGE, SLAM_AFTER, SLAM_TELL, SWEEP_TELL } from '../../../model/crypts/cryptLord';
 import { isBoss } from '../../../model/enemies/enemyLevels';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
@@ -106,7 +106,7 @@ export class UndeadRig {
   private readonly burst: VoxelBurst;
   private readonly bow: THREE.Mesh | null = null;
   private readonly nocked: THREE.Mesh | null = null; // the arrow on the string, while drawing
-  private cleaveFacing: number | null = null; // the way a draugr's cleave falls, from when it raised its axe
+  private toldFacing: number | null = null; // the way a draugr's cleave falls, from when it raised its axe
   private weapon: THREE.Mesh | null = null; // a long one in hand (the lord's greatsword, a draugr's axe), tilted as it's carried
 
   constructor(
@@ -151,12 +151,59 @@ export class UndeadRig {
     drawnAt(this.rig.root, scale, this.bar.group);
   }
 
+  // A crypt lord's specials (model/crypts/cryptLord.ts), over their seconds, facing the way he chose as he began:
+  // his sweep (the greatsword out level, wound back, then whirled round a full turn); his charge (leaning in, the
+  // blade lowered before him, braced; then running, his legs a blur); his bones (the sword raised high in both
+  // hands, then stabbed down into the floor, held there); his souls (his free hand raised high, leaning back, then
+  // thrust out at the hero as they go).
+  private lordMove(lord: Enemy, dt: number, heroX: number, heroZ: number): void {
+    this.toldFacing ??= Math.atan2(heroX - lord.x, heroZ - lord.z);
+    this.rig.update(lord.x, lord.y, lord.z, dt, null, this.toldFacing);
+    const t = lord.windUp ?? 0;
+    const { joints } = this.rig;
+    const ease = (p: number) => 1 - (1 - Math.min(1, Math.max(0, p))) ** 3;
+    const weapon = this.weapon;
+    if (lord.told === 'sweep') {
+      const wind = ease(t / (SWEEP_TELL * 0.7));
+      const spin = ease((t - SWEEP_TELL) / 0.35);
+      joints.rightArm.rotation.set(-Math.PI / 2, 0, -0.2);
+      joints.leftArm.rotation.set(-Math.PI / 2, 0, 0.5);
+      joints.torso.rotation.set(0.1, 0, 0);
+      if (weapon) weapon.rotation.x = Math.PI / 2; // (level: the arm raised level ahead, the blade turned down to lie along it, out before him)
+      this.rig.root.rotation.y = this.toldFacing - 1.1 * wind + (Math.PI * 2 + 1.1) * spin; // (wound back, then round)
+    } else if (lord.told === 'charge') {
+      const rushing = t > CHARGE_TELL;
+      const lean = ease(t / (CHARGE_TELL * 0.6));
+      joints.torso.rotation.set((rushing ? 0.55 : 0.35) * lean, 0, 0);
+      joints.rightArm.rotation.set(-0.9 * lean, 0, 0);
+      joints.leftArm.rotation.set(-0.7 * lean, 0, 0);
+      if (weapon) weapon.rotation.x = 0.25; // (lowered, pointing ahead)
+      const stride = rushing ? Math.sin(t * 34) * 0.9 : 0;
+      joints.leftLeg.rotation.set(rushing ? stride : -0.4 * lean, 0, 0);
+      joints.rightLeg.rotation.set(rushing ? -stride : 0.35 * lean, 0, 0);
+    } else if (lord.told === 'eruption') {
+      const up = ease(t / (ERUPTION_TELL * 0.75));
+      const down = ease((t - ERUPTION_TELL) / 0.12);
+      joints.rightArm.rotation.set(-3.1 * up * (1 - down) - 0.25 * down, 0, 0);
+      joints.leftArm.rotation.set(-3.1 * up * (1 - down) - 0.25 * down, 0, 0);
+      joints.torso.rotation.set(-0.2 * up * (1 - down) + 0.45 * down, 0, 0);
+      if (weapon) weapon.rotation.x = -0.4 * (1 - down) + 1.45 * down; // (then point down, into the floor)
+      this.rig.root.position.y -= 0.035 * down * this.rig.root.scale.y;
+    } else if (lord.told === 'barrage') {
+      const up = ease(t / (BARRAGE_TELL * 0.7));
+      const out = ease((t - BARRAGE_TELL) / 0.15);
+      joints.leftArm.rotation.set(-2.9 * up * (1 - out) - 1.6 * out, 0, 0.2 * (1 - out));
+      joints.torso.rotation.set(-0.18 * up * (1 - out) + 0.15 * out, 0, 0);
+      joints.head.rotation.set(-0.25 * up * (1 - out), 0, 0);
+    }
+  }
+
   // A draugr's cleave, keyed over its seconds (CLEAVE_SWING): the axe up overhead and a little back as it leans back,
   // knees bending; held, straining; then whipped down and forward, the body lunging and dipping into it, the legs
   // braced wide; and back up. Facing the way it chose as it raised it (the strip's), whatever the hero does.
   private cleave(draugr: Enemy, dt: number, heroX: number, heroZ: number): void {
-    this.cleaveFacing ??= Math.atan2(heroX - draugr.x, heroZ - draugr.z);
-    this.rig.update(draugr.x, draugr.y, draugr.z, dt, null, this.cleaveFacing);
+    this.toldFacing ??= Math.atan2(heroX - draugr.x, heroZ - draugr.z);
+    this.rig.update(draugr.x, draugr.y, draugr.z, dt, null, this.toldFacing);
     const t = draugr.windUp ?? 0;
     const at = (part: keyof typeof CLEAVE_SWING) => keyed(CLEAVE_SWING[part], t);
     const strain = t > 0.55 && t < CLEAVE_TELL ? Math.sin(t * 70) * 0.04 : 0; // (held, trembling)
@@ -193,20 +240,31 @@ export class UndeadRig {
       this.rig.joints.head.rotation.set(-0.5 * drawn, 0, 0);
       this.rig.joints.leftArm.rotation.set(0, 0, 0.4 * drawn);
       this.rig.joints.rightArm.rotation.set(0, 0, -0.4 * drawn);
+    } else if (skeleton.windUp != null && skeleton.kind === 'cryptLord' && skeleton.told && skeleton.told !== 'slam') {
+      this.lordMove(skeleton, dt, heroX, heroZ);
     } else if (skeleton.windUp != null && skeleton.told === 'cleave') {
       this.cleave(skeleton, dt, heroX, heroZ);
     } else if (skeleton.windUp != null) {
-      // The lord's slam, or a draugr's cleave, told: the greatsword (the axe) raised high in both hands, facing the hero, then down.
-      this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
-      const up = Math.min(1, skeleton.windUp / ((skeleton.told === 'cleave' ? CLEAVE_TELL : SLAM_TELL) * 0.6));
-      this.rig.joints.rightArm.rotation.set(-Math.PI * up, 0, 0);
-      this.rig.joints.leftArm.rotation.set(-Math.PI * up, 0, 0);
+      // The lord's slam: the greatsword raised high in both hands, facing the hero; then brought crashing down
+      // before him, his body lunging and dipping into it; held a beat, and back up.
+      this.toldFacing ??= Math.atan2(heroX - skeleton.x, heroZ - skeleton.z);
+      this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, this.toldFacing);
+      const t = skeleton.windUp;
+      const up = Math.min(1, t / (SLAM_TELL * 0.6));
+      const down = Math.min(1, Math.max(0, (t - SLAM_TELL) / 0.1));
+      const back = Math.min(1, Math.max(0, (t - SLAM_TELL - 0.25) / (SLAM_AFTER - 0.25)));
+      const arms = -Math.PI * up * (1 - down) + (-0.35 * (1 - back)) * down;
+      this.rig.joints.rightArm.rotation.set(arms, 0, 0);
+      this.rig.joints.leftArm.rotation.set(arms, 0, 0);
+      this.rig.joints.torso.rotation.set(-0.2 * up * (1 - down) + 0.45 * down * (1 - back), 0, 0);
+      if (this.weapon) this.weapon.rotation.x = -0.3 * (1 - down) + 1.2 * down * (1 - back) - CARRY * back; // (its point into the floor)
+      this.rig.root.position.y -= 0.04 * down * (1 - back) * this.rig.root.scale.y;
     } else {
       const swing = skeleton.swingFor === null ? null : skeleton.swingFor / ENEMY_STATS[skeleton.kind].swing;
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, swing);
     }
-    if (skeleton.told !== 'cleave') {
-      this.cleaveFacing = null;
+    if (!skeleton.told) {
+      this.toldFacing = null;
       if (this.weapon) this.weapon.rotation.x = -CARRY;
     }
     if (this.nocked) this.nocked.visible = drawn !== null;

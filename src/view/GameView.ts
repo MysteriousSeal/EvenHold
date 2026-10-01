@@ -280,6 +280,8 @@ export class GameView {
     if (room) {
       this.room?.life?.update(model, dt); // (a crypt's guards, their arrows, what they leave)
       this.followHero(hero, 0, dt);
+      const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
+      if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
       return; // the world outside stands still
     }
     this.world.update(hero.x, hero.z);
