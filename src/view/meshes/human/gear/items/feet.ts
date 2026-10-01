@@ -104,6 +104,21 @@ const hobnailBoots: ItemModel = {
   },
 };
 
+// An inn's bouncer's: heavy black-brown boots, iron-capped at the toe, a
+// dark band at the ankle, and hobnails round the sole.
+const capped = namedPalette({ leather: 0x3e2a1e, dark: 0x2a1c14, iron: 0x9aa2aa, nail: 0x7a8088 });
+const ironCapBoots: ItemModel = {
+  palette: capped.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = capped;
+      if (cell.front && cell.y === 0) return c.iron; // the toe cap
+      if (cell.y === 0 && !cell.front && mod(cell.x + cell.z, 2) === 0) return c.nail;
+      return ankle(cell) ? c.dark : c.leather;
+    },
+  },
+};
+
 export const FEET_MODELS: Record<keyof typeof FEET_ITEMS, ItemModel> = {
   leatherBoots,
   blackBoots,
@@ -115,4 +130,5 @@ export const FEET_MODELS: Record<keyof typeof FEET_ITEMS, ItemModel> = {
   woodenClogs,
   feltSlippers: shoes(0x6a8a5a, 0x557048, 0xe8dcc0),
   hobnailBoots,
+  ironCapBoots,
 };

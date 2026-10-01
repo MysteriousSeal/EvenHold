@@ -47,6 +47,30 @@ const leatherVest: ItemModel = {
   },
 };
 
+// An inn's bouncer's: a thick oxblood leather jerkin, a row of brass studs
+// across the chest and back, a closed seam down the front, a broad black belt
+// with an iron buckle at the waist, studded leather over the shoulders, and the
+// sleeves of a charcoal shirt beneath.
+const studded = namedPalette({ leather: 0x6e2c22, shade: 0x561f18, stud: 0xd8b25a, belt: 0x2e2018, buckle: 0x9aa2aa, shirt: 0x3e3c3a, shirtDark: 0x302e2c });
+const studdedJerkin: ItemModel = {
+  palette: studded.palette,
+  worn: {
+    torso: ({ x, y, front, back, flank, center }) => {
+      const { c } = studded;
+      if (y === 2) return front && center ? c.buckle : c.belt; // the belt, buckled in front
+      if ((front || back) && y === 4 && mod(x, 2) === 1) return c.stud; // the row of studs
+      if (front && center) return c.shade; // the seam
+      return flank || back ? c.shade : c.leather;
+    },
+    arm: ({ y, flank, top }) => {
+      const { c } = studded;
+      if (top) return mod(y, 2) === 0 ? c.stud : c.leather; // studded over the shoulder
+      if (y >= 5) return flank ? c.shade : c.leather; // the shoulder's leather, down the top of the arm
+      return y === 2 || flank ? c.shirtDark : c.shirt;
+    },
+  },
+};
+
 // A rough undyed tunic mended with patches of other cloth, the neck laced.
 const tunic = namedPalette({ cloth: 0x8c7a5a, shade: 0x77664a, green: 0x5e6e44, red: 0x8e4a34, lace: 0x4e3a28 });
 const patchedTunic: ItemModel = {
@@ -176,6 +200,7 @@ const brigandine: ItemModel = {
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
+  studdedJerkin,
   patchedTunic,
   furJerkin,
   chainMail,

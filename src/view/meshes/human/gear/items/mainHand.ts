@@ -98,6 +98,15 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
     if (x === 1 && y === 1) return c.wood;
     return mod(x + y + z, 3) === 0 ? c.knot : c.woodDark;
   }),
+  // An inn's bouncer's: a straight hardwood cudgel bound with two iron bands
+  // and capped with iron (to settle a quarrel, not to kill).
+  bandedCudgel: cudgel((x, y, z) => {
+    const cross = x === 1 || y === 1;
+    if (!cross) return 0;
+    if (z === 8 || z === 10) return c.dark; // the bands
+    if (z === 11) return x === 1 && y === 1 ? c.edge : 0; // the cap
+    return x === 1 && y === 1 ? c.wood : c.woodDark;
+  }),
   // Flanges in a cross around an iron core, a knob on top.
   mace: cudgel((x, y, z) => {
     const cross = x === 1 || y === 1;

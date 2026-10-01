@@ -52,6 +52,14 @@ const leatherBracers: ItemModel = {
   worn: { arm: ({ y, flank }) => (y !== 1 ? 0 : flank ? bracer.c.stud : bracer.c.leather) },
 };
 
+// An inn's bouncer's: broad oxblood bracers, two rows deep, studded with iron
+// on the outside; hands bare (for grabbing collars).
+const broad = namedPalette({ leather: 0x6e2c22, shade: 0x561f18, stud: 0x9aa2aa });
+const studdedBracers: ItemModel = {
+  palette: broad.palette,
+  worn: { arm: ({ y, flank, x, z }) => (y < 1 || y > 2 ? 0 : flank && mod(x + y + z, 2) === 0 ? broad.c.stud : y === 2 ? broad.c.shade : broad.c.leather) },
+};
+
 export const HANDS_MODELS: Record<keyof typeof HANDS_ITEMS, ItemModel> = {
   ridingGloves: gloves(0x3a2e26, 0x4c3c30),
   workGloves: gloves(0xb08a5a, 0x8a6a42),
@@ -62,5 +70,6 @@ export const HANDS_MODELS: Record<keyof typeof HANDS_ITEMS, ItemModel> = {
   furMittens,
   embroideredGloves,
   leatherBracers,
+  studdedBracers,
   silkGloves: gloves(0xf0ece0, 0x3dbdb8),
 };
