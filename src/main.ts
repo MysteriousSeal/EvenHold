@@ -101,7 +101,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
-  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6 }; // about two thirds of the way up them
+  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
