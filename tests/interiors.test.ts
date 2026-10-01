@@ -9,14 +9,15 @@ const withHouses = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_S
 describe('interiors', () => {
   it('gives every house, inn and smithy a door, and each door the same room for a given seed', () => {
     const model = withHouses();
-    expect(model.entrances).toHaveLength(model.houses.length + model.buildings.length);
-    for (const entrance of model.entrances) {
+    const doors = model.entrances.filter((e) => e.type !== 'crypt'); // (and a crypt's way down in each ruin: crypt.test.ts)
+    expect(doors).toHaveLength(model.houses.length + model.buildings.length);
+    for (const entrance of doors) {
       const room = roomFor(model.seed, entrance);
       expect(roomFor(model.seed, entrance)).toEqual(room);
       expect(room.door).toBeGreaterThanOrEqual(0);
       expect(room.door).toBeLessThan(room.width);
     }
-    const rooms = new Set(model.entrances.map((e) => JSON.stringify(roomFor(model.seed, e))));
+    const rooms = new Set(doors.map((e) => JSON.stringify(roomFor(model.seed, e))));
     expect(rooms.size).toBeGreaterThan(1); // not all alike
   });
 
@@ -45,7 +46,7 @@ describe('interiors', () => {
   it('furnishes each room the same every time, never in the way of the door, nothing overlapping', async () => {
     const { furnish } = await import('../src/model/interiors/furnish');
     const model = withHouses();
-    for (const entrance of model.entrances) {
+    for (const entrance of model.entrances.filter((e) => e.type !== 'crypt')) {
       const room = roomFor(model.seed, entrance);
       const items = furnish(model.seed, entrance, room);
       expect(furnish(model.seed, entrance, room)).toEqual(items);

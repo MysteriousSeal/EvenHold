@@ -10,7 +10,7 @@ import { NPC_RADIUS } from '../../src/model/npcs/npcs';
 import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import type { Entrance } from '../../src/model/interiors/interiors';
 import { noticeBoards } from '../../src/model/quests/noticeBoards';
-import { villageLevel } from '../../src/model/enemies/enemyLevels';
+import { zoneLevel } from '../../src/model/enemies/enemyLevels';
 import { spawnOf } from '../../src/model/map/grid';
 
 export type Arrival = 'going' | 'there' | 'stuck' | 'no way';
@@ -224,7 +224,7 @@ export function boardFor(model: GameModel): number {
   const boards = noticeBoards(model);
   const far = (i: number) => Math.hypot(boards[i].x - hero.x, boards[i].z - hero.z);
   const all = boards.map((_, i) => i).sort((a, b) => far(a) - far(b));
-  const level = (i: number) => villageLevel(spawn, model.villages[i]);
+  const level = (i: number) => zoneLevel(spawn, model.villages[i]);
   return all.find((i) => level(i) >= hero.level - 1 && level(i) <= hero.level) ?? all.find((i) => level(i) < hero.level) ?? all[0];
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { spawnOf } from '../src/model/map/grid';
-import { villageLevel } from '../src/model/enemies/enemyLevels';
+import { zoneLevel } from '../src/model/enemies/enemyLevels';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
@@ -203,10 +203,10 @@ describe('quest levels', () => {
     const model = new GameModel(TEST_SEEDS[0], { width: 512, depth: 512 });
     const spawn = spawnOf(model.size);
     for (const [b, village] of model.villages.entries()) {
-      const level = villageLevel(spawn, village);
+      const level = zoneLevel(spawn, village);
       for (let n = 0; n < OFFERS; n++) expect(questAt(model, b, n).level, `board ${b}`).toBe(level);
     }
     const byDistance = [...model.villages].sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z));
-    expect(villageLevel(spawn, byDistance[byDistance.length - 1])).toBeGreaterThan(villageLevel(spawn, byDistance[0]));
+    expect(zoneLevel(spawn, byDistance[byDistance.length - 1])).toBeGreaterThan(zoneLevel(spawn, byDistance[0]));
   });
 });

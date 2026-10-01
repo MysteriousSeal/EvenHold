@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { furnish } from '../src/model/interiors/furnish';
-import { roomFor, type Entrance, type Room } from '../src/model/interiors/interiors';
+import { roomFor, type BuildingType, type Entrance, type Room } from '../src/model/interiors/interiors';
 import type { Furniture, FurnitureKind } from '../src/model/interiors/furniture';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { upstairsInside } from '../src/model/interiors/upstairs';
@@ -10,7 +10,7 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 // Every building's room across the test worlds, furnished.
 const rooms: Array<{ seed: number; entrance: Entrance; room: Room; furniture: Furniture[] }> = TEST_SEEDS.flatMap((seed) => {
   const model = new GameModel(seed, TEST_MAP_SIZE);
-  return model.entrances.map((entrance) => {
+  return model.entrances.filter((e) => e.type !== 'crypt').map((entrance) => { // (buildings: a crypt's its own, crypt.test.ts)
     const room = roomFor(seed, entrance);
     return { seed, entrance, room, furniture: furnish(seed, entrance, room) };
   });
@@ -45,7 +45,7 @@ function walledIn(room: Room, taken: Set<string>): string[] {
   return shut;
 }
 
-const REQUIRED: Record<Entrance['type'], FurnitureKind[]> = {
+const REQUIRED: Record<BuildingType, FurnitureKind[]> = {
   house: ['bed'],
   inn: ['counter', 'keg', 'stairs', 'hearth', 'barStool', 'tavernTable'],
   smithy: ['forge', 'bellows', 'anvil', 'grindstone', 'trough', 'smithCounter', 'rack', 'coal', 'barrel', 'armorStand', 'weaponWall', 'toolBoard'],
@@ -59,7 +59,7 @@ describe('every room in the test worlds', () => {
   it('is furnished the same every time, with all its kind of building needs', () => {
     for (const { seed, entrance, room, furniture } of rooms) {
       expect(furnish(seed, entrance, room)).toEqual(furniture);
-      for (const kind of REQUIRED[entrance.type]) expect(furniture.some((f) => f.kind === kind), `${entrance.type} (seed ${seed}) without a ${kind}`).toBe(true);
+      for (const kind of REQUIRED[entrance.type as BuildingType]) expect(furniture.some((f) => f.kind === kind), `${entrance.type} (seed ${seed}) without a ${kind}`).toBe(true);
     }
   });
 
