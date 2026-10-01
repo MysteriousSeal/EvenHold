@@ -155,4 +155,20 @@ describe('the crypts\' guards', () => {
     goDown(model);
     expect(model.foes).toHaveLength(all);
   });
+
+  it('count toward how much of the crypt is cleared, all of it with the last of them, told once; the same at its way in', () => {
+    const model = new GameModel(1, MID);
+    const crypt = goDown(model);
+    const all = model.foes.length;
+    expect(model.clearedShare(crypt.entrance)).toBe(0);
+    model.takeEvents();
+    model.foes.forEach((guard, i) => {
+      guard.state = 'dead';
+      model.slayGuard(guard);
+      expect(model.clearedShare(crypt.entrance)).toBeCloseTo((i + 1) / all);
+      const told = model.takeEvents().filter((e) => e.kind === 'cleared');
+      expect(told).toHaveLength(i === all - 1 ? 1 : 0);
+    });
+    expect(model.clearedShare(crypt.entrance)).toBe(1);
+  });
 });

@@ -44,7 +44,7 @@ describe('crypts', () => {
         expect(model.isOpenTile(Math.round(entrance.x), Math.round(entrance.z))).toBe(true);
         expect(model.entrances).toContain(entrance);
         expect(c.level).toBe(zoneLevel(spawnOf(model.size), { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 }));
-        expect(c.name).toMatch(/^the crypt of \w+/);
+        expect(c.name).toMatch(/^the [a-z ]+( of [A-Za-z ]+)?$/);
       }
     }
   });
