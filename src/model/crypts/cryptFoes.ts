@@ -11,6 +11,7 @@
 import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import type { BagItem } from '../hero/bag';
+import { FrostBreaths } from './frostBreath';
 import { CHEST_POST, LORD_POST, Lord, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
@@ -24,8 +25,9 @@ const ARROW_SPEED = 7; // tiles a second
 const ARROW_RANGE = 10; // tiles it flies, at most
 const ARROW_HIT = 0.22; // how near the hero it must pass to strike him
 const CLEAR_OF_STAIRS = 7; // tiles from the foot of the stairs no guard stands
-const CORRIDOR_EVERY = 14; // corridor tiles to a guard along it, about
-const ARCHERS = 0.35; // of the guards, about, bowmen
+const CORRIDOR_EVERY = 9; // corridor tiles to a guard along it, about
+const ARCHERS = 0.35; // of the skeletons, about, bowmen
+const DRAUGR: [number, number] = [0.06, 0.34]; // the chance a guard's a draugr, near the stairs and at the far end (about one in five)
 
 export interface Arrow {
   x: number;
@@ -36,22 +38,36 @@ export interface Arrow {
   damage: number;
 }
 
-// Where the crypt's guards stand, and what each is: from the seed and the ruin, the same every time.
-export function guardPosts(seed: number, inside: CryptInside): Array<{ x: number; z: number; archer: boolean }> {
+export type GuardKind = 'skeleton' | 'skeletonArcher' | 'draugr';
+export interface Post {
+  x: number;
+  z: number;
+  kind: GuardKind;
+}
+
+// Where the crypt's guards stand, and what each is: from the seed and the ruin, the same every time. Draugr
+// the likelier the deeper in (DRAUGR: from near the stairs to the far end), two in the great hall.
+export function guardPosts(seed: number, inside: CryptInside): Post[] {
   const { plan, props, crypt } = inside;
   const rng = mulberry32(hashCell(crypt.ruin.x * 5 + 1, crypt.ruin.z * 3 + 7, seed + 4421));
   const solid = new Set(props.filter((p) => p.solid).flatMap((p) => tilesOf(p.x, p.z, p.x + p.w - 1, p.z + p.d - 1)));
   const taken = new Set<string>();
   const open = (x: number, z: number) =>
     isFloor(plan, x, z) && !solid.has(cellKey(x, z)) && !taken.has(cellKey(x, z)) && Math.hypot(x - plan.door, z - (plan.depth - 1)) > CLEAR_OF_STAIRS;
-  const posts: Array<{ x: number; z: number; archer: boolean }> = [];
-  // One of `count` in a rect, on open floor, picked from the rng; bowmen toward the far side (low z: away from the stairs).
-  const post = (x0: number, z0: number, x1: number, z1: number, count: number, archers = ARCHERS) => {
+  const posts: Post[] = [];
+  // What stands at (x, z): a draugr, the likelier the deeper in; else a bowman, or a swordsman.
+  const roll = (z: number, archers: number): GuardKind => {
+    const deep = 1 - z / Math.max(1, plan.depth - 1);
+    if (rng() < DRAUGR[0] + (DRAUGR[1] - DRAUGR[0]) * deep) return 'draugr';
+    return rng() < archers ? 'skeletonArcher' : 'skeleton';
+  };
+  // `count` in a rect, on open floor, picked from the rng (the first `draugr` of them draugr).
+  const post = (x0: number, z0: number, x1: number, z1: number, count: number, archers = ARCHERS, draugr = 0) => {
     const spots = tilesOf(x0, z0, x1, z1).map((k) => k.split(',').map(Number) as [number, number]).filter(([x, z]) => open(x, z));
     for (let i = 0; i < count && spots.length > 0; i++) {
       const [x, z] = spots.splice(Math.floor(rng() * spots.length), 1)[0];
       taken.add(cellKey(x, z));
-      posts.push({ x, z, archer: rng() < archers });
+      posts.push({ x, z, kind: i < draugr ? 'draugr' : roll(z, archers) });
     }
   };
   let run = 0;
@@ -63,9 +79,9 @@ export function guardPosts(seed: number, inside: CryptInside): Array<{ x: number
         run = 0;
         post(place.x0, place.z0, place.x1, place.z1, 1);
       }
-    } else if (place.kind === 'great') post(place.x0 + 1, place.z0 + 1, place.x1 - 1, place.z1 - 1, 4 + Math.floor(rng() * 2), 0.4);
-    else if (place.kind === 'side') post(place.x0, place.z0, place.x1, place.z1, 1 + (rng() < 0.3 ? 1 : 0));
-    else post(place.x0, place.z0, place.x1, place.z1, 1 + (rng() < 0.5 ? 1 : 0));
+    } else if (place.kind === 'great') post(place.x0 + 1, place.z0 + 1, place.x1 - 1, place.z1 - 1, 6 + (rng() < 0.5 ? 1 : 0), 0.4, 2);
+    else if (place.kind === 'side') post(place.x0, place.z0, place.x1, place.z1, 2);
+    else post(place.x0, place.z0, place.x1, place.z1, 2 + (rng() < 0.25 ? 1 : 0));
   }
   return posts;
 }
@@ -91,6 +107,7 @@ export interface CryptHooks {
   strike(enemy: Enemy): void; // a swordsman's (or the lord's) blow lands (reach is the model's to judge)
   arrow(arrow: Arrow): void; // an arrow strikes the hero
   slam(damage: number, lord: Enemy): void; // the lord's slam catches the hero
+  frost(draugr: Enemy): void; // a draugr's frost breath catches the hero
   report(event: GameEvent): void;
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
@@ -102,6 +119,7 @@ export class CryptFoes {
   readonly arrows: Arrow[] = [];
   readonly director: EnemyDirector;
   lord: Lord | null = null; // risen
+  readonly frost = new FrostBreaths(); // the draugr's
   chest: { x: number; z: number; open: boolean } | null = null; // his, once he's slain
   private readonly plan: CryptPlan;
   private readonly guards: number; // all its posts
@@ -117,7 +135,7 @@ export class CryptFoes {
     this.plan = inside.plan;
     const posts = guardPosts(seed, inside);
     this.guards = posts.length;
-    this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [makeEnemy(CRYPT_FOE_ID + i, p.archer ? 'skeletonArcher' : 'skeleton', p.x, p.z, p.x, p.z, inside.crypt.level)]));
+    this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [makeEnemy(CRYPT_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.crypt.level)]));
     if (slain.has(LORD_POST)) this.chest = { ...lordSpot(inside), open: slain.has(CHEST_POST) };
     const ground: Ground = {
       isBlocked: (x, z, r) => cryptBlocks(inside, x, z, r),
@@ -143,6 +161,7 @@ export class CryptFoes {
     const held = this.lord?.before() ?? null;
     this.director.update(dt);
     this.lord?.after(dt, held, hero);
+    this.frost.update(this.foes, hero, dt, (draugr) => this.hooks.frost(draugr));
     if (this.lord && this.lord.enemy.state === 'dead' && !this.chest) this.chest = { ...lordSpot(this.inside), open: false }; // his chest, where he rose
     for (let i = this.arrows.length - 1; i >= 0; i--) if (this.fly(this.arrows[i], dt)) this.arrows.splice(i, 1);
   }

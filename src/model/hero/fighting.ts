@@ -11,6 +11,8 @@ import { coinDrop } from './money';
 import { DROP_CHANCE, rollDrop } from '../loot/loot';
 import type { BagItem } from './bag';
 import { FIRST_MOB_ID, type QuestBook } from '../quests/questBook';
+import type { CryptHooks } from '../crypts/cryptFoes';
+import { CHILL_FOR } from '../crypts/frostBreath';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -51,13 +53,32 @@ export function landBlow(fight: Fight): void {
     healOnKill(hero);
     const wanted = fight.quests.onKill(target);
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
-    const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero));
+    const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }
   const d = Math.max(distance, 1e-6);
-  fight.shove(target, ((target.x - hero.x) / d) * ATTACK_KNOCKBACK, ((target.z - hero.z) / d) * ATTACK_KNOCKBACK);
+  const push = ATTACK_KNOCKBACK * ENEMY_STATS[target.kind].shove; // (a heavy one hardly moved)
+  fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
+}
+
+// What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, the lord's slam, a
+// draugr's frost (a little harm, and chilled: slowed a while); what's told, and what they leave.
+export function cryptHooks(fight: Fight): CryptHooks {
+  return {
+    strike: (enemy) => foeStrikes(fight, enemy),
+    arrow: (arrow) => heroStruck(fight, arrow.damage, null),
+    slam: (damage, lord) => heroStruck(fight, damage, lord),
+    frost: (draugr) => {
+      heroStruck(fight, 1, draugr);
+      fight.hero.chilledFor = CHILL_FOR;
+      fight.report({ kind: 'chilled' });
+    },
+    report: (event) => fight.report(event),
+    dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
+    dropCoins: (amount, x, z) => fight.dropCoins(amount, x, z),
+  };
 }
 
 // A foe's blow lands if the hero is still within its reach (a step back in time dodges it).

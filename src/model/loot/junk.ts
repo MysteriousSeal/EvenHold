@@ -20,7 +20,11 @@ export const JUNK_ITEMS = {
   bentSpoon: { name: 'Bent spoon', value: 3, droppedBy: { humanoid: 2 } },
   tornPouch: { name: 'Torn pouch', value: 2, droppedBy: { humanoid: 3 } },
   // From the undead (the crypts' skeletons): their old gear, gone to rust and dust.
-  rustedBlade: { name: 'Rusted blade', value: 5, droppedBy: { undead: 3 } },
+  rustedBlade: { name: 'Rusted blade', value: 5, droppedBy: { undead: 3, draugr: 1 } },
   oldArrowhead: { name: 'Old arrowhead', value: 3, droppedBy: { undead: 3 } },
-  boneCharm: { name: 'Bone charm', value: 7, droppedBy: { undead: 2 } },
+  boneCharm: { name: 'Bone charm', value: 7, droppedBy: { undead: 2, draugr: 1 } },
+  // From draugr: what the old warriors were laid to rest with, worth far more.
+  frostTorc: { name: 'Frost-rimed torc', value: 30, droppedBy: { draugr: 2 } },
+  runestone: { name: "Draugr's runestone", value: 20, droppedBy: { draugr: 3 } },
+  oldSilver: { name: 'Old silver coin', value: 14, droppedBy: { draugr: 3 } },
 } satisfies Record<string, LootEntry>;

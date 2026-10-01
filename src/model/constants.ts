@@ -15,15 +15,17 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // never start a fight, but fight back once hit; and `coins`, copper per
 // level it drops (bandits carry a purse).
 export const ENEMY_STATS = {
-  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5] },
-  bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5] },
-  boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6, rest: [1.5, 2.5] },
+  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5], shove: 1, loot: 1 },
+  bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5], shove: 1, loot: 1 },
+  boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6, rest: [1.5, 2.5], shove: 1, loot: 1 },
   // The crypts' guards (crypts/cryptFoes.ts): shambling about their posts, slow, pausing long, seeing far down the dark passages.
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.
-  skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 2.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.6, swing: 0.8, cooldown: 1.2, rest: [3, 3] },
+  skeleton: { family: 'undead', passive: false, hp: 5, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 2.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.6, swing: 0.8, cooldown: 1.2, rest: [4, 4], shove: 1, loot: 1 },
   // A crypt's lord (crypts/cryptLord.ts): eight skeletons' health, hard blows, big, slow to give up; his slam and rage are his own.
-  cryptLord: { family: 'undead', passive: false, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 1.5, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3] },
-  skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [3, 3] },
+  cryptLord: { family: 'undead', passive: false, hp: 40, damage: 4, xp: 200, coins: 40, radius: 0.24, walk: 0.5, run: 1.7, sight: 9, giveUp: 30, wander: 1.5, stop: 0.75, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.3, loot: 2 },
+  // A draugr (crypts/frostBreath.ts its breath): a withered warrior in mail with an axe; slow, twice a skeleton's health and more, hard blows, hardly moved by a blow; its own, better loot, more often (`loot`: the drop chance's factor).
+  draugr: { family: 'draugr', passive: false, hp: 11, damage: 3, xp: 45, coins: 10, radius: 0.17, walk: 0.35, run: 1.4, sight: 6, giveUp: 12, wander: 2, stop: 0.7, swing: 1.1, cooldown: 1.6, rest: [5, 4], shove: 0.25, loot: 1.6 }, // (slower still, so longer at rest)
+  skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
 export const ENEMY_SEPARATION_SPEED = 0.8; // how fast overlapping enemies ease apart (units per second)

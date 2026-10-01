@@ -20,6 +20,7 @@ export interface Hero extends Humanoid {
   statPoints: number; // gained with levels, not yet spent (training.ts)
   trained: Record<Stat, number>; // points spent on each stat
   hurtFor: number; // seconds left of the hit flash
+  chilledFor?: number; // seconds left of a draugr's frost on them (slowed: crypts/frostBreath.ts)
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)
@@ -27,7 +28,7 @@ export interface Hero extends Humanoid {
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'cryptLord'; // (the skeletons: the crypts' guards; the lord: a crypt's own dead, risen)
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.
@@ -41,6 +42,7 @@ export type GameEvent =
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
   | { kind: 'cleared'; name: string } // a crypt's last guard slain (its lord)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
+  | { kind: 'chilled' } // the hero caught in a draugr's frost breath
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
@@ -72,7 +74,7 @@ export interface Enemy {
   lostFor: number; // seconds since then
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
   name?: string; // its own name, if it has one (a crypt's lord), over its kind's
-  windUp?: number | null; // a crypt's lord: seconds into his slam's tell (crypts/cryptLord.ts), else null
+  windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath), else null
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 
