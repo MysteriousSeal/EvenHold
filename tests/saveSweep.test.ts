@@ -47,13 +47,13 @@ describe('saving, in every test world', () => {
       expect(takeStairs(model)).toBe(true);
       const door = model.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.wall === 'back')!;
       Object.assign(model.hero, { x: door.x - 0.5 + door.w / 2, z: door.z - 0.9 });
-      expect(useHallDoor(model)).toBe(true);
+      expect(useHallDoor(model)).toBe(true); // (tried: locked)
       run(model, 5);
 
       const again = reload(model);
       expect(saved(again)).toEqual(saved(model)); // everything kept, nothing changed on the way
       expect(again.inside?.below).toBe(again.entrances[model.entrances.indexOf(model.inside!.below!)]); // upstairs still
-      expect(again.inside?.furniture.find((f) => f.kind === 'hallDoor' && f.x === door.x && f.z === door.z)?.open).toBe(true);
+      expect(again.inside?.furniture.find((f) => f.kind === 'hallDoor' && f.x === door.x && f.z === door.z)?.open).toBeFalsy(); // (locked: shut still)
       expect(again.fullWalls).toBe(true);
       expect(saved(reload(again))).toEqual(saved(model)); // and again
     });

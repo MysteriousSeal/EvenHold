@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { doorAt, stairsInReach, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
+import { doorAt, openDoorsAt, setOpenDoors, stairsInReach, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
@@ -244,12 +244,35 @@ describe('an ale at the bar', () => {
     expect(model.inside!.below).toBeUndefined();
   });
 
-  it('upstairs, E before a door opens it (its doorway then passable, the wall beside it not) and closes it; left open in a save', () => {
+  it('upstairs, the rooms\' doors are locked: E before one only tries it (shut still, rattled, told), and so after a save', () => {
+    const model = atTheInn();
+    const stairs = model.inside!.furniture.find((f) => f.kind === 'stairs')!;
+    Object.assign(model.hero, { x: stairs.x + stairs.w, z: stairs.z });
+    takeStairs(model);
+    const doors = model.inside!.furniture.filter((f) => f.kind === 'hallDoor');
+    expect(doors.length).toBeGreaterThan(1);
+    expect(doors.every((f) => f.locked && !f.open)).toBe(true);
+    const door = doors.find((f) => f.wall === 'back')!;
+    Object.assign(model.hero, { x: door.x - 0.5 + door.w / 2, z: door.z - 0.8 });
+    model.takeEvents();
+    expect(useHallDoor(model)).toBe(true);
+    expect(door.open).toBeFalsy();
+    expect(door.tried).toBe(1);
+    expect(model.takeEvents()).toContainEqual({ kind: 'locked' });
+    expect(bumpsFurniture(model.inside!.furniture, door.x - 0.5 + door.w / 2, door.z - 0.4, 0.14 * INDOOR_SCALE)).toBe(true); // (no way through)
+    setOpenDoors(model.inside!.below!, [`${door.x},${door.z}`]); // (an old save's, left open)
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.inside!.furniture.filter((f) => f.kind === 'hallDoor').every((f) => f.locked && !f.open)).toBe(true);
+  });
+
+  it('upstairs, E before an unlocked door opens it (its doorway then passable, the wall beside it not) and closes it; left open in a save', () => {
     const model = atTheInn();
     const stairs = model.inside!.furniture.find((f) => f.kind === 'stairs')!;
     Object.assign(model.hero, { x: stairs.x + stairs.w, z: stairs.z });
     takeStairs(model);
     const door = model.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.wall === 'back')!;
+    door.locked = false; // (a room let: the doors still work as doors)
     const mid = door.x - 0.5 + door.w / 2;
     Object.assign(model.hero, { x: mid, z: door.z - 0.8 }); // before it, in the hallway
     expect(doorAt(model.inside!, model.hero)).toBe(door);
@@ -264,7 +287,7 @@ describe('an ale at the bar', () => {
     model.fullWalls = true; // the walls option, kept in the save too
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
-    expect(again.inside!.furniture.find((f) => f.kind === 'hallDoor' && f.x === door.x && f.z === door.z)?.open).toBe(true);
+    expect(openDoorsAt(model.inside!.below!)).toEqual([`${door.x},${door.z}`]); // (kept as left open: shut again, locked, when the room's made)
     expect(again.fullWalls).toBe(true);
     expect(again.inside!.furniture.filter((f) => f.kind === 'hallWall').every((f) => f.tall)).toBe(true);
     Object.assign(model.hero, { x: through.x, z: through.z - 0.05 }); // stood in its doorway, on the hallway's side of it
