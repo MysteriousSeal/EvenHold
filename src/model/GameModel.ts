@@ -38,7 +38,7 @@ import { generateWorld, solidCells } from './worldgen/world';
 import { onPaving } from './map/roads';
 import { entrancesOf, type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
-import { doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
+import { armsSheathed, doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
 import { stepYard, toggleYard, type YardStay } from './interiors/furnitureYard';
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
 import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
@@ -169,7 +169,7 @@ export class GameModel {
   // Starts a blow unless one is already under way (returns whether it did),
   // turned to face the focused enemy if it's close by.
   startAttack(): boolean {
-    if (this.attackElapsed !== null || this.seated) return false;
+    if (this.attackElapsed !== null || this.seated || armsSheathed(this.inside)) return false; // (not in an inn: arms put away)
     this.attackElapsed = 0;
     this.attackLanded = false;
     const focus = this.focused;

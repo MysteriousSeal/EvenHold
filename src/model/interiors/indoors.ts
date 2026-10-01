@@ -106,6 +106,9 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
 
 // The door the hero can use right now: outdoors, the nearest one whose spot
 // they stand on; indoors, the room's own door when they're by it (none upstairs).
+// Whether arms are put away here: in an inn (downstairs or up), weapons sheathed and no blows struck.
+export const armsSheathed = (inside: Pick<Inside, 'entrance'> | null): boolean => inside?.entrance.type === 'inn';
+
 const EXIT_REACH = 0.8; // tiles from a way out's spot (exitAt) it's in reach
 
 // Whether the hero's at a room's other way out (a crypt's, at its far end), open.
