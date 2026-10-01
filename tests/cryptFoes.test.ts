@@ -12,7 +12,7 @@ import { CRYPT_FOE_ID, CryptFoes, guardPosts } from '../src/model/crypts/cryptFo
 import { mulberry32 } from '../src/util/random';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { floorReached, solidTiles } from './support/cryptChecks';
-import { resetCrypts } from '../src/model/cheats';
+import { resetCrypts, spawnDraugr } from '../src/model/cheats';
 import { FRAME } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
@@ -216,5 +216,23 @@ describe('the crypts\' guards', () => {
     expect(posts.size).toBeGreaterThan(5);
     expect(moved.size).toBeGreaterThan(posts.size / 2); // (most get about)
     expect(walking / frames).toBeLessThan(0.5); // (more paused than walking)
+  });
+
+  it('may be joined by a draugr at the hero\'s level by the cheat: in a crypt, one of its foes, chasing, never counted; out in the world, a foe there', () => {
+    const model = new GameModel(1, MID);
+    model.hero.level = 7;
+    const outside = model.enemies.length;
+    spawnDraugr(model);
+    expect(model.enemies).toHaveLength(outside + 1);
+    expect(model.enemies[outside]).toMatchObject({ kind: 'draugr', level: 7 });
+    const crypt = goDown(model);
+    const [guards, share] = [model.foes.length, model.clearedShare(crypt.entrance)];
+    spawnDraugr(model);
+    const draugr = model.foes[guards];
+    expect(model.foes).toHaveLength(guards + 1);
+    expect(draugr).toMatchObject({ kind: 'draugr', level: 7, state: 'chase' });
+    draugr.state = 'dead';
+    model.slayGuard(draugr);
+    expect(model.clearedShare(crypt.entrance)).toBe(share);
   });
 });
