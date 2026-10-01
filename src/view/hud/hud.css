@@ -64,7 +64,8 @@
   box-shadow: inset -3px -3px 0 var(--lake-dark);
 }
 /* Points to spend (P): a lantern-lit pip on the level's corner. */
-.hero-hud-level.points::after { content: '+'; position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; display: grid; place-items: center; font: 700 13px/1 'Fredoka', system-ui, sans-serif; color: var(--ink, #2e1f14); background: #ffd98a; border: 2px solid #2e1f14; }
+/* (the plus drawn as two bars, not a letter: a font's sits off the middle) */
+.hero-hud-level.points::after { content: ''; position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: linear-gradient(#2e1f14, #2e1f14) center / 8px 2px no-repeat, linear-gradient(#2e1f14, #2e1f14) center / 2px 8px no-repeat, #ffd98a; border: 2px solid #2e1f14; }
 
 .hero-hud-bars { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
 .hero-hud > .hero-hud-bars { padding-top: 0; } /* the hero's: the three bars beside the portrait, within its height */
