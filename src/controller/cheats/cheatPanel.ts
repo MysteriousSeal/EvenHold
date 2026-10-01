@@ -155,6 +155,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
           },
           { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
+          { icon: ICON.hero, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
           {
             icon: ICON.starterSet,
             title: 'Gain a level',
