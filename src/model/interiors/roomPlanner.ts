@@ -94,5 +94,23 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
   const fillWalledIn = () => {
     for (let pocket = walledIn(); pocket; pocket = walledIn()) fillPocket(...pocket);
   };
-  return { rng, taken, kept, key, fits, items, place, along, down, walledIn, fillPocket, fillWalledIn, inside, chairs };
+  // Floor walled off by `kind` pieces (chairs round tables, closing off a corner) opened up:
+  // one at the pocket's edge taken away at a time, till there's none (or none such walls it).
+  const openWalledIn = (kind: FurnitureKind) => {
+    for (let pocket = walledIn(); pocket; pocket = walledIn()) {
+      const region = new Set<string>();
+      const todo: Array<[number, number]> = [pocket];
+      while (todo.length > 0) {
+        const [x, z] = todo.pop()!;
+        if (x < 0 || z < 0 || x >= room.width || z >= room.depth || region.has(key(x, z)) || taken.has(key(x, z))) continue;
+        region.add(key(x, z));
+        todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+      }
+      const edge = items.findIndex((o) => o.kind === kind && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => region.has(key(o.x + dx, o.z + dz))));
+      if (edge < 0) return;
+      const [piece] = items.splice(edge, 1);
+      taken.delete(key(piece.x, piece.z));
+    }
+  };
+  return { rng, taken, kept, key, fits, items, place, along, down, walledIn, fillPocket, fillWalledIn, openWalledIn, inside, chairs };
 }

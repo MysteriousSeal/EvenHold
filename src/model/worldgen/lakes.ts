@@ -75,5 +75,58 @@ export function generateLakeMap(
     }
   }
 
+  drainAroundSpawn(map, spawnX, spawnZ, stack, visited);
   return map;
+}
+
+const SPAWN_LAND = 2000; // tiles of dry land the hero can walk to from spawn, at least
+
+// Spawn on dry land ringed by lakes (an islet) would keep the hero there
+// for good: the lakes round it are drained until there's land enough to
+// walk out on. (Almost always there is at once, and nothing's changed.)
+// `stack` and `seen`: scratch space as big as the map.
+function drainAroundSpawn(map: boolean[][], spawnX: number, spawnZ: number, stack: Int32Array, seen: Uint8Array): void {
+  const size = sizeOf(map);
+  const neighbours = (cell: number, visit: (next: number, x: number, z: number) => void) => {
+    const x = Math.floor(cell / size.depth);
+    const z = cell - x * size.depth;
+    if (x + 1 < size.width) visit(cell + size.depth, x + 1, z);
+    if (x > 0) visit(cell - size.depth, x - 1, z);
+    if (z + 1 < size.depth) visit(cell + 1, x, z + 1);
+    if (z > 0) visit(cell - 1, x, z - 1);
+  };
+  for (let round = 0; round < 8; round++) {
+    // The land walkable from spawn (as far as SPAWN_LAND), and the water at its shores.
+    seen.fill(0);
+    const shore: number[] = [];
+    let top = 0;
+    let land = 0;
+    stack[top++] = spawnX * size.depth + spawnZ;
+    seen[stack[0]] = 1;
+    while (top > 0 && land < SPAWN_LAND) {
+      land++;
+      neighbours(stack[--top], (next, x, z) => {
+        if (seen[next]) return;
+        seen[next] = 1;
+        if (map[x][z]) shore.push(next);
+        else stack[top++] = next;
+      });
+    }
+    if (land >= SPAWN_LAND) return;
+    // Too little: each lake at its shores, drained whole (a lake is one basin, so it's all of one connected water).
+    for (const start of shore) {
+      const sx = Math.floor(start / size.depth);
+      if (!map[sx][start - sx * size.depth]) continue;
+      top = 0;
+      stack[top++] = start;
+      map[sx][start - sx * size.depth] = false;
+      while (top > 0) {
+        neighbours(stack[--top], (next, x, z) => {
+          if (!map[x][z]) return;
+          map[x][z] = false;
+          stack[top++] = next;
+        });
+      }
+    }
+  }
 }

@@ -1,12 +1,12 @@
 // Enemies: wolf packs in the forests, boars rooting in the woods (passive:
 // they fight only once hit), and bandits in their camps (camps/camps.ts),
 // wolves and a camp near spawn to meet early. They
-// wander around home, chase the hero on sight, give up if outrun, and
+// wander around home, chase the hero on sight, give up if outrun (or led too far from home), and
 // attack once within reach. Placed from hashes and
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { ENEMY_HEARING, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
+import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
@@ -167,8 +167,11 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   // close enough to hear whatever's in the way.
   const toHero = Math.hypot(hero.x - enemy.x, hero.z - enemy.z);
   const quiet = noticeFactor(hero); // a well's Quiet step halves how far it sees and hears
-  // (A passive one never notices: only a blow sets it chasing.)
-  const noticed = !stats.passive && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
+  // (A passive one never notices: only a blow sets it chasing. Nor does one
+  // still on its way back from too far, not till it's most of the way home.)
+  const fromHome = Math.hypot(enemy.x - enemy.homeX, enemy.z - enemy.homeZ);
+  const headingHome = enemy.state === 'wander' && fromHome > ENEMY_LEASH * 0.6;
+  const noticed = !stats.passive && !headingHome && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
   if (enemy.state === 'chase') {
     if (noticed || (toHero < stats.giveUp && sees(enemy))) {
@@ -179,8 +182,11 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     }
     // Out of range, or lost from view too long (or searched where it was
     // last seen, and it's not there): back home.
+    // Or led too far from home (ENEMY_LEASH): back, and healed, so it can't be worn down bit by bit that way.
     const searched = !!enemy.lastSeen && enemy.lostFor > 0 && Math.hypot(enemy.lastSeen.x - enemy.x, enemy.lastSeen.z - enemy.z) < 0.25;
-    if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched) {
+    const leashed = fromHome > ENEMY_LEASH;
+    if (leashed) enemy.hp = enemy.maxHp;
+    if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched || leashed) {
       enemy.state = 'wander';
       enemy.target = { x: enemy.homeX, z: enemy.homeZ };
       enemy.lastSeen = null;

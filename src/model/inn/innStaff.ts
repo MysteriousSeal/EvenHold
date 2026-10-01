@@ -126,7 +126,8 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
     { kind: 'go', to: pickup, face: Math.PI }, // facing the counter's end
     { kind: 'wait', for: between(npc, TABLE_WAIT, 5) },
   ];
-  if (table) steps.push({ kind: 'go', to: beside(table, furniture, room), faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
+  const spot = table && beside(table, furniture, room);
+  if (spot) steps.push({ kind: 'go', to: spot, faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
   return steps;
 }
 
@@ -193,8 +194,9 @@ export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void 
   Object.assign(barkeep, { path: null, waited: 0, working: false, carrying: false }); // (a mug she was taking away, put down)
 }
 
-// A spot by a table to serve it from: a tile next to it, in the room, with nothing on it.
-function beside(table: Furniture, furniture: readonly Furniture[], room: Room): Point {
+// A spot by a table to serve it from: a tile next to it, in the room, with nothing on it
+// (none if it's hemmed in: then it's not waited on).
+function beside(table: Furniture, furniture: readonly Furniture[], room: Room): Point | null {
   const around: Point[] = [
     { x: table.x, z: table.z + 1 },
     { x: table.x + 1, z: table.z },
@@ -202,7 +204,9 @@ function beside(table: Furniture, furniture: readonly Furniture[], room: Room): 
     { x: table.x, z: table.z - 1 },
     { x: table.x + 1, z: table.z + 1 },
     { x: table.x - 1, z: table.z + 1 },
+    { x: table.x + 1, z: table.z - 1 },
+    { x: table.x - 1, z: table.z - 1 },
   ];
   const inRoom = (p: Point) => p.x >= 0 && p.z >= 0 && p.x < room.width && p.z < room.depth - 1;
-  return around.find((p) => inRoom(p) && !furniture.some((f) => f.solid && distanceTo(f, p.x, p.z) === 0)) ?? { x: table.x, z: table.z };
+  return around.find((p) => inRoom(p) && !furniture.some((f) => f.solid && distanceTo(f, p.x, p.z) === 0)) ?? null;
 }

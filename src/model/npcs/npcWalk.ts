@@ -19,6 +19,7 @@ const PROGRESS = 0.02; // tiles nearer the next point that count as getting some
 // How near each villager has come to the point they're walking to (a new point starts afresh).
 const closest = new WeakMap<Npc, { to: Point; d: number }>();
 const EASE_SPEED = 1.2; // how fast a villager eases off the hero, when they overlap
+const BARELY = 0.02; // overlapping the hero by less than this: just touching
 
 // Where someone fits in a building's room. Behind the inn's bar (between
 // the counter and the wall, along its length) is the barmaids' alone.
@@ -40,23 +41,29 @@ export function heroOn(world: NpcWorld, where: Entrance | null, x: number, z: nu
 }
 
 // A villager overlapping the hero (put down on them, or pressed together)
-// eases away from them, and does nothing else meanwhile; returns whether it did.
+// eases away from them (straight away, else aslant, else sideways), and does
+// nothing else meanwhile; returns whether it did. Hemmed in (furniture all
+// that way), it gets on with what it was doing instead, so neither's stuck.
 export function easeOffHero(npc: Npc, world: NpcWorld, dt: number): boolean {
   if (npc.seat || !heroOn(world, npc.where, npc.x, npc.z)) return false;
   const reach = (NPC_RADIUS + HERO_RADIUS) * (npc.where ? INDOOR_SCALE : 1);
   const dx = npc.x - world.hero.x;
   const dz = npc.z - world.hero.z;
   const d = Math.hypot(dx, dz);
+  if (reach - d < BARELY) return false; // (just touching: not worth easing off, and it'd never quite get clear)
   const [ux, uz] = d > 1e-4 ? [dx / d, dz / d] : [Math.sin(npc.id), Math.cos(npc.id)]; // right on them: off some way of its own
   const step = Math.min(reach - d, EASE_SPEED * dt);
   const free = npc.where ? roomFree(world.seed, npc.where, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
-  const [nx, nz] = [npc.x + ux * step, npc.z + uz * step];
-  if (free(nx, nz)) {
+  for (const turn of [0, 0.8, -0.8, 1.6, -1.6]) {
+    const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+    const [nx, nz] = [npc.x + (ux * cos - uz * sin) * step, npc.z + (ux * sin + uz * cos) * step];
+    if (!free(nx, nz)) continue;
     npc.x = nx;
     npc.z = nz;
     if (!npc.where) npc.y = world.getGroundY(nx, nz);
+    return true;
   }
-  return true;
+  return false;
 }
 
 // Stands a villager at a point, on the ground there.

@@ -21,8 +21,11 @@ import { clearLine, type Obstacles, type Point } from '../map/obstacles';
 import { findPath } from '../map/pathfinding';
 import type { Enemy, Hero } from '../types';
 
+const BUMP_MARGIN = 4; // past the active radius, still counted as maybe in the way (none gets from beyond it to touching one that's moving)
+
 export class EnemyDirector {
   frozen = false; // dev cheat: enemies stand still
+  private nearby: Enemy[] | null = null; // during an update: those that could be bumped into (the rest are far off)
   private readonly actions: EnemyActions = {
     move: (e, dx, dz) => this.move(e, dx, dz),
     steer: (e, quarry, still) => this.chaseGoal(e, quarry, still),
@@ -40,6 +43,8 @@ export class EnemyDirector {
   ) {}
 
   update(dt: number): void {
+    const reach = ENEMY_ACTIVE_RADIUS + BUMP_MARGIN;
+    this.nearby = this.enemies.filter((e) => Math.abs(e.x - this.hero.x) <= reach && Math.abs(e.z - this.hero.z) <= reach);
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       if (!this.nearHero(enemy)) continue;
@@ -53,6 +58,7 @@ export class EnemyDirector {
       if (!this.frozen) stepEnemy(enemy, this.hero, dt, this.actions);
     }
     if (!this.frozen) this.separate(dt);
+    this.nearby = null;
   }
 
   // Moves an enemy with the same collisions as the hero (axis by axis, so it
@@ -76,7 +82,7 @@ export class EnemyDirector {
   // Living enemies are solid to each other, by the same rule as for the hero:
   // no step that overlaps another and brings the two closer.
   private bumpsOther(enemy: Enemy, x: number, z: number): boolean {
-    return this.enemies.some((other) => {
+    return (this.nearby ?? this.enemies).some((other) => {
       if (other === enemy || other.state === 'dead') return false;
       const reach = ENEMY_STATS[enemy.kind].radius + ENEMY_STATS[other.kind].radius;
       if (Math.abs(other.x - x) >= reach || Math.abs(other.z - z) >= reach) return false;

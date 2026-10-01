@@ -9,7 +9,8 @@ import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { enemyLevel, enemyPower } from '../enemies/enemyLevels';
 import type { MapSize } from '../map/grid';
-import { spawnOf } from '../map/grid';
+import { NEIGHBORS_4, spawnOf } from '../map/grid';
+import { HERO_RADIUS } from '../constants';
 import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 
@@ -60,6 +61,43 @@ export interface QuestWorld {
   size: MapSize;
   villages: readonly Village[];
   isOpenTile(x: number, z: number): boolean;
+  isBlocked(x: number, z: number, r: number): boolean;
+}
+
+const WALK_WINDOW = FAR + 14; // tiles round a village searched for the way out to a quest's spot
+
+// The tiles the hero can walk to from a village's square, within WALK_WINDOW
+// of it (a step counts as pathfinding.ts has it: clear where it ends and
+// halfway there). Worked out once per village: boards ask often.
+const walkable = new WeakMap<QuestWorld, Map<Village, (x: number, z: number) => boolean>>();
+function walkableFrom(world: QuestWorld, village: Village): (x: number, z: number) => boolean {
+  let byVillage = walkable.get(world);
+  if (!byVillage) walkable.set(world, (byVillage = new Map()));
+  const known = byVillage.get(village);
+  if (known) return known;
+  const side = WALK_WINDOW * 2 + 1;
+  const index = (x: number, z: number) => (x - village.x + WALK_WINDOW) * side + (z - village.z + WALK_WINDOW);
+  const inWindow = (x: number, z: number) => Math.abs(x - village.x) <= WALK_WINDOW && Math.abs(z - village.z) <= WALK_WINDOW && x > 0 && z > 0 && x < world.size.width - 1 && z < world.size.depth - 1;
+  const free = (x: number, z: number) => !world.isBlocked(x, z, HERO_RADIUS);
+  const seen = new Uint8Array(side * side);
+  // From the open ground nearest the square's middle (the well stands on it).
+  const todo: Array<[number, number]> = [];
+  for (let ring = 1; ring <= 3 && todo.length === 0; ring++) {
+    for (let dx = -ring; dx <= ring; dx++) for (let dz = -ring; dz <= ring; dz++) if (todo.length === 0 && free(village.x + dx, village.z + dz)) todo.push([village.x + dx, village.z + dz]);
+  }
+  for (const [x, z] of todo) seen[index(x, z)] = 1;
+  while (todo.length > 0) {
+    const [x, z] = todo.pop()!;
+    for (const [dx, dz] of NEIGHBORS_4) {
+      const [nx, nz] = [x + dx, z + dz];
+      if (!inWindow(nx, nz) || seen[index(nx, nz)] || !free(nx, nz) || !free(x + dx / 2, z + dz / 2)) continue;
+      seen[index(nx, nz)] = 1;
+      todo.push([nx, nz]);
+    }
+  }
+  const reach = (x: number, z: number) => inWindow(x, z) && seen[index(x, z)] === 1;
+  byVillage.set(village, reach);
+  return reach;
 }
 
 // The board's `n`th quest (the same for everyone on the seed).
@@ -68,18 +106,19 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   const roll = (salt: number) => hashUnit(board * 131 + n, world.seed % 1_000_003, 200 + salt);
   const foe = foeOf(roll(1));
   const kind = roll(2) < 0.5 ? 'kill' : 'collect';
-  // A spot out beyond the village, open ground (trying a few directions).
+  // A spot out beyond the village, open ground the hero can walk to from it (trying a few directions).
   let x = village.x;
   let z = village.z;
   let angle = 0;
-  for (let t = 0; t < 12; t++) {
-    angle = roll(10 + t) * Math.PI * 2;
-    const d = NEAR + roll(30 + t) * (FAR - NEAR);
-    const [tx, tz] = [Math.round(village.x + Math.sin(angle) * d), Math.round(village.z - Math.cos(angle) * d)];
-    if (tx > 1 && tz > 1 && tx < world.size.width - 2 && tz < world.size.depth - 2 && world.isOpenTile(tx, tz)) {
-      [x, z] = [tx, tz];
-      break;
-    }
+  const fits = (tx: number, tz: number) => tx > 1 && tz > 1 && tx < world.size.width - 2 && tz < world.size.depth - 2 && world.isOpenTile(tx, tz) && walkableFrom(world, village)(tx, tz);
+  // (twelve tries at random; failing those, round the village from the rolled way, nearest first)
+  const tries = Array.from({ length: 12 }, (_, t) => [roll(10 + t) * Math.PI * 2, NEAR + roll(30 + t) * (FAR - NEAR)]);
+  for (let d = NEAR; d <= FAR; d += 2) for (let k = 0; k < 16; k++) tries.push([roll(10) * Math.PI * 2 + (k * Math.PI) / 8, d]);
+  for (const [a, d] of tries) {
+    const [tx, tz] = [Math.round(village.x + Math.sin(a) * d), Math.round(village.z - Math.cos(a) * d)];
+    if (!fits(tx, tz)) continue;
+    [x, z, angle] = [tx, tz, a % (Math.PI * 2)];
+    break;
   }
   const where = `${DIRECTIONS[Math.round(((angle / (Math.PI * 2)) * 8) % 8) % 8]} of the village`; // north is -z
   const level = enemyLevel(spawnOf(world.size), x, z, board * 997 + n);

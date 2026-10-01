@@ -26,6 +26,7 @@ export const ENEMY_WANDER_PATH_RADIUS = 8; // tiles a wanderer looks around for 
 export const ENEMY_PATH_REFRESH = 0.5; // seconds between fresh paths while chasing
 export const ENEMY_HEARING = 1; // enemies notice the hero this close even through cover
 export const ENEMY_LOSE_TIME = 4; // seconds a chaser hunts for a hero it can't see before giving up
+export const ENEMY_LEASH = 24; // tiles from home a foe will chase the hero, at most: past it, it gives up and goes back (healed)
 export const FOCUS_RANGE = 10; // a focused enemy farther than this is let go
 export const FOCUS_TURN_RANGE = 2; // the hero turns to face a focused enemy this close when striking
 export const ENEMY_CORPSE_TIME = 2.2; // seconds from death until it's gone
