@@ -156,7 +156,7 @@ async function boot(): Promise<void> {
       const { piece } = seat;
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
     }
-    if (talk) return talk;
+    if (talk && !(model.inside && model.doorInReach)) return talk; // (at the way out: out first, not a word with the bouncer by it)
     const read = model.boardInReach;
     if (read !== null) {
       const spot = noticeBoards(model)[read];

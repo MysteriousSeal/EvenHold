@@ -120,7 +120,7 @@ export class GameController {
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
-    // smith by his counter; else read the
+    // smith by his counter (unless at the way out: out first); else read the
     // notice board in reach; else toss a coin in the well beside; else go
     // through the door in reach.
     if (this.input.consumePickup()) {
@@ -131,7 +131,8 @@ export class GameController {
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
-        if (talker) this.onTalk(talker);
+        const leaving = !!this.model.inside && !!this.model.doorInReach; // (at the way out: out, before a word with whoever stands by it, the bouncer)
+        if (talker && !leaving) this.onTalk(talker);
         else if (board !== null) this.onRead(board);
         else if (this.model.wellInReach !== null) this.model.tossCoin();
         else if (!useHallDoor(this.model) && !takeStairs(this.model)) this.model.useDoor(); // a door upstairs, else the stairs by them, else the way out
