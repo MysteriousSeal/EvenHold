@@ -49,6 +49,8 @@ async function boot(): Promise<void> {
   const loading = loadingScreen();
   const canvas = document.getElementById('app') as HTMLCanvasElement;
   const seed = resolveSeed();
+  (document.getElementById('version-label') as HTMLDivElement).textContent = `EvenHold v${__GAME_VERSION__}`; // (package.json's, with the seed)
+  const positionLabel = document.getElementById('position-label') as HTMLDivElement;
   (document.getElementById('seed-label') as HTMLDivElement).textContent = `seed: ${seed}`;
 
   // The world as its seed made it: kept from an earlier visit (worldCache.ts), else made now and kept for next time.
@@ -179,6 +181,10 @@ async function boot(): Promise<void> {
   };
   const onFrame = () => {
     countFrame();
+    // Where the hero is on the map: their tile (indoors, the building's door's), and the room they're in.
+    const at = model.inside ? model.inside.below ?? model.inside.entrance : model.hero;
+    const where = `x: ${Math.round(at.x)} · z: ${Math.round(at.z)}${model.inside ? ` · in the ${model.inside.entrance.type}${model.inside.below ? ', upstairs' : ''}` : ''}`;
+    if (positionLabel.textContent !== where) positionLabel.textContent = where;
     updateHud();
     updateBlessing();
     updateClock(model.minutes);

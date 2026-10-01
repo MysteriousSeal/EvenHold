@@ -18,7 +18,10 @@ export function worldVersion(): string {
 }
 
 export default defineConfig({
-  define: { __WORLD_VERSION__: JSON.stringify(worldVersion()) },
+  define: {
+    __WORLD_VERSION__: JSON.stringify(worldVersion()),
+    __GAME_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version), // the game's version (package.json), shown in the corner
+  },
   build: {
     rollupOptions: {
       output: {
