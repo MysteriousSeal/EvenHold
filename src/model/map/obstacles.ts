@@ -15,8 +15,8 @@ export class Obstacles {
   // Kept as grids (index x * depth + z), not keyed by "x,z": the world has
   // hundreds of thousands of props, and these are asked every frame.
   private readonly solid: Uint8Array; // tiles blocked edge to edge (besides water)
-  private readonly prop: Uint8Array; // 0: none; else 1 + the index in `halves` of its square's half-size
-  private readonly halves: number[] = []; // the props' half-sizes, each kept exact
+  private readonly prop: Uint8Array; // 0: none; else 1 + the index in `halves` of its half-sizes
+  private readonly halves: Array<[number, number]> = []; // the props' half-sizes (across x, across z), each kept exact
   private readonly low: Uint8Array; // props too low to hide anyone
   // Fence strips as axis-aligned rectangles [minX, minZ, maxX, maxZ], by the tile they're in.
   private readonly fences = new Map<number, Array<[number, number, number, number]>>();
@@ -44,13 +44,14 @@ export class Obstacles {
     if (i >= 0) this.solid[i] = 1;
   }
 
-  // A square prop of half-size `half` in the middle of tile (x, z); `low`
-  // ones (a campfire) block walking but not sight.
-  addProp(x: number, z: number, half: number, low = false): void {
+  // A prop in the middle of tile (x, z), half-size `half` across x and
+  // `halfZ` across z (a square, unless told); `low` ones (a campfire) block
+  // walking but not sight.
+  addProp(x: number, z: number, half: number, low = false, halfZ = half): void {
     const i = this.at(x, z);
     if (i < 0) return;
-    let k = this.halves.indexOf(half);
-    if (k < 0) k = this.halves.push(half) - 1;
+    let k = this.halves.findIndex(([hx, hz]) => hx === half && hz === halfZ);
+    if (k < 0) k = this.halves.push([half, halfZ]) - 1;
     this.prop[i] = k + 1;
     if (low) this.low[i] = 1; // (low once, low for good, as ever)
   }
@@ -88,7 +89,7 @@ export class Obstacles {
     // A prop's square lies inside its tile, so checking the tiles the
     // corners touch finds every prop the walker could overlap; same for fences.
     const prop = this.prop[i];
-    if (prop && Math.abs(x - tx) < r + this.halves[prop - 1] && Math.abs(z - tz) < r + this.halves[prop - 1]) return true;
+    if (prop && Math.abs(x - tx) < r + this.halves[prop - 1][0] && Math.abs(z - tz) < r + this.halves[prop - 1][1]) return true;
     const fences = this.fences.get(i);
     return !!fences && fences.some(([minX, minZ, maxX, maxZ]) => x + r > minX && x - r < maxX && z + r > minZ && z - r < maxZ);
   }
@@ -101,7 +102,7 @@ export class Obstacles {
     const i = tx * this.size.depth + tz;
     if (this.solid[i]) return true;
     const prop = this.low[i] ? 0 : this.prop[i];
-    if (prop && Math.abs(x - tx) < this.halves[prop - 1] && Math.abs(z - tz) < this.halves[prop - 1]) return true;
+    if (prop && Math.abs(x - tx) < this.halves[prop - 1][0] && Math.abs(z - tz) < this.halves[prop - 1][1]) return true;
     return (this.fences.get(i) ?? []).some(([minX, minZ, maxX, maxZ]) => x >= minX && x <= maxX && z >= minZ && z <= maxZ);
   }
 }

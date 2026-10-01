@@ -186,14 +186,17 @@ function layOut(x: number, z: number, w: number, d: number, rng: () => number): 
   return { x, z, w, d, style, way, pieces };
 }
 
-// What blocks: walls, towers, the altar their whole tile; columns and rubble a little (a fallen column more).
+// What blocks: walls and towers their whole tile; columns and rubble a little (a fallen column more); the
+// altar as it's drawn (ruinVoxels.ts: its slab 17 voxels across and 11 deep), turned as it stands.
 const BLOCKS: Partial<Record<RuinKind, number>> = { column: 0.22, columnBroken: 0.22, columnFallen: 0.34, rubble: 0.28 };
-const SOLID: ReadonlySet<RuinKind> = new Set(['wall', 'wallBroken', 'arch', 'corner', 'tower', 'innerWall', 'altar']);
+const SOLID: ReadonlySet<RuinKind> = new Set(['wall', 'wallBroken', 'arch', 'corner', 'tower', 'innerWall']);
+const ALTAR: [number, number] = [0.34, 0.22]; // half-sizes: along its face, and out from it
 
 export function addRuinObstacles(obstacles: Obstacles, ruins: readonly Ruin[]): void {
   for (const ruin of ruins) {
     for (const piece of ruin.pieces) {
       if (SOLID.has(piece.kind)) obstacles.addSolid(piece.x, piece.z);
+      else if (piece.kind === 'altar') obstacles.addProp(piece.x, piece.z, ALTAR[piece.quarterTurns % 2], false, ALTAR[1 - (piece.quarterTurns % 2)]);
       else if (BLOCKS[piece.kind]) obstacles.addProp(piece.x, piece.z, BLOCKS[piece.kind]!);
     }
   }
