@@ -50,16 +50,16 @@ describe('every building in every test world', () => {
       expect(problems).toEqual([]);
     });
 
-    it(`has every villager's home, and the inns and smithies staffed (seed ${seed})`, () => {
+    it(`has every villager's home, and the inns (barmaids, a bouncer) and smithies staffed (seed ${seed})`, () => {
       const model = new GameModel(seed, TEST_MAP_SIZE);
       for (const npc of model.npcs) {
         expect(model.entrances).toContain(npc.home);
         if (npc.inn) expect(npc.inn.type).toBe('inn');
-        const kind = { villager: 'house', barkeep: 'inn', server: 'inn', smith: 'smithy' }[npc.role];
+        const kind = { villager: 'house', barkeep: 'inn', server: 'inn', smith: 'smithy', bouncer: 'inn' }[npc.role];
         expect(npc.home.type, `${npc.name} (${npc.role})`).toBe(kind);
       }
       for (const inn of model.entrances.filter((e) => e.type === 'inn')) {
-        for (const role of ['barkeep', 'server'] as const) expect(model.npcs.filter((n) => n.role === role && n.home === inn)).toHaveLength(1);
+        for (const role of ['barkeep', 'server', 'bouncer'] as const) expect(model.npcs.filter((n) => n.role === role && n.home === inn)).toHaveLength(1);
       }
       for (const smithy of model.entrances.filter((e) => e.type === 'smithy')) expect(model.npcs.filter((n) => n.role === 'smith' && n.home === smithy)).toHaveLength(1);
     });

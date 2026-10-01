@@ -112,7 +112,7 @@ describe('villagers', () => {
     const inns = model.entrances.filter((e) => e.type === 'inn');
     for (const inn of inns) {
       const staff = model.npcs.filter((n) => n.home === inn && n.role !== 'villager');
-      expect(staff.map((n) => n.role).sort()).toEqual(['barkeep', 'server']);
+      expect(staff.map((n) => n.role).sort()).toEqual(['barkeep', 'bouncer', 'server']); // (and the bouncer, on the floor: bouncer.test.ts)
     }
     const inn = inns[0];
     const counter = layoutOf(model.seed, inn).furniture.find((f) => f.kind === 'counter')!;
