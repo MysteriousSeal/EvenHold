@@ -186,18 +186,27 @@ function layOut(x: number, z: number, w: number, d: number, rng: () => number): 
   return { x, z, w, d, style, way, pieces };
 }
 
-// What blocks: walls and towers their whole tile; columns and rubble a little (a fallen column more); the
-// altar as it's drawn (ruinVoxels.ts: its slab 17 voxels across and 11 deep), turned as it stands.
+// What blocks, as it's drawn (ruinVoxels.ts): a wall a strip along its tile's back edge (a corner along two),
+// as thick as its stone; an inner wall a strip across its middle; a tower its whole tile; columns and rubble
+// a little (a fallen column more); the altar its slab (17 voxels across, 11 deep), each turned as it stands.
 const BLOCKS: Partial<Record<RuinKind, number>> = { column: 0.22, columnBroken: 0.22, columnFallen: 0.34, rubble: 0.28 };
-const SOLID: ReadonlySet<RuinKind> = new Set(['wall', 'wallBroken', 'arch', 'corner', 'tower', 'innerWall']);
+const STRIP = 0.28; // a wall's thickness (7 voxels)
 const ALTAR: [number, number] = [0.34, 0.22]; // half-sizes: along its face, and out from it
+const INNER: [number, number] = [0.5, 0.1]; // an inner wall's: along it, and through it
+const BACK = [3, 1, 2, 0]; // by quarter turns, the side (NEIGHBORS_4) its local -Z edge is on
+const LEFT = [1, 2, 0, 3]; // and its local -X edge
 
 export function addRuinObstacles(obstacles: Obstacles, ruins: readonly Ruin[]): void {
   for (const ruin of ruins) {
-    for (const piece of ruin.pieces) {
-      if (SOLID.has(piece.kind)) obstacles.addSolid(piece.x, piece.z);
-      else if (piece.kind === 'altar') obstacles.addProp(piece.x, piece.z, ALTAR[piece.quarterTurns % 2], false, ALTAR[1 - (piece.quarterTurns % 2)]);
-      else if (BLOCKS[piece.kind]) obstacles.addProp(piece.x, piece.z, BLOCKS[piece.kind]!);
+    for (const { kind, x, z, quarterTurns: q } of ruin.pieces) {
+      const across = q % 2; // turned a quarter (or three): its x and z swapped
+      if (kind === 'tower') obstacles.addSolid(x, z);
+      else if (kind === 'wall' || kind === 'wallBroken' || kind === 'arch' || kind === 'corner') {
+        obstacles.addFenceStrip(x, z, BACK[q], STRIP);
+        if (kind === 'corner') obstacles.addFenceStrip(x, z, LEFT[q], STRIP);
+      } else if (kind === 'innerWall') obstacles.addProp(x, z, INNER[across], false, INNER[1 - across]);
+      else if (kind === 'altar') obstacles.addProp(x, z, ALTAR[across], false, ALTAR[1 - across]);
+      else if (BLOCKS[kind]) obstacles.addProp(x, z, BLOCKS[kind]!);
     }
   }
 }
