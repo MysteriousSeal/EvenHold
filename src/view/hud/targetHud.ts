@@ -65,8 +65,8 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
       frame.querySelector('canvas')?.remove();
       frame.prepend(portrait(enemy));
       levelGem.textContent = String(enemy.level);
-      root.classList.toggle('passive', ENEMY_STATS[enemy.kind].passive); // a yellow bar: it only fights back
     }
+    root.classList.toggle('passive', ENEMY_STATS[enemy.kind].passive && enemy.state !== 'chase'); // a yellow bar: it only fights back (till it's fighting)
     const max = enemy.maxHp;
     const hp = Math.max(0, enemy.hp);
     const state = `${enemy.id}/${hp}/${enemy.hurtFor > 0}/${heroLevel}`;
