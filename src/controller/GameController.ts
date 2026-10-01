@@ -2,7 +2,7 @@
 
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
-import { letBed, rentRoom } from '../model/inn/roomLetting';
+import { rentRoom, roomAction } from '../model/inn/roomLetting';
 import { shopAt } from '../model/inn/tavernShop';
 import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
@@ -123,9 +123,9 @@ export class GameController {
       const barmaid = barmaidHere(this.model);
       if (barmaid) this.onOrder(barmaid, wanted);
     } else if (wanted === 'pie') {
-      const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero);
-      if (talker?.role === 'barkeep') rentRoom(this.model, talker, shopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(this.model.inside!.entrance)));
-      else if (letBed(this.model)) this.onSleep(); // by (or in) the bed of the room let, at night: to sleep
+      const action = roomAction(this.model); // (by the barmaid: a room; by its bed at night: sleep)
+      if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(this.model.inside!.entrance)));
+      else if (action?.kind === 'sleep') this.onSleep();
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the

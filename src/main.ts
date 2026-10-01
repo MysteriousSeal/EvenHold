@@ -13,7 +13,7 @@ import { createPlaceBanner } from './view/hud/placeBanner';
 import { createCryptBar } from './view/hud/cryptBar';
 import { cryptAt } from './model/crypts/crypts';
 import { atWayOut } from './model/interiors/indoors';
-import { ROOM_PRICE, letBed, letUntil, sleepTillMorning } from './model/inn/roomLetting';
+import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { createSleepFade } from './view/hud/sleepFade';
 import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
@@ -194,11 +194,8 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
-    const renting = prompt?.npc?.role === 'barkeep' && !model.seated && prompt; // (by her, stood: G, a room; let already, said so)
-    const taken = !!model.inside && letUntil(model.inside.entrance) !== null;
-    const bed = !renting && prompt && letBed(model); // (by the let room's bed, or in it, at night: G, sleep)
-    const g = renting ? { label: taken ? 'Your room is upstairs' : `Rent a room · ${ROOM_PRICE} copper`, muted: taken } : bed ? { label: 'Sleep till morning', muted: false } : null;
-    rentPrompt.update(g && prompt ? { ...g, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
+    const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
+    rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
     // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
     const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
