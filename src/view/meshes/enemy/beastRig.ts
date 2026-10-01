@@ -14,7 +14,8 @@ import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, VoxelBurst } from './enemyParts';
+import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
+import { drawnAt } from '../common/overhead';
 import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZE, buildBody, buildHead, buildLeg, buildTail } from './wolfVoxels';
 import { BOAR_BODY_GRID, BOAR_HEAD_GRID, BOAR_LEG_GRID, BOAR_PALETTE, BOAR_TAIL_GRID, buildBoarBody, buildBoarHead, buildBoarLeg, buildBoarTail } from './boarVoxels';
 
@@ -30,7 +31,6 @@ type Part = { grid: () => VoxelGrid; size: Grid3 };
 // What a kind of beast is made of and where its parts join.
 export interface BeastSpec {
   kind: EnemyKind;
-  name: string;
   palette: number[];
   body: Part;
   head: Part;
@@ -38,12 +38,10 @@ export interface BeastSpec {
   tail: Part;
   headDrop: number; // voxels below the body's top that the head sits at
   legsAt: Array<[number, number]>; // front right, front left, back right, back left (voxels, its right is -X)
-  passive: boolean; // a yellow health bar: it only fights back
 }
 
 export const WOLF_SPEC: BeastSpec = {
   kind: 'wolf',
-  name: 'Wolf',
   palette: WOLF_PALETTE,
   body: { grid: buildBody, size: BODY_GRID },
   head: { grid: buildHead, size: HEAD_GRID },
@@ -51,12 +49,10 @@ export const WOLF_SPEC: BeastSpec = {
   tail: { grid: buildTail, size: TAIL_GRID },
   headDrop: 3,
   legsAt: [[-2, 5], [2, 5], [-2, -5], [2, -5]],
-  passive: false,
 };
 
 export const BOAR_SPEC: BeastSpec = {
   kind: 'boar',
-  name: 'Boar',
   palette: BOAR_PALETTE,
   body: { grid: buildBoarBody, size: BOAR_BODY_GRID },
   head: { grid: buildBoarHead, size: BOAR_HEAD_GRID },
@@ -64,7 +60,6 @@ export const BOAR_SPEC: BeastSpec = {
   tail: { grid: buildBoarTail, size: BOAR_TAIL_GRID },
   headDrop: 5, // carried low
   legsAt: [[-2.5, 4], [2.5, 4], [-2.5, -4], [2.5, -4]],
-  passive: true,
 };
 
 export interface BeastLook {
@@ -91,7 +86,7 @@ export function createBeastLook(spec: BeastSpec, flash: THREE.Material): BeastLo
   };
 }
 
-export class BeastRig extends CreatureRig {
+export class BeastRig extends CreatureRig implements EnemyRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly tail = new THREE.Group();
@@ -105,7 +100,7 @@ export class BeastRig extends CreatureRig {
     super(0);
     const { spec } = look;
     const [LEG_H, BODY_H, BODY_L] = [spec.leg.size[1] * V, spec.body.size[1] * V, spec.body.size[2] * V];
-    this.bar = new HealthBar(LEG_H + BODY_H + 0.2, spec.name, spec.passive);
+    this.bar = new HealthBar(LEG_H + BODY_H + 0.2, enemyName(spec), ENEMY_STATS[spec.kind].passive);
     this.burst = new VoxelBurst(this.root, spec.palette.slice(0, 5), LEG_H + BODY_H);
     const part = (group: THREE.Group, geometry: THREE.BufferGeometry, parent: THREE.Object3D, x: number, y: number, z: number) => {
       const mesh = new THREE.Mesh(geometry, look.normal);
@@ -124,9 +119,13 @@ export class BeastRig extends CreatureRig {
     this.root.add(this.body, this.bar.group);
   }
 
+  drawnAt(scale: number): void {
+    drawnAt(this.root, scale, this.bar.group);
+  }
+
   update(beast: Enemy, dt: number): void {
     const moved = this.follow(beast, dt, TURN_RATE); // turning the way it goes
-    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing, beast.level);
+    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing, beast.level, beast.state === 'chase');
 
     if (beast.state === 'dead') {
       this.die(beast.deadFor, dt);

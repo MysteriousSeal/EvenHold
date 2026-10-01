@@ -9,8 +9,7 @@ import * as THREE from 'three';
 import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptFoes } from '../../model/crypts/cryptFoes';
 import { floorHeight } from '../../model/crypts/cryptProps';
-import { greedyMesh } from '../meshes/voxel/greedyMesh';
-import { BURST, CRYPT_PALETTE, CRYPT_VOXEL, GLOW, TALL, TILE, cryptProp } from './cryptVoxels';
+import { BURST, CRYPT_VOXEL, TALL, TILE, cryptGeometry, cryptProp } from './cryptVoxels';
 import { exitFrame, exitLight, exitSlab } from './exitDoorVoxels';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { glowMaterial } from '../meshes/common/glow';
@@ -140,7 +139,7 @@ export class CryptLife {
     if (!this.door) {
       const origin = new THREE.Vector3((-TILE / 2) * CRYPT_VOXEL, 0, (-TILE / 2) * CRYPT_VOXEL);
       const mesh = (grid: VoxelGrid, glow: boolean) => {
-        const m = new THREE.Mesh(greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, (c) => GLOW.has(c) === glow), this.tombMaterials[glow ? 1 : 0]);
+        const m = new THREE.Mesh(cryptGeometry(grid, origin, glow), this.tombMaterials[glow ? 1 : 0]);
         m.position.set(crypt.exit!.x, 0, crypt.exit!.z);
         this.scene.add(m);
         return m;
@@ -179,7 +178,7 @@ export class CryptLife {
     const [sx, , sz] = grid.size;
     const origin = new THREE.Vector3((-sx / 2) * CRYPT_VOXEL, 0, (-sz / 2) * CRYPT_VOXEL);
     const meshes = this.tombMaterials.map((material, glow) => {
-      const mesh = new THREE.Mesh(greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, (c) => GLOW.has(c) === (glow === 1)), material);
+      const mesh = new THREE.Mesh(cryptGeometry(grid, origin, glow === 1), material);
       mesh.position.set(prop.x + (prop.w - 1) / 2, 0, prop.z + (prop.d - 1) / 2);
       this.scene.add(mesh);
       return mesh;

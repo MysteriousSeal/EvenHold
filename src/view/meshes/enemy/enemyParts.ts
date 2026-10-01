@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
+import type { Enemy, EnemyKind } from '../../../model/types';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
 import { INK, nameLabel } from '../common/overhead';
 import { voxelIcon } from '../../ui/voxelIcon';
@@ -47,6 +48,19 @@ function bossMark(): THREE.SpriteMaterial {
   return bossMaterial;
 }
 
+// What each kind's called (over its head, in the target panel), unless it has a name of its own (a crypt's lord).
+const ENEMY_NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost' };
+export const enemyName = (enemy: Pick<Enemy, 'kind' | 'name'>): string => enemy.name ?? ENEMY_NAMES[enemy.kind];
+
+// What every foe's rig does (enemyViews.ts): its root in the scene, drawn at a size (its bar and name kept at
+// theirs), moved and posed each frame from the model, let go.
+export interface EnemyRig {
+  readonly root: THREE.Object3D;
+  drawnAt(scale: number): void;
+  update(enemy: Enemy, dt: number, heroX: number, heroZ: number): void;
+  dispose(): void;
+}
+
 export class HealthBar {
   readonly group = new THREE.Group();
   private blocks: THREE.Mesh[] = [];
@@ -72,14 +86,15 @@ export class HealthBar {
     }
   }
 
-  update(hp: number, maxHp: number, alive: boolean, ownerHeading: number, level?: number): void {
+  // `fighting`: a passive foe's set on the hero now (its bar red, as the target panel's).
+  update(hp: number, maxHp: number, alive: boolean, ownerHeading: number, level?: number, fighting = false): void {
     const count = Math.min(maxHp, MAX_BLOCKS);
     if (count !== this.blocks.length) this.build(count);
     if (level !== undefined) this.showLevel(level);
     this.group.visible = alive;
     this.group.rotation.y = CAMERA_YAW - ownerHeading;
     const lit = Math.ceil((Math.max(0, hp) / maxHp) * count);
-    this.blocks.forEach((block, i) => (block.material = i < lit ? (this.passive ? PASSIVE_BAR : ENEMY_BAR) : ENEMY_BAR_EMPTY));
+    this.blocks.forEach((block, i) => (block.material = i < lit ? (this.passive && !fighting ? PASSIVE_BAR : ENEMY_BAR) : ENEMY_BAR_EMPTY));
   }
 
   // The level, just left of the name (as tall), in its danger colour.

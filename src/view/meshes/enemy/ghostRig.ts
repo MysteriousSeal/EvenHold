@@ -10,7 +10,7 @@ import { ENEMY_STATS, ENEMY_CORPSE_TIME } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { CreatureRig, partMesher } from '../common/creatureRig';
-import { HealthBar } from './enemyParts';
+import { HealthBar, enemyName, type EnemyRig } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 import { GHOST_BODY, GHOST_PALETTE, GHOST_SHOULDER, GHOST_SLEEVE, GHOST_TAIL, ghostBody, ghostEyes, ghostSleeve, ghostTail } from './ghostVoxels';
 
@@ -47,7 +47,7 @@ export function createGhostLook(flash: THREE.Material): GhostLook {
 const ghostMaterial = () =>
   new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, transparent: true, opacity: SEEN, emissive: 0x6c8aa6, emissiveIntensity: 0.45 });
 
-export class GhostRig extends CreatureRig {
+export class GhostRig extends CreatureRig implements EnemyRig {
   private readonly look: THREE.MeshStandardMaterial = ghostMaterial();
   private readonly glow: THREE.MeshBasicMaterial;
   private readonly float = new THREE.Group(); // all of it, bobbing and leaning
@@ -59,7 +59,7 @@ export class GhostRig extends CreatureRig {
   constructor(enemy: Enemy, private readonly shared: GhostLook) {
     super(enemy.id * 1.7);
     this.glow = shared.eyeGlow.clone();
-    this.bar = new HealthBar(HEIGHT + 0.14, enemy.name ?? 'Ghost');
+    this.bar = new HealthBar(HEIGHT + 0.14, enemyName(enemy));
     const part = (geometry: THREE.BufferGeometry, parent: THREE.Object3D, material: THREE.Material = this.look) => {
       const m = new THREE.Mesh(geometry, material);
       parent.add(m);

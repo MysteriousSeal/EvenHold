@@ -11,7 +11,8 @@ import type { Enemy } from '../../../model/types';
 import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
 import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
-import { HealthBar, VoxelBurst } from './enemyParts';
+import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
+import { drawnAt } from '../common/overhead';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const BANDIT_BAR_HEIGHT = HEIGHT + 0.12;
@@ -26,15 +27,16 @@ export function createBanditLook(flash: THREE.Material): BanditLook {
   return { normal: personMaterial(), flash };
 }
 
-export class BanditRig {
+export class BanditRig implements EnemyRig {
   private readonly rig: HumanRig;
-  private readonly bar = new HealthBar(BANDIT_BAR_HEIGHT, 'Bandit');
+  private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
 
   constructor(
     bandit: Enemy,
     private readonly look: BanditLook,
   ) {
+    this.bar = new HealthBar(BANDIT_BAR_HEIGHT, enemyName(bandit));
     this.rig = new HumanRig(bandit.human?.look ?? HERO_LOOK, look.normal);
     this.rig.wear(bandit.human?.equipment ?? {});
     this.rig.root.add(this.bar.group);
@@ -43,6 +45,10 @@ export class BanditRig {
 
   get root(): THREE.Group {
     return this.rig.root;
+  }
+
+  drawnAt(scale: number): void {
+    drawnAt(this.rig.root, scale, this.bar.group);
   }
 
   update(bandit: Enemy, dt: number): void {

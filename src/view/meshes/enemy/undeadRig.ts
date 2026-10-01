@@ -19,7 +19,7 @@ import { personMaterial } from '../human/humanParts';
 import { BODIES, BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { HealthBar, VoxelBurst } from './enemyParts';
+import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
@@ -100,7 +100,7 @@ export function arrowGeometry(): THREE.BufferGeometry {
   return greedyMesh(grid, BOW_PALETTE, BOW_VOXEL, new THREE.Vector3(-1.5 * BOW_VOXEL, -1.5 * BOW_VOXEL, -8 * BOW_VOXEL));
 }
 
-export class UndeadRig {
+export class UndeadRig implements EnemyRig {
   private readonly rig: HumanRig;
   private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
@@ -118,7 +118,7 @@ export class UndeadRig {
     const dressed = draugr ? draugrLook(skeleton.id) : null; // (each draugr its own way)
     this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : dressed ? draugrFrame(dressed) : SKELETON_FRAME);
     const archer = skeleton.kind === 'skeletonArcher';
-    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : draugr ? 'Draugr' : 'Skeleton'), false, isBoss(skeleton.kind));
+    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), enemyName(skeleton), false, isBoss(skeleton.kind));
     this.rig.root.add(this.bar.group);
     if (archer) {
       const hand = BODIES.male.hand;

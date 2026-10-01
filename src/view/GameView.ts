@@ -140,7 +140,7 @@ export class GameView {
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
     this.boardMarks = new BoardMarks(this.scene, model);
-    this.mist = new RuinMist(this.scene, model.ruins, model.heightMap);
+    this.mist = new RuinMist(this.scene, model.ruins, (x, z) => model.getGroundY(x, z));
   }
 
   // The world's layers, each a step the loader can report, and last the

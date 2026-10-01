@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import type { Ruin } from '../../../model/ruins/ruins';
-import { TILE_HEIGHT } from '../../../model/constants';
+import { hashCell, mulberry32 } from '../../../util/random';
 
 const WISPS = 54; // to a ruin
 const NEAR = 40; // tiles from a ruin's middle its mist is made
@@ -110,8 +110,7 @@ class Mist {
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 5; // (over the ground and the stones' feet)
-    let seed = ruin.x * 7919 + ruin.z * 104729;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 + 1) % 1;
+    const rand = mulberry32(hashCell(ruin.x, ruin.z, 7919));
     for (let i = 0; i < WISPS; i++) {
       this.wisps.push({
         x: this.x0 + rand() * this.w,
@@ -162,16 +161,12 @@ export class RuinMist {
   private material: THREE.ShaderMaterial | null = null;
   private time = 0;
 
+  // `ground`: how high the ground stands at (x, z) (the model's).
   constructor(
     private readonly scene: THREE.Scene,
     private readonly ruins: readonly Ruin[],
-    private readonly heightMap: number[][],
+    private readonly ground: (x: number, z: number) => number,
   ) {}
-
-  private ground = (x: number, z: number): number => {
-    const column = this.heightMap[Math.max(0, Math.min(this.heightMap.length - 1, Math.round(x)))];
-    return (column?.[Math.max(0, Math.min(column.length - 1, Math.round(z)))] ?? 0) * TILE_HEIGHT;
-  };
 
   // How far the hero's in a ruin (0..1): 1 within its walls, nothing RUIN_EDGE tiles out (the sun's shafts gone
   // under its mist: GameView).

@@ -13,9 +13,9 @@ import { ENEMY_STATS } from '../../model/constants';
 import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { GHOST_PALETTE, ghostHead } from '../meshes/enemy/ghostVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
+import { enemyName } from '../meshes/enemy/enemyParts';
 
 const PORTRAIT_SIZE = 84; // as the hero's
-const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost' };
 
 // Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
 const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
@@ -63,7 +63,7 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
     }
     if (enemy.id !== shownId) {
       shownId = enemy.id;
-      name.textContent = enemy.name ?? NAMES[enemy.kind];
+      name.textContent = enemyName(enemy);
       // A boss: a gold BOSS tag before its name, a gold skull badge on its portrait's corner.
       const boss = isBoss(enemy.kind);
       if (boss) {

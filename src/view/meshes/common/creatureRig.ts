@@ -1,6 +1,6 @@
-// What every four-legged creature's rig shares, wildlife (catRig, deerRig,
-// duckRig) and foes alike (beastRig: wolves, boars): its parts meshed round
-// their pivots, four legs set out in pairs, and, each frame, turning smoothly
+// What every creature's rig shares, wildlife (catRig, deerRig, duckRig) and
+// foes alike (beastRig: wolves, boars; ghostRig): its parts meshed round
+// their pivots, four legs set out in pairs (if it has legs), and, each frame, turning smoothly
 // toward its heading (the model's, or else the way it went), the short way
 // round, settling onto its height, and how far it went.
 

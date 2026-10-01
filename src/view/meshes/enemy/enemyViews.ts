@@ -7,7 +7,7 @@ import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
 import { UndeadRig, createUndeadLook, type UndeadLook } from './undeadRig';
 import { GhostRig, createGhostLook, type GhostLook } from './ghostRig';
-import { ENEMY_BURST } from './enemyParts';
+import { ENEMY_BURST, type EnemyRig } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from './beastRig';
@@ -16,7 +16,6 @@ import { Nearby } from '../common/nearby';
 
 const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22, ghost: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-type Rig = BeastRig | BanditRig | UndeadRig | GhostRig;
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 const DRAUGR_SIZE = 1.15; // a draugr, over a man
 const MARKER_MOST = DRAUGR_SIZE; // the focus brackets, at their biggest (a draugr's, the lord's)
@@ -28,7 +27,7 @@ export class EnemyViews {
   private readonly wolfLook: BeastLook = createBeastLook(WOLF_SPEC, this.flash);
   private readonly boarLook: BeastLook = createBeastLook(BOAR_SPEC, this.flash);
   // How each kind is drawn.
-  private readonly rigOf: Record<EnemyKind, (enemy: Enemy) => Rig> = {
+  private readonly rigOf: Record<EnemyKind, (enemy: Enemy) => EnemyRig> = {
     wolf: () => new BeastRig(this.wolfLook),
     boar: () => new BeastRig(this.boarLook),
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
@@ -41,12 +40,10 @@ export class EnemyViews {
   private readonly undeadLook: UndeadLook = createUndeadLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly ghostLook: GhostLook = createGhostLook(this.flash);
-  private readonly rigs = new Nearby<Enemy, Rig>(
+  private readonly rigs = new Nearby<Enemy, EnemyRig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      const scale = this.scale * sizeOf(enemy.kind);
-      if (rig instanceof UndeadRig || rig instanceof GhostRig) rig.drawnAt(scale); // (its bar and name at their own size)
-      else rig.root.scale.setScalar(scale);
+      rig.drawnAt(this.scale * sizeOf(enemy.kind)); // (its bar and name at their own size)
       this.scene.add(rig.root);
       return rig;
     },

@@ -14,10 +14,10 @@ import { isFloor, inFullView } from '../../model/crypts/cryptLayout';
 import { FACINGS } from '../../model/map/grid';
 import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptProp } from '../../model/crypts/cryptProps';
-import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, stairsUp, wallTile } from './cryptVoxels';
+import { CRYPT_PALETTE, CRYPT_VOXEL, ON_WALL, TALL, TILE, cryptGeometry, cryptProp, stairsUp, wallTile } from './cryptVoxels';
 import { FLOOR_DEEP, floorTile } from './cryptFloorVoxels';
 import { ARCADE } from './cryptWallVoxels';
-import { exitDoor } from '../../model/crypts/cryptFoes';
+import { exitDoor } from '../../model/crypts/cryptProps';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const RELIGHT = 0.4; // tiles the hero moves before they're placed again
@@ -88,8 +88,8 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
     const [sx, , sz] = grid.size;
     // Centred on its tiles (a wall piece on its rock tile, reaching out past it toward the floor).
     const origin = new THREE.Vector3((-sx / 2) * CRYPT_VOXEL, 0, (piece.onWall ? -TILE / 2 : -sz / 2) * CRYPT_VOXEL);
-    for (const [material, include] of [[lit, (c: number) => !GLOW.has(c)], [glow, (c: number) => GLOW.has(c)]] as const) {
-      const geometry = greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, include);
+    for (const [material, glows] of [[lit, false], [glow, true]] as const) {
+      const geometry = cryptGeometry(grid, origin, glows);
       if (!geometry.getAttribute('position')?.count) {
         geometry.dispose();
         continue;

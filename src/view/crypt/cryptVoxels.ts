@@ -7,7 +7,8 @@
 // piece: out of the rock toward the floor), centred on its tiles, its floor at y 0.
 
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
-import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
+import * as THREE from 'three';
+import { greedyMesh, type VoxelGrid } from '../meshes/voxel/greedyMesh';
 import type { CryptPropKind } from '../../model/crypts/cryptProps';
 import { scatteredBones, slumpedAgainstTheRock, stretchedOut } from './remainsVoxels';
 import { cryptWall } from './cryptWallVoxels';
@@ -56,6 +57,11 @@ const ENTRIES = {
 export const CRYPT_PALETTE: number[] = Object.values(ENTRIES);
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 export const GLOW: ReadonlySet<number> = new Set([C.flame, C.core, C.portal, C.portalDeep]); // drawn unlit: the flames
+
+// A piece of the crypt meshed in its palette from `origin`: its stone (lit), or what glows of it (`glow`: drawn unlit).
+export function cryptGeometry(grid: VoxelGrid, origin: THREE.Vector3, glow: boolean): THREE.BufferGeometry {
+  return greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, (c) => GLOW.has(c) === glow);
+}
 
 export type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
 const boxIn = (grid: VoxelGrid): Box => (u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, typeof color === 'number' ? () => color : color);
