@@ -1,6 +1,6 @@
 // The bots' playtest (npm run bots; npm run bots:quick for a short one;
 // npm run bots:verbose to watch what each is up to as it plays):
-// BOTS bots, each on its own seed, playing BOT_MINUTES of game time as
+// BOTS bots, each on its own seed (fresh ones at random each run), playing BOT_MINUTES of game time as
 // fast as it goes, shared out among workers (play.ts), one per core but
 // one. Then a report of all that went wrong (by kind, with where and when,
 // and the seed to play it again on), written to tests/bots/reports/ and
@@ -11,6 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Problem } from './checks';
 import type { BotStats } from './bot';
+import { generateRandomSeed } from '../../src/util/random';
 
 interface Result {
   seed: number;
@@ -24,11 +25,19 @@ interface Result {
 
 const quick = process.env.BOT_QUICK === '1';
 const verbose = process.env.BOT_VERBOSE === '1'; // each bot's doings, live (npm run bots:verbose)
-const bots = Number(process.env.BOTS ?? (quick ? 10 : 100));
+// Seeds: BOT_SEEDS (a list: those games played again), else BOT_FIRST_SEED on (one after another), else fresh ones at random, each run.
+const given = process.env.BOT_SEEDS?.split(',').map(Number);
+const bots = given?.length ?? Number(process.env.BOTS ?? (quick ? 10 : 100));
 const minutes = Number(process.env.BOT_MINUTES ?? (quick ? 10 : 60));
-const firstSeed = Number(process.env.BOT_FIRST_SEED ?? 1);
 const workers = Math.max(1, Math.min(bots, availableParallelism() - 1));
-const seeds = Array.from({ length: bots }, (_, i) => firstSeed + i);
+const seeds = given ?? (process.env.BOT_FIRST_SEED ? Array.from({ length: bots }, (_, i) => Number(process.env.BOT_FIRST_SEED) + i) : randomSeeds(bots));
+const seedList = seeds.length <= 12 ? seeds.join(', ') : `${seeds.slice(0, 12).join(', ')}…`;
+
+function randomSeeds(count: number): number[] {
+  const picked = new Set<number>();
+  while (picked.size < count) picked.add(generateRandomSeed());
+  return [...picked];
+}
 
 const results: Result[] = [];
 const started = Date.now();
@@ -67,7 +76,7 @@ function worker(share: number[]): Promise<void> {
   });
 }
 
-console.log(`${bots} bots, ${minutes} game minutes each, on ${workers} workers (seeds ${seeds[0]} to ${seeds[seeds.length - 1]})`);
+console.log(`${bots} bots, ${minutes} game minutes each, on ${workers} workers (seeds ${seedList})`);
 await Promise.all(Array.from({ length: workers }, (_, w) => worker(seeds.filter((_, i) => i % workers === w))));
 process.stdout.write('\n');
 results.sort((a, b) => a.seed - b.seed);
@@ -93,7 +102,7 @@ const kinds = [...byKind.entries()].sort((a, b) => b[1].bots.size - a[1].bots.si
 
 const lines: string[] = [];
 lines.push(`# Bots' playtest, ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`, '');
-lines.push(`${bots} bots × ${minutes} game minutes (seeds ${seeds[0]}–${seeds[seeds.length - 1]}), in ${Math.round((Date.now() - started) / 1000)} s.`, '');
+lines.push(`${bots} bots × ${minutes} game minutes (seeds ${seeds.join(', ')}), in ${Math.round((Date.now() - started) / 1000)} s.`, '');
 lines.push('## What they did', '', doneOf.map((k) => `${k}: ${total(k)}`).join(' · '), '');
 lines.push(`Levels reached: ${played.map((r) => r.level).join(' ')}`, '');
 lines.push('## Problems', '');
@@ -113,4 +122,5 @@ console.log(`\n${doneOf.map((k) => `${k} ${total(k)}`).join(', ')}`);
 if (kinds.length === 0) console.log('\nNo problems.');
 for (const [kind, { count, bots: seen, examples }] of kinds) console.log(`\n${kind}: ${count} times, in ${seen.size} games — e.g. seed ${examples[0]?.seed} at ${examples[0]?.t} s: ${examples[0]?.detail}`);
 console.log(`\nReport: tests/bots/reports/bots-${stamp}.md`);
+if (kinds.length > 0) console.log(`To watch one of those games again: BOT_SEEDS=${kinds[0][1].examples[0]?.seed} npm run bots:verbose`);
 process.exitCode = kinds.length > 0 ? 1 : 0;
