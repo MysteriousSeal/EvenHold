@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
+import { WILD_SITES, spawnEnemies } from '../src/model/enemies/enemies';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS, ENGAGED } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
-import { FRAME, TEST_MAP_SIZE, fresh, nearest, eachSeed } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, fresh, nearest, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 
 const WOLF_SIGHT = ENEMY_STATS.wolf.sight;
@@ -252,5 +253,26 @@ describe('packs', () => {
       expect(most).toBeLessThanOrEqual(ENGAGED);
       expect(most).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('the wilds', () => {
+  it('have about 30% more wolves and boars than before: every old site still kept, more between', () => {
+    const OLD = { packs: 0.7, meadowPacks: 0.35, boars: 0.55 }; // (the chances before)
+    const kinds = (list: Enemy[]) => list.filter((e) => e.kind === 'wolf' || e.kind === 'boar');
+    const at = (e: Enemy) => `${e.kind}:${e.homeX},${e.homeZ}`;
+    for (const seed of TEST_SEEDS.slice(0, 3)) {
+      const model = new GameModel(seed, { width: 512, depth: 512 });
+      const now = kinds(spawnEnemies(model));
+      const kept = { ...WILD_SITES };
+      for (const key of Object.keys(OLD) as Array<keyof typeof OLD>) WILD_SITES[key] = { ...kept[key], chance: OLD[key] };
+      const before = kinds(spawnEnemies(model));
+      Object.assign(WILD_SITES, kept);
+      const sites = new Set(now.map(at));
+      expect(before.every((e) => sites.has(at(e))), `seed ${seed}: every old group still there`).toBe(true);
+      const more = now.length / before.length;
+      expect(more, `seed ${seed}`).toBeGreaterThan(1.15);
+      expect(more, `seed ${seed}`).toBeLessThan(1.5);
+    }
   });
 });
