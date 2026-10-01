@@ -18,6 +18,7 @@ import { CAMERA_OFFSET } from '../constants';
 import { goblet, piePlate, tankard } from './furniturePalette';
 import type { Drink } from '../../model/npcs/npcs';
 import { DOOR_LEAF, paintDoorLeaf } from './upstairsVoxels';
+import { LetMark, RoomContents, inRooms } from './roomContents';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
 // The room's scene, what to call each frame (its fire burning), and how to
@@ -58,7 +59,10 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const origin = new THREE.Vector3(offset, -ROOM_VOXEL * (1 + below), offset);
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const lamps = furniture.filter((f) => f.kind === 'wallLantern');
-  const grid = buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern'), door);
+  // Upstairs, what's in the rooms off the hallway meshed apart, unseen while their doors are shut (roomContents.ts).
+  const rooms = furniture.some((f) => f.kind === 'hallDoor') ? inRooms(furniture, room) : [];
+  const apart = new Set(rooms.flatMap((r) => r.pieces));
+  const grid = buildRoomVoxels(room, furniture.filter((f) => f.kind !== 'wallLantern' && !apart.has(f)), door);
   clearUpper(grid, furniture, ROOM_WALL, ROOM_WALL, below); // full-height inner walls' tops, meshed apart to turn see-through (WallCuts)
   const geometry = greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, origin);
   const room3d = new THREE.Mesh(geometry, material);
@@ -69,6 +73,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // shines from them, and a lantern's shadow on the wall behind it looks wrong.
   const lamps3d = lamps.length > 0 ? new THREE.Mesh(greedyMesh(buildPieceVoxels(room, lamps, below), ROOM_PALETTE, ROOM_VOXEL, origin), material) : null;
   if (lamps3d) scene.add(lamps3d);
+  const letMark = rooms.length > 0 ? new LetMark(scene, furniture) : null;
+  const contents = rooms.length > 0 ? new RoomContents(scene, rooms, (pieces) => greedyMesh(buildPieceVoxels(room, pieces, below), ROOM_PALETTE, ROOM_VOXEL, origin), material) : null;
   // What's under the floor (a stairwell's shaft) hidden from outside: a
   // curtain the colour of the dark beyond, unlit, down the room's two near
   // sides (looking down into the shaft, the eye passes over it).
@@ -169,10 +175,10 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const candles = furniture.filter((f) => f.kind === 'nightstand' && f.facing).map((f) => {
     const light = new THREE.PointLight(0xffb060, 0.9, 2.2, 1.6);
     const at = facingPoint(f, CANDLE_FLAME.u, CANDLE_FLAME.v);
-    flames.add(scene, at.x, (CANDLE_FLAME.y - 1) * ROOM_VOXEL, at.z); // on the candle's top
+    const flame = flames.add(scene, at.x, (CANDLE_FLAME.y - 1) * ROOM_VOXEL, at.z); // on the candle's top
     light.position.set(at.x, (CANDLE_FLAME.y + 1) * ROOM_VOXEL, at.z); // in the flame
     scene.add(light);
-    return light;
+    return { light, flame, stand: f };
   });
   // The smithy at work: sparks off the anvil, steam off the trough (as the smith hammers, or quenches).
   const anvil = furniture.find((f) => f.kind === 'anvil');
@@ -209,11 +215,17 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     update(time) {
       const dt = lastTime === null ? 0 : Math.max(0, time - lastTime);
       swingDoors(dt);
+      contents?.update(dt, hero);
+      letMark?.update(time);
       walls.update(hero.x, hero.z, CAMERA_OFFSET.x, CAMERA_OFFSET.z);
       smithy.update(dt, forging.hammering, forging.quenching);
       lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
-      candles.forEach((light, i) => (light.intensity = 0.9 * flicker(time * 1.3, i * 7 + 3)));
+      candles.forEach(({ light, flame, stand }, i) => {
+        const seen = contents?.seenOf(stand) ?? 1; // (in a room shut away: dark)
+        light.intensity = 0.9 * seen * flicker(time * 1.3, i * 7 + 3);
+        flame.visible = seen > 0.5;
+      });
       flames.update(time);
       fire?.update(time);
       glow.intensity = 4.5 * flicker(time);
@@ -224,12 +236,14 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       for (const g of drapes) g.dispose();
       leafShape.dispose();
       walls.dispose();
+      contents?.dispose();
+      letMark?.dispose();
       smithy.dispose();
       flames.dispose();
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();
       material.dispose();
-      for (const light of [glow, ...lanterns, ...candles]) light.dispose(); // their shadow maps
+      for (const light of [glow, ...lanterns, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
       fire?.dispose();
     },
   };

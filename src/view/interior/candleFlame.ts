@@ -36,11 +36,12 @@ export class CandleFlames {
   }
 
   // A flame standing at (x, y, z), its foot's middle.
-  add(scene: THREE.Object3D, x: number, y: number, z: number): void {
+  add(scene: THREE.Object3D, x: number, y: number, z: number): THREE.Mesh {
     const flame = new THREE.Mesh(this.frames[0], this.material);
     flame.position.set(x, y, z);
     scene.add(flame);
     this.flames.push(flame);
+    return flame;
   }
 
   update(time: number): void {
