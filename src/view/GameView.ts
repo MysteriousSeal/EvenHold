@@ -44,6 +44,8 @@ import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { buildRoomScene } from './interior/roomView';
+import { buildCryptScene } from './crypt/cryptView';
+import { cryptInside } from '../model/crypts/crypts';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
@@ -332,7 +334,11 @@ export class GameView {
       this.room = null;
     }
     if (!inside) return null;
-    if (!this.room) this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...buildRoomScene(inside.room, inside.furniture, !inside.below) }; // upstairs: no door
+    if (!this.room) {
+      // A crypt's its own (crypt/cryptView.ts); a building's room built from its room and furniture (upstairs: no door).
+      const built = inside.entrance.type === 'crypt' ? buildCryptScene(cryptInside(model.seed, inside.entrance)) : buildRoomScene(inside.room, inside.furniture, !inside.below);
+      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built };
+    }
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
     const [anvil, trough] = [at('anvil'), at('trough')];

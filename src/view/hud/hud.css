@@ -463,3 +463,24 @@
 
 /* A toolbar tile with news (the level-up window, with points to spend): the HUD level's lantern pip, on its top-left corner. */
 .toolbar-button.marked::before { content: '+'; position: absolute; top: -8px; left: -8px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; font: 700 13px/1 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #ffd98a; border: 2px solid #2e1f14; }
+
+/* A place's name as the hero comes into it (placeBanner.ts): across the top, fading in and out. */
+.place-banner {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: #f8ecd4;
+  text-shadow: 2px 2px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+.place-banner.shown { opacity: 1; }
+.place-banner b { font-size: 34px; font-weight: 700; letter-spacing: 0.5px; }
+.place-banner span { font-size: 18px; color: #c9b8a0; }

@@ -218,3 +218,27 @@ function shaft(grid: VoxelGrid, from: number, to: number, variant: number, salt:
 export function buildRuinPiece(kind: RuinKind, variant: number): VoxelGrid {
   return BUILD[kind](variant % 4);
 }
+
+// A crypt's way down (model/crypts/crypts.ts): steps going down into the dark
+// away from the opening (+Z, where the hero stands), between low coursed walls,
+// under a broken arch at the back; moss along its kerbs. Drawn in the tile's
+// own height: the steps fall from the kerb to blackness at the back.
+export function buildCryptStairs(variant: number): VoxelGrid {
+  const grid = createGrid(RUIN_GRID);
+  const side = (u0: number, u1: number, salt: number) => wall(grid, variant, () => 5, salt, 0, 24, u0, u1);
+  side(0, 3, 41);
+  side(21, 24, 42);
+  wall(grid, variant, () => 5, 43, 0, 3, 4, 20); // the back
+  // The arch over the back: two posts and a lintel, one post broken short by variant.
+  wall(grid, variant, () => (variant % 2 ? 17 : 24), 44, 0, 3, 0, 3);
+  wall(grid, variant, () => (variant % 2 ? 24 : 19), 45, 0, 3, 21, 24);
+  if (variant < 2) wall(grid, variant, () => 24, 46, 0, 3, 4, 20);
+  // The steps: from the kerb's height at the front down to the dark at the back, each 4 deep.
+  for (let k = 0; k < 5; k++) {
+    const v0 = 20 - k * 4;
+    const top = 4 - k;
+    fillBox(grid, 4, 0, v0, 20, Math.max(0, top), v0 + 3, (_u, y) => (top < 1 ? C.slit : y === top ? (k % 2 ? C.stone : C.stoneLight) : C.stoneDark));
+  }
+  fillBox(grid, 4, 0, 4, 20, 0, 7, C.slit); // the last of it: darkness
+  return grid;
+}
