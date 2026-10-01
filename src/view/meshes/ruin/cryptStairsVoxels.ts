@@ -34,10 +34,7 @@ export function buildCryptStairs(variant: number): VoxelGrid {
   for (let k = 0; k < 6; k++) {
     const [v0, v1, top] = [22 - k * 3, 24 - k * 3, KERB - 1 - k];
     for (let u = 6; u <= 43; u++) {
-      for (let v = v0; v <= v1; v++) {
-        for (let y = 0; y <= top; y++) set(u, y, v, y === top ? (v === v0 && k < 3 ? STEP_TONES[k + 1] : STEP_TONES[k]) : STEP_TONES[Math.min(5, k + 2)]);
-        if (k < 2 && hashUnit(u, v, 62 + variant) < 0.05) set(u, top + 1, v, C.grass); // grass in the cracks, at the head
-      }
+      for (let v = v0; v <= v1; v++) for (let y = 0; y <= top; y++) set(u, y, v, y === top ? (v === v0 && k < 3 ? STEP_TONES[k + 1] : STEP_TONES[k]) : STEP_TONES[Math.min(5, k + 2)]);
     }
   }
   fillBox(grid, 6, 0, 0, 43, 0, 6, C.dark);

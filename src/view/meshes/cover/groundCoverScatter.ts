@@ -40,7 +40,7 @@ export interface GroundCover {
 }
 
 // Grass, flowers and pebbles go on plain grass only: never water, village
-// squares or buildings. Flowers and pebbles also skip tree tiles so they
+// squares, buildings or a crypt's way down. Flowers and pebbles also skip tree tiles so they
 // don't sit inside a trunk; tufts around a tree's base look natural. Road
 // tiles are only half dirt, so their grassy margins get a steady line of
 // clumps (whatever the meadow density), making roads cut through the grass.
@@ -53,7 +53,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 // and chunks can be scattered only when they're about to be seen.
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const solid = cellLookup(model.size, solidCells(model, model.bushes));
+  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z)))]); // (and crypts' ways down: no grass in the dark)
   const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
   return (x0, z0, x1, z1) => {
   const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [] };
