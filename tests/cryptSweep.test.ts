@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../src/util/random';
 import { inFullView, isFloor, planCrypt, type CryptPlan } from '../src/model/crypts/cryptLayout';
 import { furnishCrypt, type CryptProp } from '../src/model/crypts/cryptProps';
+import { FACINGS } from '../src/model/map/grid';
+import { floorReached, rockJoined } from './support/cryptChecks';
 
 const seeds = Array.from({ length: 50 }, (_, i) => Math.floor(mulberry32(7000 + i)() * 2 ** 31));
 const ruinsOf = (seed: number) => {
@@ -15,20 +17,8 @@ const ruinsOf = (seed: number) => {
   return [0, 1].map(() => ({ x: 20 + Math.floor(rng() * 1900), z: 20 + Math.floor(rng() * 1900) }));
 };
 
-// Floor reached from the foot of the stairs, round `solid` tiles: how many, and which.
-const reach = (plan: CryptPlan, solid: ReadonlySet<string> = new Set()): number => reachedTiles(plan, solid).size;
-function reachedTiles(plan: CryptPlan, solid: ReadonlySet<string> = new Set()): Set<string> {
-  const seen = new Set<string>();
-  const todo: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-  while (todo.length) {
-    const [x, z] = todo.pop()!;
-    const k = `${x},${z}`;
-    if (!isFloor(plan, x, z) || solid.has(k) || seen.has(k)) continue;
-    seen.add(k);
-    todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-  }
-  return seen;
-}
+// Floor reached from the foot of the stairs, round `solid` tiles: how many.
+const reach = (plan: CryptPlan, solid: ReadonlySet<string> = new Set()): number => floorReached(plan, solid).size;
 
 // What's wrong with a crypt's plan and what's in it (nothing: an empty list).
 function problemsOf(plan: CryptPlan, props: readonly CryptProp[]): string[] {
@@ -46,16 +36,8 @@ function problemsOf(plan: CryptPlan, props: readonly CryptProp[]): string[] {
   for (let z = 0; z < plan.depth; z++) if (isFloor(plan, 0, z) || isFloor(plan, plan.width - 1, z)) say(`floor on a side edge at ${z}`);
   // One crypt; no island of rock.
   if (reach(plan) !== tiles) say(`floor cut off: ${tiles - reach(plan)} tiles`);
-  const rock = new Set<string>();
-  const todo: Array<[number, number]> = [];
-  for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if ((x === 0 || z === 0 || x === plan.width - 1 || z === plan.depth - 1) && !isFloor(plan, x, z)) todo.push([x, z]);
-  while (todo.length) {
-    const [x, z] = todo.pop()!;
-    if (x < 0 || z < 0 || x >= plan.width || z >= plan.depth || isFloor(plan, x, z) || rock.has(`${x},${z}`)) continue;
-    rock.add(`${x},${z}`);
-    todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-  }
-  if (rock.size + tiles !== plan.width * plan.depth) say(`${plan.width * plan.depth - rock.size - tiles} tiles of rock islanded`);
+  const rock = rockJoined(plan);
+  if (rock + tiles !== plan.width * plan.depth) say(`${plan.width * plan.depth - rock - tiles} tiles of rock islanded`);
   // No sliver: every floor tile in some 2 x 2 of floor.
   for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) {
     if (!isFloor(plan, x, z)) continue;
@@ -67,7 +49,7 @@ function problemsOf(plan: CryptPlan, props: readonly CryptProp[]): string[] {
   const onFloor = new Map<string, string>();
   for (const p of props) {
     if (p.kind === 'sconce' || p.kind === 'niche') {
-      const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
+      const [ox, oz] = FACINGS[p.facing];
       if (isFloor(plan, p.x, p.z) || !isFloor(plan, p.x + ox, p.z + oz) || !inFullView(plan, p.x, p.z)) say(`${p.kind} misplaced at ${p.x},${p.z}`);
       continue;
     }
@@ -83,7 +65,7 @@ function problemsOf(plan: CryptPlan, props: readonly CryptProp[]): string[] {
   if (reach(plan, solid) !== tiles - solid.size) say('the way shut by something solid');
   // Every wall walked up to: each tile of rock beside the floor with open floor reached from the stairs
   // right by it (diagonally too: an urn against a wall is fine, the rock beside it in reach; a row of them not).
-  const reached = reachedTiles(plan, solid);
+  const reached = floorReached(plan, solid);
   const around = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
   for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) {
     if (isFloor(plan, x, z) || !around.slice(0, 4).some(([dx, dz]) => isFloor(plan, x + dx, z + dz))) continue;

@@ -10,6 +10,8 @@ import { zoneLevel } from '../src/model/enemies/enemyLevels';
 import { cryptInside, type Crypt } from '../src/model/crypts/crypts';
 import { isFloor, planCrypt, inFullView, type CryptPlan } from '../src/model/crypts/cryptLayout';
 import { furnishCrypt, type CryptProp } from '../src/model/crypts/cryptProps';
+import { FACINGS } from '../src/model/map/grid';
+import { floorReached, rockJoined, solidTiles } from './support/cryptChecks';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buildCryptScene } from '../src/view/crypt/cryptView';
 import { FRAME, TEST_SEEDS } from './support/testWorld';
@@ -18,21 +20,10 @@ const MID = { width: 512, depth: 512 };
 const models = [1, 2, 3].map((seed) => new GameModel(seed, MID));
 const crypts = models.flatMap((model) => model.crypts.map((crypt) => ({ model, crypt })));
 
-// Every floor tile reached from the foot of the stairs, round what's solid.
+// Every floor tile reached from the foot of the stairs, round what's solid; and how many are open.
 function reached(plan: CryptPlan, props: readonly CryptProp[]): { reached: number; open: number } {
-  const solid = new Set<string>();
-  for (const p of props) if (p.solid) for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) solid.add(`${x},${z}`);
-  const seen = new Set<string>();
-  const todo: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-  while (todo.length) {
-    const [x, z] = todo.pop()!;
-    if (!isFloor(plan, x, z) || solid.has(`${x},${z}`) || seen.has(`${x},${z}`)) continue;
-    seen.add(`${x},${z}`);
-    todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-  }
-  let open = 0;
-  for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if (isFloor(plan, x, z) && !solid.has(`${x},${z}`)) open++;
-  return { reached: seen.size, open };
+  const solid = solidTiles(props);
+  return { reached: floorReached(plan, solid).size, open: plan.floor.reduce((a, b) => a + b, 0) - solid.size };
 }
 
 describe('crypts', () => {
@@ -71,16 +62,7 @@ describe('crypts', () => {
       expect(isFloor(plan, plan.door, plan.depth - 1)).toBe(true); // the foot of the stairs
       expect(reached(plan, []).reached).toBe(tiles); // all one crypt
       // No island of rock: all of it joined to the rock round the crypt.
-      const rock = new Set<string>();
-      const todo: Array<[number, number]> = [];
-      for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if ((x === 0 || z === 0 || x === plan.width - 1 || z === plan.depth - 1) && !isFloor(plan, x, z)) todo.push([x, z]);
-      while (todo.length) {
-        const [x, z] = todo.pop()!;
-        if (x < 0 || z < 0 || x >= plan.width || z >= plan.depth || isFloor(plan, x, z) || rock.has(`${x},${z}`)) continue;
-        rock.add(`${x},${z}`);
-        todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-      }
-      expect(rock.size + tiles).toBe(plan.width * plan.depth);
+      expect(rockJoined(plan) + tiles).toBe(plan.width * plan.depth);
     }
   });
 
@@ -97,11 +79,11 @@ describe('crypts', () => {
       for (const p of props) {
         if (p.kind === 'sconce' || p.kind === 'niche') {
           expect(isFloor(plan, p.x, p.z), `${p.kind} in the rock`).toBe(false);
-          const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
+          const [ox, oz] = FACINGS[p.facing];
           expect(isFloor(plan, p.x + ox, p.z + oz), `${p.kind} facing the floor`).toBe(true);
           expect(inFullView(plan, p.x, p.z), `${p.kind} on rock that fades (seen through)`).toBe(true);
         } else if (p.kind === 'slumped') {
-          const [ox, oz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][p.facing];
+          const [ox, oz] = FACINGS[p.facing];
           expect(inFullView(plan, p.x - ox, p.z - oz), 'slumped against rock in full view').toBe(true); // (its back to it)
         } else if (p.kind === 'cobweb') {
           expect(inFullView(plan, p.x - 1, p.z) && inFullView(plan, p.x, p.z - 1), 'a cobweb hung on rock that fades').toBe(true);
