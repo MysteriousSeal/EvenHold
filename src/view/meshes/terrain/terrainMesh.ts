@@ -44,9 +44,10 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
     build(key) {
       const { x0, z0, x1, z1 } = chunkTiles(key, model.size.width, model.size.depth);
       const byTier = new Map<number, Array<{ x: number; z: number }>>();
+      const pits = new Set(model.crypts.flatMap((c) => c.steps.map((t) => `${t.x},${t.z}`))); // (no ground where a crypt's stairs go down into it)
       for (let x = x0; x < x1; x++) {
         for (let z = z0; z < z1; z++) {
-          if (model.lakeMap[x][z]) continue;
+          if (model.lakeMap[x][z] || pits.has(`${x},${z}`)) continue;
           const tier = model.heightMap[x][z];
           const cells = byTier.get(tier);
           if (cells) cells.push({ x, z });
