@@ -35,6 +35,7 @@ const STRETCH: [number, number] = [6, 11]; // tiles, each
 const HALL: [number, number] = [6, 8]; // a hall on the way: tiles a side
 const SIDE_W: [number, number] = [5, 8]; // a side room
 const SIDE_D: [number, number] = [5, 7];
+const MIN_SIDE = 3; // side rooms, at the least
 const GREAT = { w: [12, 14] as [number, number], d: [10, 12] as [number, number] };
 const NORTH = [0, -1] as const;
 
@@ -130,6 +131,21 @@ export function planCrypt(seed: number, ruin: { x: number; z: number }): CryptPl
     return false;
   };
   while (greatHall() === false && marks.length > 1) backUp();
+  // At least MIN_SIDE side rooms: where the way on didn't leave enough, more off the corridor's stretches,
+  // each into rock touching nothing but the stretch it opens off.
+  const alone = (r: Rect, from: number) => {
+    if (r.x0 < 2 || r.z0 < 2 || r.x1 > CANVAS - 3 || r.z1 > startZ) return false;
+    for (let x = r.x0 - 1; x <= r.x1 + 1; x++) for (let z = r.z0 - 1; z <= r.z1 + 1; z++) if (owner[x * CANVAS + z] >= 0 && owner[x * CANVAS + z] !== from) return false;
+    return true;
+  };
+  const stretches = places.map((p, id) => ({ p, id })).filter(({ p }) => p.kind === 'corridor' && (p.x1 - p.x0 > 3 || p.z1 - p.z0 > 3));
+  for (let tries = 0; places.filter((p) => p.kind === 'side').length < MIN_SIDE && tries < 60; tries++) {
+    const { p, id } = stretches[Math.floor(rng() * stretches.length)];
+    const room = sideRoom(p, p.x1 - p.x0 > p.z1 - p.z0 ? [1, 0] : NORTH, rng, roll);
+    if (!room || !alone(room.passage, id) || !alone(room.room, id)) continue; // (both clear before either's carved: no stub left)
+    carve(room.passage, 'corridor');
+    carve(room.room, 'side');
+  }
   return crop(owner, places, startX);
 }
 

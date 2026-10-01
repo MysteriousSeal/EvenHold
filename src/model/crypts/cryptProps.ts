@@ -65,7 +65,9 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
     props[props.length - 1].variant = Math.floor(rng() * REMAINS);
   };
 
-  for (const place of plan.places) {
+  // The great hall first (its dais and tomb before anything else claims its floor), then the rest in order from the stairs.
+  const places = [...plan.places.filter((p) => p.kind === 'great'), ...plan.places.filter((p) => p.kind !== 'great')];
+  for (const place of places) {
     if (place.kind === 'corridor') {
       // A sconce every so many tiles, on alternate sides; bones and stones here and there.
       tilesOf(place).forEach(([x, z], i) => {
@@ -119,27 +121,31 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
 // The great hall: a dais at its far end (away from where the corridor comes in), the great sarcophagus on it,
 // candles at the dais's corners, and a row of sarcophagi down either side.
 function greatHall(hall: Rect, put: (kind: CryptPropKind, x: number, z: number, w?: number, d?: number, facing?: number) => boolean, rng: () => number): void {
-  const cx = Math.floor((hall.x0 + hall.x1) / 2);
-  const daisW = 4;
-  const dx0 = cx - 1;
-  put('dais', dx0, hall.z0 + 1, daisW, 5);
-  put('greatSarcophagus', dx0 + 1, hall.z0 + 2, 2, 3);
-  for (const [x, z] of [[dx0, hall.z0 + 1], [dx0 + daisW - 1, hall.z0 + 1], [dx0, hall.z0 + 5], [dx0 + daisW - 1, hall.z0 + 5]]) put('candles', x, z);
+  // The dais as big as the hall allows (4 x 5 at most, a tile clear all round), the great sarcophagus in its middle.
+  const [w, d] = [hall.x1 - hall.x0 + 1, hall.z1 - hall.z0 + 1];
+  const [dw, dd] = [Math.min(4, w - 2), Math.min(5, d - 2)];
+  const [dx0, dz0] = [hall.x0 + Math.floor((w - dw) / 2), hall.z0 + 1];
+  put('dais', dx0, dz0, dw, dd);
+  put('greatSarcophagus', dx0 + Math.floor((dw - 2) / 2), dz0 + Math.floor((dd - 3) / 2), 2, 3);
+  for (const [x, z] of [[dx0, dz0], [dx0 + dw - 1, dz0], [dx0, dz0 + dd - 1], [dx0 + dw - 1, dz0 + dd - 1]]) put('candles', x, z);
+  // Rows of sarcophagi down either side, where the hall's wide enough for them past the dais.
+  if (w < dw + 6) return;
   for (let z = hall.z0 + 1; z + 1 <= hall.z1 - 2; z += 3) {
     if (rng() < 0.85) put('sarcophagus', hall.x0 + 1, z, 1, 2, 1);
     if (rng() < 0.85) put('sarcophagus', hall.x1 - 1, z, 1, 2, 3);
   }
 }
 
-// Solid props that would cut the floor in two (the way on, or a room off from it) left out.
+// Solid props that would cut the floor in two (the way on, or a room off from it), or wall off the rock
+// (no open floor left by a stretch of it, diagonally even: a row of urns along a wall), left out.
 function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
-  const blocked = (kept: readonly CryptProp[]) => {
-    const solid = new Set<string>();
-    for (const p of kept) if (p.solid) for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) solid.add(`${x},${z}`);
-    return solid;
+  const solid = new Set<string>();
+  const footprint = (p: CryptProp) => {
+    const tiles: string[] = [];
+    for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) tiles.push(`${x},${z}`);
+    return tiles;
   };
-  const allReached = (kept: readonly CryptProp[]) => {
-    const solid = blocked(kept);
+  const stillOpen = (p: CryptProp) => {
     const seen = new Set<string>();
     const todo: Array<[number, number]> = [[plan.door, plan.depth - 1]];
     while (todo.length > 0) {
@@ -151,13 +157,24 @@ function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
     }
     let open = 0;
     for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if (isFloor(plan, x, z) && !solid.has(`${x},${z}`)) open++;
-    return seen.size === open;
+    if (seen.size !== open) return false;
+    // The rock round it, where it meets the floor, still has open floor right by it.
+    for (let x = p.x - 2; x < p.x + p.w + 2; x++) for (let z = p.z - 2; z < p.z + p.d + 2; z++) {
+      if (isFloor(plan, x, z) || !(isFloor(plan, x + 1, z) || isFloor(plan, x - 1, z) || isFloor(plan, x, z + 1) || isFloor(plan, x, z - 1))) continue;
+      if (![-1, 0, 1].some((dx) => [-1, 0, 1].some((dz) => seen.has(`${x + dx},${z + dz}`)))) return false;
+    }
+    return true;
   };
   // Each solid one kept only if everything's still reached with it there.
   const kept: CryptProp[] = [];
   for (const p of props) {
-    kept.push(p);
-    if (p.solid && !allReached(kept)) kept.pop();
+    if (!p.solid) {
+      kept.push(p);
+      continue;
+    }
+    for (const k of footprint(p)) solid.add(k);
+    if (stillOpen(p)) kept.push(p);
+    else for (const k of footprint(p)) solid.delete(k);
   }
   return kept;
 }

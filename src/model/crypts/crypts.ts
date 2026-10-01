@@ -1,5 +1,5 @@
 // Crypts under the ruins: in every ruin, on open floor inside it, a stone
-// stairway goes down (its own tile, and the spot before it to stand on, E to go
+// stairway goes down (two tiles side by side, and the spot before them to stand on, E to go
 // down, as at any door); below, a crypt of the zone's level (how far out the
 // ruin lies, as a village's: enemyLevels.ts), named for whoever was laid to
 // rest there, laid out from the seed and the ruin (cryptLayout.ts, its plan;
@@ -23,7 +23,9 @@ const STAIR_REACH = 0.62; // from the stairs' middle to the spot before them, wh
 
 export interface Crypt {
   entrance: Entrance; // the spot before the stairs, the way down
-  stairs: { x: number; z: number }; // their tile, in the world
+  stairs: { x: number; z: number }; // their first tile, in the world
+  tiles: Array<{ x: number; z: number }>; // both their tiles, side by side (across the way down)
+  middle: { x: number; z: number }; // between the two, where they're drawn
   quarterTurns: number; // which way they open (toward the spot), for their look
   ruin: Ruin;
   level: number;
@@ -34,11 +36,12 @@ export interface CryptWorld {
   seed: number;
   size: MapSize;
   ruins: readonly Ruin[];
+  heightMap: readonly (readonly number[])[];
   isOpenTile(x: number, z: number): boolean;
 }
 
-// One crypt to every ruin that has room for its stairs (nearly all): the stairs on an open tile
-// inside it, the spot before them open too, picked from the seed.
+// One crypt to every ruin that has room for its stairs (nearly all): the stairs on two open tiles side by
+// side inside it, level with each other, the ground before both open too, picked from the seed.
 export function placeCrypts(world: CryptWorld): Crypt[] {
   const spawn = spawnOf(world.size);
   return world.ruins.flatMap((ruin) => {
@@ -49,15 +52,25 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
       const j = Math.floor(rng() * (i + 1));
       [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
     }
-    // The stairs on bare ground (nothing of the ruin on it: not even its flagstones), the spot before them walkable.
-    const bare = (x: number, z: number) => world.isOpenTile(x, z) && !ruin.pieces.some((p) => p.x === x && p.z === z);
-    const walkable = (x: number, z: number) => world.isOpenTile(x, z) && !ruin.pieces.some((p) => p.x === x && p.z === z && p.kind !== 'floor');
-    for (const [x, z] of tiles) {
-      for (const [quarterTurns, [ox, oz]] of [[0, [0, 1]], [1, [1, 0]], [3, [-1, 0]], [2, [0, -1]]] as const) {
-        if (!bare(x, z) || !walkable(x + ox, z + oz)) continue;
-        const middle = { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 };
-        const entrance: Entrance = { type: 'crypt', x: x + ox * STAIR_REACH, z: z + oz * STAIR_REACH, outX: ox, outZ: oz };
-        return [{ entrance, stairs: { x, z }, quarterTurns, ruin, level: zoneLevel(spawn, middle), name: `the crypt of ${nameAt(x, z, world.seed)}` }];
+    // The stairs on bare ground if there's room (nothing of the ruin there); else on its flagstones, taken up
+    // from under them; the ground before them walkable.
+    const piece = (x: number, z: number) => ruin.pieces.find((p) => p.x === x && p.z === z);
+    const walkable = (x: number, z: number) => world.isOpenTile(x, z) && (piece(x, z)?.kind ?? 'floor') === 'floor';
+    for (const paved of [false, true]) {
+      const free = (x: number, z: number) => world.isOpenTile(x, z) && (paved ? (piece(x, z)?.kind ?? 'floor') === 'floor' : !piece(x, z));
+      for (const [x, z] of tiles) {
+        for (const [quarterTurns, [ox, oz]] of [[0, [0, 1]], [1, [1, 0]], [3, [-1, 0]], [2, [0, -1]]] as const) {
+          const [sx, sz] = [Math.abs(oz), Math.abs(ox)]; // the second tile, beside the first across the way down
+          const [x2, z2] = [x + sx, z + sz];
+          if (x2 > ruin.x + ruin.w - 3 || z2 > ruin.z + ruin.d - 3) continue;
+          if (!free(x, z) || !free(x2, z2) || !walkable(x + ox, z + oz) || !walkable(x2 + ox, z2 + oz)) continue;
+          if (world.heightMap[x][z] !== world.heightMap[x2][z2]) continue;
+          ruin.pieces = ruin.pieces.filter((p) => !((p.x === x && p.z === z) || (p.x === x2 && p.z === z2))); // (no flagstones under the stairs)
+          const middle = { x: x + sx / 2, z: z + sz / 2 };
+          const entrance: Entrance = { type: 'crypt', x: middle.x + ox * STAIR_REACH, z: middle.z + oz * STAIR_REACH, outX: ox, outZ: oz };
+          const level = zoneLevel(spawn, { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 });
+          return [{ entrance, stairs: { x, z }, tiles: [{ x, z }, { x: x2, z: z2 }], middle, quarterTurns, ruin, level, name: `the crypt of ${nameAt(x, z, world.seed)}` }];
+        }
       }
     }
     return [];
@@ -66,7 +79,7 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
 
 // The stairs' tiles blocked (the hero goes down them with E, not by walking in).
 export function addCryptObstacles(obstacles: Obstacles, crypts: readonly Crypt[]): void {
-  for (const crypt of crypts) obstacles.addSolid(crypt.stairs.x, crypt.stairs.z);
+  for (const crypt of crypts) for (const t of crypt.tiles) obstacles.addSolid(t.x, t.z);
 }
 
 // A crypt's inside: its plan and what's in it, rolled once (by its way in) and kept.
