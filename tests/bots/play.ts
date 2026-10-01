@@ -53,6 +53,7 @@ function play(seed: number, minutes: number) {
       if (++crashes > 50) break; // (broken for good: on to the next)
     }
   }
+  bot.balance.sample(minutes * 60, bot.stats); // (how it stands at the very end: the last minute's row)
   const { hero } = model;
   return { seed, problems, counts, stats: bot.stats, balance: bot.balance.data, level: hero.level, money: hero.money, seconds: Math.round((performance.now() - started) / 100) / 10 };
 }

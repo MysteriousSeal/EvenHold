@@ -10,6 +10,8 @@ import { NPC_RADIUS } from '../../src/model/npcs/npcs';
 import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import type { Entrance } from '../../src/model/interiors/interiors';
 import { noticeBoards } from '../../src/model/quests/noticeBoards';
+import { villageLevel } from '../../src/model/enemies/enemyLevels';
+import { spawnOf } from '../../src/model/map/grid';
 
 export type Arrival = 'going' | 'there' | 'stuck' | 'no way';
 
@@ -213,11 +215,17 @@ export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: E
   return model.entrances.filter((e) => e.type === type && !but(e)).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
 }
 
-// The nearest notice board to the hero (its village's index).
-export function nearestBoard(model: GameModel): number {
+// The notice board to go to for work (its village's index): the nearest of
+// the villages at about the hero's level (theirs or one less), else of those
+// below it, else the nearest (a village's level sets its quests').
+export function boardFor(model: GameModel): number {
   const { hero } = model;
+  const spawn = spawnOf(model.size);
   const boards = noticeBoards(model);
-  return boards.reduce((best, b, i) => (Math.hypot(b.x - hero.x, b.z - hero.z) < Math.hypot(boards[best].x - hero.x, boards[best].z - hero.z) ? i : best), 0);
+  const far = (i: number) => Math.hypot(boards[i].x - hero.x, boards[i].z - hero.z);
+  const all = boards.map((_, i) => i).sort((a, b) => far(a) - far(b));
+  const level = (i: number) => villageLevel(spawn, model.villages[i]);
+  return all.find((i) => level(i) >= hero.level - 1 && level(i) <= hero.level) ?? all.find((i) => level(i) < hero.level) ?? all[0];
 }
 
 // Open ground somewhere about (x, z) (a few tiles either way), if any's found.

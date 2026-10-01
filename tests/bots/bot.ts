@@ -21,7 +21,7 @@ import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
-import { heroState, nearestBoard, nearestDoor, openNear } from './nav';
+import { boardFor, heroState, nearestDoor, openNear } from './nav';
 import { Errands, power, type Status } from './errands';
 import { BotSteps, type Report, type Step } from './botSteps';
 
@@ -196,7 +196,7 @@ export class Bot extends BotSteps {
       }
       case 'board':
       case 'hand in': {
-        const board = done ? quests.takenOf(done)!.quest.board : nearestBoard(this.model);
+        const board = done ? quests.takenOf(done)!.quest.board : boardFor(this.model);
         const spot = noticeBoards(this.model)[board];
         const front = { x: spot.x + spot.front.dx * 0.6, z: spot.z + spot.front.dz * 0.6 };
         return [this.walk(() => front, 0.15), () => (done ? this.errands.handIn(done) : this.errands.takeQuests(board))];

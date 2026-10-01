@@ -69,10 +69,11 @@ export class Balance {
   private xpEarned = 0;
   private seen = 1; // the level last seen
   private t = 0; // game seconds
+  private minute = -1; // the last game minute written down
 
   constructor(private readonly model: GameModel) {}
 
-  // Once a game second: the clock, levels reached, foes about; once a game minute, how it stands.
+  // Once a game second: the clock, levels reached, foes about; once each game minute, how it stands.
   sample(t: number, stats: { kills: number; deaths: number; questsDone: number }): void {
     this.t = t;
     const { hero } = this.model;
@@ -86,8 +87,10 @@ export class Balance {
       if (d <= 15) close++;
       this.data.foeKinds[e.kind] = (this.data.foeKinds[e.kind] ?? 0) + 1;
     }
-    if (Math.floor(t) % 60 !== 0) return;
-    this.data.minutes.push({ t: Math.round(t / 60), level: hero.level, xp: this.xpEarned, money: hero.money, gear: gearOf(this.model), foesNear: near, foesClose: close, ...stats });
+    // (a new minute begun since the last: samples come about a second apart, not on the minute)
+    if (Math.floor(t / 60 + 1e-6) <= this.minute) return;
+    this.minute = Math.floor(t / 60 + 1e-6);
+    this.data.minutes.push({ t: this.minute, level: hero.level, xp: this.xpEarned, money: hero.money, gear: gearOf(this.model), foesNear: near, foesClose: close, ...stats });
   }
 
   // Experience gained (`from`: kills, quests), measured around what gave it.
