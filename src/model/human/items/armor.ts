@@ -37,6 +37,7 @@ export const TORSO_ITEMS = slotItems('torso', {
   tabard: { name: 'EvenHold tabard', armor: 2, stats: { strength: 1, stamina: 1 } },
   breastplate: { name: 'Breastplate', value: 320, soldBy: { smith: 1 }, armor: 10, stats: { strength: 1, stamina: 3 } },
   linenShirt: { name: 'Linen shirt', wornBy: { bandit: 1 }, armor: 1, stats: { endurance: 1 } },
+  studdedJerkin: { name: 'Studded jerkin', wornBy: { bouncer: 1 }, armor: 5, stats: { strength: 1, stamina: 2 } }, // an inn's bouncer's
   travelCloak: { name: 'Travel cloak', wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1, endurance: 2 } },
   brigandine: { name: 'Brigandine', value: 200, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, armor: 7, stats: { agility: 1, stamina: 2 } },
 });
@@ -52,11 +53,12 @@ export const HANDS_ITEMS = slotItems('hands', {
   embroideredGloves: { name: 'Embroidered gloves', armor: 1, stats: { endurance: 1 } },
   leatherBracers: { name: 'Leather bracers', wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1 } },
   silkGloves: { name: 'Silk gloves', stats: { agility: 1 } },
+  studdedBracers: { name: 'Studded bracers', wornBy: { bouncer: 1 }, armor: 2, stats: { strength: 1 } }, // an inn's bouncer's
 });
 
 export const LEGS_ITEMS = slotItems('legs', {
   woolHose: { name: 'Wool hose', armor: 1, stats: { endurance: 1 } },
-  beltedTrousers: { name: 'Belted trousers', wornBy: { bandit: 2 }, armor: 2, stats: { stamina: 1 } },
+  beltedTrousers: { name: 'Belted trousers', wornBy: { bandit: 2, bouncer: 1 }, armor: 2, stats: { stamina: 1 } },
   ropeTrousers: { name: 'Rope-belted trousers', wornBy: { bandit: 2 }, armor: 1, stats: { agility: 1 } },
   mailChausses: { name: 'Mail chausses', value: 150, soldBy: { smith: 1 }, armor: 5, stats: { stamina: 2 } },
   plateGreaves: { name: 'Plate greaves', value: 200, soldBy: { smith: 1 }, armor: 6, stats: { strength: 1, stamina: 2 } },
@@ -77,5 +79,6 @@ export const FEET_ITEMS = slotItems('feet', {
   redShoes: { name: 'Red shoes', stats: { agility: 2 } },
   woodenClogs: { name: 'Wooden clogs', armor: 1, stats: { stamina: 1 } },
   feltSlippers: { name: 'Felt slippers', stats: { endurance: 1 } },
+  ironCapBoots: { name: 'Iron-capped boots', wornBy: { bouncer: 1 }, armor: 3, stats: { stamina: 1 } }, // an inn's bouncer's
   hobnailBoots: { name: 'Hobnail boots', value: 50, soldBy: { smith: 2 }, wornBy: { bandit: 1 }, armor: 2, stats: { strength: 1, endurance: 1 } },
 });

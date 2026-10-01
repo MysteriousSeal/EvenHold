@@ -9,6 +9,7 @@
 
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit } from '../../util/random';
+import { pickOutfit } from '../human/equipment';
 import { lookAt, type Build, type Humanoid } from '../human/humanoid';
 import type { Entrance } from '../interiors/interiors';
 import type { Seat } from '../interiors/furniture';
@@ -41,10 +42,10 @@ export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'fiel
 const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
 const FIELD_NEAR = 15; // tiles from the village's middle
 
-export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith';
+export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer';
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)".
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith' };
+const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer' };
 export function titleOf(npc: Npc): string {
   const title = TITLES[npc.role];
   return title ? `${npc.name} (${title})` : npc.name;
@@ -149,7 +150,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     return best;
   };
   const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
-    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : role === 'smith' ? 0 : 1); // about half the village's folk women; the inn's barmaids always, the smith never
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women; the inn's barmaids always, the smith and the bouncer never
     return {
       id,
       name: nameAt(at.x, at.z, seed, look.build),
@@ -205,7 +206,17 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const village = nearest(villages, smithy.x, smithy.z);
     return village ? [person(entrances.length + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 })] : [];
   });
-  return [...villagers, ...staff, ...smiths];
+  // A bouncer in each inn, in his studded leathers, his hair cropped or shaved.
+  const bouncers = inns.flatMap((inn, i) => {
+    const village = nearest(villages, inn.x, inn.z);
+    if (!village) return [];
+    const at = { x: inn.x - 0.3, z: inn.z - 0.2 };
+    const npc = person(entrances.length + inns.length * 2 + smithies.length + i, 'bouncer', inn, inn, village, at);
+    npc.look.hairStyle = hashUnit(npc.id, seed % 1_000_003, 77) < 0.5 ? 'cropped' : 'bald';
+    npc.equipment = pickOutfit('bouncer', Math.round(at.x * 10), Math.round(at.z * 10));
+    return [npc];
+  });
+  return [...villagers, ...staff, ...smiths, ...bouncers];
 }
 
 // Whether a step of a walker of half-width r from `from` to (x, z), in

@@ -21,6 +21,7 @@ import type { BenchWorld } from '../worldgen/benches';
 import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
 import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcStep } from './npcs';
 import { staffSteps } from '../inn/innStaff';
+import { bouncerSteps } from '../inn/bouncer';
 import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, settle, squareSpot } from './npcPlaces';
 import { easeOffHero, heroOn, place, walk } from './npcWalk';
 import { smithSteps } from '../smithy/smithWork';
@@ -107,7 +108,7 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
   if (seen && easeOffHero(npc, world, dt)) return;
-  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : npc.role === 'smith' ? smithSteps(npc, world) : staffSteps(npc, npcs, world.seed);
+  if (npc.steps.length === 0) npc.steps = npc.role === 'villager' ? plan(npc, npcs, world) : npc.role === 'smith' ? smithSteps(npc, world) : npc.role === 'bouncer' ? bouncerSteps(npc, world.seed) : staffSteps(npc, npcs, world.seed);
   const step = npc.steps[0];
   const done = () => {
     npc.steps.shift();

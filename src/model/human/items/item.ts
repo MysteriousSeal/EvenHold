@@ -5,8 +5,9 @@
 import type { EquipSlot } from '../equipment';
 import type { Stat } from '../../hero/statKinds';
 
-// Kinds of people who dress themselves from the item catalog.
-export type Wearer = 'bandit';
+// Kinds of people who dress themselves from the item catalog (bandits at random;
+// the inns' bouncers always in their own studded leathers).
+export type Wearer = 'bandit' | 'bouncer';
 // Those who sell items: the smith (weapons, shields, armour: smithy/smithShop.ts).
 export type Merchant = 'smith';
 

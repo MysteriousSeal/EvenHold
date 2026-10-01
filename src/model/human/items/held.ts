@@ -15,6 +15,7 @@ export const MAIN_HAND_ITEMS = slotItems('mainHand', {
   warHammer: { name: 'War hammer', value: 200, soldBy: { smith: 1 }, stats: { strength: 5, stamina: 1 } },
   spear: { name: 'Spear', value: 70, soldBy: { smith: 2 }, wornBy: { bandit: 1 }, stats: { strength: 2, agility: 2 } },
   quarterstaff: { name: 'Quarterstaff', stats: { agility: 1, endurance: 2 } },
+  bandedCudgel: { name: 'Iron-banded cudgel', wornBy: { bouncer: 1 }, stats: { strength: 3 } }, // an inn's bouncer's, at his belt
 });
 
 export const OFF_HAND_ITEMS = slotItems('offHand', {

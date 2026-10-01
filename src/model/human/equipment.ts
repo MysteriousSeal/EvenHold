@@ -53,6 +53,7 @@ export const BANDIT_OUTFIT: readonly ItemId[] = ['maskedHood', 'leatherVest', 'r
 // items it wears there (ItemEntry.wornBy). Slots not listed are always filled.
 export const EMPTY_SLOT_WEIGHT: Record<Wearer, Partial<Record<EquipSlot, number>>> = {
   bandit: { head: 2, shoulders: 8, hands: 3, neck: 9, ring: 9, offHand: 9 },
+  bouncer: {}, // (always the same: the one item of each slot he wears)
 };
 
 type Options = Array<[ItemId | null, number]>;
