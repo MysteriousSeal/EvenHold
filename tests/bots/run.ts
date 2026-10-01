@@ -1,4 +1,5 @@
-// The bots' playtest (npm run bots; npm run bots:quick for a short one):
+// The bots' playtest (npm run bots; npm run bots:quick for a short one;
+// npm run bots:verbose to watch what each is up to as it plays):
 // BOTS bots, each on its own seed, playing BOT_MINUTES of game time as
 // fast as it goes, shared out among workers (play.ts), one per core but
 // one. Then a report of all that went wrong (by kind, with where and when,
@@ -22,6 +23,7 @@ interface Result {
 }
 
 const quick = process.env.BOT_QUICK === '1';
+const verbose = process.env.BOT_VERBOSE === '1'; // each bot's doings, live (npm run bots:verbose)
 const bots = Number(process.env.BOTS ?? (quick ? 10 : 100));
 const minutes = Number(process.env.BOT_MINUTES ?? (quick ? 10 : 60));
 const firstSeed = Number(process.env.BOT_FIRST_SEED ?? 1);
@@ -30,7 +32,11 @@ const seeds = Array.from({ length: bots }, (_, i) => firstSeed + i);
 
 const results: Result[] = [];
 const started = Date.now();
-const progress = () => process.stdout.write(`\r  ${results.length}/${bots} bots done, ${Math.round((Date.now() - started) / 1000)} s`);
+const progress = () => {
+  const line = `${results.length}/${bots} bots done, ${Math.round((Date.now() - started) / 1000)} s`;
+  if (verbose) console.log(`== ${line}`);
+  else process.stdout.write(`\r  ${line}`);
+};
 
 function worker(share: number[]): Promise<void> {
   return new Promise((done) => {
@@ -44,6 +50,10 @@ function worker(share: number[]): Promise<void> {
       const lines = buffered.split('\n');
       buffered = lines.pop()!;
       for (const line of lines) {
+        if (verbose && line.startsWith('LOG ')) {
+          const [, seed, at, ...what] = line.split(' ');
+          console.log(`[seed ${seed.padStart(3)} ${at.padStart(5)}] ${what.join(' ')}`);
+        }
         if (!line.startsWith('BOT ')) continue;
         results.push(JSON.parse(line.slice(4)) as Result);
         progress();

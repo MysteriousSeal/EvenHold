@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "bots": "vite-node tests/bots/run.ts",
-    "bots:quick": "BOT_QUICK=1 vite-node tests/bots/run.ts"
+    "bots:quick": "BOT_QUICK=1 vite-node tests/bots/run.ts",
+    "bots:verbose": "BOT_VERBOSE=1 vite-node tests/bots/run.ts",
+    "bots:quick:verbose": "BOT_QUICK=1 BOT_VERBOSE=1 vite-node tests/bots/run.ts"
   },
   "dependencies": {
     "simplex-noise": "^4.0.3",

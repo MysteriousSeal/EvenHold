@@ -21,7 +21,7 @@ import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
-import { Nav, nearestBoard, nearestDoor } from './nav';
+import { Nav, nearestBoard, nearestDoor, openNear } from './nav';
 import { Errands, power, type Status } from './errands';
 
 type Step = (dt: number) => Status;
@@ -62,6 +62,7 @@ export class Bot {
     private readonly model: GameModel,
     private readonly report: Report,
     rng: () => number,
+    private readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (npm run bots:verbose)
   ) {
     this.nav = new Nav(model);
     this.errands = new Errands(model, report, this.stats, rng);
@@ -97,7 +98,10 @@ export class Bot {
   }
 
   private fresh(why: string): void {
-    if (why === 'fell') this.stats.deaths++;
+    if (why === 'fell') {
+      this.stats.deaths++;
+      this.log('fell, and woke at an inn');
+    }
     this.steps = [];
     this.nav.reset();
   }
@@ -149,6 +153,7 @@ export class Bot {
       return choices[Math.floor(this.rng() * choices.length)];
     };
     this.goal = pick();
+    this.log(`off to ${this.goal}`);
     this.stats.goals[this.goal] = (this.stats.goals[this.goal] ?? 0) + 1;
     this.steps = this.stepsFor(this.goal, { foe, loot, done: done?.quest.key, going: going?.quest.key });
   }
@@ -225,7 +230,7 @@ export class Bot {
       default: {
         // Explore: somewhere open a way off (a village now and then).
         const far = this.rng() < 0.3 ? this.model.villages[Math.floor(this.rng() * this.model.villages.length)] : null;
-        const to = far ?? this.openNear(hero.x + (this.rng() - 0.5) * 60, hero.z + (this.rng() - 0.5) * 60);
+        const to = far ?? openNear(this.model, this.rng, hero.x + (this.rng() - 0.5) * 60, hero.z + (this.rng() - 0.5) * 60);
         return to ? [this.walk(() => to, 1.5)] : [];
       }
     }
@@ -488,13 +493,5 @@ export class Bot {
       if (e.state !== 'dead' && de < d && !this.shunned.has(e)) [best, d] = [e, de];
     }
     return best;
-  }
-
-  private openNear(x: number, z: number): { x: number; z: number } | null {
-    for (let tries = 0; tries < 20; tries++) {
-      const [tx, tz] = [Math.round(x + (this.rng() - 0.5) * 8), Math.round(z + (this.rng() - 0.5) * 8)];
-      if (this.model.isOpenTile(tx, tz)) return { x: tx, z: tz };
-    }
-    return null;
   }
 }

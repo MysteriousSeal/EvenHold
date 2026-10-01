@@ -9,6 +9,7 @@ import { Checks, type Problem } from './checks';
 const SIZE = { width: 512, depth: 512 };
 const DT = 1 / 30; // a frame at 30 fps
 const MAX_PER_KIND = 5; // problems of one kind kept per bot (the rest just counted)
+const VERBOSE = process.env.BOT_VERBOSE === '1'; // what each bot's up to, as it goes, a line at a time (LOG lines)
 
 // The clock (shops restock by it) goes by game time, from a fixed start, and chance comes
 // from the seed: each seed plays the same every time (to play a problem again).
@@ -21,13 +22,18 @@ function play(seed: number, minutes: number) {
   const problems: Problem[] = [];
   const counts: Record<string, number> = {};
   let t = 0;
+  const log = (what: string) => {
+    if (VERBOSE) console.log(`LOG ${seed} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} ${what}`);
+  };
   const report = (kind: string, detail: string) => {
     counts[kind] = (counts[kind] ?? 0) + 1;
     if (counts[kind] <= MAX_PER_KIND) problems.push({ kind, seed, t: Math.round(t), detail });
+    if (counts[kind] <= MAX_PER_KIND) log(`PROBLEM ${kind}: ${detail}`);
   };
   Math.random = mulberry32(seed * 7919 + 1); // (and chance rolled from the seed too)
   const model = new GameModel(seed, SIZE);
-  const bot = new Bot(model, report, mulberry32(seed ^ 0x5eed));
+  const bot = new Bot(model, report, mulberry32(seed ^ 0x5eed), log);
+  let before = { ...bot.stats };
   const checks = new Checks(model, report);
   let second = 0;
   let crashes = 0;
@@ -38,6 +44,7 @@ function play(seed: number, minutes: number) {
       if ((second += DT) >= 1) {
         checks.run(second);
         second = 0;
+        if (VERBOSE) before = tell(bot, model, before, t, log);
       }
     } catch (error) {
       report('crash', (error as Error).stack?.split('\n').slice(0, 4).join(' | ') ?? String(error));
@@ -46,6 +53,18 @@ function play(seed: number, minutes: number) {
   }
   const { hero } = model;
   return { seed, problems, counts, stats: bot.stats, level: hero.level, money: hero.money, seconds: Math.round((performance.now() - started) / 100) / 10 };
+}
+
+// What's changed in a bot's tally this second (kills, quests done, ales…), and once a game minute how it stands.
+function tell(bot: Bot, model: GameModel, before: Bot['stats'], t: number, log: (what: string) => void): Bot['stats'] {
+  const now = bot.stats;
+  const done = (Object.keys(now) as Array<keyof typeof now>).filter((k) => k !== 'goals' && now[k] !== before[k]).map((k) => `${k} +${(now[k] as number) - (before[k] as number)}`);
+  if (done.length > 0) log(done.join(', '));
+  if (Math.floor(t) % 60 === 0) {
+    const { hero, inside } = model;
+    log(`— level ${hero.level}, health ${Math.round(hero.hp)}, energy ${Math.round(hero.energy)}, ${hero.money} copper, ${model.quests.taken.length} quests, ${inside ? `in the ${inside.entrance.type}` : `out at ${Math.round(hero.x)},${Math.round(hero.z)}`}`);
+  }
+  return { ...now, goals: now.goals };
 }
 
 const seeds = (process.env.BOT_SEEDS ?? '1').split(',').map(Number);

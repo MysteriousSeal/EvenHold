@@ -166,3 +166,12 @@ export function nearestBoard(model: GameModel): number {
   const boards = noticeBoards(model);
   return boards.reduce((best, b, i) => (Math.hypot(b.x - hero.x, b.z - hero.z) < Math.hypot(boards[best].x - hero.x, boards[best].z - hero.z) ? i : best), 0);
 }
+
+// Open ground somewhere about (x, z) (a few tiles either way), if any's found.
+export function openNear(model: GameModel, rng: () => number, x: number, z: number): Point | null {
+  for (let tries = 0; tries < 20; tries++) {
+    const [tx, tz] = [Math.round(x + (rng() - 0.5) * 8), Math.round(z + (rng() - 0.5) * 8)];
+    if (model.isOpenTile(tx, tz)) return { x: tx, z: tz };
+  }
+  return null;
+}
