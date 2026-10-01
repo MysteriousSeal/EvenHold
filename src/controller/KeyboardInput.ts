@@ -15,6 +15,7 @@ const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
 
 const ATTACK_KEY = 'Space';
 const PICKUP_KEY = 'KeyE';
+const FOCUS_KEY = 'Tab'; // the next foe (Shift: back)
 const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
 
 export class KeyboardInput {
@@ -22,6 +23,7 @@ export class KeyboardInput {
   private attackRequested = false;
   private pickupRequested = false;
   private orderRequested: BarMenuItem | null = null;
+  private focusRequested: 'next' | 'back' | null = null;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -49,6 +51,13 @@ export class KeyboardInput {
     return requested;
   }
 
+  // Which way to turn the focus, once per press of Tab ('back' with Shift); else null.
+  consumeFocus(): 'next' | 'back' | null {
+    const requested = this.focusRequested;
+    this.focusRequested = null;
+    return requested;
+  }
+
   // What's ordered, once per press of an order key (F: an ale, G: a pie); else null.
   consumeOrder(): BarMenuItem | null {
     const requested = this.orderRequested;
@@ -63,6 +72,11 @@ export class KeyboardInput {
     }
     if (e.code === PICKUP_KEY) {
       if (isDown && !e.repeat) this.pickupRequested = true;
+      return;
+    }
+    if (e.code === FOCUS_KEY) {
+      e.preventDefault(); // (never off to the page's buttons)
+      if (isDown && !e.repeat) this.focusRequested = e.shiftKey ? 'back' : 'next';
       return;
     }
     if (e.code === ATTACK_KEY) {
