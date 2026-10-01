@@ -52,9 +52,9 @@ import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
-import { CRYPT_FOE_ID, CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
-import { SUMMONED, clearedShare } from './crypts/cryptLord';
-import { cryptHooks, foeStrikes, landBlow } from './hero/fighting';
+import { CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
+import { clearedShare } from './crypts/cryptLord';
+import { cryptHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { cycleFocus as turnFocus } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
@@ -231,6 +231,7 @@ export class GameModel {
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       this.moveInside(dirX, dirZ, dt);
+      knockedOn(this, dt); // (knocked back by a blow, over a moment)
       this.advanceAttack(dt);
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
       stepNpcs(this.folk, this, dt);
@@ -302,12 +303,7 @@ export class GameModel {
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void (this.inside && [walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false), (this.hero.facing = facing)]);
   report = (event: GameEvent): void => void this.events.push(event);
-  slayGuard = (enemy: Enemy): void => {
-    const post = CryptFoes.postOf(enemy);
-    if (!this.below || enemy.id < CRYPT_FOE_ID || post >= SUMMONED || !this.inside) return; // (those the lord calls up aren't the crypt's)
-    this.cleared(this.below.key).add(post);
-    if (this.below.run.share === 1) this.events.push({ kind: 'cleared', name: cryptInside(this.seed, this.inside.entrance).crypt.name });
-  };
+  slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (cryptFoes.ts: what's told of it)
   // How much of a crypt is cleared (0..1): its guards slain and its lord, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => {
     const crypt = cryptInside(this.seed, entrance);

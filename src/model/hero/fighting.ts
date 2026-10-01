@@ -13,7 +13,6 @@ import type { BagItem } from './bag';
 import { FIRST_MOB_ID, type QuestBook } from '../quests/questBook';
 import type { CryptHooks } from '../crypts/cryptFoes';
 import { CHILL_FOR } from '../crypts/frostBreath';
-import { CLEAVE_KNOCK } from '../crypts/cleave';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -65,26 +64,47 @@ export function landBlow(fight: Fight): void {
   fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
 }
 
-// What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, the lord's slam, a
-// draugr's frost (a little harm, and chilled: slowed a while); what's told, and what they leave.
+// What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking
+// the hero, some), a draugr's frost (a little harm, and chilled: slowed a while); what's told, and what they leave.
 export function cryptHooks(fight: Fight): CryptHooks {
   return {
     strike: (enemy) => foeStrikes(fight, enemy),
     arrow: (arrow) => heroStruck(fight, arrow.damage, null),
-    slam: (damage, lord) => heroStruck(fight, damage, lord),
+    blow: (by, damage, knock) => {
+      heroStruck(fight, damage, by);
+      if (knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
+    },
     frost: (draugr) => {
       heroStruck(fight, 1, draugr);
       makeChilled(fight.hero, CHILL_FOR);
       fight.report({ kind: 'chilled' });
     },
-    cleave: (draugr, { dx, dz }) => {
-      heroStruck(fight, draugr.damage * 2, draugr);
-      fight.push(dx * CLEAVE_KNOCK, dz * CLEAVE_KNOCK); // (knocked back along the blow)
-    },
     report: (event) => fight.report(event),
     dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
     dropCoins: (amount, x, z) => fight.dropCoins(amount, x, z),
   };
+}
+
+export const KNOCK_TIME = 0.35; // seconds a knock carries the hero
+const KNOCK_HOP = 0.18; // how high they're thrown, at the most
+
+// The hero carried along a knock, fast then easing (eased out), a short step at a time (never through a wall, or a
+// pillar in the way), thrown up in a little hop and landing; done at its end.
+export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void {
+  const knock = fight.hero.knock;
+  if (!knock) return;
+  const at = (t: number) => 1 - (1 - Math.min(1, t / KNOCK_TIME)) ** 3;
+  const step = at(knock.t + dt) - at(knock.t);
+  knock.t += dt;
+  const [dx, dz] = [knock.dx * step, knock.dz * step];
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.2));
+  for (let i = 0; i < steps; i++) fight.push(dx / steps, dz / steps);
+  const p = Math.min(1, knock.t / KNOCK_TIME);
+  fight.hero.y = Math.sin(Math.PI * p) * KNOCK_HOP; // (thrown up, landing)
+  if (knock.t >= KNOCK_TIME) {
+    fight.hero.knock = undefined;
+    fight.hero.y = 0;
+  }
 }
 
 // A foe's blow lands if the hero is still within its reach (a step back in time dodges it).

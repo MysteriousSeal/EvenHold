@@ -4,23 +4,25 @@
 // own director on the crypt's floor). A bowman keeps his distance, draws and
 // looses an arrow at where the hero stands: it flies straight on till it hits
 // him, the rock or something solid (sidestepped, it misses). Posted: one along
-// the corridor every so often, one or two in each hall and side room, a band
-// of them in the great hall; none near the foot of the stairs. Slain, they
+// the corridor every so often, two or three in each hall and side room; none
+// in the great hall (its lord's alone), none near the foot of the stairs. Slain, they
 // stay slain (the crypt's, kept in the save): a cleared crypt stays clear.
 
 import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import type { BagItem } from '../hero/bag';
 import { FROST_BREATH } from './frostBreath';
-import { CLEAVE } from './cleave';
-import { ToldMoves } from '../enemies/toldMoves';
-import { CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
+import { CLEAVE, CLEAVE_KNOCK } from './cleave';
+import { ToldMoves, type Told } from '../enemies/toldMoves';
+import { BARRAGE, CHARGE_KNOCK, ERUPTION, SWEEP, SWEEP_KNOCK, chargeMove } from './cryptLord';
+import { AWARD_POST, CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { isFloor, type CryptPlan } from './cryptLayout';
 import { cryptBlocks, type CryptInside } from './crypts';
+import { floorHeight } from './cryptProps';
 
 export const CRYPT_FOE_ID = 3_000_000; // guards' ids: this plus their post's number (clear of the world's and the quests')
 const ARROW_SPEED = 7; // tiles a second
@@ -30,6 +32,21 @@ const CLEAR_OF_STAIRS = 7; // tiles from the foot of the stairs no guard stands
 const CORRIDOR_EVERY = 9; // corridor tiles to a guard along it, about
 const ARCHERS = 0.35; // of the skeletons, about, bowmen
 const DRAUGR: [number, number] = [0.06, 0.34]; // the chance a guard's a draugr, near the stairs and at the far end (about one in five)
+
+// One of the lord's souls, drifting after the hero (BARRAGE: cryptLord.ts).
+export interface Soul {
+  x: number;
+  z: number;
+  dx: number; // its heading (a unit vector)
+  dz: number;
+  age: number;
+  damage: number;
+  by: Enemy;
+}
+const SOUL_SPEED = 2.6; // tiles a second: slow enough to step out of its way
+const SOUL_TURN = 1.3; // radians a second it turns after the hero, at most
+const SOUL_HIT = 0.28;
+const SOUL_LIFE = 4.5; // seconds before it's spent
 
 export interface Arrow {
   x: number;
@@ -48,14 +65,16 @@ export interface Post {
 }
 
 // Where the crypt's guards stand, and what each is: from the seed and the ruin, the same every time. Draugr
-// the likelier the deeper in (DRAUGR: from near the stairs to the far end), two in the great hall.
+// the likelier the deeper in (DRAUGR: from near the stairs to the far end). None in the great hall: its lord's alone.
 export function guardPosts(seed: number, inside: CryptInside): Post[] {
   const { plan, props, crypt } = inside;
   const rng = mulberry32(hashCell(crypt.ruin.x * 5 + 1, crypt.ruin.z * 3 + 7, seed + 4421));
   const solid = new Set(props.filter((p) => p.solid).flatMap((p) => tilesOf(p.x, p.z, p.x + p.w - 1, p.z + p.d - 1)));
   const taken = new Set<string>();
+  const great = plan.places.find((p) => p.kind === 'great');
+  const inGreat = (x: number, z: number) => !!great && x >= great.x0 - 1 && x <= great.x1 + 1 && z >= great.z0 - 1 && z <= great.z1 + 1; // (his alone)
   const open = (x: number, z: number) =>
-    isFloor(plan, x, z) && !solid.has(cellKey(x, z)) && !taken.has(cellKey(x, z)) && Math.hypot(x - plan.door, z - (plan.depth - 1)) > CLEAR_OF_STAIRS;
+    isFloor(plan, x, z) && !solid.has(cellKey(x, z)) && !taken.has(cellKey(x, z)) && !inGreat(x, z) && Math.hypot(x - plan.door, z - (plan.depth - 1)) > CLEAR_OF_STAIRS;
   const posts: Post[] = [];
   // What stands at (x, z): a draugr, the likelier the deeper in; else a bowman, or a swordsman.
   const roll = (z: number, archers: number): GuardKind => {
@@ -81,7 +100,7 @@ export function guardPosts(seed: number, inside: CryptInside): Post[] {
         run = 0;
         post(place.x0, place.z0, place.x1, place.z1, 1);
       }
-    } else if (place.kind === 'great') post(place.x0 + 1, place.z0 + 1, place.x1 - 1, place.z1 - 1, 6 + (rng() < 0.5 ? 1 : 0), 0.4, 2);
+    } else if (place.kind === 'great') continue; // (the great hall's its lord's alone)
     else if (place.kind === 'side') post(place.x0, place.z0, place.x1, place.z1, 2);
     else post(place.x0, place.z0, place.x1, place.z1, 2 + (rng() < 0.25 ? 1 : 0));
   }
@@ -108,9 +127,8 @@ function tilesOf(x0: number, z0: number, x1: number, z1: number): string[] {
 export interface CryptHooks {
   strike(enemy: Enemy): void; // a swordsman's (or the lord's) blow lands (reach is the model's to judge)
   arrow(arrow: Arrow): void; // an arrow strikes the hero
-  slam(damage: number, lord: Enemy): void; // the lord's slam catches the hero
+  blow(by: Enemy, damage: number, knock?: { dx: number; dz: number }): void; // a told move lands on the hero (knocking them so far, some)
   frost(draugr: Enemy): void; // a draugr's frost breath catches the hero
-  cleave(draugr: Enemy, from: { dx: number; dz: number }): void; // a draugr's cleave comes down on the hero (knocked back along it)
   report(event: GameEvent): void;
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
@@ -123,8 +141,13 @@ export class CryptFoes {
   readonly director: EnemyDirector;
   lord: Lord | null = null; // risen
   readonly frost = new ToldMoves(FROST_BREATH, (draugr) => this.hooks.frost(draugr)); // the draugr's breath
-  readonly cleaves = new ToldMoves(CLEAVE, (draugr, cleave) => this.hooks.cleave(draugr, cleave)); // and their cleave
-  readonly slams = new ToldMoves(SLAM, (lord) => this.hooks.slam(lord.damage * 2, lord)); // the lord's slam
+  readonly cleaves = new ToldMoves(CLEAVE, (draugr, c) => this.hooks.blow(draugr, draugr.damage * 2, { dx: c.dx * CLEAVE_KNOCK, dz: c.dz * CLEAVE_KNOCK })); // and their cleave
+  readonly slams = new ToldMoves(SLAM, (lord) => this.hooks.blow(lord, lord.damage * 2)); // the lord's slam
+  readonly sweeps = new ToldMoves(SWEEP, (lord, m) => this.hooks.blow(lord, Math.round(lord.damage * 1.5), this.away(m, SWEEP_KNOCK))); // his sweep: knocked away from him
+  readonly charges: ToldMoves; // his charge: knocked back along it (made with the crypt's rock to stop him)
+  readonly eruptions = new ToldMoves(ERUPTION, (lord) => this.hooks.blow(lord, Math.round(lord.damage * 1.5))); // his bones bursting up
+  readonly barrages = new ToldMoves(BARRAGE, (lord, m) => this.loosesSouls(lord, m)); // his souls loosed
+  readonly souls: Soul[] = []; // in flight, after the hero
   chest: { x: number; z: number; open: boolean } | null = null; // his, once he's slain
   private readonly plan: CryptPlan;
   private readonly guards: number; // all its posts
@@ -140,14 +163,21 @@ export class CryptFoes {
     this.plan = inside.plan;
     const posts = guardPosts(seed, inside);
     this.guards = posts.length;
-    this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [makeEnemy(CRYPT_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.crypt.level)]));
+    this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [this.standing(makeEnemy(CRYPT_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.crypt.level))]));
     if (slain.has(LORD_POST)) this.chest = { ...lordSpot(inside), open: slain.has(CHEST_POST) };
     const ground: Ground = {
       isBlocked: (x, z, r) => cryptBlocks(inside, x, z, r),
       blocksSight: (x, z) => !isFloor(this.plan, Math.round(x), Math.round(z)),
     };
     const size = { width: this.plan.width, depth: this.plan.depth };
-    this.director = new EnemyDirector(this.foes, hero, ground, size, () => 0, (e) => (e.kind === 'skeletonArcher' ? this.loose(e, hero) : this.hooks.strike(e)), true);
+    this.charges = new ToldMoves(chargeMove((x, z) => cryptBlocks(inside, x, z, 0.24)), (lord, m) => this.hooks.blow(lord, Math.round(lord.damage * 1.5), { dx: m.dx * CHARGE_KNOCK, dz: m.dz * CHARGE_KNOCK })); // (bowled back along it)
+    this.director = new EnemyDirector(this.foes, hero, ground, size, (x, z) => floorHeight(inside.props, x, z), (e) => (e.kind === 'skeletonArcher' ? this.loose(e, hero) : this.hooks.strike(e)), true);
+  }
+
+  // A foe stood on the floor where it is (up on the dais, there: cryptProps.ts floorHeight).
+  standing(foe: Enemy): Enemy {
+    foe.y = floorHeight(this.inside.props, foe.x, foe.z);
+    return foe;
   }
 
   // The lord's name: who the crypt's named for.
@@ -165,22 +195,67 @@ export class CryptFoes {
     if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.guards) >= RISES_AT) this.rise();
     this.director.update(dt);
     this.lord?.update();
-    const told = [this.frost, this.cleaves, this.slams];
+    this.wakeLord(hero);
+    const told = [this.frost, this.cleaves, this.slams, this.sweeps, this.charges, this.eruptions, this.barrages];
     for (const moves of told) moves.update(this.foes, hero, dt, (foe) => told.some((other) => other !== moves && other.doing(foe))); // (one at a time)
     if (this.lord && this.lord.enemy.state === 'dead' && !this.chest) this.chest = { ...lordSpot(this.inside), open: false }; // his chest, where he rose
     for (let i = this.arrows.length - 1; i >= 0; i--) if (this.fly(this.arrows[i], dt)) this.arrows.splice(i, 1);
+    for (let i = this.souls.length - 1; i >= 0; i--) if (this.drift(this.souls[i], dt)) this.souls.splice(i, 1);
+  }
+
+  // The lord, risen and standing before his tomb, set on the hero the moment they come into his great hall.
+  private wakeLord(hero: Hero): void {
+    const lord = this.lord?.enemy;
+    const great = this.plan.places.find((p) => p.kind === 'great');
+    if (!lord || !great || lord.state !== 'wander') return;
+    if (hero.x < great.x0 - 0.5 || hero.x > great.x1 + 0.5 || hero.z < great.z0 - 0.5 || hero.z > great.z1 + 0.5) return;
+    Object.assign(lord, { state: 'chase', lastSeen: { x: hero.x, z: hero.z }, lostFor: 0, target: null });
+  }
+
+  // Which way, and how far, the hero's knocked: straight away from where the move was done.
+  private away(m: Told, far: number): { dx: number; dz: number } {
+    const hero = this.director.quarry;
+    const d = Math.hypot(hero.x - m.x, hero.z - m.z) || 1;
+    return { dx: ((hero.x - m.x) / d) * far, dz: ((hero.z - m.z) / d) * far };
+  }
+
+  // The lord's souls loosed: three in a fan from him, toward the hero.
+  private loosesSouls(lord: Enemy, m: Told): void {
+    const heading = Math.atan2(m.dz, m.dx);
+    for (const spread of [-0.6, 0, 0.6]) {
+      const a = heading + spread;
+      this.souls.push({ x: lord.x + Math.cos(a) * 0.4, z: lord.z + Math.sin(a) * 0.4, dx: Math.cos(a), dz: Math.sin(a), age: 0, damage: Math.max(1, Math.round(lord.damage * 0.6)), by: lord });
+    }
+  }
+
+  // A soul on: turning slowly after the hero, drifting on; striking them, or lost at the rock, or spent. True once done.
+  private drift(soul: Soul, dt: number): boolean {
+    const hero = this.director.quarry;
+    soul.age += dt;
+    const want = Math.atan2(hero.z - soul.z, hero.x - soul.x);
+    let turn = want - Math.atan2(soul.dz, soul.dx);
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn)); // (the shorter way round)
+    const a = Math.atan2(soul.dz, soul.dx) + Math.max(-SOUL_TURN * dt, Math.min(SOUL_TURN * dt, turn));
+    [soul.dx, soul.dz] = [Math.cos(a), Math.sin(a)];
+    soul.x += soul.dx * SOUL_SPEED * dt;
+    soul.z += soul.dz * SOUL_SPEED * dt;
+    if (Math.hypot(hero.x - soul.x, hero.z - soul.z) < SOUL_HIT) {
+      this.hooks.blow(soul.by, soul.damage);
+      return true;
+    }
+    return soul.age > SOUL_LIFE || cryptBlocks(this.inside, soul.x, soul.z, 0.02);
   }
 
   // The lord rises before his tomb.
   private rise(): void {
-    const enemy = { ...Lord.rise(this.inside, this.lordName), id: CRYPT_FOE_ID + LORD_POST };
+    const enemy = this.standing({ ...Lord.rise(this.inside, this.lordName), id: CRYPT_FOE_ID + LORD_POST });
     this.foes.push(enemy);
     this.lord = new Lord(enemy, (at, n) => {
       for (let k = 0; k < n; k++) {
         const a = (k / n) * Math.PI * 2 + 0.6;
         const [x, z] = [at.x + Math.cos(a) * 0.9, at.z + Math.sin(a) * 0.9];
         const spot = cryptBlocks(this.inside, x, z, 0.14) ? at : { x, z };
-        this.foes.push({ ...makeEnemy(CRYPT_FOE_ID + SUMMONED + this.calledUp++, 'skeleton', spot.x, spot.z, spot.x, spot.z, this.inside.crypt.level), state: 'chase' });
+        this.foes.push(this.standing({ ...makeEnemy(CRYPT_FOE_ID + SUMMONED + this.calledUp++, 'skeleton', spot.x, spot.z, spot.x, spot.z, this.inside.crypt.level), state: 'chase' }));
       }
     });
     this.hooks.report({ kind: 'rises', name: this.lordName });
@@ -189,6 +264,23 @@ export class CryptFoes {
   // Whether a walker of half-width `r` could stand at (x, z): on the floor, clear of anything solid.
   free(x: number, z: number, r: number): boolean {
     return !cryptBlocks(this.inside, x, z, r);
+  }
+
+  // One of its foes slain, for good: its post kept (not those the lord calls up); its lord the first time, a point to
+  // spend for the hero (once a crypt, ever: AWARD_POST kept even through a reset); all of it, cleared. What's told.
+  slay(enemy: Enemy, hero: Hero): GameEvent[] {
+    const post = CryptFoes.postOf(enemy);
+    if (enemy.id < CRYPT_FOE_ID || post >= SUMMONED) return [];
+    this.slain.add(post);
+    const told: GameEvent[] = [];
+    const point = post === LORD_POST && !this.slain.has(AWARD_POST);
+    if (point) {
+      this.slain.add(AWARD_POST);
+      hero.statPoints += 1;
+      told.push({ kind: 'point', why: `${this.lordName} slain` });
+    }
+    if (this.share === 1) told.push({ kind: 'cleared', name: this.inside.crypt.name, point });
+    return told;
   }
 
   // His chest, if the hero's at it and it's not opened yet.

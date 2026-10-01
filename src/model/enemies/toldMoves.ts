@@ -14,6 +14,8 @@ export interface Told {
   z: number;
   dx: number; // the way it faces (a unit vector)
   dz: number;
+  tx: number; // where the hero stood as it began (what it aims at: a lord's bones bursting up there)
+  tz: number;
   t: number; // seconds into it: its tell, then after it
 }
 
@@ -25,6 +27,8 @@ export interface ToldMove {
   every: number; // seconds between, at least
   first: number; // seconds before the first
   near: number; // tiles from the hero, at most, to start
+  far?: number; // and at least (a move done from afar)
+  path?(move: Told, t: number): { x: number; z: number }; // where it's carried, past its tell (a charge), else held where it began
   staunch?: boolean; // not lost to a blow
   hits(move: Told, hero: { x: number; z: number }): boolean;
 }
@@ -51,8 +55,8 @@ export class ToldMoves {
       const wait = Math.max(0, (this.waits.get(foe) ?? move.first) - dt);
       this.waits.set(foe, wait);
       const d = Math.hypot(hero.x - foe.x, hero.z - foe.z);
-      if (wait > 0 || this.doing(foe) || busy(foe) || foe.state !== 'chase' || foe.swingFor !== null || d > move.near || d < 1e-6) continue;
-      this.moves.push({ foe, x: foe.x, z: foe.z, dx: (hero.x - foe.x) / d, dz: (hero.z - foe.z) / d, t: 0 });
+      if (wait > 0 || this.doing(foe) || busy(foe) || foe.state !== 'chase' || foe.swingFor !== null || d > move.near || d < (move.far ?? 1e-6)) continue;
+      this.moves.push({ foe, x: foe.x, z: foe.z, dx: (hero.x - foe.x) / d, dz: (hero.z - foe.z) / d, tx: hero.x, tz: hero.z, t: 0 });
       this.waits.set(foe, move.every);
     }
     for (let i = this.moves.length - 1; i >= 0; i--) {
@@ -62,7 +66,8 @@ export class ToldMoves {
       const { foe } = m;
       const lost = foe.state === 'dead' || (!move.staunch && foe.hurtFor > 0.2 && m.t < move.tell);
       if (!lost) {
-        Object.assign(foe, { x: m.x, z: m.z, swingFor: null, windUp: m.t, told: move.told }); // (planted)
+        const at = move.path && m.t > move.tell ? move.path(m, m.t - move.tell) : m;
+        Object.assign(foe, { x: at.x, z: at.z, swingFor: null, windUp: m.t, told: move.told }); // (planted, or carried along its path)
         if (before < move.tell && m.t >= move.tell && move.hits(m, hero)) this.land(foe, m); // (landed before it's done: a move with no after)
       }
       if (lost || m.t >= move.tell + move.after) {

@@ -8,7 +8,7 @@ import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './map/grid';
 import { makeEnemy } from './enemies/enemies';
 import { CRYPT_FOE_ID } from './crypts/cryptFoes';
-import { SUMMONED } from './crypts/cryptLord';
+import { AWARD_POST, SUMMONED } from './crypts/cryptLord';
 import type { EnemyKind, Village } from './types';
 import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
@@ -130,7 +130,7 @@ export function spawnDraugr(model: GameModel): void {
   const ahead = { x: hero.x + Math.sin(hero.facing) * 1.5, z: hero.z + Math.cos(hero.facing) * 1.5 };
   const at = model.crypt.free(ahead.x, ahead.z, 0.17) ? ahead : { x: hero.x, z: hero.z }; // (into the rock ahead: where they stand)
   const id = CRYPT_FOE_ID + SUMMONED + 900_000 + model.foes.length;
-  model.foes.push({ ...makeEnemy(id, 'draugr', at.x, at.z, at.x, at.z, hero.level), state: 'chase' });
+  model.foes.push(model.crypt.standing({ ...makeEnemy(id, 'draugr', at.x, at.z, at.x, at.z, hero.level), state: 'chase' }));
 }
 
 // Every crypt's guards back at their posts, none slain; the hero, if down in one, out at its stairs first.
@@ -139,7 +139,7 @@ export function resetCrypts(model: GameModel): void {
     Object.assign(model.hero, { x: model.inside.room.door, z: model.inside.room.depth - 1 }); // (the foot of the stairs)
     model.useDoor();
   }
-  model.cryptsCleared.clear();
+  for (const slain of model.cryptsCleared.values()) for (const post of [...slain]) if (post !== AWARD_POST) slain.delete(post); // (the points their lords gave kept: once a crypt, ever)
 }
 
 // Kills every living enemy within `radius` tiles (the world's, or a crypt's guards, down in one); returns how many.

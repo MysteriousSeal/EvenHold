@@ -174,3 +174,16 @@ function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
   }
   return kept;
 }
+
+// How high the floor stands at (x, z) (room tiles): the great hall's dais raised over the rest, its top a step
+// up from its edge (as the view draws it: cryptVoxels.ts, three of its voxels, the step one); else 0.
+export const DAIS_TOP = 0.12;
+const DAIS_EDGE = 0.04;
+const DAIS_STEP_IN = 0.12; // how far in from its edge its top begins
+export function floorHeight(props: readonly CryptProp[], x: number, z: number): number {
+  const dais = props.find((p) => p.kind === 'dais');
+  if (!dais) return 0;
+  const [x0, z0, x1, z1] = [dais.x - 0.5, dais.z - 0.5, dais.x + dais.w - 0.5, dais.z + dais.d - 0.5];
+  if (x < x0 || z < z0 || x > x1 || z > z1) return 0;
+  return x < x0 + DAIS_STEP_IN || z < z0 + DAIS_STEP_IN || x > x1 - DAIS_STEP_IN || z > z1 - DAIS_STEP_IN ? DAIS_EDGE : DAIS_TOP;
+}

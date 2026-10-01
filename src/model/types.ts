@@ -20,6 +20,7 @@ export interface Hero extends Humanoid {
   statPoints: number; // gained with levels, not yet spent (training.ts)
   trained: Record<Stat, number>; // points spent on each stat
   hurtFor: number; // seconds left of the hit flash
+  knock?: { dx: number; dz: number; t: number }; // knocked back by a blow (a lord's charge, a draugr's cleave): carried so far over KNOCK_TIME (hero/fighting.ts)
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
   money: number; // their purse, in copper (money.ts)
@@ -39,7 +40,8 @@ export type GameEvent =
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
-  | { kind: 'cleared'; name: string } // a crypt's last guard slain (its lord)
+  | { kind: 'cleared'; name: string; point?: boolean } // a crypt's last guard slain (its lord); `point`: a point to spend given for it
+  | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
   | { kind: 'chilled' } // the hero caught in a draugr's frost breath
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
@@ -64,6 +66,7 @@ export interface Enemy {
   target: { x: number; z: number } | null; // wander goal
   restFor: number; // seconds before picking a new wander goal
   hurtFor: number; // seconds left of the hit flash
+  knock?: { dx: number; dz: number; t: number }; // knocked back by a blow (a lord's charge, a draugr's cleave): carried so far over KNOCK_TIME (hero/fighting.ts)
   deadFor: number; // seconds since it died
   swingFor: number | null; // seconds into its own attack swing (bandits), or null
   cooldown: number; // seconds before it can swing again
@@ -74,7 +77,7 @@ export interface Enemy {
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
   name?: string; // its own name, if it has one (a crypt's lord), over its kind's
   windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath or cleave), else null
-  told?: 'slam' | 'breath' | 'cleave' | null; // which
+  told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | null; // which
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 

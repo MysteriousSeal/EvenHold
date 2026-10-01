@@ -16,15 +16,17 @@ import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { isFloor } from './cryptLayout';
-import type { ToldMove } from '../enemies/toldMoves';
+import type { Told, ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
 import type { CryptInside } from './crypts';
 
 export const LORD_POST = 10_000; // the lord's place in the crypt's record of the slain (its guards' posts are below it)
 export const CHEST_POST = 10_001; // and his chest's, once opened
+export const AWARD_POST = 10_002; // and the point his fall gave the hero (once a crypt, ever: kept through a reset)
 export const SUMMONED = 20_000; // from here on: those he calls up (not the crypt's to count)
 export const RISES_AT = 0.8; // the share of the crypt cleared when he rises
 export const SLAM_TELL = 1.1; // seconds his slam's ring shows before it lands
+export const SLAM_AFTER = 0.5; // seconds after the slam lands he's still at it (the blow shown, and back)
 export const SLAM_RADIUS = 1.4; // tiles round him the slam strikes
 const SLAM_REACH = 2.2; // tiles from him the hero must be for him to slam
 const SLAM_EVERY = 6; // seconds between slams, at least
@@ -75,12 +77,66 @@ export const SLAM: ToldMove = {
   told: 'slam',
   by: 'cryptLord',
   tell: SLAM_TELL,
-  after: 0,
+  after: SLAM_AFTER, // (the greatsword down, held, back up)
   every: SLAM_EVERY,
   first: SLAM_EVERY / 2,
   near: SLAM_REACH,
   staunch: true,
   hits: (slam, hero) => Math.hypot(hero.x - slam.x, hero.z - slam.z) < SLAM_RADIUS,
+};
+
+// His other specials, close and from afar (done as told moves, one at a time, each on its own wait):
+// close, his SWEEP, the greatsword whirled round him (all round, knocked away); from afar, his charge
+// (chargeMove: rushing along a strip at the hero, stopping at the rock), his bones bursting up under the hero
+// and round them (ERUPTION), and three souls loosed to drift after the hero (BARRAGE: cryptFoes.ts flies them).
+export const SWEEP_RADIUS = 1.8; // tiles round him the sweep reaches
+export const SWEEP_TELL = 1.0;
+export const SWEEP_KNOCK = 0.8; // tiles the hero's knocked away
+export const SWEEP: ToldMove = {
+  told: 'sweep', by: 'cryptLord', tell: SWEEP_TELL, after: 0.45, every: 9, first: 4, near: 1.8, staunch: true,
+  hits: (sweep, hero) => Math.hypot(hero.x - sweep.x, hero.z - sweep.z) < SWEEP_RADIUS,
+};
+export const CHARGE_LENGTH = 5.5; // tiles the charge's strip runs, at most
+export const CHARGE_HALF = 0.4; // and half its width
+export const CHARGE_TELL = 0.9;
+export const CHARGE_RUSH = 0.45; // seconds the rush takes
+export const CHARGE_KNOCK = 2.5; // tiles the hero's knocked back, along his charge
+export function onCharge(charge: Pick<Told, 'x' | 'z' | 'dx' | 'dz'>, hero: { x: number; z: number }): boolean {
+  const [hx, hz] = [hero.x - charge.x, hero.z - charge.z];
+  const along = hx * charge.dx + hz * charge.dz;
+  return along >= 0 && along <= CHARGE_LENGTH && Math.abs(hx * charge.dz - hz * charge.dx) <= CHARGE_HALF + 0.12;
+}
+// The charge, his rush stopped short where the rock (or something solid) is in the way (`blocked`).
+export function chargeMove(blocked: (x: number, z: number) => boolean): ToldMove {
+  const reach = (m: Told) => {
+    let d = 0;
+    while (d + 0.1 <= CHARGE_LENGTH && !blocked(m.x + m.dx * (d + 0.1), m.z + m.dz * (d + 0.1))) d += 0.1;
+    return d;
+  };
+  const reaches = new WeakMap<Told, number>();
+  return {
+    told: 'charge', by: 'cryptLord', tell: CHARGE_TELL, after: CHARGE_RUSH + 0.2, every: 10, first: 3, near: 7, far: 2.6, staunch: true,
+    hits: (charge, hero) => onCharge(charge, hero),
+    path: (m, t) => {
+      if (!reaches.has(m)) reaches.set(m, reach(m));
+      const d = reaches.get(m)! * Math.min(1, t / CHARGE_RUSH);
+      return { x: m.x + m.dx * d, z: m.z + m.dz * d };
+    },
+  };
+}
+export const ERUPTION_TELL = 1.1;
+export const ERUPTION_RADIUS = 0.75; // tiles round each spot the bones burst
+// Where the bones burst: under where the hero stood, and two spots either side of it, across the lord's line.
+export const eruptionSpots = (m: Pick<Told, 'tx' | 'tz' | 'dx' | 'dz'>) =>
+  [0, 1.4, -1.4].map((k) => ({ x: m.tx + m.dz * k, z: m.tz - m.dx * k }));
+export const ERUPTION: ToldMove = {
+  told: 'eruption', by: 'cryptLord', tell: ERUPTION_TELL, after: 0.6, every: 11, first: 6, near: 7, far: 2.6, staunch: true,
+  hits: (m, hero) => eruptionSpots(m).some((p) => Math.hypot(hero.x - p.x, hero.z - p.z) < ERUPTION_RADIUS),
+};
+export const BARRAGE_TELL = 0.8;
+export const BARRAGE: ToldMove = {
+  told: 'barrage', by: 'cryptLord', tell: BARRAGE_TELL, after: 0.3, every: 12, first: 8, near: 8, far: 2.6, staunch: true,
+  hits: () => true, // (the souls loosed whatever: they find the hero, or not)
 };
 
 // The lord while he's up: his calling, his rage (his slam: SLAM, done as any told move is).
