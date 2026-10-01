@@ -11,8 +11,8 @@ import { bumpsFurniture, type Furniture } from '../src/model/interiors/furniture
 import type { Room } from '../src/model/interiors/interiors';
 import { questAt } from '../src/model/quests/quests';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
-import { easeOffHero } from '../src/model/npcs/npcWalk';
-import { FRAME, TEST_SEEDS, nearest, testModel } from './support/testWorld';
+import { easeOffHero, makeWay } from '../src/model/npcs/npcWalk';
+import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, nearest, testModel } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 // Worlds where the bots ran into each of these (at 512 by 512), and the test worlds.
@@ -109,9 +109,14 @@ describe('inns', () => {
   });
 });
 
-// A villager out of doors, on open ground by the hero (at spawn).
+// A villager out of doors, by the hero, on open ground (clear two tiles east).
 function outdoorsBy() {
-  const model = testModel(TEST_SEEDS[0]);
+  const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE); // (its own: these tests move folk about, and wall them in)
+  const clear = (x: number, z: number) => [-0.5, 0, 0.5, 1, 1.5, 2].every((d) => !model.isBlocked(x + d, z, HERO_RADIUS) && !model.isBlocked(x + d, z - 0.4, HERO_RADIUS) && !model.isBlocked(x + d, z + 0.4, HERO_RADIUS));
+  let spot = { x: model.hero.x, z: model.hero.z };
+  for (let r = 1; r < 20 && !clear(spot.x, spot.z); r++) for (let k = 0; k < 16 && !clear(spot.x, spot.z); k++) spot = { x: Math.round(model.hero.x + Math.cos(k) * r), z: Math.round(model.hero.z + Math.sin(k) * r) };
+  model.teleport(spot.x, spot.z);
+  model.enemies.length = 0; // (nothing else about)
   const npc = model.npcs[0];
   Object.assign(npc, { where: null, seat: null, x: model.hero.x, z: model.hero.z });
   return { model, npc };
@@ -135,6 +140,31 @@ describe('villagers and the hero', () => {
     const blocked = model.isBlocked.bind(model);
     model.isBlocked = (x, z, r) => (Math.hypot(x - npc.x, z - npc.z) > 1e-6 ? true : blocked(x, z, r)); // walled in all round
     expect(easeOffHero(npc, model, FRAME)).toBe(false);
+  });
+});
+
+describe('villagers in the way', () => {
+  const openWay = (): [number, number] => [1, 0]; // (outdoorsBy: clear that way)
+
+  it('step aside when the hero walks into them (all but touching, ahead), and not when walked away from', () => {
+    const { model, npc } = outdoorsBy();
+    const [dx, dz] = openWay();
+    const gap = NPC_RADIUS + HERO_RADIUS + 0.08; // a step off touching, in the hero's way
+    [npc.x, npc.z] = [model.hero.x + dx * gap, model.hero.z + dz * gap];
+    makeWay(model.npcs, model, -dx, -dz, FRAME); // walking away: left be
+    expect(Math.hypot(npc.x - model.hero.x, npc.z - model.hero.z)).toBeCloseTo(gap, 6);
+    makeWay(model.npcs, model, dx, dz, FRAME); // walking into them: they step off
+    expect(Math.hypot(npc.x - model.hero.x, npc.z - model.hero.z)).toBeGreaterThan(gap);
+  });
+
+  it('so the hero walks on through where one stood, as the bots found them pinned', () => {
+    const { model, npc } = outdoorsBy();
+    const [dx, dz] = openWay();
+    const start = { x: model.hero.x, z: model.hero.z };
+    [npc.x, npc.z] = [start.x + dx * 0.4, start.z + dz * 0.4];
+    npc.steps = [{ kind: 'wait', for: 60 }]; // stood there a good while
+    for (let t = 0; t < 1.5; t += FRAME) model.update(dx, dz, FRAME);
+    expect(Math.hypot(model.hero.x - start.x, model.hero.z - start.z)).toBeGreaterThan(1);
   });
 });
 
