@@ -57,7 +57,8 @@ export class Bot extends BotSteps {
     if (status === 'ok') this.steps.shift();
     else if (status === 'fail') this.steps = [];
     const before = { level: hero.level, xp: hero.xp, money: hero.money, hp: hero.hp, x: hero.x, z: hero.z };
-    const about = this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`);
+    // (the foes about, should it fall this frame: only worth a look once it's hurt)
+    const about = hero.hp < maxHpOf(hero) * 0.5 ? this.model.enemies.filter((e) => e.state !== 'dead' && Math.abs(e.x - hero.x) < 6 && Math.abs(e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`) : [];
     this.model.update(this.move[0], this.move[1], dt);
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
     // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.

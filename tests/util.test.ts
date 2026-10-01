@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 // The small pieces everything leans on: the heap under pathfinding, the
-// seeded randomness under world generation, and the seed in the URL.
+// seeded randomness under world generation, the seed in the URL, and the
+// near lists that keep only what's round the hero to hand.
 import { describe, expect, it } from 'vitest';
 import { MinHeap } from '../src/util/MinHeap';
+import { Nearby } from '../src/util/nearby';
 import { firstRoll, generateRandomSeed, hashCell, hashUnit, mulberry32, shuffle, snapTo } from '../src/util/random';
 import { resolveSeed } from '../src/util/seed';
 
@@ -139,5 +141,40 @@ describe('the seed in the URL', () => {
 describe('the first roll', () => {
   it.each([0, 1, 7, 12345, -9, 2 ** 31 - 1, 0xdeadbeef])("is mulberry32(%i)'s first number, without making it", (seed) => {
     expect(firstRoll(seed)).toBe(mulberry32(seed)());
+  });
+});
+
+describe('Nearby', () => {
+  const things = Array.from({ length: 200 }, (_, i) => ({ x: (i % 20) * 10, z: Math.floor(i / 20) * 10 }));
+  const near = (list: readonly { x: number; z: number }[], p: { x: number; z: number }, r: number) => list.filter((t) => Math.abs(t.x - p.x) <= r && Math.abs(t.z - p.z) <= r);
+
+  it('holds everything within reach of the point, as the point moves a little and a lot', () => {
+    const nearby = new Nearby(things, (t) => t, 25, 10);
+    for (const p of [{ x: 50, z: 50 }, { x: 55, z: 52 }, { x: 59, z: 41 }, { x: 150, z: 80 }, { x: 0, z: 0 }]) {
+      const got = nearby.near(p);
+      for (const t of near(things, p, 25)) expect(got).toContain(t);
+    }
+  });
+
+  it('takes in what\'s been added to the big list, and drops what\'s gone', () => {
+    const list = [...things];
+    const nearby = new Nearby(list, (t) => t, 25, 10);
+    nearby.near({ x: 50, z: 50 });
+    const added = { x: 51, z: 51 };
+    list.push(added);
+    expect(nearby.near({ x: 50, z: 50 })).toContain(added);
+    list.splice(list.indexOf(added), 1);
+    expect(nearby.near({ x: 50, z: 50 })).not.toContain(added);
+  });
+
+  it('is made afresh now and then even if the big list keeps its length (one gone, another come)', () => {
+    const list = [...things];
+    const nearby = new Nearby(list, (t) => t, 25, 10);
+    nearby.near({ x: 50, z: 50 });
+    const swapped = { x: 52, z: 52 };
+    list[0] = swapped;
+    let seen = false;
+    for (let i = 0; i < 40 && !seen; i++) seen = nearby.near({ x: 50, z: 50 }).includes(swapped);
+    expect(seen).toBe(true);
   });
 });
