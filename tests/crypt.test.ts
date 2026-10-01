@@ -36,19 +36,20 @@ function reached(plan: CryptPlan, props: readonly CryptProp[]): { reached: numbe
 }
 
 describe('crypts', () => {
-  it('have a way down in every ruin: on two blocked tiles side by side inside it, the spot before it open, of the zone\'s level, named', () => {
+  it('have a way down in every ruin: a tomb on four blocked tiles inside it, its stairs two side by side, the spot before it open, of the zone\'s level, named', () => {
     for (const model of models) {
       expect(model.crypts.length).toBe(model.ruins.length);
       for (const c of model.crypts) {
         const { ruin, stairs, entrance } = c;
         expect(stairs.x).toBeGreaterThan(ruin.x);
         expect(stairs.x).toBeLessThan(ruin.x + ruin.w - 1);
-        expect(c.tiles).toHaveLength(2); // two wide, side by side across the way down, level
-        expect(Math.abs(c.tiles[1].x - c.tiles[0].x) + Math.abs(c.tiles[1].z - c.tiles[0].z)).toBe(1);
-        expect(Math.abs(c.tiles[1].x - c.tiles[0].x)).toBe(Math.abs(entrance.outZ));
-        expect(model.heightMap[c.tiles[1].x][c.tiles[1].z]).toBe(model.heightMap[stairs.x][stairs.z]);
+        expect(c.steps).toHaveLength(2); // the stairs two wide, side by side across the way down; the tomb the two behind
+        expect(Math.abs(c.steps[1].x - c.steps[0].x) + Math.abs(c.steps[1].z - c.steps[0].z)).toBe(1);
+        expect(Math.abs(c.steps[1].x - c.steps[0].x)).toBe(Math.abs(entrance.outZ));
+        expect(c.tiles).toEqual([...c.steps, ...c.steps.map((t) => ({ x: t.x - entrance.outX, z: t.z - entrance.outZ }))]);
+        for (const t of c.tiles) expect(model.heightMap[t.x][t.z]).toBe(model.heightMap[stairs.x][stairs.z]); // level
         for (const t of c.tiles) expect(model.isOpenTile(t.x, t.z)).toBe(false); // blocked: down with E, not walked into
-        for (const t of c.tiles) expect(model.isOpenTile(t.x + entrance.outX, t.z + entrance.outZ)).toBe(true); // the ground before both open
+        for (const t of c.steps) expect(model.isOpenTile(t.x + entrance.outX, t.z + entrance.outZ)).toBe(true); // the ground before the stairs open
         expect(model.isOpenTile(Math.round(entrance.x), Math.round(entrance.z))).toBe(true);
         expect(model.entrances).toContain(entrance);
         expect(c.level).toBe(zoneLevel(spawnOf(model.size), { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 }));
@@ -111,6 +112,15 @@ describe('crypts', () => {
 
   it('are gone down into from the spot before the stairs: its name and level told, walked through, never into the rock, climbed out of', () => {
     const { model, crypt } = crypts[0];
+    // In reach before either of the stairs' two tiles, not off to the side of them.
+    const { entrance: e } = crypt;
+    for (const t of crypt.steps) {
+      model.teleport(t.x + e.outX * 0.62, t.z + e.outZ * 0.62);
+      expect(model.doorInReach).toBe(e);
+    }
+    const [ax, az] = [Math.abs(e.outZ), Math.abs(e.outX)];
+    model.teleport(e.x + ax * 1.6, e.z + az * 1.6);
+    expect(model.doorInReach).toBeNull();
     model.teleport(crypt.entrance.x, crypt.entrance.z);
     expect(model.doorInReach).toBe(crypt.entrance);
     model.takeEvents();
@@ -126,7 +136,13 @@ describe('crypts', () => {
     expect(start.z - model.hero.z).toBeGreaterThan(3);
     for (let t = 0; t < 4; t += FRAME) model.update(1, 0, FRAME); // into the side wall: stopped by the rock
     expect(isFloor(plan, Math.round(model.hero.x), Math.round(model.hero.z))).toBe(true);
-    // Back to the foot of the stairs, and out.
+    // Back to the foot of the stairs, and out: before either of their two tiles (door and door + 1).
+    for (const x of [plan.door, plan.door + 1]) {
+      Object.assign(model.hero, { x, z: start.z });
+      expect(model.doorInReach).toBe(crypt.entrance);
+    }
+    Object.assign(model.hero, { x: plan.door + 2, z: start.z });
+    expect(model.doorInReach).toBeNull();
     Object.assign(model.hero, start);
     expect(model.doorInReach).toBe(crypt.entrance);
     expect(model.useDoor()).toBe(true);
