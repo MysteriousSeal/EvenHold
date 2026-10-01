@@ -48,12 +48,14 @@ const ENTRIES = {
   ironDark: 0x3e4246,
   wood: 0x5a4030,
   waxShade: 0xc4b896, // wax run down, and the melted dip at a candle's top
+  portal: 0xd8f4ff, // (glow) the way out's cold light
+  portalDeep: 0x9fd8f0, // (glow) and its edges
   flame: 0xffb347, // (glow)
   core: 0xfff0a0, // (glow)
 } as const;
 export const CRYPT_PALETTE: number[] = Object.values(ENTRIES);
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
-export const GLOW: ReadonlySet<number> = new Set([C.flame, C.core]); // drawn unlit: the flames
+export const GLOW: ReadonlySet<number> = new Set([C.flame, C.core, C.portal, C.portalDeep]); // drawn unlit: the flames
 
 export type Box = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number | ((u: number, y: number, v: number) => number)) => void;
 const boxIn = (grid: VoxelGrid): Box => (u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, typeof color === 'number' ? () => color : color);

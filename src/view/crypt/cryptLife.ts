@@ -10,7 +10,9 @@ import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptFoes } from '../../model/crypts/cryptFoes';
 import { floorHeight } from '../../model/crypts/cryptProps';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
-import { BURST, CRYPT_PALETTE, CRYPT_VOXEL, GLOW, cryptProp } from './cryptVoxels';
+import { BURST, CRYPT_PALETTE, CRYPT_VOXEL, GLOW, TALL, TILE, cryptProp } from './cryptVoxels';
+import { exitFrame, exitLight, exitSlab } from './exitDoorVoxels';
+import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { glowMaterial } from '../meshes/common/glow';
 import { INDOOR_SCALE } from '../../model/constants';
 import type { GameModel } from '../../model/GameModel';
@@ -28,6 +30,7 @@ import { CHEST_HINGE, chestBoxGeometry, chestLidGeometry } from './chestVoxels';
 // Whether a crypt's great tomb is burst: its lord's risen from it (or been slain, and gone).
 export const tombBurst = (crypt: CryptFoes | null): boolean => !!crypt && (crypt.lord !== null || crypt.chest !== null);
 
+const DOOR_OPENS = 1.6; // seconds the way out takes to grind open
 const ARROW_HEIGHT = 0.3 * INDOOR_SCALE; // about a bowman's chest
 const AXE_REACH = 1.45; // tiles before a draugr its axe's head strikes the floor, cleaving (skeletonRig.ts: its swing)
 
@@ -40,10 +43,13 @@ export class CryptLife {
   private readonly arrows: THREE.Mesh[] = []; // a pool, as many shown as fly
   private readonly lordMoves: LordMovesView; // the lord's told moves on the floor, his souls
 
-  // How hard the floor's rumbling (0..1: the lord's bones coming): the camera's to shake by.
+  // How hard the floor's rumbling (0..1: the lord's bones coming, the way out grinding open): the camera's to shake by.
   get rumble(): number {
-    return this.lordMoves.rumble;
+    return Math.max(this.lordMoves.rumble, this.door && this.door.opening >= 0 && this.door.opening < 1 ? 0.35 : 0);
   }
+  // The way out (exitDoorVoxels.ts): its frame, the slab sealing it, the light within; how far it's opened (-1: shut).
+  private time = 0;
+  private door: { frame: THREE.Mesh[]; slab: THREE.Mesh; light: THREE.Mesh; glow: THREE.PointLight; opening: number } | null = null;
   private chest: { box: THREE.Mesh; lid: THREE.Mesh } | null = null;
   private readonly frost: FrostBreathView; // the draugr's breath
   private readonly strip = new THREE.PlaneGeometry(CLEAVE_LENGTH, CLEAVE_HALF * 2).rotateX(-Math.PI / 2).translate(CLEAVE_LENGTH / 2, 0, 0); // a cleave's (along +X from its foot)
@@ -72,6 +78,7 @@ export class CryptLife {
     this.enemies.update(model.foes, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
     this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
+    this.wayOut(crypt, dt);
     // The great tomb: whole till its lord's risen (or slain, and gone), burst after.
     this.showTomb(tombBurst(crypt));
     this.lordMoves.update(crypt, dt); // the lord's slam and specials, his souls
@@ -126,6 +133,39 @@ export class CryptLife {
     });
   }
 
+  // The way out, built once: sealed; opened when its lord's slain (the slab sinking, dust, the light coming up), or open
+  // already (slain before: as it's left).
+  private wayOut(crypt: CryptFoes | null, dt: number): void {
+    if (!crypt?.exit) return;
+    if (!this.door) {
+      const origin = new THREE.Vector3((-TILE / 2) * CRYPT_VOXEL, 0, (-TILE / 2) * CRYPT_VOXEL);
+      const mesh = (grid: VoxelGrid, glow: boolean) => {
+        const m = new THREE.Mesh(greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, (c) => GLOW.has(c) === glow), this.tombMaterials[glow ? 1 : 0]);
+        m.position.set(crypt.exit!.x, 0, crypt.exit!.z);
+        this.scene.add(m);
+        return m;
+      };
+      const glow = new THREE.PointLight(0xbfe8ff, 0, 5, 1.4);
+      glow.position.set(crypt.exit.x, 1, crypt.exit.z + 0.9);
+      this.scene.add(glow);
+      const open = !!crypt.exitOpen;
+      this.door = { frame: [mesh(exitFrame(), false), mesh(exitFrame(), true)], slab: mesh(exitSlab(), false), light: mesh(exitLight(), true), glow, opening: open ? 1 : -1 };
+    }
+    const door = this.door;
+    this.time += dt;
+    if (door.opening < 0 && crypt.exitOpen) {
+      door.opening = 0; // (its lord's just fallen: open it)
+      this.impacts.hit(crypt.exit.x, crypt.exit.z + 0.7, 0, 1);
+    }
+    if (door.opening >= 0 && door.opening < 1) door.opening = Math.min(1, door.opening + dt / DOOR_OPENS);
+    const open = Math.max(0, door.opening);
+    door.slab.position.y = -open * TALL * CRYPT_VOXEL * 0.7; // (sunk into the floor)
+    door.slab.visible = open < 1;
+    door.light.visible = open > 0;
+    door.light.scale.y = Math.max(0.01, open);
+    door.glow.intensity = 1.8 * open * (0.9 + 0.1 * Math.sin(this.time * 3));
+  }
+
   // The great tomb, drawn whole or burst (afresh as it changes): centred on its tiles as any prop.
   private showTomb(burst: boolean): void {
     if (this.tomb?.burst === burst) return;
@@ -148,6 +188,7 @@ export class CryptLife {
   }
 
   dispose(): void {
+    for (const mesh of this.door ? [...this.door.frame, this.door.slab, this.door.light] : []) mesh.geometry.dispose();
     for (const mesh of this.tomb?.meshes ?? []) mesh.geometry.dispose();
     for (const material of this.tombMaterials) material.dispose();
     for (const arrow of this.arrows) arrow.removeFromParent();

@@ -17,6 +17,7 @@ import type { CryptProp } from '../../model/crypts/cryptProps';
 import { CRYPT_PALETTE, CRYPT_VOXEL, GLOW, ON_WALL, TALL, TILE, cryptProp, stairsUp, wallTile } from './cryptVoxels';
 import { FLOOR_DEEP, floorTile } from './cryptFloorVoxels';
 import { ARCADE } from './cryptWallVoxels';
+import { exitDoor } from '../../model/crypts/cryptFoes';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const RELIGHT = 0.4; // tiles the hero moves before they're placed again
@@ -34,6 +35,7 @@ interface Piece {
 
 export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(): void; seeHero(x: number, z: number): void; forge(): void } {
   const { plan, props } = inside;
+  const exit = exitDoor(inside);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d0c0b); // the dark beyond the rock
   const lit = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
@@ -63,10 +65,12 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
       if (!beside) continue;
       if (x === plan.door || x === plan.door + 1) if (z === plan.depth) continue; // (the stairs stand there)
       // All full height; those that can stand between the camera and the floor (not inFullView) fade when the hero's behind them.
-      // A blind arch now and then, on the far rock only (facing the floor, where nothing hangs): never on what's seen from outside.
+      // A blind arch now and then, on the far rock only (facing the floor, where nothing hangs): never on what's seen from
+      // outside, nor beside the way out.
       const plain = (x * 7 + z * 13) % 2;
       if (inFullView(plan, x, z)) {
-        const variant = (x * 31 + z * 17) % 9 === 0 && !hung.has(`${x},${z}`) ? ARCADE : plain;
+        const byExit = !!exit && z === exit.z && Math.abs(x - exit.x) <= 1.5; // (the way out's wall: plain stone round it)
+        const variant = (x * 31 + z * 17) % 9 === 0 && !hung.has(`${x},${z}`) && !byExit ? ARCADE : plain;
         place(`tall:${variant}`, () => wallTile(TALL, variant), x, -CRYPT_VOXEL, z);
       } else fading.push({ x, z, variant: plain });
     }
