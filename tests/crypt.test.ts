@@ -36,14 +36,19 @@ function reached(plan: CryptPlan, props: readonly CryptProp[]): { reached: numbe
 }
 
 describe('crypts', () => {
-  it('have a way down in every ruin: on its own blocked tile inside it, the spot before it open, of the zone\'s level, named', () => {
+  it('have a way down in every ruin: on two blocked tiles side by side inside it, the spot before it open, of the zone\'s level, named', () => {
     for (const model of models) {
       expect(model.crypts.length).toBe(model.ruins.length);
       for (const c of model.crypts) {
         const { ruin, stairs, entrance } = c;
         expect(stairs.x).toBeGreaterThan(ruin.x);
         expect(stairs.x).toBeLessThan(ruin.x + ruin.w - 1);
-        expect(model.isOpenTile(stairs.x, stairs.z)).toBe(false); // blocked: down with E, not walked into
+        expect(c.tiles).toHaveLength(2); // two wide, side by side across the way down, level
+        expect(Math.abs(c.tiles[1].x - c.tiles[0].x) + Math.abs(c.tiles[1].z - c.tiles[0].z)).toBe(1);
+        expect(Math.abs(c.tiles[1].x - c.tiles[0].x)).toBe(Math.abs(entrance.outZ));
+        expect(model.heightMap[c.tiles[1].x][c.tiles[1].z]).toBe(model.heightMap[stairs.x][stairs.z]);
+        for (const t of c.tiles) expect(model.isOpenTile(t.x, t.z)).toBe(false); // blocked: down with E, not walked into
+        for (const t of c.tiles) expect(model.isOpenTile(t.x + entrance.outX, t.z + entrance.outZ)).toBe(true); // the ground before both open
         expect(model.isOpenTile(Math.round(entrance.x), Math.round(entrance.z))).toBe(true);
         expect(model.entrances).toContain(entrance);
         expect(c.level).toBe(zoneLevel(spawnOf(model.size), { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 }));
