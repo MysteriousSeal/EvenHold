@@ -51,7 +51,8 @@ describe.each(LOOT_IDS.map((id) => [id]))('loot: %s', (id: LootId) => {
     if (isProvision(id)) {
       expect(sellValue(id)).toBe(sellPrice(id)); // the barmaid buys food and drink…
       expect(sellPrice(id)).toBeLessThan(buyPrice(id) + 1); // …for less than she sells it
-      expect(PROVISIONS[id].heal).toBeGreaterThan(0);
+      expect(PROVISIONS[id].drink ? PROVISIONS[id].energy : PROVISIONS[id].heal).toBeGreaterThan(0); // (food heals, drink gives energy)
+      expect(PROVISIONS[id].drink ? PROVISIONS[id].heal : PROVISIONS[id].energy).toBeUndefined();
     } else if (isJunk(id)) expect(sellValue(id)).toBe(loot.value); // anyone buys junk, at its worth
     else if (isQuestItem(id)) expect(sellValue(id)).toBeNull(); // quest items: kept for the quest
   });

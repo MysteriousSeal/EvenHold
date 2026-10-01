@@ -4,11 +4,9 @@ import { enterNearest } from '../src/model/cheats';
 import { doorAt, openDoorsAt, setOpenDoors, stairsInReach, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
-import { maxHpAt } from '../src/model/hero/heroStats';
-import { ALE_SECONDS, MENU, barmaidHere, callFor, orderLabel, serveOrder } from '../src/controller/trade/barOrder';
-import { maxEnergyOf } from '../src/model/hero/attributes';
-import { PIE_ENERGY } from '../src/model/inn/barPatrons';
-import { ALE_HEALS } from '../src/model/inn/barPatrons';
+import { MENU, barmaidHere, callFor, orderLabel, serveOrder } from '../src/controller/trade/barOrder';
+import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
+import { ALE_ENERGY, ALE_SECONDS, PIE_HEALS, PIE_SECONDS } from '../src/model/inn/barPatrons';
 import { AT_KEG, AT_SINK, pourFor } from '../src/model/inn/innStaff';
 import { mugsAt, roundOnBar, setMug, takeMug } from '../src/model/inn/barMugs';
 import { seatOf } from '../src/model/interiors/furniture';
@@ -27,7 +25,7 @@ const atTheInn = () => {
 };
 
 describe('a meat pie at the bar', () => {
-  it('is served from her stock, paid for, and eaten on the spot: 60% of the most energy back over as long as an ale', () => {
+  it('is served from her stock, paid for, and eaten on the spot: 60% of the most health back over PIE_SECONDS', () => {
     const model = atTheInn();
     const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
     const stock = shop.stock.meatPie!;
@@ -36,13 +34,12 @@ describe('a meat pie at the bar', () => {
     expect(callFor(model, 'pie').coming).toBe(true);
     expect(serveOrder(model, 'pie').drank).toBe(true);
     expect([shop.stock.meatPie, model.hero.money, model.hero.bag.meatPie ?? 0]).toEqual([stock - 1, 100 - buyPrice('meatPie'), 0]);
-    const gives = maxEnergyOf(model.hero) * PIE_ENERGY;
-    model.update(0, 0, ALE_SECONDS / 2);
-    expect(model.hero.energy).toBeGreaterThan(10 + gives / 2 - 1); // (a little spent meanwhile, sat or not)
-    model.update(0, 0, ALE_SECONDS / 2 + 0.1);
-    expect(model.hero.energy).toBeGreaterThan(10 + gives - 2); // all of it (less the little spent, standing)
-    expect(model.hero.energy).toBeLessThanOrEqual(10 + gives);
-    expect(model.hero.hp).toBe(1); // food for energy, not health
+    const heals = maxHpOf(model.hero) * PIE_HEALS;
+    model.update(0, 0, PIE_SECONDS / 2);
+    expect(model.hero.hp).toBeCloseTo(1 + heals / 2);
+    model.update(0, 0, PIE_SECONDS / 2 + 0.1);
+    expect(model.hero.hp).toBeCloseTo(Math.min(maxHpOf(model.hero), 1 + heals)); // all of it
+    expect(model.hero.energy).toBeLessThanOrEqual(10); // food for health, not energy
   });
 
   it('is only to be had while she has some: sold out, the prompt says when there\'s more, and she won\'t take the order', () => {
@@ -68,18 +65,20 @@ describe('an ale at the bar', () => {
     const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
     const stock = shop.stock.ale!;
     model.hero.money = 100;
-    model.hero.hp = 1;
+    Object.assign(model.hero, { hp: 1, energy: 10 });
     expect(orderLabel(model)).toEqual({ label: `Order an ale · ${buyPrice('ale')} copper`, soldOut: false });
     expect(serveOrder(model).drank).toBe(true);
     expect(shop.stock.ale).toBe(stock - 1);
     expect(model.hero.money).toBe(100 - buyPrice('ale'));
     expect(model.hero.bag.ale ?? 0).toBe(0); // sipped there, not carried off
-    // Sipped over ALE_SECONDS: 60% of their most health back, a little at a time, all of it once empty.
-    const heals = maxHpAt(model.hero.level) * ALE_HEALS;
+    // Sipped over ALE_SECONDS: 60% of their most energy back, a little at a time, all of it once empty.
+    const gives = maxEnergyOf(model.hero) * ALE_ENERGY;
     model.update(0, 0, ALE_SECONDS / 2);
-    expect(model.hero.hp).toBeCloseTo(1 + heals / 2);
+    expect(model.hero.energy).toBeGreaterThan(10 + gives / 2 - 1); // (a little spent meanwhile)
     model.update(0, 0, ALE_SECONDS / 2 + 0.1);
-    expect(model.hero.hp).toBeCloseTo(Math.min(maxHpAt(model.hero.level), 1 + heals));
+    expect(model.hero.energy).toBeGreaterThan(10 + gives - 2); // all of it (less the little spent)
+    expect(model.hero.energy).toBeLessThanOrEqual(10 + gives);
+    expect(model.hero.hp).toBe(1); // drink for energy, not health
     expect(model.hero.drinking).toBeNull();
   });
 

@@ -5,6 +5,10 @@ import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { PROVISIONS } from '../src/model/loot/provisions';
+import { GameModel } from '../src/model/GameModel';
+import { eatOrDrink } from '../src/model/hero/bag';
+import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
+import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { QUEST_ITEMS } from '../src/model/quests/questItems';
 import { fresh, slay } from './support/testWorld';
 
@@ -77,5 +81,23 @@ describe('picking up loot', () => {
     expect(model.dropFromBag('wolfFang')).toBe(true);
     expect(model.hero.bag).toEqual({});
     expect(model.dropFromBag('wolfFang')).toBe(false);
+  });
+});
+
+describe('food and drink from the bag', () => {
+  it('food gives health back, drink energy (each only that), up to their most', () => {
+    const { hero } = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    for (const id of Object.keys(PROVISIONS) as Array<keyof typeof PROVISIONS>) {
+      Object.assign(hero, { hp: 1, energy: 1, bag: { [id]: 1 } });
+      expect(eatOrDrink(hero, id)).toBe(true);
+      const { heal = 0, energy = 0, drink } = PROVISIONS[id];
+      expect(hero.hp, id).toBe(Math.min(maxHpOf(hero), 1 + heal));
+      expect(hero.energy, id).toBe(Math.min(maxEnergyOf(hero), 1 + energy));
+      expect(drink ? hero.hp : hero.energy, `${id}: only what it gives`).toBe(1);
+      expect(hero.bag[id] ?? 0).toBe(0);
+    }
+    Object.assign(hero, { hp: maxHpOf(hero), energy: maxEnergyOf(hero) - 1, bag: { wine: 1 } });
+    eatOrDrink(hero, 'wine');
+    expect(hero.energy).toBe(maxEnergyOf(hero)); // (no more than their most)
   });
 });
