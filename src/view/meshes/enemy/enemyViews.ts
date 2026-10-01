@@ -1,11 +1,12 @@
 // Keeps a rig for every enemy near the hero (alive or dying): a beast's, a
-// bandit's or a skeleton's by kind, made as enemies come into range and dropped when
+// bandit's, a skeleton's or a ghost's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
 import { UndeadRig, createUndeadLook, type UndeadLook } from './undeadRig';
+import { GhostRig, createGhostLook, type GhostLook } from './ghostRig';
 import { ENEMY_BURST } from './enemyParts';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
@@ -13,9 +14,9 @@ import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from 
 import { pulseAuras, questAura } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22, ghost: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-type Rig = BeastRig | BanditRig | UndeadRig;
+type Rig = BeastRig | BanditRig | UndeadRig | GhostRig;
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 const DRAUGR_SIZE = 1.15; // a draugr, over a man
 const MARKER_MOST = DRAUGR_SIZE; // the focus brackets, at their biggest (a draugr's, the lord's)
@@ -35,14 +36,16 @@ export class EnemyViews {
     skeletonArcher: (enemy) => new UndeadRig(enemy, this.undeadLook),
     cryptLord: (enemy) => new UndeadRig(enemy, this.undeadLook),
     draugr: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    ghost: (enemy) => new GhostRig(enemy, this.ghostLook),
   };
   private readonly undeadLook: UndeadLook = createUndeadLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
+  private readonly ghostLook: GhostLook = createGhostLook(this.flash);
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
       const scale = this.scale * sizeOf(enemy.kind);
-      if (rig instanceof UndeadRig) rig.drawnAt(scale); // (its bar and name at their own size)
+      if (rig instanceof UndeadRig || rig instanceof GhostRig) rig.drawnAt(scale); // (its bar and name at their own size)
       else rig.root.scale.setScalar(scale);
       this.scene.add(rig.root);
       return rig;

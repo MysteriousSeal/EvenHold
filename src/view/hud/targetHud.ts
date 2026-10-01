@@ -11,13 +11,15 @@ import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
 import { DRAUGR_PALETTE, buildDraugrHead, draugrLook } from '../meshes/enemy/draugrVoxels';
 import { ENEMY_STATS } from '../../model/constants';
 import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
+import { GHOST_PALETTE, ghostHead } from '../meshes/enemy/ghostVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
-const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord' };
+const NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost' };
 
 // Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
 const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
+  ghost: () => voxelIcon('target:ghost', () => ({ grid: ghostHead(), palette: GHOST_PALETTE }), PORTRAIT_SIZE),
   wolf: () => voxelIcon('target:wolf', () => ({ grid: buildHead(), palette: WOLF_PALETTE }), PORTRAIT_SIZE),
   boar: () => voxelIcon('target:boar', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE }), PORTRAIT_SIZE),
   bandit: (enemy) => {

@@ -27,6 +27,26 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
       if (r <= 2.3) setColor(g, x, 0, z, r > 1.6 ? 2 : (x + z) % 2 ? 3 : 1);
     }
   }),
+  // A tarnished locket, open on its hinge: an oval case, a dim gold, a lock of pale hair in it, its chain trailing.
+  fadedLocket: model([0xb89a52, 0x7e6a3a, 0xe8e2cc, 0x9a8a6a], [6, 1, 7], (g) => {
+    for (let x = 0; x < 6; x++) for (let z = 0; z < 4; z++) if (Math.hypot((x - 2.5) / 3, (z - 1.5) / 2) <= 1) setColor(g, x, 0, z, x === 0 || x === 5 || z === 0 || z === 3 ? 2 : 1);
+    setColor(g, 2, 0, 1, 3); // the lock of hair
+    setColor(g, 3, 0, 2, 3);
+    for (const [x, z] of [[2, 4], [3, 5], [3, 6], [4, 6]]) setColor(g, x, 0, z, 4); // the chain
+  }),
+  // A stub of grave candle, its wax pooled and run down it, a cold blue flame gone out: a black wick.
+  graveCandle: model([0xe6e0cc, 0xc4bca4, 0x1c1612], [4, 5, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 0, 3, 2); // its pool
+    fillBox(g, 1, 1, 1, 2, 3, 2, 1);
+    setColor(g, 1, 1, 0, 2); // a run of wax
+    setColor(g, 2, 4, 1, 3); // the wick
+  }),
+  // A torn strip of shroud, pale and greyed, its ends frayed.
+  tatteredShroud: model([0xdde4e8, 0xaab4bc, 0x7e8a94], [8, 1, 5], (g) => {
+    fillBox(g, 0, 0, 1, 7, 0, 3, (x, _y, z) => ((x + z) % 4 === 0 ? 2 : 1));
+    for (const [x, z] of [[0, 1], [7, 3], [3, 3]]) setColor(g, x, 0, z, 0); // torn
+    for (const [x, z] of [[1, 0], [5, 0], [6, 4], [2, 4]]) setColor(g, x, 0, z, 3); // its frayed threads
+  }),
   // A broken blade, rusted through: its stub of a hilt dark, the blade stepping off orange and brown.
   rustedBlade: model([0x8a4a2a, 0x5e3420, 0x3a2a20, 0x9a9590], [9, 1, 3], (g) => {
     fillBox(g, 0, 0, 1, 1, 0, 1, 3); // the grip
