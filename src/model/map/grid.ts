@@ -25,6 +25,32 @@ export const NEIGHBORS_4: ReadonlyArray<readonly [number, number]> = [
   [0, -1],
 ];
 
+// The way something turned `quarterTurns` faces (its local +Z turned so, as the view turns its models):
+// 0 +z, 1 +x, 2 -z, 3 -x.
+export const FACINGS: ReadonlyArray<readonly [number, number]> = [
+  [0, 1],
+  [1, 0],
+  [0, -1],
+  [-1, 0],
+];
+
+// Which of NEIGHBORS_4 a step (dx, dz) is.
+export const sideOf = (dx: number, dz: number): number => NEIGHBORS_4.findIndex(([nx, nz]) => nx === dx && nz === dz);
+
+// The tiles reached from `from`, step by step (four ways), through those `open`: "x,z" keys.
+export function flood(from: ReadonlyArray<readonly [number, number]>, open: (x: number, z: number) => boolean): Set<string> {
+  const seen = new Set<string>();
+  const todo = from.map(([x, z]): [number, number] => [x, z]);
+  while (todo.length > 0) {
+    const [x, z] = todo.pop()!;
+    const key = cellKey(x, z);
+    if (seen.has(key) || !open(x, z)) continue;
+    seen.add(key);
+    for (const [dx, dz] of NEIGHBORS_4) todo.push([x + dx, z + dz]);
+  }
+  return seen;
+}
+
 export function inBounds(size: MapSize, x: number, z: number): boolean {
   return x >= 0 && x < size.width && z >= 0 && z < size.depth;
 }

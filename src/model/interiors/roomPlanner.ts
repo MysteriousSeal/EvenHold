@@ -7,6 +7,7 @@
 
 import { hashCell, mulberry32, shuffle } from '../../util/random';
 import type { Entrance, Room } from './interiors';
+import { cellKey, flood } from '../map/grid';
 import type { Furniture, FurnitureKind } from './furniture';
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
@@ -19,7 +20,7 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed + 7919));
   const taken = new Set<string>();
   const kept = new Set<string>(); // left free around a piece (a bed's side), for nothing to crowd it
-  const key = (x: number, z: number) => `${x},${z}`;
+  const key = cellKey;
   // Kept clear: the door's column (the way in) and the tiles either side of the doorway.
   const clear = (x: number, z: number) => x === room.door || (z >= room.depth - 1 && Math.abs(x - room.door) <= 1);
   // `backWall`: the door's column may be taken where it meets the back wall (nothing's in the way there).
@@ -50,17 +51,7 @@ export function roomPlanner(seed: number, entrance: Entrance, room: Room) {
   const down = (x: number) => Array.from({ length: room.depth }, (_, z): [number, number] => [x, z]); // along a column
   // A free floor tile no one could walk to from the door, if any (furniture all round it).
   // The free floor reached from (x, z), tile to tile, round what's taken.
-  const floorFrom = (x0: number, z0: number): Set<string> => {
-    const seen = new Set<string>();
-    const todo: Array<[number, number]> = [[x0, z0]];
-    while (todo.length > 0) {
-      const [x, z] = todo.pop()!;
-      if (x < 0 || z < 0 || x >= room.width || z >= room.depth || seen.has(key(x, z)) || taken.has(key(x, z))) continue;
-      seen.add(key(x, z));
-      todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-    }
-    return seen;
-  };
+  const floorFrom = (x0: number, z0: number): Set<string> => flood([[x0, z0]], (x, z) => x >= 0 && z >= 0 && x < room.width && z < room.depth && !taken.has(key(x, z)));
   const walledIn = (): [number, number] | null => {
     const seen = floorFrom(room.door, room.depth - 1);
     for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth; z++) if (!taken.has(key(x, z)) && !seen.has(key(x, z))) return [x, z];

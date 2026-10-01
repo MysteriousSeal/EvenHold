@@ -10,7 +10,7 @@
 // what stands solid in them block the way (cryptBlocks).
 
 import { hashCell, mulberry32 } from '../../util/random';
-import { spawnOf, type MapSize } from '../map/grid';
+import { FACINGS, spawnOf, type MapSize } from '../map/grid';
 import type { Obstacles } from '../map/obstacles';
 import type { Entrance, Room } from '../interiors/interiors';
 import type { Ruin, RuinPiece } from '../ruins/ruins';
@@ -65,7 +65,8 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
         return paved && (kind === 'floor' ? world.isOpenTile(x, z) : CLEARED.has(kind));
       };
       for (const [x, z] of tiles) {
-        for (const [quarterTurns, [ox, oz]] of [[0, [0, 1]], [1, [1, 0]], [3, [-1, 0]], [2, [0, -1]]] as const) {
+        for (const quarterTurns of [0, 1, 3, 2]) {
+          const [ox, oz] = FACINGS[quarterTurns];
           const [sx, sz] = [Math.abs(oz), Math.abs(ox)]; // the second tile, beside the first across the way down
           const [x2, z2] = [x + sx, z + sz];
           const steps = [{ x, z }, { x: x2, z: z2 }];

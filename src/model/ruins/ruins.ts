@@ -11,7 +11,7 @@
 
 import { hashCell, mulberry32 } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS } from '../constants';
-import { spawnOf, type MapSize } from '../map/grid';
+import { FACINGS, sideOf, spawnOf, type MapSize } from '../map/grid';
 import type { Obstacles } from '../map/obstacles';
 import type { Surface, Village } from '../types';
 
@@ -193,8 +193,9 @@ const BLOCKS: Partial<Record<RuinKind, number>> = { column: 0.22, columnBroken: 
 const STRIP = 0.28; // a wall's thickness (7 voxels)
 const ALTAR: [number, number] = [0.34, 0.22]; // half-sizes: along its face, and out from it
 const INNER: [number, number] = [0.5, 0.1]; // an inner wall's: along it, and through it
-const BACK = [3, 1, 2, 0]; // by quarter turns, the side (NEIGHBORS_4) its local -Z edge is on
-const LEFT = [1, 2, 0, 3]; // and its local -X edge
+// The side (NEIGHBORS_4) of its tile a piece turned `q` has its local -Z edge on, and its local -X edge.
+const back = (q: number) => sideOf(-FACINGS[q][0], -FACINGS[q][1]);
+const left = (q: number) => sideOf(-FACINGS[(q + 1) % 4][0], -FACINGS[(q + 1) % 4][1]);
 
 export function addRuinObstacles(obstacles: Obstacles, ruins: readonly Ruin[]): void {
   for (const ruin of ruins) {
@@ -202,8 +203,8 @@ export function addRuinObstacles(obstacles: Obstacles, ruins: readonly Ruin[]): 
       const across = q % 2; // turned a quarter (or three): its x and z swapped
       if (kind === 'tower') obstacles.addSolid(x, z);
       else if (kind === 'wall' || kind === 'wallBroken' || kind === 'arch' || kind === 'corner') {
-        obstacles.addFenceStrip(x, z, BACK[q], STRIP);
-        if (kind === 'corner') obstacles.addFenceStrip(x, z, LEFT[q], STRIP);
+        obstacles.addFenceStrip(x, z, back(q), STRIP);
+        if (kind === 'corner') obstacles.addFenceStrip(x, z, left(q), STRIP);
       } else if (kind === 'innerWall') obstacles.addProp(x, z, INNER[across], false, INNER[1 - across]);
       else if (kind === 'altar') obstacles.addProp(x, z, ALTAR[across], false, ALTAR[1 - across]);
       else if (BLOCKS[kind]) obstacles.addProp(x, z, BLOCKS[kind]!);

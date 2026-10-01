@@ -8,6 +8,7 @@
 // left where it would shut the way on (checked, and taken out if it does).
 
 import { hashCell, mulberry32 } from '../../util/random';
+import { FACINGS, NEIGHBORS_4, cellKey, flood } from '../map/grid';
 import { isFloor, inFullView, type CryptPlan, type Rect } from './cryptLayout';
 
 export type CryptPropKind = 'sconce' | 'niche' | 'cobweb' | 'skeleton' | 'slumped' | 'bones' | 'stones' | 'sarcophagus' | 'urns' | 'candles' | 'rubble' | 'dais' | 'greatSarcophagus';
@@ -26,7 +27,6 @@ export interface CryptProp {
 // The dead's variants: four looks, each with nothing, or a rusty sword, or a helmet and shield beside it.
 export const REMAINS = 12;
 
-const SIDES: Array<[number, number]> = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // by facing
 const SCONCE_EVERY = 6; // corridor tiles between sconces
 const SOLID: ReadonlySet<CryptPropKind> = new Set(['sarcophagus', 'urns', 'rubble', 'greatSarcophagus']);
 
@@ -45,7 +45,7 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
   };
   // A wall piece: in the rock beside a floor tile, facing it.
   const onWall = (kind: CryptPropKind, x: number, z: number, facing: number) => props.push({ kind, x, z, w: 1, d: 1, facing, solid: false, variant: Math.floor(rng() * 4) });
-  const wallsBeside = (x: number, z: number) => SIDES.map(([dx, dz], facing) => ({ x: x - dx, z: z - dz, facing })).filter((w) => !floor(w.x, w.z));
+  const wallsBeside = (x: number, z: number) => FACINGS.map(([dx, dz], facing) => ({ x: x - dx, z: z - dz, facing })).filter((w) => !floor(w.x, w.z));
   // The walls beside it that face the viewer and are always in full view (the rest fade when the hero's behind them: inFullView).
   const farWallsBeside = (x: number, z: number) => wallsBeside(x, z).filter((w) => w.facing <= 1 && inFullView(plan, w.x, w.z));
   const tilesOf = (r: Rect) => {
@@ -142,26 +142,17 @@ function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
   const solid = new Set<string>();
   const footprint = (p: CryptProp) => {
     const tiles: string[] = [];
-    for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) tiles.push(`${x},${z}`);
+    for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) tiles.push(cellKey(x, z));
     return tiles;
   };
+  let open = plan.floor.reduce((a, b) => a + b, 0); // floor tiles nothing solid stands on
   const stillOpen = (p: CryptProp) => {
-    const seen = new Set<string>();
-    const todo: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-    while (todo.length > 0) {
-      const [x, z] = todo.pop()!;
-      const k = `${x},${z}`;
-      if (!isFloor(plan, x, z) || solid.has(k) || seen.has(k)) continue;
-      seen.add(k);
-      todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-    }
-    let open = 0;
-    for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if (isFloor(plan, x, z) && !solid.has(`${x},${z}`)) open++;
+    const seen = flood([[plan.door, plan.depth - 1]], (x, z) => isFloor(plan, x, z) && !solid.has(cellKey(x, z)));
     if (seen.size !== open) return false;
     // The rock round it, where it meets the floor, still has open floor right by it.
     for (let x = p.x - 2; x < p.x + p.w + 2; x++) for (let z = p.z - 2; z < p.z + p.d + 2; z++) {
-      if (isFloor(plan, x, z) || !(isFloor(plan, x + 1, z) || isFloor(plan, x - 1, z) || isFloor(plan, x, z + 1) || isFloor(plan, x, z - 1))) continue;
-      if (![-1, 0, 1].some((dx) => [-1, 0, 1].some((dz) => seen.has(`${x + dx},${z + dz}`)))) return false;
+      if (isFloor(plan, x, z) || !NEIGHBORS_4.some(([dx, dz]) => isFloor(plan, x + dx, z + dz))) continue;
+      if (![-1, 0, 1].some((dx) => [-1, 0, 1].some((dz) => seen.has(cellKey(x + dx, z + dz))))) return false;
     }
     return true;
   };
@@ -172,9 +163,14 @@ function keepTheWayOpen(plan: CryptPlan, props: CryptProp[]): CryptProp[] {
       kept.push(p);
       continue;
     }
-    for (const k of footprint(p)) solid.add(k);
+    const tiles = footprint(p);
+    for (const k of tiles) solid.add(k);
+    open -= tiles.length;
     if (stillOpen(p)) kept.push(p);
-    else for (const k of footprint(p)) solid.delete(k);
+    else {
+      for (const k of tiles) solid.delete(k);
+      open += tiles.length;
+    }
   }
   return kept;
 }

@@ -10,6 +10,7 @@
 // the hero arriving on the floor just inside it.
 
 import { hashCell, mulberry32 } from '../../util/random';
+import { cellKey, flood } from '../map/grid';
 
 export interface Rect {
   x0: number; // first tile, inclusive
@@ -203,26 +204,12 @@ function crop(owner: Int16Array, places: CryptPlan['places'], startX: number): C
 // Rock not joined to the rock round the crypt (an island of it, left standing where the corridor and a
 // hall met round it) made floor: no block of rock stands alone in the middle of a room.
 function openIslands(floor: Uint8Array, width: number, depth: number): void {
-  const seen = new Uint8Array(width * depth);
-  const todo: number[] = [];
-  for (let x = 0; x < width; x++) for (let z = 0; z < depth; z++) {
-    const edge = x === 0 || z === 0 || x === width - 1 || z === depth - 1;
-    if (!edge || floor[x * depth + z]) continue;
-    seen[x * depth + z] = 1;
-    todo.push(x * depth + z);
-  }
-  while (todo.length > 0) {
-    const cell = todo.pop()!;
-    const [x, z] = [Math.floor(cell / depth), cell % depth];
-    for (const [nx, nz] of [[x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]]) {
-      if (nx < 0 || nz < 0 || nx >= width || nz >= depth) continue;
-      const next = nx * depth + nz;
-      if (floor[next] || seen[next]) continue;
-      seen[next] = 1;
-      todo.push(next);
-    }
-  }
-  for (let i = 0; i < floor.length; i++) if (!floor[i] && !seen[i]) floor[i] = 1;
+  const rock = (x: number, z: number) => x >= 0 && z >= 0 && x < width && z < depth && !floor[x * depth + z];
+  const edges: Array<[number, number]> = [];
+  for (let x = 0; x < width; x++) edges.push([x, 0], [x, depth - 1]);
+  for (let z = 0; z < depth; z++) edges.push([0, z], [width - 1, z]);
+  const joined = flood(edges, rock);
+  for (let x = 0; x < width; x++) for (let z = 0; z < depth; z++) if (rock(x, z) && !joined.has(cellKey(x, z))) floor[x * depth + z] = 1;
 }
 
 // Whether (x, z) (a tile) is floor.
