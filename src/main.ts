@@ -217,7 +217,8 @@ async function boot(): Promise<void> {
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
       else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
       else if (event.kind === 'rises') placeBanner(`${event.name} rises`, 'From the great tomb');
-      else if (event.kind === 'cleared') placeBanner('Crypt cleared', event.name.charAt(0).toUpperCase() + event.name.slice(1));
+      else if (event.kind === 'cleared') placeBanner('Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
+      else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them
