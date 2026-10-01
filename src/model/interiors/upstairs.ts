@@ -8,6 +8,7 @@ import type { GameEvent, Hero } from '../types';
 import type { Entrance, Room } from './interiors';
 import { bumpsFurniture, clothFor, distanceTo, type Furniture } from './furniture';
 import { layoutOf, type Inside } from './indoors';
+import { unlockLet } from '../inn/roomLetting';
 
 // Upstairs in a building (the inn): a room of its own, so no one below is
 // in it, nor any mugs on a bar; made once for each building, the same size.
@@ -49,6 +50,7 @@ export function upstairsInside(below: Entrance, room: Room, stairs: Furniture, s
   const furniture = upstairsFurniture(stairs, room);
   innerWalls(furniture, fullWalls);
   for (const f of furniture) if (f.kind === 'roomBed' || f.kind === 'doubleBed') f.cloth = clothFor(seed, below, f.x, f.z, 1); // each its own blanket
+  unlockLet(below, furniture); // (a room let at the inn: its door the hero's)
   const open = opened.get(below);
   for (const f of furniture) if (f.kind === 'hallDoor' && !f.locked && open?.has(doorKey(f))) f.open = true; // (a locked one shut, whatever was left open)
   return { entrance: upstairsOf(below), room, furniture, seated: null, below };
@@ -115,7 +117,7 @@ export function useHallDoor(model: { inside: Inside | null; hero: Hero; report?(
   return true;
 }
 
-const HALL = 2; // the hallway's width, in tiles
+export const HALL = 2; // the hallway's width, in tiles
 const DOOR_EVERY = 3; // a room's door along it, every so many tiles
 
 // Upstairs, a hallway along the left and back walls (the stairwell in it),
@@ -176,6 +178,35 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   const onSide = [...Array(room.depth - mid).keys()].map((i) => mid + i).find((z) => z !== door && z !== door + 1) ?? mid; // the front room's side wall, clear of its door
   if (frontWide) extras.push(piece2('wardrobe', 'back', HALL + 2, mid), piece2('framedPicture', 'left', HALL, onSide, 1, 1, false), piece2('bathtub', 'none', HALL + 1, room.depth - 1, 2)); // the tub a tile off the side wall, clear of the bed
   return [...walls, ...beds, ...extras];
+}
+
+// The rooms off the hallway upstairs: each its floor's tiles (the floor beyond the hallway, split by the walls between
+// them: a 'left' piece on a tile's west edge, a 'back' one on its north edge) and the doors into it.
+export function roomsOff(furniture: readonly Furniture[], room: Room): Array<{ tiles: Array<[number, number]>; doors: Furniture[] }> {
+  const walls = furniture.filter((f) => f.kind === 'hallWall' || f.kind === 'hallDoor');
+  const west = (x: number, z: number) => walls.some((f) => f.wall === 'left' && f.x === x && z >= f.z && z < f.z + f.d);
+  const north = (x: number, z: number) => walls.some((f) => f.wall === 'back' && f.z === z && x >= f.x && x < f.x + f.w);
+  const seen = new Set<string>();
+  const rooms: Array<{ tiles: Array<[number, number]>; doors: Furniture[] }> = [];
+  for (let x0 = HALL; x0 < room.width; x0++) for (let z0 = HALL; z0 < room.depth; z0++) {
+    if (seen.has(`${x0},${z0}`)) continue;
+    const tiles: Array<[number, number]> = [];
+    const todo: Array<[number, number]> = [[x0, z0]];
+    while (todo.length > 0) {
+      const [x, z] = todo.pop()!;
+      if (seen.has(`${x},${z}`)) continue;
+      seen.add(`${x},${z}`);
+      tiles.push([x, z]);
+      if (x + 1 < room.width && !west(x + 1, z)) todo.push([x + 1, z]);
+      if (x - 1 >= HALL && !west(x, z)) todo.push([x - 1, z]);
+      if (z + 1 < room.depth && !north(x, z + 1)) todo.push([x, z + 1]);
+      if (z - 1 >= HALL && !north(x, z)) todo.push([x, z - 1]);
+    }
+    const mine = new Set(tiles.map(([x, z]) => `${x},${z}`));
+    const doors = walls.filter((f) => f.kind === 'hallDoor' && Array.from({ length: f.w * f.d }, (_, i) => `${f.x + (i % f.w)},${f.z + Math.floor(i / f.w)}`).some((k) => mine.has(k)));
+    rooms.push({ tiles, doors });
+  }
+  return rooms;
 }
 
 // Takes the stairs by the hero: up to the floor above (beside the top of

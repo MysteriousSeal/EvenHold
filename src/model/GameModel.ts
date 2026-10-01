@@ -51,6 +51,7 @@ import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
+import { checkOut } from './inn/roomLetting';
 import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
 import { CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
 import { clearedShare } from './crypts/cryptLord';
@@ -227,6 +228,7 @@ export class GameModel {
     if (dt <= 0) return;
     this.minutes += dt; // a second played, a minute on the clock
     tickBlessing(this.hero, dt); // a well's, wearing off
+    checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.

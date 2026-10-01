@@ -19,6 +19,7 @@ import { maxEnergyOf, maxHpOf } from './hero/attributes';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
+import { letUntil, setLet } from './inn/roomLetting';
 import type { Shop } from './inn/tavernShop';
 import { BLESSINGS, BLESSING_TIME, WEARY_TIME, type Blessing } from './hero/blessing';
 import { FIRST_MOB_ID, type QuestBook } from './quests/questBook';
@@ -59,6 +60,7 @@ export interface SaveData {
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
   minutes?: number; // the game's clock
   doors?: Array<{ inn: number; open: string[] }>; // the doors left open upstairs, by building
+  lets?: Array<{ inn: number; until: number }>; // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
   crypts?: Array<{ crypt: string; slain: number[] }>; // each crypt's guards slain for good (by its ruin's corner, by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
@@ -117,6 +119,7 @@ export function snapshot(model: GameModel): SaveData {
     fullWalls: model.fullWalls,
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     doors: model.entrances.map((e, inn) => ({ inn, open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
+    lets: model.entrances.flatMap((e, inn) => (letUntil(e) === null ? [] : [{ inn, until: letUntil(e)! }])),
   };
 }
 
@@ -167,6 +170,10 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { inn, open } of data.doors ?? []) {
     const building = model.entrances[inn];
     if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));
+  }
+  for (const { inn, until } of Array.isArray(data.lets) ? data.lets : []) {
+    const building = typeof inn === 'number' ? model.entrances[inn] : undefined;
+    if (building && typeof until === 'number' && Number.isFinite(until)) setLet(building, until); // (before the floor upstairs is made: its door unlocked)
   }
   for (const { crypt, slain } of Array.isArray(data.crypts) ? data.crypts : []) {
     if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
