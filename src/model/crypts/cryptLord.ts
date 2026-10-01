@@ -47,12 +47,15 @@ export function clearedShare(slain: ReadonlySet<number>, guards: number): number
   return Math.min(1, count / (guards + 1));
 }
 
-// Where he rises (and his chest stands): the open floor nearest the foot of his tomb.
+// Where he rises (and his chest stands): centred at the foot of his tomb, up on its dais; else the open floor nearest.
 export function lordSpot(inside: CryptInside): { x: number; z: number } {
   const { plan, props } = inside;
   const tomb = props.find((p) => p.kind === 'greatSarcophagus')!;
-  const solid = new Set(props.filter((p) => p.solid || p.kind === 'dais').flatMap((p) => Array.from({ length: p.w * p.d }, (_, i) => cellKey(p.x + (i % p.w), p.z + Math.floor(i / p.w)))));
-  const [fx, fz] = [tomb.x + Math.floor(tomb.w / 2), tomb.z + tomb.d + 2];
+  const solid = new Set(props.filter((p) => p.solid).flatMap((p) => Array.from({ length: p.w * p.d }, (_, i) => cellKey(p.x + (i % p.w), p.z + Math.floor(i / p.w)))));
+  const [fx, fz] = [tomb.x + Math.floor(tomb.w / 2), tomb.z + tomb.d]; // (right at its foot, up on its dais)
+  const open = (x: number, z: number) => isFloor(plan, x, z) && !solid.has(cellKey(x, z));
+  const mid = tomb.x + (tomb.w - 1) / 2; // (its middle, between its tiles if it's two wide)
+  if (open(Math.floor(mid), fz) && open(Math.ceil(mid), fz)) return { x: mid, z: fz }; // centred on it
   for (let r = 0; r < 6; r++) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
     const [x, z] = [fx + dx, fz + dz];
     if (Math.max(Math.abs(dx), Math.abs(dz)) === r && isFloor(plan, x, z) && !solid.has(cellKey(x, z))) return { x, z };
