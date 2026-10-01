@@ -11,7 +11,8 @@ import { voxelIcon } from '../ui/voxelIcon';
 import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
 
-// Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin.
+// Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin;
+// and a fall's Weary, the heart greyed.
 const ICONS: Record<BlessingKind, MenuIcon> = {
   swift: (size) => voxelIcon('blessing:swift', bootModel, size),
   wise: (size) => voxelIcon('blessing:wise', bookModel, size),
@@ -20,6 +21,7 @@ const ICONS: Record<BlessingKind, MenuIcon> = {
   keen: (size) => voxelIcon('blessing:keen', eyeModel, size),
   strong: (size) => voxelIcon('blessing:strong', armModel, size),
   tough: gearIcon('heaterShield'),
+  weary: (size) => voxelIcon('blessing:second', heartModel, size), // (a fall's: the heart, greyed: hud.css)
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger
     coin.className = 'blessing-coin';
@@ -43,7 +45,7 @@ export function createBlessingHud(hero: Hero): () => void {
 
   const card = (kind: BlessingKind): Card => {
     const root = document.createElement('div');
-    root.className = 'blessing-card';
+    root.className = kind === 'weary' ? 'blessing-card blessing-bane' : 'blessing-card'; // (a fall's mark, not a well's gift)
     const tile = document.createElement('div');
     tile.className = 'blessing-hud-icon';
     tile.append(ICONS[kind](36));

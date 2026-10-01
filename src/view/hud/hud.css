@@ -408,6 +408,10 @@
 .blessing-tip { position: absolute; top: calc(100% + 16px); right: 0; padding: 5px 10px; font-size: 14px; white-space: nowrap; visibility: hidden; display: flex; flex-direction: column; gap: 2px; }
 .blessing-card:hover .blessing-tip { visibility: visible; }
 .blessing-tip b { color: #ffd35a; font-weight: 700; }
+/* A fall's Weary: its heart greyed, its time on a red pill, its name in red. */
+.blessing-bane .blessing-hud-icon canvas { filter: grayscale(1) brightness(0.8); }
+.blessing-bane .blessing-hud-time { background: #b8443a; box-shadow: inset -3px -3px 0 #7e2a22; }
+.blessing-bane .blessing-tip b { color: #ff8a7a; }
 .blessing-tip span { color: #f8ecd4; font-weight: 500; }
 .blessing-coin { width: 24px; height: 24px; background: #e0b040; border: 3px solid #2e1f14; border-radius: 6px; box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18), inset 4px 4px 0 rgb(255 255 255 / 0.35); box-sizing: border-box; }
 
