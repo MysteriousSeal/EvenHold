@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BREATH_REACH, BREATH_TELL, CHILL_FOR, caught } from '../src/model/crypts/frostBreath';
 import { makeEnemy } from '../src/model/enemies/enemies';
+import { isBane, makeChilled } from '../src/model/hero/blessing';
 import { DROP_CHANCE, LOOT, rollDrop } from '../src/model/loot/loot';
 import { ENEMY_STATS } from '../src/model/constants';
 import { landBlow } from '../src/model/hero/fighting';
@@ -12,6 +13,7 @@ import type { Enemy } from '../src/model/types';
 import { FRAME } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
+const chill = (model: GameModel) => model.hero.blessings?.find((b) => b.kind === 'chilled')?.left ?? 0; // (seconds of it left)
 // Down in a crypt, the hero and one foe of `kind` alone, side by side on open floor.
 const alone = (seed: number, kind: 'draugr' | 'skeleton') => {
   const model = new GameModel(seed, MID);
@@ -56,13 +58,13 @@ describe('draugr', () => {
       }
       if (stay) {
         expect(model.hero.hp).toBeLessThan(hp);
-        expect(model.hero.chilledFor).toBeGreaterThan(CHILL_FOR - 0.3);
+        expect(chill(model)).toBeGreaterThan(CHILL_FOR - 0.3); // (Chilled, a bane on the hero: shown as Weary is)
         expect(model.takeEvents()).toContainEqual({ kind: 'chilled' });
-        for (let t = 0; t < CHILL_FOR + 0.5; t += FRAME) model.crypt!.update(FRAME);
-        expect(model.hero.chilledFor).toBe(0);
+        for (let t = 0; t < CHILL_FOR + 0.5; t += FRAME) model.update(0, 0, FRAME);
+        expect(chill(model)).toBe(0);
       } else {
         expect(model.hero.hp).toBe(hp);
-        expect(model.hero.chilledFor ?? 0).toBe(0);
+        expect(chill(model)).toBe(0);
       }
     }
   });
@@ -71,7 +73,7 @@ describe('draugr', () => {
     const walked = (chilled: boolean) => {
       const { model, foe } = alone(4, 'skeleton');
       foe.state = 'dead';
-      model.hero.chilledFor = chilled ? 99 : 0;
+      if (chilled) makeChilled(model.hero, 99);
       const z = model.hero.z;
       for (let t = 0; t < 0.5; t += FRAME) model.update(0, -1, FRAME);
       return z - model.hero.z;
@@ -99,5 +101,13 @@ describe('draugr', () => {
     expect(draugr.length).toBeGreaterThan(skeleton.length * 1.4);
     const worth = (items: typeof draugr) => items.reduce((sum, item) => sum + LOOT[item!].value, 0) / items.length;
     expect(worth(draugr)).toBeGreaterThan(worth(skeleton) * 2);
+  });
+
+  it('chill the hero as a bane (kept through a well\'s blessing), afresh if caught again', () => {
+    const { model } = alone(4, 'skeleton');
+    expect(isBane('chilled')).toBe(true);
+    makeChilled(model.hero, 3);
+    makeChilled(model.hero, CHILL_FOR);
+    expect(model.hero.blessings!.filter((b) => b.kind === 'chilled')).toEqual([{ kind: 'chilled', left: CHILL_FOR }]);
   });
 });
