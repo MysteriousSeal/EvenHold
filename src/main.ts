@@ -101,7 +101,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
-  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, cryptLord: 0.6 }; // about two thirds of the way up them
+  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
@@ -215,6 +215,7 @@ async function boot(): Promise<void> {
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
+      else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
       else if (event.kind === 'rises') placeBanner(`${event.name} rises`, 'From the great tomb');
       else if (event.kind === 'cleared') placeBanner('Crypt cleared', event.name.charAt(0).toUpperCase() + event.name.slice(1));
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
