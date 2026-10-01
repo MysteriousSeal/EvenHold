@@ -106,7 +106,21 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
 // The door the hero can use right now: outdoors, the nearest one whose spot
 // they stand on; indoors, the room's own door when they're by it (none upstairs).
 export function doorInReach(inside: Inside | null, entrances: readonly Entrance[], hero: Hero): Entrance | null {
-  if (inside) return !inside.below && Math.abs(hero.x - inside.room.door) < 0.6 && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;
-  const near = entrances.filter((e) => Math.hypot(e.x - hero.x, e.z - hero.z) <= ENTER_RANGE);
-  return near.reduce<Entrance | null>((best, e) => (!best || Math.hypot(e.x - hero.x, e.z - hero.z) <= Math.hypot(best.x - hero.x, best.z - hero.z) ? e : best), null);
+  if (inside) {
+    const wide = inside.entrance.type === 'crypt' ? 1 : 0; // (a crypt's stairs up two tiles wide: door and door + 1)
+    const x = hero.x - inside.room.door;
+    return !inside.below && x > -0.6 && x < 0.6 + wide && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;
+  }
+  const near = entrances.filter((e) => reachOf(e, hero) <= ENTER_RANGE);
+  return near.reduce<Entrance | null>((best, e) => (!best || reachOf(e, hero) <= reachOf(best, hero) ? e : best), null);
+}
+
+// How far the hero is from a door's spot: a crypt's way down, from the nearest point along its front
+// (two tiles wide: before either of them, the way down in reach).
+function reachOf(e: Entrance, hero: Hero): number {
+  const [dx, dz] = [hero.x - e.x, hero.z - e.z];
+  if (e.type !== 'crypt') return Math.hypot(dx, dz);
+  const [ax, az] = [Math.abs(e.outZ), Math.abs(e.outX)]; // across the way down
+  const along = Math.max(-0.6, Math.min(0.6, dx * ax + dz * az));
+  return Math.hypot(dx - along * ax, dz - along * az);
 }
