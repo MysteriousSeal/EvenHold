@@ -27,6 +27,7 @@ import { axeGeometry, draugrFrame, draugrLook, longswordGeometry } from './draug
 import { BREATH_TELL } from '../../../model/crypts/frostBreath';
 import { CLEAVE_TELL } from '../../../model/crypts/cleave';
 import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
+import { isBoss } from '../../../model/enemies/enemyLevels';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4;
@@ -117,7 +118,7 @@ export class UndeadRig {
     const dressed = draugr ? draugrLook(skeleton.id) : null; // (each draugr its own way)
     this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : dressed ? draugrFrame(dressed) : SKELETON_FRAME);
     const archer = skeleton.kind === 'skeletonArcher';
-    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : draugr ? 'Draugr' : 'Skeleton'));
+    this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), skeleton.name ?? (archer ? 'Skeleton archer' : draugr ? 'Draugr' : 'Skeleton'), false, isBoss(skeleton.kind));
     this.rig.root.add(this.bar.group);
     if (archer) {
       const hand = BODIES.male.hand;

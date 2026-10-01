@@ -277,6 +277,35 @@
 .target-hud-name[data-difficulty='hard'] { color: #f0913a; }
 .target-hud-name[data-difficulty='deadly'] { color: #e8483a; }
 .target-hud .hero-hud-level { right: auto; left: -12px; } /* mirrored, on the outer corner */
+/* A boss (a crypt's lord): a gold skull badge on the portrait's top corner, a gold BOSS tag before its name. */
+.target-hud-boss {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: #e0b040;
+  border: 3px solid #2e1f14;
+  box-shadow: inset -3px -3px 0 #a8802a, inset 3px 3px 0 #ffe08a;
+  box-sizing: border-box;
+}
+.target-hud-boss-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 7px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  color: #2e1f14;
+  text-shadow: none;
+  background: #e0b040;
+  border: 2px solid #2e1f14;
+  box-shadow: inset -2px -2px 0 #a8802a;
+}
 .target-hud .hero-hud-level[data-difficulty='trivial'] { background: #9a968e; box-shadow: inset -3px -3px 0 #75726b; }
 .target-hud .hero-hud-level[data-difficulty='tough'] { background: #e0b830; box-shadow: inset -3px -3px 0 #a8862e; }
 .target-hud .hero-hud-level[data-difficulty='hard'] { background: #e07a2a; box-shadow: inset -3px -3px 0 #a8551c; }

@@ -1,10 +1,8 @@
-// The crypt's tombs and jars (cryptVoxels.ts: sarcophagus, greatSarcophagus,
-// urns), in its palette. A sarcophagus: on a stepped plinth, its sides
-// panelled (sunk panels between posts at the corners), a carved roundel on
-// each end; its lid pitched to a ridge, or flat with a cross carved on it, or
-// broken open; its corners chipped, moss at its foot. The great one: the same,
-// grander, on a taller plinth, gold along its lid, a lord carved lying on it
-// (his helmed head, his hands clasped on a sword, his shield at his feet).
+// The crypt's tombs and jars (cryptVoxels.ts: sarcophagus, urns; the great
+// tomb's its own: greatTombVoxels.ts), in its palette. A sarcophagus: on a
+// stepped plinth, its sides panelled (sunk panels between posts at the
+// corners), a carved roundel on each end; its lid pitched to a ridge, or flat
+// with a cross carved on it, or broken open; its corners chipped, moss at its foot.
 // The jars: round, turned (a foot, a full belly, a shoulder, a neck, a lipped
 // rim), a painted band round them, their mouths dark, a lid on some; now and
 // then one lying broken on its side, its shards about.
@@ -13,7 +11,7 @@ import { C, type Box } from './cryptVoxels';
 
 // A panelled body from (u0, v0) to (u1, v1), `y0` to `y1`: sunk panels along its long sides between posts,
 // a roundel carved on each end.
-function panelledBody(box: Box, u0: number, v0: number, u1: number, v1: number, y0: number, y1: number): void {
+export function panelledBody(box: Box, u0: number, v0: number, u1: number, v1: number, y0: number, y1: number): void {
   box(u0, y0, v0, u1, y1, v1, C.stone);
   const [py0, py1] = [y0 + 2, y1 - 2];
   const long = v1 - v0;
@@ -37,7 +35,7 @@ function panelledBody(box: Box, u0: number, v0: number, u1: number, v1: number, 
 }
 
 // A stepped plinth under a body from (u0, v0) to (u1, v1), `high` voxels.
-function plinth(box: Box, u0: number, v0: number, u1: number, v1: number, high: number, mossy: boolean): void {
+export function plinth(box: Box, u0: number, v0: number, u1: number, v1: number, high: number, mossy: boolean): void {
   box(u0 - 1, 0, v0 - 1, u1 + 1, high - 1, v1 + 1, C.stoneDark);
   box(u0, high - 1, v0, u1, high - 1, v1, C.stone);
   if (mossy) for (let v = v0; v <= v1; v += 3) box(u0 - 1, 0, v, u0 - 1, 1, v + 1, C.moss);
@@ -106,33 +104,6 @@ function brokenOpen(box: Box): void {
   box(26, 0, 20, 26, 0, 21, C.stoneLight);
   box(-2, 0, 36, -1, 1, 38, C.lid);
   box(23, 0, 45, 24, 0, 46, C.lid);
-}
-
-export function greatSarcophagus(box: Box): void {
-  plinth(box, 5, 5, 44, 69, 3, true);
-  box(5, 3, 5, 44, 3, 69, C.stoneLight); // a light course over the plinth
-  panelledBody(box, 6, 6, 43, 68, 4, 12);
-  // The lid: overhanging, gold along its edge.
-  box(4, 13, 4, 45, 14, 70, C.lid);
-  for (const [u0, v0, u1, v1] of [[4, 4, 45, 4], [4, 70, 45, 70], [4, 4, 4, 70], [45, 4, 45, 70]]) box(u0, 14, v0, u1, 14, v1, C.gold);
-  // The lord carved lying on it, his head toward -v: a helmed head on a cushion, shoulders, his body under a
-  // surcoat, his hands clasped on a sword laid down his length, his feet against his shield.
-  box(16, 15, 9, 33, 15, 17, C.stoneDark); // the cushion
-  box(20, 16, 10, 29, 20, 17, C.stoneLight); // the helm
-  box(21, 21, 11, 28, 21, 16, C.stone);
-  box(24, 18, 17, 25, 18, 17, C.socket); // its eye slit (toward his feet: seen from above)
-  box(15, 15, 18, 34, 18, 24, C.stoneLight); // the shoulders
-  box(17, 15, 25, 32, 17, 54, C.stoneLight); // the body
-  box(18, 18, 25, 31, 18, 54, C.stone); // the surcoat's folds
-  for (let v = 27; v < 54; v += 4) box(18, 18, v, 31, 18, v, C.stoneLight);
-  box(22, 19, 30, 27, 20, 36, C.stoneLight); // the hands, clasped
-  box(24, 19, 22, 25, 20, 29, C.gold); // the sword's hilt and pommel
-  box(20, 19, 29, 29, 19, 29, C.gold); // its crossguard
-  box(24, 19, 37, 25, 19, 56, C.iron); // its blade, down his length
-  box(17, 15, 55, 22, 18, 62, C.stoneLight); // his feet
-  box(27, 15, 55, 32, 18, 62, C.stoneLight);
-  box(18, 15, 63, 31, 21, 66, C.stone); // the shield at his feet, standing
-  box(23, 17, 62, 26, 20, 62, C.gold); // its boss
 }
 
 // A turned jar `high` voxels at (u, v) (its middle), its belly `belly` across (radius); `lid` on it.

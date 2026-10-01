@@ -11,7 +11,9 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import type { CryptPropKind } from '../../model/crypts/cryptProps';
 import { scatteredBones, slumpedAgainstTheRock, stretchedOut } from './remainsVoxels';
 import { cryptWall } from './cryptWallVoxels';
-import { greatSarcophagus, sarcophagus, urns } from './tombVoxels';
+import { sarcophagus, urns } from './tombVoxels';
+import { greatTomb } from './greatTombVoxels';
+export const BURST = 1; // the great tomb's variant once its lord's risen
 
 export const CRYPT_VOXEL = 0.04;
 export const TILE = 25; // voxels to a tile
@@ -77,7 +79,7 @@ const PROP_SIZE: Record<CryptPropKind, [number, number, number]> = {
   candles: [TILE, 16, TILE],
   rubble: [TILE, 11, TILE],
   dais: [TILE * 4, 3, TILE * 5],
-  greatSarcophagus: [TILE * 2, 23, TILE * 3],
+  greatSarcophagus: [TILE * 2, 34, TILE * 3],
 };
 
 // A prop's voxels, by kind and variant (0..3).
@@ -224,7 +226,7 @@ const PAINT: Record<CryptPropKind, (box: Box, variant: number) => void> = {
     box(3, 1, 3, TILE * 4 - 4, 2, TILE * 5 - 4, C.stone);
   },
   // The great sarcophagus (tombVoxels.ts).
-  greatSarcophagus: greatSarcophagus,
+  greatSarcophagus: (box, variant) => greatTomb(box, variant === BURST), // (greatTombVoxels.ts)
 
 };
 

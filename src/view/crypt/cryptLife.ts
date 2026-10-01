@@ -5,6 +5,10 @@
 // the slain leave on its floor.
 
 import * as THREE from 'three';
+import type { CryptInside } from '../../model/crypts/crypts';
+import type { CryptFoes } from '../../model/crypts/cryptFoes';
+import { greedyMesh } from '../meshes/voxel/greedyMesh';
+import { BURST, CRYPT_PALETTE, CRYPT_VOXEL, GLOW, cryptProp } from './cryptVoxels';
 import { glowMaterial } from '../meshes/common/glow';
 import { INDOOR_SCALE } from '../../model/constants';
 import type { GameModel } from '../../model/GameModel';
@@ -18,6 +22,9 @@ import { FrostBreathView } from './frostBreathView';
 import { ImpactView } from './impactView';
 import { CLEAVE_HALF, CLEAVE_LENGTH, CLEAVE_TELL } from '../../model/crypts/cleave';
 import { CHEST_HINGE, chestBoxGeometry, chestLidGeometry } from './chestVoxels';
+
+// Whether a crypt's great tomb is burst: its lord's risen from it (or been slain, and gone).
+export const tombBurst = (crypt: CryptFoes | null): boolean => !!crypt && (crypt.lord !== null || crypt.chest !== null);
 
 const ARROW_HEIGHT = 0.3 * INDOOR_SCALE; // about a bowman's chest
 const AXE_REACH = 1.45; // tiles before a draugr its axe's head strikes the floor, cleaving (skeletonRig.ts: its swing)
@@ -44,7 +51,13 @@ export class CryptLife {
   private readonly impacts: ImpactView; // where a cleave comes down: chips, dust
   private readonly landed = new WeakSet<object>(); // the cleaves already come down
 
-  constructor(private readonly scene: THREE.Scene) {
+  private tomb: { burst: boolean; meshes: THREE.Mesh[] } | null = null; // the great tomb, whole or burst
+  private readonly tombMaterials = [new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false })]; // (its stone lit, its flames aglow)
+
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly inside: CryptInside,
+  ) {
     this.enemies = new EnemyViews(scene, INDOOR_SCALE);
     this.loot = new LootViews(scene, INDOOR_SCALE);
     this.coins = new CoinViews(scene, INDOOR_SCALE);
@@ -63,6 +76,8 @@ export class CryptLife {
     this.enemies.update(model.foes, hero.x, hero.z, dt, model.focused?.id ?? null);
     this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
     this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
+    // The great tomb: whole till its lord's risen (or slain, and gone), burst after.
+    this.showTomb(tombBurst(crypt));
     // The lord's slam, told.
     const slam = crypt?.slams.moves[0] ?? null;
     this.ring.visible = this.zone.visible = !!slam;
@@ -124,7 +139,30 @@ export class CryptLife {
     });
   }
 
+  // The great tomb, drawn whole or burst (afresh as it changes): centred on its tiles as any prop.
+  private showTomb(burst: boolean): void {
+    if (this.tomb?.burst === burst) return;
+    for (const mesh of this.tomb?.meshes ?? []) {
+      mesh.removeFromParent();
+      mesh.geometry.dispose();
+    }
+    const prop = this.inside.props.find((p) => p.kind === 'greatSarcophagus');
+    if (!prop) return void (this.tomb = { burst, meshes: [] });
+    const grid = cryptProp('greatSarcophagus', burst ? BURST : 0);
+    const [sx, , sz] = grid.size;
+    const origin = new THREE.Vector3((-sx / 2) * CRYPT_VOXEL, 0, (-sz / 2) * CRYPT_VOXEL);
+    const meshes = this.tombMaterials.map((material, glow) => {
+      const mesh = new THREE.Mesh(greedyMesh(grid, CRYPT_PALETTE, CRYPT_VOXEL, origin, (c) => GLOW.has(c) === (glow === 1)), material);
+      mesh.position.set(prop.x + (prop.w - 1) / 2, 0, prop.z + (prop.d - 1) / 2);
+      this.scene.add(mesh);
+      return mesh;
+    });
+    this.tomb = { burst, meshes };
+  }
+
   dispose(): void {
+    for (const mesh of this.tomb?.meshes ?? []) mesh.geometry.dispose();
+    for (const material of this.tombMaterials) material.dispose();
     for (const arrow of this.arrows) arrow.removeFromParent();
     this.frost.dispose();
     this.impacts.dispose();

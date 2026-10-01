@@ -57,6 +57,9 @@ export const PARTS: Record<BodyPart, (grid: VoxelGrid) => void> = {
   },
 };
 
+// A boss's mark (on the target panel's gold badge, the bar's over its head): the skull, white.
+export const bossSkull = () => ({ grid: buildSkull(), palette: [0xffffff, 0xdcd8cc, 0xa09a8e, 0x1c1612] });
+
 // The skull alone (a portrait's).
 export function buildSkull(): VoxelGrid {
   const grid = createGrid(BODIES.male.grid.head);

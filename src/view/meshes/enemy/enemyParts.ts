@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
 import { INK, nameLabel } from '../common/overhead';
+import { voxelIcon } from '../../ui/voxelIcon';
+import { bossSkull } from './skeletonVoxels';
 
 const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const PIECES = 30;
@@ -34,6 +36,17 @@ const DANGER_INK: Record<Difficulty, string> = { trivial: '#b4b0a8', even: INK, 
 let heroLevel = 1; // the hero's, for the levels' colours (EnemyViews sets it each frame)
 export const setBarHeroLevel = (level: number) => void (heroLevel = level);
 
+// A boss's mark over its head: the white skull (skeletonVoxels.ts), drawn once, over everything as the names are.
+let bossMaterial: THREE.SpriteMaterial | null = null;
+function bossMark(): THREE.SpriteMaterial {
+  if (!bossMaterial) {
+    const texture = new THREE.CanvasTexture(voxelIcon('boss-skull-white', bossSkull, 64));
+    texture.colorSpace = THREE.SRGBColorSpace;
+    bossMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
+  }
+  return bossMaterial;
+}
+
 export class HealthBar {
   readonly group = new THREE.Group();
   private blocks: THREE.Mesh[] = [];
@@ -41,14 +54,21 @@ export class HealthBar {
   private shown = ''; // the level and colour it shows (made afresh when either changes)
   private nameWidth = 0; // the name's, to set the level beside it
 
-  // `name`, if given, floats just above the bar; `passive`, the bar's yellow.
-  constructor(height: number, name?: string, private readonly passive = false) {
+  // `name`, if given, floats just above the bar; `passive`, the bar's yellow; `boss`, a white skull right of the name.
+  constructor(height: number, name?: string, private readonly passive = false, boss = false) {
     this.group.position.y = height;
     if (name) {
       const label = nameLabel(name);
       label.position.y = NAME_Y;
       this.nameWidth = label.scale.x;
       this.group.add(label);
+    }
+    if (boss) {
+      const mark = new THREE.Sprite(bossMark());
+      mark.scale.set(NAME_HEIGHT * 1.2, NAME_HEIGHT * 1.2, 1);
+      mark.position.set(this.nameWidth / 2 + LEVEL_GAP + NAME_HEIGHT * 0.6, NAME_Y, 0);
+      mark.renderOrder = 10;
+      this.group.add(mark);
     }
   }
 

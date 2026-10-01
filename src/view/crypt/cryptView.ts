@@ -73,8 +73,8 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
   }
   // The stairs up at the door, across the corridor's two tiles.
   place('stairs', stairsUp, plan.door + 0.5, -CRYPT_VOXEL, plan.depth);
-  // The tombs and the rest, each centred on its tiles, turned as it faces.
-  for (const p of props) place(`${p.kind}:${p.variant}`, () => cryptProp(p.kind, p.variant), p.x + (p.w - 1) / 2, 0, p.z + (p.d - 1) / 2, turnsOf(p));
+  // The tombs and the rest, each centred on its tiles, turned as it faces (but the great tomb: cryptLife.ts, as it bursts).
+  for (const p of props) if (p.kind !== 'greatSarcophagus') place(`${p.kind}:${p.variant}`, () => cryptProp(p.kind, p.variant), p.x + (p.w - 1) / 2, 0, p.z + (p.d - 1) / 2, turnsOf(p));
 
   const matrix = new THREE.Matrix4();
   const turn = new THREE.Quaternion();

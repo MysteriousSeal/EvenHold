@@ -6,11 +6,11 @@ import type { Enemy, EnemyKind } from '../../model/types';
 import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
-import { SKELETON_PALETTE, buildSkull } from '../meshes/enemy/skeletonVoxels';
+import { SKELETON_PALETTE, bossSkull, buildSkull } from '../meshes/enemy/skeletonVoxels';
 import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
 import { DRAUGR_PALETTE, buildDraugrHead, draugrLook } from '../meshes/enemy/draugrVoxels';
 import { ENEMY_STATS } from '../../model/constants';
-import { difficulty } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
+import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { voxelIcon } from '../ui/voxelIcon';
 
 const PORTRAIT_SIZE = 84; // as the hero's
@@ -62,7 +62,22 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
     if (enemy.id !== shownId) {
       shownId = enemy.id;
       name.textContent = enemy.name ?? NAMES[enemy.kind];
-      frame.querySelector('canvas')?.remove();
+      // A boss: a gold BOSS tag before its name, a gold skull badge on its portrait's corner.
+      const boss = isBoss(enemy.kind);
+      if (boss) {
+        const tag = document.createElement('span');
+        tag.className = 'target-hud-boss-tag';
+        tag.textContent = 'Boss';
+        name.prepend(tag);
+      }
+      frame.querySelector('.target-hud-boss')?.remove();
+      if (boss) {
+        const badge = document.createElement('div');
+        badge.className = 'target-hud-boss';
+        badge.append(voxelIcon('boss-skull-white', bossSkull, 28)); // (a white skull on the gold)
+        frame.append(badge);
+      }
+      frame.querySelector(':scope > canvas')?.remove(); // (the portrait's own: never the boss badge's)
       frame.prepend(portrait(enemy));
       levelGem.textContent = String(enemy.level);
     }

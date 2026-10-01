@@ -348,7 +348,7 @@ export class GameView {
     if (!this.room) {
       // A crypt's its own (crypt/cryptView.ts); a building's room built from its room and furniture (upstairs: no door).
       const built = inside.entrance.type === 'crypt' ? buildCryptScene(cryptInside(model.seed, inside.entrance)) : buildRoomScene(inside.room, inside.furniture, !inside.below);
-      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built, life: inside.entrance.type === 'crypt' ? new CryptLife(built.scene) : null };
+      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built, life: inside.entrance.type === 'crypt' ? new CryptLife(built.scene, cryptInside(model.seed, inside.entrance)) : null };
     }
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
