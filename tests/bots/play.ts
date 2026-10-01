@@ -2,11 +2,12 @@
 // in BOT_SEEDS gets its own world and a bot playing it for BOT_MINUTES of
 // game time, checked once a game second; a line of JSON per bot, when done.
 import { GameModel } from '../../src/model/GameModel';
+import { DEFAULT_MAP_SIZE } from '../../src/model/map/grid';
 import { mulberry32 } from '../../src/util/random';
 import { Bot } from './bot';
 import { Checks, type Problem } from './checks';
 
-const SIZE = { width: 512, depth: 512 };
+const SIZE = DEFAULT_MAP_SIZE; // the game's own, full size
 const DT = 1 / 30; // a frame at 30 fps
 const MAX_PER_KIND = 5; // problems of one kind kept per bot (the rest just counted)
 const VERBOSE = process.env.BOT_VERBOSE === '1'; // what each bot's up to, as it goes, a line at a time (LOG lines)

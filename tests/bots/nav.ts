@@ -114,24 +114,29 @@ export class Nav {
     const STEP = 0.5;
     const [w, d] = [this.model.size.width / STEP, this.model.size.depth / STEP];
     const free = (x: number, z: number) => !this.model.isBlocked(x, z, HERO_RADIUS);
-    const at = (cell: number): Point => ({ x: Math.floor(cell / d) * STEP, z: (cell % d) * STEP });
-    const came = new Int32Array(w * d).fill(-1);
-    const queue = new Int32Array(w * d);
-    let [head, tail] = [0, 0];
     const { hero } = this.model;
-    // From the lattice points round the hero they can walk straight to.
     const [hi, hj] = [Math.round(hero.x / STEP), Math.round(hero.z / STEP)];
-    // Within the box round the hero and the goal, a good way out each side (round a lake, say): not the whole map every time.
-    const MARGIN = 80 / STEP;
     const [gi, gj] = [Math.round(to.x / STEP), Math.round(to.z / STEP)];
-    const box = { i0: Math.max(2, Math.min(hi, gi) - MARGIN), j0: Math.max(2, Math.min(hj, gj) - MARGIN), i1: Math.min(w - 3, Math.max(hi, gi) + MARGIN), j1: Math.min(d - 3, Math.max(hj, gj) + MARGIN) };
+    // Within the box round the hero and the goal, a good way out each side (round a lake, say): not the whole map.
+    const MARGIN = 80 / STEP;
+    const [i0, j0] = [Math.max(2, Math.min(hi, gi) - MARGIN), Math.max(2, Math.min(hj, gj) - MARGIN)];
+    const [i1, j1] = [Math.min(w - 3, Math.max(hi, gi) + MARGIN), Math.min(d - 3, Math.max(hj, gj) + MARGIN)];
+    const bd = j1 - j0 + 1;
+    const cells = (i1 - i0 + 1) * bd;
+    const index = (i: number, j: number) => (i - i0) * bd + (j - j0);
+    const at = (cell: number): Point => ({ x: (i0 + Math.floor(cell / bd)) * STEP, z: (j0 + (cell % bd)) * STEP });
+    const came = new Int32Array(cells).fill(-1);
+    const queue = new Int32Array(cells);
+    let [head, tail] = [0, 0];
+    // From the lattice points round the hero they can walk straight to.
     for (let di = -2; di <= 2; di++) {
       for (let dj = -2; dj <= 2; dj++) {
-        const cell = (hi + di) * d + (hj + dj);
-        const p = at(cell);
+        const [i, j] = [hi + di, hj + dj];
+        if (i < i0 || j < j0 || i > i1 || j > j1) continue;
+        const p = { x: i * STEP, z: j * STEP };
         if (!free(p.x, p.z) || !clearLine(hero, p, free, 0.1)) continue;
-        came[cell] = cell; // (a start: comes from itself)
-        queue[tail++] = cell;
+        came[index(i, j)] = index(i, j); // (a start: comes from itself)
+        queue[tail++] = index(i, j);
       }
     }
     while (head < tail) {
@@ -142,14 +147,14 @@ export class Nav {
         for (let c = cell; came[c] !== c; c = came[c]) way.push(at(c));
         return way.reverse();
       }
-      const [i, j] = [Math.floor(cell / d), cell % d];
+      const [i, j] = [i0 + Math.floor(cell / bd), j0 + (cell % bd)];
       for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const [ni, nj] = [i + di, j + dj];
-        if (ni < box.i0 || nj < box.j0 || ni > box.i1 || nj > box.j1 || came[ni * d + nj] >= 0) continue;
+        if (ni < i0 || nj < j0 || ni > i1 || nj > j1 || came[index(ni, nj)] >= 0) continue;
         const [nx, nz] = [ni * STEP, nj * STEP];
         if (!free(nx, nz) || !free((p.x + nx) / 2, (p.z + nz) / 2)) continue;
-        came[ni * d + nj] = cell;
-        queue[tail++] = ni * d + nj;
+        came[index(ni, nj)] = cell;
+        queue[tail++] = index(ni, nj);
       }
     }
     return null;

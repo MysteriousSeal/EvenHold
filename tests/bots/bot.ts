@@ -227,7 +227,8 @@ export class Bot extends BotSteps {
         return [() => this.errands.giveUp()];
       default: {
         // Explore: somewhere open a way off (a village now and then).
-        const far = this.rng() < 0.3 ? this.model.villages[Math.floor(this.rng() * this.model.villages.length)] : null;
+        const within = this.model.villages.filter((v) => Math.hypot(v.x - hero.x, v.z - hero.z) < 250); // (a day's walk, not across the whole map)
+        const far = this.rng() < 0.3 ? (within[Math.floor(this.rng() * within.length)] ?? null) : null;
         const to = far ?? openNear(this.model, this.rng, hero.x + (this.rng() - 0.5) * 60, hero.z + (this.rng() - 0.5) * 60);
         return to ? [this.walk(() => to, 1.5)] : [];
       }
