@@ -8,7 +8,8 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const worlds = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));
 const inside = (r: Ruin, x: number, z: number) => x >= r.x && x < r.x + r.w && z >= r.z && z < r.z + r.d;
-const SOLID = new Set(['wall', 'wallBroken', 'arch', 'corner', 'tower', 'innerWall', 'altar']);
+const SOLID = new Set(['tower', 'innerWall', 'altar']); // blocking in their tile's middle
+const WALLS = new Set(['wall', 'wallBroken', 'arch', 'corner']); // blocking along its back edge, as thick as their stone
 
 describe('ruins in every test world', () => {
   it('stand one to a world (the test worlds are smaller than a region), 10 to 15 tiles a side', () => {
@@ -51,6 +52,12 @@ describe('ruins in every test world', () => {
           expect(p.variant).toBeGreaterThanOrEqual(0);
           expect(p.variant).toBeLessThan(4);
           if (SOLID.has(p.kind)) expect(model.isBlocked(p.x, p.z, 0.05), `${p.kind} lets through`).toBe(true);
+          if (WALLS.has(p.kind)) {
+            // Blocks at its stone, along its back edge (turned as it stands); walked right up to, inside.
+            const [bx, bz] = [-Math.sin((p.quarterTurns * Math.PI) / 2), -Math.cos((p.quarterTurns * Math.PI) / 2)].map(Math.round);
+            expect(model.isBlocked(p.x + bx * 0.36, p.z + bz * 0.36, 0.05), `${p.kind} lets through`).toBe(true);
+            expect(model.isBlocked(p.x + bx * 0.05, p.z + bz * 0.05, 0.12), `${p.kind} blocks short of its stone`).toBe(false);
+          }
           if (p.kind === 'floor') expect(model.isBlocked(p.x, p.z, 0.1), 'a floor blocks').toBe(false);
         }
         expect(r.pieces.some((p) => ['wall', 'wallBroken', 'arch'].includes(p.kind))).toBe(true);
