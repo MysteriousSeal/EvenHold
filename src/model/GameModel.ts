@@ -366,7 +366,7 @@ export class GameModel {
     this.yard = null;
     const { room, furniture } = layoutOf(this.seed, entrance);
     const crypt = entrance.type === 'crypt' ? cryptInside(this.seed, entrance) : null;
-    this.inside = { entrance, room, furniture, seated: null, ...(crypt && { walls: (x: number, z: number, r: number) => cryptBlocks(crypt, x, z, r) }) };
+    this.inside = { entrance, room, furniture, seated: null, ...(crypt && { walls: (x: number, z: number, r: number) => cryptBlocks(crypt, x, z, r), exitAt: () => this.below?.run.exitOpen ?? null }) };
     if (crypt) this.events.push({ kind: 'arrive', name: crypt.crypt.name, level: crypt.crypt.level }); // (its name and level, as the hero comes down)
     this.below = crypt && this.goDown(crypt);
     this.outdoors.seated = null;

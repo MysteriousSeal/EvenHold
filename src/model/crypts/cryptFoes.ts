@@ -107,6 +107,23 @@ export function guardPosts(seed: number, inside: CryptInside): Post[] {
   return posts;
 }
 
+// Where a crypt's way out stands (its door, in the rock): in its great hall's back wall (low z) right behind the
+// great tomb, centred on it; else in a back corner; its floor before it open, either way; else none.
+export function exitDoor(inside: CryptInside): { x: number; z: number } | null {
+  const great = inside.plan.places.find((p) => p.kind === 'great');
+  if (!great) return null;
+  const solid = new Set(inside.props.filter((p) => p.solid || p.kind === 'dais').flatMap((p) => tilesOf(p.x, p.z, p.x + p.w - 1, p.z + p.d - 1)));
+  const fits = (x: number) => !isFloor(inside.plan, x, great.z0 - 1) && isFloor(inside.plan, x, great.z0) && !solid.has(cellKey(x, great.z0));
+  // Right behind the great tomb, centred on it (between its tiles, it being two wide), the floor behind it its step.
+  const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus');
+  if (tomb && [tomb.x, tomb.x + tomb.w - 1].every(fits)) return { x: tomb.x + (tomb.w - 1) / 2, z: great.z0 - 1 };
+  for (const x of [great.x0 + 1, great.x1 - 1, great.x0, great.x1]) {
+    const [rock, floor] = [{ x, z: great.z0 - 1 }, { x, z: great.z0 }];
+    if (!isFloor(inside.plan, rock.x, rock.z) && isFloor(inside.plan, floor.x, floor.z) && !solid.has(cellKey(floor.x, floor.z))) return rock;
+  }
+  return null;
+}
+
 // A crypt's key, for its record of the slain: its ruin's corner.
 export const cryptKey = (crypt: { ruin: { x: number; z: number } }): string => `${crypt.ruin.x},${crypt.ruin.z}`;
 
@@ -165,6 +182,7 @@ export class CryptFoes {
     this.guards = posts.length;
     this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [this.standing(makeEnemy(CRYPT_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.crypt.level))]));
     if (slain.has(LORD_POST)) this.chest = { ...lordSpot(inside), open: slain.has(CHEST_POST) };
+    this.exit = exitDoor(inside);
     const ground: Ground = {
       isBlocked: (x, z, r) => cryptBlocks(inside, x, z, r),
       blocksSight: (x, z) => !isFloor(this.plan, Math.round(x), Math.round(z)),
@@ -282,6 +300,13 @@ export class CryptFoes {
     if (this.share === 1) told.push({ kind: 'cleared', name: this.inside.crypt.name, point });
     return told;
   }
+
+  // The way out at the great hall's far end: a door in the rock behind the great tomb (exitDoor), opened when its
+  // lord's slain; where to stand for it (or null, shut).
+  get exitOpen(): { x: number; z: number } | null {
+    return this.slain.has(LORD_POST) && this.exit ? { x: this.exit.x, z: this.exit.z + 1 } : null;
+  }
+  readonly exit: { x: number; z: number } | null; // the door's tile, in the rock
 
   // His chest, if the hero's at it and it's not opened yet.
   chestInReach(hero: { x: number; z: number }): boolean {

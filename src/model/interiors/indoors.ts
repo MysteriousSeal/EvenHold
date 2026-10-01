@@ -20,6 +20,7 @@ export interface Inside {
   seated: Seated;
   below?: Entrance; // upstairs: the building it's the upper floor of
   walls?: (x: number, z: number, r: number) => boolean; // what else blocks, past the room's bounds and furniture (a crypt's rock and tombs)
+  exitAt?: () => { x: number; z: number } | null; // a way out besides its door, where to stand for it (a crypt's, at its far end: crypts/cryptFoes.ts), if open
 }
 
 // Where the hero's sitting (or lying), and the spot they sat down from; null standing.
@@ -105,8 +106,12 @@ export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {
 
 // The door the hero can use right now: outdoors, the nearest one whose spot
 // they stand on; indoors, the room's own door when they're by it (none upstairs).
+const EXIT_REACH = 0.8; // tiles from a way out's spot (exitAt) it's in reach
+
 export function doorInReach(inside: Inside | null, entrances: readonly Entrance[], hero: Hero): Entrance | null {
   if (inside) {
+    const exit = inside.exitAt?.(); // (a crypt's way out, at the far end, once its lord's slain)
+    if (exit && Math.hypot(hero.x - exit.x, hero.z - exit.z) < EXIT_REACH) return inside.entrance;
     const wide = inside.entrance.type === 'crypt' ? 1 : 0; // (a crypt's stairs up two tiles wide: door and door + 1)
     const x = hero.x - inside.room.door;
     return !inside.below && x > -0.6 && x < 0.6 + wide && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;

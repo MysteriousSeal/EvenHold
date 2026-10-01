@@ -105,8 +105,11 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
       put('candles', place.x1, place.z1);
       for (const [x, z] of tilesOf(place)) if (rng() < 0.05) theDead(x, z);
     }
-    // In the rooms' walls, niches of skulls every other tile or so.
-    for (const [x, z] of byWall(place)) for (const wall of farWallsBeside(x, z)) if (rng() < 0.3 && !props.some((p) => p.x === wall.x && p.z === wall.z)) onWall('niche', wall.x, wall.z, wall.facing);
+    // In the rooms' walls, niches of skulls every other tile or so; none in the wall behind the great tomb (the way
+    // out's, opened there: cryptFoes.ts, exitDoor).
+    const tomb = place.kind === 'great' ? props.find((p) => p.kind === 'greatSarcophagus') : undefined;
+    const behindTomb = (x: number, z: number) => !!tomb && z === place.z0 - 1 && x >= tomb.x - 1 && x <= tomb.x + tomb.w;
+    for (const [x, z] of byWall(place)) for (const wall of farWallsBeside(x, z)) if (rng() < 0.3 && !behindTomb(wall.x, wall.z) && !props.some((p) => p.x === wall.x && p.z === wall.z)) onWall('niche', wall.x, wall.z, wall.facing);
   }
   // Cobwebs in the far inner corners (floor with rock on its -x and -z sides: those seen).
   for (let x = 0; x < plan.width; x++) {
