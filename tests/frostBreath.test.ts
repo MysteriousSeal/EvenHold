@@ -45,11 +45,11 @@ describe('draugr', () => {
       const { model, foe } = alone(4, 'draugr');
       const frost = model.crypt!.frost;
       foe.cooldown = 99; // (no axe blows: the breath alone)
-      for (let t = 0; t < 8 && frost.breaths.length === 0; t += FRAME) {
+      for (let t = 0; t < 8 && frost.moves.length === 0; t += FRAME) {
         foe.cooldown = 99;
         model.crypt!.update(FRAME);
       }
-      const breath = frost.breaths[0];
+      const breath = frost.moves[0];
       expect(breath).toBeDefined();
       if (!stay) Object.assign(model.hero, { x: breath.x - breath.dx * 1.5, z: breath.z - breath.dz * 1.5 }); // (behind it)
       const hp = model.hero.hp;
@@ -132,13 +132,13 @@ describe('draugr', () => {
         foe.cooldown = 99;
         Object.assign(model.hero, { x: foe.x, z: foe.z - 1.2 });
         crypt.update(FRAME);
-        cleave = crypt.cleaves.cleaves[0] ?? null;
-        expect(crypt.cleaves.cleaving(foe) && crypt.frost.breaths.some((b) => b.draugr === foe)).toBe(false); // (one or the other)
+        cleave = crypt.cleaves.moves[0] ?? null;
+        expect(crypt.cleaves.doing(foe) && crypt.frost.moves.some((b) => b.foe === foe)).toBe(false); // (one or the other)
       }
       expect(cleave).not.toBeNull();
       expect(foe.told).toBe('cleave');
       if (!stay) Object.assign(model.hero, { x: cleave!.x + cleave!.dz * 1.2, z: cleave!.z - cleave!.dx * 1.2 }); // (aside)
-      crypt.frost.breaths.length = 0;
+      crypt.frost.moves.length = 0;
       const [hp, at] = [model.hero.hp, { x: model.hero.x, z: model.hero.z }];
       for (let t = 0; t < CLEAVE_TELL + 0.1; t += FRAME) {
         foe.cooldown = 99;
@@ -157,15 +157,15 @@ describe('draugr', () => {
     const { model, foe } = alone(4, 'draugr');
     const crypt = model.crypt!;
     Object.assign(model.hero, { x: foe.x, z: foe.z + 1.2 });
-    for (let t = 0; t < 10 && crypt.cleaves.cleaves.length === 0; t += FRAME) {
+    for (let t = 0; t < 10 && crypt.cleaves.moves.length === 0; t += FRAME) {
       foe.cooldown = 99;
       crypt.update(FRAME);
     }
-    crypt.frost.breaths.length = 0;
+    crypt.frost.moves.length = 0;
     const hp = model.hero.hp;
     foe.hurtFor = 0.25; // (struck)
     crypt.update(FRAME);
-    expect(crypt.cleaves.cleaves).toHaveLength(0);
+    expect(crypt.cleaves.moves).toHaveLength(0);
     expect(foe.told).toBeNull();
     for (let t = 0; t < CLEAVE_TELL; t += FRAME) {
       foe.cooldown = 99;

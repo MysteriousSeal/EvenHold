@@ -74,7 +74,7 @@ describe('a crypt\'s lord', () => {
         lord.cooldown = 99;
         Object.assign(model.hero, { x: lord.x + 1.2, z: lord.z });
         model.update(0, 0, FRAME);
-        slam = model.crypt!.lord!.slam;
+        slam = (model.crypt!.slams.moves[0] ?? null);
       }
       expect(slam).not.toBeNull();
       if (!stay) Object.assign(model.hero, { x: slam!.x + SLAM_RADIUS + 0.5, z: slam!.z });

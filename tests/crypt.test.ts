@@ -110,6 +110,7 @@ describe('crypts', () => {
     expect(model.inside?.entrance).toBe(crypt.entrance);
     expect(model.takeEvents()).toContainEqual({ kind: 'arrive', name: crypt.name, level: crypt.level });
     const { plan } = cryptInside(model.seed, crypt.entrance);
+    model.godMode = true; // (the walking's what's looked at: the guards on the way never felling the hero: cryptFoes.test.ts for them)
     const start = { x: model.hero.x, z: model.hero.z };
     for (let t = 0; t < 6; t += FRAME) {
       model.update(0, -1, FRAME); // on up the corridor
