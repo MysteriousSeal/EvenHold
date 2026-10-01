@@ -21,52 +21,28 @@ import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
-import { Nav, heroState, nearestBoard, nearestDoor, openNear, standableNear } from './nav';
+import { heroState, nearestBoard, nearestDoor, openNear } from './nav';
 import { Errands, power, type Status } from './errands';
+import { BotSteps, type Report, type Step } from './botSteps';
 
-type Step = (dt: number) => Status;
-type Report = (kind: string, detail: string) => void;
+export type { BotStats } from './botSteps';
 
-export interface BotStats {
-  kills: number;
-  deaths: number;
-  levels: number;
-  questsTaken: number;
-  questsDone: number;
-  ales: number;
-  pies: number;
-  meals: number;
-  sleeps: number;
-  trades: number;
-  buildings: number;
-  upstairs: number;
-  benches: number;
-  wishes: number;
-  goals: Record<string, number>;
-}
-
-
-export class Bot {
-  readonly stats: BotStats = { kills: 0, deaths: 0, levels: 0, questsTaken: 0, questsDone: 0, ales: 0, pies: 0, meals: 0, sleeps: 0, trades: 0, buildings: 0, upstairs: 0, benches: 0, wishes: 0, goals: {} };
-  private readonly nav: Nav;
+export class Bot extends BotSteps {
   private steps: Step[] = [];
-  private goal = 'none';
-  private move: [number, number] = [0, 0];
   private rng: () => number;
   private lastHp: number;
-  private readonly shunned = new Set<Enemy>(); // foes found out of reach (across water, say): let be
-  private defense: Step | null = null;
-  private readonly skipped = new Set<unknown>(); // loot it couldn't get at: let be
+  private defense: Step | null = null; // fighting off a foe that's set on the hero, whatever else was going on
+  private readonly dry = new Map<Entrance, number>(); // inns with none of what it wanted: till when (game seconds) it doesn't go back
   private plans: number[] = []; // when it last planned (game seconds), to catch it going round in circles
-  private readonly errands: Errands; // fighting off a foe that's set on the hero, whatever else was going on
+  private readonly errands: Errands;
 
   constructor(
-    private readonly model: GameModel,
-    private readonly report: Report,
+    model: GameModel,
+    report: Report,
     rng: () => number,
     private readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (npm run bots:verbose)
   ) {
-    this.nav = new Nav(model);
+    super(model, report);
     this.errands = new Errands(model, report, this.stats, rng);
     this.rng = rng;
     this.lastHp = model.hero.hp;
@@ -89,11 +65,15 @@ export class Bot {
     for (const e of this.model.takeEvents()) if (e.kind === 'hit' && e.on !== 'hero' && !(e.amount > 0)) this.report('blow for nothing', `${e.on}: ${e.amount}`);
   }
 
-  // A foe at the hero's heels (chasing, close): fought off first, to the end.
+  // A foe at the hero's heels (chasing, close), or one of a herd it's hemmed in by: fought off first, to the end.
   private defend(): void {
     if (this.model.inside || (this.defense && this.steps[0] === this.defense)) return;
     const { hero } = this.model;
-    const foe = this.model.enemies.find((e) => e.state === 'chase' && !this.shunned.has(e) && Math.hypot(e.x - hero.x, e.z - hero.z) < 1.8);
+    const near = (e: Enemy) => Math.hypot(e.x - hero.x, e.z - hero.z);
+    const foe =
+      this.model.enemies.find((e) => e.state === 'chase' && near(e) < 1.8 && (!this.shunned.has(e) || near(e) < 1)) ?? // (one let be, but on the hero now: fought)
+      (this.nav.stillFor > 2 ? this.model.enemies.find((e) => e.state !== 'dead' && near(e) < ATTACK_REACH + ENEMY_STATS[e.kind].radius) : undefined); // (hemmed in by a herd: through them)
+    if (foe) this.shunned.delete(foe);
     if (!foe) return;
     this.defense = this.fight(foe, true);
     this.steps.unshift(this.defense);
@@ -165,13 +145,14 @@ export class Bot {
 
   private stepsFor(goal: string, { foe, loot, done, going }: { foe: Enemy | null; loot?: { x: number; z: number }; done?: string; going?: string }): Step[] {
     const { hero, quests } = this.model;
-    const inn = () => nearestDoor(this.model, 'inn');
+    const dry = (e: Entrance) => (this.dry.get(e) ?? -1) > this.model.minutes; // (no ale to be had there, a while)
+    const inn = () => nearestDoor(this.model, 'inn', goal === 'heal' ? dry : undefined);
     switch (goal) {
       case 'leave':
         return this.leave();
       case 'heal': {
         const here = this.model.inside;
-        const atInn = here?.entrance.type === 'inn';
+        const atInn = here?.entrance.type === 'inn' && !dry(here.entrance);
         const getThere = atInn ? (here.below ? this.leave().slice(0, 1) : []) : [...this.leave(), ...this.enter(inn())]; // (upstairs: down first)
         return [...getThere, ...this.atTheBar('ale'), ...this.leave()];
       }
@@ -247,39 +228,6 @@ export class Bot {
 
   // Steps.
 
-  private walk(to: () => { x: number; z: number }, near: number): Step {
-    return (dt) => {
-      const target = to();
-      const { dx, dz, state } = this.nav.toward(target, near, dt);
-      this.move = [dx, dz];
-      if (state === 'there') return 'ok';
-      if (state === 'stuck') {
-        const { hero, inside } = this.model;
-        if (Math.hypot(target.x - hero.x, target.z - hero.z) < 1.5) return 'fail'; // (the last bit: up to what asked for it)
-        const hemmed = heroState(this.model).includes('against');
-        this.report(hemmed ? 'hero hemmed in by villagers' : 'hero stuck', `${this.goal}: at ${hero.x.toFixed(2)},${hero.z.toFixed(2)} ${inside ? `in the ${inside.entrance.type}${inside.below ? ' upstairs' : ''}` : 'outdoors'}, going to ${target.x.toFixed(2)},${target.z.toFixed(2)}${heroState(this.model)}`);
-        return 'fail';
-      }
-      return state === 'no way' ? 'fail' : 'run';
-    };
-  }
-
-  private wait(seconds: number): Step {
-    let t = 0;
-    return (dt) => ((t += dt) >= seconds ? 'ok' : 'run');
-  }
-
-  // Waits for `done`, at most `seconds`; past it, `problem` (a report) if given.
-  private until(done: () => boolean, seconds: number, problem?: string): Step {
-    let t = 0;
-    return (dt) => {
-      if (done()) return 'ok';
-      if ((t += dt) < seconds) return 'run';
-      if (problem) this.report(problem, `${this.goal} after ${seconds} s`);
-      return 'fail';
-    };
-  }
-
   private enter(door: Entrance | null): Step[] {
     if (!door) return [() => 'fail'];
     return [
@@ -335,14 +283,23 @@ export class Bot {
   private atTheBar(what: BarMenuItem): Step[] {
     let served = false;
     let waited = 0;
+    const stool = this.sitOn((k) => k === 'barStool');
+    const elsewhere = (why: string): Status => {
+      this.log(why);
+      this.dry.set(this.model.inside!.entrance, this.model.minutes + 180); // (another inn, a while)
+      return 'fail';
+    };
     return [
-      this.sitOn((k) => k === 'barStool'),
+      (dt) => {
+        const sat = stool(dt);
+        return sat === 'fail' && this.model.inside ? elsewhere('no stool to be had at the bar') : sat;
+      },
       () => {
         const barmaid = barmaidHere(this.model);
         const stool = this.model.inside?.seated?.seat.piece;
         if (!barmaid || !stool) return 'fail';
         const call = callFor(this.model, what);
-        if (!call.coming) return 'fail'; // (sold out, or too poor: she says so)
+        if (!call.coming) return elsewhere(`at the bar, for ${what}: "${call.said}"`); // (sold out, or too poor)
         placeOrder(this.model.inside!.entrance, { stool, by: null, drink: what, served: () => (served = true) });
         callBarkeep(barmaid);
         return 'ok';
@@ -373,80 +330,6 @@ export class Bot {
       if (!keeper) return 'fail';
       return this.walk(() => keeper, 1.2)(dt) === 'run' ? 'run' : talkingTo(npcs, inside, hero)?.role === role ? 'ok' : 'fail';
     };
-  }
-
-  private fight(foe: Enemy, toTheEnd = false): Step {
-    let inReach = 0;
-    let away = 0; // seconds after it, out of reach, since last landing a blow
-    let hpThen = foe.hp;
-    return (dt) => {
-      const { hero } = this.model;
-      if (foe.state === 'dead' || !this.model.enemies.includes(foe)) {
-        if (foe.state === 'dead') this.stats.kills++;
-        return 'ok';
-      }
-      if (!toTheEnd && hero.hp < maxHpOf(hero) * 0.3) return 'fail'; // off to heal
-      const d = Math.hypot(foe.x - hero.x, foe.z - hero.z);
-      if (d > ATTACK_REACH + ENEMY_STATS[foe.kind].radius - 0.15) {
-        if ((away += dt) > 30) return (this.shunned.add(foe), 'fail'); // (out of reach: across water, say; let be)
-        const step = this.walk(() => foe, ATTACK_REACH * 0.7)(dt);
-        if (step === 'fail') this.shunned.add(foe); // (no way there)
-        return step === 'fail' ? 'fail' : 'run';
-      }
-      this.model.focus(foe.id);
-      this.model.startAttack();
-      if (foe.hp < hpThen) [hpThen, inReach, away] = [foe.hp, 0, 0];
-      else if ((inReach += dt) > 20) {
-        this.report('foe takes no damage', `${foe.kind} #${foe.id} (level ${foe.level}), ${foe.hp}/${foe.maxHp} after ${inReach.toFixed(0)} s in reach`);
-        return 'fail';
-      }
-      return 'run';
-    };
-  }
-
-  // At a quest's place: its marked foes fought as they come, for a while.
-  private questFight(key: string, at: { x: number; z: number }): Step {
-    let t = 0;
-    let seen = false;
-    let current: { of: unknown; step: Step } | null = null;
-    const skipped = new Set<unknown>(); // loot or foes that couldn't be got at
-    return (dt) => {
-      const { quests } = this.model;
-      const taken = quests.takenOf(key);
-      if (!taken || quests.done(taken)) return 'ok';
-      if ((t += dt) > 240) {
-        if (!seen) this.report('quest foes never came', `${key}: ${taken.quest.kind} ${taken.quest.count} ${taken.quest.foe}, at ${at.x},${at.z}`);
-        return 'fail';
-      }
-      if (this.model.hero.hp < maxHpOf(this.model.hero) * 0.3) return 'fail';
-      const loot = this.model.lootInReach;
-      if (loot) this.model.pickUp();
-      if (current) {
-        const status = current.step(dt);
-        if (status === 'run') return 'run';
-        if (status === 'fail') skipped.add(current.of);
-        this.nav.reset();
-      }
-      const marked = this.model.enemies.filter((e) => e.state !== 'dead' && !skipped.has(e) && (e.quest === key || e.kind === taken.quest.foe) && Math.hypot(e.x - at.x, e.z - at.z) < 25);
-      const near = this.model.loot.find((l) => !skipped.has(l) && Math.hypot(l.x - this.model.hero.x, l.z - this.model.hero.z) < 6);
-      if (near) current = { of: near, step: this.walk(() => near, PICKUP_RANGE * 0.8) };
-      else if (marked.length > 0) {
-        seen = true;
-        current = { of: marked[0], step: this.fight(marked[0]) };
-      } else current = null;
-      return 'run';
-    };
-  }
-
-  // Picks up what's by the hero; if they couldn't get near enough, says so (dropped somewhere out of reach).
-  private pickUp(loot: { x: number; z: number }): Status {
-    if (this.model.pickUp()) return 'ok';
-    const { hero } = this.model;
-    const d = Math.hypot(loot.x - hero.x, loot.z - hero.z);
-    // (Somewhere in reach of it the hero could stand: the bot's way there's the trouble, not the game's.)
-    if (this.model.loot.includes(loot as never) && d > PICKUP_RANGE && !standableNear(this.model, loot, PICKUP_RANGE)) this.report('loot out of reach', `at ${loot.x.toFixed(2)},${loot.z.toFixed(2)}, hero as near as ${d.toFixed(2)}${heroState(this.model)}`);
-    this.skipped.add(loot);
-    return 'fail';
   }
 
   // Up the inn's stairs, a room's door opened, a lie on its bed, and down again.
@@ -483,16 +366,4 @@ export class Bot {
     ];
   }
 
-  // Helpers.
-
-  private nearestFoe(within: number): Enemy | null {
-    const { hero } = this.model;
-    let best: Enemy | null = null;
-    let d = within;
-    for (const e of this.model.enemies) {
-      const de = Math.hypot(e.x - hero.x, e.z - hero.z);
-      if (e.state !== 'dead' && de < d && !this.shunned.has(e)) [best, d] = [e, de];
-    }
-    return best;
-  }
 }

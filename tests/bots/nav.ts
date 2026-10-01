@@ -32,6 +32,11 @@ export class Nav {
 
   constructor(private readonly model: GameModel) {}
 
+  // Seconds the hero's pressed on without moving.
+  get stillFor(): number {
+    return this.still.t;
+  }
+
   reset(): void {
     [this.path, this.age, this.goal, this.best, this.sinceBetter, this.noWay] = [[], Infinity, null, Infinity, 0, 0];
     this.still = { x: this.model.hero.x, z: this.model.hero.z, t: 0 };
@@ -44,11 +49,12 @@ export class Nav {
     const { inside, hero } = this.model;
     const where = inside?.entrance ?? null;
     const reach = (HERO_RADIUS + NPC_RADIUS) * (inside ? INDOOR_SCALE : 1);
-    const folk = this.model.npcs.filter((n) => n.where === where && Math.hypot(n.x - hero.x, n.z - hero.z) > reach && Math.abs(n.x - hero.x) < 45 && Math.abs(n.z - hero.z) < 45);
+    const folk = this.model.npcs.filter((n) => n.where === where && Math.abs(n.x - hero.x) < 45 && Math.abs(n.z - hero.z) < 45); // (even those touching the hero: round them, not into them)
     // (and foes, but the one being gone for: at the goal)
     const goal = this.goal;
     const foes = inside ? [] : this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) > 0.6 && Math.abs(e.x - hero.x) < 45 && Math.abs(e.z - hero.z) < 45 && !(goal && Math.hypot(e.x - goal.x, e.z - goal.z) < 1.5));
-    const clear = (x: number, z: number) => !folk.some((n) => Math.hypot(n.x - x, n.z - z) < reach) && !foes.some((e) => Math.hypot(e.x - x, e.z - z) < 0.5);
+    // (right by the hero, no: the tiles there are where the way starts, and those in the way step aside, or are sidestepped)
+    const clear = (x: number, z: number) => Math.hypot(x - hero.x, z - hero.z) < 1.1 || (!folk.some((n) => Math.hypot(n.x - x, n.z - z) < reach) && !foes.some((e) => Math.hypot(e.x - x, e.z - z) < 0.5));
     if (!inside) return (x, z) => !this.model.isBlocked(x, z, HERO_RADIUS) && clear(x, z);
     const r = HERO_RADIUS * INDOOR_SCALE;
     const { width, depth } = inside.room;
@@ -150,14 +156,23 @@ export class Nav {
     } else this.noWay = 0;
     const [dx, dz] = [next.x - hero.x, next.z - hero.z];
     const len = Math.hypot(dx, dz) || 1;
+    // Held up a moment by someone stood right in the way: a sidestep round them (the side that's clear).
+    const where = this.model.inside?.entrance ?? null;
+    const scale = this.model.inside ? INDOOR_SCALE : 1;
+    const blocker = this.still.t > 1.5 && this.model.npcs.find((n) => n.where === where && Math.hypot(n.x - hero.x, n.z - hero.z) < (HERO_RADIUS + NPC_RADIUS) * scale + 0.05);
+    if (blocker) {
+      const free = this.free();
+      const side = [1, -1].find((k) => free(hero.x - (dz / len) * k * 0.4, hero.z + (dx / len) * k * 0.4)) ?? 1;
+      return { dx: (-dz / len) * side, dz: (dx / len) * side, state: 'going' };
+    }
     return { dx: dx / len, dz: dz / len, state: 'going' };
   }
 }
 
-// The nearest door of a kind of building to the hero, if there's one.
-export function nearestDoor(model: GameModel, type: Entrance['type']): Entrance | null {
+// The nearest door of a kind of building to the hero (`but` those), if there's one.
+export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false): Entrance | null {
   const { hero } = model;
-  return model.entrances.filter((e) => e.type === type).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
+  return model.entrances.filter((e) => e.type === type && !but(e)).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
 }
 
 // The nearest notice board to the hero (its village's index).
