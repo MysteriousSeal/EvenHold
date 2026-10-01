@@ -17,15 +17,45 @@ import { BODIES, BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { HealthBar, VoxelBurst } from './enemyParts';
+import { drawnAt } from '../common/overhead';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
 import { DRAUGR_FRAME, axeGeometry } from './draugrVoxels';
 import { BREATH_TELL } from '../../../model/crypts/frostBreath';
+import { CLEAVE_TELL } from '../../../model/crypts/cleave';
 import { RAGE, SLAM_TELL } from '../../../model/crypts/cryptLord';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const FALL_TIME = 0.4;
 const CARRY = 1.0; // radians a long weapon (the lord's greatsword, a draugr's axe) is tilted up from the hand
+
+// A draugr's cleave, keyed over its seconds from raising the axe (the chop at CLEAVE_TELL, back up by CLEAVE_TELL + CLEAVE_AFTER):
+// arms (negative: forward and up), the torso's lean and the head's (positive: forward), the legs (front, back), the body's dip.
+type Keys = Array<[number, number]>;
+const CLEAVE_SWING: Record<'arms' | 'torso' | 'head' | 'front' | 'back' | 'dip' | 'axe', Keys> = {
+  // The axe in the hand: from its carry, levelled behind the head, then snapped down so its head strikes the floor a
+  // tile and a half on (the hand low and forward: its whole length near flat), held there a moment, back to its carry.
+  axe: [[0, -CARRY], [0.55, -0.15], [0.8, -0.2], [0.9, 0.5], [1.05, 0.5], [1.25, -CARRY]],
+  arms: [[0, 0], [0.55, -3.45], [0.8, -3.5], [0.9, -0.45], [0.98, -0.3], [1.25, 0]],
+  torso: [[0, 0], [0.55, -0.25], [0.8, -0.3], [0.9, 0.42], [1.02, 0.36], [1.25, 0]],
+  head: [[0, 0], [0.55, -0.3], [0.8, -0.32], [0.9, 0.3], [1.25, 0]],
+  front: [[0, 0], [0.55, 0.15], [0.86, -0.5], [1.02, -0.5], [1.25, 0]],
+  back: [[0, 0], [0.55, -0.1], [0.86, 0.42], [1.02, 0.42], [1.25, 0]],
+  dip: [[0, 0], [0.5, -0.012], [0.8, 0.008], [0.92, -0.035], [1.08, -0.025], [1.25, 0]],
+};
+
+// The value of `keys` at `t`, eased between them (fast through a sharp change: the chop's).
+function keyed(keys: Keys, t: number): number {
+  for (let i = 1; i < keys.length; i++) {
+    const [t1, v1] = keys[i];
+    if (t <= t1) {
+      const [t0, v0] = keys[i - 1];
+      const p = (t - t0) / (t1 - t0);
+      return v0 + (v1 - v0) * p * p * (3 - 2 * p);
+    }
+  }
+  return keys[keys.length - 1][1];
+}
 const BOW_VOXEL = 0.025;
 const BOW_PALETTE = [0x5a3f2a, 0x3e2b1c, 0xd8d0c0, 0x8a8f94, 0xe8e0d0]; // wood, its grain, the string, the arrowhead, the fletching
 
@@ -71,6 +101,8 @@ export class SkeletonRig {
   private readonly burst: VoxelBurst;
   private readonly bow: THREE.Mesh | null = null;
   private readonly nocked: THREE.Mesh | null = null; // the arrow on the string, while drawing
+  private cleaveFacing: number | null = null; // the way a draugr's cleave falls, from when it raised its axe
+  private weapon: THREE.Mesh | null = null; // a long one in hand (the lord's greatsword, a draugr's axe), tilted as it's carried
 
   constructor(
     skeleton: Enemy,
@@ -96,6 +128,7 @@ export class SkeletonRig {
       const sword = new THREE.Mesh(lord ? look.greatsword : look.axe, look.normal);
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
       sword.rotation.x = -CARRY; // carried tilted up: long as it is, never down through the floor as the arm swings walking
+      this.weapon = sword;
       this.rig.joints.rightArm.add(sword);
       this.rig.meshes.push(sword);
     } else this.rig.wear({ mainHand: 'shortSword' });
@@ -104,6 +137,32 @@ export class SkeletonRig {
 
   get root(): THREE.Group {
     return this.rig.root;
+  }
+
+  // Drawn `scale` times as big (in a crypt, as big as the hero is in a room; a draugr, a lord, bigger still): the bar
+  // and the name over it kept at their own size, as a villager's indoors are, still over the head.
+  drawnAt(scale: number): void {
+    drawnAt(this.rig.root, scale, this.bar.group);
+  }
+
+  // A draugr's cleave, keyed over its seconds (CLEAVE_SWING): the axe up overhead and a little back as it leans back,
+  // knees bending; held, straining; then whipped down and forward, the body lunging and dipping into it, the legs
+  // braced wide; and back up. Facing the way it chose as it raised it (the strip's), whatever the hero does.
+  private cleave(draugr: Enemy, dt: number, heroX: number, heroZ: number): void {
+    this.cleaveFacing ??= Math.atan2(heroX - draugr.x, heroZ - draugr.z);
+    this.rig.update(draugr.x, draugr.y, draugr.z, dt, null, this.cleaveFacing);
+    const t = draugr.windUp ?? 0;
+    const at = (part: keyof typeof CLEAVE_SWING) => keyed(CLEAVE_SWING[part], t);
+    const strain = t > 0.55 && t < CLEAVE_TELL ? Math.sin(t * 70) * 0.04 : 0; // (held, trembling)
+    const { joints } = this.rig;
+    joints.rightArm.rotation.set(at('arms') + strain, 0, -0.12);
+    joints.leftArm.rotation.set(at('arms') - strain, 0, 0.12);
+    joints.torso.rotation.set(at('torso'), 0, 0);
+    joints.head.rotation.set(at('head'), 0, 0);
+    joints.leftLeg.rotation.set(at('front'), 0, 0);
+    joints.rightLeg.rotation.set(at('back'), 0, 0);
+    this.rig.root.position.y += at('dip') * this.rig.root.scale.y;
+    if (this.weapon) this.weapon.rotation.x = at('axe'); // (in the hand: levelled behind the head, then down into the floor)
   }
 
   update(skeleton: Enemy, dt: number, heroX = skeleton.x, heroZ = skeleton.z): void {
@@ -121,22 +180,28 @@ export class SkeletonRig {
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
       this.rig.joints.leftArm.rotation.set(-Math.PI / 2, 0, 0);
       this.rig.joints.rightArm.rotation.set(-Math.PI / 2 + 0.25 * drawn, 0, -0.3 * drawn);
-    } else if (skeleton.windUp != null && skeleton.kind === 'draugr') {
+    } else if (skeleton.windUp != null && skeleton.told === 'breath') {
       // A draugr drawing breath: facing the hero, its head thrown back, its arms out.
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
       const drawn = Math.min(1, skeleton.windUp / BREATH_TELL);
       this.rig.joints.head.rotation.set(-0.5 * drawn, 0, 0);
       this.rig.joints.leftArm.rotation.set(0, 0, 0.4 * drawn);
       this.rig.joints.rightArm.rotation.set(0, 0, -0.4 * drawn);
+    } else if (skeleton.windUp != null && skeleton.told === 'cleave') {
+      this.cleave(skeleton, dt, heroX, heroZ);
     } else if (skeleton.windUp != null) {
-      // The lord's slam, told: his greatsword raised high in both hands, facing the hero, then down.
+      // The lord's slam, or a draugr's cleave, told: the greatsword (the axe) raised high in both hands, facing the hero, then down.
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
-      const up = Math.min(1, skeleton.windUp / (SLAM_TELL * 0.6));
+      const up = Math.min(1, skeleton.windUp / ((skeleton.told === 'cleave' ? CLEAVE_TELL : SLAM_TELL) * 0.6));
       this.rig.joints.rightArm.rotation.set(-Math.PI * up, 0, 0);
       this.rig.joints.leftArm.rotation.set(-Math.PI * up, 0, 0);
     } else {
       const swing = skeleton.swingFor === null ? null : skeleton.swingFor / ENEMY_STATS[skeleton.kind].swing;
       this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, swing);
+    }
+    if (skeleton.told !== 'cleave') {
+      this.cleaveFacing = null;
+      if (this.weapon) this.weapon.rotation.x = -CARRY;
     }
     if (this.nocked) this.nocked.visible = drawn !== null;
     if (this.bow) this.bow.rotation.set(drawn !== null ? Math.PI / 2 : 0, 0, 0); // (held upright, out in front while drawing)

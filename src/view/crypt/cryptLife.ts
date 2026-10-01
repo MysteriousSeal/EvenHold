@@ -14,9 +14,12 @@ import { CoinViews } from '../meshes/loot/coinViews';
 import { personMaterial } from '../meshes/human/humanParts';
 import { SLAM_RADIUS, SLAM_TELL } from '../../model/crypts/cryptLord';
 import { FrostBreathView } from './frostBreathView';
+import { ImpactView } from './impactView';
+import { CLEAVE_HALF, CLEAVE_LENGTH, CLEAVE_TELL } from '../../model/crypts/cleave';
 import { CHEST_HINGE, chestBoxGeometry, chestLidGeometry } from './chestVoxels';
 
 const ARROW_HEIGHT = 0.3 * INDOOR_SCALE; // about a bowman's chest
+const AXE_REACH = 1.45; // tiles before a draugr its axe's head strikes the floor, cleaving (skeletonRig.ts: its swing)
 
 export class CryptLife {
   private readonly enemies: EnemyViews;
@@ -35,12 +38,17 @@ export class CryptLife {
   );
   private chest: { box: THREE.Mesh; lid: THREE.Mesh } | null = null;
   private readonly frost: FrostBreathView; // the draugr's breath
+  private readonly strip = new THREE.PlaneGeometry(CLEAVE_LENGTH, CLEAVE_HALF * 2).rotateX(-Math.PI / 2).translate(CLEAVE_LENGTH / 2, 0, 0); // a cleave's (along +X from its foot)
+  private readonly strips: THREE.Mesh[] = []; // a pool, one to a cleave
+  private readonly impacts: ImpactView; // where a cleave comes down: chips, dust
+  private readonly landed = new WeakSet<object>(); // the cleaves already come down
 
   constructor(private readonly scene: THREE.Scene) {
     this.enemies = new EnemyViews(scene, INDOOR_SCALE);
     this.loot = new LootViews(scene, INDOOR_SCALE);
     this.coins = new CoinViews(scene, INDOOR_SCALE);
     this.frost = new FrostBreathView(scene);
+    this.impacts = new ImpactView(scene);
     for (const mesh of [this.ring, this.zone]) {
       mesh.position.y = 0.012;
       mesh.visible = false;
@@ -65,6 +73,29 @@ export class CryptLife {
       (this.zone.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.25 * told;
     }
     this.frost.update(crypt?.frost.breaths ?? [], dt); // the draugr's frost breath
+    // The draugr's cleaves: a red strip where the axe will fall, brightening; a flash as it comes down, fading.
+    const cleaves = crypt?.cleaves.cleaves ?? [];
+    while (this.strips.length < cleaves.length) {
+      const strip = new THREE.Mesh(this.strip, new THREE.MeshBasicMaterial({ color: 0xff3020, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      this.scene.add(strip);
+      this.strips.push(strip);
+    }
+    this.strips.forEach((strip, i) => {
+      const cleave = cleaves[i];
+      strip.visible = !!cleave;
+      if (!cleave) return;
+      strip.position.set(cleave.x, 0.013, cleave.z);
+      strip.rotation.y = Math.atan2(-cleave.dz, cleave.dx);
+      const material = strip.material as THREE.MeshBasicMaterial;
+      const down = cleave.t - CLEAVE_TELL;
+      if (down >= 0.06 && !this.landed.has(cleave)) {
+        this.landed.add(cleave); // (where the axe's head strikes the floor: a tile and a half on along the strip)
+        this.impacts.hit(cleave.x + cleave.dx * AXE_REACH, cleave.z + cleave.dz * AXE_REACH, cleave.dx, cleave.dz);
+      }
+      material.color.setHex(down < 0 ? 0xff3020 : 0xffd8c0);
+      material.opacity = down < 0 ? 0.12 + 0.4 * (cleave.t / CLEAVE_TELL) : 0.9 * Math.max(0, 1 - down / 0.35);
+    });
+    this.impacts.update(dt);
     // His chest, once he's slain: shut, or its lid swung back.
     const chest = crypt?.chest ?? null;
     if (chest && !this.chest) {
@@ -95,6 +126,9 @@ export class CryptLife {
   dispose(): void {
     for (const arrow of this.arrows) arrow.removeFromParent();
     this.frost.dispose();
+    this.impacts.dispose();
+    for (const strip of this.strips) (strip.material as THREE.Material).dispose();
+    this.strip.dispose();
     for (const mesh of [this.ring, this.zone]) {
       mesh.geometry.dispose();
       (mesh.material as THREE.Material).dispose();

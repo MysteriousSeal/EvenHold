@@ -10,7 +10,7 @@ import type { Entrance } from '../../../model/interiors/interiors';
 import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
 import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
-import { nameLabel } from '../enemy/enemyParts';
+import { drawnAt, nameLabel } from '../common/overhead';
 import { Nearby } from '../common/nearby';
 
 const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
@@ -18,14 +18,16 @@ const LABEL_HEIGHT = 0.16; // the name's height in the world, indoors as out
 
 export class NpcViews {
   readonly material = personMaterial();
-  private readonly shown = new Nearby<Npc, { rig: HumanRig; label: THREE.Sprite }>(
+  private readonly shown = new Nearby<Npc, { rig: HumanRig; label: THREE.Sprite; over: THREE.Group }>(
     (npc) => {
       const rig = new HumanRig(npc.look, this.material);
       rig.wear(npc.equipment);
       const label = nameLabel(titleOf(npc), LABEL_HEIGHT);
-      label.position.y = LABEL_Y;
-      rig.root.add(label);
-      return { rig, label };
+      const over = new THREE.Group(); // (over the head: kept at its own size indoors)
+      over.position.y = LABEL_Y;
+      over.add(label);
+      rig.root.add(over);
+      return { rig, label, over };
     },
     (view) => view.rig.root.removeFromParent(),
   );
@@ -35,12 +37,11 @@ export class NpcViews {
   // gives way to the "Talk to" prompt over them.
   update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null): void {
     const scale = where ? INDOOR_SCALE : 1;
-    const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite }) => {
+    const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite; over: THREE.Group }) => {
       const { rig, label } = view;
       if (rig.root.parent !== scene) {
         scene.add(rig.root);
-        rig.root.scale.setScalar(scale);
-        label.scale.divideScalar(label.scale.y / LABEL_HEIGHT).divideScalar(scale); // drawn bigger indoors, but the name at its own size
+        drawnAt(rig.root, scale, view.over); // drawn bigger indoors, but the name at its own size
         for (const mesh of rig.meshes) mesh.castShadow = !!where; // in the firelight indoors
         rig.shaded = !where; // outdoors, the shade on the ground under them
         rig.update(npc.x, npc.y, npc.z, 0); // arrive in place, no walk from where it was

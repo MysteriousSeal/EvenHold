@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
+import { INK, nameLabel } from '../common/overhead';
 
 const CAMERA_YAW = Math.PI / 4; // the fixed camera looks along -X-Z
 const PIECES = 30;
@@ -28,51 +29,10 @@ const MAX_BLOCKS = 10;
 const NAME_HEIGHT = 0.22; // world units tall, the name over the bar
 const NAME_Y = 0.14; // the name's height over the bar
 const LEVEL_GAP = 0.05; // between the level and the name
-const INK = '#f8ecd4'; // names' light ink
 // The level's colour by how dangerous the foe is (as the target panel's name, hud.css).
 const DANGER_INK: Record<Difficulty, string> = { trivial: '#b4b0a8', even: INK, tough: '#f2d15a', hard: '#f0913a', deadly: '#e8483a' };
 let heroLevel = 1; // the hero's, for the levels' colours (EnemyViews sets it each frame)
 export const setBarHeroLevel = (level: number) => void (heroLevel = level);
-
-// A name drawn once onto a texture, white with an ink outline like the HUD's,
-// shared by everyone who bears it.
-const nameMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
-function nameMaterial(name: string, ink = INK): { material: THREE.SpriteMaterial; aspect: number } {
-  let entry = nameMaterials.get(`${name}|${ink}`);
-  if (!entry) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    const font = "700 88px 'Fredoka', system-ui, sans-serif";
-    ctx.font = font;
-    canvas.width = Math.ceil(ctx.measureText(name).width) + 28;
-    canvas.height = 116;
-    ctx.font = font; // resizing the canvas resets it
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = '#2e1f14';
-    ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
-    ctx.fillStyle = ink;
-    ctx.fillText(name, canvas.width / 2, canvas.height / 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    // Never hidden by what's around (a shelf, a tree): drawn over everything, like the HUD.
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
-    entry = { material, aspect: canvas.width / canvas.height };
-    nameMaterials.set(`${name}|${ink}`, entry);
-  }
-  return entry;
-}
-
-// A name floating in the world, facing the camera, `height` world units tall.
-export function nameLabel(name: string, height = NAME_HEIGHT, ink = INK): THREE.Sprite {
-  const { material, aspect } = nameMaterial(name, ink);
-  const label = new THREE.Sprite(material);
-  label.scale.set(height * aspect, height, 1);
-  label.renderOrder = 10; // after everything else, so nothing draws over it
-  return label;
-}
 
 export class HealthBar {
   readonly group = new THREE.Group();

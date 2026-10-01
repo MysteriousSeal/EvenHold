@@ -39,7 +39,9 @@ export class EnemyViews {
   private readonly rigs = new Nearby<Enemy, Rig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      rig.root.scale.setScalar(this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : enemy.kind === 'draugr' ? DRAUGR_SIZE : 1));
+      const scale = this.scale * (enemy.kind === 'cryptLord' ? LORD_SIZE : enemy.kind === 'draugr' ? DRAUGR_SIZE : 1);
+      if (rig instanceof SkeletonRig) rig.drawnAt(scale); // (its bar and name at their own size)
+      else rig.root.scale.setScalar(scale);
       this.scene.add(rig.root);
       return rig;
     },
