@@ -16,6 +16,7 @@ import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { isFloor } from './cryptLayout';
+import type { ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
 import type { CryptInside } from './crypts';
 
@@ -66,21 +67,26 @@ export function chestHoard(inside: CryptInside, seed: number): { item: ItemId; c
   return { item: fine[Math.floor(rng() * fine.length)], coins: 60 * inside.crypt.level + Math.floor(rng() * 40 * inside.crypt.level) };
 }
 
-export interface Slam {
-  x: number;
-  z: number;
-  t: number; // seconds into its tell
-}
+// His slam, for a crypt's foes to do (toldMoves.ts): round where he stands, never lost to a blow.
+export const SLAM: ToldMove = {
+  told: 'slam',
+  by: 'cryptLord',
+  tell: SLAM_TELL,
+  after: 0,
+  every: SLAM_EVERY,
+  first: SLAM_EVERY / 2,
+  near: SLAM_REACH,
+  staunch: true,
+  hits: (slam, hero) => Math.hypot(hero.x - slam.x, hero.z - slam.z) < SLAM_RADIUS,
+};
 
-// The lord while he's up: his slam, his calling, his rage.
+// The lord while he's up: his calling, his rage (his slam: SLAM, done as any told move is).
 export class Lord {
-  slam: Slam | null = null;
-  private slamWait = SLAM_EVERY / 2;
   private called = false;
 
   constructor(
     readonly enemy: Enemy,
-    private readonly hooks: { call(at: { x: number; z: number }, n: number): void; slam(damage: number, lord: Enemy): void },
+    private readonly call: (at: { x: number; z: number }, n: number) => void,
   ) {}
 
   static rise(inside: CryptInside, name: string): Enemy {
@@ -92,32 +98,14 @@ export class Lord {
     return this.enemy.state !== 'dead' && this.enemy.hp < this.enemy.maxHp * RAGE;
   }
 
-  // Before his foes' director moves him: where he stands, if slamming (held there).
-  before(): { x: number; z: number } | null {
-    return this.slam ? { x: this.enemy.x, z: this.enemy.z } : null;
-  }
-
-  // After it: his slam started, told and landed; his call; his rage.
-  after(dt: number, held: { x: number; z: number } | null, hero: { x: number; z: number }): void {
+  // His call, hurt to half; his rage.
+  update(): void {
     const lord = this.enemy;
-    if (lord.state === 'dead') return void (this.slam = null);
-    if (held) Object.assign(lord, held, { swingFor: null }); // (still, slamming)
-    this.slamWait = Math.max(0, this.slamWait - dt);
-    if (this.slam) {
-      this.slam.t += dt;
-      if (this.slam.t >= SLAM_TELL) {
-        if (Math.hypot(hero.x - this.slam.x, hero.z - this.slam.z) < SLAM_RADIUS) this.hooks.slam(lord.damage * 2, lord);
-        this.slam = null;
-        this.slamWait = SLAM_EVERY;
-      }
-    } else if (lord.state === 'chase' && lord.swingFor === null && this.slamWait === 0 && Math.hypot(hero.x - lord.x, hero.z - lord.z) < SLAM_REACH) {
-      this.slam = { x: lord.x, z: lord.z, t: 0 };
-    }
+    if (lord.state === 'dead') return;
     if (!this.called && lord.hp <= lord.maxHp / 2) {
       this.called = true;
-      this.hooks.call(lord, CALLED);
+      this.call(lord, CALLED);
     }
     if (this.raging) lord.cooldown = Math.min(lord.cooldown, 0.35); // (blow on blow)
-    Object.assign(lord, { windUp: this.slam?.t ?? null, told: this.slam ? 'slam' : null }); // (for his look)
   }
 }

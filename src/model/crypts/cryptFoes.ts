@@ -11,9 +11,10 @@
 import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import type { BagItem } from '../hero/bag';
-import { FrostBreaths } from './frostBreath';
-import { Cleaves } from './cleave';
-import { CHEST_POST, LORD_POST, Lord, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
+import { FROST_BREATH } from './frostBreath';
+import { CLEAVE } from './cleave';
+import { ToldMoves } from '../enemies/toldMoves';
+import { CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
@@ -121,8 +122,9 @@ export class CryptFoes {
   readonly arrows: Arrow[] = [];
   readonly director: EnemyDirector;
   lord: Lord | null = null; // risen
-  readonly frost = new FrostBreaths(); // the draugr's breath
-  readonly cleaves = new Cleaves(); // and their cleave
+  readonly frost = new ToldMoves(FROST_BREATH, (draugr) => this.hooks.frost(draugr)); // the draugr's breath
+  readonly cleaves = new ToldMoves(CLEAVE, (draugr, cleave) => this.hooks.cleave(draugr, cleave)); // and their cleave
+  readonly slams = new ToldMoves(SLAM, (lord) => this.hooks.slam(lord.damage * 2, lord)); // the lord's slam
   chest: { x: number; z: number; open: boolean } | null = null; // his, once he's slain
   private readonly plan: CryptPlan;
   private readonly guards: number; // all its posts
@@ -161,11 +163,10 @@ export class CryptFoes {
   update(dt: number): void {
     const hero = this.director.quarry;
     if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.guards) >= RISES_AT) this.rise();
-    const held = this.lord?.before() ?? null;
     this.director.update(dt);
-    this.lord?.after(dt, held, hero);
-    this.frost.update(this.foes, hero, dt, (draugr) => this.hooks.frost(draugr), (draugr) => this.cleaves.cleaving(draugr));
-    this.cleaves.update(this.foes, hero, dt, (draugr) => this.frost.breaths.some((b) => b.draugr === draugr), (draugr, cleave) => this.hooks.cleave(draugr, cleave));
+    this.lord?.update();
+    const told = [this.frost, this.cleaves, this.slams];
+    for (const moves of told) moves.update(this.foes, hero, dt, (foe) => told.some((other) => other !== moves && other.doing(foe))); // (one at a time)
     if (this.lord && this.lord.enemy.state === 'dead' && !this.chest) this.chest = { ...lordSpot(this.inside), open: false }; // his chest, where he rose
     for (let i = this.arrows.length - 1; i >= 0; i--) if (this.fly(this.arrows[i], dt)) this.arrows.splice(i, 1);
   }
@@ -174,16 +175,13 @@ export class CryptFoes {
   private rise(): void {
     const enemy = { ...Lord.rise(this.inside, this.lordName), id: CRYPT_FOE_ID + LORD_POST };
     this.foes.push(enemy);
-    this.lord = new Lord(enemy, {
-      slam: (damage, lord) => this.hooks.slam(damage, lord),
-      call: (at, n) => {
-        for (let k = 0; k < n; k++) {
-          const a = (k / n) * Math.PI * 2 + 0.6;
-          const [x, z] = [at.x + Math.cos(a) * 0.9, at.z + Math.sin(a) * 0.9];
-          const spot = cryptBlocks(this.inside, x, z, 0.14) ? at : { x, z };
-          this.foes.push({ ...makeEnemy(CRYPT_FOE_ID + SUMMONED + this.calledUp++, 'skeleton', spot.x, spot.z, spot.x, spot.z, this.inside.crypt.level), state: 'chase' });
-        }
-      },
+    this.lord = new Lord(enemy, (at, n) => {
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2 + 0.6;
+        const [x, z] = [at.x + Math.cos(a) * 0.9, at.z + Math.sin(a) * 0.9];
+        const spot = cryptBlocks(this.inside, x, z, 0.14) ? at : { x, z };
+        this.foes.push({ ...makeEnemy(CRYPT_FOE_ID + SUMMONED + this.calledUp++, 'skeleton', spot.x, spot.z, spot.x, spot.z, this.inside.crypt.level), state: 'chase' });
+      }
     });
     this.hooks.report({ kind: 'rises', name: this.lordName });
   }
