@@ -11,7 +11,8 @@ import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House,
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { Travellers } from './travellers/travellers';
-import { canCarry } from './hero/bagSlots';
+import { bagRoom, canCarry } from './hero/bagSlots';
+import { takeFromSlot } from './hero/bag';
 import { addSceneryObstacles, placeScenery, type Scenery } from './scenery/scenery';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
@@ -138,7 +139,7 @@ export class GameModel {
     registerCrypts(this.crypts);
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bags: [null, null, null, null], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
@@ -318,9 +319,10 @@ export class GameModel {
 
   // Takes one `item` out of the hero's bag and puts it on the ground just in
   // front of them; returns whether they had one.
-  dropFromBag(item: BagItem): boolean {
+  // `slot`: the bag's slot it's from (one off that very stack, if it's one of several).
+  dropFromBag(item: BagItem, slot?: number): boolean {
     if (this.inside || this.yard) return false; // nothing's dropped indoors, or in the furniture yard
-    if (!takeFromBag(this.hero.bag, item)) return false;
+    if (!(slot === undefined ? takeFromBag(this.hero.bag, item) : takeFromSlot(this.hero, slot, bagRoom(this.hero)) === item)) return false;
     this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
     return true;
   }

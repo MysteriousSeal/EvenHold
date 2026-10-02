@@ -40,6 +40,7 @@ export interface SaveData {
     bag: Partial<Record<BagItem, number>>;
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
+    bagCounts?: number[]; // how many in each slot (older saves: none, packed)
     money: number;
     level: number;
     xp: number;
@@ -88,6 +89,7 @@ export function snapshot(model: GameModel): SaveData {
       equipment: { ...hero.equipment },
       bag: { ...hero.bag },
       bagOrder: [...hero.bagOrder],
+      bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
       money: hero.money,
       level: hero.level,
@@ -161,6 +163,7 @@ export function restore(model: GameModel, data: SaveData): void {
     bag,
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
+    bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),

@@ -24,7 +24,8 @@ export interface Hero extends Humanoid {
   hurtFor: number; // seconds left of the hit flash
   knock?: { dx: number; dz: number; t: number }; // knocked back by a blow (a lord's charge, a draugr's cleave): carried so far over KNOCK_TIME (hero/fighting.ts)
   bag: Bag; // what they've picked up
-  bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
+  bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagStacks)
+  bagCounts: number[]; // how many in each of those slots (a junk stack's own: bag.ts bagStacks; none, packed)
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
