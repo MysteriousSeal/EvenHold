@@ -3,6 +3,56 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.5.0] - 2026-10-03
+
+Caves in the hills, something waiting at the bottom of each, and a pause
+menu to match the title.
+
+### The caves
+
+- Out in the wilds, a cave in every stretch of the land: a craggy outcrop of
+  rock at the foot of a rise, a dark mouth in its face. Walk up and press
+  **E** to go in. Like the crypts, each has a name, a level (by how far it
+  lies from where you started) and how much of it you've cleared.
+- No two alike: a straight way in, then burrows winding down through lumpy
+  chambers, dens off to the side, and a great nest at the far end. Not a
+  straight wall in them.
+- Dark down there. The light is the glowcaps' teal and the crystals'
+  lavender, and the daylight spilling down the worn steps you came in by.
+  Stalagmites, still pools, roots, old bones, cobwebs in the nooks.
+- What lives there:
+  - **Bats** near the mouth, in flocks, flitting about as they come. They
+    bite and dart off again.
+  - **Cave spiders** further in and in every den. From a little way off
+    they spit webs at you: caught, you're **Webbed** and walk far slower
+    for a moment. Close up they crouch and leap.
+  - **Cave worms** deep down, under the ground where you can't see or strike
+    them. Watch for the earth heaving under you and get off it. Then the
+    worm bursts up, and it stays up a while to be fought before it digs
+    down again.
+- **The brood mother.** Her nest is webbed shut until you've cleared four
+  fifths of the cave. Walk up to the webs to see how far you've got. Then
+  the silk tears, and she waits on her silk until you step in. She spits
+  webs three at a time and charges, and as she's hurt her brood hatches
+  from the egg sacs round her nest.
+- Slay her for a point to spend (once a cave), her hoard (gold and a fine
+  piece of gear, wrapped in a silk cocoon), and a crack in the nest's wall
+  opening onto the daylight, a quick way out.
+- The cave's beasts drop their own spoils: spider silk, venom glands,
+  chitin shards, bat wings and worm teeth, for selling.
+- What you've slain stays slain, between visits and in your save.
+
+### The pause menu
+
+- Reworked in the gold-edged style of the main menu: your hero's portrait,
+  name, level, day and world; Resume; zoom and inner walls changed right
+  there; the controls; back to the main menu. It opens at once.
+
+### Faster
+
+- Foes finding their way round things, and you bumping into them, take far
+  less work: the same game, smoother where it's crowded.
+
 ## [0.4.0] - 2026-10-02
 
 A main menu worth arriving at, your heroes side by side, and a hero made the

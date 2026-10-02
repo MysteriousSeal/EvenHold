@@ -1,12 +1,14 @@
 # EvenHold
 
 *The old kingdom fell long ago. Its villages hold on between the forests, its
-ruins lie under the mist, and below them the dead keep their crypts. Somebody
-has to go down there.*
+ruins lie under the mist, and below them the dead keep their crypts. In the
+hills, things older than the kingdom have dug their burrows. Somebody has to
+go down there.*
 
 EvenHold is a small isometric adventure in a hand-built voxel world: wander a
 medieval countryside, take work from the village notice boards, fight what
-lives in the wilds, and go down into the crypts beneath the old ruins.
+lives in the wilds, and go down into the crypts beneath the old ruins and the
+caves in the hills.
 
 <!-- A hero shot here makes the biggest difference: drop it in docs/screenshots/ and uncomment.
 ![EvenHold](docs/screenshots/hero.png)
@@ -29,12 +31,18 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 - **The crypts.** Beneath each ruin, a crypt of its own: its passages
   guarded by the dead (swordsmen, bowmen, and worse), deeper and nastier the
   further you go. Clear enough of it and its lord wakes in the great hall.
+- **The caves.** In the hills, dark mouths in rocky outcrops lead down into
+  winding burrows lit only by glowing fungus and crystals. Bats flit near the
+  mouth, spiders spit webs from the dark, and worms burst up out of the
+  ground beneath you. Clear enough of a cave and the webs over its nest
+  tear: the brood mother is waiting.
 - **The inn.** Sit at the bar for an ale or a hot pie, buy and sell with the
   barmaid, and in the evening ask her for a room for the night. Mind the
   bouncer: swords stay sheathed in here.
 - **The smithy.** Arms and armour to buy, and the smith will take your old
   gear off your hands. The finest helms aren't for sale: a winged helm, a
-  dragonscale helm or an old king's crown waits in a crypt lord's hoard.
+  dragonscale helm or an old king's crown waits in a crypt lord's hoard, or
+  wrapped in silk in a brood mother's.
 - **Quests.** The notice board in every village square has work for those
   who'll take it.
 - **The herbalist.** In every village, a green-hooded herbalist keeps shop
@@ -42,9 +50,10 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   health and energy potions to buy, and they'll take your raw ingredients.
 - **Wells.** Toss in a silver coin and you may walk away blessed.
 
-<!-- More shots: the inn, a crypt, the ruins in the mist.
+<!-- More shots: the inn, a crypt, a cave, the ruins in the mist.
 ![The inn](docs/screenshots/inn.png)
 ![A crypt](docs/screenshots/crypt.png)
+![A cave](docs/screenshots/cave.png)
 ![The ruins](docs/screenshots/ruins.png)
 -->
 
@@ -87,12 +96,14 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   tells you what wearing it instead would change: green for gains, red for
   losses, and how much better or worse it is all told.
 - **Levels bring points.** Spend them (**P**) on Strength, Agility, Stamina
-  or Endurance, and gear adds its own on top. Slaying a crypt's lord is
-  worth a point of its own.
+  or Endurance, and gear adds its own on top. Slaying a crypt's lord or a
+  cave's brood mother is worth a point of its own.
 - **Read the colours.** A foe's level is coloured by how dangerous it is to
   you. A yellow health bar means it won't start a fight, but it'll finish one.
-- **Some foes tell you what's coming.** Watch for marks on the ground, and
-  roll out of them (**Shift**).
+- **Some foes tell you what's coming.** Watch for marks on the ground (and
+  the ground heaving, in the caves), and roll out of them (**Shift**).
+- **Mind the webs.** A cave spider's spat web slows you to a crawl for a
+  moment. Roll through it, or keep moving.
 - **Mind your breath.** Blows, rolls and blocked blows spend it, the thin
   green bar under your health. Raise your guard (**Q**) just as a blow lands
   to parry it: the foe reels, and your next blow on it lands twice as hard.
@@ -125,3 +136,13 @@ npm run dev
 
 Then open the address it prints (usually <http://localhost:5173>) in your
 browser.
+
+To play the optimised build instead (smaller, faster, no live reloading):
+
+```bash
+npm run build
+npm run preview
+```
+
+and open <http://localhost:4173>. The build lands in `dist/`, a plain static
+site you can host anywhere.
