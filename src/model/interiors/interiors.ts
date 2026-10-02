@@ -59,8 +59,9 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
   inn: { width: [11, 13], depth: [8, 10] }, // roomy: a bar, a hearth corner and the tables
   smithy: { width: [7, 9], depth: [6, 7] },
 };
-// A herbalist's house (herbalist/herbalistHomes.ts): shop, workroom and home, roomier than a house.
-const HERBALIST_SIZE = { width: [8, 9] as [number, number], depth: [6, 7] as [number, number] };
+// A herbalist's house (herbalist/herbalistHomes.ts): shop, workroom and home, just big enough for all their pieces,
+// each reachable (herbalistLayout.ts; tests/herbalistInside.test.ts tries every door): no emptier.
+const HERBALIST_SIZE = { width: [7, 7] as [number, number], depth: [6, 6] as [number, number] };
 const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
 const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['timber', 'plaster'], smithy: ['stone'] };
 
