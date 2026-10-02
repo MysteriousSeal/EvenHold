@@ -9,6 +9,10 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { buildRoomVoxels, ROOM_PALETTE } from '../src/view/interior/roomVoxels';
+import { roomPlanner } from '../src/model/interiors/roomPlanner';
+import { furnishHerbalist } from '../src/model/herbalist/herbalistLayout';
+import type { Entrance, Room } from '../src/model/interiors/interiors';
+import type { Furniture } from '../src/model/interiors/furniture';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const HERBALIST_KINDS = ['cauldron', 'herbCounter', 'herbTable', 'dryingRack', 'potionShelf'];
@@ -20,8 +24,7 @@ describe("a herbalist's house inside", () => {
     expect(herbalists.length).toBeGreaterThan(0);
     for (const { m, h } of herbalists) {
       const { room, furniture } = layoutOf(m.seed, h.home);
-      expect(room.width).toBeGreaterThanOrEqual(8);
-      expect(room.depth).toBeGreaterThanOrEqual(6);
+      expect([room.width, room.depth]).toEqual([7, 6]); // (just big enough: not an empty hall)
       expect([room.floor, room.wall]).toEqual(['earth', 'daub']);
       for (const kind of ['herbCounter', 'hearth', 'cauldron', 'herbTable']) expect(furniture.some((f) => f.kind === kind), kind).toBe(true);
       const bed = furniture.find((f) => f.kind === 'bed');
@@ -83,6 +86,60 @@ describe("a herbalist's house inside", () => {
       for (let t = 0; t < 2; t += 1 / 30) m.update(0, 0, 1 / 30);
       expect(Math.hypot(h.x - x, h.z - z)).toBeLessThan(0.01); // (still)
       m.useDoor();
+    }
+  });
+});
+
+// Many herbalists' rooms, laid out as theirs are (7 x 6), the door at each place it can be: every piece there, and
+// every one reachable from the door, its working front too.
+describe("every herbalist's room, whatever its roll and door", () => {
+  const ALL = ['herbCounter', 'bed', 'hearth', 'cauldron', 'dryingRack', 'potionShelf', 'herbTable'];
+  const rooms: Array<{ room: Room; items: Furniture[] }> = [];
+  for (let i = 0; i < 200; i++) {
+    const entrance: Entrance = { type: 'house', x: 10 + i * 3.7, z: 20 + (i % 13) * 5.1, outX: 0, outZ: 1 };
+    for (const door of [2, 3, 4]) {
+      const room: Room = { width: 7, depth: 6, door, floor: 'earth', wall: 'daub' };
+      const plan = roomPlanner(i * 7 + 3, entrance, room);
+      furnishHerbalist(plan, room, i, entrance);
+      rooms.push({ room, items: plan.items });
+    }
+  }
+  // The floor walked to from the door, round what's solid.
+  const reached = (room: Room, items: readonly Furniture[]) => {
+    const solid = new Set<string>();
+    for (const f of items) if (f.solid) for (let x = f.x; x < f.x + f.w; x++) for (let z = f.z; z < f.z + f.d; z++) solid.add(`${x},${z}`);
+    const seen = new Set([`${room.door},${room.depth - 1}`]);
+    const queue = [[room.door, room.depth - 1]];
+    while (queue.length) {
+      const [x, z] = queue.pop()!;
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const [a, b] = [x + dx, z + dz];
+        if (a < 0 || b < 0 || a >= room.width || b >= room.depth || solid.has(`${a},${b}`) || seen.has(`${a},${b}`)) continue;
+        seen.add(`${a},${b}`);
+        queue.push([a, b]);
+      }
+    }
+    return seen;
+  };
+
+  it('every piece there, in every room', () => {
+    for (const { items } of rooms) for (const kind of ALL) expect(items.some((f) => f.kind === kind), kind).toBe(true);
+  });
+
+  it('every piece reachable from the door (a floor tile beside it walked to), and the fronts they work from', () => {
+    for (const { room, items } of rooms) {
+      const seen = reached(room, items);
+      for (const f of items.filter((p) => p.solid && p.kind !== 'barrel')) {
+        const beside: string[] = [];
+        for (let x = f.x; x < f.x + f.w; x++) beside.push(`${x},${f.z - 1}`, `${x},${f.z + f.d}`);
+        for (let z = f.z; z < f.z + f.d; z++) beside.push(`${f.x - 1},${z}`, `${f.x + f.w},${z}`);
+        expect(beside.some((t) => seen.has(t)), `${f.kind} at ${f.x},${f.z} (door ${room.door})`).toBe(true);
+      }
+      for (const f of items.filter((p) => ['cauldron', 'herbTable', 'dryingRack', 'potionShelf'].includes(p.kind))) {
+        const front = f.wall === 'left' ? `${f.x + f.w},${f.z}` : `${f.x},${f.z + f.d}`;
+        expect(seen.has(front), `${f.kind}'s front (door ${room.door})`).toBe(true);
+      }
+      expect(seen.has(`${items.find((f) => f.kind === 'herbCounter')!.x},${items.find((f) => f.kind === 'herbCounter')!.z + 1}`), 'before the counter').toBe(true);
     }
   });
 });
