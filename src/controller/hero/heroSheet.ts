@@ -65,7 +65,7 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
           if (dressed !== dressedAs) {
             dressedAs = dressed;
             // Framed on the bare body, so whatever's worn or held never changes its size or tilts its turn.
-            stage.show(humanFigure(hero.look, hero.equipment), humanFigure(hero.look, {}));
+            stage.show(humanFigure(hero.look, hero.equipment), humanFigure({ ...hero.look, hairStyle: 'bald' }, {})); // (framed on the body alone: their hair never changes it)
           }
           return {
             figure: stage.canvas,
