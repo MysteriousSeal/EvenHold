@@ -146,3 +146,19 @@ npm run preview
 
 and open <http://localhost:4173>. The build lands in `dist/`, a plain static
 site you can host anywhere.
+
+### As a desktop app
+
+EvenHold also builds as a standalone app (with [Tauri](https://tauri.app)):
+on a Mac, `EvenHold.app` and a `.dmg` to install it from. You'll need
+[Rust](https://rustup.rs) once:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+npm run app
+```
+
+The app and its installer land in `src-tauri/target/release/bundle/`
+(`macos/` and `dmg/`). The first build compiles for a few minutes; later
+ones are quick. `npm run app:dev` opens the game in its app window while
+you work on it. The app keeps its own saves, apart from your browser's.
