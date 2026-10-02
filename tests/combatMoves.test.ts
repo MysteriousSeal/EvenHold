@@ -26,15 +26,20 @@ const run = (model: GameModel, seconds: number, step = 1 / 60) => {
 const guarded = (model: GameModel) => model.takeEvents().filter((e): e is Extract<GameEvent, { kind: 'guard' }> => e.kind === 'guard').map((e) => e.outcome);
 
 describe('breath', () => {
-  it('a blow spends it; it refills a moment after; with none, no blow', () => {
+  it('a blow spends it; it refills a moment after; short of a blow\'s worth, no blow (nor a roll short of a roll\'s)', () => {
     const model = fresh();
     expect(model.moves.breath).toBe(BREATH);
     expect(model.startAttack()).toBe(true);
     expect(model.moves.breath).toBe(BREATH - COST.blow);
     run(model, 2);
     expect(model.moves.breath).toBe(BREATH);
-    model.moves.breath = 0;
+    run(model, 1);
+    model.moves.breath = COST.blow - 1; // (some, but not a blow's worth)
     expect(model.startAttack()).toBe(false);
+    expect(model.moves.breath).toBe(COST.blow - 1);
+    model.moves.breath = COST.roll - 1; // (nor a roll's)
+    expect(model.roll(1, 0)).toBe(false);
+    expect(model.moves.roll).toBeNull();
   });
 
   it('tired, it holds less and refills slower', () => {
