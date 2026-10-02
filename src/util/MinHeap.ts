@@ -9,43 +9,52 @@ export class MinHeap {
     return this.items.length;
   }
 
+  // (Sifting moves a hole, not swapping pairs: no arrays made per step, the same order kept, ties too.)
   push(item: number, priority: number): void {
-    this.items.push(item);
-    this.priorities.push(priority);
-    let i = this.items.length - 1;
+    const items = this.items;
+    const priorities = this.priorities;
+    let i = items.length;
+    items.push(item);
+    priorities.push(priority);
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      if (this.priorities[parent] <= this.priorities[i]) break;
-      this.swap(i, parent);
+      if (priorities[parent] <= priority) break;
+      items[i] = items[parent];
+      priorities[i] = priorities[parent];
       i = parent;
     }
+    items[i] = item;
+    priorities[i] = priority;
   }
 
   // Returns [item, priority] of the smallest entry. Caller must check size first.
   pop(): [number, number] {
-    const top: [number, number] = [this.items[0], this.priorities[0]];
-    const lastItem = this.items.pop()!;
-    const lastPriority = this.priorities.pop()!;
-    if (this.items.length > 0) {
-      this.items[0] = lastItem;
-      this.priorities[0] = lastPriority;
+    const items = this.items;
+    const priorities = this.priorities;
+    const top: [number, number] = [items[0], priorities[0]];
+    const lastItem = items.pop()!;
+    const lastPriority = priorities.pop()!;
+    const n = items.length;
+    if (n > 0) {
       let i = 0;
       for (;;) {
         const left = 2 * i + 1;
         const right = left + 1;
-        let smallest = i;
-        if (left < this.items.length && this.priorities[left] < this.priorities[smallest]) smallest = left;
-        if (right < this.items.length && this.priorities[right] < this.priorities[smallest]) smallest = right;
-        if (smallest === i) break;
-        this.swap(i, smallest);
+        let smallest = -1;
+        let least = lastPriority;
+        if (left < n && priorities[left] < least) {
+          smallest = left;
+          least = priorities[left];
+        }
+        if (right < n && priorities[right] < least) smallest = right;
+        if (smallest < 0) break;
+        items[i] = items[smallest];
+        priorities[i] = priorities[smallest];
         i = smallest;
       }
+      items[i] = lastItem;
+      priorities[i] = lastPriority;
     }
     return top;
-  }
-
-  private swap(a: number, b: number): void {
-    [this.items[a], this.items[b]] = [this.items[b], this.items[a]];
-    [this.priorities[a], this.priorities[b]] = [this.priorities[b], this.priorities[a]];
   }
 }
