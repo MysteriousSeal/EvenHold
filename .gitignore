@@ -19,3 +19,6 @@ dist/
 
 # The bots' playtest reports (npm run bots)
 tests/bots/reports/
+
+# macOS folder metadata
+.DS_Store

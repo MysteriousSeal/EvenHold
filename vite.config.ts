@@ -18,6 +18,8 @@ export function worldVersion(): string {
 }
 
 export default defineConfig({
+  clearScreen: false, // (the desktop app's build, npm run app: Tauri's own output kept on screen)
+  server: { strictPort: true }, // (its dev window, npm run app:dev, looks for the game at 5173 and nowhere else)
   define: {
     __WORLD_VERSION__: JSON.stringify(worldVersion()),
     __GAME_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version), // the game's version (package.json), shown in the corner

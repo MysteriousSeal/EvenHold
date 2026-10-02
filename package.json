@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "app": "tauri build",
+    "app:dev": "tauri dev",
+    "app:icon": "node scripts/appIcon.mjs && tauri icon src-tauri/app-icon.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
     "test": "vitest run",
     "bots": "vite-node tests/bots/run.ts",
     "bots:quick": "BOT_QUICK=1 vite-node tests/bots/run.ts",
@@ -19,6 +22,9 @@
     "dev": "Starts the game in the browser while developing (Vite, reloads on save).",
     "build": "Type-checks, then builds the game for release into dist/.",
     "preview": "Serves the built game from dist/, to try it as released.",
+    "app": "Builds the desktop app (Tauri; needs Rust): EvenHold.app and its .dmg, in src-tauri/target/release/bundle/.",
+    "app:dev": "Opens the game in its desktop window while developing (reloads on save).",
+    "app:icon": "Redraws the app's icon (scripts/appIcon.mjs) and makes every size of it.",
     "test": "Runs every test once (vitest).",
     "bots": "Bots playtest: 100 bots, 1 game hour each, on random seeds, quiet; report in tests/bots/reports/. Fails if anything went wrong.",
     "bots:quick": "Bots playtest, short: 10 bots, 10 game minutes each, quiet.",
@@ -33,6 +39,7 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.1",
     "@types/node": "^22.20.4",
     "@types/three": "^0.169.0",
     "fake-indexeddb": "^6.2.5",
