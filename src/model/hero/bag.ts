@@ -154,12 +154,24 @@ export function moveInBag(bag: Bag, order: ReadonlyArray<BagItem | null>, from: 
   return slots;
 }
 
-// The bag tidied (a button on it): everything packed from the first slot,
-// gear first (head to toe, then jewellery, then what's held), then food and
-// drink, ingredients, quest items, and junk last; alike things by name.
+// The bag's rows by what things are, in this order (each its own rows, under its title).
+export type BagGroup = 'gear' | 'provision' | 'ingredient' | 'quest' | 'bag' | 'junk';
+export const BAG_GROUPS: ReadonlyArray<{ group: BagGroup; title: string }> = [
+  { group: 'gear', title: 'Gear' },
+  { group: 'provision', title: 'Food & drink' },
+  { group: 'ingredient', title: 'Ingredients' },
+  { group: 'quest', title: 'Quest items' },
+  { group: 'bag', title: 'Bags' },
+  { group: 'junk', title: 'Junk' },
+];
+const GROUP_OF: Record<LootQuality, BagGroup> = { common: 'provision', ingredient: 'ingredient', quest: 'quest', bag: 'bag', junk: 'junk' };
+export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF[LOOT_QUALITY[item]] : 'gear');
+
+// The bag tidied (a button on it): everything packed from the first slot, by
+// its group (BAG_GROUPS), gear head to toe (then jewellery, then what's held);
+// alike things by name.
 export function sortedBag(bag: Bag): BagItem[] {
-  const GROUPS: Quality[] = ['common', 'ingredient', 'quest', 'junk'];
-  const rank = (item: BagItem) => (isLootItem(item) ? 1 + GROUPS.indexOf(LOOT_QUALITY[item]) : 0) * 100 + (isLootItem(item) ? 0 : EQUIP_SLOTS.indexOf(ITEMS[item].slot));
+  const rank = (item: BagItem) => BAG_GROUPS.findIndex((g) => g.group === groupOf(item)) * 100 + (isLootItem(item) ? 0 : EQUIP_SLOTS.indexOf(ITEMS[item].slot));
   const kinds = (Object.keys(bag) as BagItem[]).filter((item) => (bag[item] ?? 0) > 0).sort((a, b) => rank(a) - rank(b) || nameOf(a).localeCompare(nameOf(b)));
   return kinds.flatMap((item) => Array.from({ length: stacksOf(item, bag[item]!) }, () => item)); // (a thing's stacks side by side)
 }
