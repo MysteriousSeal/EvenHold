@@ -213,6 +213,8 @@ export function createMenu(options: MenuOptions): Menu {
     const buttons = cells.map((cell, i) => {
       const button = slotButton(cell, rows ? 40 : 44, detail ? () => {} : () => selectSlot(i), rows);
       if (detail) button.addEventListener('click', () => selectSlot(i, false));
+      // Chosen by hovering (no panel beside): left, it's lit no more, its tooltip (and preview) gone.
+      else button.addEventListener('mouseleave', () => grid?.selected === i && selectSlot(i, false, false));
       for (const section of sections) if (section.from === i) box.append(el('div', 'menu-section', section.title));
       box.append(button);
       return button;
@@ -229,7 +231,7 @@ export function createMenu(options: MenuOptions): Menu {
       list.append(box);
     }
     grid = { buttons, cells, columns, selected: 0 };
-    selectSlot(0, false);
+    selectSlot(0, false, !!detail); // (a shop's first ware told of beside; a hovered grid, none lit till hovered)
   }
 
   // The paper doll: the figure in the middle, slots down each side and
@@ -282,11 +284,12 @@ export function createMenu(options: MenuOptions): Menu {
   }
 
   // Selects a slot and, unless `tip` is false, shows its tooltip beside it:
-  // to the right, or the left when there's no room.
-  function selectSlot(i: number, tip = true): void {
+  // to the right, or the left when there's no room. `lit`: whether it shows
+  // chosen (a hovered grid's, left, isn't).
+  function selectSlot(i: number, tip = true, lit = true): void {
     if (!grid) return;
     grid.selected = Math.max(0, Math.min(grid.buttons.length - 1, i));
-    grid.buttons.forEach((b, j) => b.classList.toggle('selected', j === grid!.selected));
+    grid.buttons.forEach((b, j) => b.classList.toggle('selected', lit && j === grid!.selected));
     detailPane?.replaceChildren(options.tabs[tabIndex].detail!(grid.cells[grid.selected]));
     if (!tip) {
       hideTip();
@@ -355,9 +358,10 @@ export function createMenu(options: MenuOptions): Menu {
       const tip = tipped;
       const keep = grid?.selected ?? 0;
       const key = grid?.cells[keep]?.key;
+      const lit = !!grid?.buttons[keep]?.classList.contains('selected');
       showTab(tabIndex);
       const moved = key ? (grid?.cells.findIndex((c) => c?.key === key) ?? -1) : -1;
-      if (grid) selectSlot(moved >= 0 ? moved : keep, false);
+      if (grid) selectSlot(moved >= 0 ? moved : keep, false, lit);
       if (tip !== null) showTip(tip);
     },
   };
