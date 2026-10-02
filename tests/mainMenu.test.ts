@@ -14,6 +14,7 @@ import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { MAX_WORLDS, forgetWorld, savedWorlds, startAutoSave } from '../src/controller/storage/saveGame';
 import { showMainMenu } from '../src/controller/mainMenu';
+import { CONTROLS } from '../src/controller/controls';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -129,7 +130,13 @@ describe('the main menu', () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     void showMainMenu(hooks);
     click('Controls');
-    expect(document.querySelector('.title-controls')?.textContent).toContain('Roll');
+    expect(Array.from(document.querySelectorAll('.title-group h3')).map((h) => h.textContent)).toEqual(['Getting about', 'Fighting', 'Your hero']);
+    const line = (what: string) => Array.from(document.querySelectorAll('.title-control')).find((l) => l.querySelector('.title-what')?.firstChild?.textContent === what)!;
+    expect(Array.from(line('Move').querySelectorAll('.title-cluster')).map((c) => c.textContent)).toEqual(['WASD', '↑←↓→']); // (in their keyboard shape)
+    expect(line('Strike').querySelector('.title-cap.wide')?.textContent).toBe('Space');
+    expect(line('Guard').querySelector('small')?.textContent).toBe('raise it as a blow lands: parry');
+    expect(line('Zoom').querySelector('.title-mouse.wheel')).not.toBeNull();
+    expect(CONTROLS).toContainEqual(['Guard (raise it as a blow lands: parry)', 'Hold Q']); // (the pause menu's, as text)
     click('Back');
     expect(shown()).toBe('Aleyn');
   });
