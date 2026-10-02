@@ -1,6 +1,7 @@
-// Drives the loading screen from index.html (which shows it, scene, title,
-// bar and all, before any game script runs): fills the progress bar, shows
-// the current step and a gameplay tip, then fades out.
+// Drives the loading screen from index.html (which shows it, the scene and
+// the title alone, before any game script runs: its bar only once a world's
+// entered): fills the progress bar, shows the current step and a gameplay
+// tip, then fades out.
 
 const TIPS = [
   'Press E by a door to step inside.',
@@ -31,6 +32,7 @@ export function loadingScreen(): LoadingScreen {
   }, TIP_SECONDS * 1000);
   return {
     show(progress, label) {
+      root.classList.remove('title'); // (a world being entered: the bar, the step and the tip, at last)
       fill.style.width = `${Math.round(progress * 100)}%`;
       step.textContent = `${label}…`;
     },

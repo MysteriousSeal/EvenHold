@@ -140,11 +140,19 @@
       }
       #loading-tip:empty { visibility: hidden; }
       @media (prefers-reduced-motion: reduce) { #loading-stage * { animation: none !important; } }
+      /* Until a world's entered, the title alone: no bar, step or tip (the main menu may come up over it,
+         controller/mainMenu.css); the loading screen shows them once it starts (loadingScreen.ts). */
+      /* Laid out as a scene: the title at the top, the sun and the hills wide behind (the hero, on the main menu,
+         standing before them). */
+      #loading.title { justify-content: flex-start; padding-top: 5vh; }
+      #loading.title h1 { position: relative; z-index: 1; }
+      #loading.title #loading-stage { position: absolute; left: 0; top: 16vh; width: 100vw; height: 230px; }
+      #loading.title #loading-bar, #loading.title #loading-step, #loading.title #loading-tip { display: none; }
     </style>
   </head>
   <body>
     <canvas id="app"></canvas>
-    <div id="loading">
+    <div id="loading" class="title">
       <div id="loading-stage"><div class="sun"></div><div class="hills far"></div><div class="hills mid"></div><div class="hills near"></div><i class="mote"></i><i class="mote"></i><i class="mote"></i><i class="mote"></i><i class="mote"></i></div>
       <h1>EvenHold</h1>
       <div id="loading-bar"><i></i></div>
