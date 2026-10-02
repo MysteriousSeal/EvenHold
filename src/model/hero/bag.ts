@@ -3,7 +3,7 @@
 
 import { ITEMS, SLOT_NAMES, type ItemId } from '../human/equipment';
 import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
-import { PROVISIONS, isProvision } from '../loot/provisions';
+import { DRINK_SECONDS, EAT_SECONDS, PROVISIONS, isProvision } from '../loot/provisions';
 import type { Hero } from '../types';
 import { maxEnergyOf, maxHpOf } from './attributes';
 
@@ -51,12 +51,13 @@ export const BAG_GROUPS: ReadonlyArray<{ group: BagGroup; title: string }> = [
 const GROUP_OF: Record<LootQuality, BagGroup> = { common: 'provision', ingredient: 'ingredient', quest: 'quest', bag: 'bag', junk: 'junk' };
 export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF[LOOT_QUALITY[item]] : 'gear');
 
-// Eats or drinks one of `item` from the hero's bag: food for the health it gives back, drink for the energy (up to
-// their most); returns whether they did (it's food or drink, and carried).
+// Starts eating or drinking one of `item` from the hero's bag: food for its share of their most health, drink for
+// its share of their most energy, back over a few seconds (a blow stops it: fighting.ts); whether they did (it's food
+// or drink, carried, and they're not still at another).
 export function eatOrDrink(hero: Hero, item: BagItem): boolean {
-  if (!isProvision(item) || !takeFromBag(hero.bag, item)) return false;
-  const { heal = 0, energy = 0 } = PROVISIONS[item];
-  hero.hp = Math.min(maxHpOf(hero), hero.hp + heal);
-  hero.energy = Math.min(maxEnergyOf(hero), hero.energy + energy);
+  if (!isProvision(item) || hero.eating || !takeFromBag(hero.bag, item)) return false;
+  const { heal = 0, energy = 0, drink } = PROVISIONS[item];
+  const seconds = drink ? DRINK_SECONDS : EAT_SECONDS;
+  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: seconds, seconds };
   return true;
 }

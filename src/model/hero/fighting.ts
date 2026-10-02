@@ -146,6 +146,7 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
     return guard.guarded;
   }
   fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z });
+  hero.eating = null; // (a meal from the bag interrupted: the rest lost)
   if (hurt(hero, blow.damage)) fight.fall();
   return guard.guarded;
 }

@@ -30,6 +30,7 @@ export interface Hero extends Humanoid {
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
+  eating?: { heal: number; energy?: number; left: number; seconds: number } | null; // food or drink from the bag, restoring as it goes (bag.ts eatOrDrink); a blow stops it
 }
 
 export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins)

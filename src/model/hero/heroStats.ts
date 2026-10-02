@@ -73,15 +73,19 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false)
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
   const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
-  // A drink being sipped (or a pie eaten): its health and energy back a little at a time, all of it once it's done.
-  const drink = hero.drinking;
-  if (drink) {
-    const step = Math.min(dt, drink.left);
-    hero.hp = Math.min(maxHpOf(hero), hero.hp + (drink.heal * step) / drink.seconds);
-    hero.energy = Math.min(maxEnergyOf(hero), hero.energy + ((drink.energy ?? 0) * step) / drink.seconds);
-    drink.left -= step;
-    if (drink.left <= 0) hero.drinking = null;
-  }
+  // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
+  // at a time, all of it once it's done.
+  hero.drinking = restoring(hero, hero.drinking, dt);
+  hero.eating = restoring(hero, hero.eating, dt);
+}
+
+function restoring(hero: Hero, meal: Hero['drinking'], dt: number): Hero['drinking'] {
+  if (!meal) return meal;
+  const step = Math.min(dt, meal.left);
+  hero.hp = Math.min(maxHpOf(hero), hero.hp + (meal.heal * step) / meal.seconds);
+  hero.energy = Math.min(maxEnergyOf(hero), hero.energy + ((meal.energy ?? 0) * step) / meal.seconds);
+  meal.left -= step;
+  return meal.left <= 0 ? null : meal;
 }
 
 // Starts sipping a drink (or eating, a pie at the bar) worth `heal` health and `energy` over
