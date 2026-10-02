@@ -1,6 +1,6 @@
 // What the model knows about an item: its name, the slot it goes in, and
 // who wears it out in the world. How it looks is the view's business
-// (view/meshes/human/gear/items/, one file per slot).
+// (view/meshes/human/gear/items/, one file per slot; the head's two: head.ts, and the finer helms in helms.ts).
 
 import type { EquipSlot } from '../equipment';
 import type { Stat } from '../../hero/statKinds';
