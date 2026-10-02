@@ -11,7 +11,7 @@
 
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
-import { bagLayout, layoutCounts, moveInBag, sortedBag, type BagItem } from '../../model/hero/bag';
+import { bagStacks, moveSlot, sortedBag, type BagItem } from '../../model/hero/bag';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, type BagId } from '../../model/loot/bags';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
@@ -38,8 +38,9 @@ export interface Seller {
 // Onto the shop's window (the one with its keeper talking).
 const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelector('.shop-talk');
 
-function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null): MenuSlot {
-  const base = baseSlot(model, item, count);
+// `at`: the bag's slot it's in (what's dropped from it, off that very stack).
+function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number): MenuSlot {
+  const base = baseSlot(model, item, count, at);
   const value = sellValue(item);
   const slot = value === null ? base : { ...base, lines: [...(base.lines ?? []), `Sell price: ${coinWords(value)}`] };
   if (!seller) return slot;
@@ -54,7 +55,7 @@ function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller 
   };
 }
 
-function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
+function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): MenuSlot {
   if (isLoot(item)) {
     return {
       icon: bagIcon(item),
@@ -72,7 +73,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
           ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${ROOM_PER_BAG} more slots.` : 'Every bag socket is taken.')
           : undefined,
       dragOut: (over) => {
-        if (!over?.closest('.menu')) model.dropFromBag(item); // onto the world, not another window
+        if (!over?.closest('.menu')) model.dropFromBag(item, at); // onto the world, not another window (off this stack)
       },
     };
   }
@@ -87,7 +88,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number): MenuSlot {
     dragOut: (over) => {
       const target = over?.closest<HTMLElement>('[data-accepts]');
       if (target?.dataset.accepts === ITEMS[gear].slot) model.equipFromBag(gear);
-      else if (!over?.closest('.menu')) model.dropFromBag(gear);
+      else if (!over?.closest('.menu')) model.dropFromBag(gear, at);
     },
   };
 }
@@ -150,14 +151,13 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           // The sockets on top, a row to themselves: a fitted bag (right-click, or drag it down into the bag, to take it
           // off), or an empty socket; then the bag's own slots.
           const top: Array<MenuSlot | null> = hero.bags.map((fitted, s) => (fitted ? socketSlot(model, s, fitted, SOCKET_ROW) : emptySocket()));
-          const layout = bagLayout(hero.bag, hero.bagOrder, room);
-          const counts = layoutCounts(hero.bag, layout); // (a stack's own: junk twenty to a slot at most)
+          const { layout, counts } = bagStacks(hero.bag, hero.bagOrder, hero.bagCounts, room); // (each stack its own count: junk twenty to a slot at most)
           const cells = layout.map((item, i): MenuSlot | null => {
             if (!item) return null;
-            const slot = slotFor(model, item, counts[i], seller);
+            const slot = slotFor(model, item, counts[i], seller, i);
             // Onto another of the bag's slots: moved there; a bag onto a free socket (on top): fitted there.
             slot.move = (to) => {
-              if (to >= SOCKET_ROW) hero.bagOrder = moveInBag(hero.bag, hero.bagOrder, i, to - SOCKET_ROW, room);
+              if (to >= SOCKET_ROW) moveSlot(hero, i, to - SOCKET_ROW, room);
               else if (isBagItem(item)) fitBag(hero, item, to);
             };
             return slot;
@@ -166,7 +166,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
         },
         footer: () =>
           footer(model.hero.money, () => {
-            model.hero.bagOrder = sortedBag(model.hero.bag);
+            [model.hero.bagOrder, model.hero.bagCounts] = [sortedBag(model.hero.bag), []]; // (packed: each thing's stacks full but the last)
             menu.refresh();
           }),
       },
@@ -174,7 +174,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
   });
   let shown = '';
   const update = () => {
-    const contents = JSON.stringify([model.hero.bag, model.hero.bagOrder, model.hero.bags, model.hero.money]);
+    const contents = JSON.stringify([model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, model.hero.bags, model.hero.money]);
     if (contents === shown) return;
     shown = contents;
     menu.refresh();

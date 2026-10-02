@@ -1,5 +1,5 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
-import { nameOf, qualityOf, type Quality } from './model/hero/bag';
+import { kindOf, nameOf, qualityOf, type Quality } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
@@ -230,7 +230,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)}`], PICKED_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], PICKED_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(
