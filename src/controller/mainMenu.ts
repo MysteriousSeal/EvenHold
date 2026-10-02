@@ -17,7 +17,7 @@
 // mainMenu.css.
 
 import { MAX_WORLDS, type SavedWorld } from './storage/saveGame';
-import { CONTROLS } from './controls';
+import { CONTROL_GROUPS, type KeyMark } from './controls';
 import { generateRandomSeed } from '../util/random';
 import { seedFrom } from '../util/seed';
 import { humanBust, humanFigure } from '../view/meshes/human/humanFigure';
@@ -45,6 +45,26 @@ export const SAYINGS = [
   'Mind the bouncer.',
   'Potions mend; time mends slower.',
   'Keep to the road after dusk.',
+  'A sharp blade, a full bag, a warm bed.',
+  'The smith mends what the road breaks.',
+  'Wolves hunt when the light goes.',
+  'Eat before you fight, not during.',
+  'Bandits count your coin before you do.',
+  'Old stones remember old wars.',
+  'The barmaid hears everything.',
+  'A guard raised in time is worth two blows.',
+  'Light a fire, and the night keeps its distance.',
+  'Every crypt has a lord, every lord a weakness.',
+  'Rest when you can; the dark does not.',
+  'The wise traveller carries bread.',
+  'Gold is heavy; carry it anyway.',
+  'Notice boards pay in coin and in trouble.',
+  'A full belly walks further.',
+  'Not every pilgrim is lost.',
+  'Strike while they reel.',
+  'The well is deeper than it looks.',
+  'Breath spent is breath you lack.',
+  'What the hills hide, the brave find.',
 ]
 
 type Screen = 'intro' | 'heroes' | 'newWorld' | 'controls';
@@ -132,6 +152,20 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
     root.addEventListener('click', skip);
 
     const back = () => button('title-side', 'Back', () => go('heroes'));
+    // A key, drawn: a cap; a word between caps; W over A S D, or the arrows, in their keyboard shape; the mouse.
+    const mark = (m: KeyMark): HTMLElement => {
+      if ('cap' in m) return el('kbd', `title-cap${m.cap.length > 1 ? ' wide' : ''}`, m.cap);
+      if ('word' in m) return el('span', 'title-word', m.word);
+      if ('mouse' in m) {
+        const mouse = el('span', `title-mouse ${m.mouse}`);
+        mouse.title = m.mouse === 'wheel' ? 'Mouse wheel' : 'Click';
+        return mouse;
+      }
+      const [top, ...row] = m.cluster === 'wasd' ? ['W', 'A', 'S', 'D'] : ['↑', '←', '↓', '→'];
+      const cluster = el('span', 'title-cluster');
+      cluster.append(el('kbd', 'title-cap', top), ...row.map((k) => el('kbd', 'title-cap', k)));
+      return cluster;
+    };
 
     const draw = () => {
       root.dataset.screen = at;
@@ -214,10 +248,26 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         input.focus();
         return;
       }
-      const panel = el('div', 'title-panel');
-      const dl = el('dl', 'title-controls');
-      for (const [what, k] of CONTROLS) dl.append(el('dt', '', what), el('dd', '', k));
-      panel.append(el('div', 'title-panel-head', 'Controls'), dl);
+      // The controls, as a codex: grouped, each its keys drawn as keycaps.
+      const panel = el('div', 'title-codex');
+      const head = el('div', 'title-list-head');
+      head.append(el('span', '', 'Controls'));
+      const groups = el('div', 'title-controls');
+      for (const group of CONTROL_GROUPS) {
+        const section = el('section', 'title-group');
+        section.append(el('h3', '', group.name));
+        for (const c of group.controls) {
+          const line = el('div', 'title-control');
+          const what = el('span', 'title-what', c.what);
+          if (c.note) what.append(el('small', '', c.note));
+          const keys = el('span', 'title-keys');
+          keys.append(...c.marks.map(mark));
+          line.append(what, keys);
+          section.append(line);
+        }
+        groups.append(section);
+      }
+      panel.append(head, groups);
       const left = el('div', 'title-corner left');
       left.append(back());
       screen.replaceChildren(panel, left);
