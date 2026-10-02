@@ -35,7 +35,7 @@ export interface Trade {
   wares(): BagItem[]; // to buy (sold out too: shown, not to be had)
   wanted(id: string): id is BagItem; // what they'll buy off the hero
   price(id: BagItem, selling: boolean): number;
-  trade(id: BagItem, selling: boolean): 'bought' | 'sold' | 'sold out' | 'too poor' | 'short' | 'none' | 'not wanted';
+  trade(id: BagItem, selling: boolean): 'bought' | 'sold' | 'sold out' | 'too poor' | 'short' | 'none' | 'not wanted' | 'full';
   lines: TradeLines;
   about(id: BagItem): string; // their word on one of their wares, just bought
   offered(name: string): string; // their word on what the hero's just sold them
@@ -53,6 +53,9 @@ export interface TradeBag {
   menu: Menu;
   trade(seller: Seller | null): void;
 }
+
+// What any keeper says to a hero with no room left in their bag.
+const BAG_FULL = ["Your bag's full, friend. Make some room first.", "Where would you put it? Your bag's bursting.", 'No room in that bag of yours.'];
 
 export const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
 
@@ -88,7 +91,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
   let says = ''; // what they're saying: a greeting, or an answer to a trade
   // The keeper answers a trade (or a word of their own), and the window's redrawn with it.
   const answer = (result: string, word?: string) => {
-    says = word ?? (result in trade.lines ? pick(trade.lines[result as keyof TradeLines]) : says);
+    says = word ?? (result === 'full' ? pick(BAG_FULL) : result in trade.lines ? pick(trade.lines[result as keyof TradeLines]) : says);
     menu.refresh();
   };
   // Each tab's page (Buy, Buyback), how many it has now, how many rows to one, and how many at least

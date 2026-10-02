@@ -7,6 +7,8 @@ import { ITEMS, type ItemId } from '../../model/human/equipment';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../../model/travellers/pedlarShop';
 import { WORD_HOLD, type Traveller } from '../../model/travellers/travellers';
+import { isBagItem } from '../../model/loot/bags';
+import { ROOM_PER_BAG } from '../../model/hero/bagSlots';
 import type { Menu } from '../../view/ui/menu';
 import { gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -45,8 +47,9 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     offered: (name) => `${name}? I know just the buyer.`,
     junk: (_name, paid) => pick(JUNK).replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name.toLowerCase()).replace('{paid}', paid),
-    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : 'From the bottom of a pedlar\'s pack.'),
-    facts: (id) => (isProvision(id) ? [`${PROVISIONS[id].drink ? 'Drink' : 'Food'}, ${givesText(id)}`] : gearLines(id as ItemId).length ? gearLines(id as ItemId) : [ITEMS[id as ItemId].name]),
+    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : 'From the bottom of a pedlar\'s pack.'),
+    facts: (id) =>
+      isProvision(id) ? [`${PROVISIONS[id].drink ? 'Drink' : 'Food'}, ${givesText(id)}`] : isBagItem(id) ? [`A bag: +${ROOM_PER_BAG} slots`] : gearLines(id as ItemId).length ? gearLines(id as ItemId) : [ITEMS[id as ItemId].name],
   });
   return {
     ...panel,
