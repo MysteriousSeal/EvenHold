@@ -55,7 +55,7 @@ describe('every building in every test world', () => {
       for (const npc of model.npcs) {
         expect(model.entrances).toContain(npc.home);
         if (npc.inn) expect(npc.inn.type).toBe('inn');
-        const kind = { villager: 'house', barkeep: 'inn', server: 'inn', smith: 'smithy', bouncer: 'inn' }[npc.role];
+        const kind = { villager: 'house', barkeep: 'inn', server: 'inn', smith: 'smithy', bouncer: 'inn', herbalist: 'house' }[npc.role];
         expect(npc.home.type, `${npc.name} (${npc.role})`).toBe(kind);
       }
       for (const inn of model.entrances.filter((e) => e.type === 'inn')) {
