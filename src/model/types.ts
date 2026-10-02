@@ -1,4 +1,5 @@
 import type { Blessing } from './hero/blessing';
+import type { Road } from './worldgen/roads';
 import type { MapSize } from './map/grid';
 import type { Humanoid } from './human/humanoid';
 import type { Bag, BagItem } from './hero/bag';
@@ -159,6 +160,7 @@ export interface World {
   surfaceMap: Surface[][];
   // Ordered tile routes of each trail, from start to village square.
   trails: Array<Array<[number, number]>>;
+  roads: Road[]; // between the villages (worldgen/roads.ts)
   villages: Village[];
   houses: House[];
   buildings: Building[];

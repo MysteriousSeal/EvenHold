@@ -7,9 +7,9 @@ import type { Stat } from '../../hero/statKinds';
 
 // Kinds of people who dress themselves from the item catalog (bandits at random;
 // the inns' bouncers always in their own studded leathers).
-export type Wearer = 'bandit' | 'bouncer';
+export type Wearer = 'bandit' | 'bouncer' | 'pedlar' | 'pilgrim' | 'guard'; // (the last three: travellers on the roads, travellers/travellers.ts)
 // Those who sell items: the smith (weapons, shields, armour: smithy/smithShop.ts).
-export type Merchant = 'smith';
+export type Merchant = 'smith' | 'pedlar'; // (a pedlar: trinkets, carried along the roads: travellers/pedlarShop.ts)
 
 export interface ItemEntry {
   name: string;

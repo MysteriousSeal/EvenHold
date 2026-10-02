@@ -54,6 +54,9 @@ export const BANDIT_OUTFIT: readonly ItemId[] = ['maskedHood', 'leatherVest', 'r
 export const EMPTY_SLOT_WEIGHT: Record<Wearer, Partial<Record<EquipSlot, number>>> = {
   bandit: { head: 2, shoulders: 8, hands: 3, neck: 9, ring: 9, offHand: 9 },
   bouncer: {}, // (always the same: the one item of each slot he wears)
+  pedlar: { head: 1, shoulders: 2, hands: 2, neck: 1, ring: 3, mainHand: 1, offHand: 1 }, // (unarmed)
+  pilgrim: { head: 1, shoulders: 1, hands: 1, neck: 1, ring: 1, offHand: 1 },
+  guard: { shoulders: 1, neck: 1, ring: 1, offHand: 1 },
 };
 
 type Options = Array<[ItemId | null, number]>;

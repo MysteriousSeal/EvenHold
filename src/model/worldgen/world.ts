@@ -11,6 +11,7 @@ import { generateHeightMap, smoothHeightMap } from './terrain';
 import { generateLakeMap } from './lakes';
 import { generateVillages } from './villages';
 import { generateSpawnTrail } from './trails';
+import { linkVillages } from './roads';
 import { createForestDensity, generateTrees } from './trees';
 import { generateBushes } from './bushes';
 import { generateFields } from './fields';
@@ -47,6 +48,7 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   const { villages, houses, buildings } = generateVillages(heightMap, lakeMap, surfaceMap, rng, spawn.x, spawn.z);
   const solid = solidCells({ houses, buildings, villages });
   const spawnTrail = generateSpawnTrail({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages, spawn.x, spawn.z);
+  const roads = linkVillages({ heightMap, lakeMap, surfaceMap, solidCells: solid }, villages); // (the villages joined, before fields and trees keep off them)
   const fields = generateFields(heightMap, lakeMap, surfaceMap, solid, villages);
   // Ruins in the wilds, and the bandits' camps; the trees and bushes that
   // would stand on them (or right up to their walls) cleared away after
@@ -68,5 +70,5 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   const meadowDensity = createMeadowDensity(seed);
   const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, grown, meadowDensity, spawn.x, spawn.z).filter((b) => !cleared.has(tile(b.x, b.z)));
 
-  return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], villages, houses, buildings, fields, ruins, camps, trees, bushes };
+  return { size, heightMap, lakeMap, surfaceMap, trails: spawnTrail ? [spawnTrail] : [], roads, villages, houses, buildings, fields, ruins, camps, trees, bushes };
 }

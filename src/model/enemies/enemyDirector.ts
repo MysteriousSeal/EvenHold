@@ -61,6 +61,13 @@ export class EnemyDirector {
     return this.hero;
   }
 
+  // Others they may go after instead of the hero (travellers on the roads: travellers/travellerFights.ts): whom a foe's
+  // after, if not the hero (or null), and its blow landing on them.
+  private prey: { of(enemy: Enemy): Point | null; struck(enemy: Enemy, prey: Point): void } | null = null;
+  hunt(prey: { of(enemy: Enemy): Point | null; struck(enemy: Enemy, prey: Point): void }): void {
+    this.prey = prey;
+  }
+
   update(dt: number): void {
     const near = this.near.near(this.hero);
     const reach = ENEMY_ACTIVE_RADIUS + BUMP_MARGIN;
@@ -79,7 +86,9 @@ export class EnemyDirector {
         continue;
       }
       enemy.pathAge += dt;
-      if (!this.frozen) stepEnemy(enemy, this.hero, dt, this.actions);
+      const prey = this.prey?.of(enemy) ?? null; // (after someone else: as after the hero, but seeing and striking them)
+      const actions = prey ? { ...this.actions, sees: (e: Enemy) => this.inView(e, prey), waitsTurn: () => false, strike: (e: Enemy) => this.prey!.struck(e, prey) } : this.actions;
+      if (!this.frozen) stepEnemy(enemy, prey ?? this.hero, dt, actions);
     }
     if (!this.frozen) this.separate(dt);
     this.nearby = null;

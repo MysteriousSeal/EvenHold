@@ -1,6 +1,7 @@
 // Teleport destinations for the dev cheat panel. Pure queries over the
 // model, so they're testable and the panel stays a thin UI.
 
+import { onRoad, type Traveller, type TravellerRole } from './travellers/travellers';
 import type { BuildingType, Entrance } from './interiors/interiors';
 import { enemyLevel } from './enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from './constants';
@@ -174,4 +175,17 @@ export function enterNearest(model: GameModel, type: BuildingType, visited: Set<
   visited.add(next);
   model.teleport(next.x, next.z);
   return model.useDoor();
+}
+
+// The nearest traveller of `role` on the roads (standing), and the spot on their road a pace ahead of them (in reach
+// for a word): or null, none about.
+export function nearestTraveller(model: GameModel, from: Tile, role: TravellerRole): { traveller: Traveller; at: Tile } | null {
+  let best: Traveller | null = null;
+  for (const t of model.travellers.standing) {
+    if (t.role !== role || t.leader !== null) continue; // (a patrol by its leader)
+    if (!best || distance(t, from) < distance(best, from)) best = t;
+  }
+  if (!best) return null;
+  const ahead = onRoad(model.travellers.roads[best.road], best.along + best.way * 1.2);
+  return { traveller: best, at: { x: ahead.x, z: ahead.z } };
 }

@@ -7,8 +7,8 @@ import type { Npc } from './npcs';
 
 const said: GameEvent[] = [];
 
-// `who` says `text` (where they are: a room, or outdoors).
-export function say(who: Npc, text: string): void {
+// `who` says `text` (where they are: a room, or outdoors): a villager, a traveller on the road.
+export function say(who: Pick<Npc, 'x' | 'z'> & { where: Npc['where'] }, text: string): void {
   said.push({ kind: 'say', speaker: who, where: who.where, text });
 }
 

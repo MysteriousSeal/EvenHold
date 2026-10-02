@@ -8,6 +8,7 @@
 // A save is read defensively: it comes from outside (the browser's
 // storage), so anything missing or malformed means no save at all.
 
+import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
 import type { BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
@@ -60,7 +61,8 @@ export interface SaveData {
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
   minutes?: number; // the game's clock
   doors?: Array<{ inn: number; open: string[] }>; // the doors left open upstairs, by building
-  lets?: Array<{ inn: number; until: number }>; // the rooms let at the inns, till when (game minutes)
+  lets?: Array<{ inn: number; until: number }>;
+  travellers?: ReturnType<Travellers['save']>; // those on the roads: where each is, which way, their health; those to set out again // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
   crypts?: Array<{ crypt: string; slain: number[] }>; // each crypt's guards slain for good (by its ruin's corner, by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
@@ -119,6 +121,7 @@ export function snapshot(model: GameModel): SaveData {
     fullWalls: model.fullWalls,
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     doors: model.entrances.map((e, inn) => ({ inn, open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
+    travellers: model.travellers.save(),
     lets: model.entrances.flatMap((e, inn) => (letUntil(e) === null ? [] : [{ inn, until: letUntil(e)! }])),
   };
 }
@@ -210,6 +213,7 @@ export function restore(model: GameModel, data: SaveData): void {
     model.shops.set(inn, { money, stock: { ...stock }, restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })) }); // (older saves: one of each)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
+  if (data.travellers) model.travellers.load(data.travellers);
   if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));

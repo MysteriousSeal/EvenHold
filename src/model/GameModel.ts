@@ -1,27 +1,16 @@
 // Model: owns game state and rules. No rendering, no input handling.
 // World generation lives in worldgen/; this class holds the generated world
 // and everyone in it, and runs each frame: the hero's movement and blows,
-// the enemies (enemyDirector.ts), wildlife, the hero's focus and health.
+// the enemies (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health.
 // What blocks movement and sight is kept in obstacles.ts.
 
-import {
-  EDGE_MARGIN,
-  HERO_SPEED,
-  INDOOR_HERO_SPEED,
-  HERO_RADIUS,
-  ATTACK_DURATION,
-  ATTACK_STRIKE,
-  FOCUS_RANGE,
-  FOCUS_TURN_RANGE,
-  TILE_HEIGHT,
-  ROAD_SURFACE_HEIGHT,
-  ENEMY_ACTIVE_RADIUS,
-} from './constants';
+import { EDGE_MARGIN, HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, ATTACK_DURATION, ATTACK_STRIKE, FOCUS_RANGE, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
+import { Travellers } from './travellers/travellers';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
 import { HERO_LOOK } from './human/humanoid';
@@ -78,6 +67,7 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly ruins: Ruin[]; // old keeps and chapels out in the wilds (ruins/ruins.ts)
+  readonly travellers: Travellers; // on the roads between the villages (travellers/travellers.ts)
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
@@ -150,6 +140,8 @@ export class GameModel {
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
+    this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
+    this.director.hunt(this.travellers.fights); // (foes go after travellers too)
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
@@ -249,6 +241,7 @@ export class GameModel {
     if (!this.outdoors.seated) this.moveHorizontally(dirX, dirZ, dt);
     this.advanceAttack(dt);
     this.director.update(dt);
+    this.travellers.update(dt, this.enemies);
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);
     this.scoopCoins();
