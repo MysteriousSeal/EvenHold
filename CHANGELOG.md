@@ -3,6 +3,51 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.2.0] - 2026-10-02
+
+The roads, the life along them, and a bag that holds more.
+
+### The world
+
+- Roads between the villages, every village joined to at least two others.
+- Travellers on the roads: pedlars with a pack of wares to trade, pilgrims
+  who know where the nearest crypt lies, and guards walking in pairs. Talk to
+  one with **E**. They keep to their side of the road and give way to each
+  other. The wild foes leave them be, and the guards go after any foes they
+  meet.
+- Rocks and landmarks out in the wilds: mossy boulders, layered outcrops,
+  fallen logs, cairns, old dry-stone walls, and now and then a ring of
+  standing stones.
+- Meadows of wildflowers: poppies, bluebells, daisies, buttercups, foxgloves,
+  lavender and clover.
+- Butterflies over the meadows by day, songbirds that take off as you come
+  near, and fireflies at dusk and through the night.
+- A foe's health bar now shows above the trees, like its name and level.
+
+### Your hero
+
+- You now slow down below 25 energy, whatever your Endurance. Endurance
+  still gives you more energy before that.
+
+### Your bag
+
+- The bag holds 24 slots. Four bag sockets along its top each take a bag
+  for 6 more slots, up to 48. When it's full, nothing new goes in, but more
+  of something you already carry still does.
+- Four bags to find: a rough sack, a leather satchel, a traveller's pack and
+  a tooled bag. Pedlars sell them, and bandits and draugr sometimes drop
+  them. Drag one onto a socket or right-click it to fit it. Take it off the
+  same way, as long as everything still fits without it.
+- Junk stacks 20 to a slot; more starts another stack. Drag a stack onto the
+  ground and the item comes off that stack.
+- The bag is laid out in groups, each under its own heading: Gear, Food &
+  drink, Ingredients, Quest items, Bags and Junk. Free slots sit at the
+  bottom. Drag items to rearrange them within their group, or press **Sort**
+  to tidy everything.
+- Hover an item to see it turning in a small window above its tooltip.
+- What you pick up floats up over your hero, in its quality's colour and
+  with its kind: "+ Wolf fang (Junk)".
+
 ## [0.1.0] - 2026-10-02
 
 The first version: the whole of the realm so far.

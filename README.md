@@ -17,9 +17,13 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 - **A living countryside.** Villages with their inns, smithies and wells,
   roads and fields between them, forests and meadows beyond. Villagers go
   about their day, and the clock turns from morning to night.
+- **The roads.** Roads join the villages, with pedlars, pilgrims and guards
+  walking them. Stop a pedlar to trade, or ask a pilgrim the way to the
+  nearest crypt.
 - **The wilds.** Wolf packs in the woods, boars rooting in the undergrowth
   (leave them be and they'll leave you be), and bandits in their palisaded
-  camps.
+  camps. Mossy boulders, fallen logs and old standing stones, meadows of
+  wildflowers, butterflies by day and fireflies by night.
 - **The ruins.** Crumbling keeps and chapels, lost in a mist that rolls in
   thick at night. Something still drifts between their stones.
 - **The crypts.** Beneath each ruin, a crypt of its own: its passages
@@ -62,10 +66,14 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 
 - **You don't heal on your own.** Food gives health back, drink gives energy
   back. Carry some.
-- **Energy runs down through the day.** Run low and you'll slow to a trudge.
+- **Energy runs down through the day.** Below 25 you'll slow to a trudge.
   A night's sleep in a rented room puts it all right.
 - **Falling has a price.** You'll come round at the last inn you visited,
   worse for wear for a while.
+- **Mind your bag.** It holds 24 slots, and each bag you fit to its sockets
+  adds 6 more, up to 48. Pedlars sell bags, and the odd bandit or draugr
+  drops one. Junk stacks 20 to a slot. Right-click food to eat it, or a bag
+  to fit it; drag anything out onto the ground to drop it.
 - **Levels bring points.** Spend them (**P**) on Strength, Agility, Stamina
   or Endurance, and gear adds its own on top. Slaying a crypt's lord is
   worth a point of its own.
