@@ -1,13 +1,16 @@
-// A cave's mouth out in the hills (model/caves/caves.ts): a craggy knoll of
-// rock over its three tiles by three (75 x 75 voxels, the ruins' 0.04), its
-// mouth in its front (local +Z, toward the spot before it). Palette first:
-// weathered grey-brown stone in three tones, a sandy stratum through it, grass
-// and moss over its gentler tops, earth at its foot; the mouth black within,
-// its rim in shadow. Silhouette first: a hump rising to its back, its front a
-// cliff, the arch of the mouth gnawed into it (ragged, not dressed), boulders
-// tumbled at its foot. Roots trail over the mouth's lintel, a web hangs in its
-// corner, bones lie at its threshold. Sunk into the ground (SINK) so it never
-// floats where the hill rises under it.
+// A cave's mouth out in the hills (model/caves/caves.ts): a craggy outcrop
+// over its three tiles by three (75 x 75 voxels, the ruins' 0.04), its mouth
+// in its front (local +Z, toward the spot before it). Silhouette first: not a
+// mound but rock piled on rock: a tall crag at the back, two boulders
+// shouldering the mouth, a slab laid across them for its lintel, smaller rocks
+// tumbled into its corners (filling the ground it's blocked on); every mass craggy (its surface knocked about by
+// noise), its sides steep. Palette first: weathered grey-brown stone in three tones, faint
+// strata, lichen; grass in patches over its tops only (where they face up),
+// draping a voxel over their edges; the mouth an arch under the lintel, black
+// within, its rim in shadow: cut into the rock only (never out past its
+// face), over a floor of its own rock; nothing laid before it. Dark only ever
+// where it faces into the mouth, never the open air. Roots hang from the lintel; a bone or two lie just inside. Sunk into
+// the ground (SINK) so it never floats where the hill rises under it.
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
@@ -15,109 +18,122 @@ import { hashUnit } from '../../../util/random';
 import { lumpy } from '../../cave/caveRockVoxels';
 
 export const MOUTH_VOXEL = 0.04;
-export const MOUTH_GRID: [number, number, number] = [75, 64, 75];
 export const SINK = 8; // voxels of it below the ground (y SINK the ground's level at the mouth)
+const HIGH = 46; // over the ground, at most
+export const MOUTH_GRID: [number, number, number] = [75, SINK + HIGH, 75];
 
 const ENTRIES = {
   rock: 0x7a7068,
   rockDark: 0x5e564f,
-  rockLight: 0x958a7e,
-  strata: 0x9a8a6e,
+  rockLight: 0x948a7f,
+  strata: 0x8c7e68,
+  lichen: 0xb4b08a,
   grass: 0x6a8a3a,
-  moss: 0x5e7a3a,
+  grassLight: 0x7e9e44,
+  moss: 0x587434,
   earth: 0x5a4636,
-  shade: 0x2a2420,
-  deep: 0x120e0c,
-  dark: 0x050404,
-  root: 0x5e4430,
-  web: 0xd8d4c8,
-  bone: 0xd9cfb6,
+  shade: 0x2e2722,
+  deep: 0x15110e,
+  dark: 0x060504,
 } as const;
 export const MOUTH_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
 
-const [W, , D] = MOUTH_GRID;
+const [W, H, D] = MOUTH_GRID;
 const MID = (W - 1) / 2;
 const FRONT = D - 1;
-const MOUTH_DEEP = 30; // voxels it runs back into the knoll
-const MOUTH_HIGH = 31; // its arch's crown over the ground
-const MOUTH_HALF = 15; // its half-width at the ground
+const ARCH_HIGH = 21; // the mouth's crown over the ground
+const ARCH_HALF = 10; // its half-width at the ground
+const DEEP = 26; // voxels it runs back into the rock
+const STEEP = 3.2; // how squarely each mass stands up (2: round; more: its sides steep, keeping its footprint as it rises, so it still fills the
+// ground it's blocked on where the hill behind it rises: caves/caves.ts)
 
-// The knoll's height (over the ground) at (u, v): a hump rising toward its back, its front a cliff round the mouth.
-function heightAt(u: number, v: number, variant: number): number {
-  const across = Math.abs(u - MID) / MID;
-  const back = v / FRONT;
-  const edge = Math.min(u, W - 1 - u, v, FRONT - v) / 10; // (to its sides and back it slopes down to the ground)
-  const cliff = Math.abs(u - MID) < 27 && v > FRONT - 12; // (its front: a cliff, the mouth in it)
-  const fall = cliff ? Math.min(1, Math.min(u, W - 1 - u, v) / 10) : Math.min(1, edge);
-  const hump = 52 * (1 - across ** 2.4) * (1 - 0.2 * back) * fall;
-  return Math.max(0, Math.round(hump + (lumpy(u, v, 900 + variant, 7) - 0.5) * 10));
+// The masses it's piled from: centre (u, over the ground, v) and radii; each a lump of rock.
+interface Mass {
+  c: [number, number, number];
+  r: [number, number, number];
 }
+const masses = (variant: number): Mass[] => {
+  const k = (n: number) => (hashUnit(variant, n, 930) - 0.5) * 6; // (each look its own)
+  return [
+    { c: [MID + k(1) * 0.3, 0, 35], r: [35, 38 + k(2), 34] }, // the crag at the back, broad (filling the ground it's blocked on)
+    { c: [14 + k(3), 0, 54], r: [13, 25 + k(4), 16] }, // the boulders shouldering the mouth
+    { c: [60 + k(5), 0, 54], r: [13, 23 + k(6), 16] },
+    { c: [MID, 27, 57], r: [23, 6.5, 12] }, // the lintel, laid across them
+    { c: [10, 0, 10 + k(7) * 0.3], r: [11, 15, 11] }, // and rocks tumbled into its back corners
+    { c: [64, 0, 10 + k(8) * 0.3], r: [11, 17, 11] },
+    { c: [7, 0, 64], r: [8, 10, 9] }, // and its front ones, well aside of the mouth (nothing before it)
+    { c: [67, 0, 64], r: [8, 11, 9] },
+  ];
+};
 
-// The mouth's half-width at height y over the ground (ragged), 0 above its crown.
-const mouthHalf = (y: number, variant: number) => (y >= MOUTH_HIGH ? 0 : MOUTH_HALF * Math.sqrt(Math.max(0, 1 - (y / MOUTH_HIGH) ** 2.2)) + (hashUnit(y, variant, 910) - 0.5) * 2.2);
-const inMouth = (u: number, y: number, v: number, variant: number) => FRONT - v < MOUTH_DEEP && y >= 0 && Math.abs(u - MID) <= mouthHalf(y, variant) - Math.max(0, (FRONT - v - 20) * 0.4); // (narrowing as it goes in)
+// The mouth: an arch under the lintel, narrowing a little as it goes in (u across, y over the ground, v along).
+const inMouth = (u: number, y: number, v: number) => {
+  const deepIn = FRONT - v;
+  if (deepIn >= DEEP || y < 1 || y >= ARCH_HIGH) return false; // (over its own floor, a voxel up: never level with the ground's grass)
+  const half = ARCH_HALF * Math.sqrt(1 - (y / ARCH_HIGH) ** 2.4) - Math.max(0, deepIn - 14) * 0.35 + (hashUnit(y, v >> 2, 931) - 0.5) * 1.4;
+  return Math.abs(u - MID) <= half;
+};
 
 export function buildCaveMouth(variant: number): VoxelGrid {
   const g = createGrid(MOUTH_GRID);
-  const set = (u: number, y: number, v: number, c: number) => {
-    if (u >= 0 && v >= 0 && y >= 0 && u < W && v < D && y < MOUTH_GRID[1]) setColor(g, u, y, v, c);
-  };
-  for (let u = 0; u < W; u++) {
-    for (let v = 0; v < D; v++) {
-      const high = heightAt(u, v, variant);
-      if (high <= 0) continue;
-      const steep = Math.abs(heightAt(u + 1, v, variant) - heightAt(u - 1, v, variant)) + Math.abs(heightAt(u, v + 1, variant) - heightAt(u, v - 1, variant));
-      for (let y = 0; y < SINK + high; y++) {
-        const over = y - SINK; // (over the ground)
-        if (inMouth(u, over, v, variant)) continue;
-        const top = y === SINK + high - 1;
-        const band = Math.floor((over + Math.round(lumpy(u + v, 0, 911, 9) * 5)) / 6);
-        const tone = lumpy(u + v * 0.5, y, 912 + variant, 4);
-        let color: number = band % 5 === 3 ? C.strata : tone < 0.35 ? C.rockDark : tone > 0.7 ? C.rockLight : C.rock;
-        if (top && steep < 5) color = hashUnit(u, v, 913) < 0.65 ? C.grass : C.moss; // (grass on its gentler tops)
-        else if (top && steep < 8 && hashUnit(u, v, 914) < 0.4) color = C.moss;
-        if (over < 2 && over >= 0 && hashUnit(u, v + y, 915) < 0.3) color = C.earth;
-        // Round the mouth: its rim in shadow, darker as it goes in, black within.
-        const near = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, -1], [0, -1, 0]].some(([du, dy, dv]) => inMouth(u + du, over + dy, v + dv, variant));
-        if (near) {
-          const deepIn = FRONT - v;
-          color = deepIn < 3 ? C.shade : deepIn < 12 ? C.deep : C.dark;
-        }
-        set(u, y, v, color);
-      }
+  const all = masses(variant);
+  // Rock wherever any mass reaches (its surface knocked about); the mouth cut into it, and only into it (never out
+  // past its face), over a floor of its own rock (the ground's grass never showing within).
+  const solid = new Uint8Array(W * H * D);
+  const carved = new Uint8Array(W * H * D);
+  const at = (u: number, y: number, v: number) => u + W * (y + H * v);
+  for (let u = 0; u < W; u++) for (let v = 0; v < D; v++) for (let y = 0; y < H; y++) {
+    const over = y - SINK;
+    const rough = (lumpy(u + y * 0.7, v + y * 0.4, 932 + variant, 5) - 0.5) * 0.32;
+    if (!all.some((m) => Math.abs((u - m.c[0]) / m.r[0]) ** STEEP + Math.abs((v - m.c[2]) / m.r[2]) ** STEEP + ((over - m.c[1]) / m.r[1]) ** 2 <= 1 + rough)) continue;
+    if (inMouth(u, over, v)) carved[at(u, y, v)] = 1;
+    else solid[at(u, y, v)] = 1;
+  }
+  for (let u = 0; u < W; u++) for (let v = 0; v < D; v++) {
+    if (carved[at(u, SINK + 1, v)]) solid[at(u, SINK, v)] = 1; // (its floor)
+    else if (inMouth(u, 1, v)) for (let y = SINK; y < SINK + 4; y++) solid[at(u, y, v)] = 0; // (and before it, nothing: no lip of rock left on the ground)
+  }
+  const rock = (u: number, y: number, v: number) => u >= 0 && v >= 0 && y >= 0 && u < W && v < D && y < H && solid[at(u, y, v)] === 1;
+  const mouthAir = (u: number, y: number, v: number) => u >= 0 && v >= 0 && y >= 0 && u < W && v < D && y < H && carved[at(u, y, v)] === 1;
+  const openAir = (u: number, y: number, v: number) => y >= SINK && !rock(u, y, v) && !mouthAir(u, y, v); // (under the ground's level: earth, not air)
+  // Each column's top (for how steep it is there: grass only on the gentler tops).
+  const tops = new Int16Array(W * D).fill(-1);
+  for (let u = 0; u < W; u++) for (let v = 0; v < D; v++) for (let y = H - 1; y >= 0; y--) if (rock(u, y, v)) {
+    tops[u + W * v] = y;
+    break;
+  }
+  const topAt = (u: number, v: number) => (u < 0 || v < 0 || u >= W || v >= D ? -1 : tops[u + W * v]);
+  const steep = (u: number, v: number) => Math.abs(topAt(u + 1, v) - topAt(u - 1, v)) + Math.abs(topAt(u, v + 1) - topAt(u, v - 1)) > 4;
+  const SIDES = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0]];
+  for (let u = 0; u < W; u++) for (let v = 0; v < D; v++) for (let y = 0; y < H; y++) {
+    if (!rock(u, y, v)) continue;
+    const toOpen = SIDES.some(([du, dy, dv]) => openAir(u + du, y + dy, v + dv));
+    const toMouth = SIDES.some(([du, dy, dv]) => mouthAir(u + du, y + dy, v + dv));
+    if (!toOpen && !toMouth) {
+      setColor(g, u, y, v, C.rockDark); // (within: never seen)
+      continue;
     }
-  }
-  // The mouth's floor: earth, going dark within; the back of it, black.
-  for (let v = FRONT - MOUTH_DEEP; v <= FRONT; v++) for (let u = 0; u < W; u++) {
-    if (!inMouth(u, 0, v, variant)) continue;
-    const deepIn = FRONT - v;
-    set(u, SINK - 1, v, deepIn < 4 ? C.earth : deepIn < 14 ? C.deep : C.dark);
-    if (deepIn === MOUTH_DEEP - 1) for (let y = 0; y < MOUTH_HIGH; y++) set(u, SINK + y, v, C.dark);
-  }
-  // Boulders tumbled at its foot, either side of the mouth.
-  for (let i = 0; i < 6; i++) {
-    const side = i % 2 ? 1 : -1;
-    const [bu, bv] = [MID + side * (MOUTH_HALF + 4 + hashUnit(i, variant, 916) * 14), FRONT - 2 - hashUnit(variant, i, 917) * 6];
-    const r = 2 + hashUnit(i, i, 918 + variant) * 2.5;
-    for (let u = Math.floor(bu - r); u <= bu + r; u++) for (let v = Math.floor(bv - r); v <= bv + r; v++) for (let y = 0; y <= r * 1.6; y++) {
-      if (Math.hypot(u - bu, v - bv, (y - r * 0.4) * 0.8) <= r) set(u, SINK + y, v, y > r ? C.moss : hashUnit(u, y, 919) < 0.5 ? C.rock : C.rockDark);
+    const over = y - SINK;
+    let color: number;
+    if (toMouth && !toOpen) {
+      // Facing into the mouth only: dark, its floor a shade less (so it reads as going in, not a painted hole).
+      color = mouthAir(u, y + 1, v) ? C.deep : C.dark;
+    } else if (toMouth) color = C.shade; // its rim
+    else if (openAir(u, y + 1, v) && over > 1) {
+      // A top, facing up: grass in patches, bare rock and moss between.
+      const patch = lumpy(u, v, 933 + variant, 6);
+      const tone = hashUnit(u, v, 934);
+      if (steep(u, v) || patch < 0.32) color = tone < 0.2 ? C.moss : tone < 0.3 ? C.lichen : tone < 0.7 ? C.rockLight : C.rock; // (bare stone where it's steep, and in patches)
+      else color = patch > 0.64 ? C.grassLight : C.grass;
+    } else {
+      // A side: grass draping a voxel over the edge of the top above; else the stone.
+      const top = rock(u, y + 1, v) && openAir(u, y + 2, v) && lumpy(u, v, 933 + variant, 6) >= 0.32 && !steep(u, v);
+      const tone = lumpy(u + y * 0.5, v - y * 0.5, 935 + variant, 4);
+      const band = (over + Math.round(lumpy(u + v, 0, 936, 9) * 4)) % 9 === 0;
+      color = top && hashUnit(u, y, v) < 0.6 ? C.grass : over < 2 ? (tone < 0.5 ? C.earth : C.rockDark) : band ? C.strata : hashUnit(u * 3, y, v * 7) < 0.012 ? C.lichen : tone < 0.33 ? C.rockDark : tone > 0.7 ? C.rockLight : C.rock;
     }
+    setColor(g, u, y, v, color);
   }
-  // Roots trailing over the lintel; a web strung in its upper corner; bones at its threshold.
-  for (let i = 0; i < 7; i++) {
-    let u = Math.round(MID - 12 + i * 4 + hashUnit(i, 0, 920) * 2);
-    const end = MOUTH_HIGH - 4 - Math.floor(hashUnit(i, 1, 921) * 12);
-    for (let y = MOUTH_HIGH + 2; y >= end; y--) {
-      if (hashUnit(i, y, 922) < 0.15) u += hashUnit(y, i, 923) < 0.5 ? -1 : 1;
-      if (Math.abs(u - MID) <= mouthHalf(y, variant) + 1) set(u, SINK + y, FRONT, C.root);
-    }
-  }
-  const [hu, hy] = [Math.round(MID + 9), MOUTH_HIGH - 9];
-  for (const [eu, ey] of [[MID + 4, MOUTH_HIGH - 1], [MID + 14, MOUTH_HIGH - 12], [MID + 14, MOUTH_HIGH - 3], [MID + 6, MOUTH_HIGH - 14]]) {
-    const steps = Math.max(Math.abs(eu - hu), Math.abs(ey - hy));
-    for (let s = 0; s <= steps; s++) set(Math.round(hu + ((eu - hu) * s) / steps), SINK + Math.round(hy + ((ey - hy) * s) / steps), FRONT - 1, C.web);
-  }
-  for (const [u, v] of [[MID - 6, FRONT - 3], [MID - 5, FRONT - 3], [MID - 4, FRONT - 3], [MID + 3, FRONT - 1], [MID + 4, FRONT - 2], [MID - 2, FRONT - 6]]) set(Math.round(u), SINK, v, C.bone);
   return g;
 }
