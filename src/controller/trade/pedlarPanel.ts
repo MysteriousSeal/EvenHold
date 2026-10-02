@@ -2,6 +2,7 @@
 // trinkets in their pack, to buy; food, drink and trinkets the hero has, to
 // sell them (the window: tradePanel.ts; their pack: travellers/pedlarShop.ts).
 
+import { POTIONS, isPotion, potionText } from '../../model/loot/potions';
 import type { GameModel } from '../../model/GameModel';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
@@ -47,9 +48,9 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     offered: (name) => `${name}? I know just the buyer.`,
     junk: (_name, paid) => pick(JUNK).replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name.toLowerCase()).replace('{paid}', paid),
-    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : 'From the bottom of a pedlar\'s pack.'),
+    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isPotion(id) ? POTIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : 'From the bottom of a pedlar\'s pack.'),
     facts: (id) =>
-      isProvision(id) ? [toned('kind', PROVISIONS[id].drink ? 'Drink' : 'Food'), toned('stat', givesText(id))] : isBagItem(id) ? [toned('kind', 'Bag'), toned('stat', `+${ROOM_PER_BAG} bag slots`)] : [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
+      isProvision(id) ? [toned('kind', PROVISIONS[id].drink ? 'Drink' : 'Food'), toned('stat', givesText(id))] : isPotion(id) ? [toned('kind', 'Potion'), toned('stat', potionText(id))] : isBagItem(id) ? [toned('kind', 'Bag'), toned('stat', `+${ROOM_PER_BAG} bag slots`)] : [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
   });
   return {
     ...panel,

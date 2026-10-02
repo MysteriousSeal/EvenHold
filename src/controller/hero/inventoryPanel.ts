@@ -10,6 +10,7 @@
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 // A button by the purse tidies it (bagStacks.ts: sortedBag).
+import { POTIONS, POTION_COOLDOWN, isPotion, potionText } from '../../model/loot/potions';
 import { setAction } from '../../model/hero/actionBar';
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
@@ -69,12 +70,16 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
       count,
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
-      lines: isProvision(item)
+      lines: isPotion(item)
+        ? [toned('kind', kindOf(item)), toned('stat', potionText(item)), toned('flavor', POTIONS[item].about), toned('hint', `Right-click to drink it (then ${POTION_COOLDOWN} s before another), or drag it onto the action bar`)]
+        : isProvision(item)
         ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it, or drag it onto the action bar`)]
         : isBagItem(item)
           ? [toned('kind', kindOf(item)), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
           : [toned('kind', kindOf(item))],
-      alt: isProvision(item)
+      alt: isPotion(item)
+        ? () => (model.drinkPotion(item) ? `You drink the ${LOOT[item].name}.` : (model.hero.potionCooldown ?? 0) > 0 ? `Not yet: another potion in ${Math.ceil(model.hero.potionCooldown!)} s.` : '')
+        : isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : model.hero.eating ? 'Finish what you have first.' : '')
         : isBagItem(item)
           ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${ROOM_PER_BAG} more slots.` : 'Every bag socket is taken.')

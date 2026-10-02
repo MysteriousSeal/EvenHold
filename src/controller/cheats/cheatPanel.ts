@@ -21,6 +21,7 @@ import {
   spawnTile,
   villageEntrance,
   enterNearest,
+  visitHerbalist,
   nearestTraveller,
   nextLife,
   nextMeadow,
@@ -47,6 +48,7 @@ import { maxHpOf } from '../../model/hero/attributes';
 import { refundPoints } from '../../model/hero/training';
 import { LOOT_IDS, type LootId } from '../../model/loot/loot';
 import { BAG_IDS } from '../../model/loot/bags';
+import { POTION_IDS } from '../../model/loot/potions';
 import { JUNK_ITEMS } from '../../model/loot/junk';
 import { PROVISION_IDS } from '../../model/loot/provisions';
 import { addToBag, type BagItem } from '../../model/hero/bag';
@@ -109,6 +111,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const campsSeen = new Set<Camp>(); // and the camps'
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
+  const herbalists = new Set<Entrance>(); // and the herbalists' houses
   const STYLE_NAMES: Record<HairStyle, string> = {
     short: 'Short',
     long: 'Long',
@@ -181,6 +184,16 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             insideRow('house', ICON.village),
             insideRow('inn', lootIcon('ale')),
             insideRow('smithy', itemIcon('shortSword')),
+            {
+              icon: lootIcon('lesserHealthPotion'),
+              title: 'A herbalist',
+              detail: 'Inside the nearest herbalist\'s house, with their potions',
+              run: () => {
+                if (!visitHerbalist(model, herbalists)) return 'There\'s no herbalist in this world.';
+                menu.close();
+                return 'At the herbalist\'s.';
+              },
+            },
           ]),
           ...group('Wilds', [
             { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
@@ -344,6 +357,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
               run: () => (give([...STARTER_SET, ...BANDIT_OUTFIT]), 'Gear, in the bag.'),
             },
             { icon: lootIcon('roughSack'), title: 'Every bag', detail: 'One of each, to fit to the sockets', run: () => (give(BAG_IDS), 'One of every bag, in the bag.') },
+            { icon: lootIcon('greaterHealthPotion'), title: 'Potions', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
             { icon: lootIcon('bread'), title: 'Food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
             {
               icon: lootIcon('wolfFang'),
