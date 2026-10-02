@@ -5,8 +5,8 @@
 // hero a critical one. Each spends Breath, a short-term bar under health:
 // a blow, a roll, a blow blocked, each takes some; it refills a moment after,
 // slower behind a raised guard; tired (energy low: heroStats.ts), it holds
-// less and refills slower. With no breath, no blow, no roll, and a guard
-// that breaks.
+// less and refills slower. Short of a blow's or a roll's breath, neither;
+// short of a block's, the guard breaks.
 
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
@@ -60,10 +60,10 @@ export class CombatMoves {
     return this.hero.energy < TIRED ? TIRED_BREATH : BREATH;
   }
 
-  // Spends `amount`, as much as there is; false if there's none to spend.
+  // Spends `amount`; false (none spent) if there isn't that much.
   spend(amount: number): boolean {
-    if (this.breath <= 0) return false;
-    this.breath = Math.max(0, this.breath - amount);
+    if (this.breath < amount) return false;
+    this.breath -= amount;
     this.wait = PAUSE;
     return true;
   }
