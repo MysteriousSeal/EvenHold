@@ -4,6 +4,7 @@
 // the enemies (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health.
 // What blocks movement and sight is kept in obstacles.ts.
 
+import { emptyActionBar } from './hero/actionBar';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_RANGE, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
@@ -139,7 +140,7 @@ export class GameModel {
     registerCrypts(this.crypts);
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.moves = new CombatMoves(this.hero);
     this.enemies = spawnEnemies(this); // (bandits in their camps)

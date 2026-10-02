@@ -7,6 +7,7 @@ import type { Bag, BagItem } from './hero/bag';
 import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
+import type { ActionBar } from './hero/actionBar';
 
 // Something eaten or drunk over a while (heroStats.ts recover): the health and energy it gives back in all, the
 // seconds left of it and in all; `item`, what it is (from the bag).
@@ -37,6 +38,7 @@ export interface Hero extends Humanoid {
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagStacks)
   bagCounts: number[]; // how many in each of those slots (a junk stack's own: bag.ts bagStacks; none, packed)
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
+  actionBar: ActionBar; // shortcuts to food and drink in the bag, keys 1 to 8 (hero/actionBar.ts)
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
