@@ -14,6 +14,7 @@ const EVERY = 5_000; // milliseconds between saves while playing
 const PREFIX = 'evenhold.save.';
 const keyOf = (seed: number) => `${PREFIX}${seed}`;
 const playedKey = (seed: number) => `evenhold.played.${seed}`; // when it was last played (milliseconds), for the main menu's order
+export const MAX_WORLDS = 8; // saved here at most: a ninth only once one's let go
 
 // A world saved in this browser, as the main menu lists it: its seed, its hero, how far along, when last played.
 export interface SavedWorld {
@@ -44,6 +45,17 @@ export function savedWorlds(): SavedWorld[] {
     return worlds; // (no storage: none)
   }
   return worlds.sort((a, b) => b.playedAt - a.playedAt);
+}
+
+// How many worlds are saved here (none readable: none).
+function savedCount(): number {
+  try {
+    let n = 0;
+    for (let i = 0; i < localStorage.length; i++) if (localStorage.key(i)?.startsWith(PREFIX)) n++;
+    return n;
+  } catch {
+    return 0;
+  }
 }
 
 // Forgets the world `seed`'s save (its hero, and all they did).
@@ -82,6 +94,7 @@ export function startAutoSave(model: GameModel): AutoSave {
     if (!on) return;
     if (!Number.isFinite(model.hero.x) || !Number.isFinite(model.hero.z)) return; // (lost somewhere: the last good save kept, not this)
     try {
+      if (localStorage.getItem(keyOf(model.seed)) === null && savedCount() >= MAX_WORLDS) return; // (full: a new world, not kept)
       localStorage.setItem(keyOf(model.seed), JSON.stringify(snapshot(model)));
       localStorage.setItem(playedKey(model.seed), String(Date.now()));
     } catch {

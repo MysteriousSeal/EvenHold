@@ -3,10 +3,10 @@
 // - a real voxel world behind it all (view/title): an opening flight down
 //   a valley at dusk into the heroes' camp, the fire flaring, the title
 //   landing (a key or a click skips it);
-// - WoW and Diablo: then the heroes, up to four, coming into the world
+// - WoW and Diablo: then the heroes, up to eight, coming into the world
 //   before the fire in their look and gear; every hero saved here listed
 //   down the right, the last played chosen: stepping forward, lit, a ring
-//   at their feet (one further down the list takes the fourth place); Enter
+//   at their feet (from the back row too); Enter
 //   World under them; Delete hero (asked twice) and the controls in the
 //   corners;
 // - a village saying on a wooden signboard hung under the title, swaying,
@@ -16,7 +16,7 @@
 // world, the chosen hero drawn flat, the heroes at once. Styles in
 // mainMenu.css.
 
-import type { SavedWorld } from './storage/saveGame';
+import { MAX_WORLDS, type SavedWorld } from './storage/saveGame';
 import { CONTROLS } from './controls';
 import { generateRandomSeed } from '../util/random';
 import { seedFrom } from '../util/seed';
@@ -88,7 +88,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
       world?.dispose();
       resolve(seed);
     };
-    // Who stands in the world: the first four, the chosen one taking the fourth place if they're further down.
+    // Who stands in the world: every hero (eight at most: MAX_WORLDS); were there more, the chosen one in the last place.
     const standing = () => {
       const row = worlds.slice(0, TITLE_HEROES);
       if (chosen >= TITLE_HEROES) row[TITLE_HEROES - 1] = worlds[chosen];
@@ -154,7 +154,12 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
           card.addEventListener('dblclick', () => play(w.seed));
           list.append(card);
         });
-        list.append(button('title-side', 'New World', () => go('newWorld')));
+        // (eight at most: a new world only once one's let go)
+        const full = worlds.length >= MAX_WORLDS;
+        const fresh = button('title-side', 'New World', () => go('newWorld'));
+        fresh.disabled = full;
+        list.append(fresh);
+        if (full) list.append(el('small', 'title-full', `${MAX_WORLDS} heroes at most: delete one to make room.`));
         const enter = hero ? button('title-enter', 'Enter World', () => play(hero.seed)) : button('title-enter', 'New World', () => go('newWorld'));
         const left = el('div', 'title-corner left');
         left.append(button('title-side', 'Controls', () => go('controls')));
@@ -182,9 +187,14 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         input.maxLength = 40;
         panel.append(el('div', 'title-panel-head', 'Create New World'), el('label', 'title-note', 'World seed'), input, el('small', 'title-note', 'A number or any word: the same seed, the same world (a hero saved there carries on).'));
         panel.append(button('title-enter inline', 'Create New World', () => {}));
+        const refused = el('small', 'title-full');
+        panel.append(refused);
         panel.addEventListener('submit', (event) => {
           event.preventDefault();
-          play(seedFrom(input.value) ?? generateRandomSeed());
+          const seed = seedFrom(input.value) ?? generateRandomSeed();
+          const known = worlds.some((w) => w.seed === seed); // (one of theirs: always open)
+          if (!known && worlds.length >= MAX_WORLDS) return void (refused.textContent = `${MAX_WORLDS} heroes at most: delete one to make room.`);
+          play(seed);
         });
         const left = el('div', 'title-corner left');
         left.append(back());

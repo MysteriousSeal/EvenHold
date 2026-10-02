@@ -58,6 +58,8 @@
 }
 .title-plate b { font-size: 17px; font-weight: 700; }
 .title-plate span { font-size: 12px; font-weight: 600; color: #e6d2ae; }
+.title-plate.back:not(.chosen) b { font-size: 14px; } /* (the back row's, smaller) */
+.title-plate.back:not(.chosen) span { display: none; }
 .title-plate.chosen { opacity: 1; }
 .title-plate.chosen b { font-size: 22px; color: #ffd98a; text-shadow: 2px 2px 0 #2e1f14, -2px -2px 0 #2e1f14, 2px -2px 0 #2e1f14, -2px 2px 0 #2e1f14, 0 0 14px rgba(255, 200, 100, 0.8); }
 
@@ -153,6 +155,9 @@
 .title-card.chosen b { color: #ffd98a; }
 .title-side { padding: 7px 14px; font: 600 15px 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #efdcb8; border: 2px solid #2e1f14; box-shadow: 0 3px 0 #2e1f14, inset 0 -3px 0 #d6bb8e; cursor: pointer; }
 .title-side:hover { background: #ffd98a; }
+.title-side:disabled { opacity: 0.45; cursor: not-allowed; background: #efdcb8; }
+.title-full { font-size: 12px; color: #f0a090; }
+.title-full:empty { display: none; }
 .title-side.danger { background: #d98a7a; }
 .title-side.danger:hover { background: #f0a090; }
 .title-corner { position: absolute; bottom: 4vh; display: flex; gap: 8px; }
