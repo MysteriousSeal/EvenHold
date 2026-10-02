@@ -51,12 +51,6 @@ function bundle(box: Box, u: number, y: number, v: number, leaf: number): void {
   box(u - 1, y - 3, v, u + 1, y - 1, v, (uu, yy) => (yy === y - 3 && uu !== u ? 0 : leaf));
 }
 
-// A table's legs and planked top over (u0..u1, v0..v1), `top` high.
-function table(box: Box, u0: number, u1: number, v0: number, v1: number, top: number): void {
-  for (const [u, v] of [[u0 + 1, v0 + 1], [u1 - 1, v0 + 1], [u0 + 1, v1 - 1], [u1 - 1, v1 - 1]]) box(u, 1, v, u, top - 2, v, WOOD_DARK);
-  box(u0, top - 1, v0, u1, top, v1, (u, y) => (y === top - 1 ? WOOD_DARK : u % 6 === 0 ? WOOD : WOOD_LIGHT));
-}
-
 // A round woven basket on the floor, its middle at (u, v): wicker in a checker of two tones, rounded at the corners,
 // a darker rim, and dried leaves heaped over it (gold, green, lavender), higher in the middle.
 function basket(box: Box, u: number, v: number): void {
@@ -107,20 +101,61 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     box(29, 15, 10, 40, 15, 17, (u, _y, v) => (u === 34 || u === 35 ? CLAY_DARK : (v === 12 || v === 14 || v === 16) && u !== 29 && u !== 40 ? INK : PARCHMENT)); // the herbal, open
     for (let u = 43; u <= 46; u++) box(u, 15, 12 + (u % 2), u, 15, 15 + (u % 2), u % 2 ? MOSS_LIGHT : MOSS); // a bunch of herbs, lying
   },
-  // Their worktable: a chopping board of herbs and a knife, jars of clay
-  // and glass in a row, a candle at the end.
+  // Their worktable, sturdy and worn: legs braced by stretchers, an apron
+  // under its top, the planks' grooves sunk into it, its edge worn pale. On
+  // it: a chopping board with a raised rim, herbs chopped on it and a knife;
+  // a stone mortar, herbs in its hollow, its pestle leaning in; jars of
+  // three heights, glass ones showing the herbs inside, clay ones under
+  // cloth tied with twine; a squat amber bottle; a bunch of herbs lying by
+  // the board, loose leaves about; a candle on a dish, wax run down it.
   herbTable: (box, len) => {
-    table(box, 1, len - 2, 3, 21, 13);
-    box(4, 14, 7, 16, 14, 17, WOOD); // the board
-    for (const [u, v] of [[6, 9], [9, 13], [12, 10], [8, 16], [14, 15]]) box(u, 15, v, u + 1, 15, v, (u + v) % 2 ? MOSS_LIGHT : MOSS); // chopped herbs
-    box(11, 15, 15, 15, 15, 15, IRON_LIGHT); // the knife's blade,
-    box(16, 15, 15, 18, 15, 15, WOOD_DARK); // its handle
-    for (const [u, color, lid] of [[22, CLAY, CLAY_DARK], [27, CLAY_DARK, WOOD_DARK], [32, GLASS_GREEN, WOOD_DARK], [37, GLASS_AMBER, WOOD_DARK]] as const) {
-      box(u, 14, 8, u + 3, 18, 11, color); // a jar
-      box(u, 19, 8, u + 3, 19, 11, lid); // its lid
-    }
-    box(43, 14, 12, 44, 18, 13, LINEN); // the candle
-    box(43, 19, 12, 43, 19, 12, EMBER); // its flame
+    const [u0, u1, v0, v1, top] = [1, len - 2, 3, 21, 13];
+    for (const [u, v] of [[u0 + 1, v0 + 1], [u1 - 2, v0 + 1], [u0 + 1, v1 - 2], [u1 - 2, v1 - 2]]) box(u, 1, v, u + 1, top - 3, v + 1, WOOD_DARK); // the legs, two voxels square
+    box(u0 + 3, 3, v0 + 1, u1 - 3, 3, v0 + 1, WOOD_DARK); // the stretchers, low: along the back,
+    box(u0 + 3, 3, v1 - 1, u1 - 3, 3, v1 - 1, WOOD_DARK); // the front,
+    for (const u of [u0 + 1, u1 - 1]) box(u, 3, v0 + 3, u, 3, v1 - 3, WOOD_DARK); // and the ends
+    box(u0 + 1, top - 2, v0 + 1, u1 - 1, top - 2, v1 - 1, (u, _y, v) => (u === u0 + 1 || u === u1 - 1 || v === v0 + 1 || v === v1 - 1 ? WOOD_DARK : 0)); // the apron
+    // The top: planks along it, a groove sunk between each, its edge worn lighter.
+    box(u0, top - 1, v0, u1, top - 1, v1, WOOD_DARK);
+    box(u0, top, v0, u1, top, v1, (u, _y, v) => ((v - v0) % 6 === 5 ? 0 : u === u0 || u === u1 || v === v0 || v === v1 ? WOOD_LIGHT : (u * 7 + v) % 23 === 0 ? WOOD_DARK : WOOD));
+    const on = top + 1; // what stands on it
+    // The chopping board: raised, its rim a voxel up, herbs chopped on it, a knife across it.
+    box(3, on, 6, 17, on, 17, WOOD);
+    box(3, on + 1, 6, 17, on + 1, 17, (u, _y, v) => (u === 3 || u === 17 || v === 6 || v === 17 ? WOOD_DARK : 0));
+    for (const [u, v] of [[6, 9], [7, 9], [9, 12], [12, 10], [13, 10], [8, 15], [14, 14], [11, 14]]) box(u, on + 1, v, u, on + 1, v, (u + v) % 3 ? MOSS_LIGHT : MOSS); // chopped herbs
+    box(10, on + 1, 15, 15, on + 1, 15, IRON_LIGHT); // the knife's blade,
+    box(16, on + 1, 15, 19, on + 2, 15, WOOD_DARK); // its handle, off the board's edge
+    // The mortar: a stone bowl, hollow, herbs ground in it, the pestle leaning out of it.
+    box(21, on, 13, 26, on + 3, 18, (u, y, v) => {
+      const edge = u === 21 || u === 26 || v === 13 || v === 18;
+      if ((u === 21 || u === 26) && (v === 13 || v === 18)) return 0; // (rounded)
+      if (!edge && y > on) return y === on + 1 ? MOSS_DARK : 0; // (its hollow, herbs at the bottom)
+      return y === on + 3 ? STONE : STONE_DARK;
+    });
+    for (let k = 0; k <= 4; k++) box(24 + Math.floor(k / 2), on + 2 + k, 15, 24 + Math.floor(k / 2), on + 2 + k, 15, WOOD_LIGHT); // the pestle
+    // Jars: a tall glass one, herbs showing through; a squat clay one under cloth tied with twine; a glass one of
+    // something amber; a clay one, corked.
+    const jar = (u: number, v: number, high: number, glass: number, inside: number) => {
+      box(u, on, v, u + 3, on + high, v + 3, (uu, y, vv) => ((uu === u || uu === u + 3) && (vv === v || vv === v + 3) ? 0 : y < on + high - 1 && (uu + y) % 3 === 0 ? inside : glass));
+    };
+    jar(29, 7, 7, GLASS_CLEAR, MOSS); // tall, glass, herbs in it
+    box(30, on + 7, 8, 31, on + 7, 9, WOOD_DARK); // its cork
+    jar(34, 8, 4, CLAY, CLAY);
+    box(34, on + 4, 8, 37, on + 4, 11, LINEN); // its cloth,
+    box(34, on + 3, 8, 37, on + 3, 11, (uu, _y, vv) => (uu === 34 || uu === 37 || vv === 8 || vv === 11 ? BREAD : CLAY)); // tied round with twine
+    jar(39, 7, 5, GLASS_AMBER, GLASS_AMBER); // amber
+    box(40, on + 5, 8, 41, on + 6, 9, GLASS_CLEAR); // its neck
+    box(40, on + 7, 8, 41, on + 7, 9, WOOD_DARK); // its cork
+    jar(30, 13, 3, CLAY_DARK, CLAY_DARK); // a small dark one
+    box(31, on + 3, 14, 32, on + 3, 15, WOOD_DARK);
+    // A bunch of herbs lying by the board, a leaf or two loose.
+    for (let u = 4; u <= 9; u++) box(u, on, 19, u, on + (u < 7 ? 1 : 0), 20, u < 7 ? (u % 2 ? MOSS : MOSS_LIGHT) : BREAD);
+    for (const [u, v] of [[20, 9], [28, 19], [36, 17]]) box(u, on, v, u, on, v, MOSS_LIGHT);
+    // The candle: on a clay dish, wax run down its side, its flame.
+    box(43, on, 13, 46, on, 16, CLAY_DARK);
+    box(44, on + 1, 14, 45, on + 5, 15, LINEN);
+    box(46, on + 1, 15, 46, on + 2, 15, LINEN); // a drip, run down to the dish
+    box(44, on + 6, 14, 44, on + 6, 14, EMBER);
   },
   // Against the wall: two uprights and two poles across them, bundles of
   // herbs hanging under each (green, sage, dried gold, lavender).
