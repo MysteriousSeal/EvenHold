@@ -175,6 +175,9 @@ export class GameController {
       dirZ -= right.z;
     }
 
+    // Shift: a roll the way they're going (standing, backwards); Q held: the guard up.
+    if (this.input.consumeRoll()) this.model.roll(dirX, dirZ);
+    this.model.raiseGuard(this.input.guarding);
     this.model.update(dirX, dirZ, dt);
     for (const event of this.model.takeEvents()) this.onEvent(event);
     this.view.update(dt);

@@ -16,6 +16,8 @@ const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
 const ATTACK_KEY = 'Space';
 const PICKUP_KEY = 'KeyE';
 const FOCUS_KEY = 'Tab'; // the next foe (Shift: back)
+const ROLL_KEYS = ['ShiftLeft', 'ShiftRight']; // a roll, as Shift's pressed
+const GUARD_KEY = 'KeyQ'; // held: the guard raised
 const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
 
 export class KeyboardInput {
@@ -24,13 +26,15 @@ export class KeyboardInput {
   private pickupRequested = false;
   private orderRequested: BarMenuItem | null = null;
   private focusRequested: 'next' | 'back' | null = null;
+  private rollRequested = false;
+  private guardHeld = false;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
     window.addEventListener('keyup', (e) => this.onKey(e, false));
     // keyup never fires if focus leaves the page mid-press (e.g. alt-tab),
     // which would otherwise leave the hero running on its own.
-    window.addEventListener('blur', () => this.pressed.clear());
+    window.addEventListener('blur', () => [this.pressed.clear(), (this.guardHeld = false)]);
   }
 
   isPressed(direction: Direction): boolean {
@@ -42,6 +46,18 @@ export class KeyboardInput {
     const requested = this.attackRequested;
     this.attackRequested = false;
     return requested;
+  }
+
+  // True once per press of Shift (holding it doesn't repeat).
+  consumeRoll(): boolean {
+    const requested = this.rollRequested;
+    this.rollRequested = false;
+    return requested;
+  }
+
+  // Whether the guard key is held.
+  get guarding(): boolean {
+    return this.guardHeld;
   }
 
   // True once per press of the pick-up key.
@@ -66,6 +82,14 @@ export class KeyboardInput {
   }
 
   private onKey(e: KeyboardEvent, isDown: boolean): void {
+    if (ROLL_KEYS.includes(e.code)) {
+      if (isDown && !e.repeat) this.rollRequested = true;
+      return;
+    }
+    if (e.code === GUARD_KEY) {
+      this.guardHeld = isDown;
+      return;
+    }
     if (e.code in ORDER_KEYS) {
       if (isDown && !e.repeat) this.orderRequested = ORDER_KEYS[e.code];
       return;

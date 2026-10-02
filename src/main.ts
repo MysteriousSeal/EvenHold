@@ -91,7 +91,7 @@ async function boot(): Promise<void> {
   const hudTop = document.createElement('div');
   hudTop.className = 'hud-top';
   document.body.append(hudTop);
-  const updateHud = createHeroHud(model.hero, hudTop);
+  const updateHud = createHeroHud(model.hero, hudTop, model.moves);
   const updateBlessing = createBlessingHud(model.hero);
   const updateClock = createClockHud();
   const placeBanner = createPlaceBanner();
@@ -113,6 +113,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
+  const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
   const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
@@ -259,6 +260,7 @@ async function boot(): Promise<void> {
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
       else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (P)`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
+      else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + ENEMY_TEXT_HEIGHT[event.on as keyof typeof ENEMY_TEXT_HEIGHT] + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + ENEMY_TEXT_HEIGHT[event.on], z: event.z }, [`${event.amount}`], '#ffffff');

@@ -47,6 +47,8 @@ export function createPauseMenu(hooks: { setPaused(paused: boolean): void; redra
         facts: () => [
           ['Move', 'W A S D, or the arrows'],
           ['Strike', 'Space'],
+          ['Roll (untouchable a moment)', 'Shift'],
+          ['Guard (raise it as a blow lands: parry)', 'Hold Q'],
           ['Pick up', 'E'],
           ['Focus a foe', 'Click it'],
           ['Hero sheet', 'C'],
