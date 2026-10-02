@@ -1,12 +1,12 @@
 // The hero's bag, how much it holds: BAG_ROOM slots of its own, and four bag
-// sockets, each a bag fitted (loot/bags.ts) six more. Full (as many kinds
-// carried as it has slots), nothing new goes in: more of what's carried
-// still does (stacked in its slot). A bag's fitted from the bag (out of it,
+// sockets, each a bag fitted (loot/bags.ts) six more. Full (every slot taken:
+// a thing to a slot, junk up to twenty to one), nothing new goes in: more of
+// what's carried still does, onto a stack with room. A bag's fitted from the bag (out of it,
 // into a socket), and taken off back into it, only while what's carried
 // still fits without it.
 
 import { isBagItem, type BagId } from '../loot/bags';
-import { addToBag, takeFromBag, type BagItem } from './bag';
+import { addToBag, slotsUsed, stacksOf, takeFromBag, type BagItem } from './bag';
 import type { Hero } from '../types';
 
 export const BAG_ROOM = 24; // slots the bag has of its own
@@ -16,11 +16,14 @@ export const ROOM_PER_BAG = 6; // slots each fitted bag adds
 // How many slots the hero's bag has now.
 export const bagRoom = (hero: Pick<Hero, 'bags'>): number => BAG_ROOM + ROOM_PER_BAG * hero.bags.filter((b) => b !== null).length;
 
-// How many kinds of thing it holds (each its own slot).
-export const kindsCarried = (hero: Pick<Hero, 'bag'>): number => Object.values(hero.bag).filter((n) => (n ?? 0) > 0).length;
+// How many of its slots what it holds takes (a slot to each thing, junk JUNK_STACK to a slot: bag.ts).
+export const kindsCarried = (hero: Pick<Hero, 'bag'>): number => slotsUsed(hero.bag);
 
-// Whether one more `item` would go in: more of what's carried, always; something new, if there's a slot free.
-export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => (hero.bag[item] ?? 0) > 0 || kindsCarried(hero) < bagRoom(hero);
+// Whether one more `item` would go in: onto a stack of it with room, always; a stack of its own, if there's a slot free.
+export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => {
+  const count = hero.bag[item] ?? 0;
+  return stacksOf(item, count + 1) === stacksOf(item, count) || kindsCarried(hero) < bagRoom(hero);
+};
 
 // Fits a bag from the bag into socket `socket` (the first free, if not said); whether it did (a bag carried, the
 // socket free).
@@ -34,7 +37,7 @@ export function fitBag(hero: Hero, item: BagItem, socket = hero.bags.indexOf(nul
 export function unfitBag(hero: Hero, socket: number): boolean {
   const fitted = hero.bags[socket];
   if (!fitted) return false;
-  const kinds = kindsCarried(hero) + ((hero.bag[fitted] ?? 0) > 0 ? 0 : 1);
+  const kinds = kindsCarried(hero) + stacksOf(fitted, (hero.bag[fitted] ?? 0) + 1) - stacksOf(fitted, hero.bag[fitted] ?? 0);
   if (kinds > bagRoom(hero) - ROOM_PER_BAG) return false;
   hero.bags[socket] = null;
   addToBag(hero.bag, fitted);
