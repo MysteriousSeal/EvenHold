@@ -76,6 +76,6 @@ describe('the main menu, its world', () => {
     world.done();
     world.pick(1);
     world.pick(1);
-    expect(await chosen).toBe(TEST_SEEDS[1]);
+    expect((await chosen).seed).toBe(TEST_SEEDS[1]);
   });
 });

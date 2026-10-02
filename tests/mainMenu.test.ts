@@ -15,6 +15,8 @@ import { snapshot } from '../src/model/save';
 import { MAX_WORLDS, forgetWorld, savedWorlds, startAutoSave } from '../src/controller/storage/saveGame';
 import { showMainMenu } from '../src/controller/mainMenu';
 import { CONTROLS } from '../src/controller/controls';
+import { LOOK_TRAITS, fitLook, stepTrait, withTrait } from '../src/model/human/lookTraits';
+import { HERO_LOOK, SKIN_TONE_COUNT, STYLES_OF } from '../src/model/human/humanoid';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -87,7 +89,7 @@ describe('the main menu', () => {
     cards()[0].click();
     expect(shown()).toBe('Bertrade');
     press('Enter');
-    expect(await chosen).toBe(TEST_SEEDS[1]);
+    expect((await chosen).seed).toBe(TEST_SEEDS[1]);
     expect(document.querySelector('.title-screen')).toBeNull();
     expect(document.querySelector('.title-saying')).toBeNull();
     expect(document.getElementById('loading')!.classList.contains('title')).toBe(false);
@@ -95,7 +97,7 @@ describe('the main menu', () => {
     chosen = showMainMenu(hooks);
     press('ArrowUp');
     click('Enter World');
-    expect(await chosen).toBe(TEST_SEEDS[0]);
+    expect((await chosen).seed).toBe(TEST_SEEDS[0]);
   });
 
   it('lets a hero go only when asked twice', async () => {
@@ -107,23 +109,20 @@ describe('the main menu', () => {
     click('Forget Bertrade?');
     expect(savedWorlds().map((w) => w.name)).toEqual(['Aleyn']);
     click('Enter World');
-    expect(await chosen).toBe(TEST_SEEDS[0]);
+    expect((await chosen).seed).toBe(TEST_SEEDS[0]);
   });
 
-  it("with nothing saved: an empty stage; New World, from a seed or a random one", async () => {
-    let chosen = showMainMenu(hooks);
+  it('with nothing saved: an empty stage; Create Hero, the creation screen', async () => {
+    const chosen = showMainMenu(hooks);
     expect(cards()).toHaveLength(0);
-    expect(document.querySelector('.title-enter')?.textContent).toBe('New World');
-    click('New World');
-    const input = document.querySelector<HTMLInputElement>('.title-input')!;
-    input.value = 'dragon';
-    document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    expect(await chosen).toBe(seedFrom('dragon'));
-    document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1></div>';
-    chosen = showMainMenu(hooks);
-    click('New World');
-    document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true })); // (blank: a random world)
-    expect(Number.isInteger(await chosen)).toBe(true);
+    expect(document.querySelector('.title-enter')?.textContent).toBe('Create Hero');
+    click('Create Hero');
+    expect(document.querySelector('.title-forge')).not.toBeNull();
+    document.querySelector<HTMLInputElement>('.forge-world .title-input')!.value = 'dragon';
+    click('Create Hero');
+    const made = await chosen;
+    expect(made.seed).toBe(seedFrom('dragon'));
+    expect(made.hero?.name).toBeTruthy();
   });
 
   it('tells the controls; Back to the heroes', () => {
@@ -190,7 +189,7 @@ describe('eight worlds at most', () => {
     expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
     expect(document.querySelector('.title-list-head small')?.textContent).toBe('7 / 8');
     document.querySelector<HTMLButtonElement>('.title-slot')!.click();
-    expect(document.querySelector('.title-input')).not.toBeNull(); // (a new world's seed, asked)
+    expect(document.querySelector('.title-forge')).not.toBeNull(); // (a new hero, made)
     void menu;
     document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1></div>';
     fill(MAX_WORLDS);
@@ -227,5 +226,85 @@ describe("the heroes' places before the fire", () => {
     for (const b of spots.filter((p) => p.back)) for (const f of front) expect(Math.abs(b.x - f.x)).toBeGreaterThan(0.25);
     const mid = spots.reduce((sum, p) => sum + p.x, 0) / n;
     expect(Math.abs(mid)).toBeLessThan(0.3);
+  });
+});
+
+describe('the character creation screen', () => {
+  const hooks = { worlds: savedWorlds, forget: forgetWorld };
+  const trait = (label: string) => Array.from(document.querySelectorAll<HTMLElement>('.forge-trait')).find((t) => t.querySelector('.forge-trait-head span')?.textContent === label);
+  const option = (label: string, name: string) => Array.from(trait(label)!.querySelectorAll<HTMLButtonElement>('.forge-option')).find((b) => b.title === name)!;
+  const open = () => {
+    const chosen = showMainMenu(hooks);
+    click('Create Hero');
+    return chosen;
+  };
+
+  it('every trait of a look, each drawn for its kind; none known to it by name', () => {
+    void open();
+    for (const t of LOOK_TRAITS.filter((t) => t.key !== 'beard')) { // (the beard, a man's only: checked below)
+      expect(trait(t.label)?.classList.contains(t.kind)).toBe(true);
+    }
+    expect(trait('Skin')!.querySelectorAll('.forge-option')).toHaveLength(SKIN_TONE_COUNT);
+    expect(option('Skin', 'Fair').style.getPropertyValue('--swatch')).toMatch(/^#[0-9a-f]{6}$/); // (its colour)
+  });
+
+  it("a woman: her hair styles, no beard; a man: his, and the beard to choose; a name to match, unless one's typed", () => {
+    void open();
+    option('Body', 'Woman').click();
+    expect(trait('Beard')).toBeUndefined();
+    const at = Number(trait('Hair')!.querySelector('.forge-face small')!.textContent!.split(' / ')[0]) - 1; // (his style kept, were it hers too)
+    expect(trait('Hair')!.querySelector('.forge-face small')?.textContent).toBe(`${at + 1} / ${STYLES_OF.female.length}`);
+    trait('Hair')!.querySelectorAll<HTMLButtonElement>('.forge-arrow')[1].click();
+    const next = STYLES_OF.female[(at + 1) % STYLES_OF.female.length];
+    expect(trait('Hair')!.querySelector('.forge-face b')?.textContent).toBe(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name(next)); // (the next of hers)
+    option('Body', 'Man').click();
+    expect(trait('Beard')).toBeDefined();
+    expect(STYLES_OF.male).toContain(trait('Hair')!.querySelector('.forge-face b')!.textContent!.toLowerCase());
+    const name = document.querySelector<HTMLInputElement>('.forge-name')!;
+    name.value = 'Wynn';
+    name.dispatchEvent(new Event('input'));
+    option('Body', 'Woman').click();
+    expect(document.querySelector<HTMLInputElement>('.forge-name')!.value).toBe('Wynn'); // (theirs, kept)
+  });
+
+  it('made as chosen: their name and look; a name refused, and told why', async () => {
+    const chosen = open();
+    option('Body', 'Woman').click();
+    option('Skin', 'Deep').click();
+    option('Clothes', 'Turquoise').click();
+    const name = document.querySelector<HTMLInputElement>('.forge-name')!;
+    name.value = '  ';
+    name.dispatchEvent(new Event('input'));
+    click('Create Hero');
+    expect(document.querySelector('.forge-problem')?.textContent).toBe('Your hero needs a name.');
+    name.value = 'Brída  of  the Wold';
+    name.dispatchEvent(new Event('input'));
+    click('Create Hero');
+    const made = await chosen;
+    expect(made.hero).toEqual({ name: 'Brída of the Wold', look: expect.objectContaining({ build: 'female', skin: 3, dye: 5, beard: false }) });
+  });
+
+  it("Surprise me: a whole new look, still sound; Back, and Escape, to the heroes", () => {
+    keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
+    void showMainMenu(hooks);
+    document.querySelector<HTMLButtonElement>('.title-slot')!.click(); // (a hero saved: a slot for a new one)
+    for (let i = 0; i < 20; i++) {
+      click('Surprise me');
+      if (option('Body', 'Woman').classList.contains('chosen')) expect(trait('Beard')).toBeUndefined();
+    }
+    click('Back');
+    expect(document.querySelector('.title-forge')).toBeNull();
+    document.querySelector<HTMLButtonElement>('.title-slot')!.click();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+    expect(document.querySelector('.title-list')).not.toBeNull();
+  });
+});
+
+describe('look traits', () => {
+  it('a look made sound: a style of their build, no beard on a woman; one trait set, the rest kept sound', () => {
+    expect(fitLook({ ...HERO_LOOK, build: 'female', beard: true, hairStyle: 'cropped' })).toMatchObject({ beard: false, hairStyle: STYLES_OF.female[0] });
+    expect(withTrait(HERO_LOOK, 'skin', 2)).toEqual({ ...HERO_LOOK, skin: 2 });
+    expect(stepTrait({ ...HERO_LOOK, hairStyle: STYLES_OF.male.at(-1)! }, 'hairStyle', 1).hairStyle).toBe(STYLES_OF.male[0]); // (round)
+    expect(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name('twinBraids')).toBe('Twin braids');
   });
 });
