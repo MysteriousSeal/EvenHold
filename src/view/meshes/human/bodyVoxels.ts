@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
 import type { HeldSlot } from '../../../model/human/equipment';
+import { paintFace } from './faceVoxels';
 import { DYE_COUNT, HAIR_COLOR_COUNT, SKIN_TONE_COUNT, type BodyLook, type Build } from '../../../model/human/humanoid';
 
 export const HUMAN_VOXEL_SIZE = 1 / 60;
@@ -156,7 +157,7 @@ function tone(color: number, by: number): number {
 
 // Palette indices + 1, in the order bodyPalette() lists the colors: each
 // material in a ramp (skin in four tones, hair in three, the cloth in three).
-const C = {
+export const C = { // (the body palette's colors: bodyPalette; faceVoxels.ts paints with them too)
   skin: 1,
   skinShade: 2,
   skinLight: 3,
@@ -263,7 +264,7 @@ export function buildArm(build: Build = 'male'): VoxelGrid {
 // cheeks, a tiny mouth), ears on the sides, and the hair in its style, in
 // three tones. Always a full 11-voxel cube, so anything worn on
 // the head fits every style.
-export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>): VoxelGrid {
+export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' | 'expression'>): VoxelGrid {
   const N = PART_GRID.head[0];
   const L = N - 1; // the last row: the front, the top, the far side
   const M = (N - 1) / 2; // the middle
@@ -319,39 +320,11 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
       fillBox(grid, 1, 9, L, L - 1, 9, L, (x) => (x === M ? C.skinShade : x === M - 1 || x === M + 1 ? C.hairLight : C.hair)); // the fringe, parted
     }
   }
-  if (look.build === 'female') {
-    // Hers, cute: big eyes set low and close, a glint in each, a lash
-    // flicking out at the corner, soft brows of her hair, rosy cheeks under
-    // the eyes, and a tiny mouth.
-    for (const side of [-1, 1]) {
-      const x = M + side * 2;
-      fillBox(grid, x, 4, L, x, 6, L, (_x, y) => (y === 6 ? C.glint : C.eye)); // an eye, and its glint
-      setColor(grid, x + side, 6, L, C.eye); // wide at the top
-      setColor(grid, x + side * 2, 7, L, C.hairDark); // a lash, flicking out
-      fillBox(grid, Math.min(x, x + side), 8, L, Math.max(x, x + side), 8, L, C.hair); // a soft brow
-      fillBox(grid, Math.min(x + side, x + side * 2), 3, L, Math.max(x + side, x + side * 2), 3, L, C.cheek); // blush (on both sides: the ranges run low to high)
-    }
-    setColor(grid, M, 2, L, C.mouth); // a tiny mouth
-    return grid;
-  }
-  // His: kept simple, so it reads from afar.
-  for (const x of [M - 3, M + 3]) {
-    fillBox(grid, x, 5, L, x, 6, L, C.eye); // eyes
-    setColor(grid, x, 8, L, C.hairDark); // brows
-    setColor(grid, x + (x < M ? -1 : 1), 8, L, C.hairDark);
-    setColor(grid, x + (x < M ? -1 : 1), 3, L, C.cheek); // a touch of blush
-  }
-  setColor(grid, M, 4, L, C.skinShade); // a hint of a nose
-  if (look.beard) {
-    fillBox(grid, 1, 0, L, L - 1, 2, L, (x, y) => (y === 2 && x >= M - 2 && x <= M + 2 ? C.hairDark : strands(x, y))); // a moustache over the beard
-    for (const x of [0, L]) fillBox(grid, x, 0, 6, x, 5, L, (_x, y, z) => strands(z, y)); // sideburns
-  } else {
-    setColor(grid, M, 2, L, C.mouth);
-  }
+  paintFace(grid, look.build, look.expression ?? 'calm', look.beard, strands);
   return grid;
 }
 
-export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>): VoxelGrid {
+export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' | 'expression'>): VoxelGrid {
   if (part === 'head') return buildHead(look);
   if (part === 'torso') return buildTorso(look.build);
   return part === 'arm' ? buildArm(look.build) : buildLeg(look.build);

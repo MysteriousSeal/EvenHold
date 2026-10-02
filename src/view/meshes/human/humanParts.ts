@@ -49,7 +49,7 @@ function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, 
 }
 
 export function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
-  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${part}`;
+  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${look.expression ?? 'calm'}:${part}`;
   return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), BODIES[look.build].pivot[part]))!;
 }
 
