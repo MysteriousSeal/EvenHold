@@ -9,7 +9,7 @@ import { GameModel } from '../src/model/GameModel';
 import { eatOrDrink, kindOf } from '../src/model/hero/bag';
 import { recover } from '../src/model/hero/heroStats';
 import { heroStruck } from '../src/model/hero/fighting';
-import { DRINK_SECONDS, EAT_SECONDS, givesText } from '../src/model/loot/provisions';
+import { MEAL_SECONDS, givesText } from '../src/model/loot/provisions';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -101,9 +101,9 @@ describe('food and drink from the bag', () => {
       expect(eatOrDrink(hero, id)).toBe(true);
       expect(hero.bag[id] ?? 0).toBe(0);
       const { heal = 0, energy = 0, drink } = PROVISIONS[id];
-      meal(hero, (drink ? DRINK_SECONDS : EAT_SECONDS) / 2);
+      meal(hero, MEAL_SECONDS / 2);
       expect(drink ? hero.energy : hero.hp, `${id}: half way, half of it`).toBeCloseTo(1 + (drink ? energy * maxEnergyOf(hero) : heal * maxHpOf(hero)) / 2, 0);
-      meal(hero, EAT_SECONDS);
+      meal(hero, MEAL_SECONDS);
       expect(hero.hp, id).toBeCloseTo(Math.min(maxHpOf(hero), 1 + heal * maxHpOf(hero)), 5);
       expect(hero.energy, id).toBeCloseTo(Math.min(maxEnergyOf(hero), 1 + energy * maxEnergyOf(hero)), 5);
       expect(drink ? hero.hp : hero.energy, `${id}: only what it gives`).toBe(1);
@@ -111,13 +111,13 @@ describe('food and drink from the bag', () => {
     }
     Object.assign(hero, { hp: maxHpOf(hero), energy: maxEnergyOf(hero) - 1, bag: { wine: 1 } });
     eatOrDrink(hero, 'wine');
-    meal(hero, DRINK_SECONDS + 0.5);
+    meal(hero, MEAL_SECONDS + 0.5);
     expect(hero.energy).toBe(maxEnergyOf(hero)); // (no more than their most)
   });
 
   it('tells how much, of the most, and over how long', () => {
-    expect(givesText('apple')).toBe(`Heals 10% over ${EAT_SECONDS} seconds`);
-    expect(givesText('wine')).toBe(`Restores 50% energy over ${DRINK_SECONDS} seconds`);
+    expect(givesText('apple')).toBe(`Heals 10% over ${MEAL_SECONDS} seconds`);
+    expect(givesText('wine')).toBe(`Restores 50% energy over ${MEAL_SECONDS} seconds`);
   });
 
   it('one at a time; a blow stops it, the rest lost', () => {

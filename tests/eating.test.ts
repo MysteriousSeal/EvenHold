@@ -55,6 +55,19 @@ describe('a meal from the bag', () => {
   });
 });
 
+describe('the buffs', () => {
+  it('a well\'s blessing and a meal side by side, the meal first; each its name and time', () => {
+    const model = eating();
+    model.hero.blessings = [{ kind: 'swift', left: 90 }];
+    const update = createBlessingHud(model.hero);
+    update();
+    const row = document.querySelectorAll('.blessing-hud');
+    const cards = Array.from(row[row.length - 1].children);
+    expect(cards.map((c) => c.querySelector('b')?.textContent)).toEqual(['Eating', 'Swift feet']);
+    expect(cards.map((c) => c.querySelector('.blessing-hud-time')?.textContent)).toEqual(['15s', '2m']);
+  });
+});
+
 describe('the hero eating, drawn', () => {
   it('weapons out of sight, what\'s eaten in the right hand, up to the mouth now and then; all back after', () => {
     const rig = new HumanRig();
