@@ -1,3 +1,4 @@
+import { maxEnergyOf } from '../src/model/hero/attributes';
 import { describe, expect, it } from 'vitest';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
@@ -58,11 +59,12 @@ describe("the barmaid's shop", () => {
     hero.bag = { meatPie: 1, ale: 1 };
     Object.assign(hero, { hp: 1, energy: 1 });
     expect(model.consume('meatPie')).toBe(true);
-    expect(hero.hp).toBe(Math.min(maxHpAt(hero.level), 1 + PROVISIONS.meatPie.heal!));
+    expect(hero.eating?.heal).toBeCloseTo(PROVISIONS.meatPie.heal! * maxHpAt(hero.level), 5); // (its share of their most, as it's eaten)
     expect(hero.bag.meatPie).toBeUndefined();
     expect(model.consume('meatPie')).toBe(false);
+    hero.eating = null;
     expect(model.consume('ale')).toBe(true);
-    expect(hero.energy).toBe(1 + PROVISIONS.ale.energy!);
+    expect(hero).toMatchObject({ eating: { energy: PROVISIONS.ale.energy! * maxEnergyOf(hero) } });
   });
 
   it("tells how long until she restocks (the countdown for what she's sold out of)", () => {

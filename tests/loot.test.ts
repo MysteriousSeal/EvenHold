@@ -7,6 +7,9 @@ import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
 import { eatOrDrink, kindOf } from '../src/model/hero/bag';
+import { recover } from '../src/model/hero/heroStats';
+import { heroStruck } from '../src/model/hero/fighting';
+import { DRINK_SECONDS, EAT_SECONDS, givesText } from '../src/model/loot/provisions';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -86,20 +89,49 @@ describe('picking up loot', () => {
 });
 
 describe('food and drink from the bag', () => {
-  it('food gives health back, drink energy (each only that), up to their most', () => {
+  // A while sat (so no energy spent meanwhile): what's being eaten, restored as it goes.
+  const meal = (hero: GameModel['hero'], seconds: number) => {
+    for (let t = 0; t < seconds; t += 0.1) recover(hero, 0.1, false, true);
+  };
+
+  it('food gives back its share of their most health, drink of their most energy (each only that), over a few seconds', () => {
     const { hero } = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     for (const id of Object.keys(PROVISIONS) as Array<keyof typeof PROVISIONS>) {
-      Object.assign(hero, { hp: 1, energy: 1, bag: { [id]: 1 } });
+      Object.assign(hero, { hp: 1, energy: 1, bag: { [id]: 1 }, eating: null });
       expect(eatOrDrink(hero, id)).toBe(true);
-      const { heal = 0, energy = 0, drink } = PROVISIONS[id];
-      expect(hero.hp, id).toBe(Math.min(maxHpOf(hero), 1 + heal));
-      expect(hero.energy, id).toBe(Math.min(maxEnergyOf(hero), 1 + energy));
-      expect(drink ? hero.hp : hero.energy, `${id}: only what it gives`).toBe(1);
       expect(hero.bag[id] ?? 0).toBe(0);
+      const { heal = 0, energy = 0, drink } = PROVISIONS[id];
+      meal(hero, (drink ? DRINK_SECONDS : EAT_SECONDS) / 2);
+      expect(drink ? hero.energy : hero.hp, `${id}: half way, half of it`).toBeCloseTo(1 + (drink ? energy * maxEnergyOf(hero) : heal * maxHpOf(hero)) / 2, 0);
+      meal(hero, EAT_SECONDS);
+      expect(hero.hp, id).toBeCloseTo(Math.min(maxHpOf(hero), 1 + heal * maxHpOf(hero)), 5);
+      expect(hero.energy, id).toBeCloseTo(Math.min(maxEnergyOf(hero), 1 + energy * maxEnergyOf(hero)), 5);
+      expect(drink ? hero.hp : hero.energy, `${id}: only what it gives`).toBe(1);
+      expect(hero.eating).toBeNull();
     }
     Object.assign(hero, { hp: maxHpOf(hero), energy: maxEnergyOf(hero) - 1, bag: { wine: 1 } });
     eatOrDrink(hero, 'wine');
+    meal(hero, DRINK_SECONDS + 0.5);
     expect(hero.energy).toBe(maxEnergyOf(hero)); // (no more than their most)
+  });
+
+  it('tells how much, of the most, and over how long', () => {
+    expect(givesText('apple')).toBe(`Heals 10% over ${EAT_SECONDS} seconds`);
+    expect(givesText('wine')).toBe(`Restores 50% energy over ${DRINK_SECONDS} seconds`);
+  });
+
+  it('one at a time; a blow stops it, the rest lost', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const { hero } = model;
+    model.random = () => 0.999; // (no dodge)
+    Object.assign(hero, { hp: 1, bag: { roastLeg: 1, bread: 1 } });
+    expect(eatOrDrink(hero, 'roastLeg')).toBe(true);
+    expect(eatOrDrink(hero, 'bread')).toBe(false); // (still at the leg)
+    expect(hero.bag.bread).toBe(1);
+    meal(hero, 1);
+    hero.hp += 5; // (enough to take the blow standing)
+    heroStruck(model, 1, null);
+    expect(hero.eating).toBeNull();
   });
 });
 
