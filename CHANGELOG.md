@@ -3,6 +3,58 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.3.0] - 2026-10-02
+
+Fighting with your feet and your shield, a herbalist in every village, and
+a bag that's easier to live out of.
+
+### Fighting
+
+- **Roll (Shift):** dive a few steps the way you're going, untouchable for
+  most of it. Roll out of a foe's marked ground.
+- **Guard (hold Q):** cuts the blows you take: a shield more, a tower shield
+  all of them. Raise it just as a blow lands to parry: the foe reels, and
+  your next blow on it lands twice as hard.
+- **Breath:** a thin green bar under your health. Blows, rolls and blocked
+  blows spend it; it comes back a moment later. Tired, you have less of it.
+
+### Gear
+
+- Every helm and hood reworked in relief: raised rims, ridges, rivets,
+  nose guards, brims, folds.
+- Ten new helms: a kettle hat, a bascinet and a barbute at the smithy; a
+  sallet on the road guards; a horned helm on bandits; and a winged helm, an
+  elven circlet, a bone helm, a dragonscale helm and an old king's crown in
+  the crypt lords' hoards.
+- Shields reworked in relief: rims, iron bands, bosses, a raised sun; the
+  buckler round.
+- Hover gear to see what wearing it instead would change, WoW-style: the
+  overall gain or loss in percent, then each change in green or red.
+- Item tooltips laid out in parts: what it is, what it gives, the
+  comparison, a word about it, its price, then how to use it.
+
+### Food, drink and potions
+
+- Food and drink now restore a share of your most (an apple a tenth, a roast
+  leg half) over 15 seconds. You sit down to eat, your weapons put away,
+  bringing it to your mouth now and then; moving, fighting or a blow stops
+  the meal. A buff shows what you're eating and the time left.
+- Health and energy potions, minor, lesser and greater: drunk at once, even
+  mid-fight, then 30 seconds before another.
+- An action bar along the bottom: drag food, drink and potions onto it from
+  your bag and use them with **1** to **8**.
+- Wolves now leave raw wolf meat, a cooking ingredient.
+
+### The herbalist
+
+- A herbalist in every village, in a thatched hermit's hut of fieldstone and
+  daub near the middle, a sign, herbs drying and a cauldron outside.
+- Inside, an earthen-floored workroom: a cauldron bubbling green before the
+  hearth, a worktable, a drying rack, a shelf of potions, their bed, and the
+  counter where they sell potions and buy your ingredients.
+- The herbalist and the smith now put down their work as soon as you come
+  to their counter.
+
 ## [0.2.0] - 2026-10-02
 
 The roads, the life along them, and a bag that holds more.

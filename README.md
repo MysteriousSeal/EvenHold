@@ -33,12 +33,13 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   barmaid, and in the evening ask her for a room for the night. Mind the
   bouncer: swords stay sheathed in here.
 - **The smithy.** Arms and armour to buy, and the smith will take your old
-  gear off your hands.
+  gear off your hands. The finest helms aren't for sale: a winged helm, a
+  dragonscale helm or an old king's crown waits in a crypt lord's hoard.
 - **Quests.** The notice board in every village square has work for those
   who'll take it.
 - **The herbalist.** In every village, a green-hooded herbalist keeps shop
-  at home: health and energy potions to buy, and they'll take your raw
-  ingredients.
+  in a thatched hut near the middle, a cauldron bubbling by the hearth:
+  health and energy potions to buy, and they'll take your raw ingredients.
 - **Wells.** Toss in a silver coin and you may walk away blessed.
 
 <!-- More shots: the inn, a crypt, the ruins in the mist.
@@ -80,7 +81,11 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 - **Mind your bag.** It holds 24 slots, and each bag you fit to its sockets
   adds 6 more, up to 48. Pedlars sell bags, and the odd bandit or draugr
   drops one. Junk stacks 20 to a slot. Right-click food to eat it, or a bag
-  to fit it; drag anything out onto the ground to drop it.
+  to fit it; drag anything out onto the ground to drop it. Drag food, drink
+  and potions onto the action bar to have them on **1** to **8**.
+- **Weigh your gear.** Hover a piece of gear in your bag or a shop and it
+  tells you what wearing it instead would change: green for gains, red for
+  losses, and how much better or worse it is all told.
 - **Levels bring points.** Spend them (**P**) on Strength, Agility, Stamina
   or Endurance, and gear adds its own on top. Slaying a crypt's lord is
   worth a point of its own.
