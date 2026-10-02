@@ -17,13 +17,6 @@ describe('a kept world', () => {
     expect(worldPrint(unpackWorld(packed))).toBe(worldPrint(world));
   });
 
-  it('unpacks a full-size world the same, a tile a byte', () => {
-    const world = generateWorld(1275139863);
-    const packed = packWorld(world);
-    expect(packed.tiles.byteLength).toBe(world.size.width * world.size.depth);
-    expect(worldPrint(unpackWorld(packed))).toBe(worldPrint(world));
-  }, 60_000);
-
   it('makes the same game as a world made afresh', () => {
     const seed = TEST_SEEDS[2];
     const [made, kept] = [new GameModel(seed, TEST_MAP_SIZE), new GameModel(seed, TEST_MAP_SIZE, unpackWorld(packWorld(generateWorld(seed, TEST_MAP_SIZE))))];

@@ -36,17 +36,20 @@ describe('rocks and landmarks', () => {
 
   it('stand on open, dry, natural ground, level, clear of roads, villages, ruins, camps, the start and the foes', () => {
     const m = model();
+    const problems: string[] = []; // (every tile against every village, ruin and foe: told once, at the end, not asserted a million times)
     for (const s of m.scenery) {
       const tier = m.heightMap[s.x][s.z];
       for (const [x, z] of tiles(s)) {
-        expect(m.lakeMap[x][z], `water under a ${s.kind}`).toBe(false);
-        expect(m.surfaceMap[x][z], `a ${s.kind} on a road, a square or a field`).toBe('natural');
-        expect(m.heightMap[x][z]).toBe(tier);
-        for (const v of m.villages) expect(Math.max(Math.abs(v.x - x), Math.abs(v.z - z)), `a ${s.kind} in a village`).toBeGreaterThan(10);
-        for (const r of m.ruins) expect(x >= r.x - 2 && x < r.x + r.w + 2 && z >= r.z - 2 && z < r.z + r.d + 2, `a ${s.kind} in a ruin`).toBe(false);
-        for (const e of m.enemies) expect(Math.max(Math.abs(e.x - x), Math.abs(e.z - z)), `a ${s.kind} on a foe`).toBeGreaterThan(1.5);
+        const at = `a ${s.kind} at ${x},${z}`;
+        if (m.lakeMap[x][z]) problems.push(`${at}: on water`);
+        if (m.surfaceMap[x][z] !== 'natural') problems.push(`${at}: on a road, a square or a field`);
+        if (m.heightMap[x][z] !== tier) problems.push(`${at}: not level`);
+        for (const v of m.villages) if (Math.max(Math.abs(v.x - x), Math.abs(v.z - z)) <= 10) problems.push(`${at}: in a village`);
+        for (const r of m.ruins) if (x >= r.x - 2 && x < r.x + r.w + 2 && z >= r.z - 2 && z < r.z + r.d + 2) problems.push(`${at}: in a ruin`);
+        for (const e of m.enemies) if (Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) <= 1.5) problems.push(`${at}: on a ${e.kind}`);
       }
     }
+    expect(problems.slice(0, 10)).toEqual([]);
   });
 
   it('block the way where they stand (each tile), the ground round each open', () => {

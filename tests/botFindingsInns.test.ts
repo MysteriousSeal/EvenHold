@@ -12,15 +12,17 @@ const MID = { width: 512, depth: 512 };
 describe('inns', () => {
   it.each([11, 12])('seed %i (512): have their staff and patrons never walk into the furniture, the hero looking on', (seed) => {
     const model = new GameModel(seed, MID);
+    const bumps: string[] = []; // (every walker, every step: told once, at the end)
     for (const entrance of model.entrances.filter((e) => e.type === 'inn')) {
       model.teleport(entrance.x, entrance.z);
       expect(model.useDoor()).toBe(true);
       const { furniture } = layoutOf(model.seed, entrance);
       for (let t = 0; t < 90; t += FRAME * 4) {
         model.update(0, 0, FRAME * 4);
-        for (const n of model.npcs) if (n.where === entrance && !n.seat) expect(bumpsFurniture(furniture, n.x, n.z, 0.05), `${n.role} ${n.name} at ${n.x.toFixed(2)},${n.z.toFixed(2)}`).toBe(false);
+        for (const n of model.npcs) if (n.where === entrance && !n.seat && bumpsFurniture(furniture, n.x, n.z, 0.05)) bumps.push(`${n.role} ${n.name} at ${n.x.toFixed(2)},${n.z.toFixed(2)}`);
       }
       model.useDoor();
     }
+    expect(bumps.slice(0, 10)).toEqual([]);
   });
 });

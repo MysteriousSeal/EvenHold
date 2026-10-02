@@ -2,9 +2,13 @@
 // fingerprints (support/worldPrint.ts) of the test worlds, and of a full-size
 // one (where things turn up that small maps miss), as they were. A change here
 // means every world (and every save's) changes: meant, it's these to update;
-// meant to speed things up only, it's a bug.
+// meant to speed things up only, it's a bug. The full-size world, slow to
+// make, made once: kept and unpacked (controller/storage/worldCache.ts) it's
+// the same world too, a tile a byte.
 import { describe, expect, it } from 'vitest';
 import { generateWorld } from '../src/model/worldgen/world';
+import { packWorld, unpackWorld } from '../src/controller/storage/worldCache';
+import type { World } from '../src/model/types';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { worldPrint } from './support/worldPrint';
 
@@ -15,7 +19,17 @@ describe('worlds made as ever', () => {
     expect(worldPrint(generateWorld(seed, TEST_MAP_SIZE))).toBe(print);
   });
 
+  const FULL = '26f5c181';
+  let full: World | null = null;
+  const fullWorld = () => (full ??= generateWorld(1275139863));
+
   it('a full-size world', () => {
-    expect(worldPrint(generateWorld(1275139863))).toBe('26f5c181');
+    expect(worldPrint(fullWorld())).toBe(FULL);
+  }, 60_000);
+
+  it('a full-size world, kept and unpacked: the same, a tile a byte', () => {
+    const packed = packWorld(fullWorld());
+    expect(packed.tiles.byteLength).toBe(fullWorld().size.width * fullWorld().size.depth);
+    expect(worldPrint(unpackWorld(packed))).toBe(FULL);
   }, 60_000);
 });

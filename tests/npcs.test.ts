@@ -5,7 +5,15 @@ import { nameAt, randomName, spawnNpcs } from '../src/model/npcs/npcs';
 import { randomLook } from '../src/model/human/humanoid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const withVillage = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'))!;
+// The first test world (made one at a time, till one has) with a village of a few houses and its inn.
+const firstWith = (has: (m: GameModel) => boolean) => {
+  for (const seed of TEST_SEEDS) {
+    const model = new GameModel(seed, TEST_MAP_SIZE);
+    if (has(model)) return model;
+  }
+  throw new Error('no test world has it');
+};
+const withVillage = () => firstWith((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'));
 
 describe('villagers', () => {
   it('live one to a house, each in their own (a village\'s herbalist in theirs alone), named, naked, the same for a seed', () => {
@@ -38,27 +46,28 @@ describe('villagers', () => {
     const village = model.npcs[0].village;
     model.teleport(village.x + 0.5, village.z + 0.5); // on the square, watching
     const seen = { square: false, inn: false, home: false };
+    const problems: string[] = []; // (every villager, every step: told once, at the end)
     for (let t = 0; t < 600; t += 0.1) {
       model.update(0, 0, 0.1);
       for (const npc of model.npcs) {
         if (npc.where === null) {
           if (Math.max(Math.abs(npc.x - npc.village.x), Math.abs(npc.z - npc.village.z)) <= 3.5) seen.square = true;
           if (!npc.moving) continue;
-          expect(model.isBlocked(npc.x, npc.z, 0.1)).toBe(false); // walking, never through walls
+          if (model.isBlocked(npc.x, npc.z, 0.1)) problems.push(`${npc.name} in a wall at ${npc.x.toFixed(2)},${npc.z.toFixed(2)}`); // walking, never through walls
         } else if (npc.where.type === 'inn') seen.inn = true;
         else if (npc.where === npc.home && npc.stop > 2) seen.home = true;
         if (npc.where) {
           const { room } = layoutOf(model.seed, npc.where);
-          expect(npc.x).toBeGreaterThan(-0.5);
-          expect(npc.x).toBeLessThan(room.width - 0.5);
+          if (npc.x <= -0.5 || npc.x >= room.width - 0.5) problems.push(`${npc.name} out of the room at x ${npc.x.toFixed(2)}`);
         }
       }
       for (const inn of model.entrances.filter((e) => e.type === 'inn')) {
-        expect(model.npcs.filter((n) => n.role === 'villager' && n.where === inn).length).toBeLessThanOrEqual(4); // never crowded
+        if (model.npcs.filter((n) => n.role === 'villager' && n.where === inn).length > 4) problems.push('an inn crowded'); // never crowded
       }
       const seats = model.npcs.filter((n) => n.seat).map((n) => n.seat!.piece);
-      expect(new Set(seats).size).toBe(seats.length);
+      if (new Set(seats).size !== seats.length) problems.push('two on one seat');
     }
+    expect(problems.slice(0, 10)).toEqual([]);
     expect(seen).toEqual({ square: true, inn: true, home: true });
   });
 
@@ -149,7 +158,7 @@ describe('villagers', () => {
   });
 
   it('have farmers, who go out and work their field', () => {
-    const model = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.npcs.some((n) => n.field))!;
+    const model = firstWith((m) => m.npcs.some((n) => n.field));
     const farmer = model.npcs.find((n) => n.field)!;
     const field = farmer.field!;
     const inField = () => farmer.where === null && farmer.x > field.x0 - 0.5 && farmer.x < field.x0 + field.width - 0.5 && farmer.z > field.z0 - 0.5 && farmer.z < field.z0 + field.depth - 0.5;
