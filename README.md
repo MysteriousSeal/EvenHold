@@ -50,6 +50,8 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 | --- | --- |
 | Move | **W A S D** or the arrow keys |
 | Strike | **Space** |
+| Roll (untouchable for a moment) | **Shift** |
+| Guard (raise it as a blow lands to parry) | Hold **Q** |
 | Interact (pick up, talk, sit, open, enter) | **E** |
 | Focus a foe | **Click** it, or **Tab** to the next (**Shift+Tab** back) |
 | Clear the focus | **Escape** |
@@ -80,7 +82,10 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 - **Read the colours.** A foe's level is coloured by how dangerous it is to
   you. A yellow health bar means it won't start a fight, but it'll finish one.
 - **Some foes tell you what's coming.** Watch for marks on the ground, and
-  step out of them.
+  roll out of them (**Shift**).
+- **Mind your breath.** Blows, rolls and blocked blows spend it, the thin
+  green bar under your health. Raise your guard (**Q**) just as a blow lands
+  to parry it: the foe reels, and your next blow on it lands twice as hard.
 
 The game saves itself as you play, in your browser.
 
