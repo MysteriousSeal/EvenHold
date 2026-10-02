@@ -13,6 +13,11 @@ import { AWARD_POST, SUMMONED } from './crypts/cryptLord';
 import type { EnemyKind, Village } from './types';
 import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
+import type { Scenery, SceneryKind } from './scenery/scenery';
+import { meadowPatches } from './scenery/meadowPatches';
+import { LIFE_CELL, LIFE_HOUR, lifeIn, lifeOut, type LifeKind, type LifeSpot } from './scenery/ambientSpots';
+import { createMeadowDensity } from './worldgen/meadows';
+import { nextHour } from './clock';
 
 export interface Tile {
   x: number;
@@ -70,8 +75,7 @@ function nearestOpenTile(model: GameModel, from: Tile): Tile {
 
 // First tile matching `accept`, searching square rings of growing radius
 // around `from` (nearest ring first, and the nearest tile within it).
-function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number) => boolean): Tile | null {
-  const maxRadius = Math.max(model.size.width, model.size.depth);
+function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number) => boolean, maxRadius = Math.max(model.size.width, model.size.depth)): Tile | null {
   for (let r = 0; r <= maxRadius; r++) {
     const ring: Tile[] = [];
     for (let dx = -r; dx <= r; dx++) {
@@ -188,4 +192,66 @@ export function nearestTraveller(model: GameModel, from: Tile, role: TravellerRo
   if (!best) return null;
   const ahead = onRoad(model.travellers.roads[best.road], best.along + best.way * 1.2);
   return { traveller: best, at: { x: ahead.x, z: ahead.z } };
+}
+
+// The Sights (the cheats' tab): the next of each kind of thing out in the wilds not yet visited, nearest first (all
+// of them seen, round again), and where to stand to see it.
+
+// The next rock or landmark of `kind`: stood just before it (on the camera's side); a ring of standing stones, in its
+// middle (its stones all counted visited with it).
+export function nextScenery(model: GameModel, from: Tile, kind: SceneryKind, visited: Set<Scenery>): Tile | null {
+  const all = model.scenery.filter((s) => s.kind === kind);
+  if (all.length === 0) return null;
+  if (all.every((s) => visited.has(s))) for (const s of all) visited.delete(s);
+  const middle = (s: Scenery) => ({ x: s.x + (s.w - 1) / 2, z: s.z + (s.d - 1) / 2 });
+  const piece = all.filter((s) => !visited.has(s)).sort((a, b) => distance(middle(a), from) - distance(middle(b), from))[0];
+  if (kind !== 'menhir') {
+    visited.add(piece);
+    return nearestOpenTile(model, { x: piece.x + piece.w, z: piece.z + piece.d });
+  }
+  const ring = all.filter((s) => distance(s, piece) <= 8);
+  for (const s of ring) visited.add(s);
+  const centre = { x: Math.round(ring.reduce((a, s) => a + s.x, 0) / ring.length), z: Math.round(ring.reduce((a, s) => a + s.z, 0) / ring.length) };
+  return nearestOpenTile(model, centre);
+}
+
+const SIGHT_REACH = 600; // tiles round the hero looked over for a meadow or the small life (no further: the world's big)
+
+// The next thick meadow patch of wildflowers (of `kind`, BLOOMS' index, if given), in its middle.
+export function nextMeadow(model: GameModel, from: Tile, kind: number | null, visited: Set<string>): Tile | null {
+  const patches = meadowPatches(model.seed);
+  const cell = (x: number, z: number) => `${Math.floor(x / 14)},${Math.floor(z / 14)}`; // (a patch's own ground)
+  const find = () =>
+    ringSearch(
+      model,
+      from,
+      (x, z) => model.isOpenTile(x, z) && model.surfaceMap[x]?.[z] === 'natural' && patches.strength(x, z) > 0.75 && (kind === null || patches.kind(x, z) === kind) && !visited.has(cell(x, z)),
+      SIGHT_REACH,
+    );
+  const at = find() ?? (visited.clear(), find());
+  if (!at) return null;
+  const [cx, cz] = [Math.floor(at.x / 14), Math.floor(at.z / 14)];
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) visited.add(`${cx + dx},${cz + dz}`);
+  return at;
+}
+
+// The next place with the small life of `kind` (a flock of songbirds, butterflies, fireflies): stood a few paces off
+// (not to scare them), and the hour turned to one they're out at, if they're not.
+export function nextLife(model: GameModel, from: Tile, kind: LifeKind, visited: Set<string>): Tile | null {
+  const meadow = createMeadowDensity(model.seed);
+  const [hx, hz] = [Math.floor(from.x / LIFE_CELL), Math.floor(from.z / LIFE_CELL)];
+  const find = (): LifeSpot | null => {
+    for (let r = 0; r <= SIGHT_REACH / LIFE_CELL; r++) {
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || visited.has(`${hx + dx},${hz + dz}`)) continue;
+        const spot = lifeIn(model, hx + dx, hz + dz, meadow).find((c) => c.kind === kind);
+        if (spot) return (visited.add(`${hx + dx},${hz + dz}`), spot);
+      }
+    }
+    return null;
+  };
+  const spot = find() ?? (visited.clear(), find());
+  if (!spot) return null;
+  if (!lifeOut(kind, model.minutes)) model.minutes = nextHour(model.minutes, LIFE_HOUR[kind]);
+  return nearestOpenTile(model, { x: Math.round(spot.x) + 5, z: Math.round(spot.z) + 5 });
 }

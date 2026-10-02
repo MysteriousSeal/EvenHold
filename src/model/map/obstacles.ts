@@ -16,8 +16,9 @@ export class Obstacles {
   // hundreds of thousands of props, and these are asked every frame.
   private readonly solid: Uint8Array; // tiles blocked edge to edge (besides water)
   private readonly prop: Uint8Array; // 0: none; else 1 + the index in `halves` of its half-sizes
-  private readonly halves: Array<[number, number]> = []; // the props' half-sizes (across x, across z), each kept exact
+  private readonly halves: Array<[number, number, number, number]> = []; // the props' half-sizes (across x, across z), and where a round one's middle is off its tile's (x, z); each kept exact
   private readonly low: Uint8Array; // props too low to hide anyone
+  private readonly round: Uint8Array; // props round, not square (a rock): `half` their radius
   // Fence strips as axis-aligned rectangles [minX, minZ, maxX, maxZ], by the tile they're in.
   private readonly fences = new Map<number, Array<[number, number, number, number]>>();
 
@@ -27,7 +28,7 @@ export class Obstacles {
     solid: Set<string>, // tiles blocked edge to edge (besides water), as "x,z"
   ) {
     const tiles = size.width * size.depth;
-    [this.solid, this.prop, this.low] = [new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles)];
+    [this.solid, this.prop, this.low, this.round] = [new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles)];
     for (const key of solid) {
       const [x, z] = key.split(',').map(Number);
       this.addSolid(x, z);
@@ -46,14 +47,16 @@ export class Obstacles {
 
   // A prop in the middle of tile (x, z), half-size `half` across x and
   // `halfZ` across z (a square, unless told); `low` ones (a campfire) block
-  // walking but not sight.
-  addProp(x: number, z: number, half: number, low = false, halfZ = half): void {
+  // walking but not sight; `round` ones (a boulder) a disc of radius `half` (met as close from any side), its middle
+  // (ox, oz) off the tile's (one rock over several tiles: each of them the same disc, round the rock's middle).
+  addProp(x: number, z: number, half: number, low = false, halfZ = half, round = false, ox = 0, oz = 0): void {
     const i = this.at(x, z);
     if (i < 0) return;
-    let k = this.halves.findIndex(([hx, hz]) => hx === half && hz === halfZ);
-    if (k < 0) k = this.halves.push([half, halfZ]) - 1;
+    let k = this.halves.findIndex(([hx, hz, kx, kz]) => hx === half && hz === halfZ && kx === ox && kz === oz);
+    if (k < 0) k = this.halves.push([half, halfZ, ox, oz]) - 1;
     this.prop[i] = k + 1;
     if (low) this.low[i] = 1; // (low once, low for good, as ever)
+    this.round[i] = round ? 1 : 0;
   }
 
   // A blocking strip `thickness` thick along one edge (`side`, NEIGHBORS_4) of tile (x, z).
@@ -89,7 +92,13 @@ export class Obstacles {
     // A prop's square lies inside its tile, so checking the tiles the
     // corners touch finds every prop the walker could overlap; same for fences.
     const prop = this.prop[i];
-    if (prop && Math.abs(x - tx) < r + this.halves[prop - 1][0] && Math.abs(z - tz) < r + this.halves[prop - 1][1]) return true;
+    if (prop && this.round[i]) {
+      // Round: whether the walker's square comes within its radius of its middle (nearest point of the square to it).
+      const [half, , ox, oz] = this.halves[prop - 1];
+      const [mx, mz] = [tx + ox, tz + oz];
+      const [qx, qz] = [Math.max(x - r, Math.min(mx, x + r)), Math.max(z - r, Math.min(mz, z + r))];
+      if (Math.hypot(qx - mx, qz - mz) < half) return true;
+    } else if (prop && Math.abs(x - tx) < r + this.halves[prop - 1][0] && Math.abs(z - tz) < r + this.halves[prop - 1][1]) return true;
     const fences = this.fences.get(i);
     return !!fences && fences.some(([minX, minZ, maxX, maxZ]) => x + r > minX && x - r < maxX && z + r > minZ && z - r < maxZ);
   }
@@ -102,7 +111,10 @@ export class Obstacles {
     const i = tx * this.size.depth + tz;
     if (this.solid[i]) return true;
     const prop = this.low[i] ? 0 : this.prop[i];
-    if (prop && Math.abs(x - tx) < this.halves[prop - 1][0] && Math.abs(z - tz) < this.halves[prop - 1][1]) return true;
+    if (prop && this.round[i]) {
+      const [half, , ox, oz] = this.halves[prop - 1];
+      if (Math.hypot(x - tx - ox, z - tz - oz) < half) return true; // (a round one: its disc)
+    } else if (prop && Math.abs(x - tx) < this.halves[prop - 1][0] && Math.abs(z - tz) < this.halves[prop - 1][1]) return true;
     return (this.fences.get(i) ?? []).some(([minX, minZ, maxX, maxZ]) => x >= minX && x <= maxX && z >= minZ && z <= maxZ);
   }
 }

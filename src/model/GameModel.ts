@@ -11,6 +11,7 @@ import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House,
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { Travellers } from './travellers/travellers';
+import { addSceneryObstacles, placeScenery, type Scenery } from './scenery/scenery';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
 import { HERO_LOOK } from './human/humanoid';
@@ -67,7 +68,8 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly ruins: Ruin[]; // old keeps and chapels out in the wilds (ruins/ruins.ts)
-  readonly travellers: Travellers; // on the roads between the villages (travellers/travellers.ts)
+  readonly travellers: Travellers;
+  readonly scenery: Scenery[]; // rocks and landmarks out in the wilds (scenery/scenery.ts) // on the roads between the villages (travellers/travellers.ts)
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
@@ -139,6 +141,8 @@ export class GameModel {
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
+    this.scenery = placeScenery(this); // rocks and landmarks in the wilds (after the foes: clear of where they stand)
+    addSceneryObstacles(this.obstacles, this.scenery);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
     this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
     this.wildlife = spawnWildlife(this);
