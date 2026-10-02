@@ -1,5 +1,5 @@
 // What a hero's look is made of, trait by trait, for the character
-// creation screen (controller/mainMenu.ts) to draw without knowing them:
+// creation screen (controller/title/heroForge.ts) to draw without knowing them:
 // each its label, how it's chosen (a pick between a few, colour swatches,
 // a style to step through, a yes or no), the values allowed for a look (a
 // woman's hair styles, a man's beard), and each value's name. Its values
