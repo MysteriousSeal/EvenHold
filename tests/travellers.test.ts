@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { generateWorld } from '../src/model/worldgen/world';
-import { STOP_FOR_HERO, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
+import { WORD_HOLD, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
 import { GUARD_LINES, PILGRIM_ROAD_LINES, bearing, cryptRumour, travellerInReach, travellerPrompt, travellerSays } from '../src/model/travellers/travellerTalk';
 import { PEDLAR_TRINKETS, PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
 import { makeEnemy } from '../src/model/enemies/enemies';
@@ -118,17 +118,29 @@ describe('travellers walking', () => {
     expect(Math.abs(partner.along - (t.along - t.way * 1.2))).toBeLessThan(0.05);
   });
 
-  it('stop for the hero close by, turned to them; walk on once they go', () => {
+  it('walk on as the hero comes up to them; spoken to, stand a moment turned to them, then walk on', () => {
     const { model, t } = alone('pilgrim');
     Object.assign(model.hero, { x: t.x + 1, z: t.z });
     const along = t.along;
-    step(model, 2);
-    expect(t.along).toBe(along);
-    expect(Math.abs(Math.atan2(Math.sin(t.facing - Math.PI / 2), Math.cos(t.facing - Math.PI / 2)))).toBeLessThan(0.1); // (facing +x: the hero)
-    expect(STOP_FOR_HERO).toBeGreaterThan(1);
-    far(model);
     step(model, 1);
-    expect(t.along).not.toBe(along);
+    expect(t.along).not.toBe(along); // (no stopping for the hero)
+    Object.assign(model.hero, { x: t.x + 1, z: t.z });
+    model.travellers.hold(t, WORD_HOLD);
+    const held = t.along;
+    step(model, WORD_HOLD - 0.5);
+    expect(t.along).toBe(held);
+    expect(Math.abs(Math.atan2(Math.sin(t.facing - Math.PI / 2), Math.cos(t.facing - Math.PI / 2)))).toBeLessThan(0.1); // (facing +x: the hero)
+    step(model, 1);
+    expect(t.along).not.toBe(held); // (on again)
+  });
+
+  it('a guard spoken to stands with their partner', () => {
+    const { model, t } = alone('guard');
+    const partner = model.travellers.list.find((x) => x.leader === t.id)!;
+    model.travellers.hold(t, WORD_HOLD);
+    const [a, b] = [t.along, partner.along];
+    step(model, 2);
+    expect([t.along, partner.along]).toEqual([a, b]);
   });
 
   it('walk only while the hero\'s out in the world (indoors, the world stands still)', () => {
@@ -156,7 +168,7 @@ describe('travellers passing each other', () => {
     expect(Math.hypot(there.x - back.x, there.z - back.z)).toBeGreaterThan(0.42); // (room to pass)
   });
 
-  it('never walk into one another: one catching up waits behind, a pace off, while the one ahead stands', () => {
+  it('never walk into one another: one catching up a pace behind the one stopped, walking round them', () => {
     const { model, t } = alone('pilgrim');
     const ahead = { ...t, id: 9_999, name: 'Ahead', along: t.along + t.way * 0.6 };
     const at = onRoadSide(model.travellers.roads[t.road], ahead.along, t.way);
@@ -164,10 +176,10 @@ describe('travellers passing each other', () => {
     model.travellers.list.push(ahead);
     Object.assign(model.hero, { x: ahead.x + 1.2, z: ahead.z }); // (the hero by the one ahead: they stand, the other comes on)
     step(model, 1.2);
-    expect(Math.hypot(t.x - ahead.x, t.z - ahead.z)).toBeGreaterThanOrEqual(0.4);
+    expect(Math.hypot(t.x - ahead.x, t.z - ahead.z)).toBeGreaterThanOrEqual(0.3);
   });
 
-  it('give way in the end: squeezed past after a moment, never stuck for good', () => {
+  it('one set out right on top of another steps apart and walks round them: never stuck', () => {
     const { model, t } = alone('pilgrim');
     const along = t.along;
     const ahead = { ...t, id: 9_998, name: 'Blocking', along: t.along + t.way * 0.3 };
@@ -177,6 +189,61 @@ describe('travellers passing each other', () => {
     Object.assign(model.hero, { x: beyond.x, z: beyond.z });
     step(model, 4);
     expect(t.along).not.toBe(along);
+  });
+});
+
+describe('no procession behind one stopped for the hero', () => {
+  it('ten coming up behind one the hero\'s talking to all walk round them and go on: none left queueing', () => {
+    const { model, t } = alone('pilgrim');
+    const road = model.travellers.roads[t.road];
+    t.along = Math.min(road.route.length - 3, Math.max(25, t.along));
+    t.way = 1;
+    Object.assign(t, onRoadSide(road, t.along, 1));
+    const hero = onRoadSide(road, t.along + 1, 1, -3); // (by them, off the road on the far side: they stop for a word)
+    Object.assign(model.hero, { x: hero.x, z: hero.z });
+    const behind = Array.from({ length: 10 }, (_, i) => {
+      const o = { ...t, id: 8_000 + i, name: `Behind ${i}`, along: t.along - 2 - i * 2, lane: 1, waited: 0 };
+      return Object.assign(o, onRoadSide(road, o.along, 1));
+    });
+    model.travellers.list.push(...behind);
+    const start = t.along;
+    for (let s = 0; s < 40; s += FRAME) {
+      model.travellers.hold(t, 0.5); // (trading with the hero, all the while)
+      model.update(0, 0, FRAME);
+    }
+    expect(t.along).toBe(start); // (still stood there)
+    const past = behind.filter((o) => o.road !== t.road || o.along > start + 1);
+    expect(past.length).toBe(behind.length); // (every one by them and on)
+    for (const o of behind) expect(o.lane).toBeCloseTo(1); // (back on their own side, overtaken)
+  });
+});
+
+describe('travellers never in each other', () => {
+  it('a busy stretch of road, both ways, a minute by the hero: no two ever in each other', () => {
+    const { model, t } = alone('pilgrim');
+    const road = model.travellers.roads[t.road];
+    const len = road.route.length - 1;
+    t.along = Math.min(len - 2, Math.max(10, t.along));
+    const crowd = Array.from({ length: 14 }, (_, i) => {
+      const way = (i % 2 ? 1 : -1) as 1 | -1;
+      const o = { ...t, id: 7_000 + i, name: `Crowd ${i}`, way, along: Math.max(0.5, Math.min(len - 0.5, t.along + (i - 7) * 0.9)), lane: 1, waited: 0 };
+      return Object.assign(o, onRoadSide(road, o.along, way));
+    });
+    model.travellers.list.push(...crowd);
+    const here = onRoadSide(road, t.along, 1, -4);
+    Object.assign(model.hero, { x: here.x, z: here.z });
+    let worst = Infinity;
+    for (let s = 0; s < 60; s += FRAME) {
+      model.update(0, 0, FRAME);
+      if (s < 2) continue; // (a moment to step apart, set out on top of each other)
+      const list = model.travellers.list.filter((o) => Math.abs(o.x - model.hero.x) < 20 && Math.abs(o.z - model.hero.z) < 20);
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+        const [a, b] = [list[i], list[j]];
+        if (a.leader === b.id || b.leader === a.id) continue;
+        worst = Math.min(worst, Math.hypot(a.x - b.x, a.z - b.z));
+      }
+    }
+    expect(worst).toBeGreaterThan(0.28); // (two bodies side by side, never through each other)
   });
 });
 
@@ -354,5 +421,34 @@ describe('the travel cheats', () => {
     const model = fresh();
     model.travellers.list.splice(0);
     expect(nearestTraveller(model, model.hero, 'pedlar')).toBeNull();
+  });
+});
+
+describe('travellers from an older save', () => {
+  it('a save from before this way of keeping them (an older format, or none marked): not kept, they set out spread over the roads again', () => {
+    const model = fresh(2);
+    const old = model.travellers.save().on.map(([id, role, road, along, way, leader, level]) => [id, role, road, along, way, 8, leader, level]);
+    const again = fresh(2);
+    again.travellers.load({ on: old } as unknown as ReturnType<typeof model.travellers.save>);
+    const bunched = model.travellers.save().on.map(([id, role, road, , way, leader, level]) => [id, role, road, 1, way, leader, level]); // (all piled at a road's start, saved before the version: no `v`)
+    const third = fresh(2);
+    third.travellers.load({ on: bunched } as unknown as ReturnType<typeof model.travellers.save>);
+    expect(third.travellers.list.map((t) => [t.id, t.road, t.along])).toEqual(fresh(2).travellers.list.map((t) => [t.id, t.road, t.along]));
+    expect(again.travellers.list.map((t) => [t.id, t.road, t.along])).toEqual(fresh(2).travellers.list.map((t) => [t.id, t.road, t.along]));
+    expect(nearestTraveller(again, again.hero, 'pedlar')).not.toBeNull();
+  });
+
+  it('a partner that isn\'t a leading guard\'s is let go: on their own', () => {
+    const model = fresh(2);
+    const pedlar = model.travellers.list.find((t) => t.role === 'pedlar')!;
+    const on = model.travellers.save().on.map((e) => (e[0] === pedlar.id ? [...e.slice(0, 5), 3, e[6]] : e)) as ReturnType<typeof model.travellers.save>['on'];
+    const again = fresh(2);
+    again.travellers.load({ v: model.travellers.save().v, on });
+    expect(again.travellers.list.find((t) => t.id === pedlar.id)!.leader).toBeNull();
+  });
+
+  it('are spread over the roads: one or two parties a road, none piled up anywhere', () => {
+    const list = fresh(1).travellers.list;
+    for (const t of list) expect(list.filter((o) => Math.hypot(o.x - t.x, o.z - t.z) < 3).length).toBeLessThanOrEqual(6);
   });
 });
