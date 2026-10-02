@@ -31,4 +31,10 @@ export const JUNK_ITEMS = {
   frostTorc: { name: 'Frost-rimed torc', value: 30, droppedBy: { draugr: 2 } },
   runestone: { name: "Draugr's runestone", value: 20, droppedBy: { draugr: 3 } },
   oldSilver: { name: 'Old silver coin', value: 14, droppedBy: { draugr: 3 } },
+  // From the caves' beasts (vermin): what's left of them, good to the herbalist and the tanner.
+  spiderSilk: { name: 'Spider silk', value: 5, droppedBy: { vermin: 3 } },
+  venomGland: { name: 'Venom gland', value: 8, droppedBy: { vermin: 2 } },
+  chitinShard: { name: 'Chitin shard', value: 4, droppedBy: { vermin: 3 } },
+  batWing: { name: 'Bat wing', value: 2, droppedBy: { vermin: 2 } },
+  wormTooth: { name: 'Worm tooth', value: 6, droppedBy: { vermin: 2 } },
 } satisfies Record<string, LootEntry>;

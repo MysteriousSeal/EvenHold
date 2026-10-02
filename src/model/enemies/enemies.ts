@@ -299,7 +299,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
 export function bumpsEnemy(enemies: readonly Enemy[], from: { x: number; z: number }, x: number, z: number, r: number): boolean {
   return enemies.some((enemy) => {
     const reach = r + ENEMY_STATS[enemy.kind].radius;
-    if (enemy.state === 'dead' || Math.abs(enemy.x - x) >= reach || Math.abs(enemy.z - z) >= reach) return false;
+    if (enemy.state === 'dead' || enemy.buried || Math.abs(enemy.x - x) >= reach || Math.abs(enemy.z - z) >= reach) return false;
     return Math.hypot(enemy.x - x, enemy.z - z) < Math.hypot(enemy.x - from.x, enemy.z - from.z);
   });
 }

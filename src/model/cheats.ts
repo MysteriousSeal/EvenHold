@@ -122,29 +122,31 @@ export function spawnEnemyNear(model: GameModel, kind: EnemyKind): void {
   model.enemies.push(enemy);
 }
 
-// A draugr at the hero's own level, a step ahead of them: down in a crypt, one more of its foes (its breath and
-// cleave its own; not the crypt's to count); out in the world, a foe there (its axe or sword alone).
+// A draugr at the hero's own level, a step ahead of them: down in a dungeon, one more of its foes (in a crypt, its
+// breath and cleave its own; not the dungeon's to count); out in the world, a foe there (its axe or sword alone).
 export function spawnDraugr(model: GameModel): void {
   const { hero } = model;
-  if (!model.crypt) {
+  const below = model.dungeon;
+  if (!below) {
     spawnEnemyNear(model, 'draugr');
     const draugr = model.enemies[model.enemies.length - 1];
     Object.assign(draugr, makeEnemy(draugr.id, 'draugr', draugr.x, draugr.z, draugr.homeX, draugr.homeZ, hero.level), { y: draugr.y });
     return;
   }
   const ahead = { x: hero.x + Math.sin(hero.facing) * 1.5, z: hero.z + Math.cos(hero.facing) * 1.5 };
-  const at = model.crypt.free(ahead.x, ahead.z, 0.17) ? ahead : { x: hero.x, z: hero.z }; // (into the rock ahead: where they stand)
+  const at = below.free(ahead.x, ahead.z, 0.17) ? ahead : { x: hero.x, z: hero.z }; // (into the rock ahead: where they stand)
   const id = CRYPT_FOE_ID + SUMMONED + 900_000 + model.foes.length;
-  model.foes.push(model.crypt.standing({ ...makeEnemy(id, 'draugr', at.x, at.z, at.x, at.z, hero.level), state: 'chase' }));
+  model.foes.push(below.standing({ ...makeEnemy(id, 'draugr', at.x, at.z, at.x, at.z, hero.level), state: 'chase' }));
 }
 
-// Every crypt's guards back at their posts, none slain; the hero, if down in one, out at its stairs first.
+// Every dungeon's foes back at their posts (a crypt's guards, a cave's beasts), none slain; the hero, if down in one,
+// out at its way up first.
 export function resetCrypts(model: GameModel): void {
-  if (model.crypt && model.inside) {
+  if (model.dungeon && model.inside) {
     Object.assign(model.hero, { x: model.inside.room.door, z: model.inside.room.depth - 1 }); // (the foot of the stairs)
     model.useDoor();
   }
-  for (const slain of model.cryptsCleared.values()) for (const post of [...slain]) if (post !== AWARD_POST) slain.delete(post); // (the points their lords gave kept: once a crypt, ever)
+  for (const slain of model.cryptsCleared.values()) for (const post of [...slain]) if (post !== AWARD_POST) slain.delete(post); // (the points their bosses gave kept: once a dungeon, ever)
 }
 
 // Kills every living enemy within `radius` tiles (the world's, or a crypt's guards, down in one); returns how many.

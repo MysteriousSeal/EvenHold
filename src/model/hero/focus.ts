@@ -15,7 +15,7 @@ export interface Focusing {
 
 export function cycleFocus(at: Focusing, sees: (foe: Enemy) => boolean, back = false): void {
   const far = (e: Enemy) => Math.hypot(e.x - at.hero.x, e.z - at.hero.z);
-  const near = at.foes.filter((e) => e.state !== 'dead' && far(e) <= FOCUS_RANGE && sees(e)).sort((a, b) => far(a) - far(b) || a.id - b.id);
+  const near = at.foes.filter((e) => e.state !== 'dead' && !e.buried && far(e) <= FOCUS_RANGE && sees(e)).sort((a, b) => far(a) - far(b) || a.id - b.id);
   if (near.length === 0) return at.focus(null);
   const now = at.focused ? near.indexOf(at.focused) : -1;
   const next = now < 0 ? (back ? near.length - 1 : 0) : (now + (back ? -1 : 1) + near.length) % near.length;

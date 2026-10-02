@@ -20,10 +20,9 @@ import type { Told, ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
 import type { CryptInside } from './crypts';
 
-export const LORD_POST = 10_000; // the lord's place in the crypt's record of the slain (its guards' posts are below it)
-export const CHEST_POST = 10_001; // and his chest's, once opened
-export const AWARD_POST = 10_002; // and the point his fall gave the hero (once a crypt, ever: kept through a reset)
-export const SUMMONED = 20_000; // from here on: those he calls up (not the crypt's to count)
+// The crypt's record (any dungeon's: dungeons/dungeonRecord.ts): the lord's post is its boss's.
+export { AWARD_POST, CHEST_POST, SUMMONED, clearedShare } from '../dungeons/dungeonRecord';
+export { BOSS_POST as LORD_POST } from '../dungeons/dungeonRecord';
 export const RISES_AT = 0.8; // the share of the crypt cleared when he rises
 export const SLAM_TELL = 1.1; // seconds his slam's ring shows before it lands
 export const SLAM_AFTER = 0.5; // seconds after the slam lands he's still at it (the blow shown, and back)
@@ -40,13 +39,6 @@ export function lordName(cryptName: string): string {
   const one = (CRYPT_NAMES.orders as readonly string[]).includes(who);
   const name = one ? `the First of ${who}` : who; // (an order's: its first, laid there)
   return name.charAt(0).toUpperCase() + name.slice(1);
-}
-
-// How much of a crypt is cleared (0..1): its guards slain and its lord, of all of them.
-export function clearedShare(slain: ReadonlySet<number>, guards: number): number {
-  let count = slain.has(LORD_POST) ? 1 : 0;
-  for (const post of slain) if (post < LORD_POST) count++;
-  return Math.min(1, count / (guards + 1));
 }
 
 // Where he rises (and his chest stands): centred at the foot of his tomb, up on its dais; else the open floor nearest.

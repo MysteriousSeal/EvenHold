@@ -15,7 +15,7 @@ const FRONT = Math.cos((70 * Math.PI) / 180); // a blow reaches this far to eith
 // The foe a blow lands on, and how far off it is: the focused one whenever it's
 // in reach, else the nearest living one within reach and roughly in front.
 export function blowTarget(hero: Hero, enemies: readonly Enemy[], focus: Enemy | null): { target: Enemy; distance: number } | null {
-  const inReach = (enemy: Enemy, d: number) => enemy.state !== 'dead' && d <= ATTACK_REACH + ENEMY_STATS[enemy.kind].radius;
+  const inReach = (enemy: Enemy, d: number) => enemy.state !== 'dead' && !enemy.buried && d <= ATTACK_REACH + ENEMY_STATS[enemy.kind].radius;
   const off = (enemy: Enemy) => Math.hypot(enemy.x - hero.x, enemy.z - hero.z);
   if (focus && inReach(focus, off(focus))) return { target: focus, distance: off(focus) };
   const [fx, fz] = [Math.sin(hero.facing), Math.cos(hero.facing)];

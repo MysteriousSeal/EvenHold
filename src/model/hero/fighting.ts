@@ -9,12 +9,12 @@ import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
-import { coinsFound, dropFactor, healOnKill, makeChilled, xpGained } from './blessing';
+import { coinsFound, dropFactor, healOnKill, makeChilled, makeWebbed, xpGained } from './blessing';
 import { coinDrop } from './money';
 import { DROP_CHANCE, rollDrop } from '../loot/loot';
 import type { BagItem } from './bag';
 import { FIRST_MOB_ID, type QuestBook } from '../quests/questBook';
-import type { CryptHooks } from '../crypts/cryptFoes';
+import type { DungeonHooks } from '../dungeons/dungeonTypes';
 import { CHILL_FOR } from '../crypts/frostBreath';
 
 // Where the fight is: the game model, as the fights see it.
@@ -75,7 +75,7 @@ export function landBlow(fight: Fight): void {
 
 // What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking
 // the hero, some), a draugr's frost (a little harm, and chilled: slowed a while); what's told, and what they leave.
-export function cryptHooks(fight: Fight): CryptHooks {
+export function dungeonHooks(fight: Fight): DungeonHooks {
   return {
     strike: (enemy) => foeStrikes(fight, enemy),
     arrow: (arrow) => heroStruck(fight, arrow.damage, null),
@@ -87,6 +87,13 @@ export function cryptHooks(fight: Fight): CryptHooks {
       const met = heroStruck(fight, 1, draugr);
       if (met !== 'rolled' && met !== 'parried') chill(fight, CHILL_FOR); // (rolled through or parried: not chilled)
     },
+    web: (spider) => {
+      const met = heroStruck(fight, 1, spider);
+      if (met !== 'rolled' && met !== 'parried') {
+        makeWebbed(fight.hero, WEB_FOR); // (rolled through or parried: not caught)
+        fight.report({ kind: 'webbed' });
+      }
+    },
     report: (event) => fight.report(event),
     dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
     dropCoins: (amount, x, z) => fight.dropCoins(amount, x, z),
@@ -94,6 +101,7 @@ export function cryptHooks(fight: Fight): CryptHooks {
 }
 
 const GHOST_CHILL = 2.5; // seconds a ghost's touch chills the hero
+const WEB_FOR = 2.4; // seconds a spider's web clings
 
 // The hero chilled (slowed) for `seconds`, told (a draugr's frost, a ghost's touch).
 function chill(fight: Fight, seconds: number): void {

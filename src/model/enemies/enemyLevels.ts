@@ -45,5 +45,5 @@ export function difficulty(level: number, heroLevel: number): Difficulty {
   return gap <= -TRIVIAL ? 'trivial' : gap <= 0 ? 'even' : gap <= 2 ? 'tough' : gap <= 4 ? 'hard' : 'deadly';
 }
 
-// Whether a kind of foe is a boss (a crypt's lord): marked so wherever it's shown (a gold skull, BOSS).
-export const isBoss = (kind: EnemyKind): boolean => kind === 'cryptLord';
+// Whether a kind of foe is a boss (a crypt's lord, a cave's brood mother): marked so wherever it's shown (a gold skull, BOSS).
+export const isBoss = (kind: EnemyKind): boolean => kind === 'cryptLord' || kind === 'broodMother';

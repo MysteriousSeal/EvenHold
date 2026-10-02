@@ -69,7 +69,7 @@ export interface SaveData {
   lets?: Array<{ inn: number; until: number }>;
   travellers?: ReturnType<Travellers['save']>; // those on the roads: where each is, which way, their health; those to set out again // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
-  crypts?: Array<{ crypt: string; slain: number[] }>; // each crypt's guards slain for good (by its ruin's corner, by post)
+  crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
 }
 

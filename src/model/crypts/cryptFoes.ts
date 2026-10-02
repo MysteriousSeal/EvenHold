@@ -10,7 +10,7 @@
 
 import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
-import type { BagItem } from '../hero/bag';
+import type { DungeonHooks, DungeonRun } from '../dungeons/dungeonTypes';
 import { FROST_BREATH } from './frostBreath';
 import { CLEAVE, CLEAVE_KNOCK } from './cleave';
 import { ToldMoves, type Told } from '../enemies/toldMoves';
@@ -123,19 +123,11 @@ function tilesOf(x0: number, z0: number, x1: number, z1: number): string[] {
   return tiles;
 }
 
-// What the crypt's foes do to the game: their blows, arrows and slams on the hero, what's told, what they leave.
-export interface CryptHooks {
-  strike(enemy: Enemy): void; // a swordsman's (or the lord's) blow lands (reach is the model's to judge)
-  arrow(arrow: Arrow): void; // an arrow strikes the hero
-  blow(by: Enemy, damage: number, knock?: { dx: number; dz: number }): void; // a told move lands on the hero (knocking them so far, some)
-  frost(draugr: Enemy): void; // a draugr's frost breath catches the hero
-  report(event: GameEvent): void;
-  dropLoot(item: BagItem, x: number, z: number): void;
-  dropCoins(amount: number, x: number, z: number): void;
-}
+// What the crypt's foes do to the game: any dungeon's hooks (dungeons/dungeonTypes.ts).
+export type CryptHooks = DungeonHooks;
 
 // A crypt's guards while the hero's down there: run, shooting, slain; and its lord, risen (cryptLord.ts), and his chest.
-export class CryptFoes {
+export class CryptFoes implements DungeonRun {
   readonly foes: Enemy[];
   readonly arrows: Arrow[] = [];
   readonly director: EnemyDirector;

@@ -7,6 +7,7 @@
 // house stands, so a village's folk are the same for everyone on that seed
 // (and different on another). For now they wear nothing.
 
+import { goesUnder } from '../dungeons/dungeonTypes';
 import { markHerbalistHome } from '../herbalist/herbalistHomes';
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit } from '../../util/random';
@@ -179,7 +180,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     };
   };
   const inns = entrances.filter((e) => e.type === 'inn');
-  const doors = entrances.filter((e) => e.type !== 'crypt').length; // (the buildings': staff ids count on from them, crypts or not)
+  const doors = entrances.filter((e) => !goesUnder(e)).length; // (the buildings': staff ids count on from them, dungeons or not)
   const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
   // The herbalists' houses: in each village, the house nearest its middle, theirs alone (no villager lives there).
   const houses = entrances.filter((e) => e.type === 'house');

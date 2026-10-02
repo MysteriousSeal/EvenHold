@@ -2,12 +2,13 @@
 // down on a chair, an armchair or a bar stool, or lying down in bed (and
 // getting back up).
 
+import { goesUnder } from '../dungeons/dungeonTypes';
+import { dungeonRoom } from '../dungeons/dungeons';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import type { Hero } from '../types';
 import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
 import { SIT_RANGE, bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
-import { cryptInside } from '../crypts/crypts';
 
 
 // Where the hero is while indoors: the building's door and its room (the
@@ -32,7 +33,7 @@ const layouts = new WeakMap<Entrance, { room: Room; furniture: Furniture[] }>();
 export function layoutOf(seed: number, entrance: Entrance): { room: Room; furniture: Furniture[] } {
   let layout = layouts.get(entrance);
   if (!layout) {
-    if (entrance.type === 'crypt') layout = { room: cryptInside(seed, entrance).room, furniture: [] }; // (its tombs are its own: crypts/)
+    if (goesUnder(entrance)) layout = { room: dungeonRoom(seed, entrance), furniture: [] }; // (a dungeon's: its tombs, its rocks, its own: crypts/)
     else {
       const room = roomFor(seed, entrance);
       layout = { room, furniture: furnish(seed, entrance, room) };
@@ -121,7 +122,7 @@ export function atWayOut(inside: Pick<Inside, 'exitAt'>, hero: { x: number; z: n
 export function doorInReach(inside: Inside | null, entrances: readonly Entrance[], hero: Hero): Entrance | null {
   if (inside) {
     if (atWayOut(inside, hero)) return inside.entrance; // (a crypt's way out, at the far end, once its lord's slain)
-    const wide = inside.entrance.type === 'crypt' ? 1 : 0; // (a crypt's stairs up two tiles wide: door and door + 1)
+    const wide = goesUnder(inside.entrance) ? 1 : 0; // (a dungeon's way up two tiles wide: door and door + 1)
     const x = hero.x - inside.room.door;
     return !inside.below && x > -0.6 && x < 0.6 + wide && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;
   }
@@ -133,7 +134,7 @@ export function doorInReach(inside: Inside | null, entrances: readonly Entrance[
 // (two tiles wide: before either of them, the way down in reach).
 function reachOf(e: Entrance, hero: Hero): number {
   const [dx, dz] = [hero.x - e.x, hero.z - e.z];
-  if (e.type !== 'crypt') return Math.hypot(dx, dz);
+  if (!goesUnder(e)) return Math.hypot(dx, dz);
   const [ax, az] = [Math.abs(e.outZ), Math.abs(e.outX)]; // across the way down
   const along = Math.max(-0.6, Math.min(0.6, dx * ax + dz * az));
   return Math.hypot(dx - along * ax, dz - along * az);

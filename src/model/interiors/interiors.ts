@@ -13,7 +13,7 @@ import { hashCell, mulberry32 } from '../../util/random';
 import type { Building, House } from '../types';
 
 export type BuildingType = 'house' | 'inn' | 'smithy';
-export type EntranceType = BuildingType | 'crypt'; // (a crypt's way in: stairs down in a ruin, crypts/crypts.ts)
+export type EntranceType = BuildingType | 'crypt' | 'cave'; // (a dungeon's way in, dungeons/: a crypt's stairs down in a ruin, crypts/crypts.ts; a cave's mouth in a hillside, caves/caves.ts)
 
 export interface Entrance {
   type: EntranceType;
@@ -24,7 +24,7 @@ export interface Entrance {
 }
 
 export type FloorStyle = 'planks' | 'boards' | 'flagstones' | 'tavern' | 'earth'; // (earth: a herbalist's, strewn with rushes)
-export type WallStyle = 'plaster' | 'timber' | 'stone' | 'daub'; // (daub: a herbalist's, over fieldstone, as their hut outside)
+export type WallStyle = 'plaster' | 'timber' | 'stone' | 'daub' | 'rock'; // (daub: a herbalist's, over fieldstone, as their hut outside; rock: a cave's, caves/caves.ts)
 
 export interface Room {
   width: number; // floor tiles along x

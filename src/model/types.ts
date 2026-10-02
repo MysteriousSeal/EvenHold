@@ -46,7 +46,7 @@ export interface Hero extends Humanoid {
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins)
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.
@@ -59,11 +59,16 @@ export type GameEvent =
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
-  | { kind: 'cleared'; name: string; point?: boolean } // a crypt's last guard slain (its lord); `point`: a point to spend given for it
+  | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' } // a dungeon's last foe slain (its boss); `point`: a point to spend given for it; `place`: a cave's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
+  | { kind: 'stirs'; name: string } // a cave's brood mother, stirring on her silk (the hero come into her nest)
+  | { kind: 'brood' } // her brood, hatching from the egg sacs
+  | { kind: 'torn' } // the silk walling her nest off, torn (most of the cave cleared)
+  | { kind: 'walled'; share: number } // the hero come up to that silk while it holds (how much of the cave's cleared)
   | { kind: 'locked' } // a door tried, locked (the inn's rooms upstairs)
   | { kind: 'chilled' } // the hero caught in a draugr's frost breath
+  | { kind: 'webbed' } // the hero caught in a cave spider's web
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
@@ -97,7 +102,8 @@ export interface Enemy {
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
   name?: string; // its own name, if it has one (a crypt's lord), over its kind's
   windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath or cleave), else null
-  told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | null; // which
+  told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | 'web' | 'lunge' | 'erupt' | 'volley' | 'brood' | null; // which
+  buried?: boolean; // underground (a cave worm, burrowing: caves/caveFoes.ts): not to be seen, struck or bumped into
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
 }
 

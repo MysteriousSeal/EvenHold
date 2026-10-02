@@ -47,10 +47,13 @@ import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
 import { addRuinObstacles, type Ruin } from './ruins/ruins';
 import { checkOut } from './inn/roomLetting';
-import { addCryptObstacles, cryptBlocks, cryptInside, placeCrypts, registerCrypts, type Crypt, type CryptInside } from './crypts/crypts';
-import { CryptFoes, cryptKey, guardCount } from './crypts/cryptFoes';
-import { clearedShare } from './crypts/cryptLord';
-import { cryptHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
+import { addCryptObstacles, placeCrypts, registerCrypts, type Crypt } from './crypts/crypts';
+import { CryptFoes } from './crypts/cryptFoes';
+import { addCaveObstacles, placeCaves, registerCaves, type Cave } from './caves/caves';
+import { CaveRun } from './caves/caveFoes';
+import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/dungeons';
+import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
+import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { cycleFocus as turnFocus } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
@@ -76,6 +79,7 @@ export class GameModel {
   readonly travellers: Travellers;
   readonly scenery: Scenery[]; // rocks and landmarks out in the wilds (scenery/scenery.ts) // on the roads between the villages (travellers/travellers.ts)
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
+  readonly caves: Cave[]; // in the hills (caves/caves.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
@@ -97,8 +101,8 @@ export class GameModel {
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private focusedId: number | null = null;
-  private below: { key: string; run: CryptFoes; ground: Ground } | null = null; // down in a crypt: its guards, and its floor's loot
-  readonly cryptsCleared = new Map<string, Set<number>>(); // each crypt's guards slain for good, by post (saved)
+  private below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot
+  readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
   private readonly obstacles: Obstacles;
   private readonly director: EnemyDirector;
@@ -138,6 +142,9 @@ export class GameModel {
     this.crypts = placeCrypts(this); // a stairway down in each ruin (its tile blocked: down with E)
     addCryptObstacles(this.obstacles, this.crypts);
     registerCrypts(this.crypts);
+    this.caves = placeCaves(this); // a mouth in a hillside in each stretch of the wilds that has one (its rock blocked: in with E)
+    addCaveObstacles(this.obstacles, this.caves);
+    registerCaves(this.caves);
 
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
@@ -152,7 +159,7 @@ export class GameModel {
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
-    this.entrances.push(...this.crypts.map((c) => c.entrance)); // (the crypts' ways in, after the buildings' doors: they keep their places)
+    this.entrances.push(...this.crypts.map((c) => c.entrance), ...this.caves.map((c) => c.entrance)); // (the dungeons' ways in, after the buildings' doors: they keep their places)
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
@@ -297,22 +304,21 @@ export class GameModel {
   dropLoot = (item: BagItem, x: number, z: number): void => this.groundHere.drop(item, x, z);
   dropCoins = (amount: number, x: number, z: number): void => this.groundHere.dropCoins(amount, x, z);
 
-  // The foes about: a crypt's guards down there (crypts/cryptFoes.ts), else the world's; and the ground's loot here.
+  // The foes about: a dungeon's down there (dungeons/), else the world's; and the ground's loot here.
   get foes(): Enemy[] { return this.below?.run.foes ?? this.enemies; }
   get groundHere(): Ground { return this.below?.ground ?? this.ground; }
-  // A crypt's guards, its arrows in flight (while the hero's down in it), or null.
-  get crypt(): CryptFoes | null { return this.below?.run ?? null; }
+  // The dungeon the hero's down in, its foes run (dungeons/dungeonTypes.ts), or null; a crypt's (its arrows, its lord), a cave's (its webs, its brood mother).
+  get dungeon(): DungeonRun | null { return this.below?.run ?? null; }
+  get crypt(): CryptFoes | null { return this.below?.run instanceof CryptFoes ? this.below.run : null; }
+  get cave(): CaveRun | null { return this.below?.run instanceof CaveRun ? this.below.run : null; }
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
   report = (event: GameEvent): void => void this.events.push(event);
-  slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (cryptFoes.ts: what's told of it)
-  // How much of a crypt is cleared (0..1): its guards slain and its lord, of all of them (by its way in).
-  clearedShare = (entrance: Entrance): number => {
-    const crypt = cryptInside(this.seed, entrance);
-    return clearedShare(this.cleared(cryptKey(crypt.crypt)), guardCount(this.seed, crypt));
-  };
-  // A crypt's guards slain for good, by its key (its ruin's corner), by post.
+  slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
+  // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
+  clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);
+  // A dungeon's foes slain for good, by its key (a crypt's ruin's corner, a cave's mouth), by post.
   cleared = (key: string): Set<number> => this.cryptsCleared.get(key) ?? this.cryptsCleared.set(key, new Set()).get(key)!;
 
   // The loot nearest the hero within reach to pick up (outdoors), or null.
@@ -369,22 +375,15 @@ export class GameModel {
   enterRoom(entrance: Entrance): void {
     this.yard = null;
     const { room, furniture } = layoutOf(this.seed, entrance);
-    const crypt = entrance.type === 'crypt' ? cryptInside(this.seed, entrance) : null;
-    this.inside = { entrance, room, furniture, seated: null, ...(crypt && { walls: (x: number, z: number, r: number) => cryptBlocks(crypt, x, z, r), exitAt: () => this.below?.run.exitOpen ?? null }) };
-    if (crypt) this.events.push({ kind: 'arrive', name: crypt.crypt.name, level: crypt.crypt.level }); // (its name and level, as the hero comes down)
-    this.below = crypt && this.goDown(crypt);
+    const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
+    this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonBlocks(this.seed, entrance), exitAt: () => this.below?.run.exitOpen ?? null }) };
+    if (place) this.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
+    this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: new Ground(() => 0) };
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusedId = null;
     this.hop = null;
     Object.assign(this.hero, { x: room.door, z: room.depth - 1, y: 0, facing: Math.PI }); // into the room (-Z)
-  }
-
-  // Down into a crypt: its guards not yet slain at their posts, its own floor for what they leave.
-  private goDown(crypt: CryptInside): NonNullable<GameModel['below']> {
-    const key = cryptKey(crypt.crypt);
-    const run = new CryptFoes(this.seed, crypt, this.cleared(key), this.hero, cryptHooks(this));
-    return { key, run, ground: new Ground(() => 0) };
   }
 
   // Indoors: the hero walks the room's floor (getting up first if seated);
@@ -479,7 +478,7 @@ export class GameModel {
   // Focuses a living enemy by id; null (or a dead one) clears the focus.
   focus(id: number | null): void {
     const enemy = this.foes.find((e) => e.id === id);
-    this.focusedId = enemy && enemy.state !== 'dead' ? enemy.id : null;
+    this.focusedId = enemy && enemy.state !== 'dead' && !enemy.buried ? enemy.id : null;
   }
 
   // Turns the focus to the next foe in sight, nearest first (Tab), or back (Shift+Tab: hero/focus.ts).
@@ -489,7 +488,7 @@ export class GameModel {
   // it), or once it's gone or far off.
   private keepFocus(): void {
     const enemy = this.focused;
-    if (!enemy || enemy.state === 'dead' || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
+    if (!enemy || enemy.state === 'dead' || enemy.buried || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
   }
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).

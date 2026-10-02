@@ -212,11 +212,5 @@ function openIslands(floor: Uint8Array, width: number, depth: number): void {
   for (let x = 0; x < width; x++) for (let z = 0; z < depth; z++) if (rock(x, z) && !joined.has(cellKey(x, z))) floor[x * depth + z] = 1;
 }
 
-// Whether (x, z) (a tile) is floor.
-export const isFloor = (plan: CryptPlan, x: number, z: number): boolean => x >= 0 && z >= 0 && x < plan.width && z < plan.depth && plan.floor[x * plan.depth + z] === 1;
-
-// Whether the rock at (x, z) is always in full view: no floor behind it (toward -x or -z, the way
-// the camera looks), so it never stands between the camera and anyone. The rest fades when the hero's
-// behind it (the view's). What hangs on the rock (sconces, niches, cobwebs) goes only where it's in full view.
-export const inFullView = (plan: CryptPlan, x: number, z: number): boolean =>
-  !isFloor(plan, x, z) && !isFloor(plan, x - 1, z) && !isFloor(plan, x, z - 1) && !isFloor(plan, x - 1, z - 1);
+// Its floor, and its rock always in view: any dungeon's (dungeons/floorPlan.ts).
+export { inFullView, isFloor } from '../dungeons/floorPlan';
