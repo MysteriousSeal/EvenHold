@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-// The main menu (controller/mainMenu.ts), the best of Elden Ring,
-// Minecraft, WoW and Diablo, and what it lists (storage/saveGame.ts
-// savedWorlds): the title, a splash and Press any key; then every hero at
-// once, the last played chosen and drawn, Enter World; one let go (asked
-// twice); a new world from a seed or a random one; the controls; Escape back.
+// The main menu (controller/mainMenu.ts), as WoW's and Diablo's character select,
+// and what it lists (storage/saveGame.ts
+// savedWorlds), without WebGL (no world, no opening: view/title's, in
+// mainMenuWorld.test.ts): the title, a saying under it, every hero at once, the last
+// played chosen and drawn, Enter World; one let go (asked twice); a new
+// world from a seed or a random one; the controls; Escape back.
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { buildTitleCamp } from '../src/view/title/titleCamp';
@@ -58,26 +59,25 @@ describe('the main menu', () => {
   const cards = () => Array.from(document.querySelectorAll<HTMLButtonElement>('.title-card'));
   const shown = () => document.querySelector('.title-hero-name')?.textContent;
 
-  it("opens on the title (Elden Ring's): a splash by it, Press any key; then every hero at once (WoW's), the last played chosen and drawn", () => {
+  it('opens on every hero at once (no Press any key), a saying under the title, the last played chosen and drawn', () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     keep(TEST_SEEDS[1], 'Bertrade', 3, 200);
-    void showMainMenu(hooks, 'Mind your breath!');
-    expect(document.querySelector('.title-splash')?.textContent).toBe('Mind your breath!');
-    expect(document.querySelector('.title-press')?.textContent).toBe('Press any key');
-    press('KeyA');
+    void showMainMenu(hooks, 'Mind the bouncer.');
+    expect(document.querySelector('.title-saying')?.textContent).toBe('Mind the bouncer.');
+    expect(document.querySelector('.title-press')).toBeNull();
+    expect(document.getElementById('loading')!.classList.contains('flat')).toBe(true); // (the flat sun and hills)
     expect(cards().map((c) => c.querySelector('b')?.textContent)).toEqual(['Bertrade', 'Aleyn']);
     expect(cards()[0].classList.contains('chosen')).toBe(true);
     expect(shown()).toBe('Bertrade');
     expect(document.querySelector('.title-stage canvas')).not.toBeNull(); // (in their look and gear)
     press('Escape');
-    expect(document.querySelector('.title-press')).not.toBeNull(); // (back to the title)
+    expect(shown()).toBe('Bertrade'); // (nowhere further back)
   });
 
-  it('a click wakes it too; another hero by the arrows or a click; Enter (or Enter World) plays them', async () => {
+  it('another hero by the arrows or a click; Enter (or Enter World) plays them', async () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     keep(TEST_SEEDS[1], 'Bertrade', 3, 200);
     let chosen = showMainMenu(hooks);
-    document.getElementById('loading')!.click();
     press('ArrowDown');
     expect(shown()).toBe('Aleyn');
     cards()[0].click();
@@ -85,11 +85,10 @@ describe('the main menu', () => {
     press('Enter');
     expect(await chosen).toBe(TEST_SEEDS[1]);
     expect(document.querySelector('.title-screen')).toBeNull();
-    expect(document.querySelector('.title-splash')).toBeNull();
+    expect(document.querySelector('.title-saying')).toBeNull();
     expect(document.getElementById('loading')!.classList.contains('title')).toBe(false);
     document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1></div>';
     chosen = showMainMenu(hooks);
-    press('Space');
     press('ArrowUp');
     click('Enter World');
     expect(await chosen).toBe(TEST_SEEDS[0]);
@@ -99,7 +98,6 @@ describe('the main menu', () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     keep(TEST_SEEDS[1], 'Bertrade', 3, 200);
     const chosen = showMainMenu(hooks);
-    press('Space');
     click('Delete hero');
     expect(savedWorlds()).toHaveLength(2);
     click('Forget Bertrade?');
@@ -108,9 +106,8 @@ describe('the main menu', () => {
     expect(await chosen).toBe(TEST_SEEDS[0]);
   });
 
-  it("with nothing saved: an empty stage; New World (Minecraft's), from a seed or a random one", async () => {
+  it("with nothing saved: an empty stage; New World, from a seed or a random one", async () => {
     let chosen = showMainMenu(hooks);
-    press('Space');
     expect(cards()).toHaveLength(0);
     expect(document.querySelector('.title-enter')?.textContent).toBe('New World');
     click('New World');
@@ -120,7 +117,6 @@ describe('the main menu', () => {
     expect(await chosen).toBe(seedFrom('dragon'));
     document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1></div>';
     chosen = showMainMenu(hooks);
-    press('Space');
     click('New World');
     document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true })); // (blank: a random world)
     expect(Number.isInteger(await chosen)).toBe(true);
@@ -129,7 +125,6 @@ describe('the main menu', () => {
   it('tells the controls; Back to the heroes', () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     void showMainMenu(hooks);
-    press('Space');
     click('Controls');
     expect(document.querySelector('.title-controls')?.textContent).toContain('Roll');
     click('Back');
@@ -149,5 +144,22 @@ describe("the main menu's world", () => {
 
   it('without WebGL, none: the menu draws the hero flat', () => {
     expect(createTitleScene(document.getElementById('loading')!)).toBeNull();
+  });
+});
+
+describe("the main menu's valley", () => {
+  it('level with the camp at its edge, rising away; a lake in a hollow; built whole, quickly', async () => {
+    const { valleyHeight, buildTitleValley } = await import('../src/view/title/titleValley');
+    expect(valleyHeight(0, 5.5)).toBe(0);
+    expect(valleyHeight(-9.5, -3)).toBe(0);
+    expect(valleyHeight(-40, -40)).toBeGreaterThan(3);
+    expect(valleyHeight(0, -95)).toBeGreaterThanOrEqual(15); // (the far peaks, snowy)
+    expect(valleyHeight(19, -26)).toBe(0); // (the lake)
+    const scene = new THREE.Scene();
+    const began = performance.now();
+    buildTitleValley(scene);
+    expect(performance.now() - began).toBeLessThan(3000);
+    const forests = scene.children.filter((o): o is THREE.InstancedMesh => o instanceof THREE.InstancedMesh);
+    expect(forests.reduce((n, f) => n + f.count, 0)).toBeGreaterThan(500);
   });
 });
