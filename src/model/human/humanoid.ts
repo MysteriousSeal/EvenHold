@@ -7,8 +7,8 @@
 import { hashUnit } from '../../util/random';
 import type { Equipment } from './equipment';
 
-export const SKIN_TONE_COUNT = 4;
-export const HAIR_COLOR_COUNT = 5;
+export const SKIN_TONE_COUNT = 8; // (the last four added after: pale, dark, olive, bronze; saves keep their numbers)
+export const HAIR_COLOR_COUNT = 8; // (the last three added after: platinum, auburn, white; saves keep their numbers)
 export const DYE_COUNT = 6; // what their underwear's dyed (bodyVoxels.ts DYES)
 export const HAIR_STYLES = ['short', 'long', 'cropped', 'bald', 'braid', 'bun', 'ponytail', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'bob', 'topknot'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];

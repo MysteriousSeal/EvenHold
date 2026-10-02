@@ -21,6 +21,12 @@ export interface LookTrait {
 }
 
 const upTo = (count: number) => Array.from({ length: count }, (_, i) => i);
+// Skin tones palest to darkest (their numbers, kept for saves, aren't in that order); any added later, after.
+const SKIN_ORDER = [4, 0, 1, 6, 2, 7, 3, 5];
+// Hair colours light to dark, then grey and white (their numbers, kept for saves, aren't in that order).
+const HAIR_ORDER = [5, 2, 3, 6, 0, 1, 4, 7];
+const ordered = (order: number[], count: number) => [...order.filter((i) => i < count), ...upTo(count).filter((i) => !order.includes(i))];
+const skinTones = () => ordered(SKIN_ORDER, SKIN_TONE_COUNT);
 const named = (names: readonly string[], fallback: string) => (value: unknown) => names[value as number] ?? `${fallback} ${(value as number) + 1}`;
 // 'twinBraids' → 'Twin braids'
 const spaced = (value: unknown) => {
@@ -30,9 +36,9 @@ const spaced = (value: unknown) => {
 
 export const LOOK_TRAITS: readonly LookTrait[] = [
   { key: 'build', label: 'Body', kind: 'pick', values: () => ['male', 'female'], name: (v) => (v === 'female' ? 'Woman' : 'Man') },
-  { key: 'skin', label: 'Skin', kind: 'swatch', values: () => upTo(SKIN_TONE_COUNT), name: named(['Fair', 'Light', 'Tanned', 'Deep'], 'Tone') },
+  { key: 'skin', label: 'Skin', kind: 'swatch', values: skinTones, name: named(['Fair', 'Light', 'Tanned', 'Deep', 'Pale', 'Dark', 'Olive', 'Bronze'], 'Tone') },
   { key: 'hairStyle', label: 'Hair', kind: 'cycle', values: (look) => STYLES_OF[look.build], name: spaced },
-  { key: 'hair', label: 'Hair colour', kind: 'swatch', values: () => upTo(HAIR_COLOR_COUNT), name: named(['Chestnut', 'Black', 'Fair', 'Red', 'Grey'], 'Colour') },
+  { key: 'hair', label: 'Hair colour', kind: 'swatch', values: () => ordered(HAIR_ORDER, HAIR_COLOR_COUNT), name: named(['Chestnut', 'Black', 'Fair', 'Red', 'Grey', 'Platinum', 'Auburn', 'White'], 'Colour') },
   { key: 'beard', label: 'Beard', kind: 'toggle', values: () => [false, true], name: (v) => (v ? 'Bearded' : 'Clean-shaven'), shown: (look) => look.build === 'male' },
   { key: 'dye', label: 'Clothes', kind: 'swatch', values: () => upTo(DYE_COUNT), name: named(['Madder red', 'Woad blue', 'Weld green', 'Walnut', 'Charcoal', 'Turquoise'], 'Dye') },
 ];
