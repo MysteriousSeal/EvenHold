@@ -1,13 +1,13 @@
 // What the bots' playtest (tests/bots/) found wrong in the game, kept fixed:
 // a spawn on an islet, inn corners walled off by chairs, the server sent
-// onto a table, a villager and the hero holding each other up, quest spots
+// onto a table (botFindingsInns.test.ts: run apart, being long), a villager and the hero holding each other up, quest spots
 // out of reach, and foes led off across the map.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_LEASH, HERO_RADIUS, WATER_LEVEL } from '../src/model/constants';
 import { generateLakeMap } from '../src/model/worldgen/lakes';
 import { layoutOf } from '../src/model/interiors/indoors';
-import { bumpsFurniture, type Furniture } from '../src/model/interiors/furniture';
+import type { Furniture } from '../src/model/interiors/furniture';
 import type { Room } from '../src/model/interiors/interiors';
 import { questAt } from '../src/model/quests/quests';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
@@ -94,19 +94,6 @@ describe('inns', () => {
       expect(byStairs, `${name}: the stairs`).toBe(true);
     }
   });
-
-  it('have their staff and patrons never walk into the furniture, the hero looking on', () => {
-    for (const { name, model, entrance } of inns.filter((i) => i.name.includes('512'))) {
-      model.teleport(entrance.x, entrance.z);
-      expect(model.useDoor()).toBe(true);
-      const { furniture } = layoutOf(model.seed, entrance);
-      for (let t = 0; t < 90; t += FRAME * 4) {
-        model.update(0, 0, FRAME * 4);
-        for (const n of model.npcs) if (n.where === entrance && !n.seat) expect(bumpsFurniture(furniture, n.x, n.z, 0.05), `${name}: ${n.role} ${n.name} at ${n.x.toFixed(2)},${n.z.toFixed(2)}`).toBe(false);
-      }
-      model.useDoor();
-    }
-  });
 });
 
 // A villager out of doors, by the hero, on open ground (clear two tiles east).
@@ -171,8 +158,10 @@ describe('villagers in the way', () => {
 describe('quests', () => {
   it('send the hero only where they can walk from the village (seeds where some were cut off)', () => {
     for (const { name, model } of worlds([24, 28])) {
+      const floods: Uint8Array[] = []; // (one for each stretch of land: a village on one already flooded, reached the same)
       for (const [b, village] of model.villages.entries()) {
-        const seen = walkableFrom(model, ...openBy(model, village.x, village.z));
+        const [sx, sz] = openBy(model, village.x, village.z);
+        const seen = floods.find((f) => f[sx * model.size.depth + sz]) ?? (floods.push(walkableFrom(model, sx, sz)), floods[floods.length - 1]);
         for (let n = 0; n < 6; n++) {
           const quest = questAt(model, b, n);
           expect(seen[quest.x * model.size.depth + quest.z], `${name}: quest ${quest.key} at ${quest.x},${quest.z}`).toBe(1);
