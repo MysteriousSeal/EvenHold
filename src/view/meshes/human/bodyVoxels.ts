@@ -278,6 +278,22 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
   }
   if (style === 'bald') {
     fillBox(grid, 1, L, 1, L - 1, L, L - 1, (x, _y, z) => ((x + z) % 4 === 0 ? C.skinLight : C.skin)); // a shine on the crown
+  } else if (style === 'warriorTail') {
+    // The sides shaved to a stubble; a strip of hair down the middle, swept back over the crown, tied into a
+    // short tail at the back (buildHairPiece).
+    for (const x of [0, L]) fillBox(grid, x, 7, 0, x, L, 7, (_x, y, z) => ((y + z) % 3 === 0 ? C.hairDark : C.skinShade));
+    fillBox(grid, 1, L, 0, L - 1, L, L, (x) => (x < 3 || x > L - 3 ? ((x + 1) % 2 ? C.hairDark : C.skinShade) : C.skin)); // stubble, then the strip
+    fillBox(grid, 3, L, 0, L - 3, L, L, (x, _y, z) => (x === M ? (z % 3 === 0 ? C.hairLight : C.hair) : z % 2 ? C.hair : C.hairDark)); // swept back
+    fillBox(grid, 3, 6, 0, L - 3, L - 1, 0, (x, y) => strands(x, y)); // down the back of the head, to the tie
+    fillBox(grid, 3, L - 1, L, L - 3, L - 1, L, (x) => (x === M ? C.hairLight : C.hair)); // its front, pushed up off the brow
+  } else if (style === 'shaggy') {
+    // An untamed mop to the shoulders: ragged ends at the back and sides (some locks hanging lower), a ragged
+    // fringe across the brow, a lock or two falling over it (clear of the eyes and brows).
+    fillBox(grid, 0, L, 0, L, L, L, (x, _y, z) => strands(x, z));
+    for (let x = 0; x <= L; x++) fillBox(grid, x, x % 3 === 0 ? 0 : x % 3 === 1 ? 1 : 2, 0, x, L - 1, 1, (_x, y, z) => strands(x + z, y));
+    for (const x of [0, L]) for (let z = 0; z <= 7; z++) fillBox(grid, x, z % 2 ? 2 : 3, z, x, L - 1, z, (_x, y) => strands(z, y));
+    fillBox(grid, 1, 9, L, L - 1, 9, L, (x) => (x % 3 === 1 ? C.hairLight : x % 2 ? C.hairDark : C.hair));
+    for (const x of [3, 6, 7]) setColor(grid, x, 8, L, x === 6 ? C.hairDark : C.hair); // locks over the brow
   } else {
     fillBox(grid, 0, L, 0, L, L, L, (x, _y, z) => strands(x, z)); // the crown
     if (style === 'cropped') {
@@ -337,14 +353,14 @@ export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'ha
 }
 
 // Hair gathered up past the head (a bun, a ponytail, braids, pigtails, a
-// crown braid, loose waves, a topknot), as its own piece on the head's
+// crown braid, loose waves, a topknot, a warrior's tail), as its own piece on the head's
 // joint, left off under anything worn on the head; or null for styles that
 // stay within it. Its grid spans 2 either side of the head, from 9 below it
 // to 5 over, and from 4 behind it to 1 in front; `pivot` is the head's
 // joint in it.
 export const HAIR_PIECE_GRID: [number, number, number] = [15, 25, 16];
 export const HAIR_PIECE_PIVOT: [number, number, number] = [7.5, 9, 9.5];
-const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot'] as const;
+const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot', 'warriorTail'] as const;
 export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
   if (!(GATHERED as readonly string[]).includes(style)) return null;
   const grid = createGrid(HAIR_PIECE_GRID);
@@ -408,6 +424,11 @@ export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
         at(x, 7, 3, C.cord);
         for (let y = 7; y >= 1; y--) for (const z of [2, 3]) at(x < 0 ? -2 : 12, y, z, strand(y + z));
       }
+      break;
+    case 'warriorTail':
+      // The strip of hair tied at the back of the head, a short thick tail hanging from the tie.
+      for (const x of [4, 5, 6]) at(x, 7, -1, C.cord);
+      for (let y = 6; y >= 1; y--) for (let x = 4; x <= 6; x++) if (y > 2 || x === 5) at(x, y, -2, strand(y + x));
       break;
     case 'topknot':
       // Pulled up into a knot on top of the crown.

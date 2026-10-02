@@ -175,13 +175,13 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
     camera.position.x += Math.sin(drift * 0.12) * 0.35;
     camera.position.y += back * 0.35 * k;
     camera.position.z += back * k + Math.sin(drift * 0.08) * 0.15;
-    // Close up on a hero being made (eased there and back); their turn, eased home when not held.
+    // Close up on a hero being made (eased there and back); their turn, only by a drag.
     zoom += ((creating ? 1 : 0) - zoom) * (1 - Math.exp(-dt * 3.5));
     const z = smoother(THREE.MathUtils.clamp(zoom, 0, 1));
     camera.position.lerp(CLOSE.at.clone().setZ(CLOSE.at.z + back * 0.6), z);
     look.lerp(CLOSE.look, z);
     camera.lookAt(look);
-    if (dragging === null) spin += ((creating ? Math.sin(t * 0.4) * 0.25 : 0) - spin) * (1 - Math.exp(-dt * (creating ? 0.8 : 4)));
+    if (dragging === null && !creating) spin += (0 - spin) * (1 - Math.exp(-dt * 4)); // (left as they're turned while being made; eased home after)
     fog.near = THREE.MathUtils.lerp(FOG.from[0], FOG.to[0], k);
     fog.far = THREE.MathUtils.lerp(FOG.from[1], FOG.to[1], k);
     sky.update(t, camera);
