@@ -25,7 +25,7 @@ export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
   const backdrop = el('div', modal ? 'menu-backdrop' : `menu-backdrop modeless place-${options.place ?? 'bottom-right'}`);
   backdrop.hidden = true;
-  const menu = el('div', 'menu');
+  const menu = el('div', options.wide ? 'menu wide' : 'menu');
   menu.setAttribute('role', 'dialog');
   menu.setAttribute('aria-label', options.title);
   const header = el('div', 'menu-header');
