@@ -36,6 +36,9 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   gear off your hands.
 - **Quests.** The notice board in every village square has work for those
   who'll take it.
+- **The herbalist.** In every village, a green-hooded herbalist keeps shop
+  at home: health and energy potions to buy, and they'll take your raw
+  ingredients.
 - **Wells.** Toss in a silver coin and you may walk away blessed.
 
 <!-- More shots: the inn, a crypt, the ruins in the mist.
@@ -68,7 +71,8 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 ## Staying alive
 
 - **You don't heal on your own.** Food gives health back, drink gives energy
-  back. Carry some.
+  back, slowly, sat down. Carry some. Potions work at once, mid-fight, but
+  only one every 30 seconds.
 - **Energy runs down through the day.** Below 25 you'll slow to a trudge.
   A night's sleep in a rented room puts it all right.
 - **Falling has a price.** You'll come round at the last inn you visited,
