@@ -26,7 +26,8 @@ import { createGrid, setColor } from '../meshes/voxel/voxelShapes';
 import { ImpactView } from '../crypt/impactView';
 import { C, CAVE_VOXEL as V, TILE } from './cavePalette';
 import { caveGeometry } from './caveView';
-import { HOARD, crackLight, crackRubble, hoard, silkWall } from './caveWaysVoxels';
+import { HOARD, crackLight, crackRubble, hoard } from './caveWaysVoxels';
+import { WEB_DEEP, webCurtain } from './webVoxels';
 import { SUN_GRID, SUN_PALETTE, sunPool } from './sunPoolVoxels';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 
@@ -55,7 +56,7 @@ export class CaveLife {
   private readonly mote = new THREE.BoxGeometry(V, V, V); // (a voxel of the floor's: a pixel of light)
   private readonly matrix = new THREE.Matrix4();
   private hoard: { mesh: THREE.Mesh; torn: boolean } | null = null;
-  private seal: { walls: THREE.Mesh[]; tatters: THREE.Mesh[]; tearing: number } | null = null; // (tearing: -1 whole, 0..1 tearing, 1 torn)
+  private seal: { walls: THREE.Object3D[]; tatters: THREE.Object3D[]; tearing: number } | null = null; // (tearing: -1 whole, 0..1 tearing, 1 torn)
   private time = 0;
   private shaking = 0;
 
@@ -227,20 +228,30 @@ export class CaveLife {
     }
   }
 
-  // The silk walling her nest off, built once: whole while it holds; tearing (ripped down, the dust flying) as most of
-  // the cave's cleared; its tatters after (or only those, torn before).
+  // The webs walling her nest off, built once: whole while they hold; tearing (ripped down, the dust flying) as most of
+  // the cave's cleared; their remnants after (or only those, torn before).
   private silk(cave: CaveRun | null, dt: number): void {
     if (!cave || this.inside.seal.length === 0) return;
     if (!this.seal) {
-      const mesh = (torn: boolean) => (t: { x: number; z: number }, i: number) => {
-        const geometry = caveGeometry(silkWall(i % 4, torn), new THREE.Vector3((-TILE / 2) * V, 0, (-TILE / 2) * V), false);
-        this.made.push(geometry);
-        const m = new THREE.Mesh(geometry, this.materials[0]);
-        m.position.set(t.x, 0, t.z);
-        this.scene.add(m);
-        return m;
-      };
-      this.seal = { walls: this.inside.seal.map(mesh(false)), tatters: this.inside.seal.map(mesh(true)), tearing: cave.sealed ? -1 : 1 };
+      // A web strung right across each run of its tiles (webVoxels.ts), along whichever way the run lies; its dew aglow.
+      const walls: THREE.Object3D[] = [];
+      const tatters: THREE.Object3D[] = [];
+      webRuns(this.inside.seal).forEach((run, i) => {
+        for (const [torn, into] of [[false, walls], [true, tatters]] as const) {
+          const grid = webCurtain(run.span * TILE, i, torn);
+          const group = new THREE.Group();
+          for (const [material, glows] of [[this.materials[0], false], [this.materials[1], true]] as const) {
+            const geometry = caveGeometry(grid, new THREE.Vector3((-grid.size[0] / 2) * V, 0, (-WEB_DEEP / 2) * V), glows);
+            this.made.push(geometry);
+            group.add(new THREE.Mesh(geometry, material));
+          }
+          group.position.set(run.x, 0, run.z);
+          group.rotation.y = run.alongX ? 0 : Math.PI / 2;
+          this.scene.add(group);
+          into.push(group);
+        }
+      });
+      this.seal = { walls, tatters, tearing: cave.sealed ? -1 : 1 };
     }
     const seal = this.seal;
     if (seal.tearing < 0 && !cave.sealed) {
@@ -251,7 +262,7 @@ export class CaveLife {
     const p = Math.max(0, seal.tearing);
     for (const wall of seal.walls) {
       wall.visible = p < 1;
-      wall.scale.set(1 - 0.5 * p, Math.max(0.01, 1 - p * p), 1 - 0.5 * p); // (ripped down)
+      wall.scale.set(1, Math.max(0.01, 1 - p * p), 1); // (ripped down)
     }
     for (const tatter of seal.tatters) tatter.visible = p > 0.3;
   }
@@ -281,4 +292,31 @@ export class CaveLife {
     this.strip.dispose();
     this.impacts.dispose();
   }
+}
+
+// The seal's tiles in runs (joined side by side), each with the way it lies (along x, or z), how many tiles it spans
+// that way, and its middle: where a web's strung across.
+function webRuns(tiles: ReadonlyArray<{ x: number; z: number }>): Array<{ x: number; z: number; span: number; alongX: boolean }> {
+  const left = new Set(tiles.map((t) => `${t.x},${t.z}`));
+  const runs: Array<{ x: number; z: number; span: number; alongX: boolean }> = [];
+  for (const start of tiles) {
+    if (!left.has(`${start.x},${start.z}`)) continue;
+    const run: Array<{ x: number; z: number }> = [];
+    const stack = [start];
+    left.delete(`${start.x},${start.z}`);
+    while (stack.length) {
+      const t = stack.pop()!;
+      run.push(t);
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { // (corner to corner too: a cut on the slant one run)
+        const key = `${t.x + dx},${t.z + dz}`;
+        if (left.delete(key)) stack.push({ x: t.x + dx, z: t.z + dz });
+      }
+    }
+    const xs = run.map((t) => t.x);
+    const zs = run.map((t) => t.z);
+    const [wx, wz] = [Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)];
+    const alongX = wx >= wz;
+    runs.push({ x: alongX ? (Math.max(...xs) + Math.min(...xs)) / 2 : xs.reduce((a, b) => a + b, 0) / run.length, z: alongX ? zs.reduce((a, b) => a + b, 0) / run.length : (Math.max(...zs) + Math.min(...zs)) / 2, span: (alongX ? wx : wz) + 1, alongX });
+  }
+  return runs;
 }

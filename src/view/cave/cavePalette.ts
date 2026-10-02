@@ -32,6 +32,7 @@ const ENTRIES = {
   socket: 0x2a2420,
   silk: 0xe8e2d6,
   silkShade: 0xb8b0a2,
+  silkDeep: 0x8a8378, // (the webs strung behind, dim)
   egg: 0xe2d8b8,
   eggVein: 0xc0a882,
   stem: 0xcfc4a8,
@@ -53,9 +54,10 @@ const ENTRIES = {
   glint: 0x5cc8d0, // (glow) the light on a pool
   stir: 0xd8e070, // (glow) the young stirring in an egg
   day: 0xfff0c8, // (glow) the daylight, at the way up and the way out
+  dew: 0xbfeee2, // (glow) a dewdrop on a web, catching the glowcaps' light
   dayDeep: 0xf0c880, // (glow) and its edges
 } as const;
 
 export const CAVE_PALETTE: number[] = Object.values(ENTRIES);
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
-export const GLOW: ReadonlySet<number> = new Set([C.glowcap, C.glowcapLight, C.crystal, C.crystalCore, C.glint, C.stir, C.day, C.dayDeep]); // drawn unlit
+export const GLOW: ReadonlySet<number> = new Set([C.glowcap, C.glowcapLight, C.crystal, C.crystalCore, C.glint, C.stir, C.day, C.dayDeep, C.dew]); // drawn unlit

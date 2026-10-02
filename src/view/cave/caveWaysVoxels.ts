@@ -143,36 +143,3 @@ export function hoard(torn: boolean): VoxelGrid {
   set(g, 6, 11, 9, C.gold); // (its pommel)
   return g;
 }
-
-// The silk walling the nest off (model/caves/caveProps.ts: nestSeal), a tile of it: strands strung every way through
-// it, sheets of them, a fuzzed mass of silk sagging in its middle, a husk or two wrapped up and caught in it (some
-// beast's, long dead); `torn`, what's left once it's torn: tatters hanging from above, heaps of it at its foot.
-export function silkWall(variant: number, torn: boolean): VoxelGrid {
-  const high = TALL - 2;
-  const g = createGrid([TILE, high, TILE]);
-  const mid = (TILE - 1) / 2;
-  for (let u = 0; u < TILE; u++) for (let v = 0; v < TILE; v++) for (let y = 0; y < high; y++) {
-    const roll = hashUnit(u * 31 + y, v * 17 + y * 3, 850 + variant);
-    if (torn) {
-      const hang = high - 4 - Math.floor(hashUnit(u, v, 851 + variant) * 16); // (a tatter, hanging down to here)
-      const tatter = (u + variant) % 4 === 0 && (v * 3 + u) % 5 < 2 && y >= hang;
-      const heap = y < 3 - Math.abs(u - mid) / 6 && roll < 0.45;
-      if (tatter || heap) set(g, u, y, v, roll < 0.3 ? C.silkShade : C.silk);
-      continue;
-    }
-    const sheet = (u % 4 === variant % 4 && (v + y) % 2 === 0) || (v % 4 === (variant + 2) % 4 && (u + y) % 2 === 0);
-    const strand = (u + y) % 7 === 0 || (v - y + 50) % 7 === 0 || y % 6 === variant % 6;
-    const core = Math.hypot(u - mid, v - mid) < 9 - Math.abs(y - high * 0.45) / 4 && roll < 0.5; // (the fuzzed mass, sagging)
-    if (sheet || (strand && roll < 0.6) || core) set(g, u, y, v, roll < 0.25 ? C.silkShade : C.silk);
-  }
-  if (!torn) {
-    // A husk or two, wrapped and caught in it.
-    for (let k = 0; k < 2; k++) {
-      const [cu, cy, cv] = [6 + Math.floor(hashUnit(k, variant, 852) * 13), 8 + Math.floor(hashUnit(variant, k, 853) * 12), 6 + Math.floor(hashUnit(k * 3, variant, 854) * 13)];
-      for (let u = cu - 2; u <= cu + 2; u++) for (let y = cy - 3; y <= cy + 3; y++) for (let v = cv - 2; v <= cv + 2; v++) {
-        if (Math.hypot(u - cu, (y - cy) * 0.7, v - cv) <= 2.4) set(g, u, y, v, (y + u) % 3 === 0 ? C.eggVein : C.egg);
-      }
-    }
-  }
-  return g;
-}

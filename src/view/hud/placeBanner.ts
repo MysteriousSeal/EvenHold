@@ -1,11 +1,12 @@
 // A place's name across the top of the screen as the hero comes into it (a
 // crypt: "The tomb of Lady Morwen", its level under it), or a deed done there ("Crypt
-// cleared", the crypt's name under it), fading after a while.
+// cleared", the crypt's name under it), or a warning (a cave's nest webbed shut), fading after a while (`shown`, its own
+// time on screen if it's to stay longer).
 // Styles in hud.css.
 
-const SHOWN = 3500; // ms on screen before it fades
+const SHOWN = 3500; // ms on screen before it fades (unless told otherwise)
 
-export function createPlaceBanner(): (name: string, under: string) => void {
+export function createPlaceBanner(): (name: string, under: string, shown?: number) => void {
   const banner = document.createElement('div');
   banner.className = 'place-banner';
   const title = document.createElement('b');
@@ -13,11 +14,11 @@ export function createPlaceBanner(): (name: string, under: string) => void {
   banner.append(title, sub);
   document.body.append(banner);
   let timer = 0;
-  return (name, under) => {
+  return (name, under, shown = SHOWN) => {
     title.textContent = name.charAt(0).toUpperCase() + name.slice(1);
     sub.textContent = under;
     banner.classList.add('shown');
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => banner.classList.remove('shown'), SHOWN);
+    timer = window.setTimeout(() => banner.classList.remove('shown'), shown);
   };
 }
