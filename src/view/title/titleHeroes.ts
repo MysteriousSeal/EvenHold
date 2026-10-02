@@ -1,10 +1,11 @@
 // The heroes standing before the fire on the main menu (titleScene.ts), up
-// to four, each in their own look and gear, their names over their heads.
+// to eight (every one saved here), in their own look and gear, their names
+// over their heads: four in front, the rest a row back, in the gaps.
 // They come into the world voxel layer by voxel layer, from their feet up,
 // one after another, each inside a column of gold light shedding sparks;
 // sent away, they go the same way, head first. The one chosen steps
-// forward into the light, a gold ring pulsing at their feet; the others
-// wait a little back, a little dimmer.
+// forward into the light (from the back row too, through the gap), a gold
+// ring pulsing at their feet; the others wait in their places, dimmer.
 
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
@@ -19,12 +20,14 @@ export interface TitleHero {
   equipment: Equipment;
 }
 
-export const TITLE_HEROES = 4; // at most, at once
+export const TITLE_HEROES = 8; // at most, at once (saveGame's MAX_WORLDS)
+const FRONT = 4; // in the front row
 const VOXEL = 0.025;
 const TALL = 0.95; // a figure's height, near enough (for the rising cut)
 const SPACING = 1.05;
-const STAND_Z = 0.7; // the row, before the fire
-const STEP = 0.45; // the chosen one's step forward
+const STAND_Z = 0.7; // the front row, before the fire
+const BACK_Z = -0.2; // the back row
+const STEP = 0.45; // the chosen one's step forward, past the front row
 const DIM = 0.62; // the others' light
 const HEAD = 1.0; // a name's height over the ground
 const COMING = 1.3; // seconds, feet to head
@@ -39,6 +42,21 @@ interface Standing {
   sparks: THREE.InstancedMesh;
   plate: HTMLDivElement;
   shown: number; // 0..1: how far into the world
+  home: number; // z, in their row
+  back: boolean;
+}
+
+// Where each of `n` stands: the front row centred; the back one in its gaps (shifted half a gap each way when
+// both rows have as many, or as many odd, so neither stands right behind another).
+export function places(n: number): Array<{ x: number; z: number; back: boolean }> {
+  const front = Math.min(n, FRONT);
+  const behind = n - front;
+  const shift = behind > 0 && behind % 2 === front % 2 ? SPACING / 4 : 0;
+  return Array.from({ length: n }, (_, i) => {
+    const back = i >= front;
+    const [j, count] = back ? [i - front, behind] : [i, front];
+    return { x: (j - (count - 1) / 2) * SPACING + (back ? shift : -shift), z: back ? BACK_Z : STAND_Z, back };
+  });
 }
 
 export interface HeroRow {
@@ -78,6 +96,7 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
 
   const stand = (heroes: readonly TitleHero[]) => {
     clear();
+    const spots = places(heroes.length);
     heroes.forEach((hero, i) => {
       const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
       const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, clippingPlanes: [cut], clipShadows: true });
@@ -93,8 +112,8 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
       const center = box.getCenter(new THREE.Vector3());
       mesh.position.set(-center.x, -box.min.y, -center.z); // (standing on the ground, the body on the spot)
       const group = new THREE.Group();
-      const x = (i - (heroes.length - 1) / 2) * SPACING;
-      group.position.set(x, 0, STAND_Z);
+      const { x, z, back } = spots[i];
+      group.position.set(x, 0, z);
       group.rotation.y = -x * 0.08; // (turned a little toward the middle)
       const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial.clone());
       const sparks = new THREE.InstancedMesh(sparkGeometry, sparkMaterial, SPARKS);
@@ -109,7 +128,8 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
       level.textContent = `Level ${hero.level}`;
       plate.append(name, level);
       plates.append(plate);
-      standing.push({ group, material, cut, pillar, sparks, plate, shown: 0 });
+      plate.classList.toggle('back', back);
+      standing.push({ group, material, cut, pillar, sparks, plate, shown: 0, home: z, back });
     });
   };
 
@@ -135,7 +155,7 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
         const target = present ? THREE.MathUtils.clamp((since - i * STAGGER) / COMING, 0, 1) : 0;
         s.shown = present ? Math.max(s.shown, target) : Math.max(0, s.shown - dt / (COMING * 0.5));
         const lit = present && i === chosen;
-        s.group.position.z += (STAND_Z + (lit ? STEP : 0) - s.group.position.z) * ease;
+        s.group.position.z += ((lit ? STAND_Z + STEP : s.home) - s.group.position.z) * ease; // (from either row, to the front)
         s.group.position.y = lit ? Math.abs(Math.sin(t * 1.6)) * 0.008 : 0; // (breathing)
         const light = s.material.color.r + ((lit || chosen < 0 ? 1 : DIM) - s.material.color.r) * ease;
         s.material.color.setScalar(light);
