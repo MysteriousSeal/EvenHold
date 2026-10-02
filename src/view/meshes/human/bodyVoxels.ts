@@ -122,6 +122,15 @@ if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_C
   throw new Error('body palettes out of step with model/human/humanoid.ts');
 }
 
+// A look trait's colour, for its swatch on the character creation screen (null: a trait that isn't a colour).
+export function lookSwatch(key: keyof BodyLook, value: unknown): number | null {
+  const i = value as number;
+  if (key === 'skin') return SKIN_TONES[i % SKIN_TONE_COUNT][0];
+  if (key === 'hair') return HAIR_COLORS[i % HAIR_COLOR_COUNT][0];
+  if (key === 'dye') return DYES[i % DYE_COUNT][0];
+  return null;
+}
+
 const EYE = 0x2b2522;
 const GLINT = 0xfdf8ee; // the light in her eyes
 const CORD = 0x8a6a45;

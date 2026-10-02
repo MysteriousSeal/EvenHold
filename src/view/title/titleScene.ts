@@ -21,6 +21,7 @@ export interface TitleScene {
   intro(done: () => void): void; // plays the opening flight; `done` once it ends (or is skipped)
   skip(): void;
   show(heroes: readonly TitleHero[], chosen: number, present: boolean): void; // `chosen`: of `heroes`, or -1
+  create(hero: TitleHero): void; // a hero being made: alone before the fire, close up, turned by a drag (show() ends it)
   onPick(pick: (index: number) => void): void; // one clicked
   dispose(): void;
 }
@@ -37,6 +38,8 @@ const FLIGHT = [
   [new THREE.Vector3(0, 2, 6.6), new THREE.Vector3(0, 0.55, 0)],
 ];
 const FOG = { from: [45, 200], to: [14, 85] };
+// Close up on a hero being made: they stand right of the middle (the creation panel's on the left).
+const CLOSE = { at: new THREE.Vector3(-0.55, 1.05, 3.7), look: new THREE.Vector3(-0.5, 0.5, 1.15) };
 const smoother = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 
 export function createTitleScene(container: HTMLElement): TitleScene | null {
@@ -111,6 +114,10 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
   let chosen = -1;
   let present = false;
   let pick: (index: number) => void = () => {};
+  let creating = false;
+  let zoom = 0; // 0..1: toward the close up
+  let spin = 0; // the hero being made, turned by a drag
+  let dragging: number | null = null;
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   let clock = reduced ? INTRO : 0; // seconds into the opening
   let landedAt = -1; // (when the flight ended: the drift starts from there)
@@ -125,12 +132,27 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
     return row.at(raycaster.ray);
   };
   const onClick = (event: MouseEvent) => {
-    const i = heroAt(event);
+    const i = creating ? -1 : heroAt(event);
     if (i >= 0) pick(i);
   };
-  const onMove = (event: MouseEvent) => (canvas.style.cursor = heroAt(event) >= 0 ? 'pointer' : '');
+  const onMove = (event: MouseEvent) => {
+    if (creating && dragging !== null) {
+      spin += (event.clientX - dragging) * 0.012;
+      dragging = event.clientX;
+    }
+    canvas.style.cursor = creating ? (dragging !== null ? 'grabbing' : 'grab') : heroAt(event) >= 0 ? 'pointer' : '';
+  };
+  const onDown = (event: PointerEvent) => {
+    if (!creating) return;
+    dragging = event.clientX;
+    canvas.setPointerCapture?.(event.pointerId);
+  };
+  const onUp = () => (dragging = null);
   canvas.addEventListener('click', onClick);
-  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerdown', onDown);
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
 
   let frame = 0;
   let last = performance.now();
@@ -152,7 +174,13 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
     camera.position.x += Math.sin(drift * 0.12) * 0.35;
     camera.position.y += back * 0.35 * k;
     camera.position.z += back * k + Math.sin(drift * 0.08) * 0.15;
+    // Close up on a hero being made (eased there and back); their turn, eased home when not held.
+    zoom += ((creating ? 1 : 0) - zoom) * (1 - Math.exp(-dt * 3.5));
+    const z = smoother(THREE.MathUtils.clamp(zoom, 0, 1));
+    camera.position.lerp(CLOSE.at.clone().setZ(CLOSE.at.z + back * 0.6), z);
+    look.lerp(CLOSE.look, z);
     camera.lookAt(look);
+    if (dragging === null) spin += ((creating ? Math.sin(t * 0.4) * 0.25 : 0) - spin) * (1 - Math.exp(-dt * (creating ? 0.8 : 4)));
     fog.near = THREE.MathUtils.lerp(FOG.from[0], FOG.to[0], k);
     fog.far = THREE.MathUtils.lerp(FOG.from[1], FOG.to[1], k);
     sky.update(t, camera);
@@ -188,7 +216,8 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
       then();
     }
 
-    row.update(t, dt, present, chosen, camera, canvas);
+    row.update(t, dt, present, chosen, camera, canvas, spin);
+    plates.classList.toggle('hidden', creating); // (their name's in the panel)
     renderer.render(scene, camera);
     canvas.classList.add('shown'); // (faded in, once drawn)
   };
@@ -202,10 +231,18 @@ export function createTitleScene(container: HTMLElement): TitleScene | null {
       clock = INTRO;
     },
     show(list, index, here) {
-      if (list !== heroes) row.set(list.slice(0, TITLE_HEROES));
+      if (list !== heroes || creating) row.set(list.slice(0, TITLE_HEROES), !creating);
+      creating = false;
       heroes = list;
       chosen = index;
       present = here;
+    },
+    create(hero) {
+      row.set([hero], creating); // (coming anew the first time; changed, as they are)
+      creating = true;
+      heroes = [];
+      chosen = 0;
+      present = true;
     },
     onPick(fn) {
       pick = fn;

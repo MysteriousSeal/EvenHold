@@ -60,8 +60,8 @@ export function places(n: number): Array<{ x: number; z: number; back: boolean }
 }
 
 export interface HeroRow {
-  set(heroes: readonly TitleHero[]): void;
-  update(t: number, dt: number, present: boolean, chosen: number, camera: THREE.Camera, canvas: HTMLCanvasElement): void;
+  set(heroes: readonly TitleHero[], carry: boolean): void; // `carry`: those already here stay (else all come anew)
+  update(t: number, dt: number, present: boolean, chosen: number, camera: THREE.Camera, canvas: HTMLCanvasElement, spin?: number): void; // `spin`: the chosen one turned
   at(ray: THREE.Ray): number; // the hero that ray meets (-1: none)
   dispose(): void;
 }
@@ -114,7 +114,6 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
       const group = new THREE.Group();
       const { x, z, back } = spots[i];
       group.position.set(x, 0, z);
-      group.rotation.y = -x * 0.08; // (turned a little toward the middle)
       const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial.clone());
       const sparks = new THREE.InstancedMesh(sparkGeometry, sparkMaterial, SPARKS);
       sparks.frustumCulled = false;
@@ -136,15 +135,15 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
   const head = new THREE.Vector3();
   const m = new THREE.Matrix4();
   return {
-    set(heroes) {
+    set(heroes, carry) {
       const key = JSON.stringify(heroes.map((h) => [h.name, h.level, h.look, h.equipment]));
       if (key === shownKey) return;
-      const keep = standing.length > 0 && standing.every((s) => s.shown >= 1);
+      const keep = carry && standing.length > 0 && standing.every((s) => s.shown >= 1);
       shownKey = key;
       stand(heroes.slice(0, TITLE_HEROES));
       if (keep) standing.forEach((s) => (s.shown = 1)); // (a hero let go: the rest stay as they were)
     },
-    update(t, dt, present, chosen, camera, canvas) {
+    update(t, dt, present, chosen, camera, canvas, spin = 0) {
       if (present && !wasPresent) since = 0;
       wasPresent = present;
       since += dt;
@@ -157,6 +156,7 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
         const lit = present && i === chosen;
         s.group.position.z += ((lit ? STAND_Z + STEP : s.home) - s.group.position.z) * ease; // (from either row, to the front)
         s.group.position.y = lit ? Math.abs(Math.sin(t * 1.6)) * 0.008 : 0; // (breathing)
+        s.group.rotation.y = -s.group.position.x * 0.08 + (lit ? spin : 0); // (turned toward the middle; the chosen one, as they're turned)
         const light = s.material.color.r + ((lit || chosen < 0 ? 1 : DIM) - s.material.color.r) * ease;
         s.material.color.setScalar(light);
         // The cut, rising a voxel at a time.
