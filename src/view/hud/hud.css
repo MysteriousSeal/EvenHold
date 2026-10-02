@@ -150,7 +150,7 @@
   font-weight: 700;
   white-space: nowrap; /* colors and edge: the shared tooltip look (menu.css) */
 }
-.loot-prompt[hidden], .loot-toast[hidden] { display: none; }
+.loot-prompt[hidden] { display: none; }
 .loot-prompt.muted { opacity: 0.6; } /* not to be done now (sold out) */
 /* Floating text over the world (floatingText.ts), like FarHold's: bold
    Fredoka with a dark outline, in the color of what it tells. */
@@ -213,17 +213,6 @@
   background: #ffd98a;
   border: 2px solid #2e1f14;
   box-shadow: inset 0 -3px 0 #e8903a;
-}
-
-/* What just went into the bag, low in the middle of the screen. */
-.loot-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 72px;
-  transform: translateX(-50%);
-  padding: 5px 12px;
-  font-size: 15px;
-  font-weight: 600;
 }
 
 /* The toolbar, bottom right: raised sand tiles, a voxel icon each and its

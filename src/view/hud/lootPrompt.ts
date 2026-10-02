@@ -1,12 +1,11 @@
 // Over what the hero can use with E: loot in reach (its name, in its
-// quality's color, grey for junk), or a door ("Enter house", "Leave"). After a pickup, a short line
-// says what went into the bag. Styles in hud.css.
+// quality's color, grey for junk), or a door ("Enter house", "Leave"). (What's picked up floats up over the hero:
+// main.ts.) Styles in hud.css.
 
 import type { GroundLoot } from '../../model/loot/loot';
-import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
+import { nameOf, qualityOf } from '../../model/hero/bag';
 import type { Npc } from '../../model/npcs/npcs';
 
-const TOAST_SECONDS = 2;
 
 // What E would do right now: its label (colored by `quality` for loot),
 // shown over a point in the world.
@@ -24,7 +23,6 @@ export interface LootPrompt {
   readonly element: HTMLElement; // (for another stacked over it)
   // Each frame: what E does (or null), and where on screen to put it.
   update(target: PromptTarget | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
-  pickedUp(item: BagItem): void;
 }
 
 // The prompt for loot on the ground: its name, in its quality's color.
@@ -42,11 +40,7 @@ export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): L
   prompt.hidden = true;
   prompt.innerHTML = `<span class="loot-name"></span><span class="loot-key">${key}</span>`;
   const name = prompt.querySelector('.loot-name') as HTMLElement;
-  const toast = document.createElement('div');
-  toast.className = 'loot-toast';
-  toast.hidden = true;
-  document.body.append(prompt, toast);
-  let toastTimer = 0;
+  document.body.append(prompt);
 
   return {
     element: prompt,
@@ -60,12 +54,6 @@ export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): L
       const at = toScreen(target.x, target.y, target.z);
       const lift = over && !over.element.hidden ? over.element.offsetHeight + STACK_GAP : 0;
       prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y - lift)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
-    },
-    pickedUp(item) {
-      toast.textContent = `Picked up ${nameOf(item)}`;
-      toast.hidden = false;
-      window.clearTimeout(toastTimer);
-      toastTimer = window.setTimeout(() => (toast.hidden = true), TOAST_SECONDS * 1000);
     },
   };
 }

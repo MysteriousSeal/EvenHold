@@ -1,4 +1,5 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
+import { nameOf, qualityOf, type Quality } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
@@ -112,6 +113,8 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
+  // What went into the bag floats up over the hero (onPickUp below), in its quality's colour (as its name over it: hud.css).
+  const PICKED_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0' };
   const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
@@ -227,7 +230,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)}`], PICKED_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

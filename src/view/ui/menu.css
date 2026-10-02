@@ -426,11 +426,10 @@
 .menu-list.grid { min-height: 0; } /* a grid is as tall as its slots */
 .menu-list.grid + .menu-status { display: none; } /* grids say nothing underneath */
 /* The one tooltip look, for every tooltip in the game: a slot's (beside
-   it), the E prompt, the pickup line, the toolbar's labels. Dark ink, a
+   it), the E prompt, the toolbar's labels. Dark ink, a
    cream edge, cream Fredoka text. */
 .menu-tooltip,
 .loot-prompt,
-.loot-toast,
 .toolbar-tip,
 .blessing-tip,
 .clock-hud-tip {
