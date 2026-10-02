@@ -9,9 +9,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { buildTitleCamp } from '../src/view/title/titleCamp';
 import { createTitleScene } from '../src/view/title/titleScene';
+import { places } from '../src/view/title/titleHeroes';
 import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
-import { forgetWorld, savedWorlds } from '../src/controller/storage/saveGame';
+import { MAX_WORLDS, forgetWorld, savedWorlds, startAutoSave } from '../src/controller/storage/saveGame';
 import { showMainMenu } from '../src/controller/mainMenu';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -161,5 +162,54 @@ describe("the main menu's valley", () => {
     expect(performance.now() - began).toBeLessThan(3000);
     const forests = scene.children.filter((o): o is THREE.InstancedMesh => o instanceof THREE.InstancedMesh);
     expect(forests.reduce((n, f) => n + f.count, 0)).toBeGreaterThan(500);
+  });
+});
+
+describe('eight worlds at most', () => {
+  // `n` worlds saved here (one hero's save, copied under each seed).
+  const fill = (n: number) => {
+    const data = snapshot(new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE));
+    for (let i = 0; i < n; i++) {
+      localStorage.setItem(`evenhold.save.${100 + i}`, JSON.stringify({ ...data, seed: 100 + i }));
+      localStorage.setItem(`evenhold.played.${100 + i}`, String(i));
+    }
+  };
+
+  it('full: New World greyed, and told why; one let go, it comes back', () => {
+    fill(MAX_WORLDS);
+    void showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
+    const fresh = () => Array.from(document.querySelectorAll<HTMLButtonElement>('.title-list button')).find((b) => b.textContent === 'New World')!;
+    expect(fresh().disabled).toBe(true);
+    expect(document.querySelector('.title-full')?.textContent).toContain('8 heroes at most');
+    click('Delete hero');
+    click('Forget');
+    expect(fresh().disabled).toBe(false);
+    expect(document.querySelector('.title-full')).toBeNull();
+  });
+
+  it('full: a new world (a shared link) is played but not kept; a saved one still is', () => {
+    fill(MAX_WORLDS);
+    const fresh = startAutoSave(new GameModel(TEST_SEEDS[1], TEST_MAP_SIZE));
+    fresh.save();
+    expect(localStorage.getItem(`evenhold.save.${TEST_SEEDS[1]}`)).toBeNull();
+    fresh.forget();
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    (model as { seed: number }).seed = 100;
+    const kept = startAutoSave(model);
+    localStorage.removeItem('evenhold.played.100');
+    kept.save();
+    expect(localStorage.getItem('evenhold.played.100')).not.toBeNull();
+    kept.forget();
+  });
+});
+
+describe("the heroes' places before the fire", () => {
+  it.each([1, 3, 4, 5, 6, 7, 8])('%i: four in front, the rest behind in the gaps, nobody hidden, the whole centred', (n) => {
+    const spots = places(n);
+    expect(spots.filter((p) => !p.back)).toHaveLength(Math.min(n, 4));
+    const front = spots.filter((p) => !p.back);
+    for (const b of spots.filter((p) => p.back)) for (const f of front) expect(Math.abs(b.x - f.x)).toBeGreaterThan(0.25);
+    const mid = spots.reduce((sum, p) => sum + p.x, 0) / n;
+    expect(Math.abs(mid)).toBeLessThan(0.3);
   });
 });

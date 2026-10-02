@@ -12,7 +12,7 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const world = vi.hoisted(() => ({ shown: [] as string[], chosen: -1, present: false, skipped: 0, pick: (_: number) => {}, done: () => {} }));
 vi.mock('../src/view/title/titleScene', () => ({
-  TITLE_HEROES: 4,
+  TITLE_HEROES: 8,
   createTitleScene: () => ({
     intro: (done: () => void) => (world.done = done),
     skip: () => (world.skipped++, world.done()),
