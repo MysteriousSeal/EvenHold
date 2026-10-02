@@ -20,7 +20,7 @@ import { MAX_WORLDS, type SavedWorld } from './storage/saveGame';
 import { CONTROLS } from './controls';
 import { generateRandomSeed } from '../util/random';
 import { seedFrom } from '../util/seed';
-import { humanFigure } from '../view/meshes/human/humanFigure';
+import { humanBust, humanFigure } from '../view/meshes/human/humanFigure';
 import { voxelIcon } from '../view/ui/voxelIcon';
 import { TITLE_HEROES, createTitleScene } from '../view/title/titleScene';
 import './mainMenu.css';
@@ -145,21 +145,33 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
           const figure = voxelIcon(`title:${JSON.stringify([hero.look, hero.equipment])}`, () => humanFigure(hero.look, hero.equipment), FIGURE);
           stage.append(figure, el('div', 'title-hero-name', hero.name), el('div', 'title-hero-line', `Level ${hero.level} · day ${hero.day}`));
         } else if (!hero) stage.append(el('div', 'title-hero-line', 'No hero yet: make a new world to begin.'));
+        // The roster: each hero (their bust, name, day and world, their level on a shield), the chosen one gilded;
+        // then a slot for each place left (a new hero), eight in all.
         const list = el('div', 'title-list');
-        list.append(el('div', 'title-list-head', 'Your heroes'));
+        const head = el('div', 'title-list-head');
+        head.append(el('span', '', 'Your heroes'), el('small', '', `${worlds.length} / ${MAX_WORLDS}`));
+        list.append(head);
         worlds.forEach((w, i) => {
           const card = el('button', `title-card${i === chosen ? ' chosen' : ''}`);
-          card.append(el('b', '', w.name), el('span', '', `Level ${w.level} · day ${w.day}`), el('small', '', `World ${w.seed}`));
+          const portrait = el('span', 'title-portrait');
+          portrait.append(voxelIcon(`title-bust:${JSON.stringify([w.look, w.equipment])}`, () => humanBust(w.look, w.equipment), 44));
+          const who = el('span', 'title-who');
+          who.append(el('b', '', w.name), el('small', '', `Day ${w.day} · World ${w.seed}`));
+          card.append(portrait, who, el('span', 'title-crest', String(w.level)));
+          card.title = `${w.name}, level ${w.level}`;
           card.addEventListener('click', () => ([chosen, sure] = [i, false], draw()));
           card.addEventListener('dblclick', () => play(w.seed));
           list.append(card);
         });
-        // (eight at most: a new world only once one's let go)
-        const full = worlds.length >= MAX_WORLDS;
-        const fresh = button('title-side', 'New World', () => go('newWorld'));
-        fresh.disabled = full;
-        list.append(fresh);
-        if (full) list.append(el('small', 'title-full', `${MAX_WORLDS} heroes at most: delete one to make room.`));
+        for (let i = worlds.length; i < MAX_WORLDS; i++) {
+          const slot = el('button', 'title-slot');
+          const who = el('span', 'title-who');
+          who.append(el('b', '', 'Empty slot'), el('small', '', 'Create a new hero'));
+          slot.append(el('span', 'title-portrait', '+'), who);
+          slot.addEventListener('click', () => go('newWorld'));
+          list.append(slot);
+        }
+        if (worlds.length >= MAX_WORLDS) list.append(el('small', 'title-full', `${MAX_WORLDS} heroes at most: delete one to make room.`));
         const enter = hero ? button('title-enter', 'Enter World', () => play(hero.seed)) : button('title-enter', 'New World', () => go('newWorld'));
         const left = el('div', 'title-corner left');
         left.append(button('title-side', 'Controls', () => go('controls')));
