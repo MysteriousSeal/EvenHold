@@ -307,7 +307,7 @@ describe('the character creation screen', () => {
 describe('look traits', () => {
   it('a look made sound: a style of their build, no beard on a woman; one trait set, the rest kept sound', () => {
     expect(fitLook({ ...HERO_LOOK, build: 'female', beard: true, hairStyle: 'cropped' })).toMatchObject({ beard: false, hairStyle: STYLES_OF.female[0] });
-    expect(withTrait(HERO_LOOK, 'skin', 2)).toEqual({ ...HERO_LOOK, skin: 2 });
+    expect(withTrait(HERO_LOOK, 'skin', 2)).toEqual({ ...HERO_LOOK, skin: 2, expression: 'calm' }); // (calm: it had none)
     expect(stepTrait({ ...HERO_LOOK, hairStyle: STYLES_OF.male.at(-1)! }, 'hairStyle', 1).hairStyle).toBe(STYLES_OF.male[0]); // (round)
     expect(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name('twinBraids')).toBe('Twin braids');
   });
