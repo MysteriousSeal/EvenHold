@@ -6,7 +6,8 @@ import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
-import { eatOrDrink } from '../src/model/hero/bag';
+import { eatOrDrink, kindOf } from '../src/model/hero/bag';
+import { ITEM_IDS } from '../src/model/human/equipment';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { QUEST_ITEMS } from '../src/model/quests/questItems';
@@ -99,5 +100,16 @@ describe('food and drink from the bag', () => {
     Object.assign(hero, { hp: maxHpOf(hero), energy: maxEnergyOf(hero) - 1, bag: { wine: 1 } });
     eatOrDrink(hero, 'wine');
     expect(hero.energy).toBe(maxEnergyOf(hero)); // (no more than their most)
+  });
+});
+
+describe('what kind of thing it is', () => {
+  it('said short, for each kind: junk, ingredient, food, drink, quest item, bag; gear by what it\'s worn on', () => {
+    expect(kindOf('wolfFang')).toBe('Junk');
+    expect(kindOf('bread')).toBe('Food');
+    expect(kindOf('ale')).toBe('Drink');
+    expect(kindOf('roughSack')).toBe('Bag');
+    expect(kindOf('leatherCap')).toBe('Head');
+    for (const id of [...LOOT_IDS, ...ITEM_IDS]) expect(kindOf(id).length, id).toBeGreaterThan(2);
   });
 });

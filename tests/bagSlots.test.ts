@@ -9,7 +9,7 @@ import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { isBagItem } from '../src/model/loot/bags';
-import { addToBag, bagLayout, layoutCounts, moveInBag, slotsUsed, sortedBag, stacksOf, type BagItem } from '../src/model/hero/bag';
+import { addToBag, bagStacks, moveSlot, bagLayout, layoutCounts, moveInBag, slotsUsed, sortedBag, stacksOf, type BagItem } from '../src/model/hero/bag';
 import { buyFrom, type Shop } from '../src/model/shops/shopStock';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { PEDLAR_WARES, pedlarBuys } from '../src/model/travellers/pedlarShop';
@@ -143,5 +143,60 @@ describe('junk in stacks of twenty', () => {
     const bag = { wolfFang: 25 };
     const order = moveInBag(bag, bagLayout(bag, [], 6), 1, 4, 6);
     expect(bagLayout(bag, order, 6)).toEqual(['wolfFang', null, null, null, 'wolfFang', null]);
+  });
+});
+
+describe('a stack of its own, taken from', () => {
+  const junk = Object.keys(JUNK_ITEMS)[0] as BagItem;
+  const slotsOf = (model: GameModel) => {
+    const { layout, counts } = bagStacks(model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, bagRoom(model.hero));
+    return layout.flatMap((item, i) => (item === junk ? [[i, counts[i]]] : []));
+  };
+
+  it('dropped from a stack, one off that very stack (not the last of its kind)', () => {
+    const model = fresh();
+    Object.assign(model.hero, { bag: { [junk]: 45 }, bagOrder: [], bagCounts: [] });
+    expect(slotsOf(model)).toEqual([[0, 20], [1, 20], [2, 5]]);
+    expect(model.dropFromBag(junk, 0)).toBe(true);
+    expect(slotsOf(model)).toEqual([[0, 19], [1, 20], [2, 5]]);
+    expect(model.hero.bag[junk]).toBe(44);
+    model.dropFromBag(junk, 1);
+    expect(slotsOf(model)).toEqual([[0, 19], [1, 19], [2, 5]]);
+  });
+
+  it('more of it, onto its stacks with room in order, then a new one; fewer (sold, used), off its last', () => {
+    const model = fresh();
+    Object.assign(model.hero, { bag: { [junk]: 45 }, bagOrder: [], bagCounts: [] });
+    model.dropFromBag(junk, 0); // (19, 20, 5)
+    addToBag(model.hero.bag, junk);
+    expect(slotsOf(model)).toEqual([[0, 20], [1, 20], [2, 5]]);
+    model.hero.bag[junk] = 38; // (six gone of the 44 the slots last told, sold: off the last stack, then the one before)
+    expect(slotsOf(model)).toEqual([[0, 19], [1, 19]]);
+  });
+
+  it('a stack used up leaves its slot empty; moved, a stack keeps what it holds; kept in the save', () => {
+    const model = fresh();
+    Object.assign(model.hero, { bag: { [junk]: 21 }, bagOrder: [], bagCounts: [] });
+    model.dropFromBag(junk, 1); // (the stack of one: gone)
+    expect(slotsOf(model)).toEqual([[0, 20]]);
+    model.dropFromBag(junk, 0);
+    moveSlot(model.hero, 0, 5, bagRoom(model.hero));
+    expect(slotsOf(model)).toEqual([[5, 19]]);
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(slotsOf(again)).toEqual([[5, 19]]);
+  });
+
+  it('a full stack and one more picked up: the new stack shows at once, in a free slot, never over another thing\'s', () => {
+    const model = fresh();
+    Object.assign(model.hero, { bag: { [junk]: 20, bread: 1, apple: 1 }, bagOrder: [junk, null, 'bread', 'apple'], bagCounts: [20, 0, 1, 1] });
+    addToBag(model.hero.bag, junk); // (the 21st: picked up)
+    const { layout, counts } = bagStacks(model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, bagRoom(model.hero));
+    expect(layout.slice(0, 4)).toEqual([junk, junk, 'bread', 'apple']);
+    expect(counts.slice(0, 4)).toEqual([20, 1, 1, 1]);
+    // (the slot the next thing in order keeps, left for it: a new stack goes past it)
+    Object.assign(model.hero, { bag: { [junk]: 21, bread: 1 }, bagOrder: [junk, 'bread'], bagCounts: [20, 1] });
+    const again = bagStacks(model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, bagRoom(model.hero));
+    expect(again.layout.slice(0, 3)).toEqual([junk, 'bread', junk]);
   });
 });
