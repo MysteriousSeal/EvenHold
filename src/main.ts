@@ -1,4 +1,5 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
+import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
@@ -160,7 +161,6 @@ async function boot(): Promise<void> {
   ]);
   // What E does right now: pick up loot in reach, else sit or lie down (or get up), else go through a door.
   const DOOR_NAMES = { house: 'Enter house', inn: 'Enter the inn', smithy: 'Enter the smithy' } as const;
-  const herbalistHomes = new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home)); // (their door: "Enter the herbalist's")
   const promptTarget = (): PromptTarget | null => {
     const loot = model.lootInReach;
     if (loot) return lootTarget(loot);
@@ -193,7 +193,7 @@ async function boot(): Promise<void> {
     const door = model.doorInReach;
     if (!door) return null;
     if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
-    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : herbalistHomes.has(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type];
+    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type];
     return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
   const onFrame = () => {

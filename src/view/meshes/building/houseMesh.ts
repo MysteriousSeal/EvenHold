@@ -11,6 +11,7 @@ import type { VoxelPlacement } from '../voxel/voxelInstances';
 import { ROOF_SETS } from './housePalette';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from './houseVoxels';
 import { buildHermitHut } from './herbalistHouse';
+import { isHerbalistHome } from '../../../model/herbalist/herbalistHomes';
 import { addLitBuildings, meshLit } from './litBuildings';
 
 // A house's look comes from a hash of its grid position rather than being
@@ -27,8 +28,7 @@ export function buildHouseGeometry(layout: number, roof: number, glowing: boolea
 
 export function buildHouses(scene: WorldSink, model: GameModel): void {
   // The herbalists' huts (their homes' doors are the houses', in order: interiors.ts entrancesOf), a building of their own.
-  const homes = new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home));
-  const herbalists = new Set(model.houses.filter((_house, i) => homes.has(model.entrances[i])));
+  const herbalists = new Set(model.houses.filter((_house, i) => isHerbalistHome(model.entrances[i])));
   const key = (house: House) => {
     const { layout, roof } = looks(house);
     return herbalists.has(house) ? 'herbalist' : `${layout}:${roof}`; // (every herbalist's hut the same)
