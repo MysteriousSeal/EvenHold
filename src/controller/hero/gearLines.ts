@@ -4,6 +4,7 @@
 // would change ("+2 Armour" in green, "−1 Agility" in red).
 
 import { ITEMS, SLOT_NAMES, type Equipment, type ItemId } from '../../model/human/equipment';
+import type { ItemEntry } from '../../model/human/items/item';
 import { STATS, STAT_NAMES } from '../../model/hero/statKinds';
 import { toned, type MenuLine } from '../../view/ui/menu';
 
@@ -15,7 +16,7 @@ export function gearLines(id: ItemId): MenuLine[] {
 // What a piece is worth, all told, to weigh one against another: its armour, and each point it adds to a stat
 // worth STAT_WORTH of armour's (a stat does more: health, dodge, a harder blow).
 const STAT_WORTH = 2;
-type Gear = { armor?: number; stats?: Partial<Record<(typeof STATS)[number], number>> };
+type Gear = Pick<ItemEntry, 'armor' | 'stats'>;
 const worthOf = (gear: Gear) => (gear.armor ?? 0) + STAT_WORTH * STATS.reduce((n, s) => n + (gear.stats?.[s] ?? 0), 0);
 
 // What wearing `id` instead of what's in its slot (`equipment`'s) would change, as WoW tells it: a line saying so,

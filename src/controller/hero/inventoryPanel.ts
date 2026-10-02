@@ -21,7 +21,7 @@ import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { sellValue } from '../../model/shops/sellValue';
 import { againstWorn, gearLines } from './gearLines';
-import { createMenu, toned, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
+import { createMenu, toned, type LineTone, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
@@ -40,20 +40,22 @@ export interface Seller {
 // Onto the shop's window (the one with its keeper talking).
 const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelector('.shop-talk');
 
+// Whether a tooltip line plays one of these parts (a hint, a price).
+const playing = (line: MenuLine, ...tones: LineTone[]) => typeof line !== 'string' && tones.includes(line.tone);
+
 // `at`: the bag's slot it's in (what's dropped from it, off that very stack).
 function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number): MenuSlot {
   const base = baseSlot(model, item, count, at);
   const value = sellValue(item);
-  const isHint = (line: MenuLine) => typeof line !== 'string' && line.tone === 'hint';
   const lines = base.lines ?? [];
-  const slot = value === null ? base : { ...base, lines: [...lines.filter((l) => !isHint(l)), toned('price', `Sells for ${coinWords(value)}`), ...lines.filter(isHint)] }; // (its price before its hints: those last)
+  const slot = value === null ? base : { ...base, lines: [...lines.filter((l) => !playing(l, 'hint')), toned('price', `Sells for ${coinWords(value)}`), ...lines.filter((l) => playing(l, 'hint'))] }; // (its price before its hints: those last)
   if (!seller) return slot;
   if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), toned('loss', 'Not bought here')] };
   // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
   const dragOut = slot.dragOut;
   return {
     ...slot,
-    lines: [...(slot.lines ?? []).filter((line) => typeof line === 'string' || (line.tone !== 'hint' && line.tone !== 'price')), toned('price', `Right-click to sell for ${coinWords(seller.price(item))}`)], // (its hints and price, for the keeper's)
+    lines: [...(slot.lines ?? []).filter((line) => !playing(line, 'hint', 'price')), toned('price', `Right-click to sell for ${coinWords(seller.price(item))}`)], // (its hints and price, for the keeper's)
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };
