@@ -34,6 +34,7 @@ export function startAutoSave(model: GameModel): AutoSave {
   let on = true;
   const save = () => {
     if (!on) return;
+    if (!Number.isFinite(model.hero.x) || !Number.isFinite(model.hero.z)) return; // (lost somewhere: the last good save kept, not this)
     try {
       localStorage.setItem(keyOf(model.seed), JSON.stringify(snapshot(model)));
     } catch {
