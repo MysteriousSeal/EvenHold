@@ -70,7 +70,7 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
         // neighbours (a curve's lower voxel its upper half, its upper voxel its lower half: a smile, a frown, a
         // closed eye's arc stay one line; a lid on its eye, a smile's corners on a moustache).
         const k = kind(c);
-        const same = (dx: number, dy: number) => kind(code(x + dx, y + dy)) === k;
+        const same = (dx: number, dy: number) => kind(code(x + dx, y + dy)) === k || (k === 'mouth' && code(x + dx, y + dy) === C.glint); // (teeth: part of a mouth)
         // An open mouth (a laugh: a row of mouth or teeth with mouth under it somewhere): a filled shape, not a line.
         const mouthy = (v: number) => v === C.mouth || v === C.glint;
         let openMouth = false;
@@ -78,7 +78,8 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
           const run: number[] = []; // (the row of mouth and teeth this voxel is in)
           for (const dir of [-1, 1]) for (let dx = dir < 0 ? 0 : 1; mouthy(code(x + dx, y)); dx += dir) run.push(x + dx);
           const lips = run.some((rx) => code(rx, y) === C.mouth); // (a tear, alone, is no mouth)
-          openMouth = lips && run.some((rx) => code(rx, y - 1) === C.mouth || code(rx, y) === C.glint);
+          const under = run.some((rx) => code(rx, y - 1) === C.mouth); // (a lip, or the dark of the mouth, under the row)
+          openMouth = under ? lips || run.some((rx) => code(rx, y) === C.glint) : lips && run.some((rx) => code(rx, y) === C.glint);
         }
         const lineEye = k === 'eye' && !same(0, 1) && !same(0, -1) && (same(-1, 0) || same(1, 0) || same(-1, 1) || same(1, 1) || same(-1, -1) || same(1, -1)); // (an arc, a wink: not an open eye)
         if (k && !openMouth && (k !== 'eye' || lineEye) && !same(0, 1) && !same(0, -1) && x > 0 && x < L && (k !== 'hair' || !isHair(above))) {
