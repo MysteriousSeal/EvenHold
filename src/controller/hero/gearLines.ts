@@ -5,11 +5,11 @@
 
 import { ITEMS, SLOT_NAMES, type Equipment, type ItemId } from '../../model/human/equipment';
 import { STATS, STAT_NAMES } from '../../model/hero/statKinds';
-import type { MenuLine } from '../../view/ui/menu';
+import { toned, type MenuLine } from '../../view/ui/menu';
 
-export function gearLines(id: ItemId): string[] {
+export function gearLines(id: ItemId): MenuLine[] {
   const { armor, stats = {} } = ITEMS[id];
-  return [...(armor ? [`Armour ${armor}`] : []), ...STATS.filter((s) => stats[s]).map((s) => `+${stats[s]} ${STAT_NAMES[s]}`)];
+  return [...(armor ? [`Armour ${armor}`] : []), ...STATS.filter((s) => stats[s]).map((s) => `+${stats[s]} ${STAT_NAMES[s]}`)].map((text) => toned('stat', text));
 }
 
 // What a piece is worth, all told, to weigh one against another: its armour, and each point it adds to a stat
@@ -25,7 +25,7 @@ const worthOf = (gear: Gear) => (gear.armor ?? 0) + STAT_WORTH * STATS.reduce((n
 export function againstWorn(id: ItemId, equipment: Equipment): MenuLine[] {
   const { slot } = ITEMS[id];
   const worn = equipment[slot];
-  if (worn === id) return ['You wear one already'];
+  if (worn === id) return [toned('head', 'You wear one already')];
   const [now, then] = [worn ? ITEMS[worn] : {}, ITEMS[id]] as Gear[];
   const change = (name: string, by: number): MenuLine[] => (by ? [{ text: `${by > 0 ? '+' : '−'}${Math.abs(by)} ${name}`, tone: by > 0 ? 'gain' : 'loss' }] : []);
   const changes = [...change('Armour', (then.armor ?? 0) - (now.armor ?? 0)), ...STATS.flatMap((s) => change(STAT_NAMES[s], (then.stats?.[s] ?? 0) - (now.stats?.[s] ?? 0)))];
@@ -33,6 +33,6 @@ export function againstWorn(id: ItemId, equipment: Equipment): MenuLine[] {
   const [before, after] = [worthOf(now), worthOf(then)];
   const percent = before > 0 ? Math.round(((after - before) / before) * 100) : null;
   const overall: MenuLine[] =
-    percent === null ? (after > 0 ? [{ text: 'Overall: an upgrade', tone: 'gain' }] : []) : percent === 0 ? ['Overall: about the same'] : [{ text: `Overall: ${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`, tone: percent > 0 ? 'gain' : 'loss' }];
-  return [worn ? `If you replace your ${ITEMS[worn].name}:` : `If you wear it (your ${SLOT_NAMES[slot].toLowerCase()} slot is empty):`, ...overall, ...changes];
+    percent === null ? (after > 0 ? [{ text: 'Overall: an upgrade', tone: 'gain' }] : []) : percent === 0 ? [toned('stat', 'Overall: about the same')] : [{ text: `Overall: ${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`, tone: percent > 0 ? 'gain' : 'loss' }];
+  return [toned('head', worn ? `If you replace your ${ITEMS[worn].name}:` : `If you wear it (your ${SLOT_NAMES[slot].toLowerCase()} slot is empty):`), ...overall, ...changes];
 }

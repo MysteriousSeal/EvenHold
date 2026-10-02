@@ -21,7 +21,7 @@ import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { sellValue } from '../../model/shops/sellValue';
 import { againstWorn, gearLines } from './gearLines';
-import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
+import { createMenu, toned, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
@@ -44,14 +44,16 @@ const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelect
 function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number): MenuSlot {
   const base = baseSlot(model, item, count, at);
   const value = sellValue(item);
-  const slot = value === null ? base : { ...base, lines: [...(base.lines ?? []), `Sell price: ${coinWords(value)}`] };
+  const isHint = (line: MenuLine) => typeof line !== 'string' && line.tone === 'hint';
+  const lines = base.lines ?? [];
+  const slot = value === null ? base : { ...base, lines: [...lines.filter((l) => !isHint(l)), toned('price', `Sells for ${coinWords(value)}`), ...lines.filter(isHint)] }; // (its price before its hints: those last)
   if (!seller) return slot;
-  if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), 'Not bought here'] };
+  if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), toned('loss', 'Not bought here')] };
   // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
   const dragOut = slot.dragOut;
   return {
     ...slot,
-    lines: [...(slot.lines ?? []).filter((line) => typeof line !== 'string' || (!line.startsWith('Right-click') && !line.startsWith('Sell price'))), `Right-click to sell for ${coinWords(seller.price(item))}`],
+    lines: [...(slot.lines ?? []).filter((line) => typeof line === 'string' || (line.tone !== 'hint' && line.tone !== 'price')), toned('price', `Right-click to sell for ${coinWords(seller.price(item))}`)], // (its hints and price, for the keeper's)
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };
@@ -65,10 +67,10 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
       lines: isProvision(item)
-        ? [`${kindOf(item)} · ${givesText(item)}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
+        ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`)]
         : isBagItem(item)
-          ? [`${kindOf(item)} · +${ROOM_PER_BAG} slots`, 'Drag onto a bag socket (or right-click) to fit it']
-          : [kindOf(item)],
+          ? [toned('kind', kindOf(item)), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
+          : [toned('kind', kindOf(item))],
       alt: isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : '')
         : isBagItem(item)
@@ -84,7 +86,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
     icon: bagIcon(gear),
     count,
     title: ITEMS[gear].name,
-    lines: [SLOT_NAMES[ITEMS[gear].slot], ...gearLines(gear), ...againstWorn(gear, model.hero.equipment), `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
+    lines: [toned('kind', SLOT_NAMES[ITEMS[gear].slot]), ...gearLines(gear), ...againstWorn(gear, model.hero.equipment), toned('hint', `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`)],
     fits: ITEMS[gear].slot,
     // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {
@@ -102,7 +104,7 @@ function socketSlot(model: GameModel, socket: number, fitted: BagId, slotsFrom: 
     icon: bagIcon(fitted),
     title: LOOT[fitted].name,
     tone: 'bag',
-    lines: [`Fitted · +${ROOM_PER_BAG} slots`, 'Right-click (or drag it down into the bag) to take it off'],
+    lines: [toned('kind', 'Bag · fitted'), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Right-click (or drag it down into the bag) to take it off')],
     alt: off,
     move: (to) => void (to >= slotsFrom && off()),
   };
@@ -112,7 +114,7 @@ function socketSlot(model: GameModel, socket: number, fitted: BagId, slotsFrom: 
 const emptySocket = (): MenuSlot => ({
   icon: (size) => voxelIcon('bag-socket', () => ({ grid: BAG_MODELS.roughSack.build(), palette: BAG_MODELS.roughSack.palette, alpha: 0.22 }), size), // (a faint sack: a bag goes here)
   title: 'Bag socket',
-  lines: [`Empty: fit a bag for ${ROOM_PER_BAG} more slots`, 'Drag one here, or right-click it in the bag'],
+  lines: [toned('kind', 'Empty'), `Fit a bag for ${ROOM_PER_BAG} more slots`, toned('hint', 'Drag one here, or right-click it in the bag')],
   dim: true,
 });
 

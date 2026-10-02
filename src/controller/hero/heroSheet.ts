@@ -17,7 +17,7 @@ import { gearLines } from './gearLines';
 import { STAT_DOES } from './statText';
 import { humanFigure } from '../../view/meshes/human/humanFigure';
 import { gearIcon, slotPlaceholder } from '../../view/ui/itemIcons';
-import { createMenu, type DollSlot, type Menu } from '../../view/ui/menu';
+import { createMenu, toned, type DollSlot, type Menu } from '../../view/ui/menu';
 import { FigureStage } from '../../view/ui/figureStage';
 import { counted, percent } from '../../view/ui/words';
 import './heroSheet.css';
@@ -43,7 +43,7 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
         ? {
             icon: gearIcon(item),
             title: ITEMS[item].name,
-            lines: [SLOT_NAMES[which], ...gearLines(item), 'Drag into your bag, or onto the ground'],
+            lines: [toned('kind', `${SLOT_NAMES[which]} · worn`), ...gearLines(item), toned('hint', 'Drag into your bag, or onto the ground')],
             // Onto another window (the bag): into the bag. Onto the world: on the ground.
             fits: which,
             dragOut: (over) => void (over?.closest('.menu') ? model.unequip(which) : model.dropEquipped(which)),

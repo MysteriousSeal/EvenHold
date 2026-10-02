@@ -18,7 +18,7 @@ import { isJunk, sellValue } from '../../model/shops/sellValue';
 import { TALK_RANGE } from '../../model/npcs/talk';
 import { coinParts, coinWords } from '../../view/ui/coins';
 import { bagIcon } from '../../view/ui/itemIcons';
-import { createMenu, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
+import { createMenu, toned, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { humanBust } from '../../view/meshes/human/humanFigure';
 import type { Seller } from '../hero/inventoryPanel';
@@ -158,10 +158,10 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       dim: count <= 0,
       warn: count > 0 && model.hero.money < price,
       lines: [
-        trade.blurb(id),
         ...trade.facts(id),
-        count > 0 ? `${count} in stock` : `Sold out · back in ${back}`,
-        model.hero.money < price ? "You can't afford it" : 'Right-click to buy one',
+        toned('flavor', trade.blurb(id)),
+        toned('price', count > 0 ? `${coinWords(price)} · ${count} in stock` : `Sold out · back in ${back}`),
+        model.hero.money < price ? toned('loss', "You can't afford it") : toned('hint', 'Right-click to buy one'),
       ],
       alt: () => {
         const result = trade.trade(id, false);
@@ -181,7 +181,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       tag: coinParts(cost),
       badge: count > 1 ? `×${count}` : undefined,
       warn: model.hero.money < cost,
-      lines: [`You sold ${them} for ${coinWords(cost)}`, model.hero.money < cost ? "You can't afford it" : `Right-click to buy ${count > 1 ? 'them' : 'it'} back`],
+      lines: [toned('price', `You sold ${them} for ${coinWords(cost)}`), model.hero.money < cost ? toned('loss', "You can't afford it") : toned('hint', `Right-click to buy ${count > 1 ? 'them' : 'it'} back`)],
       alt: () => {
         const result = buyBack(shop(), model.hero, i);
         const what = count > 1 ? `${count} ${plural(nameOf(id).toLowerCase())}` : nameOf(id).toLowerCase();

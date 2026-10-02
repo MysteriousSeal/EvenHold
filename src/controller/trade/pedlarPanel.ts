@@ -3,13 +3,13 @@
 // sell them (the window: tradePanel.ts; their pack: travellers/pedlarShop.ts).
 
 import type { GameModel } from '../../model/GameModel';
-import { ITEMS, type ItemId } from '../../model/human/equipment';
+import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../../model/travellers/pedlarShop';
 import { WORD_HOLD, type Traveller } from '../../model/travellers/travellers';
 import { isBagItem } from '../../model/loot/bags';
 import { ROOM_PER_BAG } from '../../model/hero/bagSlots';
-import type { Menu } from '../../view/ui/menu';
+import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
@@ -49,7 +49,7 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name.toLowerCase()).replace('{paid}', paid),
     blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : 'From the bottom of a pedlar\'s pack.'),
     facts: (id) =>
-      isProvision(id) ? [`${PROVISIONS[id].drink ? 'Drink' : 'Food'}, ${givesText(id)}`] : isBagItem(id) ? [`A bag: +${ROOM_PER_BAG} slots`] : [...(gearLines(id as ItemId).length ? gearLines(id as ItemId) : [ITEMS[id as ItemId].name]), ...againstWorn(id as ItemId, model.hero.equipment)],
+      isProvision(id) ? [toned('kind', PROVISIONS[id].drink ? 'Drink' : 'Food'), toned('stat', givesText(id))] : isBagItem(id) ? [toned('kind', 'Bag'), toned('stat', `+${ROOM_PER_BAG} bag slots`)] : [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
   });
   return {
     ...panel,
