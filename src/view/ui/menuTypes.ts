@@ -1,6 +1,8 @@
 // The shapes a menu is made from (menu.ts): its options and tabs, and what
 // a tab shows (actions, slots, a paper doll), each described where it's declared.
 
+import type { VoxelModel } from './voxelIcon';
+
 // An icon: makes a canvas showing it at `size` CSS pixels (e.g. voxelIcon).
 export type MenuIcon = (size: number) => HTMLCanvasElement;
 
@@ -39,6 +41,7 @@ export interface MenuSlot {
   dim?: boolean; // shown faded (there, but not to be had: e.g. sold out)
   warn?: boolean; // its icon and tag in red (e.g. a price the hero can't pay)
   move?(to: number): void; // dragged onto another slot of its grid (e.g. to reorder a bag)
+  preview?: { key: string; model: () => VoxelModel }; // hovered, a window over its tooltip with its model turning (itemPreview.ts)
   note?: string; // in a list (rows), a line under its title (e.g. where a quest sends you)
   key?: string; // who it is: redrawn, the one chosen stays chosen wherever it's moved to
   // In a list, a checkbox at the row's start (e.g. a quest tracked on screen), toggled on its own.

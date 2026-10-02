@@ -6,6 +6,7 @@
 // number keys pick directly, Escape closes; the mouse works too. While open
 // it takes every key, so none reaches the game.
 
+import { createItemPreview, type ItemPreview } from './itemPreview';
 import './menu.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
@@ -61,14 +62,18 @@ export function createMenu(options: MenuOptions): Menu {
   // the tooltip again on the one that had it.
   let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null; tip?: { title: string; lines: string[] } }> = [];
   let tipped: number | null = null;
+  let preview: ItemPreview | null = null; // (made the first time a slot with one is hovered)
 
   function showTip(index: number): void {
     const entry = slotButtons[index];
     const cell = entry?.cell ?? entry?.tip; // an empty slot may still say what it's for
     tipped = cell ? index : null;
     tooltip.hidden = tipped === null;
-    if (!cell) return;
+    if (!cell) return void preview?.hide();
     placeTip(entry.button, cell.title, cell.lines ?? [], 'tone' in cell ? cell.tone : undefined);
+    const shown = 'preview' in cell ? cell.preview : undefined;
+    if (shown) (preview ??= createItemPreview()).show(shown.key, shown.model, tooltip);
+    else preview?.hide();
   }
 
   // The tooltip beside `anchor`: a title (in its tone), and lines under it; on the right, else the left if there's no room.
@@ -86,6 +91,7 @@ export function createMenu(options: MenuOptions): Menu {
   function hideTip(): void {
     tipped = null;
     tooltip.hidden = true;
+    preview?.hide();
   }
 
   // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.

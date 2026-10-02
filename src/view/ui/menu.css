@@ -460,6 +460,19 @@
   padding: 8px 12px;
 }
 .menu-tooltip[hidden] { display: none; }
+/* A bag thing's turning preview, just above its tooltip (itemPreview.ts): a cream-edged dark window, a soft lit pool under it. */
+.item-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 22% at 50% 78%, rgba(255, 220, 160, 0.22), transparent 70%), rgba(38, 26, 17, 0.94);
+  border: 2px solid #efdcb8;
+  box-shadow: 4px 4px 0 rgba(24, 12, 4, 0.35);
+}
+.item-preview[hidden] { display: none; }
+.item-preview canvas { display: block; }
 .menu-tooltip b { font-size: 17px; font-weight: 600; color: #f8ecd4; }
 .menu-tooltip b[data-tone='junk'] { color: #b4b0a8; }
 .menu-tooltip b[data-tone='ingredient'] { color: #e8a080; }

@@ -12,21 +12,21 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { ITEM_MODELS } from '../meshes/human/gear/itemModels';
 import { LOOT_MODELS } from '../meshes/loot/lootModels';
 import type { MenuIcon } from './menu';
-import { voxelIcon } from './voxelIcon';
+import { voxelIcon, type VoxelModel } from './voxelIcon';
 
 // Gear as it sits when worn or held; jewelry, its own little model.
-export const gearIcon = (item: ItemId): MenuIcon => (size) =>
-  voxelIcon(
-    `item:${item}`,
-    () => {
-      const jewel = ITEM_MODELS[item].jewel;
-      return jewel ? { grid: jewel.build(), palette: ITEM_MODELS[item].palette } : humanFigure(null, { [ITEMS[item].slot]: item });
-    },
-    size,
-  );
+const gearModel = (item: ItemId) => (): VoxelModel => {
+  const jewel = ITEM_MODELS[item].jewel;
+  return jewel ? { grid: jewel.build(), palette: ITEM_MODELS[item].palette } : humanFigure(null, { [ITEMS[item].slot]: item });
+};
+const lootModel = (item: LootId) => (): VoxelModel => ({ grid: LOOT_MODELS[item].build(), palette: LOOT_MODELS[item].palette });
 
-export const lootIcon = (item: LootId): MenuIcon => (size) =>
-  voxelIcon(`loot:${item}`, () => ({ grid: LOOT_MODELS[item].build(), palette: LOOT_MODELS[item].palette }), size);
+export const gearIcon = (item: ItemId): MenuIcon => (size) => voxelIcon(`item:${item}`, gearModel(item), size);
+export const lootIcon = (item: LootId): MenuIcon => (size) => voxelIcon(`loot:${item}`, lootModel(item), size);
+
+// A thing in the bag, for its turning preview (itemPreview.ts): its key and model, as its icon's.
+export const bagItemPreview = (item: BagItem): { key: string; model: () => VoxelModel } =>
+  isLoot(item) ? { key: `loot:${item}`, model: lootModel(item) } : { key: `item:${item}`, model: gearModel(item) };
 
 // What an empty slot shows: a small voxel model of what goes there (a
 // helmet, a gauntlet, a boot...), made just for that, rendered like every
