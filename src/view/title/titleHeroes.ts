@@ -104,7 +104,7 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
       const figure = humanFigure(hero.look, hero.equipment);
       const mesh = new THREE.Mesh(greedyMesh(figure.grid, figure.palette, VOXEL, origin), material);
       mesh.castShadow = true;
-      const core = humanFigure(hero.look, {});
+      const core = humanFigure({ ...hero.look, hairStyle: 'bald' }, {}); // (the body alone sets where they stand: no hair, so a new style never moves them)
       const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);
       coreGeometry.computeBoundingBox();
       const box = coreGeometry.boundingBox!;
