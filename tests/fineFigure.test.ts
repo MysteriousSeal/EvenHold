@@ -81,13 +81,71 @@ describe('the finer figure, close up', () => {
     expect(changed).toBeGreaterThan(0);
   });
 
-  it('a highlight in each open eye; a closed (cheerful) one, none', () => {
+  it('a highlight in each open eye (cheerful, bright, too); a winking one, none', () => {
+    // The highlights about the eyes (above the nose: the teeth of a laugh are the same white).
     const glints = (expression: BodyLook['expression']) => {
       const fine = fineFigure(humanFigure({ ...look, expression }, {}), look);
-      return fine.grid.cells.filter((c) => c === C.glint).length;
+      const [sx, sy] = fine.grid.size;
+      const eyesFrom = (fine.parts!.head![1] + 4) * 2;
+      return fine.grid.cells.filter((c, i) => c === C.glint && Math.floor(i / sx) % sy >= eyesFrom).length;
     };
     expect(glints('calm')).toBe(2);
-    expect(glints('cheerful')).toBe(0);
+    expect(glints('cheerful')).toBe(2);
+    const wink = { ...look, build: 'female' as const, expression: 'sly' as const };
+    const fine = fineFigure(humanFigure(wink, {}), wink);
+    const [hx, hy, hz] = fine.parts!.head!;
+    const z = (hz + N - 1) * 2 + 1;
+    let right = 0; // (glints about her right eye, winking)
+    for (let y = (hy + 4) * 2; y < (hy + N) * 2; y++) for (let x = (hx + 6) * 2; x < (hx + N) * 2; x++) if (cell(fine, x, y, z) === C.glint) right++;
+    expect(right).toBe(0);
+  });
+
+  it('cheerful: a laugh, open (a filled mouth, teeth across his), at a distance and close up', () => {
+    for (const [build, beard] of [['male', false], ['male', true], ['female', false]] as const) {
+      const face = { ...look, build, beard, expression: 'cheerful' as const };
+      const fine = fineFigure(humanFigure(face, {}), face);
+      const [hx, hy, hz] = fine.parts!.head!;
+      const z = (hz + N - 1) * 2 + 1;
+      let mouth = 0;
+      let teeth = 0;
+      for (let y = hy * 2; y < (hy + 4) * 2; y++) for (let x = hx * 2; x < (hx + N) * 2; x++) {
+        if (cell(fine, x, y, z) === C.mouth) mouth++;
+        if (cell(fine, x, y, z) === C.glint) teeth++;
+      }
+      expect(mouth, `${build}${beard ? '+beard' : ''}`).toBeGreaterThanOrEqual(build === 'male' ? 10 : 12); // (a filled shape, not a line)
+      expect(teeth > 0, `${build} teeth`).toBe(build === 'male');
+    }
+  });
+
+  it.each(['cheerful', 'wistful', 'sly', 'stern', 'calm'] as const)('%s: the mouth one unbroken shape, a wink one unbroken line (him, bearded too, and her)', (expression) => {
+    for (const [build, beard] of [['male', false], ['male', true], ['female', false]] as const) {
+      const face = { ...look, build, beard, expression };
+      const fine = fineFigure(humanFigure(face, {}), face);
+      const [hx, hy, hz] = fine.parts!.head!;
+      const z = (hz + N - 1) * 2 + 1;
+      // The fine face's voxels of one colour, in groups touching (sides or corners).
+      const groups = (color: number, x0: number, x1: number) => {
+        const left = new Set<string>();
+        for (let y = hy * 2; y < (hy + N) * 2; y++) for (let x = x0; x < x1; x++) if (cell(fine, x, y, z) === color) left.add(`${x},${y}`);
+        let count = 0;
+        while (left.size) {
+          count++;
+          const todo = [left.values().next().value!];
+          left.delete(todo[0]);
+          while (todo.length) {
+            const [x, y] = todo.pop()!.split(',').map(Number);
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (left.delete(`${x + dx},${y + dy}`)) todo.push(`${x + dx},${y + dy}`);
+          }
+        }
+        return count;
+      };
+      const mid = (hx + (N - 1) / 2) * 2 + 1;
+      // His beard hides his mouth (all but a smile's or smirk's corners, over it); his stern lips are pressed (no mouth colour).
+      const corners = beard && (expression === 'cheerful' || expression === 'sly');
+      const mouths = beard || (build === 'male' && expression === 'stern') ? 0 : 1;
+      if (!corners) expect(groups(C.mouth, hx * 2, (hx + N) * 2), `${build}${beard ? '+beard' : ''} mouth`).toBe(mouths);
+      if (expression === 'sly' && build === 'female') expect(groups(C.eye, mid, (hx + N) * 2), 'her wink').toBe(1);
+    }
   });
 
   it('never paints over what covers the face (a visor)', () => {
