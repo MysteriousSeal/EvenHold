@@ -133,57 +133,8 @@
 /* The roster, as a gilded ledger: dark leather, a gold double edge with gilt corner brackets; a head with its
    count between ornamental rules; a card per hero (a framed bust, the name, the day and world, the level on a
    bronze shield), the chosen one gilded and glowing, a gold bar down its side; dashed slots for the places left.
-   The controls' codex, bound the same. */
-.title-list, .title-codex, .title-forge {
-  --gold: #e8c27a;
-  --gold-deep: #b98a46;
-  --ink: #1e140d;
-  position: absolute; /* (where, and how wide: each its own, below and in heroForge.css) */
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--gold-deep) transparent;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  background:
-    linear-gradient(var(--gold), var(--gold)) left 5px top 5px / 16px 2px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) left 5px top 5px / 2px 16px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) right 5px top 5px / 16px 2px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) right 5px top 5px / 2px 16px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) left 5px bottom 5px / 16px 2px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) left 5px bottom 5px / 2px 16px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) right 5px bottom 5px / 16px 2px no-repeat,
-    linear-gradient(var(--gold), var(--gold)) right 5px bottom 5px / 2px 16px no-repeat,
-    radial-gradient(120% 60% at 50% 0%, rgba(255, 200, 130, 0.1), transparent 60%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
-    linear-gradient(180deg, rgba(48, 32, 22, 0.95), rgba(28, 19, 13, 0.96));
-  border: 2px solid var(--gold-deep);
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(232, 194, 122, 0.35), 0 12px 32px rgba(10, 6, 4, 0.55), 0 2px 0 rgba(10, 6, 4, 0.5);
-}
-.title-list { right: 3vw; top: 13vh; width: 316px; max-height: 70vh; padding: 16px 14px 14px; }
-.title-list-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 2px 6px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--gold);
-  text-shadow: 0 1px 0 var(--ink);
-}
-.title-list-head::before, .title-list-head::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(232, 194, 122, 0.7));
-}
-.title-list-head::before { order: 0; flex: 0 0 18px; }
-.title-list-head span { order: 1; }
-.title-list-head::after { order: 2; background: linear-gradient(90deg, rgba(232, 194, 122, 0.7), transparent); }
-.title-list-head small { order: 3; font-size: 12px; letter-spacing: 0.06em; color: #b89f78; }
+   (Its binding, the controls' codex's and the creation panels': view/ui/gilded.css.) */
+.title-list { position: absolute; right: 3vw; top: 13vh; width: 316px; max-height: 70vh; padding: 16px 14px 14px; }
 
 .title-card, .title-slot {
   position: relative;
@@ -261,10 +212,9 @@
 .title-corner.left { left: 3vw; }
 .title-corner.right { right: 3vw; }
 
-/* The controls' codex: in the middle, wide, its groups side by side (one under another, narrow); each control
-   its name (a note under it) and its keys drawn as keycaps: parchment caps with an ink edge and a deep bevel,
-   W over A S D and the arrows in their keyboard shape, a drawn mouse (its button lit, or its wheel). */
+/* The controls' codex (controlsCodex.ts) on the title: in the middle, wide, under the signboard. */
 .title-codex {
+  position: absolute;
   left: 50%;
   right: auto;
   top: calc(5vh + 152px);
@@ -273,70 +223,6 @@
   max-height: calc(95vh - 250px);
   padding: 18px 24px 22px;
 }
-.title-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 28px; }
-.title-group h3 {
-  margin: 8px 0 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #c9a46a;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(232, 194, 122, 0.22);
-}
-.title-control {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  padding: 4px 6px;
-  border-radius: 3px;
-}
-.title-control + .title-control { border-top: 1px solid rgba(232, 194, 122, 0.08); }
-.title-control:hover { background: rgba(255, 228, 186, 0.06); }
-.title-what { display: flex; flex-direction: column; gap: 1px; font-size: 15px; font-weight: 600; color: #f3e6cc; text-shadow: 0 1px 0 var(--ink); }
-.title-what small { font-size: 11.5px; font-weight: 400; color: #a8916f; text-shadow: none; }
-.title-keys { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.title-word { font-size: 11px; font-style: italic; color: #a8916f; }
-.title-cap {
-  display: inline-grid;
-  place-items: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-  box-sizing: border-box;
-  font: 700 12px 'Fredoka', system-ui, sans-serif;
-  color: #2e1f14;
-  background: linear-gradient(180deg, #fbf2de, #e4cfa6);
-  border: 1px solid #2e1f14;
-  border-radius: 5px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -2px 0 rgba(122, 90, 58, 0.25), 0 2px 0 #8a6a44, 0 3px 0 #2e1f14, 0 5px 6px rgba(0, 0, 0, 0.35);
-  translate: 0 -2px;
-}
-.title-cap.wide { min-width: 52px; padding: 0 10px; }
-.title-control:hover .title-cap { background: linear-gradient(180deg, #fff6e0, #f0d9a8); }
-.title-cluster { display: inline-grid; grid-template-columns: repeat(3, 22px); gap: 3px; }
-.title-cluster .title-cap { min-width: 22px; height: 21px; padding: 0; font-size: 11px; }
-.title-cluster .title-cap:nth-child(1) { grid-area: 1 / 2; } /* (W, ↑: alone on top) */
-.title-cluster .title-cap:nth-child(2) { grid-area: 2 / 1; }
-.title-cluster .title-cap:nth-child(3) { grid-area: 2 / 2; }
-.title-cluster .title-cap:nth-child(4) { grid-area: 2 / 3; }
-.title-mouse {
-  position: relative;
-  width: 18px;
-  height: 26px;
-  box-sizing: border-box;
-  background: linear-gradient(180deg, #fbf2de, #e4cfa6);
-  border: 1px solid #2e1f14;
-  border-radius: 9px 9px 10px 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 0 #8a6a44, 0 3px 0 #2e1f14, 0 5px 6px rgba(0, 0, 0, 0.35);
-  translate: 0 -2px;
-}
-.title-mouse::before { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 10px; background: #2e1f14; }
-.title-mouse.click::after { content: ''; position: absolute; left: 1px; top: 1px; width: 7px; height: 9px; border-radius: 7px 0 0 0; background: #e8903a; }
-.title-mouse.wheel::after { content: ''; position: absolute; left: 50%; top: 3px; width: 4px; height: 7px; margin-left: -2px; border-radius: 2px; background: #e8903a; box-shadow: 0 0 0 1px #2e1f14; }
-
 @media (max-width: 760px) {
   .title-list { left: 50%; right: auto; top: auto; bottom: 20vh; transform: translateX(-50%); max-height: 26vh; }
 }

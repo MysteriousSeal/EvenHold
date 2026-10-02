@@ -17,13 +17,14 @@
 // mainMenu.css.
 
 import { MAX_WORLDS, type SavedWorld } from '../storage/saveGame';
-import { CONTROL_GROUPS, type KeyMark } from '../controls';
+import { controlsCodex } from '../controlsCodex';
 import { humanBust, humanFigure } from '../../view/meshes/human/humanFigure';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { TITLE_HEROES, createTitleScene } from '../../view/title/titleScene';
 import { heroForge, type Forge } from './heroForge';
 import type { BodyLook } from '../../model/human/humanoid';
 import { el } from '../../view/ui/dom';
+import '../../view/ui/gilded.css';
 import './mainMenu.css';
 
 // What the menu ends with: the world to play, and the hero made for it (none: one of theirs, or a random one).
@@ -169,21 +170,6 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
     root.addEventListener('click', skip);
 
     const back = () => button('title-side', 'Back', () => go('heroes'));
-    // A key, drawn: a cap; a word between caps; W over A S D, or the arrows, in their keyboard shape; the mouse.
-    const mark = (m: KeyMark): HTMLElement => {
-      if ('cap' in m) return el('kbd', `title-cap${m.cap.length > 1 ? ' wide' : ''}`, m.cap);
-      if ('word' in m) return el('span', 'title-word', m.word);
-      if ('mouse' in m) {
-        const mouse = el('span', `title-mouse ${m.mouse}`);
-        mouse.title = m.mouse === 'wheel' ? 'Mouse wheel' : 'Click';
-        return mouse;
-      }
-      const [top, ...row] = m.cluster === 'wasd' ? ['W', 'A', 'S', 'D'] : ['↑', '←', '↓', '→'];
-      const cluster = el('span', 'title-cluster');
-      cluster.append(el('kbd', 'title-cap', top), ...row.map((k) => el('kbd', 'title-cap', k)));
-      return cluster;
-    };
-
     const draw = () => {
       root.dataset.screen = at;
       const row = standing();
@@ -199,8 +185,8 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         } else if (!hero) stage.append(el('div', 'title-hero-line', 'No hero yet: make a new world to begin.'));
         // The roster: each hero (their bust, name, day and world, their level on a shield), the chosen one gilded;
         // then a slot for each place left (a new hero), eight in all.
-        const list = el('div', 'title-list');
-        const head = el('div', 'title-list-head');
+        const list = el('div', 'title-list gilded');
+        const head = el('div', 'gilded-head');
         head.append(el('span', '', 'Your heroes'), el('small', '', `${worlds.length} / ${MAX_WORLDS}`));
         list.append(head);
         worlds.forEach((w, i) => {
@@ -252,26 +238,11 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         if (world) screen.append(el('div', 'forge-hint', 'Drag to turn'));
         return;
       }
-      // The controls, as a codex: grouped, each its keys drawn as keycaps.
-      const panel = el('div', 'title-codex');
-      const head = el('div', 'title-list-head');
+      // The controls (controlsCodex.ts), in a gilded panel.
+      const panel = el('div', 'title-codex gilded');
+      const head = el('div', 'gilded-head');
       head.append(el('span', '', 'Controls'));
-      const groups = el('div', 'title-controls');
-      for (const group of CONTROL_GROUPS) {
-        const section = el('section', 'title-group');
-        section.append(el('h3', '', group.name));
-        for (const c of group.controls) {
-          const line = el('div', 'title-control');
-          const what = el('span', 'title-what', c.what);
-          if (c.note) what.append(el('small', '', c.note));
-          const keys = el('span', 'title-keys');
-          keys.append(...c.marks.map(mark));
-          line.append(what, keys);
-          section.append(line);
-        }
-        groups.append(section);
-      }
-      panel.append(head, groups);
+      panel.append(head, controlsCodex());
       const left = el('div', 'title-corner left');
       left.append(back());
       screen.replaceChildren(panel, left);

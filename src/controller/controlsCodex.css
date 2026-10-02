@@ -1,0 +1,67 @@
+/* The controls' codex (controlsCodex.ts): its groups side by side (one under another, narrow), each under a gold
+   head; each control its name (a note under it) and its keys drawn as keycaps: parchment caps with an ink edge and a
+   deep bevel, W over A S D and the arrows in their keyboard shape, a drawn mouse (its button lit, or its wheel). Its
+   gold and ink from the gilded panel round it (view/ui/gilded.css). */
+.codex { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 28px; }
+.codex-group h3 {
+  margin: 8px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a46a;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(232, 194, 122, 0.22);
+}
+.codex-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+.codex-control + .codex-control { border-top: 1px solid rgba(232, 194, 122, 0.08); }
+.codex-control:hover { background: rgba(255, 228, 186, 0.06); }
+.codex-what { display: flex; flex-direction: column; gap: 1px; font-size: 15px; font-weight: 600; color: #f3e6cc; text-shadow: 0 1px 0 var(--ink); }
+.codex-what small { font-size: 11.5px; font-weight: 400; color: #a8916f; text-shadow: none; }
+.codex-keys { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.codex-word { font-size: 11px; font-style: italic; color: #a8916f; }
+.keycap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  font: 700 12px 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  background: linear-gradient(180deg, #fbf2de, #e4cfa6);
+  border: 1px solid #2e1f14;
+  border-radius: 5px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -2px 0 rgba(122, 90, 58, 0.25), 0 2px 0 #8a6a44, 0 3px 0 #2e1f14, 0 5px 6px rgba(0, 0, 0, 0.35);
+  translate: 0 -2px;
+}
+.keycap.wide { min-width: 52px; padding: 0 10px; }
+.codex-control:hover .keycap { background: linear-gradient(180deg, #fff6e0, #f0d9a8); }
+.keycap-cluster { display: inline-grid; grid-template-columns: repeat(3, 22px); gap: 3px; }
+.keycap-cluster .keycap { min-width: 22px; height: 21px; padding: 0; font-size: 11px; }
+.keycap-cluster .keycap:nth-child(1) { grid-area: 1 / 2; } /* (W, ↑: alone on top) */
+.keycap-cluster .keycap:nth-child(2) { grid-area: 2 / 1; }
+.keycap-cluster .keycap:nth-child(3) { grid-area: 2 / 2; }
+.keycap-cluster .keycap:nth-child(4) { grid-area: 2 / 3; }
+.keycap-mouse {
+  position: relative;
+  width: 18px;
+  height: 26px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #fbf2de, #e4cfa6);
+  border: 1px solid #2e1f14;
+  border-radius: 9px 9px 10px 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 0 #8a6a44, 0 3px 0 #2e1f14, 0 5px 6px rgba(0, 0, 0, 0.35);
+  translate: 0 -2px;
+}
+.keycap-mouse::before { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 10px; background: #2e1f14; }
+.keycap-mouse.click::after { content: ''; position: absolute; left: 1px; top: 1px; width: 7px; height: 9px; border-radius: 7px 0 0 0; background: #e8903a; }
+.keycap-mouse.wheel::after { content: ''; position: absolute; left: 50%; top: 3px; width: 4px; height: 7px; margin-left: -2px; border-radius: 2px; background: #e8903a; box-shadow: 0 0 0 1px #2e1f14; }

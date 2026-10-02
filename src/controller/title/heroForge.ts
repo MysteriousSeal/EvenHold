@@ -16,6 +16,7 @@ import { lookSwatch } from '../../view/meshes/human/bodyVoxels';
 import { generateRandomSeed } from '../../util/random';
 import { seedFrom } from '../../util/seed';
 import { el } from '../../view/ui/dom';
+import '../../view/ui/gilded.css';
 import './heroForge.css';
 
 export interface Forged {
@@ -44,8 +45,8 @@ export function heroForge(changed: (look: BodyLook, name: string) => void, heroO
   let named = false; // (a name typed: kept when the body changes)
   let helm = false; // (a helm tried on)
 
-  const panel = el('div', 'title-forge');
-  const identity = el('div', 'title-forge identity');
+  const panel = el('div', 'title-forge gilded');
+  const identity = el('div', 'title-forge identity gilded');
   const traits = el('div', 'forge-traits');
   const nameInput = el('input', 'forge-name');
   const seedInput = el('input', 'forge-seed');
@@ -137,7 +138,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void, heroO
   };
 
   // The head: its title, and a whole new look.
-  const head = el('div', 'title-list-head');
+  const head = el('div', 'gilded-head');
   head.append(el('span', '', 'Appearance'));
   const surprise = el('button', 'forge-surprise', 'Surprise me');
   surprise.type = 'button';
@@ -214,7 +215,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void, heroO
 
   head.append(surprise);
   panel.append(head, traits);
-  const identityHead = el('div', 'title-list-head');
+  const identityHead = el('div', 'gilded-head');
   identityHead.append(el('span', '', 'Name & World'));
   identity.append(identityHead, nameRow, world, problem);
   draw();

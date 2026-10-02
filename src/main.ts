@@ -41,6 +41,7 @@ import { createQuestTracker } from './view/hud/questTracker';
 import { noticeBoards } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/hero/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
+import { clockAt } from './model/clock';
 import { createToolbar } from './view/hud/toolbar';
 import { createActionBar } from './view/hud/actionBar';
 import { clearAction, swapActions, useAction } from './model/hero/actionBar';
@@ -144,15 +145,12 @@ async function boot(): Promise<void> {
       view.update(0); // (the room rebuilt, walls changed) while the game stands still
       view.render();
     },
-    newGame: () => {
-      autoSave.forget();
-      window.location.reload();
-    },
     mainMenu: () => {
       autoSave.save();
       keepSessionSeed(null); // (this tab's world let go: the reload shows the main menu)
       window.location.reload();
     },
+    hero: () => ({ name: model.hero.name, level: model.hero.level, day: clockAt(model.minutes).day, seed: model.seed, look: model.hero.look, equipment: model.hero.equipment }),
     walls: {
       full: () => model.fullWalls,
       toggle: () => {

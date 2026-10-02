@@ -1,0 +1,135 @@
+/* The pause menu (pauseMenu.ts): the game dimmed behind a warm vignette; two
+   gilded panels (view/ui/gilded.css) side by side: the hero, framed, and the
+   menu. "Paused" in large clay letters between gold rules; Resume a big gold
+   bar; the settings in a recessed tray, each changed in place (a stepper, a
+   switch); the rest plain rows lit gold under the keys or the mouse; a quiet
+   line at the foot. There at once (no
+   fade), no backdrop blur (cheap to show). */
+.pause-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 45%, rgba(26, 16, 10, 0.5), rgba(10, 6, 4, 0.82) 75%);
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
+.pause-backdrop[hidden] { display: none; }
+.pause { display: flex; align-items: stretch; gap: 14px; max-height: calc(100vh - 48px); }
+
+/* The hero, framed: their portrait on a lit ground, their name, a level crest, their day and world. */
+.pause-hero {
+  align-self: flex-start; /* (as tall as the hero's card, not the menu) */
+  width: 196px;
+  padding: 30px 18px 26px;
+  align-items: center;
+  gap: 12px; /* (room between the portrait, the name, the crest and the line) */
+  text-align: center;
+}
+.pause-portrait {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  margin-bottom: 8px;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 210, 140, 0.32), rgba(42, 28, 19, 0.9) 70%);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 18px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 190, 100, 0.18);
+  overflow: hidden;
+}
+.pause-portrait canvas { width: 112px; height: 112px; }
+.pause-hero-name { font-size: 22px; font-weight: 700; color: #ffd98a; text-shadow: 0 2px 0 var(--ink); line-height: 1.1; overflow-wrap: anywhere; }
+.pause-crest {
+  padding: 2px 12px 3px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #2a1a0e;
+  background: linear-gradient(180deg, #ffe3a0, #d6a04e);
+  border-radius: 2px;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+}
+.pause-hero-line { margin-top: 4px; font-size: 11.5px; color: #a8916f; letter-spacing: 0.02em; }
+
+/* The menu. */
+.pause-main { width: min(380px, calc(100vw - 260px)); padding: 18px 18px 14px; gap: 6px; }
+.pause-main.controls { width: min(760px, calc(100vw - 260px)); }
+.pause-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 2px 0 10px;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #d9663c;
+  text-shadow: 0 3px 0 #6e2f1a, 0 5px 0 rgba(10, 6, 4, 0.6);
+}
+.pause-title::before, .pause-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, var(--gold)); }
+.pause-title::after { background: linear-gradient(90deg, var(--gold), transparent); }
+
+/* A row: plain, lit gold under the keys or the mouse (a bar down its side). */
+.pause-item {
+  box-sizing: border-box; /* (its padding inside its width: never past the panel) */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 8px 12px 9px;
+  font-family: inherit;
+  text-align: left;
+  color: #f3e6cc;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+}
+.pause-item b { font-size: 17px; font-weight: 700; text-shadow: 0 1px 0 var(--ink); }
+.pause-item small { font-size: 12px; color: #a8916f; }
+.pause-item.lit { background: linear-gradient(90deg, rgba(255, 196, 110, 0.22), rgba(255, 196, 110, 0.04) 75%); border-color: rgba(232, 194, 122, 0.5); box-shadow: inset 3px 0 0 #ffd98a; }
+.pause-item.lit b { color: #ffd98a; }
+
+/* Resume: a big gold bar. */
+.pause-resume {
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 11px 12px 13px;
+  color: #2e1f14;
+  background: linear-gradient(180deg, #ffe3a0, #e8b860);
+  border: 2px solid #2e1f14;
+  box-shadow: 0 4px 0 #2e1f14, inset 0 -4px 0 #c98a3a, inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+.pause-resume b { font-size: 22px; color: #2e1f14; text-shadow: none; }
+.pause-resume.lit { background: linear-gradient(180deg, #fff0c4, #f2c46c); border-color: #2e1f14; box-shadow: 0 4px 0 #2e1f14, inset 0 -4px 0 #c98a3a, inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 0 18px rgba(255, 200, 110, 0.35); }
+.pause-resume.lit b { color: #2e1f14; }
+.pause-resume:active { transform: translateY(3px); box-shadow: 0 1px 0 #2e1f14, inset 0 -3px 0 #c98a3a; }
+
+/* The settings, in a recessed tray: each its name, and its control on the right. */
+.pause-settings { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 6px; padding: 4px; background: rgba(10, 6, 4, 0.35); border: 1px solid rgba(232, 194, 122, 0.14); border-radius: 4px; }
+.pause-setting { flex-direction: row; align-items: center; justify-content: space-between; padding: 6px 8px 6px 10px; cursor: default; }
+.pause-setting b { font-size: 15px; }
+.pause-stepper { display: grid; grid-template-columns: 30px 84px 30px; gap: 4px; align-items: stretch; }
+.pause-arrow { font: 700 18px/1 'Fredoka', system-ui, sans-serif; color: var(--gold); background: rgba(232, 194, 122, 0.08); border: 1px solid rgba(232, 194, 122, 0.3); border-radius: 3px; cursor: pointer; }
+.pause-arrow:hover { background: rgba(232, 194, 122, 0.22); color: #ffe3a0; }
+.pause-value { display: grid; place-items: center; padding: 4px; font-size: 14px; font-weight: 600; color: #f3e6cc; background: rgba(10, 6, 4, 0.45); border: 1px solid rgba(232, 194, 122, 0.2); border-radius: 3px; }
+.pause-switch { display: flex; gap: 3px; padding: 3px; background: rgba(10, 6, 4, 0.45); border: 1px solid rgba(232, 194, 122, 0.2); border-radius: 5px; }
+.pause-option { min-width: 58px; padding: 4px 10px; font: 600 13px 'Fredoka', system-ui, sans-serif; color: #c8b088; background: none; border: none; border-radius: 3px; cursor: pointer; }
+.pause-option:hover { color: #f3e6cc; }
+.pause-option.chosen { color: #2a1a0e; background: linear-gradient(180deg, #ffe3a0, #e0a64a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+
+.pause-back { align-self: flex-start; width: auto; margin-top: 10px; padding: 6px 16px; border-color: rgba(232, 194, 122, 0.35); }
+.pause-foot { margin: 8px 2px 0; font-size: 11.5px; letter-spacing: 0.04em; color: #8f7a5c; text-align: center; }
+
+@media (max-width: 640px) {
+  .pause { flex-direction: column; overflow-y: auto; }
+  .pause-hero { width: auto; flex-direction: row; justify-content: center; padding: 12px; }
+  .pause-portrait { width: 72px; height: 72px; margin: 0; }
+  .pause-portrait canvas { width: 64px; height: 64px; }
+  .pause-main, .pause-main.controls { width: auto; }
+}
