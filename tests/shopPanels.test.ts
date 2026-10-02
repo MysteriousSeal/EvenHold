@@ -300,7 +300,8 @@ describe('the bag', () => {
     bagEl().querySelector<HTMLButtonElement>('.bag-sort')!.click();
     expect(model.hero.bagOrder).toEqual(['nasalCap', 'bread', 'wolfFang']);
     const keys = Array.from(bagEl().querySelectorAll('.menu-slot')).map((s) => s.querySelector('canvas')?.dataset.key ?? null);
-    expect(keys.slice(0, 4)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]);
+    expect(keys.slice(0, 4)).toEqual(['bag-socket', 'bag-socket', 'bag-socket', 'bag-socket']); // (the sockets on top)
+    expect(keys.slice(4, 8)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]); // (no empty cells by the sockets)
   });
 });
 

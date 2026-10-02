@@ -1,6 +1,8 @@
 // Everything that can be carried, one by one: every piece of gear (its
 // slot, stats, armour, price, model) and every kind of loot (its worth,
 // quality, model, and who'd buy it).
+import { isBagItem } from '../src/model/loot/bags';
+import { pedlarPrice } from '../src/model/travellers/pedlarShop';
 import { describe, expect, it } from 'vitest';
 import { ITEMS, ITEM_IDS, SLOT_NAMES, isHeldSlot, isJewelrySlot, type ItemId } from '../src/model/human/equipment';
 import { STATS } from '../src/model/hero/statKinds';
@@ -45,7 +47,7 @@ describe.each(LOOT_IDS.map((id) => [id]))('loot: %s', (id: LootId) => {
   it('is named, has its worth and quality, a model, and is sold (or not) as its kind is', () => {
     expect(loot.name.trim().length).toBeGreaterThan(2);
     expect(loot.value).toBeGreaterThanOrEqual(0);
-    expect(['junk', 'ingredient', 'common', 'quest']).toContain(LOOT_QUALITY[id]);
+    expect(['junk', 'ingredient', 'common', 'quest', 'bag']).toContain(LOOT_QUALITY[id]);
     expect(LOOT_MODELS[id].build().cells.some((c) => c > 0)).toBe(true);
     for (const w of Object.values(loot.droppedBy)) expect(w).toBeGreaterThan(0);
     if (isProvision(id)) {
@@ -55,5 +57,6 @@ describe.each(LOOT_IDS.map((id) => [id]))('loot: %s', (id: LootId) => {
       expect(PROVISIONS[id].drink ? PROVISIONS[id].heal : PROVISIONS[id].energy).toBeUndefined();
     } else if (isJunk(id)) expect(sellValue(id)).toBe(loot.value); // anyone buys junk, at its worth
     else if (isQuestItem(id)) expect(sellValue(id)).toBeNull(); // quest items: kept for the quest
+    else if (isBagItem(id)) expect(pedlarPrice(id, true)).toBeLessThan(pedlarPrice(id, false)); // bags: sold back to a pedlar for less
   });
 });
