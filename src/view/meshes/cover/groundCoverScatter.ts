@@ -11,6 +11,7 @@ import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
 import { meadowPatches } from '../../../model/scenery/meadowPatches';
+import { sceneryTiles } from '../../../model/scenery/scenery';
 
 const MAX_CLUMPS_PER_TILE = 5;
 const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
@@ -57,7 +58,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 // and chunks can be scattered only when they're about to be seen.
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const scenery = (model.scenery ?? []).flatMap((s) => Array.from({ length: s.w * s.d }, (_, i) => cellKey(s.x + (i % s.w), s.z + Math.floor(i / s.w)))); // (rocks and landmarks: none growing through them)
+  const scenery = (model.scenery ?? []).flatMap((s) => sceneryTiles(s).map(([x, z]) => cellKey(x, z))); // (rocks and landmarks: none growing through them)
   const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z))), ...scenery]); // (and crypts' ways down: no grass in the dark)
   const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
   const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)

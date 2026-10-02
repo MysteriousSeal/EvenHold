@@ -14,7 +14,7 @@ import { createGrid, fillBox, setColor } from '../../view/meshes/voxel/voxelShap
 import { humanFigure } from '../../view/meshes/human/humanFigure';
 import { SCENERY_PALETTE, buildScenery } from '../../view/meshes/scenery/sceneryVoxels';
 import { BLOOM_KINDS, BLOOM_PALETTE, buildBloom } from '../../view/meshes/cover/bloomVoxels';
-import { BIRD_PALETTE, birdGrid, butterflyGrid } from '../../view/meshes/wildlife/ambientLife';
+import { BIRD_PALETTE, birdGrid, butterflyGrid } from '../../view/meshes/wildlife/ambientVoxels';
 import type { SceneryKind } from '../../model/scenery/scenery';
 import type { BloomKind } from '../../model/scenery/meadowPatches';
 import { BOAR_PALETTE, buildBoarHead } from '../../view/meshes/enemy/boarVoxels';
