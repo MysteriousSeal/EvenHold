@@ -307,7 +307,7 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
     } else if (style === 'bob') {
       // Cut straight at the chin all round, a straight fringe across the brow.
       fillBox(grid, 0, 2, 0, L, L - 1, 1, (x, y) => strands(x, y));
-      for (const x of [0, L]) fillBox(grid, x, 2, 0, x, L - 1, L - 1, (_x, y, z) => (y === 2 ? C.hairDark : strands(z, y)));
+      for (const x of [0, L]) fillBox(grid, x, 2, 0, x, L - 1, L, (_x, y, z) => (y === 2 ? C.hairDark : strands(z, y))); // (to the front: framing the face)
       fillBox(grid, 1, 9, L, L - 1, 9, L, (x) => (x % 3 === 0 ? C.hairLight : C.hair));
     } else {
       // Down the back (to the nape, or the neck when long) and the sides.
@@ -328,8 +328,8 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
       fillBox(grid, x, 4, L, x, 6, L, (_x, y) => (y === 6 ? C.glint : C.eye)); // an eye, and its glint
       setColor(grid, x + side, 6, L, C.eye); // wide at the top
       setColor(grid, x + side * 2, 7, L, C.hairDark); // a lash, flicking out
-      fillBox(grid, x, 8, L, x + side, 8, L, C.hair); // a soft brow
-      fillBox(grid, x + side, 3, L, x + side * 2, 3, L, C.cheek); // blush
+      fillBox(grid, Math.min(x, x + side), 8, L, Math.max(x, x + side), 8, L, C.hair); // a soft brow
+      fillBox(grid, Math.min(x + side, x + side * 2), 3, L, Math.max(x + side, x + side * 2), 3, L, C.cheek); // blush (on both sides: the ranges run low to high)
     }
     setColor(grid, M, 2, L, C.mouth); // a tiny mouth
     return grid;
@@ -359,14 +359,14 @@ export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'ha
 
 // Hair gathered up past the head (a bun, a ponytail, braids, pigtails, a
 // crown braid, loose waves, a topknot, a warrior's tail, long hair to the
-// shoulders, shaggy tufts), as its own piece on the head's
+// shoulders, shaggy tufts, a bob's fullness), as its own piece on the head's
 // joint, left off under anything worn on the head; or null for styles that
 // stay within it. Its grid spans 2 either side of the head, from 9 below it
 // to 5 over, and from 4 behind it to 1 in front; `pivot` is the head's
 // joint in it.
 export const HAIR_PIECE_GRID: [number, number, number] = [15, 25, 16];
 export const HAIR_PIECE_PIVOT: [number, number, number] = [7.5, 9, 9.5];
-const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot', 'warriorTail', 'long', 'shaggy'] as const;
+const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot', 'warriorTail', 'long', 'shaggy', 'bob'] as const;
 export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
   if (!(GATHERED as readonly string[]).includes(style)) return null;
   const grid = createGrid(HAIR_PIECE_GRID);
@@ -392,9 +392,13 @@ export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
       for (const x of [3, 7]) for (let y = 9; y <= 10; y++) at(x, y, -2, C.hair); // rounder in the middle
       break;
     case 'ponytail':
-      at(5, 8, -1, C.cord); // tied at the back of the crown
-      for (let y = 8; y >= -3; y--) at(5, y, -2, strand(y)); // hanging down the back
-      for (const x of [4, 6]) for (let y = 6; y >= 0; y--) at(x, y, -2, strand(y + 1)); // fuller in the middle
+      // Tied high at the back of the crown, the gathered hair standing out from the tie, then the tail hanging
+      // close down the back of the head, fuller in the middle, past the nape to between the shoulders.
+      for (const x of [4, 5, 6]) at(x, 8, -1, C.cord);
+      for (const x of [4, 5, 6]) at(x, 9, -1, strand(x)); // gathered over the tie
+      at(5, 8, -2, strand(8)); // (standing out)
+      for (let y = 7; y >= -4; y--) at(5, y, -1, strand(y));
+      for (const x of [4, 6]) for (let y = 7; y >= -1; y--) at(x, y, -1, strand(y + 1));
       break;
     case 'braid':
       braid(4, 6, -2, -1, 7, -8); // one thick braid down the back, past the shoulders
@@ -405,9 +409,9 @@ export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
       braid(11, 12, 6, 7, 9, -6);
       break;
     case 'crownBraid':
-      // A braid wound round the head above the brow, two rows deep, plaited.
+      // A braid wound round the head at its top, a crown over the brow (clear of it), two rows deep, plaited.
       for (let i = -1; i <= 11; i++) {
-        for (const y of [8, 9]) {
+        for (const y of [9, 10]) {
           const plait = (i + y) % 2 === 0 ? C.hairLight : C.hairDark;
           at(i, y, -1, plait);
           at(i, y, 11, plait);
@@ -425,11 +429,21 @@ export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
       break;
     }
     case 'pigtails':
-      // Tied behind the ears, a full tail hanging from each.
+      // Tied behind the ears, a full tail from each: springing out from the tie, then hanging down against the
+      // side of the head to below the jaw.
       for (const x of [-1, 11]) {
-        at(x, 7, 3, C.cord);
-        for (let y = 7; y >= 1; y--) for (const z of [2, 3]) at(x < 0 ? -2 : 12, y, z, strand(y + z));
+        const out = x < 0 ? -2 : 12;
+        for (const z of [2, 3]) at(x, 7, z, C.cord);
+        for (const z of [2, 3]) at(out, 7, z, strand(z)); // (springing out)
+        for (const z of [2, 3]) at(out, 6, z, strand(z + 1));
+        for (let y = 6; y >= -2; y--) for (const z of [2, 3]) at(x, y, z, strand(y + z));
       }
+      break;
+    case 'bob':
+      // Fuller than the head, rounded: its volume swelling out at the sides and the back, curving in at the
+      // crown and under at the ends (a darker line along the bottom).
+      for (const x of [-1, 11]) for (let y = 2; y <= 8; y++) for (let z = 0; z <= 9; z++) if (!(y === 8 && (z === 0 || z === 9))) at(x, y, z, y === 2 ? C.hairDark : strand(y + z));
+      for (let x = 0; x <= 10; x++) for (let y = 2; y <= 9; y++) at(x, y, -1, y === 2 ? C.hairDark : strand(y + x));
       break;
     case 'warriorTail':
       // The strip of hair tied at the back of the head (the knot standing out), a short thick tail hanging from
