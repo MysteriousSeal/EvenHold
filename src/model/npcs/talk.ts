@@ -9,7 +9,7 @@ import type { Npc, NpcRole } from './npcs';
 export const TALK_RANGE = 2.2; // room tiles: across a bar or a counter
 
 // Those who talk, and what the prompt calls it.
-const TALKS: Partial<Record<NpcRole, string>> = { barkeep: 'Talk to', smith: 'Trade with', bouncer: 'Talk to' };
+const TALKS: Partial<Record<NpcRole, string>> = { barkeep: 'Talk to', smith: 'Trade with', bouncer: 'Talk to', herbalist: 'Trade with' };
 
 export function talkingTo(npcs: readonly Npc[], inside: Inside | null, hero: { x: number; z: number }): Npc | null {
   if (!inside) return null;

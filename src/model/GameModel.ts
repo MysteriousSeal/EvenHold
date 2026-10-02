@@ -24,7 +24,7 @@ import type { Obstacles } from './map/obstacles';
 import { worldObstacles } from './map/blockers';
 import { stepHop, type Hop } from './hero/hop';
 import type { GroundLoot } from './loot/loot';
-import { addToBag, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
+import { addToBag, drinkPotion, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
 import { Ground } from './loot/ground';
 import type { EquipSlot, ItemId } from './human/equipment';
 import { putOn, takeOff } from './hero/wearing';
@@ -447,6 +447,7 @@ export class GameModel {
 
   // Eats or drinks one of `item` from the bag, for the health it gives back (hero/bag.ts); returns whether they did.
   consume = (item: BagItem): boolean => eatOrDrink(this.hero, item);
+  drinkPotion = (item: BagItem): boolean => drinkPotion(this.hero, item);
 
   // The village well the hero's beside (outdoors), by its village's index; else null.
   get wellInReach(): number | null {

@@ -75,6 +75,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false)
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
   // at a time, all of it once it's done.
+  hero.potionCooldown = Math.max(0, (hero.potionCooldown ?? 0) - dt); // (another potion, in a while)
   hero.drinking = restoring(hero, hero.drinking, dt);
   hero.eating = restoring(hero, hero.eating, dt);
 }

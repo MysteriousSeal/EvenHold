@@ -112,6 +112,7 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   server: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
   smith: (npc, _npcs, world) => smithSteps(npc, world),
   bouncer: (npc, _npcs, world) => bouncerSteps(npc, world.seed),
+  herbalist: () => [{ kind: 'settle', for: 30 }], // (at home, among their pots and herbs, always)
 };
 
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {

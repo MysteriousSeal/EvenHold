@@ -255,3 +255,16 @@ export function nextLife(model: GameModel, from: Tile, kind: LifeKind, visited: 
   if (!lifeOut(kind, model.minutes)) model.minutes = nextHour(model.minutes, LIFE_HOUR[kind]);
   return nearestOpenTile(model, { x: Math.round(spot.x) + 5, z: Math.round(spot.z) + 5 });
 }
+
+// Into the house of the nearest herbalist not yet visited (the tour round again once all have been); whether there
+// was one.
+export function visitHerbalist(model: GameModel, visited: Set<Entrance>): boolean {
+  if (model.inside) model.useDoor();
+  const homes = [...new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home))];
+  if (homes.length === 0) return false;
+  if (homes.every((h) => visited.has(h))) visited.clear();
+  const next = homes.filter((h) => !visited.has(h)).reduce((best, h) => (distance(h, model.hero) < distance(best, model.hero) ? h : best));
+  visited.add(next);
+  model.teleport(next.x, next.z);
+  return model.useDoor();
+}
