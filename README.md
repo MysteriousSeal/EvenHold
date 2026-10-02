@@ -52,6 +52,7 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
 | Strike | **Space** |
 | Roll (untouchable for a moment) | **Shift** |
 | Guard (raise it as a blow lands to parry) | Hold **Q** |
+| Eat or drink from the action bar (drag food and drink onto it from your bag) | **1** to **8** |
 | Interact (pick up, talk, sit, open, enter) | **E** |
 | Focus a foe | **Click** it, or **Tab** to the next (**Shift+Tab** back) |
 | Clear the focus | **Escape** |
