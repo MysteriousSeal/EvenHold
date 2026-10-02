@@ -20,7 +20,7 @@ import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions'
 import { sellValue } from '../../model/shops/sellValue';
 import { gearLines } from './gearLines';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
-import { bagIcon, isLoot } from '../../view/ui/itemIcons';
+import { bagIcon, bagItemPreview, isLoot } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
 
@@ -166,6 +166,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           const cells = at.map((i): MenuSlot => {
             const item = layout[i]!;
             const slot = slotFor(model, item, counts[i], seller, i);
+            slot.preview = bagItemPreview(item); // (hovered: a window with it turning, over its tooltip)
             // Onto another of its group's slots: swapped with it; a bag onto a free socket (on top): fitted there.
             slot.move = (to) => {
               const other = at[to - SOCKET_ROW];
