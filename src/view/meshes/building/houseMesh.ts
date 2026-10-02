@@ -1,5 +1,6 @@
 // Voxel houses, a model for each (layout, roof color), lit and instanced as
-// every building is (litBuildings.ts); they stand on the village cobbles, not the grass under them.
+// every building is (litBuildings.ts); they stand on the village cobbles, not the grass under them. A
+// herbalist's dressed apart (herbalistHouse.ts): a green door, a sign, herbs drying, pots.
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -24,13 +25,16 @@ export function buildHouseGeometry(layout: number, roof: number, glowing: boolea
 }
 
 export function buildHouses(scene: WorldSink, model: GameModel): void {
+  // The herbalists' houses (their homes' doors are the houses', in order: interiors.ts entrancesOf), dressed apart.
+  const homes = new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home));
+  const herbalists = new Set(model.houses.filter((_house, i) => homes.has(model.entrances[i])));
   const key = (house: House) => {
     const { layout, roof } = looks(house);
-    return `${layout}:${roof}`;
+    return `${layout}:${roof}${herbalists.has(house) ? ':herbalist' : ''}`;
   };
   const build = (house: House) => {
     const { layout, roof } = looks(house);
-    return buildHouseVoxels(HOUSE_LAYOUTS[layout], roof);
+    return buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, herbalists.has(house));
   };
   // Doors face local -Z; house rotations are always multiples of 90 degrees.
   const place = (house: House): VoxelPlacement => ({

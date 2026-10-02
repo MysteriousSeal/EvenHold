@@ -7,6 +7,7 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { C } from './housePalette';
+import { herbalistDressing } from './herbalistHouse';
 import { FOUNDATION_TOP, MID, braces, chimney, door, masonry, onWall, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
 
 export const HOUSE_VOXEL_SIZE = 0.04;
@@ -90,7 +91,8 @@ function props(grid: VoxelGrid, ground: Box, upper: Box, doorU: number, twoStore
   }
 }
 
-export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelGrid {
+// `herbalist`: a herbalist's, dressed so (herbalistHouse.ts).
+export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, herbalist = false): VoxelGrid {
   const grid = createGrid(HOUSE_GRID);
   const hw = (layout.width - 1) / 2;
   const hd = (layout.depth - 1) / 2;
@@ -163,5 +165,6 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelG
   const ridge = roof(grid, upper, layout.roofHeight, roofIndex);
   chimney(grid, upper, ridge);
   props(grid, twoStorey ? ground : upper, upper, doorU, twoStorey);
+  if (herbalist) herbalistDressing(grid, twoStorey ? ground : upper, upper, doorU);
   return grid;
 }
