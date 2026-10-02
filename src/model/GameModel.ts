@@ -11,6 +11,7 @@ import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House,
 import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { Travellers } from './travellers/travellers';
+import { canCarry } from './hero/bagSlots';
 import { addSceneryObstacles, placeScenery, type Scenery } from './scenery/scenery';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
@@ -137,7 +138,7 @@ export class GameModel {
     registerCrypts(this.crypts);
 
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
+    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bags: [null, null, null, null], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
@@ -458,6 +459,7 @@ export class GameModel {
   pickUp(): BagItem | null {
     const loot = this.lootInReach;
     if (!loot) return null;
+    if (!canCarry(this.hero, loot.item)) return (this.report({ kind: 'poor', text: 'Your bag is full' }), null); // (left where it lies)
     this.groundHere.take(loot);
     addToBag(this.hero.bag, loot.item);
     this.quests.onPickUp(loot.item);

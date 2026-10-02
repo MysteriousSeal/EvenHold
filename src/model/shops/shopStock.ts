@@ -5,6 +5,7 @@
 // real time passes (every RESTOCK_EVERY), even between visits. What the hero
 // last sold can be bought back at what they got for it (saved too).
 
+import { canCarry } from '../hero/bagSlots';
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
 
@@ -63,8 +64,9 @@ export function restockIn(shop: Shop, now = Date.now()): number {
 }
 
 // The hero buys one of `id` at `price`: why not, if they can't (none left, they're short).
-export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bought' | 'sold out' | 'too poor' {
+export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bought' | 'sold out' | 'too poor' | 'full' {
   if (!(shop.stock[id] ?? 0)) return 'sold out';
+  if (!canCarry(hero, id)) return 'full'; // (no room in the bag for something new)
   if (hero.money < price) return 'too poor';
   hero.money -= price;
   shop.money += price;
@@ -89,9 +91,10 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
 }
 
 // The hero buys back the `index`th of their last sales, the whole stack, at what they got for it.
-export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' {
+export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' | 'full' {
   const sale = shop.buyback?.[index];
   if (!sale) return 'none';
+  if (!canCarry(hero, sale.id)) return 'full';
   const cost = sale.price * sale.count;
   if (hero.money < cost) return 'too poor';
   hero.money -= cost;

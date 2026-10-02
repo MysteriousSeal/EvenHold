@@ -41,7 +41,7 @@ export const buyPrice = (id: ProvisionId): number => PROVISIONS[id].value;
 export const sellPrice = (id: ProvisionId): number => Math.max(1, Math.floor(PROVISIONS[id].value / 2)); // she buys at half
 
 // The hero buys one of `id`: why not, if they can't (she's none, they're short).
-export function buy(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' {
+export function buy(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' | 'full' {
   return buyFrom(shop, hero, id, buyPrice(id));
 }
 

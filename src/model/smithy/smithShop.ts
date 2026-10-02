@@ -34,7 +34,7 @@ export function smithShopAt(shops: Map<number, Shop>, seed: number, smithy: numb
 export const gearPrice = (id: ItemId): number => ITEMS[id].value ?? SCRAP * 2;
 export const gearSellPrice = (id: ItemId): number => (ITEMS[id].value ? Math.floor(ITEMS[id].value! / 2) : SCRAP); // he buys at half
 
-export function buyGear(shop: Shop, hero: Hero, id: ItemId): 'bought' | 'sold out' | 'too poor' {
+export function buyGear(shop: Shop, hero: Hero, id: ItemId): 'bought' | 'sold out' | 'too poor' | 'full' {
   return buyFrom(shop, hero, id, gearPrice(id));
 }
 

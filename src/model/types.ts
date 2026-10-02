@@ -1,4 +1,5 @@
 import type { Blessing } from './hero/blessing';
+import type { BagId } from './loot/bags';
 import type { Road } from './worldgen/roads';
 import type { MapSize } from './map/grid';
 import type { Humanoid } from './human/humanoid';
@@ -24,6 +25,7 @@ export interface Hero extends Humanoid {
   knock?: { dx: number; dz: number; t: number }; // knocked back by a blow (a lord's charge, a draugr's cleave): carried so far over KNOCK_TIME (hero/fighting.ts)
   bag: Bag; // what they've picked up
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagLayout)
+  bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
