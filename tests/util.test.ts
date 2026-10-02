@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { MinHeap } from '../src/util/MinHeap';
 import { Nearby } from '../src/util/nearby';
 import { firstRoll, generateRandomSeed, hashCell, hashUnit, mulberry32, shuffle, snapTo } from '../src/util/random';
-import { resolveSeed } from '../src/util/seed';
+import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from '../src/util/seed';
 
 describe('the min-heap', () => {
   it('gives back what it holds smallest first', () => {
@@ -124,17 +124,34 @@ describe('the seed in the URL', () => {
     ['?seed=0', 0],
     ['?seed=-7', -7],
     ['?seed=%2012%20', 12],
-  ])('reads %s as %i', (search, seed) => {
+  ])('reads %s as %i, and takes it out of the address (kept clean)', (search, seed) => {
     at(search);
-    expect(resolveSeed()).toBe(seed);
+    expect(takeSeedFromUrl()).toBe(seed);
+    expect(window.location.search).toBe('');
+    expect(takeSeedFromUrl()).toBeNull(); // (taken: not there again)
   });
 
-  it.each(['', '?seed=', '?seed=abc', '?seed=1.5'])('makes one up for "%s", and writes it into the URL to be shared', (search) => {
+  it.each(['', '?seed=', '?seed=abc', '?seed=1.5'])('none in "%s"', (search) => {
     at(search);
-    const seed = resolveSeed();
-    expect(Number.isInteger(seed)).toBe(true);
-    expect(new URLSearchParams(window.location.search).get('seed')).toBe(String(seed));
-    expect(resolveSeed()).toBe(seed); // the same page, the same world
+    expect(takeSeedFromUrl()).toBeNull();
+    expect(new URLSearchParams(window.location.search).has('seed')).toBe(false);
+  });
+
+  it('leaves the rest of the address be', () => {
+    at('?seed=5&pr=2');
+    expect(takeSeedFromUrl()).toBe(5);
+    expect(window.location.search).toBe('?pr=2');
+  });
+});
+
+describe("the tab's world", () => {
+  it('kept for a reload; let go, none', () => {
+    keepSessionSeed(1234);
+    expect(sessionSeed()).toBe(1234);
+    keepSessionSeed(0);
+    expect(sessionSeed()).toBe(0);
+    keepSessionSeed(null);
+    expect(sessionSeed()).toBeNull();
   });
 });
 
