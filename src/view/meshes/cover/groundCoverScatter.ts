@@ -10,12 +10,15 @@ import { onRoadBand, roadConnections } from '../../../model/map/roads';
 import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
+import { meadowPatches } from '../../../model/scenery/meadowPatches';
 
 const MAX_CLUMPS_PER_TILE = 5;
 const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
 const CLUMP_SCALE_CENTER = 1.2; // clump size in the lushest part
 const FLOWER_CHANCE = 0.05;
 const PEBBLE_CHANCE = 0.04;
+const MAX_BLOOMS = 6; // flowers a tile, in the thick of a patch
+const STRAY = 0.12; // of a patch's flowers, another kind among them
 const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few)
 const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
@@ -37,6 +40,7 @@ export interface GroundCover {
   sprigs: ScatterItem[];
   flowers: ScatterItem[];
   pebbles: ScatterItem[];
+  blooms: ScatterItem[]; // the meadow patches' wildflowers: variant, the kind (BLOOM_KINDS' index)
 }
 
 // Grass, flowers and pebbles go on plain grass only: never water, village
@@ -53,10 +57,13 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 // and chunks can be scattered only when they're about to be seen.
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z)))]); // (and crypts' ways down: no grass in the dark)
+  const scenery = (model.scenery ?? []).flatMap((s) => Array.from({ length: s.w * s.d }, (_, i) => cellKey(s.x + (i % s.w), s.z + Math.floor(i / s.w)))); // (rocks and landmarks: none growing through them)
+  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z))), ...scenery]); // (and crypts' ways down: no grass in the dark)
   const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
+  const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)
+  const [bloomPatch, patchKind] = [patches.strength, patches.kind];
   return (x0, z0, x1, z1) => {
-  const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [] };
+  const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [], blooms: [] };
 
   for (let x = x0; x < x1; x++) {
     for (let z = z0; z < z1; z++) {
@@ -117,6 +124,14 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       }
       // Rolled last, so every tuft, flower and pebble keeps its place.
       for (let i = 0; i < SPRIGS_PER_TILE; i++) cover.sprigs.push(item(offset(), offset(), 1, rng() < 0.5 ? 0 : 1));
+      // A meadow patch of wildflowers, where its own noise is high: thick in the middle, thinning to its edges, one kind
+      // of flower to a stretch of country (and the odd one of another kind among them). Rolled after all the rest.
+      const patch = bloomPatch(x, z);
+      if (!treeHere && patch > 0) {
+        const kind = patchKind(x, z);
+        const count = Math.floor(patch * MAX_BLOOMS + rng() * 0.99);
+        for (let i = 0; i < count; i++) cover.blooms.push(item(offset(), offset(), 1, rng() < STRAY ? Math.floor(rng() * 7) : kind));
+      }
     }
   }
   return cover;

@@ -17,9 +17,11 @@ const GRAVITY = 3.5;
 const BURST_AT = 0.7; // seconds after death when an enemy breaks apart
 
 // Shared by every enemy's bar and burst.
-export const ENEMY_BAR = new THREE.MeshBasicMaterial({ color: 0xd8342c });
-export const PASSIVE_BAR = new THREE.MeshBasicMaterial({ color: 0xe8c030 }); // a passive foe's: it only fights back
-export const ENEMY_BAR_EMPTY = new THREE.MeshBasicMaterial({ color: 0x3a2522 });
+// Drawn over everything, as the name and level over it are (never hidden behind a tree or a wall).
+const overAll = (color: number) => new THREE.MeshBasicMaterial({ color, depthTest: false, depthWrite: false, fog: false });
+export const ENEMY_BAR = overAll(0xd8342c);
+export const PASSIVE_BAR = overAll(0xe8c030); // a passive foe's: it only fights back
+export const ENEMY_BAR_EMPTY = overAll(0x3a2522);
 export const ENEMY_BURST = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
 const BLOCK = new THREE.BoxGeometry(0.07, 0.035, 0.02);
 const CUBE = new THREE.BoxGeometry(1, 1, 1);
@@ -113,6 +115,7 @@ export class HealthBar {
     for (const block of this.blocks) block.removeFromParent();
     this.blocks = Array.from({ length: count }, (_, i) => {
       const block = new THREE.Mesh(BLOCK, ENEMY_BAR);
+      block.renderOrder = 10; // (after everything else, as the name)
       block.position.x = (i - (count - 1) / 2) * 0.085;
       this.group.add(block);
       return block;

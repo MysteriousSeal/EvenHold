@@ -1,6 +1,6 @@
 // Draws the scattered ground cover as voxel models: grass tufts and sprigs
 // that sway in the wind, wildflowers and pebble clusters. Positions come from
-// groundCoverScatter.ts; here they're snapped to the 0.04 voxel grid and
+// groundCoverScatter.ts (the meadow patches' wildflowers: bloomVoxels.ts); here they're snapped to the 0.04 voxel grid and
 // turned in quarter turns only, and each item's size picks a model rather
 // than scaling one, so every voxel stays the same size as the world's.
 
@@ -31,6 +31,7 @@ import {
   buildSprig,
   buildTuft,
 } from './groundCoverVoxels';
+import { BLOOM_GRID, BLOOM_KINDS, BLOOM_PALETTE, BLOOM_SHAPES, buildBloom } from './bloomVoxels';
 
 const TUFT_SHADES = [0.92, 1.06]; // slight per-clump variation of the tile's green
 // The blade palette's root shade is below white so tips can be lighter;
@@ -39,6 +40,7 @@ const TUFT_ROOT_LIFT = 1 / new THREE.Color(COVER_PALETTE[0]).r;
 const TUFT_HEIGHT_MAX = TUFT_SIZES[TUFT_SIZES.length - 1] * COVER_VOXEL_SIZE;
 const SINK = 0.01; // bases slightly below the grass, so no gap shows
 const GRASS_WIND = { height: TUFT_HEIGHT_MAX, strength: 0.049, speed: 1.6 };
+const BLOOM_WIND = { height: BLOOM_GRID[1] * COVER_VOXEL_SIZE, strength: 0.04, speed: 1.4 };
 
 function geometry(grid: ReturnType<typeof buildTuft>, size: [number, number, number]): THREE.BufferGeometry {
   // Centered on its spot in X/Z, standing on the ground in Y.
@@ -114,6 +116,17 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (f) => place(f),
     plain(),
   ));
+  // The meadow patches' wildflowers, swaying as the grass does (a little less: their heads are heavier).
+  const bloomMaterial = plain();
+  const bloomTime = addWindSway(bloomMaterial, BLOOM_WIND);
+  scene.layer(voxelLayer(
+    keys,
+    (key) => coverIn(key).blooms,
+    (b) => `bloom:${b.variant}:${itemHash(b) % BLOOM_SHAPES}`,
+    (b) => greedyMesh(buildBloom(BLOOM_KINDS[b.variant], itemHash(b) % BLOOM_SHAPES), BLOOM_PALETTE, COVER_VOXEL_SIZE, new THREE.Vector3((-BLOOM_GRID[0] * COVER_VOXEL_SIZE) / 2, -SINK, (-BLOOM_GRID[2] * COVER_VOXEL_SIZE) / 2)),
+    (b) => place(b),
+    bloomMaterial,
+  ));
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).pebbles,
@@ -125,5 +138,6 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
 
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
+    bloomTime.value = elapsedSeconds;
   };
 }
