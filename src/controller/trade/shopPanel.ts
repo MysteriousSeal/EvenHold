@@ -6,7 +6,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { buy, buyPrice, sell, sellPrice, shopAt } from '../../model/inn/tavernShop';
 import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
-import type { Menu } from '../../view/ui/menu';
+import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What she says: a greeting when the window opens, and her answer to each trade.
@@ -157,6 +157,6 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     blurb: (id) => PROVISIONS[id as ProvisionId].about,
-    facts: (id) => [`${PROVISIONS[id as ProvisionId].drink ? 'Drink' : 'Food'}, ${givesText(id as ProvisionId)}`],
+    facts: (id) => [toned('kind', PROVISIONS[id as ProvisionId].drink ? 'Drink' : 'Food'), toned('stat', givesText(id as ProvisionId))],
   });
 }

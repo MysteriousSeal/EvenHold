@@ -72,7 +72,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
           ? [toned('kind', kindOf(item)), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
           : [toned('kind', kindOf(item))],
       alt: isProvision(item)
-        ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : '')
+        ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : model.hero.eating ? 'Finish what you have first.' : '')
         : isBagItem(item)
           ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${ROOM_PER_BAG} more slots.` : 'Every bag socket is taken.')
           : undefined,
