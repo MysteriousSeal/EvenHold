@@ -116,7 +116,7 @@ export function humanBust(look: BodyLook, equipment: Equipment, facing: 'left' |
   const figure = fineFigure(humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined }), look); // (close up: the finer face)
   const [sx, sy, sz] = figure.grid.size;
   const chest = (JOINTS.head.at[1] + SHIFT[1]) * 2; // everything below the head goes (in the fine figure's voxels)
-  for (let z = 0; z < sz; z++) for (let y = 0; y < Math.min(chest, sy); y++) for (let x = 0; x < sx; x++) figure.grid.cells[x + sx * (y + sy * z)] = 0;
+  for (let z = 0; z < sz; z++) for (let y = 0; y < Math.min(chest, sy); y++) for (let x = 0; x < sx; x++) setColor(figure.grid, x, y, z, 0);
   if (facing === 'left') return figure;
   const turned = createGrid([sz, sy, sx]);
   for (let z = 0; z < sz; z++) {

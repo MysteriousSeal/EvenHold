@@ -3,8 +3,9 @@
 // into a canvas that sits in the page. Draw it only while it's on screen.
 
 import * as THREE from 'three';
-import { greedyMesh, type VoxelGrid } from '../meshes/voxel/greedyMesh';
-import { roundNormals } from '../meshes/voxel/roundedNormals';
+import type { BodyLook } from '../../model/human/humanoid';
+import type { Equipment } from '../../model/human/equipment';
+import { bodyBox, closeUpFigure, figureGeometry } from '../meshes/human/figureMesh';
 import { withRimLight } from '../meshes/human/humanParts';
 
 const TURN_SPEED = 0.6; // radians per second
@@ -37,23 +38,18 @@ export class FigureStage {
     this.camera.lookAt(0, 0, 0);
   }
 
-  // Shows a figure (a voxel grid, standing on y = 0, facing +Z), framed
-  // and turning around `core` (the same grid with only what should set the
-  // size, e.g. the bare body): its middle is the axis, and it fills the
-  // stage with a voxel and a half to spare all round (room for armor), so
-  // what's worn never changes the scale. Anything held out may swing past
-  // the edge.
-  show(figure: { grid: VoxelGrid; palette: number[]; scale?: number }, core: { grid: VoxelGrid; palette: number[] } = figure): void {
+  // Shows someone close up (figureMesh.ts: drawn fine, shaded round),
+  // standing on y = 0, facing +Z, framed and turning around their body
+  // alone (bald and bare): its middle is the axis, and it fills the stage
+  // with a voxel and a half to spare all round (room for armor), so neither
+  // their hair nor what's worn ever changes the scale. Anything held out may
+  // swing past the edge.
+  show(look: BodyLook, equipment: Equipment): void {
     this.mesh?.geometry.dispose();
     this.mesh?.removeFromParent();
-    const origin = new THREE.Vector3();
-    const voxel = VOXEL * (figure.scale ?? 1); // (a fine figure's, half: fineFigure.ts)
-    this.mesh = new THREE.Mesh(roundNormals(greedyMesh(figure.grid, figure.palette, voxel, origin), figure.grid, voxel, origin), this.material);
+    this.mesh = new THREE.Mesh(figureGeometry(closeUpFigure(look, equipment), VOXEL), this.material);
     this.turntable.add(this.mesh);
-    const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);
-    coreGeometry.computeBoundingBox();
-    const box = coreGeometry.boundingBox!;
-    coreGeometry.dispose();
+    const box = bodyBox(look, VOXEL);
     box.expandByScalar(VOXEL * 1.5);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());

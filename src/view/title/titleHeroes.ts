@@ -8,11 +8,8 @@
 // ring pulsing at their feet; the others wait in their places, dimmer.
 
 import * as THREE from 'three';
-import { greedyMesh } from '../meshes/voxel/greedyMesh';
-import { humanFigure } from '../meshes/human/humanFigure';
-import { fineFigure } from '../meshes/human/fineFigure';
+import { bodyBox, closeUpFigure, figureGeometry } from '../meshes/human/figureMesh';
 import { withRimLight } from '../meshes/human/humanParts';
-import { roundNormals } from '../meshes/voxel/roundedNormals';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { Equipment } from '../../model/human/equipment';
 
@@ -103,17 +100,10 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
     heroes.forEach((hero, i) => {
       const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
       const material = withRimLight(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, clippingPlanes: [cut], clipShadows: true }));
-      const origin = new THREE.Vector3();
-      // Close up: the finer face and hands (fineFigure.ts), shaded round (roundedNormals.ts).
-      const figure = fineFigure(humanFigure(hero.look, hero.equipment), hero.look);
-      const voxel = VOXEL * (figure.scale ?? 1);
-      const mesh = new THREE.Mesh(roundNormals(greedyMesh(figure.grid, figure.palette, voxel, origin), figure.grid, voxel, origin), material);
+      // Close up: the finer face and hands, shaded round (figureMesh.ts).
+      const mesh = new THREE.Mesh(figureGeometry(closeUpFigure(hero.look, hero.equipment), VOXEL), material);
       mesh.castShadow = true;
-      const core = humanFigure({ ...hero.look, hairStyle: 'bald' }, {}); // (the body alone sets where they stand: no hair, so a new style never moves them)
-      const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);
-      coreGeometry.computeBoundingBox();
-      const box = coreGeometry.boundingBox!;
-      coreGeometry.dispose();
+      const box = bodyBox(hero.look, VOXEL); // (the body alone sets where they stand: no hair, so a new style never moves them)
       const center = box.getCenter(new THREE.Vector3());
       mesh.position.set(-center.x, -box.min.y, -center.z); // (standing on the ground, the body on the spot)
       const group = new THREE.Group();

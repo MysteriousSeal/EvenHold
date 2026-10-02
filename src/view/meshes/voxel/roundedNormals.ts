@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import type { VoxelGrid } from './greedyMesh';
+import { colorAt } from './voxelShapes';
 
 const STRENGTH = 0.55; // 0: flat faces, 1: fully rounded
 
@@ -15,8 +16,7 @@ export function roundNormals(geometry: THREE.BufferGeometry, grid: VoxelGrid, vo
   const position = geometry.getAttribute('position');
   const normal = geometry.getAttribute('normal');
   if (!position || !normal) return geometry;
-  const [sx, sy, sz] = grid.size;
-  const solid = (x: number, y: number, z: number) => x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz && grid.cells[x + sx * (y + sy * z)] !== 0;
+  const solid = (x: number, y: number, z: number) => colorAt(grid, x, y, z) !== 0;
   const face = new THREE.Vector3();
   const out = new THREE.Vector3();
   for (let i = 0; i < position.count; i++) {

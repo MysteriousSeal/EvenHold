@@ -13,7 +13,7 @@
 // own voxels are painted. The figure in play keeps its world-scale voxels.
 
 import type { BodyLook } from '../../../model/human/humanoid';
-import { createGrid, setColor } from '../voxel/voxelShapes';
+import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 import { BODIES, C, PART_GRID } from './bodyVoxels';
 import type { Figure } from './humanFigure';
 
@@ -23,7 +23,7 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
   const { grid, palette, parts = {} } = figure;
   const [sx, sy, sz] = grid.size;
   const fine = createGrid([sx * 2, sy * 2, sz * 2]);
-  const at = (x: number, y: number, z: number) => (x < 0 || y < 0 || z < 0 || x >= sx || y >= sy || z >= sz ? 0 : grid.cells[x + sx * (y + sy * z)]);
+  const at = (x: number, y: number, z: number) => colorAt(grid, x, y, z);
   for (let z = 0; z < sz; z++) {
     for (let y = 0; y < sy; y++) {
       for (let x = 0; x < sx; x++) {
