@@ -8,7 +8,7 @@ import type { Npc } from '../../model/npcs/npcs';
 import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
 import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../../model/smithy/smithShop';
 import type { Menu } from '../../view/ui/menu';
-import { gearLines } from '../hero/gearLines';
+import { againstWorn, gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.
@@ -93,6 +93,6 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     blurb: (id) => (ITEMS[id as ItemId].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
-    facts: (id) => [`Worn on: ${SLOT_NAMES[ITEMS[id as ItemId].slot]}`, ...gearLines(id as ItemId)],
+    facts: (id) => [`Worn on: ${SLOT_NAMES[ITEMS[id as ItemId].slot]}`, ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
   });
 }

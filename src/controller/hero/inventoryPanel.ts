@@ -20,7 +20,7 @@ import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { sellValue } from '../../model/shops/sellValue';
-import { gearLines } from './gearLines';
+import { againstWorn, gearLines } from './gearLines';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
@@ -51,7 +51,7 @@ function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller 
   const dragOut = slot.dragOut;
   return {
     ...slot,
-    lines: [...(slot.lines ?? []).filter((line) => !line.startsWith('Right-click') && !line.startsWith('Sell price')), `Right-click to sell for ${coinWords(seller.price(item))}`],
+    lines: [...(slot.lines ?? []).filter((line) => typeof line !== 'string' || (!line.startsWith('Right-click') && !line.startsWith('Sell price'))), `Right-click to sell for ${coinWords(seller.price(item))}`],
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };
@@ -84,7 +84,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
     icon: bagIcon(gear),
     count,
     title: ITEMS[gear].name,
-    lines: [SLOT_NAMES[ITEMS[gear].slot], ...gearLines(gear), `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
+    lines: [SLOT_NAMES[ITEMS[gear].slot], ...gearLines(gear), ...againstWorn(gear, model.hero.equipment), `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`],
     fits: ITEMS[gear].slot,
     // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {
@@ -190,7 +190,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
   });
   let shown = '';
   const update = () => {
-    const contents = JSON.stringify([model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, model.hero.bags, model.hero.money]);
+    const contents = JSON.stringify([model.hero.bag, model.hero.bagOrder, model.hero.bagCounts, model.hero.bags, model.hero.money, model.hero.equipment]); // (what's worn: each piece's comparison with it)
     if (contents === shown) return;
     shown = contents;
     menu.refresh();

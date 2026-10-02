@@ -18,7 +18,7 @@ import { isJunk, sellValue } from '../../model/shops/sellValue';
 import { TALK_RANGE } from '../../model/npcs/talk';
 import { coinParts, coinWords } from '../../view/ui/coins';
 import { bagIcon } from '../../view/ui/itemIcons';
-import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
+import { createMenu, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { humanBust } from '../../view/meshes/human/humanFigure';
 import type { Seller } from '../hero/inventoryPanel';
@@ -42,7 +42,7 @@ export interface Trade {
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
   boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
   blurb(id: BagItem): string; // what it is
-  facts(id: BagItem): string[]; // lines on what it is and does ("Armour 4"), besides its price and count
+  facts(id: BagItem): MenuLine[]; // lines on what it is and does ("Armour 4"; what wearing it would change), besides its price and count
 }
 
 // Whom the hero trades with: a villager behind their counter, a pedlar on the road (their face, name and where they are).
