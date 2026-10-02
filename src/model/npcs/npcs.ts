@@ -180,11 +180,17 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const inns = entrances.filter((e) => e.type === 'inn');
   const doors = entrances.filter((e) => e.type !== 'crypt').length; // (the buildings': staff ids count on from them, crypts or not)
   const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
-  const villagers = entrances
-    .filter((e) => e.type === 'house')
+  // The herbalists' houses: in each village, the house nearest its middle, theirs alone (no villager lives there).
+  const houses = entrances.filter((e) => e.type === 'house');
+  const herbalistHomes = villages.map((village) => {
+    const home = nearest(houses, village.x, village.z);
+    return home && nearest(villages, home.x, home.z) === village ? home : null;
+  });
+  const shops = new Set(herbalistHomes);
+  const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);
-      if (!village) return [];
+      if (!village || shops.has(home)) return [];
       const inn = nearest(inns, village.x, village.z);
       const npc = person(id, 'villager', home, inn && Math.hypot(inn.x - village.x, inn.z - village.z) < 6 ? inn : null, village, home);
       // At home to begin with, a while, then on from a point of the routine of their own.
@@ -218,12 +224,11 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     npc.equipment = pickOutfit('bouncer', Math.round(at.x * 10), Math.round(at.z * 10));
     return [npc];
   });
-  // A herbalist in each village, at home in the house nearest its middle (sharing it with whoever lives there), in a
-  // green hood: potions to sell (herbalist/herbalistShop.ts). Last, so every other villager keeps their id.
-  const houses = entrances.filter((e) => e.type === 'house');
+  // A herbalist in each village, at home in their house (herbalistHomes: theirs alone), in a green hood: potions to
+  // sell (herbalist/herbalistShop.ts). Last, so every other villager keeps their id.
   const herbalists = villages.flatMap((village, i) => {
-    const home = nearest(houses, village.x, village.z);
-    if (!home || nearest(villages, home.x, home.z) !== village) return [];
+    const home = herbalistHomes[i];
+    if (!home) return [];
     const inn = nearest(inns, village.x, village.z);
     const npc = person(doors + inns.length * 3 + smithies.length + i, 'herbalist', home, inn, village, { x: home.x - 0.3, z: home.z + 0.2 });
     npc.equipment = { head: 'huntersHood', torso: 'linenShirt' };
