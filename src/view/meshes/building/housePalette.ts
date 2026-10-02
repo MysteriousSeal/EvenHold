@@ -53,11 +53,14 @@ const ENTRIES = {
   tableWood: 0x7a5433,
   roofMoss: 0x6f9148,
   roofMossLight: 0x88a955,
-  herbPaint: 0x4f7f4a, // a herbalist's door and shutters (herbalistHouse.ts)
-  herbPaintDark: 0x3a5f37,
-  herbFresh: 0x5f9a48, // herbs drying under their eaves
+  herbFresh: 0x5f9a48, // a herbalist's hut (herbalistHouse.ts): herbs drying under its eaves
   herbSage: 0x8aa878,
   herbDry: 0xb89a4a,
+  mud: 0x8a7356, // its daubed walls
+  mudDark: 0x6e5a42,
+  thatch: 0x9a8048, // its shaggy thatch
+  thatchDark: 0x6e5a32,
+  thatchLight: 0xb89a58,
 } as const;
 
 type Entry = keyof typeof ENTRIES;

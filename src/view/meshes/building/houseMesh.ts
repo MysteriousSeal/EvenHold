@@ -1,6 +1,6 @@
 // Voxel houses, a model for each (layout, roof color), lit and instanced as
 // every building is (litBuildings.ts); they stand on the village cobbles, not the grass under them. A
-// herbalist's dressed apart (herbalistHouse.ts): a green door, a sign, herbs drying, pots.
+// herbalist's, a hut of their own on its tile (herbalistHouse.ts): stone and daub under a shaggy thatch.
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -10,6 +10,7 @@ import { hashCell } from '../../../util/random';
 import type { VoxelPlacement } from '../voxel/voxelInstances';
 import { ROOF_SETS } from './housePalette';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from './houseVoxels';
+import { buildHermitHut } from './herbalistHouse';
 import { addLitBuildings, meshLit } from './litBuildings';
 
 // A house's look comes from a hash of its grid position rather than being
@@ -25,16 +26,16 @@ export function buildHouseGeometry(layout: number, roof: number, glowing: boolea
 }
 
 export function buildHouses(scene: WorldSink, model: GameModel): void {
-  // The herbalists' houses (their homes' doors are the houses', in order: interiors.ts entrancesOf), dressed apart.
+  // The herbalists' huts (their homes' doors are the houses', in order: interiors.ts entrancesOf), a building of their own.
   const homes = new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home));
   const herbalists = new Set(model.houses.filter((_house, i) => homes.has(model.entrances[i])));
   const key = (house: House) => {
     const { layout, roof } = looks(house);
-    return `${layout}:${roof}${herbalists.has(house) ? ':herbalist' : ''}`;
+    return herbalists.has(house) ? 'herbalist' : `${layout}:${roof}`; // (every herbalist's hut the same)
   };
   const build = (house: House) => {
     const { layout, roof } = looks(house);
-    return buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, herbalists.has(house));
+    return herbalists.has(house) ? buildHermitHut() : buildHouseVoxels(HOUSE_LAYOUTS[layout], roof);
   };
   // Doors face local -Z; house rotations are always multiples of 90 degrees.
   const place = (house: House): VoxelPlacement => ({
