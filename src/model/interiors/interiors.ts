@@ -8,6 +8,7 @@
 // their own tile coordinates: floor tiles 0..width-1 along x and
 // 0..depth-1 along z, the door in the +Z wall, facing the camera.
 
+import { isHerbalistHome } from '../herbalist/herbalistHomes';
 import { hashCell, mulberry32 } from '../../util/random';
 import type { Building, House } from '../types';
 
@@ -22,8 +23,8 @@ export interface Entrance {
   outZ: number;
 }
 
-export type FloorStyle = 'planks' | 'boards' | 'flagstones' | 'tavern';
-export type WallStyle = 'plaster' | 'timber' | 'stone';
+export type FloorStyle = 'planks' | 'boards' | 'flagstones' | 'tavern' | 'earth'; // (earth: a herbalist's, strewn with rushes)
+export type WallStyle = 'plaster' | 'timber' | 'stone' | 'daub'; // (daub: a herbalist's, over fieldstone, as their hut outside)
 
 export interface Room {
   width: number; // floor tiles along x
@@ -58,6 +59,8 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
   inn: { width: [11, 13], depth: [8, 10] }, // roomy: a bar, a hearth corner and the tables
   smithy: { width: [7, 9], depth: [6, 7] },
 };
+// A herbalist's house (herbalist/herbalistHomes.ts): shop, workroom and home, roomier than a house.
+const HERBALIST_SIZE = { width: [8, 9] as [number, number], depth: [6, 7] as [number, number] };
 const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
 const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['timber', 'plaster'], smithy: ['stone'] };
 
@@ -68,10 +71,11 @@ export function roomFor(seed: number, entrance: Entrance): Room {
   const roll = ([lo, hi]: [number, number]) => lo + Math.floor(rng() * (hi - lo + 1));
   const pick = <T>(options: T[]) => options[Math.floor(rng() * options.length)];
   const type = entrance.type as BuildingType;
-  const size = SIZES[type];
+  const size = type === 'house' && isHerbalistHome(entrance) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom)
   const width = roll(size.width);
   const depth = roll(size.depth);
   const middle = Math.floor(width / 2);
   const door = width >= 7 ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle;
-  return { width, depth, door, floor: pick(FLOORS[type]), wall: pick(WALLS[type]) };
+  const herbalist = size === HERBALIST_SIZE;
+  return { width, depth, door, floor: herbalist ? 'earth' : pick(FLOORS[type]), wall: herbalist ? 'daub' : pick(WALLS[type]) }; // (a herbalist's as rustic inside as out)
 }

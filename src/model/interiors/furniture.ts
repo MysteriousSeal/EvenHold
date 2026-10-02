@@ -40,6 +40,12 @@ export const FURNITURE_KINDS = [
   'trough',
   'rack',
   'coal',
+  // A herbalist's own (herbalist/herbalistLayout.ts)
+  'cauldron', // before the hearth, on its embers
+  'herbCounter', // where they trade, by the door
+  'herbTable', // their worktable
+  'dryingRack', // herbs hanging to dry
+  'potionShelf', // their potions, on show
   // The inn's own
   'armchair',
   'bearRug',
@@ -89,6 +95,10 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   hallWall: [0, 0.2], // a wall's thickness, at the tile's edge
   smithCounter: [0.24, 0.84], // (standing free, its span across z) only as deep as it's drawn
   hallDoor: [0, 0.2],
+  potionShelf: [0, 0.38], // a herbalist's (view/interior/herbalistVoxels.ts): as deep as each is drawn
+  dryingRack: [0, 0.62], // (its basket and all)
+  herbCounter: [0.24, 0.84], // (standing free, as the smith's)
+  herbTable: [0.12, 0.88],
   sink: [0, 0.42], // slim against the wall, like the shelves // on its side, reaching 0.6 of its tile out (tap and all)
 };
 

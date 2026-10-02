@@ -7,6 +7,7 @@
 // house stands, so a village's folk are the same for everyone on that seed
 // (and different on another). For now they wear nothing.
 
+import { markHerbalistHome } from '../herbalist/herbalistHomes';
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
@@ -187,6 +188,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     return home && nearest(villages, home.x, home.z) === village ? home : null;
   });
   const shops = new Set(herbalistHomes);
+  for (const home of herbalistHomes) if (home) markHerbalistHome(home); // (furnished as theirs: herbalist/herbalistLayout.ts)
   const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);
@@ -232,7 +234,6 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const inn = nearest(inns, village.x, village.z);
     const npc = person(doors + inns.length * 3 + smithies.length + i, 'herbalist', home, inn, village, { x: home.x - 0.3, z: home.z + 0.2 });
     npc.equipment = { head: 'huntersHood', torso: 'linenShirt' };
-    npc.steps = [{ kind: 'settle', for: 20 }];
     return [npc];
   });
   return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists];

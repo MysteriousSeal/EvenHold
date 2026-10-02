@@ -39,6 +39,9 @@ function span(kind: FurnitureKind): [number, number] {
     case 'stairwell':
     case 'hallWall':
     case 'smithCounter':
+    case 'herbCounter':
+    case 'herbTable':
+    case 'dryingRack':
       return [2, 1];
     default:
       return [1, 1];
@@ -63,6 +66,9 @@ function against(kind: FurnitureKind): Furniture['wall'] {
     case 'stairwell':
     case 'tavernTable':
     case 'keg':
+    case 'cauldron':
+    case 'herbCounter':
+    case 'herbTable':
       return 'none';
     default:
       return 'back';
