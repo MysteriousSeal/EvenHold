@@ -145,7 +145,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
       go('heroes');
     }); // (the opening over: the heroes come)
     const go = (next: Screen) => {
-      if (next === 'create' && at !== 'create') forge = heroForge(standDraft); // (a new one each time)
+      if (next === 'create' && at !== 'create') forge = heroForge(standDraft, (seed) => worlds.find((w) => w.seed === seed)?.name ?? null); // (a new one each time; a seed of theirs, theirs to go on with)
       [at, sure] = [next, false];
       draw();
     };

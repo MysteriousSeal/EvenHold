@@ -36,7 +36,8 @@ const NAME_MAX = 18;
 const NAME_OK = /^[\p{L}][\p{L}' -]*$/u;
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-export function heroForge(changed: (look: BodyLook, name: string) => void): Forge {
+// `heroOf`: the name of the hero saved in a world (that seed's), if one is (the seed then opens their world).
+export function heroForge(changed: (look: BodyLook, name: string) => void, heroOf: (seed: number) => string | null = () => null): Forge {
   let look = fitLook(randomLook());
   let name = randomName(look.build);
   let named = false; // (a name typed: kept when the body changes)
@@ -52,7 +53,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
   const identity = el('div', 'title-forge identity');
   const traits = el('div', 'forge-traits');
   const nameInput = el('input', 'forge-name');
-  const seedInput = el('input', 'title-input');
+  const seedInput = el('input', 'forge-seed');
   const problem = el('div', 'forge-problem');
 
   const dice = (label: string, roll: () => void) => {
@@ -184,10 +185,37 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
   const worldHead = el('div', 'forge-trait-head');
   worldHead.append(el('span', '', 'World'));
   world.append(worldHead);
-  seedInput.placeholder = 'Seed: blank for a random world';
+  // Its seed: carved like the name, a compass set in it; its dice roll one to see (and share); under it, what it'll
+  // open, told as it's typed.
+  seedInput.placeholder = 'Any word or number';
   seedInput.maxLength = 40;
+  seedInput.spellcheck = false;
+  seedInput.autocomplete = 'off';
   seedInput.setAttribute('aria-label', 'World seed');
-  world.append(seedInput, el('small', 'title-note', 'A number or any word: the same seed, the same world.'));
+  const reading = el('div', 'forge-seed-reading');
+  const read = () => {
+    const typed = seedInput.value.trim();
+    const seed = seedFrom(typed);
+    const theirs = seed === null ? null : heroOf(seed);
+    reading.classList.toggle('theirs', !!theirs);
+    reading.classList.toggle('chance', seed === null);
+    if (seed === null) reading.textContent = 'Blank: a world left to chance.';
+    else if (theirs) reading.textContent = `Opens ${theirs}'s world: they carry on there.`;
+    else if (String(seed) === typed) reading.textContent = `World ${seed}`;
+    else reading.textContent = `‘${typed}’ → world ${seed}`;
+  };
+  seedInput.addEventListener('input', read);
+  const seedLine = el('div', 'forge-name-line');
+  seedLine.append(
+    seedInput,
+    dice('Roll a world', () => {
+      seedInput.value = String(generateRandomSeed());
+      read();
+    }),
+  );
+  world.append(seedLine, reading);
+  reading.title = 'The same seed, the same world, for anyone.';
+  read();
 
   head.append(surprise);
   panel.append(head, traits);
