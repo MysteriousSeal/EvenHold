@@ -14,6 +14,7 @@ import type { Npc } from '../src/model/npcs/npcs';
 import { createSmithPanel } from '../src/controller/trade/smithPanel';
 import { createShopPanel } from '../src/controller/trade/shopPanel';
 import { createInventoryPanel } from '../src/controller/hero/inventoryPanel';
+import { againstWorn } from '../src/controller/hero/gearLines';
 import { PAGE as PAGES } from '../src/controller/trade/tradePanel';
 import { plural } from '../src/view/ui/words';
 
@@ -336,5 +337,35 @@ describe('the bag', () => {
 describe('naming several of a thing', () => {
   it('makes it plural as English would', () => {
     expect(['wolf fang', 'torn pouch', 'leather gloves', 'rusty buckle'].map(plural)).toEqual(['wolf fangs', 'torn pouches', 'leather gloves', 'rusty buckles']);
+  });
+});
+
+describe('gear against what\'s worn', () => {
+  it('as WoW tells it: what wearing it instead would change, only what changes, gains green and losses red', () => {
+    expect(againstWorn('nasalCap', { head: 'leatherCap' })).toEqual([
+      'If you replace your Leather cap:',
+      { text: 'Overall: +50%', tone: 'gain' }, // (worth 4 against 6: armour 2 and a stat point at 2, against armour 4 and a point)
+      { text: '+2 Armour', tone: 'gain' },
+      { text: '−1 Agility', tone: 'loss' },
+      { text: '+1 Stamina', tone: 'gain' },
+    ]);
+    expect(againstWorn('nasalCap', {})).toEqual(['If you wear it (your head slot is empty):', { text: 'Overall: an upgrade', tone: 'gain' }, { text: '+4 Armour', tone: 'gain' }, { text: '+1 Stamina', tone: 'gain' }]);
+    expect(againstWorn('leatherCap', { head: 'nasalCap' })[1]).toEqual({ text: 'Overall: −33%', tone: 'loss' });
+    expect(againstWorn('nasalCap', { head: 'nasalCap' })).toEqual(['You wear one already']);
+  });
+
+  it('in the bag\'s tooltips', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { nasalCap: 1 }, bagOrder: [], bagCounts: [], equipment: { head: 'leatherCap' } });
+    bag.menu.open();
+    const cap = Array.from(bagEl().querySelectorAll<HTMLElement>('.menu-slot')).find((s) => s.querySelector('canvas')?.dataset.key === 'item:nasalCap')!;
+    cap.dispatchEvent(new MouseEvent('mouseenter'));
+    const tip = Array.from(document.querySelectorAll<HTMLElement>('.menu-tooltip')).find((t) => !t.hidden)!;
+    expect(tip.textContent).toContain('If you replace your Leather cap:');
+    const gain = Array.from(tip.querySelectorAll<HTMLElement>('small')).find((l) => l.textContent === '+2 Armour')!;
+    expect(gain.dataset.tone).toBe('gain');
+    expect(Array.from(tip.querySelectorAll<HTMLElement>('small')).find((l) => l.textContent === '−1 Agility')!.dataset.tone).toBe('loss');
+    bag.menu.close();
   });
 });
