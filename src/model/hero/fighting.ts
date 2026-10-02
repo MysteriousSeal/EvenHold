@@ -2,6 +2,7 @@
 // crypt: the foes about are its guards): the hero's blow landing on the foe in
 // reach (combat.ts), and a foe's blow, or a bowman's arrow, landing on the hero.
 
+import type { CombatMoves, Guarded } from './combatMoves';
 import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
@@ -21,6 +22,7 @@ export interface Fight {
   readonly focused: Enemy | null;
   readonly godMode: boolean;
   readonly oneHitKills: boolean; // (a dev cheat: every blow of the hero's fells what it lands on)
+  readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn'>; // the hero's roll and guard (combatMoves.ts)
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
   random(): number;
@@ -42,8 +44,10 @@ export function landBlow(fight: Fight): void {
   if (!hit) return;
   const { target, distance } = hit;
   const blow = heroBlow(hero, fight.random());
-  const { crit } = blow;
-  const damage = fight.oneHitKills ? Math.max(blow.damage, Math.ceil(target.hp)) : blow.damage;
+  const riposte = fight.moves.riposteOn(target); // (a foe just parried: harder, and a critical)
+  const crit = blow.crit || riposte > 1;
+  const hard = Math.round(blow.damage * riposte);
+  const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
   target.hp -= damage;
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
   target.hurtFor = 0.25;
@@ -78,8 +82,8 @@ export function cryptHooks(fight: Fight): CryptHooks {
       if (knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
     },
     frost: (draugr) => {
-      heroStruck(fight, 1, draugr);
-      chill(fight, CHILL_FOR);
+      const met = heroStruck(fight, 1, draugr);
+      if (met !== 'rolled' && met !== 'parried') chill(fight, CHILL_FOR); // (rolled through or parried: not chilled)
     },
     report: (event) => fight.report(event),
     dropLoot: (item, x, z) => fight.dropLoot(item, x, z),
@@ -126,14 +130,22 @@ export function foeStrikes(fight: Fight, enemy: Enemy): void {
   if (enemy.kind === 'ghost' && fight.hero.hp < hp) chill(fight, GHOST_CHILL);
 }
 
-// The hero struck for `damage` (by `by`, if it's someone to turn to): dodged maybe (Agility), else hurt;
-// out of health, fallen (hero/setbacks.ts).
-export function heroStruck(fight: Fight, damage: number, by: Enemy | null): void {
+// The hero struck for `damage` (by `by`, if it's someone to turn to): rolled through, parried or blocked
+// (combatMoves.ts), told; then dodged maybe (Agility), else hurt; out of health, fallen (hero/setbacks.ts).
+// How it was met.
+export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guarded {
   const { hero } = fight;
   if (!fight.focused && by) fight.focus(by.id); // whoever hits first gets the hero's attention
-  if (fight.godMode) return;
-  const blow = blowTaken(hero, damage, fight.random());
-  if (blow.dodged) return fight.report({ kind: 'dodge', x: hero.x, y: hero.y, z: hero.z });
+  if (fight.godMode) return 'taken';
+  const guard = fight.moves.struck(damage, by);
+  if (guard.guarded !== 'taken') fight.report({ kind: 'guard', outcome: guard.guarded, x: hero.x, y: hero.y, z: hero.z });
+  if (guard.damage <= 0) return guard.guarded;
+  const blow = blowTaken(hero, guard.damage, fight.random());
+  if (blow.dodged) {
+    fight.report({ kind: 'dodge', x: hero.x, y: hero.y, z: hero.z });
+    return guard.guarded;
+  }
   fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z });
   if (hurt(hero, blow.damage)) fight.fall();
+  return guard.guarded;
 }

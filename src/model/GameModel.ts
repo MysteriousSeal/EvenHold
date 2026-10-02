@@ -4,7 +4,9 @@
 // the enemies (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health.
 // What blocks movement and sight is kept in obstacles.ts.
 
-import { EDGE_MARGIN, HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, ATTACK_DURATION, ATTACK_STRIKE, FOCUS_RANGE, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
+import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
+import { stepOutdoors } from './hero/walkOutdoors';
+import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_RANGE, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
@@ -100,10 +102,6 @@ export class GameModel {
   private readonly obstacles: Obstacles;
   private readonly director: EnemyDirector;
   private hop: Hop | null = null;
-  // Time into the current attack, or null when not attacking; whether the
-  // current blow has landed yet (each blow hits at most once).
-  private attackElapsed: number | null = null;
-  private attackLanded = false;
 
   // Dev cheats: movement speed factor (1 = normal); walking through
   // everything; god mode (enemies' blows don't hurt); every blow of the
@@ -112,6 +110,7 @@ export class GameModel {
   noclip = false;
   godMode = false;
   oneHitKills = false;
+  readonly moves: CombatMoves; // the hero's roll, guard and breath (combatMoves.ts)
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
   // `size` defaults to the game's map; tests pass small worlds.
@@ -142,6 +141,7 @@ export class GameModel {
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
+    this.moves = new CombatMoves(this.hero);
     this.enemies = spawnEnemies(this); // (bandits in their camps)
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.scenery = placeScenery(this); // rocks and landmarks in the wilds (after the foes: clear of where they stand)
@@ -164,12 +164,10 @@ export class GameModel {
     return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
   }
 
-  // Starts a blow unless one is already under way (returns whether it did),
-  // turned to face the focused enemy if it's close by.
+  // Starts a blow (combatMoves.ts) unless one's under way, they're rolling or out of breath, or arms are put away
+  // (an inn); whether it did. Turned to face the focused enemy if it's close by.
   startAttack(): boolean {
-    if (this.attackElapsed !== null || this.seated || armsSheathed(this.inside)) return false; // (not in an inn: arms put away)
-    this.attackElapsed = 0;
-    this.attackLanded = false;
+    if (this.seated || armsSheathed(this.inside) || !this.moves.startBlow()) return false;
     const focus = this.focused;
     if (focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= FOCUS_TURN_RANGE) {
       this.hero.facing = Math.atan2(focus.x - this.hero.x, focus.z - this.hero.z);
@@ -179,7 +177,7 @@ export class GameModel {
 
   // How far through the current attack the hero is, 0..1, or null.
   get attackProgress(): number | null {
-    return this.attackElapsed === null ? null : Math.min(1, this.attackElapsed / ATTACK_DURATION);
+    return this.moves.blowProgress;
   }
 
   // Moves the hero straight to (x, z), standing on the ground there
@@ -230,22 +228,22 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
-      this.moveInside(dirX, dirZ, dt);
+      if (!this.moves.roll) this.moveInside(dirX, dirZ, dt);
+      this.moves.update(dt, this.push, this.below ? this.land : null); // (breath, the guard, a roll carrying them, a blow landing: none to hit but in a crypt)
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
-      this.advanceAttack(dt);
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
       stepNpcs(this.folk, this, dt);
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }
     if (this.yard) {
-      stepYard(this.hero, this.yard.furniture, dirX, dirZ, HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt);
-      this.advanceAttack(dt);
+      stepYard(this.hero, this.yard.furniture, dirX, dirZ, HERO_SPEED * this.pace * dt);
+      this.moves.update(dt, () => {}, null); // (a swing, played out at no one)
       return;
     }
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
-    if (!this.outdoors.seated) this.moveHorizontally(dirX, dirZ, dt);
-    this.advanceAttack(dt);
+    if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
+    this.moves.update(dt, this.push, this.land);
     this.director.update(dt);
     this.travellers.update(dt, this.enemies);
     this.quests.update(dt);
@@ -262,33 +260,35 @@ export class GameModel {
   // The villagers round the hero (where they are on the map: a building, if in one).
   private get folk(): readonly Npc[] { return this.nearNpcs.near(this.inside?.entrance ?? this.hero); }
 
-  // Moves the current blow along; outdoors it lands partway through (there's
-  // no one to hit indoors, so there the swing just plays out).
-  private advanceAttack(dt: number): void {
-    if (this.attackElapsed === null) return;
-    this.attackElapsed += dt;
-    if ((!this.inside || this.below) && !this.yard && !this.attackLanded && this.attackElapsed >= ATTACK_STRIKE * ATTACK_DURATION) {
-      this.attackLanded = true;
-      landBlow(this);
-    }
-    if (this.attackElapsed >= ATTACK_DURATION) this.attackElapsed = null;
-  }
+  // The hero's blow landing, on whoever's in reach (fighting.ts).
+  private readonly land = (): void => landBlow(this);
 
   private moveHorizontally(dirX: number, dirZ: number, dt: number): void {
     const len = Math.hypot(dirX, dirZ);
     if (len < 1e-6) return;
-
-    const dist = HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt;
-    const candidateX = Math.min(this.size.width - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.x + (dirX / len) * dist));
-    const candidateZ = Math.min(this.size.depth - 1 - EDGE_MARGIN, Math.max(EDGE_MARGIN, this.hero.z + (dirZ / len) * dist));
-
-    // Axis-separated so the hero slides along an obstacle's edge instead of
-    // stopping dead the instant either component alone would move into it.
-    const free = (x: number, z: number) =>
-      this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.folk, null, this.hero, x, z, HERO_RADIUS));
-    if (free(candidateX, this.hero.z)) this.hero.x = candidateX;
-    if (free(this.hero.x, candidateZ)) this.hero.z = candidateZ;
+    const dist = HERO_SPEED * this.pace * dt;
+    this.stepOut((dirX / len) * dist, (dirZ / len) * dist);
     this.hero.facing = Math.atan2(dirX, dirZ);
+  }
+
+  // A step outdoors (walkOutdoors.ts), what's in the way stopping it: the world's, foes, folk.
+  private stepOut(dx: number, dz: number): void {
+    stepOutdoors(this.hero, this.size, dx, dz, (x, z) => this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.folk, null, this.hero, x, z, HERO_RADIUS)));
+  }
+
+  // How fast the hero goes, as a share of their speed: the cheat's, their load's, tired, guarded.
+  private get pace(): number { return this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * (this.moves.guard !== null ? GUARD_PACE : 1); }
+  // Where blows can be met (not sat, not in an inn with arms sheathed, not in the furniture yard).
+  private get canFight(): boolean { return !this.seated && !armsSheathed(this.inside) && !this.yard; }
+
+  // Shift: a roll along (dirX, dirZ) (combatMoves.ts); whether they did.
+  roll(dirX: number, dirZ: number): boolean {
+    return this.canFight && this.moves.startRoll(dirX, dirZ, this.hero.facing);
+  }
+
+  // Q held: the guard raised (lowered where blows aren't met).
+  raiseGuard(on: boolean): void {
+    this.moves.raise(on && this.canFight);
   }
 
   // An item, or `amount` copper in coins, put on the ground at (x, z).
@@ -302,7 +302,7 @@ export class GameModel {
   get crypt(): CryptFoes | null { return this.below?.run ?? null; }
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
-  push = (dx: number, dz: number, facing = this.hero.facing): void => void (this.inside && [walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false), (this.hero.facing = facing)]);
+  push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
   report = (event: GameEvent): void => void this.events.push(event);
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (cryptFoes.ts: what's told of it)
   // How much of a crypt is cleared (0..1): its guards slain and its lord, of all of them (by its way in).
@@ -392,7 +392,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) < 1e-6) return;
     standUp(inside, this.hero);
     const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r) || (!!this.below && bumpsEnemy(this.below.run.foes, this.hero, x, z, r));
-    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * dt, bumps); // (out only with E at the door)
+    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.pace * dt, bumps); // (out only with E at the door)
   }
 
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.

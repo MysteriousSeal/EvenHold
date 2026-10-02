@@ -40,6 +40,7 @@ export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
+  | { kind: 'guard'; outcome: 'rolled' | 'parried' | 'blocked' | 'broken'; x: number; y: number; z: number } // a blow rolled through, parried, blocked, or breaking the guard (combatMoves.ts)
   | { kind: 'levelUp'; level: number; points: number } // the hero's levelled up: their points to spend now
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
