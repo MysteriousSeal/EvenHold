@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The main menu (controller/mainMenu.ts), edge by edge (no WebGL here: the
+// The main menu (controller/title/mainMenu.ts), edge by edge (no WebGL here: the
 // flat stage, mainMenuWorld.test.ts has the world's): the keys (wrapping,
 // none while typing, none once gone), the roster (its order, its slots, what
 // each card tells), letting heroes go (the last one, the chosen one, asking
@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { MAX_WORLDS, forgetWorld, savedWorlds } from '../src/controller/storage/saveGame';
-import { SAYINGS, showMainMenu, type MenuChoice } from '../src/controller/mainMenu';
+import { SAYINGS, showMainMenu, type MenuChoice } from '../src/controller/title/mainMenu';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -242,6 +242,19 @@ describe('the worlds saved here', () => {
     expect(savedWorlds().map((w) => w.name)).toEqual(['Ann']);
   });
 
+  it("a save that can't be read takes no place: the slot the menu offers for it is kept", async () => {
+    const { startAutoSave } = await import('../src/controller/storage/saveGame');
+    for (let i = 0; i < MAX_WORLDS - 1; i++) keep(100 + i, `Hero${i}`, i);
+    localStorage.setItem('evenhold.save.200', '{ broken');
+    void showMainMenu(hooks);
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(1); // (a place offered)
+    const fresh = new GameModel(TEST_SEEDS[1], TEST_MAP_SIZE);
+    const auto = startAutoSave(fresh);
+    auto.save();
+    expect(localStorage.getItem(`evenhold.save.${TEST_SEEDS[1]}`)).not.toBeNull(); // (and kept)
+    auto.forget();
+  });
+
   it('each tells its hero (look and gear too, for the menu to draw)', () => {
     keep(5, 'Ann', 300, 4);
     const [world] = savedWorlds();
@@ -301,5 +314,15 @@ describe('seeds typed in', () => {
 
   it('blank, none', () => {
     for (const blank of ['', '   ', '\t\n']) expect(seedFrom(blank)).toBeNull();
+  });
+});
+
+describe('seeds typed in: the plain cases', () => {
+  it('a number as it is; a word, the same world each time; nothing, none', () => {
+    expect(seedFrom(' 42 ')).toBe(42);
+    expect(seedFrom('dragon')).toBe(seedFrom('dragon'));
+    expect(seedFrom('dragon')).not.toBe(seedFrom('griffin'));
+    expect(Number.isInteger(seedFrom('dragon'))).toBe(true);
+    expect(seedFrom('  ')).toBeNull();
   });
 });

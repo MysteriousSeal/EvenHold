@@ -1,22 +1,18 @@
 // @vitest-environment happy-dom
-// The main menu (controller/mainMenu.ts), as WoW's and Diablo's character select,
+// The main menu (controller/title/mainMenu.ts), as WoW's and Diablo's character select,
 // and what it lists (storage/saveGame.ts
 // savedWorlds), without WebGL (no world, no opening: view/title's, in
 // mainMenuWorld.test.ts): the title, a saying under it, every hero at once, the last
 // played chosen and drawn, Enter World; one let go (asked twice); a new
 // world from a seed or a random one; the controls; Escape back.
 import { beforeEach, describe, expect, it } from 'vitest';
-import * as THREE from 'three';
-import { buildTitleCamp } from '../src/view/title/titleCamp';
-import { createTitleScene } from '../src/view/title/titleScene';
-import { places } from '../src/view/title/titleHeroes';
 import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { MAX_WORLDS, forgetWorld, savedWorlds, startAutoSave } from '../src/controller/storage/saveGame';
-import { showMainMenu } from '../src/controller/mainMenu';
+import { showMainMenu } from '../src/controller/title/mainMenu';
 import { CONTROLS } from '../src/controller/controls';
-import { LOOK_TRAITS, fitLook, stepTrait, withTrait } from '../src/model/human/lookTraits';
-import { HERO_LOOK, SKIN_TONE_COUNT, STYLES_OF } from '../src/model/human/humanoid';
+import { LOOK_TRAITS } from '../src/model/human/lookTraits';
+import { SKIN_TONE_COUNT, STYLES_OF } from '../src/model/human/humanoid';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -32,16 +28,6 @@ const click = (text: string) => Array.from(document.querySelectorAll<HTMLButtonE
 beforeEach(() => {
   localStorage.clear();
   document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1><div id="loading-bar"></div></div>';
-});
-
-describe('seeds typed in', () => {
-  it('a number as it is; a word, the same world each time; nothing, none', () => {
-    expect(seedFrom(' 42 ')).toBe(42);
-    expect(seedFrom('dragon')).toBe(seedFrom('dragon'));
-    expect(seedFrom('dragon')).not.toBe(seedFrom('griffin'));
-    expect(Number.isInteger(seedFrom('dragon'))).toBe(true);
-    expect(seedFrom('  ')).toBeNull();
-  });
 });
 
 describe('the worlds saved here', () => {
@@ -141,38 +127,6 @@ describe('the main menu', () => {
   });
 });
 
-describe("the main menu's world", () => {
-  it('a camp: the fire lit, the woods round it, the clearing where the heroes stand left open', () => {
-    const scene = new THREE.Scene();
-    buildTitleCamp(scene);
-    const meshes = scene.children.filter((o): o is THREE.Mesh => o instanceof THREE.Mesh);
-    expect(meshes.length).toBeGreaterThan(30);
-    expect(meshes.some((m) => (m.material as THREE.MeshStandardMaterial).emissiveIntensity > 1)).toBe(true); // (the fire's glow)
-    for (const m of meshes.filter((m) => m.scale.x > 1)) expect(Math.hypot(m.position.x / 4.4, (m.position.z + 1) / 3.2)).toBeGreaterThanOrEqual(1); // (no tree in the clearing)
-  });
-
-  it('without WebGL, none: the menu draws the hero flat', () => {
-    expect(createTitleScene(document.getElementById('loading')!)).toBeNull();
-  });
-});
-
-describe("the main menu's valley", () => {
-  it('level with the camp at its edge, rising away; a lake in a hollow; built whole, quickly', async () => {
-    const { valleyHeight, buildTitleValley } = await import('../src/view/title/titleValley');
-    expect(valleyHeight(0, 5.5)).toBe(0);
-    expect(valleyHeight(-9.5, -3)).toBe(0);
-    expect(valleyHeight(-40, -40)).toBeGreaterThan(3);
-    expect(valleyHeight(0, -95)).toBeGreaterThanOrEqual(15); // (the far peaks, snowy)
-    expect(valleyHeight(19, -26)).toBe(0); // (the lake)
-    const scene = new THREE.Scene();
-    const began = performance.now();
-    buildTitleValley(scene);
-    expect(performance.now() - began).toBeLessThan(3000);
-    const forests = scene.children.filter((o): o is THREE.InstancedMesh => o instanceof THREE.InstancedMesh);
-    expect(forests.reduce((n, f) => n + f.count, 0)).toBeGreaterThan(500);
-  });
-});
-
 describe('eight worlds at most', () => {
   // `n` worlds saved here (one hero's save, copied under each seed).
   const fill = (n: number) => {
@@ -215,17 +169,6 @@ describe('eight worlds at most', () => {
     kept.save();
     expect(localStorage.getItem('evenhold.played.100')).not.toBeNull();
     kept.forget();
-  });
-});
-
-describe("the heroes' places before the fire", () => {
-  it.each([1, 3, 4, 5, 6, 7, 8])('%i: four in front, the rest behind in the gaps, nobody hidden, the whole centred', (n) => {
-    const spots = places(n);
-    expect(spots.filter((p) => !p.back)).toHaveLength(Math.min(n, 4));
-    const front = spots.filter((p) => !p.back);
-    for (const b of spots.filter((p) => p.back)) for (const f of front) expect(Math.abs(b.x - f.x)).toBeGreaterThan(0.25);
-    const mid = spots.reduce((sum, p) => sum + p.x, 0) / n;
-    expect(Math.abs(mid)).toBeLessThan(0.3);
   });
 });
 
@@ -339,14 +282,5 @@ describe('the character creation screen', () => {
     document.querySelector<HTMLButtonElement>('.title-slot')!.click();
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
     expect(document.querySelector('.title-list')).not.toBeNull();
-  });
-});
-
-describe('look traits', () => {
-  it('a look made sound: a style of their build, no beard on a woman; one trait set, the rest kept sound', () => {
-    expect(fitLook({ ...HERO_LOOK, build: 'female', beard: true, hairStyle: 'cropped' })).toMatchObject({ beard: false, hairStyle: STYLES_OF.female[0] });
-    expect(withTrait(HERO_LOOK, 'skin', 2)).toEqual({ ...HERO_LOOK, skin: 2, expression: 'calm' }); // (calm: it had none)
-    expect(stepTrait({ ...HERO_LOOK, hairStyle: STYLES_OF.male.at(-1)! }, 'hairStyle', 1).hairStyle).toBe(STYLES_OF.male[0]); // (round)
-    expect(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name('twinBraids')).toBe('Twin braids');
   });
 });

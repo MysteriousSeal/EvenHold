@@ -1,19 +1,20 @@
 // @vitest-environment happy-dom
 // The character creation screen, edge by edge: its panels on their own
-// (controller/heroForge.ts: the name's rules, the dice, a name typed kept,
+// (controller/title/heroForge.ts: the name's rules, the dice, a name typed kept,
 // the steppers wrapping, the swatches, the helm tried on, the seed, every
 // change told), the screen in the menu (Enter, Escape, a fresh one each
 // visit, a world of theirs carried on), and the traits it's drawn from
 // (model/human/lookTraits.ts: every one sound, every random look sound).
 // Names stood in for (Osric for him, Wenna for her): the same each time.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { heroForge } from '../src/controller/heroForge';
-import { showMainMenu } from '../src/controller/mainMenu';
+import { heroForge } from '../src/controller/title/heroForge';
+import { showMainMenu } from '../src/controller/title/mainMenu';
 import { forgetWorld, savedWorlds } from '../src/controller/storage/saveGame';
 import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { EXPRESSIONS, HAIR_COLOR_COUNT, SKIN_TONE_COUNT, STYLES_OF, randomLook, type BodyLook } from '../src/model/human/humanoid';
 import { LOOK_TRAITS, fitLook, stepTrait, withTrait } from '../src/model/human/lookTraits';
+import { HERO_LOOK } from '../src/model/human/humanoid';
 import { seedFrom } from '../src/util/seed';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -310,5 +311,14 @@ describe('look traits', () => {
     expect(withTrait(man, 'skin', 99).skin).toBe(LOOK_TRAITS.find((t) => t.key === 'skin')!.values(man)[0]);
     const first = withTrait(man, 'expression', EXPRESSIONS[0]);
     expect(stepTrait(first, 'expression', -1).expression).toBe(EXPRESSIONS.at(-1));
+  });
+});
+
+describe('look traits: made sound', () => {
+  it('a look made sound: a style of their build, no beard on a woman; one trait set, the rest kept sound', () => {
+    expect(fitLook({ ...HERO_LOOK, build: 'female', beard: true, hairStyle: 'cropped' })).toMatchObject({ beard: false, hairStyle: STYLES_OF.female[0] });
+    expect(withTrait(HERO_LOOK, 'skin', 2)).toEqual({ ...HERO_LOOK, skin: 2, expression: 'calm' }); // (calm: it had none)
+    expect(stepTrait({ ...HERO_LOOK, hairStyle: STYLES_OF.male.at(-1)! }, 'hairStyle', 1).hairStyle).toBe(STYLES_OF.male[0]); // (round)
+    expect(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name('twinBraids')).toBe('Twin braids');
   });
 });

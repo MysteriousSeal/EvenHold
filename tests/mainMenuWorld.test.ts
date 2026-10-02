@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { forgetWorld, savedWorlds } from '../src/controller/storage/saveGame';
-import { showMainMenu } from '../src/controller/mainMenu';
+import { showMainMenu } from '../src/controller/title/mainMenu';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const world = vi.hoisted(() => ({ shown: [] as string[], chosen: -1, present: false, skipped: 0, made: null as null | { equipment: object }, pick: (_: number) => {}, done: () => {} }));

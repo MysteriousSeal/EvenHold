@@ -17,7 +17,6 @@ vi.mock('../src/view/ui/figureStage', () => ({
   },
 }));
 vi.mock('../src/view/meshes/human/humanFigure', () => ({ humanFigure: () => ({}), humanBust: () => ({}) }));
-vi.mock('../src/view/meshes/human/fineFigure', () => ({ fineFigure: (figure: object) => figure })); // (the figure stood in for: as it is)
 
 const fact = (label: string) => Array.from(document.querySelectorAll<HTMLElement>('.menu-fact')).find((f) => f.querySelector('dt')!.textContent === label)!;
 const tip = () => Array.from(document.querySelectorAll<HTMLElement>('.menu-tooltip')).find((t) => !t.hidden)?.textContent ?? '';
