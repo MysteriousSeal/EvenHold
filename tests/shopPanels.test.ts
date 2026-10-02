@@ -303,6 +303,18 @@ describe('the bag', () => {
     expect(keys.slice(0, 4)).toEqual(['bag-socket', 'bag-socket', 'bag-socket', 'bag-socket']); // (the sockets on top)
     expect(keys.slice(4, 8)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]); // (no empty cells by the sockets)
   });
+
+  it('in rows by what things are: a titled header over each group carried, the free slots at the bottom', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { wolfFang: 1, bread: 2, nasalCap: 1, ale: 1 }, bagOrder: ['wolfFang', null, 'bread', 'nasalCap', 'ale'], bagCounts: [] });
+    bag.menu.open();
+    const titles = Array.from(bagEl().querySelectorAll('.menu-section')).map((h) => h.textContent);
+    expect(titles).toEqual(['', 'Gear', 'Food & drink', 'Junk', '']); // (the sockets' line; the groups; a line, then the free slots)
+    const keys = Array.from(bagEl().querySelectorAll('.menu-slot')).map((s) => s.querySelector('canvas')?.dataset.key ?? null);
+    expect(keys.slice(4, 8)).toEqual(['item:nasalCap', 'loot:bread', 'loot:ale', 'loot:wolfFang']);
+    expect(keys.slice(8).every((k) => k === null)).toBe(true);
+  });
 });
 
 describe('naming several of a thing', () => {
