@@ -1,10 +1,14 @@
-// Dev-only cheat menu (travel, hero powers, looks, riches, enemies, the
-// wardrobe, world facts; wide, its rows in two columns), toggled with the backquote key (`), built on the shared EvenHold
-// menu (view/ui/menu.ts). The game keeps running while it's open, so a
-// teleport or a summon shows at once.
+// Dev-only cheat menu, toggled with the backquote key (`), built on the shared
+// EvenHold menu (view/ui/menu.ts). A tab for each thing a cheat touches:
+// Travel (villages, the wilds, the roads), Sights (rocks and landmarks,
+// wildflowers, the small life), Hero (health and energy, growth, powers),
+// Look (body, outfits, each slot), Bag (coin, things into it, loot on the
+// ground), Enemies (summon, control) and World (the game, and facts about
+// where the hero stands); each tab's rows in groups under a header, two
+// columns wide. The game keeps running while it's open, so a teleport or a
+// summon shows at once.
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
-
 import type { GameModel } from '../../model/GameModel';
 import {
   nextCamp,
@@ -41,9 +45,14 @@ import { gainXp, xpToNext } from '../../model/hero/heroStats';
 import { maxEnergyOf } from '../../model/hero/attributes';
 import { maxHpOf } from '../../model/hero/attributes';
 import { refundPoints } from '../../model/hero/training';
-import { LOOT_IDS } from '../../model/loot/loot';
-import { addToBag } from '../../model/hero/bag';
-import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
+import { LOOT_IDS, type LootId } from '../../model/loot/loot';
+import { BAG_IDS } from '../../model/loot/bags';
+import { JUNK_ITEMS } from '../../model/loot/junk';
+import { PROVISION_IDS } from '../../model/loot/provisions';
+import { addToBag, type BagItem } from '../../model/hero/bag';
+import { JUNK_STACK, slotsUsed } from '../../model/hero/bagStacks';
+import { bagRoom } from '../../model/hero/bagSlots';
+import { createMenu, type Menu, type MenuAction, type MenuIcon } from '../../view/ui/menu';
 import type { Scenery, SceneryKind } from '../../model/scenery/scenery';
 import { BLOOMS, type BloomKind } from '../../model/scenery/meadowPatches';
 import type { LifeKind } from '../../model/scenery/ambientSpots';
@@ -94,6 +103,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
     for (const item of items) wear(model.hero.equipment, item);
   };
+  // Puts each of `items` in the bag (room or not: a cheat).
+  const give = (items: readonly BagItem[]) => items.forEach((item) => addToBag(model.hero.bag, item));
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const campsSeen = new Set<Camp>(); // and the camps'
@@ -121,6 +132,34 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     },
   });
 
+  // A run of rows under one header (`section` on the first).
+  const group = (section: string, actions: MenuAction[]): MenuAction[] => actions.map((a, i) => (i === 0 ? { ...a, section } : a));
+  const travellerRow = (role: 'pedlar' | 'pilgrim' | 'guard', title: string, detail: string, icon: MenuIcon): MenuAction => ({
+    icon,
+    title,
+    detail,
+    run: () => {
+      const found = nearestTraveller(model, here(), role);
+      return travel(found?.at ?? null, found ? `${found.traveller.name}, a ${role}` : `${role} on the roads`);
+    },
+  });
+  const insideRow = (type: 'house' | 'inn' | 'smithy', icon: MenuIcon): MenuAction => ({
+    icon,
+    title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'the inn' : 'a smithy'}`,
+    detail: 'The nearest one you haven’t been in',
+    run: () => {
+      if (!enterNearest(model, type, entered)) return `There's no ${type} in this world.`;
+      menu.close();
+      return `Inside the ${type}.`;
+    },
+  });
+  const summonRow = (kind: 'wolf' | 'bandit' | 'boar', icon: MenuIcon, detail = 'Just ahead of you'): MenuAction => ({
+    icon,
+    title: `A ${kind}`,
+    detail,
+    run: () => (spawnEnemyNear(model, kind), `A ${kind} appears.`),
+  });
+
   const menu: Menu = createMenu({
     title: 'Cheats',
     toggleKey: 'Backquote',
@@ -129,79 +168,56 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         name: 'Travel',
         icon: ICON.travel,
         actions: [
-          {
-            icon: ICON.village,
-            title: 'Next village',
-            detail: 'The nearest one you haven’t visited',
-            run: () => {
-              const village = nextVillage(model, here(), visited);
-              return travel(village && villageEntrance(model, village, here()), `village ${visited.size} of ${model.villages.length}`);
-            },
-          },
-          { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
-          { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
-          { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
-          { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
-          ...(
-            [
-              ['pedlar', 'Nearest pedlar', 'On the road, with their pack'],
-              ['pilgrim', 'Nearest pilgrim', 'On the road, with a word to say'],
-              ['guard', 'Nearest guard patrol', 'Two guards walking their beat'],
-            ] as const
-          ).map(
-            ([role, title, detail]): MenuAction => ({
+          ...group('Villages', [
+            {
               icon: ICON.village,
-              title,
-              detail,
-              run: () => {
-                const found = nearestTraveller(model, here(), role);
-                return travel(found?.at ?? null, found ? `${found.traveller.name}, a ${role === 'guard' ? 'guard' : role}` : `${role} on the roads`);
-              },
-            }),
-          ),
-          ...(['house', 'inn', 'smithy'] as const).map(
-            (type): MenuAction => ({
-              icon: ICON.village,
-              title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'the inn' : 'a smithy'}`,
+              title: 'Next village',
               detail: 'The nearest one you haven’t visited',
               run: () => {
-                if (!enterNearest(model, type, entered)) return `There's no ${type} in this world.`;
-                menu.close();
-                return `Inside the ${type}.`;
+                const village = nextVillage(model, here(), visited);
+                return travel(village && villageEntrance(model, village, here()), `village ${visited.size} of ${model.villages.length}`);
               },
-            }),
-          ),
-          { icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') },
-          {
-            icon: ICON.village,
-            title: 'Furniture yard',
-            detail: 'Flat grass, every piece up close. Click again to return',
-            run: () => {
-              const said = model.toggleFurnitureYard();
-              menu.close();
-              return said;
             },
-          },
+            insideRow('house', ICON.village),
+            insideRow('inn', lootIcon('ale')),
+            insideRow('smithy', itemIcon('shortSword')),
+          ]),
+          ...group('Wilds', [
+            { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
+            { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
+            { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+            { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
+          ]),
+          ...group('Roads', [
+            travellerRow('pedlar', 'Nearest pedlar', 'On the road, with their pack', lootIcon('travellersPack')),
+            travellerRow('pilgrim', 'Nearest pilgrim', 'On the road, with a word to say', ICON.hero),
+            travellerRow('guard', 'Nearest guards', 'Two guards walking their beat', itemIcon('nasalCap')),
+          ]),
+          ...group('Back', [{ icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') }]),
         ],
       },
       {
         name: 'Sights',
         icon: ICON.menhir,
         actions: [
-          ...SIGHTS_SCENERY.map(
-            ([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextScenery(model, here(), kind, seenScenery), title.replace(/^Next /, 'a ').toLowerCase()) }),
+          ...group(
+            'Rocks & landmarks',
+            SIGHTS_SCENERY.map(([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextScenery(model, here(), kind, seenScenery), title.replace(/^Next /, 'a ').toLowerCase()) })),
           ),
-          { icon: ICON.meadow, title: 'Next flower meadow', detail: 'A thick patch of wildflowers, any kind', run: () => travel(nextMeadow(model, here(), null, seenMeadows), 'a flower meadow') },
-          ...BLOOMS.map(
-            (kind, i): MenuAction => ({
-              icon: ICON[kind],
-              title: `Next ${BLOOM_NAMES[kind]}`,
-              detail: `A meadow patch of ${BLOOM_NAMES[kind]}`,
-              run: () => travel(nextMeadow(model, here(), i, seenMeadows), `a patch of ${BLOOM_NAMES[kind]}`),
-            }),
-          ),
-          ...SIGHTS_LIFE.map(
-            ([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextLife(model, here(), kind, seenLife), title.replace(/^Next /, '').toLowerCase()) }),
+          ...group('Wildflowers', [
+            { icon: ICON.meadow, title: 'Next flower meadow', detail: 'A thick patch of wildflowers, any kind', run: () => travel(nextMeadow(model, here(), null, seenMeadows), 'a flower meadow') },
+            ...BLOOMS.map(
+              (kind, i): MenuAction => ({
+                icon: ICON[kind],
+                title: `Next ${BLOOM_NAMES[kind]}`,
+                detail: `A meadow patch of ${BLOOM_NAMES[kind]}`,
+                run: () => travel(nextMeadow(model, here(), i, seenMeadows), `a patch of ${BLOOM_NAMES[kind]}`),
+              }),
+            ),
+          ]),
+          ...group(
+            'Small life',
+            SIGHTS_LIFE.map(([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextLife(model, here(), kind, seenLife), title.replace(/^Next /, '').toLowerCase()) })),
           ),
         ],
       },
@@ -209,178 +225,211 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         name: 'Hero',
         icon: ICON.hero,
         actions: [
-          { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpOf(model.hero)), 'Healed.') },
-          {
-            icon: ICON.freeze,
-            title: 'Game speed',
-            detail: 'Each click, faster: ×1, ×2, ×3, ×4, ×10',
-            current: () => ({ value: `×${time.scale}` }),
-            run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
-          },
-          { icon: ICON.hero, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
-          { icon: ICON.hero, title: 'Full energy', detail: 'Rested at once, as after a night in bed', run: () => ((model.hero.energy = maxEnergyOf(model.hero)), 'Full of energy.') },
-          { icon: ICON.hero, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
-          {
-            icon: ICON.starterSet,
-            title: 'Gain a level',
-            detail: 'Just enough experience for the next',
-            run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
-          },
-          { icon: ICON.hero, title: 'Take back stat points', detail: 'Every point spent, back to spend again', run: () => (refundPoints(model.hero), `${model.hero.statPoints} points to spend.`) },
-          {
-            icon: ICON.swiftFeet,
-            title: 'Run fast',
-            detail: `Walk ${SPEED_BOOST}× faster (not the well's Swift feet)`,
-            ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Running fast.', 'Back to walking.'),
-          },
-          { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
-          { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+          ...group('Health & energy', [
+            { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpOf(model.hero)), 'Healed.') },
+            { icon: lootIcon('ale'), title: 'Full energy', detail: 'Rested at once, as after a night in bed', run: () => ((model.hero.energy = maxEnergyOf(model.hero)), 'Full of energy.') },
+            { icon: ICON.slay, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
+            { icon: ICON.noclip, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
+          ]),
+          ...group('Growth', [
+            {
+              icon: ICON.starterSet,
+              title: 'Gain a level',
+              detail: 'Just enough experience for the next',
+              run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
+            },
+            { icon: ICON.hero, title: 'Take back stat points', detail: 'Every point spent, back to spend again', run: () => (refundPoints(model.hero), `${model.hero.statPoints} points to spend.`) },
+            { icon: ICON.travel, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
+          ]),
+          ...group('Powers', [
+            {
+              icon: ICON.swiftFeet,
+              title: 'Run fast',
+              detail: `Walk ${SPEED_BOOST}× faster (not the well's Swift feet)`,
+              ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Running fast.', 'Back to walking.'),
+            },
+            { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
+            { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+          ]),
         ],
       },
       {
         name: 'Look',
         icon: ICON.heroine,
         actions: [
-          {
-            icon: ICON.undress,
-            title: 'New character',
-            detail: 'Another look and name, at random',
-            run: () => {
-              model.hero.look = randomLook();
-              model.hero.name = randomName(model.hero.look.build);
-              return `Now ${model.hero.name}.`;
+          ...group('Body', [
+            {
+              icon: ICON.undress,
+              title: 'New character',
+              detail: 'Another look and name, at random',
+              run: () => {
+                model.hero.look = randomLook();
+                model.hero.name = randomName(model.hero.look.build);
+                return `Now ${model.hero.name}.`;
+              },
             },
-          },
-          {
-            icon: ICON.heroine,
-            title: 'A woman',
-            detail: 'The hero in a woman\'s body',
-            ...toggle(
-              () => model.hero.look.build === 'female',
-              (on) => (model.hero.look = on ? { ...HEROINE_LOOK } : { ...HERO_LOOK }),
-              'The hero is a woman.',
-              'The hero is a man.',
-            ),
-          },
-          {
-            icon: ICON.heroine,
-            title: 'Hairstyle',
-            detail: 'Each click, the next style',
-            current: () => ({ value: STYLE_NAMES[model.hero.look.hairStyle] }),
-            run: () => {
-              const styles = STYLES_OF[model.hero.look.build];
-              const next = styles[(styles.indexOf(model.hero.look.hairStyle) + 1) % styles.length];
-              model.hero.look = { ...model.hero.look, hairStyle: next };
-              return `Hair: ${STYLE_NAMES[next]}.`;
+            {
+              icon: ICON.heroine,
+              title: 'A woman',
+              detail: "The hero in a woman's body",
+              ...toggle(
+                () => model.hero.look.build === 'female',
+                (on) => (model.hero.look = on ? { ...HEROINE_LOOK } : { ...HERO_LOOK }),
+                'The hero is a woman.',
+                'The hero is a man.',
+              ),
             },
-          },
+            {
+              icon: ICON.heroine,
+              title: 'Hairstyle',
+              detail: 'Each click, the next style',
+              current: () => ({ value: STYLE_NAMES[model.hero.look.hairStyle] }),
+              run: () => {
+                const styles = STYLES_OF[model.hero.look.build];
+                const next = styles[(styles.indexOf(model.hero.look.hairStyle) + 1) % styles.length];
+                model.hero.look = { ...model.hero.look, hairStyle: next };
+                return `Hair: ${STYLE_NAMES[next]}.`;
+              },
+            },
+          ]),
+          ...group('Outfits', [
+            { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
+            { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
+            { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
+            { icon: ICON.bandit, title: 'Random bandit', detail: 'A new mix of what bandits wear, each time', run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.') },
+          ]),
+          // One row per slot: each use puts on the slot's next item (then nothing, then round again).
+          ...group(
+            'Each slot',
+            EQUIP_SLOTS.map((slot): MenuAction => {
+              const choices = [undefined, ...ITEM_IDS.filter((item) => slotOf(item) === slot)];
+              const worn = () => model.hero.equipment[slot];
+              return {
+                title: SLOT_NAMES[slot],
+                run: () => {
+                  const next = choices[(choices.indexOf(worn()) + 1) % choices.length];
+                  if (next) wear(model.hero.equipment, next);
+                  else delete model.hero.equipment[slot];
+                  return next ? `${ITEMS[next].name} on.` : `Nothing on the ${SLOT_NAMES[slot].toLowerCase()}.`;
+                },
+                current: () => {
+                  const item = worn();
+                  return { detail: item ? ITEMS[item].name : 'Nothing', icon: item ? itemIcon(item) : undefined, value: `${choices.indexOf(item)} of ${choices.length - 1}` };
+                },
+              };
+            }),
+          ),
         ],
       },
       {
-        name: 'Riches',
-        icon: itemIcon('goldRing'),
+        name: 'Bag',
+        icon: lootIcon('roughSack'),
         actions: [
-          { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
-          { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
-          { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
-          { icon: ICON.hero, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
-          {
-            icon: ICON.wardrobe,
-            title: 'Gear in the bag',
-            detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
-            run: () => {
-              for (const item of [...STARTER_SET, ...BANDIT_OUTFIT]) addToBag(model.hero.bag, item);
-              return 'Your bag is full of gear.';
+          ...group('Coin', [
+            { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
+            { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
+          ]),
+          ...group('Into the bag', [
+            {
+              icon: ICON.wardrobe,
+              title: 'Gear',
+              detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
+              run: () => (give([...STARTER_SET, ...BANDIT_OUTFIT]), 'Gear, in the bag.'),
             },
-          },
-          {
-            icon: ICON.camp,
-            title: 'Scatter junk',
-            detail: 'One of every junk item around you',
-            run: () => {
-              LOOT_IDS.forEach((item, i) => {
-                const a = (i / LOOT_IDS.length) * Math.PI * 2;
-                model.dropLoot(item, model.hero.x + Math.cos(a) * 1.2, model.hero.z + Math.sin(a) * 1.2);
-              });
-              return 'Junk everywhere.';
+            { icon: lootIcon('roughSack'), title: 'Every bag', detail: 'One of each, to fit to the sockets', run: () => (give(BAG_IDS), 'One of every bag, in the bag.') },
+            { icon: lootIcon('bread'), title: 'Food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
+            {
+              icon: lootIcon('wolfFang'),
+              title: 'Junk till it’s full',
+              detail: 'Full stacks of junk in every free slot',
+              run: () => {
+                const junk = Object.keys(JUNK_ITEMS) as LootId[];
+                for (let i = 0; slotsUsed(model.hero.bag) < bagRoom(model.hero); i++) give(Array.from({ length: JUNK_STACK }, () => junk[i % junk.length])); // (round the junk again: another full stack each)
+                return 'The bag is full of junk.';
+              },
             },
-          },
+            { icon: ICON.undress, title: 'Empty the bag', detail: 'Everything in it gone (fitted bags stay)', run: () => (Object.assign(model.hero, { bag: {}, bagOrder: [], bagCounts: [] }), 'The bag is empty.') },
+          ]),
+          ...group('On the ground', [
+            {
+              icon: lootIcon('rustyBuckle'),
+              title: 'Scatter loot',
+              detail: 'One of every kind of loot, in a ring around you',
+              run: () => {
+                LOOT_IDS.forEach((item, i) => {
+                  const a = (i / LOOT_IDS.length) * Math.PI * 2;
+                  model.dropLoot(item, model.hero.x + Math.cos(a) * 1.2, model.hero.z + Math.sin(a) * 1.2);
+                });
+                return 'Loot all around.';
+              },
+            },
+          ]),
         ],
       },
       {
         name: 'Enemies',
         icon: ICON.enemies,
         actions: [
-          { icon: ICON.wolf, title: 'Summon a wolf', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'wolf'), 'A wolf appears.') },
-          { icon: ICON.bandit, title: 'Summon a bandit', detail: 'Appears just ahead of you', run: () => (spawnEnemyNear(model, 'bandit'), 'A bandit appears.') },
-          { icon: ICON.slay, title: 'Summon a draugr', detail: 'At your level, just ahead of you (in a crypt: with its breath and cleave)', run: () => (spawnDraugr(model), `A draugr of level ${model.hero.level} rises.`) },
-          { icon: ICON.boar, title: 'Summon a boar', detail: 'Appears just ahead of you (passive until struck)', run: () => (spawnEnemyNear(model, 'boar'), 'A boar appears.') },
-          { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
-          { icon: ICON.ruin, title: 'Reset crypts', detail: 'Every guard back at his post (out of a crypt first)', run: () => (resetCrypts(model), 'The crypts are guarded again.') },
-          { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
-        ],
-      },
-      {
-        name: 'Wardrobe',
-        icon: ICON.wardrobe,
-        actions: [
-          { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
-          { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
-          { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
-          {
-            icon: ICON.bandit,
-            title: 'Random bandit',
-            detail: 'A new mix of what bandits wear, each time',
-            run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.'),
-          },
-          // One row per slot: each use puts on the slot's next item (then nothing, then round again).
-          ...EQUIP_SLOTS.map((slot): MenuAction => {
-            const choices = [undefined, ...ITEM_IDS.filter((item) => slotOf(item) === slot)];
-            const worn = () => model.hero.equipment[slot];
-            return {
-              title: SLOT_NAMES[slot],
-              run: () => {
-                const next = choices[(choices.indexOf(worn()) + 1) % choices.length];
-                if (next) wear(model.hero.equipment, next);
-                else delete model.hero.equipment[slot];
-                return next ? `${ITEMS[next].name} on.` : `Nothing on the ${SLOT_NAMES[slot].toLowerCase()}.`;
-              },
-              current: () => {
-                const item = worn();
-                return {
-                  detail: item ? ITEMS[item].name : 'Nothing',
-                  icon: item ? itemIcon(item) : undefined,
-                  value: `${choices.indexOf(item)} of ${choices.length - 1}`,
-                };
-              },
-            };
-          }),
+          ...group('Summon', [
+            summonRow('wolf', ICON.wolf),
+            summonRow('bandit', ICON.bandit),
+            summonRow('boar', ICON.boar, 'Just ahead of you (passive until struck)'),
+            { icon: ICON.slay, title: 'A draugr', detail: 'At your level (in a crypt: with its breath and cleave)', run: () => (spawnDraugr(model), `A draugr of level ${model.hero.level} rises.`) },
+          ]),
+          ...group('Control', [
+            { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
+            { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
+            { icon: ICON.ruin, title: 'Reset crypts', detail: 'Every guard back at his post (out of a crypt first)', run: () => (resetCrypts(model), 'The crypts are guarded again.') },
+          ]),
         ],
       },
       {
         name: 'World',
         icon: ICON.world,
-        facts: () => {
-          const { hero } = model;
-          const tx = Math.round(hero.x);
-          const tz = Math.round(hero.z);
-          const near = model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) <= NEARBY);
-          const village = model.villages.reduce<Village | null>(
-            (best, v) => (!best || Math.hypot(v.x - tx, v.z - tz) < Math.hypot(best.x - tx, best.z - tz) ? v : best),
-            null,
-          );
-          return [
-            ['Seed', String(model.seed)],
-            ['Position', `${hero.x.toFixed(1)}, ${hero.z.toFixed(1)}`],
-            ['Ground', `tier ${model.heightMap[tx]?.[tz] ?? '?'} · ${model.lakeMap[tx]?.[tz] ? 'water' : (model.surfaceMap[tx]?.[tz] ?? '?')}`],
-            ['Foes near', `${near.filter((e) => e.kind === 'wolf').length} wolves · ${near.filter((e) => e.kind === 'bandit').length} bandits · ${near.filter((e) => e.kind === 'boar').length} boars`],
-            ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
-            ['World', `${model.size.width}×${model.size.depth}`],
-            ['Villages · camps · ruins', `${model.villages.length} · ${model.camps.length} · ${model.ruins.length}`],
-            ['In the bag', `${Object.values(model.hero.bag).reduce((n, c) => n + (c ?? 0), 0)} items`],
-          ];
-        },
+        actions: [
+          ...group('Game', [
+            {
+              icon: ICON.freeze,
+              title: 'Game speed',
+              detail: 'Each click, faster: ×1, ×2, ×3, ×4, ×10',
+              current: () => ({ value: `×${time.scale}` }),
+              run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
+            },
+            { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
+            {
+              icon: ICON.village,
+              title: 'Furniture yard',
+              detail: 'Flat grass, every piece up close. Again to return',
+              run: () => {
+                const said = model.toggleFurnitureYard();
+                menu.close();
+                return said;
+              },
+            },
+          ]),
+        ],
+        facts: () => worldFacts(model, NEARBY),
       },
     ],
   });
+}
+
+// The World tab's facts: where the hero stands, what's about, the world's size and what the bag holds.
+function worldFacts(model: GameModel, near: number): Array<[string, string]> {
+  const { hero } = model;
+  const tx = Math.round(hero.x);
+  const tz = Math.round(hero.z);
+  const foes = model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) <= near);
+  const count = (kind: string) => foes.filter((e) => e.kind === kind).length;
+  const village = model.villages.reduce<Village | null>((best, v) => (!best || Math.hypot(v.x - tx, v.z - tz) < Math.hypot(best.x - tx, best.z - tz) ? v : best), null);
+  return [
+    ['Seed', String(model.seed)],
+    ['Position', `${hero.x.toFixed(1)}, ${hero.z.toFixed(1)}`],
+    ['Ground', `tier ${model.heightMap[tx]?.[tz] ?? '?'} · ${model.lakeMap[tx]?.[tz] ? 'water' : (model.surfaceMap[tx]?.[tz] ?? '?')}`],
+    ['Foes near', `${count('wolf')} wolves · ${count('bandit')} bandits · ${count('boar')} boars`],
+    ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
+    ['World', `${model.size.width}×${model.size.depth}`],
+    ['Villages · camps · ruins', `${model.villages.length} · ${model.camps.length} · ${model.ruins.length}`],
+    ['Bag', `${slotsUsed(hero.bag)} of ${bagRoom(hero)} slots`],
+  ];
 }

@@ -1,4 +1,8 @@
-/* The dev cheat menu (controller/cheats): wide, its rows in two columns so
-   a tab of many doesn't scroll; facts (the World tab) stay one list. */
-.menu[aria-label='Cheats'] { width: min(640px, 100%); }
+/* The dev cheat menu (cheatPanel.ts), over menu.css's look: wide, each
+   tab's rows two columns side by side so a tab of many doesn't scroll, each
+   group's header (and the World tab's facts) across both. */
+.menu[aria-label='Cheats'] { width: min(680px, 100%); }
 .menu[aria-label='Cheats'] .menu-list:has(> .menu-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; align-content: start; }
+.menu[aria-label='Cheats'] .menu-list > .menu-section { grid-column: 1 / -1; margin-top: 10px; }
+.menu[aria-label='Cheats'] .menu-list > .menu-section:first-child { margin-top: 0; }
+.menu[aria-label='Cheats'] .menu-list > .menu-ledger { grid-column: 1 / -1; }
