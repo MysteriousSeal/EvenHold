@@ -3,8 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BACK_AFTER, STOP_FOR_HERO, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
-import { hurt } from '../src/model/travellers/travellerFights';
+import { STOP_FOR_HERO, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
 import { GUARD_LINES, PILGRIM_ROAD_LINES, bearing, cryptRumour, travellerInReach, travellerPrompt, travellerSays } from '../src/model/travellers/travellerTalk';
 import { PEDLAR_TRINKETS, PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
 import { makeEnemy } from '../src/model/enemies/enemies';
@@ -62,14 +61,13 @@ describe('travellers setting out', () => {
       const at = onRoadSide(shared().travellers.roads[t.road], t.along, t.way);
       expect([t.x, t.z]).toEqual([at.x, at.z]);
       expect(t.name.length).toBeGreaterThan(1);
-      expect(t.hp).toBe(t.maxHp);
       if (t.role === 'pedlar') expect(t.equipment.mainHand).toBeUndefined(); // (unarmed)
       if (t.role === 'guard') expect(['armingSword', 'spear']).toContain(t.equipment.mainHand);
       for (const item of Object.values(t.equipment)) expect(ITEMS[item!].wornBy?.[t.role], `${t.role} in ${item}`).toBeGreaterThan(0);
     }
   });
 
-  it('are tougher the further out from where the hero set out, guards most of all', () => {
+  it('are of higher levels the further out from where the hero set out (a guard\'s blows the harder)', () => {
     const list = shared().travellers.list;
     const spawn = spawnOf(MID);
     const dist = (t: Traveller) => Math.hypot(t.x - spawn.x, t.z - spawn.z);
@@ -78,8 +76,7 @@ describe('travellers setting out', () => {
     const mean = (ts: Traveller[]) => ts.reduce((s, t) => s + t.level, 0) / ts.length;
     expect(mean(out)).toBeGreaterThan(mean(near));
     const guard = list.find((t) => t.role === 'guard')!;
-    const pilgrim = list.find((t) => t.role === 'pilgrim' && t.level === guard.level);
-    if (pilgrim) expect(guard.maxHp).toBeGreaterThan(pilgrim.maxHp);
+    expect(guard.damage).toBeGreaterThanOrEqual(3); // (their blow, by their level)
   });
 });
 
@@ -182,6 +179,19 @@ describe('travellers passing each other', () => {
 });
 
 describe('travellers and the foes of the wilds', () => {
+  it('foes leave travellers be: a wolf beside a pilgrim minds its own, the pilgrim walking on', () => {
+    const { model, t } = alone('pilgrim');
+    const along = t.along;
+    watching(model, t);
+    const wolf = wolfBy(model, t);
+    const [wx, wz] = [wolf.x, wolf.z];
+    step(model, 3);
+    expect(wolf.state).toBe('wander');
+    expect(Math.hypot(wolf.x - t.x, wolf.z - t.z)).toBeGreaterThan(0.3); // (not on them)
+    expect(t.along).not.toBe(along); // (walking on, unbothered)
+    void [wx, wz];
+  });
+
   const wolfBy = (model: GameModel, t: Traveller, dx = 1.5): Enemy => {
     const wolf = makeEnemy(5_000_000 + model.enemies.length, 'wolf', t.x + dx, t.z, t.x + dx, t.z, 1);
     model.enemies.push(wolf);
@@ -189,39 +199,6 @@ describe('travellers and the foes of the wilds', () => {
   };
   // The hero close enough for the foes to wake (they only think near the hero), but not so close the travellers stop.
   const watching = (model: GameModel, t: Traveller) => Object.assign(model.hero, { x: t.x, z: t.z + 8 });
-
-  it('a foe not set on the hero goes for a traveller nearer than the hero, and its bites tell', () => {
-    const { model, t } = alone('pilgrim');
-    watching(model, t);
-    const wolf = wolfBy(model, t);
-    step(model, 4);
-    expect(wolf.state).toBe('chase');
-    expect(t.hp).toBeLessThan(t.maxHp);
-    expect(model.hero.hp).toBe(model.hero.hp); // (left the hero be)
-  });
-
-  it('brought down, they lie a moment and are gone; a while after, another of their kind sets out', () => {
-    const { model, t } = alone('pilgrim');
-    hurt(t, t.maxHp);
-    expect(t.down).toBe(0);
-    expect(model.travellers.standing).not.toContain(t);
-    step(model, 5);
-    expect(model.travellers.list).not.toContain(t);
-    step(model, BACK_AFTER);
-    const next = model.travellers.list.find((x) => x.role === 'pilgrim');
-    expect(next).toBeDefined();
-    expect(next!.hp).toBe(next!.maxHp);
-  });
-
-  it('a guard brought down: two set out again in their place, together', () => {
-    const { model, t } = alone('guard');
-    for (const g of [...model.travellers.list]) hurt(g, g.maxHp);
-    step(model, 5 + BACK_AFTER);
-    const guards = model.travellers.list.filter((x) => x.role === 'guard');
-    expect(guards.length).toBe(2);
-    expect(guards[1].leader).toBe(guards[0].id);
-    void t;
-  });
 
   it('guards go for a foe near them, strike it down (slain for good), and go back to their road', () => {
     const { model, t } = alone('guard');
@@ -247,20 +224,6 @@ describe('travellers and the foes of the wilds', () => {
     expect(model.slain.has(7)).toBe(true);
   });
 
-  it('a foe a guard strikes turns on them', () => {
-    const { model, t } = alone('guard');
-    watching(model, t);
-    const boar = makeEnemy(5_000_001, 'boar', t.x + 1.2, t.z, t.x + 1.2, t.z, 1); // (passive: it never starts it)
-    boar.state = 'chase'; // (set on someone: the guards go for it)
-    boar.hp = boar.maxHp = 40; // (enough to outlast a blow or two from the pair)
-    model.enemies.push(boar);
-    model.enemiesFrozen = true; // (held there, not off after the hero, till the guard's blow lands)
-    step(model, 1.5);
-    model.enemiesFrozen = false;
-    expect(boar.hp).toBeLessThan(boar.maxHp);
-    expect(model.travellers.fights.of(boar)?.role).toBe('guard');
-  });
-
   it('a passive foe left be is let be: guards walk on past a boar minding its own', () => {
     const { model, t } = alone('guard');
     watching(model, t);
@@ -281,13 +244,11 @@ describe('travellers and the foes of the wilds', () => {
 });
 
 describe('a word with a traveller', () => {
-  it('the one near enough, standing: "Trade with" a pedlar, "Talk to" the rest', () => {
+  it('the one near enough: "Trade with" a pedlar, "Talk to" the rest', () => {
     const { model, t } = alone('pedlar');
     expect(travellerInReach(model.travellers.list, { x: t.x + 5, z: t.z })).toBeNull();
     expect(travellerInReach(model.travellers.list, { x: t.x + 1, z: t.z })).toBe(t);
     expect(travellerPrompt(t)).toBe(`Trade with ${t.name}`);
-    hurt(t, t.maxHp);
-    expect(travellerInReach(model.travellers.list, { x: t.x + 1, z: t.z })).toBeNull(); // (down: none)
     const pilgrim = shared().travellers.list.find((x) => x.role === 'pilgrim')!;
     expect(travellerPrompt(pilgrim)).toBe(`Talk to ${pilgrim.name}`);
   });
@@ -357,15 +318,13 @@ describe('a pedlar\'s pack', () => {
     expect(pedlarShopAt(again.shops, again.seed, t, 0).money).toBe(1234);
   });
 
-  it('travellers are kept in the save: each where they were on their road, going their way, their health', () => {
+  it('travellers are kept in the save: each where they were on their road, going their way, their level', () => {
     const model = fresh(2);
     far(model);
     step(model, 3);
-    const hurtOne = model.travellers.list[0];
-    hurtOne.hp -= 2;
     const again = new GameModel(2, MID);
     restore(again, parseSave(JSON.stringify(snapshot(model)), 2)!);
-    const kept = (m: GameModel) => m.travellers.list.map((t) => [t.id, t.role, t.name, t.road, t.way, Math.round(t.along * 100) / 100, t.hp, t.leader]);
+    const kept = (m: GameModel) => m.travellers.list.map((t) => [t.id, t.role, t.name, t.road, t.way, Math.round(t.along * 100) / 100, t.leader, t.level]);
     expect(kept(again)).toEqual(kept(model));
     for (const t of again.travellers.list) {
       const was = model.travellers.list.find((x) => x.id === t.id)!;
@@ -374,18 +333,6 @@ describe('a pedlar\'s pack', () => {
     }
   });
 
-  it('those brought down set out again after a reload too, in their time', () => {
-    const model = fresh(2);
-    const t = model.travellers.list.find((x) => x.role === 'pilgrim')!;
-    hurt(t, t.maxHp);
-    const count = model.travellers.list.length;
-    const again = new GameModel(2, MID);
-    restore(again, parseSave(JSON.stringify(snapshot(model)), 2)!);
-    expect(again.travellers.list.length).toBe(count - 1);
-    far(again);
-    for (let s = 0; s < BACK_AFTER + 1; s += 0.25) again.update(0, 0, 0.25);
-    expect(again.travellers.list.length).toBe(count);
-  });
 });
 
 describe('the travel cheats', () => {
@@ -394,7 +341,7 @@ describe('the travel cheats', () => {
     const found = nearestTraveller(model, model.hero, role)!;
     expect(found.traveller.role).toBe(role);
     expect(found.traveller.leader).toBeNull(); // (a patrol by its leader)
-    const nearer = model.travellers.standing.filter((t) => t.role === role && t.leader === null && Math.hypot(t.x - model.hero.x, t.z - model.hero.z) < Math.hypot(found.traveller.x - model.hero.x, found.traveller.z - model.hero.z));
+    const nearer = model.travellers.list.filter((t) => t.role === role && t.leader === null && Math.hypot(t.x - model.hero.x, t.z - model.hero.z) < Math.hypot(found.traveller.x - model.hero.x, found.traveller.z - model.hero.z));
     expect(nearer).toEqual([]);
     model.teleport(found.at.x, found.at.z);
     const by = travellerInReach(model.travellers.list, model.hero);
