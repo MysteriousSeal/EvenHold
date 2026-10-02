@@ -68,6 +68,8 @@ describe('the main menu', () => {
     expect(document.querySelector('.title-press')).toBeNull();
     expect(document.getElementById('loading')!.classList.contains('flat')).toBe(true); // (the flat sun and hills)
     expect(cards().map((c) => c.querySelector('b')?.textContent)).toEqual(['Bertrade', 'Aleyn']);
+    expect(cards()[0].querySelector('.title-portrait canvas')).not.toBeNull(); // (their bust)
+    expect(cards()[1].querySelector('.title-crest')?.textContent).toBe('17'); // (their level, on a shield)
     expect(cards()[0].classList.contains('chosen')).toBe(true);
     expect(shown()).toBe('Bertrade');
     expect(document.querySelector('.title-stage canvas')).not.toBeNull(); // (in their look and gear)
@@ -175,15 +177,22 @@ describe('eight worlds at most', () => {
     }
   };
 
-  it('full: New World greyed, and told why; one let go, it comes back', () => {
+  it('a slot for each place left (a new hero); full: none, and told why; one let go, a slot back', () => {
+    fill(MAX_WORLDS - 1);
+    let menu = showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
+    expect(document.querySelector('.title-list-head small')?.textContent).toBe('7 / 8');
+    document.querySelector<HTMLButtonElement>('.title-slot')!.click();
+    expect(document.querySelector('.title-input')).not.toBeNull(); // (a new world's seed, asked)
+    void menu;
+    document.body.innerHTML = '<div id="loading"><h1>EvenHold</h1></div>';
     fill(MAX_WORLDS);
-    void showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
-    const fresh = () => Array.from(document.querySelectorAll<HTMLButtonElement>('.title-list button')).find((b) => b.textContent === 'New World')!;
-    expect(fresh().disabled).toBe(true);
+    menu = showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(0);
     expect(document.querySelector('.title-full')?.textContent).toContain('8 heroes at most');
     click('Delete hero');
     click('Forget');
-    expect(fresh().disabled).toBe(false);
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
     expect(document.querySelector('.title-full')).toBeNull();
   });
 
