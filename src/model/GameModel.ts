@@ -106,11 +106,12 @@ export class GameModel {
   private attackLanded = false;
 
   // Dev cheats: movement speed factor (1 = normal); walking through
-  // everything; god mode (enemies' blows don't hurt); enemies standing
-  // still (enemiesFrozen, below).
+  // everything; god mode (enemies' blows don't hurt); every blow of the
+  // hero's a kill; enemies standing still (enemiesFrozen, below).
   speedMultiplier = 1;
   noclip = false;
   godMode = false;
+  oneHitKills = false;
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
   // `size` defaults to the game's map; tests pass small worlds.

@@ -20,6 +20,7 @@ export interface Fight {
   readonly foes: readonly Enemy[]; // the foes about (the world's, or a crypt's guards)
   readonly focused: Enemy | null;
   readonly godMode: boolean;
+  readonly oneHitKills: boolean; // (a dev cheat: every blow of the hero's fells what it lands on)
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
   random(): number;
@@ -40,7 +41,9 @@ export function landBlow(fight: Fight): void {
   const hit = blowTarget(hero, fight.foes, fight.focused);
   if (!hit) return;
   const { target, distance } = hit;
-  const { damage, crit } = heroBlow(hero, fight.random());
+  const blow = heroBlow(hero, fight.random());
+  const { crit } = blow;
+  const damage = fight.oneHitKills ? Math.max(blow.damage, Math.ceil(target.hp)) : blow.damage;
   target.hp -= damage;
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
   target.hurtFor = 0.25;
