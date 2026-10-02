@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BAG_ROOM, BAG_SOCKETS, ROOM_PER_BAG, bagRoom, canCarry, fitBag, kindsCarried, unfitBag } from '../src/model/hero/bagSlots';
 import { BAG_IDS } from '../src/model/loot/bags';
+import { JUNK_ITEMS } from '../src/model/loot/junk';
+import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { isBagItem } from '../src/model/loot/bags';
-import { addToBag, type BagItem } from '../src/model/hero/bag';
+import { addToBag, bagLayout, layoutCounts, moveInBag, slotsUsed, sortedBag, stacksOf, type BagItem } from '../src/model/hero/bag';
 import { buyFrom, type Shop } from '../src/model/shops/shopStock';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { PEDLAR_WARES, pedlarBuys } from '../src/model/travellers/pedlarShop';
@@ -105,5 +107,41 @@ describe('the bag\'s room', () => {
       expect(PEDLAR_WARES).toContain(id);
       expect(pedlarBuys(id)).toBe(true);
     }
+  });
+});
+
+describe('junk in stacks of twenty', () => {
+  it('twenty to a slot, the rest in another: each stack its own slot, the last holding what\'s over', () => {
+    const bag = { wolfFang: 45, bread: 30 };
+    expect(stacksOf('wolfFang', 45)).toBe(3);
+    expect(stacksOf('bread', 30)).toBe(1); // (food: all in one)
+    expect(slotsUsed(bag)).toBe(4);
+    const layout = bagLayout(bag, [], 6);
+    expect(layout.filter((i) => i === 'wolfFang')).toHaveLength(3);
+    const counts = layoutCounts(bag, layout);
+    expect(layout.map((item, i) => (item === 'wolfFang' ? counts[i] : null)).filter((n) => n !== null)).toEqual([20, 20, 5]);
+    expect(counts[layout.indexOf('bread')]).toBe(30);
+  });
+
+  it('the bag full, one more junk goes onto a stack with room, not a new one', () => {
+    const model = fresh();
+    model.hero.bag = {};
+    for (const id of [...KINDS.filter((k) => !(k in JUNK_ITEMS)), ...ITEM_IDS].slice(0, BAG_ROOM - 1)) addToBag(model.hero.bag, id); // (all but a slot, no junk)
+    const junk = Object.keys(JUNK_ITEMS)[0] as BagItem;
+    model.hero.bag[junk] = 19; // (its own slot: the last one)
+    expect(kindsCarried(model.hero)).toBe(BAG_ROOM);
+    expect(canCarry(model.hero, junk)).toBe(true); // (the 20th: the same stack)
+    model.hero.bag[junk] = 20;
+    expect(canCarry(model.hero, junk)).toBe(false); // (the 21st: a new stack, no slot for it)
+  });
+
+  it('tidied, a thing\'s stacks side by side', () => {
+    expect(sortedBag({ wolfFang: 41, bread: 2 })).toEqual(['bread', 'wolfFang', 'wolfFang', 'wolfFang']);
+  });
+
+  it('a stack moved stays a stack; the order keeps where each stack sits', () => {
+    const bag = { wolfFang: 25 };
+    const order = moveInBag(bag, bagLayout(bag, [], 6), 1, 4, 6);
+    expect(bagLayout(bag, order, 6)).toEqual(['wolfFang', null, null, null, 'wolfFang', null]);
   });
 });
