@@ -4,6 +4,8 @@
 
 import * as THREE from 'three';
 import { greedyMesh, type VoxelGrid } from '../meshes/voxel/greedyMesh';
+import { roundNormals } from '../meshes/voxel/roundedNormals';
+import { withRimLight } from '../meshes/human/humanParts';
 
 const TURN_SPEED = 0.6; // radians per second
 const VOXEL = 0.025;
@@ -14,7 +16,7 @@ export class FigureStage {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 20);
   private readonly turntable = new THREE.Group();
-  private readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  private readonly material = withRimLight(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
   private mesh: THREE.Mesh | null = null;
   private last = performance.now();
 
@@ -41,11 +43,12 @@ export class FigureStage {
   // stage with a voxel and a half to spare all round (room for armor), so
   // what's worn never changes the scale. Anything held out may swing past
   // the edge.
-  show(figure: { grid: VoxelGrid; palette: number[] }, core: { grid: VoxelGrid; palette: number[] } = figure): void {
+  show(figure: { grid: VoxelGrid; palette: number[]; scale?: number }, core: { grid: VoxelGrid; palette: number[] } = figure): void {
     this.mesh?.geometry.dispose();
     this.mesh?.removeFromParent();
     const origin = new THREE.Vector3();
-    this.mesh = new THREE.Mesh(greedyMesh(figure.grid, figure.palette, VOXEL, origin), this.material);
+    const voxel = VOXEL * (figure.scale ?? 1); // (a fine figure's, half: fineFigure.ts)
+    this.mesh = new THREE.Mesh(roundNormals(greedyMesh(figure.grid, figure.palette, voxel, origin), figure.grid, voxel, origin), this.material);
     this.turntable.add(this.mesh);
     const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);
     coreGeometry.computeBoundingBox();

@@ -10,6 +10,9 @@
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import { humanFigure } from '../meshes/human/humanFigure';
+import { fineFigure } from '../meshes/human/fineFigure';
+import { withRimLight } from '../meshes/human/humanParts';
+import { roundNormals } from '../meshes/voxel/roundedNormals';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { Equipment } from '../../model/human/equipment';
 
@@ -99,10 +102,12 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
     const spots = places(heroes.length);
     heroes.forEach((hero, i) => {
       const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
-      const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, clippingPlanes: [cut], clipShadows: true });
+      const material = withRimLight(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, clippingPlanes: [cut], clipShadows: true }));
       const origin = new THREE.Vector3();
-      const figure = humanFigure(hero.look, hero.equipment);
-      const mesh = new THREE.Mesh(greedyMesh(figure.grid, figure.palette, VOXEL, origin), material);
+      // Close up: the finer face and hands (fineFigure.ts), shaded round (roundedNormals.ts).
+      const figure = fineFigure(humanFigure(hero.look, hero.equipment), hero.look);
+      const voxel = VOXEL * (figure.scale ?? 1);
+      const mesh = new THREE.Mesh(roundNormals(greedyMesh(figure.grid, figure.palette, voxel, origin), figure.grid, voxel, origin), material);
       mesh.castShadow = true;
       const core = humanFigure({ ...hero.look, hairStyle: 'bald' }, {}); // (the body alone sets where they stand: no hair, so a new style never moves them)
       const coreGeometry = greedyMesh(core.grid, core.palette, VOXEL, origin);

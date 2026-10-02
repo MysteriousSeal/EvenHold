@@ -11,6 +11,7 @@ import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bo
 import { BODY_FILL, withBody, wornPad } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 import { hairUnder } from './hairUnderHelm';
+import { roundNormals } from '../voxel/roundedNormals';
 
 const V = HUMAN_VOXEL_SIZE;
 
@@ -20,6 +21,25 @@ const V = HUMAN_VOXEL_SIZE;
 export function personMaterial(): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, emissive: 0x2a1e14 });
   material.color.setRGB(1.12, 1.1, 1.06);
+  withRimLight(material);
+  return material;
+}
+
+// A warm rim of light round a figure's edges, where its surface turns away
+// from the eye (strongest at the silhouette, none face on): people read as
+// soft lit volumes against the ground, not cut-outs.
+const RIM = { color: new THREE.Color(0xffd2a0), strength: 0.32, falloff: 2.6 };
+export function withRimLight<M extends THREE.MeshStandardMaterial>(material: M): M {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.rimColor = { value: RIM.color };
+    shader.fragmentShader = `uniform vec3 rimColor;\n${shader.fragmentShader}`.replace(
+      '#include <opaque_fragment>',
+      `float rim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), ${RIM.falloff.toFixed(2)});
+      outgoingLight += rimColor * rim * ${RIM.strength.toFixed(2)} * diffuseColor.rgb;
+      #include <opaque_fragment>`,
+    );
+  };
+  material.customProgramCacheKey = () => 'person-rim';
   return material;
 }
 
@@ -43,9 +63,13 @@ function cached(key: string, make: () => THREE.BufferGeometry | null): THREE.Buf
 }
 
 // Meshes `grid` so that `pivot` (in voxels within the grid) sits at the
-// origin, drawing only the colors `include` accepts.
-function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, number], include?: (color: number) => boolean, voxel = V): THREE.BufferGeometry {
-  return greedyMesh(grid, palette, voxel, new THREE.Vector3(-pivot[0] * voxel, -pivot[1] * voxel, -pivot[2] * voxel), include);
+// origin, drawing only the colors `include` accepts; shaded as a rounded
+// form (roundedNormals.ts: the body, hair, what's worn), or crisp (`round`
+// false: what's held, its edges sharp).
+function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, number], include?: (color: number) => boolean, voxel = V, round = true): THREE.BufferGeometry {
+  const origin = new THREE.Vector3(-pivot[0] * voxel, -pivot[1] * voxel, -pivot[2] * voxel);
+  const geometry = greedyMesh(grid, palette, voxel, origin, include);
+  return round ? roundNormals(geometry, grid, voxel, origin) : geometry;
 }
 
 export function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
@@ -84,5 +108,5 @@ export function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean, bu
 
 export function heldGeometry(item: ItemId): THREE.BufferGeometry | null {
   const { held, palette } = ITEM_MODELS[item];
-  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, held.fine ? V : HELD_VOXEL_SIZE) : null));
+  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, held.fine ? V : HELD_VOXEL_SIZE, false) : null));
 }

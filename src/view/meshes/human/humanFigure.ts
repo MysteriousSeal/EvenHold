@@ -11,6 +11,7 @@ import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 import { wornPad } from './gear/armorShell';
+import { fineFigure } from './fineFigure';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
 // with space for shells, shields, and poles held in the middle (a spear
@@ -38,6 +39,8 @@ function scaled(grid: VoxelGrid, by: number): VoxelGrid {
 export interface Figure {
   grid: VoxelGrid;
   palette: number[];
+  parts?: Partial<Record<Joint, [number, number, number]>>; // where each body part's (0, 0, 0) is in the grid (fineFigure.ts finds the face and hands by it)
+  scale?: number; // its voxels' size, against a figure's (fineFigure.ts's: half)
 }
 
 // `only`: draw just these body parts (and what's worn on them). `build`:
@@ -49,7 +52,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
   const bases = new Map<number[], number>(); // where each palette starts in the figure's, added once
   // Copies `part` in with its colors (after the ones already used), placing
   // its voxel `pivot` at figure point `at`.
-  const place = (part: VoxelGrid, colors: number[], at: number[], pivot: number[]) => {
+  const place = (part: VoxelGrid, colors: number[], at: number[], pivot: number[]): [number, number, number] => {
     let base = bases.get(colors);
     if (base === undefined) {
       base = palette.length;
@@ -68,13 +71,15 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
         }
       }
     }
+    return [ox, oy, oz];
   };
+  const parts: Partial<Record<Joint, [number, number, number]>> = {};
 
   if (look) {
     const colors = bodyPalette(look);
     for (const joint of only) {
       const { part, at } = joints[joint];
-      place(buildBodyPart(part, look), colors, at, pivot[part]);
+      parts[joint] = place(buildBodyPart(part, look), colors, at, pivot[part]);
     }
     // Up past the head: all of it bare-headed; under a piece open behind, what hangs below its rim; else none.
     const worn = equipment.head;
@@ -100,7 +105,7 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
       if (shell) place(shell, model.palette, at, pivot[part].map((p) => p + wornPad(part)));
     }
   }
-  return { grid, palette };
+  return { grid, palette, parts };
 }
 
 // The head only (a portrait): the figure above the neck, as worn,
@@ -108,9 +113,9 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
 // seen from the +X+Z corner, where a figure's own +Z front reads as facing
 // left; facing right, it's turned a quarter so its front is +X.
 export function humanBust(look: BodyLook, equipment: Equipment, facing: 'left' | 'right' = 'right'): Figure {
-  const figure = humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined });
+  const figure = fineFigure(humanFigure(look, { ...equipment, mainHand: undefined, offHand: undefined }), look); // (close up: the finer face)
   const [sx, sy, sz] = figure.grid.size;
-  const chest = JOINTS.head.at[1] + SHIFT[1]; // everything below the head goes
+  const chest = (JOINTS.head.at[1] + SHIFT[1]) * 2; // everything below the head goes (in the fine figure's voxels)
   for (let z = 0; z < sz; z++) for (let y = 0; y < Math.min(chest, sy); y++) for (let x = 0; x < sx; x++) figure.grid.cells[x + sx * (y + sy * z)] = 0;
   if (facing === 'left') return figure;
   const turned = createGrid([sz, sy, sx]);
@@ -122,5 +127,5 @@ export function humanBust(look: BodyLook, equipment: Equipment, facing: 'left' |
       }
     }
   }
-  return { grid: turned, palette: figure.palette };
+  return { grid: turned, palette: figure.palette, scale: figure.scale };
 }
