@@ -118,7 +118,8 @@ const HAIR_COLORS: Array<[hair: number, light: number]> = [
   [0xe2ded6, 0xf6f3ee],
 ];
 // Dyes for the braies (and her breast band), each with its shading: madder
-// red, woad blue, weld green, walnut brown, charcoal, EvenHold's turquoise.
+// red, woad blue, weld green, walnut brown, charcoal, EvenHold's turquoise; then (added after, so saves keep
+// theirs) saffron yellow and orchil purple.
 // Strong against the sandstone and grass, so people stand out from the ground.
 const DYES: Array<[dye: number, shade: number]> = [
   [0x9c3b2e, 0x7e2e24],
@@ -127,6 +128,8 @@ const DYES: Array<[dye: number, shade: number]> = [
   [0x6b4a30, 0x533824],
   [0x45423f, 0x33312f],
   [0x2f8a86, 0x236a67],
+  [0xc9952c, 0xa47620],
+  [0x6c3866, 0x542a50],
 ];
 if (SKIN_TONES.length !== SKIN_TONE_COUNT || HAIR_COLORS.length !== HAIR_COLOR_COUNT || DYES.length !== DYE_COUNT) {
   throw new Error('body palettes out of step with model/human/humanoid.ts');
