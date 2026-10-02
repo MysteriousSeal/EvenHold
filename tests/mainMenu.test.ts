@@ -262,7 +262,8 @@ describe('the character creation screen', () => {
     expect(trait('Hair')!.querySelector('.forge-face b')?.textContent).toBe(LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name(next)); // (the next of hers)
     option('Body', 'Man').click();
     expect(trait('Beard')).toBeDefined();
-    expect(STYLES_OF.male).toContain(trait('Hair')!.querySelector('.forge-face b')!.textContent!.toLowerCase());
+    const hairNames = STYLES_OF.male.map((s) => LOOK_TRAITS.find((t) => t.key === 'hairStyle')!.name(s));
+    expect(hairNames).toContain(trait('Hair')!.querySelector('.forge-face b')!.textContent);
     const name = document.querySelector<HTMLInputElement>('.forge-name')!;
     name.value = 'Wynn';
     name.dispatchEvent(new Event('input'));
