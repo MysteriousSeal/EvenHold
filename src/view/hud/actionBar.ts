@@ -1,7 +1,8 @@
 // The action bar, bottom centre: a raised sand tile for each of the hero's
 // shortcuts (model/hero/actionBar.ts), its key on its corner, what it points
-// at (food or drink) and how many of it they carry; greyed when they carry
-// none, or while they're still at a meal. Pressing its key, or clicking it,
+// at (food, drink, a potion) and how many of it they carry; greyed when they
+// carry none, or while they're still at a meal (a potion: while the potions'
+// wait isn't over, its seconds counting down on it). Pressing its key, or clicking it,
 // uses it; dragging one onto another swaps them, off the bar clears it, and
 // so does a right-click; dropped from the bag (inventoryPanel.ts), a slot
 // takes what's dropped. Styles in hud.css.
@@ -10,6 +11,7 @@ import type { Hero } from '../../model/types';
 import { ACTION_SLOTS } from '../../model/hero/actionBar';
 import { LOOT } from '../../model/loot/loot';
 import { givesText } from '../../model/loot/provisions';
+import { isPotion, potionText } from '../../model/loot/potions';
 import { lootIcon } from '../ui/itemIcons';
 
 const ICON = 40; // px
@@ -36,7 +38,9 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
     count.className = 'menu-slot-count'; // (the bag's square chip)
     const tip = document.createElement('span');
     tip.className = 'toolbar-tip';
-    tile.append(key, count, tip);
+    const cool = document.createElement('span');
+    cool.className = 'action-cool'; // (a potion's wait, in seconds)
+    tile.append(key, count, cool, tip);
     tile.addEventListener('contextmenu', (event) => [event.preventDefault(), hooks.clear(i)]);
     // A press: let go where it began (or near), a use; on another tile, swapped with it; off the bar, cleared.
     tile.addEventListener('pointerdown', (event) => {
@@ -53,7 +57,7 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
       window.addEventListener('pointerup', up);
     });
     bar.append(tile);
-    return { tile, count, tip, shown: '' };
+    return { tile, count, cool, tip, shown: '' };
   });
   document.body.append(bar);
 
@@ -61,7 +65,10 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
     for (const [i, t] of tiles.entries()) {
       const item = hero.actionBar[i];
       const have = item ? (hero.bag[item] ?? 0) : 0;
-      const state = `${item}/${have}/${!!hero.eating}`;
+      const potion = !!item && isPotion(item);
+      const wait = potion ? Math.ceil(hero.potionCooldown ?? 0) : 0;
+      const busy = !!item && (potion ? wait > 0 : !!hero.eating);
+      const state = `${item}/${have}/${busy}/${wait}`;
       if (state === t.shown) continue;
       t.shown = state;
       t.tile.querySelector('canvas')?.remove();
@@ -69,8 +76,9 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
       t.count.textContent = have > 1 ? String(have) : '';
       t.tile.classList.toggle('empty', !item);
       t.tile.classList.toggle('spent', !!item && have === 0); // (none carried)
-      t.tile.classList.toggle('busy', !!item && !!hero.eating); // (still at a meal)
-      t.tip.textContent = item ? `${LOOT[item].name} · ${givesText(item)}${have ? '' : ' · none left'}` : 'Drag food or drink here from your bag';
+      t.tile.classList.toggle('busy', busy); // (still at a meal; a potion's wait)
+      t.cool.textContent = wait > 0 ? String(wait) : '';
+      t.tip.textContent = item ? `${LOOT[item].name} · ${isPotion(item) ? potionText(item) : givesText(item)}${have ? '' : ' · none left'}` : 'Drag food, drink or a potion here from your bag';
     }
   };
 }
