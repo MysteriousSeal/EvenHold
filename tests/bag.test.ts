@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addToBag, bagLayout, moveInBag, sortedBag, takeFromBag, type Bag } from '../src/model/hero/bag';
+import { BAG_GROUPS, addToBag, groupOf, kindOf, takeFromBag, type Bag, type BagItem } from '../src/model/hero/bag';
+import { bagStacks, moveSlot, sortedBag } from '../src/model/hero/bagStacks';
+
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { fresh } from './support/testWorld';
+
+const bagLayout = (bag: Bag, order: Array<BagItem | null>, size: number) => bagStacks(bag, order, undefined, size).layout;
 
 describe('the bag', () => {
   it('holds loot and gear under ids that never clash', () => {
@@ -69,9 +73,13 @@ describe('bag order', () => {
 
   it('moves a thing to another slot, swapping with what was there', () => {
     const bag: Bag = { wolfFang: 1, bread: 2, ale: 1 };
-    const order = bagLayout(bag, [], 4); // fang, bread, ale, -
-    expect(moveInBag(bag, order, 0, 3, 4)).toEqual([null, 'bread', 'ale', 'wolfFang']); // into the empty slot
-    expect(moveInBag(bag, order, 0, 2, 4)).toEqual(['ale', 'bread', 'wolfFang', null]); // swapped
+    const moved = (to: number) => {
+      const hero = { bag, bagOrder: bagLayout(bag, [], 4), bagCounts: [] as number[] }; // fang, bread, ale, -
+      moveSlot(hero, 0, to, 4);
+      return bagLayout(bag, hero.bagOrder, 4);
+    };
+    expect(moved(3)).toEqual([null, 'bread', 'ale', 'wolfFang']); // into the empty slot
+    expect(moved(2)).toEqual(['ale', 'bread', 'wolfFang', null]); // swapped
   });
 });
 
@@ -79,5 +87,14 @@ describe('tidying the bag', () => {
   it('packs it from the first slot: gear head to toe then held, food and drink, ingredients, quest items, junk last; alike by name', () => {
     const bag: Bag = { wolfFang: 2, rustyBuckle: 1, bread: 3, ale: 1, rawBoarMeat: 1, alphaFang: 1, shortSword: 1, nasalCap: 1, leatherBoots: 1, apple: 0 };
     expect(sortedBag(bag)).toEqual(['nasalCap', 'leatherBoots', 'shortSword', 'ale', 'bread', 'rawBoarMeat', 'alphaFang', 'rustyBuckle', 'wolfFang']);
+  });
+});
+
+describe('the bag\'s groups', () => {
+  it('every thing in one of them, each group with something in it; its kind said one way', () => {
+    const all = [...LOOT_IDS, ...ITEM_IDS];
+    for (const item of all) expect(BAG_GROUPS.map((g) => g.group), item).toContain(groupOf(item));
+    for (const { group } of BAG_GROUPS) expect(all.some((item) => groupOf(item) === group), group).toBe(true);
+    expect(kindOf('rawBoarMeat')).toBe('Cooking ingredient');
   });
 });
