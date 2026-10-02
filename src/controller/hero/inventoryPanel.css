@@ -1,0 +1,15 @@
+/* The bag (inventoryPanel.ts), over menu.css's look: rows of eight smaller
+   slots (48px: eight across in a panel hardly wider than the others), the
+   things in them a little smaller, its groups' headers tight over them, so
+   it stays short above the toolbar; under it, the Sort button on the left
+   and the coins on the right. */
+.menu[aria-label='Bag'] { width: min(456px, 100%); }
+.menu[aria-label='Bag'] .menu-slot { min-width: 48px; }
+.menu[aria-label='Bag'] .menu-slot canvas { transform: scale(0.82); }
+.menu[aria-label='Bag'] .menu-grid { gap: 5px; }
+.menu[aria-label='Bag'] .menu-section { margin-top: 4px; padding-bottom: 1px; font-size: 11px; }
+.menu[aria-label='Bag'] .menu-section:empty { margin: 3px 0; border-bottom-width: 2px; }
+.menu-purse.bag-footer { justify-content: space-between; }
+.bag-coins { display: inline-flex; align-items: center; gap: 4px; }
+.bag-sort { padding: 3px 10px; font-size: 13px; } /* (a .menu-button) */
+.bag-sort::after { inset: -6px -8px -8px; }

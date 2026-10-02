@@ -20,6 +20,7 @@ import { gearIcon, slotPlaceholder } from '../../view/ui/itemIcons';
 import { createMenu, type DollSlot, type Menu } from '../../view/ui/menu';
 import { FigureStage } from '../../view/ui/figureStage';
 import { counted, percent } from '../../view/ui/words';
+import './heroSheet.css';
 
 const LEFT: EquipSlot[] = ['head', 'neck', 'shoulders', 'torso'];
 const RIGHT: EquipSlot[] = ['hands', 'legs', 'feet', 'ring'];

@@ -1,0 +1,4 @@
+/* The dev cheat menu (controller/cheats): wide, its rows in two columns so
+   a tab of many doesn't scroll; facts (the World tab) stay one list. */
+.menu[aria-label='Cheats'] { width: min(640px, 100%); }
+.menu[aria-label='Cheats'] .menu-list:has(> .menu-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; align-content: start; }

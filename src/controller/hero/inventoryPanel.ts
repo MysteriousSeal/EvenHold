@@ -1,17 +1,19 @@
-// The hero's bag, opened and closed with B: a grid of slots in the shared
-// menu (view/ui/menu.ts), one per kind of thing carried, loot and gear, with
-// its voxel icon and how many; hover one for what it is. Drag loot out onto
-// the world to drop it; drag gear onto the hero sheet (C) to wear it, or
-// onto the world to put it down; drag it onto another slot of the bag to
-// move it there. The game plays on around it: it only takes Escape and B.
+// The hero's bag, opened and closed with B, in the shared menu
+// (view/ui/menu.ts): its four bag sockets on top, then what's carried in rows
+// by what it is (bag.ts BAG_GROUPS, each group under its title), a slot to
+// each stack (bagStacks.ts) with its voxel icon and how many, the free slots
+// at the bottom; hover one for what it is, the thing turning above. Drag loot
+// out onto the world to drop it; drag gear onto the hero sheet (C) to wear
+// it, or onto the world to put it down; drag a thing onto another slot of its
+// group to swap them. The game plays on around it: it only takes Escape and B.
 // While trading (a shop's window open beside it), right-clicking what the
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
-// A button by the purse tidies it (bag.ts: sortedBag).
-
+// A button by the purse tidies it (bagStacks.ts: sortedBag).
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
-import { BAG_GROUPS, bagStacks, groupOf, moveSlot, sortedBag, type BagItem } from '../../model/hero/bag';
+import { BAG_GROUPS, groupOf, isLootItem, kindOf, type BagItem } from '../../model/hero/bag';
+import { bagStacks, moveSlot, sortedBag } from '../../model/hero/bagStacks';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, type BagId } from '../../model/loot/bags';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
@@ -20,13 +22,13 @@ import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions'
 import { sellValue } from '../../model/shops/sellValue';
 import { gearLines } from './gearLines';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
-import { bagIcon, bagItemPreview, isLoot } from '../../view/ui/itemIcons';
+import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
+import './inventoryPanel.css';
 
 const COLUMNS = 8;
 const SOCKET_ROW = BAG_SOCKETS; // the sockets, the first row; the bag's own slots from there (on a row of their own: the separator spans the grid)
-const QUALITY_NAMES = { junk: 'Junk', ingredient: 'Cooking ingredient', common: 'Food & drink', quest: 'Quest item', bag: `Bag · +${ROOM_PER_BAG} slots` } as const;
 
 // A shop the hero's trading with: what its keeper would buy, for how much, and selling it them.
 export interface Seller {
@@ -56,17 +58,17 @@ function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller 
 }
 
 function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): MenuSlot {
-  if (isLoot(item)) {
+  if (isLootItem(item)) {
     return {
       icon: bagIcon(item),
       count,
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
       lines: isProvision(item)
-        ? [`${QUALITY_NAMES[LOOT_QUALITY[item]]} · ${givesText(item)}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
+        ? [`${kindOf(item)} · ${givesText(item)}`, `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`]
         : isBagItem(item)
-          ? [QUALITY_NAMES.bag, 'Drag onto a bag socket (or right-click) to fit it']
-          : [QUALITY_NAMES[LOOT_QUALITY[item]]],
+          ? [`${kindOf(item)} · +${ROOM_PER_BAG} slots`, 'Drag onto a bag socket (or right-click) to fit it']
+          : [kindOf(item)],
       alt: isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : '')
         : isBagItem(item)
@@ -121,7 +123,7 @@ function footer(money: number, tidy: () => void): HTMLElement {
   const sort = document.createElement('button');
   sort.className = 'menu-button bag-sort';
   sort.textContent = 'Sort';
-  sort.title = 'Tidy the bag: gear, food and drink, ingredients, quest items, junk';
+  sort.title = `Tidy the bag: ${BAG_GROUPS.map((g) => g.title.toLowerCase()).join(', ')}`;
   sort.addEventListener('click', tidy);
   const coins = document.createElement('span');
   coins.className = 'bag-coins';
@@ -140,7 +142,6 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
     toggleKey: 'KeyB',
     keyHints: false,
     modal: false,
-    wide: true,
     tabs: [
       {
         name: 'Bag',

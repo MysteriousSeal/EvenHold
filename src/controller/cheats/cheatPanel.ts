@@ -56,6 +56,7 @@ import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 import type { Ruin } from '../../model/ruins/ruins';
 import type { Camp } from '../../model/camps/camps';
+import './cheatPanel.css';
 
 const SPEED_BOOST = 3;
 const SPEEDS = [1, 2, 3, 4, 10]; // the game speed cheat's steps
