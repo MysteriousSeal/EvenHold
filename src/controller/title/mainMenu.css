@@ -261,8 +261,6 @@
 .title-corner.left { left: 3vw; }
 .title-corner.right { right: 3vw; }
 
-.title-note { font-size: 12px; color: #c8b088; }
-.title-input { padding: 7px 9px; font: 500 16px 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #f8ecd4; border: 2px solid #2e1f14; }
 /* The controls' codex: in the middle, wide, its groups side by side (one under another, narrow); each control
    its name (a note under it) and its keys drawn as keycaps: parchment caps with an ink edge and a deep bevel,
    W over A S D and the arrows in their keyboard shape, a drawn mouse (its button lit, or its wheel). */

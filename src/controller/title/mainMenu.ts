@@ -16,13 +16,14 @@
 // world, the chosen hero drawn flat, the heroes at once. Styles in
 // mainMenu.css.
 
-import { MAX_WORLDS, type SavedWorld } from './storage/saveGame';
-import { CONTROL_GROUPS, type KeyMark } from './controls';
-import { humanBust, humanFigure } from '../view/meshes/human/humanFigure';
-import { voxelIcon } from '../view/ui/voxelIcon';
-import { TITLE_HEROES, createTitleScene } from '../view/title/titleScene';
+import { MAX_WORLDS, type SavedWorld } from '../storage/saveGame';
+import { CONTROL_GROUPS, type KeyMark } from '../controls';
+import { humanBust, humanFigure } from '../../view/meshes/human/humanFigure';
+import { voxelIcon } from '../../view/ui/voxelIcon';
+import { TITLE_HEROES, createTitleScene } from '../../view/title/titleScene';
 import { heroForge, type Forge } from './heroForge';
-import type { BodyLook } from '../model/human/humanoid';
+import type { BodyLook } from '../../model/human/humanoid';
+import { el } from '../../view/ui/dom';
 import './mainMenu.css';
 
 // What the menu ends with: the world to play, and the hero made for it (none: one of theirs, or a random one).
@@ -89,12 +90,6 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
   root.append(screen, ribbon);
   const world = createTitleScene(root); // (none without WebGL: the chosen hero drawn flat instead)
   root.classList.add(world ? 'world' : 'flat');
-  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = '') => {
-    const node = document.createElement(tag);
-    node.className = className;
-    node.textContent = text;
-    return node;
-  };
   const button = (className: string, label: string, run: () => void) => {
     const b = el('button', className, label);
     b.addEventListener('click', run);

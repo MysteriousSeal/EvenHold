@@ -1,5 +1,5 @@
 // The game's controls, each what it does and its keys: told in the pause menu
-// (pauseMenu.ts, as text) and on the main menu (mainMenu.ts, grouped, its
+// (pauseMenu.ts, as text) and on the main menu (title/mainMenu.ts, grouped, its
 // keys drawn as keycaps).
 
 // A key's drawing: a cap (its label), a word between caps ("or", "hold"),

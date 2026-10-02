@@ -9,12 +9,13 @@
 // name: a new one there shows here. Each change is told (`changed`), for
 // the hero being made to stand changed in the world.
 
-import { LOOK_TRAITS, fitLook, stepTrait, withTrait, type LookTrait } from '../model/human/lookTraits';
-import { randomLook, type BodyLook } from '../model/human/humanoid';
-import { randomName } from '../model/npcs/npcs';
-import { lookSwatch } from '../view/meshes/human/bodyVoxels';
-import { generateRandomSeed } from '../util/random';
-import { seedFrom } from '../util/seed';
+import { LOOK_TRAITS, fitLook, stepTrait, withTrait, type LookTrait } from '../../model/human/lookTraits';
+import { randomLook, type BodyLook } from '../../model/human/humanoid';
+import { randomName } from '../../model/npcs/npcs';
+import { lookSwatch } from '../../view/meshes/human/bodyVoxels';
+import { generateRandomSeed } from '../../util/random';
+import { seedFrom } from '../../util/seed';
+import { el } from '../../view/ui/dom';
 import './heroForge.css';
 
 export interface Forged {
@@ -43,12 +44,6 @@ export function heroForge(changed: (look: BodyLook, name: string) => void, heroO
   let named = false; // (a name typed: kept when the body changes)
   let helm = false; // (a helm tried on)
 
-  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    node.textContent = text;
-    return node;
-  };
   const panel = el('div', 'title-forge');
   const identity = el('div', 'title-forge identity');
   const traits = el('div', 'forge-traits');

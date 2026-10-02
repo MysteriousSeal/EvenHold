@@ -5,7 +5,7 @@ import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from './util/seed';
-import { showMainMenu } from './controller/mainMenu';
+import { showMainMenu } from './controller/title/mainMenu';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
 import { forgetWorld, loadGame, savedWorlds, startAutoSave } from './controller/storage/saveGame';
