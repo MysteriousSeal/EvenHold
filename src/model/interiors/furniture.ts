@@ -130,6 +130,9 @@ export function bumpsFurniture(items: readonly Furniture[], x: number, z: number
   const inset = 0.08; // pieces don't quite fill their tiles
   return items.some((f) => {
     if (!f.solid) return false;
+    // Every span it blocks (its body, slim, a seat pulled up, a door's leaf) lies within its own tiles: a walker clear
+    // of them (asked of every piece, every step) is clear of it, without working any out.
+    if (x + r <= f.x - 0.5 || x - r >= f.x + f.w - 0.5 || z + r <= f.z - 0.5 || z - r >= f.z + f.d - 0.5) return false;
     let [x0, x1, z0, z1] = [f.x - 0.5 + inset, f.x + f.w - 0.5 - inset, f.z - 0.5 + inset, f.z + f.d - 0.5 - inset];
     const slim = SLIM[f.kind];
     if (slim && f.wall === 'left') [x0, x1] = [f.x - 0.5 + slim[0], f.x - 0.5 + slim[1]];

@@ -110,11 +110,12 @@ export function findTrail(
       return done(route);
     }
 
-    NEIGHBORS_4.forEach(([dx, dz], dir) => {
+    for (let dir = 0; dir < NEIGHBORS_4.length; dir++) { // (a loop, not forEach: no closure made per tile)
+      const [dx, dz] = NEIGHBORS_4[dir];
       const nx = x + dx;
       const nz = z + dz;
-      if (nx < b.x0 || nx > b.x1 || nz < b.z0 || nz > b.z1) return;
-      if (!inBounds(size, nx, nz) || grid.lakeMap[nx][nz] || solidAt(nx, nz)) return;
+      if (nx < b.x0 || nx > b.x1 || nz < b.z0 || nz > b.z1) continue;
+      if (!inBounds(size, nx, nz) || grid.lakeMap[nx][nz] || solidAt(nx, nz)) continue;
 
       const stepCost =
         (grid.surfaceMap[nx][nz] === 'natural' ? 1 : EXISTING_PATH_COST) +
@@ -125,7 +126,7 @@ export function findTrail(
         set(next, d + stepCost, current);
         heap.push(next, d + stepCost + least(nx, nz));
       }
-    });
+    }
   }
   return done(null);
 }

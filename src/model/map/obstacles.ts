@@ -21,6 +21,7 @@ export class Obstacles {
   private readonly round: Uint8Array; // props round, not square (a rock): `half` their radius
   // Fence strips as axis-aligned rectangles [minX, minZ, maxX, maxZ], by the tile they're in.
   private readonly fences = new Map<number, Array<[number, number, number, number]>>();
+  private readonly fenced: Uint8Array; // tiles with a fence strip (most have none: asked before the map is)
 
   constructor(
     private readonly size: MapSize,
@@ -28,7 +29,7 @@ export class Obstacles {
     solid: Set<string>, // tiles blocked edge to edge (besides water), as "x,z"
   ) {
     const tiles = size.width * size.depth;
-    [this.solid, this.prop, this.low, this.round] = [new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles)];
+    [this.solid, this.prop, this.low, this.round, this.fenced] = [new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles), new Uint8Array(tiles)];
     for (const key of solid) {
       const [x, z] = key.split(',').map(Number);
       this.addSolid(x, z);
@@ -68,7 +69,9 @@ export class Obstacles {
         ? [dx > 0 ? x + 0.5 - t : x - 0.5, z - 0.5, dx > 0 ? x + 0.5 : x - 0.5 + t, z + 0.5]
         : [x - 0.5, dz > 0 ? z + 0.5 - t : z - 0.5, x + 0.5, dz > 0 ? z + 0.5 : z - 0.5 + t];
     const i = this.at(x, z);
-    if (i >= 0) this.fences.set(i, [...(this.fences.get(i) ?? []), rect]);
+    if (i < 0) return;
+    this.fences.set(i, [...(this.fences.get(i) ?? []), rect]);
+    this.fenced[i] = 1;
   }
 
   // A tile one can stand in the middle of: on the map, dry, and free of
@@ -83,7 +86,8 @@ export class Obstacles {
     return this.cornerBlocked(x, z, r, x - r, z - r) || this.cornerBlocked(x, z, r, x + r, z - r) || this.cornerBlocked(x, z, r, x - r, z + r) || this.cornerBlocked(x, z, r, x + r, z + r);
   }
 
-  // Whether the tile a corner (cx, cz) of a walker at (x, z) touches blocks it.
+  // Whether the tile a corner (cx, cz) of a walker at (x, z) touches blocks it. (Asked four times a step for every
+  // walker: nothing made while asking it, no fence looked up where there's none.)
   private cornerBlocked(x: number, z: number, r: number, cx: number, cz: number): boolean {
     const tx = toCellX(this.size, cx);
     const tz = toCellZ(this.size, cz);
@@ -92,15 +96,20 @@ export class Obstacles {
     // A prop's square lies inside its tile, so checking the tiles the
     // corners touch finds every prop the walker could overlap; same for fences.
     const prop = this.prop[i];
-    if (prop && this.round[i]) {
-      // Round: whether the walker's square comes within its radius of its middle (nearest point of the square to it).
-      const [half, , ox, oz] = this.halves[prop - 1];
-      const [mx, mz] = [tx + ox, tz + oz];
-      const [qx, qz] = [Math.max(x - r, Math.min(mx, x + r)), Math.max(z - r, Math.min(mz, z + r))];
-      if (Math.hypot(qx - mx, qz - mz) < half) return true;
-    } else if (prop && Math.abs(x - tx) < r + this.halves[prop - 1][0] && Math.abs(z - tz) < r + this.halves[prop - 1][1]) return true;
-    const fences = this.fences.get(i);
-    return !!fences && fences.some(([minX, minZ, maxX, maxZ]) => x + r > minX && x - r < maxX && z + r > minZ && z - r < maxZ);
+    if (prop) {
+      const sizes = this.halves[prop - 1];
+      if (this.round[i]) {
+        // Round: whether the walker's square comes within its radius of its middle (nearest point of the square to it).
+        const mx = tx + sizes[2];
+        const mz = tz + sizes[3];
+        const qx = Math.max(x - r, Math.min(mx, x + r));
+        const qz = Math.max(z - r, Math.min(mz, z + r));
+        if (Math.hypot(qx - mx, qz - mz) < sizes[0]) return true;
+      } else if (Math.abs(x - tx) < r + sizes[0] && Math.abs(z - tz) < r + sizes[1]) return true;
+    }
+    if (!this.fenced[i]) return false;
+    for (const [minX, minZ, maxX, maxZ] of this.fences.get(i)!) if (x + r > minX && x - r < maxX && z + r > minZ && z - r < maxZ) return true;
+    return false;
   }
 
   // Whether something solid hides what's behind (x, z): buildings, tents,

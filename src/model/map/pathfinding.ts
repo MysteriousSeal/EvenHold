@@ -35,7 +35,16 @@ export function findPath(from: Point, to: Point, radius: number, free: (x: numbe
   heap.push(start, heuristic(sx, sz));
   let best = start; // the reached tile nearest the goal
   let bestH = heuristic(sx, sz);
-  const stepFree = (x: number, z: number, dx: number, dz: number) => free(x + dx, z + dz) && free(x + dx / 2, z + dz / 2);
+  // Whether the walker fits at a tile's middle or halfway between two, asked once a point within a search (asked up
+  // to 32 times a tile otherwise, and the world doesn't change while it looks): 0 not asked yet, 1 fits, 2 doesn't.
+  const halfSide = side * 2;
+  const known = new Uint8Array(halfSide * halfSide);
+  const fits = (x: number, z: number) => {
+    const i = Math.round((x - sx + radius) * 2) * halfSide + Math.round((z - sz + radius) * 2);
+    if (known[i] === 0) known[i] = free(x, z) ? 1 : 2;
+    return known[i] === 1;
+  };
+  const stepFree = (x: number, z: number, dx: number, dz: number) => fits(x + dx, z + dz) && fits(x + dx / 2, z + dz / 2);
 
   while (heap.size > 0) {
     const [node, priority] = heap.pop();
