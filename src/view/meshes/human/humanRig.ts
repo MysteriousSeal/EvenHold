@@ -32,6 +32,17 @@ const ARM_SWING = 0.55;
 const BOB = 0.012; // body rise at each step, world units
 const TURN_RATE = 14; // how fast they turn toward where they're walking (per second)
 const ATTACK_TURN_RATE = 30; // and toward where they strike: near instant
+// The guard: the off arm up before them, the sword arm ready, a slight crouch; raised and lowered quickly.
+const GUARD_ARM = -1.45;
+const GUARD_READY = -0.5;
+const GUARD_CROUCH = 0.012;
+const GUARD_RAISE = 16;
+// A roll: turned about a point this high in the body (world units), tucked this low at its middle, knees and arms
+// drawn in so far.
+const ROLL_MIDDLE = 0.2;
+const ROLL_TUCK = 0.1;
+const ROLL_KNEES = 1.4;
+const ROLL_ARMS = 1.1;
 // Seated: the legs (no knees) straight out in front, the hands resting forward.
 const SIT_LEGS = -Math.PI / 2; // level, the thighs along the seat
 const SIT_ARMS = -0.45;
@@ -89,6 +100,9 @@ export class HumanRig {
   private readonly last = new THREE.Vector3(Number.NaN, 0, 0);
   private phase = 0;
   private swing = 0; // 0 standing .. 1 full stride, eased
+  private rolling: number | null = null; // a roll, how far through (combat)
+  private guarded = false; // the guard up (combat)
+  private guard = 0; // how far it's raised, eased
   private heading = 0;
   private time = 0;
   private pose: Pose = 'stand';
@@ -251,6 +265,13 @@ export class HumanRig {
     this.cup.update(dt);
   }
 
+  // The hero's moves in a fight (model/hero/combatMoves.ts), for the next update: how far through a roll (or null),
+  // and whether the guard's up.
+  combat(roll: number | null, guard: boolean): void {
+    this.rolling = roll;
+    this.guarded = guard;
+  }
+
   // The cup in hand (cupInHand.ts): carrying one, drinking (or eating) at the bar.
   hold(cup: false | Drink): void {
     this.cup.hold(cup);
@@ -356,6 +377,25 @@ export class HumanRig {
       this.body.rotation.y = key(ATTACK.twist, attack) * w;
       this.body.position.y += key(ATTACK.dip, attack) * w;
       this.body.position.z = key(ATTACK.lunge, attack) * w;
+    }
+    // The guard: the off arm (and what it holds) brought up before them, the other ready, crouched a little.
+    this.guard += ((this.guarded ? 1 : 0) - this.guard) * Math.min(1, GUARD_RAISE * dt);
+    if (this.guard > 0.01) {
+      const g = this.guard;
+      this.joints.leftArm.rotation.x += (GUARD_ARM - this.joints.leftArm.rotation.x) * g;
+      if (attack === null) this.joints.rightArm.rotation.x += (GUARD_READY - this.joints.rightArm.rotation.x) * g;
+      this.body.position.y -= GUARD_CROUCH * g;
+    }
+    // A roll: tucked, turned head over heels once about the middle of the body, low to the ground.
+    const roll = this.rolling;
+    if (roll !== null) {
+      const turn = roll * Math.PI * 2;
+      this.body.rotation.x = turn;
+      this.body.position.y = ROLL_MIDDLE - ROLL_MIDDLE * Math.cos(turn) - ROLL_TUCK * Math.sin(roll * Math.PI);
+      this.body.position.z = -ROLL_MIDDLE * Math.sin(turn);
+      const tuck = Math.sin(roll * Math.PI);
+      for (const leg of [this.joints.leftLeg, this.joints.rightLeg]) leg.rotation.x = -ROLL_KNEES * tuck;
+      for (const arm of [this.joints.leftArm, this.joints.rightArm]) arm.rotation.x = -ROLL_ARMS * tuck;
     }
   }
 }

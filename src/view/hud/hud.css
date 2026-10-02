@@ -68,7 +68,7 @@
 .hero-hud-level.points::after { content: ''; position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: linear-gradient(#2e1f14, #2e1f14) center / 8px 2px no-repeat, linear-gradient(#2e1f14, #2e1f14) center / 2px 8px no-repeat, #ffd98a; border: 2px solid #2e1f14; }
 
 .hero-hud-bars { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
-.hero-hud > .hero-hud-bars { padding-top: 0; } /* the hero's: the three bars beside the portrait, within its height */
+.hero-hud > .hero-hud-bars { padding-top: 0; gap: 6px; } /* the hero's: the four bars beside the portrait, within its height */
 .target-hud { align-items: flex-start; }
 
 /* The hero's name on a ribbon straddling the portrait's top edge (clear of the level on its corner). */
@@ -115,6 +115,11 @@
   box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18), inset 0 4px 0 rgba(255, 255, 255, 0.18);
 }
 
+/* Breath: thin, under health, green as a fresh leaf; shorter when tired; red-edged when spent. */
+.hero-hud-breath { height: 8px; background: #2c4a26; transition: width 0.3s; }
+.hero-hud-breath i { background: #8ad06a; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15); }
+.hero-hud-breath span { display: none; }
+.hero-hud-breath.empty { box-shadow: 0 0 0 2px #c0392b; }
 .hero-hud-energy { height: 16px; background: #5a4a1a; }
 .hero-hud-energy i { background: #e8b830; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15), inset 0 2px 0 rgba(255, 255, 255, 0.2); } /* golden, like candlelight */
 .hero-hud-energy span { font-size: 12px; }
