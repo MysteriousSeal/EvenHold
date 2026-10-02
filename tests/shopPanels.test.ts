@@ -9,7 +9,7 @@ import { SMITH_WARES, gearPrice, gearSellPrice, smithShopAt } from '../src/model
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
 import { sellPrice } from '../src/model/inn/tavernShop';
-import type { ItemId } from '../src/model/human/equipment';
+import { ITEMS, SLOT_NAMES, type ItemId } from '../src/model/human/equipment';
 import type { Npc } from '../src/model/npcs/npcs';
 import { createSmithPanel } from '../src/controller/trade/smithPanel';
 import { createShopPanel } from '../src/controller/trade/shopPanel';
@@ -97,7 +97,7 @@ describe("the smith's window", () => {
     hover(rows()[0]);
     const text = tooltips().map((t) => t.textContent).join(' ');
     expect(text).toContain('Forged here, by the smith.');
-    expect(text).toContain('Worn on: ');
+    expect(text).toContain(SLOT_NAMES[ITEMS[id].slot]); // (what it goes on, under its name)
     expect(text).toContain((shop().stock[id] ?? 0) > 0 ? `${shop().stock[id]} in stock` : 'Sold out');
     expect(text).toContain('Right-click to buy one');
   });
@@ -262,11 +262,11 @@ describe('trading, the WoW way', () => {
     Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1 } });
     bag.menu.open();
     hover(inBag('loot:bread'));
-    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sell price: ${sellPrice('bread')} copper`);
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${sellPrice('bread')} copper`);
     hover(inBag('loot:wolfFang'));
-    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sell price: ${LOOT.wolfFang.value} copper`);
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${LOOT.wolfFang.value} copper`);
     hover(inBag('loot:alphaFang')); // a quest item
-    expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sell price');
+    expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
   });
 });
 
@@ -343,15 +343,15 @@ describe('naming several of a thing', () => {
 describe('gear against what\'s worn', () => {
   it('as WoW tells it: what wearing it instead would change, only what changes, gains green and losses red', () => {
     expect(againstWorn('nasalCap', { head: 'leatherCap' })).toEqual([
-      'If you replace your Leather cap:',
+      { text: 'If you replace your Leather cap:', tone: 'head' },
       { text: 'Overall: +50%', tone: 'gain' }, // (worth 4 against 6: armour 2 and a stat point at 2, against armour 4 and a point)
       { text: '+2 Armour', tone: 'gain' },
       { text: '−1 Agility', tone: 'loss' },
       { text: '+1 Stamina', tone: 'gain' },
     ]);
-    expect(againstWorn('nasalCap', {})).toEqual(['If you wear it (your head slot is empty):', { text: 'Overall: an upgrade', tone: 'gain' }, { text: '+4 Armour', tone: 'gain' }, { text: '+1 Stamina', tone: 'gain' }]);
+    expect(againstWorn('nasalCap', {})).toEqual([{ text: 'If you wear it (your head slot is empty):', tone: 'head' }, { text: 'Overall: an upgrade', tone: 'gain' }, { text: '+4 Armour', tone: 'gain' }, { text: '+1 Stamina', tone: 'gain' }]);
     expect(againstWorn('leatherCap', { head: 'nasalCap' })[1]).toEqual({ text: 'Overall: −33%', tone: 'loss' });
-    expect(againstWorn('nasalCap', { head: 'nasalCap' })).toEqual(['You wear one already']);
+    expect(againstWorn('nasalCap', { head: 'nasalCap' })).toEqual([{ text: 'You wear one already', tone: 'head' }]);
   });
 
   it('in the bag\'s tooltips', () => {
@@ -366,6 +366,12 @@ describe('gear against what\'s worn', () => {
     const gain = Array.from(tip.querySelectorAll<HTMLElement>('small')).find((l) => l.textContent === '+2 Armour')!;
     expect(gain.dataset.tone).toBe('gain');
     expect(Array.from(tip.querySelectorAll<HTMLElement>('small')).find((l) => l.textContent === '−1 Agility')!.dataset.tone).toBe('loss');
+    // Its parts, each in its look: what it goes on under its name, its stats, the comparison's header and the hint each
+    // starting a new part (a rule before them).
+    const lines = Array.from(tip.querySelectorAll<HTMLElement>('small'));
+    expect(lines[0].dataset.tone).toBe('kind');
+    expect(lines.filter((l) => l.dataset.tone === 'stat').map((l) => l.textContent)).toEqual(['Armour 4', '+1 Stamina']);
+    expect(lines.filter((l) => l.classList.contains('ruled')).map((l) => l.dataset.tone)).toEqual(['head', 'price', 'hint'].filter((t) => lines.some((l) => l.dataset.tone === t)));
     bag.menu.close();
   });
 });

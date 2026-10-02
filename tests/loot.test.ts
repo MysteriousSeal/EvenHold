@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMY_STATS } from '../src/model/constants';
-import { DROP_CHANCE, LOOT, LOOT_IDS, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
+import { DROP_CHANCE, LOOT, LOOT_IDS, LOOT_QUALITY, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
 import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
@@ -111,5 +111,14 @@ describe('what kind of thing it is', () => {
     expect(kindOf('roughSack')).toBe('Bag');
     expect(kindOf('leatherCap')).toBe('Head');
     for (const id of [...LOOT_IDS, ...ITEM_IDS]) expect(kindOf(id).length, id).toBeGreaterThan(2);
+  });
+});
+
+describe('wolf meat', () => {
+  it('a cooking ingredient, left by wolves as often as a fang', () => {
+    expect(LOOT_QUALITY.rawWolfMeat).toBe('ingredient');
+    expect(kindOf('rawWolfMeat')).toBe('Cooking ingredient');
+    expect(LOOT.rawWolfMeat.droppedBy).toEqual({ beast: LOOT.wolfFang.droppedBy!.beast });
+    expect(ENEMY_STATS.wolf.family).toBe('beast');
   });
 });
