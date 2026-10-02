@@ -1,10 +1,11 @@
-// The character creation screen's panel (the main menu's, mainMenu.ts),
-// as WoW's or Skyrim's: a name (a random one to match, re-rolled by the
-// dice), then every trait of a look (model/human/lookTraits.ts), each drawn
-// for what it is: a pick between a few (Man, Woman), colour swatches, a
-// style stepped through, a yes or no; "Surprise me" for a whole new look;
-// a helm to try on (a preview only: every new hero starts bare-headed); at
-// its foot, the world's seed (blank: a random world). Knows no trait by
+// The character creation screen's two panels (the main menu's,
+// mainMenu.ts), as WoW's or Skyrim's. On the left, the appearance: every
+// trait of a look (model/human/lookTraits.ts), each drawn for what it is: a
+// pick between a few (Man, Woman), colour swatches, a style stepped through,
+// a yes or no; "Surprise me" for a whole new look; a helm to try on (a
+// preview only: every new hero starts bare-headed). On the right, the name
+// (a random one to match, re-rolled by the dice) and the world's seed
+// (blank: a random world). Knows no trait by
 // name: a new one there shows here. Each change is told (`changed`), for
 // the hero being made to stand changed in the world.
 
@@ -23,7 +24,8 @@ export interface Forged {
 }
 
 export interface Forge {
-  panel: HTMLElement;
+  panel: HTMLElement; // the look (on the left)
+  identity: HTMLElement; // the name and the world (on the right)
   look(): BodyLook;
   name(): string;
   helm(): boolean; // trying a helm on (a preview)
@@ -47,6 +49,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
     return node;
   };
   const panel = el('div', 'title-forge');
+  const identity = el('div', 'title-forge identity');
   const traits = el('div', 'forge-traits');
   const nameInput = el('input', 'forge-name');
   const seedInput = el('input', 'title-input');
@@ -139,7 +142,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
 
   // The head: its title, and a whole new look.
   const head = el('div', 'title-list-head');
-  head.append(el('span', '', 'Forge your hero'));
+  head.append(el('span', '', 'Appearance'));
   const surprise = el('button', 'forge-surprise', 'Surprise me');
   surprise.type = 'button';
   surprise.addEventListener('click', () => {
@@ -177,20 +180,26 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
   nameRow.append(nameHead, nameLine);
 
   // The world: a seed, or none (a random one).
-  const world = el('details', 'forge-world');
-  world.append(el('summary', '', 'World'));
-  seedInput.placeholder = 'Seed: leave blank for a random world';
+  const world = el('section', 'forge-trait forge-world');
+  const worldHead = el('div', 'forge-trait-head');
+  worldHead.append(el('span', '', 'World'));
+  world.append(worldHead);
+  seedInput.placeholder = 'Seed: blank for a random world';
   seedInput.maxLength = 40;
   seedInput.setAttribute('aria-label', 'World seed');
   world.append(seedInput, el('small', 'title-note', 'A number or any word: the same seed, the same world.'));
 
   head.append(surprise);
-  panel.append(head, nameRow, traits, world, problem);
+  panel.append(head, traits);
+  const identityHead = el('div', 'title-list-head');
+  identityHead.append(el('span', '', 'Name & World'));
+  identity.append(identityHead, nameRow, world, problem);
   draw();
   queueMicrotask(tell);
 
   return {
     panel,
+    identity,
     look: () => look,
     name: () => name,
     helm: () => helm,

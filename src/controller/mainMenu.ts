@@ -253,7 +253,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         const create = button('title-enter forge-go', 'Create Hero', createHero);
         const left = el('div', 'title-corner left');
         left.append(back());
-        screen.replaceChildren(forge.panel, create, left);
+        screen.replaceChildren(forge.panel, forge.identity, create, left);
         if (world) screen.append(el('div', 'forge-hint', 'Drag to turn'));
         return;
       }
