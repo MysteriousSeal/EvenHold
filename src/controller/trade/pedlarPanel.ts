@@ -6,7 +6,7 @@ import type { GameModel } from '../../model/GameModel';
 import { ITEMS, type ItemId } from '../../model/human/equipment';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../../model/travellers/pedlarShop';
-import type { Traveller } from '../../model/travellers/travellers';
+import { WORD_HOLD, type Traveller } from '../../model/travellers/travellers';
 import type { Menu } from '../../view/ui/menu';
 import { gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -30,6 +30,7 @@ const JUNK = ["Odds and ends? I'll take them, for a copper or two. {paid}.", "On
 const BOUGHT_BACK = ['Back again, the {it}? {paid}, same as I paid.', "Changed your mind? Can't blame you. {paid}."];
 
 export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(pedlar: Traveller): void; update(): void; menu: Menu } {
+  // (Theirs stood still while the window's open: held each frame, a moment's grace past it.)
   let pedlar: Traveller | null = null;
   const shop = () => pedlarShopAt(model.shops, model.seed, pedlar!);
   const panel = createTradePanel(model, hooks, {
@@ -51,7 +52,12 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     ...panel,
     open(t) {
       pedlar = t;
+      model.travellers.hold(t, WORD_HOLD);
       panel.open(t);
+    },
+    update() {
+      panel.update();
+      if (panel.menu.isOpen && pedlar) model.travellers.hold(pedlar, 0.5); // (trading: they stand)
     },
   };
 }
