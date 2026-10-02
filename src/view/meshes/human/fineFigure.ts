@@ -51,7 +51,8 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
     const z = head[2] + L;
     const code = (x: number, y: number) => (x < 0 || y < 0 || x > L || y > L ? 0 : body(head[0] + x, head[1] + y, z));
     const isHair = (c: number) => c === C.hair || c === C.hairLight || c === C.hairDark;
-    const stroke = (c: number) => isHair(c) || c === C.mouth || c === C.skinDeep;
+    // What a stroke is drawn in (a brow or lash, the mouth, a lid or crease, an eye drawn as a line), or none.
+    const kind = (c: number) => (isHair(c) ? 'hair' : c === C.mouth ? 'mouth' : c === C.skinDeep ? 'deep' : c === C.eye ? 'eye' : '');
     // Strands in a tone's own range (a dark moustache stays dark, a light streak light).
     const strand = (c: number, fx: number, fy: number) => {
       const t = (fx + fy * 3) % 4;
@@ -65,15 +66,38 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
         if (!c) continue;
         const [above, below] = [code(x, y + 1), code(x, y - 1)];
         const [gx, gy] = [head[0] + x, head[1] + y];
+        // A stroke, a voxel thick in the coarse face: drawn half as thick, in the half that keeps it joined to its
+        // neighbours (a curve's lower voxel its upper half, its upper voxel its lower half: a smile, a frown, a
+        // closed eye's arc stay one line; a lid on its eye, a smile's corners on a moustache).
+        const k = kind(c);
+        const same = (dx: number, dy: number) => kind(code(x + dx, y + dy)) === k;
+        // An open mouth (a laugh: a row of mouth or teeth with mouth under it somewhere): a filled shape, not a line.
+        const mouthy = (v: number) => v === C.mouth || v === C.glint;
+        let openMouth = false;
+        if (k === 'mouth' || c === C.glint) {
+          const run: number[] = []; // (the row of mouth and teeth this voxel is in)
+          for (const dir of [-1, 1]) for (let dx = dir < 0 ? 0 : 1; mouthy(code(x + dx, y)); dx += dir) run.push(x + dx);
+          const lips = run.some((rx) => code(rx, y) === C.mouth); // (a tear, alone, is no mouth)
+          openMouth = lips && run.some((rx) => code(rx, y - 1) === C.mouth || code(rx, y) === C.glint);
+        }
+        const lineEye = k === 'eye' && !same(0, 1) && !same(0, -1) && (same(-1, 0) || same(1, 0) || same(-1, 1) || same(1, 1) || same(-1, -1) || same(1, -1)); // (an arc, a wink: not an open eye)
+        if (k && !openMouth && (k !== 'eye' || lineEye) && !same(0, 1) && !same(0, -1) && x > 0 && x < L && (k !== 'hair' || !isHair(above))) {
+          const rises = same(-1, -1) || same(1, -1); // (joined to one lower down, beside it)
+          const falls = same(-1, 1) || same(1, 1);
+          const lashed = k === 'hair' && (code(x - 1, y - 1) === C.eye || code(x + 1, y - 1) === C.eye); // (a lash, flicking out from an eye's corner below it)
+          const resting = below === C.eye || (isHair(below) && k !== 'hair') || lashed; // (a lid on its eye, a smile over a moustache)
+          const lower = resting || (rises && !falls);
+          paint(gx, gy, z, (_i, j) => ((lower ? j === 0 : j === 1) ? c : C.skin));
+          continue;
+        }
         if (c === C.eye) {
           const open = above !== C.eye && above !== C.glint && below === C.eye; // (the top of an open eye; not a closed one, a happy arc or a lid's line)
           paint(gx, gy, z, (i, j) => (open && i === 1 && j === 1 ? C.glint : C.eye)); // a highlight in its corner
+        } else if (c === C.glint && openMouth) {
+          paint(gx, gy, z, (_i, j) => (j === 1 ? C.glint : C.mouth)); // teeth, in a laughing mouth (the dark under them)
         } else if (c === C.glint) {
           if (below === C.eye) paint(gx, gy, z, (i, j) => (i === 0 && j === 1 ? C.glint : C.eye)); // her sparkle (on top of her eye), smaller
           else paint(gx, gy, z, (i, j) => (i === 0 && j === 0 ? C.glint : C.skin)); // a tear (hanging under an eye): a single drop
-        } else if (stroke(c) && !stroke(above) && !stroke(below) && x > 0 && x < L) {
-          // A stroke (a brow, a lash, the mouth, a lid, a crease): thin, its upper half.
-          paint(gx, gy, z, (_i, j) => (j === 1 ? c : C.skin));
         } else if (isHair(c)) {
           paint(gx, gy, z, (i, j) => strand(c, gx * 2 + i, gy * 2 + j)); // strands
         } else if (c === C.cheek) {

@@ -11,7 +11,9 @@ import { C, PART_GRID } from './bodyVoxels';
 // slant first, then the mouth's shape, then the eyes. Hers keep their big
 // glinting eyes and lashes, his stay simple, so they read from afar.
 // - calm: level brows, open eyes, a small mouth (his), a tiny one (hers);
-// - cheerful: eyes closed in happy arcs, a smile turned up at its corners;
+// - cheerful: eyes open and bright over lifted cheeks, the mouth open
+//   in a laugh (his a wide grin, teeth showing; hers a small open ▽): a
+//   big dark shape, the strongest sign of joy at a distance;
 // - stern: brows slanting down to the middle, a crease between, eyes
 //   narrowed under a heavy lid, the mouth a pressed line;
 // - wistful: brows slanting up to the middle, the gaze lowered (hers wet,
@@ -24,12 +26,6 @@ export function paintFace(grid: VoxelGrid, build: Build, expression: Expression,
   const L = N - 1;
   const M = (N - 1) / 2;
   const at = (x: number, y: number, color: number) => setColor(grid, x, y, L, color);
-  // A happy arc (^) over an eye at x: closed, smiling.
-  const arc = (x: number, y: number) => {
-    at(x - 1, y - 1, C.eye);
-    at(x, y, C.eye);
-    at(x + 1, y - 1, C.eye);
-  };
   if (build === 'female') {
     for (const side of [-1, 1]) {
       const x = M + side * 2; // her eyes, 3 and 7
@@ -40,8 +36,12 @@ export function paintFace(grid: VoxelGrid, build: Build, expression: Expression,
       at(x + side, outer, C.hair);
       // Eyes.
       if (expression === 'cheerful') {
-        arc(x, 6);
-        at(x + side * 2, 6, C.hairDark); // a lash, at the arc's corner
+        // Open and bright, the cheeks pushed up under them: the eye a row shorter from below, a lifted, lit cheek there.
+        fillBox(grid, x, 5, L, x, 6, L, (_x, y) => (y === 6 ? C.glint : C.eye));
+        at(x + side, 6, C.eye); // wide at the top
+        at(x, 4, C.skinLight); // the cheek, lifted
+        at(x + side, 5, C.skinLight);
+        at(x + side * 2, 7, C.hairDark); // a lash, flicking out
       } else if (winking) {
         for (const dx of [-1, 0, 1]) at(x + dx, 5, C.eye); // shut: a lid's line
         at(x + side * 2, 6, C.hairDark);
@@ -53,14 +53,14 @@ export function paintFace(grid: VoxelGrid, build: Build, expression: Expression,
         if (expression === 'wistful') at(x, 5, C.glint); // (wet)
         at(x + side * 2, expression === 'wistful' ? 6 : 7, C.hairDark); // a lash, flicking out (lower when the brow's down)
       }
-      // Blush: rosier when cheerful.
+      // Blush: lifted under the eyes when cheerful (cheeks pushed up by the laugh).
       at(x + side, 3, C.cheek);
-      at(x + side * 2, 3, C.cheek);
-      if (expression === 'cheerful') at(x + side * 2, 4, C.cheek);
+      at(x + side * 2, expression === 'cheerful' ? 4 : 3, C.cheek);
+      if (expression === 'cheerful') at(x + side, 4, C.cheek);
     }
     if (expression === 'wistful') at(M - 2, 3, C.glint); // a tear on her cheek
     // Her mouth, tiny.
-    if (expression === 'cheerful') [[M - 1, 3], [M, 2], [M + 1, 3]].forEach(([x, y]) => at(x, y, C.mouth)); // a smile
+    if (expression === 'cheerful') [[M - 1, 3], [M, 3], [M + 1, 3], [M, 2]].forEach(([x, y]) => at(x, y, C.mouth)); // a little open laugh, ▽
     else if (expression === 'stern') for (const x of [M - 1, M, M + 1]) at(x, 2, C.mouth); // pressed
     else if (expression === 'wistful') [[M - 1, 1], [M, 2], [M + 1, 1]].forEach(([x, y]) => at(x, y, C.mouth)); // turned down
     else if (expression === 'sly') [[M - 1, 2], [M, 2], [M + 1, 3]].forEach(([x, y]) => at(x, y, C.mouth)); // a smirk
@@ -76,24 +76,32 @@ export function paintFace(grid: VoxelGrid, build: Build, expression: Expression,
     at(x, inner, C.hairDark);
     at(x + side, outer, C.hairDark);
     // Eyes.
-    if (expression === 'cheerful') arc(x, 6);
-    else if (narrowed) {
+    if (expression === 'cheerful') {
+      // Open, the cheek pushed up under each (a lifted, lit cheek where the eye's lower half was).
+      at(x, 6, C.eye);
+      at(x, 5, C.eye);
+      at(x, 4, C.skinLight);
+    } else if (narrowed) {
       at(x, 5, C.eye);
       at(x, 6, C.skinDeep); // (the lid, down)
     } else if (expression === 'wistful') fillBox(grid, x, 4, L, x, 5, L, C.eye); // (the gaze lowered)
     else fillBox(grid, x, 5, L, x, 6, L, C.eye);
-    at(x + side, 3, C.cheek); // a touch of blush
+    at(x + side, expression === 'cheerful' ? 4 : 3, C.cheek); // a touch of blush (lifted, when he laughs)
   }
   at(M, 4, C.skinShade); // a hint of a nose
   if (expression === 'stern') at(M, 7, C.skinDeep); // the crease between the brows
   if (beard) {
     fillBox(grid, 1, 0, L, L - 1, 2, L, (x, y) => (y === 2 && x >= M - 2 && x <= M + 2 ? C.hairDark : strands(x, y))); // a moustache over the beard
     for (const x of [0, L]) fillBox(grid, x, 0, 6, x, 5, L, (_x, y, z) => strands(z, y)); // sideburns
-    if (expression === 'cheerful') for (const x of [M - 3, M + 3]) at(x, 3, C.mouth); // (the smile's corners, over the moustache)
+    if (expression === 'cheerful') for (let x = M - 2; x <= M + 2; x++) at(x, 3, Math.abs(x - M) < 2 ? C.glint : C.mouth); // (the grin's top, its teeth, over the moustache)
     if (expression === 'sly') at(M + 3, 3, C.mouth);
     return;
   }
-  if (expression === 'cheerful') [[M - 2, 3], [M - 1, 2], [M, 2], [M + 1, 2], [M + 2, 3]].forEach(([x, y]) => at(x, y, C.mouth)); // a smile
+  if (expression === 'cheerful') {
+    // A laughing grin: wide at the top, its teeth across the middle, narrowing to the dark of the open mouth.
+    for (let x = M - 2; x <= M + 2; x++) at(x, 3, Math.abs(x - M) < 2 ? C.glint : C.mouth);
+    for (let x = M - 1; x <= M + 1; x++) at(x, 2, C.mouth);
+  }
   else if (expression === 'stern') for (const x of [M - 1, M, M + 1]) at(x, 2, C.skinDeep); // lips pressed
   else if (expression === 'wistful') [[M - 1, 1], [M, 2], [M + 1, 1]].forEach(([x, y]) => at(x, y, C.mouth)); // turned down
   else if (expression === 'sly') [[M, 2], [M + 1, 2], [M + 2, 3]].forEach(([x, y]) => at(x, y, C.mouth)); // a smirk
