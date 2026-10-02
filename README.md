@@ -97,10 +97,20 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   green bar under your health. Raise your guard (**Q**) just as a blow lands
   to parry it: the foe reels, and your next blow on it lands twice as hard.
 
-The game saves itself as you play, in your browser. Each world keeps its own
-hero: on the main menu your heroes stand round a campfire, the one you pick
-stepping into the light; enter their world, start a new one, or open one by
-its seed (a number or any word: share it, and a friend gets the same map).
+## Your heroes
+
+Up to eight heroes, each in a world of their own. On the main menu they
+stand round a campfire at dusk: pick one and they step into the light, then
+**Enter World**.
+
+Make a new one from an empty slot. Choose their body, skin, face, hair and
+beard, the colour of their clothes, and try a helm on to see how their hair
+sits under it; **Surprise me** if you can't decide. Name them (or roll the
+dice for a name) and pick their world: leave its seed blank for one left to
+chance, or type any word or number. The same seed makes the same map for
+anyone, so share it and a friend can set out in your world.
+
+The game saves itself as you play, in your browser.
 
 ## Run it yourself
 

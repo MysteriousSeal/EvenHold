@@ -3,6 +3,64 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.4.0] - 2026-10-02
+
+A main menu worth arriving at, your heroes side by side, and a hero made the
+way you want them.
+
+### The main menu
+
+- It opens on a flight over a voxel valley at dusk: clouds drifting, birds
+  wheeling, forests, a lake and snowy peaks, gliding down into a heroes' camp
+  as its fire flares up and the title lands. A key or a click skips it.
+- Your heroes, up to eight, stand before the fire, each in their own look
+  and gear. Pick one from the roster on the right (or click them in the
+  world): they step forward into the light. **Enter World** takes you in.
+- The roster shows each hero's portrait, level, day and world, with a slot
+  for each place left. Eight heroes at most: delete one to make room (it asks
+  twice).
+- A village saying on a signboard under the title, a different one each
+  time.
+- The controls, grouped, their keys drawn as keycaps.
+- No more seed in the address bar: a reload takes you back into the world
+  you were playing, and **Main menu** in the pause menu takes you out.
+
+### Making a hero
+
+- A character creation screen: your hero stands close up before the fire;
+  drag to turn them.
+- On the left, their appearance: body, skin, face, hair style, hair colour,
+  beard and clothes, each changing them as you choose. **Surprise me** for a
+  whole new look; a helm to try on, to see how their hair sits under it.
+- On the right, their name (the dice for another) and the world: a seed
+  (any word or number makes the same world for anyone), or leave it blank
+  for one left to chance. Type a seed of one of your worlds and its hero
+  carries on there.
+- More to choose from: eight skin tones, eight hair colours, eight dyes,
+  two new hair styles for men (shaggy, a warrior's tail), and five faces:
+  calm, cheerful, stern, wistful and sly. Villagers wear them all too.
+
+### People
+
+- Everyone is shaded as a rounded form, with a warm light catching their
+  edges, while staying every bit as blocky.
+- Close up (the menu, your hero sheet, portraits), faces and hands are drawn
+  finer: eyes that catch the light, thin brows and smiles, a nose, strands
+  of hair, fingers.
+- Every hair style redrawn to fit its name: long hair falls to the
+  shoulders, a bob frames the face, ponytails and pigtails hang against the
+  head.
+- Hair that hangs (long hair, braids, tails) now shows under open helms:
+  caps, hats, circlets, crowns, the horned and winged helms.
+
+### Fixes
+
+- Rolling into something indoors could lose your hero and black out the
+  screen, and the save with them. They're now never lost, and an old save
+  that was caught by it brings them back whole.
+- A seed of very long digits (or written like 1e30) opened some other
+  world; it now makes a world of its own.
+
 ## [0.3.0] - 2026-10-02
 
 Fighting with your feet and your shield, a herbalist in every village, and
