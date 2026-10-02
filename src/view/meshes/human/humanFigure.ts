@@ -3,7 +3,8 @@
 // at its joint (bodyVoxels.ts BODIES), rounded to whole voxels. Drop the
 // body (look = null) to show just what's worn, as it sits on someone.
 
-import { EQUIP_SLOTS, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, hairShowsUnder, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { hairUnder } from './hairUnderHelm';
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
@@ -75,8 +76,11 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
       const { part, at } = joints[joint];
       place(buildBodyPart(part, look), colors, at, pivot[part]);
     }
-    const hair = buildHairPiece(look.hairStyle);
-    if (hair && only.includes('head') && !equipment.head) place(hair, colors, joints.head.at, HAIR_PIECE_PIVOT); // up past the head, off under a hat
+    // Up past the head: all of it bare-headed; under a piece open behind, what hangs below its rim; else none.
+    const worn = equipment.head;
+    const headgear = worn && hairShowsUnder(worn) ? wornGrid(worn, 'head', JOINTS.head.side, false, build) : null;
+    const hair = !worn ? buildHairPiece(look.hairStyle) : headgear ? hairUnder(look.hairStyle, headgear) : null;
+    if (hair && only.includes('head')) place(hair, colors, joints.head.at, HAIR_PIECE_PIVOT);
   }
   const shouldered = !!equipment.shoulders;
   for (const slot of EQUIP_SLOTS) {

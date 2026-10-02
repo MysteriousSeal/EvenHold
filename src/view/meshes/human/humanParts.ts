@@ -10,6 +10,7 @@ import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart, type Joint } from './bodyVoxels';
 import { BODY_FILL, withBody, wornPad } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
+import { hairUnder } from './hairUnderHelm';
 
 const V = HUMAN_VOXEL_SIZE;
 
@@ -56,6 +57,15 @@ export function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeomet
 export function hairGeometry(look: BodyLook): THREE.BufferGeometry | null {
   return cached(`hair:${look.hair}:${look.hairStyle}`, () => {
     const grid = buildHairPiece(look.hairStyle);
+    return grid && meshAround(grid, bodyPalette(look), HAIR_PIECE_PIVOT);
+  });
+}
+
+// Hair hanging below a head piece open behind (hairUnderHelm.ts), or null.
+export function hairUnderGeometry(look: BodyLook, item: ItemId): THREE.BufferGeometry | null {
+  return cached(`hairUnder:${look.hair}:${look.hairStyle}:${look.build}:${item}`, () => {
+    const headgear = wornGrid(item, 'head', JOINTS.head.side, false, look.build);
+    const grid = headgear && hairUnder(look.hairStyle, headgear);
     return grid && meshAround(grid, bodyPalette(look), HAIR_PIECE_PIVOT);
   });
 }

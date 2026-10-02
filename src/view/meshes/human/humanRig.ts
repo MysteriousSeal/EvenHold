@@ -16,11 +16,11 @@
 // Its meshes are made in humanParts.ts; the cup in hand is cupInHand.ts.
 
 import * as THREE from 'three';
-import { EQUIP_SLOTS, ITEMS, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, ITEMS, hairShowsUnder, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
 import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type BodyPart, type Joint } from './bodyVoxels';
 import { ITEM_MODELS } from './gear/itemModels';
-import { SHADE, bodyGeometry, hairGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
+import { SHADE, bodyGeometry, hairGeometry, hairUnderGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
 import { CupInHand } from './cupInHand';
 import { stowedAt } from './sheathe';
 import type { InHand } from './cupInHand';
@@ -108,6 +108,8 @@ export class HumanRig {
   private pose: Pose = 'stand';
   private readonly cup: CupInHand; // in the right hand, carried or drunk from
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
+  private under: THREE.Mesh | null = null; // what of it hangs below a head piece open behind
+  private underFor: ItemId | undefined; // (the head piece it's cut for)
   private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
 
   constructor(
@@ -147,6 +149,20 @@ export class HumanRig {
     // Shoulders going on or off change where the sleeves stop, so the
     // torso's piece is put on again to match.
     if (this.hair) this.hair.visible = !equipment.head;
+    if (this.hair && equipment.head !== this.underFor) {
+      // Under a head piece open behind, what hangs below its rim (cut to it).
+      this.underFor = equipment.head;
+      if (this.under) {
+        this.under.removeFromParent();
+        this.meshes.splice(this.meshes.indexOf(this.under), 1);
+        this.under = null;
+      }
+      const under = equipment.head && hairShowsUnder(equipment.head) ? hairUnderGeometry(this.look, equipment.head) : null;
+      if (under) {
+        this.under = this.mesh(under);
+        this.joints.head.add(this.under);
+      }
+    }
     const shouldered = !!equipment.shoulders;
     const refit = shouldered !== this.shouldered;
     this.shouldered = shouldered;
