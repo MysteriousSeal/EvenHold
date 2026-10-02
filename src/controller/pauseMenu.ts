@@ -49,6 +49,7 @@ export function createPauseMenu(hooks: { setPaused(paused: boolean): void; redra
           ['Strike', 'Space'],
           ['Roll (untouchable a moment)', 'Shift'],
           ['Guard (raise it as a blow lands: parry)', 'Hold Q'],
+          ['Action bar (food and drink dragged onto it)', '1 to 8'],
           ['Pick up', 'E'],
           ['Focus a foe', 'Click it'],
           ['Hero sheet', 'C'],

@@ -18,6 +18,7 @@ const PICKUP_KEY = 'KeyE';
 const FOCUS_KEY = 'Tab'; // the next foe (Shift: back)
 const ROLL_KEYS = ['ShiftLeft', 'ShiftRight']; // a roll, as Shift's pressed
 const GUARD_KEY = 'KeyQ'; // held: the guard raised
+const ACTION_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']; // the action bar's slots (hero/actionBar.ts)
 const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
 
 export class KeyboardInput {
@@ -28,6 +29,7 @@ export class KeyboardInput {
   private focusRequested: 'next' | 'back' | null = null;
   private rollRequested = false;
   private guardHeld = false;
+  private actionRequested: number | null = null;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -52,6 +54,13 @@ export class KeyboardInput {
   consumeRoll(): boolean {
     const requested = this.rollRequested;
     this.rollRequested = false;
+    return requested;
+  }
+
+  // Which action bar slot's key was pressed (0 for 1), once per press; else null.
+  consumeAction(): number | null {
+    const requested = this.actionRequested;
+    this.actionRequested = null;
     return requested;
   }
 
@@ -84,6 +93,10 @@ export class KeyboardInput {
   private onKey(e: KeyboardEvent, isDown: boolean): void {
     if (ROLL_KEYS.includes(e.code)) {
       if (isDown && !e.repeat) this.rollRequested = true;
+      return;
+    }
+    if (ACTION_KEYS.includes(e.code)) {
+      if (isDown && !e.repeat) this.actionRequested = ACTION_KEYS.indexOf(e.code);
       return;
     }
     if (e.code === GUARD_KEY) {

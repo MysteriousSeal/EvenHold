@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import { useAction } from '../model/hero/actionBar';
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
 import { rentRoom, roomAction } from '../model/inn/roomLetting';
@@ -175,6 +176,9 @@ export class GameController {
       dirZ -= right.z;
     }
 
+    // 1 to 8: what's in that slot of the action bar, eaten or drunk from the bag.
+    const action = this.input.consumeAction();
+    if (action !== null) useAction(this.model.hero, action);
     // Shift: a roll the way they're going (standing, backwards); Q held: the guard up.
     if (this.input.consumeRoll()) this.model.roll(dirX, dirZ);
     this.model.raiseGuard(this.input.guarding);

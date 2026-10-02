@@ -10,6 +10,7 @@
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 // A button by the purse tidies it (bagStacks.ts: sortedBag).
+import { setAction } from '../../model/hero/actionBar';
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
 import { BAG_GROUPS, groupOf, isLootItem, kindOf, type BagItem } from '../../model/hero/bag';
@@ -69,7 +70,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
       title: LOOT[item].name,
       tone: LOOT_QUALITY[item],
       lines: isProvision(item)
-        ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it`)]
+        ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it, or drag it onto the action bar`)]
         : isBagItem(item)
           ? [toned('kind', kindOf(item)), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
           : [toned('kind', kindOf(item))],
@@ -79,7 +80,9 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
           ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${ROOM_PER_BAG} more slots.` : 'Every bag socket is taken.')
           : undefined,
       dragOut: (over) => {
-        if (!over?.closest('.menu')) model.dropFromBag(item, at); // onto the world, not another window (off this stack)
+        const action = over?.closest<HTMLElement>('.action-slot'); // onto the action bar: food or drink there, a shortcut to it
+        if (action) setAction(model.hero, Number(action.dataset.slot), item);
+        else if (!over?.closest('.menu')) model.dropFromBag(item, at); // onto the world, not another window (off this stack)
       },
     };
   }
