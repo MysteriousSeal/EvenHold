@@ -304,6 +304,22 @@ describe('the bag', () => {
     expect(keys.slice(4, 8)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]); // (no empty cells by the sockets)
   });
 
+  it('a slot hovered is lit, its tooltip shown; left, neither (none lit on opening)', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { wolfFang: 1 }, bagOrder: [], bagCounts: [] });
+    bag.menu.open();
+    expect(bagEl().querySelector('.menu-slot.selected')).toBeNull();
+    const fang = Array.from(bagEl().querySelectorAll<HTMLElement>('.menu-slot')).find((s) => s.querySelector('canvas')?.dataset.key === 'loot:wolfFang')!;
+    fang.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(fang.classList.contains('selected')).toBe(true);
+    expect(Array.from(document.querySelectorAll<HTMLElement>('.menu-tooltip')).some((t) => !t.hidden)).toBe(true);
+    fang.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(bagEl().querySelector('.menu-slot.selected')).toBeNull();
+    expect(Array.from(document.querySelectorAll<HTMLElement>('.menu-tooltip')).every((t) => t.hidden)).toBe(true);
+    bag.menu.close();
+  });
+
   it('in rows by what things are: a titled header over each group carried, the free slots at the bottom', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const bag = createInventoryPanel(model);
