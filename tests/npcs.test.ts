@@ -8,12 +8,13 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 const withVillage = () => TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)).find((m) => m.houses.length > 2 && m.buildings.some((b) => b.kind === 'inn'))!;
 
 describe('villagers', () => {
-  it('live one to a house, each in their own, named, naked, the same for a seed', () => {
+  it('live one to a house, each in their own (a village\'s herbalist in theirs alone), named, naked, the same for a seed', () => {
     const model = withVillage();
     const homes = model.entrances.filter((e) => e.type === 'house');
     const villagers = model.npcs.filter((n) => n.role === 'villager');
-    expect(villagers).toHaveLength(homes.length);
-    expect(new Set(villagers.map((n) => n.home)).size).toBe(homes.length);
+    const herbalists = model.npcs.filter((n) => n.role === 'herbalist');
+    expect(villagers.length + herbalists.length).toBe(homes.length);
+    expect(new Set([...villagers, ...herbalists].map((n) => n.home)).size).toBe(homes.length); // (no house shared)
     for (const npc of villagers) {
       expect(npc.name.length).toBeGreaterThan(2);
       expect(npc.equipment).toEqual({});
