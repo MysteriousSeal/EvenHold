@@ -1,0 +1,149 @@
+/* The main menu (mainMenu.ts), on the loading screen's scene (index.html:
+   the title at the top, the sun and the hills wide behind). The game's own
+   look (sand, ink, Fredoka), with the best of others: Elden Ring's
+   breathing "Press any key"; Minecraft's yellow splash, tilted and
+   pulsing; WoW's and Diablo's heroes down the right, the chosen one
+   standing large, a gold Enter World. */
+.title-screen { position: absolute; inset: 0; z-index: 2; font-family: 'Fredoka', system-ui, sans-serif; pointer-events: none; }
+.title-screen > * { pointer-events: auto; }
+#loading.title[data-screen='press'] { cursor: pointer; }
+
+/* The real world behind (view/title/titleScene.ts), in place of the flat sun and hills; the heroes' names over
+   their heads, the chosen one's lit gold. */
+.title-world { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+#loading.title.world #loading-stage { display: none; }
+#loading.title.world h1 { text-shadow: 0 4px 0 #7a3520, 0 7px 0 rgba(46, 31, 20, 0.5), 0 0 24px rgba(255, 236, 200, 0.9); }
+#loading.title.world .title-press { color: #f8ecd4; text-shadow: 2px 2px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14; }
+.title-plates { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.title-plate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: #f8ecd4;
+  text-shadow: 1px 1px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14;
+  opacity: 0.75;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.title-plate b { font-size: 17px; font-weight: 700; }
+.title-plate span { font-size: 12px; font-weight: 600; color: #e6d2ae; }
+.title-plate.chosen { opacity: 1; }
+.title-plate.chosen b { font-size: 22px; color: #ffd98a; text-shadow: 2px 2px 0 #2e1f14, -2px -2px 0 #2e1f14, 2px -2px 0 #2e1f14, -2px 2px 0 #2e1f14, 0 0 14px rgba(255, 200, 100, 0.8); }
+
+/* Minecraft's splash: by the title, tilted, pulsing. */
+.title-splash {
+  position: absolute;
+  z-index: 2;
+  left: calc(50% + 150px);
+  top: calc(5vh + 58px);
+  font: 700 18px 'Fredoka', system-ui, sans-serif;
+  color: #ffe14a;
+  text-shadow: 2px 2px 0 #6a4a10;
+  white-space: nowrap;
+  transform: rotate(-14deg);
+  animation: splash 0.9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes splash { from { transform: rotate(-14deg) scale(1); } to { transform: rotate(-14deg) scale(1.08); } }
+
+/* Elden Ring's "Press any key": low, small, breathing. */
+.title-press {
+  position: absolute;
+  left: 50%;
+  bottom: 14vh;
+  transform: translateX(-50%);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #7a5a3a;
+  animation: breath 2.6s ease-in-out infinite;
+}
+@keyframes breath { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+/* The heroes (WoW, Diablo): the chosen one standing among the hills. */
+.title-stage { position: absolute; left: 50%; top: calc(16vh + 120px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
+.title-stage canvas { filter: drop-shadow(0 10px 0 rgba(46, 31, 20, 0.25)); }
+.title-hero-name { font-size: 30px; font-weight: 700; color: #ffd98a; text-shadow: 2px 2px 0 #2e1f14, -2px -2px 0 #2e1f14, 2px -2px 0 #2e1f14, -2px 2px 0 #2e1f14; }
+.title-hero-line { font-size: 16px; font-weight: 600; color: #f8ecd4; text-shadow: 1px 1px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14; }
+.title-enter {
+  position: absolute;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%);
+  min-width: 280px;
+  padding: 14px 28px 16px;
+  font: 700 26px 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  background: #ffd98a;
+  border: 3px solid #2e1f14;
+  box-shadow: 0 6px 0 #2e1f14, inset 0 -6px 0 #e8903a, inset 0 3px 0 rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+}
+.title-enter:hover, .title-enter:focus-visible { background: #ffe6a8; outline: none; }
+.title-enter:active { box-shadow: 0 2px 0 #2e1f14, inset 0 4px 0 #e8903a; }
+.title-enter.inline { position: static; transform: none; margin-top: 8px; min-width: 0; font-size: 22px; }
+.title-list {
+  position: absolute;
+  right: 3vw;
+  top: 14vh;
+  width: 290px;
+  max-height: 64vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(38, 26, 17, 0.9);
+  border: 2px solid #efdcb8;
+  box-shadow: 4px 4px 0 rgba(46, 31, 20, 0.35);
+}
+.title-list-head, .title-panel-head { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #c8b088; padding-bottom: 4px; border-bottom: 1px solid rgba(239, 220, 184, 0.25); }
+.title-card { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 7px 10px; font-family: inherit; text-align: left; color: #f8ecd4; background: rgba(239, 220, 184, 0.06); border: 2px solid transparent; cursor: pointer; }
+.title-card b { font-size: 18px; font-weight: 700; }
+.title-card span { font-size: 13px; color: #d6bb8e; }
+.title-card small { font-size: 11px; color: #9c8564; }
+.title-card:hover { background: rgba(239, 220, 184, 0.14); }
+.title-card.chosen { background: rgba(255, 217, 138, 0.18); border-color: #ffd98a; }
+.title-card.chosen b { color: #ffd98a; }
+.title-side { padding: 7px 14px; font: 600 15px 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #efdcb8; border: 2px solid #2e1f14; box-shadow: 0 3px 0 #2e1f14, inset 0 -3px 0 #d6bb8e; cursor: pointer; }
+.title-side:hover { background: #ffd98a; }
+.title-side.danger { background: #d98a7a; }
+.title-side.danger:hover { background: #f0a090; }
+.title-corner { position: absolute; bottom: 4vh; display: flex; gap: 8px; }
+.title-corner.left { left: 3vw; }
+.title-corner.right { right: 3vw; }
+
+/* A panel in the middle: a new world (Minecraft's), the controls. */
+.title-panel {
+  position: absolute;
+  left: 50%;
+  top: 46vh;
+  transform: translateX(-50%);
+  width: min(420px, 90vw);
+  max-height: 46vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #f8ecd4;
+  background: rgba(38, 26, 17, 0.94);
+  border: 2px solid #efdcb8;
+  box-shadow: 4px 4px 0 rgba(46, 31, 20, 0.35);
+}
+.title-note { font-size: 12px; color: #c8b088; }
+.title-input { padding: 7px 9px; font: 500 16px 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #f8ecd4; border: 2px solid #2e1f14; }
+.title-controls { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; }
+.title-controls dt { color: #d6bb8e; }
+.title-controls dd { margin: 0; font-weight: 700; text-align: right; }
+
+@media (max-width: 760px) {
+  .title-list { left: 50%; right: auto; top: auto; bottom: 20vh; transform: translateX(-50%); max-height: 26vh; }
+  .title-splash { left: auto; right: 4vw; }
+}
+@media (prefers-reduced-motion: reduce) { .title-splash, .title-press { animation: none; } }

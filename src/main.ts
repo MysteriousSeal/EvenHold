@@ -4,10 +4,11 @@ import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
-import { resolveSeed } from './util/seed';
+import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from './util/seed';
+import { showMainMenu } from './controller/mainMenu';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
-import { loadGame, startAutoSave } from './controller/storage/saveGame';
+import { forgetWorld, loadGame, savedWorlds, startAutoSave } from './controller/storage/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
@@ -57,7 +58,10 @@ import { DEFAULT_MAP_SIZE } from './model/map/grid';
 async function boot(): Promise<void> {
   const loading = loadingScreen();
   const canvas = document.getElementById('app') as HTMLCanvasElement;
-  const seed = resolveSeed();
+  // The world to play: a shared link's (its seed taken out of the address), else this tab's (a reload), else the one
+  // chosen on the main menu; kept for the tab.
+  const seed = takeSeedFromUrl() ?? sessionSeed() ?? (await showMainMenu({ worlds: savedWorlds, forget: forgetWorld }));
+  keepSessionSeed(seed);
   (document.getElementById('version-label') as HTMLDivElement).textContent = `EvenHold v${__GAME_VERSION__}`; // (package.json's, with the seed)
   const positionLabel = document.getElementById('position-label') as HTMLDivElement;
   (document.getElementById('seed-label') as HTMLDivElement).textContent = `seed: ${seed}`;
@@ -139,6 +143,11 @@ async function boot(): Promise<void> {
     },
     newGame: () => {
       autoSave.forget();
+      window.location.reload();
+    },
+    mainMenu: () => {
+      autoSave.save();
+      keepSessionSeed(null); // (this tab's world let go: the reload shows the main menu)
       window.location.reload();
     },
     walls: {
