@@ -3,7 +3,7 @@ import { GameModel } from '../src/model/GameModel';
 import { WILD_SITES, spawnEnemies } from '../src/model/enemies/enemies';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS, ENGAGED } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
-import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, fresh, nearest, eachSeed } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, fresh, nearest, eachSeed, inSightOf, noTravellers } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 
 const WOLF_SIGHT = ENEMY_STATS.wolf.sight;
@@ -36,8 +36,9 @@ describe('wolves', () => {
 
   it('chases the hero on sight and gives up when outrun', () => {
     eachSeed((model) => {
+      noTravellers(model);
       const wolf = nearest(model);
-      model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
+      inSightOf(model, wolf);
       const before = Math.hypot(wolf.x - model.hero.x, wolf.z - model.hero.z);
       expect(before).toBeLessThan(WOLF_SIGHT);
       for (let i = 0; i < 30; i++) model.update(0, 0, FRAME);
@@ -159,9 +160,9 @@ describe('bandits', () => {
 
 describe('wolf bite', () => {
   it('lunges once in reach, then waits', () => {
-    const model = fresh();
+    const model = noTravellers(fresh());
     const wolf = nearest(model);
-    model.teleport(Math.round(wolf.x) - 2, Math.round(wolf.z));
+    inSightOf(model, wolf);
     let bit = false;
     for (let i = 0; i < 120 && !bit; i++) {
       model.update(0, 0, FRAME);

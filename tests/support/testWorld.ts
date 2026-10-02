@@ -47,6 +47,18 @@ export function slay(model: GameModel, enemy: Enemy): void {
 }
 
 // Runs `check` in a fresh world of every test seed, saying which seed when it fails.
+// The hero put two tiles from `wolf`, on whichever side has a clear view of it (trees and houses about it), still.
+export function inSightOf(model: GameModel, wolf: Enemy, away = 2): void {
+  const director = (model as unknown as { director: { inView(a: { x: number; z: number }, b: { x: number; z: number }): boolean } }).director;
+  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    model.teleport(Math.round(wolf.x) + dx * away, Math.round(wolf.z) + dz * away);
+    if (model.isOpenTile(Math.round(model.hero.x), Math.round(model.hero.z)) && director.inView(model.hero, wolf)) return;
+  }
+}
+
+// No travellers on the roads (a test of the foes and the hero alone: none to go after instead).
+export const noTravellers = (model: GameModel): GameModel => (model.travellers.list.splice(0), model);
+
 export function eachSeed(check: (model: GameModel, seed: number) => void): void {
   for (const seed of TEST_SEEDS) {
     try {

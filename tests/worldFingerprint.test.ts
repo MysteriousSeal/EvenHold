@@ -8,7 +8,7 @@ import { generateWorld } from '../src/model/worldgen/world';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { worldPrint } from './support/worldPrint';
 
-const TEST_WORLDS = ['6aae06ba', 'da240a90', 'a54bf2fe', '4230077', 'bdef728', 'fc3ad22', '73900249', '83cefa43'];
+const TEST_WORLDS = ['e2f132c9', '6c8b99aa', 'f1a7123c', 'c03299f1', '5ff1ae82', '7ac14a33', 'c3eb81d6', 'a0b79b59']; // (since the roads between the villages)
 
 describe('worlds made as ever', () => {
   it.each(TEST_SEEDS.map((seed, i) => [seed, TEST_WORLDS[i]]))('seed %i (test size)', (seed, print) => {
@@ -16,6 +16,6 @@ describe('worlds made as ever', () => {
   });
 
   it('a full-size world', () => {
-    expect(worldPrint(generateWorld(1275139863))).toBe('b4f77169');
+    expect(worldPrint(generateWorld(1275139863))).toBe('26f5c181');
   }, 60_000);
 });

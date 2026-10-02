@@ -20,7 +20,7 @@ export function worldPrint(world: World): string {
       mix(SURFACES[world.surfaceMap[x][z]]);
     }
   }
-  const rest = JSON.stringify([world.trails, world.villages, world.houses, world.buildings, world.fields, world.ruins, world.camps, world.trees, world.bushes]);
+  const rest = JSON.stringify([world.trails, world.roads, world.villages, world.houses, world.buildings, world.fields, world.ruins, world.camps, world.trees, world.bushes]);
   for (let i = 0; i < rest.length; i++) mix(rest.charCodeAt(i));
   return (h >>> 0).toString(16);
 }

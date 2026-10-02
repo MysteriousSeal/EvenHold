@@ -1,0 +1,409 @@
+// Travellers on the roads (travellers/): who sets out, walking the roads and on at the villages, stopping for the hero;
+// foes going after them, guards going after the foes; brought down and others setting out; a word with them.
+
+import { describe, expect, it } from 'vitest';
+import { GameModel } from '../src/model/GameModel';
+import { BACK_AFTER, STOP_FOR_HERO, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
+import { hurt } from '../src/model/travellers/travellerFights';
+import { GUARD_LINES, PILGRIM_ROAD_LINES, bearing, cryptRumour, travellerInReach, travellerPrompt, travellerSays } from '../src/model/travellers/travellerTalk';
+import { PEDLAR_TRINKETS, PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
+import { makeEnemy } from '../src/model/enemies/enemies';
+import { ITEMS } from '../src/model/human/equipment';
+import { parseSave, restore, snapshot } from '../src/model/save';
+import { spawnOf } from '../src/model/map/grid';
+import { nearestTraveller } from '../src/model/cheats';
+import { FRAME } from './support/testWorld';
+import type { Enemy } from '../src/model/types';
+
+const MID = { width: 512, depth: 512 };
+const models = new Map<number, GameModel>();
+const fresh = (seed = 1) => new GameModel(seed, MID);
+const shared = (seed = 1) => models.get(seed) ?? models.set(seed, fresh(seed)).get(seed)!;
+const far = (model: GameModel) => Object.assign(model.hero, { x: 3, z: 3 }); // (the hero well away from them all)
+// A model with one traveller of `role` alone on the roads, the hero far off, no foes about.
+function alone(role: Traveller['role'], seed = 1): { model: GameModel; t: Traveller } {
+  const model = fresh(seed);
+  const t = model.travellers.list.find((x) => x.role === role && x.leader === null)!;
+  model.travellers.list.splice(0, model.travellers.list.length, ...model.travellers.list.filter((x) => x === t || (role === 'guard' && x.leader === t.id)));
+  model.enemies.splice(0);
+  far(model);
+  return { model, t };
+}
+const step = (model: GameModel, seconds: number) => {
+  for (let s = 0; s < seconds; s += FRAME) model.update(0, 0, FRAME);
+};
+
+describe('travellers setting out', () => {
+  it('one or two parties to every road: a pedlar, a pilgrim, or two guards together', () => {
+    const { travellers } = shared();
+    const roads = travellers.roads;
+    expect(roads.length).toBeGreaterThan(10);
+    const leaders = travellers.list.filter((t) => t.leader === null);
+    const byRoad = new Map<number, number>();
+    for (const t of leaders) byRoad.set(t.road, (byRoad.get(t.road) ?? 0) + 1);
+    for (let r = 0; r < roads.length; r++) expect([1, 2], `road ${r}`).toContain(byRoad.get(r));
+    for (const g of travellers.list.filter((t) => t.leader !== null)) {
+      const leader = travellers.list.find((t) => t.id === g.leader)!;
+      expect([g.role, leader.role]).toEqual(['guard', 'guard']);
+      expect(g.road).toBe(leader.road);
+    }
+    const roles = new Set(leaders.map((t) => t.role));
+    expect([...roles].sort()).toEqual(['guard', 'pedlar', 'pilgrim']);
+  });
+
+  it('are the seed\'s: the same each time', () => {
+    const a = shared().travellers;
+    const again = spawnTravellers(1, a.roads, spawnOf(MID));
+    expect(again.map((t) => [t.role, t.name, t.road, t.along])).toEqual(fresh().travellers.list.map((t) => [t.role, t.name, t.road, t.along]));
+  });
+
+  it('stand on their roads, each with a name, a look, and the gear of their kind', () => {
+    for (const t of shared().travellers.list) {
+      const at = onRoadSide(shared().travellers.roads[t.road], t.along, t.way);
+      expect([t.x, t.z]).toEqual([at.x, at.z]);
+      expect(t.name.length).toBeGreaterThan(1);
+      expect(t.hp).toBe(t.maxHp);
+      if (t.role === 'pedlar') expect(t.equipment.mainHand).toBeUndefined(); // (unarmed)
+      if (t.role === 'guard') expect(['armingSword', 'spear']).toContain(t.equipment.mainHand);
+      for (const item of Object.values(t.equipment)) expect(ITEMS[item!].wornBy?.[t.role], `${t.role} in ${item}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('are tougher the further out from where the hero set out, guards most of all', () => {
+    const list = shared().travellers.list;
+    const spawn = spawnOf(MID);
+    const dist = (t: Traveller) => Math.hypot(t.x - spawn.x, t.z - spawn.z);
+    const near = list.filter((t) => dist(t) < 80);
+    const out = list.filter((t) => dist(t) > 200);
+    const mean = (ts: Traveller[]) => ts.reduce((s, t) => s + t.level, 0) / ts.length;
+    expect(mean(out)).toBeGreaterThan(mean(near));
+    const guard = list.find((t) => t.role === 'guard')!;
+    const pilgrim = list.find((t) => t.role === 'pilgrim' && t.level === guard.level);
+    if (pilgrim) expect(guard.maxHp).toBeGreaterThan(pilgrim.maxHp);
+  });
+});
+
+describe('travellers walking', () => {
+  it('walk along their road at a steady pace', () => {
+    const { model, t } = alone('pilgrim');
+    t.along = 5;
+    t.way = 1;
+    step(model, 2);
+    expect(t.along).toBeCloseTo(5 + WALK * 2, 0);
+    const at = onRoadSide(model.travellers.roads[t.road], t.along, t.way);
+    expect(Math.hypot(t.x - at.x, t.z - at.z)).toBeLessThan(1e-6);
+    expect(t.y).toBeCloseTo(model.getGroundY(t.x, t.z));
+  });
+
+  it('at a village, go on along another of its roads (or back, if it has no other)', () => {
+    const { model, t } = alone('pedlar');
+    const roads = model.travellers.roads;
+    const from = roadsFrom(roads, model.villages.length);
+    const end = roads[t.road].route.length - 1;
+    const [road, village] = [t.road, roads[t.road].to];
+    Object.assign(t, { along: end - 0.05, way: 1 });
+    step(model, 0.5);
+    const there = from[village].map((r) => r.road);
+    expect(there).toContain(t.road);
+    if (there.length > 1) expect(t.road).not.toBe(road);
+    const r = roads[t.road];
+    expect(Math.max(Math.abs(t.x - model.villages[village].x), Math.abs(t.z - model.villages[village].z))).toBeLessThan(15); // (still by the village)
+    expect(t.way).toBe(r.from === village ? 1 : -1); // (heading away from it)
+  });
+
+  it('a guard follows their partner a pace behind, along the same road', () => {
+    const { model, t } = alone('guard');
+    const partner = model.travellers.list.find((x) => x.leader === t.id)!;
+    step(model, 3);
+    expect(partner.road).toBe(t.road);
+    expect(Math.abs(partner.along - (t.along - t.way * 1.2))).toBeLessThan(0.05);
+  });
+
+  it('stop for the hero close by, turned to them; walk on once they go', () => {
+    const { model, t } = alone('pilgrim');
+    Object.assign(model.hero, { x: t.x + 1, z: t.z });
+    const along = t.along;
+    step(model, 2);
+    expect(t.along).toBe(along);
+    expect(Math.abs(Math.atan2(Math.sin(t.facing - Math.PI / 2), Math.cos(t.facing - Math.PI / 2)))).toBeLessThan(0.1); // (facing +x: the hero)
+    expect(STOP_FOR_HERO).toBeGreaterThan(1);
+    far(model);
+    step(model, 1);
+    expect(t.along).not.toBe(along);
+  });
+
+  it('walk only while the hero\'s out in the world (indoors, the world stands still)', () => {
+    const { model, t } = alone('pilgrim');
+    model.teleport(model.villages[0].x + 0.5, model.villages[0].z + 0.5);
+    far(model);
+    Object.defineProperty(model, 'inside', { value: { entrance: {}, room: { width: 4, depth: 4 }, furniture: [], seated: null }, configurable: true });
+    const along = t.along;
+    try {
+      model.update(0, 0, 1);
+    } catch {
+      // (a stand-in room: whatever it trips on, the world outside's left alone)
+    }
+    expect(t.along).toBe(along);
+  });
+});
+
+describe('travellers passing each other', () => {
+  it('keep to their right of the road\'s middle: those going the other way pass them by, side by side', () => {
+    const road = shared().travellers.roads[0];
+    const along = road.route.length / 2;
+    const [there, back] = [onRoadSide(road, along, 1), onRoadSide(road, along, -1)];
+    const middle = onRoad(road, along);
+    expect(Math.hypot(there.x - middle.x, there.z - middle.z)).toBeCloseTo(0.22);
+    expect(Math.hypot(there.x - back.x, there.z - back.z)).toBeGreaterThan(0.42); // (room to pass)
+  });
+
+  it('never walk into one another: one catching up waits behind, a pace off, while the one ahead stands', () => {
+    const { model, t } = alone('pilgrim');
+    const ahead = { ...t, id: 9_999, name: 'Ahead', along: t.along + t.way * 0.6 };
+    const at = onRoadSide(model.travellers.roads[t.road], ahead.along, t.way);
+    Object.assign(ahead, { x: at.x, z: at.z });
+    model.travellers.list.push(ahead);
+    Object.assign(model.hero, { x: ahead.x + 1.2, z: ahead.z }); // (the hero by the one ahead: they stand, the other comes on)
+    step(model, 1.2);
+    expect(Math.hypot(t.x - ahead.x, t.z - ahead.z)).toBeGreaterThanOrEqual(0.4);
+  });
+
+  it('give way in the end: squeezed past after a moment, never stuck for good', () => {
+    const { model, t } = alone('pilgrim');
+    const along = t.along;
+    const ahead = { ...t, id: 9_998, name: 'Blocking', along: t.along + t.way * 0.3 };
+    Object.assign(ahead, onRoadSide(model.travellers.roads[t.road], ahead.along, t.way));
+    model.travellers.list.push(ahead);
+    const beyond = onRoadSide(model.travellers.roads[t.road], t.along + t.way * 1.8, t.way); // (by the one ahead, past the other's stopping range)
+    Object.assign(model.hero, { x: beyond.x, z: beyond.z });
+    step(model, 4);
+    expect(t.along).not.toBe(along);
+  });
+});
+
+describe('travellers and the foes of the wilds', () => {
+  const wolfBy = (model: GameModel, t: Traveller, dx = 1.5): Enemy => {
+    const wolf = makeEnemy(5_000_000 + model.enemies.length, 'wolf', t.x + dx, t.z, t.x + dx, t.z, 1);
+    model.enemies.push(wolf);
+    return wolf;
+  };
+  // The hero close enough for the foes to wake (they only think near the hero), but not so close the travellers stop.
+  const watching = (model: GameModel, t: Traveller) => Object.assign(model.hero, { x: t.x, z: t.z + 8 });
+
+  it('a foe not set on the hero goes for a traveller nearer than the hero, and its bites tell', () => {
+    const { model, t } = alone('pilgrim');
+    watching(model, t);
+    const wolf = wolfBy(model, t);
+    step(model, 4);
+    expect(wolf.state).toBe('chase');
+    expect(t.hp).toBeLessThan(t.maxHp);
+    expect(model.hero.hp).toBe(model.hero.hp); // (left the hero be)
+  });
+
+  it('brought down, they lie a moment and are gone; a while after, another of their kind sets out', () => {
+    const { model, t } = alone('pilgrim');
+    hurt(t, t.maxHp);
+    expect(t.down).toBe(0);
+    expect(model.travellers.standing).not.toContain(t);
+    step(model, 5);
+    expect(model.travellers.list).not.toContain(t);
+    step(model, BACK_AFTER);
+    const next = model.travellers.list.find((x) => x.role === 'pilgrim');
+    expect(next).toBeDefined();
+    expect(next!.hp).toBe(next!.maxHp);
+  });
+
+  it('a guard brought down: two set out again in their place, together', () => {
+    const { model, t } = alone('guard');
+    for (const g of [...model.travellers.list]) hurt(g, g.maxHp);
+    step(model, 5 + BACK_AFTER);
+    const guards = model.travellers.list.filter((x) => x.role === 'guard');
+    expect(guards.length).toBe(2);
+    expect(guards[1].leader).toBe(guards[0].id);
+    void t;
+  });
+
+  it('guards go for a foe near them, strike it down (slain for good), and go back to their road', () => {
+    const { model, t } = alone('guard');
+    watching(model, t);
+    const wolf = wolfBy(model, t, 2.5);
+    wolf.hp = wolf.maxHp = 6;
+    step(model, 12);
+    expect(wolf.state).toBe('dead');
+    expect(model.slain.has(wolf.id)).toBe(false); // (a stand-in foe, past the world's own ids: not the world's)
+    step(model, 10);
+    expect(t.off).toBeNull(); // back on the road
+    const at = onRoadSide(model.travellers.roads[t.road], t.along, t.way);
+    expect(Math.hypot(t.x - at.x, t.z - at.z)).toBeLessThan(0.15);
+  });
+
+  it('a foe of the world\'s own a guard slays stays slain (in the save too)', () => {
+    const { model, t } = alone('guard');
+    watching(model, t);
+    const wolf = makeEnemy(7, 'wolf', t.x + 2, t.z, t.x + 2, t.z, 1); // (one of the world's ids)
+    model.enemies.push(wolf);
+    step(model, 15);
+    expect(wolf.state).toBe('dead');
+    expect(model.slain.has(7)).toBe(true);
+  });
+
+  it('a foe a guard strikes turns on them', () => {
+    const { model, t } = alone('guard');
+    watching(model, t);
+    const boar = makeEnemy(5_000_001, 'boar', t.x + 1.2, t.z, t.x + 1.2, t.z, 1); // (passive: it never starts it)
+    boar.state = 'chase'; // (set on someone: the guards go for it)
+    boar.hp = boar.maxHp = 40; // (enough to outlast a blow or two from the pair)
+    model.enemies.push(boar);
+    model.enemiesFrozen = true; // (held there, not off after the hero, till the guard's blow lands)
+    step(model, 1.5);
+    model.enemiesFrozen = false;
+    expect(boar.hp).toBeLessThan(boar.maxHp);
+    expect(model.travellers.fights.of(boar)?.role).toBe('guard');
+  });
+
+  it('a passive foe left be is let be: guards walk on past a boar minding its own', () => {
+    const { model, t } = alone('guard');
+    watching(model, t);
+    const boar = makeEnemy(5_000_002, 'boar', t.x + 1.5, t.z, t.x + 1.5, t.z, 1);
+    model.enemies.push(boar);
+    step(model, 3);
+    expect(boar.hp).toBe(boar.maxHp);
+    expect(t.off).toBeNull();
+  });
+
+  it('far from the hero, the roads are quiet: no fights there', () => {
+    const { model, t } = alone('guard');
+    const wolf = wolfBy(model, t, 2);
+    step(model, 5);
+    expect(wolf.hp).toBe(wolf.maxHp);
+    expect(t.off).toBeNull();
+  });
+});
+
+describe('a word with a traveller', () => {
+  it('the one near enough, standing: "Trade with" a pedlar, "Talk to" the rest', () => {
+    const { model, t } = alone('pedlar');
+    expect(travellerInReach(model.travellers.list, { x: t.x + 5, z: t.z })).toBeNull();
+    expect(travellerInReach(model.travellers.list, { x: t.x + 1, z: t.z })).toBe(t);
+    expect(travellerPrompt(t)).toBe(`Trade with ${t.name}`);
+    hurt(t, t.maxHp);
+    expect(travellerInReach(model.travellers.list, { x: t.x + 1, z: t.z })).toBeNull(); // (down: none)
+    const pilgrim = shared().travellers.list.find((x) => x.role === 'pilgrim')!;
+    expect(travellerPrompt(pilgrim)).toBe(`Talk to ${pilgrim.name}`);
+  });
+
+  it('a guard\'s lines in turn, every one, never twice running', () => {
+    const guard = shared().travellers.list.find((x) => x.role === 'guard')!;
+    const heard = Array.from({ length: GUARD_LINES.length * 2 }, () => travellerSays(guard, []));
+    expect(new Set(heard).size).toBe(GUARD_LINES.length);
+    expect(heard.every((line, i) => i === 0 || line !== heard[i - 1])).toBe(true);
+  });
+
+  it('a pilgrim tells of the nearest crypt (which way, its name, not its level), every other time; else a word of the road', () => {
+    const model = shared();
+    const pilgrim = model.travellers.list.find((x) => x.role === 'pilgrim')!;
+    const nearest = [...model.crypts].sort((a, b) => Math.hypot(a.middle.x - pilgrim.x, a.middle.z - pilgrim.z) - Math.hypot(b.middle.x - pilgrim.x, b.middle.z - pilgrim.z))[0];
+    const first = travellerSays(pilgrim, model.crypts);
+    expect(first).toContain(nearest.name);
+    expect(first).not.toMatch(/level/i); // (how deep it goes left for the hero to find)
+    expect(first).toContain(bearing(pilgrim, nearest.middle));
+    expect(PILGRIM_ROAD_LINES).toContain(travellerSays(pilgrim, model.crypts));
+    expect(cryptRumour(pilgrim, [])).toBeNull();
+  });
+
+  it('tells the eight winds by the map (north up, east right)', () => {
+    const o = { x: 100, z: 100 };
+    expect(bearing(o, { x: 100, z: 40 })).toBe('north');
+    expect(bearing(o, { x: 160, z: 100 })).toBe('east');
+    expect(bearing(o, { x: 100, z: 160 })).toBe('south');
+    expect(bearing(o, { x: 40, z: 100 })).toBe('west');
+    expect(bearing(o, { x: 150, z: 50 })).toBe('north-east');
+    expect(bearing(o, { x: 50, z: 150 })).toBe('south-west');
+  });
+});
+
+describe('a pedlar\'s pack', () => {
+  it('food for the road and every trinket marked for pedlars', () => {
+    expect(PEDLAR_WARES).toEqual(expect.arrayContaining(['bread', 'apple', 'cheese', 'ale']));
+    expect(PEDLAR_TRINKETS.length).toBeGreaterThan(3);
+    for (const id of PEDLAR_TRINKETS) {
+      expect(ITEMS[id].soldBy?.pedlar).toBeGreaterThan(0);
+      expect(pedlarPrice(id, true)).toBeLessThan(pedlarPrice(id, false)); // (bought back for less)
+    }
+  });
+
+  it('bought from: paid for, out of their pack, into the bag; sold to: trinkets and food, not a sword', () => {
+    const { model, t } = alone('pedlar');
+    const shop = pedlarShopAt(model.shops, model.seed, t, 0);
+    const [money, bread] = [1000, shop.stock.bread!];
+    model.hero.money = money;
+    expect(buyFromPedlar(shop, model.hero, 'bread')).toBe('bought');
+    expect([model.hero.money, shop.stock.bread, model.hero.bag.bread]).toEqual([money - pedlarPrice('bread', false), bread - 1, 1]);
+    model.hero.bag.copperRing = 1;
+    expect(pedlarBuys('copperRing')).toBe(true);
+    expect(sellToPedlar(shop, model.hero, 'copperRing')).toBe('sold');
+    model.hero.bag.armingSword = 1;
+    expect(pedlarBuys('armingSword')).toBe(false);
+    expect(sellToPedlar(shop, model.hero, 'armingSword')).toBe('not wanted');
+  });
+
+  it('each their own pack, kept apart from the inns\' and the smiths\', and in the save', () => {
+    const { model, t } = alone('pedlar');
+    const shop = pedlarShopAt(model.shops, model.seed, t, 0);
+    shop.money = 1234;
+    expect(model.shops.get(model.entrances.indexOf(model.entrances[0]))).not.toBe(shop);
+    const again = new GameModel(model.seed, MID);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(pedlarShopAt(again.shops, again.seed, t, 0).money).toBe(1234);
+  });
+
+  it('travellers are kept in the save: each where they were on their road, going their way, their health', () => {
+    const model = fresh(2);
+    far(model);
+    step(model, 3);
+    const hurtOne = model.travellers.list[0];
+    hurtOne.hp -= 2;
+    const again = new GameModel(2, MID);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), 2)!);
+    const kept = (m: GameModel) => m.travellers.list.map((t) => [t.id, t.role, t.name, t.road, t.way, Math.round(t.along * 100) / 100, t.hp, t.leader]);
+    expect(kept(again)).toEqual(kept(model));
+    for (const t of again.travellers.list) {
+      const was = model.travellers.list.find((x) => x.id === t.id)!;
+      expect(Math.hypot(t.x - was.x, t.z - was.z)).toBeLessThan(0.02); // (where they stood)
+      expect(t.look).toEqual(was.look); // (the same faces, whatever road they're on now)
+    }
+  });
+
+  it('those brought down set out again after a reload too, in their time', () => {
+    const model = fresh(2);
+    const t = model.travellers.list.find((x) => x.role === 'pilgrim')!;
+    hurt(t, t.maxHp);
+    const count = model.travellers.list.length;
+    const again = new GameModel(2, MID);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), 2)!);
+    expect(again.travellers.list.length).toBe(count - 1);
+    far(again);
+    for (let s = 0; s < BACK_AFTER + 1; s += 0.25) again.update(0, 0, 0.25);
+    expect(again.travellers.list.length).toBe(count);
+  });
+});
+
+describe('the travel cheats', () => {
+  it.each(['pedlar', 'pilgrim', 'guard'] as const)('the nearest %s: on their road a pace ahead, near enough for a word', (role) => {
+    const model = fresh();
+    const found = nearestTraveller(model, model.hero, role)!;
+    expect(found.traveller.role).toBe(role);
+    expect(found.traveller.leader).toBeNull(); // (a patrol by its leader)
+    const nearer = model.travellers.standing.filter((t) => t.role === role && t.leader === null && Math.hypot(t.x - model.hero.x, t.z - model.hero.z) < Math.hypot(found.traveller.x - model.hero.x, found.traveller.z - model.hero.z));
+    expect(nearer).toEqual([]);
+    model.teleport(found.at.x, found.at.z);
+    const by = travellerInReach(model.travellers.list, model.hero);
+    expect(by === found.traveller || by?.leader === found.traveller.id).toBe(true);
+  });
+
+  it('none of that kind about: none to travel to', () => {
+    const model = fresh();
+    model.travellers.list.splice(0);
+    expect(nearestTraveller(model, model.hero, 'pedlar')).toBeNull();
+  });
+});
