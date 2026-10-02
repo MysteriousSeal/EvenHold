@@ -11,7 +11,7 @@
 
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
-import { bagStacks, moveSlot, sortedBag, type BagItem } from '../../model/hero/bag';
+import { BAG_GROUPS, bagStacks, groupOf, moveSlot, sortedBag, type BagItem } from '../../model/hero/bag';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, type BagId } from '../../model/loot/bags';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
@@ -24,7 +24,7 @@ import { bagIcon, isLoot } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
 
-const COLUMNS = 6;
+const COLUMNS = 8;
 const SOCKET_ROW = BAG_SOCKETS; // the sockets, the first row; the bag's own slots from there (on a row of their own: the separator spans the grid)
 const QUALITY_NAMES = { junk: 'Junk', ingredient: 'Cooking ingredient', common: 'Food & drink', quest: 'Quest item', bag: `Bag · +${ROOM_PER_BAG} slots` } as const;
 
@@ -140,11 +140,14 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
     toggleKey: 'KeyB',
     keyHints: false,
     modal: false,
+    wide: true,
     tabs: [
       {
         name: 'Bag',
-        // Each thing in its own slot, where the hero's put it; drag one onto
-        // another slot to move it there (swapping with what's there).
+        // Each thing in its own slot, in rows by what it is (bag.ts BAG_GROUPS:
+        // a titled header over each group carried, free slots at the bottom),
+        // where the hero's put it in its group; drag one onto another of its
+        // group's to swap them.
         slots: () => {
           const { hero } = model;
           const room = bagRoom(hero);
@@ -152,17 +155,28 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           // off), or an empty socket; then the bag's own slots.
           const top: Array<MenuSlot | null> = hero.bags.map((fitted, s) => (fitted ? socketSlot(model, s, fitted, SOCKET_ROW) : emptySocket()));
           const { layout, counts } = bagStacks(hero.bag, hero.bagOrder, hero.bagCounts, room); // (each stack its own count: junk twenty to a slot at most)
-          const cells = layout.map((item, i): MenuSlot | null => {
-            if (!item) return null;
+          const at: number[] = []; // (each cell after the sockets: the bag's slot it shows)
+          const sections: Array<{ title: string; from: number }> = [{ title: '', from: SOCKET_ROW }]; // (a line under the sockets)
+          for (const { group, title } of BAG_GROUPS) {
+            const mine = layout.flatMap((item, i) => (item && groupOf(item) === group ? [i] : []));
+            if (!mine.length) continue;
+            sections.push({ title, from: SOCKET_ROW + at.length });
+            at.push(...mine);
+          }
+          const cells = at.map((i): MenuSlot => {
+            const item = layout[i]!;
             const slot = slotFor(model, item, counts[i], seller, i);
-            // Onto another of the bag's slots: moved there; a bag onto a free socket (on top): fitted there.
+            // Onto another of its group's slots: swapped with it; a bag onto a free socket (on top): fitted there.
             slot.move = (to) => {
-              if (to >= SOCKET_ROW) moveSlot(hero, i, to - SOCKET_ROW, room);
-              else if (isBagItem(item)) fitBag(hero, item, to);
+              const other = at[to - SOCKET_ROW];
+              if (to >= SOCKET_ROW && other !== undefined && groupOf(layout[other]!) === groupOf(item)) moveSlot(hero, i, other, room);
+              else if (to < SOCKET_ROW && isBagItem(item)) fitBag(hero, item, to);
             };
             return slot;
           });
-          return { cells: [...top, ...cells], columns: COLUMNS, sections: [{ title: '', from: SOCKET_ROW }] }; // (the sockets the first row; a separator, then what's carried)
+          const free = Math.max(0, room - at.length);
+          if (free) sections.push({ title: '', from: SOCKET_ROW + at.length }); // (a line, then the free slots)
+          return { cells: [...top, ...cells, ...Array.from({ length: free }, () => null)], columns: COLUMNS, sections };
         },
         footer: () =>
           footer(model.hero.money, () => {
