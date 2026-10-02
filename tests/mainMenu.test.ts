@@ -248,6 +248,7 @@ describe('the character creation screen', () => {
     expect(option('Skin', 'Fair').style.getPropertyValue('--swatch')).toMatch(/^#[0-9a-f]{6}$/); // (its colour)
     expect(Array.from(trait('Skin')!.querySelectorAll<HTMLButtonElement>('.forge-option')).map((b) => b.title)).toEqual(['Pale', 'Fair', 'Light', 'Olive', 'Tanned', 'Bronze', 'Deep', 'Dark']); // (palest to darkest)
     expect(Array.from(trait('Hair colour')!.querySelectorAll<HTMLButtonElement>('.forge-option')).map((b) => b.title)).toEqual(['Platinum', 'Fair', 'Red', 'Auburn', 'Chestnut', 'Black', 'Grey', 'White']); // (light to dark, then grey and white)
+    expect(Array.from(trait('Clothes')!.querySelectorAll<HTMLButtonElement>('.forge-option')).map((b) => b.title)).toEqual(['Madder red', 'Woad blue', 'Weld green', 'Walnut', 'Charcoal', 'Turquoise', 'Saffron', 'Orchil']);
   });
 
   it("a woman: her hair styles, no beard; a man: his, and the beard to choose; a name to match, unless one's typed", () => {
