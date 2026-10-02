@@ -3,7 +3,7 @@
 // main.ts.) Styles in hud.css.
 
 import type { GroundLoot } from '../../model/loot/loot';
-import { nameOf, qualityOf } from '../../model/hero/bag';
+import { nameOf, qualityOf, type Quality } from '../../model/hero/bag';
 import type { Npc } from '../../model/npcs/npcs';
 
 
@@ -24,6 +24,10 @@ export interface LootPrompt {
   // Each frame: what E does (or null), and where on screen to put it.
   update(target: PromptTarget | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
 }
+
+// A thing's name in its quality's colour, where it's drawn over the world (what's picked up, floating up over the
+// hero: main.ts), as the tooltips' (menu.css) and the prompt's (hud.css).
+export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0' };
 
 // The prompt for loot on the ground: its name, in its quality's color.
 const STACK_GAP = 8; // px between prompts stacked one over another

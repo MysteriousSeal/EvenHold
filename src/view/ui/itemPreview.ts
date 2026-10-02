@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { VoxelModel } from './voxelIcon';
+import './itemPreview.css';
 
 const SIZE = 96; // CSS px a side
 const TURN_SECONDS = 4; // a full turn
@@ -53,11 +54,9 @@ export function createItemPreview(): ItemPreview {
     let mesh = meshes.get(key);
     if (!mesh) {
       const { grid, palette } = model();
-      const [sx, sy, sz] = grid.size;
-      const geometry = greedyMesh(grid, palette, 1, new THREE.Vector3(-sx / 2, -sy / 2, -sz / 2));
+      const geometry = greedyMesh(grid, palette, 1, new THREE.Vector3());
       geometry.computeBoundingBox();
-      const b = geometry.boundingBox!;
-      const centre = b.getCenter(new THREE.Vector3());
+      const centre = geometry.boundingBox!.getCenter(new THREE.Vector3());
       geometry.translate(-centre.x, -centre.y, -centre.z); // (turning round its own middle, not its grid's)
       geometry.computeBoundingSphere();
       mesh = { geometry, radius: geometry.boundingSphere!.radius };

@@ -263,63 +263,6 @@
 .menu-slot.dim .menu-slot-badge.pill.past { color: #f0ece4; }
 .menu-grid.rows .menu-slot:has(.menu-slot-badge.pill) .menu-slot-tag { margin-top: 26px; } /* the reward clear of the pill above it */
 
-/* A grid with the chosen slot told of beside it (a shop): the item large,
-   its name, its lines, and a button to act on it. */
-/* A window holding a grid and its panel is wider, so both fit whole. */
-.menu:has(.menu-split) { width: min(760px, 100%); }
-.menu-split { display: flex; gap: 14px; align-items: stretch; }
-.menu-split .menu-grid { flex: 1 1 auto; min-width: 0; align-content: start; } /* rows packed at the top, however tall the panel beside */
-.menu-detail {
-  /* A fixed size, so the window never changes with what's chosen. */
-  flex: 0 0 260px;
-  width: 260px;
-  min-height: 400px; /* room for the most it shows (sold out: a line more), so the window never grows */
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 12px 14px;
-  text-align: center;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--sand-light);
-  color: var(--ink);
-}
-/* What the panel shows fills it, top to bottom, so its button sits at the bottom. */
-.menu-detail > * { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.menu-detail-icon { display: flex; justify-content: center; }
-.menu-detail-name { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
-.menu-detail-about, .menu-detail-hint { color: var(--ink-soft); font-size: 14px; font-style: italic; line-height: 1.3; }
-.menu-detail-facts {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 10px;
-  margin: 4px 0 0;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  text-align: left;
-  font-size: 15px;
-}
-.menu-detail-facts dt { color: var(--ink-soft); }
-.menu-detail-facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
-.menu-detail-said { margin-top: auto; min-height: 1.2em; font-size: 13px; color: var(--clay-dark); }
-.menu-detail-button {
-  width: 100%;
-  padding: 8px 10px;
-  font: inherit;
-  font-weight: 700;
-  color: var(--sand-light);
-  background: var(--clay);
-  border: 1px solid var(--clay-dark);
-  border-radius: 0;
-  box-shadow: inset 0 -3px 0 var(--clay-dark);
-  cursor: pointer;
-}
-.menu-detail-button:hover:not(:disabled):not(.unavailable) { background: var(--ember); }
-.menu-detail-button:disabled, .menu-detail-button.unavailable { opacity: 0.5; cursor: not-allowed; }
-
 /* A price along a slot's bottom (a shop's): a dark band, light figures and the coin. */
 .menu-slot-tag {
   position: absolute;
@@ -394,11 +337,6 @@
 .menu-button.teal:not(:disabled) { color: #fff; background: var(--lake); text-shadow: 1px 1px 0 var(--ink); }
 .menu-button.teal:hover:not(:disabled) { background: #5ad0cb; }
 
-/* The bag's: the button tidying it on the left, the coins on the right. */
-.menu-purse.bag-footer { justify-content: space-between; }
-.bag-coins { display: inline-flex; align-items: center; gap: 4px; }
-.bag-sort { padding: 3px 10px; font-size: 13px; } /* (a .menu-button) */
-.bag-sort::after { inset: -6px -8px -8px; }
 .menu-purse .coin:last-child { margin-right: 0; }
 .menu-slot {
   position: relative;
@@ -460,23 +398,11 @@
   padding: 8px 12px;
 }
 .menu-tooltip[hidden] { display: none; }
-/* A bag thing's turning preview, just above its tooltip (itemPreview.ts): a cream-edged dark window, a soft lit pool under it. */
-.item-preview {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 30;
-  pointer-events: none;
-  background: radial-gradient(ellipse 60% 22% at 50% 78%, rgba(255, 220, 160, 0.22), transparent 70%), rgba(38, 26, 17, 0.94);
-  border: 2px solid #efdcb8;
-  box-shadow: 4px 4px 0 rgba(24, 12, 4, 0.35);
-}
-.item-preview[hidden] { display: none; }
-.item-preview canvas { display: block; }
 .menu-tooltip b { font-size: 17px; font-weight: 600; color: #f8ecd4; }
 .menu-tooltip b[data-tone='junk'] { color: #b4b0a8; }
 .menu-tooltip b[data-tone='ingredient'] { color: #e8a080; }
 .menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
+.menu-tooltip b[data-tone='bag'] { color: #9ad0a0; }
 .menu-tooltip small { font-size: 13px; color: #d6bb8e; }
 
 /* A slot being dragged: its icon under the pointer. */
@@ -498,14 +424,6 @@
   padding: 150px 16px 16px; /* the left side, under the hero's HUD */
 }
 .menu-backdrop.place-left .menu { width: min(420px, 100%); }
-/* The bag: rows of eight smaller slots (48px: eight across, the panel no wider than before), its groups' headers
-   tight over them, so it stays short; and never taller than the room above the toolbar (its body scrolls). */
-.menu.wide { width: min(456px, 100%); }
-.menu.wide .menu-slot { min-width: 48px; }
-.menu.wide .menu-slot canvas { transform: scale(0.82); } /* (the things in it a little smaller in their slots) */
-.menu.wide .menu-grid { gap: 5px; }
-.menu.wide .menu-section { margin-top: 4px; padding-bottom: 1px; font-size: 11px; }
-.menu.wide .menu-section:empty { margin: 3px 0; border-bottom-width: 2px; }
 .menu-backdrop.place-bottom-right .menu { max-height: calc(100vh - 100px); } /* (the corner's padding: 16px above, 84px below) */
 .menu-backdrop.modeless .menu { pointer-events: auto; }
 
@@ -530,14 +448,6 @@
   box-shadow: inset 0 -6px 0 var(--sand-dark);
 }
 .menu-doll + .menu-ledger { margin-top: 14px; padding: 12px 10px 4px; border-top: 2px dashed var(--line); }
-/* The hero sheet's facts, in two columns down (the hero, then their stats), so it fits under the HUD. */
-.menu-doll + .menu-ledger { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(7, auto); grid-auto-flow: column; gap: 6px 22px; padding-top: 10px; }
-.menu-doll + .menu-ledger .menu-fact dt { font-size: 11px; }
-.menu-doll + .menu-ledger .menu-fact dd { font-size: 14px; white-space: nowrap; }
-/* Points to spend, under the hero sheet's facts: a button to the level-up window. */
-.sheet-points:empty { display: none; }
-.sheet-points { display: flex; justify-content: center; margin-top: 10px; }
-.sheet-spend { padding: 6px 16px; font-weight: 700; } /* (a teal .menu-button) */
 /* A menu on the left, under the HUD: never past the bottom of the screen (it scrolls, if it must). */
 .menu-backdrop.place-left .menu { max-height: calc(100vh - 166px); }
 /* Empty doll slots show their silhouette at full strength. */
@@ -548,8 +458,3 @@
 .menu-slot.drop-hint { border-color: var(--lantern); box-shadow: 0 0 0 3px rgba(255, 217, 138, 0.7), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-ok { border-color: #3f9a4a; box-shadow: 0 0 0 3px rgba(63, 154, 74, 0.55), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-bad { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.5), inset 0 -4px 0 var(--sand-dark); }
-
-/* The dev cheat menu (controller/cheats): wide, its rows in two columns so
-   a tab of many doesn't scroll; facts (the World tab) stay one list. */
-.menu[aria-label='Cheats'] { width: min(640px, 100%); }
-.menu[aria-label='Cheats'] .menu-list:has(> .menu-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; align-content: start; }

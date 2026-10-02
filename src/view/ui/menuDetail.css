@@ -1,0 +1,56 @@
+/* A grid with the chosen slot told of beside it (a shop): the item large,
+   its name, its lines, and a button to act on it. */
+/* A window holding a grid and its panel is wider, so both fit whole. */
+.menu:has(.menu-split) { width: min(760px, 100%); }
+.menu-split { display: flex; gap: 14px; align-items: stretch; }
+.menu-split .menu-grid { flex: 1 1 auto; min-width: 0; align-content: start; } /* rows packed at the top, however tall the panel beside */
+.menu-detail {
+  /* A fixed size, so the window never changes with what's chosen. */
+  flex: 0 0 260px;
+  width: 260px;
+  min-height: 400px; /* room for the most it shows (sold out: a line more), so the window never grows */
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 12px 14px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--sand-light);
+  color: var(--ink);
+}
+/* What the panel shows fills it, top to bottom, so its button sits at the bottom. */
+.menu-detail > * { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.menu-detail-icon { display: flex; justify-content: center; }
+.menu-detail-name { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.menu-detail-about, .menu-detail-hint { color: var(--ink-soft); font-size: 14px; font-style: italic; line-height: 1.3; }
+.menu-detail-facts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  margin: 4px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  font-size: 15px;
+}
+.menu-detail-facts dt { color: var(--ink-soft); }
+.menu-detail-facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.menu-detail-said { margin-top: auto; min-height: 1.2em; font-size: 13px; color: var(--clay-dark); }
+.menu-detail-button {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--sand-light);
+  background: var(--clay);
+  border: 1px solid var(--clay-dark);
+  border-radius: 0;
+  box-shadow: inset 0 -3px 0 var(--clay-dark);
+  cursor: pointer;
+}
+.menu-detail-button:hover:not(:disabled):not(.unavailable) { background: var(--ember); }
+.menu-detail-button:disabled, .menu-detail-button.unavailable { opacity: 0.5; cursor: not-allowed; }

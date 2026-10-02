@@ -91,7 +91,6 @@ export interface MenuOptions {
   // around it, and only Escape and its toggle key reach the menu.
   modal?: boolean;
   place?: 'center' | 'left' | 'bottom-right'; // where a modeless menu sits (default: bottom right)
-  wide?: boolean; // a wider panel (the bag: its rows of eight)
   onOpenChange?(open: boolean): void;
 }
 

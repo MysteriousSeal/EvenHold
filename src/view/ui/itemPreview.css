@@ -1,0 +1,14 @@
+/* A thing's turning preview, just above its tooltip (itemPreview.ts): a
+   cream-edged dark window, as the tooltip's, a soft lit pool under it. */
+.item-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 22% at 50% 78%, rgba(255, 220, 160, 0.22), transparent 70%), rgba(38, 26, 17, 0.94);
+  border: 2px solid #efdcb8;
+  box-shadow: 4px 4px 0 rgba(24, 12, 4, 0.35);
+}
+.item-preview[hidden] { display: none; }
+.item-preview canvas { display: block; }

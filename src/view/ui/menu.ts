@@ -8,6 +8,7 @@
 
 import { createItemPreview, type ItemPreview } from './itemPreview';
 import './menu.css';
+import './menuDetail.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
 import type { DollSlot, Menu, MenuOptions, MenuSlot, MenuSlots } from './menuTypes';
@@ -26,7 +27,7 @@ export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
   const backdrop = el('div', modal ? 'menu-backdrop' : `menu-backdrop modeless place-${options.place ?? 'bottom-right'}`);
   backdrop.hidden = true;
-  const menu = el('div', options.wide ? 'menu wide' : 'menu');
+  const menu = el('div', 'menu');
   menu.setAttribute('role', 'dialog');
   menu.setAttribute('aria-label', options.title);
   const header = el('div', 'menu-header');

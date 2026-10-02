@@ -3,8 +3,7 @@
 
 import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
 import type { LootId } from '../../model/loot/loot';
-import { LOOT } from '../../model/loot/loot';
-import type { BagItem } from '../../model/hero/bag';
+import { isLootItem, type BagItem } from '../../model/hero/bag';
 import { humanBust, humanFigure } from '../meshes/human/humanFigure';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
@@ -26,7 +25,7 @@ export const lootIcon = (item: LootId): MenuIcon => (size) => voxelIcon(`loot:${
 
 // A thing in the bag, for its turning preview (itemPreview.ts): its key and model, as its icon's.
 export const bagItemPreview = (item: BagItem): { key: string; model: () => VoxelModel } =>
-  isLoot(item) ? { key: `loot:${item}`, model: lootModel(item) } : { key: `item:${item}`, model: gearModel(item) };
+  isLootItem(item) ? { key: `loot:${item}`, model: lootModel(item) } : { key: `item:${item}`, model: gearModel(item) };
 
 // What an empty slot shows: a small voxel model of what goes there (a
 // helmet, a gauntlet, a boot...), made just for that, rendered like every
@@ -136,9 +135,8 @@ const GHOSTS: Record<EquipSlot, () => VoxelGrid> = {
 export const slotPlaceholder = (slot: EquipSlot): MenuIcon => (size) =>
   voxelIcon(`ghost:${slot}`, () => ({ grid: GHOSTS[slot](), palette: [GHOST], alpha: 0.5 }), size);
 
-export const isLoot = (item: BagItem): item is LootId => item in LOOT;
 
-export const bagIcon = (item: BagItem): MenuIcon => (isLoot(item) ? lootIcon(item) : gearIcon(item as ItemId));
+export const bagIcon = (item: BagItem): MenuIcon => (isLootItem(item) ? lootIcon(item) : gearIcon(item as ItemId));
 
 // The toolbar's icons: the hero's head and shoulders, a pouch for the bag,
 // a book for the journal, an hourglass for the pause menu.
