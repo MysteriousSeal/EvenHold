@@ -2,6 +2,7 @@
 import { cellKey, flood } from '../../src/model/map/grid';
 import { isFloor, type CryptPlan } from '../../src/model/crypts/cryptLayout';
 import type { CryptProp } from '../../src/model/crypts/cryptProps';
+import type { FloorPlan } from '../../src/model/dungeons/floorPlan';
 
 // The tiles solid props stand on.
 export function solidTiles(props: readonly CryptProp[]): Set<string> {
@@ -10,8 +11,8 @@ export function solidTiles(props: readonly CryptProp[]): Set<string> {
   return solid;
 }
 
-// The floor reached from the foot of the stairs, round `solid` tiles.
-export const floorReached = (plan: CryptPlan, solid: ReadonlySet<string> = new Set()): Set<string> =>
+// The floor reached from the foot of the stairs (any dungeon's: a crypt's, a cave's), round `solid` tiles.
+export const floorReached = (plan: FloorPlan, solid: ReadonlySet<string> = new Set()): Set<string> =>
   flood([[plan.door, plan.depth - 1]], (x, z) => isFloor(plan, x, z) && !solid.has(cellKey(x, z)));
 
 // How many tiles of rock are joined to the rock round the crypt (all of it, if no island stands alone).

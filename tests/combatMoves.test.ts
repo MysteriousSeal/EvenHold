@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BREATH, COST, RIPOSTE_FACTOR, ROLL_REACH, ROLL_SAFE, ROLL_TIME, STAGGER, TIRED_BREATH, guardOf } from '../src/model/hero/combatMoves';
-import { cryptHooks, heroStruck, landBlow } from '../src/model/hero/fighting';
+import { dungeonHooks, heroStruck, landBlow } from '../src/model/hero/fighting';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { TIRED } from '../src/model/hero/heroStats';
 import { KeyboardInput } from '../src/controller/KeyboardInput';
@@ -90,7 +90,7 @@ describe('the roll', () => {
     const chilled = (rolling: boolean) => {
       const model = fresh();
       if (rolling) model.roll(1, 0);
-      cryptHooks(model).frost(makeEnemy(905, 'draugr', model.hero.x, model.hero.z + 1));
+      dungeonHooks(model).frost(makeEnemy(905, 'draugr', model.hero.x, model.hero.z + 1));
       return (model.hero.blessings ?? []).some((b) => b.kind === 'chilled');
     };
     expect(chilled(true)).toBe(false);

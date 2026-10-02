@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { goesUnder } from '../src/model/dungeons/dungeonTypes';
 import { GameModel } from '../src/model/GameModel';
 import { furnish } from '../src/model/interiors/furnish';
 import { roomFor, type BuildingType, type Entrance, type Room } from '../src/model/interiors/interiors';
@@ -10,7 +11,7 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 // Every building's room across the test worlds, furnished.
 const rooms: Array<{ seed: number; entrance: Entrance; room: Room; furniture: Furniture[] }> = TEST_SEEDS.flatMap((seed) => {
   const model = new GameModel(seed, TEST_MAP_SIZE);
-  return model.entrances.filter((e) => e.type !== 'crypt').map((entrance) => { // (buildings: a crypt's its own, crypt.test.ts)
+  return model.entrances.filter((e) => !goesUnder(e)).map((entrance) => { // (buildings: a dungeon's its own, crypt.test.ts, caveLayout.test.ts)
     const room = roomFor(seed, entrance);
     return { seed, entrance, room, furniture: furnish(seed, entrance, room) };
   });
