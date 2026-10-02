@@ -126,6 +126,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     pigtails: 'Pigtails',
     bob: 'Bob',
     topknot: 'Topknot',
+    shaggy: 'Shaggy',
+    warriorTail: 'Warrior tail',
   };
   const toggle = (get: () => boolean, set: (on: boolean) => void, on: string, off: string): Pick<MenuAction, 'run' | 'isOn'> => ({
     isOn: get,
