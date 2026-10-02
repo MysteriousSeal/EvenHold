@@ -81,7 +81,7 @@ export class TravellerFights {
 
   // No foe left: back to where they left the road, and on along it.
   private backToRoad(guard: Traveller, dt: number): void {
-    const at = onRoadSide(this.roads[guard.road], guard.along, guard.way);
+    const at = onRoadSide(this.roads[guard.road], guard.along, guard.way, guard.lane);
     const [dx, dz] = [at.x - guard.x, at.z - guard.z];
     const d = Math.hypot(dx, dz);
     if (d < 0.1) return void (guard.off = null);

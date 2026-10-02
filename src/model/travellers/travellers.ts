@@ -3,7 +3,7 @@
 // say, and guards walking their beat two by two. One or two parties to a
 // road, set out from the seed, walking on and on: at a village, on along
 // another of its roads (back the way they came, if it has no other). The
-// hero close by, they stop for a word, turned to them; kept to their side of
+// hero walking up to them, they walk on; spoken to (E), they stand a moment, turned to them (a pedlar, while trading); kept to their side of
 // the road, giving way to one another.
 //
 // Foes leave them be; the guards go for the foes they meet (travellerFights.ts).
@@ -40,17 +40,20 @@ export interface Traveller extends Humanoid {
   off: { x: number; z: number } | null; // off the road (a guard after a foe), else on it
   leader: number | null; // a guard following another (their partner, by id), a pace behind
   waited: number; // seconds waited on someone in their way
+  lane: number; // where across the road they walk (KEEP a lane, from the middle): 1 their right (as ever), -1 the far side, LANES' others to walk round someone
 }
 
 export const WALK = 0.9; // tiles a second along the road
-export const STOP_FOR_HERO = 1.6; // tiles: the hero this close, they stop for a word
+export const WORD_HOLD = 4; // seconds a traveller stands, spoken to (a pedlar trading: as long as the window's open)
 const TURN = 6; // radians a second they turn
 const FOLLOW = 1.2; // tiles a guard follows their partner by
 const KEEP = 0.22; // tiles to the side of the road's middle they keep to (their right)
-const ROOM = 0.42; // tiles: no nearer someone else than this, walking (they wait, rather than walk into them)
+const ROOM = 0.32; // tiles: no nearer someone else than this (two of them side by side, not into each other)
 const SEEN = 40; // tiles from the hero they keep clear of each other (past it, no one's there to see)
-const GIVE_WAY = 1.5; // seconds waited on someone in the way before squeezing past
+const SWAP = 3; // lanes a second they ease across the road, round someone and back
+const LANES = [1, -1, 2.4, -2.4]; // where they'll walk to get round someone: their own side, the far side, the verges
 const GUARD_DAMAGE = 3;
+const SAVE_VERSION = 2; // how they're kept in the save: one older, they're set out afresh (the processions of old saves gone)
 export const PEDLAR_KEY = 1_000_000; // a pedlar's shop's key among the shops (theirs, by id, past every door's)
 
 // Where `along` puts a walker on a road: between its tiles, and which way that faces.
@@ -65,11 +68,11 @@ export function onRoad(road: Road, along: number): { x: number; z: number; facin
 }
 
 // Where a walker going `way` along a road is: on its right-hand side of the middle (KEEP), so those going the other
-// way pass them by.
-export function onRoadSide(road: Road, along: number, way: 1 | -1): { x: number; z: number; facing: number } {
+// way pass them by; `lane` -1 on the far side (overtaking), between the two easing across.
+export function onRoadSide(road: Road, along: number, way: 1 | -1, lane = 1): { x: number; z: number; facing: number } {
   const at = onRoad(road, along);
   const heading = way > 0 ? at.facing : at.facing + Math.PI;
-  return { x: at.x - Math.cos(heading) * KEEP, z: at.z + Math.sin(heading) * KEEP, facing: heading };
+  return { x: at.x - Math.cos(heading) * KEEP * lane, z: at.z + Math.sin(heading) * KEEP * lane, facing: heading };
 }
 
 // The roads from each village, by index (a village's roads, each with which of its ends is the village's).
@@ -127,6 +130,7 @@ export function makeTraveller(id: number, role: TravellerRole, road: number, alo
     off: null,
     leader,
     waited: 0,
+    lane: 1,
   };
 }
 
@@ -153,20 +157,26 @@ export class Travellers {
   }
 
   // Where everyone is, for the save: each on their road (how far along, which way), their partner, their level.
-  save(): { on: Array<[number, TravellerRole, number, number, 1 | -1, number | null, number]> } {
-    return { on: this.list.map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.leader, t.level]) };
+  save(): { v: number; on: Array<[number, TravellerRole, number, number, 1 | -1, number | null, number]> } {
+    return { v: SAVE_VERSION, on: this.list.map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.leader, t.level]) };
   }
 
   // Everyone back where the save had them (what doesn't fit this world's roads, left as the seed has it).
   load(saved: ReturnType<Travellers['save']>): void {
     const roles: readonly string[] = ['pedlar', 'pilgrim', 'guard'];
-    const on = (Array.isArray(saved?.on) ? saved.on : []).filter(
-      ([id, role, road, along, way, leader]) =>
-        Number.isInteger(id) && roles.includes(role) && this.roads[road] !== undefined && Number.isFinite(along) && (way === 1 || way === -1) && (leader === null || Number.isInteger(leader)),
+    // (A save from before this one's way of keeping them: those were read as all following one another, and saved
+    // bunched in a line. Not kept: they set out spread over the roads again, as the seed has them.)
+    if (saved?.v !== SAVE_VERSION) return;
+    const entries = saved.on;
+    const on = entries.filter(
+      (e) => Array.isArray(e) && Number.isInteger(e[0]) && roles.includes(e[1]) && this.roads[e[2]] !== undefined && Number.isFinite(e[3]) && (e[4] === 1 || e[4] === -1),
     );
     if (on.length === 0) return;
+    // A partner only a guard's, following a guard who leads (anything else: on their own).
+    const leads = new Set(on.filter(([, role, , , , leader]) => role === 'guard' && leader === null).map(([id]) => id));
     this.list.splice(0, this.list.length, ...on.map(([id, role, road, along, way, leader, level]) => {
-      const t = makeTraveller(id, role, road, along, way, this.roads, this.seed, this.spawn, leader, Number.isInteger(level) && level > 0 ? level : undefined);
+      const partner = role === 'guard' && leader !== id && leads.has(leader as number) ? leader : null;
+      const t = makeTraveller(id, role, road, along, way, this.roads, this.seed, this.spawn, partner, Number.isInteger(level) && level > 0 ? level : undefined);
       t.y = this.groundY(t.x, t.z);
       return t;
     }));
@@ -175,16 +185,25 @@ export class Travellers {
   // Each frame the hero's out in the world (`enemies`: the world's foes, for the guards to go for).
   update(dt: number, enemies: readonly Enemy[] = []): void {
     this.fights.update(dt, enemies);
+    this.heldFor = Math.max(0, this.heldFor - dt);
+    const held = this.heldFor > 0 ? this.held : null; // (the one talking with the hero: the rest walk on by)
     for (const t of this.list) {
       t.cooldown = Math.max(0, t.cooldown - dt);
       if (t.off) continue; // (a guard after a foe: travellerFights.ts walks them)
-      const toHero = Math.hypot(this.hero.x - t.x, this.hero.z - t.z);
-      if (toHero < STOP_FOR_HERO) {
+      if (t === held || (held && t.leader === held.id)) {
         t.facing = turnToward(t.facing, Math.atan2(this.hero.x - t.x, this.hero.z - t.z), dt);
         continue;
       }
       this.walk(t, dt);
     }
+  }
+
+  // The traveller the hero's talking (or trading) with: stood still `seconds` more, turned to them (their partner
+  // with them). Held again each frame while trading; a word, a few seconds.
+  private held: Traveller | null = null;
+  private heldFor = 0;
+  hold(t: Traveller, seconds: number): void {
+    [this.held, this.heldFor] = [t, Math.max(seconds, this.held === t ? this.heldFor : 0)];
   }
 
   // Along the road (a guard following their partner, a pace behind them), on at its end.
@@ -195,28 +214,51 @@ export class Travellers {
       t.along = Math.max(0, Math.min(this.roads[t.road].route.length - 1, leader.along - leader.way * FOLLOW));
     } else {
       if (leader === null && t.leader !== null) t.leader = null; // (their partner gone: on alone)
-      const next = onRoadSide(this.roads[t.road], t.along + t.way * WALK * dt, t.way);
-      const seen = Math.abs(t.x - this.hero.x) < SEEN && Math.abs(t.z - this.hero.z) < SEEN; // (only where it shows: the roads are long)
-      if (seen && this.inTheWay(t, next) && t.waited < GIVE_WAY) return void (t.waited += dt); // (someone just ahead: waiting on them, a while)
-      t.waited = 0;
+      if (!this.makeWay(t, dt)) return; // (both sides blocked: waiting, a while)
       t.along += t.way * WALK * dt;
       const end = this.roads[t.road].route.length - 1;
       if (t.along <= 0 || t.along >= end) this.onward(t);
     }
-    const at = onRoadSide(this.roads[t.road], t.along, t.way);
+    const at = onRoadSide(this.roads[t.road], t.along, t.way, t.lane);
     [t.x, t.z] = [at.x, at.z];
     t.y = this.groundY(t.x, t.z);
     t.facing = turnToward(t.facing, at.facing, dt);
   }
 
-  // Whether stepping to `to` would walk `t` into someone (nearer than ROOM, and nearer than they are now): not their
-  // partner (a guard following, a pace behind).
-  private inTheWay(t: Traveller, to: { x: number; z: number }): boolean {
+  // Their way on, never into anyone (near the hero, where it shows: the roads are long): the step ahead clear on their
+  // line, on; else easing over to a line that's clear (the far side, a verge) to walk round them, and back to their
+  // own side once by; none clear, waiting. Whether they go on this frame.
+  private makeWay(t: Traveller, dt: number): boolean {
+    const seen = Math.abs(t.x - this.hero.x) < SEEN && Math.abs(t.z - this.hero.z) < SEEN;
+    const ease = (to: number) => (t.lane += Math.sign(to - t.lane) * Math.min(Math.abs(to - t.lane), SWAP * dt));
+    if (!seen) return (ease(1), true);
+    const at = (along: number, lane: number) => onRoadSide(this.roads[t.road], along, t.way, lane);
+    const clear = (along: number, lane: number) => !this.inTheWay(t, at(along, lane));
+    const into = (along: number, lane: number) => this.inTheWay(t, at(along, lane), t); // (nearer anyone it's in: stepping apart always allowed)
+    const step = t.along + t.way * WALK * dt;
+    const ahead = t.along + t.way * Math.max(WALK * dt, ROOM); // (a body's length on: room to walk into)
+    const line = LANES.find((lane) => clear(ahead, lane) && clear(t.along, lane)) ?? null; // (their own side first)
+    if (line !== null && line !== t.lane) {
+      const before = t.lane;
+      ease(line);
+      if (into(t.along, t.lane)) t.lane = before; // (not sideways into anyone either)
+    }
+    if (into(step, t.lane)) {
+      t.waited += dt;
+      return false; // (someone in the way: not into them)
+    }
+    t.waited = 0;
+    return true;
+  }
+
+  // Whether `t` at `to` would be in someone (nearer than ROOM): not their partner (a guard following, a pace behind).
+  // `from`: where they are, a move from there into someone only if it brings them nearer (stepping apart, never held).
+  private inTheWay(t: Traveller, to: { x: number; z: number }, from?: { x: number; z: number }): boolean {
     return this.list.some((o) => {
       if (o === t || o.leader === t.id || t.leader === o.id) return false;
       if (Math.abs(o.x - to.x) > ROOM || Math.abs(o.z - to.z) > ROOM) return false;
-      const after = Math.hypot(o.x - to.x, o.z - to.z);
-      return after < ROOM && after < Math.hypot(o.x - t.x, o.z - t.z);
+      const d = Math.hypot(o.x - to.x, o.z - to.z);
+      return d < ROOM && (!from || d < Math.hypot(o.x - from.x, o.z - from.z));
     });
   }
 
