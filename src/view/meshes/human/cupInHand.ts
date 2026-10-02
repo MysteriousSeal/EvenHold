@@ -1,10 +1,15 @@
 // The cup in a humanoid's right hand (humanRig.ts): carried out before them
 // (the barmaid bringing a drink, or clearing one away), or drunk from at the
 // bar, sip after sip (a tankard, a glass of wine; or a pie, eaten bite by
-// bite), the arm up to the lips and down to rest on the bar, until it's gone.
+// bite), the arm up to the lips and down to rest on the bar, until it's gone;
+// or whatever food or drink the hero has out of their bag, sat on the ground.
 
 import * as THREE from 'three';
 import type { Drink } from '../../../model/npcs/npcs';
+import type { ProvisionId } from '../../../model/loot/provisions';
+
+// What's in hand: a drink asked for at the bar, or any food or drink from the bag.
+export type InHand = Drink | ProvisionId;
 import { greedyMesh } from '../voxel/greedyMesh';
 import { PROVISION_MODELS, WINE_GLASS_MODEL } from '../loot/provisionVoxels';
 import { HUMAN_VOXEL_SIZE } from './bodyVoxels';
@@ -19,7 +24,7 @@ const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand
 
 export class CupInHand {
   private tankard: THREE.Mesh | null = null; // the cup in hand, while drinking or carrying one
-  private cups: Partial<Record<Drink, THREE.BufferGeometry>> = {}; // its shapes, made as needed
+  private cups: Partial<Record<InHand, THREE.BufferGeometry>> = {}; // its shapes, made as needed
   private drinkFor = 0; // seconds of drinking left
   private drinkTotal = 1; // and in all
   private holding = false; // carrying it (not drinking)
@@ -33,7 +38,7 @@ export class CupInHand {
 
   // Carries a cup (the barmaid bringing a drink, or clearing it away), held
   // out a little: `cup` a tankard ('ale'), a glass ('wine') or a pie ('pie'); false, puts it away.
-  hold(cup: false | Drink): void {
+  hold(cup: false | InHand): void {
     if (!!cup === this.holding && (!cup || this.showing === cup)) return;
     this.holding = !!cup;
     if (cup) this.showTankard(cup);
@@ -41,14 +46,14 @@ export class CupInHand {
   }
 
   // Drinks a tankard over `seconds` (an ale at the bar): sip after sip; or eats `what` (a pie), bite after bite.
-  drink(seconds: number, what: Drink = 'ale'): void {
+  drink(seconds: number, what: InHand = 'ale'): void {
     this.showTankard(what);
     this.drinkFor = this.drinkTotal = seconds;
   }
 
   // Drinking as the model says (a villager at the bar): sipping while
   // `drinking` lasts, the tankard put away once it doesn't.
-  sipping(drinking: { left: number; seconds: number; drink?: Drink } | null): void {
+  sipping(drinking: { left: number; seconds: number; drink?: InHand } | null): void {
     if (!drinking) {
       if (this.drinkFor > 0) this.stopDrinking();
       return;
@@ -63,10 +68,10 @@ export class CupInHand {
     if (this.tankard && !this.holding) this.tankard.visible = false;
   }
 
-  private showing: Drink = 'ale'; // the cup in hand
-  private showTankard(drink: Drink = 'ale'): void {
+  private showing: InHand = 'ale'; // the cup in hand
+  private showTankard(drink: InHand = 'ale'): void {
     if (!this.cups[drink]) {
-      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : PROVISION_MODELS.ale;
+      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : PROVISION_MODELS[drink]; // (wine in a glass)
       const grid = model.build();
       const size = V * TANKARD_SCALE;
       this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));

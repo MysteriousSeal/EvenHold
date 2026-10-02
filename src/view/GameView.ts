@@ -2,6 +2,7 @@
 // handling. Mesh construction is delegated to meshes/; this class wires
 // them together and drives the per-frame render.
 
+import { isProvision } from '../model/loot/provisions';
 import { mugsAt } from '../model/inn/barMugs';
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
@@ -81,6 +82,7 @@ export class GameView {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.OrthographicCamera;
   private hero: HumanRig; // dressed from the model's equipment every frame (rebuilt if their look changes)
+  private eaten = false; // the hero eating from their bag, last frame
   private readonly heroLook = personMaterial();
   // A red glow while the hero's just been hit, like the enemies' flash.
   private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
@@ -284,7 +286,13 @@ export class GameView {
     const seated = model.seated?.seat;
     this.hero.sheathe(armsSheathed(model.inside)); // (in an inn, weapons put away)
     this.hero.combat(model.moves.rollProgress, model.moves.guard !== null); // (a roll, the guard up)
-    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : 'stand');
+    // Eating from the bag, sat down: their weapons out of sight, what's eaten in hand, to the mouth now and then.
+    const meal = hero.eating;
+    this.hero.hideHeld(!!meal);
+    if (meal?.item && isProvision(meal.item)) this.hero.sipping({ left: meal.left, seconds: meal.seconds, drink: meal.item });
+    else if (this.eaten) this.hero.stopDrinking();
+    this.eaten = !!meal;
+    this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
     if (yard) {

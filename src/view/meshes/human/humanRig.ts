@@ -23,7 +23,7 @@ import { ITEM_MODELS } from './gear/itemModels';
 import { SHADE, bodyGeometry, hairGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
 import { CupInHand } from './cupInHand';
 import { stowedAt } from './sheathe';
-import type { Drink } from '../../../model/npcs/npcs';
+import type { InHand } from './cupInHand';
 
 const V = HUMAN_VOXEL_SIZE;
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
@@ -165,6 +165,11 @@ export class HumanRig {
     }
   }
 
+  // What's held out of sight (the hands busy: eating from the bag), or back.
+  hideHeld(on: boolean): void {
+    for (const [slot, { meshes }] of this.worn) if (isHeldSlot(slot)) for (const mesh of meshes) mesh.visible = !on;
+  }
+
   // Weapons put away (sheathe.ts: at the hip, across the back), or back in hand.
   sheathe(on: boolean): void {
     if (on === this.sheathed) return;
@@ -273,15 +278,15 @@ export class HumanRig {
   }
 
   // The cup in hand (cupInHand.ts): carrying one, drinking (or eating) at the bar.
-  hold(cup: false | Drink): void {
+  hold(cup: false | InHand): void {
     this.cup.hold(cup);
   }
 
-  drink(seconds: number, what: Drink = 'ale'): void {
+  drink(seconds: number, what: InHand = 'ale'): void {
     this.cup.drink(seconds, what);
   }
 
-  sipping(drinking: { left: number; seconds: number; drink?: Drink } | null): void {
+  sipping(drinking: { left: number; seconds: number; drink?: InHand } | null): void {
     this.cup.sipping(drinking);
   }
 

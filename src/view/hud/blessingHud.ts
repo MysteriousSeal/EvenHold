@@ -2,11 +2,15 @@
 // (hero/blessing.ts), in the top right corner (styles in hud.css), a card
 // each: its icon on sand like the hero's portrait, the time left in a
 // green pill on its corner (as the level gem sits on the portrait's); its
-// name and what it does on hover.
+// name and what it does on hover. First of them while the hero eats or
+// drinks from the bag (sat down: hero/bag.ts eatOrDrink), a card of the
+// meal: what's eaten, the time left, what it gives and what stops it.
 
 import { BLESSINGS, isBane, type BlessingKind } from '../../model/hero/blessing';
 import type { Hero } from '../../model/types';
-import { gearIcon } from '../ui/itemIcons';
+import { gearIcon, lootIcon } from '../ui/itemIcons';
+import { LOOT } from '../../model/loot/loot';
+import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { voxelIcon } from '../ui/voxelIcon';
 import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel, snowflakeModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
@@ -63,7 +67,39 @@ export function createBlessingHud(hero: Hero): () => void {
     return { root, left, time: '' };
   };
 
+  // The meal's card: made for each meal (its icon, its words), the time left kept up.
+  let meal: (Card & { of: object }) | null = null;
+  const showMeal = () => {
+    const eating = hero.eating;
+    if (meal && meal.of !== eating) [meal.root.remove(), (meal = null)];
+    if (!eating?.item || !isProvision(eating.item)) return;
+    if (!meal) {
+      const { item } = eating;
+      const drink = !!PROVISIONS[item].drink;
+      const root = document.createElement('div');
+      root.className = 'blessing-card blessing-meal';
+      const tile = document.createElement('div');
+      tile.className = 'blessing-hud-icon';
+      tile.append(lootIcon(item)(36));
+      const left = document.createElement('span');
+      left.className = 'blessing-hud-time';
+      const tip = document.createElement('div');
+      tip.className = 'blessing-tip';
+      const name = document.createElement('b');
+      name.textContent = drink ? 'Drinking' : 'Eating';
+      const about = document.createElement('span');
+      about.textContent = `${LOOT[item].name}: ${givesText(item).toLowerCase()}. Moving, fighting or a blow stops it.`;
+      tip.append(name, about);
+      root.append(tile, left, tip);
+      meal = { root, left, time: '', of: eating };
+      row.prepend(root);
+    }
+    const now = clock(eating.left);
+    if (now !== meal.time) meal.left.textContent = meal.time = now;
+  };
+
   return () => {
+    showMeal();
     const blessings = hero.blessings ?? [];
     for (const [kind, c] of cards) {
       if (blessings.some((b) => b.kind === kind)) continue;
@@ -73,7 +109,8 @@ export function createBlessingHud(hero: Hero): () => void {
     for (const [i, b] of blessings.entries()) {
       let c = cards.get(b.kind);
       if (!c) cards.set(b.kind, (c = card(b.kind)));
-      if (row.children[i] !== c.root) row.insertBefore(c.root, row.children[i] ?? null);
+      const at = i + (meal ? 1 : 0); // (after the meal's card)
+      if (row.children[at] !== c.root) row.insertBefore(c.root, row.children[at] ?? null);
       const now = clock(b.left);
       if (now !== c.time) c.left.textContent = c.time = now;
     }
