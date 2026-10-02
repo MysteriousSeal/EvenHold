@@ -4,7 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { generateWorld } from '../src/model/worldgen/world';
-import type { Scenery, SceneryKind } from '../src/model/scenery/scenery';
+import { sceneryTiles, type Scenery, type SceneryKind } from '../src/model/scenery/scenery';
+import { inTurn, nextTurn } from '../src/model/npcs/speech';
 import { buildScenery, sceneryGrid } from '../src/view/meshes/scenery/sceneryVoxels';
 import { BLOOM_GRID, BLOOM_KINDS, BLOOM_SHAPES, buildBloom } from '../src/view/meshes/cover/bloomVoxels';
 import { createCoverScatter } from '../src/view/meshes/cover/groundCoverScatter';
@@ -225,5 +226,19 @@ describe('the Sights cheats', () => {
     expect(lifeOut(kind, m.minutes)).toBe(true);
     const cells = [...Array(9).keys()].map((i) => [Math.floor(at.x / LIFE_CELL) - 1 + (i % 3), Math.floor(at.z / LIFE_CELL) - 1 + Math.floor(i / 3)]);
     expect(cells.flatMap(([cx, cz]) => lifeIn(m, cx, cz)).some((c) => c.kind === kind && Math.hypot(c.x - at.x, c.z - at.z) < 12)).toBe(true);
+  });
+});
+
+describe('shared helpers', () => {
+  it('a piece\'s tiles: every one it stands on, once', () => {
+    expect(sceneryTiles({ x: 5, z: 7, w: 3, d: 1 })).toEqual([[5, 7], [6, 7], [7, 7]]);
+    expect(sceneryTiles({ x: 2, z: 2, w: 2, d: 2 })).toEqual([[2, 2], [3, 2], [2, 3], [3, 3]]);
+  });
+
+  it('lines in turn, each owner its own turns: every line comes round, never one twice running', () => {
+    const [a, b] = [{}, {}];
+    const lines = ['one', 'two', 'three'];
+    expect([inTurn(a, lines), inTurn(a, lines), inTurn(b, lines), inTurn(a, lines), inTurn(a, lines)]).toEqual(['one', 'two', 'one', 'three', 'one']);
+    expect(nextTurn(b)).toBe(1);
   });
 });
