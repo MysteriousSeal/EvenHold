@@ -51,13 +51,14 @@ export const BAG_GROUPS: ReadonlyArray<{ group: BagGroup; title: string }> = [
 const GROUP_OF: Record<LootQuality, BagGroup> = { common: 'provision', ingredient: 'ingredient', quest: 'quest', bag: 'bag', junk: 'junk' };
 export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF[LOOT_QUALITY[item]] : 'gear');
 
-// Starts eating or drinking one of `item` from the hero's bag: food for its share of their most health, drink for
-// its share of their most energy, back over a few seconds (a blow stops it: fighting.ts); whether they did (it's food
-// or drink, carried, and they're not still at another).
+// Starts eating or drinking one of `item` from the hero's bag, sat down on the ground: food for its share of their
+// most health, drink for its share of their most energy, back over a while (getting up stops it: GameModel.ts,
+// combatMoves.ts; a blow taken, fighting.ts); whether they did (it's food or drink, carried, and they're not still
+// at another).
 export function eatOrDrink(hero: Hero, item: BagItem): boolean {
   if (!isProvision(item) || hero.eating || !takeFromBag(hero.bag, item)) return false;
   const { heal = 0, energy = 0, drink } = PROVISIONS[item];
   const seconds = drink ? DRINK_SECONDS : EAT_SECONDS;
-  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: seconds, seconds };
+  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: seconds, seconds, item };
   return true;
 }

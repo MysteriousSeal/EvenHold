@@ -73,6 +73,7 @@ export class CombatMoves {
     if (this.blow || this.roll || !this.spend(COST.blow)) return false;
     this.blow = { t: 0, landed: false };
     this.guard = null;
+    this.hero.eating = null; // (up to strike: a meal from the bag left)
     return true;
   }
 
@@ -88,6 +89,7 @@ export class CombatMoves {
     const len = Math.hypot(dirX, dirZ);
     const [dx, dz] = len > 1e-6 ? [dirX / len, dirZ / len] : [-Math.sin(facing), -Math.cos(facing)];
     this.roll = { dx, dz, t: 0 };
+    this.hero.eating = null; // (and to roll)
     this.guard = null; // (a guard dropped to roll)
     return true;
   }
@@ -95,7 +97,10 @@ export class CombatMoves {
   // The guard raised (held) or lowered; not mid-blow or mid-roll.
   raise(on: boolean): void {
     if (!on || this.roll || this.blow) this.guard = null;
-    else this.guard ??= 0;
+    else {
+      this.guard ??= 0;
+      this.hero.eating = null; // (and to guard)
+    }
   }
 
   // Whether nothing can touch the hero now (early in a roll).
