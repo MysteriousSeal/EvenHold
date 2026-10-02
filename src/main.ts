@@ -278,7 +278,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'rises') placeBanner(`${event.name} rises`, 'From the great tomb');
       else if (event.kind === 'stirs') placeBanner(`${event.name} stirs`, 'From her silken nest');
       else if (event.kind === 'torn') placeBanner('The silk tears', 'Deep within, the nest lies open');
-      else if (event.kind === 'walled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Thick silk bars the way', `Clear more of the cave · ${Math.round(event.share * 100)}% of ${Math.round(TEARS_AT * 100)}%`], '#e8e2d6');
+      else if (event.kind === 'walled') placeBanner('The nest is webbed shut', `Clear ${Math.round(TEARS_AT * 100)}% of the cave to tear the silk · ${Math.round(event.share * 100)}% cleared`, 3000); // (the brood mother out of reach: told large)
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
       else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : 'Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
