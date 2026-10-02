@@ -115,12 +115,12 @@ describe('the main menu', () => {
     keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
     void showMainMenu(hooks);
     click('Controls');
-    expect(Array.from(document.querySelectorAll('.title-group h3')).map((h) => h.textContent)).toEqual(['Getting about', 'Fighting', 'Your hero']);
-    const line = (what: string) => Array.from(document.querySelectorAll('.title-control')).find((l) => l.querySelector('.title-what')?.firstChild?.textContent === what)!;
-    expect(Array.from(line('Move').querySelectorAll('.title-cluster')).map((c) => c.textContent)).toEqual(['WASD', '↑←↓→']); // (in their keyboard shape)
-    expect(line('Strike').querySelector('.title-cap.wide')?.textContent).toBe('Space');
+    expect(Array.from(document.querySelectorAll('.codex-group h3')).map((h) => h.textContent)).toEqual(['Getting about', 'Fighting', 'Your hero']);
+    const line = (what: string) => Array.from(document.querySelectorAll('.codex-control')).find((l) => l.querySelector('.codex-what')?.firstChild?.textContent === what)!;
+    expect(Array.from(line('Move').querySelectorAll('.keycap-cluster')).map((c) => c.textContent)).toEqual(['WASD', '↑←↓→']); // (in their keyboard shape)
+    expect(line('Strike').querySelector('.keycap.wide')?.textContent).toBe('Space');
     expect(line('Guard').querySelector('small')?.textContent).toBe('raise it as a blow lands: parry');
-    expect(line('Zoom').querySelector('.title-mouse.wheel')).not.toBeNull();
+    expect(line('Zoom').querySelector('.keycap-mouse.wheel')).not.toBeNull();
     expect(CONTROLS).toContainEqual(['Guard (raise it as a blow lands: parry)', 'Hold Q']); // (the pause menu's, as text)
     click('Back');
     expect(shown()).toBe('Aleyn');
@@ -141,7 +141,7 @@ describe('eight worlds at most', () => {
     fill(MAX_WORLDS - 1);
     let menu = showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
     expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
-    expect(document.querySelector('.title-list-head small')?.textContent).toBe('7 / 8');
+    expect(document.querySelector('.gilded-head small')?.textContent).toBe('7 / 8');
     document.querySelector<HTMLButtonElement>('.title-slot')!.click();
     expect(document.querySelector('.title-forge')).not.toBeNull(); // (a new hero, made)
     void menu;
@@ -185,11 +185,11 @@ describe('the character creation screen', () => {
   it('two panels: the appearance on the left (the look, Surprise me); the name and world on the right', () => {
     void open();
     const [look, identity] = Array.from(document.querySelectorAll('.title-forge'));
-    expect(look.querySelector('.title-list-head span')?.textContent).toBe('Appearance');
+    expect(look.querySelector('.gilded-head span')?.textContent).toBe('Appearance');
     expect(look.querySelector('.forge-surprise')).not.toBeNull();
     expect(look.querySelector('.forge-name')).toBeNull();
     expect(identity.classList.contains('identity')).toBe(true);
-    expect(identity.querySelector('.title-list-head span')?.textContent).toBe('Name & World');
+    expect(identity.querySelector('.gilded-head span')?.textContent).toBe('Name & World');
     expect(identity.querySelector('.forge-name')).not.toBeNull();
     expect(identity.querySelector('.forge-seed')).not.toBeNull(); // (always shown: not folded)
     expect(identity.querySelector('details')).toBeNull();

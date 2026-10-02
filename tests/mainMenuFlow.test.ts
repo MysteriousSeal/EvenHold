@@ -106,7 +106,7 @@ describe('the main menu: the roster', () => {
     expect(ann.querySelector('.title-crest')?.textContent).toBe('12');
     expect(ann.querySelector('.title-who small')?.textContent).toBe('Day 1 · World 7');
     expect(ann.title).toBe('Ann, level 12');
-    expect(document.querySelector('.title-list-head small')?.textContent).toBe(`2 / ${MAX_WORLDS}`);
+    expect(document.querySelector('.gilded-head small')?.textContent).toBe(`2 / ${MAX_WORLDS}`);
   });
 
   it('a slot for every place left: all of them with no hero, none when full', () => {
