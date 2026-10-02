@@ -51,7 +51,7 @@ function bossMark(): THREE.SpriteMaterial {
 }
 
 // What each kind's called (over its head, in the target panel), unless it has a name of its own (a crypt's lord).
-const ENEMY_NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost' };
+const ENEMY_NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost', caveSpider: 'Cave spider', caveBat: 'Cave bat', caveWorm: 'Cave worm', hatchling: 'Hatchling', broodMother: 'The brood mother' };
 export const enemyName = (enemy: Pick<Enemy, 'kind' | 'name'>): string => enemy.name ?? ENEMY_NAMES[enemy.kind];
 
 // What every foe's rig does (enemyViews.ts): its root in the scene, drawn at a size (its bar and name kept at

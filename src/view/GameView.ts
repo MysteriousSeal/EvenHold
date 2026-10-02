@@ -51,15 +51,14 @@ import { AmbientLife } from './meshes/wildlife/ambientLife';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { buildRoomScene } from './interior/roomView';
-import { buildCryptScene } from './crypt/cryptView';
-import { CryptLife } from './crypt/cryptLife';
+import { buildDungeonScene, type DungeonLife } from './dungeon/dungeonViews';
 import { FrostOnHero } from './meshes/human/frostOnHero';
-import { cryptInside } from '../model/crypts/crypts';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
 import { buildRuins } from './meshes/ruin/ruinMesh';
+import { buildCaveMouths } from './meshes/cave/caveMouthMesh';
 import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
@@ -179,6 +178,7 @@ export class GameView {
       { label: 'Setting out the benches', run: () => buildBenches(scene, model) },
       { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
       { label: 'Crumbling the old ruins', run: () => buildRuins(scene, model) },
+      { label: 'Hollowing the hills', run: () => buildCaveMouths(scene, model) },
       { label: 'Setting the old stones', run: () => buildScenery3d(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
@@ -222,7 +222,7 @@ export class GameView {
     let best: number | null = null;
     let bestDistance = PICK_RADIUS;
     for (const enemy of enemies) {
-      if (enemy.state === 'dead') continue;
+      if (enemy.state === 'dead' || enemy.buried) continue;
       at.set(enemy.x, enemy.y + 0.18, enemy.z).project(this.camera);
       const x = rect.left + ((at.x + 1) / 2) * rect.width;
       const y = rect.top + ((1 - at.y) / 2) * rect.height;
@@ -301,7 +301,7 @@ export class GameView {
     }
     this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
-      this.room?.life?.update(model, dt); // (a crypt's guards, their arrows, what they leave)
+      this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.followHero(hero, 0, dt);
       const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
@@ -348,7 +348,7 @@ export class GameView {
   // The one before is freed when they leave it (or go straight into another).
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
 
-  private room: ({ entrance: Entrance; fullWalls: boolean; life: CryptLife | null } & ReturnType<typeof buildRoomScene>) | null = null;
+  private room: ({ entrance: Entrance; fullWalls: boolean; life: DungeonLife | null } & ReturnType<typeof buildRoomScene>) | null = null;
   private yardView: ReturnType<typeof buildFurnitureYard> | null = null;
   // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
   private yardScene(model: GameModel): THREE.Scene | null {
@@ -375,9 +375,9 @@ export class GameView {
     }
     if (!inside) return null;
     if (!this.room) {
-      // A crypt's its own (crypt/cryptView.ts); a building's room built from its room and furniture (upstairs: no door).
-      const built = inside.entrance.type === 'crypt' ? buildCryptScene(cryptInside(model.seed, inside.entrance)) : buildRoomScene(inside.room, inside.furniture, !inside.below);
-      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...built, life: inside.entrance.type === 'crypt' ? new CryptLife(built.scene, cryptInside(model.seed, inside.entrance)) : null };
+      // A dungeon's its own (a crypt's, a cave's: dungeon/dungeonViews.ts); a building's room built from its room and furniture (upstairs: no door).
+      const below = buildDungeonScene(model.seed, inside.entrance);
+      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...(below ?? { ...buildRoomScene(inside.room, inside.furniture, !inside.below), life: null }) };
     }
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);

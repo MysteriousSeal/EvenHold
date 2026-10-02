@@ -12,11 +12,11 @@ import { gearIcon, lootIcon } from '../ui/itemIcons';
 import { LOOT } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { voxelIcon } from '../ui/voxelIcon';
-import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel, snowflakeModel } from './blessingVoxels';
+import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel, snowflakeModel, webModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
 
 // Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin;
-// and the banes: a fall's Weary, the heart greyed; a draugr's frost, Chilled, a snowflake.
+// and the banes: a fall's Weary, the heart greyed; a draugr's frost, Chilled, a snowflake; a spider's web, Webbed, a cobweb.
 const ICONS: Record<BlessingKind, MenuIcon> = {
   swift: (size) => voxelIcon('blessing:swift', bootModel, size),
   wise: (size) => voxelIcon('blessing:wise', bookModel, size),
@@ -27,6 +27,7 @@ const ICONS: Record<BlessingKind, MenuIcon> = {
   tough: gearIcon('heaterShield'),
   weary: (size) => voxelIcon('blessing:second', heartModel, size), // (a fall's: the heart, greyed: hud.css)
   chilled: (size) => voxelIcon('blessing:chilled', snowflakeModel, size), // (a draugr's frost: an ice-blue snowflake)
+  webbed: (size) => voxelIcon('blessing:webbed', webModel, size), // (a spider's web: pale silk)
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger
     coin.className = 'blessing-coin';

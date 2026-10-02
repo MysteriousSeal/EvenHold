@@ -2,8 +2,8 @@
 // row as seen from the side, a few voxels thick, so the icon view shows
 // their profile: a winged leather boot for Swift feet, a flexed arm for
 // Strong arm, an open book for Wise mind, a feather for Quiet step, a heart
-// for Second wind, an eye for Keen eye; and a snowflake for Chilled (a
-// draugr's frost). Grid-aligned only.
+// for Second wind, an eye for Keen eye; a snowflake for Chilled (a
+// draugr's frost), a cobweb for Webbed (a spider's). Grid-aligned only.
 
 import type { VoxelModel } from '../ui/voxelIcon';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -145,3 +145,26 @@ export const snowflakeModel = (): VoxelModel =>
     [0x6cc8f0, 0xeefaff],
   );
 
+
+// A cobweb, pale silk on a dark gap: its spokes from a corner out, three
+// threads strung across them, a small dark spider at its heart: Webbed (a
+// cave spider's web).
+export const webModel = (): VoxelModel =>
+  fromRows(
+    [
+      'S....S....S',
+      '.S...S...S.',
+      '..SSSSSSS..',
+      '..S.S.S.S..',
+      'SSSS.S.SSSS',
+      '...S.K.S...',
+      'SSSS.S.SSSS',
+      '..S.S.S.S..',
+      '..SSSSSSS..',
+      '.S...S...S.',
+      'S....S....S',
+    ],
+    1,
+    { S: 1, K: 2 },
+    [0xe8e2d6, 0x2a2026],
+  );

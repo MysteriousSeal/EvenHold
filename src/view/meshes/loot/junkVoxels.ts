@@ -27,6 +27,43 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
       if (r <= 2.3) setColor(g, x, 0, z, r > 1.6 ? 2 : (x + z) % 2 ? 3 : 1);
     }
   }),
+  // A skein of spider silk: a wound ball, pale, banded where it's wound across, a loose thread trailing.
+  spiderSilk: model([0xe8e2d6, 0xc4bcae, 0xfaf6ee], [6, 3, 5], (g) => {
+    for (let x = 0; x < 5; x++) for (let y = 0; y < 3; y++) for (let z = 0; z < 5; z++) {
+      if (((x - 2) / 2.5) ** 2 + ((y - 1) / 1.6) ** 2 + ((z - 2) / 2.5) ** 2 <= 1) setColor(g, x, y, z, (x + z) % 3 === 0 ? 2 : y === 2 ? 3 : 1);
+    }
+    for (const [x, z] of [[5, 2], [5, 3]]) setColor(g, x, 0, z, 2); // the loose end
+  }),
+  // A venom gland: a plump sac gone sickly green-grey, a dark duct at one end, a bead of venom glistening on it.
+  venomGland: model([0x8a9a6a, 0x6a7a4e, 0x3a3226, 0xc8f070], [4, 3, 6], (g) => {
+    for (let x = 0; x < 4; x++) for (let y = 0; y < 3; y++) for (let z = 0; z < 5; z++) {
+      if (((x - 1.5) / 2) ** 2 + ((y - 1) / 1.6) ** 2 + ((z - 2) / 2.6) ** 2 <= 1) setColor(g, x, y, z, y === 0 || x === 0 ? 2 : 1);
+    }
+    setColor(g, 1, 1, 5, 3); // its duct
+    setColor(g, 2, 2, 2, 4); // the bead
+  }),
+  // A shard of chitin: a curved plate of dark shell, a sheen along its crest, a stripe of ochre across it.
+  chitinShard: model([0x3e3038, 0x2a2026, 0x6a5664, 0xc8a060], [6, 2, 4], (g) => {
+    fillBox(g, 0, 0, 0, 5, 0, 3, (x, _y, z) => (x === 3 ? 4 : z === 0 || z === 3 ? 2 : 1));
+    fillBox(g, 1, 1, 1, 4, 1, 2, (x) => (x === 3 ? 4 : 3)); // (curved up: its crest)
+    setColor(g, 5, 0, 0, 0); // (broken off)
+    setColor(g, 0, 0, 3, 0);
+  }),
+  // A bat's wing, folded: thin dark leather, lighter where it's thinnest, its finger bones running out to a hooked claw.
+  batWing: model([0x5e3e3a, 0x82584c, 0x2e2220, 0xf0e8d8], [7, 1, 5], (g) => {
+    for (let x = 0; x < 7; x++) for (let z = 0; z < 5; z++) if (z <= 4 - Math.floor(x / 2) + (x % 2)) setColor(g, x, 0, z, (x + z) % 3 === 1 ? 2 : 1);
+    for (let x = 0; x < 7; x++) setColor(g, x, 0, 0, 3); // its arm
+    for (const [x, z] of [[2, 1], [2, 2], [2, 3], [4, 1], [4, 2]]) setColor(g, x, 0, z, 3); // the fingers
+    setColor(g, 6, 0, 0, 4); // the claw
+  }),
+  // A worm's tooth: hooked back, pale, stepping to a point from a red-raw root.
+  wormTooth: model([0xece2c8, 0xcdbf9e, 0x9a4a40], [3, 6, 4], (g) => {
+    fillBox(g, 0, 0, 0, 2, 0, 2, 3); // the root
+    fillBox(g, 0, 1, 0, 2, 2, 2, 2);
+    fillBox(g, 1, 3, 1, 1, 4, 2, 1);
+    setColor(g, 1, 5, 3, 1); // (hooked back)
+    setColor(g, 1, 4, 3, 1);
+  }),
   // A tarnished locket, open on its hinge: an oval case, a dim gold, a lock of pale hair in it, its chain trailing.
   fadedLocket: model([0xb89a52, 0x7e6a3a, 0xe8e2cc, 0x9a8a6a], [6, 1, 7], (g) => {
     for (let x = 0; x < 6; x++) for (let z = 0; z < 4; z++) if (Math.hypot((x - 2.5) / 3, (z - 1.5) / 2) <= 1) setColor(g, x, 0, z, x === 0 || x === 5 || z === 0 || z === 3 ? 2 : 1);

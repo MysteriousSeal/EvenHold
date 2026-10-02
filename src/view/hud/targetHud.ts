@@ -14,6 +14,9 @@ import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how da
 import { GHOST_PALETTE, ghostHead } from '../meshes/enemy/ghostVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
 import { enemyName } from '../meshes/enemy/enemyParts';
+import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from '../meshes/enemy/spiderVoxels';
+import { BAT_PALETTE, batBody } from '../meshes/enemy/batVoxels';
+import { WORM_PALETTE, wormHead } from '../meshes/enemy/wormVoxels';
 
 const PORTRAIT_SIZE = 84; // as the hero's
 
@@ -34,6 +37,11 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
     return voxelIcon(`target:draugr:${look.head}:${look.beard}`, () => ({ grid: buildDraugrHead(look), palette: DRAUGR_PALETTE }), PORTRAIT_SIZE);
   },
   cryptLord: () => voxelIcon('target:crownedSkull', () => ({ grid: buildCrownedSkull(), palette: LORD_PALETTE }), PORTRAIT_SIZE),
+  caveSpider: () => voxelIcon('target:caveSpider', () => ({ grid: CAVE_SPIDER.head.build(), palette: CAVE_SPIDER.palette }), PORTRAIT_SIZE),
+  hatchling: () => voxelIcon('target:hatchling', () => ({ grid: HATCHLING.head.build(), palette: HATCHLING.palette }), PORTRAIT_SIZE),
+  broodMother: () => voxelIcon('target:broodMother', () => ({ grid: BROOD_MOTHER.head.build(), palette: BROOD_MOTHER.palette }), PORTRAIT_SIZE),
+  caveBat: () => voxelIcon('target:caveBat', () => ({ grid: batBody(), palette: BAT_PALETTE }), PORTRAIT_SIZE),
+  caveWorm: () => voxelIcon('target:caveWorm', () => ({ grid: wormHead(), palette: WORM_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 

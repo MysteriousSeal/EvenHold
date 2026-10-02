@@ -12,14 +12,19 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { BOAR_SPEC, BeastRig, WOLF_SPEC, createBeastLook, type BeastLook } from './beastRig';
 import { pulseAuras, questAura } from '../quest/questMarks';
+import { SpiderRig, createSpiderLook, type SpiderLook } from './spiderRig';
+import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from './spiderVoxels';
+import { BatRig, createBatLook, type BatLook } from './batRig';
+import { WormRig, createWormLook, type WormLook } from './wormRig';
 import { Nearby } from '../common/nearby';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22, ghost: 15 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
+const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22, ghost: 15, caveSpider: 19, caveBat: 15, caveWorm: 17, hatchling: 15, broodMother: 24 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
 const LORD_SIZE = 1.5; // a crypt's lord, over his guards
 const DRAUGR_SIZE = 1.15; // a draugr, over a man
 const MARKER_MOST = DRAUGR_SIZE; // the focus brackets, at their biggest (a draugr's, the lord's)
-const sizeOf = (kind: EnemyKind) => (kind === 'cryptLord' ? LORD_SIZE : kind === 'draugr' ? DRAUGR_SIZE : 1); // how big each kind's drawn, over the rest
+const SIZES: Partial<Record<EnemyKind, number>> = { cryptLord: LORD_SIZE, draugr: DRAUGR_SIZE, broodMother: 1.3, hatchling: 0.5 }; // (the brood mother's grid is half again a spider's already)
+const sizeOf = (kind: EnemyKind) => SIZES[kind] ?? 1; // how big each kind's drawn, over the rest
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -36,7 +41,17 @@ export class EnemyViews {
     cryptLord: (enemy) => new UndeadRig(enemy, this.undeadLook),
     draugr: (enemy) => new UndeadRig(enemy, this.undeadLook),
     ghost: (enemy) => new GhostRig(enemy, this.ghostLook),
+    caveSpider: (enemy) => new SpiderRig(enemy, this.spiderLook),
+    hatchling: (enemy) => new SpiderRig(enemy, this.hatchlingLook),
+    broodMother: (enemy) => new SpiderRig(enemy, this.motherLook),
+    caveBat: (enemy) => new BatRig(enemy, this.batLook),
+    caveWorm: (enemy) => new WormRig(enemy, this.wormLook),
   };
+  private readonly spiderLook: SpiderLook = createSpiderLook(CAVE_SPIDER, this.flash);
+  private readonly hatchlingLook: SpiderLook = createSpiderLook(HATCHLING, this.flash);
+  private readonly motherLook: SpiderLook = createSpiderLook(BROOD_MOTHER, this.flash);
+  private readonly batLook: BatLook = createBatLook(this.flash);
+  private readonly wormLook: WormLook = createWormLook(this.flash);
   private readonly undeadLook: UndeadLook = createUndeadLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
   private readonly ghostLook: GhostLook = createGhostLook(this.flash);
@@ -65,7 +80,7 @@ export class EnemyViews {
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST];
+    return [this.wolfLook.normal, this.boarLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.
