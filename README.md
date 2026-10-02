@@ -97,7 +97,10 @@ lives in the wilds, and go down into the crypts beneath the old ruins.
   green bar under your health. Raise your guard (**Q**) just as a blow lands
   to parry it: the foe reels, and your next blow on it lands twice as hard.
 
-The game saves itself as you play, in your browser.
+The game saves itself as you play, in your browser. Each world keeps its own
+hero: on the main menu your heroes stand round a campfire, the one you pick
+stepping into the light; enter their world, start a new one, or open one by
+its seed (a number or any word: share it, and a friend gets the same map).
 
 ## Run it yourself
 
