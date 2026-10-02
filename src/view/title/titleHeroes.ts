@@ -139,9 +139,18 @@ export function heroRow(scene: THREE.Scene, plates: HTMLElement): HeroRow {
       const key = JSON.stringify(heroes.map((h) => [h.name, h.level, h.look, h.equipment]));
       if (key === shownKey) return;
       const keep = carry && standing.length > 0 && standing.every((s) => s.shown >= 1);
+      const was = standing.map((s) => ({ at: s.group.position.clone(), light: s.material.color.r }));
       shownKey = key;
       stand(heroes.slice(0, TITLE_HEROES));
-      if (keep) standing.forEach((s) => (s.shown = 1)); // (a hero let go: the rest stay as they were)
+      // (a hero let go, or one being made changed: the rest stay as they were, where they were, not stepping again)
+      if (keep) {
+        standing.forEach((s, i) => {
+          s.shown = 1;
+          if (heroes.length !== was.length || !was[i]) return;
+          s.group.position.copy(was[i].at);
+          s.material.color.setScalar(was[i].light);
+        });
+      }
     },
     update(t, dt, present, chosen, camera, canvas, spin = 0) {
       if (present && !wasPresent) since = 0;
