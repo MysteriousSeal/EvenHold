@@ -381,7 +381,7 @@ describe('female build', () => {
       const look = { ...FEMALE, hairStyle };
       expect(filled(buildBodyPart('head', look))).toBe(PART_GRID.head[0] ** 3); // the head's still the full cube
       const piece = buildHairPiece(hairStyle);
-      expect(piece !== null, hairStyle).toBe(!['short', 'cropped', 'bald', 'bob'].includes(hairStyle)); // the rest reach past the head
+      expect(piece !== null, hairStyle).toBe(!['short', 'cropped', 'bald'].includes(hairStyle)); // the rest reach past the head
     }
     const rig = new HumanRig({ ...FEMALE, hairStyle: 'braid' });
     expect(rig.joints.head.children).toHaveLength(2); // the head and her braid
