@@ -61,11 +61,11 @@ export function hurt(hero: Hero, damage: number): boolean {
   return hero.hp === 0;
 }
 
-const TIRED = 1 / 4; // of their most energy: under it, tired, a slower walk
+export const TIRED = 25; // energy: under it, tired, a slower walk (whatever their most: Endurance only gives more before it)
 const TIRED_PACE = 0.7;
 
 // How much slower the hero walks for being tired (1: not).
-export const tiredPace = (hero: Hero): number => (hero.energy < maxEnergyOf(hero) * TIRED ? TIRED_PACE : 1);
+export const tiredPace = (hero: Hero): number => (hero.energy < TIRED ? TIRED_PACE : 1);
 
 // Timers, and energy: spent while up and about, kept `sitting` down,
 // slept back `asleep` (lying in a bed, or on the floor after a collapse).
