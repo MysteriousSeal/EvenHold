@@ -1,15 +1,14 @@
-// How everything worn on the head looks: each piece sculpted round the head
-// (armorShell.ts buildHeadgear), at its own voxels: the head an 11-voxel
-// cube (0..10), the face at its front (eyes on rows 4-6, brows on row 8, the
-// mouth on row 2), ears on the sides at rows 4-6. `d` is how many layers out
-// a voxel is: 1 lies against the head, 2 and 3 stand out in relief (a rim,
-// a ridge, a nose guard, a brim, a hood's folds).
+// How everything worn on the head looks (the finer helms: helms.ts): each
+// piece sculpted round the head (armorShell.ts buildHeadgear), at its own
+// voxels (its measures: headShape.ts). `d` is how many layers out a voxel
+// is: 1 lies against the head, 2 and 3 stand out in relief (a rim, a ridge,
+// a nose guard, a brim, a hood's folds).
 
 import type { HEAD_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { mail, mod, weave } from '../patterns';
-import { L, M, cornered, onFace, within } from './headShape';
+import { L, M, cornered, domed, edgeOf, onFace, riveted, within } from './headShape';
 import { HELM_MODELS } from './helms';
 
 
@@ -20,13 +19,13 @@ const cap = namedPalette({ leather: 0x8a5a35, light: 0xa06c42, dark: 0x6b4226, s
 const leatherCap: ItemModel = {
   palette: cap.palette,
   headgear: (cell) => {
-    const { x, y, z, d, top, back } = cell;
+    const { x, y, z, d, top } = cell;
     const { c } = cap;
-    const edge = onFace(cell) ? 9 : back ? 4 : 5;
+    const edge = edgeOf(cell, 9, 5, 4);
     if (y < edge || d > 2) return 0;
     if (d === 1) return top ? (x === M || z === M ? c.seam : mod(x + z, 5) === 0 ? c.light : c.leather) : y === edge ? c.dark : c.leather;
     if (top) return within(x, 5) && within(z, 5) && (x === M || z === M) ? c.seam : 0; // the seams, raised
-    return y === edge ? (mod(x + z, 3) === 0 ? c.rivet : c.dark) : 0; // the rolled rim
+    return y === edge ? riveted(cell, c.rivet, c.dark) : 0; // the rolled rim
   },
 };
 
@@ -60,7 +59,7 @@ const redBandana: ItemModel = {
   headgear: (cell) => {
     const { x, y, z, d, top, back, flank } = cell;
     const { c } = bandana;
-    const edge = onFace(cell) ? 9 : 7;
+    const edge = edgeOf(cell, 9, 7);
     if (back && d === 1 && y < edge && ((x === M - 1 && y >= 3) || (x === M + 1 && y >= 4))) return c.dark; // the ends, down the nape
     if (y < edge) return 0;
     if (d === 1) return top ? bandanaCloth(x, z) : y === edge ? c.dark : flank ? bandanaCloth(z, y) : bandanaCloth(x, y);
@@ -76,7 +75,7 @@ const iron = namedPalette({ iron: 0x7d838c, light: 0x9aa0a8, dark: 0x5a5e66, riv
 const nasalCap: ItemModel = {
   palette: iron.palette,
   headgear: (cell) => {
-    const { x, y, z, d, top, back } = cell;
+    const { x, y, d, top, back } = cell;
     const { c } = iron;
     const face = onFace(cell);
     const guard = face && x === M; // the nose guard's column
@@ -85,8 +84,8 @@ const nasalCap: ItemModel = {
     if (guard && y < edge) return d === 1 ? c.iron : c.light;
     if (d === 1) return x === M && (top || face || back) ? c.light : c.iron;
     if (d === 2) {
-      if (top) return within(x, 3) && within(z, 3) ? (x === M ? c.light : c.iron) : 0; // the cap rising to its point, the ridge along it
-      if (y === edge) return mod(x + z, 3) === 0 ? c.rivet : c.dark; // the rim
+      if (top) return domed(cell) ? (x === M ? c.light : c.iron) : 0; // the cap rising to its point, the ridge along it
+      if (y === edge) return riveted(cell, c.rivet, c.dark); // the rim
       return x === M && (face || back) ? c.light : 0; // the ridge, down the brow and the nape
     }
     return 0;
@@ -149,7 +148,7 @@ const greatHelm: ItemModel = {
     if (d > 2) return 0;
     if (top) return x === M && z >= 0 && z <= L ? c.light : 0; // the ridge over the top
     if (y === 0) return c.dark; // the flared foot
-    if (y === 9) return mod(x + z, 3) === 0 ? c.rivet : c.dark; // the riveted band
+    if (y === 9) return riveted(cell, c.rivet, c.dark); // the riveted band
     if (face && y === 7) return c.steel; // the brow plate over the slit
     return x === M && (face || back) && y !== 5 && y !== 6 ? c.light : 0; // the ridge, down the front and back
   },
@@ -167,7 +166,7 @@ const mailCoif: ItemModel = {
     const ring = mail(x, y, z, c.ring, c.gap);
     if (d === 1) return face && x >= 1 && x <= L - 1 && y >= 1 && y <= 8 ? 0 : ring; // the face, open
     if (!top && y === 9) return d === 2 ? (mod(x + z, 4) === 0 ? c.bandLight : c.band) : 0; // the brow band
-    if (d === 2) return top ? (within(x, 3) && within(z, 3) ? ring : 0) : face ? ((x === 0 || x === L) && y >= 1 && y <= 8 ? ring : 0) : y >= 3 || (!flank && z < 0) ? ring : 0; // (its skirt thick down the back, clear of the shoulders)
+    if (d === 2) return top ? (domed(cell) ? ring : 0) : face ? ((x === 0 || x === L) && y >= 1 && y <= 8 ? ring : 0) : y >= 3 || (!flank && z < 0) ? ring : 0; // (its skirt thick down the back, clear of the shoulders)
     return 0;
   },
 };

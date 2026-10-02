@@ -8,19 +8,20 @@ import type { HEAD_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { mail, mod } from '../patterns';
-import { L, M, cornered, onFace, ringed, within } from './headShape';
+import { L, M, cornered, domed, edgeOf, onFace, ringed, riveted, within } from './headShape';
 
 // A kettle hat: a round iron crown sat high on the head, a band riveted
 // round its foot, and a wide brim standing out all round, its edge rolled.
 const kettle = namedPalette({ iron: 0x7d838c, light: 0x9aa0a8, dark: 0x5a5e66, rivet: 0xc4cad2 });
 const kettleHat: ItemModel = {
   palette: kettle.palette,
-  headgear: ({ x, y, z, d, top }) => {
+  headgear: (cell) => {
+    const { x, y, z, d, top } = cell;
     const { c } = kettle;
     if (y < 9) return 0;
-    if (top) return d === 1 ? (mod(x + z, 6) === 0 ? c.light : c.iron) : d === 2 && within(x, 3) && within(z, 3) ? c.iron : 0; // the crown, domed
+    if (top) return d === 1 ? (mod(x + z, 6) === 0 ? c.light : c.iron) : d === 2 && domed(cell) ? c.iron : 0; // the crown, domed
     if (y === 9) return d === 3 ? c.light : c.iron; // the brim, its rolled edge
-    return d === 1 ? (mod(x + z, 3) === 0 ? c.rivet : c.dark) : 0; // the band
+    return d === 1 ? riveted(cell, c.rivet, c.dark) : 0; // the band
   },
 };
 
@@ -42,7 +43,7 @@ const bascinet: ItemModel = {
     }
     if (!top && y <= 2) return d === 1 ? mail(x, y, z, c.ring, c.gap) : 0; // the aventail
     if (d === 1) return top && x === M ? c.light : c.steel;
-    if (d === 2 && top) return within(x, 3) && within(z, 3) ? (x === M ? c.light : c.steel) : 0; // the skull, rounded
+    if (d === 2 && top) return domed(cell) ? (x === M ? c.light : c.steel) : 0; // the skull, rounded
     return d === 2 && flank && y === 6 && z >= 8 && z <= 9 ? c.dark : 0; // the visor's pivots
   },
 };
@@ -93,7 +94,7 @@ const hornedHelm: ItemModel = {
   headgear: (cell) => {
     const { x, y, z, d, top, flank } = cell;
     const { c } = horned;
-    const edge = onFace(cell) ? 9 : 6;
+    const edge = edgeOf(cell, 9, 6);
     if (flank && z >= 4 && z <= 6 && d >= 2) {
       // The horn: out from the side at the band, then up.
       const reach = d === 2 ? y >= 7 && y <= 9 : y >= 8 && y <= 12;
@@ -101,7 +102,7 @@ const hornedHelm: ItemModel = {
     }
     if (y < edge) return 0;
     if (d === 1) return y === edge ? c.bronze : top && x === M ? c.bronze : top ? c.iron : mod(x + z + y, 7) === 0 ? c.light : c.iron;
-    if (d === 2) return top ? (x === M && z >= 0 && z <= L ? c.bronze : within(x, 3) && within(z, 3) ? c.iron : 0) : y === edge ? c.bronze : 0;
+    if (d === 2) return top ? (x === M && z >= 0 && z <= L ? c.bronze : domed(cell) ? c.iron : 0) : y === edge ? c.bronze : 0;
     return 0;
   },
 };
@@ -119,10 +120,10 @@ const wingedHelm: ItemModel = {
       const span = d === 2 ? y >= 7 && y <= 11 && z >= 2 && z <= 7 : y >= 8 && y <= 12 && z >= 0 && z <= 5 && z - 1 <= y - 7;
       return span ? (z === (d === 2 ? 7 : 5) ? c.quill : mod(y + z, 2) === 0 ? c.feather : c.featherShade) : 0;
     }
-    const edge = onFace(cell) ? 9 : 7;
+    const edge = edgeOf(cell, 9, 7);
     if (y < edge) return 0;
     if (d === 1) return y === edge ? c.dark : top && (x === M || z === M) ? c.light : c.silver;
-    if (d === 2) return top ? (within(x, 3) && within(z, 3) ? c.silver : 0) : y === edge ? c.light : 0;
+    if (d === 2) return top ? (domed(cell) ? c.silver : 0) : y === edge ? c.light : 0;
     return 0;
   },
 };
@@ -204,13 +205,14 @@ const royalCrown: ItemModel = {
       if (y >= 10 && y <= 12) return mod(x + z, 4) === 0 ? (y === 12 ? c.light : c.gold) : y === 10 ? c.gold : 0; // its points
       return 0;
     }
-    if (top) return d === 1 ? (mod(x + z, 3) === 0 ? c.velvetDark : c.velvet) : d === 2 && within(x, 2) && within(z, 2) ? (x === M && z === M ? c.light : c.velvet) : 0; // the velvet cap, its knob
+    if (top) return d === 1 ? (mod(x + z, 3) === 0 ? c.velvetDark : c.velvet) : d === 2 && domed(cell, 2) ? (x === M && z === M ? c.light : c.velvet) : 0; // the velvet cap, its knob
     if (d === 2 && (y === 8 || y === 9)) return face && x === M ? c.ruby : flank && z === M ? c.sapphire : 0; // the stones
     return 0;
   },
 };
 
-export const HELM_MODELS: Record<Extract<keyof typeof HEAD_ITEMS, 'kettleHat' | 'bascinet' | 'barbute' | 'sallet' | 'hornedHelm' | 'wingedHelm' | 'elvenCirclet' | 'boneHelm' | 'dragonHelm' | 'royalCrown'>, ItemModel> = {
+// (head.ts's HEAD_MODELS holds these with the rest: every head item's model, checked there.)
+export const HELM_MODELS = {
   kettleHat,
   bascinet,
   barbute,
@@ -221,4 +223,4 @@ export const HELM_MODELS: Record<Extract<keyof typeof HEAD_ITEMS, 'kettleHat' | 
   boneHelm,
   dragonHelm,
   royalCrown,
-};
+} satisfies Partial<Record<keyof typeof HEAD_ITEMS, ItemModel>>;
