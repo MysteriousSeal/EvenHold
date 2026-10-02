@@ -11,7 +11,7 @@
 
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
-import { bagLayout, moveInBag, sortedBag, type BagItem } from '../../model/hero/bag';
+import { bagLayout, layoutCounts, moveInBag, sortedBag, type BagItem } from '../../model/hero/bag';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, type BagId } from '../../model/loot/bags';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
@@ -150,9 +150,11 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           // The sockets on top, a row to themselves: a fitted bag (right-click, or drag it down into the bag, to take it
           // off), or an empty socket; then the bag's own slots.
           const top: Array<MenuSlot | null> = hero.bags.map((fitted, s) => (fitted ? socketSlot(model, s, fitted, SOCKET_ROW) : emptySocket()));
-          const cells = bagLayout(hero.bag, hero.bagOrder, room).map((item, i): MenuSlot | null => {
+          const layout = bagLayout(hero.bag, hero.bagOrder, room);
+          const counts = layoutCounts(hero.bag, layout); // (a stack's own: junk twenty to a slot at most)
+          const cells = layout.map((item, i): MenuSlot | null => {
             if (!item) return null;
-            const slot = slotFor(model, item, hero.bag[item]!, seller);
+            const slot = slotFor(model, item, counts[i], seller);
             // Onto another of the bag's slots: moved there; a bag onto a free socket (on top): fitted there.
             slot.move = (to) => {
               if (to >= SOCKET_ROW) hero.bagOrder = moveInBag(hero.bag, hero.bagOrder, i, to - SOCKET_ROW, room);
