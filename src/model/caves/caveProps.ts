@@ -130,13 +130,26 @@ export function caveExit(plan: CavePlan): { rock: { x: number; z: number }; spot
 
 // The silk walling the nest off (till most of the cave's cleared: caveFoes.ts): a cut across the burrow into it,
 // tiles across its way at some point along it, such that with them shut the nest can't be reached from the way in.
-// Tried from the burrow's middle outward (as far from the nest's lobes as from the last chamber's); if none will do
+// Tried from the burrow's middle outward (as far from the nest's lobes as from the last chamber's), a straight one first
+// (a row or column of floor, rock to rock); if none will do
 // (another way into the nest), a ring round it; null if not even that (then it's never walled).
 export function nestSeal(plan: CavePlan): Array<{ x: number; z: number }> | null {
   const line = plan.burrows[plan.nestWay];
   const nest = plan.hollows.find((h) => h.kind === 'nest')!;
   const middle = Math.floor(line.length / 2);
   const order = Array.from({ length: line.length }, (_, k) => middle + (k % 2 ? 1 : -1) * Math.ceil(k / 2)).filter((i) => i > 2 && i < line.length - 3);
+  // First a straight one: a row (or column) of floor right across the burrow, rock to rock (a web strung straight across
+  // it, its ends in the rock), the shorter of the two at each point along it.
+  for (const i of order) {
+    const [px, pz] = line[i];
+    const straight = [[1, 0], [0, 1]].map(([sx, sz]) => {
+      const cut: Array<{ x: number; z: number }> = [];
+      for (const dir of [1, -1]) for (let k = dir === 1 ? 0 : 1; k < 12 && isFloor(plan, px + sx * k * dir, pz + sz * k * dir); k++) cut.push({ x: px + sx * k * dir, z: pz + sz * k * dir });
+      return cut;
+    }).filter((cut) => cut.length > 0 && cut.length <= 9).sort((a, b) => a.length - b.length);
+    for (const cut of straight) if (!reaches(plan, new Set(cut.map((t) => cellKey(t.x, t.z))), Math.round(nest.x), Math.round(nest.z))) return cut;
+  }
+  // Else one across its way, however it runs.
   for (const i of order) {
     const [[ax, az], [bx, bz]] = [line[i - 2], line[i + 2]];
     const long = Math.hypot(bx - ax, bz - az) || 1;
