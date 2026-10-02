@@ -212,6 +212,8 @@
 /* A section's header in a list: small caps in soft ink over a thin rule. */
 .menu-section { margin-top: 6px; padding-bottom: 3px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .menu-section:first-child { margin-top: 0; }
+.menu-grid > .menu-section { grid-column: 1 / -1; } /* in a grid, across its whole row */
+.menu-section:empty { margin: 8px 0 6px; padding: 0; border-bottom: 2px solid var(--line); } /* a section with no title: a separator only (the bag's sockets from what it carries) */
 .menu-slot-check {
   /* A checkbox at a row's start: an inset sand square, and when on, gold
      with an ink check; it lights on hover to show it can be clicked. */

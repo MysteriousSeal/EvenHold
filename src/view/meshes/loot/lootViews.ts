@@ -20,7 +20,7 @@ import { Nearby } from '../common/nearby';
 const SPIN = 1.4; // radians per second
 const HOVER = 0.1; // above the ground
 const BOB = 0.02;
-const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a };
+const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0 };
 const GEAR_VOXEL = 0.035; // gear on the ground, a little larger than worn
 const RING_VOXEL = 0.04; // the world's grid
 const RING_SIZE = 13; // voxels across
