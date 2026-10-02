@@ -38,9 +38,9 @@ const FLIGHT = [
   [new THREE.Vector3(0, 2, 6.6), new THREE.Vector3(0, 0.55, 0)],
 ];
 const FOG = { from: [45, 200], to: [14, 85] };
-// Close up on a hero being made: whole, a little above the middle of the space right of the creation panel (room
-// under their feet for Create Hero), looking from a little above.
-const CLOSE = { at: new THREE.Vector3(-0.38, 1.0, 4.35), look: new THREE.Vector3(-0.38, 0.32, 1.15) };
+// Close up on a hero being made: whole, in the middle between the creation panels (the look on the left, the name
+// and world on the right), a little above it (room under their feet for Create Hero), looking from a little above.
+const CLOSE = { at: new THREE.Vector3(0, 1.0, 4.35), look: new THREE.Vector3(0, 0.32, 1.15) };
 const smoother = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 
 export function createTitleScene(container: HTMLElement): TitleScene | null {
