@@ -100,7 +100,8 @@ describe('armor models', () => {
       const jewel = slot === 'neck' || slot === 'ring';
       expect(Boolean(model.held), item).toBe(held);
       expect(Boolean(model.jewel), item).toBe(jewel);
-      expect(Boolean(model.worn), item).toBe(!held && !jewel);
+      expect(Boolean(model.worn || model.headgear), item).toBe(!held && !jewel);
+      expect(Boolean(model.headgear), item).toBe(slot === 'head'); // (what's on the head, sculpted round it)
     }
   });
 
