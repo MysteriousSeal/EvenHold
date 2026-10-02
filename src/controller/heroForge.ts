@@ -3,7 +3,8 @@
 // dice), then every trait of a look (model/human/lookTraits.ts), each drawn
 // for what it is: a pick between a few (Man, Woman), colour swatches, a
 // style stepped through, a yes or no; "Surprise me" for a whole new look;
-// at its foot, the world's seed (blank: a random world). Knows no trait by
+// a helm to try on (a preview only: every new hero starts bare-headed); at
+// its foot, the world's seed (blank: a random world). Knows no trait by
 // name: a new one there shows here. Each change is told (`changed`), for
 // the hero being made to stand changed in the world.
 
@@ -25,6 +26,7 @@ export interface Forge {
   panel: HTMLElement;
   look(): BodyLook;
   name(): string;
+  helm(): boolean; // trying a helm on (a preview)
   submit(): Forged | null; // (null: something to fix, told in the panel)
 }
 
@@ -36,6 +38,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
   let look = fitLook(randomLook());
   let name = randomName(look.build);
   let named = false; // (a name typed: kept when the body changes)
+  let helm = false; // (a helm tried on)
 
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
     const node = document.createElement(tag);
@@ -106,9 +109,32 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
     return row;
   };
 
+  // Trying a helm on: how the hair sits under one (a preview, not worn).
+  const helmRow = () => {
+    const row = el('section', 'forge-trait toggle forge-helm');
+    const head = el('div', 'forge-trait-head');
+    head.append(el('span', '', 'Helm'), el('b', '', 'Preview'));
+    const options = el('div', 'forge-switch');
+    for (const on of [false, true]) {
+      const b = el('button', `forge-option${on === helm ? ' chosen' : ''}`, on ? 'On' : 'Off');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(on === helm));
+      b.addEventListener('click', () => {
+        helm = on;
+        draw();
+        tell();
+      });
+      options.append(b);
+    }
+    row.append(head, options);
+    return row;
+  };
+
   const draw = () => {
     nameInput.value = name;
-    traits.replaceChildren(...LOOK_TRAITS.filter((t) => !t.shown || t.shown(look)).map(traitRow));
+    // The traits, the helm to try on right under the hair style (to see how it sits under one).
+    const rows = LOOK_TRAITS.filter((t) => !t.shown || t.shown(look)).flatMap((t) => (t.key === 'hairStyle' ? [traitRow(t), helmRow()] : [traitRow(t)]));
+    traits.replaceChildren(...rows);
   };
 
   // The head: its title, and a whole new look.
@@ -167,6 +193,7 @@ export function heroForge(changed: (look: BodyLook, name: string) => void): Forg
     panel,
     look: () => look,
     name: () => name,
+    helm: () => helm,
     submit() {
       const clean = name.trim().replace(/\s+/g, ' ');
       if (!clean) return void (problem.textContent = 'Your hero needs a name.'), null;

@@ -113,6 +113,10 @@
 .forge-face small { font-size: 10.5px; color: #a8916f; letter-spacing: 0.06em; }
 .forge-trait.cycle .forge-trait-head b { display: none; } /* (told in the stepper) */
 
+/* The helm tried on (under the hair style): its line dashed, not a trait of the look. */
+.forge-helm { border-top-style: dashed; }
+.forge-helm .forge-trait-head b { font-weight: 500; font-style: italic; color: #a8916f; }
+
 /* The world, folded at the foot. */
 .forge-world { padding: 10px 4px 2px; border-top: 1px solid rgba(232, 194, 122, 0.12); }
 .forge-world summary { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c9a46a; cursor: pointer; list-style: none; }

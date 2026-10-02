@@ -37,6 +37,7 @@ export interface MainMenuHooks {
 }
 
 const FIGURE = 220; // px: the chosen hero, drawn in the middle
+const PREVIEW_HELM = 'nasalCap'; // tried on while making a hero (open behind: long hair shows under it)
 // A village saying, one each time, on a signboard under the title.
 export const SAYINGS = [
   'Roll first, strike after.',
@@ -115,8 +116,8 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
       world?.dispose();
       resolve(hero ? { seed, hero } : { seed });
     };
-    // The hero being made, stood in the world as they are now (naked, as every new hero starts).
-    const standDraft = () => forge && world?.create({ name: forge.name(), level: 1, look: forge.look(), equipment: {} });
+    // The hero being made, stood in the world as they are now (naked, as every new hero starts; a helm tried on).
+    const standDraft = () => forge && world?.create({ name: forge.name(), level: 1, look: forge.look(), equipment: forge.helm() ? { head: PREVIEW_HELM } : {} });
     // Made: into a world of its own (or the one the seed names: one of theirs, theirs to go on with).
     const createHero = () => {
       const made = forge?.submit();
