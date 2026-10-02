@@ -7,6 +7,9 @@ import { createCheatPanel } from '../src/controller/cheats/cheatPanel';
 import { slotsUsed } from '../src/model/hero/bagStacks';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import { BAG_IDS } from '../src/model/loot/bags';
+import { TIRED, tiredPace } from '../src/model/hero/heroStats';
+import { landBlow, type Fight } from '../src/model/hero/fighting';
+import { makeEnemy } from '../src/model/enemies/enemies';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
@@ -39,5 +42,28 @@ describe('the cheat menu', () => {
     expect(slotsUsed(model.hero.bag)).toBeGreaterThanOrEqual(bagRoom(model.hero));
     row('Empty the bag').click();
     expect(model.hero.bag).toEqual({});
+  });
+
+  it('just tired: energy one under where the walk slows', () => {
+    open('Hero');
+    row('Just tired').click();
+    expect(model.hero.energy).toBe(TIRED - 1);
+    expect(tiredPace(model.hero)).toBeLessThan(1);
+  });
+
+  it('one-hit kills: toggled on, a blow fells a foe at full health (a draugr, the toughest); off, it doesn\'t', () => {
+    open('Hero');
+    const blowOn = () => {
+      const draugr = makeEnemy(999, 'draugr', model.hero.x, model.hero.z + 0.5);
+      const fight: Fight = { ...model, foes: [draugr], focused: draugr, hero: model.hero, slain: new Set(), quests: model.quests, oneHitKills: model.oneHitKills, godMode: false, random: () => 0.5, report: () => {}, focus: () => {}, dropLoot: () => {}, dropCoins: () => {}, slayGuard: () => {}, fall: () => {}, shove: () => {} };
+      landBlow(fight);
+      return draugr.state;
+    };
+    expect(blowOn()).not.toBe('dead');
+    row('One-hit kills').click();
+    expect(model.oneHitKills).toBe(true);
+    expect(blowOn()).toBe('dead');
+    row('One-hit kills').click();
+    expect(model.oneHitKills).toBe(false);
   });
 });
