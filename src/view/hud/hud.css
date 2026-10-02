@@ -306,6 +306,16 @@
 .target-hud .hero-hud-level[data-difficulty='hard'] { background: #e07a2a; box-shadow: inset -3px -3px 0 #a8551c; }
 .target-hud .hero-hud-level[data-difficulty='deadly'] { background: #c8362a; box-shadow: inset -3px -3px 0 #8a2218; }
 
+/* The action bar, bottom centre (actionBar.ts): the toolbar's tiles in a row, each slot's key on its top-left
+   corner, how many are carried in the bag's square chip; an empty slot faint and dashed, one with none left
+   greyed, all of them dimmed while the hero's still at a meal. */
+.action-bar { position: fixed; left: 50%; bottom: 16px; z-index: 25; display: flex; gap: 8px; transform: translateX(-50%); }
+.action-slot.empty { background: rgba(239, 220, 184, 0.35); border-style: dashed; box-shadow: none; }
+.action-slot.spent canvas { filter: grayscale(1) brightness(0.85); opacity: 0.6; }
+.action-slot.busy canvas { opacity: 0.5; }
+.action-key { position: absolute; top: -7px; left: -7px; min-width: 20px; height: 20px; display: grid; place-items: center; font: 700 12px/1 'Fredoka', system-ui, sans-serif; color: #f8ecd4; background: #2e1f14; border: 2px solid #f8ecd4; }
+.action-slot .menu-slot-count:empty { display: none; }
+
 /* A toolbar tile's label, over it on hover. */
 .toolbar-tip {
   position: absolute;
