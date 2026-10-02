@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { lineText } from '../src/view/ui/menuTypes';
 import { ENEMY_STATS } from '../src/model/constants';
 import { ITEMS, ITEM_IDS, type ItemId } from '../src/model/human/equipment';
 import { MAX_ENERGY, maxHpAt, recover } from '../src/model/hero/heroStats';
@@ -124,7 +125,8 @@ describe('gear', () => {
   });
 
   it("tells in its tooltip its armour and what it adds, as WoW's do", () => {
-    expect(gearLines('chainMail')).toEqual(['Armour 8', '+3 Stamina']);
-    expect(gearLines('sapphireRing')).toEqual(['+1 Agility', '+2 Endurance']);
+    expect(gearLines('chainMail').map(lineText)).toEqual(['Armour 8', '+3 Stamina']);
+    expect(gearLines('sapphireRing').map(lineText)).toEqual(['+1 Agility', '+2 Endurance']);
+    expect(gearLines('chainMail').every((l) => typeof l !== 'string' && l.tone === 'stat')).toBe(true); // (each told as a stat: menuTypes.ts)
   });
 });
