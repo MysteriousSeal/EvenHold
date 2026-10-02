@@ -376,7 +376,7 @@ describe('female build', () => {
     }
   });
 
-  it('wears her hair up past her head (a bun, a ponytail, a braid), off under a hat', () => {
+  it('wears her hair up past her head (a bun, a ponytail, a braid), off under a helm (hanging below an open one)', () => {
     for (const hairStyle of HAIR_STYLES) {
       const look = { ...FEMALE, hairStyle };
       expect(filled(buildBodyPart('head', look))).toBe(PART_GRID.head[0] ** 3); // the head's still the full cube
@@ -386,7 +386,9 @@ describe('female build', () => {
     const rig = new HumanRig({ ...FEMALE, hairStyle: 'braid' });
     expect(rig.joints.head.children).toHaveLength(2); // the head and her braid
     rig.wear({ head: 'leatherCap' });
-    expect(rig.joints.head.children.filter((c) => c.visible)).toHaveLength(2); // the head and the cap, the braid tucked away
+    expect(rig.joints.head.children.filter((c) => c.visible)).toHaveLength(3); // the head, the cap, and the braid falling from under it (open behind)
+    rig.wear({ head: 'greatHelm' });
+    expect(rig.joints.head.children.filter((c) => c.visible)).toHaveLength(2); // the head and the helm, the braid tucked away
   });
 
   it('is who looks say: never bearded, and as often as asked for', () => {

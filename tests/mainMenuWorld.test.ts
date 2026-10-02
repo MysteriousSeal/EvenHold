@@ -10,13 +10,14 @@ import { forgetWorld, savedWorlds } from '../src/controller/storage/saveGame';
 import { showMainMenu } from '../src/controller/mainMenu';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const world = vi.hoisted(() => ({ shown: [] as string[], chosen: -1, present: false, skipped: 0, pick: (_: number) => {}, done: () => {} }));
+const world = vi.hoisted(() => ({ shown: [] as string[], chosen: -1, present: false, skipped: 0, made: null as null | { equipment: object }, pick: (_: number) => {}, done: () => {} }));
 vi.mock('../src/view/title/titleScene', () => ({
   TITLE_HEROES: 8,
   createTitleScene: () => ({
     intro: (done: () => void) => (world.done = done),
     skip: () => (world.skipped++, world.done()),
     show: (heroes: { name: string }[], chosen: number, present: boolean) => Object.assign(world, { shown: heroes.map((h) => h.name), chosen, present }),
+    create: (hero: { equipment: object }) => (world.made = hero),
     onPick: (pick: (i: number) => void) => (world.pick = pick),
     dispose: () => {},
   }),
@@ -77,5 +78,25 @@ describe('the main menu, its world', () => {
     world.pick(1);
     world.pick(1);
     expect((await chosen).seed).toBe(TEST_SEEDS[1]);
+  });
+});
+
+describe('the hero being made, in the world', () => {
+  it('stands bare-headed; a helm tried on, in it; made, they start bare-headed all the same', async () => {
+    const chosen = showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
+    world.done();
+    document.querySelector<HTMLButtonElement>('.title-slot')!.click();
+    await Promise.resolve(); // (the first stand-in, told on the next tick)
+    expect(world.made?.equipment).toEqual({});
+    const hair = Array.from(document.querySelectorAll('.forge-trait')).find((t) => t.querySelector('.forge-trait-head span')?.textContent === 'Hair')!;
+    expect(hair.nextElementSibling?.classList.contains('forge-helm')).toBe(true); // (right under the hair style)
+    const helm = (label: string) => Array.from(document.querySelectorAll<HTMLButtonElement>('.forge-helm .forge-option')).find((b) => b.textContent === label)!;
+    helm('On').click();
+    expect(world.made?.equipment).toEqual({ head: 'nasalCap' });
+    expect(helm('On').classList.contains('chosen')).toBe(true);
+    Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Create Hero')!.click();
+    const made = await chosen;
+    expect(made.hero).toBeDefined();
+    expect(Object.keys(made.hero!)).toEqual(['name', 'look']); // (no helm: only the look and name are made)
   });
 });
