@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { HEAD_PAD, buildHeadgear } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS } from '../src/view/meshes/human/gear/itemModels';
 import { HEAD_ITEMS } from '../src/model/human/items/armor';
+import { cornered, domed, edgeOf, riveted } from '../src/view/meshes/human/gear/items/headShape';
 
 const HEAD = 11; // the head's cube
 const HEADS = Object.keys(HEAD_ITEMS) as Array<keyof typeof HEAD_ITEMS>;
@@ -62,5 +63,23 @@ describe('head pieces', () => {
       if (item === 'circlet' || item === 'leatherCap') continue; // (the old ones the hero may start with or find)
       expect(Boolean(soldBy) || Boolean(wornBy) || value >= 100, item).toBe(true);
     }
+  });
+});
+
+describe('the head\'s measures (headShape.ts)', () => {
+  const cell = (x: number, y: number, z: number) => ({ x, y, z, d: 1, front: z > 10, back: z < 0, flank: x < 0 || x > 10, top: y > 10 });
+  it('a piece\'s edge row by where it is: over the face, round the sides, behind', () => {
+    expect(edgeOf(cell(5, 9, 11), 9, 5, 4)).toBe(9);
+    expect(edgeOf(cell(-1, 9, 5), 9, 5, 4)).toBe(5);
+    expect(edgeOf(cell(5, 9, -1), 9, 5, 4)).toBe(4);
+    expect(edgeOf(cell(5, 9, -1), 9, 6)).toBe(6); // (behind, as the sides when not said)
+  });
+  it('a dome within its reach of the middle; a corner two sides out; rivets every third voxel', () => {
+    expect(domed(cell(2, 11, 8))).toBe(true);
+    expect(domed(cell(1, 11, 5))).toBe(false);
+    expect(domed(cell(3, 11, 3), 2)).toBe(true);
+    expect(cornered(cell(-1, 5, 11))).toBe(true);
+    expect(cornered(cell(-1, 5, 5))).toBe(false);
+    expect([0, 1, 2, 3].map((x) => riveted(cell(x, 5, -1), 9, 1))).toEqual([1, 9, 1, 1]);
   });
 });
