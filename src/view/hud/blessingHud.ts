@@ -42,30 +42,35 @@ interface Card {
   time: string;
 }
 
+// A card: its icon on its tile, the time left in a pill on its corner (filled in as it runs), and its name and what
+// it does in the shared tooltip look, under it on hover.
+function makeCard(className: string, icon: MenuIcon, title: string, about: string): Card {
+  const root = document.createElement('div');
+  root.className = className;
+  const tile = document.createElement('div');
+  tile.className = 'blessing-hud-icon';
+  tile.append(icon(36));
+  const left = document.createElement('span');
+  left.className = 'blessing-hud-time';
+  const tip = document.createElement('div');
+  tip.className = 'blessing-tip';
+  const name = document.createElement('b');
+  name.textContent = title;
+  const said = document.createElement('span');
+  said.textContent = about;
+  tip.append(name, said);
+  root.append(tile, left, tip);
+  return { root, left, time: '' };
+}
+
 export function createBlessingHud(hero: Hero): () => void {
   const row = document.createElement('div');
   row.className = 'blessing-hud';
   document.body.append(row);
   const cards = new Map<BlessingKind, Card>();
 
-  const card = (kind: BlessingKind): Card => {
-    const root = document.createElement('div');
-    root.className = isBane(kind) ? `blessing-card blessing-bane blessing-${kind}` : 'blessing-card'; // (a fall's mark, a draugr's frost: not a well's gift)
-    const tile = document.createElement('div');
-    tile.className = 'blessing-hud-icon';
-    tile.append(ICONS[kind](36));
-    const left = document.createElement('span');
-    left.className = 'blessing-hud-time';
-    const tip = document.createElement('div');
-    tip.className = 'blessing-tip'; // the shared tooltip look, under it on hover
-    const name = document.createElement('b');
-    name.textContent = BLESSINGS[kind].name;
-    const about = document.createElement('span');
-    about.textContent = BLESSINGS[kind].about;
-    tip.append(name, about);
-    root.append(tile, left, tip);
-    return { root, left, time: '' };
-  };
+  const card = (kind: BlessingKind): Card =>
+    makeCard(isBane(kind) ? `blessing-card blessing-bane blessing-${kind}` : 'blessing-card', ICONS[kind], BLESSINGS[kind].name, BLESSINGS[kind].about); // (a fall's mark, a draugr's frost: not a well's gift)
 
   // The meal's card: made for each meal (its icon, its words), the time left kept up.
   let meal: (Card & { of: object }) | null = null;
@@ -75,24 +80,9 @@ export function createBlessingHud(hero: Hero): () => void {
     if (!eating?.item || !isProvision(eating.item)) return;
     if (!meal) {
       const { item } = eating;
-      const drink = !!PROVISIONS[item].drink;
-      const root = document.createElement('div');
-      root.className = 'blessing-card blessing-meal';
-      const tile = document.createElement('div');
-      tile.className = 'blessing-hud-icon';
-      tile.append(lootIcon(item)(36));
-      const left = document.createElement('span');
-      left.className = 'blessing-hud-time';
-      const tip = document.createElement('div');
-      tip.className = 'blessing-tip';
-      const name = document.createElement('b');
-      name.textContent = drink ? 'Drinking' : 'Eating';
-      const about = document.createElement('span');
-      about.textContent = `${LOOT[item].name}: ${givesText(item).toLowerCase()}. Moving, fighting or a blow stops it.`;
-      tip.append(name, about);
-      root.append(tile, left, tip);
-      meal = { root, left, time: '', of: eating };
-      row.prepend(root);
+      const about = `${LOOT[item].name}: ${givesText(item).toLowerCase()}. Moving, fighting or a blow stops it.`;
+      meal = { ...makeCard('blessing-card blessing-meal', lootIcon(item), PROVISIONS[item].drink ? 'Drinking' : 'Eating', about), of: eating };
+      row.prepend(meal.root);
     }
     const now = clock(eating.left);
     if (now !== meal.time) meal.left.textContent = meal.time = now;
