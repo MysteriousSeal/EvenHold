@@ -118,7 +118,7 @@ describe('the main menu', () => {
     expect(document.querySelector('.title-enter')?.textContent).toBe('Create Hero');
     click('Create Hero');
     expect(document.querySelector('.title-forge')).not.toBeNull();
-    document.querySelector<HTMLInputElement>('.forge-world .title-input')!.value = 'dragon';
+    document.querySelector<HTMLInputElement>('.forge-seed')!.value = 'dragon';
     click('Create Hero');
     const made = await chosen;
     expect(made.seed).toBe(seedFrom('dragon'));
@@ -248,9 +248,33 @@ describe('the character creation screen', () => {
     expect(identity.classList.contains('identity')).toBe(true);
     expect(identity.querySelector('.title-list-head span')?.textContent).toBe('Name & World');
     expect(identity.querySelector('.forge-name')).not.toBeNull();
-    expect(identity.querySelector('.forge-world .title-input')).not.toBeNull(); // (always shown: not folded)
+    expect(identity.querySelector('.forge-seed')).not.toBeNull(); // (always shown: not folded)
     expect(identity.querySelector('details')).toBeNull();
     expect(identity.querySelector('.forge-trait.cycle, .forge-swatches')).toBeNull(); // (no trait of the look here)
+  });
+
+  it("the seed: told what it opens as it's typed (chance, a number, a word, a world of theirs); its dice roll one to see", () => {
+    keep(TEST_SEEDS[0], 'Aleyn', 17, 100);
+    void showMainMenu(hooks);
+    document.querySelector<HTMLButtonElement>('.title-slot')!.click();
+    const seed = document.querySelector<HTMLInputElement>('.forge-seed')!;
+    const reading = () => document.querySelector('.forge-seed-reading')!;
+    const type = (text: string) => {
+      seed.value = text;
+      seed.dispatchEvent(new Event('input'));
+    };
+    expect(reading().textContent).toContain('chance');
+    expect(reading().classList.contains('chance')).toBe(true);
+    type('482913077');
+    expect(reading().textContent).toBe('World 482913077');
+    type('dragon');
+    expect(reading().textContent).toBe(`\u2018dragon\u2019 \u2192 world ${seedFrom('dragon')}`);
+    type(String(TEST_SEEDS[0]));
+    expect(reading().textContent).toBe("Opens Aleyn's world: they carry on there.");
+    expect(reading().classList.contains('theirs')).toBe(true);
+    document.querySelector<HTMLButtonElement>('.forge-world .forge-dice')!.click();
+    expect(Number.isInteger(Number(seed.value))).toBe(true);
+    expect(reading().textContent).toBe(`World ${seed.value}`);
   });
 
   it('every trait of a look, each drawn for its kind; none known to it by name', () => {
