@@ -1,7 +1,9 @@
 // The rules of a fight, the hero's side: which foe a blow lands on, what it
 // does (their Strength, a critical one with Agility), and what a foe's blow
-// does to them (dodged with Agility, less through their armour). GameModel
-// plays them out (events, loot, knockback, a fall).
+// does to them (dodged with Agility, less through their armour). The fights
+// play them out (fighting.ts: events, loot, knockback, a fall), and the
+// hero's own moves (combatMoves.ts: the blow's timing, a roll, the guard)
+// come before them.
 
 import { ATTACK_REACH, ENEMY_STATS } from '../constants';
 import type { Enemy, Hero } from '../types';

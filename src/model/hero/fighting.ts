@@ -1,6 +1,8 @@
 // The hero's fights, wherever they're fought (out in the world, or down in a
 // crypt: the foes about are its guards): the hero's blow landing on the foe in
-// reach (combat.ts), and a foe's blow, or a bowman's arrow, landing on the hero.
+// reach (combat.ts), harder on a foe just parried, and a foe's blow, or a
+// bowman's arrow, landing on the hero: first met by their roll or guard
+// (combatMoves.ts), then dodged or taken (combat.ts).
 
 import type { CombatMoves, Guarded } from './combatMoves';
 import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';

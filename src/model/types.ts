@@ -8,6 +8,16 @@ import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 
+// Something eaten or drunk over a while (heroStats.ts recover): the health and energy it gives back in all, the
+// seconds left of it and in all; `item`, what it is (from the bag).
+export interface Meal {
+  heal: number;
+  energy?: number;
+  left: number;
+  seconds: number;
+  item?: BagItem;
+}
+
 // The hero is a humanoid: a look, and what they wear (naked at first).
 export interface Hero extends Humanoid {
   name: string;
@@ -29,8 +39,8 @@ export interface Hero extends Humanoid {
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
-  drinking?: { heal: number; energy?: number; left: number; seconds: number } | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
-  eating?: { heal: number; energy?: number; left: number; seconds: number; item?: BagItem } | null; // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
+  drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
+  eating?: Meal | null; // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
 export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins)

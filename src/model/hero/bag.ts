@@ -3,7 +3,7 @@
 
 import { ITEMS, SLOT_NAMES, type ItemId } from '../human/equipment';
 import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
-import { DRINK_SECONDS, EAT_SECONDS, PROVISIONS, isProvision } from '../loot/provisions';
+import { MEAL_SECONDS, PROVISIONS, isProvision } from '../loot/provisions';
 import type { Hero } from '../types';
 import { maxEnergyOf, maxHpOf } from './attributes';
 
@@ -57,8 +57,7 @@ export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF
 // at another).
 export function eatOrDrink(hero: Hero, item: BagItem): boolean {
   if (!isProvision(item) || hero.eating || !takeFromBag(hero.bag, item)) return false;
-  const { heal = 0, energy = 0, drink } = PROVISIONS[item];
-  const seconds = drink ? DRINK_SECONDS : EAT_SECONDS;
-  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: seconds, seconds, item };
+  const { heal = 0, energy = 0 } = PROVISIONS[item];
+  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: MEAL_SECONDS, seconds: MEAL_SECONDS, item };
   return true;
 }

@@ -5,7 +5,7 @@
 // in a bed, and levelling up, which heals fully.
 
 import { DAY_MINUTES } from '../clock';
-import type { Hero } from '../types';
+import type { Hero, Meal } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
 import { POINTS_PER_LEVEL } from './training';
 
@@ -79,7 +79,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false)
   hero.eating = restoring(hero, hero.eating, dt);
 }
 
-function restoring(hero: Hero, meal: Hero['drinking'], dt: number): Hero['drinking'] {
+function restoring(hero: Hero, meal: Meal | null | undefined, dt: number): Meal | null | undefined {
   if (!meal) return meal;
   const step = Math.min(dt, meal.left);
   hero.hp = Math.min(maxHpOf(hero), hero.hp + (meal.heal * step) / meal.seconds);

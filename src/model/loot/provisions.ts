@@ -28,11 +28,10 @@ export const PROVISIONS: Record<ProvisionId, Provision> = PROVISION_TABLE;
 export const PROVISION_IDS = Object.keys(PROVISIONS) as ProvisionId[];
 export const isProvision = (item: string): item is ProvisionId => item in PROVISIONS;
 
-export const EAT_SECONDS = 15; // food, eaten over so long
-export const DRINK_SECONDS = 15; // and drink, drunk
+export const MEAL_SECONDS = 15; // food eaten, or drink drunk, over so long
 
 // What one gives back, and over how long: "Heals 20% over 15 seconds" (food), "Restores 20% energy over 15 seconds"
 // (drink), of the most.
 const percent = (share = 0) => `${Math.round(share * 100)}%`;
 export const givesText = (id: ProvisionId): string =>
-  PROVISIONS[id].drink ? `Restores ${percent(PROVISIONS[id].energy)} energy over ${DRINK_SECONDS} seconds` : `Heals ${percent(PROVISIONS[id].heal)} over ${EAT_SECONDS} seconds`;
+  PROVISIONS[id].drink ? `Restores ${percent(PROVISIONS[id].energy)} energy over ${MEAL_SECONDS} seconds` : `Heals ${percent(PROVISIONS[id].heal)} over ${MEAL_SECONDS} seconds`;
