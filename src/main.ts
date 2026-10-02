@@ -14,7 +14,9 @@ import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
 import { createCryptBar } from './view/hud/cryptBar';
-import { cryptAt } from './model/crypts/crypts';
+import { dungeonAt } from './model/dungeons/dungeons';
+import { goesUnder } from './model/dungeons/dungeonTypes';
+import { TEARS_AT } from './model/caves/caveFoes';
 import { atWayOut } from './model/interiors/indoors';
 import { travellerInReach, travellerPrompt, travellerSays } from './model/travellers/travellerTalk';
 import { say } from './model/npcs/speech';
@@ -126,7 +128,7 @@ async function boot(): Promise<void> {
   );
   const floatingText = createFloatingText();
   const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
-  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45 }; // about two thirds of the way up them
+  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45, caveSpider: 0.2, caveBat: 0.3, caveWorm: 0.35, hatchling: 0.15, broodMother: 0.55 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);
@@ -175,8 +177,8 @@ async function boot(): Promise<void> {
     const loot = model.lootInReach;
     if (loot) return lootTarget(loot);
     const { hero } = model;
-    const chest = model.crypt?.chestInReach(hero) && model.crypt.chest;
-    if (chest) return { label: 'Open the chest', x: chest.x, y: 0.8, z: chest.z };
+    const chest = model.dungeon?.chestInReach(hero) && model.dungeon.chest;
+    if (chest) return { label: model.cave ? 'Tear open the hoard' : 'Open the chest', x: chest.x, y: 0.8, z: chest.z }; // (a lord's chest, a brood mother's silk-wrapped hoard)
     const seated = model.seated;
     const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
     const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
@@ -202,8 +204,9 @@ async function boot(): Promise<void> {
     if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
     if (!door) return null;
-    if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : model.inside.entrance.type === 'crypt' ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
-    const label = door.type === 'crypt' ? `Enter the crypt (level ${cryptAt(door)?.level ?? 1}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type];
+    if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
+    const place = goesUnder(door) ? dungeonAt(door) : null;
+    const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
     return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
   const onFrame = () => {
@@ -216,8 +219,8 @@ async function boot(): Promise<void> {
     updateBlessing();
     updateClock(model.minutes);
     updateTarget(model.focused, model.hero.level);
-    const crypt = model.crypt && model.inside && cryptAt(model.inside.entrance);
-    updateCryptBar(crypt ? { name: crypt.name, share: model.clearedShare(model.inside!.entrance) } : null); // (down in one: how much is cleared)
+    const below = model.dungeon && model.inside && dungeonAt(model.inside.entrance);
+    updateCryptBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : null); // (down in a crypt or a cave: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
@@ -271,8 +274,13 @@ async function boot(): Promise<void> {
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
       else if (event.kind === 'locked') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ["It's locked"], '#f8ecd4');
       else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
+      else if (event.kind === 'webbed') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Webbed'], '#e8e2d6');
       else if (event.kind === 'rises') placeBanner(`${event.name} rises`, 'From the great tomb');
-      else if (event.kind === 'cleared') placeBanner('Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
+      else if (event.kind === 'stirs') placeBanner(`${event.name} stirs`, 'From her silken nest');
+      else if (event.kind === 'torn') placeBanner('The silk tears', 'Deep within, the nest lies open');
+      else if (event.kind === 'walled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Thick silk bars the way', `Clear more of the cave · ${Math.round(event.share * 100)}% of ${Math.round(TEARS_AT * 100)}%`], '#e8e2d6');
+      else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : 'Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {

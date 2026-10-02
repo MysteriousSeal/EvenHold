@@ -66,6 +66,7 @@ import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
 import { randomName } from '../../model/npcs/npcs';
 import type { Ruin } from '../../model/ruins/ruins';
+import type { Cave } from '../../model/caves/caves';
 import type { Camp } from '../../model/camps/camps';
 import './cheatPanel.css';
 
@@ -110,6 +111,14 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const campsSeen = new Set<Camp>(); // and the camps'
+  const cavesSeen = new Set<Cave>(); // and the caves'
+  // The nearest cave not yet visited on the tour: the spot before its mouth.
+  const nextCave = (): Tile | null => {
+    const cave = model.caves.filter((c) => !cavesSeen.has(c)).sort((a, b) => Math.hypot(a.entrance.x - model.hero.x, a.entrance.z - model.hero.z) - Math.hypot(b.entrance.x - model.hero.x, b.entrance.z - model.hero.z))[0];
+    if (!cave) return null;
+    cavesSeen.add(cave);
+    return { x: cave.entrance.x, z: cave.entrance.z };
+  };
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const herbalists = new Set<Entrance>(); // and the herbalists' houses
   const STYLE_NAMES: Record<HairStyle, string> = {
@@ -199,6 +208,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ]),
           ...group('Wilds', [
             { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
+            { icon: ICON.ruin, title: 'Next cave', detail: 'The nearest you haven’t visited, before its mouth', run: () => travel(nextCave(), `cave ${cavesSeen.size} of ${model.caves.length}`) },
             { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
             { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
             { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
@@ -402,7 +412,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ...group('Control', [
             { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
             { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
-            { icon: ICON.ruin, title: 'Reset crypts', detail: 'Every guard back at his post (out of a crypt first)', run: () => (resetCrypts(model), 'The crypts are guarded again.') },
+            { icon: ICON.ruin, title: 'Reset dungeons', detail: 'Every crypt guard and cave beast back at its post (out of one first)', run: () => (resetCrypts(model), 'The crypts and caves are guarded again.') },
           ]),
         ],
       },

@@ -67,7 +67,7 @@ export class GameController {
     this.onTraveller = options.onTraveller ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
-      if (event.button === 0 && !this.paused && (!model.inside || model.crypt) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
+      if (event.button === 0 && !this.paused && (!model.inside || model.dungeon) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
     });
     window.addEventListener('keydown', (event) => {
       if (event.code === 'Escape' && !this.paused) model.focus(null);
@@ -120,7 +120,7 @@ export class GameController {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
-    if (turn && (!this.model.inside || this.model.crypt) && !this.model.yard) this.model.cycleFocus(turn === 'back');
+    if (turn && (!this.model.inside || this.model.dungeon) && !this.model.yard) this.model.cycleFocus(turn === 'back');
     // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
     // by its bed, at night, G: a night's sleep.
     const wanted = this.input.consumeOrder();
@@ -141,7 +141,7 @@ export class GameController {
       const item = this.model.pickUp();
       const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero); // the barmaid, the smith
       if (item) this.onPickUp(item);
-      else if (this.model.crypt?.chestInReach(this.model.hero)) this.model.crypt.openChest(); // a crypt lord's chest
+      else if (this.model.dungeon?.chestInReach(this.model.hero)) this.model.dungeon.openChest(); // a crypt lord's chest, a brood mother's hoard
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
