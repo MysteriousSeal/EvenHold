@@ -6,7 +6,8 @@
 // still fits without it.
 
 import { isBagItem, type BagId } from '../loot/bags';
-import { addToBag, slotsUsed, stacksOf, takeFromBag, type BagItem } from './bag';
+import { addToBag, takeFromBag, type BagItem } from './bag';
+import { needsNewStack, slotsUsed } from './bagStacks';
 import type { Hero } from '../types';
 
 export const BAG_ROOM = 24; // slots the bag has of its own
@@ -16,14 +17,8 @@ export const ROOM_PER_BAG = 6; // slots each fitted bag adds
 // How many slots the hero's bag has now.
 export const bagRoom = (hero: Pick<Hero, 'bags'>): number => BAG_ROOM + ROOM_PER_BAG * hero.bags.filter((b) => b !== null).length;
 
-// How many of its slots what it holds takes (a slot to each thing, junk JUNK_STACK to a slot: bag.ts).
-export const kindsCarried = (hero: Pick<Hero, 'bag'>): number => slotsUsed(hero.bag);
-
 // Whether one more `item` would go in: onto a stack of it with room, always; a stack of its own, if there's a slot free.
-export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => {
-  const count = hero.bag[item] ?? 0;
-  return stacksOf(item, count + 1) === stacksOf(item, count) || kindsCarried(hero) < bagRoom(hero);
-};
+export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => !needsNewStack(item, hero.bag[item] ?? 0) || slotsUsed(hero.bag) < bagRoom(hero);
 
 // Fits a bag from the bag into socket `socket` (the first free, if not said); whether it did (a bag carried, the
 // socket free).
@@ -37,8 +32,8 @@ export function fitBag(hero: Hero, item: BagItem, socket = hero.bags.indexOf(nul
 export function unfitBag(hero: Hero, socket: number): boolean {
   const fitted = hero.bags[socket];
   if (!fitted) return false;
-  const kinds = kindsCarried(hero) + stacksOf(fitted, (hero.bag[fitted] ?? 0) + 1) - stacksOf(fitted, hero.bag[fitted] ?? 0);
-  if (kinds > bagRoom(hero) - ROOM_PER_BAG) return false;
+  const taken = slotsUsed(hero.bag) + (needsNewStack(fitted, hero.bag[fitted] ?? 0) ? 1 : 0);
+  if (taken > bagRoom(hero) - ROOM_PER_BAG) return false;
   hero.bags[socket] = null;
   addToBag(hero.bag, fitted);
   return true;

@@ -12,7 +12,7 @@ import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import { Travellers } from './travellers/travellers';
 import { bagRoom, canCarry } from './hero/bagSlots';
-import { takeFromSlot } from './hero/bag';
+import { takeFromSlot } from './hero/bagStacks';
 import { addSceneryObstacles, placeScenery, type Scenery } from './scenery/scenery';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
