@@ -24,8 +24,8 @@ import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
 import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, settle, squareSpot } from './npcPlaces';
 import { easeOffHero, heroOn, place, walk } from './npcWalk';
-import { smithSteps } from '../smithy/smithWork';
-import { herbalistSteps } from '../herbalist/herbalistWork';
+import { smithCalled, smithSteps } from '../smithy/smithWork';
+import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 
 export interface NpcWorld extends BenchWorld {
   seed: number;
@@ -116,9 +116,13 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   herbalist: (npc, _npcs, world) => herbalistSteps(npc, world), // (at home, at work among their pots and herbs, always)
 };
 
+// Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).
+const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled };
+
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
   if (seen && easeOffHero(npc, world, dt)) return;
+  if (CALLED[npc.role]?.(npc, world)) [npc.steps, npc.path, npc.waited, npc.working] = [[], null, 0, false]; // (to the counter, at once)
   if (npc.steps.length === 0) npc.steps = ROUTINES[npc.role](npc, npcs, world);
   const step = npc.steps[0];
   const done = () => {
