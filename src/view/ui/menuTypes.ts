@@ -18,9 +18,16 @@ export interface MenuAction {
   current?(): { detail?: string; icon?: MenuIcon; value?: string };
 }
 
-// A line of a slot's tooltip: plain, or coloured as a gain (green) or a loss
-// (red), as what wearing a piece would change.
-export type MenuLine = string | { text: string; tone: 'gain' | 'loss' };
+// A line of a slot's tooltip: plain, or with a part to play, which sets its
+// look (menu.css): what kind of thing it is (under its name), a stat it
+// gives, a header over what follows (what wearing it would change), a gain
+// (green) or a loss (red), a word about it (italic), its price, or a hint of
+// what to do with it (small, last). The tooltip draws a rule before each new
+// part: the header, the hints, the price.
+export type LineTone = 'kind' | 'stat' | 'head' | 'gain' | 'loss' | 'flavor' | 'price' | 'hint';
+export type MenuLine = string | { text: string; tone: LineTone };
+export const toned = (tone: LineTone, text: string): MenuLine => ({ text, tone });
+export const lineText = (line: MenuLine): string => (typeof line === 'string' ? line : line.text);
 
 // One square of a grid of slots (an inventory, a shop): its icon, how many,
 // and what its tooltip says (shown beside it on hover or when selected).

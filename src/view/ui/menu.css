@@ -393,19 +393,28 @@
   z-index: 30; /* above the menu's backdrop (20) */
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-width: 260px;
-  padding: 8px 12px;
+  gap: 3px;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 9px 13px 10px;
 }
 .menu-tooltip[hidden] { display: none; }
-.menu-tooltip b { font-size: 17px; font-weight: 600; color: #f8ecd4; }
+.menu-tooltip b { font-size: 18px; font-weight: 600; line-height: 1.15; color: #f8ecd4; }
 .menu-tooltip b[data-tone='junk'] { color: #b4b0a8; }
 .menu-tooltip b[data-tone='ingredient'] { color: #e8a080; }
 .menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
 .menu-tooltip b[data-tone='bag'] { color: #9ad0a0; }
-.menu-tooltip small { font-size: 13px; color: #d6bb8e; }
-.menu-tooltip small[data-tone='gain'] { color: #5ee05e; } /* what wearing it would add, as in WoW */
-.menu-tooltip small[data-tone='loss'] { color: #ff5e4e; } /* and take away */
+.menu-tooltip small { font-size: 13px; line-height: 1.3; color: #d6bb8e; }
+/* Its lines by the part each plays (menuTypes.ts LineTone): */
+.menu-tooltip small[data-tone='kind'] { margin: -1px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8916c; } /* what it is, under its name */
+.menu-tooltip small[data-tone='stat'] { font-size: 14px; font-weight: 600; color: #f8ecd4; } /* what it gives */
+.menu-tooltip small[data-tone='head'] { font-size: 12px; color: #c8b088; } /* over what wearing it would change */
+.menu-tooltip small[data-tone='gain'] { font-size: 14px; font-weight: 600; color: #6ee06a; } /* what it'd add, as in WoW */
+.menu-tooltip small[data-tone='loss'] { font-size: 14px; font-weight: 600; color: #ff6a56; } /* and take away */
+.menu-tooltip small[data-tone='flavor'] { font-style: italic; color: #d6bb8e; } /* a word about it */
+.menu-tooltip small[data-tone='price'] { color: #ffd98a; } /* what it fetches, or costs */
+.menu-tooltip small[data-tone='hint'] { font-size: 12px; color: #9c8564; } /* what to do with it */
+.menu-tooltip small.ruled { margin-top: 5px; padding-top: 6px; border-top: 1px solid rgba(239, 220, 184, 0.2); } /* a new part */
 
 /* A slot being dragged: its icon under the pointer. */
 .menu-drag { position: fixed; top: 0; left: 0; z-index: 31; width: 60px; pointer-events: none; border-color: var(--ink); box-shadow: 3px 4px 0 rgba(46, 31, 20, 0.45), inset 0 -4px 0 var(--sand-dark); }

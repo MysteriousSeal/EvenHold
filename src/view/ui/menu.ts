@@ -11,9 +11,10 @@ import './menu.css';
 import './menuDetail.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
-import type { DollSlot, Menu, MenuLine, MenuOptions, MenuSlot, MenuSlots } from './menuTypes';
+import { lineText, type DollSlot, type Menu, type MenuLine, type MenuOptions, type MenuSlot, type MenuSlots } from './menuTypes';
 import { el } from './dom';
-export type { DollSlot, Menu, MenuAction, MenuIcon, MenuLine, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
+export type { DollSlot, LineTone, Menu, MenuAction, MenuIcon, MenuLine, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
+export { lineText, toned } from './menuTypes';
 
 
 // Menus open right now, most recent last.
@@ -81,10 +82,15 @@ export function createMenu(options: MenuOptions): Menu {
   function placeTip(anchor: HTMLElement, text: string, lines: MenuLine[], tone?: string): void {
     const title = el('b', undefined, text);
     if (tone) title.dataset.tone = tone;
+    // Each line in its part's look; a rule before a new part (the header over what wearing it would change, the
+    // price, the hints).
+    let last: string | undefined;
     const line = (l: MenuLine) => {
-      if (typeof l === 'string') return el('small', undefined, l);
-      const small = el('small', undefined, l.text);
-      small.dataset.tone = l.tone; // (a gain or a loss: menu.css)
+      const small = el('small', undefined, lineText(l));
+      const tone = typeof l === 'string' ? undefined : l.tone;
+      if (tone) small.dataset.tone = tone;
+      if (tone !== last && (tone === 'head' || tone === 'hint' || tone === 'price')) small.classList.add('ruled');
+      last = tone;
       return small;
     };
     tooltip.replaceChildren(title, ...lines.map(line));
