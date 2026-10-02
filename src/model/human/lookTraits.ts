@@ -40,7 +40,7 @@ export const LOOK_TRAITS: readonly LookTrait[] = [
   { key: 'hairStyle', label: 'Hair', kind: 'cycle', values: (look) => STYLES_OF[look.build], name: spaced },
   { key: 'hair', label: 'Hair colour', kind: 'swatch', values: () => ordered(HAIR_ORDER, HAIR_COLOR_COUNT), name: named(['Chestnut', 'Black', 'Fair', 'Red', 'Grey', 'Platinum', 'Auburn', 'White'], 'Colour') },
   { key: 'beard', label: 'Beard', kind: 'toggle', values: () => [false, true], name: (v) => (v ? 'Bearded' : 'Clean-shaven'), shown: (look) => look.build === 'male' },
-  { key: 'dye', label: 'Clothes', kind: 'swatch', values: () => upTo(DYE_COUNT), name: named(['Madder red', 'Woad blue', 'Weld green', 'Walnut', 'Charcoal', 'Turquoise'], 'Dye') },
+  { key: 'dye', label: 'Clothes', kind: 'swatch', values: () => upTo(DYE_COUNT), name: named(['Madder red', 'Woad blue', 'Weld green', 'Walnut', 'Charcoal', 'Turquoise', 'Saffron', 'Orchil'], 'Dye') },
 ];
 
 // The look made sound: each trait's value one it allows (else its first), a hidden one at its first.
