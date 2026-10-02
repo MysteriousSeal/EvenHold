@@ -39,7 +39,6 @@ export interface Traveller extends Humanoid {
   cooldown: number; // before the next blow
   off: { x: number; z: number } | null; // off the road (a guard after a foe), else on it
   leader: number | null; // a guard following another (their partner, by id), a pace behind
-  waited: number; // seconds waited on someone in their way
   lane: number; // where across the road they walk (KEEP a lane, from the middle): 1 their right (as ever), -1 the far side, LANES' others to walk round someone
 }
 
@@ -129,7 +128,6 @@ export function makeTraveller(id: number, role: TravellerRole, road: number, alo
     cooldown: 0,
     off: null,
     leader,
-    waited: 0,
     lane: 1,
   };
 }
@@ -243,12 +241,7 @@ export class Travellers {
       ease(line);
       if (into(t.along, t.lane)) t.lane = before; // (not sideways into anyone either)
     }
-    if (into(step, t.lane)) {
-      t.waited += dt;
-      return false; // (someone in the way: not into them)
-    }
-    t.waited = 0;
-    return true;
+    return !into(step, t.lane); // (someone in the way: not into them, waiting)
   }
 
   // Whether `t` at `to` would be in someone (nearer than ROOM): not their partner (a guard following, a pace behind).

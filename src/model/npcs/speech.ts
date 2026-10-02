@@ -12,6 +12,15 @@ export function say(who: Pick<Npc, 'x' | 'z'> & { where: Npc['where'] }, text: s
   said.push({ kind: 'say', speaker: who, where: who.where, text });
 }
 
+// Lines taken in turn, by whoever (or whatever) says them: every line comes round, never one twice running.
+const turns = new WeakMap<object, number>();
+export function nextTurn(owner: object): number {
+  const n = turns.get(owner) ?? 0;
+  turns.set(owner, n + 1);
+  return n;
+}
+export const inTurn = <T>(owner: object, lines: readonly T[]): T => lines[nextTurn(owner) % lines.length];
+
 // What's been said since last asked, and forgotten.
 export const takeSpeech = (): GameEvent[] => said.splice(0);
 

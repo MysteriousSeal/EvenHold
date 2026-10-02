@@ -5,6 +5,7 @@
 
 import type { Traveller } from './travellers';
 import type { Crypt } from '../crypts/crypts';
+import { inTurn, nextTurn } from '../npcs/speech';
 
 export const TRAVELLER_TALK_RANGE = 1.6; // tiles: near enough for a word, out on the road
 
@@ -61,19 +62,11 @@ export function cryptRumour(t: { x: number; z: number }, crypts: readonly Crypt[
   return `There's a crypt to the ${bearing(t, best.middle)}, ${far} from here: ${best.name}. Go armed.`;
 }
 
-const said = new WeakMap<object, number>(); // each traveller's lines taken in turn
-const inTurn = (t: Traveller, lines: readonly string[]): string => {
-  const n = said.get(t) ?? 0;
-  said.set(t, n + 1);
-  return lines[n % lines.length];
-};
 
 // What a pilgrim or a guard says when spoken to (a pedlar trades instead): a pilgrim, every other time, of the nearest
 // crypt (if any).
 export function travellerSays(t: Traveller, crypts: readonly Crypt[]): string {
-  if (t.role === 'guard') return inTurn(t, GUARD_LINES);
-  const n = said.get(t) ?? 0;
-  const rumour = n % 2 === 0 ? cryptRumour(t, crypts) : null;
-  if (rumour) return (said.set(t, n + 1), rumour);
-  return inTurn(t, PILGRIM_ROAD_LINES);
+  if (t.role === 'guard') return inTurn(t, GUARD_LINES); // (in turn: npcs/speech.ts)
+  const n = nextTurn(t);
+  return (n % 2 === 0 ? cryptRumour(t, crypts) : null) ?? PILGRIM_ROAD_LINES[Math.floor(n / 2) % PILGRIM_ROAD_LINES.length];
 }

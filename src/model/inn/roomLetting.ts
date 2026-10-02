@@ -13,7 +13,7 @@ import type { Inside, Seated } from '../interiors/indoors';
 import type { Seat } from '../interiors/furniture';
 import { maxEnergyOf, maxHpOf } from '../hero/attributes';
 import type { Npc } from '../npcs/npcs';
-import { say } from '../npcs/speech';
+import { inTurn, say } from '../npcs/speech';
 import { talkingTo } from '../npcs/talk';
 import { between, nextHour } from '../clock';
 import { doorway, roomsOff } from '../interiors/upstairs';
@@ -52,12 +52,7 @@ export const LINES = {
     "The quiet one's yours: first door along the back. Till ten in the morning.",
   ],
 } as const;
-const turns = new WeakMap<readonly string[], number>(); // each of her lists taken in turn: every line comes round, never one twice running
-function line(lines: readonly string[]): string {
-  const n = turns.get(lines) ?? 0;
-  turns.set(lines, n + 1);
-  return lines[n % lines.length];
-}
+const line = (lines: readonly string[]): string => inTurn(lines, lines); // (each of her lists in turn: npcs/speech.ts)
 
 // Till when (game minutes) each inn's room is let, by the inn's door.
 const lets = new WeakMap<Entrance, number>();

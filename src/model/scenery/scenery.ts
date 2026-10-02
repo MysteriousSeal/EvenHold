@@ -94,7 +94,7 @@ export function placeScenery(world: SceneryWorld): Scenery[] {
     return true;
   };
   const put = (piece: Scenery) => {
-    for (let i = piece.x; i < piece.x + piece.w; i++) for (let k = piece.z; k < piece.z + piece.d; k++) taken.add(`${i},${k}`);
+    for (const [i, k] of sceneryTiles(piece)) taken.add(`${i},${k}`);
     out.push(piece);
   };
 
@@ -136,12 +136,16 @@ export function placeScenery(world: SceneryWorld): Scenery[] {
   return out;
 }
 
+// The tiles a piece stands on.
+export const sceneryTiles = (s: Pick<Scenery, 'x' | 'z' | 'w' | 'd'>): Array<[number, number]> =>
+  Array.from({ length: s.w * s.d }, (_, i) => [s.x + (i % s.w), s.z + Math.floor(i / s.w)]);
+
 // Each piece in the way: every tile it stands on blocking (a log, a cairn low enough to see over).
 export function addSceneryObstacles(obstacles: Obstacles, scenery: readonly Scenery[]): void {
   for (const s of scenery) {
     const across = ACROSS[s.kind];
     const [hx, hz] = across === undefined ? [HALF[s.kind], HALF[s.kind]] : s.w > s.d ? [HALF[s.kind], across] : [across, HALF[s.kind]]; // (narrow across its length)
     const [mx, mz] = [s.x + (s.w - 1) / 2, s.z + (s.d - 1) / 2]; // (its middle: a round one's disc round it)
-    for (let x = s.x; x < s.x + s.w; x++) for (let z = s.z; z < s.z + s.d; z++) obstacles.addProp(x, z, hx, LOW.has(s.kind), hz, ROUND.has(s.kind), mx - x, mz - z);
+    for (const [x, z] of sceneryTiles(s)) obstacles.addProp(x, z, hx, LOW.has(s.kind), hz, ROUND.has(s.kind), mx - x, mz - z);
   }
 }
