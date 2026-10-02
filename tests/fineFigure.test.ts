@@ -100,7 +100,7 @@ describe('the finer figure, close up', () => {
     expect(right).toBe(0);
   });
 
-  it('cheerful: a laugh, open (a filled mouth, teeth across his), at a distance and close up', () => {
+  it('cheerful: a laugh, open (a filled mouth, teeth across it, his and hers), at a distance and close up', () => {
     for (const [build, beard] of [['male', false], ['male', true], ['female', false]] as const) {
       const face = { ...look, build, beard, expression: 'cheerful' as const };
       const fine = fineFigure(humanFigure(face, {}), face);
@@ -112,8 +112,8 @@ describe('the finer figure, close up', () => {
         if (cell(fine, x, y, z) === C.mouth) mouth++;
         if (cell(fine, x, y, z) === C.glint) teeth++;
       }
-      expect(mouth, `${build}${beard ? '+beard' : ''}`).toBeGreaterThanOrEqual(build === 'male' ? 10 : 12); // (a filled shape, not a line)
-      expect(teeth > 0, `${build} teeth`).toBe(build === 'male');
+      expect(mouth, `${build}${beard ? '+beard' : ''}`).toBeGreaterThanOrEqual(10); // (a filled shape, not a line)
+      expect(teeth, `${build} teeth`).toBeGreaterThan(0);
     }
   });
 
@@ -123,10 +123,11 @@ describe('the finer figure, close up', () => {
       const fine = fineFigure(humanFigure(face, {}), face);
       const [hx, hy, hz] = fine.parts!.head!;
       const z = (hz + N - 1) * 2 + 1;
-      // The fine face's voxels of one colour, in groups touching (sides or corners).
-      const groups = (color: number, x0: number, x1: number) => {
+      // The fine face's voxels of these colours, in groups touching (sides or corners).
+      const groups = (colors: number | number[], x0: number, x1: number) => {
         const left = new Set<string>();
-        for (let y = hy * 2; y < (hy + N) * 2; y++) for (let x = x0; x < x1; x++) if (cell(fine, x, y, z) === color) left.add(`${x},${y}`);
+        const want = [colors].flat();
+        for (let y = hy * 2; y < (hy + N) * 2; y++) for (let x = x0; x < x1; x++) if (want.includes(cell(fine, x, y, z))) left.add(`${x},${y}`);
         let count = 0;
         while (left.size) {
           count++;
@@ -143,7 +144,9 @@ describe('the finer figure, close up', () => {
       // His beard hides his mouth (all but a smile's or smirk's corners, over it); his stern lips are pressed (no mouth colour).
       const corners = beard && (expression === 'cheerful' || expression === 'sly');
       const mouths = beard || (build === 'male' && expression === 'stern') ? 0 : 1;
-      if (!corners) expect(groups(C.mouth, hx * 2, (hx + N) * 2), `${build}${beard ? '+beard' : ''} mouth`).toBe(mouths);
+      // (the mouth with its teeth, below the eyes: one shape)
+      const mouthAndTeeth = groups(expression === 'cheerful' ? [C.mouth, C.glint] : C.mouth, hx * 2, (hx + N) * 2);
+      if (!corners) expect(expression === 'cheerful' ? mouthAndTeeth - 2 : mouthAndTeeth, `${build}${beard ? '+beard' : ''} mouth`).toBe(mouths); // (cheerful: less the eyes' two highlights)
       if (expression === 'sly' && build === 'female') expect(groups(C.eye, mid, (hx + N) * 2), 'her wink').toBe(1);
     }
   });
