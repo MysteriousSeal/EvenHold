@@ -4,13 +4,14 @@
 // be seen into, and the +Z one has the doorway. Grid-aligned only.
 //
 // Floors: planks (long boards in staggered lengths), boards (short, wide,
-// laid across) or flagstones (squarish stones in mortar). Walls: plaster
-// between timber posts, all timber, or coursed stone; a skirting runs
-// along their foot.
+// laid across), flagstones (squarish stones in mortar) or, a herbalist's,
+// packed earth strewn with rushes. Walls: plaster between timber posts, all
+// timber, coursed stone, or, a herbalist's, rough fieldstone to the knee and
+// mud daub above between crooked posts; a skirting runs along their foot.
 
 import type { Room } from '../../model/interiors/interiors';
 import type { Furniture } from '../../model/interiors/furniture';
-import { FURNITURE_PALETTE } from './furniturePalette';
+import { BREAD, FURNITURE_PALETTE, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM_LIGHT, WOOD_DARK } from './furniturePalette';
 import { paintFurniture } from './furnitureVoxels';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -55,15 +56,30 @@ const FLOOR_COLORS = [
   0xaa8456, // 36 board, a shade lighter
   0x6b4a2c, // 37 nail head, knot
 ];
-export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS];
+// A herbalist's room, as rustic as their hut outside: packed earth and rushes, mud daub.
+const RUSTIC_COLORS = [
+  0x7a6248, // 38 earth
+  0x6a543c, // 39 earth, darker
+  0xb89a58, // 40 rush, dried
+  0x8a7356, // 41 daub
+  0x6e5a42, // 42 daub, darker
+];
+export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS, ...RUSTIC_COLORS];
 const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, BOARD_LIGHT, NAIL] = FLOOR_COLORS.map(
   (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
 );
+
+const [EARTH, EARTH_DARK, RUSH, DAUB, DAUB_DARK] = RUSTIC_COLORS.map((_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + FLOOR_COLORS.length + 1 + i);
 
 // Floor color at a voxel (x, z) of the floor, by style: long boards or
 // flagstones, their seams only a shade off, so furniture stands out.
 function floorColor(style: Room['floor'], x: number, z: number): number {
   if (style === 'tavern') return tavernFloor(x, z);
+  if (style === 'earth') {
+    // Packed earth, darker in patches, rushes strewn over it here and there in short strands.
+    const rush = hash(Math.floor(x / 3), z) % 23 === 0 || hash(x, Math.floor(z / 3)) % 29 === 0;
+    return rush ? RUSH : hash(Math.floor(x / 4), Math.floor(z / 4)) % 3 === 0 ? EARTH_DARK : EARTH;
+  }
   if (style === 'flagstones') {
     // Stones 10-14 voxels across in staggered rows, a voxel of soft mortar between.
     const row = Math.floor(z / 12);
@@ -116,6 +132,16 @@ function tavernFloor(x: number, z: number): number {
 //   dappled plaster between timber posts (one a tile), a beam along the top;
 // - stone: irregular coursed stones in four shades, dark mortar between.
 function wallColor(style: Room['wall'], u: number, y: number): number {
+  if (style === 'daub') {
+    // Fieldstone to the knee (no skirting: the stones go down to the earth), daub above, streaked, between rough posts
+    // (one a tile, a voxel off true here and there), a stone showing through the daub now and then.
+    if (y < 9) return y % 4 === 0 || (u + Math.floor(y / 4) * 3) % 7 === 0 ? 7 : [11, 12, 5][hash(Math.floor((u + Math.floor(y / 4) * 3) / 7), Math.floor(y / 4)) % 3];
+    const post = (u + (hash(Math.floor(u / TILE), Math.floor(y / 9)) % 2)) % TILE;
+    if (post === 0 || post === 1) return 10;
+    if (y >= HIGH - 2) return 10; // a rough beam along the top
+    const h = hash(u, y);
+    return h % 37 === 0 ? 11 : h % 5 === 0 ? DAUB_DARK : DAUB;
+  }
   if (y < 3) return 13; // skirting
   if (style === 'stone') {
     const course = Math.floor(y / 4);
@@ -189,8 +215,64 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
   }
+  if (room.wall === 'daub') daubRelief(fill, w, d);
+  if (room.floor === 'earth') earthRelief(fill, w, d);
   paintFurniture(grid, furniture, x0, z0, below);
   return grid;
+}
+
+type Fill = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number) => void;
+
+// A herbalist's walls in relief, as the crypts' are: on the two full walls' inner faces, the knee-high fieldstones
+// standing out into the room here and there and their mortar sunk, the rough posts and the top beam proud of the daub.
+function daubRelief(fill: Fill, w: number, d: number): void {
+  const relief = (u: number, y: number): 'out' | 'in' | null => {
+    const c = wallColor('daub', u, y);
+    if (y < 9) return c === 7 ? 'in' : hash(Math.floor((u + Math.floor(y / 4) * 3) / 7), Math.floor(y / 4) + 11) % 3 === 0 ? 'out' : null;
+    return c === 10 ? 'out' : null;
+  };
+  for (let y = 1; y <= HIGH; y++) {
+    for (let u = WALL; u < WALL + w; u++) {
+      const r = relief(u, y);
+      if (r === 'out') fill(u, y, WALL, u, y, WALL, wallColor('daub', u, y)); // (the far wall: into the room)
+      else if (r === 'in') fill(u, y, WALL - 1, u, y, WALL - 1, 0);
+    }
+    for (let u = WALL; u < WALL + d; u++) {
+      const r = relief(u, y);
+      if (r === 'out') fill(WALL, y, u, WALL, y, u, wallColor('daub', u, y)); // (the left wall)
+      else if (r === 'in') fill(WALL - 1, y, u, WALL - 1, y, u, 0);
+    }
+  }
+  // Dried plants hung high on both walls, from pegs under the beam, upside down, a bunch every so often: green, sage,
+  // dried gold, lavender; tied, a peg, tapering down, standing off the daub.
+  const leaves = [MOSS, MOSS_LIGHT, BREAD, PLUM_LIGHT, MOSS_DARK];
+  const bunch = (u: number, i: number, at: (u: number, y: number, out: number) => [number, number, number]) => {
+    const top = HIGH - 3;
+    const leaf = leaves[(i * 3 + hash(u, 5)) % leaves.length];
+    const put = (du: number, y: number, out: number, c: number) => {
+      const [x, yy, z] = at(u + du, y, out);
+      fill(x, yy, z, x, yy, z, c);
+    };
+    put(0, top, 1, WOOD_DARK); // the peg
+    put(0, top - 1, 1, RUSH); // the tie
+    for (let y = top - 2; y >= top - 6; y--) {
+      const half = y >= top - 4 ? 1 : 0; // (wide at the top, tapering)
+      for (let du = -half; du <= half; du++) put(du, y, 1 + (du === 0 && y < top - 3 ? 1 : 0), (du + y) % 3 === 0 ? MOSS_DARK : leaf);
+    }
+  };
+  for (let u = WALL + 6, i = 0; u < WALL + w - 4; u += 9 + (hash(u, 2) % 4), i++) bunch(u, i, (uu, y, out) => [uu, y, WALL - 1 + out]); // the far wall
+  for (let u = WALL + 6, i = 0; u < WALL + d - 4; u += 9 + (hash(u, 3) % 4), i++) bunch(u, i + 1, (uu, y, out) => [WALL - 1 + out, y, uu]); // the left wall
+}
+
+// A herbalist's floor in relief: the strewn rushes and a pebble or two standing up off the packed earth.
+function earthRelief(fill: Fill, w: number, d: number): void {
+  for (let x = 0; x < w; x++) {
+    for (let z = 0; z < d; z++) {
+      const c = floorColor('earth', x, z);
+      if (c === RUSH) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, RUSH);
+      else if (hash(x * 3 + 1, z * 5 + 2) % 211 === 0) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, 11); // a pebble
+    }
+  }
 }
 
 // Where floor tile (0, 0)'s middle is in the grid, in voxels (x, z).

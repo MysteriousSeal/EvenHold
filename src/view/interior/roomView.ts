@@ -11,6 +11,7 @@ import { facingPoint, fireOf } from './furnitureVoxels';
 import { CANDLE_FLAME } from './bedVoxels';
 import { CandleFlames } from './candleFlame';
 import { SmithyEffects } from './smithyEffects';
+import { CauldronEffects } from './cauldronEffects';
 import { FireEffect, flicker } from '../meshes/common/fire';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, ROOM_WALL, buildPieceVoxels, buildRoomVoxels, sunkBelow } from './roomVoxels';
 import { WallCuts, clearUpper } from './innerWallCuts';
@@ -185,6 +186,9 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const trough = furniture.find((f) => f.kind === 'trough');
   const smithy = new SmithyEffects(scene, anvil ? new THREE.Vector3(anvil.x, 11 * ROOM_VOXEL, anvil.z) : null, trough ? new THREE.Vector3(trough.x + (trough.w - 1) / 2, 7 * ROOM_VOXEL, trough.z - (trough.wall === 'back' ? 0.2 : 0)) : null);
   let forging = { hammering: false, quenching: false };
+  // A herbalist's cauldron, bubbling (its brew's surface: herbalistVoxels.ts, 13 voxels up, its middle).
+  const pot = furniture.find((f) => f.kind === 'cauldron');
+  const cauldron = new CauldronEffects(scene, pot ? new THREE.Vector3(pot.x, 13 * ROOM_VOXEL, pot.z) : null);
   // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();
   const mugs: THREE.Mesh[] = [];
@@ -219,6 +223,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       letMark?.update(time);
       walls.update(hero.x, hero.z, CAMERA_OFFSET.x, CAMERA_OFFSET.z);
       smithy.update(dt, forging.hammering, forging.quenching);
+      cauldron.update(dt, time);
       lastTime = time;
       lanterns.forEach((light, i) => (light.intensity = 1.8 * flicker(time * 0.7, i * 5)));
       candles.forEach(({ light, flame, stand }, i) => {
@@ -239,6 +244,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       contents?.dispose();
       letMark?.dispose();
       smithy.dispose();
+      cauldron.dispose();
       flames.dispose();
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();

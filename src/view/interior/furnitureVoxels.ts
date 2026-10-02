@@ -38,6 +38,7 @@ import {
 import { INN_PAINTERS } from './innFurnitureVoxels';
 import { UPSTAIRS_PAINTERS } from './upstairsVoxels';
 import { SMITHY_PAINTERS } from './smithyVoxels';
+import { HERBALIST_PAINTERS } from './herbalistVoxels';
 import { paintBed, paintNightstand } from './bedVoxels';
 
 const TILE = 25;
@@ -47,6 +48,7 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
   ...INN_PAINTERS,
   ...UPSTAIRS_PAINTERS,
   ...SMITHY_PAINTERS,
+  ...HERBALIST_PAINTERS,
   bench: () => {}, // outdoors only, on the squares (meshes/plaza/benchVoxels.ts): never in a room
   // A rustic stone fireplace: irregular stones in mixed shades and dark
   // mortar, a stepped arch over the opening (sooted above), a thick timber
