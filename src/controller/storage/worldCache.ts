@@ -43,7 +43,7 @@ export interface PackedWorld {
   tiles: Uint8Array; // a byte a tile (x * depth + z): its height (bits 0-3), water (bit 4), what covers it (bits 5-6)
   trees: Uint16Array; // three numbers each: x, z, and tier | kind << 4 | shape << 6 | turns << 12
   bushes: Uint16Array; // likewise
-  rest: Pick<World, 'trails' | 'villages' | 'houses' | 'buildings' | 'fields' | 'ruins' | 'camps'>;
+  rest: Pick<World, 'trails' | 'roads' | 'villages' | 'houses' | 'buildings' | 'fields' | 'ruins' | 'camps'>;
 }
 
 // Trees and bushes: x, z, and their tier, kind, shape and turn packed in one number.
@@ -73,8 +73,8 @@ export function packWorld(world: World): PackedWorld {
     const [h, lake, surface] = [world.heightMap[x], world.lakeMap[x], world.surfaceMap[x]];
     for (let z = 0; z < depth; z++) tiles[x * depth + z] = h[z] | (lake[z] ? 16 : 0) | (SURFACES.indexOf(surface[z]) << 5);
   }
-  const { trails, villages, houses, buildings, fields, ruins, camps } = world;
-  return { version: WORLD_VERSION, width, depth, tiles, trees: packThings(world.trees, TREE_KINDS), bushes: packThings(world.bushes, BUSH_KINDS), rest: { trails, villages, houses, buildings, fields, ruins, camps } };
+  const { trails, roads, villages, houses, buildings, fields, ruins, camps } = world;
+  return { version: WORLD_VERSION, width, depth, tiles, trees: packThings(world.trees, TREE_KINDS), bushes: packThings(world.bushes, BUSH_KINDS), rest: { trails, roads, villages, houses, buildings, fields, ruins, camps } };
 }
 
 export function unpackWorld(packed: PackedWorld): World {

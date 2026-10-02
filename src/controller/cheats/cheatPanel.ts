@@ -17,6 +17,7 @@ import {
   spawnTile,
   villageEntrance,
   enterNearest,
+  nearestTraveller,
   type Tile,
 } from '../../model/cheats';
 import {
@@ -118,6 +119,23 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
           { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
           { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+          ...(
+            [
+              ['pedlar', 'Nearest pedlar', 'On the road, with their pack'],
+              ['pilgrim', 'Nearest pilgrim', 'On the road, with a word to say'],
+              ['guard', 'Nearest guard patrol', 'Two guards walking their beat'],
+            ] as const
+          ).map(
+            ([role, title, detail]): MenuAction => ({
+              icon: ICON.village,
+              title,
+              detail,
+              run: () => {
+                const found = nearestTraveller(model, here(), role);
+                return travel(found?.at ?? null, found ? `${found.traveller.name}, a ${role === 'guard' ? 'guard' : role}` : `${role} on the roads`);
+              },
+            }),
+          ),
           ...(['house', 'inn', 'smithy'] as const).map(
             (type): MenuAction => ({
               icon: ICON.village,

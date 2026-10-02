@@ -3,6 +3,8 @@
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
 import { rentRoom, roomAction } from '../model/inn/roomLetting';
+import { travellerInReach } from '../model/travellers/travellerTalk';
+import type { Traveller } from '../model/travellers/travellers';
 import { shopAt } from '../model/inn/tavernShop';
 import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
@@ -46,11 +48,12 @@ export class GameController {
   private readonly onRead: (board: number) => void;
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
   private readonly onSleep: () => void;
+  private readonly onTraveller: (t: Traveller) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -60,6 +63,7 @@ export class GameController {
     this.onRead = options.onRead ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
     this.onSleep = options.onSleep ?? (() => {});
+    this.onTraveller = options.onTraveller ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && (!model.inside || model.crypt) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
@@ -141,7 +145,9 @@ export class GameController {
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
         const leaving = !!this.model.inside && !!this.model.doorInReach; // (at the way out: out, before a word with whoever stands by it, the bouncer)
+        const traveller = !this.model.inside && !this.model.yard ? travellerInReach(this.model.travellers.list, this.model.hero) : null; // (on the road: a pedlar, a pilgrim, a guard)
         if (talker && !leaving) this.onTalk(talker);
+        else if (traveller) this.onTraveller(traveller);
         else if (board !== null) this.onRead(board);
         else if (this.model.wellInReach !== null) this.model.tossCoin();
         else if (!useHallDoor(this.model) && !takeStairs(this.model)) this.model.useDoor(); // a door upstairs, else the stairs by them, else the way out

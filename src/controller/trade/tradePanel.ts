@@ -45,6 +45,9 @@ export interface Trade {
   facts(id: BagItem): string[]; // lines on what it is and does ("Armour 4"), besides its price and count
 }
 
+// Whom the hero trades with: a villager behind their counter, a pedlar on the road (their face, name and where they are).
+export type Keeper = Pick<Npc, 'name' | 'look' | 'equipment' | 'x' | 'z'> & { where: Npc['where'] };
+
 // The hero's bag, as a shop's window opens it beside itself.
 export interface TradeBag {
   menu: Menu;
@@ -79,9 +82,9 @@ function purses(name: string, shop: Shop, hero: number): HTMLElement {
   return row;
 }
 
-export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, trade: Trade): { open(keeper: Npc): void; update(): void; menu: Menu } {
+export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, trade: Trade): { open(keeper: Keeper): void; update(): void; menu: Menu } {
   const shop = () => trade.shop();
-  let keeper: Npc | null = null;
+  let keeper: Keeper | null = null;
   let says = ''; // what they're saying: a greeting, or an answer to a trade
   // The keeper answers a trade (or a word of their own), and the window's redrawn with it.
   const answer = (result: string, word?: string) => {
@@ -256,18 +259,18 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     update() {
       if (!menu.isOpen || !keeper) return;
       const { hero, inside } = model;
-      if (inside?.entrance !== keeper.where || Math.hypot(hero.x - keeper.x, hero.z - keeper.z) > TALK_RANGE + 0.5) menu.close();
+      if ((inside?.entrance ?? null) !== keeper.where || Math.hypot(hero.x - keeper.x, hero.z - keeper.z) > TALK_RANGE + 0.5) menu.close(); // (outdoors: none, as a pedlar on the road)
     },
   };
 }
 
 // The keeper, talking: their face on the left, their name and what they say in a bubble (over `tab`).
-function talk(npc: Npc, says: string, tab: 'buy' | 'buyback'): HTMLElement {
+function talk(npc: Keeper, says: string, tab: 'buy' | 'buyback'): HTMLElement {
   const row = document.createElement('div');
   row.className = `shop-talk ${tab}`;
   const face = document.createElement('div');
   face.className = 'shop-talk-face';
-  face.append(voxelIcon(`npc:${npc.id}`, () => humanBust(npc.look, npc.equipment, 'right'), 56));
+  face.append(voxelIcon(`face:${JSON.stringify(npc.look)}:${JSON.stringify(npc.equipment)}`, () => humanBust(npc.look, npc.equipment, 'right'), 56)); // (by how they look: a villager or a traveller)
   const bubble = document.createElement('div');
   bubble.className = 'shop-talk-bubble';
   bubble.append(line('shop-talk-name', npc.name), line('shop-talk-says', `“${says}”`));

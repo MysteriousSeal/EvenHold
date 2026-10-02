@@ -13,6 +13,9 @@ import { createPlaceBanner } from './view/hud/placeBanner';
 import { createCryptBar } from './view/hud/cryptBar';
 import { cryptAt } from './model/crypts/crypts';
 import { atWayOut } from './model/interiors/indoors';
+import { travellerInReach, travellerPrompt, travellerSays } from './model/travellers/travellerTalk';
+import { say } from './model/npcs/speech';
+import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { createSleepFade } from './view/hud/sleepFade';
 import { createClockHud } from './view/hud/clockHud';
@@ -114,6 +117,7 @@ async function boot(): Promise<void> {
   const bag = createInventoryPanel(model);
   const shop = createShopPanel(model, { bag });
   const forge = createSmithPanel(model, { bag });
+  const pack = createPedlarPanel(model, { bag }); // a pedlar's, on the road
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
@@ -163,6 +167,8 @@ async function boot(): Promise<void> {
       return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
     }
     if (talk && !(model.inside && model.doorInReach)) return talk; // (at the way out: out first, not a word with the bouncer by it)
+    const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null; // (on the road)
+    if (traveller) return { label: travellerPrompt(traveller), x: traveller.x, y: traveller.y + 0.75, z: traveller.z };
     const read = model.boardInReach;
     if (read !== null) {
       const spot = noticeBoards(model)[read];
@@ -194,6 +200,7 @@ async function boot(): Promise<void> {
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
+    pack.update();
     journal.update();
     sheet.update();
     updateToolbar();
@@ -219,7 +226,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => lootPrompt.pickedUp(item), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : say(t, travellerSays(t, model.crypts))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(
@@ -246,7 +253,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
-        if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, 1.35, event.text); // said in the hero's room: a bubble over them
+        if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, model.inside ? 1.35 : 0.8, event.text); // said in the hero's room: a bubble over them
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
       else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (P)`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
