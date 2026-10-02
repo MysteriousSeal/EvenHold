@@ -197,6 +197,7 @@ export function createMenu(options: MenuOptions): Menu {
       row.append(icon, text, end);
       row.addEventListener('mouseenter', () => select(j));
       row.addEventListener('click', () => use(j));
+      if (action.section) list.append(el('div', 'menu-section', action.section));
       list.append(row);
       return row;
     });

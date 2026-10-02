@@ -10,6 +10,7 @@ export interface MenuAction {
   icon?: MenuIcon;
   title: string;
   detail?: string;
+  section?: string; // a header over it, starting a group of rows (e.g. a cheat tab's "Summon")
   run(): string | void; // may return a line for the status bar
   isOn?(): boolean; // present for toggles
   // For rows showing a setting (e.g. what's worn in a slot): its current
