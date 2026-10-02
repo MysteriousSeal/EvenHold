@@ -12,6 +12,11 @@ import { gearIcon } from '../../view/ui/itemIcons';
 import type { VoxelGrid } from '../../view/meshes/voxel/greedyMesh';
 import { createGrid, fillBox, setColor } from '../../view/meshes/voxel/voxelShapes';
 import { humanFigure } from '../../view/meshes/human/humanFigure';
+import { SCENERY_PALETTE, buildScenery } from '../../view/meshes/scenery/sceneryVoxels';
+import { BLOOM_KINDS, BLOOM_PALETTE, buildBloom } from '../../view/meshes/cover/bloomVoxels';
+import { BIRD_PALETTE, birdGrid, butterflyGrid } from '../../view/meshes/wildlife/ambientLife';
+import type { SceneryKind } from '../../model/scenery/scenery';
+import type { BloomKind } from '../../model/scenery/meadowPatches';
 import { BOAR_PALETTE, buildBoarHead } from '../../view/meshes/enemy/boarVoxels';
 import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../../view/meshes/enemy/wolfVoxels';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from '../../view/meshes/building/houseVoxels';
@@ -93,6 +98,29 @@ function iceModel(): VoxelModel {
 // A menu icon for a model, rendered (and cached) on first use.
 const icon = (key: string, model: () => VoxelModel): MenuIcon => (size) => voxelIcon(key, model, size);
 
+// A tuft of meadow: a poppy, a daisy and a bluebell side by side.
+function meadowModel(): VoxelModel {
+  const grid = createGrid([15, 14, 9]);
+  ([['poppy', 0, 1], ['daisy', 4, 0], ['bluebell', 8, 2]] as const).forEach(([kind, ox, oz]) => {
+    const part = buildBloom(kind, 1);
+    const [sx, sy, sz] = part.size;
+    for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) {
+      const c = part.cells[x + sx * (y + sy * z)];
+      if (c) setColor(grid, x + ox, y, z + oz, c);
+    }
+  });
+  return { grid, palette: BLOOM_PALETTE };
+}
+
+// A firefly, glowing: a bright speck in a softer halo.
+function fireflyModel(): VoxelModel {
+  const grid = createGrid([3, 3, 3]);
+  fillBox(grid, 0, 1, 1, 2, 1, 1, 2);
+  fillBox(grid, 1, 0, 1, 1, 2, 1, 2);
+  setColor(grid, 1, 1, 1, 1);
+  return { grid, palette: [0xf4ff9a, 0xa8d84a] };
+}
+
 // An item on its own, as it sits when worn or held.
 export const itemIcon = gearIcon;
 
@@ -128,4 +156,11 @@ export const ICONS = {
   undress: hero,
   starterSet: icon('starter', person(HERO_LOOK, outfit(STARTER_SET))),
   banditOutfit: icon('banditOutfit', person(HERO_LOOK, outfit(BANDIT_OUTFIT))),
+  // Sights
+  ...Object.fromEntries((['boulder', 'outcrop', 'log', 'cairn', 'wall', 'menhir'] as const).map((kind) => [kind, icon(`sight:${kind}`, () => ({ grid: buildScenery(kind, 0), palette: SCENERY_PALETTE }))])) as Record<SceneryKind, MenuIcon>,
+  ...Object.fromEntries(BLOOM_KINDS.map((kind) => [kind, icon(`sight:${kind}`, () => ({ grid: buildBloom(kind, 1), palette: BLOOM_PALETTE }))])) as Record<BloomKind, MenuIcon>,
+  meadow: icon('sight:meadow', meadowModel),
+  butterfly: icon('sight:butterfly', () => ({ grid: butterflyGrid(), palette: [0xf0a33a, 0x2a2420] })),
+  bird: icon('sight:bird', () => ({ grid: birdGrid(), palette: BIRD_PALETTE })),
+  firefly: icon('sight:firefly', fireflyModel),
 };

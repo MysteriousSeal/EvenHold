@@ -18,6 +18,9 @@ import {
   villageEntrance,
   enterNearest,
   nearestTraveller,
+  nextLife,
+  nextMeadow,
+  nextScenery,
   type Tile,
 } from '../../model/cheats';
 import {
@@ -41,6 +44,9 @@ import { refundPoints } from '../../model/hero/training';
 import { LOOT_IDS } from '../../model/loot/loot';
 import { addToBag } from '../../model/hero/bag';
 import { createMenu, type Menu, type MenuAction } from '../../view/ui/menu';
+import type { Scenery, SceneryKind } from '../../model/scenery/scenery';
+import { BLOOMS, type BloomKind } from '../../model/scenery/meadowPatches';
+import type { LifeKind } from '../../model/scenery/ambientSpots';
 import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
 import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
 import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
@@ -53,6 +59,21 @@ import type { Camp } from '../../model/camps/camps';
 
 const SPEED_BOOST = 3;
 const SPEEDS = [1, 2, 3, 4, 10]; // the game speed cheat's steps
+// The Sights: each kind of rock and landmark, flower and small life, its row's words.
+const SIGHTS_SCENERY: ReadonlyArray<readonly [SceneryKind, string, string]> = [
+  ['boulder', 'Next boulder', 'A mossy boulder out in the wilds'],
+  ['outcrop', 'Next rock outcrop', 'Slabs of stone stacked, moss on their shelves'],
+  ['log', 'Next fallen log', 'A felled trunk in the woods, mushrooms at its side'],
+  ['cairn', 'Next cairn', 'Flat stones stacked by someone long ago'],
+  ['wall', 'Next stone wall', 'An old dry-stone wall, ivy down it'],
+  ['menhir', 'Next stone circle', 'A ring of standing stones, from its middle'],
+];
+const BLOOM_NAMES: Record<BloomKind, string> = { poppy: 'poppies', bluebell: 'bluebells', daisy: 'daisies', buttercup: 'buttercups', foxglove: 'foxgloves', lavender: 'lavender', clover: 'clover' };
+const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind, string, string]> = [
+  ['bird', 'Next songbirds', 'A little flock on the grass (by day: the hour set if need be)'],
+  ['butterfly', 'Next butterflies', 'Over a meadow (by day: the hour set if need be)'],
+  ['firefly', 'Next fireflies', 'Glowing in the dark (at night: the hour set if need be)'],
+];
 const NEARBY = 15; // tiles, for "nearby foes"
 
 // `time`: the game's speed (a multiple of real time), to read and set.
@@ -65,6 +86,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     menu.close();
     return `Travelled to ${where}.`;
   };
+  const [seenScenery, seenMeadows, seenLife] = [new Set<Scenery>(), new Set<string>(), new Set<string>()]; // (the Sights' tours)
   let banditDraws = 0; // for "Random bandit": a new outfit each time
   // Replaces everything the hero wears with `items`.
   const dress = (items: readonly ItemId[]) => {
@@ -159,6 +181,27 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
               return said;
             },
           },
+        ],
+      },
+      {
+        name: 'Sights',
+        icon: ICON.menhir,
+        actions: [
+          ...SIGHTS_SCENERY.map(
+            ([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextScenery(model, here(), kind, seenScenery), title.replace(/^Next /, 'a ').toLowerCase()) }),
+          ),
+          { icon: ICON.meadow, title: 'Next flower meadow', detail: 'A thick patch of wildflowers, any kind', run: () => travel(nextMeadow(model, here(), null, seenMeadows), 'a flower meadow') },
+          ...BLOOMS.map(
+            (kind, i): MenuAction => ({
+              icon: ICON[kind],
+              title: `Next ${BLOOM_NAMES[kind]}`,
+              detail: `A meadow patch of ${BLOOM_NAMES[kind]}`,
+              run: () => travel(nextMeadow(model, here(), i, seenMeadows), `a patch of ${BLOOM_NAMES[kind]}`),
+            }),
+          ),
+          ...SIGHTS_LIFE.map(
+            ([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextLife(model, here(), kind, seenLife), title.replace(/^Next /, '').toLowerCase()) }),
+          ),
         ],
       },
       {
