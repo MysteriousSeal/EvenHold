@@ -108,6 +108,46 @@ export function buildShell(part: BodyPart, band: [number, number], side: Side, p
   return grid;
 }
 
+// What's worn on the head is sculpted, not a painted skin: at the head's own
+// voxels (an 11-voxel cube, 0..10; the face at z 10, eyes on rows 4-6, the
+// brows on row 8, the mouth on row 2), out to HEAD_PAD layers round it, so a
+// piece stands out in relief (rims, ridges, a nose guard, a brim, folds).
+// Never under the chin (row 0 and up): the shoulders are there.
+export const HEAD_PAD = 3;
+export interface HeadCell {
+  x: number; // head voxels: 0..10 over the head, below 0 and past 10 round it
+  y: number;
+  z: number;
+  d: number; // layers out from the head (1: against it, up to HEAD_PAD)
+  front: boolean; // past the face (+Z)
+  back: boolean;
+  flank: boolean; // past a side
+  top: boolean; // over the crown
+}
+export type HeadPainter = (cell: HeadCell) => number;
+
+// The grid a head piece paints: the head's cube with HEAD_PAD round it (head voxel (x, y, z) at grid (x + HEAD_PAD, ...)).
+export function buildHeadgear(paint: HeadPainter, build: Build = 'male'): VoxelGrid {
+  const [sx, sy, sz] = bodyShape('head', build).size;
+  const P = HEAD_PAD;
+  const grid = createGrid([sx + 2 * P, sy + 2 * P, sz + 2 * P]);
+  const out = (v: number, size: number) => (v < 0 ? -v : v >= size ? v - size + 1 : 0);
+  for (let z = -P; z < sz + P; z++) {
+    for (let y = 0; y < sy + P; y++) {
+      for (let x = -P; x < sx + P; x++) {
+        const d = Math.max(out(x, sx), out(y, sy), out(z, sz));
+        if (d === 0) continue; // (the head)
+        const color = paint({ x, y, z, d, front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy });
+        if (color) setColor(grid, x + P, y + P, z + P, color);
+      }
+    }
+  }
+  return grid;
+}
+
+// How far a part's worn grid reaches past it, each way (its pivot that much further in): a head piece's, HEAD_PAD; a shell's, 1.
+export const wornPad = (part: BodyPart): number => (part === 'head' ? HEAD_PAD : 1);
+
 // A color marking the body inside a shell grid (see withBody).
 export const BODY_FILL = 255;
 
@@ -118,7 +158,8 @@ export const BODY_FILL = 255;
 export function withBody(shell: VoxelGrid, part: BodyPart, build: Build = 'male'): VoxelGrid {
   const body = bodyShape(part, build);
   const [sx, sy, sz] = body.size;
+  const p = wornPad(part);
   const grid = { size: shell.size, cells: shell.cells.slice() };
-  for (let z = 0; z < sz; z++) for (let y = 0; y < sy; y++) for (let x = 0; x < sx; x++) if (colorAt(body, x, y, z)) setColor(grid, x + 1, y + 1, z + 1, BODY_FILL);
+  for (let z = 0; z < sz; z++) for (let y = 0; y < sy; y++) for (let x = 0; x < sx; x++) if (colorAt(body, x, y, z)) setColor(grid, x + p, y + p, z + p, BODY_FILL);
   return grid;
 }

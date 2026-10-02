@@ -9,6 +9,7 @@ import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
+import { wornPad } from './gear/armorShell';
 
 // Figure room: the joints' layout shifted so everything lands at >= 0,
 // with space for shells, shields, and poles held in the middle (a spear
@@ -85,13 +86,14 @@ export function humanFigure(look: BodyLook | null, equipment: Equipment, only: r
     if (isHeldSlot(slot)) {
       if (!model.held) continue;
       const arm = joints[HELD_BY[slot]].at;
-      place(scaled(model.held.build(), HELD_SCALE), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip.map((g) => g * HELD_SCALE));
+      const scale = model.held.fine ? 1 : HELD_SCALE; // (a fine one already in the body's voxels)
+      place(scaled(model.held.build(), scale), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip.map((g) => g * scale));
       continue;
     }
     for (const joint of only) {
       const { part, side, at } = joints[joint];
       const shell = wornGrid(item, part, side, shouldered, build);
-      if (shell) place(shell, model.palette, at, pivot[part].map((p) => p + 1));
+      if (shell) place(shell, model.palette, at, pivot[part].map((p) => p + wornPad(part)));
     }
   }
   return { grid, palette };

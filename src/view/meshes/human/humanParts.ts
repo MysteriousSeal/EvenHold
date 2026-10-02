@@ -8,7 +8,7 @@ import type { ItemId } from '../../../model/human/equipment';
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart, type Joint } from './bodyVoxels';
-import { BODY_FILL, withBody } from './gear/armorShell';
+import { BODY_FILL, withBody, wornPad } from './gear/armorShell';
 import { ITEM_MODELS, wornGrid } from './gear/itemModels';
 
 const V = HUMAN_VOXEL_SIZE;
@@ -62,17 +62,17 @@ export function hairGeometry(look: BodyLook): THREE.BufferGeometry | null {
 
 // A worn item's shell on one joint's part, or null if it doesn't cover it:
 // meshed around the (undrawn) body, so no faces press against the skin.
-// The shell's grid starts one voxel before the part, so its pivot is one further in.
+// The shell's grid starts before the part (wornPad: one voxel, a head piece's more), so its pivot is that much further in.
 export function wornGeometry(item: ItemId, joint: Joint, shouldered: boolean, build: Build): THREE.BufferGeometry | null {
   const { part, side } = JOINTS[joint];
   return cached(`${item}:${build}:${part}:${side}:${shouldered}`, () => {
     const grid = wornGrid(item, part, side, shouldered, build);
-    const pivot = BODIES[build].pivot[part].map((p) => p + 1) as [number, number, number];
+    const pivot = BODIES[build].pivot[part].map((p) => p + wornPad(part)) as [number, number, number];
     return grid && meshAround(withBody(grid, part, build), ITEM_MODELS[item].palette, pivot, (c) => c !== BODY_FILL);
   });
 }
 
 export function heldGeometry(item: ItemId): THREE.BufferGeometry | null {
   const { held, palette } = ITEM_MODELS[item];
-  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, HELD_VOXEL_SIZE) : null));
+  return cached(`${item}:held`, () => (held ? meshAround(held.build(), palette, held.grip, undefined, held.fine ? V : HELD_VOXEL_SIZE) : null));
 }

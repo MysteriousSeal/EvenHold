@@ -14,15 +14,19 @@
 
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart } from '../bodyVoxels';
-import type { Painter } from './armorShell';
+import type { HeadPainter, Painter } from './armorShell';
 
 export interface ItemModel {
   palette: number[];
   worn?: Partial<Record<BodyPart, Painter>>;
+  headgear?: HeadPainter; // worn on the head: sculpted round it, in relief (armorShell.ts buildHeadgear)
   jewel?: { build(): VoxelGrid }; // jewelry: not on the body, just its own model (for icons)
   held?: {
     build(): VoxelGrid;
     // The point (in voxels within the grid) that sits in the middle of the hand.
     grip: [number, number, number];
+    // Modelled in the body's own finer voxels (a shield in relief), not the held ones; its grip then ends in .25 or .75
+    // on every axis, so none of its faces lies on a plane the body's or armour's do.
+    fine?: boolean;
   };
 }

@@ -5,7 +5,7 @@ import { ITEMS, type ArmorSlot, type ItemId } from '../../../../model/human/equi
 import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
-import { bandFor, buildShell } from './armorShell';
+import { bandFor, buildHeadgear, buildShell } from './armorShell';
 import type { ItemModel } from './itemModel';
 import { FEET_MODELS } from './items/feet';
 import { HANDS_MODELS } from './items/hands';
@@ -33,6 +33,8 @@ export const ITEM_MODELS: Record<ItemId, ItemModel> = {
 // if it doesn't cover that part, fitted to the wearer's build. `shouldered`:
 // shoulders are worn too (sleeves then leave the top of the arms to them).
 export function wornGrid(item: ItemId, part: BodyPart, side: Side, shouldered = false, build: Build = 'male'): VoxelGrid | null {
+  const { headgear } = ITEM_MODELS[item];
+  if (part === 'head') return headgear ? buildHeadgear(headgear, build) : null; // (its grid HEAD_PAD round the head: wornPad)
   const paint = ITEM_MODELS[item].worn?.[part];
   const slot = ITEMS[item].slot as ArmorSlot;
   const band = paint ? bandFor(slot, part, shouldered) : undefined;
