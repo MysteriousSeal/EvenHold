@@ -24,6 +24,14 @@ export function anyMenuOpen(): boolean {
   return openMenus.length > 0;
 }
 
+// A window built its own way (the pause menu), counted among those open: so Escape opens it only when nothing else
+// is, and the game knows a window's up.
+export function trackMenu(menu: Menu, open: boolean): void {
+  const at = openMenus.indexOf(menu);
+  if (open && at < 0) openMenus.push(menu);
+  if (!open && at >= 0) openMenus.splice(at, 1);
+}
+
 export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
   const backdrop = el('div', modal ? 'menu-backdrop' : `menu-backdrop modeless place-${options.place ?? 'bottom-right'}`);
