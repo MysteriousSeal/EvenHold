@@ -1,17 +1,19 @@
-// The main menu, before any world is loaded, over the loading screen's own
-// scene (index.html: the title, the sun over drifting hills), the best of
-// the games that inspired it:
-// - Elden Ring: a still title, "Press any key" breathing below it;
-// - WoW and Diablo: a real voxel world behind it all (view/title: a camp at
-//   dusk), up to four heroes standing before the fire in their look and
-//   gear; then every hero saved here listed down the right, the last played
-//   chosen: stepping forward, lit, a ring at their feet (one further down
-//   the list takes the fourth place); Enter World under them; Delete hero
-//   (asked twice) and the controls in the corners;
-// - Minecraft: a splash of yellow words tilted by the title, pulsing, new
-//   each time; a new world made from a seed, or none for a random one.
+// The main menu, before any world is loaded, the best of the games that
+// inspired it:
+// - a real voxel world behind it all (view/title): an opening flight down
+//   a valley at dusk into the heroes' camp, the fire flaring, the title
+//   landing (a key or a click skips it);
+// - WoW and Diablo: then the heroes, up to four, coming into the world
+//   before the fire in their look and gear; every hero saved here listed
+//   down the right, the last played chosen: stepping forward, lit, a ring
+//   at their feet (one further down the list takes the fourth place); Enter
+//   World under them; Delete hero (asked twice) and the controls in the
+//   corners;
+// - a village saying on a wooden signboard hung under the title, swaying,
+//   new each time; a new world made from a seed, or none for a random one.
 // Arrows and Enter (or the mouse) choose; Escape goes back. Resolves with the
-// seed to play. A URL with a seed in it skips it (main.ts). Styles in
+// seed to play. A URL with a seed in it skips it (main.ts). No WebGL: no
+// world, the chosen hero drawn flat, the heroes at once. Styles in
 // mainMenu.css.
 
 import type { SavedWorld } from './storage/saveGame';
@@ -29,34 +31,37 @@ export interface MainMenuHooks {
 }
 
 const FIGURE = 220; // px: the chosen hero, drawn in the middle
-export const SPLASHES = [
-  'Now with potions!',
-  'Mind your breath!',
-  'Roll, then strike!',
-  'The dead keep their crypts!',
-  'Every voxel placed by hand!',
-  'Herbs for sale!',
-  'Parry the lord!',
-  'Ask the pilgrim the way!',
-  'Junk stacks to twenty!',
-  'Sleep at the inn!',
-  'Toss a coin in the well!',
-  'Mind the bouncer!',
-];
+// A village saying, one each time, on a signboard under the title.
+export const SAYINGS = [
+  'Roll first, strike after.',
+  'Mind your breath, mind your blade.',
+  'The dead keep their crypts.',
+  'Herbs at the hut, ale at the inn.',
+  'Parry the lord, or pay for it.',
+  'Ask the pilgrim the way.',
+  'Junk sells, if you carry enough.',
+  'Sleep at the inn; dawn comes kinder.',
+  'A coin in the well, a wish in the dark.',
+  'Mind the bouncer.',
+  'Potions mend; time mends slower.',
+  'Keep to the road after dusk.',
+]
 
-type Screen = 'press' | 'heroes' | 'newWorld' | 'controls';
+type Screen = 'intro' | 'heroes' | 'newWorld' | 'controls';
 
-export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(Math.random() * SPLASHES.length)]): Promise<number> {
+export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(Math.random() * SAYINGS.length)]): Promise<number> {
   const root = document.getElementById('loading') as HTMLDivElement;
   root.classList.add('title');
   const screen = document.createElement('div');
   screen.className = 'title-screen';
-  const splashLine = document.createElement('div');
-  splashLine.className = 'title-splash';
-  splashLine.textContent = splash;
-  root.append(screen, splashLine);
+  const ribbon = document.createElement('div');
+  ribbon.className = 'title-saying';
+  const words = document.createElement('span');
+  words.textContent = saying;
+  ribbon.append(words);
+  root.append(screen, ribbon);
   const world = createTitleScene(root); // (none without WebGL: the chosen hero drawn flat instead)
-  root.classList.toggle('world', !!world);
+  root.classList.add(world ? 'world' : 'flat');
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = '') => {
     const node = document.createElement(tag);
     node.className = className;
@@ -71,15 +76,15 @@ export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(
 
   return new Promise((resolve) => {
     let worlds = hooks.worlds();
-    let at: Screen = 'press';
+    let at: Screen = world ? 'intro' : 'heroes';
     let chosen = 0; // the hero chosen (the last played, first)
     let sure = false; // (letting the chosen hero go: asked once already)
     const play = (seed: number) => {
       window.removeEventListener('keydown', keys);
-      root.removeEventListener('click', wake);
+      root.removeEventListener('click', skip);
       screen.remove();
-      splashLine.remove();
-      root.classList.remove('title', 'world');
+      ribbon.remove();
+      root.classList.remove('title', 'world', 'flat');
       world?.dispose();
       resolve(seed);
     };
@@ -90,12 +95,16 @@ export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(
       return row;
     };
     world?.onPick((i) => {
-      // (on the title too: the click wakes it, on the hero clicked, not the last played)
       const index = worlds.indexOf(standing()[i]);
       if (index === chosen && at === 'heroes') return play(worlds[chosen].seed); // (the chosen one clicked again: in)
       [chosen, sure, at] = [index, false, 'heroes'];
       draw();
     });
+    world?.intro(() => {
+      if (at !== 'intro') return;
+      screen.classList.add('came'); // (the menu rising, as the heroes come)
+      go('heroes');
+    }); // (the opening over: the heroes come)
     const go = (next: Screen) => {
       [at, sure] = [next, false];
       draw();
@@ -106,10 +115,10 @@ export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(
         if (event.code === 'Escape') go('heroes');
         return;
       }
-      if (at === 'press') return void (event.repeat || go('heroes'));
+      if (at === 'intro') return world?.skip();
       const up = event.code === 'ArrowUp';
       const down = event.code === 'ArrowDown';
-      if (event.code === 'Escape') return go(at === 'heroes' ? 'press' : 'heroes');
+      if (event.code === 'Escape' && at !== 'heroes') return go('heroes');
       if (at === 'heroes') {
         if (up || down) {
           event.preventDefault();
@@ -119,19 +128,16 @@ export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(
       }
     };
     window.addEventListener('keydown', keys);
-    const wake = () => at === 'press' && go('heroes'); // (a click anywhere, as a key)
-    root.addEventListener('click', wake);
+    const skip = () => at === 'intro' && world?.skip(); // (a click anywhere, as a key)
+    root.addEventListener('click', skip);
 
     const back = () => button('title-side', 'Back', () => go('heroes'));
 
     const draw = () => {
       root.dataset.screen = at;
       const row = standing();
-      world?.show(row, at === 'press' ? -1 : row.indexOf(worlds[chosen]));
-      if (at === 'press') {
-        screen.replaceChildren(el('div', 'title-press', 'Press any key'));
-        return;
-      }
+      world?.show(row, row.indexOf(worlds[chosen]), at !== 'intro');
+      if (at === 'intro') return void screen.replaceChildren();
       if (at === 'heroes') {
         const hero = worlds[chosen];
         const stage = el('div', 'title-stage');
@@ -169,7 +175,7 @@ export function showMainMenu(hooks: MainMenuHooks, splash = SPLASHES[Math.floor(
         return;
       }
       if (at === 'newWorld') {
-        // Minecraft's: a seed if you've one (a number, or any word: the same word, the same world), else a random one.
+        // A seed if you've one (a number, or any word: the same word, the same world), else a random one.
         const panel = el('form', 'title-panel');
         const input = el('input', 'title-input');
         input.placeholder = 'Leave blank for a random world';
