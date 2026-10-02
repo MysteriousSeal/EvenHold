@@ -142,7 +142,7 @@ export function parseSave(raw: string | null, seed: number): SaveData | null {
     const data = JSON.parse(raw) as SaveData;
     const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
     const h = data?.hero;
-    if (data?.version !== VERSION || data.seed !== seed || !h || typeof h.name !== 'string' || !h.look || ![h.money, h.level, h.xp, h.hp, h.x, h.z, h.facing].every(num)) return null;
+    if (data?.version !== VERSION || data.seed !== seed || !h || typeof h.name !== 'string' || !h.look || ![h.money, h.level, h.xp, h.hp].every(num)) return null; // (a lost position, kept anyway: restore puts them somewhere sound)
     if (!Array.isArray(data.enemies?.gone) || !Array.isArray(data.enemies?.changed) || !Array.isArray(data.loot) || !Array.isArray(data.coins) || !Array.isArray(data.npcs)) return null;
     return data;
   } catch {
@@ -172,7 +172,7 @@ export function restore(model: GameModel, data: SaveData): void {
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),
     ...pointsOf(saved),
-    facing: saved.facing,
+    facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
       .map((b) => ({ kind: b.kind, left: Math.min(b.kind === 'weary' ? WEARY_TIME : BLESSING_TIME, b.left) })),
@@ -192,16 +192,19 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { crypt, slain } of Array.isArray(data.crypts) ? data.crypts : []) {
     if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
   }
+  // Where they were: a position saved lost (not a number: never written so now, but an older save's may be) costs only
+  // the spot, never the save: the hero's put somewhere sound instead.
+  const placed = Number.isFinite(saved.x) && Number.isFinite(saved.z);
   const building = saved.inside === null ? null : model.entrances[saved.inside];
   if (building) {
     const { room, furniture } = layoutOf(model.seed, building);
     const stairs = furniture.find((f) => f.kind === 'stairs');
     if (saved.upstairs && stairs) model.inside = upstairsInside(building, room, stairs, model.seed, model.fullWalls); // on the floor above
     else model.enterRoom(building); // (as going in: a crypt's walls with it)
-    Object.assign(hero, { x: saved.x, z: saved.z, y: 0 });
-  } else {
+    if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0 }); // (lost: at the door, as they came in)
+  } else if (placed) {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
-  }
+  } // (lost outdoors: where they set out)
   // Foes: the slain gone, the hurt and the wandered where they were; but only
   // if the world's foes are those the save knew (the game since changed how
   // they're spawned, or an older save: they're left as the seed makes them).

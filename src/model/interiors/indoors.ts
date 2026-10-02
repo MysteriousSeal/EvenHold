@@ -55,6 +55,7 @@ export function walkInside(
 ): void {
   const { room, furniture } = inside;
   const len = Math.hypot(dirX, dirZ);
+  if (len < 1e-9 || !(dist > 0)) return; // (no way to go, or nowhere: never a step of 0 / 0, which would lose them)
   const r = HERO_RADIUS * INDOOR_SCALE; // drawn bigger indoors, so bigger to bump into things too
   hero.facing = Math.atan2(dirX, dirZ);
   // Axis by axis, so the hero slides along furniture instead of sticking to it.

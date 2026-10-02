@@ -134,7 +134,7 @@ export class CombatMoves {
     const step = (at(roll.t + dt) - at(roll.t)) * ROLL_REACH;
     roll.t += dt;
     const steps = Math.max(1, Math.ceil(step / 0.2));
-    for (let i = 0; i < steps; i++) slide((roll.dx * step) / steps, (roll.dz * step) / steps);
+    if (step > 1e-9) for (let i = 0; i < steps; i++) slide((roll.dx * step) / steps, (roll.dz * step) / steps); // (none at its very end)
     if (roll.t >= ROLL_TIME) this.roll = null;
   }
 
