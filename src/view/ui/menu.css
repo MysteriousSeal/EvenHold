@@ -404,6 +404,8 @@
 .menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
 .menu-tooltip b[data-tone='bag'] { color: #9ad0a0; }
 .menu-tooltip small { font-size: 13px; color: #d6bb8e; }
+.menu-tooltip small[data-tone='gain'] { color: #5ee05e; } /* what wearing it would add, as in WoW */
+.menu-tooltip small[data-tone='loss'] { color: #ff5e4e; } /* and take away */
 
 /* A slot being dragged: its icon under the pointer. */
 .menu-drag { position: fixed; top: 0; left: 0; z-index: 31; width: 60px; pointer-events: none; border-color: var(--ink); box-shadow: 3px 4px 0 rgba(46, 31, 20, 0.45), inset 0 -4px 0 var(--sand-dark); }

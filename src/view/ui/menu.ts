@@ -11,9 +11,9 @@ import './menu.css';
 import './menuDetail.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
-import type { DollSlot, Menu, MenuOptions, MenuSlot, MenuSlots } from './menuTypes';
+import type { DollSlot, Menu, MenuLine, MenuOptions, MenuSlot, MenuSlots } from './menuTypes';
 import { el } from './dom';
-export type { DollSlot, Menu, MenuAction, MenuIcon, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
+export type { DollSlot, Menu, MenuAction, MenuIcon, MenuLine, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
 
 
 // Menus open right now, most recent last.
@@ -61,7 +61,7 @@ export function createMenu(options: MenuOptions): Menu {
   document.body.append(tooltip);
   // Every slot button drawn (grid or doll), in order, so a redraw can show
   // the tooltip again on the one that had it.
-  let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null; tip?: { title: string; lines: string[] } }> = [];
+  let slotButtons: Array<{ button: HTMLButtonElement; cell: MenuSlot | null; tip?: { title: string; lines: MenuLine[] } }> = [];
   let tipped: number | null = null;
   let preview: ItemPreview | null = null; // (made the first time a slot with one is hovered)
 
@@ -78,10 +78,16 @@ export function createMenu(options: MenuOptions): Menu {
   }
 
   // The tooltip beside `anchor`: a title (in its tone), and lines under it; on the right, else the left if there's no room.
-  function placeTip(anchor: HTMLElement, text: string, lines: string[], tone?: string): void {
+  function placeTip(anchor: HTMLElement, text: string, lines: MenuLine[], tone?: string): void {
     const title = el('b', undefined, text);
     if (tone) title.dataset.tone = tone;
-    tooltip.replaceChildren(title, ...lines.map((line) => el('small', undefined, line)));
+    const line = (l: MenuLine) => {
+      if (typeof l === 'string') return el('small', undefined, l);
+      const small = el('small', undefined, l.text);
+      small.dataset.tone = l.tone; // (a gain or a loss: menu.css)
+      return small;
+    };
+    tooltip.replaceChildren(title, ...lines.map(line));
     tooltip.hidden = false;
     const at = anchor.getBoundingClientRect();
     const width = tooltip.offsetWidth;

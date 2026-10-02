@@ -18,6 +18,10 @@ export interface MenuAction {
   current?(): { detail?: string; icon?: MenuIcon; value?: string };
 }
 
+// A line of a slot's tooltip: plain, or coloured as a gain (green) or a loss
+// (red), as what wearing a piece would change.
+export type MenuLine = string | { text: string; tone: 'gain' | 'loss' };
+
 // One square of a grid of slots (an inventory, a shop): its icon, how many,
 // and what its tooltip says (shown beside it on hover or when selected).
 export interface MenuSlot {
@@ -25,7 +29,7 @@ export interface MenuSlot {
   count?: number;
   title: string;
   tone?: string; // colors the title (e.g. an item quality: 'junk')
-  lines?: string[];
+  lines?: MenuLine[];
   // If given, the slot can be dragged out of the menu; let go outside it,
   // this runs with what's under the pointer (another menu, or the world).
   dragOut?(over: Element | null): void;
