@@ -18,12 +18,18 @@
 
 import { MAX_WORLDS, type SavedWorld } from './storage/saveGame';
 import { CONTROL_GROUPS, type KeyMark } from './controls';
-import { generateRandomSeed } from '../util/random';
-import { seedFrom } from '../util/seed';
 import { humanBust, humanFigure } from '../view/meshes/human/humanFigure';
 import { voxelIcon } from '../view/ui/voxelIcon';
 import { TITLE_HEROES, createTitleScene } from '../view/title/titleScene';
+import { heroForge, type Forge } from './heroForge';
+import type { BodyLook } from '../model/human/humanoid';
 import './mainMenu.css';
+
+// What the menu ends with: the world to play, and the hero made for it (none: one of theirs, or a random one).
+export interface MenuChoice {
+  seed: number;
+  hero?: { name: string; look: BodyLook };
+}
 
 export interface MainMenuHooks {
   worlds(): SavedWorld[]; // the worlds saved here, the last played first
@@ -67,9 +73,9 @@ export const SAYINGS = [
   'What the hills hide, the brave find.',
 ]
 
-type Screen = 'intro' | 'heroes' | 'newWorld' | 'controls';
+type Screen = 'intro' | 'heroes' | 'create' | 'controls';
 
-export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(Math.random() * SAYINGS.length)]): Promise<number> {
+export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(Math.random() * SAYINGS.length)]): Promise<MenuChoice> {
   const root = document.getElementById('loading') as HTMLDivElement;
   root.classList.add('title');
   const screen = document.createElement('div');
@@ -99,14 +105,25 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
     let at: Screen = world ? 'intro' : 'heroes';
     let chosen = 0; // the hero chosen (the last played, first)
     let sure = false; // (letting the chosen hero go: asked once already)
-    const play = (seed: number) => {
+    let forge: Forge | null = null; // (the hero being made, on the creation screen)
+    const play = (seed: number, hero?: MenuChoice['hero']) => {
       window.removeEventListener('keydown', keys);
       root.removeEventListener('click', skip);
       screen.remove();
       ribbon.remove();
       root.classList.remove('title', 'world', 'flat');
       world?.dispose();
-      resolve(seed);
+      resolve(hero ? { seed, hero } : { seed });
+    };
+    // The hero being made, stood in the world as they are now (naked, as every new hero starts).
+    const standDraft = () => forge && world?.create({ name: forge.name(), level: 1, look: forge.look(), equipment: {} });
+    // Made: into a world of its own (or the one the seed names: one of theirs, theirs to go on with).
+    const createHero = () => {
+      const made = forge?.submit();
+      if (!made) return;
+      const known = worlds.some((w) => w.seed === made.seed);
+      if (!known && worlds.length >= MAX_WORLDS) return; // (never: no slot when full)
+      play(made.seed, known ? undefined : { name: made.name, look: made.look });
     };
     // Who stands in the world: every hero (eight at most: MAX_WORLDS); were there more, the chosen one in the last place.
     const standing = () => {
@@ -115,6 +132,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
       return row;
     };
     world?.onPick((i) => {
+      if (at !== 'heroes') return;
       const index = worlds.indexOf(standing()[i]);
       if (index === chosen && at === 'heroes') return play(worlds[chosen].seed); // (the chosen one clicked again: in)
       [chosen, sure, at] = [index, false, 'heroes'];
@@ -126,6 +144,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
       go('heroes');
     }); // (the opening over: the heroes come)
     const go = (next: Screen) => {
+      if (next === 'create' && at !== 'create') forge = heroForge(standDraft); // (a new one each time)
       [at, sure] = [next, false];
       draw();
     };
@@ -133,8 +152,10 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
     const keys = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement)?.tagName === 'INPUT') {
         if (event.code === 'Escape') go('heroes');
+        if (event.code === 'Enter' && at === 'create') createHero();
         return;
       }
+      if (at === 'create' && event.code === 'Enter') return createHero();
       if (at === 'intro') return world?.skip();
       const up = event.code === 'ArrowUp';
       const down = event.code === 'ArrowDown';
@@ -170,7 +191,8 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
     const draw = () => {
       root.dataset.screen = at;
       const row = standing();
-      world?.show(row, row.indexOf(worlds[chosen]), at !== 'intro');
+      if (at === 'create') standDraft();
+      else world?.show(row, row.indexOf(worlds[chosen]), at !== 'intro');
       if (at === 'intro') return void screen.replaceChildren();
       if (at === 'heroes') {
         const hero = worlds[chosen];
@@ -202,11 +224,11 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
           const who = el('span', 'title-who');
           who.append(el('b', '', 'Empty slot'), el('small', '', 'Create a new hero'));
           slot.append(el('span', 'title-portrait', '+'), who);
-          slot.addEventListener('click', () => go('newWorld'));
+          slot.addEventListener('click', () => go('create'));
           list.append(slot);
         }
         if (worlds.length >= MAX_WORLDS) list.append(el('small', 'title-full', `${MAX_WORLDS} heroes at most: delete one to make room.`));
-        const enter = hero ? button('title-enter', 'Enter World', () => play(hero.seed)) : button('title-enter', 'New World', () => go('newWorld'));
+        const enter = hero ? button('title-enter', 'Enter World', () => play(hero.seed)) : button('title-enter', 'Create Hero', () => go('create'));
         const left = el('div', 'title-corner left');
         left.append(button('title-side', 'Controls', () => go('controls')));
         const right = el('div', 'title-corner right');
@@ -225,27 +247,13 @@ export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(M
         enter.focus();
         return;
       }
-      if (at === 'newWorld') {
-        // A seed if you've one (a number, or any word: the same word, the same world), else a random one.
-        const panel = el('form', 'title-panel');
-        const input = el('input', 'title-input');
-        input.placeholder = 'Leave blank for a random world';
-        input.maxLength = 40;
-        panel.append(el('div', 'title-panel-head', 'Create New World'), el('label', 'title-note', 'World seed'), input, el('small', 'title-note', 'A number or any word: the same seed, the same world (a hero saved there carries on).'));
-        panel.append(button('title-enter inline', 'Create New World', () => {}));
-        const refused = el('small', 'title-full');
-        panel.append(refused);
-        panel.addEventListener('submit', (event) => {
-          event.preventDefault();
-          const seed = seedFrom(input.value) ?? generateRandomSeed();
-          const known = worlds.some((w) => w.seed === seed); // (one of theirs: always open)
-          if (!known && worlds.length >= MAX_WORLDS) return void (refused.textContent = `${MAX_WORLDS} heroes at most: delete one to make room.`);
-          play(seed);
-        });
+      if (at === 'create' && forge) {
+        // The character creation screen (heroForge.ts): the panel on the left, the hero close up, Create Hero.
+        const create = button('title-enter forge-go', 'Create Hero', createHero);
         const left = el('div', 'title-corner left');
         left.append(back());
-        screen.replaceChildren(panel, left);
-        input.focus();
+        screen.replaceChildren(forge.panel, create, left);
+        if (world) screen.append(el('div', 'forge-hint', 'Drag to turn'));
         return;
       }
       // The controls, as a codex: grouped, each its keys drawn as keycaps.

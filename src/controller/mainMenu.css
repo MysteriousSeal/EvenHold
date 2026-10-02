@@ -41,6 +41,7 @@
 /* The menu itself, coming up with the heroes. */
 .title-screen.came { animation: menu-up 0.8s 0.5s ease-out both; }
 @keyframes menu-up { from { opacity: 0; translate: 0 14px; } }
+.title-plates.hidden { display: none; }
 .title-plates { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .title-plate {
   position: absolute;
@@ -129,12 +130,11 @@
 }
 .title-enter:hover, .title-enter:focus-visible { background: #ffe6a8; outline: none; }
 .title-enter:active { box-shadow: 0 2px 0 #2e1f14, inset 0 4px 0 #e8903a; }
-.title-enter.inline { position: static; transform: none; margin-top: 8px; min-width: 0; font-size: 22px; }
 /* The roster, as a gilded ledger: dark leather, a gold double edge with gilt corner brackets; a head with its
    count between ornamental rules; a card per hero (a framed bust, the name, the day and world, the level on a
    bronze shield), the chosen one gilded and glowing, a gold bar down its side; dashed slots for the places left.
    The controls' codex, bound the same. */
-.title-list, .title-codex {
+.title-list, .title-codex, .title-forge {
   --gold: #e8c27a;
   --gold-deep: #b98a46;
   --ink: #1e140d;
@@ -188,7 +188,6 @@
 .title-list-head span { order: 1; }
 .title-list-head::after { order: 2; background: linear-gradient(90deg, rgba(232, 194, 122, 0.7), transparent); }
 .title-list-head small { order: 3; font-size: 12px; letter-spacing: 0.06em; color: #b89f78; }
-.title-panel-head { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #c8b088; padding-bottom: 4px; border-bottom: 1px solid rgba(239, 220, 184, 0.25); }
 
 .title-card, .title-slot {
   position: relative;
@@ -266,25 +265,6 @@
 .title-corner.left { left: 3vw; }
 .title-corner.right { right: 3vw; }
 
-/* A panel in the middle: a new world, the controls. */
-.title-panel {
-  position: absolute;
-  left: 50%;
-  top: 46vh;
-  transform: translateX(-50%);
-  width: min(420px, 90vw);
-  max-height: 46vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  font-size: 14px;
-  color: #f8ecd4;
-  background: rgba(38, 26, 17, 0.94);
-  border: 2px solid #efdcb8;
-  box-shadow: 4px 4px 0 rgba(46, 31, 20, 0.35);
-}
 .title-note { font-size: 12px; color: #c8b088; }
 .title-input { padding: 7px 9px; font: 500 16px 'Fredoka', system-ui, sans-serif; color: #2e1f14; background: #f8ecd4; border: 2px solid #2e1f14; }
 /* The controls' codex: in the middle, wide, its groups side by side (one under another, narrow); each control

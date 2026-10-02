@@ -60,7 +60,9 @@ async function boot(): Promise<void> {
   const canvas = document.getElementById('app') as HTMLCanvasElement;
   // The world to play: a shared link's (its seed taken out of the address), else this tab's (a reload), else the one
   // chosen on the main menu; kept for the tab.
-  const seed = takeSeedFromUrl() ?? sessionSeed() ?? (await showMainMenu({ worlds: savedWorlds, forget: forgetWorld }));
+  const given = takeSeedFromUrl() ?? sessionSeed();
+  const choice = given !== null ? { seed: given } : await showMainMenu({ worlds: savedWorlds, forget: forgetWorld });
+  const seed = choice.seed;
   keepSessionSeed(seed);
   (document.getElementById('version-label') as HTMLDivElement).textContent = `EvenHold v${__GAME_VERSION__}`; // (package.json's, with the seed)
   const positionLabel = document.getElementById('position-label') as HTMLDivElement;
@@ -76,10 +78,11 @@ async function boot(): Promise<void> {
   }
   const world = kept ?? generateWorld(seed, DEFAULT_MAP_SIZE);
   const model = new GameModel(seed, DEFAULT_MAP_SIZE, world);
-  // This world's saved game, if it was played before; else a new hero: any look, a name to match.
+  // This world's saved game, if it was played before; else a new hero: the one made on the main menu, or any look
+  // with a name to match.
   if (!loadGame(model)) {
-    model.hero.look = randomLook();
-    model.hero.name = randomName(model.hero.look.build);
+    model.hero.look = choice.hero?.look ?? randomLook();
+    model.hero.name = choice.hero?.name ?? randomName(model.hero.look.build);
   }
   const options = readRenderOptions();
   const view = new GameView(canvas, model, options);

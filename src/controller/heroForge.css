@@ -1,0 +1,139 @@
+/* The character creation screen (heroForge.ts; its gilded binding, the roster's: mainMenu.css): the panel on the left, bound as the roster; its traits each
+   under a small gold head telling what's chosen; swatches of colour (the chosen one ringed gold and lifted), a
+   two-way switch, a stepper (‹ the style, n / of ›), the name on a carved field with its dice; the world folded
+   at the foot. The hero stands close up on the right, a hint under them. */
+.title-forge {
+  position: absolute;
+  left: 3vw;
+  top: 13vh;
+  width: 344px;
+  max-height: 74vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-deep) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 16px 14px;
+  color: #f3e6cc;
+}
+.title-forge .title-list-head small { display: none; }
+.forge-surprise {
+  order: 3;
+  padding: 3px 10px 4px 26px;
+  font: 600 12px 'Fredoka', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gold);
+  background: rgba(232, 194, 122, 0.08) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.5' y='1.5' width='13' height='13' rx='3' fill='none' stroke='%23e8c27a' stroke-width='1.6'/><circle cx='5' cy='5' r='1.3' fill='%23e8c27a'/><circle cx='11' cy='11' r='1.3' fill='%23e8c27a'/><circle cx='8' cy='8' r='1.3' fill='%23e8c27a'/></svg>") 8px 50% / 13px no-repeat;
+  border: 1px solid rgba(232, 194, 122, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.forge-surprise:hover { background-color: rgba(232, 194, 122, 0.2); color: #ffe3a0; }
+.forge-traits { display: flex; flex-direction: column; gap: 4px; }
+.forge-trait { padding: 8px 4px 10px; border-top: 1px solid rgba(232, 194, 122, 0.12); }
+.forge-trait-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+.forge-trait-head span { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c9a46a; }
+.forge-trait-head b { font-size: 13px; font-weight: 600; color: #f3e6cc; }
+
+/* The name: a carved field, its dice beside it. */
+.forge-name-line { display: flex; gap: 8px; }
+.forge-name {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font: 700 19px 'Fredoka', system-ui, sans-serif;
+  color: #ffd98a;
+  background: linear-gradient(180deg, rgba(10, 6, 4, 0.55), rgba(30, 20, 14, 0.4));
+  border: 1px solid rgba(232, 194, 122, 0.35);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 0 var(--ink);
+}
+.forge-name:focus { outline: none; border-color: var(--gold); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(232, 194, 122, 0.25); }
+.forge-dice {
+  width: 40px;
+  flex-shrink: 0;
+  background: rgba(232, 194, 122, 0.1) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.5' y='1.5' width='13' height='13' rx='3' fill='none' stroke='%23e8c27a' stroke-width='1.4'/><circle cx='5' cy='5' r='1.2' fill='%23e8c27a'/><circle cx='11' cy='5' r='1.2' fill='%23e8c27a'/><circle cx='8' cy='8' r='1.2' fill='%23e8c27a'/><circle cx='5' cy='11' r='1.2' fill='%23e8c27a'/><circle cx='11' cy='11' r='1.2' fill='%23e8c27a'/></svg>") 50% / 20px no-repeat;
+  border: 1px solid rgba(232, 194, 122, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.15s;
+}
+.forge-dice:hover { background-color: rgba(232, 194, 122, 0.22); transform: rotate(-12deg); }
+
+/* Swatches: tiles of the colour itself, the chosen one ringed and lifted. */
+.forge-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.forge-swatches .forge-option {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 45%, rgba(0, 0, 0, 0.22)), var(--swatch);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.forge-swatches .forge-option:hover { transform: translateY(-2px); }
+.forge-swatches .forge-option.chosen { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(255, 200, 110, 0.55), 0 3px 0 rgba(0, 0, 0, 0.45); }
+
+/* A two-way switch (Man / Woman, clean-shaven / bearded). */
+.forge-switch { display: flex; padding: 3px; gap: 3px; background: rgba(10, 6, 4, 0.45); border: 1px solid rgba(232, 194, 122, 0.2); border-radius: 6px; }
+.forge-switch .forge-option {
+  flex: 1;
+  padding: 7px 8px;
+  font: 600 14px 'Fredoka', system-ui, sans-serif;
+  color: #c8b088;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.forge-switch .forge-option:hover { color: #f3e6cc; background: rgba(255, 228, 186, 0.06); }
+.forge-switch .forge-option.chosen { color: #2a1a0e; background: linear-gradient(180deg, #ffe3a0, #e0a64a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 0 rgba(0, 0, 0, 0.35); }
+
+/* A stepper: ‹ the style (n / of) ›. */
+.forge-stepper { display: grid; grid-template-columns: 38px 1fr 38px; align-items: stretch; gap: 6px; }
+.forge-arrow {
+  font: 700 22px/1 'Fredoka', system-ui, sans-serif;
+  color: var(--gold);
+  background: rgba(232, 194, 122, 0.08);
+  border: 1px solid rgba(232, 194, 122, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.forge-arrow:hover { background: rgba(232, 194, 122, 0.22); color: #ffe3a0; }
+.forge-face { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; background: rgba(10, 6, 4, 0.45); border: 1px solid rgba(232, 194, 122, 0.2); border-radius: 4px; }
+.forge-face b { font-size: 15px; color: #f3e6cc; }
+.forge-face small { font-size: 10.5px; color: #a8916f; letter-spacing: 0.06em; }
+.forge-trait.cycle .forge-trait-head b { display: none; } /* (told in the stepper) */
+
+/* The world, folded at the foot. */
+.forge-world { padding: 10px 4px 2px; border-top: 1px solid rgba(232, 194, 122, 0.12); }
+.forge-world summary { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c9a46a; cursor: pointer; list-style: none; }
+.forge-world summary::before { content: '▸ '; }
+.forge-world[open] summary::before { content: '▾ '; }
+.forge-world .title-input { width: 100%; box-sizing: border-box; margin: 8px 0 4px; }
+.forge-problem { font-size: 12.5px; color: #f0a090; min-height: 0; }
+.forge-problem:empty { display: none; }
+.title-enter.forge-go { left: 62%; } /* (under the hero) */
+.forge-hint {
+  position: absolute;
+  left: 62%;
+  bottom: 17vh;
+  translate: -50% 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: #f8ecd4;
+  opacity: 0.7;
+  text-shadow: 1px 1px 0 #2e1f14, -1px -1px 0 #2e1f14;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  .title-forge { left: 50%; translate: -50% 0; top: auto; bottom: 18vh; max-height: 46vh; width: min(344px, 92vw); }
+  .forge-hint { display: none; }
+  .title-enter.forge-go { left: 50%; }
+}
