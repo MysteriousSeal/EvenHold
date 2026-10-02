@@ -6,7 +6,9 @@
   position: absolute;
   left: 3vw;
   top: 13vh;
-  width: 344px;
+  /* (exactly a row of eight swatches: 8 × 32 + 7 gaps × 8, the trait's 4 a side, the panel's 16 and its border's 2) */
+  box-sizing: border-box;
+  width: calc(8 * 32px + 7 * 8px + 2 * 4px + 2 * 16px + 2 * 2px);
   max-height: 74vh;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -133,7 +135,7 @@
   pointer-events: none;
 }
 @media (max-width: 760px) {
-  .title-forge { left: 50%; translate: -50% 0; top: auto; bottom: 18vh; max-height: 46vh; width: min(344px, 92vw); }
+  .title-forge { left: 50%; translate: -50% 0; top: auto; bottom: 18vh; max-height: 46vh; width: min(356px, 92vw); }
   .forge-hint { display: none; }
   .title-enter.forge-go { left: 50%; }
 }
