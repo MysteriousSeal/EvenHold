@@ -1,6 +1,6 @@
 // Humanoids (the hero, bandits, villagers) have a naked body of one of two
 // builds, male or female (hers slimmer), and differ in its look: skin tone,
-// hair color and style, a beard (his only). What
+// hair color and style, a beard (his only), an expression. What
 // they wear goes on over it (equipment.ts). The look is stored as indices;
 // the view owns the actual colors (view/meshes/human/bodyVoxels.ts).
 
@@ -9,6 +9,8 @@ import type { Equipment } from './equipment';
 
 export const SKIN_TONE_COUNT = 8; // (the last four added after: pale, dark, olive, bronze; saves keep their numbers)
 export const HAIR_COLOR_COUNT = 8; // (the last three added after: platinum, auburn, white; saves keep their numbers)
+export const EXPRESSIONS = ['calm', 'cheerful', 'stern', 'wistful', 'sly'] as const; // their faces (bodyVoxels.ts)
+export type Expression = (typeof EXPRESSIONS)[number];
 export const DYE_COUNT = 8; // what their underwear's dyed (bodyVoxels.ts DYES; the last two added after: saffron, orchil)
 export const HAIR_STYLES = ['short', 'long', 'cropped', 'bald', 'braid', 'bun', 'ponytail', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'bob', 'topknot', 'shaggy', 'warriorTail'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];
@@ -26,6 +28,7 @@ export interface BodyLook {
   dye: number; // their braies (and her breast band): 0 .. DYE_COUNT - 1
   hairStyle: HairStyle;
   beard: boolean;
+  expression?: Expression; // their face (none: calm, as every look before it was chosen)
 }
 
 export interface Humanoid {
@@ -56,5 +59,6 @@ export function lookAt(x: number, z: number, seed = 0, female = 0): BodyLook {
     dye: pick(DYE_COUNT, 46),
     hairStyle: styles[pick(styles.length, 43)],
     beard: build === 'male' && hashUnit(x, z, seed * 131 + 44) < 0.5,
+    expression: EXPRESSIONS[pick(EXPRESSIONS.length, 47)],
   };
 }

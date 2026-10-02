@@ -6,7 +6,7 @@
 // come from humanoid.ts: a new hair style or colour there shows here by
 // itself; a new trait (a BodyLook field) is one more entry below.
 
-import { DYE_COUNT, HAIR_COLOR_COUNT, SKIN_TONE_COUNT, STYLES_OF, type BodyLook } from './humanoid';
+import { DYE_COUNT, EXPRESSIONS, HAIR_COLOR_COUNT, SKIN_TONE_COUNT, STYLES_OF, type BodyLook } from './humanoid';
 
 export type TraitKey = keyof BodyLook;
 export type TraitKind = 'pick' | 'swatch' | 'cycle' | 'toggle';
@@ -37,6 +37,7 @@ const spaced = (value: unknown) => {
 export const LOOK_TRAITS: readonly LookTrait[] = [
   { key: 'build', label: 'Body', kind: 'pick', values: () => ['male', 'female'], name: (v) => (v === 'female' ? 'Woman' : 'Man') },
   { key: 'skin', label: 'Skin', kind: 'swatch', values: skinTones, name: named(['Fair', 'Light', 'Tanned', 'Deep', 'Pale', 'Dark', 'Olive', 'Bronze'], 'Tone') },
+  { key: 'expression', label: 'Face', kind: 'cycle', values: () => EXPRESSIONS, name: spaced },
   { key: 'hairStyle', label: 'Hair', kind: 'cycle', values: (look) => STYLES_OF[look.build], name: spaced },
   { key: 'hair', label: 'Hair colour', kind: 'swatch', values: () => ordered(HAIR_ORDER, HAIR_COLOR_COUNT), name: named(['Chestnut', 'Black', 'Fair', 'Red', 'Grey', 'Platinum', 'Auburn', 'White'], 'Colour') },
   { key: 'beard', label: 'Beard', kind: 'toggle', values: () => [false, true], name: (v) => (v ? 'Bearded' : 'Clean-shaven'), shown: (look) => look.build === 'male' },
