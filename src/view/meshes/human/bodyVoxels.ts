@@ -92,20 +92,30 @@ export const JOINT_NAMES = Object.keys(JOINTS) as Joint[];
 // Which arm holds each hand's item (the hand's middle is the build's `hand`).
 export const HELD_BY: Record<HeldSlot, Joint> = { mainHand: 'rightArm', offHand: 'leftArm' };
 
-// Skin tones, fair to deep, each with its shading, highlight, cheeks and mouth.
+// Skin tones, each with its shading, highlight, cheeks and mouth: fair, light, tanned, deep; then (added after,
+// so saves keep theirs) pale, the palest, dark, the darkest, olive, between light and tanned, and bronze, between
+// tanned and deep (shown palest to darkest on the creation screen: model/human/lookTraits.ts).
 const SKIN_TONES: Array<[skin: number, shade: number, light: number, cheek: number, mouth: number]> = [
   [0xf0c49a, 0xd9a37a, 0xf8d9b6, 0xe8a58a, 0xb5705a],
   [0xe2b48c, 0xc79670, 0xeec7a2, 0xd89478, 0xa8644e],
   [0xc68e62, 0xa8724a, 0xd6a47a, 0xb87658, 0x8a4e3a],
   [0x8e5e3e, 0x74492e, 0xa2704c, 0x80503a, 0x5e3426],
+  [0xf8e0ca, 0xe6c3a6, 0xfdeee0, 0xf2b9a6, 0xc2806e],
+  [0x5f3b27, 0x4a2c1c, 0x75492f, 0x5c3626, 0x3c2117],
+  [0xd2a676, 0xb68a5c, 0xe0b98c, 0xc48868, 0x965a42],
+  [0xab7448, 0x8e5c36, 0xbd8658, 0x9c6044, 0x74402e],
 ];
-// Hair colors with their highlight: chestnut, black, fair, red, grey.
+// Hair colors with their highlight: chestnut, black, fair, red, grey; then (added after, so saves keep theirs)
+// platinum, auburn, white (shown light to dark on the creation screen: model/human/lookTraits.ts).
 const HAIR_COLORS: Array<[hair: number, light: number]> = [
   [0x6b4226, 0x8a5a35],
   [0x2e2420, 0x463830],
   [0xb07a3a, 0xc8944e],
   [0x8a3a22, 0xa85232],
   [0x9a948a, 0xb8b2a6],
+  [0xdcc896, 0xeee0b8],
+  [0x5e2a1c, 0x7a3a26],
+  [0xe2ded6, 0xf6f3ee],
 ];
 // Dyes for the braies (and her breast band), each with its shading: madder
 // red, woad blue, weld green, walnut brown, charcoal, EvenHold's turquoise.
