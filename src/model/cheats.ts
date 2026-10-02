@@ -177,11 +177,11 @@ export function enterNearest(model: GameModel, type: BuildingType, visited: Set<
   return model.useDoor();
 }
 
-// The nearest traveller of `role` on the roads (standing), and the spot on their road a pace ahead of them (in reach
+// The nearest traveller of `role` on the roads, and the spot on their road a pace ahead of them (in reach
 // for a word): or null, none about.
 export function nearestTraveller(model: GameModel, from: Tile, role: TravellerRole): { traveller: Traveller; at: Tile } | null {
   let best: Traveller | null = null;
-  for (const t of model.travellers.standing) {
+  for (const t of model.travellers.list) {
     if (t.role !== role || t.leader !== null) continue; // (a patrol by its leader)
     if (!best || distance(t, from) < distance(best, from)) best = t;
   }

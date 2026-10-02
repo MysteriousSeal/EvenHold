@@ -141,7 +141,6 @@ export class GameModel {
     for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
     this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
-    this.director.hunt(this.travellers.fights); // (foes go after travellers too)
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
     this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);

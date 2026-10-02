@@ -8,12 +8,11 @@ import type { Crypt } from '../crypts/crypts';
 
 export const TRAVELLER_TALK_RANGE = 1.6; // tiles: near enough for a word, out on the road
 
-// The traveller near enough for a word, standing (the nearest), if any.
+// The traveller near enough for a word (the nearest), if any.
 export function travellerInReach(travellers: readonly Traveller[], hero: { x: number; z: number }): Traveller | null {
   let best: Traveller | null = null;
   let near = TRAVELLER_TALK_RANGE;
   for (const t of travellers) {
-    if (t.down !== null) continue;
     const d = Math.hypot(t.x - hero.x, t.z - hero.z);
     if (d < near) [best, near] = [t, d];
   }

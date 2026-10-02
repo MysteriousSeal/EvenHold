@@ -3,12 +3,11 @@
 // say, and guards walking their beat two by two. One or two parties to a
 // road, set out from the seed, walking on and on: at a village, on along
 // another of its roads (back the way they came, if it has no other). The
-// hero close by, they stop for a word, turned to them.
+// hero close by, they stop for a word, turned to them; kept to their side of
+// the road, giving way to one another.
 //
-// Foes go after them (wolves, bandits, a ghost: travellerFights.ts), and the
-// guards fight what they meet. Brought down, they lie a moment and are gone,
-// another of their kind setting out from a village a while after. They're
-// the seed's, not kept in the save: they set out afresh each time.
+// Foes leave them be; the guards go for the foes they meet (travellerFights.ts).
+// Kept in the save, each where they were.
 
 import { hashUnit, mulberry32 } from '../../util/random';
 import type { Road } from '../worldgen/roads';
@@ -34,15 +33,11 @@ export interface Traveller extends Humanoid {
   z: number;
   y: number;
   facing: number;
-  level: number; // from how far out they walk (as foes are: their blows, and their health)
-  hp: number;
-  maxHp: number;
+  level: number; // from how far out they set out (as foes are: a guard's blows)
   damage: number; // a guard's blow
-  hurtFor: number; // seconds left of the hit flash
   swingFor: number | null; // into a blow (a guard's), or null
   cooldown: number; // before the next blow
   off: { x: number; z: number } | null; // off the road (a guard after a foe), else on it
-  down: number | null; // seconds since brought down, or null standing
   leader: number | null; // a guard following another (their partner, by id), a pace behind
   waited: number; // seconds waited on someone in their way
 }
@@ -50,14 +45,11 @@ export interface Traveller extends Humanoid {
 export const WALK = 0.9; // tiles a second along the road
 export const STOP_FOR_HERO = 1.6; // tiles: the hero this close, they stop for a word
 const TURN = 6; // radians a second they turn
-const GONE_AFTER = 4; // seconds lying, brought down, before they're gone
-export const BACK_AFTER = 90; // seconds before another of their kind sets out in their place
 const FOLLOW = 1.2; // tiles a guard follows their partner by
 const KEEP = 0.22; // tiles to the side of the road's middle they keep to (their right)
 const ROOM = 0.42; // tiles: no nearer someone else than this, walking (they wait, rather than walk into them)
 const SEEN = 40; // tiles from the hero they keep clear of each other (past it, no one's there to see)
 const GIVE_WAY = 1.5; // seconds waited on someone in the way before squeezing past
-const HEALTH: Record<TravellerRole, number> = { pedlar: 8, pilgrim: 8, guard: 18 };
 const GUARD_DAMAGE = 3;
 export const PEDLAR_KEY = 1_000_000; // a pedlar's shop's key among the shops (theirs, by id, past every door's)
 
@@ -114,7 +106,6 @@ export function makeTraveller(id: number, role: TravellerRole, road: number, alo
   const at = onRoadSide(roads[road], Math.max(0, Math.min(roads[road].route.length - 1, along)), way);
   const look = lookAt(id * 13 + 5, id * 7 + 3, seed + 31, role === 'guard' ? 0.15 : 0.45); // (who they are: theirs alone, wherever they walk)
   const level = kept ?? enemyLevel(spawn, at.x, at.z, id); // (theirs from where they set out: kept, walking on)
-  const maxHp = HEALTH[role] + (level - 1) * (role === 'guard' ? 3 : 1);
   return {
     id,
     role,
@@ -130,27 +121,21 @@ export function makeTraveller(id: number, role: TravellerRole, road: number, alo
     y: 0,
     facing: at.facing,
     level,
-    hp: maxHp,
-    maxHp,
     damage: GUARD_DAMAGE + Math.floor(level / 3),
-    hurtFor: 0,
     swingFor: null,
     cooldown: 0,
     off: null,
-    down: null,
     leader,
     waited: 0,
   };
 }
 
 // The world's travellers, walking: each frame, along their roads (on to another at a village), stopped for the hero
-// close by; brought down, gone a while after, and then another setting out in their place.
+// close by.
 export class Travellers {
   readonly list: Traveller[];
-  readonly fights: TravellerFights; // the foes after them, and the guards after the foes (the enemy director's prey)
+  readonly fights: TravellerFights; // the guards after the foes they meet
   private readonly from: ReturnType<typeof roadsFrom>;
-  private readonly gone: Array<{ role: TravellerRole; leader: boolean; in: number }> = []; // those brought down: when another of their kind sets out
-  private nextId: number;
 
   constructor(
     private readonly seed: number,
@@ -164,56 +149,34 @@ export class Travellers {
     this.fights = new TravellerFights(this, roads, hero, groundY, slain);
     this.list = spawnTravellers(seed, roads, spawn);
     this.from = roadsFrom(roads, villages);
-    this.nextId = this.list.length;
     for (const t of this.list) t.y = groundY(t.x, t.z);
   }
 
-  // Where everyone is, for the save: each on their road (how far along, which way), their health; those down left
-  // out, with those still to set out again (and when).
-  save(): { next: number; on: Array<[number, TravellerRole, number, number, 1 | -1, number, number | null, number]>; gone: Array<[TravellerRole, boolean, number]> } {
-    return {
-      next: this.nextId,
-      on: this.list.filter((t) => t.down === null).map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.hp, t.leader, t.level]),
-      gone: [...this.gone.map((g): [TravellerRole, boolean, number] => [g.role, g.leader, Math.round(g.in)]), ...this.list.filter((t) => t.down !== null).map((t): [TravellerRole, boolean, number] => [t.role, t.leader === null, BACK_AFTER])],
-    };
+  // Where everyone is, for the save: each on their road (how far along, which way), their partner, their level.
+  save(): { on: Array<[number, TravellerRole, number, number, 1 | -1, number | null, number]> } {
+    return { on: this.list.map((t) => [t.id, t.role, t.road, Math.round(t.along * 100) / 100, t.way, t.leader, t.level]) };
   }
 
   // Everyone back where the save had them (what doesn't fit this world's roads, left as the seed has it).
   load(saved: ReturnType<Travellers['save']>): void {
     const roles: readonly string[] = ['pedlar', 'pilgrim', 'guard'];
     const on = (Array.isArray(saved?.on) ? saved.on : []).filter(
-      ([id, role, road, along, way, hp]) => Number.isInteger(id) && roles.includes(role) && this.roads[road] !== undefined && Number.isFinite(along) && (way === 1 || way === -1) && Number.isFinite(hp),
+      ([id, role, road, along, way, leader]) =>
+        Number.isInteger(id) && roles.includes(role) && this.roads[road] !== undefined && Number.isFinite(along) && (way === 1 || way === -1) && (leader === null || Number.isInteger(leader)),
     );
     if (on.length === 0) return;
-    this.list.splice(0, this.list.length, ...on.map(([id, role, road, along, way, hp, leader, level]) => {
+    this.list.splice(0, this.list.length, ...on.map(([id, role, road, along, way, leader, level]) => {
       const t = makeTraveller(id, role, road, along, way, this.roads, this.seed, this.spawn, leader, Number.isInteger(level) && level > 0 ? level : undefined);
-      [t.hp, t.y] = [Math.max(1, Math.min(t.maxHp, hp)), this.groundY(t.x, t.z)];
+      t.y = this.groundY(t.x, t.z);
       return t;
     }));
-    this.gone.splice(0, this.gone.length, ...(Array.isArray(saved.gone) ? saved.gone : []).filter(([role, , left]) => roles.includes(role) && Number.isFinite(left)).map(([role, leader, left]) => ({ role, leader, in: left })));
-    this.nextId = Math.max(Number.isInteger(saved.next) ? saved.next : 0, ...this.list.map((t) => t.id + 1));
-  }
-
-  // Whoever's about, standing (for the foes and the guards: travellerFights.ts).
-  get standing(): Traveller[] {
-    return this.list.filter((t) => t.down === null);
   }
 
   // Each frame the hero's out in the world (`enemies`: the world's foes, for the guards to go for).
   update(dt: number, enemies: readonly Enemy[] = []): void {
     this.fights.update(dt, enemies);
-    for (let i = this.list.length - 1; i >= 0; i--) {
-      const t = this.list[i];
-      t.hurtFor = Math.max(0, t.hurtFor - dt);
+    for (const t of this.list) {
       t.cooldown = Math.max(0, t.cooldown - dt);
-      if (t.down !== null) {
-        t.down += dt;
-        if (t.down >= GONE_AFTER) {
-          this.list.splice(i, 1);
-          this.gone.push({ role: t.role, leader: t.leader === null, in: BACK_AFTER });
-        }
-        continue;
-      }
       if (t.off) continue; // (a guard after a foe: travellerFights.ts walks them)
       const toHero = Math.hypot(this.hero.x - t.x, this.hero.z - t.z);
       if (toHero < STOP_FOR_HERO) {
@@ -222,12 +185,11 @@ export class Travellers {
       }
       this.walk(t, dt);
     }
-    this.setOut(dt);
   }
 
   // Along the road (a guard following their partner, a pace behind them), on at its end.
   private walk(t: Traveller, dt: number): void {
-    const leader = t.leader === null ? null : this.list.find((l) => l.id === t.leader && l.down === null) ?? null;
+    const leader = t.leader === null ? null : this.list.find((l) => l.id === t.leader) ?? null;
     if (leader && !leader.off) {
       [t.road, t.way] = [leader.road, leader.way];
       t.along = Math.max(0, Math.min(this.roads[t.road].route.length - 1, leader.along - leader.way * FOLLOW));
@@ -248,10 +210,10 @@ export class Travellers {
   }
 
   // Whether stepping to `to` would walk `t` into someone (nearer than ROOM, and nearer than they are now): not their
-  // partner (a guard following, a pace behind), nor the fallen.
+  // partner (a guard following, a pace behind).
   private inTheWay(t: Traveller, to: { x: number; z: number }): boolean {
     return this.list.some((o) => {
-      if (o === t || o.down !== null || o.leader === t.id || t.leader === o.id) return false;
+      if (o === t || o.leader === t.id || t.leader === o.id) return false;
       if (Math.abs(o.x - to.x) > ROOM || Math.abs(o.z - to.z) > ROOM) return false;
       const after = Math.hypot(o.x - to.x, o.z - to.z);
       return after < ROOM && after < Math.hypot(o.x - t.x, o.z - t.z);
@@ -267,26 +229,6 @@ export class Travellers {
     t.road = next.road;
     t.along = next.start ? 0 : this.roads[next.road].route.length - 1;
     t.way = next.start ? 1 : -1;
-  }
-
-  // Those brought down a while ago: another of their kind sets out from a village (a guard and their partner).
-  private setOut(dt: number): void {
-    for (let i = this.gone.length - 1; i >= 0; i--) {
-      const g = this.gone[i];
-      g.in -= dt;
-      if (g.in > 0) continue;
-      this.gone.splice(i, 1);
-      if (!g.leader || this.roads.length === 0) continue; // (a follower sets out with their partner)
-      const road = Math.floor(hashUnit(this.nextId, this.seed % 9973, 5) * this.roads.length);
-      const first = makeTraveller(this.nextId++, g.role, road, 0, 1, this.roads, this.seed, this.spawn, null);
-      first.y = this.groundY(first.x, first.z);
-      this.list.push(first);
-      if (g.role === 'guard') {
-        const second = makeTraveller(this.nextId++, 'guard', road, -FOLLOW, 1, this.roads, this.seed, this.spawn, first.id);
-        second.y = first.y;
-        this.list.push(second);
-      }
-    }
   }
 }
 
