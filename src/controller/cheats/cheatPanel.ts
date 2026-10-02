@@ -41,7 +41,7 @@ import {
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
-import { gainXp, xpToNext } from '../../model/hero/heroStats';
+import { TIRED, gainXp, xpToNext } from '../../model/hero/heroStats';
 import { maxEnergyOf } from '../../model/hero/attributes';
 import { maxHpOf } from '../../model/hero/attributes';
 import { refundPoints } from '../../model/hero/training';
@@ -230,6 +230,12 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             { icon: lootIcon('ale'), title: 'Full energy', detail: 'Rested at once, as after a night in bed', run: () => ((model.hero.energy = maxEnergyOf(model.hero)), 'Full of energy.') },
             { icon: ICON.slay, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
             { icon: ICON.noclip, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
+            {
+              icon: ICON.swiftFeet,
+              title: 'Just tired',
+              detail: `Energy to ${TIRED - 1}, just under where the walk slows`,
+              run: () => ((model.hero.energy = TIRED - 1), `Energy at ${TIRED - 1}: tired.`),
+            },
           ]),
           ...group('Growth', [
             {
@@ -250,6 +256,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             },
             { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
             { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+            { icon: ICON.slay, title: 'One-hit kills', detail: 'Every blow fells what it lands on, crypt lords too', ...toggle(() => model.oneHitKills, (on) => (model.oneHitKills = on), 'Every blow a kill.', 'Blows as they were.') },
           ]),
         ],
       },
