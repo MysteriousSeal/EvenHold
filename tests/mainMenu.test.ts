@@ -239,6 +239,20 @@ describe('the character creation screen', () => {
     return chosen;
   };
 
+  it('two panels: the appearance on the left (the look, Surprise me); the name and world on the right', () => {
+    void open();
+    const [look, identity] = Array.from(document.querySelectorAll('.title-forge'));
+    expect(look.querySelector('.title-list-head span')?.textContent).toBe('Appearance');
+    expect(look.querySelector('.forge-surprise')).not.toBeNull();
+    expect(look.querySelector('.forge-name')).toBeNull();
+    expect(identity.classList.contains('identity')).toBe(true);
+    expect(identity.querySelector('.title-list-head span')?.textContent).toBe('Name & World');
+    expect(identity.querySelector('.forge-name')).not.toBeNull();
+    expect(identity.querySelector('.forge-world .title-input')).not.toBeNull(); // (always shown: not folded)
+    expect(identity.querySelector('details')).toBeNull();
+    expect(identity.querySelector('.forge-trait.cycle, .forge-swatches')).toBeNull(); // (no trait of the look here)
+  });
+
   it('every trait of a look, each drawn for its kind; none known to it by name', () => {
     void open();
     for (const t of LOOK_TRAITS.filter((t) => t.key !== 'beard')) { // (the beard, a man's only: checked below)
