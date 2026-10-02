@@ -142,11 +142,14 @@
       @media (prefers-reduced-motion: reduce) { #loading-stage * { animation: none !important; } }
       /* Until a world's entered, the title alone: no bar, step or tip (the main menu may come up over it,
          controller/mainMenu.css); the loading screen shows them once it starts (loadingScreen.ts). */
-      /* Laid out as a scene: the title at the top, the sun and the hills wide behind (the hero, on the main menu,
-         standing before them). */
-      #loading.title { justify-content: flex-start; padding-top: 5vh; }
-      #loading.title h1 { position: relative; z-index: 1; }
-      #loading.title #loading-stage { position: absolute; left: 0; top: 16vh; width: 100vw; height: 230px; }
+      /* The main menu's: a dusk sky, the voxel world fading in over it (mainMenu.css), the title landing once its
+         opening flight's done; the flat sun and hills only without WebGL (.flat), laid out as a scene. */
+      #loading.title { justify-content: flex-start; padding-top: 5vh; background: radial-gradient(circle at 50% 30%, #4a3f6e, #241d33 70%); }
+      #loading.title h1 { position: relative; z-index: 3; opacity: 0; }
+      #loading.title.flat { background: radial-gradient(circle at 50% 40%, #f8ecd4, #efdcb8 50%, #d6bb8e); }
+      #loading.title.flat h1 { opacity: 1; }
+      #loading.title #loading-stage { display: none; }
+      #loading.title.flat #loading-stage { display: block; position: absolute; left: 0; top: 16vh; width: 100vw; height: 230px; }
       #loading.title #loading-bar, #loading.title #loading-step, #loading.title #loading-tip { display: none; }
     </style>
   </head>

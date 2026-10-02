@@ -3,7 +3,7 @@
 // a trodden clearing of earth round the campfire, a path running off
 // between the trees; a tent, crates and a weapon rack; logs to sit on,
 // boulders, bushes, and the woods closing in behind and at the sides.
-// Returns the fire's glowing mesh's spot, for its light and embers.
+// Returns the fire's flames, to be lit (scaled up from nothing).
 
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
@@ -19,6 +19,7 @@ import type { SceneryKind } from '../../model/scenery/scenery';
 
 const CELL = 0.2; // the ground's voxels
 const GROUND = { x0: -9, x1: 9, z0: -10, z1: 5 }; // world units
+export const CAMP_AREA = GROUND; // (the valley round it leaves it be: titleValley.ts)
 export const FIRE = new THREE.Vector3(0, 0, -0.9);
 const PALETTE = [0x8bbf6a, 0x7fb35e, 0x95c774, 0x6fa552, 0xb08a5a, 0x9c774b, 0xa8916c, 0x5f9f4c];
 const [GRASS, GRASS_DARK, GRASS_LIGHT, GRASS_DEEP, EARTH, EARTH_DARK, PATH, TUFT] = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -46,7 +47,7 @@ function ground(): THREE.BufferGeometry {
 }
 
 // Every piece of the camp, added to `scene`; the materials made here are its to dispose with the geometries.
-export function buildTitleCamp(scene: THREE.Scene): void {
+export function buildTitleCamp(scene: THREE.Scene): THREE.Object3D {
   const plain = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const glowing = new THREE.MeshStandardMaterial({ vertexColors: true, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.8, roughness: 0.5 });
   const put = (geometry: THREE.BufferGeometry, x: number, z: number, turn = 0, scale = 1, material = plain) => {
@@ -57,6 +58,7 @@ export function buildTitleCamp(scene: THREE.Scene): void {
     mesh.castShadow = material === plain;
     mesh.receiveShadow = true;
     scene.add(mesh);
+    return mesh;
   };
   const floor = new THREE.Mesh(ground(), plain);
   floor.receiveShadow = true;
@@ -64,7 +66,7 @@ export function buildTitleCamp(scene: THREE.Scene): void {
 
   // The camp.
   put(buildCampGeometry('fire', false), FIRE.x, FIRE.z);
-  put(buildCampGeometry('fire', true), FIRE.x, FIRE.z, 0, 1, glowing);
+  const flames = put(buildCampGeometry('fire', true), FIRE.x, FIRE.z, 0, 1, glowing);
   put(buildCampGeometry('tent', false), -2.9, -2.4, 0.5);
   put(buildCampGeometry('crates', false), 2.7, -2.1, -0.3);
   put(buildCampGeometry('rack', false), 3.3, -0.6, -1.2);
@@ -92,4 +94,5 @@ export function buildTitleCamp(scene: THREE.Scene): void {
     if (open || z > 2.2) continue;
     put(buildTreeGeometry(kinds[n % 3], n), x, z, rng() * 6, 1.1 + rng() * 0.35);
   }
+  return flames;
 }
