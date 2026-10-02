@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
+import { generateWorld } from '../src/model/worldgen/world';
 import { STOP_FOR_HERO, WALK, onRoad, onRoadSide, roadsFrom, spawnTravellers, type Traveller } from '../src/model/travellers/travellers';
 import { GUARD_LINES, PILGRIM_ROAD_LINES, bearing, cryptRumour, travellerInReach, travellerPrompt, travellerSays } from '../src/model/travellers/travellerTalk';
 import { PEDLAR_TRINKETS, PEDLAR_WARES, buyFromPedlar, pedlarBuys, pedlarPrice, pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
@@ -16,7 +17,8 @@ import type { Enemy } from '../src/model/types';
 
 const MID = { width: 512, depth: 512 };
 const models = new Map<number, GameModel>();
-const fresh = (seed = 1) => new GameModel(seed, MID);
+const worlds = new Map<number, ReturnType<typeof generateWorld>>(); // (made once a seed: making them is most of the time)
+const fresh = (seed = 1) => new GameModel(seed, MID, worlds.get(seed) ?? worlds.set(seed, generateWorld(seed, MID)).get(seed)!);
 const shared = (seed = 1) => models.get(seed) ?? models.set(seed, fresh(seed)).get(seed)!;
 const far = (model: GameModel) => Object.assign(model.hero, { x: 3, z: 3 }); // (the hero well away from them all)
 // A model with one traveller of `role` alone on the roads, the hero far off, no foes about.
