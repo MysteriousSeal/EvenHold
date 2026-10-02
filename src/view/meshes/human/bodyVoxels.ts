@@ -297,8 +297,13 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard'>)
   } else {
     fillBox(grid, 0, L, 0, L, L, L, (x, _y, z) => strands(x, z)); // the crown
     if (style === 'cropped') {
-      fillBox(grid, 0, 7, 0, L, 9, 0, (x, y) => strands(x, y)); // close-cropped: a band around the back
-      for (const x of [0, L]) fillBox(grid, x, 8, 0, x, 9, 5, C.hair);
+      // Close-cropped all over: a short dark nap wherever hair grows (the crown, the back down to the nape, the
+      // sides above the ears to the temples), a clean straight hairline at the brow; no fringe.
+      const nap = (a: number, b: number) => ((a + b) % 3 === 0 ? C.hairDark : (a * b) % 5 === 1 ? C.hairLight : C.hair);
+      fillBox(grid, 0, L, 0, L, L, L, (x, _y, z) => nap(x, z));
+      fillBox(grid, 0, 2, 0, L, L - 1, 0, (x, y) => nap(x, y));
+      for (const x of [0, L]) fillBox(grid, x, 7, 0, x, L - 1, L - 1, (_x, y, z) => nap(z, y));
+      fillBox(grid, 1, 9, L, L - 1, 9, L, C.hairDark); // the hairline
     } else if (style === 'bob') {
       // Cut straight at the chin all round, a straight fringe across the brow.
       fillBox(grid, 0, 2, 0, L, L - 1, 1, (x, y) => strands(x, y));
@@ -353,14 +358,15 @@ export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'ha
 }
 
 // Hair gathered up past the head (a bun, a ponytail, braids, pigtails, a
-// crown braid, loose waves, a topknot, a warrior's tail), as its own piece on the head's
+// crown braid, loose waves, a topknot, a warrior's tail, long hair to the
+// shoulders, shaggy tufts), as its own piece on the head's
 // joint, left off under anything worn on the head; or null for styles that
 // stay within it. Its grid spans 2 either side of the head, from 9 below it
 // to 5 over, and from 4 behind it to 1 in front; `pivot` is the head's
 // joint in it.
 export const HAIR_PIECE_GRID: [number, number, number] = [15, 25, 16];
 export const HAIR_PIECE_PIVOT: [number, number, number] = [7.5, 9, 9.5];
-const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot', 'warriorTail'] as const;
+const GATHERED = ['bun', 'ponytail', 'braid', 'twinBraids', 'crownBraid', 'waves', 'pigtails', 'topknot', 'warriorTail', 'long', 'shaggy'] as const;
 export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
   if (!(GATHERED as readonly string[]).includes(style)) return null;
   const grid = createGrid(HAIR_PIECE_GRID);
@@ -426,9 +432,29 @@ export function buildHairPiece(style: BodyLook['hairStyle']): VoxelGrid | null {
       }
       break;
     case 'warriorTail':
-      // The strip of hair tied at the back of the head, a short thick tail hanging from the tie.
+      // The strip of hair tied at the back of the head (the knot standing out), a short thick tail hanging from
+      // the tie close against the head, narrowing to its end.
       for (const x of [4, 5, 6]) at(x, 7, -1, C.cord);
-      for (let y = 6; y >= 1; y--) for (let x = 4; x <= 6; x++) if (y > 2 || x === 5) at(x, y, -2, strand(y + x));
+      at(5, 7, -2, C.cord);
+      for (let y = 6; y >= 0; y--) for (let x = 4; x <= 6; x++) if (y > 1 || x === 5) at(x, y, -1, strand(y + x));
+      break;
+    case 'long':
+      // Straight, falling past the head to the shoulders: a curtain down the back (its ends a little uneven),
+      // and down either side behind the ears; its strands run straight down, light and dark.
+      for (let x = 0; x <= 10; x++) for (let y = 9; y >= (x % 3 === 1 ? -4 : -3); y--) at(x, y, -1, strand(x));
+      for (const x of [-1, 11]) for (let z = 0; z <= 3; z++) for (let y = 9; y >= (z === 3 ? 0 : -2); y--) at(x, y, z, strand(z + 1));
+      break;
+    case 'shaggy':
+      // Untamed: tufts sticking up off the crown, ends flicking out at the sides and the back, so it's messy
+      // in silhouette, not only in its colours.
+      for (const [x, z, c] of [[2, 3, C.hair], [5, 1, C.hairLight], [7, 5, C.hairDark], [3, 8, C.hairLight], [8, 9, C.hair], [6, 7, C.hair]]) at(x, 11, z, c);
+      at(5, 12, 1, C.hair); // (one taller)
+      for (const x of [-1, 11]) {
+        at(x, 3, 1, C.hair);
+        at(x, 4, 0, C.hairDark);
+        at(x, 2, 2, C.hairLight);
+      }
+      for (const [x, y] of [[1, 0], [4, 1], [6, -1], [9, 0]]) at(x, y, -1, y < 0 ? C.hairDark : C.hair);
       break;
     case 'topknot':
       // Pulled up into a knot on top of the crown.
