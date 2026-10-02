@@ -81,6 +81,11 @@ export function gearOf(wearer: Wearer): Record<EquipSlot, Options> {
   return gear;
 }
 
+// Whether the hair hanging below a head piece shows under it (it's open behind: a cap, a kettle hat, a circlet).
+export function hairShowsUnder(item: ItemId): boolean {
+  return !!(ITEMS[item] as { openBack?: boolean }).openBack;
+}
+
 export function slotOf(item: ItemId): EquipSlot {
   return ITEMS[item].slot;
 }

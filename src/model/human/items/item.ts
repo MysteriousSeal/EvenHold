@@ -24,6 +24,7 @@ export interface ItemEntry {
   // Worn by the hero: how much it shields them (armour, off each blow taken), and what it adds to their stats.
   armor?: number;
   stats?: Partial<Record<Stat, number>>;
+  openBack?: boolean; // worn on the head, open behind: the hair hanging below it shows (long hair, braids, tails)
 }
 
 // A slot's items, each tagged with the slot.

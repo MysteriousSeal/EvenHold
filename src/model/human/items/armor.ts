@@ -3,27 +3,27 @@
 import { slotItems } from './item';
 
 export const HEAD_ITEMS = slotItems('head', {
-  leatherCap: { name: 'Leather cap', armor: 2, stats: { agility: 1 } },
+  leatherCap: { name: 'Leather cap', armor: 2, stats: { agility: 1 }, openBack: true },
   maskedHood: { name: 'Hood and mask', wornBy: { bandit: 3 }, armor: 1, stats: { agility: 2 } },
-  redBandana: { name: 'Red bandana', wornBy: { bandit: 2 }, stats: { agility: 1 } },
-  nasalCap: { name: 'Nasal cap', value: 60, soldBy: { smith: 2 }, wornBy: { bandit: 2, guard: 2 }, armor: 4, stats: { stamina: 1 } },
+  redBandana: { name: 'Red bandana', wornBy: { bandit: 2 }, stats: { agility: 1 }, openBack: true },
+  nasalCap: { name: 'Nasal cap', value: 60, soldBy: { smith: 2 }, wornBy: { bandit: 2, guard: 2 }, armor: 4, stats: { stamina: 1 }, openBack: true },
   linenCoif: { name: 'Linen coif', wornBy: { pedlar: 1, pilgrim: 1 }, armor: 1, stats: { endurance: 1 } },
-  strawHat: { name: 'Straw hat', wornBy: { pedlar: 2 }, stats: { endurance: 2 } },
+  strawHat: { name: 'Straw hat', wornBy: { pedlar: 2 }, stats: { endurance: 2 }, openBack: true },
   greatHelm: { name: 'Great helm', value: 220, soldBy: { smith: 1 }, armor: 6, stats: { stamina: 3 } },
   mailCoif: { name: 'Mail coif', value: 110, soldBy: { smith: 1 }, wornBy: { bandit: 1, guard: 1 }, armor: 4, stats: { stamina: 2 } },
   huntersHood: { name: "Hunter's hood", wornBy: { bandit: 1 }, armor: 1, stats: { agility: 2 } },
-  circlet: { name: 'Gold circlet', stats: { stamina: 1, endurance: 2 } },
+  circlet: { name: 'Gold circlet', stats: { stamina: 1, endurance: 2 }, openBack: true },
   // The finer helms: some at the smithy or on the roads' guards, the rarest only in a crypt lord's hoard (worth 100 and more).
-  kettleHat: { name: 'Kettle hat', value: 80, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 4, stats: { stamina: 1, endurance: 1 } },
+  kettleHat: { name: 'Kettle hat', value: 80, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 4, stats: { stamina: 1, endurance: 1 }, openBack: true },
   bascinet: { name: 'Bascinet', value: 180, soldBy: { smith: 1 }, armor: 6, stats: { stamina: 2, strength: 1 } },
   barbute: { name: 'Barbute', value: 160, soldBy: { smith: 1 }, armor: 5, stats: { strength: 1, stamina: 2 } },
   sallet: { name: 'Sallet', value: 140, wornBy: { guard: 1 }, armor: 5, stats: { agility: 1, stamina: 2 } },
-  hornedHelm: { name: 'Horned helm', value: 200, wornBy: { bandit: 1 }, armor: 5, stats: { strength: 3 } },
-  wingedHelm: { name: 'Winged helm', value: 260, armor: 5, stats: { agility: 2, endurance: 2 } },
-  elvenCirclet: { name: 'Elven circlet', value: 240, armor: 1, stats: { agility: 2, endurance: 3 } },
+  hornedHelm: { name: 'Horned helm', value: 200, wornBy: { bandit: 1 }, armor: 5, stats: { strength: 3 }, openBack: true },
+  wingedHelm: { name: 'Winged helm', value: 260, armor: 5, stats: { agility: 2, endurance: 2 }, openBack: true },
+  elvenCirclet: { name: 'Elven circlet', value: 240, armor: 1, stats: { agility: 2, endurance: 3 }, openBack: true },
   boneHelm: { name: 'Bone helm', value: 150, armor: 4, stats: { strength: 2, stamina: 1 } },
   dragonHelm: { name: 'Dragonscale helm', value: 360, armor: 7, stats: { strength: 2, stamina: 3 } },
-  royalCrown: { name: "Old king's crown", value: 400, armor: 1, stats: { strength: 2, stamina: 2, endurance: 2 } },
+  royalCrown: { name: "Old king's crown", value: 400, armor: 1, stats: { strength: 2, stamina: 2, endurance: 2 }, openBack: true },
 });
 
 export const SHOULDERS_ITEMS = slotItems('shoulders', {
