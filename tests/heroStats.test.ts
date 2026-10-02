@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WEARY_TIME } from '../src/model/hero/blessing';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
-import { MAX_ENERGY, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
+import { MAX_ENERGY, TIRED, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/map/grid';
 import { FRAME, fresh, nearest, slay, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
@@ -60,11 +60,18 @@ describe('hero stats', () => {
     expect(hero.energy).toBe(60);
   });
 
-  it('tired under a quarter of their energy, walks slower', () => {
+  it('tired under 25 energy, walks slower, whatever their Endurance (it only gives more before it)', () => {
     const { hero } = fresh();
     expect(tiredPace(hero)).toBe(1);
-    hero.energy = MAX_ENERGY / 4 - 1;
+    hero.energy = TIRED - 1;
     expect(tiredPace(hero)).toBeLessThan(1);
+    hero.trained.endurance = 20; // (their most energy far above 100)
+    hero.energy = TIRED;
+    expect(tiredPace(hero)).toBe(1); // (25: not yet)
+    hero.energy = TIRED - 0.5;
+    expect(tiredPace(hero)).toBeLessThan(1);
+    expect(TIRED).toBe(25);
+    void MAX_ENERGY;
   });
 
   it("out of energy, collapses and wakes lying before the nearest inn's hearth, some energy back, and Weary a while", () => {
