@@ -74,8 +74,11 @@ function inBand(mask: number, i: number, k: number): boolean {
 
 // Rut voxels. Each arm's two ruts run from the tile edge inward; where they
 // start depends on the other arms:
+// - a junction (three arms or four): each arm's ruts join its neighbours' at
+//   the corners of the middle, in L's as a bend's do, none crossing another;
+//   a T's through road keeps its far rut straight across (the side away from
+//   its branch), its near one opening where the branch joins;
 // - straight through (opposite arm): from the center, joining it seamlessly;
-// - T-junction (both perpendicular arms): at the nearer through-rut;
 // - corner (one perpendicular arm): the inner rut stops early and the
 //   outer one late, so the two arms' ruts meet as two nested L-shapes;
 // - dead end: both run past the center and are joined into a U.
@@ -88,8 +91,8 @@ function rutVoxels(mask: number): Array<[number, number]> {
 
     for (const side of [-RUT, RUT]) {
       let start: number;
-      if (has(mask, OPPOSITE[arm])) start = 0;
-      else if (perpendiculars.length === 2) start = RUT;
+      if (isJunction(mask)) start = farSideOfT(mask, arm, side) ? 0 : RUT;
+      else if (has(mask, OPPOSITE[arm])) start = 0;
       else if (perpendiculars.length === 1) {
         const [pdx, pdz] = NEIGHBORS_4[perpendiculars[0]];
         const towardPerpendicular = Math.sign(side) === pdx + pdz; // perpendicular arm's own axis sign
@@ -103,6 +106,17 @@ function rutVoxels(mask: number): Array<[number, number]> {
     }
   }
   return ruts;
+}
+
+const isJunction = (mask: number) => [0, 1, 2, 3].filter((arm) => has(mask, arm)).length >= 3;
+
+// Whether a rut (an arm's, on `side`) is a T's far one: on its through road (the arm's opposite there too), on the side
+// away from its branch (the arm across from the one it's missing). That one runs straight across.
+function farSideOfT(mask: number, arm: number, side: number): boolean {
+  const missing = [0, 1, 2, 3].filter((a) => !has(mask, a));
+  if (missing.length !== 1 || !has(mask, OPPOSITE[arm])) return false;
+  const [bdx, bdz] = NEIGHBORS_4[OPPOSITE[missing[0]]]; // (the branch's way out)
+  return Math.sign(side) !== bdx + bdz;
 }
 
 // Where a road tile's voxel grid starts, relative to the tile's top
@@ -145,6 +159,13 @@ export function buildRoadTile(mask: number, variant: number, drops = 0): VoxelGr
       } else if (!inBand(mask, i, k) && NEIGHBORS_4.some(([dx, dz]) => inBand(mask, i + dx, k + dz)) && rng() < 0.25) {
         set(i, 0, k, DIRT_DARK);
       }
+    }
+  }
+
+  // A junction's middle: trampled by the carts turning there, worn lighter in patches.
+  if (isJunction(mask)) {
+    for (let i = MID - HALF_BAND + 1; i <= MID + HALF_BAND - 1; i++) {
+      for (let k = MID - HALF_BAND + 1; k <= MID + HALF_BAND - 1; k++) if (rng() < 0.16) set(i, 1, k, DIRT_LIGHT);
     }
   }
 

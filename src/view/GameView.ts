@@ -44,6 +44,8 @@ import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
+import { TravellerViews } from './meshes/npc/travellerViews';
+import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { buildRoomScene } from './interior/roomView';
 import { buildCryptScene } from './crypt/cryptView';
@@ -87,6 +89,7 @@ export class GameView {
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
   private readonly npcs = new NpcViews();
+  private readonly travellers: TravellerViews; // on the roads
   private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
@@ -141,6 +144,7 @@ export class GameView {
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
     this.boardMarks = new BoardMarks(this.scene, model);
+    this.travellers = new TravellerViews(this.scene);
     this.mist = new RuinMist(this.scene, model.ruins, (x, z) => model.getGroundY(x, z));
   }
 
@@ -177,7 +181,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -290,6 +294,7 @@ export class GameView {
       return; // the world outside stands still
     }
     this.world.update(hero.x, hero.z);
+    this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero)); // (the one the prompt's over: their name gives way to it)
     setWindPusher(hero.x, hero.z); // crops part around them
     setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null, (e) => model.quests.marked(e));
