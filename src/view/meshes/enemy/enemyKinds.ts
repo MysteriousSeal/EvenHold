@@ -18,6 +18,7 @@ export interface KindLook {
 export const KIND_LOOKS: Record<EnemyKind, KindLook> = {
   wolf: { name: 'Wolf', size: 1, aura: 19, textHeight: 0.35 },
   bandit: { name: 'Bandit', size: 1, aura: 15, textHeight: 0.4 },
+  banditChief: { name: 'Bandit chief', size: 1.2, aura: 18, textHeight: 0.5 }, // (over his bandits: broad, horned; named for his camp)
   boar: { name: 'Boar', size: 1, aura: 19, textHeight: 0.3 },
   bear: { name: 'Brown bear', size: 1, aura: 23, textHeight: 0.45 },
   lynx: { name: 'Lynx', size: 1, aura: 17, textHeight: 0.3 },

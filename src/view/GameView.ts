@@ -43,6 +43,7 @@ import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
+import { CampChests } from './meshes/camp/campChests';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
 import { buildScenery3d } from './meshes/scenery/sceneryMesh';
@@ -102,6 +103,7 @@ export class GameView {
   private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
+  private readonly campChests: CampChests; // (each camp's chest, shut or thrown open)
   private readonly boardMarks: BoardMarks;
   private readonly mist: RuinMist; // low mist in the old ruins
   private readonly movementAxes: MovementAxes;
@@ -152,6 +154,7 @@ export class GameView {
     this.coins = new CoinViews(this.scene);
     this.loot = new LootViews(this.scene);
     this.campFires = new CampFires(this.scene);
+    this.campChests = new CampChests(this.scene);
     this.boardMarks = new BoardMarks(this.scene, model);
     this.travellers = new TravellerViews(this.scene);
     this.ambient = new AmbientLife(this.scene, model);
@@ -324,6 +327,7 @@ export class GameView {
     this.loot.update(model.loot, hero.x, hero.z, dt);
     this.coins.update(model.coins, hero.x, hero.z, dt);
     this.campFires.update(model, this.elapsed);
+    this.campChests.update(model);
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
     this.mist.update(hero.x, hero.z, model.minutes, dt);
     this.ambient.update(dt, hero, model.minutes, true);

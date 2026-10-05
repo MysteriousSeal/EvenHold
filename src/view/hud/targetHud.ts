@@ -22,17 +22,21 @@ import { WORM_PALETTE, wormHead } from '../meshes/enemy/wormVoxels';
 const PORTRAIT_SIZE = 84; // as the hero's
 
 // Each kind's portrait: a beast's head, or a bandit's own head and shoulders as dressed.
+// A bandit's (or their chief's) bust, as dressed.
+const humanPortrait = (enemy: Enemy): HTMLCanvasElement => {
+  const human = enemy.human!;
+  const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;
+  return voxelIcon(key, () => humanBust(human.look, human.equipment, 'left'), PORTRAIT_SIZE);
+};
+
 const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   ghost: () => voxelIcon('target:ghost', () => ({ grid: ghostHead(), palette: GHOST_PALETTE }), PORTRAIT_SIZE),
   wolf: () => voxelIcon('target:wolf', () => ({ grid: buildHead(), palette: WOLF_PALETTE }), PORTRAIT_SIZE),
   boar: () => voxelIcon('target:boar', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE }), PORTRAIT_SIZE),
   bear: () => voxelIcon('target:bear', () => ({ grid: bearHead(), palette: BEAR_PALETTE }), PORTRAIT_SIZE),
   lynx: () => voxelIcon('target:lynx', () => ({ grid: lynxHead(), palette: LYNX_PALETTE }), PORTRAIT_SIZE),
-  bandit: (enemy) => {
-    const human = enemy.human!;
-    const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;
-    return voxelIcon(key, () => humanBust(human.look, human.equipment, 'left'), PORTRAIT_SIZE);
-  },
+  bandit: (enemy) => humanPortrait(enemy),
+  banditChief: (enemy) => humanPortrait(enemy), // (his horned helm)
   skeleton: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
   skeletonArcher: () => voxelIcon('target:skull', () => ({ grid: buildSkull(), palette: SKELETON_PALETTE }), PORTRAIT_SIZE),
   draugr: (enemy) => {

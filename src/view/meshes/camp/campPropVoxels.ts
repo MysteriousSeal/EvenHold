@@ -11,7 +11,7 @@
 //   weapon rack of spears, an axe and a sword, a round shield leaning on it;
 // - stolen goods: crates (one open, apples in it), banded barrels, sacks, a cart
 //   wheel leaning on them;
-// - the loot: an iron-bound chest thrown open, gold heaped in it and spilling
+// - the loot: an iron-bound chest (buildLootChest: shut and padlocked, or thrown open and emptied), gold spilling
 //   out, a goblet and a candlestick by it, on a red rug.
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -198,19 +198,40 @@ export function buildCrates(): VoxelGrid {
 export const LOOT_HIGH = 14;
 export function buildLoot(): VoxelGrid {
   const g = createGrid([TILE, LOOT_HIGH, TILE]);
-  // A red rug under it all, its border darker.
+  // A red rug under it all, its border darker (the chest on it its own: buildLootChest, shut or thrown open).
   for (let x = 3; x <= 21; x++) for (let z = 5; z <= 21; z++) set(g, x, 0, z, x === 3 || x === 21 || z === 5 || z === 21 ? C.redDark : (x + z) % 4 === 0 ? C.goldDim : C.red);
-  // The chest: iron-bound, thrown open, gold heaped in it (glowing), its lid back.
-  fillBox(g, 7, 1, 10, 17, 6, 16, (x, y, z) => (y === 3 || x === 7 || x === 17 || z === 10 || z === 16 ? (y === 1 || x === 7 || x === 17 ? C.iron : C.crateDark) : C.crate));
-  fillBox(g, 8, 6, 11, 16, 7, 15, (x, y, z) => ((x + z + y) % 3 === 0 ? C.goldDim : C.gold));
-  fillBox(g, 9, 8, 12, 15, 8, 14, C.gold);
-  fillBox(g, 7, 7, 9, 17, 12, 9, (_x, y) => (y === 9 ? C.iron : C.crateDark)); // the lid
-  set(g, 12, 4, 17, C.iron); // its lock
   // Gold spilt over the rug; a goblet and a candlestick by the chest.
   for (const [x, z] of [[9, 18], [12, 19], [15, 18], [18, 13], [6, 14], [13, 20]]) set(g, x, 1, z, C.gold);
   fillBox(g, 19, 1, 17, 19, 3, 17, (_x, y) => (y === 2 ? C.goldDim : C.gold)); // the goblet
   set(g, 18, 3, 17, C.gold);
   set(g, 20, 3, 17, C.gold);
   fillBox(g, 4, 1, 17, 4, 6, 17, (_x, y) => (y === 1 ? C.goldDim : y === 6 ? C.flameHeart : C.bone)); // the candlestick, its candle lit
+  return g;
+}
+
+// The chest on the rug, iron-bound: shut and padlocked (its chief has the key), a glint of gold under its lid by the
+// lock; or thrown open, its lid back, emptied (what it held out on the rug), a coin or two left in the corner.
+export function buildLootChest(open: boolean): VoxelGrid {
+  const g = createGrid([TILE, LOOT_HIGH, TILE]);
+  const band = (x: number, y: number, z: number) => y === 3 || x === 7 || x === 17 || z === 10 || z === 16;
+  fillBox(g, 7, 1, 10, 17, 6, 16, (x, y, z) => (band(x, y, z) ? (y === 1 || x === 7 || x === 17 ? C.iron : C.crateDark) : C.crate));
+  if (open) {
+    fillBox(g, 8, 4, 11, 16, 6, 15, 0); // (hollowed: its inside)
+    fillBox(g, 8, 3, 11, 16, 3, 15, C.crateDark); // its floor, in shadow
+    set(g, 9, 4, 12, C.gold); // a coin or two left
+    set(g, 15, 4, 14, C.gold);
+    fillBox(g, 7, 7, 9, 17, 12, 9, (_x, y) => (y === 9 ? C.iron : C.crateDark)); // the lid, back
+    set(g, 12, 4, 17, C.iron); // its hasp, hanging
+    return g;
+  }
+  // The lid, shut: domed (its crest a row in), iron at its ends and two straps over it.
+  const strap = (x: number) => x === 7 || x === 17 || x === 10 || x === 14;
+  fillBox(g, 7, 7, 10, 17, 7, 16, (x) => (strap(x) ? C.iron : C.crate));
+  fillBox(g, 7, 8, 11, 17, 8, 15, (x) => (strap(x) ? C.iron : C.crateDark));
+  // The padlock: an iron hasp down from the lid, a brass lock on it, its keyhole dark.
+  fillBox(g, 12, 6, 17, 12, 7, 17, C.iron);
+  fillBox(g, 11, 3, 17, 13, 5, 17, (x, y) => (x === 12 && y === 4 ? C.crateDark : C.goldDim));
+  set(g, 11, 6, 16, C.gold); // (gold peeking under the lid)
+  set(g, 13, 6, 16, C.gold);
   return g;
 }

@@ -37,6 +37,7 @@ export class EnemyViews {
     bear: () => new BeastRig(this.bearLook),
     lynx: () => new BeastRig(this.lynxLook),
     bandit: (enemy) => new BanditRig(enemy, this.banditLook),
+    banditChief: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit in the best of their gear, drawn bigger)
     skeleton: (enemy) => new UndeadRig(enemy, this.undeadLook),
     skeletonArcher: (enemy) => new UndeadRig(enemy, this.undeadLook),
     cryptLord: (enemy) => new UndeadRig(enemy, this.undeadLook),
