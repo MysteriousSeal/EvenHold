@@ -16,7 +16,7 @@ import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
-import { createCryptBar } from './view/hud/cryptBar';
+import { createPlaceBar } from './view/hud/placeBar';
 import { dungeonAt } from './model/dungeons/dungeons';
 import { goesUnder } from './model/dungeons/dungeonTypes';
 import { TEARS_AT } from './model/caves/caveFoes';
@@ -112,7 +112,7 @@ async function boot(): Promise<void> {
   const updateBlessing = createBlessingHud(model.hero);
   const updateClock = createClockHud();
   const placeBanner = createPlaceBanner();
-  const updateCryptBar = createCryptBar();
+  const updatePlaceBar = createPlaceBar();
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt();
   const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
@@ -223,7 +223,8 @@ async function boot(): Promise<void> {
     updateClock(model.minutes);
     updateTarget(model.focused, model.hero.level);
     const below = model.dungeon && model.inside && dungeonAt(model.inside.entrance);
-    updateCryptBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : null); // (down in a crypt or a cave: how much is cleared)
+    const camp = !model.inside ? model.campLife.status(model.hero) : null; // (about a bandit camp: its bandits and chief slain)
+    updatePlaceBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp && { name: camp.name, camp }); // (down in a crypt or a cave: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
