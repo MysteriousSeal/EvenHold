@@ -77,3 +77,52 @@ export class ToldMoves {
     }
   }
 }
+
+// ---- What told moves are made of (the caves', the wild beasts'): a foe carried along (a leap, a rush), a strip it
+// sweeps, a knock away. ----
+
+type Blocked = (x: number, z: number) => boolean;
+type Shape = Omit<ToldMove, 'path' | 'hits'>;
+
+// Where a move carrying its foe has it `t` past its tell: on along the way it faced, `long` at most (over `time`
+// seconds), stopped short of what's in the way (`blocked`: whether it'd be in it there).
+export const carried = (blocked: Blocked, long: (m: Told) => number, time: number) => (m: Told, t: number) => {
+  const want = Math.min(1, t / time) * long(m);
+  let gone = 0;
+  while (gone + 0.1 <= want && !blocked(m.x + m.dx * (gone + 0.1), m.z + m.dz * (gone + 0.1))) gone += 0.1;
+  return { x: m.x + m.dx * gone, z: m.z + m.dz * gone };
+};
+
+// A leap at the hero (a spider's lunge, a lynx's pounce): told, then a spring at where they stood (that far and a
+// little, `reach` at most, over `time`), its bite within `bite` of where it lands.
+export function leap(shape: Shape, blocked: Blocked, { reach, time, bite }: { reach: number; time: number; bite: number }): ToldMove {
+  const path = carried(blocked, (m) => Math.min(reach, Math.hypot(m.tx - m.x, m.tz - m.z) + 0.3), time);
+  return { ...shape, path, hits: (m, hero) => {
+    const at = path(m, time);
+    return Math.hypot(hero.x - at.x, hero.z - at.z) < bite;
+  } };
+}
+
+// A rush down a strip at the hero (a brood mother's charge, a bear's): told, then `long` on along it at most (over
+// `time`), stopped at what's in the way; the hero caught if they're on the strip it covers (`half` its half-width).
+export function rush(shape: Shape, blocked: Blocked, { long, time, half }: { long: number; time: number; half: number }): ToldMove {
+  const path = carried(blocked, () => long, time);
+  return { ...shape, path, hits: (m, hero) => {
+    const end = path(m, time);
+    return onStrip(m, hero, Math.hypot(end.x - m.x, end.z - m.z) + half, half);
+  } };
+}
+
+// Whether `at` is on the strip a move sweeps: ahead of where it began, within `long` of it along its way, `half` either side.
+export function onStrip(m: Pick<Told, 'x' | 'z' | 'dx' | 'dz'>, at: { x: number; z: number }, long: number, half: number): boolean {
+  const [px, pz] = [at.x - m.x, at.z - m.z];
+  const ahead = px * m.dx + pz * m.dz;
+  return ahead > 0 && ahead < long && Math.abs(px * m.dz - pz * m.dx) < half;
+}
+
+// Which way, and how far, the hero's knocked: straight away from `from` (right on it: back along +z).
+export function knockAway(from: { x: number; z: number }, hero: { x: number; z: number }, far: number): { dx: number; dz: number } {
+  const d = Math.hypot(hero.x - from.x, hero.z - from.z);
+  if (d < 1e-6) return { dx: 0, dz: far };
+  return { dx: ((hero.x - from.x) / d) * far, dz: ((hero.z - from.z) / d) * far };
+}

@@ -13,7 +13,7 @@ import type { Enemy, GameEvent, Hero } from '../types';
 import type { DungeonHooks, DungeonRun } from '../dungeons/dungeonTypes';
 import { FROST_BREATH } from './frostBreath';
 import { CLEAVE, CLEAVE_KNOCK } from './cleave';
-import { ToldMoves, type Told } from '../enemies/toldMoves';
+import { ToldMoves, knockAway, type Told } from '../enemies/toldMoves';
 import { BARRAGE, CHARGE_KNOCK, ERUPTION, SWEEP, SWEEP_KNOCK, chargeMove } from './cryptLord';
 import { AWARD_POST, CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
@@ -135,7 +135,7 @@ export class CryptFoes implements DungeonRun {
   readonly frost = new ToldMoves(FROST_BREATH, (draugr) => this.hooks.frost(draugr)); // the draugr's breath
   readonly cleaves = new ToldMoves(CLEAVE, (draugr, c) => this.hooks.blow(draugr, draugr.damage * 2, { dx: c.dx * CLEAVE_KNOCK, dz: c.dz * CLEAVE_KNOCK })); // and their cleave
   readonly slams = new ToldMoves(SLAM, (lord) => this.hooks.blow(lord, lord.damage * 2)); // the lord's slam
-  readonly sweeps = new ToldMoves(SWEEP, (lord, m) => this.hooks.blow(lord, Math.round(lord.damage * 1.5), this.away(m, SWEEP_KNOCK))); // his sweep: knocked away from him
+  readonly sweeps = new ToldMoves(SWEEP, (lord, m) => this.hooks.blow(lord, Math.round(lord.damage * 1.5), knockAway(m, this.director.quarry, SWEEP_KNOCK))); // his sweep: knocked away from him
   readonly charges: ToldMoves; // his charge: knocked back along it (made with the crypt's rock to stop him)
   readonly eruptions = new ToldMoves(ERUPTION, (lord) => this.hooks.blow(lord, Math.round(lord.damage * 1.5))); // his bones bursting up
   readonly barrages = new ToldMoves(BARRAGE, (lord, m) => this.loosesSouls(lord, m)); // his souls loosed
@@ -203,13 +203,6 @@ export class CryptFoes implements DungeonRun {
     if (!lord || !great || lord.state !== 'wander') return;
     if (hero.x < great.x0 - 0.5 || hero.x > great.x1 + 0.5 || hero.z < great.z0 - 0.5 || hero.z > great.z1 + 0.5) return;
     Object.assign(lord, { state: 'chase', lastSeen: { x: hero.x, z: hero.z }, lostFor: 0, target: null });
-  }
-
-  // Which way, and how far, the hero's knocked: straight away from where the move was done.
-  private away(m: Told, far: number): { dx: number; dz: number } {
-    const hero = this.director.quarry;
-    const d = Math.hypot(hero.x - m.x, hero.z - m.z) || 1;
-    return { dx: ((hero.x - m.x) / d) * far, dz: ((hero.z - m.z) / d) * far };
   }
 
   // The lord's souls loosed: three in a fan from him, toward the hero.

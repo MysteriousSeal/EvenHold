@@ -1,6 +1,7 @@
 // Teleport destinations for the dev cheat panel. Pure queries over the
 // model, so they're testable and the panel stays a thin UI.
 
+import type { Cave } from './caves/caves';
 import { onRoad, type Traveller, type TravellerRole } from './travellers/travellers';
 import type { BuildingType, Entrance } from './interiors/interiors';
 import { enemyLevel } from './enemies/enemyLevels';
@@ -90,19 +91,20 @@ function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number)
   return null;
 }
 
-// The next stop on a tour of `places` (ruins, camps): the nearest not yet
-// visited (all of them seen, round again); where to arrive, just outside its
-// way in. Null if there are none.
-function nextOn<T extends { way: Tile }>(model: GameModel, places: readonly T[], from: Tile, visited: Set<T>): Tile | null {
+// The next stop on a tour of `places` (ruins, camps, caves): the nearest not
+// yet visited (all of them seen, round again); where to arrive, just outside
+// its way in (`wayOf`). Null if there are none.
+function nextOn<T>(model: GameModel, places: readonly T[], from: Tile, visited: Set<T>, wayOf: (place: T) => Tile): Tile | null {
   if (places.length === 0) return null;
   if (visited.size >= places.length) visited.clear();
-  const place = places.filter((p) => !visited.has(p)).sort((a, b) => distance(a.way, from) - distance(b.way, from))[0];
+  const place = places.filter((p) => !visited.has(p)).sort((a, b) => distance(wayOf(a), from) - distance(wayOf(b), from))[0];
   visited.add(place);
-  return nearestOpenTile(model, place.way);
+  return nearestOpenTile(model, wayOf(place));
 }
 
-export const nextRuin = (model: GameModel, from: Tile, visited: Set<Ruin>) => nextOn(model, model.ruins, from, visited);
-export const nextCamp = (model: GameModel, from: Tile, visited: Set<Camp>) => nextOn(model, model.camps, from, visited);
+export const nextRuin = (model: GameModel, from: Tile, visited: Set<Ruin>) => nextOn(model, model.ruins, from, visited, (r) => r.way);
+export const nextCamp = (model: GameModel, from: Tile, visited: Set<Camp>) => nextOn(model, model.camps, from, visited, (c) => c.way);
+export const nextCave = (model: GameModel, from: Tile, visited: Set<Cave>) => nextOn(model, model.caves, from, visited, (c) => ({ x: Math.round(c.entrance.x), z: Math.round(c.entrance.z) }));
 
 // A few tiles from the nearest living wolf, or null if there are none.
 export function nearestPack(model: GameModel, from: Tile): Tile | null {

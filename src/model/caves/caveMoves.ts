@@ -8,8 +8,9 @@
 //   under them), it bursts up there: caught, knocked off their feet;
 // - the brood mother spits a volley (three webs, fanned) and charges (a rush
 //   down a line, stopped at the rock; caught in it, bowled back along it).
+// The leap and the rush built as any (enemies/toldMoves.ts: leap, rush).
 
-import type { Told, ToldMove } from '../enemies/toldMoves';
+import { leap, rush, type ToldMove } from '../enemies/toldMoves';
 
 export const WEB_TELL = 0.55;
 export const WEB_SPEED = 6; // tiles a second, a spat web
@@ -32,34 +33,12 @@ const RUSH_LENGTH = 5;
 export const RUSH_HALF = 0.45; // half the width of its strip
 export const RUSH_KNOCK = 2;
 
-// Where a leap (or rush) of `length` at most, over `time`, carries it `t` past its tell: on along the way it faced,
-// stopped short of the rock (`blocked`: whether it'd be in it).
-const along = (blocked: (x: number, z: number) => boolean, length: number, time: number) => (m: Told, t: number) => {
-  const want = Math.min(1, t / time) * length;
-  let gone = 0;
-  while (gone + 0.1 <= want && !blocked(m.x + m.dx * (gone + 0.1), m.z + m.dz * (gone + 0.1))) gone += 0.1;
-  return { x: m.x + m.dx * gone, z: m.z + m.dz * gone };
-};
-
 // A spider's spat web: lands (spat) at its tell's end, whatever the hero does; its flight is the run's (caveFoes.ts).
 export const SPIT: ToldMove = { told: 'web', by: 'caveSpider', tell: WEB_TELL, after: 0.25, every: 4.5, first: 0.5, near: 5.5, far: 2.2, hits: () => true }; // (its opener, coming on)
 
 // A spider's lunge: a short leap at the hero, its bite where it lands.
-export const lungeMove = (blocked: (x: number, z: number) => boolean): ToldMove => ({
-  told: 'lunge',
-  by: 'caveSpider',
-  tell: LUNGE_TELL,
-  after: LUNGE_RUSH + 0.3,
-  every: 5,
-  first: 3,
-  near: 2.6,
-  far: 1.1,
-  path: (m, t) => along(blocked, Math.min(LUNGE_LENGTH, Math.hypot(m.tx - m.x, m.tz - m.z) + 0.3), LUNGE_RUSH)(m, t),
-  hits: (m, hero) => {
-    const at = along(blocked, Math.min(LUNGE_LENGTH, Math.hypot(m.tx - m.x, m.tz - m.z) + 0.3), LUNGE_RUSH)(m, LUNGE_RUSH);
-    return Math.hypot(hero.x - at.x, hero.z - at.z) < LUNGE_HIT;
-  },
-});
+export const lungeMove = (blocked: (x: number, z: number) => boolean): ToldMove =>
+  leap({ told: 'lunge', by: 'caveSpider', tell: LUNGE_TELL, after: LUNGE_RUSH + 0.3, every: 5, first: 3, near: 2.6, far: 1.1 }, blocked, { reach: LUNGE_LENGTH, time: LUNGE_RUSH, bite: LUNGE_HIT });
 
 // A worm's eruption: told under where the hero stood as it began, it's there at the tell's end (up out of the ground:
 // the run's to surface it), catching them if they're still on it. Never lost to a blow (it's underground).
@@ -80,21 +59,5 @@ export const ERUPT: ToldMove = {
 export const VOLLEY: ToldMove = { told: 'volley', by: 'broodMother', tell: VOLLEY_TELL, after: 0.4, every: 6, first: 3, near: 7, far: 2.5, staunch: true, hits: () => true };
 
 // Her charge: a rush down a strip at the hero, stopped at the rock; caught in it, bowled back along it.
-export const rushMove = (blocked: (x: number, z: number) => boolean): ToldMove => ({
-  told: 'charge',
-  by: 'broodMother',
-  tell: RUSH_TELL,
-  after: RUSH_TIME + 0.4,
-  every: 8,
-  first: 5,
-  near: 6,
-  far: 2.2,
-  staunch: true,
-  path: (m, t) => along(blocked, RUSH_LENGTH, RUSH_TIME)(m, t),
-  hits: (m, hero) => {
-    const [px, pz] = [hero.x - m.x, hero.z - m.z];
-    const ahead = px * m.dx + pz * m.dz;
-    const end = along(blocked, RUSH_LENGTH, RUSH_TIME)(m, RUSH_TIME);
-    return ahead > 0 && ahead < Math.hypot(end.x - m.x, end.z - m.z) + RUSH_HALF && Math.abs(px * m.dz - pz * m.dx) < RUSH_HALF;
-  },
-});
+export const rushMove = (blocked: (x: number, z: number) => boolean): ToldMove =>
+  rush({ told: 'charge', by: 'broodMother', tell: RUSH_TELL, after: RUSH_TIME + 0.4, every: 8, first: 5, near: 6, far: 2.2, staunch: true }, blocked, { long: RUSH_LENGTH, time: RUSH_TIME, half: RUSH_HALF });

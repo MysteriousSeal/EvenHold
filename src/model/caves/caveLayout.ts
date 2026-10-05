@@ -12,6 +12,7 @@
 
 import { hashCell, mulberry32 } from '../../util/random';
 import { isFloor, type FloorPlan } from '../dungeons/floorPlan';
+import { cellKey, flood } from '../map/grid';
 
 export type CavePlace = 'chamber' | 'den' | 'nest';
 
@@ -165,15 +166,8 @@ export function planCave(seed: number, mouth: { x: number; z: number }): CavePla
 
 // Only what's reached from the way in stays floor (a ragged edge may leave a pocket cut off).
 function keepReachable(plan: CavePlan): void {
-  const seen = new Uint8Array(plan.width * plan.depth);
-  const stack: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-  while (stack.length) {
-    const [x, z] = stack.pop()!;
-    if (!isFloor(plan, x, z) || seen[x * plan.depth + z]) continue;
-    seen[x * plan.depth + z] = 1;
-    stack.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-  }
-  for (let i = 0; i < plan.floor.length; i++) if (!seen[i]) plan.floor[i] = 0;
+  const reached = flood([[plan.door, plan.depth - 1]], (x, z) => isFloor(plan, x, z));
+  for (let x = 0; x < plan.width; x++) for (let z = 0; z < plan.depth; z++) if (!reached.has(cellKey(x, z))) plan.floor[x * plan.depth + z] = 0;
 }
 
 // A ragged edge's roll at a tile (0..1), the same every time.

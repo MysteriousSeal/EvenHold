@@ -9,7 +9,7 @@
 // crack that opens to the daylight once she's slain (its way out).
 
 import { hashCell, mulberry32 } from '../../util/random';
-import { cellKey } from '../map/grid';
+import { cellKey, flood } from '../map/grid';
 import { isFloor } from '../dungeons/floorPlan';
 import type { CavePlan, Hollow } from './caveLayout';
 
@@ -98,15 +98,7 @@ export function furnishCave(seed: number, mouth: { x: number; z: number }, plan:
 function unsealed(plan: CavePlan, props: CaveProp[]): CaveProp[] {
   for (;;) {
     const solid = solidTiles(props);
-    const reached = new Set<string>();
-    const stack: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-    while (stack.length) {
-      const [x, z] = stack.pop()!;
-      const key = cellKey(x, z);
-      if (reached.has(key) || !isFloor(plan, x, z) || solid.has(key)) continue;
-      reached.add(key);
-      stack.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-    }
+    const reached = reachedFrom(plan, solid);
     const sealing = props.filter((p) => p.solid && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => isFloor(plan, p.x + dx, p.z + dz) && !solid.has(cellKey(p.x + dx, p.z + dz)) && !reached.has(cellKey(p.x + dx, p.z + dz))));
     if (sealing.length === 0) return props;
     props = props.filter((p) => !sealing.includes(p));
@@ -181,16 +173,7 @@ export function reaches(plan: CavePlan, shut: ReadonlySet<string>, tx: number, t
 
 // The floor reached from the way in, round the `shut` tiles.
 export function reachedFrom(plan: CavePlan, shut: ReadonlySet<string>): Set<string> {
-  const seen = new Set<string>();
-  const stack: Array<[number, number]> = [[plan.door, plan.depth - 1]];
-  while (stack.length) {
-    const [x, z] = stack.pop()!;
-    const key = cellKey(x, z);
-    if (seen.has(key) || !isFloor(plan, x, z) || shut.has(key)) continue;
-    seen.add(key);
-    stack.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
-  }
-  return seen;
+  return flood([[plan.door, plan.depth - 1]], (x, z) => isFloor(plan, x, z) && !shut.has(cellKey(x, z)));
 }
 
 // The tiles something solid stands on, as "x,z".

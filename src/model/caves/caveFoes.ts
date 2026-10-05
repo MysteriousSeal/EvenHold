@@ -21,7 +21,7 @@ import { cellKey } from '../map/grid';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { makeEnemy } from '../enemies/enemies';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
-import { ToldMoves, type Told } from '../enemies/toldMoves';
+import { ToldMoves, knockAway } from '../enemies/toldMoves';
 import { isFloor } from '../dungeons/floorPlan';
 import { AWARD_POST, BOSS_POST, CHEST_POST, SUMMONED, clearedShare } from '../dungeons/dungeonRecord';
 import type { DungeonHooks, DungeonRun } from '../dungeons/dungeonTypes';
@@ -125,7 +125,7 @@ export class CaveRun implements DungeonRun {
   readonly director: EnemyDirector;
   readonly spits = new ToldMoves(SPIT, (spider, m) => this.spit(spider, m.dx, m.dz));
   readonly lunges: ToldMoves;
-  readonly eruptions = new ToldMoves(ERUPT, (worm, m) => this.hooks.blow(worm, Math.round(worm.damage * 1.5), this.away(m.tx, m.tz, ERUPT_KNOCK)));
+  readonly eruptions = new ToldMoves(ERUPT, (worm, m) => this.hooks.blow(worm, Math.round(worm.damage * 1.5), knockAway({ x: m.tx, z: m.tz }, this.director.quarry, ERUPT_KNOCK)));
   readonly volleys = new ToldMoves(VOLLEY, (mother, m) => [-1, 0, 1].forEach((k) => this.spit(mother, ...turned(m.dx, m.dz, k * VOLLEY_SPREAD))));
   readonly rushes: ToldMoves;
   chest: { x: number; z: number; open: boolean } | null = null; // her hoard, once she's slain
@@ -298,14 +298,6 @@ export class CaveRun implements DungeonRun {
     return false;
   }
 
-  // Which way, and how far, the hero's thrown: straight away from (x, z).
-  private away(x: number, z: number, far: number): { dx: number; dz: number } {
-    const hero = this.director.quarry;
-    const d = Math.hypot(hero.x - x, hero.z - z);
-    if (d < 1e-6) return { dx: 0, dz: far }; // (right on it: thrown back the way they came in)
-    return { dx: ((hero.x - x) / d) * far, dz: ((hero.z - z) / d) * far };
-  }
-
   free(x: number, z: number, r: number): boolean {
     return !caveBlocks(this.inside, x, z, r);
   }
@@ -353,11 +345,6 @@ export class CaveRun implements DungeonRun {
     const { item, coins } = caveHoard(this.inside, this.seed);
     this.hooks.dropLoot(item, this.chest.x + 0.35, this.chest.z + 0.4);
     this.hooks.dropCoins(coins, this.chest.x - 0.35, this.chest.z + 0.4);
-  }
-
-  // A worm's eruption being told: where the ground heaves (for its look), else null.
-  static heaving(move: Told): { x: number; z: number } {
-    return { x: move.tx, z: move.tz };
   }
 }
 
