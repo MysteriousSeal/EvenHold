@@ -57,7 +57,7 @@ describe('breath', () => {
 });
 
 describe('the roll', () => {
-  it('carries them the way they go (still: backwards), spending breath, never mid-blow', () => {
+  it('carries them the way they go (still: forward, the way they face), spending breath, never mid-blow', () => {
     const model = fresh();
     model.noclip = true; // (nothing in the way)
     const { x, z } = model.hero;
@@ -69,7 +69,7 @@ describe('the roll', () => {
     model.hero.facing = 0; // (facing +z)
     model.roll(0, 0);
     run(model, ROLL_TIME + 0.05);
-    expect(model.hero.z).toBeLessThan(z - 2); // (backwards)
+    expect(model.hero.z - z).toBeCloseTo(ROLL_REACH, 1); // (forward)
     model.startAttack();
     expect(model.roll(1, 0)).toBe(false);
   });
