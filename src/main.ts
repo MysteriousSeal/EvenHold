@@ -227,7 +227,8 @@ async function boot(): Promise<void> {
     updateTarget(model.focused, model.hero.level);
     const below = model.dungeon && model.inside && dungeonAt(model.inside.entrance);
     const camp = !model.inside ? model.campLife.status(model.hero) : null; // (about a bandit camp: its bandits and chief slain)
-    updatePlaceBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp && { name: camp.name, camp }); // (down in a crypt or a cave: how much is cleared)
+    const village = !model.inside && !camp ? model.welcome.village() : null; // (in a village: its name and level)
+    updatePlaceBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp ? { name: camp.name, camp, ink: dangerInk(camp.level, model.hero.level) } : village ? { name: village.name, village: { level: village.level, ink: dangerInk(village.level, model.hero.level) } } : null); // (down in a crypt or a cave: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
@@ -279,6 +280,7 @@ async function boot(): Promise<void> {
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
+      else if (event.kind === 'village') placeBanner(event.name, ['Village · ', { text: `Level ${event.level}`, ink: dangerInk(event.level, hero.level) }]); // (its level: its quests', its smith's; in how hard they are for them)
       else if (event.kind === 'campGate') placeBanner(event.name, ['Bandit camp · ', { text: `Level ${event.level}`, ink: dangerInk(event.level, hero.level) }]); // (its level in how dangerous it is to them)
       else if (event.kind === 'locked') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ["It's locked"], '#f8ecd4');
       else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
