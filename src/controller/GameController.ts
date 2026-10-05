@@ -140,7 +140,7 @@ export class GameController {
     // through the door in reach.
     if (this.input.consumePickup()) {
       const item = this.model.pickUp();
-      const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero); // the barmaid, the smith
+      const talker = talkingTo(this.model.folk, this.model.inside, this.model.hero); // the barmaid, the smith (of the villagers round about)
       if (item) this.onPickUp(item);
       else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);

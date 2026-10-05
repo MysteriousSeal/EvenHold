@@ -183,7 +183,7 @@ async function boot(): Promise<void> {
     const chest = chestInReach(model); // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
     if (chest) return { label: CHEST_PROMPTS[chest.what], x: chest.x, y: chest.y, z: chest.z };
     const seated = model.seated;
-    const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
+    const talker = talkingTo(model.folk, model.inside, hero); // the barmaid, the smith (of the villagers round about)
     const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
     if (seated && seated.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
     if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };

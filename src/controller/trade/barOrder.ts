@@ -112,7 +112,7 @@ const shopHere = (model: GameModel): Shop => shopAt(model.shops, model.seed, mod
 export const atTheBar = (model: GameModel) => model.inside?.seated?.seat.piece.kind === 'barStool';
 
 // The inn's barmaid, wherever she is in it (she's the one who serves); else null.
-export const barmaidHere = (model: GameModel): Npc | null => model.npcs.find((n) => n.role === 'barkeep' && n.where === model.inside?.entrance) ?? null;
+export const barmaidHere = (model: GameModel): Npc | null => model.folk.find((n) => n.role === 'barkeep' && n.where === model.inside?.entrance) ?? null;
 
 // What its prompt says: the order and its price, or when she'll have more.
 export function orderLabel(model: GameModel, what: BarMenuItem = 'ale'): { label: string; soldOut: boolean } {
