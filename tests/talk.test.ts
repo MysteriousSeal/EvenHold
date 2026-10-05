@@ -16,7 +16,7 @@ describe('talking', () => {
     const barmaid = model.npcs.find((n) => n.role === 'barkeep' && n.where === inside.entrance)!;
     const server = model.npcs.find((n) => n.role === 'server' && n.where === inside.entrance)!;
     Object.assign(model.hero, { x: barmaid.x + 1, z: barmaid.z });
-    Object.assign(server, { x: model.hero.x + 0.3, z: model.hero.z }); // the waitress closer: she doesn't talk
+    Object.assign(server, { x: model.hero.x + 0.3, z: model.hero.z }); // the server closer: she doesn't talk (the inn's work's on its notice board)
     expect(talkingTo(model.npcs, inside, model.hero)).toBe(barmaid);
     Object.assign(model.hero, { x: barmaid.x + 3, z: barmaid.z }); // out of reach
     expect(talkingTo(model.npcs, inside, model.hero)).toBeNull();
