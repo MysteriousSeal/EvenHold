@@ -48,6 +48,7 @@ export function generateTrees(
   forestDensity: ForestDensity,
   spawnX: number,
   spawnZ: number,
+  origin: { x: number; z: number } = { x: 0, z: 0 }, // where its maps start on the world's (a streamed world's region): its forest and shapes by where it is
 ): Tree[] {
   const trees: Tree[] = [];
   const blocked = cellLookup(sizeOf(heightMap), blockedCells);
@@ -61,12 +62,12 @@ export function generateTrees(
       // could possibly pass (density never exceeds FOREST_CHANCE).
       if (roll >= FOREST_CHANCE || isSpawn || h >= MAX_TIER) continue;
       if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural' || blocked(x, z)) continue;
-      if (roll < forestDensity(x, z)) {
+      if (roll < forestDensity(x + origin.x, z + origin.z)) {
         // Exactly two rng draws per tree, as before voxel trees existed, so
         // every seed keeps its tree positions (and all later rng draws).
         const quarterTurns = Math.floor(rng() * 4);
         const kind = pickKind(h, rng());
-        const shape = hashCell(x, z, 4) % TREE_SHAPES;
+        const shape = hashCell(x + origin.x, z + origin.z, 4) % TREE_SHAPES;
         trees.push({ x, z, groundTier: h, kind, shape, quarterTurns });
       }
     }

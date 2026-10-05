@@ -17,6 +17,7 @@ import { zoneLevel } from '../enemies/enemyLevels';
 import { cryptName } from './cryptNames';
 import { isFloor, planCrypt, type CryptPlan } from './cryptLayout';
 import { furnishCrypt, type CryptProp } from './cryptProps';
+import type { Tiles } from '../map/tiles';
 
 const CLEARED: ReadonlySet<RuinPiece['kind']> = new Set(['floor', 'rubble', 'column', 'columnBroken', 'columnFallen']); // what a tomb may stand in place of
 const STAIR_REACH = 0.62; // from the stairs' middle to the spot before them, where the hero stands to go down
@@ -37,7 +38,7 @@ export interface CryptWorld {
   seed: number;
   size: MapSize;
   ruins: readonly Ruin[];
-  heightMap: readonly (readonly number[])[];
+  tiles: Tiles;
   isOpenTile(x: number, z: number): boolean;
 }
 
@@ -72,7 +73,7 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
           const all = [...steps, ...steps.map((t) => ({ x: t.x - ox, z: t.z - oz }))]; // (the tomb, behind)
           if (all.some((t) => t.x < ruin.x + 2 || t.z < ruin.z + 2 || t.x > ruin.x + ruin.w - 3 || t.z > ruin.z + ruin.d - 3)) continue;
           if (!all.every((t) => free(t.x, t.z)) || !steps.every((t) => walkable(t.x + ox, t.z + oz))) continue;
-          if (all.some((t) => world.heightMap[t.x][t.z] !== world.heightMap[x][z])) continue;
+          if (all.some((t) => world.tiles.height(t.x, t.z) !== world.tiles.height(x, z))) continue;
           ruin.pieces = ruin.pieces.filter((p) => !all.some((t) => t.x === p.x && t.z === p.z)); // (nothing of the ruin under it)
           const front = { x: x + sx / 2, z: z + sz / 2 };
           const entrance: Entrance = { type: 'crypt', x: front.x + ox * STAIR_REACH, z: front.z + oz * STAIR_REACH, outX: ox, outZ: oz };

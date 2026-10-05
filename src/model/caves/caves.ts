@@ -10,18 +10,19 @@
 // (caveFoes.ts). The knoll is rock: its tiles blocked.
 
 import { hashCell, mulberry32 } from '../../util/random';
-import { FACINGS, cellKey, spawnOf, type MapSize } from '../map/grid';
+import { FACINGS, cellKey, inArea, spawnOf, wholeMap, type Area, type MapSize } from '../map/grid';
 import type { Obstacles } from '../map/obstacles';
 import type { Entrance, Room } from '../interiors/interiors';
 import { isFloor } from '../dungeons/floorPlan';
 import { planCave, type CavePlan } from './caveLayout';
 import { caveExit, furnishCave, nestSeal, type CaveProp } from './caveProps';
-import type { Surface, Village } from '../types';
+import type { Village } from '../types';
 import type { Ruin } from '../ruins/ruins';
 import type { Camp } from '../camps/camps';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { VILLAGE_OUTER_RADIUS } from '../constants';
 import { caveName } from './caveNames';
+import type { Tiles } from '../map/tiles';
 
 export const CAVE_REGION = 512; // tiles a side of the stretch that may have one
 const MOUTH_RISE = 2; // tiers the ground climbs behind the knoll, at least (a hillside, not a bump)
@@ -45,8 +46,7 @@ export interface Cave {
 export interface CaveWorld {
   seed: number;
   size: MapSize;
-  heightMap: readonly (readonly number[])[];
-  surfaceMap: readonly (readonly Surface[])[];
+  tiles: Tiles;
   villages: readonly Village[];
   ruins: readonly Ruin[];
   camps: readonly Camp[];
@@ -55,13 +55,15 @@ export interface CaveWorld {
 
 // One cave to a region with a hillside: a mouth where the ground rises behind it and to either side, the ground
 // before it open and level, from the seed (looked for at random, the first found).
-export function placeCaves(world: CaveWorld): Cave[] {
-  const { size, heightMap: h } = world;
+// (`area`: the part of the map to place them on: its stretches, those starting in it; else the whole map.)
+export function placeCaves(world: CaveWorld, area: Area = wholeMap(world.size)): Cave[] {
+  const { size } = world;
+  const h = (x: number, z: number) => world.tiles.height(x, z);
   const spawn = spawnOf(size);
   const caves: Cave[] = [];
   const regionsX = Math.max(1, Math.round(size.width / CAVE_REGION));
   const regionsZ = Math.max(1, Math.round(size.depth / CAVE_REGION));
-  const inMap = (x: number, z: number) => x >= 1 && z >= 1 && x < size.width - 1 && z < size.depth - 1;
+  const inMap = (x: number, z: number) => x >= 1 && z >= 1 && x < size.width - 1 && z < size.depth - 1 && inArea(area, x, z); // (all of it on its area: nothing of it on a region not made)
   const wild = (x: number, z: number) =>
     Math.hypot(x - spawn.x, z - spawn.z) > CLEAR_OF_SPAWN &&
     world.villages.every((v) => Math.hypot(x - v.x, z - v.z) > VILLAGE_OUTER_RADIUS + CLEAR_OF_VILLAGES) &&
@@ -72,6 +74,7 @@ export function placeCaves(world: CaveWorld): Cave[] {
     for (let rz = 0; rz < regionsZ; rz++) {
       const rng = mulberry32(hashCell(rx * 13 + 5, rz * 7 + 11, world.seed + 6151));
       const [x0, z0] = [Math.floor((rx * size.width) / regionsX), Math.floor((rz * size.depth) / regionsZ)];
+      if (!inArea(area, x0, z0)) continue; // (its stretch another area's)
       const [w, d] = [Math.floor(size.width / regionsX), Math.floor(size.depth / regionsZ)];
       for (let t = 0; t < TRIES; t++) {
         const [x, z] = [x0 + Math.floor(rng() * w), z0 + Math.floor(rng() * d)];
@@ -94,7 +97,7 @@ function mouthAt(
   from: number,
   inMap: (x: number, z: number) => boolean,
   wild: (x: number, z: number) => boolean,
-  h: CaveWorld['heightMap'],
+  h: (x: number, z: number) => number,
 ): Omit<Cave, 'level' | 'name'> | null {
   if (!inMap(x, z) || !wild(x, z)) return null;
   for (let k = 0; k < 4; k++) {
@@ -106,12 +109,12 @@ function mouthAt(
     const front = row.map((t) => ({ x: t.x + ox, z: t.z + oz }));
     const hill = { x: x - ox * RISE_WITHIN, z: z - oz * RISE_WITHIN };
     if (![...rock, ...front, hill].every((t) => inMap(t.x, t.z))) continue;
-    const level = h[x][z];
-    const open = (t: { x: number; z: number }) => world.isOpenTile(t.x, t.z) && world.surfaceMap[t.x][t.z] === 'natural';
+    const level = h(x, z);
+    const open = (t: { x: number; z: number }) => world.isOpenTile(t.x, t.z) && world.tiles.surface(t.x, t.z) === 'natural';
     // The mouth's row and the ground before it: open, natural, level; the knoll's tiles behind open, never lower; the hill rising.
-    if (![...row, ...front].every((t) => open(t) && h[t.x][t.z] === level)) continue;
-    if (!rock.every((t) => open(t) && h[t.x][t.z] >= level)) continue;
-    if (h[hill.x][hill.z] < level + MOUTH_RISE) continue;
+    if (![...row, ...front].every((t) => open(t) && h(t.x, t.z) === level)) continue;
+    if (!rock.every((t) => open(t) && h(t.x, t.z) >= level)) continue;
+    if (h(hill.x, hill.z) < level + MOUTH_RISE) continue;
     const spot = { x: x + ox * (0.5 + MOUTH_REACH), z: z + oz * (0.5 + MOUTH_REACH) };
     return { entrance: { type: 'cave', x: spot.x, z: spot.z, outX: ox, outZ: oz }, mouth: { x, z }, rock, quarterTurns };
   }

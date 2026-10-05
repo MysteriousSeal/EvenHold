@@ -9,7 +9,7 @@ import { ENEMY_ACTIVE_RADIUS, ENEMY_STATS } from '../constants';
 import type { Enemy } from '../types';
 import { WALK, onRoadSide, turnToward, type Traveller, type Travellers } from './travellers';
 import type { Road } from '../worldgen/roads';
-import { FIRST_MOB_ID } from '../quests/questBook';
+import { isWorldFoe } from '../enemies/foeIds';
 
 const GUARD_SIGHT = 5; // tiles: a foe this near a guard, they go for it
 const GUARD_RUN = 2.1; // tiles a second, after a foe
@@ -76,7 +76,7 @@ export class TravellerFights {
     foe.swingFor = null;
     if (foe.hp > 0) return;
     foe.state = 'dead';
-    if (foe.id < FIRST_MOB_ID) this.slain(foe); // (a quest's marked foes aren't the world's)
+    if (isWorldFoe(foe.id)) this.slain(foe); // (a quest's marked foes aren't the world's)
   }
 
   // No foe left: back to where they left the road, and on along it.

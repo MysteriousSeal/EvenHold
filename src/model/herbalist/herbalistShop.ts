@@ -15,7 +15,7 @@ import type { Npc } from '../npcs/npcs';
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
 
-export const HERBALIST_KEY = 2_000_000; // a herbalist's shop's key among the shops (theirs, by id, past the pedlars')
+export const HERBALIST_KEY = 2 ** 44; // a herbalist's shop's key among the shops (theirs, by id, past the pedlars')
 const USUAL: Record<'minor' | 'lesser' | 'greater', number> = { minor: 4, lesser: 2, greater: 1 }; // of each potion, restocked to
 
 export const HERBALIST_WARES: readonly BagItem[] = POTION_IDS;

@@ -54,7 +54,7 @@ const SWAP = 3; // lanes a second they ease across the road, round someone and b
 const LANES = [1, -1, 2.4, -2.4]; // where they'll walk to get round someone: their own side, the far side, the verges
 const GUARD_DAMAGE = 3;
 const SAVE_VERSION = 2; // how they're kept in the save: one older, they're set out afresh (the processions of old saves gone)
-export const PEDLAR_KEY = 1_000_000; // a pedlar's shop's key among the shops (theirs, by id, past every door's)
+export const PEDLAR_KEY = 2 ** 40; // a pedlar's shop's key among the shops (theirs, by id, past every door's number: interiors.ts doorNumber)
 
 // Where `along` puts a walker on a road: between its tiles, and which way that faces.
 export function onRoad(road: Road, along: number): { x: number; z: number; facing: number } {
@@ -86,7 +86,7 @@ export function roadsFrom(roads: readonly Road[], villages: number): Array<Array
 }
 
 // The travellers the seed sets out: one or two parties to a road (a pedlar, a pilgrim, or two guards), somewhere along it.
-export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x: number; z: number }): Traveller[] {
+export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x: number; z: number }, firstId = 0): Traveller[] {
   const out: Traveller[] = [];
   roads.forEach((road, r) => {
     const rng = mulberry32((seed * 7919 + r * 104729) | 0);
@@ -96,9 +96,9 @@ export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x
       const role: TravellerRole = roll < 0.45 ? 'pedlar' : roll < 0.8 ? 'pilgrim' : 'guard';
       const along = rng() * (road.route.length - 1);
       const way = rng() < 0.5 ? 1 : -1;
-      const first = makeTraveller(out.length, role, r, along, way, roads, seed, spawn, null);
+      const first = makeTraveller(firstId + out.length, role, r, along, way, roads, seed, spawn, null);
       out.push(first);
-      if (role === 'guard') out.push(makeTraveller(out.length, 'guard', r, along - way * FOLLOW, way, roads, seed, spawn, first.id));
+      if (role === 'guard') out.push(makeTraveller(firstId + out.length, 'guard', r, along - way * FOLLOW, way, roads, seed, spawn, first.id));
     }
   });
   return out;
@@ -151,9 +151,10 @@ export class Travellers {
     private readonly hero: { x: number; z: number },
     private readonly groundY: (x: number, z: number) => number,
     slain: (enemy: Enemy) => void, // a foe a guard's slain
+    firstId = 0, // the first of their ids (a streamed world's region's block)
   ) {
     this.fights = new TravellerFights(this, roads, hero, groundY, slain);
-    this.list = spawnTravellers(seed, roads, spawn);
+    this.list = spawnTravellers(seed, roads, spawn, firstId);
     this.from = roadsFrom(roads, villages);
     for (const t of this.list) t.y = groundY(t.x, t.z);
     this.byId = new Map(this.list.map((t) => [t.id, t]));

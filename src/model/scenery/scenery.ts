@@ -9,11 +9,12 @@
 import { hashUnit } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS, LANE_LENGTH_MAX } from '../constants';
 import type { Obstacles } from '../map/obstacles';
-import type { MapSize } from '../map/grid';
-import type { Surface, Village } from '../types';
+import { inArea, wholeMap, type Area, type MapSize } from '../map/grid';
+import type { Village } from '../types';
 import type { Ruin } from '../ruins/ruins';
 import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
+import type { Tiles } from '../map/tiles';
 
 export type SceneryKind = 'boulder' | 'outcrop' | 'log' | 'cairn' | 'wall' | 'menhir';
 
@@ -30,8 +31,7 @@ export interface Scenery {
 export interface SceneryWorld {
   seed: number;
   size: MapSize;
-  heightMap: readonly (readonly number[])[];
-  surfaceMap: readonly (readonly Surface[])[];
+  tiles: Tiles;
   villages: readonly Village[];
   ruins: readonly Ruin[];
   camps: readonly Camp[];
@@ -58,15 +58,19 @@ const ROUND: ReadonlySet<SceneryKind> = new Set(['boulder', 'outcrop', 'cairn', 
 const ACROSS: Partial<Record<SceneryKind, number>> = { wall: 0.16, log: 0.23 }; // and across a log or a wall: they're narrow (sceneryVoxels.ts: a wall 7 voxels thick, a log 11 across)
 const LOW: ReadonlySet<SceneryKind> = new Set(['log', 'cairn']); // low enough to see over
 
-export function placeScenery(world: SceneryWorld): Scenery[] {
+// `area`: the part of the map to place them on (a streamed world's region: its sites, each piece wholly on it; else the
+// whole map).
+export function placeScenery(world: SceneryWorld, area: Area = wholeMap(world.size)): Scenery[] {
   const forest = createForestDensity(world.seed);
   const taken = new Set<string>();
   const out: Scenery[] = [];
   // The ground kept clear (round the villages, the ruins, the camps, the start, the foes), marked once, by tile.
-  const { width, depth } = world.size;
-  const kept = new Uint8Array(width * depth);
+  const [width, depth] = [area.x1 - area.x0, area.z1 - area.z0];
+  const kept = new Uint8Array(width * depth); // (by (x - x0) * depth + (z - z0): off the area, kept)
   const keep = (x0: number, z0: number, x1: number, z1: number) => {
-    for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(width - 1, Math.ceil(x1)); x++) kept.fill(1, x * depth + Math.max(0, Math.floor(z0)), x * depth + Math.min(depth - 1, Math.ceil(z1)) + 1);
+    const [za, zb] = [Math.max(0, Math.floor(z0) - area.z0), Math.min(depth - 1, Math.ceil(z1) - area.z0)];
+    if (za > zb) return;
+    for (let x = Math.max(0, Math.floor(x0) - area.x0); x <= Math.min(width - 1, Math.ceil(x1) - area.x0); x++) kept.fill(1, x * depth + za, x * depth + zb + 1);
   };
   const round = (p: { x: number; z: number }, r: number) => keep(p.x - r, p.z - r, p.x + r, p.z + r);
   round(world.hero, SPAWN_CLEAR);
@@ -75,19 +79,20 @@ export function placeScenery(world: SceneryWorld): Scenery[] {
   for (const c of world.camps) round(c, 5);
   for (const e of world.enemies) round(e, FOE_CLEAR);
   const clear = (x: number, z: number) =>
-    world.heightMap[x]?.[z] !== undefined &&
-    !kept[x * depth + z] &&
+    world.tiles.has(x, z) &&
+    inArea(area, x, z) &&
+    !kept[(x - area.x0) * depth + (z - area.z0)] &&
     world.isOpenTile(x, z) &&
-    world.surfaceMap[x][z] === 'natural' &&
+    world.tiles.surface(x, z) === 'natural' &&
     !taken.has(`${x},${z}`);
   // A footprint all clear and level, a tile round it free of any other piece (never walling a way off: the trees about
   // stand thin).
   const fits = (x: number, z: number, w: number, d: number) => {
-    const tier = world.heightMap[x]?.[z];
+    const tier = world.tiles.has(x, z) ? world.tiles.height(x, z) : undefined;
     for (let i = x - 1; i <= x + w; i++) {
       for (let k = z - 1; k <= z + d; k++) {
         const inside = i >= x && i < x + w && k >= z && k < z + d;
-        if (inside && (!clear(i, k) || world.heightMap[i][k] !== tier)) return false;
+        if (inside && (!clear(i, k) || world.tiles.height(i, k) !== tier)) return false;
         if (!inside && taken.has(`${i},${k}`)) return false;
       }
     }
@@ -99,8 +104,8 @@ export function placeScenery(world: SceneryWorld): Scenery[] {
   };
 
   // A ring of standing stones, now and then, on open ground (its middle open: to stand in).
-  for (let gx = 0; gx * CIRCLE_SITE < world.size.width; gx++) {
-    for (let gz = 0; gz * CIRCLE_SITE < world.size.depth; gz++) {
+  for (let gx = Math.floor(area.x0 / CIRCLE_SITE); gx * CIRCLE_SITE < area.x1; gx++) {
+    for (let gz = Math.floor(area.z0 / CIRCLE_SITE); gz * CIRCLE_SITE < area.z1; gz++) {
       if (hashUnit(gx, gz, world.seed + 501) >= CIRCLE_CHANCE) continue;
       for (let tri = 0; tri < CIRCLE_TRIES; tri++) {
         // (Its spots in turn, the first clear of trees and bushes: a ring wants open ground.)
@@ -118,8 +123,8 @@ export function placeScenery(world: SceneryWorld): Scenery[] {
   }
 
   // Elsewhere, one piece to a site now and then: what by the ground (logs in the woods, walls in the open).
-  for (let gx = 0; gx * SITE < world.size.width; gx++) {
-    for (let gz = 0; gz * SITE < world.size.depth; gz++) {
+  for (let gx = Math.floor(area.x0 / SITE); gx * SITE < area.x1; gx++) {
+    for (let gz = Math.floor(area.z0 / SITE); gz * SITE < area.z1; gz++) {
       if (hashUnit(gx, gz, world.seed + 511) >= SITE_CHANCE) continue;
       const x = Math.floor(gx * SITE + 1 + hashUnit(gx, gz, world.seed + 512) * (SITE - 3));
       const z = Math.floor(gz * SITE + 1 + hashUnit(gx, gz, world.seed + 513) * (SITE - 3));

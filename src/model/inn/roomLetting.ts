@@ -63,7 +63,10 @@ export const setLet = letRoom;
 
 // A world's doors, as a set (each inn let asked whether it's this world's: one look, not a walk through them all).
 const worlds = new WeakMap<readonly Entrance[], Set<Entrance>>();
-const worldOf = (inns: readonly Entrance[]): Set<Entrance> => worlds.get(inns) ?? worlds.set(inns, new Set(inns)).get(inns)!;
+const worldOf = (inns: readonly Entrance[]): Set<Entrance> => {
+  const known = worlds.get(inns);
+  return known && known.size === inns.length ? known : worlds.set(inns, new Set(inns)).get(inns)!; // (a streamed world's doors grow, region by region)
+};
 
 // Whether rooms are let at `minutes` (four in the afternoon through to six in the morning).
 export const lettingHours = (minutes: number): boolean => between(minutes, LET_FROM, LET_TILL);

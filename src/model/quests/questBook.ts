@@ -15,7 +15,7 @@ import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
-import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, questAt, questProgress, type Quest, type QuestWorld } from './quests';
+import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, boardNumber, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 const READ_FROM = [0.3, 0.8]; // how far out in front of a board (tiles) the hero can read it: right up against it
@@ -35,6 +35,7 @@ export interface QuestHost extends QuestWorld, BoardWorld {
   hero: Hero;
   enemies: Enemy[];
   getGroundY(x: number, z: number): number;
+  readonly streamed?: boolean; // a streamed world's (its boards' numbers big: its quests' foes numbered as gathered)
 }
 
 export class QuestBook {
@@ -42,6 +43,7 @@ export class QuestBook {
   readonly events: GameEvent[] = []; // progress and rewards to show, drained with the model's (GameModel.takeEvents)
   private readonly completed = new Set<string>(); // quests handed in, by key: done for good
   private readonly gathered = new Map<string, number>(); // foes each quest has gathered so far, by key (their ids and places come from it)
+  private readonly slots = new Map<string, number>(); // a streamed world's quests' own blocks of foe ids, as each is first gathered for
 
   constructor(private readonly host: QuestHost) {}
 
@@ -64,7 +66,7 @@ export class QuestBook {
       const aside = (hero.x - x) * front.dz - (hero.z - z) * front.dx;
       return out >= READ_FROM[0] && out <= READ_FROM[1] && Math.abs(aside) <= READ_ASIDE;
     });
-    return i < 0 ? null : i;
+    return i < 0 ? null : boardNumber(this.host, i);
   }
 
   // Whether a board has a quest the hero could take now (one neither taken nor done, and room for it).
@@ -239,7 +241,10 @@ export class QuestBook {
     const count = this.gathered.get(quest.key) ?? 0;
     this.gathered.set(quest.key, count + 1);
     const [board, n] = quest.key.split(':').map(Number);
-    const id = FIRST_MOB_ID + (board * 10_000 + n) * 10_000 + count;
+    // Its foe's id (its spot comes from it too): a classic world's from its board and number; a streamed world's from the
+    // quest's own block, given as it's first gathered for (its boards' numbers too big to count from).
+    const slot = this.host.streamed ? (this.slots.get(quest.key) ?? this.slots.set(quest.key, this.slots.size).get(quest.key)!) : board * 10_000 + n;
+    const id = FIRST_MOB_ID + slot * 10_000 + count;
     const salt = this.host.seed % 1_000_003;
     let [x, z] = [quest.x, quest.z];
     for (let t = 0; t < 10; t++) {
@@ -267,11 +272,12 @@ export class QuestBook {
   // Back from a save: the boards as they were, the quests taken again (their foes gathering anew).
   load(data: ReturnType<QuestBook['save']>, boards: number): void {
     const whole = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
-    const valid = (key: unknown) => {
+    // (A board's village known, for a quest taken from it: its foes are placed by it; one done, kept anyway.)
+    const valid = (key: unknown, known = true) => {
       const [board, n] = String(key).split(':').map(Number);
-      return whole(board) && board < boards && whole(n) && n < OFFERS;
+      return whole(board) && (!known || (this.host.villageOf ? !!this.host.villageOf(board) : board < boards)) && whole(n) && n < OFFERS;
     };
-    for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key)) this.completed.add(key);
+    for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key, false)) this.completed.add(key);
     for (const { key, kills, gathered, tracked } of Array.isArray(data?.taken) ? data.taken : []) {
       const [board, n] = String(key).split(':').map(Number);
       if (!valid(key) || this.full || this.fullAt(board) || this.takenOf(key) || this.completed.has(key)) continue;

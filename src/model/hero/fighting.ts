@@ -15,9 +15,10 @@ import { coinsFound, dropFactor, healOnKill, makeChilled, makeWebbed, xpGained }
 import { coinDrop } from './money';
 import { DROP_CHANCE, rollDrop } from '../loot/loot';
 import type { BagItem } from './bag';
-import { FIRST_MOB_ID, type QuestBook } from '../quests/questBook';
+import type { QuestBook } from '../quests/questBook';
 import type { DungeonHooks } from '../dungeons/dungeonTypes';
 import { CHILL_FOR } from '../crypts/frostBreath';
+import { isWorldFoe } from '../enemies/foeIds';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -60,7 +61,7 @@ export function landBlow(fight: Fight): void {
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
-    if (target.id < FIRST_MOB_ID) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
+    if (isWorldFoe(target.id)) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
     fight.slayGuard(target);
     gainXp(hero, xpGained(hero, xpAgainst(target.xp, target.level, hero.level))); // less, the weaker the foe
     healOnKill(hero);

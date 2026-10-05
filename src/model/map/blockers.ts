@@ -18,13 +18,14 @@ import { fenceEdges } from '../worldgen/fields';
 import { squareLanterns } from '../worldgen/villages';
 import { noticeBoards, type BoardWorld } from '../quests/noticeBoards';
 import { squareBenches, type BenchWorld } from '../worldgen/benches';
+import type { Tiles } from './tiles';
 
 const BOARD_COLLISION_HALF = 0.3;
 const BENCH_COLLISION_HALF = 0.3;
 
 export interface BlockerWorld extends BoardWorld, BenchWorld {
   size: MapSize;
-  lakeMap: boolean[][];
+  tiles: Tiles;
   bushes: readonly Bush[];
   trees: readonly Tree[];
   villages: readonly Village[];
@@ -34,7 +35,13 @@ export interface BlockerWorld extends BoardWorld, BenchWorld {
 // The world's obstacles, but for the ruins' and camps' (added after).
 // `solid`: the tiles buildings and wells fill (worldgen/world.ts solidCells).
 export function worldObstacles(world: BlockerWorld, solid: Iterable<string>): Obstacles {
-  const obstacles = new Obstacles(world.size, world.lakeMap, new Set(solid));
+  const obstacles = new Obstacles(world.size, world.tiles, new Set(solid));
+  addWorldObstacles(obstacles, world);
+  return obstacles;
+}
+
+// The world's obstacles (a streamed world's region's: its own), but its solid tiles', added to `obstacles`.
+export function addWorldObstacles(obstacles: Obstacles, world: BlockerWorld): void {
   for (const b of world.bushes) obstacles.addProp(b.x, b.z, BUSH_COLLISION_HALF);
   for (const t of world.trees) obstacles.addProp(t.x, t.z, TREE_COLLISION_HALF);
   for (const v of world.villages) for (const [x, z] of squareLanterns(v)) obstacles.addProp(x, z, LANTERN_COLLISION_HALF);
@@ -44,5 +51,4 @@ export function worldObstacles(world: BlockerWorld, solid: Iterable<string>): Ob
     for (const { x, z, side } of fenceEdges(field)) obstacles.addFenceStrip(x, z, side, FENCE_THICKNESS);
     obstacles.addProp(field.corner[0], field.corner[1], FIELD_CORNER_COLLISION_HALF); // its hay bales and tools
   }
-  return obstacles;
 }

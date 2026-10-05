@@ -139,7 +139,8 @@ export function randomName(build: Build): string {
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
-export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = []): Npc[] {
+// (`firstId`: the first of their ids: a streamed world's region's block.)
+export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0): Npc[] {
   // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
   // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number): T | null => {
@@ -151,7 +152,8 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     }
     return best;
   };
-  const person = (id: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
+  const person = (own: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
+    const id = firstId + own;
     const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
     return {
       id,

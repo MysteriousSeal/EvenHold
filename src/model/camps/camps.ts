@@ -15,10 +15,11 @@
 import { CAMPFIRE_COLLISION_HALF, CAMP_PROP_COLLISION_HALF, PALISADE_THICKNESS, VILLAGE_OUTER_RADIUS } from '../constants';
 import { spawnOf, type MapSize } from '../map/grid';
 import type { Obstacles } from '../map/obstacles';
-import type { Surface, Village } from '../types';
+import type { Village } from '../types';
 import type { ForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
 import { zoneLevel } from '../enemies/enemyLevels';
+import type { Tiles } from '../map/tiles';
 
 export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot' | 'palisade' | 'gate' | 'tower' | 'woodpile';
 
@@ -42,11 +43,11 @@ export interface Camp {
 export interface CampWorld {
   seed: number;
   size: MapSize;
-  heightMap: number[][];
-  surfaceMap: Surface[][];
+  tiles: Tiles;
   villages: readonly Village[];
   forest: ForestDensity;
   isOpenTile(x: number, z: number): boolean;
+  spawn?: { x: number; z: number }; // where the hero sets out, on its maps (a streamed world's region: off them, but the spawn's own); else the middle
 }
 
 const GRID = 26; // one candidate site per GRID x GRID tiles
@@ -62,7 +63,7 @@ export const MAX_BANDITS = 6;
 export function placeCamps(world: CampWorld): Camp[] {
   const camps: Camp[] = [];
   const taken = new Set<string>();
-  const spawn = spawnOf(world.size);
+  const spawn = world.spawn ?? spawnOf(world.size);
   // A camp takes the nearest good site within `reach` of its spot: a flat,
   // open 5 x 5 is rarely exactly where you'd like it.
   const near = (x: number, z: number, reach: number, bandits: number, salt: number) => {
@@ -98,19 +99,19 @@ export function placeCamps(world: CampWorld): Camp[] {
 // A camp at (cx, cz) if it's a level 5 x 5 of open grass, free of others, its
 // way in onto open ground; else null.
 function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: number, taken: Set<string>): Camp | null {
-  const tier = world.heightMap[cx]?.[cz];
+  const tier = world.tiles.has(cx, cz) ? world.tiles.height(cx, cz) : undefined;
   if (tier === undefined) return null; // off the map (sites near its far edge)
   for (let dx = -2; dx <= 2; dx++) {
     for (let dz = -2; dz <= 2; dz++) {
       const [x, z] = [cx + dx, cz + dz];
-      if (world.heightMap[x]?.[z] === undefined) return null; // off the map
-      if (!world.isOpenTile(x, z) || taken.has(`${x},${z}`) || world.surfaceMap[x]?.[z] !== 'natural' || world.heightMap[x][z] !== tier) return null;
+      if (!world.tiles.has(x, z)) return null; // off the map
+      if (!world.isOpenTile(x, z) || taken.has(`${x},${z}`) || world.tiles.surface(x, z) !== 'natural' || world.tiles.height(x, z) !== tier) return null;
     }
   }
   const quarterTurns = Math.floor(hashUnit(cx, cz, salt + 9) * 4);
   const [wx, wz] = turn(0, 3, quarterTurns);
   const [ox, oz] = [cx + wx, cz + wz]; // just outside its way in: open ground, or no camp here
-  if (world.heightMap[ox]?.[oz] === undefined || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.surfaceMap[ox][oz] !== 'natural') return null;
+  if (!world.tiles.has(ox, oz) || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.tiles.surface(ox, oz) !== 'natural') return null;
   return { x: cx, z: cz, quarterTurns, bandits, way: { x: cx + wx, z: cz + wz }, pieces: layOut(cx, cz, quarterTurns) };
 }
 

@@ -62,7 +62,16 @@ export interface QuestWorld {
   villages: readonly Village[];
   isOpenTile(x: number, z: number): boolean;
   isBlocked(x: number, z: number, r: number): boolean;
+  // A board's number, its village's own (a classic world's: its place among them; a streamed world's: where it stands,
+  // the same however its regions are made), and the village of one: model/world/liveWorld.ts. (Else by place.)
+  boardOf?(village: Village): number;
+  villageOf?(board: number): Village | undefined;
 }
+
+// The village of board `board`, if it's known (a streamed world's: its region made, this game).
+export const boardVillage = (world: QuestWorld, board: number): Village | undefined => (world.villageOf ? world.villageOf(board) : world.villages[board]);
+// The board number of the `i`th village of the world's list.
+export const boardNumber = (world: QuestWorld, i: number): number => (world.boardOf ? world.boardOf(world.villages[i]) : i);
 
 const WALK_WINDOW = FAR + 14; // tiles round a village searched for the way out to a quest's spot
 
@@ -102,7 +111,7 @@ function walkableFrom(world: QuestWorld, village: Village): (x: number, z: numbe
 
 // The board's `n`th quest (the same for everyone on the seed).
 export function questAt(world: QuestWorld, board: number, n: number): Quest {
-  const village = world.villages[board];
+  const village = boardVillage(world, board)!;
   const roll = (salt: number) => hashUnit(board * 131 + n, world.seed % 1_000_003, 200 + salt);
   const foe = foeOf(roll(1));
   const kind = roll(2) < 0.5 ? 'kill' : 'collect';

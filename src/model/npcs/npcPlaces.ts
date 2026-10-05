@@ -10,7 +10,7 @@ import type { Field } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { distanceTo, seatOf, type Furniture, type Seat } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
-import { squareBenches } from '../worldgen/benches';
+import { villageBenches } from '../worldgen/benches';
 import type { Npc, NpcStep } from './npcs';
 import type { NpcWorld } from './npcRoutine';
 import { roomFree } from './npcWalk';
@@ -56,8 +56,7 @@ export function squareSpot(npc: Npc, world: NpcWorld, k: number): Point {
 
 // A free seat on one of their village's benches, picked from the routine; else null.
 export function benchSeat(npc: Npc, npcs: readonly Npc[], world: NpcWorld): Seat | null {
-  const seats = squareBenches(world)
-    .filter((b) => world.villages[b.village] === npc.village)
+  const seats = villageBenches(world, npc.village)
     .flatMap((b) => b.seats)
     .filter((seat) => !claimed(seat.piece, npc, npcs, world, null)); // outdoors, wherever they are now
   return seats[Math.floor(roll(npc, 18) * seats.length)] ?? null;

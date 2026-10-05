@@ -24,6 +24,8 @@ export interface CampWorld {
   cleared(key: string): Set<number>;
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
+  readonly changes?: number; // the world's regions peopled or let go so far (a streamed world's)
+  isMade?(x: number, z: number): boolean; // whether (x, z)'s region is made just now (a streamed world's)
 }
 
 export const campKey = (camp: { x: number; z: number }): string => `camp:${camp.x},${camp.z}`;
@@ -46,7 +48,7 @@ export interface CampStatus {
 export class CampLife {
   private readonly gate: CampGate;
   private manned: Map<Camp, boolean> | null = null; // each camp: someone of it still standing (as last looked)
-  private crews: { of: readonly Enemy[]; by: Map<Camp, Enemy[]> } | null = null; // each camp's bandits and chief, gathered once (for the world's foes as they are)
+  private crews: { of: readonly Enemy[]; changes: number; by: Map<Camp, Enemy[]> } | null = null; // each camp's bandits and chief, gathered once (for the world's foes as they are)
 
   constructor(private readonly world: () => CampWorld) {
     this.gate = new CampGate(world);
@@ -54,10 +56,14 @@ export class CampLife {
 
   update(hero: { x: number; z: number }, report: (event: GameEvent) => void): void {
     this.gate.update(hero, report);
-    const { camps, seed } = this.world();
+    const { camps, seed, isMade } = this.world();
     const first = !this.manned;
     const manned = (this.manned ??= new Map());
     for (const camp of camps) {
+      if (isMade && !isMade(camp.x, camp.z)) {
+        manned.delete(camp); // (its region let go, its crew with it: not cleared, only out of mind)
+        continue;
+      }
       const now = this.crew(camp).some(standing);
       if (!first && manned.get(camp) && !now) report({ kind: 'cleared', name: campName(camp, seed), place: 'camp' });
       manned.set(camp, now);
@@ -86,14 +92,15 @@ export class CampLife {
   // camps, cost a frame).
   private crew(camp: Camp): readonly Enemy[] {
     const { enemies } = this.world();
-    if (this.crews?.of !== enemies) {
+    const changes = this.world().changes ?? 0; // (a streamed world's regions come and go: their camps and crews with them)
+    if (this.crews?.of !== enemies || this.crews.changes !== changes) {
       const at = new Map<string, Enemy[]>();
       for (const e of enemies) {
         if (e.kind !== 'bandit' && e.kind !== 'banditChief') continue;
         const home = `${e.homeX},${e.homeZ}`;
         at.set(home, [...(at.get(home) ?? []), e]);
       }
-      this.crews = { of: enemies, by: new Map(this.world().camps.map((c) => [c, at.get(`${c.x},${c.z}`) ?? []])) };
+      this.crews = { of: enemies, changes, by: new Map(this.world().camps.map((c) => [c, at.get(`${c.x},${c.z}`) ?? []])) };
     }
     return this.crews.by.get(camp) ?? [];
   }

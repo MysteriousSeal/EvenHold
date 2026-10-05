@@ -9,15 +9,17 @@ import { spawnDucks, stepDuckPack, type DuckWorld } from './ducks';
 import { spawnDeer, stepDeerHerd, type DeerWorld } from './deer';
 import { spawnCats, stepCat, type CatWorld } from './cats';
 import type { Wildlife } from './animal';
+import { wholeMap, type Area } from '../map/grid';
 
 export type { CatVariant, DeerVariant, DuckVariant, Wildlife, WildlifeKind } from './animal';
 
 export type WildlifeWorld = DuckWorld & DeerWorld & CatWorld;
 
-export function spawnWildlife(world: WildlifeWorld): Wildlife[] {
-  const ducks = spawnDucks(world, 0);
-  const deer = spawnDeer(world, ducks.length);
-  return [...ducks, ...deer, ...spawnCats(world, ducks.length + deer.length)];
+// (`area`: the part of the map to place them on, else the whole map; `firstId`: the first of their ids.)
+export function spawnWildlife(world: WildlifeWorld, area: Area = wholeMap(world.size), firstId = 0): Wildlife[] {
+  const ducks = spawnDucks(world, firstId, area);
+  const deer = spawnDeer(world, firstId + ducks.length, area);
+  return [...ducks, ...deer, ...spawnCats(world, firstId + ducks.length + deer.length)];
 }
 
 // Every pack near the hero acts, led by its first member.

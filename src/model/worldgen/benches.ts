@@ -9,10 +9,12 @@ import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, VILLAGE_OUTER_RADIUS as R } from '../
 import { NEIGHBORS_4, cellKey } from '../map/grid';
 import type { Seat } from '../interiors/furniture';
 import { entrancesOf } from '../interiors/interiors';
-import { noticeBoards, type BoardWorld } from '../quests/noticeBoards';
-import type { Surface, Village } from '../types';
+import { boardFor, type BoardWorld } from '../quests/noticeBoards';
+import { nearVillage } from './nearVillage';
+import type { Village } from '../types';
 import { hashUnit } from '../../util/random';
 import { solidCells } from './world';
+import type { Tiles } from '../map/tiles';
 
 const PER_SQUARE = 3; // benches on a square, at most
 const SEAT_HEIGHT = 0.2; // where the hips rest, above the paving (a chair indoors, at the outdoor scale)
@@ -20,7 +22,7 @@ const SEAT_APART = 0.19; // each seat's middle from the bench's, along it
 const BENCH_REACH = 0.8; // how close the hero must be to a free seat to sit on it
 
 export interface Bench {
-  village: number; // its village's index
+  village: Village; // its village
   x: number; // its tile, on the square's edge
   z: number;
   y: number; // the paving it stands on
@@ -31,26 +33,35 @@ export interface Bench {
 
 export interface BenchWorld extends BoardWorld {
   seed: number;
-  surfaceMap: Surface[][];
+  tiles: Tiles;
 }
 
-const made = new WeakMap<readonly Village[], Bench[]>();
+const benchesOf = new WeakMap<Village, Bench[]>(); // (each square's, worked out once: from what stands round it)
+const listed = new WeakMap<readonly Village[], { count: number; benches: Bench[] }>(); // (and every square's of a list: again as it grows, a streamed world's region by region)
+const AROUND = R + 6; // tiles round a village its benches could depend on (its doors, its lanes' ends, anything solid)
 
-// Every square's benches (worked out once a world).
+// Every square's benches.
 export function squareBenches(world: BenchWorld): Bench[] {
-  let benches = made.get(world.villages);
+  const known = listed.get(world.villages);
+  if (known && known.count === world.villages.length) return known.benches;
+  const benches = world.villages.flatMap((village) => villageBenches(world, village));
+  listed.set(world.villages, { count: world.villages.length, benches });
+  return benches;
+}
+
+// A square's benches (worked out once, from what stands round it).
+export function villageBenches(world: BenchWorld, village: Village): Bench[] {
+  let benches = benchesOf.get(village);
   if (!benches) {
-    const solid = solidCells({ villages: [...world.villages], houses: [...world.houses], buildings: [...world.buildings] });
-    const doors = entrancesOf(world.houses, world.buildings);
-    const boards = noticeBoards(world);
-    benches = world.villages.flatMap((village, i) => benchesOn(world, village, i, solid, doors, boards[i]));
-    made.set(world.villages, benches);
+    const near = nearVillage(world, village, AROUND);
+    benches = benchesOn(world, village, solidCells(near), entrancesOf(near.houses, near.buildings), boardFor(world, village));
+    benchesOf.set(village, benches);
   }
   return benches;
 }
 
-function benchesOn(world: BenchWorld, village: Village, index: number, solid: Set<string>, allDoors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Bench[] {
-  const path = (x: number, z: number) => world.surfaceMap[x]?.[z] === 'path';
+function benchesOn(world: BenchWorld, village: Village, solid: Set<string>, allDoors: ReadonlyArray<{ x: number; z: number }>, board: { x: number; z: number }): Bench[] {
+  const path = (x: number, z: number) => world.tiles.surface(x, z) === 'path';
   // Only this square's doors can be before a spot on its edge (not the world's thousands).
   const doors = allDoors.filter((d) => Math.abs(d.x - village.x) <= R + 1 && Math.abs(d.z - village.z) <= R + 1);
   const spots: Array<{ x: number; z: number; front: [number, number]; order: number }> = [];
@@ -75,7 +86,7 @@ function benchesOn(world: BenchWorld, village: Village, index: number, solid: Se
   return chosen.map(({ x, z, front }) => {
     const [fx, fz] = front;
     const [ax, az] = [fz, -fx]; // along it: its left, as one sits
-    const bench: Bench = { village: index, x, z, y, front, quarterTurns: quarterTurnsOf(front), seats: [] };
+    const bench: Bench = { village, x, z, y, front, quarterTurns: quarterTurnsOf(front), seats: [] };
     bench.seats = [-1, 1].map((side) => {
       const at = { x: x + ax * side * SEAT_APART, z: z + az * side * SEAT_APART };
       // Each seat its own piece, so the two are taken apart from each other.

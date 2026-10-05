@@ -10,6 +10,9 @@ import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey } from '../human/items/gear';
 import type { Hero } from '../types';
 import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
+import { doorNumber, type Entrance } from '../interiors/interiors';
+import { zoneLevel } from '../enemies/enemyLevels';
+import { spawnOf, type MapSize } from '../map/grid';
 
 const SCRAP = 10; // copper for gear with no value of its own (bought back for its bits)
 const JEWELRY = new Set(['neck', 'ring']); // not his trade
@@ -34,6 +37,10 @@ function usual(seed: number, smithy: number, level?: number): Usual {
 export function smithShopAt(shops: Map<number, Shop>, seed: number, smithy: number, now = Date.now(), level?: number): Shop {
   return openShop(shops, smithy, usual(seed, smithy, level), now);
 }
+
+// The smithy's shop the hero's in: by its door's number, its wares at its village's level (zoneLevel: its smithy's).
+export const smithShopIn = (model: { shops: Map<number, Shop>; seed: number; size: MapSize; inside: { entrance: Entrance } | null }, now = Date.now()): Shop =>
+  smithShopAt(model.shops, model.seed, doorNumber(model.inside!.entrance), now, zoneLevel(spawnOf(model.size), model.inside!.entrance));
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
 export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half

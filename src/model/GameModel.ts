@@ -7,21 +7,23 @@
 import { emptyActionBar } from './hero/actionBar';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
-import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
+import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
-import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
-import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
-import { bumpsEnemy, spawnEnemies } from './enemies/enemies';
+import { DEFAULT_MAP_SIZE, spawnOf, wholeMap, type Area, type MapSize } from './map/grid';
+import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Village } from './types';
+import { TilePatch, type Tiles } from './map/tiles';
+import { bumpsEnemy } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
-import { Travellers } from './travellers/travellers';
+import type { TravellerCrowd } from './travellers/travellerCrowd';
+import { LiveWorld } from './world/liveWorld';
+import { SyncSource, WorldStreamer, type RegionSource } from './world/worldStreamer';
 import { bagRoom, canCarry } from './hero/bagSlots';
 import { takeFromSlot } from './hero/bagStacks';
-import { addSceneryObstacles, placeScenery, type Scenery } from './scenery/scenery';
+import { type Scenery } from './scenery/scenery';
 import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
 import { untrained } from './hero/training';
 import { HERO_LOOK } from './human/humanoid';
 import type { Obstacles } from './map/obstacles';
-import { worldObstacles } from './map/blockers';
 import { stepHop, type Hop } from './hero/hop';
 import type { GroundLoot } from './loot/loot';
 import { addToBag, drinkPotion, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
@@ -30,15 +32,14 @@ import type { EquipSlot } from './human/equipment';
 import type { GearKey } from './human/items/gear';
 import { gearPace, regenerate } from './hero/gearEffects';
 import { putOn, takeOff } from './hero/wearing';
-import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
-import { generateWorld, solidCells } from './worldgen/world';
-import { onPaving } from './map/roads';
-import { entrancesOf, type Entrance } from './interiors/interiors';
+import { stepWildlife, type Wildlife } from './wildlife/wildlife';
+import { generateWorld } from './worldgen/world';
+import { type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
 import { armsSheathed, doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
 import { stepYard, toggleYard, type YardStay } from './interiors/furnitureYard';
 import { benchSeatInReach, squareBenches } from './worldgen/benches';
-import { bumpsNpc, spawnNpcs, type Npc } from './npcs/npcs';
+import { bumpsNpc, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
@@ -47,11 +48,11 @@ import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, liveOn } from './hero/setbacks';
-import { addRuinObstacles, type Ruin } from './ruins/ruins';
+import { type Ruin } from './ruins/ruins';
 import { checkOut } from './inn/roomLetting';
-import { addCryptObstacles, placeCrypts, registerCrypts, type Crypt } from './crypts/crypts';
+import { type Crypt } from './crypts/crypts';
 import { CryptFoes } from './crypts/cryptFoes';
-import { addCaveObstacles, placeCaves, registerCaves, type Cave } from './caves/caves';
+import { type Cave } from './caves/caves';
 import { CaveRun } from './caves/caveFoes';
 import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/dungeons';
 import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
@@ -59,16 +60,15 @@ import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
-import { addCampObstacles, type Camp } from './camps/camps';
+import { type Camp } from './camps/camps';
 
+export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
 export class GameModel {
   readonly seed: number;
   readonly size: MapSize;
-  readonly heightMap: number[][];
-  readonly lakeMap: boolean[][];
-  readonly surfaceMap: Surface[][];
+  readonly tiles: Tiles; // each tile's height, water and surface, where it is (map/tiles.ts)
   readonly trails: Array<Array<[number, number]>>;
   readonly villages: Village[];
   readonly houses: House[];
@@ -80,7 +80,7 @@ export class GameModel {
   readonly enemies: Enemy[];
   readonly camps: Camp[];
   readonly ruins: Ruin[]; // old keeps and chapels out in the wilds (ruins/ruins.ts)
-  readonly travellers: Travellers;
+  readonly travellers: TravellerCrowd; // on the roads between the villages (travellers/)
   readonly scenery: Scenery[]; // rocks and landmarks out in the wilds (scenery/scenery.ts) // on the roads between the villages (travellers/travellers.ts)
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly caves: Cave[]; // in the hills (caves/caves.ts)
@@ -109,6 +109,8 @@ export class GameModel {
   readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
   private readonly obstacles: Obstacles;
+  readonly world: LiveWorld; // the world as it's played: its tiles, what blocks the way, everything in it (world/liveWorld.ts)
+  private readonly streamer: WorldStreamer | null; // a streamed world's: its regions kept made round the hero
   private readonly director: EnemyDirector;
   private hop: Hop | null = null;
   readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
@@ -126,57 +128,45 @@ export class GameModel {
 
   // `size` defaults to the game's map; tests pass small worlds.
   // `world`: the seed's, made already (kept from an earlier visit: controller/storage/worldCache.ts), else made now.
-  constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE, world: World = generateWorld(seed, size)) {
+  // A map past CLASSIC_MOST a side is streamed: made a region at a time round the hero (world/worldStreamer.ts; `regions`:
+  // where its lands are made, a worker's in the game, else at once); else made whole (`world`: made already, or now).
+  constructor(seed: number, size: MapSize = DEFAULT_MAP_SIZE, world?: World, regions?: RegionSource) {
     this.seed = seed;
-
-    this.size = world.size;
-    this.heightMap = world.heightMap;
-    this.lakeMap = world.lakeMap;
-    this.surfaceMap = world.surfaceMap;
-    this.trails = world.trails;
-    this.villages = world.villages;
-    this.houses = world.houses;
-    this.buildings = world.buildings;
-    this.fields = world.fields;
-    this.trees = world.trees;
-    this.bushes = world.bushes;
-    this.obstacles = worldObstacles(this, solidCells(this)); // what blocks the way (blockers.ts)
-    this.ruins = world.ruins;
-    this.camps = world.camps;
-    addRuinObstacles(this.obstacles, this.ruins); // (before the foes, to stand clear of them)
-    addCampObstacles(this.obstacles, this.camps);
-    this.crypts = placeCrypts(this); // a stairway down in each ruin (its tile blocked: down with E)
-    addCryptObstacles(this.obstacles, this.crypts);
-    registerCrypts(this.crypts);
-    this.caves = placeCaves(this); // a mouth in a hillside in each stretch of the wilds that has one (its rock blocked: in with E)
-    addCaveObstacles(this.obstacles, this.caves);
-    registerCaves(this.caves);
-
+    const streamed = !world && Math.max(size.width, size.depth) > CLASSIC_MOST;
+    world ??= streamed ? undefined : generateWorld(seed, size);
+    this.size = world?.size ?? size;
     const spawn = spawnOf(this.size);
     this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
-    this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.moves = new CombatMoves(this.hero);
-    this.enemies = spawnEnemies(this); // (bandits in their camps)
-    for (const enemy of this.enemies) enemy.y = this.getGroundY(enemy.x, enemy.z);
-    this.scenery = placeScenery(this); // rocks and landmarks in the wilds (after the foes: clear of where they stand)
-    addSceneryObstacles(this.obstacles, this.scenery);
+    // The world, made whole (a classic world: one region, peopled at once: world/liveWorld.ts), and its lists.
+    this.world = world ? LiveWorld.classic(this, { rx: 0, rz: 0, x0: 0, z0: 0, ...world, tiles: TilePatch.fromMaps(world.size, 0, 0, world) }, world.size) : LiveWorld.streamed(this, size);
+    this.streamer = world ? null : new WorldStreamer(this.world, regions ?? new SyncSource(seed, size));
+    this.streamer?.prime(spawn); // (the regions round where the hero sets out, made before they're seen)
+    ({ tiles: this.tiles, obstacles: this.obstacles, trails: this.trails, villages: this.villages, houses: this.houses, buildings: this.buildings, fields: this.fields } = this.world);
+    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, scenery: this.scenery } = this.world);
+    ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
+    this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
     this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
-    this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
-    this.wildlife = spawnWildlife(this);
-    this.entrances = entrancesOf(this.houses, this.buildings);
-    this.npcs = spawnNpcs(this.seed, this.entrances, this.villages, this.fields);
-    this.entrances.push(...this.crypts.map((c) => c.entrance), ...this.caves.map((c) => c.entrance)); // (the dungeons' ways in, after the buildings' doors: they keep their places)
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
   }
 
+  // A foe slain by someone else (a guard on the road): the world's, for good.
+  slay = (enemy: Enemy): void => void this.slain.add(enemy.id);
+  get changes(): number { return this.world.changes; } // (regions peopled or let go so far: world/liveWorld.ts)
+  isMade = (x: number, z: number): boolean => this.world.has(x, z); // (whether (x, z)'s region is made just now)
+  doorAt = (n: number): Entrance | undefined => this.world.doorAt(n); // (a door known, by its own number: interiors.ts doorNumber)
+  boardOf = (village: Village): number => this.world.villageNumber(village); // (a board's number: its village's own)
+  villageOf = (board: number): Village | undefined => this.world.villageByNumber(board);
+  get streamed(): boolean { return this.world.streamed; }
+  get area(): Area { return wholeMap(this.size); } // (the part of the map its lists are of: all of it; a region's view's, its own: view/world/worldRegions.ts)
+
   // Height of whatever the hero would stand on at (x, z), in world units:
   // the tile's tier, plus the road/cobble paving where there is some.
   getGroundY(x: number, z: number): number {
-    const tile = this.heightMap[toCellX(this.size, x)][toCellZ(this.size, z)] * TILE_HEIGHT;
-    return onPaving(this.surfaceMap, x, z) ? tile + ROAD_SURFACE_HEIGHT : tile;
+    return this.world.groundY(x, z);
   }
 
   // Starts a blow (combatMoves.ts) unless one's under way, they're rolling or out of breath, or arms are put away
@@ -201,11 +191,15 @@ export class GameModel {
     this.inside = null;
     this.yard = null;
     this.outdoors.seated = null;
+    this.streamer?.prime({ x, z }); // (a streamed world's ground there made first, if it isn't)
     this.hero.x = x;
     this.hero.z = z;
     this.hero.y = this.getGroundY(x, z);
     this.hop = null;
   }
+
+  // A streamed world's regions round (x, z) made now, if they aren't (a save's spot, a quest's board, before they're needed).
+  makeAround = (x: number, z: number): void => this.streamer?.prime({ x, z });
 
   // Dev cheat: the flat grass yard, or back to where the hero was.
   toggleFurnitureYard(): string {
@@ -239,6 +233,7 @@ export class GameModel {
     if (dt <= 0) return;
     this.minutes += dt; // a second played, a minute on the clock
     [tickBlessing(this.hero, dt), regenerate(this.hero, dt)]; // a well's, wearing off; health back, by their gear's
+    this.streamer?.update(this.inside?.entrance ?? this.hero); // (a streamed world's regions round where they are on the map)
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)

@@ -9,16 +9,17 @@
 // choices come from hashes of where they are, so tests are repeatable.
 
 import { TILE_HEIGHT, WATER_LEVEL } from '../constants';
-import { inBounds, type MapSize } from '../map/grid';
+import { inBounds, ownsSite, wholeMap, type Area, type MapSize } from '../map/grid';
 import { hashUnit } from '../../util/random';
 import { stepGroup } from './group';
 import { stepToward } from './moving';
 import type { DuckVariant, Wildlife } from './animal';
+import type { Tiles } from '../map/tiles';
 
 export interface DuckWorld {
   seed: number;
   size: MapSize;
-  lakeMap: boolean[][];
+  tiles: Tiles;
 }
 
 export const WATER_Y = WATER_LEVEL * TILE_HEIGHT; // the lakes' surface
@@ -41,7 +42,7 @@ export function swimmable(world: DuckWorld, x: number, z: number): boolean {
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     const tx = Math.round(x + dx * SHORE_MARGIN);
     const tz = Math.round(z + dz * SHORE_MARGIN);
-    if (!inBounds(world.size, tx, tz) || !world.lakeMap[tx][tz]) return false;
+    if (!inBounds(world.size, tx, tz) || !world.tiles.lake(tx, tz)) return false;
   }
   return true;
 }
@@ -52,7 +53,7 @@ const go = (duck: Wildlife, world: DuckWorld, tx: number, tz: number, speed: num
 // A tile with water all around it.
 function openWater(world: DuckWorld, x: number, z: number): boolean {
   for (let dx = -1; dx <= 1; dx++) {
-    for (let dz = -1; dz <= 1; dz++) if (!inBounds(world.size, x + dx, z + dz) || !world.lakeMap[x + dx][z + dz]) return false;
+    for (let dz = -1; dz <= 1; dz++) if (!inBounds(world.size, x + dx, z + dz) || !world.tiles.lake(x + dx, z + dz)) return false;
   }
   return true;
 }
@@ -78,16 +79,17 @@ function makeDuck(id: number, variant: DuckVariant, x: number, z: number, headin
   };
 }
 
-export function spawnDucks(world: DuckWorld, firstId: number): Wildlife[] {
+// (`area`: the part of the map to place them on: its sites, those whose spot falls in it; else the whole map.)
+export function spawnDucks(world: DuckWorld, firstId: number, area: Area = wholeMap(world.size)): Wildlife[] {
   const ducks: Wildlife[] = [];
   const salt = world.seed % 1000;
-  for (let gx = 0; gx < world.size.width; gx += GRID) {
-    for (let gz = 0; gz < world.size.depth; gz += GRID) {
+  for (let gx = Math.floor(area.x0 / GRID) * GRID; gx < area.x1; gx += GRID) {
+    for (let gz = Math.floor(area.z0 / GRID) * GRID; gz < area.z1; gz += GRID) {
       const roll = (n: number) => hashUnit(gx, gz, salt + n);
       if (roll(33) > CHANCE) continue;
       const x = gx + Math.floor(roll(31) * GRID);
       const z = gz + Math.floor(roll(32) * GRID);
-      if (!inBounds(world.size, x, z) || !openWater(world, x, z)) continue;
+      if (!inBounds(world.size, x, z) || !ownsSite(area, world.size, x, z) || !openWater(world, x, z)) continue;
       const variants: DuckVariant[] = roll(34) < 0.5 ? ['drake', 'hen'] : roll(35) < 0.6 ? ['drake', 'hen', 'duckling'] : ['hen', 'duckling', 'duckling'];
       const heading = roll(36) * Math.PI * 2;
       const pack = variants.map((variant, i) => {

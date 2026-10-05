@@ -13,6 +13,20 @@ export function sizeOf(map: readonly (readonly unknown[])[]): MapSize {
   return { width: map.length, depth: map[0]?.length ?? 0 };
 }
 
+// A rectangle of the map, in tiles: x0..x1-1, z0..z1-1 (a streamed world's region; or the whole map).
+export interface Area {
+  x0: number;
+  z0: number;
+  x1: number;
+  z1: number;
+}
+export const wholeMap = (size: MapSize): Area => ({ x0: 0, z0: 0, x1: size.width, z1: size.depth });
+export const inArea = (area: Area, x: number, z: number): boolean => x >= area.x0 && z >= area.z0 && x < area.x1 && z < area.z1;
+// Whether a site at (x, z) is `area`'s to place (a spot just off the map's edge, the area at that edge's: so a classic
+// world, one area, keeps every site it had; a streamed world's regions share none).
+export const ownsSite = (area: Area, size: MapSize, x: number, z: number): boolean =>
+  (x >= area.x0 || area.x0 <= 0) && (z >= area.z0 || area.z0 <= 0) && (x < area.x1 || area.x1 >= size.width) && (z < area.z1 || area.z1 >= size.depth);
+
 // The hero starts at the center of the map.
 export function spawnOf(size: MapSize): { x: number; z: number } {
   return { x: Math.floor(size.width / 2), z: Math.floor(size.depth / 2) };

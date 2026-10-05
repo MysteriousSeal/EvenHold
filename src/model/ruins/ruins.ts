@@ -13,7 +13,8 @@ import { hashCell, mulberry32 } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS } from '../constants';
 import { FACINGS, sideOf, spawnOf, type MapSize } from '../map/grid';
 import type { Obstacles } from '../map/obstacles';
-import type { Surface, Village } from '../types';
+import type { Village } from '../types';
+import type { Tiles } from '../map/tiles';
 
 export const RUIN_REGION = 512; // tiles a side of the stretch that has one
 const SIZE: [number, number] = [10, 15]; // tiles a side
@@ -45,10 +46,10 @@ export interface Ruin {
 export interface RuinWorld {
   seed: number;
   size: MapSize;
-  heightMap: number[][];
-  surfaceMap: Surface[][];
+  tiles: Tiles;
   villages: readonly Village[];
   isOpenTile(x: number, z: number): boolean;
+  spawn?: { x: number; z: number }; // where the hero sets out, on its maps (a streamed world's region: off them, but the spawn's own); else the middle
 }
 
 // Where they stand, and how each is laid out.
@@ -56,7 +57,7 @@ export function placeRuins(world: RuinWorld): Ruin[] {
   const ruins: Ruin[] = [];
   const regionsX = Math.max(1, Math.round(world.size.width / RUIN_REGION));
   const regionsZ = Math.max(1, Math.round(world.size.depth / RUIN_REGION));
-  const spawn = spawnOf(world.size);
+  const spawn = world.spawn ?? spawnOf(world.size);
   for (let gx = 0; gx < regionsX; gx++) {
     for (let gz = 0; gz < regionsZ; gz++) {
       const rng = mulberry32(hashCell(gx, gz, world.seed + 6151));
@@ -87,9 +88,9 @@ function fits(world: RuinWorld, x: number, z: number, w: number, d: number, spaw
   for (let i = x - 1; i <= x + w; i++) {
     for (let k = z - 1; k <= z + d; k++) {
       if (i < 1 || k < 1 || i >= world.size.width - 1 || k >= world.size.depth - 1) return false;
-      if (!world.isOpenTile(i, k) || world.surfaceMap[i][k] !== 'natural') return false;
-      low = Math.min(low, world.heightMap[i][k]);
-      high = Math.max(high, world.heightMap[i][k]);
+      if (!world.isOpenTile(i, k) || world.tiles.surface(i, k) !== 'natural') return false;
+      low = Math.min(low, world.tiles.height(i, k));
+      high = Math.max(high, world.tiles.height(i, k));
       if (high - low > MAX_RISE) return false;
     }
   }

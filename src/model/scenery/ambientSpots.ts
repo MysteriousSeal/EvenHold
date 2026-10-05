@@ -9,7 +9,7 @@
 import { hashUnit } from '../../util/random';
 import { hourAt } from '../clock';
 import { createMeadowDensity } from '../worldgen/meadows';
-import type { Surface } from '../types';
+import type { Tiles } from '../map/tiles';
 
 export const LIFE_CELL = 6; // tiles a side of each patch of ground
 export type LifeKind = 'butterfly' | 'bird' | 'firefly';
@@ -23,7 +23,7 @@ export interface LifeSpot {
 
 export interface LifeWorld {
   seed: number;
-  surfaceMap: readonly (readonly Surface[])[];
+  tiles: Tiles;
   isOpenTile(x: number, z: number): boolean;
 }
 
@@ -42,7 +42,7 @@ export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = create
   const out: LifeSpot[] = [];
   const spot = (salt: number) => {
     const [x, z] = [Math.floor(cx * LIFE_CELL + roll(salt) * LIFE_CELL), Math.floor(cz * LIFE_CELL + roll(salt + 1) * LIFE_CELL)];
-    return world.isOpenTile(x, z) && world.surfaceMap[x]?.[z] === 'natural' ? { x: x + 0.5, z: z + 0.5 } : null;
+    return world.isOpenTile(x, z) && world.tiles.has(x, z) && world.tiles.surface(x, z) === 'natural' ? { x: x + 0.5, z: z + 0.5 } : null;
   };
   const add = (kind: LifeKind, count: number, salt: number, spread: number) => {
     const at = spot(salt);

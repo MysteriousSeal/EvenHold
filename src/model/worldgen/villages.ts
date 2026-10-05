@@ -47,7 +47,7 @@ const R = VILLAGE_OUTER_RADIUS;
 // equal-tier dry tiles run up to each tile; a tile's row segment is level
 // when that run covers it; a site is level when the segments of the rows
 // around it are level and share its tier.
-function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX: number, spawnZ: number): Site[] {
+function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX: number, spawnZ: number, margin: number): Site[] {
   const size = sizeOf(heightMap);
   const r = VILLAGE_FLAT_RADIUS;
   const span = 2 * r + 1;
@@ -62,8 +62,8 @@ function findCandidateSites(heightMap: number[][], lakeMap: boolean[][], spawnX:
     }
   }
   const candidates: Site[] = [];
-  for (let x = VILLAGE_MAP_MARGIN; x < size.width - VILLAGE_MAP_MARGIN; x++) {
-    for (let z = VILLAGE_MAP_MARGIN; z < size.depth - VILLAGE_MAP_MARGIN; z++) {
+  for (let x = margin; x < size.width - margin; x++) {
+    for (let z = margin; z < size.depth - margin; z++) {
       if (Math.hypot(x - spawnX, z - spawnZ) < VILLAGE_MIN_DIST_FROM_SPAWN) continue;
       let level = true;
       for (let dx = -r; dx <= r && level; dx++) level = levelRow[x + dx][z] === 1 && heightMap[x + dx][z] === heightMap[x][z];
@@ -156,6 +156,7 @@ export function generateVillages(
   rng: () => number,
   spawnX: number,
   spawnZ: number,
+  margin = VILLAGE_MAP_MARGIN, // tiles kept clear of the map's edge (a streamed world's region: room for its lanes and fields, and half the spacing to the next region's)
 ): { villages: Village[]; houses: House[]; buildings: Building[] } {
   const size = sizeOf(heightMap);
   // The count range is per VILLAGE_COUNT_AREA of map, so smaller worlds
@@ -166,7 +167,7 @@ export function generateVillages(
   // Sites are drawn in random order, shuffling lazily (a big map has
   // millions of candidates but needs only a few thousand), and spacing is
   // checked against a coarse grid of placed villages rather than all of them.
-  const candidates = findCandidateSites(heightMap, lakeMap, spawnX, spawnZ);
+  const candidates = findCandidateSites(heightMap, lakeMap, spawnX, spawnZ, margin);
   const villages: Village[] = [];
   const cell = VILLAGE_MIN_DIST_BETWEEN;
   const placed = new Map<string, Village[]>();

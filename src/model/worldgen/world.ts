@@ -18,6 +18,7 @@ import { generateFields } from './fields';
 import { createMeadowDensity } from './meadows';
 import { placeRuins } from '../ruins/ruins';
 import { placeCamps } from '../camps/camps';
+import { mapsAsTiles } from '../map/tiles';
 
 // Tiles nothing can walk through or grow on: houses, the inn and smithy,
 // village wells, and (when given) bushes.
@@ -56,14 +57,15 @@ export function generateWorld(seed: number, size: MapSize = DEFAULT_MAP_SIZE): W
   const cleared = new Set<number>(); // (tiles as x * depth + z: numbers, not keys, for the half-million trees checked against it)
   const tile = (x: number, z: number) => (x + 64) * (size.depth + 128) + (z + 64); // (distinct just off the map too: what's cleared round a camp can reach past its edge)
   const isOpenTile = (x: number, z: number) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(tile(x, z)); // (dry, clear of buildings and of what's placed before)
-  const ruins = placeRuins({ seed, size, heightMap, surfaceMap, villages, isOpenTile });
+  const tiles = mapsAsTiles({ heightMap, lakeMap, surfaceMap }); // (read where they are, as placed things read them)
+  const ruins = placeRuins({ seed, size, tiles, villages, isOpenTile });
   const clear = (x0: number, z0: number, x1: number, z1: number) => {
     for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) cleared.add(tile(x, z));
   };
   for (const r of ruins) clear(r.x - 1, r.z - 1, r.x + r.w, r.z + r.d);
   // The bandits' camps likewise (clear of the ruins).
   const forest = createForestDensity(seed);
-  const camps = placeCamps({ seed, size, heightMap, surfaceMap, villages, forest, isOpenTile });
+  const camps = placeCamps({ seed, size, tiles, villages, forest, isOpenTile });
   for (const c of camps) clear(c.x - 3, c.z - 3, c.x + 3, c.z + 3);
   const grown = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, forest, spawn.x, spawn.z);
   const trees = grown.filter((t) => !cleared.has(tile(Math.round(t.x), Math.round(t.z))));

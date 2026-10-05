@@ -9,17 +9,18 @@
 // choices come from hashes of where they are, so tests are repeatable.
 
 import { hashUnit } from '../../util/random';
-import { inBounds, type MapSize } from '../map/grid';
-import type { Surface, Tree, Village } from '../types';
+import { inArea, inBounds, ownsSite, wholeMap, type Area, type MapSize } from '../map/grid';
+import type { Tree, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { stepGroup } from './group';
 import { stepToward } from './moving';
 import type { DeerVariant, Wildlife } from './animal';
+import type { Tiles } from '../map/tiles';
 
 export interface DeerWorld {
   seed: number;
   size: MapSize;
-  surfaceMap: Surface[][];
+  tiles: Tiles;
   villages: Village[];
   camps: Camp[];
   trees: Tree[];
@@ -54,14 +55,14 @@ const go = (deer: Wildlife, world: DeerWorld, tx: number, tz: number, speed: num
   stepToward(deer, (x, z) => walkable(world, x, z), tx, tz, speed, dt, (x, z) => world.getGroundY(x, z));
 
 // Open grass with a few trees nearby (`trees`: the tiles with one), far from people.
-function meadow(world: DeerWorld, trees: Uint8Array, x: number, z: number): boolean {
-  if (!inBounds(world.size, x, z) || !world.isOpenTile(x, z) || world.surfaceMap[x][z] !== 'natural') return false;
+function meadow(world: DeerWorld, trees: Uint8Array, area: Area, x: number, z: number): boolean {
+  if (!inBounds(world.size, x, z) || !world.isOpenTile(x, z) || world.tiles.surface(x, z) !== 'natural') return false;
   // (squared: the same answer as the distance for tiles, far cheaper against hundreds of villages)
   if (world.villages.some((v) => (v.x - x) ** 2 + (v.z - z) ** 2 < AWAY_FROM_VILLAGES ** 2)) return false;
   if (world.camps.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < AWAY_FROM_CAMPS ** 2)) return false;
   let near = 0;
   for (let dx = -WOODS_NEAR; dx <= WOODS_NEAR; dx++) {
-    for (let dz = -WOODS_NEAR; dz <= WOODS_NEAR; dz++) if (trees[(x + dx) * world.size.depth + z + dz] === 1 && ++near >= 3) return true;
+    for (let dz = -WOODS_NEAR; dz <= WOODS_NEAR; dz++) if (trees[(x - area.x0 + dx) * (area.z1 - area.z0) + z - area.z0 + dz] === 1 && ++near >= 3) return true;
   }
   return false;
 }
@@ -110,18 +111,20 @@ function place(deer: Wildlife): [number, number] {
   return [Math.sin(angle) * distance, Math.cos(angle) * distance];
 }
 
-export function spawnDeer(world: DeerWorld, firstId: number): Wildlife[] {
+// (`area`: the part of the map to place them on: its sites, those whose spot falls in it; else the whole map.)
+export function spawnDeer(world: DeerWorld, firstId: number, area: Area = wholeMap(world.size)): Wildlife[] {
   const deer: Wildlife[] = [];
   const salt = world.seed % 1000;
-  const trees = new Uint8Array(world.size.width * world.size.depth); // (a grid of the half-million trees, by x * depth + z)
-  for (const t of world.trees) trees[t.x * world.size.depth + t.z] = 1;
-  for (let gx = 0; gx < world.size.width; gx += GRID) {
-    for (let gz = 0; gz < world.size.depth; gz += GRID) {
+  const depth = area.z1 - area.z0;
+  const trees = new Uint8Array((area.x1 - area.x0) * depth); // (a grid of the area's trees, by (x - x0) * depth + (z - z0))
+  for (const t of world.trees) if (inArea(area, t.x, t.z)) trees[(t.x - area.x0) * depth + t.z - area.z0] = 1;
+  for (let gx = Math.floor(area.x0 / GRID) * GRID; gx < area.x1; gx += GRID) {
+    for (let gz = Math.floor(area.z0 / GRID) * GRID; gz < area.z1; gz += GRID) {
       const roll = (n: number) => hashUnit(gx, gz, salt + n);
       if (roll(60) > CHANCE) continue;
       const x = gx + Math.floor(roll(61) * GRID);
       const z = gz + Math.floor(roll(62) * GRID);
-      if (!meadow(world, trees, x, z)) continue;
+      if (!ownsSite(area, world.size, x, z) || !meadow(world, trees, area, x, z)) continue;
       const heading = roll(63) * Math.PI * 2;
       const members = herdOf(roll);
       const herd = members.map(({ variant }, i) => makeDeer(firstId + deer.length + i, variant, x, z, heading, world));

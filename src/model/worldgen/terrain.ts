@@ -4,13 +4,14 @@
 import { MAX_TIER, NOISE_SCALE } from '../constants';
 import { sizeOf, type MapSize } from '../map/grid';
 
-export function generateHeightMap(noise2D: (x: number, y: number) => number, size: MapSize): number[][] {
+export function generateHeightMap(noise2D: (x: number, y: number) => number, size: MapSize, origin: { x: number; z: number } = { x: 0, z: 0 }): number[][] {
   const map: number[][] = new Array(size.width);
   for (let x = 0; x < size.width; x++) {
     const row: number[] = new Array(size.depth);
     for (let z = 0; z < size.depth; z++) {
-      const base = noise2D(x / NOISE_SCALE, z / NOISE_SCALE);
-      const detail = noise2D(x / (NOISE_SCALE / 3), z / (NOISE_SCALE / 3)) * 0.3;
+      const [wx, wz] = [x + origin.x, z + origin.z]; // (where it is on the world's map: a streamed world's regions meet seamlessly)
+      const base = noise2D(wx / NOISE_SCALE, wz / NOISE_SCALE);
+      const detail = noise2D(wx / (NOISE_SCALE / 3), wz / (NOISE_SCALE / 3)) * 0.3;
       const normalized = Math.min(1, Math.max(0, (base + detail + 1.3) / 2.6));
       const h = Math.min(MAX_TIER, Math.floor(normalized * (MAX_TIER + 1)));
       row[z] = h;

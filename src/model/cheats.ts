@@ -47,7 +47,7 @@ export function villageEntrance(model: GameModel, village: Village, from: Tile):
   const inSquare = (x: number, z: number) =>
     Math.max(Math.abs(x - village.x), Math.abs(z - village.z)) <= VILLAGE_OUTER_RADIUS;
   for (const route of model.trails) {
-    const lastPath = [...route].reverse().find(([x, z]) => model.surfaceMap[x][z] === 'path');
+    const lastPath = [...route].reverse().find(([x, z]) => model.tiles.surface(x, z) === 'path');
     if (lastPath && NEIGHBORS_4.some(([dx, dz]) => inSquare(lastPath[0] + dx, lastPath[1] + dz))) {
       return { x: lastPath[0], z: lastPath[1] };
     }
@@ -62,7 +62,7 @@ export function villageEntrance(model: GameModel, village: Village, from: Tile):
 // the world has no lakes. Searches outward ring by ring from `from`.
 export function nearestLakeShore(model: GameModel, from: Tile): Tile | null {
   const isShore = (x: number, z: number) =>
-    model.isOpenTile(x, z) && NEIGHBORS_4.some(([dx, dz]) => model.lakeMap[x + dx]?.[z + dz]);
+    model.isOpenTile(x, z) && NEIGHBORS_4.some(([dx, dz]) => model.tiles.lake(x + dx, z + dz));
   return ringSearch(model, from, isShore);
 }
 
@@ -76,7 +76,8 @@ function nearestOpenTile(model: GameModel, from: Tile): Tile {
 
 // First tile matching `accept`, searching square rings of growing radius
 // around `from` (nearest ring first, and the nearest tile within it).
-function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number) => boolean, maxRadius = Math.max(model.size.width, model.size.depth)): Tile | null {
+// (`maxRadius`: the whole map; a streamed world's, what's made round the hero: nothing further can be found.)
+function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number) => boolean, maxRadius = model.streamed ? 1024 : Math.max(model.size.width, model.size.depth)): Tile | null {
   for (let r = 0; r <= maxRadius; r++) {
     const ring: Tile[] = [];
     for (let dx = -r; dx <= r; dx++) {
@@ -199,7 +200,7 @@ export function nearestTraveller(model: GameModel, from: Tile, role: TravellerRo
     if (!best || distance(t, from) < distance(best, from)) best = t;
   }
   if (!best) return null;
-  const ahead = onRoad(model.travellers.roads[best.road], best.along + best.way * 1.2);
+  const ahead = onRoad(model.travellers.roadOf(best), best.along + best.way * 1.2);
   return { traveller: best, at: { x: ahead.x, z: ahead.z } };
 }
 
@@ -234,7 +235,7 @@ export function nextMeadow(model: GameModel, from: Tile, kind: number | null, vi
     ringSearch(
       model,
       from,
-      (x, z) => model.isOpenTile(x, z) && model.surfaceMap[x]?.[z] === 'natural' && patches.strength(x, z) > 0.75 && (kind === null || patches.kind(x, z) === kind) && !visited.has(cell(x, z)),
+      (x, z) => model.isOpenTile(x, z) && model.tiles.has(x, z) && model.tiles.surface(x, z) === 'natural' && patches.strength(x, z) > 0.75 && (kind === null || patches.kind(x, z) === kind) && !visited.has(cell(x, z)),
       SIGHT_REACH,
     );
   const at = find() ?? (visited.clear(), find());

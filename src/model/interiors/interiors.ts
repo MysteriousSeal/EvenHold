@@ -42,6 +42,13 @@ function outward(rotationY: number): [number, number] {
   return [-Math.sin(rotationY), -Math.cos(rotationY)];
 }
 
+// A door's own number, from where it is (to a quarter of a tile: every door's apart), the same every game (a shop's,
+// a let room's, the save's way of naming it: a streamed world's doors are known in whatever order its regions are made).
+const DOOR_ROW = 2 ** 18; // (past any z: 16384 tiles, in quarters)
+export const doorNumber = (door: { x: number; z: number }): number => Math.round(door.x * 4) * DOOR_ROW + Math.round(door.z * 4);
+// Where door number `n` is (near enough: to a quarter of a tile).
+export const doorPlace = (n: number): { x: number; z: number } => ({ x: Math.floor(n / DOOR_ROW) / 4, z: (n % DOOR_ROW) / 4 });
+
 export function entrancesOf(houses: readonly House[], buildings: readonly Building[]): Entrance[] {
   const at = (type: BuildingType, x: number, z: number, rotationY: number): Entrance => {
     const [outX, outZ] = outward(rotationY);

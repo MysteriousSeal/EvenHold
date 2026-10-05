@@ -27,6 +27,7 @@ export function generateBushes(
   meadowDensity: MeadowDensity,
   spawnX: number,
   spawnZ: number,
+  origin: { x: number; z: number } = { x: 0, z: 0 }, // where its maps start on the world's (a streamed world's region): its rolls and meadows by where it is
 ): Bush[] {
   const size = sizeOf(heightMap);
   const blocked = cellLookup(size, blockedCells);
@@ -40,14 +41,14 @@ export function generateBushes(
       // The tile's own roll first: it's cheap and fails for most tiles, so
       // the meadow noise below is only sampled where a bush could grow (and
       // its generator made only then, its first number already rolled).
-      const seed = hashCell(x, z, BUSH_SALT);
+      const seed = hashCell(x + origin.x, z + origin.z, BUSH_SALT);
       if (firstRoll(seed) >= BUSH_CHANCE) continue;
       if (lakeMap[x][z] || surfaceMap[x][z] !== 'natural') continue;
       if (blocked(x, z) || hasTree(x, z)) continue;
       // Keep the spawn tile and its neighbors clear so the hero never starts boxed in.
       if (Math.abs(x - spawnX) <= 1 && Math.abs(z - spawnZ) <= 1) continue;
 
-      const density = meadowDensity(x, z);
+      const density = meadowDensity(x + origin.x, z + origin.z);
       if (density < EDGE_MIN || density > EDGE_MAX) continue;
       const rng = mulberry32(seed);
       rng(); // (the roll above)

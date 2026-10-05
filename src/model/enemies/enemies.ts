@@ -17,7 +17,7 @@ import { hashUnit } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
 import { lookAt } from '../human/humanoid';
 import { enemyLevel, enemyPower } from './enemyLevels';
-import type { MapSize } from '../map/grid';
+import { inArea, ownsSite, wholeMap, type Area, type MapSize } from '../map/grid';
 
 interface Sites {
   grid: number; // one candidate site per grid x grid tiles
@@ -79,7 +79,9 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
   };
 }
 
-export function spawnEnemies(world: EnemyWorld): Enemy[] {
+// `area`: the part of the map to place them on (a streamed world's region: its sites, those whose spot falls in it;
+// else the whole map); `firstId`: the first of their ids (a streamed world's region's block: enemies/foeIds.ts).
+export function spawnEnemies(world: EnemyWorld, area: Area = wholeMap(world.size), firstId = 0): Enemy[] {
   const forest = createForestDensity(world.seed);
   const enemies: Enemy[] = [];
   const taken = new Set<string>();
@@ -95,7 +97,7 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
           const z = cz + dz;
           if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || !open(x, z) || hashUnit(x, z, salt) >= 0.6) continue;
           taken.add(`${x},${z}`);
-          enemies.push(makeEnemy(enemies.length, kind, x, z, cx, cz, enemyLevel(world.hero, cx, cz, enemies.length)));
+          enemies.push(makeEnemy(firstId + enemies.length, kind, x, z, cx, cz, enemyLevel(world.hero, cx, cz, firstId + enemies.length)));
           placed++;
         }
       }
@@ -113,22 +115,22 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
     spots.sort((a, b) => roll(a) - roll(b));
     const chief = chiefSpot(camp, spots);
     const rest = spots.filter((s) => s !== chief);
-    for (const [x, z] of rest.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)), pen: 2 });
-    if (chief) enemies.push({ ...makeEnemy(enemies.length, 'banditChief', chief[0], chief[1], camp.x, camp.z, chiefLevel(camp, world.size)), pen: 2, name: chiefName(camp, world.seed) });
+    for (const [x, z] of rest.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(firstId + enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, firstId + enemies.length)), pen: 2 });
+    if (chief) enemies.push({ ...makeEnemy(firstId + enemies.length, 'banditChief', chief[0], chief[1], camp.x, camp.z, chiefLevel(camp, world.size)), pen: 2, name: chiefName(camp, world.seed) });
   };
 
   // One of each a short walk from spawn, so there's something to fight right away.
   const { x: sx, z: sz } = world.hero;
-  group('wolf', Math.round(sx + 7), Math.round(sz - 6), 2, 41);
+  if (inArea(area, sx, sz)) group('wolf', Math.round(sx + 7), Math.round(sz - 6), 2, 41);
   if (world.camps[0]) bandits(world.camps[0]); // the camp near spawn
 
   const scatter = (sites: Sites, salt: number, place: (x: number, z: number, big: boolean) => void) => {
-    for (let gx = 0; gx * sites.grid < world.size.width; gx++) {
-      for (let gz = 0; gz * sites.grid < world.size.depth; gz++) {
+    for (let gx = Math.floor(area.x0 / sites.grid); gx * sites.grid < area.x1; gx++) {
+      for (let gz = Math.floor(area.z0 / sites.grid); gz * sites.grid < area.z1; gz++) {
         if (hashUnit(gx, gz, salt) >= sites.chance) continue;
         const x = Math.floor(gx * sites.grid + hashUnit(gx, gz, salt + 1) * sites.grid);
         const z = Math.floor(gz * sites.grid + hashUnit(gx, gz, salt + 2) * sites.grid);
-        if (!sites.forest(forest(x, z))) continue;
+        if (!ownsSite(area, world.size, x, z) || !sites.forest(forest(x, z))) continue; // (a site's its area's whose spot falls in it)
         if (Math.hypot(x - sx, z - sz) < SPAWN_CLEARANCE) continue;
         if (world.villages.some((v) => Math.hypot(v.x - x, v.z - z) < sites.clearance + VILLAGE_OUTER_RADIUS)) continue;
         place(x, z, hashUnit(gx, gz, salt + 3) < 0.5);
@@ -149,7 +151,7 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
     spots.sort((a, b) => hashUnit(a[0], a[1], 82) - hashUnit(b[0], b[1], 82));
     for (const [x, z] of spots.slice(0, count)) {
       taken.add(`${x},${z}`);
-      enemies.push({ ...makeEnemy(enemies.length, 'ghost', x, z, cx, cz, enemyLevel(world.hero, cx, cz, enemies.length)), haunt });
+      enemies.push({ ...makeEnemy(firstId + enemies.length, 'ghost', x, z, cx, cz, enemyLevel(world.hero, cx, cz, firstId + enemies.length)), haunt });
     }
   }
   // The fiercer beasts, last of all (so every other foe keeps its id, and a save its slain): a bear alone in each
