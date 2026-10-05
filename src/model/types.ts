@@ -59,6 +59,7 @@ export type GameEvent =
   | { kind: 'quest'; text: string; done: boolean; x: number; y: number; z: number }
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
+  | { kind: 'campGate'; name: string; level: number } // a bandit camp's gate come up to: its name and level (camps/campGate.ts)
   | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' } // a dungeon's last foe slain (its boss); `point`: a point to spend given for it; `place`: a cave's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen

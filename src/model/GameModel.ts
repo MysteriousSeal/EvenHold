@@ -55,6 +55,7 @@ import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/d
 import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
+import { CampGate } from './camps/campGate';
 import { cycleFocus as turnFocus, focusKept } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
@@ -109,6 +110,7 @@ export class GameModel {
   private readonly director: EnemyDirector;
   private hop: Hop | null = null;
   readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
+  private readonly campGate = new CampGate(() => this); // (a camp's gate come up to: its name and level told)
 
   // Dev cheats: movement speed factor (1 = normal); walking through
   // everything; god mode (enemies' blows don't hurt); every blow of the
@@ -256,7 +258,7 @@ export class GameModel {
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
     this.moves.update(dt, this.push, this.land);
-    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt)]; // (the wild beasts' told moves; a blow's knock carrying the hero)
+    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campGate.update(this.hero, this.report)]; // (the wild beasts' told moves; a blow's knock carrying the hero; a camp's gate)
     this.travellers.update(dt, this.enemies);
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);
