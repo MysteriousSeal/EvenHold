@@ -60,6 +60,7 @@ import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
 import { VillageWelcome } from './villages/villageWelcome';
+import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { type Camp } from './camps/camps';
 
@@ -117,6 +118,7 @@ export class GameModel {
   readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
   readonly campLife = new CampLife(() => this); // (a camp's gate come up to, its last foe slain, its chest)
   readonly welcome = new VillageWelcome(() => this); // (a village come into: its name told)
+  readonly work = new Work(this); // (a job's shift, under way: jobs/work.ts)
 
   // Dev cheats: movement speed factor (1 = normal); walking through
   // everything; god mode (enemies' blows don't hurt); every blow of the
@@ -238,6 +240,7 @@ export class GameModel {
     this.streamer?.update(this.inside?.entrance ?? this.hero); // (a streamed world's regions round where they are on the map)
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
+    this.work.update(dt); // (at work: its shift on, or over once they've left)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
@@ -358,7 +361,7 @@ export class GameModel {
   // Goes through the door in reach: in, onto the room's floor just inside
   // it; or out, onto the spot outside it, facing away. Returns whether it did.
   useDoor(): boolean {
-    const entrance = this.doorInReach;
+    const entrance = this.work.shift ? null : this.doorInReach; // (at work: no leaving, the shift's to be ended at the notice board)
     if (!entrance) return false;
     const { hero } = this;
     this.hop = null;
@@ -415,6 +418,7 @@ export class GameModel {
 
   // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
   sitOrStand(): boolean {
+    if (this.work.shift && !this.seated) return false; // (at work: no sitting down)
     const at = this.inside ?? this.outdoors;
     if (at.seated) {
       standUp(at, this.hero, this.inside ? 0 : this.getGroundY(at.seated.from.x, at.seated.from.z));

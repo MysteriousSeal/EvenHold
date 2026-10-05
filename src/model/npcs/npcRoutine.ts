@@ -19,6 +19,7 @@ import type { Village } from '../types';
 import type { Inside, Seated } from '../interiors/indoors';
 import type { BenchWorld } from '../worldgen/benches';
 import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
+import { busyAtTable } from '../jobs/innShift';
 import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcRole, type NpcStep } from './npcs';
 import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
@@ -26,6 +27,7 @@ import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, se
 import { easeOffHero, heroOn, place, walk } from './npcWalk';
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
+import type { Entrance } from '../interiors/interiors';
 
 export interface NpcWorld extends BenchWorld {
   seed: number;
@@ -106,6 +108,17 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   return steps;
 }
 
+// Off to `inn` now, for a seat at one of its tables `seconds` (a busy hour there: jobs/innShift.ts), whatever they
+// were doing let go (out of where they are first). Back to their round after, as ever.
+export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number): void {
+  const steps: NpcStep[] = [];
+  if (npc.where && npc.where !== inn) steps.push({ kind: 'go', to: doorTile(seed, npc.where) }, { kind: 'exit' });
+  if (npc.where !== inn) steps.push({ kind: 'go', to: inn }, { kind: 'enter', entrance: inn });
+  steps.push({ kind: 'settle', for: seconds, table: true });
+  if (npc.seat) Object.assign(npc, { seat: null, stood: null }); // (up from a bench, first)
+  Object.assign(npc, { steps, path: null, waited: 0, working: false });
+}
+
 // What each kind of villager does next, when done with what they were doing.
 const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]> = {
   villager: plan,
@@ -160,7 +173,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       return;
     }
     case 'settle':
-      npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for));
+      npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for, step.table));
       return;
     case 'sit':
       const sitting = npc.seat === step.seat; // down already (not by the clock: at the bar, it waits on the ale)
@@ -180,7 +193,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       // At the bar, the stay counts only once served; they don't get up still waiting, or mid-drink.
       const atTheBar = !!npc.where && step.seat.piece.kind === 'barStool';
       if (!atTheBar || atBar(npc, npcs, step.seat.piece, dt, step.for - npc.waited)) npc.waited += dt;
-      if (npc.waited >= step.for && !(atTheBar && busyAtBar(npc)) && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) {
+      if (npc.waited >= step.for && !(atTheBar ? busyAtBar(npc) : busyAtTable(npc)) && !heroOn(world, npc.where, npc.stood!.x, npc.stood!.z)) { // (at a table: not up while waiting on what they asked the hero for, or having it)
         place(npc, world, npc.stood!);
         npc.seat = null;
         npc.stood = null;

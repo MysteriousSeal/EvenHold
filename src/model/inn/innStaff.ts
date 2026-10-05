@@ -4,17 +4,20 @@
 //   shelves and the counter, stopping opposite whoever sits on a stool to
 //   serve them (anywhere along the bar when no one does);
 // - the server goes back and forth between the end of the counter and the
-//   tables, the ones with folk sat round them first, pausing at each.
+//   tables, the ones with folk sat round them first, pausing at each; while
+//   the hero has the tables (a shift: jobs/innShift.ts), off her feet by the
+//   hearth, in an armchair if one's free.
 
 import { hashUnit } from '../../util/random';
 import type { Point } from '../map/obstacles';
-import { distanceTo, type Furniture } from '../interiors/furniture';
+import { distanceTo, seatOf, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Room } from '../interiors/interiors';
 import type { Drink, Npc, NpcStep } from '../npcs/npcs';
 import { mugsAt, roundOnBar, takeMug } from './barMugs';
 import { ordersAt, type BarOrder } from './barOrders';
 import { say } from '../npcs/speech';
+import { onShift } from '../jobs/shiftsAt';
 
 const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];
@@ -116,6 +119,8 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
       { kind: 'wait', for: between(npc, SERVE_WAIT, 3) },
     ];
   }
+  if (onShift(npc.home)) return offHerFeet(npc, npcs, furniture, room);
+  npc.resting = false; // (back at it: her word again, next time)
   // The server: from the end of the counter to a table (one with folk round it, if any) and back.
   const pickup: Point = { x: counter.x, z: barEnd + 1 };
   const tables = furniture.filter((f) => f.kind === 'tavernTable');
@@ -129,6 +134,25 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const spot = table && beside(table, furniture, room);
   if (spot) steps.push({ kind: 'go', to: spot, faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
   return steps;
+}
+
+// The server's break, the hero at work on her tables: an armchair by the hearth if there's one free, else stood by
+// it; her thanks the first time.
+const BREAK = ["All yours, love. My feet thank you.", "Mind table three, they're thirsty.", "I'll be by the fire if you need me."];
+function offHerFeet(npc: Npc, npcs: readonly Npc[], furniture: readonly Furniture[], room: Room): NpcStep[] {
+  if (npc.seat) return [{ kind: 'wait', for: 5 }]; // (sat already: stays)
+  const steps: NpcStep[] = [];
+  if (!npc.resting) {
+    npc.resting = true;
+    steps.push({ kind: 'hand', then: () => say(npc, BREAK[Math.floor(roll(npc, 7) * BREAK.length)]) });
+  }
+  const chair = furniture.find((f) => f.kind === 'armchair' && !sat(npcs, npc.home, f));
+  const seat = chair && seatOf(chair);
+  const from = chair && beside(chair, furniture, room);
+  if (seat && from) return [...steps, { kind: 'go', to: from }, { kind: 'sit', seat, for: 8 }];
+  const hearth = furniture.find((f) => f.kind === 'hearth');
+  const spot = hearth && beside(hearth, furniture, room);
+  return [...steps, ...(spot ? [{ kind: 'go', to: spot, faceToward: hearth } as NpcStep] : []), { kind: 'wait', for: 8 }];
 }
 
 // Clearing the mug at a row: over to take it, to the sink to wash it.

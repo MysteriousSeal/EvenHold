@@ -8,6 +8,7 @@ import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
+import type { JobId, JobRecord } from './jobs/jobs';
 
 // Something eaten or drunk over a while (heroStats.ts recover): the health and energy it gives back in all, the
 // seconds left of it and in all; `item`, what it is (from the bag).
@@ -39,6 +40,7 @@ export interface Hero extends Humanoid {
   bagCounts: number[]; // how many in each of those slots (a junk stack's own: bag.ts bagStacks; none, packed)
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   actionBar: ActionBar; // shortcuts to food and drink in the bag, keys 1 to 8 (hero/actionBar.ts)
+  jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts): none, till they work
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
@@ -61,6 +63,8 @@ export type GameEvent =
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
   | { kind: 'campGate'; name: string; level: number } // a bandit camp's gate come up to: its name and level (camps/campGate.ts)
   | { kind: 'village'; name: string; level: number } // a village come into: its name and level (villages/villageWelcome.ts)
+  | { kind: 'shift'; job: string; served: number; walkedOut: number; mixups: number; cleared: number; earned: number; bonus: number; early: boolean } // a shift of work over (jobs/work.ts): how it went, what it paid
+  | { kind: 'jobRank'; job: string; rank: string } // risen a rank in a job (jobs/jobs.ts)
   | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen

@@ -75,7 +75,7 @@ export function claimed(piece: Furniture, npc: Npc, npcs: readonly Npc[], world:
 
 // Settling in a room: a free seat (their own bed only at home) and the free
 // tile beside it to sit down from, else a free tile to stand on.
-export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds: number): NpcStep[] {
+export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds: number, table = false): NpcStep[] {
   const { room, furniture } = layoutOf(world.seed, npc.where!);
   const free = roomFree(world.seed, npc.where!);
   const tiles: Point[] = [];
@@ -84,7 +84,7 @@ export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds:
   if (atInn || roll(npc, 30) < SIT_CHANCE) {
     const seats = furniture
       .map((piece) => seatOf(piece))
-      .filter((seat): seat is Seat => !!seat && (!seat.lying || npc.where === npc.home) && !claimed(seat.piece, npc, npcs, world));
+      .filter((seat): seat is Seat => !!seat && (!seat.lying || npc.where === npc.home) && (!table || seat.piece.kind === 'chair') && !claimed(seat.piece, npc, npcs, world)); // (`table`: a chair at a table only)
     // At the inn, the bar draws them: often a free stool there first, then any seat.
     const stools = seats.filter((seat) => seat.piece.kind === 'barStool');
     const first = stools.length > 0 && roll(npc, 33) < BAR_PULL ? stools : seats;

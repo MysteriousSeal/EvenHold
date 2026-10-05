@@ -31,7 +31,7 @@ export type NpcStep =
   | { kind: 'go'; to: Point; direct?: boolean; face?: number; faceToward?: Point }
   | { kind: 'enter'; entrance: Entrance }
   | { kind: 'exit' }
-  | { kind: 'settle'; for: number }
+  | { kind: 'settle'; for: number; table?: boolean } // (`table`: at the inn, a chair at a table: a busy hour's patrons, jobs/innShift.ts)
   | { kind: 'sit'; seat: Seat; for: number }
   | { kind: 'work'; for: number } // bent over the crops, in a field
   | { kind: 'wait'; for: number }
@@ -79,6 +79,7 @@ export interface Npc extends Humanoid {
   working: boolean; // bent over the crops
   carrying?: false | Drink; // a drink in hand (the barmaid, bringing one or clearing it away): its cup
   serving?: boolean; // the barkeep, seeing to an order (barOrders.ts)
+  resting?: boolean; // the server, on her break while the hero has her tables (inn/innStaff.ts): her word said
   // At the bar (barPatrons.ts): waiting on an ale, about to pick it up (seconds), sipping it.
   awaiting?: boolean;
   pickup?: number;

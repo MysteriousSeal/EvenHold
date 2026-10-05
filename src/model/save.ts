@@ -25,6 +25,7 @@ import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
 import { doorNumber, doorPlace, type Entrance } from './interiors/interiors';
 import { villagePlace } from './villages/villageNumber';
+import { readJobs, type JobId, type JobRecord } from './jobs/jobs';
 import { PEDLAR_KEY } from './travellers/travellers';
 import { HERBALIST_KEY } from './herbalist/herbalistShop';
 import { letUntil, setLet } from './inn/roomLetting';
@@ -49,6 +50,7 @@ export interface SaveData {
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
+    jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
     bagCounts?: number[]; // how many in each slot (older saves: none, packed)
     money: number;
     level: number;
@@ -102,6 +104,7 @@ export function snapshot(model: GameModel): SaveData {
       bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
       actionBar: [...hero.actionBar],
+      jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
       money: hero.money,
       level: hero.level,
       xp: hero.xp,
@@ -187,6 +190,7 @@ export function restore(model: GameModel, data: SaveData): void {
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
+    jobs: readJobs(saved.jobs), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
