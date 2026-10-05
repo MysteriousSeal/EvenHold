@@ -90,7 +90,7 @@ export class EnemyViews {
   update(enemies: readonly Enemy[], heroX: number, heroZ: number, dt: number, focused: number | null = null, marked: (enemy: Enemy) => boolean = () => false): void {
     this.time += dt;
     pulseAuras(this.time);
-    const target = enemies.find((e) => e.id === focused && e.state !== 'dead');
+    const target = focused === null ? undefined : enemies.find((e) => e.id === focused && e.state !== 'dead'); // (none focused, mostly: nothing looked through)
     this.marker.visible = !!target;
     if (target) {
       this.marker.position.set(target.x, target.y + 0.012, target.z);
