@@ -195,7 +195,7 @@ describe('a cave\'s beasts', () => {
     expect(loaded.takeEvents().some((e) => e.kind === 'torn')).toBe(false); // (torn before: not told again)
   });
 
-  it('the slain stay slain, out and back in, and in a save; all back at their posts with the Reset dungeons cheat', () => {
+  it('the slain stay slain, out and back in, and in a save; all back at their posts with the Reset crypts & caves cheat', () => {
     const model = new GameModel(1, MID);
     goIn(model);
     const all = model.foes.length;

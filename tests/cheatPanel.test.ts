@@ -24,29 +24,31 @@ describe('the cheat menu', () => {
   const row = (title: string) => Array.from(menu.querySelectorAll<HTMLElement>('.menu-row')).find((r) => r.querySelector('b')?.textContent === title)!;
 
   it('a tab for each thing a cheat touches, each one\'s rows starting under a header', () => {
-    expect(tabs().map((t) => t.textContent?.trim())).toEqual(['Travel', 'Sights', 'Hero', 'Look', 'Bag', 'Enemies', 'World']);
-    for (const tab of ['Travel', 'Sights', 'Hero', 'Look', 'Bag', 'Enemies', 'World']) {
+    expect(tabs().map((t) => t.textContent?.trim())).toEqual(['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Foes', 'World']);
+    for (const tab of ['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Foes', 'World']) {
       open(tab);
       const first = menu.querySelector('.menu-list')!.querySelector('.menu-section, .menu-row');
       expect(first?.className, tab).toBe('menu-section');
     }
-    open('Travel');
-    expect(Array.from(menu.querySelectorAll('.menu-section')).map((h) => h.textContent)).toEqual(['Villages', 'Wilds', 'Roads', 'Back']);
+    open('Go to');
+    expect(Array.from(menu.querySelectorAll('.menu-section')).map((h) => h.textContent)).toEqual(['Towns', 'Dungeons', 'Wilds', 'Roads', 'Start']);
+    open('Hero');
+    expect(Array.from(menu.querySelectorAll('.menu-section')).map((h) => h.textContent)).toEqual(['Powers', 'Health & energy', 'Level & stats']); // (the powers first: the most used)
   });
 
   it('the bag\'s: every bag in it; junk till it\'s full; emptied', () => {
-    open('Bag');
+    open('Items');
     row('Every bag').click();
     for (const id of BAG_IDS) expect(model.hero.bag[id]).toBe(1);
-    row('Junk till it’s full').click();
+    row('Fill the bag with junk').click();
     expect(slotsUsed(model.hero.bag)).toBeGreaterThanOrEqual(bagRoom(model.hero));
     row('Empty the bag').click();
     expect(model.hero.bag).toEqual({});
   });
 
-  it('just tired: energy one under where the walk slows', () => {
+  it('make tired: energy one under where the walk slows', () => {
     open('Hero');
-    row('Just tired').click();
+    row('Make tired').click();
     expect(model.hero.energy).toBe(TIRED - 1);
     expect(tiredPace(model.hero)).toBeLessThan(1);
   });
