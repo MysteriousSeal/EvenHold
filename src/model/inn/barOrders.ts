@@ -6,6 +6,7 @@
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { Drink, Npc } from '../npcs/npcs';
+import { onShift } from '../jobs/shiftsAt';
 
 export interface BarOrder {
   stool: Furniture; // where it goes
@@ -36,8 +37,9 @@ export function ordersAhead(inn: Entrance, by: Npc | null): number {
   return ordersAt(inn).findIndex((o) => o.by === by);
 }
 
-// The barkeep, idle between rounds, is called over at once (not in the middle of serving someone).
+// The barkeep, idle between rounds, is called over at once (not in the middle of serving someone; nor on her break,
+// the hero tending her bar: jobs/barShift.ts).
 export function callBarkeep(barkeep: Npc | undefined): void {
-  if (!barkeep || barkeep.serving) return;
+  if (!barkeep || barkeep.serving || onShift(barkeep.home) === 'innBarkeep') return;
   Object.assign(barkeep, { steps: [], path: null, waited: 0, working: false, carrying: false });
 }

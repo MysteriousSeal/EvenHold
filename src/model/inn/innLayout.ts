@@ -62,10 +62,11 @@ export function furnishInn(plan: Planner, room: Room): void {
   // No chairs walling off a corner (past the bar's end, say: where the server
   // fetches from, and the stairs): the ones in the way left out.
   openWalledIn('chair');
-  // On the back wall, over the room: antlers, a shield, the notice board, lanterns (the left wall by the door kept clear).
+  // On the back wall, over the room: antlers, a shield, the notice board (not over the hearth: read from before it),
+  // lanterns (the left wall by the door kept clear).
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
-  place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+  place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3 && !(hearth && x >= hearth.x && x < hearth.x + hearth.w))); // (never over the fire: room before it to read it)
   for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
 }

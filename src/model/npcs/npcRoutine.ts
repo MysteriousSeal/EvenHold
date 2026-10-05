@@ -110,11 +110,11 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
 
 // Off to `inn` now, for a seat at one of its tables `seconds` (a busy hour there: jobs/innShift.ts), whatever they
 // were doing let go (out of where they are first). Back to their round after, as ever.
-export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number): void {
+export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number, at: 'table' | 'bar' = 'table'): void {
   const steps: NpcStep[] = [];
   if (npc.where && npc.where !== inn) steps.push({ kind: 'go', to: doorTile(seed, npc.where) }, { kind: 'exit' });
   if (npc.where !== inn) steps.push({ kind: 'go', to: inn }, { kind: 'enter', entrance: inn });
-  steps.push({ kind: 'settle', for: seconds, table: true });
+  steps.push({ kind: 'settle', for: seconds, at });
   if (npc.seat) Object.assign(npc, { seat: null, stood: null }); // (up from a bench, first)
   Object.assign(npc, { steps, path: null, waited: 0, working: false });
 }
@@ -173,7 +173,7 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       return;
     }
     case 'settle':
-      npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for, step.table));
+      npc.steps.splice(0, 1, ...settle(npc, npcs, world, step.for, step.at));
       return;
     case 'sit':
       const sitting = npc.seat === step.seat; // down already (not by the clock: at the bar, it waits on the ale)

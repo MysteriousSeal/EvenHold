@@ -1,17 +1,18 @@
 // The work a hero can take up, to be what they like rather than only a sword for hire: each job where it's had and
 // who gives it, its ranks (risen by work well done: experience in the job, its own), and what each rank brings. The
 // hero's record in each (their experience, shifts worked, their best) is kept with them, and saved.
-// The jobs: serving the inn's tables (innShift.ts: a shift's work).
+// The jobs: serving the inn's tables (innShift.ts: a shift's work), tending its bar (barShift.ts).
 
-export type JobId = 'innServer';
+export type JobId = 'innServer' | 'innBarkeep';
 
 // A rank in a job, and what it brings.
 export interface JobRank {
   name: string;
   from: number; // the job's experience it takes
-  tray: number; // orders carried at once
+  tray: number; // carried at once (orders on the tray; at the bar, drinks and empties in hand)
   patience: number; // seconds more patrons wait before walking out
   tips: number; // tips, times
+  steady?: number; // at the bar: how much wider the line a pour's perfect at (pour.ts), either side
 }
 
 export interface Job {
@@ -32,6 +33,18 @@ export const JOBS: Record<JobId, Job> = {
       { name: 'Server', from: 30, tray: 2, patience: 10, tips: 1.4 },
       { name: 'Head server', from: 60, tray: 3, patience: 15, tips: 1.7 },
       { name: 'Keeper of the floor', from: 100, tray: 3, patience: 20, tips: 2 },
+    ],
+  },
+  innBarkeep: {
+    name: 'Tending the bar',
+    where: "Posted on every inn's notice board",
+    about: 'Pour for the patrons at the bar and the tables the server calls for, each to the line, and keep the tankards washed. A wage and a tip for each, the better the pour, all paid when the shift ends.',
+    ranks: [
+      { name: 'Cellar hand', from: 0, tray: 1, patience: 0, tips: 1, steady: 0 },
+      { name: 'Tapster', from: 12, tray: 2, patience: 5, tips: 1.2, steady: 0.01 },
+      { name: 'Barkeep', from: 35, tray: 2, patience: 10, tips: 1.4, steady: 0.02 },
+      { name: 'Head barkeep', from: 70, tray: 3, patience: 15, tips: 1.7, steady: 0.03 },
+      { name: 'Master of the taps', from: 120, tray: 3, patience: 20, tips: 2, steady: 0.04 },
     ],
   },
 };

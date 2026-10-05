@@ -1,7 +1,8 @@
 // The hero at work (jobs.ts): what's posted on an inn's notice board (its work: E in front of it), a shift taken up
-// at an inn (innShift.ts), run while they're in it: each order served, experience in the job (their rank) and some of
-// their own; and paid at its end, all at once (each order's wage and tip, the empties given back, and a bonus for the
-// whole shift worked with no one walked out; ended early, what they'd earned, no bonus). Their record in the job kept.
+// at an inn (shift.ts: serving its tables, innShift.ts; tending its bar, barShift.ts), run while they're in it: each
+// order served, experience in the job (their rank; a perfect pour, more) and some of their own; and paid at its end,
+// all at once (each order's wage and tip, and a bonus for the whole shift worked with no one walked out; ended early,
+// what they'd earned, no bonus). Their record in the job kept.
 
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
@@ -10,6 +11,7 @@ import type { GameEvent, Hero } from '../types';
 import { gainXp } from '../hero/heroStats';
 import { JOBS, rankIn, recordOf, type JobId } from './jobs';
 import { InnShift, type Order, type ShiftAction } from './innShift';
+import { BarShift, type BarAction } from './barShift';
 
 const HERO_XP = 4; // the hero's own experience, an order served (work's a way up too)
 // Where one stands to read an inn's notice board (hung on a wall, in a tile against it): before it, no more than
@@ -26,9 +28,11 @@ export interface WorkHost {
   report(event: GameEvent): void;
 }
 
+// What E would do at work, whatever the job.
+export type WorkAction = ShiftAction | BarAction;
+
 export class Work {
-  shift: InnShift | null = null;
-  private job: JobId = 'innServer';
+  shift: InnShift | BarShift | null = null;
 
   constructor(private readonly host: WorkHost) {}
 
@@ -40,11 +44,14 @@ export class Work {
     return board && beforeBoard(board, hero) ? inside.entrance : null;
   }
 
-  // A shift serving the tables of `inn` (where the hero is), begun; whether it was (not one under way already).
-  start(inn: Entrance): boolean {
+  // A shift at `job` in `inn` (where the hero is), begun; whether it was (not one under way already).
+  start(inn: Entrance, job: JobId = 'innServer'): boolean {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
-    this.job = 'innServer';
-    this.shift = new InnShift(inn, rankIn(this.job, recordOf(this.host.hero, this.job).xp).rank, this.host.seed);
+    const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
+    this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : new InnShift(inn, rank, this.host.seed);
+    // The one whose work it is downs tools at once (her break, by the hearth: inn/innStaff.ts), not a round on.
+    const staff = this.host.folk.find((n) => n.home === inn && n.role === (job === 'innBarkeep' ? 'barkeep' : 'server'));
+    if (staff) Object.assign(staff, { steps: [], path: null, waited: 0, working: false, carrying: false, serving: false });
     return true;
   }
 
@@ -53,7 +60,7 @@ export class Work {
     const { shift } = this;
     if (!shift) return;
     if (this.host.inside?.entrance !== shift.inn) return this.end(true);
-    shift.update(this.host.folk, dt);
+    shift.update(this.host.folk, dt, this.host.hero);
     if (shift.left <= 0) this.end(false);
   }
 
@@ -61,14 +68,15 @@ export class Work {
   use(): boolean {
     const { shift } = this;
     if (!shift) return false;
-    const served = shift.served;
+    const [served, perfect] = [shift.served, shift instanceof BarShift ? shift.perfect : 0];
     if (shift.use(this.host.hero, this.host.folk) === null) return false;
-    if (shift.served > served) this.served(); // (what it earned: owed, paid at the shift's end)
+    for (let n = served; n < shift.served; n++) this.served(); // (what it earned: owed, paid at the shift's end)
+    for (let n = perfect; n < (shift instanceof BarShift ? shift.perfect : 0); n++) recordOf(this.host.hero, shift.job).xp++; // (a perfect pour: more learned)
     return true;
   }
 
   // What E would do at work now (for the prompt), if anything.
-  get action(): ShiftAction | null {
+  get action(): WorkAction | null {
     return this.shift?.actionAt(this.host.hero) ?? null;
   }
 
@@ -80,14 +88,15 @@ export class Work {
   // An order served: experience in the job (a rank risen, maybe) and the hero's own. (Its pay's owed till the end.)
   private served(): void {
     const { hero } = this.host;
-    const record = recordOf(hero, this.job);
-    const before = rankIn(this.job, record.xp).index;
+    const job = this.shift!.job;
+    const record = recordOf(hero, job);
+    const before = rankIn(job, record.xp).index;
     record.served++;
     record.xp++;
     gainXp(hero, HERO_XP);
-    const now = rankIn(this.job, record.xp);
+    const now = rankIn(job, record.xp);
     if (now.index > before) {
-      this.host.report({ kind: 'jobRank', job: JOBS[this.job].name, rank: now.rank.name });
+      this.host.report({ kind: 'jobRank', job: JOBS[job].name, rank: now.rank.name });
       if (this.shift) this.shift.rank = now.rank; // (its perks from now on, this shift too)
     }
   }
@@ -98,8 +107,8 @@ export class Work {
     const { shift } = this;
     if (!shift) return;
     this.shift = null;
-    shift.release();
-    const record = recordOf(this.host.hero, this.job);
+    shift.release(this.host.folk);
+    const record = recordOf(this.host.hero, shift.job);
     const bonus = !early && shift.walkedOut === 0 && shift.served > 0 ? BONUS * shift.served : 0;
     const pay = shift.earned + bonus;
     if (pay > 0) {
@@ -109,7 +118,7 @@ export class Work {
     }
     if (!early) record.shifts++;
     record.best = Math.max(record.best, shift.served);
-    this.host.report({ kind: 'shift', job: JOBS[this.job].name, served: shift.served, walkedOut: shift.walkedOut, cleared: shift.cleared, earned: shift.earned + bonus, bonus, early });
+    this.host.report({ kind: 'shift', job: JOBS[shift.job].name, served: shift.served, walkedOut: shift.walkedOut, tally: shift.tally, earned: shift.earned + bonus, bonus, early });
   }
 }
 

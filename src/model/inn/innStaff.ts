@@ -4,6 +4,8 @@
 //   shelves and the counter, stopping opposite whoever sits on a stool to
 //   serve them (anywhere along the bar when no one does); the tables'
 //   orders (the hero at work) all poured in one trip, set down at its end;
+//   while the hero has the bar (a shift: jobs/barShift.ts), off her feet by
+//   the hearth;
 // - the server goes back and forth between the end of the counter and the
 //   tables, the ones with folk sat round them first, pausing at each; while
 //   the hero has the tables (a shift: jobs/innShift.ts), off her feet by the
@@ -20,7 +22,7 @@ import { ordersAt, type BarOrder } from './barOrders';
 import { say } from '../npcs/speech';
 import { onShift } from '../jobs/shiftsAt';
 
-const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
+export const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves end at -0.08, the counter starts at 0.76)
 const SERVE_WAIT: [number, number] = [4, 10];
 const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
@@ -104,6 +106,9 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const counter = furniture.find((f) => f.kind === 'counter');
   if (!counter) return [{ kind: 'wait', for: 10 }];
   const barEnd = counter.z + counter.d - 1;
+  const off = onShift(npc.home) === (npc.role === 'barkeep' ? 'innBarkeep' : 'innServer'); // (the hero has her work)
+  if (off) return offHerFeet(npc, npcs, furniture, room);
+  npc.resting = false; // (back at it: her word again, next time)
   if (npc.role === 'barkeep') {
     // An order waiting: first come, first served.
     const order = ordersAt(npc.home)[0];
@@ -121,8 +126,6 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
       { kind: 'wait', for: between(npc, SERVE_WAIT, 3) },
     ];
   }
-  if (onShift(npc.home)) return offHerFeet(npc, npcs, furniture, room);
-  npc.resting = false; // (back at it: her word again, next time)
   // The server: from the end of the counter to a table (one with folk round it, if any) and back.
   const pickup: Point = { x: counter.x, z: barEnd + 1 };
   const tables = furniture.filter((f) => f.kind === 'tavernTable');
@@ -138,15 +141,20 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   return steps;
 }
 
-// The server's break, the hero at work on her tables: an armchair by the hearth if there's one free, else stood by
-// it; her thanks the first time.
-const BREAK = ["All yours, love. My feet thank you.", "Mind table three, they're thirsty.", "I'll be by the fire if you need me."];
+// A barmaid's break, the hero at her work (the tables, or the bar): an armchair by the hearth if there's one free,
+// else stood by it; her word the first time.
+const BREAK: Record<'barkeep' | 'server', readonly string[]> = {
+  server: ['All yours, love. My feet thank you.', "Mind table three, they're thirsty.", "I'll be by the fire if you need me."],
+  barkeep: ["The bar's yours. Mind the tap, it sticks.", 'Pour to the line, and keep those tankards washed.', "I'll be by the fire. Shout if the keg runs dry."],
+};
 function offHerFeet(npc: Npc, npcs: readonly Npc[], furniture: readonly Furniture[], room: Room): NpcStep[] {
   if (npc.seat) return [{ kind: 'wait', for: 5 }]; // (sat already: stays)
   const steps: NpcStep[] = [];
   if (!npc.resting) {
     npc.resting = true;
-    steps.push({ kind: 'hand', then: () => say(npc, BREAK[Math.floor(roll(npc, 7) * BREAK.length)]) });
+    npc.serving = false;
+    const lines = BREAK[npc.role === 'barkeep' ? 'barkeep' : 'server'];
+    steps.push({ kind: 'hand', then: () => say(npc, lines[Math.floor(roll(npc, 7) * lines.length)]) });
   }
   const chair = furniture.find((f) => f.kind === 'armchair' && !sat(npcs, npc.home, f));
   const seat = chair && seatOf(chair);
@@ -204,7 +212,9 @@ function serve(barkeep: Npc, order: BarOrder, shelf?: Furniture): NpcStep[] {
     : [];
   return [...take, ...drinkFor(barkeep, order.stool, () => {
     const queue = ordersAt(barkeep.home);
-    queue.splice(queue.indexOf(order), 1);
+    const at = queue.indexOf(order);
+    if (at < 0) return; // (seen to meanwhile: the hero behind her bar, jobs/barShift.ts)
+    queue.splice(at, 1);
     if (by) say(barkeep, pick(order.drink === 'wine' ? HANDED_WINE : HANDED, n + 3)); // setting it down before them
     order.served();
   }, order.drink, shelf),

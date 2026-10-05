@@ -63,7 +63,7 @@ export type GameEvent =
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
   | { kind: 'campGate'; name: string; level: number } // a bandit camp's gate come up to: its name and level (camps/campGate.ts)
   | { kind: 'village'; name: string; level: number } // a village come into: its name and level (villages/villageWelcome.ts)
-  | { kind: 'shift'; job: string; served: number; walkedOut: number; cleared: number; earned: number; bonus: number; early: boolean } // a shift of work over (jobs/work.ts): how it went, what it paid
+  | { kind: 'shift'; job: string; served: number; walkedOut: number; tally: string; earned: number; bonus: number; early: boolean } // a shift of work over (jobs/work.ts): how it went (`tally`: the job's own, "3 cleared"), what it paid
   | { kind: 'jobRank'; job: string; rank: string } // risen a rank in a job (jobs/jobs.ts)
   | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
