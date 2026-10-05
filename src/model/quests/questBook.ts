@@ -74,6 +74,13 @@ export class QuestBook {
     return !this.full && !this.fullAt(board) && Array.from({ length: OFFERS }, (_, n) => `${board}:${n}`).some((key) => !this.takenOf(key) && !this.completed.has(key));
   }
 
+  // A board's quests done for good, of how many (counted by their keys: none made).
+  tallyAt(board: number): { completed: number; of: number } {
+    let completed = 0;
+    for (let n = 0; n < OFFERS; n++) if (this.completed.has(`${board}:${n}`)) completed++;
+    return { completed, of: OFFERS };
+  }
+
   // Whether a quest taken from a board is done, to hand in there.
   readyAt(board: number): boolean {
     return this.taken.some((t) => t.quest.board === board && this.done(t));

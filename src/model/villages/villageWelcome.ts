@@ -39,8 +39,8 @@ export class VillageWelcome {
     report({ kind: 'village', name: this.here.name, level: this.here.level });
   }
 
-  // The village the hero's in (its name and level), or null.
-  village(): { name: string; level: number } | null {
-    return this.here && { name: this.here.name, level: this.here.level };
+  // The village the hero's in (it, its name and level), or null.
+  village(): { village: Village; name: string; level: number } | null {
+    return this.here;
   }
 }
