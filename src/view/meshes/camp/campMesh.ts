@@ -25,24 +25,34 @@ const BUILD: Record<CampPieceKind, (variant: number) => VoxelGrid> = {
 };
 const LOOKS: ReadonlySet<CampPieceKind> = new Set(['tent', 'palisade']); // (the kinds whose variant changes how they look)
 const ORIGIN = new THREE.Vector3((-TILE * CAMP_VOXEL_SIZE) / 2, 0, (-TILE * CAMP_VOXEL_SIZE) / 2);
+export const CAMP_VIEW_RADIUS = 30; // tiles from the hero a camp's fires burn and its chest's shown (campFires.ts, campChests.ts)
 
-export function buildCampGeometry(kind: CampPieceKind, glowing: boolean, variant = 0): THREE.BufferGeometry {
-  return greedyMesh(BUILD[kind](variant), CAMP_PALETTE, CAMP_VOXEL_SIZE, ORIGIN, (c) => CAMP_GLOWING.has(c) === glowing);
-}
+// A camp's grid meshed, centred on its tile: its plain voxels, or those aglow (embers, torchlight, gold).
+export const campGeometry = (grid: VoxelGrid, glowing: boolean): THREE.BufferGeometry =>
+  greedyMesh(grid, CAMP_PALETTE, CAMP_VOXEL_SIZE, ORIGIN, (c) => CAMP_GLOWING.has(c) === glowing);
+
+export const buildCampGeometry = (kind: CampPieceKind, glowing: boolean, variant = 0): THREE.BufferGeometry => campGeometry(BUILD[kind](variant), glowing);
+
+// What a camp's drawn in: plain, or lit from within (the glowing voxels).
+export const campMaterials = (): { plain: THREE.Material; glow: THREE.Material } => ({
+  plain: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
+  glow: new THREE.MeshStandardMaterial({ vertexColors: true, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.6, roughness: 0.5 }),
+});
 
 export function buildCamps(scene: WorldSink, model: GameModel): void {
   const ground = (x: number, z: number) => model.heightMap[x][z] * TILE_HEIGHT;
   const pieces = model.camps.flatMap((camp) => camp.pieces.map((p) => ({ ...p, look: LOOKS.has(p.kind) ? p.variant : 0 })));
   const key = (p: (typeof pieces)[number]) => `${p.kind}:${p.look}`;
   const place = (p: (typeof pieces)[number]) => ({ x: p.x, y: ground(p.x, p.z), z: p.z, quarterTurns: p.quarterTurns });
-  addVoxelInstances(scene, pieces, key, (p) => buildCampGeometry(p.kind, false, p.look), place, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
+  const { plain, glow } = campMaterials();
+  addVoxelInstances(scene, pieces, key, (p) => buildCampGeometry(p.kind, false, p.look), place, plain);
   addVoxelInstances(
     scene,
     pieces.filter((p) => p.kind === 'fire' || p.kind === 'loot' || p.kind === 'gate'),
     key,
     (p) => buildCampGeometry(p.kind, true, p.look),
     place,
-    new THREE.MeshStandardMaterial({ vertexColors: true, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.6, roughness: 0.5 }),
+    glow,
   );
   // Its floor: every tile inside the palisade strewn with hay, each in one of its looks, turned as it falls.
   const floor = model.camps.flatMap(campTiles);

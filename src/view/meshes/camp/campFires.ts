@@ -7,9 +7,9 @@ import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { FireEffect } from '../common/fire';
 import { CAMP_VOXEL_SIZE as V, GATE_TORCHES, TILE } from './campVoxels';
+import { CAMP_VIEW_RADIUS } from './campMesh';
 import type { CampPiece } from '../../../model/camps/camps';
 
-const VIEW_RADIUS = 30;
 const BED_HEIGHT = 0.08; // the campfire's logs, above the ground
 
 export class CampFires {
@@ -21,7 +21,7 @@ export class CampFires {
     const { hero } = model;
     const seen = new Set<string>();
     for (const camp of model.camps) {
-      if (Math.abs(camp.x - hero.x) > VIEW_RADIUS || Math.abs(camp.z - hero.z) > VIEW_RADIUS) continue;
+      if (Math.abs(camp.x - hero.x) > CAMP_VIEW_RADIUS || Math.abs(camp.z - hero.z) > CAMP_VIEW_RADIUS) continue;
       const pit = camp.pieces.find((p) => p.kind === 'fire');
       if (pit) this.light(`${pit.x},${pit.z}`, seen, time, () => new FireEffect(0.24, 0.17, 0.045, pit.x * 31 + pit.z), pit.x, model.heightMap[pit.x][pit.z] * TILE_HEIGHT + BED_HEIGHT, pit.z);
       const gate = camp.pieces.find((p) => p.kind === 'gate');
