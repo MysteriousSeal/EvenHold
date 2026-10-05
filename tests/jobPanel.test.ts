@@ -36,8 +36,13 @@ describe('the work window', () => {
     expect(steps.map((s) => s.className)).toEqual(['past', 'here', 'ahead', 'ahead', 'ahead']);
     expect((steps[1].querySelector('.job-step') as HTMLElement).style.getPropertyValue('--fill')).toBe('30%'); // (6 of 20 toward Server)
     expect(q('.job-standing strong').textContent).toBe('Serving hand');
-    expect(q('.job-toward').textContent).toBe('6 of 20 served toward Server');
-    expect(q('.job-brings').querySelectorAll('.job-perks')).toHaveLength(2); // (theirs, and the next's)
+    expect(q('.job-toward').textContent).toBe('6 of 20 served');
+    expect(q('.job-next').textContent).toBe('toward Server');
+    // What the rank brings beside the next's: a row a perk, the next's lit where it's better.
+    const table = q('.job-perk-table');
+    expect(Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent)).toEqual(['', 'Serving hand', 'Server']);
+    expect(Array.from(table.querySelectorAll('tbody th')).map((th) => th.textContent)).toEqual(['Tray', 'Patience', 'Tips']); // (no line: not behind the bar)
+    expect(Array.from(table.querySelectorAll('tbody td.job-perk-next')).map((td) => td.classList.contains('up'))).toEqual([false, true, true]); // (the same tray; more patience, better tips)
     expect(q('.job-ledger').textContent).toContain('16 served');
     expect(q('.job-picks').hidden).toBe(false); // (the tables, the bar)
     expect(all('.job-picks').at(-1)!.querySelectorAll('.job-pick')).toHaveLength(2);
@@ -61,6 +66,16 @@ describe('the work window', () => {
     q('.job-go').click();
     expect(model.work.shift).toBeNull();
     expect(q('.job-go').textContent).toBe('Work a shift');
+    panel.menu.close();
+  });
+
+  it('at the top of the trade: what the rank brings alone, no next', () => {
+    const { model, inn, panel } = atTheInn();
+    recordOf(model.hero, 'innServer').xp = 500;
+    panel.open(inn);
+    expect(q('.job-perk-table').querySelectorAll('thead th')).toHaveLength(2);
+    expect(q('.job-perk-table').querySelectorAll('.job-perk-next')).toHaveLength(0);
+    expect(q('.job-toward').textContent).toBe('The top of the trade');
     panel.menu.close();
   });
 
