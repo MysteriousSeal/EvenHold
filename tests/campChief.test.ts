@@ -99,7 +99,7 @@ describe('how a bandit camp stands, as the hero comes about it', () => {
     expect(model.campLife.status(model.hero)).toBe(null);
     model.teleport(camp.x + CAMP_NEAR - 1, camp.z);
     const bandits = crewOf(model, camp).filter((e) => e.kind === 'bandit');
-    expect(model.campLife.status(model.hero)).toEqual({ name: campName(camp, model.seed), bandits: { slain: 0, of: camp.bandits }, chief: { slain: 0, of: 1 }, cleared: false, chestOpened: false });
+    expect(model.campLife.status(model.hero)).toEqual({ name: campName(camp, model.seed), level: campLevel(camp, model.size), bandits: { slain: 0, of: camp.bandits }, chief: { slain: 0, of: 1 }, cleared: false, chestOpened: false });
     bandits[0].state = 'dead';
     expect(model.campLife.status(model.hero)?.bandits).toEqual({ slain: 1, of: camp.bandits });
     for (const e of crewOf(model, camp)) e.state = 'dead';
