@@ -227,8 +227,8 @@ async function boot(): Promise<void> {
     updateTarget(model.focused, model.hero.level);
     const below = model.dungeon && model.inside && dungeonAt(model.inside.entrance);
     const camp = !model.inside ? model.campLife.status(model.hero) : null; // (about a bandit camp: its bandits and chief slain)
-    const village = !model.inside && !camp ? model.welcome.village() : null; // (in a village: its name and level)
-    updatePlaceBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp ? { name: camp.name, camp, ink: dangerInk(camp.level, model.hero.level) } : village ? { name: village.name, village: { level: village.level, ink: dangerInk(village.level, model.hero.level) } } : null); // (down in a crypt or a cave: how much is cleared)
+    const village = !model.inside && !camp ? model.welcome.village() : null; // (in a village: its name and level, its board's quests)
+    updatePlaceBar(below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp ? { name: camp.name, camp, ink: dangerInk(camp.level, model.hero.level) } : village ? { name: village.name, village: { level: village.level, ink: dangerInk(village.level, model.hero.level), quests: model.quests.tallyAt(model.boardOf(village.village)) } } : null); // (down in a crypt or a cave: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
