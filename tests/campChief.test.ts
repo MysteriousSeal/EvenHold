@@ -7,11 +7,11 @@ import { GameModel } from '../src/model/GameModel';
 import { CHIEF_OUTFIT, chiefName } from '../src/model/camps/campChief';
 import { campLevel } from '../src/model/camps/camps';
 import { CAMP_NAMES, campName } from '../src/model/camps/campNames';
-import { CAMP_NEAR, chestOf } from '../src/model/camps/campLife';
+import { CAMP_NEAR, CHEST_REACH, CampLife, chestOf } from '../src/model/camps/campLife';
 import { restore, snapshot } from '../src/model/save';
 import { chestInReach } from '../src/model/loot/chests';
 import { enemyPower } from '../src/model/enemies/enemyLevels';
-import type { Camp } from '../src/model/camps/camps';
+import { campNear, type Camp } from '../src/model/camps/camps';
 import { FRAME } from './support/testWorld';
 
 const MID = { width: 256, depth: 256 };
@@ -104,5 +104,36 @@ describe('how a bandit camp stands, as the hero comes about it', () => {
     expect(model.campLife.status(model.hero)?.bandits).toEqual({ slain: 1, of: camp.bandits });
     for (const e of crewOf(model, camp)) e.state = 'dead';
     expect(model.campLife.status(model.hero)).toMatchObject({ bandits: { slain: camp.bandits }, chief: { slain: 1 }, cleared: true, chestOpened: false });
+  });
+});
+
+describe('a camp looked after each frame, cheaply', () => {
+  it("gathers its bandits and chief from the world's foes once, not every frame (a thousand camps, fourteen thousand foes: that cost a frame)", () => {
+    const model = new GameModel(1, MID);
+    let reads = 0; // (each foe read out of the world's list, however it's looked through: for…of, some, filter)
+    const enemies = new Proxy(model.enemies, {
+      get: (target, key, receiver) => {
+        if (typeof key === 'string' && /^\d+$/.test(key)) reads++;
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    const life = new CampLife(() => ({ ...model, camps: model.camps, enemies, seed: model.seed, size: model.size, cleared: model.cleared, dropLoot: model.dropLoot, dropCoins: model.dropCoins }));
+    for (let i = 0; i < 30; i++) {
+      life.update(model.hero, () => {});
+      life.status(model.hero);
+      life.chestInReach(model.hero);
+    }
+    expect(reads).toBe(model.enemies.length); // (one pass, the first frame)
+  });
+
+  it('finds the camp near a spot, by its middle or a spot of it (its gate, its chest), none further than its reach', () => {
+    const model = new GameModel(2, MID);
+    const camp = model.camps[2];
+    expect(campNear(model.camps, { x: camp.x + 1, z: camp.z }, 2)).toBe(camp);
+    expect(campNear(model.camps, { x: camp.x + 30, z: camp.z + 30 }, 2)).toBe(null);
+    expect(campNear(model.camps, camp.way, 0.5, (c) => c.way)).toBe(camp);
+    expect(campNear(model.camps, camp.way, 0.5)).toBe(null); // (its gate three tiles from its middle)
+    const chest = chestOf(camp);
+    expect(campNear(model.camps, { x: chest.x + 0.3, z: chest.z }, CHEST_REACH, chestOf)).toBe(camp);
   });
 });
