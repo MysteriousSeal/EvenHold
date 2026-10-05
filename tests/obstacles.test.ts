@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { Obstacles, clearLine } from '../src/model/map/obstacles';
 import { NEIGHBORS_4, cellKey, cellLookup, inBounds, sizeOf, spawnOf, toCellX, toCellZ } from '../src/model/map/grid';
+import { mapsAsTiles } from '../src/model/map/tiles';
 
 const SIZE = { width: 12, depth: 12 };
 const R = 0.2; // a walker's half-width
@@ -11,7 +12,7 @@ const R = 0.2; // a walker's half-width
 function map(): Obstacles {
   const lakes = Array.from({ length: SIZE.width }, () => Array(SIZE.depth).fill(false));
   lakes[2][2] = true;
-  const obstacles = new Obstacles(SIZE, lakes, new Set([cellKey(5, 5)]));
+  const obstacles = new Obstacles(SIZE, mapsAsTiles({ heightMap: lakes.map((r) => r.map(() => 0)), lakeMap: lakes, surfaceMap: lakes.map((r) => r.map(() => 'natural' as const)) }), new Set([cellKey(5, 5)]));
   obstacles.addProp(8, 8, 0.25);
   obstacles.addProp(8, 3, 0.2, true);
   return obstacles;

@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { SMITH_WARES, gearPrice, gearSellPrice, smithShopAt } from '../src/model/smithy/smithShop';
+import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn } from '../src/model/smithy/smithShop';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
 import { sellPrice } from '../src/model/inn/tavernShop';
@@ -39,7 +39,7 @@ function trading(type: 'smithy' | 'inn') {
     const bag = createInventoryPanel(model);
     const hooks = { bag };
     const panel = type === 'smithy' ? createSmithPanel(model, hooks) : createShopPanel(model, hooks);
-    const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const shop = () => smithShopIn(model);
     return { model, keeper: keeper as Npc, bag, panel, shop };
   }
   throw new Error(`no ${type}`);

@@ -4,7 +4,7 @@ import { nextRuin } from '../src/model/cheats';
 import { spawnOf } from '../src/model/map/grid';
 import { VILLAGE_OUTER_RADIUS } from '../src/model/constants';
 import type { Ruin } from '../src/model/ruins/ruins';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, mapsOf } from './support/testWorld';
 
 const worlds = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));
 const inside = (r: Ruin, x: number, z: number) => x >= r.x && x < r.x + r.w && z >= r.z && z < r.z + r.d;
@@ -32,8 +32,8 @@ describe('ruins in every test world', () => {
         expect(Math.hypot(cx - spawn.x, cz - spawn.z)).toBeGreaterThan(10);
         for (const v of model.villages) expect(Math.hypot(v.x - cx, v.z - cz)).toBeGreaterThan(VILLAGE_OUTER_RADIUS + 10);
         for (let x = r.x; x < r.x + r.w; x++) for (let z = r.z; z < r.z + r.d; z++) {
-          expect(model.surfaceMap[x][z]).toBe('natural');
-          expect(model.lakeMap[x][z]).toBe(false);
+          expect(mapsOf(model).surfaceMap[x][z]).toBe('natural');
+          expect(mapsOf(model).lakeMap[x][z]).toBe(false);
         }
         expect(model.trees.some((t) => inside(r, Math.round(t.x), Math.round(t.z)))).toBe(false);
         expect(model.bushes.some((b) => inside(r, b.x, b.z))).toBe(false);

@@ -15,6 +15,7 @@ import { spawnOf } from '../src/model/map/grid';
 import { nearestTraveller } from '../src/model/cheats';
 import { FRAME } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
+import { doorNumber } from '../src/model/interiors/interiors';
 
 const MID = { width: 512, depth: 512 };
 const models = new Map<number, GameModel>();
@@ -396,7 +397,7 @@ describe('a pedlar\'s pack', () => {
     const { model, t } = alone('pedlar');
     const shop = pedlarShopAt(model.shops, model.seed, t, 0);
     shop.money = 1234;
-    expect(model.shops.get(model.entrances.indexOf(model.entrances[0]))).not.toBe(shop);
+    expect(model.shops.get(doorNumber(model.entrances[0]))).not.toBe(shop);
     const again = new GameModel(model.seed, MID);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(pedlarShopAt(again.shops, again.seed, t, 0).money).toBe(1234);

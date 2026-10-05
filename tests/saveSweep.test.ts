@@ -3,7 +3,7 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
-import { SMITH_WARES, buyGear, smithShopAt } from '../src/model/smithy/smithShop';
+import { SMITH_WARES, buyGear, smithShopIn } from '../src/model/smithy/smithShop';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 const FRAME = 1 / 30;
@@ -36,7 +36,7 @@ describe('saving, in every test world', () => {
       model.hero.energy = 42;
       model.hero.money = 5000;
       if (enterNearest(model, 'smithy', new Set())) {
-        const shop = smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+        const shop = smithShopIn(model);
         const ware = SMITH_WARES.find((id) => (shop.stock[id] ?? 0) > 0);
         if (ware) expect(buyGear(shop, model.hero, ware)).toBe('bought');
       }

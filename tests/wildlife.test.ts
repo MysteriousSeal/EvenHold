@@ -6,6 +6,7 @@ import { DuckRig, createDuckLook } from '../src/view/meshes/wildlife/duckRig';
 import { DeerRig, createDeerLook } from '../src/view/meshes/wildlife/deerRig';
 import { GameModel } from '../src/model/GameModel';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { mapsAsTiles } from '../src/model/map/tiles';
 
 // A 60x60 world: a lake with a 4-tile shore all round and a small island.
 function lakeWorld(seed = 1): DuckWorld {
@@ -13,7 +14,7 @@ function lakeWorld(seed = 1): DuckWorld {
   const lakeMap = Array.from({ length: 60 }, (_, x) =>
     Array.from({ length: 60 }, (_, z) => x >= 4 && x < 56 && z >= 4 && z < 56 && !(x >= 28 && x < 32 && z >= 28 && z < 32)),
   );
-  return { seed, size, lakeMap };
+  return { seed, size, tiles: mapsAsTiles({ heightMap: lakeMap.map((r) => r.map(() => 0)), lakeMap, surfaceMap: lakeMap.map((r) => r.map(() => 'natural' as const)) }) };
 }
 const FRAME = 1 / 30;
 const far = { x: -100, z: -100 };
@@ -40,7 +41,7 @@ describe('ducks', () => {
 
   it('are placed the same way every time, and never on dry land', () => {
     expect(spawnDucks(world, 0).map((d) => [d.x, d.z, d.variant])).toEqual(ducks.map((d) => [d.x, d.z, d.variant]));
-    const dry: DuckWorld = { ...world, lakeMap: world.lakeMap.map((row) => row.map(() => false)) };
+    const dry: DuckWorld = { ...world, tiles: { ...world.tiles, lake: () => false } };
     expect(spawnDucks(dry, 0)).toEqual([]);
   });
 

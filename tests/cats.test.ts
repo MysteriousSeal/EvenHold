@@ -55,7 +55,7 @@ describe('cats', () => {
     eachSeed((model) => {
       const cat = catsOf(model)[0];
       const village = homeOf(model, cat);
-      const seats = squareBenches(model).filter((b) => model.villages[b.village] === village).flatMap((b) => b.seats);
+      const seats = squareBenches(model).filter((b) => b.village === village).flatMap((b) => b.seats);
       const [free, ...rest] = seats;
       rest.forEach((seat, i) => (model.npcs[i].seat = seat)); // every seat but one taken by villagers
       // How often the cat goes for the free seat, from a spread of spots round the square (its choices come from where it is).

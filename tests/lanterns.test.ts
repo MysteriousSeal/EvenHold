@@ -4,7 +4,7 @@ import { HERO_RADIUS, LANTERN_COLLISION_HALF } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
 import { squareLanterns } from '../src/model/worldgen/villages';
 import { buildLanternGeometry } from '../src/view/meshes/plaza/lanternMesh';
-import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, testModel, mapsOf } from './support/testWorld';
 
 describe('square lanterns', () => {
   it.each(TEST_SEEDS)('seed %i: four posts per square, on free corner tiles', (seed) => {
@@ -12,7 +12,7 @@ describe('square lanterns', () => {
     const taken = new Set([...world.houses, ...world.villages].map((o) => cellKey(o.x, o.z)));
     for (const b of world.buildings) for (const [x, z] of b.tiles) taken.add(cellKey(x, z));
     const bad = world.villages.flatMap((v) =>
-      squareLanterns(v).filter(([x, z]) => taken.has(cellKey(x, z)) || world.surfaceMap[x][z] !== 'plaza'),
+      squareLanterns(v).filter(([x, z]) => taken.has(cellKey(x, z)) || mapsOf(world).surfaceMap[x][z] !== 'plaza'),
     );
     expect(bad).toEqual([]);
   });

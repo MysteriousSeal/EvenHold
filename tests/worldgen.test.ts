@@ -8,7 +8,7 @@ import { generateWorld } from '../src/model/worldgen/world';
 import { WATER_LEVEL, MIN_LAKE_SIZE, VILLAGE_OUTER_RADIUS } from '../src/model/constants';
 import { NEIGHBORS_4, inBounds, cellKey, spawnOf } from '../src/model/map/grid';
 import type { GameModel } from '../src/model/GameModel';
-import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, testModel, mapsOf } from './support/testWorld';
 
 const worlds: Array<[number, GameModel]> = TEST_SEEDS.map((seed) => [seed, testModel(seed)]);
 const spawn = spawnOf(TEST_MAP_SIZE);
@@ -20,7 +20,8 @@ function tiles(world: GameModel): Array<[number, number]> {
 }
 
 function lowGroundBasins(world: GameModel): Array<Array<[number, number]>> {
-  const { heightMap, size } = world;
+  const { heightMap } = mapsOf(world);
+  const { size } = world;
   const visited = heightMap.map((row) => row.map(() => false));
   const basins: Array<Array<[number, number]>> = [];
   for (const [x, z] of tiles(world)) {
@@ -59,7 +60,7 @@ describe('world generation', () => {
   it.each(worlds)('seed %i: no adjacent tiles differ by more than one tier (no pits or spikes)', (_, world) => {
     const cliffs = tiles(world).filter(([x, z]) =>
       NEIGHBORS_4.some(
-        ([dx, dz]) => inBounds(world.size, x + dx, z + dz) && Math.abs(world.heightMap[x][z] - world.heightMap[x + dx][z + dz]) > 1,
+        ([dx, dz]) => inBounds(world.size, x + dx, z + dz) && Math.abs(mapsOf(world).heightMap[x][z] - mapsOf(world).heightMap[x + dx][z + dz]) > 1,
       ),
     );
     expect(cliffs).toEqual([]);
@@ -67,14 +68,14 @@ describe('world generation', () => {
 
   it.each(worlds)('seed %i: every basin is fully flooded or fully dry, and lakes meet the minimum size', (_, world) => {
     const bad = lowGroundBasins(world).filter((basin) => {
-      const wet = basin.filter(([x, z]) => world.lakeMap[x][z]).length;
+      const wet = basin.filter(([x, z]) => mapsOf(world).lakeMap[x][z]).length;
       return (wet !== 0 && wet !== basin.length) || (wet > 0 && wet < MIN_LAKE_SIZE);
     });
     expect(bad.map((basin) => basin[0])).toEqual([]);
   });
 
   it.each(worlds)('seed %i: spawn is dry and unobstructed', (_, world) => {
-    expect(world.lakeMap[spawn.x][spawn.z]).toBe(false);
+    expect(mapsOf(world).lakeMap[spawn.x][spawn.z]).toBe(false);
     expect(world.houses.some((h) => h.x === spawn.x && h.z === spawn.z)).toBe(false);
     expect(world.trees.some((t) => t.x === spawn.x && t.z === spawn.z)).toBe(false);
   });
@@ -86,7 +87,7 @@ describe('world generation', () => {
     const bad = world.houses.filter((house) => {
       const key = cellKey(house.x, house.z);
       const wrong =
-        world.lakeMap[house.x][house.z] || treeCells.has(key) || houseCells.has(key) || world.heightMap[house.x][house.z] !== house.groundTier;
+        mapsOf(world).lakeMap[house.x][house.z] || treeCells.has(key) || houseCells.has(key) || mapsOf(world).heightMap[house.x][house.z] !== house.groundTier;
       houseCells.add(key);
       return wrong;
     });
@@ -100,7 +101,7 @@ describe('villages', () => {
     const bad = world.houses.filter((house) => {
       const frontX = house.x + Math.round(-Math.sin(house.rotationY));
       const frontZ = house.z + Math.round(-Math.cos(house.rotationY));
-      return world.surfaceMap[frontX][frontZ] === 'natural';
+      return mapsOf(world).surfaceMap[frontX][frontZ] === 'natural';
     });
     expect(bad).toEqual([]);
   });
@@ -112,7 +113,7 @@ describe('villages', () => {
       let mouths = 0;
       for (let dx = -r; dx <= r; dx++) {
         for (let dz = -r; dz <= r; dz++) {
-          if (Math.max(Math.abs(dx), Math.abs(dz)) === r && world.surfaceMap[village.x + dx]?.[village.z + dz] === 'path') mouths++;
+          if (Math.max(Math.abs(dx), Math.abs(dz)) === r && mapsOf(world).surfaceMap[village.x + dx]?.[village.z + dz] === 'path') mouths++;
         }
       }
       return mouths < 2;
@@ -122,7 +123,7 @@ describe('villages', () => {
     const onLane = world.houses.filter((house) => {
       const frontX = house.x + Math.round(-Math.sin(house.rotationY));
       const frontZ = house.z + Math.round(-Math.cos(house.rotationY));
-      return world.surfaceMap[frontX][frontZ] === 'path';
+      return mapsOf(world).surfaceMap[frontX][frontZ] === 'path';
     });
     expect(onLane.length).toBeGreaterThan(world.houses.length / 2);
   });
@@ -138,15 +139,15 @@ describe('villages', () => {
     expect(world.villages.length).toBeGreaterThan(0);
     const bad = world.villages.filter(
       (village) =>
-        NEIGHBORS_4.some(([dx, dz]) => world.surfaceMap[village.x + dx][village.z + dz] !== 'plaza') ||
+        NEIGHBORS_4.some(([dx, dz]) => mapsOf(world).surfaceMap[village.x + dx][village.z + dz] !== 'plaza') ||
         world.trees.some((t) => t.x === village.x && t.z === village.z),
     );
     expect(bad).toEqual([]);
   });
 
   it.each(worlds)('seed %i: paths avoid water, and trees avoid paths and squares', (_, world) => {
-    expect(tiles(world).filter(([x, z]) => world.surfaceMap[x][z] !== 'natural' && world.lakeMap[x][z])).toEqual([]);
-    expect(world.trees.filter((tree) => world.surfaceMap[tree.x][tree.z] !== 'natural')).toEqual([]);
+    expect(tiles(world).filter(([x, z]) => mapsOf(world).surfaceMap[x][z] !== 'natural' && mapsOf(world).lakeMap[x][z])).toEqual([]);
+    expect(world.trees.filter((tree) => mapsOf(world).surfaceMap[tree.x][tree.z] !== 'natural')).toEqual([]);
   });
 
   it.each(worlds)('seed %i: a trail leads from spawn to a village square', (_, world) => {
@@ -155,9 +156,9 @@ describe('villages', () => {
     let reachedSquare = false;
     while (stack.length && !reachedSquare) {
       const [x, z] = stack.pop()!;
-      if (seen.has(cellKey(x, z)) || world.surfaceMap[x][z] === 'natural') continue;
+      if (seen.has(cellKey(x, z)) || mapsOf(world).surfaceMap[x][z] === 'natural') continue;
       seen.add(cellKey(x, z));
-      reachedSquare = world.surfaceMap[x][z] === 'plaza';
+      reachedSquare = mapsOf(world).surfaceMap[x][z] === 'plaza';
       for (const [dx, dz] of NEIGHBORS_4) if (inBounds(world.size, x + dx, z + dz)) stack.push([x + dx, z + dz]);
     }
     expect(reachedSquare).toBe(true);
@@ -174,7 +175,7 @@ describe('inn and blacksmith', () => {
         const problems: string[] = [];
         for (const [x, z] of b.tiles) {
           if (Math.max(Math.abs(x - village.x), Math.abs(z - village.z)) !== VILLAGE_OUTER_RADIUS) problems.push(`${b.kind} tile ${x},${z} off the edge`);
-          if (world.surfaceMap[x][z] !== 'plaza') problems.push(`${b.kind} tile ${x},${z} not on the square`);
+          if (mapsOf(world).surfaceMap[x][z] !== 'plaza') problems.push(`${b.kind} tile ${x},${z} not on the square`);
         }
         // Local -Z (the door side) rotated into world space: one step toward the well.
         const angle = (b.quarterTurns * Math.PI) / 2;
@@ -207,12 +208,12 @@ describe('bushes', () => {
     const bad = world.bushes.filter((bush) => {
       const key = cellKey(bush.x, bush.z);
       const wrong =
-        world.lakeMap[bush.x][bush.z] ||
-        world.surfaceMap[bush.x][bush.z] !== 'natural' || // so never on a trail or square
+        mapsOf(world).lakeMap[bush.x][bush.z] ||
+        mapsOf(world).surfaceMap[bush.x][bush.z] !== 'natural' || // so never on a trail or square
         taken.has(key) ||
         seen.has(key) ||
         Math.max(Math.abs(bush.x - spawn.x), Math.abs(bush.z - spawn.z)) <= 1 ||
-        world.heightMap[bush.x][bush.z] !== bush.groundTier;
+        mapsOf(world).heightMap[bush.x][bush.z] !== bush.groundTier;
       seen.add(key);
       return wrong;
     });

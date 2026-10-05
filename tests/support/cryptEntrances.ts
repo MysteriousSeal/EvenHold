@@ -27,6 +27,7 @@ import { cellKey, spawnOf } from '../../src/model/map/grid';
 import type { Surface } from '../../src/model/types';
 import { worldObstacles } from '../../src/model/map/blockers';
 import { addCryptObstacles, placeCrypts } from '../../src/model/crypts/crypts';
+import { mapsAsTiles } from '../../src/model/map/tiles';
 
 const SIZE = { width: 2 * RUIN_REGION, depth: 2 * RUIN_REGION };
 const SEEDS = Array.from({ length: 50 }, (_, i) => Math.floor(mulberry32(9100 + i)() * 2 ** 31));
@@ -45,11 +46,12 @@ function cryptWorld(seed: number) {
   const surfaceMap: Surface[][] = heightMap.map((row) => row.map((): Surface => 'natural'));
   const { villages, houses, buildings } = generateVillages(heightMap, lakeMap, surfaceMap, rng, spawn.x, spawn.z);
   const solid = solidCells({ houses, buildings, villages });
-  const ruins = placeRuins({ seed, size: SIZE, heightMap, surfaceMap, villages, isOpenTile: (x, z) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) });
-  const obstacles = worldObstacles({ seed, size: SIZE, lakeMap, surfaceMap, villages, houses, buildings, fields: [], trees: [], bushes: [] }, solid);
+  const tiles = mapsAsTiles({ heightMap, lakeMap, surfaceMap });
+  const ruins = placeRuins({ seed, size: SIZE, tiles, villages, isOpenTile: (x, z) => !lakeMap[x][z] && !solid.has(cellKey(x, z)) });
+  const obstacles = worldObstacles({ seed, size: SIZE, tiles, villages, houses, buildings, fields: [], trees: [], bushes: [] }, solid);
   addRuinObstacles(obstacles, ruins);
   const isOpenTile = (x: number, z: number) => obstacles.isOpenTile(x, z);
-  const crypts = placeCrypts({ seed, size: SIZE, ruins, heightMap, isOpenTile });
+  const crypts = placeCrypts({ seed, size: SIZE, ruins, tiles, isOpenTile });
   addCryptObstacles(obstacles, crypts);
   return { ruins, crypts, heightMap, isOpenTile };
 }

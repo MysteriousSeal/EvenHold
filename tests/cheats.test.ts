@@ -4,7 +4,7 @@ import { VILLAGE_OUTER_RADIUS } from '../src/model/constants';
 import { NEIGHBORS_4 } from '../src/model/map/grid';
 import { nearestLakeShore, nextVillage, spawnTile, villageEntrance } from '../src/model/cheats';
 import type { Village } from '../src/model/types';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, mapsOf } from './support/testWorld';
 
 // Teleports move the hero, so each test gets its own world.
 const fresh = (seed = TEST_SEEDS[0]) => new GameModel(seed, TEST_MAP_SIZE);
@@ -43,15 +43,15 @@ describe('dev cheats', () => {
     const [endX, endZ] = route[route.length - 1];
     const village = model.villages.reduce((a, b) => (Math.hypot(a.x - endX, a.z - endZ) < Math.hypot(b.x - endX, b.z - endZ) ? a : b));
     const entrance = villageEntrance(model, village, model.hero);
-    expect(model.surfaceMap[entrance.x][entrance.z]).toBe('path');
+    expect(mapsOf(model).surfaceMap[entrance.x][entrance.z]).toBe('path');
   });
 
   it('finds the nearest lake shore: open ground next to water', () => {
-    const seed = TEST_SEEDS.find((s) => fresh(s).lakeMap.flat().some(Boolean))!;
+    const seed = TEST_SEEDS.find((s) => mapsOf(fresh(s)).lakeMap.flat().some(Boolean))!;
     const model = fresh(seed);
     const shore = nearestLakeShore(model, model.hero)!;
     expect(model.isOpenTile(shore.x, shore.z)).toBe(true);
-    expect(NEIGHBORS_4.some(([dx, dz]) => model.lakeMap[shore.x + dx]?.[shore.z + dz])).toBe(true);
+    expect(NEIGHBORS_4.some(([dx, dz]) => mapsOf(model).lakeMap[shore.x + dx]?.[shore.z + dz])).toBe(true);
   });
 
   it('teleports onto the ground and back to spawn', () => {

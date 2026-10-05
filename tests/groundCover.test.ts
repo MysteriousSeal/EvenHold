@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
-import { TEST_SEEDS, testModel } from './support/testWorld';
+import { TEST_SEEDS, testModel, mapsOf } from './support/testWorld';
 import { ROAD_WIDTH, TILE_HEIGHT } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
 import { solidCells } from '../src/model/worldgen/world';
@@ -35,15 +35,15 @@ describe('ground cover scatter', () => {
     const misplaced = [...tufts, ...sprigs, ...flowers, ...pebbles].filter((item) => {
       const [x, z] = tileOf(item);
       return (
-        model.lakeMap[x][z] ||
-        model.surfaceMap[x][z] === 'plaza' ||
+        mapsOf(model).lakeMap[x][z] ||
+        mapsOf(model).surfaceMap[x][z] === 'plaza' ||
         solid.has(cellKey(x, z)) ||
-        Math.abs(item.y - model.heightMap[x][z] * TILE_HEIGHT) > 1e-9
+        Math.abs(item.y - mapsOf(model).heightMap[x][z] * TILE_HEIGHT) > 1e-9
       );
     });
     expect(misplaced).toEqual([]);
     // Sprigs, flowers and pebbles stay on plain grass; only tufts line the roads.
-    expect([...sprigs, ...flowers, ...pebbles].filter((item) => model.surfaceMap[tileOf(item)[0]][tileOf(item)[1]] !== 'natural')).toEqual([]);
+    expect([...sprigs, ...flowers, ...pebbles].filter((item) => mapsOf(model).surfaceMap[tileOf(item)[0]][tileOf(item)[1]] !== 'natural')).toEqual([]);
   });
 
   it.each(models)('seed %i: grass lines the roads without growing on the dirt', (_, model) => {
@@ -60,7 +60,7 @@ describe('ground cover scatter', () => {
           );
         }),
       );
-    const lining = tufts.filter((t) => model.surfaceMap[tileOf(t)[0]][tileOf(t)[1]] === 'path');
+    const lining = tufts.filter((t) => mapsOf(model).surfaceMap[tileOf(t)[0]][tileOf(t)[1]] === 'path');
     // A steady line: on average at least one lining clump per trail tile.
     const trailTiles = model.trails.reduce((sum, route) => sum + route.length, 0);
     expect(lining.length).toBeGreaterThanOrEqual(trailTiles);
@@ -83,7 +83,7 @@ describe('ground cover scatter', () => {
     let bareGrassTiles = 0;
     for (let x = 0; x < model.size.width; x++) {
       for (let z = 0; z < model.size.depth; z++) {
-        if (model.lakeMap[x][z] || model.surfaceMap[x][z] !== 'natural') continue;
+        if (mapsOf(model).lakeMap[x][z] || mapsOf(model).surfaceMap[x][z] !== 'natural') continue;
         grassTiles++;
         if (!perTile.has(cellKey(x, z))) bareGrassTiles++;
       }

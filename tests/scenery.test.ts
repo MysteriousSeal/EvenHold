@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { nextLife, nextMeadow, nextScenery } from '../src/model/cheats';
 import { BLOOMS, meadowPatches } from '../src/model/scenery/meadowPatches';
 import { LIFE_CELL, lifeIn, lifeOut } from '../src/model/scenery/ambientSpots';
+import { mapsOf } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const worlds = new Map<number, ReturnType<typeof generateWorld>>();
@@ -38,12 +39,12 @@ describe('rocks and landmarks', () => {
     const m = model();
     const problems: string[] = []; // (every tile against every village, ruin and foe: told once, at the end, not asserted a million times)
     for (const s of m.scenery) {
-      const tier = m.heightMap[s.x][s.z];
+      const tier = mapsOf(m).heightMap[s.x][s.z];
       for (const [x, z] of tiles(s)) {
         const at = `a ${s.kind} at ${x},${z}`;
-        if (m.lakeMap[x][z]) problems.push(`${at}: on water`);
-        if (m.surfaceMap[x][z] !== 'natural') problems.push(`${at}: on a road, a square or a field`);
-        if (m.heightMap[x][z] !== tier) problems.push(`${at}: not level`);
+        if (mapsOf(m).lakeMap[x][z]) problems.push(`${at}: on water`);
+        if (mapsOf(m).surfaceMap[x][z] !== 'natural') problems.push(`${at}: on a road, a square or a field`);
+        if (mapsOf(m).heightMap[x][z] !== tier) problems.push(`${at}: not level`);
         for (const v of m.villages) if (Math.max(Math.abs(v.x - x), Math.abs(v.z - z)) <= 10) problems.push(`${at}: in a village`);
         for (const r of m.ruins) if (x >= r.x - 2 && x < r.x + r.w + 2 && z >= r.z - 2 && z < r.z + r.d + 2) problems.push(`${at}: in a ruin`);
         for (const e of m.enemies) if (Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) <= 1.5) problems.push(`${at}: on a ${e.kind}`);
@@ -123,8 +124,8 @@ describe('meadow patches of wildflowers', () => {
       const [x, z] = [Math.round(b.x - 0.5 + 0.5), Math.round(b.z)];
       const tx = Math.floor(b.x + 0.5);
       const tz = Math.floor(b.z + 0.5);
-      expect(m.surfaceMap[tx][tz]).toBe('natural');
-      expect(m.lakeMap[tx][tz]).toBe(false);
+      expect(mapsOf(m).surfaceMap[tx][tz]).toBe('natural');
+      expect(mapsOf(m).lakeMap[tx][tz]).toBe(false);
       expect(rock.has(`${tx},${tz}`)).toBe(false);
       void [x, z];
     }

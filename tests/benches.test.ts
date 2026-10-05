@@ -13,7 +13,7 @@ describe('square benches', () => {
       const benches = squareBenches(model);
       expect(benches.length).toBeGreaterThan(0);
       for (const b of benches) {
-        const v = model.villages[b.village];
+        const v = b.village;
         const [dx, dz] = [b.x - v.x, b.z - v.z];
         expect(Math.max(Math.abs(dx), Math.abs(dz))).toBe(R); // on the edge
         expect(Math.abs(dx) === R && Math.abs(dz) === R).toBe(false); // not a corner

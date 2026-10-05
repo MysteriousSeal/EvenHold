@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { FENCE_THICKNESS, HERO_RADIUS } from '../src/model/constants';
-import { TEST_MAP_SIZE } from './support/testWorld';
+import { TEST_MAP_SIZE, mapsOf } from './support/testWorld';
 import { cellKey } from '../src/model/map/grid';
 import { buildFieldGeometry } from '../src/view/meshes/field/fieldMesh';
 import { WHEAT_VARIANTS } from '../src/view/meshes/field/fieldVoxels';
@@ -26,12 +26,12 @@ describe('crop fields', () => {
     for (const field of world.fields) {
       for (let x = field.x0; x < field.x0 + field.width; x++) {
         for (let z = field.z0; z < field.z0 + field.depth; z++) {
-          if (world.surfaceMap[x][z] !== 'field') bad.push(`${x},${z} not a field tile`);
-          if (world.heightMap[x][z] !== field.groundTier || world.lakeMap[x][z]) bad.push(`${x},${z} not flat and dry`);
+          if (mapsOf(world).surfaceMap[x][z] !== 'field') bad.push(`${x},${z} not a field tile`);
+          if (mapsOf(world).heightMap[x][z] !== field.groundTier || mapsOf(world).lakeMap[x][z]) bad.push(`${x},${z} not flat and dry`);
           if (occupied.has(cellKey(x, z))) bad.push(`${x},${z} has something on it`);
           for (let dx = -1; dx <= 1; dx++) {
             for (let dz = -1; dz <= 1; dz++) {
-              const s = world.surfaceMap[x + dx]?.[z + dz];
+              const s = mapsOf(world).surfaceMap[x + dx]?.[z + dz];
               if (s === 'path' || s === 'plaza') bad.push(`${x},${z} touches a road or square`);
             }
           }
@@ -46,7 +46,7 @@ describe('crop fields', () => {
 
   it.each(worlds)('seed %i: meadow grass and flowers stay out of the crops', (_, world) => {
     const { tufts, flowers, pebbles } = scatterGroundCover(world);
-    const inField = [...tufts, ...flowers, ...pebbles].filter((i) => world.surfaceMap[Math.round(i.x)][Math.round(i.z)] === 'field');
+    const inField = [...tufts, ...flowers, ...pebbles].filter((i) => mapsOf(world).surfaceMap[Math.round(i.x)][Math.round(i.z)] === 'field');
     expect(inField).toEqual([]);
   });
 

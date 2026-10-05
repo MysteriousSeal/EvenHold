@@ -77,7 +77,7 @@ describe.each(TEST_SEEDS.map((s) => [s]))('villagers, seed %i', (seed) => {
       const seat = benchSeat(npc, model.npcs, model);
       if (!seat) continue;
       const bench = squareBenches(model).find((b) => b.seats.includes(seat))!;
-      expect(model.villages[bench.village]).toBe(npc.village);
+      expect(bench.village).toBe(npc.village);
       expect(claimed(seat.piece, npc, model.npcs, model, null)).toBe(false);
     }
   });

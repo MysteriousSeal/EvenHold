@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { spawnOf } from '../src/model/map/grid';
-import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, mapsOf } from './support/testWorld';
 
 const worlds = TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE));
 
@@ -21,10 +21,10 @@ describe('bandit camps in every test world', () => {
         for (const kind of ['fire', 'rack', 'crates', 'loot'] as const) expect(kinds.filter((k) => k === kind)).toHaveLength(1);
         expect(kinds.filter((k) => k === 'tent')).toHaveLength(2);
         expect(kinds.filter((k) => k === 'palisade')).toHaveLength(19);
-        const tier = model.heightMap[camp.x][camp.z];
+        const tier = mapsOf(model).heightMap[camp.x][camp.z];
         for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
-          expect(model.heightMap[camp.x + dx][camp.z + dz]).toBe(tier);
-          expect(model.surfaceMap[camp.x + dx][camp.z + dz]).toBe('natural');
+          expect(mapsOf(model).heightMap[camp.x + dx][camp.z + dz]).toBe(tier);
+          expect(mapsOf(model).surfaceMap[camp.x + dx][camp.z + dz]).toBe('natural');
         }
       }
     }

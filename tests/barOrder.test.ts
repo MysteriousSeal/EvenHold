@@ -15,6 +15,7 @@ import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { INDOOR_SCALE } from '../src/model/constants';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { doorNumber } from '../src/model/interiors/interiors';
 
 // In the nearest inn, as if sat at the bar.
 const atTheInn = () => {
@@ -27,7 +28,7 @@ const atTheInn = () => {
 describe('a meat pie at the bar', () => {
   it('is served from her stock, paid for, and eaten on the spot: 60% of the most health back over PIE_SECONDS', () => {
     const model = atTheInn();
-    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const shop = shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
     const stock = shop.stock.meatPie!;
     Object.assign(model.hero, { money: 100, energy: 10, hp: 1 });
     expect(orderLabel(model, 'pie')).toEqual({ label: `Order a meat pie · ${buyPrice('meatPie')} copper`, soldOut: false });
@@ -44,7 +45,7 @@ describe('a meat pie at the bar', () => {
 
   it('is only to be had while she has some: sold out, the prompt says when there\'s more, and she won\'t take the order', () => {
     const model = atTheInn();
-    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const shop = shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
     shop.stock.meatPie = 0;
     model.hero.money = 100;
     expect(orderLabel(model, 'pie')).toMatchObject({ soldOut: true, label: expect.stringMatching(/^Out of meat pies · back in \d+:\d\d$/) });
@@ -62,7 +63,7 @@ describe('a meat pie at the bar', () => {
 describe('an ale at the bar', () => {
   it('is poured from her stock, paid for, and drunk on the spot', () => {
     const model = atTheInn();
-    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const shop = shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
     const stock = shop.stock.ale!;
     model.hero.money = 100;
     Object.assign(model.hero, { hp: 1, energy: 10 });
@@ -93,7 +94,7 @@ describe('an ale at the bar', () => {
 
   it("isn't, without the coin, or with the barrel dry", () => {
     const model = atTheInn();
-    const shop = shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    const shop = shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
     model.hero.money = 0;
     expect(serveOrder(model).drank).toBe(false);
     model.hero.money = 100;

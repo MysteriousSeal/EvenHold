@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { FRAME, TEST_MAP_SIZE } from './support/testWorld';
+import { FRAME, TEST_MAP_SIZE, mapsOf } from './support/testWorld';
 import {
   BUSH_COLLISION_HALF,
   HERO_RADIUS,
@@ -21,8 +21,8 @@ const freshModel = () => new GameModel(1, TEST_MAP_SIZE);
 function solidCellCheck(model: GameModel): (x: number, z: number) => boolean {
   const solid = solidCells(model, model.bushes);
   for (const t of model.trees) solid.add(cellKey(t.x, t.z));
-  const inMap = (x: number, z: number) => x >= 0 && z >= 0 && x < model.heightMap.length && z < model.heightMap[0].length;
-  return (x, z) => !inMap(x, z) || model.lakeMap[x][z] || solid.has(cellKey(x, z));
+  const inMap = (x: number, z: number) => x >= 0 && z >= 0 && x < mapsOf(model).heightMap.length && z < mapsOf(model).heightMap[0].length;
+  return (x, z) => !inMap(x, z) || mapsOf(model).lakeMap[x][z] || solid.has(cellKey(x, z));
 }
 
 describe('hero collision', () => {
@@ -101,7 +101,7 @@ describe('hero hop', () => {
     let start: { x: number; z: number } | undefined;
     for (let x = 1; x < model.size.width - 2 && !start; x++) {
       for (let z = 1; z < model.size.depth - 1 && !start; z++) {
-        const stepsUp = model.heightMap[x + 1][z] === model.heightMap[x][z] + 1;
+        const stepsUp = mapsOf(model).heightMap[x + 1][z] === mapsOf(model).heightMap[x][z] + 1;
         if (stepsUp && !isSolid(x, z) && !isSolid(x + 1, z)) start = { x, z };
       }
     }
@@ -110,7 +110,7 @@ describe('hero hop', () => {
     model.hero.x = start!.x;
     model.hero.z = start!.z;
     model.hero.y = model.getGroundY(start!.x, start!.z);
-    const upperY = (model.heightMap[start!.x][start!.z] + 1) * TILE_HEIGHT;
+    const upperY = (mapsOf(model).heightMap[start!.x][start!.z] + 1) * TILE_HEIGHT;
 
     let maxY = model.hero.y;
     // Walk just past the tile boundary (0.6 of a tile on), then release input mid-hop.
@@ -140,7 +140,7 @@ describe('road surface', () => {
   it('stepping onto the road eases up gently, without the terrain-step hop arc', () => {
     const model = freshModel();
     const [[spawnX, spawnZ], [nextX]] = model.trails[0];
-    const grassY = model.heightMap[spawnX][spawnZ] * TILE_HEIGHT;
+    const grassY = mapsOf(model).heightMap[spawnX][spawnZ] * TILE_HEIGHT;
     // Start on the grass margin beside the trail's first leg, then step
     // sideways across onto the road band.
     const alongX = nextX !== spawnX;

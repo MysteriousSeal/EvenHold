@@ -18,6 +18,7 @@ import { isFloor } from '../src/model/dungeons/floorPlan';
 import { FACINGS } from '../src/model/map/grid';
 import { mulberry32 } from '../src/util/random';
 import { floorReached } from './support/cryptChecks';
+import { mapsOf } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const seeds = Array.from({ length: 30 }, (_, i) => Math.floor(mulberry32(6600 + i)() * 2 ** 31));
@@ -30,14 +31,14 @@ describe('the caves\' mouths', () => {
     expect(model.caves.length).toBeGreaterThan(0);
     for (const cave of model.caves) {
       const [ox, oz] = FACINGS[cave.quarterTurns];
-      const level = model.heightMap[cave.mouth.x][cave.mouth.z];
+      const level = mapsOf(model).heightMap[cave.mouth.x][cave.mouth.z];
       expect(cave.rock).toHaveLength(9);
       for (const t of cave.rock) {
         expect(model.isOpenTile(t.x, t.z)).toBe(false);
-        expect(model.heightMap[t.x][t.z]).toBeGreaterThanOrEqual(level);
+        expect(mapsOf(model).heightMap[t.x][t.z]).toBeGreaterThanOrEqual(level);
       }
       const before = { x: cave.mouth.x + ox, z: cave.mouth.z + oz };
-      expect(model.heightMap[before.x][before.z]).toBe(level);
+      expect(mapsOf(model).heightMap[before.x][before.z]).toBe(level);
       expect(model.isOpenTile(before.x, before.z)).toBe(true);
       expect(Math.hypot(cave.entrance.x - (cave.mouth.x + ox), cave.entrance.z - (cave.mouth.z + oz))).toBeLessThan(0.5);
       expect(model.entrances).toContain(cave.entrance);

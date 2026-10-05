@@ -7,7 +7,7 @@
 import { GameModel } from '../../src/model/GameModel';
 import { ATTACK_DURATION } from '../../src/model/constants';
 import type { MapSize } from '../../src/model/map/grid';
-import type { Enemy, EnemyKind } from '../../src/model/types';
+import type { Enemy, EnemyKind, Surface } from '../../src/model/types';
 
 export const TEST_MAP_SIZE: MapSize = { width: 96, depth: 96 };
 
@@ -68,4 +68,18 @@ export function eachSeed(check: (model: GameModel, seed: number) => void): void 
       throw error;
     }
   }
+}
+
+// A model's tiles as whole maps ([x][z]), for tests that sweep the world as it was made (small worlds only: the
+// game reads tiles where they are, model/map/tiles.ts).
+const mapsMade = new WeakMap<GameModel, { heightMap: number[][]; lakeMap: boolean[][]; surfaceMap: Surface[][] }>();
+export function mapsOf(model: GameModel): { heightMap: number[][]; lakeMap: boolean[][]; surfaceMap: Surface[][] } {
+  let maps = mapsMade.get(model);
+  if (!maps) {
+    const { width, depth } = model.size;
+    const grid = <T>(at: (x: number, z: number) => T) => Array.from({ length: width }, (_, x) => Array.from({ length: depth }, (_, z) => at(x, z)));
+    maps = { heightMap: grid((x, z) => model.tiles.height(x, z)), lakeMap: grid((x, z) => model.tiles.lake(x, z)), surfaceMap: grid((x, z) => model.tiles.surface(x, z)) };
+    mapsMade.set(model, maps);
+  }
+  return maps;
 }

@@ -6,13 +6,14 @@ import { MAX_TIER, VILLAGE_OUTER_RADIUS, WATER_LEVEL } from '../src/model/consta
 import { generateWorld } from '../src/model/worldgen/world';
 import { fenceEdges } from '../src/model/worldgen/fields';
 import { inBounds } from '../src/model/map/grid';
-import { TEST_MAP_SIZE, TEST_SEEDS, testModel } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, testModel, mapsOf } from './support/testWorld';
 
 const tiles = (size: { width: number; depth: number }) => Array.from({ length: size.width * size.depth }, (_, i) => [Math.floor(i / size.depth), i % size.depth] as const);
 
 describe.each(TEST_SEEDS.map((s) => [s]))('seed %i', (seed) => {
   const world = testModel(seed);
-  const { size, heightMap, lakeMap, surfaceMap } = world;
+  const { size } = world;
+  const { heightMap, lakeMap, surfaceMap } = mapsOf(world);
   const dry = (x: number, z: number) => inBounds(size, x, z) && !lakeMap[x][z];
 
   it('has whole heights, from the lowest tier to the highest', () => {

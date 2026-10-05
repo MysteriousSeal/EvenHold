@@ -14,7 +14,7 @@ import { FACINGS } from '../src/model/map/grid';
 import { floorReached, rockJoined, solidTiles } from './support/cryptChecks';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { buildCryptScene } from '../src/view/crypt/cryptView';
-import { FRAME, TEST_SEEDS } from './support/testWorld';
+import { FRAME, TEST_SEEDS, mapsOf } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const models = [1, 2, 3].map((seed) => new GameModel(seed, MID));
@@ -38,7 +38,7 @@ describe('crypts', () => {
         expect(Math.abs(c.steps[1].x - c.steps[0].x) + Math.abs(c.steps[1].z - c.steps[0].z)).toBe(1);
         expect(Math.abs(c.steps[1].x - c.steps[0].x)).toBe(Math.abs(entrance.outZ));
         expect(c.tiles).toEqual([...c.steps, ...c.steps.map((t) => ({ x: t.x - entrance.outX, z: t.z - entrance.outZ }))]);
-        for (const t of c.tiles) expect(model.heightMap[t.x][t.z]).toBe(model.heightMap[stairs.x][stairs.z]); // level
+        for (const t of c.tiles) expect(mapsOf(model).heightMap[t.x][t.z]).toBe(mapsOf(model).heightMap[stairs.x][stairs.z]); // level
         for (const t of c.tiles) expect(model.isOpenTile(t.x, t.z)).toBe(false); // blocked: down with E, not walked into
         for (const t of c.steps) expect(model.isOpenTile(t.x + entrance.outX, t.z + entrance.outZ)).toBe(true); // the ground before the stairs open
         expect(model.isOpenTile(Math.round(entrance.x), Math.round(entrance.z))).toBe(true);
