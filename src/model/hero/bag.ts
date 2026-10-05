@@ -1,26 +1,27 @@
 // The hero's bag: how many of each thing they carry, loot (loot/) and gear
 // (human/items/) alike. Their ids never clash, so one record holds both.
 
-import { ITEMS, SLOT_NAMES, type ItemId } from '../human/equipment';
+import { SLOT_NAMES } from '../human/equipment';
+import { gearName, rarityOf, slotOfGear, type GearKey, type Rarity } from '../human/items/gear';
 import { LOOT, LOOT_QUALITY, type LootId, type LootQuality } from '../loot/loot';
 import { MEAL_SECONDS, PROVISIONS, isProvision } from '../loot/provisions';
 import { POTIONS, POTION_COOLDOWN, isPotion, type Potion } from '../loot/potions';
 import type { Hero } from '../types';
 import { maxEnergyOf, maxHpOf } from './attributes';
 
-export type BagItem = LootId | ItemId;
-// How an item's name is colored: loot has its quality; gear is common.
-export type Quality = LootQuality | 'common';
+export type BagItem = LootId | GearKey;
+// How an item's name is colored: loot has its quality; gear its rarity (items/gear.ts).
+export type Quality = LootQuality | Rarity;
 
 export const isLootItem = (item: BagItem): item is LootId => item in LOOT;
-export const nameOf = (item: BagItem): string => (isLootItem(item) ? LOOT[item].name : ITEMS[item].name);
-export const qualityOf = (item: BagItem): Quality => (isLootItem(item) ? LOOT_QUALITY[item] : 'common');
+export const nameOf = (item: BagItem): string => (isLootItem(item) ? LOOT[item].name : gearName(item));
+export const qualityOf = (item: BagItem): Quality => (isLootItem(item) ? LOOT_QUALITY[item] : rarityOf(item));
 
 // What kind of thing it is ("Junk", "Food", "Head"; the bag's tooltips, what's picked up): loot by its quality (food and drink apart), gear by
 // what it's worn on.
 const KIND_NAMES: Record<Exclude<LootQuality, 'common'>, string> = { junk: 'Junk', ingredient: 'Cooking ingredient', quest: 'Quest item', bag: 'Bag', potion: 'Potion' };
 export function kindOf(item: BagItem): string {
-  if (!isLootItem(item)) return SLOT_NAMES[ITEMS[item].slot];
+  if (!isLootItem(item)) return SLOT_NAMES[slotOfGear(item)];
   if (isProvision(item)) return PROVISIONS[item].drink ? 'Drink' : 'Food';
   return KIND_NAMES[LOOT_QUALITY[item] as Exclude<LootQuality, 'common'>];
 }

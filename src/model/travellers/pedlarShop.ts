@@ -7,6 +7,7 @@
 // (PEDLAR_KEY on), in the save with the rest.
 
 import { ITEMS, ITEM_IDS, isJewelrySlot, type ItemId } from '../human/equipment';
+import { isGear, slotOfGear, type GearKey } from '../human/items/gear';
 import { isProvision, type ProvisionId } from '../loot/provisions';
 import { BAG_IDS, BAG_ITEMS, isBagItem } from '../loot/bags';
 import { POTION_IDS, isPotion, potionPrice } from '../loot/potions';
@@ -24,10 +25,10 @@ export const PEDLAR_TRINKETS: readonly ItemId[] = ITEM_IDS.filter((id) => (ITEMS
 export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, ...POTION_IDS, ...PEDLAR_TRINKETS, ...BAG_IDS]; // (and bags: hero/bagSlots.ts)
 
 // What they'll buy: food and drink, and trinkets (what goes round a neck or on a finger).
-export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || (id in ITEMS && isJewelrySlot(ITEMS[id as ItemId].slot));
+export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
 
 export const pedlarPrice = (id: BagItem, selling: boolean): number =>
-  isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : selling ? gearSellPrice(id as ItemId) : gearPrice(id as ItemId);
+  isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
 
 // The pack of the pedlar `t`, made the first time it's opened.
 export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Traveller, 'id'>, now = Date.now()): Shop {

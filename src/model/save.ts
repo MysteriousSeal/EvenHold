@@ -8,6 +8,7 @@
 // A save is read defensively: it comes from outside (the browser's
 // storage), so anything missing or malformed means no save at all.
 
+import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
 import { readSockets } from './hero/bagSlots';
 import type { Travellers } from './travellers/travellers';
@@ -16,7 +17,7 @@ import type { BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
 import { POINTS_PER_LEVEL, untrained } from './hero/training';
 import { STATS, type Stat } from './hero/statKinds';
-import { ITEMS, type Equipment, type ItemId } from './human/equipment';
+import type { Equipment } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxEnergyOf, maxHpOf } from './hero/attributes';
 import type { BodyLook } from './human/humanoid';
@@ -156,9 +157,9 @@ export function restore(model: GameModel, data: SaveData): void {
   const saved = data.hero;
   // Only things the game still knows (a save may be older than a change to
   // them), worn in the slot they go in, carried in whole numbers.
-  const known = (item: string): item is BagItem => item in LOOT || item in ITEMS;
+  const known = (item: string): item is BagItem => item in LOOT || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
-  const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && ITEMS[item as ItemId]?.slot === slot));
+  const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot));
   Object.assign(hero, {
     name: saved.name,
     look: { ...saved.look },

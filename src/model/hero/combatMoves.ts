@@ -8,6 +8,7 @@
 // less and refills slower. Short of a blow's or a roll's breath, neither;
 // short of a block's, the guard breaks.
 
+import { baseOf } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
 import { TIRED } from './heroStats';
@@ -144,7 +145,7 @@ export class CombatMoves {
   struck(damage: number, by: Enemy | null): { damage: number; guarded: Guarded } {
     if (this.untouchable) return { damage: 0, guarded: 'rolled' };
     if (this.guard === null) return { damage, guarded: 'taken' };
-    const offHand = this.hero.equipment.offHand;
+    const offHand = this.hero.equipment.offHand && baseOf(this.hero.equipment.offHand); // (what it is: a buckler, a dagger)
     if (this.guard <= parryWindow(offHand)) {
       if (by) {
         Object.assign(by, { swingFor: null, hurtFor: STAGGER }); // (reeling: its blow, and any move it was telling, lost)

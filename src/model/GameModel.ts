@@ -26,7 +26,9 @@ import { stepHop, type Hop } from './hero/hop';
 import type { GroundLoot } from './loot/loot';
 import { addToBag, drinkPotion, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
 import { Ground } from './loot/ground';
-import type { EquipSlot, ItemId } from './human/equipment';
+import type { EquipSlot } from './human/equipment';
+import type { GearKey } from './human/items/gear';
+import { gearPace, regenerate } from './hero/gearEffects';
 import { putOn, takeOff } from './hero/wearing';
 import { spawnWildlife, stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld, solidCells } from './worldgen/world';
@@ -236,7 +238,7 @@ export class GameModel {
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
     this.minutes += dt; // a second played, a minute on the clock
-    tickBlessing(this.hero, dt); // a well's, wearing off
+    [tickBlessing(this.hero, dt), regenerate(this.hero, dt)]; // a well's, wearing off; health back, by their gear's
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
@@ -291,7 +293,7 @@ export class GameModel {
   }
 
   // How fast the hero goes, as a share of their speed: the cheat's, their load's, tired, guarded.
-  private get pace(): number { return this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * (this.moves.guard !== null ? GUARD_PACE : 1); }
+  private get pace(): number { return this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * gearPace(this.hero) * (this.moves.guard !== null ? GUARD_PACE : 1); }
   // Where blows can be met (not sat, not in an inn with arms sheathed, not in the furniture yard).
   private get canFight(): boolean { return !this.seated && !armsSheathed(this.inside) && !this.yard; }
 
@@ -343,7 +345,7 @@ export class GameModel {
 
   // Gear taken off into the bag, or worn from it (hero/wearing.ts); each returns whether it was.
   unequip = (slot: EquipSlot): boolean => takeOff(this.hero, slot);
-  equipFromBag = (item: ItemId): boolean => putOn(this.hero, item);
+  equipFromBag = (item: GearKey): boolean => putOn(this.hero, item);
 
   // Takes off what's worn in `slot` and puts it on the ground in front of the hero.
   dropEquipped(slot: EquipSlot): boolean {

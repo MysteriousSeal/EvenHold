@@ -4,6 +4,8 @@
 // bowman's arrow, landing on the hero: first met by their roll or guard
 // (combatMoves.ts), then dodged or taken (combat.ts).
 
+import { leech } from './gearEffects';
+import { rollGearDrop } from '../loot/gearDrops';
 import type { CombatMoves, Guarded } from './combatMoves';
 import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
@@ -51,6 +53,7 @@ export function landBlow(fight: Fight): void {
   const hard = Math.round(blow.damage * riposte);
   const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
   target.hp -= damage;
+  leech(hero, damage); // (their gear's: a share of it healed)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
   target.hurtFor = 0.25;
   target.swingFor = null; // a hit interrupts its own blow
@@ -65,6 +68,8 @@ export function landBlow(fight: Fight): void {
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
     const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);
+    const piece = rollGearDrop(target, dropFactor(hero)); // (gear: people and the dead only, at its level, loot/gearDrops.ts)
+    if (piece) fight.dropLoot(piece, target.x + 0.2, target.z - 0.2);
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }

@@ -3,7 +3,8 @@
 // hero's arranged them (Hero.bagOrder, bagCounts); a stack moved, one taken
 // from its very stack, the bag tidied. How many slots there are: bagSlots.ts.
 
-import { EQUIP_SLOTS, ITEMS } from '../human/equipment';
+import { EQUIP_SLOTS } from '../human/equipment';
+import { slotOfGear } from '../human/items/gear';
 import { LOOT_QUALITY } from '../loot/loot';
 import type { Hero } from '../types';
 import { BAG_GROUPS, groupOf, isLootItem, nameOf, takeFromBag, type Bag, type BagItem } from './bag';
@@ -103,7 +104,7 @@ export function takeFromSlot(hero: Pick<Hero, 'bag' | 'bagOrder' | 'bagCounts'>,
 // its group (BAG_GROUPS), gear head to toe (then jewellery, then what's held);
 // alike things by name.
 export function sortedBag(bag: Bag): BagItem[] {
-  const rank = (item: BagItem) => BAG_GROUPS.findIndex((g) => g.group === groupOf(item)) * 100 + (isLootItem(item) ? 0 : EQUIP_SLOTS.indexOf(ITEMS[item].slot));
+  const rank = (item: BagItem) => BAG_GROUPS.findIndex((g) => g.group === groupOf(item)) * 100 + (isLootItem(item) ? 0 : EQUIP_SLOTS.indexOf(slotOfGear(item)));
   const kinds = (Object.keys(bag) as BagItem[]).filter((item) => (bag[item] ?? 0) > 0).sort((a, b) => rank(a) - rank(b) || nameOf(a).localeCompare(nameOf(b)));
   return kinds.flatMap((item) => Array.from({ length: stacksOf(item, bag[item]!) }, () => item)); // (a thing's stacks side by side)
 }

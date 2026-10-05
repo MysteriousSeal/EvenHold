@@ -8,6 +8,7 @@
 
 import { hashUnit } from '../../util/random';
 import { ITEMS, ITEM_IDS, type ItemId, type Wearer } from './items';
+import { baseOf, type GearKey } from './items/gear';
 
 export { ITEMS, ITEM_IDS, type ItemId, type Wearer };
 
@@ -44,7 +45,7 @@ export const SLOT_NAMES: Record<EquipSlot, string> = {
 };
 
 // Which item is in each slot; an empty slot is simply missing.
-export type Equipment = Partial<Record<EquipSlot, ItemId>>;
+export type Equipment = Partial<Record<EquipSlot, GearKey>>; // (each a piece as found: its item, level and rarity, items/gear.ts)
 
 export const STARTER_SET: readonly ItemId[] = ['leatherCap', 'gambeson', 'woolHose', 'leatherBoots', 'armingSword', 'plankShield'];
 export const BANDIT_OUTFIT: readonly ItemId[] = ['maskedHood', 'leatherVest', 'ridingGloves', 'beltedTrousers', 'blackBoots', 'shortSword'];
@@ -82,20 +83,24 @@ export function gearOf(wearer: Wearer): Record<EquipSlot, Options> {
 }
 
 // Whether the hair hanging below a head piece shows under it (it's open behind: a cap, a kettle hat, a circlet).
-export function hairShowsUnder(item: ItemId): boolean {
-  return !!(ITEMS[item] as { openBack?: boolean }).openBack;
+export function hairShowsUnder(item: GearKey): boolean {
+  return !!(ITEMS[baseOf(item)] as { openBack?: boolean }).openBack;
 }
 
-export function slotOf(item: ItemId): EquipSlot {
-  return ITEMS[item].slot;
+export function slotOf(item: GearKey): EquipSlot {
+  return ITEMS[baseOf(item)].slot;
 }
 
-export function isWorn(equipment: Equipment, item: ItemId): boolean {
+export function isWorn(equipment: Equipment, item: GearKey): boolean {
   return equipment[slotOf(item)] === item;
 }
 
+// How an outfit looks: each piece by its item (its level and rarity don't show on the body).
+export type Outfit = Partial<Record<EquipSlot, ItemId>>;
+export const lookOf = (equipment: Equipment): Outfit => Object.fromEntries(Object.entries(equipment).map(([slot, key]) => [slot, key && baseOf(key)]));
+
 // Puts the item in its slot, replacing what was there.
-export function wear(equipment: Equipment, item: ItemId): void {
+export function wear(equipment: Equipment, item: GearKey): void {
   equipment[slotOf(item)] = item;
 }
 

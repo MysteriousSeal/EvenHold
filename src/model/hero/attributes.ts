@@ -8,9 +8,12 @@
 // - Stamina: more health, 2 a point.
 // - Endurance: more energy, 5 a point, and spent slower.
 // - Armour: a point less from each blow taken for every 5 (never under 1).
+// Each piece's armour and stats grow with its level, and its rarity adds lines (human/items/gear.ts): more of a stat
+// or armour, or a special one: crit and dodge (on Agility's, under the same cap), health back over time, pace, life
+// on hit (gearAffixes).
 
 import { HERO_DAMAGE } from '../constants';
-import { ITEMS } from '../human/equipment';
+import { AFFIXES, gearSpecs, type Affix } from '../human/items/gear';
 import type { Hero } from '../types';
 import { STATS, type Stat } from './statKinds';
 
@@ -32,10 +35,15 @@ export const maxHpAt = (level: number): number => BASE_HP + HP_PER_LEVEL * (leve
 // What their gear adds to each stat.
 export function gearStats(hero: Pick<Hero, 'equipment'>): Record<Stat, number> {
   const bonus = Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;
-  for (const item of Object.values(hero.equipment)) {
-    for (const [stat, n] of Object.entries(item ? (ITEMS[item].stats ?? {}) : {})) bonus[stat as Stat] += n;
-  }
+  for (const item of Object.values(hero.equipment)) if (item) for (const s of STATS) bonus[s] += gearSpecs(item).stats[s];
   return bonus;
+}
+
+// What their gear's special lines come to, all told (none: 0 each).
+export function gearAffixes(hero: Pick<Hero, 'equipment'>): Record<Affix, number> {
+  const all = Object.fromEntries(AFFIXES.map((a) => [a, 0])) as Record<Affix, number>;
+  for (const item of Object.values(hero.equipment)) if (item) for (const a of AFFIXES) all[a] += gearSpecs(item).affixes[a];
+  return all;
 }
 
 // Each stat, all told: the points they've spent on it, and their gear's.
@@ -44,7 +52,7 @@ export function statsOf(hero: Wearing): Record<Stat, number> {
   return Object.fromEntries(STATS.map((s) => [s, (hero.trained?.[s] ?? 0) + gear[s]])) as Record<Stat, number>;
 }
 
-export const armorOf = (hero: Pick<Hero, 'equipment'>): number => Object.values(hero.equipment).reduce((sum, item) => sum + (item ? (ITEMS[item].armor ?? 0) : 0), 0);
+export const armorOf = (hero: Pick<Hero, 'equipment'>): number => Object.values(hero.equipment).reduce((sum, item) => sum + (item ? gearSpecs(item).armor : 0), 0);
 
 export const maxHpOf = (hero: Wearing): number => maxHpAt(hero.level) + HP_PER_STAMINA * statsOf(hero).stamina;
 export const maxEnergyOf = (hero: Wearing): number => BASE_ENERGY + ENERGY_PER_ENDURANCE * statsOf(hero).endurance;
@@ -52,9 +60,9 @@ export const maxEnergyOf = (hero: Wearing): number => BASE_ENERGY + ENERGY_PER_E
 export const drainOf = (hero: Wearing): number => 1 / (1 + 0.05 * statsOf(hero).endurance);
 
 export const blowOf = (hero: Wearing): number => HERO_DAMAGE + Math.floor(statsOf(hero).strength / STRENGTH_PER_DAMAGE);
-const chance = (hero: Wearing) => Math.min(CHANCE_CAP, statsOf(hero).agility * CHANCE_PER_AGILITY);
-export const dodgeChanceOf = chance;
-export const critChanceOf = chance;
+const chance = (hero: Wearing, more: number) => Math.min(CHANCE_CAP, statsOf(hero).agility * CHANCE_PER_AGILITY + more);
+export const dodgeChanceOf = (hero: Wearing): number => chance(hero, gearAffixes(hero).dodge);
+export const critChanceOf = (hero: Wearing): number => chance(hero, gearAffixes(hero).crit);
 
 // A blow of `damage` as it lands through their armour.
 export const throughArmor = (hero: Pick<Hero, 'equipment'>, damage: number): number => Math.max(1, damage - Math.floor(armorOf(hero) / ARMOR_PER_DAMAGE));
