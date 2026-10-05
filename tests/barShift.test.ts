@@ -153,47 +153,77 @@ describe('the stools', () => {
 });
 
 describe("the tables' tickets", () => {
-  it('called by the server, poured and set down at the pass, paid once all there, taken by her, the empties brought back', () => {
-    const { inn, shift } = behindTheBar(RANKS[4]);
-    const server = serverAt(inn, { x: 9, z: 9 }); // (off at the tables)
+  // A table of the inn, and `n` villagers sat round it.
+  function tableOf(inn: Entrance, seed: number, n: number) {
+    const table = layoutOf(seed, inn).furniture.find((f) => f.kind === 'tavernTable')!;
+    const folk = Array.from({ length: n }, (_, i) => ({ id: 90 + i, name: `T${i}`, role: 'villager', where: inn, x: table.x + (i ? 0.6 : -0.6), z: table.z, seat: { piece: { kind: 'chair' } }, awaiting: false, drinking: null, waited: 0, steps: [] }) as unknown as Npc);
+    return { table, folk };
+  }
+  // The server's steps as she'd walk them: each hand's work done (what she takes up, what she sets down).
+  const walked = (server: Npc) => {
+    for (const step of server.steps.splice(0)) if (step.kind === 'hand') step.then();
+  };
+
+  it('called only for a table with folk sat at it, a drink each, they waiting on it; none for empty tables', () => {
+    const { inn, model, shift } = behindTheBar(RANKS[4]);
+    const server = serverAt(inn, { x: 9, z: 9 });
     run(shift, [server], 9);
+    expect(shift.tickets).toHaveLength(0); // (no one at the tables)
+    const { table, folk } = tableOf(inn, model.seed, 2);
+    run(shift, [server, ...folk], 20);
     expect(shift.tickets).toHaveLength(1);
+    const [ticket] = shift.tickets;
+    expect([ticket.at, ticket.patrons, ticket.ordered.length, ticket.drinks.length]).toEqual([table, folk, 2, 2]);
+    expect(folk.every((n) => n.awaiting)).toBe(true);
+  });
+
+  it('poured, set down at the pass and paid; the server carries them over and sets each down before whoever asked; their empties back', () => {
+    const { inn, model, shift } = behindTheBar(RANKS[4]);
+    const server = serverAt(inn, { x: 9, z: 9 });
+    const { table, folk } = tableOf(inn, model.seed, 2);
+    const all = [server, ...folk];
+    run(shift, all, 9);
     const ticket = shift.tickets[0];
     const drinks = [...ticket.drinks];
-    for (const drink of drinks) poured(shift, drink);
+    for (const drink of drinks) poured(shift, drink, LINE, all);
     const pass = { x: AISLE_X, z: shift.passZ };
     expect(shift.actionAt(pass)).toEqual({ kind: 'pass', drinks: drinks.length });
     expect(shift.use(pass)!).toBeGreaterThan(drinks.length * WAGE);
     expect([ticket.done, shift.served, shift.passMugs.length]).toEqual([true, drinks.length, drinks.length]);
-    Object.assign(server, shift.pickupSpot); // (she comes by)
-    run(shift, [server], 0.1);
-    expect([shift.tickets.includes(ticket), server.carrying]).toEqual([false, drinks[0]]);
-    run(shift, [server], 31);
+    run(shift, all, 0.1);
+    const goes = server.steps.filter((st) => st.kind === 'go').map((st) => (st.kind === 'go' ? st.to : null));
+    expect(goes[0]).toEqual(shift.pickupSpot); // (to the counter's end for them)
+    expect(Math.hypot(goes[1]!.x - table.x, goes[1]!.z - table.z)).toBeLessThanOrEqual(1.5); // (then to the table)
+    walked(server);
+    expect(shift.tickets.includes(ticket)).toBe(false);
+    expect(folk.map((n) => [n.awaiting, n.drinking?.drink])).toEqual(folk.map((_, i) => [false, ticket.ordered[i]])); // (each what they asked for)
+    run(shift, all, 16);
+    expect(folk.every((n) => !n.drinking)).toBe(true); // (had)
+    run(shift, all, 31);
     expect(shift.passEmpties.slice(0, drinks.length).sort()).toEqual([...drinks].sort());
   });
 
-  it("taken from the pass even if the server's never by it (she slips by for them), the empties back all the same", () => {
-    const { inn, shift } = behindTheBar(RANKS[4]);
-    const server = serverAt(inn, { x: 9, z: 9 }); // (off at the tables, the whole time)
-    run(shift, [server], 9);
+  it("with no server about to carry them, set down before them all the same", () => {
+    const { inn, model, shift } = behindTheBar(RANKS[4]);
+    const { folk } = tableOf(inn, model.seed, 1);
+    run(shift, folk, 9);
     const ticket = shift.tickets[0];
-    for (const drink of [...ticket.drinks]) poured(shift, drink, LINE, [server]);
+    for (const drink of [...ticket.drinks]) poured(shift, drink, LINE, folk);
     shift.use({ x: AISLE_X, z: shift.passZ });
-    run(shift, [server], 9);
-    expect(shift.tickets.includes(ticket)).toBe(false);
-    run(shift, [server], 31);
-    expect(shift.passEmpties.length).toBeGreaterThanOrEqual(ticket.set.length);
+    run(shift, folk, 0.1);
+    expect([shift.tickets.includes(ticket), folk[0].drinking?.drink]).toEqual([false, ticket.ordered[0]]);
   });
 
-  it("a ticket left too long, given up on: a walk-out, what was set down for it back to wash", () => {
-    const { inn, shift } = behindTheBar();
-    run(shift, [serverAt(inn, { x: 9, z: 9 })], 9);
+  it('a ticket left too long, given up on: they walk out, what was set down for it back to wash', () => {
+    const { inn, model, shift } = behindTheBar();
+    const { folk } = tableOf(inn, model.seed, 1);
+    run(shift, [serverAt(inn, { x: 9, z: 9 }), ...folk], 9);
     const ticket = shift.tickets[0];
-    ticket.drinks.splice(0, ticket.drinks.length - 1, ...[]); // (one still to pour, the rest set down)
     ticket.set.push({ kind: 'drink', drink: 'ale', grade: 'perfect', streak: 1 });
     ticket.patience = 0.05;
-    run(shift, [], 0.1);
+    run(shift, folk, 0.1);
     expect([shift.tickets.includes(ticket), shift.walkedOut, shift.passEmpties]).toEqual([false, 1, ['ale']]);
+    expect([folk[0].awaiting, folk[0].waited]).toEqual([false, Infinity]);
   });
 });
 
@@ -252,6 +282,23 @@ describe('at work behind the bar', () => {
     const over = model.takeEvents().find((e) => e.kind === 'shift');
     expect(over).toMatchObject({ job: 'Tending the bar', served: 1, tally: '1 perfect pour · 0 spilled' });
   });
+
+  it('sends the barkeep to sit by the fire: an armchair, or with both taken, the chair nearest it', () => {
+    for (const taken of [false, true]) {
+      const model = new GameModel(1, TEST_MAP_SIZE);
+      const inn = model.entrances.find((e) => e.type === 'inn')!;
+      model.enterRoom(inn);
+      const { furniture } = layoutOf(model.seed, inn);
+      const armchairs = furniture.filter((f) => f.kind === 'armchair');
+      const sitters = model.npcs.filter((n) => n.role === 'villager').slice(0, taken ? armchairs.length : 0);
+      for (const [i, n] of sitters.entries()) Object.assign(n, { where: inn, x: armchairs[i].x, z: armchairs[i].z, seat: { piece: armchairs[i] }, steps: [{ kind: 'wait', for: 999 }] });
+      model.work.start(inn, 'innBarkeep');
+      const barkeep = model.folk.find((n) => n.role === 'barkeep' && n.home === inn)!;
+      for (let t = 0; t < 25 && !barkeep.seat; t += 0.1) model.update(0, 0, 0.1);
+      expect(barkeep.seat?.piece.kind, taken ? 'armchairs taken' : 'armchairs free').toBe(taken ? 'chair' : 'armchair');
+      model.work.end(true);
+    }
+  }, 60_000);
 
   it("dresses the hero in the tapster's costume: its every look a costume's", () => {
     const looks = Object.values(COSTUMES.innBarkeep);

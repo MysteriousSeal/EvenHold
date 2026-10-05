@@ -143,7 +143,21 @@ describe('villagers', () => {
         expect(npc.x < counter.x && npc.z < barEnd + 0.5).toBe(false);
       }
     }
-    expect(serverSpots.size).toBeGreaterThan(2); // up and down between the counter and the tables
+    // Up and down between the counter and the tables with folk at them; with none, waiting at the counter's end.
+    const tables = layoutOf(model.seed, inn).furniture.filter((f) => f.kind === 'tavernTable');
+    const sat = () => model.npcs.some((n) => n.where === inn && n.seat?.piece.kind === 'chair');
+    if (!sat()) expect(serverSpots.size).toBeLessThanOrEqual(2); // (no empty table waited on)
+    // A villager sat at a table: she's over to it, and back.
+    const table = tables[0];
+    const chair = layoutOf(model.seed, inn).furniture.find((f) => f.kind === 'chair' && Math.hypot(f.x - table.x, f.z - table.z) <= 1.5)!;
+    const guest = model.npcs.find((n) => n.role === 'villager' && n.where !== inn)!;
+    Object.assign(guest, { where: inn, x: chair.x, z: chair.z, seat: { piece: chair }, steps: [{ kind: 'wait', for: 999 }] });
+    let near = false;
+    for (let t = 0; t < 60 && !near; t += 0.1) {
+      model.update(0, 0, 0.1);
+      near = Math.hypot(server.x - table.x, server.z - table.z) <= 1.6;
+    }
+    expect(near).toBe(true);
   });
 
   it('name women and men each their own way, from the seed', () => {
