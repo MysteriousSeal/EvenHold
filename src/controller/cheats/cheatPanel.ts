@@ -13,6 +13,7 @@
 import type { GameModel } from '../../model/GameModel';
 import {
   nextCamp,
+  nextCave,
   nextRuin,
   nearestLakeShore,
   nearestPack,
@@ -114,13 +115,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const campsSeen = new Set<Camp>(); // and the camps'
   const cavesSeen = new Set<Cave>(); // and the caves'
-  // The nearest cave not yet visited on the tour: the spot before its mouth.
-  const nextCave = (): Tile | null => {
-    const cave = model.caves.filter((c) => !cavesSeen.has(c)).sort((a, b) => Math.hypot(a.entrance.x - model.hero.x, a.entrance.z - model.hero.z) - Math.hypot(b.entrance.x - model.hero.x, b.entrance.z - model.hero.z))[0];
-    if (!cave) return null;
-    cavesSeen.add(cave);
-    return { x: cave.entrance.x, z: cave.entrance.z };
-  };
+
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const herbalists = new Set<Entrance>(); // and the herbalists' houses
   const STYLE_NAMES: Record<HairStyle, string> = {
@@ -210,7 +205,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ]),
           ...group('Dungeons', [
             { icon: ICON.ruin, title: 'Next crypt', detail: 'The nearest ruins you haven’t visited, their crypt in them', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
-            { icon: ICON.ruin, title: 'Next cave', detail: 'The nearest you haven’t visited, before its mouth', run: () => travel(nextCave(), `cave ${cavesSeen.size} of ${model.caves.length}`) },
+            { icon: ICON.ruin, title: 'Next cave', detail: 'The nearest you haven’t visited, before its mouth', run: () => travel(nextCave(model, here(), cavesSeen), `cave ${cavesSeen.size} of ${model.caves.length}`) },
           ]),
           ...group('Wilds', [
             { icon: ICON.camp, title: 'Next bandit camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
