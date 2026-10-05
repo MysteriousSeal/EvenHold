@@ -1,5 +1,6 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
+import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
@@ -272,6 +273,7 @@ async function boot(): Promise<void> {
       if (event.kind === 'coins') floatingText.spawn({ x: hero.x, y: hero.y + head, z: hero.z }, coinText(event.amount), '#ffd35a');
       else if (event.kind === 'quest') floatingText.spawn({ x: event.x, y: event.y + head + 0.2, z: event.z }, [event.done ? `${event.text} ✓` : event.text], event.done ? '#5ae0d8' : '#ffc94a');
       else if (event.kind === 'arrive') placeBanner(event.name, `Level ${event.level}`);
+      else if (event.kind === 'campGate') placeBanner(event.name, ['Bandit camp · ', { text: `Level ${event.level}`, ink: dangerInk(event.level, hero.level) }]); // (its level in how dangerous it is to them)
       else if (event.kind === 'locked') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ["It's locked"], '#f8ecd4');
       else if (event.kind === 'chilled') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Chilled'], '#9fe4ff');
       else if (event.kind === 'webbed') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Webbed'], '#e8e2d6');
