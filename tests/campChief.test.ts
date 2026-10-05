@@ -7,7 +7,7 @@ import { GameModel } from '../src/model/GameModel';
 import { CHIEF_OUTFIT, chiefName } from '../src/model/camps/campChief';
 import { campLevel } from '../src/model/camps/camps';
 import { CAMP_NAMES, campName } from '../src/model/camps/campNames';
-import { chestOf } from '../src/model/camps/campLife';
+import { CAMP_NEAR, chestOf } from '../src/model/camps/campLife';
 import { restore, snapshot } from '../src/model/save';
 import { chestInReach } from '../src/model/loot/chests';
 import { enemyPower } from '../src/model/enemies/enemyLevels';
@@ -88,5 +88,21 @@ describe('a bandit camp cleared', () => {
     for (const e of crewOf(later, later.camps[1])) e.state = 'dead';
     later.update(0, 0, FRAME);
     expect(later.takeEvents().filter((e) => e.kind === 'cleared')).toEqual([]);
+  });
+});
+
+describe('how a bandit camp stands, as the hero comes about it', () => {
+  it('its name, its bandits slain of all of them, its chief; cleared once all are down; its chest; none away from it', () => {
+    const model = new GameModel(2, MID);
+    const camp = model.camps[1];
+    model.teleport(camp.x + CAMP_NEAR + 2, camp.z);
+    expect(model.campLife.status(model.hero)).toBe(null);
+    model.teleport(camp.x + CAMP_NEAR - 1, camp.z);
+    const bandits = crewOf(model, camp).filter((e) => e.kind === 'bandit');
+    expect(model.campLife.status(model.hero)).toEqual({ name: campName(camp, model.seed), bandits: { slain: 0, of: camp.bandits }, chief: { slain: 0, of: 1 }, cleared: false, chestOpened: false });
+    bandits[0].state = 'dead';
+    expect(model.campLife.status(model.hero)?.bandits).toEqual({ slain: 1, of: camp.bandits });
+    for (const e of crewOf(model, camp)) e.state = 'dead';
+    expect(model.campLife.status(model.hero)).toMatchObject({ bandits: { slain: camp.bandits }, chief: { slain: 1 }, cleared: true, chestOpened: false });
   });
 });
