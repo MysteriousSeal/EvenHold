@@ -46,7 +46,7 @@ export interface Hero extends Humanoid {
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother' | 'bear' | 'lynx'; // (bears and lynxes: the wilds' own, fiercer than wolves; skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
+export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother' | 'bear' | 'lynx'; // (a bandit chief: each camp's own, its elite; bears and lynxes: the wilds' own, fiercer than wolves; skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.
@@ -60,7 +60,7 @@ export type GameEvent =
   | { kind: 'blessing'; name: string } // a well's, just given
   | { kind: 'arrive'; name: string; level: number } // somewhere of note gone into (a crypt), and its level
   | { kind: 'campGate'; name: string; level: number } // a bandit camp's gate come up to: its name and level (camps/campGate.ts)
-  | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' } // a dungeon's last foe slain (its boss); `point`: a point to spend given for it; `place`: a cave's (else a crypt's)
+  | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
   | { kind: 'stirs'; name: string } // a cave's brood mother, stirring on her silk (the hero come into her nest)

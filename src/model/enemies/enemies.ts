@@ -10,6 +10,7 @@ import { noticeFactor, type Blessing } from '../hero/blessing';
 import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
+import { CHIEF_OUTFIT, chiefLevel, chiefName, chiefSpot } from '../camps/campChief';
 import type { Ruin } from '../ruins/ruins';
 import { createForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
@@ -73,8 +74,8 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     pathAge: 0,
     lastSeen: null,
     lostFor: 0,
-    // Bandits: someone different each, in their own mix of bandit gear.
-    human: kind === 'bandit' ? { look: lookAt(x, z, 0, 0.25), equipment: pickOutfit('bandit', x, z) } : null, // a woman one time in four
+    // Bandits: someone different each, in their own mix of bandit gear; their chief in the best of it (camps/campChief.ts).
+    human: kind === 'bandit' ? { look: lookAt(x, z, 0, 0.25), equipment: pickOutfit('bandit', x, z) } : kind === 'banditChief' ? { look: lookAt(x, z, 0, 0), equipment: { ...CHIEF_OUTFIT } } : null, // a woman one time in four (a chief, a man)
   };
 }
 
@@ -102,14 +103,18 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
   };
   // The bandits: each camp's own number of them, each on a free tile inside
   // its palisade (not a tent, the fire, the crates or the rack), in an order
-  // rolled from the seed. No other foe starts inside a camp.
+  // rolled from the seed; and their chief, before the banner (camps/campChief.ts).
+  // No other foe starts inside a camp.
   for (const camp of world.camps) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) taken.add(`${camp.x + dx},${camp.z + dz}`);
   const bandits = (camp: Camp) => {
     const spots: Array<[number, number]> = [];
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (world.isOpenTile(camp.x + dx, camp.z + dz)) spots.push([camp.x + dx, camp.z + dz]);
     const roll = ([x, z]: [number, number]) => hashUnit(x, z, world.seed + 56);
     spots.sort((a, b) => roll(a) - roll(b));
-    for (const [x, z] of spots.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)), pen: 2 });
+    const chief = chiefSpot(camp, spots);
+    const rest = spots.filter((s) => s !== chief);
+    for (const [x, z] of rest.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)), pen: 2 });
+    if (chief) enemies.push({ ...makeEnemy(enemies.length, 'banditChief', chief[0], chief[1], camp.x, camp.z, chiefLevel(world.hero, camp)), pen: 2, name: chiefName(camp, world.seed) });
   };
 
   // One of each a short walk from spawn, so there's something to fight right away.

@@ -17,6 +17,9 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 export const ENEMY_STATS = {
   wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5], shove: 1, loot: 1 },
   bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5], shove: 1, loot: 1 },
+  // A bandit chief (camps/campChief.ts): each camp's leader, a bandit as any but bigger and heavier-hitting (three
+  // bandits' health, half as much again their blows), harder to knock about, a good deal more to learn from.
+  banditChief: { family: 'humanoid', passive: false, hp: 15, damage: 3, xp: 100, coins: 10, radius: 0.16, walk: 0.85, run: 2.3, sight: 3, giveUp: 10, wander: 1.5, stop: 0.65, swing: 0.8, cooldown: 1.15, rest: [2, 3], shove: 0.5, loot: 1 },
   boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6, rest: [1.5, 2.5], shove: 1, loot: 1 },
   // The crypts' guards (crypts/cryptFoes.ts): shambling about their posts, slow, pausing long, seeing far down the dark passages.
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.

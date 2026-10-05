@@ -119,7 +119,7 @@ export const campTiles = (camp: { x: number; z: number }): Array<{ x: number; z:
 
 // Turns a local camp offset by the camp's quarter turns (as three.js turns an
 // instance: (x, z) -> (z, -x) per turn).
-function turn(dx: number, dz: number, quarterTurns: number): [number, number] {
+export function turn(dx: number, dz: number, quarterTurns: number): [number, number] {
   let [x, z] = [dx, dz];
   for (let q = 0; q < quarterTurns; q++) [x, z] = [z, -x];
   return [x, z];
