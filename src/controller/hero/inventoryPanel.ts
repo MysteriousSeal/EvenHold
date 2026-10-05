@@ -18,7 +18,8 @@ import { BAG_GROUPS, groupOf, isLootItem, kindOf, type BagItem } from '../../mod
 import { bagStacks, moveSlot, sortedBag } from '../../model/hero/bagStacks';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, type BagId } from '../../model/loot/bags';
-import { ITEMS, SLOT_NAMES, type ItemId } from '../../model/human/equipment';
+import { SLOT_NAMES } from '../../model/human/equipment';
+import { canWear, gearName, rarityOf, slotOfGear, type GearKey } from '../../model/human/items/gear';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { sellValue } from '../../model/shops/sellValue';
@@ -91,17 +92,21 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
       },
     };
   }
-  const gear = item as ItemId;
+  const gear = item as GearKey;
+  const slot = slotOfGear(gear);
+  const wearable = canWear(gear, model.hero.level);
   return {
     icon: bagIcon(gear),
     count,
-    title: ITEMS[gear].name,
-    lines: [toned('kind', SLOT_NAMES[ITEMS[gear].slot]), ...gearLines(gear), ...againstWorn(gear, model.hero.equipment), toned('hint', `Drag onto your hero's ${SLOT_NAMES[ITEMS[gear].slot].toLowerCase()} slot to wear it`)],
-    fits: ITEMS[gear].slot,
+    title: gearName(gear),
+    tone: rarityOf(gear), // (its name and frame in its rarity's colour)
+    warn: !wearable, // (under its level: shown red)
+    lines: [toned('kind', SLOT_NAMES[slot]), ...gearLines(gear, model.hero.level), ...againstWorn(gear, model.hero.equipment), toned('hint', wearable ? `Drag onto your hero's ${SLOT_NAMES[slot].toLowerCase()} slot to wear it` : 'Too high a level to wear yet')],
+    fits: slot,
     // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {
       const target = over?.closest<HTMLElement>('[data-accepts]');
-      if (target?.dataset.accepts === ITEMS[gear].slot) model.equipFromBag(gear);
+      if (target?.dataset.accepts === slot) model.equipFromBag(gear);
       else if (!over?.closest('.menu')) model.dropFromBag(gear, at);
     },
   };

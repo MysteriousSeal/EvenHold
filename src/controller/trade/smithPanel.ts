@@ -5,8 +5,11 @@
 
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
-import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
-import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../../model/smithy/smithShop';
+import { ITEMS, type EquipSlot } from '../../model/human/equipment';
+import { baseOf, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
+import { zoneLevel } from '../../model/enemies/enemyLevels';
+import { spawnOf } from '../../model/map/grid';
+import { buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -76,23 +79,24 @@ const JUNK_LOT = [
 ];
 
 export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(smith: Npc): void; update(): void; menu: Menu } {
-  const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+  const level = () => zoneLevel(spawnOf(model.size), model.inside!.entrance); // (his village's: what he forges is at it)
+  const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance), Date.now(), level());
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => SMITH_WARES,
+    wares: () => Object.keys(shop().stock).filter(isGear), // (his forged pieces, at his village's level)
     wanted: smithBuys,
-    price: (id, selling) => (selling ? gearSellPrice(id as ItemId) : gearPrice(id as ItemId)),
+    price: (id, selling) => (selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey)),
     trade: (id, selling) => {
-      const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as ItemId);
+      const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey);
       return result === 'he is short' ? 'short' : result;
     },
     lines: LINES,
-    about: (id) => pick(ABOUT[ITEMS[id as ItemId].slot] ?? LINES.hello),
+    about: (id) => pick(ABOUT[slotOfGear(id as GearKey)] ?? LINES.hello),
     offered: (name) => `${name}? I'll give you what the iron's worth.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
-    blurb: (id) => (ITEMS[id as ItemId].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
-    facts: (id) => [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
+    blurb: (id) => (ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
+    facts: (id) => [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
   });
 }

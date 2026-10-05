@@ -7,7 +7,8 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { HERO_SPEED } from '../../model/constants';
-import { ITEMS, SLOT_NAMES, type EquipSlot } from '../../model/human/equipment';
+import { SLOT_NAMES, type EquipSlot } from '../../model/human/equipment';
+import { gearName, rarityOf } from '../../model/human/items/gear';
 import { xpToNext } from '../../model/hero/heroStats';
 import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf } from '../../model/hero/attributes';
 import { STATS, STAT_NAMES, type Stat } from '../../model/hero/statKinds';
@@ -41,7 +42,8 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
       slot: item
         ? {
             icon: gearIcon(item),
-            title: ITEMS[item].name,
+            title: gearName(item),
+            tone: rarityOf(item), // (its name and frame in its rarity's colour)
             lines: [toned('kind', `${SLOT_NAMES[which]} · worn`), ...gearLines(item), toned('hint', 'Drag into your bag, or onto the ground')],
             // Onto another window (the bag): into the bag. Onto the world: on the ground.
             fits: which,

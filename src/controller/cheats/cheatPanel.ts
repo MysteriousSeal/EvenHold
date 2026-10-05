@@ -41,7 +41,6 @@ import {
   pickOutfit,
   slotOf,
   wear,
-  type ItemId,
 } from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
@@ -67,6 +66,7 @@ import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
 import { blessAll } from '../../model/hero/blessing';
 import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
+import { RARITIES, baseOf, gearKey, gearName, type GearKey } from '../../model/human/items/gear';
 import { randomName } from '../../model/npcs/npcs';
 import type { Ruin } from '../../model/ruins/ruins';
 import type { Cave } from '../../model/caves/caves';
@@ -105,7 +105,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   const [seenScenery, seenMeadows, seenLife] = [new Set<Scenery>(), new Set<string>(), new Set<string>()]; // (the Sights' tours)
   let banditDraws = 0; // for "Random bandit": a new outfit each time
   // Replaces everything the hero wears with `items`.
-  const dress = (items: readonly ItemId[]) => {
+  const dress = (items: readonly GearKey[]) => {
     for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
     for (const item of items) wear(model.hero.equipment, item);
   };
@@ -328,6 +328,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ...group('Outfits', [
             { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
             { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
+            { icon: ICON.starterSet, title: 'Gear of each rarity', detail: 'A piece of each, at your level, into the bag', run: () => (give(RARITIES.map((rarity, i) => gearKey({ item: STARTER_SET[i % STARTER_SET.length], level: model.hero.level, rarity, roll: Math.floor(Math.random() * 1000) }))), 'Five pieces, common to legendary, in the bag.') },
             { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
             { icon: ICON.bandit, title: 'Random bandit outfit', detail: 'A new mix of what bandits wear, each time', run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.') },
           ]),
@@ -340,14 +341,15 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
               return {
                 title: SLOT_NAMES[slot],
                 run: () => {
-                  const next = choices[(choices.indexOf(worn()) + 1) % choices.length];
+                  const now = worn();
+                  const next = choices[(choices.indexOf(now && baseOf(now)) + 1) % choices.length];
                   if (next) wear(model.hero.equipment, next);
                   else delete model.hero.equipment[slot];
                   return next ? `${ITEMS[next].name} on.` : `Nothing on the ${SLOT_NAMES[slot].toLowerCase()}.`;
                 },
                 current: () => {
                   const item = worn();
-                  return { detail: item ? ITEMS[item].name : 'Nothing', icon: item ? itemIcon(item) : undefined, value: `${choices.indexOf(item)} of ${choices.length - 1}` };
+                  return { detail: item ? gearName(item) : 'Nothing', icon: item ? itemIcon(item) : undefined, value: `${choices.indexOf(item && baseOf(item))} of ${choices.length - 1}` };
                 },
               };
             }),
