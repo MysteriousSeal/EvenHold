@@ -5,10 +5,11 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { CHIEF_OUTFIT, chiefName } from '../src/model/camps/campChief';
-import { campLevel } from '../src/model/camps/campGate';
+import { campLevel } from '../src/model/camps/camps';
 import { CAMP_NAMES, campName } from '../src/model/camps/campNames';
 import { chestOf } from '../src/model/camps/campLife';
 import { restore, snapshot } from '../src/model/save';
+import { chestInReach } from '../src/model/loot/chests';
 import { enemyPower } from '../src/model/enemies/enemyLevels';
 import type { Camp } from '../src/model/camps/camps';
 import { FRAME } from './support/testWorld';
@@ -44,16 +45,19 @@ describe("a bandit camp's chest", () => {
     expect(model.campLife.chestInReach(model.hero)).toBe(camp);
     expect(model.campLife.locked(camp)).toBe(true);
     const [loot, coins] = [model.loot.length, model.coins.length];
+    expect(chestInReach(model)?.what).toBe('locked'); // (what E finds there)
     expect(model.campLife.openChest(camp)).toBe(false); // (locked)
     expect([model.loot.length, model.coins.length]).toEqual([loot, coins]);
     chiefOf(model, camp).state = 'dead';
     expect(model.campLife.locked(camp)).toBe(false);
-    expect(model.campLife.openChest(camp)).toBe(true);
+    expect(chestInReach(model)?.what).toBe('chest');
+    chestInReach(model)!.open(); // (E)
     expect(model.loot.length).toBe(loot + 1);
     expect(model.coins.length).toBe(coins + 1);
     for (const thing of [model.loot.at(-1)!, model.coins.at(-1)!]) expect(Math.hypot(thing.x - chest.x, thing.z - chest.z)).toBeLessThan(0.8);
     expect(model.campLife.opened(camp)).toBe(true);
     expect(model.campLife.chestInReach(model.hero)).toBe(null);
+    expect(chestInReach(model)).toBe(null);
     expect(model.campLife.openChest(camp)).toBe(false); // (once)
     const again = new GameModel(1, MID);
     restore(again, JSON.parse(JSON.stringify(snapshot(model))));

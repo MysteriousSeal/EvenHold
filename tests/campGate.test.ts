@@ -5,7 +5,7 @@
 // names many; its level its ground's, its bandits that or one either side.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { campLevel } from '../src/model/camps/campGate';
+import { campLevel } from '../src/model/camps/camps';
 import { CAMP_NAMES, CAMP_NAME_COUNT, campName } from '../src/model/camps/campNames';
 import { FRAME } from './support/testWorld';
 
