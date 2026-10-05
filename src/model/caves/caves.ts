@@ -80,7 +80,7 @@ export function placeCaves(world: CaveWorld, area: Area = wholeMap(world.size)):
         const [x, z] = [x0 + Math.floor(rng() * w), z0 + Math.floor(rng() * d)];
         const cave = mouthAt(world, x, z, Math.floor(rng() * 4), inMap, wild, h);
         if (cave) {
-          caves.push({ ...cave, level: zoneLevel(spawn, cave.mouth), name: caveName(x, z, world.seed) });
+          caves.push({ ...cave, level: zoneLevel(spawn, cave.mouth), name: caveName({ x, z }, world.seed) });
           break;
         }
       }

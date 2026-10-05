@@ -6,7 +6,7 @@
 import { VILLAGE_OUTER_RADIUS as R } from '../constants';
 import type { Building, House, Village } from '../types';
 import { solidCells } from '../worldgen/world';
-import { nearVillage } from '../worldgen/nearVillage';
+import { nearVillage } from '../villages/nearVillage';
 import { cellKey } from '../map/grid';
 
 export interface BoardSpot {

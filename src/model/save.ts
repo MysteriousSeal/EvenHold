@@ -24,6 +24,7 @@ import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
 import { doorNumber, doorPlace, type Entrance } from './interiors/interiors';
+import { villagePlace } from './villages/villageNumber';
 import { PEDLAR_KEY } from './travellers/travellers';
 import { HERBALIST_KEY } from './herbalist/herbalistShop';
 import { letUntil, setLet } from './inn/roomLetting';
@@ -169,7 +170,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const places = [saved.inside !== null ? doorPlace(saved.inside) : { x: saved.x, z: saved.z }, ...(typeof saved.lastInn === 'number' ? [doorPlace(saved.lastInn)] : [])];
     for (const { key } of Array.isArray(data.quests?.taken) ? data.quests.taken : []) {
       const board = Number(String(key).split(':')[0]);
-      if (Number.isInteger(board) && board >= 0) places.push({ x: Math.floor(board / model.size.depth), z: board % model.size.depth }); // (a board's number: its village's place)
+      if (Number.isInteger(board) && board >= 0) places.push(villagePlace(board, model.size.depth)); // (a board's number: its village's place)
     }
     for (const { x, z } of places) if (Number.isFinite(x) && Number.isFinite(z)) model.makeAround(x, z);
   }

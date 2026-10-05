@@ -13,7 +13,7 @@
 // on hit (gearAffixes).
 
 import { HERO_DAMAGE } from '../constants';
-import { AFFIXES, gearSpecs, type Affix } from '../human/items/gear';
+import { AFFIXES, gearSpecs, noSpecs, type Affix, type GearSpecs } from '../human/items/gear';
 import type { Hero } from '../types';
 import { STATS, type Stat } from './statKinds';
 
@@ -32,19 +32,30 @@ type Wearing = Pick<Hero, 'level' | 'equipment' | 'trained'>;
 // Health at `level`, with nothing on and no points in Stamina.
 export const maxHpAt = (level: number): number => BASE_HP + HP_PER_LEVEL * (level - 1);
 
-// What their gear adds to each stat.
-export function gearStats(hero: Pick<Hero, 'equipment'>): Record<Stat, number> {
-  const bonus = Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;
-  for (const item of Object.values(hero.equipment)) if (item) for (const s of STATS) bonus[s] += gearSpecs(item).stats[s];
-  return bonus;
+// What all they wear gives, added up once for what they wear (asked each frame: their pace, their health back),
+// again only once that changes. (Not to be changed by those asking.)
+const worn = new WeakMap<Hero['equipment'], { pieces: string; specs: GearSpecs }>();
+function wornSpecs(hero: Pick<Hero, 'equipment'>): GearSpecs {
+  const pieces = Object.values(hero.equipment).join('|');
+  const kept = worn.get(hero.equipment);
+  if (kept?.pieces === pieces) return kept.specs;
+  const specs = noSpecs();
+  for (const item of Object.values(hero.equipment)) {
+    if (!item) continue;
+    const g = gearSpecs(item);
+    specs.armor += g.armor;
+    for (const s of STATS) specs.stats[s] += g.stats[s];
+    for (const a of AFFIXES) specs.affixes[a] += g.affixes[a];
+  }
+  worn.set(hero.equipment, { pieces, specs });
+  return specs;
 }
 
+// What their gear adds to each stat.
+export const gearStats = (hero: Pick<Hero, 'equipment'>): Readonly<Record<Stat, number>> => wornSpecs(hero).stats;
+
 // What their gear's special lines come to, all told (none: 0 each).
-export function gearAffixes(hero: Pick<Hero, 'equipment'>): Record<Affix, number> {
-  const all = Object.fromEntries(AFFIXES.map((a) => [a, 0])) as Record<Affix, number>;
-  for (const item of Object.values(hero.equipment)) if (item) for (const a of AFFIXES) all[a] += gearSpecs(item).affixes[a];
-  return all;
-}
+export const gearAffixes = (hero: Pick<Hero, 'equipment'>): Readonly<Record<Affix, number>> => wornSpecs(hero).affixes;
 
 // Each stat, all told: the points they've spent on it, and their gear's.
 export function statsOf(hero: Wearing): Record<Stat, number> {
@@ -52,7 +63,7 @@ export function statsOf(hero: Wearing): Record<Stat, number> {
   return Object.fromEntries(STATS.map((s) => [s, (hero.trained?.[s] ?? 0) + gear[s]])) as Record<Stat, number>;
 }
 
-export const armorOf = (hero: Pick<Hero, 'equipment'>): number => Object.values(hero.equipment).reduce((sum, item) => sum + (item ? gearSpecs(item).armor : 0), 0);
+export const armorOf = (hero: Pick<Hero, 'equipment'>): number => wornSpecs(hero).armor;
 
 export const maxHpOf = (hero: Wearing): number => maxHpAt(hero.level) + HP_PER_STAMINA * statsOf(hero).stamina;
 export const maxEnergyOf = (hero: Wearing): number => BASE_ENERGY + ENERGY_PER_ENDURANCE * statsOf(hero).endurance;

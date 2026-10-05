@@ -9,7 +9,7 @@
 
 import type { EquipSlot } from '../equipment';
 import type { Stat } from '../../hero/statKinds';
-import { STATS } from '../../hero/statKinds';
+import { STATS, isStat } from '../../hero/statKinds';
 import { hashUnit } from '../../../util/random';
 import { ITEMS, type ItemId } from './index';
 
@@ -93,22 +93,25 @@ const SPECIAL_ODDS = 0.35; // an extra line's chance of being a special one (rar
 
 const specsMade = new Map<string, GearSpecs>();
 
+// Nothing given (an empty slot's).
+export const noSpecs = (): GearSpecs => ({
+  armor: 0,
+  stats: Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>,
+  affixes: Object.fromEntries(AFFIXES.map((a) => [a, 0])) as Record<Affix, number>,
+  lines: [],
+});
+
 // What a piece gives, all told: its own armour and stats (grown with its level), then its rarity's lines.
 export function gearSpecs(key: GearKey): GearSpecs {
   const made = specsMade.get(key);
   if (made) return made;
   const { item, level, rarity, roll } = gearOf(key);
   const entry = ITEMS[item];
-  const specs: GearSpecs = {
-    armor: 0,
-    stats: Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>,
-    affixes: Object.fromEntries(AFFIXES.map((a) => [a, 0])) as Record<Affix, number>,
-    lines: [],
-  };
+  const specs = noSpecs();
   const add = (kind: SpecLine['kind'], amount: number, extra: boolean) => {
     if (amount <= 0) return;
     if (kind === 'armor') specs.armor += amount;
-    else if ((STATS as readonly string[]).includes(kind)) specs.stats[kind as Stat] += amount;
+    else if (isStat(kind)) specs.stats[kind] += amount;
     else specs.affixes[kind as Affix] += amount;
     specs.lines.push({ kind, amount, extra });
   };
@@ -122,7 +125,7 @@ export function gearSpecs(key: GearKey): GearSpecs {
     const pool = (special ? [...AFFIXES] : [...STATS, 'armor' as const]).filter((k) => !taken.has(k));
     const kind = pool[Math.floor(pick(2) * pool.length)] ?? STATS.find((s) => !taken.has(s))!;
     taken.add(kind);
-    const amount = kind === 'armor' ? ARMOR_LINE(level, tier) : (STATS as readonly string[]).includes(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier);
+    const amount = kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier);
     add(kind, amount, true);
   }
   specsMade.set(key, specs);

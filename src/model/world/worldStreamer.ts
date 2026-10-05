@@ -8,8 +8,8 @@ import { LiveWorld, type RegionBuilt } from './liveWorld';
 import { STREAMED_SIZE as STREAMED, generateRegionLand } from '../worldgen/regions';
 import type { MapSize } from '../map/grid';
 
-export const LOAD_REACH = 320; // tiles round the hero within which every region's made
-export const KEEP_REACH = 768; // and past which one's let go
+const LOAD_REACH = 320; // tiles round the hero within which every region's made
+const KEEP_REACH = 768; // and past which one's let go
 
 // Where regions come from: asked for, handed back made and peopled (at once, or a while after: a worker's).
 export interface RegionSource {
@@ -62,7 +62,7 @@ export class WorldStreamer {
     const { world } = this;
     for (const [rx, rz] of this.within(at.x, at.z, LOAD_REACH)) {
       const index = world.regionIndex(rx, rz);
-      if (world.wanted(rx, rz) || this.asked.has(index)) continue;
+      if (world.isLoaded(rx, rz) || this.asked.has(index)) continue;
       this.asked.add(index);
       this.source.request(rx, rz);
     }
@@ -70,9 +70,8 @@ export class WorldStreamer {
     const built = this.arrived.shift(); // (one a frame)
     if (built && this.asked.delete(world.regionIndex(built.rx, built.rz))) world.adopt(built); // (unless let go while it was being made)
     const keep = new Set(this.within(at.x, at.z, KEEP_REACH).map(([rx, rz]) => world.regionIndex(rx, rz)));
-    const across = Math.ceil(world.size.depth / world.regionSize);
     const far = world.loaded().find((index) => !keep.has(index)); // (one a frame: each a few milliseconds' letting go)
-    if (far !== undefined) world.unload(Math.floor(far / across), far % across);
+    if (far !== undefined) world.unload(...world.regionAt(far));
     for (const index of [...this.asked]) if (!keep.has(index)) this.asked.delete(index);
   }
 

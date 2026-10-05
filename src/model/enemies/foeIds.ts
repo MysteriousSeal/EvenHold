@@ -6,7 +6,7 @@
 import { FIRST_MOB_ID } from '../quests/questBook';
 
 export const STREAMED_FOE_ID = 2 ** 48; // (past any quest's: theirs reach 1e13 at most; all still exact integers)
-export const REGION_FOES = 2 ** 20; // ids in each region's block
+const REGION_FOES = 2 ** 20; // ids in each region's block
 
 // The first id of the foes of a streamed world's region `index` (its place in the regions, row by row).
 export const regionFoeId = (index: number): number => STREAMED_FOE_ID + index * REGION_FOES;

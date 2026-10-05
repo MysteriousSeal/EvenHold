@@ -14,7 +14,7 @@ export interface RegionAsk {
 }
 
 // The buffers of a region made, handed over with it (its tiles' and its ground's blocks').
-export const bulkOf = (built: RegionBuilt): ArrayBuffer[] => {
+const bulkOf = (built: RegionBuilt): ArrayBuffer[] => {
   const { heights, lakes, surfaces } = built.tiles;
   const { solid, prop, low, round, fenced } = built.page;
   return [heights, lakes, surfaces, solid, prop, low, round, fenced].map((a) => a.buffer as ArrayBuffer);

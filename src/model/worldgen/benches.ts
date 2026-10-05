@@ -10,7 +10,7 @@ import { NEIGHBORS_4, cellKey } from '../map/grid';
 import type { Seat } from '../interiors/furniture';
 import { entrancesOf } from '../interiors/interiors';
 import { boardFor, type BoardWorld } from '../quests/noticeBoards';
-import { nearVillage } from './nearVillage';
+import { nearVillage } from '../villages/nearVillage';
 import type { Village } from '../types';
 import { hashUnit } from '../../util/random';
 import { solidCells } from './world';

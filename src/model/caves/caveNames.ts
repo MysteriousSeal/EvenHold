@@ -17,7 +17,7 @@ export const CAVE_NAMES = {
   tails: ['delve', 'hole', 'warren', 'burrow', 'holt', 'hollow', 'pit', 'deep', 'den', 'gullet'],
 } as const;
 
-export function caveName(x: number, z: number, seed: number): string {
+export function caveName({ x, z }: { x: number; z: number }, seed: number): string {
   const { holes, owners, kinds, heads, tails } = CAVE_NAMES;
   const pick = pickAt(x, z, seed * 137);
   const form = hashUnit(x, z, seed * 137 + 500);

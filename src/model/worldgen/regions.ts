@@ -59,7 +59,7 @@ export interface RegionLand {
   bushes: Bush[];
 }
 
-export const regionSeed = (seed: number, rx: number, rz: number): number => hashCell(rx * 7919 + 13, rz * 104729 + 7, seed);
+const regionSeed = (seed: number, rx: number, rz: number): number => hashCell(rx * 7919 + 13, rz * 104729 + 7, seed);
 
 // The world's own: its terrain noise, and how lake-prone it is (drawn as a classic world's are: world.ts).
 function worldNature(seed: number): { noise2D: (x: number, y: number) => number; lakeThreshold: number } {
@@ -103,7 +103,7 @@ export function regionGround(seed: number, x0: number, z0: number, width: number
 
 // One smoothing pass, every tile from the last pass's ground (so each depends only on those round it): within a tier
 // of each of its four neighbours, else halfway between the two most apart.
-export function smoothedOnce(map: number[][]): number[][] {
+function smoothedOnce(map: number[][]): number[][] {
   const [w, d] = [map.length, map[0].length];
   return map.map((row, x) =>
     row.map((h, z) => {

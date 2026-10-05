@@ -31,6 +31,7 @@ import { TravellerCrowd } from '../travellers/travellerCrowd';
 import { spawnWildlife, type Wildlife } from '../wildlife/wildlife';
 import { doorNumber, entrancesOf, type Entrance } from '../interiors/interiors';
 import { spawnNpcs, type Npc } from '../npcs/npcs';
+import { villageNumber } from '../villages/villageNumber';
 
 // What the world's life needs of the game: whose world, the hero (where they are, to walk among), the ground's height
 // where they stand, and the foes slain for good.
@@ -125,7 +126,7 @@ export class LiveWorld {
   // A classic world: made whole, one region, peopled at once.
   static classic(host: WorldHost, land: Omit<RegionLand, 'tiles'> & { tiles: TilePatch }, size: MapSize): LiveWorld {
     const world = new LiveWorld(host, size, Math.max(size.width, size.depth), land.tiles);
-    for (const _ of world.people(land, true)); // (all at once)
+    world.people(land, true);
     return world;
   }
 
@@ -140,6 +141,11 @@ export class LiveWorld {
 
   regionIndex(rx: number, rz: number): number {
     return rx * this.across + rz;
+  }
+
+  // A region's (rx, rz), from its index.
+  regionAt(index: number): [number, number] {
+    return [Math.floor(index / this.across), index % this.across];
   }
 
   isLoaded(rx: number, rz: number): boolean {
@@ -180,14 +186,9 @@ export class LiveWorld {
   contents(index: number): (Known & Alive & { area: Area }) | null {
     const [known, alive] = [this.known.get(index), this.alive.get(index)];
     if (!known || !alive) return null;
-    const [rx, rz] = [Math.floor(index / this.across), index % this.across];
+    const [rx, rz] = this.regionAt(index);
     const [x0, z0] = [rx * this.regionSize, rz * this.regionSize];
     return { ...known, ...alive, area: { x0, z0, x1: Math.min(this.size.width, x0 + this.regionSize), z1: Math.min(this.size.depth, z0 + this.regionSize) } };
-  }
-
-  // Whether region (rx, rz) is made.
-  wanted(rx: number, rz: number): boolean {
-    return this.alive.has(this.regionIndex(rx, rz));
   }
 
   // A region of a streamed world of `seed` made and peopled (off the game's thread, where it can be: a worker's), for
@@ -198,7 +199,7 @@ export class LiveWorld {
     const world = new LiveWorld({ seed, hero: { ...spawn } as Hero, slain: new Set(), slay: () => {} }, size, REGION, new RegionTiles(size, REGION));
     (world.tiles as RegionTiles).add(land.tiles);
     world.obstacles.open(land.rx, land.rz);
-    for (const _ of world.people(land, false, false));
+    world.people(land, false, false);
     const index = world.regionIndex(land.rx, land.rz);
     const { x0, z0, width, depth, heights, lakes, surfaces } = land.tiles;
     return { rx: land.rx, rz: land.rz, tiles: { x0, z0, width, depth, heights, lakes, surfaces }, ...world.obstacles.pageOfRegion(land.rx, land.rz)!, known: world.known.get(index)!, alive: world.alive.get(index)! };
@@ -215,28 +216,42 @@ export class LiveWorld {
     const was = this.known.get(index);
     const known = was ?? built.known;
     if (was) relink(built, was);
-    else {
-      registerCrypts(known.crypts);
-      registerCaves(known.caves);
-      this.known.set(index, known);
-      for (const k of KNOWN) appendAll(this[k] as unknown[], known[k]);
-      for (const door of known.entrances) this.doors.set(doorNumber(door), door);
-      for (const v of known.villages) {
-        const n = this.streamed ? v.x * this.size.depth + v.z : this.villageNumbers.size;
-        this.villageNumbers.set(v, n);
-        this.villagesByNumber.set(n, v);
-      }
+    else this.learn(index, known);
+    this.live(index, { ...built.alive, enemies: this.standing(built.alive.enemies) }, this.travellersOf(index, known));
+  }
+
+  // What's known of region `index`, from its first making: kept, its lists added to the world's, its crypts and caves
+  // registered, its doors and villages numbered.
+  private learn(index: number, known: Known): void {
+    registerCrypts(known.crypts);
+    registerCaves(known.caves);
+    this.known.set(index, known);
+    for (const k of KNOWN) appendAll(this[k] as unknown[], known[k]);
+    for (const door of known.entrances) this.doors.set(doorNumber(door), door);
+    for (const v of known.villages) {
+      const n = this.streamed ? villageNumber(v, this.size.depth) : this.villageNumbers.size;
+      this.villageNumbers.set(v, n);
+      this.villagesByNumber.set(n, v);
     }
-    const enemies = built.alive.enemies.filter((e) => !this.host.slain.has(e.id));
-    for (const e of enemies) {
-      const kept = this.remembered.get(e.id);
-      if (kept) Object.assign(e, { x: kept.x, z: kept.z, hp: Math.min(e.maxHp, kept.hp), y: this.groundY(kept.x, kept.z) });
-    }
-    const alive: Alive = { ...built.alive, enemies };
+  }
+
+  // What lives on region `index` (and its band of travellers), added to the world's.
+  private live(index: number, alive: Alive, travellers: Travellers | null): void {
     this.alive.set(index, alive);
     for (const k of ALIVE) appendAll(this[k] as unknown[], alive[k]);
-    this.travellers.add(index, this.travellersOf(index, known));
+    if (travellers) this.travellers.add(index, travellers);
     this.changes++;
+  }
+
+  // A region's foes as they stand: the slain gone for good, the hurt and wandered where they were left.
+  private standing(enemies: readonly Enemy[]): Enemy[] {
+    const left = enemies.filter((e) => !this.host.slain.has(e.id));
+    for (const e of left) {
+      const was = this.remembered.get(e.id);
+      if (was) Object.assign(e, { x: was.x, z: was.z, hp: Math.min(e.maxHp, was.hp) });
+      e.y = this.groundY(e.x, e.z);
+    }
+    return left;
   }
 
   // A region's band on its roads.
@@ -254,12 +269,7 @@ export class LiveWorld {
     if (!alive) return;
     this.alive.delete(index);
     for (const e of alive.enemies) if (e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05)) this.remembered.set(e.id, { x: e.x, z: e.z, hp: e.hp });
-    removeAll(this.trees, alive.trees);
-    removeAll(this.bushes, alive.bushes);
-    removeAll(this.scenery, alive.scenery);
-    removeAll(this.enemies, alive.enemies);
-    removeAll(this.wildlife, alive.wildlife);
-    removeAll(this.npcs, alive.npcs);
+    for (const k of ALIVE) removeAll(this[k] as unknown[], alive[k]);
     this.travellers.remove(index);
     this.changes++;
     this.obstacles.close(rx, rz);
@@ -267,88 +277,40 @@ export class LiveWorld {
   }
 
   // Everything on region `land`, in the order a classic world's always was made (its ids, from 0 in a classic world,
-  // from its region's block in a streamed one).
-  private *people(land: Omit<RegionLand, 'tiles'>, classic: boolean, withTravellers = true): Generator<void> {
+  // from its region's block in a streamed one). Only ever on a world just made (a classic one; a worker's, for one
+  // region: build): a region made again is linked to what's known of it as it's adopted.
+  private people(land: Omit<RegionLand, 'tiles'>, classic: boolean, withTravellers = true): void {
     const index = this.regionIndex(land.rx, land.rz);
     const { seed } = this.host;
     const { size, tiles, obstacles } = this;
     const area: Area = classic ? { x0: 0, z0: 0, x1: size.width, z1: size.depth } : { x0: land.x0, z0: land.z0, x1: Math.min(size.width, land.x0 + this.regionSize), z1: Math.min(size.depth, land.z0 + this.regionSize) };
     const spawn = spawnOf(size);
     const isOpenTile = (x: number, z: number) => obstacles.isOpenTile(x, z);
-    const first = !this.known.has(index);
-    const known: Known = this.known.get(index) ?? { trails: land.trails, roads: land.roads, villages: land.villages, houses: land.houses, buildings: land.buildings, fields: land.fields, ruins: land.ruins, camps: land.camps, crypts: [], caves: [], entrances: [] };
-    const { villages, houses, buildings, fields, ruins, camps } = known;
+    const { trails, roads, villages, houses, buildings, fields, ruins, camps } = land;
     for (const key of solidCells({ villages, houses, buildings })) {
       const [x, z] = key.split(',').map(Number);
       obstacles.addSolid(x, z);
     }
-    const blockers = { size, tiles, villages, houses, buildings, fields, seed };
-    if (classic) addWorldObstacles(obstacles, { ...blockers, trees: land.trees, bushes: land.bushes });
-    else {
-      addWorldObstacles(obstacles, { ...blockers, trees: [], bushes: [] });
-      yield; // (a region's trees and bushes, tens of thousands: a step of their own)
-      addWorldObstacles(obstacles, { size, tiles, villages: [], houses: [], buildings: [], fields: [], seed, trees: land.trees, bushes: land.bushes });
-    }
+    addWorldObstacles(obstacles, { size, tiles, villages, houses, buildings, fields, seed, trees: land.trees, bushes: land.bushes });
     addRuinObstacles(obstacles, ruins); // (before the foes, to stand clear of them)
     addCampObstacles(obstacles, camps);
-    yield;
-    if (first) known.crypts = placeCrypts({ seed, size, ruins, tiles, isOpenTile }); // a stairway down in each ruin (its tile blocked: down with E)
-    addCryptObstacles(obstacles, known.crypts);
-    if (first) known.caves = placeCaves({ seed, size, tiles, villages, ruins, camps, isOpenTile }, area); // a mouth in a hillside in each stretch of the wilds that has one
-    addCaveObstacles(obstacles, known.caves);
-    yield;
+    const crypts = placeCrypts({ seed, size, ruins, tiles, isOpenTile }); // a stairway down in each ruin (its tile blocked: down with E)
+    addCryptObstacles(obstacles, crypts);
+    const caves = placeCaves({ seed, size, tiles, villages, ruins, camps, isOpenTile }, area); // a mouth in a hillside in each stretch of the wilds that has one
+    addCaveObstacles(obstacles, caves);
     const ids = classic ? 0 : index * REGION_IDS;
-    const enemies = spawnEnemies({ seed, size, villages, hero: spawn, camps, ruins, isOpenTile }, area, classic ? 0 : regionFoeId(index)).filter((e) => !this.host.slain.has(e.id));
-    for (const e of enemies) {
-      const was = this.remembered.get(e.id);
-      if (was) Object.assign(e, { x: was.x, z: was.z, hp: Math.min(e.maxHp, was.hp) });
-      e.y = this.groundY(e.x, e.z);
-    }
-    yield;
+    const enemies = this.standing(spawnEnemies({ seed, size, villages, hero: spawn, camps, ruins, isOpenTile }, area, classic ? 0 : regionFoeId(index)));
     const scenery = placeScenery({ seed, size, tiles, villages, ruins, camps, hero: spawn, enemies, isOpenTile }, area); // rocks and landmarks in the wilds (clear of where the foes stand)
     addSceneryObstacles(obstacles, scenery);
-    yield;
-    const groundY = (x: number, z: number) => this.groundY(x, z);
-    const travellers = withTravellers ? this.travellersOf(index, known) : null;
     const isBlocked = (x: number, z: number, r: number) => obstacles.isBlocked(x, z, r);
-    yield;
-    const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY: groundY }, area, ids);
-    yield;
-    if (first) known.entrances = entrancesOf(houses, buildings);
-    const doors = known.entrances.slice(0, known.entrances.length - (first ? 0 : known.crypts.length + known.caves.length));
+    const getGroundY = (x: number, z: number) => this.groundY(x, z);
+    const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
+    const doors = entrancesOf(houses, buildings);
     const npcs = spawnNpcs(seed, doors, villages, fields, ids); // the villagers, one to a house
-    if (first) known.entrances.push(...known.crypts.map((c) => c.entrance), ...known.caves.map((c) => c.entrance)); // (the dungeons' ways in, after the buildings' doors: they keep their places)
-    if (first) {
-      registerCrypts(known.crypts);
-      registerCaves(known.caves);
-      this.known.set(index, known);
-      appendAll(this.trails, known.trails);
-      appendAll(this.villages, villages);
-      appendAll(this.houses, houses);
-      appendAll(this.buildings, buildings);
-      appendAll(this.fields, fields);
-      appendAll(this.ruins, ruins);
-      appendAll(this.camps, camps);
-      appendAll(this.crypts, known.crypts);
-      appendAll(this.caves, known.caves);
-      appendAll(this.entrances, known.entrances);
-      for (const door of known.entrances) this.doors.set(doorNumber(door), door);
-      for (const v of known.villages) {
-        const n = this.streamed ? v.x * this.size.depth + v.z : this.villageNumbers.size;
-        this.villageNumbers.set(v, n);
-        this.villagesByNumber.set(n, v);
-      }
-    }
-    const alive: Alive = { trees: land.trees, bushes: land.bushes, scenery, enemies, wildlife, npcs };
-    this.alive.set(index, alive);
-    appendAll(this.trees, land.trees);
-    appendAll(this.bushes, land.bushes);
-    appendAll(this.scenery, scenery);
-    appendAll(this.enemies, enemies);
-    appendAll(this.wildlife, wildlife);
-    appendAll(this.npcs, npcs);
-    if (travellers) this.travellers.add(index, travellers);
-    this.changes++;
+    const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
+    const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, entrances };
+    this.learn(index, known);
+    this.live(index, { trees: land.trees, bushes: land.bushes, scenery, enemies, wildlife, npcs }, withTravellers ? this.travellersOf(index, known) : null);
   }
 
   // Height of whatever stands at (x, z) would stand on, in world units: its tile's tier, and the paving of a road or a
@@ -362,7 +324,6 @@ export class LiveWorld {
   has(x: number, z: number): boolean {
     return this.tiles.has(Math.floor(x), Math.floor(z));
   }
-
 }
 
 // `items` added at the end of `list` (one by one: a region's trees are tens of thousands, too many to spread).

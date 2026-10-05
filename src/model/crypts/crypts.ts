@@ -79,7 +79,7 @@ export function placeCrypts(world: CryptWorld): Crypt[] {
           const entrance: Entrance = { type: 'crypt', x: front.x + ox * STAIR_REACH, z: front.z + oz * STAIR_REACH, outX: ox, outZ: oz };
           const level = zoneLevel(spawn, { x: ruin.x + ruin.w / 2, z: ruin.z + ruin.d / 2 });
           const middle = { x: front.x - ox / 2, z: front.z - oz / 2 };
-          return [{ entrance, stairs: { x, z }, steps, tiles: all, middle, quarterTurns, ruin, level, name: cryptName(x, z, world.seed) }];
+          return [{ entrance, stairs: { x, z }, steps, tiles: all, middle, quarterTurns, ruin, level, name: cryptName({ x, z }, world.seed) }];
         }
       }
     }

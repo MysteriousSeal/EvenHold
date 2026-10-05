@@ -25,7 +25,7 @@ export const CRYPT_NAMES = {
   bare: ['silent', 'sunken', 'hollow', 'forgotten', 'cold', 'weeping', 'deep', 'nameless', 'broken', 'black', 'grey', 'drowned', 'buried', 'old', 'lost', 'dark', 'whispering', 'shattered', 'ashen', 'mourning'],
 } as const;
 
-export function cryptName(x: number, z: number, seed: number): string {
+export function cryptName({ x, z }: { x: number; z: number }, seed: number): string {
   const { places, men, women, nameless, orders, bare } = CRYPT_NAMES;
   const pick = pickAt(x, z, seed * 131);
   const place = pick(places, 301);
