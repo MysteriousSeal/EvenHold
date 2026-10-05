@@ -16,7 +16,7 @@
 // Its meshes are made in humanParts.ts; the cup in hand is cupInHand.ts.
 
 import * as THREE from 'three';
-import { EQUIP_SLOTS, ITEMS, hairShowsUnder, isHeldSlot, isJewelrySlot, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, ITEMS, hairShowsUnder, isHeldSlot, isJewelrySlot, lookOf, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
 import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type BodyPart, type Joint } from './bodyVoxels';
 import { ITEM_MODELS } from './gear/itemModels';
@@ -145,7 +145,8 @@ export class HumanRig {
 
   // Dresses the body in `equipment`: takes off what's no longer in it and
   // puts on what's new, leaving unchanged slots alone (cheap every frame).
-  wear(equipment: Equipment): void {
+  wear(worn: Equipment): void {
+    const equipment = lookOf(worn); // (each piece by its item: its level and rarity don't show)
     // Shoulders going on or off change where the sleeves stop, so the
     // torso's piece is put on again to match.
     if (this.hair) this.hair.visible = !equipment.head;

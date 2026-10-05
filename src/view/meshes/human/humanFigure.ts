@@ -3,7 +3,7 @@
 // at its joint (bodyVoxels.ts BODIES), rounded to whole voxels. Drop the
 // body (look = null) to show just what's worn, as it sits on someone.
 
-import { EQUIP_SLOTS, hairShowsUnder, isHeldSlot, isJewelrySlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, hairShowsUnder, isHeldSlot, isJewelrySlot, lookOf, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { hairUnder } from './hairUnderHelm';
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -45,7 +45,8 @@ export interface Figure {
 
 // `only`: draw just these body parts (and what's worn on them). `build`:
 // whose body what's worn is fitted to (the look's, when there's one).
-export function humanFigure(look: BodyLook | null, equipment: Equipment, only: readonly Joint[] = JOINT_NAMES, build: Build = look?.build ?? 'male'): Figure {
+export function humanFigure(look: BodyLook | null, wearing: Equipment, only: readonly Joint[] = JOINT_NAMES, build: Build = look?.build ?? 'male'): Figure {
+  const equipment = lookOf(wearing); // (each piece by its item)
   const { joints, pivot, hand } = BODIES[build];
   const grid = createGrid(SIZE);
   const palette: number[] = [];

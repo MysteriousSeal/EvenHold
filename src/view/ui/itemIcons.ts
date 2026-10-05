@@ -1,6 +1,7 @@
 // Icons for things the hero carries, rendered from their own voxel models
 // (voxelIcon.ts): gear as it sits when worn or held, loot as it lies.
 
+import { baseOf, type GearKey } from '../../model/human/items/gear';
 import { ITEMS, type EquipSlot, type ItemId } from '../../model/human/equipment';
 import type { LootId } from '../../model/loot/loot';
 import { isLootItem, type BagItem } from '../../model/hero/bag';
@@ -20,12 +21,12 @@ const gearModel = (item: ItemId) => (): VoxelModel => {
 };
 const lootModel = (item: LootId) => (): VoxelModel => ({ grid: LOOT_MODELS[item].build(), palette: LOOT_MODELS[item].palette });
 
-export const gearIcon = (item: ItemId): MenuIcon => (size) => voxelIcon(`item:${item}`, gearModel(item), size);
+export const gearIcon = (key: GearKey): MenuIcon => (size) => voxelIcon(`item:${baseOf(key)}`, gearModel(baseOf(key)), size); // (its look its item's, whatever its level and rarity)
 export const lootIcon = (item: LootId): MenuIcon => (size) => voxelIcon(`loot:${item}`, lootModel(item), size);
 
 // A thing in the bag, for its turning preview (itemPreview.ts): its key and model, as its icon's.
 export const bagItemPreview = (item: BagItem): { key: string; model: () => VoxelModel } =>
-  isLootItem(item) ? { key: `loot:${item}`, model: lootModel(item) } : { key: `item:${item}`, model: gearModel(item) };
+  isLootItem(item) ? { key: `loot:${item}`, model: lootModel(item) } : { key: `item:${baseOf(item)}`, model: gearModel(baseOf(item)) };
 
 // What an empty slot shows: a small voxel model of what goes there (a
 // helmet, a gauntlet, a boot...), made just for that, rendered like every

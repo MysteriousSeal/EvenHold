@@ -119,6 +119,7 @@ export function createMenu(options: MenuOptions): Menu {
   function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void, row = false): HTMLButtonElement {
     const button = el('button', cell ? `menu-slot${cell.dim ? ' dim' : ''}${cell.warn ? ' warn' : ''}` : 'menu-slot empty');
     if (cell) {
+      if (cell.tone) button.dataset.tone = cell.tone; // (gear's rarity: its frame tinted, menu.css)
       button.append(cell.icon(iconSize));
       if (row && cell.check) {
         const { on, label, locked, toggle } = cell.check;

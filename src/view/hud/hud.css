@@ -207,6 +207,10 @@
 .loot-name[data-quality='quest'] { color: #ffc94a; }
 .loot-name[data-quality='bag'] { color: #9ad0a0; }
 .loot-name[data-quality='potion'] { color: #e690e0; }
+.loot-name[data-quality='uncommon'] { color: #5ed65e; }
+.loot-name[data-quality='rare'] { color: #4aa0ff; }
+.loot-name[data-quality='epic'] { color: #b45cff; }
+.loot-name[data-quality='legendary'] { color: #ff9a2e; }
 .loot-key {
   min-width: 26px;
   height: 26px;

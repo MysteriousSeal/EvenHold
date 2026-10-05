@@ -2,8 +2,9 @@
 // quality's color, grey for junk), or a door ("Enter house", "Leave"). (What's picked up floats up over the hero:
 // main.ts.) Styles in hud.css.
 
+import { RARITY_COLORS, levelOf } from '../../model/human/items/gear';
 import type { GroundLoot } from '../../model/loot/loot';
-import { nameOf, qualityOf, type Quality } from '../../model/hero/bag';
+import { isLootItem, nameOf, qualityOf, type Quality } from '../../model/hero/bag';
 import type { Npc } from '../../model/npcs/npcs';
 
 
@@ -27,13 +28,15 @@ export interface LootPrompt {
 
 // A thing's name in its quality's colour, where it's drawn over the world (what's picked up, floating up over the
 // hero: main.ts), as the tooltips' (menu.css) and the prompt's (hud.css).
-export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0', potion: '#e690e0' };
+const { common: _, ...RARE_INK } = RARITY_COLORS; // (gear above common, in its rarity's colour)
+export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0', potion: '#e690e0', ...RARE_INK };
 
 // The prompt for loot on the ground: its name, in its quality's color.
 const STACK_GAP = 8; // px between prompts stacked one over another
 
 export function lootTarget(loot: GroundLoot): PromptTarget {
-  return { label: nameOf(loot.item), quality: qualityOf(loot.item), x: loot.x, y: loot.y + 0.35, z: loot.z };
+  const level = isLootItem(loot.item) ? 1 : levelOf(loot.item); // (gear found: its level beside its name)
+  return { label: level > 1 ? `${nameOf(loot.item)} · level ${level}` : nameOf(loot.item), quality: qualityOf(loot.item), x: loot.x, y: loot.y + 0.35, z: loot.z };
 }
 
 // `key`: the key it's for; `under`: shown just below the E prompt (a second thing to do there);

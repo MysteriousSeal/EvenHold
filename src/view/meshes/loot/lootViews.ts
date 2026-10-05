@@ -4,6 +4,7 @@
 // shows from afar. Made as loot comes into range, dropped when it's picked
 // up or left behind.
 
+import { RARITY_COLORS, type Rarity } from '../../../model/human/items/gear';
 import * as THREE from 'three';
 import { glowMaterial } from '../common/glow';
 import type { GroundLoot } from '../../../model/loot/loot';
@@ -20,7 +21,9 @@ import { Nearby } from '../common/nearby';
 const SPIN = 1.4; // radians per second
 const HOVER = 0.1; // above the ground
 const BOB = 0.02;
-const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0, potion: 0xe690e0 };
+const hex = (rarity: Rarity) => parseInt(RARITY_COLORS[rarity].slice(1), 16);
+const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0, potion: 0xe690e0, uncommon: hex('uncommon'), rare: hex('rare'), epic: hex('epic'), legendary: hex('legendary') };
+const BEAM_TALL: Partial<Record<Quality, number>> = { epic: 1.8, legendary: 3.5 }; // (the rarest seen from afar: their beams taller)
 const GEAR_VOXEL = 0.035; // gear on the ground, a little larger than worn
 const RING_VOXEL = 0.04; // the world's grid
 const RING_SIZE = 13; // voxels across
@@ -102,6 +105,7 @@ export class LootViews {
     const ring = new THREE.Mesh(this.ring, light(this.ringLight));
     ring.position.y = 0.006; // just above the grass
     const beam = new THREE.Mesh(this.beam, light(this.beamLight));
+    beam.scale.y = BEAM_TALL[quality] ?? 1;
     group.add(ring, beam, item);
     group.scale.setScalar(this.scale);
     this.scene.add(group);

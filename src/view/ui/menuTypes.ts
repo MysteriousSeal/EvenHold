@@ -24,7 +24,7 @@ export interface MenuAction {
 // (green) or a loss (red), a word about it (italic), its price, or a hint of
 // what to do with it (small, last). The tooltip draws a rule before each new
 // part: the header, the hints, the price.
-export type LineTone = 'kind' | 'stat' | 'head' | 'gain' | 'loss' | 'flavor' | 'price' | 'hint';
+export type LineTone = 'kind' | 'stat' | 'extra' | 'head' | 'gain' | 'loss' | 'flavor' | 'price' | 'hint';
 export type MenuLine = string | { text: string; tone: LineTone };
 export const toned = (tone: LineTone, text: string): MenuLine => ({ text, tone });
 export const lineText = (line: MenuLine): string => (typeof line === 'string' ? line : line.text);
