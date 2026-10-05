@@ -5,7 +5,7 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { ORDER_NAMES } from '../../model/jobs/innShift';
-import { boardFace } from '../../model/jobs/work';
+import { boardFace, isBarAction } from '../../model/jobs/work';
 import type { BarAction } from '../../model/jobs/barShift';
 import type { PromptTarget } from '../../view/hud/lootPrompt';
 
@@ -38,14 +38,8 @@ export function workPrompt(model: GameModel): PromptTarget | null {
         return over(`Gather ${counted(a.empties, 'the empty', 'empties')}`);
     }
   };
+  if (isBarAction(action)) return bar(action);
   switch (action.kind) {
-    case 'stop':
-    case 'pour':
-    case 'hand':
-    case 'pass':
-    case 'wash':
-    case 'gather':
-      return bar(action);
     case 'take':
       return { label: `Take ${action.want.npc.name}'s order`, x: action.want.npc.x, y: 1.1, z: action.want.npc.z, npc: action.want.npc }; // (their name giving way to it)
     case 'serve': {
