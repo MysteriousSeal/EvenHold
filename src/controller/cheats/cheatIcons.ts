@@ -23,7 +23,8 @@ import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildW
 import { HOUSE_LAYOUTS, buildHouseVoxels } from '../../view/meshes/building/houseVoxels';
 import { HOUSE_PALETTE } from '../../view/meshes/building/housePalette';
 import { WELL_PALETTE, buildWellVoxels } from '../../view/meshes/well/wellVoxels';
-import { CAMP_PALETTE, buildTent } from '../../view/meshes/camp/campVoxels';
+import { CAMP_PALETTE } from '../../view/meshes/camp/campVoxels';
+import { buildTent } from '../../view/meshes/camp/campPropVoxels';
 import { LANTERN_PALETTE, buildLanternPost } from '../../view/meshes/plaza/lanternVoxels';
 import { TREE_PALETTE, buildTreeVoxels } from '../../view/meshes/tree/treeVoxels';
 import { WATER_DECOR_PALETTE, buildLilyPad } from '../../view/meshes/water/waterVoxels';
