@@ -49,6 +49,7 @@ export interface CampWorld {
 }
 
 const GRID = 26; // one candidate site per GRID x GRID tiles
+const CHEST_HALF: [number, number] = [0.22, 0.16]; // the loot's chest (its lid back too), half across and half along, unturned
 const CHANCE = 0.4;
 const OPEN_LAND = 0.15; // forest density under which it's open country
 const CLEAR_OF_VILLAGES = 12;
@@ -166,16 +167,18 @@ function layOut(cx: number, cz: number, quarterTurns: number): CampPiece[] {
 export const palisadeSide = (piece: CampPiece): number => EDGE_TURNS.indexOf(piece.quarterTurns);
 
 // What blocks: tents and the watchtower their tile; the fire (too low to hide
-// anyone), crates, rack and woodpile a square in the middle of theirs; the
-// palisade a strip along its edge. The loot pile doesn't, nor the gatehouse
-// (its posts stand where the palisade ends: the way in between them open).
+// anyone), crates, rack and woodpile a square in the middle of theirs; the loot's
+// open chest just itself (low: hiding no one; the gold spilt round it, the rug,
+// walked over); the palisade a strip along its edge. The gatehouse doesn't (its
+// posts stand where the palisade ends: the way in between them open).
 export function addCampObstacles(obstacles: Obstacles, camps: readonly Camp[]): void {
   for (const camp of camps) {
     for (const piece of camp.pieces) {
       if (piece.kind === 'tent' || piece.kind === 'tower') obstacles.addSolid(piece.x, piece.z);
       else if (piece.kind === 'fire') obstacles.addProp(piece.x, piece.z, CAMPFIRE_COLLISION_HALF, true);
       else if (piece.kind === 'palisade') obstacles.addFenceStrip(piece.x, piece.z, palisadeSide(piece), PALISADE_THICKNESS);
-      else if (piece.kind !== 'loot' && piece.kind !== 'gate') obstacles.addProp(piece.x, piece.z, CAMP_PROP_COLLISION_HALF);
+      else if (piece.kind === 'loot') obstacles.addProp(piece.x, piece.z, ...(piece.quarterTurns % 2 ? [CHEST_HALF[1], true, CHEST_HALF[0]] : [CHEST_HALF[0], true, CHEST_HALF[1]]) as [number, boolean, number]);
+      else if (piece.kind !== 'gate') obstacles.addProp(piece.x, piece.z, CAMP_PROP_COLLISION_HALF);
     }
   }
 }
