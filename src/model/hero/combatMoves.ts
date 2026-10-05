@@ -28,7 +28,7 @@ export const GUARD_PACE = 0.5; // a walk behind a raised guard, as a share of on
 
 export const ROLL_TIME = 0.45; // seconds a roll lasts
 export const ROLL_SAFE = 0.32; // seconds of it nothing touches the hero
-export const ROLL_REACH = 2.4; // tiles it carries them
+export const ROLL_REACH = 1; // tiles it carries them
 
 export const PARRY = 0.18; // seconds after the guard's raised that a blow landing is parried
 const KEEN_PARRY = 0.3; // with what's made for it: a buckler, a parrying dagger
@@ -83,12 +83,12 @@ export class CombatMoves {
     return this.blow ? Math.min(1, this.blow.t / ATTACK_DURATION) : null;
   }
 
-  // Rolls along (dirX, dirZ) (still: backwards, away from `facing`); whether they did (not mid-blow or mid-roll,
+  // Rolls along (dirX, dirZ) (still: forward, the way they face); whether they did (not mid-blow or mid-roll,
   // breath to spend).
   startRoll(dirX: number, dirZ: number, facing: number): boolean {
     if (this.blow || this.roll || !this.spend(COST.roll)) return false;
     const len = Math.hypot(dirX, dirZ);
-    const [dx, dz] = len > 1e-6 ? [dirX / len, dirZ / len] : [-Math.sin(facing), -Math.cos(facing)];
+    const [dx, dz] = len > 1e-6 ? [dirX / len, dirZ / len] : [Math.sin(facing), Math.cos(facing)];
     this.roll = { dx, dz, t: 0 };
     this.hero.eating = null; // (and to roll)
     this.guard = null; // (a guard dropped to roll)
