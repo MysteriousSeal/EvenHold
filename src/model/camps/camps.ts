@@ -117,6 +117,18 @@ function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: n
 // A camp's level: its ground's (enemies/enemyLevels.ts: zoneLevel), its bandits that or one either side, its chief one over.
 export const campLevel = (camp: { x: number; z: number }, size: MapSize): number => zoneLevel(spawnOf(size), camp);
 
+// The camp with a spot of it (its middle, by default; its gate's, its chest's) within `reach` of `at`, if any: those
+// whose middle's far off passed over at a glance (a world has a thousand camps, looked for each frame).
+export function campNear(camps: readonly Camp[], at: { x: number; z: number }, reach: number, spot: (camp: Camp) => { x: number; z: number } = (c) => c): Camp | null {
+  const far = reach + 4; // (no spot of a camp is further than this from its middle and its reach)
+  for (const camp of camps) {
+    if (Math.abs(at.x - camp.x) > far || Math.abs(at.z - camp.z) > far) continue;
+    const { x, z } = spot(camp);
+    if (Math.hypot(at.x - x, at.z - z) < reach) return camp;
+  }
+  return null;
+}
+
 // The tiles a camp stands on, its stockade's five by five (its floor: hay strewn over it, no grass through it).
 export const campTiles = (camp: { x: number; z: number }): Array<{ x: number; z: number }> =>
   Array.from({ length: 25 }, (_, i) => ({ x: camp.x + (i % 5) - 2, z: camp.z + Math.floor(i / 5) - 2 }));

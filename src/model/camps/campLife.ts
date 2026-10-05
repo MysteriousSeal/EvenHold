@@ -10,7 +10,7 @@ import { rollHoard, type Hoard } from '../loot/hoard';
 import { CHEST_POST } from '../dungeons/dungeonRecord';
 import { CampGate } from './campGate';
 import { campName } from './campNames';
-import { campLevel, type Camp } from './camps';
+import { campLevel, campNear, type Camp } from './camps';
 
 export const CHEST_REACH = 0.9; // tiles from the chest the hero can open it
 export const CAMP_NEAR = 8; // tiles from a camp's middle the hero's about it (its panel shown: campStatus)
@@ -55,16 +55,20 @@ export class CampLife {
   update(hero: { x: number; z: number }, report: (event: GameEvent) => void): void {
     this.gate.update(hero, report);
     const { camps, seed } = this.world();
-    const manned = new Map(camps.map((camp) => [camp, this.crew(camp).some(standing)]));
-    for (const [camp, now] of manned) if (this.manned?.get(camp) && !now) report({ kind: 'cleared', name: campName(camp, seed), place: 'camp' });
-    this.manned = manned;
+    const first = !this.manned;
+    const manned = (this.manned ??= new Map());
+    for (const camp of camps) {
+      const now = this.crew(camp).some(standing);
+      if (!first && manned.get(camp) && !now) report({ kind: 'cleared', name: campName(camp, seed), place: 'camp' });
+      manned.set(camp, now);
+    }
   }
 
   // The camp the hero's about (within CAMP_NEAR of its middle), and how it stands; null away from any. (Its slain
   // counted from those still standing: the slain of a saved world are gone from it.)
   status(hero: { x: number; z: number }): CampStatus | null {
     const { camps, seed } = this.world();
-    const camp = camps.find((c) => Math.abs(hero.x - c.x) < CAMP_NEAR && Math.abs(hero.z - c.z) < CAMP_NEAR && Math.hypot(hero.x - c.x, hero.z - c.z) < CAMP_NEAR);
+    const camp = campNear(camps, hero, CAMP_NEAR);
     if (!camp) return null;
     const up = (kind: Enemy['kind']) => this.crew(camp).filter((e) => e.kind === kind && standing(e)).length;
     const bandits = { slain: camp.bandits - up('bandit'), of: camp.bandits };
@@ -84,7 +88,11 @@ export class CampLife {
     const { enemies } = this.world();
     if (this.crews?.of !== enemies) {
       const at = new Map<string, Enemy[]>();
-      for (const e of enemies) if (e.kind === 'bandit' || e.kind === 'banditChief') at.set(`${e.homeX},${e.homeZ}`, [...(at.get(`${e.homeX},${e.homeZ}`) ?? []), e]);
+      for (const e of enemies) {
+        if (e.kind !== 'bandit' && e.kind !== 'banditChief') continue;
+        const home = `${e.homeX},${e.homeZ}`;
+        at.set(home, [...(at.get(home) ?? []), e]);
+      }
       this.crews = { of: enemies, by: new Map(this.world().camps.map((c) => [c, at.get(`${c.x},${c.z}`) ?? []])) };
     }
     return this.crews.by.get(camp) ?? [];
@@ -96,7 +104,8 @@ export class CampLife {
 
   // The camp whose chest the hero's at, not yet opened (locked or not), if any.
   chestInReach(hero: { x: number; z: number }): Camp | null {
-    return this.world().camps.find((camp) => Math.abs(hero.x - camp.x) < 3 && Math.abs(hero.z - camp.z) < 3 && Math.hypot(hero.x - chestOf(camp).x, hero.z - chestOf(camp).z) < CHEST_REACH && !this.opened(camp)) ?? null;
+    const camp = campNear(this.world().camps, hero, CHEST_REACH, chestOf);
+    return camp && !this.opened(camp) ? camp : null;
   }
 
   // Opens it, if its chief's down: what it holds, out on the rug before it (toward the camp's middle).

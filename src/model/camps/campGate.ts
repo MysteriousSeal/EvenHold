@@ -6,7 +6,7 @@
 import { campName } from './campNames';
 import type { MapSize } from '../map/grid';
 import type { GameEvent } from '../types';
-import { campLevel, type Camp } from './camps';
+import { campLevel, campNear, type Camp } from './camps';
 
 
 const AT_GATE = 1.3; // tiles from the spot just outside its way in: at the gate
@@ -24,7 +24,7 @@ export class CampGate {
       return;
     }
     const { camps, seed, size } = this.world();
-    const camp = camps.find((c) => Math.hypot(hero.x - c.way.x, hero.z - c.way.z) < AT_GATE);
+    const camp = campNear(camps, hero, AT_GATE, (c) => c.way);
     if (!camp) return;
     this.told = camp;
     report({ kind: 'campGate', name: campName(camp, seed), level: campLevel(camp, size) });
