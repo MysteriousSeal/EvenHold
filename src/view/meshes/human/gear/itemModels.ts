@@ -1,7 +1,8 @@
 // Every item's look, by id (one file per slot in items/, like the catalog
 // in model/human/items/), and the voxel grids each one is made of.
 
-import { ITEMS, type ArmorSlot, type ItemId } from '../../../../model/human/equipment';
+import { ITEMS, type ArmorSlot, type EquipSlot, type ItemId } from '../../../../model/human/equipment';
+import { COSTUME_LOOKS, isCostume, type CostumeLookId } from './costumes';
 import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
@@ -29,14 +30,19 @@ export const ITEM_MODELS: Record<ItemId, ItemModel> = {
   ...OFF_HAND_MODELS,
 };
 
-// The shell a worn item puts on one body part (on the given side), or null
+// A look a body part can be dressed in: an item's, or a job's costume's (costumes.ts: only to be seen).
+export type LookId = ItemId | CostumeLookId;
+export const lookModel = (look: LookId): ItemModel => (isCostume(look) ? COSTUME_LOOKS[look].model : ITEM_MODELS[look]);
+export const lookSlot = (look: LookId): EquipSlot => (isCostume(look) ? COSTUME_LOOKS[look].slot : ITEMS[look].slot);
+
+// The shell a worn item (or a costume's look) puts on one body part (on the given side), or null
 // if it doesn't cover that part, fitted to the wearer's build. `shouldered`:
 // shoulders are worn too (sleeves then leave the top of the arms to them).
-export function wornGrid(item: ItemId, part: BodyPart, side: Side, shouldered = false, build: Build = 'male'): VoxelGrid | null {
-  const { headgear } = ITEM_MODELS[item];
+export function wornGrid(item: LookId, part: BodyPart, side: Side, shouldered = false, build: Build = 'male'): VoxelGrid | null {
+  const { headgear, worn } = lookModel(item);
   if (part === 'head') return headgear ? buildHeadgear(headgear, build) : null; // (its grid HEAD_PAD round the head: wornPad)
-  const paint = ITEM_MODELS[item].worn?.[part];
-  const slot = ITEMS[item].slot as ArmorSlot;
+  const paint = worn?.[part];
+  const slot = lookSlot(item) as ArmorSlot;
   const band = paint ? bandFor(slot, part, shouldered) : undefined;
   return paint && band ? buildShell(part, band, side, paint, build) : null;
 }

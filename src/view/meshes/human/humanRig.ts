@@ -16,14 +16,15 @@
 // Its meshes are made in humanParts.ts; the cup in hand is cupInHand.ts.
 
 import * as THREE from 'three';
-import { EQUIP_SLOTS, ITEMS, hairShowsUnder, isHeldSlot, isJewelrySlot, lookOf, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
+import { EQUIP_SLOTS, hairShowsUnder, isHeldSlot, isJewelrySlot, lookOf, type EquipSlot, type Equipment, type ItemId } from '../../../model/human/equipment';
 import { HERO_LOOK, type BodyLook } from '../../../model/human/humanoid';
 import { BODIES, HELD_BY, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, type BodyPart, type Joint } from './bodyVoxels';
-import { ITEM_MODELS } from './gear/itemModels';
 import { SHADE, bodyGeometry, hairGeometry, hairUnderGeometry, heldGeometry, personMaterial, wornGeometry } from './humanParts';
 import { CupInHand } from './cupInHand';
 import { stowedAt } from './sheathe';
 import type { InHand } from './cupInHand';
+import { lookModel, lookSlot, type LookId } from './gear/itemModels';
+import { isCostume } from './gear/costumes';
 
 const V = HUMAN_VOXEL_SIZE;
 const STRIDE = 4.5; // walk-cycle radians per world unit walked: ~3 cycles a second at walking speed
@@ -94,7 +95,7 @@ export class HumanRig {
   readonly root = new THREE.Group();
   readonly joints: Record<Joint, THREE.Group>;
   readonly meshes: THREE.Mesh[] = []; // the body's, then everything worn
-  private readonly worn = new Map<EquipSlot, { item: ItemId; meshes: THREE.Mesh[] }>();
+  private readonly worn = new Map<EquipSlot, { item: LookId; meshes: THREE.Mesh[] }>();
   private shouldered = false; // shoulders worn: sleeves leave them the top of the arms
   private readonly body = new THREE.Group();
   private readonly last = new THREE.Vector3(Number.NaN, 0, 0);
@@ -109,7 +110,7 @@ export class HumanRig {
   private readonly cup: CupInHand; // in the right hand, carried or drunk from
   private readonly hair: THREE.Mesh | null = null; // gathered past the head, off under a hat or helm
   private under: THREE.Mesh | null = null; // what of it hangs below a head piece open behind
-  private underFor: ItemId | undefined; // (the head piece it's cut for)
+  private underFor: LookId | undefined; // (the head piece it's cut for)
   private readonly shade = new THREE.Group(); // on the ground under them (see SHADE)
 
   constructor(
@@ -143,10 +144,14 @@ export class HumanRig {
     }
   }
 
-  // Dresses the body in `equipment`: takes off what's no longer in it and
-  // puts on what's new, leaving unchanged slots alone (cheap every frame).
+  // Dresses the body in `equipment` (each piece by its item: its level and rarity don't show).
   wear(worn: Equipment): void {
-    const equipment = lookOf(worn); // (each piece by its item: its level and rarity don't show)
+    this.dress(lookOf(worn));
+  }
+
+  // Dresses the body in `equipment`'s looks (an item's, or a job's costume's: costumes.ts, only to be seen): takes
+  // off what's no longer in it and puts on what's new, leaving unchanged slots alone (cheap every frame).
+  dress(equipment: Partial<Record<EquipSlot, LookId>>): void {
     // Shoulders going on or off change where the sleeves stop, so the
     // torso's piece is put on again to match.
     if (this.hair) this.hair.visible = !equipment.head;
@@ -158,7 +163,8 @@ export class HumanRig {
         this.meshes.splice(this.meshes.indexOf(this.under), 1);
         this.under = null;
       }
-      const under = equipment.head && hairShowsUnder(equipment.head) ? hairUnderGeometry(this.look, equipment.head) : null;
+      const head = equipment.head;
+      const under = head && !isCostume(head) && hairShowsUnder(head) ? hairUnderGeometry(this.look, head) : null;
       if (under) {
         this.under = this.mesh(under);
         this.joints.head.add(this.under);
@@ -196,7 +202,7 @@ export class HumanRig {
   private sheathed = false;
   private posed: 'stand' | 'sit' | 'lie' = 'stand'; // (what's put away goes where the pose lets it: sheathe.ts)
   private restow(): void {
-    for (const [slot, { item, meshes }] of this.worn) if (isHeldSlot(slot) && meshes[0]) this.inHand(slot, item, meshes[0]);
+    for (const [slot, { item, meshes }] of this.worn) if (isHeldSlot(slot) && meshes[0] && !isCostume(item)) this.inHand(slot, item, meshes[0]);
   }
 
   // A held thing in its hand, or put away (sheathed) where it goes.
@@ -223,15 +229,15 @@ export class HumanRig {
   // e.g. for the voxels it bursts into.
   get colors(): number[] {
     const colors = this.frame?.palette.slice() ?? bodyPalette(this.look).slice(0, 5);
-    for (const { item } of this.worn.values()) colors.push(...ITEM_MODELS[item].palette);
+    for (const { item } of this.worn.values()) colors.push(...lookModel(item).palette);
     return colors;
   }
 
-  private putOn(slot: EquipSlot, item: ItemId): THREE.Mesh[] {
-    if (ITEMS[item].slot !== slot) throw new Error(`${item} doesn't go in the ${slot} slot`);
+  private putOn(slot: EquipSlot, item: LookId): THREE.Mesh[] {
+    if (lookSlot(item) !== slot) throw new Error(`${item} doesn't go in the ${slot} slot`);
     const meshes: THREE.Mesh[] = [];
     if (isJewelrySlot(slot)) return meshes; // too small to show on the body
-    if (isHeldSlot(slot)) {
+    if (isHeldSlot(slot) && !isCostume(item)) {
       const geometry = heldGeometry(item);
       if (geometry) {
         const mesh = this.mesh(geometry);

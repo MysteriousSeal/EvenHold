@@ -28,6 +28,7 @@ import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
+import { COSTUMES } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
@@ -260,7 +261,9 @@ export class GameView {
 
     const { hero } = model;
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
-    this.hero.wear(hero.equipment);
+    // At work, dressed for it (a costume, only to be seen: their gear still on them, its stats and all); else their gear.
+    if (model.work.shift) this.hero.dress(COSTUMES.innServer);
+    else this.hero.wear(hero.equipment);
     const chilled = !!hero.blessings?.some((b) => b.kind === 'chilled');
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : chilled ? this.heroFrost : this.heroLook);
     if (this.frost.group.parent !== this.hero.root) this.hero.root.add(this.frost.group); // (on whichever rig is theirs)
