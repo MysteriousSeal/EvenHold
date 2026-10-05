@@ -7,12 +7,16 @@
 // feet meanwhile; the shift over at its time (a bonus for a clean one) or on leaving the inn; their record saved.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { InnShift, REACH, SHIFT } from '../src/model/jobs/innShift';
+import { InnShift } from '../src/model/jobs/innShift';
+import { REACH, SHIFT } from '../src/model/jobs/shift';
 import { JOBS, rankIn, recordOf } from '../src/model/jobs/jobs';
 import { onShift } from '../src/model/jobs/shiftsAt';
 import { ordersAt } from '../src/model/inn/barOrders';
 import { roomAction } from '../src/model/inn/roomLetting';
 import { layoutOf } from '../src/model/interiors/indoors';
+import { bumpsFurniture } from '../src/model/interiors/furniture';
+import { boardFace } from '../src/model/jobs/work';
+import { HERO_RADIUS, INDOOR_SCALE } from '../src/model/constants';
 import { TEST_SEEDS } from './support/testWorld';
 import type { Entrance } from '../src/model/interiors/interiors';
 import type { Npc } from '../src/model/npcs/npcs';
@@ -155,8 +159,8 @@ describe('at work', () => {
     const { model, inn, patron } = atTheInn();
     recordOf(model.hero, 'innServer').xp = RANKS[1].from - 1;
     expect(model.work.start(inn)).toBe(true);
-    expect(onShift(inn)).toBe(true); // (the server off her feet)
-    const shift = model.work.shift!;
+    expect(onShift(inn)).toBe('innServer'); // (the server off her feet)
+    const shift = model.work.shift as InnShift;
     const [money, xp] = [model.hero.money, model.hero.xp];
     run(shift, [patron], 13);
     Object.assign(model.hero, { x: patron.x + 0.5, z: patron.z });
@@ -176,7 +180,7 @@ describe('at work', () => {
     shift.left = 0;
     model.work.update(0.1);
     expect(model.work.shift).toBeNull();
-    expect(onShift(inn)).toBe(false);
+    expect(onShift(inn)).toBeUndefined();
     const events = model.takeEvents();
     const over = events.find((e) => e.kind === 'shift');
     expect(over).toMatchObject({ served: 1, walkedOut: 0, early: false });
@@ -190,7 +194,7 @@ describe('at work', () => {
   it("counts only orders served toward the job (empties given back are pay, not experience)", () => {
     const { model, inn } = atTheInn();
     model.work.start(inn);
-    const shift = model.work.shift!;
+    const shift = model.work.shift as InnShift;
     const table = model.inside!.furniture.find((f) => f.kind === 'tavernTable')!;
     shift.empties.push({ table, x: table.x, z: table.z, drink: 'ale' });
     Object.assign(model.hero, { x: table.x, z: table.z });
@@ -252,7 +256,7 @@ describe('at work', () => {
     model.enterRoom(inn);
     Object.assign(model.hero, { x: model.inside!.room.width / 2, z: model.inside!.room.depth / 2 }); // (out of the doorway)
     model.work.start(inn);
-    const shift = model.work.shift!;
+    const shift = model.work.shift as InnShift;
     for (let t = 0; t < 60; t += 1 / 30) model.update(0, 0, 1 / 30);
     const sat = model.folk.filter((n) => n.where === inn && n.seat?.piece.kind === 'chair');
     expect(sat.length).toBeGreaterThanOrEqual(3);
@@ -267,13 +271,19 @@ describe('at work', () => {
 });
 
 describe("an inn's notice board", () => {
-  it('hangs in every inn (of every test world, and a full 512 one)', () => {
+  it('hangs in every inn (of every test world, and a full 512 one), never over the fire: room before it to read it', () => {
     const worlds = [...TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)), new GameModel(11, { width: 512, depth: 512 })];
+    const r = HERO_RADIUS * INDOOR_SCALE;
     let inns = 0;
     for (const model of worlds) {
       for (const inn of model.entrances.filter((e) => e.type === 'inn')) {
         inns++;
-        expect(layoutOf(model.seed, inn).furniture.filter((f) => f.kind === 'noticeBoard'), `seed ${model.seed}, the inn at ${inn.x},${inn.z}`).toHaveLength(1);
+        const { furniture } = layoutOf(model.seed, inn);
+        const boards = furniture.filter((f) => f.kind === 'noticeBoard');
+        expect(boards, `seed ${model.seed}, the inn at ${inn.x},${inn.z}`).toHaveLength(1);
+        const face = boardFace(boards[0]);
+        const before = boards[0].wall === 'left' ? { x: face.x + 0.8, z: face.z } : { x: face.x, z: face.z + 0.8 }; // (where it's read from)
+        expect(bumpsFurniture(furniture, before.x, before.z, r), `seed ${model.seed}, the inn at ${inn.x},${inn.z}: before its board`).toBe(false);
       }
     }
     expect(inns).toBeGreaterThan(20);

@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 // The work window (controller/jobs/jobPanel.ts), a hiring notice: the job's stair of ranks (five steps, the hero's
 // lit, filling toward the next), what the rank brings, the record, and at its foot what a shift is and the button to
-// work one (starting it, and closing); at work, how the shift stands and the button to end it. One job: no strip of
-// jobs to pick from. Opened at an inn's notice board, and says which.
+// work one (starting it, and closing); at work, how the shift stands and the button to end it. The jobs posted (the
+// tables, the bar) as a strip to pick from: the one picked worked, its own perks and keys; at work, the other's button
+// stood down. Opened at an inn's notice board, and says which.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
@@ -38,7 +39,8 @@ describe('the work window', () => {
     expect(q('.job-toward').textContent).toBe('6 of 20 served toward Server');
     expect(q('.job-brings').querySelectorAll('.job-perks')).toHaveLength(2); // (theirs, and the next's)
     expect(q('.job-ledger').textContent).toContain('16 served');
-    expect(q('.job-picks').hidden).toBe(true); // (one job: nothing to pick)
+    expect(q('.job-picks').hidden).toBe(false); // (the tables, the bar)
+    expect(all('.job-picks').at(-1)!.querySelectorAll('.job-pick')).toHaveLength(2);
     expect(q('.job-speaker').textContent).toMatch(/^Pinned to the board at the .+ inn$/);
     panel.menu.close();
   });
@@ -60,5 +62,25 @@ describe('the work window', () => {
     expect(model.work.shift).toBeNull();
     expect(q('.job-go').textContent).toBe('Work a shift');
     panel.menu.close();
+  });
+
+  it("picks the bar: its ranks, its perks (the hands, the line), its keys; worked from its button; at work, the tables' stood down", () => {
+    const { model, inn, panel } = atTheInn();
+    panel.open(inn);
+    (Array.from(q('.job-picks').querySelectorAll('.job-pick')) as HTMLElement[])[1].click();
+    expect(q('.job-head h2').textContent).toBe('Tending the bar');
+    expect(q('.job-standing strong').textContent).toBe(JOBS.innBarkeep.ranks[0].name);
+    expect(q('.job-brings').textContent).toContain('Hands');
+    expect(q('.job-brings').textContent).toContain('Line±4.5%');
+    expect(q('.job-keys').textContent).toContain('again at the line');
+    q('.job-go').click();
+    expect(model.work.shift?.job).toBe('innBarkeep');
+    panel.open(inn);
+    expect(q('.job-head h2').textContent).toBe('Tending the bar'); // (the one they're at)
+    expect(q('.job-go').textContent).toBe('End the shift');
+    (Array.from(q('.job-picks').querySelectorAll('.job-pick')) as HTMLElement[])[0].click();
+    expect([q('.job-go').textContent, (q('.job-go') as HTMLButtonElement).disabled]).toEqual(['At work already', true]);
+    panel.menu.close();
+    model.work.end(true);
   });
 });

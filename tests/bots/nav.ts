@@ -65,12 +65,13 @@ export class Nav {
     return (x, z) => x >= -0.5 + r && z >= -0.5 + r && x <= width - 0.5 - r && z <= depth - 0.5 - r && !bumpsFurniture(inside.furniture, x, z, r) && !inside.walls?.(x, z, r) && clear(x, z); // (a dungeon's rock too)
   }
 
-  // Tile centers to walk through: the pathfinding goes from the middle of
-  // the hero's tile, so if that's blocked (a prop there, the hero at its
-  // edge), first to the nearest clear middle the hero can walk straight to.
+  // Tile centers to walk through: straight there, if nothing's in the way (as a player would: down the aisle behind a
+  // bar, say, where no tile's middle is clear); else the pathfinding, from the middle of the hero's tile, so if that's
+  // blocked (a prop there, the hero at its edge), first to the nearest clear middle the hero can walk straight to.
   private pathTo(to: Point): Point[] {
     const { hero } = this.model;
     const free = this.free();
+    if (this.model.inside && free(to.x, to.z) && clearLine(hero, to, free, 0.1)) return [to];
     const radius = Math.min(PATH_RADIUS, Math.ceil(Math.hypot(to.x - hero.x, to.z - hero.z)) + 8); // (no farther round than need be)
     const [tx, tz] = [Math.round(hero.x), Math.round(hero.z)];
     if (free(tx, tz)) return findPath(hero, to, radius, free);

@@ -20,8 +20,14 @@ import { buyFromHerbalist, herbalistPrice, herbalistShopAt } from '../../src/mod
 import type { BagItem } from '../../src/model/hero/bag';
 import { BotSteps, type Step } from './botSteps';
 import type { GameModel } from '../../src/model/GameModel';
-import { SHIFT } from '../../src/model/jobs/innShift';
-import { BONUS, boardFace } from '../../src/model/jobs/work';
+import { SHIFT } from '../../src/model/jobs/shift';
+import { BONUS, boardFace, type WorkAction } from '../../src/model/jobs/work';
+import { BarShift, type BarAction } from '../../src/model/jobs/barShift';
+import type { JobId } from '../../src/model/jobs/jobs';
+import { barErrand, outOfAisle, worthIt } from './barWork';
+
+const BAR_ACTIONS = new Set(['stop', 'pour', 'hand', 'pass', 'wash', 'gather']);
+const isBarAction = (a: WorkAction): a is BarAction => BAR_ACTIONS.has(a.kind);
 import type { Status } from './errands';
 
 const SHIFT_SLACK = 20; // game seconds past a shift's length before it's said never to have ended
@@ -155,14 +161,15 @@ export class BotVentures extends BotSteps {
     return [this.walk(() => camp.way, 1.5), () => ((this.stats.camps++, 'ok')), raid];
   }
 
-  // A shift at an inn's tables, worked to its end: in, to its notice board (before it, as a player stands to read it),
-  // the shift taken up, then its work done as it comes (an order on the tray to whoever it's for; the tray filled at
-  // the counter when there's something to give back or take up; a call answered; a table cleared), till its time's up.
-  // Said if it isn't as it should be: the board not to be read from before it, E doing nothing where it says it would,
-  // the barkeep never pouring, the tray holding more than the rank allows, pay before the end or short at it, the hero
-  // out of the inn while at work.
+  // A shift at an inn (`job`: its tables, or its bar), worked to its end: in, to its notice board (before it, as a
+  // player stands to read it), the shift taken up, then its work done as it comes, till its time's up. At the tables:
+  // an order on the tray to whoever it's for; the tray filled at the counter when there's something to give back or
+  // take up; a call answered; a table cleared. Behind the bar: barWork.ts. Said if it isn't as it should be: the board
+  // not to be read from before it, E doing nothing where it says it would, the barkeep never pouring (or pouring on her
+  // break), the tray or the hands holding more than the rank allows, a pour run over, pay before the end or short at
+  // it, the hero out of the inn while at work.
   // (`resume`: one under way already, picked up where it is: planned afresh mid-shift.)
-  protected workShift(inn: Entrance, resume = false): Step[] {
+  protected workShift(inn: Entrance, resume = false, job: JobId = 'innServer'): Step[] {
     let t = 0;
     let shift: NonNullable<GameModel['work']['shift']> | null = resume ? this.model.work.shift : null;
     let money = this.model.hero.money;
@@ -176,7 +183,7 @@ export class BotVentures extends BotSteps {
       const before = board.wall === 'left' ? { x: face.x + 0.8, z: face.z } : { x: face.x, z: face.z + 0.8 };
       if (this.walk(() => before, 0.2)(dt) === 'run') return 'run';
       if (model.work.noticeInReach !== inn) return this.report('notice board out of reach before it', `at ${model.hero.x.toFixed(2)},${model.hero.z.toFixed(2)}, its face at ${face.x},${face.z}`), 'fail';
-      if (!model.work.start(inn)) return this.report('shift not taken up', `at the inn at ${inn.x},${inn.z}`), 'fail';
+      if (!model.work.start(inn, job)) return this.report('shift not taken up', `at the inn at ${inn.x},${inn.z}`), 'fail';
       [shift, money, t] = [model.work.shift, model.hero.money, 0];
       this.stats.shifts++;
       return 'ok';
@@ -198,6 +205,7 @@ export class BotVentures extends BotSteps {
         this.report('paid before the shift was over', `${hero.money - money} copper`);
         money = hero.money;
       }
+      if (shift instanceof BarShift) return this.tendingBar(shift, dt);
       if (shift.tray.length > shift.rank.tray) this.report('tray over full', `${shift.tray.length} on a ${shift.rank.name}'s tray of ${shift.rank.tray}`);
       for (const want of shift.wants.values()) {
         if (want.state !== 'ordered' || want.ready) {
@@ -231,7 +239,46 @@ export class BotVentures extends BotSteps {
       }
       return 'run';
     };
-    return resume ? [work] : [...this.enter(inn), start, work];
+    // Behind the bar, its shift over: out by the aisle's mouth first (no tile's middle down it to find a way by).
+    let end: { x: number; z: number } | null = null;
+    const out: Step = (dt) => {
+      const to = end && outOfAisle(end, this.model.hero);
+      if (!to) return 'ok';
+      if (this.walk(() => to, 0.1)(dt) === 'fail') this.nav.reset();
+      return 'run';
+    };
+    const working: Step = (dt) => {
+      if (shift instanceof BarShift) end = shift.pickupSpot;
+      return work(dt);
+    };
+    return resume ? [working, out] : [...this.enter(inn), start, working, out];
+  }
+
+  // A moment behind the bar (barWork.ts): the pour stopped at the line, E where it helps, else on to the next errand;
+  // said if the hands hold more than the rank allows, a pour runs over, the barkeep's at the bar on her break.
+  private barSpilled = 0;
+  private tendingBar(shift: BarShift, dt: number): Status {
+    const { model } = this;
+    const { hero } = model;
+    if (shift.held.length > shift.rank.tray) this.report('hands over full', `${shift.held.length} held by a ${shift.rank.name}, of ${shift.rank.tray}`);
+    if (shift.spilled > this.barSpilled) {
+      this.barSpilled = shift.spilled;
+      this.report('pour ran over', `${shift.spilled} spilled at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
+    }
+    const barkeep = model.folk.find((n) => n.role === 'barkeep' && n.home === shift.inn);
+    if (barkeep?.serving) this.report('barkeep at work on her break', `${barkeep.name}, at ${barkeep.x.toFixed(2)},${barkeep.z.toFixed(2)}`);
+    const action = model.work.action;
+    if (action && 'kind' in action && isBarAction(action) && worthIt(shift, action)) {
+      const before = { level: hero.level, xp: hero.xp };
+      if (!model.work.use()) this.report('work did nothing', `${action.kind}: E by it, at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
+      this.balance.xp('work', before);
+      return 'run';
+    }
+    if (shift.pour) return 'run'; // (stood at the tap, filling)
+    const to = barErrand(shift, hero);
+    if (Math.hypot(hero.x - to.x, hero.z - to.z) <= 0.2) return 'run';
+    if (this.walk(() => to, 0.15)(dt) === 'fail') this.nav.reset();
+    return 'run';
   }
 
   // To a traveller on the road (they walk on: followed), near enough for a word: a pedlar's pack opened and something

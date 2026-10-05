@@ -280,9 +280,9 @@ export class Bot extends BotVentures {
       }
       case 'work': {
         const shift = this.model.work.shift;
-        if (shift) return this.workShift(shift.inn, true);
+        if (shift) return this.workShift(shift.inn, true, shift.job);
         const inn = nearestDoor(this.model, 'inn', undefined, 250);
-        return inn ? [...this.workShift(inn), ...this.leave()] : [];
+        return inn ? [...this.workShift(inn, false, this.rng() < 0.5 ? 'innBarkeep' : 'innServer'), ...this.leave()] : []; // (either job, as it falls)
       }
       case 'herbalist': {
         const herbalist = this.nearest(this.model.npcs.filter((n) => n.role === 'herbalist' && n.where === n.home), 250, (n) => n.home); // (at home: by their door)
