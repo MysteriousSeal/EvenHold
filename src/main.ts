@@ -128,7 +128,7 @@ async function boot(): Promise<void> {
   );
   const floatingText = createFloatingText();
   const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
-  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45, caveSpider: 0.2, caveBat: 0.3, caveWorm: 0.35, hatchling: 0.15, broodMother: 0.55 }; // about two thirds of the way up them
+  const ENEMY_TEXT_HEIGHT = { wolf: 0.35, bandit: 0.4, boar: 0.3, skeleton: 0.4, skeletonArcher: 0.4, draugr: 0.45, cryptLord: 0.6, ghost: 0.45, caveSpider: 0.2, caveBat: 0.3, caveWorm: 0.35, hatchling: 0.15, broodMother: 0.55, bear: 0.45, lynx: 0.3 }; // about two thirds of the way up them
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
   const bag = createInventoryPanel(model);

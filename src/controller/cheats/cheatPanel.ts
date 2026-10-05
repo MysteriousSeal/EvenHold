@@ -16,6 +16,7 @@ import {
   nextRuin,
   nearestLakeShore,
   nearestPack,
+  nearestOf,
   nextVillage,
   resetCrypts, slayNearby, spawnDraugr,
   spawnEnemyNear,
@@ -168,7 +169,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
       return `Inside the ${type}.`;
     },
   });
-  const summonRow = (kind: 'wolf' | 'bandit' | 'boar', icon: MenuIcon, detail = 'Just ahead of you'): MenuAction => ({
+  const summonRow = (kind: 'wolf' | 'bandit' | 'boar' | 'bear' | 'lynx', icon: MenuIcon, detail = 'Just ahead of you'): MenuAction => ({
     icon,
     title: `A ${kind}`,
     detail,
@@ -214,6 +215,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ...group('Wilds', [
             { icon: ICON.camp, title: 'Next bandit camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
             { icon: ICON.wolfPack, title: 'Nearest wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+            { icon: ICON.bear, title: 'Nearest bear', detail: 'A few paces from the nearest, deep in the forest', run: () => travel(nearestOf(model, here(), 'bear'), 'a bear') },
+            { icon: ICON.lynx, title: 'Nearest lynx', detail: 'A few paces from the nearest, at a forest’s edge', run: () => travel(nearestOf(model, here(), 'lynx'), 'a lynx') },
             { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
           ]),
           ...group('Roads', [
@@ -410,6 +413,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             summonRow('wolf', ICON.wolf),
             summonRow('bandit', ICON.bandit),
             summonRow('boar', ICON.boar, 'Just ahead of you (passive until struck)'),
+            summonRow('bear', ICON.bear, 'Just ahead of you (rears up and slams; charges when hurt)'),
+            summonRow('lynx', ICON.lynx, 'Just ahead of you (pounces from a few tiles off)'),
             { icon: ICON.slay, title: 'A draugr', detail: 'At your level (in a crypt: with its breath and cleave)', run: () => (spawnDraugr(model), `A draugr of level ${model.hero.level} rises.`) },
           ]),
           ...group('Control', [

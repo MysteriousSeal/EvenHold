@@ -18,6 +18,7 @@ import { BIRD_PALETTE, birdGrid, butterflyGrid } from '../../view/meshes/wildlif
 import type { SceneryKind } from '../../model/scenery/scenery';
 import type { BloomKind } from '../../model/scenery/meadowPatches';
 import { BOAR_PALETTE, buildBoarHead } from '../../view/meshes/enemy/boarVoxels';
+import { BEAR_PALETTE, LYNX_PALETTE, bearHead, lynxHead } from '../../view/meshes/enemy/wildBeastVoxels';
 import { WOLF_PALETTE, buildBody, buildHead as buildWolfHead, buildLeg as buildWolfLeg, buildTail } from '../../view/meshes/enemy/wolfVoxels';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from '../../view/meshes/building/houseVoxels';
 import { HOUSE_PALETTE } from '../../view/meshes/building/housePalette';
@@ -141,6 +142,8 @@ export const ICONS = {
   ruin: icon('ruinArch', () => ({ grid: buildRuinPiece('arch', 0), palette: RUIN_PALETTE })),
   wolfPack: icon('wolfHead', () => ({ grid: buildWolfHead(), palette: WOLF_PALETTE })),
   boar: icon('boarHead', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE })),
+  bear: icon('bearHead', () => ({ grid: bearHead(), palette: BEAR_PALETTE })),
+  lynx: icon('lynxHead', () => ({ grid: lynxHead(), palette: LYNX_PALETTE })),
   spawn: icon('lantern', () => ({ grid: buildLanternPost(), palette: LANTERN_PALETTE })),
   // Hero
   swiftFeet: itemIcon('leatherBoots'),
