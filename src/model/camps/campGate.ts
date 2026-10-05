@@ -13,12 +13,12 @@ import type { Camp } from './camps';
 
 export const CAMP_NAMES = {
   // Whose it is: "Redhand's Stockade".
-  owners: ["Redhand's", "One-Eye's", "Black Tom's", "the Butcher's", "Crookback's", "Old Gil's", "the Fox's", "Grimwald's", "Scarface's", "the Widow's", "Mad Hob's", "Long Will's", "the Hangman's", "Ratcatcher's", "Bloody Bess's"],
+  owners: ["Redhand's", "One-Eye's", "Black Tom's", "the Butcher's", "Crookback's", "Old Gil's", "the Fox's", "Grimwald's", "Scarface's", "the Widow's", "Mad Hob's", "Long Will's", "the Hangman's", "Ratcatcher's", "Bloody Bess's", "Gutter Jack's", "the Tinker's", "Halfhand's", "Mother Grue's", "the Brothers'", "Sly Edric's"],
   // What it is: a stockade, a holdfast.
-  holds: ['Stockade', 'Camp', 'Hold', 'Den', 'Roost', 'Lair', 'Nest', 'Hideout', 'Fort', 'Haunt'],
+  holds: ['Stockade', 'Camp', 'Hold', 'Den', 'Roost', 'Lair', 'Nest', 'Hideout', 'Fort', 'Haunt', 'Keep', 'Pale'],
   // What it's like, or what's been seen there: "the Crow's Roost", "Gallows Hollow".
-  marks: ["Crow's", 'Gallows', 'Cutthroat', 'Blackpike', 'Rook', 'Bloodstone', 'Wolfsbane', 'Thornwall', 'Ashen', 'Broken Wheel', 'Hanged Man', 'Rusty Blade', 'Raven', 'Skull'],
-  places: ['Hollow', 'Clearing', 'Rise', 'Camp', 'Roost', 'Stockade', 'Dell', 'Hill', 'Field'],
+  marks: ["Crow's", 'Gallows', 'Cutthroat', 'Blackpike', 'Rook', 'Bloodstone', 'Wolfsbane', 'Thornwall', 'Ashen', 'Broken Wheel', 'Hanged Man', 'Rusty Blade', 'Raven', 'Skull', 'Cinder', 'Dead Oak', "Mourner's", 'Crooked Knife'],
+  places: ['Hollow', 'Clearing', 'Rise', 'Camp', 'Roost', 'Stockade', 'Dell', 'Hill', 'Field', 'Ridge'],
 } as const;
 
 export function campName(camp: { x: number; z: number }, seed: number): string {
