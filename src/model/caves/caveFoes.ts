@@ -15,10 +15,10 @@
 //   crack to the daylight open, the cave cleared. The slain stay slain (the
 //   save's record, by post: dungeons/dungeonRecord.ts).
 
+import { rollHoard, type Hoard } from '../loot/hoard';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
-import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { makeEnemy } from '../enemies/enemies';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { ToldMoves, knockAway } from '../enemies/toldMoves';
@@ -113,11 +113,8 @@ export function beastCount(seed: number, inside: CaveInside): number {
 }
 
 // What the brood mother's hoard holds: a fine piece (worth a hundred or more) and coins by the cave's level.
-export function caveHoard(inside: CaveInside, seed: number): { item: ItemId; coins: number } {
-  const rng = mulberry32(hashCell(inside.cave.mouth.x, inside.cave.mouth.z, seed + 9137));
-  const fine = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= 100);
-  return { item: fine[Math.floor(rng() * fine.length)], coins: 60 * inside.cave.level + Math.floor(rng() * 40 * inside.cave.level) };
-}
+export const caveHoard = (inside: CaveInside, seed: number): Hoard =>
+  rollHoard(inside.cave.mouth.x, inside.cave.mouth.z, seed + 9137, inside.cave.level, { worth: 100, base: 60, spread: 40 });
 
 export class CaveRun implements DungeonRun {
   readonly foes: Enemy[];

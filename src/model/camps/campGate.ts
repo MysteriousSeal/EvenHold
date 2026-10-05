@@ -4,12 +4,10 @@
 // (enemies/enemyLevels.ts: zoneLevel), its bandits that or one either side.
 
 import { campName } from './campNames';
-import { spawnOf, type MapSize } from '../map/grid';
-import { zoneLevel } from '../enemies/enemyLevels';
+import type { MapSize } from '../map/grid';
 import type { GameEvent } from '../types';
-import type { Camp } from './camps';
+import { campLevel, type Camp } from './camps';
 
-export const campLevel = (camp: { x: number; z: number }, size: MapSize): number => zoneLevel(spawnOf(size), camp);
 
 const AT_GATE = 1.3; // tiles from the spot just outside its way in: at the gate
 const AWAY = 8; // tiles from it the hero must go before it's told again

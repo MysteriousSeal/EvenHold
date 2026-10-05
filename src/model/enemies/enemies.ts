@@ -114,7 +114,7 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
     const chief = chiefSpot(camp, spots);
     const rest = spots.filter((s) => s !== chief);
     for (const [x, z] of rest.slice(0, camp.bandits)) enemies.push({ ...makeEnemy(enemies.length, 'bandit', x, z, camp.x, camp.z, enemyLevel(world.hero, camp.x, camp.z, enemies.length)), pen: 2 });
-    if (chief) enemies.push({ ...makeEnemy(enemies.length, 'banditChief', chief[0], chief[1], camp.x, camp.z, chiefLevel(world.hero, camp)), pen: 2, name: chiefName(camp, world.seed) });
+    if (chief) enemies.push({ ...makeEnemy(enemies.length, 'banditChief', chief[0], chief[1], camp.x, camp.z, chiefLevel(camp, world.size)), pen: 2, name: chiefName(camp, world.seed) });
   };
 
   // One of each a short walk from spawn, so there's something to fight right away.

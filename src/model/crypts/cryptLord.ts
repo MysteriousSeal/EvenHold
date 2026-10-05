@@ -10,11 +10,10 @@
 // stands where he rose: coins and a fine piece of gear. All kept (the save):
 // slain once, he stays slain; the chest, opened once, stays empty.
 
+import { rollHoard, type Hoard } from '../loot/hoard';
 import type { Enemy } from '../types';
-import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
-import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { isFloor } from './cryptLayout';
 import type { Told, ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
@@ -58,11 +57,8 @@ export function lordSpot(inside: CryptInside): { x: number; z: number } {
 }
 
 // What his chest holds: a fine piece of gear (of what's worth the most, picked by the crypt), and coins.
-export function chestHoard(inside: CryptInside, seed: number): { item: ItemId; coins: number } {
-  const rng = mulberry32(hashCell(inside.crypt.ruin.x, inside.crypt.ruin.z, seed + 9091));
-  const fine = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= 100);
-  return { item: fine[Math.floor(rng() * fine.length)], coins: 60 * inside.crypt.level + Math.floor(rng() * 40 * inside.crypt.level) };
-}
+export const chestHoard = (inside: CryptInside, seed: number): Hoard =>
+  rollHoard(inside.crypt.ruin.x, inside.crypt.ruin.z, seed + 9091, inside.crypt.level, { worth: 100, base: 60, spread: 40 });
 
 // His slam, for a crypt's foes to do (toldMoves.ts): round where he stands, never lost to a blow.
 export const SLAM: ToldMove = {

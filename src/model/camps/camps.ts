@@ -18,6 +18,7 @@ import type { Obstacles } from '../map/obstacles';
 import type { Surface, Village } from '../types';
 import type { ForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
+import { zoneLevel } from '../enemies/enemyLevels';
 
 export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot' | 'palisade' | 'gate' | 'tower' | 'woodpile';
 
@@ -112,6 +113,9 @@ function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: n
   if (world.heightMap[ox]?.[oz] === undefined || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.surfaceMap[ox][oz] !== 'natural') return null;
   return { x: cx, z: cz, quarterTurns, bandits, way: { x: cx + wx, z: cz + wz }, pieces: layOut(cx, cz, quarterTurns) };
 }
+
+// A camp's level: its ground's (enemies/enemyLevels.ts: zoneLevel), its bandits that or one either side, its chief one over.
+export const campLevel = (camp: { x: number; z: number }, size: MapSize): number => zoneLevel(spawnOf(size), camp);
 
 // The tiles a camp stands on, its stockade's five by five (its floor: hay strewn over it, no grass through it).
 export const campTiles = (camp: { x: number; z: number }): Array<{ x: number; z: number }> =>

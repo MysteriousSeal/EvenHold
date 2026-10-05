@@ -7,9 +7,9 @@
 
 import type { Equipment } from '../human/equipment';
 import { pickAt } from '../../util/random';
-import { zoneLevel } from '../enemies/enemyLevels';
+import type { MapSize } from '../map/grid';
 import { CAMP_NAMES, campName } from './campNames';
-import { turn, type Camp } from './camps';
+import { campLevel, turn, type Camp } from './camps';
 
 export const CHIEF_OUTFIT: Equipment = {
   head: 'hornedHelm',
@@ -37,8 +37,8 @@ export function chiefName(camp: { x: number; z: number }, seed: number): string 
   return pickAt(camp.x, camp.z, seed * 151)(men, 1);
 }
 
-// His level: the camp's ground's (its bandits that or one either side), and one over.
-export const chiefLevel = (spawn: { x: number; z: number }, camp: { x: number; z: number }): number => zoneLevel(spawn, camp) + 1;
+// His level: his camp's, and one over.
+export const chiefLevel = (camp: { x: number; z: number }, size: MapSize): number => campLevel(camp, size) + 1;
 
 // Where he stands: before the banner, between it and the fire (if that's free), else the first of `free`.
 export function chiefSpot(camp: Camp, free: ReadonlyArray<[number, number]>): [number, number] | null {

@@ -6,12 +6,11 @@
 import type { Enemy, GameEvent } from '../types';
 import type { BagItem } from '../hero/bag';
 import type { MapSize } from '../map/grid';
-import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
-import { hashCell, mulberry32 } from '../../util/random';
+import { rollHoard, type Hoard } from '../loot/hoard';
 import { CHEST_POST } from '../dungeons/dungeonRecord';
-import { CampGate, campLevel } from './campGate';
+import { CampGate } from './campGate';
 import { campName } from './campNames';
-import type { Camp } from './camps';
+import { campLevel, type Camp } from './camps';
 
 export const CHEST_REACH = 0.9; // tiles from the chest the hero can open it
 const STOLEN_WORTH = 60; // the least a piece of gear in a chest is worth
@@ -31,12 +30,7 @@ export const chestOf = (camp: Camp) => camp.pieces.find((p) => p.kind === 'loot'
 const ofCamp = (camp: Camp) => (e: Enemy) => e.homeX === camp.x && e.homeZ === camp.z && e.state !== 'dead' && (e.kind === 'bandit' || e.kind === 'banditChief');
 
 // What a camp's chest holds: a piece of stolen gear worth having, and coins, by its level.
-export function campHoard(camp: Camp, size: MapSize, seed: number): { item: ItemId; coins: number } {
-  const rng = mulberry32(hashCell(camp.x, camp.z, seed + 7717));
-  const level = campLevel(camp, size);
-  const worth = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= STOLEN_WORTH);
-  return { item: worth[Math.floor(rng() * worth.length)], coins: 25 * level + Math.floor(rng() * 15 * level) };
-}
+export const campHoard = (camp: Camp, size: MapSize, seed: number): Hoard => rollHoard(camp.x, camp.z, seed + 7717, campLevel(camp, size), { worth: STOLEN_WORTH, base: 25, spread: 15 });
 
 export class CampLife {
   private readonly gate: CampGate;
