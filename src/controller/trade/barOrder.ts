@@ -20,6 +20,7 @@ import { ALE_ENERGY, ALE_SECONDS, PIE_HEALS, PIE_SECONDS } from '../../model/inn
 import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import type { Hero } from '../../model/types';
 import { clock, pick } from './tradePanel';
+import { doorNumber } from '../../model/interiors/interiors';
 
 // What the hero can order at the bar.
 export type BarMenuItem = 'ale' | 'pie';
@@ -106,7 +107,7 @@ export const MENU: Record<BarMenuItem, OnTheMenu> = {
 };
 
 // The barmaid's shop, where the hero is (in her inn).
-const shopHere = (model: GameModel): Shop => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+const shopHere = (model: GameModel): Shop => shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
 
 // Whether the hero's sat on a stool at the bar (where F and G order).
 export const atTheBar = (model: GameModel) => model.inside?.seated?.seat.piece.kind === 'barStool';

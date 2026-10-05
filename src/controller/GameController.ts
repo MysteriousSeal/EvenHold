@@ -16,6 +16,7 @@ import type { Npc } from '../model/npcs/npcs';
 import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
+import { doorNumber } from '../model/interiors/interiors';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 const MAX_STEP = 1 / 30; // the longest step the game takes at once (a sped-up frame is several)
@@ -130,7 +131,7 @@ export class GameController {
       if (barmaid) this.onOrder(barmaid, wanted);
     } else if (wanted === 'pie') {
       const action = roomAction(this.model); // (by the barmaid: a room; by its bed at night: sleep)
-      if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(this.model.inside!.entrance)));
+      if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(this.model.inside!.entrance)));
       else if (action?.kind === 'sleep') this.onSleep();
     }
     // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;

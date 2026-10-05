@@ -469,7 +469,7 @@ function worldFacts(model: GameModel, near: number): Array<[string, string]> {
   return [
     ['Seed', String(model.seed)],
     ['Position', `${hero.x.toFixed(1)}, ${hero.z.toFixed(1)}`],
-    ['Ground', `tier ${model.heightMap[tx]?.[tz] ?? '?'} · ${model.lakeMap[tx]?.[tz] ? 'water' : (model.surfaceMap[tx]?.[tz] ?? '?')}`],
+    ['Ground', model.tiles.has(tx, tz) ? `tier ${model.tiles.height(tx, tz)} · ${model.tiles.lake(tx, tz) ? 'water' : model.tiles.surface(tx, tz)}` : 'off the map'],
     ['Foes near', `${count('wolf')} wolves · ${count('bandit')} bandits · ${count('boar')} boars`],
     ['Nearest village', village ? `${Math.round(Math.hypot(village.x - tx, village.z - tz))} tiles` : 'none'],
     ['World', `${model.size.width}×${model.size.depth}`],

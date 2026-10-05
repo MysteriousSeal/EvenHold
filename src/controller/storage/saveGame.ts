@@ -6,6 +6,7 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { parseSave, restore, snapshot } from '../../model/save';
+import type { MapSize } from '../../model/map/grid';
 import { START_MINUTES, clockAt } from '../../model/clock';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { Equipment } from '../../model/human/equipment';
@@ -58,6 +59,17 @@ export function forgetWorld(seed: number): void {
 }
 
 // Puts this world's saved game back into `model`; returns whether there was one.
+// The size of the world a seed's game was saved in (a version 1 save's: a classic world's, 2048 a side), or null if
+// there's none: a game goes on in the world it began in.
+export function savedSize(seed: number): MapSize | null {
+  try {
+    const data = parseSave(localStorage.getItem(keyOf(seed)), seed);
+    return data ? (data.size ?? { width: 2048, depth: 2048 }) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function loadGame(model: GameModel): boolean {
   let raw: string | null = null;
   try {

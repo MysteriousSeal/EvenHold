@@ -6,8 +6,8 @@
 
 import './questPanels.css';
 import type { GameModel } from '../../model/GameModel';
-import { MAX_ACTIVE, MAX_PER_BOARD, inMeters, questProgress, questTitle, type Quest } from '../../model/quests/quests';
-import { noticeBoards } from '../../model/quests/noticeBoards';
+import { MAX_ACTIVE, MAX_PER_BOARD, boardVillage, inMeters, questProgress, questTitle, type Quest } from '../../model/quests/quests';
+import { boardSpot } from '../../model/quests/noticeBoards';
 import { coinParts } from '../../view/ui/coins';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { notice, questFacts, questIcon } from './questText';
@@ -52,7 +52,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const have = taken ? quests.progress(taken) : 0;
     const done = have >= q.count;
     const { icon, facts, fact } = detailParts(questIcon(q)(72), 'menu-detail-facts quest-facts');
-    const spot = noticeBoards(model)[q.board];
+    const spot = boardSpot(model, q.board) ?? q; // (the board's: always known while it's read)
     fact('Where', [`${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
     questFacts(fact, q, model.hero.level, quests.xpFor(q));
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
@@ -108,7 +108,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const left = quests.offersAt(board).filter((q) => !quests.isCompleted(q.key)).length;
     const said = left > 0 ? 'Notices from the villagers. Take one on, then come back here once it is done.' : 'Every notice here has been seen to. There is nothing more to do.';
     // The village's level: all its quests are of it (for better paid work, villages farther out).
-    const level = zoneLevel(spawnOf(model.size), model.villages[board]);
+    const level = zoneLevel(spawnOf(model.size), boardVillage(model, board) ?? model.hero);
     const lead = `A level ${level} village (farther ones pay better). ${said}`;
     row.append(line('quest-board-lead', lead), pins, line('quest-taken', `${quests.takenAt(board)}/${MAX_PER_BOARD} here · ${quests.taken.length}/${MAX_ACTIVE} in all`));
     return row;

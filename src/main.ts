@@ -4,14 +4,14 @@ import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { chestInReach } from './model/loot/chests';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
-import { GameModel } from './model/GameModel';
+import { CLASSIC_MOST, GameModel } from './model/GameModel';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from './util/seed';
 import { showMainMenu } from './controller/title/mainMenu';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
-import { forgetWorld, loadGame, savedWorlds, startAutoSave } from './controller/storage/saveGame';
+import { forgetWorld, loadGame, savedSize, savedWorlds, startAutoSave } from './controller/storage/saveGame';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
@@ -43,7 +43,7 @@ import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createQuestTracker } from './view/hud/questTracker';
-import { noticeBoards } from './model/quests/noticeBoards';
+import { boardSpot } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/hero/heroSheet';
 import { createPauseMenu } from './controller/pauseMenu';
 import { clockAt } from './model/clock';
@@ -56,7 +56,8 @@ import { readRenderOptions } from './view/render/renderOptions';
 import { counted } from './view/ui/words';
 import { keepWorld, loadWorld } from './controller/storage/worldCache';
 import { generateWorld } from './model/worldgen/world';
-import { DEFAULT_MAP_SIZE } from './model/map/grid';
+import { WorkerSource } from './controller/world/workerSource';
+import { STREAMED_SIZE } from './model/worldgen/regions';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -74,16 +75,20 @@ async function boot(): Promise<void> {
   const positionLabel = document.getElementById('position-label') as HTMLDivElement;
   (document.getElementById('seed-label') as HTMLDivElement).textContent = `seed: ${seed}`;
 
-  // The world as its seed made it: kept from an earlier visit (worldCache.ts), else made now and kept for next time.
-  loading.show(0, 'Unrolling the map');
+  // The world as its seed made it. A game goes on in the world it began in: a classic world (2048 a side, made whole:
+  // kept from an earlier visit, worldCache.ts, else made now and kept for next time); a new game's a streamed one (16384
+  // a side, made a region at a time round the hero, off the game's thread: controller/world/workerSource.ts).
+  const size = savedSize(seed) ?? STREAMED_SIZE;
+  const streamed = Math.max(size.width, size.depth) > CLASSIC_MOST;
+  loading.show(0, streamed ? 'Shaping the land round you' : 'Unrolling the map');
   await nextPaint();
-  const kept = await loadWorld(seed, DEFAULT_MAP_SIZE);
-  if (!kept) {
+  const kept = streamed ? null : await loadWorld(seed, size);
+  if (!kept && !streamed) {
     loading.show(0, 'Shaping the land');
     await nextPaint();
   }
-  const world = kept ?? generateWorld(seed, DEFAULT_MAP_SIZE);
-  const model = new GameModel(seed, DEFAULT_MAP_SIZE, world);
+  const world = streamed ? undefined : (kept ?? generateWorld(seed, size));
+  const model = new GameModel(seed, size, world, streamed ? new WorkerSource(seed, size) : undefined);
   // This world's saved game, if it was played before; else a new hero: the one made on the main menu, or any look
   // with a name to match.
   if (!loadGame(model)) {
@@ -196,10 +201,8 @@ async function boot(): Promise<void> {
     const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null; // (on the road)
     if (traveller) return { label: travellerPrompt(traveller), x: traveller.x, y: traveller.y + 0.75, z: traveller.z };
     const read = model.boardInReach;
-    if (read !== null) {
-      const spot = noticeBoards(model)[read];
-      return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
-    }
+    const spot = read === null ? undefined : boardSpot(model, read);
+    if (spot) return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
     const well = model.wellInReach;
     if (well !== null) return { label: 'Toss a silver coin', x: model.villages[well].x, y: hero.y + 0.8, z: model.villages[well].z };
     const hallDoor = model.inside?.below ? doorAt(model.inside, hero) : null;
@@ -300,7 +303,7 @@ async function boot(): Promise<void> {
     },
   });
   controller.start();
-  if (!kept) window.setTimeout(() => void keepWorld(seed, DEFAULT_MAP_SIZE, world), 2000); // (once the game's under way)
+  if (world && !kept) window.setTimeout(() => void keepWorld(seed, size, world), 2000); // (a classic world's, once the game's under way)
   const autoSave = startAutoSave(model);
   loading.show(1, 'Welcome');
   // Fade out once the first frame is on screen.

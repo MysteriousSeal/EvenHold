@@ -7,9 +7,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
 import { baseOf, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
-import { zoneLevel } from '../../model/enemies/enemyLevels';
-import { spawnOf } from '../../model/map/grid';
-import { buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../../model/smithy/smithShop';
+import { buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopIn } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -79,8 +77,7 @@ const JUNK_LOT = [
 ];
 
 export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(smith: Npc): void; update(): void; menu: Menu } {
-  const level = () => zoneLevel(spawnOf(model.size), model.inside!.entrance); // (his village's: what he forges is at it)
-  const shop = () => smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance), Date.now(), level());
+  const shop = () => smithShopIn(model); // (his village's level: what he forges is at it)
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,

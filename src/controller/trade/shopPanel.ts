@@ -8,6 +8,7 @@ import { buy, buyPrice, sell, sellPrice, shopAt } from '../../model/inn/tavernSh
 import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
+import { doorNumber } from '../../model/interiors/interiors';
 
 // What she says: a greeting when the window opens, and her answer to each trade.
 const LINES: TradeLines = {
@@ -140,7 +141,7 @@ const JUNK_LOT = [
 ];
 
 export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(barmaid: Npc): void; update(): void; menu: Menu } {
-  const shop = () => shopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+  const shop = () => shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
