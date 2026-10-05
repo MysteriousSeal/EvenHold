@@ -9,6 +9,7 @@
 // the crystals' lavender (the nearest few lit, as the hero goes, pulsing
 // softly), the daylight at the way up, a faint warmth about the hero.
 
+import { glowMaterial } from '../meshes/common/glow';
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import { inFullView, isFloor } from '../../model/dungeons/floorPlan';
@@ -79,7 +80,7 @@ export function buildCaveScene(inside: CaveInside): { scene: THREE.Scene; update
   // The daylight spilling down the way up and over the floor at its foot, fanning back into the cave (sunPoolVoxels.ts).
   const spillGeometry = greedyMesh(sunPool(), SUN_PALETTE, V, new THREE.Vector3((-SUN_GRID[0] / 2) * V, 0, 0));
   made.push(spillGeometry);
-  const spillLook = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const spillLook = glowMaterial(0xffffff, { vertexColors: true, toneMapped: false });
   const spill = new THREE.Mesh(spillGeometry, spillLook);
   spill.position.set(plan.door + 0.5, 0.004, plan.depth - 0.5);
   spill.rotation.y = Math.PI; // (out from the way up, into the cave)

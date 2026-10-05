@@ -11,6 +11,7 @@
 //   its braziers' fires, lit from dusk to dawn.
 // Voxels: entranceVoxels.ts; the glows the sun pool's shape (cave/sunPoolVoxels.ts).
 
+import { glowMaterial } from '../common/glow';
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { FACINGS } from '../../../model/map/grid';
@@ -251,5 +252,5 @@ const ROOF_RIDGE = 43 * 0.04; // a crypt's tomb's ridge over the ground (ruin/cr
 
 // A glow on the ground: its light added to what's under it, the floor showing through, lit.
 function poolMaterial(): THREE.MeshBasicMaterial {
-  return new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  return glowMaterial(0xffffff, { vertexColors: true, toneMapped: false });
 }

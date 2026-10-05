@@ -17,14 +17,11 @@ import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from './spiderVoxels';
 import { BatRig, createBatLook, type BatLook } from './batRig';
 import { WormRig, createWormLook, type WormLook } from './wormRig';
 import { Nearby } from '../common/nearby';
+import { KIND_LOOKS } from './enemyKinds';
 
-const AURA_SIZE: Record<EnemyKind, number> = { wolf: 19, boar: 19, bandit: 15, skeleton: 15, skeletonArcher: 15, draugr: 17, cryptLord: 22, ghost: 15, caveSpider: 19, caveBat: 15, caveWorm: 17, hatchling: 15, broodMother: 24, bear: 23, lynx: 17 }; // the quest aura under each kind, voxels across (four-legged ones are longer)
 
-const LORD_SIZE = 1.5; // a crypt's lord, over his guards
-const DRAUGR_SIZE = 1.15; // a draugr, over a man
-const MARKER_MOST = DRAUGR_SIZE; // the focus brackets, at their biggest (a draugr's, the lord's)
-const SIZES: Partial<Record<EnemyKind, number>> = { cryptLord: LORD_SIZE, draugr: DRAUGR_SIZE, broodMother: 1.3, hatchling: 0.5 }; // (the brood mother's grid is half again a spider's already)
-const sizeOf = (kind: EnemyKind) => SIZES[kind] ?? 1; // how big each kind's drawn, over the rest
+const MARKER_MOST = KIND_LOOKS.draugr.size; // the focus brackets, at their biggest (a draugr's, the lord's)
+const sizeOf = (kind: EnemyKind) => KIND_LOOKS[kind].size; // how big each kind's drawn, over the rest (enemyKinds.ts)
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -118,7 +115,7 @@ export class EnemyViews {
       return;
     }
     if (!mark) {
-      mark = questAura(AURA_SIZE[enemy.kind]);
+      mark = questAura(KIND_LOOKS[enemy.kind].aura);
       mark.scale.setScalar(this.scale);
       this.questMarks.set(enemy.id, mark);
       this.scene.add(mark);

@@ -3,10 +3,11 @@
 // by how dangerous it is for the hero, as the target panel has it), and the
 // burst of voxel cubes it breaks into when it dies.
 
+import { KIND_LOOKS } from './enemyKinds';
 import * as THREE from 'three';
 import { ENEMY_CORPSE_TIME } from '../../../model/constants';
 import { CAMERA_YAW } from '../../constants';
-import type { Enemy, EnemyKind } from '../../../model/types';
+import type { Enemy } from '../../../model/types';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
 import { INK, nameLabel } from '../common/overhead';
 import { voxelIcon } from '../../ui/voxelIcon';
@@ -50,9 +51,8 @@ function bossMark(): THREE.SpriteMaterial {
   return bossMaterial;
 }
 
-// What each kind's called (over its head, in the target panel), unless it has a name of its own (a crypt's lord).
-const ENEMY_NAMES: Record<EnemyKind, string> = { wolf: 'Wolf', bandit: 'Bandit', boar: 'Boar', skeleton: 'Skeleton', skeletonArcher: 'Skeleton archer', draugr: 'Draugr', cryptLord: 'Crypt lord', ghost: 'Ghost', caveSpider: 'Cave spider', caveBat: 'Cave bat', caveWorm: 'Cave worm', hatchling: 'Hatchling', broodMother: 'The brood mother', bear: 'Brown bear', lynx: 'Lynx' };
-export const enemyName = (enemy: Pick<Enemy, 'kind' | 'name'>): string => enemy.name ?? ENEMY_NAMES[enemy.kind];
+// What each kind's called (over its head, in the target panel: enemyKinds.ts), unless it has a name of its own (a crypt's lord).
+export const enemyName = (enemy: Pick<Enemy, 'kind' | 'name'>): string => enemy.name ?? KIND_LOOKS[enemy.kind].name;
 
 // What every foe's rig does (enemyViews.ts): its root in the scene, drawn at a size (its bar and name kept at
 // theirs), moved and posed each frame from the model, let go.

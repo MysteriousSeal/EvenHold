@@ -22,6 +22,7 @@ import { EnemyViews } from '../meshes/enemy/enemyViews';
 import { LootViews } from '../meshes/loot/lootViews';
 import { CoinViews } from '../meshes/loot/coinViews';
 import { glowMaterial } from '../meshes/common/glow';
+import { GlowMarks } from '../meshes/common/glowMarks';
 import { createGrid, setColor } from '../meshes/voxel/voxelShapes';
 import { ImpactView } from '../crypt/impactView';
 import { C, CAVE_VOXEL as V, TILE } from './cavePalette';
@@ -49,7 +50,7 @@ export class CaveLife {
   private readonly webs: THREE.Mesh[] = []; // a pool, as many shown as fly
   private readonly disc = new THREE.CircleGeometry(1, 20).rotateX(-Math.PI / 2);
   private readonly strip = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0); // (along +X from its foot)
-  private readonly marks: THREE.Mesh[] = []; // a pool: told moves' marks on the floor
+  private readonly marks: GlowMarks; // told moves' marks on the floor
   private readonly burst = new WeakSet<object>(); // the eruptions already burst
   private readonly seen = new Set<number>(); // the hatchlings already out
   private crack: { rubble: THREE.Mesh; light: THREE.Mesh; glow: THREE.PointLight; pool: THREE.Mesh; motes: THREE.InstancedMesh; opening: number } | null = null;
@@ -68,6 +69,7 @@ export class CaveLife {
     this.loot = new LootViews(scene, INDOOR_SCALE);
     this.coins = new CoinViews(scene, INDOOR_SCALE);
     this.impacts = new ImpactView(scene);
+    this.marks = new GlowMarks(scene);
     // A spat web: a knot of silk, strands out from it.
     const grid = createGrid([5, 5, 5]);
     for (const [x, y, z] of [[2, 2, 2], [1, 2, 2], [3, 2, 2], [2, 1, 2], [2, 3, 2], [2, 2, 1], [2, 2, 3], [0, 3, 2], [4, 1, 2], [2, 4, 3], [1, 0, 1], [3, 3, 4], [2, 1, 0]]) setColor(grid, x, y, z, C.silk);
@@ -116,21 +118,8 @@ export class CaveLife {
 
   // The told moves' marks on the floor: a worm's heave (cracked, pulsing), a spider's leap, the brood mother's charge.
   private told(cave: CaveRun | null, hero: { x: number; z: number }): void {
-    let used = 0;
-    const mark = (geometry: THREE.BufferGeometry, color: number, opacity: number) => {
-      let m = this.marks[used];
-      if (!m) {
-        m = new THREE.Mesh(geometry, glowMaterial(color));
-        this.scene.add(m);
-        this.marks.push(m);
-      }
-      m.geometry = geometry;
-      (m.material as THREE.MeshBasicMaterial).color.setHex(color);
-      (m.material as THREE.MeshBasicMaterial).opacity = opacity;
-      m.visible = true;
-      used++;
-      return m;
-    };
+    this.marks.begin();
+    const mark = (geometry: THREE.BufferGeometry, color: number, opacity: number) => this.marks.mark(geometry, color, opacity, 0, 0.012, 0);
     this.shaking = 0;
     for (const m of cave?.eruptions.moves ?? []) {
       const k = Math.min(1, m.t / ERUPT_TELL);
@@ -160,7 +149,7 @@ export class CaveLife {
       strip.rotation.y = Math.atan2(-m.dz, m.dx);
       strip.scale.set(RUSH_LONG, 1, RUSH_HALF * 2);
     }
-    for (let i = used; i < this.marks.length; i++) this.marks[i].visible = false;
+    this.marks.end();
   }
 
   // Her brood bursting out of the egg sacs: dust where each comes out (the first time it's seen).
@@ -191,7 +180,7 @@ export class CaveLife {
       // A pool of sunlight on the floor before it, and motes drifting up through the light.
       const poolGeometry = greedyMesh(sunPool(), SUN_PALETTE, V, new THREE.Vector3((-SUN_GRID[0] / 2) * V, 0, 0));
       this.made.push(poolGeometry);
-      const pool = new THREE.Mesh(poolGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+      const pool = new THREE.Mesh(poolGeometry, glowMaterial(0xffffff, { vertexColors: true, toneMapped: false }));
       pool.position.set(rock.x, 0.004, rock.z + 0.5); // (from the rock's face, out into the nest)
       pool.scale.y = 0.05; // (flat on the floor: only its top seen)
       const motes = new THREE.InstancedMesh(this.mote, glowMaterial(0xffe2a8), MOTES);
@@ -284,7 +273,7 @@ export class CaveLife {
   dispose(): void {
     for (const geometry of this.made) geometry.dispose();
     for (const material of this.materials) material.dispose();
-    for (const m of this.marks) (m.material as THREE.Material).dispose();
+    this.marks.dispose();
     this.webGeometry.dispose();
     this.disc.dispose();
     this.mote.dispose();

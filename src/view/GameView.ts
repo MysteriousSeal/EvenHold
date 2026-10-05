@@ -48,7 +48,7 @@ import { RuinMist } from './meshes/ruin/ruinMist';
 import { buildScenery3d } from './meshes/scenery/sceneryMesh';
 import { TravellerViews } from './meshes/npc/travellerViews';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
-import { EntranceLife } from './meshes/dungeon/entranceLife';
+import { EntranceLife } from './meshes/entrance/entranceLife';
 import { WildMovesView } from './meshes/enemy/wildMovesView';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
@@ -61,7 +61,7 @@ import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
 import { buildRuins } from './meshes/ruin/ruinMesh';
 import { buildCaveMouths } from './meshes/cave/caveMouthMesh';
-import { buildEntranceDressing } from './meshes/dungeon/entranceDressing';
+import { buildEntranceDressing } from './meshes/entrance/entranceDressing';
 import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
