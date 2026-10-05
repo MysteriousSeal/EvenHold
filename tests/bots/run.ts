@@ -103,7 +103,7 @@ for (const r of results) {
 }
 const played = results.filter((r) => r.stats);
 const total = (key: keyof Omit<BotStats, 'goals'>) => played.reduce((sum, r) => sum + r.stats[key], 0);
-const doneOf = ['kills', 'deaths', 'levels', 'questsTaken', 'questsDone', 'ales', 'pies', 'meals', 'sleeps', 'trades', 'buildings', 'upstairs', 'benches', 'wishes'] as const;
+const doneOf = ['kills', 'deaths', 'levels', 'questsTaken', 'questsDone', 'ales', 'pies', 'meals', 'sleeps', 'trades', 'buildings', 'upstairs', 'benches', 'wishes', 'rolls', 'guards', 'dungeons', 'chests', 'camps', 'pedlars', 'herbalists', 'travellers', 'actions'] as const;
 const kinds = [...byKind.entries()].sort((a, b) => b[1].bots.size - a[1].bots.size || b[1].count - a[1].count);
 
 const lines: string[] = [];

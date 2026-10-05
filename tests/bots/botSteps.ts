@@ -1,10 +1,11 @@
 // A bot's steps (bot.ts decides which, and when): walking somewhere (nav.ts),
 // waiting a while or for something, fighting a foe (and its fellows at a
-// quest's spot), picking up what's dropped; each says how it's going, and
-// reports what the game got wrong on the way.
+// quest's spot; rolling out of the way now and then, or raising the guard),
+// picking up what's dropped; each says how it's going, and reports what the
+// game got wrong on the way.
 import type { GameModel } from '../../src/model/GameModel';
 import type { Enemy } from '../../src/model/types';
-import { ATTACK_REACH, ENEMY_STATS } from '../../src/model/constants';
+import { ATTACK_REACH, ENEMY_STATS, HERO_RADIUS } from '../../src/model/constants';
 import { maxHpOf } from '../../src/model/hero/attributes';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { Nav, heroState, standableNear } from './nav';
@@ -29,22 +30,34 @@ export interface BotStats {
   upstairs: number;
   benches: number;
   wishes: number;
+  rolls: number; // dodge rolls made in a fight
+  guards: number; // the guard raised in a fight
+  dungeons: number; // crypts and caves gone down into
+  chests: number; // a dungeon boss's chest or a bandit camp's, opened
+  camps: number; // bandit camps raided
+  pedlars: number; // traded with on the road
+  herbalists: number; // traded with at home
+  travellers: number; // a word had on the road
+  actions: number; // food or a potion had from the action bar
   goals: Record<string, number>;
 }
 
 
 export class BotSteps {
-  readonly stats: BotStats = { kills: 0, deaths: 0, levels: 0, questsTaken: 0, questsDone: 0, ales: 0, pies: 0, meals: 0, sleeps: 0, trades: 0, buildings: 0, upstairs: 0, benches: 0, wishes: 0, goals: {} };
+  readonly stats: BotStats = { kills: 0, deaths: 0, levels: 0, questsTaken: 0, questsDone: 0, ales: 0, pies: 0, meals: 0, sleeps: 0, trades: 0, buildings: 0, upstairs: 0, benches: 0, wishes: 0, rolls: 0, guards: 0, dungeons: 0, chests: 0, camps: 0, pedlars: 0, herbalists: 0, travellers: 0, actions: 0, goals: {} };
   protected readonly nav: Nav;
   protected goal = 'none';
   protected move: [number, number] = [0, 0]; // the keys pressed this frame
   protected readonly shunned = new Set<Enemy>(); // foes found out of reach (across water, say): let be
   protected readonly skipped = new Set<unknown>(); // loot it couldn't get at: let be
   readonly balance: Balance; // what its game says about the balance
+  private tactic: { kind: 'roll' | 'guard'; t: number } | null = null; // a roll or a raised guard under way, mid-fight
+  private rolling: { from: { x: number; z: number }; dir: [number, number]; closest: number; furthest: number } | null = null; // a roll watched frame by frame (afterFrame): the nearest a foe came, the farthest it carried them
 
   constructor(
     protected readonly model: GameModel,
     protected readonly report: Report,
+    protected readonly rng: () => number,
   ) {
     this.nav = new Nav(model);
     this.balance = new Balance(model);
@@ -92,7 +105,7 @@ export class BotSteps {
     return (dt) => {
       const { hero } = this.model;
       if (since) since.lowest = Math.min(since.lowest, this.balance.health());
-      if (foe.state === 'dead' || !this.model.enemies.includes(foe)) {
+      if (foe.state === 'dead' || !this.model.foes.includes(foe)) {
         if (foe.state === 'dead') this.stats.kills++;
         ended(foe.state === 'dead');
         return 'ok';
@@ -107,6 +120,7 @@ export class BotSteps {
       }
       since ??= { at: this.model.minutes, health: this.balance.health(), lowest: this.balance.health() };
       this.model.focus(foe.id);
+      if (this.tactics(foe, dt)) return 'run'; // (rolling, or behind the guard: no blow this frame)
       this.model.startAttack();
       if (foe.hp < hpThen) [hpThen, inReach, away] = [foe.hp, 0, 0];
       else if ((inReach += dt) > 20) {
@@ -115,6 +129,56 @@ export class BotSteps {
       }
       return 'run';
     };
+  }
+
+  // Each frame, once the game's moved on (bot.ts tick): a roll under way watched; as it ends, it must have carried them,
+  // unless the way was shut (something there, or a foe in it at any moment: they block, as they should).
+  protected afterFrame(): void {
+    const roll = this.rolling;
+    if (!roll) return;
+    const { hero } = this.model;
+    for (const e of this.model.foes) if (e.state !== 'dead') roll.closest = Math.min(roll.closest, Math.hypot(e.x - hero.x, e.z - hero.z) - ENEMY_STATS[e.kind].radius);
+    roll.furthest = Math.max(roll.furthest, Math.hypot(hero.x - roll.from.x, hero.z - roll.from.z));
+    if (this.model.moves.rollProgress !== null) return;
+    this.rolling = null;
+    if (roll.furthest < 0.2 && roll.closest > HERO_RADIUS + 0.15 && this.wayOpen(roll.dir, roll.from)) this.report('roll went nowhere', `${roll.furthest.toFixed(2)} tiles, from ${roll.from.x.toFixed(2)},${roll.from.z.toFixed(2)}, no foe nearer than ${roll.closest.toFixed(2)}${heroState(this.model)}`);
+  }
+
+  // Now and then in a fight, as a player would (about once in four seconds): a roll away from the foe, or the guard
+  // raised a moment. Whether it's busy with one this frame.
+  // Whether the way `dir` from `from` is open for a roll's length (nothing there, no foe in it).
+  private wayOpen([dx, dz]: [number, number], from: { x: number; z: number }): boolean {
+    const free = this.nav.free();
+    return [0.35, 0.7, 1].every((k) => free(from.x + dx * k, from.z + dz * k) && !this.model.foes.some((e) => e.state !== 'dead' && Math.hypot(e.x - (from.x + dx * k), e.z - (from.z + dz * k)) < 0.6 + HERO_RADIUS));
+  }
+
+  private tactics(foe: Enemy, dt: number): boolean {
+    const { hero } = this.model;
+    const tactic = this.tactic;
+    if (tactic) {
+      tactic.t += dt;
+      if (tactic.kind === 'guard') {
+        if (tactic.t < 0.6) return (this.model.raiseGuard(true), true);
+        this.model.raiseGuard(false);
+      } else if (this.model.moves.rollProgress !== null && tactic.t < 2) return true;
+      this.tactic = null;
+      return false;
+    }
+    if (this.rng() >= dt * 0.25) return false;
+    if (this.rng() < 0.5) {
+      const d = Math.hypot(hero.x - foe.x, hero.z - foe.z) || 1;
+      const dir: [number, number] = [(hero.x - foe.x) / d, (hero.z - foe.z) / d];
+      if (!this.model.roll(...dir)) return false; // (out of breath, mid-blow: not now)
+      this.stats.rolls++;
+      this.tactic = { kind: 'roll', t: 0 };
+      this.rolling = { from: { x: hero.x, z: hero.z }, dir, closest: Infinity, furthest: 0 };
+      return true;
+    }
+    this.model.raiseGuard(true);
+    if (this.model.moves.guard === null) return false; // (mid-blow, mid-roll)
+    this.stats.guards++;
+    this.tactic = { kind: 'guard', t: 0 };
+    return true;
   }
 
   // At a quest's place: its marked foes fought as they come, for a while.
@@ -166,7 +230,7 @@ export class BotSteps {
     const { hero } = this.model;
     let best: Enemy | null = null;
     let d = within;
-    for (const e of this.model.enemies) {
+    for (const e of this.model.foes) {
       const de = Math.hypot(e.x - hero.x, e.z - hero.z);
       if (e.state !== 'dead' && de < d && !this.shunned.has(e)) [best, d] = [e, de];
     }

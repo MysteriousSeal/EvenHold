@@ -1,6 +1,7 @@
 // What a bot's game must never show, checked once a game second: the hero
-// sane (health, energy, coin, where they stand), foes sane (dead at no
-// health, gone once dead, never inside walls, never wandering off for good),
+// sane (health, energy, coin, where they stand: never in a wall, a piece of
+// furniture or a dungeon's rock), foes sane (dead at no health, gone once
+// dead, never inside walls or rock, never wandering off for good),
 // villagers and the inn's barmaids where they belong and never stuck for
 // long, quests counting right, animals where they can be.
 import type { GameModel } from '../../src/model/GameModel';
@@ -36,6 +37,7 @@ export class Checks {
   run(dt: number): void {
     this.hero();
     this.foes(dt);
+    this.below();
     this.villagers(dt);
     this.quests();
     this.animals();
@@ -55,6 +57,7 @@ export class Checks {
       const { width, depth } = inside.room;
       if (hero.x < -0.5 || hero.z < -0.5 || hero.x > width - 0.5 || hero.z > depth - 0.5) this.report('hero outside the room', `${at(hero.x, hero.z)} in ${width}x${depth} (${inside.entrance.type}${inside.below ? ' upstairs' : ''})`);
       else if (bumpsFurniture(inside.furniture, hero.x, hero.z, r * 0.6)) this.report('hero inside furniture', `${at(hero.x, hero.z)} (${inside.entrance.type}${inside.below ? ' upstairs' : ''})`);
+      else if (inside.walls?.(hero.x, hero.z, r * 0.6)) this.report('hero inside rock', `${at(hero.x, hero.z)} (down a ${inside.entrance.type})`);
     } else if (!this.model.outdoors.seated && !this.model.yard && this.model.isBlocked(hero.x, hero.z, HERO_RADIUS * 0.6)) {
       this.report('hero inside a wall', `${at(hero.x, hero.z)}`);
     }
@@ -86,6 +89,21 @@ export class Checks {
         this.report('foe lost far from home', `${e.kind} #${e.id} at ${at(e.x, e.z)}, home ${at(e.homeX, e.homeZ)}`);
         this.away.set(e.id, -1e9);
       }
+    }
+  }
+
+  // Down a dungeon: its foes sane (dead at no health), never inside its rock.
+  private below(): void {
+    const run = this.model.dungeon;
+    if (!run) return;
+    const where = this.model.inside!.entrance.type;
+    for (const e of run.foes) {
+      if (!finite(e.x, e.z, e.hp)) {
+        this.report('foe broken', `${e.kind} #${e.id} down a ${where}: x ${e.x} z ${e.z} hp ${e.hp}`);
+        continue;
+      }
+      if (e.hp <= 0 && e.state !== 'dead') this.report('foe at no health, not dead', `${e.kind} #${e.id} down a ${where} (${e.state})`);
+      if (e.state !== 'dead' && !run.free(e.x, e.z, ENEMY_STATS[e.kind].radius * 0.5)) this.report('foe inside rock', `${e.kind} #${e.id} at ${at(e.x, e.z)} down a ${where} (${e.state})`);
     }
   }
 

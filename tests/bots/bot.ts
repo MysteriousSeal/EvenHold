@@ -1,35 +1,40 @@
 // A bot playing the game as a player would, by its keys and windows only
 // (no cheats): it picks what to do from how it is (hurt: to the bar for an
-// ale, or eats; tired: to a bed; points to spend, gear to wear) and what's
-// about (foes, loot, quests on the boards, shops, benches, wells, an inn's
-// upper floor), does it one step at a time, and says whenever the game
+// ale, or eats, now and then off the action bar; tired: to a bed; points to
+// spend, gear to wear) and what's about (foes, loot, quests on the boards,
+// shops, benches, wells, an inn's upper floor; crypts and caves, bandit
+// camps, pedlars and travellers on the road, herbalists: ventures.ts), does
+// it one step at a time, and says whenever the game
 // doesn't do what it should (checks.ts, and what it sees itself: a foe
 // that won't die, a barmaid who never serves, a quest that can't be done…).
 import type { GameModel } from '../../src/model/GameModel';
-import { ENTER_RANGE, type Entrance } from '../../src/model/interiors/interiors';
+import type { Entrance } from '../../src/model/interiors/interiors';
 import type { Enemy } from '../../src/model/types';
 import { ATTACK_REACH, ENEMY_STATS } from '../../src/model/constants';
 import { maxEnergyOf, maxHpOf } from '../../src/model/hero/attributes';
 import { spendPoints } from '../../src/model/hero/training';
 import { STATS } from '../../src/model/hero/statKinds';
-import { ITEMS, type ItemId } from '../../src/model/human/equipment';
 import { isProvision, PROVISIONS } from '../../src/model/loot/provisions';
+import { isPotion } from '../../src/model/loot/potions';
+import { setAction, useAction } from '../../src/model/hero/actionBar';
+import { dungeonAt } from '../../src/model/dungeons/dungeons';
 import { callBarkeep, placeOrder } from '../../src/model/inn/barOrders';
-import { talkingTo } from '../../src/model/npcs/talk';
-import { noticeBoards } from '../../src/model/quests/noticeBoards';
+import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { boardFor, heroState, nearestDoor, openNear } from './nav';
-import { Errands, power, type Status } from './errands';
-import { BotSteps, type Report, type Step } from './botSteps';
+import { Errands, better, isGear, type Status } from './errands';
+import { type Report, type Step } from './botSteps';
+import { BotVentures } from './ventures';
 
 export type { BotStats } from './botSteps';
 
-export class Bot extends BotSteps {
+const HEAL_WALK = 250; // tiles, at most, it goes for an ale when hurt
+
+export class Bot extends BotVentures {
   private steps: Step[] = [];
-  private rng: () => number;
   private defense: Step | null = null; // fighting off a foe that's set on the hero, whatever else was going on
   private readonly dry = new Map<Entrance, number>(); // inns with none of what it wanted: till when (game seconds) it doesn't go back
   private plans: Array<{ at: number; x: number; z: number }> = []; // when (game seconds) and where it last planned, to catch it going round in circles
@@ -41,9 +46,8 @@ export class Bot extends BotSteps {
     rng: () => number,
     private readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (npm run bots:verbose)
   ) {
-    super(model, report);
+    super(model, report, rng);
     this.errands = new Errands(model, report, this.stats, rng, this.balance);
-    this.rng = rng;
   }
 
   // One frame: on with what it's doing (or something new), the keys pressed as it says.
@@ -60,6 +64,7 @@ export class Bot extends BotSteps {
     // (the foes about, should it fall this frame: only worth a look once it's hurt)
     const about = hero.hp < maxHpOf(hero) * 0.5 ? this.model.enemies.filter((e) => e.state !== 'dead' && Math.abs(e.x - hero.x) < 6 && Math.abs(e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`) : [];
     this.model.update(this.move[0], this.move[1], dt);
+    this.afterFrame(); // (a roll under way: watched)
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
     // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
     const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking;
@@ -73,12 +78,12 @@ export class Bot extends BotSteps {
 
   // A foe at the hero's heels (chasing, close), or one of a herd it's hemmed in by: fought off first, to the end.
   private defend(): void {
-    if (this.model.inside || (this.defense && this.steps[0] === this.defense)) return;
+    if ((this.model.inside && !this.model.dungeon) || (this.defense && this.steps[0] === this.defense)) return; // (underground too: its foes)
     const { hero } = this.model;
     const near = (e: Enemy) => Math.hypot(e.x - hero.x, e.z - hero.z);
     const foe =
-      this.model.enemies.find((e) => e.state === 'chase' && near(e) < 1.8 && (!this.shunned.has(e) || near(e) < 1)) ?? // (one let be, but on the hero now: fought)
-      (this.nav.stillFor > 2 ? this.model.enemies.find((e) => e.state !== 'dead' && near(e) < ATTACK_REACH + ENEMY_STATS[e.kind].radius) : undefined); // (hemmed in by a herd: through them)
+      this.model.foes.find((e) => e.state === 'chase' && near(e) < 1.8 && (!this.shunned.has(e) || near(e) < 1)) ?? // (one let be, but on the hero now: fought)
+      (this.nav.stillFor > 2 ? this.model.foes.find((e) => e.state !== 'dead' && near(e) < ATTACK_REACH + ENEMY_STATS[e.kind].radius) : undefined); // (hemmed in by a herd: through them)
     if (foe) this.shunned.delete(foe);
     if (!foe) return;
     this.defense = this.fight(foe, true);
@@ -102,21 +107,48 @@ export class Bot extends BotSteps {
       if (!spendPoints(hero, plan)) this.report('points not spent', `${hero.statPoints} to spend: ${JSON.stringify(plan)}`);
       else this.stats.levels++;
     }
-    for (const id of Object.keys(hero.bag) as ItemId[]) {
-      if (!(id in ITEMS)) continue;
-      const worn = hero.equipment[ITEMS[id].slot]; // (what the bag holds, plain ids: the bot's own buys)
-      if ((!worn || power(id) > power(worn)) && !this.model.equipFromBag(id)) this.report('gear not worn', id);
+    for (const id of Object.keys(hero.bag)) {
+      if (!isGear(id) || !better(id, hero)) continue; // (gear of any level and rarity: bought, or dropped by foes; worn once they're of its level)
+      if (!this.model.equipFromBag(id)) this.report('gear not worn', id);
     }
     if (hero.hp < maxHpOf(hero) * 0.5 && !hero.drinking) {
       const food = (Object.keys(hero.bag) as string[]).find((id) => isProvision(id) && !PROVISIONS[id].drink);
-      if (food && this.model.consume(food as never)) this.stats.meals++;
+      if (food && this.rng() < 0.5) this.fromBar(0, food, true); // (half the time off the action bar, as a player might)
+      else if (food && this.model.consume(food as never)) this.stats.meals++;
     }
+    const potion = hero.hp < maxHpOf(hero) * 0.35 ? (Object.keys(hero.bag) as string[]).find(isPotion) : undefined;
+    if (potion) this.fromBar(1, potion, false); // (a potion, badly hurt: its wait may not be over)
   }
 
-  // Whether what's going on should give way (badly hurt, away from a bar).
+  // `item` put in action bar slot `i` and used: one of it had from the bag (`surely`: nothing should stop it).
+  private fromBar(i: number, item: string, surely: boolean): void {
+    const { hero } = this.model;
+    const had = hero.bag[item as keyof typeof hero.bag] ?? 0;
+    if (!setAction(hero, i, item)) return this.report('action bar would not take it', item);
+    if (!useAction(hero, i)) {
+      if (surely && !hero.eating) this.report('action bar did nothing', `${item}: ${had} carried`);
+      return;
+    }
+    if ((hero.bag[item as keyof typeof hero.bag] ?? 0) !== had - 1) this.report('action bar took none from the bag', `${item}: ${had} before, ${hero.bag[item as keyof typeof hero.bag] ?? 0} after`);
+    this.stats.actions++;
+    if (isProvision(item)) this.stats.meals++;
+  }
+
+  // Whether what's going on should give way (badly hurt, away from a bar, one with ale in reach).
   private urgent(): boolean {
     const { hero } = this.model;
-    return hero.hp < maxHpOf(hero) * 0.3 && this.goal !== 'heal' && this.goal !== 'sleep' && !hero.drinking;
+    return hero.hp < maxHpOf(hero) * 0.3 && this.goal !== 'heal' && this.goal !== 'sleep' && !hero.drinking && this.alehouse() !== null;
+  }
+
+  // The nearest inn with ale to be had (as far as it knows), a walk away at most: none, and it makes do (no trek
+  // across the map to one, hurt as it is: there's no health back but by drink and food).
+  private alehouse(): Entrance | null {
+    if (this.model.inside?.entrance.type === 'inn' && !this.isDry(this.model.inside.entrance)) return this.model.inside.entrance;
+    return nearestDoor(this.model, 'inn', (e) => this.isDry(e), HEAL_WALK);
+  }
+
+  private isDry(e: Entrance): boolean {
+    return (this.dry.get(e) ?? -1) > this.model.minutes; // (no ale to be had there, a while)
   }
 
   // What to do next.
@@ -135,14 +167,14 @@ export class Bot extends BotSteps {
     const loot = this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
     const foe = this.nearestFoe(12);
     const pick = (): string => {
-      if (hurt) return 'heal'; // (in an inn already: at its bar)
+      if (hurt && this.alehouse()) return 'heal'; // (in an inn already: at its bar)
       if (this.model.inside) return 'leave';
       if (tired) return 'sleep';
       if (done) return 'hand in';
       if (loot) return 'loot';
       if (foe && hero.hp > maxHpOf(hero) * 0.6) return 'fight';
       if (going && this.rng() < 0.6) return 'quest';
-      const choices = ['board', 'board', 'explore', 'explore', 'explore', 'barmaid', 'smith', 'bench', 'well', 'upstairs', 'pie', 'hunt', 'nap', 'respec', 'give up'];
+      const choices = ['board', 'board', 'explore', 'explore', 'explore', 'barmaid', 'smith', 'bench', 'well', 'upstairs', 'pie', 'hunt', 'nap', 'respec', 'give up', 'dungeon', 'dungeon', 'camp', 'camp', 'pedlar', 'traveller', 'herbalist'];
       return choices[Math.floor(this.rng() * choices.length)];
     };
     this.goal = pick();
@@ -153,8 +185,8 @@ export class Bot extends BotSteps {
 
   private stepsFor(goal: string, { foe, loot, done, going }: { foe: Enemy | null; loot?: { x: number; z: number }; done?: string; going?: string }): Step[] {
     const { hero, quests } = this.model;
-    const dry = (e: Entrance) => (this.dry.get(e) ?? -1) > this.model.minutes; // (no ale to be had there, a while)
-    const inn = () => nearestDoor(this.model, 'inn', goal === 'heal' ? dry : undefined);
+    const dry = (e: Entrance) => this.isDry(e);
+    const inn = () => (goal === 'heal' ? this.alehouse() : nearestDoor(this.model, 'inn'));
     switch (goal) {
       case 'leave':
         return this.leave();
@@ -198,7 +230,8 @@ export class Bot extends BotSteps {
       case 'board':
       case 'hand in': {
         const board = done ? quests.takenOf(done)!.quest.board : boardFor(this.model);
-        const spot = noticeBoards(this.model)[board];
+        const spot = boardSpot(this.model, board);
+        if (!spot) return []; // (a streamed world's, its village not made just now: another time)
         const front = { x: spot.x + spot.front.dx * 0.6, z: spot.z + spot.front.dz * 0.6 };
         return [this.walk(() => front, 0.15), () => (done ? this.errands.handIn(done) : this.errands.takeQuests(board))];
       }
@@ -222,13 +255,31 @@ export class Bot extends BotSteps {
       }
       case 'upstairs':
         return [...this.enter(inn()), ...this.upstairs(), ...this.leave()];
+      case 'dungeon': {
+        // The nearest way down not far beyond them (a crypt's, a cave's), a day's walk at most.
+        const door = this.nearest(this.model.entrances.filter((e) => (e.type === 'crypt' || e.type === 'cave') && (dungeonAt(e)?.level ?? Infinity) <= hero.level + 2), 250);
+        return door ? this.dungeonTrip(door) : [];
+      }
+      case 'camp': {
+        const camp = this.nearest(this.model.camps.filter((c) => !this.model.campLife.status(c.way)?.chestOpened), 250);
+        return camp && hero.hp > maxHpOf(hero) * 0.7 ? this.campRaid(camp) : [];
+      }
+      case 'pedlar':
+      case 'traveller': {
+        const t = this.nearest(this.model.travellers.list.filter((t) => (t.role === 'pedlar') === (goal === 'pedlar')), 60);
+        return t ? this.meet(t) : [];
+      }
+      case 'herbalist': {
+        const herbalist = this.nearest(this.model.npcs.filter((n) => n.role === 'herbalist' && n.where === n.home), 250, (n) => n.home); // (at home: by their door)
+        return herbalist ? this.herbalistVisit(herbalist) : [];
+      }
       case 'respec':
         return [() => this.errands.respec()];
       case 'give up':
         return [() => this.errands.giveUp()];
       default: {
         // Explore: somewhere open a way off (a village now and then).
-        const within = this.model.villages.filter((v) => Math.hypot(v.x - hero.x, v.z - hero.z) < 250); // (a day's walk, not across the whole map)
+        const within = this.model.villages.filter((v) => Math.hypot(v.x - hero.x, v.z - hero.z) < 250 && this.model.isMade(v.x, v.z)); // (a day's walk, not across the whole map; on ground made just now)
         const far = this.rng() < 0.3 ? (within[Math.floor(this.rng() * within.length)] ?? null) : null;
         const to = far ?? openNear(this.model, this.rng, hero.x + (this.rng() - 0.5) * 60, hero.z + (this.rng() - 0.5) * 60);
         return to ? [this.walk(() => to, 1.5)] : [];
@@ -236,42 +287,15 @@ export class Bot extends BotSteps {
     }
   }
 
+  // The nearest of `places` to the hero, within `within` tiles and on ground made just now (each where `at` says: its
+  // own place, else its door's).
+  private nearest<T>(places: readonly T[], within: number, at: (p: T) => { x: number; z: number } = (p) => p as { x: number; z: number }): T | null {
+    const { hero } = this.model;
+    const far = (p: T) => Math.hypot(at(p).x - hero.x, at(p).z - hero.z);
+    return places.filter((p) => far(p) < within && this.model.isMade(at(p).x, at(p).z)).sort((a, b) => far(a) - far(b))[0] ?? null;
+  }
+
   // Steps.
-
-  private enter(door: Entrance | null): Step[] {
-    if (!door) return [() => 'fail'];
-    return [
-      this.walk(() => door, ENTER_RANGE * 0.9),
-      () => {
-        if (!this.model.useDoor()) {
-          this.report('door not used', `at the ${door.type}'s door, ${this.model.hero.x.toFixed(2)},${this.model.hero.z.toFixed(2)}`);
-          return 'fail';
-        }
-        this.stats.buildings++;
-        return 'ok';
-      },
-    ];
-  }
-
-  // Out of the building (down the stairs first, if up them).
-  private leave(): Step[] {
-    return [
-      (dt) => {
-        const { inside, hero } = this.model;
-        if (!inside?.below) return 'ok';
-        const stairs = stairsOf(inside)!;
-        if (stairsInReach(inside, hero)) return takeStairs(this.model) ? 'run' : 'fail';
-        return this.walk(() => ({ x: stairs.x + stairs.w / 2 - 0.5, z: stairs.z + stairs.d }), 0.5)(dt) === 'fail' ? 'fail' : 'run';
-      },
-      (dt) => {
-        const { inside } = this.model;
-        if (!inside) return 'ok';
-        if (this.model.seated) this.model.sitOrStand();
-        if (this.model.doorInReach) return this.model.useDoor() ? 'ok' : 'fail';
-        return this.walk(() => ({ x: inside.room.door, z: inside.room.depth - 1 }), 0.25)(dt) === 'fail' ? 'fail' : 'run';
-      },
-    ];
-  }
 
   // Sits on a seat of a kind `wanted` says (a bed, a bar stool), walking to the nearest free one.
   private sitOn(wanted: (kind: string) => boolean): Step {
@@ -332,16 +356,6 @@ export class Bot extends BotSteps {
       this.until(() => !this.model.hero.drinking, 30, `${what} never finished`),
       () => (this.model.sitOrStand(), 'ok'),
     ];
-  }
-
-  private talkTo(role: 'barkeep' | 'smith'): Step {
-    return (dt) => {
-      const { inside, hero, npcs } = this.model;
-      if (talkingTo(npcs, inside, hero)?.role === role) return 'ok';
-      const keeper = npcs.find((n) => n.role === role && n.where === inside?.entrance);
-      if (!keeper) return 'fail';
-      return this.walk(() => keeper, 1.2)(dt) === 'run' ? 'run' : talkingTo(npcs, inside, hero)?.role === role ? 'ok' : 'fail';
-    };
   }
 
   // Up the inn's stairs, a room's door opened, a lie on its bed, and down again.
