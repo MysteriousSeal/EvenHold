@@ -5,6 +5,7 @@ import { ITEMS, ITEM_IDS, type ItemId } from '../src/model/human/equipment';
 import { MAX_ENERGY, maxHpAt, recover } from '../src/model/hero/heroStats';
 import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf, throughArmor } from '../src/model/hero/attributes';
 import { STATS } from '../src/model/hero/statKinds';
+import { gearKey, gearSpecs } from '../src/model/human/items/gear';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { gearLines } from '../src/controller/hero/gearLines';
 import type { Enemy } from '../src/model/types';
@@ -38,6 +39,21 @@ describe("the hero's stats", () => {
     hero.trained.stamina = 2;
     expect(statsOf(hero).stamina).toBe(2);
     expect(maxHpOf(hero)).toBe(maxHpAt(4) + 4);
+  });
+
+  it("follow what's worn as it changes (in place: put on, taken off, swapped for a better one of the same)", () => {
+    const model = fresh();
+    const { hero } = model;
+    expect(armorOf(hero)).toBe(0);
+    wearing(model, 'chainMail');
+    const mail = armorOf(hero);
+    expect(mail).toBeGreaterThan(0);
+    const slot = ITEMS.chainMail.slot;
+    hero.equipment[slot] = gearKey({ item: 'chainMail', level: 10, rarity: 'common', roll: 0 });
+    expect(armorOf(hero)).toBeGreaterThan(mail);
+    expect(gearStats(hero)).toEqual(gearSpecs(hero.equipment[slot]!).stats);
+    delete hero.equipment[slot];
+    expect([armorOf(hero), gearStats(hero)]).toEqual([0, { strength: 0, agility: 0, stamina: 0, endurance: 0 }]);
   });
 
   it('take what gear adds: Strength for harder blows, Stamina for health, Agility for dodges and critical blows, Endurance for energy; armour off blows taken', () => {

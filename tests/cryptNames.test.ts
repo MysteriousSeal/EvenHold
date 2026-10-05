@@ -21,8 +21,8 @@ describe('crypt names', () => {
   it('are the same for a crypt every time, and never pair a man\'s title with a woman\'s name or the other way', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 2000; i++) {
-      const name = cryptName(i * 37, i * 11, 5);
-      expect(cryptName(i * 37, i * 11, 5)).toBe(name);
+      const name = cryptName({ x: i * 37, z: i * 11 }, 5);
+      expect(cryptName({ x: i * 37, z: i * 11 }, 5)).toBe(name);
       seen.add(name);
       const titled = name.match(/ of (\w+) (\w+)$/);
       if (titled && (CRYPT_NAMES.men.names as readonly string[]).includes(titled[2])) expect(CRYPT_NAMES.men.titles).toContain(titled[1]);
