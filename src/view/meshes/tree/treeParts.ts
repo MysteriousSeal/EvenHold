@@ -40,9 +40,9 @@ export const TREE_PALETTE = [
   0xadd46a, // 27 birch leaves, sunlit
   0xcde487, // 28 birch leaves, highlight
 ];
-export const BARK = 1;
-export const BARK_DARK = 2;
-export const BARK_LIGHT = 3;
+const BARK = 1;
+const BARK_DARK = 2;
+const BARK_LIGHT = 3;
 export const OAK_BANDS = [4, 5, 6, 7, 8, 18, 19];
 export const BIRCH_BARK = 20;
 export const BIRCH_BARK_SHADE = 21;

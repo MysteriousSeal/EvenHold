@@ -8,14 +8,26 @@ import * as THREE from 'three';
 export const INK = '#f8ecd4'; // names' light ink
 const NAME_HEIGHT = 0.22; // world units tall, a name by default
 
-// A name drawn once onto a texture, white with an ink outline like the HUD's,
-// shared by everyone who bears it.
-const nameMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
-function nameMaterial(name: string, ink = INK): { material: THREE.SpriteMaterial; aspect: number } {
-  let entry = nameMaterials.get(`${name}|${ink}`);
+// A sprite's look drawn once onto a canvas (`draw`: sizes it and paints it), kept by `key`, shared by all who show it;
+// drawn over everything, never hidden by what's around (a shelf, a tree), like the HUD.
+const drawn = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
+function canvasMaterial(key: string, draw: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => void): { material: THREE.SpriteMaterial; aspect: number } {
+  let entry = drawn.get(key);
   if (!entry) {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+    draw(canvas, canvas.getContext('2d')!);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
+    entry = { material, aspect: canvas.width / canvas.height };
+    drawn.set(key, entry);
+  }
+  return entry;
+}
+
+// A name, white with an ink outline like the HUD's.
+const nameMaterial = (name: string, ink = INK) =>
+  canvasMaterial(`name|${name}|${ink}`, (canvas, ctx) => {
     const font = "700 88px 'Fredoka', system-ui, sans-serif";
     ctx.font = font;
     canvas.width = Math.ceil(ctx.measureText(name).width) + 28;
@@ -29,25 +41,13 @@ function nameMaterial(name: string, ink = INK): { material: THREE.SpriteMaterial
     ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
     ctx.fillStyle = ink;
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    // Never hidden by what's around (a shelf, a tree): drawn over everything, like the HUD.
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
-    entry = { material, aspect: canvas.width / canvas.height };
-    nameMaterials.set(`${name}|${ink}`, entry);
-  }
-  return entry;
-}
+  });
 
 // A badge: a short word on a dark plate rimmed in `ink` (its text in it too), a little tail under it pointing down
 // at what it's about; drawn once, shared, over everything. For what's to be done at a glance (at work: a patron's
 // call, an order ready, a table to clear), plainer to see than a name.
-const badgeMaterials = new Map<string, { material: THREE.SpriteMaterial; aspect: number }>();
-function badgeMaterial(text: string, ink: string): { material: THREE.SpriteMaterial; aspect: number } {
-  let entry = badgeMaterials.get(`${text}|${ink}`);
-  if (!entry) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+const badgeMaterial = (text: string, ink: string) =>
+  canvasMaterial(`badge|${text}|${ink}`, (canvas, ctx) => {
     const font = "700 84px 'Fredoka', system-ui, sans-serif";
     ctx.font = font;
     const [pad, rim, tail, plate] = [34, 10, 26, 120]; // (px: inside the rim, the rim, the tail, the plate's height)
@@ -75,16 +75,9 @@ function badgeMaterial(text: string, ink: string): { material: THREE.SpriteMater
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = ink;
     // Centred on what's drawn, not on the line (an ellipsis sits on the baseline: centred on the line, it rides low).
-    const drawn = ctx.measureText(text);
-    ctx.fillText(text, w / 2, plate / 2 + (drawn.actualBoundingBoxAscent - drawn.actualBoundingBoxDescent) / 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false, fog: false });
-    entry = { material, aspect: canvas.width / canvas.height };
-    badgeMaterials.set(`${text}|${ink}`, entry);
-  }
-  return entry;
-}
+    const glyphs = ctx.measureText(text);
+    ctx.fillText(text, w / 2, plate / 2 + (glyphs.actualBoundingBoxAscent - glyphs.actualBoundingBoxDescent) / 2);
+  });
 
 // A badge floating in the world, facing the camera, `height` world units tall (its tail's tip at its foot: its
 // centre's to be `height` / 2 over what it points at).
