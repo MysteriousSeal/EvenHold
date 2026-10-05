@@ -30,6 +30,30 @@ describe('bandit camps in every test world', () => {
     }
   });
 
+  it('are stockades: a gatehouse over the way in (on its outer edge, the way under it open), a watchtower and the woodpile in the back corners, both kinds of tent, every piece a look of its own', () => {
+    for (const model of worlds) {
+      for (const camp of model.camps) {
+        const of = (kind: string) => camp.pieces.filter((p) => p.kind === kind);
+        const [gate] = of('gate');
+        expect(of('gate')).toHaveLength(1);
+        expect(Math.max(Math.abs(gate.x - camp.x), Math.abs(gate.z - camp.z))).toBe(2); // (on the edge, the way in's tile)
+        expect(Math.max(Math.abs(camp.way.x - gate.x), Math.abs(camp.way.z - gate.z))).toBe(1); // (just inside the way in)
+        expect(model.isOpenTile(gate.x, gate.z)).toBe(true);
+        for (const kind of ['tower', 'woodpile']) {
+          const [piece] = of(kind);
+          expect(of(kind), kind).toHaveLength(1);
+          expect(Math.abs(piece.x - camp.x), kind).toBe(2); // (a corner)
+          expect(Math.abs(piece.z - camp.z), kind).toBe(2);
+          expect(model.isOpenTile(piece.x, piece.z), kind).toBe(false);
+        }
+        expect(of('tent').map((t) => t.variant).sort()).toEqual([0, 1]); // (the hide tent, the bell tent)
+        for (const p of camp.pieces) expect(p.variant >= 0 && p.variant < 4, p.kind).toBe(true);
+      }
+    }
+    const looks = new Set(worlds.flatMap((m) => m.camps.flatMap((c) => c.pieces.filter((p) => p.kind === 'palisade').map((p) => p.variant))));
+    expect(looks.size).toBe(4); // (the palisade in all its looks: plain, a skull, a shield, a hide)
+  });
+
   it('stand in a clearing of their own, clear of the ruins and of each other', () => {
     for (const model of worlds) {
       for (const [i, camp] of model.camps.entries()) {
