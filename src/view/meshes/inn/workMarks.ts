@@ -10,20 +10,23 @@ import type { GameModel } from '../../../model/GameModel';
 import type { Want } from '../../../model/jobs/innShift';
 import type { Furniture } from '../../../model/interiors/furniture';
 import { INDOOR_SCALE } from '../../../model/constants';
-import { nameLabel } from '../common/overhead';
+import { badgeLabel } from '../common/overhead';
 import { markBob, offerMark } from '../quest/questMarks';
 import { boardFace } from '../../../model/jobs/work';
 
-const OVER_SEATED = 0.72 * INDOOR_SCALE; // over a seated patron's head, in the room's units
-const OVER_COUNTER = 0.85 * INDOOR_SCALE;
-const HEIGHT = 0.3; // the mark's height
-const OVER_TABLE = 0.95; // over a table's top (0.44), clear of the empties on it
+const OVER_SEATED = 0.62 * INDOOR_SCALE; // just over a seated patron's head, in the room's units (the badge's tail's tip)
+const OVER_COUNTER = 0.74; // over the mugs on the counter's top (0.52), at its end
+const HEIGHT = 0.46; // a mark's height (a badge: overhead.ts badgeLabel)
+const BOB = 0.04; // how far a mark bobs, up and down
+const PULSE = 0.1; // how much a red one (a patron near walking out) swells and shrinks
+const OVER_TABLE = 0.62; // over a table's top (0.44), clear of the empties on it
 const CLEAR_INK = '#3dbdb8'; // the lake's teal: a chore, apart from patience's green, amber and red
 const OVER_NOTICE = 1.14; // just over the inn's notice board's little roof (its voxels' top, 26 of 25 a tile: 1.04), in the room's units
 const NOTICE_MARK_SCALE = 0.6;
 const OFF_WALL = 0.08; // out from the wall it hangs on (its roof's depth, half of it)
 const ORDER_WORD: Record<Want['order'], string> = { ale: 'Ale', wine: 'Wine', pie: 'Pie' };
-const patienceInk = (share: number) => (share > 0.6 ? '#8fd36a' : share > 0.3 ? '#ffc94a' : '#ff6a5a');
+const URGENT = '#ff6a5a';
+const patienceInk = (share: number) => (share > 0.6 ? '#8fd36a' : share > 0.3 ? '#ffc94a' : URGENT);
 
 export class WorkMarks {
   private readonly marks = new Map<Want | Furniture | 'ready', { sprite: THREE.Sprite; text: string }>();
@@ -42,7 +45,7 @@ export class WorkMarks {
       const cluttered = new Map<Furniture, number>();
       for (const empty of shift.empties) cluttered.set(empty.table, (cluttered.get(empty.table) ?? 0) + 1);
       for (const [table, n] of cluttered) wanted.set(table, { text: n > 1 ? `Clear ×${n}` : 'Clear', ink: CLEAR_INK, x: table.x + (table.w - 1) / 2, y: OVER_TABLE, z: table.z + (table.d - 1) / 2 });
-      if (shift.readyOrders.length > 0) wanted.set('ready', { text: 'Ready!', ink: '#ffd96a', ...shift.pickupSpot, y: OVER_COUNTER });
+      if (shift.readyOrders.length > 0) wanted.set('ready', { text: 'Ready!', ink: '#ffd96a', ...shift.readySpot, y: OVER_COUNTER }); // (on the counter, over the mugs)
     }
     for (const [key, mark] of this.marks) {
       if (wanted.has(key)) continue;
@@ -54,11 +57,16 @@ export class WorkMarks {
       const shown = `${text}|${ink}`;
       if (mark?.text !== shown) {
         mark?.sprite.removeFromParent();
-        mark = { sprite: nameLabel(text, HEIGHT, ink), text: shown }; // (its look changed: a fresh one, the label materials kept by text and ink)
+        mark = { sprite: badgeLabel(text, HEIGHT, ink), text: shown }; // (its look changed: a fresh one, the badges' materials kept by text and ink)
         this.marks.set(key, mark);
       }
       if (mark.sprite.parent !== scene) scene.add(mark.sprite);
-      mark.sprite.position.set(x, y, z);
+      // (its tail's tip just over what it's about; bobbing, each a beat apart; a red one pulsing)
+      const beat = time * 2.4 + x * 1.3 + z * 0.7;
+      mark.sprite.position.set(x, y + HEIGHT / 2 + Math.sin(beat) * BOB, z);
+      const swell = ink === URGENT ? 1 + Math.sin(time * 7) * PULSE : 1;
+      const aspect = mark.sprite.material.map ? mark.sprite.material.map.image.width / mark.sprite.material.map.image.height : 1;
+      mark.sprite.scale.set(HEIGHT * aspect * swell, HEIGHT * swell, 1);
     }
   }
 
