@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { MinHeap } from '../src/util/MinHeap';
 import { Nearby } from '../src/util/nearby';
-import { firstRoll, generateRandomSeed, hashCell, hashUnit, mulberry32, shuffle, snapTo } from '../src/util/random';
+import { firstRoll, generateRandomSeed, hashCell, hashUnit, mulberry32, pickAt, shuffle, smoothNoise, snapTo } from '../src/util/random';
 import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from '../src/util/seed';
 
 describe('the min-heap', () => {
@@ -193,5 +193,29 @@ describe('Nearby', () => {
     let seen = false;
     for (let i = 0; i < 40 && !seen; i++) seen = nearby.near({ x: 50, z: 50 }).includes(swapped);
     expect(seen).toBe(true);
+  });
+});
+
+describe('smooth noise and picks by place', () => {
+  it('smooth noise: within 0..1, the same every time, its lattice\'s own rolls at its points, never jumping between neighbours', () => {
+    let steepest = 0;
+    for (let u = 0; u < 60; u++) for (let v = 0; v < 60; v++) {
+      const n = smoothNoise(u, v, 7, 6);
+      expect(n).toBeGreaterThanOrEqual(0);
+      expect(n).toBeLessThanOrEqual(1);
+      expect(smoothNoise(u, v, 7, 6)).toBe(n);
+      steepest = Math.max(steepest, Math.abs(smoothNoise(u + 1, v, 7, 6) - n), Math.abs(smoothNoise(u, v + 1, 7, 6) - n));
+    }
+    expect(smoothNoise(12, 18, 7, 6)).toBeCloseTo(hashUnit(2, 3, 7)); // (on a lattice point: its own roll)
+    expect(steepest).toBeLessThan(0.4); // (soft rounds: a step to the next never a jump)
+  });
+
+  it('picks by place: the same pick for a spot and a salt every time, others for other salts and spots, every item had', () => {
+    const list = ['a', 'b', 'c', 'd', 'e'] as const;
+    expect(pickAt(3, 4, 9)(list, 1)).toBe(pickAt(3, 4, 9)(list, 1));
+    expect(pickAt(3, 4, 9)(list, 1)).toBe(list[Math.floor(hashUnit(3, 4, 10) * list.length)]);
+    const had = new Set<string>();
+    for (let x = 0; x < 40; x++) for (let salt = 0; salt < 5; salt++) had.add(pickAt(x, x * 3, 11)(list, salt));
+    expect(had.size).toBe(list.length);
   });
 });
