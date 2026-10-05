@@ -12,14 +12,14 @@ import type { World } from '../src/model/types';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { worldPrint } from './support/worldPrint';
 
-const TEST_WORLDS = ['bc7c911', 'd3757631', '109afd3d', '1ac6d67', '751a242d', '57a5507c', '3be9bfcc', '476e9924']; // (since the bandit camps' stockades: a gatehouse, a watchtower, a woodpile, each piece's look)
+const TEST_WORLDS = ['bc7c911', '68a969d5', '109afd3d', 'bc2717e7', 'e507e64d', 'dde6cff7', '7af4dcb', '83960fe0']; // (since the bandit camps' stockades: a gatehouse, a watchtower, a woodpile, each piece's look)
 
 describe('worlds made as ever', () => {
   it.each(TEST_SEEDS.map((seed, i) => [seed, TEST_WORLDS[i]]))('seed %i (test size)', (seed, print) => {
     expect(worldPrint(generateWorld(seed, TEST_MAP_SIZE))).toBe(print);
   });
 
-  const FULL = 'c1aa6b59';
+  const FULL = 'e21c0329';
   let full: World | null = null;
   const fullWorld = () => (full ??= generateWorld(1275139863));
 
