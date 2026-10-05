@@ -13,6 +13,7 @@ import { campName } from './campNames';
 import { campLevel, type Camp } from './camps';
 
 export const CHEST_REACH = 0.9; // tiles from the chest the hero can open it
+export const CAMP_NEAR = 8; // tiles from a camp's middle the hero's about it (its panel shown: campStatus)
 const STOLEN_WORTH = 60; // the least a piece of gear in a chest is worth
 
 export interface CampWorld {
@@ -32,6 +33,16 @@ const standing = (e: Enemy) => e.state !== 'dead';
 // What a camp's chest holds: a piece of stolen gear worth having, and coins, by its level.
 export const campHoard = (camp: Camp, size: MapSize, seed: number): Hoard => rollHoard(camp.x, camp.z, seed + 7717, campLevel(camp, size), { worth: STOLEN_WORTH, base: 25, spread: 15 });
 
+// How a camp the hero's about stands: its name, its bandits slain of all of them, its chief, whether it's cleared and
+// its chest opened (the panel under the hero's frame, as a crypt's or a cave's).
+export interface CampStatus {
+  name: string;
+  bandits: { slain: number; of: number };
+  chief: { slain: number; of: number };
+  cleared: boolean;
+  chestOpened: boolean;
+}
+
 export class CampLife {
   private readonly gate: CampGate;
   private manned: Map<Camp, boolean> | null = null; // each camp: someone of it still standing (as last looked)
@@ -47,6 +58,18 @@ export class CampLife {
     const manned = new Map(camps.map((camp) => [camp, this.crew(camp).some(standing)]));
     for (const [camp, now] of manned) if (this.manned?.get(camp) && !now) report({ kind: 'cleared', name: campName(camp, seed), place: 'camp' });
     this.manned = manned;
+  }
+
+  // The camp the hero's about (within CAMP_NEAR of its middle), and how it stands; null away from any. (Its slain
+  // counted from those still standing: the slain of a saved world are gone from it.)
+  status(hero: { x: number; z: number }): CampStatus | null {
+    const { camps, seed } = this.world();
+    const camp = camps.find((c) => Math.abs(hero.x - c.x) < CAMP_NEAR && Math.abs(hero.z - c.z) < CAMP_NEAR && Math.hypot(hero.x - c.x, hero.z - c.z) < CAMP_NEAR);
+    if (!camp) return null;
+    const up = (kind: Enemy['kind']) => this.crew(camp).filter((e) => e.kind === kind && standing(e)).length;
+    const bandits = { slain: camp.bandits - up('bandit'), of: camp.bandits };
+    const chief = { slain: 1 - up('banditChief'), of: 1 };
+    return { name: campName(camp, seed), bandits, chief, cleared: bandits.slain === bandits.of && chief.slain === 1, chestOpened: this.opened(camp) };
   }
 
   // Whether a camp's chief still stands (its chest locked).
