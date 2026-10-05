@@ -104,7 +104,7 @@ export class Bot extends BotSteps {
     }
     for (const id of Object.keys(hero.bag) as ItemId[]) {
       if (!(id in ITEMS)) continue;
-      const worn = hero.equipment[ITEMS[id].slot];
+      const worn = hero.equipment[ITEMS[id].slot]; // (what the bag holds, plain ids: the bot's own buys)
       if ((!worn || power(id) > power(worn)) && !this.model.equipFromBag(id)) this.report('gear not worn', id);
     }
     if (hero.hp < maxHpOf(hero) * 0.5 && !hero.drinking) {

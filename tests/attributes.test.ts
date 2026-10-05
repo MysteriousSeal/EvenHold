@@ -125,8 +125,8 @@ describe('gear', () => {
   });
 
   it("tells in its tooltip its armour and what it adds, as WoW's do", () => {
-    expect(gearLines('chainMail').map(lineText)).toEqual(['Armour 8', '+3 Stamina']);
-    expect(gearLines('sapphireRing').map(lineText)).toEqual(['+1 Agility', '+2 Endurance']);
-    expect(gearLines('chainMail').every((l) => typeof l !== 'string' && l.tone === 'stat')).toBe(true); // (each told as a stat: menuTypes.ts)
+    expect(gearLines('chainMail').map(lineText)).toEqual(['Level 1 · Common', 'Armour 8', '+3 Stamina']);
+    expect(gearLines('sapphireRing').map(lineText)).toEqual(['Level 1 · Common', '+1 Agility', '+2 Endurance']);
+    expect(gearLines('chainMail').slice(1).every((l) => typeof l !== 'string' && l.tone === 'stat')).toBe(true); // (each told as a stat: menuTypes.ts)
   });
 });

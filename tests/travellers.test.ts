@@ -1,6 +1,7 @@
 // Travellers on the roads (travellers/): who sets out, walking the roads and on at the villages, stopping for the hero;
 // foes going after them, guards going after the foes; brought down and others setting out; a word with them.
 
+import { baseOf } from '../src/model/human/items/gear';
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { generateWorld } from '../src/model/worldgen/world';
@@ -67,7 +68,7 @@ describe('travellers setting out', () => {
       expect(t.name.length).toBeGreaterThan(1);
       if (t.role === 'pedlar') expect(t.equipment.mainHand).toBeUndefined(); // (unarmed)
       if (t.role === 'guard') expect(['armingSword', 'spear']).toContain(t.equipment.mainHand);
-      for (const item of Object.values(t.equipment)) expect(ITEMS[item!].wornBy?.[t.role], `${t.role} in ${item}`).toBeGreaterThan(0);
+      for (const item of Object.values(t.equipment)) expect(ITEMS[baseOf(item!)].wornBy?.[t.role], `${t.role} in ${item}`).toBeGreaterThan(0);
     }
   });
 

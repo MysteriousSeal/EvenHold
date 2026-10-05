@@ -2,10 +2,11 @@
 // quests taken from a board and handed in, trading at the inn and the
 // smithy, points reset, a quest let go, a coin in a well. Each says when
 // the game doesn't do what it should.
+import { gearSpecs, type GearKey } from '../../src/model/human/items/gear';
 import type { GameModel } from '../../src/model/GameModel';
 import { STATS } from '../../src/model/hero/statKinds';
 import { resetCost, resetPoints } from '../../src/model/hero/training';
-import { ITEMS, type ItemId } from '../../src/model/human/equipment';
+import { ITEMS } from '../../src/model/human/equipment';
 import { sellValue, isJunk } from '../../src/model/shops/sellValue';
 import { sellTo, type Shop } from '../../src/model/shops/shopStock';
 import { buy, shopAt } from '../../src/model/inn/tavernShop';
@@ -17,7 +18,10 @@ export type Status = 'run' | 'ok' | 'fail';
 type Report = (kind: string, detail: string) => void;
 
 // How much good a piece of gear does (its armor and stats together).
-export const power = (id: ItemId) => (ITEMS[id].armor ?? 0) + Object.values(ITEMS[id].stats ?? {}).reduce((a, b) => a + b, 0);
+export const power = (key: GearKey) => {
+  const { armor, stats } = gearSpecs(key);
+  return armor + Object.values(stats).reduce((a, b) => a + b, 0);
+};
 
 export class Errands {
   constructor(

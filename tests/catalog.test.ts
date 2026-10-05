@@ -30,8 +30,8 @@ describe.each(ITEM_IDS.map((id) => [id]))('%s', (id: ItemId) => {
     const armor = item.armor ?? 0;
     expect(Number.isInteger(armor) && armor >= 0 && armor <= 10).toBe(true);
     if (isJewelrySlot(item.slot) || item.slot === 'mainHand') expect(armor).toBe(0);
-    // Its tooltip tells all of it.
-    expect(gearLines(id)).toHaveLength((armor ? 1 : 0) + Object.keys(stats).length);
+    // Its tooltip tells all of it: its level and rarity (a plain one: level 1, common), then each line.
+    expect(gearLines(id)).toHaveLength(1 + (armor ? 1 : 0) + Object.keys(stats).length);
     // Its model, to wear or hold.
     expect(ITEM_MODELS[id]).toBeDefined();
     if (isHeldSlot(item.slot)) expect(ITEM_MODELS[id].held).toBeDefined();
