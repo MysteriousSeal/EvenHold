@@ -71,7 +71,8 @@
 .job-key { display: inline-flex; align-items: center; gap: 7px; }
 .job-key kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--sand-light); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 var(--sand-dark); }
 .job-go { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; min-width: 150px; padding: 12px 22px; font: inherit; font-size: 18px; font-weight: 700; white-space: nowrap; color: var(--sand-light); background: var(--clay); border: 2px solid var(--ink); box-shadow: inset 0 -5px 0 var(--clay-dark); cursor: pointer; }
-.job-go:hover { filter: brightness(1.08); }
+.job-go:hover:not(:disabled) { filter: brightness(1.08); }
+.job-go:disabled { cursor: default; opacity: 0.55; }
 .job-go:active { box-shadow: inset 0 -2px 0 var(--clay-dark); transform: translateY(2px); }
 .job-go:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
 .job-foot.working .job-go { color: var(--ink); background: var(--sand-light); box-shadow: inset 0 -5px 0 var(--sand-dark); }

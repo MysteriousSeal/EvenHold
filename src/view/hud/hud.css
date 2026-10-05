@@ -201,6 +201,56 @@
 .speech-bubble::before { bottom: -12px; margin-left: -9px; border-width: 12px 9px 0; border-top-color: #2e1f14; }
 .speech-bubble::after { bottom: -8px; margin-left: -6px; border-width: 9px 6px 0; border-top-color: #f8ecd4; } /* the coins themselves: coins.css */
 
+/* The pour under way behind the bar (pourMeter.ts): a tankard beside the hero, filling; the line it's perfect at
+   marked across it; amber short of it, gold within it, cream froth over it, red at the brim. */
+.pour-meter {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  pointer-events: none;
+  box-sizing: border-box;
+  width: 26px;
+  height: 58px;
+  background: rgb(38 25 16 / 0.92);
+  border: 3px solid #2e1f14;
+  border-top-width: 2px;
+  box-shadow: 0 0 0 2px #c9a46a, 3px 3px 0 2px rgb(46 31 20 / 0.45);
+}
+.pour-meter[hidden] { display: none; }
+.pour-meter::after { /* the handle */
+  content: '';
+  position: absolute;
+  right: -11px;
+  top: 12px;
+  width: 7px;
+  height: 22px;
+  border: 3px solid #c9a46a;
+  border-left: 0;
+}
+.pour-meter-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(#f2e6c8 0 5px, #d98a2b 5px);
+}
+.pour-meter[data-drink='wine'] .pour-meter-fill { background: linear-gradient(#b0465a 0 3px, #6e1f33 3px); }
+.pour-meter-line {
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  border-top: 2px solid #ffd96a;
+  border-bottom: 2px solid #ffd96a;
+  background: rgb(255 217 106 / 0.18);
+}
+.pour-meter[data-state='line'] { box-shadow: 0 0 0 2px #ffd96a, 0 0 12px 3px rgb(255 217 106 / 0.75); }
+.pour-meter[data-state='froth'] .pour-meter-fill { background: #f2e6c8; }
+.pour-meter[data-state='brim'] { box-shadow: 0 0 0 2px #ff6a5a, 0 0 10px 2px rgb(255 106 90 / 0.7); }
+@media (prefers-reduced-motion: no-preference) {
+  .pour-meter[data-state='brim'] { animation: pour-brim 0.18s steps(2) infinite; }
+}
+@keyframes pour-brim { 50% { translate: 1px 0; } }
 /* A badge over the world (overheadBadges.ts): a word on a square dark plate rimmed in its ink, a tail under it. Sized
    in ems (the script sets the em: as tall as it's meant to be in the world), every one the same, the word inside. */
 .overhead-badge {

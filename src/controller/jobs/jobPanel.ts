@@ -1,22 +1,29 @@
 // The work to be had (E at an inn's notice board: "Look for work"), as a hiring notice pinned up there: the job
 // (what it is), the hero's standing in it as a stair of its ranks (the one they're on lit, filling toward the next),
 // what their rank brings beside what the next would, their record, and at the foot what a shift is (its length, its
-// pay, its keys) with the button to work one; at work, how the shift stands and the button to end it. More jobs to
-// come: a strip of them across the top, the notice the one picked. A window in the middle of the screen; the game
-// waits while it's open.
+// pay, its keys) with the button to work one; at work, how the shift stands and the button to end it. The jobs posted
+// (serving the tables, tending the bar) as a strip across the top, the notice the one picked (at work, the one
+// they're at). A window in the middle of the screen; the game waits while it's open.
 
 import './jobPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Entrance } from '../../model/interiors/interiors';
 import { villageName } from '../../model/villages/villageNames';
 import { JOBS, JOB_IDS, rankIn, recordOf, type JobId, type JobRank } from '../../model/jobs/jobs';
-import { SHIFT, WAGE } from '../../model/jobs/innShift';
+import { bandOf } from '../../model/jobs/pour';
+import { SHIFT, WAGE } from '../../model/jobs/shift';
 import { BONUS } from '../../model/jobs/work';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { coinParts } from '../../view/ui/coins';
 import { createMenu, type Menu } from '../../view/ui/menu';
 
-const ICONS: Record<JobId, (size: number) => HTMLCanvasElement> = { innServer: bagIcon('ale') };
+const ICONS: Record<JobId, (size: number) => HTMLCanvasElement> = { innServer: bagIcon('ale'), innBarkeep: bagIcon('mead') };
+// What's carried at once, by job (the tray's orders; the hands' drinks and empties), and how a shift's worked (E).
+const CARRY: Record<JobId, string> = { innServer: 'Tray', innBarkeep: 'Hands' };
+const KEYS: Record<JobId, string> = {
+  innServer: 'take an order · fetch it from the bar · set it down · clear a table',
+  innBarkeep: 'pour at the tap or a shelf, again at the line · hand it across · set the tables\' down at the end · gather and wash empties',
+};
 
 // An element, its class, and what's in it.
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, ...children: Array<string | Node>): HTMLElementTagNameMap[K] {
@@ -29,16 +36,17 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, .
 const hours = (seconds: number) => `${Math.round((seconds / 60) * 2) / 2} hours`.replace('.5', '½');
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 
-// A rank's perks, as chips: the tray (a mug for each order carried), patience, tips.
-function perks(rank: JobRank, faded = false): HTMLElement {
+// A rank's perks, as chips: what's carried (a mug for each), patience, tips; behind the bar, how wide the line is.
+function perks(job: JobId, rank: JobRank, faded = false): HTMLElement {
   const row = el('div', faded ? 'job-perks next' : 'job-perks');
-  const tray = el('span', 'job-chip', el('i', 'job-chip-label', 'Tray'));
+  const tray = el('span', 'job-chip', el('i', 'job-chip-label', CARRY[job]));
   for (let i = 0; i < 3; i++) tray.append(el('i', i < rank.tray ? 'job-mug' : 'job-mug empty'));
   row.append(
     tray,
     el('span', 'job-chip', el('i', 'job-chip-label', 'Patience'), rank.patience ? `+${rank.patience}s` : '—'),
     el('span', 'job-chip', el('i', 'job-chip-label', 'Tips'), `×${rank.tips}`),
   );
+  if (rank.steady !== undefined) row.append(el('span', 'job-chip', el('i', 'job-chip-label', 'Line'), `±${Math.round(bandOf(rank.steady) * 1000) / 10}%`));
   return row;
 }
 
@@ -53,7 +61,8 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     const { name, where, about, ranks } = JOBS[job];
     const record = recordOf(model.hero, job);
     const { rank, index, next, toward } = rankIn(job, record.xp);
-    const shift = model.work.shift;
+    const shift = model.work.shift?.job === job ? model.work.shift : null; // (at work at this one)
+    const elsewhere = !shift && model.work.shift ? JOBS[model.work.shift.job].name.toLowerCase() : null; // (at work at the other)
 
     // Where it's pinned up.
     const village = inn && model.villages.reduce((a, b) => (Math.hypot(b.x - inn!.x, b.z - inn!.z) < Math.hypot(a.x - inn!.x, a.z - inn!.z) ? b : a));
@@ -91,8 +100,8 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     );
 
     // What the rank brings, and what the next would.
-    const brings = el('div', 'job-brings', el('span', 'job-label', 'Your rank brings'), perks(rank));
-    if (next) brings.append(el('span', 'job-label', `At ${next.name}`), perks(next, true));
+    const brings = el('div', 'job-brings', el('span', 'job-label', 'Your rank brings'), perks(job, rank));
+    if (next) brings.append(el('span', 'job-label', `At ${next.name}`), perks(job, next, true));
 
     // Their record, as a ledger.
     const ledger = el('dl', 'job-ledger');
@@ -105,7 +114,9 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     // At the foot: what a shift is and the button to work one; at work, how it stands and the button to end it.
     // Its terms as three cards (a big value, what it's of, a note), the keys under them, the button beside.
     const foot = el('footer', shift ? 'job-foot working' : 'job-foot');
-    const button = el('button', 'job-go', shift ? 'End the shift' : 'Work a shift');
+    const button = el('button', 'job-go', shift ? 'End the shift' : elsewhere ? 'At work already' : 'Work a shift');
+    button.disabled = !!elsewhere;
+    if (elsewhere) button.title = `You're ${elsewhere} just now`;
     const term = (label: string, value: Array<string | Node>, note: string, tone = '') => el('div', `job-term ${tone}`, el('span', 'job-label', label), el('b', undefined, ...value), el('small', undefined, note));
     const terms = el('div', 'job-terms');
     if (shift) {
@@ -122,7 +133,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
       );
     }
     const key = (cap: string, does: string) => el('span', 'job-key', el('kbd', undefined, cap), does);
-    const keys = el('div', 'job-keys', key('E', 'take an order · fetch it from the bar · set it down · clear a table'));
+    const keys = el('div', 'job-keys', key('E', KEYS[job]));
     foot.append(terms, keys, button);
     button.addEventListener('click', () => {
       if (shift) {
@@ -130,7 +141,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
         said = '';
         return draw();
       }
-      if (inn && model.work.start(inn)) return menu.close();
+      if (inn && model.work.start(inn, job)) return menu.close();
       said = 'Not here: ask at the inn you want to work in.';
       draw();
     });
@@ -151,6 +162,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     menu,
     open(at) {
       [inn, said] = [at, ''];
+      if (model.work.shift) job = model.work.shift.job; // (at work: the job they're at)
       menu.open();
     },
   };

@@ -48,6 +48,7 @@ import { FrostOnHero } from './meshes/human/frostOnHero';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
+import { InnShift } from '../model/jobs/innShift';
 
 // One named chunk of world building, run by the loader between repaints.
 export interface BuildStep {
@@ -63,6 +64,7 @@ export interface RenderStats {
 
 const INDOOR_ZOOM = 1.35; // the camera, closer indoors
 const PICK_RADIUS = 40; // pixels around an enemy that count as clicking it
+const PASS_MOST = 7; // at work, the cups at the counter's end drawn, at most (the rest under them)
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -262,7 +264,7 @@ export class GameView {
     const { hero } = model;
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
     // At work, dressed for it (a costume, only to be seen: their gear still on them, its stats and all); else their gear.
-    if (model.work.shift) this.hero.dress(COSTUMES.innServer);
+    if (model.work.shift) this.hero.dress(COSTUMES[model.work.shift.job]);
     else this.hero.wear(hero.equipment);
     const chilled = !!hero.blessings?.some((b) => b.kind === 'chilled');
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : chilled ? this.heroFrost : this.heroLook);
@@ -389,11 +391,12 @@ export class GameView {
     const smiths = model.folk.filter((n) => n.role === 'smith' && n.where === inside.entrance);
     this.room.forge?.(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
     this.room.update(this.elapsed);
-    // The drinks on the bar, as they are; at work, the orders ready at the counter's end (a little apart), the empties on the tables.
+    // The drinks on the bar, as they are; at work, what's at the counter's end (a little apart: the orders ready, the
+    // tables' drinks poured and the empties brought back), the empties on the tables.
     const shift = model.work.shift?.inn === inside.entrance ? model.work.shift : null;
-    const ready = (shift?.readyOrders ?? []).map((drink, i) => ({ z: shift!.barEndZ - i * 0.3, full: true, drink }));
-    this.room.showMugs?.([...mugsAt(inside.entrance), ...ready]);
-    this.room.showTableMugs?.(shift?.empties ?? []);
+    const pass = (shift?.passMugs ?? []).slice(0, PASS_MOST).map((mug, i) => ({ ...mug, z: shift!.barEndZ - i * 0.24 }));
+    this.room.showMugs?.([...mugsAt(inside.entrance), ...pass]);
+    this.room.showTableMugs?.(shift instanceof InnShift ? shift.empties : []);
     return this.room.scene;
   }
 

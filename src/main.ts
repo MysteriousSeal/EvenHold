@@ -44,7 +44,9 @@ import { createJournal } from './controller/quests/journal';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createJobPanel } from './controller/jobs/jobPanel';
 import { workPrompt } from './controller/jobs/workPrompt';
-import { SHIFT } from './model/jobs/innShift';
+import { shiftStatus } from './controller/jobs/shiftStatus';
+import { BarShift } from './model/jobs/barShift';
+import { PourMeter } from './view/hud/pourMeter';
 import { createQuestTracker } from './view/hud/questTracker';
 import { boardSpot } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/hero/heroSheet';
@@ -138,6 +140,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
+  const pourMeter = new PourMeter((at, text, ink) => floatingText.spawn(at, [text], ink)); // (behind the bar: the pour, and its word)
   const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
   let lastFrame = performance.now();
   let textSpace = model.inside?.entrance; // where floating text's places are (the world, or a room)
@@ -236,7 +239,7 @@ async function boot(): Promise<void> {
     const camp = !model.inside ? model.campLife.status(model.hero) : null; // (about a bandit camp: its bandits and chief slain)
     const village = !model.inside && !camp ? model.welcome.village() : null; // (in a village: its name and level, its board's quests)
     const shift = model.work.shift; // (at work: the shift's time and tally)
-    updatePlaceBar(shift ? { name: 'Serving the tables', shift: { share: shift.left / SHIFT, left: `${Math.floor(shift.left / 60)}:${String(Math.floor(shift.left % 60)).padStart(2, '0')}`, served: shift.served, walkedOut: shift.walkedOut, earned: shift.earned, tray: shift.tray.map((t) => (t.kind === 'order' ? t.want.order : 'empty')).join(', ') || 'nothing' } } : below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp ? { name: camp.name, camp, ink: dangerInk(camp.level, model.hero.level) } : village ? { name: village.name, village: { level: village.level, ink: dangerInk(village.level, model.hero.level), quests: model.quests.tallyAt(model.boardOf(village.village)) } } : null); // (down in a crypt or a cave: how much is cleared)
+    updatePlaceBar(shift ? shiftStatus(shift) : below ? { name: below.name, share: model.clearedShare(model.inside!.entrance) } : camp ? { name: camp.name, camp, ink: dangerInk(camp.level, model.hero.level) } : village ? { name: village.name, village: { level: village.level, ink: dangerInk(village.level, model.hero.level), quests: model.quests.tallyAt(model.boardOf(village.village)) } } : null); // (down in a crypt or a cave: how much is cleared)
     bag.update();
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
@@ -249,6 +252,7 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
+    pourMeter.update(model.work.shift instanceof BarShift ? model.work.shift : null, model.hero, (x, y, z) => view.toScreen(x, y, z));
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
     rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
@@ -307,7 +311,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (P)`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
       else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)
-      else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.cleared} cleared · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);
+      else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.tally} · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');

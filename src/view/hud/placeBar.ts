@@ -5,7 +5,8 @@
 // - about a bandit camp (model/camps/campLife.ts: campStatus), "(bandit camp)" after its name: its bandits slain and its chief, each of how many,
 //   by a bust of each (a masked bandit, the chief in his horned helm); gold once they're all down, "Cleared!" and
 //   whether its chest's been opened; its level over them (in how dangerous it is for the hero);
-// - at work (model/jobs/work.ts): the time left of the shift as the bar, what's served, walked out, earned, on the tray;
+// - at work (model/jobs/work.ts): the time left of the shift as the bar, what's served, walked out, earned, and the
+//   job's own rows (controller/jobs/shiftStatus.ts: the tray; or what's in hand, the clean cups, the perfect run);
 // - in a village (model/villages/villageWelcome.ts), "(village)" after its name, its level under it (in how hard
 //   its quests are for the hero), its notice board's quests done, of how many (gold once all
 //   are).
@@ -18,7 +19,7 @@ import { lookAt } from '../../model/human/humanoid';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
 
-export type PlaceBarShown = { name: string; share: number } | { name: string; camp: CampStatus; ink: string } | { name: string; village: { level: number; ink: string; quests: { completed: number; of: number } } } | { name: string; shift: { share: number; left: string; served: number; walkedOut: number; earned: number; tray: string } } | null;
+export type PlaceBarShown = { name: string; share: number } | { name: string; camp: CampStatus; ink: string } | { name: string; village: { level: number; ink: string; quests: { completed: number; of: number } } } | { name: string; shift: { share: number; left: string; served: number; walkedOut: number; earned: number; rows: Array<[string, string]> } } | null;
 
 const ICON = 30; // px: a bust by a count
 const bust = (key: string, equipment: Parameters<typeof humanBust>[1]) => () => voxelIcon(`placeBar:${key}`, () => humanBust(lookAt(5, 9), equipment, 'right'), ICON);
@@ -72,10 +73,10 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
       label.textContent = percent >= 100 ? 'Cleared!' : `Cleared ${percent}%`;
       root.classList.toggle('done', percent >= 100);
     } else if ('shift' in place) {
-      const { share, left, served, walkedOut, earned, tray } = place.shift;
+      const { share, left, served, walkedOut, earned, rows } = place.shift;
       fill.style.width = `${Math.round(share * 100)}%`;
       label.textContent = `${left} left`;
-      counts.replaceChildren(row(null, 'Served', `${served}`, served > 0), row(null, 'Walked out', `${walkedOut}`, false), row(null, 'Earned', `${earned} copper`, false), row(null, 'Tray', tray, false));
+      counts.replaceChildren(row(null, 'Served', `${served}`, served > 0), row(null, 'Walked out', `${walkedOut}`, false), row(null, 'Earned', `${earned} copper`, false), ...rows.map(([what, value]) => row(null, what, value, false)));
       root.classList.remove('done');
     } else if ('village' in place) {
       const { level, ink, quests } = place.village;
