@@ -2,11 +2,12 @@
 // Every bandit camp has its chest, every camp of a dozen worlds (some two
 // hundred and fifty): one loot piece, inside its palisade, on a tile no other
 // piece shares; solid where it stands (the rug round it walked over); drawn,
-// its chest and its gold glowing; and to be walked up to from the camp's gate,
+// its chest shut or open and its gold glowing; and to be walked up to from the camp's gate,
 // in on open ground (never through the palisade, nor anything standing).
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { buildCampGeometry } from '../src/view/meshes/camp/campMesh';
+import { chestGeometry } from '../src/view/meshes/camp/campChests';
 import type { Camp } from '../src/model/camps/camps';
 
 const SEEDS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -43,8 +44,10 @@ describe('every bandit camp has its chest', () => {
     });
   });
 
-  it('drawn: its chest, and its gold aglow', () => {
+  it('drawn: its rug and the gold spilt on it aglow; its chest shut (a glint of gold under the lid) or thrown open (a coin or two left)', () => {
     for (const glowing of [false, true]) expect(buildCampGeometry('loot', glowing).getAttribute('position').count).toBeGreaterThan(0);
+    for (const open of [false, true]) for (const glowing of [false, true]) expect(chestGeometry(open, glowing).getAttribute('position').count).toBeGreaterThan(0);
+    expect(chestGeometry(false, false).getAttribute('position').count).not.toBe(chestGeometry(true, false).getAttribute('position').count);
   });
 
   it('to be walked up to from the camp\'s gate, in on open ground', () => {

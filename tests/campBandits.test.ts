@@ -26,8 +26,15 @@ describe('bandits in their camps (three to six each), every camp of eighteen wor
           if (tiles.has(`${b.x},${b.z}`)) problems.push(`${at}: two bandits on one tile`);
           tiles.add(`${b.x},${b.z}`);
         }
+        // Their chief: one, inside, on a free tile of his own (none of theirs).
+        const chiefs = model.enemies.filter((e) => e.kind === 'banditChief' && e.homeX === camp.x && e.homeZ === camp.z);
+        if (chiefs.length !== 1) problems.push(`${at}: ${chiefs.length} chiefs`);
+        for (const c of chiefs) {
+          if (Math.abs(c.x - camp.x) > 2 || Math.abs(c.z - camp.z) > 2 || !model.isOpenTile(c.x, c.z)) problems.push(`${at}: its chief not on a free tile inside, at ${c.x},${c.z}`);
+          if (tiles.has(`${c.x},${c.z}`)) problems.push(`${at}: its chief on a bandit's tile`);
+        }
         // And no other foe starts inside.
-        const others = model.enemies.filter((e) => e.kind !== 'bandit' && Math.abs(e.x - camp.x) <= 2 && Math.abs(e.z - camp.z) <= 2);
+        const others = model.enemies.filter((e) => e.kind !== 'bandit' && e.kind !== 'banditChief' && Math.abs(e.x - camp.x) <= 2 && Math.abs(e.z - camp.z) <= 2);
         if (others.length > 0) problems.push(`${at}: a ${others[0].kind} inside`);
       }
     }
