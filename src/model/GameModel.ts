@@ -7,7 +7,7 @@
 import { emptyActionBar } from './hero/actionBar';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
-import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_RANGE, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
+import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, TILE_HEIGHT, ROAD_SURFACE_HEIGHT, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, toCellX, toCellZ, type MapSize } from './map/grid';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Surface, Village } from './types';
@@ -54,7 +54,8 @@ import { CaveRun } from './caves/caveFoes';
 import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/dungeons';
 import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
-import { cycleFocus as turnFocus } from './hero/focus';
+import { WildMoves } from './enemies/wildMoves';
+import { cycleFocus as turnFocus, focusKept } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -107,6 +108,7 @@ export class GameModel {
   private readonly obstacles: Obstacles;
   private readonly director: EnemyDirector;
   private hop: Hop | null = null;
+  readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
 
   // Dev cheats: movement speed factor (1 = normal); walking through
   // everything; god mode (enemies' blows don't hurt); every blow of the
@@ -155,6 +157,7 @@ export class GameModel {
     this.scenery = placeScenery(this); // rocks and landmarks in the wilds (after the foes: clear of where they stand)
     addSceneryObstacles(this.obstacles, this.scenery);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
+    this.wild = new WildMoves(this.enemies, this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
     this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
@@ -253,7 +256,7 @@ export class GameModel {
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
     this.moves.update(dt, this.push, this.land);
-    this.director.update(dt);
+    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt)]; // (the wild beasts' told moves; a blow's knock carrying the hero)
     this.travellers.update(dt, this.enemies);
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);
@@ -484,15 +487,9 @@ export class GameModel {
   // Turns the focus to the next foe in sight, nearest first (Tab), or back (Shift+Tab: hero/focus.ts).
   cycleFocus = (back = false): void => turnFocus(this, (foe) => (this.below?.run.director ?? this.director).inView(this.hero, foe), back);
 
-  // Drops the focus the moment its enemy dies (so the next to strike takes
-  // it), or once it's gone or far off.
-  private keepFocus(): void {
-    const enemy = this.focused;
-    if (!enemy || enemy.state === 'dead' || enemy.buried || Math.hypot(enemy.x - this.hero.x, enemy.z - this.hero.z) > FOCUS_RANGE) this.focusedId = null;
-  }
+  // Drops the focus the moment its enemy dies (so the next to strike takes it), or once it's gone or far off (hero/focus.ts).
+  private keepFocus = (): void => void (focusKept(this.focused, this.hero) || (this.focusedId = null));
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).
-  fall(): void {
-    fall(this);
-  }
+  fall = (): void => fall(this);
 }

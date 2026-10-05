@@ -31,6 +31,11 @@ export const JUNK_ITEMS = {
   frostTorc: { name: 'Frost-rimed torc', value: 30, droppedBy: { draugr: 2 } },
   runestone: { name: "Draugr's runestone", value: 20, droppedBy: { draugr: 3 } },
   oldSilver: { name: 'Old silver coin', value: 14, droppedBy: { draugr: 3 } },
+  // From bears and lynxes: claws and pelts, good to the tanner.
+  bearClaw: { name: 'Bear claw', value: 7, droppedBy: { bear: 3 } },
+  bearPelt: { name: 'Thick bear pelt', value: 14, droppedBy: { bear: 2 } },
+  lynxPelt: { name: 'Spotted lynx pelt', value: 11, droppedBy: { lynx: 2 } },
+  lynxEar: { name: 'Tufted lynx ear', value: 4, droppedBy: { lynx: 2 } },
   // From the caves' beasts (vermin): what's left of them, good to the herbalist and the tanner.
   spiderSilk: { name: 'Spider silk', value: 5, droppedBy: { vermin: 3 } },
   venomGland: { name: 'Venom gland', value: 8, droppedBy: { vermin: 2 } },

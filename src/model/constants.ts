@@ -30,6 +30,11 @@ export const ENEMY_STATS = {
   // A ghost (enemies.ts): haunting an old ruin, bound to it (never out past its walls, nor after the hero once they're
   // out); drifting about it, quick when set on the hero, its touch cold (chilling a moment: hero/fighting.ts); frail,
   // its own loot (keepsakes of the dead).
+  // The wilds' fiercer beasts (enemies/wildMoves.ts: their told moves). A brown bear: alone in deep forest, slow and
+  // tough, its swipe heavy; rears up and slams down round it; hurt, charges. A lynx: lurking at the forest's edges,
+  // quick and frail, seeing a long way; from a few tiles off it pounces, then bites.
+  bear: { family: 'bear', passive: false, hp: 12, damage: 3, xp: 40, coins: 2, radius: 0.26, walk: 0.7, run: 2.5, sight: 3.5, giveUp: 9, wander: 2.5, stop: 0.7, swing: 0.9, cooldown: 1.6, rest: [2, 3.5], shove: 0.35, loot: 1.4 },
+  lynx: { family: 'lynx', passive: false, hp: 4, damage: 2, xp: 22, coins: 1, radius: 0.15, walk: 0.9, run: 3.6, sight: 4.5, giveUp: 7, wander: 2, stop: 0.5, swing: 0.45, cooldown: 1.2, rest: [2.5, 4], shove: 1, loot: 1 },
   ghost: { family: 'ghost', passive: false, hp: 5, damage: 2, xp: 28, coins: 3, radius: 0.15, walk: 0.55, run: 2.2, sight: 4, giveUp: 10, wander: 4, stop: 0.6, swing: 0.9, cooldown: 1.5, rest: [2, 3], shove: 0.7, loot: 1.2 },
   // The caves' beasts (caves/caveFoes.ts). A cave spider: quick, its bite and its lunge, and its spat web (webbing
   // the hero: walking slower). A bat: frail, fast, flitting, biting and off again, in flocks. A cave worm: underground

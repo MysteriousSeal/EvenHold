@@ -106,10 +106,15 @@ export const nextCamp = (model: GameModel, from: Tile, visited: Set<Camp>) => ne
 
 // A few tiles from the nearest living wolf, or null if there are none.
 export function nearestPack(model: GameModel, from: Tile): Tile | null {
-  const wolves = model.enemies.filter((e) => e.kind === 'wolf' && e.state !== 'dead');
-  if (wolves.length === 0) return null;
-  const wolf = wolves.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
-  return nearestOpenTile(model, { x: Math.round(wolf.x) - 4, z: Math.round(wolf.z) });
+  return nearestOf(model, from, 'wolf');
+}
+
+// A few paces from the nearest living foe of `kind` (a wolf pack, a bear, a lynx), or null if there's none.
+export function nearestOf(model: GameModel, from: Tile, kind: EnemyKind): Tile | null {
+  const found = model.enemies.filter((e) => e.kind === kind && e.state !== 'dead');
+  if (found.length === 0) return null;
+  const nearest = found.reduce((a, b) => (distance(a, from) < distance(b, from) ? a : b));
+  return nearestOpenTile(model, { x: Math.round(nearest.x) - 4, z: Math.round(nearest.z) });
 }
 
 // Adds a new enemy on open ground a couple of tiles in front of the hero.

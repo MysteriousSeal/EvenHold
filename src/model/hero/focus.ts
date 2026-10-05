@@ -21,3 +21,7 @@ export function cycleFocus(at: Focusing, sees: (foe: Enemy) => boolean, back = f
   const next = now < 0 ? (back ? near.length - 1 : 0) : (now + (back ? -1 : 1) + near.length) % near.length;
   at.focus(near[next].id);
 }
+
+// Whether a focus on `enemy` is kept: it's there, alive, above ground, and near enough.
+export const focusKept = (enemy: Enemy | null, hero: { x: number; z: number }): boolean =>
+  !!enemy && enemy.state !== 'dead' && !enemy.buried && Math.hypot(enemy.x - hero.x, enemy.z - hero.z) <= FOCUS_RANGE;

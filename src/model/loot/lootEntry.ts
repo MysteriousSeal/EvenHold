@@ -2,7 +2,7 @@
 // items), apart from loot.ts, which gathers them all.
 
 // Who drops what: families of enemies (ENEMY_STATS[kind].family).
-export type LootSource = 'beast' | 'humanoid' | 'boar' | 'undead' | 'draugr' | 'ghost' | 'vermin';
+export type LootSource = 'beast' | 'humanoid' | 'boar' | 'undead' | 'draugr' | 'ghost' | 'vermin' | 'bear' | 'lynx';
 
 export interface LootEntry {
   name: string;

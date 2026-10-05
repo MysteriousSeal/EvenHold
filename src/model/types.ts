@@ -46,7 +46,7 @@ export interface Hero extends Humanoid {
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother'; // (skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
+export type EnemyKind = 'wolf' | 'bandit' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother' | 'bear' | 'lynx'; // (bears and lynxes: the wilds' own, fiercer than wolves; skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
 
 // Something that just happened worth showing (e.g. as floating text): coins
 // looted, or a blow landing on an enemy or on the hero, at where they are.

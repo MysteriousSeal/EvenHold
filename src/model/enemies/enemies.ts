@@ -27,10 +27,12 @@ interface Sites {
 // Dense enough that walking any direction meets something every so often:
 // wolf packs in the woods, fewer out on open ground, and bandit camps in the
 // countryside between villages.
-export const WILD_SITES: Record<'packs' | 'meadowPacks' | 'boars', Sites> = {
+export const WILD_SITES: Record<'packs' | 'meadowPacks' | 'boars' | 'bears' | 'lynxes', Sites> = {
   packs: { grid: 18, chance: 0.91, forest: (d) => d >= 0.2, clearance: 14 },
   meadowPacks: { grid: 32, chance: 0.455, forest: (d) => d < 0.2, clearance: 14 },
   boars: { grid: 22, chance: 0.715, forest: (d) => d >= 0.12, clearance: 12 }, // rooting about the woods
+  bears: { grid: 26, chance: 0.6, forest: (d) => d >= 0.35, clearance: 24 }, // alone, deep in the forest
+  lynxes: { grid: 22, chance: 0.6, forest: (d) => d >= 0.1 && d < 0.32, clearance: 18 }, // lurking at the forest's edges
 };
 const SPAWN_CLEARANCE = 20;
 
@@ -145,6 +147,10 @@ export function spawnEnemies(world: EnemyWorld): Enemy[] {
       enemies.push({ ...makeEnemy(enemies.length, 'ghost', x, z, cx, cz, enemyLevel(world.hero, cx, cz, enemies.length)), haunt });
     }
   }
+  // The fiercer beasts, last of all (so every other foe keeps its id, and a save its slain): a bear alone in each
+  // stretch of deep forest that has one; a lynx or two at the forest's edges.
+  scatter(WILD_SITES.bears, 92, (x, z) => group('bear', x, z, 1, 96));
+  scatter(WILD_SITES.lynxes, 102, (x, z, big) => group('lynx', x, z, big ? 2 : 1, 106));
   return enemies;
 }
 
