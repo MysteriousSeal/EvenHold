@@ -37,6 +37,8 @@ const NAME_Y = 0.14; // the name's height over the bar
 const LEVEL_GAP = 0.05; // between the level and the name
 // The level's colour by how dangerous the foe is (as the target panel's name, hud.css).
 const DANGER_INK: Record<Difficulty, string> = { trivial: '#b4b0a8', even: INK, tough: '#f2d15a', hard: '#f0913a', deadly: '#e8483a' };
+// The ink a level's shown in, by how dangerous it is to a hero of `heroLevel` (over a foe, a bandit camp's banner).
+export const dangerInk = (level: number, heroLevel: number): string => DANGER_INK[difficulty(level, heroLevel)];
 let heroLevel = 1; // the hero's, for the levels' colours (EnemyViews sets it each frame)
 export const setBarHeroLevel = (level: number) => void (heroLevel = level);
 
