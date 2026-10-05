@@ -1,11 +1,12 @@
 // Dev-only cheat menu, toggled with the backquote key (`), built on the shared
-// EvenHold menu (view/ui/menu.ts). A tab for each thing a cheat touches:
-// Travel (villages, the wilds, the roads), Sights (rocks and landmarks,
-// wildflowers, the small life), Hero (health and energy, growth, powers),
-// Look (body, outfits, each slot), Bag (coin, things into it, loot on the
-// ground), Enemies (summon, control) and World (the game, and facts about
+// EvenHold menu (view/ui/menu.ts). A tab for each thing a cheat touches,
+// named for what you're after: Go to (towns, dungeons, the wilds, the roads,
+// back to the start), Sights (rocks and landmarks, wildflowers, wildlife),
+// Hero (powers first, then health and energy, level and stats), Appearance
+// (body, outfits, each slot), Items (money, into the bag, on the ground), Foes
+// (spawn, control, dungeons) and World (time, shops, debug, and facts about
 // where the hero stands); each tab's rows in groups under a header, two
-// columns wide. The game keeps running while it's open, so a teleport or a
+// columns wide, each named by what it does. The game keeps running while it's open, so a teleport or a
 // summon shows at once.
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
@@ -159,7 +160,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
   });
   const insideRow = (type: 'house' | 'inn' | 'smithy', icon: MenuIcon): MenuAction => ({
     icon,
-    title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'the inn' : 'a smithy'}`,
+    title: `Inside ${type === 'house' ? 'a house' : type === 'inn' ? 'an inn' : 'a smithy'}`,
     detail: 'The nearest one you haven’t been in',
     run: () => {
       if (!enterNearest(model, type, entered)) return `There's no ${type} in this world.`;
@@ -179,10 +180,10 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
     toggleKey: 'Backquote',
     tabs: [
       {
-        name: 'Travel',
+        name: 'Go to',
         icon: ICON.travel,
         actions: [
-          ...group('Villages', [
+          ...group('Towns', [
             {
               icon: ICON.village,
               title: 'Next village',
@@ -197,8 +198,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             insideRow('smithy', itemIcon('shortSword')),
             {
               icon: lootIcon('lesserHealthPotion'),
-              title: 'A herbalist',
-              detail: 'Inside the nearest herbalist\'s house, with their potions',
+              title: 'Inside a herbalist\'s',
+              detail: 'The nearest herbalist\'s house, with their potions',
               run: () => {
                 if (!visitHerbalist(model, herbalists)) return 'There\'s no herbalist in this world.';
                 menu.close();
@@ -206,11 +207,13 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
               },
             },
           ]),
-          ...group('Wilds', [
-            { icon: ICON.ruin, title: 'Next ruins', detail: 'The nearest you haven’t visited, at their way in', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
+          ...group('Dungeons', [
+            { icon: ICON.ruin, title: 'Next crypt', detail: 'The nearest ruins you haven’t visited, their crypt in them', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
             { icon: ICON.ruin, title: 'Next cave', detail: 'The nearest you haven’t visited, before its mouth', run: () => travel(nextCave(), `cave ${cavesSeen.size} of ${model.caves.length}`) },
-            { icon: ICON.camp, title: 'Next camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
-            { icon: ICON.wolfPack, title: 'Wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
+          ]),
+          ...group('Wilds', [
+            { icon: ICON.camp, title: 'Next bandit camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },
+            { icon: ICON.wolfPack, title: 'Nearest wolf pack', detail: 'A few paces from the nearest wolves', run: () => travel(nearestPack(model, here()), 'a wolf pack') },
             { icon: ICON.lake, title: 'Nearest lake', detail: 'Stand on the closest shore', run: () => travel(nearestLakeShore(model, here()), 'the lake shore') },
           ]),
           ...group('Roads', [
@@ -218,7 +221,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             travellerRow('pilgrim', 'Nearest pilgrim', 'On the road, with a word to say', ICON.hero),
             travellerRow('guard', 'Nearest guards', 'Two guards walking their beat', itemIcon('nasalCap')),
           ]),
-          ...group('Back', [{ icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') }]),
+          ...group('Start', [{ icon: ICON.spawn, title: 'Back to spawn', detail: 'Where the journey began', run: () => travel(spawnTile(model), 'spawn') }]),
         ],
       },
       {
@@ -241,7 +244,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             ),
           ]),
           ...group(
-            'Small life',
+            'Wildlife',
             SIGHTS_LIFE.map(([kind, title, detail]): MenuAction => ({ icon: ICON[kind], title, detail, run: () => travel(nextLife(model, here(), kind, seenLife), title.replace(/^Next /, '').toLowerCase()) })),
           ),
         ],
@@ -250,50 +253,50 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         name: 'Hero',
         icon: ICON.hero,
         actions: [
+          ...group('Powers', [
+            { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
+            { icon: ICON.slay, title: 'One-hit kills', detail: 'Every blow fells what it lands on, crypt lords too', ...toggle(() => model.oneHitKills, (on) => (model.oneHitKills = on), 'Every blow a kill.', 'Blows as they were.') },
+                      {
+              icon: ICON.swiftFeet,
+              title: 'Run fast',
+              detail: `Walk ${SPEED_BOOST}× faster (not the well's Swift feet)`,
+              ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Running fast.', 'Back to walking.'),
+            },
+            { icon: ICON.noclip, title: 'Walk through walls', detail: 'Walls, water and foes (no clipping)', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
+          ]),
           ...group('Health & energy', [
-            { icon: ICON.hero, title: 'Heal', detail: 'Back to full health', run: () => ((model.hero.hp = maxHpOf(model.hero)), 'Healed.') },
+            { icon: ICON.hero, title: 'Full health', detail: 'Healed back to full', run: () => ((model.hero.hp = maxHpOf(model.hero)), 'Healed.') },
             { icon: lootIcon('ale'), title: 'Full energy', detail: 'Rested at once, as after a night in bed', run: () => ((model.hero.energy = maxEnergyOf(model.hero)), 'Full of energy.') },
-            { icon: ICON.slay, title: 'Down to 1 health', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
-            { icon: ICON.noclip, title: 'Fall', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
+            { icon: ICON.slay, title: 'Set health to 1', detail: 'One hit point left (to test healing)', run: () => ((model.hero.hp = 1), 'One hit point left.') },
+            { icon: ICON.noclip, title: 'Faint', detail: 'As if felled: coin lost, waking at the inn, Weary', run: () => (model.fall(), 'Fallen, and woken Weary.') },
             {
               icon: ICON.swiftFeet,
-              title: 'Just tired',
+              title: 'Make tired',
               detail: `Energy to ${TIRED - 1}, just under where the walk slows`,
               run: () => ((model.hero.energy = TIRED - 1), `Energy at ${TIRED - 1}: tired.`),
             },
           ]),
-          ...group('Growth', [
+          ...group('Level & stats', [
             {
               icon: ICON.starterSet,
               title: 'Gain a level',
               detail: 'Just enough experience for the next',
               run: () => (gainXp(model.hero, xpToNext(model.hero.level) - model.hero.xp), `Level ${model.hero.level}.`),
             },
-            { icon: ICON.hero, title: 'Take back stat points', detail: 'Every point spent, back to spend again', run: () => (refundPoints(model.hero), `${model.hero.statPoints} points to spend.`) },
-            { icon: ICON.travel, title: 'All blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
-          ]),
-          ...group('Powers', [
-            {
-              icon: ICON.swiftFeet,
-              title: 'Run fast',
-              detail: `Walk ${SPEED_BOOST}× faster (not the well's Swift feet)`,
-              ...toggle(() => model.speedMultiplier !== 1, (on) => (model.speedMultiplier = on ? SPEED_BOOST : 1), 'Running fast.', 'Back to walking.'),
-            },
-            { icon: ICON.noclip, title: 'Walk through anything', detail: 'Walls, water and foes', ...toggle(() => model.noclip, (on) => (model.noclip = on), 'Walking through anything.', 'The world is solid again.') },
-            { icon: ICON.invulnerable, title: 'Invulnerable', detail: "Foes' blows don't hurt", ...toggle(() => model.godMode, (on) => (model.godMode = on), 'Invulnerable.', 'Vulnerable again.') },
-            { icon: ICON.slay, title: 'One-hit kills', detail: 'Every blow fells what it lands on, crypt lords too', ...toggle(() => model.oneHitKills, (on) => (model.oneHitKills = on), 'Every blow a kill.', 'Blows as they were.') },
+            { icon: ICON.hero, title: 'Refund stat points', detail: 'Every point spent, back to spend again', run: () => (refundPoints(model.hero), `${model.hero.statPoints} points to spend.`) },
+            { icon: ICON.travel, title: 'All well blessings', detail: "Every well's blessing at once, for half an hour", run: () => (blessAll(model.hero), 'Every blessing, for half an hour.') },
           ]),
         ],
       },
       {
-        name: 'Look',
+        name: 'Appearance',
         icon: ICON.heroine,
         actions: [
           ...group('Body', [
             {
               icon: ICON.undress,
-              title: 'New character',
-              detail: 'Another look and name, at random',
+              title: 'Random new look',
+              detail: 'Another body, face, hair and name, at random',
               run: () => {
                 model.hero.look = randomLook();
                 model.hero.name = randomName(model.hero.look.build);
@@ -302,8 +305,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             },
             {
               icon: ICON.heroine,
-              title: 'A woman',
-              detail: "The hero in a woman's body",
+              title: "Woman's body",
+              detail: 'The hero as a woman (off: a man)',
               ...toggle(
                 () => model.hero.look.build === 'female',
                 (on) => (model.hero.look = on ? { ...HEROINE_LOOK } : { ...HERO_LOOK }),
@@ -313,7 +316,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             },
             {
               icon: ICON.heroine,
-              title: 'Hairstyle',
+              title: 'Next hairstyle',
               detail: 'Each click, the next style',
               current: () => ({ value: STYLE_NAMES[model.hero.look.hairStyle] }),
               run: () => {
@@ -328,7 +331,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
             { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
             { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
-            { icon: ICON.bandit, title: 'Random bandit', detail: 'A new mix of what bandits wear, each time', run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.') },
+            { icon: ICON.bandit, title: 'Random bandit outfit', detail: 'A new mix of what bandits wear, each time', run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.') },
           ]),
           // One row per slot: each use puts on the slot's next item (then nothing, then round again).
           ...group(
@@ -354,26 +357,26 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         ],
       },
       {
-        name: 'Bag',
+        name: 'Items',
         icon: lootIcon('roughSack'),
         actions: [
-          ...group('Coin', [
+          ...group('Money', [
             { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
             { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
           ]),
           ...group('Into the bag', [
             {
               icon: ICON.wardrobe,
-              title: 'Gear',
-              detail: 'The starter set and the bandit outfit, to wear from the hero sheet',
+              title: 'Starter & bandit gear',
+              detail: 'Both outfits, to wear from the hero sheet',
               run: () => (give([...STARTER_SET, ...BANDIT_OUTFIT]), 'Gear, in the bag.'),
             },
             { icon: lootIcon('roughSack'), title: 'Every bag', detail: 'One of each, to fit to the sockets', run: () => (give(BAG_IDS), 'One of every bag, in the bag.') },
-            { icon: lootIcon('greaterHealthPotion'), title: 'Potions', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
-            { icon: lootIcon('bread'), title: 'Food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
+            { icon: lootIcon('greaterHealthPotion'), title: 'Every potion', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
+            { icon: lootIcon('bread'), title: 'Every food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
             {
               icon: lootIcon('wolfFang'),
-              title: 'Junk till it’s full',
+              title: 'Fill the bag with junk',
               detail: 'Full stacks of junk in every free slot',
               run: () => {
                 const junk = Object.keys(JUNK_ITEMS) as LootId[];
@@ -386,8 +389,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
           ...group('On the ground', [
             {
               icon: lootIcon('rustyBuckle'),
-              title: 'Scatter loot',
-              detail: 'One of every kind of loot, in a ring around you',
+              title: 'Every loot item, around you',
+              detail: 'One of each kind, on the ground in a ring',
               run: () => {
                 LOOT_IDS.forEach((item, i) => {
                   const a = (i / LOOT_IDS.length) * Math.PI * 2;
@@ -400,19 +403,21 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         ],
       },
       {
-        name: 'Enemies',
+        name: 'Foes',
         icon: ICON.enemies,
         actions: [
-          ...group('Summon', [
+          ...group('Spawn', [
             summonRow('wolf', ICON.wolf),
             summonRow('bandit', ICON.bandit),
             summonRow('boar', ICON.boar, 'Just ahead of you (passive until struck)'),
             { icon: ICON.slay, title: 'A draugr', detail: 'At your level (in a crypt: with its breath and cleave)', run: () => (spawnDraugr(model), `A draugr of level ${model.hero.level} rises.`) },
           ]),
           ...group('Control', [
-            { icon: ICON.slay, title: 'Slay nearby foes', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
-            { icon: ICON.freeze, title: 'Freeze foes', detail: 'Enemies stand still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
-            { icon: ICON.ruin, title: 'Reset dungeons', detail: 'Every crypt guard and cave beast back at its post (out of one first)', run: () => (resetCrypts(model), 'The crypts and caves are guarded again.') },
+            { icon: ICON.freeze, title: 'Freeze foes', detail: 'Every foe stands still', ...toggle(() => model.enemiesFrozen, (on) => (model.enemiesFrozen = on), 'Foes frozen.', 'Foes move again.') },
+            { icon: ICON.slay, title: 'Slay foes nearby', detail: `Everything within ${NEARBY} tiles`, run: () => `${slayNearby(model, NEARBY)} foes slain.` },
+          ]),
+          ...group('Dungeons', [
+            { icon: ICON.ruin, title: 'Reset crypts & caves', detail: 'Every guard and beast back at its post (out of one first)', run: () => (resetCrypts(model), 'The crypts and caves are guarded again.') },
           ]),
         ],
       },
@@ -420,7 +425,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
         name: 'World',
         icon: ICON.world,
         actions: [
-          ...group('Game', [
+          ...group('Time', [
             {
               icon: ICON.freeze,
               title: 'Game speed',
@@ -428,7 +433,11 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
               current: () => ({ value: `×${time.scale}` }),
               run: () => ((time.scale = SPEEDS[(SPEEDS.indexOf(time.scale) + 1) % SPEEDS.length]), `The game runs at ×${time.scale}.`),
             },
+          ]),
+          ...group('Shops', [
             { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
+          ]),
+          ...group('Debug', [
             {
               icon: ICON.village,
               title: 'Furniture yard',
@@ -439,7 +448,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
                 return said;
               },
             },
-          ]),
+                    ]),
         ],
         facts: () => worldFacts(model, NEARBY),
       },

@@ -1,8 +1,30 @@
-/* The dev cheat menu (cheatPanel.ts), over menu.css's look: wide, each
-   tab's rows two columns side by side so a tab of many doesn't scroll, each
-   group's header (and the World tab's facts) across both. */
-.menu[aria-label='Cheats'] { width: min(680px, 100%); }
-.menu[aria-label='Cheats'] .menu-list:has(> .menu-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; align-content: start; }
-.menu[aria-label='Cheats'] .menu-list > .menu-section { grid-column: 1 / -1; margin-top: 10px; }
+/* The dev cheat menu (cheatPanel.ts), over menu.css's look, compact but airy:
+   wide, each tab's rows three columns side by side (a gutter between them),
+   each row a small icon, a name and what it does in two lines at most (no
+   number badge), padded, rows in a group the same height; each group's header
+   (and the World tab's facts) across them all, room above it and a little
+   below its rule; a slimmer header and tab bar. Above the action bar (no
+   dragging onto it from here), and never taller than the screen. */
+.menu-backdrop:has(> .menu[aria-label='Cheats']) { z-index: 30; padding: 16px; }
+.menu[aria-label='Cheats'] { width: min(960px, 100%); max-height: calc(100vh - 32px); }
+.menu[aria-label='Cheats'] .menu-header { padding: 8px 16px 12px; }
+.menu[aria-label='Cheats'] .menu-title { font-size: 22px; }
+.menu[aria-label='Cheats'] .menu-tab { gap: 3px; padding: 8px 4px 10px; font-size: 11.5px; }
+.menu[aria-label='Cheats'] .menu-tab canvas { width: 24px; height: 24px; }
+.menu[aria-label='Cheats'] .menu-body { padding: 14px 18px 8px; }
+.menu[aria-label='Cheats'] .menu-list { min-height: 0; }
+.menu[aria-label='Cheats'] .menu-list:has(> .menu-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 16px; align-content: start; }
+.menu[aria-label='Cheats'] .menu-list > .menu-section { grid-column: 1 / -1; align-self: end; min-height: 0; margin: 14px 0 4px; padding-bottom: 4px; }
 .menu[aria-label='Cheats'] .menu-list > .menu-section:first-child { margin-top: 0; }
-.menu[aria-label='Cheats'] .menu-list > .menu-ledger { grid-column: 1 / -1; }
+.menu[aria-label='Cheats'] .menu-list > .menu-row { min-height: 54px; }
+.menu[aria-label='Cheats'] .menu-list > .menu-ledger { grid-column: 1 / -1; gap: 6px; padding: 4px 10px 8px; }
+.menu[aria-label='Cheats'] .menu-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; padding: 7px 10px; border-radius: 3px; }
+.menu[aria-label='Cheats'] .menu-row:hover:not(.selected) { background: rgba(232, 194, 122, 0.18); }
+.menu[aria-label='Cheats'] .menu-icon { width: 30px; height: 30px; }
+.menu[aria-label='Cheats'] .menu-icon canvas { width: 30px; height: 30px; }
+.menu[aria-label='Cheats'] .menu-text { gap: 2px; }
+.menu[aria-label='Cheats'] .menu-text b { font-size: 15px; line-height: 1.2; }
+.menu[aria-label='Cheats'] .menu-text small { font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.menu[aria-label='Cheats'] .menu-row > .menu-key { display: none; } /* (the number keys still pick: their badges hidden) */
+.menu[aria-label='Cheats'] .menu-status { margin-top: 8px; font-size: 13px; }
+.menu[aria-label='Cheats'] .menu-footer { padding: 8px 12px 9px; font-size: 11.5px; }
