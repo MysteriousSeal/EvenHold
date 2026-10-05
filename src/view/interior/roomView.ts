@@ -28,6 +28,7 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 // The drinks on the bar's counter, before the stools: full tankards and
 // glasses of wine (and the hero's meat pie on its plate), and the empty cups (and plate) they leave.
 const MUG_AT = { x: 1.1, y: 0.52 }; // over the counter's top, on the customers' side
+const TABLE_TOP = 0.44; // a tavern table's top (its plates' voxel row, 11)
 type CupShape = `${Drink}:${'full' | 'empty'}`;
 function mugGeometries(): Record<CupShape, THREE.BufferGeometry> {
   const mesh = (drink: Drink, full: boolean) => {
@@ -60,6 +61,7 @@ export interface IndoorScene {
   seeHero(x: number, z: number): void; // (walls in their way turn see-through)
   dispose(): void;
   showMugs?(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void;
+  showTableMugs?(mugs: ReadonlyArray<{ x: number; z: number; drink: Drink }>): void; // (empties left on the tables: model/jobs/innShift.ts)
   forge?(hammering: boolean, quenching: boolean): void;
 }
 
@@ -204,8 +206,23 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();
   const mugs: THREE.Mesh[] = [];
+  const tableMugs: THREE.Mesh[] = [];
   return {
     scene,
+    showTableMugs(list) {
+      while (tableMugs.length < list.length) {
+        const mug = new THREE.Mesh(mugShapes['ale:empty'], material);
+        scene.add(mug);
+        tableMugs.push(mug);
+      }
+      tableMugs.forEach((mug, i) => {
+        const at = list[i];
+        mug.visible = !!at;
+        if (!at) return;
+        mug.geometry = mugShapes[`${at.drink}:empty`];
+        mug.position.set(at.x, TABLE_TOP, at.z);
+      });
+    },
     showMugs(list) {
       while (mugs.length < list.length) {
         const mug = new THREE.Mesh(mugShapes['ale:full'], material);

@@ -60,8 +60,11 @@ export function pulseAuras(time: number): void {
   AURA_MATERIAL.opacity = 0.55 + 0.35 * Math.sin(time * 2.4);
 }
 
+// The "!" over a board with work to take (an inn's notice board's too: meshes/inn/workMarks.ts).
+export const offerMark = (): THREE.Mesh => markMesh(buildQuestMark(), MARK_GRID);
+
 // A slow, smooth bob, a beat apart for each `phase`.
-const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
+export const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
 
 // Over each notice board: a "?" when a quest taken from it is done (to hand
 // in), else a "!" when it has a quest the hero could take; else nothing.

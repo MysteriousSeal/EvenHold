@@ -27,6 +27,7 @@ import { EnemyViews } from './meshes/enemy/enemyViews';
 import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
+import { WorkMarks } from './meshes/inn/workMarks';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
@@ -79,6 +80,7 @@ export class GameView {
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
   private readonly npcs = new NpcViews();
+  private readonly workMarks = new WorkMarks(); // (at work: over the patrons, the counter's end)
   private readonly travellers: TravellerViews; // on the roads
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
@@ -283,6 +285,7 @@ export class GameView {
     this.hero.hideHeld(!!meal);
     if (meal?.item && isProvision(meal.item)) this.hero.sipping({ left: meal.left, seconds: meal.seconds, drink: meal.item });
     else if (this.eaten) this.hero.stopDrinking();
+    else this.hero.hold(model.work.carrying ?? false); // (at work: the first order on the tray, in hand)
     this.eaten = !!meal;
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
@@ -294,6 +297,7 @@ export class GameView {
     this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
+      this.workMarks.update(model, room, this.elapsed); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
       this.followHero(hero, 0, dt);
       const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
@@ -381,7 +385,11 @@ export class GameView {
     const smiths = model.folk.filter((n) => n.role === 'smith' && n.where === inside.entrance);
     this.room.forge?.(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
     this.room.update(this.elapsed);
-    this.room.showMugs?.(mugsAt(inside.entrance)); // the drinks on the bar, as they are
+    // The drinks on the bar, as they are; at work, the orders ready at the counter's end (a little apart), the empties on the tables.
+    const shift = model.work.shift?.inn === inside.entrance ? model.work.shift : null;
+    const ready = (shift?.readyOrders ?? []).map((drink, i) => ({ z: shift!.barEndZ - i * 0.3, full: true, drink }));
+    this.room.showMugs?.([...mugsAt(inside.entrance), ...ready]);
+    this.room.showTableMugs?.(shift?.empties ?? []);
     return this.room.scene;
   }
 
