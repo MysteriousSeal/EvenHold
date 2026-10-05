@@ -2,7 +2,8 @@
 // npcRoutine.ts runs their steps like anyone's):
 // - the barkeep keeps behind the bar, in the aisle between the bottle
 //   shelves and the counter, stopping opposite whoever sits on a stool to
-//   serve them (anywhere along the bar when no one does);
+//   serve them (anywhere along the bar when no one does); the tables'
+//   orders (the hero at work) all poured in one trip, set down at its end;
 // - the server goes back and forth between the end of the counter and the
 //   tables, the ones with folk sat round them first, pausing at each; while
 //   the hero has the tables (a shift: jobs/innShift.ts), off her feet by the

@@ -4,7 +4,6 @@
 // the enemies (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health.
 // What blocks movement and sight is kept in obstacles.ts.
 
-import { emptyActionBar } from './hero/actionBar';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, ENEMY_ACTIVE_RADIUS } from './constants';
@@ -20,9 +19,7 @@ import { SyncSource, WorldStreamer, type RegionSource } from './world/worldStrea
 import { bagRoom, canCarry } from './hero/bagSlots';
 import { takeFromSlot } from './hero/bagStacks';
 import { type Scenery } from './scenery/scenery';
-import { FRESH_HERO_STATS, HERO_NAME, tiredPace } from './hero/heroStats';
-import { untrained } from './hero/training';
-import { HERO_LOOK } from './human/humanoid';
+import { freshHero, tiredPace } from './hero/heroStats';
 import type { Obstacles } from './map/obstacles';
 import { stepHop, type Hop } from './hero/hop';
 import type { GroundLoot } from './loot/loot';
@@ -140,7 +137,7 @@ export class GameModel {
     world ??= streamed ? undefined : generateWorld(seed, size);
     this.size = world?.size ?? size;
     const spawn = spawnOf(this.size);
-    this.hero = { name: HERO_NAME, x: spawn.x, z: spawn.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() }; // starts naked
+    this.hero = freshHero(spawn); // (starts naked)
     this.moves = new CombatMoves(this.hero);
     // The world, made whole (a classic world: one region, peopled at once: world/liveWorld.ts), and its lists.
     this.world = world ? LiveWorld.classic(this, { rx: 0, rz: 0, x0: 0, z0: 0, ...world, tiles: TilePatch.fromMaps(world.size, 0, 0, world) }, world.size) : LiveWorld.streamed(this, size);

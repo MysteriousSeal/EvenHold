@@ -7,7 +7,9 @@
 import { DAY_MINUTES } from '../clock';
 import type { Hero, Meal } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
-import { POINTS_PER_LEVEL } from './training';
+import { POINTS_PER_LEVEL, untrained } from './training';
+import { emptyActionBar } from './actionBar';
+import { HERO_LOOK } from '../human/humanoid';
 
 export const MAX_ENERGY = 100; // a level-1 hero's, with nothing on (more with Endurance: maxEnergyOf)
 const ENERGY_SPENT = MAX_ENERGY / DAY_MINUTES; // a second awake (a game minute): all of it over a whole day, 24 hours
@@ -36,9 +38,12 @@ export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): numb
   return Math.max(1, Math.round(xp * factor));
 }
 
-export const HERO_NAME = 'Hero'; // shown over the health bar
+const HERO_NAME = 'Hero'; // shown over the health bar
 
-export const FRESH_HERO_STATS = { hp: maxHpAt(1), energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0, statPoints: 0 }; // (and `trained`: untrained(), its own)
+// A new hero at `at`: level 1, unhurt, nothing on, nothing carried, their stats untrained.
+export const freshHero = (at: { x: number; z: number }): Hero => ({ name: HERO_NAME, x: at.x, z: at.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() });
+
+const FRESH_HERO_STATS = { hp: maxHpAt(1), energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0, statPoints: 0 }; // (and `trained`: untrained(), its own)
 
 // Adds experience; returns how many levels were gained (each, points to spend on their stats).
 export function gainXp(hero: Hero, amount: number): number {

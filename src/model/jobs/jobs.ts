@@ -47,7 +47,7 @@ export interface JobRecord {
   earned: number; // copper, all told
 }
 
-export const freshRecord = (): JobRecord => ({ xp: 0, shifts: 0, served: 0, best: 0, earned: 0 });
+const freshRecord = (): JobRecord => ({ xp: 0, shifts: 0, served: 0, best: 0, earned: 0 });
 
 // The hero's record in `job` (a fresh one, made, if they've none yet).
 export function recordOf(hero: { jobs?: Partial<Record<JobId, JobRecord>> }, job: JobId): JobRecord {

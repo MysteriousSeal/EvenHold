@@ -1,6 +1,6 @@
 // A shift serving an inn's tables (jobs.ts: innServer): for SHIFT seconds, the villagers sat at its tables call for
-// something (an ale, a glass of wine, a meat pie); the hero takes their order (E by them); it goes to the barkeep with
-// the bar's other orders, first come first served, and she sets it down at the end of the counter; the hero fetches it
+// something (an ale, a glass of wine, a meat pie); the hero takes their order (E by them); it goes to the barkeep's
+// queue with the bar's other orders (the tables' all poured in one trip: inn/innStaff.ts), set down at the counter's end; the hero fetches it
 // there (E: as many as their tray holds) and sets it down before whoever asked (E by them: theirs, off the tray,
 // whatever else is on it). A wage for each, and a tip the
 // more patience they had left (it runs out slower once their order's taken: they know it's coming); left waiting too long, they walk out. What they've had, they leave on the table,
