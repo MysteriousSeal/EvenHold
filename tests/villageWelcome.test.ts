@@ -1,6 +1,7 @@
 // A village's name (model/villages/villageNames.ts) and the hero coming into it (villageWelcome.ts): its name the
 // same every time, and unlike its neighbours'; told once as they come in (its name and level), again only once
-// they've gone out of it; the village they're in (its name and level), for the place's bar.
+// they've gone out of it; the village they're in (its name and level), for the place's bar, and its board's quests
+// counted there.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { VILLAGE_NAMES, villageName } from '../src/model/villages/villageNames';
@@ -44,7 +45,7 @@ describe('coming into a village', () => {
     expect(welcome.village()).toBeNull();
     const level = zoneLevel(spawnOf(TEST_MAP_SIZE), village);
     expect(walk(welcome, [[111, 100], [105, 100], [100, 100]])).toEqual([{ kind: 'village', name: villageName(village, 9), level }]);
-    expect(welcome.village()).toEqual({ name: villageName(village, 9), level });
+    expect(welcome.village()).toEqual({ village, name: villageName(village, 9), level });
     expect(walk(welcome, [[113, 100], [111, 100], [114, 100], [110, 100]])).toEqual([]); // (about its edge: not told over and over)
     expect(walk(welcome, [[118, 100]])).toEqual([]);
     expect(welcome.village()).toBeNull();
@@ -60,6 +61,25 @@ describe('coming into a village', () => {
     model.teleport(v.x + 1.5, v.z + 1.5);
     model.update(0, 0, FRAME);
     expect(model.takeEvents().filter((e) => e.kind === 'village')).toEqual([{ kind: 'village', name: villageName(v, model.seed), level: zoneLevel(spawnOf(model.size), v) }]);
-    expect(model.welcome.village()).toEqual({ name: villageName(v, model.seed), level: zoneLevel(spawnOf(model.size), v) });
+    expect(model.welcome.village()).toEqual({ village: v, name: villageName(v, model.seed), level: zoneLevel(spawnOf(model.size), v) });
+  });
+});
+
+describe("a village's notice board, counted (for the place's bar)", () => {
+  it('its quests done for good, of its six (taken or abandoned, not)', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const board = model.boardOf(model.villages[0]);
+    expect(model.quests.tallyAt(board)).toEqual({ completed: 0, of: 6 });
+    const [first, second] = model.quests.offersAt(board);
+    model.quests.accept(first);
+    model.quests.accept(second);
+    expect(model.quests.tallyAt(board)).toEqual({ completed: 0, of: 6 }); // (taken: not done yet)
+    const taken = model.quests.takenOf(first.key)!;
+    if (first.kind === 'kill') taken.kills = first.count;
+    else model.hero.bag[first.item!] = first.count;
+    expect(model.quests.handIn(first.key)).toBe(true);
+    expect(model.quests.tallyAt(board)).toEqual({ completed: 1, of: 6 });
+    model.quests.abandon(second.key);
+    expect(model.quests.tallyAt(board)).toEqual({ completed: 1, of: 6 });
   });
 });
