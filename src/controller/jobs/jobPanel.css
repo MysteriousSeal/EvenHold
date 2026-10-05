@@ -1,0 +1,85 @@
+/* The work window (jobPanel.ts): a hiring notice pinned up at the inn. The window's own sand, clay and ink
+   (menu.css); the notice a lighter sheet on it. Its one bold thing: the stair of ranks, each step a block a tier
+   higher than the last, the one the hero's on lit lantern-gold and filling as they climb toward the next. */
+
+.menu:has(.job-board) { width: min(680px, 100%); }
+
+.job-board { display: flex; flex-direction: column; gap: 10px; }
+.job-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* Who's asking: their name, their words. */
+.job-speaker { margin: 0; font-size: 15px; color: var(--ink-soft); }
+.job-speaker b { color: var(--ink); margin-right: 6px; }
+.job-speaker q { font-style: italic; }
+
+/* More than one job: a strip of them to pick from. */
+.job-picks { display: flex; gap: 6px; flex-wrap: wrap; }
+.job-picks[hidden] { display: none; }
+.job-pick { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; font: inherit; font-weight: 600; color: var(--ink); background: var(--sand-dark); border: 2px solid var(--line); cursor: pointer; }
+.job-pick.on { background: var(--sand-light); border-color: var(--ink); }
+
+/* The notice itself. */
+.job-notice { background: var(--sand-light); border: 2px solid var(--ink); box-shadow: 4px 4px 0 rgba(46, 31, 20, 0.25); }
+.job-head { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: start; padding: 14px 16px 12px; border-bottom: 2px dashed var(--line); }
+.job-head canvas { width: 56px; height: 56px; image-rendering: pixelated; background: var(--sand); border: 2px solid var(--line); }
+.job-eyebrow { font-size: 12px; font-weight: 600; color: var(--clay); }
+.job-head h2 { margin: 0 0 4px; font-size: 24px; line-height: 1.1; color: var(--ink); }
+.job-about { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); max-width: 52ch; }
+
+/* The hero's standing: rank and progress on the left, the stair of ranks on the right. */
+.job-rise { display: grid; grid-template-columns: minmax(150px, 0.8fr) 1.6fr; gap: 16px; align-items: end; padding: 14px 16px; border-bottom: 2px dashed var(--line); }
+.job-standing strong { display: block; margin: 2px 0; font-size: 22px; line-height: 1.1; color: var(--ink); }
+.job-toward { font-size: 13px; color: var(--ink-soft); }
+.job-stair { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; align-items: end; margin: 0; padding: 0; list-style: none; }
+.job-stair li { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.job-step { position: relative; height: calc(var(--rise) * 11px + 8px); background: var(--sand); border: 2px solid var(--line); overflow: hidden; }
+.job-stair .past .job-step { background: var(--clay); border-color: var(--clay-dark); }
+.job-stair .here .job-step { background: var(--sand); border-color: var(--ink); box-shadow: 0 0 0 2px var(--lantern); }
+.job-stair .here .job-step::after { content: ''; position: absolute; inset: auto 0 0 0; height: var(--fill, 0%); background: linear-gradient(var(--lantern) 0 40%, var(--ember) 40%); transition: height 0.4s; }
+.job-step-name { font-size: 10px; font-weight: 600; line-height: 1.15; text-align: center; color: var(--ink-soft); min-height: 2.3em; }
+.job-stair .here .job-step-name { color: var(--ink); font-weight: 700; }
+.job-stair .ahead .job-step-name { opacity: 0.7; }
+
+/* What the rank brings, and the next's; the record beside. */
+.job-split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 12px 16px 14px; }
+.job-brings { display: flex; flex-direction: column; gap: 4px; }
+.job-perks { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.job-perks.next { opacity: 0.6; }
+.job-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--sand); border: 2px solid var(--line); }
+.job-chip-label { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+.job-mug { width: 8px; height: 11px; background: var(--ember); border: 2px solid var(--ink); border-top-width: 3px; border-top-color: var(--sand-light); }
+.job-mug.empty { background: transparent; border-color: var(--line); border-top-color: var(--line); border-top-width: 2px; }
+.job-ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 0; align-content: start; }
+.job-ledger dt { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.job-ledger dd { margin: 0; font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+
+/* An answer, when the button can't do what it says. */
+.job-said { margin: 0; font-size: 14px; color: var(--clay-dark); }
+.job-said[hidden] { display: none; }
+
+/* The foot: what a shift is (or how it's going) as three cards, the keys it's worked with under them, and the one
+   thing to do beside, as tall as both. On shift, warmer, and the button to end it quieter. */
+.job-foot { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 10px 14px; padding: 12px; background: var(--sand-dark); border: 2px solid var(--line); }
+.job-foot.working { background: #f3d999; border-color: var(--ember); }
+.job-terms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.job-term { display: flex; flex-direction: column; gap: 1px; padding: 7px 10px 8px; background: var(--sand-light); border: 2px solid var(--line); box-shadow: inset 0 -3px 0 var(--sand); }
+.job-term b { display: flex; align-items: baseline; gap: 4px; font-size: 22px; line-height: 1.15; color: var(--ink); }
+.job-term b em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.job-term small { font-size: 12px; line-height: 1.3; color: var(--ink-soft); }
+.job-term.warn b { color: var(--clay-dark); }
+.job-keys { grid-column: 1; display: flex; flex-wrap: wrap; gap: 6px 18px; padding-top: 8px; border-top: 2px dashed var(--line); font-size: 13px; color: var(--ink-soft); }
+.job-key { display: inline-flex; align-items: center; gap: 7px; }
+.job-key kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--sand-light); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 var(--sand-dark); }
+.job-go { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; min-width: 150px; padding: 12px 22px; font: inherit; font-size: 18px; font-weight: 700; white-space: nowrap; color: var(--sand-light); background: var(--clay); border: 2px solid var(--ink); box-shadow: inset 0 -5px 0 var(--clay-dark); cursor: pointer; }
+.job-go:hover { filter: brightness(1.08); }
+.job-go:active { box-shadow: inset 0 -2px 0 var(--clay-dark); transform: translateY(2px); }
+.job-go:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
+.job-foot.working .job-go { color: var(--ink); background: var(--sand-light); box-shadow: inset 0 -5px 0 var(--sand-dark); }
+
+@media (max-width: 560px) {
+  .job-rise, .job-split, .job-foot, .job-terms { grid-template-columns: 1fr; }
+  .job-go { grid-column: 1; grid-row: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .job-stair .here .job-step::after { transition: none; }
+}

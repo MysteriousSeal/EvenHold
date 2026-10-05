@@ -17,6 +17,7 @@ import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
 import { doorNumber } from '../model/interiors/interiors';
+import type { Entrance } from '../model/interiors/interiors';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 const MAX_STEP = 1 / 30; // the longest step the game takes at once (a sped-up frame is several)
@@ -52,11 +53,12 @@ export class GameController {
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
   private readonly onSleep: () => void;
   private readonly onTraveller: (t: Traveller) => void;
+  private readonly onWork: (inn: Entrance) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -67,6 +69,7 @@ export class GameController {
     this.onOrder = options.onOrder ?? (() => {});
     this.onSleep = options.onSleep ?? (() => {});
     this.onTraveller = options.onTraveller ?? (() => {});
+    this.onWork = options.onWork ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && (!model.inside || model.dungeon) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
@@ -121,11 +124,12 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
+    if (this.input.consumeSwitch()) this.model.work.switchHeld(); // R at work: the next on the tray in hand
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
     if (turn && (!this.model.inside || this.model.dungeon) && !this.model.yard) this.model.cycleFocus(turn === 'back');
     // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
     // by its bed, at night, G: a night's sleep.
-    const wanted = this.input.consumeOrder();
+    const wanted = this.model.work.shift ? (this.input.consumeOrder(), null) : this.input.consumeOrder(); // (at work: none of it)
     if (wanted && atTheBar(this.model)) {
       const barmaid = barmaidHere(this.model);
       if (barmaid) this.onOrder(barmaid, wanted);
@@ -139,10 +143,15 @@ export class GameController {
     // smith by his counter (unless at the way out: out first); else read the
     // notice board in reach; else toss a coin in the well beside; else go
     // through the door in reach.
-    if (this.input.consumePickup()) {
+    // At work (a shift at the inn): E is the work's alone (an order taken, fetched, set down, a table cleared), or the
+    // notice board's (to end it); nothing else: no doors, no seats, no talk.
+    if (this.model.work.shift && this.input.consumePickup()) {
+      if (!this.model.work.use() && this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach);
+    } else if (this.input.consumePickup()) {
       const item = this.model.pickUp();
       const talker = talkingTo(this.model.folk, this.model.inside, this.model.hero); // the barmaid, the smith (of the villagers round about)
       if (item) this.onPickUp(item);
+      else if (this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach); // the inn's notice board: its work
       else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
