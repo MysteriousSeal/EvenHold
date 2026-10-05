@@ -3,6 +3,10 @@
    higher than the last, the one the hero's on lit lantern-gold and filling as they climb toward the next. */
 
 .menu:has(.job-board) { width: min(680px, 100%); }
+/* Clear of the action bar along the bottom of the screen (hud.css .action-bar: over windows), the body scrolling
+   on a short one. */
+.menu-backdrop:has(.job-board) { padding-bottom: 100px; }
+.menu:has(.job-board) { max-height: calc(100vh - 124px); }
 
 .job-board { display: flex; flex-direction: column; gap: 10px; }
 .job-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
@@ -27,9 +31,10 @@
 .job-about { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); max-width: 52ch; }
 
 /* The hero's standing: rank and progress on the left, the stair of ranks on the right. */
-.job-rise { display: grid; grid-template-columns: minmax(150px, 0.8fr) 1.6fr; gap: 16px; align-items: end; padding: 14px 16px; border-bottom: 2px dashed var(--line); }
+.job-rise { display: grid; grid-template-columns: minmax(190px, 0.9fr) 1.6fr; gap: 16px; align-items: end; padding: 12px 16px; border-bottom: 2px dashed var(--line); }
 .job-standing strong { display: block; margin: 2px 0; font-size: 22px; line-height: 1.1; color: var(--ink); }
-.job-toward { font-size: 13px; color: var(--ink-soft); }
+.job-toward { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.job-next { display: block; font-size: 13px; color: var(--ink-soft); }
 .job-stair { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; align-items: end; margin: 0; padding: 0; list-style: none; }
 .job-stair li { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .job-step { position: relative; height: calc(var(--rise) * 11px + 8px); background: var(--sand); border: 2px solid var(--line); overflow: hidden; }
@@ -40,15 +45,25 @@
 .job-stair .here .job-step-name { color: var(--ink); font-weight: 700; }
 .job-stair .ahead .job-step-name { opacity: 0.7; }
 
-/* What the rank brings, and the next's; the record beside. */
-.job-split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 12px 16px 14px; }
-.job-brings { display: flex; flex-direction: column; gap: 4px; }
-.job-perks { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
-.job-perks.next { opacity: 0.6; }
-.job-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--sand); border: 2px solid var(--line); }
-.job-chip-label { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+/* What the rank brings beside the next's, as a table (a row a perk, the next's lit where it's better); the record
+   beside. */
+.job-split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; padding: 12px 16px 14px; align-items: start; }
+.job-brings { display: flex; flex-direction: column; gap: 6px; }
+.job-perk-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.job-perk-table th, .job-perk-table td { padding: 5px 8px; text-align: left; border-bottom: 2px dashed var(--line); }
+.job-perk-table tr:last-child th, .job-perk-table tr:last-child td { border-bottom: 0; }
+.job-perk-table thead th { padding-top: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; }
+.job-perk-table tbody th { padding-left: 0; width: 1%; white-space: nowrap; font-weight: 600; color: var(--ink-soft); }
+.job-perk-table td { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.job-perk-table thead .job-perk-now { color: var(--ink); }
+.job-perk-table td.job-perk-next { color: var(--ink-soft); }
+.job-perk-table td.job-perk-next.up { color: var(--clay-dark); }
+.job-perk-table td.job-perk-next.up::after { content: ' ▲'; font-size: 10px; vertical-align: 2px; color: var(--ember); }
+.job-perk-table td.job-perk-now { background: var(--sand); }
+.job-mugs { display: inline-flex; gap: 4px; vertical-align: -2px; }
 .job-mug { width: 8px; height: 11px; background: var(--ember); border: 2px solid var(--ink); border-top-width: 3px; border-top-color: var(--sand-light); }
 .job-mug.empty { background: transparent; border-color: var(--line); border-top-color: var(--line); border-top-width: 2px; }
+.job-perk-next .job-mug:not(.empty) { opacity: 0.75; }
 .job-ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 0; align-content: start; }
 .job-ledger dt { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
 .job-ledger dd { margin: 0; font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }

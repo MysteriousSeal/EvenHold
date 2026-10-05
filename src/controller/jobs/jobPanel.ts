@@ -36,18 +36,26 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, .
 const hours = (seconds: number) => `${Math.round((seconds / 60) * 2) / 2} hours`.replace('.5', '½');
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 
-// A rank's perks, as chips: what's carried (a mug for each), patience, tips; behind the bar, how wide the line is.
-function perks(job: JobId, rank: JobRank, faded = false): HTMLElement {
-  const row = el('div', faded ? 'job-perks next' : 'job-perks');
-  const tray = el('span', 'job-chip', el('i', 'job-chip-label', CARRY[job]));
-  for (let i = 0; i < 3; i++) tray.append(el('i', i < rank.tray ? 'job-mug' : 'job-mug empty'));
-  row.append(
-    tray,
-    el('span', 'job-chip', el('i', 'job-chip-label', 'Patience'), rank.patience ? `+${rank.patience}s` : '—'),
-    el('span', 'job-chip', el('i', 'job-chip-label', 'Tips'), `×${rank.tips}`),
-  );
-  if (rank.steady !== undefined) row.append(el('span', 'job-chip', el('i', 'job-chip-label', 'Line'), `±${Math.round(bandOf(rank.steady) * 1000) / 10}%`));
-  return row;
+// What a rank brings beside what the next would, as a table: a row for each perk (what's carried, a mug for each;
+// patience; tips; behind the bar, how wide the line is), the next's lit where it's better. At the top, theirs alone.
+function perkTable(job: JobId, rank: JobRank, next: JobRank | null): HTMLElement {
+  const mugs = (n: number) => {
+    const row = el('span', 'job-mugs');
+    for (let i = 0; i < 3; i++) row.append(el('i', i < n ? 'job-mug' : 'job-mug empty'));
+    return row;
+  };
+  const rows: Array<[string, (r: JobRank) => Node | string, (r: JobRank) => number]> = [
+    [CARRY[job], (r) => mugs(r.tray), (r) => r.tray],
+    ['Patience', (r) => (r.patience ? `+${r.patience}s` : '—'), (r) => r.patience],
+    ['Tips', (r) => `×${r.tips}`, (r) => r.tips],
+    ...(rank.steady !== undefined ? [['Line', (r: JobRank) => `±${Math.round(bandOf(r.steady) * 1000) / 10}%`, (r: JobRank) => r.steady ?? 0] as [string, (r: JobRank) => string, (r: JobRank) => number]] : []),
+  ];
+  const head = el('tr', undefined, el('th'), el('th', 'job-perk-now', rank.name), ...(next ? [el('th', 'job-perk-next', next.name)] : []));
+  const body = rows.map(([label, show, worth]) => {
+    const up = !!next && worth(next) > worth(rank);
+    return el('tr', undefined, el('th', undefined, label), el('td', 'job-perk-now', show(rank)), ...(next ? [el('td', up ? 'job-perk-next up' : 'job-perk-next', show(next))] : []));
+  });
+  return el('table', 'job-perk-table', el('thead', undefined, head), el('tbody', undefined, ...body));
 }
 
 export function createJobPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(inn: Entrance): void; menu: Menu } {
@@ -96,12 +104,12 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
       'job-standing',
       el('span', 'job-label', 'Your standing'),
       el('strong', undefined, rank.name),
-      el('span', 'job-toward', next ? `${record.xp - rank.from} of ${next.from - rank.from} served toward ${next.name}` : 'The top of the trade'),
+      el('span', 'job-toward', next ? `${record.xp - rank.from} of ${next.from - rank.from} served` : 'The top of the trade'),
+      ...(next ? [el('span', 'job-next', `toward ${next.name}`)] : []),
     );
 
-    // What the rank brings, and what the next would.
-    const brings = el('div', 'job-brings', el('span', 'job-label', 'Your rank brings'), perks(job, rank));
-    if (next) brings.append(el('span', 'job-label', `At ${next.name}`), perks(job, next, true));
+    // What the rank brings, beside what the next would.
+    const brings = el('div', 'job-brings', el('span', 'job-label', next ? 'Your rank brings, and the next' : 'Your rank brings'), perkTable(job, rank, next));
 
     // Their record, as a ledger.
     const ledger = el('dl', 'job-ledger');
