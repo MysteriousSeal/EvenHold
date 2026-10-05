@@ -1,8 +1,9 @@
 // A bot's ventures, past the villages' everyday (bot.ts decides which, and when): through a door and out again (a
 // house's, an inn's, a dungeon's way down and up), a word with a keeper; down a crypt or a cave, its foes fought and
 // its boss's chest opened; a bandit camp raided, its chief slain and its chest opened; a pedlar's pack and a
-// herbalist's shelves bought from; a word with a traveller on the road. Each says when the game doesn't do what it
-// should.
+// herbalist's shelves bought from; a word with a traveller on the road; a shift worked at an inn's tables (its notice
+// board read, the shift started, its patrons served as they call, their tables cleared, paid at its end). Each says
+// when the game doesn't do what it should.
 import type { Enemy } from '../../src/model/types';
 import { ENTER_RANGE, type Entrance } from '../../src/model/interiors/interiors';
 import { maxHpOf } from '../../src/model/hero/attributes';
@@ -18,8 +19,13 @@ import { buyFromPedlar, pedlarPrice, pedlarShopAt } from '../../src/model/travel
 import { buyFromHerbalist, herbalistPrice, herbalistShopAt } from '../../src/model/herbalist/herbalistShop';
 import type { BagItem } from '../../src/model/hero/bag';
 import { BotSteps, type Step } from './botSteps';
+import type { GameModel } from '../../src/model/GameModel';
+import { SHIFT } from '../../src/model/jobs/innShift';
+import { BONUS, boardFace } from '../../src/model/jobs/work';
 import type { Status } from './errands';
 
+const SHIFT_SLACK = 20; // game seconds past a shift's length before it's said never to have ended
+const POUR_WAIT = 45; // game seconds an order may wait on the barkeep before it's said she never poured it
 const DELVE = 150; // game seconds down a dungeon, at most, before coming up (what's left: another time)
 const RAID = 200; // and at a bandit camp
 
@@ -147,6 +153,85 @@ export class BotVentures extends BotSteps {
       return 'ok';
     });
     return [this.walk(() => camp.way, 1.5), () => ((this.stats.camps++, 'ok')), raid];
+  }
+
+  // A shift at an inn's tables, worked to its end: in, to its notice board (before it, as a player stands to read it),
+  // the shift taken up, then its work done as it comes (an order on the tray to whoever it's for; the tray filled at
+  // the counter when there's something to give back or take up; a call answered; a table cleared), till its time's up.
+  // Said if it isn't as it should be: the board not to be read from before it, E doing nothing where it says it would,
+  // the barkeep never pouring, the tray holding more than the rank allows, pay before the end or short at it, the hero
+  // out of the inn while at work.
+  // (`resume`: one under way already, picked up where it is: planned afresh mid-shift.)
+  protected workShift(inn: Entrance, resume = false): Step[] {
+    let t = 0;
+    let shift: NonNullable<GameModel['work']['shift']> | null = resume ? this.model.work.shift : null;
+    let money = this.model.hero.money;
+    let pause = 0; // seconds stood still after a way found blocked (folk in the doorway, the busy hour's): then afresh
+    const ordered = new Map<unknown, number>(); // orders with the barkeep, and game seconds they've waited
+    const start: Step = (dt) => {
+      const { model } = this;
+      const board = model.inside?.furniture.find((f) => f.kind === 'noticeBoard');
+      if (!board) return this.report('inn without a notice board', `at ${inn.x},${inn.z}`), 'fail';
+      const face = boardFace(board);
+      const before = board.wall === 'left' ? { x: face.x + 0.8, z: face.z } : { x: face.x, z: face.z + 0.8 };
+      if (this.walk(() => before, 0.2)(dt) === 'run') return 'run';
+      if (model.work.noticeInReach !== inn) return this.report('notice board out of reach before it', `at ${model.hero.x.toFixed(2)},${model.hero.z.toFixed(2)}, its face at ${face.x},${face.z}`), 'fail';
+      if (!model.work.start(inn)) return this.report('shift not taken up', `at the inn at ${inn.x},${inn.z}`), 'fail';
+      [shift, money, t] = [model.work.shift, model.hero.money, 0];
+      this.stats.shifts++;
+      return 'ok';
+    };
+    const work: Step = (dt) => {
+      const { model } = this;
+      const { hero } = model;
+      if (!shift) return 'fail';
+      if (!model.work.shift) {
+        // Over: paid all at once, just what it earned (and a clean shift's bonus).
+        const bonus = shift.walkedOut === 0 && shift.served > 0 ? BONUS * shift.served : 0;
+        if (hero.money !== money + shift.earned + bonus) this.report('shift paid wrong', `${hero.money - money} for ${shift.earned} earned and ${bonus} bonus`);
+        this.stats.orders += shift.served;
+        return 'ok';
+      }
+      if ((t += dt) > SHIFT + SHIFT_SLACK) return this.report('shift never ended', `${t.toFixed(0)} s in`), 'fail';
+      if (model.inside?.entrance !== inn) this.report('out of the inn at work', `at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
+      if (hero.money !== money) {
+        this.report('paid before the shift was over', `${hero.money - money} copper`);
+        money = hero.money;
+      }
+      if (shift.tray.length > shift.rank.tray) this.report('tray over full', `${shift.tray.length} on a ${shift.rank.name}'s tray of ${shift.rank.tray}`);
+      for (const want of shift.wants.values()) {
+        if (want.state !== 'ordered' || want.ready) {
+          ordered.delete(want);
+          continue;
+        }
+        const waited = (ordered.get(want) ?? 0) + dt;
+        ordered.set(want, waited);
+        if (waited > POUR_WAIT && waited - dt <= POUR_WAIT) this.report('barkeep never poured', `${want.order} for ${want.npc.name}, ${POUR_WAIT} s on`); // (told once)
+      }
+      // E where there's something to do here.
+      if (model.work.action) {
+        const before = { level: hero.level, xp: hero.xp };
+        const kind = model.work.action.kind;
+        if (!model.work.use()) this.report('work did nothing', `${kind}: E by it, at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
+        this.balance.xp('work', before);
+        return 'run';
+      }
+      // Else to the next thing to do: an order on the tray to whoever it's for; the counter (empties to give back, or
+      // orders ready and room to take them); the call waited on longest; a table to clear; else by the counter.
+      const order = shift.tray.find((item) => item.kind === 'order');
+      const calling = [...shift.wants.values()].filter((w) => w.state === 'calling').sort((a, b) => a.patience - b.patience)[0];
+      const room = shift.rank.tray - shift.tray.length;
+      const counter = shift.tray.some((item) => item.kind === 'empty') || (shift.readyOrders.length > 0 && room > 0);
+      const table = room > 0 ? shift.empties[0]?.table : undefined;
+      const to = order?.kind === 'order' ? order.want.npc : counter ? shift.pickupSpot : calling ? calling.npc : table ?? shift.pickupSpot;
+      if ((pause -= dt) > 0) return 'run';
+      if (this.walk(() => to, to === shift.pickupSpot ? 0.4 : 1)(dt) === 'fail') {
+        pause = 2;
+        this.nav.reset();
+      }
+      return 'run';
+    };
+    return resume ? [work] : [...this.enter(inn), start, work];
   }
 
   // To a traveller on the road (they walk on: followed), near enough for a word: a pedlar's pack opened and something

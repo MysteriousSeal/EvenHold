@@ -159,4 +159,19 @@ describe('crypts', () => {
 it('(test worlds have their ruins too: a crypt in each)', () => {
   const model = new GameModel(TEST_SEEDS[0], { width: 96, depth: 96 });
   expect(model.crypts.length).toBe(model.ruins.length);
+
+});
+
+describe('falling down a crypt', () => {
+  it("falling down one with no inn yet to wake at: back on the map at its spawn, the crypt left behind (its foes no more about)", () => {
+    const model = new GameModel(1, MID);
+    const crypt = model.crypts[0];
+    model.lastInn = null;
+    model.enterRoom(crypt.entrance);
+    expect(model.dungeon).not.toBeNull();
+    model.fall();
+    expect(model.inside).toBeNull();
+    expect(model.dungeon).toBeNull();
+    expect(model.foes).toBe(model.enemies);
+  });
 });

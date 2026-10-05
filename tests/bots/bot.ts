@@ -62,6 +62,7 @@ export class Bot extends BotVentures {
     if (status === 'ok') this.steps.shift();
     else if (status === 'fail') this.steps = [];
     const before = { level: hero.level, xp: hero.xp, money: hero.money, hp: hero.hp, x: hero.x, z: hero.z };
+    const working = !!this.model.work.shift; // (its pay comes as it ends, in the update: told apart from coins found)
     // (the foes about, should it fall this frame: only worth a look once it's hurt)
     const about = hero.hp < maxHpOf(hero) * 0.5 ? this.model.enemies.filter((e) => e.state !== 'dead' && Math.abs(e.x - hero.x) < 6 && Math.abs(e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`) : [];
     this.model.update(this.move[0], this.move[1], dt);
@@ -69,7 +70,7 @@ export class Bot extends BotVentures {
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
     // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
     const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking;
-    if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : 'coins found', hero.money - before.money);
+    if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : working && !this.model.work.shift ? 'shifts' : 'coins found', hero.money - before.money);
     if (fell) {
       this.balance.fell(about);
       this.fresh('fell');
@@ -144,7 +145,7 @@ export class Bot extends BotVentures {
   // Whether what's going on should give way (badly hurt, away from a bar, one with ale in reach).
   private urgent(): boolean {
     const { hero } = this.model;
-    return hero.hp < maxHpOf(hero) * 0.3 && this.goal !== 'heal' && this.goal !== 'sleep' && !hero.drinking && this.alehouse() !== null;
+    return !this.model.work.shift && hero.hp < maxHpOf(hero) * 0.3 && this.goal !== 'heal' && this.goal !== 'sleep' && !hero.drinking && this.alehouse() !== null; // (at work: on with it, the inn's door shut till it's over)
   }
 
   // The nearest inn with ale to be had (as far as it knows), a walk away at most: none, and it makes do (no trek
@@ -174,6 +175,7 @@ export class Bot extends BotVentures {
     const loot = this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
     const foe = this.outnumbered() ? null : this.nearestFoe(12); // (a pack about: no fight picked with it, only those that come at them)
     const pick = (): string => {
+      if (this.model.work.shift) return 'work'; // (at work: back to it, whatever else)
       if (hurt && this.alehouse()) return 'heal'; // (in an inn already: at its bar)
       if (this.model.inside) return 'leave';
       if (tired) return 'sleep';
@@ -181,7 +183,7 @@ export class Bot extends BotVentures {
       if (loot) return 'loot';
       if (foe && hero.hp > maxHpOf(hero) * 0.6) return 'fight';
       if (going && this.rng() < 0.6) return 'quest';
-      const choices = ['board', 'board', 'explore', 'explore', 'explore', 'barmaid', 'smith', 'bench', 'well', 'upstairs', 'pie', 'hunt', 'nap', 'respec', 'give up', 'dungeon', 'dungeon', 'camp', 'camp', 'pedlar', 'traveller', 'herbalist'];
+      const choices = ['board', 'board', 'explore', 'explore', 'explore', 'barmaid', 'smith', 'bench', 'well', 'upstairs', 'pie', 'hunt', 'nap', 'respec', 'give up', 'dungeon', 'dungeon', 'camp', 'camp', 'pedlar', 'traveller', 'herbalist', 'work', 'work'];
       return choices[Math.floor(this.rng() * choices.length)];
     };
     this.goal = pick();
@@ -275,6 +277,12 @@ export class Bot extends BotVentures {
       case 'traveller': {
         const t = this.nearest(this.model.travellers.list.filter((t) => (t.role === 'pedlar') === (goal === 'pedlar')), 60);
         return t ? this.meet(t) : [];
+      }
+      case 'work': {
+        const shift = this.model.work.shift;
+        if (shift) return this.workShift(shift.inn, true);
+        const inn = nearestDoor(this.model, 'inn', undefined, 250);
+        return inn ? [...this.workShift(inn), ...this.leave()] : [];
       }
       case 'herbalist': {
         const herbalist = this.nearest(this.model.npcs.filter((n) => n.role === 'herbalist' && n.where === n.home), 250, (n) => n.home); // (at home: by their door)
