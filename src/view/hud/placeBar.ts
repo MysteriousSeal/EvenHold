@@ -6,7 +6,8 @@
 //   by a bust of each (a masked bandit, the chief in his horned helm); gold once they're all down, "Cleared!" and
 //   whether its chest's been opened; its level over them (in how dangerous it is for the hero);
 // - in a village (model/villages/villageWelcome.ts), "(village)" after its name, its level under it (in how hard
-//   its quests are for the hero).
+//   its quests are for the hero), its notice board's quests done, of how many (gold once all
+//   are).
 // Hidden elsewhere.
 
 import type { CampStatus } from '../../model/camps/campLife';
@@ -16,7 +17,7 @@ import { lookAt } from '../../model/human/humanoid';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
 
-export type PlaceBarShown = { name: string; share: number } | { name: string; camp: CampStatus; ink: string } | { name: string; village: { level: number; ink: string } } | null;
+export type PlaceBarShown = { name: string; share: number } | { name: string; camp: CampStatus; ink: string } | { name: string; village: { level: number; ink: string; quests: { completed: number; of: number } } } | null;
 
 const ICON = 30; // px: a bust by a count
 const bust = (key: string, equipment: Parameters<typeof humanBust>[1]) => () => voxelIcon(`placeBar:${key}`, () => humanBust(lookAt(5, 9), equipment, 'right'), ICON);
@@ -35,9 +36,10 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
   const counts = root.querySelector('.place-bar-counts') as HTMLElement;
   let shown = '';
 
-  const row = (icon: (() => HTMLCanvasElement) | null, text: string, count: string, done: boolean) => {
+  // A count's row: its bust (if it has one), what, how many; gold once `done`. (`cleared`: the camp's "Cleared!" line.)
+  const row = (icon: (() => HTMLCanvasElement) | null, text: string, count: string, done: boolean, cleared = false) => {
     const line = document.createElement('div');
-    line.className = `place-bar-count${done ? ' done' : ''}${icon ? '' : ' cleared'}`;
+    line.className = `place-bar-count${done ? ' done' : ''}${cleared ? ' cleared' : ''}`;
     const words = Object.assign(document.createElement('span'), { textContent: text });
     const number = Object.assign(document.createElement('em'), { textContent: count });
     line.append(...(icon ? [icon()] : []), words, number);
@@ -47,7 +49,6 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
   // A place's level, a count's row without a bust: its number in how dangerous it is for the hero.
   const levelRow = (text: string, level: number, ink: string) => {
     const line = row(null, text, `${level}`, false);
-    line.classList.remove('cleared');
     line.querySelector('em')!.style.color = ink;
     return line;
   };
@@ -69,7 +70,11 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
       label.textContent = percent >= 100 ? 'Cleared!' : `Cleared ${percent}%`;
       root.classList.toggle('done', percent >= 100);
     } else if ('village' in place) {
-      counts.replaceChildren(levelRow('Village level', place.village.level, place.village.ink));
+      const { level, ink, quests } = place.village;
+      counts.replaceChildren(
+        levelRow('Village level', level, ink),
+        row(null, 'Quests completed', `${quests.completed}/${quests.of}`, quests.completed === quests.of),
+      );
       root.classList.remove('done');
     } else {
       const { bandits, chief, cleared, chestOpened } = place.camp;
@@ -77,7 +82,7 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
         levelRow('Camp level', place.camp.level, place.ink),
         row(BUSTS.bandit, 'Bandits slain', `${bandits.slain}/${bandits.of}`, bandits.slain === bandits.of),
         row(BUSTS.chief, 'Chief slain', `${chief.slain}/${chief.of}`, chief.slain === chief.of),
-        ...(cleared ? [row(null, 'Cleared!', chestOpened ? 'Chest: opened' : 'Chest: unopened', true)] : []),
+        ...(cleared ? [row(null, 'Cleared!', chestOpened ? 'Chest: opened' : 'Chest: unopened', true, true)] : []),
       );
       root.classList.toggle('done', cleared);
     }
