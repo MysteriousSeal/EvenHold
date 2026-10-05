@@ -138,6 +138,7 @@ export class Travellers {
   readonly list: Traveller[];
   readonly fights: TravellerFights; // the guards after the foes they meet
   private readonly from: ReturnType<typeof roadsFrom>;
+  private byId = new Map<number, Traveller>(); // each by their id (a guard's partner found at once: no going through all of them, each a frame)
 
   constructor(
     private readonly seed: number,
@@ -152,6 +153,7 @@ export class Travellers {
     this.list = spawnTravellers(seed, roads, spawn);
     this.from = roadsFrom(roads, villages);
     for (const t of this.list) t.y = groundY(t.x, t.z);
+    this.byId = new Map(this.list.map((t) => [t.id, t]));
   }
 
   // Where everyone is, for the save: each on their road (how far along, which way), their partner, their level.
@@ -178,6 +180,7 @@ export class Travellers {
       t.y = this.groundY(t.x, t.z);
       return t;
     }));
+    this.byId = new Map(this.list.map((t) => [t.id, t]));
   }
 
   // Each frame the hero's out in the world (`enemies`: the world's foes, for the guards to go for).
@@ -206,7 +209,7 @@ export class Travellers {
 
   // Along the road (a guard following their partner, a pace behind them), on at its end.
   private walk(t: Traveller, dt: number): void {
-    const leader = t.leader === null ? null : this.list.find((l) => l.id === t.leader) ?? null;
+    const leader = t.leader === null ? null : this.byId.get(t.leader) ?? null;
     if (leader && !leader.off) {
       [t.road, t.way] = [leader.road, leader.way];
       t.along = Math.max(0, Math.min(this.roads[t.road].route.length - 1, leader.along - leader.way * FOLLOW));

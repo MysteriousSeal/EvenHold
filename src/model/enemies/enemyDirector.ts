@@ -56,6 +56,12 @@ export class EnemyDirector {
     };
   }
 
+  // The foes round the hero, by a margin (all that can move, strike or be bumped into this frame; kept to hand,
+  // not the world's every foe gone through: wildMoves.ts, the hero's steps).
+  around(): readonly Enemy[] {
+    return this.near.near(this.hero);
+  }
+
   // Who they're after.
   get quarry(): Hero {
     return this.hero;
@@ -119,7 +125,7 @@ export class EnemyDirector {
   // Enemies that overlap (spawned close, or shoved together) ease apart,
   // each moving half the way, so a group closing in spreads around the hero.
   private separate(dt: number): void {
-    const near = this.enemies.filter((e) => e.state !== 'dead' && this.nearHero(e));
+    const near = this.around().filter((e) => e.state !== 'dead' && this.nearHero(e));
     for (let i = 0; i < near.length; i++) {
       for (let j = i + 1; j < near.length; j++) {
         const a = near[i];

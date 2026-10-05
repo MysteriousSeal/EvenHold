@@ -55,7 +55,7 @@ export class WildMoves {
   readonly pounces: ToldMoves;
 
   constructor(
-    private readonly foes: readonly Enemy[],
+    private readonly foes: () => readonly Enemy[], // (those round the hero: no move's started, told or landed further off)
     private readonly hero: Hero,
     blocked: (x: number, z: number) => boolean,
     hooks: () => DungeonHooks,
@@ -69,7 +69,7 @@ export class WildMoves {
     const moves = [this.slams, this.charges, this.pounces];
     for (const told of moves) {
       // One at a time; a bear charges only once it's hurt.
-      told.update(this.foes, this.hero, dt, (foe) => moves.some((other) => other !== told && other.doing(foe)) || (told === this.charges && foe.hp > foe.maxHp * HURT_TO_CHARGE));
+      told.update(this.foes(), this.hero, dt, (foe) => moves.some((other) => other !== told && other.doing(foe)) || (told === this.charges && foe.hp > foe.maxHp * HURT_TO_CHARGE));
     }
   }
 }

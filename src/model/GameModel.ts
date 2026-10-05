@@ -103,6 +103,7 @@ export class GameModel {
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private focusedId: number | null = null;
+  private focusedFoe: Enemy | null = null; // (the foe of focusedId, kept to hand: the world's foes not searched for it each ask)
   private below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot
   readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
@@ -159,7 +160,7 @@ export class GameModel {
     this.scenery = placeScenery(this); // rocks and landmarks in the wilds (after the foes: clear of where they stand)
     addSceneryObstacles(this.obstacles, this.scenery);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
-    this.wild = new WildMoves(this.enemies, this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
+    this.wild = new WildMoves(() => this.director.around(), this.hero, (x, z) => this.obstacles.isBlocked(x, z, 0.25), () => dungeonHooks(this)); // (a bear's slam and charge, a lynx's pounce)
     this.travellers = new Travellers(seed, world.roads, this.villages.length, spawn, this.hero, (x, z) => this.getGroundY(x, z), (e) => this.slain.add(e.id));
     this.wildlife = spawnWildlife(this);
     this.entrances = entrancesOf(this.houses, this.buildings);
@@ -259,7 +260,7 @@ export class GameModel {
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report)]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps)
-    this.travellers.update(dt, this.enemies);
+    this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);
     this.scoopCoins();
@@ -287,7 +288,7 @@ export class GameModel {
 
   // A step outdoors (walkOutdoors.ts), what's in the way stopping it: the world's, foes, folk.
   private stepOut(dx: number, dz: number): void {
-    stepOutdoors(this.hero, this.size, dx, dz, (x, z) => this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.enemies, this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.folk, null, this.hero, x, z, HERO_RADIUS)));
+    stepOutdoors(this.hero, this.size, dx, dz, (x, z) => this.noclip || (!this.obstacles.isBlocked(x, z, HERO_RADIUS) && !bumpsEnemy(this.director.around(), this.hero, x, z, HERO_RADIUS) && !bumpsNpc(this.folk, null, this.hero, x, z, HERO_RADIUS)));
   }
 
   // How fast the hero goes, as a share of their speed: the cheat's, their load's, tired, guarded.
@@ -477,7 +478,7 @@ export class GameModel {
   }
 
   get focused(): Enemy | null {
-    return this.foes.find((e) => e.id === this.focusedId) ?? null;
+    return this.focusedId === null ? null : this.focusedFoe?.id === this.focusedId ? this.focusedFoe : (this.focusedFoe = this.foes.find((e) => e.id === this.focusedId) ?? null); // (none focused, mostly: nothing looked through)
   }
 
   // Focuses a living enemy by id; null (or a dead one) clears the focus.
