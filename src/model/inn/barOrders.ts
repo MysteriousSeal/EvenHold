@@ -12,6 +12,7 @@ export interface BarOrder {
   by: Npc | null; // who's asking (null: the hero)
   drink: Drink; // what they asked for
   served(): void; // set down before them
+  batch?: boolean; // the tables' (the hero at work: jobs/innShift.ts): poured together with the others queued, set down at once
 }
 
 const queues = new WeakMap<Entrance, BarOrder[]>();

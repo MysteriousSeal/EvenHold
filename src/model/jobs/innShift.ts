@@ -273,6 +273,7 @@ export class InnShift {
       stool: this.barEnd,
       by: null,
       drink: want.order,
+      batch: true, // (poured with the tables' others queued, all set down at once)
       served: () => {
         want.bar = undefined;
         if (this.wants.get(want.npc) === want) want.ready = true; // (still wanted: at the counter's end)

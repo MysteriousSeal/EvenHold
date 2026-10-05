@@ -190,9 +190,10 @@ export class GameModel {
   }
 
   // Moves the hero straight to (x, z), standing on the ground there
-  // (outdoors, leaving any room they were in).
+  // (outdoors, leaving any room they were in, a dungeon's too: its run over, its foes no more about).
   teleport(x: number, z: number): void {
     this.inside = null;
+    this.below = null;
     this.yard = null;
     this.outdoors.seated = null;
     this.streamer?.prime({ x, z }); // (a streamed world's ground there made first, if it isn't)

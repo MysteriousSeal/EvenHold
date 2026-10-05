@@ -106,6 +106,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   if (npc.role === 'barkeep') {
     // An order waiting: first come, first served.
     const order = ordersAt(npc.home)[0];
+    if (order?.batch) return serveTables(npc, ordersAt(npc.home).filter((o) => o.batch));
     if (order) return serve(npc, order, furniture.find((f) => f.kind === 'bottleShelf'));
     npc.serving = false;
     // An empty mug left a while: over to take it, and to the sink to wash it.
@@ -207,6 +208,35 @@ function serve(barkeep: Npc, order: BarOrder, shelf?: Furniture): NpcStep[] {
     order.served();
   }, order.drink, shelf),
     { kind: 'wait', for: LINGER }, // a moment there with them, for her word (and their thanks): not to be called away
+    { kind: 'hand', then: () => (barkeep.serving = false) },
+  ];
+}
+
+// The tables' orders (the hero at work), all those queued at once: drawn at the tap one after another, a little
+// quicker each than a lone one, carried along the bar together and set down at its end; each order done.
+const BATCH_POUR = 0.7; // of a lone pour's time, each of the tables' orders
+function serveTables(barkeep: Npc, orders: BarOrder[]): NpcStep[] {
+  barkeep.serving = true;
+  const end = orders[0].stool;
+  return [
+    { kind: 'go', to: AT_KEG, direct: true, face: -Math.PI / 2 },
+    { kind: 'work', for: POUR_TIME * BATCH_POUR * orders.length },
+    { kind: 'hand', then: () => (barkeep.carrying = orders[0].drink) },
+    { kind: 'go', to: { x: AISLE_X, z: end.z }, direct: true, face: TO_COUNTER },
+    {
+      kind: 'hand',
+      then: () => {
+        barkeep.carrying = false;
+        const queue = ordersAt(barkeep.home);
+        for (const order of orders) {
+          const at = queue.indexOf(order);
+          if (at < 0) continue; // (let go of meanwhile)
+          queue.splice(at, 1);
+          order.served();
+        }
+      },
+    },
+    { kind: 'wait', for: LINGER / 2 },
     { kind: 'hand', then: () => (barkeep.serving = false) },
   ];
 }
