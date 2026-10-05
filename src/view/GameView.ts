@@ -293,6 +293,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
+    if (!room) this.workMarks.clear(); // (out of the room: its marks gone)
     if (yard) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
@@ -300,7 +301,7 @@ export class GameView {
     this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
-      this.workMarks.update(model, room, this.elapsed); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
+      this.workMarks.update(model, room, this.elapsed, (x, y, z) => this.toScreen(x, y, z)); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
       this.followHero(hero, 0, dt);
       const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));

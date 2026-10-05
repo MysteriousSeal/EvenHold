@@ -43,52 +43,6 @@ const nameMaterial = (name: string, ink = INK) =>
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
   });
 
-// A badge: a short word on a dark plate rimmed in `ink` (its text in it too), a little tail under it pointing down
-// at what it's about; drawn once, shared, over everything. For what's to be done at a glance (at work: a patron's
-// call, an order ready, a table to clear), plainer to see than a name.
-const badgeMaterial = (text: string, ink: string) =>
-  canvasMaterial(`badge|${text}|${ink}`, (canvas, ctx) => {
-    const font = "700 84px 'Fredoka', system-ui, sans-serif";
-    ctx.font = font;
-    const [pad, rim, tail, plate] = [34, 10, 26, 120]; // (px: inside the rim, the rim, the tail, the plate's height)
-    canvas.width = Math.max(plate, Math.ceil(ctx.measureText(text).width) + pad * 2);
-    canvas.height = plate + tail;
-    const [w, r] = [canvas.width, 30];
-    // The plate (rounded), its tail under its middle, rimmed in its ink.
-    ctx.beginPath();
-    ctx.moveTo(r + rim / 2, rim / 2);
-    ctx.arcTo(w - rim / 2, rim / 2, w - rim / 2, plate - rim / 2, r);
-    ctx.arcTo(w - rim / 2, plate - rim / 2, rim / 2, plate - rim / 2, r);
-    ctx.lineTo(w / 2 + tail, plate - rim / 2);
-    ctx.lineTo(w / 2, plate + tail - rim);
-    ctx.lineTo(w / 2 - tail, plate - rim / 2);
-    ctx.arcTo(rim / 2, plate - rim / 2, rim / 2, rim / 2, r);
-    ctx.arcTo(rim / 2, rim / 2, w - rim / 2, rim / 2, r);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(38, 25, 16, 0.92)';
-    ctx.fill();
-    ctx.lineWidth = rim;
-    ctx.strokeStyle = ink;
-    ctx.stroke();
-    ctx.font = font; // (resizing the canvas reset it)
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = ink;
-    // Centred on what's drawn, not on the line (an ellipsis sits on the baseline: centred on the line, it rides low).
-    const glyphs = ctx.measureText(text);
-    ctx.fillText(text, w / 2, plate / 2 + (glyphs.actualBoundingBoxAscent - glyphs.actualBoundingBoxDescent) / 2);
-  });
-
-// A badge floating in the world, facing the camera, `height` world units tall (its tail's tip at its foot: its
-// centre's to be `height` / 2 over what it points at).
-export function badgeLabel(text: string, height: number, ink: string): THREE.Sprite {
-  const { material, aspect } = badgeMaterial(text, ink);
-  const badge = new THREE.Sprite(material);
-  badge.scale.set(height * aspect, height, 1);
-  badge.renderOrder = 11; // (over names too)
-  return badge;
-}
-
 // A name floating in the world, facing the camera, `height` world units tall.
 export function nameLabel(name: string, height = NAME_HEIGHT, ink = INK): THREE.Sprite {
   const { material, aspect } = nameMaterial(name, ink);

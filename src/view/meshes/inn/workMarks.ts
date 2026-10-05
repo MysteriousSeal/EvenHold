@@ -10,13 +10,12 @@ import type { GameModel } from '../../../model/GameModel';
 import type { Want } from '../../../model/jobs/innShift';
 import type { Furniture } from '../../../model/interiors/furniture';
 import { INDOOR_SCALE } from '../../../model/constants';
-import { badgeLabel } from '../common/overhead';
+import { OverheadBadges, type BadgeAt } from '../../hud/overheadBadges';
 import { markBob, offerMark } from '../quest/questMarks';
 import { boardFace } from '../../../model/jobs/work';
 
 const OVER_SEATED = 0.62 * INDOOR_SCALE; // just over a seated patron's head, in the room's units (the badge's tail's tip)
 const OVER_COUNTER = 0.74; // over the mugs on the counter's top (0.52), at its end
-const HEIGHT = 0.46; // a mark's height (a badge: overhead.ts badgeLabel)
 const BOB = 0.04; // how far a mark bobs, up and down
 const PULSE = 0.1; // how much a red one (a patron near walking out) swells and shrinks
 const OVER_TABLE = 0.62; // over a table's top (0.44), clear of the empties on it
@@ -26,48 +25,39 @@ const NOTICE_MARK_SCALE = 0.6;
 const OFF_WALL = 0.08; // out from the wall it hangs on (its roof's depth, half of it)
 const ORDER_WORD: Record<Want['order'], string> = { ale: 'Ale', wine: 'Wine', pie: 'Pie' };
 const URGENT = '#ff6a5a';
+type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 const patienceInk = (share: number) => (share > 0.6 ? '#8fd36a' : share > 0.3 ? '#ffc94a' : URGENT);
 
 export class WorkMarks {
-  private readonly marks = new Map<Want | Furniture | 'ready', { sprite: THREE.Sprite; text: string }>();
+  private readonly badges = new OverheadBadges(); // (drawn over the game, crisp: hud/overheadBadges.ts)
   private readonly notice = offerMark();
 
   // Each frame, in the room's scene (`scene`): the marks there should be, each in its place and colour; the rest gone.
-  update(model: GameModel, scene: THREE.Object3D, time: number): void {
+  update(model: GameModel, scene: THREE.Object3D, time: number, toScreen: ToScreen): void {
     const shift = model.work.shift;
     this.noticeMark(model, scene, time);
-    const wanted = new Map<Want | Furniture | 'ready', { text: string; ink: string; x: number; y: number; z: number }>();
+    const wanted = new Map<Want | Furniture | 'ready', BadgeAt>();
+    const mark = (key: Want | Furniture | 'ready', text: string, ink: string, x: number, y: number, z: number) => {
+      // (its tail's tip just over what it's about; bobbing, each a beat apart; a red one pulsing)
+      const at = scene.localToWorld(new THREE.Vector3(x, y + Math.sin(time * 2.4 + x * 1.3 + z * 0.7) * BOB, z));
+      wanted.set(key, { text, ink, at, swell: ink === URGENT ? 1 + Math.sin(time * 7) * PULSE : 1 });
+    };
     if (shift && model.inside?.entrance === shift.inn) {
       for (const want of shift.wants.values()) {
         const text = want.state === 'calling' ? '!' : want.state === 'ordered' ? '…' : ORDER_WORD[want.order]; // (with the barkeep: waiting; on the tray: what's coming)
-        wanted.set(want, { text, ink: patienceInk(want.patience / want.of), x: want.npc.x, y: OVER_SEATED, z: want.npc.z });
+        mark(want, text, patienceInk(want.patience / want.of), want.npc.x, OVER_SEATED, want.npc.z);
       }
       const cluttered = new Map<Furniture, number>();
       for (const empty of shift.empties) cluttered.set(empty.table, (cluttered.get(empty.table) ?? 0) + 1);
-      for (const [table, n] of cluttered) wanted.set(table, { text: n > 1 ? `Clear ×${n}` : 'Clear', ink: CLEAR_INK, x: table.x + (table.w - 1) / 2, y: OVER_TABLE, z: table.z + (table.d - 1) / 2 });
-      if (shift.readyOrders.length > 0) wanted.set('ready', { text: 'Ready!', ink: '#ffd96a', ...shift.readySpot, y: OVER_COUNTER }); // (on the counter, over the mugs)
+      for (const [table, n] of cluttered) mark(table, n > 1 ? `Clear ×${n}` : 'Clear', CLEAR_INK, table.x + (table.w - 1) / 2, OVER_TABLE, table.z + (table.d - 1) / 2);
+      if (shift.readyOrders.length > 0) mark('ready', 'Ready!', '#ffd96a', shift.readySpot.x, OVER_COUNTER, shift.readySpot.z); // (on the counter, over the mugs)
     }
-    for (const [key, mark] of this.marks) {
-      if (wanted.has(key)) continue;
-      mark.sprite.removeFromParent();
-      this.marks.delete(key);
-    }
-    for (const [key, { text, ink, x, y, z }] of wanted) {
-      let mark = this.marks.get(key);
-      const shown = `${text}|${ink}`;
-      if (mark?.text !== shown) {
-        mark?.sprite.removeFromParent();
-        mark = { sprite: badgeLabel(text, HEIGHT, ink), text: shown }; // (its look changed: a fresh one, the badges' materials kept by text and ink)
-        this.marks.set(key, mark);
-      }
-      if (mark.sprite.parent !== scene) scene.add(mark.sprite);
-      // (its tail's tip just over what it's about; bobbing, each a beat apart; a red one pulsing)
-      const beat = time * 2.4 + x * 1.3 + z * 0.7;
-      mark.sprite.position.set(x, y + HEIGHT / 2 + Math.sin(beat) * BOB, z);
-      const swell = ink === URGENT ? 1 + Math.sin(time * 7) * PULSE : 1;
-      const aspect = mark.sprite.material.map ? mark.sprite.material.map.image.width / mark.sprite.material.map.image.height : 1;
-      mark.sprite.scale.set(HEIGHT * aspect * swell, HEIGHT * swell, 1);
-    }
+    this.badges.sync(wanted, toScreen);
+  }
+
+  // Out of the room: none of its marks.
+  clear(): void {
+    this.badges.clear();
   }
 
   // Off shift, in an inn: the "!" over its notice board (work to be had), bobbing; else none.

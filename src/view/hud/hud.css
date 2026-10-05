@@ -200,6 +200,49 @@
 }
 .speech-bubble::before { bottom: -12px; margin-left: -9px; border-width: 12px 9px 0; border-top-color: #2e1f14; }
 .speech-bubble::after { bottom: -8px; margin-left: -6px; border-width: 9px 6px 0; border-top-color: #f8ecd4; } /* the coins themselves: coins.css */
+
+/* A badge over the world (overheadBadges.ts): a word on a square dark plate rimmed in its ink, a tail under it. Sized
+   in ems (the script sets the em: as tall as it's meant to be in the world), every one the same, the word inside. */
+.overhead-badge {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 14;
+  pointer-events: none;
+  box-sizing: border-box;
+  width: 3.4em;
+  height: 2.55em; /* (its tail 0.55em more, below: overheadBadges.ts lifts it by that) */
+  display: grid;
+  place-items: center;
+  background: rgb(38 25 16 / 0.92);
+  border: 0.2em solid var(--ink);
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.overhead-badge::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -0.6em;
+  border-style: solid;
+  border-color: var(--ink) transparent transparent;
+  border-width: 0.75em 0.6em 0; /* (from inside the rim: 0.55em below the plate) */
+}
+.overhead-badge::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -0.36em;
+  border-style: solid;
+  border-color: rgb(38 25 16) transparent transparent;
+  border-width: 0.45em 0.36em 0; /* (the tail's inside, through the rim: rimmed round it, as the plate is) */
+  z-index: 1;
+}
 .loot-name { text-shadow: 1px 1px 0 #2e1f14; }
 .loot-name[data-quality='junk'] { color: #b4b0a8; }
 .loot-name[data-quality='ingredient'] { color: #e8a080; }
