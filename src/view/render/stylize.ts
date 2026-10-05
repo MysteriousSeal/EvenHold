@@ -48,6 +48,7 @@ if (!LIGHTS_CHUNK.includes('float cel')) throw new Error('stylize: Three.js ligh
 // Shared by every patched program; set each frame to the camera focus height.
 export interface Stylizer {
   setFocusHeight(y: number): void;
+  patch(materials: THREE.Material[]): void; // (materials made after: a streamed world's regions', as they're drawn)
 }
 
 // `materials`: extra materials to patch that aren't in the scene yet (the
@@ -70,7 +71,7 @@ export function stylize(scene: THREE.Scene, materials: THREE.Material[] = []): S
     if (material) patchAll(Array.isArray(material) ? material : [material]);
   });
   patchAll(materials);
-  return { setFocusHeight: (y) => (focusY.value = y) };
+  return { setFocusHeight: (y) => (focusY.value = y), patch: patchAll };
 }
 
 function patch(material: THREE.MeshStandardMaterial, focusY: { value: number }): void {

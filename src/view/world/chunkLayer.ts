@@ -11,6 +11,7 @@ export interface ChunkLayer {
   readonly materials: THREE.Material[];
   chunkKeys(): Iterable<string>;
   build(chunkKey: string): THREE.Object3D[];
+  dispose?(): void; // what it made to build with (its models' geometry) let go: dropped (a streamed world's region let go)
 }
 
 export interface WorldSink {

@@ -41,7 +41,7 @@ export function buildPlazas(scene: WorldSink, model: GameModel): void {
       if (Math.max(Math.abs(dx), Math.abs(dz)) <= PLAZA_RADIUS) return 'plaza';
       const x = village.x + dx;
       const z = village.z + dz;
-      return inBounds(model.size, x, z) && model.surfaceMap[x][z] === 'path' ? 'path' : 'natural';
+      return inBounds(model.size, x, z) && model.tiles.surface(x, z) === 'path' ? 'path' : 'natural';
     };
     // Road tiles in the ring just outside the square decide where the curb opens.
     const roads: Array<[number, number]> = [];

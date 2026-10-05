@@ -14,27 +14,15 @@ import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
 import { addLights } from './render/lighting';
-import { buildTerrain } from './meshes/terrain/terrainMesh';
-import { buildTrees } from './meshes/tree/treeMesh';
-import { buildHouses } from './meshes/building/houseMesh';
-import { buildBuildings } from './meshes/building/buildingMesh';
-import { buildWells } from './meshes/well/wellMesh';
-import { buildRoads } from './meshes/road/roadMesh';
-import { buildPlazas } from './meshes/plaza/plazaMesh';
-import { buildLanterns } from './meshes/plaza/lanternMesh';
-import { buildBenches } from './meshes/plaza/benchMesh';
-import { buildNoticeBoards } from './meshes/quest/noticeBoardMesh';
-import { buildFields } from './meshes/field/fieldMesh';
 import { setWindPusher } from './meshes/common/wind';
-import { buildGroundCover } from './meshes/cover/groundCoverMesh';
-import { buildBushes } from './meshes/bush/bushMesh';
-import { buildWater } from './meshes/water/waterMesh';
 import { HumanRig } from './meshes/human/humanRig';
 import { personMaterial } from './meshes/human/humanParts';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
+import { WORLD_BUILDERS, type WorldBuilder } from './world/worldBuilders';
+import { WorldRegions } from './world/worldRegions';
 import { EnemyViews } from './meshes/enemy/enemyViews';
 import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
@@ -46,7 +34,6 @@ import { CampFires } from './meshes/camp/campFires';
 import { CampChests } from './meshes/camp/campChests';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
-import { buildScenery3d } from './meshes/scenery/sceneryMesh';
 import { TravellerViews } from './meshes/npc/travellerViews';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
 import { EntranceLife } from './meshes/entrance/entranceLife';
@@ -59,11 +46,6 @@ import { FrostOnHero } from './meshes/human/frostOnHero';
 import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
 import type { Entrance } from '../model/interiors/interiors';
-import { buildCamps } from './meshes/camp/campMesh';
-import { buildRuins } from './meshes/ruin/ruinMesh';
-import { buildCaveMouths } from './meshes/cave/caveMouthMesh';
-import { buildEntranceDressing } from './meshes/entrance/entranceDressing';
-import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
 export interface BuildStep {
@@ -93,6 +75,7 @@ export class GameView {
   private readonly heroFrost = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xb8e2ff, roughness: 0.35, emissive: 0x2a6a90, emissiveIntensity: 0.45 });
   private readonly frost = new FrostOnHero();
   private readonly world: ChunkStreamer;
+  private readonly regions: WorldRegions | null; // a streamed world's, drawn region by region as they're made
   private readonly enemies: EnemyViews;
   private readonly wildlife: WildlifeViews;
   private readonly npcs = new NpcViews();
@@ -149,6 +132,7 @@ export class GameView {
     this.hero = new HumanRig(model.hero.look, this.heroLook);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
+    this.regions = model.world.streamed ? new WorldRegions(this.world, model, (materials) => this.prepare(materials)) : null;
     this.enemies = new EnemyViews(this.scene);
     this.wildlife = new WildlifeViews(this.scene);
     this.coins = new CoinViews(this.scene);
@@ -167,32 +151,28 @@ export class GameView {
   // chunks around the hero: only those are built now, the rest stream in
   // as the hero walks (see world/chunkStreamer.ts).
   buildSteps(): BuildStep[] {
-    const { world: scene, model } = this;
-    const animate = (build: (s: WorldSink, m: GameModel) => (t: number) => void) => () => {
-      this.animations.push(build(scene, model));
-    };
-    return [
-      { label: 'Laying the ground', run: () => buildTerrain(scene, model) },
-      { label: 'Filling the lakes', run: animate(buildWater) },
-      { label: 'Treading the roads', run: () => buildRoads(scene, model) },
-      { label: 'Paving the squares', run: () => buildPlazas(scene, model) },
-      { label: 'Sowing the fields', run: animate(buildFields) },
-      { label: 'Growing the meadows', run: animate(buildGroundCover) },
-      { label: 'Planting the forests', run: animate(buildTrees) },
-      { label: 'Tending the bushes', run: animate(buildBushes) },
-      { label: 'Building the houses', run: () => buildHouses(scene, model) },
-      { label: 'Raising the inn and the forge', run: animate(buildBuildings) },
-      { label: 'Digging the wells', run: () => buildWells(scene, model) },
-      { label: 'Lighting the lanterns', run: () => buildLanterns(scene, model) },
-      { label: 'Pinning up the notices', run: () => buildNoticeBoards(scene, model) },
-      { label: 'Setting out the benches', run: () => buildBenches(scene, model) },
-      { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
-      { label: 'Crumbling the old ruins', run: () => buildRuins(scene, model) },
-      { label: 'Hollowing the hills', run: () => buildCaveMouths(scene, model) },
-      { label: 'Lighting the old braziers', run: () => buildEntranceDressing(scene, model) },
-      { label: 'Setting the old stones', run: () => buildScenery3d(scene, model) },
-      { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
-    ];
+    const { world: sink, model, regions } = this;
+    const near = { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) };
+    if (regions) return [{ label: 'Drawing the lands round you', run: () => regions.drawAll() }, near]; // (a streamed world's: the regions made so far)
+    const step = (builder: WorldBuilder): BuildStep => ({
+      label: builder.label,
+      run: () => {
+        const animate = builder.build(sink, model);
+        if (animate) this.animations.push(animate);
+      },
+    });
+    return [...WORLD_BUILDERS.map(step), near];
+  }
+
+  // A region's new materials (a streamed world's, drawn after the start) stylized and compiled before they're seen, off
+  // the frame where the browser can (their programs mostly made already: the same shaders as every region's).
+  private prepare(materials: THREE.Material[]): void {
+    if (!this.stylizer || materials.length === 0) return; // (before the start: finish() does it, for all)
+    this.stylizer.patch(materials);
+    const warmUp = new THREE.Scene();
+    const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+    for (const material of materials) warmUp.add(new THREE.InstancedMesh(box, material, 1));
+    void this.renderer.compileAsync(warmUp, this.camera, this.scene).finally(() => box.dispose()); // (with the world's lights and fog: its programs)
   }
 
   // After every build step: applies the stylized look (it patches every
@@ -274,6 +254,7 @@ export class GameView {
     const { model } = this;
     this.elapsed += dt;
     for (const animate of this.animations) animate(this.elapsed);
+    this.regions?.animate(this.elapsed);
 
     const { hero } = model;
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
@@ -318,6 +299,7 @@ export class GameView {
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
       return; // the world outside stands still
     }
+    this.regions?.update(); // (a region the model's made drawn, or one it's let go dropped: one a frame)
     this.world.update(hero.x, hero.z);
     this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero)); // (the one the prompt's over: their name gives way to it)
     setWindPusher(hero.x, hero.z); // crops part around them

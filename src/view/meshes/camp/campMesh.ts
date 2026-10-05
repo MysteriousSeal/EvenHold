@@ -40,7 +40,7 @@ export const campMaterials = (): { plain: THREE.Material; glow: THREE.Material }
 });
 
 export function buildCamps(scene: WorldSink, model: GameModel): void {
-  const ground = (x: number, z: number) => model.heightMap[x][z] * TILE_HEIGHT;
+  const ground = (x: number, z: number) => model.tiles.height(x, z) * TILE_HEIGHT;
   const pieces = model.camps.flatMap((camp) => camp.pieces.map((p) => ({ ...p, look: LOOKS.has(p.kind) ? p.variant : 0 })));
   const key = (p: (typeof pieces)[number]) => `${p.kind}:${p.look}`;
   const place = (p: (typeof pieces)[number]) => ({ x: p.x, y: ground(p.x, p.z), z: p.z, quarterTurns: p.quarterTurns });

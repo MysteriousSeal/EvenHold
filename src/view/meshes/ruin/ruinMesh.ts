@@ -23,7 +23,7 @@ export function buildRuins(scene: WorldSink, model: GameModel): void {
     pieces,
     (p) => `${p.kind}:${p.variant}`,
     (p) => greedyMesh(buildRuinPiece(p.kind, p.variant), RUIN_PALETTE, RUIN_VOXEL_SIZE, ORIGIN),
-    (p) => ({ x: p.x, y: model.heightMap[p.x][p.z] * TILE_HEIGHT, z: p.z, quarterTurns: p.quarterTurns }),
+    (p) => ({ x: p.x, y: model.tiles.height(p.x, p.z) * TILE_HEIGHT, z: p.z, quarterTurns: p.quarterTurns }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
   // And in each, a crypt's way down (model/crypts/crypts.ts: two tiles wide, drawn between them), turned to open toward the spot before it.
@@ -32,7 +32,7 @@ export function buildRuins(scene: WorldSink, model: GameModel): void {
     model.crypts,
     (c) => `cryptStairs:${(c.stairs.x + c.stairs.z) % 4}`,
     (c) => greedyMesh(buildCryptStairs((c.stairs.x + c.stairs.z) % 4), RUIN_PALETTE, RUIN_VOXEL_SIZE, STAIRS_ORIGIN),
-    (c) => ({ x: c.middle.x, y: model.heightMap[c.stairs.x][c.stairs.z] * TILE_HEIGHT - SINK * RUIN_VOXEL_SIZE, z: c.middle.z, quarterTurns: c.quarterTurns }), // (its ground level at the ground's: its stairs going down below)
+    (c) => ({ x: c.middle.x, y: model.tiles.height(c.stairs.x, c.stairs.z) * TILE_HEIGHT - SINK * RUIN_VOXEL_SIZE, z: c.middle.z, quarterTurns: c.quarterTurns }), // (its ground level at the ground's: its stairs going down below)
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
 }

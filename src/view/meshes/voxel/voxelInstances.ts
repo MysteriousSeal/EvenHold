@@ -73,5 +73,9 @@ export function voxelLayer<T>(
         return mesh;
       });
     },
+    dispose() {
+      for (const geometry of geometries.values()) geometry.dispose();
+      geometries.clear();
+    },
   };
 }

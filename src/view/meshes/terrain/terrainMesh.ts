@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
-import { allChunkKeys, chunkTiles } from '../../world/chunks';
+import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
 import type { GameModel } from '../../../model/GameModel';
 import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
 import { TERRAIN_COLORS } from '../../constants';
@@ -40,15 +40,17 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
 
   scene.layer({
     materials: [...tiers.values()].flatMap((t) => t.material),
-    chunkKeys: () => allChunkKeys(model.size.width, model.size.depth),
+    chunkKeys: () => chunkKeysIn(model.area), // (its own part of the map: a streamed world's region)
     build(key) {
-      const { x0, z0, x1, z1 } = chunkTiles(key, model.size.width, model.size.depth);
+      const tiles = chunkTilesIn(key, model.area); // (its own part of the map only)
+      if (!tiles) return [];
+      const { x0, z0, x1, z1 } = tiles;
       const byTier = new Map<number, Array<{ x: number; z: number }>>();
       const pits = new Set(model.crypts.flatMap((c) => c.steps.map((t) => `${t.x},${t.z}`))); // (no ground where a crypt's stairs go down into it)
       for (let x = x0; x < x1; x++) {
         for (let z = z0; z < z1; z++) {
-          if (model.lakeMap[x][z] || pits.has(`${x},${z}`)) continue;
-          const tier = model.heightMap[x][z];
+          if (model.tiles.lake(x, z) || pits.has(`${x},${z}`)) continue;
+          const tier = model.tiles.height(x, z);
           const cells = byTier.get(tier);
           if (cells) cells.push({ x, z });
           else byTier.set(tier, [{ x, z }]);

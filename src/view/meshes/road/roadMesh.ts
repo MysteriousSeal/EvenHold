@@ -10,7 +10,8 @@ import { TILE_HEIGHT } from '../../../model/constants';
 import { roadConnections } from '../../../model/map/roads';
 import { hashCell } from '../../../util/random';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { addVoxelInstances } from '../voxel/voxelInstances';
+import { voxelLayer } from '../voxel/voxelInstances';
+import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
 import { NEIGHBORS_4 } from '../../../model/map/grid';
 import { ROAD_PALETTE, ROAD_VOXEL_SIZE, buildRoadTile, roadTileOffset } from './roadVoxels';
 
@@ -32,19 +33,21 @@ function tileOrigin(drops: number): THREE.Vector3 {
   return new THREE.Vector3(-0.5 - side * ROAD_VOXEL_SIZE, -below * ROAD_VOXEL_SIZE, -0.5 - side * ROAD_VOXEL_SIZE);
 }
 
-function pavedTiles(model: GameModel): PavedTile[] {
+// The road tiles of `area` (a chunk, as it's built: only those near the hero ever looked at).
+function pavedTiles(model: GameModel, area: { x0: number; z0: number; x1: number; z1: number }): PavedTile[] {
   const tiles: PavedTile[] = [];
-  for (let x = 0; x < model.size.width; x++) {
-    for (let z = 0; z < model.size.depth; z++) {
-      const surface = model.surfaceMap[x][z];
-      const tier = model.heightMap[x][z];
+  const { x0, z0, x1, z1 } = area;
+  for (let x = x0; x < x1; x++) {
+    for (let z = z0; z < z1; z++) {
+      const surface = model.tiles.surface(x, z);
+      const tier = model.tiles.height(x, z);
       if (surface === 'path') {
-        const mask = roadConnections(model.surfaceMap, x, z);
+        const mask = roadConnections(model.tiles, x, z);
         const variant = hashCell(x, z, 7) % ROAD_VARIANTS;
         // Terrain smoothing keeps neighbors within one tier, so a drop is always one step.
         let drops = 0;
         NEIGHBORS_4.forEach(([dx, dz], i) => {
-          if (mask & (1 << i) && model.heightMap[x + dx][z + dz] < tier) drops |= 1 << i;
+          if (mask & (1 << i) && model.tiles.height(x + dx, z + dz) < tier) drops |= 1 << i;
         });
         tiles.push({
           x,
@@ -61,12 +64,15 @@ function pavedTiles(model: GameModel): PavedTile[] {
 }
 
 export function buildRoads(scene: WorldSink, model: GameModel): void {
-  addVoxelInstances(
-    scene,
-    pavedTiles(model),
+  scene.layer(voxelLayer(
+    () => chunkKeysIn(model.area),
+    (key) => {
+      const tiles = chunkTilesIn(key, model.area); // (its own part of the map only)
+      return tiles ? pavedTiles(model, tiles) : [];
+    },
     (tile) => tile.model,
     (tile) => greedyMesh(tile.build(), ROAD_PALETTE, ROAD_VOXEL_SIZE, tileOrigin(tile.drops)),
     (tile) => ({ x: tile.x, y: tile.tier * TILE_HEIGHT, z: tile.z, quarterTurns: 0 }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }),
-  );
+  ));
 }

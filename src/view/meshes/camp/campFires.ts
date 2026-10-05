@@ -23,12 +23,12 @@ export class CampFires {
     for (const camp of model.camps) {
       if (Math.abs(camp.x - hero.x) > CAMP_VIEW_RADIUS || Math.abs(camp.z - hero.z) > CAMP_VIEW_RADIUS) continue;
       const pit = camp.pieces.find((p) => p.kind === 'fire');
-      if (pit) this.light(`${pit.x},${pit.z}`, seen, time, () => new FireEffect(0.24, 0.17, 0.045, pit.x * 31 + pit.z), pit.x, model.heightMap[pit.x][pit.z] * TILE_HEIGHT + BED_HEIGHT, pit.z);
+      if (pit) this.light(`${pit.x},${pit.z}`, seen, time, () => new FireEffect(0.24, 0.17, 0.045, pit.x * 31 + pit.z), pit.x, model.tiles.height(pit.x, pit.z) * TILE_HEIGHT + BED_HEIGHT, pit.z);
       const gate = camp.pieces.find((p) => p.kind === 'gate');
       if (gate) {
         GATE_TORCHES.forEach((at, i) => {
           const { x, y, z } = onPiece(gate, at);
-          this.light(`${gate.x},${gate.z}:${i}`, seen, time, () => new FireEffect(0.05, 0.13, 0.03, gate.x * 7 + i), x, model.heightMap[gate.x][gate.z] * TILE_HEIGHT + y, z);
+          this.light(`${gate.x},${gate.z}:${i}`, seen, time, () => new FireEffect(0.05, 0.13, 0.03, gate.x * 7 + i), x, model.tiles.height(gate.x, gate.z) * TILE_HEIGHT + y, z);
         });
       }
     }

@@ -6,7 +6,7 @@
 // out (the room's door; upstairs, the stairs down), and says so.
 
 import type { GameModel } from '../../model/GameModel';
-import { noticeBoards } from '../../model/quests/noticeBoards';
+import { boardSpot } from '../../model/quests/noticeBoards';
 import type { Inside } from '../../model/interiors/indoors';
 import { stairsOf } from '../../model/interiors/upstairs';
 import { inMeters, questTitle } from '../../model/quests/quests';
@@ -83,7 +83,7 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
 
   // Where the quest sends the hero now.
   const goal = (taken: TakenQuest, done: boolean): { x: number; z: number } => {
-    if (done) return noticeBoards(model)[taken.quest.board];
+    if (done) return boardSpot(model, taken.quest.board) ?? taken.quest; // (its board's; not known yet this game: where the work was)
     const { hero } = model;
     let best: { x: number; z: number } = taken.quest;
     let far = Infinity;

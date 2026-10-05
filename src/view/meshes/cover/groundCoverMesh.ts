@@ -12,7 +12,7 @@ import { addWindSway } from '../common/wind';
 import { TERRAIN_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
-import { allChunkKeys, chunkTiles } from '../../world/chunks';
+import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
 import { createCoverScatter, type GroundCover, type ScatterItem } from './groundCoverScatter';
 import {
   COVER_PALETTE,
@@ -80,12 +80,12 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
   let last: { key: string; cover: GroundCover } | null = null;
   const coverIn = (key: string): GroundCover => {
     if (last?.key !== key) {
-      const { x0, z0, x1, z1 } = chunkTiles(key, model.size.width, model.size.depth);
+      const { x0, z0, x1, z1 } = chunkTilesIn(key, model.area) ?? { x0: 0, z0: 0, x1: 0, z1: 0 }; // (its own part of the map only: else none)
       last = { key, cover: scatter(x0, z0, x1, z1) };
     }
     return last.cover;
   };
-  const keys = () => allChunkKeys(model.size.width, model.size.depth);
+  const keys = () => chunkKeysIn(model.area); // (its own part of the map: a streamed world's region)
   const plain = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
 
   const grassMaterial = plain();

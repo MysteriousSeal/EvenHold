@@ -14,8 +14,9 @@ const LOAD_RADIUS = 28;
 const UNLOAD_RADIUS = 44;
 
 export class ChunkStreamer implements WorldSink {
-  private readonly layers: ChunkLayer[] = [];
-  private readonly loaded = new Map<string, THREE.Group>();
+  private readonly layers: Array<{ layer: ChunkLayer; tag: unknown }> = [];
+  private readonly loaded = new Map<string, { group: THREE.Group; built: Map<ChunkLayer, THREE.Object3D[]> }>();
+  private readonly extras = new Map<unknown, THREE.Object3D[]>(); // what's added outright (never streamed), by tag
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -24,12 +25,50 @@ export class ChunkStreamer implements WorldSink {
   }
 
   layer(layer: ChunkLayer): void {
-    this.layers.push(layer);
+    this.tagged(null).layer(layer);
+  }
+
+  // A sink whose layers (and what's added outright) are `tag`'s, to drop together (a streamed world's region's); a
+  // layer coming after its chunks are built is built into them at once.
+  tagged(tag: unknown): WorldSink {
+    return {
+      add: (...objects) => {
+        this.scene.add(...objects);
+        this.extras.set(tag, [...(this.extras.get(tag) ?? []), ...objects]);
+      },
+      layer: (layer) => {
+        this.layers.push({ layer, tag });
+        for (const [key, chunk] of this.loaded) this.buildInto(chunk, layer, key);
+      },
+    };
+  }
+
+  // `tag`'s layers and what it added let go: out of the scene, their instance buffers freed; their materials, theirs
+  // (handed back, to dispose).
+  drop(tag: unknown): THREE.Material[] {
+    const gone = this.layers.filter((l) => l.tag === tag).map((l) => l.layer);
+    if (gone.length === 0 && !this.extras.has(tag)) return [];
+    for (const chunk of this.loaded.values()) {
+      for (const layer of gone) {
+        for (const o of chunk.built.get(layer) ?? []) {
+          chunk.group.remove(o);
+          o.traverse((m) => (m as THREE.InstancedMesh).isInstancedMesh && (m as THREE.InstancedMesh).dispose());
+        }
+        chunk.built.delete(layer);
+      }
+    }
+    for (const layer of gone) layer.dispose?.();
+    for (const o of this.extras.get(tag) ?? []) this.scene.remove(o);
+    this.extras.delete(tag);
+    const kept = this.layers.filter((l) => l.tag !== tag);
+    this.layers.splice(0, this.layers.length, ...kept);
+    const still = new Set(kept.flatMap((l) => l.layer.materials)); // (one shared with another's layers stays theirs)
+    return [...new Set(gone.flatMap((l) => l.materials))].filter((m) => !still.has(m));
   }
 
   // Every material any layer draws with, loaded or not.
   materials(): THREE.Material[] {
-    return [...new Set(this.layers.flatMap((l) => l.materials))];
+    return [...new Set(this.layers.flatMap((l) => l.layer.materials))];
   }
 
   get loadedCount(): number {
@@ -39,8 +78,8 @@ export class ChunkStreamer implements WorldSink {
   // Loads up to `budget` missing chunks near (x, z), nearest first, and
   // drops far ones. Returns how many chunks it built.
   update(x: number, z: number, budget = 1): number {
-    for (const [key, group] of this.loaded) {
-      if (distanceToChunk(key, x, z) > UNLOAD_RADIUS) this.unload(key, group);
+    for (const [key, chunk] of this.loaded) {
+      if (distanceToChunk(key, x, z) > UNLOAD_RADIUS) this.unload(key, chunk.group);
     }
     const wanted = chunksWithin(x, z, LOAD_RADIUS).filter((key) => !this.loaded.has(key));
     wanted.sort((a, b) => distanceToChunk(a, x, z) - distanceToChunk(b, x, z));
@@ -55,13 +94,17 @@ export class ChunkStreamer implements WorldSink {
   }
 
   private load(key: string): void {
-    const group = new THREE.Group();
-    for (const layer of this.layers) {
-      const objects = layer.build(key);
-      if (objects.length > 0) group.add(...objects);
-    }
-    this.loaded.set(key, group);
-    this.scene.add(group);
+    const chunk = { group: new THREE.Group(), built: new Map<ChunkLayer, THREE.Object3D[]>() };
+    for (const { layer } of this.layers) this.buildInto(chunk, layer, key);
+    this.loaded.set(key, chunk);
+    this.scene.add(chunk.group);
+  }
+
+  private buildInto(chunk: { group: THREE.Group; built: Map<ChunkLayer, THREE.Object3D[]> }, layer: ChunkLayer, key: string): void {
+    const objects = layer.build(key);
+    if (objects.length === 0) return;
+    chunk.group.add(...objects);
+    chunk.built.set(layer, objects);
   }
 
   private unload(key: string, group: THREE.Group): void {

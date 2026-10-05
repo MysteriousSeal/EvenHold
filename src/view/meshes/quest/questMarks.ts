@@ -10,6 +10,7 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { ASK_GRID, BOARD_GRID, MARK_GRID, MARK_PALETTE, QUEST_VOXEL_SIZE, buildQuestMark, buildTurnInMark } from './questVoxels';
 import type { VoxelGrid } from '../voxel/greedyMesh';
+import { boardNumber } from '../../../model/quests/quests';
 
 const NEAR = 30; // tiles: boards further off aren't looked at
 const BOARD_MARK_SCALE = 0.75; // small, over the board's roof
@@ -67,18 +68,29 @@ const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * 
 export class BoardMarks {
   private readonly marks: Array<{ offer: THREE.Mesh; turnIn: THREE.Mesh; y: number }> = [];
 
-  constructor(scene: THREE.Scene, private readonly model: GameModel) {
-    const offer = markMesh(buildQuestMark(), MARK_GRID);
-    const turnIn = markMesh(buildTurnInMark(), ASK_GRID);
-    for (const [i, spot] of noticeBoards(model).entries()) {
-      const y = model.villages[i].groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT + ABOVE_BOARD;
-      const [a, b] = [offer.clone(), turnIn.clone()];
+  private readonly offer = markMesh(buildQuestMark(), MARK_GRID);
+  private readonly turnIn = markMesh(buildTurnInMark(), ASK_GRID);
+
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly model: GameModel,
+  ) {
+    this.markNew();
+  }
+
+  // Marks for the boards not marked yet (all of them at first; a streamed world's, as its regions are made).
+  private markNew(): void {
+    const spots = noticeBoards(this.model);
+    for (let i = this.marks.length; i < spots.length; i++) {
+      const spot = spots[i];
+      const y = this.model.villages[i].groundTier * TILE_HEIGHT + ROAD_SURFACE_HEIGHT + ABOVE_BOARD;
+      const [a, b] = [this.offer.clone(), this.turnIn.clone()];
       for (const mark of [a, b]) {
         mark.scale.setScalar(BOARD_MARK_SCALE);
         mark.rotation.y = (spot.quarterTurns * Math.PI) / 2; // facing the square, as the board does
         mark.position.set(spot.x, y, spot.z);
         mark.visible = false;
-        scene.add(mark);
+        this.scene.add(mark);
       }
       this.marks.push({ offer: a, turnIn: b, y });
     }
@@ -87,11 +99,13 @@ export class BoardMarks {
   update(heroX: number, heroZ: number, time: number): void {
     const { quests } = this.model;
     const spots = noticeBoards(this.model);
+    if (spots.length > this.marks.length) this.markNew();
     for (const [i, { offer, turnIn, y }] of this.marks.entries()) {
       const near = Math.abs(spots[i].x - heroX) <= NEAR && Math.abs(spots[i].z - heroZ) <= NEAR;
-      const ready = near && quests.readyAt(i);
+      const board = boardNumber(this.model, i);
+      const ready = near && quests.readyAt(board);
       turnIn.visible = ready;
-      offer.visible = near && !ready && quests.available(i);
+      offer.visible = near && !ready && quests.available(board);
       offer.position.y = turnIn.position.y = y + markBob(time, i);
     }
   }

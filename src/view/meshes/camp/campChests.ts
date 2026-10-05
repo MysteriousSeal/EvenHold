@@ -39,7 +39,7 @@ export class CampChests {
     const [plain, glowing] = this.looks[open ? 1 : 0];
     const group = new THREE.Group();
     group.add(new THREE.Mesh(plain, this.materials.plain), new THREE.Mesh(glowing, this.materials.glow));
-    group.position.set(chest.x, model.heightMap[chest.x][chest.z] * TILE_HEIGHT, chest.z);
+    group.position.set(chest.x, model.tiles.height(chest.x, chest.z) * TILE_HEIGHT, chest.z);
     group.rotation.y = (chest.quarterTurns * Math.PI) / 2;
     this.scene.add(group);
     return group;

@@ -21,7 +21,7 @@ export function brazierSpots(model: GameModel): Array<{ x: number; y: number; z:
     const [ox, oz] = FACINGS[crypt.quarterTurns];
     const [ax, az] = [Math.abs(oz), Math.abs(ox)]; // across the way down
     const front = { x: crypt.middle.x + ox * 0.5, z: crypt.middle.z + oz * 0.5 }; // (the head of the stairs: the two steps' middle)
-    const y = model.heightMap[crypt.stairs.x][crypt.stairs.z] * TILE_HEIGHT;
+    const y = model.tiles.height(crypt.stairs.x, crypt.stairs.z) * TILE_HEIGHT;
     return [-1, 1].map((side) => ({ x: front.x + ax * side * 0.86 + ox * 0.4, y, z: front.z + az * side * 0.86 + oz * 0.4 })); // (its front corners)
   });
 }

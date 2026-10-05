@@ -69,7 +69,12 @@ export class EntranceLife {
   private readonly cryptGlow = poolMaterial();
   private readonly caveGeometry: THREE.BufferGeometry;
   private readonly cryptGeometry: THREE.BufferGeometry;
-  private readonly braziers: Array<{ x: number; y: number; z: number }>;
+  private spots: { crypts: number; braziers: Array<{ x: number; y: number; z: number }> } | null = null;
+  // The crypts' braziers (worked out again as the crypts known grow: a streamed world's, region by region).
+  private get braziers(): Array<{ x: number; y: number; z: number }> {
+    if (this.spots?.crypts !== this.model.crypts.length) this.spots = { crypts: this.model.crypts.length, braziers: brazierSpots(this.model) };
+    return this.spots.braziers;
+  }
   private readonly ways = new Map<string, Way>();
   private readonly matrix = new THREE.Matrix4();
   private readonly color = new THREE.Color();
@@ -97,7 +102,6 @@ export class EntranceLife {
     const pool = (palette: number[]) => greedyMesh(sunPool(), palette, V, new THREE.Vector3((-SUN_GRID[0] / 2) * V, 0, 0)).scale(0.7, 0.05, 0.6);
     this.caveGeometry = pool(CAVE_GLOW);
     this.cryptGeometry = pool(CRYPT_GLOW);
-    this.braziers = brazierSpots(model);
   }
 
   update(dt: number, hero: { x: number; z: number }, minutes: number, outdoors: boolean): void {
@@ -209,13 +213,13 @@ export class EntranceLife {
     const near = new Map<string, Omit<Way, 'pool' | 'crows' | 'fires'>>();
     for (const cave of this.model.caves) {
       const [ox, oz] = FACINGS[cave.quarterTurns];
-      const way = { kind: 'cave' as const, key: `cave:${cave.mouth.x},${cave.mouth.z}`, x: cave.mouth.x + ox * 0.5, z: cave.mouth.z + oz * 0.5, y: this.model.heightMap[cave.mouth.x][cave.mouth.z] * TILE_HEIGHT, ox, oz, over: { x: cave.mouth.x - ox, z: cave.mouth.z - oz }, turns: cave.quarterTurns };
+      const way = { kind: 'cave' as const, key: `cave:${cave.mouth.x},${cave.mouth.z}`, x: cave.mouth.x + ox * 0.5, z: cave.mouth.z + oz * 0.5, y: this.model.tiles.height(cave.mouth.x, cave.mouth.z) * TILE_HEIGHT, ox, oz, over: { x: cave.mouth.x - ox, z: cave.mouth.z - oz }, turns: cave.quarterTurns };
       if (Math.hypot(way.x - hero.x, way.z - hero.z) < NEAR) near.set(way.key, way);
     }
     for (const crypt of this.model.crypts) {
       const [ox, oz] = FACINGS[crypt.quarterTurns];
       const head = { x: crypt.middle.x + ox, z: crypt.middle.z + oz }; // (the head of its stairs)
-      const way = { kind: 'crypt' as const, key: `crypt:${crypt.stairs.x},${crypt.stairs.z}`, x: head.x, z: head.z, y: this.model.heightMap[crypt.stairs.x][crypt.stairs.z] * TILE_HEIGHT, ox, oz, over: { x: crypt.middle.x - ox * 0.5, z: crypt.middle.z - oz * 0.5 }, turns: crypt.quarterTurns };
+      const way = { kind: 'crypt' as const, key: `crypt:${crypt.stairs.x},${crypt.stairs.z}`, x: head.x, z: head.z, y: this.model.tiles.height(crypt.stairs.x, crypt.stairs.z) * TILE_HEIGHT, ox, oz, over: { x: crypt.middle.x - ox * 0.5, z: crypt.middle.z - oz * 0.5 }, turns: crypt.quarterTurns };
       if (Math.hypot(way.x - hero.x, way.z - hero.z) < NEAR) near.set(way.key, way);
     }
     const kept = [...near.values()].sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z)).slice(0, MOST);

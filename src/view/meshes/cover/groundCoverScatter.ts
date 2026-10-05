@@ -6,9 +6,7 @@
 import { campTiles } from '../../../model/camps/camps';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
-import { cellKey, cellLookup } from '../../../model/map/grid';
 import { onRoadBand, roadConnections } from '../../../model/map/roads';
-import { solidCells } from '../../../model/worldgen/world';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
 import { meadowPatches } from '../../../model/scenery/meadowPatches';
@@ -51,7 +49,8 @@ export interface GroundCover {
 // tiles are only half dirt, so their grassy margins get a steady line of
 // clumps (whatever the meadow density), making roads cut through the grass.
 export function scatterGroundCover(model: GameModel): GroundCover {
-  return createCoverScatter(model)(0, 0, model.size.width, model.size.depth);
+  const { x0, z0, x1, z1 } = model.area;
+  return createCoverScatter(model)(x0, z0, x1, z1);
 }
 
 // Scatters a region [x0, x1) x [z0, z1) at a time: every tile rolls from its
@@ -59,9 +58,23 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 // and chunks can be scattered only when they're about to be seen.
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  const scenery = (model.scenery ?? []).flatMap((s) => sceneryTiles(s).map(([x, z]) => cellKey(x, z))); // (rocks and landmarks: none growing through them)
-  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z))), ...model.caves.flatMap((c) => c.rock.map((t) => cellKey(t.x, t.z))), ...model.camps.flatMap((c) => campTiles(c).map((t) => cellKey(t.x, t.z))), ...scenery]); // (and crypts' ways down, caves' knolls: no grass in the dark, nor through the rock; nor through a camp's hay)
-  const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
+  // What grows nothing (buildings, wells, bushes; crypts' ways down, caves' knolls, camps' hay, rocks and landmarks),
+  // and the tiles with a tree: marked on grids of its own part of the map, straight from where each stands.
+  const { x0: ax, z0: az, x1: bx, z1: bz } = model.area;
+  const depth = bz - az;
+  const grid = () => new Uint8Array((bx - ax) * depth);
+  const [solidAt, treeAt] = [grid(), grid()];
+  const mark = (on: Uint8Array) => (x: number, z: number) => void (x >= ax && z >= az && x < bx && z < bz && (on[(x - ax) * depth + (z - az)] = 1));
+  const [block, plant] = [mark(solidAt), mark(treeAt)];
+  for (const p of [...model.houses, ...model.villages, ...model.bushes]) block(p.x, p.z);
+  for (const b of model.buildings) for (const [x, z] of b.tiles) block(x, z);
+  for (const c of model.crypts) for (const t of c.tiles) block(t.x, t.z);
+  for (const c of model.caves) for (const t of c.rock) block(t.x, t.z);
+  for (const c of model.camps) for (const t of campTiles(c)) block(t.x, t.z);
+  for (const piece of model.scenery ?? []) for (const [x, z] of sceneryTiles(piece)) block(x, z);
+  for (const t of model.trees) plant(t.x, t.z);
+  const at = (on: Uint8Array) => (x: number, z: number) => x >= ax && z >= az && x < bx && z < bz && on[(x - ax) * depth + (z - az)] === 1;
+  const [solid, hasTree] = [at(solidAt), at(treeAt)];
   const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)
   const [bloomPatch, patchKind] = [patches.strength, patches.kind];
   return (x0, z0, x1, z1) => {
@@ -69,12 +82,12 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
 
   for (let x = x0; x < x1; x++) {
     for (let z = z0; z < z1; z++) {
-      if (model.lakeMap[x][z] || solid(x, z)) continue;
-      const surface = model.surfaceMap[x][z];
+      if (model.tiles.lake(x, z) || solid(x, z)) continue;
+      const surface = model.tiles.surface(x, z);
       if (surface === 'plaza' || surface === 'field') continue; // paved, or crops
 
       const rng = mulberry32(hashCell(x, z, SCATTER_SALT));
-      const tier = model.heightMap[x][z];
+      const tier = model.tiles.height(x, z);
       const y = tier * TILE_HEIGHT;
       const item = (ox: number, oz: number, scale: number, variant: number): ScatterItem => ({
         x: x + ox,
@@ -88,7 +101,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       const offset = () => (rng() - 0.5) * SCATTER_SPREAD;
 
       if (surface === 'path') {
-        const roadMask = roadConnections(model.surfaceMap, x, z);
+        const roadMask = roadConnections(model.tiles, x, z);
         for (let i = 0; i < ROAD_EDGE_CANDIDATES; i++) {
           const ox = (rng() - 0.5) * 0.9;
           const oz = (rng() - 0.5) * 0.9;

@@ -21,7 +21,7 @@ export function buildScenery3d(scene: WorldSink, model: GameModel): void {
       const [sx, , sz] = sceneryGrid(s.kind);
       return greedyMesh(buildScenery(s.kind, s.variant), SCENERY_PALETTE, SCENERY_VOXEL, new THREE.Vector3((-sx / 2) * SCENERY_VOXEL, -SINK, (-sz / 2) * SCENERY_VOXEL));
     },
-    (s) => ({ x: s.x + (s.w - 1) / 2, y: model.heightMap[s.x][s.z] * TILE_HEIGHT, z: s.z + (s.d - 1) / 2, quarterTurns: s.quarterTurns }),
+    (s) => ({ x: s.x + (s.w - 1) / 2, y: model.tiles.height(s.x, s.z) * TILE_HEIGHT, z: s.z + (s.d - 1) / 2, quarterTurns: s.quarterTurns }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
 }
