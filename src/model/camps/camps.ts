@@ -3,10 +3,14 @@
 // generation from hashes of the seed and where they'd stand (not the world
 // rng), so each world's its own, before the trees, which are
 // cleared from where they stand (worldgen/world.ts), as round the ruins.
-// Each is a 5 x 5 patch of level grass: a fire in the middle, two tents and
-// a weapon rack at the back, crates on one side, the loot pile on the other,
-// a palisade round it all but for its way in (the middle of one side). Its
-// bandits are placed with the other foes (enemies/enemies.ts).
+// Each is a 5 x 5 stockade on level grass: a fire in the middle; along the
+// back two tents (a patched-hide one and a striped bell tent) either side of
+// the banner and its weapon rack, a watchtower in one back corner and the
+// woodpile in the other; stolen goods (crates, barrels) on one side, the loot
+// on the other; a palisade round it all, and over its way in (the middle of
+// one side) a gatehouse, torches lit on its posts. Each piece's look by its
+// variant (from where it stands). Its bandits are placed with the other foes
+// (enemies/enemies.ts).
 
 import { CAMPFIRE_COLLISION_HALF, CAMP_PROP_COLLISION_HALF, PALISADE_THICKNESS, VILLAGE_OUTER_RADIUS } from '../constants';
 import { spawnOf, type MapSize } from '../map/grid';
@@ -15,13 +19,14 @@ import type { Surface, Village } from '../types';
 import type { ForestDensity } from '../worldgen/trees';
 import { hashUnit } from '../../util/random';
 
-export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot' | 'palisade';
+export type CampPieceKind = 'fire' | 'tent' | 'rack' | 'crates' | 'loot' | 'palisade' | 'gate' | 'tower' | 'woodpile';
 
 export interface CampPiece {
   kind: CampPieceKind;
   x: number; // its tile, in the world
   z: number;
-  quarterTurns: number; // faces the camp's middle (local +Z); a palisade segment's: which edge of its tile (local -Z turned)
+  quarterTurns: number; // faces the camp's middle (local +Z); a palisade segment's (and the gate's): which edge of its tile (local -Z turned)
+  variant: number; // its look (0..3), from where it stands (a tent: 0 the hide one, 1 the bell tent)
 }
 
 export interface Camp {
@@ -113,14 +118,16 @@ function turn(dx: number, dz: number, quarterTurns: number): [number, number] {
   return [x, z];
 }
 
-// Its pieces, local offsets before turning (way in at local +Z): the fire in
-// the middle, two tents and the weapon rack along the back, crates on one side
-// and the loot pile on the other.
-const LAYOUT: Array<[CampPieceKind, number, number]> = [
+// Its pieces, local offsets before turning (way in at local +Z), and each one's look: the fire in the middle; along
+// the back the hide tent, the banner and weapon rack, the bell tent, the watchtower in the corner on one side and the
+// woodpile in the other's; stolen goods on one side and the loot on the other.
+const LAYOUT: Array<[CampPieceKind, number, number, number?]> = [
   ['fire', 0, 0],
-  ['tent', -1, -2],
-  ['tent', 1, -2],
+  ['tent', -1, -2, 0],
+  ['tent', 1, -2, 1],
   ['rack', 0, -2],
+  ['tower', -2, -2],
+  ['woodpile', 2, -2],
   ['crates', -2, 0],
   ['loot', 2, 0],
 ];
@@ -129,17 +136,23 @@ const LAYOUT: Array<[CampPieceKind, number, number]> = [
 const EDGE_TURNS = [3, 1, 2, 0];
 
 function layOut(cx: number, cz: number, quarterTurns: number): CampPiece[] {
-  const pieces: CampPiece[] = LAYOUT.map(([kind, dx, dz]) => {
+  const look = (x: number, z: number) => Math.floor(hashUnit(x, z, 74) * 4);
+  const pieces: CampPiece[] = LAYOUT.map(([kind, dx, dz, variant]) => {
     const [ox, oz] = turn(dx, dz, quarterTurns);
-    return { kind, x: cx + ox, z: cz + oz, quarterTurns };
+    return { kind, x: cx + ox, z: cz + oz, quarterTurns, variant: variant ?? look(cx + ox, cz + oz) };
   });
-  // The palisade: every outer edge of the border tiles, but for the way in (the middle of the local +Z side).
+  // The palisade: every outer edge of the border tiles, but for the way in (the middle of the local +Z side), where
+  // the gatehouse stands on its outer edge.
   const [ex, ez] = turn(0, 2, quarterTurns);
   for (let dx = -2; dx <= 2; dx++) {
     for (let dz = -2; dz <= 2; dz++) {
-      if (dx === ex && dz === ez) continue;
       const sides = [dx === 2, dx === -2, dz === 2, dz === -2];
-      sides.forEach((edge, side) => edge && pieces.push({ kind: 'palisade', x: cx + dx, z: cz + dz, quarterTurns: EDGE_TURNS[side] }));
+      sides.forEach((edge, side) => {
+        if (!edge) return;
+        const [x, z] = [cx + dx, cz + dz];
+        const gate = dx === ex && dz === ez;
+        pieces.push({ kind: gate ? 'gate' : 'palisade', x, z, quarterTurns: EDGE_TURNS[side], variant: look(x * 3 + side, z) });
+      });
     }
   }
   return pieces;
@@ -148,16 +161,17 @@ function layOut(cx: number, cz: number, quarterTurns: number): CampPiece[] {
 // Which side of its tile a palisade segment stands on (NEIGHBORS_4 order: +x, -x, +z, -z).
 export const palisadeSide = (piece: CampPiece): number => EDGE_TURNS.indexOf(piece.quarterTurns);
 
-// What blocks: tents their tile; the fire (too low to hide anyone), crates
-// and rack a square in the middle of theirs; the palisade a strip along its
-// edge. The loot pile doesn't.
+// What blocks: tents and the watchtower their tile; the fire (too low to hide
+// anyone), crates, rack and woodpile a square in the middle of theirs; the
+// palisade a strip along its edge. The loot pile doesn't, nor the gatehouse
+// (its posts stand where the palisade ends: the way in between them open).
 export function addCampObstacles(obstacles: Obstacles, camps: readonly Camp[]): void {
   for (const camp of camps) {
     for (const piece of camp.pieces) {
-      if (piece.kind === 'tent') obstacles.addSolid(piece.x, piece.z);
+      if (piece.kind === 'tent' || piece.kind === 'tower') obstacles.addSolid(piece.x, piece.z);
       else if (piece.kind === 'fire') obstacles.addProp(piece.x, piece.z, CAMPFIRE_COLLISION_HALF, true);
       else if (piece.kind === 'palisade') obstacles.addFenceStrip(piece.x, piece.z, palisadeSide(piece), PALISADE_THICKNESS);
-      else if (piece.kind !== 'loot') obstacles.addProp(piece.x, piece.z, CAMP_PROP_COLLISION_HALF);
+      else if (piece.kind !== 'loot' && piece.kind !== 'gate') obstacles.addProp(piece.x, piece.z, CAMP_PROP_COLLISION_HALF);
     }
   }
 }
