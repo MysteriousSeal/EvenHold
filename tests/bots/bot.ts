@@ -18,6 +18,7 @@ import { isProvision, PROVISIONS } from '../../src/model/loot/provisions';
 import { isPotion } from '../../src/model/loot/potions';
 import { setAction, useAction } from '../../src/model/hero/actionBar';
 import { dungeonAt } from '../../src/model/dungeons/dungeons';
+import { campLevel } from '../../src/model/camps/camps';
 import { callBarkeep, placeOrder } from '../../src/model/inn/barOrders';
 import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { squareBenches } from '../../src/model/worldgen/benches';
@@ -134,6 +135,12 @@ export class Bot extends BotVentures {
     if (isProvision(item)) this.stats.meals++;
   }
 
+  // Whether three or more foes are close by (a pack, a camp's crew): more than it should pick a fight with.
+  private outnumbered(): boolean {
+    const { hero } = this.model;
+    return this.model.foes.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 6).length >= 3;
+  }
+
   // Whether what's going on should give way (badly hurt, away from a bar, one with ale in reach).
   private urgent(): boolean {
     const { hero } = this.model;
@@ -165,7 +172,7 @@ export class Bot extends BotVentures {
     const done = quests.taken.find((t) => quests.done(t));
     const going = quests.taken.find((t) => !quests.done(t));
     const loot = this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
-    const foe = this.nearestFoe(12);
+    const foe = this.outnumbered() ? null : this.nearestFoe(12); // (a pack about: no fight picked with it, only those that come at them)
     const pick = (): string => {
       if (hurt && this.alehouse()) return 'heal'; // (in an inn already: at its bar)
       if (this.model.inside) return 'leave';
@@ -209,7 +216,7 @@ export class Bot extends BotVentures {
       case 'fight':
         return foe ? [this.fight(foe)] : [];
       case 'hunt': {
-        const prey = this.nearestFoe(60);
+        const prey = this.outnumbered() ? null : this.nearestFoe(60);
         return prey ? [this.walk(() => prey, 8), this.fight(prey)] : [];
       }
       case 'quest': {
@@ -257,11 +264,11 @@ export class Bot extends BotVentures {
         return [...this.enter(inn()), ...this.upstairs(), ...this.leave()];
       case 'dungeon': {
         // The nearest way down not far beyond them (a crypt's, a cave's), a day's walk at most.
-        const door = this.nearest(this.model.entrances.filter((e) => (e.type === 'crypt' || e.type === 'cave') && (dungeonAt(e)?.level ?? Infinity) <= hero.level + 2), 250);
+        const door = this.nearest(this.model.entrances.filter((e) => (e.type === 'crypt' || e.type === 'cave') && (dungeonAt(e)?.level ?? Infinity) <= hero.level), 250); // (none above them: its boss is more)
         return door ? this.dungeonTrip(door) : [];
       }
       case 'camp': {
-        const camp = this.nearest(this.model.camps.filter((c) => !this.model.campLife.status(c.way)?.chestOpened), 250);
+        const camp = this.nearest(this.model.camps.filter((c) => campLevel(c, this.model.size) < hero.level && !this.model.campLife.status(c.way)?.chestOpened), 250); // (a level under them: a camp's several at once, and its chief)
         return camp && hero.hp > maxHpOf(hero) * 0.7 ? this.campRaid(camp) : [];
       }
       case 'pedlar':
