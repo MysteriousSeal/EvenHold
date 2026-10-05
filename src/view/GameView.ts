@@ -49,6 +49,7 @@ import { buildScenery3d } from './meshes/scenery/sceneryMesh';
 import { TravellerViews } from './meshes/npc/travellerViews';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
 import { EntranceLife } from './meshes/dungeon/entranceLife';
+import { WildMovesView } from './meshes/enemy/wildMovesView';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { buildRoomScene } from './interior/roomView';
@@ -96,7 +97,8 @@ export class GameView {
   private readonly npcs = new NpcViews();
   private readonly travellers: TravellerViews; // on the roads
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
-  private readonly entrances: EntranceLife; // what marks the dungeons' ways in near the hero: bats, crows, wisps, glows, fires
+  private readonly entrances: EntranceLife;
+  private readonly wildMoves: WildMovesView; // a bear's slam and charge, a lynx's pounce, told on the ground // what marks the dungeons' ways in near the hero: bats, crows, wisps, glows, fires
   private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
@@ -154,6 +156,7 @@ export class GameView {
     this.travellers = new TravellerViews(this.scene);
     this.ambient = new AmbientLife(this.scene, model);
     this.entrances = new EntranceLife(this.scene, model);
+    this.wildMoves = new WildMovesView(this.scene);
     this.mist = new RuinMist(this.scene, model.ruins, (x, z) => model.getGroundY(x, z));
   }
 
@@ -325,6 +328,7 @@ export class GameView {
     this.mist.update(hero.x, hero.z, model.minutes, dt);
     this.ambient.update(dt, hero, model.minutes, true);
     this.entrances.update(dt, hero, model.minutes, true);
+    this.wildMoves.update(model.wild, (x, z) => model.getGroundY(x, z), dt, true);
     this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y

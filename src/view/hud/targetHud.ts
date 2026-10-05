@@ -6,6 +6,7 @@ import type { Enemy, EnemyKind } from '../../model/types';
 import { humanBust } from '../meshes/human/humanFigure';
 import { WOLF_PALETTE, buildHead } from '../meshes/enemy/wolfVoxels';
 import { BOAR_PALETTE, buildBoarHead } from '../meshes/enemy/boarVoxels';
+import { BEAR_PALETTE, LYNX_PALETTE, bearHead, lynxHead } from '../meshes/enemy/wildBeastVoxels';
 import { SKELETON_PALETTE, bossSkull, buildSkull } from '../meshes/enemy/skeletonVoxels';
 import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
 import { DRAUGR_PALETTE, buildDraugrHead, draugrLook } from '../meshes/enemy/draugrVoxels';
@@ -25,6 +26,8 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   ghost: () => voxelIcon('target:ghost', () => ({ grid: ghostHead(), palette: GHOST_PALETTE }), PORTRAIT_SIZE),
   wolf: () => voxelIcon('target:wolf', () => ({ grid: buildHead(), palette: WOLF_PALETTE }), PORTRAIT_SIZE),
   boar: () => voxelIcon('target:boar', () => ({ grid: buildBoarHead(), palette: BOAR_PALETTE }), PORTRAIT_SIZE),
+  bear: () => voxelIcon('target:bear', () => ({ grid: bearHead(), palette: BEAR_PALETTE }), PORTRAIT_SIZE),
+  lynx: () => voxelIcon('target:lynx', () => ({ grid: lynxHead(), palette: LYNX_PALETTE }), PORTRAIT_SIZE),
   bandit: (enemy) => {
     const human = enemy.human!;
     const key = `target:bandit:${JSON.stringify(human.look)}:${JSON.stringify(human.equipment)}`;

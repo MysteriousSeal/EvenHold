@@ -27,6 +27,32 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
       if (r <= 2.3) setColor(g, x, 0, z, r > 1.6 ? 2 : (x + z) % 2 ? 3 : 1);
     }
   }),
+  // A bear's claw: long, curved, pale at its point, dark at its root.
+  bearClaw: model([0xe0d4b8, 0xb8a888, 0x3a2a20], [2, 6, 4], (g) => {
+    fillBox(g, 0, 0, 0, 1, 1, 1, 3); // its root
+    fillBox(g, 0, 2, 1, 1, 3, 1, 2);
+    fillBox(g, 0, 4, 2, 1, 4, 2, 1); // curving
+    setColor(g, 0, 5, 3, 1); // to its point
+    setColor(g, 1, 5, 3, 1);
+  }),
+  // A thick bear pelt, laid flat: shaggy brown, darker in patches, its edges ragged, a paw at each corner.
+  bearPelt: model([0x5a3e2c, 0x43301f, 0x76543a], [8, 2, 7], (g) => {
+    fillBox(g, 1, 0, 1, 6, 0, 5, (x, _y, z) => ((x * 3 + z) % 5 === 0 ? 2 : (x + z) % 4 === 1 ? 3 : 1));
+    for (const [x, z] of [[0, 0], [7, 0], [0, 6], [7, 6]]) setColor(g, x, 0, z, 2); // its paws
+    for (const [x, z] of [[2, 2], [5, 3], [3, 4]]) setColor(g, x, 1, z, 3); // shaggy tufts
+  }),
+  // A lynx pelt, laid flat: tawny, spotted dark, pale down its middle.
+  lynxPelt: model([0xb8925e, 0x5a4026, 0xe8d8b8], [7, 1, 6], (g) => {
+    fillBox(g, 0, 0, 1, 6, 0, 4, (x, _y, z) => (z === 2 || z === 3 ? ((x + z) % 3 === 0 ? 2 : 3) : (x * 2 + z) % 4 === 0 ? 2 : 1));
+    for (const x of [1, 5]) for (const z of [0, 5]) setColor(g, x, 0, z, 1); // its legs' ends
+  }),
+  // A lynx's ear: a tawny point, pale inside, its long black tuft standing up.
+  lynxEar: model([0xb8925e, 0xe0ccaa, 0x1a1410], [3, 7, 2], (g) => {
+    fillBox(g, 0, 0, 0, 2, 2, 1, (x, _y, z) => (x === 1 && z === 1 ? 2 : 1));
+    setColor(g, 1, 3, 0, 1);
+    setColor(g, 1, 3, 1, 2);
+    for (let y = 4; y <= 6; y++) setColor(g, 1, y, 0, 3); // the tuft
+  }),
   // A skein of spider silk: a wound ball, pale, banded where it's wound across, a loose thread trailing.
   spiderSilk: model([0xe8e2d6, 0xc4bcae, 0xfaf6ee], [6, 3, 5], (g) => {
     for (let x = 0; x < 5; x++) for (let y = 0; y < 3; y++) for (let z = 0; z < 5; z++) {

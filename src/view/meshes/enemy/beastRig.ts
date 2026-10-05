@@ -1,5 +1,5 @@
-// One four-legged foe on screen (a wolf, a boar): voxel parts on joints
-// (wolfVoxels.ts, boarVoxels.ts), laid out by its spec, animated from its
+// One four-legged foe on screen (a wolf, a boar, a bear, a lynx): voxel parts on joints
+// (wolfVoxels.ts, boarVoxels.ts, wildBeastVoxels.ts), laid out by its spec, animated from its
 // model state each frame:
 // - trotting legs in diagonal pairs, paced by distance moved, a head bob,
 //   a tail that wags when idle and rides high when chasing;
@@ -17,6 +17,7 @@ import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZE, buildBody, buildHead, buildLeg, buildTail } from './wolfVoxels';
+import { BEAR_BODY, BEAR_HEAD, BEAR_LEG, BEAR_PALETTE, BEAR_TAIL, LYNX_BODY, LYNX_HEAD, LYNX_LEG, LYNX_PALETTE, LYNX_TAIL, bearBody, bearHead, bearLeg, bearTail, lynxBody, lynxHead, lynxLeg, lynxTail } from './wildBeastVoxels';
 import { BOAR_BODY_GRID, BOAR_HEAD_GRID, BOAR_LEG_GRID, BOAR_PALETTE, BOAR_TAIL_GRID, buildBoarBody, buildBoarHead, buildBoarLeg, buildBoarTail } from './boarVoxels';
 
 const V = WOLF_VOXEL_SIZE; // the boar's voxels are the wolf's size
@@ -37,6 +38,7 @@ export interface BeastSpec {
   leg: Part;
   tail: Part;
   headDrop: number; // voxels below the body's top that the head sits at
+  stealthy?: boolean; // faded nearly to nothing while it lurks (a lynx), solid once it's after the hero or hurt
   legsAt: Array<[number, number]>; // front right, front left, back right, back left (voxels, its right is -X)
 }
 
@@ -60,6 +62,29 @@ export const BOAR_SPEC: BeastSpec = {
   tail: { grid: buildBoarTail, size: BOAR_TAIL_GRID },
   headDrop: 5, // carried low
   legsAt: [[-2.5, 4], [2.5, 4], [-2.5, -4], [2.5, -4]],
+};
+
+export const BEAR_SPEC: BeastSpec = {
+  kind: 'bear',
+  palette: BEAR_PALETTE,
+  body: { grid: bearBody, size: BEAR_BODY },
+  head: { grid: bearHead, size: BEAR_HEAD },
+  leg: { grid: bearLeg, size: BEAR_LEG },
+  tail: { grid: bearTail, size: BEAR_TAIL },
+  headDrop: 7, // carried low, before its hump
+  legsAt: [[-3.5, 5.5], [3.5, 5.5], [-3.5, -5.5], [3.5, -5.5]],
+};
+
+export const LYNX_SPEC: BeastSpec = {
+  kind: 'lynx',
+  palette: LYNX_PALETTE,
+  body: { grid: lynxBody, size: LYNX_BODY },
+  head: { grid: lynxHead, size: LYNX_HEAD },
+  leg: { grid: lynxLeg, size: LYNX_LEG },
+  tail: { grid: lynxTail, size: LYNX_TAIL },
+  headDrop: 2, // held high, watching
+  legsAt: [[-2, 4.5], [2, 4.5], [-2, -4.5], [2, -4.5]],
+  stealthy: true,
 };
 
 export interface BeastLook {
@@ -95,15 +120,18 @@ export class BeastRig extends CreatureRig implements EnemyRig {
   private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
   private phase = 0;
+  private readonly own: THREE.MeshStandardMaterial | null = null; // a stealthy one's own look (faded on its own)
+  private seen = 1; // how much of a stealthy one shows (0..1)
 
   constructor(private readonly look: BeastLook) {
     super(0);
     const { spec } = look;
+    if (spec.stealthy) this.own = Object.assign((look.normal as THREE.MeshStandardMaterial).clone(), { transparent: true });
     const [LEG_H, BODY_H, BODY_L] = [spec.leg.size[1] * V, spec.body.size[1] * V, spec.body.size[2] * V];
     this.bar = new HealthBar(LEG_H + BODY_H + 0.2, enemyName(spec), ENEMY_STATS[spec.kind].passive);
     this.burst = new VoxelBurst(this.root, spec.palette.slice(0, 5), LEG_H + BODY_H);
     const part = (group: THREE.Group, geometry: THREE.BufferGeometry, parent: THREE.Object3D, x: number, y: number, z: number) => {
-      const mesh = new THREE.Mesh(geometry, look.normal);
+      const mesh = new THREE.Mesh(geometry, this.own ?? look.normal);
       group.add(mesh);
       group.position.set(x, y, z);
       parent.add(group);
@@ -147,10 +175,19 @@ export class BeastRig extends CreatureRig implements EnemyRig {
     this.tail.rotation.x = chasing ? 0.3 : -0.35; // up when running at you, low when calm
     this.tail.rotation.y = chasing ? 0 : Math.sin(this.time * 6) * 0.35; // idle wag
 
-    if (beast.swingFor !== null) this.lunge(beast.swingFor / ENEMY_STATS[this.look.spec.kind].swing);
+    if (beast.told) this.told(beast);
+    else if (beast.swingFor !== null) this.lunge(beast.swingFor / ENEMY_STATS[this.look.spec.kind].swing);
     else this.body.position.z = 0;
 
-    const material = beast.hurtFor > 0 ? this.look.flash : this.look.normal;
+    // A stealthy one, lurking, all but unseen; after the hero, or hurt, or doing something, there to see.
+    if (this.own) {
+      const hidden = beast.state === 'wander' && beast.hurtFor <= 0 && !beast.told;
+      this.seen += ((hidden ? 0.22 : 1) - this.seen) * Math.min(1, dt * (hidden ? 1.5 : 6));
+      this.own.opacity = this.seen;
+      this.own.depthWrite = this.seen > 0.95;
+      if (this.seen < 0.6) this.bar.group.visible = false; // (its name and bar over it would give it away)
+    }
+    const material = beast.hurtFor > 0 ? this.look.flash : (this.own ?? this.look.normal);
     for (const mesh of this.meshes) mesh.material = material;
   }
 
@@ -170,9 +207,44 @@ export class BeastRig extends CreatureRig implements EnemyRig {
     this.legs[3].rotation.x = key(-0.2, 0.5);
   }
 
+  // Its told move (enemies/wildMoves.ts), by how far into it (windUp): a bear rearing up on its hind legs, forelegs
+  // raised, then crashing down (its slam), or head down, pawing, then rushing (its charge); a lynx crouched, tail
+  // low, then springing in an arc (its pounce).
+  private told(beast: Enemy): void {
+    const s = beast.windUp ?? 0;
+    const [frontR, frontL, hindR, hindL] = this.legs;
+    const ease = (t: number) => t * t * (3 - 2 * t);
+    if (beast.told === 'slam') {
+      const tell = 1.0;
+      const up = s < tell ? ease(Math.min(1, s / (tell * 0.7))) : 0;
+      const down = s >= tell ? Math.max(0, 1 - (s - tell) / 0.35) : 0;
+      this.body.rotation.x = -0.85 * up + 0.22 * down;
+      this.body.position.set(0, 0.06 * up - 0.03 * down, -0.12 * up);
+      this.head.rotation.x = -0.4 * up + Math.sin(s * 30) * 0.05 * up; // (roaring)
+      for (const leg of [frontR, frontL]) leg.rotation.x = -1.1 * up + 0.3 * down; // forelegs raised
+      for (const leg of [hindR, hindL]) leg.rotation.x = 0.85 * up; // (hind legs kept under it)
+    } else if (beast.told === 'charge') {
+      const tell = 0.85;
+      const k = Math.min(1, s / tell);
+      this.body.rotation.x = 0.12 * k;
+      this.head.rotation.x = 0.35 * k; // head down
+      if (s < tell) frontR.rotation.x = Math.max(0, Math.sin(s * 14)) * 0.7 * k; // pawing
+    } else if (beast.told === 'lunge') {
+      const tell = 0.5;
+      const leap = s > tell ? Math.min(1, (s - tell) / 0.28) : 0;
+      const crouch = s < tell ? Math.min(1, s / tell) : 1 - leap;
+      this.body.position.y += -0.035 * crouch + Math.sin(Math.PI * leap) * 0.22;
+      this.body.rotation.x = 0.08 * crouch - 0.25 * Math.sin(Math.PI * leap);
+      this.tail.rotation.x = -0.5 * crouch;
+      for (const leg of [frontR, frontL]) leg.rotation.x = -0.25 * crouch - 1.0 * Math.sin(Math.PI * leap); // (reaching)
+      for (const leg of [hindR, hindL]) leg.rotation.x = 0.45 * crouch + 0.9 * Math.sin(Math.PI * leap); // (pushing off)
+    }
+  }
+
   // Death: roll onto the side, then burst into voxel pieces.
   private die(t: number, dt: number): void {
-    for (const mesh of this.meshes) mesh.material = this.look.normal;
+    for (const mesh of this.meshes) mesh.material = this.own ?? this.look.normal;
+    if (this.own) this.own.opacity = 1;
     this.body.rotation.x = 0;
     this.body.position.z = 0;
     const fall = Math.min(1, t / TOPPLE_TIME);
@@ -184,5 +256,6 @@ export class BeastRig extends CreatureRig implements EnemyRig {
   override dispose(): void {
     super.dispose();
     this.burst.dispose();
+    this.own?.dispose();
   }
 }
