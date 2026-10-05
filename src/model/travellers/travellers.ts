@@ -9,6 +9,7 @@
 // Foes leave them be; the guards go for the foes they meet (travellerFights.ts).
 // Kept in the save, each where they were.
 
+import { ENEMY_ACTIVE_RADIUS } from '../constants';
 import { hashUnit, mulberry32 } from '../../util/random';
 import type { Road } from '../worldgen/roads';
 import type { Humanoid } from '../human/humanoid';
@@ -134,6 +135,8 @@ export function makeTraveller(id: number, role: TravellerRole, road: number, alo
 
 // The world's travellers, walking: each frame, along their roads (on to another at a village), stopped for the hero
 // close by.
+const AWAKE = ENEMY_ACTIVE_RADIUS; // tiles from the hero a traveller walks on (shown from 30: on their way as they come in sight)
+
 export class Travellers {
   readonly list: Traveller[];
   readonly fights: TravellerFights; // the guards after the foes they meet
@@ -189,6 +192,7 @@ export class Travellers {
     this.heldFor = Math.max(0, this.heldFor - dt);
     const held = this.heldFor > 0 ? this.held : null; // (the one talking with the hero: the rest walk on by)
     for (const t of this.list) {
+      if (Math.abs(t.x - this.hero.x) > AWAKE || Math.abs(t.z - this.hero.z) > AWAKE) continue; // (far off: stood where they are, till the hero comes near)
       t.cooldown = Math.max(0, t.cooldown - dt);
       if (t.off) continue; // (a guard after a foe: travellerFights.ts walks them)
       if (t === held || (held && t.leader === held.id)) {
