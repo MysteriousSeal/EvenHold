@@ -7,7 +7,7 @@
 // noise), its sides steep. Palette first: weathered grey-brown stone in three tones, faint
 // strata, lichen; grass in patches over its tops only (where they face up),
 // draping a voxel over their edges; the mouth an arch under the lintel, black
-// within, its rim in shadow: cut into the rock only (never out past its
+// within, its rim in shadow, webs strung in its upper corners: cut into the rock only (never out past its
 // face), over a floor of its own rock; nothing laid before it. Dark only ever
 // where it faces into the mouth, never the open air. Roots hang from the lintel; a bone or two lie just inside. Sunk into
 // the ground (SINK) so it never floats where the hill rises under it.
@@ -35,6 +35,7 @@ const ENTRIES = {
   shade: 0x2e2722,
   deep: 0x15110e,
   dark: 0x060504,
+  silk: 0xd8d4c8,
 } as const;
 export const MOUTH_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
@@ -134,6 +135,31 @@ export function buildCaveMouth(variant: number): VoxelGrid {
       color = top && hashUnit(u, y, v) < 0.6 ? C.grass : over < 2 ? (tone < 0.5 ? C.earth : C.rockDark) : band ? C.strata : hashUnit(u * 3, y, v * 7) < 0.012 ? C.lichen : tone < 0.33 ? C.rockDark : tone > 0.7 ? C.rockLight : C.rock;
     }
     setColor(g, u, y, v, color);
+  }
+  // Webs strung in the arch's upper corners, in its mouth's front plane: a fan of threads out from a knot in the corner.
+  let face = FRONT; // (the mouth's front, at its middle, half way up)
+  while (face > FRONT - DEEP && !mouthAir(Math.round(MID), SINK + 10, face)) face--;
+  for (; face > FRONT - DEEP && mouthAir(Math.round(MID), SINK + 10, face - 1) && !rock(Math.round(MID), SINK + ARCH_HIGH, face); face--);
+  const web = face - 1;
+  const strand = (u0: number, y0: number, du: number, dy: number, reach: number) => {
+    for (let k = 0; k <= reach; k++) {
+      const [u, y] = [Math.round(u0 + du * k), Math.round(y0 + dy * k)];
+      if (!mouthAir(u, y, web)) return;
+      setColor(g, u, y, web, C.silk);
+    }
+  };
+  for (const side of [-1, 1]) {
+    const [ku, ky] = [MID + side * 5, SINK + ARCH_HIGH - 7]; // its knot, in the corner
+    for (let k = 0; k <= 4; k++) {
+      const a = (k / 4) * (Math.PI / 2); // (from straight up to straight out sideways, till it meets the rock)
+      strand(ku, ky, side * Math.sin(a), Math.cos(a), 16);
+    }
+    strand(ku, ky, -side * 0.4, -1, 4); // (and one down from it, sagging)
+    for (const r of [3, 6]) for (let k = 0; k <= 12; k++) { // two strands across the fan
+      const a = (k / 12) * (Math.PI / 2);
+      const [u, y] = [Math.round(ku + side * Math.sin(a) * r), Math.round(ky + Math.cos(a) * r)];
+      if (mouthAir(u, y, web)) setColor(g, u, y, web, C.silk);
+    }
   }
   return g;
 }

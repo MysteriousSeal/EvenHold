@@ -48,6 +48,7 @@ import { RuinMist } from './meshes/ruin/ruinMist';
 import { buildScenery3d } from './meshes/scenery/sceneryMesh';
 import { TravellerViews } from './meshes/npc/travellerViews';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
+import { EntranceLife } from './meshes/dungeon/entranceLife';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { buildRoomScene } from './interior/roomView';
@@ -59,6 +60,7 @@ import type { Entrance } from '../model/interiors/interiors';
 import { buildCamps } from './meshes/camp/campMesh';
 import { buildRuins } from './meshes/ruin/ruinMesh';
 import { buildCaveMouths } from './meshes/cave/caveMouthMesh';
+import { buildEntranceDressing } from './meshes/dungeon/entranceDressing';
 import type { WorldSink } from './world/chunkLayer';
 
 // One named chunk of world building, run by the loader between repaints.
@@ -94,6 +96,7 @@ export class GameView {
   private readonly npcs = new NpcViews();
   private readonly travellers: TravellerViews; // on the roads
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
+  private readonly entrances: EntranceLife; // what marks the dungeons' ways in near the hero: bats, crows, wisps, glows, fires
   private readonly coins: CoinViews;
   private readonly loot: LootViews;
   private readonly campFires: CampFires;
@@ -150,6 +153,7 @@ export class GameView {
     this.boardMarks = new BoardMarks(this.scene, model);
     this.travellers = new TravellerViews(this.scene);
     this.ambient = new AmbientLife(this.scene, model);
+    this.entrances = new EntranceLife(this.scene, model);
     this.mist = new RuinMist(this.scene, model.ruins, (x, z) => model.getGroundY(x, z));
   }
 
@@ -179,6 +183,7 @@ export class GameView {
       { label: 'Kindling the campfires', run: () => buildCamps(scene, model) },
       { label: 'Crumbling the old ruins', run: () => buildRuins(scene, model) },
       { label: 'Hollowing the hills', run: () => buildCaveMouths(scene, model) },
+      { label: 'Lighting the old braziers', run: () => buildEntranceDressing(scene, model) },
       { label: 'Setting the old stones', run: () => buildScenery3d(scene, model) },
       { label: 'Waking the lands nearby', run: () => this.world.loadAround(model.hero.x, model.hero.z) },
     ];
@@ -188,7 +193,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, ...this.entrances.materials, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
     this.stylizer = stylize(this.scene, materials);
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
@@ -319,6 +324,7 @@ export class GameView {
     this.boardMarks.update(hero.x, hero.z, this.elapsed);
     this.mist.update(hero.x, hero.z, model.minutes, dt);
     this.ambient.update(dt, hero, model.minutes, true);
+    this.entrances.update(dt, hero, model.minutes, true);
     this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y

@@ -16,15 +16,16 @@ const LOOKS = 3;
 
 export function buildCaveMouths(scene: WorldSink, model: GameModel): void {
   const look = (c: GameModel['caves'][number]) => (c.mouth.x * 7 + c.mouth.z * 3) % LOOKS;
+  const place = (c: GameModel['caves'][number]) => {
+    const [ox, oz] = FACINGS[c.quarterTurns];
+    return { x: c.mouth.x - ox, y: model.heightMap[c.mouth.x][c.mouth.z] * TILE_HEIGHT - SINK * MOUTH_VOXEL, z: c.mouth.z - oz, quarterTurns: c.quarterTurns }; // (the knoll's middle: a tile back from its mouth)
+  };
   addVoxelInstances(
     scene,
     model.caves,
     (c) => `caveMouth:${look(c)}`,
     (c) => greedyMesh(buildCaveMouth(look(c)), MOUTH_PALETTE, MOUTH_VOXEL, ORIGIN),
-    (c) => {
-      const [ox, oz] = FACINGS[c.quarterTurns];
-      return { x: c.mouth.x - ox, y: model.heightMap[c.mouth.x][c.mouth.z] * TILE_HEIGHT - SINK * MOUTH_VOXEL, z: c.mouth.z - oz, quarterTurns: c.quarterTurns }; // (the knoll's middle: a tile back from its mouth)
-    },
+    place,
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
 }
