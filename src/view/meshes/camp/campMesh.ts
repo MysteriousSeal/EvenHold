@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import type { CampPieceKind } from '../../../model/camps/camps';
+import { campTiles, type CampPieceKind } from '../../../model/camps/camps';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { HOUSE_WINDOW_GLOW } from '../../constants';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -45,7 +45,7 @@ export function buildCamps(scene: WorldSink, model: GameModel): void {
     new THREE.MeshStandardMaterial({ vertexColors: true, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.6, roughness: 0.5 }),
   );
   // Its floor: every tile inside the palisade strewn with hay, each in one of its looks, turned as it falls.
-  const floor = model.camps.flatMap((camp) => Array.from({ length: 25 }, (_, i) => ({ x: camp.x + (i % 5) - 2, z: camp.z + Math.floor(i / 5) - 2 })));
+  const floor = model.camps.flatMap(campTiles);
   const roll = (t: { x: number; z: number }) => (t.x * 7 + t.z * 13) & 3;
   addVoxelInstances(
     scene,

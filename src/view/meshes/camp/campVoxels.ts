@@ -13,7 +13,7 @@
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox, setColor, voxelLine } from '../voxel/voxelShapes';
-import { hashUnit } from '../../../util/random';
+import { hashUnit, smoothNoise } from '../../../util/random';
 
 export const CAMP_VOXEL_SIZE = 0.04;
 export const TILE = 25;
@@ -252,7 +252,7 @@ export function buildStrawFloor(variant: number): VoxelGrid {
   const clumps = Array.from({ length: 3 }, (_, k) => ({ x: 4 + hashUnit(k, variant, seed) * 16, z: 4 + hashUnit(variant, k, seed + 1) * 16, r: 2.2 + hashUnit(k, k, seed + 2) * 1.6 }));
   const heights: number[] = [];
   for (let x = 0; x < TILE; x++) for (let z = 0; z < TILE; z++) {
-    const drift = smooth(x, z, seed, 6);
+    const drift = smoothNoise(x, z, seed, 6);
     let h = drift < 0.3 ? 0 : Math.round(1 + (drift - 0.3) * 3.2 + (hashUnit(x, z, seed + 3) - 0.5) * 0.8); // (bare where it's trodden down)
     for (const c of clumps) {
       const d = Math.hypot(x - c.x, z - c.z);
@@ -275,13 +275,4 @@ export function buildStrawFloor(variant: number): VoxelGrid {
     set(g, x + dx, base + 2, z + dz, C.straw);
   }
   return g;
-}
-
-// Smooth noise (0..1) over a lattice `cell` apart: soft drifts, not speckle.
-function smooth(u: number, v: number, seed: number, cell: number): number {
-  const [gu, gv] = [Math.floor(u / cell), Math.floor(v / cell)];
-  const [fu, fv] = [u / cell - gu, v / cell - gv];
-  const [su, sv] = [fu * fu * (3 - 2 * fu), fv * fv * (3 - 2 * fv)];
-  const at = (a: number, b: number) => hashUnit(gu + a, gv + b, seed);
-  return (at(0, 0) * (1 - su) + at(1, 0) * su) * (1 - sv) + (at(0, 1) * (1 - su) + at(1, 1) * su) * sv;
 }

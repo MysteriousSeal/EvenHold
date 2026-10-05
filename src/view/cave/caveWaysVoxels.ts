@@ -12,9 +12,9 @@
 
 import { createGrid, setColor } from '../meshes/voxel/voxelShapes';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
-import { hashUnit } from '../../util/random';
+import { hashUnit, smoothNoise } from '../../util/random';
 import { C, TALL, TILE } from './cavePalette';
-import { ROCK_HIGH, lumpy, rockTile } from './caveRockVoxels';
+import { ROCK_HIGH, rockTile } from './caveRockVoxels';
 
 const set = (g: VoxelGrid, x: number, y: number, z: number, c: number) => {
   if (x >= 0 && y >= 0 && z >= 0 && x < g.size[0] && y < g.size[1] && z < g.size[2]) setColor(g, x, y, z, c);
@@ -33,18 +33,18 @@ export function wayUp(): VoxelGrid {
   const SHOULDER = 6;
   const tread = (u: number, v: number) => {
     const k = Math.min(STEPS - 1, Math.floor(v / (TILE / STEPS)));
-    return 2 + k * 3 + Math.round((lumpy(u, k, 820, 6) - 0.5) * 2); // (uneven: worn more where feet go)
+    return 2 + k * 3 + Math.round((smoothNoise(u, k, 820, 6) - 0.5) * 2); // (uneven: worn more where feet go)
   };
   for (let u = 0; u < W; u++) {
     for (let v = 0; v < TILE; v++) {
       const edge = Math.min(u, W - 1 - u);
-      const shoulder = SHOULDER + Math.round(lumpy(v, u < W / 2 ? 0 : 1, 821, 4) * 3);
+      const shoulder = SHOULDER + Math.round(smoothNoise(v, u < W / 2 ? 0 : 1, 821, 4) * 3);
       if (edge < shoulder) {
         // A low shoulder of rock, climbing with the steps; moss and grass on its top, more of it higher up.
-        const top = tread(u, v) + 4 + Math.round(lumpy(u, v, 822, 3) * 3);
+        const top = tread(u, v) + 4 + Math.round(smoothNoise(u, v, 822, 3) * 3);
         for (let y = 0; y < top; y++) {
           const crown = y === top - 1;
-          const tone = lumpy(u + y, v, 823, 3);
+          const tone = smoothNoise(u + y, v, 823, 3);
           set(g, u, y, v, crown && hashUnit(u, v, 824) < 0.25 + v / 40 ? (v > 16 ? C.grass : C.moss) : (y + Math.round(tone * 3)) % 8 < 2 ? C.strata : tone < 0.4 ? C.rockDark : C.rock);
         }
         // Roots trailing down its inner face.
@@ -133,7 +133,7 @@ export function hoard(torn: boolean): VoxelGrid {
   if (!torn) return g;
   // Inside: gold heaped up, spilling over the lip on one side; the hilt.
   for (let x = 4; x <= 9; x++) for (let z = 3; z <= 14; z++) {
-    const high = 5 + Math.round(lumpy(x, z, 840, 3) * 2);
+    const high = 5 + Math.round(smoothNoise(x, z, 840, 3) * 2);
     for (let y = 3; y <= high; y++) set(g, x, y, z, (x + z + y) % 3 === 0 ? C.goldDark : C.gold);
   }
   for (let z = 6; z <= 10; z++) for (let x = 10; x <= 13; x++) set(g, x, Math.max(0, 13 - x - (z % 2)), z, (x + z) % 2 ? C.gold : C.goldDark); // (spilling out)

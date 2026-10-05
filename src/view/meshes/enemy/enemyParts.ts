@@ -103,7 +103,7 @@ export class HealthBar {
 
   // The level, just left of the name (as tall), in its danger colour.
   private showLevel(level: number): void {
-    const ink = DANGER_INK[difficulty(level, heroLevel)];
+    const ink = dangerInk(level, heroLevel);
     const key = `${level}|${ink}`;
     if (key === this.shown) return;
     this.shown = key;

@@ -14,8 +14,7 @@
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
-import { hashUnit } from '../../../util/random';
-import { lumpy } from '../../cave/caveRockVoxels';
+import { hashUnit, smoothNoise } from '../../../util/random';
 
 export const MOUTH_VOXEL = 0.04;
 export const SINK = 8; // voxels of it below the ground (y SINK the ground's level at the mouth)
@@ -86,7 +85,7 @@ export function buildCaveMouth(variant: number): VoxelGrid {
   const at = (u: number, y: number, v: number) => u + W * (y + H * v);
   for (let u = 0; u < W; u++) for (let v = 0; v < D; v++) for (let y = 0; y < H; y++) {
     const over = y - SINK;
-    const rough = (lumpy(u + y * 0.7, v + y * 0.4, 932 + variant, 5) - 0.5) * 0.32;
+    const rough = (smoothNoise(u + y * 0.7, v + y * 0.4, 932 + variant, 5) - 0.5) * 0.32;
     if (!all.some((m) => Math.abs((u - m.c[0]) / m.r[0]) ** STEEP + Math.abs((v - m.c[2]) / m.r[2]) ** STEEP + ((over - m.c[1]) / m.r[1]) ** 2 <= 1 + rough)) continue;
     if (inMouth(u, over, v)) carved[at(u, y, v)] = 1;
     else solid[at(u, y, v)] = 1;
@@ -123,15 +122,15 @@ export function buildCaveMouth(variant: number): VoxelGrid {
     } else if (toMouth) color = C.shade; // its rim
     else if (openAir(u, y + 1, v) && over > 1) {
       // A top, facing up: grass in patches, bare rock and moss between.
-      const patch = lumpy(u, v, 933 + variant, 6);
+      const patch = smoothNoise(u, v, 933 + variant, 6);
       const tone = hashUnit(u, v, 934);
       if (steep(u, v) || patch < 0.32) color = tone < 0.2 ? C.moss : tone < 0.3 ? C.lichen : tone < 0.7 ? C.rockLight : C.rock; // (bare stone where it's steep, and in patches)
       else color = patch > 0.64 ? C.grassLight : C.grass;
     } else {
       // A side: grass draping a voxel over the edge of the top above; else the stone.
-      const top = rock(u, y + 1, v) && openAir(u, y + 2, v) && lumpy(u, v, 933 + variant, 6) >= 0.32 && !steep(u, v);
-      const tone = lumpy(u + y * 0.5, v - y * 0.5, 935 + variant, 4);
-      const band = (over + Math.round(lumpy(u + v, 0, 936, 9) * 4)) % 9 === 0;
+      const top = rock(u, y + 1, v) && openAir(u, y + 2, v) && smoothNoise(u, v, 933 + variant, 6) >= 0.32 && !steep(u, v);
+      const tone = smoothNoise(u + y * 0.5, v - y * 0.5, 935 + variant, 4);
+      const band = (over + Math.round(smoothNoise(u + v, 0, 936, 9) * 4)) % 9 === 0;
       color = top && hashUnit(u, y, v) < 0.6 ? C.grass : over < 2 ? (tone < 0.5 ? C.earth : C.rockDark) : band ? C.strata : hashUnit(u * 3, y, v * 7) < 0.012 ? C.lichen : tone < 0.33 ? C.rockDark : tone > 0.7 ? C.rockLight : C.rock;
     }
     setColor(g, u, y, v, color);
