@@ -4,8 +4,8 @@
 // instead would change ("+2 Armour" in green, "−1 Agility" in red).
 
 import { SLOT_NAMES, type Equipment } from '../../model/human/equipment';
-import { AFFIXES, RARITY_NAMES, canWear, gearName, gearOf, gearSpecs, slotOfGear, type Affix, type GearKey, type GearSpecs, type SpecLine } from '../../model/human/items/gear';
-import { STATS, STAT_NAMES, type Stat } from '../../model/hero/statKinds';
+import { AFFIXES, RARITY_NAMES, canWear, gearName, gearOf, gearSpecs, noSpecs, slotOfGear, type Affix, type GearKey, type GearSpecs, type SpecLine } from '../../model/human/items/gear';
+import { STATS, STAT_NAMES, isStat } from '../../model/hero/statKinds';
 import { toned, type MenuLine } from '../../view/ui/menu';
 
 const percent = (n: number) => `${Math.round(n * 100)}%`;
@@ -16,7 +16,6 @@ const AFFIX_TEXT: Record<Affix, (n: number) => string> = {
   speed: (n) => `+${percent(n)} pace`,
   leech: (n) => `+${percent(n)} of damage dealt healed`,
 };
-const isStat = (kind: SpecLine['kind']): kind is Stat => (STATS as readonly string[]).includes(kind);
 export const specText = ({ kind, amount }: Pick<SpecLine, 'kind' | 'amount'>): string =>
   kind === 'armor' ? `Armour ${amount}` : isStat(kind) ? `+${amount} ${STAT_NAMES[kind]}` : AFFIX_TEXT[kind](amount);
 
@@ -36,7 +35,7 @@ export function gearLines(key: GearKey, heroLevel?: number): MenuLine[] {
 // STAT_WORTH of armour's (a stat does more: health, dodge, a harder blow), and each special line by its own worth.
 const STAT_WORTH = 2;
 const AFFIX_WORTH: Record<Affix, number> = { crit: 300, dodge: 300, regen: 3, speed: 200, leech: 250 }; // (a point's: a hundredth of crit, of dodge, of pace, of leech ~ 2-3 armour)
-const NONE: GearSpecs = { armor: 0, stats: { strength: 0, agility: 0, stamina: 0, endurance: 0 }, affixes: { crit: 0, dodge: 0, regen: 0, speed: 0, leech: 0 }, lines: [] };
+const NONE = noSpecs();
 const worthOf = (g: GearSpecs) => g.armor + STAT_WORTH * STATS.reduce((n, s) => n + g.stats[s], 0) + AFFIXES.reduce((n, a) => n + g.affixes[a] * AFFIX_WORTH[a], 0);
 
 // What wearing `key` instead of what's in its slot (`equipment`'s) would change, as WoW tells it: a line saying so,
