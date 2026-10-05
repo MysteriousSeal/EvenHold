@@ -181,7 +181,7 @@ export class GameController {
     // 1 to 8: what's in that slot of the action bar, eaten or drunk from the bag.
     const action = this.input.consumeAction();
     if (action !== null) useAction(this.model.hero, action);
-    // Shift: a roll the way they're going (standing, backwards); Q held: the guard up.
+    // Shift: a roll the way they're going (standing, forward); Q held: the guard up.
     if (this.input.consumeRoll()) this.model.roll(dirX, dirZ);
     this.model.raiseGuard(this.input.guarding);
     this.model.update(dirX, dirZ, dt);
