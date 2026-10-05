@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import { chestInReach } from '../model/loot/chests';
 import { useAction } from '../model/hero/actionBar';
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
@@ -141,8 +142,7 @@ export class GameController {
       const item = this.model.pickUp();
       const talker = talkingTo(this.model.npcs, this.model.inside, this.model.hero); // the barmaid, the smith
       if (item) this.onPickUp(item);
-      else if (this.model.dungeon?.chestInReach(this.model.hero)) this.model.dungeon.openChest(); // a crypt lord's chest, a brood mother's hoard
-      else if (!this.model.inside && !this.model.dungeon && this.model.campLife.chestInReach(this.model.hero)) this.model.campLife.openChest(this.model.campLife.chestInReach(this.model.hero)!); // a bandit camp's (once its chief's down)
+      else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;

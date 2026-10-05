@@ -1,7 +1,7 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
-import { chestOf } from './model/camps/campLife';
+import { chestInReach } from './model/loot/chests';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
@@ -175,14 +175,13 @@ async function boot(): Promise<void> {
   ]);
   // What E does right now: pick up loot in reach, else sit or lie down (or get up), else go through a door.
   const DOOR_NAMES = { house: 'Enter house', inn: 'Enter the inn', smithy: 'Enter the smithy' } as const;
+  const CHEST_PROMPTS = { chest: 'Open the chest', hoard: 'Tear open the hoard', locked: 'Locked · the chief has the key' } as const;
   const promptTarget = (): PromptTarget | null => {
     const loot = model.lootInReach;
     if (loot) return lootTarget(loot);
     const { hero } = model;
-    const chest = model.dungeon?.chestInReach(hero) && model.dungeon.chest;
-    if (chest) return { label: model.cave ? 'Tear open the hoard' : 'Open the chest', x: chest.x, y: 0.8, z: chest.z }; // (a lord's chest, a brood mother's silk-wrapped hoard)
-    const campChest = !model.inside && !model.dungeon ? model.campLife.chestInReach(hero) : null; // (a bandit camp's: locked while its chief stands)
-    if (campChest) return { label: model.campLife.locked(campChest) ? 'Locked · the chief has the key' : 'Open the chest', x: chestOf(campChest).x, y: model.getGroundY(chestOf(campChest).x, chestOf(campChest).z) + 0.55, z: chestOf(campChest).z };
+    const chest = chestInReach(model); // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
+    if (chest) return { label: CHEST_PROMPTS[chest.what], x: chest.x, y: chest.y, z: chest.z };
     const seated = model.seated;
     const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
     const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
