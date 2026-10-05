@@ -121,6 +121,11 @@ export class InnShift {
     return this.barEnd.z;
   }
 
+  // Where the orders ready stand: on the counter, at its end (the room's mugs there: MUG_AT, roomView.ts).
+  get readySpot(): { x: number; z: number } {
+    return { x: this.barEnd.x + 0.1, z: this.barEnd.z };
+  }
+
   // What's in the hero's hand (drawn in hand: the first on the tray), or nothing.
   get carrying(): Order | null {
     const item = this.tray[0];
