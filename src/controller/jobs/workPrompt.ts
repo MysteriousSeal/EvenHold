@@ -1,7 +1,6 @@
 // What E would do at work (model/jobs/work.ts), as the prompt over where it's done (and before an inn's notice board,
-// its work): take a patron's order; hand them
-// what's in hand (theirs: set down; not theirs: what they asked for, and R to switch); clear a table's empties; at the
-// counter's end, give back empties and take up what's ready.
+// its work): take a patron's order; set theirs down, off the tray; clear a table's empties; at the counter's end,
+// give back empties and take up what's ready.
 
 import type { GameModel } from '../../model/GameModel';
 import { ORDER_NAMES } from '../../model/jobs/innShift';
@@ -23,8 +22,7 @@ export function workPrompt(model: GameModel): PromptTarget | null {
       return { label: `Take ${action.want.npc.name}'s order`, x: action.want.npc.x, y: 1.1, z: action.want.npc.z, npc: action.want.npc }; // (their name giving way to it)
     case 'serve': {
       const { npc, order } = action.want;
-      const label = action.right ? `Set down ${ORDER_NAMES[order]} for ${npc.name}` : `${npc.name} wants ${ORDER_NAMES[order]} · R to switch`;
-      return { label, x: npc.x, y: 1.1, z: npc.z, npc, muted: !action.right };
+      return { label: `Set down ${ORDER_NAMES[order]} for ${npc.name}`, x: npc.x, y: 1.1, z: npc.z, npc };
     }
     case 'clear':
       return { label: `Clear ${counted(action.empties.length, 'the empty', 'empties')}`, x: action.table.x, y: 0.9, z: action.table.z };

@@ -117,12 +117,12 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     } else {
       terms.append(
         term('A shift', [hours(SHIFT).replace(' hours', ''), el('em', undefined, 'hours')], 'on the clock'),
-        term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip, the quicker it comes'),
+        term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip · paid when the shift ends'),
         term('Clean shift', [`+${BONUS}`, el('em', undefined, 'each')], 'if no one walks out'),
       );
     }
     const key = (cap: string, does: string) => el('span', 'job-key', el('kbd', undefined, cap), does);
-    const keys = el('div', 'job-keys', key('E', 'take · fetch · serve · clear'), key('R', 'switch what’s in hand'));
+    const keys = el('div', 'job-keys', key('E', 'take an order · fetch it from the bar · set it down · clear a table'));
     foot.append(terms, keys, button);
     button.addEventListener('click', () => {
       if (shift) {

@@ -20,7 +20,6 @@ const ROLL_KEYS = ['ShiftLeft', 'ShiftRight']; // a roll, as Shift's pressed
 const GUARD_KEY = 'KeyQ'; // held: the guard raised
 const ACTION_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']; // the action bar's slots (hero/actionBar.ts)
 const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
-const SWITCH_KEY = 'KeyR'; // at work: the next on the tray in hand (model/jobs/innShift.ts)
 
 export class KeyboardInput {
   private readonly pressed = new Set<Direction>();
@@ -31,7 +30,6 @@ export class KeyboardInput {
   private rollRequested = false;
   private guardHeld = false;
   private actionRequested: number | null = null;
-  private switchRequested = false;
 
   constructor() {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -85,13 +83,6 @@ export class KeyboardInput {
     return requested;
   }
 
-  // True once per press of R (at work: what's in hand switched).
-  consumeSwitch(): boolean {
-    const requested = this.switchRequested;
-    this.switchRequested = false;
-    return requested;
-  }
-
   // What's ordered, once per press of an order key (F: an ale, G: a pie); else null.
   consumeOrder(): BarMenuItem | null {
     const requested = this.orderRequested;
@@ -114,10 +105,6 @@ export class KeyboardInput {
     }
     if (e.code in ORDER_KEYS) {
       if (isDown && !e.repeat) this.orderRequested = ORDER_KEYS[e.code];
-      return;
-    }
-    if (e.code === SWITCH_KEY) {
-      if (isDown && !e.repeat) this.switchRequested = true;
       return;
     }
     if (e.code === PICKUP_KEY) {

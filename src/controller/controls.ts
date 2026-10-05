@@ -23,7 +23,6 @@ export const CONTROL_GROUPS: ReadonlyArray<{ name: string; controls: readonly Co
       { what: 'Move', keys: 'W A S D, or the arrows', marks: [{ cluster: 'wasd' }, word('or'), { cluster: 'arrows' }] },
       { what: 'Roll', note: 'untouchable a moment', keys: 'Shift', marks: [cap('Shift')] },
       { what: 'Pick up, talk, sit, open, go in', keys: 'E', marks: [cap('E')] },
-      { what: 'At work: switch what\'s in hand', note: 'serving tables, the next on the tray', keys: 'R', marks: [cap('R')] },
       { what: 'Zoom', keys: 'Mouse wheel', marks: [{ mouse: 'wheel' }] },
     ],
   },

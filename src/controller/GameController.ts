@@ -124,7 +124,6 @@ export class GameController {
   private step(dt: number): void {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
-    if (this.input.consumeSwitch()) this.model.work.switchHeld(); // R at work: the next on the tray in hand
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
     if (turn && (!this.model.inside || this.model.dungeon) && !this.model.yard) this.model.cycleFocus(turn === 'back');
     // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
