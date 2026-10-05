@@ -59,7 +59,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
   const scenery = (model.scenery ?? []).flatMap((s) => sceneryTiles(s).map(([x, z]) => cellKey(x, z))); // (rocks and landmarks: none growing through them)
-  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z))), ...model.caves.flatMap((c) => c.rock.map((t) => cellKey(t.x, t.z))), ...scenery]); // (and crypts' ways down, caves' knolls: no grass in the dark, nor through the rock)
+  const solid = cellLookup(model.size, [...solidCells(model, model.bushes), ...model.crypts.flatMap((c) => c.tiles.map((t) => cellKey(t.x, t.z))), ...model.caves.flatMap((c) => c.rock.map((t) => cellKey(t.x, t.z))), ...model.camps.flatMap((c) => Array.from({ length: 25 }, (_, i) => cellKey(c.x + (i % 5) - 2, c.z + Math.floor(i / 5) - 2))), ...scenery]); // (and crypts' ways down, caves' knolls: no grass in the dark, nor through the rock; nor through a camp's hay)
   const hasTree = cellLookup(model.size, model.trees.map((t) => cellKey(t.x, t.z)));
   const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)
   const [bloomPatch, patchKind] = [patches.strength, patches.kind];

@@ -1,42 +1,59 @@
-// Bandit camps (model/camps/camps.ts, voxels: campVoxels.ts): every piece of
-// every camp, its palisade too, meshed plain plus glowing (flames and gold),
-// streamed with the chunks.
+// Bandit camps (model/camps/camps.ts; voxels: campVoxels.ts, campPropVoxels.ts): every piece of every camp, each
+// kind and look meshed once, plain plus glowing (embers, torchlight, gold); its floor strewn with hay; streamed with the chunks.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
+import type { CampPieceKind } from '../../../model/camps/camps';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { HOUSE_WINDOW_GLOW } from '../../constants';
 import type { WorldSink } from '../../world/chunkLayer';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { addVoxelInstances } from '../voxel/voxelInstances';
-import { CAMP_GLOWING, CAMP_GRID, CAMP_PALETTE, CAMP_VOXEL_SIZE, buildCampfire, buildCrates, buildLoot, buildPalisade, buildRack, buildTent } from './campVoxels';
+import { CAMP_GLOWING, CAMP_PALETTE, CAMP_VOXEL_SIZE, TILE, buildGate, buildPalisade, buildStrawFloor, buildTower, buildWoodpile } from './campVoxels';
+import { buildCampfire, buildCrates, buildLoot, buildRack, buildTent } from './campPropVoxels';
 
-type Model = 'fire' | 'tent' | 'rack' | 'crates' | 'loot' | 'palisade';
-const BUILD: Record<Model, () => VoxelGrid> = {
+const BUILD: Record<CampPieceKind, (variant: number) => VoxelGrid> = {
   fire: buildCampfire,
   tent: buildTent,
   rack: buildRack,
   crates: buildCrates,
   loot: buildLoot,
   palisade: buildPalisade,
+  gate: buildGate,
+  tower: buildTower,
+  woodpile: buildWoodpile,
 };
-const ORIGIN = new THREE.Vector3((-CAMP_GRID[0] * CAMP_VOXEL_SIZE) / 2, 0, (-CAMP_GRID[2] * CAMP_VOXEL_SIZE) / 2);
+const LOOKS: ReadonlySet<CampPieceKind> = new Set(['tent', 'palisade']); // (the kinds whose variant changes how they look)
+const ORIGIN = new THREE.Vector3((-TILE * CAMP_VOXEL_SIZE) / 2, 0, (-TILE * CAMP_VOXEL_SIZE) / 2);
 
-export function buildCampGeometry(model: Model, glowing: boolean): THREE.BufferGeometry {
-  return greedyMesh(BUILD[model](), CAMP_PALETTE, CAMP_VOXEL_SIZE, ORIGIN, (c) => CAMP_GLOWING.has(c) === glowing);
+export function buildCampGeometry(kind: CampPieceKind, glowing: boolean, variant = 0): THREE.BufferGeometry {
+  return greedyMesh(BUILD[kind](variant), CAMP_PALETTE, CAMP_VOXEL_SIZE, ORIGIN, (c) => CAMP_GLOWING.has(c) === glowing);
 }
 
 export function buildCamps(scene: WorldSink, model: GameModel): void {
   const ground = (x: number, z: number) => model.heightMap[x][z] * TILE_HEIGHT;
-  const pieces = model.camps.flatMap((camp) => camp.pieces.map((p) => ({ model: p.kind as Model, x: p.x, z: p.z, quarterTurns: p.quarterTurns })));
+  const pieces = model.camps.flatMap((camp) => camp.pieces.map((p) => ({ ...p, look: LOOKS.has(p.kind) ? p.variant : 0 })));
+  const key = (p: (typeof pieces)[number]) => `${p.kind}:${p.look}`;
   const place = (p: (typeof pieces)[number]) => ({ x: p.x, y: ground(p.x, p.z), z: p.z, quarterTurns: p.quarterTurns });
-  addVoxelInstances(scene, pieces, (p) => p.model, (p) => buildCampGeometry(p.model, false), place, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
+  addVoxelInstances(scene, pieces, key, (p) => buildCampGeometry(p.kind, false, p.look), place, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
   addVoxelInstances(
     scene,
-    pieces.filter((p) => p.model === 'fire' || p.model === 'loot'),
-    (p) => p.model,
-    (p) => buildCampGeometry(p.model, true),
+    pieces.filter((p) => p.kind === 'fire' || p.kind === 'loot' || p.kind === 'gate'),
+    key,
+    (p) => buildCampGeometry(p.kind, true, p.look),
     place,
     new THREE.MeshStandardMaterial({ vertexColors: true, emissive: HOUSE_WINDOW_GLOW, emissiveIntensity: 1.6, roughness: 0.5 }),
   );
+  // Its floor: every tile inside the palisade strewn with hay, each in one of its looks, turned as it falls.
+  const floor = model.camps.flatMap((camp) => Array.from({ length: 25 }, (_, i) => ({ x: camp.x + (i % 5) - 2, z: camp.z + Math.floor(i / 5) - 2 })));
+  const roll = (t: { x: number; z: number }) => (t.x * 7 + t.z * 13) & 3;
+  addVoxelInstances(
+    scene,
+    floor,
+    (t) => `straw:${roll(t)}`,
+    (t) => greedyMesh(buildStrawFloor(roll(t)), CAMP_PALETTE, CAMP_VOXEL_SIZE, ORIGIN).scale(1, STRAW_FLAT, 1),
+    (t) => ({ x: t.x, y: ground(t.x, t.z) + 0.002, z: t.z, quarterTurns: (t.x * 3 + t.z * 5) & 3 }),
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }),
+  );
 }
+const STRAW_FLAT = 0.45; // (its relief drawn a little under half as tall: heaped, yet low enough to wade through, about 0.1 at its highest)
