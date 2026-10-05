@@ -1,7 +1,7 @@
 // Serving an inn's tables (model/jobs/: innShift.ts, work.ts, jobs.ts): a patron sat at a table calls; the order
 // taken by them goes to the barkeep's queue with the bar's others, and is ready at the counter's end once she's set it
-// down; the tray filled there (no more than the rank allows); what's in hand set down before them (R switching it;
-// the wrong one refused, their patience the shorter), a wage and a tip the quicker it came; left waiting, they walk
+// down; the tray filled there (no more than the rank allows); theirs set down before them off the tray, a wage and a
+// tip the quicker it came; left waiting, they walk
 // out; what they've had left empty on their table, to clear and take back (a cluttered table souring the next). At
 // work: the hero paid as they go, experience in the job (a rank risen), their own besides; the inn's server off her
 // feet meanwhile; the shift over at its time (a bonus for a clean one) or on leaving the inn; their record saved.
@@ -11,6 +11,7 @@ import { InnShift, REACH, SHIFT } from '../src/model/jobs/innShift';
 import { JOBS, rankIn, recordOf } from '../src/model/jobs/jobs';
 import { onShift } from '../src/model/jobs/shiftsAt';
 import { ordersAt } from '../src/model/inn/barOrders';
+import { roomAction } from '../src/model/inn/roomLetting';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { TEST_SEEDS } from './support/testWorld';
 import type { Entrance } from '../src/model/interiors/interiors';
@@ -68,7 +69,7 @@ describe('a shift at the tables', () => {
     expect(shift.actionAt(shift.pickupSpot)?.kind).toBe('counter');
     shift.use(shift.pickupSpot, [patron]);
     expect(shift.carrying).toBe(shift.wants.get(patron)!.order);
-    expect(shift.actionAt(by)).toMatchObject({ kind: 'serve', right: true });
+    expect(shift.actionAt(by)).toMatchObject({ kind: 'serve', want: { npc: patron } });
     const paid = shift.use(by, [patron])!;
     expect(paid).toBeGreaterThanOrEqual(3 + 1); // (a wage, and a tip)
     expect([shift.served, patron.awaiting, !!patron.drinking, shift.tray.length]).toEqual([1, false, true, 0]);
@@ -88,24 +89,19 @@ describe('a shift at the tables', () => {
     expect(tipAfter(0)).toBeGreaterThan(tipAfter(20));
   });
 
-  it("refuses what's not theirs (their patience the shorter); R puts the next in hand", () => {
+  it("sets down a patron's own order off the tray, whatever's first on it", () => {
     const { model, inn } = atTheInn();
     const [a, b] = [patronAt(inn, 81, 2, 4), patronAt(inn, 82, 6, 4)];
     const shift = new InnShift(inn, RANKS[1], model.seed); // (two on the tray)
     run(shift, [a, b], 13);
     fetched(shift, inn, a, b);
     expect(shift.tray).toHaveLength(2);
-    const byB = { x: b.x + 0.5, z: b.z };
-    const theirs = shift.tray.findIndex((t) => t.kind === 'order' && t.want.npc === b);
-    shift.held = 1 - theirs; // (a's in hand)
-    const patience = shift.wants.get(b)!.patience;
-    expect(shift.actionAt(byB)).toMatchObject({ kind: 'serve', right: false });
-    expect(shift.use(byB, [a, b])).toBe(0);
-    expect(shift.mixups).toBe(1);
-    expect(shift.wants.get(b)!.patience).toBeLessThan(patience);
-    shift.switchHeld();
-    expect(shift.actionAt(byB)).toMatchObject({ kind: 'serve', right: true });
-    expect(shift.use(byB, [a, b])).toBeGreaterThan(0);
+    const second = shift.tray[1].kind === 'order' ? shift.tray[1].want.npc : null; // (theirs not first on it)
+    const by = { x: second!.x + 0.5, z: second!.z };
+    expect(shift.actionAt(by)).toMatchObject({ kind: 'serve', want: { npc: second } });
+    expect(shift.use(by, [a, b])).toBeGreaterThan(0);
+    expect(shift.tray).toHaveLength(1);
+    expect(shift.tray[0].kind === 'order' && shift.tray[0].want.npc).not.toBe(second);
   });
 
   it('a patron left waiting too long walks out, up from their seat, and calls no more', () => {
@@ -155,7 +151,7 @@ describe('a shift at the tables', () => {
 });
 
 describe('at work', () => {
-  it("pays the hero as they go, experience in the job (risen a rank) and their own; a clean shift's bonus at its end", () => {
+  it("pays the hero at the shift's end, all at once (a clean shift's bonus besides); experience as they go (a rank risen), and their own", () => {
     const { model, inn, patron } = atTheInn();
     recordOf(model.hero, 'innServer').xp = RANKS[1].from - 1;
     expect(model.work.start(inn)).toBe(true);
@@ -164,24 +160,44 @@ describe('at work', () => {
     const [money, xp] = [model.hero.money, model.hero.xp];
     run(shift, [patron], 13);
     Object.assign(model.hero, { x: patron.x + 0.5, z: patron.z });
-    expect(shift.use(model.hero, [patron])).toBe(0); // (the order taken: on the shift itself, the patron not among the room's folk)
+    expect(model.work.use()).toBe(true); // (the order taken)
     pour(inn);
-    shift.use(shift.pickupSpot, [patron]);
-    const paid = shift.use(model.hero, [patron])!;
-    expect(paid).toBeGreaterThan(0);
-    (model.work as unknown as { pay(copper: number): void }).pay(paid); // (as work.use() pays what's earned)
-    expect(model.hero.money).toBeGreaterThan(money);
+    Object.assign(model.hero, shift.pickupSpot);
+    expect(model.work.use()).toBe(true); // (fetched)
+    Object.assign(model.hero, { x: patron.x + 0.5, z: patron.z });
+    expect(model.work.use()).toBe(true); // (served)
+    expect(shift.earned).toBeGreaterThan(0);
+    expect(model.hero.money).toBe(money); // (owed, not paid: not till the end)
     expect(model.hero.xp).toBeGreaterThan(xp);
+    expect(recordOf(model.hero, 'innServer')).toMatchObject({ served: 1, earned: 0 });
     expect(rankIn('innServer', recordOf(model.hero, 'innServer').xp).rank.name).toBe(RANKS[1].name);
     expect(model.takeEvents().some((e) => e.kind === 'jobRank')).toBe(true);
+    const earned = shift.earned;
     shift.left = 0;
     model.work.update(0.1);
     expect(model.work.shift).toBeNull();
     expect(onShift(inn)).toBe(false);
-    const over = model.takeEvents().find((e) => e.kind === 'shift');
+    const events = model.takeEvents();
+    const over = events.find((e) => e.kind === 'shift');
     expect(over).toMatchObject({ served: 1, walkedOut: 0, early: false });
-    expect(over && 'bonus' in over && over.bonus).toBeGreaterThan(0);
-    expect(recordOf(model.hero, 'innServer')).toMatchObject({ shifts: 1, best: 1 });
+    const bonus = over && 'bonus' in over ? over.bonus : 0;
+    expect(bonus).toBeGreaterThan(0);
+    expect(model.hero.money).toBe(money + earned + bonus); // (all of it, at once)
+    expect(events.filter((e) => e.kind === 'coins')).toEqual([{ kind: 'coins', amount: earned + bonus }]);
+    expect(recordOf(model.hero, 'innServer')).toMatchObject({ shifts: 1, best: 1, earned: earned + bonus });
+  });
+
+  it("counts only orders served toward the job (empties given back are pay, not experience)", () => {
+    const { model, inn } = atTheInn();
+    model.work.start(inn);
+    const shift = model.work.shift!;
+    const table = model.inside!.furniture.find((f) => f.kind === 'tavernTable')!;
+    shift.empties.push({ table, x: table.x, z: table.z, drink: 'ale' });
+    Object.assign(model.hero, { x: table.x, z: table.z });
+    expect(model.work.use()).toBe(true); // (cleared onto the tray)
+    Object.assign(model.hero, shift.pickupSpot);
+    expect(model.work.use()).toBe(true); // (given back)
+    expect([shift.cleared, shift.earned, recordOf(model.hero, 'innServer').xp, recordOf(model.hero, 'innServer').served]).toEqual([1, 1, 0, 0]);
   });
 
   it('is over early on leaving the inn, paid what was earned; lasts SHIFT seconds at most', () => {
@@ -209,6 +225,17 @@ describe('at work', () => {
     model.work.end(true);
     Object.assign(model.hero, { x: room.door, z: room.depth - 1 });
     expect(model.useDoor()).toBe(true); // (the shift over: out as ever)
+  });
+
+  it("offers no room to rent nor bed to sleep in while at work (G does nothing)", () => {
+    const { model, inn } = atTheInn();
+    const barkeep = model.npcs.find((n) => n.role === 'barkeep' && n.where === inn)!;
+    Object.assign(model.hero, { x: barkeep.x + 1, z: barkeep.z }); // (across the bar from her)
+    expect(roomAction(model)?.kind).toBe('rent');
+    model.work.start(inn);
+    expect(roomAction(model)).toBeNull();
+    model.work.end(true);
+    expect(roomAction(model)?.kind).toBe('rent');
   });
 
   it("keeps the hero's record in each job with their save", () => {

@@ -49,7 +49,7 @@ describe('the work window', () => {
     expect(q('.job-go').textContent).toBe('Work a shift');
     expect(q('.job-terms').textContent).toContain('2½');
     expect(q('.job-terms').querySelectorAll('.job-term')).toHaveLength(3); // (the shift, its pay, the clean-shift bonus)
-    expect(q('.job-keys').textContent).toContain('switch');
+    expect(q('.job-keys').textContent).toContain('set it down');
     q('.job-go').click();
     expect(model.work.shift).not.toBeNull();
     expect(panel.menu.isOpen).toBe(false);
