@@ -1,6 +1,7 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
+import { chestOf } from './model/camps/campLife';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { GameModel } from './model/GameModel';
@@ -180,6 +181,8 @@ async function boot(): Promise<void> {
     const { hero } = model;
     const chest = model.dungeon?.chestInReach(hero) && model.dungeon.chest;
     if (chest) return { label: model.cave ? 'Tear open the hoard' : 'Open the chest', x: chest.x, y: 0.8, z: chest.z }; // (a lord's chest, a brood mother's silk-wrapped hoard)
+    const campChest = !model.inside && !model.dungeon ? model.campLife.chestInReach(hero) : null; // (a bandit camp's: locked while its chief stands)
+    if (campChest) return { label: model.campLife.locked(campChest) ? 'Locked · the chief has the key' : 'Open the chest', x: chestOf(campChest).x, y: model.getGroundY(chestOf(campChest).x, chestOf(campChest).z) + 0.55, z: chestOf(campChest).z };
     const seated = model.seated;
     const talker = talkingTo(model.npcs, model.inside, hero); // the barmaid, the smith
     const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
@@ -282,7 +285,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'torn') placeBanner('The silk tears', 'Deep within, the nest lies open');
       else if (event.kind === 'walled') placeBanner('The nest is webbed shut', `Clear ${Math.round(TEARS_AT * 100)}% of the cave to tear the silk · ${Math.round(event.share * 100)}% cleared`, 3000); // (the brood mother out of reach: told large)
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : 'Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : 'Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
