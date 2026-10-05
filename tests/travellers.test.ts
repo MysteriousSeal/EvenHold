@@ -21,13 +21,15 @@ const worlds = new Map<number, ReturnType<typeof generateWorld>>(); // (made onc
 const fresh = (seed = 1) => new GameModel(seed, MID, worlds.get(seed) ?? worlds.set(seed, generateWorld(seed, MID)).get(seed)!);
 const shared = (seed = 1) => models.get(seed) ?? models.set(seed, fresh(seed)).get(seed)!;
 const far = (model: GameModel) => Object.assign(model.hero, { x: 3, z: 3 }); // (the hero well away from them all)
-// A model with one traveller of `role` alone on the roads, the hero far off, no foes about.
+// The hero off to one side of `t`, near enough for them to be walking (they stand still further off), not in their way.
+const aside = (model: GameModel, t: Traveller) => Object.assign(model.hero, { x: Math.min(MID.width - 2, Math.max(1, t.x + (t.x < MID.width / 2 ? 20 : -20))), z: t.z });
+// A model with one traveller of `role` alone on the roads, the hero off to one side, no foes about.
 function alone(role: Traveller['role'], seed = 1): { model: GameModel; t: Traveller } {
   const model = fresh(seed);
   const t = model.travellers.list.find((x) => x.role === role && x.leader === null)!;
   model.travellers.list.splice(0, model.travellers.list.length, ...model.travellers.list.filter((x) => x === t || (role === 'guard' && x.leader === t.id)));
   model.enemies.splice(0);
-  far(model);
+  aside(model, t);
   return { model, t };
 }
 const step = (model: GameModel, seconds: number) => {
@@ -141,6 +143,17 @@ describe('travellers walking', () => {
     const [a, b] = [t.along, partner.along];
     step(model, 2);
     expect([t.along, partner.along]).toEqual([a, b]);
+  });
+
+  it('walk only near the hero (far off, they stand where they are, till the hero comes near)', () => {
+    const { model, t } = alone('pilgrim');
+    far(model);
+    const along = t.along;
+    step(model, 1);
+    expect(t.along).toBe(along);
+    aside(model, t);
+    step(model, 1);
+    expect(t.along).not.toBe(along);
   });
 
   it('walk only while the hero\'s out in the world (indoors, the world stands still)', () => {
@@ -305,6 +318,7 @@ describe('travellers and the foes of the wilds', () => {
 
   it('far from the hero, the roads are quiet: no fights there', () => {
     const { model, t } = alone('guard');
+    far(model);
     const wolf = wolfBy(model, t, 2);
     step(model, 5);
     expect(wolf.hp).toBe(wolf.maxHp);
