@@ -25,3 +25,29 @@ export function cycleFocus(at: Focusing, sees: (foe: Enemy) => boolean, back = f
 // Whether a focus on `enemy` is kept: it's there, alive, above ground, and near enough.
 export const focusKept = (enemy: Enemy | null, hero: { x: number; z: number }): boolean =>
   !!enemy && enemy.state !== 'dead' && !enemy.buried && Math.hypot(enemy.x - hero.x, enemy.z - hero.z) <= FOCUS_RANGE;
+
+// The foe the hero's focused on: by its id, the foe itself kept to hand (the world's foes not searched for it each ask:
+// none focused, mostly, nothing looked through at all).
+export class Focus {
+  private id: number | null = null;
+  private foe: Enemy | null = null;
+
+  constructor(private readonly foes: () => readonly Enemy[]) {}
+
+  get focused(): Enemy | null {
+    if (this.id === null) return null;
+    if (this.foe?.id !== this.id) this.foe = this.foes().find((e) => e.id === this.id) ?? null;
+    return this.foe;
+  }
+
+  // Focuses a living foe by id; null (or a dead one, or one under the ground) lets go.
+  focus(id: number | null): void {
+    const foe = id === null ? undefined : this.foes().find((e) => e.id === id);
+    this.id = foe && foe.state !== 'dead' && !foe.buried ? foe.id : null;
+  }
+
+  // Let go the moment its foe dies (so the next to strike takes it), or once it's gone or far off.
+  keep(hero: { x: number; z: number }): void {
+    if (!focusKept(this.focused, hero)) this.id = null;
+  }
+}

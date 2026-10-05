@@ -9,6 +9,7 @@ import type { Hero } from '../types';
 import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
 import { SIT_RANGE, bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
+import { Nearby } from '../../util/nearby';
 
 
 // Where the hero is while indoors: the building's door and its room (the
@@ -126,8 +127,17 @@ export function doorInReach(inside: Inside | null, entrances: readonly Entrance[
     const x = hero.x - inside.room.door;
     return !inside.below && x > -0.6 && x < 0.6 + wide && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;
   }
-  const near = entrances.filter((e) => reachOf(e, hero) <= ENTER_RANGE);
+  const near = entrancesAround(entrances, hero).filter((e) => reachOf(e, hero) <= ENTER_RANGE);
   return near.reduce<Entrance | null>((best, e) => (!best || reachOf(e, hero) <= reachOf(best, hero) ? e : best), null);
+}
+
+// The entrances round the hero, kept to hand (the full map has ten thousand doors: each measured to, each frame, for
+// its prompt, cost half a millisecond a time).
+const around = new WeakMap<readonly Entrance[], Nearby<Entrance>>();
+function entrancesAround(entrances: readonly Entrance[], hero: Hero): readonly Entrance[] {
+  let near = around.get(entrances);
+  if (!near) around.set(entrances, (near = new Nearby(entrances, (e) => e, ENTER_RANGE + 2)));
+  return near.near(hero);
 }
 
 // How far the hero is from a door's spot: a crypt's way down, from the nearest point along its front

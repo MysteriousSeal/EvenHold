@@ -56,8 +56,14 @@ const line = (lines: readonly string[]): string => inTurn(lines, lines); // (eac
 
 // Till when (game minutes) each inn's room is let, by the inn's door.
 const lets = new WeakMap<Entrance, number>();
+const letNow = new Set<Entrance>(); // (the inns with a room let: looked through for its time up, not every door of the world)
+const letRoom = (inn: Entrance, until: number): void => void [lets.set(inn, until), letNow.add(inn)];
 export const letUntil = (inn: Entrance): number | null => lets.get(inn) ?? null;
-export const setLet = (inn: Entrance, until: number): void => void lets.set(inn, until);
+export const setLet = letRoom;
+
+// A world's doors, as a set (each inn let asked whether it's this world's: one look, not a walk through them all).
+const worlds = new WeakMap<readonly Entrance[], Set<Entrance>>();
+const worldOf = (inns: readonly Entrance[]): Set<Entrance> => worlds.get(inns) ?? worlds.set(inns, new Set(inns)).get(inns)!;
 
 // Whether rooms are let at `minutes` (four in the afternoon through to six in the morning).
 export const lettingHours = (minutes: number): boolean => between(minutes, LET_FROM, LET_TILL);
@@ -102,7 +108,7 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   }
   model.hero.money -= ROOM_PRICE;
   if (purse) purse.money += ROOM_PRICE; // (hers, the inn's)
-  lets.set(inn, checkOutAfter(model.minutes));
+  letRoom(inn, checkOutAfter(model.minutes));
   say(barmaid, line(LINES.let));
   return 'let';
 }
@@ -121,8 +127,8 @@ export function letBed(model: { inside: Inside | null; seated: Seated; seatInRea
 // What G does at the inn, if anything: stood by the barmaid, asks her for a room (`taken`: one's let already); by the
 // let room's bed (or lying in it) at night, sleeps. Its prompt's words with it.
 export type RoomAction = { kind: 'rent'; barmaid: Npc; taken: boolean } | { kind: 'sleep' };
-export function roomAction(model: Parameters<typeof letBed>[0] & { npcs: readonly Npc[]; hero: Hero }): RoomAction | null {
-  const talker = model.seated ? null : talkingTo(model.npcs, model.inside, model.hero);
+export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonly Npc[]; hero: Hero }): RoomAction | null {
+  const talker = model.seated ? null : talkingTo(model.folk, model.inside, model.hero); // (of the villagers round about)
   if (talker?.role === 'barkeep') return { kind: 'rent', barmaid: talker, taken: !!model.inside && lets.has(model.inside.entrance) };
   return letBed(model) ? { kind: 'sleep' } : null;
 }
@@ -138,10 +144,12 @@ export function sleepTillMorning(model: { hero: Hero; minutes: number }): void {
 
 // Rooms whose time is up let go: their doors locked again; the hero, upstairs in one, shown out to the hallway before it.
 export function checkOut(model: { minutes: number; inside: Inside | null; hero: Hero }, inns: readonly Entrance[]): void {
-  for (const inn of inns) {
+  for (const inn of letNow) {
     const until = lets.get(inn);
-    if (until === undefined || model.minutes < until) continue;
+    if (until === undefined) letNow.delete(inn); // (its let gone otherwise)
+    if (until === undefined || model.minutes < until || !worldOf(inns).has(inn)) continue; // (another world's, left be)
     lets.delete(inn);
+    letNow.delete(inn);
     const inside = model.inside;
     const door = inside?.below === inn ? letDoor(inside.furniture) : null;
     if (!door) continue;

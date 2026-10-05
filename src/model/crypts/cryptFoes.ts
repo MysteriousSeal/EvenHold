@@ -10,12 +10,14 @@
 
 import { ENEMY_STATS } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
-import type { DungeonHooks, DungeonRun } from '../dungeons/dungeonTypes';
+import type { DungeonHooks } from '../dungeons/dungeonTypes';
+import { DungeonFoes } from '../dungeons/dungeonFoes';
+import type { Hoard } from '../loot/hoard';
 import { FROST_BREATH } from './frostBreath';
 import { CLEAVE, CLEAVE_KNOCK } from './cleave';
 import { ToldMoves, knockAway, type Told } from '../enemies/toldMoves';
 import { BARRAGE, CHARGE_KNOCK, ERUPTION, SWEEP, SWEEP_KNOCK, chargeMove } from './cryptLord';
-import { AWARD_POST, CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
+import { CHEST_POST, LORD_POST, Lord, SLAM, RISES_AT, SUMMONED, chestHoard, clearedShare, lordName, lordSpot } from './cryptLord';
 import { hashCell, mulberry32 } from '../../util/random';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
@@ -127,7 +129,7 @@ function tilesOf(x0: number, z0: number, x1: number, z1: number): string[] {
 export type CryptHooks = DungeonHooks;
 
 // A crypt's guards while the hero's down there: run, shooting, slain; and its lord, risen (cryptLord.ts), and his chest.
-export class CryptFoes implements DungeonRun {
+export class CryptFoes extends DungeonFoes {
   readonly foes: Enemy[];
   readonly arrows: Arrow[] = [];
   readonly director: EnemyDirector;
@@ -140,21 +142,21 @@ export class CryptFoes implements DungeonRun {
   readonly eruptions = new ToldMoves(ERUPTION, (lord) => this.hooks.blow(lord, Math.round(lord.damage * 1.5))); // his bones bursting up
   readonly barrages = new ToldMoves(BARRAGE, (lord, m) => this.loosesSouls(lord, m)); // his souls loosed
   readonly souls: Soul[] = []; // in flight, after the hero
-  chest: { x: number; z: number; open: boolean } | null = null; // his, once he's slain
   private readonly plan: CryptPlan;
-  private readonly guards: number; // all its posts
+  protected readonly posts: number; // all its posts
   private calledUp = 0;
 
   constructor(
-    private readonly seed: number,
+    seed: number,
     private readonly inside: CryptInside,
-    private readonly slain: Set<number>, // of its posts, those slain (kept: the save's)
+    slain: Set<number>, // of its posts, those slain (kept: the save's)
     hero: Hero,
-    private readonly hooks: CryptHooks,
+    hooks: CryptHooks,
   ) {
+    super(seed, slain, hooks, { firstId: CRYPT_FOE_ID, chestReach: 0.9, drop: { x: 0.3, z: 0.35 } });
     this.plan = inside.plan;
     const posts = guardPosts(seed, inside);
-    this.guards = posts.length;
+    this.posts = posts.length;
     this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [this.standing(makeEnemy(CRYPT_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.crypt.level))]));
     if (slain.has(LORD_POST)) this.chest = { ...lordSpot(inside), open: slain.has(CHEST_POST) };
     this.exit = exitDoor(inside);
@@ -185,7 +187,7 @@ export class CryptFoes implements DungeonRun {
 
   update(dt: number): void {
     const hero = this.director.quarry;
-    if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.guards) >= RISES_AT) this.rise();
+    if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.posts) >= RISES_AT) this.rise();
     this.director.update(dt);
     this.lord?.update();
     this.wakeLord(hero);
@@ -252,21 +254,17 @@ export class CryptFoes implements DungeonRun {
     return !cryptBlocks(this.inside, x, z, r);
   }
 
-  // One of its foes slain, for good: its post kept (not those the lord calls up); its lord the first time, a point to
-  // spend for the hero (once a crypt, ever: AWARD_POST kept even through a reset); all of it, cleared. What's told.
-  slay(enemy: Enemy, hero: Hero): GameEvent[] {
-    const post = CryptFoes.postOf(enemy);
-    if (enemy.id < CRYPT_FOE_ID || post >= SUMMONED) return [];
-    this.slain.add(post);
-    const told: GameEvent[] = [];
-    const point = post === LORD_POST && !this.slain.has(AWARD_POST);
-    if (point) {
-      this.slain.add(AWARD_POST);
-      hero.statPoints += 1;
-      told.push({ kind: 'point', why: `${this.lordName} slain` });
-    }
-    if (this.share === 1) told.push({ kind: 'cleared', name: this.inside.crypt.name, point });
-    return told;
+  protected get bossFell(): string {
+    return `${this.lordName} slain`;
+  }
+
+  protected cleared(point: boolean): GameEvent {
+    return { kind: 'cleared', name: this.inside.crypt.name, point };
+  }
+
+  // His chest's hoard: a fine piece and coins by the crypt's level.
+  protected hoard(): Hoard {
+    return chestHoard(this.inside, this.seed);
   }
 
   // The way out at the great hall's far end: a door in the rock behind the great tomb (exitDoor), opened when its
@@ -275,26 +273,6 @@ export class CryptFoes implements DungeonRun {
     return this.slain.has(LORD_POST) && this.exit ? { x: this.exit.x, z: this.exit.z + 1 } : null;
   }
   readonly exit: { x: number; z: number } | null; // the door's tile, in the rock (cryptProps.ts: exitDoor)
-
-  // His chest, if the hero's at it and it's not opened yet.
-  chestInReach(hero: { x: number; z: number }): boolean {
-    return !!this.chest && !this.chest.open && Math.hypot(hero.x - this.chest.x, hero.z - this.chest.z) < 0.9;
-  }
-
-  // Opens it: what it holds, out on the floor before it.
-  openChest(): void {
-    if (!this.chest || this.chest.open) return;
-    this.chest.open = true;
-    this.slain.add(CHEST_POST);
-    const { item, coins } = chestHoard(this.inside, this.seed);
-    this.hooks.dropLoot(item, this.chest.x + 0.3, this.chest.z + 0.35);
-    this.hooks.dropCoins(coins, this.chest.x - 0.3, this.chest.z + 0.35);
-  }
-
-  // How much of it's cleared (0..1): its guards slain and its lord, of all of them.
-  get share(): number {
-    return clearedShare(this.slain, this.guards);
-  }
 
   // A bowman looses: an arrow from his hand toward where the hero stands now.
   private loose(archer: Enemy, hero: Hero): void {

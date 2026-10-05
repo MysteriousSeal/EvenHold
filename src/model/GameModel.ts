@@ -56,7 +56,7 @@ import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
-import { cycleFocus as turnFocus, focusKept } from './hero/focus';
+import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { addCampObstacles, type Camp } from './camps/camps';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -102,8 +102,7 @@ export class GameModel {
   private readonly nearWildlife: Nearby<Wildlife>; // and the animals (the full map has tens of thousands of each)
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
-  private focusedId: number | null = null;
-  private focusedFoe: Enemy | null = null; // (the foe of focusedId, kept to hand: the world's foes not searched for it each ask)
+  private readonly focusOn = new Focus(() => this.foes); // (the foe the hero's focused on: hero/focus.ts)
   private below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot
   readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
@@ -209,7 +208,7 @@ export class GameModel {
   // Dev cheat: the flat grass yard, or back to where the hero was.
   toggleFurnitureYard(): string {
     this.hop = null;
-    this.focusedId = null;
+    this.focusOn.focus(null);
     return toggleYard(this);
   }
 
@@ -273,7 +272,7 @@ export class GameModel {
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).
-  private get folk(): readonly Npc[] { return this.nearNpcs.near(this.inside?.entrance ?? this.hero); }
+  get folk(): readonly Npc[] { return this.nearNpcs.near(this.inside?.entrance ?? this.hero); }
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);
@@ -387,7 +386,7 @@ export class GameModel {
     this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: new Ground(() => 0) };
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
-    this.focusedId = null;
+    this.focusOn.focus(null);
     this.hop = null;
     Object.assign(this.hero, { x: room.door, z: room.depth - 1, y: 0, facing: Math.PI }); // into the room (-Z)
   }
@@ -410,7 +409,7 @@ export class GameModel {
   // The free seat the hero could sit on right now (in the room, or a bench's), or null (seated).
   get seatInReach(): Seat | null {
     if (this.yard) return null;
-    const taken = (piece: Seat['piece']) => this.npcs.some((n) => n.seat?.piece === piece);
+    const taken = (piece: Seat['piece']) => this.folk.some((n) => n.seat?.piece === piece); // (those round about: the world's every villager gone through for each seat, each frame, cost a frame indoors)
     if (this.inside) return seatInReach(this.inside, this.hero, taken);
     return this.outdoors.seated ? null : benchSeatInReach(squareBenches(this), this.hero, (seat) => taken(seat.piece)); // the squares' benches
   }
@@ -477,21 +476,15 @@ export class GameModel {
     return loot.item;
   }
 
-  get focused(): Enemy | null {
-    return this.focusedId === null ? null : this.focusedFoe?.id === this.focusedId ? this.focusedFoe : (this.focusedFoe = this.foes.find((e) => e.id === this.focusedId) ?? null); // (none focused, mostly: nothing looked through)
-  }
-
-  // Focuses a living enemy by id; null (or a dead one) clears the focus.
-  focus(id: number | null): void {
-    const enemy = this.foes.find((e) => e.id === id);
-    this.focusedId = enemy && enemy.state !== 'dead' && !enemy.buried ? enemy.id : null;
-  }
+  // The foe the hero's focused on; focusing a living one by id, null (or a dead one) letting go (hero/focus.ts).
+  get focused(): Enemy | null { return this.focusOn.focused; }
+  focus = (id: number | null): void => this.focusOn.focus(id);
 
   // Turns the focus to the next foe in sight, nearest first (Tab), or back (Shift+Tab: hero/focus.ts).
   cycleFocus = (back = false): void => turnFocus(this, (foe) => (this.below?.run.director ?? this.director).inView(this.hero, foe), back);
 
   // Drops the focus the moment its enemy dies (so the next to strike takes it), or once it's gone or far off (hero/focus.ts).
-  private keepFocus = (): void => void (focusKept(this.focused, this.hero) || (this.focusedId = null));
+  private keepFocus = (): void => this.focusOn.keep(this.hero);
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).
   fall = (): void => fall(this);

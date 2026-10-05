@@ -23,8 +23,9 @@ import { makeEnemy } from '../enemies/enemies';
 import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { ToldMoves, knockAway } from '../enemies/toldMoves';
 import { isFloor } from '../dungeons/floorPlan';
-import { AWARD_POST, BOSS_POST, CHEST_POST, SUMMONED, clearedShare } from '../dungeons/dungeonRecord';
-import type { DungeonHooks, DungeonRun } from '../dungeons/dungeonTypes';
+import { BOSS_POST, CHEST_POST, SUMMONED } from '../dungeons/dungeonRecord';
+import type { DungeonHooks } from '../dungeons/dungeonTypes';
+import { DungeonFoes } from '../dungeons/dungeonFoes';
 import { caveBlocks, type CaveInside } from './caves';
 import { reachedFrom, solidTiles } from './caveProps';
 import type { Hollow } from './caveLayout';
@@ -116,7 +117,7 @@ export function beastCount(seed: number, inside: CaveInside): number {
 export const caveHoard = (inside: CaveInside, seed: number): Hoard =>
   rollHoard(inside.cave.mouth.x, inside.cave.mouth.z, seed + 9137, inside.cave.level, { worth: 100, base: 60, spread: 40 });
 
-export class CaveRun implements DungeonRun {
+export class CaveRun extends DungeonFoes {
   readonly foes: Enemy[];
   readonly webs: Web[] = []; // in flight
   readonly director: EnemyDirector;
@@ -125,24 +126,24 @@ export class CaveRun implements DungeonRun {
   readonly eruptions = new ToldMoves(ERUPT, (worm, m) => this.hooks.blow(worm, Math.round(worm.damage * 1.5), knockAway({ x: m.tx, z: m.tz }, this.director.quarry, ERUPT_KNOCK)));
   readonly volleys = new ToldMoves(VOLLEY, (mother, m) => [-1, 0, 1].forEach((k) => this.spit(mother, ...turned(m.dx, m.dz, k * VOLLEY_SPREAD))));
   readonly rushes: ToldMoves;
-  chest: { x: number; z: number; open: boolean } | null = null; // her hoard, once she's slain
   mother: Enemy | null = null; // the nest's own (null once slain, or till then if slain before)
   private readonly surfaced = new Map<Enemy, { left: number; x: number; z: number }>(); // a worm up out of the ground: seconds before it digs down, its hole (where it stays)
-  private readonly beasts: number;
+  protected readonly posts: number; // all its posts
   private broods = 0; // her brood hatched so many times
   private hatched = 0;
   private clock = 0; // seconds down here (the bats' flitting)
   private told = false; // the hero's been told the silk holds (till they walk off from it)
 
   constructor(
-    private readonly seed: number,
+    seed: number,
     private readonly inside: CaveInside,
-    private readonly slain: Set<number>,
+    slain: Set<number>, // of its posts, those slain (kept: the save's)
     hero: Hero,
-    private readonly hooks: DungeonHooks,
+    hooks: DungeonHooks,
   ) {
+    super(seed, slain, hooks, { firstId: CAVE_FOE_ID, chestReach: 1.1, drop: { x: 0.35, z: 0.4 } });
     const posts = cavePosts(seed, inside);
-    this.beasts = posts.length;
+    this.posts = posts.length;
     this.foes = posts.flatMap((p, i) => (slain.has(i) ? [] : [{ ...makeEnemy(CAVE_FOE_ID + i, p.kind, p.x, p.z, p.x, p.z, inside.cave.level), buried: p.kind === 'caveWorm' }]));
     const nest = this.nest;
     if (!slain.has(BOSS_POST)) {
@@ -304,25 +305,12 @@ export class CaveRun implements DungeonRun {
     return enemy.id - CAVE_FOE_ID;
   }
 
-  // One of its beasts slain, for good: its post kept (not her hatchlings); her, the first time, a point to spend (once
-  // a cave, ever); all of it, cleared. What's told.
-  slay(enemy: Enemy, hero: Hero): GameEvent[] {
-    const post = CaveRun.postOf(enemy);
-    if (enemy.id < CAVE_FOE_ID || post >= SUMMONED) return [];
-    this.slain.add(post);
-    const told: GameEvent[] = [];
-    const point = post === BOSS_POST && !this.slain.has(AWARD_POST);
-    if (point) {
-      this.slain.add(AWARD_POST);
-      hero.statPoints += 1;
-      told.push({ kind: 'point', why: 'The brood mother slain' });
-    }
-    if (this.share === 1) told.push({ kind: 'cleared', name: this.inside.cave.name, point, place: 'cave' });
-    return told;
+  protected get bossFell(): string {
+    return 'The brood mother slain';
   }
 
-  get share(): number {
-    return clearedShare(this.slain, this.beasts);
+  protected cleared(point: boolean): GameEvent {
+    return { kind: 'cleared', name: this.inside.cave.name, point, place: 'cave' };
   }
 
   // The crack to the daylight in the nest's far wall, opened once she's slain: where to stand for it (or null).
@@ -330,18 +318,9 @@ export class CaveRun implements DungeonRun {
     return this.slain.has(BOSS_POST) ? this.inside.exit.spot : null;
   }
 
-  chestInReach(hero: { x: number; z: number }): boolean {
-    return !!this.chest && !this.chest.open && Math.hypot(hero.x - this.chest.x, hero.z - this.chest.z) < 1.1;
-  }
-
-  // Her hoard, torn open: what it holds, out on the floor before it.
-  openChest(): void {
-    if (!this.chest || this.chest.open) return;
-    this.chest.open = true;
-    this.slain.add(CHEST_POST);
-    const { item, coins } = caveHoard(this.inside, this.seed);
-    this.hooks.dropLoot(item, this.chest.x + 0.35, this.chest.z + 0.4);
-    this.hooks.dropCoins(coins, this.chest.x - 0.35, this.chest.z + 0.4);
+  // Her hoard: a fine piece and coins by the cave's level.
+  protected hoard(): Hoard {
+    return caveHoard(this.inside, this.seed);
   }
 }
 
