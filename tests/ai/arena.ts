@@ -15,9 +15,10 @@ import { ITEMS, type ItemId } from '../../src/model/human/equipment';
 import { HERO_RADIUS } from '../../src/model/constants';
 import { mulberry32 } from '../../src/util/random';
 import type { MapSize } from '../../src/model/map/grid';
+import { FRAME, FRAMES_PER_DECISION, MOVES, WAYS } from './keys';
 
-export const FRAME = 1 / 30;
-export const FRAMES_PER_DECISION = 3; // a decision each tenth of a second
+export { FRAME, FRAMES_PER_DECISION, MOVES };
+
 const TIME_LIMIT = 40; // game seconds a fight may last (then over: neither won nor lost)
 const SIZE: MapSize = { width: 128, depth: 128 };
 const WORLD_SEED = 11;
@@ -29,9 +30,7 @@ const RAYS = 8; // ways round the hero the ground's felt, out to RAY_REACH
 const RAY_REACH = 3;
 const FOE_FEATURES = 1 + 4 + 2 + KINDS.length + 1 + 3 + 1 + TOLD.length;
 export const OBSERVATION_SIZE = 9 + RAYS + NEAREST * FOE_FEATURES;
-export const MOVES = 9; // still, or one of 8 ways
 export const ACTIONS = 4; // none, a blow, a roll, the guard held
-const WAYS: ReadonlyArray<[number, number]> = [[0, 0], ...Array.from({ length: 8 }, (_, i) => [Math.sin((i * Math.PI) / 4), Math.cos((i * Math.PI) / 4)] as [number, number])];
 
 // A fight: the hero (their level, and whether they're kitted out as from the smith's), and the foes against them.
 export interface Scenario {
@@ -43,7 +42,7 @@ export interface Scenario {
 
 // Fights to learn from, as the bots meet them: wolves alone and in packs, bandits, a camp's chief and his crew, the
 // wilds' fiercer beasts; the hero from level 1 to 6, the foes about theirs.
-export function randomScenario(rng: () => number): Scenario {
+function randomScenario(rng: () => number): Scenario {
   const hero = 1 + Math.floor(rng() * 6);
   const near = () => Math.max(1, hero + Math.floor(rng() * 3) - 1);
   const pick = <T>(list: readonly T[]) => list[Math.floor(rng() * list.length)];

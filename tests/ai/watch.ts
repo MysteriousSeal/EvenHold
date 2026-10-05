@@ -5,7 +5,8 @@
 // - the player (npm run ai:player:watch, ?player): the whole game played by keys (player.ts), a life after another; a
 //   panel with what it's pressing, how it stands, and how far it's got (level, quests, falls, places found).
 // Keys: space pauses, 1 / 2 / 4 / 8 / 16 the speed, N the next fight (or a new life).
-import { Arena, FRAME, FRAMES_PER_DECISION, NAMED_FIGHTS } from './arena';
+import { Arena, NAMED_FIGHTS } from './arena';
+import { FRAME, FRAMES_PER_DECISION, WAYS } from './keys';
 import { Player } from './player';
 import { FighterPolicy, type PolicyWeights } from './fighterPolicy';
 import { GameView } from '../../src/view/GameView';
@@ -66,7 +67,6 @@ const caps = Object.fromEntries(
 );
 const TAP = 0.25; // seconds a tapped key stays lit (a tenth of a second is too quick to see)
 const litFor: Record<string, number> = {};
-const WAYS: ReadonlyArray<[number, number]> = [[0, 0], ...Array.from({ length: 8 }, (_, i) => [Math.sin((i * Math.PI) / 4), Math.cos((i * Math.PI) / 4)] as [number, number])];
 
 // The keys a decision comes to: W A S D for its way (as the camera has them: `axes`, the game's), and its key.
 function keysOf(move: number, key: number, axes: { forward: { x: number; z: number }; right: { x: number; z: number } }): string[] {

@@ -30,9 +30,10 @@ import { barmaidHere, callFor, serveOrder } from '../../src/controller/trade/bar
 import { HERO_RADIUS, INDOOR_SCALE } from '../../src/model/constants';
 import { mulberry32 } from '../../src/util/random';
 import type { MapSize } from '../../src/model/map/grid';
+import { FRAME, FRAMES_PER_DECISION, MOVES, WAYS } from './keys';
 
-export const FRAME = 1 / 30;
-export const FRAMES_PER_DECISION = 3; // a decision each tenth of a second
+export { FRAME, FRAMES_PER_DECISION, MOVES };
+
 const EPISODE = 15 * 60; // game seconds a life lasts (a quarter of a game hour... of a real hour)
 const SIZE: MapSize = { width: 512, depth: 512 };
 const WORLD_SEEDS = [11, 12, 13, 14]; // the worlds it learns in
@@ -42,7 +43,6 @@ const CHANNELS = 9;
 const PROMPTS = ['none', 'loot', 'chest', 'stand', 'sit', 'talk', 'traveller', 'board', 'well', 'stairs', 'door', 'bar'] as const;
 const TRACKED = 3; // quests seen on the tracker
 export const KEYS = 7; // none, a blow, a roll, the guard, E, eat, put on gear
-export const MOVES = 9;
 // What it's paid for, and what it pays (a level's experience: 1). Each step of a quest paid once (taken, each foe or
 // thing toward it, back at its board done), whatever's given up and taken again; blows only on foes fighting them (a
 // boar let be is no punching bag); coin no more than COIN_MOST a life (foes keep coming: else a coin farm).
@@ -65,7 +65,6 @@ const PAY = {
   wasted: -0.001, // E with nothing to do, a roll with no foe near, a step into a wall
 };
 const COIN_MOST = 0.5; // coin paid a life, at most
-const WAYS: ReadonlyArray<[number, number]> = [[0, 0], ...Array.from({ length: 8 }, (_, i) => [Math.sin((i * Math.PI) / 4), Math.cos((i * Math.PI) / 4)] as [number, number])];
 export const OBSERVATION_SIZE = (2 * VIEW + 1) ** 2 * CHANNELS + 11 + PROMPTS.length + TRACKED * 5;
 
 const worlds = new Map<number, World>();
