@@ -117,8 +117,13 @@ describe('bandits', () => {
     eachSeed((model) => {
       const camp = model.camps[0];
       expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
-      // Everything but the loot and the gatehouse (the way in, under it) blocks; a palisade rings the camp but for the entrance.
-      for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'loot' || piece.kind === 'gate');
+      // Everything but the gatehouse (the way in, under it) blocks, the loot's open chest too; a palisade rings the camp but for the entrance.
+      for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'gate');
+      // The chest just itself: the rug and the gold spilt round it walked over.
+      const loot = camp.pieces.find((p) => p.kind === 'loot')!;
+      expect(model.isBlocked(loot.x, loot.z, 0.1)).toBe(true);
+      const inward = { x: Math.sign(camp.x - loot.x) * 0.42, z: Math.sign(camp.z - loot.z) * 0.42 }; // (toward the camp's middle: away from the palisade)
+      expect(model.isBlocked(loot.x + inward.x, loot.z + inward.z, 0.06)).toBe(false);
       expect(camp.pieces.filter((p) => p.kind === 'palisade').length).toBe(19); // 5 edges on each of 4 sides, less the entrance
 
       const around = model.enemies.filter((e) => e.kind === 'bandit' && Math.hypot(e.x - camp.x, e.z - camp.z) <= 4);
