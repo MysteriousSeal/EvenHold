@@ -4,7 +4,7 @@
 // Burrow", "Gloomdelve", "the Silk Warren". Names of dread, not of the dead
 // (the crypts': cryptNames.ts).
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, pickAt } from '../../util/random';
 
 export const CAVE_NAMES = {
   holes: ['Hollow', 'Burrow', 'Warren', 'Delve', 'Hole', 'Den', 'Pit', 'Holt', 'Deep', 'Grotto', 'Cleft', 'Sink', 'Gullet', 'Throat', 'Mouth', 'Lair'],
@@ -19,7 +19,7 @@ export const CAVE_NAMES = {
 
 export function caveName(x: number, z: number, seed: number): string {
   const { holes, owners, kinds, heads, tails } = CAVE_NAMES;
-  const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(x, z, seed * 137 + salt) * list.length)];
+  const pick = pickAt(x, z, seed * 137);
   const form = hashUnit(x, z, seed * 137 + 500);
   if (form < 0.35) return `${pick(owners, 501)} ${pick(holes, 502)}`;
   if (form < 0.75) return `the ${pick(kinds, 503)} ${pick(holes, 504)}`;

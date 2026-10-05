@@ -110,6 +110,10 @@ function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: n
   return { x: cx, z: cz, quarterTurns, bandits, way: { x: cx + wx, z: cz + wz }, pieces: layOut(cx, cz, quarterTurns) };
 }
 
+// The tiles a camp stands on, its stockade's five by five (its floor: hay strewn over it, no grass through it).
+export const campTiles = (camp: { x: number; z: number }): Array<{ x: number; z: number }> =>
+  Array.from({ length: 25 }, (_, i) => ({ x: camp.x + (i % 5) - 2, z: camp.z + Math.floor(i / 5) - 2 }));
+
 // Turns a local camp offset by the camp's quarter turns (as three.js turns an
 // instance: (x, z) -> (z, -x) per turn).
 function turn(dx: number, dz: number, quarterTurns: number): [number, number] {

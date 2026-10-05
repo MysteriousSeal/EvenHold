@@ -4,7 +4,7 @@
 // Brothers", "the silent vault". Old names, of the dead long gone, not the
 // villagers' (npcs.ts). About twenty thousand of them, no two alike (CRYPT_NAMES).
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, pickAt } from '../../util/random';
 
 export const CRYPT_NAMES = {
   places: ['tomb', 'barrow', 'sepulchre', 'ossuary', 'vault', 'catacombs', 'crypt', 'charnel house', 'resting place', 'undercroft', 'mausoleum', 'cairn', 'cenotaph', 'burial halls', 'bone halls', 'deep tombs', 'grave halls'],
@@ -27,7 +27,7 @@ export const CRYPT_NAMES = {
 
 export function cryptName(x: number, z: number, seed: number): string {
   const { places, men, women, nameless, orders, bare } = CRYPT_NAMES;
-  const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(x, z, seed * 131 + salt) * list.length)];
+  const pick = pickAt(x, z, seed * 131);
   const place = pick(places, 301);
   const form = hashUnit(x, z, seed * 131 + 300);
   if (form < 0.4) {

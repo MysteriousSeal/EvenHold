@@ -10,7 +10,7 @@
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { markHerbalistHome } from '../herbalist/herbalistHomes';
 import { INDOOR_SCALE } from '../constants';
-import { hashUnit } from '../../util/random';
+import { hashUnit, pickAt } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
 import { lookAt, type Build, type Humanoid } from '../human/humanoid';
 import type { Entrance } from '../interiors/interiors';
@@ -124,7 +124,7 @@ const WOMEN_FIRST = [...FIRST, ...FEMALE_FIRST];
 // A name from the world's seed and where someone lives (the same house on
 // the same seed, the same name), a man's or a woman's by their build.
 export function nameAt(x: number, z: number, seed = 0, build: Build = 'male'): string {
-  const pick = <T>(list: readonly T[], salt: number) => list[Math.floor(hashUnit(Math.round(x * 10), Math.round(z * 10), seed * 131 + salt) * list.length)];
+  const pick = pickAt(Math.round(x * 10), Math.round(z * 10), seed * 131);
   const woman = build === 'female';
   return pick(woman ? WOMEN_FIRST : MEN_FIRST, 71) + pick(woman ? FEMALE_LAST : MALE_LAST, 72);
 }

@@ -53,3 +53,19 @@ export function snapTo(v: number, step: number): number {
 export function generateRandomSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
 }
+
+// Smooth noise (0..1) at (u, v): rolls on a lattice `cell` apart, eased between (soft rounds, not speckle), the same
+// every time for a seed (a cave's rock swelling and sinking, hay drifting over a camp's floor).
+export function smoothNoise(u: number, v: number, seed: number, cell: number): number {
+  const [gu, gv] = [Math.floor(u / cell), Math.floor(v / cell)];
+  const [fu, fv] = [u / cell - gu, v / cell - gv];
+  const [su, sv] = [fu * fu * (3 - 2 * fu), fv * fv * (3 - 2 * fv)];
+  const at = (a: number, b: number) => hashUnit(gu + a, gv + b, seed);
+  return (at(0, 0) * (1 - su) + at(1, 0) * su) * (1 - sv) + (at(0, 1) * (1 - su) + at(1, 1) * su) * sv;
+}
+
+// Picks from lists by rolls at (x, z), each salted, the same every time (the names of places and people).
+export const pickAt =
+  (x: number, z: number, seed: number) =>
+  <T>(list: readonly T[], salt: number): T =>
+    list[Math.floor(hashUnit(x, z, seed + salt) * list.length)];
