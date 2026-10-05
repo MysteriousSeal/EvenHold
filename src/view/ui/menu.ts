@@ -64,7 +64,8 @@ export function createMenu(options: MenuOptions): Menu {
   let selected = 0;
   let rows: HTMLButtonElement[] = [];
   let grid: { buttons: HTMLButtonElement[]; cells: Array<MenuSlot | null>; columns: number; selected: number } | null = null;
-  // A slot's tooltip, beside it (outside the panel, so nothing clips it).
+  // A slot's tooltip, beside it (outside the panel, so nothing clips it), kept EDGE px inside the window.
+  const EDGE = 8;
   const tooltip = el('div', 'menu-tooltip');
   tooltip.hidden = true;
   document.body.append(tooltip);
@@ -104,9 +105,11 @@ export function createMenu(options: MenuOptions): Menu {
     tooltip.replaceChildren(title, ...lines.map(line));
     tooltip.hidden = false;
     const at = anchor.getBoundingClientRect();
-    const width = tooltip.offsetWidth;
-    const left = at.right + 8 + width <= window.innerWidth ? at.right + 8 : at.left - 8 - width;
-    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(at.top)}px)`;
+    const [width, height] = [tooltip.offsetWidth, tooltip.offsetHeight];
+    const left = Math.max(EDGE, at.right + 8 + width <= window.innerWidth - EDGE ? at.right + 8 : at.left - 8 - width);
+    // Level with the slot's top, raised as far as it must be to end on screen (never past its top).
+    const top = Math.max(EDGE, Math.min(at.top, window.innerHeight - EDGE - height));
+    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   }
 
   function hideTip(): void {
