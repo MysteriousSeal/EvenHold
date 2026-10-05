@@ -10,7 +10,7 @@
 // gable over the door. Weathered: cracks down its walls, blocks gone from
 // them, a corner of the roof fallen in (by variant), moss on the roof and
 // the cornice and at its foot, ivy up its sides. By variant too: one gate
-// leaf sagging off its hinge, or gone.
+// leaf sagging off its hinge, or torn off it and fallen down the steps.
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
@@ -192,8 +192,34 @@ export function buildCryptStairs(variant: number): VoxelGrid {
   };
   leaf(6, variant === 1);
   if (variant < 2) leaf(43, variant === 0);
+  else fallenLeaf(below);
   for (const u of [5, 44]) fill(u, KERB + 1, 49, u, KERB + 18, 49, C.iron); // the hinge posts
+  if (variant >= 2) for (const [y, v, c] of [[KERB + 4, 48, C.iron], [KERB + 3, 47, C.rustDark], [KERB + 13, 48, C.rust]] as const) set(43, y, v, c); // (a scrap of its strap, torn, left on the post)
   return raw;
 }
 
 const inArch = (u: number, y: number) => u >= ARCH[0] && u <= ARCH[1] && y < archTop(u);
+
+// The right leaf torn off its hinge and fallen down the stairs: lying on the steps' edges (a rigid plane, down two
+// voxels for every three back, as the steps go), its length across them, its torn end by the post it came from; a
+// bar bowed up, another bent aside, its spike snapped off; a gap in its middle rail; moss on it here and there.
+function fallenLeaf(put: (u: number, y: number, v: number, color: number) => void): void {
+  const ON_STEPS = (v: number) => SINK + Math.round(((v - 47) * 2) / 3); // (resting on each step's front edge)
+  const at = (a: number, h: number) => ({ u: 26 + a, v: 49 - h }); // (a along its length, h up it as it stood)
+  const rust = (u: number, v: number) => (hashUnit(u, v, 87) < 0.08 ? C.moss : hashUnit(u, v, 88) < 0.35 ? C.rustDark : C.rust);
+  for (let a = 0; a <= 15; a++) {
+    for (const h of [0, 6, 15]) {
+      if (h === 6 && a >= 9 && a <= 10) continue; // (the gap in its middle rail)
+      const { u, v } = at(a, h);
+      put(u, ON_STEPS(v), v, hashUnit(u, v, 89) < 0.1 ? C.moss : C.iron); // the rails
+    }
+    if (a % 3 !== 0 && a !== 15) continue;
+    for (let h = 0; h <= 17; h++) {
+      if (a === 12 && h > 14) break; // (its spike snapped off)
+      const bow = a === 6 && h >= 5 && h <= 11 ? (h >= 7 && h <= 9 ? 2 : 1) : 0; // (bowed up off the steps)
+      const aside = a === 12 && h >= 9 ? 1 : 0; // (bent aside)
+      const { u, v } = at(a + aside, h);
+      put(u, ON_STEPS(v) + bow, v, rust(u, v)); // a bar
+    }
+  }
+}
