@@ -7,6 +7,7 @@
 // sconces and candles (the nearest few lit, as the hero goes), flickering.
 // (Its pieces, its fading rock and its lights: any dungeon's, dungeon/dungeonScene.ts.)
 
+import type { IndoorScene } from '../interior/roomView';
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
@@ -19,12 +20,12 @@ import { CRYPT_PALETTE, CRYPT_VOXEL, ON_WALL, TALL, TILE, cryptGeometry, cryptPr
 import { FLOOR_DEEP, floorTile } from './cryptFloorVoxels';
 import { ARCADE } from './cryptWallVoxels';
 import { exitDoor } from '../../model/crypts/cryptProps';
-import { Pieces, fadingRock, nearestLights } from '../dungeon/dungeonScene';
+import { Pieces, fadingRock, nearestLights, undergroundScene } from '../dungeon/dungeonScene';
 
 const LIGHTS = 6; // warm lights at once: the nearest light-giving props to the hero
 const LIT = new Set(['sconce', 'candles']);
 
-export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(): void; seeHero(x: number, z: number): void; forge(): void } {
+export function buildCryptScene(inside: CryptInside): IndoorScene {
   const { plan, props } = inside;
   const exit = exitDoor(inside);
   const scene = new THREE.Scene();
@@ -86,19 +87,7 @@ export function buildCryptScene(inside: CryptInside): { scene: THREE.Scene; upda
   return {
     scene,
     update: lights.update,
-    seeHero(x, z) {
-      near.position.set(x, 1.4, z);
-      rock.fadeFor(x, z);
-      lights.seeHero(x, z);
-    },
-    dispose() {
-      for (const geometry of made) geometry.dispose();
-      lit.dispose();
-      glow.dispose();
-      rock.dispose();
-    },
-    showMugs() {}, // (no bar down here)
-    forge() {},
+    ...undergroundScene(near, rock, lights, made, [lit, glow]),
   };
 }
 

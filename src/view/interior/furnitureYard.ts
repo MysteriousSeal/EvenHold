@@ -7,7 +7,8 @@ import type { Furniture, FurnitureKind } from '../../model/interiors/furniture';
 import { YARD_SIZE } from '../../model/interiors/furnitureYard';
 import { paintFurniture } from './furnitureVoxels';
 import { ROOM_PALETTE, ROOM_VOXEL } from './roomVoxels';
-import { DOOR_LEAF, paintDoorLeaf } from './upstairsVoxels';
+import { DOOR_LEAF } from './upstairsVoxels';
+import { doorLeafGeometry } from './roomView';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 import { addVoxelGround } from '../meshes/terrain/voxelGround';
@@ -45,13 +46,6 @@ function pieceGeometry(item: Furniture): THREE.BufferGeometry {
   return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, origin);
 }
 
-function doorLeaf(): THREE.BufferGeometry {
-  const { width, height, thick } = DOOR_LEAF;
-  const grid = createGrid([width, height, thick]);
-  paintDoorLeaf((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color));
-  return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
-}
-
 function hangDoor(scene: THREE.Scene, item: Furniture, leafShape: THREE.BufferGeometry, material: THREE.Material): void {
   const len = item.w * TILE;
   const along = item.x - 0.5 + (Math.floor((len - TILE) / 2) + DOOR_LEAF.hinge) * ROOM_VOXEL;
@@ -77,7 +71,7 @@ export function buildFurnitureYard(furniture: readonly Furniture[]): { scene: TH
   scene.add(floor);
 
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
-  const leafShape = doorLeaf();
+  const leafShape = doorLeafGeometry();
   geometries.push(leafShape);
   for (const item of furniture) {
     const geometry = pieceGeometry(item);

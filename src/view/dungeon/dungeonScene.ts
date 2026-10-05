@@ -155,3 +155,27 @@ export function nearestLights(
     },
   };
 }
+
+// What every dungeon's scene does as the hero moves and once it's left (a crypt's, cryptView.ts; a cave's,
+// caveView.ts): a soft light about the hero, the rock before them turned see-through, the nearest lights lit; then
+// all it made let go (its geometries, its materials, its rock).
+export function undergroundScene(
+  near: THREE.PointLight,
+  rock: { fadeFor(hx: number, hz: number): void; dispose(): void },
+  lights: { seeHero(x: number, z: number): void },
+  made: readonly THREE.BufferGeometry[],
+  materials: readonly THREE.Material[],
+): { seeHero(x: number, z: number): void; dispose(): void } {
+  return {
+    seeHero(x, z) {
+      near.position.set(x, 1.4, z);
+      rock.fadeFor(x, z);
+      lights.seeHero(x, z);
+    },
+    dispose() {
+      for (const geometry of made) geometry.dispose();
+      for (const material of materials) material.dispose();
+      rock.dispose();
+    },
+  };
+}

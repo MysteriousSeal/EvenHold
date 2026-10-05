@@ -43,15 +43,27 @@ const SWING = (100 * Math.PI) / 180; // how far a door swings open
 const SWING_TIME = 0.7; // seconds, to open or close
 const RATTLE_TIME = 0.35; // seconds a locked door rattles, tried
 
-// A hallway door's leaf, hung from its hinge edge (x 0), standing on the floor, its thickness centred.
-function doorLeafGeometry(): THREE.BufferGeometry {
+// A hallway door's leaf, hung from its hinge edge (x 0), standing on the floor, its thickness centred (the furniture
+// yard's too: furnitureYard.ts).
+export function doorLeafGeometry(): THREE.BufferGeometry {
   const { width, height, thick } = DOOR_LEAF;
   const grid = createGrid([width, height, thick]);
   paintDoorLeaf((u0, y0, v0, u1, y1, v1, color) => fillBox(grid, u0, y0, v0, u1, y1, v1, color));
   return greedyMesh(grid, ROOM_PALETTE, ROOM_VOXEL, new THREE.Vector3(0, 0, (-thick / 2) * ROOM_VOXEL));
 }
 
-export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void; seeHero(x: number, z: number): void; forge(hammering: boolean, quenching: boolean): void } {
+// What every scene the hero's in, out of the world, shares (a building's room; a crypt, a cave: crypt/cryptView.ts,
+// cave/caveView.ts), and what only a building's has (the inn's mugs on its bar, the smithy's forge at work).
+export interface IndoorScene {
+  scene: THREE.Scene;
+  update(time: number): void;
+  seeHero(x: number, z: number): void; // (walls in their way turn see-through)
+  dispose(): void;
+  showMugs?(mugs: ReadonlyArray<{ z: number; full: boolean; drink: Drink }>): void;
+  forge?(hammering: boolean, quenching: boolean): void;
+}
+
+export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [], door = true): IndoorScene {
   const scene = new THREE.Scene();
   const DARK = 0x1c130c;
   scene.background = new THREE.Color(DARK); // darkness beyond the walls

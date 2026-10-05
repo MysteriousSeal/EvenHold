@@ -53,7 +53,7 @@ import { EntranceLife } from './meshes/entrance/entranceLife';
 import { WildMovesView } from './meshes/enemy/wildMovesView';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
-import { buildRoomScene } from './interior/roomView';
+import { buildRoomScene, type IndoorScene } from './interior/roomView';
 import { buildDungeonScene, type DungeonLife } from './dungeon/dungeonViews';
 import { FrostOnHero } from './meshes/human/frostOnHero';
 import { buildFurnitureYard } from './interior/furnitureYard';
@@ -310,7 +310,7 @@ export class GameView {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
     }
-    this.npcs.update(model.npcs, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
+    this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.followHero(hero, 0, dt);
@@ -362,7 +362,7 @@ export class GameView {
   // The one before is freed when they leave it (or go straight into another).
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
 
-  private room: ({ entrance: Entrance; fullWalls: boolean; life: DungeonLife | null } & ReturnType<typeof buildRoomScene>) | null = null;
+  private room: ({ entrance: Entrance; fullWalls: boolean; life: DungeonLife | null } & IndoorScene) | null = null;
   private yardView: ReturnType<typeof buildFurnitureYard> | null = null;
   // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
   private yardScene(model: GameModel): THREE.Scene | null {
@@ -396,10 +396,10 @@ export class GameView {
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
     const [anvil, trough] = [at('anvil'), at('trough')];
-    const smiths = model.npcs.filter((n) => n.role === 'smith' && n.where === inside.entrance);
-    this.room.forge(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
+    const smiths = model.folk.filter((n) => n.role === 'smith' && n.where === inside.entrance);
+    this.room.forge?.(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
     this.room.update(this.elapsed);
-    this.room.showMugs(mugsAt(inside.entrance)); // the drinks on the bar, as they are
+    this.room.showMugs?.(mugsAt(inside.entrance)); // the drinks on the bar, as they are
     return this.room.scene;
   }
 

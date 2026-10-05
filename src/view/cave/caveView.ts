@@ -9,6 +9,7 @@
 // the crystals' lavender (the nearest few lit, as the hero goes, pulsing
 // softly), the daylight at the way up, a faint warmth about the hero.
 
+import type { IndoorScene } from '../interior/roomView';
 import { glowMaterial } from '../meshes/common/glow';
 import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
@@ -20,7 +21,7 @@ import { FLOOR_DEEP, floorTile, rockTile } from './caveRockVoxels';
 import { paintProp } from './cavePropVoxels';
 import { crackRock, wayUp } from './caveWaysVoxels';
 import { SUN_GRID, SUN_PALETTE, sunPool } from './sunPoolVoxels';
-import { Pieces, fadingRock, nearestLights, type LightSource, type Mesher } from '../dungeon/dungeonScene';
+import { Pieces, fadingRock, nearestLights, undergroundScene, type LightSource, type Mesher } from '../dungeon/dungeonScene';
 
 const LIGHTS = 6; // its own lights lit at once: the nearest to the hero
 const ON_ROCK: ReadonlySet<CaveProp['kind']> = new Set(['glowcap', 'roots', 'web']); // built with the rock at their back (-Z)
@@ -31,7 +32,7 @@ const SIDES = [[0, -1], [-1, 0], [0, 1], [1, 0]]; // the rock at a prop's back, 
 export const caveGeometry: Mesher = (grid, origin, glow) => greedyMesh(grid, CAVE_PALETTE, V, origin, (c) => GLOW.has(c) === glow);
 const centred = (grid: { size: [number, number, number] }) => new THREE.Vector3((-grid.size[0] / 2) * V, 0, (-grid.size[2] / 2) * V);
 
-export function buildCaveScene(inside: CaveInside): { scene: THREE.Scene; update(time: number): void; dispose(): void; showMugs(): void; seeHero(x: number, z: number): void; forge(): void } {
+export function buildCaveScene(inside: CaveInside): IndoorScene {
   const { plan, props, exit } = inside;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x07090a); // the dark beyond the rock
@@ -93,19 +94,6 @@ export function buildCaveScene(inside: CaveInside): { scene: THREE.Scene; update
       lights.update(time);
       spillLook.color.setScalar(0.85 + 0.15 * Math.sin(time * 0.9)); // (breathing, as clouds pass over)
     },
-    seeHero(x, z) {
-      near.position.set(x, 1.4, z);
-      rock.fadeFor(x, z);
-      lights.seeHero(x, z);
-    },
-    dispose() {
-      for (const geometry of made) geometry.dispose();
-      lit.dispose();
-      glow.dispose();
-      rock.dispose();
-      spillLook.dispose();
-    },
-    showMugs() {}, // (no bar down here)
-    forge() {},
+    ...undergroundScene(near, rock, lights, made, [lit, glow, spillLook]),
   };
 }

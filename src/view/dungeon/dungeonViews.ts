@@ -7,6 +7,7 @@ import type { Entrance } from '../../model/interiors/interiors';
 import { cryptInside } from '../../model/crypts/crypts';
 import { caveInside } from '../../model/caves/caves';
 import { buildCryptScene } from '../crypt/cryptView';
+import type { IndoorScene } from '../interior/roomView';
 import { CryptLife } from '../crypt/cryptLife';
 import { buildCaveScene } from '../cave/caveView';
 import { CaveLife } from '../cave/caveLife';
@@ -18,7 +19,7 @@ export interface DungeonLife {
   dispose(): void;
 }
 
-export type DungeonScene = ReturnType<typeof buildCryptScene> & { life: DungeonLife };
+export type DungeonScene = IndoorScene & { life: DungeonLife };
 
 export function buildDungeonScene(seed: number, entrance: Entrance): DungeonScene | null {
   if (entrance.type === 'crypt') {
