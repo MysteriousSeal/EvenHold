@@ -28,6 +28,8 @@ export const AISLE_X = 0.34; // the middle of the aisle behind the bar (shelves 
 const SERVE_WAIT: [number, number] = [4, 10];
 const TABLE_WAIT: [number, number] = [2, 5];
 const TO_COUNTER = Math.PI / 2; // behind the bar, facing out across it (+x)
+// Where the server waits at the bar, and takes up what's set down for her: just past the counter's end.
+export const pickupAt = (counter: Furniture): Point => ({ x: counter.x, z: counter.z + counter.d });
 export const AT_KEG = { x: 0.44, z: 0 }; // beside the corner keg's tap (the keg at 0, 0 reaches out to x 0.12), clear of it and the counter (she's 0.25 wide indoors)
 const POUR_TIME = 1.4; // seconds bent over the tap
 const LINGER = 2; // seconds she stays before whoever she's served, having set it down
@@ -129,7 +131,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
     ];
   }
   // The server: from the end of the counter to a table with folk round it (none: she waits there) and back.
-  const pickup: Point = { x: counter.x, z: barEnd + 1 };
+  const pickup = pickupAt(counter);
   const tables = furniture.filter((f) => f.kind === 'tavernTable');
   const busy = tables.filter((t) => furniture.some((f) => f.kind === 'chair' && distanceTo(t, f.x, f.z) <= 0.6 && sat(npcs, npc.home, f)));
   const table = busy[Math.floor(roll(npc, 4) * busy.length)]; // (no empty table waited on)
@@ -262,7 +264,7 @@ function serveTables(barkeep: Npc, orders: BarOrder[]): NpcStep[] {
 export function serveTable(server: Npc, table: Furniture, drink: Drink, then: () => void, seed: number): void {
   const { room, furniture } = layoutOf(seed, server.home);
   const counter = furniture.find((f) => f.kind === 'counter');
-  const pickup: Point = counter ? { x: counter.x, z: counter.z + counter.d } : { x: server.x, z: server.z };
+  const pickup = counter ? pickupAt(counter) : { x: server.x, z: server.z };
   const spot = beside(table, furniture, room) ?? pickup;
   server.steps = [
     { kind: 'go', to: pickup, face: Math.PI },

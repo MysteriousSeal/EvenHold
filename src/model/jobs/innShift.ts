@@ -9,7 +9,6 @@
 // hour: word's round that the tables are served, and the village's folk come in now and then for one (RUSH).
 
 import { distanceTo, type Furniture } from '../interiors/furniture';
-import { layoutOf } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import type { Drink, Npc } from '../npcs/npcs';
 import { say } from '../npcs/speech';
@@ -64,7 +63,6 @@ export type ShiftAction =
   | { kind: 'counter'; returns: number; wants: Want[] };
 
 const CALLS = ['Over here!', 'Service, please!', 'When you have a moment!', 'Excuse me!', "We're parched over here!"];
-const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!'];
 const THANKS = ['Lovely, thank you.', 'Just what I wanted.', "You're quick on your feet!", 'Bless you.', 'Keep the change.'];
 const CLUTTERED = ['Could someone clear this table?', 'Whose are all these cups?', 'A clean table would be nice.'];
 
@@ -75,31 +73,19 @@ export class InnShift extends Shift {
   readonly empties: Empty[] = []; // left on the tables
   private readonly callIn = new Map<Npc, number>(); // patrons sat, and seconds before they call
   private readonly gone = new Set<Npc>(); // those who walked out: no more calls from them this shift (on their way out)
-  private readonly pickup: { x: number; z: number };
   private readonly barEnd: Furniture; // where the barkeep sets the shift's orders down: the counter's very end (no stool's)
   private readonly tables: Furniture[];
 
   constructor(inn: Entrance, rank: JobRank, seed: number) {
     super('innServer', inn, rank, seed);
-    const { furniture } = layoutOf(seed, inn);
-    this.tables = furniture.filter((f) => f.kind === 'tavernTable');
-    const counter = furniture.find((f) => f.kind === 'counter');
-    this.pickup = counter ? { x: counter.x, z: counter.z + counter.d } : { x: 1, z: 1 }; // (the end of the counter, where the server waits: innStaff.ts)
+    this.tables = this.furniture.filter((f) => f.kind === 'tavernTable');
     // (half a tile short of it: past the last stool's row, so she never takes a patron's cup for the shift's)
-    this.barEnd = { ...(counter ?? furniture[0]), kind: 'barStool', z: (counter ? counter.z + counter.d : 1) - 0.5 } as Furniture;
-  }
-
-  get pickupSpot(): { x: number; z: number } {
-    return this.pickup;
+    this.barEnd = { ...(this.counter ?? this.furniture[0]), kind: 'barStool', z: this.barEndZ } as Furniture;
   }
 
   // The orders the barkeep's set down at the counter's end, waiting to be fetched (drawn there).
   get readyOrders(): Order[] {
     return [...this.wants.values()].filter((w) => w.state === 'ordered' && w.ready).map((w) => w.order);
-  }
-
-  get barEndZ(): number {
-    return this.barEnd.z;
   }
 
   // What's at the counter's end to be drawn there: the orders ready.
@@ -154,8 +140,7 @@ export class InnShift extends Shift {
       if (!patrons.includes(want.npc)) continue; // (gone already: their stay ended some other way)
       this.walkedOut++;
       this.gone.add(want.npc);
-      want.npc.waited = Infinity; // (up and off, their stay over)
-      say(want.npc, WALKS[Math.floor(this.roll(want.npc, 4) * WALKS.length)]);
+      this.walkOut(want.npc);
     }
     for (const npc of this.callIn.keys()) if (!patrons.includes(npc)) this.callIn.delete(npc);
   }
@@ -198,7 +183,7 @@ export class InnShift extends Shift {
     const calling = nearest([...this.wants.values()].filter((w) => w.state === 'calling'), (w) => w.npc);
     if (calling) return { kind: 'take', want: calling };
     const room = this.rank.tray - this.tray.length;
-    if (near(this.pickup)) {
+    if (near(this.pickupSpot)) {
       const returns = this.tray.filter((t) => t.kind === 'empty').length;
       const wants = [...this.wants.values()].filter((w) => w.state === 'ordered' && w.ready).slice(0, room + returns);
       if (returns > 0 || wants.length > 0) return { kind: 'counter', returns, wants };

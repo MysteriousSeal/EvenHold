@@ -15,7 +15,6 @@
 // the pay. The busy hour brings the village's folk in, for the stools and the tables.
 
 import { distanceTo, type Furniture } from '../interiors/furniture';
-import { layoutOf } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import type { Npc } from '../npcs/npcs';
 import { say } from '../npcs/speech';
@@ -89,7 +88,6 @@ const SAY_GRADE: Record<Exclude<PourGrade, 'spilled'>, readonly string[]> = {
   short: ['Short measure, is it?', 'Bit light, that.', 'Not quite full, friend.'],
   thin: ['Is this a joke?', "You call that a drink?", 'Half of it, at best.'],
 };
-const WALKS = ["I'll drink elsewhere.", 'Too slow by half!', 'Forget it.', "I've waited long enough."];
 const NUMBERS = ['one', 'two', 'three'];
 const named = (d: Pourable, n: number) => (d === 'ale' ? (n === 1 ? 'an ale' : `${NUMBERS[n - 1]} ales`) : n === 1 ? 'a wine' : `${NUMBERS[n - 1]} wines`);
 
@@ -105,30 +103,16 @@ export class BarShift extends Shift {
   perfect = 0; // perfect pours handed over
   spilled = 0;
   last: { grade: PourGrade; n: number } | null = null; // the last pour stopped (or run over), and how many so far (for the view's word)
-  private readonly furniture: readonly Furniture[];
-  private readonly counter: Furniture | undefined;
   private readonly returns: Array<{ drinks: Pourable[]; due: number }> = []; // a table's empties, on their way back
   private ticketIn = TICKET_EVERY[0] / 2; // seconds before the server's next call
 
   constructor(inn: Entrance, rank: JobRank, seed: number) {
     super('innBarkeep', inn, rank, seed);
-    this.furniture = layoutOf(seed, inn).furniture;
-    this.counter = this.furniture.find((f) => f.kind === 'counter');
   }
 
   // The bar's last row (the pass: where the tables' are set down, the server waiting just past it).
   get passZ(): number {
     return this.counter ? this.counter.z + this.counter.d - 1 : 1;
-  }
-
-  // Where what's on the pass is drawn: half a tile short of the counter's end (as the server's ready orders are).
-  get barEndZ(): number {
-    return this.passZ + 0.5;
-  }
-
-  // Where the server stands to take them: just past the counter's end.
-  get pickupSpot(): { x: number; z: number } {
-    return this.counter ? { x: this.counter.x, z: this.counter.z + this.counter.d } : { x: 1, z: 1 };
   }
 
   // The stations along the aisle: the tap, the washstand, each bottle shelf (where to stand: the middle of its span).
@@ -197,9 +181,8 @@ export class BarShift extends Shift {
       if ((want.patience -= dt) > 0) continue;
       this.wants.delete(want.order);
       queue.splice(queue.indexOf(want.order), 1);
-      Object.assign(want.npc, { awaiting: false, waited: Infinity }); // (up and off, their stay over)
+      this.walkOut(want.npc);
       this.walkedOut++;
-      say(want.npc, WALKS[Math.floor(this.roll(want.npc, 4) * WALKS.length)]);
     }
   }
 
@@ -228,8 +211,7 @@ export class BarShift extends Shift {
       this.tickets.splice(this.tickets.indexOf(ticket), 1); // given up on: what was set down for it, back to wash
       this.passEmpties.push(...ticket.set.map((h) => h.drink));
       this.walkedOut++;
-      for (const npc of ticket.patrons) Object.assign(npc, { awaiting: false, waited: Infinity }); // (up and off)
-      if (ticket.patrons[0]) say(ticket.patrons[0], WALKS[Math.floor(this.roll(ticket.patrons[0], 4) * WALKS.length)]);
+      for (const [i, npc] of ticket.patrons.entries()) this.walkOut(npc, i === 0); // (up and off, the one of them grumbling)
       if (server) say(server, `Table ${ticket.table} gave up on us. Never mind.`);
     }
     for (const back of [...this.returns]) {

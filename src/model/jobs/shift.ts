@@ -1,13 +1,17 @@
 // A shift of work at an inn (work.ts), whatever the job: SHIFT seconds on the clock, its tally (served, walked out,
-// earned: all paid at its end), the rank the hero works it at (its perks), and the busy hour it brings (word's round
-// that the inn's short-handed: the village's folk come in now and then, for a table or a stool at the bar). The jobs'
-// own: serving the tables (innShift.ts), tending the bar (barShift.ts).
+// earned: all paid at its end), the rank the hero works it at (its perks), the inn's furniture and where its
+// counter ends (the server waiting there, what's set down for her), a patron walking out on it, and the busy hour it
+// brings (word's round that the inn's short-handed: the village's folk come in now and then, for a table or a stool
+// at the bar). The jobs' own: serving the tables (innShift.ts), tending the bar (barShift.ts).
 
 import { hashUnit } from '../../util/random';
+import type { Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import type { Drink, Npc } from '../npcs/npcs';
 import { visitInn } from '../npcs/npcRoutine';
+import { say } from '../npcs/speech';
+import { pickupAt } from '../inn/innStaff';
 import { shiftBegun, shiftOver } from './shiftsAt';
 import type { JobId, JobRank } from './jobs';
 
@@ -15,8 +19,7 @@ export const SHIFT = 150; // seconds a shift lasts (two and a half hours on the 
 export const WAGE = 3; // copper an order
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const STAY: [number, number] = [40, 90]; // seconds those drawn in by the busy hour stay sat
-// Patience shown, by what's left of it (the marks over them, the window): plenty, wearing thin, all but gone.
-export const patienceOf = (share: number): 'calm' | 'restless' | 'leaving' => (share > 0.6 ? 'calm' : share > 0.3 ? 'restless' : 'leaving');
+const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!', 'Forget it.'];
 
 export abstract class Shift {
   left = SHIFT;
@@ -26,6 +29,8 @@ export abstract class Shift {
   tips = 0;
   private rolls = 0;
   private readonly rush = { table: 0, bar: 0 }; // seconds before the next comes in, for each
+  protected readonly furniture: readonly Furniture[]; // the inn's
+  protected readonly counter: Furniture | undefined; // its bar's
 
   constructor(
     readonly job: JobId,
@@ -33,7 +38,19 @@ export abstract class Shift {
     public rank: JobRank, // (risen mid-shift: its perks at once)
     protected readonly seed: number,
   ) {
+    this.furniture = layoutOf(seed, inn).furniture;
+    this.counter = this.furniture.find((f) => f.kind === 'counter');
     shiftBegun(inn, job);
+  }
+
+  // Where the server waits at the counter's end (and takes up what's set down there for her): just past it.
+  get pickupSpot(): { x: number; z: number } {
+    return this.counter ? pickupAt(this.counter) : { x: 1, z: 1 };
+  }
+
+  // Where what's set down at the counter's end stands (drawn there): half a tile short of its end.
+  get barEndZ(): number {
+    return (this.counter ? this.counter.z + this.counter.d : 1) - 0.5;
   }
 
   // A moment of it (the hero where they stand: a pour's at the tap, say).
@@ -47,6 +64,12 @@ export abstract class Shift {
   // How the shift went, beyond what's served and walked out, for its end ("4 tables cleared").
   abstract get tally(): string;
 
+  // A patron who's had enough: up and off, their stay over (`speak`: a word as they go).
+  protected walkOut(npc: Npc, speak = true): void {
+    Object.assign(npc, { awaiting: false, waited: Infinity });
+    if (speak) say(npc, WALKS[Math.floor(this.roll(npc, 4) * WALKS.length)]);
+  }
+
   // A number in 0..1, fresh each time, by who (or what) it's for and `salt`.
   protected roll(npc: Npc | number, salt: number): number {
     return hashUnit(typeof npc === 'number' ? npc : npc.id, ++this.rolls, salt);
@@ -59,7 +82,7 @@ export abstract class Shift {
     if ((this.rush[at] -= dt) > 0) return;
     this.rush[at] = every[0] + hashUnit(++this.rolls, this.seed, 61) * (every[1] - every[0]);
     const kind = at === 'table' ? 'chair' : 'barStool';
-    const seats = layoutOf(this.seed, this.inn).furniture.filter((f) => f.kind === kind).length;
+    const seats = this.furniture.filter((f) => f.kind === kind).length;
     const coming = (n: Npc) => n.steps.some((s) => s.kind === 'settle' && s.at === at) || (n.where === this.inn && n.seat?.piece.kind === kind);
     if (npcs.filter(coming).length >= Math.min(most, seats)) return;
     const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n));

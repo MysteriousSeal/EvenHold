@@ -28,8 +28,10 @@ export interface WorkHost {
   report(event: GameEvent): void;
 }
 
-// What E would do at work, whatever the job.
+// What E would do at work, whatever the job; and whether it's behind the bar.
 export type WorkAction = ShiftAction | BarAction;
+const AT_THE_BAR: ReadonlySet<WorkAction['kind']> = new Set<BarAction['kind']>(['stop', 'pour', 'hand', 'pass', 'wash', 'gather']);
+export const isBarAction = (action: WorkAction): action is BarAction => AT_THE_BAR.has(action.kind);
 
 export class Work {
   shift: InnShift | BarShift | null = null;
