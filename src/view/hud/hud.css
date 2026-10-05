@@ -352,7 +352,7 @@
   color: #2e1f14;
 }
 .quest-tracker[hidden] { display: none; }
-body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /* under the crypt's bar (cryptBar.ts) */
+body.in-place .quest-tracker { top: calc(var(--place-bar-bottom, 210px) + 12px); max-height: calc(100vh - var(--place-bar-bottom, 210px) - 82px); } /* under the place's bar (placeBar.ts), as far down as it reaches */
 .quest-card {
   display: flex;
   align-items: center;
@@ -530,9 +530,10 @@ body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /*
 .place-banner b { font-size: 34px; font-weight: 700; letter-spacing: 0.5px; }
 .place-banner span { font-size: 18px; color: #c9b8a0; }
 
-/* While down in a crypt: its name, and how much of it is cleared (cryptBar.ts). On the left under
-   the hero's frame, as wide as the quests taken, which move down under it (.in-crypt). */
-.crypt-bar {
+/* The place the hero's in (placeBar.ts): a crypt's or a cave's name and how much of it is cleared, or a bandit
+   camp's and its bandits and chief slain. On the left under the hero's frame, as wide as the quests taken, which
+   move down under it (.in-place). */
+.place-bar {
   position: fixed;
   top: 150px;
   left: 16px;
@@ -546,9 +547,10 @@ body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /*
   color: #f8ecd4;
   text-shadow: 2px 2px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14;
 }
-.crypt-bar[hidden] { display: none; }
-.crypt-bar b { font-size: 18px; font-weight: 700; letter-spacing: 0.4px; }
-.crypt-bar-track {
+.place-bar[hidden] { display: none; }
+.place-bar b { font-size: 18px; font-weight: 700; letter-spacing: 0.4px; }
+.place-bar b small { font-size: inherit; font-weight: inherit; letter-spacing: inherit; vertical-align: baseline; color: #c9b8a0; } /* (a bandit camp's: what it is; as big as its name, on its line, only dimmer) */
+.place-bar-track {
   position: relative;
   width: 274px;
   height: 22px;
@@ -556,14 +558,15 @@ body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /*
   border: 3px solid #2e1f14;
   box-shadow: inset 0 3px 0 #2a2420, 0 3px 0 #1c1612;
 }
-.crypt-bar-track i {
+.place-bar-track i {
   position: absolute;
   inset: 0 auto 0 0;
   background: linear-gradient(#b9b1a2 0 35%, #9a9182 35%);
   transition: width 0.4s;
 }
-.crypt-bar.done .crypt-bar-track i { background: linear-gradient(#ffd96a 0 35%, #e0a830 35%); }
-.crypt-bar-track span {
+.place-bar.done .place-bar-track i { background: linear-gradient(#ffd96a 0 35%, #e0a830 35%); }
+.place-bar-track[hidden], .place-bar-counts[hidden] { display: none; }
+.place-bar-track span {
   position: absolute;
   inset: 0;
   display: grid;
@@ -577,3 +580,37 @@ body.in-crypt .quest-tracker { top: 222px; max-height: calc(100vh - 292px); } /*
 .sleep-fade { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #050302; opacity: 0; transition: opacity 0.9s ease; pointer-events: none; }
 .sleep-fade.dark { opacity: 1; pointer-events: auto; }
 .sleep-fade span { color: #f0e2c4; font: 500 22px Fredoka, sans-serif; letter-spacing: 0.04em; opacity: 0.9; }
+
+/* A bandit camp's counts (placeBar.ts), on a stone slab as the crypt's bar (readable over any ground): a bust in
+   its own framed tile, what, how many; gold once they're all down; "Cleared!" its own line, the chest under it. */
+.place-bar-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 254px;
+  padding: 8px 10px;
+  background: #3a332c;
+  border: 3px solid #2e1f14;
+  box-shadow: inset 0 3px 0 #2a2420, 0 3px 0 #1c1612;
+}
+.place-bar-count { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; line-height: 1; }
+.place-bar-count canvas {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  image-rendering: pixelated;
+  background: #6b6156;
+  border: 2px solid #2e1f14;
+  box-shadow: inset 0 -3px 0 #574e45;
+}
+.place-bar-count em { margin-left: auto; font-style: normal; font-weight: 700; font-size: 18px; }
+.place-bar-count.done em { color: #ffd96a; }
+.place-bar-count.cleared {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-top: 7px;
+  border-top: 2px solid #2a2420;
+}
+.place-bar-count.cleared span { color: #ffd96a; font-size: 18px; font-weight: 700; }
+.place-bar-count.cleared em { margin-left: 0; font-size: 14px; font-weight: 600; color: #c9b8a0; }
