@@ -4,12 +4,13 @@
 // Drawn on the page over the game, not in its scene: the scene's drawn at half the screen's pixels and blown up
 // (render/renderOptions.ts), and a word in it comes out in blocks; here, as crisp as the HUD's.
 
+import type { ToScreen } from './floatingText';
+
 const BADGE_HEIGHT = 0.46; // world units, plate and tail
 const EM_TALL = 3.1; // the badge's height in its own ems (hud.css .overhead-badge: plate 2.55, tail 0.55)
 const WORD_ROOM = 2.0; // ems across its plate a word may take (inside the rim, a margin either side)
 const WORD_EM = 0.85; // a word's size, at most, in ems
 
-type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
 export interface BadgeAt {
   text: string;
@@ -18,17 +19,18 @@ export interface BadgeAt {
   swell?: number; // times its size (a pulse), 1 if not given
 }
 
-// A word's width in ems at Fredoka bold, for fitting it inside the plate (measured once).
+// A word's width in ems at Fredoka bold, for fitting it inside the plate (kept once the font's in: before, a stand-in's
+// width would stick; with nothing to measure by, about 0.6 an em a letter).
 const widths = new Map<string, number>();
-let measure: CanvasRenderingContext2D | null = null;
+let measure: CanvasRenderingContext2D | null | undefined;
 function emWidth(text: string): number {
-  let w = widths.get(text);
-  if (w === undefined) {
-    measure ??= document.createElement('canvas').getContext('2d')!;
-    measure.font = "700 100px 'Fredoka', system-ui, sans-serif";
-    w = measure.measureText(text).width / 100;
-    widths.set(text, w);
-  }
+  const known = widths.get(text);
+  if (known !== undefined) return known;
+  measure ??= document.createElement('canvas').getContext('2d');
+  if (!measure) return text.length * 0.6;
+  measure.font = "700 100px 'Fredoka', system-ui, sans-serif";
+  const w = measure.measureText(text).width / 100;
+  if (document.fonts?.check?.(measure.font)) widths.set(text, w);
   return w;
 }
 

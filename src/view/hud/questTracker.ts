@@ -11,8 +11,8 @@ import type { Inside } from '../../model/interiors/indoors';
 import { stairsOf } from '../../model/interiors/upstairs';
 import { inMeters, questTitle } from '../../model/quests/quests';
 import type { TakenQuest } from '../../model/quests/questBook';
+import type { ToScreen } from './floatingText';
 
-type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
 const HERE = 2.5; // tiles: close enough that the arrow gives way to "here"
 

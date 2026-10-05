@@ -13,6 +13,7 @@ import { INDOOR_SCALE } from '../../../model/constants';
 import { OverheadBadges, type BadgeAt } from '../../hud/overheadBadges';
 import { markBob, offerMark } from '../quest/questMarks';
 import { boardFace } from '../../../model/jobs/work';
+import type { ToScreen } from '../../hud/floatingText';
 
 const OVER_SEATED = 0.62 * INDOOR_SCALE; // just over a seated patron's head, in the room's units (the badge's tail's tip)
 const OVER_COUNTER = 0.74; // over the mugs on the counter's top (0.52), at its end
@@ -25,7 +26,6 @@ const NOTICE_MARK_SCALE = 0.6;
 const OFF_WALL = 0.08; // out from the wall it hangs on (its roof's depth, half of it)
 const ORDER_WORD: Record<Want['order'], string> = { ale: 'Ale', wine: 'Wine', pie: 'Pie' };
 const URGENT = '#ff6a5a';
-type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 const patienceInk = (share: number) => (share > 0.6 ? '#8fd36a' : share > 0.3 ? '#ffc94a' : URGENT);
 
 export class WorkMarks {

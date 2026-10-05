@@ -13,7 +13,8 @@ const POP = 0.12; // seconds it takes to shrink from popping in
 const STACK = 18; // screen pixels a new text goes above a fresh one
 const SPEECH = { life: 3.2, rise: 6, fade: 0.4 }; // a speech bubble: seconds shown, pixels a second it rises, seconds it fades
 
-type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
+// Where a point in the world is on screen, in page pixels (GameView.toScreen): what's drawn over the world goes by it.
+export type ToScreen = (x: number, y: number, z: number) => { x: number; y: number };
 
 interface Floater {
   element: HTMLElement;

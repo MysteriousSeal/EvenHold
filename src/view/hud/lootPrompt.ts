@@ -6,6 +6,7 @@ import { RARITY_COLORS, levelOf } from '../../model/human/items/gear';
 import type { GroundLoot } from '../../model/loot/loot';
 import { isLootItem, nameOf, qualityOf, type Quality } from '../../model/hero/bag';
 import type { Npc } from '../../model/npcs/npcs';
+import type { ToScreen } from './floatingText';
 
 
 // What E would do right now: its label (colored by `quality` for loot),
@@ -23,7 +24,7 @@ export interface PromptTarget {
 export interface LootPrompt {
   readonly element: HTMLElement; // (for another stacked over it)
   // Each frame: what E does (or null), and where on screen to put it.
-  update(target: PromptTarget | null, toScreen: (x: number, y: number, z: number) => { x: number; y: number }): void;
+  update(target: PromptTarget | null, toScreen: ToScreen): void;
 }
 
 // A thing's name in its quality's colour, where it's drawn over the world (what's picked up, floating up over the
