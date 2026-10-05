@@ -5,6 +5,8 @@ import { buildBushGeometry } from '../src/view/meshes/bush/bushMesh';
 import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxels';
 import type { BushKind, TreeKind } from '../src/model/types';
 import { buildTreeGeometry } from '../src/view/meshes/tree/treeMesh';
+import { buildTreeVoxels } from '../src/view/meshes/tree/treeVoxels';
+import { TREE_SHAPES } from '../src/model/constants';
 import { buildRoadTile } from '../src/view/meshes/road/roadVoxels';
 import { addVoxelInstances } from '../src/view/meshes/voxel/voxelInstances';
 import { eagerSink } from '../src/view/world/chunkLayer';
@@ -75,7 +77,7 @@ describe('bush voxel models', () => {
 });
 
 const TREE_KINDS: TreeKind[] = ['oak', 'pine', 'birch'];
-const trees = TREE_KINDS.flatMap((kind) => [0, 1, 2].map((shape) => [kind, shape] as const));
+const trees = TREE_KINDS.flatMap((kind) => Array.from({ length: TREE_SHAPES }, (_, shape) => [kind, shape] as const));
 
 describe('tree voxel models', () => {
   it.each(trees)('%s shape %i overhangs its tile only slightly and stands on the ground', (kind, shape) => {
@@ -93,6 +95,37 @@ describe('tree voxel models', () => {
     // ~400 trees per map; greedy meshing keeps each model a few thousand
     // triangles at most (baked AO splits some merges, hence the headroom).
     expect(buildTreeGeometry(kind, shape).getAttribute('position').count / 3).toBeLessThan(6000);
+  });
+
+  it.each(TREE_KINDS)('%s: each shape its own outline (its height, its spread seen from above, how high its leaves start)', (kind) => {
+    // A shape's outline, as a solid colour's silhouette: how tall, how many columns it covers seen from above, and the
+    // lowest row wider than a trunk (where its leaves start).
+    const outline = (shape: number) => {
+      const grid = buildTreeVoxels(kind, shape);
+      const [sx, sy, sz] = grid.size;
+      let [top, columns, low] = [0, 0, -1];
+      for (let x = 0; x < sx; x++) {
+        for (let z = 0; z < sz; z++) {
+          let filled = false;
+          for (let y = 0; y < sy; y++) if (grid.cells[x + sx * (y + sy * z)]) [filled, top] = [true, Math.max(top, y)];
+          if (filled) columns++;
+        }
+      }
+      for (let y = 2; y < sy && low < 0; y++) {
+        let row = 0;
+        for (let x = 0; x < sx; x++) for (let z = 0; z < sz; z++) if (grid.cells[x + sx * (y + sy * z)]) row++;
+        if (row > 12) low = y;
+      }
+      return { top, columns, low };
+    };
+    const all = Array.from({ length: TREE_SHAPES }, (_, shape) => outline(shape));
+    for (let a = 3; a < TREE_SHAPES; a++) {
+      for (let b = 0; b < TREE_SHAPES; b++) {
+        if (a === b) continue;
+        const [p, q] = [all[a], all[b]];
+        expect(Math.abs(p.top - q.top) >= 3 || Math.abs(p.columns - q.columns) / Math.max(p.columns, q.columns) >= 0.15 || Math.abs(p.low - q.low) >= 4).toBe(true); // (taller or shorter, wider or narrower, or leafy from higher or lower, by a clear step)
+      }
+    }
   });
 });
 
