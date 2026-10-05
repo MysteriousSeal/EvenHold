@@ -59,6 +59,7 @@ import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
+import { VillageWelcome } from './villages/villageWelcome';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { type Camp } from './camps/camps';
 
@@ -115,6 +116,7 @@ export class GameModel {
   private hop: Hop | null = null;
   readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
   readonly campLife = new CampLife(() => this); // (a camp's gate come up to, its last foe slain, its chest)
+  readonly welcome = new VillageWelcome(() => this); // (a village come into: its name told)
 
   // Dev cheats: movement speed factor (1 = normal); walking through
   // everything; god mode (enemies' blows don't hurt); every blow of the
@@ -255,7 +257,7 @@ export class GameModel {
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
     this.moves.update(dt, this.push, this.land);
-    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report)]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps)
+    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report)]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);

@@ -39,6 +39,7 @@ export const campHoard = (camp: Camp, size: MapSize, seed: number): Hoard => rol
 // its chest opened (the panel under the hero's frame, as a crypt's or a cave's).
 export interface CampStatus {
   name: string;
+  level: number; // (camps.ts campLevel: its ground's)
   bandits: { slain: number; of: number };
   chief: { slain: number; of: number };
   cleared: boolean;
@@ -73,13 +74,13 @@ export class CampLife {
   // The camp the hero's about (within CAMP_NEAR of its middle), and how it stands; null away from any. (Its slain
   // counted from those still standing: the slain of a saved world are gone from it.)
   status(hero: { x: number; z: number }): CampStatus | null {
-    const { camps, seed } = this.world();
+    const { camps, seed, size } = this.world();
     const camp = campNear(camps, hero, CAMP_NEAR);
     if (!camp) return null;
     const up = (kind: Enemy['kind']) => this.crew(camp).filter((e) => e.kind === kind && standing(e)).length;
     const bandits = { slain: camp.bandits - up('bandit'), of: camp.bandits };
     const chief = { slain: 1 - up('banditChief'), of: 1 };
-    return { name: campName(camp, seed), bandits, chief, cleared: bandits.slain === bandits.of && chief.slain === 1, chestOpened: this.opened(camp) };
+    return { name: campName(camp, seed), level: campLevel(camp, size), bandits, chief, cleared: bandits.slain === bandits.of && chief.slain === 1, chestOpened: this.opened(camp) };
   }
 
   // Whether a camp's chief still stands (its chest locked).
