@@ -7,7 +7,9 @@
 //   while the hero has the bar (a shift: jobs/barShift.ts), off her feet by
 //   the hearth;
 // - the server goes back and forth between the end of the counter and the
-//   tables, the ones with folk sat round them first, pausing at each; while
+//   tables with folk sat round them (none: waiting at the counter's end),
+//   pausing at each; behind the hero's bar (jobs/barShift.ts), carrying a
+//   table's drinks to it once they're poured (serveTable); while
 //   the hero has the tables (a shift: jobs/innShift.ts), off her feet by the
 //   hearth, in an armchair if one's free.
 
@@ -126,12 +128,11 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
       { kind: 'wait', for: between(npc, SERVE_WAIT, 3) },
     ];
   }
-  // The server: from the end of the counter to a table (one with folk round it, if any) and back.
+  // The server: from the end of the counter to a table with folk round it (none: she waits there) and back.
   const pickup: Point = { x: counter.x, z: barEnd + 1 };
   const tables = furniture.filter((f) => f.kind === 'tavernTable');
   const busy = tables.filter((t) => furniture.some((f) => f.kind === 'chair' && distanceTo(t, f.x, f.z) <= 0.6 && sat(npcs, npc.home, f)));
-  const choice = busy.length > 0 ? busy : tables;
-  const table = choice[Math.floor(roll(npc, 4) * choice.length)];
+  const table = busy[Math.floor(roll(npc, 4) * busy.length)]; // (no empty table waited on)
   const steps: NpcStep[] = [
     { kind: 'go', to: pickup, face: Math.PI }, // facing the counter's end
     { kind: 'wait', for: between(npc, TABLE_WAIT, 5) },
@@ -141,8 +142,8 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   return steps;
 }
 
-// A barmaid's break, the hero at her work (the tables, or the bar): an armchair by the hearth if there's one free,
-// else stood by it; her word the first time.
+// A barmaid's break, the hero at her work (the tables, or the bar): sat by the fire (an armchair before it, else the
+// chair nearest it), else stood by it; her word the first time.
 const BREAK: Record<'barkeep' | 'server', readonly string[]> = {
   server: ['All yours, love. My feet thank you.', "Mind table three, they're thirsty.", "I'll be by the fire if you need me."],
   barkeep: ["The bar's yours. Mind the tap, it sticks.", 'Pour to the line, and keep those tankards washed.', "I'll be by the fire. Shout if the keg runs dry."],
@@ -156,11 +157,15 @@ function offHerFeet(npc: Npc, npcs: readonly Npc[], furniture: readonly Furnitur
     const lines = BREAK[npc.role === 'barkeep' ? 'barkeep' : 'server'];
     steps.push({ kind: 'hand', then: () => say(npc, lines[Math.floor(roll(npc, 7) * lines.length)]) });
   }
-  const chair = furniture.find((f) => f.kind === 'armchair' && !sat(npcs, npc.home, f));
-  const seat = chair && seatOf(chair);
-  const from = chair && beside(chair, furniture, room);
-  if (seat && from) return [...steps, { kind: 'go', to: from }, { kind: 'sit', seat, for: 8 }];
+  // A seat by the fire: an armchair before it, else the chair nearest it (both taken by villagers: the next best).
   const hearth = furniture.find((f) => f.kind === 'hearth');
+  const fromFire = (f: Furniture) => (hearth ? Math.hypot(f.x - hearth.x, f.z - hearth.z) : 0);
+  const free = (kind: string) => furniture.filter((f) => f.kind === kind && !sat(npcs, npc.home, f) && !npcs.some((o) => o !== npc && o.steps.some((st) => st.kind === 'sit' && st.seat.piece === f)));
+  for (const chair of [...free('armchair'), ...free('chair').sort((a, b) => fromFire(a) - fromFire(b))]) {
+    const seat = seatOf(chair);
+    const from = beside(chair, furniture, room);
+    if (seat && from) return [...steps, { kind: 'go', to: from }, { kind: 'sit', seat, for: 8 }];
+  }
   const spot = hearth && beside(hearth, furniture, room);
   return [...steps, ...(spot ? [{ kind: 'go', to: spot, faceToward: hearth } as NpcStep] : []), { kind: 'wait', for: 8 }];
 }
@@ -252,6 +257,23 @@ function serveTables(barkeep: Npc, orders: BarOrder[]): NpcStep[] {
   ];
 }
 
+// The server, the hero behind the bar (jobs/barShift.ts): a table's drinks taken up at the counter's end, carried to
+// it, and set down before them (`then`); the first of them in her hand on the way.
+export function serveTable(server: Npc, table: Furniture, drink: Drink, then: () => void, seed: number): void {
+  const { room, furniture } = layoutOf(seed, server.home);
+  const counter = furniture.find((f) => f.kind === 'counter');
+  const pickup: Point = counter ? { x: counter.x, z: counter.z + counter.d } : { x: server.x, z: server.z };
+  const spot = beside(table, furniture, room) ?? pickup;
+  server.steps = [
+    { kind: 'go', to: pickup, face: Math.PI },
+    { kind: 'hand', then: () => (server.carrying = drink) },
+    { kind: 'go', to: spot, faceToward: table },
+    { kind: 'hand', then: () => ((server.carrying = false), then()) },
+    { kind: 'wait', for: LINGER },
+  ];
+  Object.assign(server, { path: null, waited: 0, working: false });
+}
+
 // An ale for whoever's sat on `stool`, now, ahead of any queue (the barkeep
 // leaves what she was doing): `then` once it's handed over.
 export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void {
@@ -261,7 +283,7 @@ export function pourFor(barkeep: Npc, stool: Furniture, then: () => void): void 
 
 // A spot by a table to serve it from: a tile next to it, in the room, with nothing on it
 // (none if it's hemmed in: then it's not waited on).
-function beside(table: Furniture, furniture: readonly Furniture[], room: Room): Point | null {
+export function beside(table: Furniture, furniture: readonly Furniture[], room: Room): Point | null {
   const around: Point[] = [
     { x: table.x, z: table.z + 1 },
     { x: table.x + 1, z: table.z },

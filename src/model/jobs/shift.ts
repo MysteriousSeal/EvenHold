@@ -25,7 +25,7 @@ export abstract class Shift {
   earned = 0;
   tips = 0;
   private rolls = 0;
-  private rush = 0; // seconds before the next comes in
+  private readonly rush = { table: 0, bar: 0 }; // seconds before the next comes in, for each
 
   constructor(
     readonly job: JobId,
@@ -56,8 +56,8 @@ export abstract class Shift {
   // comes in for a seat (`at`: a chair at a table, or a stool at the bar), while one's free and fewer than `most` are
   // sat there or on their way.
   protected drawIn(npcs: readonly Npc[], dt: number, at: 'table' | 'bar', every: [number, number], most: number): void {
-    if ((this.rush -= dt) > 0) return;
-    this.rush = every[0] + hashUnit(++this.rolls, this.seed, 61) * (every[1] - every[0]);
+    if ((this.rush[at] -= dt) > 0) return;
+    this.rush[at] = every[0] + hashUnit(++this.rolls, this.seed, 61) * (every[1] - every[0]);
     const kind = at === 'table' ? 'chair' : 'barStool';
     const seats = layoutOf(this.seed, this.inn).furniture.filter((f) => f.kind === kind).length;
     const coming = (n: Npc) => n.steps.some((s) => s.kind === 'settle' && s.at === at) || (n.where === this.inn && n.seat?.piece.kind === kind);

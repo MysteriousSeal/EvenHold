@@ -4,23 +4,25 @@
 // - the patrons on the stools, each asking for an ale or a glass of wine as they sit (inn/barPatrons.ts: the bar's
 //   queue); poured (pour.ts: E at the tap or a shelf, E again at the line) and handed across the bar to them (E,
 //   opposite them), they drink it and leave the empty before them, and may ask for another;
-// - the tables, the inn's server calling out a ticket now and then ("Two ales and a wine for table three!"): each of
-//   its drinks poured and set down at the counter's end (the pass, E there), she takes them once they're all there
-//   (as she comes by, or slipping by for them a moment on), and the empties come back to the pass a while later.
+// - the tables, the inn's server calling out a ticket now and then for one with folk sat at it ("Two ales and a wine
+//   for table three!"), a drink each, they waiting on it: each poured and set down at the counter's end (the pass, E
+//   there), she carries them over once they're all there and sets them down before them; the empties come back to the
+//   pass a while later.
 // Every pour takes a clean cup (tankards for ale, glasses for wine, so many to the bar), and they run out: the
 // empties gathered (off the bar, from the pass: E) and washed at the washstand (E there), as many at a time as the
 // hero's hands hold. A wage for each drink, and a tip the better the pour and the less they waited (a run of perfect
 // ones, more); left waiting too long, a patron gets up and goes, a table gives up its ticket. A spill comes out of
-// the pay. The busy hour brings the village's folk in for the stools.
+// the pay. The busy hour brings the village's folk in, for the stools and the tables.
 
-import type { Furniture } from '../interiors/furniture';
+import { distanceTo, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import type { Npc } from '../npcs/npcs';
 import { say } from '../npcs/speech';
 import { mugsAt, takeMug } from '../inn/barMugs';
 import { ordersAt, type BarOrder } from '../inn/barOrders';
-import { AISLE_X, AT_KEG } from '../inn/innStaff';
+import { AISLE_X, AT_KEG, serveTable } from '../inn/innStaff';
+import { ALE_SECONDS } from '../inn/barPatrons';
 import type { JobRank } from './jobs';
 import { FILL_SECONDS, GRADE_WORTH, gradePour, type PourGrade, type Pourable } from './pour';
 import { Shift, WAGE } from './shift';
@@ -31,7 +33,9 @@ const TICKET_PATIENCE = 70; // a table's, for its whole ticket
 const TICKET_EVERY: [number, number] = [16, 24]; // seconds between the server's calls
 const MOST_TICKETS = 3; // called and not yet all set down
 const RETURN_AFTER: [number, number] = [18, 30]; // seconds before a table's empties come back to the pass
-const TAKEN_AFTER = 8; // seconds, at most, a ticket all set down waits on the pass for her (she slips by for it)
+const CARRIED_MOST = 45; // seconds, at most, a ticket's taken to its table once all set down (she never gets there: as good as)
+const TABLE_RUSH: [number, number] = [14, 22]; // seconds between one of the village coming in for a table, and the next
+const MOST_AT_TABLES = 6;
 const TIP = 3; // copper, at most, for a perfect pour handed over at once (times the rank's tips)
 const WINE_TIP = 1.5; // wine's, times: the finer pour
 const STREAK_TIP = 0.05; // more, a perfect pour in a run of them, for each before it
@@ -57,6 +61,10 @@ export interface StoolWant {
 // A table's ticket, called out by the server: what's still to be set down at the pass, what's there already.
 export interface Ticket {
   table: number; // its number, as she calls it
+  at: Furniture; // the table
+  patrons: Npc[]; // those sat at it it's for, waiting on it
+  ordered: Pourable[]; // what each of them asked for
+  carried?: boolean; // the server on her way with it
   drinks: Pourable[]; // still to pour and set down
   set: Held[]; // set down at the pass
   patience: number;
@@ -195,28 +203,33 @@ export class BarShift extends Shift {
     }
   }
 
-  // The tables: tickets called, waited on, given up on; those done taken by the server as she comes by; their
-  // empties brought back.
+  // The tables: their folk drawn in by the busy hour, a ticket called for one with folk sat at it now and then; those
+  // waited on too long given up on (they walk out); those all set down carried over by the server (as good as, if
+  // she never gets there); what's set down before them drunk; their empties back at the pass a while on.
   private tables(npcs: readonly Npc[], dt: number): void {
+    this.drawIn(npcs, dt, 'table', TABLE_RUSH, MOST_AT_TABLES);
     const server = npcs.find((n) => n.role === 'server' && n.home === this.inn && n.where === this.inn);
-    const atPass = !!server && Math.hypot(server.x - this.pickupSpot.x, server.z - this.pickupSpot.z) <= 1.3;
     if ((this.ticketIn -= dt) <= 0) {
       this.ticketIn = TICKET_EVERY[0] + this.roll(this.seed, 71) * (TICKET_EVERY[1] - TICKET_EVERY[0]);
-      if (this.tickets.filter((t) => !t.done).length < MOST_TICKETS) this.call(server);
+      if (this.tickets.filter((t) => !t.done).length < MOST_TICKETS) this.call(npcs, server);
     }
     for (const ticket of [...this.tickets]) {
       if (ticket.done) {
         ticket.waiting = (ticket.waiting ?? 0) + dt;
-        if (!atPass && ticket.waiting < TAKEN_AFTER) continue;
-        this.tickets.splice(this.tickets.indexOf(ticket), 1); // taken off to the table
-        if (server && atPass) server.carrying = ticket.set[0]?.drink ?? false;
-        this.returns.push({ drinks: ticket.set.map((h) => h.drink), due: RETURN_AFTER[0] + this.roll(ticket.table, 72) * (RETURN_AFTER[1] - RETURN_AFTER[0]) });
+        if (server && !ticket.carried && !this.tickets.some((k) => k.carried)) {
+          ticket.carried = true; // (one at a time: the next once she's set this down)
+          ticket.waiting = 0;
+          serveTable(server, ticket.at, ticket.set[0]?.drink ?? 'ale', () => this.delivered(ticket), this.seed);
+        }
+        if (!server || ticket.waiting >= CARRIED_MOST) this.delivered(ticket); // (she never got there: as good as)
         continue;
       }
       if ((ticket.patience -= dt) > 0) continue;
       this.tickets.splice(this.tickets.indexOf(ticket), 1); // given up on: what was set down for it, back to wash
       this.passEmpties.push(...ticket.set.map((h) => h.drink));
       this.walkedOut++;
+      for (const npc of ticket.patrons) Object.assign(npc, { awaiting: false, waited: Infinity }); // (up and off)
+      if (ticket.patrons[0]) say(ticket.patrons[0], WALKS[Math.floor(this.roll(ticket.patrons[0], 4) * WALKS.length)]);
       if (server) say(server, `Table ${ticket.table} gave up on us. Never mind.`);
     }
     for (const back of [...this.returns]) {
@@ -224,19 +237,43 @@ export class BarShift extends Shift {
       this.returns.splice(this.returns.indexOf(back), 1);
       this.passEmpties.push(...back.drinks);
     }
-    if (server?.carrying && !atPass && this.furniture.some((f) => f.kind === 'tavernTable' && Math.hypot(f.x - server.x, f.z - server.z) <= 1.3)) server.carrying = false; // (set down at the table)
+    for (const npc of npcs) {
+      if (npc.where !== this.inn || npc.seat?.piece.kind !== 'chair' || !npc.drinking) continue;
+      if ((npc.drinking.left -= dt) <= 0) npc.drinking = null; // (had: up for another, or off, as they like)
+    }
   }
 
-  // The server calls a ticket: a drink or more (one more than the hero's hands hold, at most three), ales mostly, for a table.
-  private call(server: Npc | undefined): void {
+  // A table's drinks set down before them (the server there, or as good as): each theirs, drunk; the empties to come back.
+  private delivered(ticket: Ticket): void {
+    const at = this.tickets.indexOf(ticket);
+    if (at < 0) return;
+    this.tickets.splice(at, 1);
+    const set = ticket.set.map((h) => h.drink);
+    for (const [i, npc] of ticket.patrons.entries()) {
+      const mine = set.indexOf(ticket.ordered[i]);
+      const drink = mine >= 0 ? set.splice(mine, 1)[0] : set.shift();
+      npc.awaiting = false;
+      if (drink && npc.where === this.inn) npc.drinking = { left: ALE_SECONDS, seconds: ALE_SECONDS, drink };
+    }
+    this.returns.push({ drinks: ticket.set.map((h) => h.drink), due: RETURN_AFTER[0] + this.roll(ticket.table, 72) * (RETURN_AFTER[1] - RETURN_AFTER[0]) });
+  }
+
+  // The server calls a ticket for a table with folk sat at it (not waiting on one already, nor drinking): a drink
+  // for each of them (as many as one more than the hero's hands hold, three at most), ales mostly; they wait on it.
+  private call(npcs: readonly Npc[], server: Npc | undefined): void {
     const tables = this.furniture.filter((f) => f.kind === 'tavernTable');
-    const n = 1 + Math.floor(this.roll(this.seed, 73) * Math.min(3, this.rank.tray + 1));
-    const drinks = Array.from({ length: n }, (_, i): Pourable => (this.roll(i, 74) < 0.7 ? 'ale' : 'wine')).sort();
-    const table = 1 + Math.floor(this.roll(this.seed, 75) * Math.max(1, tables.length));
+    const sat = (t: Furniture) => npcs.filter((n) => n.role === 'villager' && n.where === this.inn && n.seat?.piece.kind === 'chair' && distanceTo(t, n.x, n.z) <= 1 && !n.awaiting && !n.drinking);
+    const ready = tables.filter((t) => !this.tickets.some((k) => k.at === t) && sat(t).length > 0);
+    if (ready.length === 0) return;
+    const at = ready[Math.floor(this.roll(this.seed, 75) * ready.length)];
+    const patrons = sat(at).slice(0, Math.min(3, this.rank.tray + 1));
+    const ordered = patrons.map((npc): Pourable => (this.roll(npc, 74) < 0.7 ? 'ale' : 'wine'));
+    const table = tables.indexOf(at) + 1;
     const patience = TICKET_PATIENCE + this.rank.patience;
-    this.tickets.push({ table, drinks, set: [], patience, of: patience, done: false });
-    const ales = drinks.filter((d) => d === 'ale').length;
-    const words = [...(ales ? [named('ale', ales)] : []), ...(n > ales ? [named('wine', n - ales)] : [])].join(' and ');
+    for (const npc of patrons) npc.awaiting = true; // (sat till it's come, or they've had enough)
+    this.tickets.push({ table, at, patrons, ordered, drinks: [...ordered].sort(), set: [], patience, of: patience, done: false });
+    const ales = ordered.filter((d) => d === 'ale').length;
+    const words = [...(ales ? [named('ale', ales)] : []), ...(ordered.length > ales ? [named('wine', ordered.length - ales)] : [])].join(' and ');
     if (server) say(server, `${words.charAt(0).toUpperCase()}${words.slice(1)} for table ${table}!`);
   }
 
@@ -375,8 +412,10 @@ export class BarShift extends Shift {
   release(npcs: readonly Npc[] = []): void {
     this.pour = null;
     this.held.length = 0;
+    for (const ticket of this.tickets) for (const npc of ticket.patrons) npc.awaiting = false; // (no longer held to their seats)
+    for (const npc of npcs) if (npc.where === this.inn && npc.seat?.piece.kind === 'chair' && npc.drinking) npc.drinking = null; // (done up)
     const server = npcs.find((n) => n.role === 'server' && n.home === this.inn);
-    if (server) server.carrying = false;
+    if (server) Object.assign(server, { carrying: false, steps: [], path: null });
     super.release();
   }
 }
