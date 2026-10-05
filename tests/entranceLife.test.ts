@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
-// What marks the dungeons' ways in out in the world (view/meshes/dungeon/): a
+// What marks the dungeons' ways in out in the world (view/meshes/entrance/): a
 // crypt's braziers either side of its stairs; and round those near the hero, what moves: bats over a cave (a
 // couple by day, more by night), spores and wisps glowing, a crypt's crows (off
 // when the hero comes near, back once they've gone), its fires lit by night.
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GameModel } from '../src/model/GameModel';
-import { EntranceLife, nightAt } from '../src/view/meshes/dungeon/entranceLife';
-import { brazierSpots } from '../src/view/meshes/dungeon/entranceDressing';
+import { EntranceLife, nightAt } from '../src/view/meshes/entrance/entranceLife';
+import { brazierSpots } from '../src/view/meshes/entrance/entranceDressing';
 
 const MID = { width: 512, depth: 512 };
 const model = new GameModel(1, MID);
