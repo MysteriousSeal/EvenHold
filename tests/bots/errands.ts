@@ -2,15 +2,15 @@
 // quests taken from a board and handed in, trading at the inn and the
 // smithy, points reset, a quest let go, a coin in a well. Each says when
 // the game doesn't do what it should.
-import { gearSpecs, type GearKey } from '../../src/model/human/items/gear';
+import { canWear, gearSpecs, isGear, slotOfGear, type GearKey } from '../../src/model/human/items/gear';
 import type { GameModel } from '../../src/model/GameModel';
 import { STATS } from '../../src/model/hero/statKinds';
 import { resetCost, resetPoints } from '../../src/model/hero/training';
-import { ITEMS } from '../../src/model/human/equipment';
 import { sellValue, isJunk } from '../../src/model/shops/sellValue';
 import { sellTo, type Shop } from '../../src/model/shops/shopStock';
 import { buy, shopAt } from '../../src/model/inn/tavernShop';
-import { SMITH_WARES, buyGear, gearPrice, smithShopAt } from '../../src/model/smithy/smithShop';
+import { buyGear, gearPrice, smithShopIn } from '../../src/model/smithy/smithShop';
+import { doorNumber } from '../../src/model/interiors/interiors';
 import type { BotStats } from './bot';
 import type { Balance } from './balance';
 
@@ -22,6 +22,14 @@ export const power = (key: GearKey) => {
   const { armor, stats } = gearSpecs(key);
   return armor + Object.values(stats).reduce((a, b) => a + b, 0);
 };
+
+// Whether `key` is worth wearing over what's worn in its slot (and they're of its level).
+export const better = (key: GearKey, hero: GameModel['hero']): boolean => {
+  const worn = hero.equipment[slotOfGear(key)];
+  return canWear(key, hero.level) && (!worn || power(key) > power(worn));
+};
+
+export { isGear };
 
 export class Errands {
   constructor(
@@ -102,16 +110,16 @@ export class Errands {
 
   tradeAtInn(): void {
     const { hero, inside } = this.model;
-    const shop = shopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(inside!.entrance));
+    const shop = shopAt(this.model.shops, this.model.seed, doorNumber(inside!.entrance)); // (as the game keeps it: by its door's number)
     this.sellJunk(shop);
     for (const id of ['bread', 'meatPie', 'cheese'] as const) if (hero.money > 40 && this.counted('food', () => buy(shop, hero, id)) === 'bought') this.stats.trades++;
   }
 
   tradeAtSmith(): void {
-    const { hero, inside } = this.model;
-    const shop = smithShopAt(this.model.shops, this.model.seed, this.model.entrances.indexOf(inside!.entrance));
+    const { hero } = this.model;
+    const shop = smithShopIn(this.model); // (as the game keeps it: by its door's number, forged at his village's level)
     this.sellJunk(shop);
-    const want = SMITH_WARES.filter((id) => (shop.stock[id] ?? 0) > 0 && gearPrice(id) <= hero.money && (!hero.equipment[ITEMS[id].slot] || power(id) > power(hero.equipment[ITEMS[id].slot]!)));
+    const want = (Object.keys(shop.stock) as GearKey[]).filter((key) => isGear(key) && (shop.stock[key] ?? 0) > 0 && gearPrice(key) <= hero.money && better(key, hero));
     const best = want.sort((a, b) => power(b) - power(a))[0];
     if (best) {
       const money = hero.money;

@@ -1,13 +1,16 @@
 // One worker's share of the bots (npm run bots starts several): each seed
 // in BOT_SEEDS gets its own world and a bot playing it for BOT_MINUTES of
 // game time, checked once a game second; a line of JSON per bot, when done.
+// The world a new game's (streamed, 16384 a side: made a region at a time round
+// the hero, here at once as asked); BOT_CLASSIC=1: an older game's (2048, whole).
 import { GameModel } from '../../src/model/GameModel';
 import { DEFAULT_MAP_SIZE } from '../../src/model/map/grid';
+import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
 import { mulberry32 } from '../../src/util/random';
 import { Bot } from './bot';
 import { Checks, type Problem } from './checks';
 
-const SIZE = DEFAULT_MAP_SIZE; // the game's own, full size
+const SIZE = process.env.BOT_CLASSIC === '1' ? DEFAULT_MAP_SIZE : STREAMED_SIZE; // (a new game's world, else an older one's)
 const DT = 1 / 30; // a frame at 30 fps
 const MAX_PER_KIND = 5; // problems of one kind kept per bot (the rest just counted)
 const VERBOSE = process.env.BOT_VERBOSE === '1'; // what each bot's up to, as it goes, a line at a time (LOG lines)

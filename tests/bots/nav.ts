@@ -10,6 +10,7 @@ import { NPC_RADIUS } from '../../src/model/npcs/npcs';
 import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import type { Entrance } from '../../src/model/interiors/interiors';
 import { noticeBoards } from '../../src/model/quests/noticeBoards';
+import { boardNumber } from '../../src/model/quests/quests';
 import { zoneLevel } from '../../src/model/enemies/enemyLevels';
 import { spawnOf } from '../../src/model/map/grid';
 
@@ -46,8 +47,8 @@ export class Nav {
     [this.route, this.unreachable] = [null, false];
   }
 
-  // Where the hero can stand, where they are now (a room's floor, or outdoors).
-  // Folk standing about count as in the way (the way round them, if there's one).
+  // Where the hero can stand, where they are now (a room's floor, a dungeon's between its rock, or outdoors).
+  // Folk standing about count as in the way (the way round them, if there's one); foes too, outdoors and underground.
   free(): (x: number, z: number) => boolean {
     const { inside, hero } = this.model;
     const where = inside?.entrance ?? null;
@@ -55,13 +56,13 @@ export class Nav {
     const folk = this.model.npcs.filter((n) => n.where === where && Math.abs(n.x - hero.x) < 45 && Math.abs(n.z - hero.z) < 45); // (even those touching the hero: round them, not into them)
     // (and foes, but the one being gone for: at the goal)
     const goal = this.goal;
-    const foes = inside ? [] : this.model.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) > 0.6 && Math.abs(e.x - hero.x) < 45 && Math.abs(e.z - hero.z) < 45 && !(goal && Math.hypot(e.x - goal.x, e.z - goal.z) < 1.5));
+    const foes = inside && !this.model.dungeon ? [] : this.model.foes.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) > 0.6 && Math.abs(e.x - hero.x) < 45 && Math.abs(e.z - hero.z) < 45 && !(goal && Math.hypot(e.x - goal.x, e.z - goal.z) < 1.5));
     // (right by the hero, no: the tiles there are where the way starts, and those in the way step aside, or are sidestepped)
     const clear = (x: number, z: number) => Math.hypot(x - hero.x, z - hero.z) < 1.1 || (!folk.some((n) => Math.hypot(n.x - x, n.z - z) < reach) && !foes.some((e) => Math.hypot(e.x - x, e.z - z) < 0.5));
     if (!inside) return (x, z) => !this.model.isBlocked(x, z, HERO_RADIUS) && clear(x, z);
     const r = HERO_RADIUS * INDOOR_SCALE;
     const { width, depth } = inside.room;
-    return (x, z) => x >= -0.5 + r && z >= -0.5 + r && x <= width - 0.5 - r && z <= depth - 0.5 - r && !bumpsFurniture(inside.furniture, x, z, r) && clear(x, z);
+    return (x, z) => x >= -0.5 + r && z >= -0.5 + r && x <= width - 0.5 - r && z <= depth - 0.5 - r && !bumpsFurniture(inside.furniture, x, z, r) && !inside.walls?.(x, z, r) && clear(x, z); // (a dungeon's rock too)
   }
 
   // Tile centers to walk through: the pathfinding goes from the middle of
@@ -209,10 +210,11 @@ export class Nav {
   }
 }
 
-// The nearest door of a kind of building to the hero (`but` those), if there's one.
-export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false): Entrance | null {
+// The nearest door of a kind of building to the hero (`but` those), if there's one: on ground made just now (a streamed
+// world's farther regions, not made yet, can't be walked to: their villages are known, but not the way there).
+export function nearestDoor(model: GameModel, type: Entrance['type'], but: (e: Entrance) => boolean = () => false, within = Infinity): Entrance | null {
   const { hero } = model;
-  return model.entrances.filter((e) => e.type === type && !but(e)).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
+  return model.entrances.filter((e) => e.type === type && !but(e) && model.isMade(e.x, e.z) && Math.hypot(e.x - hero.x, e.z - hero.z) < within).sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0] ?? null;
 }
 
 // The notice board to go to for work (its village's index): the nearest of
@@ -223,9 +225,10 @@ export function boardFor(model: GameModel): number {
   const spawn = spawnOf(model.size);
   const boards = noticeBoards(model);
   const far = (i: number) => Math.hypot(boards[i].x - hero.x, boards[i].z - hero.z);
-  const all = boards.map((_, i) => i).sort((a, b) => far(a) - far(b));
+  const all = boards.map((_, i) => i).filter((i) => model.isMade(boards[i].x, boards[i].z)).sort((a, b) => far(a) - far(b)); // (on ground made just now)
   const level = (i: number) => zoneLevel(spawn, model.villages[i]);
-  return all.find((i) => level(i) >= hero.level - 1 && level(i) <= hero.level) ?? all.find((i) => level(i) < hero.level) ?? all[0];
+  const i = all.find((i) => level(i) >= hero.level - 1 && level(i) <= hero.level) ?? all.find((i) => level(i) < hero.level) ?? all[0];
+  return i === undefined ? -1 : boardNumber(model, i); // (none about: -1, no board) // (its number, as quests know it: a streamed world's, its village's place)
 }
 
 // Open ground somewhere about (x, z) (a few tiles either way), if any's found.

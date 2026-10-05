@@ -5,7 +5,7 @@
 import type { GameModel } from '../../src/model/GameModel';
 import { maxHpOf } from '../../src/model/hero/attributes';
 import { xpToNext } from '../../src/model/hero/heroStats';
-import { ITEMS, type ItemId } from '../../src/model/human/equipment';
+import { power } from './errands';
 
 export interface Fight {
   kind: string;
@@ -61,8 +61,8 @@ export interface BalanceData {
   foeKinds: Record<string, number>; // foe-seconds within 40 tiles, by kind (how much of each was about)
 }
 
-const gearOf = (model: GameModel) =>
-  Object.values(model.hero.equipment).reduce((sum, id) => sum + (id ? (ITEMS[id as ItemId].armor ?? 0) + Object.values(ITEMS[id as ItemId].stats ?? {}).reduce((a, b) => a + b, 0) : 0), 0);
+// What all they wear is worth (errands.ts power: its armour and stats, grown with its level, its rarity's lines too).
+const gearOf = (model: GameModel) => Object.values(model.hero.equipment).reduce((sum, key) => sum + (key ? power(key) : 0), 0);
 
 export class Balance {
   readonly data: BalanceData = { minutes: [], levelAt: [0, 0], fights: [], falls: [], quests: [], income: {}, spent: {}, xpFrom: {}, foeKinds: {} };
