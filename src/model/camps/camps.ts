@@ -54,6 +54,8 @@ const CHANCE = 0.4;
 const OPEN_LAND = 0.15; // forest density under which it's open country
 const CLEAR_OF_VILLAGES = 12;
 const CLEAR_OF_SPAWN = 20;
+export const MIN_BANDITS = 3; // a camp's bandits, the one near spawn the fewest
+export const MAX_BANDITS = 6;
 
 // Where they stand: the one near spawn, then the rest.
 export function placeCamps(world: CampWorld): Camp[] {
@@ -76,7 +78,7 @@ export function placeCamps(world: CampWorld): Camp[] {
       }
     }
   };
-  near(Math.round(spawn.x - 9), Math.round(spawn.z + 9), 12, 3, 47);
+  near(Math.round(spawn.x - 9), Math.round(spawn.z + 9), 12, MIN_BANDITS, 47);
   for (let gx = 0; gx * GRID < world.size.width; gx++) {
     for (let gz = 0; gz * GRID < world.size.depth; gz++) {
       const roll = (salt: number) => hashUnit(gx, gz, world.seed + salt);
@@ -86,7 +88,7 @@ export function placeCamps(world: CampWorld): Camp[] {
       if (world.forest(x, z) >= OPEN_LAND) continue;
       if (Math.hypot(x - spawn.x, z - spawn.z) < CLEAR_OF_SPAWN) continue;
       if (world.villages.some((v) => Math.hypot(v.x - x, v.z - z) < CLEAR_OF_VILLAGES + VILLAGE_OUTER_RADIUS)) continue;
-      near(x, z, 5, roll(55) < 0.5 ? 4 : 2, 56);
+      near(x, z, 5, MIN_BANDITS + Math.floor(roll(55) * (MAX_BANDITS - MIN_BANDITS + 1)), 56); // (as many as likely)
     }
   }
   return camps;
