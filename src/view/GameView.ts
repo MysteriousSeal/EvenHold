@@ -297,7 +297,7 @@ export class GameView {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
     }
-    this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted); // (the villager the prompt's about: their name gives way to it)
+    this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.workMarks.update(model, room, this.elapsed); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")

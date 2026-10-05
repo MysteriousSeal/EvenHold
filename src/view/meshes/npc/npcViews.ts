@@ -34,8 +34,8 @@ export class NpcViews {
 
   // `where`: the building the hero's in (null outdoors); `scene`: the one
   // they're drawn in; `talking`: whoever the hero can talk to now, whose name
-  // gives way to the "Talk to" prompt over them.
-  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null): void {
+  // gives way to the "Talk to" prompt over them; `quiet`: no names at all (at work: the room's own marks to read).
+  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null, quiet = false): void {
     const scale = where ? INDOOR_SCALE : 1;
     const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite; over: THREE.Group }) => {
       const { rig, label } = view;
@@ -50,7 +50,7 @@ export class NpcViews {
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
       rig.hold(npc.carrying ?? false); // a cup in hand (the barmaid, bringing a drink or clearing one away)
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
-      label.visible = npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
+      label.visible = !quiet && npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
     };
     this.shown.update(npcs, hero.x, hero.z, each, (npc) => npc.where === where); // (those in the hero's room, or outdoors)
   }
