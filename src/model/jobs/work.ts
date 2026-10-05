@@ -1,8 +1,7 @@
 // The hero at work (jobs.ts): what's posted on an inn's notice board (its work: E in front of it), a shift taken up
-// at an inn (innShift.ts), run while they're in it, paid as they go
-// (each order's wage and tip, and some experience of their own besides), and over when its time's up or they leave
-// the inn (paid what they've earned; a bonus, the whole shift worked with no one walked out). Their record in the job
-// kept (its experience: their rank).
+// at an inn (innShift.ts), run while they're in it: each order served, experience in the job (their rank) and some of
+// their own; and paid at its end, all at once (each order's wage and tip, the empties given back, and a bonus for the
+// whole shift worked with no one walked out; ended early, what they'd earned, no bonus). Their record in the job kept.
 
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
@@ -62,15 +61,10 @@ export class Work {
   use(): boolean {
     const { shift } = this;
     if (!shift) return false;
-    const paid = shift.use(this.host.hero, this.host.folk);
-    if (paid === null) return false;
-    if (paid > 0) this.pay(paid);
+    const served = shift.served;
+    if (shift.use(this.host.hero, this.host.folk) === null) return false;
+    if (shift.served > served) this.served(); // (what it earned: owed, paid at the shift's end)
     return true;
-  }
-
-  // R at work: the next on the tray in hand.
-  switchHeld(): void {
-    this.shift?.switchHeld();
   }
 
   // What E would do at work now (for the prompt), if anything.
@@ -83,17 +77,14 @@ export class Work {
     return this.shift?.carrying ?? null;
   }
 
-  // An order served: its wage and tip in hand, experience in the job (a rank risen, maybe) and the hero's own.
-  private pay(copper: number): void {
+  // An order served: experience in the job (a rank risen, maybe) and the hero's own. (Its pay's owed till the end.)
+  private served(): void {
     const { hero } = this.host;
     const record = recordOf(hero, this.job);
     const before = rankIn(this.job, record.xp).index;
-    hero.money += copper;
-    record.earned += copper;
     record.served++;
     record.xp++;
     gainXp(hero, HERO_XP);
-    this.host.report({ kind: 'coins', amount: copper });
     const now = rankIn(this.job, record.xp);
     if (now.index > before) {
       this.host.report({ kind: 'jobRank', job: JOBS[this.job].name, rank: now.rank.name });
@@ -101,7 +92,8 @@ export class Work {
     }
   }
 
-  // The shift over (`early`: left before its time): the bonus for a clean shift, the record kept, how it went told.
+  // The shift over (`early`: left before its time): paid all it earned at once (a clean shift's bonus besides), the
+  // record kept, how it went told.
   end(early: boolean): void {
     const { shift } = this;
     if (!shift) return;
@@ -109,13 +101,15 @@ export class Work {
     shift.release();
     const record = recordOf(this.host.hero, this.job);
     const bonus = !early && shift.walkedOut === 0 && shift.served > 0 ? BONUS * shift.served : 0;
-    if (bonus > 0) {
-      this.host.hero.money += bonus;
-      record.earned += bonus;
+    const pay = shift.earned + bonus;
+    if (pay > 0) {
+      this.host.hero.money += pay;
+      record.earned += pay;
+      this.host.report({ kind: 'coins', amount: pay });
     }
     if (!early) record.shifts++;
     record.best = Math.max(record.best, shift.served);
-    this.host.report({ kind: 'shift', job: JOBS[this.job].name, served: shift.served, walkedOut: shift.walkedOut, mixups: shift.mixups, cleared: shift.cleared, earned: shift.earned + bonus, bonus, early });
+    this.host.report({ kind: 'shift', job: JOBS[this.job].name, served: shift.served, walkedOut: shift.walkedOut, cleared: shift.cleared, earned: shift.earned + bonus, bonus, early });
   }
 }
 

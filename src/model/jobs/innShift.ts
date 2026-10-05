@@ -1,8 +1,8 @@
 // A shift serving an inn's tables (jobs.ts: innServer): for SHIFT seconds, the villagers sat at its tables call for
 // something (an ale, a glass of wine, a meat pie); the hero takes their order (E by them); it goes to the barkeep with
 // the bar's other orders, first come first served, and she sets it down at the end of the counter; the hero fetches it
-// there (E: as many as their tray holds) and sets it down before whoever asked (E by them, with it in hand: R to
-// switch what's in hand; the wrong one's refused, and they're the less patient for it). A wage for each, and a tip the
+// there (E: as many as their tray holds) and sets it down before whoever asked (E by them: theirs, off the tray,
+// whatever else is on it). A wage for each, and a tip the
 // more patience they had left (it runs out slower once their order's taken: they know it's coming); left waiting too long, they walk out. What they've had, they leave on the table,
 // empty: cleared onto the tray (E by the table) and taken back to the counter's end (a copper each); a table left
 // cluttered sours the next to sit at it. Patience, tray and tips grow with the hero's rank in the job. A shift's a busy
@@ -24,7 +24,6 @@ export const SHIFT = 150; // seconds a shift lasts (two and a half hours on the 
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const PATIENCE = 40; // seconds a patron waits, from calling to served (and the rank's more)
 const CLUTTER = 10; // seconds less of it, sat at a table with empties left on it
-const MIXUP = 5; // seconds less, handed the wrong thing
 const TAKEN = 0.4; // how fast patience runs out once the order's taken (they know it's coming), of how fast calling
 const CALL_AFTER: [number, number] = [3, 12]; // seconds sat (or since their last) before they call
 export const WAGE = 3; // copper an order
@@ -62,31 +61,27 @@ export interface Empty {
 // On the tray: an order for someone, or an empty taken from a table.
 export type TrayItem = { kind: 'order'; want: Want } | { kind: 'empty'; empty: Empty };
 
-// What the hero's E would do now, in the shift (the prompt): a patron's order to take; to hand what's in hand to a
-// patron (`right`: theirs; else refused); a table's empties to clear; at the counter's end, empties to give back and
-// ready orders to take up.
+// What the hero's E would do now, in the shift (the prompt): a patron's order to take; theirs, off the tray, to set
+// down before them; a table's empties to clear; at the counter's end, empties to give back and ready orders to take up.
 export type ShiftAction =
   | { kind: 'take'; want: Want }
-  | { kind: 'serve'; want: Want; right: boolean; holding: Order }
+  | { kind: 'serve'; want: Want }
   | { kind: 'clear'; table: Furniture; empties: Empty[] }
   | { kind: 'counter'; returns: number; wants: Want[] };
 
 const CALLS = ['Over here!', 'Service, please!', 'When you have a moment!', 'Excuse me!', "We're parched over here!"];
 const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!'];
 const THANKS = ['Lovely, thank you.', 'Just what I wanted.', "You're quick on your feet!", 'Bless you.', 'Keep the change.'];
-const WRONG = ["That's not what I asked for!", 'Not mine, love.', 'I said {order}.', 'Wrong table, I think.'];
 const CLUTTERED = ['Could someone clear this table?', 'Whose are all these cups?', 'A clean table would be nice.'];
 
 export class InnShift {
   left = SHIFT;
   served = 0;
   walkedOut = 0;
-  mixups = 0;
   cleared = 0;
   earned = 0;
   tips = 0;
   readonly tray: TrayItem[] = [];
-  held = 0; // which on the tray is in hand
   readonly wants = new Map<Npc, Want>();
   readonly empties: Empty[] = []; // left on the tables
   private readonly callIn = new Map<Npc, number>(); // patrons sat, and seconds before they call
@@ -126,23 +121,14 @@ export class InnShift {
     return this.barEnd.z;
   }
 
-  get inHand(): TrayItem | null {
-    return this.tray[Math.min(this.held, this.tray.length - 1)] ?? null;
-  }
-
-  // What's in the hero's hand (drawn in hand), or nothing.
+  // What's in the hero's hand (drawn in hand: the first on the tray), or nothing.
   get carrying(): Order | null {
-    const item = this.inHand;
+    const item = this.tray[0];
     return item ? (item.kind === 'order' ? item.want.order : item.empty.drink) : null;
   }
 
   private roll(npc: Npc | number, salt: number): number {
     return hashUnit(typeof npc === 'number' ? npc : npc.id, ++this.rolls, salt);
-  }
-
-  // R: the next on the tray in hand.
-  switchHeld(): void {
-    if (this.tray.length > 1) this.held = (this.held + 1) % this.tray.length;
   }
 
   // A moment of it: patrons drawn in and noticed, calling as they will (the soured by a cluttered table), their
@@ -190,7 +176,6 @@ export class InnShift {
     want.npc.awaiting = false;
     const carried = this.tray.findIndex((t) => t.kind === 'order' && t.want === want);
     if (carried >= 0) this.tray.splice(carried, 1);
-    this.held = Math.min(this.held, Math.max(0, this.tray.length - 1));
     const queue = ordersAt(this.inn);
     const queued = want.bar ? queue.indexOf(want.bar) : -1;
     if (queued > 0) queue.splice(queued, 1); // (the front one she's seeing to: let be, it comes to nothing)
@@ -222,19 +207,15 @@ export class InnShift {
     if (who) visitInn(who, this.inn, this.seed, STAY[0] + hashUnit(who.id, this.rolls, 63) * (STAY[1] - STAY[0]));
   }
 
-  // What E would do where the hero stands: hand what's in hand to a patron in reach waiting on something on the tray;
+  // What E would do where the hero stands: set down a patron in reach their order, if it's on the tray;
   // take the order of one calling; at the counter's end, give back the empties carried and take up what's ready;
   // clear a table's empties (room on the tray).
   actionAt(hero: { x: number; z: number }): ShiftAction | null {
     const near = (p: { x: number; z: number }) => Math.hypot(p.x - hero.x, p.z - hero.z) <= REACH;
     const far = (p: { x: number; z: number }) => Math.hypot(p.x - hero.x, p.z - hero.z);
     const nearest = <T>(list: T[], at: (t: T) => { x: number; z: number }) => list.filter((t) => near(at(t))).sort((a, b) => far(at(a)) - far(at(b)))[0];
-    const hand = this.inHand;
     const awaited = nearest([...this.wants.values()].filter((w) => w.state === 'carried'), (w) => w.npc);
-    if (awaited && hand) {
-      const holding = hand.kind === 'order' ? hand.want.order : hand.empty.drink;
-      return { kind: 'serve', want: awaited, right: hand.kind === 'order' && hand.want === awaited, holding };
-    }
+    if (awaited) return { kind: 'serve', want: awaited };
     const calling = nearest([...this.wants.values()].filter((w) => w.state === 'calling'), (w) => w.npc);
     if (calling) return { kind: 'take', want: calling };
     const room = this.rank.tray - this.tray.length;
@@ -273,7 +254,6 @@ export class InnShift {
           want.state = 'carried';
           this.tray.push({ kind: 'order', want });
         }
-        this.held = 0;
         this.earned += returned * CLEARED;
         return returned * CLEARED;
       }
@@ -297,18 +277,10 @@ export class InnShift {
     callBarkeep(npcs.find((n) => n.role === 'barkeep' && n.home === this.inn));
   }
 
-  // What's in hand, handed to a patron: theirs, set down (paid: a wage and the tip their patience left); else
-  // refused, and they're the less patient for it.
+  // A patron's order, off the tray and set down before them: a wage and the tip their patience left.
   private serve(action: Extract<ShiftAction, { kind: 'serve' }>): number {
     const { want } = action;
-    if (!action.right) {
-      this.mixups++;
-      want.patience = Math.max(1, want.patience - MIXUP);
-      say(want.npc, WRONG[Math.floor(this.roll(want.npc, 7) * WRONG.length)].replace('{order}', ORDER_NAMES[want.order]));
-      return 0;
-    }
     this.tray.splice(this.tray.findIndex((t) => t.kind === 'order' && t.want === want), 1);
-    this.held = Math.min(this.held, Math.max(0, this.tray.length - 1));
     this.wants.delete(want.npc);
     const tip = Math.max(TIP_FLOOR, Math.round(TIP * (want.patience / want.of) * this.rank.tips));
     this.served++;

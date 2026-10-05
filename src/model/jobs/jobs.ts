@@ -16,7 +16,7 @@ export interface JobRank {
 
 export interface Job {
   name: string;
-  where: string; // where it's had, and who gives it
+  where: string; // where it's posted
   about: string; // what it is, in a line
   ranks: readonly JobRank[];
 }
@@ -24,8 +24,8 @@ export interface Job {
 export const JOBS: Record<JobId, Job> = {
   innServer: {
     name: 'Serving the tables',
-    where: "At any inn: ask its server about work",
-    about: "Take the patrons' orders, fetch them from the bar, and set them down before they lose patience. A wage for each, and a tip the quicker it's there.",
+    where: "Posted on every inn's notice board",
+    about: "Take the patrons' orders, fetch them from the bar, set them down before they lose patience, and clear the tables. A wage and a tip for each, all paid when the shift ends.",
     ranks: [
       { name: 'Pot-washer', from: 0, tray: 1, patience: 0, tips: 1 },
       { name: 'Serving hand', from: 10, tray: 2, patience: 5, tips: 1.2 },

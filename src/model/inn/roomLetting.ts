@@ -130,7 +130,8 @@ export function letBed(model: { inside: Inside | null; seated: Seated; seatInRea
 // What G does at the inn, if anything: stood by the barmaid, asks her for a room (`taken`: one's let already); by the
 // let room's bed (or lying in it) at night, sleeps. Its prompt's words with it.
 export type RoomAction = { kind: 'rent'; barmaid: Npc; taken: boolean } | { kind: 'sleep' };
-export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonly Npc[]; hero: Hero }): RoomAction | null {
+export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonly Npc[]; hero: Hero; work?: { shift: unknown } }): RoomAction | null {
+  if (model.work?.shift) return null; // (at work: no room to be had, no bed to sleep in, till the shift's over)
   const talker = model.seated ? null : talkingTo(model.folk, model.inside, model.hero); // (of the villagers round about)
   if (talker?.role === 'barkeep') return { kind: 'rent', barmaid: talker, taken: !!model.inside && lets.has(model.inside.entrance) };
   return letBed(model) ? { kind: 'sleep' } : null;
