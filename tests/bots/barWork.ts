@@ -11,7 +11,7 @@ import type { BarAction, BarShift } from '../../src/model/jobs/barShift';
 import { LINE, type Pourable } from '../../src/model/jobs/pour';
 
 // The drinks wanted and not yet in hand (the stools', the open tickets').
-export function stillWanted(shift: BarShift): Pourable[] {
+function stillWanted(shift: BarShift): Pourable[] {
   const wanted = [...[...shift.wants.values()].map((w) => w.drink), ...shift.tickets.filter((t) => !t.done).flatMap((t) => t.drinks)];
   for (const h of shift.held) if (h.kind === 'drink' && wanted.includes(h.drink)) wanted.splice(wanted.indexOf(h.drink), 1);
   return wanted;

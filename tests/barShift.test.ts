@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BarShift } from '../src/model/jobs/barShift';
+import { InnShift } from '../src/model/jobs/innShift';
 import { FILL_SECONDS, LINE, bandOf, gradePour, type Pourable } from '../src/model/jobs/pour';
 import { JOBS, recordOf } from '../src/model/jobs/jobs';
 import { onShift } from '../src/model/jobs/shiftsAt';
@@ -224,6 +225,16 @@ describe("the tables' tickets", () => {
     run(shift, folk, 0.1);
     expect([shift.tickets.includes(ticket), shift.walkedOut, shift.passEmpties]).toEqual([false, 1, ['ale']]);
     expect([folk[0].awaiting, folk[0].waited]).toEqual([false, Infinity]);
+  });
+});
+
+describe("the counter's end", () => {
+  it("is the same place to both jobs: where the server waits, where what's set down for her stands", () => {
+    const { model, inn, shift } = behindTheBar();
+    const tables = new InnShift(inn, JOBS.innServer.ranks[0], model.seed);
+    expect([tables.pickupSpot, tables.barEndZ]).toEqual([shift.pickupSpot, shift.barEndZ]);
+    expect(shift.barEndZ).toBe(shift.passZ + 0.5); // (on the pass's row)
+    tables.release();
   });
 });
 

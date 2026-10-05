@@ -21,13 +21,10 @@ import type { BagItem } from '../../src/model/hero/bag';
 import { BotSteps, type Step } from './botSteps';
 import type { GameModel } from '../../src/model/GameModel';
 import { SHIFT } from '../../src/model/jobs/shift';
-import { BONUS, boardFace, type WorkAction } from '../../src/model/jobs/work';
-import { BarShift, type BarAction } from '../../src/model/jobs/barShift';
+import { BONUS, boardFace, isBarAction } from '../../src/model/jobs/work';
+import { BarShift } from '../../src/model/jobs/barShift';
 import type { JobId } from '../../src/model/jobs/jobs';
 import { barErrand, outOfAisle, worthIt } from './barWork';
-
-const BAR_ACTIONS = new Set(['stop', 'pour', 'hand', 'pass', 'wash', 'gather']);
-const isBarAction = (a: WorkAction): a is BarAction => BAR_ACTIONS.has(a.kind);
 import type { Status } from './errands';
 
 const SHIFT_SLACK = 20; // game seconds past a shift's length before it's said never to have ended
@@ -268,7 +265,7 @@ export class BotVentures extends BotSteps {
     const barkeep = model.folk.find((n) => n.role === 'barkeep' && n.home === shift.inn);
     if (barkeep?.serving) this.report('barkeep at work on her break', `${barkeep.name}, at ${barkeep.x.toFixed(2)},${barkeep.z.toFixed(2)}`);
     const action = model.work.action;
-    if (action && 'kind' in action && isBarAction(action) && worthIt(shift, action)) {
+    if (action && isBarAction(action) && worthIt(shift, action)) {
       const before = { level: hero.level, xp: hero.xp };
       if (!model.work.use()) this.report('work did nothing', `${action.kind}: E by it, at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
       this.balance.xp('work', before);
