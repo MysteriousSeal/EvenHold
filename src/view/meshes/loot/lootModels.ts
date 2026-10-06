@@ -8,6 +8,5 @@ import { PROVISION_MODELS } from './provisionVoxels';
 import { QUEST_MODELS } from './questItemVoxels';
 import { BAG_MODELS } from './bagVoxels';
 import { POTION_MODELS } from './potionVoxels';
-import { MATERIAL_MODELS } from './materialVoxels';
 
-export const LOOT_MODELS: Record<LootId, LootModel> = { ...JUNK_MODELS, ...INGREDIENT_MODELS, ...PROVISION_MODELS, ...QUEST_MODELS, ...BAG_MODELS, ...POTION_MODELS, ...MATERIAL_MODELS };
+export const LOOT_MODELS: Record<LootId, LootModel> = { ...JUNK_MODELS, ...INGREDIENT_MODELS, ...PROVISION_MODELS, ...QUEST_MODELS, ...BAG_MODELS, ...POTION_MODELS };
