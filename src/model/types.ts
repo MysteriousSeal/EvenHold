@@ -9,6 +9,7 @@ import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
 import type { JobId, JobRecord } from './jobs/jobs';
+import type { SkillId, SkillRecord } from './skills/skills';
 
 // Something eaten or drunk over a while (heroStats.ts recover): the health and energy it gives back in all, the
 // seconds left of it and in all; `item`, what it is (from the bag).
@@ -41,6 +42,7 @@ export interface Hero extends Humanoid {
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   actionBar: ActionBar; // shortcuts to food and drink in the bag, keys 1 to 8 (hero/actionBar.ts)
   jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts): none, till they work
+  skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts): each at 1 till raised
   money: number; // their purse, in copper (money.ts)
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)

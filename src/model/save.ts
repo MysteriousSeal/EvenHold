@@ -26,6 +26,7 @@ import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs'
 import { doorNumber, doorPlace, type Entrance } from './interiors/interiors';
 import { villagePlace } from './villages/villageNumber';
 import { readJobs, type JobId, type JobRecord } from './jobs/jobs';
+import { readSkills, type SkillId, type SkillRecord } from './skills/skills';
 import { PEDLAR_KEY } from './travellers/travellers';
 import { HERBALIST_KEY } from './herbalist/herbalistShop';
 import { letUntil, setLet } from './inn/roomLetting';
@@ -51,6 +52,7 @@ export interface SaveData {
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
+    skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts; older saves: none)
     bagCounts?: number[]; // how many in each slot (older saves: none, packed)
     money: number;
     level: number;
@@ -105,6 +107,7 @@ export function snapshot(model: GameModel): SaveData {
       bags: [...hero.bags],
       actionBar: [...hero.actionBar],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
+      skills: structuredClone(hero.skills ?? {}), // (their level in each skill: skills/skills.ts)
       money: hero.money,
       level: hero.level,
       xp: hero.xp,
@@ -191,6 +194,7 @@ export function restore(model: GameModel, data: SaveData): void {
     bags: readSockets(saved.bags), // (older saves: none fitted)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     jobs: readJobs(saved.jobs), // (older saves: none)
+    skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
