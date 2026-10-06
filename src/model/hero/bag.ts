@@ -19,7 +19,7 @@ export const qualityOf = (item: BagItem): Quality => (isLootItem(item) ? LOOT_QU
 
 // What kind of thing it is ("Junk", "Food", "Head"; the bag's tooltips, what's picked up): loot by its quality (food and drink apart), gear by
 // what it's worn on.
-const KIND_NAMES: Record<Exclude<LootQuality, 'common'>, string> = { junk: 'Junk', ingredient: 'Cooking ingredient', quest: 'Quest item', bag: 'Bag', potion: 'Potion' };
+const KIND_NAMES: Record<Exclude<LootQuality, 'common'>, string> = { junk: 'Junk', ingredient: 'Crafting material', quest: 'Quest item', bag: 'Bag', potion: 'Potion' };
 export function kindOf(item: BagItem): string {
   if (!isLootItem(item)) return SLOT_NAMES[slotOfGear(item)];
   if (isProvision(item)) return PROVISIONS[item].drink ? 'Drink' : 'Food';
@@ -46,7 +46,7 @@ export const BAG_GROUPS: ReadonlyArray<{ group: BagGroup; title: string }> = [
   { group: 'gear', title: 'Gear' },
   { group: 'provision', title: 'Food & drink' },
   { group: 'potion', title: 'Potions' },
-  { group: 'ingredient', title: 'Ingredients' },
+  { group: 'ingredient', title: 'Crafting materials' },
   { group: 'quest', title: 'Quest items' },
   { group: 'bag', title: 'Bags' },
   { group: 'junk', title: 'Junk' },

@@ -87,16 +87,20 @@ export class Lumber {
     return SWING * SWINGS * (1 - QUICKER * index);
   }
 
-  // The tree standing in reach of the hero (outdoors), nearest first.
+  // The tree standing in reach of the hero (outdoors): the nearest they're skilled enough to fell, before any nearer
+  // that's beyond them (a birch by a pine: the birch); none they can, the nearest (to be told why not).
   get treeInReach(): Tree | null {
     if (this.host.inside) return null;
     const { hero } = this.host;
+    const level = skillOf(hero, SKILL).level;
     let best: Tree | null = null;
-    let near = REACH;
+    let near = Infinity;
     for (const tree of this.host.trees) {
-      if (Math.abs(tree.x - hero.x) > REACH || Math.abs(tree.z - hero.z) > REACH) continue;
+      if (Math.abs(tree.x - hero.x) > REACH || Math.abs(tree.z - hero.z) > REACH || this.felled(tree)) continue;
       const d = Math.hypot(tree.x - hero.x, tree.z - hero.z);
-      if (d <= near && !this.felled(tree)) [best, near] = [tree, d];
+      if (d > REACH) continue;
+      const rank = d + (WOOD[tree.kind].needs > level ? REACH : 0); // (one beyond them after any they can)
+      if (rank < near) [best, near] = [tree, rank];
     }
     return best;
   }

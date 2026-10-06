@@ -1,5 +1,5 @@
-// Ingredients: raw food for cooking (none yet), dropped by foes and, till
-// then, only good for selling. Each says who drops it and how often, as junk does.
+// Ingredients: raw food for cooking (none yet), dropped by foes, and the logs a lumberjack fells; till they're of
+// use, only good for selling. Each says who drops it and how often, as junk does (the logs: no one).
 
 import type { LootEntry } from './lootEntry';
 
@@ -13,6 +13,10 @@ export const INGREDIENTS = {
   honeycomb: { name: 'Honeycomb', value: 9, droppedBy: { bear: 2 } },
   // From lynxes: a lean cut.
   leanLynxMeat: { name: 'Lean lynx meat', value: 6, droppedBy: { lynx: 3 } },
+  // From the trees a lumberjack fells (skills/lumber.ts), not from foes: logs, a birch's, a pine's, an oak's.
+  birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
+  pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous
+  oakLog: { name: 'Oak log', value: 5, droppedBy: {} }, // heavy, hard, the best of them
 } satisfies Record<string, LootEntry>;
 
 export type IngredientId = keyof typeof INGREDIENTS;
