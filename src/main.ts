@@ -41,6 +41,8 @@ import { bouncerSpeaks } from './model/inn/bouncer';
 import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
+import { createSkillsPanel } from './controller/skills/skillsPanel';
+import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createJobPanel } from './controller/jobs/jobPanel';
 import { workPrompt } from './controller/jobs/workPrompt';
@@ -153,6 +155,7 @@ async function boot(): Promise<void> {
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
+  const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
   const pause = createPauseMenu({
@@ -182,6 +185,7 @@ async function boot(): Promise<void> {
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
     { label: 'Journal', key: 'L', icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
+    { label: 'Skills', key: 'K', icon: skillsIcon, isOpen: () => skills.menu.isOpen, toggle: () => skills.menu.toggle() },
     { label: 'Level up', key: 'P', icon: levelUpIcon, isOpen: () => levelUp.menu.isOpen, toggle: () => levelUp.menu.toggle(), marked: () => model.hero.statPoints > 0 },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
@@ -246,6 +250,7 @@ async function boot(): Promise<void> {
     herbs.update();
     pack.update();
     journal.update();
+    skills.update();
     sheet.update();
     updateToolbar();
     updateActionBar();

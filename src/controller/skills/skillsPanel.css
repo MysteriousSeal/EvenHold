@@ -1,0 +1,49 @@
+/* The skills window (skillsPanel.ts): the window's own sand, clay and ink (menu.css). Its one bold thing: the road
+   of a skill's tiers, four stretches side by side, those passed filled clay, the one the hero's on filling
+   lantern-gold to their mark (their level, in a tag over it), those ahead bare. */
+
+.menu:has(.skill-detail) { width: min(620px, calc(100vw - 32px)); }
+
+.skill-detail { display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 4px; text-align: left; }
+
+/* Its icon beside its tier, its name, and the level of the most there is. */
+.skill-head { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+.skill-icon { display: grid; place-items: center; width: 64px; height: 64px; background: var(--sand-light); border: 2px solid var(--line); box-shadow: inset 0 -3px 0 var(--sand-dark); }
+.skill-icon canvas { image-rendering: pixelated; }
+.skill-eyebrow { display: block; font-size: 12px; font-weight: 600; color: var(--clay); }
+.skill-name { margin: 0; font-size: 22px; line-height: 1.1; color: var(--ink); }
+.skill-level { display: block; margin-top: 2px; font-size: 14px; color: var(--ink-soft); }
+.skill-level b { font-size: 16px; color: var(--ink); }
+.skill-level em { font-style: normal; }
+
+/* The road of its tiers. */
+.skill-road { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 14px 0 0; padding: 0; list-style: none; }
+.skill-road li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.skill-road-bar { position: relative; display: block; height: 12px; background: var(--sand-light); border: 2px solid var(--line); }
+.skill-road-bar > i { position: absolute; inset: 0 auto 0 0; background: var(--clay); }
+.skill-road .here .skill-road-bar { border-color: var(--ink); box-shadow: 0 0 0 2px var(--lantern); }
+.skill-road .here .skill-road-bar > i { background: linear-gradient(var(--lantern) 0 40%, var(--ember) 40%); }
+.skill-road-here { position: absolute; bottom: calc(100% + 5px); translate: -50% 0; padding: 0 5px; font-size: 11px; line-height: 16px; color: var(--sand-light); background: var(--ink); white-space: nowrap; }
+.skill-road-here::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -4px; border: 4px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
+.skill-road-name { font-size: 12px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill-road .here .skill-road-name { color: var(--ink); }
+.skill-road .ahead .skill-road-name { opacity: 0.7; }
+.skill-road-range { font-size: 11px; color: var(--ink-soft); }
+
+.skill-about { margin: 2px 0 0; font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
+.skill-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* What each tier opens: reached ticked in ink, not yet faded with a padlock and the tier it waits on. */
+.skill-unlocks { display: flex; flex-direction: column; margin: -4px 0 0; padding: 0; list-style: none; }
+.skill-unlocks li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 2px dashed var(--line); font-size: 14px; }
+.skill-unlocks li:last-child { border-bottom: 0; }
+.skill-unlock-mark { display: grid; place-items: center; font-weight: 700; color: var(--clay); }
+.skill-unlocks .locked .skill-unlock-mark { position: relative; width: 10px; height: 8px; margin: 5px 0 0 3px; background: var(--ink-soft); }
+.skill-unlocks .locked .skill-unlock-mark::before { content: ''; position: absolute; left: 1px; top: -6px; width: 4px; height: 6px; border: 2px solid var(--ink-soft); border-bottom: 0; }
+.skill-unlock-what { color: var(--ink); }
+.skill-unlocks .locked .skill-unlock-what { color: var(--ink-soft); }
+.skill-unlock-at { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.skill-unlocks .open .skill-unlock-at { color: var(--clay); }
+
+/* How it's raised (not yet: said so). */
+.skill-practice { margin: 0; padding: 8px 10px; font-size: 13px; color: var(--ink-soft); background: var(--sand-dark); border: 2px solid var(--line); }
