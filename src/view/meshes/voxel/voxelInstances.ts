@@ -28,7 +28,9 @@ export function addVoxelInstances<T>(
 }
 
 // The same, for items that are only worked out when their chunk is built
-// (`itemsIn`), so nothing is computed for chunks the hero never nears.
+// (`itemsIn`), so nothing is computed for chunks the hero never nears;
+// `placed`: told where each item went (its mesh, its instance), to move it
+// later (a tree felled: treeMesh.ts).
 export function voxelLayer<T>(
   chunkKeys: () => Iterable<string>,
   itemsIn: (chunkKey: string) => readonly T[],
@@ -36,6 +38,7 @@ export function voxelLayer<T>(
   buildGeometry: (item: T) => THREE.BufferGeometry,
   place: (item: T) => VoxelPlacement,
   material: THREE.Material,
+  placed?: (item: T, mesh: THREE.InstancedMesh, index: number) => void,
 ): ChunkLayer {
   const geometries = new Map<string, THREE.BufferGeometry>();
   const matrix = new THREE.Matrix4();
@@ -69,6 +72,7 @@ export function voxelLayer<T>(
           matrix.compose(position, quaternion, scale);
           mesh.setMatrixAt(i, matrix);
           if (at.tint) mesh.setColorAt(i, at.tint);
+          placed?.(item, mesh, i);
         });
         return mesh;
       });

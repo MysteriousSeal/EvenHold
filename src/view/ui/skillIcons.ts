@@ -56,7 +56,31 @@ const fishingIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { cooking: cookingIcon, fishing: fishingIcon };
+// A hatchet bitten into the top of a tree stump, the stump's rings showing round it, its handle up and away.
+const lumberjackingIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:lumberjacking',
+    () => {
+      // Bark 1, its dark 2, the cut wood 3, its rings 4, the handle 5, iron 6, its edge 7.
+      const grid = createGrid([12, 11, 12]);
+      const [cx, cz] = [5.5, 5.5];
+      for (let x = 0; x < 12; x++) {
+        for (let z = 0; z < 12; z++) {
+          const d = Math.hypot(x - cx, z - cz);
+          if (d > 4.7) continue;
+          fillBox(grid, x, 0, z, x, 3, z, (bx, by, bz) => (d > 3.7 ? ((bx + by * 2 + bz) % 4 === 0 ? 2 : 1) : 3)); // the stump: bark round, wood in
+          fillBox(grid, x, 4, z, x, 4, z, d > 3.7 ? 1 : Math.round(d) % 2 === 0 ? 4 : 3); // its top, the rings
+        }
+      }
+      fillBox(grid, 4, 4, 5, 6, 6, 6, 6); // the hatchet's head, bitten in
+      fillBox(grid, 4, 4, 5, 4, 5, 6, 7); // its edge, in the wood
+      for (let i = 0; i <= 4; i++) fillBox(grid, 7 + i, 6 + i, 5, 7 + i, 6 + i, 6, 5); // its handle, up and away
+      return { grid, palette: [0x6e4a30, 0x4e3220, 0xe0b878, 0xb88850, WOOD, IRON_LIGHT, 0xc8ccd4], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, cooking: cookingIcon, fishing: fishingIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish

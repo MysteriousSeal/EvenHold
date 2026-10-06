@@ -251,6 +251,33 @@
   .pour-meter[data-state='brim'] { animation: pour-brim 0.18s steps(2) infinite; }
 }
 @keyframes pour-brim { 50% { translate: 1px 0; } }
+/* Chopping a tree (chopBar.ts): a slim wooden bar over the hero, filling toward the next chop, the chops left beside. */
+.chop-bar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  pointer-events: none;
+  box-sizing: border-box;
+  width: 84px;
+  height: 12px;
+  background: rgb(38 25 16 / 0.92);
+  border: 2px solid #2e1f14;
+  box-shadow: 0 0 0 2px #c9a46a;
+}
+.chop-bar[hidden] { display: none; }
+.chop-bar > i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#f0c070 0 40%, #c8742a 40%); }
+.chop-bar > span {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  translate: -50% 0;
+  white-space: nowrap;
+  font: 700 12px 'Fredoka', system-ui, sans-serif;
+  color: #f8ecd4;
+  -webkit-text-stroke: 3px rgb(30 20 40 / 0.9);
+  paint-order: stroke fill;
+}
 /* A badge over the world (overheadBadges.ts): a word on a square dark plate rimmed in its ink, a tail under it. Sized
    in ems (the script sets the em: as tall as it's meant to be in the world), every one the same, the word inside. */
 .overhead-badge {
