@@ -58,18 +58,37 @@ const fishingIcon: MenuIcon = (size) =>
 
 export const SKILL_ICONS: Record<SkillId, MenuIcon> = { cooking: cookingIcon, fishing: fishingIcon };
 
-// The skills window's tile on the toolbar: a ladle and a rod crossed, the trades at a glance.
+// The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
+// then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish
+// across it, silver-blue, its back darker, its tail fanned, an eye.
 export const skillsIcon: MenuIcon = (size) =>
   voxelIcon(
     'tool:skills',
     () => {
-      // Wood 1, its grip 2, iron 3, its shine 4.
-      const grid = createGrid([12, 12, 3]);
-      for (let i = 0; i <= 11; i++) fillBox(grid, i, i, 1, i, i, 1, i < 3 ? 2 : 1); // the rod, up to the right
-      for (let i = 0; i <= 8; i++) fillBox(grid, 11 - i, i, 2, 11 - i, i, 2, 3); // the ladle's handle, up to the left, over it
-      fillBox(grid, 0, 8, 0, 3, 11, 2, 3); // its bowl
-      fillBox(grid, 1, 11, 0, 2, 11, 2, 4); // its rim, catching the light
-      return { grid, palette: [WOOD, WOOD_DARK, IRON_LIGHT, 0xb4b4be], alpha: 1 };
+      // The pan 1, its rim 2, the handle 3, the fish 4, its back 5, its eye 6, its belly 7.
+      const grid = createGrid([16, 3, 14]);
+      const [cx, cz, r] = [6.5, 6.5, 6.2];
+      for (let x = 0; x < 14; x++) {
+        for (let z = 0; z < 14; z++) {
+          const d = Math.hypot(x - cx, z - cz);
+          if (d > r) continue;
+          fillBox(grid, x, 0, z, x, 0, z, 1); // the pan's floor
+          if (d > r - 1.2) fillBox(grid, x, 1, z, x, 1, z, 2); // its rim, raised
+        }
+      }
+      // The fish, lying in it head to the right: its back, its flank, its belly, a row each; its head to a point, an
+      // eye; its tail fanned out behind, forked.
+      fillBox(grid, 5, 1, 5, 9, 1, 5, 5);
+      fillBox(grid, 4, 1, 6, 10, 1, 7, 4);
+      fillBox(grid, 5, 1, 8, 9, 1, 8, 7);
+      fillBox(grid, 11, 1, 6, 11, 1, 7, 4);
+      fillBox(grid, 9, 1, 6, 9, 1, 6, 6); // the eye
+      fillBox(grid, 3, 1, 5, 3, 1, 8, 4); // the tail's root, widening
+      fillBox(grid, 2, 1, 4, 2, 1, 5, 4); // fanned out, forked (a notch between)
+      fillBox(grid, 2, 1, 8, 2, 1, 9, 4);
+      fillBox(grid, 12, 1, 6, 15, 1, 7, 3); // the handle, out from the rim
+      fillBox(grid, 12, 2, 6, 12, 2, 7, 2); // where it's riveted on
+      return { grid, palette: [0x55555f, 0x2c2c34, WOOD, 0x9cc4dc, 0x5a86a6, 0x1e2a36, 0xd8ecf4], alpha: 1 };
     },
     size,
   );
