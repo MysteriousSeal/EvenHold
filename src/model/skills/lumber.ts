@@ -20,6 +20,7 @@ export const WOOD: Record<TreeKind, { log: LootId; needs: number; chops: [number
   pine: { log: 'pineLog', needs: 25, chops: [3, 4] },
   oak: { log: 'oakLog', needs: 50, chops: [4, 5] },
 };
+const MOST_CHOPS = Math.max(...Object.values(WOOD).map((w) => w.chops[1])); // any tree's, at most
 export const SWING = 0.9; // seconds a swing of the axe
 const SWINGS = 3; // swings a chop, at the skill's first tier
 const QUICKER = 0.1; // of a chop's swings fewer, each tier on
@@ -178,7 +179,7 @@ export class Lumber {
     this.cut.clear();
     if (!saved || typeof saved !== 'object') return;
     for (const [key, n] of Object.entries(saved as Record<string, unknown>)) {
-      if (/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(key) && typeof n === 'number' && Number.isFinite(n) && n > 0) this.cut.set(key, Math.min(5, Math.floor(n)));
+      if (/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(key) && typeof n === 'number' && Number.isFinite(n) && n > 0) this.cut.set(key, Math.min(MOST_CHOPS, Math.floor(n)));
     }
     for (const tree of this.host.trees) if (this.felled(tree)) this.host.world.obstacles.clearProp(tree.x, tree.z); // (out of the way)
     this.version++;
