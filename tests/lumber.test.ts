@@ -65,6 +65,19 @@ describe('trees', () => {
     expect(SKILLS.lumberjacking.kind).toBe('main');
   });
 
+  it("in reach, one they can fell before a nearer one beyond them (a birch by a pine: the birch); none they can, the nearest, to say why", () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const birch = model.trees.find((t) => t.kind === 'birch')!;
+    const pine = { ...model.trees.find((t) => t.kind === 'pine')!, x: birch.x + 1, z: birch.z }; // (a pine right by it)
+    model.trees.push(pine);
+    model.hero.equipment.mainHand = 'hatchet';
+    Object.assign(model.hero, { x: birch.x + 0.6, z: birch.z }); // (nearer the pine)
+    expect(model.lumber.treeInReach).toBe(birch);
+    model.lumber.cut.set(`${birch.x},${birch.z}`, 9); // (the birch felled)
+    expect(model.lumber.treeInReach).toBe(pine);
+    expect(model.lumber.action).toMatchObject({ kind: 'cannot', why: 'skill' });
+  });
+
   it('are only in reach close by, outdoors', () => {
     const { model, tree } = byATree();
     Object.assign(model.hero, { x: tree.x + REACH + 0.5 });

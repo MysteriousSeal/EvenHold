@@ -149,7 +149,7 @@ describe('what kind of thing it is', () => {
 describe('wolf meat', () => {
   it('a cooking ingredient, left by wolves as often as a fang', () => {
     expect(LOOT_QUALITY.rawWolfMeat).toBe('ingredient');
-    expect(kindOf('rawWolfMeat')).toBe('Cooking ingredient');
+    expect(kindOf('rawWolfMeat')).toBe('Crafting material');
     expect(LOOT.rawWolfMeat.droppedBy).toEqual({ beast: LOOT.wolfFang.droppedBy!.beast });
     expect(ENEMY_STATS.wolf.family).toBe('beast');
   });

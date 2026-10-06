@@ -95,6 +95,7 @@ describe('the bag\'s groups', () => {
     const all = [...LOOT_IDS, ...ITEM_IDS];
     for (const item of all) expect(BAG_GROUPS.map((g) => g.group), item).toContain(groupOf(item));
     for (const { group } of BAG_GROUPS) expect(all.some((item) => groupOf(item) === group), group).toBe(true);
-    expect(kindOf('rawBoarMeat')).toBe('Cooking ingredient');
+    expect(kindOf('rawBoarMeat')).toBe('Crafting material');
+    expect(kindOf('oakLog')).toBe('Crafting material'); // (a lumberjack's logs, with the meats)
   });
 });
