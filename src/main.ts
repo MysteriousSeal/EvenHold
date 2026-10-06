@@ -42,6 +42,7 @@ import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
+import { chopPrompt } from './controller/skills/chopPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createJobPanel } from './controller/jobs/jobPanel';
@@ -49,6 +50,7 @@ import { workPrompt } from './controller/jobs/workPrompt';
 import { shiftStatus } from './controller/jobs/shiftStatus';
 import { BarShift } from './model/jobs/barShift';
 import { PourMeter } from './view/hud/pourMeter';
+import { createChopBar } from './view/hud/chopBar';
 import { createQuestTracker } from './view/hud/questTracker';
 import { boardSpot } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/hero/heroSheet';
@@ -142,6 +144,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
+  const chopBar = createChopBar(); // (chopping a tree: toward the next chop)
   const pourMeter = new PourMeter((at, text, ink) => floatingText.spawn(at, [text], ink)); // (behind the bar: the pour, and its word)
   const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
   let lastFrame = performance.now();
@@ -194,6 +197,7 @@ async function boot(): Promise<void> {
   const CHEST_PROMPTS = { chest: 'Open the chest', hoard: 'Tear open the hoard', locked: 'Locked · the chief has the key' } as const;
   const promptTarget = (): PromptTarget | null => {
     if (model.work.shift) return workPrompt(model); // (at work: the work's prompts alone, and the notice board's)
+    if (model.lumber.chopping) return chopPrompt(model); // (chopping a tree: E stops it)
     const loot = model.lootInReach;
     if (loot) return lootTarget(loot);
     const work = workPrompt(model); // (the inn's notice board: its work)
@@ -201,6 +205,8 @@ async function boot(): Promise<void> {
     const { hero } = model;
     const chest = chestInReach(model); // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
     if (chest) return { label: CHEST_PROMPTS[chest.what], x: chest.x, y: chest.y, z: chest.z };
+    const chop = chopPrompt(model); // (a tree in reach: chop it; or not, and why: last of all, below)
+    if (chop && !chop.muted) return chop;
     const seated = model.seated;
     const talker = talkingTo(model.folk, model.inside, hero); // the barmaid, the smith (of the villagers round about)
     const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
@@ -223,7 +229,7 @@ async function boot(): Promise<void> {
     if (hallDoor) return { label: hallDoor.open ? 'Close door' : 'Open door', x: hero.x, y: hero.y + 1.05, z: hero.z }; // (a locked one too: tried, it's found locked)
     if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
     const door = model.doorInReach;
-    if (!door) return null;
+    if (!door) return chop; // (a tree that can't be chopped yet: why, if nothing else is to be done)
     if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
     const place = goesUnder(door) ? dungeonAt(door) : null;
     const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
@@ -257,6 +263,8 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
+    const chopping = model.lumber.chopping;
+    chopBar(chopping && { progress: model.lumber.progress ?? 0, left: model.lumber.left(chopping.tree) }, model.hero, (x, y, z) => view.toScreen(x, y, z));
     pourMeter.update(model.work.shift instanceof BarShift ? model.work.shift : null, model.hero, (x, y, z) => view.toScreen(x, y, z));
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
     rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
@@ -318,6 +326,8 @@ async function boot(): Promise<void> {
       else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)
       else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.tally} · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
+      else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [`${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them)
+      else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + KIND_LOOKS[event.on].textHeight, z: event.z }, [`${event.amount}`], '#ffffff');

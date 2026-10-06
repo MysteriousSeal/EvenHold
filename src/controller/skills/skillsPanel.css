@@ -47,3 +47,4 @@
 
 /* How it's raised (not yet: said so). */
 .skill-practice { margin: 0; padding: 8px 10px; font-size: 13px; color: var(--ink-soft); background: var(--sand-dark); border: 2px solid var(--line); }
+.skill-practice.ready { color: var(--ink); background: var(--sand-light); border-color: var(--clay); }

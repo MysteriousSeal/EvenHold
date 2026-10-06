@@ -1,7 +1,8 @@
 // The skills window (K, or its tile on the toolbar), as a crafter's book of trades: the hero's skills down the left
 // (model/skills/skills.ts: cooking, fishing), a row each, its tier and level; the one picked told of on the right: its
 // tier over its name, the road of its tiers (those passed, the one it's on filling toward the next, those ahead) with
-// where the hero stands on it, what it's for, what each tier opens (reached, or not yet), and how it's raised. A side
+// where the hero stands on it, what it's for, what each tier opens (reached, or not yet), and how it's raised. The main
+// skills (lumberjacking) over the secondary (cooking, fishing). A side
 // window in the corner: the game goes on while it's open.
 
 import './skillsPanel.css';
@@ -59,7 +60,7 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; update(): voi
     const unlocks = el('ul', 'skill-unlocks');
     for (const { at, what } of skill.unlocks) {
       const open = level >= at;
-      const needs = SKILL_TIERS.find((t) => t.from === at)?.name ?? `level ${at}`;
+      const needs = SKILL_TIERS.find((t) => t.from === at)?.name ?? `Level ${at}`;
       unlocks.append(el('li', open ? 'open' : 'locked', el('span', 'skill-unlock-mark', open ? '✓' : ''), el('span', 'skill-unlock-what', what), el('span', 'skill-unlock-at', open ? 'Known' : needs)));
     }
     return el(
@@ -70,7 +71,7 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; update(): voi
       el('p', 'skill-about', skill.about),
       el('span', 'skill-label', 'What it opens'),
       unlocks,
-      el('p', 'skill-practice', `You can't practise ${skill.name.toLowerCase()} yet: there's nowhere to ${skill.verb} in the world so far.`),
+      skill.practice ? el('p', 'skill-practice ready', skill.practice) : el('p', 'skill-practice', `You can't practise ${skill.name.toLowerCase()} yet: there's nowhere to ${skill.verb} in the world so far.`),
     );
   };
 
@@ -83,7 +84,13 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; update(): voi
     tabs: [
       {
         name: 'Skills',
-        slots: () => ({ cells: SKILL_IDS.map(slotOf), columns: 1, rows: true, sections: [{ title: `Secondary skills · ${SKILL_IDS.length}`, from: 0 }] }),
+        // The main skills first (each a trade of its own), then the secondary, each under its header.
+        slots: () => {
+          const main = SKILL_IDS.filter((id) => SKILLS[id].kind === 'main');
+          const secondary = SKILL_IDS.filter((id) => SKILLS[id].kind === 'secondary');
+          const sections = [...(main.length ? [{ title: `Main skills · ${main.length}`, from: 0 }] : []), ...(secondary.length ? [{ title: `Secondary skills · ${secondary.length}`, from: main.length }] : [])];
+          return { cells: [...main, ...secondary].map(slotOf), columns: 1, rows: true, sections };
+        },
         detail,
       },
     ],

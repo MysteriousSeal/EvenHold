@@ -137,7 +137,8 @@ export class GameController {
       if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(this.model.inside!.entrance)));
       else if (action?.kind === 'sleep') this.onSleep();
     }
-    // E: pick up what's in reach; else, sat at the bar, talk to the barmaid;
+    // E: chopping a tree, stop; else pick up what's in reach; else chop the tree in reach (an axe in hand); else, sat
+    // at the bar, talk to the barmaid;
     // else sit down or get up; else talk to her from her bar; else read the
     // smith by his counter (unless at the way out: out first); else read the
     // notice board in reach; else toss a coin in the well beside; else go
@@ -146,12 +147,15 @@ export class GameController {
     // notice board's (to end it); nothing else: no doors, no seats, no talk.
     if (this.model.work.shift && this.input.consumePickup()) {
       if (!this.model.work.use() && this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach);
+    } else if (this.model.lumber.chopping && this.input.consumePickup()) {
+      this.model.lumber.stop(); // (chopping: E again stops it, before the logs at their feet are picked up)
     } else if (this.input.consumePickup()) {
       const item = this.model.pickUp();
       const talker = talkingTo(this.model.folk, this.model.inside, this.model.hero); // the barmaid, the smith (of the villagers round about)
       if (item) this.onPickUp(item);
       else if (this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach); // the inn's notice board: its work
       else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
+      else if (this.model.lumber.action?.kind === 'chop') this.model.lumber.use(); // a tree, an axe in hand: chopping
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {
         const board = this.model.boardInReach;
