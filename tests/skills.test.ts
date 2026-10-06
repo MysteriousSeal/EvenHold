@@ -13,9 +13,12 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const { createSkillsPanel } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
-  it('are cooking and fishing, each with what its every tier opens', () => {
-    expect(SKILL_IDS).toEqual(['cooking', 'fishing']);
-    for (const id of SKILL_IDS) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+  it('are lumberjacking (a main skill), cooking and fishing (secondary), each with what it opens', () => {
+    expect(SKILL_IDS).toEqual(['lumberjacking', 'cooking', 'fishing']);
+    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'secondary', 'secondary']);
+    for (const id of ['cooking', 'fishing'] as const) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+    expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
+    expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
   });
 
   it("start at 1 for every hero: an apprentice's", () => {
@@ -64,9 +67,12 @@ describe('the skills window', () => {
     const panel = createSkillsPanel(model);
     panel.menu.open();
     const rows = all('.menu-slot').filter((r) => r.closest('.menu')?.querySelector('.skill-detail, .menu-detail-hint'));
-    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Cooking'), expect.stringContaining('Fishing')]);
-    expect(rows[0].textContent).toContain('Apprentice · 1 / 75');
-    expect(rows[1].textContent).toContain('Journeyman · 100 / 150');
+    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Lumberjacking'), expect.stringContaining('Cooking'), expect.stringContaining('Fishing')]);
+    expect(rows[1].textContent).toContain('Apprentice · 1 / 75');
+    expect(rows[2].textContent).toContain('Journeyman · 100 / 150');
+    const menu = rows[0].closest('.menu')!;
+    expect(menu.textContent).toContain('Main skills · 1');
+    expect(menu.textContent).toContain('Secondary skills · 2');
     panel.menu.close();
   });
 
@@ -75,6 +81,9 @@ describe('the skills window', () => {
     raiseSkill(model.hero, 'cooking', 99); // (100: a journeyman, a third through)
     const panel = createSkillsPanel(model);
     panel.menu.open();
+    expect(q('.skill-name').textContent).toBe('Lumberjacking'); // (the first, picked)
+    expect(q('.skill-practice').textContent).toContain('axe in hand'); // (how it's raised)
+    (all('.menu-slot').at(-2) as HTMLElement).click(); // (cooking)
     expect(q('.skill-name').textContent).toBe('Cooking');
     expect(q('.skill-eyebrow').textContent).toBe('Journeyman cooking');
     expect(q('.skill-level').textContent).toBe('100 / 300 · 50 to Expert');
@@ -93,7 +102,7 @@ describe('the skills window', () => {
     const panel = createSkillsPanel(model);
     panel.menu.open();
     panel.update();
-    raiseSkill(model.hero, 'cooking', 4);
+    raiseSkill(model.hero, 'lumberjacking', 4);
     panel.update();
     expect(q('.skill-level').textContent).toContain('5 / 300');
     panel.menu.close();
