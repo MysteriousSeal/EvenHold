@@ -10,15 +10,7 @@ import type { GameModel } from '../../model/GameModel';
 import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, tierOf, type SkillId } from '../../model/skills/skills';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { SKILL_ICONS } from '../../view/ui/skillIcons';
-import { line } from '../../view/ui/dom';
-
-// An element, its class, and what's in it.
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, ...children: Array<string | Node>): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  node.append(...children);
-  return node;
-}
+import { el, line } from '../../view/ui/dom';
 
 export function createSkillsPanel(model: GameModel): { menu: Menu; update(): void } {
   const picked = new WeakMap<MenuSlot, SkillId>();

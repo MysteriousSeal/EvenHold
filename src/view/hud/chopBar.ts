@@ -2,6 +2,7 @@
 // chops the tree has left beside it; gone when they stop. Drawn over the game, as the HUD is.
 
 import type { ToScreen } from './floatingText';
+import { counted } from '../ui/words';
 
 const OVER = 1.5; // world units over their feet
 
@@ -17,7 +18,7 @@ export function createChopBar(): (chop: { progress: number; left: number } | nul
     root.hidden = !chop;
     if (!chop) return;
     fill.style.width = `${Math.round(chop.progress * 100)}%`;
-    const text = `${chop.left} ${chop.left === 1 ? 'chop' : 'chops'} left`;
+    const text = `${counted(chop.left, 'chop')} left`;
     if (label.textContent !== text) label.textContent = text;
     const at = toScreen(hero.x, hero.y + OVER, hero.z);
     root.style.transform = `translate(${at.x}px, ${at.y}px) translate(-50%, -100%)`;

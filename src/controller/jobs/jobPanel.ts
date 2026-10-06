@@ -16,6 +16,7 @@ import { BONUS } from '../../model/jobs/work';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { coinParts } from '../../view/ui/coins';
 import { createMenu, type Menu } from '../../view/ui/menu';
+import { el } from '../../view/ui/dom';
 
 const ICONS: Record<JobId, (size: number) => HTMLCanvasElement> = { innServer: bagIcon('ale'), innBarkeep: bagIcon('mead') };
 // What's carried at once, by job (the tray's orders; the hands' drinks and empties), and how a shift's worked (E).
@@ -24,14 +25,6 @@ const KEYS: Record<JobId, string> = {
   innServer: 'take an order · fetch it from the bar · set it down · clear a table',
   innBarkeep: 'pour at the tap or a shelf, again at the line · hand it across · set the tables\' down at the end · gather and wash empties',
 };
-
-// An element, its class, and what's in it.
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, ...children: Array<string | Node>): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  node.append(...children);
-  return node;
-}
 
 const hours = (seconds: number) => `${Math.round((seconds / 60) * 2) / 2} hours`.replace('.5', '½');
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
