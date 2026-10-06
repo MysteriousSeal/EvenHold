@@ -34,11 +34,12 @@ import { spawnNpcs, type Npc } from '../npcs/npcs';
 import { villageNumber } from '../villages/villageNumber';
 
 // What the world's life needs of the game: whose world, the hero (where they are, to walk among), the ground's height
-// where they stand, and the foes slain for good.
+// where they stand, the foes slain for good, and the trees felled for good.
 export interface WorldHost {
   readonly seed: number;
   readonly hero: Hero;
   readonly slain: ReadonlySet<number>;
+  felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
 
@@ -237,6 +238,11 @@ export class LiveWorld {
 
   // What lives on region `index` (and its band of travellers), added to the world's.
   private live(index: number, alive: Alive, travellers: Travellers | null): void {
+    const felled = alive.trees.filter((t) => this.host.felled?.(t)); // (gone for good: not there, nor in the way)
+    if (felled.length > 0) {
+      alive = { ...alive, trees: alive.trees.filter((t) => !felled.includes(t)) };
+      for (const t of felled) this.obstacles.clearProp(t.x, t.z);
+    }
     this.alive.set(index, alive);
     for (const k of ALIVE) appendAll(this[k] as unknown[], alive[k]);
     if (travellers) this.travellers.add(index, travellers);

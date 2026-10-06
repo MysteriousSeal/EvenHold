@@ -82,6 +82,7 @@ export interface SaveData {
   fullWalls?: boolean; // the option: rooms' inner walls full height
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
+  trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
 }
 
 const MAX_BAG_SLOTS = 256; // a saved bag order longer than any bag is cut there
@@ -142,6 +143,7 @@ export function snapshot(model: GameModel): SaveData {
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
+    trees: model.lumber.saved(), // the trees chopped at, felled for good
     doors: model.entrances.map((e) => ({ inn: doorNumber(e), open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
     travellers: model.travellers.save(),
     lets: model.entrances.flatMap((e) => (letUntil(e) === null ? [] : [{ inn: doorNumber(e), until: letUntil(e)! }])),
@@ -220,6 +222,7 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { crypt, slain } of Array.isArray(data.crypts) ? data.crypts : []) {
     if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
   }
+  model.lumber.restore(data.trees); // (the felled out of the way; an older save's: none)
   // Where they were: a position saved lost (not a number: never written so now, but an older save's may be) costs only
   // the spot, never the save: the hero's put somewhere sound instead.
   const placed = Number.isFinite(saved.x) && Number.isFinite(saved.z);

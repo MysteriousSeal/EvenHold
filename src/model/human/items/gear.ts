@@ -12,6 +12,7 @@ import type { Stat } from '../../hero/statKinds';
 import { STATS, isStat } from '../../hero/statKinds';
 import { hashUnit } from '../../../util/random';
 import { ITEMS, type ItemId } from './index';
+import type { WeaponType } from './held';
 
 export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
 export type Rarity = (typeof RARITIES)[number];
@@ -68,6 +69,11 @@ export const gearKey = ({ item, level, rarity, roll }: Gear): GearKey =>
   level <= 1 && rarity === 'common' ? item : (`${item}@${Math.floor(level)}${LETTER[rarity]}${Math.floor(roll)}` as GearKey);
 
 export const baseOf = (key: GearKey): ItemId => gearOf(key).item;
+// What kind of weapon a piece of gear is (held.ts: its item's, whatever its level and rarity), or null: not a weapon.
+export const weaponTypeOf = (key: GearKey): WeaponType | null => {
+  const item = ITEMS[baseOf(key)] as { type?: WeaponType };
+  return item.type ?? null;
+};
 export const slotOfGear = (key: GearKey): EquipSlot => ITEMS[baseOf(key)].slot;
 export const levelOf = (key: GearKey): number => gearOf(key).level;
 export const rarityOf = (key: GearKey): Rarity => gearOf(key).rarity;

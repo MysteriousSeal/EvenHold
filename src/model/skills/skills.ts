@@ -1,12 +1,15 @@
-// The hero's skills, learnt by doing (as a crafter's or a gatherer's trade, apart from the fighting): cooking and
-// fishing so far. Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
+// The hero's skills, learnt by doing (as a crafter's or a gatherer's trade, apart from the fighting): the main ones
+// (lumberjacking: lumber.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
-// (saved). Nothing raises them yet: raiseSkill is where practice will, a level at a time, told when it does.
+// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping; the
+// others not yet.
 
-export type SkillId = 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'cooking' | 'fishing';
 
 export interface Skill {
   name: string;
+  kind: 'main' | 'secondary'; // a trade of its own, or one alongside (listed so)
+  practice?: string; // how it's raised (none: not yet)
   verb: string; // what's done to raise it ("cook", "fish")
   about: string; // what it is, in a line
   unlocks: ReadonlyArray<{ at: number; what: string }>; // what each level reached opens (from its tier's start)
@@ -27,8 +30,22 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 ];
 
 export const SKILLS: Record<SkillId, Skill> = {
+  lumberjacking: {
+    name: 'Lumberjacking',
+    kind: 'main',
+    verb: 'chop',
+    practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
+    about: 'Fell the trees of the wilds for their wood, a log knocked loose at every chop. Harder woods want a practised hand.',
+    unlocks: [
+      { at: 1, what: 'Fell birches' },
+      { at: 25, what: 'Fell pines' },
+      { at: 50, what: 'Fell oaks' },
+      { at: 75, what: 'Chop quicker: a swing fewer each tier on' },
+    ],
+  },
   cooking: {
     name: 'Cooking',
+    kind: 'secondary',
     verb: 'cook',
     about: "Turn what's caught and gathered into meals that heal more and keep the hero going longer than raw food.",
     unlocks: [
@@ -40,6 +57,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
+    kind: 'secondary',
     verb: 'fish',
     about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger.',
     unlocks: [

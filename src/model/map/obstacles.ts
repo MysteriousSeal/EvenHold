@@ -121,6 +121,14 @@ export class Obstacles {
     page.round[i] = round ? 1 : 0;
   }
 
+  // The prop in the middle of tile (x, z) taken away (a tree felled: skills/lumber.ts): the tile clear of it.
+  clearProp(x: number, z: number): void {
+    const at = this.at(x, z);
+    if (!at) return;
+    const { page, i } = at;
+    [page.prop[i], page.low[i], page.round[i]] = [0, 0, 0];
+  }
+
   // A blocking strip `thickness` thick along one edge (`side`, NEIGHBORS_4) of tile (x, z).
   addFenceStrip(x: number, z: number, side: number, thickness: number): void {
     const [dx, dz] = NEIGHBORS_4[side];

@@ -67,6 +67,8 @@ export type GameEvent =
   | { kind: 'village'; name: string; level: number } // a village come into: its name and level (villages/villageWelcome.ts)
   | { kind: 'shift'; job: string; served: number; walkedOut: number; tally: string; earned: number; bonus: number; early: boolean } // a shift of work over (jobs/work.ts): how it went (`tally`: the job's own, "3 cleared"), what it paid
   | { kind: 'jobRank'; job: string; rank: string } // risen a rank in a job (jobs/jobs.ts)
+  | { kind: 'skillUp'; skill: string; level: number } // a skill risen a level (skills/skills.ts)
+  | { kind: 'felled'; x: number; z: number } // a tree chopped down, for good (skills/lumber.ts)
   | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
