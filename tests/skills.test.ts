@@ -10,7 +10,7 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
-const { createSkillsPanel } = await import('../src/controller/skills/skillsPanel');
+const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
   it('are lumberjacking and woodworking (main skills), cooking and fishing (secondary), each with what it opens', () => {
@@ -61,54 +61,58 @@ const all = (selector: string) => Array.from(document.querySelectorAll(selector)
 const q = (selector: string) => all(selector).at(-1)!;
 
 describe('the skills window', () => {
-  // The skills list's rows (the newest list: each window made stays in the document).
-  const rowsOf = () => {
-    const lists = all('.menu').filter((m) => m.querySelector('.menu-slot') && m.textContent?.includes('Main skills'));
-    return Array.from(lists.at(-1)!.querySelectorAll<HTMLElement>('.menu-slot'));
-  };
+  // The skills list's cards (the newest list: each window made stays in the document).
+  const cardsOf = () => Array.from(all('.skill-cards').at(-1)!.querySelectorAll<HTMLElement>('.skill-card'));
 
-  it('lists the skills, a row each: its tier and level; the main over the secondary, under their headers; none told of beside', () => {
+  it('shows a card a skill: its level, its tier and how far to the next, its ruler, what it\'s practised for; the main over the secondary', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
-    raiseSkill(model.hero, 'fishing', 99);
+    raiseSkill(model.hero, 'lumberjacking', 99);
     const panel = createSkillsPanel(model);
     panel.menu.open();
-    const rows = rowsOf();
-    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Lumberjacking'), expect.stringContaining('Woodworking'), expect.stringContaining('Cooking'), expect.stringContaining('Fishing')]);
-    expect(rows[2].textContent).toContain('Apprentice · 1 / 75');
-    expect(rows[3].textContent).toContain('Journeyman · 100 / 150');
-    const menu = rows[0].closest('.menu')!;
-    expect(menu.textContent).toContain('Main skills · 2');
-    expect(menu.textContent).toContain('Secondary skills · 2');
-    expect(menu.querySelector('.skill-detail')).toBeNull(); // (the list alone: a skill's in its own window)
+    const cards = cardsOf();
+    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'cooking', 'fishing']);
+    expect(Array.from(all('.skill-cards').at(-1)!.querySelectorAll('.skill-cards-group')).map((g) => g.textContent)).toEqual(['Main skills', 'Secondary skills']);
+    expect(cards[0].querySelector('.skill-card-level')?.textContent).toBe('100');
+    expect(cards[0].querySelector('.skill-card-tier')?.textContent).toBe('Journeyman · 50 to Expert');
+    expect(cards[0].querySelector('.skill-rule.slim')).toBeTruthy();
+    expect([cards[2].classList.contains('idle'), cards[2].querySelector('.skill-card-status')?.textContent]).toEqual([true, 'Not practicable yet']);
     expect(panel.window.menu.isOpen).toBe(false);
     panel.menu.close();
   });
 
-  it("opens a skill's own window, clicked: titled with it, its tier, its level, the road of its tiers with the hero on it, what it opens, how it rises", () => {
+  it('says what they are at just now: chopping a tree, making something', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
-    raiseSkill(model.hero, 'cooking', 99); // (100: a journeyman, a third through)
+    const tree = model.trees.find((t) => t.kind === 'birch')!;
+    model.lumber.chopping = { tree, t: 0 };
+    expect(statusOf(model, 'lumberjacking')).toMatch(/^Chopping birch · \d chops? left$/);
+    model.hero.bag.birchLog = 3;
+    model.lumber.stop();
+    model.woodworking.start('birchPlank', 3);
+    expect(statusOf(model, 'woodworking')).toBe('Crafting Birch plank · 1 of 3');
     const panel = createSkillsPanel(model);
     panel.menu.open();
-    rowsOf()[2].click(); // (cooking)
-    expect([panel.window.menu.isOpen, panel.window.skill]).toEqual([true, 'cooking']);
-    expect(panel.menu.isOpen).toBe(true); // (the list stays open beside it)
-    expect(q('.skill-name').textContent).toBe('Cooking');
-    expect(q('.skill-eyebrow').textContent).toBe('Journeyman cooking');
-    expect(q('.skill-level').textContent).toBe('100 / 300 · 50 to Expert');
-    const stretches = Array.from(q('.skill-road').querySelectorAll('li'));
-    expect(stretches.map((s) => s.className)).toEqual(['past', 'here', 'ahead', 'ahead']);
-    expect(q('.skill-road-here').textContent).toBe('100');
-    expect(q('.skill-road-here').style.left).toBe('33%');
-    expect(Array.from(q('.skill-unlocks').querySelectorAll('li')).map((li) => li.className)).toEqual(['open', 'open', 'locked', 'locked']);
-    expect(q('.skill-unlocks').textContent).toContain('Expert');
-    expect(q('.skill-practice').textContent).toContain("can't practise cooking yet");
-    // Another clicked: the same window, now its.
-    rowsOf()[0].click();
-    expect(panel.window.skill).toBe('lumberjacking');
-    expect(q('.skill-name').textContent).toBe('Lumberjacking');
-    expect(q('.skill-practice').textContent).toContain('axe in hand'); // (how it's raised)
-    rowsOf()[1].click();
-    expect(q('.recipe-list')).toBeTruthy(); // (woodworking: its recipes)
+    expect(cardsOf()[1].querySelector('.skill-card-status.live')?.textContent).toBe('Crafting Birch plank · 1 of 3');
+    panel.menu.close();
+  });
+
+  it("opens a skill's own window, clicked: where they stand across the top (their title, level, ruler, what's next), what it offers under it", () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    raiseSkill(model.hero, 'lumberjacking', 120); // (121: three short of ancient pines)
+    const panel = createSkillsPanel(model);
+    panel.menu.open();
+    cardsOf()[0].click();
+    expect([panel.window.menu.isOpen, panel.window.skill, panel.menu.isOpen]).toEqual([true, 'lumberjacking', true]);
+    expect(q('.skill-band-title').textContent).toBe('Journeyman lumberjack');
+    expect(q('.skill-band-level').textContent).toBe('121 / 300 · 29 to Expert');
+    expect(q('.skill-band-next').textContent).toBe('Next at 125: Fell ancient pines: two logs a chop · 4 levels to go');
+    expect(Array.from(q('.skill-band').querySelectorAll('.skill-rule-tier')).map((b) => b.className)).toEqual(['skill-rule-tier past', 'skill-rule-tier here', 'skill-rule-tier', 'skill-rule-tier']);
+    expect(q('.skill-rule-notch').textContent).toBe('121');
+    expect(q('.book-detail .book-title').textContent).toBe('Oak'); // (the trees: the best to learn from, picked)
+    cardsOf()[1].click();
+    expect(all('.book-group').slice(-4).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Weapons', 'Shields']); // (woodworking: its recipes)
+    cardsOf()[2].click();
+    expect(q('.skill-notyet h3').textContent).toBe('Not practicable yet'); // (cooking)
+    expect(q('.skill-opens').querySelectorAll('li')).toHaveLength(SKILLS.cooking.unlocks.length);
     panel.window.menu.close();
     panel.menu.close();
   });
@@ -121,8 +125,8 @@ describe('the skills window', () => {
     panel.update();
     raiseSkill(model.hero, 'lumberjacking', 4);
     panel.update();
-    expect(q('.skill-level').textContent).toContain('5 / 300');
-    expect(rowsOf()[0].textContent).toContain('5 / 75');
+    expect(q('.skill-band-level').textContent).toContain('5 / 300');
+    expect(cardsOf()[0].querySelector('.skill-card-level')?.textContent).toBe('5');
     panel.window.menu.close();
     panel.menu.close();
   });

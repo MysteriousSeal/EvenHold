@@ -15,7 +15,8 @@ import type { Tree } from '../src/model/types';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
-const { craftStatus, recipeList, recipeProgress } = await import('../src/controller/skills/recipeList');
+const { bestRecipe, craftStatus, newBook, recipeBook, recipeProgress } = await import('../src/controller/skills/recipeBook');
+const { bestGrade, woodGuide } = await import('../src/controller/skills/woodGuide');
 
 // A model, its hero at `level` in woodworking with `bag` in their bag.
 function workshop(level = 1, bag: Record<string, number> = {}) {
@@ -108,38 +109,83 @@ describe('woodworking', () => {
   });
 });
 
-describe('the recipe list', () => {
-  it('a row each: what it makes, its name in its difficulty\'s colour, its materials (have/need), buttons; those not reached faded', () => {
+describe('the recipe book', () => {
+  it('lists the recipes under what they make, each in its difficulty\'s colour, how many the bag makes, the best to learn starred; those not reached faded', () => {
     const model = workshop(1, { birchLog: 2 });
-    const list = recipeList(model, () => {});
-    const rows = Array.from(list.querySelectorAll('li'));
-    expect(rows).toHaveLength(RECIPE_IDS.length);
-    const plank = rows.find((r) => r.dataset.recipe === 'birchPlank')!;
-    expect((plank.querySelector('.recipe-name') as HTMLElement).style.color).toBeTruthy();
-    expect(plank.querySelector('.recipe-from')?.textContent).toContain('2/1');
-    expect(Array.from(plank.querySelectorAll('button')).map((b) => [b.textContent, b.disabled])).toEqual([['Craft', false], ['All (2)', false]]);
-    const sword = rows.find((r) => r.dataset.recipe === 'woodenSword')!;
-    expect([sword.className, sword.querySelector('.recipe-needs')?.textContent]).toEqual(['recipe locked', 'Needs 10']);
-    (plank.querySelector('button') as HTMLButtonElement).click();
-    expect(model.woodworking.making?.recipe).toBe('birchPlank');
+    const book = recipeBook(model, newBook(), () => {});
+    expect(Array.from(book.querySelectorAll('.book-group')).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Weapons', 'Shields']);
+    expect(book.querySelectorAll('.book-row')).toHaveLength(RECIPE_IDS.length);
+    const plank = book.querySelector<HTMLElement>('[data-recipe="birchPlank"]')!;
+    expect((plank.querySelector('.book-name') as HTMLElement).style.color).toBeTruthy();
+    expect(plank.querySelector('.book-count')?.textContent).toBe('2');
+    expect(plank.querySelector('.book-best')).toBeTruthy(); // (the best to learn from: picked to begin with)
+    expect(plank.classList.contains('picked')).toBe(true);
+    const sword = book.querySelector<HTMLElement>('[data-recipe="woodenSword"]')!;
+    expect([sword.classList.contains('locked'), sword.querySelector('.book-count')?.textContent]).toEqual([true, '10']);
+    expect(bestRecipe(model)).toBe('birchPlank');
+  });
+
+  it('tells of the one picked: what it makes, what it wants and teaches, its materials had of wanted, how many to make; makes them', () => {
+    const model = workshop(1, { birchLog: 3 });
+    const state = newBook();
+    const redraw = () => {};
+    let book = recipeBook(model, state, redraw);
+    const detail = book.querySelector('.book-detail')!;
+    expect(detail.querySelector('.book-title')?.textContent).toBe('Birch plank');
+    expect(detail.querySelector('.book-needs')?.textContent).toBe('Requires Woodworking 1 · Always teaches');
+    expect(detail.querySelector('.book-materials')?.textContent).toContain('3/1');
+    (detail.querySelectorAll<HTMLButtonElement>('.book-step')[1]).click(); // (one more)
+    expect(state.count).toBe(2);
+    book = recipeBook(model, state, redraw);
+    const craft = book.querySelector<HTMLButtonElement>('.book-craft')!;
+    expect(craft.textContent).toBe('Craft 2');
+    craft.click();
+    expect(model.woodworking.making).toMatchObject({ recipe: 'birchPlank', left: 2, of: 2 });
+    // A gear recipe: its level, rarity and what it gives.
+    const crafter = workshop(270, { heartwood: 3, varnish: 2 });
+    const gear = recipeBook(crafter, { picked: 'heartwoodStaff', canOnly: false, count: 1 }, redraw).querySelector('.book-detail')!;
+    expect(gear.textContent).toContain('Level 32 · Rare');
+  });
+
+  it('filters to what can be made now, saying what to do when there\'s nothing', () => {
+    const model = workshop(1, { birchLog: 1 });
+    expect(recipeBook(model, { picked: null, canOnly: true, count: 1 }, () => {}).querySelectorAll('.book-row')).toHaveLength(1);
+    const empty = workshop(1);
+    expect(recipeBook(empty, { picked: null, canOnly: true, count: 1 }, () => {}).querySelector('.book-empty')?.textContent).toContain('Fell some trees');
   });
 });
 
 describe('the one being made', () => {
-  it("is told of on its own: what, how many of how many, a bar filling toward the next, a button to stop; its recipe's row lit", () => {
+  it('is told of on its own: what, how many of how many, a bar filling toward the next, a button to stop', () => {
     const model = workshop(1, { birchLog: 3 });
     expect(craftStatus(model, () => {})).toBeNull(); // (nothing being made: no card)
     model.woodworking.start('birchPlank', Infinity);
     run(model, RECIPES.birchPlank.seconds * 1.5); // (one made, the next half way)
     const card = craftStatus(model, () => {})!;
-    expect(card.textContent).toContain('Birch plank');
-    expect(card.textContent).toContain('Making 2 of 3');
+    expect(card.textContent).toContain('Crafting Birch plank');
+    expect(card.textContent).toContain('2 of 3');
     recipeProgress(model, card);
-    expect(parseFloat((card.querySelector('.recipe-progress > i') as HTMLElement).style.width)).toBeCloseTo(50, -1);
-    const row = recipeList(model, () => {}).querySelector<HTMLElement>('[data-recipe="birchPlank"]')!;
-    expect([row.className, row.querySelector('.recipe-left')?.textContent, row.querySelector('.recipe-progress')]).toEqual(['recipe making', 'In progress', null]);
+    expect(parseFloat((card.querySelector('.craft-progress > i') as HTMLElement).style.width)).toBeCloseTo(50, -1);
+    expect(recipeBook(model, newBook(), () => {}).querySelector('[data-recipe="birchPlank"]')?.classList.contains('making')).toBe(true);
     (card.querySelector('button') as HTMLButtonElement).click();
     expect(model.woodworking.making).toBeNull();
+  });
+});
+
+describe('the wood guide', () => {
+  it('lists the trees, the best to learn from starred; tells of the one picked (chops, logs, finds, the axe)', () => {
+    const model = workshop(1);
+    skillOf(model.hero, 'lumberjacking').level = 130;
+    const guide = woodGuide(model, { picked: null }, () => {});
+    expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak']);
+    expect(bestGrade(130)).toBe('ancientPine');
+    expect(guide.querySelector('[data-grade="ancientPine"] .book-best')).toBeTruthy();
+    expect(guide.querySelector('[data-grade="ancientOak"]')?.classList.contains('locked')).toBe(true);
+    const detail = guide.querySelector('.book-detail')!;
+    expect(detail.querySelector('.book-title')?.textContent).toBe('Ancient pine');
+    expect(detail.textContent).toContain('2 Pine logs');
+    expect(detail.textContent).toContain('Pine resin: 25% a chop, from 150');
+    expect(detail.querySelector('.book-tool')?.textContent).toContain('You need an axe');
   });
 });
 
