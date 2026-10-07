@@ -150,7 +150,7 @@ export abstract class Bot extends BotVentures {
   }
 
   // Whether what's going on should give way (badly hurt, away from a bar, one with ale in reach).
-  private urgent(): boolean {
+  protected urgent(): boolean {
     const { hero } = this.model;
     return !this.model.work.shift && hero.hp < maxHpOf(hero) * 0.3 && this.goal !== 'heal' && this.goal !== 'sleep' && !hero.drinking && this.alehouse() !== null; // (at work: on with it, the inn's door shut till it's over)
   }

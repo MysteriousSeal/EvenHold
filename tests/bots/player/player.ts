@@ -154,6 +154,12 @@ export class Player extends Bot {
     for (const c of this.model.camps) if (!this.known.camps.has(c) && close(c)) [this.known.camps.add(c), found(`${campName(c, this.model.seed)} (a bandit camp)`)];
   }
 
+  // Nothing cuts in on the player's own judgement: being hurt is a drive (safety), weighed with the rest, not an
+  // override (the bot's: replanned every frame till it healed, and went round in circles when it couldn't afford to).
+  protected urgent(): boolean {
+    return false;
+  }
+
   unexplored(): boolean {
     return this.seconds - this.lastFound < UNEXPLORED_WINDOW * 60;
   }

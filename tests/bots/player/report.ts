@@ -114,9 +114,9 @@ function signals(player: Player, minutes: number): string[] {
   const abandoned = quests.filter((q) => q.outcome === 'out of reach' || q.outcome === 'given up');
   if (abandoned.length) out.push(`${abandoned.length} quests let go (${abandoned.map((q) => q.outcome).join(', ')}): a quest spot out of reach is a bug; given up, a dull one.`);
   if (time('work') > whole * 0.35) out.push(`${pct(time('work') / whole)} of the hour at the inn's jobs: it pays better than adventuring for this player.`);
-  const dungeonsDone = diary.filter((d) => d.id === 'dungeon' && d.outcome === 'ok').length;
-  const dungeonsTried = diary.filter((d) => d.id === 'dungeon').length;
-  if (dungeonsTried > 0 && dungeonsDone === 0) out.push(`Went down ${dungeonsTried} dungeons, came back from none in one piece: too hard at their level.`);
+  const descents = diary.filter((d) => d.id === 'dungeon' && d.seconds >= 30); // (down for a while: not an attempt that came to nothing at the door)
+  const dungeonsDone = descents.filter((d) => d.outcome === 'ok').length;
+  if (descents.length > 0 && dungeonsDone === 0) out.push(`Went down ${descents.length} dungeons, came back from none in one piece: too hard at their level.`);
   const best = [...player.memory.learnt].sort((a, b) => b[1].mean - a[1].mean)[0];
   if (best && best[1].n >= 3) out.push(`What paid off best, by their own reckoning: ${best[0]} (${best[1].mean.toFixed(2)} over ${best[1].n}). What's rewarded is what players will do.`);
   if (out.length === 0) out.push('A rounded hour: no one thing out of balance for this player.');
