@@ -11,7 +11,7 @@
 
 import type { Building, Bush, Enemy, Field, Hero, House, Tree, Village } from '../types';
 import { spawnOf, toCellX, toCellZ, type Area, type MapSize } from '../map/grid';
-import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT } from '../constants';
+import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, FOE_AT_MOST_FROM_HOME } from '../constants';
 import { onPaving } from '../map/roads';
 import { Obstacles, type ObstaclePage } from '../map/obstacles';
 import { RegionTiles, TilePatch, type Tiles } from '../map/tiles';
@@ -254,7 +254,7 @@ export class LiveWorld {
     const left = enemies.filter((e) => !this.host.slain.has(e.id));
     for (const e of left) {
       const was = this.remembered.get(e.id);
-      if (was) Object.assign(e, { x: was.x, z: was.z, hp: Math.min(e.maxHp, was.hp) });
+      if (was && Math.hypot(was.x - e.homeX, was.z - e.homeZ) <= FOE_AT_MOST_FROM_HOME) Object.assign(e, { x: was.x, z: was.z, hp: Math.min(e.maxHp, was.hp) }); // (farther: another world's foe of that number, save.ts)
       e.y = this.groundY(e.x, e.z);
     }
     return left;

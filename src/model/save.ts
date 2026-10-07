@@ -23,6 +23,7 @@ import { maxEnergyOf, maxHpOf } from './hero/attributes';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
+import { FOE_AT_MOST_FROM_HOME } from './constants';
 import { doorNumber, doorPlace, type Entrance } from './interiors/interiors';
 import { villagePlace } from './villages/villageNumber';
 import { readJobs, type JobId, type JobRecord } from './jobs/jobs';
@@ -257,6 +258,10 @@ export function restore(model: GameModel, data: SaveData): void {
       model.world.remember(change.id, change); // (a streamed world's foe whose region isn't made yet: as it was, once it is)
       continue;
     }
+    // (Farther from its home than any leash lets it: the save's foe of that number was another's, the world since made
+    // afresh with its camps elsewhere, say. Left as the seed makes it, not set down far off, past its leash, walking home
+    // and healed at every blow.)
+    if (Math.hypot(change.x - enemy.homeX, change.z - enemy.homeZ) > FOE_AT_MOST_FROM_HOME) continue;
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
   }
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.dropLoot(item, x, z);
