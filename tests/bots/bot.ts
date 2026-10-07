@@ -71,12 +71,12 @@ export abstract class Bot extends BotVentures {
     const before = { level: hero.level, xp: hero.xp, money: hero.money, hp: hero.hp, x: hero.x, z: hero.z };
     const working = !!this.model.work.shift; // (its pay comes as it ends, in the update: told apart from coins found)
     // (the foes about, should it fall this frame: only worth a look once it's hurt)
-    const about = hero.hp < maxHpOf(hero) * 0.5 ? this.model.enemies.filter((e) => e.state !== 'dead' && Math.abs(e.x - hero.x) < 6 && Math.abs(e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`) : [];
+    const about = hero.hp < maxHpOf(hero) * 0.5 ? this.model.foes.filter((e) => e.state !== 'dead' && Math.abs(e.x - hero.x) < 6 && Math.abs(e.z - hero.z) < 6).map((e) => `${e.kind} ${e.level}`) : []; // (foes: underground, a dungeon's own; the surface's list said 'no one near' of every fall below)
     this.model.update(this.move[0], this.move[1], dt);
     this.afterFrame(); // (a roll under way: watched)
     this.balance.xp('kills', before); // (all a frame brings: blows land in it)
     // Fallen (health gone, in this frame): woken at an inn, healed, some coin gone; whatever it was doing, over.
-    const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking;
+    const fell = hero.hp > before.hp && hero.hp >= maxHpOf(hero) && hero.level === before.level && (this.model.inside !== null || Math.hypot(hero.x - before.x, hero.z - before.z) > 3) && !hero.drinking; // (a level up heals them whole too: not a fall)
     if (hero.money !== before.money) this.balance.coin(fell ? 'lost on falling' : working && !this.model.work.shift ? 'shifts' : 'coins found', hero.money - before.money);
     if (fell) {
       this.balance.fell(about);

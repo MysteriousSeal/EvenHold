@@ -106,7 +106,7 @@ function signals(player: Player, minutes: number): string[] {
   if (player.stats.deaths === 0 && hero.level >= 5) out.push('Never fell: fights hold little danger for a player this far on.');
   const skills = SKILL_IDS.filter((id) => skillOf(hero, id).level > 1);
   if (skills.length === 0) out.push('No skill touched all hour: a player of this kind never found a reason to chop or craft (an axe to buy, trees to see).');
-  const atStart = player.found.filter((f) => f.at < 10 && f.what.includes('bandit camp')).length;
+  const atStart = player.found.filter((f) => f.at < 3 && f.what.includes('bandit camp')).length; // (before a step's taken: one, the near camp, is by design)
   if (atStart >= 2) out.push(`${atStart} bandit camps in sight of where they set out: a new player walks into one before they know the game.`);
   const neverFound = [['dungeons', [...player.known.doors].filter((d) => d.type === 'crypt' || d.type === 'cave').length], ['camps', player.known.camps.size]].filter(([, n]) => n === 0).map(([k]) => k);
   if (neverFound.length) out.push(`Never came across any ${neverFound.join(' or ')} in an hour: too rare near the start, or too hidden.`);

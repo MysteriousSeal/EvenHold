@@ -72,7 +72,7 @@ describe('quests', () => {
     const model = fresh();
     const quest = { ...questAt(model, 0, 0), kind: 'kill' as const, item: null, count: 3 };
     expect(model.quests.accept(quest)).toBe(true);
-    expect(marked(model, quest.key)).toHaveLength(6); // twice as many as asked
+    expect(marked(model, quest.key)).toHaveLength(4); // twice as many as asked, four at most at once
     expect(marked(model, quest.key).every((e) => model.quests.marked(e))).toBe(true); // each wears the mark
     expect(model.quests.handIn(quest.key)).toBe(false); // not done
     slay(model, quest.key);
@@ -80,15 +80,15 @@ describe('quests', () => {
     expect(taken.kills).toBe(1);
     expect(model.takeEvents().some((e) => e.kind === 'quest' && e.text === questProgress(quest, 1).text)).toBe(true); // "1/3 boars", or whichever
     expect(model.slain.size).toBe(0); // a quest's foes aren't the world's
-    // Two left to slay, five about (more than the four wanted): none comes back.
+    // Two left to slay, three about (one slain of the four kept up): one comes back after a minute.
     model.quests.update(RESPAWN_EVERY + 1);
-    expect(marked(model, quest.key)).toHaveLength(5);
+    expect(marked(model, quest.key)).toHaveLength(4);
     // Two wander off for good (gone): one is back a minute later.
     for (let i = 0; i < 2; i++) model.enemies.splice(model.enemies.indexOf(marked(model, quest.key)[0]), 1);
     model.quests.update(RESPAWN_EVERY / 2);
-    expect(marked(model, quest.key)).toHaveLength(3);
+    expect(marked(model, quest.key)).toHaveLength(2);
     model.quests.update(RESPAWN_EVERY / 2 + 0.1);
-    expect(marked(model, quest.key)).toHaveLength(4);
+    expect(marked(model, quest.key)).toHaveLength(3);
     expect(model.quests.readyAt(0)).toBe(false);
     taken.kills = 3;
     expect(model.quests.readyAt(0)).toBe(true); // done: a "?" over its board
@@ -194,7 +194,7 @@ describe('quests', () => {
     expect(again.quests.takenOf(a.key)!.kills).toBe(a.kind === 'kill' ? 1 : 1);
     expect(again.quests.takenOf(b.key)).toBeNull();
     expect(again.quests.takenOf(a.key)!.tracked).toBe(false);
-    expect(marked(again, a.key).length).toBe(a.kind === 'kill' ? 2 * (a.count - 1) : 2 * a.count);
+    expect(marked(again, a.key).length).toBe(Math.min(4, a.kind === 'kill' ? 2 * (a.count - 1) : 2 * a.count)); // (twice those left, four at most)
   });
 });
 

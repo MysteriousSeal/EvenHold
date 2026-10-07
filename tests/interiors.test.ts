@@ -109,6 +109,26 @@ describe('interiors', () => {
     expect(Math.hypot(model.hero.x - chair.x, model.hero.z - chair.z - 0.6)).toBeLessThan(0.1);
   });
 
+  it('tells the hero, lying down hurt, that rest mends them (not when whole)', () => {
+    const model = withHouses();
+    const house = model.entrances.find((e) => e.type === 'house')!;
+    model.teleport(house.x, house.z);
+    model.useDoor();
+    const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
+    const lieDown = () => {
+      model.hero.x = bed.x + 0.8;
+      model.hero.z = bed.z + 0.5;
+      expect(model.sitOrStand()).toBe(true);
+      const told = model.takeEvents().some((e) => e.kind === 'mending');
+      expect(model.sitOrStand()).toBe(true); // (up again)
+      return told;
+    };
+    model.hero.hp = 2;
+    expect(lieDown()).toBe(true);
+    model.hero.hp = 999;
+    expect(lieDown()).toBe(false);
+  });
+
   it('lies down in bed, head on the pillow by the headboard, and gets up again', () => {
     const model = withHouses();
     const house = model.entrances.find((e) => e.type === 'house')!;
