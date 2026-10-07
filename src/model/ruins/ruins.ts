@@ -23,6 +23,8 @@ const CLEAR_OF_SPAWN = 16;
 const NEAR_SPAWN: [number, number] = [55, 100]; // tiles from the start, the first ruin's middle: between these
 const NEAR_TRIES = 800; // spots looked at for it (on a streamed world's spawn region, at its corner, three in four fall off its maps)
 const TRIES = 300;
+// A ruin's side, as the dice say: between SIZE's.
+const ruinSide = (rng: () => number) => SIZE[0] + Math.floor(rng() * (SIZE[1] - SIZE[0] + 1));
 const MAX_RISE = 2; // tiers the ground may rise across it (its pieces stand each on its own tile)
 
 export type RuinKind = 'wall' | 'wallBroken' | 'arch' | 'corner' | 'tower' | 'innerWall' | 'column' | 'columnBroken' | 'columnFallen' | 'altar' | 'rubble' | 'floor';
@@ -65,8 +67,7 @@ export function placeRuins(world: RuinWorld): Ruin[] {
   // on (a streamed world's: its own region, and no other's, or every region at its corner would set one down).
   const near = mulberry32(hashCell(Math.round(spawn.x) + 17, Math.round(spawn.z) + 29, world.seed + 6151));
   for (let t = 0; world.tiles.has(spawn.x, spawn.z) && t < NEAR_TRIES; t++) {
-    const w = SIZE[0] + Math.floor(near() * (SIZE[1] - SIZE[0] + 1));
-    const d = SIZE[0] + Math.floor(near() * (SIZE[1] - SIZE[0] + 1));
+    const [w, d] = [ruinSide(near), ruinSide(near)];
     const [far, angle] = [NEAR_SPAWN[0] + near() * (NEAR_SPAWN[1] - NEAR_SPAWN[0]), near() * Math.PI * 2];
     const x = Math.round(spawn.x + Math.cos(angle) * far - w / 2);
     const z = Math.round(spawn.z + Math.sin(angle) * far - d / 2);
@@ -80,8 +81,7 @@ export function placeRuins(world: RuinWorld): Ruin[] {
       const [x0, z0] = [Math.floor((gx * world.size.width) / regionsX), Math.floor((gz * world.size.depth) / regionsZ)];
       const [x1, z1] = [Math.floor(((gx + 1) * world.size.width) / regionsX), Math.floor(((gz + 1) * world.size.depth) / regionsZ)];
       for (let t = 0; t < TRIES; t++) {
-        const w = SIZE[0] + Math.floor(rng() * (SIZE[1] - SIZE[0] + 1));
-        const d = SIZE[0] + Math.floor(rng() * (SIZE[1] - SIZE[0] + 1));
+        const [w, d] = [ruinSide(rng), ruinSide(rng)];
         const x = x0 + 2 + Math.floor(rng() * Math.max(1, x1 - x0 - w - 4));
         const z = z0 + 2 + Math.floor(rng() * Math.max(1, z1 - z0 - d - 4));
         if (!fits(world, x, z, w, d, spawn, ruins)) continue;

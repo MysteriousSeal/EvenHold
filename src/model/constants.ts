@@ -60,6 +60,7 @@ export const ENEMY_HEARING = 1; // enemies notice the hero this close even throu
 export const ENEMY_LOSE_TIME = 3; // seconds a chaser hunts for a hero it can't see before giving up
 export const ENEMY_LEASH = 14; // tiles from home a foe of the open will chase the hero, at most: past it, it gives up and goes back (healed)
 export const DUNGEON_LEASH = 24; // a dungeon's foe (undead, draugr, vermin): hounds them through its halls
+export const DUNGEON_FAMILIES: ReadonlySet<string> = new Set(['undead', 'draugr', 'vermin']); // whose foes keep the long leash
 export const FOE_AT_MOST_FROM_HOME = 30; // tiles: no foe's ever kept farther from home (its leash); a save that says so is another world's foe of that number
 export const ENGAGED = 2; // foes set on the hero at once, at most: the rest of a pack waits its turn
 export const WAIT_DISTANCE = 2.6; // tiles off, where a foe waiting its turn hangs back

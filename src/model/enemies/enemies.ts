@@ -7,9 +7,7 @@
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
-
-const HOUNDS: ReadonlySet<string> = new Set(['undead', 'draugr', 'vermin']); // a dungeon's families: the long leash (DUNGEON_LEASH)
+import { DUNGEON_FAMILIES, DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { CHIEF_OUTFIT, chiefLevel, chiefName, chiefSpot } from '../camps/campChief';
@@ -215,7 +213,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   // (A passive one never notices: only a blow sets it chasing. Nor does one
   // still on its way back from too far, not till it's most of the way home.)
   const fromHome = Math.hypot(enemy.x - enemy.homeX, enemy.z - enemy.homeZ);
-  const leash = HOUNDS.has(stats.family) ? DUNGEON_LEASH : ENEMY_LEASH;
+  const leash = DUNGEON_FAMILIES.has(stats.family) ? DUNGEON_LEASH : ENEMY_LEASH;
   const headingHome = enemy.state === 'wander' && fromHome > leash * 0.6;
   const noticed = !stats.passive && !headingHome && within(hero) && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
