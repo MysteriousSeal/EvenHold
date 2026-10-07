@@ -27,7 +27,7 @@
     "app:dev": "Opens the game in its desktop window while developing (reloads on save).",
     "app:icon": "Redraws the app's icon (scripts/appIcon.mjs) and makes every size of it.",
     "test": "Runs every test once (vitest).",
-    "player": "A player of their own mind plays an hour of a fresh game, told as it goes; a report to read the game by in tests/bots/reports/play-….md (PLAY_SEED to play one again, PLAY_MINUTES for longer).",
+    "player": "A player of their own mind plays an hour of a fresh game, told as it goes; a report to read the game by in tests/bots/reports/play-….md (PLAY_SEED to play one again, PLAY_MINUTES for longer, PLAYERS=4 for up to four at once, PLAY_SEEDS=a,b,c for several again).",
     "ai:setup": "Sets up the fighter's training (tests/ai/): a Python environment of its own, tests/ai/.venv, with PyTorch, Stable-Baselines3 and Gymnasium.",
     "ai:train": "Trains a fighter in the game's arena (PPO, on all but one core): a million steps more, on from the fighter saved (a fresh one if there's none); -- --steps n for more, -- --fresh to start over (the saved one replaced). Writes tests/ai/models/.",
     "ai:eval": "Fights a set of fights (3 wolves at level 1, a bandit chief and his crew…) at random, the bots' way and the trained fighter's: won, fell, health lost.",

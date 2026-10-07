@@ -6,7 +6,11 @@ A player of its own mind that plays an hour of a fresh game and writes up what t
 npm run player                      # a new world, a new player, 60 game minutes (15–30 s of real time)
 PLAY_SEED=2052870920 npm run player # the same world and player again (every run prints its seed)
 PLAY_MINUTES=120 npm run player     # longer
+PLAYERS=4 npm run player            # up to four at once, one a core: each its own world and report
+PLAY_SEEDS=11,22,33 npm run player  # those games again, together
 ```
+
+With several at once, every line is tagged `[player · seed]`, and the run ends with the list of reports.
 
 The report lands in `tests/bots/reports/play-<date>.md` (the folder is git-ignored). The run prints as it goes, and ends with the report's opening: who the player was, how they ended, and the signals.
 
