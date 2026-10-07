@@ -9,7 +9,8 @@ import * as THREE from 'three';
 import { glowMaterial } from '../common/glow';
 import type { GroundLoot } from '../../../model/loot/loot';
 import { isLootItem, qualityOf, type BagItem, type Quality } from '../../../model/hero/bag';
-import { ITEMS, type ItemId } from '../../../model/human/equipment';
+import { ITEMS } from '../../../model/human/equipment';
+import { baseOf, type GearKey } from '../../../model/human/items/gear';
 import { humanFigure } from '../human/humanFigure';
 import { ITEM_MODELS } from '../human/gear/itemModels';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
@@ -25,6 +26,7 @@ const hex = (rarity: Rarity) => parseInt(RARITY_COLORS[rarity].slice(1), 16);
 const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0, potion: 0xe690e0, uncommon: hex('uncommon'), rare: hex('rare'), epic: hex('epic'), legendary: hex('legendary') };
 const BEAM_TALL: Partial<Record<Quality, number>> = { epic: 1.8, legendary: 3.5 }; // (the rarest seen from afar: their beams taller)
 const GEAR_VOXEL = 0.035; // gear on the ground, a little larger than worn
+const LOOT_MOST = LOOT_VOXEL_SIZE * 8; // a piece's longest side at most (a junk model's, about: armour, a figure's worth of voxels, shrunk to it)
 const RING_VOXEL = 0.04; // the world's grid
 const RING_SIZE = 13; // voxels across
 const BEAM_HEIGHT = 1.4;
@@ -115,20 +117,25 @@ export class LootViews {
   // Each item's mesh, centered on its middle so it spins in place, resting on
   // y = 0: junk from its model, gear as it looks worn or held (or its jewel).
   private geometry(item: BagItem): THREE.BufferGeometry {
-    let geometry = this.geometries.get(item);
+    // (Gear as found carries its level and rarity in its key, armingSword@3:rare…: drawn as its kind, one geometry for all of it.)
+    const kind = isLootItem(item) ? item : baseOf(item as GearKey);
+    let geometry = this.geometries.get(kind);
     if (!geometry) {
-      if (isLootItem(item)) {
-        const model = LOOT_MODELS[item];
+      if (isLootItem(kind)) {
+        const model = LOOT_MODELS[kind];
         geometry = greedyMesh(model.build(), model.palette, LOOT_VOXEL_SIZE, new THREE.Vector3());
       } else {
-        const gear = ITEM_MODELS[item as ItemId];
-        const figure = gear.jewel ? { grid: gear.jewel.build(), palette: gear.palette } : humanFigure(null, { [ITEMS[item as ItemId].slot]: item });
+        const gear = ITEM_MODELS[kind];
+        const figure = gear.jewel ? { grid: gear.jewel.build(), palette: gear.palette } : humanFigure(null, { [ITEMS[kind].slot]: kind });
         geometry = greedyMesh(figure.grid, figure.palette, GEAR_VOXEL, new THREE.Vector3());
       }
       geometry.computeBoundingBox();
+      const size = geometry.boundingBox!.getSize(new THREE.Vector3());
+      const longest = Math.max(size.x, size.y, size.z);
+      if (longest > LOOT_MOST) [geometry.scale(LOOT_MOST / longest, LOOT_MOST / longest, LOOT_MOST / longest), geometry.computeBoundingBox()];
       const box = geometry.boundingBox!;
       geometry.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
-      this.geometries.set(item, geometry);
+      this.geometries.set(kind, geometry);
     }
     return geometry;
   }
