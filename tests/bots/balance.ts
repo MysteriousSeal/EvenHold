@@ -1,5 +1,5 @@
-// What a bot's game says about the balance (npm run bots writes it up,
-// balanceReport.ts): how it levelled, every fight (what, how long, how much
+// What a player's game says about the balance (the playthrough's report:
+// player/report.ts): how it levelled, every fight (what, how long, how much
 // it hurt), every fall, every quest from taking it to handing it in, where
 // its coin came from and went, and how many foes were about, minute by minute.
 import type { GameModel } from '../../src/model/GameModel';

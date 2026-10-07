@@ -1,12 +1,9 @@
-// A bot playing the game as a player would, by its keys and windows only
-// (no cheats): it picks what to do from how it is (hurt: to the bar for an
-// ale, or eats, now and then off the action bar; tired: to a bed; points to
-// spend, gear to wear) and what's about (foes, loot, quests on the boards,
-// shops, benches, wells, an inn's upper floor; crypts and caves, bandit
-// camps, pedlars and travellers on the road, herbalists: ventures.ts), does
-// it one step at a time, and says whenever the game
-// doesn't do what it should (checks.ts, and what it sees itself: a foe
-// that won't die, a barmaid who never serves, a quest that can't be done…).
+// The player's feet and hands (player/player.ts decides; this does): the game played by its keys and windows only (no
+// cheats), a step at a time: what's done at once whatever's going on (chores: points spent, better gear worn, food
+// when hurt; a foe at their heels fought off), and the steps of every goal (stepsFor: to the bar for an ale, to a bed,
+// a quest, a board, the shops, a bench, a well, the inn's upper floor; crypts and caves, bandit camps, pedlars and
+// travellers, herbalists, a shift: ventures.ts); and it says whenever the game doesn't do what it should (checks.ts,
+// and what it sees itself: a foe that won't die, a barmaid who never serves, a quest that can't be done…).
 import type { GameModel } from '../../src/model/GameModel';
 import type { Entrance } from '../../src/model/interiors/interiors';
 import type { Enemy } from '../../src/model/types';
@@ -34,18 +31,28 @@ export type { BotStats } from './botSteps';
 
 const HEAL_WALK = 250; // tiles, at most, it goes for an ale when hurt
 
-export class Bot extends BotVentures {
+// How things stand as a plan's made (context()).
+export interface PlanContext {
+  hurt: boolean;
+  tired: boolean;
+  done?: string; // a quest done, to hand in (its key)
+  going?: string; // one under way
+  loot?: { x: number; z: number }; // near, to pick up
+  foe: Enemy | null; // one to fight
+}
+
+export abstract class Bot extends BotVentures {
   private steps: Step[] = [];
   private defense: Step | null = null; // fighting off a foe that's set on the hero, whatever else was going on
   private readonly dry = new Map<Entrance, number>(); // inns with none of what it wanted: till when (game seconds) it doesn't go back
   private plans: Array<{ at: number; x: number; z: number }> = []; // when (game seconds) and where it last planned, to catch it going round in circles
-  private readonly errands: Errands;
+  protected readonly errands: Errands;
 
   constructor(
     model: GameModel,
     report: Report,
     rng: () => number,
-    private readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (npm run bots:verbose)
+    protected readonly log: (what: string) => void = () => {}, // what it's up to, as it goes (the playthrough's own telling)
   ) {
     super(model, report, rng);
     this.errands = new Errands(model, report, this.stats, rng, this.balance);
@@ -137,7 +144,7 @@ export class Bot extends BotVentures {
   }
 
   // Whether three or more foes are close by (a pack, a camp's crew): more than it should pick a fight with.
-  private outnumbered(): boolean {
+  protected outnumbered(): boolean {
     const { hero } = this.model;
     return this.model.foes.filter((e) => e.state !== 'dead' && Math.hypot(e.x - hero.x, e.z - hero.z) < 6).length >= 3;
   }
@@ -150,7 +157,7 @@ export class Bot extends BotVentures {
 
   // The nearest inn with ale to be had (as far as it knows), a walk away at most: none, and it makes do (no trek
   // across the map to one, hurt as it is: there's no health back but by drink and food).
-  private alehouse(): Entrance | null {
+  protected alehouse(): Entrance | null {
     if (this.model.inside?.entrance.type === 'inn' && !this.isDry(this.model.inside.entrance)) return this.model.inside.entrance;
     return nearestDoor(this.model, 'inn', (e) => this.isDry(e), HEAL_WALK);
   }
@@ -159,40 +166,39 @@ export class Bot extends BotVentures {
     return (this.dry.get(e) ?? -1) > this.model.minutes; // (no ale to be had there, a while)
   }
 
-  // What to do next.
-  private plan(): void {
+  // How things stand, for what to do next: hurt, tired, a quest done or under way, loot near, a foe to fight.
+  protected context(): PlanContext {
     const { hero, quests } = this.model;
-    this.nav.reset();
-    // Planning afresh over and over (nothing it picks gets going): say so, once a while.
-    const { x, z } = hero;
+    const done = quests.taken.find((t) => quests.done(t));
+    const going = quests.taken.find((t) => !quests.done(t));
+    return {
+      hurt: hero.hp < maxHpOf(hero) * 0.4,
+      tired: hero.energy < maxEnergyOf(hero) * 0.3,
+      done: done?.quest.key,
+      going: going?.quest.key,
+      loot: this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8),
+      foe: this.outnumbered() ? null : this.nearestFoe(12), // (a pack about: no fight picked with it, only those that come at them)
+    };
+  }
+
+  // Planning afresh over and over (nothing it picks gets going): said so, once a while.
+  protected circling(): void {
+    const { x, z } = this.model.hero;
     this.plans = [...this.plans.filter((p) => this.model.minutes - p.at < 5), { at: this.model.minutes, x, z }];
     const stayed = this.plans.every((p) => Math.hypot(p.x - x, p.z - z) < 1.5); // (getting nowhere, not just quick errands)
     if (this.plans.length > 50 && stayed) this.plans = (this.report('bot going round in circles', `${this.plans.length} plans in 5 s, last ${this.goal}${heroState(this.model)}`), []);
-    const hurt = hero.hp < maxHpOf(hero) * 0.4;
-    const tired = hero.energy < maxEnergyOf(hero) * 0.3;
-    const done = quests.taken.find((t) => quests.done(t));
-    const going = quests.taken.find((t) => !quests.done(t));
-    const loot = this.model.loot.find((l) => !this.skipped.has(l) && Math.hypot(l.x - hero.x, l.z - hero.z) < 8);
-    const foe = this.outnumbered() ? null : this.nearestFoe(12); // (a pack about: no fight picked with it, only those that come at them)
-    const pick = (): string => {
-      if (this.model.work.shift) return 'work'; // (at work: back to it, whatever else)
-      if (hurt && this.alehouse()) return 'heal'; // (in an inn already: at its bar)
-      if (this.model.inside) return 'leave';
-      if (tired) return 'sleep';
-      if (done) return 'hand in';
-      if (loot) return 'loot';
-      if (foe && hero.hp > maxHpOf(hero) * 0.6) return 'fight';
-      if (going && this.rng() < 0.6) return 'quest';
-      const choices = ['board', 'board', 'explore', 'explore', 'explore', 'barmaid', 'smith', 'bench', 'well', 'upstairs', 'pie', 'hunt', 'nap', 'respec', 'give up', 'dungeon', 'dungeon', 'camp', 'camp', 'pedlar', 'traveller', 'herbalist', 'work', 'work'];
-      return choices[Math.floor(this.rng() * choices.length)];
-    };
-    this.goal = pick();
-    this.log(`off to ${this.goal}`);
-    this.stats.goals[this.goal] = (this.stats.goals[this.goal] ?? 0) + 1;
-    this.steps = this.stepsFor(this.goal, { foe, loot, done: done?.quest.key, going: going?.quest.key });
   }
 
-  private stepsFor(goal: string, { foe, loot, done, going }: { foe: Enemy | null; loot?: { x: number; z: number }; done?: string; going?: string }): Step[] {
+  // What to do next: the player's own (player/player.ts).
+  protected abstract plan(): void;
+
+  // What's to be done, set (a player's own activity: player/player.ts).
+  protected set todo(steps: Step[]) {
+    this.steps = steps;
+  }
+
+  // The steps of a goal (`foe`, `loot`, `done`, `going`: what it's about, as context() found them).
+  protected stepsFor(goal: string, { foe, loot, done, going }: Pick<PlanContext, 'foe' | 'loot' | 'done' | 'going'>): Step[] {
     const { hero, quests } = this.model;
     const dry = (e: Entrance) => this.isDry(e);
     const inn = () => (goal === 'heal' ? this.alehouse() : nearestDoor(this.model, 'inn'));
@@ -317,6 +323,9 @@ export class Bot extends BotVentures {
     return (dt) => {
       const { inside, hero } = this.model;
       if (!inside) return 'fail';
+      const sat = this.model.seated?.seat.piece.kind;
+      if (sat && wanted(sat)) return 'ok'; // (sat on one already)
+      if (sat) this.model.sitOrStand(); // (up off another, first)
       const reach = this.model.seatInReach;
       if (reach && wanted(reach.piece.kind)) return this.model.sitOrStand() ? 'ok' : 'fail';
       const taken = (p: unknown) => this.model.npcs.some((n) => n.seat?.piece === p);
