@@ -2,17 +2,26 @@
    of a skill's tiers, four stretches side by side, those passed filled clay, the one the hero's on filling
    lantern-gold to their mark (their level, in a tag over it), those ahead bare. */
 
-.menu:has(.skill-detail) { width: min(620px, calc(100vw - 32px)); }
+/* A skill's own window (skillWindow.ts): big, in the middle, clear of the action bar (hud.css .action-bar); in two
+   columns of its own (where they stand; what it opens, or its recipes), each scrolling on its own so the long one
+   never pushes the other off. (The skills list, skillsPanel.ts, a small window in the corner, as the shell makes it.) */
+.menu-backdrop:has(.skill-detail) { padding: 24px 24px 100px; }
+.menu:has(.skill-detail) { width: min(840px, calc(100vw - 48px)); height: min(600px, calc(100vh - 124px)); max-height: none; }
+.menu:has(.skill-detail) .menu-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; }
+.menu:has(.skill-detail) .menu-list { flex: 1; display: flex; min-height: 0; }
+.menu-list > .skill-detail { flex: 1; display: grid; grid-template-columns: minmax(250px, 1fr) minmax(330px, 1.35fr); min-height: 0; }
+.skill-side, .skill-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; padding: 16px 18px; overflow-y: auto; }
+.skill-main { border-left: 2px dashed var(--line); background: rgba(255, 255, 255, 0.18); }
 
-.skill-detail { display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 4px; text-align: left; }
+.skill-detail { text-align: left; }
 
 /* Its icon beside its tier, its name, and the level of the most there is. */
-.skill-head { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
-.skill-icon { display: grid; place-items: center; width: 64px; height: 64px; background: var(--sand-light); border: 2px solid var(--line); box-shadow: inset 0 -3px 0 var(--sand-dark); }
+.skill-head { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: center; }
+.skill-icon { display: grid; place-items: center; width: 76px; height: 76px; background: var(--sand-light); border: 2px solid var(--line); box-shadow: inset 0 -3px 0 var(--sand-dark); }
 .skill-icon canvas { image-rendering: pixelated; }
 .skill-eyebrow { display: block; font-size: 12px; font-weight: 600; color: var(--clay); }
-.skill-name { margin: 0; font-size: 22px; line-height: 1.1; color: var(--ink); }
-.skill-level { display: block; margin-top: 2px; font-size: 14px; color: var(--ink-soft); }
+.skill-name { margin: 0; font-size: 28px; line-height: 1.05; color: var(--ink); }
+.skill-level { display: block; margin-top: 4px; font-size: 15px; color: var(--ink-soft); }
 .skill-level b { font-size: 16px; color: var(--ink); }
 .skill-level em { font-style: normal; }
 
@@ -30,7 +39,7 @@
 .skill-road .ahead .skill-road-name { opacity: 0.7; }
 .skill-road-range { font-size: 11px; color: var(--ink-soft); }
 
-.skill-about { margin: 2px 0 0; font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
+.skill-about { margin: 2px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
 .skill-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 
 /* What each tier opens: reached ticked in ink, not yet faded with a padlock and the tier it waits on. */
@@ -48,3 +57,38 @@
 /* How it's raised (not yet: said so). */
 .skill-practice { margin: 0; padding: 8px 10px; font-size: 13px; color: var(--ink-soft); background: var(--sand-dark); border: 2px solid var(--line); }
 .skill-practice.ready { color: var(--ink); background: var(--sand-light); border-color: var(--clay); }
+
+/* A crafting skill's recipes (recipeList.ts), as a profession window lists them: what it makes, its name in its
+   difficulty's colour, its materials (have/need, short in clay-red), its buttons; not reached yet faded. */
+.recipe-list { display: flex; flex-direction: column; margin: -4px 0 0; padding: 0; list-style: none; }
+.recipe { display: grid; grid-template-columns: 46px 1fr auto; gap: 12px; align-items: center; padding: 8px 6px; border-bottom: 2px dashed var(--line); }
+.recipe:last-child { border-bottom: 0; }
+.recipe.making { background: var(--sand-light); box-shadow: inset 3px 0 0 var(--lantern); }
+/* What's being made (recipeList.ts craftStatus), in the skill window's first column: a card, its icon, its name,
+   how many of how many, a stop button; a bar under them, lantern-gold over ember, filling toward the next. */
+.craft-status { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; background: var(--sand-light); border: 2px solid var(--ink); box-shadow: inset 4px 0 0 var(--lantern), 3px 3px 0 rgba(46, 31, 20, 0.25); }
+.craft-status-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); }
+.craft-status-head { display: grid; grid-template-columns: 46px 1fr auto; gap: 10px; align-items: center; }
+.craft-status-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; color: var(--ink-soft); }
+.craft-status-text b { font-size: 15px; color: var(--ink); }
+.recipe-progress { position: relative; display: block; height: 14px; background: var(--sand-dark); border: 2px solid var(--ink); overflow: hidden; }
+.recipe-progress > i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(var(--lantern) 0 40%, var(--ember) 40%); }
+.recipe.locked { opacity: 0.55; }
+.recipe-icon { display: grid; place-items: center; width: 46px; height: 46px; background: var(--sand-light); border: 2px solid var(--line); }
+.recipe-icon canvas { image-rendering: pixelated; }
+.recipe-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recipe-name { font-size: 16px; font-weight: 700; color: var(--ink-soft); text-shadow: 1px 1px 0 rgba(46, 31, 20, 0.35); }
+.recipe-from { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: var(--ink-soft); }
+.recipe-material em { font-style: normal; font-weight: 700; color: var(--ink); }
+.recipe-material.short em { color: var(--clay); }
+.recipe-buttons { display: flex; gap: 4px; align-items: center; }
+.recipe-go { padding: 4px 10px; font: inherit; font-size: 13px; font-weight: 700; color: var(--sand-light); background: var(--clay); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 var(--clay-dark); cursor: pointer; white-space: nowrap; }
+.recipe-go:disabled { cursor: default; opacity: 0.4; }
+.recipe-go.stop { color: var(--ink); background: var(--sand-light); box-shadow: inset 0 -3px 0 var(--sand-dark); }
+.recipe-needs, .recipe-left { font-size: 12px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .menu-list > .skill-detail { grid-template-columns: 1fr; overflow-y: auto; }
+  .skill-side, .skill-main { overflow: visible; }
+  .skill-main { border-left: 0; border-top: 2px dashed var(--line); }
+}

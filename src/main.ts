@@ -50,7 +50,8 @@ import { workPrompt } from './controller/jobs/workPrompt';
 import { shiftStatus } from './controller/jobs/shiftStatus';
 import { BarShift } from './model/jobs/barShift';
 import { PourMeter } from './view/hud/pourMeter';
-import { createChopBar } from './view/hud/chopBar';
+import { createCastBar } from './view/hud/castBar';
+import { castOf } from './controller/skills/castOf';
 import { createQuestTracker } from './view/hud/questTracker';
 import { boardSpot } from './model/quests/noticeBoards';
 import { createHeroSheet } from './controller/hero/heroSheet';
@@ -144,7 +145,7 @@ async function boot(): Promise<void> {
     },
   );
   const floatingText = createFloatingText();
-  const chopBar = createChopBar(); // (chopping a tree: toward the next chop)
+  const castBar = createCastBar(); // (chopping a tree, making something: toward the next)
   const pourMeter = new PourMeter((at, text, ink) => floatingText.spawn(at, [text], ink)); // (behind the bar: the pour, and its word)
   const GUARD_WORDS = { rolled: ['Rolled', '#f8ecd4'], parried: ['Parried!', '#ffc94a'], blocked: ['Blocked', '#c8d0d8'], broken: ['Guard broken', '#ff6a5a'] } as const; // (a blow at the hero, met: combatMoves.ts)
   let lastFrame = performance.now();
@@ -263,8 +264,7 @@ async function boot(): Promise<void> {
     const prompt = promptTarget();
     view.prompted = prompt?.npc ?? null; // (their name gives way to it)
     lootPrompt.update(prompt, (x, y, z) => view.toScreen(x, y, z));
-    const chopping = model.lumber.chopping;
-    chopBar(chopping && { progress: model.lumber.progress ?? 0, left: model.lumber.left(chopping.tree) }, model.hero, (x, y, z) => view.toScreen(x, y, z));
+    castBar(castOf(model), model.hero, (x, y, z) => view.toScreen(x, y, z));
     pourMeter.update(model.work.shift instanceof BarShift ? model.work.shift : null, model.hero, (x, y, z) => view.toScreen(x, y, z));
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
     rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
@@ -327,6 +327,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.tally} · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
       else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [`${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them)
+      else if (event.kind === 'crafted') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${nameOf(event.item)}`], QUALITY_INK[qualityOf(event.item)]); // (made: what, in its quality's colour)
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
