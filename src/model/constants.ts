@@ -15,7 +15,7 @@ export const HERO_RADIUS = 0.14; // collision footprint half-width; keep in step
 // never start a fight, but fight back once hit; and `coins`, copper per
 // level it drops (bandits carry a purse).
 export const ENEMY_STATS = {
-  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 3.2, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5], shove: 1, loot: 1 },
+  wolf: { family: 'beast', passive: false, hp: 3, damage: 1, xp: 10, coins: 3, radius: 0.18, walk: 1.1, run: 2.9, sight: 2.5, giveUp: 8, wander: 4, stop: 0.55, swing: 0.5, cooldown: 1.3, rest: [1.5, 2.5], shove: 1, loot: 1 },
   bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5], shove: 1, loot: 1 },
   // A bandit chief (camps/campChief.ts): each camp's leader, a bandit as any but bigger and heavier-hitting (three
   // bandits' health, half as much again their blows), harder to knock about, a good deal more to learn from.
@@ -37,7 +37,7 @@ export const ENEMY_STATS = {
   // tough, its swipe heavy; rears up and slams down round it; hurt, charges. A lynx: lurking at the forest's edges,
   // quick and frail, seeing a long way; from a few tiles off it pounces, then bites.
   bear: { family: 'bear', passive: false, hp: 12, damage: 3, xp: 40, coins: 2, radius: 0.26, walk: 0.7, run: 2.5, sight: 3.5, giveUp: 9, wander: 2.5, stop: 0.7, swing: 0.9, cooldown: 1.6, rest: [2, 3.5], shove: 0.35, loot: 1.4 },
-  lynx: { family: 'lynx', passive: false, hp: 4, damage: 2, xp: 22, coins: 1, radius: 0.15, walk: 0.9, run: 3.6, sight: 4.5, giveUp: 7, wander: 2, stop: 0.5, swing: 0.45, cooldown: 1.2, rest: [2.5, 4], shove: 1, loot: 1 },
+  lynx: { family: 'lynx', passive: false, hp: 4, damage: 2, xp: 22, coins: 1, radius: 0.15, walk: 0.9, run: 3.1, sight: 4.5, giveUp: 7, wander: 2, stop: 0.5, swing: 0.45, cooldown: 1.2, rest: [2.5, 4], shove: 1, loot: 1 },
   ghost: { family: 'ghost', passive: false, hp: 5, damage: 2, xp: 28, coins: 3, radius: 0.15, walk: 0.55, run: 2.2, sight: 4, giveUp: 10, wander: 4, stop: 0.6, swing: 0.9, cooldown: 1.5, rest: [2, 3], shove: 0.7, loot: 1.2 },
   // The caves' beasts (caves/caveFoes.ts). A cave spider: quick, its bite and its lunge, and its spat web (webbing
   // the hero: walking slower). A bat: frail, fast, flitting, biting and off again, in flocks. A cave worm: underground
@@ -57,8 +57,9 @@ export const ENEMY_PATH_RADIUS = 20; // tiles an enemy looks around for a way to
 export const ENEMY_WANDER_PATH_RADIUS = 8; // tiles a wanderer looks around for a way (round a camp's palisade)
 export const ENEMY_PATH_REFRESH = 0.5; // seconds between fresh paths while chasing
 export const ENEMY_HEARING = 1; // enemies notice the hero this close even through cover
-export const ENEMY_LOSE_TIME = 4; // seconds a chaser hunts for a hero it can't see before giving up
-export const ENEMY_LEASH = 24; // tiles from home a foe will chase the hero, at most: past it, it gives up and goes back (healed)
+export const ENEMY_LOSE_TIME = 3; // seconds a chaser hunts for a hero it can't see before giving up
+export const ENEMY_LEASH = 14; // tiles from home a foe of the open will chase the hero, at most: past it, it gives up and goes back (healed)
+export const DUNGEON_LEASH = 24; // a dungeon's foe (undead, draugr, vermin): hounds them through its halls
 export const ENGAGED = 2; // foes set on the hero at once, at most: the rest of a pack waits its turn
 export const WAIT_DISTANCE = 2.6; // tiles off, where a foe waiting its turn hangs back
 export const FOCUS_RANGE = 10; // a focused enemy farther than this is let go

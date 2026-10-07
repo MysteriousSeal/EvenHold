@@ -7,7 +7,9 @@
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
+import { DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
+
+const HOUNDS: ReadonlySet<string> = new Set(['undead', 'draugr', 'vermin']); // a dungeon's families: the long leash (DUNGEON_LEASH)
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { CHIEF_OUTFIT, chiefLevel, chiefName, chiefSpot } from '../camps/campChief';
@@ -213,7 +215,8 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
   // (A passive one never notices: only a blow sets it chasing. Nor does one
   // still on its way back from too far, not till it's most of the way home.)
   const fromHome = Math.hypot(enemy.x - enemy.homeX, enemy.z - enemy.homeZ);
-  const headingHome = enemy.state === 'wander' && fromHome > ENEMY_LEASH * 0.6;
+  const leash = HOUNDS.has(stats.family) ? DUNGEON_LEASH : ENEMY_LEASH;
+  const headingHome = enemy.state === 'wander' && fromHome > leash * 0.6;
   const noticed = !stats.passive && !headingHome && within(hero) && (toHero < ENEMY_HEARING * quiet || (toHero < stats.sight * quiet && sees(enemy)));
   if (enemy.state === 'wander' && noticed) enemy.state = 'chase';
   if (enemy.state === 'chase') {
@@ -225,9 +228,9 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     }
     // Out of range, or lost from view too long (or searched where it was
     // last seen, and it's not there): back home.
-    // Or led too far from home (ENEMY_LEASH): back, and healed, so it can't be worn down bit by bit that way.
+    // Or led too far from home (its leash: a dungeon's foe hounds them further): back, and healed, so it can't be worn down bit by bit that way.
     const searched = !!enemy.lastSeen && enemy.lostFor > 0 && Math.hypot(enemy.lastSeen.x - enemy.x, enemy.lastSeen.z - enemy.z) < 0.25;
-    const leashed = fromHome > ENEMY_LEASH;
+    const leashed = fromHome > leash;
     if (leashed) enemy.hp = enemy.maxHp;
     if (toHero > stats.giveUp || enemy.lostFor > ENEMY_LOSE_TIME || searched || leashed || !within(hero)) {
       enemy.state = 'wander';
