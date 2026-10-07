@@ -285,7 +285,7 @@ export class QuestBook {
       return whole(board) && (!known || (this.host.villageOf ? !!this.host.villageOf(board) : board < boards)) && whole(n) && n < OFFERS;
     };
     for (const key of Array.isArray(data?.completed) ? data.completed : []) if (valid(key, false)) this.completed.add(key);
-    for (const { key, kills, gathered, tracked } of Array.isArray(data?.taken) ? data.taken : []) {
+    for (const { key, kills, gathered, tracked } of Array.isArray(data?.taken) ? data.taken.filter((t) => t && typeof t === 'object') : []) {
       const [board, n] = String(key).split(':').map(Number);
       if (!valid(key) || this.full || this.fullAt(board) || this.takenOf(key) || this.completed.has(key)) continue;
       const quest = questAt(this.host, board, n);

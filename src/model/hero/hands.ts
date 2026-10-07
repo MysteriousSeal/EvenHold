@@ -1,7 +1,7 @@
 // What the hero does with their hands, outdoors (GameModel's, by these): the loot nearest them in reach, picked up into
 // the bag (the bag full: left where it lies, told so; a quest's thing, counted for it); a thing dropped from the bag
 // on the ground just ahead of them (nothing's dropped indoors, nor in the furniture yard); what's worn taken off and
-// dropped so; and the coins near them, scooped into their purse as they pass.
+// dropped so, straight from them (a full bag no bar); and the coins near them, scooped into their purse as they pass.
 
 import type { EquipSlot } from '../human/equipment';
 import type { GroundLoot } from '../loot/loot';
@@ -10,7 +10,7 @@ import type { GameEvent, Hero } from '../types';
 import { addToBag, takeFromBag, type BagItem } from './bag';
 import { bagRoom, canCarry } from './bagSlots';
 import { takeFromSlot } from './bagStacks';
-import { takeOff } from './wearing';
+import { fitToMost } from './attributes';
 
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
@@ -44,14 +44,23 @@ export function pickUp(m: Hands): BagItem | null {
 export function dropFromBag(m: Hands, item: BagItem, slot?: number): boolean {
   if (m.inside || m.yard) return false; // nothing's dropped indoors, or in the furniture yard
   if (!(slot === undefined ? takeFromBag(m.hero.bag, item) : takeFromSlot(m.hero, slot, bagRoom(m.hero)) === item)) return false;
-  m.dropLoot(item, m.hero.x + Math.sin(m.hero.facing) * DROP_AHEAD, m.hero.z + Math.cos(m.hero.facing) * DROP_AHEAD);
-  return true;
+  return dropAhead(m, item);
 }
 
-// Takes off what's worn in `slot` and puts it on the ground in front of the hero.
+// Takes off what's worn in `slot` and puts it straight on the ground in front of the hero (never through the bag: a
+// full one no bar); nothing dropped indoors or in the furniture yard, where it stays worn.
 export function dropEquipped(m: Hands, slot: EquipSlot): boolean {
   const item = m.hero.equipment[slot];
-  return !!item && takeOff(m.hero, slot) && dropFromBag(m, item);
+  if (!item || m.inside || m.yard) return false;
+  delete m.hero.equipment[slot];
+  fitToMost(m.hero); // (less Stamina, less Endurance)
+  return dropAhead(m, item);
+}
+
+// On the ground just ahead of the hero.
+function dropAhead(m: Hands, item: BagItem): true {
+  m.dropLoot(item, m.hero.x + Math.sin(m.hero.facing) * DROP_AHEAD, m.hero.z + Math.cos(m.hero.facing) * DROP_AHEAD);
+  return true;
 }
 
 // Coins near the hero go into their purse (no need to stop for them).

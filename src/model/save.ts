@@ -36,6 +36,7 @@ import type { QuestBook } from './quests/questBook';
 import { spawnEnemies } from './enemies/enemies';
 import { spawnOf, type MapSize } from './map/grid';
 import { isWorldFoe } from './enemies/foeIds';
+import { DYE_COUNT, HAIR_COLOR_COUNT, HAIR_STYLES, HERO_LOOK, SKIN_TONE_COUNT } from './human/humanoid';
 
 const VERSION = 2; // (2: the world's size kept, its doors by their own numbers; 1, still read: a classic world's, its doors by their place in its list)
 
@@ -166,7 +167,12 @@ export function parseSave(raw: string | null, seed: number): SaveData | null {
   }
 }
 
-// Puts a saved game back into a freshly made model of the same world.
+// A saved list's records: those that are records at all (a damaged save's nulls, numbers, text: let go); none, if it
+// isn't a list.
+const records = <T>(list: unknown): T[] => (Array.isArray(list) ? list.filter((r): r is T => !!r && typeof r === 'object') : []);
+const finite = (...values: unknown[]) => values.every((v) => typeof v === 'number' && Number.isFinite(v));
+
+// Puts a saved game back into a freshly made model of the same world (whatever's broken in it let go, never the save).
 export function restore(model: GameModel, data: SaveData): void {
   const { hero } = model;
   const saved = data.hero;
@@ -176,7 +182,7 @@ export function restore(model: GameModel, data: SaveData): void {
   // the quests they've taken), its regions as they'd have been.
   if (model.streamed) {
     const places = [saved.inside !== null ? doorPlace(saved.inside) : { x: saved.x, z: saved.z }, ...(typeof saved.lastInn === 'number' ? [doorPlace(saved.lastInn)] : [])];
-    for (const { key } of Array.isArray(data.quests?.taken) ? data.quests.taken : []) {
+    for (const { key } of records<{ key: unknown }>(data.quests?.taken)) {
       const board = Number(String(key).split(':')[0]);
       if (Number.isInteger(board) && board >= 0) places.push(villagePlace(board, model.size.depth)); // (a board's number: its village's place)
     }
@@ -189,7 +195,7 @@ export function restore(model: GameModel, data: SaveData): void {
   const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot));
   Object.assign(hero, {
     name: saved.name,
-    look: { ...saved.look },
+    look: readLook(saved.look),
     equipment,
     bag,
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
@@ -211,15 +217,15 @@ export function restore(model: GameModel, data: SaveData): void {
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? doorAt(saved.lastInn) : null;
   model.fullWalls = data.fullWalls === true;
-  for (const { inn, open } of data.doors ?? []) {
+  for (const { inn, open } of records<{ inn: unknown; open: unknown }>(data.doors)) {
     const building = typeof inn === 'number' ? doorAt(inn) : null;
     if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));
   }
-  for (const { inn, until } of Array.isArray(data.lets) ? data.lets : []) {
+  for (const { inn, until } of records<{ inn: unknown; until: unknown }>(data.lets)) {
     const building = typeof inn === 'number' ? doorAt(inn) : null;
     if (building && typeof until === 'number' && Number.isFinite(until)) setLet(building, until); // (before the floor upstairs is made: its door unlocked)
   }
-  for (const { crypt, slain } of Array.isArray(data.crypts) ? data.crypts : []) {
+  for (const { crypt, slain } of records<{ crypt: unknown; slain: unknown }>(data.crypts)) {
     if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
   }
   model.lumber.restore(data.trees); // (the felled out of the way; an older save's: none)
@@ -240,11 +246,12 @@ export function restore(model: GameModel, data: SaveData): void {
   // if the world's foes are those the save knew (the game since changed how
   // they're spawned, or an older save: they're left as the seed makes them).
   const sameFoes = data.foes === foesOf(model);
-  const gone = new Set(sameFoes ? data.enemies.gone : []);
+  const gone = new Set(sameFoes ? data.enemies.gone.filter((id) => Number.isInteger(id)) : []);
   for (let i = model.enemies.length - 1; i >= 0; i--) if (gone.has(model.enemies[i].id)) model.enemies.splice(i, 1);
   for (const id of gone) model.slain.add(id);
   const enemies = new Map(model.enemies.map((e) => [e.id, e]));
-  for (const change of sameFoes ? data.enemies.changed : []) {
+  for (const change of sameFoes ? records<SaveData['enemies']['changed'][number]>(data.enemies.changed) : []) {
+    if (!Number.isInteger(change.id) || !finite(change.x, change.z, change.hp)) continue; // (broken: as the seed has it)
     const enemy = enemies.get(change.id);
     if (!enemy) {
       model.world.remember(change.id, change); // (a streamed world's foe whose region isn't made yet: as it was, once it is)
@@ -252,26 +259,41 @@ export function restore(model: GameModel, data: SaveData): void {
     }
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
   }
-  for (const { item, x, z } of data.loot) if (known(item)) model.dropLoot(item, x, z);
-  for (const { amount, x, z } of data.coins) model.dropCoins(amount, x, z);
-  for (const { inn, money, stock, restockedAt, buyback } of Array.isArray(data.shops) ? data.shops : []) {
+  for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.dropLoot(item, x, z);
+  for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.dropCoins(amount, x, z);
+  for (const { inn, money, stock, restockedAt, buyback } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
+    // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
     // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
     const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
-    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: { ...stock }, restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })) }); // (older saves: one of each)
+    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })) }); // (older saves: one of each)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);
   if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));
-  for (const saved of data.npcs) {
+  for (const saved of records<SaveData['npcs'][number]>(data.npcs)) {
     const npc = npcs.get(saved.id);
-    if (!npc) continue;
-    npc.where = saved.inside === null ? null : doorAt(saved.inside);
-    Object.assign(npc, { x: saved.x, z: saved.z, stop: saved.stop, steps: [], path: null, seat: null, stood: null, waited: 0, working: false });
+    if (!npc || !finite(saved.x, saved.z)) continue; // (broken: where the seed has them)
+    npc.where = saved.inside === null || typeof saved.inside !== 'number' ? null : doorAt(saved.inside);
+    Object.assign(npc, { x: saved.x, z: saved.z, stop: Number.isInteger(saved.stop) && saved.stop >= 0 ? saved.stop : npc.stop, steps: [], path: null, seat: null, stood: null, waited: 0, working: false });
     npc.y = npc.where ? 0 : model.getGroundY(npc.x, npc.z);
   }
+}
+
+// A saved look, as far as it's sound (each part: one there is, else the hero's own to begin with).
+function readLook(saved: unknown): BodyLook {
+  const look = (saved && typeof saved === 'object' ? saved : {}) as Partial<Record<keyof BodyLook, unknown>>;
+  const index = (v: unknown, count: number, fallback: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < count ? (v as number) : fallback);
+  return {
+    build: look.build === 'female' || look.build === 'male' ? look.build : HERO_LOOK.build,
+    skin: index(look.skin, SKIN_TONE_COUNT, HERO_LOOK.skin),
+    hair: index(look.hair, HAIR_COLOR_COUNT, HERO_LOOK.hair),
+    dye: index(look.dye, DYE_COUNT, HERO_LOOK.dye),
+    hairStyle: (HAIR_STYLES as readonly unknown[]).includes(look.hairStyle) ? (look.hairStyle as BodyLook['hairStyle']) : HERO_LOOK.hairStyle,
+    beard: look.beard === true,
+  };
 }
 
 // A fingerprint of the world's foes as its seed spawns them (each one's id,

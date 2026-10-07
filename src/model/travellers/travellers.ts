@@ -171,8 +171,8 @@ export class Travellers {
     // (A save from before this one's way of keeping them: those were read as all following one another, and saved
     // bunched in a line. Not kept: they set out spread over the roads again, as the seed has them.)
     if (saved?.v !== SAVE_VERSION) return;
-    const entries = saved.on;
-    const on = entries.filter(
+    const entries: unknown[] = Array.isArray(saved.on) ? saved.on : [];
+    const on = (entries as typeof saved.on).filter(
       (e) => Array.isArray(e) && Number.isInteger(e[0]) && roles.includes(e[1]) && this.roads[e[2]] !== undefined && Number.isFinite(e[3]) && (e[4] === 1 || e[4] === -1),
     );
     if (on.length === 0) return;
