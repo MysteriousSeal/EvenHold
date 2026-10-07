@@ -155,6 +155,22 @@ describe('the recipe book', () => {
   });
 });
 
+describe("a skill window's list parts", () => {
+  it('a row in its difficulty colour (reached), starred if best, picked framed, not reached faded; the colours\' key; what it wants and teaches', async () => {
+    const { bookLegend, bookRow, needsLine } = await import('../src/controller/skills/bookParts');
+    let picked = false;
+    const row = bookRow({ id: 'oak', kind: 'grade', name: 'Oak', needs: 50, level: 60, picked: true, best: true, count: '50', onPick: () => (picked = true) });
+    expect([row.className, row.dataset.grade, row.querySelector('.book-best')?.textContent]).toEqual(['book-row picked', 'oak', '★']);
+    expect((row.querySelector('.book-name') as HTMLElement).style.color).toBeTruthy();
+    row.click();
+    expect(picked).toBe(true);
+    expect(bookRow({ id: 'oak', kind: 'grade', name: 'Oak', needs: 50, level: 10, picked: false, best: false, count: '50', onPick: () => {} }).className).toBe('book-row locked');
+    expect(Array.from(bookLegend().querySelectorAll('span')).map((s) => s.textContent)).toEqual(['Always', 'Often', 'Rarely', 'Never']);
+    expect(needsLine('Lumberjacking', 50, 60).textContent).toBe('Requires Lumberjacking 50 · Always teaches');
+    expect([needsLine('Lumberjacking', 50, 10).className, needsLine('Lumberjacking', 50, 10).textContent]).toEqual(['book-needs short', 'Requires Lumberjacking 50']);
+  });
+});
+
 describe('the one being made', () => {
   it('is told of on its own: what, how many of how many, a bar filling toward the next, a button to stop', () => {
     const model = workshop(1, { birchLog: 3 });
