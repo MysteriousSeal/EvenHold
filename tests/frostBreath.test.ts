@@ -11,14 +11,14 @@ import { DROP_CHANCE, LOOT, rollDrop } from '../src/model/loot/loot';
 import { ENEMY_STATS } from '../src/model/constants';
 import { landBlow } from '../src/model/hero/fighting';
 import type { Enemy } from '../src/model/types';
-import { FRAME } from './support/testWorld';
+import { regionCrypt, FRAME } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const chill = (model: GameModel) => model.hero.blessings?.find((b) => b.kind === 'chilled')?.left ?? 0; // (seconds of it left)
 // Down in a crypt, the hero and one foe of `kind` alone, side by side on open floor.
 const alone = (seed: number, kind: 'draugr' | 'skeleton') => {
   const model = new GameModel(seed, MID);
-  const crypt = model.crypts[0];
+  const crypt = regionCrypt(model);
   model.teleport(crypt.entrance.x, crypt.entrance.z);
   model.useDoor();
   for (const f of model.foes) f.state = 'dead';

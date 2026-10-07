@@ -31,6 +31,10 @@ export const FRAME = 1 / 60;
 // A world of its own (not the cache's) to play in: the first test seed's.
 export const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 
+// The crypt a test world's own region laid down (its stairs give onto a corridor running -z, as the crypt tests
+// assume), not the one a walk from the start (ruins.ts: laid out as it falls, and first in the list).
+export const regionCrypt = (model: GameModel) => model.crypts[model.crypts.length - 1];
+
 // The enemy of `kind` nearest the hero.
 export const nearest = (model: GameModel, kind: EnemyKind = 'wolf'): Enemy =>
   model.enemies.filter((e) => e.kind === kind).reduce((a, b) => (Math.hypot(a.x - model.hero.x, a.z - model.hero.z) < Math.hypot(b.x - model.hero.x, b.z - model.hero.z) ? a : b));

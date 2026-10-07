@@ -13,6 +13,7 @@ import { FILL_SECONDS, LINE, bandOf, gradePour, type Pourable } from '../src/mod
 import { JOBS, recordOf } from '../src/model/jobs/jobs';
 import { onShift } from '../src/model/jobs/shiftsAt';
 import { WAGE } from '../src/model/jobs/shift';
+import { BONUS } from '../src/model/jobs/work';
 import { callBarkeep, ordersAt } from '../src/model/inn/barOrders';
 import { sitAtBar } from '../src/model/inn/barPatrons';
 import { mugsAt, setMug } from '../src/model/inn/barMugs';
@@ -289,7 +290,7 @@ describe('at work behind the bar', () => {
     shift.left = 0;
     model.work.update(0.1);
     expect([model.work.shift, onShift(inn)]).toEqual([null, undefined]);
-    expect(model.hero.money).toBe(money + earned + 2); // (and a clean shift's bonus: one served, none walked out)
+    expect(model.hero.money).toBe(money + earned + BONUS); // (and a clean shift's bonus: one served, none walked out)
     const over = model.takeEvents().find((e) => e.kind === 'shift');
     expect(over).toMatchObject({ job: 'Tending the bar', served: 1, tally: '1 perfect pour · 0 spilled' });
   });

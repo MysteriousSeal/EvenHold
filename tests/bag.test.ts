@@ -31,10 +31,10 @@ describe('wearing gear from the bag', () => {
     addToBag(hero.bag, 'maskedHood');
     expect(model.equipFromBag('leatherCap')).toBe(true);
     expect(hero.equipment.head).toBe('leatherCap');
-    expect(hero.bag).toEqual({ maskedHood: 1 });
+    expect(hero.bag).toEqual({ hatchet: 1, maskedHood: 1 });
     expect(model.equipFromBag('maskedHood')).toBe(true);
     expect(hero.equipment.head).toBe('maskedHood');
-    expect(hero.bag).toEqual({ leatherCap: 1 }); // swapped back in
+    expect(hero.bag).toEqual({ hatchet: 1, leatherCap: 1 }); // swapped back in
     expect(model.equipFromBag('gambeson')).toBe(false); // not carried
   });
 
@@ -44,7 +44,7 @@ describe('wearing gear from the bag', () => {
     hero.equipment.mainHand = 'armingSword';
     expect(model.unequip('mainHand')).toBe(true);
     expect(hero.equipment).toEqual({});
-    expect(hero.bag).toEqual({ armingSword: 1 });
+    expect(hero.bag).toEqual({ hatchet: 1, armingSword: 1 });
     expect(model.unequip('mainHand')).toBe(false);
   });
 
@@ -54,10 +54,10 @@ describe('wearing gear from the bag', () => {
     hero.equipment.head = 'leatherCap';
     expect(model.dropEquipped('head')).toBe(true);
     expect(hero.equipment.head).toBeUndefined();
-    expect(hero.bag).toEqual({});
+    expect(hero.bag).toEqual({ hatchet: 1 });
     expect(model.loot.map((l) => l.item)).toEqual(['leatherCap']);
     expect(model.pickUp()).toBe('leatherCap');
-    expect(hero.bag).toEqual({ leatherCap: 1 });
+    expect(hero.bag).toEqual({ hatchet: 1, leatherCap: 1 });
     expect(model.dropEquipped('head')).toBe(false);
   });
 });

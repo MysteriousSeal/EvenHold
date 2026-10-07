@@ -56,7 +56,7 @@ describe('picking up loot', () => {
     model.dropLoot('bentSpoon', model.hero.x + 0.4, model.hero.z);
     expect(model.lootInReach?.item).toBe('bentSpoon');
     expect(model.pickUp()).toBe('bentSpoon');
-    expect(model.hero.bag).toEqual({ bentSpoon: 1 });
+    expect(model.hero.bag).toEqual({ hatchet: 1, bentSpoon: 1 }); // (the hatchet: theirs from the start)
     expect(model.loot.map((l) => l.item)).toEqual(['wolfFang']);
   });
 
@@ -83,7 +83,7 @@ describe('picking up loot', () => {
     expect(dropped.x).toBeGreaterThan(model.hero.x);
     expect(Math.hypot(dropped.x - model.hero.x, dropped.z - model.hero.z)).toBeLessThan(PICKUP_RANGE); // right there to pick back up
     expect(model.dropFromBag('wolfFang')).toBe(true);
-    expect(model.hero.bag).toEqual({});
+    expect(model.hero.bag).toEqual({ hatchet: 1 });
     expect(model.dropFromBag('wolfFang')).toBe(false);
   });
 });

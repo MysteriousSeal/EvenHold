@@ -10,7 +10,9 @@ describe('bandit camps in every test world', () => {
     for (const model of worlds) {
       const spawn = spawnOf(model.size);
       expect(model.camps.length, `seed ${model.seed}`).toBeGreaterThan(0);
-      expect(Math.hypot(model.camps[0].x - spawn.x, model.camps[0].z - spawn.z)).toBeLessThan(25);
+      const walk = Math.hypot(model.camps[0].x - spawn.x, model.camps[0].z - spawn.z);
+      expect(walk).toBeGreaterThan(30); // (out of sight of the start: a new player fell to one before they knew the game)
+      expect(walk).toBeLessThan(60);
     }
   });
 

@@ -25,9 +25,7 @@ describe('enemy focus', () => {
     const bandit = model.enemies.find((e) => e.kind === 'bandit')!;
     const wolf = model.enemies.find((e) => e.kind === 'wolf')!;
     model.enemies.splice(0, model.enemies.length, bandit, wolf);
-    bandit.x = model.hero.x + 0.5;
-    bandit.z = model.hero.z;
-    bandit.state = 'chase';
+    Object.assign(bandit, { x: model.hero.x + 0.5, z: model.hero.z, homeX: model.hero.x, homeZ: model.hero.z, state: 'chase' }); // (at home here: not off back to a camp far away)
     wolf.x = model.hero.x - 5; // out of the way for now
     for (let t = 0; t < ENEMY_STATS.bandit.swing + FRAME && !model.focused; t += FRAME) model.update(0, 0, FRAME);
     expect(model.focused).toBe(bandit);
@@ -43,7 +41,7 @@ describe('enemy focus', () => {
     model.godMode = true;
     const [a, b] = model.enemies.filter((e) => e.kind === 'bandit');
     model.enemies.splice(0, model.enemies.length, a, b);
-    Object.assign(a, { x: model.hero.x, z: model.hero.z + 0.45, hp: 99, maxHp: 99 });
+    Object.assign(a, { x: model.hero.x, z: model.hero.z + 0.45, homeX: model.hero.x, homeZ: model.hero.z, hp: 99, maxHp: 99 }); // (at home here: not off back to its camp, a walk away)
     b.x = model.hero.x + 9;
     model.hero.facing = 0; // (toward a)
     model.startAttack();
@@ -69,9 +67,7 @@ describe('enemy focus', () => {
     a.state = 'dead';
     model.update(0, 0, FRAME);
     expect(model.focused).toBeNull();
-    b.x = model.hero.x + 0.5;
-    b.z = model.hero.z;
-    b.state = 'chase';
+    Object.assign(b, { x: model.hero.x + 0.5, z: model.hero.z, homeX: model.hero.x, homeZ: model.hero.z, state: 'chase' });
     for (let t = 0; t < ENEMY_STATS.bandit.swing + FRAME && !model.focused; t += FRAME) model.update(0, 0, FRAME);
     expect(model.focused).toBe(b);
   });

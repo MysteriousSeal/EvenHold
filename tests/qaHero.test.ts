@@ -81,7 +81,7 @@ describe('the hero\'s gear', () => {
   it('swaps one worn for one in a full bag (the one taken out frees its room)', () => {
     const model = fresh();
     model.hero.equipment.head = 'leatherCap';
-    fill(model, BAG_ROOM - 1);
+    fill(model, BAG_ROOM - 2); // (the hatchet's slot, theirs from the start, and one more)
     model.hero.bag.maskedHood = 1; // (the last slot: the bag full)
     expect(model.equipFromBag('maskedHood')).toBe(true);
     expect([model.hero.equipment.head, model.hero.bag.leatherCap, model.hero.bag.maskedHood]).toEqual(['maskedHood', 1, undefined]);
@@ -97,13 +97,16 @@ describe('the hero\'s gear', () => {
 });
 
 describe('the hero\'s setbacks', () => {
-  it('a fall: a quarter of their coin lost (rounded their way), healed, Weary, at spawn before any inn; chasers lose interest', () => {
+  it('a fall: a tenth of their coin lost (a hundred at most), healed, Weary, at spawn before any inn; chasers lose interest', () => {
     const model = fresh();
     Object.assign(model.hero, { money: 103, hp: 1 });
     const chaser = model.enemies[0];
     chaser.state = 'chase';
     model.fall();
-    expect(model.hero.money).toBe(103 - Math.floor(103 * 0.25));
+    expect(model.hero.money).toBe(103 - Math.floor(103 * 0.1));
+    model.hero.money = 5000;
+    model.fall();
+    expect(model.hero.money).toBe(4900); // (capped)
     expect(model.hero.hp).toBe(maxHpOf(model.hero));
     expect(model.hero.blessings?.some((b) => b.kind === 'weary')).toBe(true);
     const spawn = spawnOf(model.size);

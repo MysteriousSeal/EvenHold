@@ -125,9 +125,13 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     id: 'sleep',
-    serves: { rest: 1, safety: 0.2 },
+    serves: { rest: 1, safety: 0.7 },
     traits: { cautious: 0.3, industrious: -0.2 },
-    options: (p) => (p.model.hero.energy < maxEnergyOf(p.model.hero) * 0.6 && door(p, 'house').length ? [{ label: 'a bed, to sleep', at: door(p, 'house')[0].at }] : []), // (tired: else no use)
+    options: (p) => {
+      const { hero } = p.model;
+      const [tired, hurt] = [hero.energy < maxEnergyOf(hero) * 0.6, hero.hp < maxHpOf(hero) * 0.5];
+      return (tired || hurt) && door(p, 'house').length ? [{ label: hurt ? 'a bed, to mend' : 'a bed, to sleep', at: door(p, 'house')[0].at }] : []; // (tired, or hurt: a bed mends, for free)
+    },
     steps: (p) => p.go('sleep'),
   },
   {

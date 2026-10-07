@@ -51,7 +51,7 @@ describe('saving', () => {
     expect(again.hero).toMatchObject({ name: 'Oswith', level: 4, xp: 12, hp: 7, money: 1234, x: hero.x, z: hero.z });
     expect(again.hero.look).toEqual(hero.look);
     expect(again.hero.equipment).toEqual({ head: 'leatherCap' });
-    expect(again.hero.bag).toEqual({ gambeson: 2 });
+    expect(again.hero.bag).toEqual({ hatchet: 1, gambeson: 2 }); // (the hatchet theirs from the start)
     expect(again.hero.bagOrder).toEqual([null, 'gambeson']);
     expect(again.enemies.some((e) => e.id === foe.id)).toBe(false); // slain stays slain
     expect(again.loot.map(({ item, x, z }) => ({ item, x, z }))).toEqual([{ item: 'gambeson', x: 10, z: 10 }]);

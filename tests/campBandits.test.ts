@@ -4,7 +4,7 @@ import { MAX_BANDITS, MIN_BANDITS } from '../src/model/camps/camps';
 
 const SEEDS = Array.from({ length: 18 }, (_, i) => i + 1); // (every camp of each looked at, the far ones and the last too: some three hundred and seventy camps)
 const SIZE = { width: 256, depth: 256 }; // big enough for well over ten camps a world (eleven to thirty-odd)
-const CAMPS = 10; // in each, at the least
+const CAMPS = 7; // in each, at the least (none within sixty tiles of the start: a test world is small)
 
 describe('bandits in their camps (three to six each), every camp of eighteen worlds (some three hundred and seventy)', () => {
   it(`are each camp's own number, every one on a free tile inside its palisade`, () => {

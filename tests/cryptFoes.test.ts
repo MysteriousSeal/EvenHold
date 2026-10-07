@@ -13,11 +13,11 @@ import { mulberry32 } from '../src/util/random';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { floorReached, solidTiles } from './support/cryptChecks';
 import { resetCrypts, spawnDraugr } from '../src/model/cheats';
-import { FRAME } from './support/testWorld';
+import { FRAME, regionCrypt } from './support/testWorld';
 
 const MID = { width: 512, depth: 512 };
 const goDown = (model: GameModel) => {
-  const crypt = model.crypts[0];
+  const crypt = regionCrypt(model);
   model.teleport(crypt.entrance.x, crypt.entrance.z);
   model.useDoor();
   return crypt;

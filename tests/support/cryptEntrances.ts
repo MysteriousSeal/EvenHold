@@ -58,12 +58,12 @@ function cryptWorld(seed: number) {
 
 // The seeds of `part` (0 up to PARTS), checked.
 export function checkCryptEntrances(part: number): void {
-  describe(`crypt entrances: 4 ruins out of 4 (seeds part ${part + 1} of ${PARTS})`, () => {
+  describe(`crypt entrances: 5 ruins out of 5 (the four regions' and the one a walk from the start; seeds part ${part + 1} of ${PARTS})`, () => {
     for (const seed of SEEDS.filter((_, i) => i % PARTS === part)) {
       it(`seed ${seed}`, () => {
         const model = cryptWorld(seed);
-        expect(model.ruins).toHaveLength(4);
-        expect(model.crypts).toHaveLength(4);
+        expect(model.ruins).toHaveLength(5);
+        expect(model.crypts).toHaveLength(5);
         for (const ruin of model.ruins) {
           const crypt = model.crypts.find((c) => c.ruin === ruin);
           expect(crypt, `a way down in the ruin at ${ruin.x},${ruin.z}`).toBeDefined();

@@ -116,7 +116,7 @@ describe('bandits', () => {
   it('camp near spawn: a fire and a tent that block, with bandits around', () => {
     eachSeed((model) => {
       const camp = model.camps[0];
-      expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(25);
+      expect(Math.hypot(camp.x - model.hero.x, camp.z - model.hero.z)).toBeLessThan(60) // (a short walk off, out of sight of the start);
       // Everything but the gatehouse (the way in, under it) blocks, the loot's open chest too; a palisade rings the camp but for the entrance.
       for (const piece of camp.pieces.filter((p) => p.kind !== 'palisade')) expect(model.isOpenTile(piece.x, piece.z)).toBe(piece.kind === 'gate');
       // The chest just itself: the rug and the gold spilt round it walked over.
@@ -135,10 +135,9 @@ describe('bandits', () => {
   it('swings when in reach, then waits before swinging again', () => {
     const model = fresh();
     const bandit = nearest(model, 'bandit');
-    // Beside it (on open ground, not behind its camp's palisade).
-    const [bx, bz] = [Math.round(bandit.x), Math.round(bandit.z)];
-    const beside = [[bx - 1, bz], [bx + 1, bz], [bx, bz - 1], [bx, bz + 1]].find(([x, z]) => model.isOpenTile(x, z))!;
-    model.teleport(beside[0], beside[1]);
+    // Beside it, where it stands (at its camp's fire, say: the hero put down in reach of it).
+    Object.assign(bandit, { x: Math.round(bandit.x), z: Math.round(bandit.z), state: 'wander' });
+    model.teleport(bandit.x + 0.6, bandit.z);
     let swung = false;
     for (let i = 0; i < 120 && !swung; i++) {
       model.update(0, 0, FRAME);

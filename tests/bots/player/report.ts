@@ -93,7 +93,7 @@ function signals(player: Player, minutes: number): string[] {
   if (walking / whole > 0.3) out.push(`Spent ${pct(walking / whole)} of the hour just walking about: the world may be too sparse, or the next thing to do too far.`);
   const failed = diary.filter((d) => d.outcome === 'fail');
   if (failed.length / Math.max(1, diary.length) > 0.3) out.push(`${failed.length} of ${diary.length} things tried came to nothing: ${[...new Set(failed.map((d) => d.id))].join(', ')}. Players will feel the game resisting them.`);
-  if (player.lowHealth > 600) out.push(`${clock(player.lowHealth)} under 40% health: with no coin, no food and no regeneration, a hurt player has no way back up but to go on getting hurt.`);
+  if (player.lowHealth > 600) out.push(`${clock(player.lowHealth)} under 40% health: a bed mends for free and food and ale cost coin, yet they went on hurt. Is the way to mend plain enough?`);
   if (player.idle > 120) out.push(`${clock(player.idle)} with nothing at all to do: nothing in reach, nothing known. The early game may need a hook.`);
   if (hero.level < 3) out.push(`Only level ${hero.level} after an hour: levelling is slow for this kind of player (${describe(player.persona)}).`);
   if (hero.level >= 8) out.push(`Level ${hero.level} in an hour: fast; is the mid-game ready for them?`);

@@ -9,7 +9,7 @@ import { BARRAGE, CHARGE_LENGTH, ERUPTION, ERUPTION_TELL, SWEEP, SWEEP_RADIUS, S
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { GameModel } from '../src/model/GameModel';
 import type { Enemy } from '../src/model/types';
-import { FRAME } from './support/testWorld';
+import { FRAME, regionCrypt } from './support/testWorld';
 
 const DT = 1 / 60;
 const lord = (): Enemy => ({ ...makeEnemy(1, 'cryptLord', 0, 0), state: 'chase' });
@@ -72,7 +72,7 @@ describe('a crypt lord\'s specials', () => {
 
   it('loose three souls that turn after the hero and strike them, or are spent', () => {
     const model = new GameModel(1, { width: 512, depth: 512 });
-    const crypt = model.crypts[0];
+    const crypt = regionCrypt(model);
     model.teleport(crypt.entrance.x, crypt.entrance.z);
     model.useDoor();
     for (const f of model.foes) f.state = 'dead';
@@ -91,7 +91,7 @@ describe('a crypt lord\'s specials', () => {
 
   it('charging into the hero, bowls them back along it, a few tiles (not aside)', () => {
     const model = new GameModel(1, { width: 512, depth: 512 });
-    const crypt = model.crypts[0];
+    const crypt = regionCrypt(model);
     model.teleport(crypt.entrance.x, crypt.entrance.z);
     model.useDoor();
     for (const f of model.foes) f.state = 'dead';

@@ -4,6 +4,7 @@ import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { MAX_ENERGY, TIRED, tiredPace, gainXp, maxHpAt, recover, xpAgainst, xpToNext } from '../src/model/hero/heroStats';
 import { spawnOf } from '../src/model/map/grid';
+import { maxHpOf } from '../src/model/hero/attributes';
 import { FRAME, fresh, nearest, slay, eachSeed } from './support/testWorld';
 import type { Enemy } from '../src/model/types';
 
@@ -32,12 +33,16 @@ describe('hero stats', () => {
     for (let level = 2; level < 30; level++) expect(xpToNext(level + 1) - xpToNext(level)).toBeGreaterThanOrEqual(xpToNext(level) - xpToNext(level - 1));
   });
 
-  it('never heals by itself (hardcore), not even in bed', () => {
+  it('never heals by itself awake; asleep in a bed, all of it back in under a minute (rest mends, for free)', () => {
     const { hero } = fresh();
     hero.hp = 4;
     for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME);
-    for (let t = 0; t < 60; t += FRAME) recover(hero, FRAME, true);
     expect(hero.hp).toBe(4);
+    for (let t = 0; t < 20; t += FRAME) recover(hero, FRAME, true);
+    expect(hero.hp).toBeGreaterThan(4);
+    expect(hero.hp).toBeLessThan(maxHpOf(hero));
+    for (let t = 0; t < 40; t += FRAME) recover(hero, FRAME, true);
+    expect(hero.hp).toBe(maxHpOf(hero));
   });
 
   it('spends energy through the day awake, and sleeps it back in bed, never past full', () => {
@@ -103,7 +108,7 @@ describe('enemies hurt the hero', () => {
     expect(safe.hero.hp).toBe(maxHpAt(1));
   });
 
-  it('out of health, the hero loses a quarter of their coins and wakes at spawn (before any inn), healed but Weary a while', () => {
+  it('out of health, the hero loses a tenth of their coins (a hundred at most) and wakes at spawn (before any inn), healed but Weary a while', () => {
     eachSeed((model) => {
       alone(model, nearest(model, 'wolf'));
       const spawn = spawnOf(model.size);
@@ -111,7 +116,7 @@ describe('enemies hurt the hero', () => {
       model.hero.hp = ENEMY_STATS.wolf.damage; // one bite left
       for (let t = 0; t < 3 && model.hero.hp !== maxHpAt(1); t += FRAME) model.update(0, 0, FRAME);
       expect(model.hero.hp).toBe(maxHpAt(1));
-      expect(model.hero.money).toBe(750);
+      expect(model.hero.money).toBe(900);
       expect(model.hero.blessings?.find((b) => b.kind === 'weary')?.left).toBe(WEARY_TIME);
       expect(Math.hypot(model.hero.x - spawn.x, model.hero.z - spawn.z)).toBeLessThan(1);
     });

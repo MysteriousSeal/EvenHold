@@ -215,7 +215,7 @@ export abstract class Bot extends BotVentures {
         return [...this.enter(inn()), ...this.atTheBar('pie'), ...this.leave()];
       case 'nap':
       case 'sleep':
-        return [...this.enter(nearestDoor(this.model, 'house')), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95, 120, 'slept in bed, energy not back'), () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
+        return [...this.enter(nearestDoor(this.model, 'house')), this.sitOn((k) => k === 'bed' || k === 'doubleBed'), this.until(() => hero.energy >= maxEnergyOf(hero) * 0.95 && hero.hp >= maxHpOf(hero) * 0.95, 120, 'slept in bed, not rested and mended'), () => ((this.stats.sleeps++, this.model.sitOrStand()), 'ok'), ...this.leave()];
       case 'loot':
       {
         const go = this.walk(() => loot!, PICKUP_RANGE * 0.8);
