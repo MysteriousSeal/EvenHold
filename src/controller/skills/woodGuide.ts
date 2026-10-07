@@ -11,6 +11,7 @@ import { difficulty, skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { el } from '../../view/ui/dom';
+import { capitalize } from '../../util/text';
 
 const GRADES = Object.keys(WOOD) as Grade[];
 const WHERE: Record<Grade, string> = {
@@ -20,7 +21,6 @@ const WHERE: Record<Grade, string> = {
   ancientPine: 'One pine in a dozen, grown old: a darker crown among its kind.',
   ancientOak: 'One oak in a dozen, grown old: a darker crown among its kind.',
 };
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The best tree to learn from now: the hardest they can fell that still teaches; none, if none.
 export function bestGrade(level: number): Grade | null {
@@ -36,7 +36,7 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
   list.append(el('div', 'book-group', 'Trees'));
   for (const grade of GRADES) {
     const wood = WOOD[grade];
-    list.append(bookRow({ id: grade, kind: 'grade', name: cap(wood.name), needs: wood.needs, level, picked: grade === state.picked, best: grade === best, count: String(wood.needs), onPick: () => [(state.picked = grade), redraw()] }));
+    list.append(bookRow({ id: grade, kind: 'grade', name: capitalize(wood.name), needs: wood.needs, level, picked: grade === state.picked, best: grade === best, count: String(wood.needs), onPick: () => [(state.picked = grade), redraw()] }));
   }
   return el('div', 'book', el('div', 'book-side', list, bookLegend()), detail(state.picked));
 
@@ -60,7 +60,7 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
     return el(
       'div',
       'book-detail',
-      el('div', 'book-head', el('span', 'book-icon', bagIcon(wood.log)(56)), el('div', 'book-what', el('h3', 'book-title', cap(wood.name)), el('span', 'book-kind', WHERE[grade]))),
+      el('div', 'book-head', el('span', 'book-icon', bagIcon(wood.log)(56)), el('div', 'book-what', el('h3', 'book-title', capitalize(wood.name)), el('span', 'book-kind', WHERE[grade]))),
       needs,
       facts,
       el('p', axe ? 'book-tool had' : 'book-tool short', axe ? 'You have an axe in hand.' : 'You need an axe in hand: a hatchet from the smith will do.'),

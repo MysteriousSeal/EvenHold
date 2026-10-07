@@ -68,6 +68,7 @@ import { keepWorld, loadWorld } from './controller/storage/worldCache';
 import { generateWorld } from './model/worldgen/world';
 import { WorkerSource } from './controller/world/workerSource';
 import { STREAMED_SIZE } from './model/worldgen/regions';
+import { capitalize } from './util/text';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -315,7 +316,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'torn') placeBanner('The silk tears', 'Deep within, the nest lies open');
       else if (event.kind === 'walled') placeBanner('The nest is webbed shut', `Clear ${Math.round(TEARS_AT * 100)}% of the cave to tear the silk · ${Math.round(event.share * 100)}% cleared`, 3000); // (the brood mother out of reach: told large)
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : 'Crypt cleared', `${event.name.charAt(0).toUpperCase() + event.name.slice(1)}${event.point ? ' · +1 point to spend (P)' : ''}`);
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ' · +1 point to spend (P)' : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {

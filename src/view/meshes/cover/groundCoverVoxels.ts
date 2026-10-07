@@ -8,7 +8,7 @@
 // - Pebbles: clusters of 2-4 small stepped stones, some with mossy tops.
 // Straight, grid-aligned voxels only.
 
-import { mulberry32 } from '../../../util/random';
+import { mulberry32, oneOf } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
@@ -105,7 +105,7 @@ export function buildPebbles(shape: number): VoxelGrid {
     const d = n === 0 ? 3 : 1 + Math.floor(rng() * 2);
     const i0 = n === 0 ? 2 : Math.floor(rng() * (8 - w));
     const k0 = n === 0 ? 2 : Math.floor(rng() * (8 - d));
-    const color = STONES[Math.floor(rng() * STONES.length)];
+    const color = oneOf(STONES, rng());
     const tall = n === 0 && w > 2;
     for (let i = i0; i < i0 + w; i++) {
       for (let k = k0; k < k0 + d; k++) {

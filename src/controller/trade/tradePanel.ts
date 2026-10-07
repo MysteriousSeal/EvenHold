@@ -24,6 +24,7 @@ import { humanBust } from '../../view/meshes/human/humanFigure';
 import type { Seller } from '../hero/inventoryPanel';
 import { line } from '../../view/ui/dom';
 import { plural } from '../../view/ui/words';
+import { oneOf } from '../../util/random';
 
 // What a trade's keeper says, by occasion: on opening, and answering each trade.
 export type TradeLines = Record<'hello' | 'bought' | 'sold' | 'sold out' | 'too poor' | 'short', readonly string[]>;
@@ -57,7 +58,7 @@ export interface TradeBag {
 // What any keeper says to a hero with no room left in their bag.
 const BAG_FULL = ["Your bag's full, friend. Make some room first.", "Where would you put it? Your bag's bursting.", 'No room in that bag of yours.'];
 
-export const pick = (lines: readonly string[]) => lines[Math.floor(Math.random() * lines.length)];
+export const pick = (lines: readonly string[]) => oneOf(lines, Math.random());
 
 // A time left as minutes and seconds: "0:42".
 export const clock = (ms: number) => {

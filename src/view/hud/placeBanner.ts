@@ -5,6 +5,8 @@
 // camp's level, in the colour of how dangerous it is).
 // Styles in hud.css.
 
+import { capitalize } from '../../util/text';
+
 const SHOWN = 3500; // ms on screen before it fades (unless told otherwise)
 
 export type BannerLine = string | Array<string | { text: string; ink: string }>;
@@ -18,7 +20,7 @@ export function createPlaceBanner(): (name: string, under: BannerLine, shown?: n
   document.body.append(banner);
   let timer = 0;
   return (name, under, shown = SHOWN) => {
-    title.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    title.textContent = capitalize(name);
     sub.replaceChildren(
       ...(typeof under === 'string' ? [under] : under).map((part) => {
         if (typeof part === 'string') return part;

@@ -12,8 +12,8 @@ import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { notice, questFacts, questIcon } from './questText';
 import { detailParts } from '../../view/ui/menuDetail';
 import { line } from '../../view/ui/dom';
+import { capitalize } from '../../util/text';
 
-const cap = (text: string) => text.replace(/^./, (c) => c.toUpperCase());
 
 export function createJournal(model: GameModel): { menu: Menu; update(): void } {
   const { quests } = model;
@@ -37,7 +37,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       title: questTitle(quest),
       badge: have >= quest.count ? '✓ Ready' : `${have}/${quest.count}`,
       badgeTone: have >= quest.count ? 'ready' : 'progress',
-      note: cap(quest.where),
+      note: capitalize(quest.where),
       check: {
         on: t.tracked,
         locked: !t.tracked && quests.tracked >= MAX_TRACKED,

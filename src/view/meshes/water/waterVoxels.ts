@@ -5,7 +5,7 @@
 //   with a brown cattail head, rising from the shallows.
 // Only straight, grid-aligned voxels, no diagonals.
 
-import { mulberry32 } from '../../../util/random';
+import { mulberry32, oneOf } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
@@ -66,7 +66,7 @@ export function buildReeds(variant: number): VoxelGrid {
     const k = 1 + Math.floor(rng() * (sz - 2));
     if (colorAt(grid, i, 0, k) !== 0) continue;
     const height = 7 + Math.floor(rng() * (sy - 7));
-    const stalk = STALKS[Math.floor(rng() * STALKS.length)];
+    const stalk = oneOf(STALKS, rng());
     const cattail = rng() < 0.45;
     for (let y = 0; y < height; y++) {
       const head = cattail && y >= height - 4 && y < height - 1; // the tip pokes out above the head

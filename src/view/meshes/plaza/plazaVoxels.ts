@@ -9,7 +9,7 @@
 // Everything is grid-aligned: rings are squares, not circles.
 
 import { VILLAGE_OUTER_RADIUS } from '../../../model/constants';
-import { mulberry32 } from '../../../util/random';
+import { mulberry32, oneOf } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
@@ -83,7 +83,7 @@ export function buildPlaza(kindAt: (dx: number, dz: number) => TileKind, seed: n
     const depth = 3 + Math.floor(rng() * 3);
     for (let i0 = Math.floor(rng() * 3) - 2; i0 < SIZE; ) {
       const width = 3 + Math.floor(rng() * 5);
-      const id = newStone(STONES[Math.floor(rng() * STONES.length)]);
+      const id = newStone(oneOf(STONES, rng()));
       for (let i = Math.max(0, i0); i < Math.min(SIZE, i0 + width); i++) {
         for (let k = k0; k < Math.min(SIZE, k0 + depth); k++) stoneAt[i + k * SIZE] = id;
       }

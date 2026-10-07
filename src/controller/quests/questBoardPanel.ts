@@ -15,6 +15,7 @@ import { detailParts } from '../../view/ui/menuDetail';
 import { line } from '../../view/ui/dom';
 import { zoneLevel } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
+import { capitalize } from '../../util/text';
 
 export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
   const { quests } = model;
@@ -34,7 +35,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
       badgeTone: quests.isCompleted(q.key) ? 'past' : taken ? (have >= q.count ? 'ready' : 'progress') : undefined,
       dim: quests.isCompleted(q.key), // done for good: shown, faded
       tag: coinParts(q.copper),
-      note: `${q.where.replace(/^./, (c) => c.toUpperCase())} · level ${q.level}`,
+      note: `${capitalize(q.where)} · level ${q.level}`,
     };
     shown.set(slot, q);
     return slot;

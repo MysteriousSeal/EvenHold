@@ -18,6 +18,7 @@ import { BANDIT_OUTFIT, outfit } from '../../model/human/equipment';
 import { lookAt } from '../../model/human/humanoid';
 import { humanBust } from '../meshes/human/humanFigure';
 import { voxelIcon } from '../ui/voxelIcon';
+import { capitalize } from '../../util/text';
 
 export type PlaceBarShown = { name: string; share: number } | { name: string; camp: CampStatus; ink: string } | { name: string; village: { level: number; ink: string; quests: { completed: number; of: number } } } | { name: string; shift: { share: number; left: string; served: number; walkedOut: number; earned: number; rows: Array<[string, string]> } } | null;
 
@@ -62,7 +63,7 @@ export function createPlaceBar(): (place: PlaceBarShown) => void {
     const now = JSON.stringify(place);
     if (now === shown) return;
     shown = now;
-    name.textContent = place.name.charAt(0).toUpperCase() + place.name.slice(1);
+    name.textContent = capitalize(place.name);
     if ('shift' in place) name.append(Object.assign(document.createElement('small'), { textContent: ' (at work)' }));
     if ('camp' in place || 'village' in place) name.append(Object.assign(document.createElement('small'), { textContent: 'camp' in place ? ' (bandit camp)' : ' (village)' })); // (what it is)
     track.hidden = !('share' in place || 'shift' in place);

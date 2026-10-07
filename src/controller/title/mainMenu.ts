@@ -26,6 +26,7 @@ import type { BodyLook } from '../../model/human/humanoid';
 import { el } from '../../view/ui/dom';
 import '../../view/ui/gilded.css';
 import './mainMenu.css';
+import { oneOf } from '../../util/random';
 
 // What the menu ends with: the world to play, and the hero made for it (none: one of theirs, or a random one).
 export interface MenuChoice {
@@ -78,7 +79,7 @@ export const SAYINGS = [
 
 type Screen = 'intro' | 'heroes' | 'create' | 'controls';
 
-export function showMainMenu(hooks: MainMenuHooks, saying = SAYINGS[Math.floor(Math.random() * SAYINGS.length)]): Promise<MenuChoice> {
+export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.random())): Promise<MenuChoice> {
   const root = document.getElementById('loading') as HTMLDivElement;
   root.classList.add('title');
   const screen = document.createElement('div');

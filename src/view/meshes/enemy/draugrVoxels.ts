@@ -16,7 +16,7 @@ import { BODIES, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import type { Frame } from '../human/humanRig';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { hashUnit } from '../../../util/random';
+import { hashUnit, oneOf } from '../../../util/random';
 
 export const DRAUGR_PALETTE = [
   0x6f7c74, 0x4c5852, 0x8fe8ff, 0xc8c2b0, 0x7a7f84, 0x4a4e52, 0x6a5040, 0x3e2c1e, 0x2e2a2c, 0xc4ccd2,
@@ -40,9 +40,9 @@ const GARBS: DraugrLook['garb'][] = ['mail', 'fur', 'jerkin'];
 export function draugrLook(id: number): DraugrLook {
   const roll = (salt: number) => hashUnit(id, salt, 211);
   return {
-    head: HEADS[Math.floor(roll(1) * HEADS.length)],
-    beard: BEARDS[Math.floor(roll(2) * BEARDS.length)],
-    garb: GARBS[Math.floor(roll(3) * GARBS.length)],
+    head: oneOf(HEADS, roll(1)),
+    beard: oneOf(BEARDS, roll(2)),
+    garb: oneOf(GARBS, roll(3)),
     sword: roll(4) < 0.35,
   };
 }

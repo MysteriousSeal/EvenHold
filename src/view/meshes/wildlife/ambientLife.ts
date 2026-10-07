@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { LIFE_CELL, lifeIn, lifeOut, type LifeKind } from '../../../model/scenery/ambientSpots';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
-import { hashUnit } from '../../../util/random';
+import { hashUnit, oneOf } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { BIRD_PALETTE, PALETTE, birdGrid, butterflyGrid } from './ambientVoxels';
@@ -110,7 +110,7 @@ export class AmbientLife {
   private lifeOf(cx: number, cz: number): Creature[] {
     return lifeIn(this.model, cx, cz, this.meadow).map((spot) => ({
       ...spot,
-      tint: spot.kind === 'butterfly' ? WINGS[Math.floor(spot.seed * WINGS.length)] : spot.kind === 'bird' ? BIRDS[Math.floor(spot.seed * BIRDS.length)] : 0,
+      tint: spot.kind === 'butterfly' ? oneOf(WINGS, spot.seed) : spot.kind === 'bird' ? oneOf(BIRDS, spot.seed) : 0,
       fled: null,
       away: null,
     }));

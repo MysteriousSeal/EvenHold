@@ -8,6 +8,7 @@ import { ORDER_NAMES } from '../../model/jobs/innShift';
 import { boardFace, isBarAction } from '../../model/jobs/work';
 import type { BarAction } from '../../model/jobs/barShift';
 import type { PromptTarget } from '../../view/hud/lootPrompt';
+import { capitalize } from '../../util/text';
 
 const counted = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
 
@@ -52,7 +53,7 @@ export function workPrompt(model: GameModel): PromptTarget | null {
       const spot = model.work.shift!.pickupSpot;
       const parts = [...(action.returns ? [`give back ${counted(action.returns, 'the empty', 'empties')}`] : []), ...(action.wants.length ? [`take ${action.wants.length === 1 ? ORDER_NAMES[action.wants[0].order] : `${action.wants.length} orders`}`] : [])];
       const label = parts.join(', ');
-      return { label: label.charAt(0).toUpperCase() + label.slice(1), x: spot.x, y: 1.05, z: spot.z };
+      return { label: capitalize(label), x: spot.x, y: 1.05, z: spot.z };
     }
   }
 }
