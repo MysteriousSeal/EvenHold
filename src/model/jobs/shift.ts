@@ -16,7 +16,7 @@ import { shiftBegun, shiftOver } from './shiftsAt';
 import type { JobId, JobRank } from './jobs';
 
 export const SHIFT = 150; // seconds a shift lasts (two and a half hours on the game's clock)
-export const WAGE = 3; // copper an order
+export const WAGE = 2; // copper an order (a shift a fallback: a third of a good hour's adventuring, not more)
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const STAY: [number, number] = [40, 90]; // seconds those drawn in by the busy hour stay sat
 const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!', 'Forget it.'];

@@ -1,4 +1,4 @@
-// Bandit camps out in the open countryside: one a short walk from spawn (to
+// Bandit camps out in the open countryside: one a short walk from spawn (out of sight of it, to
 // meet early), and more scattered between the villages. Placed in world
 // generation from hashes of the seed and where they'd stand (not the world
 // rng), so each world's its own, before the trees, which are
@@ -55,7 +55,7 @@ const CHEST_HALF: [number, number] = [0.22, 0.16]; // the loot's chest (its lid 
 const CHANCE = 0.4;
 const OPEN_LAND = 0.15; // forest density under which it's open country
 const CLEAR_OF_VILLAGES = 12;
-const CLEAR_OF_SPAWN = 20;
+const CLEAR_OF_SPAWN = 60; // (none at the door: a new player met three at once, and fell to them more than to all else)
 export const MIN_BANDITS = 3; // a camp's bandits, the one near spawn the fewest
 export const MAX_BANDITS = 6;
 
@@ -80,7 +80,7 @@ export function placeCamps(world: CampWorld): Camp[] {
       }
     }
   };
-  near(Math.round(spawn.x - 9), Math.round(spawn.z + 9), 12, MIN_BANDITS, 47);
+  near(Math.round(spawn.x - 30), Math.round(spawn.z + 30), 12, MIN_BANDITS, 47); // (a short walk off: out of sight of the start, found once they look)
   for (let gx = 0; gx * GRID < world.size.width; gx++) {
     for (let gz = 0; gz * GRID < world.size.depth; gz++) {
       const roll = (salt: number) => hashUnit(gx, gz, world.seed + salt);
@@ -110,8 +110,13 @@ function site(world: CampWorld, cx: number, cz: number, bandits: number, salt: n
   }
   const quarterTurns = Math.floor(hashUnit(cx, cz, salt + 9) * 4);
   const [wx, wz] = turn(0, 3, quarterTurns);
-  const [ox, oz] = [cx + wx, cz + wz]; // just outside its way in: open ground, or no camp here
-  if (!world.tiles.has(ox, oz) || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.tiles.surface(ox, oz) !== 'natural') return null;
+  // Just outside its way in, and the two tiles on from it: open ground, or no camp here (a gate onto a wood or a
+  // lake's edge is one nothing gets in or out by).
+  for (let out = 3; out <= 5; out++) {
+    const [dx, dz] = turn(0, out, quarterTurns);
+    const [ox, oz] = [cx + dx, cz + dz];
+    if (!world.tiles.has(ox, oz) || !world.isOpenTile(ox, oz) || taken.has(`${ox},${oz}`) || world.tiles.surface(ox, oz) !== 'natural') return null;
+  }
   return { x: cx, z: cz, quarterTurns, bandits, way: { x: cx + wx, z: cz + wz }, pieces: layOut(cx, cz, quarterTurns) };
 }
 

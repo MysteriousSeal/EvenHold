@@ -48,13 +48,14 @@ function collapseIfSpent(model: GameModel): boolean {
   return true;
 }
 
-const FALL_TOLL = 0.25; // of their coins, lost in a fall
+const FALL_TOLL = 0.1; // of their coins, lost in a fall (a quarter before: more than a player made, falling to the start's bandits)
+const FALL_TOLL_MOST = 100; // copper, at most
 
 // Fallen (out of health): a share of their coins lost, they wake in the last inn
 // they entered (or at spawn, before any), healed but Weary; the foes lose interest.
 export function fall(model: GameModel): void {
   const { hero } = model;
-  hero.money -= Math.floor(hero.money * FALL_TOLL);
+  hero.money -= Math.min(FALL_TOLL_MOST, Math.floor(hero.money * FALL_TOLL));
   makeWeary(hero);
   const spawn = spawnOf(model.size);
   if (model.lastInn) model.enterRoom(model.lastInn);

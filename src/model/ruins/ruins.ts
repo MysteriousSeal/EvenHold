@@ -20,6 +20,8 @@ export const RUIN_REGION = 512; // tiles a side of the stretch that has one
 const SIZE: [number, number] = [10, 15]; // tiles a side
 const CLEAR_OF_VILLAGES = 12; // tiles past a village's edge
 const CLEAR_OF_SPAWN = 16;
+const NEAR_SPAWN: [number, number] = [55, 100]; // tiles from the start, the first ruin's middle: between these
+const NEAR_TRIES = 800; // spots looked at for it (on a streamed world's spawn region, at its corner, three in four fall off its maps)
 const TRIES = 300;
 const MAX_RISE = 2; // tiers the ground may rise across it (its pieces stand each on its own tile)
 
@@ -58,6 +60,20 @@ export function placeRuins(world: RuinWorld): Ruin[] {
   const regionsX = Math.max(1, Math.round(world.size.width / RUIN_REGION));
   const regionsZ = Math.max(1, Math.round(world.size.depth / RUIN_REGION));
   const spawn = world.spawn ?? spawnOf(world.size);
+  // One a short walk from the start (its crypt the first dungeon a new player meets: with a region's one anywhere in
+  // its five hundred tiles, an hour's wandering met none): a spot a way off, any way round, on the maps the start's
+  // on (a streamed world's: its own region, and no other's, or every region at its corner would set one down).
+  const near = mulberry32(hashCell(Math.round(spawn.x) + 17, Math.round(spawn.z) + 29, world.seed + 6151));
+  for (let t = 0; world.tiles.has(spawn.x, spawn.z) && t < NEAR_TRIES; t++) {
+    const w = SIZE[0] + Math.floor(near() * (SIZE[1] - SIZE[0] + 1));
+    const d = SIZE[0] + Math.floor(near() * (SIZE[1] - SIZE[0] + 1));
+    const [far, angle] = [NEAR_SPAWN[0] + near() * (NEAR_SPAWN[1] - NEAR_SPAWN[0]), near() * Math.PI * 2];
+    const x = Math.round(spawn.x + Math.cos(angle) * far - w / 2);
+    const z = Math.round(spawn.z + Math.sin(angle) * far - d / 2);
+    if (!fits(world, x, z, w, d, spawn, ruins)) continue;
+    ruins.push(layOut(x, z, w, d, near));
+    break;
+  }
   for (let gx = 0; gx < regionsX; gx++) {
     for (let gz = 0; gz < regionsZ; gz++) {
       const rng = mulberry32(hashCell(gx, gz, world.seed + 6151));
@@ -68,7 +84,7 @@ export function placeRuins(world: RuinWorld): Ruin[] {
         const d = SIZE[0] + Math.floor(rng() * (SIZE[1] - SIZE[0] + 1));
         const x = x0 + 2 + Math.floor(rng() * Math.max(1, x1 - x0 - w - 4));
         const z = z0 + 2 + Math.floor(rng() * Math.max(1, z1 - z0 - d - 4));
-        if (!fits(world, x, z, w, d, spawn)) continue;
+        if (!fits(world, x, z, w, d, spawn, ruins)) continue;
         ruins.push(layOut(x, z, w, d, rng));
         break;
       }
@@ -77,11 +93,12 @@ export function placeRuins(world: RuinWorld): Ruin[] {
   return ruins;
 }
 
-// Whether a ruin of w x d at (x, z) has room: open, wild, near-level ground
+// Whether a ruin of w x d at (x, z) has room: open, wild, near-level ground, clear of the `others` placed already
 // (two tiers at most) with a tile round it, clear of villages and the start.
-function fits(world: RuinWorld, x: number, z: number, w: number, d: number, spawn: { x: number; z: number }): boolean {
+function fits(world: RuinWorld, x: number, z: number, w: number, d: number, spawn: { x: number; z: number }, others: readonly Ruin[]): boolean {
   const [cx, cz] = [x + w / 2, z + d / 2];
   if (Math.hypot(cx - spawn.x, cz - spawn.z) < CLEAR_OF_SPAWN + Math.max(w, d) / 2) return false;
+  if (others.some((r) => x < r.x + r.w + 2 && x + w + 2 > r.x && z < r.z + r.d + 2 && z + d + 2 > r.z)) return false;
   if (world.villages.some((v) => Math.hypot(v.x - cx, v.z - cz) < VILLAGE_OUTER_RADIUS + CLEAR_OF_VILLAGES + Math.max(w, d) / 2)) return false;
   let low = Infinity;
   let high = -Infinity;

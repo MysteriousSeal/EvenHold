@@ -14,6 +14,7 @@ import { HERO_LOOK } from '../human/humanoid';
 export const MAX_ENERGY = 100; // a level-1 hero's, with nothing on (more with Endurance: maxEnergyOf)
 const ENERGY_SPENT = MAX_ENERGY / DAY_MINUTES; // a second awake (a game minute): all of it over a whole day, 24 hours
 const ENERGY_SLEPT = 2; // a second asleep in a bed (or on the floor after a collapse): all of it back in under a minute
+const HEAL_SLEPT = 1 / 50; // of their most health, a second asleep: all of it back in under a minute (rest mends, for free)
 
 export { maxHpAt }; // a hero's health at `level`, with nothing on and no Stamina (more with it: maxHpOf)
 
@@ -40,8 +41,9 @@ export function xpAgainst(xp: number, foeLevel: number, heroLevel: number): numb
 
 const HERO_NAME = 'Hero'; // shown over the health bar
 
-// A new hero at `at`: level 1, unhurt, nothing on, nothing carried, their stats untrained.
-export const freshHero = (at: { x: number; z: number }): Hero => ({ name: HERO_NAME, x: at.x, z: at.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: {}, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() });
+// A new hero at `at`: level 1, unhurt, nothing on, a woodcutter's hatchet in their pack (a first weapon, and the way
+// into the trades: skills/lumber.ts), their stats untrained.
+export const freshHero = (at: { x: number; z: number }): Hero => ({ name: HERO_NAME, x: at.x, z: at.z, y: 0, facing: 0, look: { ...HERO_LOOK }, equipment: {}, bag: { hatchet: 1 }, bagOrder: [], bagCounts: [], bags: [null, null, null, null], actionBar: emptyActionBar(), money: 0, ...FRESH_HERO_STATS, trained: untrained() });
 
 const FRESH_HERO_STATS = { hp: maxHpAt(1), energy: MAX_ENERGY, level: 1, xp: 0, hurtFor: 0, statPoints: 0 }; // (and `trained`: untrained(), its own)
 
@@ -78,6 +80,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false)
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
   const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
+  if (asleep) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * HEAL_SLEPT * dt);
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
   // at a time, all of it once it's done.
   hero.potionCooldown = Math.max(0, (hero.potionCooldown ?? 0) - dt); // (another potion, in a while)

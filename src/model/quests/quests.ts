@@ -27,9 +27,9 @@ export type QuestFoe = 'wolf' | 'bandit' | 'boar'; // what quests ask to be slai
 // Per foe: how often a quest is about it (weights), what it pays in copper
 // per foe and level, and what they're called, several of them.
 const FOES: Record<QuestFoe, { weight: number; pay: number; plural: string }> = {
-  wolf: { weight: 0.45, pay: 5, plural: 'wolves' },
-  bandit: { weight: 0.3, pay: 7, plural: 'bandits' },
-  boar: { weight: 0.25, pay: 6, plural: 'boars' },
+  wolf: { weight: 0.45, pay: 10, plural: 'wolves' },
+  bandit: { weight: 0.3, pay: 14, plural: 'bandits' },
+  boar: { weight: 0.25, pay: 12, plural: 'boars' },
 };
 const FOE_KINDS = Object.keys(FOES) as QuestFoe[];
 

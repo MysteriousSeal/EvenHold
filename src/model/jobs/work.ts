@@ -18,7 +18,7 @@ const HERO_XP = 4; // the hero's own experience, an order served (work's a way u
 // ALONG either way of its middle, between OUT[0] and OUT[1] out from its wall.
 const ALONG = 0.55;
 const OUT: [number, number] = [0.25, 1.35];
-export const BONUS = 2; // copper an order, the shift worked to its end with no one walked out
+export const BONUS = 1; // copper an order, the shift worked to its end with no one walked out
 
 export interface WorkHost {
   readonly hero: Hero;
