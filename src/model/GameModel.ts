@@ -9,6 +9,7 @@ import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, wholeMap, type Area, type MapSize } from './map/grid';
+import { maxHpOf } from './hero/attributes';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Village } from './types';
 import { TilePatch, type Tiles } from './map/tiles';
 import { bumpsEnemy } from './enemies/enemies';
@@ -416,6 +417,7 @@ export class GameModel {
     }
     const seat = this.seatInReach;
     if (seat) sitDown(at, this.hero, seat);
+    if (seat?.lying && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (hurt, and a bed: told it mends)
     return !!seat;
   }
 

@@ -21,6 +21,7 @@ export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 const READ_FROM = [0.3, 0.8]; // how far out in front of a board (tiles) the hero can read it: right up against it
 const READ_ASIDE = 0.45; // and how far to either side of straight out
 const PACK = 2; // foes gathered for each still asked for
+const MOST_ABOUT = 4; // and so many about at once, at most (sixteen round a spot, for eight to slay, fell every player who came)
 const SPREAD = 2.5; // tiles round the spot a pack gathers in
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
 
@@ -230,9 +231,10 @@ export class QuestBook {
     }
   }
 
-  // Foes the quest should have about: twice those still to slay, or twice the things asked.
+  // Foes the quest should have about: twice those still to slay, or twice the things asked; a pack's worth at most
+  // (the rest come as those are slain: respawnIn).
   private wanted(taken: TakenQuest): number {
-    return PACK * (taken.quest.kind === 'kill' ? taken.quest.count - taken.kills : taken.quest.count);
+    return Math.min(MOST_ABOUT, PACK * (taken.quest.kind === 'kill' ? taken.quest.count - taken.kills : taken.quest.count));
   }
 
   private alive(taken: TakenQuest): number {
