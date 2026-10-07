@@ -20,6 +20,28 @@ export { lineText, toned } from './menuTypes';
 // Menus open right now, most recent last.
 const openMenus: Menu[] = [];
 
+// The windows open, by focus: the one opened or clicked last on top, each a layer over the one before it, from
+// LOWEST up to HIGHEST (under the action bar, 25: food dragged onto it from the bag; tooltips and what's dragged, 30
+// and over, over every window). More windows than layers: the furthest back share the lowest.
+const stack: HTMLElement[] = [];
+const [LOWEST, HIGHEST] = [20, 24];
+function layer(): void {
+  const n = stack.length;
+  stack.forEach((backdrop, i) => (backdrop.style.zIndex = String(Math.max(LOWEST, HIGHEST - (n - 1 - i)))));
+}
+// A window brought to the front (opened, or clicked).
+function raise(backdrop: HTMLElement): void {
+  const at = stack.indexOf(backdrop);
+  if (at === stack.length - 1 && at >= 0) return;
+  if (at >= 0) stack.splice(at, 1);
+  stack.push(backdrop);
+  layer();
+}
+function sink(backdrop: HTMLElement): void {
+  const at = stack.indexOf(backdrop);
+  if (at >= 0) [stack.splice(at, 1), layer()];
+}
+
 export function anyMenuOpen(): boolean {
   return openMenus.length > 0;
 }
@@ -363,6 +385,7 @@ export function createMenu(options: MenuOptions): Menu {
     open(tab = tabIndex) {
       if (!openMenus.includes(api)) openMenus.push(api);
       backdrop.hidden = false;
+      raise(backdrop); // (opened: on top)
       status.textContent = '';
       showTab(tab);
       options.onOpenChange?.(true);
@@ -371,6 +394,7 @@ export function createMenu(options: MenuOptions): Menu {
       const at = openMenus.indexOf(api);
       if (at >= 0) openMenus.splice(at, 1);
       backdrop.hidden = true;
+      sink(backdrop);
       hideTip();
       options.onOpenChange?.(false);
     },
@@ -393,12 +417,21 @@ export function createMenu(options: MenuOptions): Menu {
 
   closeButton.addEventListener('click', () => api.close());
 
+  // Pressed anywhere on it: to the front, over the others open.
+  menu.addEventListener('pointerdown', () => raise(backdrop), { capture: true });
+
   backdrop.addEventListener('click', (e) => {
     if (justDropped) {
       justDropped = false;
       return;
     }
-    if (e.target === backdrop) api.close(); // click outside the menu
+    if (e.target !== backdrop) return;
+    // Outside it, on another window showing through its dimming (the bag, behind a shop): that one to the front, not
+    // this one closed.
+    const under = (document.elementsFromPoint?.(e.clientX, e.clientY) ?? []).find((n) => n !== backdrop && !backdrop.contains(n) && n.closest('.menu'));
+    const behind = under?.closest<HTMLElement>('.menu-backdrop');
+    if (behind && !behind.hidden) return raise(behind);
+    api.close(); // click outside the menu
   });
 
   // Capture phase: while open, the menu sees every key before the game does.

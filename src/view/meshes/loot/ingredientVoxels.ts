@@ -19,6 +19,10 @@ const log = (palette: number[], marked: (x: number, y: number, z: number) => boo
     }),
   );
 
+// A plank: a flat board along x, its face 1, a grain line along it 2, its cut ends 3.
+const plank = (palette: number[]): LootModel =>
+  model(palette, [8, 1, 3], (g) => fillBox(g, 0, 0, 0, 7, 0, 2, (x, _y, z) => (x === 0 || x === 7 ? 3 : z === 1 && x % 3 !== 0 ? 2 : 1)));
+
 export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   // A rounded lump of red meat, darker underneath, streaked with fat; a rim of
   // fat round the cut end, and the bone out of it, knobbed at the tip.
@@ -62,4 +66,23 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   birchLog: log([0xe8e4da, 0x2a2826, 0xf0dcb0, 0xd8b880], (x, y, z) => (x * 3 + y * 5 + z * 7) % 6 === 0), // black dashes on white
   pineLog: log([0x8a4a2a, 0xffc040, 0xe8b870, 0xc8904a], (x, y, z) => x === 4 && y === 3 && z === 1), // a bead of resin
   oakLog: log([0x5e5246, 0x40382f, 0xd8a868, 0x8a5a30], (x, _y, z) => (x + z) % 3 === 0), // furrowed
+  // Found chopping: a golden lump of resin, a lighter glint, a drip run off it; a dense block of heartwood, dark
+  // red-brown, its cut end in tight rings.
+  pineResin: model([0xe8a830, 0xffd070, 0xb87418], [4, 3, 3], (g) => {
+    fillBox(g, 0, 0, 0, 2, 1, 2, (x, y, z) => ((x === 0 || x === 2) && (z === 0 || z === 2) && y === 1 ? 0 : y === 1 && x === 1 && z === 0 ? 2 : 1));
+    setColor(g, 1, 2, 1, 2); // its top, catching the light
+    setColor(g, 3, 0, 1, 3); // a drip
+  }),
+  heartwood: model([0x6e2a1a, 0x521e12, 0xa0482a], [5, 4, 4], (g) =>
+    fillBox(g, 0, 0, 0, 4, 3, 3, (x, y, z) => (x === 4 ? (Math.max(Math.abs(y - 1.5), Math.abs(z - 1.5)) > 1 ? 1 : (Math.round(Math.max(Math.abs(y - 1.5), Math.abs(z - 1.5))) % 2 === 0 ? 3 : 1)) : y === 0 ? 2 : 1)),
+  ),
+  // Worked: planks (a birch's cream, a pine's amber, an oak's tan); a stoppered clay pot of varnish, amber at its lip.
+  birchPlank: plank([0xf0e2c0, 0xd8c498, 0xc8b080]),
+  pinePlank: plank([0xe0a868, 0xc08848, 0xa87038]),
+  oakPlank: plank([0xb88858, 0x946a40, 0x7a5432]),
+  varnish: model([0x9a5a38, 0x7a4428, 0xc8a070, 0xe8a030], [4, 5, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 2, 3, (x, y, z) => ((x === 0 || x === 3) && (z === 0 || z === 3) ? 0 : y === 0 ? 2 : 1)); // its belly, round
+    fillBox(g, 1, 3, 1, 2, 3, 2, (x, _y, z) => (x === 2 && z === 1 ? 4 : 1)); // its neck, the varnish's sheen at the lip
+    fillBox(g, 1, 4, 1, 2, 4, 2, 3); // the cork
+  }),
 };

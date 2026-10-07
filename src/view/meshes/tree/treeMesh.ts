@@ -13,6 +13,7 @@ import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer } from '../voxel/voxelInstances';
+import { gradeOf } from '../../../model/skills/lumber';
 import { bucketByChunk } from '../../world/chunkLayer';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
@@ -57,6 +58,7 @@ function stumpGeometry(kind: TreeKind): THREE.BufferGeometry {
   return geometry;
 }
 
+const ANCIENT_TINT = new THREE.Color(0.62, 0.7, 0.66); // an ancient tree's, over its own: darker, its green deeper
 const SHAKE = 0.3; // seconds a tree shakes, chopped at
 const SHAKE_TILT = 0.06; // radians it sways at most
 
@@ -65,7 +67,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const stumpMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
   const windTime = addWindSway(material, TREE_WIND);
-  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: treeTint(tree) });
+  // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
+  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree) });
   const chunks = bucketByChunk(model.trees, (tree) => tree);
   const { lumber } = model;
   // Where each tree drawn went (its mesh, its instance, its matrix), to shake it, or take it away felled.

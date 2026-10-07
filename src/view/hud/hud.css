@@ -251,8 +251,9 @@
   .pour-meter[data-state='brim'] { animation: pour-brim 0.18s steps(2) infinite; }
 }
 @keyframes pour-brim { 50% { translate: 1px 0; } }
-/* Chopping a tree (chopBar.ts): a slim wooden bar over the hero, filling toward the next chop, the chops left beside. */
-.chop-bar {
+/* A cast under way (castBar.ts: chopping, making something): a slim wooden bar over the hero, filling toward the
+   next chop or thing made, what it's at over it. */
+.cast-bar {
   position: fixed;
   left: 0;
   top: 0;
@@ -265,9 +266,9 @@
   border: 2px solid #2e1f14;
   box-shadow: 0 0 0 2px #c9a46a;
 }
-.chop-bar[hidden] { display: none; }
-.chop-bar > i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#f0c070 0 40%, #c8742a 40%); }
-.chop-bar > span {
+.cast-bar[hidden] { display: none; }
+.cast-bar > i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#f0c070 0 40%, #c8742a 40%); }
+.cast-bar > span {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 4px);

@@ -80,7 +80,22 @@ const lumberjackingIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, cooking: cookingIcon, fishing: fishingIcon };
+// A saw resting across a plank: the plank in pine, its grain; the saw's steel blade, its bright teeth, its wooden handle.
+const woodworkingIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:woodworking',
+    () => {
+      // The plank 1, its grain 2, steel 3, the teeth 4, the handle 5.
+      const grid = createGrid([12, 4, 9]);
+      fillBox(grid, 0, 0, 2, 11, 1, 6, (x, y, z) => (y === 1 && z === 4 && x % 3 !== 1 ? 2 : 1)); // the plank
+      fillBox(grid, 1, 2, 3, 8, 2, 5, (x, _y, z) => (z === 3 ? (x % 2 === 0 ? 4 : 0) : 3)); // the blade, its teeth along an edge
+      fillBox(grid, 9, 2, 3, 11, 3, 5, (x, y, z) => (x === 10 && y === 3 && z === 4 ? 0 : 5)); // its handle, a grip cut through it
+      return { grid, palette: [0xe0a868, 0xc08848, 0xa8b0b8, 0xe8ecf0, WOOD_DARK], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, cooking: cookingIcon, fishing: fishingIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish

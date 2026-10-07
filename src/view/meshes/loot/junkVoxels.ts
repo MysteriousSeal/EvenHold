@@ -6,6 +6,21 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
+  // Made by a woodworker: a turned wooden bowl, its rim lighter, its hollow showing; a carved oak tankard, two iron
+  // bands round it, a handle.
+  woodenBowl: model([0xa87040, 0xd8b07a, 0x7a4e2c], [6, 2, 6], (g) => {
+    fillBox(g, 1, 0, 1, 4, 0, 4, (x, _y, z) => ((x === 1 || x === 4) && (z === 1 || z === 4) ? 0 : 1)); // its foot
+    fillBox(g, 0, 1, 0, 5, 1, 5, (x, _y, z) => {
+      if ((x === 0 || x === 5) && (z === 0 || z === 5)) return 0; // (round)
+      return x === 0 || x === 5 || z === 0 || z === 5 ? 2 : x >= 2 && x <= 3 && z >= 2 && z <= 3 ? 3 : 0; // the rim; the hollow, its floor dark
+    });
+  }),
+  carvedTankard: model([0x9a6a3e, 0x4a4a52, 0x5a3a20, 0x7a5432], [5, 6, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 4, 3, (_x, y) => (y === 1 || y === 3 ? 2 : 1)); // its staves, banded
+    fillBox(g, 1, 4, 1, 2, 4, 2, 3); // inside, dark
+    fillBox(g, 4, 1, 1, 4, 3, 2, (_x, y) => (y === 2 ? 0 : 4)); // the handle
+    fillBox(g, 4, 1, 1, 4, 3, 1, 4);
+  }),
   // A silver torc, an open ring with knobbed ends, frost white on it.
   frostTorc: model([0xc8ccd4, 0x8e949c, 0xe8f6ff], [7, 1, 7], (g) => {
     for (let x = 0; x < 7; x++) for (let z = 0; z < 7; z++) {
