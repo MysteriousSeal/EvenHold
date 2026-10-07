@@ -17,6 +17,14 @@ export const INGREDIENTS = {
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous
   oakLog: { name: 'Oak log', value: 5, droppedBy: {} }, // heavy, hard, the best of them
+  // Found as they chop (lumber.ts): a pine's resin, an ancient oak's heartwood.
+  pineResin: { name: 'Pine resin', value: 6, droppedBy: {} },
+  heartwood: { name: 'Heartwood', value: 24, droppedBy: {} },
+  // Worked by a woodworker (woodworking.ts): planks from the logs, varnish from the resin.
+  birchPlank: { name: 'Birch plank', value: 3, droppedBy: {} },
+  pinePlank: { name: 'Pine plank', value: 5, droppedBy: {} },
+  oakPlank: { name: 'Oak plank', value: 8, droppedBy: {} },
+  varnish: { name: 'Varnish', value: 16, droppedBy: {} },
 } satisfies Record<string, LootEntry>;
 
 export type IngredientId = keyof typeof INGREDIENTS;

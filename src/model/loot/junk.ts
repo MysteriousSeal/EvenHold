@@ -6,6 +6,9 @@
 import type { LootEntry } from './lootEntry';
 
 export const JUNK_ITEMS = {
+  // Made by a woodworker (skills/woodworking.ts), to sell: dropped by no one.
+  woodenBowl: { name: 'Wooden bowl', value: 9, droppedBy: {} },
+  carvedTankard: { name: 'Carved tankard', value: 30, droppedBy: {} },
   // From beasts (wolves).
   wolfFang: { name: 'Wolf fang', value: 3, droppedBy: { beast: 3 } },
   mattedPelt: { name: 'Matted pelt', value: 5, droppedBy: { beast: 2, boar: 2 } },

@@ -1,10 +1,11 @@
 // The hero's skills, learnt by doing (as a crafter's or a gatherer's trade, apart from the fighting): the main ones
-// (lumberjacking: lumber.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
+// (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
-// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping; the
-// others not yet.
+// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
+// woodworking by making things; the others not yet. As in WoW, how likely a try raises it is by how hard the thing
+// is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never.
 
-export type SkillId = 'lumberjacking' | 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'cooking' | 'fishing';
 
 export interface Skill {
   name: string;
@@ -41,6 +42,24 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 25, what: 'Fell pines' },
       { at: 50, what: 'Fell oaks' },
       { at: 75, what: 'Chop quicker: a swing fewer each tier on' },
+      { at: 100, what: 'A second log now and then, the likelier the better you are' },
+      { at: 125, what: 'Fell ancient pines: two logs a chop' },
+      { at: 150, what: 'Find resin in the pines' },
+      { at: 175, what: 'Fell ancient oaks: two logs a chop, and their heartwood' },
+    ],
+  },
+  woodworking: {
+    name: 'Woodworking',
+    kind: 'main',
+    verb: 'work wood',
+    practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
+    about: 'Saw logs into planks, and planks into bowls, weapons and shields; the finest from varnished oak and ancient heartwood.',
+    unlocks: [
+      { at: 1, what: 'Birch planks, a wooden sword' },
+      { at: 50, what: 'Pine planks, a knotted club' },
+      { at: 100, what: 'Oak planks, a quarterstaff' },
+      { at: 150, what: 'Plank shields, varnish from resin' },
+      { at: 225, what: 'Heartwood: the finest staffs and shields' },
     ],
   },
   cooking: {
@@ -98,6 +117,25 @@ export function raiseSkill(hero: Skilled, skill: SkillId, by = 1): number {
   const before = record.level;
   record.level = Math.min(SKILL_MAX, before + Math.max(0, Math.floor(by)));
   return record.level - before;
+}
+
+// How hard a thing (wanting `needs` of the skill) is for someone at `level`, as WoW colours it, and how likely a try
+// at it raises the skill: orange (always), yellow, green, grey (never; nothing more to learn from it).
+export const RISE: ReadonlyArray<{ within: number; chance: number; color: string; name: string }> = [
+  { within: 25, chance: 1, color: '#ff8040', name: 'orange' },
+  { within: 50, chance: 0.6, color: '#ffd23f', name: 'yellow' },
+  { within: 75, chance: 0.25, color: '#58c060', name: 'green' },
+  { within: Infinity, chance: 0, color: '#9a9a9a', name: 'grey' },
+];
+export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
+
+// A try at something wanting `needs` (a tree felled at, a thing made): the skill raised, as its difficulty allows
+// (`roll`: 0..1, the try's own), told; the levels it rose by.
+export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void): number {
+  const level = skillOf(hero, skill).level;
+  if (roll >= difficulty(needs, level).chance || raiseSkill(hero, skill) === 0) return 0;
+  report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
+  return 1;
 }
 
 // A save's skills, as far as they're sound (an older save's: none, each at 1 when asked for).

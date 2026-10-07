@@ -61,6 +61,7 @@ import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { type Camp } from './camps/camps';
 import { Lumber } from './skills/lumber';
+import { Woodworking } from './skills/woodworking';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
@@ -118,6 +119,7 @@ export class GameModel {
   readonly welcome = new VillageWelcome(() => this); // (a village come into: its name told)
   readonly work = new Work(this); // (a job's shift, under way: jobs/work.ts)
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
+  readonly woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
   // Dev cheats: movement speed factor (1 = normal); walking through
@@ -242,7 +244,7 @@ export class GameModel {
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
-    this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6); // (chopping: on, or stopped by walking off)
+    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making: on, or stopped by walking off)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
