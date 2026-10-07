@@ -7,7 +7,8 @@
 //   up only as the tree's difficulty allows (never past the most there is), never a tree above the skill chopped;
 // - felled at exactly its chops: chopping over, out of the way, not to be chopped again, told;
 // - the logs into the bag when picked up; walking off stops a chop; a save and its reload keep what's cut;
-// - a chop that never lands, a tree it can't get to.
+// - a chop that never lands, a tree it can't get to;
+// and after, the logs worked into things (woodworking: craft below), each made checked.
 // Then a report (tests/bots/reports/lumber-…md) of what went wrong (by kind, where, the seed to play again on) and
 // what was done (trees by kind, chops, logs, the skill, time a tree); it fails if anything went wrong.
 
@@ -15,7 +16,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { GameModel } from '../../src/model/GameModel';
 import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
 import { generateRandomSeed, mulberry32 } from '../../src/util/random';
-import { REACH, WOOD, chopsIn, difficulty, treeKey } from '../../src/model/skills/lumber';
+import { REACH, WOOD, chopsIn, treeKey, woodOf } from '../../src/model/skills/lumber';
+import { difficulty } from '../../src/model/skills/skills';
+import { RECIPES, RECIPE_IDS } from '../../src/model/skills/woodworking';
+import { gearOf } from '../../src/model/human/items/gear';
 import { SKILL_MAX, skillOf } from '../../src/model/skills/skills';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { parseSave, restore, snapshot } from '../../src/model/save';
@@ -41,6 +45,8 @@ interface Tally {
   treeSeconds: number[]; // from the first swing to the fall, each tree
   unreachable: number;
   bagFull: number;
+  made: Record<string, number>; // woodworking: each recipe, how many made
+  woodworking: [number, number];
 }
 
 class LumberBot extends BotSteps {
@@ -53,7 +59,7 @@ class LumberBot extends BotSteps {
     super(model, report, rng);
     this.goal = 'lumber';
     const level = skillOf(model.hero, 'lumberjacking').level;
-    this.tally = { seed, felled: { birch: 0, pine: 0, oak: 0 }, chops: 0, logsDropped: 0, logsPicked: 0, skill: [level, level], treeSeconds: [], unreachable: 0, bagFull: 0 };
+    this.tally = { seed, felled: { birch: 0, pine: 0, oak: 0 }, chops: 0, logsDropped: 0, logsPicked: 0, skill: [level, level], treeSeconds: [], unreachable: 0, bagFull: 0, made: {}, woodworking: [1, 1] };
   }
 
   // A frame: the next step, the keys it pressed fed to the game.
@@ -113,7 +119,7 @@ class LumberBot extends BotSteps {
     let near = LOOK;
     for (const tree of this.model.trees) {
       if (Math.abs(tree.x - hero.x) > near || Math.abs(tree.z - hero.z) > near) continue;
-      if (WOOD[tree.kind].needs > level || this.tried.has(treeKey(tree)) || this.model.lumber.felled(tree)) continue;
+      if (woodOf(tree, this.model.seed).needs > level || this.tried.has(treeKey(tree)) || this.model.lumber.felled(tree)) continue;
       const d = Math.hypot(tree.x - hero.x, tree.z - hero.z);
       if (d < near) [best, near] = [tree, d];
     }
@@ -137,12 +143,12 @@ class LumberBot extends BotSteps {
           this.tried.add(treeKey(tree)); // (let be from now on, either way: never round again for it)
           const other = lumber.treeInReach;
           if (Math.hypot(tree.x - hero.x, tree.z - hero.z) > REACH) this.tally.unreachable++;
-          else if (other && WOOD[other.kind].needs > skillOf(hero, 'lumberjacking').level) this.report('tree in reach one it cannot fell, before one it can', `a ${other.kind} before the ${tree.kind} at ${tree.x},${tree.z}`);
+          else if (other && woodOf(other, this.model.seed).needs > skillOf(hero, 'lumberjacking').level) this.report('tree in reach one it cannot fell, before one it can', `a ${other.kind} before the ${tree.kind} at ${tree.x},${tree.z}`);
           return 'fail'; // (another nearer it can fell too, or out of reach: on to the next)
         }
         if (lumber.action?.kind !== 'chop') return this.report('tree it can fell refused', `${tree.kind} at ${tree.x},${tree.z}: ${JSON.stringify(lumber.action)}`), 'fail';
         if (!lumber.use() || !lumber.chopping) return this.report('chopping not begun', `${tree.kind} at ${tree.x},${tree.z}`), 'fail';
-        if (WOOD[tree.kind].needs > skillOf(hero, 'lumberjacking').level) this.report('tree above the skill chopped', `${tree.kind} at level ${skillOf(hero, 'lumberjacking').level}`);
+        if (woodOf(tree, this.model.seed).needs > skillOf(hero, 'lumberjacking').level) this.report('tree above the skill chopped', `${tree.kind} at level ${skillOf(hero, 'lumberjacking').level}`);
         begun = true;
         return 'run';
       }
@@ -177,15 +183,15 @@ class LumberBot extends BotSteps {
     this.tally.chops++;
     if (now !== was + 1) this.report('chop cut more than once', `${tree.kind}: ${was} → ${now}`);
     if (Math.abs(since - due) > 0.2 && was > 0) this.report('chop off time', `${since.toFixed(2)} s, ${due.toFixed(2)} s due`);
-    const logs = model.loot.filter((l) => l.item === WOOD[tree.kind].log && Math.hypot(l.x - tree.x, l.z - tree.z) < 1.2);
+    const logs = model.loot.filter((l) => l.item === woodOf(tree, this.model.seed).log && Math.hypot(l.x - tree.x, l.z - tree.z) < 1.2);
     if (logs.length === 0) this.report('no log by the tree', `${tree.kind} at ${tree.x},${tree.z}`);
     else this.tally.logsDropped++;
-    const wrong = model.loot.filter((l) => l.item in LOGS && l.item !== WOOD[tree.kind].log && Math.hypot(l.x - tree.x, l.z - tree.z) < 0.9);
+    const wrong = model.loot.filter((l) => l.item in LOGS && l.item !== woodOf(tree, this.model.seed).log && Math.hypot(l.x - tree.x, l.z - tree.z) < 0.9);
     if (wrong.length > 0) this.report('wrong log for the tree', `${wrong[0].item} by a ${tree.kind}`);
     const { hero } = model;
     if (hero.xp <= this.before.xp && hero.level === this.before.level) this.report('chop gave no experience', `${tree.kind}`);
     const level = skillOf(hero, 'lumberjacking').level;
-    if (level > this.tally.skill[1] && difficulty(tree.kind, this.tally.skill[1]).chance === 0) this.report('skill up off a grey tree', `${tree.kind} at ${this.tally.skill[1]}`);
+    if (level > this.tally.skill[1] && difficulty(woodOf(tree, this.model.seed).needs, this.tally.skill[1]).chance === 0) this.report('skill up off a grey tree', `${tree.kind} at ${this.tally.skill[1]}`);
     this.before = { logs: logs.length, xp: hero.xp, level: hero.level };
   }
 
@@ -226,6 +232,7 @@ function play(seed: number, problems: Problem[]): Tally {
   model.hero.equipment.mainHand = 'hatchet';
   const bot = new LumberBot(model, report, mulberry32(seed), seed);
   for (let t = 0; t < MINUTES * 60; t += FRAME) bot.tick();
+  craft(model, bot.tally, report); // (then the logs worked into things)
   // A save and its reload: what's cut kept, the felled out of the way.
   const again = new GameModel(seed, STREAMED_SIZE);
   restore(again, parseSave(JSON.stringify(snapshot(model)), seed)!);
@@ -238,6 +245,46 @@ function play(seed: number, problems: Problem[]): Tally {
   return bot.tally;
 }
 
+// The woodworking after a session (model/skills/woodworking.ts): the recipe that'd teach most of those the bag can make
+// (the hardest not grey; else the hardest), all of it made, checked as each comes: its materials out of the bag to the
+// last, one of what it makes in (gear at its level and rarity), the skill not up off a grey one; never stalled. Till
+// nothing more can be made, or a game hour's gone.
+function craft(model: GameModel, tally: Tally, report: (kind: string, detail: string) => void): void {
+  const { woodworking, hero } = model;
+  tally.woodworking[0] = skillOf(hero, 'woodworking').level;
+  for (let t = 0; t < 3600; ) {
+    const level = skillOf(hero, 'woodworking').level;
+    const can = RECIPE_IDS.filter((id) => woodworking.canMake(id) > 0);
+    if (can.length === 0) break;
+    const id = [...can].reverse().find((r) => difficulty(RECIPES[r].needs, level).chance > 0) ?? can.at(-1)!;
+    if (!woodworking.start(id, Infinity)) return void report('recipe not begun', `${id}, ${woodworking.canMake(id)} to make`);
+    let since = 0;
+    while (woodworking.making && t < 3600) {
+      const before = { ...hero.bag };
+      const skillBefore = skillOf(hero, 'woodworking').level;
+      model.update(0, 0, FRAME);
+      [t, since] = [t + FRAME, since + FRAME];
+      const made = model.takeEvents().filter((e) => e.kind === 'crafted');
+      if (made.length === 0) {
+        if (since > RECIPES[id].seconds * 2) return void report('making stalled', `${id}: ${since.toFixed(1)} s on one`);
+        continue;
+      }
+      since = 0;
+      tally.made[id] = (tally.made[id] ?? 0) + made.length;
+      for (const [material, n] of Object.entries(RECIPES[id].from)) {
+        const used = (before[material as never] ?? 0) - (hero.bag[material as never] ?? 0);
+        if (used !== n) report('materials not taken right', `${id}: ${used} ${material} taken, ${n} due`);
+      }
+      const item = made[0].kind === 'crafted' ? made[0].item : '';
+      if ((hero.bag[item as never] ?? 0) !== (before[item as never] ?? 0) + 1) report('made thing not in the bag', `${id}: ${item}`);
+      const makes = RECIPES[id].makes;
+      if (typeof makes !== 'string' && JSON.stringify(gearOf(item as never)).indexOf(`"level":${makes.level}`) < 0) report('gear made at the wrong level', `${id}: ${item}`);
+      if (skillOf(hero, 'woodworking').level > skillBefore && difficulty(RECIPES[id].needs, skillBefore).chance === 0) report('woodworking up off a grey recipe', `${id} at ${skillBefore}`);
+    }
+  }
+  tally.woodworking[1] = skillOf(hero, 'woodworking').level;
+}
+
 // Every session, then the report.
 const problems: Problem[] = [];
 const tallies: Tally[] = [];
@@ -247,7 +294,7 @@ for (const [i, seed] of SEEDS.entries()) {
   const tally = play(seed, problems);
   tallies.push(tally);
   const down = Object.values(tally.felled).reduce((a, b) => a + b, 0);
-  console.log(`  bot ${i + 1}/${SEEDS.length}, seed ${seed}: ${down} felled (${tally.felled.birch} birch, ${tally.felled.pine} pine, ${tally.felled.oak} oak), ${tally.chops} chops, skill ${tally.skill[0]} → ${tally.skill[1]}, ${Math.round((Date.now() - t0) / 1000)} s`);
+  console.log(`  bot ${i + 1}/${SEEDS.length}, seed ${seed}: ${down} felled (${tally.felled.birch} birch, ${tally.felled.pine} pine, ${tally.felled.oak} oak), ${tally.chops} chops, lumberjacking ${tally.skill[0]} → ${tally.skill[1]}; ${Object.values(tally.made).reduce((a, b) => a + b, 0)} made, woodworking ${tally.woodworking[0]} → ${tally.woodworking[1]}; ${Math.round((Date.now() - t0) / 1000)} s`);
 }
 
 const sum = (f: (t: Tally) => number) => tallies.reduce((a, t) => a + f(t), 0);
@@ -265,9 +312,9 @@ const lines = [
   '',
   '## What was done',
   '',
-  '| seed | birch | pine | oak | chops | logs dropped | logs picked | skill | unreachable | bag full |',
-  '|---|---|---|---|---|---|---|---|---|---|',
-  ...tallies.map((t) => `| ${t.seed} | ${t.felled.birch} | ${t.felled.pine} | ${t.felled.oak} | ${t.chops} | ${t.logsDropped} | ${t.logsPicked} | ${t.skill[0]} → ${t.skill[1]} | ${t.unreachable} | ${t.bagFull} |`),
+  '| seed | birch | pine | oak | chops | logs dropped | logs picked | skill | unreachable | bag full | made | woodworking |',
+  '|---|---|---|---|---|---|---|---|---|---|---|---|',
+  ...tallies.map((t) => `| ${t.seed} | ${t.felled.birch} | ${t.felled.pine} | ${t.felled.oak} | ${t.chops} | ${t.logsDropped} | ${t.logsPicked} | ${t.skill[0]} → ${t.skill[1]} | ${t.unreachable} | ${t.bagFull} | ${Object.values(t.made).reduce((a, b) => a + b, 0)} | ${t.woodworking[0]} → ${t.woodworking[1]} |`),
   '',
   `In all: ${sum((t) => t.felled.birch + t.felled.pine + t.felled.oak)} trees felled, ${sum((t) => t.chops)} chops, ${sum((t) => t.logsPicked)} logs picked up. A tree took ${times.length ? `${times[Math.floor(times.length / 2)].toFixed(1)} s (median), ${times[0].toFixed(1)}–${times.at(-1)!.toFixed(1)} s` : 'n/a'} from the first swing to its fall. Skill after ${MINUTES} minutes: ${tallies.map((t) => t.skill[1]).sort((a, b) => a - b).join(', ')}.`,
   '',

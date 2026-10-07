@@ -5,7 +5,8 @@
 // them. The prompt over a tree says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { REACH, RISE, WOOD, chopsIn, difficulty } from '../src/model/skills/lumber';
+import { REACH, WOOD, chopsIn, woodOf } from '../src/model/skills/lumber';
+import { RISE, difficulty } from '../src/model/skills/skills';
 import { MAIN_HAND_ITEMS } from '../src/model/human/items/held';
 import { gearKey, weaponTypeOf } from '../src/model/human/items/gear';
 import { SKILLS, skillOf } from '../src/model/skills/skills';
@@ -43,8 +44,8 @@ describe('trees', () => {
     const seen = new Set<number>();
     for (const tree of model.trees.slice(0, 400)) {
       const n = chopsIn(tree, model.seed);
-      expect(n).toBeGreaterThanOrEqual(WOOD[tree.kind].chops[0]);
-      expect(n).toBeLessThanOrEqual(WOOD[tree.kind].chops[1]);
+      expect(n).toBeGreaterThanOrEqual(woodOf(tree, model.seed).chops[0]);
+      expect(n).toBeLessThanOrEqual(woodOf(tree, model.seed).chops[1]);
       expect(chopsIn(tree, model.seed)).toBe(n);
       seen.add(n);
     }
@@ -127,10 +128,10 @@ describe('chopping', () => {
   });
 
   it('raises the skill the surer the harder the tree is for them: orange always, grey never', () => {
-    expect(difficulty('birch', 1)).toBe(RISE[0]);
-    expect(difficulty('birch', 30)).toBe(RISE[1]);
-    expect(difficulty('birch', 60)).toBe(RISE[2]);
-    expect(difficulty('birch', 200)).toBe(RISE[3]);
+    expect(difficulty(WOOD.birch.needs, 1)).toBe(RISE[0]);
+    expect(difficulty(WOOD.birch.needs, 30)).toBe(RISE[1]);
+    expect(difficulty(WOOD.birch.needs, 60)).toBe(RISE[2]);
+    expect(difficulty(WOOD.birch.needs, 200)).toBe(RISE[3]);
     expect(RISE.map((r) => r.chance)).toEqual([1, 0.6, 0.25, 0]);
   });
 

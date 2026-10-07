@@ -13,9 +13,9 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const { createSkillsPanel } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
-  it('are lumberjacking (a main skill), cooking and fishing (secondary), each with what it opens', () => {
-    expect(SKILL_IDS).toEqual(['lumberjacking', 'cooking', 'fishing']);
-    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'secondary', 'secondary']);
+  it('are lumberjacking and woodworking (main skills), cooking and fishing (secondary), each with what it opens', () => {
+    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'cooking', 'fishing']);
+    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary']);
     for (const id of ['cooking', 'fishing'] as const) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
     expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
     expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
@@ -61,29 +61,37 @@ const all = (selector: string) => Array.from(document.querySelectorAll(selector)
 const q = (selector: string) => all(selector).at(-1)!;
 
 describe('the skills window', () => {
-  it('lists the skills, a row each: its tier and level', () => {
+  // The skills list's rows (the newest list: each window made stays in the document).
+  const rowsOf = () => {
+    const lists = all('.menu').filter((m) => m.querySelector('.menu-slot') && m.textContent?.includes('Main skills'));
+    return Array.from(lists.at(-1)!.querySelectorAll<HTMLElement>('.menu-slot'));
+  };
+
+  it('lists the skills, a row each: its tier and level; the main over the secondary, under their headers; none told of beside', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     raiseSkill(model.hero, 'fishing', 99);
     const panel = createSkillsPanel(model);
     panel.menu.open();
-    const rows = all('.menu-slot').filter((r) => r.closest('.menu')?.querySelector('.skill-detail, .menu-detail-hint'));
-    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Lumberjacking'), expect.stringContaining('Cooking'), expect.stringContaining('Fishing')]);
-    expect(rows[1].textContent).toContain('Apprentice · 1 / 75');
-    expect(rows[2].textContent).toContain('Journeyman · 100 / 150');
+    const rows = rowsOf();
+    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Lumberjacking'), expect.stringContaining('Woodworking'), expect.stringContaining('Cooking'), expect.stringContaining('Fishing')]);
+    expect(rows[2].textContent).toContain('Apprentice · 1 / 75');
+    expect(rows[3].textContent).toContain('Journeyman · 100 / 150');
     const menu = rows[0].closest('.menu')!;
-    expect(menu.textContent).toContain('Main skills · 1');
+    expect(menu.textContent).toContain('Main skills · 2');
     expect(menu.textContent).toContain('Secondary skills · 2');
+    expect(menu.querySelector('.skill-detail')).toBeNull(); // (the list alone: a skill's in its own window)
+    expect(panel.window.menu.isOpen).toBe(false);
     panel.menu.close();
   });
 
-  it('tells of the one picked: its tier, its level, the road of its tiers with the hero on it, what it opens, how it rises', () => {
+  it("opens a skill's own window, clicked: titled with it, its tier, its level, the road of its tiers with the hero on it, what it opens, how it rises", () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     raiseSkill(model.hero, 'cooking', 99); // (100: a journeyman, a third through)
     const panel = createSkillsPanel(model);
     panel.menu.open();
-    expect(q('.skill-name').textContent).toBe('Lumberjacking'); // (the first, picked)
-    expect(q('.skill-practice').textContent).toContain('axe in hand'); // (how it's raised)
-    (all('.menu-slot').at(-2) as HTMLElement).click(); // (cooking)
+    rowsOf()[2].click(); // (cooking)
+    expect([panel.window.menu.isOpen, panel.window.skill]).toEqual([true, 'cooking']);
+    expect(panel.menu.isOpen).toBe(true); // (the list stays open beside it)
     expect(q('.skill-name').textContent).toBe('Cooking');
     expect(q('.skill-eyebrow').textContent).toBe('Journeyman cooking');
     expect(q('.skill-level').textContent).toBe('100 / 300 · 50 to Expert');
@@ -94,17 +102,28 @@ describe('the skills window', () => {
     expect(Array.from(q('.skill-unlocks').querySelectorAll('li')).map((li) => li.className)).toEqual(['open', 'open', 'locked', 'locked']);
     expect(q('.skill-unlocks').textContent).toContain('Expert');
     expect(q('.skill-practice').textContent).toContain("can't practise cooking yet");
+    // Another clicked: the same window, now its.
+    rowsOf()[0].click();
+    expect(panel.window.skill).toBe('lumberjacking');
+    expect(q('.skill-name').textContent).toBe('Lumberjacking');
+    expect(q('.skill-practice').textContent).toContain('axe in hand'); // (how it's raised)
+    rowsOf()[1].click();
+    expect(q('.recipe-list')).toBeTruthy(); // (woodworking: its recipes)
+    panel.window.menu.close();
     panel.menu.close();
   });
 
-  it('keeps up while open: a level risen, redrawn', () => {
+  it('keeps up while open: a level risen, redrawn (the list, and the skill window)', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const panel = createSkillsPanel(model);
     panel.menu.open();
+    panel.window.open('lumberjacking');
     panel.update();
     raiseSkill(model.hero, 'lumberjacking', 4);
     panel.update();
     expect(q('.skill-level').textContent).toContain('5 / 300');
+    expect(rowsOf()[0].textContent).toContain('5 / 75');
+    panel.window.menu.close();
     panel.menu.close();
   });
 });
