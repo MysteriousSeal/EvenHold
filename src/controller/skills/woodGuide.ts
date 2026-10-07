@@ -7,12 +7,12 @@
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
 import { WOOD, gradeChops, type Grade } from '../../model/skills/lumber';
-import { RISE, difficulty, skillOf } from '../../model/skills/skills';
+import { difficulty, skillOf } from '../../model/skills/skills';
+import { bookLegend, bookRow, needsLine } from './bookParts';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { el } from '../../view/ui/dom';
 
 const GRADES = Object.keys(WOOD) as Grade[];
-const TEACHES = ['Always teaches', 'Often teaches', 'Rarely teaches', 'Teaches nothing more'];
 const WHERE: Record<Grade, string> = {
   birch: 'Slender white trunks, in every wood.',
   pine: 'Tall dark spires, thick on the hills.',
@@ -36,32 +36,13 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
   list.append(el('div', 'book-group', 'Trees'));
   for (const grade of GRADES) {
     const wood = WOOD[grade];
-    const known = level >= wood.needs;
-    const button = el('button', `book-row${grade === state.picked ? ' picked' : ''}${known ? '' : ' locked'}`);
-    button.setAttribute('role', 'option');
-    button.setAttribute('aria-selected', String(grade === state.picked));
-    button.dataset.grade = grade;
-    const dot = el('i', 'book-dot');
-    const name = el('span', 'book-name', cap(wood.name));
-    if (known) [dot.style.background, name.style.color] = [difficulty(wood.needs, level).color, difficulty(wood.needs, level).color];
-    button.append(dot, name, ...(grade === best ? [el('span', 'book-best', '★')] : []), el('span', 'book-count', String(wood.needs)));
-    button.addEventListener('click', () => [(state.picked = grade), redraw()]);
-    list.append(button);
+    list.append(bookRow({ id: grade, kind: 'grade', name: cap(wood.name), needs: wood.needs, level, picked: grade === state.picked, best: grade === best, count: String(wood.needs), onPick: () => [(state.picked = grade), redraw()] }));
   }
-  const legend = el('div', 'book-legend', ...RISE.map((_r, i) => el('span', undefined, el('i'), TEACHES[i].replace(' teaches', '').replace('Teaches nothing more', 'Never'))));
-  legend.querySelectorAll('i').forEach((dot, i) => (dot.style.background = RISE[i].color));
-  return el('div', 'book', el('div', 'book-side', list, legend), detail(state.picked));
+  return el('div', 'book', el('div', 'book-side', list, bookLegend()), detail(state.picked));
 
   function detail(grade: Grade): HTMLElement {
     const wood = WOOD[grade];
-    const known = level >= wood.needs;
-    const rise = difficulty(wood.needs, level);
-    const needs = el('p', known ? 'book-needs' : 'book-needs short', `Requires Lumberjacking ${wood.needs}`);
-    if (known) {
-      const teach = el('span', 'book-teach', ` · ${TEACHES[RISE.indexOf(rise)]}`);
-      teach.style.color = rise.color;
-      needs.append(teach);
-    }
+    const needs = needsLine('Lumberjacking', wood.needs, level);
     const [least, most] = gradeChops(grade);
     const second = model.lumber.secondLogChance(level);
     const facts = el(

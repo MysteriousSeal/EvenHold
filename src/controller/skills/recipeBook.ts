@@ -10,7 +10,8 @@ import type { GameModel } from '../../model/GameModel';
 import { nameOf, qualityOf } from '../../model/hero/bag';
 import { LOOT, type LootId } from '../../model/loot/loot';
 import { gearKey } from '../../model/human/items/gear';
-import { RISE, difficulty, skillOf } from '../../model/skills/skills';
+import { difficulty, skillOf } from '../../model/skills/skills';
+import { bookLegend, bookRow, needsLine } from './bookParts';
 import { RECIPES, RECIPE_GROUPS, RECIPE_IDS, type RecipeId } from '../../model/skills/woodworking';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { QUALITY_INK } from '../../view/hud/lootPrompt';
@@ -26,7 +27,6 @@ export interface BookState {
 }
 export const newBook = (): BookState => ({ picked: null, canOnly: false, count: 1 });
 
-const TEACHES = ['Always teaches', 'Often teaches', 'Rarely teaches', 'Teaches nothing more'];
 const makesOf = (id: RecipeId) => {
   const m = RECIPES[id].makes;
   return typeof m === 'string' ? m : gearKey({ ...m, roll: 0 });
@@ -61,26 +61,14 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     for (const id of ids) list.append(row(id));
   }
   if (!list.querySelector('.book-row')) list.append(el('p', 'book-empty', 'Nothing you can make with what’s in your bag. Fell some trees, or untick the filter to see every recipe.'));
-  const legend = el('div', 'book-legend', ...RISE.map((_r, i) => el('span', undefined, el('i', undefined), TEACHES[i].replace(' teaches', '').replace('Teaches nothing more', 'Never'))));
-  legend.querySelectorAll('i').forEach((dot, i) => (dot.style.background = RISE[i].color));
-  return el('div', 'book', el('div', 'book-side', filter, list, legend), detail(state.picked));
+  return el('div', 'book', el('div', 'book-side', filter, list, bookLegend()), detail(state.picked));
 
   function row(id: RecipeId): HTMLElement {
     const recipe = RECIPES[id];
-    const known = woodworking.knows(id);
     const can = woodworking.canMake(id);
-    const button = el('button', `book-row${id === state.picked ? ' picked' : ''}${known ? '' : ' locked'}`);
-    button.setAttribute('role', 'option');
-    button.setAttribute('aria-selected', String(id === state.picked));
-    button.dataset.recipe = id;
-    const dot = el('i', 'book-dot');
-    const name = el('span', 'book-name', recipe.name);
-    if (known) [dot.style.background, name.style.color] = [difficulty(recipe.needs, level).color, difficulty(recipe.needs, level).color];
-    button.append(dot, name);
-    if (id === best) button.append(el('span', 'book-best', '★'));
-    button.append(el('span', 'book-count', known ? (can > 0 ? String(can) : '') : String(recipe.needs)));
+    const count = woodworking.knows(id) ? (can > 0 ? String(can) : '') : String(recipe.needs); // (how many now; not reached: the level it wants)
+    const button = bookRow({ id, kind: 'recipe', name: recipe.name, needs: recipe.needs, level, picked: id === state.picked, best: id === best, count, onPick: () => [(state.picked = id), (state.count = 1), redraw()] });
     if (woodworking.making?.recipe === id) button.classList.add('making');
-    button.addEventListener('click', () => [(state.picked = id), (state.count = 1), redraw()]);
     return button;
   }
 
@@ -93,13 +81,7 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     const title = el('h3', 'book-title', gear ? `${recipe.name}` : nameOf(item));
     title.style.color = gear ? QUALITY_INK[qualityOf(item)] : '';
     const kind = gear ? gearLines(item as never).map((l, i) => el('span', i === 0 ? 'book-kind' : 'book-stat', lineText(l))) : [el('span', 'book-kind', LOOT[item as LootId] && (RECIPES[id].group === 'Goods' ? `Trade good · sells for ${LOOT[item as LootId].value} copper` : 'Crafting material'))];
-    const rise = difficulty(recipe.needs, level);
-    const needs = el('p', known ? 'book-needs' : 'book-needs short', `Requires Woodworking ${recipe.needs}`);
-    if (known) {
-      const teach = el('span', 'book-teach', ` · ${TEACHES[RISE.indexOf(rise)]}`);
-      teach.style.color = rise.color;
-      needs.append(teach);
-    }
+    const needs = needsLine('Woodworking', recipe.needs, level);
     const materials = el('ul', 'book-materials');
     for (const [material, n] of Object.entries(recipe.from)) {
       const have = model.hero.bag[material as LootId] ?? 0;
