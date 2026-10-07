@@ -30,7 +30,7 @@ import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
 import './inventoryPanel.css';
 
-const COLUMNS = 8;
+const COLUMNS = 14; // (wide and low: with every bag on, eight across ran off the bottom of the screen)
 const SOCKET_ROW = BAG_SOCKETS; // the sockets, the first row; the bag's own slots from there (on a row of their own: the separator spans the grid)
 
 // A shop the hero's trading with: what its keeper would buy, for how much, and selling it them.
