@@ -18,6 +18,7 @@ import { isFloor } from './cryptLayout';
 import type { Told, ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
 import type { CryptInside } from './crypts';
+import { capitalize } from '../../util/text';
 
 // The crypt's record (any dungeon's: dungeons/dungeonRecord.ts): the lord's post is its boss's.
 export { AWARD_POST, CHEST_POST, SUMMONED, clearedShare } from '../dungeons/dungeonRecord';
@@ -37,7 +38,7 @@ export function lordName(cryptName: string): string {
   const who = of < 0 ? 'the Keeper' : cryptName.slice(of + 4);
   const one = (CRYPT_NAMES.orders as readonly string[]).includes(who);
   const name = one ? `the First of ${who}` : who; // (an order's: its first, laid there)
-  return name.charAt(0).toUpperCase() + name.slice(1);
+  return capitalize(name);
 }
 
 // Where he rises (and his chest stands): centred at the foot of his tomb, up on its dais; else the open floor nearest.

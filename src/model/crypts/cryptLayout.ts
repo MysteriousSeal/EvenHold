@@ -9,7 +9,7 @@
 // 0..depth-1 along z; the way in (the stairs up) in the +Z wall at `door`,
 // the hero arriving on the floor just inside it.
 
-import { hashCell, mulberry32 } from '../../util/random';
+import { hashCell, mulberry32, oneOf } from '../../util/random';
 import { cellKey, flood } from '../map/grid';
 
 export interface Rect {
@@ -141,7 +141,7 @@ export function planCrypt(seed: number, ruin: { x: number; z: number }): CryptPl
   };
   const stretches = places.map((p, id) => ({ p, id })).filter(({ p }) => p.kind === 'corridor' && (p.x1 - p.x0 > 3 || p.z1 - p.z0 > 3));
   for (let tries = 0; places.filter((p) => p.kind === 'side').length < MIN_SIDE && tries < 60; tries++) {
-    const { p, id } = stretches[Math.floor(rng() * stretches.length)];
+    const { p, id } = oneOf(stretches, rng());
     const room = sideRoom(p, p.x1 - p.x0 > p.z1 - p.z0 ? [1, 0] : NORTH, rng, roll);
     if (!room || !alone(room.passage, id) || !alone(room.room, id)) continue; // (both clear before either's carved: no stub left)
     carve(room.passage, 'corridor');

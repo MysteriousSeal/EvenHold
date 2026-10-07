@@ -10,6 +10,7 @@
 import { hashCell, mulberry32 } from '../../util/random';
 import { FACINGS, NEIGHBORS_4, cellKey, flood } from '../map/grid';
 import { isFloor, inFullView, type CryptPlan, type Rect } from './cryptLayout';
+import { oneOf } from '../../util/random';
 
 export type CryptPropKind = 'sconce' | 'niche' | 'cobweb' | 'skeleton' | 'slumped' | 'bones' | 'stones' | 'sarcophagus' | 'urns' | 'candles' | 'rubble' | 'dais' | 'greatSarcophagus';
 
@@ -97,7 +98,7 @@ export function furnishCrypt(seed: number, ruin: { x: number; z: number }, plan:
         if (r < 0.12) put('urns', x, z);
         else if (r < 0.18) put('rubble', x, z);
       }
-      const [cx, cz] = tilesOf(place)[Math.floor(rng() * tilesOf(place).length)];
+      const [cx, cz] = oneOf(tilesOf(place), rng());
       put('candles', cx, cz);
     } else {
       // A hall on the way: candles at two corners, bones about.

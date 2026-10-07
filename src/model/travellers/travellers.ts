@@ -10,7 +10,7 @@
 // Kept in the save, each where they were.
 
 import { ENEMY_ACTIVE_RADIUS } from '../constants';
-import { hashUnit, mulberry32 } from '../../util/random';
+import { hashUnit, mulberry32, oneOf } from '../../util/random';
 import type { Road } from '../worldgen/roads';
 import type { Humanoid } from '../human/humanoid';
 import { lookAt } from '../human/humanoid';
@@ -268,7 +268,7 @@ export class Travellers {
     const road = this.roads[t.road];
     const village = t.along <= 0 ? road.from : road.to;
     const others = this.from[village].filter((r) => r.road !== t.road);
-    const next = others.length > 0 ? others[Math.floor(hashUnit(t.id, t.road, Math.floor(t.along) + 7) * others.length)] : { road: t.road, start: t.along <= 0 };
+    const next = others.length > 0 ? oneOf(others, hashUnit(t.id, t.road, Math.floor(t.along) + 7)) : { road: t.road, start: t.along <= 0 };
     t.road = next.road;
     t.along = next.start ? 0 : this.roads[next.road].route.length - 1;
     t.way = next.start ? 1 : -1;

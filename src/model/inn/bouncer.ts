@@ -12,6 +12,7 @@ import type { Npc, NpcStep } from '../npcs/npcs';
 import { between, roll } from '../npcs/npcPlaces';
 import { roomFree } from '../npcs/npcWalk';
 import { say } from '../npcs/speech';
+import { oneOf } from '../../util/random';
 
 const AT_POST: [number, number] = [45, 75]; // seconds at his post between rounds
 const LOOK: [number, number] = [1.5, 3]; // seconds looking round at each spot of a round
@@ -59,7 +60,7 @@ function openSpot(npc: Npc, seed: number, post: Point, salt: number): Point {
   const free = roomFree(seed, npc.home);
   const tiles: Point[] = [];
   for (let x = 0; x < room.width; x++) for (let z = 1; z < room.depth - 1; z++) if (free(x, z) && Math.hypot(x - post.x, z - post.z) <= ROUND_REACH) tiles.push({ x, z });
-  return tiles[Math.floor(roll(npc, salt) * tiles.length)] ?? post;
+  return oneOf(tiles, roll(npc, salt)) ?? post;
 }
 
 // Spoken to: a gruff word, a different one each time.

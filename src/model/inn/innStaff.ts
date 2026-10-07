@@ -13,7 +13,7 @@
 //   the hero has the tables (a shift: jobs/innShift.ts), off her feet by the
 //   hearth, in an armchair if one's free.
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
 import type { Point } from '../map/obstacles';
 import { distanceTo, seatOf, type Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
@@ -82,7 +82,7 @@ const HANDED = [
   "Careful, it's a strong one tonight.",
   "Here. Don't say I never do anything for you.",
 ]
-const pick = (lines: readonly string[], n: number) => lines[Math.floor(hashUnit(n, lines.length, 29) * lines.length)];
+const pick = (lines: readonly string[], n: number) => oneOf(lines, hashUnit(n, lines.length, 29));
 const asks = (by: Npc, n: number) => (hashUnit(by.id, n, 31) < 0.5 ? pick(ASK_NAMED, n).replace('{name}', by.name) : pick(ASK, n));
 const PUT_AWAY = 1.2; // seconds washing an empty mug at the sink
 export const AT_SINK = { x: AISLE_X, z: 1.5 }; // before the washstand behind the bar (its two tiles at 0, 1..2), facing it
@@ -124,7 +124,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
     if (mug) return clearMug(npc, mug.z);
     // Opposite a patron at the bar, or somewhere along it.
     const patrons = furniture.filter((f) => f.kind === 'barStool' && sat(npcs, npc.home, f));
-    const z = patrons.length > 0 ? patrons[Math.floor(roll(npc, 1) * patrons.length)].z : 1 + Math.floor(roll(npc, 2) * barEnd);
+    const z = patrons.length > 0 ? oneOf(patrons, roll(npc, 1)).z : 1 + Math.floor(roll(npc, 2) * barEnd);
     return [
       { kind: 'go', to: { x: AISLE_X, z }, direct: true, face: TO_COUNTER },
       { kind: 'wait', for: between(npc, SERVE_WAIT, 3) },
@@ -134,7 +134,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const pickup = pickupAt(counter);
   const tables = furniture.filter((f) => f.kind === 'tavernTable');
   const busy = tables.filter((t) => furniture.some((f) => f.kind === 'chair' && distanceTo(t, f.x, f.z) <= 0.6 && sat(npcs, npc.home, f)));
-  const table = busy[Math.floor(roll(npc, 4) * busy.length)]; // (no empty table waited on)
+  const table = oneOf(busy, roll(npc, 4)); // (no empty table waited on)
   const steps: NpcStep[] = [
     { kind: 'go', to: pickup, face: Math.PI }, // facing the counter's end
     { kind: 'wait', for: between(npc, TABLE_WAIT, 5) },
@@ -157,7 +157,7 @@ function offHerFeet(npc: Npc, npcs: readonly Npc[], furniture: readonly Furnitur
     npc.resting = true;
     npc.serving = false;
     const lines = BREAK[npc.role === 'barkeep' ? 'barkeep' : 'server'];
-    steps.push({ kind: 'hand', then: () => say(npc, lines[Math.floor(roll(npc, 7) * lines.length)]) });
+    steps.push({ kind: 'hand', then: () => say(npc, oneOf(lines, roll(npc, 7))) });
   }
   // A seat by the fire: an armchair before it, else the chair nearest it (both taken by villagers: the next best).
   const hearth = furniture.find((f) => f.kind === 'hearth');

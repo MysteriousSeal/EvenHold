@@ -10,7 +10,7 @@
 import type { EquipSlot } from '../equipment';
 import type { Stat } from '../../hero/statKinds';
 import { STATS, isStat } from '../../hero/statKinds';
-import { hashUnit } from '../../../util/random';
+import { hashUnit, oneOf } from '../../../util/random';
 import { ITEMS, type ItemId } from './index';
 import type { WeaponType } from './held';
 
@@ -129,7 +129,7 @@ export function gearSpecs(key: GearKey): GearSpecs {
     const pick = (salt: number) => hashUnit(roll, i, 9100 + salt);
     const special = tier >= 2 && pick(1) < SPECIAL_ODDS;
     const pool = (special ? [...AFFIXES] : [...STATS, 'armor' as const]).filter((k) => !taken.has(k));
-    const kind = pool[Math.floor(pick(2) * pool.length)] ?? STATS.find((s) => !taken.has(s))!;
+    const kind = oneOf(pool, pick(2)) ?? STATS.find((s) => !taken.has(s))!;
     taken.add(kind);
     const amount = kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier);
     add(kind, amount, true);

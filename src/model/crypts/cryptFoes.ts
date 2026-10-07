@@ -25,6 +25,7 @@ import { EnemyDirector, type Ground } from '../enemies/enemyDirector';
 import { isFloor, type CryptPlan } from './cryptLayout';
 import { cryptBlocks, type CryptInside } from './crypts';
 import { exitDoor, floorHeight, solidTiles } from './cryptProps';
+import { kept } from '../../util/kept';
 
 export const CRYPT_FOE_ID = 3_000_000; // guards' ids: this plus their post's number (clear of the world's and the quests')
 const ARROW_SPEED = 7; // tiles a second
@@ -113,11 +114,8 @@ export function guardPosts(seed: number, inside: CryptInside): Post[] {
 export const cryptKey = (crypt: { ruin: { x: number; z: number } }): string => `${crypt.ruin.x},${crypt.ruin.z}`;
 
 // How many guards a crypt has, all told (its posts).
-const counted = new WeakMap<CryptInside, number>();
-export function guardCount(seed: number, inside: CryptInside): number {
-  if (!counted.has(inside)) counted.set(inside, guardPosts(seed, inside).length);
-  return counted.get(inside)!;
-}
+const counted = kept<CryptInside, number>();
+export const guardCount = (seed: number, inside: CryptInside): number => counted(inside, () => guardPosts(seed, inside).length);
 
 function tilesOf(x0: number, z0: number, x1: number, z1: number): string[] {
   const tiles: string[] = [];
@@ -282,23 +280,9 @@ export class CryptFoes extends DungeonFoes {
     this.arrows.push({ x: archer.x + dx * 0.25, z: archer.z + dz * 0.25, dx, dz, flown: 0, damage: archer.damage });
   }
 
-  // An arrow on, in short steps (so it can't skip past the hero or through a corner); true once it's done.
+  // An arrow on (dungeonFoes.ts flyShot); true once it's done.
   private fly(arrow: Arrow, dt: number): boolean {
-    const hero = this.director.quarry;
-    let left = ARROW_SPEED * dt;
-    while (left > 0) {
-      const step = Math.min(0.1, left);
-      left -= step;
-      arrow.x += arrow.dx * step;
-      arrow.z += arrow.dz * step;
-      arrow.flown += step;
-      if (Math.hypot(hero.x - arrow.x, hero.z - arrow.z) < ARROW_HIT) {
-        this.hooks.arrow(arrow);
-        return true;
-      }
-      if (arrow.flown > ARROW_RANGE || cryptBlocks(this.inside, arrow.x, arrow.z, 0.02)) return true;
-    }
-    return false;
+    return this.flyShot(arrow, { speed: ARROW_SPEED, hit: ARROW_HIT, range: ARROW_RANGE }, dt, (x, z) => cryptBlocks(this.inside, x, z, 0.02), () => this.hooks.arrow(arrow));
   }
 
   // Whether a bowman is drawing (for its look), and how far (0..1).

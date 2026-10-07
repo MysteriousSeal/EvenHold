@@ -30,6 +30,7 @@ import { caveBlocks, type CaveInside } from './caves';
 import { reachedFrom, solidTiles } from './caveProps';
 import type { Hollow } from './caveLayout';
 import { ERUPT, ERUPT_KNOCK, LUNGE_KNOCK, RUSH_KNOCK, SPIT, SURFACED, VOLLEY, VOLLEY_SPREAD, WEB_HIT, WEB_RANGE, WEB_SPEED, lungeMove, rushMove } from './caveMoves';
+import { kept } from '../../util/kept';
 
 export const CAVE_FOE_ID = 4_000_000; // its beasts' ids: this plus their post's number (clear of the world's, the quests', the crypts')
 const CLEAR_OF_WAY_UP = 7; // tiles from the way up no beast lies
@@ -107,11 +108,8 @@ export function cavePosts(seed: number, inside: CaveInside): Post[] {
 }
 
 // How many beasts a cave has, all told (its posts).
-const counted = new WeakMap<CaveInside, number>();
-export function beastCount(seed: number, inside: CaveInside): number {
-  if (!counted.has(inside)) counted.set(inside, cavePosts(seed, inside).length);
-  return counted.get(inside)!;
-}
+const counted = kept<CaveInside, number>();
+export const beastCount = (seed: number, inside: CaveInside): number => counted(inside, () => cavePosts(seed, inside).length);
 
 // What the brood mother's hoard holds: a fine piece (worth a hundred or more) and coins by the cave's level.
 export const caveHoard = (inside: CaveInside, seed: number): Hoard =>
@@ -277,23 +275,9 @@ export class CaveRun extends DungeonFoes {
     this.webs.push({ x: by.x + dx * 0.3, z: by.z + dz * 0.3, dx, dz, flown: 0, by });
   }
 
-  // A web on, in short steps (so it can't skip past the hero or through a corner); true once it's done.
+  // A web on (dungeonFoes.ts flyShot); true once it's done.
   private fly(web: Web, dt: number): boolean {
-    const hero = this.director.quarry;
-    let left = WEB_SPEED * dt;
-    while (left > 0) {
-      const step = Math.min(0.1, left);
-      left -= step;
-      web.x += web.dx * step;
-      web.z += web.dz * step;
-      web.flown += step;
-      if (Math.hypot(hero.x - web.x, hero.z - web.z) < WEB_HIT) {
-        this.hooks.web(web.by);
-        return true;
-      }
-      if (web.flown > WEB_RANGE || caveBlocks(this.inside, web.x, web.z, 0.02)) return true;
-    }
-    return false;
+    return this.flyShot(web, { speed: WEB_SPEED, hit: WEB_HIT, range: WEB_RANGE }, dt, (x, z) => caveBlocks(this.inside, x, z, 0.02), () => this.hooks.web(web.by));
   }
 
   free(x: number, z: number, r: number): boolean {

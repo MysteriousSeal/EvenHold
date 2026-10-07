@@ -22,6 +22,24 @@ export abstract class DungeonFoes implements DungeonRun {
   chest: { x: number; z: number; open: boolean } | null = null; // the boss's, once slain
   protected abstract readonly posts: number; // all its posts (those its foes stood at)
 
+  // A shot (a bowman's arrow, a spider's web) on along its way, in short steps (so it can't skip past the hero or
+  // through a corner): `strike` once it reaches them; true once it's done (struck, flown its range, or stopped by what
+  // `blocks` its way).
+  protected flyShot(shot: { x: number; z: number; dx: number; dz: number; flown: number }, how: { speed: number; hit: number; range: number }, dt: number, blocks: (x: number, z: number) => boolean, strike: () => void): boolean {
+    const hero = this.director.quarry;
+    let left = how.speed * dt;
+    while (left > 0) {
+      const step = Math.min(0.1, left);
+      left -= step;
+      shot.x += shot.dx * step;
+      shot.z += shot.dz * step;
+      shot.flown += step;
+      if (Math.hypot(hero.x - shot.x, hero.z - shot.z) < how.hit) return strike(), true;
+      if (shot.flown > how.range || blocks(shot.x, shot.z)) return true;
+    }
+    return false;
+  }
+
   protected constructor(
     protected readonly seed: number,
     protected readonly slain: Set<number>, // of its posts, those slain (kept: the save's)

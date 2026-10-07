@@ -16,6 +16,8 @@ import { ALE_SECONDS } from '../inn/barPatrons';
 import { callBarkeep, ordersAt, placeOrder, type BarOrder } from '../inn/barOrders';
 import { REACH, Shift, WAGE } from './shift';
 import type { JobRank } from './jobs';
+import { oneOf } from '../../util/random';
+import { capitalize } from '../../util/text';
 
 const PATIENCE = 40; // seconds a patron waits, from calling to served (and the rank's more)
 const CLUTTER = 10; // seconds less of it, sat at a table with empties left on it
@@ -130,9 +132,9 @@ export class InnShift extends Shift {
       const table = this.tableOf(npc);
       const cluttered = !!table && this.empties.some((e) => e.table === table);
       const patience = PATIENCE + this.rank.patience - (cluttered ? CLUTTER : 0);
-      this.wants.set(npc, { npc, order: ORDERS[Math.floor(this.roll(npc, 2) * ORDERS.length)], state: 'calling', patience, of: patience, ready: false });
+      this.wants.set(npc, { npc, order: oneOf(ORDERS, this.roll(npc, 2)), state: 'calling', patience, of: patience, ready: false });
       npc.awaiting = true; // (sat till it's come, or they've had enough)
-      say(npc, cluttered ? CLUTTERED[Math.floor(this.roll(npc, 6) * CLUTTERED.length)] : CALLS[Math.floor(this.roll(npc, 3) * CALLS.length)]);
+      say(npc, cluttered ? oneOf(CLUTTERED, this.roll(npc, 6)) : oneOf(CALLS, this.roll(npc, 3)));
     }
     for (const want of [...this.wants.values()]) {
       if ((want.patience -= want.state === 'calling' ? dt : dt * TAKEN) > 0 && patrons.includes(want.npc)) continue;
@@ -227,7 +229,7 @@ export class InnShift extends Shift {
   // An order taken: to the barkeep, with the bar's others (first come, first served); ready once she's set it down.
   private order(want: Want, npcs: readonly Npc[]): void {
     want.state = 'ordered';
-    say(want.npc, `${ORDER_NAMES[want.order].replace(/^./, (c) => c.toUpperCase())}, please.`);
+    say(want.npc, `${capitalize(ORDER_NAMES[want.order])}, please.`);
     want.bar = {
       stool: this.barEnd,
       by: null,
@@ -253,7 +255,7 @@ export class InnShift extends Shift {
     this.tips += tip;
     want.npc.awaiting = false;
     want.npc.drinking = { left: ALE_SECONDS, seconds: ALE_SECONDS, drink: want.order };
-    say(want.npc, THANKS[Math.floor(this.roll(want.npc, 5) * THANKS.length)]);
+    say(want.npc, oneOf(THANKS, this.roll(want.npc, 5)));
     return WAGE + tip;
   }
 

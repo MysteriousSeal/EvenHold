@@ -5,7 +5,7 @@
 
 import { ITEMS, ITEM_IDS } from '../human/equipment';
 import { rollGear, type GearKey } from '../human/items/gear';
-import { hashCell, mulberry32 } from '../../util/random';
+import { hashCell, mulberry32, oneOf } from '../../util/random';
 
 export interface Hoard {
   item: GearKey;
@@ -15,6 +15,6 @@ export interface Hoard {
 export function rollHoard(x: number, z: number, salt: number, level: number, { worth, base, spread }: { worth: number; base: number; spread: number }): Hoard {
   const rng = mulberry32(hashCell(x, z, salt));
   const fine = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= worth);
-  const [item, coins] = [fine[Math.floor(rng() * fine.length)], base * level + Math.floor(rng() * spread * level)];
+  const [item, coins] = [oneOf(fine, rng()), base * level + Math.floor(rng() * spread * level)];
   return { item: rollGear(item, level, rng, 2, 'rare'), coins };
 }

@@ -7,6 +7,7 @@ import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { Drink, Npc } from '../npcs/npcs';
 import { onShift } from '../jobs/shiftsAt';
+import { kept } from '../../util/kept';
 
 export interface BarOrder {
   stool: Furniture; // where it goes
@@ -16,14 +17,10 @@ export interface BarOrder {
   batch?: boolean; // the tables' (the hero at work: jobs/innShift.ts): poured together with the others queued, set down at once
 }
 
-const queues = new WeakMap<Entrance, BarOrder[]>();
+const queues = kept<Entrance, BarOrder[]>();
 
 // An inn's orders, the one being seen to (or next) first.
-export function ordersAt(inn: Entrance): BarOrder[] {
-  let queue = queues.get(inn);
-  if (!queue) queues.set(inn, (queue = []));
-  return queue;
-}
+export const ordersAt = (inn: Entrance): BarOrder[] => queues(inn, () => []);
 
 // Adds an order to the end; returns how many are ahead of it.
 export function placeOrder(inn: Entrance, order: BarOrder): number {

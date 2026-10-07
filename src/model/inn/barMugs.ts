@@ -6,6 +6,7 @@
 
 import type { Entrance } from '../interiors/interiors';
 import type { Drink } from '../npcs/npcs';
+import { kept } from '../../util/kept';
 
 export interface BarMug {
   z: number; // the stool's row
@@ -14,14 +15,10 @@ export interface BarMug {
   wait: number; // her rounds still to go before she'll come for it (empty)
 }
 
-const bars = new WeakMap<Entrance, BarMug[]>();
+const bars = kept<Entrance, BarMug[]>();
 
 // The mugs on an inn's bar.
-export function mugsAt(inn: Entrance): BarMug[] {
-  let mugs = bars.get(inn);
-  if (!mugs) bars.set(inn, (mugs = []));
-  return mugs;
-}
+export const mugsAt = (inn: Entrance): BarMug[] => bars(inn, () => []);
 
 // Sets a drink down at a row (replacing whatever was there): full, or the
 // empty mug left (to be cleared `wait` of her rounds on).

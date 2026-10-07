@@ -10,6 +10,7 @@
 // 150, heartwood in the ancient oaks), for the woodworker (woodworking.ts). What's cut is kept (saved).
 
 import { hashUnit } from '../../util/random';
+import { Nearby } from '../../util/nearby';
 import { weaponTypeOf } from '../human/items/gear';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero, Tree } from '../types';
@@ -77,7 +78,14 @@ export class Lumber {
   version = 0; // bumped at each chop (what's drawn of the trees and stumps, redrawn)
   chopping: { tree: Tree; t: number } | null = null; // the tree being chopped, and seconds into the chop
 
+  private nearby: Nearby<Tree> | null = null; // the trees round the hero (a streamed world has a hundred thousand: only these gone over each frame)
+
   constructor(private readonly host: LumberHost) {}
+
+  // (made the first time it's asked: the world's list of trees is the host's once it's made, and stays it)
+  private get near(): Nearby<Tree> {
+    return (this.nearby ??= new Nearby(this.host.trees, (tree) => tree, REACH, 6));
+  }
 
   // Whether a tree's been felled (gone for good).
   felled(tree: Tree): boolean {
@@ -109,7 +117,7 @@ export class Lumber {
     const level = skillOf(hero, SKILL).level;
     let best: Tree | null = null;
     let near = Infinity;
-    for (const tree of this.host.trees) {
+    for (const tree of this.near.near(hero)) {
       if (Math.abs(tree.x - hero.x) > REACH || Math.abs(tree.z - hero.z) > REACH || this.felled(tree)) continue;
       const d = Math.hypot(tree.x - hero.x, tree.z - hero.z);
       if (d > REACH) continue;

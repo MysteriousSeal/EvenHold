@@ -6,7 +6,7 @@
 // then they order another. Their stay at the bar only
 // counts once served, and they never get up mid-drink or still waiting.
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
 import type { Furniture } from '../interiors/furniture';
 import { setMug, takeMug } from './barMugs';
 import { callBarkeep, placeOrder } from './barOrders';
@@ -23,7 +23,7 @@ const WINE = 0.25; // of asking for a glass of wine, not an ale
 // Their thanks, picking it up (by her name, often).
 const THANKS_NAMED = ['Thanks, {name}.', "You're a treasure, {name}.", 'Cheers, {name}!', "{name}, you've saved my life."];
 const THANKS = ['Thank you kindly.', 'Much obliged.', "Ah, that's the stuff.", 'Bless you, love.'];
-const pick = (lines: readonly string[], n: number) => lines[Math.floor(hashUnit(n, lines.length, 43) * lines.length)];
+const pick = (lines: readonly string[], n: number) => oneOf(lines, hashUnit(n, lines.length, 43));
 
 // The inn's barkeep.
 const barkeepOf = (npcs: readonly Npc[], inn: Npc['where']) => npcs.find((n) => n.role === 'barkeep' && n.home === inn);

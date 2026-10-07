@@ -9,7 +9,7 @@
 // Placed from hashes, like the ducks and deer; their choices come from
 // hashes of where they are, so tests are repeatable.
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
 import type { Seat } from '../interiors/furniture';
 import type { Seated } from '../interiors/indoors';
 import type { MapSize } from '../map/grid';
@@ -67,7 +67,7 @@ export function spawnCats(world: CatWorld, firstId: number): Wildlife[] {
         const x = village.x + Math.round((roll(74 + t) - 0.5) * 6);
         const z = village.z + Math.round((roll(90 + t) - 0.5) * 6);
         if (!walkable(world, x, z)) continue;
-        const cat = makeCat(firstId + cats.length, COATS[Math.floor(roll(110) * COATS.length)], village, x, z, world);
+        const cat = makeCat(firstId + cats.length, oneOf(COATS, roll(110)), village, x, z, world);
         cat.pack = [cat]; // each its own
         cats.push(cat);
         break;
@@ -114,7 +114,7 @@ function nextThing(cat: Wildlife, world: CatWorld, hero: { x: number; z: number 
       .filter((b) => Math.hypot(b.x - cat.homeX, b.z - cat.homeZ) < ROAM)
       .flatMap((b) => b.seats)
       .filter((s) => !sat(world, s) && !perched(world, s, cat));
-    const seat = free[Math.floor(rollAt(cat, 83) * free.length)];
+    const seat = oneOf(free, rollAt(cat, 83));
     if (seat) {
       const [fx, fz] = seat.piece.facing ?? [0, 0];
       cat.target = { x: seat.x + fx * 0.5, z: seat.z + fz * 0.5 };

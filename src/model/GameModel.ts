@@ -16,14 +16,13 @@ import { EnemyDirector } from './enemies/enemyDirector';
 import type { TravellerCrowd } from './travellers/travellerCrowd';
 import { LiveWorld } from './world/liveWorld';
 import { SyncSource, WorldStreamer, type RegionSource } from './world/worldStreamer';
-import { bagRoom, canCarry } from './hero/bagSlots';
-import { takeFromSlot } from './hero/bagStacks';
 import { type Scenery } from './scenery/scenery';
 import { freshHero, tiredPace } from './hero/heroStats';
 import type { Obstacles } from './map/obstacles';
 import { stepHop, type Hop } from './hero/hop';
 import type { GroundLoot } from './loot/loot';
-import { addToBag, drinkPotion, eatOrDrink, takeFromBag, type BagItem } from './hero/bag';
+import { drinkPotion, eatOrDrink, type BagItem } from './hero/bag';
+import * as hands from './hero/hands';
 import { Ground } from './loot/ground';
 import type { EquipSlot } from './human/equipment';
 import type { GearKey } from './human/items/gear';
@@ -64,7 +63,6 @@ import { Lumber } from './skills/lumber';
 import { Woodworking } from './skills/woodworking';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
-const DROP_AHEAD = 0.45; // how far in front of the hero things dropped from the bag land
 
 export class GameModel {
   readonly seed: number;
@@ -332,30 +330,18 @@ export class GameModel {
   // A dungeon's foes slain for good, by its key (a crypt's ruin's corner, a cave's mouth), by post.
   cleared = (key: string): Set<number> => this.cryptsCleared.get(key) ?? this.cryptsCleared.set(key, new Set()).get(key)!;
 
-  // The loot nearest the hero within reach to pick up (outdoors), or null.
-  get lootInReach(): GroundLoot | null {
-    return (this.inside && !this.below) || this.yard ? null : this.groundHere.nearest(this.hero.x, this.hero.z);
-  }
-
-  // Takes one `item` out of the hero's bag and puts it on the ground just in
-  // front of them; returns whether they had one.
-  // `slot`: the bag's slot it's from (one off that very stack, if it's one of several).
-  dropFromBag(item: BagItem, slot?: number): boolean {
-    if (this.inside || this.yard) return false; // nothing's dropped indoors, or in the furniture yard
-    if (!(slot === undefined ? takeFromBag(this.hero.bag, item) : takeFromSlot(this.hero, slot, bagRoom(this.hero)) === item)) return false;
-    this.dropLoot(item, this.hero.x + Math.sin(this.hero.facing) * DROP_AHEAD, this.hero.z + Math.cos(this.hero.facing) * DROP_AHEAD);
-    return true;
-  }
+  // What the hero does with their hands (hero/hands.ts): the loot in reach, picked up; a thing dropped from the bag
+  // (`slot`: off that very stack), or what's worn, on the ground ahead of them; coins scooped as they pass.
+  get lootInReach(): GroundLoot | null { return hands.lootInReach(this); }
+  pickUp = (): BagItem | null => hands.pickUp(this);
+  dropFromBag = (item: BagItem, slot?: number): boolean => hands.dropFromBag(this, item, slot);
+  dropEquipped = (slot: EquipSlot): boolean => hands.dropEquipped(this, slot);
+  private scoopCoins = (): void => hands.scoopCoins(this);
 
   // Gear taken off into the bag, or worn from it (hero/wearing.ts); each returns whether it was.
   unequip = (slot: EquipSlot): boolean => takeOff(this.hero, slot);
   equipFromBag = (item: GearKey): boolean => putOn(this.hero, item);
 
-  // Takes off what's worn in `slot` and puts it on the ground in front of the hero.
-  dropEquipped(slot: EquipSlot): boolean {
-    const item = this.hero.equipment[slot];
-    return !!item && this.unequip(slot) && this.dropFromBag(item);
-  }
 
   // The door the hero can use right now (indoors.ts), or null.
   get doorInReach(): Entrance | null {
@@ -444,12 +430,6 @@ export class GameModel {
     return events;
   }
 
-  // Coins near the hero go into their purse (no need to stop for them).
-  private scoopCoins(): void {
-    const amount = this.groundHere.scoop(this.hero.x, this.hero.z);
-    this.hero.money += amount;
-    if (amount > 0) this.events.push({ kind: 'coins', amount });
-  }
 
   // The notice board the hero's at (outdoors), by its village's index; else null.
   get boardInReach(): number | null {
@@ -472,16 +452,6 @@ export class GameModel {
     return kind;
   }
 
-  // Picks up the loot in reach into the hero's bag; returns what it was, or null.
-  pickUp(): BagItem | null {
-    const loot = this.lootInReach;
-    if (!loot) return null;
-    if (!canCarry(this.hero, loot.item)) return (this.report({ kind: 'poor', text: 'Your bag is full' }), null); // (left where it lies)
-    this.groundHere.take(loot);
-    addToBag(this.hero.bag, loot.item);
-    this.quests.onPickUp(loot.item);
-    return loot.item;
-  }
 
   // The foe the hero's focused on; focusing a living one by id, null (or a dead one) letting go (hero/focus.ts).
   get focused(): Enemy | null { return this.focusOn.focused; }

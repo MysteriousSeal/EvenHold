@@ -10,6 +10,7 @@ import { pickAt } from '../../util/random';
 import type { MapSize } from '../map/grid';
 import { CAMP_NAMES, campName } from './campNames';
 import { campLevel, turn, type Camp } from './camps';
+import { capitalize } from '../../util/text';
 
 export const CHIEF_OUTFIT: Equipment = {
   head: 'hornedHelm',
@@ -26,7 +27,7 @@ export const CHIEF_OUTFIT: Equipment = {
 const asChief = (owner: string): string | null => {
   if (owner.endsWith("s'") && owner.startsWith('the ')) return null;
   const name = owner.replace(/'s$|'$/, '');
-  return name.charAt(0).toUpperCase() + name.slice(1);
+  return capitalize(name);
 };
 
 export function chiefName(camp: { x: number; z: number }, seed: number): string {

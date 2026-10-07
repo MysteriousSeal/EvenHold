@@ -61,7 +61,10 @@ export function smoothNoise(u: number, v: number, seed: number, cell: number): n
 }
 
 // Picks from lists by rolls at (x, z), each salted, the same every time (the names of places and people).
+// The item of `items` a number in 0..1 (a roll, a hash's unit) lands on: each an even share of it.
+export const oneOf = <T>(items: readonly T[], unit: number): T => items[Math.floor(unit * items.length)];
+
 export const pickAt =
   (x: number, z: number, seed: number) =>
   <T>(list: readonly T[], salt: number): T =>
-    list[Math.floor(hashUnit(x, z, seed + salt) * list.length)];
+    oneOf(list, hashUnit(x, z, seed + salt));

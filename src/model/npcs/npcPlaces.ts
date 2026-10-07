@@ -4,7 +4,7 @@
 // of their routine, the same every time on a seed.
 
 import { VILLAGE_OUTER_RADIUS } from '../constants';
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
 import type { Point } from '../map/obstacles';
 import type { Field } from '../types';
 import type { Entrance } from '../interiors/interiors';
@@ -59,7 +59,7 @@ export function benchSeat(npc: Npc, npcs: readonly Npc[], world: NpcWorld): Seat
   const seats = villageBenches(world, npc.village)
     .flatMap((b) => b.seats)
     .filter((seat) => !claimed(seat.piece, npc, npcs, world, null)); // outdoors, wherever they are now
-  return seats[Math.floor(roll(npc, 18) * seats.length)] ?? null;
+  return oneOf(seats, roll(npc, 18)) ?? null;
 }
 
 // Whether the hero's on a piece of furniture (or a bench seat), where `where` is.
@@ -97,7 +97,7 @@ export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds:
     }
   }
   // Nowhere to sit: standing, at the inn turned to the bar (waiting on a place there).
-  const spot = tiles[Math.floor(roll(npc, 32) * tiles.length)] ?? doorTile(world.seed, npc.where!);
+  const spot = oneOf(tiles, roll(npc, 32)) ?? doorTile(world.seed, npc.where!);
   const counter = atInn ? furniture.find((f) => f.kind === 'counter') : undefined;
   return [{ kind: 'go', to: spot, ...(counter && { faceToward: { x: counter.x, z: spot.z } }) }, { kind: 'wait', for: seconds }];
 }

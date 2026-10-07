@@ -25,6 +25,8 @@ import { ALE_SECONDS } from '../inn/barPatrons';
 import type { JobRank } from './jobs';
 import { FILL_SECONDS, GRADE_WORTH, gradePour, type PourGrade, type Pourable } from './pour';
 import { Shift, WAGE } from './shift';
+import { oneOf } from '../../util/random';
+import { capitalize } from '../../util/text';
 
 const CUPS: Record<Pourable, number> = { ale: 6, wine: 4 }; // clean on the shelves, as a shift begins
 const STOOL_PATIENCE = 55; // seconds a patron at the bar waits for theirs (and the rank's more)
@@ -247,7 +249,7 @@ export class BarShift extends Shift {
     const sat = (t: Furniture) => npcs.filter((n) => n.role === 'villager' && n.where === this.inn && n.seat?.piece.kind === 'chair' && distanceTo(t, n.x, n.z) <= 1 && !n.awaiting && !n.drinking);
     const ready = tables.filter((t) => !this.tickets.some((k) => k.at === t) && sat(t).length > 0);
     if (ready.length === 0) return;
-    const at = ready[Math.floor(this.roll(this.seed, 75) * ready.length)];
+    const at = oneOf(ready, this.roll(this.seed, 75));
     const patrons = sat(at).slice(0, Math.min(3, this.rank.tray + 1));
     const ordered = patrons.map((npc): Pourable => (this.roll(npc, 74) < 0.7 ? 'ale' : 'wine'));
     const table = tables.indexOf(at) + 1;
@@ -256,7 +258,7 @@ export class BarShift extends Shift {
     this.tickets.push({ table, at, patrons, ordered, drinks: [...ordered].sort(), set: [], patience, of: patience, done: false });
     const ales = ordered.filter((d) => d === 'ale').length;
     const words = [...(ales ? [named('ale', ales)] : []), ...(ordered.length > ales ? [named('wine', ordered.length - ales)] : [])].join(' and ');
-    if (server) say(server, `${words.charAt(0).toUpperCase()}${words.slice(1)} for table ${table}!`);
+    if (server) say(server, `${capitalize(words)} for table ${table}!`);
   }
 
   // Whether the hero's behind the bar (in the aisle), and how far along it from row `z`.

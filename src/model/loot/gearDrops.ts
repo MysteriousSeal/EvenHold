@@ -6,7 +6,7 @@
 import type { Enemy, EnemyKind } from '../types';
 import { ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, rollGear, type GearKey, type Rarity } from '../human/items/gear';
-import { hashCell, hashUnit, mulberry32 } from '../../util/random';
+import { hashCell, hashUnit, mulberry32, oneOf } from '../../util/random';
 
 interface Drops {
   chance: number; // of a piece, slain
@@ -30,6 +30,6 @@ export function rollGearDrop(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'human
   if (!drops || hashUnit(enemy.id, 0, 91) >= drops.chance * factor) return null;
   const rng = mulberry32(hashCell(enemy.id, enemy.level, 92));
   const worn = Object.values(enemy.human?.equipment ?? {}).filter((k): k is GearKey => !!k);
-  const item: ItemId = worn.length ? baseOf(worn[Math.floor(rng() * worn.length)]) : ITEM_IDS[Math.floor(rng() * ITEM_IDS.length)];
+  const item: ItemId = worn.length ? baseOf(oneOf(worn, rng())) : oneOf(ITEM_IDS, rng());
   return rollGear(item, enemy.level, rng, drops.luck, drops.least);
 }

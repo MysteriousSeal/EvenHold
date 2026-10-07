@@ -9,7 +9,7 @@
 // 0..depth-1 along z, the door in the +Z wall, facing the camera.
 
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
-import { hashCell, mulberry32 } from '../../util/random';
+import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Building, House } from '../types';
 
 export type BuildingType = 'house' | 'inn' | 'smithy';
@@ -77,7 +77,7 @@ const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 
 export function roomFor(seed: number, entrance: Entrance): Room {
   const rng = mulberry32(hashCell(Math.round(entrance.x * 4), Math.round(entrance.z * 4), seed));
   const roll = ([lo, hi]: [number, number]) => lo + Math.floor(rng() * (hi - lo + 1));
-  const pick = <T>(options: T[]) => options[Math.floor(rng() * options.length)];
+  const pick = <T>(options: T[]) => oneOf(options, rng());
   const type = entrance.type as BuildingType;
   const size = type === 'house' && isHerbalistHome(entrance) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom)
   const width = roll(size.width);

@@ -5,7 +5,7 @@
 // hash, not the world rng, so fields don't shift anything drawn after them.
 
 import { NEIGHBORS_4, cellLookup, inBounds, sizeOf } from '../map/grid';
-import { hashCell, mulberry32 } from '../../util/random';
+import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Field, Surface, Village } from '../types';
 
 const FIELDS_MIN = 2;
@@ -59,7 +59,7 @@ export function generateFields(
     // (sampling rather than listing every possibility keeps big maps fast).
     const candidates: Array<{ x0: number; z0: number; width: number; depth: number }> = [];
     while (candidates.length < CANDIDATES) {
-      const [short, long] = PLOT_SIZES[Math.floor(rng() * PLOT_SIZES.length)];
+      const [short, long] = oneOf(PLOT_SIZES, rng());
       const [width, depth] = rng() < 0.5 ? [short, long] : [long, short];
       const x0 = village.x - REACH_MAX + Math.floor(rng() * (2 * REACH_MAX - width + 2));
       const z0 = village.z - REACH_MAX + Math.floor(rng() * (2 * REACH_MAX - depth + 2));

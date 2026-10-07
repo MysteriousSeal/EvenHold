@@ -4,7 +4,7 @@
 // brings (word's round that the inn's short-handed: the village's folk come in now and then, for a table or a stool
 // at the bar). The jobs' own: serving the tables (innShift.ts), tending the bar (barShift.ts).
 
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
 import type { Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
@@ -67,7 +67,7 @@ export abstract class Shift {
   // A patron who's had enough: up and off, their stay over (`speak`: a word as they go).
   protected walkOut(npc: Npc, speak = true): void {
     Object.assign(npc, { awaiting: false, waited: Infinity });
-    if (speak) say(npc, WALKS[Math.floor(this.roll(npc, 4) * WALKS.length)]);
+    if (speak) say(npc, oneOf(WALKS, this.roll(npc, 4)));
   }
 
   // A number in 0..1, fresh each time, by who (or what) it's for and `salt`.
@@ -86,7 +86,7 @@ export abstract class Shift {
     const coming = (n: Npc) => n.steps.some((s) => s.kind === 'settle' && s.at === at) || (n.where === this.inn && n.seat?.piece.kind === kind);
     if (npcs.filter(coming).length >= Math.min(most, seats)) return;
     const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n));
-    const who = free[Math.floor(hashUnit(this.rolls, this.seed, 62) * free.length)];
+    const who = oneOf(free, hashUnit(this.rolls, this.seed, 62));
     if (who) visitInn(who, this.inn, this.seed, STAY[0] + hashUnit(who.id, this.rolls, 63) * (STAY[1] - STAY[0]), at);
   }
 
