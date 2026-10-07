@@ -13,6 +13,7 @@ import { SKILL_IDS, skillOf } from '../../../src/model/skills/skills';
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+const tally = (by: Record<string, number>) => Object.entries(by).map(([k, v]) => `${k} ${v}`).join(', '); // "shifts 1772, quests 338"
 
 export function playReport(player: Player, seed: number, minutes: number, problems: Problem[]): string {
   const { game: model, diary, found, persona, memory, balance } = player;
@@ -51,7 +52,7 @@ export function playReport(player: Player, seed: number, minutes: number, proble
   lines.push('## How it went, minute by minute', '', '| min | level | xp | copper | kills | deaths | quests | foes near |', '|---|---|---|---|---|---|---|---|');
   for (const m of balance.data.minutes.filter((m) => m.t % 5 === 0 || m.t === balance.data.minutes.at(-1)?.t)) lines.push(`| ${m.t} | ${m.level} | ${m.xp} | ${m.money} | ${m.kills} | ${m.deaths} | ${m.questsDone} | ${m.foesNear} |`);
   lines.push('', `Levels reached at: ${balance.data.levelAt.slice(2).map((s, i) => `${i + 2} at ${clock(s)}`).join(', ') || 'none past the first'}.`, '');
-  lines.push('**Coin in:** ' + Object.entries(balance.data.income).map(([k, v]) => `${k} ${v}`).join(', ') + '. **Coin out:** ' + (Object.entries(balance.data.spent).map(([k, v]) => `${k} ${v}`).join(', ') || 'nothing') + '. **Experience from:** ' + Object.entries(balance.data.xpFrom).map(([k, v]) => `${k} ${v}`).join(', ') + '.', '');
+  lines.push(`**Coin in:** ${tally(balance.data.income)}. **Coin out:** ${tally(balance.data.spent) || 'nothing'}. **Experience from:** ${tally(balance.data.xpFrom)}.`, '');
   if (balance.data.falls.length) lines.push('**Falls:** ' + balance.data.falls.map((f) => `at ${clock(f.t)} (level ${f.heroLevel}, by ${[...new Set(f.by.map((b) => b.split(' ')[0]))].join(', ') || 'no one near'})`).join('; ') + '.', '');
 
   // Discovery.

@@ -33,6 +33,7 @@ Every game is a different player in a different world.
 - `  kills +1, orders +18` — the tally changing that second.
 - `— level · health · energy · copper · quests · where` — every game minute.
 - `thought of X, but nothing came of it` — chosen, but its steps found no way (then not tried again for a minute).
+- The bed is taken when tired *or* hurt (a bed mends); the player stays till rested and mended.
 - `⚠ kind: detail` — a fault the game's checks caught, or `player stuck in an activity` (its time budget run over).
 
 ## Reading the report
@@ -79,7 +80,7 @@ Rules worth knowing:
 - **Outdoors by default.** Unless `indoors: true`, the player leaves whatever building it's in first, and the steps are worked out once it's outside. Set `indoors` only for activities that cope with being inside (heal does; craft doesn't care).
 - **Keep to `p`, the toolkit** (`Toolkit` in `player.ts`): `p.model`, `p.persona`, `p.rng`, `p.known` (villages, doors, camps seen), `p.stats`, `p.skipped`; `p.go('goal')` for anything the bot already knows how to do (its goal names are in `../bot.ts` `stepsFor`); `p.walk`, `p.until`, `p.pickUp`, `p.nearestFoe`, `p.dungeonTrip`, `p.campRaid`, `p.workShift`, `p.meet`, `p.herbalistVisit`; `p.report(kind, detail)` for a game fault, `p.log` for the diary. If a new activity needs a bot step that isn't lent out yet, add it to `Toolkit` and to `kit` in the `Player` constructor.
 - **Use the seed's dice** (`p.rng`), never `Math.random`, so a seed replays the same.
-- **Count what's new** in the tally if the report should show it: add a field to `BotStats` in `../botSteps.ts` (and its zero), as `logs` and `crafted` were.
+- **Count what's new** in the tally if the report should show it: add a field to `BotStats` in `../botSteps.ts` (and its zero), as `logs` and `crafted` are.
 
 ## Tuning the brain
 
@@ -94,7 +95,7 @@ Rules worth knowing:
 
 ## Adding a design signal
 
-`signals()` in `report.ts` is a list of plain checks over the hour: the diary (`player.diary`: every activity, its outcome, xp, coin, hurt, seconds), the minute-by-minute (`player.balance.data`), what was found (`player.found`), what was learnt (`player.memory.learnt`), `player.idle` (seconds with nothing to do) and `player.lowHealth` (seconds under 40% health). Push a sentence when a threshold is crossed; say what it suggests about the game, not just the number. Keep the list short: it's the part that gets read.
+`signals()` in `report.ts` is a list of plain checks over the hour (the camps-at-the-start one counts only what's in sight before a step is taken: the one near camp is by design): the diary (`player.diary`: every activity, its outcome, xp, coin, hurt, seconds), the minute-by-minute (`player.balance.data`), what was found (`player.found`), what was learnt (`player.memory.learnt`), `player.idle` (seconds with nothing to do) and `player.lowHealth` (seconds under 40% health). Push a sentence when a threshold is crossed; say what it suggests about the game, not just the number. Keep the list short: it's the part that gets read.
 
 ## Determinism
 

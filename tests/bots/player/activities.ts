@@ -6,7 +6,9 @@
 
 import type { Entrance } from '../../../src/model/interiors/interiors';
 import type { Camp } from '../../../src/model/camps/camps';
-import type { Tree } from '../../../src/model/types';
+import type { Enemy, Tree } from '../../../src/model/types';
+import type { Npc } from '../../../src/model/npcs/npcs';
+import type { Traveller } from '../../../src/model/travellers/travellers';
 import { dungeonAt } from '../../../src/model/dungeons/dungeons';
 import { campLevel } from '../../../src/model/camps/camps';
 import { campName } from '../../../src/model/camps/campNames';
@@ -93,7 +95,7 @@ export const ACTIVITIES: Activity[] = [
       const foe = p.context().foe;
       return foe && p.model.hero.hp > maxHpOf(p.model.hero) * 0.6 ? [{ label: `a ${foe.kind} (level ${foe.level})`, at: foe, data: foe }] : [];
     },
-    steps: (p, t) => p.go('fight', { foe: t.data as never }),
+    steps: (p, t) => p.go('fight', { foe: t.data as Enemy }),
   },
   {
     id: 'hunt',
@@ -113,7 +115,7 @@ export const ACTIVITIES: Activity[] = [
       const loot = p.context().loot;
       return loot ? [{ label: 'something lying on the ground', at: loot, data: loot }] : [];
     },
-    steps: (p, t) => p.go('loot', { loot: t.data as never }),
+    steps: (p, t) => p.go('loot', { loot: t.data as { x: number; z: number } }),
   },
   {
     id: 'heal',
@@ -225,7 +227,7 @@ export const ACTIVITIES: Activity[] = [
       const t = nearest(p, p.model.travellers.list.filter((t) => t.role === 'pedlar'), (t) => t, 60);
       return t ? [{ label: 'a pedlar on the road', at: t, data: t }] : [];
     },
-    steps: (p, t) => p.meet(t.data as never),
+    steps: (p, t) => p.meet(t.data as Traveller),
   },
   {
     id: 'traveller',
@@ -235,7 +237,7 @@ export const ACTIVITIES: Activity[] = [
       const t = nearest(p, p.model.travellers.list.filter((t) => t.role !== 'pedlar'), (t) => t, 60);
       return t ? [{ label: `a ${t.role} on the road`, at: t, data: t }] : [];
     },
-    steps: (p, t) => p.meet(t.data as never),
+    steps: (p, t) => p.meet(t.data as Traveller),
   },
   {
     id: 'herbalist',
@@ -245,7 +247,7 @@ export const ACTIVITIES: Activity[] = [
       const h = nearest(p, p.model.npcs.filter((n) => n.role === 'herbalist' && n.where === n.home && p.known.doors.has(n.home)), (n) => n.home, 250);
       return h && p.model.hero.money >= 20 ? [{ label: "the herbalist's", at: h.home, data: h }] : [];
     },
-    steps: (p, t) => p.herbalistVisit(t.data as never),
+    steps: (p, t) => p.herbalistVisit(t.data as Npc),
   },
   {
     id: 'work',
@@ -286,7 +288,6 @@ export const ACTIVITIES: Activity[] = [
       // The logs round the stump, picked up, one after another.
       let going: Step | null = null;
       const gather: Step = (dt) => {
-        const { hero } = model;
         const log = model.loot.filter((l) => near(p, l) < 4 && !p.skipped.has(l)).sort((a, b) => near(p, a) - near(p, b))[0];
         if (!log) return 'ok';
         going ??= p.walk(() => log, PICKUP_RANGE * 0.7);
@@ -295,7 +296,6 @@ export const ACTIVITIES: Activity[] = [
         going = null;
         if (walked === 'fail' || p.pickUp(log) !== 'ok') p.skipped.add(log);
         else p.stats.logs++;
-        void hero;
         return 'run';
       };
       return [p.walk(() => tree, REACH - 0.3), chop, gather];
@@ -312,7 +312,7 @@ export const ACTIVITIES: Activity[] = [
     },
     steps: (p, t) => [
       () => {
-        if (!p.model.woodworking.start(t.data as never, Infinity)) return 'fail';
+        if (!p.model.woodworking.start(t.data as keyof typeof RECIPES, Infinity)) return 'fail';
         p.stats.crafted += p.model.woodworking.making?.of ?? 0;
         return 'ok';
       },

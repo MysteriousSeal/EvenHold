@@ -21,6 +21,8 @@ export interface BotStats {
   levels: number;
   questsTaken: number;
   questsDone: number;
+  logs: number; // logs picked up off the ground (the player's chopping)
+  crafted: number; // things made at the woodworking
   ales: number;
   pies: number;
   meals: number;
@@ -46,7 +48,7 @@ export interface BotStats {
 
 
 export class BotSteps {
-  readonly stats: BotStats = { kills: 0, deaths: 0, levels: 0, questsTaken: 0, questsDone: 0, ales: 0, pies: 0, meals: 0, sleeps: 0, trades: 0, buildings: 0, upstairs: 0, benches: 0, wishes: 0, rolls: 0, guards: 0, dungeons: 0, chests: 0, camps: 0, pedlars: 0, herbalists: 0, travellers: 0, actions: 0, shifts: 0, orders: 0, goals: {} };
+  readonly stats: BotStats = { kills: 0, deaths: 0, levels: 0, questsTaken: 0, questsDone: 0, logs: 0, crafted: 0, ales: 0, pies: 0, meals: 0, sleeps: 0, trades: 0, buildings: 0, upstairs: 0, benches: 0, wishes: 0, rolls: 0, guards: 0, dungeons: 0, chests: 0, camps: 0, pedlars: 0, herbalists: 0, travellers: 0, actions: 0, shifts: 0, orders: 0, goals: {} };
   protected readonly nav: Nav;
   protected goal = 'none';
   protected move: [number, number] = [0, 0]; // the keys pressed this frame

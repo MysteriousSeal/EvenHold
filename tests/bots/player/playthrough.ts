@@ -106,7 +106,7 @@ for (; t < minutes * 60; t += DT) {
   }
 }
 player.balance.sample(minutes * 60, player.stats);
-(player as unknown as { plan(): void }).plan(); // (the last thing done, written up)
+player.close(); // (the last thing done, written up)
 
 const text = playReport(player, seed, minutes, problems);
 const dir = resolve('tests/bots/reports');

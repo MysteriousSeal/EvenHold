@@ -67,6 +67,11 @@ const gearOf = (model: GameModel) => Object.values(model.hero.equipment).reduce(
 export class Balance {
   readonly data: BalanceData = { minutes: [], levelAt: [0, 0], fights: [], falls: [], quests: [], income: {}, spent: {}, xpFrom: {}, foeKinds: {} };
   private xpEarned = 0;
+
+  // All the experience earned so far (across level ups: the whole of it).
+  get earned(): number {
+    return this.xpEarned;
+  }
   private seen = 1; // the level last seen
   private t = 0; // game seconds
   private minute = -1; // the last game minute written down

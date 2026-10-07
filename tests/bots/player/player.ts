@@ -9,6 +9,8 @@ import type { GameModel } from '../../../src/model/GameModel';
 import type { Entrance } from '../../../src/model/interiors/interiors';
 import type { Camp } from '../../../src/model/camps/camps';
 import type { Enemy } from '../../../src/model/types';
+import type { Npc } from '../../../src/model/npcs/npcs';
+import type { Traveller } from '../../../src/model/travellers/travellers';
 import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
 import { dungeonAt } from '../../../src/model/dungeons/dungeons';
 import { campName } from '../../../src/model/camps/campNames';
@@ -49,7 +51,7 @@ export interface Toolkit {
   readonly persona: Persona;
   readonly rng: () => number;
   readonly known: { villages: Set<number>; doors: Set<Entrance>; camps: Set<Camp> };
-  readonly stats: BotStats & { logs: number; crafted: number };
+  readonly stats: BotStats;
   readonly skipped: Set<unknown>;
   context(): PlanContext;
   alehouse(): Entrance | null;
@@ -62,8 +64,8 @@ export interface Toolkit {
   dungeonTrip(door: Entrance): Step[];
   campRaid(camp: Camp): Step[];
   workShift(inn: Entrance, resume: boolean, job: 'innServer' | 'innBarkeep'): Step[];
-  meet(traveller: never): Step[];
-  herbalistVisit(herbalist: never): Step[];
+  meet(traveller: Traveller): Step[];
+  herbalistVisit(herbalist: Npc): Step[];
   report: Report;
   log(what: string): void;
 }
@@ -77,7 +79,7 @@ export class Player extends Bot {
   readonly kit: Toolkit;
   idle = 0; // game seconds with nothing to do at all
   lowHealth = 0; // game seconds under 40% health (no way to mend: a finding)
-  private current: { activity: Activity; target: Target; why: string; at: number; before: { xp: number; level: number; money: number; hp: number; deaths: number } } | null = null;
+  private current: { activity: Activity; target: Target; why: string; at: number; before: { earned: number; level: number; money: number; hp: number; deaths: number } } | null = null;
   private failed = false;
   private lastFound = 0;
   private dwell = 0; // seconds to pause before the next choice (after one that came to nothing at once)
@@ -89,13 +91,12 @@ export class Player extends Bot {
   constructor(model: GameModel, report: Report, rng: () => number, log: (what: string) => void) {
     super(model, report, rng, log);
     this.persona = drawPersona(rng);
-    Object.assign(this.stats, { logs: 0, crafted: 0 });
     this.kit = {
       model,
       persona: this.persona,
       rng,
       known: this.known,
-      stats: this.stats as Toolkit['stats'],
+      stats: this.stats,
       skipped: this.skipped,
       context: () => this.context(),
       alehouse: () => this.alehouse(),
@@ -221,7 +222,7 @@ export class Player extends Bot {
     this.stats.goals[activity.id] = (this.stats.goals[activity.id] ?? 0) + 1;
     this.memory.began(activity.id, this.seconds);
     const { hero } = this.model;
-    this.current = { activity, target, why, at: this.seconds, before: { xp: hero.xp, level: hero.level, money: hero.money, hp: hero.hp, deaths: this.stats.deaths } };
+    this.current = { activity, target, why, at: this.seconds, before: { earned: this.balance.earned, level: hero.level, money: hero.money, hp: hero.hp, deaths: this.stats.deaths } };
     this.failed = false;
     this.todo = this.budgeted(activity, target, steps);
   }
@@ -243,6 +244,11 @@ export class Player extends Bot {
     });
   }
 
+  // The activity under way written up (the game over: the last thing done, too).
+  close(): void {
+    this.finish();
+  }
+
   // The activity under way written up: what it brought and cost, how it ended; and learnt from.
   private finish(): void {
     const c = this.current;
@@ -251,7 +257,7 @@ export class Player extends Bot {
     const { hero } = this.model;
     const fell = this.stats.deaths > c.before.deaths;
     const seconds = this.seconds - c.at;
-    const xp = this.xpSince(c.before);
+    const xp = this.balance.earned - c.before.earned;
     const coin = hero.money - c.before.money;
     const hurt = fell ? 1 : Math.max(0, c.before.hp - hero.hp) / maxHpOf(hero);
     const outcome: Done['outcome'] = fell ? 'fell' : this.failed ? 'fail' : seconds < 2 ? 'cut short' : 'ok';
@@ -268,10 +274,5 @@ export class Player extends Bot {
     this.log(`${outcome === 'ok' ? 'done' : outcome}: ${c.target.label} in ${Math.round(seconds)} s${gains ? ` (${gains})` : ''}`);
   }
 
-  // Experience gained since `before` (across a level up, all of it).
-  private xpSince(before: { level: number; xp: number }): number {
-    const { hero } = this.model;
-    if (hero.level === before.level) return Math.max(0, hero.xp - before.xp);
-    return Math.max(0, hero.xp + (hero.level - before.level) * 100 - before.xp); // (about: a level's worth each)
-  }
+
 }
