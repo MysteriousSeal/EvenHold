@@ -86,6 +86,7 @@ export function createMenu(options: MenuOptions): Menu {
   let selected = 0;
   let rows: HTMLButtonElement[] = [];
   let grid: { buttons: HTMLButtonElement[]; cells: Array<MenuSlot | null>; columns: number; selected: number } | null = null;
+  let keepChosen: { key: string | undefined; at: number; lit: boolean } | null = null; // (redrawing: the slot chosen before)
   // A slot's tooltip, beside it (outside the panel, so nothing clips it), kept EDGE px inside the window.
   const EDGE = 8;
   const tooltip = el('div', 'menu-tooltip');
@@ -145,6 +146,7 @@ export function createMenu(options: MenuOptions): Menu {
     const button = el('button', cell ? `menu-slot${cell.dim ? ' dim' : ''}${cell.warn ? ' warn' : ''}` : 'menu-slot empty');
     if (cell) {
       if (cell.tone) button.dataset.tone = cell.tone; // (gear's rarity: its frame tinted, menu.css)
+      if (cell.key) button.dataset.key = cell.key; // (who it is, on the page too)
       button.append(cell.icon(iconSize));
       if (row && cell.check) {
         const { on, label, locked, toggle } = cell.check;
@@ -277,8 +279,12 @@ export function createMenu(options: MenuOptions): Menu {
       detailPane = null;
       list.append(box);
     }
+    // The first told of (a shop's first ware beside it; a hovered grid's, none lit till hovered); redrawn, the one
+    // chosen before, straight off (never the first on the way: what its panel says, a warning, a button armed to be
+    // sure, is the chosen one's, and stays it).
+    const kept = keepChosen?.key ? cells.findIndex((c) => c?.key === keepChosen!.key) : -1;
     grid = { buttons, cells, columns, selected: 0 };
-    selectSlot(0, false, !!detail); // (a shop's first ware told of beside; a hovered grid, none lit till hovered)
+    selectSlot(kept >= 0 ? kept : keepChosen ? Math.min(keepChosen.at, cells.length - 1) : 0, false, keepChosen ? keepChosen.lit : !!detail);
   }
 
   // The paper doll: the figure in the middle, slots down each side and
@@ -406,11 +412,9 @@ export function createMenu(options: MenuOptions): Menu {
       if (!api.isOpen) return;
       const tip = tipped;
       const keep = grid?.selected ?? 0;
-      const key = grid?.cells[keep]?.key;
-      const lit = !!grid?.buttons[keep]?.classList.contains('selected');
-      showTab(tabIndex);
-      const moved = key ? (grid?.cells.findIndex((c) => c?.key === key) ?? -1) : -1;
-      if (grid) selectSlot(moved >= 0 ? moved : keep, false, lit);
+      keepChosen = grid ? { key: grid.cells[keep]?.key, at: keep, lit: !!grid.buttons[keep]?.classList.contains('selected') } : null;
+      showTab(tabIndex); // (the one chosen, chosen again: wherever it's moved to)
+      keepChosen = null;
       if (tip !== null) showTip(tip);
     },
   };
