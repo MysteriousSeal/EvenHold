@@ -41,6 +41,8 @@ const SECOND_LOG: [number, number] = [100, 0.5]; // from this level a second log
 // A tree's grade (its kind's, or an ancient one's).
 export const gradeOf = (tree: Tree, seed: number): Grade => (tree.kind !== 'birch' && hashUnit(tree.x, tree.z, seed + 404) < ANCIENT ? (tree.kind === 'pine' ? 'ancientPine' : 'ancientOak') : tree.kind);
 export const woodOf = (tree: Tree, seed: number): Wood => WOOD[gradeOf(tree, seed)];
+// How many chops a grade of tree takes, least and most.
+export const gradeChops = (grade: Grade): [number, number] => WOOD[grade].chops;
 const MOST_CHOPS = Math.max(...Object.values(WOOD).map((w) => w.chops[1])); // any tree's, at most
 export const SWING = 0.9; // seconds a swing of the axe
 const SWINGS = 3; // swings a chop, at the skill's first tier
@@ -174,7 +176,7 @@ export class Lumber {
     const wood = woodOf(tree, this.host.seed);
     const level = skillOf(hero, SKILL).level;
     const roll = (salt: number) => hashUnit(tree.x * 13 + cut, tree.z * 7 + level, salt);
-    const second = level >= SECOND_LOG[0] && roll(405) < ((level - SECOND_LOG[0]) / (300 - SECOND_LOG[0])) * SECOND_LOG[1];
+    const second = roll(405) < this.secondLogChance(level);
     const drops: LootId[] = Array.from({ length: wood.logs + (second ? 1 : 0) }, () => wood.log);
     if (wood.find && level >= wood.find.from && roll(406) < wood.find.chance) drops.push(wood.find.item);
     for (const [i, item] of drops.entries()) this.dropBeside(tree, item, cut * 5 + i);
@@ -184,6 +186,11 @@ export class Lumber {
     this.chopping = null; // down: gone for good, out of the way
     this.host.world.obstacles.clearProp(tree.x, tree.z);
     this.host.report({ kind: 'felled', x: tree.x, z: tree.z });
+  }
+
+  // The chance of a second log a chop, at `level` (none under SECOND_LOG's level, growing to its most at the top).
+  secondLogChance(level: number): number {
+    return level < SECOND_LOG[0] ? 0 : ((level - SECOND_LOG[0]) / (300 - SECOND_LOG[0])) * SECOND_LOG[1];
   }
 
   // Something knocked loose beside a tree, toward the hero, a little apart from the rest (`n`: which, to spread them).

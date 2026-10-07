@@ -35,8 +35,13 @@ export type RecipeId =
   | 'heartwoodShield'
   | 'heartwoodStaff';
 
+// What a recipe makes, to list it under (the skill's window: its sections).
+export type RecipeGroup = 'Materials' | 'Goods' | 'Weapons' | 'Shields';
+export const RECIPE_GROUPS: readonly RecipeGroup[] = ['Materials', 'Goods', 'Weapons', 'Shields'];
+
 export interface Recipe {
   name: string;
+  group: RecipeGroup;
   needs: number; // the skill it wants (and its difficulty goes by)
   from: Partial<Record<LootId, number>>; // its materials, each how many
   makes: LootId | { item: ItemId; level: number; rarity: Rarity }; // what it makes: a material or goods, or a piece of gear made so
@@ -45,19 +50,19 @@ export interface Recipe {
 
 // The recipes, in the order of the skill they want.
 export const RECIPES: Record<RecipeId, Recipe> = {
-  birchPlank: { name: 'Birch plank', needs: 1, from: { birchLog: 1 }, makes: 'birchPlank', seconds: 2 },
-  woodenSword: { name: 'Wooden sword', needs: 10, from: { birchPlank: 2 }, makes: { item: 'woodenSword', level: 3, rarity: 'common' }, seconds: 3 },
-  woodenBowl: { name: 'Wooden bowl', needs: 25, from: { birchPlank: 1 }, makes: 'woodenBowl', seconds: 2.5 },
-  pinePlank: { name: 'Pine plank', needs: 50, from: { pineLog: 1 }, makes: 'pinePlank', seconds: 2 },
-  knottedClub: { name: 'Knotted club', needs: 65, from: { pinePlank: 2, birchPlank: 1 }, makes: { item: 'club', level: 8, rarity: 'common' }, seconds: 3 },
-  quarterstaff: { name: 'Quarterstaff', needs: 90, from: { pinePlank: 3 }, makes: { item: 'quarterstaff', level: 11, rarity: 'common' }, seconds: 3.5 },
-  oakPlank: { name: 'Oak plank', needs: 100, from: { oakLog: 1 }, makes: 'oakPlank', seconds: 2 },
-  carvedTankard: { name: 'Carved tankard', needs: 125, from: { oakPlank: 2 }, makes: 'carvedTankard', seconds: 3 },
-  plankShield: { name: 'Plank shield', needs: 150, from: { oakPlank: 3, pinePlank: 1 }, makes: { item: 'plankShield', level: 16, rarity: 'common' }, seconds: 4 },
-  varnish: { name: 'Varnish', needs: 160, from: { pineResin: 2 }, makes: 'varnish', seconds: 2.5 },
-  varnishedStaff: { name: 'Varnished quarterstaff', needs: 200, from: { oakPlank: 4, varnish: 1 }, makes: { item: 'quarterstaff', level: 22, rarity: 'uncommon' }, seconds: 4 },
-  heartwoodShield: { name: 'Heartwood shield', needs: 240, from: { heartwood: 2, oakPlank: 3, varnish: 1 }, makes: { item: 'plankShield', level: 28, rarity: 'rare' }, seconds: 5 },
-  heartwoodStaff: { name: 'Heartwood staff', needs: 270, from: { heartwood: 3, varnish: 2 }, makes: { item: 'quarterstaff', level: 32, rarity: 'rare' }, seconds: 5 },
+  birchPlank: { name: 'Birch plank', group: 'Materials', needs: 1, from: { birchLog: 1 }, makes: 'birchPlank', seconds: 2 },
+  woodenSword: { name: 'Wooden sword', group: 'Weapons', needs: 10, from: { birchPlank: 2 }, makes: { item: 'woodenSword', level: 3, rarity: 'common' }, seconds: 3 },
+  woodenBowl: { name: 'Wooden bowl', group: 'Goods', needs: 25, from: { birchPlank: 1 }, makes: 'woodenBowl', seconds: 2.5 },
+  pinePlank: { name: 'Pine plank', group: 'Materials', needs: 50, from: { pineLog: 1 }, makes: 'pinePlank', seconds: 2 },
+  knottedClub: { name: 'Knotted club', group: 'Weapons', needs: 65, from: { pinePlank: 2, birchPlank: 1 }, makes: { item: 'club', level: 8, rarity: 'common' }, seconds: 3 },
+  quarterstaff: { name: 'Quarterstaff', group: 'Weapons', needs: 90, from: { pinePlank: 3 }, makes: { item: 'quarterstaff', level: 11, rarity: 'common' }, seconds: 3.5 },
+  oakPlank: { name: 'Oak plank', group: 'Materials', needs: 100, from: { oakLog: 1 }, makes: 'oakPlank', seconds: 2 },
+  carvedTankard: { name: 'Carved tankard', group: 'Goods', needs: 125, from: { oakPlank: 2 }, makes: 'carvedTankard', seconds: 3 },
+  plankShield: { name: 'Plank shield', group: 'Shields', needs: 150, from: { oakPlank: 3, pinePlank: 1 }, makes: { item: 'plankShield', level: 16, rarity: 'common' }, seconds: 4 },
+  varnish: { name: 'Varnish', group: 'Materials', needs: 160, from: { pineResin: 2 }, makes: 'varnish', seconds: 2.5 },
+  varnishedStaff: { name: 'Varnished quarterstaff', group: 'Weapons', needs: 200, from: { oakPlank: 4, varnish: 1 }, makes: { item: 'quarterstaff', level: 22, rarity: 'uncommon' }, seconds: 4 },
+  heartwoodShield: { name: 'Heartwood shield', group: 'Shields', needs: 240, from: { heartwood: 2, oakPlank: 3, varnish: 1 }, makes: { item: 'plankShield', level: 28, rarity: 'rare' }, seconds: 5 },
+  heartwoodStaff: { name: 'Heartwood staff', group: 'Weapons', needs: 270, from: { heartwood: 3, varnish: 2 }, makes: { item: 'quarterstaff', level: 32, rarity: 'rare' }, seconds: 5 },
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
