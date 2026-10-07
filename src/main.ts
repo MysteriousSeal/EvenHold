@@ -329,6 +329,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
       else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [`${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them)
       else if (event.kind === 'crafted') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${nameOf(event.item)}`], QUALITY_INK[qualityOf(event.item)]); // (made: what, in its quality's colour)
+      else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
