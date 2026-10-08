@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { innWants } from '../src/model/inn/tavernShop';
 import { GameModel } from '../src/model/GameModel';
 import { spawnOf } from '../src/model/map/grid';
 import { zoneLevel } from '../src/model/enemies/enemyLevels';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress, isOrder } from '../src/model/quests/quests';
+import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
 import { RESPAWN_EVERY } from '../src/model/quests/questBook';
 import { TEST_MAP_SIZE, TEST_SEEDS, fresh, eachSeed } from './support/testWorld';
@@ -26,7 +27,7 @@ describe('quests', () => {
     expect(offers).toHaveLength(OFFERS);
     expect(fresh().quests.offersAt(0)).toEqual(offers);
     for (const q of offers) {
-      if (isOrder(q.item)) continue; // (an inn's order: innTrade.test.ts)
+      if (innWants(q.item)) continue; // (an inn's order: innTrade.test.ts)
       const [least, most] = q.kind === 'kill' ? [6, 8] : [4, 6];
       expect(q.count).toBeGreaterThanOrEqual(least);
       expect(q.count).toBeLessThanOrEqual(most);

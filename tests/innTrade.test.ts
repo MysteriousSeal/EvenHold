@@ -1,13 +1,14 @@
-// The inn's trade in a woodworker's cups (inn/tavernShop.ts INN_PAYS): bought at her standing price, over the junk one;
+// The inn's trade in a woodworker's cups (inn/tavernShop.ts INN_WANTS): bought at her standing price, over the junk one;
 // those sold her stock her cupboard, out on the shelves for a barkeep's shift there (jobs/work.ts); and her orders on
-// the village's board (quests.ts ORDERS): so many cups, no foes to it, paid her price and over on handing them in.
+// the village's board (quests.ts orderAt, by the same table): so many cups, no foes to it, paid her price and over on handing them in.
 import { describe, expect, it } from 'vitest';
-import { INN_PAYS, sell, shopAt } from '../src/model/inn/tavernShop';
+import { INN_WANTS, sell, shopAt, innWants, type InnWant } from '../src/model/inn/tavernShop';
 import { sellValue } from '../src/model/shops/sellValue';
 import { doorNumber } from '../src/model/interiors/interiors';
 import { CUPBOARD_OUT } from '../src/model/jobs/work';
+import { takeStock } from '../src/model/shops/shopStock';
 import type { BarShift } from '../src/model/jobs/barShift';
-import { OFFERS, isOrder, questTitle } from '../src/model/quests/quests';
+import { OFFERS, questTitle } from '../src/model/quests/quests';
 import { fresh } from './support/testWorld';
 
 describe("the inn's cups", () => {
@@ -18,9 +19,9 @@ describe("the inn's cups", () => {
     shop.money = 1000;
     model.hero.bag.carvedTankard = 2;
     const money = model.hero.money;
-    expect(INN_PAYS.carvedTankard).toBeGreaterThan(sellValue('carvedTankard')!);
+    expect(INN_WANTS.carvedTankard.pays).toBeGreaterThan(sellValue('carvedTankard')!);
     expect(sell(shop, model.hero, 'carvedTankard')).toBe('sold');
-    expect(model.hero.money).toBe(money + INN_PAYS.carvedTankard);
+    expect(model.hero.money).toBe(money + INN_WANTS.carvedTankard.pays);
     expect(shop.stock.carvedTankard).toBe(1);
     expect(sell(shop, model.hero, 'bentSpoon')).toBe('not wanted'); // (junk still: the junk price, elsewhere)
   });
@@ -39,15 +40,26 @@ describe("the inn's cups", () => {
   });
 });
 
+describe("a shop's shelves", () => {
+  it('give up so many of a thing as asked, or as many as there are, and none of what is not there', () => {
+    const shop = { money: 0, stock: { carvedTankard: 5 } as Record<string, number>, restockedAt: 0 };
+    expect(takeStock(shop as never, 'carvedTankard', 3)).toBe(3);
+    expect(shop.stock.carvedTankard).toBe(2);
+    expect(takeStock(shop as never, 'carvedTankard', 6)).toBe(2);
+    expect(shop.stock.carvedTankard).toBeUndefined();
+    expect(takeStock(shop as never, 'woodenBowl', 1)).toBe(0);
+  });
+});
+
 describe("the inn's orders", () => {
   it('are every third notice on a board: so many cups, no foes gathered, done once carried, paid her price and over', () => {
     const model = fresh();
     const offers = model.quests.offersAt(0);
-    const orders = offers.filter((q) => isOrder(q.item));
+    const orders = offers.filter((q) => innWants(q.item));
     expect(orders.length).toBe(Math.floor(OFFERS / 3));
     const [order] = orders;
     expect(questTitle(order)).toMatch(/^Bring \d+ (carved tankards|wooden bowls)$/);
-    expect(order.copper).toBeGreaterThan(INN_PAYS[order.item as keyof typeof INN_PAYS] * order.count);
+    expect(order.copper).toBeGreaterThan(INN_WANTS[order.item as InnWant].pays * order.count);
     expect(model.quests.accept(order)).toBe(true);
     model.quests.update(120);
     expect(model.enemies.some((e) => e.quest === order.key)).toBe(false); // (nothing to slay)

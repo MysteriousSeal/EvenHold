@@ -2,6 +2,7 @@
 // a spawn on an islet, inn corners walled off by chairs, the server sent
 // onto a table (botFindingsInns.test.ts: run apart, being long), a villager and the hero holding each other up, quest spots
 // out of reach, and foes led off across the map.
+import { innWants } from '../src/model/inn/tavernShop';
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_LEASH, HERO_RADIUS, WATER_LEVEL } from '../src/model/constants';
@@ -9,7 +10,7 @@ import { generateLakeMap } from '../src/model/worldgen/lakes';
 import { layoutOf } from '../src/model/interiors/indoors';
 import type { Furniture } from '../src/model/interiors/furniture';
 import type { Room } from '../src/model/interiors/interiors';
-import { questAt, isOrder } from '../src/model/quests/quests';
+import { questAt } from '../src/model/quests/quests';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
 import { easeOffHero, makeWay } from '../src/model/npcs/npcWalk';
 import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, nearest, testModel } from './support/testWorld';
@@ -164,7 +165,7 @@ describe('quests', () => {
         const seen = floods.find((f) => f[sx * model.size.depth + sz]) ?? (floods.push(walkableFrom(model, sx, sz)), floods[floods.length - 1]);
         for (let n = 0; n < 6; n++) {
           const quest = questAt(model, b, n);
-          if (isOrder(quest.item)) continue; // (an inn's order: no spot to walk to, it points at the village)
+          if (innWants(quest.item)) continue; // (an inn's order: no spot to walk to, it points at the village)
           expect(seen[quest.x * model.size.depth + quest.z], `${name}: quest ${quest.key} at ${quest.x},${quest.z}`).toBe(1);
         }
       }

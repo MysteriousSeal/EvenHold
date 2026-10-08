@@ -17,11 +17,10 @@ import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
 import { REACH, woodOf } from '../../../src/model/skills/lumber';
 import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
-import { isOrder } from '../../../src/model/quests/quests';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
-import { buyPrice } from '../../../src/model/inn/tavernShop';
+import { INN_WANTS, buyPrice, innWants } from '../../../src/model/inn/tavernShop';
 import type { Step } from '../botSteps';
 import type { Toolkit } from './player';
 import type { Drive, Trait } from './persona';
@@ -65,13 +64,13 @@ export const ACTIVITIES: Activity[] = [
     options: (p) => {
       const going = p.model.quests.taken.find((t) => !p.model.quests.done(t));
       if (!going) return [];
-      if (isOrder(going.quest.item)) return [{ label: `the inn's order: ${going.quest.count} ${going.quest.item === 'carvedTankard' ? 'tankards' : 'bowls'}`, at: null, data: going.quest.key }];
+      if (innWants(going.quest.item)) return [{ label: `the inn's order: ${going.quest.count} ${INN_WANTS[going.quest.item].plural}`, at: null, data: going.quest.key }];
       return [{ label: `the quest: ${going.quest.kind === 'kill' ? `slay ${going.quest.count} ${going.quest.foe}` : `gather ${going.quest.count} for the board`}`, at: going.quest, data: going.quest.key }];
     },
     steps: (p, t) => {
       const key = t.data as string;
       const { quest } = p.model.quests.takenOf(key)!;
-      if (!isOrder(quest.item)) return p.go('quest', { going: key });
+      if (!innWants(quest.item)) return p.go('quest', { going: key });
       // An inn's order: the cups made (the woodworking: its recipe of the same name), or the order let go, past them.
       const item = quest.item;
       return [
