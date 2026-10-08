@@ -191,10 +191,10 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     };
   };
   // Selling from the bag beside the window: what the shop deals in at its price, and junk (anyone's) at what it's worth.
-  const sellOne = (id: BagItem) => (isJunk(id) ? sellTo(shop(), model.hero, id, sellValue(id)!) : trade.trade(id, true));
+  const sellOne = (id: BagItem) => (isJunk(id) && !trade.wanted(id) ? sellTo(shop(), model.hero, id, sellValue(id)!) : trade.trade(id, true));
   const seller: Seller = {
     wants: (id) => trade.wanted(id) || isJunk(id),
-    price: (id) => (isJunk(id) ? sellValue(id)! : trade.price(id, true)),
+    price: (id) => (isJunk(id) && !trade.wanted(id) ? sellValue(id)! : trade.price(id, true)), // (what they want of the junk: at their own price)
     sell: (id) => {
       const result = sellOne(id);
       answer(result, result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id))) : undefined);

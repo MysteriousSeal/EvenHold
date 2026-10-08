@@ -1,10 +1,11 @@
+import type { BagItem } from '../../model/hero/bag';
 // Trading with the barmaid (E by her bar): her food and drink to buy, and
 // the hero's to sell her (the window: tradePanel.ts). She has only so much of
 // each and only so much money (inn/tavernShop.ts).
 
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
-import { buy, buyPrice, sell, sellPrice, shopAt } from '../../model/inn/tavernShop';
+import { buy, buyPrice, sell, sellPrice, shopAt, innWants, type InnWant } from '../../model/inn/tavernShop';
 import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -146,8 +147,8 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     title: 'Wares',
     shop,
     wares: () => PROVISION_IDS,
-    wanted: isProvision,
-    price: (id, selling) => (selling ? sellPrice(id as ProvisionId) : buyPrice(id as ProvisionId)),
+    wanted: (id): id is BagItem => isProvision(id) || innWants(id),
+    price: (id, selling) => (selling ? sellPrice(id as ProvisionId | InnWant) : buyPrice(id as ProvisionId)),
     trade: (id, selling) => {
       const result = selling ? sell(shop(), model.hero, id) : buy(shop(), model.hero, id as ProvisionId);
       return result === 'she is short' ? 'short' : result;

@@ -4,7 +4,7 @@
 import { makeEnemy } from '../../model/enemies/enemies';
 import { coinParts } from '../../view/ui/coins';
 import { difficulty } from '../../model/enemies/enemyLevels';
-import type { Quest, QuestFoe } from '../../model/quests/quests';
+import { isOrder, type OrderItem, type Quest, type QuestFoe } from '../../model/quests/quests';
 import type { QuestItemId } from '../../model/quests/questItems';
 import { hashUnit } from '../../util/random';
 import { lootIcon } from '../../view/ui/itemIcons';
@@ -48,8 +48,14 @@ const WANTED: Record<QuestItemId, readonly string[]> = {
   greatTusk: ['The carver wants great tusks, the big curved ones, for his finest work.', 'A great tusk over the hearth brings luck, the old folk say. Bring a few.'],
 };
 
+// An inn's orders (quests.ts ORDERS): a woodworker's cups wanted.
+const ORDERED: Record<OrderItem, readonly string[]> = {
+  carvedTankard: ['The bar is short of tankards again: the patrons walk off with them. Carved ones, oak, as many as asked.', 'Tankards wanted for the inn. The innkeeper pays well for good carving.'],
+  woodenBowl: ['The kitchen is down to its last bowls. Turned wooden ones, plain and sound.', 'Bowls for the inn: stew is served in them, and they crack. Bring a few.'],
+};
+
 export const notice = (q: Quest, seed: number) => {
-  const lines = q.item ? WANTED[q.item] : NOTICES[q.foe];
+  const lines = isOrder(q.item) ? ORDERED[q.item] : q.item ? WANTED[q.item] : NOTICES[q.foe];
   return lines[Math.floor(hashUnit(q.board * 131 + Number(q.key.split(':')[1]), seed % 1_000_003, 97) * lines.length)];
 };
 const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
