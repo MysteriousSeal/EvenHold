@@ -1,6 +1,8 @@
+import { INN_PAYS } from '../src/model/inn/tavernShop';
+import type { QuestItemId } from '../src/model/quests/questItems';
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { OFFERS, questTitle, type QuestFoe } from '../src/model/quests/quests';
+import { OFFERS, questTitle, type QuestFoe, isOrder } from '../src/model/quests/quests';
 import { FIRST_MOB_ID } from '../src/model/quests/questBook';
 import { QUEST_ITEMS_OF } from '../src/model/quests/questItems';
 import { LOOT, LOOT_IDS, rollDrop, type LootSource } from '../src/model/loot/loot';
@@ -20,10 +22,15 @@ describe('every notice board in every test world', () => {
         expect(new Set(offers.map((q) => q.key)).size).toBe(OFFERS);
         for (const q of offers) {
           const at = `board ${board} "${questTitle(q)}"`;
+          if (isOrder(q.item)) {
+            // (An inn's order: nothing to slay; so many of a woodworker's cups, paid the inn's price and over.)
+            if (q.kind !== 'collect' || q.dropChance !== 0 || q.count < 2 || q.count > 6 || q.copper <= INN_PAYS[q.item] * q.count || q.xp <= 0) problems.push(`${at}: an order gone wrong`);
+            continue;
+          }
           if (!model.isOpenTile(q.x, q.z)) problems.push(`${at}: its foes gather on no open ground`);
           if (Math.hypot(q.x - village.x, q.z - village.z) < NEAR - 1) problems.push(`${at}: its foes gather in the village`);
           if (q.kind === 'kill' ? q.count < 6 || q.count > 8 : q.count < 4 || q.count > 6) problems.push(`${at}: asks ${q.count}`);
-          if (q.kind === 'collect' && !QUEST_ITEMS_OF[q.foe].includes(q.item!)) problems.push(`${at}: wants what its foe doesn't carry`);
+          if (q.kind === 'collect' && !QUEST_ITEMS_OF[q.foe].includes(q.item as QuestItemId)) problems.push(`${at}: wants what its foe doesn't carry`);
           if (!(q.copper > 0 && q.xp > 0 && q.level >= 1)) problems.push(`${at}: pays nothing`);
         }
       }
@@ -34,7 +41,7 @@ describe('every notice board in every test world', () => {
       const model = new GameModel(seed, TEST_MAP_SIZE);
       const offers = model.quests.offersAt(0);
       for (const kind of ['kill', 'collect'] as const) {
-        const quest = offers.find((q) => q.kind === kind);
+        const quest = offers.find((q) => q.kind === kind && !isOrder(q.item)); // (an inn's order: no foes to it, checked above)
         if (!quest) continue;
         expect(model.quests.accept(quest)).toBe(true);
         const marked = model.enemies.filter((e) => e.id >= FIRST_MOB_ID && e.kind === quest.foe && Math.hypot(e.x - quest.x, e.z - quest.z) < 8);

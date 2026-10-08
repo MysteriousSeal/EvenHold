@@ -17,6 +17,7 @@ import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
 import { REACH, woodOf } from '../../../src/model/skills/lumber';
 import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
+import { isOrder } from '../../../src/model/quests/quests';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
@@ -63,9 +64,27 @@ export const ACTIVITIES: Activity[] = [
     traits: { bold: 0.4, greedy: 0.3 },
     options: (p) => {
       const going = p.model.quests.taken.find((t) => !p.model.quests.done(t));
-      return going ? [{ label: `the quest: ${going.quest.kind === 'kill' ? `slay ${going.quest.count} ${going.quest.foe}` : `gather ${going.quest.count} for the board`}`, at: going.quest, data: going.quest.key }] : [];
+      if (!going) return [];
+      if (isOrder(going.quest.item)) return [{ label: `the inn's order: ${going.quest.count} ${going.quest.item === 'carvedTankard' ? 'tankards' : 'bowls'}`, at: null, data: going.quest.key }];
+      return [{ label: `the quest: ${going.quest.kind === 'kill' ? `slay ${going.quest.count} ${going.quest.foe}` : `gather ${going.quest.count} for the board`}`, at: going.quest, data: going.quest.key }];
     },
-    steps: (p, t) => p.go('quest', { going: t.data as string }),
+    steps: (p, t) => {
+      const key = t.data as string;
+      const { quest } = p.model.quests.takenOf(key)!;
+      if (!isOrder(quest.item)) return p.go('quest', { going: key });
+      // An inn's order: the cups made (the woodworking: its recipe of the same name), or the order let go, past them.
+      const item = quest.item;
+      return [
+        () => {
+          const need = quest.count - (p.model.hero.bag[item] ?? 0);
+          if (need <= 0) return 'ok';
+          if (p.model.woodworking.start(item, need)) return 'ok';
+          p.model.quests.abandon(key); // (no wood for it, or not the skill yet)
+          return 'fail';
+        },
+        p.until(() => !p.model.woodworking.making, 240, 'crafting never ended'),
+      ];
+    },
   },
   {
     id: 'handIn',
