@@ -64,6 +64,15 @@ export function restockIn(shop: Shop, now = Date.now()): number {
 }
 
 // The hero buys one of `id` at `price`: why not, if they can't (none left, they're short).
+// So many of `id` taken off the shelves (as many as there are): how many were.
+export function takeStock(shop: Shop, id: BagItem, wanted: number): number {
+  const taken = Math.min(wanted, shop.stock[id] ?? 0);
+  if (taken <= 0) return 0;
+  if (taken === shop.stock[id]) delete shop.stock[id];
+  else shop.stock[id]! -= taken;
+  return taken;
+}
+
 export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bought' | 'sold out' | 'too poor' | 'full' {
   if (!(shop.stock[id] ?? 0)) return 'sold out';
   if (!canCarry(hero, id)) return 'full'; // (no room in the bag for something new)

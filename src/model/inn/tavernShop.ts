@@ -42,10 +42,14 @@ export const buyPrice = (id: ProvisionId): number => PROVISIONS[id].value;
 // What the inn pays for a woodworker's cups (skills/woodworking.ts), a standing price well over the junk one: the
 // bar's tankards break, the kitchen's bowls crack, and she wants them. Those sold stock her cupboard (the shop's
 // stock): a barkeep's shift there begins with the more clean cups (jobs/work.ts).
-export const INN_PAYS = { carvedTankard: 45, woodenBowl: 14 } as const;
-export type InnWant = keyof typeof INN_PAYS;
-export const innWants = (id: string): id is InnWant => id in INN_PAYS;
-export const sellPrice = (id: ProvisionId | InnWant): number => (innWants(id) ? INN_PAYS[id] : Math.max(1, Math.floor(PROVISIONS[id].value / 2))); // she buys food at half
+// And her orders on the village's board (quests/quests.ts): so many at a time.
+export const INN_WANTS = {
+  carvedTankard: { pays: 45, plural: 'carved tankards', order: [2, 4] },
+  woodenBowl: { pays: 14, plural: 'wooden bowls', order: [3, 6] },
+} as const;
+export type InnWant = keyof typeof INN_WANTS;
+export const innWants = (id: string | null): id is InnWant => id !== null && id in INN_WANTS;
+export const sellPrice = (id: ProvisionId | InnWant): number => (innWants(id) ? INN_WANTS[id].pays : Math.max(1, Math.floor(PROVISIONS[id].value / 2))); // she buys food at half
 
 // The hero buys one of `id`: why not, if they can't (she's none, they're short).
 export function buy(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' | 'full' {

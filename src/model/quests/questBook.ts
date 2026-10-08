@@ -7,6 +7,7 @@
 // Slaying marked foes counts for "slay" quests; for "bring" quests they drop
 // what's wanted now and then, and what's in the bag counts.
 
+import { innWants } from '../inn/tavernShop';
 import { hashUnit } from '../../util/random';
 import { makeEnemy } from '../enemies/enemies';
 import type { BagItem } from '../hero/bag';
@@ -15,7 +16,7 @@ import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
-import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, boardNumber, questAt, questProgress, type Quest, type QuestWorld, isOrder } from './quests';
+import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, boardNumber, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 const READ_FROM = [0.3, 0.8]; // how far out in front of a board (tiles) the hero can read it: right up against it
@@ -234,7 +235,7 @@ export class QuestBook {
   // Foes the quest should have about: twice those still to slay, or twice the things asked; a pack's worth at most
   // (the rest come as those are slain: respawnIn).
   private wanted(taken: TakenQuest): number {
-    if (isOrder(taken.quest.item)) return 0; // (an inn's order: nothing to slay, the things are made)
+    if (innWants(taken.quest.item)) return 0; // (an inn's order: nothing to slay, the things are made)
     return Math.min(MOST_ABOUT, PACK * (taken.quest.kind === 'kill' ? taken.quest.count - taken.kills : taken.quest.count));
   }
 

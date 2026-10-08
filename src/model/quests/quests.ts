@@ -13,7 +13,7 @@ import { NEIGHBORS_4, spawnOf } from '../map/grid';
 import { HERO_RADIUS } from '../constants';
 import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
-import { INN_PAYS } from '../inn/tavernShop';
+import { INN_WANTS, innWants, type InnWant } from '../inn/tavernShop';
 
 export const OFFERS = 6; // quests a board has, for good
 export const MAX_ACTIVE = 10; // quests the hero can have taken at once (the journal holds ten)
@@ -47,7 +47,7 @@ export interface Quest {
   kind: 'kill' | 'collect';
   foe: QuestFoe;
   count: number; // foes to slay, or items to bring
-  item: QuestItemId | OrderItem | null; // what to bring (collect quests: a foe's; orders: a woodworker's, inn/tavernShop.ts)
+  item: QuestItemId | InnWant | null; // what to bring (collect quests: a foe's; orders: a woodworker's, inn/tavernShop.ts)
   dropChance: number; // of a marked foe dropping it
   x: number; // where the foes gather
   z: number;
@@ -146,25 +146,20 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   return { key: `${board}:${n}`, board, kind, foe, count, item, dropChance, x, z, where, level, copper, xp };
 }
 
-// The inn's orders: a woodworker's cups, so many, paid the inn's price and a little over (the board's fee), and the
-// experience of a small quest. Every third notice on a board. No foes to it: the things are made (skills/woodworking.ts).
+// The inn's orders (inn/tavernShop.ts INN_WANTS): a woodworker's cups, so many, paid the inn's price and a little over
+// (the board's fee), and the experience of a small quest. Every third notice on a board. No foes to it: the things are
+// made (skills/woodworking.ts).
 export const ORDER_EVERY = 3;
-export const ORDERS = {
-  carvedTankard: { plural: 'carved tankards', count: [2, 4] },
-  woodenBowl: { plural: 'wooden bowls', count: [3, 6] },
-} as const;
-export type OrderItem = keyof typeof ORDERS;
-export const isOrder = (item: string | null): item is OrderItem => item !== null && item in ORDERS;
 
 function orderAt(world: QuestWorld, board: number, n: number, village: Village, roll: (salt: number) => number): Quest {
-  const item: OrderItem = roll(1) < 0.5 ? 'carvedTankard' : 'woodenBowl';
-  const [least, most] = ORDERS[item].count;
+  const item: InnWant = roll(1) < 0.5 ? 'carvedTankard' : 'woodenBowl';
+  const [least, most] = INN_WANTS[item].order;
   const count = least + Math.floor(roll(3) * (most - least + 1));
   const level = zoneLevel(spawnOf(world.size), village);
-  return { key: `${board}:${n}`, board, kind: 'collect', foe: 'wolf', count, item, dropChance: 0, x: village.x, z: village.z, where: 'for the inn', level, copper: INN_PAYS[item] * count + COPPER_PER_SILVER * 0.2 * level, xp: Math.round(12 * count * level) };
+  return { key: `${board}:${n}`, board, kind: 'collect', foe: 'wolf', count, item, dropChance: 0, x: village.x, z: village.z, where: 'for the inn', level, copper: Math.round(INN_WANTS[item].pays * count + COPPER_PER_SILVER * 0.2 * level), xp: Math.round(12 * count * level) };
 }
 
-const pluralOf = (item: QuestItemId | OrderItem): string => (isOrder(item) ? ORDERS[item].plural : PLURALS[item]);
+const pluralOf = (item: QuestItemId | InnWant): string => (innWants(item) ? INN_WANTS[item].plural : PLURALS[item]);
 
 // What the quest asks, in a line: "Slay 6 wolves" / "Bring 4 wolf pelts" / "Bring 3 carved tankards".
 export function questTitle(quest: Quest): string {

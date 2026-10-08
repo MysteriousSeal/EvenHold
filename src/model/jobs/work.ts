@@ -5,6 +5,7 @@
 // what they'd earned, no bonus). Their record in the job kept.
 
 import { shopAt, type Shop } from '../inn/tavernShop';
+import { takeStock } from '../shops/shopStock';
 import { doorNumber } from '../interiors/interiors';
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
@@ -56,11 +57,9 @@ export class Work {
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : new InnShift(inn, rank, this.host.seed);
     if (this.shift instanceof BarShift) {
-      // The inn's own tankards (sold to her: inn/tavernShop.ts INN_PAYS) out on the shelves, so many at most: the shift
+      // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
       // begins with the more clean cups, and they're hers no longer once it's over (broken, walked off with).
-      const shop = shopAt(this.host.shops, this.host.seed, doorNumber(inn));
-      const out = Math.min(CUPBOARD_OUT, shop.stock.carvedTankard ?? 0);
-      if (out > 0) [(this.shift.clean.ale += out), shop.stock.carvedTankard! > out ? (shop.stock.carvedTankard! -= out) : delete shop.stock.carvedTankard];
+      this.shift.clean.ale += takeStock(shopAt(this.host.shops, this.host.seed, doorNumber(inn)), 'carvedTankard', CUPBOARD_OUT);
     }
     // The one whose work it is downs tools at once (her break, by the hearth: inn/innStaff.ts), not a round on.
     const staff = this.host.folk.find((n) => n.home === inn && n.role === (job === 'innBarkeep' ? 'barkeep' : 'server'));
