@@ -38,16 +38,23 @@ export function restockAll(shops: Map<number, Shop>, seed: number, now = Date.no
 }
 
 export const buyPrice = (id: ProvisionId): number => PROVISIONS[id].value;
-export const sellPrice = (id: ProvisionId): number => Math.max(1, Math.floor(PROVISIONS[id].value / 2)); // she buys at half
+
+// What the inn pays for a woodworker's cups (skills/woodworking.ts), a standing price well over the junk one: the
+// bar's tankards break, the kitchen's bowls crack, and she wants them. Those sold stock her cupboard (the shop's
+// stock): a barkeep's shift there begins with the more clean cups (jobs/work.ts).
+export const INN_PAYS = { carvedTankard: 45, woodenBowl: 14 } as const;
+export type InnWant = keyof typeof INN_PAYS;
+export const innWants = (id: string): id is InnWant => id in INN_PAYS;
+export const sellPrice = (id: ProvisionId | InnWant): number => (innWants(id) ? INN_PAYS[id] : Math.max(1, Math.floor(PROVISIONS[id].value / 2))); // she buys food at half
 
 // The hero buys one of `id`: why not, if they can't (she's none, they're short).
 export function buy(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' | 'full' {
   return buyFrom(shop, hero, id, buyPrice(id));
 }
 
-// The hero sells her one of `id` (only food and drink): why not, if not.
+// The hero sells her one of `id` (food and drink, and a woodworker's cups): why not, if not.
 export function sell(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'she is short' {
-  if (!isProvision(id)) return 'not wanted';
+  if (!isProvision(id) && !innWants(id)) return 'not wanted';
   const done = sellTo(shop, hero, id, sellPrice(id));
   return done === 'short' ? 'she is short' : done;
 }

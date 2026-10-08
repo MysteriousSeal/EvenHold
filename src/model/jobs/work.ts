@@ -4,6 +4,8 @@
 // all at once (each order's wage and tip, and a bonus for the whole shift worked with no one walked out; ended early,
 // what they'd earned, no bonus). Their record in the job kept.
 
+import { shopAt, type Shop } from '../inn/tavernShop';
+import { doorNumber } from '../interiors/interiors';
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { Npc } from '../npcs/npcs';
@@ -18,11 +20,13 @@ const HERO_XP = 4; // the hero's own experience, an order served (work's a way u
 // ALONG either way of its middle, between OUT[0] and OUT[1] out from its wall.
 const ALONG = 0.55;
 const OUT: [number, number] = [0.25, 1.35];
+export const CUPBOARD_OUT = 6; // the inn's own tankards out for a barkeep's shift, at most
 export const BONUS = 1; // copper an order, the shift worked to its end with no one walked out
 
 export interface WorkHost {
   readonly hero: Hero;
   readonly seed: number;
+  readonly shops: Map<number, Shop>; // the inns' (the cupboard: tankards sold to one, out on its shelves for the shift)
   readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance } | null;
   readonly folk: readonly Npc[];
   report(event: GameEvent): void;
@@ -51,6 +55,13 @@ export class Work {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : new InnShift(inn, rank, this.host.seed);
+    if (this.shift instanceof BarShift) {
+      // The inn's own tankards (sold to her: inn/tavernShop.ts INN_PAYS) out on the shelves, so many at most: the shift
+      // begins with the more clean cups, and they're hers no longer once it's over (broken, walked off with).
+      const shop = shopAt(this.host.shops, this.host.seed, doorNumber(inn));
+      const out = Math.min(CUPBOARD_OUT, shop.stock.carvedTankard ?? 0);
+      if (out > 0) [(this.shift.clean.ale += out), shop.stock.carvedTankard! > out ? (shop.stock.carvedTankard! -= out) : delete shop.stock.carvedTankard];
+    }
     // The one whose work it is downs tools at once (her break, by the hearth: inn/innStaff.ts), not a round on.
     const staff = this.host.folk.find((n) => n.home === inn && n.role === (job === 'innBarkeep' ? 'barkeep' : 'server'));
     if (staff) Object.assign(staff, { steps: [], path: null, waited: 0, working: false, carrying: false, serving: false });
