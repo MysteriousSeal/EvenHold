@@ -1,10 +1,11 @@
 // What quests look like and say, in the board's window and the journal:
 // a quest's picture, its notice's words, and how dangerous it is in a word.
 
+import { innWants, type InnWant } from '../../model/inn/tavernShop';
 import { makeEnemy } from '../../model/enemies/enemies';
 import { coinParts } from '../../view/ui/coins';
 import { difficulty } from '../../model/enemies/enemyLevels';
-import { isOrder, type OrderItem, type Quest, type QuestFoe } from '../../model/quests/quests';
+import type { Quest, QuestFoe } from '../../model/quests/quests';
 import type { QuestItemId } from '../../model/quests/questItems';
 import { hashUnit } from '../../util/random';
 import { lootIcon } from '../../view/ui/itemIcons';
@@ -48,14 +49,14 @@ const WANTED: Record<QuestItemId, readonly string[]> = {
   greatTusk: ['The carver wants great tusks, the big curved ones, for his finest work.', 'A great tusk over the hearth brings luck, the old folk say. Bring a few.'],
 };
 
-// An inn's orders (quests.ts ORDERS): a woodworker's cups wanted.
-const ORDERED: Record<OrderItem, readonly string[]> = {
+// An inn's orders (inn/tavernShop.ts INN_WANTS): a woodworker's cups wanted.
+const ORDERED: Record<InnWant, readonly string[]> = {
   carvedTankard: ['The bar is short of tankards again: the patrons walk off with them. Carved ones, oak, as many as asked.', 'Tankards wanted for the inn. The innkeeper pays well for good carving.'],
   woodenBowl: ['The kitchen is down to its last bowls. Turned wooden ones, plain and sound.', 'Bowls for the inn: stew is served in them, and they crack. Bring a few.'],
 };
 
 export const notice = (q: Quest, seed: number) => {
-  const lines = isOrder(q.item) ? ORDERED[q.item] : q.item ? WANTED[q.item] : NOTICES[q.foe];
+  const lines = innWants(q.item) ? ORDERED[q.item] : q.item ? WANTED[q.item] : NOTICES[q.foe];
   return lines[Math.floor(hashUnit(q.board * 131 + Number(q.key.split(':')[1]), seed % 1_000_003, 97) * lines.length)];
 };
 const DANGER = { trivial: 'Easy', even: 'Fair', tough: 'Tough', hard: 'Hard', deadly: 'Deadly' } as Record<string, string>;
@@ -78,8 +79,8 @@ export const questIcon = (q: Quest): MenuIcon => (size) => {
 export function questFacts(fact: (label: string, value: Array<string | HTMLElement>) => void, q: Quest, heroLevel: number, xp: number): void {
   const danger = document.createElement('span');
   danger.className = 'quest-danger';
-  danger.dataset.difficulty = difficulty(q.level, heroLevel);
-  danger.textContent = `${DANGER[danger.dataset.difficulty]} · level ${q.level}`;
+  danger.dataset.difficulty = innWants(q.item) ? 'trivial' : difficulty(q.level, heroLevel); // (an order: no foes to it)
+  danger.textContent = `${innWants(q.item) ? 'None' : DANGER[danger.dataset.difficulty]} · level ${q.level}`;
   fact('Danger', [danger]);
   fact('Reward', coinParts(q.copper));
   fact('Experience', [`${xp} XP`]); // to the hero now

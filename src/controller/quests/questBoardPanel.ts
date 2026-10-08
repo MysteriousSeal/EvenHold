@@ -4,6 +4,7 @@
 // once done; the quests taken counted over it all, the hero's purse under.
 // A window in the middle of the screen; the game waits while it's open.
 
+import { innWants } from '../../model/inn/tavernShop';
 import './questPanels.css';
 import type { GameModel } from '../../model/GameModel';
 import { MAX_ACTIVE, MAX_PER_BOARD, boardVillage, inMeters, questProgress, questTitle, type Quest } from '../../model/quests/quests';
@@ -54,7 +55,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const done = have >= q.count;
     const { icon, facts, fact } = detailParts(questIcon(q)(72), 'menu-detail-facts quest-facts');
     const spot = boardSpot(model, q.board) ?? q; // (the board's: always known while it's read)
-    fact('Where', [`${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
+    fact('Where', [innWants(q.item) ? 'The inn, in the village' : `${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
     questFacts(fact, q, model.hero.level, quests.xpFor(q));
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
