@@ -23,6 +23,10 @@ import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { squareBenches } from '../../src/model/worldgen/benches';
 import { doorAt, stairsInReach, stairsOf, takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/controller/trade/barOrder';
+import { ROOM_PRICE, letUntil, lettingHours, rentRoom, roomAction } from '../../src/model/inn/roomLetting';
+import { shopAt } from '../../src/model/inn/tavernShop';
+import { doorNumber } from '../../src/model/interiors/interiors';
+import { TALK_RANGE } from '../../src/model/npcs/talk';
 import { PICKUP_RANGE } from '../../src/model/loot/loot';
 import { boardFor, heroState, nearestDoor, openNear } from './nav';
 import { Errands, better, isGear, type Status } from './errands';
@@ -395,6 +399,24 @@ export abstract class Bot extends BotVentures {
   // Up the inn's stairs, a room's door opened, a lie on its bed, and down again.
   private upstairs(): Step[] {
     return [
+      // In letting hours, with the coin, none let yet: a room off the barmaid first (its door's unlocked for it).
+      (dt) => {
+        const { inside, hero } = this.model;
+        if (!inside || inside.below || !lettingHours(this.model.minutes) || hero.money < ROOM_PRICE || letUntil(inside.entrance) !== null) return 'ok';
+        const barmaid = barmaidHere(this.model);
+        if (!barmaid) return 'ok';
+        if (Math.hypot(barmaid.x - hero.x, barmaid.z - hero.z) > TALK_RANGE * 0.8) return this.walk(() => barmaid, TALK_RANGE * 0.7)(dt) === 'fail' ? 'ok' : 'run';
+        const action = roomAction(this.model);
+        if (action?.kind !== 'rent') return 'ok';
+        const money = hero.money;
+        const got = rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(inside.entrance)));
+        if (got === 'let') {
+          this.balance.coin('room', hero.money - money);
+          this.stats.rooms++;
+          if (hero.money !== money - ROOM_PRICE) this.report('room paid wrong', `${money - hero.money} for ${ROOM_PRICE}`);
+        } else this.report('room not let', `${got} at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}`);
+        return 'ok';
+      },
       (dt) => {
         const { inside, hero } = this.model;
         if (!inside) return 'fail';
@@ -406,7 +428,9 @@ export abstract class Bot extends BotVentures {
           this.stats.upstairs++;
           return 'ok';
         }
-        return this.walk(() => ({ x: stairs.x + stairs.w / 2 - 0.5, z: stairs.z + stairs.d }), 0.4)(dt) === 'fail' ? 'fail' : 'run';
+        // (In the front corner, against the front wall: taken from the row before them, inside the room; a stairwell with room past it, from past it.)
+        const front = stairs.z + stairs.d <= inside.room.depth - 1 ? stairs.z + stairs.d : stairs.z - 1;
+        return this.walk(() => ({ x: stairs.x + (stairs.w - 1) / 2, z: front }), 0.3)(dt) === 'fail' ? 'fail' : 'run';
       },
       (dt) => {
         const { inside, hero } = this.model;

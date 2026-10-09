@@ -390,7 +390,10 @@ export const ACTIVITIES: Activity[] = [
     traits: { industrious: 0.8, cautious: 0.2 },
     options: (p) => {
       const best = bestRecipe(p.model);
-      return best ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
+      const targets = best ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
+      // And a bedroll, once it can be made and none's carried: the thing itself wanted, not the practice.
+      if (best !== 'bedroll' && !(p.model.hero.bag.bedroll ?? 0) && p.model.woodworking.canMake('bedroll') > 0) targets.push({ label: 'making a bedroll', at: null, data: 'bedroll' });
+      return targets;
     },
     steps: (p, t) => {
       const id = t.data as keyof typeof RECIPES;
@@ -398,7 +401,7 @@ export const ACTIVITIES: Activity[] = [
       const product = typeof makes === 'string' ? makes : makes.item;
       const stacks = () => (Object.keys(p.model.hero.bag) as string[]).filter((k) => k === product || k.startsWith(`${product}@`)).reduce((n, k) => n + (p.model.hero.bag[k as never] ?? 0), 0);
       const materials = () => Object.entries(RECIPES[id].from).reduce((n, [item, k]) => n + Math.floor((p.model.hero.bag[item as never] ?? 0) / k!), 0);
-      let [had, could, asked] = [0, 0, 0];
+      let [had, could, asked, elapsed] = [0, 0, 0, 0];
       return [
         () => {
           [had, could] = [stacks(), materials()];
@@ -407,11 +410,13 @@ export const ACTIVITIES: Activity[] = [
           p.stats.crafted += asked;
           return 'ok';
         },
-        p.until(() => !p.model.woodworking.making, 180, 'crafting never ended'),
+        (dt) => ((elapsed += dt), p.until(() => !p.model.woodworking.making, 180, 'crafting never ended')(dt)),
         () => {
           // What it made is in the bag (a full bag stops it, told: fewer then); its materials gone for those, no more.
+          // (Cut short by the hero moving off, a foe at them: nothing made by right, and no fault.)
           const made = stacks() - had;
-          if (made <= 0 && could > 0) p.report('craft made nothing', `${id}: ${asked} asked, materials for ${could}, none made`);
+          const cutShort = elapsed < RECIPES[id].seconds - 0.5;
+          if (made <= 0 && could > 0 && !cutShort) p.report('craft made nothing', `${id}: ${asked} asked, materials for ${could}, none made in ${elapsed.toFixed(1)} s`);
           if (could - materials() > made) p.report('materials taken, nothing made', `${id}: materials for ${could - materials()} gone, ${made} made`);
           return 'ok';
         },

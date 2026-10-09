@@ -22,7 +22,7 @@ export function playReport(player: Player, seed: number, minutes: number, proble
   const lines: string[] = [];
   lines.push(`# A playthrough: seed ${seed}, ${minutes} game minutes`, '');
   lines.push(`**The player:** ${describe(persona)} (${TRAITS.map((t) => `${t} ${persona.traits[t]}`).join(', ')}; temperature ${persona.temperature}).`, '');
-  lines.push(`**At the end:** level ${hero.level}, ${hero.money} copper, ${player.stats.kills} slain, ${player.stats.deaths} falls, ${player.stats.questsDone}/${player.stats.questsTaken} quests done; skills ${SKILL_IDS.map((id) => `${id} ${skillOf(hero, id).level}`).join(', ')}.`, '');
+  lines.push(`**At the end:** level ${hero.level}, ${hero.money} copper, ${player.stats.kills} slain, ${player.stats.deaths} falls, ${player.stats.questsDone}/${player.stats.questsTaken} quests done; crafted ${player.stats.crafted}, packs fitted ${player.stats.packs}, cups sold ${player.stats.cupsSold}, salvaged ${player.stats.salvaged}; skills ${SKILL_IDS.map((id) => `${id} ${skillOf(hero, id).level}`).join(', ')}.`, '');
 
   // Signals first.
   lines.push('## What this says about the game', '');

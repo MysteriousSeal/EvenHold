@@ -312,6 +312,34 @@ describe('at work behind the bar', () => {
     }
   }, 60_000);
 
+  it('up from her chair when the bar is hers again: the next shift finds her off to the fire, not stood in the aisle', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const inn = model.entrances.find((e) => e.type === 'inn')!;
+    model.enterRoom(inn);
+    model.work.start(inn, 'innBarkeep');
+    const barkeep = model.folk.find((n) => n.role === 'barkeep' && n.home === inn)!;
+    for (let t = 0; t < 25 && !barkeep.seat; t += 0.1) model.update(0, 0, 0.1);
+    expect(barkeep.seat?.piece.kind).toBe('armchair');
+    model.work.end(true);
+    // Back at it, called over from her chair (a patron at the bar): up and off to her place along it, her seat let go.
+    callBarkeep(barkeep);
+    const { furniture: pieces } = layoutOf(model.seed, inn);
+    for (let t = 0; t < 40 && Math.abs(barkeep.x - AISLE_X) > 0.3; t += 0.1) {
+      model.update(0, 0, 0.1);
+      if (!barkeep.seat) expect(bumpsFurniture(pieces, barkeep.x, barkeep.z, 0.05), `in a piece at ${barkeep.x.toFixed(2)},${barkeep.z.toFixed(2)}`).toBe(false);
+    }
+    expect(Math.abs(barkeep.x - AISLE_X)).toBeLessThan(0.3); // (behind the bar again)
+    expect(barkeep.seat).toBeNull();
+    expect(bumpsFurniture(layoutOf(model.seed, inn).furniture, barkeep.x, barkeep.z, 0.05)).toBe(false); // (and never stood in the chair on the way)
+    // The bar hers to give again: she goes off her feet by the fire, sat in a chair, not 'sat' where she stands.
+    model.work.start(inn, 'innBarkeep');
+    for (let t = 0; t < 40 && !(barkeep.seat && Math.hypot(barkeep.x - barkeep.seat.piece.x, barkeep.z - barkeep.seat.piece.z) < 1.5); t += 0.1) model.update(0, 0, 0.1);
+    expect(barkeep.seat?.piece.kind).toMatch(/armchair|chair/);
+    expect(Math.hypot(barkeep.x - barkeep.seat!.piece.x, barkeep.z - barkeep.seat!.piece.z)).toBeLessThan(1.5);
+    expect(Math.abs(barkeep.x - AISLE_X)).toBeGreaterThan(1);
+    model.work.end(true);
+  }, 60_000);
+
   it("dresses the hero in the tapster's costume: its every look a costume's", () => {
     const looks = Object.values(COSTUMES.innBarkeep);
     expect(looks.length).toBeGreaterThan(0);

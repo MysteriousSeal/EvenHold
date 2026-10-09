@@ -25,6 +25,7 @@ import { BONUS, boardFace, isBarAction } from '../../src/model/jobs/work';
 import { BarShift } from '../../src/model/jobs/barShift';
 import type { JobId } from '../../src/model/jobs/jobs';
 import { barErrand, outOfAisle, worthIt } from './barWork';
+import { AISLE_X } from '../../src/model/inn/innStaff';
 import type { Status } from './errands';
 
 const SHIFT_SLACK = 20; // game seconds past a shift's length before it's said never to have ended
@@ -272,6 +273,12 @@ export class BotVentures extends BotSteps {
       return 'run';
     }
     if (shift.pour) return 'run'; // (stood at the tap, filling)
+    // Her still in the aisle on her way off (the bar just taken over): out of it, and stood aside till she's by.
+    if (barkeep && !barkeep.seat && Math.abs(barkeep.x - AISLE_X) < 0.5) {
+      const aside = outOfAisle(shift.pickupSpot, hero);
+      if (aside && this.walk(() => aside, 0.1)(dt) === 'fail') this.nav.reset();
+      return 'run';
+    }
     const to = barErrand(shift, hero);
     if (Math.hypot(hero.x - to.x, hero.z - to.z) <= 0.2) return 'run';
     if (this.walk(() => to, 0.15)(dt) === 'fail') this.nav.reset();
@@ -282,8 +289,14 @@ export class BotVentures extends BotSteps {
   // bought; anyone else, a word had.
   protected meet(traveller: Traveller): Step[] {
     const reach: Step = (dt) => (travellerInReach(this.model.travellers.list, this.model.hero) === traveller ? 'ok' : this.walk(() => traveller, TRAVELLER_TALK_RANGE * 0.6)(dt));
-    const talk: Step = () => {
-      if (travellerInReach(this.model.travellers.list, this.model.hero) !== traveller) return 'fail'; // (moved off, or gone)
+    let chased = 0;
+    const talk: Step = (dt) => {
+      if (travellerInReach(this.model.travellers.list, this.model.hero) !== traveller) {
+        // (Walked on while the hero came up: after them a while longer, as a player would, before giving up.)
+        const { hero } = this.model;
+        if (!this.model.travellers.list.includes(traveller) || Math.hypot(traveller.x - hero.x, traveller.z - hero.z) > 10 || (chased += dt) > 15) return 'fail';
+        return this.walk(() => traveller, TRAVELLER_TALK_RANGE * 0.5)(dt) === 'fail' ? 'fail' : 'run';
+      }
       if (traveller.role !== 'pedlar') {
         if (!travellerSays(traveller, this.model.crypts)) this.report('traveller silent', `${traveller.role} ${traveller.name}`);
         this.stats.travellers++;
