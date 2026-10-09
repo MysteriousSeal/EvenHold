@@ -7,7 +7,7 @@
 import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS, BRASS_DARK, FUR_DARK, CLAY, CLAY_DARK, RED, RED_DARK, PARCHMENT, INK, COAL, WATER, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
 
-export type SmithyKind = 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard';
+export type SmithyKind = 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
 
 export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // Two tiles of oak, its front (+v, toward the door) banded in iron under a
@@ -111,6 +111,37 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     }
     box(20, 10, 12, 20, 13, 12, WOOD_LIGHT); // the crank's handle
     box(3, 1, 17, 9, 1, 19, WOOD_LIGHT); // the pedal
+  },
+  // The salvage bench (skills/salvage.ts): a heavy workbench on two trestles, a thick plank top with its grain in
+  // darker runs, an iron vice at its left end (bright along the jaws, a scrap plank held in them, the screw out the
+  // front toward the door), and the day's work left on it: a mallet along the back, tongs along the front, a heap of
+  // rusted scrap by the vice. Its silhouette the vice's block up off the slab: a bench to work at, not to sit on.
+  salvageBench: (box) => {
+    const [U, V] = [3, 8]; // its corner in the tile (18 along, 9 deep, centred)
+    const b = (u0: number, y0: number, v0: number, u1: number, y1: number, v1: number, color: number) => box(U + u0, y0 + 1, V + v0, U + u1, y1 + 1, V + v1, color);
+    const [PLANK, GRAIN, TRESTLE, VICE, EDGE, RUST, PALE] = [WOOD, WOOD_DARK, WOOD_DARK, IRON, IRON_LIGHT, RED_DARK, WOOD_LIGHT]; // (the room's palette)
+    for (const u of [2, 15]) {
+      b(u - 1, 0, 1, u + 1, 0, 7, TRESTLE); // a trestle's foot, across
+      b(u, 1, 3, u, 8, 5, TRESTLE); // its post
+      b(u - 1, 7, 2, u + 1, 8, 6, TRESTLE); // the bearer under the top
+    }
+    b(4, 4, 4, 13, 4, 4, TRESTLE); // a stretcher between them
+    b(0, 9, 0, 17, 10, 8, PLANK); // the top, a thick slab
+    for (const v of [2, 5]) b(0, 10, v, 17, 10, v, GRAIN); // its grain
+    b(0, 8, 0, 17, 8, 0, GRAIN); // an apron along the back
+    b(0, 11, 2, 3, 13, 6, VICE); // the vice's jaws
+    b(0, 14, 2, 3, 14, 6, EDGE); // bright along the top
+    b(1, 12, 3, 2, 13, 5, PLANK); // a scrap plank held in them
+    b(0, 12, 7, 0, 12, 8, VICE); // the screw, out the front
+    b(0, 11, 8, 0, 13, 8, EDGE); // its handle, upright
+    b(11, 11, 6, 14, 13, 7, PALE); // a mallet's head, along the back
+    b(6, 11, 6, 10, 11, 6, TRESTLE); // its handle, toward the vice
+    b(6, 11, 1, 12, 11, 1, VICE); // tongs along the front: two arms
+    b(6, 11, 2, 11, 11, 2, VICE);
+    b(12, 11, 1, 13, 11, 2, EDGE); // meeting at the jaws
+    b(4, 11, 3, 6, 11, 5, RUST); // scraps of rusted iron, heaped by the vice
+    b(5, 12, 4, 5, 12, 4, RUST);
+    b(7, 11, 4, 7, 11, 4, VICE);
   },
   // Hung on a wall: a board of his tools, tongs, two hammers and a file
   // (its foot over a counter's top, should one stand below).
