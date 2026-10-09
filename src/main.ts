@@ -224,11 +224,8 @@ async function boot(): Promise<void> {
     if (talk && !(model.inside && model.doorInReach)) return talk; // (at the way out: out first, not a word with the bouncer by it)
     const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null; // (on the road)
     if (traveller) return { label: travellerPrompt(traveller), x: traveller.x, y: traveller.y + 0.75, z: traveller.z };
-    const bench = model.salvage.benchInReach; // (a village's salvage bench: gear broken down)
-    if (bench !== null) {
-      const at = model.salvage.benches[bench];
-      return { label: 'Break down gear', x: at.x, y: model.getGroundY(at.x, at.z) + 0.7, z: at.z };
-    }
+    const bench = model.salvage.benchInReach; // (the smithy's salvage bench: gear broken down)
+    if (bench) return { label: 'Break down gear', x: bench.x, y: 0.75, z: bench.z };
     const read = model.boardInReach;
     const spot = read === null ? undefined : boardSpot(model, read);
     if (spot) return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };

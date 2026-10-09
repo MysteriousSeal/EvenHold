@@ -1,6 +1,6 @@
 // The skill window's page on Salvaging (skillWindow.ts), a book like the wood guide's (woodGuide.ts): down the left,
 // what gear is made of (iron, leather, cloth, silver, wood: each with how many such pieces are carried); on the right,
-// the one picked: its scrap, what gear is of it, what a rare piece leaves besides, the ask; and where the benches are.
+// the one picked: its scrap, what gear is of it, what a rare piece leaves besides, the ask; and where the bench is.
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
 import { baseOf } from '../../model/human/items/gear';
@@ -39,13 +39,12 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'Asks'),
     el('dd', undefined, 'Salvaging by the piece\'s level (level 1 to 3 from the start, level 20 at 52), and more for a rare one'),
   );
-  const benches = model.salvage.benches.length;
   const detail = el(
     'div',
     'book-detail',
     el('div', 'book-head', el('span', 'book-icon', bagIcon(SCRAP_OF[picked])(56)), el('div', 'book-what', el('h3', 'book-title', MAKE_NAMES[picked]), el('span', 'book-kin', `Leaves ${nameOf(SCRAP_OF[picked]).toLowerCase()}, and ${nameOf(FINER_OF[picked]).toLowerCase()} from the rare`))),
     facts,
-    el('p', 'book-tool had', `The bench: on every village\'s square, a step or two in from the well (${benches} known so far).`),
+    el('p', 'book-tool had', 'The bench: in every smithy, out on the floor, its vice toward the door.'),
     el('p', 'book-why', 'Stand by it and press E: your gear in cases, the piece picked told of, and a button to break it down. It takes a moment; walking off drops it.'),
   );
   return el('div', 'book', el('div', 'book-side', list, bookLegend()), detail);

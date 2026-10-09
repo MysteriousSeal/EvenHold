@@ -1,4 +1,4 @@
-// The salvage bench's window (E by a village's bench: skills/salvage.ts): the gear carried, a row each, with what
+// The salvage bench's window (E before the smithy's bench: skills/salvage.ts): the gear carried, a row each, with what
 // breaking it down would leave and the skill level it asks; the one chosen told of on the right, and the button to
 // break it down. A window in the middle of the screen, modeless: the game goes on, the bench works, and it shuts as the
 // hero walks off. And the skill window's page
@@ -20,7 +20,7 @@ import { capitalize } from '../../util/text';
 
 const SAID: Record<SalvageOutcome, string> = {
   started: '',
-  'no bench': "You're not at a bench.",
+  'no bench': "You're not at the bench.",
   none: "You haven't one of those.",
   skill: 'Your Salvaging is not up to this piece yet.',
   busy: 'One thing at a time: the bench is taken.',
