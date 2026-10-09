@@ -93,8 +93,14 @@ export class Woodworking {
 
   // `count` of a recipe begun (Infinity: all the materials make); whether it was (known, and the materials for one).
   // Chopping stops for it; at work, nothing's begun.
+  // Whether what `id` makes would go in the bag (a stack of it with room, or a slot free).
+  roomFor(id: RecipeId): boolean {
+    const makes = RECIPES[id].makes;
+    return canCarry(this.host.hero, typeof makes === 'string' ? makes : makes.item);
+  }
+
   start(id: RecipeId, count = 1): boolean {
-    if (this.host.work.shift || this.canMake(id) === 0 || count < 1) return false;
+    if (this.host.work.shift || this.canMake(id) === 0 || count < 1 || !this.roomFor(id)) return false; // (a full bag: nothing made to be lost)
     this.host.lumber.stop();
     const left = Math.min(count, this.canMake(id));
     this.making = { recipe: id, left, of: left, t: 0 };

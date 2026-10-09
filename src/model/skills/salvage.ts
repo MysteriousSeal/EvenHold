@@ -8,6 +8,7 @@ import type { GameEvent } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import { addToBag, takeFromBag } from '../hero/bag';
+import { canCarry } from '../hero/bagSlots';
 import { ITEMS, type ItemId } from '../human/items';
 import { baseOf, isGear, levelOf, rarityOf, type GearKey, type Rarity } from '../human/items/gear';
 import type { IngredientId } from '../loot/ingredients';
@@ -52,7 +53,7 @@ export function salvageOf(key: GearKey): Salvaged {
   return { make, needs: Math.max(1, level * 3 - 8) + RARE_NEEDS[rarity], gives }; // (the first levels' gear from the start; a piece of level 20, at 52)
 }
 
-export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'skill' | 'busy';
+export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'skill' | 'busy' | 'full';
 export const BREAK_SECONDS = 1.6; // a piece takes so long at the bench (the bar over the hero: controller/skills/castOf.ts)
 
 export const BENCH_ALONG = 0.6; // tiles either way along the bench's front the hero may stand
@@ -103,7 +104,9 @@ export class Salvage {
     if (this.breaking) return 'busy';
     if (this.benchInReach === null) return 'no bench';
     if (!this.carried(key)) return 'none';
-    if ((hero.skills?.salvaging?.level ?? 1) < salvageOf(key).needs) return 'skill';
+    const { needs, gives } = salvageOf(key);
+    if ((hero.skills?.salvaging?.level ?? 1) < needs) return 'skill';
+    if (!gives.every(([item]) => canCarry(hero, item))) return 'full'; // (a full bag: what it leaves would be lost; the piece broken down goes too, but its slot's not counted on)
     this.breaking = { key, t: 0 };
     return 'started';
   }
