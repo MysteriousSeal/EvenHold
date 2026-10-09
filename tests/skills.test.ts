@@ -110,6 +110,11 @@ describe('the skills window', () => {
     expect(q('.book-detail .book-title').textContent).toBe('Oak'); // (the trees: the best to learn from, picked)
     cardsOf()[1].click();
     expect(all('.book-group').slice(-4).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Weapons', 'Shields']); // (woodworking: its recipes)
+    // Picked, the list is redrawn, but stays where it was scrolled to.
+    const list = () => all('.book-list').at(-1)!;
+    list().scrollTop = 120;
+    all('.book-row').at(-1)!.click();
+    expect(list().scrollTop).toBe(120);
     cardsOf()[2].click();
     expect(all('.book-row .book-name').slice(-5).map((r) => r.textContent)).toEqual(['Iron', 'Leather', 'Cloth', 'Silver', 'Wood']); // (salvaging: its guide, what gear is made of)
     expect(q('.book-detail .book-title').textContent).toBe('Iron');
