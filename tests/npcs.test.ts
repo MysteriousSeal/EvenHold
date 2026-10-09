@@ -80,7 +80,7 @@ describe('villagers', () => {
     const { village } = npc;
     const spots = [];
     for (let dx = -3; dx < 3; dx++) for (let dz = -3; dz <= 3; dz++) spots.push([village.x + dx, village.z + dz]);
-    const [x0, z0] = spots.find(([x, z]) => model.isOpenTile(x, z) && model.isOpenTile(x + 1, z))!;
+    const [x0, z0] = spots.find(([x, z]) => model.isOpenTile(x, z) && model.isOpenTile(x + 1, z) && model.isOpenTile(x + 2, z))!; // (and room past them to ease off into: not the salvage bench's tile)
     npc.x = x0 + 0.8;
     npc.z = z0;
     model.teleport(x0, z0);
@@ -203,7 +203,8 @@ describe('villagers', () => {
     const npc = model.npcs.find((n) => n.role === 'villager')!;
     // Right on top of the hero, outdoors: eased off within a moment.
     const { village } = npc;
-    model.teleport(village.x + 2, village.z + 2);
+    const [ox, oz] = [[2, 2], [-2, 2], [2, -2], [-2, -2], [1, 2], [2, 1]].find(([dx, dz]) => model.isOpenTile(village.x + dx, village.z + dz))!; // (an open tile on the square: not the salvage bench's)
+    model.teleport(village.x + ox, village.z + oz);
     for (const n of model.npcs) n.steps = [{ kind: 'wait', for: 1000 }];
     Object.assign(npc, { where: null, x: model.hero.x, z: model.hero.z });
     for (let t = 0; t < 1; t += 1 / 60) model.update(0, 0, 1 / 60);

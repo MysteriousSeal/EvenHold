@@ -17,6 +17,9 @@ import { maxEnergyOf, maxHpOf } from '../../../src/model/hero/attributes';
 import { REACH, woodOf } from '../../../src/model/skills/lumber';
 import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
+import { salvageOf } from '../../../src/model/skills/salvage';
+import type { SalvageBench } from '../../../src/model/worldgen/salvageBenches';
+import { better } from '../errands';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
 import { PICKUP_RANGE } from '../../../src/model/loot/loot';
@@ -317,6 +320,41 @@ export const ACTIVITIES: Activity[] = [
         return 'run';
       };
       return [p.walk(() => tree, REACH - 0.3), chop, gather];
+    },
+  },
+  {
+    id: 'salvage',
+    serves: { craft: 0.7, coin: 0.3, growth: 0.2 },
+    traits: { industrious: 0.6, greedy: 0.3 },
+    options: (p) => {
+      // Gear carried that's no better than what's worn: to the nearest known village's bench, to break it down.
+      const { hero } = p.model;
+      const spare = p.model.salvage.candidates.filter((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
+      if (spare.length === 0) return [];
+      const bench = nearest(p, [...p.known.villages].map((i) => p.model.salvage.benches[i]).filter(Boolean), (b) => b, 250);
+      return bench ? [{ label: `the salvage bench at ${villageName(bench.village, p.model.seed)}, ${spare.length} piece${spare.length === 1 ? '' : 's'} to break down`, at: bench, data: bench }] : [];
+    },
+    steps: (p, t) => {
+      const bench = t.data as SalvageBench;
+      return [
+        p.walk(() => ({ x: bench.x + bench.front.dx * 0.9, z: bench.z + bench.front.dz * 0.9 }), 0.3),
+        () => {
+          if (p.model.salvage.benchInReach === null) return (p.report('salvage bench out of reach', `at ${bench.x},${bench.z}, hero at ${p.model.hero.x.toFixed(2)},${p.model.hero.z.toFixed(2)}`), 'fail');
+          return 'ok';
+        },
+        // One piece after another: set on the bench, waited for, the next.
+        (dt) => {
+          const { salvage, hero } = p.model;
+          void dt;
+          if (salvage.breaking) return 'run';
+          const next = salvage.candidates.find((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
+          if (!next) return 'ok';
+          const outcome = salvage.start(next);
+          if (outcome !== 'started') return (p.report('salvage bench refused', `${next}: ${outcome}`), 'fail');
+          p.stats.salvaged++;
+          return 'run';
+        },
+      ];
     },
   },
   {

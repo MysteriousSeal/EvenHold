@@ -13,9 +13,9 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
-  it('are lumberjacking and woodworking (main skills), cooking and fishing (secondary), each with what it opens', () => {
-    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'cooking', 'fishing']);
-    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary']);
+  it('are lumberjacking and woodworking (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
+    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
+    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary', 'secondary']);
     for (const id of ['cooking', 'fishing'] as const) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
     expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
     expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
@@ -70,12 +70,12 @@ describe('the skills window', () => {
     const panel = createSkillsPanel(model);
     panel.menu.open();
     const cards = cardsOf();
-    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'cooking', 'fishing']);
+    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
     expect(Array.from(all('.skill-cards').at(-1)!.querySelectorAll('.skill-cards-group')).map((g) => g.textContent)).toEqual(['Main skills', 'Secondary skills']);
     expect(cards[0].querySelector('.skill-card-level')?.textContent).toBe('100');
     expect(cards[0].querySelector('.skill-card-tier')?.textContent).toBe('Journeyman · 50 to Expert');
     expect(cards[0].querySelector('.skill-rule.slim')).toBeTruthy();
-    expect([cards[2].classList.contains('idle'), cards[2].querySelector('.skill-card-status')?.textContent]).toEqual([true, 'Not practicable yet']);
+    expect([cards[3].classList.contains('idle'), cards[3].querySelector('.skill-card-status')?.textContent]).toEqual([true, 'Not practicable yet']); // (cooking)
     expect(panel.window.menu.isOpen).toBe(false);
     panel.menu.close();
   });
@@ -111,6 +111,9 @@ describe('the skills window', () => {
     cardsOf()[1].click();
     expect(all('.book-group').slice(-4).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Weapons', 'Shields']); // (woodworking: its recipes)
     cardsOf()[2].click();
+    expect(all('.book-row .book-name').slice(-5).map((r) => r.textContent)).toEqual(['Iron', 'Leather', 'Cloth', 'Silver', 'Wood']); // (salvaging: its guide, what gear is made of)
+    expect(q('.book-detail .book-title').textContent).toBe('Iron');
+    cardsOf()[3].click();
     expect(q('.skill-notyet h3').textContent).toBe('Not practicable yet'); // (cooking)
     expect(q('.skill-opens').querySelectorAll('li')).toHaveLength(SKILLS.cooking.unlocks.length);
     panel.window.menu.close();
