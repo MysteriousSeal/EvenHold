@@ -30,7 +30,7 @@ import { count, emptyTally, type Tally } from './tally';
 export { FRAME, FRAMES_PER_DECISION, MOVES, OBSERVATION_SIZE };
 export const ACTIONS = KEYS.length;
 
-export const EPISODE_MINUTES = Number(process.env.AI_MINUTES ?? 30); // game minutes a life lasts
+export const EPISODE_MINUTES = Number((typeof process !== 'undefined' && process.env.AI_MINUTES) || 30); // game minutes a life lasts (AI_MINUTES; in the browser, 30)
 const MODAL_MOST = 16; // decisions a window that holds the game may hold it for
 // What it's paid for, and what it pays: the game's own progress, nothing else.
 export const PAY = {

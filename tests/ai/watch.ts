@@ -90,6 +90,7 @@ async function main(): Promise<void> {
   const atRandom = params.has('random');
   let weights: PolicyWeights | null = null;
   if (!atRandom) {
+    panel.innerHTML = '<b>Loading the player…</b>';
     // (the best saved, unless ?latest; none of either: told how to train one)
     let response = await fetch(new URL(params.has('latest') ? './models/player.json' : './models/best.json', import.meta.url));
     if (!response.ok && !params.has('latest')) response = await fetch(new URL('./models/player.json', import.meta.url));
@@ -179,4 +180,6 @@ async function main(): Promise<void> {
   requestAnimationFrame(frame);
 }
 
-void main();
+// (whatever goes wrong, said on the page: never stuck on 'Loading…')
+window.addEventListener('error', (e) => void (panel.innerHTML = `<b>Something broke</b>${e.message}`));
+main().catch((e: unknown) => void (panel.innerHTML = `<b>Something broke</b>${e instanceof Error ? e.message : String(e)}`));
