@@ -7,7 +7,7 @@
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
-import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey } from '../human/items/gear';
+import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
 import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
 import { doorNumber, type Entrance } from '../interiors/interiors';
@@ -38,9 +38,22 @@ export function smithShopAt(shops: Map<number, Shop>, seed: number, smithy: numb
   return openShop(shops, smithy, usual(seed, smithy, level), now);
 }
 
-// The smithy's shop the hero's in: by its door's number, its wares at its village's level (zoneLevel: its smithy's).
-export const smithShopIn = (model: { shops: Map<number, Shop>; seed: number; size: MapSize; inside: { entrance: Entrance } | null }, now = Date.now()): Shop =>
-  smithShopAt(model.shops, model.seed, doorNumber(model.inside!.entrance), now, zoneLevel(spawnOf(model.size), model.inside!.entrance));
+// The smithy's shop the hero's in: by its door's number, its wares at its village's level (zoneLevel: its smithy's), or
+// a level under the hero's own once they're past it: he keeps up with them, and their coin has somewhere to go.
+export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; size: MapSize; inside: { entrance: Entrance } | null; hero?: { level: number } }, now = Date.now()): Shop {
+  const door = doorNumber(model.inside!.entrance);
+  const level = Math.max(zoneLevel(spawnOf(model.size), model.inside!.entrance), (model.hero?.level ?? 1) - 1);
+  const shop = smithShopAt(model.shops, model.seed, door, now, level);
+  // The hero grown since his last forging: the new wares out at once (the old forging's, of a level neither his
+  // village's nor this, put away), the smith forging what suits those who come in.
+  const fresh = usual(model.seed, door, level).stock;
+  if (Object.keys(fresh).some((key) => !(key in shop.stock))) {
+    const village = zoneLevel(spawnOf(model.size), model.inside!.entrance);
+    for (const key of Object.keys(shop.stock) as GearKey[]) if (isGear(key) && key.includes('@') && levelOf(key) !== village && levelOf(key) !== level) delete shop.stock[key];
+    for (const [key, n] of Object.entries(fresh)) if (!(key in shop.stock)) shop.stock[key as GearKey] = n;
+  }
+  return shop;
+}
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
 export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half

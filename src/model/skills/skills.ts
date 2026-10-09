@@ -56,8 +56,9 @@ export const SKILLS: Record<SkillId, Skill> = {
     about: 'Saw logs into planks, and planks into bowls, weapons and shields; the finest from varnished oak and ancient heartwood.',
     unlocks: [
       { at: 1, what: 'Birch planks, a wooden sword' },
+      { at: 20, what: 'A bedroll, to lie down on anywhere' },
       { at: 30, what: 'A birch-framed pack: room in the bag' },
-      { at: 50, what: 'Pine planks, a knotted club, a bedroll to lie down on anywhere' },
+      { at: 50, what: 'Pine planks, a knotted club' },
       { at: 80, what: 'A felling axe: a chop a swing quicker' },
       { at: 100, what: 'Oak planks, a quarterstaff, a pine pack' },
       { at: 150, what: 'Plank shields, varnish from resin, a broad axe' },

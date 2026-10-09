@@ -18,7 +18,7 @@ import { talkingTo } from '../npcs/talk';
 import { between, nextHour } from '../clock';
 import { doorway, roomsOff } from '../interiors/upstairs';
 
-export const ROOM_PRICE = 50; // copper, a night
+export const ROOM_PRICE = 120; // copper, a night (a shift's wage, about: a bed's worth paying for)
 const LET_FROM = 16; // the hour rooms are let from
 const LET_TILL = 6; // and till
 const CHECK_OUT = 10; // the hour the next morning a room's to be left

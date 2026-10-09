@@ -63,11 +63,11 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   // bedroll to lie down on anywhere; axes that chop quicker and leave more; trinkets set with the stones.
   birchPlank: { name: 'Birch plank', group: 'Materials', needs: 1, from: { birchLog: 1 }, makes: 'birchPlank', seconds: 2 },
   woodenSword: { name: 'Wooden sword', group: 'Weapons', needs: 10, from: { birchPlank: 2 }, makes: { item: 'woodenSword', level: 3, rarity: 'common' }, seconds: 3 },
+  bedroll: { name: 'Bedroll', group: 'Tools', needs: 20, from: { birchPlank: 3 }, makes: 'bedroll', seconds: 4 }, // (early, from planks alone: a hurt player on the road needs it in their first hour)
   woodenBowl: { name: 'Wooden bowl', group: 'Goods', needs: 25, from: { birchPlank: 1 }, makes: 'woodenBowl', seconds: 2.5 },
   birchFramedPack: { name: 'Birch-framed pack', group: 'Packs', needs: 30, from: { birchPlank: 3, leatherStrip: 2 }, makes: 'birchFramedPack', seconds: 4 },
   bentwoodRing: { name: 'Bentwood ring', group: 'Trinkets', needs: 40, from: { birchPlank: 1, silverFilings: 2 }, makes: { item: 'bentwoodRing', level: 5, rarity: 'common' }, seconds: 3 },
   pinePlank: { name: 'Pine plank', group: 'Materials', needs: 50, from: { pineLog: 1 }, makes: 'pinePlank', seconds: 2 },
-  bedroll: { name: 'Bedroll', group: 'Tools', needs: 55, from: { pinePlank: 2, linenScrap: 3, leatherStrip: 1 }, makes: 'bedroll', seconds: 4 },
   knottedClub: { name: 'Knotted club', group: 'Weapons', needs: 65, from: { pinePlank: 2, birchPlank: 1 }, makes: { item: 'club', level: 8, rarity: 'common' }, seconds: 3 },
   fellingAxe: { name: 'Felling axe', group: 'Tools', needs: 80, from: { pinePlank: 2, ironScrap: 3 }, makes: { item: 'fellingAxe', level: 12, rarity: 'common' }, seconds: 4 },
   quarterstaff: { name: 'Quarterstaff', group: 'Weapons', needs: 90, from: { pinePlank: 3 }, makes: { item: 'quarterstaff', level: 11, rarity: 'common' }, seconds: 3.5 },

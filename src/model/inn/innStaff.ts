@@ -113,6 +113,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const off = onShift(npc.home) === (npc.role === 'barkeep' ? 'innBarkeep' : 'innServer'); // (the hero has her work)
   if (off) return offHerFeet(npc, npcs, furniture, room);
   npc.resting = false; // (back at it: her word again, next time)
+  if (npc.seat) Object.assign(npc, { x: npc.stood?.x ?? npc.x, z: npc.stood?.z ?? npc.z, y: 0, seat: null, stood: null }); // (up from her chair by the fire, stood beside it again: not 'sat' still, wherever she walks)
   if (npc.role === 'barkeep') {
     // An order waiting: first come, first served.
     const order = ordersAt(npc.home)[0];
