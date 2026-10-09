@@ -52,6 +52,8 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   // By the door, the counter where he trades: a row behind it for him, one before it for the hero.
   const counter = place('smithCounter', 2, 1, 'none', [[room.door + 1, room.depth - 3], [room.door - 2, room.depth - 3]], false);
   if (counter) for (let x = counter.x; x < counter.x + counter.w; x++) [counter.z - 1, counter.z + 1].forEach((z) => kept.add(key(x, z)));
+  // The salvage bench (skills/salvage.ts), out in the room clear of the door's rows and the counter's, the tile before it kept free.
+  before(place('salvageBench', 1, 1, 'none', inside().filter(([, z]) => z >= 1 && z < room.depth - 5), true) ?? place('salvageBench', 1, 1, 'none', inside(), true)); // (a small smithy: wherever it fits)
   // (No room for it beside the anvil: the free spot nearest the anvil, then.)
   const anvil = items.find((f) => f.kind === 'anvil') ?? forge;
   const nearAnvil = inside().sort(([ax, az], [bx, bz]) => (anvil ? Math.hypot(ax - anvil.x, az - anvil.z) - Math.hypot(bx - anvil.x, bz - anvil.z) : 0));

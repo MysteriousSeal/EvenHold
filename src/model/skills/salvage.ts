@@ -1,18 +1,17 @@
-// Salvaging (skills.ts): a piece of gear broken down at a village's salvage bench (worldgen/salvageBenches.ts: E by
-// it opens the window, controller/skills/salvagePanel.ts) into what it's made of: iron scrap from blades and mail,
+// Salvaging (skills.ts): a piece of gear broken down at the salvage bench in a smithy (smithy/smithyLayout.ts: E
+// before it opens the window, controller/skills/salvagePanel.ts) into what it's made of: iron scrap from blades and mail,
 // leather strips from hide, linen from padding and cloth, silver filings (and a gem shard, where there's a stone) from
 // jewellery, oak planks from wooden arms. The better the piece, the more; a rare one leaves something finer besides
 // (a tempered ingot, a cut gem). Each piece asks a level of the skill, by its own level and rarity, and practises it.
 import type { Hero } from '../types';
 import type { GameEvent } from '../types';
-import type { Village } from '../types';
-import type { BenchWorld } from '../worldgen/benches';
+import type { Entrance } from '../interiors/interiors';
+import type { Furniture } from '../interiors/furniture';
 import { addToBag, takeFromBag } from '../hero/bag';
 import { ITEMS, type ItemId } from '../human/items';
 import { baseOf, isGear, levelOf, rarityOf, type GearKey, type Rarity } from '../human/items/gear';
 import type { IngredientId } from '../loot/ingredients';
 import { practise } from './skills';
-import { salvageBenchInReach, salvageBenches, type SalvageBench } from '../worldgen/salvageBenches';
 
 export type Make = 'iron' | 'leather' | 'cloth' | 'silver' | 'wood';
 export const MAKE_NAMES: Record<Make, string> = { iron: 'Iron', leather: 'Leather', cloth: 'Cloth', silver: 'Silver', wood: 'Wood' };
@@ -56,11 +55,20 @@ export function salvageOf(key: GearKey): Salvaged {
 export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'skill' | 'busy';
 export const BREAK_SECONDS = 1.6; // a piece takes so long at the bench (the bar over the hero: controller/skills/castOf.ts)
 
-export interface SalvageHost extends BenchWorld {
+export const BENCH_ALONG = 0.6; // tiles either way along the bench's front the hero may stand
+export const BENCH_OUT: [number, number] = [0.5, 1.6]; // and how far out from its tile (the tile before it)
+
+export interface SalvageHost {
   readonly hero: Hero;
-  readonly villages: Village[];
+  readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance } | null;
   report(event: GameEvent): void;
   random(): number;
+}
+
+// Whether the hero stands before the bench (the tile toward the door, its front).
+export function beforeBench(bench: Furniture, hero: { x: number; z: number }): boolean {
+  const out = hero.z - bench.z;
+  return Math.abs(hero.x - bench.x) <= BENCH_ALONG && out >= BENCH_OUT[0] && out <= BENCH_OUT[1];
 }
 
 export class Salvage {
@@ -68,14 +76,11 @@ export class Salvage {
 
   constructor(private readonly host: SalvageHost) {}
 
-  // Every village's bench (worldgen/salvageBenches.ts).
-  get benches(): SalvageBench[] {
-    return salvageBenches(this.host);
-  }
-
-  // The bench the hero stands by (by its village's index), if any.
-  get benchInReach(): number | null {
-    return salvageBenchInReach(this.benches, this.host.hero);
+  // The bench the hero stands before (a smithy's, on its ground floor), if any.
+  get benchInReach(): Furniture | null {
+    const { inside, hero } = this.host;
+    if (!inside || inside.below || inside.entrance.type !== 'smithy') return null;
+    return inside.furniture.find((f) => f.kind === 'salvageBench' && beforeBench(f, hero)) ?? null;
   }
 
   // The gear in the bag that could be broken down here (whatever the skill says: the window shows what's asked).

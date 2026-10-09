@@ -65,9 +65,9 @@ export const SKILLS: Record<SkillId, Skill> = {
   salvaging: {
     name: 'Salvaging',
     kind: 'secondary',
-    practice: 'Break gear down at a village\'s salvage bench (the workbench with the vice, on the square by the well).',
+    practice: 'Break gear down at the salvage bench in a smithy (the workbench with the vice, out on his floor).',
     verb: 'salvage',
-    about: "Break down weapons, armour and jewellery you don't need at a salvage bench into what they're made of: iron scrap, leather, linen, silver and gem shards, planks. The finer the piece, the more it leaves, and a rare one leaves something finer besides.",
+    about: "Break down weapons, armour and jewellery you don't need at a smithy's salvage bench into what they're made of: iron scrap, leather, linen, silver and gem shards, planks. The finer the piece, the more it leaves, and a rare one leaves something finer besides.",
     unlocks: [
       { at: 1, what: 'Common gear of the first levels' },
       { at: 9, what: 'Uncommon pieces' },

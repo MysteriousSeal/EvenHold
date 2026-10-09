@@ -35,6 +35,7 @@ export const FURNITURE_KINDS = [
   'weaponWall', // his weapons on show, hung on a wall
   'armorStand', // a suit of his armour on a stand
   'grindstone',
+  'salvageBench', // where gear's broken down for its makings (skills/salvage.ts)
   'toolBoard', // his tongs and hammers, hung on a wall
   'anvil',
   'trough',
