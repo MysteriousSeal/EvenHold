@@ -29,7 +29,7 @@ else play(Number(process.env.PLAY_SEED ?? generateRandomSeed()));
 
 // Several at once: each its own process (a core each), its lines tagged; the reports listed at the end.
 async function together(seeds: number[]): Promise<void> {
-  console.log(`${seeds.length} players at once, ${minutes} game minutes each (seeds ${seeds.join(', ')}).\n`);
+  console.log(`${seeds.length} players at once, ${minutes} game minutes each${sweep ? ', a QA sweep' : ''} (seeds ${seeds.join(', ')}).\n`);
   const reports: string[] = [];
   await Promise.all(
     seeds.map(
