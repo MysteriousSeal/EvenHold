@@ -18,7 +18,6 @@ import { REACH, woodOf } from '../../../src/model/skills/lumber';
 import { RECIPES } from '../../../src/model/skills/woodworking';
 import { skillOf } from '../../../src/model/skills/skills';
 import { salvageOf } from '../../../src/model/skills/salvage';
-import type { SalvageBench } from '../../../src/model/worldgen/salvageBenches';
 import { better } from '../errands';
 import { bestRecipe } from '../../../src/controller/skills/recipeBook';
 import { buyGear, gearPrice, smithShopIn } from '../../../src/model/smithy/smithShop';
@@ -327,20 +326,21 @@ export const ACTIVITIES: Activity[] = [
     serves: { craft: 0.7, coin: 0.3, growth: 0.2 },
     traits: { industrious: 0.6, greedy: 0.3 },
     options: (p) => {
-      // Gear carried that's no better than what's worn: to the nearest known village's bench, to break it down.
+      // Gear carried that's no better than what's worn: to the nearest known smithy's bench, to break it down.
       const { hero } = p.model;
       const spare = p.model.salvage.candidates.filter((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
       if (spare.length === 0) return [];
-      const bench = nearest(p, [...p.known.villages].map((i) => p.model.salvage.benches[i]).filter(Boolean), (b) => b, 250);
-      return bench ? [{ label: `the salvage bench at ${villageName(bench.village, p.model.seed)}, ${spare.length} piece${spare.length === 1 ? '' : 's'} to break down`, at: bench, data: bench }] : [];
+      return door(p, 'smithy').map((t) => ({ ...t, label: `the smithy's salvage bench, ${spare.length} piece${spare.length === 1 ? '' : 's'} to break down` }));
     },
     steps: (p, t) => {
-      const bench = t.data as SalvageBench;
+      const smithy = t.data as Entrance;
+      const bench = () => p.model.inside?.furniture.find((f) => f.kind === 'salvageBench');
       return [
-        p.walk(() => ({ x: bench.x + bench.front.dx * 0.9, z: bench.z + bench.front.dz * 0.9 }), 0.3),
-        () => {
-          if (p.model.salvage.benchInReach === null) return (p.report('salvage bench out of reach', `at ${bench.x},${bench.z}, hero at ${p.model.hero.x.toFixed(2)},${p.model.hero.z.toFixed(2)}`), 'fail');
-          return 'ok';
+        ...p.enter(smithy),
+        (dt) => {
+          const at = bench();
+          if (!at) return (p.report('smithy without a salvage bench', `at ${smithy.x},${smithy.z}`), 'fail');
+          return p.walk(() => ({ x: at.x, z: at.z + 1 }), 0.25)(dt) === 'fail' ? 'fail' : p.model.salvage.benchInReach ? 'ok' : 'run';
         },
         // One piece after another: set on the bench, waited for, the next.
         (dt) => {
@@ -354,6 +354,7 @@ export const ACTIVITIES: Activity[] = [
           p.stats.salvaged++;
           return 'run';
         },
+        ...p.leave(),
       ];
     },
   },

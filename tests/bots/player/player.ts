@@ -57,6 +57,8 @@ export interface Toolkit {
   alehouse(): Entrance | null;
   unexplored(): boolean;
   nearestFoe(within: number): Enemy | null;
+  enter(door: Entrance | null): Step[]; // (into a building by its door)
+  leave(): Step[]; // (and out of it, down the stairs first if up them)
   go(goal: string, ctx?: Partial<PlanContext>): Step[]; // (a goal the bots know: its steps)
   walk(to: () => { x: number; z: number }, near: number): Step;
   until(done: () => boolean, seconds: number, problem?: string): Step;
@@ -102,6 +104,8 @@ export class Player extends Bot {
       alehouse: () => this.alehouse(),
       unexplored: () => this.unexplored(),
       nearestFoe: (within) => this.nearestFoe(within),
+      enter: (door) => this.enter(door),
+      leave: () => this.leave(),
       go: (goal, ctx = {}) => this.stepsFor(goal, { foe: null, ...ctx }),
       walk: (to, near) => this.walk(to, near),
       until: (done, seconds, problem) => this.until(done, seconds, problem),

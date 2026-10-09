@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-// Salvaging (model/skills/salvage.ts): gear broken down at a village's salvage bench (worldgen/salvageBenches.ts)
-// into what it's made of, more of it the better the piece and something finer from a rare one, each asking a level
-// of the skill; the bench on every square, a step in from the well, blocking its tile; the window (controller/skills/
+// Salvaging (model/skills/salvage.ts): gear broken down at a smithy's salvage bench (smithy/smithyLayout.ts) into
+// what it's made of, more of it the better the piece and something finer from a rare one, each asking a level of the
+// skill; the bench in every smithy, out on the floor, reached from the tile before it; the window (controller/skills/
 // salvagePanel.ts) listing the gear carried with the button to break it down.
 import { describe, expect, it } from 'vitest';
 import { fresh } from './support/testWorld';
@@ -11,8 +11,6 @@ import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gea
 import { BREAK_SECONDS, makeOf, salvageOf } from '../src/model/skills/salvage';
 import { castOf } from '../src/controller/skills/castOf';
 import { skillOf } from '../src/model/skills/skills';
-import { BENCH_REACH, salvageBenches } from '../src/model/worldgen/salvageBenches';
-import { VILLAGE_OUTER_RADIUS as R } from '../src/model/constants';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
 describe('what gear is made of, and leaves', () => {
@@ -32,23 +30,43 @@ describe('what gear is made of, and leaves', () => {
   });
 });
 
-describe('the salvage benches', () => {
-  it('stand on every square a step or two in from the well, not on the board, blocking their tile, and in reach from their front', () => {
+// A world with a smithy, the hero stood before its salvage bench (inside, on the tile toward the door).
+const atTheBench = (seed = TEST_SEEDS[0]) => {
+  const model = new GameModel(seed, TEST_MAP_SIZE);
+  const smithy = model.entrances.find((e) => e.type === 'smithy')!;
+  model.teleport(smithy.x, smithy.z);
+  model.useDoor();
+  const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench')!;
+  Object.assign(model.hero, { x: bench.x, z: bench.z + 1 });
+  return { model, bench };
+};
+
+describe('the salvage bench', () => {
+  it('stands in every smithy out on the floor, its front tile free to stand at, and is in reach from there alone', () => {
     for (const seed of TEST_SEEDS) {
       const model = new GameModel(seed, TEST_MAP_SIZE);
-      const benches = salvageBenches(model);
-      expect(benches.length).toBe(model.villages.length);
-      for (const b of benches) {
-        const [dx, dz] = [b.x - b.village.x, b.z - b.village.z];
-        expect(Math.max(Math.abs(dx), Math.abs(dz))).toBeGreaterThanOrEqual(2);
-        expect(Math.max(Math.abs(dx), Math.abs(dz))).toBeLessThanOrEqual(R); // (a small square: on its edge at most)
-        expect(model.isOpenTile(b.x, b.z)).toBe(false);
-        model.teleport(b.x + b.front.dx * 0.9, b.z + b.front.dz * 0.9);
-        expect(model.salvage.benchInReach).toBe(benches.indexOf(b));
-        model.teleport(b.x + b.front.dx * (BENCH_REACH + 1), b.z + b.front.dz * (BENCH_REACH + 1));
+      for (const smithy of model.entrances.filter((e) => e.type === 'smithy')) {
+        model.teleport(smithy.x, smithy.z);
+        model.useDoor();
+        const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench');
+        expect(bench, `seed ${seed}: the smithy at ${smithy.x},${smithy.z}`).toBeTruthy();
+        expect(model.inside!.furniture.some((f) => f !== bench && f.x === bench!.x && f.z === bench!.z + 1), 'its front tile free').toBe(false);
+        Object.assign(model.hero, { x: bench!.x, z: bench!.z + 1 });
+        expect(model.salvage.benchInReach).toBe(bench);
+        Object.assign(model.hero, { x: bench!.x + 2, z: bench!.z + 1 });
         expect(model.salvage.benchInReach).toBeNull();
+        model.useDoor();
       }
     }
+  });
+
+  it('is not to be had outdoors, nor in an inn', () => {
+    const model = fresh();
+    expect(model.salvage.benchInReach).toBeNull();
+    const inn = model.entrances.find((e) => e.type === 'inn')!;
+    model.teleport(inn.x, inn.z);
+    model.useDoor();
+    expect(model.salvage.benchInReach).toBeNull();
   });
 });
 
@@ -61,13 +79,13 @@ const breakNow = (model: GameModel, key: string) => {
 
 describe('breaking gear down', () => {
   it('at the bench, a while: the piece gone, its makings in the bag, the skill practised, the bar filling meanwhile; not away from one, nor past the skill, nor two at once; walking off stops it', () => {
-    const model = fresh();
+    const { model, bench } = atTheBench();
     const { hero } = model;
     model.random = () => 0;
     hero.bag.armingSword = 2;
+    Object.assign(hero, { x: bench.x + 3, z: bench.z + 1 }); // (away from it)
     expect(model.salvage.start('armingSword')).toBe('no bench');
-    const bench = model.salvage.benches[0];
-    model.teleport(bench.x + bench.front.dx * 0.9, bench.z + bench.front.dz * 0.9);
+    Object.assign(hero, { x: bench.x, z: bench.z + 1 });
     expect(model.salvage.candidates).toContain('armingSword');
     expect(model.salvage.start('armingSword')).toBe('started');
     expect(model.salvage.start('armingSword')).toBe('busy');
@@ -76,7 +94,7 @@ describe('breaking gear down', () => {
     expect(castOf(model)).toMatchObject({ label: 'Breaking down Arming sword' });
     model.update(1, 0, 1 / 30); // (a step away: dropped)
     expect([model.salvage.breaking, hero.bag.armingSword]).toEqual([null, 2]);
-    model.teleport(bench.x + bench.front.dx * 0.9, bench.z + bench.front.dz * 0.9);
+    Object.assign(hero, { x: bench.x, z: bench.z + 1 });
     expect(breakNow(model, 'armingSword')).toBe('started');
     expect([hero.bag.armingSword, hero.bag.ironScrap]).toEqual([1, 1]);
     expect(skillOf(hero, 'salvaging').level).toBe(2);
@@ -91,13 +109,11 @@ describe('breaking gear down', () => {
   });
 
   it('has a window: the gear carried in cases as the bag\'s, the one picked told of, and a button that sets it on the bench', () => {
-    const model = fresh();
+    const { model } = atTheBench();
     model.random = () => 0.99;
     delete model.hero.bag.hatchet; // (a new hero's: a piece like any other, left out for the count)
     model.hero.bag.armingSword = 2;
     model.hero.bag.leatherCap = 1;
-    const bench = model.salvage.benches[0];
-    model.teleport(bench.x + bench.front.dx * 0.9, bench.z + bench.front.dz * 0.9);
     const panel = createSalvagePanel(model);
     panel.open();
     const window = Array.from(document.querySelectorAll('.menu[aria-label="Salvage bench"]')).at(-1)!; // (this panel's: a closed one's stays in the document)
@@ -118,15 +134,13 @@ describe('breaking gear down', () => {
   });
 
   it('asks first before a piece better than what the hero wears (nothing worn in its slot, or less), and breaks it down only on the word', () => {
-    const model = fresh();
+    const { model } = atTheBench();
     delete model.hero.bag.hatchet;
     model.hero.bag.armingSword = 1; // (nothing in hand: better than nothing)
     expect(betterThanWorn('armingSword', model.hero)).toBe(true);
     model.hero.equipment.mainHand = 'battleAxe';
     expect(betterThanWorn('armingSword', model.hero)).toBe(gearPower('armingSword') > gearPower('battleAxe'));
     model.hero.equipment.mainHand = undefined;
-    const bench = model.salvage.benches[0];
-    model.teleport(bench.x + bench.front.dx * 0.9, bench.z + bench.front.dz * 0.9);
     const panel = createSalvagePanel(model);
     panel.open();
     const window = Array.from(document.querySelectorAll('.menu[aria-label="Salvage bench"]')).at(-1)!; // (this panel's: a closed one's stays in the document)
