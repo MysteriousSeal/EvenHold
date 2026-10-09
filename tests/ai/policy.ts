@@ -17,6 +17,11 @@ export interface PolicyWeights {
 export class Policy {
   constructor(private readonly weights: PolicyWeights) {}
 
+  // Whether it was trained on sight of this many numbers (one trained before what it sees changed: not).
+  fits(observationSize: number): boolean {
+    return this.weights.layers[0]?.weight[0]?.length === observationSize;
+  }
+
   // Its choice: [way (0 still, 1..8), key (keys.ts)], drawn by its odds with `sample` (a chance, 0..1), else the likeliest.
   act(observation: readonly number[], sample?: () => number): [number, number] {
     let x = observation;

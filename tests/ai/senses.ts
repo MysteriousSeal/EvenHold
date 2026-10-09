@@ -36,7 +36,9 @@ import { ROWS } from './keys';
 
 export const VIEW = 7; // tiles each way round the hero (15 a side: about the screen)
 const SIDE = 2 * VIEW + 1;
-const GRID_CHANNELS = 11;
+const GRID_CHANNELS = 12;
+export const PATCH = 8; // tiles a side of a patch of ground, walked or not (player.ts pays for each new one)
+export const patchOf = (x: number, z: number): number => Math.floor(x / PATCH) * 4096 + Math.floor(z / PATCH);
 export const PROMPTS = ['none', 'work', 'stopChop', 'loot', 'jobBoard', 'chest', 'chop', 'barmaidFromStool', 'standUp', 'getUp', 'sit', 'lie', 'barmaid', 'smith', 'herbalist', 'bouncer', 'pedlar', 'traveller', 'board', 'bench', 'well', 'hallDoor', 'stairs', 'leave', 'door', 'dungeon', 'cannotChop'] as const;
 export type Prompt = (typeof PROMPTS)[number];
 const PLACES = ['outdoors', 'house', 'inn', 'smithy', 'herbalist', 'crypt', 'cave', 'upstairs', 'camp'] as const;
@@ -100,7 +102,8 @@ export class Senses {
   }
 
   // Everything seen, as OBSERVATION_SIZE numbers.
-  observe(window: Window | null, events: ReadonlySet<string>): number[] {
+  // (`walked`: the patches of ground this life has been on, as a player remembers where they've been)
+  observe(window: Window | null, events: ReadonlySet<string>, walked: ReadonlySet<number> = new Set()): number[] {
     const { model } = this;
     const { hero, inside, moves } = model;
     const out: number[] = [];
@@ -121,7 +124,7 @@ export class Senses {
     const canOrder = atTheBar(model) && !hero.drinking && !hero.eating;
     out.push(canOrder ? 1 : 0, canOrder ? 1 : 0, action?.kind === 'rent' && !action.taken ? 1 : 0, action?.kind === 'sleep' ? 1 : 0);
     this.tracker(out);
-    this.grid(out);
+    this.grid(out, walked);
     this.lists(out);
     this.window(out, window);
     out.push(...EVENTS.map((e) => (events.has(e) ? 1 : 0)));
@@ -149,7 +152,7 @@ export class Senses {
   }
 
   // The ground round them, tile by tile (indoors: the room's floor and furniture).
-  private grid(out: number[]): void {
+  private grid(out: number[], walked: ReadonlySet<number>): void {
     const { model } = this;
     const { hero, inside } = model;
     const [cx, cz] = [Math.round(hero.x), Math.round(hero.z)];
@@ -185,6 +188,7 @@ export class Senses {
           tree ? (model.lumber.axe && WOOD[gradeOf(tree, model.seed)].needs <= level ? 1 : 0.5) : 0,
           inside && seats.some((f) => within(f, x, z)) ? 1 : 0,
           special ? 1 : 0,
+          !inside && walked.has(patchOf(x, z)) ? 1 : 0,
         );
       }
     }

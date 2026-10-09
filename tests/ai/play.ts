@@ -10,7 +10,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { generateRandomSeed, mulberry32 } from '../../src/util/random';
 import { Checks, type Problem } from '../bots/checks';
-import { ACTIONS, EPISODE_MINUTES, MOVES, Player } from './player';
+import { ACTIONS, EPISODE_MINUTES, MOVES, OBSERVATION_SIZE, Player } from './player';
+import { PAY_SOURCES } from './tally';
 import { Policy, random, type PolicyWeights } from './policy';
 import { KEYS } from './keys';
 import type { Tally } from './tally';
@@ -23,7 +24,10 @@ Date.now = () => clock;
 const rng = mulberry32(seed * 7919 + 1);
 // The best player saved, unless told the latest (AI_LATEST=1); none: keys at random.
 const weightsPath = [process.env.AI_LATEST ? 'models/player.json' : 'models/best.json', 'models/player.json'].map((p) => resolve(__dirname, p)).find((p) => existsSync(p));
-const weights: PolicyWeights | null = weightsPath ? JSON.parse(readFileSync(weightsPath, 'utf8')) : null;
+const saved: PolicyWeights | null = weightsPath ? JSON.parse(readFileSync(weightsPath, 'utf8')) : null;
+const stale = !!saved && !new Policy(saved).fits(OBSERVATION_SIZE); // (trained before what it sees changed)
+if (stale) console.log('The player saved was trained on what it saw before (it sees more now): playing keys at random. Train again: npm run ai:train -- --fresh');
+const weights = stale ? null : saved;
 const policy = weights ? new Policy(weights) : null;
 const choose = policy ? (o: readonly number[]) => policy.act(o, process.env.AI_GREEDY ? undefined : rng) : random(MOVES, ACTIONS, rng);
 
@@ -70,7 +74,8 @@ function playReport(tally: Tally, seed: number, reward: number, weights: PolicyW
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const whole = tally.seconds || 1;
   lines.push(`# An AI's life: seed ${seed}, ${Math.round(tally.seconds / 60)} game minutes`, '');
-  lines.push(`**The player:** ${weights ? `trained ${(weights.steps ?? 0).toLocaleString()} decisions` : 'untrained: keys at random'}; paid ${reward.toFixed(2)} in all (a level's experience 1, a quest 1, 500 copper 1, a fall −1).`, '');
+  lines.push(`**The player:** ${weights ? `trained ${(weights.steps ?? 0).toLocaleString()} decisions` : 'untrained: keys at random'}; paid ${reward.toFixed(2)} in all (a level's experience 1, a quest 1, 500 copper 1, a fall −1; helpers: a new patch of ground 0.01, up to 1.5 a life, a foe's whole health in blows 0.3).`, '');
+  lines.push(`**Paid, by what for:** ${PAY_SOURCES.map((k) => `${k} ${tally.pay[k].toFixed(2)}`).join(', ')}. The game's own (xp, coin, quests, falls) came to ${(tally.pay.xp + tally.pay.coin + tally.pay.quest + tally.pay.fall).toFixed(2)}; the helpers (new ground, blows) to ${(tally.pay.explore + tally.pay.blows).toFixed(2)}.`, '');
   lines.push(`**At the end:** level ${tally.level}, ${tally.xp} xp, ${tally.money} copper (${tally.earned} earned, ${tally.spent} spent), ${tally.quests.done}/${tally.quests.taken} quests done (${tally.quests.abandoned} given up), ${tally.kills} slain, ${tally.falls} falls, ${tally.hurt.toFixed(1)} health bars lost.`, '');
   // What it skipped: the part to read.
   const did: Array<[string, number]> = [['went into a house', tally.doors.house ?? 0], ['went into an inn', tally.doors.inn ?? 0], ['went into a smithy', tally.doors.smithy ?? 0], ["went into the herbalist's", tally.doors.herbalist ?? 0], ['went down a crypt', tally.doors.crypt ?? 0], ['went into a cave', tally.doors.cave ?? 0], ['took a quest', tally.quests.taken], ['handed a quest in', tally.quests.done], ['bought', tally.bought], ['sold', tally.sold], ['crafted', tally.crafted], ['broke down gear', tally.salvaged], ['felled a tree', tally.chopped], ['worked a shift', tally.shifts], ['drank an ale', tally.ales], ['ate a pie', tally.pies], ['rented a room', tally.rooms], ['tossed a coin', tally.wishes], ['opened a chest', tally.chests], ['cleared a camp', tally.camps], ['slew a boss', tally.dungeons], ['put gear on', tally.equipped], ['ate from the bag', tally.eaten], ['drank a potion', tally.potions], ['spent a point', tally.pointsSpent]];

@@ -61,4 +61,24 @@ describe("the AI's game", () => {
     player.step(0, 0);
     expect(player.seconds).toBeGreaterThan(t);
   });
+
+  it('is paid a little for new ground (up to its cap), and for blows landed, each kept apart from the game\'s own pay', () => {
+    const player = new Player();
+    player.reset(11);
+    // Straight on one way: new patches, paid for each, never past the cap; none of the game's own pay for walking.
+    for (let i = 0; i < 400; i++) player.step(5, 0);
+    const { pay } = player.tally;
+    expect(pay.explore).toBeGreaterThan(0);
+    expect(pay.explore).toBeLessThanOrEqual(1.5 + 1e-9);
+    expect(pay.quest).toBe(0);
+    // A foe set beside it and struck: its blows paid, the share of its health lost.
+    const { model } = player;
+    const foe = model.foes.find((e) => e.state !== 'dead')!;
+    Object.assign(foe, { x: model.hero.x, z: model.hero.z + 0.8, state: 'chase' });
+    player.step(0, 0);
+    const before = player.tally.pay.blows;
+    foe.hp -= foe.maxHp / 2;
+    player.step(0, 0);
+    expect(player.tally.pay.blows - before).toBeCloseTo(0.15, 2);
+  }, 60_000);
 });

@@ -6,7 +6,7 @@ on from) and player.json (its policy's weights, to play with in TypeScript: poli
   npm run ai:train                       a million steps more, on from the player saved (a fresh one if there's none)
   npm run ai:train -- --steps 3000000    longer
   npm run ai:train -- --fresh            a fresh one, the one saved replaced
-  AI_MINUTES=60 npm run ai:train         longer lives (game minutes; 30 by default)
+  AI_MINUTES=30 npm run ai:train         longer lives (game minutes; 10 by default: many short lives learn faster)
 """
 
 import argparse
@@ -27,17 +27,24 @@ def main() -> None:
     parser.add_argument("--fresh", action="store_true", help="start a fresh one (the one saved is replaced)")
     args = parser.parse_args()
     MODELS.mkdir(exist_ok=True)
-    print(f"Training a player of the whole game: {args.steps:,} decisions, on {args.envs} games at once, each life {os.environ.get('AI_MINUTES', '30')} game minutes.", flush=True)
+    print(f"Training a player of the whole game: {args.steps:,} decisions, on {args.envs} games at once, each life {os.environ.get('AI_MINUTES', '10')} game minutes.", flush=True)
     print(f"Starting {args.envs} games (each its own server: vite-node tests/ai/server.ts)…", flush=True)
     env = VecMonitor(SubprocVecEnv([lambda i=i: GameEnv(seed=i + 1) for i in range(args.envs)]))
     print(f"  each sees {env.observation_space.shape[0]:,} numbers a decision and chooses {' × '.join(str(n) for n in env.action_space.nvec)} ways", flush=True)
     resume = not args.fresh and (MODELS / f"{LATEST}.zip").exists()
     if args.fresh:
         forget(BEST)  # (a fresh player sets its own bar)
+    model = None
     if resume:
-        model = PPO.load(MODELS / f"{LATEST}.zip", env=env)
-        print(f"On from the player saved: {model.num_timesteps:,} decisions trained so far.", flush=True)
-    else:
+        try:
+            model = PPO.load(MODELS / f"{LATEST}.zip", env=env)
+            print(f"On from the player saved: {model.num_timesteps:,} decisions trained so far.", flush=True)
+        except ValueError:
+            # (trained on what it saw before: its sight's size has changed since)
+            print("The player saved was trained on what it saw before (it sees more now): starting a fresh one.", flush=True)
+            forget(BEST)
+            resume = False
+    if model is None:
         print(f"A fresh player: knowing nothing yet{' (the one saved is replaced)' if (MODELS / 'player.zip').exists() else ''}.", flush=True)
         model = PPO(
             "MlpPolicy",

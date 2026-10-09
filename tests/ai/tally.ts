@@ -35,13 +35,18 @@ export interface Tally {
   moving: number; // decisions spent going somewhere
   places: { outdoors: number; inn: number; smithy: number; house: number; herbalist: number; dungeon: number; upstairs: number; camp: number }; // seconds
   wasted: number; // E with nothing to do
+  pay: Record<PaySource, number>; // what it was paid, by what for (player.ts PAY)
 }
+
+export const PAY_SOURCES = ['xp', 'coin', 'quest', 'fall', 'explore', 'blows'] as const;
+export type PaySource = (typeof PAY_SOURCES)[number];
 
 export const emptyTally = (): Tally => ({
   seconds: 0, level: 1, xp: 0, money: 0, earned: 0, spent: 0, quests: { taken: 0, done: 0, abandoned: 0 }, falls: 0, kills: 0, hurt: 0,
   doors: {}, windows: {}, bought: 0, sold: 0, crafted: 0, salvaged: 0, chopped: 0, shifts: 0, ales: 0, pies: 0, rooms: 0, wishes: 0, chests: 0, camps: 0, dungeons: 0,
   equipped: 0, eaten: 0, potions: 0, pointsSpent: 0, keys: {}, did: {}, moving: 0,
   places: { outdoors: 0, inn: 0, smithy: 0, house: 0, herbalist: 0, dungeon: 0, upstairs: 0, camp: 0 }, wasted: 0,
+  pay: { xp: 0, coin: 0, quest: 0, fall: 0, explore: 0, blows: 0 },
 });
 
 export const count = (by: Record<string, number>, key: string, n = 1): void => void (by[key] = (by[key] ?? 0) + n);

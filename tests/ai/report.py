@@ -89,6 +89,7 @@ class Reporter(BaseCallback):
             f"{q['done']}/{q['taken']} quests, {life['kills']} slain, {life['falls']} falls, {life['hurt']:.1f} bars of health lost; paid {life['reward']:.2f}{best}\n"
             f"      went: {went or 'nowhere long'}; through doors: {doors or 'none'}; windows: {windows or 'none'}\n"
             f"      did: {', '.join(did) or 'nothing of note'}; E for nothing ×{life['wasted']}; keys: {top}\n"
+            f"      paid by: {', '.join(f'{k} {v:+.2f}' for k, v in life['pay'].items() if v)  or 'nothing'}\n"
             f"      never: {', '.join(never) or 'nothing left untried'}"
         )
 
@@ -108,6 +109,7 @@ class Reporter(BaseCallback):
         text = (
             f"— {self.num_timesteps:,}/{self.total:,} decisions ({rate:.0f}/s, about {left / 60:.0f} min left), {self.lives} lives, {self.passes} passes, {(now - self.started) / 60:.0f} min in"
             + (f"; the last {n} lives: paid {mean('reward'):.2f}, level {mean('level'):.1f}, {mean('kills'):.1f} slain, {mean('falls'):.1f} falls, {mean('earned'):.0f} copper" if n else "")
+            + (f" (game {sum(float(l['pay'][k]) for l in self.recent for k in ('xp', 'coin', 'quest', 'fall')) / n:+.2f}, new ground {sum(float(l['pay']['explore']) for l in self.recent) / n:.2f}, blows {sum(float(l['pay']['blows']) for l in self.recent) / n:.2f})" if n else "")
             + (f"; best saved {self.best:.2f}" if self.best > -math.inf else "")
         )
         print(f"\r{text:<160}", end="", flush=True)

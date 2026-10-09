@@ -2,8 +2,11 @@
 // launching the game, played a decision at a time by the game's own keys (keys.ts) and the clicks a player makes in its
 // windows (windows.ts), seeing only what's on screen (senses.ts). It's told nothing of what's good to do. It's paid
 // (PAY) for what the game itself counts as getting on: experience (a level's worth: 1), coin earned, quests handed in;
-// and pays for falling. Whatever path pays most is the one it takes: that's what the hour says about the game's
-// balance (play.ts: the report). Each life is EPISODE game minutes; windows that hold the game (the board's, the jobs')
+// and pays for falling. Two helpers besides, while it learns (a hero pressing keys at random earns nothing of the
+// game's for millions of decisions, and learns nothing): a little for each new patch of ground walked onto (up to
+// EXPLORE_MOST a life), and a share of each blow landed on a foe. Each source of pay is kept apart (tally.pay), so the
+// report can always tell the game's own rewards from the helpers'. Whatever path pays most is the one it takes:
+// that's what a life says about the game's balance (play.ts: the report). Each life is EPISODE game minutes; windows that hold the game (the board's, the jobs')
 // hold it here too, a few decisions at most.
 import { GameModel } from '../../src/model/GameModel';
 import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
@@ -23,14 +26,14 @@ import { goesUnder } from '../../src/model/dungeons/dungeonTypes';
 import { mulberry32 } from '../../src/util/random';
 import type { Enemy } from '../../src/model/types';
 import { FRAME, FRAMES_PER_DECISION, KEYS, MOVES, ROWS, ROW_KEY, WAYS, type Key } from './keys';
-import { EVENTS, OBSERVATION_SIZE, Senses, prompt } from './senses';
+import { EVENTS, OBSERVATION_SIZE, Senses, patchOf, prompt } from './senses';
 import { openWindow, shown, type Window, type WindowKind } from './windows';
-import { count, emptyTally, type Tally } from './tally';
+import { count, emptyTally, type PaySource, type Tally } from './tally';
 
 export { FRAME, FRAMES_PER_DECISION, MOVES, OBSERVATION_SIZE };
 export const ACTIONS = KEYS.length;
 
-export const EPISODE_MINUTES = Number((typeof process !== 'undefined' && process.env.AI_MINUTES) || 30); // game minutes a life lasts (AI_MINUTES; in the browser, 30)
+export const EPISODE_MINUTES = Number((typeof process !== 'undefined' && process.env.AI_MINUTES) || 10); // game minutes a life lasts (AI_MINUTES; short while it learns, many lives)
 const MODAL_MOST = 16; // decisions a window that holds the game may hold it for
 // What it's paid for, and what it pays: the game's own progress, nothing else.
 export const PAY = {
@@ -38,7 +41,11 @@ export const PAY = {
   coin: 1 / 500, // each copper earned (not what's spent: coin's for spending)
   quest: 1, // a quest handed in
   fall: -1,
+  // The helpers:
+  explore: 0.01, // a new patch of ground (PATCH tiles a side), outdoors
+  blow: 0.3, // a foe's whole health in blows landed
 };
+const EXPLORE_MOST = 1.5; // paid for new ground, at most a life (else a walker, not a player)
 
 export interface PlayStep {
   observation: number[];
@@ -62,6 +69,8 @@ export class Player {
   private paid = 0; // paid (or paying) this decision, besides what settle() works out
   private order: { served: boolean; what: BarMenuItem } | null = null; // an order on its way to the hero's stool
   private alive = new Set<Enemy>(); // foes seen alive near, to count the kills
+  private foeHp = new Map<Enemy, number>(); // the foes near, as they last stood: blows landed, by their health lost
+  private walked = new Set<number>(); // patches of ground walked onto, this life
 
   // A new life: a new world (from `seed`) and a new hero in it.
   reset(seed: number): number[] {
@@ -69,9 +78,10 @@ export class Player {
     this.model = new GameModel(seed, STREAMED_SIZE);
     this.senses = new Senses(this.model);
     const fall = this.model.fall;
-    this.model.fall = () => ((this.tally.falls++, this.paid += PAY.fall), fall());
+    this.model.fall = () => ((this.tally.falls++, this.earn('fall', PAY.fall)), fall());
     [this.t, this.way, this.picked, this.held, this.paid, this.order, this.window] = [0, [0, 0], 0, 0, 0, null, null];
-    [this.tally, this.events, this.alive] = [emptyTally(), new Set(), new Set()];
+    [this.tally, this.events, this.alive, this.foeHp, this.walked] = [emptyTally(), new Set(), new Set(), new Map(), new Set()];
+    this.walked.add(patchOf(this.model.hero.x, this.model.hero.z)); // (where it wakes: not new)
     this.before = { xp: 0, money: this.model.hero.money, hp: this.model.hero.hp };
     this.model.takeEvents();
     return this.observe();
@@ -159,7 +169,7 @@ export class Player {
     if (!what) return;
     const { tally } = this;
     if (what === 'questTaken') tally.quests.taken++;
-    else if (what === 'questDone') [tally.quests.done++, (this.paid += PAY.quest)];
+    else if (what === 'questDone') [tally.quests.done++, this.earn('quest', PAY.quest)];
     else if (what === 'questAbandoned') tally.quests.abandoned++;
     else if (what === 'shift') [tally.shifts++, (this.window = null)];
     else if (what in tally && typeof (tally as unknown as Record<string, unknown>)[what] === 'number') (tally as unknown as Record<string, number>)[what]++;
@@ -249,10 +259,13 @@ export class Player {
     const { model, tally } = this;
     const { hero } = model;
     const xp = totalXp(hero.level, hero.xp);
-    let reward = this.paid + ((xp - this.before.xp) / xpToNext(hero.level)) * PAY.level;
+    this.earn('xp', ((xp - this.before.xp) / xpToNext(hero.level)) * PAY.level);
     const coin = hero.money - this.before.money;
-    if (coin > 0) [tally.earned += coin, (reward += coin * PAY.coin)];
+    if (coin > 0) [(tally.earned += coin), this.earn('coin', coin * PAY.coin)];
     else tally.spent -= coin;
+    this.explored();
+    this.blows();
+    const reward = this.paid;
     if (hero.hp < this.before.hp) tally.hurt += (this.before.hp - hero.hp) / maxHpOf(hero);
     this.before = { xp, money: hero.money, hp: hero.hp };
     this.paid = 0;
@@ -260,6 +273,39 @@ export class Player {
     this.events = this.told();
     Object.assign(tally, { seconds: this.t, level: hero.level, xp, money: hero.money });
     return { observation: this.observe(), reward, done: false, truncated: !held && this.t >= EPISODE_MINUTES * 60, info: tally };
+  }
+
+  // Pay, kept by what for.
+  private earn(source: PaySource, amount: number): void {
+    if (!amount) return;
+    this.paid += amount;
+    this.tally.pay[source] += amount;
+  }
+
+  // A new patch of ground walked onto, outdoors: a little, up to EXPLORE_MOST a life.
+  private explored(): void {
+    const { model } = this;
+    if (model.inside) return;
+    const patch = patchOf(model.hero.x, model.hero.z);
+    if (this.walked.has(patch)) return;
+    this.walked.add(patch);
+    this.earn('explore', Math.max(0, Math.min(PAY.explore, EXPLORE_MOST - this.tally.pay.explore)));
+  }
+
+  // Blows landed on foes near: each one's health lost, as a share of its whole (a kill's own pay is its experience).
+  private blows(): void {
+    const { hero } = this.model;
+    for (const e of this.model.foes) {
+      if (Math.abs(e.x - hero.x) > 12 || Math.abs(e.z - hero.z) > 12) {
+        this.foeHp.delete(e);
+        continue;
+      }
+      const now = e.state === 'dead' ? 0 : Math.max(0, e.hp);
+      const was = this.foeHp.get(e);
+      if (was !== undefined && now < was) this.earn('blows', ((was - now) / e.maxHp) * PAY.blow);
+      if (e.state === 'dead') this.foeHp.delete(e);
+      else this.foeHp.set(e, now);
+    }
   }
 
   // Foes near that were alive and now aren't: slain (by the hero: nothing else kills them).
@@ -289,7 +335,7 @@ export class Player {
   }
 
   observe(): number[] {
-    return this.senses.observe(this.window, this.events);
+    return this.senses.observe(this.window, this.events, this.walked);
   }
 }
 

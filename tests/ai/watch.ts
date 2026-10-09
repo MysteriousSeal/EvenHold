@@ -13,7 +13,7 @@ import { createQuestTracker } from '../../src/view/hud/questTracker';
 import { createLootPrompt } from '../../src/view/hud/lootPrompt';
 import { generateRandomSeed, mulberry32 } from '../../src/util/random';
 import { FRAME, FRAMES_PER_DECISION, KEYS, ROW_KEY, WAYS } from './keys';
-import { ACTIONS, MOVES, Player, type PlayStep } from './player';
+import { ACTIONS, MOVES, OBSERVATION_SIZE, Player, type PlayStep } from './player';
 import { Policy, random, type PolicyWeights } from './policy';
 import { prompt, type Prompt } from './senses';
 import { shown } from './windows';
@@ -99,6 +99,10 @@ async function main(): Promise<void> {
       return;
     }
     weights = (await response.json()) as PolicyWeights;
+    if (!new Policy(weights).fits(OBSERVATION_SIZE)) {
+      panel.innerHTML = '<b>The saved player is out of date</b>It was trained on what it saw before (it sees more now). Train again: npm run ai:train -- --fresh; or ?random.';
+      return;
+    }
   }
   const seed = Number(params.get('seed') ?? generateRandomSeed());
   const rng = mulberry32(seed * 7919 + 1);
@@ -171,6 +175,7 @@ async function main(): Promise<void> {
       `<b>Seed ${seed} · ${t}${weights ? ` · trained ${(weights.steps ?? 0).toLocaleString()}${weights.score != null ? ` · scored ${weights.score.toFixed(2)}` : ''}` : ' · keys at random'}</b>` +
       `<div class="row"><span>Level ${model.hero.level} · ${model.hero.money} copper</span><span class="${paid >= 0 ? 'good' : 'fell'}">paid ${paid.toFixed(2)}</span></div>` +
       `<div class="row"><span>Quests ${tally.quests.done}/${tally.quests.taken}</span><span class="fell">Falls ${tally.falls}</span></div>` +
+      `<div class="dim">paid: game ${(tally.pay.xp + tally.pay.coin + tally.pay.quest + tally.pay.fall).toFixed(2)} · new ground ${tally.pay.explore.toFixed(2)} · blows ${tally.pay.blows.toFixed(2)}</div>` +
       `<div class="dim">${did || 'nothing done yet'}</div>` +
       `<div class="row"><span class="move">${ARROWS[move]} ${KEYS[key] === 'none' ? '' : KEYS[key]}</span><span class="dim">${speed}×${paused ? ' · paused' : ''}${ended > 0 ? ' · over' : ''}</span></div>` +
       `<div class="keys">space pause · ${SPEEDS.join(' / ')} speed · N a new life</div>`;
