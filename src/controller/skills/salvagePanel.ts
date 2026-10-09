@@ -24,6 +24,7 @@ const SAID: Record<SalvageOutcome, string> = {
   none: "You haven't one of those.",
   skill: 'Your Salvaging is not up to this piece yet.',
   busy: 'One thing at a time: the bench is taken.',
+  full: 'Your bag is full: no room for what it would leave.',
 };
 const COLUMNS = 8; // cases across, as the bag's
 

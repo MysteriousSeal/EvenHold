@@ -98,10 +98,11 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     };
     const craft = el('button', 'book-craft', can > 1 && state.count > 1 ? `Craft ${state.count}` : 'Craft');
     const all = el('button', 'book-craft quiet', can > 0 ? `Craft all (${can})` : 'Craft all');
-    craft.disabled = all.disabled = can === 0 || !!woodworking.making;
+    const room = woodworking.roomFor(id);
+    craft.disabled = all.disabled = can === 0 || !room || !!woodworking.making;
     craft.addEventListener('click', () => [woodworking.start(id, state.count), redraw()]);
     all.addEventListener('click', () => [woodworking.start(id, Infinity), redraw()]);
-    const why = !known ? `Reach Woodworking ${recipe.needs} to learn it.` : can === 0 ? 'Not enough materials in your bag.' : '';
+    const why = !known ? `Reach Woodworking ${recipe.needs} to learn it.` : can === 0 ? 'Not enough materials in your bag.' : !room ? 'No room in your bag for it.' : '';
     return el(
       'div',
       'book-detail',
