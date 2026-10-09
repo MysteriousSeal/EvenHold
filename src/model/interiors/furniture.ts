@@ -36,6 +36,7 @@ export const FURNITURE_KINDS = [
   'armorStand', // a suit of his armour on a stand
   'grindstone',
   'salvageBench', // where gear's broken down for its makings (skills/salvage.ts)
+  'bedroll', // the hero's, unrolled on the ground outdoors to lie on (GameModel.lieDown): never in a room
   'toolBoard', // his tongs and hammers, hung on a wall
   'anvil',
   'trough',

@@ -8,6 +8,7 @@
 // drops something about half the time, rolled from the enemy's id so the
 // same fight always gives the same loot.
 
+import { TOOL_ITEMS, isTool, type ToolId } from './tools';
 import { hashUnit } from '../../util/random';
 import { INGREDIENTS, isIngredient, type IngredientId } from './ingredients';
 import { JUNK_ITEMS } from './junk';
@@ -18,14 +19,14 @@ import { QUEST_ITEMS, isQuestItem, type QuestItemId } from '../quests/questItems
 import type { BagItem } from '../hero/bag';
 import type { LootEntry, LootSource } from './lootEntry';
 
-export type LootQuality = 'junk' | 'ingredient' | 'common' | 'quest' | 'bag' | 'potion';
+export type LootQuality = 'junk' | 'ingredient' | 'common' | 'quest' | 'bag' | 'potion' | 'tool';
 
 export type { LootEntry, LootSource } from './lootEntry';
 
-export type LootId = keyof typeof JUNK_ITEMS | IngredientId | ProvisionId | QuestItemId | BagId | PotionId;
-export const LOOT: Record<LootId, LootEntry> = { ...JUNK_ITEMS, ...INGREDIENTS, ...PROVISIONS, ...QUEST_ITEMS, ...BAG_ITEMS, ...POTIONS };
+export type LootId = keyof typeof JUNK_ITEMS | IngredientId | ProvisionId | QuestItemId | BagId | PotionId | ToolId;
+export const LOOT: Record<LootId, LootEntry> = { ...JUNK_ITEMS, ...INGREDIENTS, ...PROVISIONS, ...QUEST_ITEMS, ...BAG_ITEMS, ...POTIONS, ...TOOL_ITEMS };
 export const LOOT_IDS = Object.keys(LOOT) as LootId[];
-export const LOOT_QUALITY: Record<LootId, LootQuality> = Object.fromEntries(LOOT_IDS.map((id) => [id, isProvision(id) ? 'common' : isPotion(id) ? 'potion' : isQuestItem(id) ? 'quest' : isBagItem(id) ? 'bag' : isIngredient(id) ? 'ingredient' : 'junk'])) as Record<LootId, LootQuality>;
+export const LOOT_QUALITY: Record<LootId, LootQuality> = Object.fromEntries(LOOT_IDS.map((id) => [id, isProvision(id) ? 'common' : isPotion(id) ? 'potion' : isQuestItem(id) ? 'quest' : isBagItem(id) ? 'bag' : isTool(id) ? 'tool' : isIngredient(id) ? 'ingredient' : 'junk'])) as Record<LootId, LootQuality>;
 
 export const DROP_CHANCE = 0.5;
 export const PICKUP_RANGE = 0.9; // how close the hero must be to pick something up

@@ -33,11 +33,20 @@ export type RecipeId =
   | 'varnish'
   | 'varnishedStaff'
   | 'heartwoodShield'
-  | 'heartwoodStaff';
+  | 'heartwoodStaff'
+  | 'birchFramedPack'
+  | 'bentwoodRing'
+  | 'bedroll'
+  | 'fellingAxe'
+  | 'pinePack'
+  | 'carvedPendant'
+  | 'broadAxe'
+  | 'heartwoodAmulet'
+  | 'heartwoodPack';
 
 // What a recipe makes, to list it under (the skill's window: its sections).
-export type RecipeGroup = 'Materials' | 'Goods' | 'Weapons' | 'Shields';
-export const RECIPE_GROUPS: readonly RecipeGroup[] = ['Materials', 'Goods', 'Weapons', 'Shields'];
+export type RecipeGroup = 'Materials' | 'Goods' | 'Tools' | 'Packs' | 'Trinkets' | 'Weapons' | 'Shields';
+export const RECIPE_GROUPS: readonly RecipeGroup[] = ['Materials', 'Goods', 'Tools', 'Packs', 'Trinkets', 'Weapons', 'Shields'];
 
 export interface Recipe {
   name: string;
@@ -50,18 +59,29 @@ export interface Recipe {
 
 // The recipes, in the order of the skill they want.
 export const RECIPES: Record<RecipeId, Recipe> = {
+  // With what the salvage bench leaves (salvage.ts): packs for the bag's sockets, roomier each (loot/bags.ts); a
+  // bedroll to lie down on anywhere; axes that chop quicker and leave more; trinkets set with the stones.
   birchPlank: { name: 'Birch plank', group: 'Materials', needs: 1, from: { birchLog: 1 }, makes: 'birchPlank', seconds: 2 },
   woodenSword: { name: 'Wooden sword', group: 'Weapons', needs: 10, from: { birchPlank: 2 }, makes: { item: 'woodenSword', level: 3, rarity: 'common' }, seconds: 3 },
   woodenBowl: { name: 'Wooden bowl', group: 'Goods', needs: 25, from: { birchPlank: 1 }, makes: 'woodenBowl', seconds: 2.5 },
+  birchFramedPack: { name: 'Birch-framed pack', group: 'Packs', needs: 30, from: { birchPlank: 3, leatherStrip: 2 }, makes: 'birchFramedPack', seconds: 4 },
+  bentwoodRing: { name: 'Bentwood ring', group: 'Trinkets', needs: 40, from: { birchPlank: 1, silverFilings: 2 }, makes: { item: 'bentwoodRing', level: 5, rarity: 'common' }, seconds: 3 },
   pinePlank: { name: 'Pine plank', group: 'Materials', needs: 50, from: { pineLog: 1 }, makes: 'pinePlank', seconds: 2 },
+  bedroll: { name: 'Bedroll', group: 'Tools', needs: 55, from: { pinePlank: 2, linenScrap: 3, leatherStrip: 1 }, makes: 'bedroll', seconds: 4 },
   knottedClub: { name: 'Knotted club', group: 'Weapons', needs: 65, from: { pinePlank: 2, birchPlank: 1 }, makes: { item: 'club', level: 8, rarity: 'common' }, seconds: 3 },
+  fellingAxe: { name: 'Felling axe', group: 'Tools', needs: 80, from: { pinePlank: 2, ironScrap: 3 }, makes: { item: 'fellingAxe', level: 12, rarity: 'common' }, seconds: 4 },
   quarterstaff: { name: 'Quarterstaff', group: 'Weapons', needs: 90, from: { pinePlank: 3 }, makes: { item: 'quarterstaff', level: 11, rarity: 'common' }, seconds: 3.5 },
   oakPlank: { name: 'Oak plank', group: 'Materials', needs: 100, from: { oakLog: 1 }, makes: 'oakPlank', seconds: 2 },
+  pinePack: { name: 'Pine pack', group: 'Packs', needs: 110, from: { pinePlank: 4, leatherStrip: 3 }, makes: 'pinePack', seconds: 4.5 },
   carvedTankard: { name: 'Carved tankard', group: 'Goods', needs: 125, from: { oakPlank: 2 }, makes: 'carvedTankard', seconds: 3 },
+  carvedPendant: { name: 'Carved pendant', group: 'Trinkets', needs: 130, from: { oakPlank: 1, gemShard: 1, silverFilings: 1 }, makes: { item: 'carvedPendant', level: 15, rarity: 'uncommon' }, seconds: 3.5 },
   plankShield: { name: 'Plank shield', group: 'Shields', needs: 150, from: { oakPlank: 3, pinePlank: 1 }, makes: { item: 'plankShield', level: 16, rarity: 'common' }, seconds: 4 },
   varnish: { name: 'Varnish', group: 'Materials', needs: 160, from: { pineResin: 2 }, makes: 'varnish', seconds: 2.5 },
+  broadAxe: { name: 'Broad axe', group: 'Tools', needs: 180, from: { oakPlank: 2, temperedIngot: 1, leatherStrip: 1 }, makes: { item: 'broadAxe', level: 22, rarity: 'uncommon' }, seconds: 5 },
   varnishedStaff: { name: 'Varnished quarterstaff', group: 'Weapons', needs: 200, from: { oakPlank: 4, varnish: 1 }, makes: { item: 'quarterstaff', level: 22, rarity: 'uncommon' }, seconds: 4 },
+  heartwoodAmulet: { name: 'Heartwood amulet', group: 'Trinkets', needs: 230, from: { heartwood: 1, cutGem: 1, varnish: 1 }, makes: { item: 'heartwoodAmulet', level: 27, rarity: 'rare' }, seconds: 5 },
   heartwoodShield: { name: 'Heartwood shield', group: 'Shields', needs: 240, from: { heartwood: 2, oakPlank: 3, varnish: 1 }, makes: { item: 'plankShield', level: 28, rarity: 'rare' }, seconds: 5 },
+  heartwoodPack: { name: 'Heartwood pack', group: 'Packs', needs: 255, from: { heartwood: 2, oakPlank: 2, leatherStrip: 4 }, makes: 'heartwoodPack', seconds: 6 },
   heartwoodStaff: { name: 'Heartwood staff', group: 'Weapons', needs: 270, from: { heartwood: 3, varnish: 2 }, makes: { item: 'quarterstaff', level: 32, rarity: 'rare' }, seconds: 5 },
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];

@@ -12,7 +12,8 @@
 
 import { hashUnit } from '../../util/random';
 import { Nearby } from '../../util/nearby';
-import { isGear, levelOf, weaponTypeOf, type GearKey } from '../human/items/gear';
+import { baseOf, isGear, levelOf, weaponTypeOf, type GearKey } from '../human/items/gear';
+import type { ItemId } from '../human/equipment';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero, Tree } from '../types';
 import { gainXp } from '../hero/heroStats';
@@ -48,6 +49,8 @@ export const gradeChops = (grade: Grade): [number, number] => WOOD[grade].chops;
 const MOST_CHOPS = Math.max(...Object.values(WOOD).map((w) => w.chops[1])); // any tree's, at most
 export const SWING = 0.9; // seconds a swing of the axe
 const SWINGS = 3; // swings a chop, at the skill's first tier
+// What a woodworker's axes bring (woodworking.ts): a swing fewer a chop, a second log oftener.
+export const AXE_BONUS: Partial<Record<ItemId, { swings?: number; secondLog?: number }>> = { fellingAxe: { swings: -1 }, broadAxe: { swings: -1, secondLog: 0.15 } };
 const QUICKER = 0.1; // of a chop's swings fewer, each tier on
 export const REACH = 1.15; // tiles from a trunk to chop at it
 const HERO_XP = 3; // the hero's own experience, a chop
@@ -104,7 +107,8 @@ export class Lumber {
     const { equipment, bag } = this.host.hero;
     const isAxe = (key: string): key is GearKey => isGear(key) && weaponTypeOf(key) === 'axe'; // (the pack holds food and logs too)
     if (equipment.mainHand && isAxe(equipment.mainHand)) return equipment.mainHand;
-    return (Object.keys(bag) as string[]).filter((key) => isAxe(key) && (bag[key as keyof typeof bag] ?? 0) > 0).sort((a, b) => levelOf(b as GearKey) - levelOf(a as GearKey))[0] as GearKey | undefined ?? null;
+    const worth = (key: GearKey) => levelOf(key) * 10 + (AXE_BONUS[baseOf(key)] ? 5 : 0); // (the higher, and a woodworker's over the smith's at a level)
+    return (Object.keys(bag) as string[]).filter((key) => isAxe(key) && (bag[key as keyof typeof bag] ?? 0) > 0).sort((a, b) => worth(b as GearKey) - worth(a as GearKey))[0] as GearKey | undefined ?? null;
   }
 
   // Whether the hero has an axe to hand.
@@ -115,7 +119,7 @@ export class Lumber {
   // Seconds a chop takes them: fewer swings a tier on.
   get chopSeconds(): number {
     const { index } = tierOf(skillOf(this.host.hero, SKILL).level);
-    return SWING * SWINGS * (1 - QUICKER * index);
+    return SWING * Math.max(1, SWINGS + (this.axeBonus.swings ?? 0)) * (1 - QUICKER * index);
   }
 
   // The tree standing in reach of the hero (outdoors): the nearest they're skilled enough to fell, before any nearer
@@ -205,9 +209,17 @@ export class Lumber {
     this.host.report({ kind: 'felled', x: tree.x, z: tree.z });
   }
 
-  // The chance of a second log a chop, at `level` (none under SECOND_LOG's level, growing to its most at the top).
+  // What the axe to hand brings (AXE_BONUS), if anything.
+  get axeBonus(): { swings?: number; secondLog?: number } {
+    const key = this.axeKey;
+    return (key && AXE_BONUS[baseOf(key)]) || {};
+  }
+
+  // The chance of a second log a chop, at `level` (none under SECOND_LOG's level, growing to its most at the top; a
+  // broad axe adds its own, from the start).
   secondLogChance(level: number): number {
-    return level < SECOND_LOG[0] ? 0 : ((level - SECOND_LOG[0]) / (300 - SECOND_LOG[0])) * SECOND_LOG[1];
+    const skill = level < SECOND_LOG[0] ? 0 : ((level - SECOND_LOG[0]) / (300 - SECOND_LOG[0])) * SECOND_LOG[1];
+    return Math.min(0.9, skill + (this.axeBonus.secondLog ?? 0));
   }
 
   // Something knocked loose beside a tree, toward the hero, a little apart from the rest (`n`: which, to spread them).

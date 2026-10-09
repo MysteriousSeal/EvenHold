@@ -5,17 +5,17 @@
 // into a socket), and taken off back into it, only while what's carried
 // still fits without it.
 
-import { isBagItem, type BagId } from '../loot/bags';
+import { ROOM_OF_A_BAG, isBagItem, roomOf, type BagId } from '../loot/bags';
 import { addToBag, takeFromBag, type BagItem } from './bag';
 import { needsNewStack, slotsUsed } from './bagStacks';
 import type { Hero } from '../types';
 
 export const BAG_ROOM = 24; // slots the bag has of its own
 export const BAG_SOCKETS = 4; // bags that can be fitted to it
-export const ROOM_PER_BAG = 6; // slots each fitted bag adds
+export const ROOM_PER_BAG = ROOM_OF_A_BAG; // slots a fitted bag adds, unless it's roomier (loot/bags.ts roomOf)
 
 // How many slots the hero's bag has now.
-export const bagRoom = (hero: Pick<Hero, 'bags'>): number => BAG_ROOM + ROOM_PER_BAG * hero.bags.filter((b) => b !== null).length;
+export const bagRoom = (hero: Pick<Hero, 'bags'>): number => BAG_ROOM + hero.bags.reduce((room, b) => room + (b ? roomOf(b) : 0), 0);
 
 // Whether one more `item` would go in: onto a stack of it with room, always; a stack of its own, if there's a slot free.
 export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => !needsNewStack(item, hero.bag[item] ?? 0) || slotsUsed(hero.bag) < bagRoom(hero);
@@ -33,7 +33,7 @@ export function unfitBag(hero: Hero, socket: number): boolean {
   const fitted = hero.bags[socket];
   if (!fitted) return false;
   const taken = slotsUsed(hero.bag) + (needsNewStack(fitted, hero.bag[fitted] ?? 0) ? 1 : 0);
-  if (taken > bagRoom(hero) - ROOM_PER_BAG) return false;
+  if (taken > bagRoom(hero) - roomOf(fitted)) return false;
   hero.bags[socket] = null;
   addToBag(hero.bag, fitted);
   return true;

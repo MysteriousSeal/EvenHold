@@ -76,11 +76,12 @@ export const tiredPace = (hero: Hero): number => (hero.energy < TIRED ? TIRED_PA
 
 // Timers, and energy: spent while up and about, kept `sitting` down,
 // slept back `asleep` (lying in a bed, or on the floor after a collapse).
-export function recover(hero: Hero, dt: number, asleep = false, sitting = false): void {
+// (`rest`: how well they sleep: a bed's 1, a bedroll's on the ground less.)
+export function recover(hero: Hero, dt: number, asleep = false, sitting = false, rest = 1): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
-  const rate = asleep ? ENERGY_SLEPT : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
+  const rate = asleep ? ENERGY_SLEPT * rest : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
-  if (asleep) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * HEAL_SLEPT * dt);
+  if (asleep) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * HEAL_SLEPT * rest * dt);
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
   // at a time, all of it once it's done.
   hero.potionCooldown = Math.max(0, (hero.potionCooldown ?? 0) - dt); // (another potion, in a while)

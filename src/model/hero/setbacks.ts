@@ -15,12 +15,13 @@ import { spawnOf } from '../map/grid';
 
 const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
+export const BEDROLL_REST = 0.5; // how well they sleep on a bedroll, to a bed's 1 (GameModel.lieDown)
 
 // The hero's timers and energy over `dt` (recover: lying down, it comes
 // back; sat down, it's kept), then collapsing if it's run out; returns whether they did.
 export function liveOn(model: GameModel, dt: number): boolean {
   const seat = (model.inside ? model.inside.seated : model.outdoors.seated)?.seat;
-  recover(model.hero, dt, !!seat?.lying, !!seat && !seat.lying);
+  recover(model.hero, dt, !!seat?.lying, !!seat && !seat.lying, seat?.piece.kind === 'bedroll' ? BEDROLL_REST : 1); // (on a bedroll, on the ground: slower)
   return collapseIfSpent(model);
 }
 

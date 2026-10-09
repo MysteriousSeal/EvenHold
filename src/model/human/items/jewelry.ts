@@ -5,6 +5,9 @@ import { slotItems } from './item';
 
 export const NECK_ITEMS = slotItems('neck', {
   woodenCharm: { name: 'Wooden charm', value: 12, soldBy: { pedlar: 3 }, wornBy: { bandit: 1, pilgrim: 1 }, stats: { endurance: 1 } },
+  // A woodworker's (skills/woodworking.ts), set with what the salvage bench leaves: a carved pendant with a gem shard, a heartwood amulet with a cut gem.
+  carvedPendant: { name: 'Carved pendant', value: 70, stats: { agility: 2 } },
+  heartwoodAmulet: { name: 'Heartwood amulet', value: 160, stats: { endurance: 3, agility: 1 } },
   boneTalisman: { name: 'Bone talisman', wornBy: { bandit: 1 }, stats: { stamina: 1 } },
   wolfToothNecklace: { name: 'Wolf-tooth necklace', wornBy: { bandit: 2 }, stats: { strength: 2 } },
   silverLocket: { name: 'Silver locket', value: 40, soldBy: { pedlar: 1 }, stats: { endurance: 2 } },
@@ -17,6 +20,7 @@ export const NECK_ITEMS = slotItems('neck', {
 });
 
 export const RING_ITEMS = slotItems('ring', {
+  bentwoodRing: { name: 'Bentwood ring', value: 28, stats: { stamina: 1 } }, // (a woodworker's: a strip of birch bent round, bound in silver)
   copperRing: { name: 'Copper ring', value: 15, soldBy: { pedlar: 3 }, wornBy: { bandit: 2, pedlar: 1 }, stats: { stamina: 1 } },
   ironBand: { name: 'Iron band', wornBy: { bandit: 1 }, stats: { strength: 1 } },
   boneRing: { name: 'Bone ring', value: 14, soldBy: { pedlar: 2 }, wornBy: { bandit: 1 }, stats: { agility: 1 } },

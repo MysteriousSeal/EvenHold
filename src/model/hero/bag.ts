@@ -19,7 +19,7 @@ export const qualityOf = (item: BagItem): Quality => (isLootItem(item) ? LOOT_QU
 
 // What kind of thing it is ("Junk", "Food", "Head"; the bag's tooltips, what's picked up): loot by its quality (food and drink apart), gear by
 // what it's worn on.
-const KIND_NAMES: Record<Exclude<LootQuality, 'common'>, string> = { junk: 'Junk', ingredient: 'Crafting material', quest: 'Quest item', bag: 'Bag', potion: 'Potion' };
+const KIND_NAMES: Record<Exclude<LootQuality, 'common'>, string> = { junk: 'Junk', ingredient: 'Crafting material', quest: 'Quest item', bag: 'Bag', potion: 'Potion', tool: 'Tool' };
 export function kindOf(item: BagItem): string {
   if (!isLootItem(item)) return SLOT_NAMES[slotOfGear(item)];
   if (isProvision(item)) return PROVISIONS[item].drink ? 'Drink' : 'Food';
@@ -41,17 +41,18 @@ export function takeFromBag(bag: Bag, item: BagItem): boolean {
 }
 
 // The bag's rows by what things are, in this order (each its own rows, under its title).
-export type BagGroup = 'gear' | 'provision' | 'potion' | 'ingredient' | 'quest' | 'bag' | 'junk';
+export type BagGroup = 'gear' | 'provision' | 'potion' | 'tool' | 'ingredient' | 'quest' | 'bag' | 'junk';
 export const BAG_GROUPS: ReadonlyArray<{ group: BagGroup; title: string }> = [
   { group: 'gear', title: 'Gear' },
   { group: 'provision', title: 'Food & drink' },
   { group: 'potion', title: 'Potions' },
+  { group: 'tool', title: 'Tools' },
   { group: 'ingredient', title: 'Crafting materials' },
   { group: 'quest', title: 'Quest items' },
   { group: 'bag', title: 'Bags' },
   { group: 'junk', title: 'Junk' },
 ];
-const GROUP_OF: Record<LootQuality, BagGroup> = { common: 'provision', potion: 'potion', ingredient: 'ingredient', quest: 'quest', bag: 'bag', junk: 'junk' };
+const GROUP_OF: Record<LootQuality, BagGroup> = { common: 'provision', potion: 'potion', tool: 'tool', ingredient: 'ingredient', quest: 'quest', bag: 'bag', junk: 'junk' };
 export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF[LOOT_QUALITY[item]] : 'gear');
 
 // Starts eating or drinking one of `item` from the hero's bag, sat down on the ground: food for its share of their

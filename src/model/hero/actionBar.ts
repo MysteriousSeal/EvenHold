@@ -4,18 +4,19 @@
 // eaten or drunk (bag.ts eatOrDrink, drinkPotion). Emptied, the slot stays,
 // waiting for more.
 
+import { isTool, type ToolId } from '../loot/tools';
 import { isProvision, type ProvisionId } from '../loot/provisions';
 import { isPotion, type PotionId } from '../loot/potions';
 import type { Hero } from '../types';
 import { drinkPotion, eatOrDrink } from './bag';
 
 export const ACTION_SLOTS = 8;
-export type ActionBar = Array<ProvisionId | PotionId | null>;
+export type ActionBar = Array<ProvisionId | PotionId | ToolId | null>;
 // What may go on it: food, drink, a potion.
-export const usable = (item: string): item is ProvisionId | PotionId => isProvision(item) || isPotion(item);
+export const usable = (item: string): item is ProvisionId | PotionId | ToolId => isProvision(item) || isPotion(item) || isTool(item);
 export const emptyActionBar = (): ActionBar => Array.from({ length: ACTION_SLOTS }, () => null);
 
-// Puts `item` in slot `i` (food, drink or a potion only; one slot each: moved from another it was in); whether it did.
+// Puts `item` in slot `i` (food, drink, a potion or a tool only; one slot each: moved from another it was in); whether it did.
 export function setAction(hero: Pick<Hero, 'actionBar'>, i: number, item: string): boolean {
   if (!usable(item) || i < 0 || i >= ACTION_SLOTS) return false;
   const was = hero.actionBar.indexOf(item);
@@ -38,7 +39,7 @@ export function clearAction(hero: Pick<Hero, 'actionBar'>, i: number): void {
 // there, carried, and they're not still at another meal, or the potions' wait not over).
 export function useAction(hero: Hero, i: number): boolean {
   const item = hero.actionBar[i];
-  return !!item && (isPotion(item) ? drinkPotion(hero, item) : eatOrDrink(hero, item));
+  return !!item && !isTool(item) && (isPotion(item) ? drinkPotion(hero, item) : eatOrDrink(hero, item)); // (a tool: the game's to use, GameModel.useAction)
 }
 
 // The bar as kept in a save: each slot food, drink or a potion, else empty (older saves: all empty).
