@@ -5,6 +5,7 @@
 // to the game: one entry here, and the player will weigh it with the rest.
 
 import type { Entrance } from '../../../src/model/interiors/interiors';
+import { setAction } from '../../../src/model/hero/actionBar';
 import type { Camp } from '../../../src/model/camps/camps';
 import type { Enemy, Tree } from '../../../src/model/types';
 import type { Npc } from '../../../src/model/npcs/npcs';
@@ -155,6 +156,29 @@ export const ACTIVITIES: Activity[] = [
       return (tired || hurt) && door(p, 'house').length ? [{ label: hurt ? 'a bed, to mend' : 'a bed, to sleep', at: door(p, 'house')[0].at }] : []; // (tired, or hurt: a bed mends, for free)
     },
     steps: (p) => p.go('sleep'),
+  },
+  {
+    id: 'bedroll',
+    serves: { safety: 0.9, rest: 0.9 },
+    traits: { cautious: 0.4 },
+    options: (p) => {
+      // Hurt or tired, out in the open with a bedroll in the pack and no foe about: unrolled where they stand.
+      const { hero } = p.model;
+      if (p.model.inside || p.model.yard || !(hero.bag.bedroll ?? 0) || p.nearestFoe(10)) return [];
+      return hero.hp < maxHpOf(hero) * 0.5 || hero.energy < maxEnergyOf(hero) * 0.4 ? [{ label: 'the bedroll, to rest here', at: null }] : [];
+    },
+    steps: (p) => {
+      const { model } = p;
+      return [
+        () => {
+          if (!setAction(model.hero, 7, 'bedroll') || !model.useAction(7)) return 'fail';
+          p.stats.sleeps++;
+          return 'ok';
+        },
+        p.until(() => model.hero.energy >= maxEnergyOf(model.hero) * 0.95 && model.hero.hp >= maxHpOf(model.hero) * 0.95, 150, 'the bedroll never rested and mended them'),
+        () => (model.sitOrStand(), 'ok'),
+      ];
+    },
   },
   {
     id: 'pie',

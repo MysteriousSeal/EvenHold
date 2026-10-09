@@ -34,7 +34,7 @@ const run = (model: GameModel, seconds: number) => {
 describe('weapons', () => {
   it('each have a type; the axes are what chop', () => {
     for (const [id, item] of Object.entries(MAIN_HAND_ITEMS)) expect(item.type, id).toMatch(/^(sword|dagger|axe|mace|hammer|club|spear|staff)$/);
-    expect(Object.keys(MAIN_HAND_ITEMS).filter((id) => weaponTypeOf(id as never) === 'axe').sort()).toEqual(['battleAxe', 'hatchet']);
+    expect(Object.keys(MAIN_HAND_ITEMS).filter((id) => weaponTypeOf(id as never) === 'axe').sort()).toEqual(['battleAxe', 'broadAxe', 'fellingAxe', 'hatchet']);
     expect(weaponTypeOf('plankShield')).toBeNull(); // (not a weapon)
   });
 });

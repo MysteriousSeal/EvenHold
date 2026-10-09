@@ -136,7 +136,7 @@ describe('the recipe book', () => {
   it('lists the recipes under what they make, each in its difficulty\'s colour, how many the bag makes, the best to learn starred; those not reached faded', () => {
     const model = workshop(1, { birchLog: 2 });
     const book = recipeBook(model, newBook(), () => {});
-    expect(Array.from(book.querySelectorAll('.book-group')).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Weapons', 'Shields']);
+    expect(Array.from(book.querySelectorAll('.book-group')).map((g) => g.textContent)).toEqual(['Materials', 'Goods', 'Tools', 'Packs', 'Trinkets', 'Weapons', 'Shields']);
     expect(book.querySelectorAll('.book-row')).toHaveLength(RECIPE_IDS.length);
     const plank = book.querySelector<HTMLElement>('[data-recipe="birchPlank"]')!;
     expect((plank.querySelector('.book-name') as HTMLElement).style.color).toBeTruthy();
