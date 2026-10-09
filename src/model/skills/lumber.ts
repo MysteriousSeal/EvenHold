@@ -1,4 +1,5 @@
-// Lumberjacking (skills.ts): an axe in hand (any weapon of that type: human/items/held.ts), E by a tree outdoors starts the hero chopping
+// Lumberjacking (skills.ts): an axe to hand (any weapon of that type, human/items/held.ts: in hand, or carried in the
+// pack and taken out for the chopping), E by a tree outdoors starts the hero chopping
 // at it, swing after swing, on their own; each chop (a few swings) knocks a log loose onto the ground beside it, to
 // be picked up, and the hero chops on till the tree's down. Each tree gives 2 to 5 chops (a birch fewest, an oak
 // most, each its own by where it stands), and felled it's gone for good (out of the way; a stump in its place, to be
@@ -11,7 +12,7 @@
 
 import { hashUnit } from '../../util/random';
 import { Nearby } from '../../util/nearby';
-import { weaponTypeOf } from '../human/items/gear';
+import { isGear, levelOf, weaponTypeOf, type GearKey } from '../human/items/gear';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero, Tree } from '../types';
 import { gainXp } from '../hero/heroStats';
@@ -97,10 +98,18 @@ export class Lumber {
     return Math.max(0, chopsIn(tree, this.host.seed) - (this.cut.get(treeKey(tree)) ?? 0));
   }
 
-  // Whether the hero has an axe in hand (any weapon of that type).
+  // The axe they'd chop with (any weapon of that type): the one in hand, else the best in the pack (the view shows it
+  // in hand for the chopping); null with none.
+  get axeKey(): GearKey | null {
+    const { equipment, bag } = this.host.hero;
+    const isAxe = (key: string): key is GearKey => isGear(key) && weaponTypeOf(key) === 'axe'; // (the pack holds food and logs too)
+    if (equipment.mainHand && isAxe(equipment.mainHand)) return equipment.mainHand;
+    return (Object.keys(bag) as string[]).filter((key) => isAxe(key) && (bag[key as keyof typeof bag] ?? 0) > 0).sort((a, b) => levelOf(b as GearKey) - levelOf(a as GearKey))[0] as GearKey | undefined ?? null;
+  }
+
+  // Whether the hero has an axe to hand.
   get axe(): boolean {
-    const held = this.host.hero.equipment.mainHand;
-    return !!held && weaponTypeOf(held) === 'axe';
+    return this.axeKey !== null;
   }
 
   // Seconds a chop takes them: fewer swings a tier on.
