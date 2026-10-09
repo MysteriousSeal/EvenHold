@@ -28,6 +28,7 @@ import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
+import { Cupboard } from './interior/cupboard';
 import { COSTUMES } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
@@ -84,6 +85,7 @@ export class GameView {
   private readonly wildlife: WildlifeViews;
   private readonly npcs = new NpcViews();
   private readonly workMarks = new WorkMarks(); // (at work: over the patrons, the counter's end)
+  private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private readonly travellers: TravellerViews; // on the roads
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
@@ -295,7 +297,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
-    if (!room) this.workMarks.clear(); // (out of the room: its marks gone)
+    if (!room) [this.workMarks.clear(), this.cupboard.clear()]; // (out of the room: its marks gone, her shelves too)
     if (yard) {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
@@ -303,6 +305,7 @@ export class GameView {
     this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
+      this.cupboard.update(model, room);
       this.workMarks.update(model, room, this.elapsed, (x, y, z) => this.toScreen(x, y, z)); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
       this.followHero(hero, 0, dt);
       const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
