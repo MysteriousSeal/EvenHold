@@ -81,8 +81,17 @@ export class Player {
     return this.t;
   }
 
-  // One decision: a way (0 still, 1..8) and a key (KEYS, by index).
+  // One decision: a way (0 still, 1..8) and a key (KEYS, by index), the game played on a decision's worth (held, by a
+  // window that holds it: not at all), and the reckoning. (The watch page does the same a frame at a time: decide,
+  // advance, settle.)
   step(move: number, keyIndex: number): PlayStep {
+    const held = this.decide(move, keyIndex);
+    if (!held) for (let f = 0; f < FRAMES_PER_DECISION; f++) this.advance(FRAME);
+    return this.settle(held);
+  }
+
+  // The decision made: its key pressed, its way taken up; whether a window holds the game meanwhile.
+  decide(move: number, keyIndex: number): boolean {
     const key = KEYS[keyIndex] ?? 'none';
     count(this.tally.keys, key);
     this.press(key);
@@ -93,12 +102,11 @@ export class Player {
     if (!holds) {
       this.held = 0;
       if (this.way[0] || this.way[1]) this.tally.moving++;
-      for (let f = 0; f < FRAMES_PER_DECISION; f++) this.advance(FRAME);
     }
-    return this.settle(holds);
+    return holds;
   }
 
-  private advance(dt: number): void {
+  advance(dt: number): void {
     const { model } = this;
     model.update(this.way[0], this.way[1], dt);
     this.t += dt;
@@ -237,7 +245,7 @@ export class Player {
   }
 
   // The decision's reckoning: what it's paid, what it sees next, where it stands.
-  private settle(held: boolean): PlayStep {
+  settle(held: boolean): PlayStep {
     const { model, tally } = this;
     const { hero } = model;
     const xp = totalXp(hero.level, hero.xp);

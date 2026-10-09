@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EvenHold · the AI plays</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1f2a; }
+      #app { width: 100%; height: 100%; display: block; }
+      #hud { position: fixed; inset: 0; pointer-events: none; }
+      #version-label, #seed-label, #position-label, #fps-label { display: none; }
+      .card {
+        position: fixed;
+        padding: 12px 14px;
+        font: 500 14px/1.45 Fredoka, system-ui, sans-serif;
+        color: #f8ecd4;
+        background: #3a332c;
+        border: 3px solid #2e1f14;
+        box-shadow: inset 0 3px 0 #2a2420, 0 3px 0 #1c1612;
+        pointer-events: none;
+      }
+      #panel { top: 16px; right: 16px; width: 340px; }
+      #window { bottom: 20px; right: 16px; width: 340px; max-height: 46vh; overflow: hidden; }
+      .card b { display: block; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+      .card .row { display: flex; justify-content: space-between; gap: 8px; }
+      .card .dim { color: #c9b8a0; }
+      .card .fell { color: #ff7b5c; }
+      .card .good { color: #8fd36a; }
+      .card .move { font-size: 22px; font-weight: 700; }
+      .card .keys { margin-top: 8px; font-size: 12px; color: #c9b8a0; }
+      #window .line { display: flex; justify-content: space-between; gap: 8px; padding: 1px 6px; border-radius: 3px; }
+      #window .line.picked { background: #ffd96a; color: #2e1f14; }
+      #window .line .dim { color: inherit; opacity: 0.75; }
+      #window .line.cant { opacity: 0.55; }
+      #window .line .better { color: #8fd36a; font-weight: 700; }
+      /* The keys the AI presses, as a player's: lit while held (a tap a moment longer, to be seen). */
+      #keys {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: grid;
+        grid-template-columns: repeat(9, 50px);
+        grid-template-rows: 50px 50px 50px;
+        gap: 6px;
+        pointer-events: none;
+        font: 700 15px Fredoka, system-ui, sans-serif;
+      }
+      #keys div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.1;
+        color: #c9b8a0;
+        background: #3a332c;
+        border: 3px solid #2e1f14;
+        box-shadow: inset 0 -4px 0 #2a2420, 0 3px 0 #1c1612;
+        transition: background 0.08s, color 0.08s, transform 0.08s;
+      }
+      #keys div small { font-size: 9px; font-weight: 500; }
+      #keys div.on { color: #2e1f14; background: #ffd96a; box-shadow: inset 0 -4px 0 #e0a830, 0 1px 0 #1c1612; transform: translateY(2px); }
+    </style>
+  </head>
+  <body>
+    <canvas id="app"></canvas>
+    <div id="hud">
+      <div id="version-label"></div>
+      <div id="seed-label"></div>
+      <div id="position-label"></div>
+      <div id="fps-label"></div>
+    </div>
+    <div id="panel" class="card">Loading…</div>
+    <div id="window" class="card" hidden></div>
+    <div id="keys"></div>
+    <script type="module" src="./watch.ts"></script>
+  </body>
+</html>
