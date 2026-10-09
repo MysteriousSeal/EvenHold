@@ -10,6 +10,9 @@ import { GameModel } from '../src/model/GameModel';
 import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gear';
 import { BREAK_SECONDS, makeOf, salvageOf } from '../src/model/skills/salvage';
 import { castOf } from '../src/controller/skills/castOf';
+import { LOOT } from '../src/model/loot/loot';
+import { ITEMS } from '../src/model/human/equipment';
+import { canCarry } from '../src/model/hero/bagSlots';
 import { skillOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
@@ -100,6 +103,16 @@ describe('breaking gear down', () => {
     expect(skillOf(hero, 'salvaging').level).toBe(2);
     expect(model.takeEvents().some((e) => e.kind === 'salvaged')).toBe(true);
     expect(model.salvage.start('bentSpoon' as never)).toBe('none');
+    // A full bag (of other things): no starting, nothing of what it leaves to be lost.
+    hero.bag.armingSword = 1;
+    delete hero.bag.ironScrap; // (a stack of it would always take one more)
+    for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (canCarry(hero, 'ironScrap')) hero.bag[id as keyof typeof hero.bag] = 1; // (filled with one of everything)
+    expect(canCarry(hero, 'ironScrap')).toBe(false);
+    expect(model.salvage.start('armingSword')).toBe('full');
+    delete hero.bag.bentSpoon;
+    expect(model.salvage.start('armingSword')).toBe('started');
+    model.salvage.stop();
+    for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (id !== 'ironScrap' && id !== 'armingSword') delete hero.bag[id as keyof typeof hero.bag]; // (emptied again)
     const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 });
     hero.bag[rare] = 1;
     expect(model.salvage.start(rare)).toBe('skill');

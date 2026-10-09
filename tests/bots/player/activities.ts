@@ -350,6 +350,7 @@ export const ACTIVITIES: Activity[] = [
           const next = salvage.candidates.find((key) => !better(key, hero) && skillOf(hero, 'salvaging').level >= salvageOf(key).needs);
           if (!next) return 'ok';
           const outcome = salvage.start(next);
+          if (outcome === 'full') return 'ok'; // (a full bag: enough for now)
           if (outcome !== 'started') return (p.report('salvage bench refused', `${next}: ${outcome}`), 'fail');
           p.stats.salvaged++;
           return 'run';

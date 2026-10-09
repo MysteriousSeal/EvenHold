@@ -4,6 +4,10 @@
 // some of the hero's own experience; as many as asked, or all the bag allows; stopped by walking off, by chopping, by
 // a full bag (told); not begun at work. The recipe list in the skills window (controller/skills/recipeList.ts). And
 // lumberjacking past its first tiers (model/skills/lumber.ts): ancient trees, a second log now and then, finds.
+import { LOOT } from '../src/model/loot/loot';
+import { ITEMS } from '../src/model/human/equipment';
+import { canCarry } from '../src/model/hero/bagSlots';
+import { fresh } from './support/testWorld';
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
@@ -28,6 +32,21 @@ function workshop(level = 1, bag: Record<string, number> = {}) {
 const run = (model: GameModel, seconds: number, dirX = 0) => {
   for (let t = 0; t < seconds; t += 0.1) model.update(dirX, 0, 0.1);
 };
+
+describe('a full bag', () => {
+  it('stops a craft from starting (nothing made to be lost), and the recipe book says so', () => {
+    const model = fresh();
+    const { hero } = model;
+    hero.bag.birchLog = 10;
+    expect(model.woodworking.roomFor('birchPlank')).toBe(true);
+    for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (canCarry(hero, 'birchPlank')) hero.bag[id as keyof typeof hero.bag] = (hero.bag[id as keyof typeof hero.bag] ?? 0) + 1; // (filled with one of everything)
+    expect(model.woodworking.roomFor('birchPlank')).toBe(hero.bag.birchPlank !== undefined); // (a stack of planks already: room on it)
+    delete hero.bag.birchPlank;
+    expect(model.woodworking.roomFor('birchPlank')).toBe(false);
+    expect(model.woodworking.start('birchPlank')).toBe(false);
+    expect(model.woodworking.making).toBeNull();
+  });
+});
 
 describe('woodworking', () => {
   it('has its recipes in the order of the skill they want, from 1 to near the top, each making something', () => {
@@ -93,9 +112,13 @@ describe('woodworking', () => {
     expect(chopping.woodworking.making).toBeNull();
     const full = workshop(10, { birchPlank: 2 });
     for (let i = 0; i <= bagRoom(full.hero); i++) full.hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (every slot taken, a dagger each)
-    full.woodworking.start('woodenSword');
+    expect(full.woodworking.start('woodenSword')).toBe(false); // (no room for it: never started, nothing taken)
     run(full, RECIPES.woodenSword.seconds + 0.05);
     expect([full.hero.bag.birchPlank, full.woodworking.making]).toEqual([2, null]);
+    for (const key of ['dagger@2c0', 'dagger@3c0', 'dagger@4c0', 'hatchet']) delete full.hero.bag[key as never]; // (over-full by three, with the hatchet: four freed, one slot to spare)
+    full.hero.bag.birchPlank = 4; // (planks for two: the first made into the slot freed, the second finding the bag full)
+    expect(full.woodworking.start('woodenSword', 5)).toBe(true); // (a slot freed: made till the bag fills again, then told)
+    run(full, RECIPES.woodenSword.seconds * 2 + 0.1);
     expect(full.takeEvents()).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
   });
 
