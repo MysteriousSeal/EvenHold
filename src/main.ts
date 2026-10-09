@@ -60,7 +60,7 @@ import { createPauseMenu } from './controller/pauseMenu';
 import { clockAt } from './model/clock';
 import { createToolbar } from './view/hud/toolbar';
 import { createActionBar } from './view/hud/actionBar';
-import { clearAction, swapActions, useAction } from './model/hero/actionBar';
+import { clearAction, swapActions } from './model/hero/actionBar';
 import { bagToolIcon, heroBustIcon, journalIcon, levelUpIcon, pauseIcon } from './view/ui/itemIcons';
 import { loadingScreen, nextPaint } from './view/hud/loadingScreen';
 import { readRenderOptions } from './view/render/renderOptions';
@@ -187,7 +187,7 @@ async function boot(): Promise<void> {
   });
   // The action bar, bottom centre: shortcuts to food and drink in the bag (keys 1 to 8: GameController).
   const { hero: me } = model;
-  const updateActionBar = createActionBar(me, { use: (i) => useAction(me, i), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) });
+  const updateActionBar = createActionBar(me, { use: (i) => model.useAction(i), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) });
   const updateToolbar = createToolbar([
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
