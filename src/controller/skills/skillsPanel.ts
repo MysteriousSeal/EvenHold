@@ -37,12 +37,12 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; window: Retur
     const button = el(
       'button',
       skill.practice ? 'skill-card' : 'skill-card idle',
-      el('span', 'skill-card-icon', SKILL_ICONS[id](44)),
+      el('span', 'skill-card-icon', SKILL_ICONS[id](32)),
       el('span', 'skill-card-name', skill.name),
       el('span', 'skill-card-level', String(level)),
       el('span', 'skill-card-tier', next ? `${tier.name} · ${tier.to - level} to ${next.name}` : `${tier.name} · Mastered`),
       skillRuler(level, false),
-      el('span', status ? 'skill-card-status live' : 'skill-card-status', status ?? (skill.practice ? 'Open to see what it offers' : 'Not practicable yet')),
+      el('span', status ? 'skill-card-status live' : skill.practice ? 'skill-card-status hint' : 'skill-card-status', status ?? (skill.practice ? 'Open to see what it offers' : 'Not practicable yet')),
       el('span', 'skill-card-go', '›'),
     );
     button.dataset.skill = id;

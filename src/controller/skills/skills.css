@@ -24,15 +24,17 @@
 
 /* --- The skills list (K): a card a skill --- */
 .menu:has(.skill-cards) { width: min(380px, calc(100vw - 32px)); }
-.skill-cards { display: flex; flex-direction: column; gap: 8px; padding-bottom: 4px; }
+.skill-cards { display: flex; flex-direction: column; gap: 5px; padding-bottom: 2px; }
 .skill-cards-group { margin-top: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 .skill-card {
   display: grid;
-  grid-template-columns: 52px 1fr auto 12px;
-  grid-template-areas: 'icon name level go' 'icon tier tier go' 'rule rule rule rule' 'status status status status';
-  gap: 2px 10px;
+  /* Two lines a skill: its name, with what it's at as a pill beside it; under that its tier and its ruler across;
+     its level large on the right, the chevron past it. The window's wide enough that nothing wraps. */
+  grid-template-columns: 36px auto 1fr 52px 10px;
+  grid-template-areas: 'icon name status level go' 'icon tier rule level go';
+  gap: 1px 10px;
   align-items: center;
-  padding: 10px 12px 10px;
+  padding: 7px 10px 8px;
   font: inherit;
   text-align: left;
   color: var(--ink);
@@ -46,16 +48,18 @@
 .skill-card:focus-visible { outline: 3px solid var(--lake, #3dbdb8); outline-offset: 2px; }
 .skill-card.idle { background: var(--sand); }
 .skill-card.idle .skill-card-icon { opacity: 0.75; }
-.skill-card-icon { grid-area: icon; display: grid; place-items: center; width: 52px; height: 52px; background: var(--sand); border: 2px solid var(--line); }
+.skill-card-icon { grid-area: icon; display: grid; place-items: center; width: 36px; height: 36px; background: var(--sand); border: 2px solid var(--line); }
 .skill-card-icon canvas, .skill-band-icon canvas, .book-icon canvas, .book-material-icon canvas { image-rendering: pixelated; }
-.skill-card-name { grid-area: name; font-size: 17px; font-weight: 700; }
-.skill-card-level { grid-area: level; font-size: 24px; font-weight: 700; line-height: 1; }
-.skill-card-tier { grid-area: tier; font-size: 12px; color: var(--ink-soft); }
-.skill-card .skill-rule { grid-area: rule; margin-top: 6px; }
-.skill-card-status { grid-area: status; margin-top: 4px; font-size: 12px; color: var(--ink-soft); }
-.skill-card-status.live { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--clay-dark); }
+.skill-card-name { grid-area: name; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.skill-card-level { grid-area: level; font-size: 22px; font-weight: 700; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
+.skill-card-tier { grid-area: tier; font-size: 11px; color: var(--ink-soft); line-height: 1.2; white-space: nowrap; }
+.skill-card .skill-rule { grid-area: rule; margin: 0; align-self: center; }
+.skill-card-status { grid-area: status; justify-self: start; padding: 1px 7px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-soft); background: var(--sand); border: 2px solid var(--line); line-height: 1.3; white-space: nowrap; } /* (a pill beside the name: not yet, or what it's at) */
+.skill-card-status.hint { display: none; } /* ("open to see what it offers": the chevron says it) */
+.skill-card-status.live { display: flex; align-items: center; gap: 6px; color: var(--sand-light); background: var(--clay); border-color: var(--ink); }
 .skill-card-status.live::before { content: ''; width: 8px; height: 8px; background: var(--ember); border: 2px solid var(--ink); transform: rotate(45deg); animation: skill-live 1s ease-in-out infinite alternate; }
-.skill-card-go { grid-area: go; font-size: 24px; font-weight: 700; color: var(--clay); }
+.skill-card-go { grid-area: go; font-size: 20px; font-weight: 700; color: var(--clay); }
+.menu[aria-label='Skills'] { width: min(540px, 100%); } /* (a row's worth across: nothing wraps) */
 @keyframes skill-live { to { background: var(--lantern); } }
 
 /* --- A skill's own window --- */
