@@ -25,6 +25,14 @@ export const INGREDIENTS = {
   pinePlank: { name: 'Pine plank', value: 5, droppedBy: {} },
   oakPlank: { name: 'Oak plank', value: 8, droppedBy: {} },
   varnish: { name: 'Varnish', value: 16, droppedBy: {} },
+  // Salvaged from gear at a village's bench (skills/salvage.ts): what it was made of, and a finer thing from the rare.
+  ironScrap: { name: 'Iron scrap', value: 4, droppedBy: {} },
+  leatherStrip: { name: 'Leather strip', value: 3, droppedBy: {} },
+  linenScrap: { name: 'Linen scrap', value: 2, droppedBy: {} },
+  silverFilings: { name: 'Silver filings', value: 12, droppedBy: {} },
+  gemShard: { name: 'Gem shard', value: 20, droppedBy: {} },
+  temperedIngot: { name: 'Tempered ingot', value: 40, droppedBy: {} },
+  cutGem: { name: 'Cut gem', value: 60, droppedBy: {} },
 } satisfies Record<string, LootEntry>;
 
 export type IngredientId = keyof typeof INGREDIENTS;

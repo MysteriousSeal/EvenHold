@@ -156,3 +156,16 @@ export function rollRarity(u: number, luck = 1, least: Rarity = 'common'): Rarit
 export function rollGear(item: ItemId, level: number, rng: () => number, luck = 1, least: Rarity = 'common'): GearKey {
   return gearKey({ item, level: Math.max(1, Math.floor(level)), rarity: rollRarity(rng(), luck, least), roll: Math.floor(rng() * 1000) });
 }
+
+// What a piece is worth, all told: its armour and its stats together (at its level and rarity).
+export const gearPower = (key: GearKey): number => {
+  const { armor, stats } = gearSpecs(key);
+  return armor + Object.values(stats).reduce((a, b) => a + b, 0);
+};
+
+// Whether `key` would be worth wearing over what's worn in its slot (and the hero's of its level): nothing worn
+// there, or less.
+export const betterThanWorn = (key: GearKey, hero: { level: number; equipment: Partial<Record<EquipSlot, GearKey>> }): boolean => {
+  const worn = hero.equipment[slotOfGear(key)];
+  return canWear(key, hero.level) && (!worn || gearPower(key) > gearPower(worn));
+};

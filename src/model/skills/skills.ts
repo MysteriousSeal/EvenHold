@@ -5,7 +5,7 @@
 // woodworking by making things; the others not yet. As in WoW, how likely a try raises it is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never.
 
-export type SkillId = 'lumberjacking' | 'woodworking' | 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
 
 export interface Skill {
   name: string;
@@ -60,6 +60,22 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 100, what: 'Oak planks, a quarterstaff' },
       { at: 150, what: 'Plank shields, varnish from resin' },
       { at: 225, what: 'Heartwood: the finest staffs and shields' },
+    ],
+  },
+  salvaging: {
+    name: 'Salvaging',
+    kind: 'secondary',
+    practice: 'Break gear down at a village\'s salvage bench (the workbench with the vice, on the square by the well).',
+    verb: 'salvage',
+    about: "Break down weapons, armour and jewellery you don't need at a salvage bench into what they're made of: iron scrap, leather, linen, silver and gem shards, planks. The finer the piece, the more it leaves, and a rare one leaves something finer besides.",
+    unlocks: [
+      { at: 1, what: 'Common gear of the first levels' },
+      { at: 9, what: 'Uncommon pieces' },
+      { at: 21, what: 'Rare pieces: a tempered ingot or a cut gem from each' },
+      { at: 61, what: 'Epic pieces: two finer things from each' },
+      { at: 75, what: 'Common gear of level 27 and over' },
+      { at: 121, what: 'Legendary pieces: three' },
+      { at: 225, what: 'The finest gear there is, broken down to the last rivet' },
     ],
   },
   cooking: {
