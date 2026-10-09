@@ -5,6 +5,7 @@
 // (serving the tables, tending the bar) as a strip across the top, the notice the one picked (at work, the one
 // they're at). A window in the middle of the screen; the game waits while it's open.
 
+import { doorNumber } from '../../model/interiors/interiors';
 import './jobPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Entrance } from '../../model/interiors/interiors';
@@ -12,7 +13,7 @@ import { villageName } from '../../model/villages/villageNames';
 import { JOBS, JOB_IDS, rankIn, recordOf, type JobId, type JobRank } from '../../model/jobs/jobs';
 import { bandOf } from '../../model/jobs/pour';
 import { SHIFT, WAGE } from '../../model/jobs/shift';
-import { BONUS } from '../../model/jobs/work';
+import { BONUS, CUPBOARD_OUT } from '../../model/jobs/work';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { coinParts } from '../../view/ui/coins';
 import { createMenu, type Menu } from '../../view/ui/menu';
@@ -111,6 +112,11 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     fact('Orders served', String(record.served));
     fact('Best shift', record.best ? `${record.best} served` : '—');
     fact('Earned', ...(record.earned ? coinParts(record.earned) : ['—']));
+    if (job === 'innBarkeep' && inn) {
+      // Her tankards (sold her: inn/tavernShop.ts), so many out on the shelves for the shift (jobs/work.ts CUPBOARD_OUT).
+      const tankards = model.shops.get(doorNumber(inn))?.stock.carvedTankard ?? 0;
+      fact('Her tankards', tankards ? `${Math.min(CUPBOARD_OUT, tankards)} of ${tankards} out for your shift` : 'none: sell her some, and pour from more');
+    }
 
     // At the foot: what a shift is and the button to work one; at work, how it stands and the button to end it.
     // Its terms as three cards (a big value, what it's of, a note), the keys under them, the button beside.

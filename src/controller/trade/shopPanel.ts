@@ -5,7 +5,7 @@ import type { BagItem } from '../../model/hero/bag';
 
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
-import { buy, buyPrice, sell, sellPrice, shopAt, innWants, type InnWant } from '../../model/inn/tavernShop';
+import { buy, buyPrice, cupboardWords, sell, sellPrice, shopAt, innWants, type InnWant } from '../../model/inn/tavernShop';
 import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -154,6 +154,7 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
       return result === 'she is short' ? 'short' : result;
     },
     lines: LINES,
+    note: () => cupboardWords(shop()),
     about: (id) => pick(ABOUT[id as ProvisionId]),
     offered: (name) => `A ${name.toLowerCase()}? I could use that.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),

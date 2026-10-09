@@ -56,3 +56,5 @@
 /* The page turns and Sell junk (.menu-buttons, menu.css): clickable well past their edges, so a
    pointer just off one still turns the page. (Clear of the list above, the purses below.) */
 .shop-page-turn::after, .shop-junk::after { inset: -10px -12px -12px; }
+
+.shop-note { margin: 10px 0 0; font-size: 13px; color: var(--ink-soft, var(--ink)); } /* (the inn's cupboard: what she has of a woodworker's cups) */

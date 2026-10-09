@@ -9,6 +9,7 @@
 // screen, but the game plays on around it: walk away from the keeper, and it
 // shuts. What's traded, at what price, and what they say, is the shop's own (a Trade).
 
+import { el } from '../../view/ui/dom';
 import './shopPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
@@ -38,6 +39,7 @@ export interface Trade {
   price(id: BagItem, selling: boolean): number;
   trade(id: BagItem, selling: boolean): 'bought' | 'sold' | 'sold out' | 'too poor' | 'short' | 'none' | 'not wanted' | 'full';
   lines: TradeLines;
+  note?(): string | null; // a line at the foot of their window, if there's one to say (the inn's cupboard)
   about(id: BagItem): string; // their word on one of their wares, just bought
   offered(name: string): string; // their word on what the hero's just sold them
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
@@ -122,6 +124,8 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     junk.addEventListener('click', sellJunk);
     bar.append(junk);
     box.append(bar);
+    const note = trade.note?.();
+    if (note) box.append(el('p', 'shop-note', note));
     const page = pages[tab];
     if (page.of > 1) {
       const pager = document.createElement('div');
