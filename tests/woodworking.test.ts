@@ -192,6 +192,7 @@ describe('the wood guide', () => {
   it('lists the trees, the best to learn from starred; tells of the one picked (chops, logs, finds, the axe)', () => {
     const model = workshop(1);
     skillOf(model.hero, 'lumberjacking').level = 130;
+    delete model.hero.bag.hatchet; // (a new hero's, in the pack: none to hand, for the line)
     const guide = woodGuide(model, { picked: null }, () => {});
     expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak']);
     expect(bestGrade(130)).toBe('ancientPine');

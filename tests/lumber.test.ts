@@ -1,4 +1,4 @@
-// Lumberjacking (model/skills/lumber.ts): an axe in hand, E by a tree starts the hero chopping on their own, a log
+// Lumberjacking (model/skills/lumber.ts): an axe to hand (in hand or in the pack), E by a tree starts the hero chopping on their own, a log
 // knocked loose onto the ground at every chop; each tree good for 2 to 5 chops (a birch fewest, an oak most), then
 // felled for good (out of the way, kept so in the save, not there when its region's made again). The harder woods
 // want the skill; it rises as they chop, the surer the harder the tree (orange always, grey never). Walking off stops
@@ -21,6 +21,7 @@ function byATree(kind: TreeKind = 'birch', axe: string | null = 'hatchet') {
   const model = new GameModel(1, TEST_MAP_SIZE);
   const tree = model.trees.find((t) => t.kind === kind)!;
   Object.assign(model.hero, { x: tree.x + 0.7, z: tree.z });
+  delete model.hero.bag.hatchet; // (a new hero's, in the pack: the test says what axe there is, if any)
   if (axe) model.hero.equipment.mainHand = axe as never;
   return { model, tree };
 }
@@ -60,6 +61,15 @@ describe('trees', () => {
     expect(byATree('birch', 'battleAxe').model.lumber.action?.kind).toBe('chop'); // (any axe does)
     expect(byATree('birch', gearKey({ item: 'hatchet', level: 7, rarity: 'rare', roll: 3 })).model.lumber.action?.kind).toBe('chop'); // (whatever its level and rarity)
     expect(byATree('birch', 'armingSword').model.lumber.action).toMatchObject({ kind: 'cannot', why: 'axe' }); // (a sword doesn't)
+    // An axe carried in the pack does as well, the best of them (the view shows it in hand for the chopping); one in hand first.
+    const packed = byATree('birch', 'armingSword');
+    packed.model.hero.bag.hatchet = 1;
+    expect([packed.model.lumber.action?.kind, packed.model.lumber.axeKey]).toEqual(['chop', 'hatchet']);
+    const better = gearKey({ item: 'battleAxe', level: 7, rarity: 'rare', roll: 3 });
+    packed.model.hero.bag[better] = 1;
+    expect(packed.model.lumber.axeKey).toBe(better);
+    packed.model.hero.equipment.mainHand = 'hatchet' as never;
+    expect(packed.model.lumber.axeKey).toBe('hatchet');
     const { model } = byATree('oak');
     skillOf(model.hero, 'lumberjacking').level = WOOD.oak.needs;
     expect(model.lumber.action?.kind).toBe('chop');
@@ -186,7 +196,7 @@ describe('the prompt over a tree', () => {
     expect(chopPrompt(model)).toMatchObject({ label: `Chop the birch · ${chopsIn(tree, model.seed)} chops`, x: tree.x, z: tree.z });
     model.lumber.use();
     expect(chopPrompt(model)?.label).toMatch(/^Stop chopping · \d chops left$/);
-    expect(chopPrompt(byATree('birch', null).model)).toMatchObject({ label: 'Needs an axe in hand', muted: true });
+    expect(chopPrompt(byATree('birch', null).model)).toMatchObject({ label: 'Needs an axe', muted: true });
     expect(chopPrompt(byATree('pine').model)).toMatchObject({ label: `Needs Lumberjacking ${WOOD.pine.needs}`, muted: true });
   });
 });
