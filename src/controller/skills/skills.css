@@ -30,7 +30,7 @@
   display: grid;
   /* Two lines a skill: its name, with what it's at as a pill beside it; under that its tier and its ruler across;
      its level large on the right, the chevron past it. The window's wide enough that nothing wraps. */
-  grid-template-columns: 36px auto 1fr 52px 10px;
+  grid-template-columns: 36px 196px 1fr 52px 10px; /* (the name's column one width for every row: the rulers, pills and levels in line) */
   grid-template-areas: 'icon name status level go' 'icon tier rule level go';
   gap: 1px 10px;
   align-items: center;
@@ -50,9 +50,9 @@
 .skill-card.idle .skill-card-icon { opacity: 0.75; }
 .skill-card-icon { grid-area: icon; display: grid; place-items: center; width: 36px; height: 36px; background: var(--sand); border: 2px solid var(--line); }
 .skill-card-icon canvas, .skill-band-icon canvas, .book-icon canvas, .book-material-icon canvas { image-rendering: pixelated; }
-.skill-card-name { grid-area: name; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.skill-card-name { grid-area: name; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-card-level { grid-area: level; font-size: 22px; font-weight: 700; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
-.skill-card-tier { grid-area: tier; font-size: 11px; color: var(--ink-soft); line-height: 1.2; white-space: nowrap; }
+.skill-card-tier { grid-area: tier; font-size: 11px; color: var(--ink-soft); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-card .skill-rule { grid-area: rule; margin: 0; align-self: center; }
 .skill-card-status { grid-area: status; justify-self: start; padding: 1px 7px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-soft); background: var(--sand); border: 2px solid var(--line); line-height: 1.3; white-space: nowrap; } /* (a pill beside the name: not yet, or what it's at) */
 .skill-card-status.hint { display: none; } /* ("open to see what it offers": the chevron says it) */
