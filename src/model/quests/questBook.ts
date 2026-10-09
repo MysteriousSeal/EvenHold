@@ -24,12 +24,15 @@ const READ_ASIDE = 0.45; // and how far to either side of straight out
 const PACK = 2; // foes gathered for each still asked for
 const MOST_ABOUT = 4; // and so many about at once, at most (sixteen round a spot, for eight to slay, fell every player who came)
 const SPREAD = 2.5; // tiles round the spot a pack gathers in
+export const REINFORCE_IN = 5; // seconds after one's slain before the next comes in, while there are more to slay (the quest done in one go)
+const FROM_AFAR: [number, number] = [5, 8]; // tiles off the spot it comes in from (out of sight, walking in), not sprung on the hero
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
 
 export interface TakenQuest {
   quest: Quest;
   kills: number; // marked foes slain (slay quests)
   respawnIn: number; // seconds before the next marked foe comes back
+  engaged?: boolean; // one of its pack slain: the next come in from a way off, soon, till the count's done
   tracked: boolean; // shown on screen (the quest tracker); set in the journal
 }
 
@@ -188,10 +191,20 @@ export class QuestBook {
     const taken = enemy.quest ? this.takenOf(enemy.quest) : null;
     if (!taken || this.done(taken)) return null;
     const { quest } = taken;
-    if (quest.kind === 'collect') return hashUnit(enemy.id, this.host.seed % 1_000_003, 91) < quest.dropChance * dropFactor(this.host.hero) ? quest.item : null;
+    if (quest.kind === 'collect') {
+      this.reinforce(taken);
+      return hashUnit(enemy.id, this.host.seed % 1_000_003, 91) < quest.dropChance * dropFactor(this.host.hero) ? quest.item : null;
+    }
     taken.kills++;
     this.tell(taken, enemy);
+    this.reinforce(taken);
     return null;
+  }
+
+  // One of the pack slain: the next comes in soon (while the quest wants more about), from a way off.
+  private reinforce(taken: TakenQuest): void {
+    taken.engaged = true;
+    taken.respawnIn = Math.min(taken.respawnIn, REINFORCE_IN);
   }
 
   // Something picked up: if a quest wants it, how far along that is now:
@@ -227,8 +240,9 @@ export class QuestBook {
       }
       taken.respawnIn -= dt;
       if (taken.respawnIn > 0) continue;
+      const afar = taken.respawnIn > -dt - 1 && taken.engaged; // (one slain lately: the next walks in from a way off)
       taken.respawnIn = RESPAWN_EVERY;
-      this.gather(taken);
+      this.gather(taken, afar);
     }
   }
 
@@ -247,7 +261,7 @@ export class QuestBook {
   // where it stands come from the seed, the quest and how many it's gathered
   // (so a given world's quests always play out alike): its id is unique to
   // the quest and its count, and decides the loot it drops.
-  private gather(taken: TakenQuest): void {
+  private gather(taken: TakenQuest, afar = false): void {
     const { quest } = taken;
     const count = this.gathered.get(quest.key) ?? 0;
     this.gathered.set(quest.key, count + 1);
@@ -259,14 +273,18 @@ export class QuestBook {
     const salt = this.host.seed % 1_000_003;
     let [x, z] = [quest.x, quest.z];
     for (let t = 0; t < 10; t++) {
-      const tx = Math.round(quest.x + (hashUnit(id, salt + t, 93) * 2 - 1) * SPREAD);
-      const tz = Math.round(quest.z + (hashUnit(id, salt + t, 94) * 2 - 1) * SPREAD);
+      // (In the pack's spread round the spot; or, coming in after a kill, a way off any way round, to walk in.)
+      const far = afar ? FROM_AFAR[0] + hashUnit(id, salt + t, 95) * (FROM_AFAR[1] - FROM_AFAR[0]) : 0;
+      const angle = hashUnit(id, salt + t, 96) * Math.PI * 2;
+      const tx = Math.round(quest.x + (afar ? Math.cos(angle) * far : (hashUnit(id, salt + t, 93) * 2 - 1) * SPREAD));
+      const tz = Math.round(quest.z + (afar ? Math.sin(angle) * far : (hashUnit(id, salt + t, 94) * 2 - 1) * SPREAD));
       if (this.host.isOpenTile(tx, tz)) {
         [x, z] = [tx, tz];
         break;
       }
     }
-    const enemy = makeEnemy(id, quest.foe, x, z, x, z, quest.level);
+    const enemy = makeEnemy(id, quest.foe, x, z, afar ? quest.x : x, afar ? quest.z : z, quest.level); // (come from afar: its home the spot, to walk to)
+    if (afar) enemy.target = { x: quest.x, z: quest.z };
     enemy.quest = quest.key;
     enemy.y = this.host.getGroundY(x, z);
     this.host.enemies.push(enemy);
