@@ -32,6 +32,7 @@ class GameEnv(gym.Env):
         spec = self._call({"spec": True})
         self.observation_space = gym.spaces.Box(-np.inf, np.inf, shape=(spec["observation"],), dtype=np.float32)
         self.action_space = gym.spaces.MultiDiscrete([spec["moves"], spec["actions"]])
+        self.keys = spec["keys"]  # each key's name (keys.ts), for the trainer's telling
         self._lives = seed * 1_000_003  # each env its own run of worlds
 
     def _call(self, message: dict) -> dict:

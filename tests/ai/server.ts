@@ -4,6 +4,7 @@
 // (three thousand numbers a step, as text, would be most of the time).
 import { createInterface } from 'node:readline';
 import { ACTIONS, MOVES, OBSERVATION_SIZE, Player } from './player';
+import { KEYS } from './keys';
 
 const player = new Player();
 const packed = (o: number[]) => Buffer.from(new Float32Array(o).buffer).toString('base64');
@@ -12,7 +13,7 @@ console.log = console.warn = console.info = (...args: unknown[]) => process.stde
 
 createInterface({ input: process.stdin }).on('line', (line) => {
   const call = JSON.parse(line) as { reset?: number; step?: [number, number]; spec?: boolean };
-  if (call.spec) say({ observation: OBSERVATION_SIZE, moves: MOVES, actions: ACTIONS });
+  if (call.spec) say({ observation: OBSERVATION_SIZE, moves: MOVES, actions: ACTIONS, keys: KEYS });
   else if (call.reset !== undefined) say({ observation: packed(player.reset(call.reset)) });
   else if (call.step) {
     const step = player.step(call.step[0], call.step[1]);

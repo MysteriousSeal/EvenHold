@@ -68,7 +68,7 @@ def main() -> None:
         )
     print(f"Saved at the end (or on Ctrl+C) to {MODELS / 'player.zip'} and player.json; each life to {MODELS / 'lives.jsonl'}.\n", flush=True)
     try:
-        model.learn(total_timesteps=args.steps, callback=Reporter(args.steps, MODELS / "lives.jsonl"), reset_num_timesteps=not resume)
+        model.learn(total_timesteps=args.steps, callback=Reporter(args.steps, MODELS / "lives.jsonl", env.get_attr("keys")[0]), reset_num_timesteps=not resume)
     finally:
         model.save(MODELS / "player.zip")
         export(model, MODELS / "player.json")
