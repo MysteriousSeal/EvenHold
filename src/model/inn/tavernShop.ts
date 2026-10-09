@@ -49,6 +49,14 @@ export const INN_WANTS = {
 } as const;
 export type InnWant = keyof typeof INN_WANTS;
 export const innWants = (id: string | null): id is InnWant => id !== null && id in INN_WANTS;
+// Her cupboard, in words: what she has of a woodworker's cups ("12 tankards and 3 bowls"), or that it's bare.
+export function cupboardWords(shop: Shop): string {
+  const [tankards, bowls] = [shop.stock.carvedTankard ?? 0, shop.stock.woodenBowl ?? 0];
+  if (!tankards && !bowls) return "Her cupboard is bare: she'd buy carved tankards and wooden bowls.";
+  const of = (n: number, what: string) => (n ? [`${n} ${what}${n === 1 ? '' : 's'}`] : []);
+  return `Her cupboard: ${[...of(tankards, 'tankard'), ...of(bowls, 'bowl')].join(' and ')}.`;
+}
+
 export const sellPrice = (id: ProvisionId | InnWant): number => (innWants(id) ? INN_WANTS[id].pays : Math.max(1, Math.floor(PROVISIONS[id].value / 2))); // she buys food at half
 
 // The hero buys one of `id`: why not, if they can't (she's none, they're short).
