@@ -2,7 +2,9 @@
 // those sold her stock her cupboard, out on the shelves for a barkeep's shift there (jobs/work.ts); and her orders on
 // the village's board (quests.ts orderAt, by the same table): so many cups, no foes to it, paid her price and over on handing them in.
 import { describe, expect, it } from 'vitest';
-import { INN_WANTS, sell, shopAt, innWants, type InnWant } from '../src/model/inn/tavernShop';
+import * as THREE from 'three';
+import { INN_WANTS, sell, shopAt, innWants, type InnWant, cupboardWords } from '../src/model/inn/tavernShop';
+import { Cupboard, MUGS_A_SHELF } from '../src/view/interior/cupboard';
 import { sellValue } from '../src/model/shops/sellValue';
 import { doorNumber } from '../src/model/interiors/interiors';
 import { CUPBOARD_OUT } from '../src/model/jobs/work';
@@ -37,6 +39,43 @@ describe("the inn's cups", () => {
     const shift = model.work.shift as BarShift;
     expect(shift.clean.ale).toBe(6 + CUPBOARD_OUT);
     expect(shop.stock.carvedTankard).toBe(2);
+  });
+});
+
+describe("the inn's cupboard, to be seen", () => {
+  it('is told in words: bare, or what she has of tankards and bowls', () => {
+    const shop = { money: 0, stock: {} as Record<string, number>, restockedAt: 0 };
+    expect(cupboardWords(shop as never)).toMatch(/^Her cupboard is bare/);
+    shop.stock.carvedTankard = 1;
+    expect(cupboardWords(shop as never)).toBe('Her cupboard: 1 tankard.');
+    shop.stock.woodenBowl = 3;
+    shop.stock.carvedTankard = 12;
+    expect(cupboardWords(shop as never)).toBe('Her cupboard: 12 tankards and 3 bowls.');
+  });
+
+  it('stands her tankards along her bottle shelves, so many a shelf, as many as she has; redrawn as the count changes, gone with the room', () => {
+    const model = fresh();
+    const inn = model.entrances.find((e) => e.type === 'inn')!;
+    const shop = shopAt(model.shops, model.seed, doorNumber(inn));
+    model.teleport(inn.x, inn.z);
+    model.useDoor();
+    const shelves = model.inside!.furniture.filter((f) => f.kind === 'bottleShelf').length;
+    expect(shelves).toBeGreaterThan(0);
+    const room = new THREE.Group();
+    const view = new Cupboard();
+    view.update(model, room);
+    expect(view.mugs).toBe(0);
+    shop.stock.carvedTankard = 3;
+    view.update(model, room);
+    expect(view.mugs).toBe(3);
+    shop.stock.carvedTankard = 100;
+    view.update(model, room);
+    expect(view.mugs).toBe(shelves * MUGS_A_SHELF);
+    expect(room.children.length).toBe(1);
+    model.useDoor(); // (out)
+    view.clear();
+    expect([view.mugs, room.children.length]).toEqual([0, 0]);
+    view.dispose();
   });
 });
 
