@@ -16,8 +16,8 @@ import { salvageBenchInReach, salvageBenches, type SalvageBench } from '../world
 
 export type Make = 'iron' | 'leather' | 'cloth' | 'silver' | 'wood';
 export const MAKE_NAMES: Record<Make, string> = { iron: 'Iron', leather: 'Leather', cloth: 'Cloth', silver: 'Silver', wood: 'Wood' };
-const SCRAP: Record<Make, IngredientId> = { iron: 'ironScrap', leather: 'leatherStrip', cloth: 'linenScrap', silver: 'silverFilings', wood: 'oakPlank' };
-const FINER: Record<Make, IngredientId> = { iron: 'temperedIngot', leather: 'temperedIngot', cloth: 'temperedIngot', wood: 'temperedIngot', silver: 'cutGem' };
+export const SCRAP_OF: Record<Make, IngredientId> = { iron: 'ironScrap', leather: 'leatherStrip', cloth: 'linenScrap', silver: 'silverFilings', wood: 'oakPlank' }; // what each leaves
+export const FINER_OF: Record<Make, IngredientId> = { iron: 'temperedIngot', leather: 'temperedIngot', cloth: 'temperedIngot', wood: 'temperedIngot', silver: 'cutGem' }; // and the rare besides
 const RARE_EXTRA: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 };
 const RARE_NEEDS: Record<Rarity, number> = { common: 0, uncommon: 8, rare: 20, epic: 60, legendary: 120 };
 const GEMMED = /ruby|sapphire|jade|amber|pearl|lakeStone|runeStone|signet/;
@@ -47,9 +47,9 @@ export function salvageOf(key: GearKey): Salvaged {
   const base = baseOf(key);
   const make = makeOf(base);
   const [level, rarity] = [levelOf(key), rarityOf(key)];
-  const gives: Array<[IngredientId, number]> = [[SCRAP[make], 1 + Math.floor(level / 6)]];
+  const gives: Array<[IngredientId, number]> = [[SCRAP_OF[make], 1 + Math.floor(level / 6)]];
   if (make === 'silver' && GEMMED.test(base)) gives.push(['gemShard', 1]);
-  if (RARE_EXTRA[rarity]) gives.push([FINER[make], RARE_EXTRA[rarity]]);
+  if (RARE_EXTRA[rarity]) gives.push([FINER_OF[make], RARE_EXTRA[rarity]]);
   return { make, needs: Math.max(1, level * 3 - 8) + RARE_NEEDS[rarity], gives }; // (the first levels' gear from the start; a piece of level 20, at 52)
 }
 
@@ -80,7 +80,11 @@ export class Salvage {
 
   // The gear in the bag that could be broken down here (whatever the skill says: the window shows what's asked).
   get candidates(): GearKey[] {
-    return (Object.keys(this.host.hero.bag) as string[]).filter((key): key is GearKey => isGear(key) && (this.host.hero.bag[key as keyof Hero['bag']] ?? 0) > 0);
+    return (Object.keys(this.host.hero.bag) as string[]).filter((key): key is GearKey => isGear(key) && this.carried(key) > 0);
+  }
+
+  private carried(key: string): number {
+    return this.host.hero.bag[key as keyof Hero['bag']] ?? 0;
   }
 
   // How far along the piece on the bench is (0..1), or null with none.
@@ -93,7 +97,7 @@ export class Salvage {
     const { hero } = this.host;
     if (this.breaking) return 'busy';
     if (this.benchInReach === null) return 'no bench';
-    if (!(hero.bag[key as keyof Hero['bag']] ?? 0)) return 'none';
+    if (!this.carried(key)) return 'none';
     if ((hero.skills?.salvaging?.level ?? 1) < salvageOf(key).needs) return 'skill';
     this.breaking = { key, t: 0 };
     return 'started';
@@ -104,7 +108,7 @@ export class Salvage {
   update(dt: number, moving: boolean): void {
     const breaking = this.breaking;
     if (!breaking) return;
-    if (moving || this.benchInReach === null || !(this.host.hero.bag[breaking.key as keyof Hero['bag']] ?? 0)) return this.stop();
+    if (moving || this.benchInReach === null || !this.carried(breaking.key)) return this.stop();
     if ((breaking.t += dt) < BREAK_SECONDS) return;
     this.stop();
     const { hero } = this.host;

@@ -7,6 +7,7 @@ import { VILLAGE_OUTER_RADIUS as R } from '../constants';
 import type { Building, House, Village } from '../types';
 import { solidCells } from '../worldgen/world';
 import { nearVillage } from '../villages/nearVillage';
+import { PerVillage } from '../villages/perVillage';
 import { cellKey } from '../map/grid';
 
 export interface BoardSpot {
@@ -22,19 +23,15 @@ export interface BoardWorld {
   buildings: readonly Building[];
 }
 
-const boardOf = new WeakMap<Village, BoardSpot>(); // (each village's, worked out once: from what stands round it)
-const listed = new WeakMap<readonly Village[], BoardSpot[]>(); // (and for a list of them: again as it grows, a streamed world's region by region)
 const AROUND = R + 4; // tiles round a village that its board's spot could depend on (its inn, and anything solid)
+// Each village's, worked out once from what stands round it (villages/perVillage.ts: and listed once a world).
+const boards = new PerVillage<BoardWorld, BoardSpot>((world, village) => {
+  const near = nearVillage(world, village, AROUND);
+  return boardBy(village, near.buildings, solidCells(near));
+});
 
 // Every village's board, by the village's index (worked out once a world).
-export function noticeBoards(world: BoardWorld): BoardSpot[] {
-  let spots = listed.get(world.villages);
-  if (!spots || spots.length !== world.villages.length) {
-    spots = world.villages.map((v) => boardFor(world, v));
-    listed.set(world.villages, spots);
-  }
-  return spots;
-}
+export const noticeBoards = (world: BoardWorld): BoardSpot[] => boards.all(world);
 
 // Board number `board`'s spot (quests/quests.ts boardVillage: its village's), if its village is known.
 export function boardSpot(world: BoardWorld & { villageOf?(board: number): Village | undefined }, board: number): BoardSpot | undefined {
@@ -43,15 +40,7 @@ export function boardSpot(world: BoardWorld & { villageOf?(board: number): Villa
 }
 
 // A village's board's spot (worked out once, from what stands round it).
-export function boardFor(world: BoardWorld, village: Village): BoardSpot {
-  let spot = boardOf.get(village);
-  if (!spot) {
-    const near = nearVillage(world, village, AROUND);
-    spot = boardBy(village, near.buildings, solidCells(near));
-    boardOf.set(village, spot);
-  }
-  return spot;
-}
+export const boardFor = (world: BoardWorld, village: Village): BoardSpot => boards.of(world, village);
 
 function boardBy(village: Village, buildings: readonly Building[], solid: Set<string>): BoardSpot {
   const inn = buildings.find((b) => b.kind === 'inn' && Math.abs(b.x - village.x) <= R + 1 && Math.abs(b.z - village.z) <= R + 1);
