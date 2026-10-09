@@ -23,7 +23,7 @@ const SPIN = 1.4; // radians per second
 const HOVER = 0.1; // above the ground
 const BOB = 0.02;
 const hex = (rarity: Rarity) => parseInt(RARITY_COLORS[rarity].slice(1), 16);
-const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0, potion: 0xe690e0, uncommon: hex('uncommon'), rare: hex('rare'), epic: hex('epic'), legendary: hex('legendary') };
+const QUALITY_COLOR: Record<Quality, number> = { junk: 0xd8d4cc, ingredient: 0xe8a080, common: 0xfff1d6, quest: 0xffc94a, bag: 0x9ad0a0, potion: 0xe690e0, tool: 0xc8b890, uncommon: hex('uncommon'), rare: hex('rare'), epic: hex('epic'), legendary: hex('legendary') };
 const BEAM_TALL: Partial<Record<Quality, number>> = { epic: 1.8, legendary: 3.5 }; // (the rarest seen from afar: their beams taller)
 const GEAR_VOXEL = 0.035; // gear on the ground, a little larger than worn
 const LOOT_MOST = LOOT_VOXEL_SIZE * 8; // a piece's longest side at most (a junk model's, about: armour, a figure's worth of voxels, shrunk to it)

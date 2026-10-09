@@ -221,6 +221,11 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
   // A woven rug, flat on the floor: a teal field, a red border (darker at
   // its edge), a linen band, a red medallion in the middle, and linen
   // fringes along its two short ends.
+  // A bedroll (the hero's, outdoors: scenery/bedrollMesh.ts lays it out); here rolled and tied, as carried.
+  bedroll: (box, len, dep) => {
+    box(2, 1, Math.floor(dep / 2) - 3, len - 3, 6, Math.floor(dep / 2) + 3, (u, y, v) => (y === 1 || y === 6 || v === Math.floor(dep / 2) - 3 || v === Math.floor(dep / 2) + 3 ? (u % 9 === 4 ? WOOD_DARK : WOOD_DARK) : u % 9 === 4 ? WOOD_DARK : TEAL)); // the roll, strapped twice
+    for (const u of [2, len - 3]) box(u, 2, Math.floor(dep / 2) - 2, u, 5, Math.floor(dep / 2) + 2, LINEN); // the linen within, at its ends
+  },
   rug: (box, len, dep) => {
     const cu = (len - 1) / 2;
     const cv = (dep - 1) / 2;

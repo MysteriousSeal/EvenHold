@@ -30,7 +30,7 @@ export interface LootPrompt {
 // A thing's name in its quality's colour, where it's drawn over the world (what's picked up, floating up over the
 // hero: main.ts), as the tooltips' (menu.css) and the prompt's (hud.css).
 const { common: _, ...RARE_INK } = RARITY_COLORS; // (gear above common, in its rarity's colour)
-export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0', potion: '#e690e0', ...RARE_INK };
+export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredient: '#e8a080', common: '#f8ecd4', quest: '#ffc94a', bag: '#9ad0a0', potion: '#e690e0', tool: '#c8b890', ...RARE_INK };
 
 // The prompt for loot on the ground: its name, in its quality's color.
 const STACK_GAP = 8; // px between prompts stacked one over another

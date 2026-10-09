@@ -7,6 +7,7 @@
 // so does a right-click; dropped from the bag (inventoryPanel.ts), a slot
 // takes what's dropped. Styles in hud.css.
 
+import { isTool } from '../../model/loot/tools';
 import type { Hero } from '../../model/types';
 import { ACTION_SLOTS } from '../../model/hero/actionBar';
 import { LOOT } from '../../model/loot/loot';
@@ -78,7 +79,7 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
       t.tile.classList.toggle('spent', !!item && have === 0); // (none carried)
       t.tile.classList.toggle('busy', busy); // (still at a meal; a potion's wait)
       t.cool.textContent = wait > 0 ? String(wait) : '';
-      t.tip.textContent = item ? `${LOOT[item].name} · ${isPotion(item) ? potionText(item) : givesText(item)}${have ? '' : ' · none left'}` : 'Drag food, drink or a potion here from your bag';
+      t.tip.textContent = item ? `${LOOT[item].name} · ${isPotion(item) ? potionText(item) : isTool(item) ? 'Lie down on it anywhere outdoors: rest and mend, slower than a bed' : givesText(item)}${have ? '' : ' · none left'}` : 'Drag food, drink, a potion or a bedroll here from your bag';
     }
   };
 }

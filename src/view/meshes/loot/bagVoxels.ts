@@ -10,6 +10,32 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const BAG_MODELS: Record<keyof typeof BAG_ITEMS, LootModel> = {
+  // A woodworker's packs (skills/woodworking.ts): a frame of pale birch slats with a hessian sack lashed in; a pine
+  // frame, amber, with a leather sack and a buckled strap; a heartwood frame, dark red-brown, varnished to a sheen,
+  // its leather tooled and brass-buckled. Each a little taller than the last.
+  birchFramedPack: model([0xf0e2c0, 0xc8aa78, 0xa88a5a, 0x7a4a2a, 0xd8c498], [7, 8, 5], (g) => {
+    for (const x of [0, 6]) fillBox(g, x, 0, 1, x, 7, 1, 1); // the frame's uprights
+    for (const y of [1, 6]) fillBox(g, 1, y, 1, 5, y, 1, 5); // its rungs
+    fillBox(g, 1, 0, 2, 5, 5, 4, (x, y, z) => ((x + y + z) % 2 ? 2 : 3)); // the sack lashed in, hessian
+    fillBox(g, 2, 6, 2, 4, 6, 3, 2); // gathered at its top
+    for (const y of [2, 4]) fillBox(g, 0, y, 2, 6, y, 2, 4); // the lashings round
+  }),
+  pinePack: model([0xe0a868, 0xc08848, 0x9a5e32, 0x7a4624, 0xe2b04a], [7, 9, 5], (g) => {
+    for (const x of [0, 6]) fillBox(g, x, 0, 1, x, 8, 1, 1);
+    for (const y of [1, 7]) fillBox(g, 1, y, 1, 5, y, 1, 2);
+    fillBox(g, 1, 0, 2, 5, 6, 4, (_x, y) => (y === 6 ? 4 : 3)); // the leather sack, its flap darker
+    fillBox(g, 1, 7, 2, 5, 7, 3, 4);
+    fillBox(g, 3, 3, 4, 3, 5, 4, 4); // the strap down its front
+    setColor(g, 3, 4, 4, 5); // its buckle
+  }),
+  heartwoodPack: model([0x6e2a1a, 0x521e12, 0x5a2e1a, 0x3e1e10, 0xe8c050, 0xa0482a], [7, 10, 5], (g) => {
+    for (const x of [0, 6]) fillBox(g, x, 0, 1, x, 9, 1, (_x, y) => (y % 3 === 1 ? 6 : 1)); // the frame, its grain lit along it
+    for (const y of [1, 5, 8]) fillBox(g, 1, y, 1, 5, y, 1, 2);
+    fillBox(g, 1, 0, 2, 5, 7, 4, (_x, y) => (y === 7 ? 4 : 3)); // the tooled leather sack, its flap
+    fillBox(g, 1, 8, 2, 5, 8, 3, 4);
+    for (const y of [2, 5]) fillBox(g, 1, y, 4, 5, y, 4, 4); // two straps across its front
+    for (const y of [2, 5]) setColor(g, 3, y, 4, 5); // their brass buckles
+  }),
   // Hessian, its weave in two tones, bulging lower, gathered and tied, the neck's ends sticking up; a patch darker.
   roughSack: model([0xc8aa78, 0xa88a5a, 0x8a6a42, 0x5e4a30, 0xb09060], [6, 8, 6], (g) => {
     for (let y = 0; y < 5; y++) {

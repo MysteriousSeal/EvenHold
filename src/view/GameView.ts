@@ -29,6 +29,7 @@ import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
 import { Cupboard } from './interior/cupboard';
+import { BedrollView } from './meshes/scenery/bedrollMesh';
 import { COSTUMES } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
@@ -86,6 +87,7 @@ export class GameView {
   private readonly npcs = new NpcViews();
   private readonly workMarks = new WorkMarks(); // (at work: over the patrons, the counter's end)
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
+  private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
@@ -328,6 +330,7 @@ export class GameView {
     this.ambient.update(dt, hero, model.minutes, true);
     this.entrances.update(dt, hero, model.minutes, true);
     this.wildMoves.update(model.wild, (x, z) => model.getGroundY(x, z), dt, true);
+    (this.bedroll ??= new BedrollView(this.scene)).update(model);
     this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y

@@ -20,6 +20,8 @@ export const STOWED: Record<keyof typeof MAIN_HAND_ITEMS | keyof typeof OFF_HAND
   woodenSword: 'leftHip',
   dagger: 'leftHip',
   hatchet: 'leftHip',
+  fellingAxe: 'back',
+  broadAxe: 'back',
   club: 'leftHip',
   mace: 'leftHip',
   bandedCudgel: 'leftHip',

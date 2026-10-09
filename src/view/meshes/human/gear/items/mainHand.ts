@@ -82,6 +82,9 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
   }, [1.5, 0.25, 0.5]),
   // An iron head at the far end, its bright edge facing down.
   hatchet: hafted(10, 4, 3, (y, z) => (z >= 7 ? (y === 0 ? c.steel : c.dark) : 0)),
+  // A felling axe: a long haft, a narrow head set high, its edge bright; a broad axe: a wide, deep bit, bright all down its edge.
+  fellingAxe: hafted(14, 5, 3, (y, z) => (z >= 10 ? (y === 1 ? c.edge : y === 0 || y === 2 ? c.steel : 0) : 0)),
+  broadAxe: hafted(13, 7, 3, (y, z) => (z >= 8 ? (y === 0 ? c.edge : y <= 4 ? c.steel : y === 5 ? c.dark : 0) : 0)),
   // A double-bitted head, both edges bright.
   battleAxe: hafted(13, 7, 3, (y, z) => {
     if (z < 8 || z > 11) return 0;

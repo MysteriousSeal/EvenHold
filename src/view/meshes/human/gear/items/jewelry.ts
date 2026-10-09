@@ -49,6 +49,8 @@ function ring(band: number, stone?: number): ItemModel {
 
 export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_ITEMS, ItemModel> = {
   woodenCharm: amulet(0x6b4a33, 0x9a6a3e, 0x6b4226),
+  carvedPendant: amulet(0x6b4a33, 0x9a6a3e, 0x3a78c8), // (oak, a gem shard set in it)
+  heartwoodAmulet: amulet(0x8a5a3a, 0x6e2a1a, 0xe85a6a), // (heartwood, a cut gem)
   boneTalisman: amulet(0x6b4a33, 0xe8dcc0, 0x9a3a2a),
   wolfToothNecklace: amulet(0x5e3f28, 0xefe6cc, 0xd6c79a, 1, 3),
   silverLocket: amulet(0xb8bec6, 0xc8ced6, 0x8d939c),
@@ -61,6 +63,7 @@ export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_
   copperRing: ring(0xb87333),
   ironBand: ring(0x7d838c),
   boneRing: ring(0xe8dcc0),
+  bentwoodRing: ring(0x9a6a3e, 0xc8ced6), // (a strip of birch bent round, bound in silver)
   silverRing: ring(0xc8ced6),
   goldRing: ring(0xd4b060),
   jadeRing: ring(0xd4b060, 0x4aa86a),
