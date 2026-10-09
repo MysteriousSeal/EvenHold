@@ -20,10 +20,5 @@ dist/
 # The bots' playtest reports (npm run bots)
 tests/bots/reports/
 
-# The fighter's training (npm run ai:setup, ai:train): its Python environment, and what it trains
-tests/ai/.venv/
-tests/ai/models/
-__pycache__/
-
 # macOS folder metadata
 .DS_Store
