@@ -267,7 +267,7 @@ export class GameView {
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
     // At work, dressed for it (a costume, only to be seen: their gear still on them, its stats and all); else their gear.
     if (model.work.shift) this.hero.dress(COSTUMES[model.work.shift.job]);
-    else this.hero.wear(hero.equipment);
+    else this.hero.wear(model.lumber.chopping && model.lumber.axeKey ? { ...hero.equipment, mainHand: model.lumber.axeKey } : hero.equipment); // (chopping with the pack's axe: out, in hand, for it)
     const chilled = !!hero.blessings?.some((b) => b.kind === 'chilled');
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : chilled ? this.heroFrost : this.heroLook);
     if (this.frost.group.parent !== this.hero.root) this.hero.root.add(this.frost.group); // (on whichever rig is theirs)
