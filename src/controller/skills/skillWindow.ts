@@ -53,8 +53,17 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
     return el('div', 'skill-notyet', el('h3', undefined, 'Not practicable yet'), el('p', undefined, `${about.about} There's nowhere to ${about.verb} in the world so far.`), el('span', 'book-label', 'What it will open'), opens);
   };
 
+  // Redrawn whole (a pick, a level, a craft under way), the book's list kept where it was scrolled to.
+  const refresh = (): void => {
+    const list = () => document.querySelector<HTMLElement>(`.menu[aria-label="${SKILLS[skill].name}"] .book-list`);
+    const top = list()?.scrollTop ?? 0;
+    menu.refresh();
+    const again = list();
+    if (again && top) again.scrollTop = top;
+  };
+
   const body = (): HTMLElement => {
-    const redraw = () => menu.refresh();
+    const redraw = () => refresh();
     const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : notYet(skill);
     return el('div', 'skill-detail', head(skill), content);
   };
@@ -69,7 +78,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
     const now = `${skill}|${skillOf(model.hero, skill).level}|${recipeState(model)}|${model.lumber.axe}`;
     if (now === seen) return;
     seen = now;
-    menu.refresh();
+    refresh();
   };
   return {
     menu,
@@ -81,7 +90,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
       skill = id;
       seen = '';
       menu.setTitle(SKILLS[id].name);
-      if (menu.isOpen) menu.refresh();
+      if (menu.isOpen) refresh();
       else menu.open();
     },
   };
