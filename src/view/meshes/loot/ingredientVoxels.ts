@@ -85,4 +85,49 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     fillBox(g, 1, 3, 1, 2, 3, 2, (x, _y, z) => (x === 2 && z === 1 ? 4 : 1)); // its neck, the varnish's sheen at the lip
     fillBox(g, 1, 4, 1, 2, 4, 2, 3); // the cork
   }),
+  // Salvaged (skills/salvage.ts): iron scrap, a few jagged grey bits with rust; a leather strip, a brown strap with its
+  // buckle end; linen scrap, pale cloth folded; silver filings, bright flecks on a dark heap; a gem shard, a blue
+  // splinter catching the light; a tempered ingot, a dark steel bar with a bright edge; a cut gem, red, faceted.
+  ironScrap: model([0x6a7482, 0x4a5462, 0x9a4a28], [6, 2, 5], (g) => {
+    fillBox(g, 0, 0, 1, 2, 0, 3, 1);
+    fillBox(g, 3, 0, 0, 5, 0, 2, 2);
+    fillBox(g, 1, 1, 2, 1, 1, 2, 3);
+    fillBox(g, 4, 1, 1, 4, 1, 1, 1);
+    setColor(g, 5, 0, 2, 3);
+  }),
+  leatherStrip: model([0x8a5a3a, 0x5e3a22, 0xb8a070], [7, 1, 3], (g) => {
+    fillBox(g, 0, 0, 1, 5, 0, 1, 1);
+    fillBox(g, 2, 0, 0, 2, 0, 2, 2);
+    setColor(g, 6, 0, 1, 3);
+  }),
+  linenScrap: model([0xeadfc6, 0xd2c4a4, 0xf6efdc], [5, 2, 5], (g) => {
+    fillBox(g, 0, 0, 0, 4, 0, 4, 1);
+    fillBox(g, 1, 1, 1, 3, 1, 3, 1);
+    setColor(g, 2, 1, 2, 3);
+    setColor(g, 0, 0, 4, 2);
+    setColor(g, 4, 0, 0, 2);
+  }),
+  silverFilings: model([0x4a4652, 0xd8dce4, 0xf4f6fa], [5, 2, 5], (g) => {
+    fillBox(g, 1, 0, 1, 3, 0, 3, 1);
+    for (const [x, z] of [[1, 2], [2, 1], [3, 3], [2, 3]]) setColor(g, x, 1, z, 2);
+    setColor(g, 2, 1, 2, 3);
+  }),
+  gemShard: model([0x3a78c8, 0x8ec0f0, 0xe8f4ff], [3, 4, 3], (g) => {
+    fillBox(g, 1, 0, 1, 1, 2, 1, 1);
+    fillBox(g, 0, 0, 1, 2, 0, 1, 1);
+    setColor(g, 1, 3, 1, 3);
+    setColor(g, 1, 1, 0, 2);
+    setColor(g, 0, 1, 1, 2);
+  }),
+  temperedIngot: model([0x3a4450, 0x5a6878, 0xb8c4d0], [6, 2, 3], (g) => {
+    fillBox(g, 0, 0, 0, 5, 1, 2, 1);
+    fillBox(g, 1, 1, 1, 4, 1, 1, 2);
+    setColor(g, 4, 1, 1, 3);
+  }),
+  cutGem: model([0xb02a3c, 0xe85a6a, 0xffd0d6], [3, 3, 3], (g) => {
+    fillBox(g, 0, 0, 0, 2, 1, 2, 1);
+    fillBox(g, 1, 2, 1, 1, 2, 1, 2);
+    for (const [x, z] of [[0, 1], [1, 0], [2, 1], [1, 2]]) setColor(g, x, 1, z, 2);
+    setColor(g, 1, 2, 1, 3);
+  }),
 };

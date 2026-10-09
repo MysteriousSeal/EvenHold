@@ -95,7 +95,28 @@ const woodworkingIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, cooking: cookingIcon, fishing: fishingIcon };
+// Salvaging: a bench vice, its iron jaws (bright along the top) closed on a blade, a few scraps of rust fallen beside.
+const salvagingIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:salvaging',
+    () => {
+      // Plank 1, iron 2, iron's bright edge 3, the blade 4, rust 5.
+      const grid = createGrid([12, 11, 8]);
+      fillBox(grid, 0, 0, 0, 11, 1, 7, 1); // the bench's slab
+      fillBox(grid, 2, 2, 2, 5, 6, 5, 2); // the fixed jaw
+      fillBox(grid, 7, 2, 2, 9, 6, 5, 2); // the moving jaw
+      fillBox(grid, 2, 7, 2, 5, 7, 5, 3); // their bright tops
+      fillBox(grid, 7, 7, 2, 9, 7, 5, 3);
+      fillBox(grid, 6, 3, 3, 6, 10, 4, 4); // the blade, upright between them
+      fillBox(grid, 10, 4, 3, 11, 4, 4, 2); // the screw out the side
+      fillBox(grid, 11, 3, 3, 11, 5, 4, 3); // its handle
+      for (const [x, z] of [[0, 1], [1, 6], [10, 6]]) fillBox(grid, x, 2, z, x, 2, z, 5); // scraps
+      return { grid, palette: [0xb8905e, 0x4a5462, 0x8a96a4, 0xd8dce4, 0x9a4a28], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish
