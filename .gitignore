@@ -20,5 +20,11 @@ dist/
 # The bots' playtest reports (npm run bots)
 tests/bots/reports/
 
+# The AI player's training (npm run ai:setup, ai:train, ai:play): its Python environment, what it trains, its reports
+tests/ai/.venv/
+tests/ai/models/
+tests/ai/reports/
+__pycache__/
+
 # macOS folder metadata
 .DS_Store

@@ -11,7 +11,10 @@
     "app:dev": "tauri dev",
     "app:icon": "node scripts/appIcon.mjs && tauri icon src-tauri/app-icon.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
     "test": "vitest run",
-    "player": "vite-node tests/bots/player/playthrough.ts"
+    "player": "vite-node tests/bots/player/playthrough.ts",
+    "ai:setup": "python3 -m venv tests/ai/.venv && tests/ai/.venv/bin/pip install -q -r tests/ai/requirements.txt",
+    "ai:train": "cd tests/ai && .venv/bin/python train.py",
+    "ai:play": "vite-node tests/ai/play.ts"
   },
   "scripts-info": {
     "dev": "Starts the game in the browser while developing (Vite, reloads on save).",
@@ -22,6 +25,9 @@
     "app:icon": "Redraws the app's icon (scripts/appIcon.mjs) and makes every size of it.",
     "test": "Runs every test once (vitest).",
     "player": "A player of their own mind plays an hour of a fresh game, told as it goes; a report to read the game by in tests/bots/reports/play-….md (PLAY_SEED to play one again, PLAY_MINUTES for longer, PLAYERS=4 for up to four at once, PLAY_SEEDS=a,b,c for several again).",
+    "ai:setup": "Sets up the AI player's training (tests/ai/): a Python environment of its own, tests/ai/.venv, with PyTorch, Stable-Baselines3 and Gymnasium.",
+    "ai:train": "Trains an AI to play the whole game from nothing (PPO, on all but one core), knowing the keys and seeing the screen, paid for the game's own progress: a million decisions more, on from the player saved (a fresh one if there's none); -- --steps n for more, -- --fresh to start over. Writes tests/ai/models/ (the player, and lives.jsonl: each life's tally).",
+    "ai:play": "The trained AI plays a life (AI_SEED, AI_MINUTES; none trained: keys at random), told as it goes; a report of what it did and skipped in tests/ai/reports/ai-….md.",
     "(settings)": "Any bots script takes: BOTS=n (how many), BOT_MINUTES=n (game minutes each), BOT_CLASSIC=1 (an older game's 2048 world, else a new game's streamed 16384 one), BOT_SEEDS=a,b (play those games again, exactly), BOT_FIRST_SEED=n (seeds n, n+1…), BOT_VERBOSE=1 (live), e.g. BOT_SEEDS=123 npm run bots:verbose."
   },
   "dependencies": {
