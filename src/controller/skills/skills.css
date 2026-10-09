@@ -166,3 +166,12 @@
   .skill-card { transition: none; }
   .skill-card-status.live::before { animation: none; }
 }
+
+/* The salvage bench's window: the gear in cases as the bag's, eight across, the piece picked told of beside. */
+.menu[aria-label='Salvage bench'] { width: min(760px, 100%); }
+.menu[aria-label='Salvage bench'] .menu-slot { min-width: 46px; }
+.menu[aria-label='Salvage bench'] .menu-grid { gap: 5px; }
+.menu[aria-label='Salvage bench'] .salvage-go { margin-top: 12px; }
+.menu[aria-label='Salvage bench'] .craft-progress { margin-top: 8px; }
+.menu[aria-label='Salvage bench'] .salvage-warn { color: var(--ember); font-weight: 700; margin-top: 10px; }
+.menu[aria-label='Salvage bench'] .salvage-keep { margin-left: 8px; }

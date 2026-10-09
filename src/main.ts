@@ -45,6 +45,7 @@ import { createSkillsPanel } from './controller/skills/skillsPanel';
 import { chopPrompt } from './controller/skills/chopPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
+import { createSalvagePanel, givesWords } from './controller/skills/salvagePanel';
 import { createJobPanel } from './controller/jobs/jobPanel';
 import { workPrompt } from './controller/jobs/workPrompt';
 import { shiftStatus } from './controller/jobs/shiftStatus';
@@ -158,6 +159,7 @@ async function boot(): Promise<void> {
   const jobs = createJobPanel(model, { setPaused: (paused) => (controller.paused = paused) }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const salvage = createSalvagePanel(model);
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
@@ -222,6 +224,11 @@ async function boot(): Promise<void> {
     if (talk && !(model.inside && model.doorInReach)) return talk; // (at the way out: out first, not a word with the bouncer by it)
     const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null; // (on the road)
     if (traveller) return { label: travellerPrompt(traveller), x: traveller.x, y: traveller.y + 0.75, z: traveller.z };
+    const bench = model.salvage.benchInReach; // (a village's salvage bench: gear broken down)
+    if (bench !== null) {
+      const at = model.salvage.benches[bench];
+      return { label: 'Break down gear', x: at.x, y: model.getGroundY(at.x, at.z) + 0.7, z: at.z };
+    }
     const read = model.boardInReach;
     const spot = read === null ? undefined : boardSpot(model, read);
     if (spot) return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
@@ -258,6 +265,7 @@ async function boot(): Promise<void> {
     herbs.update();
     pack.update();
     journal.update();
+    salvage.update(); // (a piece on the bench: its bar)
     skills.update();
     sheet.update();
     updateToolbar();
@@ -286,7 +294,7 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'herbalist' ? herbs.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'herbalist' ? herbs.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(
@@ -329,6 +337,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
       else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [`${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them)
       else if (event.kind === 'crafted') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${nameOf(event.item)}`], QUALITY_INK[qualityOf(event.item)]); // (made: what, in its quality's colour)
+      else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber

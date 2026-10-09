@@ -3,12 +3,14 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { RECIPES } from '../../model/skills/woodworking';
+import { gearName } from '../../model/human/items/gear';
 import { counted } from '../../view/ui/words';
 
 export function castOf(model: GameModel): { progress: number; label: string } | null {
-  const { lumber, woodworking } = model;
+  const { lumber, woodworking, salvage } = model;
   if (lumber.chopping) return { progress: lumber.progress ?? 0, label: `${counted(lumber.left(lumber.chopping.tree), 'chop')} left` };
   const making = woodworking.making;
   if (making) return { progress: woodworking.progress ?? 0, label: making.left > 1 ? `${RECIPES[making.recipe].name} · ${making.left} to make` : RECIPES[making.recipe].name };
+  if (salvage.breaking) return { progress: salvage.progress ?? 0, label: `Breaking down ${gearName(salvage.breaking.key)}` };
   return null;
 }

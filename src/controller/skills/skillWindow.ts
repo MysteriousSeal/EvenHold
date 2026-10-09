@@ -6,6 +6,7 @@
 // not yet to be practised, said so, and what it'll open. The game goes on while it's open (what's made, made as it's
 // watched).
 
+import { salvageGuide } from './salvagePanel';
 import type { GameModel } from '../../model/GameModel';
 import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, tierOf, type SkillId } from '../../model/skills/skills';
 import { createMenu, type Menu } from '../../view/ui/menu';
@@ -17,12 +18,13 @@ import { nextMilestone, skillRuler } from './skillRuler';
 import type { Grade } from '../../model/skills/lumber';
 
 // What someone at a skill's called ("Journeyman woodworker").
-const CALLED: Record<SkillId, string> = { lumberjacking: 'lumberjack', woodworking: 'woodworker', cooking: 'cook', fishing: 'angler' };
+const CALLED: Record<SkillId, string> = { lumberjacking: 'lumberjack', woodworking: 'woodworker', salvaging: 'salvager', cooking: 'cook', fishing: 'angler' };
 
 export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: SkillId): void; update(): void; readonly skill: SkillId } {
   let skill: SkillId = SKILL_IDS[0];
   const book = newBook(); // (the recipe picked, the filter, how many: kept while the game's on)
   const guide: { picked: Grade | null } = { picked: null };
+  const scrap: { picked: import('../../model/skills/salvage').Make | null } = { picked: null }; // (the salvage guide's: the make picked)
 
   // Where the hero stands in it.
   const head = (id: SkillId): HTMLElement => {
@@ -53,7 +55,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
 
   const body = (): HTMLElement => {
     const redraw = () => menu.refresh();
-    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : notYet(skill);
+    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : notYet(skill);
     return el('div', 'skill-detail', head(skill), content);
   };
 

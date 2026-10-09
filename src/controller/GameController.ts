@@ -50,6 +50,7 @@ export class GameController {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
+  private readonly onSalvage: () => void; // (E by a village's salvage bench: its window)
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
   private readonly onSleep: () => void;
   private readonly onTraveller: (t: Traveller) => void;
@@ -58,7 +59,7 @@ export class GameController {
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onSalvage?: () => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -66,6 +67,7 @@ export class GameController {
     this.onEvent = options.onEvent ?? (() => {});
     this.onTalk = options.onTalk ?? (() => {});
     this.onRead = options.onRead ?? (() => {});
+    this.onSalvage = options.onSalvage ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
     this.onSleep = options.onSleep ?? (() => {});
     this.onTraveller = options.onTraveller ?? (() => {});
@@ -164,6 +166,7 @@ export class GameController {
         if (talker && !leaving) this.onTalk(talker);
         else if (traveller) this.onTraveller(traveller);
         else if (board !== null) this.onRead(board);
+        else if (this.model.salvage.benchInReach !== null) this.onSalvage(); // a village's salvage bench: gear broken down
         else if (this.model.wellInReach !== null) this.model.tossCoin();
         else if (!useHallDoor(this.model) && !takeStairs(this.model)) this.model.useDoor(); // a door upstairs, else the stairs by them, else the way out
       }
