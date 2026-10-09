@@ -6,7 +6,7 @@
 // not yet to be practised, said so, and what it'll open. The game goes on while it's open (what's made, made as it's
 // watched).
 
-import { salvageGuide } from './salvagePanel';
+import { salvageGuide } from './salvageGuide';
 import type { GameModel } from '../../model/GameModel';
 import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, tierOf, type SkillId } from '../../model/skills/skills';
 import { createMenu, type Menu } from '../../view/ui/menu';
