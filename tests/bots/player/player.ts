@@ -81,7 +81,7 @@ export class Player extends Bot {
   readonly kit: Toolkit;
   idle = 0; // game seconds with nothing to do at all
   lowHealth = 0; // game seconds under 40% health (no way to mend: a finding)
-  private current: { activity: Activity; target: Target; why: string; at: number; before: { earned: number; level: number; money: number; hp: number; deaths: number } } | null = null;
+  private current: { activity: Activity; target: Target; why: string; at: number; before: { earned: number; level: number; money: number; hp: number; deaths: number; bag: string } } | null = null;
   private failed = false;
   private lastFound = 0;
   private dwell = 0; // seconds to pause before the next choice (after one that came to nothing at once)
@@ -90,8 +90,12 @@ export class Player extends Bot {
   private seenLevel = 1;
   private readonly seenSkills: Record<string, number> = {};
 
-  constructor(model: GameModel, report: Report, rng: () => number, log: (what: string) => void) {
+  readonly sweep: boolean; // (a QA sweep: whatever it hasn't tried yet pulls hard, till each activity's been tried once)
+  private readonly offered = new Map<string, number>(); // how many plans each activity was open in
+
+  constructor(model: GameModel, report: Report, rng: () => number, log: (what: string) => void, options: { sweep?: boolean } = {}) {
     super(model, report, rng, log);
+    this.sweep = !!options.sweep;
     this.persona = drawPersona(rng);
     this.kit = {
       model,
@@ -199,8 +203,14 @@ export class Player extends Bot {
     const drives = this.drives();
     const from = this.model.inside?.entrance ?? this.model.hero; // (indoors: as far as its door is)
     const options = ACTIVITIES.filter((a) => (this.cooled.get(a.id) ?? 0) <= this.seconds).flatMap((activity) => activity.options(this.kit).map((target) => ({ id: activity.id, serves: activity.serves, traits: activity.traits, distance: target.at ? Math.hypot(target.at.x - from.x, target.at.z - from.z) : 0, activity, target })));
+    for (const id of new Set(options.map((o) => o.id))) this.offered.set(id, (this.offered.get(id) ?? 0) + 1);
     if (options.length === 0) return void (this.todo = [this.wait(3)]);
     const scored = score(options, drives, this.persona, this.memory, this.seconds);
+    if (this.sweep) {
+      // The sweep: what's never once been done pulls four times as hard, so an hour tries everything the world offers.
+      const done = new Set(this.diary.filter((d) => d.outcome === 'ok').map((d) => d.id));
+      for (const s of scored) if (!done.has(s.option.id)) [(s.score *= 4), (s.why = `${s.why ? `${s.why}, ` : ''}untried: the sweep`)];
+    }
     const pick = draw(scored, this.persona.temperature, this.rng);
     const { activity, target } = pick.option;
     // Out of a building first (an activity of the outdoors, planned from inside, comes to nothing): its own steps
@@ -226,7 +236,7 @@ export class Player extends Bot {
     this.stats.goals[activity.id] = (this.stats.goals[activity.id] ?? 0) + 1;
     this.memory.began(activity.id, this.seconds);
     const { hero } = this.model;
-    this.current = { activity, target, why, at: this.seconds, before: { earned: this.balance.earned, level: hero.level, money: hero.money, hp: hero.hp, deaths: this.stats.deaths } };
+    this.current = { activity, target, why, at: this.seconds, before: { earned: this.balance.earned, level: hero.level, money: hero.money, hp: hero.hp, deaths: this.stats.deaths, bag: this.bagSig() } };
     this.failed = false;
     this.todo = this.budgeted(activity, target, steps);
   }
@@ -248,9 +258,20 @@ export class Player extends Bot {
     });
   }
 
-  // The activity under way written up (the game over: the last thing done, too).
+  // The activity under way written up (the game over: the last thing done, too); and what never once worked, said.
   close(): void {
     this.finish();
+    for (const c of this.coverage()) if (c.tried >= 3 && c.done === 0 && this.diary.some((d) => d.id === c.id && d.outcome === 'fail')) this.report('activity never works', `${c.id}: tried ${c.tried} times, never once done (${this.diary.filter((d) => d.id === c.id).map((d) => d.outcome).join(', ')})`);
+  }
+
+  // The bag, in a word: what's in it and how many (to tell whether a quick activity changed it).
+  private bagSig(): string {
+    return Object.entries(this.model.hero.bag).map(([k, n]) => `${k}:${n}`).join(',');
+  }
+
+  // Every activity: how many plans it was open in, how often tried, how often done (the report's coverage).
+  coverage(): Array<{ id: string; offered: number; tried: number; done: number }> {
+    return ACTIVITIES.map(({ id }) => ({ id, offered: this.offered.get(id) ?? 0, tried: this.diary.filter((d) => d.id === id).length, done: this.diary.filter((d) => d.id === id && d.outcome === 'ok').length }));
   }
 
   // The activity under way written up: what it brought and cost, how it ended; and learnt from.
@@ -264,7 +285,8 @@ export class Player extends Bot {
     const xp = this.balance.earned - c.before.earned;
     const coin = hero.money - c.before.money;
     const hurt = fell ? 1 : Math.max(0, c.before.hp - hero.hp) / maxHpOf(hero);
-    const outcome: Done['outcome'] = fell ? 'fell' : this.failed ? 'fail' : seconds < 2 ? 'cut short' : 'ok';
+    // (Over in a moment with nothing to show for it: cut short. Quick but with something gained, or the bag changed: done.)
+    const outcome: Done['outcome'] = fell ? 'fell' : this.failed ? 'fail' : seconds < 2 && xp === 0 && coin === 0 && this.bagSig() === c.before.bag ? 'cut short' : 'ok';
     const done: Done = { id: c.activity.id, label: c.target.label, why: c.why, at: c.at, seconds, outcome, xp, coin, hurt, level: c.before.level };
     this.diary.push(done);
     if ((outcome === 'fail' || outcome === 'cut short') && seconds < 5) [this.cooled.set(c.activity.id, this.seconds + 30), (this.dwell = 4)]; // (came to nothing at once: not again just yet, and a moment's pause: no one decides twice a second)

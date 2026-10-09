@@ -3,7 +3,9 @@
 // choice and why, what they find, what they did and what it brought, levels and skills risen, and how they stand each
 // minute. Then a report (tests/bots/reports/play-….md: report.ts) to read the game by.
 // PLAYERS=4 (up to four, one a core): as many at once, each its own world and report, their tellings side by side,
-// each line tagged with its player's number and seed; PLAY_SEEDS=a,b,c: those games again, together.
+// each line tagged with its player's number and seed; PLAY_SEEDS=a,b,c: those games again, together. PLAY_QA=1: a QA
+// sweep (player.ts): whatever's untried pulls hard, so the hour tries everything the world offers; the report says
+// what was never possible, and what was possible but never done.
 
 import { spawn } from 'node:child_process';
 import { availableParallelism } from 'node:os';
@@ -18,6 +20,7 @@ import { playReport } from './report';
 
 const MOST = 4; // players at once, at most
 const minutes = Number(process.env.PLAY_MINUTES ?? 60);
+const sweep = process.env.PLAY_QA === '1'; // (a QA sweep: everything the world offers tried at least once)
 const several = process.env.PLAY_SEEDS?.split(',').map(Number);
 const wanted = Math.max(1, Math.min(MOST, availableParallelism(), several?.length ?? Number(process.env.PLAYERS ?? 1)));
 
@@ -73,10 +76,10 @@ const report = (kind: string, detail: string) => {
   if (counts[kind] <= MAX_PER_KIND) [problems.push({ kind, seed, t: Math.round(t), detail }), say(`⚠ ${kind}: ${detail}`)];
 };
 
-console.log(`Seed ${seed}: a new world, a new player, ${minutes} game minutes.\n`);
+console.log(`Seed ${seed}: a new world, a new player, ${minutes} game minutes${sweep ? ', a QA sweep' : ''}.\n`);
 const started = performance.now();
 const model = new GameModel(seed, STREAMED_SIZE);
-const player = new Player(model, report, mulberry32(seed ^ 0x5eed), say);
+const player = new Player(model, report, mulberry32(seed ^ 0x5eed), say, { sweep });
 const checks = new Checks(model, report);
 let second = 0;
 let before = { ...player.stats };

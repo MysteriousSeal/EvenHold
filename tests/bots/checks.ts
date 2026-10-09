@@ -11,6 +11,9 @@ import { MAX_ACTIVE } from '../../src/model/quests/quests';
 import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import { layoutOf } from '../../src/model/interiors/indoors';
 import { swimmable } from '../../src/model/wildlife/ducks';
+import { BAG_ROOM, bagRoom } from '../../src/model/hero/bagSlots';
+import { slotsUsed } from '../../src/model/hero/bagStacks';
+import { isBagItem, roomOf } from '../../src/model/loot/bags';
 
 export interface Problem {
   kind: string; // what sort ("hero inside a wall", "foe never dies"…), to count by
@@ -50,6 +53,10 @@ export class Checks {
     if (hero.energy < 0 || hero.energy > maxEnergyOf(hero) + 1e-6) this.report('hero energy out of range', `${hero.energy} of ${maxEnergyOf(hero)}`);
     if (hero.money < 0 || !Number.isInteger(hero.money)) this.report('hero money wrong', `${hero.money}`);
     if (hero.statPoints < 0) this.report('hero stat points below zero', `${hero.statPoints}`);
+    if (slotsUsed(hero.bag) > bagRoom(hero)) this.report('bag over its room', `${slotsUsed(hero.bag)} stacks in ${bagRoom(hero)} slots`);
+    if (hero.bags.some((b) => b !== null && !isBagItem(b))) this.report('bag socket holds no bag', JSON.stringify(hero.bags));
+    if (bagRoom(hero) !== BAG_ROOM + hero.bags.reduce((n, b) => n + (b ? roomOf(b) : 0), 0)) this.report('bag room wrong', `${bagRoom(hero)} with ${JSON.stringify(hero.bags)}`);
+    if (this.model.outdoors.seated?.seat.piece.kind === 'bedroll' && (this.model.inside || !(hero.bag.bedroll ?? 0))) this.report('bedroll lain on wrongly', this.model.inside ? 'indoors' : 'none carried');
     for (const [item, n] of Object.entries(hero.bag)) if (!Number.isInteger(n) || n! <= 0) this.report('bag count wrong', `${item}: ${n}`);
     if (inside) {
       if (inside.seated) return;

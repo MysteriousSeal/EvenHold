@@ -48,6 +48,14 @@ export function playReport(player: Player, seed: number, minutes: number, proble
   const never = ACTIVITIES.map((a) => a.id).filter((id) => !byId.has(id));
   lines.push('', `Never did: ${never.join(', ') || 'nothing left undone'}. Nothing to do at all: ${clock(player.idle)}.`, '');
 
+  // Coverage: what the world offered and what came of it.
+  const coverage = player.coverage();
+  lines.push(`## Coverage${player.sweep ? ' (a QA sweep: everything untried pulled hard)' : ''}`, '', '| activity | open in plans | tried | done |', '|---|---|---|---|');
+  for (const c of coverage) lines.push(`| ${c.id} | ${c.offered} | ${c.tried} | ${c.done} |`);
+  const neverOpen = coverage.filter((c) => c.offered === 0).map((c) => c.id);
+  const neverDone = coverage.filter((c) => c.offered > 0 && c.done === 0).map((c) => `${c.id} (${c.tried} tried)`);
+  lines.push('', `Never possible this hour: ${neverOpen.join(', ') || 'none'}. Possible but never done: ${neverDone.join(', ') || 'none'}.`, '');
+
   // Progress.
   lines.push('## How it went, minute by minute', '', '| min | level | xp | copper | kills | deaths | quests | foes near |', '|---|---|---|---|---|---|---|---|');
   for (const m of balance.data.minutes.filter((m) => m.t % 5 === 0 || m.t === balance.data.minutes.at(-1)?.t)) lines.push(`| ${m.t} | ${m.level} | ${m.xp} | ${m.money} | ${m.kills} | ${m.deaths} | ${m.questsDone} | ${m.foesNear} |`);

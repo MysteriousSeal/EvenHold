@@ -89,3 +89,23 @@ describe('a player at play', () => {
     expect(player.memory.learnt.size).toBeGreaterThan(0);
   });
 });
+
+describe('a QA sweep', () => {
+  it('pulls whatever is untried, keeps a coverage of every activity, and says what never once worked', () => {
+    const model = fresh();
+    const problems: string[] = [];
+    const player = new Player(model, (kind, detail) => problems.push(`${kind}: ${detail}`), mulberry32(13), () => {}, { sweep: true });
+    expect(player.sweep).toBe(true);
+    let second = 0;
+    for (let t = 0; t < 180; t += 1 / 30) {
+      player.tick(1 / 30);
+      if ((second += 1 / 30) >= 1) [player.balance.sample(t, player.stats), player.observe(t), (second = 0)];
+    }
+    player.close();
+    const coverage = player.coverage();
+    expect(coverage.map((c) => c.id)).toEqual(ACTIVITIES.map((a) => a.id));
+    for (const c of coverage) expect(c.tried >= c.done && c.offered >= (c.tried > 0 ? 1 : 0), c.id).toBe(true);
+    expect(new Set(player.diary.map((d) => d.id)).size).toBeGreaterThan(2); // (the sweep: not the same thing over and over)
+    expect(problems.filter((p) => p.startsWith('crash'))).toEqual([]);
+  });
+});

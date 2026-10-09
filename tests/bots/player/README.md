@@ -8,6 +8,7 @@ PLAY_SEED=2052870920 npm run player # the same world and player again (every run
 PLAY_MINUTES=120 npm run player     # longer
 PLAYERS=4 npm run player            # up to four at once, one a core: each its own world and report
 PLAY_SEEDS=11,22,33 npm run player  # those games again, together
+PLAY_QA=1 npm run player            # a QA sweep: everything untried pulls hard, so the hour tries all the world offers
 ```
 
 With several at once, every line is tagged `[player · seed]`, and the run ends with the list of reports.
@@ -38,7 +39,7 @@ Every game is a different player in a different world.
 
 ## Reading the report
 
-In order: **the signals** (what the hour says about the game, the part to read first), **where the hour went** (each activity: how often, how long, done/failed/fell, xp and copper), **minute by minute** (level, xp, coin, kills, deaths, quests, foes near), coin and xp by source, falls, **what they found** and when, **what they learnt** (each activity's reward by their own reckoning), **the diary** (every choice, its why and its outcome), and **problems the game had**.
+In order: **the signals** (what the hour says about the game, the part to read first), **where the hour went** and **coverage** (every activity: open in how many plans, tried, done; what was never possible, what was possible but never done) (each activity: how often, how long, done/failed/fell, xp and copper), **minute by minute** (level, xp, coin, kills, deaths, quests, foes near), coin and xp by source, falls, **what they found** and when, **what they learnt** (each activity's reward by their own reckoning), **the diary** (every choice, its why and its outcome), and **problems the game had**.
 
 ## The files
 

@@ -5,6 +5,8 @@
 // travellers, herbalists, a shift: ventures.ts); and it says whenever the game doesn't do what it should (checks.ts,
 // and what it sees itself: a foe that won't die, a barmaid who never serves, a quest that can't be done…).
 import type { GameModel } from '../../src/model/GameModel';
+import { bagRoom, fitBag } from '../../src/model/hero/bagSlots';
+import { isBagItem, roomOf } from '../../src/model/loot/bags';
 import type { Entrance } from '../../src/model/interiors/interiors';
 import type { Enemy } from '../../src/model/types';
 import { ATTACK_REACH, ENEMY_STATS } from '../../src/model/constants';
@@ -117,6 +119,14 @@ export abstract class Bot extends BotVentures {
       else this.stats.levels++;
     }
     for (const id of Object.keys(hero.bag)) {
+      // A pack carried, a socket free: fitted, and the bag the roomier for it.
+      if (isBagItem(id) && hero.bags.includes(null)) {
+        const room = bagRoom(hero);
+        if (!fitBag(hero, id)) this.report('pack not fitted', id);
+        else if (bagRoom(hero) !== room + roomOf(id)) this.report('pack fitted, room wrong', `${id}: ${room} before, ${bagRoom(hero)} after, its ${roomOf(id)}`);
+        else this.stats.packs++;
+        continue;
+      }
       if (!isGear(id) || !better(id, hero)) continue; // (gear of any level and rarity: bought, or dropped by foes; worn once they're of its level)
       if (!this.model.equipFromBag(id)) this.report('gear not worn', id);
     }

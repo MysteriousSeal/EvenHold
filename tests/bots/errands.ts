@@ -8,7 +8,7 @@ import { STATS } from '../../src/model/hero/statKinds';
 import { resetCost, resetPoints } from '../../src/model/hero/training';
 import { sellValue, isJunk } from '../../src/model/shops/sellValue';
 import { sellTo, type Shop } from '../../src/model/shops/shopStock';
-import { buy, shopAt } from '../../src/model/inn/tavernShop';
+import { buy, shopAt, INN_WANTS, sell } from '../../src/model/inn/tavernShop';
 import { buyGear, gearPrice, smithShopIn } from '../../src/model/smithy/smithShop';
 import { doorNumber } from '../../src/model/interiors/interiors';
 import type { BotStats } from './bot';
@@ -105,6 +105,16 @@ export class Errands {
   tradeAtInn(): void {
     const { hero, inside } = this.model;
     const shop = shopAt(this.model.shops, this.model.seed, doorNumber(inside!.entrance)); // (as the game keeps it: by its door's number)
+    // Her cups first, at her price (over the junk one), each stocking her cupboard.
+    for (const id of ['carvedTankard', 'woodenBowl'] as const) {
+      while ((hero.bag[id] ?? 0) > 0 && shop.money >= INN_WANTS[id].pays) {
+        const [money, stocked] = [hero.money, shop.stock[id] ?? 0];
+        if (this.counted('cups sold', () => sell(shop, hero, id)) !== 'sold') break;
+        this.stats.cupsSold++;
+        if (hero.money !== money + INN_WANTS[id].pays) this.report('inn paid wrong for a cup', `${id}: ${hero.money - money} for ${INN_WANTS[id].pays}`);
+        if ((shop.stock[id] ?? 0) !== stocked + 1) this.report('cupboard not stocked', `${id}: ${stocked} before, ${shop.stock[id] ?? 0} after`);
+      }
+    }
     this.sellJunk(shop);
     for (const id of ['bread', 'meatPie', 'cheese'] as const) if (hero.money > 40 && this.counted('food', () => buy(shop, hero, id)) === 'bought') this.stats.trades++;
   }

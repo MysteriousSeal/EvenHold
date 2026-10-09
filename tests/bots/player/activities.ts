@@ -392,13 +392,30 @@ export const ACTIVITIES: Activity[] = [
       const best = bestRecipe(p.model);
       return best ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
     },
-    steps: (p, t) => [
-      () => {
-        if (!p.model.woodworking.start(t.data as keyof typeof RECIPES, Infinity)) return 'fail';
-        p.stats.crafted += p.model.woodworking.making?.of ?? 0;
-        return 'ok';
-      },
-      p.until(() => !p.model.woodworking.making, 180, 'crafting never ended'),
-    ],
+    steps: (p, t) => {
+      const id = t.data as keyof typeof RECIPES;
+      const makes = RECIPES[id].makes;
+      const product = typeof makes === 'string' ? makes : makes.item;
+      const stacks = () => (Object.keys(p.model.hero.bag) as string[]).filter((k) => k === product || k.startsWith(`${product}@`)).reduce((n, k) => n + (p.model.hero.bag[k as never] ?? 0), 0);
+      const materials = () => Object.entries(RECIPES[id].from).reduce((n, [item, k]) => n + Math.floor((p.model.hero.bag[item as never] ?? 0) / k!), 0);
+      let [had, could, asked] = [0, 0, 0];
+      return [
+        () => {
+          [had, could] = [stacks(), materials()];
+          if (!p.model.woodworking.start(id, Infinity)) return 'fail';
+          asked = p.model.woodworking.making?.of ?? 0;
+          p.stats.crafted += asked;
+          return 'ok';
+        },
+        p.until(() => !p.model.woodworking.making, 180, 'crafting never ended'),
+        () => {
+          // What it made is in the bag (a full bag stops it, told: fewer then); its materials gone for those, no more.
+          const made = stacks() - had;
+          if (made <= 0 && could > 0) p.report('craft made nothing', `${id}: ${asked} asked, materials for ${could}, none made`);
+          if (could - materials() > made) p.report('materials taken, nothing made', `${id}: materials for ${could - materials()} gone, ${made} made`);
+          return 'ok';
+        },
+      ];
+    },
   },
 ];
