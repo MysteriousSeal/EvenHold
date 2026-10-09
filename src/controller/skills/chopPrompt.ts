@@ -1,5 +1,5 @@
 // What E would do by a tree (model/skills/lumber.ts), as the prompt over it: chop it (how many chops it has left); or
-// not, faded, and why (no axe in hand, not yet skilled enough); chopping, stop.
+// not, faded, and why (no axe to hand, not yet skilled enough); chopping, stop.
 
 import type { GameModel } from '../../model/GameModel';
 import type { PromptTarget } from '../../view/hud/lootPrompt';
@@ -19,7 +19,7 @@ export function chopPrompt(model: GameModel): PromptTarget | null {
   if (!action) return null;
   const { tree } = action;
   const at = { x: tree.x, y: hero.y + OVER, z: tree.z };
-  if (action.kind === 'cannot') return { label: action.why === 'axe' ? 'Needs an axe in hand' : `Needs Lumberjacking ${action.needs}`, muted: true, ...at };
+  if (action.kind === 'cannot') return { label: action.why === 'axe' ? 'Needs an axe' : `Needs Lumberjacking ${action.needs}`, muted: true, ...at };
   const left = lumber.left(tree);
   return { label: `Chop the ${woodOf(tree, model.seed).name} · ${counted(left, 'chop')}`, ...at };
 }

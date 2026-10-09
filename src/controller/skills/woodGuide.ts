@@ -2,7 +2,7 @@
 // left, the trees it fells (birch to ancient oak), each in the colour of how much it'd still teach, the level it
 // wants, the best to learn from starred; on the right, the one picked: its log, what it wants of the skill and how
 // much it'd teach, how many chops it takes, logs a chop, what's found in it now and then, the hero's own chance of a
-// second log; whether they've an axe in hand (and where one's had); where to find that kind of tree.
+// second log; whether they've an axe to hand (in hand or in the pack; and where one's had); where to find that kind of tree.
 
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
@@ -63,7 +63,7 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
       el('div', 'book-head', el('span', 'book-icon', bagIcon(wood.log)(56)), el('div', 'book-what', el('h3', 'book-title', capitalize(wood.name)), el('span', 'book-kind', WHERE[grade]))),
       needs,
       facts,
-      el('p', axe ? 'book-tool had' : 'book-tool short', axe ? 'You have an axe in hand.' : 'You need an axe in hand: a hatchet from the smith will do.'),
+      el('p', axe ? 'book-tool had' : 'book-tool short', axe ? 'You have an axe to hand.' : 'You need an axe, in hand or in your pack: a hatchet from the smith will do.'),
       el('p', 'book-why', 'Stand by a trunk and press E. You chop on your own; walk away or press E again to stop.'),
     );
   }
