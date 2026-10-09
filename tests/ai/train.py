@@ -10,32 +10,14 @@ on from) and player.json (its policy's weights, to play with in TypeScript: poli
 """
 
 import argparse
-import json
 import os
-from pathlib import Path
 
-import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 
 from env import GameEnv
 from report import Reporter
-
-MODELS = Path(__file__).resolve().parent / "models"
-
-
-def export(model: PPO, path: Path) -> None:
-    """The policy's layers (its trunk, then the heads: a way and a key) as plain lists, for policy.ts."""
-    layers = [m for m in model.policy.mlp_extractor.policy_net if isinstance(m, torch.nn.Linear)]
-    head = model.policy.action_net
-    as_list = lambda t: t.detach().cpu().numpy().tolist()
-    path.write_text(json.dumps({
-        "activation": "tanh",
-        "layers": [{"weight": as_list(l.weight), "bias": as_list(l.bias)} for l in layers],
-        "head": {"weight": as_list(head.weight), "bias": as_list(head.bias)},
-        "splits": [int(n) for n in model.action_space.nvec],
-        "steps": int(model.num_timesteps),
-    }))
+from saving import BEST, LATEST, MODELS, forget, save, score_of
 
 
 def main() -> None:
@@ -49,9 +31,11 @@ def main() -> None:
     print(f"Starting {args.envs} games (each its own server: vite-node tests/ai/server.ts)…", flush=True)
     env = VecMonitor(SubprocVecEnv([lambda i=i: GameEnv(seed=i + 1) for i in range(args.envs)]))
     print(f"  each sees {env.observation_space.shape[0]:,} numbers a decision and chooses {' × '.join(str(n) for n in env.action_space.nvec)} ways", flush=True)
-    resume = not args.fresh and (MODELS / "player.zip").exists()
+    resume = not args.fresh and (MODELS / f"{LATEST}.zip").exists()
+    if args.fresh:
+        forget(BEST)  # (a fresh player sets its own bar)
     if resume:
-        model = PPO.load(MODELS / "player.zip", env=env)
+        model = PPO.load(MODELS / f"{LATEST}.zip", env=env)
         print(f"On from the player saved: {model.num_timesteps:,} decisions trained so far.", flush=True)
     else:
         print(f"A fresh player: knowing nothing yet{' (the one saved is replaced)' if (MODELS / 'player.zip').exists() else ''}.", flush=True)
@@ -66,14 +50,15 @@ def main() -> None:
             ent_coef=0.01,
             verbose=0,
         )
-    print(f"Saved at the end (or on Ctrl+C) to {MODELS / 'player.zip'} and player.json; each life to {MODELS / 'lives.jsonl'}.\n", flush=True)
+    best = score_of(BEST)
+    print(f"Saved every {Reporter.SAVE_EVERY} passes and at the end (or on Ctrl+C) to {MODELS / LATEST}.zip and .json; the best so far{f' (scored {best:.2f})' if best is not None else ''} to {BEST}.zip and .json; each life to lives.jsonl.\n", flush=True)
+    reporter = Reporter(args.steps, MODELS / "lives.jsonl", env.get_attr("keys")[0], best)
     try:
-        model.learn(total_timesteps=args.steps, callback=Reporter(args.steps, MODELS / "lives.jsonl", env.get_attr("keys")[0]), reset_num_timesteps=not resume)
+        model.learn(total_timesteps=args.steps, callback=reporter, reset_num_timesteps=not resume)
     finally:
-        model.save(MODELS / "player.zip")
-        export(model, MODELS / "player.json")
+        save(model, LATEST, reporter.score())
         env.close()
-        print(f"Saved: {MODELS / 'player.zip'} and player.json ({model.num_timesteps:,} decisions trained in all).")
+        print(f"\nSaved: {MODELS / LATEST}.zip and .json ({model.num_timesteps:,} decisions trained in all)" + (f"; the best saved scored {reporter.best:.2f}." if reporter.best > -1e308 else "."))
 
 
 if __name__ == "__main__":

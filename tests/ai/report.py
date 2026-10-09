@@ -2,8 +2,9 @@
 where its time went, what it did and never did, the keys it leaned on; written to lives.jsonl too. After each
 learning pass: what the policy's doing now (its key mix over the last pass, how often a decision was paid and what
 for, how far it is from random) and what the learning said (the losses, the entropy, how well it foresees). Every
-half minute: where the training stands. A life that never opened a window, never took a quest, never went indoors is
-the part to read: what the game lets a player skip."""
+second, a line rewritten in place: where the training stands. A life that never opened a window, never took a quest, never went indoors is
+the part to read: what the game lets a player skip. And the saving (saving.py): the latest every SAVE_EVERY passes; the
+best whenever the last lives' mean pay (the score) tops the best saved so far."""
 
 import json
 import math
@@ -14,6 +15,8 @@ from pathlib import Path
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
+from saving import BEST, LATEST, save
+
 DOINGS = ("bought", "sold", "crafted", "salvaged", "chopped", "shifts", "chests", "ales", "pies", "rooms", "wishes", "camps", "dungeons", "equipped", "eaten", "potions", "pointsSpent")
 
 
@@ -22,17 +25,21 @@ def minutes(seconds: float) -> str:
 
 
 class Reporter(BaseCallback):
-    def __init__(self, total: int, log: Path, keys: list[str]):
+    SAVE_EVERY = 5  # learning passes between saves of the latest
+    SCORED_OVER = 20  # lives the score is the mean pay of
+
+    def __init__(self, total: int, log: Path, keys: list[str], best: float | None = None):
         super().__init__()
         self.total = total
         self.log = log
         self.keys = keys
+        self.best = best if best is not None else -math.inf  # the best score saved
         self.lives = 0
         self.passes = 0
         self.recent: list[dict] = []
         self.started = time.time()
         self.last_said = time.time()
-        self.best = -math.inf
+        self.record = -math.inf  # the best single life's pay
         self.pending = False  # a status line on the screen, to be gone past before anything else is said
         self.lately = (time.time(), 0)  # when and how far, a little while ago: the speed of late
 
@@ -75,8 +82,8 @@ class Reporter(BaseCallback):
         doors = ", ".join(f"{k} ×{n}" for k, n in life["doors"].items())
         windows = ", ".join(f"{k} ×{n}" for k, n in life["windows"].items())
         never = [k for k in DOINGS if not life.get(k)]
-        best = " (the best yet)" if life["reward"] > self.best else ""
-        self.best = max(self.best, life["reward"])
+        best = " (the best life yet)" if life["reward"] > self.record else ""
+        self.record = max(self.record, life["reward"])
         self._say(
             f"  life {self.lives} ({self.num_timesteps:,} decisions in): level {life['level']}, {life['xp']} xp, {life['money']} copper ({life['earned']} earned, {life['spent']} spent), "
             f"{q['done']}/{q['taken']} quests, {life['kills']} slain, {life['falls']} falls, {life['hurt']:.1f} bars of health lost; paid {life['reward']:.2f}{best}\n"
@@ -84,6 +91,10 @@ class Reporter(BaseCallback):
             f"      did: {', '.join(did) or 'nothing of note'}; E for nothing ×{life['wasted']}; keys: {top}\n"
             f"      never: {', '.join(never) or 'nothing left untried'}"
         )
+
+    # The score: the last lives' mean pay (none till there are enough to mean anything).
+    def score(self) -> float | None:
+        return sum(float(l["reward"]) for l in self.recent) / len(self.recent) if len(self.recent) >= self.SCORED_OVER else None
 
     # Where the training stands: one line, rewritten in place each second.
     def _standing(self, now: float) -> None:
@@ -97,6 +108,7 @@ class Reporter(BaseCallback):
         text = (
             f"— {self.num_timesteps:,}/{self.total:,} decisions ({rate:.0f}/s, about {left / 60:.0f} min left), {self.lives} lives, {self.passes} passes, {(now - self.started) / 60:.0f} min in"
             + (f"; the last {n} lives: paid {mean('reward'):.2f}, level {mean('level'):.1f}, {mean('kills'):.1f} slain, {mean('falls'):.1f} falls, {mean('earned'):.0f} copper" if n else "")
+            + (f"; best saved {self.best:.2f}" if self.best > -math.inf else "")
         )
         print(f"\r{text:<160}", end="", flush=True)
         self.pending = True
@@ -124,3 +136,15 @@ class Reporter(BaseCallback):
             f"{paid[paid > 0].sum():+.2f} earned, {paid[paid < 0].sum():+.2f} lost, {rewards.mean() * 1000:+.3f} per thousand; "
             f"moving {moves:.0f}% of the time, {windows:.0f}% in windows; keys: {mix}{said}"
         )
+        self._save()
+
+    # The latest saved every few passes; the best whenever the score tops the best saved.
+    def _save(self) -> None:
+        score = self.score()
+        if self.passes % self.SAVE_EVERY == 0:
+            save(self.model, LATEST, score)
+            self._say(f"      saved the latest ({self.num_timesteps:,} decisions{f', scored {score:.2f}' if score is not None else ''})")
+        if score is not None and score > self.best:
+            self.best = score
+            save(self.model, BEST, score)
+            self._say(f"      saved as the best so far: scored {score:.2f} over the last {len(self.recent)} lives")

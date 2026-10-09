@@ -5,6 +5,7 @@
 //   npm run ai:play                       a life of AI_MINUTES (30) game minutes in a new world
 //   AI_SEED=7 AI_MINUTES=60 npm run ai:play   that world, longer
 //   AI_GREEDY=1 npm run ai:play           the likeliest key each time, not drawn by its odds
+//   AI_LATEST=1 npm run ai:play           the latest player saved, not the best
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { generateRandomSeed, mulberry32 } from '../../src/util/random';
@@ -20,8 +21,9 @@ const EPOCH = Date.UTC(2026, 0, 1);
 let clock = EPOCH;
 Date.now = () => clock;
 const rng = mulberry32(seed * 7919 + 1);
-const weightsPath = resolve(__dirname, 'models/player.json');
-const weights: PolicyWeights | null = existsSync(weightsPath) ? JSON.parse(readFileSync(weightsPath, 'utf8')) : null;
+// The best player saved, unless told the latest (AI_LATEST=1); none: keys at random.
+const weightsPath = [process.env.AI_LATEST ? 'models/player.json' : 'models/best.json', 'models/player.json'].map((p) => resolve(__dirname, p)).find((p) => existsSync(p));
+const weights: PolicyWeights | null = weightsPath ? JSON.parse(readFileSync(weightsPath, 'utf8')) : null;
 const policy = weights ? new Policy(weights) : null;
 const choose = policy ? (o: readonly number[]) => policy.act(o, process.env.AI_GREEDY ? undefined : rng) : random(MOVES, ACTIONS, rng);
 
@@ -33,7 +35,7 @@ const report = (kind: string, detail: string) => {
   if (counts[kind] <= 5) problems.push({ kind, seed, t: player.seconds, detail });
 };
 const stamp = () => `${String(Math.floor(player.seconds / 60)).padStart(2)}:${String(Math.floor(player.seconds % 60)).padStart(2, '0')}`;
-console.log(`Seed ${seed}: a new world, ${weights ? `the player trained ${(weights.steps ?? 0).toLocaleString()} decisions` : 'an untrained player (keys at random)'}, ${EPISODE_MINUTES} game minutes.\n`);
+console.log(`Seed ${seed}: a new world, ${weights ? `the ${weightsPath!.endsWith('best.json') ? 'best' : 'latest'} player (trained ${(weights.steps ?? 0).toLocaleString()} decisions${weights.score != null ? `, scored ${weights.score.toFixed(2)}` : ''})` : 'an untrained player (keys at random)'}, ${EPISODE_MINUTES} game minutes.\n`);
 
 let observation = player.reset(seed);
 const checks = new Checks(player.model, report);

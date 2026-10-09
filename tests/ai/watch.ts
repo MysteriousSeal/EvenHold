@@ -3,7 +3,7 @@
 // at random, to see the page without one); a life after another. Beside the game: how the life stands (what it's
 // paid, level, coin, quests, falls, what it's done), what it's pressing (the keys lit below, as a player's), what E
 // would do, and the window it has open as it reads it (its rows, the one it picked). Keys: space pauses, 1 / 2 / 4 /
-// 8 / 16 the speed, N a new life. ?seed=n: that world.
+// 8 / 16 the speed, N a new life. ?seed=n: that world; ?latest: the latest player saved, not the best.
 import { GameView } from '../../src/view/GameView';
 import { readRenderOptions } from '../../src/view/render/renderOptions';
 import { createHeroHud } from '../../src/view/hud/heroHud';
@@ -90,7 +90,9 @@ async function main(): Promise<void> {
   const atRandom = params.has('random');
   let weights: PolicyWeights | null = null;
   if (!atRandom) {
-    const response = await fetch(new URL('./models/player.json', import.meta.url));
+    // (the best saved, unless ?latest; none of either: told how to train one)
+    let response = await fetch(new URL(params.has('latest') ? './models/player.json' : './models/best.json', import.meta.url));
+    if (!response.ok && !params.has('latest')) response = await fetch(new URL('./models/player.json', import.meta.url));
     if (!response.ok) {
       panel.innerHTML = '<b>No trained player yet</b>npm run ai:train, then reload; or ?random to watch one pressing keys at random.';
       return;
@@ -165,7 +167,7 @@ async function main(): Promise<void> {
     const t = `${Math.floor(player.seconds / 60)}:${String(Math.floor(player.seconds % 60)).padStart(2, '0')}`;
     const did = [['slain', tally.kills], ['chests', tally.chests], ['bought', tally.bought], ['sold', tally.sold], ['crafted', tally.crafted], ['chopped', tally.chopped], ['shifts', tally.shifts], ['ales', tally.ales], ['equipped', tally.equipped], ['eaten', tally.eaten]].filter(([, n]) => n).map(([w, n]) => `${w} ${n}`).join(' · ');
     panel.innerHTML =
-      `<b>Seed ${seed} · ${t}${weights ? ` · trained ${(weights.steps ?? 0).toLocaleString()}` : ' · keys at random'}</b>` +
+      `<b>Seed ${seed} · ${t}${weights ? ` · trained ${(weights.steps ?? 0).toLocaleString()}${weights.score != null ? ` · scored ${weights.score.toFixed(2)}` : ''}` : ' · keys at random'}</b>` +
       `<div class="row"><span>Level ${model.hero.level} · ${model.hero.money} copper</span><span class="${paid >= 0 ? 'good' : 'fell'}">paid ${paid.toFixed(2)}</span></div>` +
       `<div class="row"><span>Quests ${tally.quests.done}/${tally.quests.taken}</span><span class="fell">Falls ${tally.falls}</span></div>` +
       `<div class="dim">${did || 'nothing done yet'}</div>` +

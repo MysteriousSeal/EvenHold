@@ -11,6 +11,7 @@ export interface PolicyWeights {
   head: Layer;
   splits: number[];
   steps?: number; // decisions trained
+  score?: number | null; // the mean pay of its last lives when saved (saving.py)
 }
 
 export class Policy {
