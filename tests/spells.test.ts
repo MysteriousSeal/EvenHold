@@ -1,0 +1,117 @@
+// Spells (model/spells/): a charm taught by a herbalist for coin (not twice, not without it), kept in a save; put on
+// the action bar by its key; cast at the focused foe in range, or the nearest ahead: Breath spent, the harm of two
+// blows done, its wait begun and run down; not cast unknown, waiting, out of Breath, or with no foe in reach. A foe
+// it kills is slain as by a blow.
+import { describe, expect, it } from 'vitest';
+import { fresh } from './support/testWorld';
+import { makeEnemy } from '../src/model/enemies/enemies';
+import { setAction } from '../src/model/hero/actionBar';
+import { blowOf } from '../src/model/hero/attributes';
+import { castSpell, castTarget } from '../src/model/spells/casting';
+import { SPELLS, isSpellKey, knows, learn, readSpells, spellKey, waitOf } from '../src/model/spells/spells';
+import { TAUGHT, mayLearn, teach } from '../src/model/spells/teaching';
+
+// A foe of so much health, so far ahead of the hero (who faces +z), the only one about.
+function facing(distance: number, hp = 1000) {
+  const model = fresh();
+  const { hero } = model;
+  hero.facing = 0;
+  model.enemies.length = 0;
+  const foe = { ...makeEnemy(900_001, 'wolf', hero.x, hero.z + distance), hp, maxHp: hp };
+  model.enemies.push(foe);
+  return { model, hero, foe };
+}
+
+describe('a charm taught', () => {
+  it("is taught by a hedge-witch for coin: once paid, not without the coin, not twice, not to a hero too green for it", () => {
+    const { hero } = fresh();
+    hero.money = 0;
+    expect(TAUGHT).toContain('hex');
+    expect(mayLearn(hero, 'hex')).toBe('too poor');
+    expect(teach(hero, 'hex')).toBe('too poor');
+    expect(knows(hero, 'hex')).toBe(false);
+    hero.money = 100;
+    expect(teach(hero, 'hex')).toBe('taught');
+    expect(knows(hero, 'hex')).toBe(true);
+    expect(hero.money).toBe(100 - SPELLS.hex.price);
+    expect(teach(hero, 'hex')).toBe('known');
+    expect(hero.money).toBe(100 - SPELLS.hex.price); // (nothing more paid)
+    expect(learn(hero, 'hex')).toBe(false);
+    expect(hero.spells).toEqual(['hex']);
+    const green = fresh().hero;
+    green.money = 1000;
+    green.level = SPELLS.hex.level - 1;
+    expect(teach(green, 'hex')).toBe('level');
+    expect(green.money).toBe(1000);
+  });
+
+  it('is kept in a save, sound: what is known, nothing unknown', () => {
+    expect(readSpells(['hex', 'fireball', 3])).toEqual(['hex']);
+    expect(readSpells(undefined)).toEqual([]);
+  });
+});
+
+describe('a charm on the action bar', () => {
+  it('goes on it by its key, and is cast with the slot', () => {
+    const { model, hero, foe } = facing(2);
+    learn(hero, 'hex');
+    expect(isSpellKey(spellKey('hex'))).toBe(true);
+    expect(isSpellKey('spell:nonsense')).toBe(false);
+    expect(setAction(hero, 2, spellKey('hex'))).toBe(true);
+    expect(model.useAction(2)).toBe(true);
+    expect(foe.hp).toBe(1000 - blowOf(hero) * SPELLS.hex.harm);
+    expect(model.useAction(2)).toBe(false); // (waiting)
+  });
+});
+
+describe('a charm cast', () => {
+  it('spends Breath, harms the foe, and waits before the next; the wait runs down', () => {
+    const { model, hero, foe } = facing(3);
+    expect(castSpell(model, 'hex')).toBe('unknown');
+    learn(hero, 'hex');
+    const breath = model.moves.breath;
+    const told: string[] = [];
+    const report = model.report;
+    model.report = (event) => [told.push(event.kind), report.call(model, event)];
+    expect(castSpell(model, 'hex')).toBe('cast');
+    expect(model.moves.breath).toBe(breath - SPELLS.hex.breath);
+    expect(foe.hp).toBeLessThan(1000);
+    expect(told).toEqual(expect.arrayContaining(['cast', 'hit']));
+    expect(waitOf(hero, 'hex')).toBe(SPELLS.hex.cooldown);
+    expect(castSpell(model, 'hex')).toBe('waiting');
+    for (let t = 0; t < SPELLS.hex.cooldown + 0.5; t += 0.1) model.update(0, 0, 0.1);
+    expect(waitOf(hero, 'hex')).toBe(0);
+  });
+
+  it('is cast at the focused foe if in range, else at the nearest ahead; at no one behind them or too far', () => {
+    const { model, hero, foe } = facing(3);
+    expect(castTarget(model, 'hex')).toBe(foe);
+    foe.z = hero.z - 3; // (behind them)
+    expect(castTarget(model, 'hex')).toBeNull();
+    model.focus(foe.id); // (focused: wherever it stands, in range)
+    expect(castTarget(model, 'hex')).toBe(foe);
+    foe.z = hero.z + SPELLS.hex.range + 1;
+    expect(castTarget(model, 'hex')).toBeNull();
+    learn(hero, 'hex');
+    expect(castSpell(model, 'hex')).toBe('noFoe');
+    expect(waitOf(hero, 'hex')).toBe(0); // (nothing spent)
+  });
+
+  it('is not cast short of Breath, nothing spent', () => {
+    const { model, hero, foe } = facing(2);
+    learn(hero, 'hex');
+    model.moves.breath = SPELLS.hex.breath - 1;
+    expect(castSpell(model, 'hex')).toBe('breath');
+    expect(foe.hp).toBe(1000);
+    expect(waitOf(hero, 'hex')).toBe(0);
+  });
+
+  it('slays a foe as a blow does: dead, and its experience had', () => {
+    const { model, hero, foe } = facing(2, 1);
+    learn(hero, 'hex');
+    const xp = hero.xp + hero.level * 1e6;
+    castSpell(model, 'hex');
+    expect(foe.state).toBe('dead');
+    expect(hero.xp + hero.level * 1e6).toBeGreaterThan(xp);
+  });
+});

@@ -209,7 +209,7 @@ export class Senses {
     }
     pad(LOOT - loot.length, 12);
     const folk = nearest(model.folk.filter((n) => n.where === (inside?.entrance ?? null)), FOLK, VIEW + 1);
-    for (const n of folk) out.push(1, (n.x - hero.x) / 10, (n.z - hero.z) / 10, ...oneHot(ROLES, n.role));
+    for (const n of folk) out.push(1, (n.x - hero.x) / 10, (n.z - hero.z) / 10, ...oneHot(ROLES, n.role as (typeof ROLES)[number]));
     pad(FOLK - folk.length, 9);
     const level = skillOf(hero, 'lumberjacking').level;
     const trees = inside ? [] : nearest(this.trees.near(hero).filter((t) => !model.lumber.felled(t)), TREES, VIEW + 1);
