@@ -5,6 +5,7 @@
 // natural ground, clear of the roads and fields, the villages, the ruins, the
 // camps, where the hero sets out and where a foe stands. Each blocks the way
 // (a log and a cairn low enough to see over); the grass keeps off them.
+// And one thing more, by where the hero sets out: a broken-down wagon, its carter stood beside it (wayside/carter.ts).
 
 import { hashUnit } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS, LANE_LENGTH_MAX } from '../constants';
@@ -16,7 +17,7 @@ import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
 import type { Tiles } from '../map/tiles';
 
-export type SceneryKind = 'boulder' | 'outcrop' | 'log' | 'cairn' | 'wall' | 'menhir';
+export type SceneryKind = 'boulder' | 'outcrop' | 'log' | 'cairn' | 'wall' | 'menhir' | 'wagon';
 
 export interface Scenery {
   kind: SceneryKind;
@@ -53,10 +54,13 @@ const FOE_CLEAR = 2;
 // What each blocks: the rounded ones (ROUND) a disc round their middle as wide as their stone (a boulder's reaching 0.4 at
 // most, a cairn's 0.36, a standing stone's 0.2, an outcrop's 0.82 from its middle: sceneryVoxels.ts), met as close from
 // any side (an outcrop's one disc over its four tiles); a log or a wall a box, along it.
-const HALF = { boulder: 0.36, outcrop: 0.76, log: 0.5, cairn: 0.32, wall: 0.5, menhir: 0.2 } as const;
+const HALF = { boulder: 0.36, outcrop: 0.76, log: 0.5, cairn: 0.32, wall: 0.5, menhir: 0.2, wagon: 0.5 } as const;
 const ROUND: ReadonlySet<SceneryKind> = new Set(['boulder', 'outcrop', 'cairn', 'menhir']);
-const ACROSS: Partial<Record<SceneryKind, number>> = { wall: 0.16, log: 0.23 }; // and across a log or a wall: they're narrow (sceneryVoxels.ts: a wall 7 voxels thick, a log 11 across)
-const LOW: ReadonlySet<SceneryKind> = new Set(['log', 'cairn']); // low enough to see over
+const ACROSS: Partial<Record<SceneryKind, number>> = { wall: 0.16, log: 0.23, wagon: 0.4 }; // and across a log or a wall: they're narrow (sceneryVoxels.ts: a wall 7 voxels thick, a log 11 across)
+const LOW: ReadonlySet<SceneryKind> = new Set(['log', 'cairn', 'wagon']); // low enough to see over
+const WAGON_FROM = 2.4; // tiles from the start, at least, the wagon's middle stands (not on top of the hero)
+const WAGON_WITHIN = 7; // and at most
+const CARTER_HALF = 0.2; // the carter beside it: what he blocks
 
 // `area`: the part of the map to place them on (a streamed world's region: its sites, each piece wholly on it; else the
 // whole map).
@@ -103,6 +107,30 @@ export function placeScenery(world: SceneryWorld, area: Area = wholeMap(world.si
     out.push(piece);
   };
 
+  // The wagon by the start (on the maps the start's on), broken down on the nearest level, open ground a few tiles
+  // off: its two tiles along x and the tile its carter stands on, beside it (carterTile), all clear.
+  const start = { x: Math.round(world.hero.x), z: Math.round(world.hero.z) };
+  if (inArea(area, start.x, start.z)) {
+    const free = (x: number, z: number) => world.tiles.has(x, z) && inArea(area, x, z) && world.isOpenTile(x, z) && world.tiles.surface(x, z) === 'natural' && !taken.has(`${x},${z}`);
+    const spots: Array<{ x: number; z: number; far: number }> = [];
+    for (let dx = -WAGON_WITHIN - 1; dx <= WAGON_WITHIN; dx++) for (let dz = -WAGON_WITHIN; dz <= WAGON_WITHIN; dz++) {
+      const far = Math.hypot(dx + 0.5, dz + 0.5); // (its middle, and the carter's side of it)
+      if (far >= WAGON_FROM && far <= WAGON_WITHIN) spots.push({ x: start.x + dx, z: start.z + dz, far });
+    }
+    spots.sort((a, b) => a.far - b.far || a.x - b.x || a.z - b.z);
+    const spot = spots.find(({ x, z }) => {
+      const wagon = { x, z, w: 2, d: 1 };
+      const stand = carterTile(wagon);
+      const tiles = [...sceneryTiles(wagon), [stand.x, stand.z] as [number, number]];
+      return tiles.every(([i, k]) => free(i, k) && world.tiles.height(i, k) === world.tiles.height(x, z)) && !tiles.some(([i, k]) => i === start.x && k === start.z);
+    });
+    if (spot) {
+      put({ kind: 'wagon', x: spot.x, z: spot.z, w: 2, d: 1, quarterTurns: 0, variant: 0 });
+      const stand = carterTile(spot);
+      taken.add(`${stand.x},${stand.z}`); // (his: nothing else set down on it)
+    }
+  }
+
   // A ring of standing stones, now and then, on open ground (its middle open: to stand in).
   for (let gx = Math.floor(area.x0 / CIRCLE_SITE); gx * CIRCLE_SITE < area.x1; gx++) {
     for (let gz = Math.floor(area.z0 / CIRCLE_SITE); gz * CIRCLE_SITE < area.z1; gz++) {
@@ -145,12 +173,16 @@ export function placeScenery(world: SceneryWorld, area: Area = wholeMap(world.si
 export const sceneryTiles = (s: Pick<Scenery, 'x' | 'z' | 'w' | 'd'>): Array<[number, number]> =>
   Array.from({ length: s.w * s.d }, (_, i) => [s.x + (i % s.w), s.z + Math.floor(i / s.w)]);
 
-// Each piece in the way: every tile it stands on blocking (a log, a cairn low enough to see over).
+// Where the wagon's carter stands: the tile beside its near end, on its +z side.
+export const carterTile = (wagon: Pick<Scenery, 'x' | 'z'>): { x: number; z: number } => ({ x: wagon.x + 1, z: wagon.z + 1 });
+
+// Each piece in the way: every tile it stands on blocking (a log, a cairn low enough to see over); the wagon's carter too.
 export function addSceneryObstacles(obstacles: Obstacles, scenery: readonly Scenery[]): void {
   for (const s of scenery) {
     const across = ACROSS[s.kind];
     const [hx, hz] = across === undefined ? [HALF[s.kind], HALF[s.kind]] : s.w > s.d ? [HALF[s.kind], across] : [across, HALF[s.kind]]; // (narrow across its length)
     const [mx, mz] = [s.x + (s.w - 1) / 2, s.z + (s.d - 1) / 2]; // (its middle: a round one's disc round it)
     for (const [x, z] of sceneryTiles(s)) obstacles.addProp(x, z, hx, LOW.has(s.kind), hz, ROUND.has(s.kind), mx - x, mz - z);
+    if (s.kind === 'wagon') obstacles.addProp(carterTile(s).x, carterTile(s).z, CARTER_HALF, true, CARTER_HALF, true); // (the man beside it: walked round)
   }
 }

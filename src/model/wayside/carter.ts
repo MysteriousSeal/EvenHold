@@ -1,0 +1,33 @@
+// The carter: a man stood by his broken-down wagon, where the hero sets out (scenery/scenery.ts: the wagon, and the
+// tile beside it that's his). He does nothing yet: he stands there, plainly dressed, his name over him, and looks
+// round at the hero as they come near. (No villager, no traveller: he has no house, no road, no day of his own.)
+import { outfit, type Equipment } from '../human/equipment';
+import { lookAt, type BodyLook } from '../human/humanoid';
+import { nameAt } from '../npcs/npcs';
+import { carterTile, type Scenery } from '../scenery/scenery';
+
+export interface Carter {
+  name: string;
+  look: BodyLook;
+  equipment: Equipment;
+  x: number;
+  z: number;
+  wagon: { x: number; z: number }; // its middle: what he faces, left to himself
+}
+
+export const CARTER_LOOKS = 5; // tiles: the hero this near, he looks at them
+const CLOTHES = ['huntersHood', 'patchedTunic', 'workGloves', 'ropeTrousers', 'leatherBoots'] as const; // a working man's
+
+const known = new WeakMap<object, { count: number; carter: Carter | null }>(); // (looked for again only as the scenery about changes)
+
+// The carter of this world, while his wagon's on the maps (a streamed world's: near enough the start); else none.
+export function carterOf(model: { seed: number; scenery: readonly Scenery[] }): Carter | null {
+  const kept = known.get(model.scenery);
+  if (kept && kept.count === model.scenery.length) return kept.carter;
+  const wagon = model.scenery.find((s) => s.kind === 'wagon');
+  const at = wagon && carterTile(wagon);
+  const look = at && lookAt(at.x * 10, at.z * 10, model.seed, 0); // (a man)
+  const carter: Carter | null = wagon && at && look ? { name: nameAt(at.x, at.z, model.seed, look.build), look, equipment: outfit(CLOTHES), x: at.x, z: at.z, wagon: { x: wagon.x + 0.5, z: wagon.z } } : null;
+  known.set(model.scenery, { count: model.scenery.length, carter });
+  return carter;
+}
