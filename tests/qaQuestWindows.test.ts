@@ -91,6 +91,63 @@ describe('the notice board', () => {
 });
 
 describe('the journal', () => {
+  it('gives every kind of quest the same two buttons, and the same tracking: off the screen untracked, one limit between them', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const journal = createJournal(model);
+    const board = model.boardOf(model.villages[0]);
+    const offers = model.quests.offersAt(board);
+    model.story.accept('wordToTheInn');
+    model.quests.accept(offers[0]);
+    journal.menu.open();
+    const rows = () => within('Journal', '.menu-row, .menu-slot');
+    const buttonsOf = () => within('Journal', '.quest-buttons button').map((b) => [b.className, b.textContent]);
+    // The one someone gave (first in the list), then the board's: the same pair, the same words.
+    const given = buttonsOf();
+    expect(given).toEqual([['menu-detail-button', 'Untrack'], ['quest-abandon', 'Abandon']]);
+    rows()[1].click();
+    expect(buttonsOf()).toEqual(given);
+    rows()[0].click();
+    // Untracked: still taken, off the tracker's count; tracked again.
+    within('Journal', '.quest-buttons .menu-detail-button')[0].click();
+    expect(model.story.isTracked('wordToTheInn')).toBe(false);
+    expect(model.story.stateOf('wordToTheInn')).toBe('taken');
+    expect(model.story.taken[0].tracked).toBe(false);
+    expect(within('Journal', '.quest-buttons .menu-detail-button')[0].textContent).toBe('Track');
+    // The screen's limit is one between them: the boards' filling it, the one someone gave is refused, and told why.
+    for (const q of offers.slice(1, MAX_TRACKED)) model.quests.accept(q);
+    expect(model.quests.tracked).toBe(MAX_TRACKED);
+    expect(model.quests.trackRoom).toBe(false);
+    journal.menu.refresh();
+    within('Journal', '.quest-buttons .menu-detail-button')[0].click();
+    expect(model.story.isTracked('wordToTheInn')).toBe(false);
+    expect(last('Journal').textContent).toContain(`You can track ${MAX_TRACKED} quests at once`);
+    model.quests.setTracked(offers[0].key, false);
+    expect(model.story.setTracked('wordToTheInn', true)).toBe(true);
+    expect(model.quests.trackRoom).toBe(false); // (its place taken: the board's own can't be tracked again)
+    expect(model.quests.setTracked(offers[0].key, true)).toBe(false);
+    journal.menu.close();
+  });
+
+  it('lists a quest someone gave with the boards\' in its one list; abandoned there (asked twice), it is gone and on offer again', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const journal = createJournal(model);
+    model.story.accept('wordToTheInn');
+    journal.menu.open();
+    expect(within('Journal', '.menu-tab').length).toBeLessThan(2); // (one list: no second page)
+    expect(sections('Journal')[0]).toContain('From people · 1');
+    expect(last('Journal').textContent).toContain('Word to the inn');
+    const abandon = () => within('Journal', '.quest-abandon')[0];
+    expect(abandon().textContent).toBe('Abandon');
+    abandon().click();
+    expect(abandon().textContent).toBe('Sure?');
+    expect(model.story.stateOf('wordToTheInn')).toBe('taken'); // (asked first)
+    abandon().click();
+    expect(model.story.stateOf('wordToTheInn')).toBe('offered');
+    expect(last('Journal').textContent).not.toContain('Word to the inn');
+    expect(model.story.markOf(model.story.people!.carter)).toBe('offer');
+    journal.menu.close();
+  });
+
   it('says what to do with none taken; lists those taken, ready to hand in first', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const journal = createJournal(model);
