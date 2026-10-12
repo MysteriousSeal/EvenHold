@@ -1,4 +1,4 @@
-// The carter: a man stood by his broken-down wagon, where the hero sets out (scenery/scenery.ts: the wagon, and the
+// The carter: one of the story's people (story.ts: the first with a quest to give), a man stood by his broken-down wagon, where the hero sets out (scenery/scenery.ts: the wagon, and the
 // tile beside it that's his). He does nothing yet: he stands there, plainly dressed, his name over him, and looks
 // round at the hero as they come near. (No villager, no traveller: he has no house, no road, no day of his own.)
 import { outfit, type Equipment } from '../human/equipment';

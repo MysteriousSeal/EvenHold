@@ -9,13 +9,29 @@ import type { GameModel } from '../GameModel';
 import { recover } from './heroStats';
 import { maxEnergyOf, maxHpOf } from './attributes';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
-import { bumpsFurniture } from '../interiors/furniture';
+import { bumpsFurniture, type Furniture } from '../interiors/furniture';
+import { sitDown } from '../interiors/indoors';
 import { makeWeary } from './blessing';
 import { spawnOf } from '../map/grid';
 
 const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
-export const BEDROLL_REST = 0.5; // how well they sleep on a bedroll, to a bed's 1 (GameModel.lieDown)
+export const BEDROLL_REST = 0.5; // how well they sleep on a bedroll, to a bed's 1 (lieOnBedroll)
+const BEDROLL_Y = 0.12; // where their back lies on a bedroll, over the ground
+
+// The bedroll unrolled where they stand (outdoors, on open ground, not at work nor chopping), and lain down on: as a
+// bed, they rest and mend (slower, on the ground: BEDROLL_REST), the foes still about. Up again as they walk, or with
+// E. Whether they did.
+export function lieOnBedroll(model: GameModel): boolean {
+  const { hero } = model;
+  if (model.inside || model.yard || model.outdoors.seated || model.work.shift || !(hero.bag.bedroll ?? 0)) return false;
+  model.lumber.stop();
+  model.woodworking.stop();
+  const piece: Furniture = { kind: 'bedroll', x: Math.round(hero.x), z: Math.round(hero.z), w: 1, d: 1, wall: 'none', solid: false };
+  sitDown(model.outdoors, hero, { piece, x: hero.x, z: hero.z, y: model.getGroundY(hero.x, hero.z) + BEDROLL_Y, facing: hero.facing, lying: true });
+  model.report({ kind: 'mending' });
+  return true;
+}
 
 // The hero's timers and energy over `dt` (recover: lying down, it comes
 // back; sat down, it's kept), then collapsing if it's run out; returns whether they did.

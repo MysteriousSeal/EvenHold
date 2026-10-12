@@ -5,7 +5,7 @@
 // natural ground, clear of the roads and fields, the villages, the ruins, the
 // camps, where the hero sets out and where a foe stands. Each blocks the way
 // (a log and a cairn low enough to see over); the grass keeps off them.
-// And one thing more, by where the hero sets out: a broken-down wagon, its carter stood beside it (wayside/carter.ts).
+// And one thing more, by where the hero sets out: a broken-down wagon, its carter stood beside it (story/carter.ts).
 
 import { hashUnit } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS, LANE_LENGTH_MAX } from '../constants';

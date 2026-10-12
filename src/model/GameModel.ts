@@ -4,7 +4,6 @@
 // the enemies (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health.
 // What blocks movement and sight is kept in obstacles.ts.
 
-import type { Furniture } from './interiors/furniture';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, ENEMY_ACTIVE_RADIUS } from './constants';
@@ -45,7 +44,7 @@ import { BLESSINGS, tickBlessing, tossCoin, walkFactor, wellInReach, type Blessi
 import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
-import { fall, liveOn } from './hero/setbacks';
+import { fall, lieOnBedroll, liveOn } from './hero/setbacks';
 import { type Ruin } from './ruins/ruins';
 import { checkOut } from './inn/roomLetting';
 import { type Crypt } from './crypts/crypts';
@@ -67,7 +66,6 @@ import { Salvage } from './skills/salvage';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
 
-const BEDROLL_Y = 0.12; // where their back lies on a bedroll, over the ground
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
 export class GameModel {
@@ -422,20 +420,7 @@ export class GameModel {
     return useAction(this.hero, i);
   }
 
-  // The bedroll unrolled where they stand (outdoors, on open ground, not at work nor chopping), and lain down on: as a
-  // bed, they rest and mend (slower, on the ground: setbacks.ts BEDROLL_REST), the foes still about. Up again as they
-  // walk, or with E. Whether they did.
-  lieDown(): boolean {
-    const { hero } = this;
-    if (this.inside || this.yard || this.outdoors.seated || this.work.shift || !(hero.bag.bedroll ?? 0)) return false;
-    this.lumber.stop();
-    this.woodworking.stop();
-    const [x, z] = [Math.round(hero.x), Math.round(hero.z)];
-    const piece: Furniture = { kind: 'bedroll', x, z, w: 1, d: 1, wall: 'none', solid: false };
-    sitDown(this.outdoors, hero, { piece, x: hero.x, z: hero.z, y: this.getGroundY(hero.x, hero.z) + BEDROLL_Y, facing: hero.facing, lying: true });
-    this.report({ kind: 'mending' });
-    return true;
-  }
+  lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
 
   sitOrStand(): boolean {
     if (this.work.shift && !this.seated) return false; // (at work: no sitting down)

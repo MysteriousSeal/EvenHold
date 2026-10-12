@@ -9,7 +9,7 @@ import type { Npc } from '../npcs/npcs';
 import type { Scenery } from '../scenery/scenery';
 import type { GameEvent, Hero, Village } from '../types';
 import { villageName } from '../villages/villageNames';
-import { carterOf, type Carter } from '../wayside/carter';
+import { carterOf, type Carter } from './carter';
 import { STORY_QUESTS, STORY_QUEST_IDS, type StoryQuest, type StoryQuestId, type StoryRole, type Told } from './storyQuests';
 
 export type StoryMark = 'offer' | 'waiting' | 'ready'; // "!", a grey "?", a gold "?"
