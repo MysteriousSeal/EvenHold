@@ -301,7 +301,7 @@ describe('the model', () => {
     const report = model.report;
     model.report = (event) => [told.push(event), report.call(model, event)];
     const one = model.travellers.list[0];
-    expect(model.chickens.turn(one, 30)).toBe(true);
+    expect(model.chickens.turn(one)).toBe(true);
     expect(told.find((e) => e.kind === 'transformed')).toMatchObject({ who: one, into: 'chicken' });
   });
 });

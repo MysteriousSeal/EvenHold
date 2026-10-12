@@ -1,18 +1,20 @@
-// The hen-wife's turn (model/spells/chickens.ts): whoever's picked out turned into a chicken for 30 seconds from a
-// puff of smoke, wandering within 5 tiles of where they were turned, at nothing else (a foe not fighting, a villager
-// not to be spoken to), back in another puff; one at a time; never a boss, never the hero, never without someone
-// picked out; a foe still harmed while one. The hen herself (view/meshes/wildlife/chickenVoxels.ts): her parts, her
-// few colours.
+// The hen-wife's turn (model/spells/chickens.ts): whoever's picked out turned into a chicken, for good. A foe counts
+// as slain (a quest's count, the world's record: never back), nothing had for it; a villager or keeper is gone from
+// their village, their quests let go and no more of them, no word or trade to be had; a traveller is off the roads. A
+// hen in their place, wandering within 5 tiles of where they were turned, for ever; kept in a save, with who's lost.
+// Never a boss or a camp's chief, never the hero, never without someone picked out. The hen herself
+// (view/meshes/wildlife/chickenVoxels.ts): her parts, her few colours.
+import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { fresh } from './support/testWorld';
+import { TEST_MAP_SIZE, TEST_SEEDS, fresh } from './support/testWorld';
+import { GameModel } from '../src/model/GameModel';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { interactionOf } from '../src/model/hero/interaction';
-import * as THREE from 'three';
-import { ROAM, TURNING, mayTurn, morphOf } from '../src/model/spells/chickens';
-import { SmokePuffs } from '../src/view/meshes/common/smokePuffs';
-import { SWAP, henShape, morphOut } from '../src/view/meshes/wildlife/chickenMorph';
+import { parseSave, restore, snapshot } from '../src/model/save';
+import { ROAM, mayTurn, placeOf } from '../src/model/spells/chickens';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
+import { SmokePuffs } from '../src/view/meshes/common/smokePuffs';
 import { BODY_GRID, CHICKEN_PALETTE, HEAD_GRID, buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/wildlife/chickenVoxels';
 
 // A game with a wolf a little ahead of the hero, focused, the hero knowing the charm; what's told kept.
@@ -21,7 +23,7 @@ function withWolf() {
   const { hero } = model;
   model.enemies.length = 0;
   hero.facing = 0;
-  const foe = { ...makeEnemy(900_001, 'wolf', hero.x, hero.z + 2), hp: 500, maxHp: 500 };
+  const foe = { ...makeEnemy(900, 'wolf', hero.x, hero.z + 2), hp: 500, maxHp: 500 }; // (one of the world's own, by its number)
   model.enemies.push(foe);
   model.focus(foe.id);
   learn(hero, 'chicken');
@@ -30,150 +32,107 @@ function withWolf() {
   model.report = (event) => [told.push(event.kind), report.call(model, event)];
   return { model, hero, foe, told };
 }
-const run = (model: ReturnType<typeof fresh>, seconds: number, each?: () => void) => {
+const run = (model: GameModel, seconds: number, each?: () => void) => {
   for (let t = 0; t < seconds; t += 0.1) [model.update(0, 0, 0.1), each?.()];
 };
 
-describe("the hen-wife's turn", () => {
-  it('turns the foe picked out into a chicken from a puff of smoke, for 30 seconds, and back in another', () => {
-    const { model, foe, told } = withWolf();
-    expect(SPELLS.chicken).toMatchObject({ aim: 'anyone', chicken: 30, needsTarget: true });
+describe("the hen-wife's turn, on a foe", () => {
+  it('turns it into a chicken for good: gone as if slain, a hen where it stood, nothing had for it', () => {
+    const { model, hero, foe, told } = withWolf();
+    expect(SPELLS.chicken).toMatchObject({ aim: 'anyone', chicken: true, needsTarget: true, cooldown: 0 });
+    const [xp, level, money] = [hero.xp, hero.level, hero.money];
     expect(castSpell(model, 'chicken')).toBe('cast');
-    expect(foe.chicken).toBeDefined();
-    expect(model.chickens.here).toBe(foe);
+    expect(model.enemies).not.toContain(foe); // (no more)
+    expect(model.slain.has(foe.id)).toBe(true); // (the world's record: never back)
+    expect(model.focused).toBeNull();
+    expect(model.chickens.hens.length).toBe(1);
+    expect(model.chickens.hens[0]).toMatchObject({ x: foe.x, z: foe.z, at: null });
     expect(told.filter((k) => k === 'transformed').length).toBe(1); // (told: its turning the view's to play)
-    expect(morphOf(foe.chicken!)).toBe(1); // (a chicken there and then, as the game goes)
-    run(model, 29);
-    expect(foe.chicken).toBeDefined();
-    run(model, 1.5);
-    expect(foe.chicken).toBeUndefined();
-    expect(model.chickens.here).toBeNull();
-    expect(told.filter((k) => k === 'puff').length).toBe(1);
+    expect(foe.state).toBe('dead');
+    expect([hero.xp, hero.level, hero.money]).toEqual([xp, level, money]); // (nothing had for it)
+    expect(model.loot.length + model.coins.length).toBe(0);
+    run(model, 60);
+    expect(model.chickens.hens.length).toBe(1); // (for good)
+    expect(model.chickens.here).toEqual(model.chickens.hens);
   });
 
-  it('has them wander, never more than 5 tiles from where they were turned, and at nothing else', () => {
-    const { model, hero, foe } = withWolf();
+  it('has the hen wander, never more than 5 tiles from where it was turned', () => {
+    const { model, foe } = withWolf();
     const [x0, z0] = [foe.x, foe.z];
     castSpell(model, 'chicken');
-    const hp = hero.hp;
+    const hen = model.chickens.hens[0];
     let [farthest, went] = [0, 0];
-    let last = { x: foe.x, z: foe.z };
-    run(model, 29, () => {
-      farthest = Math.max(farthest, Math.hypot(foe.x - x0, foe.z - z0));
-      went += Math.hypot(foe.x - last.x, foe.z - last.z);
-      last = { x: foe.x, z: foe.z };
-      expect(foe.swingFor).toBeNull(); // (no blow of its own)
+    let last = { x: hen.x, z: hen.z };
+    run(model, 40, () => {
+      farthest = Math.max(farthest, Math.hypot(hen.x - x0, hen.z - z0));
+      went += Math.hypot(hen.x - last.x, hen.z - last.z);
+      last = { x: hen.x, z: hen.z };
     });
     expect(ROAM).toBe(5);
     expect(farthest).toBeLessThanOrEqual(ROAM + 1e-6);
-    expect(went).toBeGreaterThan(1); // (it wandered)
-    expect(hero.hp).toBe(hp); // (and never bit)
+    expect(went).toBeGreaterThan(1);
   });
 
-  it('takes a moment to turn back at the end: stood where they are meanwhile, less and less chicken', () => {
+  it('counts as a kill for whatever counts them: a board\'s quest, a quest someone gave', () => {
     const { model, foe } = withWolf();
-    castSpell(model, 'chicken');
-    run(model, 30 - TURNING - 0.5);
-    expect(morphOf(foe.chicken!)).toBe(1);
-    run(model, 1.2);
-    const turning = morphOf(foe.chicken!);
-    expect(turning).toBeLessThan(1);
-    expect(turning).toBeGreaterThan(0);
-    const still = [foe.x, foe.z];
-    run(model, 0.4);
-    expect(morphOf(foe.chicken!)).toBeLessThan(turning);
-    expect([foe.x, foe.z]).toEqual(still);
+    const counted: string[] = [];
+    const [board, given] = [model.quests.onKill.bind(model.quests), model.story.onKill.bind(model.story)];
+    model.quests.onKill = (enemy) => (counted.push(`board:${enemy.id}`), board(enemy));
+    model.story.onKill = (enemy) => (counted.push(`given:${enemy.id}`), given(enemy));
+    expect(castSpell(model, 'chicken')).toBe('cast');
+    expect(counted).toEqual([`board:${foe.id}`, `given:${foe.id}`]);
   });
 
-  it('draws the turning back in stages: their own figure shivering, hunched, spun and shrunk till it gives way; the hen sprung out and settling', () => {
-    const root = new THREE.Group();
-    root.scale.setScalar(2);
-    const state = (age: number) => ({ left: age, age: 30, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 }); // (turning back: so much of it left)
-    // Early: there, hunched (lower, wider), its size held.
-    morphOut(root, state(TURNING * 0.15), 0.3);
-    expect(root.visible).toBe(true);
-    expect(root.scale.y).toBeLessThan(2);
-    expect(root.scale.x).toBeGreaterThan(2);
-    // Later: smaller, and spun round.
-    root.rotation.y = 0;
-    morphOut(root, state(TURNING * 0.5), 0.3);
-    expect(root.scale.x).toBeLessThan(2);
-    expect(root.rotation.y).toBeGreaterThan(1);
-    // Past where it gives way: gone; the spell over: back as it was.
-    morphOut(root, state(TURNING * (SWAP + 0.05)), 0.3);
-    expect(root.visible).toBe(false);
-    morphOut(root, undefined, 0.3);
-    expect(root.visible).toBe(true);
-    expect(root.scale.toArray()).toEqual([2, 2, 2]);
-    expect(root.rotation.z).toBe(0);
-    // The hen: just there, stretched tall and thin and spun; settled, her own shape, at rest.
-    const first = henShape(SWAP);
-    expect(first.up).toBeGreaterThan(1.5);
-    expect(first.across).toBeLessThan(0.8);
-    expect(first.spin).toBeGreaterThan(3);
-    const settled = henShape(1);
-    expect(settled.up).toBeCloseTo(1, 1);
-    expect(settled.across).toBeCloseTo(1, 1);
-    expect(settled).toMatchObject({ spin: 0, hop: 0 });
-    expect(Math.max(...[0.75, 0.8, 0.85].map((m) => henShape(m).hop))).toBeGreaterThan(0.03); // (a hop, on the way)
+  it("counts as one of a camp's bandits slain: its count up by one, the camp cleared with its last", () => {
+    const model = fresh();
+    const { hero } = model;
+    learn(hero, 'chicken');
+    const camp = model.camps.find((c) => model.enemies.some((e) => e.kind === 'bandit' && e.homeX === c.x && e.homeZ === c.z))!;
+    const crew = model.enemies.filter((e) => (e.kind === 'bandit' || e.kind === 'banditChief') && e.homeX === camp.x && e.homeZ === camp.z);
+    Object.assign(hero, { x: camp.x, z: camp.z });
+    const before = model.campLife.status(hero)!;
+    expect(before.bandits.slain).toBe(0);
+    const bandit = crew.find((e) => e.kind === 'bandit')!;
+    expect(model.chickens.turn(bandit)).toBe(true);
+    expect(model.campLife.status(hero)!.bandits.slain).toBe(1);
+    expect(model.campLife.empty(camp)).toBe(false);
+    // The rest of them turned, and the chief slain: no one left standing.
+    for (const e of crew) if (e.kind === 'bandit' && e !== bandit) model.chickens.turn(e);
+    for (const e of crew) if (e.kind === 'banditChief') e.state = 'dead';
+    expect(model.campLife.status(hero)!).toMatchObject({ bandits: { slain: before.bandits.of, of: before.bandits.of }, cleared: true });
+    expect(model.campLife.empty(camp)).toBe(true);
   });
 
-  it('throws off smoke and feathers that are gone again in a moment', () => {
-    const [scene, smoke] = [new THREE.Group(), new SmokePuffs()];
-    smoke.puff(scene, 0, 0, 0, 1);
-    smoke.feathers(scene, 0, 0, 0, 1, 16);
-    expect(scene.children.length).toBe(2);
-    expect(scene.children[1].children.length).toBe(16);
-    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
-    expect(scene.children.length).toBe(1); // (the smoke: thinned away; the feathers still falling)
-    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
-    expect(scene.children.length).toBe(0);
-  });
-
-  it('leaves a foe to be harmed while a chicken, a chicken still; dead, it is one no more', () => {
-    const { model, hero, foe } = withWolf();
-    learn(hero, 'hex');
-    castSpell(model, 'chicken');
-    model.moves.breath = 100;
-    Object.assign(foe, { x: hero.x, z: hero.z + 2 });
-    expect(castSpell(model, 'hex')).toBe('cast');
-    expect(foe.hp).toBeLessThan(500);
-    expect(foe.chicken).toBeDefined();
-    foe.hp = 0;
-    foe.state = 'dead';
-    model.update(0, 0, 0.1);
-    expect(foe.chicken).toBeUndefined();
-  });
-
-  it('is never cast with no one picked out, at the hero, or at a boss: nothing spent', () => {
+  it('is never cast with no one picked out, at the hero, or at a boss or a chief: nothing spent', () => {
     const { model, hero, foe } = withWolf();
     model.focus(null);
     expect(castSpell(model, 'chicken')).toBe('noTarget'); // (a foe about, not picked out: not found for it)
     expect(model.moves.breath).toBe(100);
-    const boss = { ...makeEnemy(900_002, 'banditChief', hero.x + 1, hero.z + 1), hp: 500, maxHp: 500 };
-    model.enemies.push(boss);
-    model.focus(boss.id);
-    expect(mayTurn(boss)).toBe(false);
+    const chief = { ...makeEnemy(901, 'banditChief', hero.x + 1, hero.z + 1), hp: 500, maxHp: 500 };
+    model.enemies.push(chief);
+    model.focus(chief.id);
+    expect(mayTurn(chief)).toBe(false);
     expect(castSpell(model, 'chicken')).toBe('noTarget');
-    expect(boss.chicken).toBeUndefined();
-    expect(hero.spellWait?.chicken ?? 0).toBe(0);
+    expect(model.enemies).toContain(chief);
     expect(mayTurn(foe)).toBe(true);
+    expect(model.chickens.hens.length).toBe(0);
   });
 
-  it('keeps one at a time: another turned, the first is back', () => {
-    const { model, hero, foe } = withWolf();
+  it('may be cast again at once, each turned a hen of their own', () => {
+    const { model, hero } = withWolf();
     castSpell(model, 'chicken');
-    const other = { ...makeEnemy(900_003, 'boar', hero.x + 2, hero.z), hp: 500, maxHp: 500 };
+    const other = { ...makeEnemy(902, 'boar', hero.x + 2, hero.z), hp: 500, maxHp: 500 };
     model.enemies.push(other);
     model.focus(other.id);
-    hero.spellWait = {};
     model.moves.breath = 100;
     expect(castSpell(model, 'chicken')).toBe('cast');
-    expect(other.chicken).toBeDefined();
-    expect(foe.chicken).toBeUndefined();
+    expect(model.chickens.hens.length).toBe(2);
+    expect(model.enemies.length).toBe(0);
   });
+});
 
-  it('turns someone who is no foe: a traveller off their road, not to be spoken to meanwhile, back on it after', () => {
+describe("the hen-wife's turn, on someone who's no foe", () => {
+  it('takes a traveller off the roads for good: no word to be had, a hen where they stood', () => {
     const model = fresh();
     const { hero } = model;
     model.enemies.length = 0;
@@ -182,38 +141,61 @@ describe("the hen-wife's turn", () => {
     model.teleport(Math.round(one.x) + 1, Math.round(one.z));
     model.update(0, 0, 0.01);
     Object.assign(hero, { x: one.x + 0.6, z: one.z });
-    const before = interactionOf(model);
     model.select(one);
     expect(castSpell(model, 'chicken')).toBe('cast');
-    expect(one.chicken).toBeDefined();
-    const [x0, z0] = [one.x, one.z];
+    expect(model.travellers.list).not.toContain(one);
+    expect(model.chosen.person).toBeNull();
     expect(JSON.stringify(interactionOf(model))).not.toContain(one.name);
-    run(model, 20, () => expect(Math.hypot(one.x - x0, one.z - z0)).toBeLessThanOrEqual(ROAM + 1e-6));
-    run(model, 11);
-    expect(one.chicken).toBeUndefined();
-    expect(before).toBeDefined();
+    expect(model.chickens.hens[0]).toMatchObject({ x: one.x, z: one.z, at: null });
+    run(model, 5); // (the roads go on without them)
   });
 
-  it('turns a villager in their own house, kept to its floor, and has them on with their day after', () => {
+  it('takes a keeper from their village for good: no word or trade, her quests let go and no more of them, a hen in her house', () => {
     const model = fresh();
-    const { hero } = model;
+    const { hero, story } = model;
     learn(hero, 'chicken');
-    const witch = model.npcs.find((n) => n.role === 'hedgewitch')!;
-    model.teleport(witch.home.x, witch.home.z);
+    const herbalist = model.npcs.find((n) => n.role === 'herbalist' && story.questsOf(n).some((q) => q.set))!;
+    const hers = story.questsOf(herbalist).filter((q) => q.set);
+    const key = hers[0].key;
+    story.replay(key.split('@')[0], herbalist);
+    story.accept(key);
+    expect(story.taken.some((t) => t.id === key)).toBe(true);
+    model.teleport(herbalist.home.x, herbalist.home.z);
     model.useDoor();
     model.update(0, 0, 0.1);
-    Object.assign(hero, { x: witch.x, z: witch.z + 1 });
-    model.select(witch);
+    Object.assign(hero, { x: herbalist.x, z: herbalist.z + 1.2 });
+    model.select(herbalist);
     expect(castSpell(model, 'chicken')).toBe('cast');
-    expect(model.chickens.here).toBe(witch);
-    run(model, 25, () => {
-      expect(witch.x).toBeGreaterThan(-0.6);
-      expect(witch.z).toBeGreaterThan(-0.6);
-    });
-    run(model, 6);
-    expect(witch.chicken).toBeUndefined();
-    run(model, 20);
-    expect(witch.steps.length).toBeGreaterThan(0); // (her day taken up again)
+    expect(model.npcs).not.toContain(herbalist);
+    expect(model.folk).not.toContain(herbalist);
+    expect(model.lost.has(herbalist.id)).toBe(true);
+    expect(story.taken.some((t) => t.id === key)).toBe(false); // (let go)
+    expect(story.questsOf(herbalist).filter((q) => q.set)).toEqual([]); // (and no more of hers)
+    expect(JSON.stringify(interactionOf(model))).not.toContain(herbalist.name);
+    const hen = model.chickens.hens[0];
+    expect(hen.at).toBe(placeOf(herbalist.home));
+    expect(model.chickens.here).toEqual([hen]);
+    run(model, 20, () => [expect(hen.x).toBeGreaterThan(-0.6), expect(hen.z).toBeGreaterThan(-0.6)]); // (kept to the floor of it)
+    expect(hen.at).not.toBeNull(); // (hers the house's: not out of doors with the rest)
+  });
+
+  it('is kept in a save: the hens where they are, the lost still lost, the slain still slain', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const villager = model.npcs.find((n) => n.role === 'villager')!;
+    const foe = model.enemies[0];
+    expect(model.chickens.turn(villager)).toBe(true);
+    const may = mayTurn(foe);
+    expect(model.chickens.turn(foe)).toBe(may);
+    const again = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    expect(again.npcs.some((n) => n.id === villager.id)).toBe(true);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.npcs.some((n) => n.id === villager.id)).toBe(false);
+    expect(again.lost.has(villager.id)).toBe(true);
+    expect(again.chickens.hens.length).toBe(model.chickens.hens.length);
+    expect(again.chickens.hens[0].at).toBe(model.chickens.hens[0].at);
+    expect(again.chickens.hens[0].x).toBeCloseTo(model.chickens.hens[0].x, 1);
+    again.chickens.load({ hens: [['x', 1, null, 0, 0], 'nonsense'], lost: ['a', 2.5] }); // (a broken save: none of it)
+    expect(again.chickens.hens.length + again.lost.size).toBe(0);
   });
 });
 
@@ -228,5 +210,16 @@ describe('the hen', () => {
     expect(Math.max(...used)).toBeLessThanOrEqual(CHICKEN_PALETTE.length);
     expect(CHICKEN_PALETTE.length).toBeLessThanOrEqual(8); // (a small palette, said first)
     expect(count(body)).toBeLessThan(200); // (small: read by her shape, not her detail)
+  });
+
+  it('throws off smoke and feathers that are gone again in a moment', () => {
+    const [scene, smoke] = [new THREE.Group(), new SmokePuffs()];
+    smoke.puff(scene, 0, 0, 0, 1);
+    smoke.feathers(scene, 0, 0, 0, 1, 16);
+    expect(scene.children.length).toBe(2);
+    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
+    expect(scene.children.length).toBe(1); // (the smoke: thinned away; the feathers still falling)
+    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
+    expect(scene.children.length).toBe(0);
   });
 });
