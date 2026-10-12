@@ -7,7 +7,7 @@
 import { shopAt, type Shop } from '../inn/tavernShop';
 import { takeStock } from '../shops/shopStock';
 import { doorNumber } from '../interiors/interiors';
-import type { Entrance } from '../interiors/interiors';
+import type { Entrance, Room } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { Npc } from '../npcs/npcs';
 import type { GameEvent, Hero } from '../types';
@@ -15,6 +15,8 @@ import { gainXp } from '../hero/heroStats';
 import { JOBS, rankIn, recordOf, type JobId } from './jobs';
 import { InnShift, type Order, type ShiftAction } from './innShift';
 import { BarShift, type BarAction } from './barShift';
+import { RoomShift, type Client, type RoomHost } from './roomShift';
+import type { Talk } from '../story/story';
 
 const HERO_XP = 4; // the hero's own experience, an order served (work's a way up too)
 // Where one stands to read an inn's notice board (hung on a wall, in a tile against it): before it, no more than
@@ -24,22 +26,23 @@ const OUT: [number, number] = [0.25, 1.35];
 export const CUPBOARD_OUT = 6; // the inn's own tankards out for a barkeep's shift, at most
 export const BONUS = 1; // copper an order, the shift worked to its end with no one walked out
 
-export interface WorkHost {
+export interface WorkHost extends Partial<Pick<RoomHost, 'npcs'>> {
   readonly hero: Hero;
+  minutes?: number; // the game's clock (time passed in an inn's room: roomShift.ts)
   readonly seed: number;
   readonly shops: Map<number, Shop>; // the inns' (the cupboard: tankards sold to one, out on its shelves for the shift)
-  readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance } | null;
+  readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance; room?: Room } | null;
   readonly folk: readonly Npc[];
   report(event: GameEvent): void;
 }
 
 // What E would do at work, whatever the job; and whether it's behind the bar.
-export type WorkAction = ShiftAction | BarAction;
+export type WorkAction = ShiftAction | BarAction | { kind: 'client'; client: Client };
 const AT_THE_BAR: ReadonlySet<WorkAction['kind']> = new Set<BarAction['kind']>(['stop', 'pour', 'hand', 'pass', 'wash', 'gather']);
 export const isBarAction = (action: WorkAction): action is BarAction => AT_THE_BAR.has(action.kind);
 
 export class Work {
-  shift: InnShift | BarShift | null = null;
+  shift: InnShift | BarShift | RoomShift | null = null;
 
   constructor(private readonly host: WorkHost) {}
 
@@ -55,7 +58,8 @@ export class Work {
   start(inn: Entrance, job: JobId = 'innServer'): boolean {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
-    this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : new InnShift(inn, rank, this.host.seed);
+    this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host as RoomHost) : new InnShift(inn, rank, this.host.seed);
+    if (this.shift instanceof RoomShift) return (this.shift.onServed = () => this.served()), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
       // begins with the more clean cups, and they're hers no longer once it's over (broken, walked off with).
@@ -71,9 +75,10 @@ export class Work {
   update(dt: number): void {
     const { shift } = this;
     if (!shift) return;
-    if (this.host.inside?.entrance !== shift.inn) return this.end(true);
+    const here = this.host.inside?.entrance === shift.inn || (shift instanceof RoomShift && this.host.inside?.below === shift.inn); // (an inn's room: upstairs is at work too)
+    if (!here) return this.end(true);
     shift.update(this.host.folk, dt, this.host.hero);
-    if (shift.left <= 0) this.end(false);
+    if (shift.left <= 0 || (shift instanceof RoomShift && shift.over && !shift.client)) this.end(false);
   }
 
   // E at work: whether it did something (an order taken, the tray filled, an order served: paid).
@@ -85,6 +90,11 @@ export class Work {
     for (let n = served; n < shift.served; n++) this.served(); // (what it earned: owed, paid at the shift's end)
     for (let n = perfect; n < (shift instanceof BarShift ? shift.perfect : 0); n++) recordOf(this.host.hero, shift.job).xp++; // (a perfect pour: more learned)
     return true;
+  }
+
+  // Whoever's at the door of the hero's room, at work there, and what they say (E: told as a talk); else null.
+  meet(): { who: Client; talk: Talk } | null {
+    return this.shift instanceof RoomShift ? this.shift.meet() : null;
   }
 
   // What E would do at work now (for the prompt), if anything.

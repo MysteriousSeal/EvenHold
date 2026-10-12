@@ -81,10 +81,21 @@ export function letDoor(furniture: readonly Furniture[]): Furniture | null {
 }
 
 // Whether the tile (x, z) upstairs is in the room let (behind letDoor).
-function inLetRoom(inside: Inside, { x, z }: { x: number; z: number }): boolean {
+export function inLetRoom(inside: Pick<Inside, 'furniture' | 'room'>, { x, z }: { x: number; z: number }): boolean {
   const door = letDoor(inside.furniture);
   const room = door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door));
   return !!room && room.tiles.some(([tx, tz]) => tx === x && tz === z);
+}
+
+// The let room's bed (upstairs), and its floor's tiles; null with no such room.
+export function letRoomBed(inside: Pick<Inside, 'furniture' | 'room'>): { bed: Furniture | null; tiles: Array<[number, number]> } | null {
+  const door = letDoor(inside.furniture);
+  const tiles = door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door))?.tiles;
+  if (!tiles?.length) return null;
+  const [cx, cz] = [tiles.reduce((s, t) => s + t[0], 0) / tiles.length, tiles.reduce((s, t) => s + t[1], 0) / tiles.length];
+  const far = (f: Furniture) => Math.hypot(f.x + (f.w - 1) / 2 - cx, f.z + (f.d - 1) / 2 - cz);
+  const beds = inside.furniture.filter((f) => f.kind === 'roomBed' || f.kind === 'doubleBed').sort((a, b) => far(a) - far(b));
+  return { bed: beds[0] ?? null, tiles };
 }
 
 // The floor upstairs just made: its let room's door unlocked, if it's let.

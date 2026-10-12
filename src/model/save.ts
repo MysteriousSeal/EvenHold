@@ -32,7 +32,7 @@ import { PEDLAR_KEY } from './travellers/travellers';
 import { HERBALIST_KEY } from './herbalist/herbalistShop';
 import { letUntil, setLet } from './inn/roomLetting';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, BLESSING_TIME, WEARY_TIME, type Blessing } from './hero/blessing';
+import { BLESSINGS, BLESSING_TIME, POX_TIME, WEARY_TIME, type Blessing } from './hero/blessing';
 import type { QuestBook } from './quests/questBook';
 import { spawnEnemies } from './enemies/enemies';
 import { spawnOf, type MapSize } from './map/grid';
@@ -150,7 +150,14 @@ export function snapshot(model: GameModel): SaveData {
     story: model.story.save(),
     doors: model.entrances.map((e) => ({ inn: doorNumber(e), open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
     travellers: model.travellers.save(),
-    lets: model.entrances.flatMap((e) => (letUntil(e) === null ? [] : [{ inn: doorNumber(e), until: letUntil(e)! }])),
+    // (A room held for a shift worked in it, jobs/roomShift.ts: saved as it was let before; not let: its time up, so
+    // that a hero saved in it is shown out, not kept a day for nothing.)
+    lets: model.entrances.flatMap((e) => {
+      const shift = model.work.shift;
+      const held = shift && 'letBefore' in shift && shift.inn === e ? { until: shift.letBefore ?? model.minutes } : null;
+      const until = held ? held.until : letUntil(e);
+      return until === null ? [] : [{ inn: doorNumber(e), until }];
+    }),
   };
 }
 
@@ -214,7 +221,7 @@ export function restore(model: GameModel, data: SaveData): void {
     facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
-      .map((b) => ({ kind: b.kind, left: Math.min(b.kind === 'weary' ? WEARY_TIME : BLESSING_TIME, b.left) })),
+      .map((b) => ({ kind: b.kind, left: Math.min(b.kind === 'weary' ? WEARY_TIME : b.kind === 'poxed' ? POX_TIME : BLESSING_TIME, b.left) })), // (each no longer than its kind lasts: the pox for hours)
   });
   hero.hp = Math.min(maxHpOf(hero), Math.max(1, saved.hp));
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));

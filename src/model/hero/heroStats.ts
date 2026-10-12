@@ -7,6 +7,7 @@
 import { DAY_MINUTES } from '../clock';
 import type { Hero, Meal } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
+import { tiring } from './blessing';
 import { POINTS_PER_LEVEL, untrained } from './training';
 import { emptyActionBar } from './actionBar';
 import { HERO_LOOK } from '../human/humanoid';
@@ -79,7 +80,7 @@ export const tiredPace = (hero: Hero): number => (hero.energy < TIRED ? TIRED_PA
 // (`rest`: how well they sleep: a bed's 1, a bedroll's on the ground less.)
 export function recover(hero: Hero, dt: number, asleep = false, sitting = false, rest = 1): void {
   hero.hurtFor = Math.max(0, hero.hurtFor - dt);
-  const rate = asleep ? ENERGY_SLEPT * rest : sitting ? 0 : -ENERGY_SPENT * drainOf(hero);
+  const rate = asleep ? ENERGY_SLEPT * rest : sitting ? 0 : -ENERGY_SPENT * drainOf(hero) * tiring(hero); // (the pox: tiring faster)
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
   if (asleep) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * HEAL_SLEPT * rest * dt);
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little

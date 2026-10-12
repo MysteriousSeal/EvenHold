@@ -97,6 +97,26 @@ export function sitDown(at: { seated: Seated }, hero: Hero, seat: Seat): void {
   hero.facing = seat.facing;
 }
 
+// The floor tiles of `inside` (those of `within`, if given) someone can stand on, nearest `to` first.
+export function standingBy(inside: Inside, to: { x: number; z: number }, within?: ReadonlyArray<[number, number]>): Array<{ x: number; z: number }> {
+  const { width, depth } = inside.room;
+  const tiles = within ?? Array.from({ length: width * depth }, (_, i): [number, number] => [i % width, Math.floor(i / width)]);
+  return tiles
+    .filter(([x, z]) => x >= 0 && z >= 0 && x < width && z < depth && !bumpsFurniture(inside.furniture, x, z, HERO_RADIUS * INDOOR_SCALE))
+    .map(([x, z]) => ({ x, z }))
+    .sort((a, b) => Math.hypot(a.x - to.x, a.z - to.z) - Math.hypot(b.x - to.x, b.z - to.z));
+}
+
+// Lays the hero in `bed` (its side nearest `from`, a double one), to get up onto `from` (a spot to stand on beside
+// it); whether it's a bed to lie in.
+export function layIn(at: { seated: Seated }, hero: Hero, bed: Furniture, from: { x: number; z: number }): boolean {
+  const seat = seatOf(bed, from);
+  if (!seat?.lying) return false;
+  Object.assign(hero, { x: from.x, z: from.z });
+  sitDown(at, hero, seat);
+  return true;
+}
+
 // Gets the hero up, back onto the spot they sat down from, on the floor
 // (or the ground, outdoors: `y`).
 export function standUp(at: { seated: Seated }, hero: Hero, y = 0): void {

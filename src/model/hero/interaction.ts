@@ -53,6 +53,12 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   if (work.shift) {
     yield work.action ? { kind: 'work' } : null;
     yield notice();
+    if (work.shift.job === 'innCompanion' && inside) {
+      // (Work done in a room upstairs: the stairs and the hallway's doors, to get to it.)
+      const hallDoor = inside.below ? doorAt(inside, hero) : null;
+      yield hallDoor ? { kind: 'hallDoor', door: hallDoor } : null;
+      yield stairsInReach(inside, hero) ? { kind: 'stairs', down: !!inside.below } : null;
+    }
     return; // (at work: nothing else: no doors, no seats, no talk)
   }
   if (lumber.chopping) return void (yield { kind: 'stopChop' });

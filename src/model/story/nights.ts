@@ -1,14 +1,14 @@
 // A night spent with someone (a quest that ends in one: story.ts `sleep`): where the hero wakes. In that person's
-// own place, beside its bed, the two of them stood by it: the herbalist's house; the smithy (no bed there: by the
+// own place, in its bed, whoever it is stood beside it: the herbalist's house; the smithy (no bed there: by the
 // forge); for someone of the inn (its bouncer), the room let upstairs, theirs till ten that morning. Whoever it is
 // goes back to their day as the talk ends: from upstairs, out by the room's door (opened), along the hallway and
 // down the stairs, on foot.
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
-import { checkOutAfter, letDoor, setLet } from '../inn/roomLetting';
+import { checkOutAfter, letDoor, letRoomBed, setLet } from '../inn/roomLetting';
 import { bumpsFurniture, type Furniture } from '../interiors/furniture';
-import type { Inside } from '../interiors/indoors';
+import { layIn, standingBy, type Inside } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
-import { roomsOff, stairsOf, upstairsInside } from '../interiors/upstairs';
+import { stairsOf, upstairsInside } from '../interiors/upstairs';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { Hero } from '../types';
 import { far } from './storyCast';
@@ -26,16 +26,6 @@ const LINGER = 0.6; // seconds they stay by the hero once the talk's over (the g
 const BEDS: ReadonlySet<Furniture['kind']> = new Set<Furniture['kind']>(['bed', 'roomBed', 'doubleBed']);
 const BY: ReadonlyArray<Furniture['kind']> = ['forge', 'hearth']; // (no bed: where they'd have sat up)
 const middle = (f: Furniture) => ({ x: f.x + (f.w - 1) / 2, z: f.z + (f.d - 1) / 2 });
-
-// The floor tiles of `inside` (those of `within`, if given) someone can stand on, nearest `to` first.
-function standing(inside: Inside, to: { x: number; z: number }, within?: ReadonlyArray<[number, number]>): Array<{ x: number; z: number }> {
-  const { width, depth } = inside.room;
-  const tiles = within ?? Array.from({ length: width * depth }, (_, i): [number, number] => [i % width, Math.floor(i / width)]);
-  return tiles
-    .filter(([x, z]) => x >= 0 && z >= 0 && x < width && z < depth && !bumpsFurniture(inside.furniture, x, z, HERO_RADIUS * INDOOR_SCALE))
-    .map(([x, z]) => ({ x, z }))
-    .sort((a, b) => far(a, to) - far(b, to));
-}
 
 // The way over the floor from `from` to the tile nearest `to`, tile by tile (each step's own line clear of the
 // furniture: no wall stepped through); null if there's none.
@@ -77,19 +67,19 @@ export function wakeWith(model: NightHost, who: Npc): boolean {
     setLet(home, checkOutAfter(model.minutes));
     inside = model.inside = upstairsInside(home, inside.room, stairs, model.seed, model.fullWalls);
     where = inside.entrance;
-    const door = letDoor(inside.furniture);
-    within = (door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door))?.tiles) ?? undefined;
+    within = letRoomBed(inside)?.tiles;
   }
   const centre = within?.length ? { x: within.reduce((s, t) => s + t[0], 0) / within.length, z: within.reduce((s, t) => s + t[1], 0) / within.length } : null;
   const beds = inside.furniture.filter((f) => BEDS.has(f.kind));
   const bed = centre ? beds.sort((a, b) => far(middle(a), centre) - far(middle(b), centre))[0] : beds[0];
   const by = bed ?? inside.furniture.find((f) => BY.includes(f.kind));
-  const spots = standing(inside, by ? middle(by) : (centre ?? { x: inside.room.door, z: inside.room.depth - 1 }), within);
+  const spots = standingBy(inside, by ? middle(by) : (centre ?? { x: inside.room.door, z: inside.room.depth - 1 }), within);
   const mine = spots[0];
   const theirs = mine && spots.slice(1).sort((a, b) => far(a, mine) - far(b, mine))[0];
   if (!mine || !theirs) return false;
   const facing = (from: { x: number; z: number }, to: { x: number; z: number }) => Math.atan2(to.x - from.x, to.z - from.z);
   Object.assign(model.hero, { x: mine.x, z: mine.z, y: 0, facing: facing(mine, theirs) });
+  if (bed) layIn(inside, model.hero, bed, mine); // (woken in it; up, onto that spot beside it)
   const back = { where: who.where, x: who.x, z: who.z }; // (someone of the inn: back to their post after)
   Object.assign(who, { where, x: theirs.x, z: theirs.z, y: 0, facing: facing(theirs, mine), seat: null, stood: null, path: null, waited: 0, moving: false });
   who.steps = [{ kind: 'wait', for: LINGER }];

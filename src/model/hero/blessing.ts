@@ -7,7 +7,7 @@ import type { Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
-export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed';
+export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed';
 export interface Blessing {
   kind: BlessingKind;
   left: number; // seconds of it left
@@ -24,9 +24,10 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   keen: { name: 'Keen eye', about: 'Foes drop loot and quest items more often.' },
   weary: { name: 'Weary', about: 'After a fall or a collapse: your blows deal 1 less damage, and hits on you 1 more.' }, // (no well's: a fall's, or a collapse's, mark)
   chilled: { name: 'Chilled', about: "Frost on you (a draugr's breath, a ghost's touch): you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts; a ghost's touch, hero/fighting.ts)
+  poxed: { name: 'The pox', about: 'Caught at work in an inn\'s room: you tire half as fast again. A herbalist has a salve for it.' }, // (no well's: a client's, jobs/roomShift.ts; a herbalist's salve ends it: hero/pox.ts)
   webbed: { name: 'Webbed', about: "A cave spider's web clings to you: you walk 60% slower." }, // (no well's: a spider's spat web, caves/caveFoes.ts)
 };
-const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
+const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed', 'poxed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
 const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k)); // the wells'
 const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 const WEB_PACE = 0.4; // and webbed (both: slower still)
@@ -64,7 +65,19 @@ export function makeWebbed(hero: Hero, seconds: number): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'webbed'), { kind: 'webbed', left: seconds }];
 }
 
-// Whether it's a bane (Weary, Chilled, Webbed), not a gift.
+// The pox: tiring faster, for hours of play (till a herbalist's salve: hero/pox.ts).
+export const POX_TIME = 4 * 60 * 60; // seconds of play it lasts, left alone
+const POX_DRAIN = 1.5; // energy spent, times
+export const hasPox = (hero: { blessings?: Blessing[] }): boolean => on(hero, 'poxed');
+export const tiring = (hero: { blessings?: Blessing[] }): number => (on(hero, 'poxed') ? POX_DRAIN : 1); // on the energy spent up and about
+export function givePox(hero: Hero): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'poxed'), { kind: 'poxed', left: POX_TIME }];
+}
+export function curePox(hero: Hero): void {
+  hero.blessings = (hero.blessings ?? []).filter((b) => b.kind !== 'poxed');
+}
+
+// Whether it's a bane (Weary, Chilled, Webbed, the pox), not a gift.
 export const isBane = (kind: BlessingKind): boolean => BANES.has(kind);
 
 // Counts the blessings down; each gone once spent.

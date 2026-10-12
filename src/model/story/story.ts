@@ -35,7 +35,8 @@ export interface Talk {
   lines: string[];
   quest?: { name: string; task: string; copper: number; xp: number; gift: string; state: 'offered' | 'handIn' }; // the quest it's about, shown under the lines
   night?: () => void; // a night passes before its last line (the screen gone black): called in the dark, it's morning (the clock at eight, all health and energy back)
-  answers: Array<{ label: string; primary?: boolean; trade?: boolean; pick(): void }>; // the hero's (none: just "Farewell"; `trade`: on to their wares)
+  later?: string; // what the black says as that time passes (unsaid: "The next morning")
+  answers: Array<{ label: string; primary?: boolean; trade?: boolean; out?: boolean; pick(): void | Talk }>; // (what it does; a talk given back: said next, in the same breath; `out`: the one Escape gives, where it's not simply the first that commits to nothing) // the hero's (none: just "Farewell"; `trade`: on to their wares)
 }
 // A quest under way, as the tracker and the journal tell it.
 export interface TakenStory {
@@ -269,13 +270,13 @@ export class Story {
     if (handIn) {
       const full = !this.roomFor(handIn.i.quest.gift);
       if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: hasTrade(who) ? [{ label: 'Show me your wares.', primary: true, trade: true, pick: () => {} }, { label: 'Later.', pick: () => {} }] : [] }; // (someone with a trade: their wares still to be had, to make that room)
-      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => this.handIn(handIn.i.key) }] };
+      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => void this.handIn(handIn.i.key) }] };
     }
     const offer = mine.find((m) => m.state === 'offered' && m.gives);
     if (offer) {
       const { quest } = offer.i;
       const trade = hasTrade(who) ? [{ label: 'Show me your wares.', trade: true, pick: () => {} }] : [];
-      return { speaker, lines: quest.offer(this.told(offer.i, who)), quest: about(offer.i, 'offered'), answers: [{ label: quest.accept, primary: true, pick: () => this.accept(offer.i.key, who) }, { label: quest.decline, pick: () => {} }, ...trade] };
+      return { speaker, lines: quest.offer(this.told(offer.i, who)), quest: about(offer.i, 'offered'), answers: [{ label: quest.accept, primary: true, pick: () => void this.accept(offer.i.key, who) }, { label: quest.decline, pick: () => {} }, ...trade] };
     }
     if (hasTrade(who)) return null; // (their trade, then)
     const awaited = mine.find((m) => m.state === 'taken' && m.takes);

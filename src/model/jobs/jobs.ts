@@ -3,7 +3,7 @@
 // hero's record in each (their experience, shifts worked, their best) is kept with them, and saved.
 // The jobs: serving the inn's tables (innShift.ts: a shift's work), tending its bar (barShift.ts).
 
-export type JobId = 'innServer' | 'innBarkeep';
+export type JobId = 'innServer' | 'innBarkeep' | 'innCompanion';
 
 // A rank in a job, and what it brings.
 export interface JobRank {
@@ -45,6 +45,18 @@ export const JOBS: Record<JobId, Job> = {
       { name: 'Barkeep', from: 35, tray: 2, patience: 10, tips: 1.4, steady: 0.02 },
       { name: 'Head barkeep', from: 70, tray: 3, patience: 15, tips: 1.7, steady: 0.03 },
       { name: 'Master of the taps', from: 120, tray: 3, patience: 20, tips: 2, steady: 0.04 },
+    ],
+  },
+  innCompanion: {
+    name: 'Pleasure worker',
+    where: "Posted on every inn's notice board",
+    about: "Go up to the room (the first door along the back hall) and shut its door behind you: it stays shut till the shift is over. See to whoever knocks: let them in or turn them away. Each one pays when they leave, or tries not to. It tires you, and it has its risks. All paid when the shift ends.",
+    ranks: [
+      { name: 'New face', from: 0, tray: 1, patience: 0, tips: 1 },
+      { name: 'Known hand', from: 6, tray: 1, patience: 0, tips: 1.2 },
+      { name: 'Asked for by name', from: 18, tray: 1, patience: 0, tips: 1.5 },
+      { name: 'Talk of the house', from: 40, tray: 1, patience: 0, tips: 1.8 },
+      { name: 'Legend of the back hall', from: 80, tray: 1, patience: 0, tips: 2.2 },
     ],
   },
 };
