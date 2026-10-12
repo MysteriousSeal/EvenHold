@@ -39,6 +39,7 @@ import { CampChests } from './meshes/camp/campChests';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
 import { TravellerViews } from './meshes/npc/travellerViews';
+import { CarterView } from './meshes/npc/carterView';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
 import { EntranceLife } from './meshes/entrance/entranceLife';
 import { WildMovesView } from './meshes/enemy/wildMovesView';
@@ -89,6 +90,7 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
+  private carter: CarterView | null = null; // (the man by his wagon, at the start)
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
   private readonly wildMoves: WildMovesView; // a bear's slam and charge, a lynx's pounce, told on the ground // what marks the dungeons' ways in near the hero: bats, crows, wisps, glows, fires
@@ -316,6 +318,7 @@ export class GameView {
     }
     this.regions?.update(); // (a region the model's made drawn, or one it's let go dropped: one a frame)
     this.world.update(hero.x, hero.z);
+    (this.carter ??= new CarterView(this.scene, this.travellers.material)).update(model, dt);
     this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero)); // (the one the prompt's over: their name gives way to it)
     setWindPusher(hero.x, hero.z); // crops part around them
     setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)

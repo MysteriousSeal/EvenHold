@@ -30,6 +30,12 @@ const ENTRIES = {
   gill: 0xe8dcc4,
   carve: 0x6f6a61, // a spiral cut into a standing stone
   grass: 0x7aa84a,
+  // The wagon's (by the start):
+  iron: 0x50545a,
+  sack: 0xcdb98a,
+  sackDark: 0xa89468,
+  crate: 0xa87c4a,
+  crateDark: 0x7a5632,
 } as const;
 export const SCENERY_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
@@ -38,7 +44,7 @@ const T = 25; // voxels to a tile
 
 // A piece's grid: its tiles along x and z, and how tall.
 export function sceneryGrid(kind: SceneryKind): [number, number, number] {
-  return { boulder: [T, 18, T], outcrop: [2 * T, 24, 2 * T], log: [2 * T, 14, T], cairn: [T, 22, T], wall: [3 * T, 16, T], menhir: [T, 42, T] }[kind] as [number, number, number];
+  return { boulder: [T, 18, T], outcrop: [2 * T, 24, 2 * T], log: [2 * T, 14, T], cairn: [T, 22, T], wall: [3 * T, 16, T], menhir: [T, 42, T], wagon: [2 * T, 26, T] }[kind] as [number, number, number];
 }
 
 const n = (x: number, y: number, z: number, salt: number) => hashUnit(x * 31 + z * 7, y, salt); // (a voxel's own roll)
@@ -209,5 +215,71 @@ function menhir(v: number): VoxelGrid {
   return g;
 }
 
-const BUILD: Record<SceneryKind, (v: number) => VoxelGrid> = { boulder, outcrop, log, cairn, wall, menhir };
+// A broken-down wagon, along x (voxel-art: palette first, silhouette before detail, nothing finer than the camera
+// reads). Three tones do the work: dark weathered timber (the frame, the wheels), mid timber (the bed), and pale
+// goods on it (sacks, a new-wood crate), so the load stands off the bed and the wheels off both; iron only as the
+// tyres and hubs. Its shape, big to small: the tall far wheel; the bed leaning hard toward the camera's side, its
+// near wheel off; that wheel leant against the side, a third of its rim gone; two thick shafts down to the ground.
+// Nothing a single voxel thin: spokes, rails and shafts two thick, shading in bands (no speckle).
+function wagon(): VoxelGrid {
+  const g = createGrid(sceneryGrid('wagon'));
+  const put = (x: number, y: number, z: number, c: number) => x >= 0 && x < 2 * T && y >= 0 && y < 26 && z >= 0 && z < T && setColor(g, x, y, z, c);
+  const box = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | ((x: number, y: number, z: number) => number)) => {
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) put(x, y, z, typeof c === 'number' ? c : c(x, y, z));
+  };
+  // A wheel two thick in the plane z0..z0+1, its hub at (cx, cy): an iron tyre, a dark rim, four thick spokes, an
+  // iron hub; `gone`: the arc of it broken away (radians from, to), if any.
+  const wheel = (cx: number, cy: number, z0: number, r: number, gone?: [number, number]) => {
+    for (let x = cx - r; x <= cx + r; x++) for (let y = cy - r; y <= cy + r; y++) {
+      const d = Math.hypot(x - cx, y - cy);
+      if (d > r + 0.3) continue;
+      const a = Math.atan2(y - cy, x - cx);
+      if (gone && d > 2.5 && a > gone[0] && a < gone[1]) continue;
+      const spoke = Math.abs(x - cx) <= 1 || Math.abs(y - cy) <= 1;
+      const c = d > r - 1 ? C.iron : d > r - 3 ? C.barkDark : d < 2.4 ? C.iron : spoke ? C.bark : 0;
+      if (c) box(x, y, z0, x, y, z0 + 1, c);
+    }
+  };
+  const bedY = (z: number) => 12 - Math.floor((z - 6) / 2.6); // (the bed's top: 12 on the wheel's side, down to 7 where the wheel's off)
+  wheel(20, 9, 3, 9); // the far wheel, on: the tallest thing of it
+  for (let z = 5; z <= 19; z++) box(19, bedY(z) - 4, z, 21, bedY(z) - 2, z, C.barkDark); // the axle, down with the lean
+  box(17, 0, 16, 24, 2, 21, (_x, y) => (y === 2 ? C.stone : C.stoneDark)); // the flat stone set under its end
+  // The bed: mid timber, a darker board every third row (lengthwise only); solid low sides, darker, on corner posts.
+  for (let z = 6; z <= 19; z++) {
+    const y = bedY(z);
+    box(5, y - 1, z, 36, y, z, z % 3 === 0 ? C.crateDark : C.crate);
+    for (let x = 5; x <= 36; x++) {
+      const end = x <= 6 || x >= 35;
+      const side = z <= 7 || z >= 18;
+      if (!end && !side) continue;
+      const post = end && side;
+      box(x, y + 1, z, x, y + (post ? 6 : end ? 3 : 4), z, post ? C.barkDark : C.bark);
+    }
+  }
+  // The shafts: two thick, from the bed's front down to the ground.
+  for (const z of [8, 16]) for (let x = 37; x <= 49; x++) {
+    const y = Math.max(0, Math.round((bedY(z) - 1) * (1 - (x - 36) / 13)));
+    box(x, y, z, x, y + 1, z + 1, C.barkDark);
+  }
+  // The load: a crate of new wood (pale, dark-edged) and sacks (pale, a dark foot and a tied neck), so they stand off the bed.
+  const crate = (x0: number, y0: number, z0: number, s: number) =>
+    box(x0, y0, z0, x0 + s, y0 + s, z0 + s, (x, y, z) => ([x === x0 || x === x0 + s, y === y0 || y === y0 + s, z === z0 || z === z0 + s].filter(Boolean).length >= 2 ? C.crateDark : C.wood));
+  const sack = (cx: number, y0: number, cz: number, rx: number, ry: number, rz: number) => {
+    for (let x = cx - rx; x <= cx + rx; x++) for (let z = cz - rz; z <= cz + rz; z++) for (let y = y0; y <= y0 + ry; y++) {
+      if (((x - cx) / (rx + 0.4)) ** 2 + ((y - y0) / (ry + 0.6)) ** 2 + ((z - cz) / (rz + 0.4)) ** 2 > 1) continue;
+      put(x, y, z, y === y0 ? C.sackDark : C.sack);
+    }
+    box(cx, y0 + ry, cz, cx + 1, y0 + ry + 1, cz, C.sackDark); // its neck, tied
+  };
+  crate(9, bedY(11) + 1, 9, 7); // aboard, at the back
+  sack(24, bedY(11) + 1, 11, 4, 5, 3); // and two sacks before it
+  sack(31, bedY(14) + 1, 13, 3, 4, 3);
+  crate(0, 0, 15, 6); // fallen off behind
+  sack(43, 0, 21, 5, 3, 2); // and one by the shafts
+  wheel(28, 8, 21, 8, [0.3, 1.9]); // the near wheel, off: leant against the side, a third of its rim broken away
+  foot(g, 90);
+  return g;
+}
+
+const BUILD: Record<SceneryKind, (v: number) => VoxelGrid> = { boulder, outcrop, log, cairn, wall, menhir, wagon };
 export const buildScenery = (kind: SceneryKind, variant: number): VoxelGrid => BUILD[kind](variant);
