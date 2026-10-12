@@ -6,6 +6,7 @@ import type { GameModel } from '../src/model/GameModel';
 import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { letUntil } from '../src/model/inn/roomLetting';
 import type { Npc, NpcRole } from '../src/model/npcs/npcs';
+import { walkAlong } from '../src/model/npcs/npcWalk';
 import { everyKindOfWorld } from './support/testWorld';
 
 // The quest's night told with the first `role` about, from wherever the hero stands: taken (the cheat's replay),
@@ -22,6 +23,24 @@ function night(model: GameModel, role: NpcRole, quest: string): Npc {
   talk.night!();
   return who;
 }
+
+describe('a way worked out for someone', () => {
+  it('is walked point to point as it stands; out of sight, they are at its end', () => {
+    const npc = { x: 0, z: 0, facing: 0, moving: false } as Npc;
+    const path = [{ x: 1, z: 0 }, { x: 1, z: 2 }];
+    expect(walkAlong(npc, path, true, 0.5)).toBe(false);
+    expect(npc.x).toBeGreaterThan(0.3);
+    expect(npc.z).toBe(0);
+    expect(npc.moving).toBe(true);
+    let steps = 0;
+    while (!walkAlong(npc, path, true, 0.1) && steps++ < 200);
+    expect([Math.round(npc.x * 100) / 100, Math.round(npc.z * 100) / 100]).toEqual([1, 2]);
+    expect(steps).toBeGreaterThan(10); // (on foot: no leap)
+    const other = { x: 0, z: 0, facing: 0, moving: false } as Npc;
+    expect(walkAlong(other, [{ x: 4, z: 0 }, { x: 4, z: 6 }], false, 0.1)).toBe(true);
+    expect([other.x, other.z]).toEqual([4, 6]);
+  });
+});
 
 describe('a night spent with someone', () => {
   it.each([

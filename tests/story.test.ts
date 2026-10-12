@@ -3,7 +3,7 @@
 // stones: each on offer once the one before is done, asking in turn something brought, foes slain, a place reached);
 // every village's own, set from the same templates (its keepers and villagers, by its level, a gift with some); the
 // road's (given by whoever's met, done as what they ask is). The marks over heads, the talk scene (controller/story/
-// talkPanel.ts) with its follow-up offer and a keeper's wares an answer away, the tracker's card, abandoning, saving.
+// talkPanel.ts) with a keeper's wares an answer away, the tracker's card, abandoning, saving.
 import { describe, expect, it } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { STORY_QUESTS, type Who } from '../src/model/story/story';
@@ -364,7 +364,7 @@ describe('the quests people give', () => {
     expect([old.story.stateOf('wordToTheInn'), old.story.stateOf('spokesForTheWheel'), old.story.isTracked('spokesForTheWheel')]).toEqual(['done', 'taken', false]);
   });
 
-  it('are told as a visual novel: both figures, the speaker lit, a line at a time, the quest and the answers; one handed in, the next offered in the same breath', () => {
+  it('are told as a visual novel: both figures, the speaker lit, a line at a time, the quest and the answers; one handed in, the next asked for by speaking again', () => {
     const model = fresh();
     const paused: boolean[] = [];
     const traded: Who[] = [];
@@ -408,8 +408,10 @@ describe('the quests people give', () => {
     expect(q('.talk-quest-mark').textContent).toBe('?');
     (scene.querySelector('.talk-answer') as HTMLButtonElement).click();
     expect(model.story.stateOf(quest.id)).toBe('done');
-    // The next of the line is hers to give: offered in the same breath, the scene still up, her side lit again.
-    expect(panel.menu.isOpen).toBe(true);
+    // The next of the line is hers to give: not in the same breath (the talk's over, a "!" over her); spoken to again.
+    expect(panel.menu.isOpen).toBe(false);
+    expect(model.story.markOf(barmaid)).toBe('offer');
+    expect(panel.open(barmaid)).toBe(true);
     expect(q('.talk-plate').textContent).toBe(barmaid.name);
     expect(q('.talk-figure.right').classList.contains('speaking')).toBe(true);
     for (let i = 0; i < 4; i++) key('Space');

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { Npc } from '../src/model/npcs/npcs';
 import { STORY_QUESTS } from '../src/model/story/story';
 import { besideWhom } from '../src/controller/cheats/questDebug';
+import { restore, snapshot } from '../src/model/save';
 import { everyKindOfWorld } from './support/testWorld';
 
 const world = () => everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
@@ -58,6 +59,32 @@ describe("the quests' cheat", () => {
     expect(besideWhom(model)).toBe(villager);
     Object.assign(villager, { x: hero.x + 9 });
     expect(besideWhom(model)).not.toBe(villager);
+  });
+
+  it('keeps a quest set by hand through a save: still theirs to take in after', () => {
+    const model = world();
+    const { story } = model;
+    const smith = model.npcs.find((n) => n.role === 'smith')!;
+    const villager = model.npcs.filter((n) => n.role === 'villager' && n.village === smith.village).at(-1)!;
+    const unset = story.questsOf(smith).find((q) => !q.set && !q.lacks && STORY_QUESTS[q.id].receiver === 'smith')!;
+    const own = story.questsOf(villager).find((q) => !q.lacks && STORY_QUESTS[q.id].receiver === STORY_QUESTS[q.id].giver)!;
+    for (const [q, who] of [[unset, smith], [own, villager]] as const) story.talk(who, story.replay(q.id, who)!)!.answers[0].pick();
+    const again = world();
+    restore(again, JSON.parse(JSON.stringify(snapshot(model))));
+    const [smithAgain, villagerAgain] = [again.npcs.find((n) => n.id === smith.id)!, again.npcs.find((n) => n.id === villager.id)!];
+    for (const [q, who] of [[unset, smithAgain], [own, villagerAgain]] as const) {
+      expect(again.story.stateOf(q.key)).toBe('taken');
+      expect(again.story.finish(q.key)).toBe(true);
+      expect(again.story.markOf(who), q.id).toBe('ready');
+      expect(again.story.talk(who, q.key)?.quest).toMatchObject({ name: q.name, state: 'handIn' });
+    }
+    // An older save, with nothing kept of what was set by hand: the village's own people take it in all the same.
+    const older = world();
+    const data = JSON.parse(JSON.stringify(snapshot(model)));
+    delete data.story.forced;
+    restore(older, data);
+    expect(older.story.finish(unset.key)).toBe(true);
+    expect(older.story.markOf(older.npcs.find((n) => n.id === smith.id)!)).toBe('ready');
   });
 
   it("finishes what a quest asks at once: foes counted, things put in the bag, a board's quest too", () => {
