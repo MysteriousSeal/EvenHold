@@ -18,7 +18,7 @@ import { carterOf, type Carter } from './carter';
 import type { StoryPlace, StoryRole } from './storyQuests';
 
 export type Who = Carter | Npc | Traveller;
-type Point = { x: number; z: number };
+export type Point = { x: number; z: number };
 
 export interface Setting {
   key: string; // 'first', or its village's number: what its quests are kept by
@@ -45,7 +45,8 @@ export interface CastHost {
 const NEAR = 320; // tiles from a village a ruin, a camp or a cave still counts as its own
 const NEXT = 700; // and the next village
 const far = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z);
-const nearest = <T>(list: readonly T[], at: (item: T) => Point, to: Point, within = Infinity): T | null => {
+// The nearest of `list` to `to` (each one's spot: `at`), within so far.
+export const nearest = <T>(list: readonly T[], at: (item: T) => Point, to: Point, within = Infinity): T | null => {
   let [best, d]: [T | null, number] = [null, within];
   for (const item of list) {
     const now = far(at(item), to);

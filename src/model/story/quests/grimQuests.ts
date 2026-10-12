@@ -1,7 +1,6 @@
-// Some villages' own troubles (rareQuests.ts: set in few villages each): the hard ones. A brother left hanging at
+// Some villages' own troubles (catalog.ts: set in few villages each): the hard ones. A brother left hanging at
 // the crossroads, a deserter in the barn, a branded woman in the cellar, a smith's swords in dead hands.
-import type { StoryQuest } from './storyQuests';
-import { quest } from './villageQuests';
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const GRIM_QUESTS: StoryQuest[] = [
   // A brother on the gibbet.

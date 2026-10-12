@@ -1,7 +1,6 @@
-// Some villages' own troubles (rareQuests.ts: set in few villages each): the uncanny ones. A bell from a ruin with
+// Some villages' own troubles (catalog.ts: set in few villages each): the uncanny ones. A bell from a ruin with
 // no bell, a dead wife at the window, a body that won't lie still, what comes out of the cave at night.
-import type { StoryQuest } from './storyQuests';
-import { quest } from './villageQuests';
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const EERIE_QUESTS: StoryQuest[] = [
   // The bell.

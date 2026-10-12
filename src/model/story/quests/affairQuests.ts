@@ -1,8 +1,7 @@
-// Some villages' own troubles (rareQuests.ts: set in few villages each): the ones behind closed doors (as
+// Some villages' own troubles (catalog.ts: set in few villages each): the ones behind closed doors (as
 // bawdyQuests.ts: said, never shown; everyone grown; no keeper called he or she). A wedding night nobody has
 // explained, a back-room woman to hide, a watcher on the stable roof, and a smith who'd have the hero stay.
-import type { StoryQuest } from './storyQuests';
-import { quest } from './villageQuests';
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const AFFAIR_QUESTS: StoryQuest[] = [
   quest({

@@ -1,7 +1,7 @@
 // The quests of the road (storyQuests.ts: `scope` 'road'): asked by whoever of that calling is met on it (any pedlar,
 // any pilgrim, any guard: the first spoken to gives it), with no one to go back to: done, and paid, the moment what
 // it asks is (they've left what they owe with the next inn, or so they say).
-import type { StoryQuest } from './storyQuests';
+import type { StoryQuest } from '../storyQuests';
 
 const quest = (q: Omit<StoryQuest, 'scope' | 'decline' | 'thanks' | 'handIn'>): StoryQuest => ({
   scope: 'road',

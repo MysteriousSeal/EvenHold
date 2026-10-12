@@ -5,15 +5,7 @@
 // shift's help, bowls for her tables, a threat carried to the next inn; the herbalist meat for the sick and a look in
 // the cave; the bouncer the wolves and the camp seen to. Two of its villagers ask for themselves: a mother's grave
 // in the old ruin and the ghosts over it, firewood, the boars out of the field, a coin in the well.
-import type { StoryQuest } from './storyQuests';
-
-export const quest = (q: Omit<StoryQuest, 'scope' | 'accept' | 'decline' | 'thanks'> & Partial<Pick<StoryQuest, 'accept' | 'decline' | 'thanks'>>): StoryQuest => ({
-  scope: 'village',
-  accept: "I'll do it.",
-  decline: 'Not now.',
-  thanks: 'Thank you.',
-  ...q,
-});
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const VILLAGE_QUESTS: StoryQuest[] = [
   // The smith.

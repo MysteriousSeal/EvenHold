@@ -1,7 +1,6 @@
-// Some villages' own troubles (rareQuests.ts: set in few villages each): the daft ones. A pig named after the
+// Some villages' own troubles (catalog.ts: set in few villages each): the daft ones. A pig named after the
 // reeve, a drinking bet, a priest who drinks for free, stolen breeches, a wedding nobody remembers.
-import type { StoryQuest } from './storyQuests';
-import { quest } from './villageQuests';
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const DROLL_QUESTS: StoryQuest[] = [
   quest({

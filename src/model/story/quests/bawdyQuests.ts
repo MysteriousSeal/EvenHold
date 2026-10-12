@@ -2,8 +2,7 @@
 // the women who work it, who's in whose bed and who mustn't know, what the priest and the reeve preach against and
 // do themselves; and two of its people who'd have the hero stay the night (`night`: said, never shown). Everyone in
 // them is grown. No one's called he or she: a keeper is a man in one village and a woman in the next.
-import type { StoryQuest } from './storyQuests';
-import { quest } from './villageQuests';
+import { villageQuest as quest, type StoryQuest } from '../storyQuests';
 
 export const BAWDY_QUESTS: StoryQuest[] = [
   // The inn's back room.

@@ -1,6 +1,6 @@
-// The quests people give, and how they stand. Each is written once (storyQuests.ts, villageQuests.ts, roadQuests.ts)
-// and set wherever its people are (storyCast.ts): the first village's line, every village's own, the road's. Kept by
-// a key, the quest's and where it's set ("scrapForTheForge@8201", "wordToTheInn@first", "wolvesAtMyHeels@road").
+// The quests people give, and how they stand. Each is written once (quests/, gathered in quests/catalog.ts) and set
+// wherever its people are (storySet.ts): the first village's line, a village's own, the road's. Kept by a key, the
+// quest's and where it's set ("scrapForTheForge@8201", "wordToTheInn@first", "wolvesAtMyHeels@road").
 // Someone with one to give has a "!" over their head; taken, whoever it's handed in to has a "?" (grey while what it
 // asks is still to do, gold once it's ready); a word with either opens the talk scene (controller/story/
 // talkPanel.ts), which shows what `talk` says. What a quest asks is kept count of here (foes slain, a place reached,
@@ -21,13 +21,13 @@ import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { hashUnit, mulberry32 } from '../../util/random';
 import type { Carter } from './carter';
-import { RARE_QUESTS } from './rareQuests';
-import { ROAD_QUESTS } from './roadQuests';
-import { castKey, castOf, type CastHost, type Setting, type Who } from './storyCast';
-import { FIRST_QUESTS, type Gift, type StoryPlace, type StoryQuest, type Told } from './storyQuests';
-import { VILLAGE_QUESTS } from './villageQuests';
-import { BAWDY_QUESTS } from './bawdyQuests';
+import { STORY_QUESTS } from './quests/catalog';
+import type { CastHost, Point, Setting, Who } from './storyCast';
+import { goalOf, innOf } from './storyGoals';
+import type { Gift, StoryQuest, Told } from './storyQuests';
+import { sameWorld, settle, type Instance, type QuestSet } from './storySet';
 
+export { STORY_QUESTS } from './quests/catalog';
 export type { Who } from './storyCast';
 export type StoryMark = 'offer' | 'waiting' | 'ready'; // "!", a grey "?", a gold "?"
 export interface Talk {
@@ -50,15 +50,11 @@ export interface TakenStory {
   toName: string;
   fromName: string;
   door: Entrance | null; // the building they're in, if they're indoors
-  goal: { x: number; z: number } | null; // where what it still asks is to be done, or (ready) where to go back to, if they're off the maps
+  goal: Point | null; // where what it still asks is to be done, or (ready) where to go back to, if they're off the maps
   within: Entrance | null; // the building what it still asks is done in (a shift: the inn), if it's indoors
 }
 
-export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...BAWDY_QUESTS, ...RARE_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
-// Where a foe's kind keeps, for those that keep to a place: pointed to while none of them is in sight.
-const LAIR: Partial<Record<string, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', skeletonArcher: 'ruin', draugr: 'ruin', cryptLord: 'ruin', bandit: 'camp', banditChief: 'camp', caveSpider: 'cave', caveBat: 'cave', caveWorm: 'cave', broodMother: 'cave' };
-const FOE_SEEN = 90; // tiles: a quest's foes this near the hero are pointed to
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const idOf = (key: string): string => key.split('@')[0];
 const keyed = (id: string): string => (id.includes('@') ? id : `${id}@first`); // (a bare name: the first village's)
@@ -77,42 +73,18 @@ export interface StoryHost extends CastHost {
   report(event: GameEvent): void;
 }
 
-interface Instance {
-  key: string;
-  quest: StoryQuest;
-  at: Setting | null; // where it's set (the road's: nowhere)
-}
-
 export class Story {
   private state = new Map<string, 'taken' | 'done'>();
   private untracked = new Set<string>(); // those taken but kept off the screen's tracker (set in the journal)
   private counted = new Map<string, number>(); // what's been done toward each taken one (foes slain; a place reached, a thing done: 1)
   private kept = new Map<string, { to: string; from: string; x: number; z: number }>(); // each taken one's people and village, for when they're off the maps
-  private world: { key: string; first: Setting | null; firstRuin: Ruin | null; all: Map<string, Instance>; by: Map<object, Instance[]>; road: Instance[] } | null = null;
+  private world: QuestSet | null = null;
 
   constructor(private readonly host: StoryHost) {}
 
   // Every quest as it's set in the world that's on the maps, and whose they are (found again only as the world changes).
-  private get set(): NonNullable<Story['world']> {
-    const key = castKey(this.host);
-    if (this.world?.key === key) return this.world;
-    const { first, firstRuin, villages } = castOf(this.host);
-    const all = new Map<string, Instance>();
-    const by = new Map<object, Instance[]>();
-    const add = (quest: StoryQuest, at: Setting | null) => {
-      const needs = quest.needs;
-      const [giver, receiver] = [at?.who[quest.giver], quest.receiver ? at?.who[quest.receiver] : undefined];
-      if (at && (!giver || (quest.receiver && !receiver) || (needs?.kind === 'reach' && !at.place[needs.place]) || (needs?.kind === 'slay' && LAIR[needs.foe] && !at.place[LAIR[needs.foe]!]) || (needs?.kind === 'do' && needs.what === 'clearCamp' && !at.place.camp))) return;
-      const instance = { key: `${quest.id}@${at?.key ?? 'road'}`, quest, at };
-      all.set(instance.key, instance);
-      for (const who of new Set([giver, receiver])) if (who) by.set(who, [...(by.get(who) ?? []), instance]);
-    };
-    if (first) for (const quest of Object.values(FIRST_QUESTS)) add(quest, first);
-    for (const at of villages) [...VILLAGE_QUESTS, ...BAWDY_QUESTS].forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 9173) < (quest.share ?? 1) && add(quest, at));
-    // (The rare ones: few villages each; one that follows another, only where that one is.)
-    for (const at of villages) RARE_QUESTS.forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 40127) < (quest.share ?? 1) && (!quest.follows || all.has(`${quest.follows}@${at.key}`)) && add(quest, at));
-    for (const quest of ROAD_QUESTS) add(quest, null);
-    return (this.world = { key, first, firstRuin, all, by, road: [...all.values()].filter((i) => !i.at) });
+  private get set(): QuestSet {
+    return sameWorld(this.world, this.host) ? this.world : (this.world = settle(this.host));
   }
 
   // The first village's people (the line a new game opens with), once they're all on the maps.
@@ -124,6 +96,11 @@ export class Story {
   // Those a quest is `who`'s: given by them, or handed in to them (someone on the road: their calling's).
   private of(who: Who): Instance[] {
     return isTraveller(who) ? this.set.road.filter((i) => i.quest.giver === who.role) : (this.set.by.get(who) ?? []);
+  }
+
+  // Whether a quest of `who`'s is theirs to give, and theirs to take in.
+  private part(i: Instance, who: Who): { gives: boolean; takes: boolean } {
+    return { gives: isTraveller(who) || i.at?.who[i.quest.giver] === who, takes: !!i.quest.receiver && i.at?.who[i.quest.receiver] === who };
   }
 
   private told(i: Instance, giver?: Who): Told {
@@ -216,11 +193,11 @@ export class Story {
   markOf(who: Who): StoryMark | null {
     let mark: StoryMark | null = null;
     for (const i of this.of(who)) {
-      const state = this.stateOf(i.key);
-      if (state === 'taken' && i.quest.receiver && i.at?.who[i.quest.receiver] === who) {
+      const [state, { gives, takes }] = [this.stateOf(i.key), this.part(i, who)];
+      if (state === 'taken' && takes) {
         if (this.ready(i.key)) return 'ready';
         mark ??= 'waiting';
-      } else if (state === 'offered' && (isTraveller(who) || i.at?.who[i.quest.giver] === who)) mark = 'offer'; // (one to give, over one they wait on)
+      } else if (state === 'offered' && gives) mark = 'offer'; // (one to give, over one they wait on)
     }
     return mark;
   }
@@ -260,7 +237,7 @@ export class Story {
   // First a quest ready to hand in to them; then one of theirs to offer (someone with a trade: their wares too, an
   // answer away); then, from those with no trade to get on with, what they wait on, or say of the last of theirs done.
   talk(who: Who): Talk | null {
-    const mine = this.of(who).map((i) => ({ i, state: this.stateOf(i.key), gives: isTraveller(who) || i.at?.who[i.quest.giver] === who, takes: !!i.quest.receiver && i.at?.who[i.quest.receiver] === who }));
+    const mine = this.of(who).map((i) => ({ i, state: this.stateOf(i.key), ...this.part(i, who) }));
     if (mine.length === 0) return null;
     const speaker = who.name;
     const about = (i: Instance, state: 'offered' | 'handIn') => ({ name: i.quest.name, task: i.quest.task(this.told(i, who)), ...this.pays(i.key), state });
@@ -358,30 +335,6 @@ export class Story {
     return true;
   }
 
-  // Where what a taken quest still asks is to be done, if anywhere: the place to reach; the nearest such foe about;
-  // the camp to clear, the inn to work at, the well (its village's; the road's: the nearest to the hero).
-  private goalOf(key: string): { x: number; z: number } | null {
-    const needs = STORY_QUESTS[idOf(key)]?.needs;
-    const at = this.set.all.get(key)?.at ?? null;
-    const { hero, enemies } = this.host;
-    const nearest = <T extends { x: number; z: number }>(list: readonly T[], within = Infinity) => list.reduce<T | null>((best, p) => (Math.hypot(p.x - hero.x, p.z - hero.z) < (best ? Math.hypot(best.x - hero.x, best.z - hero.z) : within) ? p : best), null);
-    if (needs?.kind === 'reach') return at?.place[needs.place] ?? null;
-    if (needs?.kind === 'slay') return nearest(enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead'), FOE_SEEN) ?? (LAIR[needs.foe] && at?.place[LAIR[needs.foe]!]) ?? null; // (none in sight: where its kind keeps)
-    if (needs?.kind !== 'do') return null;
-    if (needs.what === 'clearCamp') return at?.place.camp ?? nearest(this.host.camps.map((c) => c.way));
-    if (needs.what === 'shift') return this.innOf(key);
-    return at?.village ?? nearest(this.host.villages);
-  }
-
-  // The inn a taken quest's shift is worked at (its village's), if that's what it asks.
-  private innOf(key: string): Entrance | null {
-    const needs = STORY_QUESTS[idOf(key)]?.needs;
-    if (needs?.kind !== 'do' || needs.what !== 'shift') return null;
-    const { hero } = this.host;
-    const far = (e: Entrance) => Math.hypot(e.x - hero.x, e.z - hero.z);
-    return this.set.all.get(key)?.at?.inn ?? this.host.entrances.filter((e) => e.type === 'inn').reduce<Entrance | null>((best, e) => (!best || far(e) < far(best) ? e : best), null);
-  }
-
   // Those under way, for the tracker and the journal (their people off the maps: as they were kept).
   get taken(): TakenStory[] {
     return [...this.state].filter(([, s]) => s === 'taken').map(([key]) => {
@@ -394,7 +347,7 @@ export class Story {
       const back = quest.receiver && !to ? { x: kept.x, z: kept.z } : null; // (whoever takes it in off the maps: back to their village)
       return {
         id: key, name: quest.name, task: quest.task({ ...told, giver: kept.from, receiver: kept.to || kept.from }), ready, tracked: !this.untracked.has(key), ...this.progress(key),
-        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (this.goalOf(key) ?? back), within: ready ? null : this.innOf(key),
+        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (goalOf(this.host, quest, i?.at ?? null) ?? back), within: ready ? null : innOf(this.host, quest, i?.at ?? null),
       };
     });
   }
