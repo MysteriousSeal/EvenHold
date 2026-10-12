@@ -30,6 +30,7 @@ export interface Fight {
   readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn'>; // the hero's roll and guard (combatMoves.ts)
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
+  readonly story?: { onKill(enemy: Enemy): void }; // (the quests people give: the foes they ask slain, counted)
   random(): number;
   report(event: GameEvent): void;
   focus(id: number | null): void;
@@ -66,6 +67,7 @@ export function landBlow(fight: Fight): void {
     gainXp(hero, xpGained(hero, xpAgainst(target.xp, target.level, hero.level))); // less, the weaker the foe
     healOnKill(hero);
     const wanted = fight.quests.onKill(target);
+    fight.story?.onKill(target);
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
     const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);

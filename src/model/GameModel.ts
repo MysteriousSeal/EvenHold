@@ -268,7 +268,7 @@ export class GameModel {
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
     this.moves.update(dt, this.push, this.land);
-    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report)]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
+    [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
     this.quests.update(dt);
     stepNpcs(this.folk, this, dt);
@@ -329,7 +329,7 @@ export class GameModel {
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
-  report = (event: GameEvent): void => void this.events.push(event);
+  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
   // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);
@@ -464,7 +464,7 @@ export class GameModel {
   // A silver coin into the well in reach, for a blessing (blessing.ts); returns it, or null (none in reach, or no silver).
   tossCoin(roll = Math.random()): BlessingKind | null {
     const kind = this.wellInReach === null ? null : tossCoin(this.hero, roll);
-    this.events.push(kind ? { kind: 'blessing', name: BLESSINGS[kind].name } : { kind: 'poor', text: 'Not a silver coin to toss' });
+    this.report(kind ? { kind: 'blessing', name: BLESSINGS[kind].name } : { kind: 'poor', text: 'Not a silver coin to toss' });
     return kind;
   }
 

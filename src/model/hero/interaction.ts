@@ -65,7 +65,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield carter ? { kind: 'carter', carter } : null;
   const chop = lumber.action;
   yield chop?.kind === 'chop' ? { kind: 'chop', action: chop } : null;
-  const talker = talkingTo(model.folk, inside, hero); // the barmaid, the smith (of the villagers round about)
+  const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
   yield talker && seated?.seat.piece.kind === 'barStool' ? { kind: 'talk', npc: talker, fromStool: true } : null;
   yield seated ? { kind: 'stand', seat: seated.seat } : null;

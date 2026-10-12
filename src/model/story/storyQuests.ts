@@ -1,55 +1,400 @@
-// The quests people give (story.ts), by hand, each its own: who gives it, who it's handed in to, what each of them
-// says (offering it, while it's under way, taking it in, after), and what it pays. The words may name those it's
-// about (`Told`: the village, its barmaid, the giver), known only once the world's made.
-export type StoryQuestId = 'wordToTheInn';
-export type StoryRole = 'carter' | 'firstBarmaid'; // who's who in them: the man by his wagon at the start; the barmaid of the nearest village's inn
+// The quests people give (story.ts), each written once, by hand, and set down wherever its people are: `scope`
+// 'first' (the village nearest where the hero sets out, the carter by his wagon: the line a new game opens with),
+// 'village' (every village: its own keepers and villagers, the places near it; `share` of them, so no two villages
+// ask quite the same: villageQuests.ts), 'road' (whoever of that calling is met on the road: roadQuests.ts).
+// Who gives it, who it's handed in to (no one: done, and paid, the moment what it asks is), what it asks (`needs`:
+// something brought, foes slain, a place reached, a thing done; none: only the walk to whoever takes it in), which
+// quest of the same village it follows, what each says, and what it pays (coin and experience, by the village's
+// level; a gift besides, for some). The words may name those it's about (`Told`), known only once the world's made.
+import type { EnemyKind } from '../types';
+import type { LootId } from '../loot/loot';
+import type { ItemId } from '../human/items';
+import type { Rarity } from '../human/items/gear';
+
+export type StoryQuestId = string;
+// Who's who, by the village a quest is set in: its keepers; two of its villagers; the barmaid of the village nearest
+// it; the carter (the first village's alone); and those met on the road.
+export type StoryRole = 'carter' | 'barmaid' | 'smith' | 'herbalist' | 'bouncer' | 'villagerA' | 'villagerB' | 'nextBarmaid' | 'pedlar' | 'pilgrim' | 'guard';
+export type StoryPlace = 'ruin' | 'camp' | 'cave'; // the nearest to its village (the first village's ruin: the one nearest the start)
+
+// What a quest asks before it can be handed in.
+export type Objective =
+  | { kind: 'bring'; item: LootId; count: number } // carried, and given over as it's handed in
+  | { kind: 'slay'; foe: EnemyKind; count: number } // slain since it was taken, anywhere
+  | { kind: 'reach'; place: StoryPlace; within: number } // come within so many tiles of
+  | { kind: 'do'; what: 'clearCamp' | 'shift' | 'wish'; count: number }; // a bandit camp cleared, a shift worked at an inn, a coin tossed in a well
+
+// A thing given besides the coin: so many of something, or a piece of gear made at the village's level.
+export type Gift = { item: LootId; count: number } | { gear: ItemId; least: Rarity };
 
 export interface Told {
   village: string;
-  barmaid: string;
-  carter: string;
+  giver: string; // whoever gives it, and whoever it's handed in to (the giver again, where there's no one)
+  receiver: string;
+  next: string; // the village nearest this one
+  barmaid: string; // this village's keepers, by name (a village without one: "the smith")
+  smith: string;
+  carter: string; // (the first village's)
+  camp: string; // the bandit camp nearest it, by name
+  axe: boolean; // whether the hero has an axe to chop with (in hand or in the pack), as they speak
 }
 
 export interface StoryQuest {
   id: StoryQuestId;
   name: string;
+  scope: 'first' | 'village' | 'road';
+  share?: number; // of the villages (a 'village' one): how many have it (all, unsaid)
   giver: StoryRole;
-  receiver: StoryRole;
+  receiver?: StoryRole;
+  follows?: StoryQuestId; // on offer only once this one's done (in the same village)
+  needs?: Objective;
   offer(t: Told): string[]; // the giver, offering it
   accept: string; // the hero's two answers
   decline: string;
   waiting(t: Told): string[]; // the giver again, while it's under way
-  after(t: Told): string[]; // and once it's done
+  pending?(t: Told): string[]; // whoever takes it in, asked before it's ready (the giver's own waiting lines, where they're the same)
+  after(t: Told): string[]; // the giver, once it's done
   task(t: Told): string; // what's to be done, in a line (the tracker, the journal)
-  handIn(t: Told): string[]; // the receiver, as it's handed in
+  handIn(t: Told): string[]; // the receiver, as it's handed in (no receiver: never said)
   thanks: string; // the hero's answer, taking what's paid
-  copper: number;
-  xpShare: number; // of the first level's experience
+  copper: number; // at a first-level village: more, the further out (story.ts)
+  xpShare: number; // of a level's experience, at the village's level
+  gift?: Gift;
 }
 
-export const STORY_QUESTS: Record<StoryQuestId, StoryQuest> = {
+// The line a new game opens with, about the first village, and where it leads. The carter's word to the inn; spokes
+// for his wheel, to its smith; the wolves on the trail, for the smith's boy; the old stones the carter can't stop
+// seeing. Then what was done there: the woman burned in the chapel yard was the herbalist's grandmother; the things
+// that walk over her are the priests who burned her; the bouncer held their horses, and knows where the order was
+// written down; the book is in a strongbox in the bandits' camp; the smith opens it; it names the priest, who lies
+// in honour under his own chapel, and does not lie still.
+export const FIRST_QUESTS: Record<string, StoryQuest> = {
   wordToTheInn: {
     id: 'wordToTheInn',
     name: 'Word to the inn',
+    scope: 'first',
     giver: 'carter',
-    receiver: 'firstBarmaid',
+    receiver: 'barmaid',
     offer: (t) => [
-      "Axle's gone, and the wheel went with it. I'm going nowhere today.",
-      `You've good legs on you. Follow the trail to ${t.village} and ask at the inn for ${t.barmaid}.`,
-      `Tell her ${t.carter}'s wagon is down on the road, and her ale with it. She'll send someone out with a wheel.`,
+      "My axle snapped and the wheel is in the ditch. This wagon isn't going anywhere.",
+      `This trail leads to ${t.village}. Go to the inn there and find ${t.barmaid}. Tell her ${t.carter}'s wagon has broken down on the road, with her ale on it.`,
+      'Please hurry. Bandits kill carters who are stuck on the road after dark.',
     ],
     accept: "I'll tell her.",
-    decline: 'Not now.',
-    waiting: (t) => [`The trail there, to ${t.village}. ${t.barmaid}, at the inn. I'll mind the load till someone comes.`],
-    after: (t) => [`You told ${t.barmaid}? Good. Then there's a wheel on its way, and I can sit down.`],
+    decline: 'Not my trouble.',
+    waiting: (t) => [`Follow the trail to ${t.village} and tell ${t.barmaid}, at the inn, that my wagon has broken down. I'll wait here with the load.`],
+    after: (t) => [`So ${t.barmaid} knows. Then help is coming, and I might live to see the morning.`],
     task: (t) => `Tell ${t.barmaid}, at the inn in ${t.village}, that the wagon is down`,
-    handIn: (t) => [
-      `Down on the road again? That man and his wagon. And my ale sat out in the sun, I suppose.`,
-      `Well. Thank you for walking it over, there's few who would. Here, for your trouble. I'll send the boy out to ${t.carter} with a wheel.`,
-    ],
+    handIn: () => ["His wagon has broken down? That's the third one this year. They found the last carter in spring, when the snow melted. Parts of him.", "He's lucky you stopped. Most people walk past. Here, this is for your trouble."],
     thanks: 'Glad to help.',
     copper: 25,
     xpShare: 0.3,
   },
+  spokesForTheWheel: {
+    id: 'spokesForTheWheel',
+    name: 'Spokes for the wheel',
+    scope: 'first',
+    giver: 'barmaid',
+    receiver: 'smith',
+    follows: 'wordToTheInn',
+    needs: { kind: 'bring', item: 'birchLog', count: 3 },
+    offer: (t) => [
+      `One more thing. ${t.smith}, our smith, can mend that wheel, but he needs birch wood for the spokes. He spent his wood money on drink.`,
+      t.axe
+        ? `You carry an axe. Cut three birch logs, from the pale trees, and take them to ${t.smith} at the smithy.`
+        : `You have no axe. ${t.smith} sells hatchets at the smithy. Buy one, cut three birch logs from the pale trees, and take them to him.`,
+    ],
+    accept: "I'll cut them.",
+    decline: 'Another time.',
+    waiting: (t) => [`Take three birch logs to ${t.smith} at the smithy. ${t.axe ? 'Birch trees are the pale ones. Your axe will cut them.' : 'You need an axe to cut them. He sells hatchets.'}`],
+    pending: () => ["I need three birch logs to make the wheel's spokes. And don't look at me like that. A man can have a drink, in a year like this one."],
+    after: (t) => [`I hear ${t.smith} mended that wheel sober. It was his first sober day of work since his wife died.`],
+    task: (t) => `Bring 3 birch logs to ${t.smith}, the smith in ${t.village}`,
+    handIn: (t) => [`Three birch logs, cleanly cut. Good. I'll make the spokes and mend ${t.carter}'s wheel properly.`, "Here's your pay. And thank you for not asking why my hands shake."],
+    thanks: 'Good luck with the wheel.',
+    copper: 40,
+    xpShare: 0.4,
+  },
+  wolvesOnTheTrail: {
+    id: 'wolvesOnTheTrail',
+    name: 'Wolves on the trail',
+    scope: 'first',
+    giver: 'smith',
+    receiver: 'carter',
+    follows: 'spokesForTheWheel',
+    needs: { kind: 'slay', foe: 'wolf', count: 3 },
+    offer: (t) => [
+      "My son will carry the wheel out to the wagon. He is ten years old, and the trail is full of wolves. They've grown bold from eating what the bandits leave in the ditches.",
+      `Kill three wolves and the rest will keep away from him. Then go and tell ${t.carter} his wheel is on its way.`,
+    ],
+    accept: "I'll see to the wolves.",
+    decline: 'Not today.',
+    waiting: (t) => [`Kill three wolves along the trail, then tell ${t.carter} his wheel is coming. Do it before my boy sets out.`],
+    pending: () => ["The wheel isn't here yet? Then the wolves must still be on the trail. I heard them kill something last night."],
+    after: () => ['My boy came home safe, and whistling. Thank you for that.'],
+    task: (t) => `Slay 3 wolves, then tell ${t.carter} the wheel is coming`,
+    handIn: () => ["You killed three wolves? Good. They've had a taste for people ever since the crown started leaving hanged men at the crossroads.", "And my wheel is on its way. Here, take this. It's all the coin I have on me."],
+    thanks: 'Safe travels.',
+    copper: 60,
+    xpShare: 0.6,
+  },
+  theOldStones: {
+    id: 'theOldStones',
+    name: 'The old stones',
+    scope: 'first',
+    giver: 'carter',
+    receiver: 'carter',
+    follows: 'wolvesOnTheTrail',
+    needs: { kind: 'reach', place: 'ruin', within: 10 },
+    offer: () => [
+      "While I wait for the wheel, I keep thinking about the ruin near here. It's an old chapel. When I was a boy, the priests burned a woman there. They said she had slept with a devil.",
+      "My horses have refused to pass the place ever since. Go to the ruin and look around. Then come back and tell me what's there.",
+    ],
+    accept: "I'll go and look.",
+    decline: 'Not for me.',
+    waiting: () => ['Go to the old ruin off the road and look around. Then come back and tell me what you saw.'],
+    after: () => ["Stairs going down, and ghosts walking about. I'll take the long road from now on."],
+    task: () => 'Find the old ruin off the road, then tell the carter what is there',
+    handIn: () => ['There are stairs going down under the ruin? And ghosts walking between the walls?', "So the place really is cursed. Here's your pay. If you ever go down those stairs, take a light with you."],
+    thanks: 'I will.',
+    copper: 50,
+    xpShare: 0.5,
+  },
+  herName: {
+    id: 'herName',
+    name: 'Her name',
+    scope: 'first',
+    giver: 'carter',
+    receiver: 'herbalist',
+    follows: 'theOldStones',
+    offer: (t) => [
+      `Someone else should hear what you saw: ${t.receiver}, the herbalist in ${t.village}. The woman the priests burned was her grandmother. Her name was Maren.`,
+      `For thirty years people have told ${t.receiver} that her grandmother's ghost haunts the ruin, damned. Go and tell her what is really there. I can't face her myself.`,
+    ],
+    accept: "I'll tell her.",
+    decline: 'Leave the dead be.',
+    waiting: (t) => [`Go to ${t.receiver}, the herbalist in ${t.village}. Tell her what you saw in the ruin, and that it isn't Maren.`],
+    after: () => ["You told her. Good. I should have told her myself twenty years ago, but I'm a coward."],
+    task: (t) => `Tell ${t.receiver}, the herbalist in ${t.village}, what walks in the old ruin`,
+    handIn: () => [
+      'You saw ghosts in the ruin, and stairs going down. But no woman. Not my grandmother.',
+      "For thirty years people here have called me the witch's granddaughter and crossed the road to avoid me. And she was never even up there. Give me a moment. I need to think.",
+    ],
+    thanks: 'It was never her.',
+    copper: 60,
+    xpShare: 0.5,
+  },
+  whatWalks: {
+    id: 'whatWalks',
+    name: 'What walks there',
+    scope: 'first',
+    giver: 'herbalist',
+    receiver: 'herbalist',
+    follows: 'herName',
+    needs: { kind: 'slay', foe: 'ghost', count: 3 },
+    offer: () => [
+      'I want to know whose ghosts those are. Go back to the ruin and destroy three of them. Look closely at them as they fade: what they wear, and what they carry.',
+      "My grandmother is ash, and this won't help her. But I have been spat on for thirty years because of those ghosts, and I want to know who they really are.",
+    ],
+    accept: "I'll take a good look at them.",
+    decline: 'Not that.',
+    waiting: () => ['Destroy three ghosts in the old ruin. Look at them closely as they fade, then tell me what they were.'],
+    after: () => ["Priests' robes. I think about it every time the chapel bell rings."],
+    task: () => 'Lay 3 ghosts in the old ruin, and see what they were',
+    handIn: () => [
+      'They wore robes with rope belts, and their hands were folded in prayer? Then they are priests.',
+      "The priests burned her, and now they are the ones who can't rest. That's the first good thing I have ever heard about God. Here's your pay. I'm not finished with you yet.",
+    ],
+    thanks: 'Priests, all of them.',
+    copper: 70,
+    xpShare: 0.6,
+  },
+  theDoorman: {
+    id: 'theDoorman',
+    name: 'The boy with the horses',
+    scope: 'first',
+    giver: 'herbalist',
+    receiver: 'bouncer',
+    follows: 'whatWalks',
+    offer: (t) => [
+      `${t.receiver}, the bouncer at the inn, used to ride with the tithe collectors. He was a boy on the night they burned my grandmother. He held the priests' horses.`,
+      "He knows who gave the order to burn her, and he has never told me. He can't even look at me. Go and ask him. Don't be gentle about it.",
+    ],
+    accept: "I'll ask him.",
+    decline: 'Not my place.',
+    waiting: (t) => [`Go to ${t.receiver}, the bouncer at the inn. Ask him who gave the order to burn my grandmother.`],
+    after: () => ["So he told you. He kept quiet for thirty years, and then he told a stranger. I don't know whether to thank him or spit on him."],
+    task: (t) => `Ask ${t.receiver}, on the door of the inn, who gave the order`,
+    handIn: (t) => [
+      "So the herbalist sent you. I've guarded this door for thirty years so I would never have to knock on hers.",
+      `I was fourteen. I held the horses and listened to her scream. The order to burn her came on paper, with a seal. The old reeve kept it in his record book, locked in a strongbox. Bandits killed him two winters ago and took that strongbox to ${t.camp}.`,
+    ],
+    thanks: 'You were only a boy.',
+    copper: 60,
+    xpShare: 0.4,
+  },
+  theCampScouted: {
+    id: 'theCampScouted',
+    name: 'Count them first',
+    scope: 'first',
+    giver: 'bouncer',
+    receiver: 'bouncer',
+    follows: 'theDoorman',
+    needs: { kind: 'reach', place: 'camp', within: 12 },
+    offer: (t) => [
+      `If the reeve's book still exists, it's in the bandit chief's chest at ${t.camp}. Don't attack yet. Go close enough to see the camp, then come back and tell me what you saw.`,
+      "Don't try to be a hero. I've seen what those bandits do to heroes. It takes days.",
+    ],
+    accept: "I'll scout the camp.",
+    decline: 'Another day.',
+    waiting: (t) => [`Go and take a look at ${t.camp}, then come back to me. Don't attack it yet.`],
+    after: () => ["Your scouting was good. I've known soldiers who did worse."],
+    task: (t) => `Scout ${t.camp}, then tell the bouncer what you saw`,
+    handIn: () => ['A wooden wall with one gate, tents, and a chief with a chest by his fire. And you came back in one piece.', 'Then the camp can be taken. Not by me, with my bad knee. But you could do it.'],
+    thanks: 'I can do it.',
+    copper: 70,
+    xpShare: 0.5,
+  },
+  theChiefsChest: {
+    id: 'theChiefsChest',
+    name: "The reeve's strongbox",
+    scope: 'first',
+    giver: 'bouncer',
+    receiver: 'smith',
+    follows: 'theCampScouted',
+    needs: { kind: 'do', what: 'clearCamp', count: 1 },
+    offer: (t) => [
+      `Go to ${t.camp} and kill every bandit there, including the chief. The reeve's strongbox will be in the chief's chest.`,
+      `Take the strongbox to ${t.receiver}, the smith. It has a trick lock, and he is the only one who can open it without ruining the book inside.`,
+    ],
+    accept: "I'll bring the box.",
+    decline: "That's too much for me.",
+    waiting: (t) => [`Kill all the bandits at ${t.camp}, including their chief. Then take the strongbox to ${t.receiver}, the smith.`],
+    pending: () => ["You don't have the strongbox? Then the bandits are still alive. Come back when their camp is cleared."],
+    after: () => ["The bandit camp is burned to the ground. I walked up there to see it. It's the first time I've left this door in a year."],
+    task: (t) => `Clear ${t.camp}, then take the reeve's strongbox to ${t.receiver}`,
+    handIn: () => ["That's the old reeve's strongbox. There's fresh blood on it. Good.", "This lock is a nasty one. If you force it, oil spills over the pages inside. I'll have to make a key for it, and I need iron for that."],
+    thanks: 'Can you open it?',
+    copper: 200,
+    xpShare: 1,
+    gift: { item: 'lesserHealthPotion', count: 2 },
+  },
+  ironForTheLock: {
+    id: 'ironForTheLock',
+    name: 'Iron for the lock',
+    scope: 'first',
+    giver: 'smith',
+    receiver: 'smith',
+    follows: 'theChiefsChest',
+    needs: { kind: 'bring', item: 'ironScrap', count: 3 },
+    offer: () => ['I need three pieces of iron scrap to make the key for the strongbox. You get scrap by breaking down old gear on the bench by my counter.', "Be quick. I had a drink to steady my hands, and it won't last long."],
+    accept: "I'll bring the iron.",
+    decline: 'Later.',
+    waiting: () => ['Bring me three pieces of iron scrap for the key. Break down old gear on the bench by my counter to get them.'],
+    after: () => ["I kept the key I made for that strongbox. I don't know why. Sometimes I take it out and look at it."],
+    task: (t) => `Bring 3 iron scrap to ${t.giver}, for the strongbox's key`,
+    handIn: () => [
+      "That's enough iron. Stand back. ...There. The box is open, and the book inside is dry.",
+      "I can't read. But I know the seal on the first page. It's the church's seal. It's on my marriage paper, and on every grave in the churchyard.",
+    ],
+    thanks: 'What does the book say?',
+    copper: 50,
+    xpShare: 0.4,
+  },
+  readToHer: {
+    id: 'readToHer',
+    name: 'Read to her',
+    scope: 'first',
+    giver: 'smith',
+    receiver: 'herbalist',
+    follows: 'ironForTheLock',
+    offer: (t) => [
+      `Take this book to ${t.receiver}, the herbalist. She can read, and she should be the first to know what it says.`,
+      "My wife is buried under that church's seal. If the book says what I think it does, I'll dig her up and bury her somewhere else.",
+    ],
+    accept: "I'll take it to her.",
+    decline: 'Not yet.',
+    waiting: (t) => [`Take the reeve's book to ${t.receiver}, the herbalist. She can read it.`],
+    after: () => ['The herbalist read the page out loud in the village square. Nobody moved. Then somebody threw a stone at the chapel door, and soon everybody was throwing them.'],
+    task: (t) => `Take the reeve's book to ${t.receiver}, the herbalist`,
+    handIn: () => [
+      "Listen to what it says. 'Paid to four men, for the burning of the woman Maren, who would not be silent. By order of Father Aldous.'",
+      "My grandmother was carrying Father Aldous's child, and she said so in front of the whole village. So he had her burned. And he is buried with honour, under his own chapel.",
+    ],
+    thanks: 'Not for much longer.',
+    copper: 60,
+    xpShare: 0.4,
+  },
+  aSilverForMaren: {
+    id: 'aSilverForMaren',
+    name: 'A silver for Maren',
+    scope: 'first',
+    giver: 'herbalist',
+    receiver: 'herbalist',
+    follows: 'readToHer',
+    needs: { kind: 'do', what: 'wish', count: 1 },
+    offer: () => [
+      'Before we deal with Father Aldous, do one thing for me. Toss a silver coin into the village well and make a wish for my grandmother. Nobody ever has. People say a burned witch gets no wishes.',
+      'I would do it myself, but the villagers would see me, and I have to go on living here. They are afraid of you. They will let you do it.',
+    ],
+    accept: "I'll toss it for her.",
+    decline: 'In a while.',
+    waiting: () => ['Toss a silver coin into the well, for my grandmother Maren.'],
+    after: () => ['Somebody has been leaving flowers at the well for my grandmother. Nobody will say who.'],
+    task: () => 'Toss a silver coin in the well, for Maren',
+    handIn: () => ['You made a wish for her, in front of everyone?', "Good. Let them all see it. Here's your silver back, and more. Now, let's talk about Father Aldous, and where he is buried."],
+    thanks: 'They all saw.',
+    copper: 150,
+    xpShare: 0.3,
+  },
+  theStairsDown: {
+    id: 'theStairsDown',
+    name: 'His deacons',
+    scope: 'first',
+    giver: 'herbalist',
+    receiver: 'herbalist',
+    follows: 'aSilverForMaren',
+    needs: { kind: 'slay', foe: 'skeleton', count: 4 },
+    offer: () => [
+      "Father Aldous is buried in the crypt, down the stairs under the old ruin. His deacons were buried around him. If the priests upstairs can't rest, I'd bet the dead down there can't either.",
+      "Go down into the crypt and destroy four of the skeletons. Then come back and tell me they can be killed. I won't send you after him without knowing that.",
+    ],
+    accept: "I'll go down.",
+    decline: 'Not down there.',
+    waiting: () => ['Go down the stairs in the old ruin and destroy four skeletons in the crypt. Then come back to me.'],
+    after: () => ['Skeletons in rotten robes, still guarding their priest. Of course they are.'],
+    task: () => 'Go down into the crypt under the old ruin and break 4 skeletons',
+    handIn: () => ['So the skeletons got up and attacked you with their swords. And they fall apart if you hit them hard enough.', "Then Father Aldous can be destroyed too. Take these potions. You'll need them more than my patients do."],
+    thanks: 'He can be destroyed.',
+    copper: 90,
+    xpShare: 0.7,
+    gift: { item: 'lesserHealthPotion', count: 2 },
+  },
+  thePriestBelow: {
+    id: 'thePriestBelow',
+    name: 'The priest below',
+    scope: 'first',
+    giver: 'herbalist',
+    receiver: 'carter',
+    follows: 'theStairsDown',
+    needs: { kind: 'slay', foe: 'cryptLord', count: 1 },
+    offer: (t) => [
+      "Go down into the crypt and destroy Father Aldous. It won't help my grandmother. Do it for me, and for every woman in this village who was told to keep quiet.",
+      `When it's done, don't come back to me. Go and tell ${t.receiver}, the carter. He has carried that night with him for thirty years, and he is the only one who was ever sorry.`,
+    ],
+    accept: "I'll end him.",
+    decline: "I'm not ready.",
+    waiting: (t) => [`Father Aldous lies in the great hall of the crypt, under the old ruin. Destroy him, then go and tell ${t.receiver}, the carter.`],
+    pending: () => ['Is Father Aldous still down in that crypt? Some nights I hear a bell ringing from the ruin, and there has been no bell there for a hundred years.'],
+    after: () => ['People come to my door openly now, in daylight. Nobody crosses the road to avoid me any more.'],
+    task: (t) => `Destroy Father Aldous, the lord of the crypt under the old ruin, then tell ${t.receiver}`,
+    handIn: () => [
+      'Father Aldous is destroyed? You saw him fall, and he stayed down?',
+      'I was nine years old that night. The priests paid me a copper to carry the wood for her fire, and I have driven past that ruin every week since. Now I can stop. Take this. Take all of it.',
+    ],
+    thanks: 'You were a child.',
+    copper: 300,
+    xpShare: 1.5,
+    gift: { gear: 'shortSword', least: 'rare' },
+  },
 };
-export const STORY_QUEST_IDS = Object.keys(STORY_QUESTS) as StoryQuestId[];

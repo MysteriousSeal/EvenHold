@@ -84,7 +84,7 @@ export interface SaveData {
   fullWalls?: boolean; // the option: rooms' inner walls full height
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
-  story?: Record<string, 'taken' | 'untracked' | 'done'>; // the quests people gave: taken, done (story/story.ts)
+  story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
 }
 
