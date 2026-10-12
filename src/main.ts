@@ -1,8 +1,8 @@
-import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
+import { innerWalls } from './model/interiors/upstairs';
+import { interactionOf } from './model/hero/interaction';
 import { createTalkPanel } from './controller/story/talkPanel';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
-import { chestInReach } from './model/loot/chests';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { CLASSIC_MOST, GameModel } from './model/GameModel';
@@ -22,7 +22,7 @@ import { dungeonAt } from './model/dungeons/dungeons';
 import { goesUnder } from './model/dungeons/dungeonTypes';
 import { TEARS_AT } from './model/caves/caveFoes';
 import { atWayOut } from './model/interiors/indoors';
-import { travellerInReach, travellerPrompt, travellerSays } from './model/travellers/travellerTalk';
+import { travellerPrompt, travellerSays } from './model/travellers/travellerTalk';
 import { say } from './model/npcs/speech';
 import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
@@ -37,7 +37,7 @@ import { createInventoryPanel } from './controller/hero/inventoryPanel';
 import { createShopPanel } from './controller/trade/shopPanel';
 import { createLevelUpPanel } from './controller/hero/levelUpPanel';
 import { createSmithPanel } from './controller/trade/smithPanel';
-import { talkPrompt, talkingTo } from './model/npcs/talk';
+import { talkPrompt } from './model/npcs/talk';
 import { bouncerSpeaks } from './model/inn/bouncer';
 import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
@@ -202,48 +202,56 @@ async function boot(): Promise<void> {
   const DOOR_NAMES = { house: 'Enter house', inn: 'Enter the inn', smithy: 'Enter the smithy' } as const;
   const CHEST_PROMPTS = { chest: 'Open the chest', hoard: 'Tear open the hoard', locked: 'Locked · the chief has the key' } as const;
   const promptTarget = (): PromptTarget | null => {
-    if (model.work.shift) return workPrompt(model); // (at work: the work's prompts alone, and the notice board's)
-    if (model.lumber.chopping) return chopPrompt(model); // (chopping a tree: E stops it)
-    const loot = model.lootInReach;
-    if (loot) return lootTarget(loot);
-    const work = workPrompt(model); // (the inn's notice board: its work)
-    if (work) return work;
     const { hero } = model;
-    const chest = chestInReach(model); // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
-    if (chest) return { label: CHEST_PROMPTS[chest.what], x: chest.x, y: chest.y, z: chest.z };
-    const carter = model.story.carterInReach; // (the man by his wagon, at the start)
-    if (carter) return { label: `Talk to ${carter.name}`, x: carter.x, y: model.getGroundY(carter.x, carter.z) + 1.1, z: carter.z };
-    const chop = chopPrompt(model); // (a tree in reach: chop it; or not, and why: last of all, below)
-    if (chop && !chop.muted) return chop;
     const seated = model.seated;
-    const talker = talkingTo(model.folk, model.inside, hero); // the barmaid, the smith (of the villagers round about)
-    const talk = talker && { label: talkPrompt(talker), x: talker.x, y: 1.1, z: talker.z, npc: talker };
-    if (seated && seated.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
-    if (seated) return talk && seated.seat.piece.kind === 'barStool' ? talk : { label: seated.seat.lying ? 'Get up' : 'Stand up', x: hero.x, y: hero.y + 0.6, z: hero.z };
-    const seat = model.seatInReach;
-    if (seat) {
-      const { piece } = seat;
-      return { label: seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
+    if (!model.work.shift && seated?.seat.piece.kind === 'barStool' && bar.busy) return null; // she's seeing to the order: no talking, and E waits
+    const found = interactionOf(model); // (what E would do: model/hero/interaction.ts)
+    if (!found) return null;
+    const overHero = (label: string, up = 1.05) => ({ label, x: hero.x, y: hero.y + up, z: hero.z });
+    switch (found.kind) {
+      case 'work':
+      case 'jobBoard':
+        return workPrompt(model); // (the work's own, or the inn's notice board's)
+      case 'stopChop':
+      case 'chop':
+      case 'cannotChop':
+        return chopPrompt(model); // (chop it, stop; or not, and why)
+      case 'loot':
+        return lootTarget(found.loot);
+      case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
+        return { label: CHEST_PROMPTS[found.chest.what], x: found.chest.x, y: found.chest.y, z: found.chest.z };
+      case 'carter':
+        return { label: `Talk to ${found.carter.name}`, x: found.carter.x, y: model.getGroundY(found.carter.x, found.carter.z) + 1.1, z: found.carter.z };
+      case 'talk':
+        return { label: talkPrompt(found.npc), x: found.npc.x, y: 1.1, z: found.npc.z, npc: found.npc };
+      case 'stand':
+        return overHero(found.seat.lying ? 'Get up' : 'Stand up', 0.6);
+      case 'sit': {
+        const { piece } = found.seat;
+        return { label: found.seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: found.seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
+      }
+      case 'traveller':
+        return { label: travellerPrompt(found.traveller), x: found.traveller.x, y: found.traveller.y + 0.75, z: found.traveller.z };
+      case 'board': {
+        const spot = boardSpot(model, found.board);
+        return spot ? { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z } : null;
+      }
+      case 'bench':
+        return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
+      case 'well':
+        return { label: 'Toss a silver coin', x: model.villages[found.village].x, y: hero.y + 0.8, z: model.villages[found.village].z };
+      case 'hallDoor':
+        return overHero(found.door.open ? 'Close door' : 'Open door'); // (a locked one too: tried, it's found locked)
+      case 'stairs':
+        return overHero(found.down ? 'Go downstairs' : 'Go upstairs');
+      case 'door': {
+        const { door } = found;
+        if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
+        const place = goesUnder(door) ? dungeonAt(door) : null;
+        const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
+        return { label, x: door.x, y: hero.y + 0.75, z: door.z };
+      }
     }
-    if (talk && !(model.inside && model.doorInReach)) return talk; // (at the way out: out first, not a word with the bouncer by it)
-    const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null; // (on the road)
-    if (traveller) return { label: travellerPrompt(traveller), x: traveller.x, y: traveller.y + 0.75, z: traveller.z };
-    const bench = model.salvage.benchInReach; // (the smithy's salvage bench: gear broken down)
-    if (bench) return { label: 'Break down gear', x: bench.x, y: 0.75, z: bench.z };
-    const read = model.boardInReach;
-    const spot = read === null ? undefined : boardSpot(model, read);
-    if (spot) return { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z };
-    const well = model.wellInReach;
-    if (well !== null) return { label: 'Toss a silver coin', x: model.villages[well].x, y: hero.y + 0.8, z: model.villages[well].z };
-    const hallDoor = model.inside?.below ? doorAt(model.inside, hero) : null;
-    if (hallDoor) return { label: hallDoor.open ? 'Close door' : 'Open door', x: hero.x, y: hero.y + 1.05, z: hero.z }; // (a locked one too: tried, it's found locked)
-    if (model.inside && stairsInReach(model.inside, hero)) return { label: model.inside.below ? 'Go downstairs' : 'Go upstairs', x: hero.x, y: hero.y + 1.05, z: hero.z };
-    const door = model.doorInReach;
-    if (!door) return chop; // (a tree that can't be chopped yet: why, if nothing else is to be done)
-    if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
-    const place = goesUnder(door) ? dungeonAt(door) : null;
-    const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
-    return { label, x: door.x, y: hero.y + 0.75, z: door.z };
   };
   const onFrame = () => {
     countFrame();

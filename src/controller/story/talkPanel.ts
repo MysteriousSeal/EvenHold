@@ -164,7 +164,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     stages?.hero?.dispose();
     stages?.other?.dispose();
     stages = null;
-    trackMenu(menu as Menu, false);
+    trackMenu(menu, false);
     hooks.setPaused(false);
   }
 
@@ -189,7 +189,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
         frame = requestAnimationFrame(render);
       };
       render();
-      trackMenu(menu as Menu, true);
+      trackMenu(menu, true);
       hooks.setPaused(true);
       write();
       return true;

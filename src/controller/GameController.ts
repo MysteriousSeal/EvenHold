@@ -1,11 +1,9 @@
 // Controller: turns input into model updates and drives the frame loop.
 
-import { chestInReach } from '../model/loot/chests';
-import type { Carter } from '../model/wayside/carter';
+import { interactionOf, type Interaction, type InteractionKind } from '../model/hero/interaction';
+import type { Carter } from '../model/story/carter';
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
-import { talkingTo } from '../model/npcs/talk';
 import { rentRoom, roomAction } from '../model/inn/roomLetting';
-import { travellerInReach } from '../model/travellers/travellerTalk';
 import type { Traveller } from '../model/travellers/travellers';
 import { shopAt } from '../model/inn/tavernShop';
 import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
@@ -141,38 +139,11 @@ export class GameController {
       if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(this.model.inside!.entrance)));
       else if (action?.kind === 'sleep') this.onSleep();
     }
-    // E: chopping a tree, stop; else pick up what's in reach; else chop the tree in reach (an axe in hand); else, sat
-    // at the bar, talk to the barmaid;
-    // else sit down or get up; else talk to her from her bar; else read the
-    // smith by his counter (unless at the way out: out first); else read the
-    // notice board in reach; else toss a coin in the well beside; else go
-    // through the door in reach.
-    // At work (a shift at the inn): E is the work's alone (an order taken, fetched, set down, a table cleared), or the
-    // notice board's (to end it); nothing else: no doors, no seats, no talk.
-    if (this.model.work.shift && this.input.consumePickup()) {
-      if (!this.model.work.use() && this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach);
-    } else if (this.model.lumber.chopping && this.input.consumePickup()) {
-      this.model.lumber.stop(); // (chopping: E again stops it, before the logs at their feet are picked up)
-    } else if (this.input.consumePickup()) {
-      const item = this.model.pickUp();
-      const talker = talkingTo(this.model.folk, this.model.inside, this.model.hero); // the barmaid, the smith (of the villagers round about)
-      if (item) this.onPickUp(item);
-      else if (this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach); // the inn's notice board: its work
-      else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
-      else if (this.model.story.carterInReach) this.onCarter(this.model.story.carterInReach); // the man by his wagon: a word
-      else if (this.model.lumber.action?.kind === 'chop') this.model.lumber.use(); // a tree, an axe in hand: chopping
-      else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
-      else if (!this.model.sitOrStand()) {
-        const board = this.model.boardInReach;
-        const leaving = !!this.model.inside && !!this.model.doorInReach; // (at the way out: out, before a word with whoever stands by it, the bouncer)
-        const traveller = !this.model.inside && !this.model.yard ? travellerInReach(this.model.travellers.list, this.model.hero) : null; // (on the road: a pedlar, a pilgrim, a guard)
-        if (talker && !leaving) this.onTalk(talker);
-        else if (traveller) this.onTraveller(traveller);
-        else if (board !== null) this.onRead(board);
-        else if (this.model.salvage.benchInReach !== null) this.onSalvage(); // a village's salvage bench: gear broken down
-        else if (this.model.wellInReach !== null) this.model.tossCoin();
-        else if (!useHallDoor(this.model) && !takeStairs(this.model)) this.model.useDoor(); // a door upstairs, else the stairs by them, else the way out
-      }
+    // E: the first thing there to be done, in the one order everything reads it by (model/hero/interaction.ts); one
+    // that comes to nothing (loot with a full bag, a seat that can't be had), the next.
+    if (this.input.consumePickup()) {
+      const tried = new Set<InteractionKind>();
+      for (let found = interactionOf(this.model); found && !this.interact(found); found = interactionOf(this.model, tried)) tried.add(found.kind);
     }
 
     const { forward, right } = this.view.getMovementAxes();
@@ -206,4 +177,49 @@ export class GameController {
     for (const event of this.model.takeEvents()) this.onEvent(event);
     this.view.update(dt);
   }
+  // What E does, done: whether anything came of it (not: the next thing in reach, if any).
+  private interact(found: Interaction): boolean {
+    const { model } = this;
+    switch (found.kind) {
+      case 'work':
+        return model.work.use();
+      case 'jobBoard':
+        return this.onWork(found.inn), true;
+      case 'stopChop':
+        return model.lumber.stop(), true;
+      case 'loot': {
+        const item = model.pickUp();
+        if (item) this.onPickUp(item);
+        return !!item;
+      }
+      case 'chest':
+        return found.chest.open(), true;
+      case 'carter':
+        return this.onCarter(found.carter), true;
+      case 'chop':
+        return model.lumber.use();
+      case 'talk':
+        return this.onTalk(found.npc), true;
+      case 'stand':
+      case 'sit':
+        return model.sitOrStand();
+      case 'traveller':
+        return this.onTraveller(found.traveller), true;
+      case 'board':
+        return this.onRead(found.board), true;
+      case 'bench':
+        return this.onSalvage(), true;
+      case 'well':
+        return model.tossCoin(), true;
+      case 'hallDoor':
+        return useHallDoor(model);
+      case 'stairs':
+        return takeStairs(model);
+      case 'door':
+        return model.useDoor();
+      case 'cannotChop':
+        return true; // (nothing to do: the prompt says why)
+    }
+  }
+
 }
