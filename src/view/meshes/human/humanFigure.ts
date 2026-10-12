@@ -7,7 +7,7 @@ import { EQUIP_SLOTS, hairShowsUnder, isHeldSlot, isJewelrySlot, lookOf, type Eq
 import { hairUnder } from './hairUnderHelm';
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import type { VoxelGrid } from '../voxel/greedyMesh';
-import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
+import { colorAt, createGrid, scaleGrid, setColor } from '../voxel/voxelShapes';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, JOINT_NAMES, bodyPalette, buildBodyPart, buildHairPiece, type Joint } from './bodyVoxels';
 import { lookModel, wornGrid, type LookId } from './gear/itemModels';
 import { wornPad } from './gear/armorShell';
@@ -22,20 +22,6 @@ const SHIFT: [number, number, number] = [11, 2, 21];
 // What's held is modelled in coarser voxels (bodyVoxels.ts HELD_VOXEL_SIZE):
 // scaled up to the figure's, blocky, so it keeps its size beside the body.
 const HELD_SCALE = HELD_VOXEL_SIZE / HUMAN_VOXEL_SIZE;
-function scaled(grid: VoxelGrid, by: number): VoxelGrid {
-  const [sx, sy, sz] = grid.size;
-  const out = createGrid([Math.ceil(sx * by), Math.ceil(sy * by), Math.ceil(sz * by)]);
-  const [ox, oy, oz] = out.size;
-  for (let z = 0; z < oz; z++) {
-    for (let y = 0; y < oy; y++) {
-      for (let x = 0; x < ox; x++) {
-        const c = colorAt(grid, Math.floor(x / by), Math.floor(y / by), Math.floor(z / by));
-        if (c) setColor(out, x, y, z, c);
-      }
-    }
-  }
-  return out;
-}
 
 export interface Figure {
   grid: VoxelGrid;
@@ -99,7 +85,7 @@ export function humanFigure(look: BodyLook | null, wearing: Equipment, only: rea
       if (!model.held) continue;
       const arm = joints[HELD_BY[slot]].at;
       const scale = model.held.fine ? 1 : HELD_SCALE; // (a fine one already in the body's voxels)
-      place(scaled(model.held.build(), scale), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip.map((g) => g * scale));
+      place(scaleGrid(model.held.build(), scale), model.palette, [arm[0] + hand[0], arm[1] + hand[1], arm[2] + hand[2]], model.held.grip.map((g) => g * scale));
       continue;
     }
     for (const joint of only) {

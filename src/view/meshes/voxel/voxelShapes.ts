@@ -91,3 +91,19 @@ export function nibble(grid: VoxelGrid, rng: () => number, chance: number, minY:
   });
   for (const [x, y, z] of doomed) setColor(grid, x, y, z, 0);
 }
+
+// A grid's voxels each made `by` across (blocky: the same shape, finer), e.g. for detail a whole voxel can't place.
+export function scaleGrid(grid: VoxelGrid, by: number): VoxelGrid {
+  const [sx, sy, sz] = grid.size;
+  const out = createGrid([Math.ceil(sx * by), Math.ceil(sy * by), Math.ceil(sz * by)]);
+  const [ox, oy, oz] = out.size;
+  for (let z = 0; z < oz; z++) {
+    for (let y = 0; y < oy; y++) {
+      for (let x = 0; x < ox; x++) {
+        const c = colorAt(grid, Math.floor(x / by), Math.floor(y / by), Math.floor(z / by));
+        if (c) setColor(out, x, y, z, c);
+      }
+    }
+  }
+  return out;
+}

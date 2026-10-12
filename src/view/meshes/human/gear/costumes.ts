@@ -15,6 +15,7 @@ import type { ArmorSlot } from '../../../../model/human/equipment';
 import type { BodyLook, Build } from '../../../../model/human/humanoid';
 import type { JobId } from '../../../../model/jobs/jobs';
 import { namedPalette } from './armorShell';
+import { unclothed } from '../unclothed';
 import type { ItemModel } from './itemModel';
 import { mod } from './patterns';
 import { edgeOf, within } from './items/headShape';
@@ -243,19 +244,13 @@ export const costumeFor = (job: JobId, build: Build): Partial<Record<ArmorSlot, 
 // What the hero's seen in at work (the job's costume, cut for them), wherever they're drawn: in the world, close up in
 // a talk, on their sheet; null off work (their own gear). A pleasure worker, the room's door shut behind them (the
 // shift begun): nothing at all, till it's over (`workLook`: nor their braies).
-const stripped = (model: { work: { shift: { job: JobId; begun?: boolean } | null } }): boolean => model.work.shift?.job === 'innCompanion' && !!model.work.shift.begun;
-export const workCostume = (model: { work: { shift: { job: JobId; begun?: boolean } | null }; hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null => {
+type AtWork = { work: { shift: { job: JobId; begun?: boolean } | null } };
+const stripped = (model: AtWork): boolean => model.work.shift?.job === 'innCompanion' && !!model.work.shift.begun;
+export function workCostume(model: AtWork & { hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null {
   const shift = model.work.shift;
   if (!shift) return null;
   return stripped(model) ? {} : costumeFor(shift.job, model.hero.look.build);
-};
-
-// The body they're drawn with: their own; stripped (above), the same without its braies (one such body kept for
-// each look, so it's the same from frame to frame).
-const bare = new Map<string, BodyLook>();
-export function workLook(model: { work: { shift: { job: JobId; begun?: boolean } | null }; hero: { look: BodyLook } }): BodyLook {
-  const { look } = model.hero;
-  if (!stripped(model)) return look;
-  const key = JSON.stringify(look);
-  return bare.get(key) ?? bare.set(key, { ...look, unclothed: true }).get(key)!;
 }
+
+// The body they're drawn with: their own; stripped (above), its unclothed twin (unclothed.ts).
+export const workLook = (model: AtWork & { hero: { look: BodyLook } }): BodyLook => (stripped(model) ? unclothed(model.hero.look) : model.hero.look);

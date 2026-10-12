@@ -13,26 +13,17 @@
 // own voxels are painted. The figure in play keeps its world-scale voxels.
 
 import type { BodyLook } from '../../../model/human/humanoid';
-import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { BODIES, C, NIPPLES, PART_GRID } from './bodyVoxels';
+import { colorAt, scaleGrid, setColor } from '../voxel/voxelShapes';
+import { BODIES, C, PART_GRID } from './bodyVoxels';
+import { NIPPLES } from './unclothed';
 import type { Figure } from './humanFigure';
 
 const BODY_COLORS = 15; // C's colors, first in a figure's palette (its body is placed first)
 
 export function fineFigure(figure: Figure, look: BodyLook): Figure {
   const { grid, palette, parts = {} } = figure;
-  const [sx, sy, sz] = grid.size;
-  const fine = createGrid([sx * 2, sy * 2, sz * 2]);
+  const fine = scaleGrid(grid, 2);
   const at = (x: number, y: number, z: number) => colorAt(grid, x, y, z);
-  for (let z = 0; z < sz; z++) {
-    for (let y = 0; y < sy; y++) {
-      for (let x = 0; x < sx; x++) {
-        const c = at(x, y, z);
-        if (!c) continue;
-        for (let k = 0; k < 2; k++) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) setColor(fine, x * 2 + i, y * 2 + j, z * 2 + k, c);
-      }
-    }
-  }
   // The body's own colour at a coarse voxel (0: none, or something worn).
   const body = (x: number, y: number, z: number) => {
     const c = at(x, y, z);

@@ -326,22 +326,6 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' |
   return grid;
 }
 
-// The unclothed torso drawn twice as fine (each voxel eight), for what a whole voxel can't place: a nipple in the
-// middle of each side of the chest (her bust is two voxels wide and two high, his chest three and two: their
-// middles fall between voxels), two fine voxels square (a voxel's own size), on the chest's front face.
-export const NIPPLES: Record<Build, ReadonlyArray<[x: number, y: number, z: number]>> = {
-  female: [3, 9].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
-  male: [4, 12].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
-};
-export function fineTorso(build: Build): VoxelGrid {
-  const coarse = buildTorso(build, true);
-  const [w, h, d] = coarse.size;
-  const fine = createGrid([w * 2, h * 2, d * 2]);
-  for (let z = 0; z < d * 2; z++) for (let y = 0; y < h * 2; y++) for (let x = 0; x < w * 2; x++) fine.cells[x + w * 2 * (y + h * 2 * z)] = coarse.cells[(x >> 1) + w * ((y >> 1) + h * (z >> 1))];
-  for (const [x, y, z] of NIPPLES[build]) fine.cells[x + w * 2 * (y + h * 2 * z)] = C.cheek;
-  return fine;
-}
-
 export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' | 'expression' | 'unclothed'>): VoxelGrid {
   if (part === 'head') return buildHead(look);
   if (part === 'torso') return buildTorso(look.build, look.unclothed);
