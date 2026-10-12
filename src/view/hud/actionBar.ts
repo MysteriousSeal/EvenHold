@@ -5,7 +5,8 @@
 // wait isn't over, its seconds counting down on it). Pressing its key, or clicking it,
 // uses it; dragging one onto another swaps them, off the bar clears it, and
 // so does a right-click; dropped from the bag (inventoryPanel.ts), a slot
-// takes what's dropped. Styles in hud.css.
+// takes what's dropped; and from the spellbook (controller/spells/spellbook.ts), a spell: its icon, its wait counting
+// down on it once cast. Styles in hud.css.
 
 import { isTool } from '../../model/loot/tools';
 import type { Hero } from '../../model/types';
@@ -14,6 +15,8 @@ import { LOOT } from '../../model/loot/loot';
 import { givesText } from '../../model/loot/provisions';
 import { isPotion, potionText } from '../../model/loot/potions';
 import { lootIcon } from '../ui/itemIcons';
+import { SPELLS, isSpellKey, spellOf, spellText, waitOf } from '../../model/spells/spells';
+import { SPELL_ICONS } from '../ui/spellIcons';
 
 const ICON = 40; // px
 const DRAG = 6; // px a press must move to be a drag, not a click
@@ -65,6 +68,21 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
   return () => {
     for (const [i, t] of tiles.entries()) {
       const item = hero.actionBar[i];
+      // A spell (spells.ts): its icon; greyed while it waits, its seconds counting down on it; nothing carried to count.
+      if (item && isSpellKey(item)) {
+        const id = spellOf(item);
+        const wait = Math.ceil(waitOf(hero, id));
+        const state = `${item}/${wait}`;
+        if (state === t.shown) continue;
+        if (!t.shown.startsWith(`${item}/`)) [t.tile.querySelector('canvas')?.remove(), t.tile.prepend(SPELL_ICONS[id](ICON))];
+        t.shown = state;
+        t.count.textContent = '';
+        t.tile.classList.remove('empty', 'spent');
+        t.tile.classList.toggle('busy', wait > 0);
+        t.cool.textContent = wait > 0 ? String(wait) : '';
+        t.tip.textContent = `${SPELLS[id].name} · ${spellText(id)}`;
+        continue;
+      }
       const have = item ? (hero.bag[item] ?? 0) : 0;
       const potion = !!item && isPotion(item);
       const wait = potion ? Math.ceil(hero.potionCooldown ?? 0) : 0;

@@ -127,7 +127,7 @@ export class EnemyViews {
 
 // Four gold corner brackets on the ground around a focused enemy's feet,
 // in voxels, unlit so they read at a glance.
-function focusMarker(): THREE.Mesh {
+export function focusMarker(): THREE.Mesh {
   const V = 0.03;
   const N = 17; // voxels across
   const grid = createGrid([N, 1, N]);

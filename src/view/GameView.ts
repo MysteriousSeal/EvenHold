@@ -23,7 +23,7 @@ import type { RenderOptions } from './render/renderOptions';
 import { ChunkStreamer } from './world/chunkStreamer';
 import { WORLD_BUILDERS, type WorldBuilder } from './world/worldBuilders';
 import { WorldRegions } from './world/worldRegions';
-import { EnemyViews } from './meshes/enemy/enemyViews';
+import { EnemyViews, focusMarker } from './meshes/enemy/enemyViews';
 import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
@@ -90,6 +90,8 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
+  private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
+  private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room
   private carter: CarterView | null = null; // (the man by his wagon, at the start)
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
@@ -219,20 +221,23 @@ export class GameView {
   // PICK_RADIUS pixels, or null. Judged on screen, not by hitting the
   // model exactly, as enemies are small from the isometric camera.
   pickEnemy(clientX: number, clientY: number, enemies: readonly Enemy[]): number | null {
+    return this.pick(clientX, clientY, enemies.filter((e) => e.state !== 'dead' && !e.buried), this.scene)?.id ?? null;
+  }
+
+  // Whoever of `people` is drawn nearest a point on screen, likewise (where they're drawn: the room, indoors).
+  pickPerson<T extends { x: number; y: number; z: number }>(clientX: number, clientY: number, people: readonly T[]): T | null {
+    return this.pick(clientX, clientY, people, this.peopleIn);
+  }
+
+  private pick<T extends { x: number; y: number; z: number }>(clientX: number, clientY: number, among: readonly T[], within: THREE.Object3D): T | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const at = new THREE.Vector3();
-    let best: number | null = null;
+    let best: T | null = null;
     let bestDistance = PICK_RADIUS;
-    for (const enemy of enemies) {
-      if (enemy.state === 'dead' || enemy.buried) continue;
-      at.set(enemy.x, enemy.y + 0.18, enemy.z).project(this.camera);
-      const x = rect.left + ((at.x + 1) / 2) * rect.width;
-      const y = rect.top + ((1 - at.y) / 2) * rect.height;
-      const d = Math.hypot(x - clientX, y - clientY);
-      if (d < bestDistance) {
-        best = enemy.id;
-        bestDistance = d;
-      }
+    for (const one of among) {
+      within.localToWorld(at.set(one.x, one.y + 0.18, one.z)).project(this.camera);
+      const d = Math.hypot(rect.left + ((at.x + 1) / 2) * rect.width - clientX, rect.top + ((1 - at.y) / 2) * rect.height - clientY);
+      if (d < bestDistance) [best, bestDistance] = [one, d];
     }
     return best;
   }
@@ -282,6 +287,15 @@ export class GameView {
     const yard = this.yardScene(model);
     const room = yard ? null : this.roomScene(model);
     const home = yard ?? room ?? this.scene;
+    // Whoever the hero's picked out (hero/selection.ts): the brackets at their feet, as a focused foe's.
+    this.peopleIn = home;
+    const chosen = model.chosen.person;
+    this.personMark.visible = !!chosen;
+    if (chosen) {
+      home.add(this.personMark);
+      this.personMark.position.set(chosen.x, chosen.y + 0.012, chosen.z);
+      this.personMark.scale.setScalar(room ? INDOOR_SCALE : 1);
+    }
     if (this.hero.root.parent !== home) {
       home.add(this.hero.root);
       // Rooms are built roomier than the world, so the hero's drawn bigger
