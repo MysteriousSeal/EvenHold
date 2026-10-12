@@ -57,7 +57,7 @@ export class Work {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host) : new InnShift(inn, rank, this.host.seed);
-    if (this.shift instanceof RoomShift) return (this.shift.onServed = () => this.served()), true; // (no one's work taken over: the room's their own)
+    if (this.shift instanceof RoomShift) return (this.shift.onServed = (great) => this.served(great)), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
       // begins with the more clean cups, and they're hers no longer once it's over (broken, walked off with).
@@ -120,14 +120,14 @@ export class Work {
     return this.shift?.carrying ?? null;
   }
 
-  // An order served: experience in the job (a rank risen, maybe) and the hero's own. (Its pay's owed till the end.)
-  private served(): void {
+  // An order served (`great`: done very well, where that's told): experience in the job (a rank risen, maybe) and the hero's own. (Its pay's owed till the end.)
+  private served(great = false): void {
     const { hero } = this.host;
     const job = this.shift!.job;
     const record = recordOf(hero, job);
     const before = rankIn(job, record.xp).index;
     record.served++;
-    record.xp++;
+    record.xp += great ? 2 : 1; // (a very good hour, in a room: learnt from twice over)
     gainXp(hero, HERO_XP);
     const now = rankIn(job, record.xp);
     if (now.index > before) {

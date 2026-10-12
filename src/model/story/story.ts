@@ -19,6 +19,7 @@ import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { hashUnit, mulberry32 } from '../../util/random';
+import type { Pace } from '../jobs/room/pace';
 import type { Carter } from './carter';
 import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
 import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
@@ -35,6 +36,9 @@ export interface Talk {
   lines: string[];
   quest?: { name: string; task: string; copper: number; xp: number; gift: string; state: 'offered' | 'handIn' }; // the quest it's about, shown under the lines
   night?: () => void; // a night passes before its last line (the screen gone black): called in the dark, it's morning (the clock at eight, all health and energy back)
+  // A game of pace played in the dark once its last line's said (model/jobs/room/pace.ts): whose pace, and what's
+  // said next, by how it went (0 to 1).
+  pace?: { pace: Pace; with: string; done(score: number): Talk };
   later?: string; // what the black says as that time passes (unsaid: "The next morning")
   answers: Array<{ label: string; primary?: boolean; trade?: boolean; out?: boolean; pick(): void | Talk }>; // (what it does; a talk given back: said next, in the same breath; `out`: the one Escape gives, where it's not simply the first that commits to nothing) // the hero's (none: just "Farewell"; `trade`: on to their wares)
 }

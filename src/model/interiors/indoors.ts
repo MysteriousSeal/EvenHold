@@ -69,6 +69,17 @@ export function walkInside(
   if (!blocked(hero.x, clampedZ)) hero.z = clampedZ;
 }
 
+// Whether an inner wall (the hallway's upstairs, or a door of it, shut) stands between `from` and `to` (where they'd
+// sit, or lie): what's behind one isn't in reach, however near.
+const PROBE = 0.1; // half the width of what's felt along the way: wider than the gap pieces of wall leave between them (they don't quite fill their tiles)
+function walled(furniture: readonly Furniture[], from: { x: number; z: number }, to: { x: number; z: number }): boolean {
+  const walls = furniture.filter((f) => f.kind === 'hallWall' || f.kind === 'hallDoor');
+  if (walls.length === 0) return false;
+  const steps = Math.max(2, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.05));
+  for (let i = 1; i <= steps; i++) if (bumpsFurniture(walls, from.x + ((to.x - from.x) * i) / steps, from.z + ((to.z - from.z) * i) / steps, PROBE)) return true;
+  return false;
+}
+
 // The nearest seat the hero could sit on from where they stand (one no one
 // else is on), or null.
 export function seatInReach(inside: Inside, hero: Hero, taken: (piece: Furniture) => boolean = () => false): Seat | null {
@@ -79,7 +90,7 @@ export function seatInReach(inside: Inside, hero: Hero, taken: (piece: Furniture
     const seat = seatOf(piece, hero); // (a double bed: the side they're by)
     if (!seat || taken(piece)) continue;
     const d = distanceTo(piece, hero.x, hero.z);
-    if (d <= bestDistance) {
+    if (d <= bestDistance && !walled(inside.furniture, hero, seat)) {
       best = seat;
       bestDistance = d;
     }

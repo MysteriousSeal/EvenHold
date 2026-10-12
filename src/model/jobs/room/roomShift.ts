@@ -2,7 +2,10 @@
 // hall, unlocked). It begins as they shut its door behind them (the clock too): the door's then fast till the shift's
 // over, and no one knocks before. Then, one at a time, clients come to the door (each of the
 // other sex than the hero's, someone new each time, each of a temper of their own: roomLines.ts): let in, warmly,
-// plainly or teasing, or turned away, at a word (the talk scene: `meet`). Let in, they're seen to come in from the
+// plainly or teasing, or turned away, at a word (the talk scene: `meet`). The hour itself is a game of keeping their
+// pace (pace.ts), played in the dark: how well it's kept is how pleased they are (the tip; a very good hour learnt
+// from twice over; the less it tires the hero; one who's trouble the readier to pay). The tone taken at the door, to
+// their taste, makes it the easier to keep. Let in, they're seen to come in from the
 // hallway and shut the door behind them, and go as they came after; between, the time passes unseen (the scene's
 // black: some of the clock, some of the hero's energy), and they pay as they leave: the house's price, by the hero's
 // rank, and a tip if the tone taken was to their taste. Some are trouble (one who pays half, one who won't pay
@@ -25,11 +28,17 @@ import { oneOf } from '../../../util/random';
 import type { JobRank } from '../jobs';
 import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Temper, type Tone } from './roomLines';
 import { BOUNCER, GIVES_IN, TROUBLE } from './roomTrouble';
+import type { Trouble } from './roomLines';
 import { Shift } from '../shift';
+import { paceOf } from './pace';
 import { Visit } from './roomVisit';
 
 export const PRICE = 22; // copper a client, at the first rank (a table's order: 2)
-const TIP = 10; // and up to so much besides, from one pleased (the tone taken to their taste: roomLines.ts)
+const TIP = 14; // and up to so much besides, from one pleased, by how well their pace was kept (pace.ts)
+const PLEASED = 0.55; // of the hour's pace kept: pleased (their own word going, and a tip)
+const GREAT = 0.85; // and a very good hour: learnt from twice over
+const TIRES: [number, number] = [1.3, 0.7]; // times the energy it costs: the pace not kept at all, kept throughout
+const SWAYED = 0.3; // how much likelier one who's trouble pays, pressed, for an hour kept throughout
 const ENERGY = 0.16; // of the hero's most, each client
 const MINUTES = 25; // of the game's clock, each
 const GAP: [number, number] = [4, 9]; // seconds in the room before the next knocks
@@ -63,7 +72,7 @@ export class RoomShift extends Shift {
   unpaid = 0;
   over = false; // too tired for another: the shift's done
   begun = false; // in the room, its door shut behind them: from then, the clock runs and clients come
-  onServed: () => void = () => {}; // (work.ts: what a client seen to earns the hero, besides the coin)
+  onServed: (great: boolean) => void = () => {}; // (work.ts: what a client seen to earns the hero, besides the coin; `great`: a very good hour)
   private readonly visit = new Visit(); // the client let in, as they're seen in the room (roomVisit.ts)
   private word: { who: Client; talk: Talk } | null = null; // what the one come in has to say, once they're in (taken up: `arrived`)
   private next = GAP[0]; // seconds in the room before the next knocks
@@ -196,35 +205,49 @@ export class RoomShift extends Shift {
     return word;
   }
 
-  // The talk of one let in: the time passed unseen (the talk's night), then what they say as they go, and what the hero may do. A
-  // plain one, the tone to their taste: pleased, and a tip; else the price and no more.
+  // The talk of one let in: their word as the door shuts; then the hour, played (their pace, the easier kept for a
+  // tone to their taste); then, by how it went, what they say as they go and what the hero may do.
   private letIn(client: Client, tone: Tone): Talk {
+    const plain = client.kind === 'plain';
+    const taste = !plain ? 'plain' : TEMPERS[client.temper].likes === tone ? 'liked' : 'disliked';
+    return {
+      speaker: client.name,
+      lines: [this.line(client, 'inside', 72)],
+      pace: { pace: paceOf(plain ? client.temper : (client.kind as Trouble), taste), with: client.name, done: (score) => this.after(client, tone, Math.min(1, Math.max(0, score))) },
+      answers: [],
+    };
+  }
+
+  // The hour over, `score` how well their pace was kept: the time and the energy it took (less, well kept), then what
+  // they say going. A plain one, pleased enough: their own word, and a tip by how pleased; else the price and no
+  // more. One who's trouble: their own, and the readier to pay, pressed, for a good hour.
+  private after(client: Client, tone: Tone, score: number): Talk {
+    this.spend(score);
     const price = Math.round(PRICE * this.rank.tips);
     const plain = client.kind === 'plain';
-    const pleased = plain && TEMPERS[client.temper].likes === tone;
+    const pleased = plain && score >= PLEASED;
+    const great = score >= GREAT;
     const bouncer = this.host.npcs?.some((n) => n.role === 'bouncer' && n.home === this.inn);
     return {
       speaker: client.name,
-      lines: [this.line(client, 'inside', 72), plain && !pleased ? oneOf(FLAT, this.roll(this.seen, 73))! : this.line(client, 'after', 73)],
-      night: () => this.spend(),
-      later: 'A while later', // (not a night: some of the evening)
+      lines: [plain && !pleased ? oneOf(FLAT, this.roll(this.seen, 73))! : this.line(client, 'after', 73)],
       answers: plain
-        ? [{ label: THANKS[tone], primary: true, pick: () => this.paid(price + (pleased ? Math.round((0.5 + 0.5 * this.roll(this.seen, 74)) * TIP * this.rank.tips) : 0)) }]
+        ? [{ label: THANKS[tone], primary: true, pick: () => this.paid(price + (pleased ? Math.round(score * TIP * this.rank.tips) : 0), great) }]
         : [
-            { label: 'Pay what you owe me.', primary: true, pick: () => this.insist(client, price) },
-            ...(bouncer ? [{ label: 'Call the bouncer.', pick: (): Talk => (this.paid(Math.round(price * (1 - CUT))), this.says(client, oneOf(BOUNCER, this.roll(this.seen, 80))!)) }] : []),
-            { label: 'Let it go.', out: true, pick: () => (client.kind === 'skinflint' ? this.paid(Math.round(price / 2)) : void [this.unpaid++, this.gone()]) },
+            { label: 'Pay what you owe me.', primary: true, pick: () => this.insist(client, price, score) },
+            ...(bouncer ? [{ label: 'Call the bouncer.', pick: (): Talk => (this.paid(Math.round(price * (1 - CUT)), great), this.says(client, oneOf(BOUNCER, this.roll(this.seen, 80))!)) }] : []),
+            { label: 'Let it go.', out: true, pick: () => (client.kind === 'skinflint' ? this.paid(Math.round(price / 2), great) : void [this.unpaid++, this.gone()]) },
           ],
     };
   }
 
-  // Insisted with: it works the more the higher the hero's level; failing, a skinflint pays his half all the same,
+  // Insisted with: it works the more the higher the hero's level, and the better the hour was; failing, a skinflint pays his half all the same,
   // the others nothing, and a blow with it.
-  private insist(client: Client, price: number): Talk {
+  private insist(client: Client, price: number, score: number): Talk {
     const { hero } = this.host;
     const kind = client.kind as Exclude<ClientKind, 'plain'>;
-    if (this.roll(this.seen, 75) < Math.min(0.9, 0.45 + 0.04 * hero.level)) return this.paid(price), this.says(client, oneOf(GIVES_IN, this.roll(this.seen, 81))!);
-    if (kind === 'skinflint') this.paid(Math.round(price / 2));
+    if (this.roll(this.seen, 75) < Math.min(0.95, 0.35 + 0.04 * hero.level + SWAYED * score)) return this.paid(price, score >= GREAT), this.says(client, oneOf(GIVES_IN, this.roll(this.seen, 81))!);
+    if (kind === 'skinflint') this.paid(Math.round(price / 2), false);
     else {
       hero.hp = Math.max(1, hero.hp - BLOW * maxHpOf(hero));
       hero.hurtFor = 0.3;
@@ -237,11 +260,11 @@ export class RoomShift extends Shift {
     return { speaker: client.name, lines: [line], answers: [] };
   }
 
-  // The time with a client: some of the clock, some of the hero's energy; now and then, the pox.
-  private spend(): void {
+  // The time with a client: some of the clock, some of the hero's energy (by how the hour went); now and then, the pox.
+  private spend(score: number): void {
     const { hero } = this.host;
     this.host.minutes += MINUTES;
-    hero.energy = Math.max(0, hero.energy - ENERGY * maxEnergyOf(hero));
+    hero.energy = Math.max(0, hero.energy - ENERGY * (TIRES[0] + (TIRES[1] - TIRES[0]) * score) * maxEnergyOf(hero)); // (well kept, it tires the less)
     // (Found in the room's bed, as the black lifts.)
     const inside = this.host.inside as Inside | null;
     const room = inside && letRoomBed(inside);
@@ -253,10 +276,10 @@ export class RoomShift extends Shift {
     }
   }
 
-  private paid(copper: number): void {
+  private paid(copper: number, great: boolean): void {
     this.earned += copper;
     this.served++;
-    this.onServed();
+    this.onServed(great);
     this.gone();
   }
 
