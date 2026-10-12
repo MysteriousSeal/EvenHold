@@ -62,7 +62,23 @@ export function settingFor(set: Pick<QuestSet, 'first' | 'villages'>, quest: Sto
   if (isTraveller(who)) return null;
   const home = 'village' in who ? set.villages.find((s) => s.village === who.village) : undefined;
   const base = quest.scope === 'first' && (!home || set.first?.village === home.village) ? set.first : home;
-  return base ? (base.who[quest.giver] === who ? base : { ...base, who: { ...base.who, [quest.giver]: who } }) : null;
+  return base ? cast(base, quest, who) : null;
+}
+
+// A setting with `who` in a quest's giver's part (as it is, where that's theirs already).
+const cast = (at: Setting, quest: StoryQuest, who: Who | undefined): Setting => (!who || at.who[quest.giver] === who ? at : { ...at, who: { ...at.who, [quest.giver]: who } });
+
+// Quests set by hand, set again in a world just worked out (a cheat's, kept in the save: `forced`, by key: who was
+// put in the giver's part, if anyone); and any other under way that its village didn't draw (`taken`: an older
+// save's), with the village's own people. Left out, where its village now lacks what it needs.
+export function resettle(set: QuestSet, forced: ReadonlyMap<string, Who | undefined>, taken: Iterable<string>, quests: Record<string, StoryQuest>): void {
+  for (const key of new Set([...forced.keys(), ...taken])) {
+    const [id, spot] = key.split('@');
+    const base = spot === 'first' ? set.first : set.villages.find((s) => s.key === spot);
+    if (!quests[id] || !base || (set.all.has(key) && !forced.has(key))) continue;
+    const at = cast(base, quests[id], forced.get(key));
+    if (!lacks(quests[id], at)) place(set, quests[id], at);
+  }
 }
 
 export function settle(host: CastHost): QuestSet {

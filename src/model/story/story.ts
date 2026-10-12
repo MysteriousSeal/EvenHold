@@ -24,7 +24,7 @@ import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
 import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
 import { goalOf, innOf } from './storyGoals';
 import type { Gift, StoryQuest, Told } from './storyQuests';
-import { keyOf, lacks, place, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
+import { keyOf, lacks, place, resettle, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
 
 export { STORY_QUESTS } from './quests/catalog';
 export type { Who } from './storyCast';
@@ -101,17 +101,7 @@ export class Story {
   private get set(): QuestSet {
     if (sameWorld(this.world, this.host)) return this.world;
     this.world = settle(this.host);
-    // Those set by hand, set again; and any other under way that its village didn't draw (an older save's): with the
-    // village's own people.
-    for (const key of new Set([...this.forced.keys(), ...[...this.state].filter(([, s]) => s === 'taken').map(([k]) => k)])) {
-      const quest = STORY_QUESTS[idOf(key)];
-      const spot = key.split('@')[1];
-      const base = spot === 'first' ? this.world.first : this.world.villages.find((s) => s.key === spot);
-      if (!quest || !base || (this.world.all.has(key) && !this.forced.has(key))) continue;
-      const giver = this.host.npcs.find((n) => n.id === this.forced.get(key));
-      const at = giver ? { ...base, who: { ...base.who, [quest.giver]: giver } } : base;
-      if (!lacks(quest, at)) place(this.world, quest, at);
-    }
+    resettle(this.world, new Map([...this.forced].map(([key, id]) => [key, this.host.npcs.find((n) => n.id === id)])), [...this.state].filter(([, s]) => s === 'taken').map(([key]) => key), STORY_QUESTS); // (those set by hand, and an older save's)
     return this.world;
   }
 
@@ -288,11 +278,6 @@ export class Story {
     if (given) return { speaker, lines: given.i.quest.waiting(this.told(given.i, who)), answers: [] };
     const done = isTraveller(who) ? undefined : mine.filter((m) => m.state === 'done' && m.gives).at(-1); // (on the road: their own word again)
     return done ? { speaker, lines: done.i.quest.after(this.told(done.i, who)), answers: [] } : null;
-  }
-
-  // Whether `who` has a quest to offer right now.
-  offers(who: Who): boolean {
-    return this.markOf(who) === 'offer';
   }
 
   // Those under way and tracked on screen: how many.
