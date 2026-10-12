@@ -5,7 +5,9 @@
 // to the game: one entry here, and the player will weigh it with the rest.
 
 import type { Entrance } from '../../../src/model/interiors/interiors';
-import { interactionOf } from '../../../src/model/hero/interaction';
+import { bumpsFurniture } from '../../../src/model/interiors/furniture';
+import type { Who } from '../../../src/model/story/story';
+import type { Carter } from '../../../src/model/story/carter';
 import { setAction } from '../../../src/model/hero/actionBar';
 import type { Camp } from '../../../src/model/camps/camps';
 import type { Enemy, Tree } from '../../../src/model/types';
@@ -285,53 +287,51 @@ export const ACTIVITIES: Activity[] = [
     steps: (p, t) => p.meet(t.data as Traveller),
   },
   {
-    // A quest someone gives (model/story/story.ts): taken from whoever has the "!" (the carter by his wagon, seen from
-    // where they set out), then carried to whoever has the "?" (the barmaid at the nearest village's inn) and handed in;
-    // each step checked: the offer made, the mark moved, the pay as promised.
+    // The quests people give (model/story/story.ts): whoever near has a gold "?" (one ready to hand in to them) or a
+    // "!" (one to give) gone to, wherever they are (a keeper at their counter, a villager at home or out and about),
+    // and spoken with: each answer given the first, a quest handed in and the next of theirs taken in the same breath;
+    // each step checked (something came of the answer; the pay as promised). What a quest asks meanwhile (logs,
+    // wolves, a camp cleared) comes of the player's other doings, or doesn't.
     id: 'errand',
     serves: { growth: 0.6, coin: 0.5, company: 0.4, curiosity: 0.3 },
     traits: { social: 0.5, curious: 0.3 },
     options: (p) => {
       const { story, hero } = p.model;
-      const cast = story.people;
-      if (!cast) return [];
-      const taken = story.taken[0];
-      if (taken) return [{ label: `${cast.carter.name}'s word, to ${taken.to.name} at the inn`, at: cast.inn, data: 'handIn' }];
-      const far = Math.hypot(cast.carter.x - hero.x, cast.carter.z - hero.z);
-      return story.markOf(cast.carter) === 'offer' && far < 60 ? [{ label: `${cast.carter.name} by his wagon, who has something to ask`, at: cast.carter, data: 'take' }] : [];
+      const from = p.model.inside?.entrance ?? hero;
+      const where = (who: Who) => ('where' in who && who.where ? who.where : who);
+      const near = story.asking.filter((a) => a.mark !== 'waiting' && Math.hypot(where(a.who).x - from.x, where(a.who).z - from.z) < 200).sort((a, b) => Number(b.mark === 'ready') - Number(a.mark === 'ready') || Math.hypot(where(a.who).x - from.x, where(a.who).z - from.z) - Math.hypot(where(b.who).x - from.x, where(b.who).z - from.z));
+      return near.slice(0, 2).map(({ who, mark }) => ({ label: `${who.name}, who has ${mark === 'ready' ? 'a quest to take in' : 'something to ask'}`, at: where(who), data: who }));
     },
     steps: (p, t) => {
       const { story, hero } = p.model;
-      const cast = story.people!;
-      if (t.data === 'take') {
-        return [
-          p.walk(() => cast.carter, 1.4),
-          () => {
-            if (interactionOf(p.model)?.kind !== 'carter') return p.report('carter out of reach beside him', `hero at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}, he at ${cast.carter.x},${cast.carter.z}`), 'fail';
-            const talk = story.talk(cast.carter);
-            if (!talk?.quest || talk.answers.length < 2) return p.report('quest not offered', `${cast.carter.name}: ${talk?.lines.length ?? 0} lines, ${talk?.answers.length ?? 0} answers`), 'fail';
-            talk.answers[0].pick();
-            if (story.markOf(cast.barmaid) !== 'ready' || story.markOf(cast.carter) !== null) p.report('quest marks wrong once taken', `carter ${story.markOf(cast.carter)}, barmaid ${story.markOf(cast.barmaid)}`);
-            p.stats.questsTaken++;
-            return 'ok';
-          },
-        ];
-      }
-      return [
-        ...p.enter(cast.inn),
-        p.walk(() => cast.barmaid, 1.4),
-        () => {
-          const [money, quest] = [hero.money, story.taken[0]];
-          const talk = story.talk(cast.barmaid);
-          if (!quest || talk?.quest?.state !== 'handIn') return p.report('quest not taken in', `${cast.barmaid.name}: ${talk ? 'no hand-in' : 'nothing to say'}`), 'fail';
+      const who = t.data as Carter | Npc;
+      const indoors = 'where' in who ? who.where : null;
+      const word: Step = () => {
+        if (Math.hypot(who.x - hero.x, who.z - hero.z) > 2.6 || ('where' in who && who.where !== (p.model.inside?.entrance ?? null))) return 'fail'; // (walked off meanwhile: another time)
+        let said = 0;
+        for (; said < 3; said++) {
+          const talk = story.talk(who);
+          if (!talk?.quest) break; // (nothing more of theirs to take up)
+          const [money, before] = [hero.money, JSON.stringify(story.save())];
           talk.answers[0].pick();
-          if (story.stateOf(quest.id) !== 'done' || hero.money !== money + talk.quest.copper) p.report('quest paid wrong', `${hero.money - money} for ${talk.quest.copper}, ${story.stateOf(quest.id)}`);
-          if (story.markOf(cast.barmaid) !== null) p.report('quest mark left once done', String(story.markOf(cast.barmaid)));
-          p.stats.questsDone++;
-          return 'ok';
-        },
-        ...p.leave(),
-      ];
+          if (JSON.stringify(story.save()) === before) return p.report('quest answer came to nothing', `${who.name}: ${talk.quest.name} (${talk.quest.state})`), 'fail';
+          if (talk.quest.state === 'handIn') {
+            if (hero.money !== money + talk.quest.copper) p.report('quest paid wrong', `${talk.quest.name}: ${hero.money - money} for ${talk.quest.copper}`);
+            p.stats.questsDone++;
+          } else p.stats.questsTaken++;
+        }
+        return said > 0 ? 'ok' : 'fail';
+      };
+      // Up to them: a keeper stands behind a counter, where no one walks: to the first open spot a pace or two off
+      // (across it), near enough for a word.
+      const beside = () => {
+        const inside = p.model.inside;
+        const open = (x: number, z: number) => (inside ? x > 0 && z > 0 && x < inside.room.width - 1 && z < inside.room.depth - 1 && !bumpsFurniture(inside.furniture, x, z, 0.3) : !p.model.isBlocked(x, z, 0.3));
+        const spot = [[1.6, 0], [0, 1.6], [-1.6, 0], [0, -1.6], [2.2, 0], [0, 2.2], [-2.2, 0], [0, -2.2]].map(([dx, dz]) => ({ x: who.x + dx, z: who.z + dz })).find((s) => open(s.x, s.z));
+        return spot ?? who;
+      };
+      const upTo: Step = (dt) => (Math.hypot(who.x - hero.x, who.z - hero.z) <= 1.8 ? 'ok' : p.walk(beside, 0.5)(dt) === 'run' ? 'run' : 'ok'); // (as near as can be got: the word says whether it's near enough)
+      return indoors ? [...p.enter(indoors), upTo, word, ...p.leave()] : [upTo, word];
     },
   },
   {

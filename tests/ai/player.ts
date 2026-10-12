@@ -251,9 +251,9 @@ export class Player {
   private word(who: Who): boolean {
     const talk = this.model.story.talk(who);
     if (!talk) return false;
-    const before = this.model.story.save();
+    const before = this.model.story.save().states;
     talk.answers[0]?.pick();
-    const now = this.model.story.save();
+    const now = this.model.story.save().states;
     for (const id of Object.keys(now)) if (now[id] !== before[id]) now[id] === 'done' ? [this.tally.quests.done++, this.earn('quest', PAY.quest)] : this.tally.quests.taken++;
     return true;
   }
