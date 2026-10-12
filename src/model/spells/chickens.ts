@@ -4,9 +4,10 @@
 // peck; a foe leaves off the fight (and takes what harm comes, a chicken still), a villager their day (no word to be
 // had, no trade), a traveller their road. One at a time: another turned, the first is back. Back as they were when it
 // runs out, or they die; a foe wary again, a villager on with their day from where they stand, a traveller on their
-// road. The turning takes a moment (TURNING seconds, and as long to turn back at the end): stood where they are
-// meanwhile, part one thing and part the other (`morphOf`: the view's to draw, wildlife/chickenMorph.ts). Told as
-// they're turned and are back ('puff').
+// road. Turned there and then, as the game goes ('transformed' told: how it happens, part by part, is the view's to
+// play while the game stands still, view/cinema/). Turning back at the end takes a moment (TURNING seconds): stood
+// where they are meanwhile, part one thing and part the other (`morphOf`: the view's to draw,
+// wildlife/chickenMorph.ts); told once they're back ('puff').
 import { isBoss } from '../enemies/enemyLevels';
 import type { Entrance } from '../interiors/interiors';
 import type { Point } from '../map/obstacles';
@@ -16,7 +17,7 @@ import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
 
 export const ROAM = 5; // tiles from where they were turned, at most
-export const TURNING = 1.8; // seconds the turning takes, into a chicken and back out of one
+export const TURNING = 1.8; // seconds turning back takes, at the end
 const PACE = 0.55; // tiles a second, strutting
 const PECK: [number, number] = [0.6, 2.2]; // seconds stood pecking between strolls
 const ARRIVED = 0.08;
@@ -61,12 +62,12 @@ export class Chickens {
   turn(being: Being, seconds: number): boolean {
     if (!mayTurn(being)) return false;
     if (this.current && this.current !== being) this.back(this.current);
-    being.chicken = { left: seconds, age: 0, from: { x: being.x, z: being.z }, to: null, peck: PECK[0], facing: isFoe(being) ? 0 : being.facing };
+    being.chicken = { left: seconds, age: TURNING, from: { x: being.x, z: being.z }, to: null, peck: PECK[0], facing: isFoe(being) ? 0 : being.facing };
     // (Whatever they were at, let go: a foe's blow and its fight, a villager's seat and errand.)
     if (isFoe(being)) Object.assign(being, { swingFor: null, windUp: null, told: null, state: 'idle' });
     else if (isNpc(being)) Object.assign(being, { seat: null, stood: null, steps: [], path: null, waited: 0, working: false, moving: false });
     this.current = being;
-    this.puff(being);
+    this.host.report({ kind: 'transformed', who: being, into: 'chicken' });
     return true;
   }
 

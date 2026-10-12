@@ -14,7 +14,7 @@ export interface Spell {
   level: number; // the hero's, to be taught it
   price: number; // copper, to be taught it
   breath: number; // spent as it's cast
-  cooldown: number; // seconds before it's cast again
+  cooldown: number; // seconds before it's cast again (0: at once)
   range: number; // tiles to whoever it's cast at
   aim: Aim; // whom it may be cast at
   harm?: number; // times a blow of the hero's, done to a foe
@@ -26,7 +26,7 @@ export interface Spell {
 export const SPELLS: Record<SpellId, Spell> = {
   hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', level: 1, price: 40, breath: 30, cooldown: 6, range: 5, aim: 'foes', harm: 2 },
   mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', level: 1, price: 60, breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
-  chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry for a while.', level: 3, price: 150, breath: 50, cooldown: 45, range: 5, aim: 'anyone', chicken: 30, needsTarget: true },
+  chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry for a while.', level: 3, price: 150, breath: 50, cooldown: 0, range: 5, aim: 'anyone', chicken: 30, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
@@ -54,7 +54,7 @@ export function coolSpells(hero: Pick<Hero, 'spellWait'>, dt: number): void {
 export function spellText(id: SpellId): string {
   const spell = SPELLS[id];
   const does = spell.chicken ? `Turns whoever you've picked out into a chicken for ${spell.chicken} s (one at a time; no boss)` : spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
-  return `${does}, up to ${spell.range} tiles off · ${spell.breath} Breath · ${spell.cooldown} s`;
+  return `${does}, up to ${spell.range} tiles off · ${spell.breath} Breath · ${spell.cooldown ? `${spell.cooldown} s` : 'no wait'}`;
 }
 // A save's known spells, as far as they're sound (an older save's: none).
 export const readSpells = (saved: unknown): SpellId[] => (Array.isArray(saved) ? SPELL_IDS.filter((id) => saved.includes(id)) : []);

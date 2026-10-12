@@ -9,7 +9,7 @@ import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
 import type { SpellId } from './spells/spells';
-import type { Chickened } from './spells/chickens';
+import type { Being, Chickened } from './spells/chickens';
 import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
 
@@ -60,7 +60,8 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
-  | { kind: 'puff'; x: number; y: number; z: number } // a puff of smoke (someone turned into a chicken, or back: spells/chickens.ts)
+  | { kind: 'puff'; x: number; y: number; z: number } // a puff of smoke (someone turned back from a chicken: spells/chickens.ts)
+  | { kind: 'transformed'; who: Being; into: 'chicken' } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
