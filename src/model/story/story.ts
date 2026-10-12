@@ -21,6 +21,7 @@ import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { hashUnit, mulberry32 } from '../../util/random';
 import type { Carter } from './carter';
+import { RARE_QUESTS } from './rareQuests';
 import { ROAD_QUESTS } from './roadQuests';
 import { castKey, castOf, type CastHost, type Setting, type Who } from './storyCast';
 import { FIRST_QUESTS, type Gift, type StoryPlace, type StoryQuest, type Told } from './storyQuests';
@@ -53,10 +54,10 @@ export interface TakenStory {
   within: Entrance | null; // the building what it still asks is done in (a shift: the inn), if it's indoors
 }
 
-export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...BAWDY_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
+export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...BAWDY_QUESTS, ...RARE_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 // Where a foe's kind keeps, for those that keep to a place: pointed to while none of them is in sight.
-const LAIR: Partial<Record<string, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', cryptLord: 'ruin', bandit: 'camp' };
+const LAIR: Partial<Record<string, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', skeletonArcher: 'ruin', draugr: 'ruin', cryptLord: 'ruin', bandit: 'camp', banditChief: 'camp', caveSpider: 'cave', caveBat: 'cave', caveWorm: 'cave', broodMother: 'cave' };
 const FOE_SEEN = 90; // tiles: a quest's foes this near the hero are pointed to
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const idOf = (key: string): string => key.split('@')[0];
@@ -101,13 +102,15 @@ export class Story {
     const add = (quest: StoryQuest, at: Setting | null) => {
       const needs = quest.needs;
       const [giver, receiver] = [at?.who[quest.giver], quest.receiver ? at?.who[quest.receiver] : undefined];
-      if (at && (!giver || (quest.receiver && !receiver) || (needs?.kind === 'reach' && !at.place[needs.place]) || (needs?.kind === 'do' && needs.what === 'clearCamp' && !at.place.camp))) return;
+      if (at && (!giver || (quest.receiver && !receiver) || (needs?.kind === 'reach' && !at.place[needs.place]) || (needs?.kind === 'slay' && LAIR[needs.foe] && !at.place[LAIR[needs.foe]!]) || (needs?.kind === 'do' && needs.what === 'clearCamp' && !at.place.camp))) return;
       const instance = { key: `${quest.id}@${at?.key ?? 'road'}`, quest, at };
       all.set(instance.key, instance);
       for (const who of new Set([giver, receiver])) if (who) by.set(who, [...(by.get(who) ?? []), instance]);
     };
     if (first) for (const quest of Object.values(FIRST_QUESTS)) add(quest, first);
     for (const at of villages) [...VILLAGE_QUESTS, ...BAWDY_QUESTS].forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 9173) < (quest.share ?? 1) && add(quest, at));
+    // (The rare ones: few villages each; one that follows another, only where that one is.)
+    for (const at of villages) RARE_QUESTS.forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 40127) < (quest.share ?? 1) && (!quest.follows || all.has(`${quest.follows}@${at.key}`)) && add(quest, at));
     for (const quest of ROAD_QUESTS) add(quest, null);
     return (this.world = { key, first, firstRuin, all, by, road: [...all.values()].filter((i) => !i.at) });
   }
