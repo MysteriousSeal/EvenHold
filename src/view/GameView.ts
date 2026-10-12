@@ -30,7 +30,7 @@ import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
 import { Cupboard } from './interior/cupboard';
 import { BedrollView } from './meshes/scenery/bedrollMesh';
-import { COSTUMES } from './meshes/human/gear/costumes';
+import { workCostume } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
@@ -270,7 +270,8 @@ export class GameView {
     const { hero } = model;
     if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
     // At work, dressed for it (a costume, only to be seen: their gear still on them, its stats and all); else their gear.
-    if (model.work.shift) this.hero.dress(COSTUMES[model.work.shift.job]);
+    const costume = workCostume(model);
+    if (costume) this.hero.dress(costume);
     else this.hero.wear(model.lumber.chopping && model.lumber.axeKey ? { ...hero.equipment, mainHand: model.lumber.axeKey } : hero.equipment); // (chopping with the pack's axe: out, in hand, for it)
     const chilled = !!hero.blessings?.some((b) => b.kind === 'chilled');
     this.hero.setMaterial(hero.hurtFor > 0 ? this.heroFlash : chilled ? this.heroFrost : this.heroLook);
@@ -403,7 +404,7 @@ export class GameView {
     // The drinks on the bar, as they are; at work, what's at the counter's end (a little apart: the orders ready, the
     // tables' drinks poured and the empties brought back), the empties on the tables.
     const shift = model.work.shift?.inn === inside.entrance ? model.work.shift : null;
-    const pass = (shift?.passMugs ?? []).slice(0, PASS_MOST).map((mug, i) => ({ ...mug, z: shift!.barEndZ - i * 0.24 }));
+    const pass = (shift && 'passMugs' in shift ? shift.passMugs : []).slice(0, PASS_MOST).map((mug, i) => ({ ...mug, z: shift!.barEndZ - i * 0.24 }));
     this.room.showMugs?.([...mugsAt(inside.entrance), ...pass]);
     this.room.showTableMugs?.(shift instanceof InnShift ? shift.empties : []);
     return this.room.scene;

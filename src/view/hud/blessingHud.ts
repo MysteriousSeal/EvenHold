@@ -27,6 +27,7 @@ const ICONS: Record<BlessingKind, MenuIcon> = {
   tough: gearIcon('heaterShield'),
   weary: (size) => voxelIcon('blessing:second', heartModel, size), // (a fall's: the heart, greyed: hud.css)
   chilled: (size) => voxelIcon('blessing:chilled', snowflakeModel, size), // (a draugr's frost: an ice-blue snowflake)
+  poxed: (size) => voxelIcon('blessing:second', heartModel, size), // (the pox: the heart again, as a fall's)
   webbed: (size) => voxelIcon('blessing:webbed', webModel, size), // (a spider's web: pale silk)
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger

@@ -12,6 +12,7 @@
 // ankle. Apart from the server's at a glance: no kerchief, and one dark length down the front, not a white bib.
 
 import type { ArmorSlot } from '../../../../model/human/equipment';
+import type { Build } from '../../../../model/human/humanoid';
 import type { JobId } from '../../../../model/jobs/jobs';
 import { namedPalette } from './armorShell';
 import type { ItemModel } from './itemModel';
@@ -159,6 +160,61 @@ const tapsterBoots: ItemModel = {
   worn: { leg: ({ y, z }) => (y === 1 && z <= 2 ? boots.c.cuff : z >= 3 ? boots.c.toe : boots.c.leather) },
 };
 
+// A pleasure worker's (an inn's room upstairs: model/jobs/roomShift.ts): next to nothing, in wine-red silk and gold,
+// read at a distance as bare skin with three accents: a band at the chest or a strap across it, a short wrap at the
+// hips, gold at the arms and ankles. Bare-headed, bare-handed, barefoot.
+// A woman's: a silk band round the chest tied behind, two straps up to the neck, a gold clasp at its middle; the
+// midriff bare; a gold band round each upper arm.
+// A man's: the chest bare but for one silk strap from the shoulder to the hip, a gold stud on it, and a gold torc at
+// the throat; a gold band round each upper arm, a cuff at each wrist.
+// Both: a gold belt low on the hips, a short silk wrap under it, a panel hanging before and behind (the thighs bare
+// at the sides); a gold ring round each ankle.
+const silk = namedPalette({ wine: 0xa3233f, shade: 0x7a1830, gold: 0xe0b54a, goldShade: 0xb88a2e });
+
+const companionBand: ItemModel = {
+  palette: silk.palette,
+  worn: {
+    torso: ({ x, y, front, back, flank }) => {
+      const { c } = silk;
+      if (y === 5) return (front && (x === 2 || x === 4)) || (back && x === 3) ? c.wine : 0; // the straps up to the neck, the tie behind
+      if (y !== 4) return 0; // the midriff bare
+      if (front && x === 3) return c.gold; // the clasp
+      return flank || back ? c.shade : c.wine;
+    },
+    arm: ({ y, flank }) => (y === 5 ? (flank ? silk.c.goldShade : silk.c.gold) : 0),
+  },
+};
+
+const companionStrap: ItemModel = {
+  palette: silk.palette,
+  worn: {
+    torso: ({ x, y, front, back }) => {
+      const { c } = silk;
+      if (front && y === 5 && x >= 2 && x <= 4) return c.gold; // the torc
+      if (!(front || back) || x !== 1 + Math.floor((5 - y) * 1.5)) return 0; // the strap, shoulder to hip; the rest bare
+      return front && y === 4 ? c.gold : back ? c.shade : c.wine;
+    },
+    arm: ({ y, flank }) => (y === 5 || y === 2 ? (flank ? silk.c.goldShade : silk.c.gold) : 0),
+  },
+};
+
+const companionWrap: ItemModel = {
+  palette: silk.palette,
+  worn: {
+    torso: ({ y, front, flank, center }) => {
+      const { c } = silk;
+      if (y === 1) return front && center ? c.goldShade : c.gold; // the belt, its clasp
+      return flank ? c.shade : c.wine;
+    },
+    leg: ({ y, front, back }) => (y === 4 && (front || back) ? silk.c.shade : 0), // a panel before and behind; the thighs bare
+  },
+};
+
+const companionAnklets: ItemModel = {
+  palette: silk.palette,
+  worn: { leg: ({ y, z, flank }) => (y === 1 && z <= 2 ? (flank ? silk.c.goldShade : silk.c.gold) : 0) },
+};
+
 // Every costume look, by its id: what slot it dresses, and how.
 export const COSTUME_LOOKS: Record<CostumeLookId, { slot: ArmorSlot; model: ItemModel }> = {
   'costume:server:head': { slot: 'head', model: serverKerchief },
@@ -168,10 +224,22 @@ export const COSTUME_LOOKS: Record<CostumeLookId, { slot: ArmorSlot; model: Item
   'costume:tapster:torso': { slot: 'torso', model: tapsterVest },
   'costume:tapster:legs': { slot: 'legs', model: tapsterBreeches },
   'costume:tapster:feet': { slot: 'feet', model: tapsterBoots },
+  'costume:companion:band': { slot: 'torso', model: companionBand },
+  'costume:companion:strap': { slot: 'torso', model: companionStrap },
+  'costume:companion:legs': { slot: 'legs', model: companionWrap },
+  'costume:companion:feet': { slot: 'feet', model: companionAnklets },
 };
 
 // A job's whole costume (each slot's look; the rest bare: no hat, no gloves, no shoulders, nothing in hand).
 export const COSTUMES: Record<JobId, Partial<Record<ArmorSlot, CostumeLookId>>> = {
   innServer: { head: 'costume:server:head', torso: 'costume:server:torso', legs: 'costume:server:legs', feet: 'costume:server:feet' },
   innBarkeep: { torso: 'costume:tapster:torso', legs: 'costume:tapster:legs', feet: 'costume:tapster:feet' },
+  innCompanion: { torso: 'costume:companion:band', legs: 'costume:companion:legs', feet: 'costume:companion:feet' }, // (a woman's; a man's: costumeFor)
 };
+
+// A job's costume as cut for a build (a pleasure worker's chest piece is a man's or a woman's; the rest are the same).
+export const costumeFor = (job: JobId, build: Build): Partial<Record<ArmorSlot, CostumeLookId>> => (job === 'innCompanion' && build === 'male' ? { ...COSTUMES[job], torso: 'costume:companion:strap' } : COSTUMES[job]);
+
+// What the hero's seen in at work (the job's costume, cut for them), wherever they're drawn: in the world, close up in
+// a talk, on their sheet; null off work (their own gear).
+export const workCostume = (model: { work: { shift: { job: JobId } | null }; hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null => (model.work.shift ? costumeFor(model.work.shift.job, model.hero.look.build) : null);

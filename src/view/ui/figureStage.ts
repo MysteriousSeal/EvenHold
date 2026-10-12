@@ -45,10 +45,11 @@ export class FigureStage {
   // with a voxel and a half to spare all round (room for armor), so neither
   // their hair nor what's worn ever changes the scale. Anything held out may
   // swing past the edge.
-  show(look: BodyLook, equipment: Equipment): void {
+  // (`dressed`: seen in these looks instead of what they wear: a job's costume.)
+  show(look: BodyLook, equipment: Equipment, dressed?: Parameters<typeof closeUpFigure>[2]): void {
     this.mesh?.geometry.dispose();
     this.mesh?.removeFromParent();
-    this.mesh = new THREE.Mesh(figureGeometry(closeUpFigure(look, equipment), VOXEL), this.material);
+    this.mesh = new THREE.Mesh(figureGeometry(closeUpFigure(look, equipment, dressed), VOXEL), this.material);
     this.turntable.add(this.mesh);
     const box = bodyBox(look, VOXEL);
     box.expandByScalar(VOXEL * 1.5);

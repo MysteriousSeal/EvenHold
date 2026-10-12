@@ -10,7 +10,7 @@ import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
 // A model from rows of characters, top row first (x along each row, y up),
 // `depth` voxels thick; `key` says which palette color each character is.
-function fromRows(rows: string[], depth: number, key: Record<string, number>, palette: number[]): VoxelModel {
+export function fromRows(rows: string[], depth: number, key: Record<string, number>, palette: number[]): VoxelModel {
   const grid = createGrid([Math.max(...rows.map((r) => r.length)), rows.length, depth]);
   rows.forEach((row, i) => {
     const y = rows.length - 1 - i;

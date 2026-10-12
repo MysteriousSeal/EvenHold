@@ -13,9 +13,9 @@ import { colorAt } from '../voxel/voxelShapes';
 import { fineFigure } from './fineFigure';
 import { humanFigure, type Figure } from './humanFigure';
 
-// Someone in what they wear, close up: their figure, finer.
-export function closeUpFigure(look: BodyLook, equipment: Equipment): Figure {
-  return fineFigure(humanFigure(look, equipment), look);
+// Someone in what they wear (or `dressed`: a job's costume, seen instead), close up: their figure, finer.
+export function closeUpFigure(look: BodyLook, equipment: Equipment, dressed?: Parameters<typeof humanFigure>[4]): Figure {
+  return fineFigure(humanFigure(look, equipment, undefined, undefined, dressed), look);
 }
 
 // A figure's geometry, `voxel` the size of a figure's voxels (a fine one's, half that), its grid's corner at the origin.
