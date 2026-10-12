@@ -48,6 +48,7 @@
 .talk-quest-pay { display: grid; justify-items: end; gap: 2px; font-weight: 700; white-space: nowrap; }
 .talk-quest-coin { display: inline-flex; align-items: center; gap: 4px; }
 .talk-quest-xp { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+.talk-quest-gift { font-size: 13px; font-weight: 600; color: var(--clay); }
 
 @media (max-width: 760px) { .talk-figure { width: 200px; height: 280px; } .talk-words { font-size: 18px; } }
 @media (prefers-reduced-motion: reduce) { .talk-scene, .talk-figure, .talk-answer { transition: none; } .talk-more, .talk-quest { animation: none; } }

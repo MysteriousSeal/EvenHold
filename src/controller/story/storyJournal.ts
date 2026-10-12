@@ -50,12 +50,12 @@ export function storyJournal(model: GameModel, redraw: () => void, full: string)
           key: q.id,
           icon: offerIcon,
           title: q.name,
-          note: `Speak to ${q.to.name}`,
-          badge: q.ready ? '? Ready' : '?',
+          note: q.ready && q.toName ? `Speak to ${q.toName}` : `For ${q.toName || q.fromName}`,
+          badge: q.ready ? '? Ready' : `${q.have}/${q.of}`,
           badgeTone: q.ready ? 'ready' : 'progress',
           check: { on: q.tracked, locked: !q.tracked && !room(), label: q.tracked ? 'Tracked on screen: click to untrack' : !room() ? full : 'Click to track on screen', toggle: () => toggle(q.id) },
         };
-        about.set(slot, { name: q.name, text: q.task, said: `Speak to ${q.to.name} to finish it. Abandoned, ${q.from.name} will offer it again.`, id: q.id });
+        about.set(slot, { name: q.name, text: q.task, said: `${q.ready && q.toName ? `Speak to ${q.toName} to finish it.` : `${q.have} of ${q.of} so far.`} Abandoned, ${q.fromName} will offer it again.`, id: q.id });
         return slot;
       }),
     done: () =>

@@ -5,7 +5,8 @@
 // it's said (a click, Space or Enter: the rest of the line at once, then the next). After their last line it's the
 // hero's turn: the quest it's about on a card (a "!" for one offered, a "?" for one handed in: its name, what's to be
 // done, what it pays) and the hero's answers as buttons (1, 2…; Enter: the first; Escape: the one that commits to
-// nothing, where there is one). No answer to give: the last line ends it. The game's held while it's open.
+// nothing, where there is one). No answer to give: the last line ends it. A quest handed in to someone with another
+// to give: its offer follows at once. Someone with a trade, asked for their wares instead: their own window. The game's held while it's open.
 import './talk.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Talk, Who } from '../../model/story/story';
@@ -18,8 +19,9 @@ const WRITE_EVERY = 16; // ms a letter, written out
 const PORTRAIT: [number, number] = [300, 420];
 const TURNED = 0.55; // radians each is turned toward the other
 
-export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(who: Who): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
+export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void }): { open(who: Who): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
   let talk: Talk | null = null;
+  let speaking: Who | null = null; // whoever the hero's talking with
   let at = 0; // the line being said
   let written = 0; // letters of it written so far
   let answering = false; // the hero's turn
@@ -78,7 +80,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       card.replaceChildren(
         el('span', 'talk-quest-mark', quest.state === 'offered' ? '!' : '?'),
         el('div', 'talk-quest-text', line('talk-quest-kind', quest.state === 'offered' ? 'A quest' : 'Quest done'), line('talk-quest-name', quest.name), line('talk-quest-task', quest.task)),
-        el('span', 'talk-quest-pay', el('span', 'talk-quest-coin', ...coinParts(quest.copper)), el('span', 'talk-quest-xp', `${quest.xp} experience`)),
+        el('span', 'talk-quest-pay', el('span', 'talk-quest-coin', ...coinParts(quest.copper)), el('span', 'talk-quest-xp', `${quest.xp} experience`), ...(quest.gift ? [el('span', 'talk-quest-gift', `and ${quest.gift}`)] : [])),
       );
     }
     answers.hidden = !heroSpeaks;
@@ -124,11 +126,20 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     draw();
   };
 
+  // An answer given. One that hands a quest in, to someone with another of theirs to offer: on to that, in the same
+  // breath (their figures stay, their next lines begin); else the talk's over.
   const pick = (i: number) => {
     const answer = talk?.answers[i];
-    if (!answer) return;
+    if (!answer || !speaking) return;
+    const handedIn = talk?.quest?.state === 'handIn';
     answer.pick();
-    close();
+    if (answer.trade) return void [close(), hooks.trade?.(speaking)]; // (on to their wares: their own window)
+    const next = handedIn && model.story.offers(speaking) ? model.story.talk(speaking) : null;
+    if (!next) return close();
+    [talk, at, answering] = [next, 0, false];
+    answers.replaceChildren();
+    delete card.dataset.for;
+    write();
   };
 
   const onKey = (event: KeyboardEvent) => {
@@ -174,6 +185,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     open(who) {
       talk = model.story.talk(who);
       if (!talk) return false;
+      speaking = who;
       [at, answering, isOpen] = [0, false, true];
       answers.replaceChildren();
       delete card.dataset.for;

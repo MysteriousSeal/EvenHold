@@ -133,7 +133,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   let seen = '';
   const update = () => {
     if (!menu.isOpen) return;
-    const now = quests.taken.map((t) => `${t.quest.key}:${quests.progress(t)}:${t.tracked}`).join('|') + `#${JSON.stringify(model.story.save())}`; // (and those people gave: taken, let go, done)
+    const now = quests.taken.map((t) => `${t.quest.key}:${quests.progress(t)}:${t.tracked}`).join('|') + `#${JSON.stringify(model.story.save())}#${model.story.taken.map((q) => q.have).join()}`; // (and those people gave: taken, let go, done, how far along)
     if (now === seen) return;
     seen = now;
     menu.refresh();
