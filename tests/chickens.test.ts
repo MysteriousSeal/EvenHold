@@ -41,13 +41,14 @@ describe("the hen-wife's turn", () => {
     expect(castSpell(model, 'chicken')).toBe('cast');
     expect(foe.chicken).toBeDefined();
     expect(model.chickens.here).toBe(foe);
-    expect(told.filter((k) => k === 'puff').length).toBe(1);
+    expect(told.filter((k) => k === 'transformed').length).toBe(1); // (told: its turning the view's to play)
+    expect(morphOf(foe.chicken!)).toBe(1); // (a chicken there and then, as the game goes)
     run(model, 29);
     expect(foe.chicken).toBeDefined();
     run(model, 1.5);
     expect(foe.chicken).toBeUndefined();
     expect(model.chickens.here).toBeNull();
-    expect(told.filter((k) => k === 'puff').length).toBe(2);
+    expect(told.filter((k) => k === 'puff').length).toBe(1);
   });
 
   it('has them wander, never more than 5 tiles from where they were turned, and at nothing else', () => {
@@ -69,39 +70,25 @@ describe("the hen-wife's turn", () => {
     expect(hero.hp).toBe(hp); // (and never bit)
   });
 
-  it('takes a moment to turn, and as long to turn back: stood where they are meanwhile, part one and part the other', () => {
+  it('takes a moment to turn back at the end: stood where they are meanwhile, less and less chicken', () => {
     const { model, foe } = withWolf();
     castSpell(model, 'chicken');
-    const [x0, z0] = [foe.x, foe.z];
-    expect(morphOf(foe.chicken!)).toBe(0);
-    let before = 0;
-    run(model, TURNING - 0.2, () => {
-      const m = morphOf(foe.chicken!);
-      expect(m).toBeGreaterThanOrEqual(before); // (ever more chicken)
-      before = m;
-      expect([foe.x, foe.z]).toEqual([x0, z0]); // (not a step, turning)
-    });
-    expect(before).toBeGreaterThan(0.5);
-    expect(before).toBeLessThan(1);
-    run(model, 1);
+    run(model, 30 - TURNING - 0.5);
     expect(morphOf(foe.chicken!)).toBe(1);
-    // The end of it: less and less chicken, stood still again.
-    run(model, 30 - TURNING - 1 - TURNING);
-    const at = [foe.x, foe.z];
-    run(model, 0.8);
+    run(model, 1.2);
     const turning = morphOf(foe.chicken!);
     expect(turning).toBeLessThan(1);
     expect(turning).toBeGreaterThan(0);
     const still = [foe.x, foe.z];
     run(model, 0.4);
+    expect(morphOf(foe.chicken!)).toBeLessThan(turning);
     expect([foe.x, foe.z]).toEqual(still);
-    expect(Math.hypot(still[0] - at[0], still[1] - at[1])).toBeLessThan(0.5);
   });
 
-  it('draws the turning in stages: their own figure shivering, hunched, spun and shrunk till it gives way; the hen sprung out and settling', () => {
+  it('draws the turning back in stages: their own figure shivering, hunched, spun and shrunk till it gives way; the hen sprung out and settling', () => {
     const root = new THREE.Group();
     root.scale.setScalar(2);
-    const state = (age: number) => ({ left: 30, age, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 });
+    const state = (age: number) => ({ left: age, age: 30, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 }); // (turning back: so much of it left)
     // Early: there, hunched (lower, wider), its size held.
     morphOut(root, state(TURNING * 0.15), 0.3);
     expect(root.visible).toBe(true);
