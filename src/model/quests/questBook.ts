@@ -10,7 +10,7 @@
 import { innWants } from '../inn/tavernShop';
 import { hashUnit } from '../../util/random';
 import { makeEnemy } from '../enemies/enemies';
-import type { BagItem } from '../hero/bag';
+import { addToBag, type BagItem } from '../hero/bag';
 import { gainXp, xpAgainst } from '../hero/heroStats';
 import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
@@ -108,6 +108,16 @@ export class QuestBook {
       if (t.quest.item === quest.item) left -= Math.min(t.quest.count, left);
     }
     return Math.min(quest.count, left);
+  }
+
+  // What a taken quest asks, done at once (a cheat: the journal's, with the quests' debugging on): its foes counted
+  // slain, or what's to be gathered put in the bag. Still to be handed in at its board.
+  finish(key: string): boolean {
+    const taken = this.taken.find((t) => t.quest.key === key);
+    if (!taken) return false;
+    if (taken.quest.kind === 'kill') taken.kills = taken.quest.count;
+    else for (let n = this.progress(taken); n < taken.quest.count; n++) addToBag(this.host.hero.bag, taken.quest.item as BagItem);
+    return this.done(taken);
   }
 
   done(taken: TakenQuest): boolean {
