@@ -17,6 +17,7 @@ import { el, line } from '../../view/ui/dom';
 import { FigureStage } from '../../view/ui/figureStage';
 import { playPace } from './paceGame';
 import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
+import { unclothed } from '../../view/meshes/human/unclothed';
 import { trackMenu, type Menu } from '../../view/ui/menu';
 
 const WRITE_EVERY = 16; // ms a letter, written out
@@ -143,55 +144,47 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     draw();
   };
 
-  // A game of pace, played in the dark once the last line's said: black, the game over it, the two of them stood
-  // either side as they are in the talk (nothing else shown); then light again, and what's said next, by how it went.
-  const play = (pace: NonNullable<Talk['pace']>) => {
+  // Into the dark (the black's own words on it, if any), `there` done once it's black; and out again, as `there` says
+  // so (`out`): light, then the line that's next written out.
+  const intoDark = (words: string, there: (out: () => void) => void) => {
     dark = true;
-    later.textContent = '';
+    later.textContent = words;
     night.classList.add('on');
     nightfall = window.setTimeout(() => {
-      scene.classList.add('playing'); // (the two of them stood either side of it, over the dark)
-      const other = speaking;
-      if (pace.bare && other) stages?.other?.show({ ...other.look, unclothed: true }, {}, {}); // (whoever it's with: nothing on, while it's played)
-      game = playPace(
-        night,
-        pace.pace,
-        pace.with,
-        (score) => {
-        game = null;
-        scene.classList.remove('playing');
-        if (pace.bare && other) stages?.other?.show(other.look, other.equipment); // (dressed again, for what they say after)
-        [talk, at, answering, written, woken] = [pace.done(score), 0, false, 0, true]; // (and the world behind drawn from here on: how they're found after)
-        answers.replaceChildren();
-        draw();
+      there(() => {
+        written = 0;
+        woken = true; // (the world behind drawn from here on: wherever, and however, they're found after)
+        draw(); // (the next line, not yet said, behind the black)
         night.classList.remove('on');
         nightfall = window.setTimeout(() => {
           dark = false;
           write();
         }, NIGHT_FADE);
-        },
-        pace.voice,
-      );
+      });
     }, NIGHT_FADE);
   };
 
-  // A night passing: black, held, then light again and the morning's line.
-  const pass = () => {
-    dark = true;
-    later.textContent = talk?.later ?? 'The next morning';
-    night.classList.add('on');
-    nightfall = window.setTimeout(() => {
-      talk?.night?.(); // (in the dark: it's morning, by the game's clock too)
-      woken = true; // (and the world behind drawn from here on: the room woken in, by the morning's light)
-      written = 0;
-      draw(); // (the morning's line, not yet said, behind the black)
-      night.classList.remove('on');
-      nightfall = window.setTimeout(() => {
-        dark = false;
-        write();
-      }, NIGHT_FADE);
-    }, NIGHT_FADE + NIGHT_HELD);
-  };
+  // A game of pace, played in the dark once the last line's said: the game over the black, the two of them stood
+  // either side as they are in the talk (nothing else shown); then light again, and what's said next, by how it went.
+  const play = (pace: NonNullable<Talk['pace']>) =>
+    intoDark('', (out) => {
+      scene.classList.add('playing');
+      const other = speaking;
+      if (pace.bare && other) stages?.other?.show(unclothed(other.look), {}, {}); // (whoever it's with: nothing on, while it's played)
+      const over = (score: number) => {
+        game = null;
+        scene.classList.remove('playing');
+        if (pace.bare && other) stages?.other?.show(other.look, other.equipment); // (dressed again, for what they say after)
+        [talk, at, answering] = [pace.done(score), 0, false];
+        answers.replaceChildren();
+        out();
+      };
+      game = playPace(night, pace.pace, pace.with, over, pace.voice);
+    });
+
+  // A night passing: black, held, then light again and the morning's line (in the dark, it's morning by the game's
+  // clock too).
+  const pass = () => intoDark(talk?.later ?? 'The next morning', (out) => (nightfall = window.setTimeout(() => [talk?.night?.(), out()], NIGHT_HELD)));
 
   // An answer given: the talk's over (someone with another quest to give once this one's handed in: spoken to again
   // for it), unless the answer itself leads on to more (a talk given back). Their wares asked for: on to their own window.
