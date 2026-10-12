@@ -64,10 +64,10 @@ import { type Camp } from './camps/camps';
 import { Lumber } from './skills/lumber';
 import { Woodworking } from './skills/woodworking';
 import { Salvage } from './skills/salvage';
+import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
 
 const BEDROLL_Y = 0.12; // where their back lies on a bedroll, over the ground
-
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
 export class GameModel {
@@ -125,6 +125,7 @@ export class GameModel {
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
   readonly woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
+  readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
   // Dev cheats: movement speed factor (1 = normal); walking through

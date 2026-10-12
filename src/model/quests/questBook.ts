@@ -41,6 +41,7 @@ export interface QuestHost extends QuestWorld, BoardWorld {
   enemies: Enemy[];
   getGroundY(x: number, z: number): number;
   readonly streamed?: boolean; // a streamed world's (its boards' numbers big: its quests' foes numbered as gathered)
+  readonly story?: { trackedCount: number }; // the quests people gave (story/story.ts): theirs tracked count toward the screen's too
 }
 
 export class QuestBook {
@@ -127,11 +128,16 @@ export class QuestBook {
     return this.taken.filter((t) => t.tracked).length;
   }
 
+  // Whether the screen takes one more tracked (the boards' and those people gave, together).
+  get trackRoom(): boolean {
+    return this.tracked + (this.host.story?.trackedCount ?? 0) < MAX_TRACKED;
+  }
+
   // Tracks a quest taken, or stops; returns whether it's as asked (not with three tracked already).
   setTracked(key: string, on: boolean): boolean {
     const taken = this.takenOf(key);
     if (!taken) return false;
-    if (on && !taken.tracked && this.tracked >= MAX_TRACKED) return false;
+    if (on && !taken.tracked && !this.trackRoom) return false;
     taken.tracked = on;
     return true;
   }
@@ -143,7 +149,7 @@ export class QuestBook {
   // Takes a quest from the board: its foes gather at once.
   accept(quest: Quest): boolean {
     if (this.full || this.fullAt(quest.board) || this.takenOf(quest.key) || this.completed.has(quest.key)) return false;
-    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: this.tracked < MAX_TRACKED }; // tracked, if there's room
+    const taken = { quest, kills: 0, respawnIn: RESPAWN_EVERY, tracked: this.trackRoom }; // tracked, if there's room
     this.taken.push(taken);
     for (let i = this.wanted(taken); i > 0; i--) this.gather(taken);
     return true;
