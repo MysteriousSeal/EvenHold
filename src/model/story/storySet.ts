@@ -1,7 +1,6 @@
 // Where each quest people give is set (story.ts): the first village's line in the first village; a village's own in
 // each village that draws it (by its `share`, from the village's number and the world's seed: the same villages
-// every time) and has its people and its place; one that follows another, among those few villages have, only where
-// that one is; the road's, nowhere (whoever's met gives it). Each set is kept by a key, the quest's and where it's
+// every time) and has its people and its place; one that follows another, only where that one is; the road's, nowhere (whoever's met gives it). Each set is kept by a key, the quest's and where it's
 // set ("scrapForTheForge@8201", "wordToTheInn@first", "wolvesAtMyHeels@road"). Worked out from the world as it
 // stands, afresh only as that changes (storyCast.ts).
 import type { Ruin } from '../ruins/ruins';
@@ -30,7 +29,8 @@ export interface QuestSet {
 // Where a foe's kind keeps, for those that keep to a place.
 const LAIR: Partial<Record<EnemyKind, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', skeletonArcher: 'ruin', draugr: 'ruin', cryptLord: 'ruin', bandit: 'camp', banditChief: 'camp', caveSpider: 'cave', caveBat: 'cave', caveWorm: 'cave', broodMother: 'cave' };
 // The place what a quest asks can't be done without, if any: the one to reach, its foes' lair, the camp to clear.
-export const placeOf = (needs: Objective | undefined): StoryPlace | null => (needs?.kind === 'reach' ? needs.place : needs?.kind === 'slay' ? (LAIR[needs.foe] ?? null) : needs?.kind === 'do' && needs.what === 'clearCamp' ? 'camp' : null);
+// (or where what it asks to be brought is found: its `near`).
+export const placeOf = ({ needs, near }: { needs?: Objective; near?: StoryPlace }): StoryPlace | null => near ?? (needs?.kind === 'reach' ? needs.place : needs?.kind === 'slay' ? (LAIR[needs.foe] ?? null) : needs?.kind === 'do' && needs.what === 'clearCamp' ? 'camp' : null);
 
 const COMMON_SALT = 9173; // (each list drawn its own way: one added to never moves the other's)
 const RARE_SALT = 40127;
@@ -43,7 +43,7 @@ export const keyOf = (id: string, at: Setting | null | undefined): string => `${
 // What a village lacks for a quest to be set there, in a word: whoever gives it, whoever takes it in, its place.
 export function lacks(quest: StoryQuest, at: Setting | null): string | null {
   if (!at) return null;
-  const place = placeOf(quest.needs);
+  const place = placeOf(quest);
   return !at.who[quest.giver] ? `no ${quest.giver} here` : quest.receiver && !at.who[quest.receiver] ? `no ${quest.receiver} here` : place && !at.place[place] ? `no ${place} near` : null;
 }
 
@@ -89,8 +89,9 @@ export function settle(host: CastHost): QuestSet {
   const drawn = (quest: StoryQuest, i: number, at: Setting, salt: number) => hashUnit(Number(at.key), i, host.seed + salt) < (quest.share ?? 1);
   if (first) for (const quest of FIRST_QUESTS) add(quest, first);
   for (const at of villages) {
-    COMMON_QUESTS.forEach((quest, i) => drawn(quest, i, at, COMMON_SALT) && add(quest, at));
-    RARE_QUESTS.forEach((quest, i) => drawn(quest, i, at, RARE_SALT) && (!quest.follows || all.has(keyOf(quest.follows, at))) && add(quest, at));
+    const after = (quest: StoryQuest) => !quest.follows || all.has(keyOf(quest.follows, at)); // (one that follows another: only where that one is, as its words take it to be)
+    COMMON_QUESTS.forEach((quest, i) => drawn(quest, i, at, COMMON_SALT) && after(quest) && add(quest, at));
+    RARE_QUESTS.forEach((quest, i) => drawn(quest, i, at, RARE_SALT) && after(quest) && add(quest, at));
   }
   for (const quest of ROAD_QUESTS) add(quest, null);
   return { key: castKey(host), first, firstRuin, villages, all, by, road: [...all.values()].filter((i) => !i.at) };

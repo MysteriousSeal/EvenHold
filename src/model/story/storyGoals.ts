@@ -1,7 +1,8 @@
 // Where a quest under way sends the hero (the tracker's arrow: view/hud/questTracker.ts): where what it still asks
 // is to be done, if that's anywhere. A place to reach: there. Foes to slay: the nearest of them in sight, else where
 // their kind keeps. A camp to clear: its village's (the road's: the nearest). A shift to work: the inn. A wish to
-// make: the village, for its well. Something to bring: nowhere (it's found where it's found).
+// make: the village, for its well. Something to bring: where it's found, if that's one place (the quest's `near`),
+// else nowhere.
 import type { Camp } from '../camps/camps';
 import type { Entrance } from '../interiors/interiors';
 import type { Enemy, Village } from '../types';
@@ -28,9 +29,10 @@ export function innOf(host: GoalHost, quest: StoryQuest, at: Setting | null): En
 
 export function goalOf(host: GoalHost, quest: StoryQuest, at: Setting | null): Point | null {
   const needs = quest.needs;
-  if (!needs || needs.kind === 'bring') return null;
-  const place = placeOf(needs);
+  const place = placeOf(quest);
   const set = (place && at?.place[place]) ?? null; // its own place, where it's set in a village
+  if (!needs) return null;
+  if (needs.kind === 'bring') return quest.near ? set : null; // (found in a place of its own: there)
   if (needs.kind === 'reach') return set;
   if (needs.kind === 'slay') return nearest(host.enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead'), here, host.hero, FOE_SEEN) ?? set;
   if (needs.what === 'clearCamp') return set ?? nearest(host.camps, (c) => c.way, host.hero)?.way ?? null;

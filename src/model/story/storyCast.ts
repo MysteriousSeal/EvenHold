@@ -68,7 +68,13 @@ export const nearest = <T>(list: readonly T[], at: (item: T) => Point, to: Point
 const middle = (r: Ruin): Point => ({ x: r.x + r.w / 2, z: r.z + r.d / 2 });
 
 // What changes when the world about does: asked before working any of it out again.
-export const castKey = (host: CastHost): string => `${host.villages.length}|${host.npcs.length}|${host.scenery.length}|${host.ruins.length}|${host.camps.length}|${host.caves.length}`;
+// (How many of each, and which: the first and last village and villager, for a streamed world that lets a region go
+// and makes another of the same size.)
+export const castKey = (host: CastHost): string => {
+  const [v, n] = [host.villages, host.npcs];
+  const ends = v.length ? `${v[0].x},${v[0].z},${v[v.length - 1].x},${v[v.length - 1].z}` : '';
+  return `${v.length}|${n.length}|${host.scenery.length}|${host.ruins.length}|${host.camps.length}|${host.caves.length}|${ends}|${n.length ? `${n[0].id},${n[n.length - 1].id}` : ''}`;
+};
 
 export function castOf(host: CastHost): { first: Setting | null; firstRuin: Ruin | null; villages: Setting[] } {
   const spawn = spawnOf(host.size);

@@ -136,6 +136,7 @@ export const DROLL_QUESTS: StoryQuest[] = [
     receiver: 'bouncer',
     share: 0.2,
     needs: { kind: 'bring', item: 'oldSilver', count: 2 },
+    near: 'ruin',
     offer: () => [
       "A man drank at this inn every night for ten years, and never paid his bill. Then he died and was buried in the crypt under the old ruin. His bill is still on the wall.",
       "Death doesn't cancel a debt at my door. The big dead warriors in that crypt carry old silver coins. Bring me two old silver coins and I'll call his bill paid.",

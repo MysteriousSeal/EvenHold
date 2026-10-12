@@ -22,6 +22,7 @@ import { hashUnit, mulberry32 } from '../../util/random';
 import type { Carter } from './carter';
 import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
 import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
+import { alreadyDone, type AlreadyHost } from './storyAlready';
 import { goalOf, innOf } from './storyGoals';
 import type { Gift, StoryQuest, Told } from './storyQuests';
 import { keyOf, lacks, place, resettle, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
@@ -59,7 +60,7 @@ const idOf = (key: string): string => key.split('@')[0];
 const keyed = (id: string): string => (id.includes('@') ? id : `${id}@first`); // (a bare name: the first village's)
 const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar');
 
-export interface StoryHost extends CastHost {
+export interface StoryHost extends CastHost, AlreadyHost {
   readonly hero: Hero;
   minutes: number; // the game's clock (a night spent: on to the morning)
   readonly folk: readonly Npc[];
@@ -199,13 +200,15 @@ export class Story {
     if (what) this.count((q) => q.needs?.kind === 'do' && q.needs.what === what);
   }
 
-  // Each frame outdoors: a place a taken quest asks to be reached, come near.
+  // Each frame outdoors: a place a taken quest asks to be reached, come near; and what one asks found done already
+  // (its camp cleared, its dungeon's boss slain, before it was ever taken: storyAlready.ts).
   update(): void {
     if (this.host.inside || this.state.size === 0) return;
     const { hero } = this.host;
     this.count((q, key) => {
-      const place = q.needs?.kind === 'reach' ? this.set.all.get(key)?.at?.place[q.needs.place] : undefined;
-      return !!place && q.needs?.kind === 'reach' && Math.hypot(place.x - hero.x, place.z - hero.z) <= q.needs.within;
+      const at = this.set.all.get(key)?.at ?? null;
+      const place = q.needs?.kind === 'reach' ? at?.place[q.needs.place] : undefined;
+      return (!!place && q.needs?.kind === 'reach' && Math.hypot(place.x - hero.x, place.z - hero.z) <= q.needs.within) || alreadyDone(this.host, q, at);
     });
   }
 
@@ -265,7 +268,7 @@ export class Story {
     const handIn = mine.find((m) => m.state === 'taken' && m.takes && this.ready(m.i.key));
     if (handIn) {
       const full = !this.roomFor(handIn.i.quest.gift);
-      if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: [] };
+      if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: hasTrade(who) ? [{ label: 'Show me your wares.', primary: true, trade: true, pick: () => {} }, { label: 'Later.', pick: () => {} }] : [] }; // (someone with a trade: their wares still to be had, to make that room)
       return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => this.handIn(handIn.i.key) }] };
     }
     const offer = mine.find((m) => m.state === 'offered' && m.gives);

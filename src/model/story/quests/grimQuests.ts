@@ -141,6 +141,7 @@ export const GRIM_QUESTS: StoryQuest[] = [
     receiver: 'smith',
     share: 0.3,
     needs: { kind: 'bring', item: 'rustedBlade', count: 3 },
+    near: 'ruin',
     offer: () => [
       'Years ago the church paid me to forge swords for its dead, to be buried with them in the crypt under the old ruin. Every one has my mark on it. Now those dead are walking, and killing people with my swords.',
       'I want those blades back, so I can melt them down. Bring me three rusted blades. The skeletons in the crypt carry them.',

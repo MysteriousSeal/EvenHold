@@ -68,6 +68,7 @@ export function wakeWith(model: NightHost, who: Npc): boolean {
   const home = who.home;
   if (model.inside?.entrance !== home || model.inside.below) model.enterRoom(home);
   let inside = model.inside!;
+  inside.seated = null; // (up off whatever they sat on)
   let where: Entrance = home;
   let within: Array<[number, number]> | undefined;
   const stairs = home.type === 'inn' ? stairsOf(inside) : undefined;

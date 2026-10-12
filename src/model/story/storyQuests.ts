@@ -49,6 +49,7 @@ export interface StoryQuest {
   receiver?: StoryRole;
   follows?: StoryQuestId; // on offer only once this one's done (in the same village)
   needs?: Objective;
+  near?: StoryPlace; // where what's to be brought is found, if it's one kind of place: set only in villages with one near, and pointed to
   offer(t: Told): string[]; // the giver, offering it
   accept: string; // the hero's two answers
   decline: string;

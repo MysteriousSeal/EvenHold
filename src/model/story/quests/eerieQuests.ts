@@ -34,6 +34,7 @@ export const EERIE_QUESTS: StoryQuest[] = [
     receiver: 'villagerB',
     follows: 'theBellAtNight',
     needs: { kind: 'bring', item: 'graveCandle', count: 3 },
+    near: 'ruin',
     offer: () => [
       'Last night the bell rang again, and my mother got out of bed and walked to the door. I had to tie her to the bed. My grandmother used to say that grave candles burning at a door keep the dead from calling the living.',
       'Bring me three grave candles. The dead in the old ruin carry them. I will burn them at my door every night.',
@@ -76,6 +77,7 @@ export const EERIE_QUESTS: StoryQuest[] = [
     receiver: 'villagerA',
     share: 0.2,
     needs: { kind: 'bring', item: 'fadedLocket', count: 1 },
+    near: 'ruin',
     offer: () => [
       'I buried my wife in the spring, with her locket around her neck. Last night I saw her standing at my window. She was not wearing the locket.',
       'I think someone robbed her grave, and she wants it back. The dead in the old ruin carry such things. Bring me a faded locket, and I will know if it is hers.',
@@ -97,6 +99,7 @@ export const EERIE_QUESTS: StoryQuest[] = [
     receiver: 'herbalist',
     share: 0.2,
     needs: { kind: 'bring', item: 'spiderSilk', count: 3 },
+    near: 'cave',
     offer: () => [
       'A man died in this village three days ago, and his body will not stay still. His fingers move. Last night his eyes opened. The priest refuses to come near him.',
       'The old people say a body wrapped in spider silk cannot get up. Bring me three lengths of spider silk. The spiders in the cave make it.',
@@ -163,6 +166,7 @@ export const EERIE_QUESTS: StoryQuest[] = [
     receiver: 'smith',
     share: 0.2,
     needs: { kind: 'bring', item: 'boneCharm', count: 1 },
+    near: 'ruin',
     offer: () => [
       'Last month I took an iron grave marker from the old ruin and melted it down for nails. Since then my forge fire has gone out at midnight, every night, no matter how much coal I put on it.',
       'I think the dead man wants his marker back, and I have already sold the nails. Bring me a bone charm to hang over the forge. The dead in the old ruin carry them.',

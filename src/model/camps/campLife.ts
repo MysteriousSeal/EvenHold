@@ -83,6 +83,11 @@ export class CampLife {
     return { name: campName(camp, seed), level: campLevel(camp, size), bandits, chief, cleared: bandits.slain === bandits.of && chief.slain === 1, chestOpened: this.opened(camp) };
   }
 
+  // Whether none of a camp's crew is left standing (false where its region isn't there to be looked at).
+  empty(camp: Camp): boolean {
+    return this.world().isMade?.(camp.x, camp.z) !== false && !this.crew(camp).some(standing);
+  }
+
   // Whether a camp's chief still stands (its chest locked).
   locked(camp: Camp): boolean {
     return this.crew(camp).some((e) => e.kind === 'banditChief' && standing(e));
