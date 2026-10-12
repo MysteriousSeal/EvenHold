@@ -5,12 +5,14 @@
 import { BarShift } from '../../model/jobs/barShift';
 import { JOBS } from '../../model/jobs/jobs';
 import type { InnShift } from '../../model/jobs/innShift';
+import { RoomShift } from '../../model/jobs/roomShift';
 import { SHIFT } from '../../model/jobs/shift';
 import type { PlaceBarShown } from '../../view/hud/placeBar';
 
 const listed = (items: string[]) => items.join(', ') || 'nothing';
 
-export function shiftStatus(shift: InnShift | BarShift): PlaceBarShown {
+// (A pleasure worker's: where the room is, and whether someone's at its door.)
+export function shiftStatus(shift: InnShift | BarShift | RoomShift): PlaceBarShown {
   const rows: Array<[string, string]> =
     shift instanceof BarShift
       ? [
@@ -18,7 +20,12 @@ export function shiftStatus(shift: InnShift | BarShift): PlaceBarShown {
           ['Clean', `${shift.clean.ale} tankards · ${shift.clean.wine} glasses`],
           ['Perfect run', `${shift.streak}${shift.best > shift.streak ? ` (best ${shift.best})` : ''}`],
         ]
-      : [['Tray', listed(shift.tray.map((t) => (t.kind === 'order' ? t.want.order : 'empty')))]];
+      : shift instanceof RoomShift
+        ? [
+            ['Your room', shift.begun ? (shift.client ? 'someone at the door' : 'waiting for a knock') : shift.inRoom ? 'shut the door to begin' : 'upstairs, the first door along the back hall'],
+            ['Turned away', String(shift.turnedAway)],
+          ]
+        : [['Tray', listed(shift.tray.map((t) => (t.kind === 'order' ? t.want.order : 'empty')))]];
   const left = `${Math.floor(shift.left / 60)}:${String(Math.floor(shift.left % 60)).padStart(2, '0')}`;
   return { name: JOBS[shift.job].name, shift: { share: shift.left / SHIFT, left, served: shift.served, walkedOut: shift.walkedOut, earned: shift.earned, rows } };
 }

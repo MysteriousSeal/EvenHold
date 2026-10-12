@@ -41,6 +41,8 @@ export function workPrompt(model: GameModel): PromptTarget | null {
   };
   if (isBarAction(action)) return bar(action);
   switch (action.kind) {
+    case 'client':
+      return { label: `Answer the door: ${action.client.name}`, x: hero.x, y: hero.y + 1.15, z: hero.z }; // (a pleasure worker's: someone knocking at their room)
     case 'take':
       return { label: `Take ${action.want.npc.name}'s order`, x: action.want.npc.x, y: 1.1, z: action.want.npc.z, npc: action.want.npc }; // (their name giving way to it)
     case 'serve': {

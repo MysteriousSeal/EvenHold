@@ -15,6 +15,7 @@ import type { Talk, Who } from '../../model/story/story';
 import { coinParts } from '../../view/ui/coins';
 import { el, line } from '../../view/ui/dom';
 import { FigureStage } from '../../view/ui/figureStage';
+import { workCostume } from '../../view/meshes/human/gear/costumes';
 import { trackMenu, type Menu } from '../../view/ui/menu';
 
 const WRITE_EVERY = 16; // ms a letter, written out
@@ -23,9 +24,13 @@ const TURNED = 0.55; // radians each is turned toward the other
 const NIGHT_FADE = 900; // ms the screen takes to go black, and to come back (talk.css)
 const NIGHT_HELD = 1800; // ms it stays black
 
-export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void; redraw?(dt: number): void }): { open(who: Who, only?: string): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
+// Whoever's spoken with: their name, and how they look (someone of the world's, or someone only met in a talk: a
+// client at the door of a room, model/jobs/roomShift.ts).
+export type Speaker = Pick<Who, 'name' | 'look' | 'equipment'>;
+
+export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void; redraw?(dt: number): void }): { open(who: Who, only?: string): boolean; show(who: Speaker, told: Talk | null): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
   let talk: Talk | null = null;
-  let speaking: Who | null = null; // whoever the hero's talking with
+  let speaking: Speaker | null = null; // whoever the hero's talking with
   let at = 0; // the line being said
   let written = 0; // letters of it written so far
   let answering = false; // the hero's turn
@@ -46,7 +51,8 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   const card = el('div', 'talk-quest');
   const answers = el('div', 'talk-answers');
   const box = el('div', 'talk-box', plate, words, more, answers);
-  const night = el('div', 'talk-night', el('span', '', 'The next morning'));
+  const later = el('span', '', '');
+  const night = el('div', 'talk-night', later);
   scene.append(left, right, el('div', 'talk-floor', card, box), night);
   document.body.append(scene);
 
@@ -137,6 +143,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   // A night passing: black, held, then light again and the morning's line.
   const pass = () => {
     dark = true;
+    later.textContent = talk?.later ?? 'The next morning';
     night.classList.add('on');
     nightfall = window.setTimeout(() => {
       talk?.night?.(); // (in the dark: it's morning, by the game's clock too)
@@ -152,14 +159,21 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   };
 
   // An answer given: the talk's over (someone with another quest to give once this one's handed in: spoken to again
-  // for it). Their wares asked for: on to their own window.
+  // for it), unless the answer itself leads on to more (a talk given back). Their wares asked for: on to their own window.
   const pick = (i: number) => {
     const answer = talk?.answers[i];
     if (!answer || !speaking) return;
     const who = speaking;
-    answer.pick();
+    const next = answer.pick();
+    if (next) {
+      // (What it led to: said next, by the same one, the scene still up.)
+      [talk, at, answering] = [next, 0, false];
+      answers.replaceChildren();
+      delete card.dataset.for;
+      return write();
+    }
     close();
-    if (answer.trade) hooks.trade?.(who);
+    if (answer.trade) hooks.trade?.(who as Who);
   };
 
   const onKey = (event: KeyboardEvent) => {
@@ -170,9 +184,12 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
-      // Out by the answer that commits to nothing (the last, unlit), if there is one; with none to give, just out.
-      const way = talk!.answers.findIndex((a) => !a.primary);
-      if (talk!.answers.length === 0 || way >= 0) [way >= 0 && talk!.answers[way].pick(), close()];
+      // Out by the answer that commits to nothing (the one marked the way out; else the first unlit), if there is one,
+      // and on to whatever it leads to; with none to give, just out.
+      const marked = talk!.answers.findIndex((a) => a.out);
+      const way = marked >= 0 ? marked : talk!.answers.findIndex((a) => !a.primary && !a.trade);
+      if (talk!.answers.length === 0) close();
+      else if (way >= 0) pick(way);
     }
   };
   window.addEventListener('keydown', onKey, true);
@@ -207,14 +224,18 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     // What they have to say, told (`only`: of that one quest of theirs); false if it's nothing of the story's (their
     // own trade, then).
     open(who, only) {
-      talk = model.story.talk(who, only);
+      return this.show(who, model.story.talk(who, only));
+    },
+    // Any talk, told with whoever it's with (false: there's none).
+    show(who, told) {
+      talk = told;
       if (!talk) return false;
       speaking = who;
       [at, answering, isOpen] = [0, false, true];
       answers.replaceChildren();
       delete card.dataset.for;
       stages = { hero: stage(left, TURNED), other: stage(right, -TURNED) }; // (made for this talk, let go at its end)
-      stages.hero?.show(model.hero.look, model.hero.equipment);
+      stages.hero?.show(model.hero.look, model.hero.equipment, workCostume(model) ?? undefined); // (at work: in the job's costume, as they're seen)
       stages.other?.show(who.look, who.equipment);
       scene.hidden = false;
       requestAnimationFrame(() => scene.classList.add('shown')); // (eased in)

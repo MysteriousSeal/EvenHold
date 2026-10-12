@@ -1,5 +1,7 @@
 import { innerWalls } from './model/interiors/upstairs';
 import type { Who } from './model/story/story';
+import { hasPox } from './model/hero/blessing';
+import { poxTalk } from './model/hero/pox';
 import { interactionOf } from './model/hero/interaction';
 import { createTalkPanel } from './controller/story/talkPanel';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
@@ -219,7 +221,7 @@ async function boot(): Promise<void> {
     const found = interactionOf(model); // (what E would do: model/hero/interaction.ts)
     if (!found) return null;
     const overHero = (label: string, up = 1.05) => ({ label, x: hero.x, y: hero.y + up, z: hero.z });
-    const asking = (who: Who): boolean => ['offer', 'ready'].includes(model.story.markOf(who) ?? ''); // (a quest to give, or to take in: a word first, whatever their trade)
+    const asking = (who: Who): boolean => ['offer', 'ready'].includes(model.story.markOf(who) ?? '') || ('role' in who && who.role === 'herbalist' && hasPox(model.hero)); // (a quest to give, or to take in: a word first, whatever their trade)
     switch (found.kind) {
       case 'work':
       case 'jobBoard':
@@ -316,7 +318,8 @@ async function boot(): Promise<void> {
     lastFrame = now;
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
-    onTalk: (npc) => talk.open(npc) || trade(npc), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

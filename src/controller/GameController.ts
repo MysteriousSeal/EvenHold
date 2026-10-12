@@ -15,6 +15,8 @@ import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
 import { doorNumber } from '../model/interiors/interiors';
+import type { Client } from '../model/jobs/roomShift';
+import type { Talk } from '../model/story/story';
 import type { Entrance } from '../model/interiors/interiors';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
@@ -54,11 +56,12 @@ export class GameController {
   private readonly onSleep: () => void;
   private readonly onTraveller: (t: Traveller) => void;
   private readonly onWork: (inn: Entrance) => void;
+  private readonly onMeet: (who: Client, talk: Talk) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -72,6 +75,7 @@ export class GameController {
     this.onSleep = options.onSleep ?? (() => {});
     this.onTraveller = options.onTraveller ?? (() => {});
     this.onWork = options.onWork ?? (() => {});
+    this.onMeet = options.onMeet ?? (() => {});
     // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 0 && !this.paused && (!model.inside || model.dungeon) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
@@ -187,8 +191,10 @@ export class GameController {
   private interact(found: Interaction): boolean {
     const { model } = this;
     switch (found.kind) {
-      case 'work':
-        return model.work.use();
+      case 'work': {
+        const met = model.work.meet(); // (someone at the door of their room: a word with them)
+        return met ? (this.onMeet(met.who, met.talk), true) : model.work.use();
+      }
       case 'jobBoard':
         return this.onWork(found.inn), true;
       case 'stopChop':

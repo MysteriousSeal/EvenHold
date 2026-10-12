@@ -14,17 +14,21 @@ import { JOBS, JOB_IDS, rankIn, recordOf, type JobId, type JobRank } from '../..
 import { bandOf } from '../../model/jobs/pour';
 import { SHIFT, WAGE } from '../../model/jobs/shift';
 import { BONUS, CUPBOARD_OUT } from '../../model/jobs/work';
+import { PRICE } from '../../model/jobs/roomShift';
 import { bagIcon } from '../../view/ui/itemIcons';
+import { roseModel } from '../../view/hud/jobVoxels';
+import { voxelIcon } from '../../view/ui/voxelIcon';
 import { coinParts } from '../../view/ui/coins';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { el } from '../../view/ui/dom';
 
-const ICONS: Record<JobId, (size: number) => HTMLCanvasElement> = { innServer: bagIcon('ale'), innBarkeep: bagIcon('mead') };
+const ICONS: Record<JobId, (size: number) => HTMLCanvasElement> = { innServer: bagIcon('ale'), innBarkeep: bagIcon('mead'), innCompanion: (size) => voxelIcon('job:rose', roseModel, size) }; // (a rose: jobVoxels.ts)
 // What's carried at once, by job (the tray's orders; the hands' drinks and empties), and how a shift's worked (E).
-const CARRY: Record<JobId, string> = { innServer: 'Tray', innBarkeep: 'Hands' };
+const CARRY: Record<JobId, string> = { innServer: 'Tray', innBarkeep: 'Hands', innCompanion: '' }; // (none: nothing's carried in a room)
 const KEYS: Record<JobId, string> = {
   innServer: 'take an order · fetch it from the bar · set it down · clear a table',
   innBarkeep: 'pour at the tap or a shelf, again at the line · hand it across · set the tables\' down at the end · gather and wash empties',
+  innCompanion: 'go up to your room and shut the door · answer it when someone knocks · let them in, or turn them away',
 };
 
 const hours = (seconds: number) => `${Math.round((seconds / 60) * 2) / 2} hours`.replace('.5', '½');
@@ -39,9 +43,8 @@ function perkTable(job: JobId, rank: JobRank, next: JobRank | null): HTMLElement
     return row;
   };
   const rows: Array<[string, (r: JobRank) => Node | string, (r: JobRank) => number]> = [
-    [CARRY[job], (r) => mugs(r.tray), (r) => r.tray],
-    ['Patience', (r) => (r.patience ? `+${r.patience}s` : '—'), (r) => r.patience],
-    ['Tips', (r) => `×${r.tips}`, (r) => r.tips],
+    ...(CARRY[job] ? ([[CARRY[job], (r) => mugs(r.tray), (r) => r.tray], ['Patience', (r) => (r.patience ? `+${r.patience}s` : '—'), (r) => r.patience]] as Array<[string, (r: JobRank) => Node | string, (r: JobRank) => number]>) : []),
+    [CARRY[job] ? 'Tips' : 'Pay', (r) => `×${r.tips}`, (r) => r.tips],
     ...(rank.steady !== undefined ? [['Line', (r: JobRank) => `±${Math.round(bandOf(r.steady) * 1000) / 10}%`, (r: JobRank) => r.steady ?? 0] as [string, (r: JobRank) => string, (r: JobRank) => number]] : []),
   ];
   const head = el('tr', undefined, el('th'), el('th', 'job-perk-now', rank.name), ...(next ? [el('th', 'job-perk-next', next.name)] : []));
@@ -109,7 +112,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     const ledger = el('dl', 'job-ledger');
     const fact = (label: string, ...value: Array<string | Node>) => ledger.append(el('div', undefined, el('dt', undefined, label), el('dd', undefined, ...value)));
     fact('Shifts worked', String(record.shifts));
-    fact('Orders served', String(record.served));
+    fact(job === 'innCompanion' ? 'Clients' : 'Orders served', String(record.served));
     fact('Best shift', record.best ? `${record.best} served` : '—');
     fact('Earned', ...(record.earned ? coinParts(record.earned) : ['—']));
     if (job === 'innBarkeep' && inn) {
@@ -135,7 +138,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
     } else {
       terms.append(
         term('A shift', [hours(SHIFT).replace(' hours', ''), el('em', undefined, 'hours')], 'on the clock'),
-        term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip · paid when the shift ends'),
+        job === 'innCompanion' ? term('Pay', [...coinParts(Math.round(PRICE * rank.tips)), el('em', undefined, 'a client')], 'and a tip · paid when the shift ends') : term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip · paid when the shift ends'),
         term('Clean shift', [`+${BONUS}`, el('em', undefined, 'each')], 'if no one walks out'),
       );
     }
