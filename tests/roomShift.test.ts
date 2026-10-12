@@ -3,12 +3,14 @@
 // time passing unseen (the clock, the hero's energy), then paid, or trouble; too tired for another, the shift over
 // and all of it paid; the job's own costume, cut for a man or a woman; the pox, and a herbalist's salve for it.
 import { describe, expect, it } from 'vitest';
+import { comeIn, seeOut } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading, the villagers' rounds before the shifts that call on them)
 import type { GameModel } from '../src/model/GameModel';
 import { maxEnergyOf } from '../src/model/hero/attributes';
 import { POX_TIME, curePox, givePox, hasPox, tiring } from '../src/model/hero/blessing';
 import { recover } from '../src/model/hero/heroStats';
 import { interactionOf } from '../src/model/hero/interaction';
+import { standUp } from '../src/model/interiors/indoors';
 import { SALVE, poxTalk } from '../src/model/hero/pox';
 import { inLetRoom, letDoor, letUntil, setLet } from '../src/model/inn/roomLetting';
 import { restore, snapshot } from '../src/model/save';
@@ -47,7 +49,7 @@ const until = (model: GameModel, what: () => unknown, most = 60): void => {
 function letIn(model: GameModel, tone: Tone = 'warm'): Talk {
   const met = model.work.meet()!;
   expect(met.talk.answers.map((a) => a.label)).toEqual([LET_IN.warm, LET_IN.plain, LET_IN.tease, TURN_AWAY]);
-  const after = met.talk.answers[['warm', 'plain', 'tease'].indexOf(tone)].pick() as Talk;
+  const after = comeIn(model, model.work.shift as RoomShift, ['warm', 'plain', 'tease'].indexOf(tone));
   expect(after.lines.length).toBe(2); // (a word as the door shuts; then, the night passed, what they say going)
   expect(after.later).toBe('A while later'); // (what the black says: no night's passed)
   after.night!();
@@ -129,6 +131,7 @@ describe('a pleasure worker', () => {
         expect(hero.energy).toBeLessThan(energy);
         expect(after.answers.map((a) => a.label)).toEqual([THANKS.warm]);
         expect(after.answers[0].pick()).toBeUndefined();
+        seeOut(shift);
         expect(shift.earned).toBeGreaterThanOrEqual(earned + PRICE);
         expect(shift.served).toBe(served + 1);
         until(model, () => shift.client); // (the next knocks, lying there or not)
@@ -169,6 +172,7 @@ describe('a pleasure worker', () => {
       expect(all(client.temper, 'inside')).toContain(after.lines[0]);
       expect(after.answers.map((a) => a.label)).toEqual([THANKS[tone]]);
       after.answers[0].pick();
+      seeOut(shift);
       if (tone === liked) {
         expect(all(client.temper, 'after')).toContain(after.lines[1]);
         expect(shift.earned).toBeGreaterThan(earned + price); // (and something over)
@@ -229,6 +233,7 @@ describe('a pleasure worker', () => {
       if (way === 'let') expect(said).toBeUndefined();
       else expect((said as Talk).answers).toEqual([]); // (their last word, and gone)
       expect(shift.client).toBeNull();
+      seeOut(shift);
       expect(shift.earned).toBeGreaterThanOrEqual(earned);
       expect(shift.earned > earned || shift.unpaid === unpaid + 1).toBe(true); // (paid something, or told as unpaid)
       expect(hero.hp).toBeGreaterThanOrEqual(Math.min(hp, 1));
@@ -244,9 +249,11 @@ describe('a pleasure worker', () => {
     until(model, () => shift.client);
     while (shift.client?.kind !== 'plain') [shift.client && model.work.meet()!.talk.answers.at(-1)!.pick(), until(model, () => shift.client)];
     letIn(model).answers[0].pick();
+    seeOut(shift);
     const [money, owed] = [hero.money, shift.earned];
     expect(owed).toBeGreaterThan(0);
     expect(hero.money).toBe(money); // (owed till the end)
+    standUp(model.inside!, hero); // (up out of the bed: lying there, they'd rest)
     hero.energy = maxEnergyOf(hero) * 0.05; // (not enough left for another)
     model.takeEvents();
     until(model, () => !model.work.shift);

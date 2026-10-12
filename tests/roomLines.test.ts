@@ -4,6 +4,7 @@
 // all proportion to the others of its kind; a man's are said by men alone, a woman's by women; and no two shifts
 // bring the same people saying the same things.
 import { describe, expect, it } from 'vitest';
+import { comeIn, seeOut } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading)
 import type { GameModel } from '../src/model/GameModel';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
@@ -12,7 +13,6 @@ import { roomsOff, stairsOf, upstairsInside } from '../src/model/interiors/upsta
 import { FLAT, TEMPERS, TEMPER_IDS } from '../src/model/jobs/roomLines';
 import { BOUNCER, GIVES_IN, TROUBLE } from '../src/model/jobs/roomTrouble';
 import { RoomShift } from '../src/model/jobs/roomShift';
-import type { Talk } from '../src/model/story/story';
 
 const CLIENTS = 12_000; // seen to, in all (half by a man, half by a woman)
 const A_SHIFT = 12; // clients a shift, before another's begun
@@ -69,12 +69,13 @@ describe("a pleasure worker's clients", () => {
           const met = model.work.meet()!;
           hear(met.talk.lines[0], theirs);
           knocks.push(met.talk.lines[0]);
-          const after = met.talk.answers[seen % 3].pick() as Talk; // (warm, plain, teasing, in turn)
+          const after = comeIn(model, shift, seen % 3); // (warm, plain, teasing, in turn)
           after.night!();
           for (const line of after.lines) hear(line, theirs);
           const answer = after.answers[Math.floor(seen / 3) % after.answers.length]; // (with trouble: insisted, the bouncer, let go, in turn)
           const last = answer.pick();
           if (last) for (const line of last.lines) hear(line, theirs);
+          seeOut(shift);
         }
         first.push(knocks.slice(0, 4));
         model.work.end(true);
