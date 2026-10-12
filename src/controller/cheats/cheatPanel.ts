@@ -11,6 +11,8 @@
 // main.ts loads this module only when Vite runs in dev mode, so production
 // builds don't contain it.
 import type { GameModel } from '../../model/GameModel';
+import type { Who } from '../../model/story/story';
+import { createQuestDebug } from './questDebug';
 import {
   nextCamp,
   nextCave,
@@ -93,7 +95,8 @@ const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind, string, string]> = [
 const NEARBY = 15; // tiles, for "nearby foes"
 
 // `time`: the game's speed (a multiple of real time), to read and set.
-export function createCheatPanel(model: GameModel, time: { scale: number }): void {
+export function createCheatPanel(model: GameModel, time: { scale: number }, talk: (who: Who, quest: string) => void = () => {}): void {
+  createQuestDebug(model, talk); // (Q beside someone, with the quests' debugging on)
   const here = (): Tile => ({ x: model.hero.x, z: model.hero.z });
   // Teleports there and closes the menu, so the new place is seen at once.
   const travel = (tile: Tile | null, where: string) => {
@@ -440,6 +443,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }): voi
             { icon: lootIcon('ale'), title: 'Restock the inns', detail: "Every barmaid's wares and purse back to full", run: () => `${restockAll(model.shops, model.seed)} barmaids restocked (the rest are full anyway).` },
           ]),
           ...group('Debug', [
+            { icon: ICON.village, title: 'Quest debug', detail: 'Q beside someone: their quests, to replay. Journal: finish any', ...toggle(() => model.story.debug, (on) => (model.story.debug = on), 'Quest debug on: Q beside someone lists their quests.', 'Quest debug off.') },
             {
               icon: ICON.village,
               title: 'Furniture yard',

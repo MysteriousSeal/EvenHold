@@ -80,6 +80,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
         else armed = quest.key;
         menu.refresh();
       },
+      onFinish: model.story.debug && !done ? () => [quests.finish(quest.key), menu.refresh()] : undefined,
     });
     pane.append(line('menu-detail-said', told || (done ? 'Done. Hand it in at the notice board you took it from.' : '')), buttons);
     return pane;

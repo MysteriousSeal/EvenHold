@@ -21,8 +21,9 @@
 .quest-danger[data-difficulty='hard'] { background: #e07a2a; }
 .quest-danger[data-difficulty='deadly'] { background: #c8362a; }
 .menu-detail-said.quest-completed { color: #217c98; font-weight: 600; }
-.quest-buttons { display: flex; gap: 8px; align-items: stretch; }
+.quest-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 .quest-buttons .menu-detail-button { flex: 1; }
+.quest-buttons .quest-finish { flex: 1 0 100%; } /* (the cheat's: a row of its own under the two) */
 .quest-abandon {
   font: 600 13px 'Fredoka', system-ui, sans-serif;
   color: var(--clay-dark);

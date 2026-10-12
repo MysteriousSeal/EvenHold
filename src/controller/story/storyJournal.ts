@@ -10,7 +10,7 @@ import { journalButtons } from '../quests/journalButtons';
 import type { MenuIcon } from '../../view/ui/menu';
 
 // A gold roundel with a "!" in it: a quest someone gave.
-const offerIcon: MenuIcon = (size) => {
+export const storyIcon: MenuIcon = (size) => {
   const canvas = document.createElement('canvas');
   const ratio = Math.max(1, window.devicePixelRatio || 1);
   canvas.width = canvas.height = Math.round(size * ratio);
@@ -48,7 +48,7 @@ export function storyJournal(model: GameModel, redraw: () => void, full: string)
       story.taken.map((q) => {
         const slot: MenuSlot = {
           key: q.id,
-          icon: offerIcon,
+          icon: storyIcon,
           title: q.name,
           note: q.ready && q.toName ? `Speak to ${q.toName}` : `For ${q.toName || q.fromName}`,
           badge: q.ready ? '? Ready' : `${q.have}/${q.of}`,
@@ -60,7 +60,7 @@ export function storyJournal(model: GameModel, redraw: () => void, full: string)
       }),
     done: () =>
       story.done.map((q) => {
-        const slot: MenuSlot = { key: q.id, icon: offerIcon, title: q.name, note: 'Done', badge: '✓', badgeTone: 'past', dim: true };
+        const slot: MenuSlot = { key: q.id, icon: storyIcon, title: q.name, note: 'Done', badge: '✓', badgeTone: 'past', dim: true };
         about.set(slot, { name: q.name, text: 'Done, and paid for.', said: '' });
         return slot;
       }),
@@ -84,6 +84,7 @@ export function storyJournal(model: GameModel, redraw: () => void, full: string)
               else armed = id;
               redraw();
             },
+            onFinish: story.debug && !story.ready(id) ? () => [story.finish(id), redraw()] : undefined,
           }),
         );
       }

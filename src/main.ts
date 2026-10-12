@@ -172,7 +172,7 @@ async function boot(): Promise<void> {
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
   };
-  const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused), trade }); // a word with someone who has a quest (story/talkPanel.ts)
+  const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused), trade, redraw: () => controller.redraw() }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
@@ -376,7 +376,7 @@ async function boot(): Promise<void> {
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {
-    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model, { get scale() { return controller.timeScale; }, set scale(n) { controller.timeScale = n; } }));
+    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model, { get scale() { return controller.timeScale; }, set scale(n) { controller.timeScale = n; } }, (who, quest) => void talk.open(who, quest)));
   }
 }
 

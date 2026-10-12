@@ -23,7 +23,7 @@ const TURNED = 0.55; // radians each is turned toward the other
 const NIGHT_FADE = 900; // ms the screen takes to go black, and to come back (talk.css)
 const NIGHT_HELD = 1800; // ms it stays black
 
-export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void }): { open(who: Who): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
+export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void; redraw?(): void }): { open(who: Who, only?: string): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
   let talk: Talk | null = null;
   let speaking: Who | null = null; // whoever the hero's talking with
   let at = 0; // the line being said
@@ -138,6 +138,8 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     dark = true;
     night.classList.add('on');
     nightfall = window.setTimeout(() => {
+      talk?.night?.(); // (in the dark: it's morning, by the game's clock too)
+      hooks.redraw?.(); // (and the world behind drawn by its light)
       written = 0;
       draw(); // (the morning's line, not yet said, behind the black)
       night.classList.remove('on');
@@ -206,9 +208,10 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
 
   return {
     menu,
-    // What they have to say, told; false if it's nothing of the story's (their own trade, then).
-    open(who) {
-      talk = model.story.talk(who);
+    // What they have to say, told (`only`: of that one quest of theirs); false if it's nothing of the story's (their
+    // own trade, then).
+    open(who, only) {
+      talk = model.story.talk(who, only);
       if (!talk) return false;
       speaking = who;
       [at, answering, isOpen] = [0, false, true];
