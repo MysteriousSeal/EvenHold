@@ -44,7 +44,8 @@ describe('the hour with a client, played', () => {
       const pace = paceOf('blunt');
       const scores: number[] = [];
       const after: Talk = { speaker: 'Wenna', lines: ['Here is your money.'], answers: [{ label: 'Take it.', primary: true, pick: () => {} }] };
-      const talk: Talk = { speaker: 'Wenna', lines: ['Shut the door.'], answers: [], pace: { pace, with: 'Wenna', done: (score) => (scores.push(score), after) } };
+      const voice = { rising: (level: number) => `More, ${level}.`, badly: () => 'Not like that.', streak: () => 'Yes.', finish: () => 'Oh, that was good.' };
+      const talk: Talk = { speaker: 'Wenna', lines: ['Shut the door.'], answers: [], pace: { pace, with: 'Wenna', voice, done: (score) => (scores.push(score), after) } };
       expect(panel.show({ name: 'Wenna', look: model.hero.look, equipment: {} }, talk)).toBe(true);
       key('Space'); // (their line written out)
       key('Space'); // (past it: dark, the game to come)
@@ -53,15 +54,22 @@ describe('the hour with a client, played', () => {
       expect(night.querySelector('.pace')).toBeNull(); // (not till it's dark)
       vi.advanceTimersByTime(950);
       expect(night.querySelector('.pace-who')!.textContent).toBe('Wenna');
+      expect(scene().classList.contains('playing')).toBe(true); // (the two of them shown, either side of the game)
+      expect(talk.pace!.bare ?? false).toBe(false); // (this one's own: dressed; a client's: bare, below)
+      expect(scene().querySelectorAll('.talk-figure')).toHaveLength(2);
       expect(night.querySelectorAll('.pace-pip')).toHaveLength(pace.periods.length);
       // Each beat pressed on its middle (the last two let go by): kept, kept… missed, missed.
       vi.advanceTimersByTime(pace.periods[0] * 500);
+      const spoken = new Set<string>();
       for (const [i, period] of pace.periods.entries()) {
+        spoken.add(night.querySelector('.pace-words')!.textContent ?? '');
         if (i < pace.periods.length - 2) [key('Space'), key('Space')]; // (a second press in the beat: nothing)
         vi.advanceTimersByTime(period * 1000);
       }
       expect(night.querySelectorAll('.pace-pip.kept').length).toBeGreaterThanOrEqual(pace.periods.length - 3);
+      expect(night.querySelector('.pace-words')!.textContent).toBe('“Oh, that was good.”'); // (their last word, over the track)
       expect(night.querySelectorAll('.pace-pip.missed').length).toBeGreaterThanOrEqual(2);
+      expect([...spoken].filter((w) => w.startsWith('“More')).length).toBeGreaterThanOrEqual(3); // (the more pleased, level by level, as it went)
       expect(night.querySelector('.pace.over .pace-said')!.textContent).toMatch(/pleased|forget/);
       expect(scores).toEqual([]); // (a word on how it went, first)
       vi.advanceTimersByTime(1200);
@@ -70,6 +78,7 @@ describe('the hour with a client, played', () => {
       expect(scores[0]).toBeLessThan(0.95);
       expect(night.querySelector('.pace')).toBeNull();
       expect(night.classList.contains('on')).toBe(false);
+      expect(scene().classList.contains('playing')).toBe(false);
       vi.advanceTimersByTime(1500); // (light again: what they say after, written out)
       expect(scene().querySelector('.talk-words')!.textContent).toBe('Here is your money.');
       key('Space');
@@ -136,6 +145,7 @@ describe("a word at a pleasure worker's door", () => {
     expect(model.work.arrived()).toBeNull(); // (said once)
     expect(panel.show(come!.who, come!.talk)).toBe(true);
     expect(come!.talk.pace).toBeDefined(); // (the hour: a game of their pace, played in the dark)
+    expect(come!.talk.pace!.bare).toBe(true); // (the client shown with nothing on while it's played)
     panel.menu.close();
     // Paid and gone: out by the door, it shut after them, no one left in the room.
     come!.talk.pace!.done(0.8).answers[0].pick();

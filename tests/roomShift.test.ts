@@ -23,7 +23,8 @@ import type { Pace } from '../src/model/jobs/room/pace';
 import { PRICE, RoomShift } from '../src/model/jobs/room/roomShift';
 import type { Talk } from '../src/model/story/story';
 import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
-import { costumeFor, COSTUME_LOOKS } from '../src/view/meshes/human/gear/costumes';
+import { C, NIPPLES, bodyPalette, buildTorso, fineTorso } from '../src/view/meshes/human/bodyVoxels';
+import { costumeFor, COSTUME_LOOKS, workCostume, workLook } from '../src/view/meshes/human/gear/costumes';
 
 // At work in the first inn; `upstairs`: stood in the room that's theirs.
 function atWork(upstairs = true): { model: GameModel; shift: RoomShift } {
@@ -85,11 +86,50 @@ describe('a pleasure worker', () => {
     const left = shift.left;
     for (let t = 0; t < 20; t += 0.25) model.update(0, 0, 0.25);
     expect([shift.begun, shift.client, shift.left]).toEqual([false, null, left]);
+    expect(workCostume(model)).toEqual(costumeFor('innCompanion', model.hero.look.build)); // (in the job's costume till then)
+    expect(workLook(model)).toBe(model.hero.look);
     Object.assign(model.hero, doorway(door, -0.45)); // (at it, inside)
     expect(useHallDoor(model)).toBe(true);
     expect(door.open).toBe(false);
     model.update(0, 0, 0.25);
     expect([shift.begun, door.locked]).toEqual([true, true]);
+    expect(workCostume(model)).toEqual({}); // (the door shut behind them: nothing on, till the shift's over)
+    // Nothing at all: their body drawn without its braies (skin where they were), the same body from frame to frame.
+    const [own, stripped] = [model.hero.look, workLook(model)];
+    expect(stripped).toMatchObject({ ...own, unclothed: true });
+    expect(workLook(model)).toBe(stripped);
+    expect(own.unclothed).toBeUndefined(); // (their own look: as it was)
+    const [dye, skin] = [bodyPalette(own)[10], bodyPalette(own)[0]];
+    expect(dye).not.toBe(skin);
+    const seen = (look: typeof own) => new Set(closeUpFigure(look, {}, {}).palette);
+    expect(seen(own).has(dye)).toBe(true);
+    expect(seen(stripped).has(dye)).toBe(false);
+    expect(closeUpFigure(stripped, {}, {}).grid.cells.filter((c) => c).length).toBe(closeUpFigure(own, {}, {}).grid.cells.filter((c) => c).length); // (the same shape: nothing added)
+    // A nipple in the middle of each side of the chest, for him and for her: drawn twice as fine as the game's voxels
+    // (a whole one can't sit in the middle of a bust two wide), each a fine two by two, mirrored about the middle.
+    for (const build of ['male', 'female'] as const) {
+      const [coarse, fine] = [buildTorso(build, true), fineTorso(build)];
+      expect(coarse.cells.filter((c) => c === C.cheek).length).toBe(0);
+      expect(fine.size).toEqual(coarse.size.map((n) => n * 2));
+      expect(fine.cells.filter((c) => c === C.cheek).length).toBe(8);
+      const [w, h] = fine.size;
+      const pink = NIPPLES[build];
+      expect(pink.every(([x, y, z]) => fine.cells[x + w * (y + h * z)] === C.cheek)).toBe(true);
+      const left = pink.filter(([x]) => x < w / 2);
+      const right = pink.filter(([x]) => x >= w / 2);
+      expect([left.length, right.length]).toEqual([4, 4]);
+      const mean = (points: typeof pink, axis: 0 | 1) => points.reduce((sum, p) => sum + p[axis] + 0.5, 0) / points.length;
+      expect(mean(left, 0) + mean(right, 0)).toBeCloseTo(w, 9); // (mirrored)
+      expect(mean(left, 1)).toBe(14); // (between the chest's two rows: 6 and 7, of the game's voxels)
+      // In the middle of its side of the chest: as much skin to its left as to its right, on its row.
+      const row = (y: number, z: number) => Array.from({ length: w }, (_, x) => fine.cells[x + w * (y + h * z)]);
+      const side = row(13, 9).map((c, x) => (c && x < w / 2 - (build === 'female' ? 1 : 1) ? x : -1)).filter((x) => x >= 0);
+      const [first, last] = [Math.min(...side.filter((x) => x >= 2)), Math.max(...side)];
+      expect(mean(left, 0), build).toBeCloseTo((first + last + 1) / 2, 9);
+    }
+    // Close up too (the talk's figure, their sheet): the same eight fine voxels.
+    const pinkIn = (look: typeof own) => closeUpFigure(look, {}, {}).grid.cells.filter((c) => c === C.cheek).length;
+    expect(pinkIn(stripped) - pinkIn(own)).toBe(8);
     expect(shift.left).toBeLessThan(left);
     expect(useHallDoor(model)).toBe(true); // (tried: it won't open)
     expect(door.open).toBe(false);
@@ -256,6 +296,8 @@ describe('a pleasure worker', () => {
     model.takeEvents();
     until(model, () => !model.work.shift);
     expect(model.work.shift).toBeNull();
+    expect(workCostume(model)).toBeNull(); // (their own gear again)
+    expect(workLook(model)).toBe(hero.look);
     expect(hero.money).toBeGreaterThanOrEqual(money + owed);
     expect(model.takeEvents().find((e) => e.kind === 'shift')).toMatchObject({ job: 'Pleasure worker', served: 1, early: false });
     expect(recordOf(hero, 'innCompanion').shifts).toBe(1);
