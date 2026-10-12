@@ -23,7 +23,8 @@ import type { Pace } from '../src/model/jobs/room/pace';
 import { PRICE, RoomShift } from '../src/model/jobs/room/roomShift';
 import type { Talk } from '../src/model/story/story';
 import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
-import { C, NIPPLES, bodyPalette, buildTorso, fineTorso } from '../src/view/meshes/human/bodyVoxels';
+import { C, bodyPalette, buildTorso } from '../src/view/meshes/human/bodyVoxels';
+import { NIPPLES, fineTorso, unclothed } from '../src/view/meshes/human/unclothed';
 import { costumeFor, COSTUME_LOOKS, workCostume, workLook } from '../src/view/meshes/human/gear/costumes';
 
 // At work in the first inn; `upstairs`: stood in the room that's theirs.
@@ -98,6 +99,8 @@ describe('a pleasure worker', () => {
     const [own, stripped] = [model.hero.look, workLook(model)];
     expect(stripped).toMatchObject({ ...own, unclothed: true });
     expect(workLook(model)).toBe(stripped);
+    expect(unclothed(own)).toBe(stripped); // (a look's one unclothed twin, whoever asks)
+    expect(unclothed(stripped)).toBe(stripped);
     expect(own.unclothed).toBeUndefined(); // (their own look: as it was)
     const [dye, skin] = [bodyPalette(own)[10], bodyPalette(own)[0]];
     expect(dye).not.toBe(skin);
