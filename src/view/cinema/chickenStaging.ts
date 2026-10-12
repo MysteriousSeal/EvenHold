@@ -12,9 +12,8 @@
 // her (voxelMorph.ts: `cloud`, her voxels). What has no voxels to take apart either (a ghost, seen through): a
 // shiver; its shape pulled to a hen's proportions; whitened; comb, beak and tail pushing out of it; then down to
 // her size (`stage`).
-// The hen then: sprung out stretched, hopping, shaking her head, and a peck at the ground.
+// The hen then, herself: a startled hop, a shake of her head, and a peck at the ground.
 import * as THREE from 'three';
-import { SWAP, henShape } from '../meshes/wildlife/chickenMorph';
 import { createHen } from '../meshes/wildlife/chickenRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
 import type { Piece } from './partMorph';
@@ -38,6 +37,14 @@ function henClouds(big: number): { body: Cloud; head: Cloud; legs: Cloud[] } {
     body: cloudOf([{ grid: buildChickenBody(), palette: CHICKEN_PALETTE, origin: at(-bx / 2, LEG_HEIGHT, -bz / 2) }], V * big),
     head: cloudOf([{ grid: buildChickenHead(), palette: CHICKEN_PALETTE, origin: at(-HEAD_GRID[0] / 2, LEG_HEIGHT + 2.5, 2.5 - 1.5) }], V * big),
     legs: [-1, 1].map((side) => cloudOf([{ grid: buildChickenLeg(), palette: CHICKEN_PALETTE, origin: at(side - 0.5, LEG_HEIGHT - 3, -0.5) }], V * big)),
+  };
+}
+
+// How she is once she's there (`j`: 0 just there, 1 settled): a startled hop, then a shake of her head; at rest after.
+export function henShape(j: number): { hop: number; shake: number } {
+  return {
+    hop: j > 0.2 && j < 0.6 ? Math.sin(((j - 0.2) / 0.4) * Math.PI) * 0.07 : 0,
+    shake: j > 0.55 && j < 0.85 ? Math.sin((j - 0.55) * 60) * 0.5 * Math.sin(((j - 0.55) / 0.3) * Math.PI) : 0,
   };
 }
 
@@ -173,9 +180,7 @@ export const chickenStaging: Staging = {
       root: hen.root,
       height: HEN.y,
       settle(j, time) {
-        const shape = henShape(SWAP + j * (1 - SWAP));
-        hen.root.scale.set(shape.across, shape.up, shape.across);
-        hen.root.rotation.y = shape.spin;
+        const shape = henShape(j);
         hen.root.position.y = shape.hop;
         hen.head.rotation.set(j > 0.82 ? Math.sin(((j - 0.82) / 0.18) * Math.PI) * 1.1 : 0, shape.shake, 0); // (a shake of her head; then a peck)
         void time;

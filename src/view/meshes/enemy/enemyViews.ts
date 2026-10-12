@@ -2,7 +2,6 @@
 // bandit's, a skeleton's or a ghost's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
-import { morphOut } from '../wildlife/chickenMorph';
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
@@ -83,8 +82,8 @@ export class EnemyViews {
 
   // A figure of `enemy` on its own, as it stands, empty-handed, nowhere yet (to be staged: cinema/transformCinema.ts).
   standIn(enemy: Enemy): THREE.Object3D {
-    const rig = this.rigOf[enemy.kind]({ ...enemy, chicken: undefined });
-    rig.update({ ...enemy, x: 0, y: 0, z: 0, chicken: undefined }, 0, 0, 1);
+    const rig = this.rigOf[enemy.kind](enemy);
+    rig.update({ ...enemy, x: 0, y: 0, z: 0 }, 0, 0, 1);
     rig.root.position.set(0, 0, 0);
     rig.root.rotation.set(0, 0, 0);
     // Nothing in its hands (a bandit's blade and shield, a skeleton's sword or bow, a draugr's axe): put down first.
@@ -111,7 +110,6 @@ export class EnemyViews {
     }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       rig.update(enemy, dt, heroX, heroZ);
-      morphOut(rig.root, enemy.chicken, this.time); // (turning into a chicken, or one: wildlife/chickenMorph.ts, the hen drawn in its place)
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {

@@ -4,7 +4,6 @@
 // drawn bigger indoors like the hero, sitting or lying on their seat, and
 // with their name floating over their head when the hero is close.
 
-import { morphOut } from '../wildlife/chickenMorph';
 import * as THREE from 'three';
 import { INDOOR_SCALE } from '../../../model/constants';
 import type { Entrance } from '../../../model/interiors/interiors';
@@ -49,7 +48,6 @@ export class NpcViews {
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : npc.working ? 'work' : 'stand';
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
-      morphOut(rig.root, npc.chicken, time); // (turning into a chicken, or one: wildlife/chickenMorph.ts, the hen drawn in their place)
       rig.hold(npc.carrying ?? false); // a cup in hand (the barmaid, bringing a drink or clearing one away)
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
       label.visible = !quiet && npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
