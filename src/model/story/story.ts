@@ -22,7 +22,7 @@ import { hashUnit, mulberry32 } from '../../util/random';
 import type { Carter } from './carter';
 import { ROAD_QUESTS } from './roadQuests';
 import { castKey, castOf, type CastHost, type Setting, type Who } from './storyCast';
-import { FIRST_QUESTS, type Gift, type StoryQuest, type Told } from './storyQuests';
+import { FIRST_QUESTS, type Gift, type StoryPlace, type StoryQuest, type Told } from './storyQuests';
 import { VILLAGE_QUESTS } from './villageQuests';
 
 export type { Who } from './storyCast';
@@ -52,6 +52,8 @@ export interface TakenStory {
 
 export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
+// Where a foe's kind keeps, for those that keep to a place: pointed to while none of them is in sight.
+const LAIR: Partial<Record<string, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', cryptLord: 'ruin', bandit: 'camp' };
 const FOE_SEEN = 90; // tiles: a quest's foes this near the hero are pointed to
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const idOf = (key: string): string => key.split('@')[0];
@@ -355,7 +357,7 @@ export class Story {
     const { hero, enemies } = this.host;
     const nearest = <T extends { x: number; z: number }>(list: readonly T[], within = Infinity) => list.reduce<T | null>((best, p) => (Math.hypot(p.x - hero.x, p.z - hero.z) < (best ? Math.hypot(best.x - hero.x, best.z - hero.z) : within) ? p : best), null);
     if (needs?.kind === 'reach') return at?.place[needs.place] ?? null;
-    if (needs?.kind === 'slay') return nearest(enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead'), FOE_SEEN);
+    if (needs?.kind === 'slay') return nearest(enemies.filter((e) => e.kind === needs.foe && e.state !== 'dead'), FOE_SEEN) ?? (LAIR[needs.foe] && at?.place[LAIR[needs.foe]!]) ?? null; // (none in sight: where its kind keeps)
     if (needs?.kind !== 'do') return null;
     if (needs.what === 'clearCamp') return at?.place.camp ?? nearest(this.host.camps.map((c) => c.way));
     if (needs.what === 'shift') return this.innOf(key);
