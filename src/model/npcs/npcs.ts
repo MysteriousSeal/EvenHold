@@ -47,10 +47,12 @@ const FIELD_NEAR = 15; // tiles from the village's middle
 
 export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist' | 'hedgewitch';
 
-// What a villager is called by, after their name, if anything: "Adawen (Barmaid)".
+// What a villager is called by, after their name, if anything: "Adawen (Barmaid)". A man in a woman's trade, or she
+// in his (a charm's doing: spells/swaps.ts), called as he or she is: a barman, a waiter.
 const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', hedgewitch: 'Hedge-witch' };
-export function titleOf(npc: Npc): string {
-  const title = TITLES[npc.role];
+const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter', hedgewitch: 'Hedge-wizard' };
+export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'>): string {
+  const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role];
   return title ? `${npc.name} (${title})` : npc.name;
 }
 

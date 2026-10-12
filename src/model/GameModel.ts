@@ -40,7 +40,7 @@ import { bumpsNpc, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
-import { BLESSINGS, tickBlessing, tossCoin, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
+import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
 import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
@@ -70,6 +70,7 @@ import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
 import { castSpell } from './spells/casting';
 import { Chickens } from './spells/chickens';
+import { Swaps } from './spells/swaps';
 import { isSpellKey, spellOf } from './spells/spells';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
@@ -474,17 +475,13 @@ export class GameModel {
   }
 
   // A silver coin into the well in reach, for a blessing (blessing.ts); returns it, or null (none in reach, or no silver).
-  tossCoin(roll = Math.random()): BlessingKind | null {
-    const kind = this.wellInReach === null ? null : tossCoin(this.hero, roll);
-    this.report(kind ? { kind: 'blessing', name: BLESSINGS[kind].name } : { kind: 'poor', text: 'Not a silver coin to toss' });
-    return kind;
-  }
+  tossCoin = (roll = Math.random()): BlessingKind | null => tossInWell(this, roll);
 
   // The foe the hero's focused on; focusing a living one by id, null (or a dead one) letting go (hero/focus.ts).
   get focused(): Enemy | null { return this.focusOn.focused; }
   focus = (id: number | null): void => void [this.focusOn.focus(id), this.focusOn.focused && this.chosen.select(null)];
   readonly chickens = new Chickens(this);
-  readonly lost = this.chickens.lost; // (villagers turned for good: a world made again is made without them)
+  readonly swaps = new Swaps(this); // (whose sex a charm's changed: spells/swaps.ts)
   readonly chosen = new Selection(); // (whoever else they've picked out, no foe: hero/selection.ts; one or the other)
   select = (who: Person | null): void => void [this.chosen.select(who), who && this.focusOn.focus(null)];
 

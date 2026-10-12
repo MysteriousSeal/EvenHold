@@ -3,7 +3,7 @@
 // only while playing, and kept in a save). One at a time from a well:
 // another toss rerolls it, the half hour afresh (a cheat can grant all).
 
-import type { Hero, Village } from '../types';
+import type { GameEvent, Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
@@ -105,5 +105,12 @@ export function tossCoin(hero: Hero, roll: number): BlessingKind | null {
   hero.money -= WELL_TOSS;
   const kind = BLESSING_KINDS[Math.min(BLESSING_KINDS.length - 1, Math.floor(roll * BLESSING_KINDS.length))];
   hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, stay)
+  return kind;
+}
+
+// A silver coin tossed into the well in reach, if there's one: its blessing (told), or none (no well, or no silver: told so).
+export function tossInWell(at: { wellInReach: unknown; hero: Hero; report(event: GameEvent): void }, roll: number): BlessingKind | null {
+  const kind = at.wellInReach === null ? null : tossCoin(at.hero, roll);
+  at.report(kind ? { kind: 'blessing', name: BLESSINGS[kind].name } : { kind: 'poor', text: 'Not a silver coin to toss' });
   return kind;
 }

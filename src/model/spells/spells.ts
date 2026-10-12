@@ -6,7 +6,7 @@
 import type { Hero } from '../types';
 import type { Into } from './chickens';
 
-export type SpellId = 'hex' | 'mend' | 'chicken' | 'horse';
+export type SpellId = 'hex' | 'mend' | 'chicken' | 'horse' | 'swap';
 export type Aim = 'foes' | 'anyone';
 export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyone' };
 export interface Spell {
@@ -21,6 +21,7 @@ export interface Spell {
   harm?: number; // times a blow of the hero's, done to a foe
   heal?: number; // of their whole health, given back
   turns?: Into; // what it turns them into, for good (chickens.ts)
+  swaps?: boolean; // changes their sex (swaps.ts): cast again, back as they were
   needsTarget?: boolean; // one for anyone that's never cast at the hero themselves: no one picked out, not cast
 }
 
@@ -29,6 +30,7 @@ export const SPELLS: Record<SpellId, Spell> = {
   mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', level: 1, price: 60, breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
   chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry. There is no word that says it back.', level: 3, price: 150, breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'chicken', needsTarget: true },
   horse: { name: "Horse-coper's word", about: 'A hair from a mane knotted three times, and a name called as you would call one in from the field. Whoever answers to it stays in the field.', level: 5, price: 250, breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'horse', needsTarget: true },
+  swap: { name: 'Moon-turn charm', about: 'Said at a crossroads under a waning moon, it is told; said anywhere, it works as well. Whoever hears it wakes into the other half of the parish.', level: 4, price: 200, breath: 40, cooldown: 0, range: 5, aim: 'anyone', swaps: true, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
@@ -55,7 +57,7 @@ export function coolSpells(hero: Pick<Hero, 'spellWait'>, dt: number): void {
 // What it does, in a line (the spellbook, the bar's tip).
 export function spellText(id: SpellId): string {
   const spell = SPELLS[id];
-  const does = spell.turns ? `Turns whoever you've picked out into a ${spell.turns}, for good: gone as if slain, nothing had for it (no boss)` : spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
+  const does = spell.swaps ? "Changes the sex of whoever you've picked out (a villager, a traveller, a bandit): body, hair and name; cast again, they're as they were" : spell.turns ? `Turns whoever you've picked out into a ${spell.turns}, for good: gone as if slain, nothing had for it (no boss)` : spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
   return `${does}, up to ${spell.range} tiles off · ${spell.breath} Breath · ${spell.cooldown ? `${spell.cooldown} s` : 'no wait'}`;
 }
 // A save's known spells, as far as they're sound (an older save's: none).

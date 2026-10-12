@@ -39,7 +39,8 @@ export interface WorldHost {
   readonly seed: number;
   readonly hero: Hero;
   readonly slain: ReadonlySet<number>;
-  readonly lost?: ReadonlySet<number>; // villagers gone for good (turned into chickens: spells/chickens.ts), by id
+  readonly chickens?: { readonly lost: ReadonlySet<number> }; // villagers gone for good (turned into beasts: spells/chickens.ts), by id
+  readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
@@ -313,7 +314,8 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.lost?.has(n.id)); // the villagers, one to a house (but those lost for good)
+    const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
+    this.host.swaps?.remade([...npcs, ...enemies]);
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
     const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, entrances };
     this.learn(index, known);
