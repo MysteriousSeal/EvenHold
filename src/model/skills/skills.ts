@@ -149,10 +149,10 @@ export const RISE: ReadonlyArray<{ within: number; chance: number; color: string
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
 
 // A try at something wanting `needs` (a tree felled at, a thing made): the skill raised, as its difficulty allows
-// (`roll`: 0..1, the try's own), told; the levels it rose by.
-export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void): number {
+// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), told; the levels it rose by.
+export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number): number {
   const level = skillOf(hero, skill).level;
-  if (roll >= difficulty(needs, level).chance || raiseSkill(hero, skill) === 0) return 0;
+  if (roll >= (chance ?? difficulty(needs, level).chance) || raiseSkill(hero, skill) === 0) return 0;
   report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
   return 1;
 }
