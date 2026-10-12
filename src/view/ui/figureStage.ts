@@ -63,6 +63,16 @@ export class FigureStage {
     this.camera.updateProjectionMatrix();
   }
 
+  // Done with for good (a portrait's, its talk over): its figure, its material and its drawing context let go (a page
+  // keeps few of those: one left idle still costs the game's own its frames), its canvas out of the page.
+  dispose(): void {
+    this.mesh?.geometry.dispose();
+    this.material.dispose();
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    this.canvas.remove();
+  }
+
   // Stood still, turned `angle` from facing us (toward its left: positive), as in a portrait.
   face(angle: number): void {
     this.still = angle;

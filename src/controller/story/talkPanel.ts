@@ -160,6 +160,10 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     cancelAnimationFrame(frame);
     scene.hidden = true;
     scene.classList.remove('shown');
+    // The two portraits' stages let go (each a drawing context of its own: kept idle, they cost the game its frames).
+    stages?.hero?.dispose();
+    stages?.other?.dispose();
+    stages = null;
     trackMenu(menu as Menu, false);
     hooks.setPaused(false);
   }
@@ -173,7 +177,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       [at, answering, isOpen] = [0, false, true];
       answers.replaceChildren();
       delete card.dataset.for;
-      stages ??= { hero: stage(left, TURNED), other: stage(right, -TURNED) };
+      stages = { hero: stage(left, TURNED), other: stage(right, -TURNED) }; // (made for this talk, let go at its end)
       stages.hero?.show(model.hero.look, model.hero.equipment);
       stages.other?.show(who.look, who.equipment);
       scene.hidden = false;
