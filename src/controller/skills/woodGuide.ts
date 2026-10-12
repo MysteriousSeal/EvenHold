@@ -6,8 +6,8 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { WOOD, gradeChops, type Grade } from '../../model/skills/lumber';
-import { difficulty, skillOf } from '../../model/skills/skills';
+import { WOOD, gradeChops, riseOf, type Grade } from '../../model/skills/lumber';
+import { skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { el } from '../../view/ui/dom';
@@ -24,7 +24,7 @@ const WHERE: Record<Grade, string> = {
 
 // The best tree to learn from now: the hardest they can fell that still teaches; none, if none.
 export function bestGrade(level: number): Grade | null {
-  return [...GRADES].reverse().find((g) => WOOD[g].needs <= level && difficulty(WOOD[g].needs, level).chance > 0) ?? null;
+  return [...GRADES].reverse().find((g) => WOOD[g].needs <= level && riseOf(g, level).chance > 0) ?? null;
 }
 
 export function woodGuide(model: GameModel, state: { picked: Grade | null }, redraw: () => void): HTMLElement {
@@ -36,13 +36,13 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
   list.append(el('div', 'book-group', 'Trees'));
   for (const grade of GRADES) {
     const wood = WOOD[grade];
-    list.append(bookRow({ id: grade, kind: 'grade', name: capitalize(wood.name), needs: wood.needs, level, picked: grade === state.picked, best: grade === best, count: String(wood.needs), onPick: () => [(state.picked = grade), redraw()] }));
+    list.append(bookRow({ id: grade, kind: 'grade', name: capitalize(wood.name), needs: wood.needs, level, picked: grade === state.picked, best: grade === best, rise: riseOf(grade, level), count: String(wood.needs), onPick: () => [(state.picked = grade), redraw()] }));
   }
   return el('div', 'book', el('div', 'book-side', list, bookLegend()), detail(state.picked));
 
   function detail(grade: Grade): HTMLElement {
     const wood = WOOD[grade];
-    const needs = needsLine('Lumberjacking', wood.needs, level);
+    const needs = needsLine('Lumberjacking', wood.needs, level, riseOf(grade, level));
     const [least, most] = gradeChops(grade);
     const second = model.lumber.secondLogChance(level);
     const facts = el(

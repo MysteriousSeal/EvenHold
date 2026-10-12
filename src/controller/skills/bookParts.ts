@@ -10,8 +10,10 @@ import { el } from '../../view/ui/dom';
 const TEACHES = ['Always teaches', 'Often teaches', 'Rarely teaches', 'Teaches nothing more'];
 const SHORT = ['Always', 'Often', 'Rarely', 'Never'];
 
+type Rise = (typeof RISE)[number]; // (a thing's own, where it isn't its difficulty's: lumber.ts riseOf)
+
 // A thing in a list, as a button: picked, it's told of beside the list.
-export function bookRow(o: { id: string; kind: 'recipe' | 'grade'; name: string; needs: number; level: number; picked: boolean; best: boolean; count: string; onPick(): void }): HTMLButtonElement {
+export function bookRow(o: { id: string; kind: 'recipe' | 'grade'; name: string; needs: number; level: number; picked: boolean; best: boolean; count: string; rise?: Rise; onPick(): void }): HTMLButtonElement {
   const known = o.level >= o.needs;
   const button = el('button', `book-row${o.picked ? ' picked' : ''}${known ? '' : ' locked'}`);
   button.setAttribute('role', 'option');
@@ -19,7 +21,7 @@ export function bookRow(o: { id: string; kind: 'recipe' | 'grade'; name: string;
   button.dataset[o.kind] = o.id;
   const dot = el('i', 'book-dot');
   const name = el('span', 'book-name', o.name);
-  if (known) dot.style.background = name.style.color = difficulty(o.needs, o.level).color;
+  if (known) dot.style.background = name.style.color = (o.rise ?? difficulty(o.needs, o.level)).color;
   button.append(dot, name, ...(o.best ? [el('span', 'book-best', '★')] : []), el('span', 'book-count', o.count));
   button.addEventListener('click', o.onPick);
   return button;
@@ -33,11 +35,11 @@ export function bookLegend(): HTMLElement {
 }
 
 // What a thing wants of the skill, and (reached) how much it'd teach, in its colour.
-export function needsLine(skill: string, needs: number, level: number): HTMLElement {
+export function needsLine(skill: string, needs: number, level: number, its?: Rise): HTMLElement {
   const known = level >= needs;
   const line = el('p', known ? 'book-needs' : 'book-needs short', `Requires ${skill} ${needs}`);
   if (known) {
-    const rise = difficulty(needs, level);
+    const rise = its ?? difficulty(needs, level);
     const teach = el('span', 'book-teach', ` · ${TEACHES[RISE.indexOf(rise)]}`);
     teach.style.color = rise.color;
     line.append(teach);
