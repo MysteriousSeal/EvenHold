@@ -15,7 +15,7 @@ import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
 import { doorNumber } from '../model/interiors/interiors';
-import type { Client } from '../model/jobs/roomShift';
+import type { Client } from '../model/jobs/room/roomShift';
 import type { Talk } from '../model/story/story';
 import type { Entrance } from '../model/interiors/interiors';
 

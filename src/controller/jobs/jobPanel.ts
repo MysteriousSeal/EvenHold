@@ -14,7 +14,7 @@ import { JOBS, JOB_IDS, rankIn, recordOf, type JobId, type JobRank } from '../..
 import { bandOf } from '../../model/jobs/pour';
 import { SHIFT, WAGE } from '../../model/jobs/shift';
 import { BONUS, CUPBOARD_OUT } from '../../model/jobs/work';
-import { PRICE } from '../../model/jobs/roomShift';
+import { PRICE } from '../../model/jobs/room/roomShift';
 import { bagIcon } from '../../view/ui/itemIcons';
 import { roseModel } from '../../view/hud/jobVoxels';
 import { voxelIcon } from '../../view/ui/voxelIcon';

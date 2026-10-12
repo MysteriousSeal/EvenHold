@@ -228,8 +228,9 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     },
     // Any talk, told with whoever it's with (false: there's none).
     show(who, told) {
+      if (!told) return false;
+      if (isOpen) close(); // (one talk at a time: another's begun, the one before let go of, its figures with it)
       talk = told;
-      if (!talk) return false;
       speaking = who;
       [at, answering, isOpen] = [0, false, true];
       answers.replaceChildren();

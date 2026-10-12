@@ -5,7 +5,7 @@
 import { BarShift } from '../../model/jobs/barShift';
 import { JOBS } from '../../model/jobs/jobs';
 import type { InnShift } from '../../model/jobs/innShift';
-import { RoomShift } from '../../model/jobs/roomShift';
+import { RoomShift } from '../../model/jobs/room/roomShift';
 import { SHIFT } from '../../model/jobs/shift';
 import type { PlaceBarShown } from '../../view/hud/placeBar';
 
@@ -22,7 +22,7 @@ export function shiftStatus(shift: InnShift | BarShift | RoomShift): PlaceBarSho
         ]
       : shift instanceof RoomShift
         ? [
-            ['Your room', shift.begun ? (shift.client ? 'someone at the door' : 'waiting for a knock') : shift.inRoom ? 'shut the door to begin' : 'upstairs, the first door along the back hall'],
+            ['Your room', shift.begun ? (shift.visitor ? 'with a client' : shift.client ? 'someone at the door' : 'waiting for a knock') : shift.inRoom ? 'shut the door to begin' : 'upstairs, the first door along the back hall'],
             ['Turned away', String(shift.turnedAway)],
           ]
         : [['Tray', listed(shift.tray.map((t) => (t.kind === 'order' ? t.want.order : 'empty')))]];
