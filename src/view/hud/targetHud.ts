@@ -1,7 +1,7 @@
 // The focused enemy's frame, beside the hero's (styles in hud.css): its
 // portrait facing the hero (a beast's head, a skull, or the bandit's own head
 // and shoulders, as dressed), its name and health. Hidden with no focus. Someone picked out who's no foe (a villager,
-// a traveller): their face and name there instead, no health or level to them.
+// a traveller): their face and name there instead, their health (a friendly green) and level.
 
 import type { Enemy, EnemyKind } from '../../model/types';
 import type { Person } from '../../model/hero/selection';
@@ -59,7 +59,7 @@ const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 
 // Returns the function to call each frame with the focused enemy (or null)
 // and the hero's level.
-export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, heroLevel: number, person?: Person | null) => void {
+export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, heroLevel: number, person?: Person | null, health?: { level: number; hp: number; max: number }) => void {
   const root = document.createElement('div');
   root.className = 'hero-hud target-hud';
   root.hidden = true;
@@ -75,19 +75,28 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
   let shownId: number | null = null;
   let shown = '';
   let shownPerson: Person | null = null;
-  return (enemy, heroLevel, person = null) => {
+  return (enemy, heroLevel, person = null, health) => {
     root.hidden = !enemy && !person;
     root.classList.toggle('person', !enemy && !!person);
-    // Someone picked out who's no foe (hero/selection.ts): their face, their name and calling; no health, no level.
+    // Someone picked out who's no foe (hero/selection.ts): their face, their name and calling, their health and level.
     if (!enemy && person) {
-      if (person === shownPerson) return;
-      [shownPerson, shownId, shown] = [person, null, ''];
-      name.textContent = 'road' in person ? `${person.name} (${capitalize(person.role)})` : titleOf(person);
-      delete name.dataset.difficulty;
-      frame.querySelector('.target-hud-boss')?.remove();
-      frame.querySelector(':scope > canvas')?.remove();
-      frame.prepend(voxelIcon(`target:person:${JSON.stringify(person.look)}:${JSON.stringify(person.equipment)}`, () => humanBust(person.look, person.equipment, 'left'), PORTRAIT_SIZE));
-      root.classList.remove('hurt', 'passive');
+      if (person !== shownPerson) {
+        [shownPerson, shownId, shown] = [person, null, ''];
+        name.textContent = 'road' in person ? `${person.name} (${capitalize(person.role)})` : titleOf(person);
+        delete name.dataset.difficulty;
+        delete levelGem.dataset.difficulty;
+        frame.querySelector('.target-hud-boss')?.remove();
+        frame.querySelector(':scope > canvas')?.remove();
+        frame.prepend(voxelIcon(`target:person:${JSON.stringify(person.look)}:${JSON.stringify(person.equipment)}`, () => humanBust(person.look, person.equipment, 'left'), PORTRAIT_SIZE));
+        root.classList.remove('hurt', 'passive');
+      }
+      const { level, hp, max } = health ?? { level: 1, hp: 1, max: 1 };
+      const state = `${level}/${hp}/${max}`;
+      if (state === shown) return;
+      shown = state;
+      levelGem.textContent = String(level);
+      fill.style.width = `${(hp / max) * 100}%`;
+      label.textContent = `${Math.round(hp)} / ${max}`;
       return;
     }
     shownPerson = null;

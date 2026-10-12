@@ -133,7 +133,7 @@
 .target-hud[hidden] { display: none; }
 .target-hud .hero-hud-bar { width: 220px; }
 .target-hud.passive .hero-hud-hp i { background: #e0b830; } /* a passive foe's, as over its head */
-.target-hud.person .hero-hud-hp, .target-hud.person .hero-hud-level { display: none; } /* someone picked out, no foe: a face and a name */
+.target-hud.person .hero-hud-hp i { background: #5aa84a; } /* someone picked out, no foe: their health in a friendly green */
 .target-hud-name {
   font-size: 16px;
   font-weight: 700;
