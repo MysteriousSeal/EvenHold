@@ -30,7 +30,7 @@ import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
 import { Cupboard } from './interior/cupboard';
 import { BedrollView } from './meshes/scenery/bedrollMesh';
-import { workCostume } from './meshes/human/gear/costumes';
+import { workCostume, workLook } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
@@ -268,7 +268,8 @@ export class GameView {
     this.regions?.animate(this.elapsed);
 
     const { hero } = model;
-    if (this.hero.look !== hero.look) this.reshapeHero(hero.look); // a new look (a cheat): a new body
+    const look = workLook(model); // (their own; a pleasure worker at work behind a shut door: without its braies)
+    if (this.hero.look !== look) this.reshapeHero(look); // a new look (a cheat, or that): a new body
     // At work, dressed for it (a costume, only to be seen: their gear still on them, its stats and all); else their gear.
     const costume = workCostume(model);
     if (costume) this.hero.dress(costume);

@@ -14,7 +14,7 @@
 
 import type { BodyLook } from '../../../model/human/humanoid';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
-import { BODIES, C, PART_GRID } from './bodyVoxels';
+import { BODIES, C, NIPPLES, PART_GRID } from './bodyVoxels';
 import type { Figure } from './humanFigure';
 
 const BODY_COLORS = 15; // C's colors, first in a figure's palette (its body is placed first)
@@ -42,6 +42,9 @@ export function fineFigure(figure: Figure, look: BodyLook): Figure {
   const paint = (x: number, y: number, z: number, color: (i: number, j: number) => number) => {
     for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) setColor(fine, x * 2 + i, y * 2 + j, z * 2 + 1, color(i, j));
   };
+
+  // An unclothed chest: its nipples, in the middle of each side (placed in these finer voxels: bodyVoxels.ts NIPPLES).
+  if (look.unclothed && parts.torso) for (const [x, y, z] of NIPPLES[look.build]) setColor(fine, parts.torso[0] * 2 + x, parts.torso[1] * 2 + y, parts.torso[2] * 2 + z, C.cheek);
 
   // The face.
   const head = parts.head;

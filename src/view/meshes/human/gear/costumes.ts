@@ -12,7 +12,7 @@
 // ankle. Apart from the server's at a glance: no kerchief, and one dark length down the front, not a white bib.
 
 import type { ArmorSlot } from '../../../../model/human/equipment';
-import type { Build } from '../../../../model/human/humanoid';
+import type { BodyLook, Build } from '../../../../model/human/humanoid';
 import type { JobId } from '../../../../model/jobs/jobs';
 import { namedPalette } from './armorShell';
 import type { ItemModel } from './itemModel';
@@ -241,5 +241,21 @@ export const COSTUMES: Record<JobId, Partial<Record<ArmorSlot, CostumeLookId>>> 
 export const costumeFor = (job: JobId, build: Build): Partial<Record<ArmorSlot, CostumeLookId>> => (job === 'innCompanion' && build === 'male' ? { ...COSTUMES[job], torso: 'costume:companion:strap' } : COSTUMES[job]);
 
 // What the hero's seen in at work (the job's costume, cut for them), wherever they're drawn: in the world, close up in
-// a talk, on their sheet; null off work (their own gear).
-export const workCostume = (model: { work: { shift: { job: JobId } | null }; hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null => (model.work.shift ? costumeFor(model.work.shift.job, model.hero.look.build) : null);
+// a talk, on their sheet; null off work (their own gear). A pleasure worker, the room's door shut behind them (the
+// shift begun): nothing at all, till it's over (`workLook`: nor their braies).
+const stripped = (model: { work: { shift: { job: JobId; begun?: boolean } | null } }): boolean => model.work.shift?.job === 'innCompanion' && !!model.work.shift.begun;
+export const workCostume = (model: { work: { shift: { job: JobId; begun?: boolean } | null }; hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null => {
+  const shift = model.work.shift;
+  if (!shift) return null;
+  return stripped(model) ? {} : costumeFor(shift.job, model.hero.look.build);
+};
+
+// The body they're drawn with: their own; stripped (above), the same without its braies (one such body kept for
+// each look, so it's the same from frame to frame).
+const bare = new Map<string, BodyLook>();
+export function workLook(model: { work: { shift: { job: JobId; begun?: boolean } | null }; hero: { look: BodyLook } }): BodyLook {
+  const { look } = model.hero;
+  if (!stripped(model)) return look;
+  const key = JSON.stringify(look);
+  return bare.get(key) ?? bare.set(key, { ...look, unclothed: true }).get(key)!;
+}

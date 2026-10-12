@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import type { ItemId } from '../../../model/human/equipment';
 import type { BodyLook, Build } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart, type Joint } from './bodyVoxels';
+import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart, type Joint, fineTorso } from './bodyVoxels';
 import { BODY_FILL, withBody, wornPad } from './gear/armorShell';
 import { ITEM_MODELS, lookModel, wornGrid, type LookId } from './gear/itemModels';
 import { hairUnder } from './hairUnderHelm';
@@ -73,7 +73,9 @@ function meshAround(grid: VoxelGrid, palette: number[], pivot: [number, number, 
 }
 
 export function bodyGeometry(look: BodyLook, part: BodyPart): THREE.BufferGeometry {
-  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${look.expression ?? 'calm'}:${part}`;
+  const key = `body:${look.build}:${look.skin}:${look.hair}:${look.dye}:${look.hairStyle}:${look.beard}:${look.expression ?? 'calm'}:${look.unclothed ? 'bare' : 'braies'}:${part}`;
+  // (The unclothed torso: twice as fine, for its nipples, half-size voxels to match.)
+  if (look.unclothed && part === 'torso') return cached(key, () => meshAround(fineTorso(look.build), bodyPalette(look), BODIES[look.build].pivot.torso.map((p) => p * 2) as [number, number, number], undefined, V / 2))!;
   return cached(key, () => meshAround(buildBodyPart(part, look), bodyPalette(look), BODIES[look.build].pivot[part]))!;
 }
 

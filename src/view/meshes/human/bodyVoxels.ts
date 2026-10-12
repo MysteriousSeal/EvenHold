@@ -179,7 +179,8 @@ export function bodyPalette(look: BodyLook): number[] {
   const [skin, shade, light, cheek, mouth] = SKIN_TONES[look.skin % SKIN_TONE_COUNT];
   const [hair, hairLight] = HAIR_COLORS[look.hair % HAIR_COLOR_COUNT];
   const [dye, dyeShade] = DYES[look.dye % DYE_COUNT];
-  return [skin, shade, light, tone(shade, 0.82), hair, hairLight, tone(hair, 0.72), EYE, cheek, mouth, dye, dyeShade, tone(dye, 1.18), CORD, GLINT];
+  const cloth = look.unclothed ? [skin, shade, light] : [dye, dyeShade, tone(dye, 1.18)]; // (unclothed: skin where the braies and her band were)
+  return [skin, shade, light, tone(shade, 0.82), hair, hairLight, tone(hair, 0.72), EYE, cheek, mouth, ...cloth, CORD, GLINT];
 }
 
 // A leg: braies over the thigh (hemmed above the knee), a kneecap catching
@@ -205,7 +206,8 @@ export function buildLeg(build: Build = 'male'): VoxelGrid {
 // navel, the chest catching the light over a shaded fold, and collarbones.
 // Hers: hips in braies, a narrow waist tied with the cord, the ribs
 // widening to a band over the bust (standing out in front), bare shoulders.
-export function buildTorso(build: Build = 'male'): VoxelGrid {
+// (`unclothed`: no cord at the waist: skin there. Its nipples: `fineTorso`, drawn finer than this.)
+export function buildTorso(build: Build = 'male', unclothed = false): VoxelGrid {
   const [w, , d] = BODIES[build].grid.torso;
   const grid = createGrid(BODIES[build].grid.torso);
   const mid = (w - 1) / 2;
@@ -214,17 +216,17 @@ export function buildTorso(build: Build = 'male'): VoxelGrid {
   if (build === 'female') {
     const front = d - 2; // her front; the bust stands one further
     fillBox(grid, 0, 0, 0, w - 1, 2, front, (x, y, z) => (z === front && x === mid && y === 0 ? C.clothShade : cloth(x, y, z, front))); // hips
-    fillBox(grid, 1, 3, 0, w - 2, 3, front, C.cord); // the waist, tied
+    fillBox(grid, 1, 3, 0, w - 2, 3, front, (x, _y, z) => (unclothed ? (x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin) : C.cord)); // the waist, tied
     fillBox(grid, 1, 4, 0, w - 2, 4, front, (x, _y, z) => (z === front && x === mid ? C.skinDeep : x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin)); // midriff, the navel
     fillBox(grid, 0, 5, 0, w - 1, 5, front, (x, _y, z) => skin(x, z)); // ribs
     fillBox(grid, 0, 6, 0, w - 1, 7, front, (x, y, z) => (x === 0 || x === w - 1 || z === 0 ? C.clothShade : y === 7 ? C.clothLight : C.cloth)); // the band
-    fillBox(grid, 1, 6, d - 1, w - 2, 7, d - 1, (x, y) => (x === mid ? C.clothShade : y === 7 ? C.clothLight : C.cloth)); // over the bust
+    fillBox(grid, 1, 6, d - 1, w - 2, 7, d - 1, (x, y) => (x === mid ? C.clothShade : y === 7 ? C.clothLight : C.cloth)); // over the bust (unclothed: skin, by the palette)
     fillBox(grid, 0, 8, 0, w - 1, 8, front, (x, _y, z) => (z === front && x > 0 && x < w - 1 ? C.skinLight : skin(x, z))); // shoulders, collarbones
     return grid;
   }
   const front = d - 1;
   fillBox(grid, 0, 0, 0, w - 1, 2, front, (x, y, z) => (z === front && x === mid && y === 0 ? C.clothShade : cloth(x, y, z, front))); // braies
-  fillBox(grid, 0, 3, 0, w - 1, 3, front, (x, _y, z) => (z === front && x === mid ? C.clothShade : C.cord)); // the cord, knotted
+  fillBox(grid, 0, 3, 0, w - 1, 3, front, (x, _y, z) => (unclothed ? skin(x, z) : z === front && x === mid ? C.clothShade : C.cord)); // the cord, knotted
   fillBox(grid, 0, 4, 0, w - 1, 8, front, (x, y, z) => {
     if (z === front) {
       if (y === 8) return x > 0 && x < w - 1 ? C.skinLight : C.skinShade; // collarbones
@@ -324,9 +326,25 @@ export function buildHead(look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' |
   return grid;
 }
 
-export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' | 'expression'>): VoxelGrid {
+// The unclothed torso drawn twice as fine (each voxel eight), for what a whole voxel can't place: a nipple in the
+// middle of each side of the chest (her bust is two voxels wide and two high, his chest three and two: their
+// middles fall between voxels), two fine voxels square (a voxel's own size), on the chest's front face.
+export const NIPPLES: Record<Build, ReadonlyArray<[x: number, y: number, z: number]>> = {
+  female: [3, 9].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
+  male: [4, 12].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
+};
+export function fineTorso(build: Build): VoxelGrid {
+  const coarse = buildTorso(build, true);
+  const [w, h, d] = coarse.size;
+  const fine = createGrid([w * 2, h * 2, d * 2]);
+  for (let z = 0; z < d * 2; z++) for (let y = 0; y < h * 2; y++) for (let x = 0; x < w * 2; x++) fine.cells[x + w * 2 * (y + h * 2 * z)] = coarse.cells[(x >> 1) + w * ((y >> 1) + h * (z >> 1))];
+  for (const [x, y, z] of NIPPLES[build]) fine.cells[x + w * 2 * (y + h * 2 * z)] = C.cheek;
+  return fine;
+}
+
+export function buildBodyPart(part: BodyPart, look: Pick<BodyLook, 'build' | 'hairStyle' | 'beard' | 'expression' | 'unclothed'>): VoxelGrid {
   if (part === 'head') return buildHead(look);
-  if (part === 'torso') return buildTorso(look.build);
+  if (part === 'torso') return buildTorso(look.build, look.unclothed);
   return part === 'arm' ? buildArm(look.build) : buildLeg(look.build);
 }
 
