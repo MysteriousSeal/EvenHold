@@ -2,14 +2,16 @@
 // A word with whoever knocks at a pleasure worker's door, as the talk scene tells it (controller/story/talkPanel.ts,
 // model/jobs/roomShift.ts): an answer may lead on to more, said in the same breath; Escape takes the way out (the
 // one turned away, trouble let go), never an answer that lets someone in or calls the bouncer.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { comeIn, goUp, startShift } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading)
 import { createTalkPanel } from '../src/controller/story/talkPanel';
 import { maxEnergyOf } from '../src/model/hero/attributes';
 import { interactionOf } from '../src/model/hero/interaction';
 import { inLetRoom, letDoor } from '../src/model/inn/roomLetting';
+import { paceOf } from '../src/model/jobs/room/pace';
 import { LET_IN } from '../src/model/jobs/room/roomLines';
+import type { Talk } from '../src/model/story/story';
 
 function atWork() {
   const model = fresh();
@@ -32,6 +34,53 @@ function atWork() {
 const key = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
 const scene = () => document.body.querySelector('.talk-scene:last-of-type') as HTMLElement;
 const labels = () => Array.from(scene().querySelectorAll('.talk-answer span')).map((b) => b.textContent);
+
+describe('the hour with a client, played', () => {
+  it('goes dark after their word, the game over it: a press on each beat keeps their pace; then light, and what comes of it', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    try {
+      const model = fresh();
+      const panel = createTalkPanel(model, { setPaused: () => {} });
+      const pace = paceOf('blunt');
+      const scores: number[] = [];
+      const after: Talk = { speaker: 'Wenna', lines: ['Here is your money.'], answers: [{ label: 'Take it.', primary: true, pick: () => {} }] };
+      const talk: Talk = { speaker: 'Wenna', lines: ['Shut the door.'], answers: [], pace: { pace, with: 'Wenna', done: (score) => (scores.push(score), after) } };
+      expect(panel.show({ name: 'Wenna', look: model.hero.look, equipment: {} }, talk)).toBe(true);
+      key('Space'); // (their line written out)
+      key('Space'); // (past it: dark, the game to come)
+      const night = scene().querySelector('.talk-night')!;
+      expect(night.classList.contains('on')).toBe(true);
+      expect(night.querySelector('.pace')).toBeNull(); // (not till it's dark)
+      vi.advanceTimersByTime(950);
+      expect(night.querySelector('.pace-who')!.textContent).toBe('Wenna');
+      expect(night.querySelectorAll('.pace-pip')).toHaveLength(pace.periods.length);
+      // Each beat pressed on its middle (the last two let go by): kept, kept… missed, missed.
+      vi.advanceTimersByTime(pace.periods[0] * 500);
+      for (const [i, period] of pace.periods.entries()) {
+        if (i < pace.periods.length - 2) [key('Space'), key('Space')]; // (a second press in the beat: nothing)
+        vi.advanceTimersByTime(period * 1000);
+      }
+      expect(night.querySelectorAll('.pace-pip.kept').length).toBeGreaterThanOrEqual(pace.periods.length - 3);
+      expect(night.querySelectorAll('.pace-pip.missed').length).toBeGreaterThanOrEqual(2);
+      expect(night.querySelector('.pace.over .pace-said')!.textContent).toMatch(/pleased|forget/);
+      expect(scores).toEqual([]); // (a word on how it went, first)
+      vi.advanceTimersByTime(1200);
+      expect(scores).toHaveLength(1);
+      expect(scores[0]).toBeGreaterThan(0.7);
+      expect(scores[0]).toBeLessThan(0.95);
+      expect(night.querySelector('.pace')).toBeNull();
+      expect(night.classList.contains('on')).toBe(false);
+      vi.advanceTimersByTime(1500); // (light again: what they say after, written out)
+      expect(scene().querySelector('.talk-words')!.textContent).toBe('Here is your money.');
+      key('Space');
+      expect(labels()).toEqual(['Take it.']);
+      key('Enter');
+      expect(panel.menu.isOpen).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("a word at a pleasure worker's door", () => {
   it('leads on, let in, to what they say inside and after; Escape at the door turns them away', () => {
@@ -86,11 +135,10 @@ describe("a word at a pleasure worker's door", () => {
     expect(Math.cos(hero.facing - Math.atan2(visitor.x - hero.x, visitor.z - hero.z))).toBeGreaterThan(0.99);
     expect(model.work.arrived()).toBeNull(); // (said once)
     expect(panel.show(come!.who, come!.talk)).toBe(true);
-    expect(come!.talk.night).toBeDefined();
+    expect(come!.talk.pace).toBeDefined(); // (the hour: a game of their pace, played in the dark)
     panel.menu.close();
     // Paid and gone: out by the door, it shut after them, no one left in the room.
-    come!.talk.night!();
-    come!.talk.answers[0].pick();
+    come!.talk.pace!.done(0.8).answers[0].pick();
     expect([door.open, model.work.held]).toEqual([true, true]);
     // Gone only once the door's swung shut on them: still there as it closes (out in the hallway, stood still), for
     // as long as it takes to; never seen walking on behind it.
@@ -110,8 +158,7 @@ describe("a word at a pleasure worker's door", () => {
   it("gives trouble nothing by Escape: let go, the bouncer left where he is", () => {
     const { model, shift, panel, knock } = atWork();
     const client = knock(true);
-    const after = comeIn(model, shift); // (let in)
-    after.night!();
+    const after = comeIn(model, shift).pace!.done(0.5); // (let in, the hour played)
     panel.show(client, after);
     const earned = shift.earned;
     key('Escape');

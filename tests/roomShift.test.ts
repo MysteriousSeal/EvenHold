@@ -16,8 +16,10 @@ import { inLetRoom, letDoor, letUntil, setLet } from '../src/model/inn/roomLetti
 import { restore, snapshot } from '../src/model/save';
 import { doorway, stairsOf, useHallDoor } from '../src/model/interiors/upstairs';
 import { JOBS, recordOf } from '../src/model/jobs/jobs';
+import { PACES, paceOf } from '../src/model/jobs/room/pace';
 import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Tone } from '../src/model/jobs/room/roomLines';
 import { TROUBLE } from '../src/model/jobs/room/roomTrouble';
+import type { Pace } from '../src/model/jobs/room/pace';
 import { PRICE, RoomShift } from '../src/model/jobs/room/roomShift';
 import type { Talk } from '../src/model/story/story';
 import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
@@ -35,14 +37,18 @@ const until = (model: GameModel, what: () => unknown, most = 60): void => {
   for (let t = 0; t < most && !what(); t += 0.25) model.update(0, 0, 0.25);
 };
 // Whoever's at the door let in, the time passed: what they say after, and what may be answered.
-function letIn(model: GameModel, tone: Tone = 'warm'): Talk {
+// The hour's game with them: its pace, the word they had as the door shut, and what they say after it's played
+// (`score`: how well their pace was kept, 0 to 1).
+type Hour = Talk & { door: string; theirs: Pace };
+function letIn(model: GameModel, tone: Tone = 'warm', score = 0.7): Hour {
   const met = model.work.meet()!;
   expect(met.talk.answers.map((a) => a.label)).toEqual([LET_IN.warm, LET_IN.plain, LET_IN.tease, TURN_AWAY]);
-  const after = comeIn(model, model.work.shift as RoomShift, ['warm', 'plain', 'tease'].indexOf(tone));
-  expect(after.lines.length).toBe(2); // (a word as the door shuts; then, the night passed, what they say going)
-  expect(after.later).toBe('A while later'); // (what the black says: no night's passed)
-  after.night!();
-  return after;
+  const inside = comeIn(model, model.work.shift as RoomShift, ['warm', 'plain', 'tease'].indexOf(tone));
+  expect(inside.lines.length).toBe(1); // (a word as the door shuts; then the hour, played)
+  expect(inside.answers).toEqual([]);
+  const after = inside.pace!.done(score);
+  expect(after.lines.length).toBe(1); // (what they say going)
+  return { ...after, door: inside.lines[0], theirs: inside.pace!.pace };
 }
 
 describe('a pleasure worker', () => {
@@ -135,7 +141,7 @@ describe('a pleasure worker', () => {
     }
   });
 
-  it('is called on by people each of a temper: all they say comes of it, and the tone taken to their taste earns a tip', () => {
+  it('is called on by people each of a temper: all they say comes of it, their pace is their own, and keeping it earns a tip', () => {
     const { model, shift } = atWork();
     const { hero } = model;
     const all = (temper: (typeof TEMPER_IDS)[number], of: 'knocks' | 'inside' | 'after') => [...TEMPERS[temper][of], ...TEMPERS[temper].male[of], ...TEMPERS[temper].female[of]];
@@ -156,18 +162,21 @@ describe('a pleasure worker', () => {
       expect(all(client.temper, 'knocks')).toContain(met.talk.lines[0]);
       const liked = TEMPERS[client.temper].likes;
       const tone = n % 2 ? liked : tones.find((t) => t !== liked)!;
+      const well = n % 4 < 2; // (their pace well kept, or hardly)
       const [earned, price] = [shift.earned, Math.round(PRICE * shift.rank.tips)]; // (the house's price, at their rank)
-      const after = letIn(model, tone);
-      expect(all(client.temper, 'inside')).toContain(after.lines[0]);
+      const after = letIn(model, tone, well ? 0.9 : 0.2);
+      expect(all(client.temper, 'inside')).toContain(after.door);
+      expect(after.theirs.periods).toBe(PACES[client.temper]); // (their own pace)
+      expect(after.theirs.band).toBeCloseTo(paceOf(client.temper, tone === liked ? 'liked' : 'disliked').band, 9); // (the tone to their taste: the easier kept)
       expect(after.answers.map((a) => a.label)).toEqual([THANKS[tone]]);
       after.answers[0].pick();
       seeOut(shift);
-      if (tone === liked) {
-        expect(all(client.temper, 'after')).toContain(after.lines[1]);
+      if (well) {
+        expect(all(client.temper, 'after')).toContain(after.lines[0]);
         expect(shift.earned).toBeGreaterThan(earned + price); // (and something over)
         seen.pleased++;
       } else {
-        expect(FLAT).toContain(after.lines[1]);
+        expect(FLAT).toContain(after.lines[0]);
         expect(shift.earned).toBe(earned + price); // (the price, no more)
         seen.flat++;
       }

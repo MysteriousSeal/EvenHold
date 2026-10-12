@@ -62,8 +62,9 @@ describe("a pleasure worker's clients", () => {
           const met = model.work.meet()!;
           hear(met.talk.lines[0], theirs);
           knocks.push(met.talk.lines[0]);
-          const after = comeIn(model, shift, seen % 3); // (warm, plain, teasing, in turn)
-          after.night!();
+          const inside = comeIn(model, shift, seen % 3); // (warm, plain, teasing, in turn)
+          hear(inside.lines[0], theirs);
+          const after = inside.pace!.done(seen % 2 ? 0.9 : 0.2); // (their pace well kept, or hardly, in turn)
           for (const line of after.lines) hear(line, theirs);
           const answer = after.answers[Math.floor(seen / 3) % after.answers.length]; // (with trouble: insisted, the bouncer, let go, in turn)
           const last = answer.pick();
