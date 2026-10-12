@@ -3,20 +3,18 @@
 // quest (to the nearest village's inn, its barmaid named); taken, the "?" is over her, the tracker's and journal's
 // told of it; a word with her hands it in and pays; it's saved; and the talk window (controller/story/talkPanel.ts).
 import { describe, expect, it } from 'vitest';
-import { GameModel } from '../src/model/GameModel';
 import { STORY_QUESTS } from '../src/model/story/storyQuests';
 import { restore, snapshot } from '../src/model/save';
 import { villageName } from '../src/model/villages/villageNames';
 import { createTalkPanel } from '../src/controller/story/talkPanel';
 import { createQuestTracker } from '../src/view/hud/questTracker';
-import { STREAMED_SIZE } from '../src/model/worldgen/regions';
-import { TEST_MAP_SIZE, TEST_SEEDS, fresh } from './support/testWorld';
+import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const quest = STORY_QUESTS.wordToTheInn;
 
 describe('the quests people give', () => {
   it('have their people in every world: the carter, the nearest village, its inn and barmaid', () => {
-    for (const model of [...TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)), new GameModel(7, STREAMED_SIZE)]) {
+    for (const model of everyKindOfWorld()) {
       const cast = model.story.people;
       expect(cast, `seed ${model.seed}`).not.toBeNull();
       expect(cast!.barmaid.role).toBe('barkeep');

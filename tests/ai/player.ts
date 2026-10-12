@@ -13,8 +13,6 @@ import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
 import { maxHpOf } from '../../src/model/hero/attributes';
 import { xpToNext } from '../../src/model/hero/heroStats';
 import { chestInReach } from '../../src/model/loot/chests';
-import { talkingTo } from '../../src/model/npcs/talk';
-import { travellerInReach } from '../../src/model/travellers/travellerTalk';
 import { takeStairs, useHallDoor } from '../../src/model/interiors/upstairs';
 import { callBarkeep, placeOrder } from '../../src/model/inn/barOrders';
 import { rentRoom, roomAction, sleepTillMorning } from '../../src/model/inn/roomLetting';
@@ -24,9 +22,11 @@ import { barmaidHere, callFor, serveOrder, type BarMenuItem } from '../../src/co
 import { isHerbalistHome } from '../../src/model/herbalist/herbalistHomes';
 import { goesUnder } from '../../src/model/dungeons/dungeonTypes';
 import { mulberry32 } from '../../src/util/random';
+import { interactionOf, type Interaction, type InteractionKind } from '../../src/model/hero/interaction';
+import type { Who } from '../../src/model/story/story';
 import type { Enemy } from '../../src/model/types';
 import { FRAME, FRAMES_PER_DECISION, KEYS, MOVES, ROWS, ROW_KEY, WAYS, type Key } from './keys';
-import { EVENTS, OBSERVATION_SIZE, Senses, patchOf, prompt } from './senses';
+import { EVENTS, OBSERVATION_SIZE, Senses, patchOf } from './senses';
 import { openWindow, shown, type Window, type WindowKind } from './windows';
 import { count, emptyTally, type PaySource, type Tally } from './tally';
 
@@ -188,45 +188,74 @@ export class Player {
     return w;
   }
 
-  // E, as the game has it (GameController): at work, the work's; chopping, stop; loot picked up; the inn's board (a
-  // shift); a chest opened; a tree chopped; the barmaid from a stool; sat down or up; a word with a keeper (their
-  // window), a traveller (a pedlar's); a board read (its window); the bench (its window); a coin in the well; a door.
+  // E, as the game has it (model/hero/interaction.ts: the first thing there to be done; one that comes to nothing, the
+  // next): a keeper's, a board's, the bench's window opened here (windows.ts) where the game opens its own; a word
+  // with someone of the story's answered at once with the first answer (a quest taken, or handed in).
   private pressE(): void {
     const { model, tally } = this;
-    const { hero } = model;
-    if (prompt(model) === 'none') tally.wasted++;
-    if (model.work.shift) {
-      if (!model.work.use() && model.work.noticeInReach) this.window = this.open('jobs', model.work.noticeInReach);
-      return;
+    const tried = new Set<InteractionKind>();
+    let found = interactionOf(model);
+    if (!found) tally.wasted++;
+    for (; found && !this.interact(found); found = interactionOf(model, tried)) tried.add(found.kind);
+  }
+
+  private interact(found: Interaction): boolean {
+    const { model, tally } = this;
+    const opened = (window: Window | null) => ((this.window = window), true);
+    switch (found.kind) {
+      case 'work':
+        return model.work.use();
+      case 'jobBoard':
+        return opened(this.open('jobs', found.inn));
+      case 'stopChop':
+        return model.lumber.stop(), true;
+      case 'loot':
+        return !!model.pickUp();
+      case 'chest':
+        found.chest.open();
+        if (found.chest.what !== 'locked' && !chestInReach(model)) tally.chests++;
+        return true;
+      case 'carter':
+        return this.word(found.carter), true;
+      case 'chop':
+        return model.lumber.use() && (count(tally.did, 'chopBegun'), true);
+      case 'talk':
+        if (this.word(found.npc) || found.npc.role === 'bouncer') return true;
+        return opened(this.open(found.npc.role === 'barkeep' ? 'inn' : found.npc.role === 'smith' ? 'smith' : 'herbalist', found.npc));
+      case 'stand':
+      case 'sit':
+        return model.sitOrStand();
+      case 'traveller':
+        return found.traveller.role === 'pedlar' ? opened(this.open('pedlar', found.traveller)) : (count(tally.did, 'travellerWord'), true);
+      case 'board':
+        return opened(this.open('board', found.board));
+      case 'bench':
+        return opened(this.open('salvage'));
+      case 'well':
+        return model.tossCoin() && tally.wishes++, true;
+      case 'hallDoor':
+        return useHallDoor(model);
+      case 'stairs':
+        return takeStairs(model);
+      case 'door': {
+        const went = model.useDoor();
+        if (went && !model.inside?.below) count(tally.doors, found.door.type === 'house' && isHerbalistHome(found.door) ? 'herbalist' : found.door.type);
+        return went;
+      }
+      case 'cannotChop':
+        return tally.wasted++, true;
     }
-    if (model.lumber.chopping) return model.lumber.stop();
-    if (model.pickUp()) return;
-    const talker = talkingTo(model.folk, model.inside, hero);
-    if (model.work.noticeInReach) return void (this.window = this.open('jobs', model.work.noticeInReach));
-    const chest = chestInReach(model);
-    if (chest) {
-      chest.open();
-      if (chest.what !== 'locked' && !chestInReach(model)) tally.chests++;
-      return;
-    }
-    if (model.lumber.action?.kind === 'chop') return void (model.lumber.use() && count(tally.did, 'chopBegun'));
-    if (talker && model.inside?.seated?.seat.piece.kind === 'barStool') return void (this.window = this.open(talker.role === 'barkeep' ? 'inn' : 'smith', talker));
-    if (model.sitOrStand()) return;
-    const board = model.boardInReach;
-    const leaving = !!model.inside && !!model.doorInReach;
-    const traveller = !model.inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null;
-    if (talker && !leaving) {
-      if (talker.role === 'bouncer') return;
-      return void (this.window = this.open(talker.role === 'barkeep' ? 'inn' : talker.role === 'smith' ? 'smith' : 'herbalist', talker));
-    }
-    if (traveller) return void (traveller.role === 'pedlar' ? (this.window = this.open('pedlar', traveller)) : count(tally.did, 'travellerWord'));
-    if (board !== null) return void (this.window = this.open('board', board));
-    if (model.salvage.benchInReach) return void (this.window = this.open('salvage'));
-    if (model.wellInReach !== null) return void (model.tossCoin() && tally.wishes++);
-    if (!useHallDoor(model) && !takeStairs(model)) {
-      const door = model.doorInReach;
-      if (model.useDoor() && door && !model.inside?.below) count(tally.doors, door.type === 'house' && isHerbalistHome(door) ? 'herbalist' : door.type);
-    }
+  }
+
+  // A word with someone of the story's, if they've one to say: the first answer given (a quest taken, handed in).
+  private word(who: Who): boolean {
+    const talk = this.model.story.talk(who);
+    if (!talk) return false;
+    const before = this.model.story.save();
+    talk.answers[0]?.pick();
+    const now = this.model.story.save();
+    for (const id of Object.keys(now)) if (now[id] !== before[id]) now[id] === 'done' ? [this.tally.quests.done++, this.earn('quest', PAY.quest)] : this.tally.quests.taken++;
+    return true;
   }
 
   // F: an ale from the stool; G: a pie there, else a room off the barmaid, else sleep in the let bed at night.

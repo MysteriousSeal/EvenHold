@@ -5,6 +5,7 @@
 // to the game: one entry here, and the player will weigh it with the rest.
 
 import type { Entrance } from '../../../src/model/interiors/interiors';
+import { interactionOf } from '../../../src/model/hero/interaction';
 import { setAction } from '../../../src/model/hero/actionBar';
 import type { Camp } from '../../../src/model/camps/camps';
 import type { Enemy, Tree } from '../../../src/model/types';
@@ -282,6 +283,56 @@ export const ACTIVITIES: Activity[] = [
       return t ? [{ label: `a ${t.role} on the road`, at: t, data: t }] : [];
     },
     steps: (p, t) => p.meet(t.data as Traveller),
+  },
+  {
+    // A quest someone gives (model/story/story.ts): taken from whoever has the "!" (the carter by his wagon, seen from
+    // where they set out), then carried to whoever has the "?" (the barmaid at the nearest village's inn) and handed in;
+    // each step checked: the offer made, the mark moved, the pay as promised.
+    id: 'errand',
+    serves: { growth: 0.6, coin: 0.5, company: 0.4, curiosity: 0.3 },
+    traits: { social: 0.5, curious: 0.3 },
+    options: (p) => {
+      const { story, hero } = p.model;
+      const cast = story.people;
+      if (!cast) return [];
+      const taken = story.taken[0];
+      if (taken) return [{ label: `${cast.carter.name}'s word, to ${taken.to.name} at the inn`, at: cast.inn, data: 'handIn' }];
+      const far = Math.hypot(cast.carter.x - hero.x, cast.carter.z - hero.z);
+      return story.markOf(cast.carter) === 'offer' && far < 60 ? [{ label: `${cast.carter.name} by his wagon, who has something to ask`, at: cast.carter, data: 'take' }] : [];
+    },
+    steps: (p, t) => {
+      const { story, hero } = p.model;
+      const cast = story.people!;
+      if (t.data === 'take') {
+        return [
+          p.walk(() => cast.carter, 1.4),
+          () => {
+            if (interactionOf(p.model)?.kind !== 'carter') return p.report('carter out of reach beside him', `hero at ${hero.x.toFixed(2)},${hero.z.toFixed(2)}, he at ${cast.carter.x},${cast.carter.z}`), 'fail';
+            const talk = story.talk(cast.carter);
+            if (!talk?.quest || talk.answers.length < 2) return p.report('quest not offered', `${cast.carter.name}: ${talk?.lines.length ?? 0} lines, ${talk?.answers.length ?? 0} answers`), 'fail';
+            talk.answers[0].pick();
+            if (story.markOf(cast.barmaid) !== 'ready' || story.markOf(cast.carter) !== null) p.report('quest marks wrong once taken', `carter ${story.markOf(cast.carter)}, barmaid ${story.markOf(cast.barmaid)}`);
+            p.stats.questsTaken++;
+            return 'ok';
+          },
+        ];
+      }
+      return [
+        ...p.enter(cast.inn),
+        p.walk(() => cast.barmaid, 1.4),
+        () => {
+          const [money, quest] = [hero.money, story.taken[0]];
+          const talk = story.talk(cast.barmaid);
+          if (!quest || talk?.quest?.state !== 'handIn') return p.report('quest not taken in', `${cast.barmaid.name}: ${talk ? 'no hand-in' : 'nothing to say'}`), 'fail';
+          talk.answers[0].pick();
+          if (story.stateOf(quest.id) !== 'done' || hero.money !== money + talk.quest.copper) p.report('quest paid wrong', `${hero.money - money} for ${talk.quest.copper}, ${story.stateOf(quest.id)}`);
+          if (story.markOf(cast.barmaid) !== null) p.report('quest mark left once done', String(story.markOf(cast.barmaid)));
+          p.stats.questsDone++;
+          return 'ok';
+        },
+        ...p.leave(),
+      ];
+    },
   },
   {
     id: 'herbalist',

@@ -49,7 +49,7 @@ describe.each(LOOT_IDS.map((id) => [id]))('loot: %s', (id: LootId) => {
   it('is named, has its worth and quality, a model, and is sold (or not) as its kind is', () => {
     expect(loot.name.trim().length).toBeGreaterThan(2);
     expect(loot.value).toBeGreaterThanOrEqual(0);
-    expect(['junk', 'ingredient', 'common', 'quest', 'bag', 'potion']).toContain(LOOT_QUALITY[id]);
+    expect(['junk', 'ingredient', 'common', 'quest', 'bag', 'potion', 'tool']).toContain(LOOT_QUALITY[id]); // (tool: the bedroll's, used off the action bar)
     expect(LOOT_MODELS[id].build().cells.some((c) => c > 0)).toBe(true);
     for (const w of Object.values(loot.droppedBy)) expect(w).toBeGreaterThan(0);
     if (isProvision(id)) {

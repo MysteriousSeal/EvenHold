@@ -16,13 +16,11 @@ import { slotsUsed } from '../../src/model/hero/bagStacks';
 import { betterThanWorn, isGear } from '../../src/model/human/items/gear';
 import { LOOT_QUALITY } from '../../src/model/loot/loot';
 import { chestInReach } from '../../src/model/loot/chests';
-import { talkingTo } from '../../src/model/npcs/talk';
-import { travellerInReach } from '../../src/model/travellers/travellerTalk';
-import { doorAt, stairsInReach } from '../../src/model/interiors/upstairs';
 import { bumpsFurniture } from '../../src/model/interiors/furniture';
 import { boardSpot } from '../../src/model/quests/noticeBoards';
 import { onPaving } from '../../src/model/map/roads';
 import { goesUnder } from '../../src/model/dungeons/dungeonTypes';
+import { interactionOf } from '../../src/model/hero/interaction';
 import { dungeonAt } from '../../src/model/dungeons/dungeons';
 import { isHerbalistHome } from '../../src/model/herbalist/herbalistHomes';
 import { gradeOf, WOOD } from '../../src/model/skills/lumber';
@@ -39,7 +37,7 @@ const SIDE = 2 * VIEW + 1;
 const GRID_CHANNELS = 12;
 export const PATCH = 8; // tiles a side of a patch of ground, walked or not (player.ts pays for each new one)
 export const patchOf = (x: number, z: number): number => Math.floor(x / PATCH) * 4096 + Math.floor(z / PATCH);
-export const PROMPTS = ['none', 'work', 'stopChop', 'loot', 'jobBoard', 'chest', 'chop', 'barmaidFromStool', 'standUp', 'getUp', 'sit', 'lie', 'barmaid', 'smith', 'herbalist', 'bouncer', 'pedlar', 'traveller', 'board', 'bench', 'well', 'hallDoor', 'stairs', 'leave', 'door', 'dungeon', 'cannotChop'] as const;
+export const PROMPTS = ['none', 'work', 'stopChop', 'loot', 'jobBoard', 'chest', 'chop', 'barmaidFromStool', 'standUp', 'getUp', 'sit', 'lie', 'barmaid', 'smith', 'herbalist', 'bouncer', 'pedlar', 'traveller', 'board', 'bench', 'well', 'hallDoor', 'stairs', 'leave', 'door', 'dungeon', 'cannotChop', 'carter'] as const;
 export type Prompt = (typeof PROMPTS)[number];
 const PLACES = ['outdoors', 'house', 'inn', 'smithy', 'herbalist', 'crypt', 'cave', 'upstairs', 'camp'] as const;
 const FOE_GROUPS = ['beast', 'bandit', 'undead', 'boss', 'crawler'] as const;
@@ -57,34 +55,25 @@ const foeGroup = (kind: Enemy['kind']): (typeof FOE_GROUPS)[number] =>
 const doorKind = (door: Entrance): (typeof DOOR_KINDS)[number] => (door.type === 'house' && isHerbalistHome(door) ? 'herbalist' : (door.type as (typeof DOOR_KINDS)[number]));
 const oneHot = <T extends readonly string[]>(list: T, value: T[number] | null): number[] => list.map((v) => (v === value ? 1 : 0));
 
-// What E would do now: the prompt, in the order the game decides it (GameController, main.ts promptTarget).
+// What E would do now, as the prompt over it reads: the game's own reckoning (model/hero/interaction.ts), named as
+// it's seen (whom a word would be with, which way a door goes).
 export function prompt(model: GameModel): Prompt {
-  const { hero, inside } = model;
-  if (model.work.shift) return model.work.action ? 'work' : model.work.noticeInReach ? 'jobBoard' : 'none';
-  if (model.lumber.chopping) return 'stopChop';
-  if (model.lootInReach) return 'loot';
-  if (model.work.noticeInReach) return 'jobBoard';
-  if (chestInReach(model)) return 'chest';
-  const chop = model.lumber.action;
-  if (chop?.kind === 'chop') return 'chop';
-  const talker = talkingTo(model.folk, inside, hero);
-  const seated = model.seated;
-  if (seated) return seated.seat.piece.kind === 'barStool' && talker?.role === 'barkeep' ? 'barmaidFromStool' : seated.seat.lying ? 'getUp' : 'standUp';
-  const seat = model.seatInReach;
-  if (seat) return seat.lying ? 'lie' : 'sit';
-  const leaving = !!inside && !!model.doorInReach;
-  if (talker && !leaving) return talker.role === 'barkeep' ? 'barmaid' : talker.role === 'smith' ? 'smith' : talker.role === 'herbalist' ? 'herbalist' : 'bouncer';
-  const traveller = !inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null;
-  if (traveller) return traveller.role === 'pedlar' ? 'pedlar' : 'traveller';
-  if (model.boardInReach !== null) return 'board';
-  if (model.salvage.benchInReach) return 'bench';
-  if (model.wellInReach !== null) return 'well';
-  if (inside?.below && doorAt(inside, hero)) return 'hallDoor';
-  if (inside && stairsInReach(inside, hero)) return 'stairs';
-  const door = model.doorInReach;
-  if (!door) return chop ? 'cannotChop' : 'none';
-  if (inside) return 'leave';
-  return goesUnder(door) ? 'dungeon' : 'door';
+  const found = interactionOf(model);
+  if (!found) return 'none';
+  switch (found.kind) {
+    case 'talk':
+      return found.fromStool && found.npc.role === 'barkeep' ? 'barmaidFromStool' : found.npc.role === 'barkeep' ? 'barmaid' : found.npc.role === 'smith' ? 'smith' : found.npc.role === 'herbalist' ? 'herbalist' : 'bouncer';
+    case 'stand':
+      return found.seat.lying ? 'getUp' : 'standUp';
+    case 'sit':
+      return found.seat.lying ? 'lie' : 'sit';
+    case 'traveller':
+      return found.traveller.role === 'pedlar' ? 'pedlar' : 'traveller';
+    case 'door':
+      return found.leaving ? 'leave' : goesUnder(found.door) ? 'dungeon' : 'door';
+    default:
+      return found.kind;
+  }
 }
 
 // The lists near the hero, kept to hand (the world's whole lists are long).

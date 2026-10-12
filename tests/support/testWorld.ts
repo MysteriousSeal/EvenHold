@@ -5,6 +5,7 @@
 // the real map gets. Worlds are cached per seed within a test file.
 
 import { GameModel } from '../../src/model/GameModel';
+import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
 import { ATTACK_DURATION } from '../../src/model/constants';
 import type { MapSize } from '../../src/model/map/grid';
 import type { Enemy, EnemyKind, Surface } from '../../src/model/types';
@@ -30,6 +31,9 @@ export const FRAME = 1 / 60;
 
 // A world of its own (not the cache's) to play in: the first test seed's.
 export const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+
+// A world of each kind a test of "every world" wants: the small test worlds, and a full-size streamed one.
+export const everyKindOfWorld = (): GameModel[] => [...TEST_SEEDS.map((seed) => new GameModel(seed, TEST_MAP_SIZE)), new GameModel(7, STREAMED_SIZE)];
 
 // The crypt a test world's own region laid down (its stairs give onto a corridor running -z, as the crypt tests
 // assume), not the one a walk from the start (ruins.ts: laid out as it falls, and first in the list).
