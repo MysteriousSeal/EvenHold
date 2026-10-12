@@ -10,12 +10,14 @@ import { blowDamage } from '../hero/blessing';
 import { healthOf, type Person } from '../hero/selection';
 import type { MapSize } from '../map/grid';
 import type { Enemy } from '../types';
+import { mayTurn, type Chickens } from './chickens';
 import { SPELLS, knows, waitOf, type SpellId } from './spells';
 
 export interface Caster extends Fight {
   readonly moves: Fight['moves'] & { spend(amount: number): boolean; readonly breath: number };
   readonly chosen?: { readonly person: Person | null }; // whoever's picked out, no foe
   readonly size: MapSize;
+  readonly chickens?: Pick<Chickens, 'turn'>;
 }
 
 // Someone no foe, as what a mending mends: their health as it stands (whole, till said otherwise).
@@ -37,7 +39,7 @@ export function castTarget(caster: Pick<Caster, 'hero' | 'foes' | 'focused' | 'c
   if (focused && focused.state !== 'dead') return far(focused) <= range ? { foe: focused } : null;
   if (aim === 'anyone') {
     const person = caster.chosen?.person;
-    return person ? (far(person) <= range ? { person } : null) : { self: true };
+    return person ? (far(person) <= range ? { person } : null) : SPELLS[id].needsTarget ? null : { self: true };
   }
   const ahead = (e: Enemy) => ((e.x - hero.x) * Math.sin(hero.facing) + (e.z - hero.z) * Math.cos(hero.facing)) / Math.max(far(e), 1e-6) >= AHEAD;
   const foe = caster.foes.filter((e) => e.state !== 'dead' && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
@@ -50,7 +52,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   if (!knows(hero, id)) return 'unknown';
   if (waitOf(hero, id) > 0) return 'waiting';
   const at = castTarget(caster, id);
-  if (!at) return 'noTarget';
+  if (!at || (spell.chicken && ('self' in at || !mayTurn('foe' in at ? at.foe : at.person)))) return 'noTarget'; // (a boss: not to be turned)
   if (!caster.moves.spend(spell.breath)) return 'breath';
   hero.spellWait = { ...hero.spellWait, [id]: spell.cooldown };
   const whom = 'foe' in at ? at.foe : 'person' in at ? at.person : hero;
@@ -60,6 +62,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   const mended = spell.heal ? Math.max(0, Math.min(Math.ceil(body.max - body.one.hp), Math.round(body.max * spell.heal))) : 0;
   if (mended > 0) body.one.hp = Math.min(body.max, body.one.hp + mended);
   caster.report({ kind: 'cast', spell: id, x: whom.x, y: whom.y, z: whom.z, ...(spell.heal ? { mended } : {}) });
+  if (spell.chicken && !('self' in at)) caster.chickens?.turn('foe' in at ? at.foe : at.person, spell.chicken);
   if (spell.harm && 'foe' in at) strike(caster, at.foe, blowDamage(hero, blowOf(hero)) * spell.harm, false);
   return 'cast';
 }

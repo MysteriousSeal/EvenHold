@@ -184,6 +184,7 @@ export interface EnemyActions {
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
 
 export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?: Blessing[] }, dt: number, actions: EnemyActions): void {
+  if (enemy.chicken) return; // (turned into a chicken: spells/chickens.ts walks it)
   const { steer, sees } = actions;
   // Bound to a place (a ruin's ghost): never a step out of it, nor after the hero once they're out of it.
   const haunt = enemy.haunt;

@@ -7,6 +7,7 @@
 // house stands, so a village's folk are the same for everyone on that seed
 // (and different on another). For now they wear nothing.
 
+import type { Chickened } from '../spells/chickens';
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { markHerbalistHome } from '../herbalist/herbalistHomes';
 import { INDOOR_SCALE } from '../constants';
@@ -62,6 +63,7 @@ export interface Npc extends Humanoid {
   name: string;
   role: NpcRole;
   hp?: number; // their health, short of whole (hero/selection.ts healthOf: whole, unsaid)
+  chicken?: Chickened; // turned into one, for a while (spells/chickens.ts): their day let go
   home: Entrance; // their house's door (a barmaid's, the inn's)
   inn: Entrance | null; // their village's
   village: Village;

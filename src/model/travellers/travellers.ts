@@ -9,6 +9,7 @@
 // Foes leave them be; the guards go for the foes they meet (travellerFights.ts).
 // Kept in the save, each where they were.
 
+import type { Chickened } from '../spells/chickens';
 import { ENEMY_ACTIVE_RADIUS } from '../constants';
 import { hashUnit, mulberry32, oneOf } from '../../util/random';
 import type { Road } from '../worldgen/roads';
@@ -36,6 +37,7 @@ export interface Traveller extends Humanoid {
   facing: number;
   level: number; // from how far out they set out (as foes are: a guard's blows)
   hp?: number; // their health, short of whole (hero/selection.ts healthOf: whole, unsaid)
+  chicken?: Chickened; // turned into one, for a while (spells/chickens.ts): off their road
   damage: number; // a guard's blow
   swingFor: number | null; // into a blow (a guard's), or null
   cooldown: number; // before the next blow
@@ -196,6 +198,7 @@ export class Travellers {
     for (const t of this.list) {
       if (Math.abs(t.x - this.hero.x) > AWAKE || Math.abs(t.z - this.hero.z) > AWAKE) continue; // (far off: stood where they are, till the hero comes near)
       t.cooldown = Math.max(0, t.cooldown - dt);
+      if (t.chicken) continue; // (turned into a chicken: spells/chickens.ts walks them)
       if (t.off) continue; // (a guard after a foe: travellerFights.ts walks them)
       if (t === held || (held && t.leader === held.id)) {
         t.facing = turnToward(t.facing, Math.atan2(this.hero.x - t.x, this.hero.z - t.z), dt);

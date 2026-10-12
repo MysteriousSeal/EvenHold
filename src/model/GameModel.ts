@@ -69,6 +69,7 @@ import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
 import { castSpell } from './spells/casting';
+import { Chickens } from './spells/chickens';
 import { isSpellKey, spellOf } from './spells/spells';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
@@ -254,6 +255,7 @@ export class GameModel {
     checkOut(this, this.entrances); // (a room let at an inn, its time up)
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
+    this.chickens.update(dt); // (whoever's been turned into one: spells/chickens.ts)
     [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making: on, or stopped by walking off)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
@@ -478,10 +480,10 @@ export class GameModel {
     return kind;
   }
 
-
   // The foe the hero's focused on; focusing a living one by id, null (or a dead one) letting go (hero/focus.ts).
   get focused(): Enemy | null { return this.focusOn.focused; }
   focus = (id: number | null): void => void [this.focusOn.focus(id), this.focusOn.focused && this.chosen.select(null)];
+  readonly chickens = new Chickens(this);
   readonly chosen = new Selection(); // (whoever else they've picked out, no foe: hero/selection.ts; one or the other)
   select = (who: Person | null): void => void [this.chosen.select(who), who && this.focusOn.focus(null)];
 

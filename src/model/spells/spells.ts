@@ -5,7 +5,7 @@
 // traveller picked out: hero/selection.ts; no one picked out, the hero themselves).
 import type { Hero } from '../types';
 
-export type SpellId = 'hex' | 'mend';
+export type SpellId = 'hex' | 'mend' | 'chicken';
 export type Aim = 'foes' | 'anyone';
 export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyone' };
 export interface Spell {
@@ -19,11 +19,14 @@ export interface Spell {
   aim: Aim; // whom it may be cast at
   harm?: number; // times a blow of the hero's, done to a foe
   heal?: number; // of their whole health, given back
+  chicken?: number; // seconds turned into a chicken (chickens.ts)
+  needsTarget?: boolean; // one for anyone that's never cast at the hero themselves: no one picked out, not cast
 }
 
 export const SPELLS: Record<SpellId, Spell> = {
   hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', level: 1, price: 40, breath: 30, cooldown: 6, range: 5, aim: 'foes', harm: 2 },
   mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', level: 1, price: 60, breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
+  chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry for a while.', level: 3, price: 150, breath: 50, cooldown: 45, range: 5, aim: 'anyone', chicken: 30, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
@@ -50,7 +53,7 @@ export function coolSpells(hero: Pick<Hero, 'spellWait'>, dt: number): void {
 // What it does, in a line (the spellbook, the bar's tip).
 export function spellText(id: SpellId): string {
   const spell = SPELLS[id];
-  const does = spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
+  const does = spell.chicken ? `Turns whoever you've picked out into a chicken for ${spell.chicken} s (one at a time; no boss)` : spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
   return `${does}, up to ${spell.range} tiles off · ${spell.breath} Breath · ${spell.cooldown} s`;
 }
 // A save's known spells, as far as they're sound (an older save's: none).
