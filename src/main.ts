@@ -49,6 +49,8 @@ import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
 import { createSpellbook } from './controller/spells/spellbook';
 import { playTransformation } from './view/cinema/transformCinema';
+import { standing, swapStaging } from './view/cinema/swapStaging';
+import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { createCharmPanel } from './controller/trade/charmPanel';
 import { spellbookIcon } from './view/ui/spellIcons';
@@ -379,7 +381,13 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
-      else if (event.kind === 'transformed') {
+      else if (event.kind === 'swapped') {
+        // Someone's sex changed: the game stood still, it played full screen (view/cinema/swapStaging.ts), then on.
+        const { who, before } = event;
+        const now = 'kind' in who ? who.human! : who;
+        controller.paused = true;
+        playTransformation(standing(before, true).root, before.name ?? enemyName(who as never), swapStaging(before, now, 'kind' in who ? enemyName(who) : 'road' in who ? who.name : titleOf(who)), () => (controller.paused = false));
+      } else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
         playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, event.into, () => (controller.paused = false));
