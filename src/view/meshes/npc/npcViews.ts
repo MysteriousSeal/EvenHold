@@ -48,6 +48,7 @@ export class NpcViews {
       }
       const pose = npc.seat ? (npc.seat.lying ? 'lie' : 'sit') : npc.working ? 'work' : 'stand';
       rig.update(npc.x, npc.y, npc.z, dt, null, npc.facing, pose);
+      rig.root.visible = !npc.chicken; // (turned into a chicken: that drawn in their place, wildlife/chickenRig.ts)
       rig.hold(npc.carrying ?? false); // a cup in hand (the barmaid, bringing a drink or clearing one away)
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
       label.visible = !quiet && npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;

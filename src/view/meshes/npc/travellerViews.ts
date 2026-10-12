@@ -47,6 +47,7 @@ export class TravellerViews {
       if (mark && !view.marks) rig.root.add((view.marks = new HeadMarks(HEAD_LABEL.y, t.id)).group);
       view.marks?.show(mark, time, t.facing);
       rig.update(t.x, t.y, t.z, dt, t.swingFor === null ? null : t.swingFor / SWING, t.facing);
+      rig.root.visible = !t.chicken; // (turned into a chicken: that drawn in their place, wildlife/chickenRig.ts)
       label.visible = t !== talking && Math.hypot(t.x - hero.x, t.z - hero.z) < HEAD_LABEL.near;
     });
   }

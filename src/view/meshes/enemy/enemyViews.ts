@@ -98,6 +98,7 @@ export class EnemyViews {
     }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       rig.update(enemy, dt, heroX, heroZ);
+      rig.root.visible = !enemy.chicken; // (turned into a chicken: that drawn in its place, wildlife/chickenRig.ts)
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {

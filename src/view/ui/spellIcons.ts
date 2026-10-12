@@ -2,7 +2,9 @@
 // voxel models as the skills' are (skillIcons.ts); and the spellbook's own tile on the toolbar, a closed book with a
 // mark on its cover.
 import type { SpellId } from '../../model/spells/spells';
-import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
+import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
+import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
+import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
 import type { MenuIcon } from './menu';
 import { voxelIcon } from './voxelIcon';
 
@@ -46,7 +48,25 @@ const mendIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon };
+// The hen-wife's turn: the hen herself, side on (wildlife/chickenVoxels.ts: her body, her head set on it).
+const chickenIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:chicken',
+    () => {
+      const grid = createGrid([5, 12, 10]);
+      const put = (part: VoxelGrid, ox: number, oy: number, oz: number) => {
+        const [sx, sy, sz] = part.size;
+        for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) if (colorAt(part, x, y, z)) setColor(grid, x + ox, y + oy, z + oz, colorAt(part, x, y, z));
+      };
+      put(buildChickenBody(), 0, 3, 0);
+      put(buildChickenHead(), 1, 5, 5);
+      for (const x of [1, 3]) put(buildChickenLeg(), x, 0, 3);
+      return { grid, palette: CHICKEN_PALETTE, alpha: 1 };
+    },
+    size,
+  );
+
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon };
 
 // The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
 export const spellbookIcon: MenuIcon = (size) =>

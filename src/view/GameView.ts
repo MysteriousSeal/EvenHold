@@ -24,6 +24,8 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { WORLD_BUILDERS, type WorldBuilder } from './world/worldBuilders';
 import { WorldRegions } from './world/worldRegions';
 import { EnemyViews, focusMarker } from './meshes/enemy/enemyViews';
+import { ChickenView } from './meshes/wildlife/chickenRig';
+import { SmokePuffs } from './meshes/common/smokePuffs';
 import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
@@ -90,6 +92,8 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
+  private readonly chicken = new ChickenView(); // whoever's been turned into one (spells/chickens.ts)
+  private readonly smoke = new SmokePuffs();
   private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
   private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room
   private carter: CarterView | null = null; // (the man by his wagon, at the start)
@@ -242,6 +246,11 @@ export class GameView {
     return best;
   }
 
+  // A puff of smoke where the hero is (the world, or the room they're in: someone turned into a chicken, or back).
+  puff(x: number, y: number, z: number): void {
+    this.smoke.puff(this.peopleIn, x, y, z, this.peopleIn === this.scene ? 1 : INDOOR_SCALE);
+  }
+
   // Where a point in the world is on screen, in page pixels.
   toScreen(x: number, y: number, z: number): { x: number; y: number } {
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -289,6 +298,8 @@ export class GameView {
     const home = yard ?? room ?? this.scene;
     // Whoever the hero's picked out (hero/selection.ts): the brackets at their feet, as a focused foe's.
     this.peopleIn = home;
+    this.chicken.update(model.chickens.here, home, room ? INDOOR_SCALE : 1, dt); // (whoever's been turned into one, if they're here)
+    this.smoke.update(dt);
     const chosen = model.chosen.person;
     this.personMark.visible = !!chosen;
     if (chosen) {
