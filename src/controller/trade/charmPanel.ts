@@ -7,7 +7,7 @@ import './shopPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { TALK_RANGE } from '../../model/npcs/talk';
-import { SPELLS, knows, spellText, type SpellId } from '../../model/spells/spells';
+import { AIM_WORDS, SPELLS, knows, spellText, type SpellId } from '../../model/spells/spells';
 import { TAUGHT, mayLearn, teach, type Taught } from '../../model/spells/teaching';
 import { coinParts } from '../../view/ui/coins';
 import { el } from '../../view/ui/dom';
@@ -43,7 +43,7 @@ export function createCharmPanel(model: GameModel): { open(witch: Npc): void; up
       dim: may === 'known' || may === 'level',
       warn: may === 'too poor',
       lines: [
-        toned('kind', 'Charm'),
+        toned('kind', `Charm · ${AIM_WORDS[spell.aim]}`),
         toned('stat', spellText(id)),
         toned('flavor', spell.about),
         toned('hint', may === 'known' ? 'You know it: it is in your spellbook (N)' : may === 'level' ? `Taught from level ${spell.level}` : 'Click to be taught it'),

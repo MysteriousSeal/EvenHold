@@ -4,7 +4,7 @@
 // on while it's open.
 import type { GameModel } from '../../model/GameModel';
 import { setAction } from '../../model/hero/actionBar';
-import { SPELLS, spellKey, spellText, type SpellId } from '../../model/spells/spells';
+import { AIM_WORDS, SPELLS, spellKey, spellText, type SpellId } from '../../model/spells/spells';
 import { createMenu, type Menu, type MenuSlot } from '../../view/ui/menu';
 import { el } from '../../view/ui/dom';
 import { SPELL_ICONS } from '../../view/ui/spellIcons';
@@ -23,7 +23,7 @@ export function createSpellbook(model: GameModel): { menu: Menu; update(): void 
     icon: SPELL_ICONS[id],
     title: SPELLS[id].name,
     lines: [
-      { text: 'Charm', tone: 'kind' },
+      { text: `Charm · ${AIM_WORDS[SPELLS[id].aim]}`, tone: 'kind' },
       { text: spellText(id), tone: 'stat' },
       { text: SPELLS[id].about, tone: 'flavor' },
       { text: 'Click to put it on the action bar, or drag it onto the slot you want', tone: 'hint' },
