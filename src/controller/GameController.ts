@@ -121,9 +121,10 @@ export class GameController {
   // redrawn (the last frame stays on screen), leaving the page free to
   // respond instantly to the menu.
   paused = false;
-  // The world drawn afresh, once, though it's paused (something changed behind a window: the hour, after a night).
-  redraw(): void {
-    this.view.update(0);
+  // The world drawn afresh though it's paused (something changed behind a window: the hour and the room, after a
+  // night), `dt` on in what's only seen (a room easing in), nothing of the game moved.
+  redraw(dt = 0): void {
+    this.view.update(dt);
     this.view.render();
   }
   timeScale = 1; // a dev cheat: the game running this many times as fast

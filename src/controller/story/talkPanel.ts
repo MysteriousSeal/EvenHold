@@ -23,7 +23,7 @@ const TURNED = 0.55; // radians each is turned toward the other
 const NIGHT_FADE = 900; // ms the screen takes to go black, and to come back (talk.css)
 const NIGHT_HELD = 1800; // ms it stays black
 
-export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void; redraw?(): void }): { open(who: Who, only?: string): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
+export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void; redraw?(dt: number): void }): { open(who: Who, only?: string): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
   let talk: Talk | null = null;
   let speaking: Who | null = null; // whoever the hero's talking with
   let at = 0; // the line being said
@@ -32,6 +32,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   let writer = 0;
   let nightfall = 0; // the night's timer, while the screen's black
   let dark = false;
+  let woken = false; // a night's passed in this talk: the world behind is drawn again each frame, held as it is
   let frame = 0;
   let isOpen = false;
 
@@ -139,7 +140,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     night.classList.add('on');
     nightfall = window.setTimeout(() => {
       talk?.night?.(); // (in the dark: it's morning, by the game's clock too)
-      hooks.redraw?.(); // (and the world behind drawn by its light)
+      woken = true; // (and the world behind drawn from here on: the room woken in, by the morning's light)
       written = 0;
       draw(); // (the morning's line, not yet said, behind the black)
       night.classList.remove('on');
@@ -193,7 +194,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     isOpen = false;
     window.clearInterval(writer);
     window.clearTimeout(nightfall);
-    dark = false;
+    dark = woken = false;
     night.classList.remove('on');
     cancelAnimationFrame(frame);
     scene.hidden = true;
@@ -222,8 +223,12 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       stages.other?.show(who.look, who.equipment);
       scene.hidden = false;
       requestAnimationFrame(() => scene.classList.add('shown')); // (eased in)
+      let last = performance.now();
       const render = () => {
         if (!isOpen) return;
+        const now = performance.now();
+        if (woken) hooks.redraw?.(Math.min(0.05, (now - last) / 1000));
+        last = now;
         stages?.hero?.render();
         stages?.other?.render();
         frame = requestAnimationFrame(render);
