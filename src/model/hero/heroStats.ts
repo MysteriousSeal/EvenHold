@@ -4,6 +4,7 @@
 // comes back by itself, only by eating and drinking (provisions.ts), sleeping
 // in a bed, and levelling up, which heals fully.
 
+import { coolSpells } from '../spells/spells';
 import { DAY_MINUTES } from '../clock';
 import type { Hero, Meal } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
@@ -86,6 +87,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false,
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
   // at a time, all of it once it's done.
   hero.potionCooldown = Math.max(0, (hero.potionCooldown ?? 0) - dt); // (another potion, in a while)
+  coolSpells(hero, dt);
   hero.drinking = restoring(hero, hero.drinking, dt);
   hero.eating = restoring(hero, hero.eating, dt);
 }

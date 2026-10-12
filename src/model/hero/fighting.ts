@@ -51,8 +51,16 @@ export function landBlow(fight: Fight): void {
   const { target, distance } = hit;
   const blow = heroBlow(hero, fight.random());
   const riposte = fight.moves.riposteOn(target); // (a foe just parried: harder, and a critical)
-  const crit = blow.crit || riposte > 1;
-  const hard = Math.round(blow.damage * riposte);
+  strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1);
+  const d = Math.max(distance, 1e-6);
+  const push = ATTACK_KNOCKBACK * ENEMY_STATS[target.kind].shove; // (a heavy one hardly moved)
+  fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
+}
+
+// Harm of the hero's doing landed on a foe (a blow's, a spell's: spells/casting.ts): off its health, a brief flash;
+// at zero it dies, and leaves what it leaves.
+export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): void {
+  const { hero } = fight;
   const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
   target.hp -= damage;
   leech(hero, damage); // (their gear's: a share of it healed)
@@ -76,9 +84,6 @@ export function landBlow(fight: Fight): void {
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }
-  const d = Math.max(distance, 1e-6);
-  const push = ATTACK_KNOCKBACK * ENEMY_STATS[target.kind].shove; // (a heavy one hardly moved)
-  fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
 }
 
 // What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking

@@ -8,6 +8,7 @@ import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
+import type { SpellId } from './spells/spells';
 import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
 
@@ -47,6 +48,8 @@ export interface Hero extends Humanoid {
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
   eating?: Meal | null;
+  spells?: SpellId[]; // the charms they know (spells/spells.ts): none, till taught
+  spellWait?: Partial<Record<SpellId, number>>; // seconds before each may be cast again
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
@@ -56,6 +59,7 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
+  | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
   | { kind: 'guard'; outcome: 'rolled' | 'parried' | 'blocked' | 'broken'; x: number; y: number; z: number } // a blow rolled through, parried, blocked, or breaking the guard (combatMoves.ts)

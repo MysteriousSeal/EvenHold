@@ -10,6 +10,7 @@
 
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
+import { readSpells } from './spells/spells';
 import { readSockets } from './hero/bagSlots';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
@@ -52,6 +53,7 @@ export interface SaveData {
     bag: Partial<Record<BagItem, number>>;
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
+    spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
     skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts; older saves: none)
@@ -110,6 +112,7 @@ export function snapshot(model: GameModel): SaveData {
       bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
       actionBar: [...hero.actionBar],
+      spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
       skills: structuredClone(hero.skills ?? {}), // (their level in each skill: skills/skills.ts)
       money: hero.money,
@@ -211,6 +214,8 @@ export function restore(model: GameModel, data: SaveData): void {
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
+    spells: readSpells(saved.spells), // (older saves: none)
+    spellWait: {},
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],

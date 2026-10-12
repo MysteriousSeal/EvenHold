@@ -60,6 +60,7 @@ import { CampLife } from './camps/campLife';
 import { VillageWelcome } from './villages/villageWelcome';
 import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
+import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
 import { Lumber } from './skills/lumber';
 import { Woodworking } from './skills/woodworking';
@@ -67,6 +68,8 @@ import { Salvage } from './skills/salvage';
 import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
+import { castSpell } from './spells/casting';
+import { isSpellKey, spellOf } from './spells/spells';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -416,10 +419,11 @@ export class GameModel {
   }
 
   // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
-  // A tool off the action bar (hero/actionBar.ts): a bedroll, lain down on; else food, drink or a potion, had. Whether it did anything.
+  // Off the action bar (hero/actionBar.ts): a bedroll, lain down on; a spell, cast (spells/casting.ts); else food, drink or a potion, had. Whether it did anything.
   useAction(i: number): boolean {
     const item = this.hero.actionBar[i];
     if (item === 'bedroll') return this.lieDown();
+    if (item && isSpellKey(item)) return this.canFight && castSpell(this, spellOf(item)) === 'cast';
     return useAction(this.hero, i);
   }
 
@@ -477,13 +481,15 @@ export class GameModel {
 
   // The foe the hero's focused on; focusing a living one by id, null (or a dead one) letting go (hero/focus.ts).
   get focused(): Enemy | null { return this.focusOn.focused; }
-  focus = (id: number | null): void => this.focusOn.focus(id);
+  focus = (id: number | null): void => void [this.focusOn.focus(id), this.focusOn.focused && this.chosen.select(null)];
+  readonly chosen = new Selection(); // (whoever else they've picked out, no foe: hero/selection.ts; one or the other)
+  select = (who: Person | null): void => void [this.chosen.select(who), who && this.focusOn.focus(null)];
 
   // Turns the focus to the next foe in sight, nearest first (Tab), or back (Shift+Tab: hero/focus.ts).
   cycleFocus = (back = false): void => turnFocus(this, (foe) => (this.below?.run.director ?? this.director).inView(this.hero, foe), back);
 
   // Drops the focus the moment its enemy dies (so the next to strike takes it), or once it's gone or far off (hero/focus.ts).
-  private keepFocus = (): void => this.focusOn.keep(this.hero);
+  private keepFocus = (): void => void [this.focusOn.keep(this.hero), this.chosen.keep(this)];
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).
   fall = (): void => fall(this);
