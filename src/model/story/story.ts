@@ -23,7 +23,8 @@ import type { Pace, PaceVoice } from '../jobs/room/pace';
 import type { Carter } from './carter';
 import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
 import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
-import { alreadyDone, type AlreadyHost } from './storyAlready';
+import { alreadyDone } from './storyAlready';
+import { restock, type RestockHost } from './storyRestock';
 import { goalOf, innOf } from './storyGoals';
 import type { Gift, StoryQuest, Told } from './storyQuests';
 import { keyOf, lacks, place, resettle, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
@@ -65,7 +66,7 @@ const idOf = (key: string): string => key.split('@')[0];
 const keyed = (id: string): string => (id.includes('@') ? id : `${id}@first`); // (a bare name: the first village's)
 const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar');
 
-export interface StoryHost extends CastHost, AlreadyHost {
+export interface StoryHost extends CastHost, RestockHost {
   readonly hero: Hero;
   minutes: number; // the game's clock (a night spent: on to the morning)
   readonly folk: readonly Npc[];
@@ -100,6 +101,7 @@ export class Story {
   private counted = new Map<string, number>(); // what's been done toward each taken one (foes slain; a place reached, a thing done: 1)
   private kept = new Map<string, { to: string; from: string; x: number; z: number }>(); // each taken one's people and village, for when they're off the maps
   private world: QuestSet | null = null;
+  private haunted = -Infinity; // the game's minute what the quests ask for was last looked to (storyRestock.ts)
 
   constructor(private readonly host: StoryHost) {}
 
@@ -210,11 +212,22 @@ export class Story {
   update(): void {
     if (this.host.inside || this.state.size === 0) return;
     const { hero } = this.host;
+    this.raise();
     this.count((q, key) => {
       const at = this.set.all.get(key)?.at ?? null;
       const place = q.needs?.kind === 'reach' ? at?.place[q.needs.place] : undefined;
       return (!!place && q.needs?.kind === 'reach' && Math.hypot(place.x - hero.x, place.z - hero.z) <= q.needs.within) || alreadyDone(this.host, q, at);
     });
+  }
+
+  // What the quests under way send the hero for, kept there to be had (storyRestock.ts): looked to every couple of
+  // seconds.
+  private raise(): void {
+    const { host } = this;
+    if (host.minutes - this.haunted < 2) return;
+    this.haunted = host.minutes;
+    const wants = [...this.state].filter(([, state]) => state === 'taken').map(([key]) => ({ quest: STORY_QUESTS[idOf(key)], at: this.set.all.get(key)?.at ?? null, left: this.progress(key).of - this.progress(key).have }));
+    restock(host, wants.filter((w) => w.quest));
   }
 
   // The mark over `who`'s head, if any: a quest ready to hand in to them (a gold "?"), else one of theirs to give (a

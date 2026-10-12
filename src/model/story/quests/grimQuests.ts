@@ -149,7 +149,7 @@ export const GRIM_QUESTS: StoryQuest[] = [
     accept: "I'll bring them back.",
     waiting: () => ['Bring me three rusted blades. The skeletons in the crypt under the old ruin carry them.'],
     after: () => ['I melted those blades down and made plough blades out of them. Let them cut earth for a change.'],
-    task: (t) => `Bring 3 rusted blades to ${t.giver}, the smith in ${t.village}`,
+    task: (t) => `Bring 3 rusted blades to ${t.giver}, the smith in ${t.village}. The skeletons in the crypt under the old ruin carry them`,
     handIn: () => ["Three blades, and all three have my mark on them. They'll be melted down by tonight. Here's your pay."],
     thanks: 'Melt them down.',
     copper: 70,

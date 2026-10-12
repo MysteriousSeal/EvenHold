@@ -131,7 +131,7 @@ export const DROLL_QUESTS: StoryQuest[] = [
   }),
   quest({
     id: 'theGhostWhoOwes',
-    name: 'The ghost who owes',
+    name: "The dead man's tab",
     giver: 'bouncer',
     receiver: 'bouncer',
     share: 0.2,
@@ -145,7 +145,7 @@ export const DROLL_QUESTS: StoryQuest[] = [
     decline: 'Let the dead keep it.',
     waiting: () => ['Bring me two old silver coins. The draugr, the big dead warriors in the crypt under the old ruin, carry them.'],
     after: () => ["I've crossed the dead man's bill off the wall. Nobody leaves this inn without paying. Not even the dead."],
-    task: (t) => `Bring 2 old silver coins to ${t.giver}, at the inn in ${t.village}`,
+    task: (t) => `Bring 2 old silver coins to ${t.giver}, at the inn in ${t.village}. The draugr in the crypt under the old ruin carry them`,
     handIn: () => ["Two old silver coins, taken from the dead. His bill is paid, ten years late. Here's your share for collecting it."],
     thanks: 'Debt collected.',
     copper: 110,

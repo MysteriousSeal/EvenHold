@@ -46,6 +46,7 @@ import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, lieOnBedroll, liveOn } from './hero/setbacks';
 import { type Ruin } from './ruins/ruins';
+import { raiseGhosts } from './ruins/haunting';
 import { checkOut } from './inn/roomLetting';
 import { type Crypt } from './crypts/crypts';
 import { CryptFoes } from './crypts/cryptFoes';
@@ -423,6 +424,7 @@ export class GameModel {
   }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
+  haunt = (ruin: Ruin, count: number): number => raiseGhosts(this, ruin, count); // (a ruin's ghosts risen again, for a quest that asks them slain: ruins/haunting.ts)
   campEmpty = (camp: Camp): boolean => this.campLife.empty(camp); // (asked by the quests people give: a camp cleared before it was asked)
   wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)
 
