@@ -109,6 +109,7 @@ export class EnemyViews {
       this.marker.scale.setScalar(this.scale * Math.min(MARKER_MOST, sizeOf(target.kind))); // (round a big one's feet; the lord's as a draugr's)
     }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
+      if (rig instanceof BanditRig && enemy.human && rig.body !== enemy.human.look) return this.rigs.forget(enemy.id);
       rig.update(enemy, dt, heroX, heroZ);
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });

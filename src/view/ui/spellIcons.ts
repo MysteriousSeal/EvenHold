@@ -86,7 +86,26 @@ const horseIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, horse: horseIcon };
+// The moon-turn charm: a waning moon, its dark side one colour and its lit side another, a mote of light by it.
+const swapIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:swap',
+    () => {
+      // The lit side 1, its edge 2, the dark side 3, light 4.
+      const grid = createGrid([11, 11, 2]);
+      fillBox(grid, 2, 1, 0, 8, 9, 0, (x, y) => {
+        const [dx, dy] = [x - 5, y - 5];
+        if (dx * dx + dy * dy > 17) return 0;
+        const inner = (dx - 2) * (dx - 2) + dy * dy <= 11; // the dark of it, set to one side
+        return inner ? 3 : dx <= -3 ? 2 : 1;
+      });
+      for (const [x, y] of [[9, 9], [1, 2], [10, 4]]) fillBox(grid, x, y, 1, x, y, 1, 4);
+      return { grid, palette: [0xf4ecd0, 0xcfc49a, 0x4a3a6a, 0xe8d0ff], alpha: 1 };
+    },
+    size,
+  );
+
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, horse: horseIcon, swap: swapIcon };
 
 // The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
 export const spellbookIcon: MenuIcon = (size) =>

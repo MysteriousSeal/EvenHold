@@ -20,6 +20,14 @@ export class Nearby<T extends { id: number; x: number; z: number }, V> {
     private readonly radius = 30,
   ) {}
 
+  // A thing's view let go, to be made afresh as it's next seen (what it's drawn from changed: someone's look).
+  forget(id: number): void {
+    const view = this.shown.get(id);
+    if (view === undefined) return;
+    this.drop(view);
+    this.shown.delete(id);
+  }
+
   // Each frame: every thing near (x, z) that's `here`, with its view, to `each`; the rest's views dropped.
   // Returns the ids of those near.
   update(items: readonly T[], x: number, z: number, each: (item: T, view: V) => void, here: (item: T) => boolean = () => true): Set<number> {

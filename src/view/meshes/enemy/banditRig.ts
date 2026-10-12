@@ -4,6 +4,7 @@
 // hit, shows a health bar over its head, and on death falls flat on its back
 // and bursts into voxel cubes of its colors.
 
+import type { BodyLook } from '../../../model/human/humanoid';
 import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import { HERO_LOOK } from '../../../model/human/humanoid';
@@ -45,6 +46,11 @@ export class BanditRig implements EnemyRig {
 
   get root(): THREE.Group {
     return this.rig.root;
+  }
+
+  // The look they're drawn with (changed, a charm's doing: drawn afresh, enemyViews.ts).
+  get body(): BodyLook {
+    return this.rig.look;
   }
 
   drawnAt(scale: number): void {

@@ -10,7 +10,7 @@ import './transformCinema.css';
 import { SmokePuffs } from '../meshes/common/smokePuffs';
 import { makeActor } from './actor';
 import type { Into } from '../../model/spells/chickens';
-import { STAGINGS } from './staging';
+import { STAGINGS, type Staging } from './staging';
 import { PartMorph } from './partMorph';
 import { VoxelMorph, sampleFigure } from './voxelMorph';
 
@@ -32,8 +32,8 @@ export interface Playing {
 }
 
 // Plays `into` on `figure` (theirs, as they stand: GameView.standIn), called `name`; `done` once it's over or skipped.
-export function playTransformation(figure: THREE.Object3D, name: string, into: Into, done: () => void, makeDrawer: () => Drawer = () => new THREE.WebGLRenderer({ alpha: true, antialias: true })): Playing {
-  const staging = STAGINGS[into];
+export function playTransformation(figure: THREE.Object3D, name: string, into: Into | Staging, done: () => void, makeDrawer: () => Drawer = () => new THREE.WebGLRenderer({ alpha: true, antialias: true })): Playing {
+  const staging = typeof into === 'string' ? STAGINGS[into] : into;
   const root = document.createElement('div');
   root.className = 'transform-cinema';
   const title = Object.assign(document.createElement('h2'), { className: 'transform-title', textContent: staging.title });
@@ -63,13 +63,14 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const actor = makeActor(figure);
   // Anything not human-shaped, with voxels to it: taken apart into them and put together again as what it becomes.
   // What has parts (someone human-shaped, a four-legged beast): each part morphing into the part it becomes (partMorph.ts).
-  const parts = staging.pieces?.(actor) ?? null;
-  const shell = !parts && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
+  const parts = staging.direct ? null : (staging.pieces?.(actor) ?? null);
+  const shell = !parts && !staging.direct && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
   const whole = shell && shell.at.length >= LEAST ? new VoxelMorph(shell, staging.cloud!()) : null;
   const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
   if (loose) scene.add(loose.object);
   const lines = (parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines;
   const made = loose ? null : staging.prepare?.(actor);
+  const own = staging.direct?.(figure, scene, actor.size.y) ?? null; // (a staging all its own)
   const target = staging.target();
   target.root.visible = false;
   scene.add(figure, target.root);
@@ -117,7 +118,8 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const p = Math.min(1, time / LENGTH);
     const u = Math.min(1, p / GIVES_WAY); // the one turned: 0 themselves, 1 giving way
     const j = Math.max(0, (p - GIVES_WAY) / (1 - GIVES_WAY)); // what they've become: 0 just there, 1 settled
-    if (!swapped && loose) {
+    if (!swapped && own) own.update(u, time);
+    else if (!swapped && loose) {
       // (Itself still for a breath, shivering; then its voxels, off and away.)
       const apart = u >= APART;
       figure.visible = !apart;
@@ -131,6 +133,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
       swapped = true;
       figure.visible = false;
       loose?.dispose(); // (its voxels set down where hers are: she's put in their place)
+      own?.dispose();
       target.root.visible = true;
       flash.classList.add('on');
       smoke.puff(scene, 0, 0, 0, tall * 1.6);
@@ -148,11 +151,12 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     under.intensity = 0.12 * Math.sin(Math.min(1, p / GIVES_WAY) * Math.PI * 0.5) * (swapped ? Math.max(0, 1 - j * 2) : 1);
     // The camera: round them, down to what they've become and in close as they shrink.
     const close = Math.min(1, Math.max(0, (u - (whole ? 0.6 : 0.84)) / (whole ? 0.4 : 0.16)));
-    const eased = close * close * (3 - 2 * close);
+    const eased = own ? 0 : close * close * (3 - 2 * close); // (a change that leaves them their size: no closing in)
     // (What they become the taller: seen whole from the start, room for it to grow into, no closing in after.)
     const frame = Math.max(tall, target.height);
     const height = frame * 0.5 + (target.height * 0.55 - frame * 0.5) * eased;
-    const far = frame * 3.4 + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * 3.4) * eased;
+    const wide = own ? 4.6 : 3.4; // (someone seen whole, head to foot, with room over them for what lifts off)
+    const far = frame * wide + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
     camera.position.set(Math.sin(ANGLE) * far, height + far * 0.28, Math.cos(ANGLE) * far);
     camera.lookAt(0, height, 0);
     // What's said: the beat it's at; once turned, what they are.

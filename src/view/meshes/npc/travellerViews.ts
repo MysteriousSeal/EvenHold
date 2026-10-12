@@ -43,6 +43,7 @@ export class TravellerViews {
   update(travellers: readonly Traveller[], hero: { x: number; z: number }, dt: number, talking: Traveller | null = null, markOf?: (t: Traveller) => HeadMark | null, time = 0): void {
     this.shown.update(travellers, hero.x, hero.z, (t, view) => {
       const { rig, label } = view;
+      if (rig.look !== t.look) return this.shown.forget(t.id); // (their look changed, a charm's doing: drawn afresh, their name with it)
       const mark = markOf?.(t) ?? null;
       if (mark && !view.marks) rig.root.add((view.marks = new HeadMarks(HEAD_LABEL.y, t.id)).group);
       view.marks?.show(mark, time, t.facing);

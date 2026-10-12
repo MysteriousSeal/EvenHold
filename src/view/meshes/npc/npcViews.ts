@@ -39,6 +39,7 @@ export class NpcViews {
     const scale = where ? INDOOR_SCALE : 1;
     const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite; over: THREE.Group; marks?: HeadMarks }) => {
       const { rig, label } = view;
+      if (rig.look !== npc.look) return this.shown.forget(npc.id); // (their look changed, a charm's doing: drawn afresh, their name with it)
       if (rig.root.parent !== scene) {
         scene.add(rig.root);
         drawnAt(rig.root, scale, view.over); // drawn bigger indoors, but the name at its own size

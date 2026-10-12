@@ -22,6 +22,9 @@ export interface Staging {
   target(): { root: THREE.Object3D; height: number; settle(j: number, time: number): void }; // `j`: 0 just there, 1 settled
   beastLines?: ReadonlyArray<[from: number, line: string]>; // what's said of a four-legged beast's, where it differs
   feathers?: [from: number, to: number]; // when feathers fly off them, if any do
+  // A staging all its own, in place of the rest (a change that's no turning into a beast: swapStaging.ts): made for the
+  // figure, in the scene; played each frame till it gives way (`u`: 0 themselves, 1 giving way), then let go.
+  direct?(figure: THREE.Object3D, scene: THREE.Scene, tall: number): { update(u: number, time: number): void; dispose(): void };
   // For anything not human-shaped, taken apart into its voxels and put together again (voxelMorph.ts): the voxels of
   // what they become, as it stands; and what's said of it, beat by beat.
   cloud?(): Cloud;
