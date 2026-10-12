@@ -52,7 +52,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   if (!knows(hero, id)) return 'unknown';
   if (waitOf(hero, id) > 0) return 'waiting';
   const at = castTarget(caster, id);
-  if (!at || (spell.chicken && ('self' in at || !mayTurn('foe' in at ? at.foe : at.person)))) return 'noTarget'; // (a boss: not to be turned)
+  if (!at || (spell.turns && ('self' in at || !mayTurn('foe' in at ? at.foe : at.person)))) return 'noTarget'; // (a boss: not to be turned)
   if (!caster.moves.spend(spell.breath)) return 'breath';
   hero.spellWait = { ...hero.spellWait, [id]: spell.cooldown };
   const whom = 'foe' in at ? at.foe : 'person' in at ? at.person : hero;
@@ -62,7 +62,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   const mended = spell.heal ? Math.max(0, Math.min(Math.ceil(body.max - body.one.hp), Math.round(body.max * spell.heal))) : 0;
   if (mended > 0) body.one.hp = Math.min(body.max, body.one.hp + mended);
   caster.report({ kind: 'cast', spell: id, x: whom.x, y: whom.y, z: whom.z, ...(spell.heal ? { mended } : {}) });
-  if (spell.chicken && !('self' in at)) caster.chickens?.turn('foe' in at ? at.foe : at.person);
+  if (spell.turns && !('self' in at)) caster.chickens?.turn('foe' in at ? at.foe : at.person, spell.turns);
   if (spell.harm && 'foe' in at) strike(caster, at.foe, blowDamage(hero, blowOf(hero)) * spell.harm, false);
   return 'cast';
 }

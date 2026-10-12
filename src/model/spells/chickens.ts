@@ -1,4 +1,5 @@
-// Someone turned into a chicken (spells.ts: a charm for anyone, cast at whoever's picked out), for good: a foe, a
+// Someone turned into a beast (spells.ts: a charm for anyone, cast at whoever's picked out; a chicken, or a horse:
+// `Into`), for good: a foe, a
 // villager or keeper, someone on the road; never a boss or a camp's chief, nor anyone only passing through.
 // Whoever they were is no more, as surely as if they'd been killed:
 //  - a foe counts as slain, for whatever counts the slain (a board's quest, a quest someone gave, a camp or a dungeon
@@ -6,7 +7,7 @@
 //  - a villager or keeper is gone from their village (`lost`: kept, so a world made again is made without them): no
 //    word, no trade, no quest of theirs (any under way let go: story.ts lose);
 //  - a traveller is off the roads.
-// In their place a hen (`hens`: kept with the game), where they stood (out of doors, in a room, down a dungeon):
+// In their place the beast (`hens`: a hen, or a horse; kept with the game), where they stood (out of doors, in a room, down a dungeon):
 // wandering aimlessly, never more than ROAM tiles from where they were turned, a few steps and a peck, for ever.
 // Told as it happens ('transformed': how it happens, part by part, is the view's to play, view/cinema/).
 import { isBoss } from '../enemies/enemyLevels';
@@ -18,14 +19,17 @@ import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
 
+export type Into = 'chicken' | 'horse';
+export const INTO: readonly Into[] = ['chicken', 'horse'];
 export const ROAM = 5; // tiles from where they were turned, at most
-const PACE = 0.55; // tiles a second, strutting
-const PECK: [number, number] = [0.6, 2.2]; // seconds stood pecking between strolls
+// How each goes about: tiles a second, and the seconds stood between strolls (a hen pecking, a horse grazing).
+const GAIT: Record<Into, { pace: number; stood: [number, number] }> = { chicken: { pace: 0.55, stood: [0.6, 2.2] }, horse: { pace: 0.8, stood: [3, 9] } };
 const ARRIVED = 0.08;
 const AWAKE = 40; // tiles from the hero a hen still wanders (farther: stood where she is)
 
 export interface Hen {
   id: number;
+  kind: Into; // what they were turned into
   x: number;
   y: number;
   z: number;
@@ -69,7 +73,7 @@ const boss = (foe: Enemy): boolean => isBoss(foe.kind) || foe.kind === 'banditCh
 export const mayTurn = (being: Being): boolean => (isFoe(being) ? being.state !== 'dead' && !being.buried && !boss(being) : !(isNpc(being) && being.led));
 
 export interface SavedChickens {
-  hens: Array<[x: number, z: number, at: string | null, fromX: number, fromZ: number]>;
+  hens: Array<[x: number, z: number, at: string | null, fromX: number, fromZ: number, kind?: Into]>;
   lost: number[];
 }
 
@@ -81,10 +85,10 @@ export class Chickens {
   constructor(private readonly host: ChickenHost) {}
 
   // Turned, for good: whether they were. They're no more (above); a hen where they stood.
-  turn(being: Being): boolean {
+  turn(being: Being, into: Into = 'chicken'): boolean {
     if (!mayTurn(being)) return false;
     const { host } = this;
-    const hen: Hen = { id: this.next++, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: PECK[0], facing: isFoe(being) ? 0 : being.facing, fresh: true };
+    const hen: Hen = { id: this.next++, kind: into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true };
     const shown: Being = isFoe(being) ? { ...being } : being; // (as they stood, for its turning to be played: the foe itself is dead from here on)
     if (isFoe(being)) {
       // As good as slain, for all that counts them (dead, to whatever still holds it: a camp's count of its crew); nothing had for it.
@@ -106,7 +110,7 @@ export class Chickens {
       } else host.travellers.lose(being);
     }
     this.hens.push(hen);
-    host.report({ kind: 'transformed', who: shown, into: 'chicken' });
+    host.report({ kind: 'transformed', who: shown, into });
     return true;
   }
 
@@ -134,10 +138,11 @@ export class Chickens {
     }
     const [dx, dz] = [hen.to.x - hen.x, hen.to.z - hen.z];
     const left = Math.hypot(dx, dz);
-    const step = Math.min(left, PACE * dt);
+    const { pace, stood } = GAIT[hen.kind];
+    const step = Math.min(left, pace * dt);
     const [x, z] = left > 1e-6 ? [hen.x + (dx / left) * step, hen.z + (dz / left) * step] : [hen.x, hen.z];
     if (left <= ARRIVED || !this.free(x, z)) {
-      [hen.to, hen.peck] = [null, PECK[0] + host.random() * (PECK[1] - PECK[0])]; // there, or the way shut: a peck, then elsewhere
+      [hen.to, hen.peck] = [null, stood[0] + host.random() * (stood[1] - stood[0])]; // there, or the way shut: a peck, then elsewhere
       return;
     }
     [hen.x, hen.z, hen.facing] = [x, z, Math.atan2(dx, dz)];
@@ -154,7 +159,7 @@ export class Chickens {
 
   save(): SavedChickens {
     const round = (n: number) => Math.round(n * 100) / 100;
-    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z)]), lost: [...this.lost] };
+    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z), hen.kind]), lost: [...this.lost] };
   }
 
   // A save's, as far as it's sound; those lost gone from the world as it stands (a world made after: liveWorld.ts).
@@ -165,8 +170,8 @@ export class Chickens {
     for (const id of Array.isArray(data.lost) ? data.lost : []) if (Number.isInteger(id)) this.lost.add(id);
     for (const row of Array.isArray(data.hens) ? data.hens : []) {
       if (!Array.isArray(row) || ![row[0], row[1], row[3], row[4]].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-      const [x, z, at, fromX, fromZ] = row;
-      this.hens.push({ id: this.next++, x, y: typeof at === 'string' ? 0 : this.host.getGroundY(x, z), z, at: typeof at === 'string' ? at : null, from: { x: fromX, z: fromZ }, to: null, peck: PECK[0], facing: 0 });
+      const [x, z, at, fromX, fromZ, kind] = row;
+      this.hens.push({ id: this.next++, kind: INTO.includes(kind as Into) ? (kind as Into) : 'chicken', x, y: typeof at === 'string' ? 0 : this.host.getGroundY(x, z), z, at: typeof at === 'string' ? at : null, from: { x: fromX, z: fromZ }, to: null, peck: 0.5, facing: 0 });
     }
     for (let i = this.host.npcs.length - 1; i >= 0; i--) if (this.lost.has(this.host.npcs[i].id)) this.host.npcs.splice(i, 1);
   }
