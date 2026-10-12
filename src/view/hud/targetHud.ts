@@ -1,7 +1,8 @@
 // The focused enemy's frame, beside the hero's (styles in hud.css): its
 // portrait facing the hero (a beast's head, a skull, or the bandit's own head
 // and shoulders, as dressed), its name and health. Hidden with no focus. Someone picked out who's no foe (a villager,
-// a traveller): their face and name there instead, their health (a friendly green) and level.
+// a traveller): their face and name there instead, their health (a friendly green) and level. Whoever's shown, turned into a chicken:
+// the hen's head and her name, till they're back.
 
 import type { Enemy, EnemyKind } from '../../model/types';
 import type { Person } from '../../model/hero/selection';
@@ -18,6 +19,7 @@ import { ENEMY_STATS } from '../../model/constants';
 import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { GHOST_PALETTE, ghostHead } from '../meshes/enemy/ghostVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
+import { CHICKEN_PALETTE, buildChickenHead } from '../meshes/wildlife/chickenVoxels';
 import { enemyName } from '../meshes/enemy/enemyParts';
 import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from '../meshes/enemy/spiderVoxels';
 import { BAT_PALETTE, batBody } from '../meshes/enemy/batVoxels';
@@ -75,7 +77,18 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
   let shownId: number | null = null;
   let shown = '';
   let shownPerson: Person | null = null;
+  let hen = false; // whether whoever's shown was a chicken, last drawn (spells/chickens.ts)
+  // Turned into a chicken: the hen's head in the frame and her name, for as long; their own back after.
+  const asHen = () => {
+    name.textContent = 'Chicken';
+    frame.querySelector('.target-hud-boss')?.remove();
+    frame.querySelector(':scope > canvas')?.remove();
+    frame.prepend(voxelIcon('target:chicken', () => ({ grid: buildChickenHead(), palette: CHICKEN_PALETTE }), PORTRAIT_SIZE));
+  };
   return (enemy, heroLevel, person = null, health) => {
+    const turned = !!(enemy ?? person)?.chicken;
+    if (turned !== hen) [hen, shownId, shownPerson] = [turned, null, null]; // (turned, or back: drawn afresh)
+
     root.hidden = !enemy && !person;
     root.classList.toggle('person', !enemy && !!person);
     // Someone picked out who's no foe (hero/selection.ts): their face, their name and calling, their health and level.
@@ -89,6 +102,7 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
         frame.querySelector(':scope > canvas')?.remove();
         frame.prepend(voxelIcon(`target:person:${JSON.stringify(person.look)}:${JSON.stringify(person.equipment)}`, () => humanBust(person.look, person.equipment, 'left'), PORTRAIT_SIZE));
         root.classList.remove('hurt', 'passive');
+        if (hen) asHen();
       }
       const { level, hp, max } = health ?? { level: 1, hp: 1, max: 1 };
       const state = `${level}/${hp}/${max}`;
@@ -125,6 +139,7 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
       frame.querySelector(':scope > canvas')?.remove(); // (the portrait's own: never the boss badge's)
       frame.prepend(portrait(enemy));
       levelGem.textContent = String(enemy.level);
+      if (hen) asHen();
     }
     root.classList.toggle('passive', ENEMY_STATS[enemy.kind].passive && enemy.state !== 'chase'); // a yellow bar: it only fights back (till it's fighting)
     const max = enemy.maxHp;
