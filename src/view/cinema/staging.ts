@@ -5,6 +5,8 @@
 // turns people into something else adds its own here, and is played the same.
 import type * as THREE from 'three';
 import type { Actor } from './actor';
+import type { Piece } from './partMorph';
+import type { Cloud } from './voxelMorph';
 import { chickenStaging } from './chickenStaging';
 
 export interface Staging {
@@ -14,7 +16,16 @@ export interface Staging {
   prepare(actor: Actor): unknown; // what's grown on them, made ready (given back to `stage` each frame)
   stage(actor: Actor, made: unknown, u: number, time: number): void;
   target(): { root: THREE.Object3D; height: number; settle(j: number, time: number): void }; // `j`: 0 just there, 1 settled
+  beastLines?: ReadonlyArray<[from: number, line: string]>; // what's said of a four-legged beast's, where it differs
   feathers?: [from: number, to: number]; // when feathers fly off them, if any do
+  // For anything not human-shaped, taken apart into its voxels and put together again (voxelMorph.ts): the voxels of
+  // what they become, as it stands; and what's said of it, beat by beat.
+  cloud?(): Cloud;
+  // For what has parts (someone human-shaped, a four-legged beast), each part morphing into a part of what it turns
+  // into (partMorph.ts): its parts and theirs, that built `big` times its own size, coming `down` to it from then on.
+  // Null: not one for that.
+  pieces?(actor: Actor): { pieces: Piece[]; big: number; down: number } | null;
+  looseLines?: ReadonlyArray<[from: number, line: string]>;
 }
 
 export type Into = 'chicken';

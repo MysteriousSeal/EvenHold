@@ -124,6 +124,7 @@ export class UndeadRig implements EnemyRig {
       const hand = BODIES.male.hand;
       this.bow = new THREE.Mesh(look.bow, look.normal);
       this.bow.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
+      this.bow.name = 'held'; // (in hand: put down where it's staged alone, enemyViews.ts standIn)
       this.rig.joints.leftArm.add(this.bow);
       this.nocked = new THREE.Mesh(look.arrow, look.normal);
       this.nocked.position.set(0, 0, 0.1);
@@ -135,6 +136,7 @@ export class UndeadRig implements EnemyRig {
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
       sword.rotation.x = -CARRY; // carried tilted up: long as it is, never down through the floor as the arm swings walking
       this.weapon = sword;
+      sword.name = 'held';
       this.rig.joints.rightArm.add(sword);
       this.rig.meshes.push(sword);
     } else this.rig.wear({ mainHand: 'shortSword' });

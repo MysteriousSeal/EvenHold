@@ -138,13 +138,14 @@ export class BeastRig extends CreatureRig implements EnemyRig {
       this.meshes.push(mesh);
       return group;
     };
-    part(new THREE.Group(), look.geometry.body, this.body, 0, LEG_H, 0);
+    const trunk = part(new THREE.Group(), look.geometry.body, this.body, 0, LEG_H, 0);
     part(this.head, look.geometry.head, this.body, 0, LEG_H + BODY_H - spec.headDrop * V, BODY_L / 2 - V);
     part(this.tail, look.geometry.tail, this.body, 0, LEG_H + BODY_H - V, -BODY_L / 2);
     for (const [x, z] of spec.legsAt) {
       this.legs.push(part(new THREE.Group(), look.geometry.leg, this.body, x * V, LEG_H, z * V));
     }
     this.root.add(this.body, this.bar.group);
+    this.root.userData.beast = { body: this.body, trunk, head: this.head, tail: this.tail, legs: this.legs }; // (for what stages it part by part: cinema/actor.ts)
   }
 
   drawnAt(scale: number): void {

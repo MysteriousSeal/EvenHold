@@ -81,12 +81,15 @@ export class EnemyViews {
     scene.add(this.marker);
   }
 
-  // A figure of `enemy` on its own, as it stands, nowhere yet (to be staged: cinema/transformCinema.ts).
+  // A figure of `enemy` on its own, as it stands, empty-handed, nowhere yet (to be staged: cinema/transformCinema.ts).
   standIn(enemy: Enemy): THREE.Object3D {
     const rig = this.rigOf[enemy.kind]({ ...enemy, chicken: undefined });
     rig.update({ ...enemy, x: 0, y: 0, z: 0, chicken: undefined }, 0, 0, 1);
     rig.root.position.set(0, 0, 0);
     rig.root.rotation.set(0, 0, 0);
+    // Nothing in its hands (a bandit's blade and shield, a skeleton's sword or bow, a draugr's axe): put down first.
+    (rig.root.userData.emptyHands as (() => void) | undefined)?.();
+    rig.root.traverse((o) => o.name === 'held' && (o.visible = false));
     return rig.root;
   }
 

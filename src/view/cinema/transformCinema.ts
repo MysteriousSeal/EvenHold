@@ -1,19 +1,25 @@
 // A transformation, played full screen while the game stands still (the controller's to pause: main.ts): whoever's
-// turned alone on a slab in the dark, lit warm from above and violet from below, the camera going slowly round them
-// and closing in as they change part by part (staging.ts: the kind's own), till they give way to what they've become
-// in a flash, smoke and feathers; that settling; a line under it for each beat. LENGTH seconds; any key or a click
+// turned alone on a slab in the dark, lit warm from above and violet from below, the camera stood three-quarters
+// on to them, still, and closing in at the end, as they change part by part (staging.ts: the kind's own), till they give way to what they've become
+// in a flash, smoke and feathers; that settling; a line under it for each beat. A four-legged beast's parts each truly
+// become the part they turn into, in their own voxels (partMorph.ts); what has no parts at all is taken apart whole
+// into its voxels, which fly to their places in what it becomes (voxelMorph.ts). LENGTH seconds; any key or a click
 // skips to the end. Its own small renderer, let go when it's over (figureStage.ts, likewise).
 import * as THREE from 'three';
 import './transformCinema.css';
 import { SmokePuffs } from '../meshes/common/smokePuffs';
 import { makeActor } from './actor';
 import { STAGINGS, type Into } from './staging';
+import { PartMorph } from './partMorph';
+import { VoxelMorph, sampleFigure } from './voxelMorph';
 
 export const LENGTH = 8; // seconds
 export const GIVES_WAY = 0.8; // of it, the one turned being staged; the rest, what they've become settling
 const HOLD = 0.9; // seconds held on the end of it before it closes
-const ROUND = 2.6; // radians the camera goes round them
+const ANGLE = 0.6; // radians round from straight before them the camera stands: three-quarters on, and stays
 const SLAB = 7; // stones a side
+const LEAST = 40; // cubes a figure must give to be taken apart into them (fewer: staged whole)
+const APART = 0.08; // of its staging, itself still before its voxels lift off
 
 type Drawer = Pick<THREE.WebGLRenderer, 'render' | 'setSize' | 'setPixelRatio' | 'dispose' | 'domElement'> & { forceContextLoss?(): void };
 
@@ -54,7 +60,15 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   scene.add(sun, under);
 
   const actor = makeActor(figure);
-  const made = staging.prepare(actor);
+  // Anything not human-shaped, with voxels to it: taken apart into them and put together again as what it becomes.
+  // What has parts (someone human-shaped, a four-legged beast): each part morphing into the part it becomes (partMorph.ts).
+  const parts = staging.pieces?.(actor) ?? null;
+  const shell = !parts && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
+  const whole = shell && shell.at.length >= LEAST ? new VoxelMorph(shell, staging.cloud!()) : null;
+  const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
+  if (loose) scene.add(loose.object);
+  const lines = (parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines;
+  const made = loose ? null : staging.prepare(actor);
   const target = staging.target();
   target.root.visible = false;
   scene.add(figure, target.root);
@@ -102,39 +116,46 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const p = Math.min(1, time / LENGTH);
     const u = Math.min(1, p / GIVES_WAY); // the one turned: 0 themselves, 1 giving way
     const j = Math.max(0, (p - GIVES_WAY) / (1 - GIVES_WAY)); // what they've become: 0 just there, 1 settled
-    if (!swapped) staging.stage(actor, made, u, time);
+    if (!swapped && loose) {
+      // (Itself still for a breath, shivering; then its voxels, off and away.)
+      const apart = u >= APART;
+      figure.visible = !apart;
+      loose.object.visible = apart;
+      figure.rotation.z = apart ? 0 : Math.sin(time * 40) * 0.05 * (u / APART);
+      loose.update(Math.max(0, (u - APART) / (1 - APART)), time);
+    } else if (!swapped) staging.stage(actor, made, u, time);
     if (!swapped && u >= 1) {
       // They give way: a flash, smoke, a burst of feathers; what they've become, there.
       swapped = true;
       figure.visible = false;
+      loose?.dispose(); // (its voxels set down where hers are: she's put in their place)
       target.root.visible = true;
       flash.classList.add('on');
       smoke.puff(scene, 0, 0, 0, tall * 1.6);
-      if (staging.feathers) smoke.feathers(scene, 0, 0, 0, tall * 1.6, 22);
+      if (staging.feathers) smoke.feathers(scene, 0, 0, 0, tall * 1.6, loose ? 10 : 22);
     }
     if (swapped) target.settle(j, time);
     // Feathers off them, as they turn.
     shed -= dt;
     const [from, to] = staging.feathers ?? [2, 2];
-    if (!swapped && u >= from && u <= to && shed <= 0) {
+    if (!swapped && !loose && u >= from && u <= to && shed <= 0) {
       shed = 0.16 - 0.1 * u;
       smoke.feathers(scene, 0, tall * 0.25 * (1 - u), 0, tall * 1.3, 1);
     }
     smoke.update(dt);
     under.intensity = 3 * Math.sin(Math.min(1, p / GIVES_WAY) * Math.PI * 0.5) * (swapped ? Math.max(0, 1 - j * 2) : 1);
     // The camera: round them, down to what they've become and in close as they shrink.
-    const close = Math.min(1, Math.max(0, (u - 0.84) / 0.16));
+    const close = Math.min(1, Math.max(0, (u - (whole ? 0.6 : 0.84)) / (whole ? 0.4 : 0.16)));
     const eased = close * close * (3 - 2 * close);
     const height = tall * 0.5 + (target.height * 0.55 - tall * 0.5) * eased;
     const far = tall * 3.4 + (target.height * 5.2 - tall * 3.4) * eased;
-    const angle = 0.5 + ROUND * p;
-    camera.position.set(Math.sin(angle) * far, height + far * 0.28, Math.cos(angle) * far);
+    camera.position.set(Math.sin(ANGLE) * far, height + far * 0.28, Math.cos(ANGLE) * far);
     camera.lookAt(0, height, 0);
     // What's said: the beat it's at; once turned, what they are.
-    const at = swapped ? staging.lines.length : staging.lines.reduce((best, [start], i) => (u >= start ? i : best), 0);
+    const at = swapped ? lines.length : lines.reduce((best, [start], i) => (u >= start ? i : best), 0);
     if (at !== said) {
       said = at;
-      line.textContent = swapped ? `${staging.becomes}.` : staging.lines[at][1].replace('{name}', name);
+      line.textContent = swapped ? `${staging.becomes}.` : lines[at][1].replace('{name}', name);
       line.classList.remove('in');
       void line.offsetWidth; // (said afresh: faded in again)
       line.classList.add('in');

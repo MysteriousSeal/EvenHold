@@ -2,7 +2,8 @@
 // their own (a villager's, a traveller's, a foe's: GameView.standIn), what's over their head hidden, its parts found
 // and each given a material of its own to tint. Someone human-shaped (humanRig.ts: its joints on its root): their
 // legs, arms, torso and head, the upper body hung on a pivot at the hips so it can tip forward over legs that stay
-// under it. Anything else: one part, the whole of it. And things grown on them as they turn (`grow`: little blocks
+// under it. A four-legged beast (beastRig.ts: its parts on its root): its hind legs, its forelegs (staged as arms
+// are), its trunk and tail, its head. Anything else: one part, the whole of it. And things grown on them as they turn (`grow`: little blocks
 // that swell out of nothing).
 import * as THREE from 'three';
 import type { Joint } from '../meshes/human/bodyVoxels';
@@ -15,6 +16,7 @@ export interface Actor {
   box: THREE.Box3; // the whole of them, as they stand
   size: THREE.Vector3;
   human: { joints: Record<Joint, THREE.Group>; hips: THREE.Group; body: THREE.Object3D; legLength: number; head: THREE.Box3; torso: THREE.Box3 } | null;
+  beast: { body: THREE.Object3D; trunk: THREE.Group; head: THREE.Group; tail: THREE.Group; fore: THREE.Group[]; hind: THREE.Group[]; headBox: THREE.Box3; trunkBox: THREE.Box3 } | null;
   tint(part: Part, hue: THREE.Color, k: number): void; // `k` of the way to `hue` (0: as they were)
   glow(k: number): void; // all of them lit from within, toward white
   grow(on: THREE.Object3D, at: THREE.Vector3, size: THREE.Vector3, color: number): THREE.Mesh; // a block, placed as they stand, nothing of it yet (its scale 0)
@@ -44,7 +46,9 @@ export function makeActor(root: THREE.Object3D): Actor {
     materials.set(part, [...(materials.get(part) ?? []), ...cloned.values()]);
   };
   let human: Actor['human'] = null;
-  const box = joints ? visibleBox(joints.torso.parent!) : visibleBox(root);
+  const parts = (root.userData.beast as { body: THREE.Object3D; trunk: THREE.Group; head: THREE.Group; tail: THREE.Group; legs: THREE.Group[] } | undefined) ?? null;
+  let beast: Actor['beast'] = null;
+  const box = joints ? visibleBox(joints.torso.parent!) : parts ? visibleBox(parts.body) : visibleBox(root);
   if (joints) {
     const body = joints.torso.parent!;
     const [head, torso] = [visibleBox(joints.head), visibleBox(joints.torso)];
@@ -60,6 +64,15 @@ export function makeActor(root: THREE.Object3D): Actor {
     own('torso', joints.torso);
     own('head', joints.head);
     human = { joints, hips, body, legLength, head, torso };
+  } else if (parts) {
+    const [fore, hind] = [parts.legs.filter((leg) => leg.position.z > 0), parts.legs.filter((leg) => leg.position.z <= 0)];
+    for (const leg of hind) own('legs', leg);
+    for (const leg of fore) own('arms', leg);
+    own('torso', parts.trunk);
+    own('torso', parts.tail);
+    own('head', parts.head);
+    for (const group of [...parts.legs, parts.head, parts.tail]) group.userData.rest = group.position.clone(); // (where each sits, to be moved from)
+    beast = { body: parts.body, trunk: parts.trunk, head: parts.head, tail: parts.tail, fore, hind, headBox: visibleBox(parts.head), trunkBox: visibleBox(parts.trunk) };
   } else own('all', root);
   const each = (part: Part) => (part === 'all' ? [...materials.values()].flat() : materials.get(part) ?? materials.get('all') ?? []);
   return {
@@ -67,6 +80,7 @@ export function makeActor(root: THREE.Object3D): Actor {
     box,
     size: box.getSize(new THREE.Vector3()),
     human,
+    beast,
     tint(part, hue, k) {
       for (const material of each(part)) {
         material.color.copy(WHITE).lerp(hue, k * 0.55).multiplyScalar(1 - 0.5 * k); // their own colours dimmed,
