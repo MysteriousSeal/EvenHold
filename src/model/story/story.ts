@@ -71,6 +71,7 @@ export interface StoryHost extends CastHost {
   readonly quests?: { trackRoom: boolean }; // the boards' quests: whether the screen takes one more tracked
   readonly lumber?: { axe: boolean }; // whether they've an axe to chop with (what's said of it)
   report(event: GameEvent): void;
+  wakeWith?(who: Npc): void; // a night spent with them: woken in their place, beside them (nights.ts)
 }
 
 // A quest of someone's, as the cheat's list tells it (controller/cheats/questDebug.ts).
@@ -334,6 +335,9 @@ export class Story {
     if (this.slept.has(key)) return;
     this.slept.add(key);
     sleepTillMorning(this.host);
+    const i = this.set.all.get(key);
+    const with_ = i?.quest.receiver && i.at?.who[i.quest.receiver];
+    if (with_ && 'home' in with_) this.host.wakeWith?.(with_);
   }
 
   private roomFor(gift: Gift | undefined): boolean {

@@ -97,6 +97,23 @@ export function place(npc: Npc, world: NpcWorld, at: Point): void {
 
 // One frame's walk toward `to`, along a path around what's in the way;
 // returns whether they've arrived (or given up on getting any closer).
+// A way already worked out, walked point to point as it stands (no way-finding, nothing gone round); out of sight,
+// they're at its end. Returns whether they're there.
+export function walkAlong(npc: Npc, path: Point[], seen: boolean, dt: number): boolean {
+  if (!seen && path.length) [npc.x, npc.z] = [path.at(-1)!.x, path.at(-1)!.z];
+  if (!seen) path.length = 0;
+  let left = WALK_SPEED * dt;
+  while (path.length && left > 0) {
+    const [dx, dz] = [path[0].x - npc.x, path[0].z - npc.z];
+    const d = Math.hypot(dx, dz);
+    const step = Math.min(left, d);
+    if (d > 1e-4) [npc.x, npc.z, npc.facing, npc.moving] = [npc.x + (dx / d) * step, npc.z + (dz / d) * step, Math.atan2(dx, dz), true];
+    left -= step;
+    if (d - step < 0.02) path.shift();
+  }
+  return path.length === 0;
+}
+
 export function walk(npc: Npc, npcs: readonly Npc[], world: NpcWorld, to: Point, dt: number, direct = false): boolean {
   const indoors = npc.where;
   const free = indoors ? roomFree(world.seed, indoors, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);

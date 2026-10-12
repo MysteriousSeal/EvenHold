@@ -34,6 +34,7 @@ export type NpcStep =
   | { kind: 'settle'; for: number; at?: 'table' | 'bar' } // (`at`: at the inn, a chair at a table, or a stool at the bar: a busy hour's patrons, jobs/shift.ts)
   | { kind: 'sit'; seat: Seat; for: number }
   | { kind: 'work'; for: number } // bent over the crops, in a field
+  | { kind: 'along'; path: Point[] } // a way worked out for them, walked point to point as it is (where their own way-finding has no map: upstairs)
   | { kind: 'wait'; for: number }
   | { kind: 'hand'; then(): void }; // something done there and then (a drink picked up, handed over)
 

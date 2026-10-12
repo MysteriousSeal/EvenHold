@@ -24,7 +24,7 @@ import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcRole, type NpcStep } from '.
 import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
 import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, settle, squareSpot } from './npcPlaces';
-import { easeOffHero, heroOn, place, walk } from './npcWalk';
+import { easeOffHero, heroOn, place, walk, walkAlong } from './npcWalk';
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import type { Entrance } from '../interiors/interiors';
@@ -199,6 +199,9 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
         npc.stood = null;
         done();
       }
+      return;
+    case 'along':
+      if (walkAlong(npc, step.path, seen, dt)) done();
       return;
     case 'hand':
       step.then();

@@ -63,6 +63,7 @@ import { type Camp } from './camps/camps';
 import { Lumber } from './skills/lumber';
 import { Woodworking } from './skills/woodworking';
 import { Salvage } from './skills/salvage';
+import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
 
@@ -421,6 +422,7 @@ export class GameModel {
   }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
+  wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)
 
   sitOrStand(): boolean {
     if (this.work.shift && !this.seated) return false; // (at work: no sitting down)
