@@ -110,7 +110,7 @@ describe('someone picked out', () => {
     update(null, 1, villager, healthOf(villager, model.size));
     expect(root.querySelector('.target-hud-name')!.textContent).toBe(titleOf(villager));
     // Turned into a chicken: named so, for as long; their own name back after.
-    villager.chicken = { left: 30, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 };
+    villager.chicken = { left: 30, age: 5, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 };
     update(null, 1, villager, healthOf(villager, model.size));
     expect(root.querySelector('.target-hud-name')!.textContent).toBe('Chicken');
     delete villager.chicken;
@@ -118,7 +118,7 @@ describe('someone picked out', () => {
     expect(root.querySelector('.target-hud-name')!.textContent).toBe(titleOf(villager));
     const foe = makeEnemy(900_001, 'wolf', model.hero.x, model.hero.z + 2);
     update(foe, 1, null);
-    foe.chicken = { left: 30, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 };
+    foe.chicken = { left: 30, age: 5, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 };
     update(foe, 1, null);
     expect(root.querySelector('.target-hud-name')!.textContent).toBe('Chicken');
     delete foe.chicken;

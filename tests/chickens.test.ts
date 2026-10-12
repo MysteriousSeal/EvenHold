@@ -7,7 +7,10 @@ import { describe, expect, it } from 'vitest';
 import { fresh } from './support/testWorld';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { interactionOf } from '../src/model/hero/interaction';
-import { ROAM, mayTurn } from '../src/model/spells/chickens';
+import * as THREE from 'three';
+import { ROAM, TURNING, mayTurn, morphOf } from '../src/model/spells/chickens';
+import { SmokePuffs } from '../src/view/meshes/common/smokePuffs';
+import { SWAP, henShape, morphOut } from '../src/view/meshes/wildlife/chickenMorph';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { BODY_GRID, CHICKEN_PALETTE, HEAD_GRID, buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/wildlife/chickenVoxels';
@@ -64,6 +67,80 @@ describe("the hen-wife's turn", () => {
     expect(farthest).toBeLessThanOrEqual(ROAM + 1e-6);
     expect(went).toBeGreaterThan(1); // (it wandered)
     expect(hero.hp).toBe(hp); // (and never bit)
+  });
+
+  it('takes a moment to turn, and as long to turn back: stood where they are meanwhile, part one and part the other', () => {
+    const { model, foe } = withWolf();
+    castSpell(model, 'chicken');
+    const [x0, z0] = [foe.x, foe.z];
+    expect(morphOf(foe.chicken!)).toBe(0);
+    let before = 0;
+    run(model, TURNING - 0.2, () => {
+      const m = morphOf(foe.chicken!);
+      expect(m).toBeGreaterThanOrEqual(before); // (ever more chicken)
+      before = m;
+      expect([foe.x, foe.z]).toEqual([x0, z0]); // (not a step, turning)
+    });
+    expect(before).toBeGreaterThan(0.5);
+    expect(before).toBeLessThan(1);
+    run(model, 1);
+    expect(morphOf(foe.chicken!)).toBe(1);
+    // The end of it: less and less chicken, stood still again.
+    run(model, 30 - TURNING - 1 - TURNING);
+    const at = [foe.x, foe.z];
+    run(model, 0.8);
+    const turning = morphOf(foe.chicken!);
+    expect(turning).toBeLessThan(1);
+    expect(turning).toBeGreaterThan(0);
+    const still = [foe.x, foe.z];
+    run(model, 0.4);
+    expect([foe.x, foe.z]).toEqual(still);
+    expect(Math.hypot(still[0] - at[0], still[1] - at[1])).toBeLessThan(0.5);
+  });
+
+  it('draws the turning in stages: their own figure shivering, hunched, spun and shrunk till it gives way; the hen sprung out and settling', () => {
+    const root = new THREE.Group();
+    root.scale.setScalar(2);
+    const state = (age: number) => ({ left: 30, age, from: { x: 0, z: 0 }, to: null, peck: 0, facing: 0 });
+    // Early: there, hunched (lower, wider), its size held.
+    morphOut(root, state(TURNING * 0.15), 0.3);
+    expect(root.visible).toBe(true);
+    expect(root.scale.y).toBeLessThan(2);
+    expect(root.scale.x).toBeGreaterThan(2);
+    // Later: smaller, and spun round.
+    root.rotation.y = 0;
+    morphOut(root, state(TURNING * 0.5), 0.3);
+    expect(root.scale.x).toBeLessThan(2);
+    expect(root.rotation.y).toBeGreaterThan(1);
+    // Past where it gives way: gone; the spell over: back as it was.
+    morphOut(root, state(TURNING * (SWAP + 0.05)), 0.3);
+    expect(root.visible).toBe(false);
+    morphOut(root, undefined, 0.3);
+    expect(root.visible).toBe(true);
+    expect(root.scale.toArray()).toEqual([2, 2, 2]);
+    expect(root.rotation.z).toBe(0);
+    // The hen: just there, stretched tall and thin and spun; settled, her own shape, at rest.
+    const first = henShape(SWAP);
+    expect(first.up).toBeGreaterThan(1.5);
+    expect(first.across).toBeLessThan(0.8);
+    expect(first.spin).toBeGreaterThan(3);
+    const settled = henShape(1);
+    expect(settled.up).toBeCloseTo(1, 1);
+    expect(settled.across).toBeCloseTo(1, 1);
+    expect(settled).toMatchObject({ spin: 0, hop: 0 });
+    expect(Math.max(...[0.75, 0.8, 0.85].map((m) => henShape(m).hop))).toBeGreaterThan(0.03); // (a hop, on the way)
+  });
+
+  it('throws off smoke and feathers that are gone again in a moment', () => {
+    const [scene, smoke] = [new THREE.Group(), new SmokePuffs()];
+    smoke.puff(scene, 0, 0, 0, 1);
+    smoke.feathers(scene, 0, 0, 0, 1, 16);
+    expect(scene.children.length).toBe(2);
+    expect(scene.children[1].children.length).toBe(16);
+    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
+    expect(scene.children.length).toBe(1); // (the smoke: thinned away; the feathers still falling)
+    for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
+    expect(scene.children.length).toBe(0);
   });
 
   it('leaves a foe to be harmed while a chicken, a chicken still; dead, it is one no more', () => {
