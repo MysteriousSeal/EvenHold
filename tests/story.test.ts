@@ -94,7 +94,7 @@ describe('the quests people give', () => {
     story.handIn(quest.id);
     // Brought: three birch logs to the smith. A grey "?" over him till they're carried; given over as it's handed in.
     expect(story.stateOf(spokes.id)).toBe('offered');
-    expect(story.offers(barmaid)).toBe(true);
+    expect(story.markOf(barmaid)).toBe('offer');
     // (What she says of an axe is what they carry: one, to use it; none, where to get one.)
     const has = model.lumber.axe;
     expect(story.talk(barmaid)!.lines.join(' ').includes('You carry an axe')).toBe(has);
