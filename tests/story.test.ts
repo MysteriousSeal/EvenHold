@@ -182,7 +182,19 @@ describe('the quests people give', () => {
     addToBag(hero.bag, 'meatPie');
     Object.assign(hero, { hp: 1, energy: 0 });
     const before = model.minutes;
-    expect(story.handIn(supper)).toBe(true);
+    // Told: the night passes as the screen's black (the talk's `night`), the clock at eight as it lifts; not again
+    // as it's handed in.
+    const herbalist = story.asking.find((a) => a.mark === 'ready')!.who;
+    const talk = story.talk(herbalist)!;
+    expect(talk.quest?.name).toBe('Supper for two');
+    talk.night!();
+    expect(model.minutes).toBeGreaterThan(before);
+    expect(model.minutes % (24 * 60)).toBe(8 * 60);
+    expect(hero.hp).toBeGreaterThan(1);
+    const morning = model.minutes;
+    talk.answers[0].pick();
+    expect(model.minutes).toBe(morning);
+    expect(story.handIn(supper)).toBe(false); // (done already)
     expect(hero.hp).toBeGreaterThan(1);
     expect(hero.energy).toBeGreaterThan(0);
     expect(model.minutes).toBeGreaterThan(before);
