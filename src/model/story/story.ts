@@ -131,13 +131,16 @@ export class Story {
     };
   }
 
-  // How a quest stands: not to be had (the one it follows not done; its people off the maps), on offer, taken, done.
+  // How a quest stands: not to be had (the one it follows not done; its people off the maps; a night with someone of
+  // the hero's own sex), on offer, taken, done.
   stateOf(id: string): 'locked' | 'offered' | 'taken' | 'done' {
     const key = keyed(id);
     const state = this.state.get(key);
     if (state) return state;
     const i = this.set.all.get(key);
     if (!i) return 'locked';
+    // (One that ends in a night together: offered only by someone of the other sex than the hero's.)
+    if (i.quest.night && !this.freed.has(key) && i.at?.who[i.quest.giver]?.look.build === this.host.hero.look.build) return 'locked';
     const before = i.quest.follows && keyOf(i.quest.follows, i.at);
     if (!before || this.state.get(before) === 'done' || this.freed.has(key)) return 'offered';
     return this.set.all.has(before) || i.quest.scope === 'first' ? 'locked' : 'offered'; // (a village's: the one before not set there, never in the way; the opening line's: always in its order)

@@ -61,7 +61,7 @@ export interface StoryQuest {
   copper: number; // at a first-level village: more, the further out (story.ts)
   xpShare: number; // of a level's experience, at the village's level
   gift?: Gift;
-  night?: boolean; // handed in, the night's spent with whoever takes it: all health and energy back, and up in the morning
+  night?: boolean; // handed in, the night's spent with whoever takes it: all health and energy back, and up in the morning (offered only by someone of the other sex than the hero's: story.ts)
 }
 
 // A village's quest, with what most of them share said once.
