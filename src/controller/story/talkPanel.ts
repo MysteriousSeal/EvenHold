@@ -6,7 +6,9 @@
 // hero's turn: the quest it's about on a card (a "!" for one offered, a "?" for one handed in: its name, what's to be
 // done, what it pays) and the hero's answers as buttons (1, 2…; Enter: the first; Escape: the one that commits to
 // nothing, where there is one). No answer to give: the last line ends it. A quest handed in to someone with another
-// to give: its offer follows at once. Someone with a trade, asked for their wares instead: their own window. The game's held while it's open.
+// to give: its offer follows at once. Someone with a trade, asked for their wares instead: their own window. A night
+// spent (the talk's `night`): the screen gone black before its last line, "The next morning", then light again. The
+// game's held while it's open.
 import './talk.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Talk, Who } from '../../model/story/story';
@@ -18,6 +20,8 @@ import { trackMenu, type Menu } from '../../view/ui/menu';
 const WRITE_EVERY = 16; // ms a letter, written out
 const PORTRAIT: [number, number] = [300, 420];
 const TURNED = 0.55; // radians each is turned toward the other
+const NIGHT_FADE = 900; // ms the screen takes to go black, and to come back (talk.css)
+const NIGHT_HELD = 1800; // ms it stays black
 
 export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; trade?(who: Who): void }): { open(who: Who): boolean; menu: Pick<Menu, 'isOpen' | 'close'> } {
   let talk: Talk | null = null;
@@ -26,6 +30,8 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   let written = 0; // letters of it written so far
   let answering = false; // the hero's turn
   let writer = 0;
+  let nightfall = 0; // the night's timer, while the screen's black
+  let dark = false;
   let frame = 0;
   let isOpen = false;
 
@@ -39,7 +45,8 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   const card = el('div', 'talk-quest');
   const answers = el('div', 'talk-answers');
   const box = el('div', 'talk-box', plate, words, more, answers);
-  scene.append(left, right, el('div', 'talk-floor', card, box));
+  const night = el('div', 'talk-night', el('span', '', 'The next morning'));
+  scene.append(left, right, el('div', 'talk-floor', card, box), night);
   document.body.append(scene);
 
   // The two figures, each on a stage of its own (none where there's no WebGL: the words carry it).
@@ -111,7 +118,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   // A click, Space or Enter: the line written out at once; then the next line; then the hero's turn (or, with nothing
   // for them to answer, farewell).
   const advance = () => {
-    if (!talk || answering) return;
+    if (!talk || answering || dark) return;
     if (written < lineNow().length) {
       window.clearInterval(writer);
       written = lineNow().length;
@@ -119,11 +126,26 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     }
     if (at < talk.lines.length - 1) {
       at++;
-      return write();
+      return talk.night && at === talk.lines.length - 1 ? pass() : write();
     }
     if (talk.answers.length === 0) return close();
     answering = true;
     draw();
+  };
+
+  // A night passing: black, held, then light again and the morning's line.
+  const pass = () => {
+    dark = true;
+    night.classList.add('on');
+    nightfall = window.setTimeout(() => {
+      written = 0;
+      draw(); // (the morning's line, not yet said, behind the black)
+      night.classList.remove('on');
+      nightfall = window.setTimeout(() => {
+        dark = false;
+        write();
+      }, NIGHT_FADE);
+    }, NIGHT_FADE + NIGHT_HELD);
   };
 
   // An answer given. One that hands a quest in, to someone with another of theirs to offer: on to that, in the same
@@ -146,7 +168,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     if (!isOpen) return;
     event.stopImmediatePropagation(); // (the game's keys: none while they talk)
     event.preventDefault();
-    if (event.repeat) return;
+    if (event.repeat || dark) return;
     if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
@@ -168,6 +190,9 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     if (!isOpen) return;
     isOpen = false;
     window.clearInterval(writer);
+    window.clearTimeout(nightfall);
+    dark = false;
+    night.classList.remove('on');
     cancelAnimationFrame(frame);
     scene.hidden = true;
     scene.classList.remove('shown');
