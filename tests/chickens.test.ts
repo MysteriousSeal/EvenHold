@@ -168,7 +168,7 @@ describe("the hen-wife's turn, on someone who's no foe", () => {
     expect(castSpell(model, 'chicken')).toBe('cast');
     expect(model.npcs).not.toContain(herbalist);
     expect(model.folk).not.toContain(herbalist);
-    expect(model.lost.has(herbalist.id)).toBe(true);
+    expect(model.chickens.lost.has(herbalist.id)).toBe(true);
     expect(story.taken.some((t) => t.id === key)).toBe(false); // (let go)
     expect(story.questsOf(herbalist).filter((q) => q.set)).toEqual([]); // (and no more of hers)
     expect(JSON.stringify(interactionOf(model))).not.toContain(herbalist.name);
@@ -190,12 +190,12 @@ describe("the hen-wife's turn, on someone who's no foe", () => {
     expect(again.npcs.some((n) => n.id === villager.id)).toBe(true);
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.npcs.some((n) => n.id === villager.id)).toBe(false);
-    expect(again.lost.has(villager.id)).toBe(true);
+    expect(again.chickens.lost.has(villager.id)).toBe(true);
     expect(again.chickens.hens.length).toBe(model.chickens.hens.length);
     expect(again.chickens.hens[0].at).toBe(model.chickens.hens[0].at);
     expect(again.chickens.hens[0].x).toBeCloseTo(model.chickens.hens[0].x, 1);
     again.chickens.load({ hens: [['x', 1, null, 0, 0], 'nonsense'], lost: ['a', 2.5] }); // (a broken save: none of it)
-    expect(again.chickens.hens.length + again.lost.size).toBe(0);
+    expect(again.chickens.hens.length + again.chickens.lost.size).toBe(0);
   });
 });
 
