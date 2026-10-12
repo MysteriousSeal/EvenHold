@@ -20,8 +20,8 @@ export function travellerInReach(travellers: readonly Traveller[], hero: { x: nu
   return best;
 }
 
-// The prompt over them: "Trade with Osric", "Talk to Wenna".
-export const travellerPrompt = (t: Traveller): string => `${t.role === 'pedlar' ? 'Trade with' : 'Talk to'} ${t.name}`;
+// The prompt over them: "Trade with Osric", "Talk to Wenna" (`asking`: a pedlar with a quest to give: "Talk to Osric").
+export const travellerPrompt = (t: Traveller, asking = false): string => `${t.role === 'pedlar' && !asking ? 'Trade with' : 'Talk to'} ${t.name}`;
 
 export const GUARD_LINES = [
   'Keep to the road, traveller. The woods have teeth.',

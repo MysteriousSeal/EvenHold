@@ -17,15 +17,14 @@ import type { Entrance } from '../interiors/interiors';
 import { LOOT } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
-import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { hashUnit, mulberry32 } from '../../util/random';
 import type { Carter } from './carter';
 import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
-import type { CastHost, Point, Setting, Who } from './storyCast';
+import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
 import { goalOf, innOf } from './storyGoals';
-import type { Gift, StoryQuest, StoryRole, Told } from './storyQuests';
-import { lacks, place, sameWorld, settle, type Instance, type QuestSet } from './storySet';
+import type { Gift, StoryQuest, Told } from './storyQuests';
+import { keyOf, lacks, place, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
 
 export { STORY_QUESTS } from './quests/catalog';
 export type { Who } from './storyCast';
@@ -58,7 +57,6 @@ const REACH = 1.7; // tiles from the carter, or a villager, for a word
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const idOf = (key: string): string => key.split('@')[0];
 const keyed = (id: string): string => (id.includes('@') ? id : `${id}@first`); // (a bare name: the first village's)
-const isTraveller = (who: Who): who is Traveller => 'road' in who;
 const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar');
 
 export interface StoryHost extends CastHost {
@@ -85,11 +83,10 @@ export interface DebugQuest {
   set: boolean; // theirs already, in this world
   lacks: string | null; // why it can't be played here, if it can't
 }
-const ROLE_OF: Partial<Record<string, StoryRole[]>> = { barkeep: ['barmaid'], smith: ['smith'], herbalist: ['herbalist'], bouncer: ['bouncer'], villager: ['villagerA', 'villagerB'] };
 
 export class Story {
   debug = false; // a cheat: Q beside someone lists every quest of their calling, to play again; the journal finishes any
-  private forced = new Map<string, Instance>(); // those set by hand (the cheat's), kept through the world's changes
+  private forced = new Map<string, number | null>(); // those set by hand (the cheat's), by key: the villager put in the giver's part (their number; null: the village's own), kept through the world's changes and in the save
   private freed = new Set<string>(); // and those let off what they follow
   private slept = new Set<string>(); // those whose night has passed already, in the telling (not again as they're handed in)
   private state = new Map<string, 'taken' | 'done'>();
@@ -104,7 +101,17 @@ export class Story {
   private get set(): QuestSet {
     if (sameWorld(this.world, this.host)) return this.world;
     this.world = settle(this.host);
-    for (const i of this.forced.values()) place(this.world, i.quest, i.at);
+    // Those set by hand, set again; and any other under way that its village didn't draw (an older save's): with the
+    // village's own people.
+    for (const key of new Set([...this.forced.keys(), ...[...this.state].filter(([, s]) => s === 'taken').map(([k]) => k)])) {
+      const quest = STORY_QUESTS[idOf(key)];
+      const spot = key.split('@')[1];
+      const base = spot === 'first' ? this.world.first : this.world.villages.find((s) => s.key === spot);
+      if (!quest || !base || (this.world.all.has(key) && !this.forced.has(key))) continue;
+      const giver = this.host.npcs.find((n) => n.id === this.forced.get(key));
+      const at = giver ? { ...base, who: { ...base.who, [quest.giver]: giver } } : base;
+      if (!lacks(quest, at)) place(this.world, quest, at);
+    }
     return this.world;
   }
 
@@ -141,7 +148,7 @@ export class Story {
     if (state) return state;
     const i = this.set.all.get(key);
     if (!i) return 'locked';
-    const before = i.quest.follows && `${i.quest.follows}@${i.at?.key ?? 'road'}`;
+    const before = i.quest.follows && keyOf(i.quest.follows, i.at);
     if (!before || this.state.get(before) === 'done' || this.freed.has(key)) return 'offered';
     return this.set.all.has(before) || i.quest.scope === 'first' ? 'locked' : 'offered'; // (a village's: the one before not set there, never in the way; the opening line's: always in its order)
   }
@@ -283,7 +290,7 @@ export class Story {
     return done ? { speaker, lines: done.i.quest.after(this.told(done.i, who)), answers: [] } : null;
   }
 
-  // Whether `who` has a quest to offer right now (after one's handed in to them: offered in the same breath).
+  // Whether `who` has a quest to offer right now.
   offers(who: Who): boolean {
     return this.markOf(who) === 'offer';
   }
@@ -336,8 +343,8 @@ export class Story {
     this.slept.add(key);
     sleepTillMorning(this.host);
     const i = this.set.all.get(key);
-    const with_ = i?.quest.receiver && i.at?.who[i.quest.receiver];
-    if (with_ && 'home' in with_) this.host.wakeWith?.(with_);
+    const beside = i?.quest.receiver && i.at?.who[i.quest.receiver];
+    if (beside && 'home' in beside) this.host.wakeWith?.(beside);
   }
 
   private roomFor(gift: Gift | undefined): boolean {
@@ -384,24 +391,14 @@ export class Story {
     });
   }
 
-  // Where a quest would be set for `who` to give it (the cheat's): their own village's setting, themselves in the
-  // giver's part (the opening line's, in the first village: its own); on the road, nowhere.
-  private settingFor(quest: StoryQuest, who: Who): Setting | null {
-    if (isTraveller(who)) return null;
-    const { first, villages } = this.set;
-    const home = 'village' in who ? villages.find((s) => s.village === who.village) : undefined;
-    const base = quest.scope === 'first' && (!home || first?.village === home.village) ? first : home;
-    return base ? (base.who[quest.giver] === who ? base : { ...base, who: { ...base.who, [quest.giver]: who } }) : null;
-  }
-
   // Every quest of `who`'s calling, set with them or not (the cheat's list).
   questsOf(who: Who): DebugQuest[] {
-    const roles: StoryRole[] = isTraveller(who) ? [who.role as StoryRole] : 'role' in who ? (ROLE_OF[who.role] ?? []) : ['carter'];
+    const roles = partsOf(who);
     return Object.values(STORY_QUESTS)
       .filter((q) => roles.includes(q.giver))
       .map((quest) => {
-        const at = this.settingFor(quest, who);
-        const key = `${quest.id}@${at?.key ?? 'road'}`;
+        const at = settingFor(this.set, quest, who);
+        const key = keyOf(quest.id, at);
         const now = this.set.all.get(key);
         return { id: quest.id, key, name: quest.name, scope: quest.scope, rare: RARE_QUESTS.includes(quest), state: this.stateOf(key), set: !!now && (!now.at || now.at.who[quest.giver] === who), lacks: quest.scope !== 'road' && !at ? 'no village of theirs' : lacks(quest, at) };
       });
@@ -411,10 +408,10 @@ export class Story {
   // it wasn't; its key, to open its talk by (null: it can't be played here).
   replay(id: string, who: Who): string | null {
     const quest = STORY_QUESTS[id];
-    const at = quest && this.settingFor(quest, who);
+    const at = quest && settingFor(this.set, quest, who);
     if (!quest || (quest.scope !== 'road' && !at) || lacks(quest, at ?? null)) return null;
     const i = place(this.set, quest, at ?? null);
-    if (at) this.forced.set(i.key, i);
+    if (at) this.forced.set(i.key, 'id' in who && typeof who.id === 'number' && 'village' in who ? who.id : null);
     for (const kept of [this.state, this.untracked, this.counted, this.kept]) kept.delete(i.key);
     this.freed.add(i.key);
     return i.key;
@@ -438,22 +435,28 @@ export class Story {
     return [...this.state].filter(([, s]) => s === 'done').map(([key]) => ({ id: key, name: STORY_QUESTS[idOf(key)]?.name ?? key }));
   }
 
-  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, { to: string; from: string; x: number; z: number }> } {
+  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, { to: string; from: string; x: number; z: number }>; forced: Record<string, number | null>; freed: string[] } {
     return {
       states: Object.fromEntries([...this.state].map(([key, s]) => [key, s === 'taken' && this.untracked.has(key) ? 'untracked' : s])), // (untracked: taken, kept off the tracker)
       counted: Object.fromEntries(this.counted),
       kept: Object.fromEntries(this.kept),
+      forced: Object.fromEntries(this.forced), // (the cheat's: what was set by hand, and let off what it follows)
+      freed: [...this.freed],
     };
   }
 
   // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
   load(data: unknown): void {
-    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, { to: string; from: string; x: number; z: number }> } & Record<string, unknown>;
+    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, { to: string; from: string; x: number; z: number }>; forced?: Record<string, unknown>; freed?: unknown } & Record<string, unknown>;
     const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
     const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
     this.state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken']));
     this.untracked = new Set(known.filter(([, s]) => s === 'untracked').map(([id]) => keyed(id)));
     this.counted = new Map(Object.entries(saved.counted ?? {}).map(([id, n]) => [keyed(id), n] as const).filter((e): e is [string, number] => Number.isInteger(e[1]) && this.state.get(e[0]) === 'taken'));
     this.kept = new Map(Object.entries(saved.kept ?? {}).filter(([key]) => this.state.get(key) === 'taken'));
+    const named = (key: unknown): key is string => typeof key === 'string' && idOf(key) in STORY_QUESTS;
+    this.forced = new Map(Object.entries(saved.forced ?? {}).filter(([key]) => named(key)).map(([key, id]) => [key, typeof id === 'number' ? id : null]));
+    this.freed = new Set(Array.isArray(saved.freed) ? saved.freed.filter(named) : []);
+    this.world = null; // (set afresh, with those)
   }
 }

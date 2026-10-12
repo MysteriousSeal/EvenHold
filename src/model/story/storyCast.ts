@@ -20,6 +20,17 @@ import type { StoryPlace, StoryRole } from './storyQuests';
 export type Who = Carter | Npc | Traveller;
 export type Point = { x: number; z: number };
 
+export const isTraveller = (who: Who): who is Traveller => 'road' in who;
+// The keepers' parts, by their trade.
+const KEEPERS = { barmaid: 'barkeep', smith: 'smith', herbalist: 'herbalist', bouncer: 'bouncer' } as const satisfies Partial<Record<StoryRole, Npc['role']>>;
+// The parts `who` may play in a quest: the carter's, a keeper's own, either villager's, on the road their calling's.
+export function partsOf(who: Who): StoryRole[] {
+  if (isTraveller(who)) return [who.role as StoryRole];
+  if (!('role' in who)) return ['carter'];
+  if (who.role === 'villager') return ['villagerA', 'villagerB'];
+  return (Object.keys(KEEPERS) as Array<keyof typeof KEEPERS>).filter((part) => KEEPERS[part] === who.role);
+}
+
 export interface Setting {
   key: string; // 'first', or its village's number: what its quests are kept by
   village: Village;
@@ -44,7 +55,7 @@ export interface CastHost {
 
 const NEAR = 320; // tiles from a village a ruin, a camp or a cave still counts as its own
 const NEXT = 700; // and the next village
-const far = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z);
+export const far = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z);
 // The nearest of `list` to `to` (each one's spot: `at`), within so far.
 export const nearest = <T>(list: readonly T[], at: (item: T) => Point, to: Point, within = Infinity): T | null => {
   let [best, d]: [T | null, number] = [null, within];
@@ -68,14 +79,15 @@ export function castOf(host: CastHost): { first: Setting | null; firstRuin: Ruin
     const mine = folk.get(village) ?? [];
     const villagers = mine.filter((n) => n.role === 'villager').sort((a, b) => a.id - b.id);
     const b = villagers.find((n, i) => i > 0 && n.field) ?? villagers[1]; // (one who works a field, if any does: the boars are theirs)
-    const barmaid = keeper(village, 'barkeep');
-    const next = nearest(host.villages.filter((v) => v !== village && keeper(v, 'barkeep')), (v) => v, village, NEXT);
+    const keepers = Object.fromEntries((Object.keys(KEEPERS) as Array<keyof typeof KEEPERS>).map((part) => [part, keeper(village, KEEPERS[part])])) as Partial<Record<keyof typeof KEEPERS, Npc>>;
+    const barmaid = keepers.barmaid;
+    const next = nearest(host.villages.filter((v) => v !== village && keeper(v, KEEPERS.barmaid)), (v) => v, village, NEXT);
     const [ruin, camp, cave] = [nearest(host.ruins, middle, village, NEAR), nearest(host.camps, (c) => c, village, NEAR), nearest(host.caves, (c) => c.entrance, village, NEAR)];
     return {
       key: String(host.boardOf(village)),
       village,
       level: zoneLevel(spawn, village),
-      who: { barmaid, smith: keeper(village, 'smith'), herbalist: keeper(village, 'herbalist'), bouncer: keeper(village, 'bouncer'), villagerA: villagers[0], villagerB: b, nextBarmaid: (next && keeper(next, 'barkeep')) ?? undefined },
+      who: { ...keepers, villagerA: villagers[0], villagerB: b, nextBarmaid: (next && keeper(next, KEEPERS.barmaid)) ?? undefined },
       place: { ruin: ruin ? middle(ruin) : undefined, camp: camp?.way, cave: cave?.entrance },
       inn: barmaid?.home ?? null,
       names: { village: villageName(village, host.seed), next: next ? villageName(next, host.seed) : 'the next village', camp: camp ? campName(camp, host.seed) : 'the camp' },

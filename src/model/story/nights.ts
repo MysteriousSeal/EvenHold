@@ -11,6 +11,7 @@ import type { Entrance } from '../interiors/interiors';
 import { roomsOff, stairsOf, upstairsInside } from '../interiors/upstairs';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { Hero } from '../types';
+import { far } from './storyCast';
 
 export interface NightHost {
   readonly hero: Hero;
@@ -25,7 +26,6 @@ const LINGER = 0.6; // seconds they stay by the hero once the talk's over (the g
 const BEDS: ReadonlySet<Furniture['kind']> = new Set<Furniture['kind']>(['bed', 'roomBed', 'doubleBed']);
 const BY: ReadonlyArray<Furniture['kind']> = ['forge', 'hearth']; // (no bed: where they'd have sat up)
 const middle = (f: Furniture) => ({ x: f.x + (f.w - 1) / 2, z: f.z + (f.d - 1) / 2 });
-const far = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
 
 // The floor tiles of `inside` (those of `within`, if given) someone can stand on, nearest `to` first.
 function standing(inside: Inside, to: { x: number; z: number }, within?: ReadonlyArray<[number, number]>): Array<{ x: number; z: number }> {

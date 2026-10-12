@@ -8,7 +8,7 @@ import type { Ruin } from '../ruins/ruins';
 import type { EnemyKind } from '../types';
 import { hashUnit } from '../../util/random';
 import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS } from './quests/catalog';
-import { castKey, castOf, type CastHost, type Setting } from './storyCast';
+import { castKey, castOf, isTraveller, type CastHost, type Setting, type Who } from './storyCast';
 import type { Objective, StoryPlace, StoryQuest } from './storyQuests';
 
 export interface Instance {
@@ -37,6 +37,9 @@ const RARE_SALT = 40127;
 
 export const sameWorld = (set: QuestSet | null, host: CastHost): set is QuestSet => set?.key === castKey(host);
 
+// What a quest is kept by, set there: its own name and the place's ("…@8201", "…@first", "…@road").
+export const keyOf = (id: string, at: Setting | null | undefined): string => `${id}@${at?.key ?? 'road'}`;
+
 // What a village lacks for a quest to be set there, in a word: whoever gives it, whoever takes it in, its place.
 export function lacks(quest: StoryQuest, at: Setting | null): string | null {
   if (!at) return null;
@@ -46,10 +49,20 @@ export function lacks(quest: StoryQuest, at: Setting | null): string | null {
 
 // A quest set there: kept by its key, and by whoever gives it and whoever takes it in.
 export function place(set: Pick<QuestSet, 'all' | 'by'>, quest: StoryQuest, at: Setting | null): Instance {
-  const instance = { key: `${quest.id}@${at?.key ?? 'road'}`, quest, at };
+  const instance = { key: keyOf(quest.id, at), quest, at };
   set.all.set(instance.key, instance);
   for (const who of new Set([at?.who[quest.giver], quest.receiver && at?.who[quest.receiver]])) if (who) set.by.set(who, [...(set.by.get(who) ?? []).filter((i) => i.key !== instance.key), instance]);
   return instance;
+}
+
+// Where a quest would be set for `who` to give it, whether their village drew it or not (a cheat's: story.ts
+// `replay`): their own village's setting, themselves in the giver's part (the opening line's, in the first village:
+// its own); on the road, nowhere.
+export function settingFor(set: Pick<QuestSet, 'first' | 'villages'>, quest: StoryQuest, who: Who): Setting | null {
+  if (isTraveller(who)) return null;
+  const home = 'village' in who ? set.villages.find((s) => s.village === who.village) : undefined;
+  const base = quest.scope === 'first' && (!home || set.first?.village === home.village) ? set.first : home;
+  return base ? (base.who[quest.giver] === who ? base : { ...base, who: { ...base.who, [quest.giver]: who } }) : null;
 }
 
 export function settle(host: CastHost): QuestSet {
@@ -61,7 +74,7 @@ export function settle(host: CastHost): QuestSet {
   if (first) for (const quest of FIRST_QUESTS) add(quest, first);
   for (const at of villages) {
     COMMON_QUESTS.forEach((quest, i) => drawn(quest, i, at, COMMON_SALT) && add(quest, at));
-    RARE_QUESTS.forEach((quest, i) => drawn(quest, i, at, RARE_SALT) && (!quest.follows || all.has(`${quest.follows}@${at.key}`)) && add(quest, at));
+    RARE_QUESTS.forEach((quest, i) => drawn(quest, i, at, RARE_SALT) && (!quest.follows || all.has(keyOf(quest.follows, at))) && add(quest, at));
   }
   for (const quest of ROAD_QUESTS) add(quest, null);
   return { key: castKey(host), first, firstRuin, villages, all, by, road: [...all.values()].filter((i) => !i.at) };

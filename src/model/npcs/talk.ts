@@ -23,5 +23,6 @@ export function talkingTo(npcs: readonly Npc[], inside: Inside | null, hero: { x
   return best;
 }
 
-// The prompt over them: "Talk to Adawen", "Trade with Thoby".
-export const talkPrompt = (npc: Npc): string => `${TALKS[npc.role] ?? 'Talk to'} ${npc.name}`;
+// The prompt over them: "Talk to Adawen", "Trade with Thoby" (`asking`: with a quest to give or take in, a word
+// comes first, whatever their trade: "Talk to Thoby").
+export const talkPrompt = (npc: Npc, asking = false): string => `${(!asking && TALKS[npc.role]) || 'Talk to'} ${npc.name}`;
