@@ -35,6 +35,7 @@ export interface Traveller extends Humanoid {
   y: number;
   facing: number;
   level: number; // from how far out they set out (as foes are: a guard's blows)
+  hp?: number; // their health, short of whole (hero/selection.ts healthOf: whole, unsaid)
   damage: number; // a guard's blow
   swingFor: number | null; // into a blow (a guard's), or null
   cooldown: number; // before the next blow

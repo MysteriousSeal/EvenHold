@@ -1,14 +1,25 @@
 // Whoever the hero has picked out that isn't a foe (a click on them, or Tab where there are no foes to turn to): a
 // villager, a keeper, someone met on the road. Shown as a foe is (their frame by the hero's, the brackets at their
-// feet), and no more than that: nothing aimed at a foe (a blow, a harmful spell: spells/casting.ts) is ever aimed at
+// feet, their health and level: healthOf), and no more than that: nothing aimed at a foe (a blow, a harmful spell: spells/casting.ts) is ever aimed at
 // them. One or the other, a foe focused (focus.ts) or someone picked out: GameModel lets go the one for the other.
 // Let go once they're far off, or no longer where the hero is (gone indoors, or the hero out).
 import { FOCUS_RANGE } from '../constants';
+import { zoneLevel } from '../enemies/enemyLevels';
+import { spawnOf, type MapSize } from '../map/grid';
+import { maxHpAt } from './attributes';
 import type { Entrance } from '../interiors/interiors';
 import type { Npc } from '../npcs/npcs';
 import type { Traveller } from '../travellers/travellers';
 
 export type Person = Npc | Traveller;
+
+// Their level and health, as a foe has them: someone on the road's own level; a villager's, their village's (as its
+// quests and its smith's wares are: by how far out it lies); the health of a hero of that level, whole unless said.
+export function healthOf(person: Person, size: MapSize): { level: number; hp: number; max: number } {
+  const level = 'road' in person ? person.level : zoneLevel(spawnOf(size), person.village);
+  const max = maxHpAt(level);
+  return { level, hp: Math.min(max, person.hp ?? max), max };
+}
 type At = { hero: { x: number; z: number }; inside: { entrance: Entrance } | null };
 const far = (p: Person, hero: { x: number; z: number }) => Math.hypot(p.x - hero.x, p.z - hero.z);
 const here = (p: Person, at: At) => p.where === (at.inside?.entrance ?? null) && far(p, at.hero) <= FOCUS_RANGE;

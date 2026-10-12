@@ -1,9 +1,13 @@
 // The charms a hero may know: hedge-craft, taught by a village's herbalist for coin (spells/teaching.ts), kept in
 // their spellbook and put on the action bar (hero/actionBar.ts: a slot points at one, as at food), cast with its key
 // (spells/casting.ts). Each spends Breath (hero/combatMoves.ts) and then wants a while before it's cast again.
+// Two kinds, by whom they may be aimed at (`aim`): at foes only (what harms), or at anyone (a foe, a villager or
+// traveller picked out: hero/selection.ts; no one picked out, the hero themselves).
 import type { Hero } from '../types';
 
-export type SpellId = 'hex';
+export type SpellId = 'hex' | 'mend';
+export type Aim = 'foes' | 'anyone';
+export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyone' };
 export interface Spell {
   name: string;
   about: string; // what it is, in the world
@@ -11,12 +15,15 @@ export interface Spell {
   price: number; // copper, to be taught it
   breath: number; // spent as it's cast
   cooldown: number; // seconds before it's cast again
-  range: number; // tiles to the foe it's cast at
-  harm: number; // times a blow of the hero's
+  range: number; // tiles to whoever it's cast at
+  aim: Aim; // whom it may be cast at
+  harm?: number; // times a blow of the hero's, done to a foe
+  heal?: number; // of their whole health, given back
 }
 
 export const SPELLS: Record<SpellId, Spell> = {
-  hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', level: 1, price: 40, breath: 30, cooldown: 6, range: 5, harm: 2 },
+  hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', level: 1, price: 40, breath: 30, cooldown: 6, range: 5, aim: 'foes', harm: 2 },
+  mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', level: 1, price: 60, breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
@@ -41,6 +48,10 @@ export function coolSpells(hero: Pick<Hero, 'spellWait'>, dt: number): void {
   for (const id of Object.keys(hero.spellWait ?? {}) as SpellId[]) hero.spellWait![id] = Math.max(0, hero.spellWait![id]! - dt);
 }
 // What it does, in a line (the spellbook, the bar's tip).
-export const spellText = (id: SpellId): string => `${SPELLS[id].harm}× a blow's harm to your focused foe, up to ${SPELLS[id].range} tiles off · ${SPELLS[id].breath} Breath · ${SPELLS[id].cooldown} s`;
+export function spellText(id: SpellId): string {
+  const spell = SPELLS[id];
+  const does = spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
+  return `${does}, up to ${spell.range} tiles off · ${spell.breath} Breath · ${spell.cooldown} s`;
+}
 // A save's known spells, as far as they're sound (an older save's: none).
 export const readSpells = (saved: unknown): SpellId[] => (Array.isArray(saved) ? SPELL_IDS.filter((id) => saved.includes(id)) : []);

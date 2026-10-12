@@ -61,6 +61,7 @@ export interface Npc extends Humanoid {
   id: number;
   name: string;
   role: NpcRole;
+  hp?: number; // their health, short of whole (hero/selection.ts healthOf: whole, unsaid)
   home: Entrance; // their house's door (a barmaid's, the inn's)
   inn: Entrance | null; // their village's
   village: Village;

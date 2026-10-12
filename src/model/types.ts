@@ -59,7 +59,7 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
-  | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number } // a spell cast, at where it lands
+  | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
   | { kind: 'guard'; outcome: 'rolled' | 'parried' | 'blocked' | 'broken'; x: number; y: number; z: number } // a blow rolled through, parried, blocked, or breaking the guard (combatMoves.ts)
