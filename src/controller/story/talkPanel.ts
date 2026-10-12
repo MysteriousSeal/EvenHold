@@ -15,6 +15,7 @@ import type { Talk, Who } from '../../model/story/story';
 import { coinParts } from '../../view/ui/coins';
 import { el, line } from '../../view/ui/dom';
 import { FigureStage } from '../../view/ui/figureStage';
+import { playPace } from './paceGame';
 import { workCostume } from '../../view/meshes/human/gear/costumes';
 import { trackMenu, type Menu } from '../../view/ui/menu';
 
@@ -37,6 +38,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   let writer = 0;
   let nightfall = 0; // the night's timer, while the screen's black
   let dark = false;
+  let game: ReturnType<typeof playPace> | null = null; // a game of pace under way, in the dark (paceGame.ts)
   let woken = false; // a night's passed in this talk: the world behind is drawn again each frame, held as it is
   let frame = 0;
   let isOpen = false;
@@ -135,9 +137,31 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       at++;
       return talk.night && at === talk.lines.length - 1 ? pass() : write();
     }
+    if (talk.pace) return play(talk.pace);
     if (talk.answers.length === 0) return close();
     answering = true;
     draw();
+  };
+
+  // A game of pace, played in the dark once the last line's said: black, the game over it; then light again, and
+  // what's said next, by how it went.
+  const play = (pace: NonNullable<Talk['pace']>) => {
+    dark = true;
+    later.textContent = '';
+    night.classList.add('on');
+    nightfall = window.setTimeout(() => {
+      game = playPace(night, pace.pace, pace.with, (score) => {
+        game = null;
+        [talk, at, answering, written, woken] = [pace.done(score), 0, false, 0, true]; // (and the world behind drawn from here on: how they're found after)
+        answers.replaceChildren();
+        draw();
+        night.classList.remove('on');
+        nightfall = window.setTimeout(() => {
+          dark = false;
+          write();
+        }, NIGHT_FADE);
+      });
+    }, NIGHT_FADE);
   };
 
   // A night passing: black, held, then light again and the morning's line.
@@ -180,7 +204,9 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     if (!isOpen) return;
     event.stopImmediatePropagation(); // (the game's keys: none while they talk)
     event.preventDefault();
-    if (event.repeat || dark) return;
+    if (event.repeat) return;
+    if (game) return event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE' ? game.press() : undefined; // (the game's: a press on the beat)
+    if (dark) return;
     if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
@@ -193,7 +219,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     }
   };
   window.addEventListener('keydown', onKey, true);
-  scene.addEventListener('click', advance);
+  scene.addEventListener('click', () => (game ? game.press() : advance()));
 
   const menu = {
     get isOpen() {
@@ -206,6 +232,8 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     isOpen = false;
     window.clearInterval(writer);
     window.clearTimeout(nightfall);
+    game?.stop();
+    game = null;
     dark = woken = false;
     night.classList.remove('on');
     cancelAnimationFrame(frame);

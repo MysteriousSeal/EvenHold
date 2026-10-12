@@ -58,3 +58,26 @@
 .talk-night.on { opacity: 1; pointer-events: auto; }
 .talk-night span { opacity: 0; transition: opacity 0.6s ease-in-out; }
 .talk-night.on span { opacity: 1; transition-delay: 0.9s; }
+
+/* A game of pace, over the dark (paceGame.ts): whose it is; the track, its middle marked, the marker crossing it; a
+   pip a beat; how pleased they are, as a bar; a word under it. */
+.talk-night:has(.pace) > span { display: none; }
+.pace { width: min(560px, 86vw); display: grid; gap: 16px; justify-items: center; color: var(--sand); font-family: 'Fredoka', system-ui, sans-serif; }
+.pace-who { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.03em; }
+.pace-track { position: relative; width: 100%; height: 34px; background: #1d140d; border: 3px solid var(--sand-dark); border-radius: 4px; overflow: hidden; }
+.pace-near, .pace-good { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
+.pace-near { background: rgba(232, 144, 58, 0.28); }
+.pace-good { background: rgba(255, 217, 138, 0.6); }
+.pace-marker { position: absolute; top: -3px; bottom: -3px; width: 6px; margin-left: -3px; background: #fff3df; box-shadow: 0 0 10px #fff3df; }
+.pace-track[data-hit='kept'] { border-color: var(--lantern); }
+.pace-track[data-hit='near'] { border-color: var(--ember); }
+.pace-track[data-hit='missed'] { border-color: #b8443a; }
+.pace-pips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pace-pip { width: 14px; height: 14px; border: 2px solid var(--sand-dark); border-radius: 50%; }
+.pace-pip.kept { background: var(--lantern); border-color: var(--lantern); }
+.pace-pip.near { background: linear-gradient(90deg, var(--ember) 50%, transparent 50%); border-color: var(--ember); }
+.pace-pip.missed { border-color: #b8443a; opacity: 0.6; }
+.pace-bar { width: 60%; height: 10px; background: #1d140d; border: 2px solid var(--sand-dark); border-radius: 5px; overflow: hidden; }
+.pace-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--clay), var(--ember)); transition: width 0.15s ease-out; }
+.pace-said { margin: 0; min-height: 1.5em; font-size: 17px; color: var(--sand-dark); }
+.pace.over .pace-said { font-size: 22px; font-weight: 600; color: var(--lantern); }
