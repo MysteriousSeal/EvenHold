@@ -7,14 +7,18 @@ import type * as THREE from 'three';
 import type { Actor } from './actor';
 import type { Piece } from './partMorph';
 import type { Cloud } from './voxelMorph';
+import type { Into } from '../../model/spells/chickens';
 import { chickenStaging } from './chickenStaging';
+import { horseStaging } from './horseStaging';
 
 export interface Staging {
   title: string; // the spell's, over it all
   lines: ReadonlyArray<[from: number, line: string]>; // what's said under it, from each point on (`{name}`: whoever's turned)
   becomes: string; // what they are, once turned ("A chicken")
-  prepare(actor: Actor): unknown; // what's grown on them, made ready (given back to `stage` each frame)
-  stage(actor: Actor, made: unknown, u: number, time: number): void;
+  // For what has neither parts nor voxels to it (a ghost, seen through), if it's staged at all (else it only dwindles):
+  // what's grown on it, made ready (given back to `stage` each frame), and how it changes.
+  prepare?(actor: Actor): unknown;
+  stage?(actor: Actor, made: unknown, u: number, time: number): void;
   target(): { root: THREE.Object3D; height: number; settle(j: number, time: number): void }; // `j`: 0 just there, 1 settled
   beastLines?: ReadonlyArray<[from: number, line: string]>; // what's said of a four-legged beast's, where it differs
   feathers?: [from: number, to: number]; // when feathers fly off them, if any do
@@ -28,5 +32,4 @@ export interface Staging {
   looseLines?: ReadonlyArray<[from: number, line: string]>;
 }
 
-export type Into = 'chicken';
-export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging };
+export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging };

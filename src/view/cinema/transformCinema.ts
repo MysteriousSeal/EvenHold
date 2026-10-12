@@ -9,14 +9,15 @@ import * as THREE from 'three';
 import './transformCinema.css';
 import { SmokePuffs } from '../meshes/common/smokePuffs';
 import { makeActor } from './actor';
-import { STAGINGS, type Into } from './staging';
+import type { Into } from '../../model/spells/chickens';
+import { STAGINGS } from './staging';
 import { PartMorph } from './partMorph';
 import { VoxelMorph, sampleFigure } from './voxelMorph';
 
 export const LENGTH = 8; // seconds
 export const GIVES_WAY = 0.8; // of it, the one turned being staged; the rest, what they've become settling
 const HOLD = 0.9; // seconds held on the end of it before it closes
-const ANGLE = 0.6; // radians round from straight before them the camera stands: three-quarters on, and stays
+const ANGLE = 1.0; // radians round from straight before them the camera stands: more side on than not (what's long is seen long), and stays
 const SLAB = 7; // stones a side
 const LEAST = 40; // cubes a figure must give to be taken apart into them (fewer: staged whole)
 const APART = 0.08; // of its staging, itself still before its voxels lift off
@@ -68,7 +69,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
   if (loose) scene.add(loose.object);
   const lines = (parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines;
-  const made = loose ? null : staging.prepare(actor);
+  const made = loose ? null : staging.prepare?.(actor);
   const target = staging.target();
   target.root.visible = false;
   scene.add(figure, target.root);
@@ -123,7 +124,8 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
       loose.object.visible = apart;
       figure.rotation.z = apart ? 0 : Math.sin(time * 40) * 0.05 * (u / APART);
       loose.update(Math.max(0, (u - APART) / (1 - APART)), time);
-    } else if (!swapped) staging.stage(actor, made, u, time);
+    } else if (!swapped && staging.stage) staging.stage(actor, made, u, time);
+    else if (!swapped) figure.scale.setScalar(1 - 0.85 * u * u); // (nothing of it to stage: it dwindles)
     if (!swapped && u >= 1) {
       // They give way: a flash, smoke, a burst of feathers; what they've become, there.
       swapped = true;
@@ -143,12 +145,14 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
       smoke.feathers(scene, 0, tall * 0.25 * (1 - u), 0, tall * 1.3, 1);
     }
     smoke.update(dt);
-    under.intensity = 3 * Math.sin(Math.min(1, p / GIVES_WAY) * Math.PI * 0.5) * (swapped ? Math.max(0, 1 - j * 2) : 1);
+    under.intensity = 0.12 * Math.sin(Math.min(1, p / GIVES_WAY) * Math.PI * 0.5) * (swapped ? Math.max(0, 1 - j * 2) : 1);
     // The camera: round them, down to what they've become and in close as they shrink.
     const close = Math.min(1, Math.max(0, (u - (whole ? 0.6 : 0.84)) / (whole ? 0.4 : 0.16)));
     const eased = close * close * (3 - 2 * close);
-    const height = tall * 0.5 + (target.height * 0.55 - tall * 0.5) * eased;
-    const far = tall * 3.4 + (target.height * 5.2 - tall * 3.4) * eased;
+    // (What they become the taller: seen whole from the start, room for it to grow into, no closing in after.)
+    const frame = Math.max(tall, target.height);
+    const height = frame * 0.5 + (target.height * 0.55 - frame * 0.5) * eased;
+    const far = frame * 3.4 + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * 3.4) * eased;
     camera.position.set(Math.sin(ANGLE) * far, height + far * 0.28, Math.cos(ANGLE) * far);
     camera.lookAt(0, height, 0);
     // What's said: the beat it's at; once turned, what they are.

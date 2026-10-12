@@ -5,6 +5,7 @@ import type { SpellId } from '../../model/spells/spells';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
 import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
+import { HORSE_BODY, HORSE_HEAD, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_NECK, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
 import type { MenuIcon } from './menu';
 import { voxelIcon } from './voxelIcon';
 
@@ -66,7 +67,26 @@ const chickenIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon };
+// The horse-coper's word: the horse itself, side on (wildlife/horseVoxels.ts: its parts set together).
+const horseIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:horse',
+    () => {
+      const grid = createGrid([6, HORSE_NECK[1] + HORSE_HEAD[1], HORSE_BODY[2] + 10]);
+      const put = (part: VoxelGrid, ox: number, oy: number, oz: number) => {
+        const [sx, sy, sz] = part.size;
+        for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) if (colorAt(part, x, y, z)) setColor(grid, x + ox, y + oy, z + oz, colorAt(part, x, y, z));
+      };
+      const mid = HORSE_BODY[2] / 2 + 0.5; // (its middle, along it: the tail's row behind)
+      put(buildHorseBody(), 0, HORSE_LEG_HEIGHT - 1, 0);
+      put(buildHorseHead(), 1, HORSE_NECK[1], Math.round(mid + HORSE_NECK[2] - 2));
+      for (const [x, z] of HORSE_LEGS) put(buildHorseLeg(), x + 2, 0, Math.round(mid + z - 1));
+      return { grid, palette: HORSE_PALETTE, alpha: 1 };
+    },
+    size,
+  );
+
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, horse: horseIcon };
 
 // The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
 export const spellbookIcon: MenuIcon = (size) =>

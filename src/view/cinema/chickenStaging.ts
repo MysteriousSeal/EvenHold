@@ -1,6 +1,6 @@
 // Someone turned into a chicken (model/spells/chickens.ts), staged part by part (staging.ts), each part of them
-// morphing into the part of her it becomes (`pieces`: partMorph.ts; a hen built as big as they are, so each part
-// changes where it stands):
+// morphing into the part of her it becomes (`pieces`: becoming.ts, partMorph.ts; a hen built as big as they are, so
+// each part changes where it stands):
 //  1. a start, themselves;
 //  2. the legs into her two legs, thin and yellow (someone human-shaped: their own two; a four-legged beast: its
 //     hind legs, drawn in under its middle);
@@ -16,8 +16,8 @@
 import * as THREE from 'three';
 import { createHen } from '../meshes/wildlife/chickenRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
-import type { Piece } from './partMorph';
-import { cloudOf, sampleFigure, type Cloud } from './voxelMorph';
+import { partPieces, type Becoming } from './becoming';
+import { cloudOf, type Cloud } from './voxelMorph';
 import { over, swell, type Actor } from './actor';
 import type { Staging } from './staging';
 
@@ -27,7 +27,6 @@ const V = CHICKEN_VOXEL_SIZE;
 // The hen, as she stands: how wide, tall and long.
 export const HEN = new THREE.Vector3(BODY_GRID[0] * V, (LEG_HEIGHT + BODY_GRID[1] + HEAD_GRID[1] - 3) * V, (BODY_GRID[2] + 2) * V);
 
-const ROWS = 22; // cubes to a beast's height, read off it
 // The hen's voxels, where createHen puts them (chickenRig.ts), `big` times her size: her body, her head on its neck,
 // her legs (the one at -x first).
 function henClouds(big: number): { body: Cloud; head: Cloud; legs: Cloud[] } {
@@ -66,25 +65,46 @@ function grown(actor: Actor, head: { on: THREE.Object3D; box: THREE.Box3 }, rear
   return { comb, beak, wattle, tail };
 }
 
+// What she is, for what has parts to become her (becoming.ts): their legs her legs, their arms her wings (her body's
+// outermost columns, either side), their torso her body and tail, their head her head.
+const becoming: Becoming = {
+  tall: HEN.y,
+  parts(big) {
+    const hen = henClouds(big);
+    const at = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
+    const edge = (BODY_GRID[0] / 2 - 1) * V * big;
+    const part = (keep: (at: THREE.Vector3) => boolean): Cloud => ({ at: hen.body.at.filter(keep), color: hen.body.color.filter((_c, i) => keep(hen.body.at[i])), size: hen.body.size });
+    const wing = (side: number) => part((p) => Math.sign(p.x) === side && Math.abs(p.x) > edge);
+    return {
+      legs: [hen.legs[0], hen.legs[1]],
+      arms: [wing(-1), wing(1)],
+      body: part((p) => Math.abs(p.x) <= edge),
+      head: hen.head,
+      joints: { legs: [at(-1, LEG_HEIGHT, 0), at(1, LEG_HEIGHT, 0)], arms: [at(-2, LEG_HEIGHT + 3, 0), at(2, LEG_HEIGHT + 3, 0)], body: at(0, LEG_HEIGHT, 0), head: at(0, LEG_HEIGHT + 2.5, 2.5) },
+    };
+  },
+  arms: () => [0, 0, 0], // (at her sides already, once they've taken her stance)
+};
+
 export const chickenStaging: Staging = {
   title: "Hen-wife's turn",
   becomes: 'A chicken',
   lines: [
     [0, '{name} feels something is wrong.'],
-    [0.06, 'The legs bend and thin: yellow, and much too short.'],
-    [0.24, 'The arms lift, and fold down into wings.'],
-    [0.42, 'The spine bends at the waist until the body lies level. A tail.'],
-    [0.6, 'The head tips back, and comes forward with a comb, a beak, a wattle.'],
-    [0.88, 'A chicken as tall as a man. And then smaller. Much smaller.'],
+    [0.04, 'They stoop: the back level, the arms drawn in to the sides.'],
+    [0.27, 'The legs thin: yellow, and much too short. The arms flatten into wings.'],
+    [0.45, 'The body rounds out. A tail.'],
+    [0.7, 'A comb. A beak. A wattle.'],
+    [0.92, 'A chicken as tall as a man. And then smaller. Much smaller.'],
   ],
   feathers: [0.3, 1],
   beastLines: [
     [0, '{name} feels something is wrong.'],
-    [0.06, 'The hind legs bend and thin: two yellow ones, under the middle of it.'],
-    [0.24, 'The forelegs lift off the ground and fold down into wings.'],
-    [0.42, 'The body draws in and rounds out. A tail.'],
-    [0.6, 'The head tips back, and comes forward with a comb, a beak, a wattle.'],
-    [0.88, 'A chicken the size of a bear. And then smaller. Much smaller.'],
+    [0.04, 'It gathers itself: its hind legs under its middle, its forelegs drawn up to its sides.'],
+    [0.27, 'The hind legs thin: two yellow ones. The forelegs flatten into wings.'],
+    [0.45, 'The body draws in and rounds out. A tail.'],
+    [0.7, 'A comb. A beak. A wattle.'],
+    [0.92, 'A chicken the size of a bear. And then smaller. Much smaller.'],
   ],
   looseLines: [
     [0, '{name} feels something is wrong.'],
@@ -97,53 +117,7 @@ export const chickenStaging: Staging = {
     return { at: [hen.body, hen.head, ...hen.legs].flatMap((part) => part.at), color: [hen.body, hen.head, ...hen.legs].flatMap((part) => part.color), size: V };
   },
 
-  // Their parts, and hers they become: a hen as big as they are (`big` times her size). Someone human-shaped: their
-  // legs her legs, their arms her wings, their torso her body and tail, their head her head. A four-legged beast: its
-  // hind legs her legs, its forelegs her wings, its trunk and tail her body, its head hers.
-  pieces(actor) {
-    const { beast, human, size } = actor;
-    if (!beast && !human) return null;
-    const big = (size.y * 0.9) / HEN.y;
-    const hen = henClouds(big);
-    const read = (...parts: THREE.Object3D[]): Cloud => {
-      const clouds = parts.map((part) => sampleFigure(part, size.y, ROWS));
-      return { at: clouds.flatMap((c) => c.at), color: clouds.flatMap((c) => c.color), size: Math.max(...clouds.map((c) => c.size)) };
-    };
-    // Her body's sides (its outermost columns): her wings; the rest of it, tail and all: her body.
-    const edge = (BODY_GRID[0] / 2 - 1) * V * big;
-    const part = (keep: (at: THREE.Vector3) => boolean): Cloud => ({ at: hen.body.at.filter(keep), color: hen.body.color.filter((_c, i) => keep(hen.body.at[i])), size: hen.body.size });
-    const wing = (side: number) => part((at) => Math.sign(at.x) === side && Math.abs(at.x) > edge);
-    const body = part((at) => Math.abs(at.x) <= edge);
-    const sideOf = (group: THREE.Object3D) => Math.sign(new THREE.Box3().setFromObject(group).getCenter(new THREE.Vector3()).x) || 1;
-    const [legs, wings, trunk, head]: Array<[number, number]> = [[0.06, 0.36], [0.24, 0.56], [0.42, 0.76], [0.6, 0.88]];
-    const made = human
-      ? { legs: [human.joints.leftLeg, human.joints.rightLeg], arms: [human.joints.leftArm, human.joints.rightArm], trunk: [human.joints.torso], head: human.joints.head, waist: human.hips, tip: Math.PI / 2 }
-      : { legs: beast!.hind, arms: beast!.fore, trunk: [beast!.trunk, beast!.tail], head: beast!.head, waist: beast!.trunk, tip: 0 };
-    // Each part's joint: where it hangs now, and where hers does (her hip, the root of her wing, the middle of her, her neck).
-    const where = (group: THREE.Object3D) => group.getWorldPosition(new THREE.Vector3());
-    const hers = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
-    const env = (t: number) => Math.sin(t * Math.PI); // (at rest either end of a part's turn, at its worst in the middle)
-    return {
-      big,
-      down: 0.88,
-      pieces: [
-        // The legs: bending under them, knees out a little, as they thin and shorten.
-        ...made.legs.map((leg): Piece => {
-          const side = sideOf(leg);
-          return { from: read(leg), into: hen.legs[side < 0 ? 0 : 1], window: legs, pivot: [where(leg), hers(side, LEG_HEIGHT, 0)], contort: (t) => [env(t) * 0.35, 0, side * env(t) * 0.2] };
-        }),
-        // The arms (a beast's forelegs): lifted out and back, then down flat along her sides.
-        ...made.arms.map((arm): Piece => {
-          const side = sideOf(arm);
-          return { from: read(arm), into: wing(side), window: wings, pivot: [where(arm), hers(side * 2, LEG_HEIGHT + 3, 0)], contort: (t) => [-1.4 * env(t) * env(t), 0, side * env(t) * 0.7] };
-        }),
-        // The torso: bent forward at the waist till it lies level (a beast's trunk: level already).
-        { from: read(...made.trunk), into: body, window: trunk, pivot: [where(made.waist), hers(0, LEG_HEIGHT, 0)], tip: made.tip, contort: () => [0, 0, 0] },
-        // The head: tipped back, then set forward on her neck.
-        { from: read(made.head), into: hen.head, window: head, pivot: [where(made.head), hers(0, LEG_HEIGHT + 2.5, 2.5)], contort: (t) => [-0.5 * env(t), 0, 0] },
-      ],
-    };
-  },
+  pieces: (actor) => partPieces(actor, becoming),
 
   prepare(actor): Grown {
     const { box, size } = actor;

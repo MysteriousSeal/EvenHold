@@ -16,7 +16,7 @@ export interface Cloud {
 const MOST = 2600; // cubes, at most (a coarser shell, past that)
 const WAVE = 0.42; // of the whole, the last cube's start
 const FLIGHT = 0.44; // of the whole, each cube's flight
-const SHAPED_WAVE = 0.3; // of a morph, the last cube's start (from the ground up, the rest its way)
+const SHAPED_WAVE = 0.12; // of a morph, the last cube's start (from the ground up, the rest its way)
 
 // The voxels of `parts` (each a grid in its palette, its voxel (0, 0, 0)'s corner at `origin`), at `size` a side.
 export function cloudOf(parts: ReadonlyArray<{ grid: VoxelGrid; palette: number[]; origin: THREE.Vector3 }>, size: number): Cloud {
@@ -165,7 +165,8 @@ export class VoxelMorph {
     for (let k = 0; k < mesh.count; k++) {
       const [a, b] = [from.at[this.sources[k]], into.at[this.to[k]]];
       const start = this.shaped ? this.order[k] * SHAPED_WAVE : this.order[k] * WAVE + own(k, 1) * 0.08;
-      const e = smooth(Math.max(0, Math.min(1, (u - start) / (this.shaped ? 1 - SHAPED_WAVE : FLIGHT))));
+      const through = Math.max(0, Math.min(1, (u - start) / (this.shaped ? 1 - SHAPED_WAVE : FLIGHT)));
+      const e = this.shaped ? (through + smooth(through)) / 2 : smooth(through); // (a morph: steadily, only eased a little at either end)
       const aloft = this.shaped ? 0 : Math.sin(e * Math.PI); // 0 at rest either end, 1 mid-flight (a morph: never aloft)
       // Its way: from its place to its new one, swung out from the middle and round it, and up a little.
       const round = Math.atan2(a.x, a.z) + (0.6 + own(k, 2) * 1.6) * aloft + e * 0.9 * (own(k, 3) - 0.5);
@@ -189,7 +190,7 @@ export class VoxelMorph {
       this.turn.setFromAxisAngle(this.axis, this.shaped ? 0 : e * Math.PI * 2 * Math.round(1 + own(k, 9) * 2)); // (tumbling; square again as it lands)
       this.scale.setScalar((from.size + (into.size - from.size) * e) * (1 + 0.25 * aloft));
       mesh.setMatrixAt(k, this.matrix.compose(this.spot, this.turn, this.scale));
-      this.tint.copy(from.color[this.sources[k]]).lerp(into.color[this.to[k]], smooth(Math.max(0, Math.min(1, (e - 0.25) / 0.6))));
+      this.tint.copy(from.color[this.sources[k]]).lerp(into.color[this.to[k]], this.shaped ? e : smooth(Math.max(0, Math.min(1, (e - 0.25) / 0.6)))); // (a morph: its colour with its shape)
       mesh.setColorAt(k, this.tint);
     }
     mesh.instanceMatrix.needsUpdate = true;

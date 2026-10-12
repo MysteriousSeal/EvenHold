@@ -1,26 +1,31 @@
-// A figure turned into another part by part, each part morphing into the part it turns into (what has parts: someone
-// human-shaped, a four-legged beast: transformCinema.ts): every part read off as its own voxels (voxelMorph.ts
-// sampleFigure) and, in its turn, reshaped smoothly into the part it becomes (a leg into a hen's leg, a head into
-// hers), each voxel going to the place in the new part that answers to its own, the part changing shape, size and
-// colour as one. It hangs on its joint (`pivot`), which is carried to where the new part's is; moved on it a little
-// as a limb would be (`contort`: an arm lifted, then laid down; nothing wrung or shaken); and turned over if what it
-// becomes lies another way (`tip`: a torso stood upright into a body carried level, bent forward at the waist).
-// What it becomes is built as big as it is, so each part changes where it stands; once every part has, there it is
-// whole, the new thing itself, and only then does it come down to its own size (to be put in its place unseen).
+// A figure turned into another part by part (what has parts: someone human-shaped, a four-legged beast:
+// transformCinema.ts), in two movements, as a body might:
+//  1. it takes the new thing's stance, still itself: each part, unchanged, carried on its joint (`pivot`) to where the
+//     new thing's joint would be were it their size (`pose`), and turned over if what it becomes lies another way
+//     (`tip`: a torso stood upright bent forward at the waist till it lies level; so someone turned into a horse goes
+//     down on all fours first, their head carried forward, their arms come down as forelegs);
+//  2. then every part reshapes where it now is, all at once, into the part it becomes: each read off as its own
+//     voxels (voxelMorph.ts sampleFigure), each voxel going the short way to the place in the new part that answers
+//     to its own, the part changing shape, size and colour as one; its joint carried on to where the new thing's is at
+//     the size it's built (so it grows, or keeps its size, as it changes).
+// What it becomes may be built bigger than itself (`big`): once every part has changed, there it is whole, and only
+// then does it come down to its own size (to be put in its place unseen).
 import * as THREE from 'three';
 import { VoxelMorph, type Cloud } from './voxelMorph';
 
 export interface Piece {
   from: Cloud; // a part of the figure
-  into: Cloud; // the part it becomes, as big as the figure
-  window: [from: number, to: number]; // when, of the whole
+  into: Cloud; // the part it becomes, at the size it's built
+  posing?: [from: number, to: number]; // when, of the whole, it takes its stance (none: it has it)
+  window: [from: number, to: number]; // when it reshapes
   pivot?: [from: THREE.Vector3, into: THREE.Vector3]; // the joint it hangs on: where it is, and where the new part's is
-  tip?: number; // radians it's turned over forward (about its joint) as it changes
-  contort?(t: number, time: number): [x: number, y: number, z: number]; // how it's wrenched about on its joint, `t` through its turn (radians; at rest at either end)
-  wring?: { twist: number; ripple: number };
+  pose?: THREE.Vector3; // where its joint is once it's taken its stance (none: where it'll end)
+  tip?: number; // radians it's turned over forward (about its joint) as it takes its stance
+  contort?(t: number, time: number): [x: number, y: number, z: number]; // how it's moved on its joint as it reshapes, `t` through it (radians; at rest at either end)
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
+const through = (u: number, [a, b]: [number, number]) => Math.max(0, Math.min(1, (u - a) / (b - a)));
 const X = new THREE.Vector3(1, 0, 0);
 
 export class PartMorph {
@@ -37,11 +42,11 @@ export class PartMorph {
       .filter((piece) => piece.from.at.length > 0 && piece.into.at.length > 0)
       .map((piece) => {
         // Each part's voxels kept from its joint: the old part's from where the joint is, the new part's from where it'll
-        // be (turned back the way the part's to be turned over, so it's where it should be once it has been).
+        // be (turned back the way the part's turned over, so it's where it should be once it has been).
         const [pivotFrom, pivotInto] = piece.pivot ?? [new THREE.Vector3(), new THREE.Vector3()];
         const from = { ...piece.from, at: piece.from.at.map((at) => at.clone().sub(pivotFrom)) };
         const into = { ...piece.into, at: piece.into.at.map((at) => at.clone().sub(pivotInto).applyAxisAngle(X, -(piece.tip ?? 0))) };
-        const morph = new VoxelMorph(from, into, true, piece.wring);
+        const morph = new VoxelMorph(from, into, true);
         const joint = new THREE.Group();
         joint.add(morph.mesh);
         this.object.add(joint);
@@ -53,15 +58,20 @@ export class PartMorph {
   // `u`: 0 the figure whole, 1 what it becomes whole and at its own size.
   update(u: number, time: number): void {
     for (const { morph, joint, piece } of this.parts) {
-      const t = Math.max(0, Math.min(1, (u - piece.window[0]) / (piece.window[1] - piece.window[0])));
+      const stance = piece.posing ? smooth(through(u, piece.posing)) : 1;
+      const t = through(u, piece.window);
       const e = smooth(t);
       morph.update(t, time);
-      const [pivotFrom, pivotInto] = piece.pivot ?? [joint.position, joint.position];
-      if (piece.pivot) joint.position.lerpVectors(pivotFrom, pivotInto, e);
-      const wrench = t > 0 && t < 1 ? piece.contort?.(t, time) ?? [0, 0, 0] : [0, 0, 0];
-      joint.rotation.set((piece.tip ?? 0) * e + wrench[0], wrench[1], wrench[2]);
+      if (piece.pivot) {
+        const [pivotFrom, pivotInto] = piece.pivot;
+        const posed = piece.pose ?? pivotInto;
+        if (t > 0) joint.position.lerpVectors(posed, pivotInto, (t + e) / 2); // (steadily, as its voxels go)
+        else joint.position.lerpVectors(pivotFrom, posed, stance);
+      }
+      const moved = t > 0 && t < 1 ? piece.contort?.(t, time) ?? [0, 0, 0] : [0, 0, 0];
+      joint.rotation.set((piece.tip ?? 0) * stance + moved[0], moved[1], moved[2]);
     }
-    this.object.scale.setScalar(1 + (1 / this.big - 1) * smooth(Math.max(0, Math.min(1, (u - this.down) / (1 - this.down)))));
+    this.object.scale.setScalar(1 + (1 / this.big - 1) * smooth(through(u, [this.down, 1])));
   }
 
   dispose(): void {
