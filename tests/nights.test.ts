@@ -42,6 +42,35 @@ describe('a way worked out for someone', () => {
   });
 });
 
+describe('a quest that ends in a night together', () => {
+  it("is offered only by someone of the other sex than the hero's", () => {
+    const model = everyKindOfWorld().at(-1)!;
+    const { story, hero } = model;
+    hero.bags.fill(null);
+    // A herbalist who has it, the quest before it done.
+    const supper = story.keysOf('supperForTwo')[0];
+    const broth = supper.replace('supperForTwo', 'meatForTheBroth');
+    story.accept(broth);
+    expect(story.finish(broth)).toBe(true);
+    expect(story.handIn(broth)).toBe(true);
+    const herbalist = model.npcs.find((n) => n.role === 'herbalist' && story.talk(n, supper))!;
+    const other = herbalist.look.build === 'male' ? 'female' : 'male';
+    hero.look.build = herbalist.look.build;
+    expect(story.stateOf(supper)).toBe('locked');
+    expect(story.talk(herbalist, supper)?.quest ?? null).toBeNull();
+    expect(story.accept(supper)).toBe(false);
+    hero.look.build = other;
+    expect(story.stateOf(supper)).toBe('offered');
+    expect(story.talk(herbalist, supper)?.quest).toMatchObject({ name: 'Supper for two', state: 'offered' });
+    // Taken, it's kept whatever the hero then looks like; the cheat's replay offers it to anyone.
+    expect(story.accept(supper)).toBe(true);
+    hero.look.build = herbalist.look.build;
+    expect(story.stateOf(supper)).toBe('taken');
+    expect(story.replay('supperForTwo', herbalist)).toBe(supper);
+    expect(story.stateOf(supper)).toBe('offered');
+  });
+});
+
 describe('a night spent with someone', () => {
   it.each([
     ['herbalist', 'supperForTwo'],
