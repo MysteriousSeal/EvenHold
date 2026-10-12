@@ -30,7 +30,8 @@ import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Temper, type
 import { BOUNCER, GIVES_IN, TROUBLE } from './roomTrouble';
 import type { Trouble } from './roomLines';
 import { Shift } from '../shift';
-import { paceOf } from './pace';
+import { paceOf, type PaceVoice } from './pace';
+import { HOUR, STREAK, goodOf, risingOf } from './roomHour';
 import { Visit } from './roomVisit';
 
 export const PRICE = 22; // copper a client, at the first rank (a table's order: 2)
@@ -210,11 +211,25 @@ export class RoomShift extends Shift {
   private letIn(client: Client, tone: Tone): Talk {
     const plain = client.kind === 'plain';
     const taste = !plain ? 'plain' : TEMPERS[client.temper].likes === tone ? 'liked' : 'disliked';
+    const who = plain ? client.temper : (client.kind as Trouble);
     return {
       speaker: client.name,
       lines: [this.line(client, 'inside', 72)],
-      pace: { pace: paceOf(plain ? client.temper : (client.kind as Trouble), taste), with: client.name, done: (score) => this.after(client, tone, Math.min(1, Math.max(0, score))) },
+      pace: { pace: paceOf(who, taste), with: client.name, voice: this.voice(client, who), bare: true, done: (score) => this.after(client, tone, Math.min(1, Math.max(0, score))) },
       answers: [],
+    };
+  }
+
+  // What they say during the hour, as it goes (roomHour.ts): their temper's (or their trouble's), a man's or a
+  // woman's with it.
+  private voice(client: Client, who: Temper | Trouble): PaceVoice {
+    const pick = (lines: readonly string[], salt: number) => oneOf(lines, this.roll(this.seen, salt))!;
+    const sex = client.look.build;
+    return {
+      rising: (level) => pick(risingOf(who, sex, level), 90 + level),
+      badly: () => pick(HOUR[who].badly, 95),
+      streak: () => pick(STREAK, 96),
+      finish: (score) => pick(score >= PLEASED ? goodOf(who, sex) : HOUR[who].poor, 97),
     };
   }
 

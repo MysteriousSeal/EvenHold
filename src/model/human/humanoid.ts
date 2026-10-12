@@ -29,6 +29,7 @@ export interface BodyLook {
   hairStyle: HairStyle;
   beard: boolean;
   expression?: Expression; // their face (none: calm, as every look before it was chosen)
+  unclothed?: boolean; // drawn without their braies (and her breast band): skin there instead (only ever a drawn look's: never kept on anyone)
 }
 
 export interface Humanoid {

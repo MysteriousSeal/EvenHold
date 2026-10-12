@@ -81,6 +81,46 @@ export class PaceRun {
   }
 }
 
+// What they say as it goes (roomHour.ts): each asked for as it's wanted.
+export interface PaceVoice {
+  rising(level: number): string; // the more pleased: 0 to 3
+  badly(): string; // the pace lost
+  streak(): string; // a run of beats well kept
+  finish(score: number): string; // as it ends
+}
+const LEVELS = [0.2, 0.4, 0.6, 0.8]; // of the whole game well kept: each passed, they say so
+const LOST = 2; // beats missed running, for a word on it
+const SPARE = 3; // beats before another such word
+const RUN = 4; // beats well kept running, for a word of it
+
+// What's said over a game, as it's played: asked after each change (`next`: a new line, or null with nothing new
+// to say). The more pleased as each level's passed; the pace lost, now and then; a good run; and a last word.
+export class PaceSaid {
+  private seen = 0; // beats marked, taken account of
+  private level = 0; // levels passed, said
+  private missed = 0; // missed running
+  private kept = 0; // kept running
+  private since = SPARE; // beats since the pace lost was last said
+  private ended = false;
+
+  constructor(private readonly run: PaceRun, private readonly voice: PaceVoice) {}
+
+  next(): string | null {
+    const { run } = this;
+    let said: string | null = null;
+    for (; this.seen < run.marks.length; this.seen++) {
+      const worth = run.marks[this.seen];
+      [this.missed, this.kept, this.since] = [worth === 0 ? this.missed + 1 : 0, worth >= 1 ? this.kept + 1 : 0, this.since + 1];
+      if (this.missed >= LOST && this.since >= SPARE) [said, this.since] = [this.voice.badly(), 0];
+      else if (this.kept > 0 && this.kept % RUN === 0) said = this.voice.streak();
+    }
+    const level = LEVELS.filter((l) => run.score >= l).length;
+    if (level > this.level) [said, this.level] = [this.voice.rising(level - 1), level]; // (the more pleased: over any other word)
+    if (run.done && !this.ended) [said, this.ended] = [this.voice.finish(run.score), true];
+    return said;
+  }
+}
+
 // A game played out by pressing each beat `off` from its middle (of a beat's length): how it would score (for
 // the tests, and for a hand that isn't there to play it).
 export function played(pace: Pace, off = 0): number {
