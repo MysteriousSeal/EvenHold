@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fresh } from './support/testWorld';
 import { makeEnemy } from '../src/model/enemies/enemies';
-import { cyclePeople, peopleAbout } from '../src/model/hero/selection';
+import { cyclePeople, healthOf, peopleAbout } from '../src/model/hero/selection';
 import { titleOf } from '../src/model/npcs/npcs';
 import { castSpell, castTarget } from '../src/model/spells/casting';
 import { learn } from '../src/model/spells/spells';
@@ -76,30 +76,38 @@ describe('someone picked out', () => {
     learn(hero, 'hex');
     model.select(one);
     expect(castTarget(model, 'hex')).toBeNull();
-    expect(castSpell(model, 'hex')).toBe('noFoe');
+    expect(castSpell(model, 'hex')).toBe('noTarget');
     hero.facing = 0;
     const foe = { ...makeEnemy(900_001, 'wolf', hero.x, hero.z + 2), hp: 500, maxHp: 500 };
     model.enemies.push(foe);
-    expect(castTarget(model, 'hex')).toBe(foe);
+    expect(castTarget(model, 'hex')).toEqual({ foe });
     expect(castSpell(model, 'hex')).toBe('cast');
     expect(foe.hp).toBeLessThan(500);
     expect(model.focused).toBe(foe); // (the foe struck has the hero's attention now, as with a blow)
     expect(model.chosen.person).toBeNull();
   });
 
-  it('shows in the frame by the hero: their name and calling, no health; a foe after, its own', () => {
+  it('shows in the frame by the hero: their name and calling, their health and level; a foe after, its own', () => {
     document.body.replaceChildren();
     const { model, one } = amongFolk();
     const update = createTargetHud(document.body);
     const root = document.querySelector<HTMLElement>('.target-hud')!;
     update(null, 1, null);
     expect(root.hidden).toBe(true);
-    update(null, 1, one);
+    const health = healthOf(one, model.size);
+    expect(health.hp).toBe(health.max); // (whole)
+    expect(health.level).toBe(one.level);
+    update(null, 1, one, health);
     expect(root.hidden).toBe(false);
+    expect(root.querySelector('.hero-hud-hp span')!.textContent).toBe(`${health.max} / ${health.max}`);
+    expect(root.querySelector('.hero-hud-level')!.textContent).toBe(String(one.level));
+    one.hp = 1;
+    update(null, 1, one, healthOf(one, model.size));
+    expect(root.querySelector('.hero-hud-hp span')!.textContent).toBe(`1 / ${health.max}`);
     expect(root.classList.contains('person')).toBe(true);
     expect(root.querySelector('.target-hud-name')!.textContent).toMatch(new RegExp(`^${one.name} \\(`));
     const villager = model.npcs[0];
-    update(null, 1, villager);
+    update(null, 1, villager, healthOf(villager, model.size));
     expect(root.querySelector('.target-hud-name')!.textContent).toBe(titleOf(villager));
     const foe = makeEnemy(900_001, 'wolf', model.hero.x, model.hero.z + 2);
     update(foe, 1, null);
