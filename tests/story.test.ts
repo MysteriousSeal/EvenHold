@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { STORY_QUESTS, type Who } from '../src/model/story/story';
+import { RARE_QUESTS } from '../src/model/story/rareQuests';
 import { addToBag } from '../src/model/hero/bag';
 import { interactionOf } from '../src/model/hero/interaction';
 import type { Enemy } from '../src/model/types';
@@ -186,6 +187,27 @@ describe('the quests people give', () => {
     expect(hero.energy).toBeGreaterThan(0);
     expect(model.minutes).toBeGreaterThan(before);
     expect(hero.bag.meatPie ?? 0).toBe(0);
+  });
+
+  it('set the rare ones in few villages each, one that follows another only where that one is', () => {
+    const model = everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
+    const { story } = model;
+    expect(RARE_QUESTS.length).toBe(30);
+    expect(new Set(Object.keys(STORY_QUESTS)).size).toBe(Object.values(STORY_QUESTS).length);
+    expect(Object.values(STORY_QUESTS).filter((q) => STORY_QUESTS[q.id] !== q)).toEqual([]); // (no two of a name)
+    const where = (id: string) => story.keysOf(id).map((key) => key.split('@')[1]);
+    let set = 0;
+    for (const quest of RARE_QUESTS) {
+      const at = where(quest.id);
+      set += at.length;
+      expect(at.length, quest.id).toBeLessThan(model.villages.length / 2);
+      if (quest.follows) for (const village of at) expect(where(quest.follows), `${quest.id} after ${quest.follows}`).toContain(village);
+    }
+    expect(set).toBeGreaterThan(model.villages.length); // (and yet a few to each village)
+    const villages = [...new Set(RARE_QUESTS.flatMap((q) => where(q.id)))];
+    const sets = villages.map((v) => RARE_QUESTS.filter((q) => where(q.id).includes(v)).map((q) => q.id).join());
+    expect(villages.length).toBeGreaterThan(model.villages.length * 0.8); // (nearly every village has some)
+    expect(new Set(sets).size).toBeGreaterThan(sets.length * 0.8); // (and hardly two the same)
   });
 
   it("are set in every village from the same few: its own people, paid by its level, a gift with some; a full bag waits", () => {
