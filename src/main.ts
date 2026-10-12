@@ -377,7 +377,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
-      else if (event.kind === 'puff') view.puff(event.x, event.y, event.z);
+      else if (event.kind === 'puff') return; // (someone turned into a chicken, or back: the view draws it as it happens, wildlife/chickenRig.ts)
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
