@@ -48,6 +48,8 @@ import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
 import { createSpellbook } from './controller/spells/spellbook';
+import { playTransformation } from './view/cinema/transformCinema';
+import { enemyName } from './view/meshes/enemy/enemyParts';
 import { createCharmPanel } from './controller/trade/charmPanel';
 import { spellbookIcon } from './view/ui/spellIcons';
 import { SPELLS } from './model/spells/spells';
@@ -377,7 +379,12 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
-      else if (event.kind === 'puff') return; // (someone turned into a chicken, or back: the view draws it as it happens, wildlife/chickenRig.ts)
+      else if (event.kind === 'puff') return; // (someone turned back from a chicken: the view draws it as it happens, wildlife/chickenRig.ts)
+      else if (event.kind === 'transformed') {
+        // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
+        controller.paused = true;
+        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, event.into, () => (controller.paused = false));
+      }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
