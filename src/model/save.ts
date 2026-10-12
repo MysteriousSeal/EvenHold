@@ -84,6 +84,7 @@ export interface SaveData {
   lets?: Array<{ inn: number; until: number }>;
   travellers?: ReturnType<Travellers['save']>; // those on the roads: where each is, which way, their health; those to set out again // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
+  chickens?: unknown; // whoever's been turned into one, for good: the hens, and the villagers lost (spells/chickens.ts)
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
@@ -140,6 +141,7 @@ export function snapshot(model: GameModel): SaveData {
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
     coins: model.coins.map(({ amount, x, z }) => ({ amount, x, z })),
+    chickens: model.chickens.save(),
     // Only villagers who've done something (the rest are as the seed made them, at home).
     npcs: model.npcs
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
@@ -290,6 +292,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);
+  model.chickens.load(data.chickens); // (before the villagers' day: those lost are gone)
   if (typeof data.minutes === 'number' && Number.isFinite(data.minutes) && data.minutes >= 0) model.minutes = data.minutes;
   // Villagers pick up their day where they were in it.
   const npcs = new Map(model.npcs.map((n) => [n.id, n]));

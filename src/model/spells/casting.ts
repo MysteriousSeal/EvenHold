@@ -62,7 +62,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   const mended = spell.heal ? Math.max(0, Math.min(Math.ceil(body.max - body.one.hp), Math.round(body.max * spell.heal))) : 0;
   if (mended > 0) body.one.hp = Math.min(body.max, body.one.hp + mended);
   caster.report({ kind: 'cast', spell: id, x: whom.x, y: whom.y, z: whom.z, ...(spell.heal ? { mended } : {}) });
-  if (spell.chicken && !('self' in at)) caster.chickens?.turn('foe' in at ? at.foe : at.person, spell.chicken);
+  if (spell.chicken && !('self' in at)) caster.chickens?.turn('foe' in at ? at.foe : at.person);
   if (spell.harm && 'foe' in at) strike(caster, at.foe, blowDamage(hero, blowOf(hero)) * spell.harm, false);
   return 'cast';
 }

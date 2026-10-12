@@ -39,6 +39,7 @@ export interface WorldHost {
   readonly seed: number;
   readonly hero: Hero;
   readonly slain: ReadonlySet<number>;
+  readonly lost?: ReadonlySet<number>; // villagers gone for good (turned into chickens: spells/chickens.ts), by id
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
@@ -312,7 +313,7 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    const npcs = spawnNpcs(seed, doors, villages, fields, ids); // the villagers, one to a house
+    const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.lost?.has(n.id)); // the villagers, one to a house (but those lost for good)
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
     const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, entrances };
     this.learn(index, known);

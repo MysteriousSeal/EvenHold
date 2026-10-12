@@ -9,7 +9,7 @@ import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
 import type { SpellId } from './spells/spells';
-import type { Being, Chickened } from './spells/chickens';
+import type { Being } from './spells/chickens';
 import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
 
@@ -60,7 +60,6 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 // looted, or a blow landing on an enemy or on the hero, at where they are.
 export type GameEvent =
   | { kind: 'coins'; amount: number }
-  | { kind: 'puff'; x: number; y: number; z: number } // a puff of smoke (someone turned back from a chicken: spells/chickens.ts)
   | { kind: 'transformed'; who: Being; into: 'chicken' } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
@@ -102,7 +101,6 @@ export interface Enemy {
   homeX: number; // where it wanders around, and returns to
   homeZ: number;
   pen?: number; // if kept in (a camp's bandits): wanders only to the tiles this far round home, inside the palisade
-  chicken?: Chickened; // turned into one, for a while (spells/chickens.ts): wandering, at nothing else
   haunt?: { x0: number; z0: number; x1: number; z1: number }; // if bound to a place (a ruin's ghosts): never leaves it, nor chases the hero out of it
   level: number; // from how far from spawn it lives (enemyLevels.ts)
   maxHp: number;

@@ -72,8 +72,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield carter ? { kind: 'carter', carter } : null;
   const chop = lumber.action;
   yield chop?.kind === 'chop' ? { kind: 'chop', action: chop } : null;
-  const spoken = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach;
-  const talker = spoken?.chicken ? null : spoken; // (turned into a chicken: no word to be had) // the barmaid, the smith (of the villagers round about); else a villager with something to ask
+  const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
   yield talker && seated?.seat.piece.kind === 'barStool' ? { kind: 'talk', npc: talker, fromStool: true } : null;
   yield seated ? { kind: 'stand', seat: seated.seat } : null;
@@ -81,8 +80,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield seat ? { kind: 'sit', seat } : null;
   const leaving = !!inside && !!model.doorInReach; // (at the way out: out, before a word with whoever stands by it)
   yield talker && !leaving ? { kind: 'talk', npc: talker, fromStool: false } : null;
-  const met = !inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null;
-  const traveller = met?.chicken ? null : met;
+  const traveller = !inside && !model.yard ? travellerInReach(model.travellers.list, hero) : null;
   yield traveller ? { kind: 'traveller', traveller } : null;
   const board = model.boardInReach;
   yield board !== null ? { kind: 'board', board } : null;

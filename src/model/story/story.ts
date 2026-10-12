@@ -338,6 +338,14 @@ export class Story {
     return true;
   }
 
+  // Someone gone for good (turned into a chicken: spells/chickens.ts): whatever of theirs is under way (given by them,
+  // or to be handed in to them) let go, nothing of theirs set by hand kept; the rest follows from their being gone
+  // from the world (no quest set that wants them: storySet.ts lacks).
+  lose(who: Npc): void {
+    for (const { key } of this.set.by.get(who) ?? []) [this.abandon(key), this.forced.delete(key)];
+    for (const [key, id] of this.forced) if (id === who.id) this.forced.delete(key);
+  }
+
   // Let go: on offer again from whoever gave it, to be taken up afresh (what was done toward it forgotten).
   abandon(id: string): boolean {
     const key = keyed(id);

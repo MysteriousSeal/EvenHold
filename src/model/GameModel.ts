@@ -484,6 +484,7 @@ export class GameModel {
   get focused(): Enemy | null { return this.focusOn.focused; }
   focus = (id: number | null): void => void [this.focusOn.focus(id), this.focusOn.focused && this.chosen.select(null)];
   readonly chickens = new Chickens(this);
+  readonly lost = this.chickens.lost; // (villagers turned for good: a world made again is made without them)
   readonly chosen = new Selection(); // (whoever else they've picked out, no foe: hero/selection.ts; one or the other)
   select = (who: Person | null): void => void [this.chosen.select(who), who && this.focusOn.focus(null)];
 

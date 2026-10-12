@@ -136,7 +136,6 @@ const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> =
 
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
-  if (npc.chicken) return; // (turned into a chicken: spells/chickens.ts walks them)
   if (seen && easeOffHero(npc, world, dt)) return;
   if (CALLED[npc.role]?.(npc, world)) [npc.steps, npc.path, npc.waited, npc.working] = [[], null, 0, false]; // (to the counter, at once)
   if (npc.steps.length === 0) npc.steps = ROUTINES[npc.role](npc, npcs, world);
