@@ -23,6 +23,7 @@ import type { GameModel } from '../../src/model/GameModel';
 import { SHIFT } from '../../src/model/jobs/shift';
 import { BONUS, boardFace, isBarAction } from '../../src/model/jobs/work';
 import { BarShift } from '../../src/model/jobs/barShift';
+import { InnShift } from '../../src/model/jobs/innShift';
 import type { JobId } from '../../src/model/jobs/jobs';
 import { barErrand, outOfAisle, worthIt } from './barWork';
 import { AISLE_X } from '../../src/model/inn/innStaff';
@@ -204,6 +205,7 @@ export class BotVentures extends BotSteps {
         money = hero.money;
       }
       if (shift instanceof BarShift) return this.tendingBar(shift, dt);
+      if (!(shift instanceof InnShift)) return 'fail'; // (a room's shift: not a venture of this player's)
       if (shift.tray.length > shift.rank.tray) this.report('tray over full', `${shift.tray.length} on a ${shift.rank.name}'s tray of ${shift.rank.tray}`);
       for (const want of shift.wants.values()) {
         if (want.state !== 'ordered' || want.ready) {

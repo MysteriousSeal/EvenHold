@@ -84,11 +84,16 @@ describe('a night spent with someone', () => {
     expect(inside.below).toBeUndefined();
     expect(who.where).toBe(who.home);
     expect(model.minutes % (24 * 60)).toBe(8 * 60);
-    expect(Math.hypot(who.x - hero.x, who.z - hero.z)).toBeLessThan(2.5);
+    expect(Math.hypot(who.x - hero.x, who.z - hero.z)).toBeLessThan(3);
     expect(Math.hypot(who.x - hero.x, who.z - hero.z)).toBeGreaterThan(0.5);
-    for (const at of [hero, who]) expect(bumpsFurniture(inside.furniture, at.x, at.z, 0.2)).toBe(false);
-    const bed = inside.furniture.find((f) => f.kind === 'bed' || f.kind === 'forge' || f.kind === 'hearth');
-    if (bed) expect(Math.hypot(bed.x + (bed.w - 1) / 2 - hero.x, bed.z + (bed.d - 1) / 2 - hero.z)).toBeLessThan(3);
+    expect(bumpsFurniture(inside.furniture, who.x, who.z, 0.2)).toBe(false);
+    // In its bed, where there's one (the smithy has none: stood by the forge); up from it onto the floor beside.
+    const bed = inside.furniture.find((f) => f.kind === 'bed');
+    expect(!!model.seated?.seat.lying).toBe(!!bed);
+    if (bed) expect(model.seated!.seat.piece).toBe(bed);
+    else expect(bumpsFurniture(inside.furniture, hero.x, hero.z, 0.2)).toBe(false);
+    const from = model.seated?.from ?? hero;
+    expect(bumpsFurniture(inside.furniture, from.x, from.z, 0.2)).toBe(false);
     // Handed in after: no second night, and still there.
     model.story.talk(who)!.answers[0].pick();
     expect(model.minutes % (24 * 60)).toBe(8 * 60);
@@ -104,10 +109,10 @@ describe('a night spent with someone', () => {
     expect(who.where).toBe(inside.entrance);
     expect(model.folk).toContain(who);
     expect(letUntil(who.home)).toBeGreaterThan(model.minutes);
-    expect(Math.hypot(who.x - hero.x, who.z - hero.z)).toBeLessThan(2.5);
-    for (const at of [hero, who]) expect(bumpsFurniture(inside.furniture, at.x, at.z, 0.2)).toBe(false);
-    const bed = inside.furniture.filter((f) => f.kind === 'roomBed' || f.kind === 'doubleBed').sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z))[0];
-    expect(Math.hypot(bed.x - hero.x, bed.z - hero.z)).toBeLessThan(3);
+    expect(Math.hypot(who.x - hero.x, who.z - hero.z)).toBeLessThan(3);
+    expect(bumpsFurniture(inside.furniture, who.x, who.z, 0.2)).toBe(false);
+    expect(model.seated?.seat.lying).toBe(true); // (in the room's bed)
+    expect(['roomBed', 'doubleBed']).toContain(model.seated!.seat.piece.kind);
     // As the talk ends (the game running again): out by the room's door, opened, and along the hallway on foot.
     const woke = { x: who.x, z: who.z };
     for (let t = 0; t < 2; t += 0.1) model.update(0, 0, 0.1);

@@ -45,7 +45,7 @@ describe('the work window', () => {
     expect(Array.from(table.querySelectorAll('tbody td.job-perk-next')).map((td) => td.classList.contains('up'))).toEqual([false, true, true]); // (the same tray; more patience, better tips)
     expect(q('.job-ledger').textContent).toContain('16 served');
     expect(q('.job-picks').hidden).toBe(false); // (the tables, the bar)
-    expect(all('.job-picks').at(-1)!.querySelectorAll('.job-pick')).toHaveLength(2);
+    expect(all('.job-picks').at(-1)!.querySelectorAll('.job-pick')).toHaveLength(3); // (the tables, the bar, the room upstairs)
     expect(q('.job-speaker').textContent).toMatch(/^Pinned to the board at the .+ inn$/);
     panel.menu.close();
   });
