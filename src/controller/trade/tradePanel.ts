@@ -273,7 +273,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
 }
 
 // The keeper, talking: their face on the left, their name and what they say in a bubble (over `tab`).
-function talk(npc: Keeper, says: string, tab: 'buy' | 'buyback'): HTMLElement {
+export function talk(npc: Keeper, says: string, tab: 'buy' | 'buyback'): HTMLElement {
   const row = document.createElement('div');
   row.className = `shop-talk ${tab}`;
   const face = document.createElement('div');

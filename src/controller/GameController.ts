@@ -1,5 +1,6 @@
 // Controller: turns input into model updates and drives the frame loop.
 
+import { cyclePeople, peopleAbout } from '../model/hero/selection';
 import { interactionOf, type Interaction, type InteractionKind } from '../model/hero/interaction';
 import type { Carter } from '../model/story/carter';
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
@@ -76,12 +77,15 @@ export class GameController {
     this.onTraveller = options.onTraveller ?? (() => {});
     this.onWork = options.onWork ?? (() => {});
     this.onMeet = options.onMeet ?? (() => {});
-    // Clicking an enemy focuses it; clicking open ground, or Escape, lets go.
+    // Clicking an enemy focuses it, anyone else picks them out; clicking open ground, or Escape, lets go.
     view.canvas.addEventListener('pointerdown', (event) => {
-      if (event.button === 0 && !this.paused && (!model.inside || model.dungeon) && !model.yard) model.focus(view.pickEnemy(event.clientX, event.clientY, model.foes)); // (the world's foes, or a crypt's guards)
+      if (event.button !== 0 || this.paused || model.yard) return;
+      const foe = !model.inside || model.dungeon ? view.pickEnemy(event.clientX, event.clientY, model.foes) : null; // (the world's foes, or a crypt's guards)
+      model.focus(foe);
+      model.select(foe === null ? view.pickPerson(event.clientX, event.clientY, peopleAbout(model)) : null); // (no foe there: whoever is, hero/selection.ts)
     });
     window.addEventListener('keydown', (event) => {
-      if (event.code === 'Escape' && !this.paused) model.focus(null);
+      if (event.code === 'Escape' && !this.paused) [model.focus(null), model.select(null)];
     });
     // The mouse wheel steps the zoom outdoors: up, closer. Small scrolls (a
     // trackpad's) add up to a whole step first.
@@ -137,7 +141,10 @@ export class GameController {
     if (this.paused) return;
     if (this.input.consumeAttack()) this.model.startAttack();
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
-    if (turn && (!this.model.inside || this.model.dungeon) && !this.model.yard) this.model.cycleFocus(turn === 'back');
+    if (turn && !this.model.yard) {
+      if (!this.model.inside || this.model.dungeon) this.model.cycleFocus(turn === 'back');
+      if (!this.model.focused) cyclePeople(this.model, turn === 'back'); // (no foe to turn to: whoever's about)
+    }
     // F (an ale) or G (a pie), sat on a stool at the bar: ordered from the inn's barmaid. Stood by her, G: a room;
     // by its bed, at night, G: a night's sleep.
     const wanted = this.model.work.shift ? (this.input.consumeOrder(), null) : this.input.consumeOrder(); // (at work: none of it)

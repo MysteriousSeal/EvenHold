@@ -46,6 +46,10 @@ import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
+import { createSpellbook } from './controller/spells/spellbook';
+import { createCharmPanel } from './controller/trade/charmPanel';
+import { spellbookIcon } from './view/ui/spellIcons';
+import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
@@ -163,6 +167,7 @@ async function boot(): Promise<void> {
   const jobs = createJobPanel(model, { setPaused: (paused) => (controller.paused = paused) }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const charms = createCharmPanel(model); // (a hedge-witch's charms, to learn)
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
@@ -171,12 +176,14 @@ async function boot(): Promise<void> {
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
+    else if (who.role === 'hedgewitch') charms.open(who);
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
   };
   const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused), trade, redraw: (dt) => controller.redraw(dt) }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
+  const spellbook = createSpellbook(model); // (N: the charms the hero knows, to put on the bar)
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
@@ -208,6 +215,7 @@ async function boot(): Promise<void> {
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
     { label: 'Journal', key: 'L', icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
     { label: 'Skills', key: 'K', icon: skillsIcon, isOpen: () => skills.menu.isOpen, toggle: () => skills.menu.toggle() },
+    { label: 'Spellbook', key: 'N', icon: spellbookIcon, isOpen: () => spellbook.menu.isOpen, toggle: () => spellbook.menu.toggle() },
     { label: 'Level up', key: 'P', icon: levelUpIcon, isOpen: () => levelUp.menu.isOpen, toggle: () => levelUp.menu.toggle(), marked: () => model.hero.statPoints > 0 },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
@@ -276,7 +284,7 @@ async function boot(): Promise<void> {
     updateHud();
     updateBlessing();
     updateClock(model.minutes);
-    updateTarget(model.focused, model.hero.level);
+    updateTarget(model.focused, model.hero.level, model.chosen.person);
     const below = model.dungeon && model.inside && dungeonAt(model.inside.entrance);
     const camp = !model.inside ? model.campLife.status(model.hero) : null; // (about a bandit camp: its bandits and chief slain)
     const village = !model.inside && !camp ? model.welcome.village() : null; // (in a village: its name and level, its board's quests)
@@ -286,10 +294,12 @@ async function boot(): Promise<void> {
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
     herbs.update();
+    charms.update();
     pack.update();
     journal.update();
     salvage.update(); // (a piece on the bench: its bar)
     skills.update();
+    spellbook.update();
     sheet.update();
     updateToolbar();
     updateActionBar();
@@ -365,6 +375,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
+      else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [SPELLS[event.spell].name], '#b98af0'); // (a spell landing: its name over the foe, in violet)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + KIND_LOOKS[event.on].textHeight, z: event.z }, [`${event.amount}`], '#ffffff');
