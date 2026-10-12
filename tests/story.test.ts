@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { STORY_QUESTS, type Who } from '../src/model/story/story';
-import { RARE_QUESTS } from '../src/model/story/rareQuests';
+import { RARE_QUESTS } from '../src/model/story/quests/catalog';
 import { addToBag } from '../src/model/hero/bag';
 import { interactionOf } from '../src/model/hero/interaction';
 import type { Enemy } from '../src/model/types';
