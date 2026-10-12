@@ -379,7 +379,6 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
-      else if (event.kind === 'puff') return; // (someone turned back from a chicken: the view draws it as it happens, wildlife/chickenRig.ts)
       else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
