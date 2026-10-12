@@ -7,15 +7,15 @@
 import { shopAt, type Shop } from '../inn/tavernShop';
 import { takeStock } from '../shops/shopStock';
 import { doorNumber } from '../interiors/interiors';
-import type { Entrance, Room } from '../interiors/interiors';
-import type { Furniture } from '../interiors/furniture';
+import type { Entrance } from '../interiors/interiors';
+import { middleOf, type Furniture } from '../interiors/furniture';
 import type { Npc } from '../npcs/npcs';
 import type { GameEvent, Hero } from '../types';
 import { gainXp } from '../hero/heroStats';
 import { JOBS, rankIn, recordOf, type JobId } from './jobs';
 import { InnShift, type Order, type ShiftAction } from './innShift';
 import { BarShift, type BarAction } from './barShift';
-import { RoomShift, type Client, type RoomHost } from './roomShift';
+import { RoomShift, type Client, type RoomHost } from './room/roomShift';
 import type { Talk } from '../story/story';
 
 const HERO_XP = 4; // the hero's own experience, an order served (work's a way up too)
@@ -26,12 +26,10 @@ const OUT: [number, number] = [0.25, 1.35];
 export const CUPBOARD_OUT = 6; // the inn's own tankards out for a barkeep's shift, at most
 export const BONUS = 1; // copper an order, the shift worked to its end with no one walked out
 
-export interface WorkHost extends Partial<Pick<RoomHost, 'npcs'>> {
+export interface WorkHost extends RoomHost {
   readonly hero: Hero;
-  minutes?: number; // the game's clock (time passed in an inn's room: roomShift.ts)
   readonly seed: number;
   readonly shops: Map<number, Shop>; // the inns' (the cupboard: tankards sold to one, out on its shelves for the shift)
-  readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance; room?: Room } | null;
   readonly folk: readonly Npc[];
   report(event: GameEvent): void;
 }
@@ -58,7 +56,7 @@ export class Work {
   start(inn: Entrance, job: JobId = 'innServer'): boolean {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
-    this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host as RoomHost) : new InnShift(inn, rank, this.host.seed);
+    this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host) : new InnShift(inn, rank, this.host.seed);
     if (this.shift instanceof RoomShift) return (this.shift.onServed = () => this.served()), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
@@ -161,7 +159,7 @@ export class Work {
 
 // Where an inn's notice board (hung on its wall, `board`) is seen from the room: the middle of its face, at the wall.
 export function boardFace(board: Furniture): { x: number; z: number } {
-  const [cx, cz] = [board.x + (board.w - 1) / 2, board.z + (board.d - 1) / 2];
+  const { x: cx, z: cz } = middleOf(board);
   return board.wall === 'left' ? { x: board.x - 0.5, z: cz } : { x: cx, z: board.z - 0.5 }; // (its wall: the tile's back edge)
 }
 

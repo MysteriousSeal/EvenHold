@@ -4,7 +4,7 @@
 // goes back to their day as the talk ends: from upstairs, out by the room's door (opened), along the hallway and
 // down the stairs, on foot.
 import { checkOutAfter, letDoor, letRoomBed, setLet } from '../inn/roomLetting';
-import type { Furniture } from '../interiors/furniture';
+import { middleOf, type Furniture } from '../interiors/furniture';
 import { layIn, standingBy, wayOver, type Inside } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import { stairsOf, upstairsInside } from '../interiors/upstairs';
@@ -24,7 +24,6 @@ export interface NightHost {
 const LINGER = 0.6; // seconds they stay by the hero once the talk's over (the game's held while it's told), before their day takes them
 const BEDS: ReadonlySet<Furniture['kind']> = new Set<Furniture['kind']>(['bed', 'roomBed', 'doubleBed']);
 const BY: ReadonlyArray<Furniture['kind']> = ['forge', 'hearth']; // (no bed: where they'd have sat up)
-const middle = (f: Furniture) => ({ x: f.x + (f.w - 1) / 2, z: f.z + (f.d - 1) / 2 });
 
 // The hero and `who`, woken together in `who`'s place (see above); false where there's no standing room for it.
 export function wakeWith(model: NightHost, who: Npc): boolean {
@@ -44,9 +43,9 @@ export function wakeWith(model: NightHost, who: Npc): boolean {
   }
   const centre = within?.length ? { x: within.reduce((s, t) => s + t[0], 0) / within.length, z: within.reduce((s, t) => s + t[1], 0) / within.length } : null;
   const beds = inside.furniture.filter((f) => BEDS.has(f.kind));
-  const bed = centre ? beds.sort((a, b) => far(middle(a), centre) - far(middle(b), centre))[0] : beds[0];
+  const bed = centre ? beds.sort((a, b) => far(middleOf(a), centre) - far(middleOf(b), centre))[0] : beds[0];
   const by = bed ?? inside.furniture.find((f) => BY.includes(f.kind));
-  const spots = standingBy(inside, by ? middle(by) : (centre ?? { x: inside.room.door, z: inside.room.depth - 1 }), within);
+  const spots = standingBy(inside, by ? middleOf(by) : (centre ?? { x: inside.room.door, z: inside.room.depth - 1 }), within);
   const mine = spots[0];
   const theirs = mine && spots.slice(1).sort((a, b) => far(a, mine) - far(b, mine))[0];
   if (!mine || !theirs) return false;

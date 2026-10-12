@@ -219,6 +219,9 @@ export function seatOf(piece: Furniture, near?: { x: number; z: number }): Seat 
 }
 
 // How far (x, z) is from a piece's tiles (0 on them).
+// The middle of a piece's own tiles.
+export const middleOf = (piece: Pick<Furniture, 'x' | 'z' | 'w' | 'd'>): { x: number; z: number } => ({ x: piece.x + (piece.w - 1) / 2, z: piece.z + (piece.d - 1) / 2 });
+
 export function distanceTo(piece: Furniture, x: number, z: number): number {
   const dx = Math.max(piece.x - 0.5 - x, 0, x - (piece.x + piece.w - 0.5));
   const dz = Math.max(piece.z - 0.5 - z, 0, z - (piece.z + piece.d - 0.5));

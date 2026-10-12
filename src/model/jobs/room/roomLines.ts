@@ -5,7 +5,7 @@
 // (`LET_IN`: warm, plain, teasing): the one a temper likes (`likes`) pleases them (`after`, and a tip); another
 // leaves them paying the price and no more (`FLAT`). Those who are trouble have their own, whatever's said to them
 // (roomTrouble.ts). Crude, in so many words; nothing shown: the time itself is passed in the dark.
-import type { Build } from '../human/humanoid';
+import type { Build } from '../../human/humanoid';
 
 export type Temper = 'shy' | 'lonely' | 'blunt' | 'weary' | 'bold' | 'merry';
 export type Tone = 'warm' | 'plain' | 'tease';

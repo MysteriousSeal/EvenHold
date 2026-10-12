@@ -8,7 +8,7 @@
 
 import type { GameEvent, Hero } from '../types';
 import type { Entrance } from '../interiors/interiors';
-import type { Furniture } from '../interiors/furniture';
+import { middleOf, type Furniture } from '../interiors/furniture';
 import type { Inside, Seated } from '../interiors/indoors';
 import type { Seat } from '../interiors/furniture';
 import { maxEnergyOf, maxHpOf } from '../hero/attributes';
@@ -81,19 +81,22 @@ export function letDoor(furniture: readonly Furniture[]): Furniture | null {
 }
 
 // Whether the tile (x, z) upstairs is in the room let (behind letDoor).
-export function inLetRoom(inside: Pick<Inside, 'furniture' | 'room'>, { x, z }: { x: number; z: number }): boolean {
+// The floor tiles of the room let (behind letDoor), upstairs; none with no such room.
+export function letRoomTiles(inside: Pick<Inside, 'furniture' | 'room'>): Array<[number, number]> {
   const door = letDoor(inside.furniture);
-  const room = door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door));
-  return !!room && room.tiles.some(([tx, tz]) => tx === x && tz === z);
+  return (door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door))?.tiles) || [];
+}
+
+export function inLetRoom(inside: Pick<Inside, 'furniture' | 'room'>, { x, z }: { x: number; z: number }): boolean {
+  return letRoomTiles(inside).some(([tx, tz]) => tx === x && tz === z);
 }
 
 // The let room's bed (upstairs), and its floor's tiles; null with no such room.
 export function letRoomBed(inside: Pick<Inside, 'furniture' | 'room'>): { bed: Furniture | null; tiles: Array<[number, number]> } | null {
-  const door = letDoor(inside.furniture);
-  const tiles = door && roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door))?.tiles;
-  if (!tiles?.length) return null;
+  const tiles = letRoomTiles(inside);
+  if (!tiles.length) return null;
   const [cx, cz] = [tiles.reduce((s, t) => s + t[0], 0) / tiles.length, tiles.reduce((s, t) => s + t[1], 0) / tiles.length];
-  const far = (f: Furniture) => Math.hypot(f.x + (f.w - 1) / 2 - cx, f.z + (f.d - 1) / 2 - cz);
+  const far = (f: Furniture) => Math.hypot(middleOf(f).x - cx, middleOf(f).z - cz);
   const beds = inside.furniture.filter((f) => f.kind === 'roomBed' || f.kind === 'doubleBed').sort((a, b) => far(a) - far(b));
   return { bed: beds[0] ?? null, tiles };
 }
