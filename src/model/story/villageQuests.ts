@@ -7,7 +7,7 @@
 // in the old ruin and the ghosts over it, firewood, the boars out of the field, a coin in the well.
 import type { StoryQuest } from './storyQuests';
 
-const quest = (q: Omit<StoryQuest, 'scope' | 'accept' | 'decline' | 'thanks'> & Partial<Pick<StoryQuest, 'accept' | 'decline' | 'thanks'>>): StoryQuest => ({
+export const quest = (q: Omit<StoryQuest, 'scope' | 'accept' | 'decline' | 'thanks'> & Partial<Pick<StoryQuest, 'accept' | 'decline' | 'thanks'>>): StoryQuest => ({
   scope: 'village',
   accept: "I'll do it.",
   decline: 'Not now.',

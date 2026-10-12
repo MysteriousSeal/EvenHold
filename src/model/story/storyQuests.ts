@@ -60,6 +60,7 @@ export interface StoryQuest {
   copper: number; // at a first-level village: more, the further out (story.ts)
   xpShare: number; // of a level's experience, at the village's level
   gift?: Gift;
+  night?: boolean; // handed in, the night's spent with whoever takes it: all health and energy back, and up in the morning
 }
 
 // The line a new game opens with, about the first village, and where it leads. The carter's word to the inn; spokes

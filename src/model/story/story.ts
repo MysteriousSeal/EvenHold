@@ -12,6 +12,7 @@ import { canCarry } from '../hero/bagSlots';
 import { gainXp, xpToNext } from '../hero/heroStats';
 import { ITEMS } from '../human/equipment';
 import { rollGear } from '../human/items/gear';
+import { sleepTillMorning } from '../inn/roomLetting';
 import type { Entrance } from '../interiors/interiors';
 import { LOOT } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
@@ -24,6 +25,7 @@ import { ROAD_QUESTS } from './roadQuests';
 import { castKey, castOf, type CastHost, type Setting, type Who } from './storyCast';
 import { FIRST_QUESTS, type Gift, type StoryPlace, type StoryQuest, type Told } from './storyQuests';
 import { VILLAGE_QUESTS } from './villageQuests';
+import { BAWDY_QUESTS } from './bawdyQuests';
 
 export type { Who } from './storyCast';
 export type StoryMark = 'offer' | 'waiting' | 'ready'; // "!", a grey "?", a gold "?"
@@ -31,6 +33,7 @@ export interface Talk {
   speaker: string;
   lines: string[];
   quest?: { name: string; task: string; copper: number; xp: number; gift: string; state: 'offered' | 'handIn' }; // the quest it's about, shown under the lines
+  night?: boolean; // a night passes before its last line (the screen gone black, then the morning)
   answers: Array<{ label: string; primary?: boolean; trade?: boolean; pick(): void }>; // the hero's (none: just "Farewell"; `trade`: on to their wares)
 }
 // A quest under way, as the tracker and the journal tell it.
@@ -50,7 +53,7 @@ export interface TakenStory {
   within: Entrance | null; // the building what it still asks is done in (a shift: the inn), if it's indoors
 }
 
-export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
+export const STORY_QUESTS: Record<string, StoryQuest> = Object.fromEntries([...Object.values(FIRST_QUESTS), ...VILLAGE_QUESTS, ...BAWDY_QUESTS, ...ROAD_QUESTS].map((q) => [q.id, q]));
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 // Where a foe's kind keeps, for those that keep to a place: pointed to while none of them is in sight.
 const LAIR: Partial<Record<string, StoryPlace>> = { ghost: 'ruin', skeleton: 'ruin', cryptLord: 'ruin', bandit: 'camp' };
@@ -63,6 +66,7 @@ const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep'
 
 export interface StoryHost extends CastHost {
   readonly hero: Hero;
+  minutes: number; // the game's clock (a night spent: on to the morning)
   readonly folk: readonly Npc[];
   readonly enemies: readonly Enemy[];
   readonly entrances: readonly Entrance[];
@@ -103,7 +107,7 @@ export class Story {
       for (const who of new Set([giver, receiver])) if (who) by.set(who, [...(by.get(who) ?? []), instance]);
     };
     if (first) for (const quest of Object.values(FIRST_QUESTS)) add(quest, first);
-    for (const at of villages) VILLAGE_QUESTS.forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 9173) < (quest.share ?? 1) && add(quest, at));
+    for (const at of villages) [...VILLAGE_QUESTS, ...BAWDY_QUESTS].forEach((quest, i) => hashUnit(Number(at.key), i, this.host.seed + 9173) < (quest.share ?? 1) && add(quest, at));
     for (const quest of ROAD_QUESTS) add(quest, null);
     return (this.world = { key, first, firstRuin, all, by, road: [...all.values()].filter((i) => !i.at) });
   }
@@ -151,7 +155,8 @@ export class Story {
     const quest = STORY_QUESTS[idOf(key)];
     const level = this.level(key);
     const gift = quest.gift;
-    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (level - 1))), xp: Math.round(xpToNext(Math.max(1, level)) * quest.xpShare), gift: !gift ? '' : 'gear' in gift ? `${/^[aeiou]/.test(gift.least) ? 'an' : 'a'} ${gift.least} ${ITEMS[gift.gear].name.toLowerCase()}` : `${gift.count} × ${LOOT[gift.item].name}` };
+    const given = !gift ? '' : 'gear' in gift ? `${/^[aeiou]/.test(gift.least) ? 'an' : 'a'} ${gift.least} ${ITEMS[gift.gear].name.toLowerCase()}` : `${gift.count} × ${LOOT[gift.item].name}`;
+    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (level - 1))), xp: Math.round(xpToNext(Math.max(1, level)) * quest.xpShare), gift: [given, quest.night ? "a night's rest" : ''].filter(Boolean).join(' and ') };
   }
 
   // How far along what a taken quest asks is: what's carried of what's to be brought; else what's been counted.
@@ -260,7 +265,7 @@ export class Story {
     if (handIn) {
       const full = !this.roomFor(handIn.i.quest.gift);
       if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: [] };
-      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => this.handIn(handIn.i.key) }] };
+      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night, answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => this.handIn(handIn.i.key) }] };
     }
     const offer = mine.find((m) => m.state === 'offered' && m.gives);
     if (offer) {
@@ -344,6 +349,7 @@ export class Story {
     for (const kept of [this.untracked, this.counted, this.kept]) kept.delete(key);
     hero.money += copper;
     gainXp(hero, xp);
+    if (quest.night) sleepTillMorning(this.host);
     this.host.report({ kind: 'coins', amount: copper });
     this.host.report({ kind: 'quest', text: `${quest.name}: done`, done: true, x: hero.x, y: hero.y, z: hero.z });
     return true;
