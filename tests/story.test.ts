@@ -167,6 +167,27 @@ describe('the quests people give', () => {
     }
   }, 60_000);
 
+  it("pay a night spent with whoever asked in a night's rest: all health and energy back, and up in the morning", () => {
+    const model = everyKindOfWorld().at(-1)!;
+    const { story, hero } = model;
+    const [broth] = story.keysOf('meatForTheBroth').filter((key) => story.keysOf('supperForTwo').includes(key.replace('meatForTheBroth', 'supperForTwo')));
+    const supper = broth.replace('meatForTheBroth', 'supperForTwo');
+    expect(story.stateOf(supper)).toBe('locked'); // (asked only of one who's helped before)
+    story.accept(broth);
+    for (let i = 0; i < 3; i++) addToBag(hero.bag, 'rawBoarMeat');
+    expect(story.handIn(broth)).toBe(true);
+    expect(story.pays(supper).gift).toBe("2 × Minor health potion and a night's rest");
+    story.accept(supper);
+    addToBag(hero.bag, 'meatPie');
+    Object.assign(hero, { hp: 1, energy: 0 });
+    const before = model.minutes;
+    expect(story.handIn(supper)).toBe(true);
+    expect(hero.hp).toBeGreaterThan(1);
+    expect(hero.energy).toBeGreaterThan(0);
+    expect(model.minutes).toBeGreaterThan(before);
+    expect(hero.bag.meatPie ?? 0).toBe(0);
+  });
+
   it("are set in every village from the same few: its own people, paid by its level, a gift with some; a full bag waits", () => {
     const model = everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
     const { story, hero } = model;
