@@ -3,7 +3,7 @@
 // time passing unseen (the clock, the hero's energy), then paid, or trouble; too tired for another, the shift over
 // and all of it paid; the job's own costume, cut for a man or a woman; the pox, and a herbalist's salve for it.
 import { describe, expect, it } from 'vitest';
-import { comeIn, seeOut } from './support/roomWork';
+import { comeIn, goUp, seeOut, startShift } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading, the villagers' rounds before the shifts that call on them)
 import type { GameModel } from '../src/model/GameModel';
 import { maxEnergyOf } from '../src/model/hero/attributes';
@@ -14,11 +14,11 @@ import { standUp } from '../src/model/interiors/indoors';
 import { SALVE, poxTalk } from '../src/model/hero/pox';
 import { inLetRoom, letDoor, letUntil, setLet } from '../src/model/inn/roomLetting';
 import { restore, snapshot } from '../src/model/save';
-import { doorway, roomsOff, stairsOf, upstairsInside, useHallDoor } from '../src/model/interiors/upstairs';
+import { doorway, stairsOf, useHallDoor } from '../src/model/interiors/upstairs';
 import { JOBS, recordOf } from '../src/model/jobs/jobs';
-import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Tone } from '../src/model/jobs/roomLines';
-import { TROUBLE } from '../src/model/jobs/roomTrouble';
-import { PRICE, RoomShift } from '../src/model/jobs/roomShift';
+import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Tone } from '../src/model/jobs/room/roomLines';
+import { TROUBLE } from '../src/model/jobs/room/roomTrouble';
+import { PRICE, RoomShift } from '../src/model/jobs/room/roomShift';
 import type { Talk } from '../src/model/story/story';
 import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
 import { costumeFor, COSTUME_LOOKS } from '../src/view/meshes/human/gear/costumes';
@@ -26,21 +26,10 @@ import { costumeFor, COSTUME_LOOKS } from '../src/view/meshes/human/gear/costume
 // At work in the first inn; `upstairs`: stood in the room that's theirs.
 function atWork(upstairs = true): { model: GameModel; shift: RoomShift } {
   const model = fresh();
-  const inn = model.entrances.find((e) => e.type === 'inn')!;
-  model.enterRoom(inn);
-  expect(model.work.start(inn, 'innCompanion')).toBe(true);
-  const shift = model.work.shift as RoomShift;
+  const shift = startShift(model);
   expect(shift).toBeInstanceOf(RoomShift);
-  if (upstairs) goUp(model);
+  if (upstairs) expect(goUp(model).locked).toBe(false); // (theirs for the shift)
   return { model, shift };
-}
-function goUp(model: GameModel): void {
-  const below = model.inside!;
-  const inside = (model.inside = upstairsInside(below.entrance, below.room, stairsOf(below)!, model.seed, model.fullWalls));
-  const door = letDoor(inside.furniture)!;
-  expect(door.locked).toBe(false); // (theirs for the shift)
-  const [x, z] = roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(door))!.tiles[0];
-  Object.assign(model.hero, { x, z });
 }
 const until = (model: GameModel, what: () => unknown, most = 60): void => {
   for (let t = 0; t < most && !what(); t += 0.25) model.update(0, 0, 0.25);
@@ -266,6 +255,29 @@ describe('a pleasure worker', () => {
     expect(letDoor(model.inside!.furniture)!.locked).toBe(true);
     expect(model.seated).toBeNull(); // (up out of the bed, and out of the room)
     expect(inLetRoom(model.inside!, { x: Math.round(hero.x), z: Math.round(hero.z) })).toBe(false);
+  });
+});
+
+describe('a shift in a room, the hero taken out of it', () => {
+  it('is over there and then: no one kept knocking at an empty room, no door to be let back in by', () => {
+    const { model, shift } = atWork();
+    const { hero } = model;
+    until(model, () => shift.client);
+    while (shift.client?.kind !== 'plain') [shift.client && model.work.meet()!.talk.answers.at(-1)!.pick(), until(model, () => shift.client)];
+    letIn(model).answers[0].pick();
+    seeOut(shift);
+    const [money, owed] = [hero.money, shift.earned];
+    until(model, () => shift.client); // (another at the door)
+    // Collapsed, say, and carried down to the hearth: downstairs, the room's door fast behind them.
+    const inn = shift.inn;
+    model.enterRoom(inn);
+    model.takeEvents();
+    for (let t = 0; t < 1 && model.work.shift; t += 1 / 30) model.update(0, 0, 1 / 30);
+    expect(model.work.shift).toBeNull();
+    expect(hero.money).toBeGreaterThanOrEqual(money + owed); // (what they'd earned: paid)
+    expect(model.takeEvents().some((e) => e.kind === 'shift')).toBe(true);
+    expect([shift.client, shift.visitor, model.work.held]).toEqual([null, null, false]);
+    expect((letUntil(inn) ?? 0) <= model.minutes).toBe(true);
   });
 });
 

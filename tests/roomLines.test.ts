@@ -4,15 +4,13 @@
 // all proportion to the others of its kind; a man's are said by men alone, a woman's by women; and no two shifts
 // bring the same people saying the same things.
 import { describe, expect, it } from 'vitest';
-import { comeIn, seeOut } from './support/roomWork';
+import { comeIn, goUp, seeOut, startShift } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading)
 import type { GameModel } from '../src/model/GameModel';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
-import { letDoor } from '../src/model/inn/roomLetting';
-import { roomsOff, stairsOf, upstairsInside } from '../src/model/interiors/upstairs';
-import { FLAT, TEMPERS, TEMPER_IDS } from '../src/model/jobs/roomLines';
-import { BOUNCER, GIVES_IN, TROUBLE } from '../src/model/jobs/roomTrouble';
-import { RoomShift } from '../src/model/jobs/roomShift';
+import { FLAT, TEMPERS, TEMPER_IDS } from '../src/model/jobs/room/roomLines';
+import { BOUNCER, GIVES_IN, TROUBLE } from '../src/model/jobs/room/roomTrouble';
+import type { RoomShift } from '../src/model/jobs/room/roomShift';
 
 const CLIENTS = 12_000; // seen to, in all (half by a man, half by a woman)
 const A_SHIFT = 12; // clients a shift, before another's begun
@@ -32,16 +30,11 @@ for (const id of TEMPER_IDS) {
 for (const [kind, t] of Object.entries(TROUBLE)) for (const of of ['knocks', 'inside', 'after', 'holds'] as const) POOLS.set(`${kind}, ${of}`, t[of]);
 
 // A shift begun at the first inn, the hero in the room, its door shut.
-function begin(model: GameModel): RoomShift {
-  const inn = model.entrances.find((e) => e.type === 'inn')!;
-  model.enterRoom(inn);
-  expect(model.work.start(inn, 'innCompanion')).toBe(true);
-  const below = model.inside!;
-  const inside = (model.inside = upstairsInside(inn, below.room, stairsOf(below)!, model.seed, model.fullWalls));
-  const [x, z] = roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(letDoor(inside.furniture)!))!.tiles[0];
-  Object.assign(model.hero, { x, z });
-  return model.work.shift as RoomShift;
-}
+const begin = (model: GameModel): RoomShift => {
+  const shift = startShift(model);
+  goUp(model);
+  return shift;
+};
 
 describe("a pleasure worker's clients", () => {
   it('say every line written, none out of all proportion; who says what counted', () => {

@@ -3,26 +3,18 @@
 // model/jobs/roomShift.ts): an answer may lead on to more, said in the same breath; Escape takes the way out (the
 // one turned away, trouble let go), never an answer that lets someone in or calls the bouncer.
 import { describe, expect, it } from 'vitest';
-import { comeIn } from './support/roomWork';
+import { comeIn, goUp, startShift } from './support/roomWork';
 import { fresh } from './support/testWorld'; // (first: the game's own order of loading)
 import { createTalkPanel } from '../src/controller/story/talkPanel';
 import { maxEnergyOf } from '../src/model/hero/attributes';
 import { interactionOf } from '../src/model/hero/interaction';
 import { inLetRoom, letDoor } from '../src/model/inn/roomLetting';
-import { roomsOff, stairsOf, upstairsInside } from '../src/model/interiors/upstairs';
-import { LET_IN } from '../src/model/jobs/roomLines';
-import type { RoomShift } from '../src/model/jobs/roomShift';
+import { LET_IN } from '../src/model/jobs/room/roomLines';
 
 function atWork() {
   const model = fresh();
-  const inn = model.entrances.find((e) => e.type === 'inn')!;
-  model.enterRoom(inn);
-  model.work.start(inn, 'innCompanion');
-  const below = model.inside!;
-  const inside = (model.inside = upstairsInside(inn, below.room, stairsOf(below)!, model.seed, model.fullWalls));
-  const [x, z] = roomsOff(inside.furniture, inside.room).find((r) => r.doors.includes(letDoor(inside.furniture)!))!.tiles[0];
-  Object.assign(model.hero, { x, z });
-  const shift = model.work.shift as RoomShift;
+  const shift = startShift(model);
+  goUp(model);
   const panel = createTalkPanel(model, { setPaused: () => {} });
   // Someone of `kind` at the door (those who aren't: turned away).
   const knock = (trouble: boolean) => {
