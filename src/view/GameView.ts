@@ -246,11 +246,6 @@ export class GameView {
     return best;
   }
 
-  // A puff of smoke where the hero is (the world, or the room they're in: someone turned into a chicken, or back).
-  puff(x: number, y: number, z: number): void {
-    this.smoke.puff(this.peopleIn, x, y, z, this.peopleIn === this.scene ? 1 : INDOOR_SCALE);
-  }
-
   // Where a point in the world is on screen, in page pixels.
   toScreen(x: number, y: number, z: number): { x: number; y: number } {
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -298,7 +293,7 @@ export class GameView {
     const home = yard ?? room ?? this.scene;
     // Whoever the hero's picked out (hero/selection.ts): the brackets at their feet, as a focused foe's.
     this.peopleIn = home;
-    this.chicken.update(model.chickens.here, home, room ? INDOOR_SCALE : 1, dt); // (whoever's been turned into one, if they're here)
+    this.chicken.update(model.chickens.here, home, room ? INDOOR_SCALE : 1, dt, this.smoke); // (whoever's been turned into one, if they're here)
     this.smoke.update(dt);
     const chosen = model.chosen.person;
     this.personMark.visible = !!chosen;

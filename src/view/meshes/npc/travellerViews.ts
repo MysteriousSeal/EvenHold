@@ -3,6 +3,7 @@
 // sword in hand), walking as anyone does, their name over them close by; a
 // guard's swing. (Foes leave them be: no health of theirs to show.)
 
+import { morphOut } from '../wildlife/chickenMorph';
 import * as THREE from 'three';
 import type { Traveller } from '../../../model/travellers/travellers';
 import { HumanRig } from '../human/humanRig';
@@ -47,7 +48,7 @@ export class TravellerViews {
       if (mark && !view.marks) rig.root.add((view.marks = new HeadMarks(HEAD_LABEL.y, t.id)).group);
       view.marks?.show(mark, time, t.facing);
       rig.update(t.x, t.y, t.z, dt, t.swingFor === null ? null : t.swingFor / SWING, t.facing);
-      rig.root.visible = !t.chicken; // (turned into a chicken: that drawn in their place, wildlife/chickenRig.ts)
+      morphOut(rig.root, t.chicken, time); // (turning into a chicken, or one: wildlife/chickenMorph.ts, the hen drawn in their place)
       label.visible = t !== talking && Math.hypot(t.x - hero.x, t.z - hero.z) < HEAD_LABEL.near;
     });
   }

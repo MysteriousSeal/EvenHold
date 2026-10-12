@@ -2,6 +2,7 @@
 // bandit's, a skeleton's or a ghost's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
+import { morphOut } from '../wildlife/chickenMorph';
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
@@ -98,7 +99,7 @@ export class EnemyViews {
     }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       rig.update(enemy, dt, heroX, heroZ);
-      rig.root.visible = !enemy.chicken; // (turned into a chicken: that drawn in its place, wildlife/chickenRig.ts)
+      morphOut(rig.root, enemy.chicken, this.time); // (turning into a chicken, or one: wildlife/chickenMorph.ts, the hen drawn in its place)
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {
