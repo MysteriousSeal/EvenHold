@@ -16,7 +16,7 @@ import { coinParts } from '../../view/ui/coins';
 import { el, line } from '../../view/ui/dom';
 import { FigureStage } from '../../view/ui/figureStage';
 import { playPace } from './paceGame';
-import { workCostume } from '../../view/meshes/human/gear/costumes';
+import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
 import { trackMenu, type Menu } from '../../view/ui/menu';
 
 const WRITE_EVERY = 16; // ms a letter, written out
@@ -143,15 +143,24 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     draw();
   };
 
-  // A game of pace, played in the dark once the last line's said: black, the game over it; then light again, and
-  // what's said next, by how it went.
+  // A game of pace, played in the dark once the last line's said: black, the game over it, the two of them stood
+  // either side as they are in the talk (nothing else shown); then light again, and what's said next, by how it went.
   const play = (pace: NonNullable<Talk['pace']>) => {
     dark = true;
     later.textContent = '';
     night.classList.add('on');
     nightfall = window.setTimeout(() => {
-      game = playPace(night, pace.pace, pace.with, (score) => {
+      scene.classList.add('playing'); // (the two of them stood either side of it, over the dark)
+      const other = speaking;
+      if (pace.bare && other) stages?.other?.show({ ...other.look, unclothed: true }, {}, {}); // (whoever it's with: nothing on, while it's played)
+      game = playPace(
+        night,
+        pace.pace,
+        pace.with,
+        (score) => {
         game = null;
+        scene.classList.remove('playing');
+        if (pace.bare && other) stages?.other?.show(other.look, other.equipment); // (dressed again, for what they say after)
         [talk, at, answering, written, woken] = [pace.done(score), 0, false, 0, true]; // (and the world behind drawn from here on: how they're found after)
         answers.replaceChildren();
         draw();
@@ -160,7 +169,9 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
           dark = false;
           write();
         }, NIGHT_FADE);
-      });
+        },
+        pace.voice,
+      );
     }, NIGHT_FADE);
   };
 
@@ -234,6 +245,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     window.clearTimeout(nightfall);
     game?.stop();
     game = null;
+    scene.classList.remove('playing');
     dark = woken = false;
     night.classList.remove('on');
     cancelAnimationFrame(frame);
@@ -264,7 +276,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       answers.replaceChildren();
       delete card.dataset.for;
       stages = { hero: stage(left, TURNED), other: stage(right, -TURNED) }; // (made for this talk, let go at its end)
-      stages.hero?.show(model.hero.look, model.hero.equipment, workCostume(model) ?? undefined); // (at work: in the job's costume, as they're seen)
+      stages.hero?.show(workLook(model), model.hero.equipment, workCostume(model) ?? undefined); // (at work: in the job's costume, as they're seen)
       stages.other?.show(who.look, who.equipment);
       scene.hidden = false;
       requestAnimationFrame(() => scene.classList.add('shown')); // (eased in)

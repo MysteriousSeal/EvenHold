@@ -19,7 +19,7 @@ import { STAT_DOES } from './statText';
 import { gearIcon, slotPlaceholder } from '../../view/ui/itemIcons';
 import { createMenu, toned, type DollSlot, type Menu } from '../../view/ui/menu';
 import { FigureStage } from '../../view/ui/figureStage';
-import { workCostume } from '../../view/meshes/human/gear/costumes';
+import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
 import { counted, percent } from '../../view/ui/words';
 import './heroSheet.css';
 
@@ -64,11 +64,12 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
         name: 'Hero',
         doll: () => {
           const costume = workCostume(model); // (at work: the job's costume, as they're seen; their own gear still in the slots beside)
-          const dressed = JSON.stringify([hero.look, hero.equipment, costume]);
+          const look = workLook(model);
+          const dressed = JSON.stringify([look, hero.equipment, costume]);
           if (dressed !== dressedAs) {
             dressedAs = dressed;
             // Framed on the bare body, so whatever's worn or held never changes its size or tilts its turn.
-            stage.show(hero.look, hero.equipment, costume ?? undefined); // (framed on the body alone: their hair never changes it)
+            stage.show(look, hero.equipment, costume ?? undefined); // (framed on the body alone: their hair never changes it)
           }
           return {
             figure: stage.canvas,
