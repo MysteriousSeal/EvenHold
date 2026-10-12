@@ -6,7 +6,7 @@
 // hero's turn: the quest it's about on a card (a "!" for one offered, a "?" for one handed in: its name, what's to be
 // done, what it pays) and the hero's answers as buttons (1, 2…; Enter: the first; Escape: the one that commits to
 // nothing, where there is one). No answer to give: the last line ends it. A quest handed in to someone with another
-// to give: its offer follows at once. Someone with a trade, asked for their wares instead: their own window. A night
+// to give: they're spoken to again for it (a "!" over them). Someone with a trade, asked for their wares instead: their own window. A night
 // spent (the talk's `night`): the screen gone black before its last line, "The next morning", then light again. The
 // game's held while it's open.
 import './talk.css';
@@ -151,20 +151,15 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     }, NIGHT_FADE + NIGHT_HELD);
   };
 
-  // An answer given. One that hands a quest in, to someone with another of theirs to offer: on to that, in the same
-  // breath (their figures stay, their next lines begin); else the talk's over.
+  // An answer given: the talk's over (someone with another quest to give once this one's handed in: spoken to again
+  // for it). Their wares asked for: on to their own window.
   const pick = (i: number) => {
     const answer = talk?.answers[i];
     if (!answer || !speaking) return;
-    const handedIn = talk?.quest?.state === 'handIn';
+    const who = speaking;
     answer.pick();
-    if (answer.trade) return void [close(), hooks.trade?.(speaking)]; // (on to their wares: their own window)
-    const next = handedIn && model.story.offers(speaking) ? model.story.talk(speaking) : null;
-    if (!next) return close();
-    [talk, at, answering] = [next, 0, false];
-    answers.replaceChildren();
-    delete card.dataset.for;
-    write();
+    close();
+    if (answer.trade) hooks.trade?.(who);
   };
 
   const onKey = (event: KeyboardEvent) => {

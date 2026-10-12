@@ -6,6 +6,7 @@
 // story/storyJournal.ts). Dev builds only: loaded with the cheat menu.
 import type { GameModel } from '../../model/GameModel';
 import type { DebugQuest, Who } from '../../model/story/story';
+import { nearest } from '../../model/story/storyCast';
 import { line } from '../../view/ui/dom';
 import { anyMenuOpen, createMenu, type MenuSlot } from '../../view/ui/menu';
 import { storyIcon } from '../story/storyJournal';
@@ -19,12 +20,7 @@ export function besideWhom(model: GameModel): Who | null {
   const { hero, inside } = model;
   const where = inside?.entrance ?? null;
   const about: Who[] = [...model.folk.filter((n) => n.where === where), ...(inside ? [] : [...model.travellers.list, ...(model.story.people ? [model.story.people.carter] : [])])];
-  let [best, near]: [Who | null, number] = [null, REACH];
-  for (const who of about) {
-    const d = Math.hypot(who.x - hero.x, who.z - hero.z);
-    if (d < near) [best, near] = [who, d];
-  }
-  return best;
+  return nearest(about, (who) => who, hero, REACH);
 }
 
 export function createQuestDebug(model: GameModel, talk: (who: Who, quest: string) => void): void {

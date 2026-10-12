@@ -219,6 +219,7 @@ async function boot(): Promise<void> {
     const found = interactionOf(model); // (what E would do: model/hero/interaction.ts)
     if (!found) return null;
     const overHero = (label: string, up = 1.05) => ({ label, x: hero.x, y: hero.y + up, z: hero.z });
+    const asking = (who: Who): boolean => ['offer', 'ready'].includes(model.story.markOf(who) ?? ''); // (a quest to give, or to take in: a word first, whatever their trade)
     switch (found.kind) {
       case 'work':
       case 'jobBoard':
@@ -234,7 +235,7 @@ async function boot(): Promise<void> {
       case 'carter':
         return { label: `Talk to ${found.carter.name}`, x: found.carter.x, y: model.getGroundY(found.carter.x, found.carter.z) + 1.1, z: found.carter.z };
       case 'talk':
-        return { label: talkPrompt(found.npc), x: found.npc.x, y: 1.1, z: found.npc.z, npc: found.npc };
+        return { label: talkPrompt(found.npc, asking(found.npc)), x: found.npc.x, y: 1.1, z: found.npc.z, npc: found.npc };
       case 'stand':
         return overHero(found.seat.lying ? 'Get up' : 'Stand up', 0.6);
       case 'sit': {
@@ -242,7 +243,7 @@ async function boot(): Promise<void> {
         return { label: found.seat.lying ? 'Lie down' : 'Sit', x: piece.x + (piece.w - 1) / 2, y: found.seat.y + (model.inside ? 0.5 : 0.3), z: piece.z + (piece.d - 1) / 2 };
       }
       case 'traveller':
-        return { label: travellerPrompt(found.traveller), x: found.traveller.x, y: found.traveller.y + 0.75, z: found.traveller.z };
+        return { label: travellerPrompt(found.traveller, asking(found.traveller)), x: found.traveller.x, y: found.traveller.y + 0.75, z: found.traveller.z };
       case 'board': {
         const spot = boardSpot(model, found.board);
         return spot ? { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z } : null;
