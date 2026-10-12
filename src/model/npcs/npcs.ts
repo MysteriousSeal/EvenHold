@@ -87,6 +87,7 @@ export interface Npc extends Humanoid {
   drinking?: { left: number; seconds: number; drink?: Drink } | null;
   drinks?: number; // drinks had this time at the bar
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
+  led?: boolean; // moved by something else than a routine of their own (someone only passing through: a client let into the hero's room, jobs/roomShift.ts): the rounds leave them be
 }
 
 // First parts: some anyone's, some only men's, some only women's.

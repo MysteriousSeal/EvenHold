@@ -107,6 +107,32 @@ export function standingBy(inside: Inside, to: { x: number; z: number }, within?
     .sort((a, b) => Math.hypot(a.x - to.x, a.z - to.z) - Math.hypot(b.x - to.x, b.z - to.z));
 }
 
+// The way over the floor from `from` to the tile nearest `to`, tile by tile (each step's own line clear of the
+// furniture: no wall stepped through); null if there's none.
+export function wayOver(inside: Pick<Inside, 'furniture' | 'room'>, from: { x: number; z: number }, to: { x: number; z: number }): Array<{ x: number; z: number }> | null {
+  const { width, depth } = inside.room;
+  const r = HERO_RADIUS * INDOOR_SCALE * 0.8;
+  const clear = (x: number, z: number) => x >= 0 && z >= 0 && x < width && z < depth && !bumpsFurniture(inside.furniture, x, z, r);
+  const open = (ax: number, az: number, bx: number, bz: number) => [0.25, 0.5, 0.75, 1].every((t) => clear(ax + (bx - ax) * t, az + (bz - az) * t));
+  const key = (x: number, z: number) => z * width + x;
+  const [sx, sz, tx, tz] = [Math.round(from.x), Math.round(from.z), Math.round(to.x), Math.round(to.z)];
+  const came = new Map<number, number>([[key(sx, sz), -1]]);
+  const queue: Array<[number, number]> = [[sx, sz]];
+  for (const [x, z] of queue) {
+    if (x === tx && z === tz) break;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const [nx, nz] = [x + dx, z + dz];
+      if (came.has(key(nx, nz)) || !open(x, z, nx, nz)) continue;
+      came.set(key(nx, nz), key(x, z));
+      queue.push([nx, nz]);
+    }
+  }
+  if (!came.has(key(tx, tz))) return null;
+  const path: Array<{ x: number; z: number }> = [];
+  for (let k = key(tx, tz); k !== -1; k = came.get(k)!) path.unshift({ x: k % width, z: Math.floor(k / width) });
+  return path;
+}
+
 // Lays the hero in `bed` (its side nearest `from`, a double one), to get up onto `from` (a spot to stand on beside
 // it); whether it's a bed to lie in.
 export function layIn(at: { seated: Seated }, hero: Hero, bed: Furniture, from: { x: number; z: number }): boolean {

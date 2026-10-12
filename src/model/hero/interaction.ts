@@ -51,6 +51,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   const { hero, inside, work, lumber } = model;
   const notice = () => (work.noticeInReach ? ({ kind: 'jobBoard', inn: work.noticeInReach } as const) : null);
   if (work.shift) {
+    if (work.held) return; // (someone coming into their room, or going: nothing to do but watch)
     yield work.action ? { kind: 'work' } : null;
     yield notice();
     if (work.shift.job === 'innCompanion' && inside) {

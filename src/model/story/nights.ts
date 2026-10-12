@@ -3,10 +3,9 @@
 // forge); for someone of the inn (its bouncer), the room let upstairs, theirs till ten that morning. Whoever it is
 // goes back to their day as the talk ends: from upstairs, out by the room's door (opened), along the hallway and
 // down the stairs, on foot.
-import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { checkOutAfter, letDoor, letRoomBed, setLet } from '../inn/roomLetting';
-import { bumpsFurniture, type Furniture } from '../interiors/furniture';
-import { layIn, standingBy, type Inside } from '../interiors/indoors';
+import type { Furniture } from '../interiors/furniture';
+import { layIn, standingBy, wayOver, type Inside } from '../interiors/indoors';
 import type { Entrance } from '../interiors/interiors';
 import { stairsOf, upstairsInside } from '../interiors/upstairs';
 import type { Npc, NpcStep } from '../npcs/npcs';
@@ -26,32 +25,6 @@ const LINGER = 0.6; // seconds they stay by the hero once the talk's over (the g
 const BEDS: ReadonlySet<Furniture['kind']> = new Set<Furniture['kind']>(['bed', 'roomBed', 'doubleBed']);
 const BY: ReadonlyArray<Furniture['kind']> = ['forge', 'hearth']; // (no bed: where they'd have sat up)
 const middle = (f: Furniture) => ({ x: f.x + (f.w - 1) / 2, z: f.z + (f.d - 1) / 2 });
-
-// The way over the floor from `from` to the tile nearest `to`, tile by tile (each step's own line clear of the
-// furniture: no wall stepped through); null if there's none.
-function wayOver(inside: Inside, from: { x: number; z: number }, to: { x: number; z: number }): Array<{ x: number; z: number }> | null {
-  const { width, depth } = inside.room;
-  const r = HERO_RADIUS * INDOOR_SCALE * 0.8;
-  const clear = (x: number, z: number) => x >= 0 && z >= 0 && x < width && z < depth && !bumpsFurniture(inside.furniture, x, z, r);
-  const open = (ax: number, az: number, bx: number, bz: number) => [0.25, 0.5, 0.75, 1].every((t) => clear(ax + (bx - ax) * t, az + (bz - az) * t));
-  const key = (x: number, z: number) => z * width + x;
-  const [sx, sz, tx, tz] = [Math.round(from.x), Math.round(from.z), Math.round(to.x), Math.round(to.z)];
-  const came = new Map<number, number>([[key(sx, sz), -1]]);
-  const queue: Array<[number, number]> = [[sx, sz]];
-  for (const [x, z] of queue) {
-    if (x === tx && z === tz) break;
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const [nx, nz] = [x + dx, z + dz];
-      if (came.has(key(nx, nz)) || !open(x, z, nx, nz)) continue;
-      came.set(key(nx, nz), key(x, z));
-      queue.push([nx, nz]);
-    }
-  }
-  if (!came.has(key(tx, tz))) return null;
-  const path: Array<{ x: number; z: number }> = [];
-  for (let k = key(tx, tz); k !== -1; k = came.get(k)!) path.unshift({ x: k % width, z: Math.floor(k / width) });
-  return path;
-}
 
 // The hero and `who`, woken together in `who`'s place (see above); false where there's no standing room for it.
 export function wakeWith(model: NightHost, who: Npc): boolean {

@@ -2,7 +2,8 @@
 // hall, unlocked). It begins as they shut its door behind them (the clock too): the door's then fast till the shift's
 // over, and no one knocks before. Then, one at a time, clients come to the door (each of the
 // other sex than the hero's, someone new each time, each of a temper of their own: roomLines.ts): let in, warmly,
-// plainly or teasing, or turned away, at a word (the talk scene: `meet`). Let in, the time passes unseen (the scene's
+// plainly or teasing, or turned away, at a word (the talk scene: `meet`). Let in, they're seen to come in from the
+// hallway and shut the door behind them, and go as they came after; between, the time passes unseen (the scene's
 // black: some of the clock, some of the hero's energy), and they pay as they leave: the house's price, by the hero's
 // rank, and a tip if the tone taken was to their taste. Some are trouble (one who pays half, one who won't pay
 // and is rough about it, a crown's soldier who thinks the crown needn't): insisted with (it works, or it doesn't:
@@ -14,7 +15,9 @@ import { givePox, hasPox } from '../hero/blessing';
 import { pickOutfit, type Equipment } from '../human/equipment';
 import { lookAt, type BodyLook } from '../human/humanoid';
 import { inLetRoom, letDoor, letRoomBed, letUntil, setLet } from '../inn/roomLetting';
-import { layIn, standUp, standingBy, type Inside } from '../interiors/indoors';
+import { layIn, standUp, standingBy, wayOver, type Inside } from '../interiors/indoors';
+import { doorway } from '../interiors/upstairs';
+import { walkAlong } from '../npcs/npcWalk';
 import type { Furniture } from '../interiors/furniture';
 import type { Entrance } from '../interiors/interiors';
 import { nameAt, type Npc } from '../npcs/npcs';
@@ -36,6 +39,8 @@ const TROUBLED = 0.28; // of clients, trouble
 const POX = 0.06; // the chance of it, each client
 const CUT = 0.3; // the bouncer's, called up
 const BLOW = 0.15; // of the hero's most health, a rough one's
+const BEAT = 0.6; // seconds one come in stands there before speaking
+const SWING = 0.75; // seconds a door takes to swing open or shut, as it's drawn (view/interior/roomView.ts SWING_TIME, and a little)
 
 export type ClientKind = 'plain' | 'skinflint' | 'rough' | 'soldier';
 export interface Client {
@@ -62,6 +67,13 @@ export class RoomShift extends Shift {
   over = false; // too tired for another: the shift's done
   begun = false; // in the room, its door shut behind them: from then, the clock runs and clients come
   onServed: () => void = () => {}; // (work.ts: what a client seen to earns the hero, besides the coin)
+  visitor: Npc | null = null; // the client let in, as they're seen in the room (walked in, stood by, walked out)
+  private stage: 'none' | 'entering' | 'inside' | 'leaving' | 'away' = 'none'; // (away: out in the hallway, the door swinging shut on them)
+  private way: Array<{ x: number; z: number }> = []; // the visitor's, in or out
+  private onward: Array<{ x: number; z: number }> | null = null; // coming in: the rest of their way, once through the door and it's shut behind them
+  private beat = 0; // seconds stood there, come in, before they speak (the door seen shut)
+  private pause = 0; // seconds before their next step: the door swinging open before them, or shut after them
+  private word: { who: Client; talk: Talk } | null = null; // what the one come in has to say, once they're in (taken up: `arrived`)
   private next = GAP[0]; // seconds in the room before the next knocks
   private seen = 0;
   readonly letBefore: number | null; // till when the room was let already, as the shift began (the hero's own night there)
@@ -99,8 +111,9 @@ export class RoomShift extends Shift {
     }
     this.left = Math.max(0, this.left - dt);
     const { hero } = this.host;
+    if (this.stage === 'entering' || this.stage === 'leaving' || this.stage === 'away') return void this.walk(dt);
     if (this.client) {
-      if ((this.client.waits -= dt) <= 0) [this.walkedOut++, this.gone()]; // (kept waiting: off, and it's told downstairs)
+      if (this.stage === 'none' && (this.client.waits -= dt) <= 0) [this.walkedOut++, this.gone()]; // (kept waiting at the door: off, and it's told downstairs)
       return;
     }
     if ((this.next -= dt) > 0) return;
@@ -110,7 +123,7 @@ export class RoomShift extends Shift {
   }
 
   actionAt(): { kind: 'client'; client: Client } | null {
-    return this.client && this.inRoom ? { kind: 'client', client: this.client } : null;
+    return this.client && this.stage === 'none' && this.inRoom ? { kind: 'client', client: this.client } : null; // (at the door still: not one let in)
   }
 
   // (E at the door is a word with whoever's there: `meet`, told as a talk; nothing done there and then.)
@@ -130,7 +143,8 @@ export class RoomShift extends Shift {
     super.release();
     // The door free again, the hero up out of the bed (the room's let over, they're shown out: roomLetting.ts).
     const [door, inside] = [this.door, this.host.inside as Inside | null];
-    if (door) door.locked = false;
+    if (door) [door.locked, door.open] = [false, this.visitor ? false : door.open];
+    [this.visitor, this.stage] = [null, 'none'];
     if (inside?.seated && inside.below === this.inn) standUp(inside, this.host.hero);
     setLet(this.inn, this.letBefore ?? 0); // (the room as it was: let still, if it was; else locked again)
   }
@@ -151,12 +165,64 @@ export class RoomShift extends Shift {
     const talk: Talk = {
       speaker: client.name,
       lines: [this.line(client, 'knocks', 71)],
-      answers: [...tones.map((tone, i) => ({ label: LET_IN[tone], primary: i === 0, pick: () => this.letIn(client, tone) })), { label: TURN_AWAY, out: true, pick: () => void [this.turnedAway++, this.gone()] }],
+      answers: [...tones.map((tone, i) => ({ label: LET_IN[tone], primary: i === 0, pick: () => this.comeIn(client, tone) })), { label: TURN_AWAY, out: true, pick: () => void [this.turnedAway++, this.gone()] }],
     };
     return { who: client, talk };
   }
 
-  // Let in: the time passed unseen (the talk's night), then what they say as they go, and what the hero may do. A
+  // Let in: the door opened, they're seen in from the hallway, round to a spot by the hero, the door shut behind them;
+  // then what they have to say (`arrived`). With no door to come by (the hero not upstairs), said at once.
+  private comeIn(client: Client, tone: Tone): Talk | void {
+    const [door, inside] = [this.door, this.host.inside as Inside | null];
+    const told = this.letIn(client, tone);
+    if (!door || !inside) return told;
+    const { hero } = this.host;
+    const [hall, within] = [doorway(door, 0.9), doorway(door, -0.9)];
+    // Where they come to stand: before the hero, a pace or two off, on the door's side of them (not round behind).
+    const far = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
+    const near = standingBy(inside, hero, letRoomBed(inside)?.tiles).filter((s) => far(s, hero) >= 0.9 && far(s, hero) <= 2.4);
+    const spot = near.sort((a, b) => far(a, hero) + 0.6 * far(a, within) - (far(b, hero) + 0.6 * far(b, within)))[0] ?? within;
+    door.open = true;
+    const way = wayOver(inside, within, spot) ?? [spot];
+    this.visitor = { id: -1 - this.seen, name: client.name, role: 'villager', look: client.look, equipment: client.equipment, home: this.inn, inn: this.inn, field: null, where: inside.entrance, x: hall.x, z: hall.z, y: 0, facing: Math.atan2(within.x - hall.x, within.z - hall.z), seat: null, stood: null, stop: 0, steps: [], path: null, waited: 0, moving: false, working: false, salt: 0, led: true, village: this.host.npcs?.find((n) => n.home === this.inn)?.village } as unknown as Npc; // (seen as a villager is; led: no rounds of their own)
+    [this.stage, this.way, this.onward, this.beat, this.pause, this.word] = ['entering', [doorway(door), within], way, BEAT, SWING, { who: client, talk: told }]; // (the door swung open first)
+  }
+
+  // The visitor's steps: in (through the door, which shuts behind them as they're seen to go on to their spot before
+  // the hero; turned to them there, a moment, then their word ready), or out (through the door, which swings shut on
+  // them; gone once it has). Each waits on the door's own swing.
+  private walk(dt: number): void {
+    const [visitor, door] = [this.visitor, this.door];
+    if ((this.pause -= dt) > 0) return; // (the door swinging)
+    if (visitor && !walkAlong(visitor, this.way, true, dt)) return;
+    if (!visitor || this.stage === 'away') return void ([this.visitor, this.stage] = [null, 'none']); // (the door shut on them: gone)
+    if (door) door.open = false; // (through it: shut behind them)
+    // Out: stood in the hallway as the door swings shut on them, and gone only once it has (what's behind it isn't seen).
+    if (this.stage === 'leaving') return void ([this.stage, this.pause, visitor.moving] = ['away', SWING, false]);
+    // In, the door shut behind them: on to their spot before the hero; there, turned to them (the hero to them too,
+    // if they're on their feet), a moment before they speak.
+    if (this.onward) return void ([this.way, this.onward] = [this.onward, null]);
+    const { hero } = this.host;
+    [visitor.moving, visitor.facing] = [false, Math.atan2(hero.x - visitor.x, hero.z - visitor.z)];
+    if (!(this.host.inside as Inside | null)?.seated) hero.facing = Math.atan2(visitor.x - hero.x, visitor.z - hero.z);
+    if ((this.beat -= dt) > 0) return;
+    this.stage = 'inside';
+  }
+
+  // Whether the hero's held where they are: while someone comes in or goes out (the door open: no slipping out by it).
+  get held(): boolean {
+    return this.stage === 'entering' || this.stage === 'leaving';
+  }
+
+  // What the one let in has to say, once they're in and the door's shut (once: taken up as it's told); else null.
+  arrived(): { who: Client; talk: Talk } | null {
+    if (this.stage !== 'inside' || !this.word) return null;
+    const word = this.word;
+    this.word = null;
+    return word;
+  }
+
+  // The talk of one let in: the time passed unseen (the talk's night), then what they say as they go, and what the hero may do. A
   // plain one, the tone to their taste: pleased, and a tip; else the price and no more.
   private letIn(client: Client, tone: Tone): Talk {
     const price = Math.round(PRICE * this.rank.tips);
@@ -223,6 +289,13 @@ export class RoomShift extends Shift {
   private gone(): void {
     this.client = null;
     this.next = GAP[0] + this.roll(this.seen, 77) * (GAP[1] - GAP[0]);
+    // One who came in goes as they came: the door opened, out to the hallway, shut after them.
+    const [visitor, door, inside] = [this.visitor, this.door, this.host.inside as Inside | null];
+    if (!visitor) return;
+    if (!door || !inside) return void ([this.visitor, this.stage] = [null, 'none']);
+    const [within, hall] = [doorway(door, -0.9), doorway(door, 0.9)];
+    door.open = true;
+    [this.stage, this.way, this.onward, this.pause] = ['leaving', [...(wayOver(inside, visitor, within) ?? []), within, doorway(door), hall], null, 0];
   }
 
   // Someone new at the door: of the other sex than the hero's, dressed for what they are.

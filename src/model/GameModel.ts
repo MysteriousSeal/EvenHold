@@ -243,6 +243,7 @@ export class GameModel {
   // (not necessarily normalized, zero when idle); dt: seconds.
   update(dirX: number, dirZ: number, dt: number): void {
     if (dt <= 0) return;
+    if (this.work.held) dirX = dirZ = 0; // (held where they stand: someone coming into their room at work, or going)
     this.minutes += dt; // a second played, a minute on the clock
     [tickBlessing(this.hero, dt), regenerate(this.hero, dt)]; // a well's, wearing off; health back, by their gear's
     this.streamer?.update(this.inside?.entrance ?? this.hero); // (a streamed world's regions round where they are on the map)
@@ -283,7 +284,7 @@ export class GameModel {
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).
-  get folk(): readonly Npc[] { return this.nearNpcs.near(this.inside?.entrance ?? this.hero); }
+  get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; return v && v.where === this.inside?.entrance ? [...near, v] : near; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts)
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);

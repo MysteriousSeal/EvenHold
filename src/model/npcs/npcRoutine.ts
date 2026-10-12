@@ -55,7 +55,7 @@ function villagesOf(npcs: readonly Npc[]): Map<Village, Npc[]> {
   let map = byVillage.get(npcs);
   if (!map) {
     map = new Map();
-    for (const npc of npcs) map.set(npc.village, [...(map.get(npc.village) ?? []), npc]);
+    for (const npc of npcs) if (!npc.led) map.set(npc.village, [...(map.get(npc.village) ?? []), npc]); // (those led by something else: no rounds)
     byVillage.set(npcs, map);
   }
   return map;

@@ -97,6 +97,21 @@ export class Work {
     return this.shift instanceof RoomShift ? this.shift.meet() : null;
   }
 
+  // The one let into the hero's room, come in and the door shut: what they have to say (once), told as a talk.
+  arrived(): { who: Client; talk: Talk } | null {
+    return this.shift instanceof RoomShift ? this.shift.arrived() : null;
+  }
+
+  // Whether the hero's held where they stand just now (someone coming into their room, or going: the door open).
+  get held(): boolean {
+    return this.shift instanceof RoomShift && this.shift.held;
+  }
+
+  // Whoever's let into the hero's room, as they're seen there (walking in, stood by, walking out).
+  get visitor(): Npc | null {
+    return this.shift instanceof RoomShift ? this.shift.visitor : null;
+  }
+
   // What E would do at work now (for the prompt), if anything.
   get action(): WorkAction | null {
     return this.shift?.actionAt(this.host.hero) ?? null;
