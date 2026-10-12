@@ -9,6 +9,8 @@ import { fresh } from './support/testWorld';
 import { makeActor } from '../src/view/cinema/actor';
 import { HEN, chickenStaging } from '../src/view/cinema/chickenStaging';
 import { STAGINGS } from '../src/view/cinema/staging';
+import { HORSE, horseStaging } from '../src/view/cinema/horseStaging';
+import { HORSE_LEGS, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../src/view/meshes/wildlife/horseVoxels';
 import { GIVES_WAY, LENGTH, playTransformation } from '../src/view/cinema/transformCinema';
 import { PartMorph } from '../src/view/cinema/partMorph';
 import { VoxelMorph, sampleFigure } from '../src/view/cinema/voxelMorph';
@@ -75,11 +77,11 @@ describe('anything else turned into a chicken', () => {
     const actor = makeActor(beast());
     expect(actor.human).toBeNull();
     expect(actor.size.y).toBeCloseTo(0.25, 5); // (the label over it: not counted, nor shown)
-    const made = chickenStaging.prepare(actor);
-    chickenStaging.stage(actor, made, 0.6, 0);
+    const made = chickenStaging.prepare!(actor);
+    chickenStaging.stage!(actor, made, 0.6, 0);
     const s = actor.root.scale;
     expect(s.z / s.y).toBeLessThan(1); // (long and low, pulled shorter and taller: a hen's shape)
-    chickenStaging.stage(actor, made, 1, 0);
+    chickenStaging.stage!(actor, made, 1, 0);
     expect(actor.root.scale.y * actor.size.y).toBeLessThan(HEN.y * 1.2);
   });
 });
@@ -118,16 +120,19 @@ describe('a four-legged beast turned into a chicken, part by part', () => {
     const morph = new PartMorph(pieces, big, down);
     const meshes = meshesOf(morph);
     const spots = spotsOf;
-    // Partway through a leg's turn: bent on its joint, between where it was and where it's going; nothing shaken.
-    morph.update((pieces[0].window[0] + pieces[0].window[1]) / 2, 1);
-    expect(meshes[0].parent!.rotation.x).not.toBe(0);
-    expect(meshes[0].parent!.rotation.y).toBe(0);
-    expect(morph.object.rotation.toArray().slice(0, 3)).toEqual([0, 0, 0]);
-    morph.update(pieces[0].window[1] + 0.01, 1);
+    // First its stance, still itself: no part reshaped yet, each cube where it was on its part.
+    morph.update(pieces[0].window[0] - 0.02, 1);
+    const local = (mesh: THREE.InstancedMesh) => {
+      const m = new THREE.Matrix4();
+      return Array.from({ length: mesh.count }, (_, k) => (mesh.getMatrixAt(k, m), new THREE.Vector3().setFromMatrixPosition(m).add(pieces[meshes.indexOf(mesh)].pivot![0])));
+    };
+    expect(new Set(local(meshes[5]).map((at) => key(at, pieces[5].from.size)))).toEqual(new Set(pieces[5].from.at.map((at) => key(at, pieces[5].from.size)))); // (the bear's head, still)
+    expect(morph.object.rotation.toArray().slice(0, 3)).toEqual([0, 0, 0]); // (nothing shaken)
+    // Then every part reshaped, all but together: a leg done, a hen's leg entire, where hers stands.
+    morph.update(pieces[0].window[1] + 0.001, 1);
     const legNow = new Set(spots(meshes[0]).map((at) => key(at, pieces[0].into.size)));
-    expect(legNow).toEqual(new Set(pieces[0].into.at.map((at) => key(at, pieces[0].into.size)))); // (a hen's leg, entire)
-    const headNow = new Set(spots(meshes[5]).map((at) => key(at, pieces[5].from.size)));
-    expect(headNow).toEqual(new Set(pieces[5].from.at.map((at) => key(at, pieces[5].from.size)))); // (the bear's head, still)
+    expect(legNow).toEqual(new Set(pieces[0].into.at.map((at) => key(at, pieces[0].into.size))));
+    expect(pieces[5].window[0]).toBeLessThan(pieces[0].window[1]); // (its head: begun before its legs are done)
     expect(morph.object.scale.x).toBe(1);
     morph.update(down, 2);
     const all = meshes.flatMap((mesh, i) => spots(mesh).map((at) => key(at, pieces[i].into.size)));
@@ -145,6 +150,68 @@ describe('a four-legged beast turned into a chicken, part by part', () => {
     expect(figure.visible).toBe(false); // (its parts, in their own voxels)
     expect(playing.root.querySelector('.transform-line')!.textContent).toBe(STAGINGS.chicken.beastLines![3][1]);
     playing.skip();
+  });
+});
+
+describe('someone turned into a horse', () => {
+  it('is a horse in voxels: a barrel on four legs, a head on an arched neck before it, a tail behind, in its few colours', () => {
+    const horse = horseStaging.cloud!();
+    const cells = [buildHorseBody(), buildHorseHead(), ...HORSE_LEGS.map(buildHorseLeg)].reduce((n, grid) => n + Array.from(grid.cells).filter(Boolean).length, 0);
+    expect(horse.at.length).toBe(cells);
+    const box = new THREE.Box3().setFromPoints(horse.at);
+    expect(box.min.y).toBeCloseTo(horse.size / 2, 6); // (its hooves on the ground)
+    expect(box.max.y).toBeCloseTo(HORSE.y - horse.size / 2, 6); // (to its ears)
+    expect(HORSE.y).toBeGreaterThan(0.55); // (taller than a man's shoulder)
+    expect(box.max.z - box.min.z).toBeGreaterThan(box.max.y - box.min.y - 0.25); // (long)
+    expect(Math.abs(box.min.x + box.max.x)).toBeLessThan(1e-6);
+    expect(HORSE_PALETTE.length).toBeLessThanOrEqual(8);
+    expect(new Set(horse.color.map((c) => c.getHex())).size).toBeGreaterThanOrEqual(5); // (coat, shade, black, white, hoof…)
+  });
+
+  it('has each part of a human, and of a bear, morph into its part: legs its hind legs, arms its forelegs, torso its barrel, head its head', () => {
+    for (const figure of [human(), new EnemyViews(new THREE.Scene()).standIn(makeEnemy(1, 'bear', 0, 0))]) {
+      const { pieces, big, down } = horseStaging.pieces!(makeActor(figure))!;
+      expect(pieces.length).toBe(6);
+      const horse = horseStaging.cloud!();
+      const key = (p: THREE.Vector3, size: number) => p.toArray().map((n) => Math.round(n / (size / 2))).join();
+      const into = pieces.flatMap((piece) => piece.into.at.map((at) => key(at, piece.into.size)));
+      expect(new Set(into).size).toBe(horse.at.length); // (every voxel of it, each once)
+      const boxOf = (i: number) => new THREE.Box3().setFromPoints(pieces[i].into.at);
+      expect(boxOf(0).max.z).toBeLessThan(boxOf(2).min.z); // (the legs: its hind legs; the arms: its forelegs, before them)
+      expect(boxOf(5).max.y).toBeGreaterThan(boxOf(4).max.y); // (its head: carried over its back)
+      const morph = new PartMorph(pieces, big, down);
+      morph.update(down, 1);
+      const all = meshesOf(morph).flatMap((mesh, i) => spotsOf(mesh).map((at) => key(at, pieces[i].into.size)));
+      expect(new Set(all)).toEqual(new Set(into)); // (a horse entire)
+    }
+  });
+
+  it('grows bigger than someone smaller than it as it goes, part by part; nothing to come down from after', () => {
+    const actor = makeActor(human());
+    expect(HORSE.y).toBeGreaterThan(actor.size.y); // (a horse: taller than a man)
+    const { pieces, big, down } = horseStaging.pieces!(actor)!;
+    expect(big).toBe(1); // (built at its own size)
+    const tall = (i: number, of: 'from' | 'into') => new THREE.Box3().setFromPoints(pieces[i][of].at).getSize(new THREE.Vector3());
+    expect(tall(4, 'into').z).toBeGreaterThan(tall(4, 'from').y); // (its barrel: longer than their torso was tall)
+    const morph = new PartMorph(pieces, big, down);
+    const height = () => new THREE.Box3().setFromPoints(meshesOf(morph).flatMap(spotsOf)).max.y;
+    morph.update(0, 0);
+    const before = height();
+    morph.update(down, 1);
+    expect(height()).toBeGreaterThan(before * 1.2); // (bigger than they were, before it's done)
+    morph.update(1, 2);
+    expect(morph.object.scale.x).toBe(1);
+    // A hen, of the same man: built as big as he is, and down to her size at the end, as before.
+    expect(chickenStaging.pieces!(makeActor(human()))!.big).toBeGreaterThan(1);
+  });
+
+  it('is played full screen as the chicken is, with its own words', () => {
+    document.body.replaceChildren();
+    const done = vi.fn();
+    const playing = playTransformation(human(), 'Idtram', 'horse', done, drawer);
+    expect(playing.root.querySelector('.transform-title')!.textContent).toBe(STAGINGS.horse.title);
+    for (let t = 0; t < LENGTH + 2; t += 0.1) playing.advance(0.1);
+    expect(done).toHaveBeenCalledTimes(1);
   });
 });
 

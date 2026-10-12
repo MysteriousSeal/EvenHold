@@ -39,7 +39,7 @@ const run = (model: GameModel, seconds: number, each?: () => void) => {
 describe("the hen-wife's turn, on a foe", () => {
   it('turns it into a chicken for good: gone as if slain, a hen where it stood, nothing had for it', () => {
     const { model, hero, foe, told } = withWolf();
-    expect(SPELLS.chicken).toMatchObject({ aim: 'anyone', chicken: true, needsTarget: true, cooldown: 0 });
+    expect(SPELLS.chicken).toMatchObject({ aim: 'anyone', turns: 'chicken', needsTarget: true, cooldown: 0 });
     const [xp, level, money] = [hero.xp, hero.level, hero.money];
     expect(castSpell(model, 'chicken')).toBe('cast');
     expect(model.enemies).not.toContain(foe); // (no more)
@@ -196,6 +196,37 @@ describe("the hen-wife's turn, on someone who's no foe", () => {
     expect(again.chickens.hens[0].x).toBeCloseTo(model.chickens.hens[0].x, 1);
     again.chickens.load({ hens: [['x', 1, null, 0, 0], 'nonsense'], lost: ['a', 2.5] }); // (a broken save: none of it)
     expect(again.chickens.hens.length + again.lost.size).toBe(0);
+  });
+});
+
+describe("the horse-coper's word", () => {
+  it('turns whoever is picked out into a horse, for good, as the other does into a hen: a horse where they stood, kept so in a save', () => {
+    const { model, hero, foe } = withWolf();
+    learn(hero, 'horse');
+    expect(SPELLS.horse).toMatchObject({ aim: 'anyone', turns: 'horse', needsTarget: true });
+    const told: unknown[] = [];
+    const report = model.report;
+    model.report = (event) => [told.push(event), report.call(model, event)];
+    expect(castSpell(model, 'horse')).toBe('cast');
+    expect(model.enemies).not.toContain(foe);
+    expect(model.chickens.hens[0]).toMatchObject({ kind: 'horse', x: foe.x, z: foe.z });
+    expect(told.find((e) => (e as { kind: string }).kind === 'transformed')).toMatchObject({ into: 'horse' });
+    // It goes about: farther in a stroll than a hen, stood longer between them; never past its 5 tiles.
+    const horse = model.chickens.hens[0];
+    const [x0, z0] = [horse.x, horse.z];
+    let went = 0;
+    let last = { x: x0, z: z0 };
+    run(model, 60, () => {
+      expect(Math.hypot(horse.x - x0, horse.z - z0)).toBeLessThanOrEqual(ROAM + 1e-6);
+      went += Math.hypot(horse.x - last.x, horse.z - last.z);
+      last = { x: horse.x, z: horse.z };
+    });
+    expect(went).toBeGreaterThan(1);
+    const again = fresh();
+    again.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(again.chickens.hens[0].kind).toBe('horse');
+    again.chickens.load({ hens: [[1, 1, null, 1, 1], [2, 2, null, 2, 2, 'dragon']], lost: [] }); // (an older save's, or a broken one's: a hen)
+    expect(again.chickens.hens.map((h) => h.kind)).toEqual(['chicken', 'chicken']);
   });
 });
 
