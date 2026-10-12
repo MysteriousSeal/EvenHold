@@ -306,7 +306,7 @@ export class GameView {
       this.followHero(hero, 0, dt);
       return; // the world outside stands still
     }
-    this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift); // (the villager the prompt's about: their name gives way to it)
+    this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift, (npc) => model.story.markOf(npc), this.elapsed); // (the villager the prompt's about: their name gives way to it)
     if (room) {
       this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.cupboard.update(model, room);
@@ -318,7 +318,7 @@ export class GameView {
     }
     this.regions?.update(); // (a region the model's made drawn, or one it's let go dropped: one a frame)
     this.world.update(hero.x, hero.z);
-    (this.carter ??= new CarterView(this.scene, this.travellers.material)).update(model, dt);
+    (this.carter ??= new CarterView(this.scene, this.travellers.material)).update(model, dt, this.elapsed, !!model.story.carterInReach);
     this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero)); // (the one the prompt's over: their name gives way to it)
     setWindPusher(hero.x, hero.z); // crops part around them
     setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)

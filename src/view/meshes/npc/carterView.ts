@@ -5,6 +5,7 @@ import type { GameModel } from '../../../model/GameModel';
 import { CARTER_LOOKS, carterOf, type Carter } from '../../../model/wayside/carter';
 import { HumanRig } from '../human/humanRig';
 import { nameLabel } from '../common/overhead';
+import { HeadMarks } from '../quest/questMarks';
 
 const SEEN = 60; // tiles: drawn within this of the hero
 const NAME_NEAR = 6;
@@ -15,12 +16,13 @@ const TURN = 4; // radians a second he turns
 export class CarterView {
   private rig: HumanRig | null = null;
   private label: THREE.Sprite | null = null;
+  private marks: HeadMarks | null = null; // (his quest's, over his name)
   private of: Carter | null = null;
   private facing = 0;
 
   constructor(private readonly scene: THREE.Object3D, private readonly material: THREE.Material) {}
 
-  update(model: GameModel, dt: number): void {
+  update(model: GameModel, dt: number, time = 0, talking = false): void {
     const carter = model.inside ? null : carterOf(model);
     const { hero } = model;
     const far = carter ? Math.hypot(carter.x - hero.x, carter.z - hero.z) : Infinity;
@@ -34,6 +36,8 @@ export class CarterView {
       this.label = nameLabel(carter.name, LABEL_HEIGHT);
       this.label.position.y = LABEL_Y;
       this.rig.root.add(this.label);
+      this.marks = new HeadMarks(LABEL_Y + 0.14);
+      this.rig.root.add(this.marks.group);
       this.facing = Math.atan2(carter.wagon.x - carter.x, carter.wagon.z - carter.z);
       this.scene.add(this.rig.root);
     }
@@ -43,11 +47,12 @@ export class CarterView {
     const off = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
     this.facing += Math.sign(off) * Math.min(Math.abs(off), TURN * dt);
     this.rig.update(carter.x, model.getGroundY(carter.x, carter.z), carter.z, dt, null, this.facing);
-    this.label!.visible = far < NAME_NEAR;
+    this.label!.visible = far < NAME_NEAR && !talking; // (the prompt over him: his name gives way to it)
+    this.marks!.show(model.story.markOf(carter), time, this.facing);
   }
 
   private clear(): void {
     this.rig?.root.removeFromParent();
-    [this.rig, this.label, this.of] = [null, null, null];
+    [this.rig, this.label, this.marks, this.of] = [null, null, null, null];
   }
 }

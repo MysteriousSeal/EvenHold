@@ -11,14 +11,16 @@ import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
 import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
 import { drawnAt, nameLabel } from '../common/overhead';
+import { HeadMarks, type HeadMark } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
 const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
+const MARK_OVER = 0.14; // a quest's mark, over the name
 const LABEL_HEIGHT = 0.16; // the name's height in the world, indoors as out
 
 export class NpcViews {
   readonly material = personMaterial();
-  private readonly shown = new Nearby<Npc, { rig: HumanRig; label: THREE.Sprite; over: THREE.Group }>(
+  private readonly shown = new Nearby<Npc, { rig: HumanRig; label: THREE.Sprite; over: THREE.Group; marks?: HeadMarks }>(
     (npc) => {
       const rig = new HumanRig(npc.look, this.material);
       rig.wear(npc.equipment);
@@ -35,9 +37,10 @@ export class NpcViews {
   // `where`: the building the hero's in (null outdoors); `scene`: the one
   // they're drawn in; `talking`: whoever the hero can talk to now, whose name
   // gives way to the "Talk to" prompt over them; `quiet`: no names at all (at work: the room's own marks to read).
-  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null, quiet = false): void {
+  // `markOf`: the quest mark over each one's head, if any (story/story.ts), bobbing by `time`.
+  update(npcs: readonly Npc[], where: Entrance | null, hero: { x: number; z: number }, scene: THREE.Object3D, dt: number, talking: Npc | null = null, quiet = false, markOf?: (npc: Npc) => HeadMark | null, time = 0): void {
     const scale = where ? INDOOR_SCALE : 1;
-    const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite; over: THREE.Group }) => {
+    const each = (npc: Npc, view: { rig: HumanRig; label: THREE.Sprite; over: THREE.Group; marks?: HeadMarks }) => {
       const { rig, label } = view;
       if (rig.root.parent !== scene) {
         scene.add(rig.root);
@@ -51,6 +54,9 @@ export class NpcViews {
       rig.hold(npc.carrying ?? false); // a cup in hand (the barmaid, bringing a drink or clearing one away)
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
       label.visible = !quiet && npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
+      const mark = markOf?.(npc) ?? null;
+      if (mark && !view.marks) view.over.add((view.marks = new HeadMarks(MARK_OVER, npc.id)).group); // (made for the few who ever have one)
+      view.marks?.show(mark, time, npc.facing);
     };
     this.shown.update(npcs, hero.x, hero.z, each, (npc) => npc.where === where); // (those in the hero's room, or outdoors)
   }

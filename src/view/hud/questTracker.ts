@@ -2,7 +2,7 @@
 // frame (styles in hud.css): a card each, with what it asks, a bar of how
 // far along it is, and where to go: an arrow turned toward it on screen
 // (the nearest marked foe, else the spot they gather; once done, back to
-// its board) and how far off, in meters. Indoors, the arrow points the way
+// its board) and how far off, in meters. Over them, the quests people gave (story/story.ts): who to speak to, and the way. Indoors, the arrow points the way
 // out (the room's door; upstairs, the stairs down), and says so.
 
 import type { GameModel } from '../../model/GameModel';
@@ -95,44 +95,58 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
     return best;
   };
 
+  // A card drawn: its title, its bar (`share` of it full) and count, the arrow and distance to `to` (indoors: the way
+  // out, unless what it's after is in this very room: `here`), and whether it's done.
+  const show = (c: Card, title: string, share: number, count: string, to: { x: number; z: number }, done: boolean, toScreen: ToScreen, inRoom = false) => {
+    const { hero, inside } = model;
+    const at = inside && !inRoom ? wayOut(inside) : to; // indoors: the way out
+    const tiles = Math.hypot(at.x - hero.x, at.z - hero.z);
+    const here = (!inside || inRoom) && tiles <= HERE;
+    const distance = inside && !inRoom ? 'exit' : here ? 'here' : inRoom ? 'in here' : inMeters(tiles);
+    const text = `${title}|${count}|${distance}|${done}`;
+    if (text !== c.shown) {
+      c.shown = text;
+      c.title.textContent = title;
+      c.fill.style.width = `${share * 100}%`;
+      c.count.textContent = count;
+      c.distance.textContent = distance;
+      c.root.classList.toggle('done', done);
+    }
+    c.arrow.hidden = here;
+    if (!here) {
+      const a = toScreen(at.x, hero.y, at.z);
+      const b = toScreen(hero.x, hero.y, hero.z);
+      c.arrow.style.transform = `rotate(${Math.atan2(a.x - b.x, b.y - a.y)}rad)`;
+    }
+  };
+
   return (toScreen) => {
     const taken = model.quests.taken.filter((t) => t.tracked); // those the journal hasn't hidden
-    root.hidden = taken.length === 0;
+    const told = model.story.taken.filter((q) => q.tracked); // the quests people gave, under way and tracked: first
+    root.hidden = taken.length === 0 && told.length === 0;
     for (const [key, c] of cards) {
-      if (taken.some((t) => t.quest.key === key)) continue;
+      if (taken.some((t) => t.quest.key === key) || told.some((q) => q.id === key)) continue;
       c.root.remove();
       cards.delete(key);
     }
-    const { hero } = model;
-    for (const [i, t] of taken.entries()) {
-      let c = cards.get(t.quest.key);
+    const cardAt = (key: string, i: number): Card => {
+      let c = cards.get(key);
       if (!c) {
         c = card();
-        cards.set(t.quest.key, c);
+        cards.set(key, c);
       }
-      if (root.children[i] !== c.root) root.insertBefore(c.root, root.children[i] ?? null); // in the order taken (moved only when out of place)
+      if (root.children[i] !== c.root) root.insertBefore(c.root, root.children[i] ?? null); // in order (moved only when out of place)
+      return c;
+    };
+    for (const [i, q] of told.entries()) {
+      // Whoever it's handed in to: outdoors, their building's door; in that building, themselves.
+      const inRoom = !!q.door && model.inside?.entrance === q.door;
+      show(cardAt(q.id, i), q.name, q.ready ? 1 : 0, `Speak to ${q.to.name}`, inRoom || !q.door ? q.to : q.door, false, toScreen, inRoom);
+    }
+    for (const [i, t] of taken.entries()) {
       const have = model.quests.progress(t);
       const done = have >= t.quest.count;
-      const inside = model.inside;
-      const to = inside ? wayOut(inside) : goal(t, done); // indoors: the way out
-      const tiles = Math.hypot(to.x - hero.x, to.z - hero.z);
-      const here = !inside && tiles <= HERE;
-      const distance = inside ? 'exit' : here ? 'here' : inMeters(tiles);
-      const text = `${questTitle(t.quest)}|${have}|${distance}|${done}`;
-      if (text !== c.shown) {
-        c.shown = text;
-        c.title.textContent = questTitle(t.quest);
-        c.fill.style.width = `${(have / t.quest.count) * 100}%`;
-        c.count.textContent = done ? 'Done' : `${have}/${t.quest.count}`;
-        c.distance.textContent = distance;
-        c.root.classList.toggle('done', done);
-      }
-      c.arrow.hidden = here;
-      if (!here) {
-        const a = toScreen(to.x, hero.y, to.z);
-        const b = toScreen(hero.x, hero.y, hero.z);
-        c.arrow.style.transform = `rotate(${Math.atan2(a.x - b.x, b.y - a.y)}rad)`;
-      }
+      show(cardAt(t.quest.key, told.length + i), questTitle(t.quest), have / t.quest.count, done ? 'Done' : `${have}/${t.quest.count}`, goal(t, done), done, toScreen);
     }
   };
 }

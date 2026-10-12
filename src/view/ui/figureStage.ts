@@ -20,6 +20,7 @@ export class FigureStage {
   private readonly material = withRimLight(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
   private mesh: THREE.Mesh | null = null;
   private last = performance.now();
+  private still: number | null = null; // stood still, turned so (a portrait); else turning
 
   constructor(
     private readonly width: number,
@@ -62,10 +63,16 @@ export class FigureStage {
     this.camera.updateProjectionMatrix();
   }
 
-  // Turns the figure a little and draws it.
+  // Stood still, turned `angle` from facing us (toward its left: positive), as in a portrait.
+  face(angle: number): void {
+    this.still = angle;
+  }
+
+  // Turns the figure a little (or holds it as faced) and draws it.
   render(): void {
     const now = performance.now();
-    this.turntable.rotation.y += Math.min(0.1, (now - this.last) / 1000) * TURN_SPEED;
+    if (this.still !== null) this.turntable.rotation.y = this.still;
+    else this.turntable.rotation.y += Math.min(0.1, (now - this.last) / 1000) * TURN_SPEED;
     this.last = now;
     this.renderer.render(this.scene, this.camera);
   }

@@ -17,9 +17,9 @@ const BOARD_MARK_SCALE = 0.75; // small, over the board's roof
 const ABOVE_BOARD = BOARD_GRID[1] * QUEST_VOXEL_SIZE + 0.12;
 
 // A mark ("!" or "?") centered over where it's placed.
-function markMesh(grid: VoxelGrid, size: [number, number, number]): THREE.Mesh {
+function markMesh(grid: VoxelGrid, size: [number, number, number], palette = MARK_PALETTE): THREE.Mesh {
   const origin = new THREE.Vector3((-size[0] * QUEST_VOXEL_SIZE) / 2, 0, (-size[2] * QUEST_VOXEL_SIZE) / 2);
-  const geometry = greedyMesh(grid, MARK_PALETTE, QUEST_VOXEL_SIZE, origin);
+  const geometry = greedyMesh(grid, palette, QUEST_VOXEL_SIZE, origin);
   const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, depthTest: false, depthWrite: false, fog: false, transparent: true }));
   mesh.renderOrder = 10; // after the world (a transparent pass), so nothing draws over it: trees, roofs, the foe itself
   return mesh;
@@ -62,6 +62,33 @@ export function pulseAuras(time: number): void {
 
 // The "!" over a board with work to take (an inn's notice board's too: meshes/inn/workMarks.ts).
 export const offerMark = (): THREE.Mesh => markMesh(buildQuestMark(), MARK_GRID);
+
+// The marks over the head of someone with a quest (model/story/story.ts): a gold "!" (one to give), a grey "?" (one of
+// theirs under way, not ready yet), a gold "?" (ready to hand in to them); one shown at a time, bobbing.
+const GREY_PALETTE = [0xb9b4a8, 0xe2ded2, 0x7d786e];
+export type HeadMark = 'offer' | 'waiting' | 'ready';
+export class HeadMarks {
+  readonly group = new THREE.Group();
+  private readonly marks: Record<HeadMark, THREE.Mesh> = {
+    offer: markMesh(buildQuestMark(), MARK_GRID),
+    waiting: markMesh(buildTurnInMark(), ASK_GRID, GREY_PALETTE),
+    ready: markMesh(buildTurnInMark(), ASK_GRID),
+  };
+
+  // `y`: over what it hangs from (a name's height over the head).
+  constructor(y: number, private readonly phase = 0) {
+    this.group.position.y = y;
+    for (const mark of Object.values(this.marks)) [(mark.visible = false), this.group.add(mark)];
+  }
+
+  // Which to show (none: null), turned to the camera's side, and its bob.
+  show(mark: HeadMark | null, time: number, facing = 0): void {
+    for (const [kind, mesh] of Object.entries(this.marks)) mesh.visible = kind === mark;
+    if (!mark) return;
+    this.group.rotation.y = -facing + Math.PI / 4; // (the figure turns; the mark keeps facing the camera's corner)
+    this.marks[mark].position.y = markBob(time, this.phase);
+  }
+}
 
 // A slow, smooth bob, a beat apart for each `phase`.
 export const markBob = (time: number, phase: number) => Math.sin(time * 2.2 + phase) * QUEST_VOXEL_SIZE * 1.2;
