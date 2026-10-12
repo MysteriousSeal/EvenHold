@@ -66,7 +66,7 @@ export interface EnemyRig {
 }
 
 export class HealthBar {
-  readonly group = new THREE.Group();
+  readonly group = Object.assign(new THREE.Group(), { name: 'overhead' }); // (over its head: not shown where it's staged alone, cinema/actor.ts)
   private blocks: THREE.Mesh[] = [];
   private level: THREE.Sprite | null = null;
   private shown = ''; // the level and colour it shows (made afresh when either changes)

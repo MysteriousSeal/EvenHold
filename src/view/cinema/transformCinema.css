@@ -1,0 +1,31 @@
+/* A transformation played full screen (transformCinema.ts): the dark, the one turned in the middle of it, the
+   spell's name over them and a line for each beat under. */
+.transform-cinema {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: radial-gradient(ellipse at 50% 58%, #3a2d4a 0%, #1c1524 46%, #0b0810 100%);
+  animation: transform-in 0.45s ease-out;
+  cursor: pointer;
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
+@keyframes transform-in { from { opacity: 0; } to { opacity: 1; } }
+.transform-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.transform-title {
+  position: absolute; top: 6vh; left: 0; right: 0; margin: 0; text-align: center;
+  font-size: clamp(22px, 3.4vw, 40px); font-weight: 600; letter-spacing: 0.04em; color: #e8d0ff;
+  text-shadow: 0 2px 0 #2a1a3a, 0 0 22px rgba(138, 79, 208, 0.7);
+}
+.transform-line {
+  position: absolute; bottom: 11vh; left: 8vw; right: 8vw; margin: 0; text-align: center;
+  font-size: clamp(16px, 2.1vw, 26px); font-style: italic; color: #f4ecd8; opacity: 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+.transform-line.in { opacity: 1; transition: opacity 0.5s ease-out; }
+.transform-skip { position: absolute; bottom: 3.5vh; right: 3vw; font-size: 13px; color: rgba(244, 236, 216, 0.55); }
+.transform-flash { position: absolute; inset: 0; background: #fff8e8; opacity: 0; pointer-events: none; }
+.transform-flash.on { animation: transform-flash 0.7s ease-out; }
+@keyframes transform-flash { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .transform-cinema, .transform-flash.on { animation: none; }
+}

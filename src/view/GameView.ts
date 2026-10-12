@@ -2,6 +2,7 @@
 // handling. Mesh construction is delegated to meshes/; this class wires
 // them together and drives the per-frame render.
 
+import type { Being } from '../model/spells/chickens';
 import { isProvision } from '../model/loot/provisions';
 import { mugsAt } from '../model/inn/barMugs';
 import * as THREE from 'three';
@@ -244,6 +245,15 @@ export class GameView {
       if (d < bestDistance) [best, bestDistance] = [one, d];
     }
     return best;
+  }
+
+  // A figure of someone on their own, as they stand, facing +Z, nowhere yet (to be staged: cinema/transformCinema.ts).
+  standIn(being: Being): THREE.Object3D {
+    if ('kind' in being) return this.enemies.standIn(being);
+    const rig = new HumanRig(being.look, personMaterial());
+    rig.wear(being.equipment);
+    rig.update(0, 0, 0, 0, null, 0, 'stand');
+    return rig.root;
   }
 
   // Where a point in the world is on screen, in page pixels.

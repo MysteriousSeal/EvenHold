@@ -81,6 +81,15 @@ export class EnemyViews {
     scene.add(this.marker);
   }
 
+  // A figure of `enemy` on its own, as it stands, nowhere yet (to be staged: cinema/transformCinema.ts).
+  standIn(enemy: Enemy): THREE.Object3D {
+    const rig = this.rigOf[enemy.kind]({ ...enemy, chicken: undefined });
+    rig.update({ ...enemy, x: 0, y: 0, z: 0, chicken: undefined }, 0, 0, 1);
+    rig.root.position.set(0, 0, 0);
+    rig.root.rotation.set(0, 0, 0);
+    return rig.root;
+  }
+
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
     return [this.wolfLook.normal, this.boarLook.normal, this.bearLook.normal, this.lynxLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];

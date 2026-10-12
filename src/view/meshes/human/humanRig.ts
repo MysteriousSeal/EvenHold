@@ -128,6 +128,7 @@ export class HumanRig {
       joints[joint] = group;
     }
     this.joints = joints;
+    this.root.userData.joints = joints; // (for what stages them part by part: cinema/actor.ts)
     this.root.add(this.body);
     for (const [i, { geometry, material }] of SHADE.entries()) {
       const square = new THREE.Mesh(geometry, material);

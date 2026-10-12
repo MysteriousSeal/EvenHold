@@ -17,29 +17,39 @@ const STEP = 26; // leg-swing radians per world unit strutted
 const PECK_EVERY = 1.1; // seconds between pecks, stood still
 const PECK_DOWN = 1.15; // radians her head dips
 
+// The hen's parts, put together: her body carried on her legs, her head on its neck.
+export function createHen(material: THREE.Material): { root: THREE.Group; body: THREE.Group; head: THREE.Group; legs: THREE.Group[] } {
+  const [root, body, head] = [new THREE.Group(), new THREE.Group(), new THREE.Group()];
+  const legs: THREE.Group[] = [];
+  const mesh = partMesher(V);
+  const [bx, , bz] = BODY_GRID;
+  body.add(new THREE.Mesh(mesh(buildChickenBody(), CHICKEN_PALETTE, [bx / 2, 0, bz / 2]), material));
+  body.position.y = LEG_HEIGHT * V;
+  head.add(new THREE.Mesh(mesh(buildChickenHead(), CHICKEN_PALETTE, [HEAD_GRID[0] / 2, 0, 1.5]), material)); // pivot at the base of the neck
+  head.position.set(0, 2.5 * V, 2.5 * V);
+  body.add(head);
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Group();
+    leg.add(new THREE.Mesh(mesh(buildChickenLeg(), CHICKEN_PALETTE, [0.5, 3, 0.5]), material)); // pivot at the hip
+    leg.position.set(side * 1 * V, LEG_HEIGHT * V, 0);
+    legs.push(leg);
+    root.add(leg);
+  }
+  root.add(body);
+  return { root, body, head, legs };
+}
+
 class ChickenRig extends CreatureRig {
-  private readonly body = new THREE.Group();
-  private readonly head = new THREE.Group();
-  private readonly legs: THREE.Group[] = [];
+  private readonly body: THREE.Group;
+  private readonly head: THREE.Group;
+  private readonly legs: THREE.Group[];
   private strutted = 0;
 
   constructor(material: THREE.Material) {
     super(0);
-    const mesh = partMesher(V);
-    const [bx, , bz] = BODY_GRID;
-    this.body.add(new THREE.Mesh(mesh(buildChickenBody(), CHICKEN_PALETTE, [bx / 2, 0, bz / 2]), material));
-    this.body.position.y = LEG_HEIGHT * V;
-    this.head.add(new THREE.Mesh(mesh(buildChickenHead(), CHICKEN_PALETTE, [HEAD_GRID[0] / 2, 0, 1.5]), material)); // pivot at the base of the neck
-    this.head.position.set(0, 2.5 * V, 2.5 * V);
-    this.body.add(this.head);
-    for (const side of [-1, 1]) {
-      const leg = new THREE.Group();
-      leg.add(new THREE.Mesh(mesh(buildChickenLeg(), CHICKEN_PALETTE, [0.5, 3, 0.5]), material)); // pivot at the hip
-      leg.position.set(side * 1 * V, LEG_HEIGHT * V, 0);
-      this.legs.push(leg);
-      this.root.add(leg);
-    }
-    this.root.add(this.body);
+    const hen = createHen(material);
+    [this.body, this.head, this.legs] = [hen.body, hen.head, hen.legs];
+    this.root.add(hen.root);
   }
 
   update(being: Being, dt: number): void {
