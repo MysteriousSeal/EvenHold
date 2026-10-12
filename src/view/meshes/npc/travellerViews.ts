@@ -7,12 +7,9 @@ import * as THREE from 'three';
 import type { Traveller } from '../../../model/travellers/travellers';
 import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
-import { nameLabel } from '../common/overhead';
+import { HEAD_LABEL, nameLabel } from '../common/overhead';
 import { Nearby } from '../common/nearby';
 
-const LABEL_Y = 0.62; // over the head
-const LABEL_HEIGHT = 0.16;
-const NAME_NEAR = 6; // tiles: their name shown this close
 const SWING = 0.8; // a guard's blow, seconds (travellerFights.ts)
 
 interface View {
@@ -26,8 +23,8 @@ export class TravellerViews {
     (t) => {
       const rig = new HumanRig(t.look, this.material);
       rig.wear(t.equipment);
-      const label = nameLabel(t.name, LABEL_HEIGHT);
-      label.position.y = LABEL_Y;
+      const label = nameLabel(t.name, HEAD_LABEL.height);
+      label.position.y = HEAD_LABEL.y;
       rig.root.add(label);
       rig.shaded = true;
       rig.update(t.x, t.y, t.z, 0); // (arrive in place)
@@ -43,7 +40,7 @@ export class TravellerViews {
   update(travellers: readonly Traveller[], hero: { x: number; z: number }, dt: number, talking: Traveller | null = null): void {
     this.shown.update(travellers, hero.x, hero.z, (t, { rig, label }) => {
       rig.update(t.x, t.y, t.z, dt, t.swingFor === null ? null : t.swingFor / SWING, t.facing);
-      label.visible = t !== talking && Math.hypot(t.x - hero.x, t.z - hero.z) < NAME_NEAR;
+      label.visible = t !== talking && Math.hypot(t.x - hero.x, t.z - hero.z) < HEAD_LABEL.near;
     });
   }
 }

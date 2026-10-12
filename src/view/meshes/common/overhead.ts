@@ -6,6 +6,9 @@
 import * as THREE from 'three';
 
 export const INK = '#f8ecd4'; // names' light ink
+// A standing figure's name (a villager's, a traveller's, the carter's): how high over the head, in the rig's own
+// (unscaled) units, and how tall in the world, indoors as out; and how near the hero it shows, out on the road.
+export const HEAD_LABEL = { y: 0.62, height: 0.16, near: 6 } as const;
 const NAME_HEIGHT = 0.22; // world units tall, a name by default
 
 // A sprite's look drawn once onto a canvas (`draw`: sizes it and paints it), kept by `key`, shared by all who show it;

@@ -1,16 +1,13 @@
-// The carter on screen (model/wayside/carter.ts): stood by his wagon in his own look and clothes, his name over him
+// The carter on screen (model/story/carter.ts): stood by his wagon in his own look and clothes, his name over him
 // close by; turned to his wagon, and round to the hero as they come near. Outdoors, near the start.
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { CARTER_LOOKS, carterOf, type Carter } from '../../../model/wayside/carter';
+import { CARTER_LOOKS, carterOf, type Carter } from '../../../model/story/carter';
 import { HumanRig } from '../human/humanRig';
-import { nameLabel } from '../common/overhead';
+import { HEAD_LABEL, nameLabel } from '../common/overhead';
 import { HeadMarks } from '../quest/questMarks';
 
 const SEEN = 60; // tiles: drawn within this of the hero
-const NAME_NEAR = 6;
-const LABEL_Y = 0.62;
-const LABEL_HEIGHT = 0.16;
 const TURN = 4; // radians a second he turns
 
 export class CarterView {
@@ -33,10 +30,10 @@ export class CarterView {
       this.rig = new HumanRig(carter.look, this.material);
       this.rig.wear(carter.equipment);
       this.rig.shaded = true;
-      this.label = nameLabel(carter.name, LABEL_HEIGHT);
-      this.label.position.y = LABEL_Y;
+      this.label = nameLabel(carter.name, HEAD_LABEL.height);
+      this.label.position.y = HEAD_LABEL.y;
       this.rig.root.add(this.label);
-      this.marks = new HeadMarks(LABEL_Y + 0.14);
+      this.marks = new HeadMarks(HEAD_LABEL.y);
       this.rig.root.add(this.marks.group);
       this.facing = Math.atan2(carter.wagon.x - carter.x, carter.wagon.z - carter.z);
       this.scene.add(this.rig.root);
@@ -47,7 +44,7 @@ export class CarterView {
     const off = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
     this.facing += Math.sign(off) * Math.min(Math.abs(off), TURN * dt);
     this.rig.update(carter.x, model.getGroundY(carter.x, carter.z), carter.z, dt, null, this.facing);
-    this.label!.visible = far < NAME_NEAR && !talking; // (the prompt over him: his name gives way to it)
+    this.label!.visible = far < HEAD_LABEL.near && !talking; // (the prompt over him: his name gives way to it)
     this.marks!.show(model.story.markOf(carter), time, this.facing);
   }
 

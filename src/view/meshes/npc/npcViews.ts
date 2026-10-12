@@ -10,13 +10,10 @@ import type { Entrance } from '../../../model/interiors/interiors';
 import { NPC_NEAR, titleOf, type Npc } from '../../../model/npcs/npcs';
 import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
-import { drawnAt, nameLabel } from '../common/overhead';
+import { HEAD_LABEL, drawnAt, nameLabel } from '../common/overhead';
 import { HeadMarks, type HeadMark } from '../quest/questMarks';
 import { Nearby } from '../common/nearby';
 
-const LABEL_Y = 0.62; // over the head, in the rig's own (unscaled) units
-const MARK_OVER = 0.14; // a quest's mark, over the name
-const LABEL_HEIGHT = 0.16; // the name's height in the world, indoors as out
 
 export class NpcViews {
   readonly material = personMaterial();
@@ -24,9 +21,9 @@ export class NpcViews {
     (npc) => {
       const rig = new HumanRig(npc.look, this.material);
       rig.wear(npc.equipment);
-      const label = nameLabel(titleOf(npc), LABEL_HEIGHT);
+      const label = nameLabel(titleOf(npc), HEAD_LABEL.height);
       const over = new THREE.Group(); // (over the head: kept at its own size indoors)
-      over.position.y = LABEL_Y;
+      over.position.y = HEAD_LABEL.y;
       over.add(label);
       rig.root.add(over);
       return { rig, label, over };
@@ -55,7 +52,7 @@ export class NpcViews {
       rig.sipping(npc.drinking ?? null); // a villager at the bar, sipping an ale or a glass of wine
       label.visible = !quiet && npc !== talking && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR * scale;
       const mark = markOf?.(npc) ?? null;
-      if (mark && !view.marks) view.over.add((view.marks = new HeadMarks(MARK_OVER, npc.id)).group); // (made for the few who ever have one)
+      if (mark && !view.marks) view.over.add((view.marks = new HeadMarks(0, npc.id)).group); // (made for the few who ever have one)
       view.marks?.show(mark, time, npc.facing);
     };
     this.shown.update(npcs, hero.x, hero.z, each, (npc) => npc.where === where); // (those in the hero's room, or outdoors)

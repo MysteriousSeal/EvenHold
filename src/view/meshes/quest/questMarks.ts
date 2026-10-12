@@ -10,6 +10,7 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { ASK_GRID, BOARD_GRID, MARK_GRID, MARK_PALETTE, QUEST_VOXEL_SIZE, buildQuestMark, buildTurnInMark } from './questVoxels';
 import type { VoxelGrid } from '../voxel/greedyMesh';
+import type { StoryMark } from '../../../model/story/story';
 import { boardNumber } from '../../../model/quests/quests';
 
 const NEAR = 30; // tiles: boards further off aren't looked at
@@ -66,7 +67,8 @@ export const offerMark = (): THREE.Mesh => markMesh(buildQuestMark(), MARK_GRID)
 // The marks over the head of someone with a quest (model/story/story.ts): a gold "!" (one to give), a grey "?" (one of
 // theirs under way, not ready yet), a gold "?" (ready to hand in to them); one shown at a time, bobbing.
 const GREY_PALETTE = [0xb9b4a8, 0xe2ded2, 0x7d786e];
-export type HeadMark = 'offer' | 'waiting' | 'ready';
+export type HeadMark = StoryMark; // (the model's own: story/story.ts)
+const MARK_OVER = 0.14; // over the name it hangs above
 export class HeadMarks {
   readonly group = new THREE.Group();
   private readonly marks: Record<HeadMark, THREE.Mesh> = {
@@ -75,9 +77,9 @@ export class HeadMarks {
     ready: markMesh(buildTurnInMark(), ASK_GRID),
   };
 
-  // `y`: over what it hangs from (a name's height over the head).
+  // `y`: where the name under it is, from what it's added to (0: added to the name's own group).
   constructor(y: number, private readonly phase = 0) {
-    this.group.position.y = y;
+    this.group.position.y = y + MARK_OVER;
     for (const mark of Object.values(this.marks)) [(mark.visible = false), this.group.add(mark)];
   }
 

@@ -18,7 +18,7 @@ export { lineText, toned } from './menuTypes';
 
 
 // Menus open right now, most recent last.
-const openMenus: Menu[] = [];
+const openMenus: object[] = []; // (the menus made here, and windows built their own way: counted, never called)
 
 // The windows open, by focus: the one opened or clicked last on top, each a layer over the one before it, from
 // LOWEST up to HIGHEST (under the action bar, 25: food dragged onto it from the bag; tooltips and what's dragged, 30
@@ -46,9 +46,9 @@ export function anyMenuOpen(): boolean {
   return openMenus.length > 0;
 }
 
-// A window built its own way (the pause menu), counted among those open: so Escape opens it only when nothing else
+// A window built its own way (the pause menu, the talk scene), counted among those open: so Escape opens it only when nothing else
 // is, and the game knows a window's up.
-export function trackMenu(menu: Menu, open: boolean): void {
+export function trackMenu(menu: object, open: boolean): void {
   const at = openMenus.indexOf(menu);
   if (open && at < 0) openMenus.push(menu);
   if (!open && at >= 0) openMenus.splice(at, 1);
