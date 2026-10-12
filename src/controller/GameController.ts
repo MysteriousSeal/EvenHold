@@ -1,6 +1,7 @@
 // Controller: turns input into model updates and drives the frame loop.
 
 import { chestInReach } from '../model/loot/chests';
+import type { Carter } from '../model/wayside/carter';
 import { takeStairs, useHallDoor } from '../model/interiors/upstairs';
 import { talkingTo } from '../model/npcs/talk';
 import { rentRoom, roomAction } from '../model/inn/roomLetting';
@@ -50,6 +51,7 @@ export class GameController {
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
   private readonly onSalvage: () => void; // (E by a village's salvage bench: its window)
+  private readonly onCarter: (carter: Carter) => void; // (E by the carter at the start: a word with him)
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
   private readonly onSleep: () => void;
   private readonly onTraveller: (t: Traveller) => void;
@@ -58,7 +60,7 @@ export class GameController {
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onSalvage?: () => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -67,6 +69,7 @@ export class GameController {
     this.onTalk = options.onTalk ?? (() => {});
     this.onRead = options.onRead ?? (() => {});
     this.onSalvage = options.onSalvage ?? (() => {});
+    this.onCarter = options.onCarter ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
     this.onSleep = options.onSleep ?? (() => {});
     this.onTraveller = options.onTraveller ?? (() => {});
@@ -156,6 +159,7 @@ export class GameController {
       if (item) this.onPickUp(item);
       else if (this.model.work.noticeInReach) this.onWork(this.model.work.noticeInReach); // the inn's notice board: its work
       else if (chestInReach(this.model)) chestInReach(this.model)!.open(); // a crypt lord's chest, a brood mother's hoard, a bandit camp's (once its chief's down)
+      else if (this.model.story.carterInReach) this.onCarter(this.model.story.carterInReach); // the man by his wagon: a word
       else if (this.model.lumber.action?.kind === 'chop') this.model.lumber.use(); // a tree, an axe in hand: chopping
       else if (talker && this.model.inside?.seated?.seat.piece.kind === 'barStool') this.onTalk(talker);
       else if (!this.model.sitOrStand()) {

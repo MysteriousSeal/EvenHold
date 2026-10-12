@@ -1,4 +1,5 @@
 import { doorAt, innerWalls, stairsInReach } from './model/interiors/upstairs';
+import { createTalkPanel } from './controller/story/talkPanel';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { chestInReach } from './model/loot/chests';
@@ -160,6 +161,7 @@ async function boot(): Promise<void> {
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const salvage = createSalvagePanel(model);
+  const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused) }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
@@ -209,6 +211,8 @@ async function boot(): Promise<void> {
     const { hero } = model;
     const chest = chestInReach(model); // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
     if (chest) return { label: CHEST_PROMPTS[chest.what], x: chest.x, y: chest.y, z: chest.z };
+    const carter = model.story.carterInReach; // (the man by his wagon, at the start)
+    if (carter) return { label: `Talk to ${carter.name}`, x: carter.x, y: model.getGroundY(carter.x, carter.z) + 1.1, z: carter.z };
     const chop = chopPrompt(model); // (a tree in reach: chop it; or not, and why: last of all, below)
     if (chop && !chop.muted) return chop;
     const seated = model.seated;
@@ -291,7 +295,8 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onTalk: (npc) => (npc.role === 'smith' ? forge.open(npc) : npc.role === 'herbalist' ? herbs.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => (t.role === 'pedlar' ? pack.open(t) : (model.travellers.hold(t, WORD_HOLD), say(t, travellerSays(t, model.crypts)))), onCarter: (carter) => void talk.open(carter),
+    onTalk: (npc) => talk.open(npc) || (npc.role === 'smith' ? forge.open(npc) : npc.role === 'herbalist' ? herbs.open(npc) : npc.role === 'bouncer' ? bouncerSpeaks(npc) : !bar.busy && shop.open(npc)), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

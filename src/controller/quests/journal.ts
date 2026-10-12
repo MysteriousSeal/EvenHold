@@ -5,6 +5,8 @@
 // the game goes on while it's open, and it keeps up with the hunt.
 
 import './questPanels.css';
+import { storyJournal } from '../story/storyJournal';
+import { journalButtons } from './journalButtons';
 import type { GameModel } from '../../model/GameModel';
 import { MAX_ACTIVE, MAX_TRACKED, questProgress, questTitle } from '../../model/quests/quests';
 import type { TakenQuest } from '../../model/quests/questBook';
@@ -40,8 +42,8 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       note: capitalize(quest.where),
       check: {
         on: t.tracked,
-        locked: !t.tracked && quests.tracked >= MAX_TRACKED,
-        label: t.tracked ? 'Tracked on screen: click to untrack' : quests.tracked >= MAX_TRACKED ? FULL : 'Click to track on screen',
+        locked: !t.tracked && !quests.trackRoom,
+        label: t.tracked ? 'Tracked on screen: click to untrack' : !quests.trackRoom ? FULL : 'Click to track on screen',
         toggle: () => toggle(t),
       },
     };
@@ -50,10 +52,12 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   };
 
   const detail = (slot: MenuSlot | null) => {
+    const given = story.detail(slot); // (one someone gave: its own telling)
+    if (given) return given;
     const pane = document.createElement('div');
     const t = slot && shown.get(slot);
     if (!t) {
-      pane.append(line('menu-detail-hint', 'No quests taken. Read the notice board in a village to find some.'));
+      pane.append(line('menu-detail-hint', "No quests taken. Read the notice board in a village to find some, or look for a gold “!” over someone's head."));
       return pane;
     }
     if (armed !== t.quest.key) armed = null;
@@ -66,27 +70,17 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
     questFacts(fact, quest, model.hero.level, quests.xpFor(quest));
     pane.append(icon, line('menu-detail-name', questTitle(quest)), line('menu-detail-about', `“${notice(quest, model.seed)}”`), facts);
 
-    const buttons = document.createElement('div');
-    buttons.className = 'quest-buttons';
-    const track = document.createElement('button');
-    track.className = 'menu-detail-button';
-    track.textContent = t.tracked ? 'Untrack' : 'Track';
-    track.classList.toggle('unavailable', !t.tracked && quests.tracked >= MAX_TRACKED); // a click still says why
-    track.addEventListener('click', () => {
-      toggle(t);
-      menu.refresh();
+    const buttons = journalButtons({
+      tracked: t.tracked,
+      full: !quests.trackRoom,
+      armed: armed === quest.key,
+      onTrack: () => [toggle(t), menu.refresh()],
+      onAbandon: () => {
+        if (armed === quest.key) [quests.abandon(quest.key), (armed = null)];
+        else armed = quest.key;
+        menu.refresh();
+      },
     });
-    const drop = document.createElement('button');
-    drop.className = armed === quest.key ? 'quest-abandon armed' : 'quest-abandon';
-    drop.textContent = armed === quest.key ? 'Sure?' : 'Abandon';
-    drop.addEventListener('click', () => {
-      if (armed === quest.key) {
-        quests.abandon(quest.key);
-        armed = null;
-      } else armed = quest.key;
-      menu.refresh();
-    });
-    buttons.append(track, drop);
     pane.append(line('menu-detail-said', told || (done ? 'Done. Hand it in at the notice board you took it from.' : '')), buttons);
     return pane;
   };
@@ -102,10 +96,11 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
       pin.classList.toggle('on', i < quests.taken.length);
       pins.append(pin);
     }
-    row.append(line('quest-board-lead', 'Hand quests in at the notice board they came from.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked}/${MAX_TRACKED} tracked`));
+    row.append(line('quest-board-lead', 'Hand quests in at the notice board they came from.'), pins, line('quest-taken', `${quests.taken.length}/${MAX_ACTIVE} · ${quests.tracked + model.story.trackedCount}/${MAX_TRACKED} tracked`));
     return row;
   };
 
+  const story = storyJournal(model, () => menu.refresh(), FULL); // (the quests people gave: in the list with the boards')
   const menu = createMenu({
     title: 'Journal',
     toggleKey: 'KeyL',
@@ -119,11 +114,15 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
         slots: () => {
           const ready = quests.taken.filter((t) => quests.done(t));
           const going = quests.taken.filter((t) => !quests.done(t));
+          // Those people gave first (under way), then the boards'; those people gave and done, last.
+          const [given, over] = [story.taken(), story.done()];
           const sections = [
-            ...(ready.length ? [{ title: `Ready to hand in · ${ready.length}`, from: 0 }] : []),
-            ...(going.length ? [{ title: `In progress · ${going.length}`, from: ready.length }] : []),
+            ...(given.length ? [{ title: `From people · ${given.length}`, from: 0 }] : []),
+            ...(ready.length ? [{ title: `Ready to hand in · ${ready.length}`, from: given.length }] : []),
+            ...(going.length ? [{ title: `In progress · ${going.length}`, from: given.length + ready.length }] : []),
+            ...(over.length ? [{ title: `Done · ${over.length}`, from: given.length + ready.length + going.length }] : []),
           ];
-          return { cells: [...ready, ...going].map(slotOf), columns: 1, rows: true, sections };
+          return { cells: [...given, ...[...ready, ...going].map(slotOf), ...over], columns: 1, rows: true, sections };
         },
         detail,
         header,
@@ -134,7 +133,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   let seen = '';
   const update = () => {
     if (!menu.isOpen) return;
-    const now = quests.taken.map((t) => `${t.quest.key}:${quests.progress(t)}:${t.tracked}`).join('|');
+    const now = quests.taken.map((t) => `${t.quest.key}:${quests.progress(t)}:${t.tracked}`).join('|') + `#${JSON.stringify(model.story.save())}`; // (and those people gave: taken, let go, done)
     if (now === seen) return;
     seen = now;
     menu.refresh();

@@ -1,0 +1,53 @@
+/* A talk told as a visual novel (talkPanel.ts): the game dimmed behind; the hero at the left and whoever they speak
+   with at the right, the one speaking lit and stepped forward, the other dimmed and back; the speech box along the
+   bottom, the speaker's name on a plate at their side; the quest's card over it; the hero's answers in it. The
+   game's own palette (menu.css). */
+.talk-scene {
+  --sand: #efdcb8; --sand-dark: #d6bb8e; --clay: #a4502f; --clay-dark: #7a3520; --lantern: #ffd98a; --ember: #e8903a; --ink: #2e1f14; --ink-soft: #7a5a3c;
+  position: fixed; inset: 0; z-index: 60; overflow: hidden; cursor: pointer; user-select: none;
+  font-family: 'Fredoka', system-ui, sans-serif; color: var(--ink);
+  background: linear-gradient(to top, rgba(20, 13, 8, 0.86) 0%, rgba(20, 13, 8, 0.55) 38%, rgba(20, 13, 8, 0.32) 100%);
+  opacity: 0; transition: opacity 0.22s ease-out;
+}
+.talk-scene[hidden] { display: none; }
+.talk-scene.shown { opacity: 1; }
+
+/* The two figures: stood on the box's top edge, each a third in from its side. */
+.talk-figure { position: absolute; bottom: 150px; width: 300px; height: 420px; pointer-events: none; transition: transform 0.25s ease-out, filter 0.25s ease-out, opacity 0.25s ease-out; filter: brightness(0.5) saturate(0.6); transform: translateY(14px) scale(0.94); transform-origin: bottom center; }
+.talk-figure.left { left: max(4vw, calc(50% - 560px)); }
+.talk-figure.right { right: max(4vw, calc(50% - 560px)); }
+.talk-figure.speaking { filter: drop-shadow(0 8px 0 rgba(20, 13, 8, 0.35)); transform: none; }
+.talk-figure canvas { display: block; width: 100%; height: 100%; }
+
+.talk-floor { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(980px, 94vw); display: grid; gap: 34px; } /* (the name plate rides 20px over the box: clear of the card above it) */
+
+/* The speech box: sandstone, inked, the name plate riding its top edge at the speaker's side. */
+.talk-box { position: relative; min-height: 132px; padding: 30px 26px 22px; background: var(--sand); border: 4px solid var(--ink); border-radius: 4px; box-shadow: inset 0 -6px 0 var(--sand-dark), 0 6px 0 rgba(20, 13, 8, 0.5); }
+.talk-plate { position: absolute; top: -20px; right: 26px; padding: 4px 16px 5px; background: var(--clay); color: #fff3df; font-weight: 700; font-size: 18px; letter-spacing: 0.01em; border: 4px solid var(--ink); border-radius: 4px; box-shadow: inset 0 -3px 0 var(--clay-dark); }
+.talk-plate.left { right: auto; left: 26px; background: #3f6a8a; box-shadow: inset 0 -3px 0 #2b4a63; }
+.talk-words { margin: 0; font-size: 21px; line-height: 1.5; font-weight: 500; min-height: 3em; }
+.talk-more { position: absolute; right: 18px; bottom: 12px; font-size: 16px; font-weight: 700; color: var(--clay); animation: talk-nudge 1s ease-in-out infinite; }
+@keyframes talk-nudge { 50% { transform: translateX(4px); } }
+
+/* The hero's answers. */
+.talk-answers { display: grid; gap: 8px; }
+.talk-answers[hidden], .talk-words[hidden], .talk-more[hidden], .talk-quest[hidden] { display: none; }
+.talk-answer { display: flex; align-items: center; gap: 12px; padding: 10px 14px; font: 600 18px 'Fredoka', system-ui, sans-serif; color: var(--ink); text-align: left; background: #f7ead0; border: 3px solid var(--ink); border-radius: 4px; box-shadow: inset 0 -3px 0 var(--sand-dark); cursor: pointer; transition: transform 0.08s, background 0.08s; }
+.talk-answer:hover, .talk-answer:focus-visible { background: var(--lantern); transform: translateX(4px); outline: none; }
+.talk-answer.primary { background: var(--lantern); }
+.talk-answer.primary:hover, .talk-answer.primary:focus-visible { background: var(--ember); }
+.talk-answer kbd { display: grid; place-items: center; min-width: 24px; height: 24px; font: 700 13px 'Fredoka', system-ui, sans-serif; background: var(--ink); color: var(--sand); border-radius: 3px; }
+
+/* The quest's card, over the box: its mark in a gold roundel, what it is, what it pays. */
+.talk-quest { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 14px; padding: 10px 16px; background: #fff3d6; border: 4px solid var(--ink); border-radius: 4px; box-shadow: inset 0 -4px 0 var(--lantern), 0 4px 0 rgba(20, 13, 8, 0.45); animation: talk-rise 0.25s ease-out; }
+@keyframes talk-rise { from { opacity: 0; transform: translateY(10px); } }
+.talk-quest-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #ffc94a; border: 3px solid var(--ink); font-size: 28px; font-weight: 700; line-height: 1; }
+.talk-quest-kind { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); }
+.talk-quest-name { font-weight: 700; font-size: 19px; }
+.talk-quest-task { font-size: 14px; color: var(--ink-soft); }
+.talk-quest-pay { display: grid; justify-items: end; gap: 2px; font-weight: 700; white-space: nowrap; }
+.talk-quest-coin { display: inline-flex; align-items: center; gap: 4px; }
+.talk-quest-xp { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+
+@media (max-width: 760px) { .talk-figure { width: 200px; height: 280px; } .talk-words { font-size: 18px; } }
+@media (prefers-reduced-motion: reduce) { .talk-scene, .talk-figure, .talk-answer { transition: none; } .talk-more, .talk-quest { animation: none; } }
