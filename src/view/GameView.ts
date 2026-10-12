@@ -319,7 +319,7 @@ export class GameView {
     this.regions?.update(); // (a region the model's made drawn, or one it's let go dropped: one a frame)
     this.world.update(hero.x, hero.z);
     (this.carter ??= new CarterView(this.scene, this.travellers.material)).update(model, dt, this.elapsed, !!model.story.carterInReach);
-    this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero)); // (the one the prompt's over: their name gives way to it)
+    this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero), (t) => model.story.markOf(t), this.elapsed); // (the one the prompt's over: their name gives way to it)
     setWindPusher(hero.x, hero.z); // crops part around them
     setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null, (e) => model.quests.marked(e));

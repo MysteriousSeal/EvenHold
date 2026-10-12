@@ -139,9 +139,14 @@ export function createQuestTracker(model: GameModel): (toScreen: ToScreen) => vo
       return c;
     };
     for (const [i, q] of told.entries()) {
-      // Whoever it's handed in to: outdoors, their building's door; in that building, themselves.
-      const inRoom = !!q.door && model.inside?.entrance === q.door;
-      show(cardAt(q.id, i), q.name, q.ready ? 1 : 0, `Speak to ${q.to.name}`, inRoom || !q.door ? q.to : q.door, false, toScreen, inRoom);
+      // What it still asks, where that's to be done (a place, the nearest such foe); else, and once it's ready, whoever
+      // it's handed in to: outdoors, their building's door; in that building, themselves.
+      // (Whoever takes it in off the maps just now: the way back to their village.)
+      // (A shift, the hero in its inn: the notice board the work's taken at.)
+      const board = q.within && model.inside?.entrance === q.within && !model.inside.below ? model.inside.furniture.find((f) => f.kind === 'noticeBoard') : undefined;
+      const inRoom = !!board || (!!q.door && model.inside?.entrance === q.door && (q.ready || !q.goal));
+      const to = board ?? (!q.ready && q.goal ? q.goal : q.to ? (inRoom || !q.door ? q.to : q.door) : (q.goal ?? model.hero));
+      show(cardAt(q.id, i), q.name, q.have / q.of, q.ready && q.toName ? `Speak to ${q.toName}` : `${q.have}/${q.of}`, to, q.ready, toScreen, inRoom);
     }
     for (const [i, t] of taken.entries()) {
       const have = model.quests.progress(t);

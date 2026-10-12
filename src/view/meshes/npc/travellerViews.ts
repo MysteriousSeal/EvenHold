@@ -9,12 +9,14 @@ import { HumanRig } from '../human/humanRig';
 import { personMaterial } from '../human/humanParts';
 import { HEAD_LABEL, nameLabel } from '../common/overhead';
 import { Nearby } from '../common/nearby';
+import { HeadMarks, type HeadMark } from '../quest/questMarks';
 
 const SWING = 0.8; // a guard's blow, seconds (travellerFights.ts)
 
 interface View {
   rig: HumanRig;
   label: THREE.Sprite;
+  marks?: HeadMarks; // (a quest's, over their name: made for those who have one)
 }
 
 export class TravellerViews {
@@ -37,8 +39,13 @@ export class TravellerViews {
   constructor(private readonly scene: THREE.Object3D) {}
 
   // Each frame, out in the world: those near the hero (`talking`: the one the prompt's over, whose name gives way to it).
-  update(travellers: readonly Traveller[], hero: { x: number; z: number }, dt: number, talking: Traveller | null = null): void {
-    this.shown.update(travellers, hero.x, hero.z, (t, { rig, label }) => {
+  // (`markOf`: the quest mark over each one's head, if any: story/story.ts.)
+  update(travellers: readonly Traveller[], hero: { x: number; z: number }, dt: number, talking: Traveller | null = null, markOf?: (t: Traveller) => HeadMark | null, time = 0): void {
+    this.shown.update(travellers, hero.x, hero.z, (t, view) => {
+      const { rig, label } = view;
+      const mark = markOf?.(t) ?? null;
+      if (mark && !view.marks) rig.root.add((view.marks = new HeadMarks(HEAD_LABEL.y, t.id)).group);
+      view.marks?.show(mark, time, t.facing);
       rig.update(t.x, t.y, t.z, dt, t.swingFor === null ? null : t.swingFor / SWING, t.facing);
       label.visible = t !== talking && Math.hypot(t.x - hero.x, t.z - hero.z) < HEAD_LABEL.near;
     });
