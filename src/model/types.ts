@@ -61,7 +61,7 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'swapped'; who: Being; before: Humanoid & { name?: string } } // someone's sex changed by a spell, there and then: as they were (how it happens the view's to play: cinema/)
-  | { kind: 'transformed'; who: Being; into: Into } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
+  | { kind: 'transformed'; who: Being; into: Into; coat?: number } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
