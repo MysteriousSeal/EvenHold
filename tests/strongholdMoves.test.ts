@@ -12,7 +12,8 @@ import { ENEMY_STATS } from '../src/model/constants';
 import { SUMMONED } from '../src/model/dungeons/dungeonRecord';
 import type { DungeonHooks } from '../src/model/dungeons/dungeonTypes';
 import { strongholdInside } from '../src/model/strongholds/strongholds';
-import { WINGS, bossRoom } from '../src/model/strongholds/strongholdLayout';
+import { maxHpAt } from '../src/model/hero/attributes';
+import { WINGS, bossRoom, roomAt } from '../src/model/strongholds/strongholdLayout';
 import { STRONGHOLD_FOE_ID, StrongholdRun, WING_BOSS } from '../src/model/strongholds/strongholdFoes';
 import { strongholdMoves, type StrongholdFight, type StrongholdMoves } from '../src/model/strongholds/strongholdMoves';
 import { FRAME, TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -144,5 +145,40 @@ describe('a stronghold\'s foes\' ways (their roles: strongholdPack.test.ts; thei
     expect([told, loosed]).toEqual([true, true]);
     expect(model.hero.hp).toBeLessThan(10_000);
     expect(strongholdMoves).toBeTypeOf('function');
+  });
+
+  it('every boss fought through his phases in the game itself: each told as he\'s met and as he turns, no blow on a hero of the place\'s level their whole health, those called up never kept, everything where it can stand', () => {
+    const model = fresh();
+    const stronghold = model.strongholds[0];
+    model.teleport(stronghold.entrance.x, stronghold.entrance.z);
+    model.useDoor();
+    const run = model.dungeon as StrongholdRun;
+    const inside = strongholdInside(model.seed, stronghold.entrance);
+    const bosses = [...WINGS.map((wing) => run.bossOf(wing)!), run.king!];
+    const whole = maxHpAt(inside.stronghold.level);
+    for (const boss of bosses) {
+      for (const guard of run.packOf(boss)) if (guard !== boss) guard.state = 'dead'; // (himself alone: none of his guard stood in his way)
+      Object.assign(model.hero, { x: boss.x + 1, z: boss.z + 1.5, hp: 10_000 });
+      model.takeEvents();
+      const banners: string[] = [];
+      for (const share of [1, 0.62, 0.45, 0.28, 0.18]) {
+        for (let t = 0; t < 7; t += FRAME) {
+          if (Math.floor(t * 3) !== Math.floor((t - FRAME) * 3)) boss.hp = Math.max(1, Math.min(boss.hp, Math.floor(boss.maxHp * share))); // (brought so low, a blow at a time: the captain's guard turns them but in his openings)
+          model.update(0, 0, FRAME);
+          for (const event of model.takeEvents()) {
+            if (event.kind === 'banner') banners.push(event.line);
+            if (event.kind === 'hit' && event.on === 'hero') expect(event.amount).toBeLessThan(whole);
+          }
+          boss.hp = Math.max(boss.hp, 1); // (whatever becomes of him meanwhile: his fight's the test's to turn)
+          model.hero.hp = 10_000;
+        }
+      }
+      expect([boss.kind, banners.length]).toEqual([boss.kind, 3]);
+      for (const foe of run.foes) expect(foe.state === 'dead' || (Number.isFinite(foe.x) && Number.isFinite(foe.z) && !!roomAt(inside.plan, foe.x, foe.z))).toBe(true);
+      for (const mark of run.moves.marks) expect(Number.isFinite(mark.x + mark.z + mark.k)).toBe(true);
+    }
+    expect(run.foes.some((f) => f.id >= STRONGHOLD_FOE_ID + SUMMONED)).toBe(true);
+    expect(run.share).toBe(0);
+    expect(model.hero.hp).toBeGreaterThan(0);
   });
 });

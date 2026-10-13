@@ -68,7 +68,7 @@ export interface StrongholdPost {
 }
 
 // Something loosed, in flight (a bolt, a fire pot): where it is, its heading (a unit vector), how far it's flown (a
-// pot: how long, in seconds), what it is ('bolt', 'pot': the view's to draw by), who loosed it, the harm it does; a
+// pot: how much of its flight, 0..1), what it is ('bolt', 'pot': the view's to draw by), who loosed it, the harm it does; a
 // pot, how high along its arc (0..1).
 export interface StrongholdShot {
   x: number;

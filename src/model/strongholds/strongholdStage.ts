@@ -75,7 +75,7 @@ export class Stage {
   private readonly acts: Act[] = [];
   private readonly calls: Array<{ foe: Enemy; told: NonNullable<Enemy['told']>; x: number; z: number; t: number; secs: number; then: () => void }> = [];
   private readonly blasts: Array<Blast & { t: number }> = [];
-  private readonly pots = new Map<StrongholdShot, { from: Point; to: Point; time: number }>();
+  private readonly pots = new Map<StrongholdShot, { from: Point; to: Point; told: Blast & { t: number } }>(); // each in flight, and the blast it lands as
   private readonly walkers: Walker[] = [];
   private readonly stood = new Map<Enemy, Point>();
   private singe = 0; // seconds before burning ground bites again
@@ -114,8 +114,10 @@ export class Stage {
     this.calls.push({ foe, told, x: foe.x, z: foe.z, t: -1, secs, then });
   }
 
-  blast(blast: Blast): void {
-    this.blasts.push({ ...blast, t: 0 });
+  blast(blast: Blast): Blast & { t: number } {
+    const told = { ...blast, t: 0 };
+    this.blasts.push(told);
+    return told;
   }
 
   // A bolt loosed from `by` along (dx, dz).
@@ -128,8 +130,7 @@ export class Stage {
     const d = this.far(by, blast) || 1;
     const shot: StrongholdShot = { x: by.x, z: by.z, dx: (blast.x - by.x) / d, dz: (blast.z - by.z) / d, flown: 0, kind: 'pot', by, damage: blast.damage, high: 0 };
     this.shots.push(shot);
-    this.pots.set(shot, { from: { x: by.x, z: by.z }, to: { x: blast.x, z: blast.z }, time: blast.tell });
-    this.blast({ ...blast, tone: 'fire' });
+    this.pots.set(shot, { from: { x: by.x, z: by.z }, to: { x: blast.x, z: blast.z }, told: this.blast({ ...blast, tone: 'fire' }) });
   }
 
   // Ground set burning a while (a pot's, a keg's, a brazier's coals).
@@ -246,9 +247,8 @@ export class Stage {
   private flown(shot: StrongholdShot, dt: number): boolean {
     const pot = this.pots.get(shot);
     if (!pot) return this.fight.fly(shot, BOLT, dt, () => this.fight.hooks.arrow(shot));
-    shot.flown += dt;
-    const p = Math.min(1, shot.flown / pot.time);
-    Object.assign(shot, { x: pot.from.x + (pot.to.x - pot.from.x) * p, z: pot.from.z + (pot.to.z - pot.from.z) * p, high: Math.sin(Math.PI * p) });
+    const p = Math.min(1, pot.told.t / pot.told.tell); // (as far along as its circle's told)
+    Object.assign(shot, { flown: p, x: pot.from.x + (pot.to.x - pot.from.x) * p, z: pot.from.z + (pot.to.z - pot.from.z) * p, high: Math.sin(Math.PI * p) });
     if (p >= 1) this.pots.delete(shot);
     return p >= 1;
   }
