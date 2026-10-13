@@ -11,7 +11,7 @@ import { GameModel } from '../src/model/GameModel';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { interactionOf } from '../src/model/hero/interaction';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { ROAM, mayTurn, placeOf } from '../src/model/spells/chickens';
+import { COW_COATS, ROAM, mayTurn, placeOf } from '../src/model/spells/chickens';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { SmokePuffs } from '../src/view/meshes/common/smokePuffs';
@@ -196,6 +196,43 @@ describe("the hen-wife's turn, on someone who's no foe", () => {
     expect(again.chickens.hens[0].x).toBeCloseTo(model.chickens.hens[0].x, 1);
     again.chickens.load({ hens: [['x', 1, null, 0, 0], 'nonsense'], lost: ['a', 2.5] }); // (a broken save: none of it)
     expect(again.chickens.hens.length + again.chickens.lost.size).toBe(0);
+  });
+});
+
+describe("the dairymaid's call", () => {
+  it('turns whoever is picked out into a cow, for good: slow, stood long at her cud, kept so in a save; taught like the others', () => {
+    const { model, hero, foe } = withWolf();
+    learn(hero, 'cow');
+    expect(SPELLS.cow).toMatchObject({ aim: 'anyone', turns: 'cow', needsTarget: true, cooldown: 0 });
+    expect(SPELLS.cow.level).toBeGreaterThan(SPELLS.chicken.level);
+    expect(castSpell(model, 'cow')).toBe('cast');
+    expect(model.enemies).not.toContain(foe);
+    const cow = model.chickens.hens[0];
+    expect(cow).toMatchObject({ kind: 'cow', x: foe.x, z: foe.z });
+    const [x0, z0] = [cow.x, cow.z];
+    run(model, 60, () => expect(Math.hypot(cow.x - x0, cow.z - z0)).toBeLessThanOrEqual(ROAM + 1e-6));
+    const again = fresh();
+    again.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(again.chickens.hens[0].kind).toBe('cow');
+    // Her coat: one of them by chance, hers from then on; told with her turning, for it to be played in.
+    expect(cow.coat).toBeGreaterThanOrEqual(0);
+    expect(cow.coat).toBeLessThan(COW_COATS);
+    expect(again.chickens.hens[0].coat).toBe(cow.coat);
+    const coats = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      const next = withWolf();
+      learn(next.hero, 'cow');
+      next.model.random = () => (i * 0.137) % 1;
+      const told: Array<{ kind: string; coat?: number }> = [];
+      const report = next.model.report;
+      next.model.report = (event) => [told.push(event as never), report.call(next.model, event)];
+      castSpell(next.model, 'cow');
+      expect(told.find((e) => e.kind === 'transformed')!.coat).toBe(next.model.chickens.hens[0].coat);
+      coats.add(next.model.chickens.hens[0].coat!);
+    }
+    expect(coats.size).toBe(COW_COATS); // (each of them, some time)
+    again.chickens.load({ hens: [[1, 1, null, 1, 1, 'cow', 99], [2, 2, null, 2, 2, 'cow']], lost: [] }); // (a broken save's, an older one's: her first coat)
+    expect(again.chickens.hens.map((h) => h.coat)).toEqual([0, 0]);
   });
 });
 

@@ -9,6 +9,9 @@ import { fresh } from './support/testWorld';
 import { makeActor } from '../src/view/cinema/actor';
 import { HEN, chickenStaging } from '../src/view/cinema/chickenStaging';
 import { STAGINGS } from '../src/view/cinema/staging';
+import { COW, cowStaging, cowStagingOf } from '../src/view/cinema/cowStaging';
+import { COW_COLORS, COW_PALETTE, COW_PALETTES } from '../src/view/meshes/wildlife/cowVoxels';
+import { COW_COATS } from '../src/model/spells/chickens';
 import { HORSE, horseStaging } from '../src/view/cinema/horseStaging';
 import { HORSE_LEGS, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../src/view/meshes/wildlife/horseVoxels';
 import { GIVES_WAY, LENGTH, playTransformation } from '../src/view/cinema/transformCinema';
@@ -216,6 +219,43 @@ describe('someone turned into a horse', () => {
     for (let t = 0; t < STEPPED + 2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
     expect([...said].some((line) => /all four/.test(line))).toBe(true); // (its four legs at once: never its fore end in the air)
     expect([...said].filter((line) => /mane|blaze|Ears/.test(line)).length).toBe(3); // (what grows on it, a thing at a time)
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('someone turned into a cow', () => {
+  it('is a cow in voxels: every part of her once, on her hooves, lower and heavier than the horse, in her few colours', () => {
+    const cow = cowStaging.cloud!();
+    const hues0 = new Set(cow.color.map((color) => color.getHex()));
+    const key = (p: THREE.Vector3) => p.toArray().map((n) => Math.round(n / (cow.size / 2))).join();
+    expect(new Set(cow.at.map(key)).size).toBe(cow.at.length); // (no part of her inside another)
+    const box = new THREE.Box3().setFromPoints(cow.at);
+    expect(box.min.y).toBeCloseTo(cow.size / 2, 6); // (her hooves on the ground)
+    expect(box.max.y).toBeCloseTo(COW.y - cow.size / 2, 6); // (to her horns)
+    expect(COW.y).toBeLessThan(HORSE.y);
+    expect(COW.x).toBeGreaterThan(HORSE.x); // (wider)
+    // Her other coats: the same cow, in other colours.
+    expect(COW_PALETTES.length).toBe(COW_COATS);
+    for (const coat of [1, 2, 3]) {
+      const other = cowStagingOf(coat).cloud!();
+      expect(other.at.length).toBe(cow.at.length);
+      expect(new Set(other.color.map((color) => color.getHex()))).not.toEqual(hues0);
+    }
+    expect(COW_PALETTE.length).toBeLessThanOrEqual(8);
+    const hues = new Set(cow.color.map((color) => color.getHex()));
+    for (const role of ['red', 'pink', 'horn'] as const) expect(hues.has(COW_PALETTE[COW_COLORS[role] - 1]), role).toBe(true); // (her patches, her muzzle and udder, her horns)
+  });
+
+  it('is played step by step as the horse is, her four legs at once, her horns, patches and udder grown on her after', () => {
+    document.body.replaceChildren();
+    const done = vi.fn();
+    const playing = playTransformation(human(), 'Idtram', 'cow', done, drawer);
+    expect(playing.root.querySelector('.transform-title')!.textContent).toBe(STAGINGS.cow.title);
+    const said = new Set<string>();
+    for (let t = 0; t < STEPPED + 2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
+    expect([...said].some((line) => /all four/.test(line))).toBe(true);
+    expect([...said].filter((line) => /Horns|Ears|Red, spreading|rump|udder/.test(line)).length).toBe(5);
+    expect([...said]).toContain('A cow.');
     expect(done).toHaveBeenCalledTimes(1);
   });
 });
