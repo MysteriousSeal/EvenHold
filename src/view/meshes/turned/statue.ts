@@ -24,9 +24,11 @@ export function stoneFigure(figure: THREE.Object3D, raised = 1): { root: THREE.G
     const mesh = o as THREE.Mesh;
     if ((o as THREE.Sprite).isSprite || o.name === 'overhead') return void (o.visible = false);
     if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-    if (mesh.material.transparent) return void (mesh.visible = false); // (their shade on the ground, a ghost's glow)
     // (Its colours, each in stone: on a geometry of its own, theirs being shared with the living.)
     const colors = mesh.geometry.getAttribute('color');
+    // (What's see-through and of no colours of its own: their shade on the ground, a glow. What's see-through in its
+    // own colours is themselves, a ghost or a lynx lurking: carved, as solid as any.)
+    if (mesh.material.transparent && !colors) return void (mesh.visible = false);
     if (!colors) return void (mesh.material = plain);
     mesh.geometry = mesh.geometry.clone();
     const own = mesh.geometry.getAttribute('color');
@@ -36,8 +38,13 @@ export function stoneFigure(figure: THREE.Object3D, raised = 1): { root: THREE.G
     }
     mesh.material = carved;
   });
+  // (What hovered over the ground, a bat, a ghost: set down on its plinth, as its turning showed it: cinema/actor.ts setDown.)
+  figure.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  figure.traverseVisible((o) => (o as THREE.Mesh).isMesh && box.expandByObject(o));
+  if (!box.isEmpty() && box.min.y > 0.03) for (const part of figure.children) part.position.y -= box.min.y / (figure.scale.y || 1);
   const root = new THREE.Group();
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(PLINTH.wide, PLINTH.tall, PLINTH.wide), new THREE.MeshStandardMaterial({ color: PLINTH.color, roughness: 1 }));
+  const plinth =new THREE.Mesh(new THREE.BoxGeometry(PLINTH.wide, PLINTH.tall, PLINTH.wide), new THREE.MeshStandardMaterial({ color: PLINTH.color, roughness: 1 }));
   root.add(figure, plinth);
   const raise = (k: number) => {
     figure.position.y = PLINTH.tall * k;
