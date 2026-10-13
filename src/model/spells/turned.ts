@@ -18,21 +18,30 @@ import type { Point } from '../map/obstacles';
 import type { Npc } from '../npcs/npcs';
 import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
-import type { Enemy, GameEvent } from '../types';
+import { TILE_HEIGHT, TREE_SHAPES } from '../constants';
+import type { Humanoid } from '../human/humanoid';
+import type { Enemy, GameEvent, Tree, TreeKind } from '../types';
 import { humanOf, isFoe, isNpc, type Being } from './beings';
 
-export type Into = 'chicken' | 'horse' | 'cow' | 'bull';
-export const INTO: readonly Into[] = ['chicken', 'horse', 'cow', 'bull'];
+export type Into = 'chicken' | 'horse' | 'cow' | 'bull' | 'statue' | 'tree';
+export const INTO: readonly Into[] = ['chicken', 'horse', 'cow', 'bull', 'statue', 'tree'];
+// What's kept as one of the turned (`hens`): all of them but a tree, which is one of the world's trees from then on.
+export type Beast = Exclude<Into, 'tree'>;
+const BEASTS: readonly Beast[] = ['chicken', 'horse', 'cow', 'bull', 'statue'];
+const rooted = (into: Into): boolean => into === 'statue' || into === 'tree'; // (stood where they were, in the way: out of doors only)
+const STATUE_HALF = 0.22; // how far round a statue blocks the way
 export const ROAM = 5; // tiles from where they were turned, at most
 // How each goes about: tiles a second, and the seconds stood between strolls (a hen pecking, a horse grazing, a cow at her cud).
-const GAIT: Record<Into, { pace: number; stood: [number, number] }> = { chicken: { pace: 0.55, stood: [0.6, 2.2] }, horse: { pace: 0.8, stood: [3, 9] }, cow: { pace: 0.4, stood: [5, 14] }, bull: { pace: 0.45, stood: [4, 11] } };
+const GAIT: Record<Beast, { pace: number; stood: [number, number] }> = { chicken: { pace: 0.55, stood: [0.6, 2.2] }, horse: { pace: 0.8, stood: [3, 9] }, cow: { pace: 0.4, stood: [5, 14] }, bull: { pace: 0.45, stood: [4, 11] }, statue: { pace: 0, stood: [0, 0] } };
 const ARRIVED = 0.08;
 export const COW_COATS = 4; // the coats a cow may have (cowVoxels.ts: red and white, black and white, dun, black), one hers by chance
+const LIKE = 14; // tiles about someone turned into a tree: of the kind of the nearest tree within them
+const TREE_KINDS: readonly TreeKind[] = ['oak', 'pine', 'birch'];
 const AWAKE = 40; // tiles from the hero a hen still wanders (farther: stood where she is)
 
 export interface Hen {
   id: number;
-  kind: Into; // what they were turned into
+  kind: Beast; // what they were turned into
   x: number;
   y: number;
   z: number;
@@ -41,8 +50,15 @@ export interface Hen {
   to: Point | null; // where she's strutting to, if anywhere
   peck: number; // seconds more stood pecking
   facing: number;
-  coat?: number; // a cow's or a bull's: which of their coats (0 .. COW_COATS - 1)
+  coat?: number; // a cow's or a bull's: which of their coats
+  stone?: Stone; // a statue's: who it's of (0 .. COW_COATS - 1)
   fresh?: boolean; // just turned (the view's: a puff of smoke as she's first seen)
+}
+// Who a statue is of: someone (their look, what they wore), or a foe (its kind and number: itself, to be drawn again; a bandit's look and what they wore).
+export interface Stone {
+  foe?: Enemy['kind'];
+  id: number;
+  human?: Humanoid;
 }
 // A place indoors, by its door.
 export const placeOf = (entrance: Entrance | null | undefined): string | null => (entrance ? `${entrance.x},${entrance.z}` : null);
@@ -62,6 +78,8 @@ export interface ChickenHost {
   random(): number;
   isOpenTile(x: number, z: number): boolean;
   getGroundY(x: number, z: number): number;
+  readonly trees: readonly Tree[];
+  readonly world: { rooted(): void }; // (what's rooted, put among the world's: world/liveWorld.ts)
   report(event: GameEvent): void;
   slayGuard(enemy: Enemy): void;
   focus(id: number | null): void;
@@ -74,25 +92,58 @@ const boss = (foe: Enemy): boolean => isBoss(foe.kind) || foe.kind === 'banditCh
 export const mayTurn = (being: Being): boolean => (isFoe(being) ? being.state !== 'dead' && !being.buried && !boss(being) : !(isNpc(being) && being.led));
 
 export interface SavedChickens {
-  hens: Array<[x: number, z: number, at: string | null, fromX: number, fromZ: number, kind?: Into, coat?: number]>;
+  hens: Array<[x: number, z: number, at: string | null, fromX: number, fromZ: number, kind?: Beast, coat?: number | null, stone?: Stone | null]>;
   lost: number[];
+  trees?: Array<[x: number, z: number, kind: TreeKind, shape: number, quarterTurns: number, groundTier: number]>; // those turned into trees: where each stands
 }
 
 export class Chickens {
   readonly hens: Hen[] = [];
   readonly lost = new Set<number>(); // villagers and keepers turned, by id: gone from the world for good
+  readonly trees: Tree[] = []; // those turned into trees: each one of the world's from then on (to be felled, as any)
   private next = 1;
 
   constructor(private readonly host: ChickenHost) {}
 
+  // Whether `being` may be turned into that, here and now. A statue, a tree: out of doors only; a tree, where
+  // there's a tile for it to stand on.
+  may(being: Being, into: Into = 'chicken'): boolean {
+    if (!mayTurn(being)) return false;
+    if (!rooted(into)) return true;
+    const outside = !this.host.inside && !this.host.dungeon && (isFoe(being) || !being.where); // (the hero, and they themselves)
+    return outside && (into !== 'tree' || this.sapling(being) !== null);
+  }
+
+  // The tree someone would be turned into: on the tile they stand on, or the nearest open one beside it (not the
+  // hero's own, nor one of another's); of the kind of the nearest tree about (an oak, where there's none).
+  private sapling(being: Being): Tree | null {
+    const { host } = this;
+    const [bx, bz, hx, hz] = [Math.round(being.x), Math.round(being.z), Math.round(host.hero.x), Math.round(host.hero.z)];
+    const tiles = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => ({ x: bx + dx, z: bz + dz }))).sort((a, b) => Math.hypot(a.x - being.x, a.z - being.z) - Math.hypot(b.x - being.x, b.z - being.z));
+    const at = tiles.find((t) => !(t.x === hx && t.z === hz) && host.isOpenTile(t.x, t.z) && !this.trees.some((tree) => tree.x === t.x && tree.z === t.z) && !this.hens.some((hen) => hen.kind === 'statue' && Math.round(hen.x) === t.x && Math.round(hen.z) === t.z));
+    if (!at) return null;
+    let [kind, near]: [TreeKind, number] = ['oak', LIKE];
+    for (const tree of host.trees) {
+      const far = Math.max(Math.abs(tree.x - at.x), Math.abs(tree.z - at.z));
+      if (far < near) [kind, near] = [tree.kind, far];
+    }
+    return { x: at.x, z: at.z, groundTier: Math.round(host.getGroundY(at.x, at.z) / TILE_HEIGHT), kind, shape: Math.floor(host.random() * TREE_SHAPES) % TREE_SHAPES, quarterTurns: Math.floor(host.random() * 4) % 4, planted: true };
+  }
+
+  // The statues standing out of doors: where each blocks the way (world/liveWorld.ts).
+  statues(): Array<{ x: number; z: number; half: number }> {
+    return this.hens.filter((hen) => hen.kind === 'statue' && hen.at === null).map((hen) => ({ x: hen.x, z: hen.z, half: STATUE_HALF }));
+  }
+
   // Turned, for good: whether they were. They're no more (above); a hen where they stood.
   turn(being: Being, as: Into = 'chicken'): boolean {
-    if (!mayTurn(being)) return false;
+    if (!this.may(being, as)) return false;
     const { host } = this;
     // Cattle: a man a bull, a woman a cow; what's neither (a beast), one or the other by chance.
     const build = humanOf(being)?.look.build;
     const into: Into = as === 'cow' || as === 'bull' ? (build ? (build === 'male' ? 'bull' : 'cow') : host.random() < 0.5 ? 'bull' : 'cow') : as;
-    const hen: Hen = { id: this.next++, kind: into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true, ...(into === 'cow' || into === 'bull' ? { coat: Math.floor(host.random() * COW_COATS) % COW_COATS } : {}) };
+    const tree = into === 'tree' ? this.sapling(being)! : null;
+    const hen: Hen = { id: this.next++, kind: into === 'tree' ? 'statue' : into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into === 'tree' ? 'statue' : into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true, ...(into === 'cow' || into === 'bull' ? { coat: Math.floor(host.random() * COW_COATS) % COW_COATS } : {}), ...(into === 'statue' ? { stone: { id: being.id, ...(isFoe(being) ? { foe: being.kind } : {}), ...(humanOf(being) ? { human: { look: humanOf(being)!.look, equipment: { ...humanOf(being)!.equipment } } } : {}) } } : {}) };
     const shown: Being = isFoe(being) ? { ...being } : being; // (as they stood, for its turning to be played: the foe itself is dead from here on)
     if (isFoe(being)) {
       // As good as slain, for all that counts them (dead, to whatever still holds it: a camp's count of its crew); nothing had for it.
@@ -113,8 +164,10 @@ export class Chickens {
         if (at >= 0) host.npcs.splice(at, 1);
       } else host.travellers.lose(being);
     }
-    this.hens.push(hen);
-    host.report({ kind: 'transformed', who: shown, into, coat: hen.coat });
+    if (tree) this.trees.push(tree);
+    else this.hens.push(hen);
+    if (rooted(into)) host.world.rooted(); // (in the way, from now)
+    host.report({ kind: 'transformed', who: shown, into, coat: hen.coat, ...(tree ? { tree } : {}) });
     return true;
   }
 
@@ -134,6 +187,7 @@ export class Chickens {
 
   private strut(hen: Hen, dt: number): void {
     const { host } = this;
+    if (hen.kind === 'statue') return; // (stood, for ever)
     if (hen.peck > 0) return void (hen.peck -= dt);
     if (!hen.to) {
       // Somewhere within reach of where they were turned, any way round.
@@ -163,21 +217,28 @@ export class Chickens {
 
   save(): SavedChickens {
     const round = (n: number) => Math.round(n * 100) / 100;
-    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z), hen.kind, hen.coat]), lost: [...this.lost] };
+    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z), hen.kind, hen.coat ?? null, hen.stone ?? null]), lost: [...this.lost], trees: this.trees.map((t) => [t.x, t.z, t.kind, t.shape, t.quarterTurns, t.groundTier]) };
   }
 
   // A save's, as far as it's sound; those lost gone from the world as it stands (a world made after: liveWorld.ts).
   load(saved: unknown): void {
     const data = (saved ?? {}) as Partial<SavedChickens>;
     this.hens.length = 0;
+    this.trees.length = 0;
     this.lost.clear();
     for (const id of Array.isArray(data.lost) ? data.lost : []) if (Number.isInteger(id)) this.lost.add(id);
     for (const row of Array.isArray(data.hens) ? data.hens : []) {
       if (!Array.isArray(row) || ![row[0], row[1], row[3], row[4]].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-      const [x, z, at, fromX, fromZ, kind, coat] = row;
+      const [x, z, at, fromX, fromZ, kind, coat, stone] = row;
+      if (kind === 'statue' && !(stone && typeof stone === 'object' && Number.isFinite(stone.id) && (stone.foe || stone.human?.look))) continue; // (a statue of no one: none)
       const coated = kind === 'cow' || kind === 'bull' ? { coat: typeof coat === 'number' && Number.isInteger(coat) && coat >= 0 && coat < COW_COATS ? coat : 0 } : {};
-      this.hens.push({ id: this.next++, kind: INTO.includes(kind as Into) ? (kind as Into) : 'chicken', x, y: typeof at === 'string' ? 0 : this.host.getGroundY(x, z), z, at: typeof at === 'string' ? at : null, from: { x: fromX, z: fromZ }, to: null, peck: 0.5, facing: 0, ...coated });
+      this.hens.push({ id: this.next++, kind: BEASTS.includes(kind as Beast) ? (kind as Beast) : 'chicken', x, y: typeof at === 'string' ? 0 : this.host.getGroundY(x, z), z, at: typeof at === 'string' ? at : null, from: { x: fromX, z: fromZ }, to: null, peck: 0.5, facing: 0, ...coated, ...(kind === 'statue' ? { stone: stone as Stone } : {}) });
+    }
+    for (const row of Array.isArray(data.trees) ? data.trees : []) {
+      if (!Array.isArray(row) || ![row[0], row[1], row[3], row[4], row[5]].every((n) => Number.isInteger(n)) || !TREE_KINDS.includes(row[2])) continue;
+      this.trees.push({ x: row[0], z: row[1], kind: row[2], shape: row[3] % TREE_SHAPES, quarterTurns: row[4] % 4, groundTier: row[5], planted: true });
     }
     for (let i = this.host.npcs.length - 1; i >= 0; i--) if (this.lost.has(this.host.npcs[i].id)) this.host.npcs.splice(i, 1);
+    this.host.world.rooted();
   }
 }

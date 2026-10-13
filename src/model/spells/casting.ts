@@ -18,7 +18,7 @@ export interface Caster extends Fight {
   readonly moves: Fight['moves'] & { spend(amount: number): boolean; readonly breath: number };
   readonly chosen?: { readonly person: Person | null }; // whoever's picked out, no foe
   readonly size: MapSize;
-  readonly chickens?: Pick<Chickens, 'turn'>;
+  readonly chickens?: Pick<Chickens, 'turn' | 'may'>;
   readonly swaps?: Pick<Swaps, 'swap'>;
 }
 
@@ -54,7 +54,7 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   if (!knows(hero, id)) return 'unknown';
   if (waitOf(hero, id) > 0) return 'waiting';
   const at = castTarget(caster, id);
-  if (!at || (spell.swaps && ('self' in at || !maySwap('foe' in at ? at.foe : at.person))) || (spell.turns && ('self' in at || !mayTurn('foe' in at ? at.foe : at.person)))) return 'noTarget'; // (a boss: not to be turned)
+  if (!at || (spell.swaps && ('self' in at || !maySwap('foe' in at ? at.foe : at.person))) || (spell.turns && ('self' in at || !(caster.chickens ? caster.chickens.may('foe' in at ? at.foe : at.person, spell.turns) : mayTurn('foe' in at ? at.foe : at.person))))) return 'noTarget'; // (a boss: not to be turned)
   if (!caster.moves.spend(spell.breath)) return 'breath';
   hero.spellWait = { ...hero.spellWait, [id]: spell.cooldown };
   const whom = 'foe' in at ? at.foe : 'person' in at ? at.person : hero;

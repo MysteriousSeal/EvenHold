@@ -11,7 +11,7 @@
 
 import type { Building, Bush, Enemy, Field, Hero, House, Tree, Village } from '../types';
 import { spawnOf, toCellX, toCellZ, type Area, type MapSize } from '../map/grid';
-import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, FOE_AT_MOST_FROM_HOME } from '../constants';
+import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, FOE_AT_MOST_FROM_HOME, TREE_COLLISION_HALF } from '../constants';
 import { onPaving } from '../map/roads';
 import { Obstacles, type ObstaclePage } from '../map/obstacles';
 import { RegionTiles, TilePatch, type Tiles } from '../map/tiles';
@@ -39,7 +39,9 @@ export interface WorldHost {
   readonly seed: number;
   readonly hero: Hero;
   readonly slain: ReadonlySet<number>;
-  readonly chickens?: { readonly lost: ReadonlySet<number> }; // villagers gone for good (turned into beasts: spells/turned.ts), by id
+  // Villagers gone for good (turned into beasts: spells/turned.ts), by id; and what's rooted where someone was turned:
+  // trees (each one of the world's from then on) and statues (in the way).
+  readonly chickens?: { readonly lost: ReadonlySet<number>; readonly trees?: readonly Tree[]; statues?(): ReadonlyArray<{ x: number; z: number; half: number }> };
   readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
@@ -248,7 +250,32 @@ export class LiveWorld {
     this.alive.set(index, alive);
     for (const k of ALIVE) appendAll(this[k] as unknown[], alive[k]);
     if (travellers) this.travellers.add(index, travellers);
+    this.root(index);
     this.changes++;
+  }
+
+  // The region a tile's on.
+  private indexAt(x: number, z: number): number {
+    return this.regionIndex(Math.floor(x / this.regionSize), Math.floor(z / this.regionSize));
+  }
+
+  // What's rooted where someone was turned (spells/turned.ts), put among the world's on every region alive: a tree
+  // standing with the rest (after its region's own, never among them: those go as one when it's let go), a tree or a
+  // statue in the way. Asked again, nothing put twice.
+  rooted(): void {
+    for (const index of this.alive.keys()) this.root(index);
+  }
+  private root(index: number): void {
+    const turned = this.host.chickens;
+    for (const tree of turned?.trees ?? []) {
+      if (this.indexAt(tree.x, tree.z) !== index || this.trees.includes(tree) || this.host.felled?.(tree)) continue;
+      this.trees.push(tree);
+      this.obstacles.addProp(tree.x, tree.z, TREE_COLLISION_HALF);
+    }
+    for (const { x, z, half } of turned?.statues?.() ?? []) {
+      const [tx, tz] = [Math.round(x), Math.round(z)];
+      if (this.indexAt(tx, tz) === index && this.obstacles.isOpenTile(tx, tz)) this.obstacles.addProp(tx, tz, half, false, half, true, x - tx, z - tz);
+    }
   }
 
   // A region's foes as they stand: the slain gone for good, the hurt and wandered where they were left.
@@ -278,6 +305,7 @@ export class LiveWorld {
     this.alive.delete(index);
     for (const e of alive.enemies) if (e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05)) this.remembered.set(e.id, { x: e.x, z: e.z, hp: e.hp });
     for (const k of ALIVE) removeAll(this[k] as unknown[], alive[k]);
+    for (const tree of this.host.chickens?.trees ?? []) if (this.indexAt(tree.x, tree.z) === index && this.trees.includes(tree)) this.trees.splice(this.trees.indexOf(tree), 1); // (those rooted on it, with it)
     this.travellers.remove(index);
     this.changes++;
     this.obstacles.close(rx, rz);

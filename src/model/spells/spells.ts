@@ -6,7 +6,7 @@
 import type { Hero } from '../types';
 import type { Into } from './turned';
 
-export type SpellId = 'hex' | 'mend' | 'chicken' | 'cow' | 'horse' | 'swap';
+export type SpellId = 'hex' | 'mend' | 'chicken' | 'cow' | 'horse' | 'swap' | 'statue' | 'tree';
 export type Aim = 'foes' | 'anyone';
 export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyone' };
 export interface Spell {
@@ -31,6 +31,8 @@ export const SPELLS: Record<SpellId, Spell> = {
   chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry. There is no word that says it back.', level: 3, price: 150, breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'chicken', needsTarget: true },
   cow: { name: "Herdsman's call", about: 'The call that brings the herd in at dusk, sung to one who was never in it, with a pinch of salt held out. A man comes to it a bull, a woman a cow. They stay for the grass.', level: 4, price: 200, breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'cow', needsTarget: true },
   horse: { name: "Horse-coper's word", about: 'A hair from a mane knotted three times, and a name called as you would call one in from the field. Whoever answers to it stays in the field.', level: 5, price: 250, breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'horse', needsTarget: true },
+  statue: { name: "Mason's curse", about: 'A pebble from a churchyard wall, held under the tongue while you look at them. Out of doors only: whoever you look at stays where they stand, in stone, in all weathers.', level: 6, price: 320, breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'statue', needsTarget: true },
+  tree: { name: "Woodward's rooting", about: 'An acorn split with the thumbnail and a word breathed into the halves. Out of doors only: whoever it is said at takes root, and is a tree like any other. A woodcutter would not know the difference.', level: 7, price: 400, breath: 70, cooldown: 0, range: 5, aim: 'anyone', turns: 'tree', needsTarget: true },
   swap: { name: 'Moon-turn charm', about: 'Said at a crossroads under a waning moon, it is told; said anywhere, it works as well. Whoever hears it wakes into the other half of the parish.', level: 4, price: 200, breath: 40, cooldown: 0, range: 5, aim: 'anyone', swaps: true, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];

@@ -62,7 +62,7 @@ export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' 
 export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'swapped'; who: Being; before: Humanoid & { name?: string } } // someone's sex changed by a spell, there and then: as they were (how it happens the view's to play: cinema/)
-  | { kind: 'transformed'; who: Being; into: Into; coat?: number } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
+  | { kind: 'transformed'; who: Being; into: Into; coat?: number; tree?: Tree } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
@@ -139,6 +139,7 @@ export interface Tree {
   kind: TreeKind;
   shape: number; // which voxel shape variant to draw
   quarterTurns: number; // 0-3, rotation about Y in 90-degree steps (grid-aligned)
+  planted?: boolean; // none of the land's own: someone turned into it (spells/turned.ts), drawn on its own
 }
 
 export interface House {
