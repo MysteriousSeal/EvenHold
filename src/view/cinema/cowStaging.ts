@@ -19,7 +19,8 @@ const C = COW_COLORS;
 export const COW = new THREE.Vector3(COW_BODY[0] * V, (COW_NECK[1] + COW_HEAD[1]) * V, (COW_BODY[2] + 8) * V);
 
 // Her staging, in one of her coats (COW_PALETTES): the one she'll be seen in after.
-export function cowStagingOf(coat = 0): Staging {
+// `bull`: a bull's (a man turned): his hump and thick neck, his longer horns, no udder; the ground pawed after.
+export function cowStagingOf(coat = 0, bull = false): Staging {
   const COW_PALETTE = COW_PALETTES[coat] ?? COW_PALETTES[0];
   const hue = (cloud: Cloud, i: number, ...roles: number[]) => roles.some((role) => cloud.color[i].getHex() === new THREE.Color(COW_PALETTE[role - 1]).getHex());
   // The cow's voxels, where createCow puts them (cowRig.ts), `big` times her size: her body (her tail and udder with
@@ -27,8 +28,8 @@ export function cowStagingOf(coat = 0): Staging {
   function cowClouds(big: number): { body: Cloud; head: Cloud; legs: Cloud[] } {
     const at = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
     return {
-      body: cloudOf([{ grid: buildCowBody(), palette: COW_PALETTE, origin: at(-COW_BODY_PIVOT[0], COW_LEG_HEIGHT - COW_BODY_PIVOT[1], -COW_BODY_PIVOT[2]) }], V * big),
-      head: cloudOf([{ grid: buildCowHead(), palette: COW_PALETTE, origin: at(COW_NECK[0] - COW_HEAD_PIVOT[0], COW_NECK[1] - COW_HEAD_PIVOT[1], COW_NECK[2] - COW_HEAD_PIVOT[2]) }], V * big),
+      body: cloudOf([{ grid: buildCowBody(bull), palette: COW_PALETTE, origin: at(-COW_BODY_PIVOT[0], COW_LEG_HEIGHT - COW_BODY_PIVOT[1], -COW_BODY_PIVOT[2]) }], V * big),
+      head: cloudOf([{ grid: buildCowHead(bull), palette: COW_PALETTE, origin: at(COW_NECK[0] - COW_HEAD_PIVOT[0], COW_NECK[1] - COW_HEAD_PIVOT[1], COW_NECK[2] - COW_HEAD_PIVOT[2]) }], V * big),
       legs: COW_LEGS.map(([x, z], i) => cloudOf([{ grid: buildCowLeg(i < 2), palette: COW_PALETTE, origin: at(x - COW_LEG_PIVOT[0], COW_LEG_HEIGHT - COW_LEG_PIVOT[1], z - COW_LEG_PIVOT[2]) }], V * big)),
     };
   }
@@ -51,11 +52,11 @@ export function cowStagingOf(coat = 0): Staging {
       const face = some(head, (at, i) => !out(at) && hue(head, i, C.red, C.redDark));
       const hide = some(body, (at, i) => !tail(at) && hue(body, i, C.red, C.redDark));
       return [
-        { on: 'head', cloud: horns, root: horns.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'Horns: out from the poll, and up.' },
+        { on: 'head', cloud: horns, root: horns.at.reduce((best, at) => (at.y < best.y ? at : best)), line: bull ? 'Horns: out from the poll, long, swept forward.' : 'Horns: out from the poll, and up.' },
         { on: 'head', cloud: some(head, (at, i) => out(at) && !hue(head, i, C.horn)), line: 'Ears, under them.' },
         { on: 'head', cloud: face, root: middle(face), line: 'Red, spreading over the white: the cheeks, the neck.' },
         { on: 'body', cloud: hide, root: middle(hide), line: 'The shoulders, the rump, a flank.' },
-        { on: 'body', cloud: joined([some(body, (_at, i) => hue(body, i, C.pink)), some(body, (at) => tail(at))], V * big), line: 'An udder; a tail, behind.' },
+        { on: 'body', cloud: joined([some(body, (_at, i) => hue(body, i, C.pink)), some(body, (at) => tail(at))], V * big), line: bull ? 'What makes a bull of him, between the hind legs; a tail, behind.' : 'An udder; a tail, behind.' },
       ];
     },
     parts(big, plain) {
@@ -87,29 +88,29 @@ export function cowStagingOf(coat = 0): Staging {
     stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
     legs: 'Arms and legs thicken and shorten, all four. Hands and feet split into hooves.',
     arms: '',
-    body: 'The back lengthens; the belly drops, heavy; the hips stand square.',
-    head: 'The neck shortens; the face broadens. A wide wet muzzle.',
-    done: 'A cow, chewing, where they stood.',
+    body: bull ? 'The back lengthens; the chest deepens; a hump of muscle rises over the shoulders.' : 'The back lengthens; the belly drops, heavy; the hips stand square.',
+    head: bull ? 'The neck thickens, crested; the face broadens. A wide wet muzzle.' : 'The neck shortens; the face broadens. A wide wet muzzle.',
+    done: bull ? 'A bull, where they stood.' : 'A cow, chewing, where they stood.',
   };
   const BEAST: Telling = {
     ...PERSON,
     start: '{name} hears a herd called in, somewhere.',
     stance: 'It squares itself up on its four legs.',
     legs: 'The legs thicken, all four. Hooves, cloven.',
-    body: 'The body lengthens; the belly drops, heavy; the hips stand square.',
-    done: 'A cow, chewing, where it stood.',
+    body: bull ? 'The body lengthens; the chest deepens; a hump of muscle rises over the shoulders.' : 'The body lengthens; the belly drops, heavy; the hips stand square.',
+    done: bull ? 'A bull, where it stood.' : 'A cow, chewing, where it stood.',
   };
 
   const staging: Staging = {
-    title: "Dairymaid's call",
-    becomes: 'A cow',
+    title: "Herdsman's call",
+    becomes: bull ? 'A bull' : 'A cow',
     lines: [
       [0, '{name} hears the herd called in.'],
       [0.04, 'They go down on all fours.'],
       [0.27, 'The legs thicken, all four. Hooves.'],
       [0.45, 'A long, deep barrel of a body. A broad head.'],
-      [0.72, 'Horns. Red patches. An udder.'],
-      [0.92, 'A cow, chewing, where they stood.'],
+      [0.72, bull ? 'Horns. A hump. Patches.' : 'Horns. Patches. An udder.'],
+      [0.92, bull ? 'A bull, where they stood.' : 'A cow, chewing, where they stood.'],
     ],
     looseLines: [
       [0, '{name} hears a herd called in, somewhere.'],
@@ -124,7 +125,7 @@ export function cowStagingOf(coat = 0): Staging {
     pieces: (actor) => partPieces(actor, becoming),
     direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
     target() {
-      const cow = createCow(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
+      const cow = createCow(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat, bull);
       return {
         root: cow.root,
         height: COW.y,
@@ -132,6 +133,12 @@ export function cowStagingOf(coat = 0): Staging {
         settle(j, time) {
           const within = (a: number, b: number) => (j > a && j < b ? Math.sin(((j - a) / (b - a)) * Math.PI) : 0);
           const down = j > 0.5 ? Math.min(1, (j - 0.5) / 0.25) : 0;
+          if (bull) {
+            // (A bull: his head lowered, the ground pawed; then a toss of his horns.)
+            cow.legs[3].rotation.x = j > 0.2 && j < 0.6 ? -0.55 * Math.abs(Math.sin(((j - 0.2) / 0.4) * Math.PI * 3)) : 0;
+            cow.head.rotation.set(0.35 * within(0.12, 0.62) - 0.5 * within(0.66, 0.92), 0, 0);
+            return;
+          }
           cow.head.rotation.set(-0.35 * within(0.08, 0.42) + 0.9 * down * down * (3 - 2 * down) + (down >= 1 ? Math.sin(time * 7) * 0.04 : 0), 0, 0);
         },
       };
@@ -141,3 +148,4 @@ export function cowStagingOf(coat = 0): Staging {
 }
 
 export const cowStaging = cowStagingOf();
+export const bullStaging = cowStagingOf(0, true);

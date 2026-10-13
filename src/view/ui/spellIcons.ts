@@ -91,7 +91,7 @@ const horseIcon: MenuIcon = (size) =>
     size,
   );
 
-// The dairymaid's call: the cow herself (wildlife/cowVoxels.ts).
+// The herdsman's call: the cow herself (wildlife/cowVoxels.ts).
 const cowIcon: MenuIcon = (size) =>
   voxelIcon(
     'spell:cow',

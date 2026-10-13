@@ -76,7 +76,7 @@ export class ChickenViews {
     for (const hen of hens) {
       let rig = this.rigs.get(hen);
       const made = !rig;
-      if (!rig) this.rigs.set(hen, (rig = hen.kind === 'horse' ? new HorseRig(this.material) : hen.kind === 'cow' ? new CowRig(this.material, hen.coat) : new ChickenRig(this.material)));
+      if (!rig) this.rigs.set(hen, (rig = hen.kind === 'horse' ? new HorseRig(this.material) : hen.kind === 'cow' || hen.kind === 'bull' ? new CowRig(this.material, hen.coat, hen.kind === 'bull') : new ChickenRig(this.material)));
       if (rig.root.parent !== parent) parent.add(rig.root);
       rig.root.scale.setScalar(scale);
       rig.update(hen, made ? 0 : dt);

@@ -5,6 +5,9 @@
 // poll, an ear under each; red patches over her shoulders and neck, her rump, a flank; a pink udder under her,
 // behind; a thin tail hung from her rump to a tuft. A body (her tail and udder with it), a head on its neck (so it
 // can be lowered to graze) and four legs, each its own part. Grid-aligned voxels only; what's round, stepped.
+// A bull (`bull`: a man turned): the same beast built heavier before and lighter behind: a hump over his shoulders,
+// his neck thick and crested, his brisket deep, his quarters narrower and no higher than his back; longer horns,
+// swept forward; no udder: a sheath under his belly, his scrotum between his hind legs.
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
@@ -27,7 +30,7 @@ export const COW_PALETTES: number[][] = [
 ];
 export const COW_PALETTE = COW_PALETTES[0];
 
-export const COW_BODY: [number, number, number] = [10, 12, 26]; // (her tail hung behind her: the two rows at z 0 and 1)
+export const COW_BODY: [number, number, number] = [10, 14, 26]; // (her tail hung behind her: the two rows at z 0 and 1)
 export const COW_HEAD: [number, number, number] = [8, 11, 12];
 export const COW_LEG: [number, number, number] = [2, 9, 4];
 export const COW_LEG_HEIGHT = 9; // voxels her hips and shoulders are off the ground
@@ -49,28 +52,42 @@ const BARREL: ReadonlyArray<[bottom: number, top: number]> = [
   [1, 11], [1, 11], [0, 11], [0, 11], [0, 11], // withers, brisket
   [1, 10], [2, 10], [3, 9], // breast
 ];
+const BULL_BARREL: ReadonlyArray<[bottom: number, top: number]> = [
+  [3, 9], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], // his quarters: no higher than his back
+  [2, 10], [2, 10], [2, 10], [2, 10], [1, 10], [1, 10], [1, 10], [1, 10], [1, 10], // his belly, tucked up behind
+  [0, 12], [0, 13], [0, 13], [0, 12], [0, 11], // his hump, his brisket
+  [0, 11], [1, 10], [2, 9], // breast
+];
 // Her patches: over her shoulders and withers; her rump; a spot on her near flank.
 const patched = (x: number, y: number, z: number): boolean => (z >= 17 && y >= 5) || (z <= 7 && y >= 6 && !(z >= 6 && y <= 7)) || (x <= 3 && z >= 10 && z <= 13 && y >= 6 && y <= 9);
 
 // Square across: only her top and bottom rows a voxel in each side; her ends a voxel in too.
-export function buildCowBody(): VoxelGrid {
+export function buildCowBody(bull = false): VoxelGrid {
   const grid = createGrid(COW_BODY);
   const w = COW_BODY[0];
-  for (const [i, [bottom, top]] of BARREL.entries()) {
+  for (const [i, [bottom, top]] of (bull ? BULL_BARREL : BARREL).entries()) {
     const z = i + 2;
     const end = i === 0 || i === BARREL.length - 1;
     for (let y = bottom; y <= top; y++) {
       // (Under her hips' height: only what's between her legs, so no leg's ever inside her.)
-      const inset = Math.max(y < COW_BODY_PIVOT[1] ? 2 : 0, y === bottom || y === top ? 1 : 0) + (end ? 1 : 0);
+      // (A bull: his quarters a voxel narrower each side, over his hips; his hump narrower as it rises.)
+      const inset = Math.max(y < COW_BODY_PIVOT[1] ? 2 : 0, y === bottom || y === top ? 1 : 0) + (end ? 1 : 0) + (bull && z <= 8 && y >= COW_BODY_PIVOT[1] ? 1 : 0) + (bull && y >= 12 ? y - 11 : 0);
       for (let x = inset; x < w - inset; x++) setColor(grid, x, y, z, patched(x, y, z) ? (y === top ? C.red : x === inset || x === w - inset - 1 ? C.redDark : C.red) : y <= bottom + 1 ? C.shade : C.white);
     }
   }
-  // Her udder: under her, between her hind legs, a teat at each corner.
-  for (let z = 5; z <= 8; z++) for (let x = 3; x <= 6; x++) setColor(grid, x, 1, z, C.pink);
-  for (const z of [5, 8]) for (const x of [3, 6]) setColor(grid, x, 0, z, C.pink);
+  if (bull) {
+    // His scrotum, between his hind legs; his sheath, under his belly.
+    for (const z of [5, 6]) for (const x of [4, 5]) for (const y of [0, 1]) setColor(grid, x, y, z, C.pink);
+    for (const z of [11, 12]) for (const x of [4, 5]) setColor(grid, x, z === 12 ? 0 : 1, z, C.shade);
+  } else {
+    // Her udder: under her, between her hind legs, a teat at each corner.
+    for (let z = 5; z <= 8; z++) for (let x = 3; x <= 6; x++) setColor(grid, x, 1, z, C.pink);
+    for (const z of [5, 8]) for (const x of [3, 6]) setColor(grid, x, 0, z, C.pink);
+  }
   // Her tail: thin, from the top of her rump down behind her, to a tuft.
-  for (const x of [4, 5]) setColor(grid, x, 10, 1, C.shade);
-  for (let y = 3; y <= 9; y++) setColor(grid, 4, y, 0, C.shade);
+  const dock = bull ? 9 : 10; // (his rump: a row lower)
+  for (const x of [4, 5]) setColor(grid, x, dock, 1, C.shade);
+  for (let y = 3; y < dock; y++) setColor(grid, 4, y, 0, C.shade);
   for (let y = 0; y <= 2; y++) for (const x of [4, 5]) setColor(grid, x, y, 0, C.redDark);
   return grid;
 }
@@ -78,13 +95,14 @@ export function buildCowBody(): VoxelGrid {
 // Her head on its neck. The neck: short, forward, a dewlap hung under it. The head: broad and deep, a white face
 // between red cheeks; a wide muzzle, pink, its nostrils dark; an eye each side; horns out from her poll and up; an
 // ear under each, behind.
-export function buildCowHead(): VoxelGrid {
+export function buildCowHead(bull = false): VoxelGrid {
   const grid = createGrid(COW_HEAD);
   // (Where her neck goes into her breast: none of it, so nothing of the two's ever in the same place.)
-  const body = buildCowBody();
+  const body = buildCowBody(bull);
+  const [n0, n1, crest] = bull ? [1, 6, 9] : [2, 5, 7]; // (his neck: wider, and crested over his poll)
   const inBody = (x: number, y: number, z: number) => colorAt(body, x + COW_NECK[0] - COW_HEAD_PIVOT[0] + COW_BODY_PIVOT[0], y + COW_NECK[1] - COW_LEG_HEIGHT - COW_HEAD_PIVOT[1] + COW_BODY_PIVOT[1], z + COW_NECK[2] - COW_HEAD_PIVOT[2] + COW_BODY_PIVOT[2]) !== 0;
   for (let z = 0; z <= 4; z++) {
-    for (let y = 1; y <= 7; y++) for (let x = 2; x <= 5; x++) if (!inBody(x, y, z)) setColor(grid, x, y, z, y === 7 ? C.red : x === 2 || x === 5 ? C.redDark : C.red);
+    for (let y = 1; y <= crest - (bull && z === 4 ? 1 : 0); y++) for (let x = n0 + (y > 7 ? 1 : 0); x <= n1 - (y > 7 ? 1 : 0); x++) if (!inBody(x, y, z)) setColor(grid, x, y, z, x === n0 || x === n1 ? C.redDark : C.red);
     for (const x of [3, 4]) if (z >= 1 && !inBody(x, 0, z)) setColor(grid, x, 0, z, C.shade); // her dewlap
   }
   for (let z = 5; z <= 9; z++) {
@@ -103,7 +121,8 @@ export function buildCowHead(): VoxelGrid {
   // Horns: out, then up. Ears: under them, behind.
   for (const x of [0, 7]) {
     setColor(grid, x, 8, 6, C.horn);
-    for (const y of [9, 10]) setColor(grid, x, y, 6, C.horn);
+    if (bull) for (const [y, z] of [[8, 7], [9, 7], [9, 8], [10, 9], [10, 10]]) setColor(grid, x, y, z, C.horn); // (his: longer, swept forward)
+    else for (const y of [9, 10]) setColor(grid, x, y, 6, C.horn);
     for (const z of [5, 6]) setColor(grid, x, 6, z, C.redDark);
   }
   return grid;

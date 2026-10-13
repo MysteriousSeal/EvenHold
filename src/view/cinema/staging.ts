@@ -9,7 +9,7 @@ import type { Piece } from './partMorph';
 import type { Cloud } from './voxelMorph';
 import type { Into } from '../../model/spells/chickens';
 import { chickenStaging } from './chickenStaging';
-import { cowStaging } from './cowStaging';
+import { bullStaging, cowStaging } from './cowStaging';
 import { horseStaging } from './horseStaging';
 
 export interface Staging {
@@ -48,4 +48,4 @@ export interface Directed {
   feathers?: [from: number, to: number];
 }
 
-export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging, cow: cowStaging };
+export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging, cow: cowStaging, bull: bullStaging };
