@@ -1,6 +1,6 @@
 // Dungeons: the places under the world one goes down into, foes and a boss
 // in the dark (dungeons.ts the kinds: a crypt under a ruin, crypts/; a cave
-// in a hillside, caves/). Each is gone into as a room is (interiors.ts): its
+// in a hillside, caves/; a bandit stronghold behind its gate, strongholds/). Each is gone into as a room is (interiors.ts): its
 // plan's floor in room tiles, the way up at its door; its foes run by its own
 // run while the hero's down there; what's been cleared of it kept in the save
 // (dungeonRecord.ts), by its key. What every kind gives, so the game, the
@@ -11,8 +11,8 @@ import type { BagItem } from '../hero/bag';
 import type { Entrance, EntranceType, Room } from '../interiors/interiors';
 import type { EnemyDirector } from '../enemies/enemyDirector';
 
-export type Underground = Extract<EntranceType, 'crypt' | 'cave'>;
-export const UNDERGROUND: ReadonlySet<EntranceType> = new Set<Underground>(['crypt', 'cave']);
+export type Underground = Extract<EntranceType, 'crypt' | 'cave' | 'stronghold'>;
+export const UNDERGROUND: ReadonlySet<EntranceType> = new Set<Underground>(['crypt', 'cave', 'stronghold']);
 // Whether a way in leads down into a dungeon (not into a building).
 export const goesUnder = (entrance: Entrance): boolean => UNDERGROUND.has(entrance.type);
 

@@ -94,6 +94,7 @@ export class GameModel {
   readonly scenery: Scenery[]; // rocks and landmarks out in the wilds (scenery/scenery.ts) // on the roads between the villages (travellers/travellers.ts)
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly caves: Cave[]; // in the hills (caves/caves.ts)
+  readonly strongholds: LiveWorld['strongholds']; // the bandits' old forts, few and far (strongholds/strongholds.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
@@ -160,7 +161,7 @@ export class GameModel {
     this.streamer = world ? null : new WorldStreamer(this.world, regions ?? new SyncSource(seed, size));
     this.streamer?.prime(spawn); // (the regions round where the hero sets out, made before they're seen)
     ({ tiles: this.tiles, obstacles: this.obstacles, trails: this.trails, villages: this.villages, houses: this.houses, buildings: this.buildings, fields: this.fields } = this.world);
-    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, scenery: this.scenery } = this.world);
+    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, strongholds: this.strongholds, scenery: this.scenery } = this.world);
     ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
@@ -342,7 +343,7 @@ export class GameModel {
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
   // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);
-  // A dungeon's foes slain for good, by its key (a crypt's ruin's corner, a cave's mouth), by post.
+  // A dungeon's foes slain for good, by its key (a crypt's ruin's corner, a cave's mouth, a stronghold's gate), by post.
   cleared = (key: string): Set<number> => this.cryptsCleared.get(key) ?? this.cryptsCleared.set(key, new Set()).get(key)!;
 
   // What the hero does with their hands (hero/hands.ts): the loot in reach, picked up; a thing dropped from the bag
@@ -356,7 +357,6 @@ export class GameModel {
   // Gear taken off into the bag, or worn from it (hero/wearing.ts); each returns whether it was.
   unequip = (slot: EquipSlot): boolean => takeOff(this.hero, slot);
   equipFromBag = (item: GearKey): boolean => putOn(this.hero, item);
-
 
   // The door the hero can use right now (indoors.ts), or null.
   get doorInReach(): Entrance | null {

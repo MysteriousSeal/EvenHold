@@ -3,14 +3,14 @@
 // game; a streamed world's regions come and go as the hero walks (worldStreamer.ts), each made from its land
 // (worldgen/regions.ts) and peopled here, in the order a classic world always was (so it's as it ever was):
 // - what stays known once a region's been made, for the rest of the game (light, and what much else holds on to:
-//   villages, their houses and buildings and fields, roads, ruins, camps, crypts and caves, every door), made again
+//   villages, their houses and buildings and fields, roads, ruins, camps, crypts, caves and strongholds, every door), made again
 //   from the same land the next time it's near and the first made kept (the same objects: an inn's let room, a shop,
 //   a board's quests keep to them);
 // - what's let go with it (its tiles, what blocks its ground, trees, bushes, scenery, foes, animals, villagers,
 //   travellers), made afresh each time: the slain kept slain, the hurt and wandered where they were.
 
 import type { Building, Bush, Enemy, Field, Hero, House, Tree, Village } from '../types';
-import { spawnOf, toCellX, toCellZ, type Area, type MapSize } from '../map/grid';
+import { cellKey, spawnOf, toCellX, toCellZ, type Area, type MapSize } from '../map/grid';
 import { ROAD_SURFACE_HEIGHT, TILE_HEIGHT, FOE_AT_MOST_FROM_HOME, TREE_COLLISION_HALF } from '../constants';
 import { onPaving } from '../map/roads';
 import { Obstacles, type ObstaclePage } from '../map/obstacles';
@@ -23,6 +23,7 @@ import { addRuinObstacles, type Ruin } from '../ruins/ruins';
 import { addCampObstacles, type Camp } from '../camps/camps';
 import { addCryptObstacles, placeCrypts, registerCrypts, type Crypt } from '../crypts/crypts';
 import { addCaveObstacles, placeCaves, registerCaves, type Cave } from '../caves/caves';
+import { addStrongholdObstacles, placeStrongholds, registerStrongholds, type Stronghold } from '../strongholds/strongholds';
 import { spawnEnemies } from '../enemies/enemies';
 import { regionFoeId } from '../enemies/foeIds';
 import { addSceneryObstacles, placeScenery, type Scenery } from '../scenery/scenery';
@@ -61,6 +62,7 @@ export interface Known {
   camps: Camp[];
   crypts: Crypt[];
   caves: Cave[];
+  strongholds: Stronghold[];
   entrances: Entrance[];
 }
 
@@ -74,7 +76,7 @@ export interface Alive {
   npcs: Npc[];
 }
 
-const KNOWN = ['trails', 'villages', 'houses', 'buildings', 'fields', 'ruins', 'camps', 'crypts', 'caves', 'entrances'] as const;
+const KNOWN = ['trails', 'villages', 'houses', 'buildings', 'fields', 'ruins', 'camps', 'crypts', 'caves', 'strongholds', 'entrances'] as const;
 const ALIVE = ['trees', 'bushes', 'scenery', 'enemies', 'wildlife', 'npcs'] as const;
 
 // A region made and peopled (off the game's thread: LiveWorld.build), to be adopted by the game's world.
@@ -100,6 +102,7 @@ export class LiveWorld {
   readonly camps: Camp[] = [];
   readonly crypts: Crypt[] = [];
   readonly caves: Cave[] = [];
+  readonly strongholds: Stronghold[] = [];
   readonly entrances: Entrance[] = []; // every door that can be gone through (its buildings', then its dungeons' ways in, region by region)
   readonly trees: Tree[] = [];
   readonly bushes: Bush[] = [];
@@ -225,11 +228,12 @@ export class LiveWorld {
     this.live(index, { ...built.alive, enemies: this.standing(built.alive.enemies) }, this.travellersOf(index, known));
   }
 
-  // What's known of region `index`, from its first making: kept, its lists added to the world's, its crypts and caves
+  // What's known of region `index`, from its first making: kept, its lists added to the world's, its crypts, caves and strongholds
   // registered, its doors and villages numbered.
   private learn(index: number, known: Known): void {
     registerCrypts(known.crypts);
     registerCaves(known.caves);
+    registerStrongholds(known.strongholds);
     this.known.set(index, known);
     for (const k of KNOWN) appendAll(this[k] as unknown[], known[k]);
     for (const door of known.entrances) this.doors.set(doorNumber(door), door);
@@ -344,8 +348,13 @@ export class LiveWorld {
     const doors = entrancesOf(houses, buildings);
     const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
-    const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
-    const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, entrances };
+    // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
+    // stands on (so all else is as it ever was), where no foe or animal was put.
+    const stood = new Set([...enemies, ...wildlife].map((e) => cellKey(Math.round(e.x), Math.round(e.z))));
+    const strongholds = placeStrongholds({ seed, size, tiles, villages, ruins, camps, caves, isOpenTile, stoodOn: (x, z) => stood.has(cellKey(x, z)) }, area);
+    addStrongholdObstacles(obstacles, strongholds);
+    const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
+    const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, entrances };
     this.learn(index, known);
     this.live(index, { trees: land.trees, bushes: land.bushes, scenery, enemies, wildlife, npcs }, withTravellers ? this.travellersOf(index, known) : null);
   }

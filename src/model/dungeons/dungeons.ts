@@ -1,15 +1,17 @@
 // The kinds of dungeon (dungeonTypes.ts), by the way in: a crypt's
-// (crypts/cryptDungeon.ts), a cave's (caves/caveDungeon.ts). What the game
+// (crypts/cryptDungeon.ts), a cave's (caves/caveDungeon.ts), a stronghold's
+// (strongholds/strongholdDungeon.ts). What the game
 // asks of any dungeon, asked of the right kind.
 
 import type { Entrance } from '../interiors/interiors';
 import type { Hero } from '../types';
 import { CRYPT_DUNGEON } from '../crypts/cryptDungeon';
 import { CAVE_DUNGEON } from '../caves/caveDungeon';
+import { STRONGHOLD_DUNGEON } from '../strongholds/strongholdDungeon';
 import { clearedShare } from './dungeonRecord';
 import { goesUnder, type DungeonHooks, type DungeonKind, type DungeonPlace, type DungeonRun, type Underground } from './dungeonTypes';
 
-const KINDS: Record<Underground, DungeonKind> = { crypt: CRYPT_DUNGEON, cave: CAVE_DUNGEON };
+const KINDS: Record<Underground, DungeonKind> = { crypt: CRYPT_DUNGEON, cave: CAVE_DUNGEON, stronghold: STRONGHOLD_DUNGEON };
 const kindOf = (entrance: Entrance): DungeonKind => {
   if (!goesUnder(entrance)) throw new Error(`no dungeon down a ${entrance.type}'s door`);
   return KINDS[entrance.type as Underground];

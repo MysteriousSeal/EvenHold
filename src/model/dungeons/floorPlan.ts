@@ -1,5 +1,5 @@
 // A dungeon's floor plan (a crypt's, crypts/cryptLayout.ts; a cave's,
-// caves/caveLayout.ts), in room tiles as any room (interiors.ts): floor tiles
+// caves/caveLayout.ts; a stronghold's, strongholds/strongholdLayout.ts), in room tiles as any room (interiors.ts): floor tiles
 // 0..width-1 along x, 0..depth-1 along z, the rest rock; the way in (up to
 // the world) in the +Z wall at `door` and `door + 1`, the hero arriving on
 // the floor just inside it.

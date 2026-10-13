@@ -1,5 +1,5 @@
 // What every dungeon's run of foes shares (a crypt's guards and lord, crypts/cryptFoes.ts; a cave's beasts and brood
-// mother, caves/caveFoes.ts): its foes and their director, the record of those slain for good (by post:
+// mother, caves/caveFoes.ts; a stronghold's packs, bosses and king, strongholds/strongholdFoes.ts): its foes and their director, the record of those slain for good (by post:
 // dungeonRecord.ts), how much of it's cleared, its boss's first fall a point to spend for the hero, and its boss's
 // chest (or hoard) once slain, opened once, what it holds out on the floor before it. Each kind its own foes, moves,
 // way out and ground.

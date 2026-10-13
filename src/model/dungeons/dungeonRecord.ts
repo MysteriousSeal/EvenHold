@@ -1,10 +1,10 @@
-// What a dungeon (a crypt, a cave: dungeons.ts) keeps of what's been done in
+// What a dungeon (a crypt, a cave, a stronghold: dungeons.ts) keeps of what's been done in
 // it, in the save: the posts of its foes slain for good (each foe's place in
 // it, by number), its boss's post, its chest's once opened, and the point its
 // boss's fall gave the hero (once a dungeon, ever: kept through a reset);
 // numbers from SUMMONED up are those called up mid-fight (not its to count).
 
-export const BOSS_POST = 10_000; // the boss's place in the record of the slain (its foes' posts are below it)
+export const BOSS_POST = 10_000; // the boss's place in the record of the slain (its foes' posts are below it: a stronghold's four wings' bosses' among them, strongholds/strongholdFoes.ts WING_POST)
 export const CHEST_POST = 10_001; // the boss's chest (or hoard), once opened
 export const AWARD_POST = 10_002; // the point the boss's fall gave the hero
 export const SUMMONED = 20_000; // from here on: those called up mid-fight
