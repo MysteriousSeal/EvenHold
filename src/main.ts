@@ -52,6 +52,8 @@ import { playTransformation } from './view/cinema/transformCinema';
 import { swapStaging } from './view/cinema/stagings/swapStaging';
 import { standing } from './view/cinema/stagings/undress';
 import { cowStagingOf } from './view/cinema/stagings/cowStaging';
+import { statueStagingOf } from './view/cinema/stagings/statueStaging';
+import { treeStagingOf } from './view/cinema/stagings/treeStaging';
 import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { createCharmPanel } from './controller/trade/charmPanel';
@@ -392,7 +394,9 @@ async function boot(): Promise<void> {
       } else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
-        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, event.into === 'cow' || event.into === 'bull' ? cowStagingOf(event.coat, event.into === 'bull') : event.into, () => (controller.paused = false)); // (a cow, a bull: in the coat they'll have)
+        // (A cow, a bull: in the coat they'll have; a statue: of them as they stood; a tree: the one they are now.)
+        const stagingOf = (e: typeof event) => (e.into === 'cow' || e.into === 'bull' ? cowStagingOf(e.coat, e.into === 'bull') : e.into === 'statue' ? statueStagingOf(() => view.standIn(e.who)) : e.into === 'tree' && e.tree ? treeStagingOf(e.tree.kind, e.tree.shape) : e.into);
+        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingOf(event), () => (controller.paused = false));
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
