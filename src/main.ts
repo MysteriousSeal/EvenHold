@@ -49,8 +49,9 @@ import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
 import { createSpellbook } from './controller/spells/spellbook';
 import { playTransformation } from './view/cinema/transformCinema';
-import { standing, swapStaging } from './view/cinema/swapStaging';
-import { cowStagingOf } from './view/cinema/cowStaging';
+import { swapStaging } from './view/cinema/stagings/swapStaging';
+import { standing } from './view/cinema/stagings/undress';
+import { cowStagingOf } from './view/cinema/stagings/cowStaging';
 import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { createCharmPanel } from './controller/trade/charmPanel';
@@ -383,7 +384,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
       else if (event.kind === 'swapped') {
-        // Someone's sex changed: the game stood still, it played full screen (view/cinema/swapStaging.ts), then on.
+        // Someone's sex changed: the game stood still, it played full screen (view/cinema/stagings/swapStaging.ts), then on.
         const { who, before } = event;
         const now = 'kind' in who ? who.human! : who;
         controller.paused = true;
