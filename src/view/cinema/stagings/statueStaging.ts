@@ -28,10 +28,18 @@ const STEPS: ReadonlyArray<[at: number, line: string]> = [
   [0.68, 'The face, as it was just then.'],
   [0.9, 'The eyes, last.'],
 ];
+// The same, of what's no one (a beast, whatever its shape: nothing worn, no arms hung, no word to say).
+const BEAST_STEPS: typeof STEPS = [
+  [0, 'What stands on the ground: stone, and will not lift.'],
+  [0.2, 'The cold climbs it. It cannot shake it off.'],
+  [0.45, 'Its body, stone through.'],
+  [0.7, 'The top of it, as it was just then.'],
+  [0.9, 'And the last of it.'],
+];
 
 // `stood`: whoever's turned, drawn afresh as they stood (what they'll be, in stone).
 export function statueStagingOf(stood: () => THREE.Object3D): Staging {
-  const said: Staging['lines'] = [[0, '{name} feels the cold come up out of the ground.'], ...STEPS.map(([at, line]): [number, string] => [RISING[0] + (RISING[1] - RISING[0]) * at, line]), [PLINTH[0], 'A statue, where they stood.']];
+  const said = (steps: typeof STEPS, last: string): Staging['lines'] => [[0, '{name} feels the cold come up out of the ground.'], ...steps.map(([at, line]): [number, string] => [RISING[0] + (RISING[1] - RISING[0]) * at, line]), [PLINTH[0], last]];
   return {
     title: "Mason's curse",
     becomes: 'A statue',
@@ -47,16 +55,21 @@ export function statueStagingOf(stood: () => THREE.Object3D): Staging {
       const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.9 }), cloud.at.length);
       mesh.frustumCulled = false;
       const top = Math.max(...cloud.at.map((at) => at.y)) + cloud.size / 2;
+      // Where it's seen close: someone's face, over their middle; a beast's highest part (a wolf's head, not its back),
+      // from no nearer than shows the length of it.
+      const high = cloud.at.filter((at) => at.y > top * 0.75);
+      const crown = actor.human ? new THREE.Vector3() : high.reduce((sum, at) => sum.add(at), new THREE.Vector3()).divideScalar(Math.max(1, high.length));
+      const near = actor.human ? tall * 2.1 : Math.min(tall * 4.2, Math.max(tall * 2.1, Math.max(actor.size.x, actor.size.z) * 1.3));
       const plinth = stoneFigure(new THREE.Group(), 0);
       const lifted = new THREE.Group();
       lifted.add(mesh);
       scene.add(lifted, plinth.root);
       const [matrix, scale, still, tint] = [new THREE.Matrix4(), new THREE.Vector3(), new THREE.Quaternion(), new THREE.Color()];
       const greys = cloud.color.map((color) => stoned(color)); // (each cube's own, in stone)
-      const high = new THREE.Box3().setFromObject(stoneFigure(new THREE.Group()).root).max.y; // (how high its plinth stands)
+      const raisedBy = new THREE.Box3().setFromObject(stoneFigure(new THREE.Group()).root).max.y; // (how high its plinth stands)
       return {
         length: LENGTH,
-        lines: said,
+        lines: actor.human ? said(STEPS, 'A statue, where they stood.') : said(BEAST_STEPS, 'A statue, where it stood.'),
         update(u) {
           const changing = u >= START[1];
           figure.visible = !changing;
@@ -76,12 +89,12 @@ export function statueStagingOf(stood: () => THREE.Object3D): Staging {
           const raised = smooth(through(u, PLINTH));
           plinth.raise(raised);
           plinth.root.visible = raised > 0;
-          lifted.position.y = high * raised;
+          lifted.position.y = raisedBy * raised;
         },
         view(u, j) {
           const close = smooth(through(u, CLOSE)) * (1 - smooth(through(u, [0.9, 0.97]))) * (1 - smooth(through(j, [0, 0.2])));
           const mix = (whole: number, near: number) => whole + (near - whole) * close;
-          return { aim: mix(tall * 0.5, top * 0.8), far: mix(tall * 4.2, tall * 2.1), rise: mix(0.28, 0.16) };
+          return { aim: mix(tall * 0.5, top * 0.8), far: mix(tall * 4.2, near), rise: mix(0.28, 0.16), x: crown.x * close, z: crown.z * close };
         },
         dispose() {
           for (const object of [lifted, plinth.root]) object.removeFromParent();
