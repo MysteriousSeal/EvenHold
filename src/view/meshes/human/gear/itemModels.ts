@@ -3,6 +3,7 @@
 
 import { ITEMS, type ArmorSlot, type EquipSlot, type ItemId } from '../../../../model/human/equipment';
 import { COSTUME_LOOKS, isCostume, type CostumeLookId } from './costumes';
+import { STRONGHOLD_LOOKS } from './strongholdOutfits';
 import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
@@ -32,8 +33,9 @@ export const ITEM_MODELS: Record<ItemId, ItemModel> = {
 
 // A look a body part can be dressed in: an item's, or a job's costume's (costumes.ts: only to be seen).
 export type LookId = ItemId | CostumeLookId;
-export const lookModel = (look: LookId): ItemModel => (isCostume(look) ? COSTUME_LOOKS[look].model : ITEM_MODELS[look]);
-export const lookSlot = (look: LookId): EquipSlot => (isCostume(look) ? COSTUME_LOOKS[look].slot : ITEMS[look].slot);
+const costume = (look: CostumeLookId) => COSTUME_LOOKS[look] ?? STRONGHOLD_LOOKS[look]; // (a job's, or a bandit stronghold's people's: strongholdOutfits.ts)
+export const lookModel = (look: LookId): ItemModel => (isCostume(look) ? costume(look).model : ITEM_MODELS[look]);
+export const lookSlot = (look: LookId): EquipSlot => (isCostume(look) ? costume(look).slot : ITEMS[look].slot);
 
 // The shell a worn item (or a costume's look) puts on one body part (on the given side), or null
 // if it doesn't cover that part, fitted to the wearer's build. `shouldered`:
