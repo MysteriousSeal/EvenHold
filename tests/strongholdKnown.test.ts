@@ -1,24 +1,12 @@
-// What a stronghold gets wrong as it stands, found playing it whole
-// (strongholdRun.test.ts, strongholdSaves.test.ts) and left for whoever owns
-// the code it's in: each a small reproduction, written as it SHOULD go and
-// marked `it.fails` (it passes while the fault's there, and fails the day
-// it's mended: then take the mark off).
-// - A named piece lying on a stronghold's floor is lost for good by a save
-//   and a load, or by going out and in again: a dungeon's floor isn't kept
-//   (model/save.ts keeps the world's ground alone; GameModel.enterRoom makes
-//   its floor afresh), and the boss who left it stays slain, his chest open.
-// - The point to spend its king's fall gives is lost by a save and a load
-//   (model/save.ts pointsOf: no more points than the hero's levels gave).
-// - The king's waves stand in a file at the hall's doors behind their own
-//   crossbowman (who holds his ground) while the hero fights the king a few
-//   tiles off: none of those who fight hand to hand comes up.
-// - A stronghold bandit whose sex the moon-turn charm changed is as the seed
-//   made them the next time the hero comes in (and after a load), though the
-//   game still counts them changed (spells/swaps.ts: only the world's own
-//   foes are changed again as they're made; a dungeon's are made afresh each
-//   visit, under ids every stronghold shares), so the next cast does nothing.
-// - The game's pathfinding loses a long way round (model/map/pathfinding.ts:
-//   its costs kept as 32-bit floats, a step called stale by their rounding).
+// What a stronghold got wrong when it was first played whole (strongholdRun.test.ts, strongholdSaves.test.ts), each
+// a small reproduction of a fault since mended, kept so it stays mended:
+// - a named piece lying on a stronghold's floor lost by a save and a load, or by going out and in again (a
+//   dungeon's floor is kept now: model/dungeons/dungeonFloors.ts);
+// - the point to spend its king's fall gives lost by a save and a load (model/save.ts pointsOf);
+// - the king's waves stood in a file at the hall's doors behind their own crossbowman (strongholdKing.ts doors);
+// - a stronghold bandit's sex changed by a charm, kept by a number every stronghold shares (spells/swaps.ts: a
+//   dungeon's foe is changed only while they stand there);
+// - the game's pathfinding losing a long way (model/map/pathfinding.ts).
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { findPath } from '../src/model/map/pathfinding';
@@ -57,8 +45,8 @@ const reloaded = (model: GameModel) => {
 };
 const named = (model: GameModel): GearKey[] => model.groundHere.loot.map((l) => l.item as GearKey).filter((i) => namedIn(i));
 
-describe('known faults of a stronghold (each fails as written: the fault is there)', () => {
-  it.fails('a wing\'s boss\'s piece left lying is still there after a save and a load', () => {
+describe('faults a stronghold had, mended', () => {
+  it('a wing\'s boss\'s piece left lying is still there after a save and a load', () => {
     const { model, run, stronghold } = goIn();
     const piece = bossPiece(WING_BOSS[WINGS[0]], stronghold.level)!;
     fell(model, run.bossOf(WINGS[0])!);
@@ -68,7 +56,7 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(named(loaded)).toEqual([piece]);
   });
 
-  it.fails('a wing\'s boss\'s piece left lying is still there once the hero\'s gone out and come in again', () => {
+  it('a wing\'s boss\'s piece left lying is still there once the hero\'s gone out and come in again', () => {
     const { model, run, stronghold, inside } = goIn();
     const piece = bossPiece(WING_BOSS[WINGS[1]], stronghold.level)!;
     fell(model, run.bossOf(WINGS[1])!);
@@ -80,7 +68,7 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(named(model)).toEqual([piece]);
   });
 
-  it.fails('the king\'s own, out of his chest and left lying, is still there after a save and a load', () => {
+  it('the king\'s own, out of his chest and left lying, is still there after a save and a load', () => {
     const { model, run, stronghold } = goIn();
     fell(model, run.king!);
     model.update(0, 0, FRAME);
@@ -91,7 +79,7 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(named(loaded)).toEqual([bossPiece('banditKing', stronghold.level)]);
   });
 
-  it.fails('the point to spend the king\'s fall gave is still theirs after a save and a load', () => {
+  it('the point to spend the king\'s fall gave is still theirs after a save and a load', () => {
     const { model, run } = goIn();
     const points = model.hero.statPoints;
     fell(model, run.king!);
@@ -99,7 +87,7 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(reloaded(model).hero.statPoints).toBe(points + 1);
   });
 
-  it.fails('the king\'s waves come up to the hero: those who fight hand to hand within a few tiles, half a minute after the last came in', () => {
+  it('the king\'s waves come up to the hero: those who fight hand to hand within a few tiles, half a minute after the last came in', () => {
     const { model, run, inside } = goIn();
     const king = run.king!;
     for (const foe of [...run.foes]) if (foe !== king) fell(model, foe); // (himself alone, the gate open)
@@ -117,7 +105,7 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(Math.max(...far), `they stand ${far.join(', ')} tiles off`).toBeLessThan(3.5);
   });
 
-  it.fails('a stronghold bandit whose sex a charm changed is still changed when the hero comes back in', () => {
+  it("changes a stronghold bandit's sex for as long as they stand there: back at a second cast, and none of it kept once the hero's gone out and come in", () => {
     const { model, run, inside } = goIn();
     learn(model.hero, 'swap');
     const bruiser = run.foes.find((f) => f.kind === 'bruiser')!;
@@ -127,15 +115,19 @@ describe('known faults of a stronghold (each fails as written: the fault is ther
     expect(castSpell(model as unknown as Caster, 'swap')).toBe('cast');
     expect(bruiser.human!.look.build).not.toBe(was);
     expect(model.swaps.has(bruiser)).toBe(true);
+    expect(castSpell(model as unknown as Caster, 'swap')).toBe('cast'); // (again: as they were)
+    expect(bruiser.human!.look.build).toBe(was);
+    expect(model.swaps.has(bruiser)).toBe(false);
+    expect(JSON.stringify(model.swaps.save())).not.toContain(String(bruiser.id)); // (nothing kept of it: its number's every stronghold's)
     Object.assign(model.hero, { x: inside.plan.door, z: inside.plan.depth - 1 });
     model.useDoor();
     model.useDoor();
     const again = model.foes.find((f) => f.id === bruiser.id)!;
-    expect(model.swaps.has(again)).toBe(true); // (the game still holds them changed)
-    expect(again.human!.look.build).not.toBe(was);
+    expect(again.human!.look.build).toBe(was); // (made afresh, as the seed has them)
+    expect(model.swaps.has(again)).toBe(false);
   });
 
-  it.fails('the way from one wing to another\'s end is found by the game\'s pathfinding', () => {
+  it('the way from one wing to another\'s end is found by the game\'s pathfinding', () => {
     const { inside } = goIn();
     const free = (x: number, z: number) => !strongholdBlocks(inside, x, z, HERO_RADIUS * INDOOR_SCALE);
     const [from, to] = [{ x: 28, z: 30 }, { x: 97, z: 19 }]; // (a room of the lower west wing; the upper east wing's boss's room: seed 1)

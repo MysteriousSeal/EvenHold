@@ -85,13 +85,13 @@ describe('a stronghold played whole by a scripted hero', () => {
       const slain = model.cleared(strongholdKey(stronghold));
       expect([...slain].filter((post) => post < BOSS_POST)).toHaveLength(posted - 1);
       expect([slain.has(BOSS_POST), slain.has(CHEST_POST)]).toEqual([true, true]);
-      // Gone into again: no one, the gate open, the chest empty, nothing lying.
+      // Gone into again: no one, the gate open, the chest empty, no named piece lying.
       if (model.doorInReach !== stronghold.entrance) model.teleport(stronghold.entrance.x, stronghold.entrance.z); // (a wolf's shove, out there)
       expect(model.useDoor()).toBe(true);
       expect(model.foes).toEqual([]);
       const again = d.run;
       expect([again.gateShut, again.chest?.open, again.share]).toEqual([false, true, 1]);
-      expect(model.groundHere.loot).toEqual([]);
+      expect(d.namedLying).toEqual([]); // (what its foes left and nobody took lies there still, kept: none of it a named piece)
       d.wait(1);
       expect(d.problems).toEqual([]);
       expect(d.events.filter((e) => e.kind === 'unbarred' || e.kind === 'point')).toHaveLength(2); // (neither told again)
