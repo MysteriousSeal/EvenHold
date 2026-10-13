@@ -5,7 +5,7 @@
 // wait isn't over, its seconds counting down on it). Pressing its key, or clicking it,
 // uses it; dragging one onto another swaps them, off the bar clears it, and
 // so does a right-click; dropped from the bag (inventoryPanel.ts), a slot
-// takes what's dropped; and from the spellbook (controller/spells/spellbook.ts), a spell: its icon, its wait counting
+// takes what's dropped; and a spell (model/spells/spells.ts: handed out from the cheat menu): its icon, its wait counting
 // down on it once cast. Styles in hud.css.
 
 import { isTool } from '../../model/loot/tools';

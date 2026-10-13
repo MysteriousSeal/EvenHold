@@ -1,6 +1,5 @@
-// The spells' icons (model/spells/spells.ts; the spellbook: controller/spells/spellbook.ts; the action bar), small
-// voxel models as the skills' are (skillIcons.ts); and the spellbook's own tile on the toolbar, a closed book with a
-// mark on its cover.
+// The spells' icons (model/spells/spells.ts; on the action bar, and where they're handed out), small voxel models
+// as the skills' are (skillIcons.ts).
 import type { SpellId } from '../../model/spells/spells';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
@@ -117,24 +116,3 @@ const swapIcon: MenuIcon = (size) =>
   );
 
 export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, cow: cowIcon, horse: horseIcon, swap: swapIcon, statue: statueIcon, tree: treeIcon };
-
-// The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
-export const spellbookIcon: MenuIcon = (size) =>
-  voxelIcon(
-    'tool:spellbook',
-    () => {
-      // Leather 1, its spine 2, the pages 3, brass 4, the mark 5.
-      const grid = createGrid([9, 11, 4]);
-      fillBox(grid, 0, 0, 0, 8, 10, 3, 1);
-      fillBox(grid, 0, 0, 0, 1, 10, 3, 2); // the spine
-      fillBox(grid, 2, 0, 1, 8, 10, 2, 3); // the pages, between the boards
-      fillBox(grid, 2, 0, 3, 8, 10, 3, 1);
-      fillBox(grid, 2, 0, 0, 8, 10, 0, 1);
-      fillBox(grid, 8, 4, 0, 8, 6, 3, 4); // the clasp
-      fillBox(grid, 4, 3, 3, 6, 7, 3, 5); // the mark
-      fillBox(grid, 3, 4, 3, 7, 6, 3, 5);
-      fillBox(grid, 5, 5, 3, 5, 5, 3, 4);
-      return { grid, palette: [0x5a3524, 0x3c2218, 0xe8dcc0, 0xc9a13a, 0x8a4fd0], alpha: 1 };
-    },
-    size,
-  );
