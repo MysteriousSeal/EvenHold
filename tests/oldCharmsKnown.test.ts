@@ -145,7 +145,7 @@ describe('known: a statue, and who stands where it is made', () => {
 
   // travellers/travellers.ts walk: along the road's own line, keeping clear of one another and of nothing else. A
   // statue of one of them stands on the road by its nature (a tree, since mended, beside it).
-  it.fails('someone walking the road goes round a statue stood on it, not through', () => {
+  it('someone walking the road goes round a statue stood on it, not through', () => {
     const { model, who } = settled(TEST_SEEDS[0], 'traveller')!;
     const { road, along, way } = who as Traveller;
     expect(castSpell(model, 'statue')).toBe('cast');
@@ -204,7 +204,7 @@ describe('known: a charm in an inn', () => {
   // (interiors/indoors.ts armsSheathed): castSpell is never reached, so nothing's told, not the 'banner' a refusal has
   // elsewhere. A key pressed and nothing, at the barkeep and the server and anyone else in the room; a mending too.
   // (oldCharmsWholeGame.test.ts casts at them with castSpell, as charmsWholeGame.test.ts does: past this.)
-  it.fails('cast from the bar at the barkeep tells the player something, taken or not', () => {
+  it('cast from the bar at the barkeep tells the player something, taken or not', () => {
     const { model } = settled(TEST_SEEDS[0], 'barkeep')!;
     const told = telling(model);
     model.hero.actionBar[0] = spellKey('chicken');

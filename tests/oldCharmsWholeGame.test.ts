@@ -104,7 +104,8 @@ function turned(made: Scene, charm: Exclude<OldCharm, 'swap'>, said: string): vo
   // Saved and loaded: gone still, what they became kept as it is. (A dungeon's foes are made afresh: its record of
   // the cleared is its own.)
   const again = reloaded(model);
-  const kept = (m: GameModel) => ({ hens: m.chickens.hens.map((h) => [h.kind, h.at, h.coat, h.stone?.id, Math.round(h.x * 100), Math.round(h.z * 100)]), trees: m.chickens.trees.map((t: Tree) => [t.x, t.z, t.kind, t.shape, t.quarterTurns, t.groundTier]), lost: [...m.chickens.lost], slain: [...m.slain].sort() });
+  // (`+ 0`: a hair under nought rounds to minus nought here and to nought in a save; the same place.)
+  const kept = (m: GameModel) => ({ hens: m.chickens.hens.map((h) => [h.kind, h.at, h.coat, h.stone?.id, Math.round(h.x * 100) + 0, Math.round(h.z * 100) + 0]), trees: m.chickens.trees.map((t: Tree) => [t.x, t.z, t.kind, t.shape, t.quarterTurns, t.groundTier]), lost: [...m.chickens.lost], slain: [...m.slain].sort() });
   expect(kept(again), said).toEqual(kept(model));
   if (!isFoe(who) || isWorldFoe(who.id)) expect(about(again, who), said).toBe(false);
   if (tree) expect([again.trees.filter((t) => t.x === event.tree!.x && t.z === event.tree!.z).length, again.isOpenTile(event.tree!.x, event.tree!.z)], said).toEqual([1, false]);
