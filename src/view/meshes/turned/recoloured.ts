@@ -17,16 +17,19 @@ const shown = (o: THREE.Object3D, top: THREE.Object3D): boolean => {
 
 // The meshes of `figure` that are of them: what floats over them (a name, a bar) and whatever's see-through (their
 // shade on the ground, a glow) hidden first.
+// (One with nothing solid to it at all, a ruin's ghost: what's seen through is all there is of it, and is them.)
 export function solidMeshes(figure: THREE.Object3D): THREE.Mesh[] {
-  const meshes: THREE.Mesh[] = [];
+  const [solid, thin]: [THREE.Mesh[], THREE.Mesh[]] = [[], []];
   figure.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if ((o as THREE.Sprite).isSprite || o.name === 'overhead') return void (o.visible = false);
     if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-    if (mesh.material.transparent) return void (mesh.visible = false);
-    meshes.push(mesh);
+    (mesh.material.transparent ? thin : solid).push(mesh);
   });
-  return meshes.filter((mesh) => shown(mesh, figure));
+  const [of, thinOf] = [solid.filter((mesh) => shown(mesh, figure)), thin.filter((mesh) => shown(mesh, figure))];
+  if (of.length === 0) return thinOf;
+  for (const mesh of thin) mesh.visible = false;
+  return of;
 }
 
 // The room `meshes` take up, in `figure`'s own space (as it stands, wherever it's been put since).

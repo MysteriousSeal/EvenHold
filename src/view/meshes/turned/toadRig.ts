@@ -3,6 +3,7 @@
 // air, its forelegs reached out to land on.
 import * as THREE from 'three';
 import { bell, smooth, through } from '../../cinema/easing';
+import type { Hen } from '../../../model/spells/turned';
 import { CreatureRig } from '../common/creatureRig';
 import { hung, split, type Turned } from './ownParts';
 import { createQuadruped } from './quadruped';
@@ -57,12 +58,14 @@ export class ToadRig extends CreatureRig {
     this.root.add(this.toad.root);
   }
 
-  update(toad: Turned, dt: number): void {
+  update(toad: Turned & Pick<Hen, 'hop'>, dt: number): void {
     const moved = this.follow({ x: toad.x, y: toad.y, z: toad.z, heading: toad.facing }, dt, TURN_RATE);
-    // A hop, told from its having gone somewhere since the last frame: one for every HOP_LENGTH it covers; and, once
-    // it's stopped, the one it's in the middle of ended in its own time. (The model's own word on it, once a toad
-    // there has one (how far through a hop it is: 0 on the ground, through 1): read here, in place of this.)
-    if (moved > 1e-5) this.hop = (this.hop + moved / HOP_LENGTH) % 1;
+    // A hop: the model's own word on it, where it has one (how far through its leap it is: 0 sat, through 1 as it
+    // lands: one rise and fall for each leap it makes, down as it stops). Without one, told from its having gone
+    // somewhere since the last frame: one for every HOP_LENGTH it covers; and, once it's stopped, the one it's in
+    // the middle of ended in its own time.
+    if (toad.hop !== undefined) this.hop = toad.hop >= 1 ? 0 : toad.hop;
+    else if (moved > 1e-5) this.hop = (this.hop + moved / HOP_LENGTH) % 1;
     else if (this.hop > 0) this.hop = this.hop + dt / LANDING >= 1 ? 0 : this.hop + dt / LANDING;
     hopping(this.toad, this.hop, HOP_HEIGHT);
     // Sat: its throat out and in. In the air: drawn in.
