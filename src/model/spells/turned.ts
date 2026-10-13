@@ -25,7 +25,7 @@ import type { Npc } from '../npcs/npcs';
 import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
 import { TILE_HEIGHT, TREE_SHAPES } from '../constants';
-import type { Enemy, GameEvent, Tree, TreeKind } from '../types';
+import type { Enemy, GameEvent, Surface, Tree, TreeKind } from '../types';
 import { humanOf, isFoe, isNpc, type Being } from './beings';
 import { HUNG_FACING, hungAt, soundHung, wallFor, type Hung } from './hung';
 import { BEASTS, GAIT, OF_SOMEONE, coatsOf, soundStone, type Beast, type Hen, type Into, type Stone } from './turnedKinds';
@@ -60,6 +60,7 @@ export interface ChickenHost {
   readonly chosen: { readonly person: unknown };
   random(): number;
   isOpenTile(x: number, z: number): boolean;
+  readonly tiles: { surface(x: number, z: number): Surface };
   getGroundY(x: number, z: number): number;
   readonly trees: readonly Tree[];
   readonly world: { rooted(): void }; // (what's rooted, put among the world's: world/liveWorld.ts)
@@ -122,12 +123,13 @@ export class Chickens {
   }
 
   // The tree someone would be turned into: on the tile they stand on, or the nearest open one beside it (not the
-  // hero's own, nor one of another's); of the kind of the nearest tree about (an oak, where there's none).
+  // hero's own, nor one of another's; natural ground, as every tree of the world stands on: no road, no village
+  // street, no field); of the kind of the nearest tree about (an oak, where there's none).
   private sapling(being: Being): Tree | null {
     const { host } = this;
     const [bx, bz, hx, hz] = [Math.round(being.x), Math.round(being.z), Math.round(host.hero.x), Math.round(host.hero.z)];
     const tiles = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => ({ x: bx + dx, z: bz + dz }))).sort((a, b) => Math.hypot(a.x - being.x, a.z - being.z) - Math.hypot(b.x - being.x, b.z - being.z));
-    const at = tiles.find((t) => !(t.x === hx && t.z === hz) && host.isOpenTile(t.x, t.z) && !this.trees.some((tree) => tree.x === t.x && tree.z === t.z) && !this.hens.some((hen) => hen.kind === 'statue' && Math.round(hen.x) === t.x && Math.round(hen.z) === t.z));
+    const at = tiles.find((t) => !(t.x === hx && t.z === hz) && host.isOpenTile(t.x, t.z) && host.tiles.surface(t.x, t.z) === 'natural' && !this.trees.some((tree) => tree.x === t.x && tree.z === t.z) && !this.hens.some((hen) => hen.kind === 'statue' && Math.round(hen.x) === t.x && Math.round(hen.z) === t.z));
     if (!at) return null;
     let [kind, near]: [TreeKind, number] = ['oak', LIKE];
     for (const tree of host.trees) {
