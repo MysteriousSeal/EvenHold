@@ -9,7 +9,7 @@ import { fresh } from './support/testWorld';
 import { makeActor } from '../src/view/cinema/actor';
 import { HEN, chickenStaging } from '../src/view/cinema/chickenStaging';
 import { STAGINGS } from '../src/view/cinema/staging';
-import { COW, cowStaging, cowStagingOf } from '../src/view/cinema/cowStaging';
+import { COW, bullStaging, cowStaging, cowStagingOf } from '../src/view/cinema/cowStaging';
 import { COW_COLORS, COW_PALETTE, COW_PALETTES } from '../src/view/meshes/wildlife/cowVoxels';
 import { COW_COATS } from '../src/model/spells/chickens';
 import { HORSE, horseStaging } from '../src/view/cinema/horseStaging';
@@ -236,6 +236,14 @@ describe('someone turned into a cow', () => {
     expect(COW.x).toBeGreaterThan(HORSE.x); // (wider)
     // Her other coats: the same cow, in other colours.
     expect(COW_PALETTES.length).toBe(COW_COATS);
+    // A bull: every part of him once too; a hump over his shoulders, higher than her back; no udder.
+    const bull = bullStaging.cloud!();
+    expect(new Set(bull.at.map(key)).size).toBe(bull.at.length);
+    const over = (cloud: typeof cow) => Math.max(...cloud.at.filter((at) => at.z > 0.05 && at.z < 0.2 && Math.abs(at.x) < 0.03).map((at) => at.y));
+    expect(over(bull)).toBeGreaterThan(over(cow) + cow.size);
+    const pink = (cloud: typeof cow) => cloud.color.filter((color) => color.getHex() === COW_PALETTE[COW_COLORS.pink - 1]).length;
+    expect(pink(bull)).toBeLessThan(pink(cow));
+    expect(STAGINGS.bull.becomes).toBe('A bull');
     for (const coat of [1, 2, 3]) {
       const other = cowStagingOf(coat).cloud!();
       expect(other.at.length).toBe(cow.at.length);

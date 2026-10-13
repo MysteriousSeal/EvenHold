@@ -199,9 +199,29 @@ describe("the hen-wife's turn, on someone who's no foe", () => {
   });
 });
 
-describe("the dairymaid's call", () => {
+describe("the herdsman's call", () => {
+  it('turns a man into a bull and a woman into a cow; a beast, one or the other by chance', () => {
+    const model = fresh();
+    const [man, woman] = [model.npcs.find((n) => n.look.build === 'male' && !n.led)!, model.npcs.find((n) => n.look.build === 'female' && !n.led)!];
+    expect(model.chickens.turn(man, 'cow')).toBe(true);
+    expect(model.chickens.turn(woman, 'cow')).toBe(true);
+    expect(model.chickens.hens.map((hen) => hen.kind)).toEqual(['bull', 'cow']);
+    expect(model.chickens.hens.every((hen) => hen.coat !== undefined)).toBe(true); // (a bull's coat, as a cow's)
+    const kinds = [0.2, 0.8].map((roll) => {
+      const beast = withWolf();
+      beast.model.random = () => roll;
+      beast.model.chickens.turn(beast.foe, 'cow');
+      return beast.model.chickens.hens[0].kind;
+    });
+    expect(kinds).toEqual(['bull', 'cow']);
+    const again = fresh();
+    again.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(again.chickens.hens.map((hen) => [hen.kind, hen.coat])).toEqual(model.chickens.hens.map((hen) => [hen.kind, hen.coat]));
+  });
+
   it('turns whoever is picked out into a cow, for good: slow, stood long at her cud, kept so in a save; taught like the others', () => {
     const { model, hero, foe } = withWolf();
+    model.random = () => 0.7; // (a beast: a cow, this time)
     learn(hero, 'cow');
     expect(SPELLS.cow).toMatchObject({ aim: 'anyone', turns: 'cow', needsTarget: true, cooldown: 0 });
     expect(SPELLS.cow.level).toBeGreaterThan(SPELLS.chicken.level);
@@ -222,7 +242,8 @@ describe("the dairymaid's call", () => {
     for (let i = 0; i < 40; i++) {
       const next = withWolf();
       learn(next.hero, 'cow');
-      next.model.random = () => (i * 0.137) % 1;
+      const rolls = [0.7, (i * 0.137) % 1]; // (a cow; then her coat)
+      next.model.random = () => rolls.shift() ?? 0.5;
       const told: Array<{ kind: string; coat?: number }> = [];
       const report = next.model.report;
       next.model.report = (event) => [told.push(event as never), report.call(next.model, event)];
