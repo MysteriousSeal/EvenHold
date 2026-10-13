@@ -31,7 +31,7 @@ export interface Staging {
   // For what has parts (someone human-shaped, a four-legged beast), each part morphing into a part of what it turns
   // into (partMorph.ts): its parts and theirs, that built `big` times its own size, coming `down` to it from then on.
   // Null: not one for that.
-  pieces?(actor: Actor): { pieces: Piece[]; big: number; down: number } | null;
+  pieces?(actor: Actor): { pieces: Piece[]; big: number; down: number; glow?: { color: number; stays: boolean } } | null;
   looseLines?: ReadonlyArray<[from: number, line: string]>;
 }
 

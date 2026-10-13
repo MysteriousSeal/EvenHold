@@ -19,8 +19,10 @@ const V = HUMAN_VOXEL_SIZE;
 // What people are drawn in: their voxel colors lifted a little over the
 // world's (a touch brighter, and warm light in their shade), so they stand
 // out from the ground they're on.
+export const PERSON_GLOW = 0x2a1e14; // the warmth a person's lit with from within (and whatever stands in for them: view/cinema/)
+
 export function personMaterial(): THREE.MeshStandardMaterial {
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, emissive: 0x2a1e14 });
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, emissive: PERSON_GLOW });
   material.color.setRGB(1.12, 1.1, 1.06);
   withRimLight(material);
   return material;

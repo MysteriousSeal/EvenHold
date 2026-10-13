@@ -10,7 +10,8 @@
 import * as THREE from 'three';
 import type { Actor } from './actor';
 import type { Piece } from './partMorph';
-import { sampleFigure, type Cloud } from './voxelMorph';
+import { PERSON_GLOW } from '../meshes/human/humanParts';
+import { PERSON_CUBE, sampleFigure, type Cloud } from './voxelMorph';
 
 export interface Becoming {
   tall: number; // how tall it stands, itself
@@ -33,7 +34,7 @@ export const DOWN = 0.92; // from when, of the whole, it comes down to its own s
 // At rest either end of a part's turn, at its most in the middle.
 export const env = (t: number): number => Math.sin(t * Math.PI);
 
-export function partPieces(actor: Actor, becoming: Becoming): { pieces: Piece[]; big: number; down: number } | null {
+export function partPieces(actor: Actor, becoming: Becoming): { pieces: Piece[]; big: number; down: number; glow?: { color: number; stays: boolean } } | null {
   const { beast, human, size } = actor;
   if (!beast && !human) return null;
   // As big as they are, where they're the bigger: it comes down to its own size once it's whole. Where it's the bigger
@@ -42,7 +43,7 @@ export function partPieces(actor: Actor, becoming: Becoming): { pieces: Piece[];
   const its = becoming.parts(big);
   const stance = becoming.parts((size.y * 0.9) / becoming.tall).joints; // (where its joints would be, were it their size: the stance they take first)
   const read = (...parts: THREE.Object3D[]): Cloud => {
-    const clouds = parts.map((part) => sampleFigure(part, size.y, ROWS));
+    const clouds = parts.map((part) => sampleFigure(part, size.y, ROWS, human ? PERSON_CUBE : undefined)); // (someone human-shaped: fine cubes, each where a voxel of them is)
     return { at: clouds.flatMap((c) => c.at), color: clouds.flatMap((c) => c.color), size: Math.max(...clouds.map((c) => c.size)) };
   };
   const sideOf = (group: THREE.Object3D) => Math.sign(new THREE.Box3().setFromObject(group).getCenter(new THREE.Vector3()).x) || 1;
@@ -53,6 +54,7 @@ export function partPieces(actor: Actor, becoming: Becoming): { pieces: Piece[];
   return {
     big,
     down: DOWN,
+    glow: human ? { color: PERSON_GLOW, stays: false } : undefined, // (someone: their voxels lit as they are, till they're a beast's)
     pieces: [
       // The legs: carried to where its legs stand, then reshaped.
       ...made.legs.map((leg): Piece => {

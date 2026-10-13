@@ -37,6 +37,7 @@ export class PartMorph {
     pieces: readonly Piece[],
     private readonly big: number,
     private readonly down: number,
+    private readonly glow?: { color: number; stays: boolean }, // what the figure's lit with from within (someone's: so are its voxels), and whether what it becomes is too (not: gone by the time it's that)
   ) {
     this.parts = pieces
       .filter((piece) => piece.from.at.length > 0 && piece.into.at.length > 0)
@@ -47,6 +48,7 @@ export class PartMorph {
         const from = { ...piece.from, at: piece.from.at.map((at) => at.clone().sub(pivotFrom)) };
         const into = { ...piece.into, at: piece.into.at.map((at) => at.clone().sub(pivotInto).applyAxisAngle(X, -(piece.tip ?? 0))) };
         const morph = new VoxelMorph(from, into, true);
+        if (glow) (morph.mesh.material as THREE.MeshStandardMaterial).emissive.setHex(glow.color);
         const joint = new THREE.Group();
         joint.add(morph.mesh);
         this.object.add(joint);
@@ -62,6 +64,7 @@ export class PartMorph {
       const t = through(u, piece.window);
       const e = smooth(t);
       morph.update(t, time);
+      if (this.glow && !this.glow.stays) (morph.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 1 - e;
       if (piece.pivot) {
         const [pivotFrom, pivotInto] = piece.pivot;
         const posed = piece.pose ?? pivotInto;

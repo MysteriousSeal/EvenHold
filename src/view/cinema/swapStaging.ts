@@ -7,14 +7,15 @@
 //  3. and they give way to themselves as they now are, dressed again in what they wore, cut for them.
 import * as THREE from 'three';
 import type { Humanoid } from '../../model/human/humanoid';
-import { JOINT_NAMES, type Joint } from '../meshes/human/bodyVoxels';
-import { personMaterial } from '../meshes/human/humanParts';
+import { HUMAN_VOXEL_SIZE, JOINT_NAMES, type Joint } from '../meshes/human/bodyVoxels';
+import { PERSON_GLOW, personMaterial } from '../meshes/human/humanParts';
 import { HumanRig } from '../meshes/human/humanRig';
 import { unclothed } from '../meshes/human/unclothed';
 import { PartMorph, type Piece } from './partMorph';
 import type { Staging } from './staging';
-import { sampleFigure, type Cloud } from './voxelMorph';
+import { PERSON_CUBE, sampleFigure, type Cloud } from './voxelMorph';
 
+const DRIFT = HUMAN_VOXEL_SIZE; // what a thread of it's carried by: so far whatever its cubes' size
 const ROWS = 30; // cubes to their height, read off them
 const BARE: [number, number] = [0.04, 0.36]; // when, of the whole, what they wear comes off them
 // When each part of them changes, after: from the ground up, all but together.
@@ -30,9 +31,10 @@ export function standing(who: Humanoid, dressed: boolean): HumanRig {
   return rig;
 }
 
+const NOTHING = new THREE.Color(-9, -9, -9); // (no colour of anything's)
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const through = (u: number, [a, b]: [number, number]) => Math.max(0, Math.min(1, (u - a) / (b - a)));
-const keyOf = (at: THREE.Vector3, size: number) => `${Math.round(at.x / size - 0.5)},${Math.round(at.y / size - 0.5)},${Math.round(at.z / size - 0.5)}`;
+const keyOf = (at: THREE.Vector3, size: number) => `${Math.round((at.x / size) * 2)},${Math.round((at.y / size) * 2)},${Math.round((at.z / size) * 2)}`; // (to half a cube: the same place, the same key)
 
 // What they wear, as vapour: each voxel of it lifting off in its turn (from the ground up), drifting, thinning away.
 class Vapour {
@@ -44,8 +46,9 @@ class Vapour {
   private readonly span: [number, number];
 
   constructor(private readonly cloud: Cloud) {
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.9 }), Math.max(1, cloud.at.length));
+    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.85, emissive: PERSON_GLOW, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }), Math.max(1, cloud.at.length)); // (lit as what they wear is; over their skin, where it lies on it)
     this.mesh.frustumCulled = false;
+    this.mesh.count = cloud.at.length; // (someone with nothing on: nothing of it drawn)
     const ys = cloud.at.map((at) => at.y);
     this.span = [Math.min(0, ...ys), Math.max(1e-6, ...ys)];
     for (const [k, color] of cloud.color.entries()) this.mesh.setColorAt(k, color);
@@ -60,7 +63,7 @@ class Vapour {
       const e = smooth(Math.max(0, Math.min(1, (k - up * 0.55) / 0.45)));
       const sway = Math.sin(i * 12.9898) * 43758.5453;
       const own = sway - Math.floor(sway);
-      this.spot.set(at.x + Math.sin(time * 3 + i) * cloud.size * 2 * e + (own - 0.5) * cloud.size * 6 * e, at.y + e * e * cloud.size * (10 + own * 14), at.z + Math.cos(time * 2.3 + i * 1.7) * cloud.size * 2 * e);
+      this.spot.set(at.x + Math.sin(time * 3 + i) * DRIFT * 2 * e + (own - 0.5) * DRIFT * 6 * e, at.y + e * e * DRIFT * (10 + own * 14), at.z + Math.cos(time * 2.3 + i * 1.7) * DRIFT * 2 * e);
       this.scale.setScalar(Math.max(1e-5, cloud.size * (1 - e)));
       mesh.setMatrixAt(i, this.matrix.compose(this.spot, this.still, this.scale));
     }
@@ -88,15 +91,17 @@ export function swapStaging(before: Humanoid, after: Humanoid, called: string): 
       const [bare, into] = [standing(before, false), standing(after, false)];
       scene.add(bare.root);
       // What they wear: the voxels of them, dressed, where their body alone has none.
-      const [worn, body] = [sampleFigure(figure, tall, ROWS), sampleFigure(bare.root, tall, ROWS)];
-      const skin = new Set(body.at.map((at) => keyOf(at, worn.size)));
-      const clothes = worn.at.map((at, i) => ({ at, color: worn.color[i] })).filter((cube) => !skin.has(keyOf(cube.at, worn.size)));
+      const [worn, body] = [sampleFigure(figure, tall, ROWS, PERSON_CUBE), sampleFigure(bare.root, tall, ROWS, PERSON_CUBE)]; // (each cube where a voxel of them is: nothing seen to change as it starts)
+      const skin = new Map(body.at.map((at, i) => [keyOf(at, worn.size), body.color[i]]));
+      const off = (a: THREE.Color, b: THREE.Color) => Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b) > 0.02;
+      // (Or where it has, in another colour: what's worn close, their braies.)
+      const clothes = worn.at.map((at, i) => ({ at, color: worn.color[i] })).filter((cube) => off(cube.color, skin.get(keyOf(cube.at, worn.size)) ?? NOTHING));
       const vapour = new Vapour({ at: clothes.map((c) => c.at), color: clothes.map((c) => c.color), size: worn.size });
       scene.add(vapour.mesh);
       // Their body, part by part, into the other build's: each on its own joint, where it is.
       const where = (group: THREE.Object3D) => group.getWorldPosition(new THREE.Vector3());
-      const pieces = JOINT_NAMES.map((joint): Piece => ({ from: sampleFigure(bare.joints[joint], tall, ROWS), into: sampleFigure(into.joints[joint], tall, ROWS), window: WINDOWS[joint], pivot: [where(bare.joints[joint]), where(into.joints[joint])] }));
-      const morph = new PartMorph(pieces, 1, 0.99);
+      const pieces = JOINT_NAMES.map((joint): Piece => ({ from: sampleFigure(bare.joints[joint], tall, ROWS, PERSON_CUBE), into: sampleFigure(into.joints[joint], tall, ROWS, PERSON_CUBE), window: WINDOWS[joint], pivot: [where(bare.joints[joint]), where(into.joints[joint])], pose: where(bare.joints[joint]) })); // (each where it is till its turn)
+      const morph = new PartMorph(pieces, 1, 0.99, { color: PERSON_GLOW, stays: true });
       scene.add(morph.object);
       return {
         update(u, time) {

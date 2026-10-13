@@ -5,6 +5,7 @@
 // ground up, swung out and round, shrinking or swelling to the new voxels' size and taking their colour, and set
 // down exactly where the new shape's voxels are, so what they've become can be put in its place unseen.
 import * as THREE from 'three';
+import { HUMAN_VOXEL_SIZE } from '../meshes/human/bodyVoxels';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 
 export interface Cloud {
@@ -13,6 +14,9 @@ export interface Cloud {
   size: number; // a voxel's side
 }
 
+// The cubes someone's read off as, here: each voxel of them split in two each way (some 60 to 70 to their height), so
+// what lifts off them and what they change into moves in fine grains.
+export const PERSON_CUBE = HUMAN_VOXEL_SIZE / 2;
 const MOST = 2600; // cubes, at most (a coarser shell, past that)
 const WAVE = 0.42; // of the whole, the last cube's start
 const FLIGHT = 0.44; // of the whole, each cube's flight
@@ -37,14 +41,16 @@ export function cloudOf(parts: ReadonlyArray<{ grid: VoxelGrid; palette: number[
   return cloud;
 }
 
-// A figure's surface as a shell of cubes: about `rows` of them to its height (fewer, if that's too many).
-export function sampleFigure(root: THREE.Object3D, height: number, rows = 26): Cloud {
+// A figure's surface as a shell of cubes: about `rows` of them to its height (fewer, if that's too many). `voxel`
+// (what it's built of voxels that size): read at that size, each mesh on its own grid (from its own corner), so
+// every cube sits just where a voxel of it is, and the shell can be put in its place unseen.
+export function sampleFigure(root: THREE.Object3D, height: number, rows = 26, voxel?: number): Cloud {
   root.updateMatrixWorld(true);
   const shown = (o: THREE.Object3D) => {
     for (let at: THREE.Object3D | null = o; at; at = at.parent) if (!at.visible) return false;
     return true;
   };
-  for (let size = height / rows; ; size *= 1.25) {
+  for (let size = voxel ?? height / rows; ; size *= 1.25) {
     const cells = new Map<string, { at: THREE.Vector3; color: THREE.Color }>();
     const [a, b, c, n, p, ab, ac] = Array.from({ length: 7 }, () => new THREE.Vector3());
     root.traverse((o) => {
@@ -54,31 +60,38 @@ export function sampleFigure(root: THREE.Object3D, height: number, rows = 26): C
       const { position, color } = mesh.geometry.attributes;
       const index = mesh.geometry.index;
       const corners = index ? index.count : position.count;
+      if (voxel && !mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      const corner = voxel ? mesh.geometry.boundingBox!.min : null; // (its own grid's)
+      const placed = voxel ? IDENTITY : mesh.matrixWorld; // (its own grid: walked where it's built, each cube set in the world after)
       for (let i = 0; i + 2 < corners; i += 3) {
         const [ia, ib, ic] = index ? [index.getX(i), index.getX(i + 1), index.getX(i + 2)] : [i, i + 1, i + 2];
-        a.fromBufferAttribute(position, ia).applyMatrix4(mesh.matrixWorld);
-        b.fromBufferAttribute(position, ib).applyMatrix4(mesh.matrixWorld);
-        c.fromBufferAttribute(position, ic).applyMatrix4(mesh.matrixWorld);
+        a.fromBufferAttribute(position, ia).applyMatrix4(placed);
+        b.fromBufferAttribute(position, ib).applyMatrix4(placed);
+        c.fromBufferAttribute(position, ic).applyMatrix4(placed);
         ab.subVectors(b, a);
         ac.subVectors(c, a);
         n.crossVectors(ab, ac).normalize();
         const tint = color ? new THREE.Color().fromBufferAttribute(color, ia).multiply(material.color) : material.color.clone();
         // The face walked a cube's side at a time; the cube behind each point (half a side in from it) kept.
-        const steps = Math.max(1, Math.ceil(Math.max(ab.length(), ac.length()) / size));
+        const steps = Math.max(1, Math.ceil(Math.max(ab.length(), ac.length()) / size - 1e-4));
         for (let u = 0; u < steps; u++) {
           for (let v = 0; u + v < steps; v++) {
             p.copy(a).addScaledVector(ab, (u + 0.33) / steps).addScaledVector(ac, (v + 0.33) / steps).addScaledVector(n, -size * 0.5);
+            if (corner) p.sub(corner);
             const [x, y, z] = [Math.floor(p.x / size), Math.floor(p.y / size), Math.floor(p.z / size)];
-            const key = `${x},${y},${z}`;
-            if (!cells.has(key)) cells.set(key, { at: new THREE.Vector3((x + 0.5) * size, (y + 0.5) * size, (z + 0.5) * size), color: tint });
+            const key = corner ? `${mesh.id}:${x},${y},${z}` : `${x},${y},${z}`;
+            if (cells.has(key)) continue;
+            const at = new THREE.Vector3((x + 0.5) * size, (y + 0.5) * size, (z + 0.5) * size);
+            cells.set(key, { at: corner ? at.add(corner).applyMatrix4(mesh.matrixWorld) : at, color: tint });
           }
         }
       }
     });
-    if (cells.size <= MOST) return { at: [...cells.values()].map((cell) => cell.at), color: [...cells.values()].map((cell) => cell.color), size };
+    if (voxel || cells.size <= MOST) return { at: [...cells.values()].map((cell) => cell.at), color: [...cells.values()].map((cell) => cell.color), size };
   }
 }
 
+const IDENTITY = new THREE.Matrix4();
 const smooth = (t: number) => t * t * (3 - 2 * t);
 // A number from 0 to 1 that's `i`'s own, the same each time.
 const own = (i: number, salt: number) => {

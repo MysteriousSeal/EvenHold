@@ -66,7 +66,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const parts = staging.direct ? null : (staging.pieces?.(actor) ?? null);
   const shell = !parts && !staging.direct && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
   const whole = shell && shell.at.length >= LEAST ? new VoxelMorph(shell, staging.cloud!()) : null;
-  const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
+  const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down, parts.glow) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
   if (loose) scene.add(loose.object);
   const lines = (parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines;
   const made = loose ? null : staging.prepare?.(actor);
