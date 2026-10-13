@@ -15,8 +15,8 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { maySwap, otherLook } from '../src/model/spells/swaps';
-import { standing, swapStaging } from '../src/view/cinema/swapStaging';
-import { LENGTH, playTransformation } from '../src/view/cinema/transformCinema';
+import { BARE, SWAP_LENGTH, standing, swapStaging } from '../src/view/cinema/swapStaging';
+import { GIVES_WAY, playTransformation } from '../src/view/cinema/transformCinema';
 
 const nothing: unknown = new Proxy(() => nothing, { get: (_t, key) => (key === 'measureText' ? () => ({ width: 10, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }) : nothing), set: () => true });
 HTMLCanvasElement.prototype.getContext = (() => nothing) as unknown as HTMLCanvasElement['getContext'];
@@ -121,24 +121,45 @@ describe('its cinematic', () => {
   const before = { look: { build: 'male' as const, skin: 1, hair: 2, dye: 0, hairStyle: 'short' as const, beard: true }, equipment: { head: 'huntersHood' as const, torso: 'linenShirt' as const } };
   const after = { look: otherLook(before.look, 7, 1), equipment: before.equipment };
 
-  it('has what they wear come off them, then their body change part by part, then themselves dressed again', () => {
+  it('has what they wear come off them piece by piece, then their body change a part at a time, their face seen close, then themselves dressed again', () => {
     document.body.replaceChildren();
     const figure = standing(before, true).root;
     const done = vi.fn();
-    const playing = playTransformation(figure, 'Idtram', swapStaging(before, after, 'Adawen'), done, drawer);
+    const staging = swapStaging(before, after, 'Adawen');
+    const playing = playTransformation(figure, 'Idtram', staging, done, drawer);
     const line = () => playing.root.querySelector('.transform-line')!.textContent!;
-    playing.advance(0.1);
+    const staged = SWAP_LENGTH * GIVES_WAY; // seconds till they give way
+    const to = (u: number, from: number) => playing.advance((u - from) * staged);
+    expect(staging.length).toBe(SWAP_LENGTH); // (longer than a turning into a beast)
+    to(0.01, 0);
     expect(figure.visible).toBe(true); // (dressed, as they stand)
     expect(line()).toContain('Idtram');
-    playing.advance(1.2);
+    to(0.15, 0.01);
     expect(figure.visible).toBe(false); // (what they wear: off them)
-    expect(line()).toMatch(/lifts off them/);
-    playing.advance(2.5);
-    expect(line()).toMatch(/The body changes/);
-    for (let t = 0; t < 3; t += 0.1) playing.advance(0.1);
+    expect(line()).toMatch(/piece by piece/);
+    const said: string[] = [];
+    for (let u = 0.15; u < 0.98; u += 0.01) [to(u + 0.01, u), said.includes(line()) || said.push(line())];
+    expect(said.map((text) => text.split(/[ .:;,]/).slice(0, 2).join(' '))).toEqual(['What they', 'Idtram looks', 'The hips', 'The waist', 'The shoulders', 'The chest', 'Arms and', 'The jaw', 'The beard']); // (each step its own beat)
+    playing.advance(0.05 * staged);
     expect(line()).toBe('Adawen.');
-    for (let t = 0; t < LENGTH; t += 0.1) playing.advance(0.1);
+    for (let t = 0; t < SWAP_LENGTH; t += 0.1) playing.advance(0.1);
     expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes what is on their head off first and their braies last, and sees their face from close', () => {
+    const scene = new THREE.Scene();
+    const figure = standing(before, true).root;
+    scene.add(figure);
+    const staged = swapStaging(before, after, 'Adawen').direct!(figure, scene, 0.5);
+    const vapour = scene.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh;
+    const size = (i: number) => new THREE.Vector3().setFromMatrixScale(new THREE.Matrix4().fromArray(vapour.instanceMatrix.array, i * 16)).x;
+    staged.update(BARE[0] + (BARE[1] - BARE[0]) * 0.3, 1);
+    expect(size(0)).toBeLessThan(size(vapour.count - 1) * 0.5); // (their hood: going; their braies: on them still)
+    const [whole, close] = [staged.view!(0.1, 0), staged.view!(0.9, 0)];
+    expect(close.far).toBeLessThan(whole.far * 0.6);
+    expect(close.aim).toBeGreaterThan(whole.aim); // (their head)
+    expect(staged.view!(1, 1).far).toBeGreaterThan(close.far * 1.5); // (themselves again: whole)
+    staged.dispose();
   });
 
   it('reads what they wear off them as what is not their body: none of it for someone unclothed', () => {
