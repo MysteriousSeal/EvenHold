@@ -34,7 +34,6 @@ export interface Playing {
 // Plays `into` on `figure` (theirs, as they stand: GameView.standIn), called `name`; `done` once it's over or skipped.
 export function playTransformation(figure: THREE.Object3D, name: string, into: Into | Staging, done: () => void, makeDrawer: () => Drawer = () => new THREE.WebGLRenderer({ alpha: true, antialias: true })): Playing {
   const staging = typeof into === 'string' ? STAGINGS[into] : into;
-  const length = staging.length ?? LENGTH;
   const root = document.createElement('div');
   root.className = 'transform-cinema';
   const title = Object.assign(document.createElement('h2'), { className: 'transform-title', textContent: staging.title });
@@ -64,14 +63,15 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const actor = makeActor(figure);
   // Anything not human-shaped, with voxels to it: taken apart into them and put together again as what it becomes.
   // What has parts (someone human-shaped, a four-legged beast): each part morphing into the part it becomes (partMorph.ts).
-  const parts = staging.direct ? null : (staging.pieces?.(actor) ?? null);
-  const shell = !parts && !staging.direct && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
+  const own = staging.direct?.(figure, scene, actor.size.y, actor) ?? null; // (a staging all its own)
+  const length = own?.length ?? staging.length ?? LENGTH;
+  const parts = own ? null : (staging.pieces?.(actor) ?? null);
+  const shell = !parts && !own && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
   const whole = shell && shell.at.length >= LEAST ? new VoxelMorph(shell, staging.cloud!()) : null;
   const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down, parts.glow) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
   if (loose) scene.add(loose.object);
-  const lines = (parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines;
-  const made = loose ? null : staging.prepare?.(actor);
-  const own = staging.direct?.(figure, scene, actor.size.y) ?? null; // (a staging all its own)
+  const lines = own?.lines ?? ((parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines);
+  const made = loose || own ? null : staging.prepare?.(actor);
   const target = staging.target();
   target.root.visible = false;
   scene.add(figure, target.root);
@@ -143,7 +143,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     if (swapped) target.settle(j, time);
     // Feathers off them, as they turn.
     shed -= dt;
-    const [from, to] = staging.feathers ?? [2, 2];
+    const [from, to] = (own ? own.feathers : staging.feathers) ?? [2, 2];
     if (!swapped && !loose && u >= from && u <= to && shed <= 0) {
       shed = 0.16 - 0.1 * u;
       smoke.feathers(scene, 0, tall * 0.25 * (1 - u), 0, tall * 1.3, 1);
@@ -159,8 +159,9 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const wide = own ? 4.6 : 3.4; // (someone seen whole, head to foot, with room over them for what lifts off)
     const far = frame * wide + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
     const seen = own?.view?.(u, j) ?? { aim: height, far }; // (a staging all its own: from where it says)
-    camera.position.set(Math.sin(ANGLE) * seen.far, seen.aim + seen.far * (seen.rise ?? 0.28), Math.cos(ANGLE) * seen.far);
-    camera.lookAt(0, seen.aim, 0);
+    const [x, z] = ['x' in seen ? seen.x ?? 0 : 0, 'z' in seen ? seen.z ?? 0 : 0];
+    camera.position.set(x + Math.sin(ANGLE) * seen.far, seen.aim + seen.far * (('rise' in seen ? seen.rise : undefined) ?? 0.28), z + Math.cos(ANGLE) * seen.far);
+    camera.lookAt(x, seen.aim, z);
     // What's said: the beat it's at; once turned, what they are.
     const at = swapped ? lines.length : lines.reduce((best, [start], i) => (u >= start ? i : best), 0);
     if (at !== said) {

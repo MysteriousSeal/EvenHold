@@ -31,9 +31,10 @@ export class Growth {
   constructor(
     private readonly cloud: Cloud,
     private readonly order: number[],
+    glow: number = PERSON_GLOW, // what it's lit with from within (someone's hair: as they are; a beast's: 0)
   ) {
     // (Over the skin it lies on, where it's on the head's own voxels.)
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.85, emissive: PERSON_GLOW, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }), Math.max(1, cloud.at.length));
+    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.85, emissive: glow, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }), Math.max(1, cloud.at.length));
     this.mesh.count = cloud.at.length;
     this.mesh.frustumCulled = false;
     for (const [i, color] of cloud.color.entries()) this.mesh.setColorAt(i, color);

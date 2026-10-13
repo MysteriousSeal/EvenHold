@@ -25,7 +25,8 @@ export interface Staging {
   // A staging all its own, in place of the rest (a change that's no turning into a beast: swapStaging.ts): made for the
   // figure, in the scene; played each frame till it gives way (`u`: 0 themselves, 1 giving way), then let go.
   // `view`: where it's seen from, if it says (`j`: once they've given way, 0 just then to 1 settled): the height looked at, from how far, and from how far above (of that; none: the usual).
-  direct?(figure: THREE.Object3D, scene: THREE.Scene, tall: number): { update(u: number, time: number): void; dispose(): void; view?(u: number, j: number): { aim: number; far: number; rise?: number } };
+  // Null: not one for that (the rest, then). It may say how long it runs, what's said of it, when feathers fly off them.
+  direct?(figure: THREE.Object3D, scene: THREE.Scene, tall: number, actor: Actor): Directed | null;
   length?: number; // seconds it runs, if not the usual (transformCinema.ts LENGTH)
   // For anything not human-shaped, taken apart into its voxels and put together again (voxelMorph.ts): the voxels of
   // what they become, as it stands; and what's said of it, beat by beat.
@@ -35,6 +36,15 @@ export interface Staging {
   // Null: not one for that.
   pieces?(actor: Actor): { pieces: Piece[]; big: number; down: number; glow?: { color: number; stays: boolean } } | null;
   looseLines?: ReadonlyArray<[from: number, line: string]>;
+}
+
+export interface Directed {
+  update(u: number, time: number): void;
+  dispose(): void;
+  view?(u: number, j: number): { aim: number; far: number; rise?: number; x?: number; z?: number }; // (`x`, `z`: where's looked at, if not the middle)
+  length?: number;
+  lines?: ReadonlyArray<[from: number, line: string]>;
+  feathers?: [from: number, to: number];
 }
 
 export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging };

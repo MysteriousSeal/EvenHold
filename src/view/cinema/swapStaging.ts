@@ -9,7 +9,6 @@
 //  4. and they give way to themselves as they now are, dressed again in what they wore, cut for them; seen whole
 //     again.
 import * as THREE from 'three';
-import { ARMOR_SLOTS, type EquipSlot } from '../../model/human/equipment';
 import type { Humanoid } from '../../model/human/humanoid';
 import { type Joint } from '../meshes/human/bodyVoxels';
 import { PERSON_GLOW, personMaterial } from '../meshes/human/humanParts';
@@ -19,10 +18,10 @@ import { Growth, strands, stubble } from './growth';
 import { PartMorph, type Piece } from './partMorph';
 import type { Staging } from './staging';
 import { Vapour } from './vapour';
-import { PERSON_CUBE, sampleFigure, type Cloud } from './voxelMorph';
+import { apart, band, bell, read, smooth, through, wornPieces, type Span } from './clouds';
+import type { Cloud } from './voxelMorph';
 
 export const SWAP_LENGTH = 14; // seconds
-type Span = [from: number, to: number];
 // When, of the whole (till they give way):
 const START: Span = [0, 0.035]; // they start at it
 export const BARE: Span = [0.035, 0.3]; // what they wear comes off them
@@ -48,29 +47,6 @@ export function standing(who: Humanoid, dressed: boolean): HumanRig {
   return rig;
 }
 
-const NOTHING = new THREE.Color(-9, -9, -9); // (no colour of anything's)
-const smooth = (t: number) => t * t * (3 - 2 * t);
-const through = (u: number, [a, b]: Span) => Math.max(0, Math.min(1, (u - a) / (b - a)));
-const bell = (t: number) => Math.sin(Math.max(0, Math.min(1, t)) * Math.PI);
-const keyOf = (at: THREE.Vector3, size: number) => `${Math.round((at.x / size) * 2)},${Math.round((at.y / size) * 2)},${Math.round((at.z / size) * 2)}`; // (to half a cube: the same place, the same key)
-const off = (a: THREE.Color, b: THREE.Color) => Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b) > 0.02;
-const read = (of: THREE.Object3D, tall: number) => sampleFigure(of, tall, 30, PERSON_CUBE); // (each cube where a voxel of them is: nothing seen to change as it's put in their place)
-const some = (cloud: Cloud, keep: (at: THREE.Vector3, i: number) => boolean): Cloud => {
-  const kept = cloud.at.map((at, i) => keep(at, i));
-  return { at: cloud.at.filter((_, i) => kept[i]), color: cloud.color.filter((_, i) => kept[i]), size: cloud.size };
-};
-// The cubes of `a` that `b` hasn't (none there, or another colour's), or (`shared`) that it has.
-const apart = (a: Cloud, b: Cloud, shared = false): Cloud => {
-  const there = new Map(b.at.map((at, i) => [keyOf(at, a.size), b.color[i]]));
-  return some(a, (at, i) => off(a.color[i], there.get(keyOf(at, a.size)) ?? NOTHING) !== shared);
-};
-// A part's cubes between two heights of it (0 its foot, 1 its top).
-const band = (cloud: Cloud, [lo, hi]: Span): Cloud => {
-  const ys = cloud.at.map((at) => at.y);
-  const [min, max] = [Math.min(...ys), Math.max(...ys)];
-  return some(cloud, (at) => ((f) => f >= lo && (f < hi || hi >= 1))((at.y - min) / (max - min || 1)));
-};
-// In three stages, each come to and held.
 const SWELL = 0.1; // of its width, a part swollen as it reshapes
 const swell = (t: number) => SWELL * bell(t);
 const staged = (t: number) => (t >= 1 ? 1 : (Math.floor(t * 3) + smooth(Math.min(1, (t * 3 - Math.floor(t * 3)) / 0.55))) / 3);
@@ -115,20 +91,13 @@ export function swapStaging(before: Humanoid, after: Humanoid, called: string): 
       const [bare, into] = [standing(before, false), standing(after, false)];
       scene.add(bare.root);
       const where = (group: THREE.Object3D) => group.getWorldPosition(new THREE.Vector3());
-      // What they wear, piece by piece (what's on their head first), each the voxels of it that aren't their body's;
-      // and last whatever else of them isn't (their braies, close on them).
-      const skin = read(bare.root, tall);
-      const wornIn = (slot: EquipSlot) => ((figure.userData.wornIn as ((slot: EquipSlot) => THREE.Mesh[]) | undefined)?.(slot) ?? []).filter((mesh) => mesh.visible);
-      const pieces = ARMOR_SLOTS.map((slot) => wornIn(slot).map((mesh) => read(mesh, tall))).map((clouds): Cloud => ({ at: clouds.flatMap((c) => c.at), color: clouds.flatMap((c) => c.color), size: PERSON_CUBE }));
-      const gear = ARMOR_SLOTS.flatMap((slot) => wornIn(slot));
-      for (const mesh of gear) mesh.visible = false;
-      pieces.push(read(figure, tall));
-      for (const mesh of gear) mesh.visible = true;
-      const vapour = new Vapour(pieces.map((piece) => apart(piece, skin)));
+      // What they wear, piece by piece, off them as vapour.
+      const worn = wornPieces(figure, bare.root, tall);
+      const vapour = new Vapour(worn.pieces);
       scene.add(vapour.mesh);
       // (Their hair, where what's on their head hid it: not seen till that's half gone.)
       const gathered = (bare.root.userData.gathered as () => THREE.Mesh | null)();
-      const hidden = wornIn('head').length > 0 && pieces[0].at.length > 0 ? (vapour.turns[0][0] + vapour.turns[0][1]) / 2 : 0;
+      const hidden = worn.headed ? (vapour.turns[0][0] + vapour.turns[0][1]) / 2 : 0;
 
       // Their body, a part at a time, into the other build's: each on its own joint, where it is.
       const act = held;

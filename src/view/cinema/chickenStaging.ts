@@ -17,6 +17,8 @@ import * as THREE from 'three';
 import { createHen } from '../meshes/wildlife/chickenRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
 import { partPieces, type Becoming } from './becoming';
+import { some } from './clouds';
+import { turningInto, type Telling } from './turning';
 import { cloudOf, type Cloud } from './voxelMorph';
 import { over, swell, type Actor } from './actor';
 import type { Staging } from './staging';
@@ -67,10 +69,41 @@ function grown(actor: Actor, head: { on: THREE.Object3D; box: THREE.Box3 }, rear
 
 // What she is, for what has parts to become her (becoming.ts): their legs her legs, their arms her wings (her body's
 // outermost columns, either side), their torso her body and tail, their head her head.
+const hue = (cloud: Cloud, i: number, ...roles: number[]) => roles.some((role) => cloud.color[i].getHex() === new THREE.Color(CHICKEN_PALETTE[role - 1]).getHex());
+const [RED_, RED_DARK, YELLOW_, EYE] = [4, 5, 6, 8]; // (chickenVoxels.ts's roles)
+const PLUCKED = new THREE.Color(0xe9bfa6); // her skin, bare of feathers
+// Her tail (up and back of her body), told from the rest of it.
+const tailOf = (body: Cloud, big: number) => ((back, top) => (at: THREE.Vector3) => at.z < back + V * big || at.y > top - V * big * 2)(Math.min(...body.at.map((at) => at.z)), Math.max(...body.at.map((at) => at.y)));
 const becoming: Becoming = {
   tall: HEN.y,
-  parts(big) {
+  long: HEN.z,
+  // What grows on her: her comb, her beak, her wattle; then feathers all over her (here and there, till she's
+  // covered); her tail's fan, last.
+  grows(big) {
+    const { body, head } = henClouds(big);
+    const top = Math.max(...head.at.map((at) => at.y));
+    const tail = tailOf(body, big);
+    const comb = some(head, (at, i) => hue(head, i, RED_, RED_DARK) && at.y > top - V * big);
+    const fan = some(body, (at) => tail(at));
+    return [
+      { on: 'head', cloud: comb, root: comb.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'A comb, red, in three points.' },
+      { on: 'head', cloud: some(head, (_at, i) => hue(head, i, YELLOW_)), line: 'A beak.' },
+      { on: 'head', cloud: some(head, (at, i) => hue(head, i, RED_, RED_DARK) && at.y <= top - V * big), line: 'A wattle, under it.' },
+      { on: 'head', cloud: some(head, (_at, i) => !hue(head, i, RED_, RED_DARK, YELLOW_, EYE)), line: 'Feathers: here and there, then everywhere.' },
+      { on: 'body', cloud: some(body, (at) => !tail(at)), line: 'Feathers: here and there, then everywhere.' },
+      { on: 'body', cloud: fan, root: fan.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'A tail, cocked up behind.' },
+    ];
+  },
+  parts(big, plain) {
     const hen = henClouds(big);
+    if (plain) {
+      // (Without them: no comb, beak or wattle; no tail; her skin bare, pink.)
+      const tail = tailOf(hen.body, big);
+      hen.head = some(hen.head, (_at, i) => !hue(hen.head, i, RED_, RED_DARK, YELLOW_));
+      hen.head.color = hen.head.color.map((color, i) => (hue(hen.head, i, EYE) ? color : PLUCKED.clone().multiply(color)));
+      hen.body = some(hen.body, (at) => !tail(at));
+      hen.body.color = hen.body.color.map((color) => PLUCKED.clone().multiply(color));
+    }
     const at = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
     const edge = (BODY_GRID[0] / 2 - 1) * V * big;
     const part = (keep: (at: THREE.Vector3) => boolean): Cloud => ({ at: hen.body.at.filter(keep), color: hen.body.color.filter((_c, i) => keep(hen.body.at[i])), size: hen.body.size });
@@ -84,6 +117,27 @@ const becoming: Becoming = {
     };
   },
   arms: () => [0, 0, 0], // (at her sides already, once they've taken her stance)
+};
+
+const PERSON: Telling = {
+  start: '{name} feels something is wrong, and starts.',
+  bare: 'What they wear comes off them piece by piece, unravelling into threads.',
+  look: '{name} looks down at their hands.',
+  stance: 'They stoop, unsteady: the back level, the arms drawn in to the sides.',
+  legs: 'The legs thin: yellow, scaled, and much too short.',
+  arms: 'The arms flatten against the sides: wings.',
+  body: 'The body rounds out: bare, pink.',
+  head: 'The head draws in, small, on a short neck.',
+  done: 'A chicken as tall as they were. And then smaller. Much smaller.',
+};
+const BEAST: Telling = {
+  ...PERSON,
+  start: '{name} feels something is wrong.',
+  stance: 'It gathers itself: its hind legs under its middle, its forelegs drawn up to its sides.',
+  legs: 'The hind legs thin: two yellow ones, scaled.',
+  arms: 'The forelegs flatten against the sides: wings.',
+  body: 'The body draws in and rounds out: bare, pink.',
+  done: 'A chicken as big as it was. And then smaller. Much smaller.',
 };
 
 export const chickenStaging: Staging = {
@@ -118,6 +172,7 @@ export const chickenStaging: Staging = {
   },
 
   pieces: (actor) => partPieces(actor, becoming),
+  direct: turningInto(becoming, { person: PERSON, beast: BEAST }, true),
 
   prepare(actor): Grown {
     const { box, size } = actor;
@@ -153,11 +208,14 @@ export const chickenStaging: Staging = {
     return {
       root: hen.root,
       height: HEN.y,
+      // Her feathers ruffled; a startled hop; a shake of her head; then a peck at the ground, and another.
       settle(j, time) {
         const shape = henShape(j);
+        const ruffle = j > 0.04 && j < 0.22 ? Math.sin(((j - 0.04) / 0.18) * Math.PI) : 0;
         hen.root.position.y = shape.hop;
-        hen.head.rotation.set(j > 0.82 ? Math.sin(((j - 0.82) / 0.18) * Math.PI) * 1.1 : 0, shape.shake, 0); // (a shake of her head; then a peck)
-        void time;
+        hen.body.scale.setScalar(1 + 0.12 * ruffle);
+        hen.body.rotation.z = Math.sin(time * 38) * 0.09 * ruffle;
+        hen.head.rotation.set(j > 0.78 ? Math.abs(Math.sin(((j - 0.78) / 0.22) * Math.PI * 2)) * 1.1 : 0, shape.shake, 0);
       },
     };
   },
