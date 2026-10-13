@@ -11,6 +11,8 @@ import { GameModel } from '../src/model/GameModel';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { interactionOf } from '../src/model/hero/interaction';
 import { parseSave, restore, snapshot } from '../src/model/save';
+import { chopsIn, treeKey } from '../src/model/skills/lumber';
+import type { Tree } from '../src/model/types';
 import { COW_COATS, ROAM, mayTurn, placeOf } from '../src/model/spells/turned';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
@@ -310,5 +312,78 @@ describe('the hen', () => {
     expect(scene.children.length).toBe(1); // (the smoke: thinned away; the feathers still falling)
     for (let t = 0; t < 1; t += 0.1) smoke.update(0.1);
     expect(scene.children.length).toBe(0);
+  });
+});
+
+describe("the mason's curse and the woodward's rooting", () => {
+  it('turns whoever is picked out to stone, out of doors only: a statue of them where they stood, never moving, in the way, kept in a save', () => {
+    const { model, hero, foe } = withWolf();
+    learn(hero, 'statue');
+    expect(SPELLS.statue).toMatchObject({ aim: 'anyone', turns: 'statue', needsTarget: true });
+    model.inside = { entrance: { x: 1, z: 1 } } as never; // (indoors: not there)
+    expect(model.chickens.may(foe, 'statue')).toBe(false);
+    expect(castSpell(model, 'statue')).toBe('noTarget');
+    expect(model.chickens.hens.length).toBe(0); // (nothing done)
+    model.inside = null;
+    expect(castSpell(model, 'statue')).toBe('cast');
+    expect(model.enemies).not.toContain(foe);
+    const statue = model.chickens.hens[0];
+    expect(statue).toMatchObject({ kind: 'statue', x: foe.x, z: foe.z, stone: { foe: 'wolf', id: foe.id } });
+    run(model, 30, () => expect([statue.x, statue.z]).toEqual([foe.x, foe.z]));
+    expect(model.isOpenTile(Math.round(foe.x), Math.round(foe.z))).toBe(false); // (in the way)
+    // Someone: in their own look, and what they wore.
+    const villager = model.npcs.find((n) => !n.led)!;
+    const [x, z] = [villager.x, villager.z];
+    villager.where = { x: 1, z: 1 } as never; // (in a house: not there)
+    expect(model.chickens.turn(villager, 'statue')).toBe(false);
+    villager.where = null;
+    expect(model.chickens.turn(villager, 'statue')).toBe(true);
+    expect(model.chickens.hens[1].stone).toMatchObject({ id: villager.id, human: { look: villager.look } });
+    expect(model.chickens.hens[1].stone!.foe).toBeUndefined();
+    const again = fresh();
+    again.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(again.chickens.hens.map((h) => [h.kind, h.stone?.id])).toEqual([['statue', foe.id], ['statue', villager.id]]);
+    expect(again.isOpenTile(Math.round(x), Math.round(z))).toBe(false); // (in the way again)
+    again.chickens.load({ hens: [[1, 1, null, 1, 1, 'statue']], lost: [] }); // (a statue of no one: none)
+    expect(again.chickens.hens.length).toBe(0);
+  });
+
+  it('turns them into a tree, one of the world\'s own from then on: on a tile, in the way, to be felled, kept in a save', () => {
+    const { model, hero, foe } = withWolf();
+    learn(hero, 'tree');
+    expect(SPELLS.tree).toMatchObject({ aim: 'anyone', turns: 'tree', needsTarget: true });
+    expect(SPELLS.tree.level).toBeGreaterThan(SPELLS.statue.level);
+    const before = model.trees.length;
+    const told: Array<{ kind: string; into?: string; tree?: Tree }> = [];
+    const report = model.report;
+    model.report = (event) => [told.push(event as never), report.call(model, event)];
+    expect(castSpell(model, 'tree')).toBe('cast');
+    expect(model.enemies).not.toContain(foe);
+    expect(model.chickens.hens.length).toBe(0); // (no beast of it: a tree)
+    const tree = model.chickens.trees[0];
+    expect(told.find((e) => e.kind === 'transformed')).toMatchObject({ into: 'tree', tree });
+    expect(tree).toMatchObject({ planted: true });
+    expect([Number.isInteger(tree.x), Number.isInteger(tree.z)]).toEqual([true, true]);
+    expect(Math.hypot(tree.x - foe.x, tree.z - foe.z)).toBeLessThan(1.5);
+    expect([tree.x, tree.z]).not.toEqual([Math.round(hero.x), Math.round(hero.z)]); // (never where the hero stands)
+    expect(model.trees.length).toBe(before + 1);
+    expect(model.trees).toContain(tree);
+    expect(model.isOpenTile(tree.x, tree.z)).toBe(false);
+    model.world.rooted(); // (asked again: not put twice)
+    expect(model.trees.filter((t) => t === tree).length).toBe(1);
+    // Kept in a save: standing there again.
+    const again = fresh();
+    again.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(again.trees.some((t) => t.x === tree.x && t.z === tree.z && t.kind === tree.kind && t.planted)).toBe(true);
+    expect(again.isOpenTile(tree.x, tree.z)).toBe(false);
+    // Felled, as any tree: gone for good, out of the way; not back with the next game taken up.
+    model.lumber.cut.set(treeKey(tree), chopsIn(tree, model.seed));
+    expect(model.lumber.felled(tree)).toBe(true);
+    const after = fresh();
+    after.lumber.restore(model.lumber.saved());
+    after.chickens.load(JSON.parse(JSON.stringify(model.chickens.save())));
+    expect(after.trees.some((t) => t.x === tree.x && t.z === tree.z)).toBe(false);
+    again.chickens.load({ hens: [], lost: [], trees: [[1.5, 2, 'oak', 0, 0, 0], [3, 4, 'palm', 0, 0, 0]] }); // (a broken save's: none)
+    expect(again.chickens.trees.length).toBe(0);
   });
 });

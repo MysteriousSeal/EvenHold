@@ -13,6 +13,10 @@ import { COW, bullStaging, cowStaging, cowStagingOf } from '../src/view/cinema/s
 import { COW_COLORS, COW_PALETTE, COW_PALETTES } from '../src/view/meshes/turned/cowVoxels';
 import { COW_COATS } from '../src/model/spells/turned';
 import { HORSE, horseBecoming, horseStaging } from '../src/view/cinema/stagings/horseStaging';
+import { statueStagingOf } from '../src/view/cinema/stagings/statueStaging';
+import { treeStagingOf } from '../src/view/cinema/stagings/treeStaging';
+import { stoned } from '../src/view/meshes/turned/statue';
+import { TREE_SHAPES } from '../src/model/constants';
 import { partPieces } from '../src/view/cinema/stagings/becoming';
 import { HORSE_LEGS, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../src/view/meshes/turned/horseVoxels';
 import { GIVES_WAY, LENGTH, playTransformation } from '../src/view/cinema/transformCinema';
@@ -265,6 +269,52 @@ describe('someone turned into a cow', () => {
     expect([...said].some((line) => /all four/.test(line))).toBe(true);
     expect([...said].filter((line) => /Horns|Ears|Red, spreading|rump|udder/.test(line)).length).toBe(5);
     expect([...said]).toContain('A cow.');
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('someone turned to stone, and into a tree', () => {
+  it('is played step by step: the stone from the ground up to their eyes, a plinth; then themselves in stone', () => {
+    document.body.replaceChildren();
+    const done = vi.fn();
+    const playing = playTransformation(human(), 'Idtram', statueStagingOf(human), done, drawer);
+    const said = new Set<string>();
+    for (let t = 0; t < 13; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
+    expect([...said].filter((line) => /feet|legs|hips|chest|throat|face|eyes/.test(line)).length).toBe(7); // (each height of them, said as the stone reaches it)
+    expect([...said]).toContain('A statue.');
+    expect(done).toHaveBeenCalledTimes(1);
+    // In stone: every colour of theirs the one grey, lighter or darker as it was.
+    const [dark, light] = [stoned(new THREE.Color(0x101010)), stoned(new THREE.Color(0xf0f0f0))];
+    expect(light.g).toBeGreaterThan(dark.g * 1.5);
+    for (const grey of [dark, light]) expect(Math.abs(grey.r - grey.b)).toBeLessThan(0.06);
+  });
+
+  it('is played as a turning into a beast is, upright: legs, arms and body its trunk, their head alone its crown, in leaf last', () => {
+    document.body.replaceChildren();
+    // Every kind and shape of tree: wood for their legs, their body and their arms, a crown for their head (none of
+    // them with nothing to become: gone, mid-turning), and all of it between them, each voxel once.
+    for (const kind of ['oak', 'pine', 'birch'] as const) {
+      for (let shape = 0; shape < TREE_SHAPES; shape++) {
+        const staging = treeStagingOf(kind, shape);
+        const tree = staging.cloud!();
+        const key = (p: THREE.Vector3) => p.toArray().map((n) => Math.round(n / (tree.size / 2))).join();
+        for (const plain of [false, true]) {
+          const its = staging.becoming.parts(1, plain);
+          const parts = [...its.legs, ...its.arms, its.body, its.head];
+          expect(parts.every((part) => part.at.length > 0), `${kind} ${shape}`).toBe(true);
+          expect(new Set(parts.flatMap((part) => part.at.map(key)))).toEqual(new Set(tree.at.map(key)));
+        }
+        const { joints } = staging.becoming.parts(1);
+        expect(joints.legs[0].y).toBeLessThanOrEqual(joints.arms[0].y); // (their legs: the foot of its trunk; their arms: over their body)
+      }
+    }
+    const done = vi.fn();
+    const playing = playTransformation(human(), 'Idtram', treeStagingOf('birch', 1), done, drawer);
+    const said = new Set<string>();
+    for (let t = 0; t < STEPPED + 2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
+    expect([...said].some((line) => /crown of bare twigs/.test(line))).toBe(true);
+    expect([...said].some((line) => /^Leaves/.test(line))).toBe(true);
+    expect([...said]).toContain('A birch.');
     expect(done).toHaveBeenCalledTimes(1);
   });
 });
