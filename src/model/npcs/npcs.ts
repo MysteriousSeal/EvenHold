@@ -45,12 +45,12 @@ export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'fiel
 const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
 const FIELD_NEAR = 15; // tiles from the village's middle
 
-export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist' | 'hedgewitch';
+export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist';
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)". A man in a woman's trade, or she
 // in his (a charm's doing: spells/swaps.ts), called as he or she is: a barman, a waiter.
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', hedgewitch: 'Hedge-witch' };
-const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter', hedgewitch: 'Hedge-wizard' };
+const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist' };
+const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter' };
 export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'>): string {
   const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role];
   return title ? `${npc.name} (${title})` : npc.name;
@@ -160,7 +160,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   };
   const person = (own: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
     const id = firstId + own;
-    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // (a hedge-witch: a woman, as the barmaids are) // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
     return {
       id,
       name: nameAt(at.x, at.z, seed, look.build),
@@ -245,15 +245,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     npc.equipment = { head: 'huntersHood', torso: 'linenShirt' };
     return [npc];
   });
-  // A hedge-witch in each herbalist's hut (hedgeWitch.ts), in a shawl: charms to teach (spells/teaching.ts). Last of
-  // all, so everyone else keeps their id.
-  const witches = herbalists.map((herbalist, i) => {
-    const { home, village } = herbalist;
-    const npc = person(doors + inns.length * 3 + smithies.length + villages.length + i, 'hedgewitch', home, herbalist.inn, village, { x: home.x + 0.4, z: home.z + 0.3 });
-    npc.equipment = { torso: 'linenShirt', shoulders: 'woolShawl' };
-    return npc;
-  });
-  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists, ...witches];
+  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists];
 }
 
 // Whether a step of a walker of half-width r from `from` to (x, z), in

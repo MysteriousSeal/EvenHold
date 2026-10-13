@@ -1,6 +1,6 @@
-// The charms a hero may know: hedge-craft, taught by a village's herbalist for coin (spells/teaching.ts), kept in
-// their spellbook and put on the action bar (hero/actionBar.ts: a slot points at one, as at food), cast with its key
-// (spells/casting.ts). Each spends Breath (hero/combatMoves.ts) and then wants a while before it's cast again.
+// The charms a hero may know: hedge-craft, put on the action bar (hero/actionBar.ts: a slot points at one, as at
+// food) and cast with its key (spells/casting.ts). Each spends Breath (hero/combatMoves.ts) and then wants a while
+// before it's cast again. None's taught or sold in the game: handed out from the cheat menu (controller/cheats/).
 // Two kinds, by whom they may be aimed at (`aim`): at foes only (what harms), or at anyone (a foe, a villager or
 // traveller picked out: hero/selection.ts; no one picked out, the hero themselves).
 import type { Hero } from '../types';
@@ -12,8 +12,6 @@ export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyo
 export interface Spell {
   name: string;
   about: string; // what it is, in the world
-  level: number; // the hero's, to be taught it
-  price: number; // copper, to be taught it
   breath: number; // spent as it's cast
   cooldown: number; // seconds before it's cast again (0: at once)
   range: number; // tiles to whoever it's cast at
@@ -26,14 +24,14 @@ export interface Spell {
 }
 
 export const SPELLS: Record<SpellId, Spell> = {
-  hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', level: 1, price: 40, breath: 30, cooldown: 6, range: 5, aim: 'foes', harm: 2 },
-  mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', level: 1, price: 60, breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
-  chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry. There is no word that says it back.', level: 3, price: 150, breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'chicken', needsTarget: true },
-  cow: { name: "Herdsman's call", about: 'The call that brings the herd in at dusk, sung to one who was never in it, with a pinch of salt held out. A man comes to it a bull, a woman a cow. They stay for the grass.', level: 4, price: 200, breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'cow', needsTarget: true },
-  horse: { name: "Horse-coper's word", about: 'A hair from a mane knotted three times, and a name called as you would call one in from the field. Whoever answers to it stays in the field.', level: 5, price: 250, breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'horse', needsTarget: true },
-  statue: { name: "Mason's curse", about: 'A pebble from a churchyard wall, held under the tongue while you look at them. Out of doors only: whoever you look at stays where they stand, in stone, in all weathers.', level: 6, price: 320, breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'statue', needsTarget: true },
-  tree: { name: "Woodward's rooting", about: 'An acorn split with the thumbnail and a word breathed into the halves. Out of doors only: whoever it is said at takes root, and is a tree like any other. A woodcutter would not know the difference.', level: 7, price: 400, breath: 70, cooldown: 0, range: 5, aim: 'anyone', turns: 'tree', needsTarget: true },
-  swap: { name: 'Moon-turn charm', about: 'Said at a crossroads under a waning moon, it is told; said anywhere, it works as well. Whoever hears it wakes into the other half of the parish.', level: 4, price: 200, breath: 40, cooldown: 0, range: 5, aim: 'anyone', swaps: true, needsTarget: true },
+  hex: { name: "Hedge-witch's hex", about: 'Three words and a pinch of grave dust, thrown at whoever you mean harm.', breath: 30, cooldown: 6, range: 5, aim: 'foes', harm: 2 },
+  mend: { name: 'Mending charm', about: 'A verse over a wound, and a thumb pressed to it. It knits what it can.', breath: 40, cooldown: 12, range: 5, aim: 'anyone', heal: 0.3 },
+  chicken: { name: "Hen-wife's turn", about: 'A feather burnt, a word said backwards, and whoever you point at is poultry. There is no word that says it back.', breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'chicken', needsTarget: true },
+  cow: { name: "Herdsman's call", about: 'The call that brings the herd in at dusk, sung to one who was never in it, with a pinch of salt held out. A man comes to it a bull, a woman a cow. They stay for the grass.', breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'cow', needsTarget: true },
+  horse: { name: "Horse-coper's word", about: 'A hair from a mane knotted three times, and a name called as you would call one in from the field. Whoever answers to it stays in the field.', breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'horse', needsTarget: true },
+  statue: { name: "Mason's curse", about: 'A pebble from a churchyard wall, held under the tongue while you look at them. Out of doors only: whoever you look at stays where they stand, in stone, in all weathers.', breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'statue', needsTarget: true },
+  tree: { name: "Woodward's rooting", about: 'An acorn split with the thumbnail and a word breathed into the halves. Out of doors only: whoever it is said at takes root, and is a tree like any other. A woodcutter would not know the difference.', breath: 70, cooldown: 0, range: 5, aim: 'anyone', turns: 'tree', needsTarget: true },
+  swap: { name: 'Moon-turn charm', about: 'Said at a crossroads under a waning moon, it is told; said anywhere, it works as well. Whoever hears it wakes into the other half of the parish.', breath: 40, cooldown: 0, range: 5, aim: 'anyone', swaps: true, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
@@ -57,7 +55,7 @@ export const waitOf = (hero: Pick<Hero, 'spellWait'>, id: SpellId): number => he
 export function coolSpells(hero: Pick<Hero, 'spellWait'>, dt: number): void {
   for (const id of Object.keys(hero.spellWait ?? {}) as SpellId[]) hero.spellWait![id] = Math.max(0, hero.spellWait![id]! - dt);
 }
-// What it does, in a line (the spellbook, the bar's tip).
+// What it does, in a line (the bar's tip, the cheat menu).
 export function spellText(id: SpellId): string {
   const spell = SPELLS[id];
   const does = spell.swaps ? "Changes the sex of whoever you've picked out (a villager, a traveller, a bandit): body, hair and name; cast again, they're as they were" : spell.turns ? `Turns whoever you've picked out into a ${spell.turns}, for good: gone as if slain, nothing had for it (no boss)` : spell.harm ? `${spell.harm}× a blow's harm to your focused foe` : `Mends ${Math.round((spell.heal ?? 0) * 100)}% of the health of whoever you've picked out (no one: your own)`;
