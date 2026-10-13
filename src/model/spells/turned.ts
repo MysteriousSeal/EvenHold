@@ -94,6 +94,14 @@ export class Chickens {
   // Whether `being` may be turned into that, here and now. A statue, a tree: out of doors only; a tree, where
   // there's a tile for it to stand on. A painting: in a building's room only, where there's wall for it. A doll:
   // not in a building's room (nothing lies on a room's floor to be picked up: hero/hands.ts).
+  // Why not, where it's the place that's wrong for it (a charm cast and nothing come of it: told, casting.ts): none
+  // where it may, or where it's who they are (a boss, someone only passing through).
+  whyNot(being: Being, into: Into): string | null {
+    if (!mayTurn(being) || this.may(being, into)) return null;
+    if (into === 'painting') return this.host.inside?.room && !this.host.dungeon && !this.host.inside.below ? 'No wall free here to hang them on.' : 'Only under a roof, by a wall.';
+    return into === 'tree' && !this.host.inside && !this.host.dungeon ? 'No ground free here for them to root in.' : 'Not under a roof.';
+  }
+
   may(being: Being, into: Into = 'chicken'): boolean {
     if (!mayTurn(being)) return false;
     const { host } = this;

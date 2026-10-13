@@ -176,7 +176,7 @@ export class Travellers {
     const on = (entries as typeof saved.on).filter(
       (e) => Array.isArray(e) && Number.isInteger(e[0]) && roles.includes(e[1]) && this.roads[e[2]] !== undefined && Number.isFinite(e[3]) && (e[4] === 1 || e[4] === -1),
     );
-    if (on.length === 0) return;
+    if (!Array.isArray(saved.on)) return; // (none kept. An empty road is kept as one: the last of them turned, or slain)
     // A partner only a guard's, following a guard who leads (anything else: on their own).
     const leads = new Set(on.filter(([, role, , , , leader]) => role === 'guard' && leader === null).map(([id]) => id));
     this.list.splice(0, this.list.length, ...on.map(([id, role, road, along, way, leader, level]) => {
