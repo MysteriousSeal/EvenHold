@@ -56,10 +56,10 @@ export const ENEMY_STATS = {
   // see as far as a hall is long and don't give up within one. Its four wings' bosses stand where they're posted till
   // they see the hero: more than a crypt's lord's health each (the captain's less: his guard turns most blows), plain
   // blows no harder than a draugr's (what's hard of theirs is told); its king twice a wing's boss, a level over them.
-  bruiser: { family: 'humanoid', passive: false, hp: 10, damage: 3, xp: 34, coins: 8, radius: 0.16, walk: 0.8, run: 1.9, sight: 5.5, giveUp: 12, wander: 2, stop: 0.65, swing: 0.9, cooldown: 1.5, rest: [2, 3], shove: 0.4, loot: 1.1 },
-  crossbowman: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 24, coins: 6, radius: 0.14, walk: 0.9, run: 2.2, sight: 7, giveUp: 12, wander: 2, stop: 5.5, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1 },
-  firebrand: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 26, coins: 6, radius: 0.14, walk: 0.9, run: 2.3, sight: 6, giveUp: 12, wander: 2, stop: 4.5, swing: 0.75, cooldown: 1.2, rest: [2, 3], shove: 1, loot: 1 },
-  sawbones: { family: 'humanoid', passive: false, hp: 4, damage: 1, xp: 28, coins: 8, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 12, wander: 2, stop: 5, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1.2 },
+  bruiser: { family: 'humanoid', passive: false, hp: 10, damage: 2, xp: 34, coins: 8, radius: 0.16, walk: 0.8, run: 1.9, sight: 5.5, giveUp: 12, wander: 2, stop: 0.65, swing: 0.9, cooldown: 1.5, rest: [2, 3], shove: 0.4, loot: 1.1 },
+  crossbowman: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 24, coins: 6, radius: 0.14, walk: 0.9, run: 2.2, sight: 7, giveUp: 12, wander: 2, stop: 4.2, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1 },
+  firebrand: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 26, coins: 6, radius: 0.14, walk: 0.9, run: 2.3, sight: 6, giveUp: 12, wander: 2, stop: 3.8, swing: 0.75, cooldown: 1.2, rest: [2, 3], shove: 1, loot: 1 },
+  sawbones: { family: 'humanoid', passive: false, hp: 4, damage: 1, xp: 28, coins: 8, radius: 0.14, walk: 0.9, run: 2.4, sight: 6, giveUp: 12, wander: 2, stop: 4.2, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1.2 },
   runner: { family: 'humanoid', passive: false, hp: 3, damage: 1, xp: 18, coins: 4, radius: 0.13, walk: 1.1, run: 3.1, sight: 6, giveUp: 12, wander: 2.5, stop: 0.55, swing: 0.6, cooldown: 1, rest: [1, 2], shove: 1.2, loot: 0.8 },
   warHound: { family: 'beast', passive: false, hp: 5, damage: 2, xp: 20, coins: 0, radius: 0.18, walk: 1.1, run: 3.3, sight: 6, giveUp: 12, wander: 2.5, stop: 0.55, swing: 0.45, cooldown: 1.1, rest: [1.5, 2.5], shove: 0.9, loot: 1 },
   houndmaster: { family: 'humanoid', passive: false, hp: 44, damage: 3, xp: 190, coins: 30, radius: 0.17, walk: 0.85, run: 2.3, sight: 7, giveUp: 16, wander: 0, stop: 0.7, swing: 0.85, cooldown: 1.3, rest: [3, 3], shove: 0.35, loot: 2 },

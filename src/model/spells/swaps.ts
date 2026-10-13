@@ -10,6 +10,7 @@ import { STYLES_OF, type BodyLook } from '../human/humanoid';
 import { nameAt, type Npc } from '../npcs/npcs';
 import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
+import { isWorldFoe } from '../enemies/foeIds';
 import { humanOf, isFoe, isNpc, type Being } from './beings';
 
 type Kind = 'n' | 't' | 'f'; // a villager, a traveller, a foe
@@ -52,10 +53,19 @@ export class Swaps {
     return true;
   }
 
-  has = (being: Being): boolean => this.changed.has(keyOf(being));
+  has = (being: Being): boolean => (isFoe(being) && !isWorldFoe(being.id) ? !!this.passing.get(being) : this.changed.has(keyOf(being)));
+  private readonly passing = new WeakMap<Being, BodyLook | null>(); // a dungeon's foes changed: each one's look before (null: back as they were)
 
   private turn(being: Being): void {
     const [key, whose] = [keyOf(being), body(being)!];
+    // A dungeon's own (made afresh each time the hero goes down, numbered alike in every one of its kind): changed
+    // while they stand there, and back at a second cast, but none of it kept.
+    if (isFoe(being) && !isWorldFoe(being.id)) {
+      const before = this.passing.get(being);
+      this.passing.set(being, before ? null : whose.look);
+      whose.look = before ?? otherLook(whose.look, being.id, this.host.seed);
+      return;
+    }
     const was = this.was.get(key);
     if (this.changed.has(key) && was) {
       // Back as they were.

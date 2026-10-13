@@ -58,10 +58,12 @@ export class King extends Boss {
     this.doing = () => [swept.doing(boss), smashed.doing(boss)];
   }
 
-  // Where his waves come in: the floor just inside the hall's doors, side by side.
+  // Where his waves come in: along the hall's near wall, either side of its doors, well apart (side by side in
+  // the way in, whoever of them holds back to shoot stops the rest behind them).
   get doors(): Array<{ x: number; z: number }> {
     const { plan } = this.stage.fight;
-    return [0.5, -0.4, 1.4].map((dx) => ({ x: plan.door + dx, z: greatHall(plan).z1 - 0.5 }));
+    const hall = greatHall(plan);
+    return [0.5, -2.5, 3.5, -5.5, 6.5].map((dx) => ({ x: Math.max(hall.x0 + 1.5, Math.min(hall.x1 - 0.5, plan.door + dx)), z: hall.z1 - 1.5 }));
   }
 
   protected turn(phase: number): void {

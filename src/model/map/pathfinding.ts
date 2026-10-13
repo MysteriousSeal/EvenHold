@@ -25,7 +25,7 @@ export function findPath(from: Point, to: Point, radius: number, free: (x: numbe
   const side = radius * 2 + 1;
   const index = (x: number, z: number) => (x - sx + radius) * side + (z - sz + radius);
   const inWindow = (x: number, z: number) => Math.abs(x - sx) <= radius && Math.abs(z - sz) <= radius;
-  const cost = new Float32Array(side * side).fill(Infinity);
+  const cost = new Float64Array(side * side).fill(Infinity); // (doubles: a long way's cost in singles rounds past what tells a stale entry from a live one)
   const came = new Int32Array(side * side).fill(-1);
   const heuristic = (x: number, z: number) => Math.hypot(gx - x, gz - z);
 

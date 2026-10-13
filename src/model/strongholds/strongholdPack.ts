@@ -104,9 +104,9 @@ export class Pack implements StrongholdPart {
     this.frenzied.delete(foe);
   }
 
-  // The most wounded of a sawbones's pack within its reach (not itself), or null.
+  // The most wounded of a sawbones's pack within its reach (not itself, nor a boss), or null.
   wounded(sawbones: Enemy): Enemy | null {
-    const hurt = this.stage.fight.packOf(sawbones).filter((f) => f !== sawbones && f.hp < f.maxHp && this.stage.far(f, sawbones) < MEND_REACH);
+    const hurt = this.stage.fight.packOf(sawbones).filter((f) => f !== sawbones && !isBoss(f.kind) && f.hp < f.maxHp && this.stage.far(f, sawbones) < MEND_REACH); // (never a boss: a king mended by every wave's sawbones can't be brought down)
     return hurt.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0] ?? null;
   }
 

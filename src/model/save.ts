@@ -8,6 +8,8 @@
 // A save is read defensively: it comes from outside (the browser's
 // storage), so anything missing or malformed means no save at all.
 
+import type { SavedFloors } from './dungeons/dungeonFloors';
+import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
 import { readSpells } from './spells/spells';
@@ -77,6 +79,7 @@ export interface SaveData {
   foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
   loot: Array<{ item: BagItem; x: number; z: number }>;
   coins: Array<{ amount: number; x: number; z: number }>;
+  floors?: SavedFloors; // what lies on each dungeon's floor, by its key (dungeons/dungeonFloors.ts)
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
   minutes?: number; // the game's clock
@@ -142,6 +145,7 @@ export function snapshot(model: GameModel): SaveData {
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
     coins: model.coins.map(({ amount, x, z }) => ({ amount, x, z })),
+    floors: model.floors.save(), // what lies on each dungeon's floor
     chickens: model.chickens.save(),
     swaps: model.swaps.save(),
     // Only villagers who've done something (the rest are as the seed made them, at home).
@@ -226,7 +230,7 @@ export function restore(model: GameModel, data: SaveData): void {
     money: Math.max(0, Math.floor(saved.money)),
     level: Math.max(1, Math.floor(saved.level)),
     xp: Math.max(0, saved.xp),
-    ...pointsOf(saved),
+    ...pointsOf(saved, records<{ slain: unknown }>(data.crypts).filter((d) => Array.isArray(d.slain) && d.slain.includes(AWARD_POST)).length),
     facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
@@ -285,6 +289,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.dropLoot(item, x, z);
   for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.dropCoins(amount, x, z);
+  model.floors.load(data.floors, known); // (an older save's: none)
   for (const { inn, money, stock, restockedAt, buyback } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
@@ -342,9 +347,10 @@ function foesOf(model: GameModel): string {
 // A saved hero's stat points: spent and not; a save from before them, all its levels' to spend.
 // Never more in all than their level's earned (a save from when levels gave more): what's
 // unspent cut to fit; if even what's spent is more, every point back to spend again.
-function pointsOf(saved: SaveData['hero']): { statPoints: number; trained: Record<Stat, number> } {
+// (`won`: those a dungeon's boss's first fall gave besides, one each: dungeons/dungeonRecord.ts AWARD_POST.)
+function pointsOf(saved: SaveData['hero'], won = 0): { statPoints: number; trained: Record<Stat, number> } {
   const whole = (n: unknown) => (typeof n === 'number' && Number.isInteger(n) && n >= 0 ? n : 0);
-  const earned = POINTS_PER_LEVEL * (Math.max(1, Math.floor(saved.level)) - 1);
+  const earned = POINTS_PER_LEVEL * (Math.max(1, Math.floor(saved.level)) - 1) + won;
   if (saved.statPoints === undefined) return { statPoints: earned, trained: untrained() };
   const trained = untrained();
   for (const s of STATS) trained[s] = whole(saved.trained?.[s]);

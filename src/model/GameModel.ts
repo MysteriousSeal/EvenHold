@@ -25,6 +25,7 @@ import type { GroundLoot } from './loot/loot';
 import { drinkPotion, eatOrDrink, type BagItem } from './hero/bag';
 import * as hands from './hero/hands';
 import { Ground } from './loot/ground';
+import { DungeonFloors } from './dungeons/dungeonFloors';
 import type { EquipSlot } from './human/equipment';
 import type { GearKey } from './human/items/gear';
 import { gearPace, regenerate } from './hero/gearEffects';
@@ -96,6 +97,7 @@ export class GameModel {
   readonly caves: Cave[]; // in the hills (caves/caves.ts)
   readonly strongholds: LiveWorld['strongholds']; // the bandits' old forts, few and far (strongholds/strongholds.ts)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
+  readonly floors = new DungeonFloors(); // (and on each dungeon's floor, kept: dungeons/dungeonFloors.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
   readonly coins = this.ground.coins; // dropped coins, picked up by walking near them
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
@@ -390,7 +392,7 @@ export class GameModel {
     const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
     this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonBlocks(this.seed, entrance), exitAt: () => this.below?.run.exitOpen ?? null }) };
     if (place) this.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
-    this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: new Ground(() => 0) };
+    this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: this.floors.of(place.key) };
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
     this.focusOn.focus(null);
