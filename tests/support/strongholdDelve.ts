@@ -1,19 +1,21 @@
 // A scripted hero for a stronghold played whole, in the game itself
 // (strongholdRun.test.ts, strongholdSaves.test.ts): the keys' direction and a
 // blow a frame, as a player gives them, never set down anywhere by hand once
-// inside. It walks by its own way found over the floor (the game's
-// pathfinding, the place's own rock, props and gate), fights whoever it's
+// inside. It walks by its own way found over the floor (round the place's
+// own rock, props and gate), fights whoever it's
 // sent at till they fall, opens the chest, picks up what lies about, and goes
 // out by the door in reach. Every frame it looks the place over (`watch`)
 // and keeps what's wrong (`problems`): a foe in the rock or through the shut
 // gate, the gate open early, the cleared share going back, a boss mended
 // whole by its leash. Its cheats: god mode (never hurt: reach and state are
-// looked at, not balance) and, asked for, one-hit kills.
+// looked at, not balance), its fights' chances the same every time, and,
+// asked for, a strong arm (`strong`). Its way is its own search of the floor,
+// not the game's pathfinding, which loses long ways (strongholdKnown.test.ts).
 import { GameModel } from '../../src/model/GameModel';
 import { ATTACK_REACH, ENEMY_STATS, HERO_RADIUS, INDOOR_SCALE } from '../../src/model/constants';
 import { blowOf } from '../../src/model/hero/attributes';
 import { isBoss } from '../../src/model/enemies/enemyLevels';
-import { namedIn, type GearKey } from '../../src/model/human/items/gear';
+import { isGear, namedIn, type GearKey } from '../../src/model/human/items/gear';
 import { chestInReach } from '../../src/model/loot/chests';
 import { clearLine, type Point } from '../../src/model/map/obstacles';
 import { SUMMONED } from '../../src/model/dungeons/dungeonRecord';
@@ -24,7 +26,6 @@ import { Nav } from '../bots/nav';
 import { STRONGHOLD_FOE_ID, StrongholdRun } from '../../src/model/strongholds/strongholdFoes';
 import { strongholdInside, type Stronghold, type StrongholdInside } from '../../src/model/strongholds/strongholds';
 import type { Enemy, GameEvent } from '../../src/model/types';
-import { isGear } from '../../src/model/human/items/gear';
 import { mulberry32 } from '../../src/util/random';
 import { FRAME, TEST_MAP_SIZE } from './testWorld';
 
