@@ -47,6 +47,9 @@ export interface EnemyWorld {
   isOpenTile(x: number, z: number): boolean;
 }
 
+const AS_BANDITS: ReadonlySet<EnemyKind> = new Set(['bruiser', 'crossbowman', 'firebrand', 'sawbones', 'runner']);
+const AS_CHIEFS: ReadonlySet<EnemyKind> = new Set(['houndmaster', 'quartermaster', 'gaoler', 'captain', 'banditKing']);
+
 // A fresh enemy of `kind` at `level` at (x, z), at home around (homeX, homeZ).
 export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, homeX = x, homeZ = z, level = 1): Enemy {
   const power = enemyPower(kind, level);
@@ -75,7 +78,8 @@ export function makeEnemy(id: number, kind: EnemyKind, x: number, z: number, hom
     lastSeen: null,
     lostFor: 0,
     // Bandits: someone different each, in their own mix of bandit gear; their chief in the best of it (camps/campChief.ts).
-    human: kind === 'bandit' ? { look: lookAt(x, z, 0, 0.25), equipment: pickOutfit('bandit', x, z) } : kind === 'banditChief' ? { look: lookAt(x, z, 0, 0), equipment: { ...CHIEF_OUTFIT } } : null, // a woman one time in four (a chief, a man)
+    // (A stronghold's, strongholds/: dressed as bandits and as chiefs till they've looks of their own.)
+    human: kind === 'bandit' || AS_BANDITS.has(kind) ? { look: lookAt(x, z, 0, 0.25), equipment: pickOutfit('bandit', x, z) } : kind === 'banditChief' || AS_CHIEFS.has(kind) ? { look: lookAt(x, z, 0, 0), equipment: { ...CHIEF_OUTFIT } } : null, // a woman one time in four (a chief, a man)
   };
 }
 

@@ -49,6 +49,21 @@ export const ENEMY_STATS = {
   caveWorm: { family: 'vermin', passive: false, hp: 8, damage: 3, xp: 35, coins: 4, radius: 0.2, walk: 0.6, run: 1.6, sight: 7, giveUp: 12, wander: 2, stop: 0.7, swing: 0.8, cooldown: 1.6, rest: [3, 4], shove: 0.2, loot: 1.2 },
   hatchling: { family: 'vermin', passive: false, hp: 2, damage: 1, xp: 5, coins: 0, radius: 0.11, walk: 1.2, run: 3, sight: 7, giveUp: 15, wander: 1.5, stop: 0.45, swing: 0.4, cooldown: 1, rest: [1, 2], shove: 1.2, loot: 0.2 },
   broodMother: { family: 'vermin', passive: true, hp: 45, damage: 4, xp: 220, coins: 45, radius: 0.36, walk: 0.7, run: 2.2, sight: 10, giveUp: 30, wander: 0, stop: 0.95, swing: 0.9, cooldown: 1.3, rest: [3, 3], shove: 0.25, loot: 2 },
+  // A bandit stronghold's (strongholds/strongholdFoes.ts), a first pass, till each has its own way of fighting
+  // (strongholds/strongholdMoves.ts): its packs' (bandits by another name: a bruiser tougher and slower, a runner frail
+  // and quick, a war hound a wolf but tougher; all seeing as far as a hall is long), its four wings' bosses (twice a
+  // camp's chief and more, standing where they're posted till they see the hero), and its king over them.
+  bruiser: { family: 'humanoid', passive: false, hp: 9, damage: 3, xp: 32, coins: 8, radius: 0.16, walk: 0.8, run: 2.0, sight: 5, giveUp: 10, wander: 2, stop: 0.65, swing: 0.9, cooldown: 1.4, rest: [2, 3], shove: 0.5, loot: 1.1 },
+  crossbowman: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 22, coins: 6, radius: 0.14, walk: 0.9, run: 2.3, sight: 5.5, giveUp: 10, wander: 2, stop: 0.6, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1 },
+  firebrand: { family: 'humanoid', passive: false, hp: 4, damage: 2, xp: 24, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 5, giveUp: 10, wander: 2, stop: 0.6, swing: 0.75, cooldown: 1.2, rest: [2, 3], shove: 1, loot: 1 },
+  sawbones: { family: 'humanoid', passive: false, hp: 4, damage: 1, xp: 26, coins: 8, radius: 0.14, walk: 0.9, run: 2.3, sight: 5, giveUp: 10, wander: 2, stop: 0.6, swing: 0.8, cooldown: 1.3, rest: [2, 3], shove: 1, loot: 1.2 },
+  runner: { family: 'humanoid', passive: false, hp: 3, damage: 1, xp: 18, coins: 4, radius: 0.13, walk: 1.1, run: 3.0, sight: 5.5, giveUp: 10, wander: 2.5, stop: 0.55, swing: 0.6, cooldown: 1, rest: [1, 2], shove: 1.2, loot: 0.8 },
+  warHound: { family: 'beast', passive: false, hp: 5, damage: 2, xp: 18, coins: 0, radius: 0.18, walk: 1.1, run: 3.0, sight: 5.5, giveUp: 10, wander: 2.5, stop: 0.55, swing: 0.5, cooldown: 1.2, rest: [1.5, 2.5], shove: 0.9, loot: 1 },
+  houndmaster: { family: 'humanoid', passive: false, hp: 32, damage: 4, xp: 180, coins: 30, radius: 0.17, walk: 0.85, run: 2.3, sight: 6, giveUp: 14, wander: 0, stop: 0.65, swing: 0.85, cooldown: 1.2, rest: [3, 3], shove: 0.4, loot: 2 },
+  quartermaster: { family: 'humanoid', passive: false, hp: 34, damage: 4, xp: 180, coins: 36, radius: 0.18, walk: 0.8, run: 2.1, sight: 6, giveUp: 14, wander: 0, stop: 0.65, swing: 0.9, cooldown: 1.3, rest: [3, 3], shove: 0.35, loot: 2 },
+  gaoler: { family: 'humanoid', passive: false, hp: 38, damage: 5, xp: 190, coins: 30, radius: 0.19, walk: 0.75, run: 2.0, sight: 6, giveUp: 14, wander: 0, stop: 0.7, swing: 1.0, cooldown: 1.4, rest: [3, 3], shove: 0.3, loot: 2 },
+  captain: { family: 'humanoid', passive: false, hp: 36, damage: 4, xp: 190, coins: 32, radius: 0.17, walk: 0.9, run: 2.4, sight: 6, giveUp: 14, wander: 0, stop: 0.65, swing: 0.8, cooldown: 1.1, rest: [3, 3], shove: 0.35, loot: 2 },
+  banditKing: { family: 'humanoid', passive: false, hp: 60, damage: 5, xp: 320, coins: 80, radius: 0.2, walk: 0.8, run: 2.2, sight: 8, giveUp: 14, wander: 0, stop: 0.7, swing: 0.9, cooldown: 1.2, rest: [3, 3], shove: 0.25, loot: 2.5 },
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think

@@ -13,7 +13,7 @@ import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Building, House } from '../types';
 
 export type BuildingType = 'house' | 'inn' | 'smithy';
-export type EntranceType = BuildingType | 'crypt' | 'cave'; // (a dungeon's way in, dungeons/: a crypt's stairs down in a ruin, crypts/crypts.ts; a cave's mouth in a hillside, caves/caves.ts)
+export type EntranceType = BuildingType | 'crypt' | 'cave' | 'stronghold'; // (a dungeon's way in, dungeons/: a crypt's stairs down in a ruin, crypts/crypts.ts; a cave's mouth in a hillside, caves/caves.ts; a bandit stronghold's gate, strongholds/strongholds.ts)
 
 export interface Entrance {
   type: EntranceType;

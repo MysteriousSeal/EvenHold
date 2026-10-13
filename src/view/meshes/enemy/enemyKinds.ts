@@ -32,4 +32,15 @@ export const KIND_LOOKS: Record<EnemyKind, KindLook> = {
   caveWorm: { name: 'Cave worm', size: 1, aura: 17, textHeight: 0.35 },
   hatchling: { name: 'Hatchling', size: 0.5, aura: 15, textHeight: 0.15 },
   broodMother: { name: 'The brood mother', size: 1.3, aura: 24, textHeight: 0.55 }, // (her grid half again a spider's already)
+  bruiser: { name: 'Bruiser', size: 1.1, aura: 16, textHeight: 0.45 }, // (a stronghold's, strongholds/: a bandit's look till it has its own)
+  crossbowman: { name: 'Crossbowman', size: 1, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
+  firebrand: { name: 'Firebrand', size: 1, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
+  sawbones: { name: 'Sawbones', size: 1, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
+  runner: { name: 'Runner', size: 0.95, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
+  warHound: { name: 'War hound', size: 1.15, aura: 20, textHeight: 0.4 }, // (a wolf's look, for now)
+  houndmaster: { name: 'The houndmaster', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)
+  quartermaster: { name: 'The quartermaster', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)
+  gaoler: { name: 'The gaoler', size: 1.3, aura: 19, textHeight: 0.55 }, // (a chief's look, for now)
+  captain: { name: 'The captain', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)
+  banditKing: { name: 'The bandit king', size: 1.4, aura: 20, textHeight: 0.6 }, // (a chief's look, for now)
 };

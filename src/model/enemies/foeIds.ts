@@ -1,6 +1,6 @@
 // Who's who among foes, by id: the world's own (made with it: a classic world's numbered from 0; a streamed world's
 // by its region, from STREAMED_FOE_ID, each region its own block), those gathered for a quest (questBook.ts: from
-// FIRST_MOB_ID), and those down in a dungeon (crypts', caves': their own blocks). Only the world's own are kept slain
+// FIRST_MOB_ID), and those down in a dungeon (crypts', caves', strongholds': their own blocks). Only the world's own are kept slain
 // in a save and its record of the slain.
 
 import { FIRST_MOB_ID } from '../quests/questBook';

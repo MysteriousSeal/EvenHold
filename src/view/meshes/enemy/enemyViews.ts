@@ -48,6 +48,17 @@ export class EnemyViews {
     broodMother: (enemy) => new SpiderRig(enemy, this.motherLook),
     caveBat: (enemy) => new BatRig(enemy, this.batLook),
     caveWorm: (enemy) => new WormRig(enemy, this.wormLook),
+    bruiser: (enemy) => new BanditRig(enemy, this.banditLook), // (a stronghold's, model/strongholds/: a bandit's rig till it has its own)
+    crossbowman: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
+    firebrand: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
+    sawbones: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
+    runner: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
+    warHound: () => new BeastRig(this.wolfLook), // (a wolf's rig, for now)
+    houndmaster: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
+    quartermaster: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
+    gaoler: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
+    captain: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
+    banditKing: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
   };
   private readonly spiderLook: SpiderLook = createSpiderLook(CAVE_SPIDER, this.flash);
   private readonly hatchlingLook: SpiderLook = createSpiderLook(HATCHLING, this.flash);
