@@ -148,10 +148,12 @@ describe('a four-legged beast turned into a chicken, part by part', () => {
     const playing = playTransformation(figure, 'Bear', 'chicken', vi.fn(), drawer);
     for (let t = 0; t < 3; t += 0.1) playing.advance(0.1);
     expect(figure.visible).toBe(false); // (its parts, in their own voxels)
-    expect(playing.root.querySelector('.transform-line')!.textContent).toBe(STAGINGS.chicken.beastLines![3][1]);
+    expect(playing.root.querySelector('.transform-line')!.textContent).toMatch(/^The hind legs thin/); // (step by step: its legs' turn, said as a beast's)
     playing.skip();
   });
 });
+
+const STEPPED = 14; // seconds someone's turning runs, played step by step (turning.ts)
 
 describe('someone turned into a horse', () => {
   it('is a horse in voxels: a barrel on four legs, a head on an arched neck before it, a tail behind, in its few colours', () => {
@@ -210,7 +212,10 @@ describe('someone turned into a horse', () => {
     const done = vi.fn();
     const playing = playTransformation(human(), 'Idtram', 'horse', done, drawer);
     expect(playing.root.querySelector('.transform-title')!.textContent).toBe(STAGINGS.horse.title);
-    for (let t = 0; t < LENGTH + 2; t += 0.1) playing.advance(0.1);
+    const said = new Set<string>();
+    for (let t = 0; t < STEPPED + 2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
+    expect([...said].some((line) => /all four/.test(line))).toBe(true); // (its four legs at once: never its fore end in the air)
+    expect([...said].filter((line) => /mane|blaze|Ears/.test(line)).length).toBe(3); // (what grows on it, a thing at a time)
     expect(done).toHaveBeenCalledTimes(1);
   });
 });
@@ -329,13 +334,14 @@ describe('a transformation played', () => {
     playing.advance(0.1);
     expect(playing.root.querySelector('.transform-line')!.textContent).toContain('Idtram');
     const said = new Set<string>();
-    for (let t = 0.1; t < LENGTH * GIVES_WAY - 0.2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
-    expect(said.size).toBe(STAGINGS.chicken.lines.length); // (each beat, said)
+    for (let t = 0.1; t < STEPPED * GIVES_WAY - 0.2; t += 0.1) [playing.advance(0.1), said.add(playing.root.querySelector('.transform-line')!.textContent!)];
+    expect(said.size).toBe(14); // (each step, said: a start, what they wear, their hands, its stance, four parts of them, five things grown on it, and it done)
+    expect([...said].filter((line) => /comb|beak|wattle|Feathers|tail/.test(line)).length).toBe(5);
     for (let t = 0; t < 0.5; t += 0.1) playing.advance(0.1);
     expect(figure.visible).toBe(false); // (given way)
     expect(playing.root.querySelector('.transform-line')!.textContent).toBe('A chicken.');
     expect(done).not.toHaveBeenCalled();
-    for (let t = 0; t < LENGTH; t += 0.1) playing.advance(0.1);
+    for (let t = 0; t < STEPPED; t += 0.1) playing.advance(0.1);
     expect(done).toHaveBeenCalledTimes(1);
     expect(playing.over).toBe(true);
     expect(document.querySelector('.transform-cinema')).toBeNull();

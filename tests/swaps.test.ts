@@ -15,6 +15,7 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { maySwap, otherLook } from '../src/model/spells/swaps';
+import { makeActor } from '../src/view/cinema/actor';
 import { BARE, SWAP_LENGTH, standing, swapStaging } from '../src/view/cinema/swapStaging';
 import { GIVES_WAY, playTransformation } from '../src/view/cinema/transformCinema';
 
@@ -150,7 +151,7 @@ describe('its cinematic', () => {
     const scene = new THREE.Scene();
     const figure = standing(before, true).root;
     scene.add(figure);
-    const staged = swapStaging(before, after, 'Adawen').direct!(figure, scene, 0.5);
+    const staged = swapStaging(before, after, 'Adawen').direct!(figure, scene, 0.5, makeActor(figure))!;
     const vapour = scene.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh;
     const size = (i: number) => new THREE.Vector3().setFromMatrixScale(new THREE.Matrix4().fromArray(vapour.instanceMatrix.array, i * 16)).x;
     staged.update(BARE[0] + (BARE[1] - BARE[0]) * 0.3, 1);
@@ -166,7 +167,7 @@ describe('its cinematic', () => {
     const scene = new THREE.Scene();
     const dressed = standing(before, true).root;
     scene.add(dressed);
-    const worn = swapStaging(before, after, 'Adawen').direct!(dressed, scene, 0.5);
+    const worn = swapStaging(before, after, 'Adawen').direct!(dressed, scene, 0.5, makeActor(dressed))!;
     const vapour = scene.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh;
     expect(vapour.count).toBeGreaterThan(20); // (a hood and a shirt's worth)
     worn.update(0.2, 0);
@@ -176,13 +177,13 @@ describe('its cinematic', () => {
     const scene2 = new THREE.Scene();
     const figure = standing(bare, true).root;
     scene2.add(figure);
-    swapStaging(bare, { look: after.look, equipment: {} }, 'Adawen').direct!(figure, scene2, 0.5);
+    swapStaging(bare, { look: after.look, equipment: {} }, 'Adawen').direct!(figure, scene2, 0.5, makeActor(figure))!;
     const none = scene2.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh;
     expect(none.count).toBeLessThan(vapour.count / 2); // (their braies alone)
     // (Someone with nothing on at all: no vapour drawn, not a cube of it.)
     const nude = { look: { ...before.look, unclothed: true }, equipment: {} };
     const scene3 = new THREE.Scene();
-    swapStaging(nude, { look: { ...after.look, unclothed: true }, equipment: {} }, 'Adawen').direct!(standing(nude, true).root, scene3, 0.5).update(0.2, 0);
+    swapStaging(nude, { look: { ...after.look, unclothed: true }, equipment: {} }, 'Adawen').direct!(...((root) => [root, scene3, 0.5, makeActor(root)] as const)(standing(nude, true).root))!.update(0.2, 0);
     expect((scene3.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh).count).toBe(0);
   });
 });
