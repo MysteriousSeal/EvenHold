@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { Hen } from '../../../model/spells/chickens';
 import { CreatureRig, partMesher } from '../common/creatureRig';
-import { HORSE_BODY, HORSE_HEAD, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_NECK, HORSE_PALETTE, HORSE_VOXEL_SIZE, buildHorseBody, buildHorseHead, buildHorseLeg } from './horseVoxels';
+import { HORSE_BODY_PIVOT, HORSE_HEAD_PIVOT, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_LEG_PIVOT, HORSE_NECK, HORSE_PALETTE, HORSE_VOXEL_SIZE, buildHorseBody, buildHorseHead, buildHorseLeg } from './horseVoxels';
 
 const V = HORSE_VOXEL_SIZE;
 const TURN_RATE = 5;
@@ -16,15 +16,14 @@ const GRAZE_DOWN = 1.35; // radians its neck lowers
 export function createHorse(material: THREE.Material): { root: THREE.Group; body: THREE.Group; head: THREE.Group; legs: THREE.Group[] } {
   const [root, body, head] = [new THREE.Group(), new THREE.Group(), new THREE.Group()];
   const mesh = partMesher(V);
-  const [bx, , bz] = HORSE_BODY;
-  body.add(new THREE.Mesh(mesh(buildHorseBody(), HORSE_PALETTE, [bx / 2, 1, bz / 2 + 0.5]), material)); // (its barrel's underside at the legs' tops; its tail a row behind)
+  body.add(new THREE.Mesh(mesh(buildHorseBody(), HORSE_PALETTE, HORSE_BODY_PIVOT), material)); // (the middle of its barrel, at its hips' height)
   body.position.y = HORSE_LEG_HEIGHT * V;
-  head.add(new THREE.Mesh(mesh(buildHorseHead(), HORSE_PALETTE, [HORSE_HEAD[0] / 2, 0, 2]), material)); // pivot at the base of the neck
+  head.add(new THREE.Mesh(mesh(buildHorseHead(), HORSE_PALETTE, HORSE_HEAD_PIVOT), material)); // pivot at the base of the neck
   head.position.set(HORSE_NECK[0] * V, (HORSE_NECK[1] - HORSE_LEG_HEIGHT) * V, HORSE_NECK[2] * V);
   body.add(head);
-  const legs = HORSE_LEGS.map(([x, z]) => {
+  const legs = HORSE_LEGS.map(([x, z], i) => {
     const leg = new THREE.Group();
-    leg.add(new THREE.Mesh(mesh(buildHorseLeg(), HORSE_PALETTE, [1, 9, 1]), material)); // pivot at the hip
+    leg.add(new THREE.Mesh(mesh(buildHorseLeg(i < 2), HORSE_PALETTE, HORSE_LEG_PIVOT), material)); // pivot at the hip
     leg.position.set(x * V, HORSE_LEG_HEIGHT * V, z * V);
     root.add(leg);
     return leg;

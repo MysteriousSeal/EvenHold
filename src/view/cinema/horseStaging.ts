@@ -10,7 +10,7 @@
 // it (voxelMorph.ts: `cloud`). The horse then, itself: a toss of its head, a stamp.
 import * as THREE from 'three';
 import { createHorse } from '../meshes/wildlife/horseRig';
-import { HORSE_BODY, HORSE_HEAD, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_NECK, HORSE_PALETTE, HORSE_VOXEL_SIZE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
+import { HORSE_BODY, HORSE_BODY_PIVOT, HORSE_EAR_ROWS, HORSE_HEAD, HORSE_HEAD_PIVOT, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_LEG_PIVOT, HORSE_NECK, HORSE_PALETTE, HORSE_VOXEL_SIZE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
 import { partPieces, type Becoming } from './becoming';
 import { some } from './clouds';
 import { turningInto, type Telling } from './turning';
@@ -19,7 +19,7 @@ import { cloudOf, type Cloud } from './voxelMorph';
 
 const V = HORSE_VOXEL_SIZE;
 // The horse, as it stands: how wide, tall (to its ears) and long.
-export const HORSE = new THREE.Vector3(HORSE_BODY[0] * V, (HORSE_NECK[1] + HORSE_HEAD[1]) * V, (HORSE_BODY[2] + 8) * V);
+export const HORSE = new THREE.Vector3(HORSE_BODY[0] * V, (HORSE_NECK[1] + HORSE_HEAD[1]) * V, (HORSE_BODY[2] + 5) * V);
 
 // The horse's voxels, where createHorse puts them (horseRig.ts), `big` times its size: its body (its tail with it),
 // its head on its neck, its legs (hind left, hind right, fore left, fore right).
@@ -27,11 +27,10 @@ const hue = (cloud: Cloud, i: number, role: number) => cloud.color[i].getHex() =
 const [COAT, BLACK, WHITE] = [1, 4, 6]; // (horseVoxels.ts's roles)
 function horseClouds(big: number): { body: Cloud; head: Cloud; legs: Cloud[] } {
   const at = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
-  const [bx, , bz] = HORSE_BODY;
   return {
-    body: cloudOf([{ grid: buildHorseBody(), palette: HORSE_PALETTE, origin: at(-bx / 2, HORSE_LEG_HEIGHT - 1, -(bz / 2 + 0.5)) }], V * big),
-    head: cloudOf([{ grid: buildHorseHead(), palette: HORSE_PALETTE, origin: at(HORSE_NECK[0] - HORSE_HEAD[0] / 2, HORSE_NECK[1], HORSE_NECK[2] - 2) }], V * big),
-    legs: HORSE_LEGS.map(([x, z]) => cloudOf([{ grid: buildHorseLeg(), palette: HORSE_PALETTE, origin: at(x - 1, HORSE_LEG_HEIGHT - 9, z - 1) }], V * big)),
+    body: cloudOf([{ grid: buildHorseBody(), palette: HORSE_PALETTE, origin: at(-HORSE_BODY_PIVOT[0], HORSE_LEG_HEIGHT - HORSE_BODY_PIVOT[1], -HORSE_BODY_PIVOT[2]) }], V * big),
+    head: cloudOf([{ grid: buildHorseHead(), palette: HORSE_PALETTE, origin: at(HORSE_NECK[0] - HORSE_HEAD_PIVOT[0], HORSE_NECK[1] - HORSE_HEAD_PIVOT[1], HORSE_NECK[2] - HORSE_HEAD_PIVOT[2]) }], V * big),
+    legs: HORSE_LEGS.map(([x, z], i) => cloudOf([{ grid: buildHorseLeg(i < 2), palette: HORSE_PALETTE, origin: at(x - HORSE_LEG_PIVOT[0], HORSE_LEG_HEIGHT - HORSE_LEG_PIVOT[1], z - HORSE_LEG_PIVOT[2]) }], V * big)),
   };
 }
 
@@ -43,8 +42,8 @@ const becoming: Becoming = {
   grows(big) {
     const { body, head } = horseClouds(big);
     const top = Math.max(...head.at.map((at) => at.y));
-    const poll = head.at.find((at, i) => hue(head, i, BLACK) && at.y >= top - V * big)!;
-    const ears = some(head, (at, i) => hue(head, i, COAT) && at.y >= top - V * big * 0.5);
+    const poll = head.at.find((at, i) => hue(head, i, BLACK) && at.y >= top - V * big * 1.5)!; // (its forelock, between its ears)
+    const ears = some(head, (at, i) => hue(head, i, COAT) && at.y >= top - V * big * (HORSE_EAR_ROWS - 0.5));
     const tail = some(body, (_at, i) => hue(body, i, BLACK));
     return [
       { on: 'head', cloud: ears, line: 'Ears, pricked.' },
@@ -59,7 +58,7 @@ const becoming: Becoming = {
       // (Without them: no tail; no mane, no ears; its face all its coat's colour.)
       const top = Math.max(...horse.head.at.map((at) => at.y));
       horse.body = some(horse.body, (_at, i) => !hue(horse.body, i, BLACK));
-      horse.head = some(horse.head, (at, i) => !hue(horse.head, i, BLACK) && at.y < top - V * big * 0.5);
+      horse.head = some(horse.head, (at, i) => !hue(horse.head, i, BLACK) && at.y < top - V * big * (HORSE_EAR_ROWS - 0.5));
       horse.head.color = horse.head.color.map((color, i) => (hue(horse.head, i, WHITE) ? new THREE.Color(HORSE_PALETTE[COAT - 1]) : color));
     }
     const at = (x: number, y: number, z: number) => new THREE.Vector3(x * V * big, y * V * big, z * V * big);
