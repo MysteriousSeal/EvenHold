@@ -279,7 +279,7 @@ export class Chickens {
   // Where a statue may stand: not before a door (whoever comes out of it is put there), nor where one stands already.
   private standsClear(being: Being): boolean {
     const near = (p: Point, far: number) => Math.hypot(p.x - being.x, p.z - being.z) < far;
-    return !(this.host.entrances ?? []).some((door) => near(door, 0.7)) && !this.statues().some((stone) => near(stone, 2 * STATUE_HALF));
+    return !(this.host.entrances ?? []).some((door) => near(door, 0.45)) && !this.statues().some((stone) => near(stone, 2 * STATUE_HALF));
   }
 
   // The hero stood in what's now stone (on someone on the road, at arm's length of a foe): set just clear of it, away
