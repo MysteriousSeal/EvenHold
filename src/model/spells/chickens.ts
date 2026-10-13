@@ -1,4 +1,4 @@
-// Someone turned into a beast (spells.ts: a charm for anyone, cast at whoever's picked out; a chicken, a horse, or a cow:
+// Someone turned into a beast (spells.ts: a charm for anyone, cast at whoever's picked out; a chicken, a horse, or cattle (a man a bull, a woman a cow):
 // `Into`), for good: a foe, a
 // villager or keeper, someone on the road; never a boss or a camp's chief, nor anyone only passing through.
 // Whoever they were is no more, as surely as if they'd been killed:
@@ -19,11 +19,11 @@ import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
 
-export type Into = 'chicken' | 'horse' | 'cow';
-export const INTO: readonly Into[] = ['chicken', 'horse', 'cow'];
+export type Into = 'chicken' | 'horse' | 'cow' | 'bull';
+export const INTO: readonly Into[] = ['chicken', 'horse', 'cow', 'bull'];
 export const ROAM = 5; // tiles from where they were turned, at most
 // How each goes about: tiles a second, and the seconds stood between strolls (a hen pecking, a horse grazing, a cow at her cud).
-const GAIT: Record<Into, { pace: number; stood: [number, number] }> = { chicken: { pace: 0.55, stood: [0.6, 2.2] }, horse: { pace: 0.8, stood: [3, 9] }, cow: { pace: 0.4, stood: [5, 14] } };
+const GAIT: Record<Into, { pace: number; stood: [number, number] }> = { chicken: { pace: 0.55, stood: [0.6, 2.2] }, horse: { pace: 0.8, stood: [3, 9] }, cow: { pace: 0.4, stood: [5, 14] }, bull: { pace: 0.45, stood: [4, 11] } };
 const ARRIVED = 0.08;
 export const COW_COATS = 4; // the coats a cow may have (cowVoxels.ts: red and white, black and white, dun, black), one hers by chance
 const AWAKE = 40; // tiles from the hero a hen still wanders (farther: stood where she is)
@@ -39,7 +39,7 @@ export interface Hen {
   to: Point | null; // where she's strutting to, if anywhere
   peck: number; // seconds more stood pecking
   facing: number;
-  coat?: number; // a cow's: which of her coats (0 .. COW_COATS - 1)
+  coat?: number; // a cow's or a bull's: which of their coats (0 .. COW_COATS - 1)
   fresh?: boolean; // just turned (the view's: a puff of smoke as she's first seen)
 }
 export type Being = Enemy | Npc | Traveller;
@@ -87,10 +87,13 @@ export class Chickens {
   constructor(private readonly host: ChickenHost) {}
 
   // Turned, for good: whether they were. They're no more (above); a hen where they stood.
-  turn(being: Being, into: Into = 'chicken'): boolean {
+  turn(being: Being, as: Into = 'chicken'): boolean {
     if (!mayTurn(being)) return false;
     const { host } = this;
-    const hen: Hen = { id: this.next++, kind: into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true, ...(into === 'cow' ? { coat: Math.floor(host.random() * COW_COATS) % COW_COATS } : {}) };
+    // Cattle: a man a bull, a woman a cow; what's neither (a beast), one or the other by chance.
+    const build = isFoe(being) ? being.human?.look.build : being.look.build;
+    const into: Into = as === 'cow' || as === 'bull' ? (build ? (build === 'male' ? 'bull' : 'cow') : host.random() < 0.5 ? 'bull' : 'cow') : as;
+    const hen: Hen = { id: this.next++, kind: into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true, ...(into === 'cow' || into === 'bull' ? { coat: Math.floor(host.random() * COW_COATS) % COW_COATS } : {}) };
     const shown: Being = isFoe(being) ? { ...being } : being; // (as they stood, for its turning to be played: the foe itself is dead from here on)
     if (isFoe(being)) {
       // As good as slain, for all that counts them (dead, to whatever still holds it: a camp's count of its crew); nothing had for it.
@@ -173,7 +176,7 @@ export class Chickens {
     for (const row of Array.isArray(data.hens) ? data.hens : []) {
       if (!Array.isArray(row) || ![row[0], row[1], row[3], row[4]].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
       const [x, z, at, fromX, fromZ, kind, coat] = row;
-      const coated = kind === 'cow' ? { coat: typeof coat === 'number' && Number.isInteger(coat) && coat >= 0 && coat < COW_COATS ? coat : 0 } : {};
+      const coated = kind === 'cow' || kind === 'bull' ? { coat: typeof coat === 'number' && Number.isInteger(coat) && coat >= 0 && coat < COW_COATS ? coat : 0 } : {};
       this.hens.push({ id: this.next++, kind: INTO.includes(kind as Into) ? (kind as Into) : 'chicken', x, y: typeof at === 'string' ? 0 : this.host.getGroundY(x, z), z, at: typeof at === 'string' ? at : null, from: { x: fromX, z: fromZ }, to: null, peck: 0.5, facing: 0, ...coated });
     }
     for (let i = this.host.npcs.length - 1; i >= 0; i--) if (this.lost.has(this.host.npcs[i].id)) this.host.npcs.splice(i, 1);
