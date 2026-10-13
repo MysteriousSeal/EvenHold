@@ -47,6 +47,12 @@ function turned(made: Scene, charm: Exclude<OldCharm, 'swap'>, said: string): vo
     expect([banners(told), words(told).length, counts(model), about(model, who)], said).toEqual([['No ground free here for them to root in.'], 1, before, true]);
     return;
   }
+  if (charm === 'statue' && result === 'noTarget') {
+    // (Out of doors, on their own doorstep still: whoever came out after them would be in the stone.)
+    expect([banners(told), words(told).length, counts(model), about(model, who)], said).toEqual([['No room here for them to stand: a doorway, or stone there already.'], 1, before, true]);
+    expect(model.entrances.some((door) => Math.hypot(door.x - who.x, door.z - who.z) < 0.45), said).toBe(true);
+    return;
+  }
   expect(result, said).toBe('cast');
   expect(model.moves.breath, said).toBe(100 - SPELLS[charm].breath);
   expect(words(told), said).toEqual(['cast', 'transformed']); // (told the once)
