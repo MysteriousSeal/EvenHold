@@ -27,7 +27,7 @@ import { addStrongholdObstacles, placeStrongholds, registerStrongholds, type Str
 import { spawnEnemies } from '../enemies/enemies';
 import { regionFoeId } from '../enemies/foeIds';
 import { addSceneryObstacles, placeScenery, type Scenery } from '../scenery/scenery';
-import { Travellers } from '../travellers/travellers';
+import { Travellers, type Traveller } from '../travellers/travellers';
 import { TravellerCrowd } from '../travellers/travellerCrowd';
 import { spawnWildlife, type Wildlife } from '../wildlife/wildlife';
 import { doorNumber, entrancesOf, type Entrance } from '../interiors/interiors';
@@ -42,8 +42,8 @@ export interface WorldHost {
   readonly slain: ReadonlySet<number>;
   // Villagers gone for good (turned into beasts: spells/turned.ts), by id; and what's rooted where someone was turned:
   // trees (each one of the world's from then on) and statues (in the way).
-  readonly chickens?: { readonly lost: ReadonlySet<number>; readonly trees?: readonly Tree[]; statues?(): ReadonlyArray<{ x: number; z: number; half: number }> };
-  readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
+  readonly chickens?: { readonly lost: ReadonlySet<number>; readonly off?: ReadonlySet<number>; readonly trees?: readonly Tree[]; statues?(): ReadonlyArray<{ x: number; z: number; half: number }> };
+  readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy | Traveller>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
@@ -225,7 +225,13 @@ export class LiveWorld {
     const known = was ?? built.known;
     if (was) relink(built, was);
     else this.learn(index, known);
-    this.live(index, { ...built.alive, enemies: this.standing(built.alive.enemies) }, this.travellersOf(index, known));
+    // (Those turned for good, not made again with it: a villager lost, someone off the roads; those changed, changed again.)
+    const { chickens, swaps } = this.host;
+    const alive = { ...built.alive, npcs: built.alive.npcs.filter((npc) => !chickens?.lost.has(npc.id)), enemies: this.standing(built.alive.enemies) };
+    const band = this.travellersOf(index, known);
+    for (const traveller of [...band.list]) if (chickens?.off?.has(traveller.id)) band.lose(traveller);
+    this.live(index, alive, band);
+    swaps?.remade([...alive.npcs, ...alive.enemies, ...band.list]);
   }
 
   // What's known of region `index`, from its first making: kept, its lists added to the world's, its crypts, caves and strongholds

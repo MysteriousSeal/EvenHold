@@ -54,7 +54,7 @@ const LONG = 120_000;
 describe('known: a streamed world, a region let go and made again', () => {
   // world/liveWorld.ts adopt: a region's villagers are put in as built (`built.alive.npcs`), those lost not left out
   // (people(), a classic world's making, leaves them out; chickens.load takes them from the regions alive just then).
-  it.fails('a villager turned into a hen is not back in their village', () => {
+  it('a villager turned into a hen is not back in their village', () => {
     const { model, hen } = remade();
     expect(model.chickens.lost.has(hen.id)).toBe(true);
     expect(model.npcs.some((n) => n.id === hen.id)).toBe(false);
@@ -62,19 +62,19 @@ describe('known: a streamed world, a region let go and made again', () => {
 
   // world/liveWorld.ts travellersOf: a region's band is set out afresh from the seed each time it's made; nothing
   // keeps who's off the roads for good (travellers.ts lose: out of the list, and no more).
-  it.fails('someone on the road turned into a horse is not back on it', () => {
+  it('someone on the road turned into a horse is not back on it', () => {
     const { model, horse } = remade();
     expect(model.travellers.list.some((t) => t.id === horse.id)).toBe(false);
   }, LONG);
 
   // world/liveWorld.ts adopt: swaps.remade is never asked (people() asks it; adopt doesn't), so they're as the seed
   // has them, though the save still has them changed: loaded, changed again; cast at meanwhile, nothing to be seen.
-  it.fails('a villager and a bandit changed by the moon-turn are changed still', () => {
+  it('a villager and a bandit changed by the moon-turn are changed still', () => {
     const { model, changed, now } = remade();
     expect([model.npcs.find((n) => n.id === changed.villager.id)!.look.build, model.enemies.find((e) => e.id === changed.bandit.id)!.human!.look.build]).toEqual([now.villager, now.bandit]);
   }, LONG);
 
-  it.fails('someone on the road changed by the moon-turn is changed still', () => {
+  it('someone on the road changed by the moon-turn is changed still', () => {
     const { model, changed, now } = remade();
     expect(model.travellers.list.find((t) => t.id === changed.traveller.id)!.look.build).toBe(now.traveller);
   }, LONG);
@@ -85,7 +85,7 @@ describe('known: the focus on a dungeon foe', () => {
   // another; a dungeon's foes are made afresh each time down, numbered as before. So: a foe looked at, the hero up
   // and out and down again, the same one looked at: the focus is the foe of the visit before (in no list any more),
   // and whatever's cast is cast at that. (A blow's harm too: the hex.)
-  it.fails('down a second time, is the foe that stands there: a charm cast turns it, and makes no hen of the one from the visit before', () => {
+  it('down a second time, is the foe that stands there: a charm cast turns it, and makes no hen of the one from the visit before', () => {
     const model = game(TEST_SEEDS[0]);
     const door = model.entrances.find((e) => e.type === 'crypt')!;
     goIn(model, door);
@@ -109,7 +109,7 @@ describe('known: the focus on a dungeon foe', () => {
 describe('known: a statue, and who stands where it is made', () => {
   // The ground a statue shuts (world/liveWorld.ts root: a round prop where they stood) is shut on whoever's on it:
   // no one walks out of ground that's shut. Those on the road don't bump the hero, who may stand right on them.
-  it.fails('the hero stood on someone on the road and turning them to stone can walk away after', () => {
+  it('the hero stood on someone on the road and turning them to stone can walk away after', () => {
     const { model, who } = settled(TEST_SEEDS[0], 'traveller')!;
     model.enemies.length = 0;
     expect(walkTo(model, who, 3)).toBeLessThan(0.1); // (walked up onto them: nothing stops it)
@@ -120,28 +120,27 @@ describe('known: a statue, and who stands where it is made', () => {
 
   // GameModel.useDoor: out of a door, the hero's put on the spot before it (entrance.x, z), where a villager stands as
   // they come out of it and go in. Someone turned to stone there: whoever comes out after is in the stone.
-  it.fails('the hero coming out of a door someone was turned to stone at can walk away', () => {
+  it('no one is turned to stone before a door: refused, and said why', () => {
     const model = game(TEST_SEEDS[0]);
     model.enemies.length = 0;
     const door = model.entrances.find((e) => e.type === 'house')!;
-    expect(castAt(model, foeAt(model, door.x, door.z, 'bandit'), 'statue', { x: door.x + door.outX * 2, z: door.z + door.outZ * 2 })).toBe('cast');
-    model.enemies.length = 0;
-    goIn(model, door);
-    for (let t = 0; t < 1; t += 0.1) model.update(0, 0, 0.1);
-    Object.assign(model.hero, { x: model.inside!.room!.door, z: model.inside!.room!.depth - 1 });
-    expect(model.useDoor()).toBe(true);
-    expect(roomToMove(model)).toBeGreaterThan(1);
+    model.takeEvents();
+    expect(castAt(model, foeAt(model, door.x, door.z, 'bandit'), 'statue', { x: door.x + door.outX * 2, z: door.z + door.outZ * 2 })).not.toBe('cast');
+    expect(model.takeEvents().some((e) => e.kind === 'banner')).toBe(true);
+    expect(model.chickens.hens).toHaveLength(0);
   });
 
   // world/liveWorld.ts root: a statue's put in the way only where its tile is open, and a tile holds the one prop:
   // the second of two turned on a tile (a pack's, side by side) is stone to look at and nothing to walk into.
-  it.fails('two turned to stone on the one tile are both in the way', () => {
+  it('a second is not turned to stone right beside the first: refused, the one stone in the way', () => {
     const model = game(TEST_SEEDS[1]);
     model.enemies.length = 0;
     const at = { x: Math.round(model.hero.x), z: Math.round(model.hero.z) + 3 };
-    const [one, two] = [foeAt(model, at.x - 0.3, at.z, 'wolf', 900), foeAt(model, at.x + 0.3, at.z, 'wolf', 901)];
-    expect([castAt(model, one, 'statue'), castAt(model, two, 'statue')]).toEqual(['cast', 'cast']);
-    expect([model.isBlocked(one.x, one.z, 0.05), model.isBlocked(two.x, two.z, 0.05)]).toEqual([true, true]);
+    const [one, two] = [foeAt(model, at.x - 0.15, at.z, 'wolf', 900), foeAt(model, at.x + 0.15, at.z, 'wolf', 901)];
+    expect(castAt(model, one, 'statue')).toBe('cast');
+    expect(castAt(model, two, 'statue')).not.toBe('cast');
+    expect(model.isBlocked(one.x, one.z, 0.05)).toBe(true);
+    expect(model.chickens.hens).toHaveLength(1);
   });
 
   // travellers/travellers.ts walk: along the road's own line, keeping clear of one another and of nothing else. A
@@ -168,7 +167,7 @@ describe('known: a beast turned where a villager may not walk', () => {
   // spells/turned.ts free (indoors: npcs/npcWalk.ts roomFree, as a villager who's no keeper): every step is asked of
   // the ground stepped onto, and behind the bar, on a chair, in a bed, none of it is theirs: no step's ever taken.
   // (To mend: a hen let behind the bar; whoever's turned on a seat set down beside it.)
-  it.fails('a barkeep turned behind the bar wanders, as a hen does', () => {
+  it('a barkeep turned behind the bar wanders, as a hen does', () => {
     const { model, who } = settled(TEST_SEEDS[0], 'barkeep')!;
     const stood = { x: who.x, z: who.z };
     expect(castSpell(model, 'chicken')).toBe('cast');
@@ -178,7 +177,7 @@ describe('known: a beast turned where a villager may not walk', () => {
     expect(Math.hypot(hen.x - stood.x, hen.z - stood.z)).toBeGreaterThan(0.1);
   });
 
-  it.fails('a villager turned on their chair or in their bed gets down and wanders', () => {
+  it('a villager turned on their chair or in their bed gets down and wanders', () => {
     const model = game(TEST_SEEDS[0]);
     // The day run on by the village till someone's sat or abed at home.
     let seated: Npc | undefined;
@@ -221,7 +220,7 @@ describe('known: a beast kept out of doors', () => {
   // inside. (To mend, as anyone walks out of doors: `&& !host.isBlocked(x, z, 0.12)` there. Tried, and it holds; but
   // turnedBeasts.test.ts's withBeast opens the ground for its beasts by putting isOpenTile aside alone, and its rat
   // then stops at the land's own fences: that test wants isBlocked put aside with it.)
-  it.fails('a hen, a cow, a horse turned at a camp and in a village never stand in a fence or a wall, nor step through one', () => {
+  it('a hen, a cow, a horse turned at a camp and in a village never stand in a fence or a wall, nor step through one', () => {
     let watched = 0;
     for (const seed of TEST_SEEDS) {
       for (const where of ['bandit', 'villager out'] as const) {

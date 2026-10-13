@@ -44,6 +44,7 @@ export class Focus {
   focus(id: number | null): void {
     const foe = id === null ? undefined : this.foes().find((e) => e.id === id);
     this.id = foe && foe.state !== 'dead' && !foe.buried ? foe.id : null;
+    this.foe = this.id === null ? null : foe!; // (the one found now: a dungeon's foes are made again each visit, under the same ids)
   }
 
   // Let go the moment its foe dies (so the next to strike takes it), or once it's gone or far off.

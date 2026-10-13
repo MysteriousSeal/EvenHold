@@ -24,7 +24,7 @@ import type { Point } from '../map/obstacles';
 import type { Npc } from '../npcs/npcs';
 import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
-import { TILE_HEIGHT, TREE_SHAPES } from '../constants';
+import { HERO_RADIUS, TILE_HEIGHT, TREE_SHAPES } from '../constants';
 import type { Enemy, GameEvent, Surface, Tree, TreeKind } from '../types';
 import { humanOf, isFoe, isNpc, type Being } from './beings';
 import { HUNG_FACING, hungAt, soundHung, wallFor, type Hung } from './hung';
@@ -60,6 +60,8 @@ export interface ChickenHost {
   readonly chosen: { readonly person: unknown };
   random(): number;
   isOpenTile(x: number, z: number): boolean;
+  isBlocked?(x: number, z: number, r: number): boolean; // (what stands in the way out of doors: a fence, a wall)
+  readonly entrances?: readonly Point[]; // (doors: where whoever comes out of one is put)
   readonly tiles: { surface(x: number, z: number): Surface };
   getGroundY(x: number, z: number): number;
   readonly trees: readonly Tree[];
@@ -81,11 +83,13 @@ const stoneOf = (being: Being): Stone => ({ id: being.id, ...(isFoe(being) ? { f
 export interface SavedChickens {
   hens: Array<[x: number, z: number, at: string | null, fromX: number, fromZ: number, kind?: Beast, coat?: number | null, stone?: Stone | null, hung?: Hung | null, up?: boolean]>;
   lost: number[];
+  off?: number[]; // those on the roads turned, by id: off them for good
   trees?: Array<[x: number, z: number, kind: TreeKind, shape: number, quarterTurns: number, groundTier: number]>; // those turned into trees: where each stands
 }
 
 export class Chickens {
   readonly hens: Hen[] = [];
+  readonly off = new Set<number>(); // those on the roads turned, by id: off them for good (a region made again: liveWorld.ts)
   readonly lost = new Set<number>(); // villagers and keepers turned, by id: gone from the world for good
   readonly trees: Tree[] = []; // those turned into trees: each one of the world's from then on (to be felled, as any)
   private next = 1;
@@ -100,7 +104,8 @@ export class Chickens {
   whyNot(being: Being, into: Into): string | null {
     if (!mayTurn(being) || this.may(being, into)) return null;
     if (into === 'painting') return this.host.inside?.room && !this.host.dungeon && !this.host.inside.below ? 'No wall free here to hang them on.' : 'Only under a roof, by a wall.';
-    return into === 'tree' && !this.host.inside && !this.host.dungeon ? 'No ground free here for them to root in.' : 'Not under a roof.';
+    if (this.host.dungeon || this.host.inside || !(isFoe(being) || !being.where)) return 'Not under a roof.';
+    return into === 'tree' ? 'No ground free here for them to root in.' : 'No room here for them to stand: a doorway, or stone there already.';
   }
 
   may(being: Being, into: Into = 'chicken'): boolean {
@@ -110,7 +115,7 @@ export class Chickens {
     if (into === 'doll') return !(host.inside && !host.dungeon) && (isFoe(being) || !being.where);
     if (!rooted(into)) return true;
     const outside = !host.inside && !host.dungeon && (isFoe(being) || !being.where); // (the hero, and they themselves)
-    return outside && (into !== 'tree' || this.sapling(being) !== null);
+    return outside && (into !== 'tree' || this.sapling(being) !== null) && (into !== 'statue' || this.standsClear(being));
   }
 
   // The wall someone would hang on as a painting (hung.ts): the nearest free stretch of their room's, the hero in
@@ -159,6 +164,7 @@ export class Chickens {
     if (hen) this.hens.push(hen);
     if (into === 'doll') host.dropLoot(DOLL, being.x, being.z); // (lying where they stood)
     if (rooted(into)) host.world.rooted(); // (in the way, from now)
+    if (into === 'statue') this.stepClear(being);
     host.report({ kind: 'transformed', who: shown, into, coat: hen?.coat, ...(tree ? { tree } : {}), ...(hen?.hung ? { hung: hen.hung } : {}) });
     return true;
   }
@@ -207,7 +213,7 @@ export class Chickens {
       this.lost.add(being.id);
       const at = host.npcs.indexOf(being);
       if (at >= 0) host.npcs.splice(at, 1);
-    } else host.travellers.lose(being);
+    } else [host.travellers.lose(being), this.off.add(being.id)];
   }
 
   // A moment on: each hen where the hero is, a few steps and a peck.
@@ -239,7 +245,8 @@ export class Chickens {
     const left = Math.hypot(dx, dz);
     const step = Math.min(left, gait.pace * dt);
     const [x, z] = left > 1e-6 ? [hen.x + (dx / left) * step, hen.z + (dz / left) * step] : [hen.x, hen.z];
-    if (left <= ARRIVED || !this.free(x, z, hen.kind)) {
+    // (The way shut: but not to what's turned where none may walk, behind a bar, on a chair. That one gets out.)
+    if (left <= ARRIVED || (!this.free(x, z, hen.kind) && !(host.inside && !this.ground(hen.x, hen.z, hen.kind)))) {
       rest(); // there, or the way shut: a peck, then elsewhere
       if (gait.hops) hen.hop = 0; // (landed)
       return;
@@ -269,21 +276,46 @@ export class Chickens {
   // Whether one of that kind could be at (x, z), where the hero is: open ground there (a room's floor, a dungeon's),
   // and not on the hero. A ghost: through the hero and whatever stands there, kept only to the map, to its room's
   // floor, to a dungeon's open ground (its rock the end of it, as of anyone).
+  // Where a statue may stand: not before a door (whoever comes out of it is put there), nor where one stands already.
+  private standsClear(being: Being): boolean {
+    const near = (p: Point, far: number) => Math.hypot(p.x - being.x, p.z - being.z) < far;
+    return !(this.host.entrances ?? []).some((door) => near(door, 0.7)) && !this.statues().some((stone) => near(stone, 2 * STATUE_HALF));
+  }
+
+  // The hero stood in what's now stone (on someone on the road, at arm's length of a foe): set just clear of it, away
+  // from it first, then round it, wherever's open.
+  private stepClear(stone: Point): void {
+    const { hero } = this.host;
+    const clear = STATUE_HALF + HERO_RADIUS + 0.04;
+    if (Math.hypot(hero.x - stone.x, hero.z - stone.z) >= clear) return;
+    const away = Math.atan2(hero.x - stone.x, hero.z - stone.z);
+    for (let i = 0; i < 16; i++) {
+      const angle = away + Math.ceil(i / 2) * (Math.PI / 8) * (i % 2 ? 1 : -1);
+      const [x, z] = [stone.x + Math.sin(angle) * clear, stone.z + Math.cos(angle) * clear];
+      if (this.host.isBlocked?.(x, z, HERO_RADIUS)) continue;
+      return void Object.assign(hero, { x, z });
+    }
+  }
+
   private free(x: number, z: number, kind: Beast): boolean {
+    return (this.ground(x, z, kind) && Math.hypot(x - this.host.hero.x, z - this.host.hero.z) >= 0.3) || (GAIT[kind].drifts === true && !this.host.dungeon && this.ground(x, z, kind));
+  }
+
+  // The ground there its to stand on, whoever else is about.
+  private ground(x: number, z: number, kind: Beast): boolean {
     const { host } = this;
     if (GAIT[kind].drifts && !host.dungeon) {
       const room = host.inside?.room;
       if (room) return x >= -0.5 + DRIFT && z >= -0.5 + DRIFT && x <= room.width - 0.5 - DRIFT && z <= room.depth - 0.5 - DRIFT;
       if (!host.inside) return x >= 0 && z >= 0 && x <= host.size.width - 1 && z <= host.size.depth - 1;
     }
-    if (Math.hypot(x - host.hero.x, z - host.hero.z) < 0.3) return false;
     if (host.dungeon) return host.dungeon.free(x, z, 0.12);
-    return host.inside ? roomFree(host.seed, host.inside.entrance)(x, z) : host.isOpenTile(Math.round(x), Math.round(z));
+    return host.inside ? roomFree(host.seed, host.inside.entrance)(x, z) : host.isOpenTile(Math.round(x), Math.round(z)) && !host.isBlocked?.(x, z, 0.12);
   }
 
   save(): SavedChickens {
     const round = (n: number) => Math.round(n * 100) / 100;
-    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z), hen.kind, hen.coat ?? null, hen.stone ?? null, hen.hung ?? null, !!hen.up]), lost: [...this.lost], trees: this.trees.map((t) => [t.x, t.z, t.kind, t.shape, t.quarterTurns, t.groundTier]) };
+    return { hens: this.hens.map((hen) => [round(hen.x), round(hen.z), hen.at, round(hen.from.x), round(hen.from.z), hen.kind, hen.coat ?? null, hen.stone ?? null, hen.hung ?? null, !!hen.up]), lost: [...this.lost], off: [...this.off], trees: this.trees.map((t) => [t.x, t.z, t.kind, t.shape, t.quarterTurns, t.groundTier]) };
   }
 
   // A save's, as far as it's sound; those lost gone from the world as it stands (a world made after: liveWorld.ts).
@@ -292,6 +324,8 @@ export class Chickens {
     this.hens.length = 0;
     this.trees.length = 0;
     this.lost.clear();
+    this.off.clear();
+    for (const id of Array.isArray(data.off) ? data.off : []) if (Number.isInteger(id)) this.off.add(id);
     for (const id of Array.isArray(data.lost) ? data.lost : []) if (Number.isInteger(id)) this.lost.add(id);
     for (const row of Array.isArray(data.hens) ? data.hens : []) {
       if (!Array.isArray(row) || ![row[0], row[1], row[3], row[4]].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;

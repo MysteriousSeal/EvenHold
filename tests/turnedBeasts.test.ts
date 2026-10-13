@@ -40,6 +40,7 @@ function withBeast(kind: Kind): { model: GameModel; beast: Hen } {
   expect(model.chickens.turn(foe, kind)).toBe(true);
   const beast = model.chickens.hens[0];
   model.isOpenTile = () => true; // (open ground all about it: its going its own, not the land's)
+  model.isBlocked = () => false;
   Object.assign(hero, { x: beast.x + 20, z: beast.z });
   return { model, beast };
 }
