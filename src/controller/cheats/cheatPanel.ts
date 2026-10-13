@@ -14,6 +14,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Who } from '../../model/story/story';
 import { createQuestDebug } from './questDebug';
 import { charmActions } from './charmCheats';
+import { strongholdAction } from './strongholdCheats';
 import { SPELL_ICONS } from '../../view/ui/spellIcons';
 import {
   nextCamp,
@@ -211,6 +212,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
           ...group('Dungeons', [
             { icon: ICON.ruin, title: 'Next crypt', detail: 'The nearest ruins you haven’t visited, their crypt in them', run: () => travel(nextRuin(model, here(), ruinsSeen), `ruins ${ruinsSeen.size} of ${model.ruins.length}`) },
             { icon: ICON.ruin, title: 'Next cave', detail: 'The nearest you haven’t visited, before its mouth', run: () => travel(nextCave(model, here(), cavesSeen), `cave ${cavesSeen.size} of ${model.caves.length}`) },
+            strongholdAction(model, ICON.camp, here, travel), // (strongholdCheats.ts)
           ]),
           ...group('Wilds', [
             { icon: ICON.camp, title: 'Next bandit camp', detail: 'The nearest you haven’t visited, at its gate', run: () => travel(nextCamp(model, here(), campsSeen), `camp ${campsSeen.size} of ${model.camps.length}`) },

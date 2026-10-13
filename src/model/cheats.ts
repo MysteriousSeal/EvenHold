@@ -2,6 +2,7 @@
 // model, so they're testable and the panel stays a thin UI.
 
 import type { Cave } from './caves/caves';
+import type { Stronghold } from './strongholds/strongholds';
 import { onRoad, type Traveller, type TravellerRole } from './travellers/travellers';
 import type { BuildingType, Entrance } from './interiors/interiors';
 import { enemyLevel } from './enemies/enemyLevels';
@@ -92,7 +93,7 @@ function ringSearch(model: GameModel, from: Tile, accept: (x: number, z: number)
   return null;
 }
 
-// The next stop on a tour of `places` (ruins, camps, caves): the nearest not
+// The next stop on a tour of `places` (ruins, camps, caves, strongholds): the nearest not
 // yet visited (all of them seen, round again); where to arrive, just outside
 // its way in (`wayOf`). Null if there are none.
 function nextOn<T>(model: GameModel, places: readonly T[], from: Tile, visited: Set<T>, wayOf: (place: T) => Tile): Tile | null {
@@ -106,6 +107,7 @@ function nextOn<T>(model: GameModel, places: readonly T[], from: Tile, visited: 
 export const nextRuin = (model: GameModel, from: Tile, visited: Set<Ruin>) => nextOn(model, model.ruins, from, visited, (r) => r.way);
 export const nextCamp = (model: GameModel, from: Tile, visited: Set<Camp>) => nextOn(model, model.camps, from, visited, (c) => c.way);
 export const nextCave = (model: GameModel, from: Tile, visited: Set<Cave>) => nextOn(model, model.caves, from, visited, (c) => ({ x: Math.round(c.entrance.x), z: Math.round(c.entrance.z) }));
+export const nextStronghold = (model: GameModel, from: Tile, visited: Set<Stronghold>) => nextOn(model, model.strongholds, from, visited, (s) => ({ x: Math.round(s.entrance.x), z: Math.round(s.entrance.z) }));
 
 // A few tiles from the nearest living wolf, or null if there are none.
 export function nearestPack(model: GameModel, from: Tile): Tile | null {

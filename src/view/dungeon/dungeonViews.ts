@@ -1,6 +1,7 @@
 // A dungeon's scene and what moves in it, by its kind (model/dungeons/): a
 // crypt's (crypt/cryptView.ts, cryptLife.ts), a cave's (cave/caveView.ts,
-// caveLife.ts); null for any other way in (a building's room).
+// caveLife.ts), a stronghold's (stronghold/strongholdView.ts); null for any
+// other way in (a building's room).
 
 import type { GameModel } from '../../model/GameModel';
 import type { Entrance } from '../../model/interiors/interiors';
@@ -11,6 +12,8 @@ import type { IndoorScene } from '../interior/roomView';
 import { CryptLife } from '../crypt/cryptLife';
 import { buildCaveScene } from '../cave/caveView';
 import { CaveLife } from '../cave/caveLife';
+import { strongholdInside } from '../../model/strongholds/strongholds';
+import { StrongholdLife, buildStrongholdScene } from '../stronghold/strongholdView';
 
 // What moves in a dungeon's scene: drawn each frame from the model; how hard its floor's shaking (the camera's to shake by).
 export interface DungeonLife {
@@ -31,6 +34,11 @@ export function buildDungeonScene(seed: number, entrance: Entrance): DungeonScen
     const inside = caveInside(seed, entrance);
     const built = buildCaveScene(inside);
     return { ...built, life: new CaveLife(built.scene, inside) };
+  }
+  if (entrance.type === 'stronghold') {
+    const inside = strongholdInside(seed, entrance);
+    const built = buildStrongholdScene(inside);
+    return { ...built, life: new StrongholdLife(built.scene, inside) };
   }
   return null;
 }

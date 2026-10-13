@@ -22,6 +22,7 @@ import { buildScenery3d } from '../meshes/scenery/sceneryMesh';
 import { buildCamps } from '../meshes/camp/campMesh';
 import { buildRuins } from '../meshes/ruin/ruinMesh';
 import { buildCaveMouths } from '../meshes/cave/caveMouthMesh';
+import { buildStrongholdGates } from '../stronghold/strongholdView';
 import { buildEntranceDressing } from '../meshes/entrance/entranceDressing';
 
 export type Animation = (elapsedSeconds: number) => void;
@@ -49,6 +50,7 @@ export const WORLD_BUILDERS: readonly WorldBuilder[] = [
   { label: 'Kindling the campfires', build: buildCamps },
   { label: 'Crumbling the old ruins', build: buildRuins },
   { label: 'Hollowing the hills', build: buildCaveMouths },
+  { label: 'Raising the strongholds', build: buildStrongholdGates },
   { label: 'Lighting the old braziers', build: buildEntranceDressing },
   { label: 'Setting the old stones', build: buildScenery3d },
 ];

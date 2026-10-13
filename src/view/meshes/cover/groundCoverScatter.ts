@@ -58,7 +58,7 @@ export function scatterGroundCover(model: GameModel): GroundCover {
 // and chunks can be scattered only when they're about to be seen.
 export function createCoverScatter(model: GameModel): (x0: number, z0: number, x1: number, z1: number) => GroundCover {
   const meadowDensity = createMeadowDensity(model.seed);
-  // What grows nothing (buildings, wells, bushes; crypts' ways down, caves' knolls, camps' hay, rocks and landmarks),
+  // What grows nothing (buildings, wells, bushes; crypts' ways down, caves' knolls, strongholds' gatehouses, camps' hay, rocks and landmarks),
   // and the tiles with a tree: marked on grids of its own part of the map, straight from where each stands.
   const { x0: ax, z0: az, x1: bx, z1: bz } = model.area;
   const depth = bz - az;
@@ -70,6 +70,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
   for (const b of model.buildings) for (const [x, z] of b.tiles) block(x, z);
   for (const c of model.crypts) for (const t of c.tiles) block(t.x, t.z);
   for (const c of model.caves) for (const t of c.rock) block(t.x, t.z);
+  for (const s of model.strongholds) for (const t of s.footing) block(t.x, t.z);
   for (const c of model.camps) for (const t of campTiles(c)) block(t.x, t.z);
   for (const piece of model.scenery ?? []) for (const [x, z] of sceneryTiles(piece)) block(x, z);
   for (const t of model.trees) plant(t.x, t.z);

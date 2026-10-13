@@ -359,8 +359,11 @@ async function boot(): Promise<void> {
       else if (event.kind === 'stirs') placeBanner(`${event.name} stirs`, 'From her silken nest');
       else if (event.kind === 'torn') placeBanner('The silk tears', 'Deep within, the nest lies open');
       else if (event.kind === 'walled') placeBanner('The nest is webbed shut', `Clear ${Math.round(TEARS_AT * 100)}% of the cave to tear the silk · ${Math.round(event.share * 100)}% cleared`, 3000); // (the brood mother out of reach: told large)
+      else if (event.kind === 'barred') placeBanner('The great hall is barred', `Its gate opens when the four wings' bosses are slain · ${event.left} still ${event.left === 1 ? 'stands' : 'stand'}`, 3000); // (a stronghold's king out of reach: told large)
+      else if (event.kind === 'unbarred') placeBanner('The gate is open', 'The great hall lies beyond');
+      else if (event.kind === 'banner') placeBanner(event.title, event.line);
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ' · +1 point to spend (P)' : ''}`);
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ' · +1 point to spend (P)' : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
