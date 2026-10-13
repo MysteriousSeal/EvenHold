@@ -12,8 +12,13 @@ import { DonkeyRig } from './donkeyRig';
 import { GoatRig } from './goatRig';
 import { HorseRig } from './horseRig';
 import { PigRig } from './pigRig';
+import { RatRig } from './ratRig';
+import { PaintingRig } from './painting';
 import { SheepRig } from './sheepRig';
 import { StatueRig, beingOf } from './statue';
+import { ToadRig } from './toadRig';
+import { TurnedCatRig } from './turnedCatRig';
+import { TurnedGhostRig } from './turnedGhost';
 
 type Rig = { root: THREE.Object3D; update(beast: Hen, dt: number): void; dispose(): void };
 // Each kind's rig, made for one of them (`standIn`: someone drawn as they stood, for a statue of them).
@@ -27,12 +32,17 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
   sheep: (material, beast) => new SheepRig(material, beast.coat),
   goat: (material, beast) => new GoatRig(material, beast.coat),
   donkey: (material, beast) => new DonkeyRig(material, beast.coat),
-  toad: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's ToadRig(material, beast.coat) replaces this (its hop: beast.hop)
-  rat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's RatRig(material, beast.coat) replaces this
-  cat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's TurnedCatRig(material, beast.coat) replaces this
-  ghost: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))), // PLACEHOLDER: the artist's TurnedGhostRig(standIn(beingOf(beast.stone!))) replaces this
-  painting: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))), // PLACEHOLDER: the artist's PaintingRig(standIn(beingOf(beast.stone!))) replaces this (its wall: beast.hung)
+  toad: (material, beast) => new ToadRig(material, beast.coat),
+  rat: (material, beast) => new RatRig(material, beast.coat),
+  cat: (material, beast) => new TurnedCatRig(material, beast.coat),
+  ghost: (_material, beast, standIn) => new TurnedGhostRig(standIn(beingOf(beast.stone!))),
+  painting: (_material, beast, standIn) => hung(new PaintingRig(standIn(beingOf(beast.stone!)))),
 };
+
+// A painting on its wall: the beast's place is the foot of the wall under it; its frame's middle hangs so far up it
+// (of its own size: bigger indoors, as all is).
+const HANGS = 0.45;
+const hung = (rig: PaintingRig): Rig => ({ root: rig.root, update: (beast, dt) => rig.update({ ...beast, y: beast.y + HANGS * rig.root.scale.y }, dt), dispose: () => rig.dispose() });
 
 export class TurnedViews {
   readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });

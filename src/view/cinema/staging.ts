@@ -9,14 +9,20 @@ import type { Cloud } from './morph/voxelMorph';
 import { SPELLS, SPELL_IDS } from '../../model/spells/spells';
 import { INTO, type Into } from '../../model/spells/turned';
 import type { Tree } from '../../model/types';
+import { catStagingOf } from './stagings/catStaging';
 import { chickenStaging } from './stagings/chickenStaging';
 import { cowStagingOf } from './stagings/cowStaging';
+import { dollStagingOf } from './stagings/dollStaging';
 import { donkeyStagingOf } from './stagings/donkeyStaging';
+import { ghostStagingOf } from './stagings/ghostStaging';
 import { goatStagingOf } from './stagings/goatStaging';
 import { horseStaging } from './stagings/horseStaging';
+import { paintingStagingOf } from './stagings/paintingStaging';
 import { pigStagingOf } from './stagings/pigStaging';
+import { ratStagingOf } from './stagings/ratStaging';
 import { sheepStagingOf } from './stagings/sheepStaging';
 import { statueStagingOf } from './stagings/statueStaging';
+import { toadStagingOf } from './stagings/toadStaging';
 import { treeStagingOf } from './stagings/treeStaging';
 
 export interface Staging {
@@ -68,12 +74,12 @@ const MAKERS: Record<Into, (how: Turning) => Staging> = {
   sheep: ({ coat }) => sheepStagingOf(coat),
   goat: ({ coat }) => goatStagingOf(coat),
   donkey: ({ coat }) => donkeyStagingOf(coat),
-  toad: () => chickenStaging, // PLACEHOLDER: the artist's toadStagingOf(coat) replaces this
-  rat: () => chickenStaging, // PLACEHOLDER: the artist's ratStagingOf(coat) replaces this
-  cat: () => chickenStaging, // PLACEHOLDER: the artist's catStagingOf(coat) replaces this
-  ghost: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's ghostStagingOf(stood) replaces this
-  painting: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's paintingStagingOf(stood) replaces this
-  doll: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's dollStagingOf(stood) replaces this
+  toad: ({ coat }) => toadStagingOf(coat),
+  rat: ({ coat }) => ratStagingOf(coat),
+  cat: ({ coat }) => catStagingOf(coat),
+  ghost: ({ stood }) => ghostStagingOf(stood),
+  painting: ({ stood }) => paintingStagingOf(stood),
+  doll: ({ stood }) => dollStagingOf(stood),
 };
 // Its charm's name over it (model/spells/spells.ts: a bull's is the cow's).
 const charmOf = (into: Into): string | undefined => ((id) => id && SPELLS[id].name)(SPELL_IDS.find((id) => SPELLS[id].turns === (into === 'bull' ? 'cow' : into)));

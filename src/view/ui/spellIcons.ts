@@ -5,10 +5,14 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
 import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/turned/chickenVoxels';
 import { cowShape } from '../meshes/turned/cowVoxels';
+import { DOLL_PALETTE, buildDoll } from '../meshes/turned/dollVoxels';
 import { donkeyShape } from '../meshes/turned/donkeyVoxels';
 import { goatShape } from '../meshes/turned/goatVoxels';
 import { pigShape } from '../meshes/turned/pigVoxels';
+import { ratShape } from '../meshes/turned/ratVoxels';
 import { sheepShape } from '../meshes/turned/sheepVoxels';
+import { toadShape } from '../meshes/turned/toadVoxels';
+import { turnedCatShape } from '../meshes/turned/turnedCatVoxels';
 import { TREE_PALETTE, buildTreeVoxels } from '../meshes/tree/treeVoxels';
 import { HORSE_SHAPE } from '../meshes/turned/horseVoxels';
 import { quadrupedParts, type Quadruped } from '../meshes/turned/quadruped';
@@ -97,6 +101,39 @@ const statueIcon: MenuIcon = (size) =>
     size,
   );
 
+// The sexton's knell: someone pale, trailing away to a wisp below. (Pale 1, its shade 2.)
+const ghostIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:ghost',
+    () => {
+      const grid = createGrid([7, 12, 4]);
+      fillBox(grid, 2, 8, 0, 4, 10, 3, 1); // head
+      fillBox(grid, 1, 4, 1, 5, 7, 2, (x) => (x === 1 || x === 5 ? 2 : 1)); // body, arms
+      fillBox(grid, 2, 2, 1, 4, 3, 2, 2);
+      fillBox(grid, 3, 0, 1, 3, 1, 2, 2); // the wisp
+      return { grid, palette: [0xdfeaf2, 0xa9bccb], alpha: 0.75 };
+    },
+    size,
+  );
+
+// The limner's likeness: a gilt frame, someone's head and shoulders in it on a dark ground. (Gilt 1, ground 2, skin 3, cloth 4.)
+const paintingIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:painting',
+    () => {
+      const grid = createGrid([9, 11, 2]);
+      fillBox(grid, 0, 0, 0, 8, 10, 1, (x, y) => (x === 0 || x === 8 || y === 0 || y === 10 ? 1 : 0));
+      fillBox(grid, 1, 1, 0, 7, 9, 0, 2);
+      fillBox(grid, 2, 1, 1, 6, 4, 1, 4); // shoulders
+      fillBox(grid, 3, 5, 1, 5, 8, 1, 3); // head
+      return { grid, palette: [0xc9a13a, 0x2a2420, 0xd9a986, 0x7a3a34], alpha: 1 };
+    },
+    size,
+  );
+
+// The poppet-maker's stitch: the rag doll itself (turned/dollVoxels.ts).
+const dollIcon: MenuIcon = (size) => voxelIcon('spell:doll', () => ({ grid: buildDoll(), palette: DOLL_PALETTE, alpha: 1 }), size);
+
 // The woodward's rooting: an oak.
 const treeIcon: MenuIcon = (size) => voxelIcon('spell:tree', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE, alpha: 1 }), size);
 
@@ -132,10 +169,10 @@ export const SPELL_ICONS: Record<SpellId, MenuIcon> = {
   sheep: beast('spell:sheep', sheepShape()),
   goat: beast('spell:goat', goatShape()),
   donkey: beast('spell:donkey', donkeyShape()),
-  toad: chickenIcon, // PLACEHOLDER: the artist's toadShape(0) replaces this
-  rat: chickenIcon, // PLACEHOLDER: the artist's ratShape(0) replaces this
-  cat: chickenIcon, // PLACEHOLDER: the artist's turnedCatShape(0) replaces this
-  ghost: statueIcon, // PLACEHOLDER: the artist's ghost replaces this (none named for its icon: one to be made of TurnedGhostRig's figure, or drawn here)
-  painting: statueIcon, // PLACEHOLDER: the artist's painting replaces this (none named for its icon: one to be made of PaintingRig's frame, or drawn here)
-  doll: statueIcon, // PLACEHOLDER: the artist's buildDoll() and DOLL_PALETTE replace this, as voxelIcon('spell:doll', () => ({ grid: buildDoll(), palette: DOLL_PALETTE, alpha: 1 }), size)
+  toad: beast('spell:toad', toadShape()),
+  rat: beast('spell:rat', ratShape()),
+  cat: beast('spell:cat', turnedCatShape()),
+  ghost: ghostIcon,
+  painting: paintingIcon,
+  doll: dollIcon,
 };

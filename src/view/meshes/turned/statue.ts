@@ -10,7 +10,7 @@ export const STONE = 0x8c9196;
 const PLINTH = { wide: 0.3, tall: 0.07, color: 0x6c7074 };
 // A colour of theirs, in stone: the one grey, lighter or darker as theirs was (so their face is still theirs, carved).
 const [GREY, WEIGHTS] = [new THREE.Color(STONE), new THREE.Color(0.3, 0.59, 0.11)];
-export const stoned = (color: THREE.Color, into = new THREE.Color()): THREE.Color => into.copy(GREY).multiplyScalar(0.42 + 0.85 * Math.min(1, color.r * WEIGHTS.r + color.g * WEIGHTS.g + color.b * WEIGHTS.b));
+export const stoned = (color: THREE.Color, into = new THREE.Color()): THREE.Color => ((shade) => into.copy(GREY).multiplyScalar(shade))(0.42 + 0.85 * Math.min(1, color.r * WEIGHTS.r + color.g * WEIGHTS.g + color.b * WEIGHTS.b)); // (weighed first: `into` may be `color` itself)
 
 // Whoever a statue is of, as someone to be drawn as they stood (GameView.standIn): a foe of its kind and number
 // (a bandit, in its own look and what it wore), or someone in theirs.
