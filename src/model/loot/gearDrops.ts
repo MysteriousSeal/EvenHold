@@ -1,7 +1,9 @@
 // A piece of gear a slain foe leaves (human/items/gear.ts), at its level: people and the dead only (bandits, their
 // chiefs, skeletons, draugr; beasts carry none). A bandit's one of what it wore, the rest any piece. Now and then,
 // its rarity rolled as any; a chief's always, and luckier (uncommon at the least); a boss's always, rare at the least
-// (a crypt's lord, the brood mother: their chests besides, loot/hoard.ts). The same for a foe every time.
+// (a crypt's lord, the brood mother: their chests besides, loot/hoard.ts). A stronghold's bandits as any bandit, its
+// bruisers a little likelier; its bosses leave a piece of their own instead (strongholds/strongholdLoot.ts). The same
+// for a foe every time.
 
 import type { Enemy, EnemyKind } from '../types';
 import { ITEM_IDS, type ItemId } from '../human/equipment';
@@ -22,6 +24,11 @@ const DROPS: Partial<Record<EnemyKind, Drops>> = {
   draugr: { chance: 0.14, luck: 1.3 },
   cryptLord: { chance: 1, luck: 3, least: 'rare' },
   broodMother: { chance: 1, luck: 3, least: 'rare' },
+  bruiser: { chance: 0.16, luck: 1.2 },
+  crossbowman: { chance: 0.12 },
+  firebrand: { chance: 0.12 },
+  sawbones: { chance: 0.14, luck: 1.2 },
+  runner: { chance: 0.08 },
 };
 
 // The piece `enemy` leaves, slain (`factor`: the hero's luck, a blessing's), or null.

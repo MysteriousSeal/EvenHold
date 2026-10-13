@@ -13,6 +13,7 @@ import { STATS, isStat } from '../../hero/statKinds';
 import { hashUnit, oneOf } from '../../../util/random';
 import { ITEMS, type ItemId } from './index';
 import type { WeaponType } from './held';
+import { NAMED, namedOf, type NamedId } from './namedGear';
 
 export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
 export type Rarity = (typeof RARITIES)[number];
@@ -79,8 +80,13 @@ export const levelOf = (key: GearKey): number => gearOf(key).level;
 export const rarityOf = (key: GearKey): Rarity => gearOf(key).rarity;
 export const tierOf = (rarity: Rarity): number => RARITIES.indexOf(rarity); // (its extra lines: 0 to 4)
 
-// Its name as shown (a plain one's own; the rest the same: the level and rarity told beside it).
-export const gearName = (key: GearKey): string => ITEMS[baseOf(key)].name;
+// Its name as shown (a plain one's own; the rest the same: the level and rarity told beside it; a named piece's, its own).
+export const gearName = (key: GearKey): string => namedIn(key)?.name ?? ITEMS[baseOf(key)].name;
+
+// The named piece a key holds (namedGear.ts: one of a kind, its name and lines its own), or null.
+export const namedIn = (key: GearKey) => namedOf(gearOf(key).item, gearOf(key).roll);
+// A named piece's key, at `level` (never rolled: no found piece's roll is its number).
+export const namedGear = (id: NamedId, level: number): GearKey => gearKey({ item: NAMED[id].item, level: Math.max(1, Math.floor(level)), rarity: NAMED[id].rarity, roll: id });
 
 // Whether a hero of `level` may wear it.
 export const canWear = (key: GearKey, level: number): boolean => levelOf(key) <= level;
@@ -125,7 +131,9 @@ export function gearSpecs(key: GearKey): GearSpecs {
   for (const [stat, n] of Object.entries(entry.stats ?? {})) add(stat as Stat, Math.round(n * grows(level)), false);
   const tier = tierOf(rarity);
   const taken = new Set<string>();
-  for (let i = 0; i < tier; i++) {
+  const fixed = namedOf(item, roll)?.lines; // (a named piece's: listed, not rolled)
+  for (const kind of fixed ?? []) add(kind, kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier), true);
+  for (let i = 0; i < (fixed ? 0 : tier); i++) {
     const pick = (salt: number) => hashUnit(roll, i, 9100 + salt);
     const special = tier >= 2 && pick(1) < SPECIAL_ODDS;
     const pool = (special ? [...AFFIXES] : [...STATS, 'armor' as const]).filter((k) => !taken.has(k));

@@ -1,9 +1,16 @@
 // How a bandit stronghold's foes fight, past what any foe does: THE SEAM
 // between its run (strongholdFoes.ts: who stands where, the gate, the record
-// of the slain, the chest, the way out) and their ways of fighting (here: the
-// packs' roles, the bosses' phases). For now there are none: every one of them
-// is run by the stronghold's own director (enemies/enemyDirector.ts) as a
-// plain bandit is, a war hound as a wolf, and nothing here does a thing.
+// of the slain, the chest, the way out) and their ways of fighting, put
+// together here for a visit:
+// - its packs' roles (strongholdPack.ts): a bruiser's smash, a crossbowman's
+//   bolt, a firebrand's pot, a sawbones mending, a runner gone for the next
+//   room, a war hound's lunge;
+// - its four wings' bosses (strongholdBosses.ts) and its king
+//   (strongholdKing.ts), each a fight in phases, told as it turns;
+// - what each wing's boss leaves, slain: a piece of his own (strongholdLoot.ts);
+// all played on one stage (strongholdStage.ts: told moves, blasts, burning
+// ground, shots, walks), whose shots, marks, fires and bursts are the view's
+// to draw (view/stronghold/strongholdMovesView.ts).
 //
 // The seam, for whoever gives them their ways (nothing else of the stronghold
 // need be touched for it: not its run, its layout, nor the game's own files):
@@ -36,14 +43,18 @@
 // counted toward clearing the place nor kept in the save.
 //
 // How long each takes over a blow, how far it sees and where it stops short
-// of the hero (a crossbowman's range) are its ENEMY_STATS (model/constants.ts):
-// a first pass, to be tuned with its ways.
+// of the hero (a crossbowman's range) are its ENEMY_STATS (model/constants.ts).
 
 import type { Enemy, EnemyKind, Hero } from '../types';
 import type { DungeonHooks } from '../dungeons/dungeonTypes';
 import type { EnemyDirector } from '../enemies/enemyDirector';
 import type { StrongholdPlan, StrongholdRoom, Wing } from './strongholdLayout';
 import type { StrongholdProp } from './strongholdProps';
+import { Stage } from './strongholdStage';
+import { Pack } from './strongholdPack';
+import { wingBosses } from './strongholdBosses';
+import { King } from './strongholdKing';
+import { bossPiece } from './strongholdLoot';
 
 // Where a foe was posted: its spot, what it is, which of the plan's rooms (its place in plan.rooms), which pack (the
 // packs numbered from 0, a room's guard and its boss one pack), and its post's number in the record of the slain.
@@ -56,8 +67,9 @@ export interface StrongholdPost {
   post: number;
 }
 
-// Something loosed, in flight (a bolt, a firebomb): where it is, its heading (a unit vector), how far it's flown,
-// what it is (the view's to draw by), who loosed it, the harm it does.
+// Something loosed, in flight (a bolt, a fire pot): where it is, its heading (a unit vector), how far it's flown (a
+// pot: how long, in seconds), what it is ('bolt', 'pot': the view's to draw by), who loosed it, the harm it does; a
+// pot, how high along its arc (0..1).
 export interface StrongholdShot {
   x: number;
   z: number;
@@ -67,6 +79,20 @@ export interface StrongholdShot {
   kind: string;
   by: Enemy;
   damage: number;
+  high?: number;
+}
+
+// What a told move shows on the floor before it lands: a ring round a spot, or a strip from one along a way; how far
+// through its tell it is (`k`, 0..1), and what it is (its colour: a blow, fire, a shot's line, a hook's).
+export type StrongholdMark = { tone: 'blow' | 'fire' | 'shot' | 'hook'; x: number; z: number; k: number } & ({ shape: 'ring'; r: number } | { shape: 'strip'; dx: number; dz: number; long: number; half: number });
+
+// Ground burning (a pot's, a keg's, a brazier's coals): where, how wide, how long yet, whose doing.
+export interface StrongholdFire {
+  x: number;
+  z: number;
+  r: number;
+  left: number;
+  by: Enemy;
 }
 
 // What a stronghold's run hands its foes' moves.
@@ -94,27 +120,65 @@ export interface StrongholdFight {
   fly(shot: Pick<StrongholdShot, 'x' | 'z' | 'dx' | 'dz' | 'flown'>, how: { speed: number; hit: number; range: number }, dt: number, strike: () => void): boolean;
 }
 
+// A part of them (the packs' roles, a boss): run every frame, asked of the blows that are its own, told of the slain.
+export interface StrongholdPart {
+  update(dt: number): void;
+  strike?(foe: Enemy): boolean;
+  slain?(foe: Enemy): void;
+}
+
 // The moves of a visit: what the run calls, and what the view draws of them.
 export interface StrongholdMoves {
   readonly shots: readonly StrongholdShot[]; // in flight
+  readonly marks: readonly StrongholdMark[]; // told on the floor, this frame
+  readonly fires: readonly StrongholdFire[]; // ground burning
+  readonly bursts: ReadonlyArray<{ x: number; z: number; r: number; age: number }>; // blasts just burst (a moment each)
   update(dt: number): void;
   strike(foe: Enemy): boolean;
   slain(foe: Enemy): void;
 }
 
-// Plain bandits, all of them: nothing loosed, nothing told, every blow landing as any foe's.
-class PlainMoves implements StrongholdMoves {
-  readonly shots: StrongholdShot[] = [];
+// The packs' roles and the five bosses, on one stage.
+class Moves implements StrongholdMoves {
+  private readonly stage: Stage;
+  private readonly parts: StrongholdPart[];
 
-  constructor(protected readonly fight: StrongholdFight) {}
-
-  update(_dt: number): void {}
-
-  strike(_foe: Enemy): boolean {
-    return false;
+  constructor(private readonly fight: StrongholdFight) {
+    this.stage = new Stage(fight);
+    const pack = new Pack(this.stage);
+    this.parts = [pack, ...wingBosses(this.stage, pack), ...(fight.king ? [new King(this.stage, fight.king)] : [])];
   }
 
-  slain(_foe: Enemy): void {}
+  get shots() {
+    return this.stage.shots;
+  }
+  get marks() {
+    return this.stage.marks;
+  }
+  get fires() {
+    return this.stage.fires;
+  }
+  get bursts() {
+    return this.stage.bursts;
+  }
+
+  update(dt: number): void {
+    for (const part of this.parts) part.update(dt);
+    this.stage.update(dt);
+  }
+
+  strike(foe: Enemy): boolean {
+    return this.parts.some((part) => part.strike?.(foe));
+  }
+
+  // One slain: its part told, what it set burning out; a wing's boss, the piece that's his alone left where he fell
+  // (the king's is in his chest: strongholdFoes.ts).
+  slain(foe: Enemy): void {
+    for (const part of this.parts) part.slain?.(foe);
+    this.stage.quench(foe);
+    const piece = foe.kind === 'banditKing' ? null : bossPiece(foe.kind, this.fight.level);
+    if (piece) this.fight.hooks.dropLoot(piece, foe.x - 0.25, foe.z + 0.2);
+  }
 }
 
-export const strongholdMoves = (fight: StrongholdFight): StrongholdMoves => new PlainMoves(fight);
+export const strongholdMoves = (fight: StrongholdFight): StrongholdMoves => new Moves(fight);

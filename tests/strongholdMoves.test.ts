@@ -26,7 +26,7 @@ describe('the seam its foes\' ways go behind (strongholdMoves.ts)', () => {
     const model = fresh();
     const inside = strongholdInside(model.seed, model.strongholds[0].entrance);
     const hero = Object.assign(model.hero, { x: inside.plan.door, z: inside.plan.depth - 1, maxHp: 10_000, hp: 10_000 });
-    const moves = { shots: [], update: vi.fn(), strike: vi.fn(() => strikes), slain: vi.fn() } satisfies StrongholdMoves;
+    const moves = { shots: [], marks: [], fires: [], bursts: [], update: vi.fn(), strike: vi.fn(() => strikes), slain: vi.fn() } satisfies StrongholdMoves;
     let fight!: StrongholdFight;
     const game = hooks();
     const slain = new Set<number>();
@@ -122,18 +122,27 @@ describe('the seam its foes\' ways go behind (strongholdMoves.ts)', () => {
   });
 });
 
-describe('a stronghold\'s foes\' ways, for now', () => {
-  it('are none: nothing loosed, every blow left to land as any foe\'s, a run made with them by default', () => {
+describe('a stronghold\'s foes\' ways (their roles: strongholdPack.test.ts; their bosses: strongholdBosses.test.ts)', () => {
+  it('are a run\'s by default: nothing loosed, told or burning as the hero comes in; a bruiser\'s plain blow left to land, one who fights from afar never landing one; played in the game itself', () => {
     const model = fresh();
     const stronghold = model.strongholds[0];
     model.teleport(stronghold.entrance.x, stronghold.entrance.z);
     model.useDoor();
     const run = model.dungeon as StrongholdRun;
-    expect(run.moves.shots).toEqual([]);
-    expect(run.moves.strike(run.foes[0])).toBe(false);
-    const plain = strongholdMoves({} as StrongholdFight);
-    plain.update(FRAME);
-    plain.slain(run.foes[0]);
-    expect(plain.shots).toEqual([]);
+    expect([run.moves.shots, run.moves.marks, run.moves.fires, run.moves.bursts]).toEqual([[], [], [], []]);
+    expect(run.moves.strike(run.foes.find((f) => f.kind === 'bruiser')!)).toBe(false);
+    expect(run.moves.strike(run.foes.find((f) => f.kind === 'crossbowman')!)).toBe(true);
+    // The hero stood among the watch a while, in the game itself: its ways played out on them (told, loosed, landing).
+    const bowman = run.foes.find((f) => f.kind === 'crossbowman')!;
+    Object.assign(model.hero, { x: bowman.x, z: bowman.z + 3, maxHp: 10_000, hp: 10_000 });
+    let [told, loosed] = [false, false];
+    for (let t = 0; t < 8; t += FRAME) {
+      model.update(0, 0, FRAME);
+      told ||= run.moves.marks.length > 0;
+      loosed ||= run.moves.shots.length > 0;
+    }
+    expect([told, loosed]).toEqual([true, true]);
+    expect(model.hero.hp).toBeLessThan(10_000);
+    expect(strongholdMoves).toBeTypeOf('function');
   });
 });

@@ -37,6 +37,7 @@ import { WINGS, middleOf, roomAt, type StrongholdRoom, type Wing } from './stron
 import { chestSpot, kingSpot, solidTiles } from './strongholdProps';
 import { kingName } from './strongholdNames';
 import { strongholdMoves, type StrongholdFight, type StrongholdMoves, type StrongholdPost } from './strongholdMoves';
+import { bossPiece } from './strongholdLoot';
 import { kept } from '../../util/kept';
 
 export const STRONGHOLD_FOE_ID = 5_000_000; // its foes' ids: this plus their post's number (clear of the world's, the quests', the crypts', the caves')
@@ -114,9 +115,9 @@ export function strongholdPosts(seed: number, inside: StrongholdInside): Strongh
 const counted = kept<StrongholdInside, number>();
 export const strongholdFoeCount = (seed: number, inside: StrongholdInside): number => counted(inside, () => strongholdPosts(seed, inside).length - 1);
 
-// What the king's chest holds: a fine piece (finer than a cave's hoard) and coins by the stronghold's level.
+// What the king's chest holds: his own axe, found nowhere else (strongholdLoot.ts), and coins by the stronghold's level.
 export const strongholdHoard = (inside: StrongholdInside, seed: number): Hoard =>
-  rollHoard(inside.stronghold.gate.x, inside.stronghold.gate.z, seed + 5519, inside.stronghold.level, { worth: 150, base: 90, spread: 60 });
+  ({ ...rollHoard(inside.stronghold.gate.x, inside.stronghold.gate.z, seed + 5519, inside.stronghold.level, { worth: 150, base: 90, spread: 60 }), item: bossPiece('banditKing', inside.stronghold.level)! });
 
 export class StrongholdRun extends DungeonFoes {
   readonly foes: Enemy[];
