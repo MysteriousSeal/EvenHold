@@ -7,7 +7,8 @@
 //  5. the head into its head, on a neck arched up and forward: a mane, a white blaze, ears;
 //  6. and to its own size, to give way.
 // Anything with no such parts (a spider, a bat, a worm): taken apart whole into its voxels and put together again as
-// it (voxelMorph.ts: `cloud`). The horse then, itself: a toss of its head, a stamp.
+// it (voxelMorph.ts: `cloud`). What has no voxels to take apart either (a ghost, seen through): it only dwindles, and
+// that's what's said of it (`lines`). The horse then, itself: a toss of its head, a stamp.
 import * as THREE from 'three';
 import { createHorse } from '../../meshes/turned/horseRig';
 import { HORSE_BODY, HORSE_EAR_ROWS, HORSE_HEAD, HORSE_NECK, HORSE_PALETTE, HORSE_SHAPE, HORSE_VOXEL_SIZE } from '../../meshes/turned/horseVoxels';
@@ -71,13 +72,12 @@ const BEAST: Telling = {
 export const horseStaging: Staging = {
   title: "Horse-coper's word",
   becomes: 'A horse',
+  // (Of what only dwindles: nothing of it to go down on all fours, none of the horse seen till it's there.)
   lines: [
-    [0, '{name} hears their name called, from a long way off.'],
-    [0.04, 'They go down on all fours: the back level, the hands on the ground.'],
-    [0.27, 'The legs lengthen and straighten, all four. Hands and feet close into hooves.'],
-    [0.45, 'The back deepens into a barrel. A tail. The neck arches up; the face grows long.'],
-    [0.72, 'A mane. A white blaze.'],
-    [0.92, 'A horse, standing where they stood.'],
+    [0, '{name} hears something call it, from a long way off.'],
+    [0.12, 'It thins, and draws in on itself.'],
+    [0.5, 'Smaller. Fainter.'],
+    [0.85, 'Almost nothing left of it.'],
   ],
   looseLines: [
     [0, '{name} hears something call it, from a long way off.'],

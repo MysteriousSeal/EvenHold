@@ -1,9 +1,11 @@
 // Someone turned into a cow (model/spells/turned.ts), staged step by step as a horse is (turning.ts; becoming.ts):
 // down on all fours; all four legs short, thick and hooved; a long deep barrel; a short neck and a broad head, its
-// muzzle wide and pink; she white all over till then. Then what grows on her: her horns, out and up; her ears; her
-// red patches, spreading over her head, then her shoulders, her rump, her flank; her udder (and her tail, behind).
-// Anything with no such parts: taken apart whole into its voxels and put together again as her (voxelMorph.ts:
-// `cloud`). The cow then, herself: her head lifted and stretched forward to low; then down to the grass.
+// muzzle wide and pink; she her coat's ground all over till then. Then what grows on her: her horns, out and up; her
+// ears; her patches, spreading over her head, then her shoulders, her rump, her flank; her udder (and her tail,
+// behind). Anything with no such parts: taken apart whole into its voxels and put together again as her
+// (voxelMorph.ts: `cloud`). What has no voxels to take apart either (a ghost, seen through): it only dwindles, and
+// that's what's said of it (`lines`). The cow then, herself: her head lifted and stretched forward to low; then down
+// to the grass.
 import * as THREE from 'three';
 import { createCow } from '../../meshes/turned/cowRig';
 import { COW_BODY, COW_COLORS, COW_HEAD, COW_NECK, COW_VOXEL_SIZE, cowShape } from '../../meshes/turned/cowVoxels';
@@ -23,6 +25,13 @@ export const COW = new THREE.Vector3(COW_BODY[0] * V, (COW_NECK[1] + COW_HEAD[1]
 const tailOf = (body: Cloud, big: number) => ((back) => (at: THREE.Vector3) => at.z < back + V * big * 1.5)(Math.min(...body.at.map((at) => at.z)));
 const outOf = (big: number) => (at: THREE.Vector3) => Math.abs(at.x) > V * big * 3;
 const middle = (cloud: Cloud) => new THREE.Box3().setFromPoints(cloud.at).getCenter(new THREE.Vector3());
+// What's said of each coat (COW_PALETTES, in their order): her patches spreading over her, and her whole.
+const COATS: ReadonlyArray<{ spreads: string; whole: string }> = [
+  { spreads: 'Red, spreading over the white', whole: 'Patched red and white.' },
+  { spreads: 'Black, spreading over the white', whole: 'Patched black and white.' },
+  { spreads: 'A darker brown, spreading over the dun', whole: 'Dun, patched brown.' },
+  { spreads: 'A deeper black, spreading over the black', whole: 'Black all over.' },
+];
 
 // Her staging, in one of her coats (COW_PALETTES): the one she'll be seen in after.
 // `bull`: a bull's (a man turned): his hump and thick neck, his longer horns, no udder; the ground pawed after.
@@ -30,6 +39,7 @@ export function cowStagingOf(coat = 0, bull = false): Staging {
   const shape = cowShape(coat, bull);
   const hue = hued(shape.palette);
   const WHITE = new THREE.Color(shape.palette[C.white - 1]);
+  const told = COATS[coat] ?? COATS[0];
   const becoming = quadrupedBecoming(shape, COW, {
     // What grows on her: her horns; her ears; her patches, over her head and then her body, each spreading from its
     // middle; her udder, and her tail.
@@ -41,7 +51,7 @@ export function cowStagingOf(coat = 0, bull = false): Staging {
       return [
         { on: 'head', cloud: horns, root: horns.at.reduce((best, at) => (at.y < best.y ? at : best)), line: bull ? 'Horns: out from the poll, long, swept forward.' : 'Horns: out from the poll, and up.' },
         { on: 'head', cloud: some(head, (at, i) => out(at) && !hue(head, i, C.horn)), line: 'Ears, under them.' },
-        { on: 'head', cloud: face, root: middle(face), line: 'Red, spreading over the white: the cheeks, the neck.' },
+        { on: 'head', cloud: face, root: middle(face), line: `${told.spreads}: the cheeks, the neck.` },
         { on: 'body', cloud: hide, root: middle(hide), line: 'The shoulders, the rump, a flank.' },
         { on: 'body', cloud: joined([some(body, (_at, i) => hue(body, i, C.pink)), some(body, (at) => tail(at))], V * big), line: bull ? 'What makes a bull of him, between the hind legs; a tail, behind.' : 'An udder; a tail, behind.' },
       ];
@@ -77,19 +87,18 @@ export function cowStagingOf(coat = 0, bull = false): Staging {
   const staging: Staging = {
     title: "Herdsman's call",
     becomes: bull ? 'A bull' : 'A cow',
+    // (Of what only dwindles: nothing of it to go down on all fours, none of her seen till she's there.)
     lines: [
-      [0, '{name} hears the herd called in.'],
-      [0.04, 'They go down on all fours.'],
-      [0.27, 'The legs thicken, all four. Hooves.'],
-      [0.45, 'A long, deep barrel of a body. A broad head.'],
-      [0.72, bull ? 'Horns. A hump. Patches.' : 'Horns. Patches. An udder.'],
-      [0.92, bull ? 'A bull, where they stood.' : 'A cow, chewing, where they stood.'],
+      [0, '{name} hears a herd called in, somewhere.'],
+      [0.12, 'It thins, and draws in on itself.'],
+      [0.5, 'Smaller. Fainter.'],
+      [0.85, 'Almost nothing left of it.'],
     ],
     looseLines: [
       [0, '{name} hears a herd called in, somewhere.'],
       [0.08, 'It comes apart, from the ground up.'],
       [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Heavier. Horned. Patched red and white.'],
+      [0.72, `Heavier. Horned. ${told.whole}`],
     ],
     cloud: () => ((cow) => joined([cow.body, cow.head, ...cow.legs], V))(quadrupedClouds(shape, 1)),
     direct: turningInto(becoming, { person: PERSON, beast: BEAST }),

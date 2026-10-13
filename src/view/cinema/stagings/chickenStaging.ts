@@ -142,13 +142,14 @@ const BEAST: Telling = {
 export const chickenStaging: Staging = {
   title: "Hen-wife's turn",
   becomes: 'A chicken',
+  // (Of what's staged whole, below: no legs or arms to it, and what's said kept to what's seen, as it's seen.)
   lines: [
     [0, '{name} feels something is wrong.'],
-    [0.04, 'They stoop: the back level, the arms drawn in to the sides.'],
-    [0.27, 'The legs thin: yellow, and much too short. The arms flatten into wings.'],
-    [0.45, 'The body rounds out. A tail.'],
-    [0.7, 'A comb. A beak. A wattle.'],
-    [0.92, 'A chicken as tall as a man. And then smaller. Much smaller.'],
+    [0.15, 'It draws in on itself: shorter, rounder.'],
+    [0.3, 'It whitens.'],
+    [0.5, 'A tail, pushing out behind.'],
+    [0.6, 'A comb. A beak. A wattle.'],
+    [0.86, 'And smaller. Much smaller.'],
   ],
   feathers: [0.3, 1],
   looseLines: [
