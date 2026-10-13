@@ -19,6 +19,8 @@ import { fineFigure } from './fineFigure';
 // or a staff reaches 12 voxels behind the hand and 20 ahead of it).
 const SIZE: [number, number, number] = [24, 34, 56];
 const SHIFT: [number, number, number] = [11, 2, 21];
+// Where the neck is in a fine figure's grid (fineFigure.ts: voxels half the size): what a head's drawn smaller about.
+export const FINE_NECK: [number, number, number] = [(JOINTS.head.at[0] + SHIFT[0]) * 2, (JOINTS.head.at[1] + SHIFT[1]) * 2, (JOINTS.head.at[2] + SHIFT[2]) * 2];
 // What's held is modelled in coarser voxels (bodyVoxels.ts HELD_VOXEL_SIZE):
 // scaled up to the figure's, blocky, so it keeps its size beside the body.
 const HELD_SCALE = HELD_VOXEL_SIZE / HUMAN_VOXEL_SIZE;

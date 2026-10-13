@@ -123,6 +123,7 @@ export class HumanRig {
       const { part, at } = BODIES[look.build].joints[joint];
       const group = new THREE.Group();
       group.position.set(at[0] * V, at[1] * V, at[2] * V);
+      if (joint === 'head') group.scale.setScalar(BODIES[look.build].headScale); // (and all that's on it, with it)
       group.add(this.mesh(frame ? frame.part(part) : bodyGeometry(look, part)));
       this.body.add(group);
       joints[joint] = group;

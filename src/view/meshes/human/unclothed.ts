@@ -14,10 +14,10 @@ export function unclothed(look: BodyLook): BodyLook {
 }
 
 // The unclothed torso drawn twice as fine (each voxel eight), for what a whole voxel can't place: a nipple in the
-// middle of each side of the chest (her bust is two voxels wide and two high, his chest three and two: their
+// middle of each side of the chest (each of her breasts is two voxels wide and two high where it stands furthest, his chest three and two: their
 // middles fall between voxels), two fine voxels square (a voxel's own size), on the chest's front face.
 export const NIPPLES: Record<Build, ReadonlyArray<[x: number, y: number, z: number]>> = {
-  female: [3, 9].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
+  female: [3, 9].flatMap((x) => [11, 12].flatMap((y) => [[x, y, 11], [x + 1, y, 11]] as Array<[number, number, number]>)),
   male: [4, 12].flatMap((x) => [13, 14].flatMap((y) => [[x, y, 9], [x + 1, y, 9]] as Array<[number, number, number]>)),
 };
 export function fineTorso(build: Build): VoxelGrid {
