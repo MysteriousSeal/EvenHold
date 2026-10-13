@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
+import { HoundRig, createHoundLook } from './houndRig';
 import { UndeadRig, createUndeadLook, type UndeadLook } from './undeadRig';
 import { GhostRig, createGhostLook, type GhostLook } from './ghostRig';
 import { ENEMY_BURST, type EnemyRig } from './enemyParts';
@@ -48,17 +49,18 @@ export class EnemyViews {
     broodMother: (enemy) => new SpiderRig(enemy, this.motherLook),
     caveBat: (enemy) => new BatRig(enemy, this.batLook),
     caveWorm: (enemy) => new WormRig(enemy, this.wormLook),
-    bruiser: (enemy) => new BanditRig(enemy, this.banditLook), // (a stronghold's, model/strongholds/: a bandit's rig till it has its own)
-    crossbowman: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
-    firebrand: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
-    sawbones: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
-    runner: (enemy) => new BanditRig(enemy, this.banditLook), // (a bandit's rig, for now)
-    warHound: () => new BeastRig(this.wolfLook), // (a wolf's rig, for now)
-    houndmaster: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
-    quartermaster: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
-    gaoler: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
-    captain: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
-    banditKing: (enemy) => new BanditRig(enemy, this.banditLook), // (a chief's rig, for now)
+    // A stronghold's (model/strongholds/): bandits, each kind in its own outfit; their hounds.
+    bruiser: (enemy) => new BanditRig(enemy, this.banditLook, 'bruiser'),
+    crossbowman: (enemy) => new BanditRig(enemy, this.banditLook, 'crossbowman'),
+    firebrand: (enemy) => new BanditRig(enemy, this.banditLook, 'firebrand'),
+    sawbones: (enemy) => new BanditRig(enemy, this.banditLook, 'sawbones'),
+    runner: (enemy) => new BanditRig(enemy, this.banditLook, 'runner'),
+    warHound: (enemy) => new HoundRig(enemy, this.houndLook),
+    houndmaster: (enemy) => new BanditRig(enemy, this.banditLook, 'houndmaster'),
+    quartermaster: (enemy) => new BanditRig(enemy, this.banditLook, 'quartermaster'),
+    gaoler: (enemy) => new BanditRig(enemy, this.banditLook, 'gaoler'),
+    captain: (enemy) => new BanditRig(enemy, this.banditLook, 'captain'),
+    banditKing: (enemy) => new BanditRig(enemy, this.banditLook, 'banditKing'),
   };
   private readonly spiderLook: SpiderLook = createSpiderLook(CAVE_SPIDER, this.flash);
   private readonly hatchlingLook: SpiderLook = createSpiderLook(HATCHLING, this.flash);
@@ -67,6 +69,7 @@ export class EnemyViews {
   private readonly wormLook: WormLook = createWormLook(this.flash);
   private readonly undeadLook: UndeadLook = createUndeadLook(this.flash);
   private readonly banditLook: BanditLook = createBanditLook(this.flash);
+  private readonly houndLook = createHoundLook(this.flash);
   private readonly ghostLook: GhostLook = createGhostLook(this.flash);
   private readonly rigs = new Nearby<Enemy, EnemyRig>(
     (enemy) => {
@@ -105,7 +108,7 @@ export class EnemyViews {
 
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.bearLook.normal, this.lynxLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];
+    return [this.wolfLook.normal, this.boarLook.normal, this.bearLook.normal, this.lynxLook.normal, this.houndLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.

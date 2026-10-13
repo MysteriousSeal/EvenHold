@@ -58,7 +58,7 @@ export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name,
 export const GLOW: ReadonlySet<number> = new Set([C.ember, C.flame, C.core]); // drawn unlit: its fires
 
 // How it's lit (for whoever builds its scene): the dark past its walls, a dim warm light all round, its fires' colour.
-export const STRONGHOLD_LIGHT = { background: 0x0e0b09, sky: 0xb09a80, ground: 0x221912, intensity: 0.85, fire: 0xffa050 };
+export const STRONGHOLD_LIGHT = { background: 0x0e0b09, sky: 0xb09a80, ground: 0x221912, intensity: 1.05, fire: 0xffa050 };
 
 // A piece of the stronghold meshed in its palette from `origin`: its timber and stone (lit), or what glows of it.
 export const strongholdGeometry: Mesher = (grid, origin, glow) => greedyMesh(grid, STRONGHOLD_PALETTE, STRONGHOLD_VOXEL, origin, (c) => GLOW.has(c) === glow);

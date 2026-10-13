@@ -1,7 +1,6 @@
 // The caves' mouths out in the hills (model/caves/caves.ts; voxels: caveMouthVoxels.ts): each knoll centred on its
 // three tiles by three (the mouth's row and the two behind it), its ground level at the mouth's, turned to open
-// toward the spot before it; each look meshed once, streamed with the chunks. (buildMouths: any such outcrop's, by
-// where it opens: a stronghold's gatehouse stands in one for now, view/stronghold/strongholdView.ts.)
+// toward the spot before it; each look meshed once, streamed with the chunks.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
