@@ -47,7 +47,6 @@ import { createBar, orderLabel } from './controller/trade/barOrder';
 import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
-import { createSpellbook } from './controller/spells/spellbook';
 import { playTransformation } from './view/cinema/transformCinema';
 import { swapStaging } from './view/cinema/stagings/swapStaging';
 import { standing } from './view/cinema/stagings/undress';
@@ -56,8 +55,6 @@ import { statueStagingOf } from './view/cinema/stagings/statueStaging';
 import { treeStagingOf } from './view/cinema/stagings/treeStaging';
 import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
-import { createCharmPanel } from './controller/trade/charmPanel';
-import { spellbookIcon } from './view/ui/spellIcons';
 import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
@@ -176,7 +173,6 @@ async function boot(): Promise<void> {
   const jobs = createJobPanel(model, { setPaused: (paused) => (controller.paused = paused) }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
   const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
-  const charms = createCharmPanel(model); // (a hedge-witch's charms, to learn)
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
@@ -185,14 +181,12 @@ async function boot(): Promise<void> {
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
-    else if (who.role === 'hedgewitch') charms.open(who);
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
   };
   const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused), trade, redraw: (dt) => controller.redraw(dt) }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
-  const spellbook = createSpellbook(model); // (N: the charms the hero knows, to put on the bar)
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: (paused) => (controller.paused = paused) });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
@@ -224,7 +218,6 @@ async function boot(): Promise<void> {
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
     { label: 'Journal', key: 'L', icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
     { label: 'Skills', key: 'K', icon: skillsIcon, isOpen: () => skills.menu.isOpen, toggle: () => skills.menu.toggle() },
-    { label: 'Spellbook', key: 'N', icon: spellbookIcon, isOpen: () => spellbook.menu.isOpen, toggle: () => spellbook.menu.toggle() },
     { label: 'Level up', key: 'P', icon: levelUpIcon, isOpen: () => levelUp.menu.isOpen, toggle: () => levelUp.menu.toggle(), marked: () => model.hero.statPoints > 0 },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
@@ -304,12 +297,10 @@ async function boot(): Promise<void> {
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
     herbs.update();
-    charms.update();
     pack.update();
     journal.update();
     salvage.update(); // (a piece on the bench: its bar)
     skills.update();
-    spellbook.update();
     sheet.update();
     updateToolbar();
     updateActionBar();

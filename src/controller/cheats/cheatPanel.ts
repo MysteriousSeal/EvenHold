@@ -13,6 +13,8 @@
 import type { GameModel } from '../../model/GameModel';
 import type { Who } from '../../model/story/story';
 import { createQuestDebug } from './questDebug';
+import { charmActions } from './charmCheats';
+import { SPELL_ICONS } from '../../view/ui/spellIcons';
 import {
   nextCamp,
   nextCave,
@@ -405,6 +407,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
           ]),
         ],
       },
+      { name: 'Charms', icon: SPELL_ICONS.swap, actions: charmActions(model) }, // (charmCheats.ts)
       {
         name: 'Foes',
         icon: ICON.enemies,
