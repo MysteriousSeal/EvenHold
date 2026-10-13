@@ -1,8 +1,9 @@
 // Where a painting hangs (turned.ts: someone turned into one, in a building's room): on the nearest free stretch of
 // one of the room's two full walls, the far one (-Z: `back`) and the left one (-X: `left`); the other two are cut
 // down to the knee for the camera (view/interior/roomVoxels.ts), and nothing hangs on them. A stretch is a floor
-// tile's width of wall, named by the floor tile under it; free where nothing stands against it or hangs on it
-// (interiors/furniture.ts: anything on that tile but a rug), and no other painting has it.
+// tile's width of wall, named by the floor tile under it; free where nothing stands against a wall or hangs on one
+// there (interiors/furniture.ts: a piece with a wall of its own; what stands free on the floor, a barrel, a chair, is
+// low enough to hang over), no stairs climb past it, and no other painting has it.
 import type { Furniture } from '../interiors/furniture';
 import type { Room } from '../interiors/interiors';
 import type { Point } from '../map/obstacles';
@@ -25,7 +26,7 @@ export const soundHung = (hung: unknown): hung is Hung => {
 
 // The stretch of wall nearest `from` (someone stood in `room`) that's free; none: null. `taken`: those hung there already.
 export function wallFor(room: Room, furniture: readonly Furniture[], taken: readonly Hung[], from: Point): Hung | null {
-  const covered = (x: number, z: number) => furniture.some((f) => (f.solid || f.wall !== 'none') && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
+  const covered = (x: number, z: number) => furniture.some((f) => (f.wall !== 'none' || f.kind === 'stairs') && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
   const spots: Hung[] = [...Array.from({ length: room.width }, (_, x): Hung => ({ wall: 'back', x, z: 0 })), ...Array.from({ length: room.depth }, (_, z): Hung => ({ wall: 'left', x: 0, z }))];
   const far = (hung: Hung) => Math.hypot(hungAt(hung).x - from.x, hungAt(hung).z - from.z);
   const free = spots.filter((s) => !covered(s.x, s.z) && !taken.some((t) => t.wall === s.wall && t.x === s.x && t.z === s.z));
