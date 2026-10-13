@@ -127,7 +127,7 @@ describe('someone turned into a ghost', () => {
     for (const of of [human, beast]) {
       const { said, done, title } = played(of, ghostStagingOf(of));
       expect(title).toBe(ghostStagingOf(of).title);
-      expect(said).toEqual(['Idtram feels the warmth go out of their hands.', 'The colour, first: out of the fingers, the hair, the hems.', 'Then inward. Pale, to the middle of them.', 'Thinner. The slab shows through the chest.', 'The face, theirs still. There is less of it.', 'The feet leave the ground. Nothing lifted them.', 'Below the knee, no legs to speak of: a wisp.', 'A ghost, where they stood.', 'A ghost.']);
+      expect(said).toEqual([of === human ? 'Idtram feels the warmth go out of their hands.' : 'Idtram feels the warmth go out of it.', of === human ? 'The colour, first: out of the fingers, the hair, the hems.' : 'The colour, first: out of the ears, the feet, the edges of it.', 'Then inward. Pale, to the middle of them.', 'Thinner. The slab shows through the chest.', 'The face, theirs still. There is less of it.', 'The feet leave the ground. Nothing lifted them.', 'Below the knee, no legs to speak of: a wisp.', 'A ghost, where they stood.', 'A ghost.']);
       expect(done).toHaveBeenCalledTimes(1);
     }
   });
@@ -172,7 +172,7 @@ describe('someone turned into a painting', () => {
   it('is told step by step: stiff, framed, flat, in paint, cracked, hung', () => {
     for (const of of [human, beast]) {
       const { said, done } = played(of, paintingStagingOf(of));
-      expect(said).toEqual(['Idtram finds they cannot turn their head.', 'Four corners of gilt, out of the dark.', 'They close. A rail under the feet; one over the head.', 'Behind them, a ground of old brown.', 'Flatter. The depth of them goes first.', "Chest to back, a finger's width; then less.", 'The colours, to paint: duller, and yellowing.', 'A crack or two. It is old already.', 'Up, to where a nail would be.', 'A painting.']);
+      expect(said).toEqual([of === human ? 'Idtram finds they cannot turn their head.' : 'Idtram finds they cannot turn.', 'Four corners of gilt, out of the dark.', 'They close. A rail under the feet; one over the head.', 'Behind them, a ground of old brown.', 'Flatter. The depth of them goes first.', "Chest to back, a finger's width; then less.", 'The colours, to paint: duller, and yellowing.', 'A crack or two. It is old already.', 'Up, to where a nail would be.', 'A painting.']);
       expect(done).toHaveBeenCalledTimes(1);
     }
   });
@@ -216,7 +216,7 @@ describe('someone turned into a rag doll', () => {
   it('is told step by step: smaller, softer, sewn, buttoned, slack, down', () => {
     for (const of of [human, beast]) {
       const { said, done } = played(of, dollStagingOf(of));
-      expect(said).toEqual(['Idtram looks at the slab, and it is wider than it was.', 'Smaller. Knee high; then less.', 'Softer: skin to linen, the rest to stuffing.', 'Seams, up the legs. Small, even stitches.', 'Up the arms; down the front. Whoever sewed it took care.', 'The eyes: buttons. Thread through each.', 'Nothing in the limbs to hold them.', 'Down.', 'A rag doll.']);
+      expect(said).toEqual(['Idtram looks at the slab, and it is wider than it was.', 'Smaller. Knee high; then less.', 'Softer: skin to linen, the rest to stuffing.', 'Seams, up the legs. Small, even stitches.', of === human ? 'Up the arms; down the front. Whoever sewed it took care.' : 'Along the back; down the front. Whoever sewed it took care.', 'The eyes: buttons. Thread through each.', 'Nothing in the limbs to hold them.', 'Down.', 'A rag doll.']);
       expect(done).toHaveBeenCalledTimes(1);
     }
   });
