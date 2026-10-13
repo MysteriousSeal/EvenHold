@@ -2,15 +2,15 @@
 // voxelMorph.ts sampleFigure) unravelling in the piece's turn from its edges in, each lifting off in a thread,
 // drifting, thinning to nothing.
 import * as THREE from 'three';
-import { HUMAN_VOXEL_SIZE } from '../meshes/human/bodyVoxels';
-import { PERSON_GLOW } from '../meshes/human/humanParts';
+import { HUMAN_VOXEL_SIZE } from '../../meshes/human/bodyVoxels';
+import { PERSON_GLOW } from '../../meshes/human/humanParts';
+import { smooth } from '../easing';
 import type { Cloud } from './voxelMorph';
 
 const DRIFT = HUMAN_VOXEL_SIZE; // what a thread of it's carried by: so far whatever its cubes' size
 const OVERLAP = 0.35; // of a piece's turn, the next begun before it's done
 const THREAD = 0.4; // of a piece's turn, each voxel's own going
 
-const smooth = (t: number) => t * t * (3 - 2 * t);
 
 export class Vapour {
   readonly mesh: THREE.InstancedMesh;

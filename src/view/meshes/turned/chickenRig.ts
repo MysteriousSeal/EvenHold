@@ -1,13 +1,8 @@
-// The hens people have been turned into (model/spells/chickens.ts: for good), each drawn where she is: strutting (her
-// legs scissoring, her head bobbing forward with each step), and stood still pecking at the ground now and then.
-// Those where the hero is (the world, a room, a dungeon: drawn bigger indoors, as all are); one just turned comes
-// into sight in a puff of smoke and feathers.
+// A hen someone's been turned into (model/spells/turned.ts: for good), drawn where she is: strutting (her legs
+// scissoring, her head bobbing forward with each step), and stood still pecking at the ground now and then.
 import * as THREE from 'three';
-import type { Hen } from '../../../model/spells/chickens';
-import type { SmokePuffs } from '../common/smokePuffs';
+import type { Hen } from '../../../model/spells/turned';
 import { CreatureRig, partMesher } from '../common/creatureRig';
-import { CowRig } from './cowRig';
-import { HorseRig } from './horseRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from './chickenVoxels';
 
 const V = CHICKEN_VOXEL_SIZE;
@@ -38,7 +33,7 @@ export function createHen(material: THREE.Material): { root: THREE.Group; body: 
   return { root, body, head, legs };
 }
 
-class ChickenRig extends CreatureRig {
+export class ChickenRig extends CreatureRig {
   private readonly body: THREE.Group;
   private readonly head: THREE.Group;
   private readonly legs: THREE.Group[];
@@ -62,29 +57,5 @@ class ChickenRig extends CreatureRig {
     // Walking: her head thrust forward with each step. Stood: down to peck, and up again.
     const peck = (this.time % PECK_EVERY) / PECK_EVERY;
     this.head.rotation.x = walking ? swing * 0.18 : peck < 0.3 ? Math.sin((peck / 0.3) * Math.PI) * PECK_DOWN : 0;
-  }
-}
-
-export class ChickenViews {
-  readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
-  private readonly rigs = new Map<Hen, ChickenRig | HorseRig | CowRig>(); // (a hen, a horse or a cow: what each was turned into)
-
-  // Each frame: the hens where the hero is, drawn in `parent` at `scale`; `smoke`: for one just turned, as she's first seen.
-  update(hens: readonly Hen[], parent: THREE.Object3D, scale: number, dt: number, smoke: SmokePuffs): void {
-    const seen = new Set(hens);
-    for (const [hen, rig] of this.rigs) if (!seen.has(hen)) [rig.dispose(), this.rigs.delete(hen)];
-    for (const hen of hens) {
-      let rig = this.rigs.get(hen);
-      const made = !rig;
-      if (!rig) this.rigs.set(hen, (rig = hen.kind === 'horse' ? new HorseRig(this.material) : hen.kind === 'cow' || hen.kind === 'bull' ? new CowRig(this.material, hen.coat, hen.kind === 'bull') : new ChickenRig(this.material)));
-      if (rig.root.parent !== parent) parent.add(rig.root);
-      rig.root.scale.setScalar(scale);
-      rig.update(hen, made ? 0 : dt);
-      if (hen.fresh) {
-        hen.fresh = false;
-        smoke.puff(parent, hen.x, hen.y, hen.z, scale);
-        if (hen.kind === 'chicken') smoke.feathers(parent, hen.x, hen.y, hen.z, scale, 12);
-      }
-    }
   }
 }

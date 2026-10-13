@@ -7,6 +7,7 @@
 // that swell out of nothing).
 import * as THREE from 'three';
 import type { Joint } from '../meshes/human/bodyVoxels';
+import { smooth, through } from './easing';
 
 export type Part = 'legs' | 'arms' | 'torso' | 'head' | 'all';
 type Tinted = THREE.Material & { color: THREE.Color; emissive?: THREE.Color };
@@ -116,7 +117,4 @@ export function swell(mesh: THREE.Mesh, k: number): void {
 }
 
 // Smoothly from 0 to 1 as `u` goes from `a` to `b` (0 before, 1 after).
-export function over(u: number, a: number, b: number): number {
-  const t = Math.max(0, Math.min(1, (u - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
+export const over = (u: number, a: number, b: number): number => smooth(through(u, [a, b]));

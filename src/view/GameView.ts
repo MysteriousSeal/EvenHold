@@ -2,7 +2,7 @@
 // handling. Mesh construction is delegated to meshes/; this class wires
 // them together and drives the per-frame render.
 
-import type { Being } from '../model/spells/chickens';
+import { isFoe, type Being } from '../model/spells/beings';
 import { isProvision } from '../model/loot/provisions';
 import { mugsAt } from '../model/inn/barMugs';
 import * as THREE from 'three';
@@ -25,7 +25,7 @@ import { ChunkStreamer } from './world/chunkStreamer';
 import { WORLD_BUILDERS, type WorldBuilder } from './world/worldBuilders';
 import { WorldRegions } from './world/worldRegions';
 import { EnemyViews, focusMarker } from './meshes/enemy/enemyViews';
-import { ChickenViews } from './meshes/wildlife/chickenRig';
+import { TurnedViews } from './meshes/turned/turnedViews';
 import { SmokePuffs } from './meshes/common/smokePuffs';
 import { setBarHeroLevel } from './meshes/enemy/enemyParts';
 import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
@@ -93,7 +93,7 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
-  private readonly chickens = new ChickenViews(); // the hens people have been turned into (spells/chickens.ts)
+  private readonly chickens = new TurnedViews(); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
   private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
   private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room
@@ -249,7 +249,7 @@ export class GameView {
 
   // A figure of someone on their own, as they stand, facing +Z, nowhere yet (to be staged: cinema/transformCinema.ts).
   standIn(being: Being): THREE.Object3D {
-    if ('kind' in being) return this.enemies.standIn(being);
+    if (isFoe(being)) return this.enemies.standIn(being);
     const rig = new HumanRig(being.look, personMaterial());
     rig.wear(being.equipment);
     rig.update(0, 0, 0, 0, null, 0, 'stand');

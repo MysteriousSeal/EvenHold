@@ -1,14 +1,8 @@
-// What the stagings played full screen share (swapStaging.ts, turning.ts): spans of the whole and ways through them;
-// someone read off as fine cubes, and such clouds of cubes told apart, cut in bands; what someone wears read off them
-// piece by piece.
+// What the stagings played full screen share (swapStaging.ts, turning.ts): someone read off as fine
+// cubes, and such clouds of cubes told apart, by colour, cut in bands.
 import * as THREE from 'three';
-import { ARMOR_SLOTS, type EquipSlot } from '../../model/human/equipment';
+import type { Span } from '../easing';
 import { PERSON_CUBE, sampleFigure, type Cloud } from './voxelMorph';
-
-export type Span = [from: number, to: number];
-export const smooth = (t: number): number => t * t * (3 - 2 * t);
-export const through = (u: number, [a, b]: Span): number => Math.max(0, Math.min(1, (u - a) / (b - a)));
-export const bell = (t: number): number => Math.sin(Math.max(0, Math.min(1, t)) * Math.PI); // (at rest either end, at its most in the middle)
 
 const NOTHING = new THREE.Color(-9, -9, -9); // (no colour of anything's)
 const keyOf = (at: THREE.Vector3, size: number) => `${Math.round((at.x / size) * 2)},${Math.round((at.y / size) * 2)},${Math.round((at.z / size) * 2)}`; // (to half a cube: the same place, the same key)
@@ -26,23 +20,14 @@ export const apart = (a: Cloud, b: Cloud, shared = false): Cloud => {
   const there = new Map(b.at.map((at, i) => [keyOf(at, a.size), b.color[i]]));
   return some(a, (at, i) => off(a.color[i], there.get(keyOf(at, a.size)) ?? NOTHING) !== shared);
 };
+// Whether a cube of a cloud is one of these colours of `palette` (by their place in it, from 1: a voxel model's roles).
+export const hued =
+  (palette: readonly number[]) =>
+  (cloud: Cloud, i: number, ...roles: number[]): boolean =>
+    roles.some((role) => cloud.color[i].getHex() === palette[role - 1]);
 // A part's cubes between two heights of it (0 its foot, 1 its top).
 export const band = (cloud: Cloud, [lo, hi]: Span): Cloud => {
   const ys = cloud.at.map((at) => at.y);
   const [min, max] = [Math.min(...ys), Math.max(...ys)];
   return some(cloud, (at) => ((f) => f >= lo && (f < hi || hi >= 1))((at.y - min) / (max - min || 1)));
 };
-
-// What `figure` wears (a HumanRig's root: what's worn where, by its `wornIn`), piece by piece in the order it comes
-// off (what's on their head first), each the voxels of it that aren't their body's (`bare`: themselves unclothed, as
-// they stand); and last whatever else of them isn't (their braies, close on them). `headed`: something on their head.
-export function wornPieces(figure: THREE.Object3D, bare: THREE.Object3D, tall: number): { pieces: Cloud[]; headed: boolean } {
-  const skin = read(bare, tall);
-  const wornIn = (slot: EquipSlot) => ((figure.userData.wornIn as ((slot: EquipSlot) => THREE.Mesh[]) | undefined)?.(slot) ?? []).filter((mesh) => mesh.visible);
-  const pieces = ARMOR_SLOTS.map((slot) => joined(wornIn(slot).map((mesh) => read(mesh, tall)), PERSON_CUBE));
-  const gear = ARMOR_SLOTS.flatMap((slot) => wornIn(slot));
-  for (const mesh of gear) mesh.visible = false;
-  pieces.push(read(figure, tall));
-  for (const mesh of gear) mesh.visible = true;
-  return { pieces: pieces.map((piece) => apart(piece, skin)), headed: wornIn('head').length > 0 && pieces[0].at.length > 0 };
-}

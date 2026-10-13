@@ -9,15 +9,14 @@
 //  5. down to its own size, where it's the smaller, to give way to it.
 // Anything with no such parts: null (taken apart whole and put together again, as before: transformCinema.ts).
 import * as THREE from 'three';
-import type { BodyLook } from '../../model/human/humanoid';
-import type { Joint } from '../meshes/human/bodyVoxels';
-import { makeActor } from './actor';
+import type { BodyLook } from '../../../model/human/humanoid';
+import type { Joint } from '../../meshes/human/bodyVoxels';
+import { makeActor } from '../actor';
 import { partPieces, type Becoming, type Script } from './becoming';
-import { bell, smooth, through, wornPieces, type Span } from './clouds';
-import { PartMorph } from './partMorph';
-import type { Directed, Staging } from './staging';
-import { standing } from './swapStaging';
-import { Vapour } from './vapour';
+import { bell, smooth, through, type Span } from '../easing';
+import { PartMorph } from '../morph/partMorph';
+import type { Directed, Staging } from '../staging';
+import { Undressing } from './undress';
 
 // What's said of each step (`{name}`: whoever's turned).
 export interface Telling {
@@ -32,6 +31,9 @@ export interface Telling {
   done: string;
 }
 
+// What's said of what someone wears coming off them, and of their hands looked at: the same whatever they turn into.
+export const UNDRESSED = { bare: 'What they wear comes off them piece by piece, unravelling into threads.', look: '{name} looks down at their hands.' };
+
 const DOWN = 0.94; // from when, of the whole, it comes down to its own size
 const START: Span = [0, 0.03];
 const BARE: Span = [0.03, 0.22];
@@ -44,12 +46,8 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
     if (!actor.human && !actor.beast) return null;
     // Someone whose body's their own, under what they wear: that first (a beast, the dead: as they stand).
     const look = actor.human ? ((figure.userData.look as BodyLook | null | undefined) ?? null) : null;
-    const bare = look ? standing({ look, equipment: {} }, false) : null;
-    const worn = bare ? wornPieces(figure, bare.root, tall) : null;
-    const vapour = worn ? new Vapour(worn.pieces) : null;
-    const gathered = bare ? (bare.root.userData.gathered as () => THREE.Mesh | null)() : null;
-    const hidden = worn?.headed && vapour ? (vapour.turns[0][0] + vapour.turns[0][1]) / 2 : 0;
-    if (bare && vapour) scene.add(bare.root, vapour.mesh);
+    const undressing = look ? new Undressing(figure, { look, equipment: {} }, scene, tall) : null;
+    const bare = undressing?.bare ?? null;
     // Everything after: in what's left of the whole.
     const from = bare ? 0.3 : 0.05;
     const at = (a: number, b: number): Span => [from + (DOWN - from) * a, from + (DOWN - from) * b];
@@ -75,7 +73,6 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
       joints.head.rotation.set(-0.1 * start + 0.24 * looking, 0, 0);
       for (const joint of ['leftArm', 'rightArm'] as const) joints[joint].rotation.set(-0.95 * looking, 0, Math.sign(joints[joint].getWorldPosition(new THREE.Vector3()).x) * 0.3 * start);
     };
-    const theirs = actor.human?.joints;
     // Where it's seen from: whole (room over them for what lifts off, and for it, where it's the bigger); close on
     // its forelimbs as they change; close on its head, for that and what grows on it; whole again; and with it as
     // it comes down to its size.
@@ -92,17 +89,10 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
       feathers: feathered ? [script.grows[0]?.[0] ?? DOWN, 1] : undefined,
       update(u, time) {
         const changing = u >= script.posing[0];
-        const bared = bare ? through(u, BARE) : 0;
-        figure.visible = bare ? bared <= 0 : !changing;
-        if (theirs && bare && bared <= 0) posed(theirs, u);
-        figure.position.y = bare && bared <= 0 ? bell(through(u, START)) * tall * 0.03 : 0;
-        figure.rotation.z = !bare && !changing ? Math.sin(time * 40) * 0.05 * through(u, [0, script.posing[0]]) : 0; // (a beast: a shiver)
-        if (bare && vapour) {
-          bare.root.visible = bared > 0 && !changing;
-          if (gathered) gathered.visible = bared >= hidden;
-          posed(bare.joints, u);
-          vapour.mesh.visible = bared > 0 && bared < 1;
-          vapour.update(bared, time);
+        if (undressing) undressing.update(through(u, BARE), changing, time, (joints) => posed(joints, u), bell(through(u, START)));
+        else {
+          figure.visible = !changing;
+          figure.rotation.z = changing ? 0 : Math.sin(time * 40) * 0.05 * through(u, [0, script.posing[0]]); // (a beast, the dead: a shiver)
         }
         morph.object.visible = changing;
         morph.update(u, time);
@@ -118,7 +108,7 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
         return { x: mix('x') * k, z: mix('z') * k, aim: mix('aim') * k, far: mix('far') * k, rise: mix('rise') };
       },
       dispose() {
-        for (const object of [bare?.root, vapour?.mesh]) object?.removeFromParent();
+        undressing?.dispose();
         morph.dispose();
       },
     };

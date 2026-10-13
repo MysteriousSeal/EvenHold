@@ -1,5 +1,5 @@
 // A hen in voxels, at 0.02 as the ducks are (duckVoxels.ts; a hen is small): whoever's been turned into one
-// (model/spells/chickens.ts). She faces +Z. Read from the game's camera by her shape and three colours, no more:
+// (model/spells/turned.ts). She faces +Z. Read from the game's camera by her shape and three colours, no more:
 // a plump white body carried high on two thin yellow legs, a tail cocked up behind, a small head held forward with
 // a red comb on top, a red wattle under a yellow beak. A body, a head and two legs, each its own part, so she can
 // strut, bob her head and peck. Grid-aligned voxels only; the rounder shapes come from stepped corners.

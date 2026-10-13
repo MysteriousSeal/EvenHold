@@ -1,5 +1,5 @@
 // Someone's sex changed by a charm (model/spells/swaps.ts), staged (staging.ts: a staging all its own), step by step:
-//  1. they start at it; then what they wear comes off them piece by piece (vapour.ts: what's on their head first,
+//  1. they start at it; then what they wear comes off them piece by piece (undress.ts: what's on their head first,
 //     their braies last), each unravelling into threads from its edges, their body left as it is;
 //  2. they look down at their hands; then their body changes a part at a time, each held a beat (partMorph.ts, each
 //     part read off in fine cubes and reshaped where it is): the hips, the waist, the shoulders, the chest (in three
@@ -9,17 +9,16 @@
 //  4. and they give way to themselves as they now are, dressed again in what they wore, cut for them; seen whole
 //     again.
 import * as THREE from 'three';
-import type { Humanoid } from '../../model/human/humanoid';
-import { type Joint } from '../meshes/human/bodyVoxels';
-import { PERSON_GLOW, personMaterial } from '../meshes/human/humanParts';
-import { HumanRig } from '../meshes/human/humanRig';
-import { unclothed } from '../meshes/human/unclothed';
-import { Growth, strands, stubble } from './growth';
-import { PartMorph, type Piece } from './partMorph';
-import type { Staging } from './staging';
-import { Vapour } from './vapour';
-import { apart, band, bell, read, smooth, through, wornPieces, type Span } from './clouds';
-import type { Cloud } from './voxelMorph';
+import type { Humanoid } from '../../../model/human/humanoid';
+import { type Joint } from '../../meshes/human/bodyVoxels';
+import { PERSON_GLOW } from '../../meshes/human/humanParts';
+import { Growth, strands, stubble } from '../morph/growth';
+import { PartMorph, type Piece } from '../morph/partMorph';
+import type { Staging } from '../staging';
+import { Undressing, standing } from './undress';
+import { apart, band, read } from '../morph/clouds';
+import { bell, smooth, through, type Span } from '../easing';
+import type { Cloud } from '../morph/voxelMorph';
 
 export const SWAP_LENGTH = 14; // seconds
 // When, of the whole (till they give way):
@@ -36,16 +35,6 @@ const FACE = { jaw: [0.85, 0.9], brow: [0.875, 0.925], goes: [0.85, 0.92], comes
 // Their torso and their head, from the bottom up, in bands (of its height): each changed in its own turn.
 const BANDS = { hips: [0, 0.28], waist: [0.28, 0.5], chest: [0.5, 0.83], shoulders: [0.83, 1] } satisfies Record<string, Span>;
 const JAW = 0.45; // of the head's height: under it the jaw, over it the brow
-
-// Someone as they stand, facing +Z: in what they wear (nothing in their hands), or as their body alone.
-export function standing(who: Humanoid, dressed: boolean): HumanRig {
-  const rig = new HumanRig(dressed ? who.look : unclothed(who.look), personMaterial());
-  if (dressed) rig.wear(who.equipment);
-  rig.hideHeld(true);
-  rig.update(0, 0, 0, 0, null, 0, 'stand');
-  rig.root.updateMatrixWorld(true);
-  return rig;
-}
 
 const SWELL = 0.1; // of its width, a part swollen as it reshapes
 const swell = (t: number) => SWELL * bell(t);
@@ -88,16 +77,10 @@ export function swapStaging(before: Humanoid, after: Humanoid, called: string): 
       return { root: rig.root, height: new THREE.Box3().setFromObject(rig.joints.torso.parent!).max.y, settle() {} };
     },
     direct(figure, scene, tall) {
-      const [bare, into] = [standing(before, false), standing(after, false)];
-      scene.add(bare.root);
+      // What they wear, piece by piece, off them as vapour; their body under it.
+      const undressing = new Undressing(figure, before, scene, tall);
+      const [bare, into] = [undressing.bare, standing(after, false)];
       const where = (group: THREE.Object3D) => group.getWorldPosition(new THREE.Vector3());
-      // What they wear, piece by piece, off them as vapour.
-      const worn = wornPieces(figure, bare.root, tall);
-      const vapour = new Vapour(worn.pieces);
-      scene.add(vapour.mesh);
-      // (Their hair, where what's on their head hid it: not seen till that's half gone.)
-      const gathered = (bare.root.userData.gathered as () => THREE.Mesh | null)();
-      const hidden = worn.headed ? (vapour.turns[0][0] + vapour.turns[0][1]) / 2 : 0;
 
       // Their body, a part at a time, into the other build's: each on its own joint, where it is.
       const act = held;
@@ -131,20 +114,11 @@ export function swapStaging(before: Humanoid, after: Humanoid, called: string): 
         rig.head.rotation.set(...now.head);
         for (const joint of ['leftArm', 'rightArm'] as const) rig[joint].rotation.set(...now.arm(Math.sign(bare.joints[joint].position.x)));
       };
-      const theirs = figure.userData.joints as Record<Joint, THREE.Group> | undefined;
       const eye = neck.y + (new THREE.Box3().setFromPoints(heads[0].bald.at).max.y - neck.y) * 0.5; // (the middle of their head)
       return {
         update(u, time) {
-          const bared = through(u, BARE);
           const changing = u >= CHANGING;
-          figure.visible = bared <= 0; // (dressed, till it starts to come off them)
-          if (theirs && bared <= 0) posed(theirs, u);
-          figure.position.y = bared <= 0 ? act(u).hop * tall * 0.03 : 0;
-          bare.root.visible = bared > 0 && !changing;
-          if (gathered) gathered.visible = bared >= hidden;
-          posed(bare.joints, u);
-          vapour.mesh.visible = bared > 0 && bared < 1;
-          vapour.update(bared, time);
+          undressing.update(through(u, BARE), changing, time, (joints: Record<Joint, THREE.Group>) => posed(joints, u), act(u).hop);
           morph.object.visible = changing;
           morph.update(u, time);
           morph.object.rotation.z = 0.045 * Math.sin(time * 5) * bell(through(u, STEPS.chest)); // (unsteady on their feet, as their chest changes)
@@ -160,7 +134,7 @@ export function swapStaging(before: Humanoid, after: Humanoid, called: string): 
           return { aim: mix(tall * 0.5, tall * 0.46, eye, tall * 0.5), far: mix(tall * 4.6, tall * 2.7, tall * 2.1, tall * 3.9), rise: mix(0.28, 0.06, 0.2, 0.28) };
         },
         dispose() {
-          for (const object of [bare.root, vapour.mesh]) object.removeFromParent();
+          undressing.dispose();
           for (const growth of [kept, ...goes, ...comes]) growth.dispose();
           morph.dispose();
         },

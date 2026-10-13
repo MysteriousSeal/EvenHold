@@ -5,8 +5,9 @@
 // ground up, swung out and round, shrinking or swelling to the new voxels' size and taking their colour, and set
 // down exactly where the new shape's voxels are, so what they've become can be put in its place unseen.
 import * as THREE from 'three';
-import { HUMAN_VOXEL_SIZE } from '../meshes/human/bodyVoxels';
-import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
+import { HUMAN_VOXEL_SIZE } from '../../meshes/human/bodyVoxels';
+import type { VoxelGrid } from '../../meshes/voxel/greedyMesh';
+import { smooth, steady } from '../easing';
 
 export interface Cloud {
   at: THREE.Vector3[];
@@ -92,7 +93,6 @@ export function sampleFigure(root: THREE.Object3D, height: number, rows = 26, vo
 }
 
 const IDENTITY = new THREE.Matrix4();
-const smooth = (t: number) => t * t * (3 - 2 * t);
 // A number from 0 to 1 that's `i`'s own, the same each time.
 const own = (i: number, salt: number) => {
   const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
@@ -179,7 +179,7 @@ export class VoxelMorph {
       const [a, b] = [from.at[this.sources[k]], into.at[this.to[k]]];
       const start = this.shaped ? this.order[k] * SHAPED_WAVE : this.order[k] * WAVE + own(k, 1) * 0.08;
       const through = Math.max(0, Math.min(1, (u - start) / (this.shaped ? 1 - SHAPED_WAVE : FLIGHT)));
-      const e = this.shaped ? (through + smooth(through)) / 2 : smooth(through); // (a morph: steadily, only eased a little at either end)
+      const e = this.shaped ? steady(through) : smooth(through); // (a morph: steadily, only eased a little at either end)
       const aloft = this.shaped ? 0 : Math.sin(e * Math.PI); // 0 at rest either end, 1 mid-flight (a morph: never aloft)
       // Its way: from its place to its new one, swung out from the middle and round it, and up a little.
       const round = Math.atan2(a.x, a.z) + (0.6 + own(k, 2) * 1.6) * aloft + e * 0.9 * (own(k, 3) - 0.5);

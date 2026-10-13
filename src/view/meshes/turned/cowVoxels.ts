@@ -1,4 +1,4 @@
-// A cow in voxels, at 0.02 (as the horse and the hen are): whoever's been turned into one (model/spells/chickens.ts).
+// A cow in voxels, at 0.02 (as the horse and the hen are): whoever's been turned into one (model/spells/turned.ts).
 // She faces +Z. A cow of an old breed (red and white, or another coat: COW_PALETTES), read by her shape first and few colours: a long, deep, square
 // barrel of a body on short thick legs, her back level, her hips standing square above it, a heavy belly; her neck
 // short, carried forward and low, a dewlap under it; a broad head with a wide pink muzzle, horns out and up from her
@@ -9,6 +9,7 @@
 // his neck thick and crested, his brisket deep, his quarters narrower and no higher than his back; longer horns,
 // swept forward; no udder: a sheath under his belly, his scrotum between his hind legs.
 import type { VoxelGrid } from '../voxel/greedyMesh';
+import type { Quadruped } from './quadruped';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
 export const COW_VOXEL_SIZE = 0.02;
@@ -19,7 +20,7 @@ const ROLES = ['white', 'shade', 'red', 'redDark', 'pink', 'horn', 'hoof', 'eye'
 type Role = (typeof ROLES)[number];
 export const COW_COLORS = Object.fromEntries(ROLES.map((role, i) => [role, i + 1])) as Record<Role, number>;
 const C = COW_COLORS;
-// Her coats (model/spells/chickens.ts COW_COATS: one hers by chance), each the same roles in other colours: red and
+// Her coats (model/spells/turned.ts COW_COATS: one hers by chance), each the same roles in other colours: red and
 // white; black and white; dun all over, her patches a darker brown; black all over.
 const REST = [0xe6a59c, 0xe8dcc0, 0x3a3028, 0x14100e]; // (her muzzle and udder, her horns, her hooves, her eyes: the same on each)
 export const COW_PALETTES: number[][] = [
@@ -140,3 +141,6 @@ export function buildCowLeg(hind = false): VoxelGrid {
   }
   return grid;
 }
+
+// A cow in one of her coats, or a bull, said once (quadruped.ts): for the rig, the turning, the icon.
+export const cowShape = (coat = 0, bull = false): Quadruped => ({ voxel: COW_VOXEL_SIZE, palette: COW_PALETTES[coat] ?? COW_PALETTES[0], legHeight: COW_LEG_HEIGHT, legs: COW_LEGS, neck: COW_NECK, pivots: { body: COW_BODY_PIVOT, head: COW_HEAD_PIVOT, leg: COW_LEG_PIVOT }, body: () => buildCowBody(bull), head: () => buildCowHead(bull), leg: buildCowLeg });

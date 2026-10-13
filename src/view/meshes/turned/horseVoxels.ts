@@ -1,5 +1,5 @@
 // A horse in voxels, at 0.02 (as the hen is: finer than the world's 0.04, for it's seen close, among people, and a
-// leg needs a knee): whoever's been turned into one (model/spells/chickens.ts). It faces +Z. A bay, read by its
+// leg needs a knee): whoever's been turned into one (model/spells/turned.ts). It faces +Z. A bay, read by its
 // shape first and few colours: a deep chest and a belly tucked up behind it, withers, a level back, a rounded croup;
 // legs with a side to them (a forearm or a gaskin above, a knee or an angled hock, a narrow cannon, a fetlock, a
 // hoof), black from the knee down; a neck sloped up and forward, thick at its base and tapering to the throat, a
@@ -8,6 +8,7 @@
 // head on its neck (so it can be lowered to graze, or tossed) and four legs, each its own part. Grid-aligned voxels
 // only; the rounder shapes come from stepped rows and cut corners.
 import type { VoxelGrid } from '../voxel/greedyMesh';
+import type { Quadruped } from './quadruped';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
 export const HORSE_VOXEL_SIZE = 0.02;
@@ -109,3 +110,6 @@ export function buildHorseLeg(hind = false): VoxelGrid {
   }
   return grid;
 }
+
+// The horse, said once (quadruped.ts): for its rig, its turning, its icon.
+export const HORSE_SHAPE: Quadruped = { voxel: HORSE_VOXEL_SIZE, palette: HORSE_PALETTE, legHeight: HORSE_LEG_HEIGHT, legs: HORSE_LEGS, neck: HORSE_NECK, pivots: { body: HORSE_BODY_PIVOT, head: HORSE_HEAD_PIVOT, leg: HORSE_LEG_PIVOT }, body: buildHorseBody, head: buildHorseHead, leg: buildHorseLeg };

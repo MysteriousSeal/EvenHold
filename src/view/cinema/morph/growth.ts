@@ -3,12 +3,12 @@
 // out of nothing in its turn. Hair: from the crown out and down, strand by strand (each column of it a little before
 // or after its neighbours); a beard: here and there first, as stubble, then filled in.
 import * as THREE from 'three';
-import { PERSON_GLOW } from '../meshes/human/humanParts';
+import { PERSON_GLOW } from '../../meshes/human/humanParts';
+import { smooth } from '../easing';
 import type { Cloud } from './voxelMorph';
 
 const SPAN = 0.3; // of the whole, each voxel's swelling
 
-const smooth = (t: number) => t * t * (3 - 2 * t);
 const own = (a: number, b: number) => {
   const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
   return x - Math.floor(x);

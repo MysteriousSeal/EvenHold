@@ -11,6 +11,7 @@
 // What it becomes may be built bigger than itself (`big`): once every part has changed, there it is whole, and only
 // then does it come down to its own size (to be put in its place unseen).
 import * as THREE from 'three';
+import { smooth, steady, through } from '../easing';
 import { Growth } from './growth';
 import { VoxelMorph, type Cloud } from './voxelMorph';
 
@@ -33,8 +34,6 @@ export interface Piece {
   grows?: Array<{ cloud: Cloud; order: number[]; window: [from: number, to: number] }>; // what's carried on its joint (set from the joint: hair, a beard)
 }
 
-const smooth = (t: number) => t * t * (3 - 2 * t);
-const through = (u: number, [a, b]: [number, number]) => Math.max(0, Math.min(1, (u - a) / (b - a)));
 const X = new THREE.Vector3(1, 0, 0);
 
 export class PartMorph {
@@ -82,7 +81,7 @@ export class PartMorph {
         const [pivotFrom, pivotInto] = piece.pivot;
         const posed = piece.pose ?? pivotInto;
         const m = piece.moving ? through(u, piece.moving) : t;
-        if (m > 0) joint.position.lerpVectors(posed, pivotInto, (m + smooth(m)) / 2); // (steadily, as its voxels go)
+        if (m > 0) joint.position.lerpVectors(posed, pivotInto, steady(m)); // (steadily, as its voxels go)
         else joint.position.lerpVectors(pivotFrom, posed, stance);
       }
       const moved = t > 0 && t < 1 ? piece.contort?.(t, time) ?? [0, 0, 0] : [0, 0, 0];

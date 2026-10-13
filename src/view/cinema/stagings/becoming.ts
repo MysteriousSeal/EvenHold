@@ -8,11 +8,21 @@
 // as they are (`big` times its own size), and comes down to its own once it's whole; one bigger than they are is
 // built at its own size, so each part of them grows into its part as it changes.
 import * as THREE from 'three';
-import type { Actor } from './actor';
-import { strands, stubble } from './growth';
-import type { Piece } from './partMorph';
-import { PERSON_GLOW } from '../meshes/human/humanParts';
-import { PERSON_CUBE, sampleFigure, type Cloud } from './voxelMorph';
+import type { Actor } from '../actor';
+import { smooth, steady, through } from '../easing';
+import { strands, stubble } from '../morph/growth';
+import type { Piece } from '../morph/partMorph';
+import { PERSON_GLOW } from '../../meshes/human/humanParts';
+import type { VoxelGrid } from '../../meshes/voxel/greedyMesh';
+import { quadrupedParts, type Quadruped } from '../../meshes/turned/quadruped';
+import { PERSON_CUBE, cloudOf, sampleFigure, type Cloud } from '../morph/voxelMorph';
+
+export interface Grown {
+  on: 'body' | 'head';
+  cloud: Cloud;
+  root?: THREE.Vector3;
+  line: string;
+}
 
 export interface Becoming {
   tall: number; // how tall it stands, itself
@@ -21,7 +31,7 @@ export interface Becoming {
   // What grows on it once every part's changed (a mane, a comb, feathers over a body bare till then), in the order
   // it does: on which part, its voxels `big` times its size, how (growth.ts: out from `root` strand by strand, or
   // here and there), and what's said of it.
-  grows?(big: number): Array<{ on: 'body' | 'head'; cloud: Cloud; root?: THREE.Vector3; line: string }>;
+  grows?(big: number): Grown[];
   // Its parts' voxels `big` times its size (each pair: the one at -x, then the one at +x), and where each hangs.
   // `plain`: without what grows on it after.
   parts(big: number, plain?: boolean): {
@@ -39,10 +49,6 @@ export const POSING: [number, number] = [0.04, 0.28]; // when, of the whole, the
 // When each part reshapes, after: all but together, from the ground up.
 const WINDOWS: Record<'legs' | 'arms' | 'trunk' | 'head', [number, number]> = { legs: [0.26, 0.76], arms: [0.3, 0.8], trunk: [0.34, 0.88], head: [0.4, 0.92] };
 export const DOWN = 0.92; // from when, of the whole, it comes down to its own size
-// At rest either end of a part's turn, at its most in the middle.
-export const env = (t: number): number => Math.sin(t * Math.PI);
-const smooth = (t: number) => t * t * (3 - 2 * t);
-const span = (u: number, [a, b]: [number, number]) => Math.max(0, Math.min(1, (u - a) / (b - a)));
 
 // When each thing's done, of the whole, where it isn't as above (a turning played step by step: turning.ts): the
 // stance, each part's reshaping, each thing that grows on it after (as `becoming.grows` has them), its coming down.
@@ -87,14 +93,13 @@ export function partPieces(actor: Actor, becoming: Becoming, script?: Script): {
     const along = at.y - where(human.hips).y; // (how far up their torso it hangs: that far along it, now)
     return kind === 'arms' ? new THREE.Vector3(at.x, Math.max(back.y, at.y - Math.min(...made.arms.map((arm) => new THREE.Box3().setFromObject(arm).min.y))), back.z + along) : new THREE.Vector3(0, back.y, back.z + along);
   };
-  const steady = (t: number) => (t + smooth(t)) / 2;
   const carried = (group: THREE.Object3D, kind: 'legs' | 'arms' | 'trunk' | 'head', into: THREE.Vector3) => {
     if (!script) return {};
     const [from, stance] = [where(group), stood(group, kind)];
     const lift = its.joints.body.y - stood(made.waist, 'trunk').y;
     return {
       carried: (u: number) => {
-        const [s, up, out] = [smooth(span(u, script.posing)), steady(span(u, script.windows.legs)), steady(span(u, script.windows.trunk))];
+        const [s, up, out] = [smooth(through(u, script.posing)), steady(through(u, script.windows.legs)), steady(through(u, script.windows.trunk))];
         const at = from.clone().lerp(stance, s);
         // (Up with their legs as far as their trunk goes; the rest of the way, what it's carried by their trunk's own change: a head on a back grown deep.)
         return at.set(at.x + (into.x - stance.x) * out, at.y + lift * up + (into.y - stance.y - lift) * out, at.z + (into.z - stance.z) * out);
@@ -122,5 +127,34 @@ export function partPieces(actor: Actor, becoming: Becoming, script?: Script): {
       // The head: carried to where its neck rises, held up, then reshaped.
       { from: read(made.head), into: its.head, posing, window: windows.head, pivot: [where(made.head), its.joints.head], pose: stance.head, grows: grows('head'), ...more, ...carried(made.head, 'head', its.joints.head) },
     ],
+  };
+}
+
+// A four-legged beast's voxels (quadruped.ts), where its rig puts them, `big` times its size: its body (its tail
+// with it), its head on its neck, its legs (hind left, hind right, fore left, fore right).
+export type Clouds = { body: Cloud; head: Cloud; legs: Cloud[] };
+export function quadrupedClouds(q: Quadruped, big: number): Clouds {
+  const parts = quadrupedParts(q);
+  const of = (part: { grid: VoxelGrid; at: [number, number, number] }) => cloudOf([{ grid: part.grid, palette: q.palette, origin: new THREE.Vector3(...part.at).multiplyScalar(q.voxel * big) }], q.voxel * big);
+  return { body: of(parts.body), head: of(parts.head), legs: parts.legs.map(of) };
+}
+
+// What such a beast is, for what has parts to become it: their legs its hind legs, their arms its forelegs (changed
+// with them: it stands on all four), their torso its body, their head its head on its neck. `size`: how wide, tall
+// and long it stands. `its`: what grows on it once it's whole, and itself made plain of that till then.
+export function quadrupedBecoming(q: Quadruped, size: THREE.Vector3, its: { grows(clouds: Clouds, big: number): Grown[]; plain(clouds: Clouds, big: number): void }): Becoming {
+  return {
+    tall: size.y,
+    long: size.z,
+    fourLegged: true,
+    grows: (big) => its.grows(quadrupedClouds(q, big), big),
+    parts(big, plain) {
+      const clouds = quadrupedClouds(q, big);
+      if (plain) its.plain(clouds, big);
+      const at = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).multiplyScalar(q.voxel * big);
+      const hip = (i: number) => at(q.legs[i][0], q.legHeight, q.legs[i][1]);
+      return { legs: [clouds.legs[0], clouds.legs[1]], arms: [clouds.legs[2], clouds.legs[3]], body: clouds.body, head: clouds.head, joints: { legs: [hip(0), hip(1)], arms: [hip(2), hip(3)], body: at(0, q.legHeight, q.legs[0][1]), head: at(...q.neck) } };
+    },
+    arms: () => [0, 0, 0], // (down on the ground already, once they've taken its stance)
   };
 }

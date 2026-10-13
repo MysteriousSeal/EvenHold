@@ -1,18 +1,18 @@
 // A transformation, played full screen while the game stands still (the controller's to pause: main.ts): whoever's
-// turned alone on a slab in the dark, lit warm from above and violet from below, the camera stood three-quarters
-// on to them, still, and closing in at the end, as they change part by part (staging.ts: the kind's own), till they give way to what they've become
-// in a flash, smoke and feathers; that settling; a line under it for each beat. A four-legged beast's parts each truly
-// become the part they turn into, in their own voxels (partMorph.ts); what has no parts at all is taken apart whole
-// into its voxels, which fly to their places in what it becomes (voxelMorph.ts). LENGTH seconds; any key or a click
-// skips to the end. Its own small renderer, let go when it's over (figureStage.ts, likewise).
+// turned alone on a slab in the dark, lit warm from above and violet from below, the camera stood three-quarters on
+// to them, as they change (staging.ts: the kind's own), till they give way to what they've become in a flash, smoke
+// and feathers; that settling; a line under it for each beat. Someone, or a four-legged beast: by a direction all
+// the staging's own (`direct`: turning.ts, swapStaging.ts), step by step. What has no parts at all: taken apart whole
+// into its voxels, which fly to their places in what it becomes (voxelMorph.ts). What has no voxels either: as the
+// staging has it (`stage`), or only dwindling. LENGTH seconds, or as its direction says; any key or a click skips to
+// the end. Its own small renderer, let go when it's over (figureStage.ts, likewise).
 import * as THREE from 'three';
 import './transformCinema.css';
 import { SmokePuffs } from '../meshes/common/smokePuffs';
 import { makeActor } from './actor';
-import type { Into } from '../../model/spells/chickens';
+import type { Into } from '../../model/spells/turned';
 import { STAGINGS, type Staging } from './staging';
-import { PartMorph } from './partMorph';
-import { VoxelMorph, sampleFigure } from './voxelMorph';
+import { VoxelMorph, sampleFigure } from './morph/voxelMorph';
 
 export const LENGTH = 8; // seconds
 export const GIVES_WAY = 0.8; // of it, the one turned being staged; the rest, what they've become settling
@@ -61,16 +61,14 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   scene.add(sun, under);
 
   const actor = makeActor(figure);
-  // Anything not human-shaped, with voxels to it: taken apart into them and put together again as what it becomes.
-  // What has parts (someone human-shaped, a four-legged beast): each part morphing into the part it becomes (partMorph.ts).
+  // Otherwise, anything not human-shaped with voxels to it: taken apart into them and put together again as what it becomes.
   const own = staging.direct?.(figure, scene, actor.size.y, actor) ?? null; // (a staging all its own)
   const length = own?.length ?? staging.length ?? LENGTH;
-  const parts = own ? null : (staging.pieces?.(actor) ?? null);
-  const shell = !parts && !own && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
+  const shell = !own && !actor.human && staging.cloud ? sampleFigure(figure, actor.size.y) : null;
   const whole = shell && shell.at.length >= LEAST ? new VoxelMorph(shell, staging.cloud!()) : null;
-  const loose: { object: THREE.Object3D; update(u: number, time: number): void; dispose(): void } | null = parts ? new PartMorph(parts.pieces, parts.big, parts.down, parts.glow) : whole ? { object: whole.mesh, update: (u, t) => whole.update(u, t), dispose: () => whole.dispose() } : null;
+  const loose = whole ? { object: whole.mesh, update: (u: number, t: number) => whole.update(u, t), dispose: () => whole.dispose() } : null;
   if (loose) scene.add(loose.object);
-  const lines = own?.lines ?? ((parts && actor.beast && staging.beastLines) || (whole && staging.looseLines) || staging.lines);
+  const lines = own?.lines ?? ((whole && staging.looseLines) || staging.lines);
   const made = loose || own ? null : staging.prepare?.(actor);
   const target = staging.target();
   target.root.visible = false;

@@ -1,4 +1,4 @@
-// Someone turned into a chicken (model/spells/chickens.ts), staged part by part (staging.ts), each part of them
+// Someone turned into a chicken (model/spells/turned.ts), staged part by part (staging.ts), each part of them
 // morphing into the part of her it becomes (`pieces`: becoming.ts, partMorph.ts; a hen built as big as they are, so
 // each part changes where it stands):
 //  1. a start, themselves;
@@ -14,14 +14,14 @@
 // her size (`stage`).
 // The hen then, herself: a startled hop, a shake of her head, and a peck at the ground.
 import * as THREE from 'three';
-import { createHen } from '../meshes/wildlife/chickenRig';
-import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
-import { partPieces, type Becoming } from './becoming';
-import { some } from './clouds';
-import { turningInto, type Telling } from './turning';
-import { cloudOf, type Cloud } from './voxelMorph';
-import { over, swell, type Actor } from './actor';
-import type { Staging } from './staging';
+import { createHen } from '../../meshes/turned/chickenRig';
+import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../../meshes/turned/chickenVoxels';
+import type { Becoming } from './becoming';
+import { hued, some } from '../morph/clouds';
+import { UNDRESSED, turningInto, type Telling } from './turning';
+import { cloudOf, type Cloud } from '../morph/voxelMorph';
+import { over, swell, type Actor } from '../actor';
+import type { Staging } from '../staging';
 
 const FEATHER = new THREE.Color(0xf4f0e6);
 const [RED, YELLOW, WHITE] = [0xd23a2e, 0xe8b23a, 0xf4f0e6];
@@ -69,12 +69,12 @@ function grown(actor: Actor, head: { on: THREE.Object3D; box: THREE.Box3 }, rear
 
 // What she is, for what has parts to become her (becoming.ts): their legs her legs, their arms her wings (her body's
 // outermost columns, either side), their torso her body and tail, their head her head.
-const hue = (cloud: Cloud, i: number, ...roles: number[]) => roles.some((role) => cloud.color[i].getHex() === new THREE.Color(CHICKEN_PALETTE[role - 1]).getHex());
+const hue = hued(CHICKEN_PALETTE);
 const [RED_, RED_DARK, YELLOW_, EYE] = [4, 5, 6, 8]; // (chickenVoxels.ts's roles)
 const PLUCKED = new THREE.Color(0xe9bfa6); // her skin, bare of feathers
 // Her tail (up and back of her body), told from the rest of it.
 const tailOf = (body: Cloud, big: number) => ((back, top) => (at: THREE.Vector3) => at.z < back + V * big || at.y > top - V * big * 2)(Math.min(...body.at.map((at) => at.z)), Math.max(...body.at.map((at) => at.y)));
-const becoming: Becoming = {
+export const henBecoming: Becoming = {
   tall: HEN.y,
   long: HEN.z,
   // What grows on her: her comb, her beak, her wattle; then feathers all over her (here and there, till she's
@@ -121,8 +121,7 @@ const becoming: Becoming = {
 
 const PERSON: Telling = {
   start: '{name} feels something is wrong, and starts.',
-  bare: 'What they wear comes off them piece by piece, unravelling into threads.',
-  look: '{name} looks down at their hands.',
+  ...UNDRESSED,
   stance: 'They stoop, unsteady: the back level, the arms drawn in to the sides.',
   legs: 'The legs thin: yellow, scaled, and much too short.',
   arms: 'The arms flatten against the sides: wings.',
@@ -152,14 +151,6 @@ export const chickenStaging: Staging = {
     [0.92, 'A chicken as tall as a man. And then smaller. Much smaller.'],
   ],
   feathers: [0.3, 1],
-  beastLines: [
-    [0, '{name} feels something is wrong.'],
-    [0.04, 'It gathers itself: its hind legs under its middle, its forelegs drawn up to its sides.'],
-    [0.27, 'The hind legs thin: two yellow ones. The forelegs flatten into wings.'],
-    [0.45, 'The body draws in and rounds out. A tail.'],
-    [0.7, 'A comb. A beak. A wattle.'],
-    [0.92, 'A chicken the size of a bear. And then smaller. Much smaller.'],
-  ],
   looseLines: [
     [0, '{name} feels something is wrong.'],
     [0.08, 'It comes apart, from the ground up.'],
@@ -171,8 +162,7 @@ export const chickenStaging: Staging = {
     return { at: [hen.body, hen.head, ...hen.legs].flatMap((part) => part.at), color: [hen.body, hen.head, ...hen.legs].flatMap((part) => part.color), size: V };
   },
 
-  pieces: (actor) => partPieces(actor, becoming),
-  direct: turningInto(becoming, { person: PERSON, beast: BEAST }, true),
+  direct: turningInto(henBecoming, { person: PERSON, beast: BEAST }, true),
 
   prepare(actor): Grown {
     const { box, size } = actor;

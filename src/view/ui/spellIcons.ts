@@ -4,9 +4,10 @@
 import type { SpellId } from '../../model/spells/spells';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
-import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
-import { COW_BODY_PIVOT, COW_HEAD_PIVOT, COW_LEGS, COW_LEG_HEIGHT, COW_LEG_PIVOT, COW_NECK, COW_PALETTE, buildCowBody, buildCowHead, buildCowLeg } from '../meshes/wildlife/cowVoxels';
-import { HORSE_BODY_PIVOT, HORSE_HEAD_PIVOT, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_LEG_PIVOT, HORSE_NECK, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
+import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/turned/chickenVoxels';
+import { cowShape } from '../meshes/turned/cowVoxels';
+import { HORSE_SHAPE } from '../meshes/turned/horseVoxels';
+import { quadrupedParts, type Quadruped } from '../meshes/turned/quadruped';
 import type { MenuIcon } from './menu';
 import { voxelIcon } from './voxelIcon';
 
@@ -50,27 +51,16 @@ const mendIcon: MenuIcon = (size) =>
     size,
   );
 
-// The hen-wife's turn: the hen herself, side on (wildlife/chickenVoxels.ts: her body, her head set on it).
+// The hen-wife's turn: the hen herself, side on (turned/chickenVoxels.ts: her body, her head set on it).
 const chickenIcon: MenuIcon = (size) =>
   voxelIcon(
     'spell:chicken',
-    () => {
-      const grid = createGrid([5, 12, 10]);
-      const put = (part: VoxelGrid, ox: number, oy: number, oz: number) => {
-        const [sx, sy, sz] = part.size;
-        for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) if (colorAt(part, x, y, z)) setColor(grid, x + ox, y + oy, z + oz, colorAt(part, x, y, z));
-      };
-      put(buildChickenBody(), 0, 3, 0);
-      put(buildChickenHead(), 1, 5, 5);
-      for (const x of [1, 3]) put(buildChickenLeg(), x, 0, 3);
-      return { grid, palette: CHICKEN_PALETTE, alpha: 1 };
-    },
+    () => assembled([{ grid: buildChickenBody(), at: [0, 3, 0] }, { grid: buildChickenHead(), at: [1, 5, 5] }, ...[1, 3].map((x) => ({ grid: buildChickenLeg(), at: [x, 0, 3] }))], CHICKEN_PALETTE),
     size,
   );
 
-// A four-legged beast itself, its parts set together as its rig sets them (each part's grid and where its own
-// (0, 0, 0) is, in voxels from the middle of it on the ground).
-function beast(parts: ReadonlyArray<{ grid: VoxelGrid; at: [number, number, number] }>, palette: number[]): { grid: VoxelGrid; palette: number[]; alpha: number } {
+// Parts set together into one model (each part's grid, and where its own (0, 0, 0) is, in voxels).
+function assembled(parts: ReadonlyArray<{ grid: VoxelGrid; at: readonly number[] }>, palette: number[]): { grid: VoxelGrid; palette: number[]; alpha: number } {
   const low = [0, 1, 2].map((axis) => Math.min(...parts.map((part) => Math.round(part.at[axis]))));
   const high = [0, 1, 2].map((axis) => Math.max(...parts.map((part) => Math.round(part.at[axis]) + part.grid.size[axis])));
   const grid = createGrid([high[0] - low[0], high[1] - low[1], high[2] - low[2]]);
@@ -81,23 +71,12 @@ function beast(parts: ReadonlyArray<{ grid: VoxelGrid; at: [number, number, numb
   }
   return { grid, palette, alpha: 1 };
 }
-const from = (at: readonly number[], pivot: readonly number[]): [number, number, number] => [at[0] - pivot[0], at[1] - pivot[1], at[2] - pivot[2]];
+// A four-legged beast itself (turned/quadruped.ts), its parts set together as its rig sets them.
+const beast = (key: string, shape: Quadruped): MenuIcon => (size) => voxelIcon(key, () => ((parts) => assembled([parts.body, parts.head, ...parts.legs], shape.palette))(quadrupedParts(shape)), size);
 
-// The horse-coper's word: the horse itself (wildlife/horseVoxels.ts).
-const horseIcon: MenuIcon = (size) =>
-  voxelIcon(
-    'spell:horse',
-    () => beast([{ grid: buildHorseBody(), at: from([0, HORSE_LEG_HEIGHT, 0], HORSE_BODY_PIVOT) }, { grid: buildHorseHead(), at: from(HORSE_NECK, HORSE_HEAD_PIVOT) }, ...HORSE_LEGS.map(([x, z], i) => ({ grid: buildHorseLeg(i < 2), at: from([x, HORSE_LEG_HEIGHT, z], HORSE_LEG_PIVOT) }))], HORSE_PALETTE),
-    size,
-  );
-
-// The herdsman's call: the cow herself (wildlife/cowVoxels.ts).
-const cowIcon: MenuIcon = (size) =>
-  voxelIcon(
-    'spell:cow',
-    () => beast([{ grid: buildCowBody(), at: from([0, COW_LEG_HEIGHT, 0], COW_BODY_PIVOT) }, { grid: buildCowHead(), at: from(COW_NECK, COW_HEAD_PIVOT) }, ...COW_LEGS.map(([x, z], i) => ({ grid: buildCowLeg(i < 2), at: from([x, COW_LEG_HEIGHT, z], COW_LEG_PIVOT) }))], COW_PALETTE),
-    size,
-  );
+// The horse-coper's word: the horse itself. The herdsman's call: the cow herself.
+const horseIcon = beast('spell:horse', HORSE_SHAPE);
+const cowIcon = beast('spell:cow', cowShape());
 
 // The moon-turn charm: a waning moon, its dark side one colour and its lit side another, a mote of light by it.
 const swapIcon: MenuIcon = (size) =>

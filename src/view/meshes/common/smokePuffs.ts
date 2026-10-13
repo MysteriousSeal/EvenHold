@@ -1,4 +1,4 @@
-// Puffs of smoke (someone turned into a chicken, or back: model/spells/chickens.ts): a burst of pale grey voxel
+// Puffs of smoke (someone turned into a chicken, or back: model/spells/turned.ts): a burst of pale grey voxel
 // cubes thrown out from a point and up, swelling and thinning away over most of a second. And feathers: white
 // slivers thrown out likewise, a few or a burst of them, that then drift down, rocking, and fade. Cubes only, unlit,
 // one material a puff (so each fades on its own); few at a time.
