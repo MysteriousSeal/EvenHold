@@ -24,7 +24,9 @@ export interface Staging {
   feathers?: [from: number, to: number]; // when feathers fly off them, if any do
   // A staging all its own, in place of the rest (a change that's no turning into a beast: swapStaging.ts): made for the
   // figure, in the scene; played each frame till it gives way (`u`: 0 themselves, 1 giving way), then let go.
-  direct?(figure: THREE.Object3D, scene: THREE.Scene, tall: number): { update(u: number, time: number): void; dispose(): void };
+  // `view`: where it's seen from, if it says (`j`: once they've given way, 0 just then to 1 settled): the height looked at, from how far, and from how far above (of that; none: the usual).
+  direct?(figure: THREE.Object3D, scene: THREE.Scene, tall: number): { update(u: number, time: number): void; dispose(): void; view?(u: number, j: number): { aim: number; far: number; rise?: number } };
+  length?: number; // seconds it runs, if not the usual (transformCinema.ts LENGTH)
   // For anything not human-shaped, taken apart into its voxels and put together again (voxelMorph.ts): the voxels of
   // what they become, as it stands; and what's said of it, beat by beat.
   cloud?(): Cloud;

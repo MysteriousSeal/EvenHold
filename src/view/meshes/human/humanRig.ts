@@ -130,6 +130,8 @@ export class HumanRig {
     this.joints = joints;
     this.root.userData.joints = joints; // (for what stages them part by part: cinema/actor.ts)
     this.root.userData.emptyHands = () => this.hideHeld(true); // (and has them put down what they hold first)
+    this.root.userData.wornIn = (slot: EquipSlot) => this.worn.get(slot)?.meshes ?? []; // (what's worn where, as drawn: taken off them piece by piece)
+    this.root.userData.gathered = () => this.hair; // (their hair gathered past the head, if any)
     this.root.add(this.body);
     for (const [i, { geometry, material }] of SHADE.entries()) {
       const square = new THREE.Mesh(geometry, material);

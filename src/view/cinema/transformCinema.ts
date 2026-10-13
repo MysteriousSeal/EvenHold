@@ -34,6 +34,7 @@ export interface Playing {
 // Plays `into` on `figure` (theirs, as they stand: GameView.standIn), called `name`; `done` once it's over or skipped.
 export function playTransformation(figure: THREE.Object3D, name: string, into: Into | Staging, done: () => void, makeDrawer: () => Drawer = () => new THREE.WebGLRenderer({ alpha: true, antialias: true })): Playing {
   const staging = typeof into === 'string' ? STAGINGS[into] : into;
+  const length = staging.length ?? LENGTH;
   const root = document.createElement('div');
   root.className = 'transform-cinema';
   const title = Object.assign(document.createElement('h2'), { className: 'transform-title', textContent: staging.title });
@@ -87,7 +88,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     }
   }
   scene.add(slab);
-  under.position.set(0, tall * 0.1, 0);
+  under.position.set(0, own ? -tall * 0.4 : tall * 0.1, 0); // (someone seen close: from well under them, not between their feet)
   const smoke = new SmokePuffs();
   const flash = Object.assign(document.createElement('div'), { className: 'transform-flash' });
   root.append(flash);
@@ -115,7 +116,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const advance = (dt: number) => {
     if (over) return;
     time += dt;
-    const p = Math.min(1, time / LENGTH);
+    const p = Math.min(1, time / length);
     const u = Math.min(1, p / GIVES_WAY); // the one turned: 0 themselves, 1 giving way
     const j = Math.max(0, (p - GIVES_WAY) / (1 - GIVES_WAY)); // what they've become: 0 just there, 1 settled
     if (!swapped && own) own.update(u, time);
@@ -157,8 +158,9 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const height = frame * 0.5 + (target.height * 0.55 - frame * 0.5) * eased;
     const wide = own ? 4.6 : 3.4; // (someone seen whole, head to foot, with room over them for what lifts off)
     const far = frame * wide + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
-    camera.position.set(Math.sin(ANGLE) * far, height + far * 0.28, Math.cos(ANGLE) * far);
-    camera.lookAt(0, height, 0);
+    const seen = own?.view?.(u, j) ?? { aim: height, far }; // (a staging all its own: from where it says)
+    camera.position.set(Math.sin(ANGLE) * seen.far, seen.aim + seen.far * (seen.rise ?? 0.28), Math.cos(ANGLE) * seen.far);
+    camera.lookAt(0, seen.aim, 0);
     // What's said: the beat it's at; once turned, what they are.
     const at = swapped ? lines.length : lines.reduce((best, [start], i) => (u >= start ? i : best), 0);
     if (at !== said) {
@@ -169,7 +171,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
       line.classList.add('in');
     }
     drawer.render(scene, camera);
-    if (time >= LENGTH + HOLD) finish();
+    if (time >= length + HOLD) finish();
   };
 
   let last = performance.now();

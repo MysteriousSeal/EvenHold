@@ -22,6 +22,11 @@ export interface Piece {
   pose?: THREE.Vector3; // where its joint is once it's taken its stance (none: where it'll end)
   tip?: number; // radians it's turned over forward (about its joint) as it takes its stance
   contort?(t: number, time: number): [x: number, y: number, z: number]; // how it's moved on its joint as it reshapes, `t` through it (radians; at rest at either end)
+  moving?: [from: number, to: number]; // when its joint goes to where the new part's is (none: as it reshapes)
+  pace?(t: number): number; // how far reshaped it is, `t` through its turn (none: steadily; e.g. in stages, each held)
+  acting?(u: number, time: number): [x: number, y: number, z: number]; // how it's held on its joint all along (radians: someone moving as they change)
+  swell?(t: number): number; // how much wider than itself it is as it reshapes, `t` through its turn (0: not)
+  rides?: THREE.Object3D[]; // what's carried on its joint (set from the joint: hair, a beard)
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -50,7 +55,7 @@ export class PartMorph {
         const morph = new VoxelMorph(from, into, true);
         if (glow) (morph.mesh.material as THREE.MeshStandardMaterial).emissive.setHex(glow.color);
         const joint = new THREE.Group();
-        joint.add(morph.mesh);
+        joint.add(morph.mesh, ...(piece.rides ?? []));
         this.object.add(joint);
         return { morph, joint, piece };
       });
@@ -63,16 +68,20 @@ export class PartMorph {
       const stance = piece.posing ? smooth(through(u, piece.posing)) : 1;
       const t = through(u, piece.window);
       const e = smooth(t);
-      morph.update(t, time);
+      morph.update(piece.pace ? piece.pace(t) : t, time);
       if (this.glow && !this.glow.stays) (morph.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 1 - e;
       if (piece.pivot) {
         const [pivotFrom, pivotInto] = piece.pivot;
         const posed = piece.pose ?? pivotInto;
-        if (t > 0) joint.position.lerpVectors(posed, pivotInto, (t + e) / 2); // (steadily, as its voxels go)
+        const m = piece.moving ? through(u, piece.moving) : t;
+        if (m > 0) joint.position.lerpVectors(posed, pivotInto, (m + smooth(m)) / 2); // (steadily, as its voxels go)
         else joint.position.lerpVectors(pivotFrom, posed, stance);
       }
       const moved = t > 0 && t < 1 ? piece.contort?.(t, time) ?? [0, 0, 0] : [0, 0, 0];
-      joint.rotation.set((piece.tip ?? 0) * stance + moved[0], moved[1], moved[2]);
+      const wide = 1 + (t > 0 && t < 1 ? piece.swell?.(t) ?? 0 : 0);
+      joint.scale.set(wide, 1, wide);
+      const held = piece.acting?.(u, time) ?? [0, 0, 0];
+      joint.rotation.set((piece.tip ?? 0) * stance + moved[0] + held[0], moved[1] + held[1], moved[2] + held[2]);
     }
     this.object.scale.setScalar(1 + (1 / this.big - 1) * smooth(through(u, [this.down, 1])));
   }
