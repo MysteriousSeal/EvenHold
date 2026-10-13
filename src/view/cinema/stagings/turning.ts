@@ -80,8 +80,9 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
     const [high, long] = [Math.max(tall, becoming.tall * made.big), (becoming.long ?? becoming.tall) * made.big];
     const first = { x: 0, z: 0, aim: tall * 0.5, far: tall * 4.6, rise: 0.28 }; // (themselves, till they take its stance)
     const whole = { x: 0, z: 0, aim: high * 0.5, far: Math.max(high * 4.4, long * 3.4), rise: 0.28 };
-    const limbs = { x: 0, z: its.arms[0].z, aim: its.arms[0].y * 0.55, far: high * 2.7, rise: 0.12 };
-    const face = { x: 0, z: its.head.z + long * 0.12, aim: its.head.y + high * 0.1, far: high * 2.5, rise: 0.14 };
+    // (Close, but all of them in it still, under the title and over what's said: a long beast by its length.)
+    const limbs = { x: 0, z: its.arms[0].z, aim: its.arms[0].y * 0.55, far: Math.max(high * 3.3, actor.human ? 0 : long * 2.9), rise: 0.12 };
+    const face = { x: 0, z: its.head.z + long * 0.12, aim: its.head.y + high * 0.1, far: Math.max(high * 3, actor.human ? 0 : long * 2.4), rise: 0.14 };
     const onHead = grown.map((thing, i) => (thing.on === 'head' ? script.grows[i][1] : 0)).reduce((a, b) => Math.max(a, b), script.windows.head[1]); // (till the last of what grows on its head has)
     return {
       length: bare ? 14 : 12,

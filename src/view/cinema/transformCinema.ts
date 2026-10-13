@@ -78,7 +78,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   scene.add(figure, target.root);
   // The slab they stand on: square stones, a little uneven in shade.
   const tall = actor.size.y;
-  const stone = tall * 0.22;
+  const stone = (own ? tall : Math.max(tall, target.height)) * 0.22; // (wide enough for what they become, where it's the bigger)
   const slab = new THREE.Group();
   for (let x = 0; x < SLAB; x++) {
     for (let z = 0; z < SLAB; z++) {
@@ -155,7 +155,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const close = Math.min(1, Math.max(0, (u - (whole ? 0.6 : 0.84)) / (whole ? 0.4 : 0.16)));
     const eased = own ? 0 : close * close * (3 - 2 * close); // (a change that leaves them their size: no closing in)
     // (What they become the taller: seen whole from the start, room for it to grow into, no closing in after.)
-    const frame = Math.max(tall, target.height);
+    const frame = Math.max(tall, target.height, whole ? Math.max(actor.size.x, actor.size.z) * 0.75 : 0); // (what's wider than tall, a spider: its cloud of cubes all in it)
     const height = frame * 0.5 + (target.height * 0.55 - frame * 0.5) * eased;
     const wide = own ? 4.6 : 3.4; // (someone seen whole, head to foot, with room over them for what lifts off)
     const far = frame * wide + (Math.max(target.height, long * 0.62) * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
