@@ -6,6 +6,8 @@ import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
+  // Someone turned into a doll (model/spells/turned.ts), lying where they stood.
+  doll: { get palette() { return JUNK_MODELS.boneCharm.palette; }, build: () => JUNK_MODELS.boneCharm.build() }, // PLACEHOLDER: the artist's { palette: DOLL_PALETTE, build: buildDoll } replaces this
   // Made by a woodworker: a turned wooden bowl, its rim lighter, its hollow showing; a carved oak tankard, two iron
   // bands round it, a handle.
   woodenBowl: model([0xa87040, 0xd8b07a, 0x7a4e2c], [6, 2, 6], (g) => {

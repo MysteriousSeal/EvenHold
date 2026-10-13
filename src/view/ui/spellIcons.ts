@@ -115,4 +115,23 @@ const swapIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, cow: cowIcon, horse: horseIcon, swap: swapIcon, statue: statueIcon, tree: treeIcon };
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = {
+  hex: hexIcon,
+  mend: mendIcon,
+  chicken: chickenIcon,
+  cow: cowIcon,
+  horse: horseIcon,
+  swap: swapIcon,
+  statue: statueIcon,
+  tree: treeIcon,
+  pig: cowIcon, // PLACEHOLDER: the artist's pigShape(0) replaces this, as beast('spell:pig', pigShape(0))
+  sheep: cowIcon, // PLACEHOLDER: the artist's sheepShape(0) replaces this, as beast('spell:sheep', sheepShape(0))
+  goat: cowIcon, // PLACEHOLDER: the artist's goatShape(0) replaces this, as beast('spell:goat', goatShape(0))
+  donkey: cowIcon, // PLACEHOLDER: the artist's donkeyShape(0) replaces this, as beast('spell:donkey', donkeyShape(0))
+  toad: chickenIcon, // PLACEHOLDER: the artist's toadShape(0) replaces this
+  rat: chickenIcon, // PLACEHOLDER: the artist's ratShape(0) replaces this
+  cat: chickenIcon, // PLACEHOLDER: the artist's turnedCatShape(0) replaces this
+  ghost: statueIcon, // PLACEHOLDER: the artist's ghost replaces this (none named for its icon: one to be made of TurnedGhostRig's figure, or drawn here)
+  painting: statueIcon, // PLACEHOLDER: the artist's painting replaces this (none named for its icon: one to be made of PaintingRig's frame, or drawn here)
+  doll: statueIcon, // PLACEHOLDER: the artist's buildDoll() and DOLL_PALETTE replace this, as voxelIcon('spell:doll', () => ({ grid: buildDoll(), palette: DOLL_PALETTE, alpha: 1 }), size)
+};

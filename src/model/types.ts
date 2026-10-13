@@ -10,6 +10,7 @@ import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
 import type { SpellId } from './spells/spells';
 import type { Being } from './spells/beings';
+import type { Hung } from './spells/hung';
 import type { Into } from './spells/turned';
 import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
@@ -64,7 +65,7 @@ export type StrongholdFoe = 'bruiser' | 'crossbowman' | 'firebrand' | 'sawbones'
 export type GameEvent =
   | { kind: 'coins'; amount: number }
   | { kind: 'swapped'; who: Being; before: Humanoid & { name?: string } } // someone's sex changed by a spell, there and then: as they were (how it happens the view's to play: cinema/)
-  | { kind: 'transformed'; who: Being; into: Into; coat?: number; tree?: Tree } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/)
+  | { kind: 'transformed'; who: Being; into: Into; coat?: number; tree?: Tree; hung?: Hung } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/); `coat`: which of its kind's, if it has any; `tree`: the one they are now; `hung`: a painting's wall
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
   | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)

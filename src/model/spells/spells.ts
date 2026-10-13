@@ -6,7 +6,7 @@
 import type { Hero } from '../types';
 import type { Into } from './turned';
 
-export type SpellId = 'hex' | 'mend' | 'chicken' | 'cow' | 'horse' | 'swap' | 'statue' | 'tree';
+export type SpellId = 'hex' | 'mend' | 'chicken' | 'cow' | 'horse' | 'swap' | 'statue' | 'tree' | 'pig' | 'sheep' | 'goat' | 'donkey' | 'toad' | 'rat' | 'cat' | 'ghost' | 'painting' | 'doll';
 export type Aim = 'foes' | 'anyone';
 export const AIM_WORDS: Record<Aim, string> = { foes: 'Foes only', anyone: 'Anyone' };
 export interface Spell {
@@ -31,6 +31,16 @@ export const SPELLS: Record<SpellId, Spell> = {
   horse: { name: "Horse-coper's word", about: 'A hair from a mane knotted three times, and a name called as you would call one in from the field. Whoever answers to it stays in the field.', breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'horse', needsTarget: true },
   statue: { name: "Mason's curse", about: 'A pebble from a churchyard wall, held under the tongue while you look at them. Out of doors only: whoever you look at stays where they stand, in stone, in all weathers.', breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'statue', needsTarget: true },
   tree: { name: "Woodward's rooting", about: 'An acorn split with the thumbnail and a word breathed into the halves. Out of doors only: whoever it is said at takes root, and is a tree like any other. A woodcutter would not know the difference.', breath: 70, cooldown: 0, range: 5, aim: 'anyone', turns: 'tree', needsTarget: true },
+  pig: { name: "Swineherd's whistle", about: 'Two notes through the teeth and a fistful of acorns thrown down. Whoever stoops for them stays stooped, and is glad of the mud.', breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'pig', needsTarget: true },
+  sheep: { name: "Shepherd's tally", about: 'The old count said over them, yan, tan, tethera, with a tuft of wool rubbed between the fingers. Whoever is counted is one of the flock, and was never anything else.', breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'sheep', needsTarget: true },
+  goat: { name: "Goatherd's grudge", about: 'A thistle head crushed in the fist and a name said sourly. Whoever it is said of comes away bearded and slot-eyed, and no better tempered.', breath: 55, cooldown: 0, range: 5, aim: 'anyone', turns: 'goat', needsTarget: true },
+  donkey: { name: "Carter's oath", about: 'What a carter says to a load that will not shift, said to a body instead, with a thorn switch in the hand. They will carry from now on, and be slow about it.', breath: 60, cooldown: 0, range: 5, aim: 'anyone', turns: 'donkey', needsTarget: true },
+  toad: { name: "Ditch-wife's spit", about: 'Spit on a dock leaf, the leaf folded over and trodden into wet ground. Whoever you were looking at as you trod is under the next one, blinking.', breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'toad', needsTarget: true },
+  rat: { name: "Ratcatcher's due", about: 'A crust left on a sill and a debt named over it. Whoever is named comes for the crust, small and grey, and for every crust after.', breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'rat', needsTarget: true },
+  cat: { name: "Goodwife's hearth-word", about: 'A saucer set down by the fire and a name called soft, as to something already asleep there. Whoever answers to it will answer to nothing else again.', breath: 50, cooldown: 0, range: 5, aim: 'anyone', turns: 'cat', needsTarget: true },
+  ghost: { name: "Sexton's knell", about: 'A bell rung once for someone not yet dead, a thumb of grave earth pressed to the rope. They hear it, and are what is left: pale, thin as breath, and still about the place.', breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'ghost', needsTarget: true },
+  painting: { name: "Limner's likeness", about: 'A thumb of lampblack and one eye held half shut, as a limner takes a face. Under a roof only: whoever is looked at is taken, and hangs on the nearest wall in a plain frame.', breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'painting', needsTarget: true },
+  doll: { name: "Poppet-maker's stitch", about: 'A knot of rag, a hair of theirs if you have one, and a needle put through it. Not under a roof: whoever it is made of is the poppet, lying where they stood, to be picked up like any other.', breath: 65, cooldown: 0, range: 5, aim: 'anyone', turns: 'doll', needsTarget: true },
   swap: { name: 'Moon-turn charm', about: 'Said at a crossroads under a waning moon, it is told; said anywhere, it works as well. Whoever hears it wakes into the other half of the parish.', breath: 40, cooldown: 0, range: 5, aim: 'anyone', swaps: true, needsTarget: true },
 };
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];

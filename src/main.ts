@@ -389,7 +389,10 @@ async function boot(): Promise<void> {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
         // (A cow, a bull: in the coat they'll have; a statue: of them as they stood; a tree: the one they are now.)
-        const stagingOf = (e: typeof event) => (e.into === 'cow' || e.into === 'bull' ? cowStagingOf(e.coat, e.into === 'bull') : e.into === 'statue' ? statueStagingOf(() => view.standIn(e.who)) : e.into === 'tree' && e.tree ? treeStagingOf(e.tree.kind, e.tree.shape) : e.into);
+        // PLACEHOLDER: the artists' own replace what stands in for theirs here, each a branch of its own: pigStagingOf(e.coat), sheepStagingOf(e.coat), goatStagingOf(e.coat), donkeyStagingOf(e.coat), toadStagingOf(e.coat), ratStagingOf(e.coat), catStagingOf(e.coat) (till then, STAGINGS' own stand-ins, by name);
+        // ghostStagingOf(stood), paintingStagingOf(stood), dollStagingOf(stood), `stood` being () => view.standIn(e.who) (till then, the statue's).
+        const likeStatue = (e: typeof event) => e.into === 'statue' || e.into === 'ghost' || e.into === 'painting' || e.into === 'doll'; // PLACEHOLDER: only the statue's, once the three have their own
+        const stagingOf = (e: typeof event) => (e.into === 'cow' || e.into === 'bull' ? cowStagingOf(e.coat, e.into === 'bull') : likeStatue(e) ? statueStagingOf(() => view.standIn(e.who)) : e.into === 'tree' && e.tree ? treeStagingOf(e.tree.kind, e.tree.shape) : e.into);
         playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingOf(event), () => (controller.paused = false));
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)

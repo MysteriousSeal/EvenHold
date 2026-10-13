@@ -44,4 +44,21 @@ export interface Directed {
   feathers?: [from: number, to: number];
 }
 
-export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging, cow: cowStaging, bull: bullStaging, statue: statueStagingOf(() => new THREE.Group()), tree: treeStagingOf() };
+export const STAGINGS: Record<Into, Staging> = {
+  chicken: chickenStaging,
+  horse: horseStaging,
+  cow: cowStaging,
+  bull: bullStaging,
+  statue: statueStagingOf(() => new THREE.Group()),
+  tree: treeStagingOf(),
+  pig: cowStaging, // PLACEHOLDER: the artist's pigStagingOf(0) replaces this
+  sheep: cowStaging, // PLACEHOLDER: the artist's sheepStagingOf(0) replaces this
+  goat: cowStaging, // PLACEHOLDER: the artist's goatStagingOf(0) replaces this
+  donkey: cowStaging, // PLACEHOLDER: the artist's donkeyStagingOf(0) replaces this
+  toad: chickenStaging, // PLACEHOLDER: the artist's toadStagingOf(0) replaces this
+  rat: chickenStaging, // PLACEHOLDER: the artist's ratStagingOf(0) replaces this
+  cat: chickenStaging, // PLACEHOLDER: the artist's catStagingOf(0) replaces this
+  ghost: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's ghostStagingOf(() => new THREE.Group()) replaces this
+  painting: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's paintingStagingOf(() => new THREE.Group()) replaces this
+  doll: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's dollStagingOf(() => new THREE.Group()) replaces this
+};

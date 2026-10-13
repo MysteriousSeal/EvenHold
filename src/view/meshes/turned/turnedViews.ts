@@ -1,6 +1,7 @@
-// The beasts people have been turned into (model/spells/turned.ts: for good; a hen, a horse, a cow, a bull), each
-// drawn where it is by its kind's own rig; and those turned to stone, stood where they were (statue.ts). Those where the hero is (the world, a room, a dungeon: drawn bigger
-// indoors, as all are); one just turned comes into sight in a puff of smoke (a hen: and feathers).
+// The beasts people have been turned into (model/spells/turned.ts: for good; a hen, a horse, a cow, a bull and the
+// rest), each drawn where it is by its kind's own rig; and those turned to stone, stood where they were (statue.ts),
+// a ghost of themselves, a painting of them on its wall. Those where the hero is (the world, a room, a dungeon: drawn
+// bigger indoors, as all are); one just turned comes into sight in a puff of smoke (a hen: and feathers).
 import * as THREE from 'three';
 import type { Being } from '../../../model/spells/beings';
 import type { Beast, Hen } from '../../../model/spells/turned';
@@ -18,6 +19,15 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
   cow: (material, beast) => new CowRig(material, beast.coat),
   bull: (material, beast) => new CowRig(material, beast.coat, true),
   statue: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))),
+  pig: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's PigRig(material, beast.coat) replaces this
+  sheep: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's SheepRig(material, beast.coat) replaces this
+  goat: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's GoatRig(material, beast.coat) replaces this
+  donkey: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's DonkeyRig(material, beast.coat) replaces this
+  toad: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's ToadRig(material, beast.coat) replaces this (its hop: beast.hop)
+  rat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's RatRig(material, beast.coat) replaces this
+  cat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's TurnedCatRig(material, beast.coat) replaces this
+  ghost: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))), // PLACEHOLDER: the artist's TurnedGhostRig(standIn(beingOf(beast.stone!))) replaces this
+  painting: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))), // PLACEHOLDER: the artist's PaintingRig(standIn(beingOf(beast.stone!))) replaces this (its wall: beast.hung)
 };
 
 export class TurnedViews {
