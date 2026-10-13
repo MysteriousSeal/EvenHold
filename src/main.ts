@@ -391,7 +391,7 @@ async function boot(): Promise<void> {
       } else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
-        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, event.into === 'cow' ? cowStagingOf(event.coat) : event.into, () => (controller.paused = false)); // (a cow: in the coat she'll have)
+        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, event.into === 'cow' || event.into === 'bull' ? cowStagingOf(event.coat, event.into === 'bull') : event.into, () => (controller.paused = false)); // (a cow, a bull: in the coat they'll have)
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
