@@ -26,7 +26,7 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
   chicken: (material) => new ChickenRig(material),
   horse: (material) => new HorseRig(material),
   cow: (material, beast) => new CowRig(material, beast.coat),
-  bull: (material, beast) => new CowRig(material, beast.coat, true),
+  bull: (material, beast) => bigger(new CowRig(material, beast.coat, true), BULL),
   statue: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))),
   pig: (material, beast) => new PigRig(material, beast.coat),
   sheep: (material, beast) => new SheepRig(material, beast.coat),
@@ -43,6 +43,17 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
 // size, it's taller than a room's wall), its frame's middle so far up the wall (of the size all's drawn at there),
 // and stood off it by what a wall may have hanging on it (a herbalist's dried plants: view/interior/roomVoxels.ts).
 const PAINTING = { size: 0.78, hangs: 0.4, proud: 0.09 };
+// A bull: the cow's own make, drawn bigger than her (told from her at a distance, where his hump and horns are lost).
+const BULL = 1.18;
+const bigger = (rig: Rig, by: number): Rig => ({
+  root: rig.root,
+  update(beast, dt) {
+    const drawn = rig.root.scale.y; // (as set for it this frame)
+    rig.update(beast, dt);
+    rig.root.scale.setScalar(drawn * by);
+  },
+  dispose: () => rig.dispose(),
+});
 const hung = (rig: PaintingRig): Rig => ({
   root: rig.root,
   update(beast, dt) {

@@ -44,7 +44,7 @@ export class WorldRegions {
   private draw(index: number): void {
     const contents = this.model.world.contents(index)!;
     // The model as this region alone: its lists, its part of the map; all else the model's own (tiles, ground).
-    const region = Object.create(this.model, Object.fromEntries(Object.entries(contents).map(([k, v]) => [k, { value: v }]))) as GameModel;
+    const region = Object.create(this.model, { ...Object.fromEntries(Object.entries(contents).map(([k, v]) => [k, { value: v }])), holds: { value: (x: number, z: number) => this.model.world.indexAt(x, z) === index } }) as GameModel;
     const sink = this.sink.tagged(index);
     const before = new Set(this.sink.materials());
     const animations = WORLD_BUILDERS.map((b) => b.build(sink, region)).filter((a): a is Animation => !!a);

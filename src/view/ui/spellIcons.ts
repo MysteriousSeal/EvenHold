@@ -83,7 +83,9 @@ function assembled(parts: ReadonlyArray<{ grid: VoxelGrid; at: readonly number[]
 const beast = (key: string, shape: Quadruped): MenuIcon => (size) => voxelIcon(key, () => ((parts) => assembled([parts.body, parts.head, ...parts.legs], shape.palette))(quadrupedParts(shape)), size);
 
 // The horse-coper's word: the horse itself. The herdsman's call: the cow herself.
-const horseIcon = beast('spell:horse', HORSE_SHAPE);
+// (Its icon's coat lighter than its own: a dark bay on a dark tile is lost, and its black legs with it.)
+const lighter = (hex: number): number => ((c) => ((Math.min(255, Math.round(c[0] * 1.35 + 34)) << 16) | (Math.min(255, Math.round(c[1] * 1.35 + 30)) << 8) | Math.min(255, Math.round(c[2] * 1.35 + 26))) >>> 0)([(hex >> 16) & 255, (hex >> 8) & 255, hex & 255]);
+const horseIcon = beast('spell:horse', { ...HORSE_SHAPE, palette: HORSE_SHAPE.palette.map(lighter) });
 const cowIcon = beast('spell:cow', cowShape());
 
 // The mason's curse: someone in stone, on a plinth. (Stone 1, its shade 2.)
@@ -137,21 +139,25 @@ const dollIcon: MenuIcon = (size) => voxelIcon('spell:doll', () => ({ grid: buil
 // The woodward's rooting: an oak.
 const treeIcon: MenuIcon = (size) => voxelIcon('spell:tree', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE, alpha: 1 }), size);
 
-// The moon-turn charm: a waning moon, its dark side one colour and its lit side another, a mote of light by it.
+// The moon-turn charm: one figure, a man down one side of it and a woman down the other (his hair short, his tunic
+// blue; hers long, her dress rose and wider at its hem).
 const swapIcon: MenuIcon = (size) =>
   voxelIcon(
     'spell:swap',
     () => {
-      // The lit side 1, its edge 2, the dark side 3, light 4.
-      const grid = createGrid([11, 11, 2]);
-      fillBox(grid, 2, 1, 0, 8, 9, 0, (x, y) => {
-        const [dx, dy] = [x - 5, y - 5];
-        if (dx * dx + dy * dy > 17) return 0;
-        const inner = (dx - 2) * (dx - 2) + dy * dy <= 11; // the dark of it, set to one side
-        return inner ? 3 : dx <= -3 ? 2 : 1;
-      });
-      for (const [x, y] of [[9, 9], [1, 2], [10, 4]]) fillBox(grid, x, y, 1, x, y, 1, 4);
-      return { grid, palette: [0xf4ecd0, 0xcfc49a, 0x4a3a6a, 0xe8d0ff], alpha: 1 };
+      // Skin 1, his hair 2, his tunic 3, her hair 4, her dress 5.
+      const grid = createGrid([8, 13, 4]);
+      fillBox(grid, 2, 8, 0, 5, 11, 3, 1); // the head
+      fillBox(grid, 2, 12, 0, 3, 12, 3, 2);
+      fillBox(grid, 2, 10, 0, 3, 11, 0, 2);
+      fillBox(grid, 4, 12, 0, 5, 12, 3, 4);
+      fillBox(grid, 5, 6, 0, 6, 11, 0, 4); // hers: down past her shoulder
+      fillBox(grid, 4, 10, 0, 5, 11, 0, 4);
+      fillBox(grid, 1, 3, 1, 3, 7, 2, 3); // his side
+      fillBox(grid, 2, 0, 1, 3, 2, 2, 3);
+      fillBox(grid, 4, 3, 1, 6, 7, 2, 5); // hers
+      fillBox(grid, 4, 0, 1, 7, 2, 2, 5);
+      return { grid, palette: [0xe2b48c, 0x4a3524, 0x3f6fb0, 0xd9a43c, 0xc8507a], alpha: 1 };
     },
     size,
   );

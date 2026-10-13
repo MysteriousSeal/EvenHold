@@ -57,7 +57,7 @@ export function sampleFigure(root: THREE.Object3D, height: number, rows = 26, vo
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;
       const material = mesh.material as THREE.MeshStandardMaterial;
-      if (!mesh.isMesh || Array.isArray(material) || !shown(mesh) || material.transparent || !('color' in material)) return; // (no shade on the ground, no glow)
+      if (!mesh.isMesh || Array.isArray(material) || !shown(mesh) || (material.transparent && !mesh.geometry.attributes.color) || !('color' in material)) return; // (no shade on the ground, no glow: what's seen through and has colours of its own, a ghost, is read)
       const { position, color } = mesh.geometry.attributes;
       const index = mesh.geometry.index;
       const corners = index ? index.count : position.count;

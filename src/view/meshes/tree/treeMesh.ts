@@ -95,9 +95,12 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   // Those someone's been turned into (model/spells/turned.ts: each one of the world's from then on), drawn on their
   // own as they come to be: standing; felled, a stump.
   const planted = new Map<Tree, { mesh: THREE.Mesh; felled: boolean }>();
+  // (A world drawn a region at a time: each region's own, the once. view/world/worldRegions.ts `holds`.)
+  const holds = (model as { holds?: (x: number, z: number) => boolean }).holds;
+  const mine = () => (holds ? model.chickens.trees.filter((tree) => holds(tree.x, tree.z)) : model.chickens.trees);
   const plant = () => {
     for (const [tree, { mesh }] of planted) if (!model.chickens.trees.includes(tree)) [mesh.removeFromParent(), planted.delete(tree)]; // (another game taken up)
-    for (const tree of model.chickens.trees) {
+    for (const tree of mine()) {
       const felled = lumber.felled(tree);
       const was = planted.get(tree);
       if (was && was.felled === felled) continue;
@@ -114,7 +117,7 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   };
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
-    if (planted.size !== model.chickens.trees.length || lumber.version !== seen) plant();
+    if (planted.size !== mine().length || lumber.version !== seen) plant();
     const now = lumber.chopping?.tree;
     if (now && drawn.has(now)) last = now;
     if (lumber.version !== seen) {

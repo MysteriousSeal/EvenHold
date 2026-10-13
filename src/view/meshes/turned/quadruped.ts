@@ -72,7 +72,7 @@ export class GrazerRig extends CreatureRig {
   protected readonly head: THREE.Group;
   protected readonly legs: THREE.Group[];
   private walked = 0;
-  private lowered = 0; // how far its head is lowered, eased
+  protected lowered = 0; // how far its head is lowered, eased
 
   constructor(
     material: THREE.Material,
