@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Hen } from '../../../model/spells/chickens';
 import type { SmokePuffs } from '../common/smokePuffs';
 import { CreatureRig, partMesher } from '../common/creatureRig';
+import { CowRig } from './cowRig';
 import { HorseRig } from './horseRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from './chickenVoxels';
 
@@ -66,7 +67,7 @@ class ChickenRig extends CreatureRig {
 
 export class ChickenViews {
   readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
-  private readonly rigs = new Map<Hen, ChickenRig | HorseRig>(); // (a hen, or a horse: what each was turned into)
+  private readonly rigs = new Map<Hen, ChickenRig | HorseRig | CowRig>(); // (a hen, a horse or a cow: what each was turned into)
 
   // Each frame: the hens where the hero is, drawn in `parent` at `scale`; `smoke`: for one just turned, as she's first seen.
   update(hens: readonly Hen[], parent: THREE.Object3D, scale: number, dt: number, smoke: SmokePuffs): void {
@@ -75,7 +76,7 @@ export class ChickenViews {
     for (const hen of hens) {
       let rig = this.rigs.get(hen);
       const made = !rig;
-      if (!rig) this.rigs.set(hen, (rig = hen.kind === 'horse' ? new HorseRig(this.material) : new ChickenRig(this.material)));
+      if (!rig) this.rigs.set(hen, (rig = hen.kind === 'horse' ? new HorseRig(this.material) : hen.kind === 'cow' ? new CowRig(this.material, hen.coat) : new ChickenRig(this.material)));
       if (rig.root.parent !== parent) parent.add(rig.root);
       rig.root.scale.setScalar(scale);
       rig.update(hen, made ? 0 : dt);

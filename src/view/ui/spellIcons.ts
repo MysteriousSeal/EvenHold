@@ -5,7 +5,8 @@ import type { SpellId } from '../../model/spells/spells';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
 import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/wildlife/chickenVoxels';
-import { HORSE_BODY, HORSE_HEAD, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_NECK, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
+import { COW_BODY_PIVOT, COW_HEAD_PIVOT, COW_LEGS, COW_LEG_HEIGHT, COW_LEG_PIVOT, COW_NECK, COW_PALETTE, buildCowBody, buildCowHead, buildCowLeg } from '../meshes/wildlife/cowVoxels';
+import { HORSE_BODY_PIVOT, HORSE_HEAD_PIVOT, HORSE_LEGS, HORSE_LEG_HEIGHT, HORSE_LEG_PIVOT, HORSE_NECK, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../meshes/wildlife/horseVoxels';
 import type { MenuIcon } from './menu';
 import { voxelIcon } from './voxelIcon';
 
@@ -67,22 +68,34 @@ const chickenIcon: MenuIcon = (size) =>
     size,
   );
 
-// The horse-coper's word: the horse itself, side on (wildlife/horseVoxels.ts: its parts set together).
+// A four-legged beast itself, its parts set together as its rig sets them (each part's grid and where its own
+// (0, 0, 0) is, in voxels from the middle of it on the ground).
+function beast(parts: ReadonlyArray<{ grid: VoxelGrid; at: [number, number, number] }>, palette: number[]): { grid: VoxelGrid; palette: number[]; alpha: number } {
+  const low = [0, 1, 2].map((axis) => Math.min(...parts.map((part) => Math.round(part.at[axis]))));
+  const high = [0, 1, 2].map((axis) => Math.max(...parts.map((part) => Math.round(part.at[axis]) + part.grid.size[axis])));
+  const grid = createGrid([high[0] - low[0], high[1] - low[1], high[2] - low[2]]);
+  for (const { grid: part, at } of parts) {
+    const [sx, sy, sz] = part.size;
+    const [ox, oy, oz] = [0, 1, 2].map((axis) => Math.round(at[axis]) - low[axis]);
+    for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) if (colorAt(part, x, y, z)) setColor(grid, x + ox, y + oy, z + oz, colorAt(part, x, y, z));
+  }
+  return { grid, palette, alpha: 1 };
+}
+const from = (at: readonly number[], pivot: readonly number[]): [number, number, number] => [at[0] - pivot[0], at[1] - pivot[1], at[2] - pivot[2]];
+
+// The horse-coper's word: the horse itself (wildlife/horseVoxels.ts).
 const horseIcon: MenuIcon = (size) =>
   voxelIcon(
     'spell:horse',
-    () => {
-      const grid = createGrid([6, HORSE_NECK[1] + HORSE_HEAD[1], HORSE_BODY[2] + 10]);
-      const put = (part: VoxelGrid, ox: number, oy: number, oz: number) => {
-        const [sx, sy, sz] = part.size;
-        for (let x = 0; x < sx; x++) for (let y = 0; y < sy; y++) for (let z = 0; z < sz; z++) if (colorAt(part, x, y, z)) setColor(grid, x + ox, y + oy, z + oz, colorAt(part, x, y, z));
-      };
-      const mid = HORSE_BODY[2] / 2 + 0.5; // (its middle, along it: the tail's row behind)
-      put(buildHorseBody(), 0, HORSE_LEG_HEIGHT - 1, 0);
-      put(buildHorseHead(), 1, HORSE_NECK[1], Math.round(mid + HORSE_NECK[2] - 2));
-      for (const [x, z] of HORSE_LEGS) put(buildHorseLeg(), x + 2, 0, Math.round(mid + z - 1));
-      return { grid, palette: HORSE_PALETTE, alpha: 1 };
-    },
+    () => beast([{ grid: buildHorseBody(), at: from([0, HORSE_LEG_HEIGHT, 0], HORSE_BODY_PIVOT) }, { grid: buildHorseHead(), at: from(HORSE_NECK, HORSE_HEAD_PIVOT) }, ...HORSE_LEGS.map(([x, z], i) => ({ grid: buildHorseLeg(i < 2), at: from([x, HORSE_LEG_HEIGHT, z], HORSE_LEG_PIVOT) }))], HORSE_PALETTE),
+    size,
+  );
+
+// The dairymaid's call: the cow herself (wildlife/cowVoxels.ts).
+const cowIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:cow',
+    () => beast([{ grid: buildCowBody(), at: from([0, COW_LEG_HEIGHT, 0], COW_BODY_PIVOT) }, { grid: buildCowHead(), at: from(COW_NECK, COW_HEAD_PIVOT) }, ...COW_LEGS.map(([x, z], i) => ({ grid: buildCowLeg(i < 2), at: from([x, COW_LEG_HEIGHT, z], COW_LEG_PIVOT) }))], COW_PALETTE),
     size,
   );
 
@@ -105,7 +118,7 @@ const swapIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, horse: horseIcon, swap: swapIcon };
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, cow: cowIcon, horse: horseIcon, swap: swapIcon };
 
 // The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
 export const spellbookIcon: MenuIcon = (size) =>
