@@ -1,9 +1,9 @@
-// The hen-wife's turn (model/spells/chickens.ts): whoever's picked out turned into a chicken, for good. A foe counts
+// The hen-wife's turn (model/spells/turned.ts): whoever's picked out turned into a chicken, for good. A foe counts
 // as slain (a quest's count, the world's record: never back), nothing had for it; a villager or keeper is gone from
 // their village, their quests let go and no more of them, no word or trade to be had; a traveller is off the roads. A
 // hen in their place, wandering within 5 tiles of where they were turned, for ever; kept in a save, with who's lost.
 // Never a boss or a camp's chief, never the hero, never without someone picked out. The hen herself
-// (view/meshes/wildlife/chickenVoxels.ts): her parts, her few colours.
+// (view/meshes/turned/chickenVoxels.ts): her parts, her few colours.
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { TEST_MAP_SIZE, TEST_SEEDS, fresh } from './support/testWorld';
@@ -11,11 +11,11 @@ import { GameModel } from '../src/model/GameModel';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { interactionOf } from '../src/model/hero/interaction';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { COW_COATS, ROAM, mayTurn, placeOf } from '../src/model/spells/chickens';
+import { COW_COATS, ROAM, mayTurn, placeOf } from '../src/model/spells/turned';
 import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { SmokePuffs } from '../src/view/meshes/common/smokePuffs';
-import { BODY_GRID, CHICKEN_PALETTE, HEAD_GRID, buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/wildlife/chickenVoxels';
+import { BODY_GRID, CHICKEN_PALETTE, HEAD_GRID, buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/turned/chickenVoxels';
 
 // A game with a wolf a little ahead of the hero, focused, the hero knowing the charm; what's told kept.
 function withWolf() {

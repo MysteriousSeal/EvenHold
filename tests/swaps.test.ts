@@ -2,7 +2,7 @@
 // The moon-turn charm (model/spells/swaps.ts): the sex of whoever's picked out changed: a villager or keeper, a
 // traveller, a bandit; their build, a hair style of the other sex's, no beard on a woman, a new name, what they wear
 // the same; a keeper called by their trade as they now are; cast again, as they were; kept in a save; never the
-// hero, a beast or the dead. Its cinematic (view/cinema/swapStaging.ts): what they wear off them as vapour, their
+// hero, a beast or the dead. Its cinematic (view/cinema/stagings/swapStaging.ts): what they wear off them as vapour, their
 // body changed part by part, themselves again dressed.
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,8 @@ import { castSpell } from '../src/model/spells/casting';
 import { SPELLS, learn } from '../src/model/spells/spells';
 import { maySwap, otherLook } from '../src/model/spells/swaps';
 import { makeActor } from '../src/view/cinema/actor';
-import { BARE, SWAP_LENGTH, standing, swapStaging } from '../src/view/cinema/swapStaging';
+import { BARE, SWAP_LENGTH, swapStaging } from '../src/view/cinema/stagings/swapStaging';
+import { standing } from '../src/view/cinema/stagings/undress';
 import { GIVES_WAY, playTransformation } from '../src/view/cinema/transformCinema';
 
 const nothing: unknown = new Proxy(() => nothing, { get: (_t, key) => (key === 'measureText' ? () => ({ width: 10, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }) : nothing), set: () => true });

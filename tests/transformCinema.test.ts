@@ -7,20 +7,21 @@ import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { fresh } from './support/testWorld';
 import { makeActor } from '../src/view/cinema/actor';
-import { HEN, chickenStaging } from '../src/view/cinema/chickenStaging';
+import { HEN, chickenStaging, henBecoming } from '../src/view/cinema/stagings/chickenStaging';
 import { STAGINGS } from '../src/view/cinema/staging';
-import { COW, bullStaging, cowStaging, cowStagingOf } from '../src/view/cinema/cowStaging';
-import { COW_COLORS, COW_PALETTE, COW_PALETTES } from '../src/view/meshes/wildlife/cowVoxels';
-import { COW_COATS } from '../src/model/spells/chickens';
-import { HORSE, horseStaging } from '../src/view/cinema/horseStaging';
-import { HORSE_LEGS, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../src/view/meshes/wildlife/horseVoxels';
+import { COW, bullStaging, cowStaging, cowStagingOf } from '../src/view/cinema/stagings/cowStaging';
+import { COW_COLORS, COW_PALETTE, COW_PALETTES } from '../src/view/meshes/turned/cowVoxels';
+import { COW_COATS } from '../src/model/spells/turned';
+import { HORSE, horseBecoming, horseStaging } from '../src/view/cinema/stagings/horseStaging';
+import { partPieces } from '../src/view/cinema/stagings/becoming';
+import { HORSE_LEGS, HORSE_PALETTE, buildHorseBody, buildHorseHead, buildHorseLeg } from '../src/view/meshes/turned/horseVoxels';
 import { GIVES_WAY, LENGTH, playTransformation } from '../src/view/cinema/transformCinema';
-import { PartMorph } from '../src/view/cinema/partMorph';
-import { VoxelMorph, sampleFigure } from '../src/view/cinema/voxelMorph';
+import { PartMorph } from '../src/view/cinema/morph/partMorph';
+import { VoxelMorph, sampleFigure } from '../src/view/cinema/morph/voxelMorph';
 import { HumanRig } from '../src/view/meshes/human/humanRig';
 import { EnemyViews } from '../src/view/meshes/enemy/enemyViews';
 import { makeEnemy } from '../src/model/enemies/enemies';
-import { buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/wildlife/chickenVoxels';
+import { buildChickenBody, buildChickenHead, buildChickenLeg } from '../src/view/meshes/turned/chickenVoxels';
 
 // No canvas in happy-dom: a 2D context that draws nothing (a foe's name, its bar), every call answered.
 const nothing: unknown = new Proxy(() => nothing, { get: (_t, key) => (key === 'measureText' ? () => ({ width: 10, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }) : nothing), set: () => true, apply: () => nothing });
@@ -56,7 +57,7 @@ const drawer = () => ({ render: vi.fn(), setSize: vi.fn(), setPixelRatio: vi.fn(
 describe('someone human-shaped turned into a chicken, part by part', () => {
   it('has each part morph into hers: legs her legs, arms her wings, torso her body, head her head; a hen entire', () => {
     const actor = makeActor(human());
-    const { pieces, big, down } = chickenStaging.pieces!(actor)!;
+    const { pieces, big, down } = partPieces(actor, henBecoming)!;
     expect(pieces.length).toBe(6); // (two legs, two arms, the torso, the head)
     for (const piece of pieces) [expect(piece.from.at.length).toBeGreaterThan(5), expect(piece.into.at.length).toBeGreaterThan(0)];
     const hen = chickenStaging.cloud!();
@@ -102,7 +103,7 @@ describe('a four-legged beast turned into a chicken, part by part', () => {
 
   it('has each part truly become hers, in its turn: hind legs her legs, forelegs her wings, trunk her body, head her head; a hen entire, then her size', () => {
     const actor = makeActor(bear());
-    const { pieces, big, down } = chickenStaging.pieces!(actor)!;
+    const { pieces, big, down } = partPieces(actor, henBecoming)!;
     expect(pieces.length).toBe(6); // (two hind legs, two forelegs, the trunk, the head)
     expect(big).toBeGreaterThan(1.3); // (a hen as big as the bear, to change into where it stands)
     for (const piece of pieces) [expect(piece.from.at.length).toBeGreaterThan(5), expect(piece.into.at.length).toBeGreaterThan(0)];
@@ -175,7 +176,7 @@ describe('someone turned into a horse', () => {
 
   it('has each part of a human, and of a bear, morph into its part: legs its hind legs, arms its forelegs, torso its barrel, head its head', () => {
     for (const figure of [human(), new EnemyViews(new THREE.Scene()).standIn(makeEnemy(1, 'bear', 0, 0))]) {
-      const { pieces, big, down } = horseStaging.pieces!(makeActor(figure))!;
+      const { pieces, big, down } = partPieces(makeActor(figure), horseBecoming)!;
       expect(pieces.length).toBe(6);
       const horse = horseStaging.cloud!();
       const key = (p: THREE.Vector3, size: number) => p.toArray().map((n) => Math.round(n / (size / 2))).join();
@@ -194,7 +195,7 @@ describe('someone turned into a horse', () => {
   it('grows bigger than someone smaller than it as it goes, part by part; nothing to come down from after', () => {
     const actor = makeActor(human());
     expect(HORSE.y).toBeGreaterThan(actor.size.y); // (a horse: taller than a man)
-    const { pieces, big, down } = horseStaging.pieces!(actor)!;
+    const { pieces, big, down } = partPieces(actor, horseBecoming)!;
     expect(big).toBe(1); // (built at its own size)
     const tall = (i: number, of: 'from' | 'into') => new THREE.Box3().setFromPoints(pieces[i][of].at).getSize(new THREE.Vector3());
     expect(tall(4, 'into').z).toBeGreaterThan(tall(4, 'from').y); // (its barrel: longer than their torso was tall)
@@ -207,7 +208,7 @@ describe('someone turned into a horse', () => {
     morph.update(1, 2);
     expect(morph.object.scale.x).toBe(1);
     // A hen, of the same man: built as big as he is, and down to her size at the end, as before.
-    expect(chickenStaging.pieces!(makeActor(human()))!.big).toBeGreaterThan(1);
+    expect(partPieces(makeActor(human()), henBecoming)!.big).toBeGreaterThan(1);
   });
 
   it('is played full screen as the chicken is, with its own words', () => {
