@@ -10,7 +10,7 @@ import { blowDamage } from '../hero/blessing';
 import { healthOf, type Person } from '../hero/selection';
 import type { MapSize } from '../map/grid';
 import type { Enemy } from '../types';
-import { mayTurn, type Chickens } from './chickens';
+import { mayTurn, type Chickens } from './turned';
 import { maySwap, type Swaps } from './swaps';
 import { SPELLS, knows, waitOf, type SpellId } from './spells';
 

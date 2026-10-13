@@ -1,14 +1,15 @@
-// Someone turned into a beast (spells.ts: a charm for anyone, cast at whoever's picked out; a chicken, a horse, or cattle (a man a bull, a woman a cow):
-// `Into`), for good: a foe, a
-// villager or keeper, someone on the road; never a boss or a camp's chief, nor anyone only passing through.
-// Whoever they were is no more, as surely as if they'd been killed:
+// Someone turned into a beast (spells.ts: a charm for anyone, cast at whoever's picked out), for good: a hen, a
+// horse, or cattle (a man a bull, a woman a cow; a cow or a bull in one of a few coats: `Into`). A foe, a villager or
+// keeper, someone on the road; never a boss or a camp's chief, nor anyone only passing through. Whoever they were is
+// no more, as surely as if they'd been killed:
 //  - a foe counts as slain, for whatever counts the slain (a board's quest, a quest someone gave, a camp or a dungeon
 //    cleared, the world's record of them: never back), though nothing's had for it: no experience, no loot, no coin;
 //  - a villager or keeper is gone from their village (`lost`: kept, so a world made again is made without them): no
 //    word, no trade, no quest of theirs (any under way let go: story.ts lose);
 //  - a traveller is off the roads.
-// In their place the beast (`hens`: a hen, a horse or a cow; kept with the game), where they stood (out of doors, in a room, down a dungeon):
-// wandering aimlessly, never more than ROAM tiles from where they were turned, a few steps and a peck, for ever.
+// In their place the beast, where they stood (out of doors, in a room, down a dungeon), kept with the game:
+// wandering aimlessly, never more than ROAM tiles from where they were turned, a few steps and a while stood, for
+// ever. (The first of them was the hen: hence `Hen`, `hens`, `Chickens`, and what a save calls them.)
 // Told as it happens ('transformed': how it happens, part by part, is the view's to play, view/cinema/).
 import { isBoss } from '../enemies/enemyLevels';
 import { isWorldFoe } from '../enemies/foeIds';
@@ -18,6 +19,7 @@ import type { Npc } from '../npcs/npcs';
 import { roomFree } from '../npcs/npcWalk';
 import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
+import { humanOf, isFoe, isNpc, type Being } from './beings';
 
 export type Into = 'chicken' | 'horse' | 'cow' | 'bull';
 export const INTO: readonly Into[] = ['chicken', 'horse', 'cow', 'bull'];
@@ -42,9 +44,6 @@ export interface Hen {
   coat?: number; // a cow's or a bull's: which of their coats (0 .. COW_COATS - 1)
   fresh?: boolean; // just turned (the view's: a puff of smoke as she's first seen)
 }
-export type Being = Enemy | Npc | Traveller;
-const isFoe = (being: Being): being is Enemy => 'kind' in being;
-const isNpc = (being: Being): being is Npc => 'home' in being;
 // A place indoors, by its door.
 export const placeOf = (entrance: Entrance | null | undefined): string | null => (entrance ? `${entrance.x},${entrance.z}` : null);
 
@@ -91,7 +90,7 @@ export class Chickens {
     if (!mayTurn(being)) return false;
     const { host } = this;
     // Cattle: a man a bull, a woman a cow; what's neither (a beast), one or the other by chance.
-    const build = isFoe(being) ? being.human?.look.build : being.look.build;
+    const build = humanOf(being)?.look.build;
     const into: Into = as === 'cow' || as === 'bull' ? (build ? (build === 'male' ? 'bull' : 'cow') : host.random() < 0.5 ? 'bull' : 'cow') : as;
     const hen: Hen = { id: this.next++, kind: into, x: being.x, y: being.y, z: being.z, at: isFoe(being) ? (host.dungeon ? placeOf(host.inside?.entrance) : null) : placeOf(being.where), from: { x: being.x, z: being.z }, to: null, peck: GAIT[into].stood[0], facing: isFoe(being) ? 0 : being.facing, fresh: true, ...(into === 'cow' || into === 'bull' ? { coat: Math.floor(host.random() * COW_COATS) % COW_COATS } : {}) };
     const shown: Being = isFoe(being) ? { ...being } : being; // (as they stood, for its turning to be played: the foe itself is dead from here on)

@@ -57,7 +57,7 @@ export class TravellerCrowd {
     for (const band of this.bands.values()) band.update(dt, enemies);
   }
 
-  // Off the roads for good (turned into a chicken: spells/chickens.ts).
+  // Off the roads for good (turned into a chicken: spells/turned.ts).
   lose(t: Traveller): void {
     this.bandFor(t)?.lose(t);
     this.bandOf.delete(t);

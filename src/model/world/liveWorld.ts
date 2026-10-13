@@ -39,7 +39,7 @@ export interface WorldHost {
   readonly seed: number;
   readonly hero: Hero;
   readonly slain: ReadonlySet<number>;
-  readonly chickens?: { readonly lost: ReadonlySet<number> }; // villagers gone for good (turned into beasts: spells/chickens.ts), by id
+  readonly chickens?: { readonly lost: ReadonlySet<number> }; // villagers gone for good (turned into beasts: spells/turned.ts), by id
   readonly swaps?: { remade(beings: ReadonlyArray<Npc | Enemy>): void }; // those a charm's changed, changed again as they're made (spells/swaps.ts)
   felled?(tree: Tree): boolean; // (skills/lumber.ts)
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)

@@ -85,7 +85,7 @@ export interface SaveData {
   travellers?: ReturnType<Travellers['save']>; // those on the roads: where each is, which way, their health; those to set out again // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
   swaps?: unknown; // those whose sex a charm's changed, by kind and number (spells/swaps.ts)
-  chickens?: unknown; // whoever's been turned into one, for good: the hens, and the villagers lost (spells/chickens.ts)
+  chickens?: unknown; // whoever's been turned into one, for good: the hens, and the villagers lost (spells/turned.ts)
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)

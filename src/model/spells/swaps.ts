@@ -4,22 +4,21 @@
 // same, cut for them; what they're called by their trade following (npcs.ts titleOf: a barmaid a barman). For good:
 // cast on them again, they're as they were. Kept in a save by who's changed (each made afresh as the seed has them,
 // then changed again: `remade`, as the world's made or a region of it is).
-// Told as it happens ('swapped': how it happens is the view's to play, view/cinema/swapStaging.ts).
+// Told as it happens ('swapped': how it happens is the view's to play, view/cinema/stagings/swapStaging.ts).
 import { hashUnit } from '../../util/random';
 import { STYLES_OF, type BodyLook } from '../human/humanoid';
 import { nameAt, type Npc } from '../npcs/npcs';
 import type { Traveller } from '../travellers/travellers';
 import type { Enemy, GameEvent } from '../types';
-import type { Being } from './chickens';
+import { humanOf, isFoe, isNpc, type Being } from './beings';
 
 type Kind = 'n' | 't' | 'f'; // a villager, a traveller, a foe
-const kindOf = (being: Being): Kind => ('kind' in being ? 'f' : 'home' in being ? 'n' : 't');
+const kindOf = (being: Being): Kind => (isFoe(being) ? 'f' : isNpc(being) ? 'n' : 't');
 const keyOf = (being: Being): string => `${kindOf(being)}:${being.id}`;
-// Whose body it is: a foe's is its human one (a bandit's: none, no one to change).
-const body = (being: Being): { look: BodyLook } | null => ('kind' in being ? (being.human ?? null) : being);
+const body = humanOf; // (whose body it is: beings.ts)
 
 // Whether `being` may be changed: someone with a human body of their own, not only passing through.
-export const maySwap = (being: Being): boolean => ('kind' in being ? being.state !== 'dead' && !!being.human : !('led' in being && being.led));
+export const maySwap = (being: Being): boolean => (isFoe(being) ? being.state !== 'dead' && !!being.human : !('led' in being && being.led));
 
 // The look of the other sex, for the one numbered `id`: the same skin, hair colour and dye; a style of that sex's; a
 // beard for half the men, none for a woman.
@@ -47,7 +46,7 @@ export class Swaps {
   swap(being: Being): boolean {
     const whose = body(being);
     if (!whose || !maySwap(being)) return false;
-    const before = { look: whose.look, equipment: { ...('kind' in being ? being.human!.equipment : being.equipment) }, name: 'kind' in being ? undefined : being.name };
+    const before = { look: whose.look, equipment: { ...whose.equipment }, name: isFoe(being) ? undefined : being.name };
     this.turn(being);
     this.host.report({ kind: 'swapped', who: being, before });
     return true;
@@ -61,14 +60,14 @@ export class Swaps {
     if (this.changed.has(key) && was) {
       // Back as they were.
       whose.look = was.look;
-      if (!('kind' in being) && was.name) being.name = was.name;
+      if (!(isFoe(being)) && was.name) being.name = was.name;
       this.changed.delete(key);
       this.was.delete(key);
       return;
     }
-    this.was.set(key, { look: whose.look, name: 'kind' in being ? undefined : being.name });
+    this.was.set(key, { look: whose.look, name: isFoe(being) ? undefined : being.name });
     whose.look = otherLook(whose.look, being.id, this.host.seed);
-    if (!('kind' in being)) being.name = nameAt(being.id * 13 + 5, being.id * 7 + 3, this.host.seed + 57, whose.look.build);
+    if (!(isFoe(being))) being.name = nameAt(being.id * 13 + 5, being.id * 7 + 3, this.host.seed + 57, whose.look.build);
     this.changed.add(key);
   }
 

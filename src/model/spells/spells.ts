@@ -4,7 +4,7 @@
 // Two kinds, by whom they may be aimed at (`aim`): at foes only (what harms), or at anyone (a foe, a villager or
 // traveller picked out: hero/selection.ts; no one picked out, the hero themselves).
 import type { Hero } from '../types';
-import type { Into } from './chickens';
+import type { Into } from './turned';
 
 export type SpellId = 'hex' | 'mend' | 'chicken' | 'cow' | 'horse' | 'swap';
 export type Aim = 'foes' | 'anyone';
@@ -20,7 +20,7 @@ export interface Spell {
   aim: Aim; // whom it may be cast at
   harm?: number; // times a blow of the hero's, done to a foe
   heal?: number; // of their whole health, given back
-  turns?: Into; // what it turns them into, for good (chickens.ts)
+  turns?: Into; // what it turns them into, for good (turned.ts)
   swaps?: boolean; // changes their sex (swaps.ts): cast again, back as they were
   needsTarget?: boolean; // one for anyone that's never cast at the hero themselves: no one picked out, not cast
 }

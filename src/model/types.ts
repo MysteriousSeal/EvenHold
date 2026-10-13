@@ -9,7 +9,8 @@ import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
 import type { SpellId } from './spells/spells';
-import type { Being, Into } from './spells/chickens';
+import type { Being } from './spells/beings';
+import type { Into } from './spells/turned';
 import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
 

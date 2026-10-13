@@ -338,7 +338,7 @@ export class Story {
     return true;
   }
 
-  // Someone gone for good (turned into a chicken: spells/chickens.ts): whatever of theirs is under way (given by them,
+  // Someone gone for good (turned into a chicken: spells/turned.ts): whatever of theirs is under way (given by them,
   // or to be handed in to them) let go, nothing of theirs set by hand kept; the rest follows from their being gone
   // from the world (no quest set that wants them: storySet.ts lacks).
   lose(who: Npc): void {

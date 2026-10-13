@@ -189,7 +189,7 @@ export class Travellers {
   }
 
   // Each frame the hero's out in the world (`enemies`: the world's foes, for the guards to go for).
-  // Off the roads for good (turned into a chicken: spells/chickens.ts); a guard who followed them, on alone.
+  // Off the roads for good (turned into a chicken: spells/turned.ts); a guard who followed them, on alone.
   lose(t: Traveller): void {
     const at = this.list.indexOf(t);
     if (at >= 0) this.list.splice(at, 1);
