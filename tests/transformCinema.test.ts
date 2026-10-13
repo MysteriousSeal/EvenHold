@@ -158,7 +158,7 @@ const STEPPED = 14; // seconds someone's turning runs, played step by step (turn
 describe('someone turned into a horse', () => {
   it('is a horse in voxels: a barrel on four legs, a head on an arched neck before it, a tail behind, in its few colours', () => {
     const horse = horseStaging.cloud!();
-    const cells = [buildHorseBody(), buildHorseHead(), ...HORSE_LEGS.map(buildHorseLeg)].reduce((n, grid) => n + Array.from(grid.cells).filter(Boolean).length, 0);
+    const cells = [buildHorseBody(), buildHorseHead(), ...HORSE_LEGS.map((_, i) => buildHorseLeg(i < 2))].reduce((n, grid) => n + Array.from(grid.cells).filter(Boolean).length, 0);
     expect(horse.at.length).toBe(cells);
     const box = new THREE.Box3().setFromPoints(horse.at);
     expect(box.min.y).toBeCloseTo(horse.size / 2, 6); // (its hooves on the ground)
