@@ -11,7 +11,7 @@ import { healthOf, type Person } from '../hero/selection';
 import type { MapSize } from '../map/grid';
 import type { Enemy } from '../types';
 import { mayTurn, type Chickens } from './turned';
-import { maySwap, type Swaps } from './swaps';
+import { maySwap, whyNoSwap, type Swaps } from './swaps';
 import { SPELLS, knows, waitOf, type SpellId } from './spells';
 
 export interface Caster extends Fight {
@@ -55,7 +55,8 @@ export function castSpell(caster: Caster, id: SpellId): CastResult {
   if (waitOf(hero, id) > 0) return 'waiting';
   const at = castTarget(caster, id);
   // (A charm that turns them, where it can't here: said why, so it's not a key pressed and nothing.)
-  const why = at && !('self' in at) && spell.turns ? caster.chickens?.whyNot?.('foe' in at ? at.foe : at.person, spell.turns) : null;
+  // (And the one that changes their sex, at what has no such body: a beast.)
+  const why = !at || 'self' in at ? null : spell.turns ? caster.chickens?.whyNot?.('foe' in at ? at.foe : at.person, spell.turns) : spell.swaps ? whyNoSwap('foe' in at ? at.foe : at.person) : null;
   if (why) caster.report({ kind: 'banner', title: spell.name, line: why });
   if (!at || (spell.swaps && ('self' in at || !maySwap('foe' in at ? at.foe : at.person))) || (spell.turns && ('self' in at || !(caster.chickens ? caster.chickens.may('foe' in at ? at.foe : at.person, spell.turns) : mayTurn('foe' in at ? at.foe : at.person))))) return 'noTarget'; // (a boss: not to be turned)
   if (!caster.moves.spend(spell.breath)) return 'breath';

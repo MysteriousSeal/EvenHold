@@ -17,6 +17,11 @@ type Kind = 'n' | 't' | 'f'; // a villager, a traveller, a foe
 const kindOf = (being: Being): Kind => (isFoe(being) ? 'f' : isNpc(being) ? 'n' : 't');
 const keyOf = (being: Being): string => `${kindOf(being)}:${being.id}`;
 const body = humanOf; // (whose body it is: beings.ts)
+// Whether two looks are the same in every part (someone made anew has a look of their own: never the very same one).
+const sameLook = (a: BodyLook, b: BodyLook): boolean => a === b || (Object.keys(a).length === Object.keys(b).length && (Object.keys(a) as Array<keyof BodyLook>).every((part) => a[part] === b[part]));
+// What's told where the charm's cast at what has no man's or woman's body to change (a beast, the dead that walk): none
+// where it's who they are (slain, only passing through), or where it may be cast.
+export const whyNoSwap = (being: Being): string | null => (isFoe(being) && being.state !== 'dead' && !being.human ? 'It finds neither man nor woman there.' : null);
 
 // Whether `being` may be changed: someone with a human body of their own, not only passing through.
 export const maySwap = (being: Being): boolean => (isFoe(being) ? being.state !== 'dead' && !!being.human : !('led' in being && being.led));
@@ -86,7 +91,7 @@ export class Swaps {
     for (const being of beings) {
       const key = keyOf(being);
       if (this.changed.has(key) && !this.was.has(key) && body(being)) [this.changed.delete(key), this.turn(being)];
-      else if (this.was.has(key) && body(being)?.look === this.was.get(key)!.look) [this.changed.delete(key), this.was.delete(key), this.turn(being)]; // (made anew, as the seed has them)
+      else if (this.was.has(key) && body(being) && sameLook(body(being)!.look, this.was.get(key)!.look)) [this.changed.delete(key), this.was.delete(key), this.turn(being)]; // (made anew, as the seed has them: a look of their own, the same as they first had)
     }
   }
 
