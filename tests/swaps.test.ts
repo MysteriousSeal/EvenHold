@@ -158,5 +158,10 @@ describe('its cinematic', () => {
     swapStaging(bare, { look: after.look, equipment: {} }, 'Adawen').direct!(figure, scene2, 0.5);
     const none = scene2.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh;
     expect(none.count).toBeLessThan(vapour.count / 2); // (their braies alone)
+    // (Someone with nothing on at all: no vapour drawn, not a cube of it.)
+    const nude = { look: { ...before.look, unclothed: true }, equipment: {} };
+    const scene3 = new THREE.Scene();
+    swapStaging(nude, { look: { ...after.look, unclothed: true }, equipment: {} }, 'Adawen').direct!(standing(nude, true).root, scene3, 0.5).update(0.2, 0);
+    expect((scene3.children.find((o) => (o as THREE.InstancedMesh).isInstancedMesh) as THREE.InstancedMesh).count).toBe(0);
   });
 });
