@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import './transformCinema.css';
 import { SmokePuffs } from '../meshes/common/smokePuffs';
-import { makeActor } from './actor';
+import { makeActor, setDown } from './actor';
 import type { Into } from '../../model/spells/turned';
 import { STAGINGS, type Staging } from './staging';
 import { VoxelMorph, sampleFigure } from './morph/voxelMorph';
@@ -60,6 +60,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const under = new THREE.PointLight(0x8a4fd0, 0, 4); // the charm's own light, rising as it works
   scene.add(sun, under);
 
+  setDown(figure);
   const actor = makeActor(figure);
   // Otherwise, anything not human-shaped with voxels to it: taken apart into them and put together again as what it becomes.
   const own = staging.direct?.(figure, scene, actor.size.y, actor) ?? null; // (a staging all its own)
@@ -72,6 +73,8 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
   const made = loose || own ? null : staging.prepare?.(actor);
   const target = staging.target();
   target.root.visible = false;
+  // (How long what they become is, for something small turned into something long: a bat a pig, seen whole.)
+  const long = target.height >= actor.size.y ? ((size) => Math.max(size.x, size.z))(new THREE.Box3().setFromObject(target.root).getSize(new THREE.Vector3())) : 0;
   scene.add(figure, target.root);
   // The slab they stand on: square stones, a little uneven in shade.
   const tall = actor.size.y;
@@ -155,7 +158,7 @@ export function playTransformation(figure: THREE.Object3D, name: string, into: I
     const frame = Math.max(tall, target.height);
     const height = frame * 0.5 + (target.height * 0.55 - frame * 0.5) * eased;
     const wide = own ? 4.6 : 3.4; // (someone seen whole, head to foot, with room over them for what lifts off)
-    const far = frame * wide + (target.height * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
+    const far = frame * wide + (Math.max(target.height, long * 0.62) * (target.height >= tall ? 3.4 : 5.2) - frame * wide) * eased;
     const seen = own?.view?.(u, j) ?? { aim: height, far }; // (a staging all its own: from where it says)
     const [x, z] = ['x' in seen ? seen.x ?? 0 : 0, 'z' in seen ? seen.z ?? 0 : 0];
     camera.position.set(x + Math.sin(ANGLE) * seen.far, seen.aim + seen.far * (('rise' in seen ? seen.rise : undefined) ?? 0.28), z + Math.cos(ANGLE) * seen.far);

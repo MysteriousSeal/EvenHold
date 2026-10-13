@@ -4,7 +4,7 @@
 // settles once it's there), and a line for each beat of it. One a kind of thing turned into: a spell to come that
 // turns people into something else adds its own here, and is played the same.
 import * as THREE from 'three';
-import type { Actor } from './actor';
+import { setDown, type Actor } from './actor';
 import type { Cloud } from './morph/voxelMorph';
 import { SPELLS, SPELL_IDS } from '../../model/spells/spells';
 import { INTO, type Into } from '../../model/spells/turned';
@@ -83,7 +83,7 @@ const MAKERS: Record<Into, (how: Turning) => Staging> = {
 };
 // Its charm's name over it (model/spells/spells.ts: a bull's is the cow's).
 const charmOf = (into: Into): string | undefined => ((id) => id && SPELLS[id].name)(SPELL_IDS.find((id) => SPELLS[id].turns === (into === 'bull' ? 'cow' : into)));
-export const stagingFor = (into: Into, how: Turning): Staging => ((staging) => ({ ...staging, title: charmOf(into) ?? staging.title }))(MAKERS[into](how));
+export const stagingFor = (into: Into, how: Turning): Staging => ((staging) => ({ ...staging, title: charmOf(into) ?? staging.title }))(MAKERS[into]({ ...how, stood: () => setDown(how.stood()) }));
 
 // Each kind's, as it comes (its first coat, an oak, no one's likeness).
 export const STAGINGS = Object.fromEntries(INTO.map((into) => [into, stagingFor(into, { stood: () => new THREE.Group() })])) as Record<Into, Staging>;

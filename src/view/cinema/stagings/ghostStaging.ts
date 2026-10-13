@@ -33,6 +33,12 @@ const SAID: ReadonlyArray<[at: number, line: string]> = [
   [TRAILING[0] + 0.03, 'Below the knee, no legs to speak of: a wisp.'],
   [0.96, 'A ghost, where they stood.'],
 ];
+// What's said of a beast's, where it differs (no hands to it, nor hems).
+const BEASTLY: Record<string, string> = {
+  ['{name} feels the warmth go out of their hands.']: '{name} feels the warmth go out of it.',
+  ['The colour, first: out of the fingers, the hair, the hems.']: 'The colour, first: out of the ears, the feet, the edges of it.',
+};
+const saidOf = (person: boolean) => (person ? SAID : SAID.map(([at, line]): [number, string] => [at, BEASTLY[line] ?? line]));
 
 // `stood`: whoever's turned, drawn afresh as they stood (what they'll be, a ghost).
 export function ghostStagingOf(stood: () => THREE.Object3D): Staging {
@@ -40,7 +46,7 @@ export function ghostStagingOf(stood: () => THREE.Object3D): Staging {
   return {
     title: "Gravedigger's curse",
     becomes: 'A ghost',
-    lines: [[0, '{name} feels the warmth go out of their hands.'], [0.5, 'And is hardly there.']],
+    lines: [[0, '{name} feels the warmth go out of them.'], [0.5, 'And is hardly there.']],
     target: () => {
       const ghost = ghostFigure(stood());
       const height = new THREE.Box3().setFromObject(ghost.root).max.y;
@@ -74,7 +80,7 @@ export function ghostStagingOf(stood: () => THREE.Object3D): Staging {
       const [matrix, scale, still, tint, spot] = [new THREE.Matrix4(), new THREE.Vector3(), new THREE.Quaternion(), new THREE.Color(), new THREE.Vector3()];
       return {
         length: LENGTH,
-        lines: SAID,
+        lines: saidOf(!!actor.human),
         update(u, time) {
           const changing = u >= START[1];
           figure.visible = !changing;

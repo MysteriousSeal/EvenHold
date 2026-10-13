@@ -39,10 +39,19 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
   painting: (_material, beast, standIn) => hung(new PaintingRig(standIn(beingOf(beast.stone!)))),
 };
 
-// A painting on its wall: the beast's place is the foot of the wall under it; its frame's middle hangs so far up it
-// (of its own size: bigger indoors, as all is).
-const HANGS = 0.45;
-const hung = (rig: PaintingRig): Rig => ({ root: rig.root, update: (beast, dt) => rig.update({ ...beast, y: beast.y + HANGS * rig.root.scale.y }, dt), dispose: () => rig.dispose() });
+// A painting on its wall: the beast's place is the foot of the wall under it. Hung a little under life size (life
+// size, it's taller than a room's wall), its frame's middle so far up the wall (of the size all's drawn at there),
+// and stood off it by what a wall may have hanging on it (a herbalist's dried plants: view/interior/roomVoxels.ts).
+const PAINTING = { size: 0.78, hangs: 0.4, proud: 0.09 };
+const hung = (rig: PaintingRig): Rig => ({
+  root: rig.root,
+  update(beast, dt) {
+    const drawn = rig.root.scale.y; // (as set for it this frame: turnedViews' own)
+    rig.update({ ...beast, x: beast.x + Math.sin(beast.facing) * PAINTING.proud, y: beast.y + PAINTING.hangs * drawn, z: beast.z + Math.cos(beast.facing) * PAINTING.proud }, dt);
+    rig.root.scale.setScalar(drawn * PAINTING.size);
+  },
+  dispose: () => rig.dispose(),
+});
 
 export class TurnedViews {
   readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });

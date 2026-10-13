@@ -31,6 +31,11 @@ const SAID: ReadonlyArray<[at: number, line: string]> = [
   [SLACK[0], 'Nothing in the limbs to hold them.'],
   [FALLING[0] + 0.03, 'Down.'],
 ];
+// What's said of a beast's, where it differs (no hands to it, nor hems).
+const BEASTLY: Record<string, string> = {
+  ['Up the arms; down the front. Whoever sewed it took care.']: 'Along the back; down the front. Whoever sewed it took care.',
+};
+const saidOf = (person: boolean) => (person ? SAID : SAID.map(([at, line]): [number, string] => [at, BEASTLY[line] ?? line]));
 
 // `stood`: whoever's turned, drawn afresh as they stood (what the doll's made of).
 export function dollStagingOf(stood: () => THREE.Object3D): Staging {
@@ -44,12 +49,12 @@ export function dollStagingOf(stood: () => THREE.Object3D): Staging {
       for (const done of ['shrink', 'sew', 'button', 'slacken', 'fall'] as const) doll[done](1);
       return { root: doll.root, height: doll.box.max.y * SMALL * 0.4, settle() {} };
     },
-    direct(figure, _scene, tall) {
+    direct(figure, _scene, tall, actor) {
       const doll = ragDollOf(figure);
       const top = Math.max(1e-6, doll.box.max.y);
       return {
         length: LENGTH,
-        lines: SAID,
+        lines: saidOf(!!actor.human),
         update(u) {
           const start = bell(through(u, START));
           doll.shrink(smooth(through(u, SHRINKING)));

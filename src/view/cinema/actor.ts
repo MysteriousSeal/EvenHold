@@ -25,6 +25,16 @@ export interface Actor {
 
 const WHITE = new THREE.Color(1, 1, 1);
 
+// What hovers in the world (a bat): set down on the slab, where all that's staged is framed from.
+export function setDown<T extends THREE.Object3D>(figure: T): T {
+  figure.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  figure.traverseVisible((o) => (o as THREE.Mesh).isMesh && box.expandByObject(o));
+  // (All that's in it lowered, not itself: its own place is its staging's to set.)
+  if (!box.isEmpty() && box.min.y > 0.03) for (const part of figure.children) part.position.y -= box.min.y / (figure.scale.y || 1);
+  return figure;
+}
+
 export function makeActor(root: THREE.Object3D): Actor {
   // What floats over their head in the world (a name, a bar of health): not here.
   root.traverse((o) => ((o as THREE.Sprite).isSprite || o.name === 'overhead') && (o.visible = false));

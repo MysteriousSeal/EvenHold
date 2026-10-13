@@ -38,6 +38,9 @@ const SAID: ReadonlyArray<[at: number, line: string]> = [
   [CRACKING[0] + 0.02, 'A crack or two. It is old already.'],
   [HANGING[0], 'Up, to where a nail would be.'],
 ];
+// What's said of a beast's, where it differs (what has no head to turn: a spider, a worm).
+const BEASTLY: Record<string, string> = { '{name} finds they cannot turn their head.': '{name} finds they cannot turn.' };
+const saidOf = (person: boolean) => (person ? SAID : SAID.map(([at, line]): [number, string] => [at, BEASTLY[line] ?? line]));
 // A number from 0 to 1 that's `i`'s own, the same each time.
 const own = (i: number, salt: number) => {
   const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
@@ -55,7 +58,7 @@ export function paintingStagingOf(stood: () => THREE.Object3D): Staging {
   return {
     title: "Limner's curse",
     becomes: 'A painting',
-    lines: [[0, '{name} finds they cannot turn their head.'], [0.5, 'And is a small picture of themselves.']],
+    lines: [[0, '{name} finds they cannot turn.'], [0.5, 'And is a small picture of themselves.']],
     target: () => {
       const painting = paintingOf(stood());
       const { box, size } = painting.layout;
@@ -101,7 +104,7 @@ export function paintingStagingOf(stood: () => THREE.Object3D): Staging {
       for (const [i, color] of around.color.entries()) framed.setColorAt(i, color);
       return {
         length: LENGTH,
-        lines: SAID,
+        lines: saidOf(!!actor.human),
         update(u) {
           const changing = u >= START[1];
           figure.visible = !changing;
