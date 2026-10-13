@@ -144,6 +144,8 @@ export class Travellers {
   private readonly from: ReturnType<typeof roadsFrom>;
   private byId = new Map<number, Traveller>(); // each by their id (a guard's partner found at once: no going through all of them, each a frame)
 
+  stones: () => ReadonlyArray<{ x: number; z: number }> = () => []; // what stands on a road and is walked round (someone turned to stone: world/liveWorld.ts)
+
   constructor(
     private readonly seed: number,
     readonly roads: readonly Road[], // the roads they walk (worldgen/roads.ts)
@@ -263,6 +265,8 @@ export class Travellers {
   // Whether `t` at `to` would be in someone (nearer than ROOM): not their partner (a guard following, a pace behind).
   // `from`: where they are, a move from there into someone only if it brings them nearer (stepping apart, never held).
   private inTheWay(t: Traveller, to: { x: number; z: number }, from?: { x: number; z: number }): boolean {
+    const near = (o: { x: number; z: number }) => ((d) => d < ROOM && (!from || d < Math.hypot(o.x - from.x, o.z - from.z)))(Math.hypot(o.x - to.x, o.z - to.z));
+    if (this.stones().some(near)) return true; // (a statue on the road: gone round, as anyone is)
     return this.list.some((o) => {
       if (o === t || o.leader === t.id || t.leader === o.id) return false;
       if (Math.abs(o.x - to.x) > ROOM || Math.abs(o.z - to.z) > ROOM) return false;

@@ -72,7 +72,7 @@ import { useAction } from './hero/actionBar';
 import { castSpell } from './spells/casting';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
-import { isSpellKey, spellOf } from './spells/spells';
+import { SPELLS, isSpellKey, spellOf } from './spells/spells';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -428,7 +428,8 @@ export class GameModel {
   useAction(i: number): boolean {
     const item = this.hero.actionBar[i];
     if (item === 'bedroll') return this.lieDown();
-    if (item && isSpellKey(item)) return this.canFight && castSpell(this, spellOf(item)) === 'cast';
+    // (A charm that harms no one, where arms are sheathed: cast all the same, in an inn, at its barkeep.)
+    if (item && isSpellKey(item)) return (this.canFight || (!this.seated && !this.yard && !SPELLS[spellOf(item)].harm)) && castSpell(this, spellOf(item)) === 'cast';
     return useAction(this.hero, i);
   }
 

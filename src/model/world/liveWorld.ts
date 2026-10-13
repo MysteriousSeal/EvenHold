@@ -265,7 +265,7 @@ export class LiveWorld {
   }
 
   // The region a tile's on.
-  private indexAt(x: number, z: number): number {
+  indexAt(x: number, z: number): number {
     return this.regionIndex(Math.floor(x / this.regionSize), Math.floor(z / this.regionSize));
   }
 
@@ -303,7 +303,9 @@ export class LiveWorld {
   private travellersOf(index: number, known: Known): Travellers {
     const ids = this.streamed ? index * REGION_IDS : 0;
     const groundY = (x: number, z: number) => this.groundY(x, z);
-    return new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids);
+    const band = new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids);
+    band.stones = () => this.host.chickens?.statues?.() ?? [];
+    return band;
   }
 
   // A streamed world's region let go: its tiles, its ground's blocks, and all that lives on it (the foes hurt or

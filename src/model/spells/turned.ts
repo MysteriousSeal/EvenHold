@@ -179,7 +179,7 @@ export class Chickens {
     return {
       id: this.next++,
       kind,
-      ...(hung ? { ...hungAt(hung), y: 0, facing: HUNG_FACING[hung.wall], hung } : { x: being.x, y: being.y, z: being.z, facing: isFoe(being) ? 0 : being.facing }),
+      ...(hung ? { ...hungAt(hung), y: 0, facing: HUNG_FACING[hung.wall], hung } : { x: being.x, y: being.y, z: being.z, facing: isFoe(being) ? Math.atan2(this.host.hero.x - being.x, this.host.hero.z - being.z) : being.facing }),
       at: isFoe(being) ? (host.dungeon || hung ? placeOf(host.inside?.entrance) : null) : placeOf(being.where),
       from: { x: being.x, z: being.z },
       to: null,
