@@ -24,8 +24,8 @@ describe('the cheat menu', () => {
   const row = (title: string) => Array.from(menu.querySelectorAll<HTMLElement>('.menu-row')).find((r) => r.querySelector('b')?.textContent === title)!;
 
   it('a tab for each thing a cheat touches, each one\'s rows starting under a header', () => {
-    expect(tabs().map((t) => t.textContent?.trim())).toEqual(['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Foes', 'World']);
-    for (const tab of ['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Foes', 'World']) {
+    expect(tabs().map((t) => t.textContent?.trim())).toEqual(['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Charms', 'Foes', 'World']);
+    for (const tab of ['Go to', 'Sights', 'Hero', 'Appearance', 'Items', 'Charms', 'Foes', 'World']) {
       open(tab);
       const first = menu.querySelector('.menu-list')!.querySelector('.menu-section, .menu-row');
       expect(first?.className, tab).toBe('menu-section');

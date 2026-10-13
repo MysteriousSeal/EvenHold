@@ -226,7 +226,6 @@ describe("the herdsman's call", () => {
     model.random = () => 0.7; // (a beast: a cow, this time)
     learn(hero, 'cow');
     expect(SPELLS.cow).toMatchObject({ aim: 'anyone', turns: 'cow', needsTarget: true, cooldown: 0 });
-    expect(SPELLS.cow.level).toBeGreaterThan(SPELLS.chicken.level);
     expect(castSpell(model, 'cow')).toBe('cast');
     expect(model.enemies).not.toContain(foe);
     const cow = model.chickens.hens[0];
@@ -352,7 +351,6 @@ describe("the mason's curse and the woodward's rooting", () => {
     const { model, hero, foe } = withWolf();
     learn(hero, 'tree');
     expect(SPELLS.tree).toMatchObject({ aim: 'anyone', turns: 'tree', needsTarget: true });
-    expect(SPELLS.tree.level).toBeGreaterThan(SPELLS.statue.level);
     const before = model.trees.length;
     const told: Array<{ kind: string; into?: string; tree?: Tree }> = [];
     const report = model.report;

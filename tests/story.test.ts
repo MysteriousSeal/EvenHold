@@ -139,11 +139,11 @@ describe('the quests people give', () => {
     for (const id of [quest.id, spokes.id, wolves.id, stones.id]) expect(story.stateOf(id)).toBe('done');
   });
 
-  it('make one line of fourteen about the first village, each locked till the one before is done, every one of them able to be done', () => {
+  it('make one line of twenty about the first village, each locked till the one before is done, every one of them able to be done', () => {
     for (const model of everyKindOfWorld()) {
       const { story, hero } = model;
       const line = Object.values(STORY_QUESTS).filter((q) => q.scope === 'first');
-      expect(line.length).toBe(14);
+      expect(line.length).toBe(20);
       expect(line.slice(1).map((q, i) => q.follows === line[i].id)).not.toContain(false); // (each follows the one before)
       hero.bags.fill(null);
       for (const [i, q] of line.entries()) {
@@ -163,8 +163,9 @@ describe('the quests people give', () => {
         expect(story.ready(q.id), `${q.id} ready`).toBe(true);
         expect(story.handIn(q.id), `${q.id} handed in`).toBe(true);
       }
-      expect(story.done.filter((d) => d.id.endsWith('@first')).length).toBe(14);
-      expect(Object.keys(hero.bag).some((key) => key.startsWith('shortSword'))).toBe(true); // (the last of them pays in steel)
+      expect(story.done.filter((d) => d.id.endsWith('@first')).length).toBe(20);
+      expect(Object.keys(hero.bag).some((key) => key.startsWith('shortSword'))).toBe(true); // (the priest's end pays in steel)
+      expect(Object.keys(hero.bag).some((key) => key.startsWith('gambeson'))).toBe(true); // (and the last of them, in what was hers to give)
     }
   }, 60_000);
 

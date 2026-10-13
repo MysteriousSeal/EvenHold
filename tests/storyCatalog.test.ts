@@ -15,7 +15,7 @@ const said = (q: StoryQuest): string[] => [...q.offer(told), ...q.offer({ ...tol
 describe('the quests people give, as written', () => {
   it('are each of a name of their own, in the list of their kind', () => {
     expect(Object.keys(STORY_QUESTS).length).toBe(all.length);
-    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length]).toEqual([14, 22, 30, 3]);
+    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length]).toEqual([20, 22, 30, 3]);
     expect(FIRST_QUESTS.every((q) => q.scope === 'first')).toBe(true);
     expect([...COMMON_QUESTS, ...RARE_QUESTS].every((q) => q.scope === 'village' && !ON_THE_ROAD.includes(q.giver) && q.giver !== 'carter')).toBe(true);
     expect(ROAD_QUESTS.every((q) => q.scope === 'road' && ON_THE_ROAD.includes(q.giver) && !q.receiver)).toBe(true);

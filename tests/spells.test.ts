@@ -1,4 +1,4 @@
-// Spells (model/spells/): a charm taught by a herbalist for coin (not twice, not without it), kept in a save; put on
+// Spells (model/spells/): a charm known (not twice; no one teaching it), kept in a save; put on
 // the action bar by its key; cast at the focused foe in range, or the nearest ahead: Breath spent, the harm of two
 // blows done, its wait begun and run down; not cast unknown, waiting, out of Breath, or with no foe in reach. A foe
 // it kills is slain as by a blow.
@@ -10,7 +10,6 @@ import { blowOf, maxHpOf } from '../src/model/hero/attributes';
 import { healthOf } from '../src/model/hero/selection';
 import { castSpell, castTarget } from '../src/model/spells/casting';
 import { SPELLS, isSpellKey, knows, learn, readSpells, spellKey, waitOf } from '../src/model/spells/spells';
-import { TAUGHT, mayLearn, teach } from '../src/model/spells/teaching';
 
 // A foe of so much health, so far ahead of the hero (who faces +z), the only one about.
 function facing(distance: number, hp = 1000) {
@@ -23,27 +22,16 @@ function facing(distance: number, hp = 1000) {
   return { model, hero, foe };
 }
 
-describe('a charm taught', () => {
-  it("is taught by a hedge-witch for coin: once paid, not without the coin, not twice, not to a hero too green for it", () => {
-    const { hero } = fresh();
-    hero.money = 0;
-    expect(TAUGHT).toContain('hex');
-    expect(mayLearn(hero, 'hex')).toBe('too poor');
-    expect(teach(hero, 'hex')).toBe('too poor');
+describe('a charm known', () => {
+  it('is learned once, and no one in the world teaches or sells it', () => {
+    const model = fresh();
+    const { hero } = model;
     expect(knows(hero, 'hex')).toBe(false);
-    hero.money = 100;
-    expect(teach(hero, 'hex')).toBe('taught');
-    expect(knows(hero, 'hex')).toBe(true);
-    expect(hero.money).toBe(100 - SPELLS.hex.price);
-    expect(teach(hero, 'hex')).toBe('known');
-    expect(hero.money).toBe(100 - SPELLS.hex.price); // (nothing more paid)
-    expect(learn(hero, 'hex')).toBe(false);
+    expect(learn(hero, 'hex')).toBe(true);
+    expect(learn(hero, 'hex')).toBe(false); // (not twice)
     expect(hero.spells).toEqual(['hex']);
-    const green = fresh().hero;
-    green.money = 1000;
-    green.level = SPELLS.hex.level - 1;
-    expect(teach(green, 'hex')).toBe('level');
-    expect(green.money).toBe(1000);
+    expect(model.npcs.some((npc) => (npc.role as string) === 'hedgewitch')).toBe(false); // (no hedge-witch any more)
+    expect('price' in SPELLS.hex || 'level' in SPELLS.hex).toBe(false);
   });
 
   it('is kept in a save, sound: what is known, nothing unknown', () => {
