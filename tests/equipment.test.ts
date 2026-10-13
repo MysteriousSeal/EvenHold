@@ -21,7 +21,9 @@ import { HAIR_STYLES, HERO_LOOK, lookAt, type BodyLook } from '../src/model/huma
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { SLOT_BANDS, bandFor } from '../src/view/meshes/human/gear/armorShell';
 import { ITEM_MODELS, wornGrid } from '../src/view/meshes/human/gear/itemModels';
-import { HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
+import { BODIES, C, HUMAN_VOXEL_SIZE, JOINT_NAMES, PART_GRID, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart } from '../src/view/meshes/human/bodyVoxels';
+import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
+import { colorAt } from '../src/view/meshes/voxel/voxelShapes';
 import { humanFigure } from '../src/view/meshes/human/humanFigure';
 import { HumanRig } from '../src/view/meshes/human/humanRig';
 import type { VoxelGrid } from '../src/view/meshes/voxel/greedyMesh';
@@ -360,11 +362,12 @@ describe('female build', () => {
     for (let z = 0; z < gz; z++) for (let y = 0; y < gy; y++) expect(right.cells[gx - 1 + gx * (y + gy * z)]).toBe(0);
   });
 
-  it('is slimmer than his, as tall, and dressed stays within the collision box', () => {
+  it('is slimmer than his, a voxel shorter by her smaller head, and dressed stays within the collision box', () => {
     const his = bounds(new HumanRig(HERO_LOOK));
     const hers = bounds(new HumanRig(FEMALE));
     expect(hers.max.x - hers.min.x).toBeLessThan(his.max.x - his.min.x);
-    expect(hers.max.y).toBeCloseTo(his.max.y, 3);
+    expect(his.max.y - hers.max.y).toBeCloseTo(11 * HUMAN_VOXEL_SIZE * (1 - BODIES.female.headScale), 3); // (her head, with all that's on it, drawn a little smaller)
+    expect(BODIES.male.headScale).toBe(1);
     for (const set of [STARTER_SET, BANDIT_OUTFIT, ...ITEM_IDS.map((item) => [item])]) {
       const rig = new HumanRig(FEMALE);
       rig.wear(outfit(set));
@@ -374,6 +377,28 @@ describe('female build', () => {
       expect(box.min.y, set.join()).toBeCloseTo(0, 2);
       expect(filled(humanFigure(FEMALE, outfit(set)).grid), set.join()).toBeGreaterThan(0); // and draws as a figure
     }
+  });
+
+  it('is seen close with her head a voxel smaller each way than his, her face whole', () => {
+    const wide = (look: typeof FEMALE) => {
+      const { grid } = closeUpFigure({ ...look, hairStyle: 'bald' }, {});
+      const [sx, sy, sz] = grid.size;
+      const top = Array.from({ length: sy }, (_, y) => y).filter((y) => Array.from({ length: sx * sz }, (_, i) => colorAt(grid, i % sx, y, Math.floor(i / sx))).some(Boolean)).pop()!;
+      const across = Array.from({ length: sx }, (_, x) => x).filter((x) => Array.from({ length: sz }, (_, z) => colorAt(grid, x, top - 4, z)).some(Boolean));
+      return { top, across: across.length };
+    };
+    const [his, hers] = [wide({ ...FEMALE, build: 'male' }), wide(FEMALE)];
+    expect([his.across - hers.across, his.top - hers.top]).toEqual([2, 2]); // (in the close figure's voxels, half the size)
+    // (Her eyes: both there still, each as dark as the other.)
+    const { grid, palette } = closeUpFigure(FEMALE, {});
+    const dark = (from: number, to: number) => {
+      let n = 0;
+      for (let x = from; x < to; x++) for (let y = 0; y < grid.size[1]; y++) for (let z = 0; z < grid.size[2]; z++) if (palette[colorAt(grid, x, y, z) - 1] === bodyPalette(FEMALE)[C.eye - 1]) n++;
+      return n;
+    };
+    const middle = grid.size[0] / 2 - 2;
+    expect(dark(0, middle)).toBeGreaterThan(0);
+    expect(dark(0, middle)).toBe(dark(middle, grid.size[0]));
   });
 
   it('wears her hair up past her head (a bun, a ponytail, a braid), off under a helm (hanging below an open one)', () => {

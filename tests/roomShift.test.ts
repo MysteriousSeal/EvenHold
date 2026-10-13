@@ -123,10 +123,10 @@ describe('a pleasure worker', () => {
       expect([left.length, right.length]).toEqual([4, 4]);
       const mean = (points: typeof pink, axis: 0 | 1) => points.reduce((sum, p) => sum + p[axis] + 0.5, 0) / points.length;
       expect(mean(left, 0) + mean(right, 0)).toBeCloseTo(w, 9); // (mirrored)
-      expect(mean(left, 1)).toBe(14); // (between the chest's two rows: 6 and 7, of the game's voxels)
+      expect(mean(left, 1)).toBe(build === 'female' ? 12 : 14); // (between the chest's two rows: his 6 and 7, of the game's voxels; hers 5 and 6, where her breast stands furthest)
       // In the middle of its side of the chest: as much skin to its left as to its right, on its row.
       const row = (y: number, z: number) => Array.from({ length: w }, (_, x) => fine.cells[x + w * (y + h * z)]);
-      const side = row(13, 9).map((c, x) => (c && x < w / 2 - (build === 'female' ? 1 : 1) ? x : -1)).filter((x) => x >= 0);
+      const side = (build === 'female' ? row(12, 11) : row(13, 9)).map((c, x) => (c && x < w / 2 - (build === 'female' ? 1 : 1) ? x : -1)).filter((x) => x >= 0);
       const [first, last] = [Math.min(...side.filter((x) => x >= 2)), Math.max(...side)];
       expect(mean(left, 0), build).toBeCloseTo((first + last + 1) / 2, 9);
     }
