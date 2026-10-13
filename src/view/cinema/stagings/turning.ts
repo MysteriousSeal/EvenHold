@@ -101,10 +101,10 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
       },
       view(u) {
         const [arms, head] = [script.windows.arms, script.windows.head];
-        const near = smooth(through(u, [arms[0] - 0.025, arms[0] + 0.015])) - smooth(through(u, [arms[1], arms[1] + 0.03]));
+        const near = becoming.upright ? 0 : smooth(through(u, [arms[0] - 0.025, arms[0] + 0.015])) - smooth(through(u, [arms[1], arms[1] + 0.03])); // (a tree: no nearer for its arms, they're its trunk)
         const close = smooth(through(u, [head[0] - 0.025, head[0] + 0.015])) - smooth(through(u, [onHead, onHead + 0.03]));
         const k = 1 + (1 / made.big - 1) * smooth(through(u, [DOWN, 1])); // (as it comes down)
-        const wide = smooth(through(u, becoming.upright ? [script.posing[1], script.windows.trunk[1]] : script.posing)); // (what stands upright: as it grows)
+        const wide = smooth(through(u, becoming.upright ? [head[0] - 0.07, head[0]] : script.posing)); // (what stands upright, a tree: seen as near as they were till its trunk's made of them, then back for its crown)
         const mix = (key: 'x' | 'z' | 'aim' | 'far' | 'rise') => ((now) => now + (face[key] - now) * close)(((now) => now + (limbs[key] - now) * near)(first[key] + (whole[key] - first[key]) * wide));
         return { x: mix('x') * k, z: mix('z') * k, aim: mix('aim') * k, far: mix('far') * k, rise: mix('rise') };
       },

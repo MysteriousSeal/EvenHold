@@ -31,7 +31,7 @@ const UP: Span = [0.74, 0.8]; // and look up again
 export const CHANGING = 0.375; // from when their body's changing
 const STEPS = { hips: [0.39, 0.445], waist: [0.46, 0.515], shoulders: [0.53, 0.585], chest: [0.605, 0.725], arms: [0.74, 0.785], legs: [0.77, 0.82] } satisfies Record<string, Span>;
 const CLOSE: Span = [0.8, 0.86]; // seen close, for the face
-const FACE = { jaw: [0.85, 0.9], brow: [0.875, 0.925], goes: [0.85, 0.92], comes: [0.9, 0.985] } satisfies Record<string, Span>;
+const FACE = { jaw: [0.85, 0.9], brow: [0.85, 0.9], goes: [0.85, 0.92], comes: [0.9, 0.985] } satisfies Record<string, Span>;
 // Their torso and their head, from the bottom up, in bands (of its height): each changed in its own turn.
 const BANDS = { hips: [0, 0.28], waist: [0.28, 0.5], chest: [0.5, 0.83], shoulders: [0.83, 1] } satisfies Record<string, Span>;
 const JAW = 0.45; // of the head's height: under it the jaw, over it the brow
