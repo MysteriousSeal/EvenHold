@@ -20,6 +20,7 @@ import { drawnAt } from '../common/overhead';
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
 const BANDIT_BAR_HEIGHT = HEIGHT + 0.12;
 const FALL_TIME = 0.4; // seconds to fall flat on its back
+const WOUND_UP = 0.3; // of a blow: how far through it their arm's held while they tell a move
 
 export interface BanditLook {
   normal: THREE.Material;
@@ -73,7 +74,8 @@ export class BanditRig implements EnemyRig {
       return;
     }
     if (bandit.human && !this.outfit) this.rig.wear(bandit.human.equipment);
-    const swing = bandit.swingFor === null ? null : bandit.swingFor / ENEMY_STATS[bandit.kind].swing;
+    // (A told move, model/enemies/toldMoves.ts: their arm drawn back and held, till it lands.)
+    const swing = bandit.swingFor !== null ? bandit.swingFor / ENEMY_STATS[bandit.kind].swing : bandit.told ? Math.min(WOUND_UP, (bandit.windUp ?? 0) * 0.6) : null;
     this.rig.update(bandit.x, bandit.y, bandit.z, dt, swing);
     this.rig.setMaterial(bandit.hurtFor > 0 ? this.look.flash : this.look.normal);
   }
