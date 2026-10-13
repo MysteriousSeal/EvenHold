@@ -8,10 +8,14 @@ import type { Beast, Hen } from '../../../model/spells/turned';
 import type { SmokePuffs } from '../common/smokePuffs';
 import { ChickenRig } from './chickenRig';
 import { CowRig } from './cowRig';
+import { DonkeyRig } from './donkeyRig';
+import { GoatRig } from './goatRig';
 import { HorseRig } from './horseRig';
+import { PigRig } from './pigRig';
+import { SheepRig } from './sheepRig';
 import { StatueRig, beingOf } from './statue';
 
-type Rig = ChickenRig | HorseRig | CowRig | StatueRig;
+type Rig = { root: THREE.Object3D; update(beast: Hen, dt: number): void; dispose(): void };
 // Each kind's rig, made for one of them (`standIn`: someone drawn as they stood, for a statue of them).
 const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being: Being) => THREE.Object3D) => Rig> = {
   chicken: (material) => new ChickenRig(material),
@@ -19,10 +23,10 @@ const RIGS: Record<Beast, (material: THREE.Material, beast: Hen, standIn: (being
   cow: (material, beast) => new CowRig(material, beast.coat),
   bull: (material, beast) => new CowRig(material, beast.coat, true),
   statue: (_material, beast, standIn) => new StatueRig(standIn(beingOf(beast.stone!))),
-  pig: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's PigRig(material, beast.coat) replaces this
-  sheep: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's SheepRig(material, beast.coat) replaces this
-  goat: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's GoatRig(material, beast.coat) replaces this
-  donkey: (material, beast) => new CowRig(material, beast.coat), // PLACEHOLDER: the artist's DonkeyRig(material, beast.coat) replaces this
+  pig: (material, beast) => new PigRig(material, beast.coat),
+  sheep: (material, beast) => new SheepRig(material, beast.coat),
+  goat: (material, beast) => new GoatRig(material, beast.coat),
+  donkey: (material, beast) => new DonkeyRig(material, beast.coat),
   toad: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's ToadRig(material, beast.coat) replaces this (its hop: beast.hop)
   rat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's RatRig(material, beast.coat) replaces this
   cat: (material) => new ChickenRig(material), // PLACEHOLDER: the artist's TurnedCatRig(material, beast.coat) replaces this

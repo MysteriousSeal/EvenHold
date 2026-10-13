@@ -48,11 +48,9 @@ import { createDrinkTimer } from './view/hud/drinkTimer';
 import { createJournal } from './controller/quests/journal';
 import { createSkillsPanel } from './controller/skills/skillsPanel';
 import { playTransformation } from './view/cinema/transformCinema';
+import { stagingFor } from './view/cinema/staging';
 import { swapStaging } from './view/cinema/stagings/swapStaging';
 import { standing } from './view/cinema/stagings/undress';
-import { cowStagingOf } from './view/cinema/stagings/cowStaging';
-import { statueStagingOf } from './view/cinema/stagings/statueStaging';
-import { treeStagingOf } from './view/cinema/stagings/treeStaging';
 import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { SPELLS } from './model/spells/spells';
@@ -388,12 +386,7 @@ async function boot(): Promise<void> {
       } else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
         controller.paused = true;
-        // (A cow, a bull: in the coat they'll have; a statue: of them as they stood; a tree: the one they are now.)
-        // PLACEHOLDER: the artists' own replace what stands in for theirs here, each a branch of its own: pigStagingOf(e.coat), sheepStagingOf(e.coat), goatStagingOf(e.coat), donkeyStagingOf(e.coat), toadStagingOf(e.coat), ratStagingOf(e.coat), catStagingOf(e.coat) (till then, STAGINGS' own stand-ins, by name);
-        // ghostStagingOf(stood), paintingStagingOf(stood), dollStagingOf(stood), `stood` being () => view.standIn(e.who) (till then, the statue's).
-        const likeStatue = (e: typeof event) => e.into === 'statue' || e.into === 'ghost' || e.into === 'painting' || e.into === 'doll'; // PLACEHOLDER: only the statue's, once the three have their own
-        const stagingOf = (e: typeof event) => (e.into === 'cow' || e.into === 'bull' ? cowStagingOf(e.coat, e.into === 'bull') : likeStatue(e) ? statueStagingOf(() => view.standIn(e.who)) : e.into === 'tree' && e.tree ? treeStagingOf(e.tree.kind, e.tree.shape) : e.into);
-        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingOf(event), () => (controller.paused = false));
+        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingFor(event.into, { coat: event.coat, tree: event.tree, stood: () => view.standIn(event.who) }), () => (controller.paused = false)); // (cinema/staging.ts: in their coat, as their tree, of them as they stood)
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber

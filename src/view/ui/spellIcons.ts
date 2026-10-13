@@ -5,6 +5,10 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
 import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/turned/chickenVoxels';
 import { cowShape } from '../meshes/turned/cowVoxels';
+import { donkeyShape } from '../meshes/turned/donkeyVoxels';
+import { goatShape } from '../meshes/turned/goatVoxels';
+import { pigShape } from '../meshes/turned/pigVoxels';
+import { sheepShape } from '../meshes/turned/sheepVoxels';
 import { TREE_PALETTE, buildTreeVoxels } from '../meshes/tree/treeVoxels';
 import { HORSE_SHAPE } from '../meshes/turned/horseVoxels';
 import { quadrupedParts, type Quadruped } from '../meshes/turned/quadruped';
@@ -124,10 +128,10 @@ export const SPELL_ICONS: Record<SpellId, MenuIcon> = {
   swap: swapIcon,
   statue: statueIcon,
   tree: treeIcon,
-  pig: cowIcon, // PLACEHOLDER: the artist's pigShape(0) replaces this, as beast('spell:pig', pigShape(0))
-  sheep: cowIcon, // PLACEHOLDER: the artist's sheepShape(0) replaces this, as beast('spell:sheep', sheepShape(0))
-  goat: cowIcon, // PLACEHOLDER: the artist's goatShape(0) replaces this, as beast('spell:goat', goatShape(0))
-  donkey: cowIcon, // PLACEHOLDER: the artist's donkeyShape(0) replaces this, as beast('spell:donkey', donkeyShape(0))
+  pig: beast('spell:pig', pigShape()),
+  sheep: beast('spell:sheep', sheepShape()),
+  goat: beast('spell:goat', goatShape()),
+  donkey: beast('spell:donkey', donkeyShape()),
   toad: chickenIcon, // PLACEHOLDER: the artist's toadShape(0) replaces this
   rat: chickenIcon, // PLACEHOLDER: the artist's ratShape(0) replaces this
   cat: chickenIcon, // PLACEHOLDER: the artist's turnedCatShape(0) replaces this

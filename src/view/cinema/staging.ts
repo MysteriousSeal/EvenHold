@@ -6,10 +6,16 @@
 import * as THREE from 'three';
 import type { Actor } from './actor';
 import type { Cloud } from './morph/voxelMorph';
-import type { Into } from '../../model/spells/turned';
+import { SPELLS, SPELL_IDS } from '../../model/spells/spells';
+import { INTO, type Into } from '../../model/spells/turned';
+import type { Tree } from '../../model/types';
 import { chickenStaging } from './stagings/chickenStaging';
-import { bullStaging, cowStaging } from './stagings/cowStaging';
+import { cowStagingOf } from './stagings/cowStaging';
+import { donkeyStagingOf } from './stagings/donkeyStaging';
+import { goatStagingOf } from './stagings/goatStaging';
 import { horseStaging } from './stagings/horseStaging';
+import { pigStagingOf } from './stagings/pigStaging';
+import { sheepStagingOf } from './stagings/sheepStaging';
 import { statueStagingOf } from './stagings/statueStaging';
 import { treeStagingOf } from './stagings/treeStaging';
 
@@ -44,21 +50,34 @@ export interface Directed {
   feathers?: [from: number, to: number];
 }
 
-export const STAGINGS: Record<Into, Staging> = {
-  chicken: chickenStaging,
-  horse: horseStaging,
-  cow: cowStaging,
-  bull: bullStaging,
-  statue: statueStagingOf(() => new THREE.Group()),
-  tree: treeStagingOf(),
-  pig: cowStaging, // PLACEHOLDER: the artist's pigStagingOf(0) replaces this
-  sheep: cowStaging, // PLACEHOLDER: the artist's sheepStagingOf(0) replaces this
-  goat: cowStaging, // PLACEHOLDER: the artist's goatStagingOf(0) replaces this
-  donkey: cowStaging, // PLACEHOLDER: the artist's donkeyStagingOf(0) replaces this
-  toad: chickenStaging, // PLACEHOLDER: the artist's toadStagingOf(0) replaces this
-  rat: chickenStaging, // PLACEHOLDER: the artist's ratStagingOf(0) replaces this
-  cat: chickenStaging, // PLACEHOLDER: the artist's catStagingOf(0) replaces this
-  ghost: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's ghostStagingOf(() => new THREE.Group()) replaces this
-  painting: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's paintingStagingOf(() => new THREE.Group()) replaces this
-  doll: statueStagingOf(() => new THREE.Group()), // PLACEHOLDER: the artist's dollStagingOf(() => new THREE.Group()) replaces this
+// What plays for each thing someone's turned into, made for the one turned: in the coat they'll have (`coat`), as the
+// tree they are now (`tree`), or of them as they stood (`stood`: drawn afresh, for what's in their likeness).
+export interface Turning {
+  coat?: number;
+  tree?: Pick<Tree, 'kind' | 'shape'>;
+  stood: () => THREE.Object3D;
+}
+const MAKERS: Record<Into, (how: Turning) => Staging> = {
+  chicken: () => chickenStaging,
+  horse: () => horseStaging,
+  cow: ({ coat }) => cowStagingOf(coat),
+  bull: ({ coat }) => cowStagingOf(coat, true),
+  statue: ({ stood }) => statueStagingOf(stood),
+  tree: ({ tree }) => treeStagingOf(tree?.kind, tree?.shape),
+  pig: ({ coat }) => pigStagingOf(coat),
+  sheep: ({ coat }) => sheepStagingOf(coat),
+  goat: ({ coat }) => goatStagingOf(coat),
+  donkey: ({ coat }) => donkeyStagingOf(coat),
+  toad: () => chickenStaging, // PLACEHOLDER: the artist's toadStagingOf(coat) replaces this
+  rat: () => chickenStaging, // PLACEHOLDER: the artist's ratStagingOf(coat) replaces this
+  cat: () => chickenStaging, // PLACEHOLDER: the artist's catStagingOf(coat) replaces this
+  ghost: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's ghostStagingOf(stood) replaces this
+  painting: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's paintingStagingOf(stood) replaces this
+  doll: ({ stood }) => statueStagingOf(stood), // PLACEHOLDER: the artist's dollStagingOf(stood) replaces this
 };
+// Its charm's name over it (model/spells/spells.ts: a bull's is the cow's).
+const charmOf = (into: Into): string | undefined => ((id) => id && SPELLS[id].name)(SPELL_IDS.find((id) => SPELLS[id].turns === (into === 'bull' ? 'cow' : into)));
+export const stagingFor = (into: Into, how: Turning): Staging => ((staging) => ({ ...staging, title: charmOf(into) ?? staging.title }))(MAKERS[into](how));
+
+// Each kind's, as it comes (its first coat, an oak, no one's likeness).
+export const STAGINGS = Object.fromEntries(INTO.map((into) => [into, stagingFor(into, { stood: () => new THREE.Group() })])) as Record<Into, Staging>;
