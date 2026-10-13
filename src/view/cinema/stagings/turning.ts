@@ -103,7 +103,7 @@ export function turningInto(becoming: Becoming, says: { person: Telling; beast: 
         const near = smooth(through(u, [arms[0] - 0.025, arms[0] + 0.015])) - smooth(through(u, [arms[1], arms[1] + 0.03]));
         const close = smooth(through(u, [head[0] - 0.025, head[0] + 0.015])) - smooth(through(u, [onHead, onHead + 0.03]));
         const k = 1 + (1 / made.big - 1) * smooth(through(u, [DOWN, 1])); // (as it comes down)
-        const wide = smooth(through(u, script.posing));
+        const wide = smooth(through(u, becoming.upright ? [script.posing[1], script.windows.trunk[1]] : script.posing)); // (what stands upright: as it grows)
         const mix = (key: 'x' | 'z' | 'aim' | 'far' | 'rise') => ((now) => now + (face[key] - now) * close)(((now) => now + (limbs[key] - now) * near)(first[key] + (whole[key] - first[key]) * wide));
         return { x: mix('x') * k, z: mix('z') * k, aim: mix('aim') * k, far: mix('far') * k, rise: mix('rise') };
       },

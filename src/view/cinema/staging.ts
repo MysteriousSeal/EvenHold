@@ -3,13 +3,15 @@
 // it goes (`stage`: `u` from 0, themselves, to 1, about to give way), what they've become (`target`, and how it
 // settles once it's there), and a line for each beat of it. One a kind of thing turned into: a spell to come that
 // turns people into something else adds its own here, and is played the same.
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { Actor } from './actor';
 import type { Cloud } from './morph/voxelMorph';
 import type { Into } from '../../model/spells/turned';
 import { chickenStaging } from './stagings/chickenStaging';
 import { bullStaging, cowStaging } from './stagings/cowStaging';
 import { horseStaging } from './stagings/horseStaging';
+import { statueStagingOf } from './stagings/statueStaging';
+import { treeStagingOf } from './stagings/treeStaging';
 
 export interface Staging {
   title: string; // the spell's, over it all
@@ -42,4 +44,4 @@ export interface Directed {
   feathers?: [from: number, to: number];
 }
 
-export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging, cow: cowStaging, bull: bullStaging };
+export const STAGINGS: Record<Into, Staging> = { chicken: chickenStaging, horse: horseStaging, cow: cowStaging, bull: bullStaging, statue: statueStagingOf(() => new THREE.Group()), tree: treeStagingOf() };

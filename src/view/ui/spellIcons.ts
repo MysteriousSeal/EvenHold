@@ -6,6 +6,7 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { colorAt, createGrid, fillBox, setColor } from '../meshes/voxel/voxelShapes';
 import { CHICKEN_PALETTE, buildChickenBody, buildChickenHead, buildChickenLeg } from '../meshes/turned/chickenVoxels';
 import { cowShape } from '../meshes/turned/cowVoxels';
+import { TREE_PALETTE, buildTreeVoxels } from '../meshes/tree/treeVoxels';
 import { HORSE_SHAPE } from '../meshes/turned/horseVoxels';
 import { quadrupedParts, type Quadruped } from '../meshes/turned/quadruped';
 import type { MenuIcon } from './menu';
@@ -78,6 +79,24 @@ const beast = (key: string, shape: Quadruped): MenuIcon => (size) => voxelIcon(k
 const horseIcon = beast('spell:horse', HORSE_SHAPE);
 const cowIcon = beast('spell:cow', cowShape());
 
+// The mason's curse: someone in stone, on a plinth. (Stone 1, its shade 2.)
+const statueIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'spell:statue',
+    () => {
+      const grid = createGrid([7, 12, 5]);
+      fillBox(grid, 0, 0, 0, 6, 1, 4, 2); // its plinth
+      fillBox(grid, 2, 2, 1, 4, 4, 2, (x) => (x === 3 ? 0 : 1)); // legs
+      fillBox(grid, 1, 5, 1, 5, 7, 2, (x) => (x === 1 || x === 5 ? 2 : 1)); // body, arms
+      fillBox(grid, 2, 8, 0, 4, 10, 3, 1); // head
+      return { grid, palette: [0x9c9a92, 0x7c7a74], alpha: 1 };
+    },
+    size,
+  );
+
+// The woodward's rooting: an oak.
+const treeIcon: MenuIcon = (size) => voxelIcon('spell:tree', () => ({ grid: buildTreeVoxels('oak', 0), palette: TREE_PALETTE, alpha: 1 }), size);
+
 // The moon-turn charm: a waning moon, its dark side one colour and its lit side another, a mote of light by it.
 const swapIcon: MenuIcon = (size) =>
   voxelIcon(
@@ -97,7 +116,7 @@ const swapIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, cow: cowIcon, horse: horseIcon, swap: swapIcon };
+export const SPELL_ICONS: Record<SpellId, MenuIcon> = { hex: hexIcon, mend: mendIcon, chicken: chickenIcon, cow: cowIcon, horse: horseIcon, swap: swapIcon, statue: statueIcon, tree: treeIcon };
 
 // The spellbook's tile: a closed book, leather-bound, its clasp brass, a violet mark on the cover.
 export const spellbookIcon: MenuIcon = (size) =>

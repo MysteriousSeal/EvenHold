@@ -18,7 +18,7 @@ import { bucketByChunk } from '../../world/chunkLayer';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
 
-const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
+export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
 const TINT_WARMTH = 0.05; // ± per-tree shift toward yellow-green or blue-green
 // Trees sway slower and less than grass (heavier), with a light leaf flutter.
@@ -78,9 +78,9 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
     mesh.getMatrixAt(i, base);
     drawn.set(tree, { mesh, i, base });
   };
-  const standing = (key: string) => (chunks.get(key) ?? []).filter((tree) => !lumber.felled(tree));
+  const standing = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && !lumber.felled(tree));
   scene.layer(voxelLayer(() => chunks.keys(), standing, (tree) => `${tree.kind}:${tree.shape}`, (tree) => buildTreeGeometry(tree.kind, tree.shape), at, material, placed));
-  const fallen = (key: string) => (chunks.get(key) ?? []).filter((tree) => lumber.felled(tree));
+  const fallen = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && lumber.felled(tree));
   scene.layer(voxelLayer(() => chunks.keys(), fallen, (tree) => `stump:${tree.kind}`, (tree) => stumpGeometry(tree.kind), (tree) => ({ ...at(tree), tint: undefined }), stumpMaterial));
 
   const set = (tree: Tree, matrix: THREE.Matrix4) => {
@@ -92,8 +92,29 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   let last: Tree | null = null; // the tree chopped at last (of this lot)
   let shaking: { tree: Tree; from: number } | null = null;
   const tilt = new THREE.Matrix4();
+  // Those someone's been turned into (model/spells/turned.ts: each one of the world's from then on), drawn on their
+  // own as they come to be: standing; felled, a stump.
+  const planted = new Map<Tree, { mesh: THREE.Mesh; felled: boolean }>();
+  const plant = () => {
+    for (const [tree, { mesh }] of planted) if (!model.chickens.trees.includes(tree)) [mesh.removeFromParent(), planted.delete(tree)]; // (another game taken up)
+    for (const tree of model.chickens.trees) {
+      const felled = lumber.felled(tree);
+      const was = planted.get(tree);
+      if (was && was.felled === felled) continue;
+      was?.mesh.removeFromParent();
+      const place = at(tree);
+      const where = new THREE.Matrix4().compose(new THREE.Vector3(place.x, place.y, place.z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (place.quarterTurns * Math.PI) / 2), new THREE.Vector3(1, 1, 1));
+      // (Standing: one of an instanced mesh, as the land's own are: the wind's sway goes by its instance's place.)
+      const mesh = felled ? new THREE.Mesh(stumpGeometry(tree.kind), stumpMaterial) : new THREE.InstancedMesh(buildTreeGeometry(tree.kind, tree.shape), material, 1);
+      if (mesh instanceof THREE.InstancedMesh) [mesh.setMatrixAt(0, where), mesh.setColorAt(0, place.tint ?? new THREE.Color(1, 1, 1)), (mesh.frustumCulled = false)];
+      else mesh.applyMatrix4(where);
+      scene.add(mesh);
+      planted.set(tree, { mesh, felled });
+    }
+  };
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
+    if (planted.size !== model.chickens.trees.length || lumber.version !== seen) plant();
     const now = lumber.chopping?.tree;
     if (now && drawn.has(now)) last = now;
     if (lumber.version !== seen) {

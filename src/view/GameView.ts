@@ -93,7 +93,7 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private readonly travellers: TravellerViews; // on the roads
-  private readonly chickens = new TurnedViews(); // the beasts people have been turned into (spells/turned.ts)
+  private readonly chickens = new TurnedViews((being) => this.standIn(being)); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
   private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
   private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room

@@ -28,6 +28,7 @@ export interface Becoming {
   tall: number; // how tall it stands, itself
   long?: number; // and how long, nose to tail
   fourLegged?: boolean; // it stands on what answers to arms too: those change with its legs
+  upright?: boolean; // it stands as someone does (a tree): no stance of its own to take first, their torso left upright
   // What grows on it once every part's changed (a mane, a comb, feathers over a body bare till then), in the order
   // it does: on which part, its voxels `big` times its size, how (growth.ts: out from `root` strand by strand, or
   // here and there), and what's said of it.
@@ -87,7 +88,7 @@ export function partPieces(actor: Actor, becoming: Becoming, script?: Script): {
   const back = new THREE.Vector3(0, human?.legLength ?? 0, -level / 2); // (their waist, once they've taken it)
   const stood = (group: THREE.Object3D, kind: 'legs' | 'arms' | 'trunk' | 'head'): THREE.Vector3 => {
     const at = where(group);
-    if (!human) return at;
+    if (!human || becoming.upright) return at;
     if (kind === 'legs') return new THREE.Vector3(at.x, back.y, back.z);
     if (kind === 'trunk') return back.clone();
     const along = at.y - where(human.hips).y; // (how far up their torso it hangs: that far along it, now)
@@ -123,7 +124,7 @@ export function partPieces(actor: Actor, becoming: Becoming, script?: Script): {
         return { from: read(arm), into: its.arms[side < 0 ? 0 : 1], posing, window: windows.arms, pivot: [where(arm), its.joints.arms[side < 0 ? 0 : 1]], pose: stance.arms[side < 0 ? 0 : 1], contort: (t) => becoming.arms(side, t), ...more, ...carried(arm, 'arms', its.joints.arms[side < 0 ? 0 : 1]) };
       }),
       // The torso: bent forward at the waist till it lies level (a beast's trunk: level already).
-      { from: read(...made.trunk), into: its.body, posing, window: windows.trunk, pivot: [where(made.waist), its.joints.body], pose: stance.body, tip: made.tip, grows: grows('body'), ...more, ...carried(made.waist, 'trunk', its.joints.body) },
+      { from: read(...made.trunk), into: its.body, posing, window: windows.trunk, pivot: [where(made.waist), its.joints.body], pose: stance.body, tip: becoming.upright ? 0 : made.tip, grows: grows('body'), ...more, ...carried(made.waist, 'trunk', its.joints.body) },
       // The head: carried to where its neck rises, held up, then reshaped.
       { from: read(made.head), into: its.head, posing, window: windows.head, pivot: [where(made.head), its.joints.head], pose: stance.head, grows: grows('head'), ...more, ...carried(made.head, 'head', its.joints.head) },
     ],
