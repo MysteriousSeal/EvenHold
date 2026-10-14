@@ -1,5 +1,5 @@
 // A spell cast (spells.ts), at whom its kind allows. One for foes only: at the foe the hero's focused on, if it's in
-// range; none focused, at the nearest in range ahead of them; never at anyone picked out who's no foe. One for
+// range; none focused, at the nearest in range ahead of them (either, nothing solid between); never at anyone picked out who's no foe. One for
 // anyone: at whoever the hero has picked out, foe or not (hero/selection.ts), in range; no one, at themselves.
 // Known, its wait over, someone to cast at and the Breath for it: the Breath spent, the hero turned to them, what it
 // does done (harm: hero/fighting.ts strike, as a blow's, the foe's death and what it leaves the same; mending: health
@@ -34,17 +34,18 @@ export type CastAt = { foe: Enemy } | { person: Person } | { self: true };
 const AHEAD = 0.3; // how squarely before the hero an unfocused foe must stand (the cosine of the angle, at least)
 
 // Who `id` would be cast at now, if anyone.
-export function castTarget(caster: Pick<Caster, 'hero' | 'foes' | 'focused' | 'chosen'>, id: SpellId): CastAt | null {
+export function castTarget(caster: Pick<Caster, 'hero' | 'foes' | 'focused' | 'chosen'> & Partial<Pick<Caster, 'clear'>>, id: SpellId): CastAt | null {
   const { hero, focused } = caster;
   const { range, aim } = SPELLS[id];
   const far = (e: { x: number; z: number }) => Math.hypot(e.x - hero.x, e.z - hero.z);
-  if (focused && focused.state !== 'dead') return far(focused) <= range ? { foe: focused } : null;
+  const seen = (foe: Enemy) => caster.clear?.(hero, foe) ?? true; // (nothing solid between: no charm through a wall, a palisade, as no blow)
+  if (focused && focused.state !== 'dead') return far(focused) <= range && seen(focused) ? { foe: focused } : null;
   if (aim === 'anyone') {
     const person = caster.chosen?.person;
     return person ? (far(person) <= range ? { person } : null) : SPELLS[id].needsTarget ? null : { self: true };
   }
   const ahead = (e: Enemy) => ((e.x - hero.x) * Math.sin(hero.facing) + (e.z - hero.z) * Math.cos(hero.facing)) / Math.max(far(e), 1e-6) >= AHEAD;
-  const foe = caster.foes.filter((e) => e.state !== 'dead' && !e.buried && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
+  const foe = caster.foes.filter((e) => e.state !== 'dead' && !e.buried && far(e) <= range && ahead(e) && seen(e)).sort((a, b) => far(a) - far(b))[0];
   return foe ? { foe } : null;
 }
 
