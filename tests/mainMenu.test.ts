@@ -41,6 +41,17 @@ describe('the worlds saved here', () => {
     forgetWorld(TEST_SEEDS[1]);
     expect(savedWorlds().map((w) => w.name)).toEqual(['Aleyn']);
   });
+
+  it('lists a damaged hero as a load would read them: a look and gear past mending, the hero plain and bare', () => {
+    keep(TEST_SEEDS[0], 'Aleyn', 4, 100);
+    const key = `evenhold.save.${TEST_SEEDS[0]}`;
+    const data = JSON.parse(localStorage.getItem(key)!);
+    Object.assign(data.hero, { look: 5, equipment: { head: 'armingSword', chest: 42, legs: 'noSuchThing' } });
+    localStorage.setItem(key, JSON.stringify(data));
+    const [world] = savedWorlds();
+    expect(world.look).toMatchObject({ build: expect.stringMatching(/male/), skin: expect.any(Number) });
+    expect(world.equipment).toEqual({});
+  });
 });
 
 describe('the main menu', () => {

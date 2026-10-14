@@ -5,7 +5,7 @@
 // then the game simply isn't kept.
 
 import type { GameModel } from '../../model/GameModel';
-import { parseSave, restore, snapshot } from '../../model/save';
+import { parseSave, readEquipment, readLook, restore, snapshot } from '../../model/save';
 import type { MapSize } from '../../model/map/grid';
 import { START_MINUTES, clockAt } from '../../model/clock';
 import type { BodyLook } from '../../model/human/humanoid';
@@ -39,8 +39,9 @@ export function savedWorlds(): SavedWorld[] {
       const data = parseSave(localStorage.getItem(key), seed);
       if (!data) continue;
       const playedAt = Number(localStorage.getItem(playedKey(seed))) || 0;
-      const { name, level, look, equipment = {} } = data.hero;
-      worlds.push({ seed, name, level, day: clockAt(typeof data.minutes === 'number' ? data.minutes : START_MINUTES).day, playedAt, look: look as BodyLook, equipment: equipment as Equipment });
+      const { name, level, look, equipment } = data.hero;
+      // (Its look and what it wears as a load would read them: a damaged one's never drawn as it stands.)
+      worlds.push({ seed, name, level: Math.max(1, Math.floor(level)), day: clockAt(typeof data.minutes === 'number' && Number.isFinite(data.minutes) ? data.minutes : START_MINUTES).day, playedAt, look: readLook(look), equipment: readEquipment(equipment) });
     }
   } catch {
     return worlds; // (no storage: none)

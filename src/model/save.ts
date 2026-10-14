@@ -217,7 +217,7 @@ export function restore(model: GameModel, data: SaveData): void {
   // them), worn in the slot they go in, carried in whole numbers.
   const known = (item: string): item is BagItem => item in LOOT || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
-  const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot));
+  const equipment = readEquipment(saved.equipment);
   Object.assign(hero, {
     name: saved.name,
     look: readLook(saved.look),
@@ -320,8 +320,13 @@ export function restore(model: GameModel, data: SaveData): void {
   }
 }
 
+// What a save has worn, as far as it's sound: gear the game knows, each in the slot it goes in.
+export function readEquipment(saved: unknown): Equipment {
+  return Object.fromEntries(Object.entries(saved && typeof saved === 'object' ? saved : {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot)) as Equipment;
+}
+
 // A saved look, as far as it's sound (each part: one there is, else the hero's own to begin with).
-function readLook(saved: unknown): BodyLook {
+export function readLook(saved: unknown): BodyLook {
   const look = (saved && typeof saved === 'object' ? saved : {}) as Partial<Record<keyof BodyLook, unknown>>;
   const index = (v: unknown, count: number, fallback: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < count ? (v as number) : fallback);
   return {
