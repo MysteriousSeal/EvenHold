@@ -164,6 +164,9 @@ describe('a stack of its own, taken from', () => {
     expect(model.hero.bag[junk]).toBe(44);
     model.dropFromBag(junk, 1);
     expect(slotsOf(model)).toEqual([[0, 19], [1, 19], [2, 5]]);
+    model.hero.bag.bread = 1;
+    expect(model.dropFromBag('bread', 0)).toBe(false); // (a slot of something else: nothing taken from it, nor lost)
+    expect([model.hero.bag[junk], model.hero.bag.bread, slotsOf(model)]).toEqual([43, 1, [[0, 19], [1, 19], [2, 5]]]);
   });
 
   it('more of it, onto its stacks with room in order, then a new one; fewer (sold, used), off its last', () => {
