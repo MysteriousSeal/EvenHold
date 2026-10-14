@@ -2,10 +2,11 @@
 // (controller/GameController.ts: it does it), the prompt over it (main.ts: it words it) and whatever else plays by
 // the keys (tests/ai/senses.ts) all read it here, so none can tell it differently from another.
 // In order: at work (a shift), the work's own thing in reach, else the inn's notice board, and nothing else; chopping
-// a tree, stopping; loot in reach; an inn's notice board (its work); a chest; the carter by his wagon; a tree to chop;
+// a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the carter by his wagon; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
 // (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench; a
-// well; a door upstairs; the stairs; a door; and, with nothing else, a tree that can't be chopped yet (told why).
+// well; a door upstairs; the stairs; a door; and, with nothing else, a tree that can't be chopped yet, a shore with no
+// rod to fish it (told why).
 // `skip`: kinds to pass over (the game's E, tried and come to nothing: a full bag's loot, a seat taken: the next).
 import type { GameModel } from '../GameModel';
 import type { Entrance } from '../interiors/interiors';
@@ -16,6 +17,7 @@ import type { GroundLoot } from '../loot/loot';
 import { talkingTo } from '../npcs/talk';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
+import type { FishAction } from '../skills/fishing';
 import type { Carter } from '../story/carter';
 import { travellerInReach } from '../travellers/travellerTalk';
 import type { Traveller } from '../travellers/travellers';
@@ -24,10 +26,12 @@ export type Interaction =
   | { kind: 'work' } // at work: what the shift has to hand (jobs/work.ts action)
   | { kind: 'jobBoard'; inn: Entrance } // an inn's notice board: its work (at work: the shift, to check or end)
   | { kind: 'stopChop' }
+  | { kind: 'fishing' } // a line out: a bite hooked, or reeled in (skills/fishing.ts)
   | { kind: 'loot'; loot: GroundLoot }
   | { kind: 'chest'; chest: NonNullable<ReturnType<typeof chestInReach>> }
   | { kind: 'carter'; carter: Carter }
   | { kind: 'chop'; action: ChopAction }
+  | { kind: 'fish'; action: FishAction }
   | { kind: 'talk'; npc: Npc; fromStool: boolean }
   | { kind: 'stand'; seat: Seat }
   | { kind: 'sit'; seat: Seat }
@@ -38,7 +42,8 @@ export type Interaction =
   | { kind: 'hallDoor'; door: Furniture }
   | { kind: 'stairs'; down: boolean }
   | { kind: 'door'; door: Entrance; leaving: boolean }
-  | { kind: 'cannotChop'; action: ChopAction };
+  | { kind: 'cannotChop'; action: ChopAction }
+  | { kind: 'cannotFish'; action: FishAction };
 export type InteractionKind = Interaction['kind'];
 
 export function interactionOf(model: GameModel, skip?: ReadonlySet<InteractionKind>): Interaction | null {
@@ -48,7 +53,7 @@ export function interactionOf(model: GameModel, skip?: ReadonlySet<InteractionKi
 
 // Each thing E might do, in order, looked for only as far as the first that's there (and not passed over).
 function* candidates(model: GameModel): Generator<Interaction | null> {
-  const { hero, inside, work, lumber } = model;
+  const { hero, inside, work, lumber, fishing } = model;
   const notice = () => (work.noticeInReach ? ({ kind: 'jobBoard', inn: work.noticeInReach } as const) : null);
   if (work.shift) {
     if (work.held) return; // (someone coming into their room, or going: nothing to do but watch)
@@ -63,6 +68,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
     return; // (at work: nothing else: no doors, no seats, no talk)
   }
   if (lumber.chopping) return void (yield { kind: 'stopChop' });
+  if (fishing.line) return void (yield { kind: 'fishing' });
   const loot = model.lootInReach;
   yield loot ? { kind: 'loot', loot } : null;
   yield notice();
@@ -72,6 +78,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield carter ? { kind: 'carter', carter } : null;
   const chop = lumber.action;
   yield chop?.kind === 'chop' ? { kind: 'chop', action: chop } : null;
+  const fish = fishing.action;
+  yield fish?.kind === 'fish' ? { kind: 'fish', action: fish } : null;
   const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
   yield talker && seated?.seat.piece.kind === 'barStool' ? { kind: 'talk', npc: talker, fromStool: true } : null;
@@ -94,4 +102,5 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   const door = model.doorInReach;
   yield door ? { kind: 'door', door, leaving: !!inside } : null;
   yield chop?.kind === 'cannot' ? { kind: 'cannotChop', action: chop } : null;
+  yield fish?.kind === 'cannot' ? { kind: 'cannotFish', action: fish } : null;
 }
