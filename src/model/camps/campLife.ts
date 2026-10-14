@@ -32,8 +32,9 @@ export const campKey = (camp: { x: number; z: number }): string => `camp:${camp.
 export const chestOf = (camp: Camp) => camp.pieces.find((p) => p.kind === 'loot')!;
 const standing = (e: Enemy) => e.state !== 'dead';
 
-// What a camp's chest holds: a piece of stolen gear worth having, and coins, by its level.
-export const campHoard = (camp: Camp, size: MapSize, seed: number): Hoard => rollHoard(camp.x, camp.z, seed + 7717, campLevel(camp, size), { worth: STOLEN_WORTH, base: 25, spread: 15, keeper: 'banditChief' });
+// What a camp's chest holds: a piece of stolen gear worth having, and coins, by its level (worth the fight for it: a
+// camp's the deadliest stretch of the wilds; still under a crypt's or a cave's, there being far more camps).
+export const campHoard = (camp: Camp, size: MapSize, seed: number): Hoard => rollHoard(camp.x, camp.z, seed + 7717, campLevel(camp, size), { worth: STOLEN_WORTH, base: 40, spread: 25, keeper: 'banditChief' });
 
 // How a camp the hero's about stands: its name, its bandits slain of all of them, its chief, whether it's cleared and
 // its chest opened (the panel under the hero's frame, as a crypt's or a cave's).
