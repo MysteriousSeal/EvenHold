@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { nameAt, randomName, spawnNpcs } from '../src/model/npcs/npcs';
+import { visitInn } from '../src/model/npcs/npcRoutine';
+import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { randomLook } from '../src/model/human/humanoid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -211,6 +213,19 @@ describe('villagers', () => {
     model.minutes = 9 * 60; // the morning
     for (let t = 0; t < 400; t += 0.1) model.update(0, 0, 0.1);
     expect(folk.some((n) => n.where === null)).toBe(true); // up and about
+  });
+
+  it('called to the inn from their bed (a busy hour), get up beside it, not off from on top of it', () => {
+    const model = withVillage();
+    const npc = model.npcs.find((n) => n.role === 'villager' && n.inn)!;
+    model.minutes = 2 * 60; // the night
+    npc.steps = [];
+    for (let t = 0; t < 60 && !npc.seat?.lying; t += 0.1) model.update(0, 0, 0.1);
+    expect(npc.seat?.lying).toBe(true);
+    const stood = { ...npc.stood! };
+    visitInn(npc, npc.inn!, model.seed, 30);
+    expect([npc.seat, npc.x, npc.z, npc.y]).toEqual([null, stood.x, stood.z, 0]);
+    expect(bumpsFurniture(layoutOf(model.seed, npc.home).furniture, npc.x, npc.z, 0.05)).toBe(false);
   });
 
   it('give the hero a new random look and name each game: men and women, no two alike', () => {

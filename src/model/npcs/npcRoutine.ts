@@ -127,7 +127,7 @@ export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number,
   if (npc.where && npc.where !== inn) steps.push({ kind: 'go', to: doorTile(seed, npc.where) }, { kind: 'exit' });
   if (npc.where !== inn) steps.push({ kind: 'go', to: inn }, { kind: 'enter', entrance: inn });
   steps.push({ kind: 'settle', for: seconds, at });
-  if (npc.seat) Object.assign(npc, { seat: null, stood: null }); // (up from a bench, first)
+  if (npc.seat) Object.assign(npc, { ...(npc.stood && { x: npc.stood.x, z: npc.stood.z, y: npc.where ? 0 : npc.y }), seat: null, stood: null }); // (up from a bench, a chair or their bed first: stood beside it again, not on it)
   Object.assign(npc, { steps, path: null, waited: 0, working: false });
 }
 
