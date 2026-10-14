@@ -325,3 +325,18 @@ describe('firewood', () => {
     expect(model.cooking.canKindle).toBe(true); // (the logs, still)
   });
 });
+
+describe('one thing at a time', () => {
+  it('woodworking begun while cooking stops the cooking (and cooking begun, the woodworking)', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    Object.assign(model.hero.bag, { rawBoarMeat: 5, birchLog: 7 });
+    expect(model.cooking.kindle()).toBe(true);
+    expect(model.cooking.start('roastBoar', 5)).toBe(true);
+    expect(model.woodworking.start('birchPlank', 5)).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.cooking.making, !!model.woodworking.making]).toEqual([false, true]);
+    expect(model.cooking.start('roastBoar', 5)).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.cooking.making, !!model.woodworking.making]).toEqual([true, false]);
+  });
+});
