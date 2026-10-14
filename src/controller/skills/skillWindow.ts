@@ -12,7 +12,8 @@ import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, tierOf, type SkillI
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { SKILL_ICONS } from '../../view/ui/skillIcons';
 import { el } from '../../view/ui/dom';
-import { newBook, recipeBook, recipeProgress, recipeState } from './recipeBook';
+import { WOODWORKING, newBook, recipeBook, recipeProgress, recipeState } from './recipeBook';
+import { COOKING, cookBook, fireState } from './cookBook';
 import { woodGuide } from './woodGuide';
 import { nextMilestone, skillRuler } from './skillRuler';
 import type { Grade } from '../../model/skills/lumber';
@@ -23,6 +24,7 @@ const CALLED: Record<SkillId, string> = { lumberjacking: 'lumberjack', woodworki
 export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: SkillId): void; update(): void; readonly skill: SkillId } {
   let skill: SkillId = SKILL_IDS[0];
   const book = newBook(); // (the recipe picked, the filter, how many: kept while the game's on)
+  const cookPage = newBook(); // (and cooking's)
   const guide: { picked: Grade | null } = { picked: null };
   const scrap: { picked: import('../../model/skills/salvage').Make | null } = { picked: null }; // (the salvage guide's: the make picked)
 
@@ -64,7 +66,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
 
   const body = (): HTMLElement => {
     const redraw = () => refresh();
-    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : notYet(skill);
+    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'cooking' ? cookBook(model, cookPage, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : notYet(skill);
     return el('div', 'skill-detail', head(skill), content);
   };
 
@@ -74,8 +76,9 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
   let seen = '';
   const update = () => {
     if (!menu.isOpen) return;
-    recipeProgress(model);
-    const now = `${skill}|${skillOf(model.hero, skill).level}|${recipeState(model)}|${model.lumber.axe}`;
+    const craft = skill === 'cooking' ? COOKING : WOODWORKING;
+    recipeProgress(model, document, craft);
+    const now = `${skill}|${skillOf(model.hero, skill).level}|${recipeState(model, craft)}|${model.lumber.axe}${skill === 'cooking' ? `|${fireState(model)}` : ''}`;
     if (now === seen) return;
     seen = now;
     refresh();

@@ -80,6 +80,12 @@
 .skill-band-rule { padding-top: 26px; min-width: 0; }
 .skill-band-next { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
 
+/* Cooking's: the fire they're by over the book (cookBook.ts), or a button to kindle one. */
+.cook-page { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cook-fire { display: flex; align-items: center; gap: 12px; margin: 0; padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-soft); border-bottom: 2px dashed var(--line); }
+.cook-fire.lit { color: var(--clay); }
+.cook-fire .book-craft { margin-left: auto; }
+
 /* Under it: a list, and the one picked told of beside it. */
 .book { flex: 1; display: grid; grid-template-columns: 290px 1fr; min-height: 0; }
 .book-side { display: flex; flex-direction: column; min-height: 0; background: rgba(255, 255, 255, 0.16); border-right: 2px dashed var(--line); }
