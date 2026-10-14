@@ -68,7 +68,7 @@ describe('travellers setting out', () => {
       expect([t.x, t.z]).toEqual([at.x, at.z]);
       expect(t.name.length).toBeGreaterThan(1);
       if (t.role === 'pedlar') expect(t.equipment.mainHand).toBeUndefined(); // (unarmed)
-      if (t.role === 'guard') expect(['armingSword', 'spear']).toContain(t.equipment.mainHand);
+      if (t.role === 'guard') expect(['armingSword', 'spear', 'watchGlaive']).toContain(t.equipment.mainHand);
       for (const item of Object.values(t.equipment)) expect(ITEMS[baseOf(item!)].wornBy?.[t.role], `${t.role} in ${item}`).toBeGreaterThan(0);
     }
   });
