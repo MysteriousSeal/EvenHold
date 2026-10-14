@@ -194,8 +194,8 @@ describe('villagers', () => {
     const village = model.npcs[0].village;
     const folk = model.npcs.filter((n) => n.role === 'villager' && n.village === village);
     model.teleport(village.x + 0.5, village.z + 0.5); // on the square, watching
-    model.minutes = 22 * 60; // ten at night
-    for (let t = 0; t < 240; t += 0.1) model.update(0, 0, 0.1); // till two
+    model.minutes = 23 * 60; // eleven at night
+    for (let t = 0; t < 180; t += 0.1) model.update(0, 0, 0.1); // till two
     expect(folk.filter((n) => n.where !== n.home).map((n) => n.name)).toEqual([]); // every one at home
     expect(folk.filter((n) => n.seat?.lying).length).toBeGreaterThan(folk.length / 2); // most of them abed
     model.minutes = 19 * 60; // an evening

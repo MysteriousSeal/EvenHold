@@ -52,8 +52,8 @@ const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
 const EVENING_INN_CHANCE = 0.6; // of going, of an evening
 const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at night (an hour and a half or more)
 // Their day by the clock: abed from late at night till dawn; of an evening, the inn the likelier and the fields left.
-const NIGHT: [number, number] = [22, 6];
-const EVENING: [number, number] = [18, 22];
+const NIGHT: [number, number] = [23, 6];
+const EVENING: [number, number] = [18, 23];
 const within = (hour: number, [from, till]: [number, number]) => (from <= till ? hour >= from && hour < till : hour >= from || hour < till);
 
 
