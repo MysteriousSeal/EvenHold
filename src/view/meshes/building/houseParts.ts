@@ -162,8 +162,10 @@ export function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: num
   const shades = ROOF_SETS[roofIndex];
   const halfSpan = (b.z1 - b.z0) / 2;
   const ridge = b.y1 + roofHeight;
-  const rowTop = (dz: number) => ridge - Math.round((dz * roofHeight) / (halfSpan + 1));
   const lastRow = halfSpan + 2;
+  // The eave's last course rests on the wall-top beam rather than hanging
+  // below it, so from the high camera the door and windows under it show.
+  const rowTop = (dz: number) => ridge - Math.round((dz * (roofHeight - 1)) / lastRow);
 
   for (let dz = 0; dz <= lastRow; dz++) {
     const top = rowTop(dz);
