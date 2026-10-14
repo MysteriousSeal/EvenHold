@@ -1,5 +1,6 @@
 // Tools' voxels (model/loot/tools.ts), as bag icons and on the ground: a bedroll, a blanket rolled tight and tied
-// with two leather straps, its inner side a paler linen showing at the ends.
+// with two leather straps, its inner side a paler linen showing at the ends; a fishing rod, a long thin shaft of
+// pale ash with a cork grip and a dark butt cap, a brass reel slung under it, red whipping at the tip.
 import type { ToolId } from '../../../model/loot/tools';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
@@ -12,5 +13,16 @@ export const TOOL_MODELS: Record<ToolId, LootModel> = {
     for (const x of [2, 5]) fillBox(g, x, 0, 0, x, 2, 3, (_x, y, z) => (y === 2 && z >= 1 && z <= 2) || (y === 1 && (z === 0 || z === 3)) ? 4 : 0); // the straps round it
     setColor(g, 4, 2, 1, 2);
     setColor(g, 3, 2, 2, 2);
+  }),
+  // Ash 1, the butt cap 2, cork 3, brass 4, the red whipping 5: a single voxel thick but at the grip (its silhouette
+  // is the thing: long and thin), the reel under it before the grip.
+  fishingRod: model([0xb08a5a, 0x4a2e1a, 0xc8a070, 0xc89a3a, 0xa83a2a], [16, 3, 3], (g) => {
+    fillBox(g, 0, 1, 0, 1, 2, 1, 2); // the butt cap
+    fillBox(g, 2, 1, 0, 4, 2, 1, 3); // the cork grip, two voxels thick
+    fillBox(g, 5, 1, 1, 15, 1, 1, 1); // the shaft, thinning to one
+    fillBox(g, 5, 0, 1, 6, 0, 2, 4); // the reel, slung under it
+    setColor(g, 6, 0, 0, 4);
+    setColor(g, 10, 2, 1, 4); // a line guide, a ring along the shaft
+    fillBox(g, 14, 1, 1, 15, 1, 1, 5); // red whipping at the tip
   }),
 };
