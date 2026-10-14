@@ -60,6 +60,10 @@ export interface TakenStory {
   within: Entrance | null; // the building what it still asks is done in (a shift: the inn), if it's indoors
 }
 
+// A quest under way's people and village, by name, and where its village is: for when they're off the maps. (`village`,
+// `next`, `camp`: since saves of 2026-10; an older save's, unsaid.)
+type Kept = { to: string; from: string; x: number; z: number; village?: string; next?: string; camp?: string };
+
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const idOf = (key: string): string => key.split('@')[0];
@@ -99,7 +103,7 @@ export class Story {
   private state = new Map<string, 'taken' | 'done'>();
   private untracked = new Set<string>(); // those taken but kept off the screen's tracker (set in the journal)
   private counted = new Map<string, number>(); // what's been done toward each taken one (foes slain; a place reached, a thing done: 1)
-  private kept = new Map<string, { to: string; from: string; x: number; z: number }>(); // each taken one's people and village, for when they're off the maps
+  private kept = new Map<string, Kept>(); // each taken one's people and village, for when they're off the maps
   private world: QuestSet | null = null;
   private haunted = -Infinity; // the game's minute what the quests ask for was last looked to (storyRestock.ts)
 
@@ -333,7 +337,7 @@ export class Story {
     const t = this.told(i, from);
     this.state.set(key, 'taken');
     this.counted.delete(key);
-    this.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z });
+    this.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp });
     room ? this.untracked.delete(key) : this.untracked.add(key);
     const { hero } = this.host;
     this.host.report({ kind: 'quest', text: `Quest taken: ${i.quest.name}`, done: false, x: hero.x, y: hero.y, z: hero.z });
@@ -401,7 +405,8 @@ export class Story {
       const kept = this.kept.get(key) ?? { to: '', from: 'someone', x: this.host.hero.x, z: this.host.hero.z };
       const to = (i?.at && quest.receiver && (i.at.who[quest.receiver] as Carter | Npc | undefined)) || null;
       const ready = this.ready(key);
-      const told: Told = i ? this.told(i) : { village: 'a village far off', giver: kept.from, receiver: kept.to, next: '', barmaid: kept.to, smith: kept.to, carter: kept.from, camp: 'the camp', axe: false };
+      const named = (role: StoryQuest['giver'], or: string) => (quest.receiver === role && kept.to) || (quest.giver === role ? kept.from : or); // (a keeper it's about, by their part in it)
+      const told: Told = i ? this.told(i) : { village: kept.village ?? 'a village far off', giver: kept.from, receiver: kept.to, next: kept.next ?? 'the next village', barmaid: named('barmaid', 'the barmaid'), smith: named('smith', 'the smith'), carter: named('carter', 'the carter'), camp: kept.camp ?? 'the camp', axe: false };
       const back = quest.receiver && !to ? { x: kept.x, z: kept.z } : null; // (whoever takes it in off the maps: back to their village)
       return {
         id: key, name: quest.name, task: quest.task({ ...told, giver: kept.from, receiver: kept.to || kept.from }), ready, tracked: !this.untracked.has(key), ...this.progress(key),
@@ -454,7 +459,7 @@ export class Story {
     return [...this.state].filter(([, s]) => s === 'done').map(([key]) => ({ id: key, name: STORY_QUESTS[idOf(key)]?.name ?? key }));
   }
 
-  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, { to: string; from: string; x: number; z: number }>; forced: Record<string, number | null>; freed: string[] } {
+  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[] } {
     return {
       states: Object.fromEntries([...this.state].map(([key, s]) => [key, s === 'taken' && this.untracked.has(key) ? 'untracked' : s])), // (untracked: taken, kept off the tracker)
       counted: Object.fromEntries(this.counted),
@@ -466,7 +471,7 @@ export class Story {
 
   // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
   load(data: unknown): void {
-    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, { to: string; from: string; x: number; z: number }>; forced?: Record<string, unknown>; freed?: unknown } & Record<string, unknown>;
+    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown } & Record<string, unknown>;
     const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
     const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
     this.state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken']));

@@ -2,7 +2,7 @@
 // ever taken (its camp cleared, its boss slain), still finishes it; someone with a trade, owed a hand-in the bag has no
 // room for, still shows their wares; a quest that follows another is only where that one is; what's to be brought
 // from one kind of place is asked only where there's one near, and pointed to; one whose giver speaks as a man or a
-// woman is offered only by one.
+// woman is offered only by one; one under way whose village is off the maps still told by its own names.
 import { describe, expect, it } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { dungeonAt } from '../src/model/dungeons/dungeons';
@@ -13,7 +13,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { ghostsIn } from '../src/model/ruins/haunting';
 import type { LootId } from '../src/model/loot/loot';
 import { COMMON_QUESTS, RARE_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
-import { everyKindOfWorld } from './support/testWorld';
+import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const world = () => everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
 // A quest of `role`'s in some village, taken (by the cheat's replay, whatever it follows).
@@ -214,5 +214,19 @@ describe('where quests are set', () => {
       story.accept(key);
       expect(story.taken.find((t) => t.id === key)?.goal, id).not.toBeNull();
     }
+  });
+});
+
+describe('a quest under way, its village off the maps', () => {
+  it('is told by the names it was taken with: its village, the next, whoever takes it in in the part named', () => {
+    const model = fresh();
+    const far = { x: 5000, z: 5000 };
+    model.story.load({
+      states: { 'wordToTheNextInn@99999': 'taken', 'wolvesOnTheTrail@99999': 'taken' },
+      kept: { 'wordToTheNextInn@99999': { to: 'Wenna', from: 'Adawen', ...far, village: 'Ashby', next: 'Brockholt', camp: "Red Ned's" }, 'wolvesOnTheTrail@99999': { to: 'Osric', from: 'Thoby', ...far } },
+    });
+    const task = (id: string) => model.story.taken.find((t) => t.id === id)!.task;
+    expect(task('wordToTheNextInn@99999')).toBe('Tell Wenna, at the inn in Brockholt, about the kegs and the magistrate');
+    expect(task('wolvesOnTheTrail@99999')).toBe('Slay 3 wolves, then tell Osric the wheel is coming'); // (the carter it's handed in to, not the smith who gave it)
   });
 });
