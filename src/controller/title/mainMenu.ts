@@ -104,7 +104,10 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
     let chosen = 0; // the hero chosen (the last played, first)
     let sure = false; // (letting the chosen hero go: asked once already)
     let forge: Forge | null = null; // (the hero being made, on the creation screen)
+    let played = false; // (Enter on the focused Enter World button: the key's, and the button's own click after it)
     const play = (seed: number, hero?: MenuChoice['hero']) => {
+      if (played) return;
+      played = true;
       window.removeEventListener('keydown', keys);
       root.removeEventListener('click', skip);
       screen.remove();
