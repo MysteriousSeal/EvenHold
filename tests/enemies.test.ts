@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { WILD_SITES, spawnEnemies } from '../src/model/enemies/enemies';
+import { WILD_SITES, makeEnemy, spawnEnemies } from '../src/model/enemies/enemies';
 import { ATTACK_DURATION, ENEMY_CORPSE_TIME, ENEMY_STATS, ENGAGED } from '../src/model/constants';
 import { cellKey } from '../src/model/map/grid';
 import { FRAME, TEST_MAP_SIZE, TEST_SEEDS, fresh, nearest, eachSeed, inSightOf, noTravellers } from './support/testWorld';
@@ -279,5 +279,21 @@ describe('the wilds', () => {
       expect(more, `seed ${seed}`).toBeGreaterThan(1.15);
       expect(more, `seed ${seed}`).toBeLessThan(1.5);
     }
+  });
+});
+
+describe('the dead', () => {
+  it('lie a while, then are gone: only themselves, even gone already from a list kept a moment (another come in their place)', () => {
+    const model = fresh();
+    model.enemies.length = 0;
+    const { x, z } = model.hero;
+    const corpse = { ...makeEnemy(9001, 'wolf', x + 2, z), state: 'dead' as const, deadFor: ENEMY_CORPSE_TIME - FRAME / 2 };
+    const last = makeEnemy(9002, 'wolf', x - 2, z);
+    model.enemies.push(corpse, last);
+    const director = (model as unknown as { director: { update(dt: number): void } }).director;
+    director.update(0); // (the foes about, kept)
+    model.enemies.splice(0, 1, makeEnemy(9003, 'wolf', x + 30, z + 30)); // (gone another way, one come in its place: as long a list)
+    director.update(FRAME); // (its time up)
+    expect(model.enemies.map((e) => e.id)).toEqual([9003, 9002]);
   });
 });
