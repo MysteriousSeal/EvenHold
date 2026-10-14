@@ -68,6 +68,13 @@ describe('a crypt\'s lord', () => {
     const tomb = inside.props.find((p) => p.kind === 'greatSarcophagus')!;
     expect(spot).toEqual({ x: tomb.x + (tomb.w - 1) / 2, z: tomb.z + tomb.d }); // (centred at its foot)
     expect(lord.y).toBe(DAIS_TOP); // (up on its dais, not sunk in it)
+    // The hero up there with him stands on it too; down off it, on the floor.
+    Object.assign(model.hero, { x: spot.x + 0.3, z: spot.z });
+    model.update(0, 0, FRAME);
+    expect(model.hero.y).toBe(DAIS_TOP);
+    Object.assign(model.hero, { x: model.inside!.room.door, z: model.inside!.room.depth - 1 });
+    model.update(0, 0, FRAME);
+    expect(model.hero.y).toBe(0);
   });
 
   it('slams, told first: hard on the hero still in its ring, nothing to one who stepped out', () => {

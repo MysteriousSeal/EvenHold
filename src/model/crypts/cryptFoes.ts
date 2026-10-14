@@ -187,6 +187,7 @@ export class CryptFoes extends DungeonFoes {
   update(dt: number): void {
     const hero = this.director.quarry;
     if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.posts) >= RISES_AT) this.rise();
+    if (!hero.knock) hero.y = floorHeight(this.inside.props, hero.x, hero.z); // (up on the dais, as its foes are; a knock's hop its own)
     this.director.update(dt);
     this.lord?.update();
     this.wakeLord(hero);
