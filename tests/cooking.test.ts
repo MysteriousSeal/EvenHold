@@ -313,3 +313,15 @@ describe('butchered', () => {
     expect(butcher('undead', 3)).toEqual([]);
   });
 });
+
+describe('firewood', () => {
+  it('a pedlar sells bundles of it; one kindles a campfire, before any logs are touched', async () => {
+    const { PEDLAR_WARES, pedlarPrice } = await import('../src/model/travellers/pedlarShop');
+    expect(PEDLAR_WARES).toContain('firewood');
+    expect(pedlarPrice('firewood', false)).toBe(3);
+    const model = kitchen(1, { firewood: 1, birchLog: 2 });
+    expect(model.cooking.kindle()).toBe(true);
+    expect([model.hero.bag.firewood, model.hero.bag.birchLog]).toEqual([undefined, 2]);
+    expect(model.cooking.canKindle).toBe(true); // (the logs, still)
+  });
+});
