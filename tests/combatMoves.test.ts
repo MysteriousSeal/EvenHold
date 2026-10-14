@@ -186,6 +186,23 @@ describe('the guard', () => {
     expect(met()).toBe('parried');
   });
 
+  it('holds only before them: a blow from behind taken whole, no breath spent; raised, they keep turned to the foe focused as they step', () => {
+    const model = fresh();
+    model.hero.facing = 0; // (facing +z)
+    model.raiseGuard(true);
+    run(model, 0.5);
+    const breath = model.moves.breath;
+    heroStruck(model, 4, makeEnemy(908, 'bandit', model.hero.x, model.hero.z - 0.5)); // (from behind)
+    expect([guarded(model), model.moves.breath]).toEqual([[], breath]);
+    const wolf = makeEnemy(909, 'wolf', model.hero.x + 1, model.hero.z);
+    model.enemies.push(wolf);
+    model.focus(wolf.id);
+    model.noclip = true;
+    model.raiseGuard(true);
+    model.update(-1, 0, 0.1); // (stepping back from it)
+    expect(model.hero.facing).toBeCloseTo(Math.atan2(wolf.x - model.hero.x, wolf.z - model.hero.z), 5);
+  });
+
   it('held past the parry: the blow cut by what\'s in the off hand, breath spent; out of breath, broken', () => {
     const blocked = (offHand?: 'towerShield' | 'buckler') => {
       const model = fresh();

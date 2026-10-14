@@ -1,6 +1,6 @@
 // The hero's moves in a fight: the blow (Space), landing partway through; a roll (Shift) that carries
 // them a few tiles, untouchable for most of it, out of a foe's marked
-// ground; a guard (hold Q) that cuts the blows it takes, and, raised just as
+// ground; a guard (hold Q), toward the foe focused, that cuts the blows it takes from before them (not behind), and, raised just as
 // one lands, parries it: no harm, the foe staggered, its next blow from the
 // hero a critical one (raised again straight after, it only blocks: no parrying all by mashing Q). Each spends Breath, a short-term bar under health:
 // a blow, a roll, a blow blocked, each takes some; it refills a moment after,
@@ -156,7 +156,7 @@ export class CombatMoves {
   // block: all of it, the guard lowered), or taken; what's left of it.
   struck(damage: number, by: Enemy | null): { damage: number; guarded: Guarded } {
     if (this.untouchable) return { damage: 0, guarded: 'rolled' };
-    if (this.guard === null) return { damage, guarded: 'taken' };
+    if (this.guard === null || (by && !this.before(by))) return { damage, guarded: 'taken' }; // (from behind: the guard's no help)
     const offHand = this.hero.equipment.offHand && baseOf(this.hero.equipment.offHand); // (what it is: a buckler, a dagger)
     if (this.keen && this.guard <= parryWindow(offHand)) {
       if (by) {
@@ -172,6 +172,12 @@ export class CombatMoves {
     }
     this.spend(cost);
     return { damage: Math.round(damage * (1 - guardOf(offHand))), guarded: 'blocked' }; // (whole points, as every blow's)
+  }
+
+  // Whether `foe` is before the hero (their guard toward it: no more than a right angle off the way they face).
+  private before(foe: { x: number; z: number }): boolean {
+    const { hero } = this;
+    return (foe.x - hero.x) * Math.sin(hero.facing) + (foe.z - hero.z) * Math.cos(hero.facing) >= 0;
   }
 
   // How much harder the hero's blow on `foe` lands: a riposte on one just parried (used up), else 1.
