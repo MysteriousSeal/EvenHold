@@ -232,3 +232,14 @@ describe('by a fire', () => {
     expect(castOf(model)?.label).toBe('Roast boar · 2 to cook');
   });
 });
+
+describe('the cook', () => {
+  it('turns to the fire to cook', () => {
+    const model = kitchen(1, { rawBoarMeat: 1 });
+    byACampfire(model);
+    model.hero.facing += Math.PI; // (turned away)
+    model.cooking.start('roastBoar');
+    const { x, z } = model.cooking.kindled!;
+    expect(model.hero.facing).toBeCloseTo(Math.atan2(x - model.hero.x, z - model.hero.z), 5);
+  });
+});
