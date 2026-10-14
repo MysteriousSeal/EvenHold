@@ -1,9 +1,9 @@
 // Fishing (skills.ts): a fishing rod in the bag (loot/tools.ts: a pedlar's), E on a lake's shore (a dry tile beside the
 // water) casts it, the line out into the water before them (as far as CAST_REACH, while it's water). Then a wait for a
-// bite, shorter the better they are; a bite, the bobber dipping, and a moment (BITE_WINDOW) to hook it with E again:
+// bite, shorter the better they are; a bite, the bobber dipping, and a moment (the catch's own: a big one's off quicker) to hook it with E again:
 // too late, it gets away. Hooked, it's landed into the bag (full: at their feet), and the line cast again on its own,
 // on and on till they walk off or reel in (E while they wait). What bites is by the water and the skill: small fry
-// anywhere; from 75 river trout in a lake's narrows (its arms and inlets, the nearest the world has to a river) and
+// anywhere; from 75 (a lucky one now and then from 40) river trout in a lake's narrows (its arms and inlets, the nearest the world has to a river) and
 // lake perch in its open water; from 150 pike where the bobber lies far from any bank (the deep); from 225, now and
 // then, what the water hides (a locket, an old coin; a torc in the deep). The skill rises as they land them, the surer
 // the harder the catch is for them (skills.ts difficulty; a pike never grey), with a little of the hero's own
@@ -27,17 +27,24 @@ export interface Catch {
   needs: number; // the skill it wants
   in: Waters; // where it bites
   weight: number; // how often, against the rest that could
+  window: number; // seconds its bite lasts, to hook it in (the bigger, the quicker it's off)
+  early?: number; // from this level, now and then (EARLY_WEIGHT) before it's theirs to catch: a lucky one
+  fewer?: [number, number]; // from this level, this weight instead (small fry, once there's better about)
   lasting?: boolean; // never grey (the pike: always something to learn from)
 }
 export const CATCHES: readonly Catch[] = [
-  { item: 'smallFry', needs: 1, in: 'any', weight: 6 },
-  { item: 'riverTrout', needs: 75, in: 'narrows', weight: 4 },
-  { item: 'lakePerch', needs: 75, in: 'open', weight: 4 },
-  { item: 'pike', needs: 150, in: 'deep', weight: 3, lasting: true },
-  { item: 'fadedLocket', needs: 225, in: 'any', weight: 0.25 }, // (what the water hides: junk/junk.ts)
-  { item: 'oldSilver', needs: 225, in: 'any', weight: 0.25 },
-  { item: 'frostTorc', needs: 225, in: 'deep', weight: 0.2 },
+  { item: 'smallFry', needs: 1, in: 'any', weight: 3, window: 1.2, fewer: [75, 2] },
+  { item: 'riverTrout', needs: 75, in: 'narrows', weight: 4, window: 0.95, early: 40 },
+  { item: 'lakePerch', needs: 75, in: 'open', weight: 4, window: 0.95, early: 40 },
+  { item: 'pike', needs: 150, in: 'deep', weight: 5, window: 0.75, lasting: true },
+  { item: 'fadedLocket', needs: 225, in: 'any', weight: 0.25, window: 0.8 }, // (what the water hides: junk/junk.ts)
+  { item: 'oldSilver', needs: 225, in: 'any', weight: 0.25, window: 0.8 },
+  { item: 'frostTorc', needs: 225, in: 'deep', weight: 0.2, window: 0.8 },
 ];
+const EARLY_WEIGHT = 1;
+// How often a catch bites for a hand at `level`, against the rest (0: not for them yet).
+export const weightOf = (fish: Catch, level: number): number =>
+  level >= fish.needs ? (fish.fewer && level >= fish.fewer[0] ? fish.fewer[1] : fish.weight) : fish.early !== undefined && level >= fish.early ? EARLY_WEIGHT : 0;
 // How hard a catch is for a hand at `level`, and how likely landing it teaches (skills.ts RISE): a lasting one's
 // never less than green.
 export const riseOf = (fish: Catch, level: number) => {
@@ -49,9 +56,8 @@ export const CAST_REACH = 3; // tiles out from the shore the line goes, at most 
 const DEEP = 2; // tiles round the bobber all water: the deep
 const NARROWS = 3; // tiles round the bobber looked over for how much is water
 const NARROW_SHARE = 0.6; // less of it water than this: the narrows
-const WAIT: [number, number] = [5, 12]; // seconds for a bite, least and most, at the skill's first tier
+const WAIT: [number, number] = [3, 8]; // seconds for a bite, least and most, at the skill's first tier
 const QUICKER = 0.12; // of the wait shorter, each tier on
-export const BITE_WINDOW = 1.2; // seconds a bite lasts, to hook it in
 const LANDED = 0.9; // seconds landing it takes, before the line's cast again
 const HERO_XP = 2; // the hero's own experience, a catch
 
@@ -81,7 +87,8 @@ export interface Line {
   phase: 'waiting' | 'bite' | 'landed';
   t: number;
   wait: number; // seconds till the bite, waiting
-  caught?: LootId; // what's being landed
+  caught?: LootId; // what's biting, and then being landed
+  window?: number; // seconds its bite lasts
 }
 
 // The water at (x, z): whether it's the narrows, the deep.
@@ -102,13 +109,13 @@ export const bitesAt = (fish: Catch, spot: Pick<Spot, 'narrows' | 'deep'>): bool
   fish.in === 'any' || (fish.in === 'deep' ? spot.deep : fish.in === 'narrows' ? spot.narrows : !spot.narrows);
 
 // What could bite at a spot, for a hand at `level`.
-export const catchesAt = (spot: Pick<Spot, 'narrows' | 'deep'>, level: number): Catch[] => CATCHES.filter((fish) => level >= fish.needs && bitesAt(fish, spot));
+export const catchesAt = (spot: Pick<Spot, 'narrows' | 'deep'>, level: number): Catch[] => CATCHES.filter((fish) => weightOf(fish, level) > 0 && bitesAt(fish, spot));
 
 // One of them, by their weights (`roll`: 0..1).
 export function pickCatch(spot: Pick<Spot, 'narrows' | 'deep'>, level: number, roll: number): Catch {
   const can = catchesAt(spot, level);
-  let left = roll * can.reduce((sum, fish) => sum + fish.weight, 0);
-  for (const fish of can) if ((left -= fish.weight) < 0) return fish;
+  let left = roll * can.reduce((sum, fish) => sum + weightOf(fish, level), 0);
+  for (const fish of can) if ((left -= weightOf(fish, level)) < 0) return fish;
   return can[can.length - 1];
 }
 
@@ -181,7 +188,7 @@ export class Fishing {
 
   // How far through a bite's moment (0..1), a bite on; else null (its bar).
   get progress(): number | null {
-    return this.line?.phase === 'bite' ? Math.min(1, this.line.t / BITE_WINDOW) : null;
+    return this.line?.phase === 'bite' ? Math.min(1, this.line.t / (this.line.window ?? 1)) : null;
   }
 
   // A moment of it: stopped if they've walked off (or lost their rod, or gone in); else the wait, the bite, the landing.
@@ -190,8 +197,8 @@ export class Fishing {
     if (!line) return;
     if (moving || this.host.inside || this.host.yard || !this.rod) return this.stop();
     line.t += dt;
-    if (line.phase === 'waiting' && line.t >= line.wait) Object.assign(line, { phase: 'bite', t: 0 });
-    else if (line.phase === 'bite' && line.t >= BITE_WINDOW) {
+    if (line.phase === 'waiting' && line.t >= line.wait) this.bite(line);
+    else if (line.phase === 'bite' && line.t >= (line.window ?? 0)) {
       this.host.report({ kind: 'fished', item: null, x: line.spot.x, z: line.spot.z }); // (too late: it got away)
       this.cast(line.spot);
     } else if (line.phase === 'landed' && line.t >= LANDED) this.cast(line.spot);
@@ -203,12 +210,18 @@ export class Fishing {
     this.line = { spot, phase: 'waiting', t: 0, wait: least + this.rng() * (most - least) };
   }
 
-  // A bite hooked: what it is (by the water, by their skill), landed into the bag (full: at their feet), the skill
-  // maybe risen, some of the hero's own experience.
+  // A bite: what it is, by the water and their skill (so a big one's off quicker: its own moment to hook it in).
+  private bite(line: Line): void {
+    const fish = pickCatch(line.spot, skillOf(this.host.hero, SKILL).level, this.rng());
+    Object.assign(line, { phase: 'bite', t: 0, caught: fish.item, window: fish.window });
+  }
+
+  // A bite hooked: landed into the bag (full: at their feet), the skill maybe risen (by what it is: a lucky one, before
+  // its level, the surest of all), some of the hero's own experience.
   private hook(line: Line): void {
     const { hero } = this.host;
     const level = skillOf(hero, SKILL).level;
-    const fish = pickCatch(line.spot, level, this.rng());
+    const fish = CATCHES.find((c) => c.item === line.caught) ?? pickCatch(line.spot, level, this.rng());
     const dropped = !canCarry(hero, fish.item);
     if (dropped) this.host.dropLoot(fish.item, hero.x, hero.z);
     else addToBag(hero.bag, fish.item);

@@ -101,6 +101,7 @@ export const SKILLS: Record<SkillId, Skill> = {
     about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger.',
     unlocks: [
       { at: 1, what: 'Small fry from any shore' },
+      { at: 40, what: 'Now and then a lucky trout or perch' },
       { at: 75, what: "River trout in a lake's narrows, lake perch in its open water; bites come quicker each tier on" },
       { at: 150, what: 'Pike, where the line lies far from any bank' },
       { at: 225, what: 'What the water hides: a lost locket, an old coin, a torc in the deep' },
