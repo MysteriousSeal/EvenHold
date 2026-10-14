@@ -14,7 +14,7 @@ import { pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
 import { herbalistBuys } from '../src/model/herbalist/herbalistShop';
 import { sellValue } from '../src/model/shops/sellValue';
 import { LOOT } from '../src/model/loot/loot';
-import { FISH } from '../src/model/skills/fishing';
+import { FISH, HUGE } from '../src/model/skills/fishing';
 import { NEIGHBORS_4 } from '../src/model/map/grid';
 import type { GameEvent } from '../src/model/types';
 import { GameModel } from '../src/model/GameModel';
@@ -112,6 +112,26 @@ describe('a line', () => {
     expect(fishing.line).toMatchObject({ caught: 'pike', window: CATCHES.find((c) => c.item === 'pike')!.window });
     fishing.use();
     expect(hero.bag.pike).toBe(1);
+  });
+
+  it('now and then hooks a huge one: worth so many, off the hook quicker, told in gold', () => {
+    const rolls = [0.5, 0.99, 0, 0.5]; // (the wait; a pike; huge; the skill's roll)
+    const { fishing, hero, events } = onShore(undefined, true, () => rolls.shift() ?? 0.5);
+    skillOf(hero, 'fishing').level = 150;
+    fishing.use();
+    toBite(fishing);
+    expect(fishing.line).toMatchObject({ caught: 'pike', huge: true });
+    expect(fishing.line!.window).toBeCloseTo(CATCHES.find((c) => c.item === 'pike')!.window - HUGE.quicker);
+    fishing.use();
+    expect(hero.bag.pike).toBe(HUGE.worth);
+    expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'pike', huge: true }));
+  });
+
+  it('never hooks huge small fry', () => {
+    const { fishing } = onShore(undefined, true, () => 0);
+    fishing.use();
+    toBite(fishing);
+    expect(fishing.line).toMatchObject({ caught: 'smallFry', huge: false });
   });
 
   it('gets away if the bite is not hooked in time, told so, and the line is cast again', () => {
