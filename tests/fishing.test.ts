@@ -10,7 +10,11 @@ import { LOOT_IDS } from '../src/model/loot/loot';
 import { nearestLakeShore } from '../src/model/cheats';
 import { interactionOf } from '../src/model/hero/interaction';
 import { fishPrompt } from '../src/controller/skills/fishPrompt';
-import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
+import { pedlarShopAt, sellToPedlar } from '../src/model/travellers/pedlarShop';
+import { herbalistBuys } from '../src/model/herbalist/herbalistShop';
+import { sellValue } from '../src/model/shops/sellValue';
+import { LOOT } from '../src/model/loot/loot';
+import { FISH } from '../src/model/skills/fishing';
 import { NEIGHBORS_4 } from '../src/model/map/grid';
 import type { GameEvent } from '../src/model/types';
 import { GameModel } from '../src/model/GameModel';
@@ -264,6 +268,19 @@ describe('in the game', () => {
     expect(model.takeEvents()).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'smallFry' }));
     model.update(1, 0, 0.1);
     expect(model.fishing.line).toBeNull();
+  });
+
+  it('is sold at its worth, to a pedlar or a herbalist, the bag saying so', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const shop = pedlarShopAt(new Map(), model.seed, { id: 1 });
+    for (const fish of FISH) {
+      expect(sellValue(fish)).toBe(LOOT[fish].value);
+      expect(herbalistBuys(fish)).toBe(true);
+      model.hero.bag[fish] = 1;
+      const money = model.hero.money;
+      expect(sellToPedlar(shop, model.hero, fish)).toBe('sold');
+      expect(model.hero.money - money).toBe(LOOT[fish].value);
+    }
   });
 
   it('can be had from any pedlar: a rod in every pack', () => {
