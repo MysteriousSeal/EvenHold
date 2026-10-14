@@ -146,9 +146,9 @@ export function randomName(build: Build): string {
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
-// (`firstId`: the first of their ids: a streamed world's region's block. `start`: where the hero sets out, the
-// herbalist of the village nearest it, within START_NEAR, always a woman: the opening line's, the burned woman's
-// granddaughter, story/quests/firstQuests.ts.)
+// (`firstId`: the first of their ids: a streamed world's region's block. `start`: where the opening line's village is
+// (the end of the trail from where the hero sets out, else where they set out: story/storyCast.ts), the herbalist of
+// the village nearest it, within START_NEAR, always a woman: the burned woman's granddaughter, story/quests/firstQuests.ts.)
 export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0, start?: Point): Npc[] {
   // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
   // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.

@@ -50,6 +50,7 @@ export interface CastHost {
   readonly ruins: readonly Ruin[];
   readonly camps: readonly Camp[];
   readonly caves: readonly Cave[];
+  readonly trails?: ReadonlyArray<ReadonlyArray<readonly [number, number]>>; // (the one from the start: to the first village)
   boardOf(village: Village): number;
 }
 
@@ -64,6 +65,11 @@ export const nearest = <T>(list: readonly T[], at: (item: T) => Point, to: Point
     if (now < d) [best, d] = [item, now];
   }
   return best;
+};
+// Where the trail from the start ends (on its village's square), if there's one.
+export const spawnTrailEnd = (trails: CastHost['trails'], spawn: Point): Point | null => {
+  const end = trails?.find((t) => t[0]?.[0] === spawn.x && t[0]?.[1] === spawn.z)?.at(-1);
+  return end ? { x: end[0], z: end[1] } : null;
 };
 const middle = (r: Ruin): Point => ({ x: r.x + r.w / 2, z: r.z + r.d / 2 });
 
@@ -99,8 +105,11 @@ export function castOf(host: CastHost): { first: Setting | null; firstRuin: Ruin
       names: { village: villageName(village, host.seed), next: next ? villageName(next, host.seed) : 'the next village', camp: camp ? campName(camp, host.seed) : 'the camp' },
     };
   });
-  // The first village's: the one nearest the start, with the carter by his wagon and the ruin nearest the start.
-  const home = nearest(villages, (s) => s.village, spawn);
+  // The first village's: the one the trail from the start leads to (the carter's "this trail leads to…"; a streamed
+  // world's start on the corner of four regions, the trail made in one of them, not always to the nearest), else the one
+  // nearest the start; with the carter by his wagon and the ruin nearest the start.
+  const lead = spawnTrailEnd(host.trails, spawn);
+  const home = (lead && nearest(villages, (s) => s.village, lead)) ?? nearest(villages, (s) => s.village, spawn);
   const carter = carterOf(host);
   const firstRuin = nearest(host.ruins, middle, spawn);
   const first = home && carter && home.who.barmaid ? { ...home, key: 'first', level: 1, who: { ...home.who, carter }, place: { ...home.place, ruin: firstRuin ? middle(firstRuin) : undefined } } : null;
