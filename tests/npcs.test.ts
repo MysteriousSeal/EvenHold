@@ -200,12 +200,14 @@ describe('villagers', () => {
     expect(folk.filter((n) => n.seat?.lying).length).toBeGreaterThan(folk.length / 2); // most of them abed
     model.minutes = 19 * 60; // an evening
     for (const n of folk) n.steps = [];
-    let worked = false;
+    let [worked, most] = [false, 0];
     for (let t = 0; t < 120; t += 0.1) {
       model.update(0, 0, 0.1);
       if (folk.some((n) => n.working)) worked = true;
+      most = Math.max(most, folk.filter((n) => n.where === n.inn).length);
     }
     expect(worked).toBe(false); // no one out in the fields after dusk
+    expect(most).toBeGreaterThanOrEqual(Math.min(4, folk.length / 2)); // the inn the place to be
     model.minutes = 9 * 60; // the morning
     for (let t = 0; t < 400; t += 0.1) model.update(0, 0, 0.1);
     expect(folk.some((n) => n.where === null)).toBe(true); // up and about

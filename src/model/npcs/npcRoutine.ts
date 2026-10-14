@@ -50,6 +50,7 @@ const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to s
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
 const EVENING_INN_CHANCE = 0.6; // of going, of an evening
+const EVENING_INN_CAP = 7; // villagers at an inn at once, of an evening: the place full
 const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at night (an hour and a half or more)
 // Their day by the clock: abed from late at night till dawn; of an evening, the inn the likelier and the fields left.
 const NIGHT: [number, number] = [23, 6];
@@ -88,7 +89,7 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   const [night, evening] = [within(hour, NIGHT), within(hour, EVENING)];
   let stop = night ? 'home' : routine[npc.stop % routine.length];
   if (evening && stop !== 'home') stop = 'inn'; // (of an evening, the inn in mind: the fields left, the square passed by, if it's full)
-  if (stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= INN_CAP)) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
+  if (stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= (evening ? EVENING_INN_CAP : INN_CAP))) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
