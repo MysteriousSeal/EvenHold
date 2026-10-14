@@ -1,5 +1,5 @@
-// Ingredients: raw food for cooking (none yet), dropped by foes, and the logs a lumberjack fells; till they're of
-// use, only good for selling. Each says who drops it and how often, as junk does (the logs: no one).
+// Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
+// fells, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
 import type { LootEntry } from './lootEntry';
 
@@ -18,6 +18,10 @@ export const INGREDIENTS = {
   riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
   lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
   pike: { name: 'Pike', value: 14, droppedBy: {} },
+  // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and
+  // feasts (skills/cooking.ts).
+  salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
+  flour: { name: 'Flour', value: 4, droppedBy: {} }, // a small sack of it, milled in the valley
   // From the trees a lumberjack fells (skills/lumber.ts), not from foes: logs, a birch's, a pine's, an oak's.
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous

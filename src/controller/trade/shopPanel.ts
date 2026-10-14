@@ -6,7 +6,7 @@ import type { BagItem } from '../../model/hero/bag';
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { buy, buyPrice, cupboardWords, sell, sellPrice, shopAt, innWants, type InnWant } from '../../model/inn/tavernShop';
-import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
+import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type InnProvisionId, type ProvisionId } from '../../model/loot/provisions';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 import { doorNumber } from '../../model/interiors/interiors';
@@ -55,7 +55,7 @@ const LINES: TradeLines = {
 };
 // What she says of each of her wares when the hero buys one (one of
 // several, at random).
-const ABOUT: Record<ProvisionId, readonly string[]> = {
+const ABOUT: Record<InnProvisionId, readonly string[]> = {
   bread: [
     'Fresh from the oven this morning, still soft.',
     'Tear it while it steams. That smell alone is worth the copper.',
@@ -155,7 +155,7 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
     },
     lines: LINES,
     note: () => cupboardWords(shop()),
-    about: (id) => pick(ABOUT[id as ProvisionId]),
+    about: (id) => pick(ABOUT[id as InnProvisionId] ?? ['That one? Nicely done, whoever made it.']),
     offered: (name) => `A ${name.toLowerCase()}? I could use that.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),

@@ -1,14 +1,18 @@
 // Provisions: food and drink, bought and sold at the inn (the barmaid's
 // shop, inn/tavernShop.ts), and eaten or drunk from the bag: food for health
 // back, drink for energy, each a share of the hero's most (the dearer, the
-// more), over a few seconds (hero/bag.ts eatOrDrink). Nothing drops them (yet).
+// more), over a few seconds (hero/bag.ts eatOrDrink). Nothing drops them (yet). A cook's meals (meals.ts) are food
+// too, eaten so, but not hers to sell (PROVISION_IDS: hers alone).
 
 import type { LootEntry } from './lootEntry';
+import type { BlessingKind } from '../hero/blessing';
+import { MEALS, type MealId } from './meals';
 
 export interface Provision extends LootEntry {
   heal?: number; // food: the share of their most health it gives back (0..1)
   energy?: number; // drink: the share of their most energy it gives back
   drink?: boolean;
+  fed?: { kind: BlessingKind; seconds: number }; // a cook's meal: its blessing once eaten through (hero/blessing.ts feed)
   about: string; // a line telling of it
 }
 
@@ -23,15 +27,21 @@ const PROVISION_TABLE = {
   wine: { name: 'Wine', value: 15, energy: 0.5, drink: true, droppedBy: {}, about: 'A dark red from the south, sealed in wax.' },
 } satisfies Record<string, Provision>;
 
-export type ProvisionId = keyof typeof PROVISION_TABLE;
-export const PROVISIONS: Record<ProvisionId, Provision> = PROVISION_TABLE;
-export const PROVISION_IDS = Object.keys(PROVISIONS) as ProvisionId[];
+export type InnProvisionId = keyof typeof PROVISION_TABLE; // the barmaid's
+export type ProvisionId = InnProvisionId | MealId;
+export const PROVISIONS: Record<ProvisionId, Provision> = { ...PROVISION_TABLE, ...MEALS };
+export const PROVISION_IDS = Object.keys(PROVISION_TABLE) as InnProvisionId[];
 export const isProvision = (item: string): item is ProvisionId => item in PROVISIONS;
 
 export const MEAL_SECONDS = 15; // food eaten, or drink drunk, over so long
 
 // What one gives back, and over how long: "Heals 20% over 15 seconds" (food), "Restores 20% energy over 15 seconds"
-// (drink), of the most.
+// (drink), of the most; a meal's energy too, and its blessing after ("then Well fed for 15 minutes").
 const percent = (share = 0) => `${Math.round(share * 100)}%`;
-export const givesText = (id: ProvisionId): string =>
-  PROVISIONS[id].drink ? `Restores ${percent(PROVISIONS[id].energy)} energy over ${MEAL_SECONDS} seconds` : `Heals ${percent(PROVISIONS[id].heal)} over ${MEAL_SECONDS} seconds`;
+export function givesText(id: ProvisionId): string {
+  const { drink, heal, energy, fed } = PROVISIONS[id];
+  if (drink) return `Restores ${percent(energy)} energy over ${MEAL_SECONDS} seconds`;
+  const gives = `${heal === 1 ? 'Heals fully' : `Heals ${percent(heal)}`}${energy ? ` and restores ${percent(energy)} energy` : ''} over ${MEAL_SECONDS} seconds`;
+  return fed ? `${gives}, then ${FED_NAMES[fed.kind] ?? 'blessed'} for ${Math.round(fed.seconds / 60)} minutes` : gives;
+}
+const FED_NAMES: Partial<Record<BlessingKind, string>> = { fed: 'Well fed', fortified: 'Fortified', feasted: 'Feasted' }; // (blessing.ts's names: not imported, the loot's below the hero's)
