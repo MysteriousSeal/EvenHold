@@ -55,6 +55,7 @@ import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
+import { fishPrompt } from './controller/skills/fishPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
 import { createSalvagePanel, givesWords } from './controller/skills/salvagePanel';
@@ -238,6 +239,10 @@ async function boot(): Promise<void> {
       case 'chop':
       case 'cannotChop':
         return chopPrompt(model); // (chop it, stop; or not, and why)
+      case 'fishing':
+      case 'fish':
+      case 'cannotFish':
+        return fishPrompt(model); // (cast, hook the bite, reel in; or not, and why)
       case 'loot':
         return lootTarget(found.loot);
       case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)

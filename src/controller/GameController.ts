@@ -219,6 +219,9 @@ export class GameController {
         return this.onCarter(found.carter), true;
       case 'chop':
         return model.lumber.use();
+      case 'fish':
+      case 'fishing':
+        return model.fishing.use(); // (cast; a bite hooked, or reeled in)
       case 'talk':
         return this.onTalk(found.npc), true;
       case 'stand':
@@ -239,6 +242,7 @@ export class GameController {
       case 'door':
         return model.useDoor();
       case 'cannotChop':
+      case 'cannotFish':
         return true; // (nothing to do: the prompt says why)
     }
   }
