@@ -1,5 +1,6 @@
 // Cooking (skills.ts): the meat beasts drop and the fish caught from a shore made into meals (loot/meals.ts), as a WoW
-// cook does, and only by a fire: a bandit camp's, a campfire the hero kindles of two logs anywhere outdoors, or a
+// cook does, and only by a fire: a bandit camp's, a campfire the hero kindles anywhere outdoors (of a pedlar's bundle of
+// firewood, or two logs), or a
 // hearth indoors (an inn's, a home's). A recipe picked (the skill's window: controller/skills/cookBook.ts), cooked one
 // at a time (a few seconds each, a bar filling; walking off, chopping or going to work stops it, and so does the fire
 // going out or being left), as many as asked for or all the bag allows; each takes its makings from the bag and puts
@@ -166,14 +167,19 @@ export class Cooking {
     return this.making ? Math.min(1, this.making.t / COOK_RECIPES[this.making.recipe].seconds) : null;
   }
 
-  // A campfire kindled at the hero's feet, outdoors, of two logs from the bag (birch first): whether it was (told why
-  // not). One at a time: another puts the last out.
+  // Whether the bag has the makings of a campfire: a bundle of firewood, or two logs.
+  get canKindle(): boolean {
+    const { bag } = this.host.hero;
+    return (bag.firewood ?? 0) > 0 || LOGS.reduce((n, log) => n + (bag[log] ?? 0), 0) >= KINDLE_LOGS;
+  }
+
+  // A campfire kindled at the hero's feet, outdoors, of a bundle of firewood from the bag, else two logs (birch first):
+  // whether it was (told why not). One at a time: another puts the last out.
   kindle(): boolean {
     const { hero, inside } = this.host;
     if (inside || this.host.yard || this.host.work.shift) return this.host.report({ kind: 'poor', text: 'Kindle a fire outdoors' }), false;
-    const logs = LOGS.reduce((n, log) => n + (hero.bag[log] ?? 0), 0);
-    if (logs < KINDLE_LOGS) return this.host.report({ kind: 'poor', text: `${KINDLE_LOGS} logs to kindle a fire` }), false;
-    for (let i = 0; i < KINDLE_LOGS; i++) takeFromBag(hero.bag, LOGS.find((log) => (hero.bag[log] ?? 0) > 0)!);
+    if (!this.canKindle) return this.host.report({ kind: 'poor', text: `Firewood, or ${KINDLE_LOGS} logs, to kindle a fire` }), false;
+    if (!takeFromBag(hero.bag, 'firewood')) for (let i = 0; i < KINDLE_LOGS; i++) takeFromBag(hero.bag, LOGS.find((log) => (hero.bag[log] ?? 0) > 0)!);
     const ahead = 0.8; // a little before them, not under their feet
     this.kindled = { x: hero.x + Math.sin(hero.facing) * ahead, z: hero.z + Math.cos(hero.facing) * ahead, left: KINDLED_BURNS };
     return true;

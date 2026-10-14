@@ -1,7 +1,8 @@
 // A pedlar's pack (travellers.ts): food and drink for the road (bread, an
 // apple, cheese, an ale), a potion or two (loot/potions.ts: the greater ones rare), a bag or two to fit
 // (loot/bags.ts), and the trinkets pedlars carry (every item marked
-// soldBy pedlar: charms, rings, pendants), a few of each and a few silver.
+// soldBy pedlar: charms, rings, pendants), a few of each and a few silver; and
+// bundles of firewood, for a campfire to cook over (skills/cooking.ts).
 // They'll buy back the same sorts of things (and junk, as anyone does). The
 // same prices as at the inn and the smith's. Their shop kept by their id
 // (PEDLAR_KEY on), in the save with the rest.
@@ -9,6 +10,7 @@
 import { ITEMS, ITEM_IDS, isJewelrySlot, type ItemId } from '../human/equipment';
 import { isGear, slotOfGear, type GearKey } from '../human/items/gear';
 import { isProvision, type ProvisionId } from '../loot/provisions';
+import { INGREDIENTS } from '../loot/ingredients';
 import { BAG_IDS, BAG_ITEMS, isBagItem } from '../loot/bags';
 import { POTION_IDS, isPotion, potionPrice } from '../loot/potions';
 import { buyPrice, sellPrice } from '../inn/tavernShop';
@@ -22,19 +24,20 @@ import { PEDLAR_KEY, type Traveller } from './travellers';
 
 const FOOD: readonly ProvisionId[] = ['bread', 'apple', 'cheese', 'ale'];
 export const PEDLAR_TRINKETS: readonly ItemId[] = ITEM_IDS.filter((id) => (ITEMS[id].soldBy?.pedlar ?? 0) > 0);
-export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, ...POTION_IDS, ...PEDLAR_TRINKETS, ...BAG_IDS]; // (and bags: hero/bagSlots.ts)
+export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, 'firewood', ...POTION_IDS, ...PEDLAR_TRINKETS, ...BAG_IDS]; // (and bags: hero/bagSlots.ts)
 
 // What they'll buy: food and drink, and trinkets (what goes round a neck or on a finger).
 export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
 
 export const pedlarPrice = (id: BagItem, selling: boolean): number =>
-  isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
+  id === 'firewood' ? INGREDIENTS.firewood.value : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
 
 // The pack of the pedlar `t`, made the first time it's opened.
 export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Traveller, 'id'>, now = Date.now()): Shop {
   const roll = (salt: number) => hashUnit(t.id, seed % 1_000_003, salt);
   const stock: Partial<Record<BagItem, number>> = {};
   FOOD.forEach((id, i) => (stock[id] = 1 + Math.floor(roll(10 + i) * 3)));
+  stock.firewood = 3 + Math.floor(roll(20) * 4); // (a few bundles)
   PEDLAR_TRINKETS.forEach((id, i) => (stock[id] = roll(30 + i) < 0.6 ? ITEMS[id].soldBy!.pedlar! : 0));
   POTION_IDS.forEach((id, i) => (stock[id] = roll(40 + i) < (id.startsWith('greater') ? 0.15 : 0.6) ? 1 + Math.floor(roll(45 + i) * 2) : 0)); // (a potion or two, a greater one rarely)
   BAG_IDS.forEach((id, i) => (stock[id] = roll(50 + i) < 0.5 - i * 0.08 ? 1 : 0)); // (a bag or two, the finer ones rarer)

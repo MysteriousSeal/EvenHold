@@ -23,6 +23,9 @@ export const INGREDIENTS = {
   // feasts (skills/cooking.ts).
   salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
   flour: { name: 'Flour', value: 4, droppedBy: {} }, // a small sack of it, milled in the valley
+  // Sold by pedlars on the road (travellers/pedlarShop.ts): a bundle of firewood, to kindle a campfire with and cook over
+  // (skills/cooking.ts), for whoever hasn't an axe.
+  firewood: { name: 'Bundle of firewood', value: 3, droppedBy: {} },
   // From the trees a lumberjack fells (skills/lumber.ts), not from foes: logs, a birch's, a pine's, an oak's.
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous
