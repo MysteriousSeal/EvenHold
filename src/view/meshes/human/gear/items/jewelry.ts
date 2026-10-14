@@ -8,7 +8,7 @@
 // - barrowTorc (barrow): an open torc of twisted grave-gold, green with verdigris in the twists, its two ends knobbed.
 //   Grave-gold a89048, verdigris 4e7a64 / 6e9a80.
 // - trophyCord (flayer): a dark thong strung with teeth and finger bones, a dried scrap of hide in the middle. Thong
-//   2a1c18, tooth efe6cc, bone dcb8a0, hide 9a5a4a.
+//   2a1c18, tooth efe6cc, bone c4a46a, hide 7a4a32.
 // - scallopShell (palmer): a cream scallop shell, ribbed in fans, on a red cord. Shell f0e4cc / d8c4a0, cord 9a2a2a.
 // - fingerboneRing (ossuary): a ring of three finger bones wired end to end, a knucklebone for its setting. Bone e0d4b4
 //   / b8a986, wire 6e747c.

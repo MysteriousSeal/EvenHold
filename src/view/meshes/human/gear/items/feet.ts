@@ -7,7 +7,7 @@
 // - headsmansBoots (headsman): heavy black boots to the ankle, iron toe caps, a strap and dull iron buckle across the
 //   instep. Black 1c1a1c / leather 3e2a22, iron 5a5e66 / 7d838c.
 // - flayersBoots (flayer): hide boots in patches, cross-stitched, the cuff turned down showing raw hide, a tooth on a
-//   thong at the ankle. Hide c89a80 / 9a6e58, raw 9a5a4a, stitch 2a1c18, tooth efe6cc.
+//   thong at the ankle. Hide a8844e / 6e5232, raw 7a4a32, stitch 2a1c18, tooth efe6cc.
 // - ashSandals (cinder): sooted soles under ash-grey cloth bindings wound up the ankle, toes bare and black with ash, an
 //   ember speck or two. Ash 6a6460 / 8a847e, soot 2a2826, ember e0602a.
 // - sunwardSabatons (sunward, epic): pointed gilded sabatons of overlapping lames, ivory enamel on the instep with a

@@ -7,7 +7,7 @@
 // - barrowGreaves (barrow): rusted plate cuisses and knee cops over rotten mail at the hips, a verdigris strap with a
 //   grave-gold buckle. Rust 8a4a22 / 5e2e16 / a8642e, pitted 7d7a72, verdigris 4e7a64, buckle a89048, mould 3e4a32.
 // - flayedLeggings (flayer): tight leggings of cured hide patches, three tones, black cross-stitches down the outside
-//   seam, a belt of raw hide with a bone toggle. Hide c89a80 / dcb8a0 / 9a6e58, raw 9a5a4a, stitch 2a1c18, toggle efe6cc.
+//   seam, a belt of raw hide with a bone toggle. Hide a8844e / c4a46a / 6e5232, raw 7a4a32, stitch 2a1c18, toggle efe6cc.
 // - watchCuisses (watch): steel cuisses and knee cops over teal hose, a sand stripe down the outside, a leather belt with
 //   a brass buckle. Steel b4bac2 / d2d6dc / 7d838c, teal 2f9c9a / 217c7a, sand efdcb8, leather 5e3f28, brass d4b060.
 // - particolouredHose (velvet): hose burgundy on one leg and black on the other, slashed at the thigh showing gold, a
