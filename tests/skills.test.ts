@@ -16,7 +16,11 @@ describe('skills', () => {
   it('are lumberjacking and woodworking (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
     expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
     expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary', 'secondary']);
-    for (const id of ['cooking', 'fishing'] as const) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+    expect(SKILLS.fishing.unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+    const cooking = SKILLS.cooking.unlocks.map((u) => u.at); // (cooking's as built: from the start, rising, something at every tier)
+    expect([cooking[0], cooking]).toEqual([1, [...cooking].sort((x, y) => x - y)]);
+    for (const tier of SKILL_TIERS) expect(cooking.some((at) => at >= tier.from && at < tier.to)).toBe(true);
+    expect(SKILLS.cooking.practice).toBeDefined(); // (by a fire)
     expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
     expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
   });
@@ -75,7 +79,7 @@ describe('the skills window', () => {
     expect(cards[0].querySelector('.skill-card-level')?.textContent).toBe('100');
     expect(cards[0].querySelector('.skill-card-tier')?.textContent).toBe('Journeyman · 50 to Expert');
     expect(cards[0].querySelector('.skill-rule.slim')).toBeTruthy();
-    expect([cards[3].classList.contains('idle'), cards[3].querySelector('.skill-card-status')?.textContent]).toEqual([true, 'Not practicable yet']); // (cooking)
+    expect([cards[4].classList.contains('idle'), cards[4].querySelector('.skill-card-status')?.textContent]).toEqual([true, 'Not practicable yet']); // (fishing)
     expect(panel.window.menu.isOpen).toBe(false);
     panel.menu.close();
   });
@@ -119,8 +123,11 @@ describe('the skills window', () => {
     expect(all('.book-row .book-name').slice(-5).map((r) => r.textContent)).toEqual(['Iron', 'Leather', 'Cloth', 'Silver', 'Wood']); // (salvaging: its guide, what gear is made of)
     expect(q('.book-detail .book-title').textContent).toBe('Iron');
     cardsOf()[3].click();
-    expect(q('.skill-notyet h3').textContent).toBe('Not practicable yet'); // (cooking)
-    expect(q('.skill-opens').querySelectorAll('li')).toHaveLength(SKILLS.cooking.unlocks.length);
+    expect(all('.book-group').slice(-5).map((g) => g.textContent)).toEqual(['Roasts', 'Fish', 'Stews', 'Pies', 'Feasts']); // (cooking: its recipes)
+    expect(q('.cook-fire').textContent).toContain('No fire here');
+    cardsOf()[4].click();
+    expect(q('.skill-notyet h3').textContent).toBe('Not practicable yet'); // (fishing)
+    expect(q('.skill-opens').querySelectorAll('li')).toHaveLength(SKILLS.fishing.unlocks.length);
     panel.window.menu.close();
     panel.menu.close();
   });

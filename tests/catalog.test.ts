@@ -1,6 +1,7 @@
 // Everything that can be carried, one by one: every piece of gear (its
 // slot, stats, armour, price, model) and every kind of loot (its worth,
 // quality, model, and who'd buy it).
+import { isMeal } from '../src/model/loot/meals';
 import { isPotion } from '../src/model/loot/potions';
 import { herbalistPrice } from '../src/model/herbalist/herbalistShop';
 import { isBagItem } from '../src/model/loot/bags';
@@ -56,7 +57,7 @@ describe.each(LOOT_IDS.map((id) => [id]))('loot: %s', (id: LootId) => {
       expect(sellValue(id)).toBe(sellPrice(id)); // the barmaid buys food and drink…
       expect(sellPrice(id)).toBeLessThan(buyPrice(id) + 1); // …for less than she sells it
       expect(PROVISIONS[id].drink ? PROVISIONS[id].energy : PROVISIONS[id].heal).toBeGreaterThan(0); // (food heals, drink gives energy)
-      expect(PROVISIONS[id].drink ? PROVISIONS[id].heal : PROVISIONS[id].energy).toBeUndefined();
+      if (!isMeal(id)) expect(PROVISIONS[id].drink ? PROVISIONS[id].heal : PROVISIONS[id].energy).toBeUndefined(); // (a cook's honey cake and lord's feast give both)
     } else if (isJunk(id)) expect(sellValue(id)).toBe(loot.value); // anyone buys junk, at its worth
     else if (isQuestItem(id)) expect(sellValue(id)).toBeNull(); // quest items: kept for the quest
     else if (isBagItem(id)) expect(pedlarPrice(id, true)).toBeLessThan(pedlarPrice(id, false)); // bags: sold back to a pedlar for less
