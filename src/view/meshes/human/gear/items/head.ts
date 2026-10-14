@@ -4,7 +4,7 @@
 // is: 1 lies against the head, 2 and 3 stand out in relief (a rim, a ridge,
 // a nose guard, a brim, a hood's folds).
 //
-// The new head pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// The sets' head pieces (drawn in setHelms.ts; their colours: setPalettes.ts):
 // - headsmansHood (headsman): a close black hood to the shoulders, two ragged eye holes and nothing else of the face;
 //   pale crude stitches up the crown seam, a dark stain down the front. Black 1c1a1c / 2e2a2c, thread b8a986, stain 3a0e10.
 // - barrowHelm (barrow): a rusted spangenhelm, four plates on a riveted frame, a broad nasal and a curtain of rusted mail
