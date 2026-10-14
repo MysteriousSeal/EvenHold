@@ -99,7 +99,7 @@ describe('a line', () => {
     expect(fishing.use()).toBe(true);
     expect(hero.bag.smallFry).toBe(1); // (all a beginner catches)
     expect(fishing.line?.phase).toBe('landed');
-    expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'smallFry', dropped: false }));
+    expect(events.find((e) => e.kind === 'fished')).not.toHaveProperty('dropped'); // (none at their feet)
     run(fishing, 1);
     expect(fishing.line?.phase).toBe('waiting');
   });
@@ -166,7 +166,24 @@ describe('a line', () => {
     fishing.use();
     expect(hero.bag.smallFry).toBeUndefined();
     expect(dropped).toEqual([{ item: 'smallFry', x: hero.x, z: hero.z }]);
-    expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'smallFry', dropped: true }));
+    expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'smallFry', dropped: 1 }));
+    run(fishing, 1); // (landed: then reeled in, told, not cast again to pile more on the shore)
+    expect(fishing.line).toBeNull();
+    expect(events).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
+    expect(fishing.use()).toBe(true); // (cast again by hand: on as before)
+    expect(fishing.line?.phase).toBe('waiting');
+  });
+
+  it('tells how many of a huge one landed at their feet, the bag full', () => {
+    const rolls = [0.5, 0.99, 0, 0.5];
+    const { fishing, hero, dropped, events } = onShore({ x: -1, z: 10 }, true, () => rolls.shift() ?? 0.5);
+    skillOf(hero, 'fishing').level = 150;
+    for (const id of LOOT_IDS.filter((id) => id !== 'pike' && id !== 'fishingRod').slice(0, 40)) hero.bag[id] = 1;
+    fishing.use();
+    toBite(fishing);
+    fishing.use();
+    expect(dropped.map((d) => d.item)).toEqual(['pike', 'pike', 'pike']);
+    expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: 'pike', huge: true, dropped: 3 }));
   });
 
   it('bites quicker each tier on', () => {

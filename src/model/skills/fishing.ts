@@ -1,8 +1,8 @@
 // Fishing (skills.ts): a fishing rod in the bag (loot/tools.ts: a pedlar's), E on a lake's shore (a dry tile beside the
 // water) casts it, the line out into the water before them (as far as CAST_REACH, while it's water). Then a wait for a
 // bite, shorter the better they are; a bite, the bobber dipping, and a moment (the catch's own: a big one's off quicker) to hook it with E again:
-// too late, it gets away. Hooked, it's landed into the bag (full: at their feet), and the line cast again on its own,
-// on and on till they walk off or reel in (E while they wait). What bites is by the water and the skill: small fry
+// too late, it gets away. Hooked, it's landed into the bag (full: at their feet, told how many, and the line reeled in), and the line cast
+// again on its own, on and on till they walk off or reel in (E while they wait). What bites is by the water and the skill: small fry
 // anywhere; from 75 (a lucky one now and then from 40) river trout in a lake's narrows (its arms and inlets, the nearest the world has to a river) and
 // lake perch in its open water; from 150 pike where the bobber lies far from any bank (the deep); from 225, now and
 // then, what the water hides (a locket, an old coin; a torc in the deep). The skill rises as they land them, the surer
@@ -127,6 +127,7 @@ export function pickCatch(spot: Pick<Spot, 'narrows' | 'deep'>, level: number, r
 
 export class Fishing {
   line: Line | null = null;
+  private full = false; // the last catch didn't all fit: reeled in once it's landed
 
   constructor(
     private readonly host: FishingHost,
@@ -189,7 +190,7 @@ export class Fishing {
   }
 
   stop(): void {
-    this.line = null;
+    [this.line, this.full] = [null, false];
   }
 
   // How far through a bite's moment (0..1), a bite on; else null (its bar).
@@ -207,7 +208,11 @@ export class Fishing {
     else if (line.phase === 'bite' && line.t >= (line.window ?? 0)) {
       this.host.report({ kind: 'fished', item: null, x: line.spot.x, z: line.spot.z }); // (too late: it got away)
       this.cast(line.spot);
-    } else if (line.phase === 'landed' && line.t >= LANDED) this.cast(line.spot);
+    } else if (line.phase === 'landed' && line.t >= LANDED) {
+      if (!this.full) return this.cast(line.spot);
+      this.stop();
+      this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (as cooking stops)
+    }
   }
 
   // The line out into `spot`, waiting for a bite.
@@ -229,13 +234,14 @@ export class Fishing {
     const { hero } = this.host;
     const level = skillOf(hero, SKILL).level;
     const fish = CATCHES.find((c) => c.item === line.caught) ?? pickCatch(line.spot, level, this.rng());
-    const dropped = !canCarry(hero, fish.item);
+    let dropped = 0; // (what the bag hasn't room for: at their feet)
     for (let n = 0; n < (line.huge ? HUGE.worth : 1); n++) {
-      if (dropped) this.host.dropLoot(fish.item, hero.x + n * 0.15, hero.z);
-      else addToBag(hero.bag, fish.item); // (a huge one: as good as so many, for the pot or the purse)
+      if (canCarry(hero, fish.item)) addToBag(hero.bag, fish.item); // (a huge one: as good as so many, for the pot or the purse)
+      else this.host.dropLoot(fish.item, hero.x + dropped++ * 0.15, hero.z);
     }
     Object.assign(line, { phase: 'landed', t: 0, caught: fish.item });
-    this.host.report({ kind: 'fished', item: fish.item, x: line.spot.x, z: line.spot.z, dropped, ...(line.huge && { huge: true }) });
+    this.host.report({ kind: 'fished', item: fish.item, x: line.spot.x, z: line.spot.z, ...(dropped && { dropped }), ...(line.huge && { huge: true }) });
+    if (dropped) this.full = true; // (landed, then reeled in: no more cast to pile on the shore)
     gainXp(hero, HERO_XP);
     practise(hero, SKILL, fish.needs, this.rng(), this.host.report, riseOf(fish, level).chance);
   }
