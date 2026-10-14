@@ -2,6 +2,18 @@
 // 0-1: the foot and the ankle (x -1..3; z -1..4, where 4 is in front of the
 // toes and z 3 on row 1 is over them; the side toward the other foot stays
 // open). Nothing goes under the sole.
+//
+// The new foot pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - headsmansBoots (headsman): heavy black boots to the ankle, iron toe caps, a strap and dull iron buckle across the
+//   instep. Black 1c1a1c / leather 3e2a22, iron 5a5e66 / 7d838c.
+// - flayersBoots (flayer): hide boots in patches, cross-stitched, the cuff turned down showing raw hide, a tooth on a
+//   thong at the ankle. Hide c89a80 / 9a6e58, raw 9a5a4a, stitch 2a1c18, tooth efe6cc.
+// - ashSandals (cinder): sooted soles under ash-grey cloth bindings wound up the ankle, toes bare and black with ash, an
+//   ember speck or two. Ash 6a6460 / 8a847e, soot 2a2826, ember e0602a.
+// - sunwardSabatons (sunward, epic): pointed gilded sabatons of overlapping lames, ivory enamel on the instep with a
+//   small gold sun, gold toe. Gold d4b060 / f0d080 / a8862e, ivory f4f0e6, azure 3060c0.
+// - poulaines (velvet): long-toed velvet shoes, the toe running a voxel past the foot, black and burgundy, a gold buckle
+//   and an ermine cuff. Velvet 6e1a2a / 4e1220, black 1e1a1e, gold d4b060, ermine f0ece0.
 
 import type { FEET_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette, type ShellCell } from '../armorShell';
@@ -131,4 +143,9 @@ export const FEET_MODELS: Record<keyof typeof FEET_ITEMS, ItemModel> = {
   feltSlippers: shoes(0x6a8a5a, 0x557048, 0xe8dcc0),
   hobnailBoots,
   ironCapBoots,
+  headsmansBoots: ironCapBoots, // STAND-IN: heavy black ankle boots, iron toe caps, a strap and dull iron buckle over the instep
+  flayersBoots: leatherBoots, // STAND-IN: patchwork hide boots, cross-stitched, cuff turned down to raw hide, a tooth on a thong
+  ashSandals: sandals, // STAND-IN: sooted soles, ash-grey bindings wound up the ankle, black-ashed bare toes, ember specks
+  sunwardSabatons: sabatons, // STAND-IN: pointed gilded sabatons of overlapping lames, ivory instep with a small gold sun
+  poulaines: shoes(0x6e1a2a, 0x1e1a1e, 0xd4b060), // STAND-IN: long-toed burgundy-and-black velvet shoes, gold buckle, ermine cuff
 };

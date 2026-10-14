@@ -124,4 +124,10 @@ export const FEET_ITEMS = slotItems('feet', {
   feltSlippers: { name: 'Felt slippers', stats: { endurance: 1 } },
   ironCapBoots: { name: 'Iron-capped boots', wornBy: { bouncer: 1 }, armor: 3, stats: { stamina: 1 } }, // an inn's bouncer's
   hobnailBoots: { name: 'Hobnail boots', value: 50, soldBy: { smith: 2 }, wornBy: { bandit: 1 }, armor: 2, stats: { strength: 1, endurance: 1 } },
+  // The sets' (sets.ts).
+  headsmansBoots: { name: "Headsman's boots", set: 'headsman', level: 6, rarity: 'uncommon', value: 80, droppedBy: { bruiser: 1 }, armor: 3, stats: { strength: 1 } },
+  flayersBoots: { name: "Flayer's boots", set: 'flayer', value: 40, wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1, endurance: 1 } },
+  ashSandals: { name: 'Ash-walker sandals', set: 'cinder', level: 8, rarity: 'uncommon', value: 70, droppedBy: { firebrand: 1 }, armor: 1, stats: { agility: 2, endurance: 1 } },
+  sunwardSabatons: { name: 'Sunward sabatons', set: 'sunward', level: 14, rarity: 'epic', value: 340, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 4, stats: { stamina: 2 } },
+  poulaines: { name: 'Poulaines', set: 'velvet', level: 5, rarity: 'uncommon', value: 120, droppedBy: { banditChief: 1 }, stats: { agility: 3 } },
 });
