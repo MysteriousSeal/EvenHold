@@ -76,7 +76,7 @@ export interface Kindled {
 
 export const FIRE_REACH = 1.5; // from a campfire's middle, near enough to cook over it
 export const KINDLE_LOGS = 2; // logs a campfire takes (any, birch first)
-export const KINDLED_BURNS = 4 * 60; // seconds of play it burns
+export const KINDLED_BURNS = 8 * 60; // seconds of play it burns
 const LOGS: readonly LootId[] = ['birchLog', 'pineLog', 'oakLog'];
 
 export interface CookingHost {
