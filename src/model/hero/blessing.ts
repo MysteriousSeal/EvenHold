@@ -2,12 +2,13 @@
 // it) for one of eight, at random, for half an hour of play (counting down
 // only while playing, and kept in a save). One at a time from a well:
 // another toss rerolls it, the half hour afresh (a cheat can grant all).
+// And a cook's meals' (loot/meals.ts), eaten through: Well fed, Fortified, Feasted, one at a time, beside a well's.
 
 import type { GameEvent, Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
-export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed';
+export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed' | 'fed' | 'fortified' | 'feasted';
 export interface Blessing {
   kind: BlessingKind;
   left: number; // seconds of it left
@@ -26,9 +27,13 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   chilled: { name: 'Chilled', about: "Frost on you (a draugr's breath, a ghost's touch): you walk 45% slower." }, // (no well's: a draugr's breath, crypts/frostBreath.ts; a ghost's touch, hero/fighting.ts)
   poxed: { name: 'The pox', about: 'Caught at work in an inn\'s room: you tire half as fast again. A herbalist has a salve for it.' }, // (no well's: a client's, jobs/roomShift.ts; a herbalist's salve ends it: hero/pox.ts)
   webbed: { name: 'Webbed', about: "A cave spider's web clings to you: you walk 60% slower." }, // (no well's: a spider's spat web, caves/caveFoes.ts)
+  fed: { name: 'Well fed', about: 'A hot stew in you: your health comes back slowly as you go.' }, // (no well's: a cook's stew, eaten through: loot/meals.ts)
+  fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 1 less damage, and you tire a third slower.' }, // (a cook's pie)
+  feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 1 less, and your health comes back slowly.' }, // (a cook's feast)
 };
 const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed', 'poxed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
-const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k)); // the wells'
+const FOOD: ReadonlySet<BlessingKind> = new Set(['fed', 'fortified', 'feasted']); // a meal's: no well's either, and kept through one
+const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k) && !FOOD.has(k)); // the wells'
 const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 const WEB_PACE = 0.4; // and webbed (both: slower still)
 export const WEARY_TIME = 5 * 60; // seconds of play Weary after a fall (or collapsing, out of energy)
@@ -38,8 +43,8 @@ const WELL_REACH = 1.15; // from the well's middle: right beside it
 
 const on = (who: { blessings?: Blessing[] }, kind: BlessingKind) => !!who.blessings?.some((b) => b.kind === kind);
 export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1) * (on(hero, 'chilled') ? CHILL_PACE : 1) * (on(hero, 'webbed') ? WEB_PACE : 1);
-export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
-export const hitTaken = (hero: Hero, damage: number) => Math.max(1, damage - (on(hero, 'tough') ? 1 : 0) + (on(hero, 'weary') ? 1 : 0));
+export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) + (on(hero, 'feasted') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
+export const hitTaken = (hero: Hero, damage: number) => Math.max(1, damage - (on(hero, 'tough') ? 1 : 0) - (on(hero, 'fortified') || on(hero, 'feasted') ? 1 : 0) + (on(hero, 'weary') ? 1 : 0));
 export const coinsFound = (hero: Hero, copper: number) => (on(hero, 'lucky') ? Math.round(copper * 1.5) : copper);
 export const xpGained = (hero: Hero, xp: number) => (on(hero, 'wise') ? Math.round(xp * 1.25) : xp);
 export const noticeFactor = (who: { blessings?: Blessing[] }) => (on(who, 'quiet') ? 0.5 : 1); // on foes' sight and hearing
@@ -69,13 +74,23 @@ export function makeWebbed(hero: Hero, seconds: number): void {
 export const POX_TIME = 4 * 60 * 60; // seconds of play it lasts, left alone
 const POX_DRAIN = 1.5; // energy spent, times
 export const hasPox = (hero: { blessings?: Blessing[] }): boolean => on(hero, 'poxed');
-export const tiring = (hero: { blessings?: Blessing[] }): number => (on(hero, 'poxed') ? POX_DRAIN : 1); // on the energy spent up and about
+export const tiring = (hero: { blessings?: Blessing[] }): number => (on(hero, 'poxed') ? POX_DRAIN : 1) * (on(hero, 'fortified') ? FORTIFIED_DRAIN : 1); // on the energy spent up and about
 export function givePox(hero: Hero): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'poxed'), { kind: 'poxed', left: POX_TIME }];
 }
 export function curePox(hero: Hero): void {
   hero.blessings = (hero.blessings ?? []).filter((b) => b.kind !== 'poxed');
 }
+
+// A meal eaten through (loot/meals.ts): its blessing for `seconds`, in place of any other meal's (one at a time, as a
+// well's); and, Well fed or Feasted, health back a little each second, up and about (heroStats.ts recover).
+const FORTIFIED_DRAIN = 2 / 3; // energy spent, times, Fortified
+const FED_MEND = 1 / 400; // of their most health, a second: all of it back in under seven minutes
+export const isFood = (kind: BlessingKind): boolean => FOOD.has(kind);
+export function feed(hero: Hero, kind: BlessingKind, seconds: number): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => !FOOD.has(b.kind)), { kind, left: seconds }];
+}
+export const mending = (hero: { blessings?: Blessing[] }): number => (on(hero, 'fed') || on(hero, 'feasted') ? FED_MEND : 0);
 
 // Whether it's a bane (Weary, Chilled, Webbed, the pox), not a gift.
 export const isBane = (kind: BlessingKind): boolean => BANES.has(kind);
@@ -104,7 +119,7 @@ export function tossCoin(hero: Hero, roll: number): BlessingKind | null {
   if (hero.money < WELL_TOSS) return null;
   hero.money -= WELL_TOSS;
   const kind = BLESSING_KINDS[Math.min(BLESSING_KINDS.length - 1, Math.floor(roll * BLESSING_KINDS.length))];
-  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, stay)
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind) || FOOD.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, a meal's, stay)
   return kind;
 }
 

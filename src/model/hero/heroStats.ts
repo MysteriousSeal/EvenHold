@@ -2,13 +2,13 @@
 // (and with Stamina, and Endurance their energy: attributes.ts);
 // each level takes more experience than the last. Hardcore: health never
 // comes back by itself, only by eating and drinking (provisions.ts), sleeping
-// in a bed, and levelling up, which heals fully.
+// in a bed, and levelling up, which heals fully (and a cook's stew or feast, eaten through: a while Well fed, mending).
 
 import { coolSpells } from '../spells/spells';
 import { DAY_MINUTES } from '../clock';
 import type { Hero, Meal } from '../types';
 import { drainOf, maxEnergyOf, maxHpAt, maxHpOf } from './attributes';
-import { tiring } from './blessing';
+import { feed, mending, tiring } from './blessing';
 import { POINTS_PER_LEVEL, untrained } from './training';
 import { emptyActionBar } from './actionBar';
 import { HERO_LOOK } from '../human/humanoid';
@@ -84,6 +84,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false,
   const rate = asleep ? ENERGY_SLEPT * rest : sitting ? 0 : -ENERGY_SPENT * drainOf(hero) * tiring(hero); // (the pox: tiring faster)
   hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, hero.energy + rate * dt));
   if (asleep) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * HEAL_SLEPT * rest * dt);
+  else if (mending(hero) && hero.hp > 0) hero.hp = Math.min(maxHpOf(hero), hero.hp + maxHpOf(hero) * mending(hero) * dt); // (Well fed)
   // A drink being sipped at the bar (or a pie eaten), and food or drink from the bag: health and energy back a little
   // at a time, all of it once it's done.
   hero.potionCooldown = Math.max(0, (hero.potionCooldown ?? 0) - dt); // (another potion, in a while)
@@ -98,6 +99,7 @@ function restoring(hero: Hero, meal: Meal | null | undefined, dt: number): Meal 
   hero.hp = Math.min(maxHpOf(hero), hero.hp + (meal.heal * step) / meal.seconds);
   hero.energy = Math.min(maxEnergyOf(hero), hero.energy + ((meal.energy ?? 0) * step) / meal.seconds);
   meal.left -= step;
+  if (meal.left <= 0 && meal.fed) feed(hero, meal.fed.kind, meal.fed.seconds); // (a cook's meal, eaten through: its blessing)
   return meal.left <= 0 ? null : meal;
 }
 
