@@ -331,8 +331,8 @@ const sunwardCuirass: ItemModel = {
 };
 
 // The velvet court's: a doublet parti-coloured burgundy and black down the
-// middle, a row of pearl buttons between, gold braid at the hem, an ermine
-// collar and cuffs, puffed shoulders and sleeves slashed to the gold beneath.
+// middle, sleeves and all, a pearl button between, gold braid at the hem, an
+// ermine collar and cuffs, puffed shoulders, sleeves slashed to the gold.
 const velvet = namedPalette({ ...SET_PALETTES.velvet });
 const ermine = (x: number, z: number) => (mod(x + 2 * z, 3) === 1 ? velvet.c.fleck : velvet.c.ermine);
 const velvetDoublet: ItemModel = {
@@ -346,11 +346,12 @@ const velvetDoublet: ItemModel = {
       if (x < 3) return flank ? c.velvetDark : c.velvet;
       return c.black;
     },
-    arm: ({ x, y, z, top }) => {
+    arm: ({ x, y, z, top, side }) => {
       const { c } = velvet;
+      const burgundy = side === 'right'; // the sleeve on the doublet's burgundy half (-X); the other black
       if (y === 2) return ermine(x, z);
-      if (top || y >= 5) return c.velvetLight; // puffed at the shoulder
-      return mod(x + z, 2) === 0 ? c.gold : c.velvet; // the slashes
+      if (top || y >= 5) return burgundy ? c.velvetLight : c.black; // puffed at the shoulder
+      return mod(x + z, 2) === 0 ? c.gold : burgundy ? c.velvet : c.black; // the slashes
     },
   },
 };
