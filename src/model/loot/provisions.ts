@@ -16,15 +16,17 @@ export interface Provision extends LootEntry {
   about: string; // a line telling of it
 }
 
+// (Priced so a full belly's worth something: a loaf a tenth of a wolf's purse at the first village, not a copper or
+// two that never runs short; a cook's own meals the cheaper way to mend.)
 const PROVISION_TABLE = {
-  bread: { name: 'Bread loaf', value: 4, heal: 0.2, droppedBy: {}, about: 'Baked this morning, still soft inside.' },
-  cheese: { name: 'Cheese wedge', value: 6, heal: 0.25, droppedBy: {}, about: 'Sharp and crumbly, from the dairy up the valley.' },
-  apple: { name: 'Apple', value: 2, heal: 0.1, droppedBy: {}, about: 'Red and crisp, from the orchard behind the inn.' },
-  roastLeg: { name: 'Roast leg', value: 12, heal: 0.5, droppedBy: {}, about: 'Slow-roasted over the hearth, dripping and hot.' },
-  meatPie: { name: 'Meat pie', value: 9, heal: 0.35, droppedBy: {}, about: 'Golden crust, rich with meat and gravy.' },
-  ale: { name: 'Ale', value: 3, energy: 0.2, drink: true, droppedBy: {}, about: 'A frothing tankard of the house brew.' },
-  mead: { name: 'Mead', value: 7, energy: 0.35, drink: true, droppedBy: {}, about: 'Sweet honey wine, warming to the toes.' },
-  wine: { name: 'Wine', value: 15, energy: 0.5, drink: true, droppedBy: {}, about: 'A dark red from the south, sealed in wax.' },
+  bread: { name: 'Bread loaf', value: 10, heal: 0.2, droppedBy: {}, about: 'Baked this morning, still soft inside.' },
+  cheese: { name: 'Cheese wedge', value: 14, heal: 0.25, droppedBy: {}, about: 'Sharp and crumbly, from the dairy up the valley.' },
+  apple: { name: 'Apple', value: 5, heal: 0.1, droppedBy: {}, about: 'Red and crisp, from the orchard behind the inn.' },
+  roastLeg: { name: 'Roast leg', value: 30, heal: 0.5, droppedBy: {}, about: 'Slow-roasted over the hearth, dripping and hot.' },
+  meatPie: { name: 'Meat pie', value: 22, heal: 0.35, droppedBy: {}, about: 'Golden crust, rich with meat and gravy.' },
+  ale: { name: 'Ale', value: 6, energy: 0.2, drink: true, droppedBy: {}, about: 'A frothing tankard of the house brew.' },
+  mead: { name: 'Mead', value: 15, energy: 0.35, drink: true, droppedBy: {}, about: 'Sweet honey wine, warming to the toes.' },
+  wine: { name: 'Wine', value: 30, energy: 0.5, drink: true, droppedBy: {}, about: 'A dark red from the south, sealed in wax.' },
 } satisfies Record<string, Provision>;
 
 export type InnProvisionId = keyof typeof PROVISION_TABLE; // the barmaid's
