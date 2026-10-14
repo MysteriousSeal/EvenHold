@@ -160,9 +160,14 @@ export function rollRarity(u: number, luck = 1, least: Rarity = 'common'): Rarit
   return RARITIES[from];
 }
 
-// A piece of `item` found at `level`, its rarity and roll from `rng`.
+// Whether `item` is found at `level` (items.ts `level`: some never lower).
+export const foundAt = (item: ItemId, level: number): boolean => (ITEMS[item].level ?? 1) <= level;
+
+// A piece of `item` found at `level`, its rarity and roll from `rng` (never under its own least level and rarity).
 export function rollGear(item: ItemId, level: number, rng: () => number, luck = 1, least: Rarity = 'common'): GearKey {
-  return gearKey({ item, level: Math.max(1, Math.floor(level)), rarity: rollRarity(rng(), luck, least), roll: Math.floor(rng() * 1000) });
+  const { level: low = 1, rarity: plainest = 'common' } = ITEMS[item];
+  const floor = tierOf(plainest) > tierOf(least) ? plainest : least;
+  return gearKey({ item, level: Math.max(1, low, Math.floor(level)), rarity: rollRarity(rng(), luck, floor), roll: Math.floor(rng() * 1000) });
 }
 
 // What a piece is worth, all told: its armour and its stats together (at its level and rarity).

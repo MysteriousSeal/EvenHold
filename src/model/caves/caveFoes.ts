@@ -113,7 +113,7 @@ export const beastCount = (seed: number, inside: CaveInside): number => counted(
 
 // What the brood mother's hoard holds: a fine piece (worth a hundred or more) and coins by the cave's level.
 export const caveHoard = (inside: CaveInside, seed: number): Hoard =>
-  rollHoard(inside.cave.mouth.x, inside.cave.mouth.z, seed + 9137, inside.cave.level, { worth: 100, base: 60, spread: 40 });
+  rollHoard(inside.cave.mouth.x, inside.cave.mouth.z, seed + 9137, inside.cave.level, { worth: 100, base: 60, spread: 40, keeper: 'broodMother' });
 
 export class CaveRun extends DungeonFoes {
   readonly foes: Enemy[];
