@@ -31,7 +31,7 @@ export type NpcStep =
   | { kind: 'go'; to: Point; direct?: boolean; face?: number; faceToward?: Point }
   | { kind: 'enter'; entrance: Entrance }
   | { kind: 'exit' }
-  | { kind: 'settle'; for: number; at?: 'table' | 'bar' } // (`at`: at the inn, a chair at a table, or a stool at the bar: a busy hour's patrons, jobs/shift.ts)
+  | { kind: 'settle'; for: number; at?: 'table' | 'bar' | 'bed' } // (`at`: at the inn, a chair at a table, or a stool at the bar: a busy hour's patrons, jobs/shift.ts; at home at night, their bed)
   | { kind: 'sit'; seat: Seat; for: number }
   | { kind: 'work'; for: number } // bent over the crops, in a field
   | { kind: 'along'; path: Point[] } // a way worked out for them, walked point to point as it is (where their own way-finding has no map: upstairs)

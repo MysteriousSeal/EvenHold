@@ -189,6 +189,28 @@ describe('villagers', () => {
     expect(model.npcs.filter((n) => n.field).length).toBeLessThan(model.npcs.filter((n) => n.role === 'villager').length); // some, not all
   });
 
+  it('keep the clock: abed at night, the fields and the square left at dusk, up again in the morning', () => {
+    const model = withVillage();
+    const village = model.npcs[0].village;
+    const folk = model.npcs.filter((n) => n.role === 'villager' && n.village === village);
+    model.teleport(village.x + 0.5, village.z + 0.5); // on the square, watching
+    model.minutes = 22 * 60; // ten at night
+    for (let t = 0; t < 240; t += 0.1) model.update(0, 0, 0.1); // till two
+    expect(folk.filter((n) => n.where !== n.home).map((n) => n.name)).toEqual([]); // every one at home
+    expect(folk.filter((n) => n.seat?.lying).length).toBeGreaterThan(folk.length / 2); // most of them abed
+    model.minutes = 19 * 60; // an evening
+    for (const n of folk) n.steps = [];
+    let worked = false;
+    for (let t = 0; t < 120; t += 0.1) {
+      model.update(0, 0, 0.1);
+      if (folk.some((n) => n.working)) worked = true;
+    }
+    expect(worked).toBe(false); // no one out in the fields after dusk
+    model.minutes = 9 * 60; // the morning
+    for (let t = 0; t < 400; t += 0.1) model.update(0, 0, 0.1);
+    expect(folk.some((n) => n.where === null)).toBe(true); // up and about
+  });
+
   it('give the hero a new random look and name each game: men and women, no two alike', () => {
     const looks = Array.from({ length: 200 }, () => randomLook());
     expect(looks.some((l) => l.build === 'female')).toBe(true);

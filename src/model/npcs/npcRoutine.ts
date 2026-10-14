@@ -28,6 +28,7 @@ import { easeOffHero, heroOn, place, walk, walkAlong } from './npcWalk';
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import type { Entrance } from '../interiors/interiors';
+import { START_MINUTES, hourAt } from '../clock';
 
 export interface NpcWorld extends BenchWorld {
   seed: number;
@@ -37,6 +38,7 @@ export interface NpcWorld extends BenchWorld {
   isBlocked(x: number, z: number, r: number): boolean;
   isOpenTile(x: number, z: number): boolean;
   getGroundY(x: number, z: number): number;
+  minutes?: number; // the game's clock (clock.ts): their day goes by it
 }
 
 const HOME_TIME: [number, number] = [30, 90]; // seconds settled at home
@@ -47,6 +49,12 @@ const BENCH_CHANCE = 0.5; // of sitting on a bench, for the second spot on the s
 const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to sit down
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
+const EVENING_INN_CHANCE = 0.6; // of going, of an evening
+const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at night (an hour and a half or more)
+// Their day by the clock: abed from late at night till dawn; of an evening, the inn the likelier and the fields left.
+const NIGHT: [number, number] = [22, 6];
+const EVENING: [number, number] = [18, 22];
+const within = (hour: number, [from, till]: [number, number]) => (from <= till ? hour >= from && hour < till : hour >= from || hour < till);
 
 
 // Villagers by village, gathered once, so only villages near the hero are looked at.
@@ -76,8 +84,11 @@ export function stepNpcs(npcs: readonly Npc[], world: NpcWorld, dt: number): voi
 // spent at home or on the square instead.
 function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   const routine = npc.field ? FARMER_ROUTINE : ROUTINE;
-  let stop = routine[npc.stop % routine.length];
-  if (stop === 'inn' && (roll(npc, 13) >= INN_CHANCE || !npc.inn || patrons(npcs, npc.inn) >= INN_CAP)) stop = roll(npc, 14) < 0.5 ? 'home' : 'square';
+  const hour = hourAt(world.minutes ?? START_MINUTES);
+  const [night, evening] = [within(hour, NIGHT), within(hour, EVENING)];
+  let stop = night ? 'home' : routine[npc.stop % routine.length];
+  if (evening && stop !== 'home') stop = 'inn'; // (of an evening, the inn in mind: the fields left, the square passed by, if it's full)
+  if (stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= INN_CAP)) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
@@ -104,7 +115,7 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
     leave();
     steps.push({ kind: 'go', to: building }, { kind: 'enter', entrance: building });
   }
-  steps.push({ kind: 'settle', for: between(npc, building === npc.home ? HOME_TIME : INN_TIME, 12) });
+  steps.push(night ? { kind: 'settle', for: between(npc, NIGHT_TIME, 12), at: 'bed' } : { kind: 'settle', for: between(npc, building === npc.home ? HOME_TIME : INN_TIME, 12) });
   return steps;
 }
 
