@@ -437,6 +437,14 @@
    corner, how many are carried in the bag's square chip; an empty slot faint and dashed, one with none left
    greyed, all of them dimmed while the hero's still at a meal. */
 .action-bar { position: fixed; left: 50%; bottom: 16px; z-index: 25; display: flex; gap: 8px; transform: translateX(-50%); }
+/* Narrower than both bars side by side (536 px of slots; the toolbar's 400, 16 off the edge): centred in what's left
+   of the bottom beside the toolbar, clear of the labels in the corner (140 px); narrower still, both bars' tiles
+   smaller, the action bar's closer together. */
+@media (max-width: 1400px) { .action-bar { left: max(418px, calc((100% - 416px) / 2)); } }
+@media (max-width: 1110px) {
+  .toolbar-button { width: 44px; height: 44px; }
+  .action-bar { gap: 4px; left: max(340px, calc((100% - 344px) / 2)); }
+}
 .action-slot.empty { background: rgba(239, 220, 184, 0.35); border-style: dashed; box-shadow: none; }
 .action-slot.spent canvas { filter: grayscale(1) brightness(0.85); opacity: 0.6; }
 .action-slot.busy canvas { opacity: 0.5; }
