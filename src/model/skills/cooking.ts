@@ -90,10 +90,11 @@ export interface CookingHost {
   report(event: GameEvent): void;
 }
 
-// Whether the hero stands before a hearth (on the back wall, the tiles before it: within two of it, along it).
+// Whether the hero stands right before a hearth (on the back wall: the tile before it, close up, along it; a step
+// back, and the armchairs facing it are what's in reach).
 export function beforeHearth(hearth: Furniture, hero: { x: number; z: number }): boolean {
   const out = hero.z - hearth.z;
-  return hero.x >= hearth.x - 0.8 && hero.x <= hearth.x + hearth.w - 0.2 && out >= 0.4 && out <= 2.1;
+  return hero.x >= hearth.x - 0.8 && hero.x <= hearth.x + hearth.w - 0.2 && out >= 0.4 && out <= 1.1;
 }
 
 export class Cooking {
