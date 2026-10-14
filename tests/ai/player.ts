@@ -231,6 +231,8 @@ export class Player {
         return opened(this.open('board', found.board));
       case 'bench':
         return opened(this.open('salvage'));
+      case 'fire':
+        return false; // (no cooking for the player yet)
       case 'well':
         return model.tossCoin() && tally.wishes++, true;
       case 'hallDoor':

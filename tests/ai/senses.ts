@@ -71,6 +71,8 @@ export function prompt(model: GameModel): Prompt {
       return found.traveller.role === 'pedlar' ? 'pedlar' : 'traveller';
     case 'door':
       return found.leaving ? 'leave' : goesUnder(found.door) ? 'dungeon' : 'door';
+    case 'fire':
+      return 'none'; // (a fire to cook at: nothing the player does yet, and its prompts kept as they were trained)
     default:
       return found.kind;
   }
