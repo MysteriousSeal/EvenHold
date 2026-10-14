@@ -14,12 +14,11 @@
 // - slain, it flips onto its back, legs curling in, then bursts.
 
 import * as THREE from 'three';
-import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
-import { drawnAt } from '../common/overhead';
+import { HealthBar, enemyName } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { SPIDER_GLOW, SPIDER_VOXEL as V, type SpiderSpec } from './spiderVoxels';
 import { LUNGE_TELL } from '../../../model/caves/caveMoves';
 import { isBoss } from '../../../model/enemies/enemyLevels';
@@ -69,14 +68,15 @@ interface SpiderLeg {
   spread: number;
 }
 
-export class SpiderRig extends CreatureRig implements EnemyRig {
+// How tall one stands, to the top of its abdomen's middle (its health bar just over it; what it bursts from).
+const spiderTall = (spec: SpiderLook['spec']) => spec.hipY * V + (spec.head.size[1] + spec.abdomen.size[1] * 0.5) * V;
+
+export class SpiderRig extends FoeRig {
   private readonly body = new THREE.Group(); // all of it, pitched and raised
   private readonly abdomen = new THREE.Group();
   private readonly fangs = new THREE.Group();
   private readonly legs: SpiderLeg[] = [];
   private readonly lit: THREE.Mesh[] = [];
-  private readonly bar: HealthBar;
-  private readonly burst: VoxelBurst;
   private readonly hip: number; // its hips' height (its legs' reach down)
   private readonly glow: THREE.Mesh[] = [];
   private phase = 0;
@@ -85,13 +85,10 @@ export class SpiderRig extends CreatureRig implements EnemyRig {
     enemy: Enemy,
     private readonly look: SpiderLook,
   ) {
-    super(enemy.id * 1.3);
+    super(enemy.id * 1.3, new HealthBar(spiderTall(look.spec) + 0.16, enemyName(enemy), ENEMY_STATS[enemy.kind].passive, isBoss(enemy.kind)), { colors: look.spec.palette.slice(0, 5), height: spiderTall(look.spec) });
     const { spec } = look;
     this.hip = spec.hipY * V;
     const headLong = spec.head.size[2] * V;
-    const tall = this.hip + (spec.head.size[1] + spec.abdomen.size[1] * 0.5) * V;
-    this.bar = new HealthBar(tall + 0.16, enemyName(enemy), ENEMY_STATS[enemy.kind].passive, isBoss(enemy.kind));
-    this.burst = new VoxelBurst(this.root, spec.palette.slice(0, 5), tall);
     const add = (geometry: THREE.BufferGeometry, parent: THREE.Object3D, glows = false) => {
       const m = new THREE.Mesh(geometry, glows ? look.glow : look.normal);
       parent.add(m);
@@ -126,14 +123,10 @@ export class SpiderRig extends CreatureRig implements EnemyRig {
     this.root.add(this.body, this.bar.group);
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(spider: Enemy, dt: number, heroX = spider.x, heroZ = spider.z): void {
     const set = spider.state === 'chase' && !!spider.told; // (a told move: it faces the way it began, as the model holds it)
     const moved = this.follow({ ...spider, heading: set || spider.swingFor !== null ? Math.atan2(heroX - spider.x, heroZ - spider.z) : undefined }, dt, TURN_RATE);
-    this.bar.update(spider.hp, spider.maxHp, spider.state !== 'dead', this.facing, spider.level, spider.state === 'chase');
+    this.marked(spider);
     if (spider.state === 'dead') return this.die(spider.deadFor, dt);
     if (moved > 1e-4) this.phase += ((moved / this.root.scale.x) * STRIDE * 4) / this.look.spec.hipY; // (as drawn: a bigger one takes longer strides)
     const walking = Math.min(1, moved / Math.max(1e-6, dt) / 0.4);
@@ -213,11 +206,7 @@ export class SpiderRig extends CreatureRig implements EnemyRig {
     this.body.position.set(0, this.hip * (1 - ease) + this.look.spec.head.size[1] * V * 0.6 * ease, 0);
     for (const leg of this.legs) this.pose(leg, 0, -1.1 * ease); // (curled in under, now over)
     for (const m of this.glow) m.visible = f < 1; // (its eyes gone dark)
-    if (this.burst.play(deadFor, dt)) this.body.visible = false;
+    if (this.bursting(deadFor, dt)) this.body.visible = false;
   }
 
-  override dispose(): void {
-    super.dispose();
-    this.burst.dispose();
-  }
 }

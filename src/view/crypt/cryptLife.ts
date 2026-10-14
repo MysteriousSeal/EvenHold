@@ -15,10 +15,8 @@ import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { glowMaterial } from '../meshes/common/glow';
 import { INDOOR_SCALE } from '../../model/constants';
 import type { GameModel } from '../../model/GameModel';
-import { EnemyViews } from '../meshes/enemy/enemyViews';
+import { FloorLife } from '../dungeon/floorLife';
 import { arrowGeometry } from '../meshes/enemy/undeadRig';
-import { LootViews } from '../meshes/loot/lootViews';
-import { CoinViews } from '../meshes/loot/coinViews';
 import { personMaterial } from '../meshes/human/humanParts';
 import { LordMovesView } from './lordMovesView';
 import { FrostBreathView } from './frostBreathView';
@@ -33,10 +31,7 @@ const DOOR_OPENS = 1.6; // seconds the way out takes to grind open
 const ARROW_HEIGHT = 0.3 * INDOOR_SCALE; // about a bowman's chest
 const AXE_REACH = 1.45; // tiles before a draugr its axe's head strikes the floor, cleaving (skeletonRig.ts: its swing)
 
-export class CryptLife {
-  private readonly enemies: EnemyViews;
-  private readonly loot: LootViews;
-  private readonly coins: CoinViews;
+export class CryptLife extends FloorLife {
   private readonly arrowGeometry = arrowGeometry();
   private readonly arrowMaterial = personMaterial();
   private readonly arrows: THREE.Mesh[] = []; // a pool, as many shown as fly
@@ -60,23 +55,18 @@ export class CryptLife {
   private readonly tombMaterials = [new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false })]; // (its stone lit, its flames aglow)
 
   constructor(
-    private readonly scene: THREE.Scene,
+    scene: THREE.Scene,
     private readonly inside: CryptInside,
   ) {
-    this.enemies = new EnemyViews(scene, INDOOR_SCALE);
-    this.loot = new LootViews(scene, INDOOR_SCALE);
-    this.coins = new CoinViews(scene, INDOOR_SCALE);
+    super(scene);
     this.frost = new FrostBreathView(scene);
     this.impacts = new ImpactView(scene);
     this.lordMoves = new LordMovesView(scene, this.impacts);
   }
 
   update(model: GameModel, dt: number): void {
-    const { hero } = model;
     const crypt = model.crypt;
-    this.enemies.update(model.foes, hero.x, hero.z, dt, model.focused?.id ?? null);
-    this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
-    this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
+    this.drawFloor(model, dt);
     this.wayOut(crypt, dt);
     // The great tomb: whole till its lord's risen (or slain, and gone), burst after.
     this.showTomb(tombBurst(crypt));

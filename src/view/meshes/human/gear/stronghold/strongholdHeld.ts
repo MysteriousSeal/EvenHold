@@ -15,10 +15,10 @@
 // - a hook on a chain (the off hand's): hung from the fist;
 // - a sabre: a curved blade, a brass guard;
 // - a great axe: a long haft, two crescent bits either side of its eye, a spike beyond them.
-import type { VoxelGrid } from '../../voxel/greedyMesh';
-import { createGrid, fillBox, setColor } from '../../voxel/voxelShapes';
-import { namedPalette } from './armorShell';
-import type { ItemModel } from './itemModel';
+import type { VoxelGrid } from '../../../voxel/greedyMesh';
+import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
+import { namedPalette } from '../armorShell';
+import type { ItemModel } from '../itemModel';
 
 const arms = namedPalette({ steel: 0xc8ced6, edge: 0xe6eaee, dark: 0x5e646c, brass: 0xd4b060, grip: 0x4a3222, wood: 0x7a5a3a, woodDark: 0x5e4630, blood: 0x9a1f1a, cord: 0xd9cfb6 });
 const fire = namedPalette({ clay: 0xc4622e, clayDark: 0x94441e, stopper: 0x3a2a1e, wick: 0xffd060, cord: 0xb09468, ember: 0xff7a2a, wood: 0x7a5a3a, grip: 0x4a3222, iron: 0x5e646c });

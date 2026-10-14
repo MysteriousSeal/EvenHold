@@ -202,6 +202,7 @@ export class CoupleStage {
   }
 
   dispose(): void {
+    // (The two of them off the stage first: a body's geometry is shared with everyone drawn in that look, never theirs to let go.)
     for (const rig of this.rigs) rig.root.removeFromParent();
     this.rigs = [];
     for (const material of this.skins) material.dispose();

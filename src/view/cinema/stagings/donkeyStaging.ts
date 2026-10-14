@@ -8,11 +8,12 @@
 import * as THREE from 'three';
 import { createDonkey } from '../../meshes/turned/donkeyRig';
 import { DONKEY_BODY, DONKEY_COLORS, DONKEY_EAR_ROWS, DONKEY_HEAD, DONKEY_NECK, DONKEY_VOXEL_SIZE, donkeyShape } from '../../meshes/turned/donkeyVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { bell, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = DONKEY_VOXEL_SIZE;
@@ -23,7 +24,6 @@ export const DONKEY = new THREE.Vector3(DONKEY_BODY[0] * V, (DONKEY_NECK[1] + DO
 // What of it's told from the rest: its ears (the top rows of its head), its tail (the rows behind its quarters).
 const earsFrom = (head: Cloud, big: number) => Math.max(...head.at.map((at) => at.y)) - V * big * (DONKEY_EAR_ROWS - 0.5);
 const tailOf = (body: Cloud, big: number) => ((back) => (at: THREE.Vector3) => at.z < back + V * big * 1.5)(Math.min(...body.at.map((at) => at.z)));
-const most = (cloud: Cloud, axis: 'y' | 'z', sign = 1) => cloud.at.reduce((best, at) => (at[axis] * sign > best[axis] * sign ? at : best));
 
 // What it is, in one of its coats, for what has parts to become it (becoming.ts).
 export function donkeyBecomingOf(coat = 0): Becoming {
@@ -63,10 +63,8 @@ export function donkeyStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: "{name} hears a drover's stick on a gatepost, and starts.",
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'Arms and legs shorten and straighten, all four. Hands and feet close into hooves.',
-    arms: '',
     body: 'The back deepens into a barrel; the belly pales.',
     head: 'The neck thickens, carried low; the head grows long, and heavy.',
     done: 'A donkey, where they stood.',
@@ -80,7 +78,7 @@ export function donkeyStagingOf(coat = 0): Staging {
     done: 'A donkey, where it stood.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Drover's word",
     becomes: 'A donkey',
     lines: [
@@ -91,28 +89,20 @@ export function donkeyStagingOf(coat = 0): Staging {
       [0.72, 'Long ears. A short mane. A pale muzzle.'],
       [0.92, 'A donkey, where they stood.'],
     ],
-    looseLines: [
-      [0, "{name} hears a drover's stick on a gatepost, somewhere."],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Stockier. Longer in the ear. Hooved.'],
-    ],
-    cloud: () => ((donkey) => joined([donkey.body, donkey.head, ...donkey.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const donkey = createDonkey(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: donkey.root,
-        height: DONKEY.y,
-        // Its head thrown up and forward to bray, heaving with each breath of it; then shaken, its ears with it.
-        settle(j, time) {
-          const [braying, shaking] = [bell(through(j, [0.06, 0.56])), bell(through(j, [0.64, 0.94]))];
-          donkey.head.rotation.set(-(0.42 + 0.1 * Math.sin(time * 11)) * braying, Math.sin(time * 24) * 0.14 * shaking, Math.sin(time * 24 + 1) * 0.22 * shaking);
-        },
-      };
+    heard: "{name} hears a drover's stick on a gatepost, somewhere.",
+    loosely: 'Stockier. Longer in the ear. Hooved.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createDonkey(material, coat),
+    height: DONKEY.y,
+    // Its head thrown up and forward to bray, heaving with each breath of it; then shaken, its ears with it.
+    settle(donkey, j, time) {
+      const [braying, shaking] = [bell(through(j, [0.06, 0.56])), bell(through(j, [0.64, 0.94]))];
+      donkey.head.rotation.set(-(0.42 + 0.1 * Math.sin(time * 11)) * braying, Math.sin(time * 24) * 0.14 * shaking, Math.sin(time * 24 + 1) * 0.22 * shaking);
     },
-  };
-  return staging;
+  });
 }
 
 export const donkeyStaging = donkeyStagingOf();

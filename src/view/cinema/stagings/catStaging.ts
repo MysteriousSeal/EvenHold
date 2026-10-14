@@ -9,11 +9,12 @@
 import * as THREE from 'three';
 import { createTurnedCat, seated } from '../../meshes/turned/turnedCatRig';
 import { CAT_TAIL, TURNED_CAT_COLORS, TURNED_CAT_VOXEL_SIZE, turnedCatShape } from '../../meshes/turned/turnedCatVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { smooth, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, middleOf, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = TURNED_CAT_VOXEL_SIZE;
@@ -26,8 +27,6 @@ const MARKINGS = ['Stripes, dark, over the back and down the flanks.', 'A white 
 // What of it's told from the rest: its tail (the rows behind its rump), its ears (the row on top of its head).
 const tailOf = (body: Cloud, big: number) => ((back) => (at: THREE.Vector3) => at.z < back + V * big * (CAT_TAIL - 0.5))(Math.min(...body.at.map((at) => at.z)));
 const earsOf = (head: Cloud, big: number) => ((top) => (at: THREE.Vector3) => at.y > top - V * big)(Math.max(...head.at.map((at) => at.y)));
-const middle = (cloud: Cloud) => new THREE.Box3().setFromPoints(cloud.at).getCenter(new THREE.Vector3());
-const lowest = (cloud: Cloud) => cloud.at.reduce((best, at) => (at.y < best.y ? at : best));
 
 // What a cat is, for what has parts to become it, in one of its coats: what grows on it once it's whole, and
 // itself plain of that till then.
@@ -44,11 +43,11 @@ export function catBecomingOf(coat = 0): Becoming {
       const [pricked, whiskers, raised] = [some(head, (at) => ears(at)), some(head, (_at, i) => hue(head, i, C.whisker)), some(body, (at) => tail(at))];
       const [brow, hide] = [some(head, (at, i) => !ears(at) && hue(head, i, C.mark)), some(body, (at, i) => !tail(at) && hue(body, i, C.mark))];
       return [
-        { on: 'head', cloud: pricked, root: lowest(pricked), line: 'Ears: one at each corner, pointed.' },
-        { on: 'head', cloud: whiskers, root: middle(whiskers), line: 'Whiskers.' },
-        { on: 'body', cloud: raised, root: lowest(raised), line: 'A tail, straight up, and pleased with itself.' },
-        { on: 'head', cloud: brow, root: middle(brow), line: marks },
-        { on: 'body', cloud: hide, root: middle(hide), line: marks },
+        { on: 'head', cloud: pricked, root: most(pricked, 'y', -1), line: 'Ears: one at each corner, pointed.' },
+        { on: 'head', cloud: whiskers, root: middleOf(whiskers), line: 'Whiskers.' },
+        { on: 'body', cloud: raised, root: most(raised, 'y', -1), line: 'A tail, straight up, and pleased with itself.' },
+        { on: 'head', cloud: brow, root: middleOf(brow), line: marks },
+        { on: 'body', cloud: hide, root: middleOf(hide), line: marks },
       ];
     },
     // (Without them: no ears, no whiskers, no tail; its coat's one colour all over.)
@@ -68,10 +67,8 @@ export function catStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} hears something small move in the wall, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'Arms and legs slim down, all four. Hands and feet close into paws.',
-    arms: '',
     body: 'The back lengthens: narrow, loose, supple.',
     head: 'The face shortens and rounds. A small pink nose.',
     done: 'A cat as tall as they were. And then smaller.',
@@ -85,7 +82,7 @@ export function catStagingOf(coat = 0): Staging {
     done: 'A cat as big as it was. And then smaller.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Miller's mouser",
     becomes: 'A cat',
     lines: [
@@ -96,28 +93,20 @@ export function catStagingOf(coat = 0): Staging {
       [0.72, 'Ears. Whiskers. A tail.'],
       [0.92, 'A cat as tall as a man. And then smaller.'],
     ],
-    looseLines: [
-      [0, '{name} hears something small move, somewhere.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Smaller. Sleeker. Whiskered.'],
-    ],
-    cloud: () => ((cat) => joined([cat.body, cat.head, ...cat.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const cat = createTurnedCat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: cat.root,
-        height: TURNED_CAT.y,
-        // A look about it; sat down, its tail brought round; a forepaw lifted and washed.
-        settle(j, time) {
-          seated(cat, smooth(through(j, [0.12, 0.34])), smooth(through(j, [0.45, 0.58])), time);
-          cat.head.rotation.y = 0.5 * Math.sin(through(j, [0, 0.14]) * Math.PI * 2);
-        },
-      };
+    heard: '{name} hears something small move, somewhere.',
+    loosely: 'Smaller. Sleeker. Whiskered.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createTurnedCat(material, coat),
+    height: TURNED_CAT.y,
+    // A look about it; sat down, its tail brought round; a forepaw lifted and washed.
+    settle(cat, j, time) {
+      seated(cat, smooth(through(j, [0.12, 0.34])), smooth(through(j, [0.45, 0.58])), time);
+      cat.head.rotation.y = 0.5 * Math.sin(through(j, [0, 0.14]) * Math.PI * 2);
     },
-  };
-  return staging;
+  });
 }
 
 export const catStaging = catStagingOf();

@@ -6,12 +6,11 @@
 // slain, its wings fold and it drops to the ground, then bursts.
 
 import * as THREE from 'three';
-import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh } from '../voxel/greedyMesh';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
-import { drawnAt } from '../common/overhead';
+import { HealthBar, enemyName } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { BAT_BODY, BAT_GLOW, BAT_PALETTE, BAT_SHOULDER, BAT_VOXEL as V, BAT_WING, batBody, batWing } from './batVoxels';
 
 const HOVER = 0.34; // its height, flying (as built: drawn bigger in a room)
@@ -41,21 +40,17 @@ export function createBatLook(flash: THREE.Material): BatLook {
   };
 }
 
-export class BatRig extends CreatureRig implements EnemyRig {
+export class BatRig extends FoeRig {
   private readonly fly = new THREE.Group(); // all of it, up in the air
   private readonly wings: Array<{ group: THREE.Group; side: number }> = [];
   private readonly lit: THREE.Mesh[] = [];
   private readonly eyes: THREE.Mesh;
-  private readonly bar: HealthBar;
-  private readonly burst: VoxelBurst;
 
   constructor(
     enemy: Enemy,
     private readonly look: BatLook,
   ) {
-    super(enemy.id * 2.3);
-    this.bar = new HealthBar(HOVER + 0.3, enemyName(enemy));
-    this.burst = new VoxelBurst(this.root, BAT_PALETTE.slice(0, 5), HOVER);
+    super(enemy.id * 2.3, new HealthBar(HOVER + 0.3, enemyName(enemy)), { colors: BAT_PALETTE.slice(0, 5), height: HOVER });
     const body = new THREE.Mesh(look.body[0], look.normal);
     this.eyes = new THREE.Mesh(look.body[1], look.glow);
     this.lit.push(body);
@@ -73,14 +68,10 @@ export class BatRig extends CreatureRig implements EnemyRig {
     this.root.add(this.fly, this.bar.group);
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(bat: Enemy, dt: number, heroX = bat.x, heroZ = bat.z): void {
     const set = bat.state === 'chase';
     const moved = this.follow({ ...bat, heading: bat.swingFor !== null ? Math.atan2(heroX - bat.x, heroZ - bat.z) : undefined }, dt, TURN_RATE);
-    this.bar.update(bat.hp, bat.maxHp, bat.state !== 'dead', this.facing, bat.level, set);
+    this.marked(bat, bat.state !== 'dead', set);
     if (bat.state === 'dead') return this.die(bat.deadFor, dt);
     const t = this.time;
     const speed = dt > 0 ? moved / dt : 0;
@@ -112,11 +103,6 @@ export class BatRig extends CreatureRig implements EnemyRig {
     this.fly.rotation.set(0.4 * f, 0, 1.3 * f);
     for (const w of this.wings) w.group.rotation.z = w.side * 1.4 * f; // (folded up over it)
     this.eyes.visible = f < 1;
-    if (this.burst.play(deadFor, dt)) this.fly.visible = false;
-  }
-
-  override dispose(): void {
-    super.dispose();
-    this.burst.dispose();
+    if (this.bursting(deadFor, dt)) this.fly.visible = false;
   }
 }

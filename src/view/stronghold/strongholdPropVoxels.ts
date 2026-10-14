@@ -11,14 +11,15 @@
 // - a powder keg: small, tarred black, its hoops and the cross on its head the bandits' red, a fuse out of its bung;
 // - a cage: iron bars on a plank floor, a ring on its roof to hoist it by, straw and a bone in it;
 // - a kennel: a plank doghouse under a pitched roof, its door a dark arch, a chain from a stake, a bowl.
-// The rest, and the tools they're painted with: strongholdPropVoxels2.ts.
+// The rest (what furnishes it: a brazier, a banner, its gate, its king's throne and chest), and the tools they're all
+// painted with: strongholdFurnishingVoxels.ts.
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid } from '../meshes/voxel/voxelShapes';
 import { hashUnit } from '../../util/random';
 import { C, STRONGHOLD_PALETTE, TALL, TILE } from './strongholdLook';
-import { MID, banner, bench, box, brazier, chest, drum, dummy, gate, line, planks, put, stocks, table, throne, type Paint } from './strongholdPropVoxels2';
+import { MID, banner, bench, box, brazier, chest, drum, dummy, gate, line, planks, put, stocks, table, throne, type Paint } from './strongholdFurnishingVoxels';
 
-export { CHEST_OPEN, GATE_OPEN } from './strongholdPropVoxels2';
+export { CHEST_OPEN, GATE_OPEN } from './strongholdFurnishingVoxels';
 
 const barricade: Paint = (g) => {
   const w = g.size[0]; // (two tiles across)

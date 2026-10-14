@@ -17,12 +17,9 @@ import { roomAt } from '../../model/strongholds/strongholdLayout';
 import { StrongholdRun } from '../../model/strongholds/strongholdFoes';
 import type { IndoorScene } from '../interior/roomView';
 import { flicker } from '../meshes/common/fire';
-import { EnemyViews } from '../meshes/enemy/enemyViews';
-import { LootViews } from '../meshes/loot/lootViews';
-import { CoinViews } from '../meshes/loot/coinViews';
+import { FloorLife } from '../dungeon/floorLife';
 import { CRYPT_VOXEL, cryptGeometry, stairsUp } from '../crypt/cryptVoxels';
 import { Pieces, fadingRock, nearestLights, undergroundScene } from '../dungeon/dungeonScene';
-import type { DungeonLife } from '../dungeon/dungeonViews';
 import { FLOOR_DEEP, FLOOR_LOOKS, STRONGHOLD_LIGHT, STRONGHOLD_VOXEL as V, TALL, WALL_LOOKS, centred, floorTile, plankTile, strongholdGeometry, wallTile } from './strongholdLook';
 import { StrongholdMovesView } from './strongholdMovesView';
 import { CHEST_OPEN, GATE_OPEN, STRONGHOLD_PROPS } from './strongholdPropVoxels';
@@ -80,11 +77,8 @@ export function buildStrongholdScene(inside: StrongholdInside): IndoorScene {
 }
 
 // What moves in a stronghold's scene, besides the hero: its foes, what they leave, its gate, the king's chest, the postern.
-export class StrongholdLife implements DungeonLife {
+export class StrongholdLife extends FloorLife {
   readonly rumble = 0;
-  private readonly enemies: EnemyViews;
-  private readonly loot: LootViews;
-  private readonly coins: CoinViews;
   private readonly movesView: StrongholdMovesView; // what its foes' told moves show: where each will land, what's in flight, what burns
   private readonly lit = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
   private readonly glowing = new THREE.MeshStandardMaterial({ color: 0x1a1612, emissive: 0xffc878, emissiveIntensity: 0, roughness: 1 });
@@ -93,12 +87,10 @@ export class StrongholdLife implements DungeonLife {
   private readonly postern: THREE.Mesh; // the way out in the great hall's far wall, lit once it's open
 
   constructor(
-    private readonly scene: THREE.Scene,
+    scene: THREE.Scene,
     private readonly inside: StrongholdInside,
   ) {
-    this.enemies = new EnemyViews(scene, INDOOR_SCALE);
-    this.loot = new LootViews(scene, INDOOR_SCALE);
-    this.coins = new CoinViews(scene, INDOOR_SCALE);
+    super(scene);
     this.movesView = new StrongholdMovesView(scene);
     const { props, exit } = inside;
     const model = (kind: 'gate' | 'chest', variant: number) => ((grid) => new THREE.Mesh(strongholdGeometry(grid, centred(grid), false), this.lit))(STRONGHOLD_PROPS[kind].build(variant));
@@ -116,11 +108,8 @@ export class StrongholdLife implements DungeonLife {
   }
 
   update(model: GameModel, dt: number): void {
-    const { hero } = model;
     const run = model.dungeon instanceof StrongholdRun ? model.dungeon : null;
-    this.enemies.update(model.foes, hero.x, hero.z, dt, model.focused?.id ?? null);
-    this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
-    this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
+    this.drawFloor(model, dt);
     this.movesView.update(run?.moves ?? null, dt);
     // The gate: shut across its way, or thrown open.
     const shut = run ? run.gateShut : this.inside.shut;
@@ -140,5 +129,3 @@ export class StrongholdLife implements DungeonLife {
     this.movesView.dispose();
   }
 }
-
-export { buildStrongholdGates } from '../meshes/stronghold/strongholdGateMesh';

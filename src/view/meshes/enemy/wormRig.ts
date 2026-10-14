@@ -7,12 +7,11 @@
 // slumps along the ground and bursts.
 
 import * as THREE from 'three';
-import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
-import { drawnAt } from '../common/overhead';
+import { HealthBar, enemyName } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { MOUND, RING_LONG, WORM_HEAD, WORM_PALETTE, WORM_RINGS, WORM_VOXEL as V, wormHead, wormMound, wormRing } from './wormVoxels';
 
 const TALL = 0.42; // how high its head rears, up (as built)
@@ -43,22 +42,18 @@ export function createWormLook(flash: THREE.Material): WormLook {
   };
 }
 
-export class WormRig extends CreatureRig implements EnemyRig {
+export class WormRig extends FoeRig {
   private readonly chain: THREE.Mesh[] = []; // the tail's tip first, the head last
   private readonly mound: THREE.Mesh;
   private readonly hole: THREE.Mesh;
   private readonly lit: THREE.Mesh[] = [];
-  private readonly bar: HealthBar;
-  private readonly burst: VoxelBurst;
   private up = 0; // how far up out of the ground (0 .. 1)
 
   constructor(
     enemy: Enemy,
     private readonly look: WormLook,
   ) {
-    super(enemy.id * 0.9);
-    this.bar = new HealthBar(TALL + 0.25, enemyName(enemy));
-    this.burst = new VoxelBurst(this.root, WORM_PALETTE.slice(0, 5), TALL * 0.6);
+    super(enemy.id * 0.9, new HealthBar(TALL + 0.25, enemyName(enemy)), { colors: WORM_PALETTE.slice(0, 5), height: TALL * 0.6 });
     for (const geometry of [...look.rings].reverse()) this.chain.push(new THREE.Mesh(geometry, look.normal));
     this.chain.push(new THREE.Mesh(look.head, look.normal));
     this.mound = new THREE.Mesh(look.mound, look.normal);
@@ -68,14 +63,10 @@ export class WormRig extends CreatureRig implements EnemyRig {
     this.root.add(...this.chain, this.mound, this.hole, this.bar.group);
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(worm: Enemy, dt: number, heroX = worm.x, heroZ = worm.z): void {
     const buried = !!worm.buried;
     this.follow({ ...worm, heading: buried ? undefined : Math.atan2(heroX - worm.x, heroZ - worm.z) }, dt, buried ? 12 : TURN_RATE);
-    this.bar.update(worm.hp, worm.maxHp, worm.state !== 'dead' && !buried, this.facing, worm.level, worm.state === 'chase');
+    this.marked(worm, worm.state !== 'dead' && !buried);
     if (worm.state === 'dead') return this.die(worm.deadFor, dt);
     const t = this.time;
     this.up = Math.max(0, Math.min(1, this.up + (buried ? -RISE : RISE) * dt));
@@ -124,11 +115,7 @@ export class WormRig extends CreatureRig implements EnemyRig {
     const f = Math.min(1, deadFor / SLUMP);
     this.arc(TALL * (1 - f) + RING_LONG * V * f, REACH + 0.25 * f, this.time * (1 - f), 1); // (struck only while up: it dies up)
     for (const ring of this.chain) ring.position.y = Math.max(ring.position.y, (WORM_HEAD[1] / 2) * V * f * 0.8);
-    if (this.burst.play(deadFor, dt)) for (const ring of this.chain) ring.visible = false;
+    if (this.bursting(deadFor, dt)) for (const ring of this.chain) ring.visible = false;
   }
 
-  override dispose(): void {
-    super.dispose();
-    this.burst.dispose();
-  }
 }

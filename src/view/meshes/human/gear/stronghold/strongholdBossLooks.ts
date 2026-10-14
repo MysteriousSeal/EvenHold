@@ -14,10 +14,10 @@
 // - the bandit king, pale fur and gold: a crown beaten out of knife blades, their points up, uneven; a wolf's fur
 //   mantle over the shoulders and round the neck, a gold clasp; a wine-dark tunic, a gold-studded belt; fur at
 //   the knees and the boots.
-import { namedPalette } from './armorShell';
-import type { CostumeLookId } from './costumes';
-import { fur, mod } from './patterns';
-import { M, domed, edgeOf, onFace, ringed, riveted, within } from './items/headShape';
+import { namedPalette } from '../armorShell';
+import type { CostumeLookId } from '../costumes';
+import { fur, mod } from '../patterns';
+import { M, domed, edgeOf, onFace, ringed, riveted, within } from '../items/headShape';
 import { boots, sleeves, strapped, strongholdLooksOf, type StrongholdLook } from './strongholdLooks';
 
 // ---- the houndmaster ----

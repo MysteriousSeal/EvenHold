@@ -8,11 +8,12 @@
 import * as THREE from 'three';
 import { createRat, satUp } from '../../meshes/turned/ratRig';
 import { RAT_COLORS, RAT_VOXEL_SIZE, ratShape } from '../../meshes/turned/ratVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { smooth, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, middleOf, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = RAT_VOXEL_SIZE;
@@ -38,9 +39,9 @@ export function ratBecomingOf(coat = 0): Becoming {
       const whiskers = some(head, (_at, i) => hue(head, i, C.whisker));
       const tail = some(body, (_at, i) => hue(body, i, C.pink));
       return [
-        { on: 'head', cloud: whiskers, root: new THREE.Box3().setFromPoints(whiskers.at).getCenter(new THREE.Vector3()), line: 'Whiskers.' },
-        { on: 'head', cloud: ears, root: ears.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'Ears: round, pink, and too big.' },
-        { on: 'body', cloud: tail, root: tail.at.reduce((best, at) => (at.z > best.z ? at : best)), line: 'A tail: bare, and longer than seems needed.' },
+        { on: 'head', cloud: whiskers, root: middleOf(whiskers), line: 'Whiskers.' },
+        { on: 'head', cloud: ears, root: most(ears, 'y', -1), line: 'Ears: round, pink, and too big.' },
+        { on: 'body', cloud: tail, root: most(tail, 'z'), line: 'A tail: bare, and longer than seems needed.' },
       ];
     },
     // (Without them: no whiskers, no ears, no tail.)
@@ -59,10 +60,8 @@ export function ratStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} smells grain, a long way off, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'Arms and legs draw up to almost nothing, all four. What is left of them: pink, bare, clawed.',
-    arms: '',
     body: 'The back arches, long and low.',
     head: 'The face draws out to a point. A pink nose, at the end of it.',
     done: 'A rat as long as they were tall. And then smaller. Much smaller.',
@@ -76,7 +75,7 @@ export function ratStagingOf(coat = 0): Staging {
     done: 'A rat as long as it was. And then smaller. Much smaller.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Ratcatcher's due",
     becomes: 'A rat',
     lines: [
@@ -87,31 +86,23 @@ export function ratStagingOf(coat = 0): Staging {
       [0.72, 'Whiskers. Ears. A tail.'],
       [0.92, 'A rat as long as a man is tall. And then smaller. Much smaller.'],
     ],
-    looseLines: [
-      [0, '{name} smells grain, a long way off.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Smaller. Lower. Tailed.'],
-    ],
-    cloud: () => ((rat) => joined([rat.body, rat.head, ...rat.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const rat = createRat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: rat.root,
-        height: RAT.y,
-        // Sat up on its haunches, its nose going, a look to either side; and down again, its tail drawn across.
-        settle(j, time) {
-          const up = smooth(through(j, [0.1, 0.25])) - smooth(through(j, [0.75, 0.9]));
-          satUp(rat, up, Math.sin(time * 34) * 0.05 + 0.16 * up * Math.sin(time * 5));
-          rat.head.rotation.y = 0.45 * up * Math.sin(through(j, [0.25, 0.75]) * Math.PI * 2);
-          rat.tail[0].rotation.y = 0.3 * Math.sin(j * Math.PI * 2);
-          rat.tail[1].rotation.y = 0.5 * Math.sin(j * Math.PI * 2 - 0.9);
-        },
-      };
+    heard: '{name} smells grain, a long way off.',
+    loosely: 'Smaller. Lower. Tailed.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createRat(material, coat),
+    height: RAT.y,
+    // Sat up on its haunches, its nose going, a look to either side; and down again, its tail drawn across.
+    settle(rat, j, time) {
+      const up = smooth(through(j, [0.1, 0.25])) - smooth(through(j, [0.75, 0.9]));
+      satUp(rat, up, Math.sin(time * 34) * 0.05 + 0.16 * up * Math.sin(time * 5));
+      rat.head.rotation.y = 0.45 * up * Math.sin(through(j, [0.25, 0.75]) * Math.PI * 2);
+      rat.tail[0].rotation.y = 0.3 * Math.sin(j * Math.PI * 2);
+      rat.tail[1].rotation.y = 0.5 * Math.sin(j * Math.PI * 2 - 0.9);
     },
-  };
-  return staging;
+  });
 }
 
 export const ratStaging = ratStagingOf();

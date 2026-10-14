@@ -7,11 +7,12 @@
 import * as THREE from 'three';
 import { createGoat } from '../../meshes/turned/goatRig';
 import { GOAT_BODY, GOAT_COLORS, GOAT_HEAD, GOAT_NECK, GOAT_PIEBALD, GOAT_VOXEL_SIZE, goatShape } from '../../meshes/turned/goatVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { bell, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, middleOf, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = GOAT_VOXEL_SIZE;
@@ -21,7 +22,6 @@ export const GOAT = new THREE.Vector3(GOAT_BODY[0] * V, (GOAT_NECK[1] + GOAT_HEA
 
 // What of it's told from the rest: its tail (the row behind its rump).
 const tailOf = (body: Cloud, big: number) => ((back) => (at: THREE.Vector3) => at.z < back + V * big * 0.5)(Math.min(...body.at.map((at) => at.z)));
-const middle = (cloud: Cloud) => new THREE.Box3().setFromPoints(cloud.at).getCenter(new THREE.Vector3());
 
 // What it is, in one of its coats, for what has parts to become it (becoming.ts).
 export function goatBecomingOf(coat = 0): Becoming {
@@ -39,10 +39,10 @@ export function goatBecomingOf(coat = 0): Becoming {
       const stub = some(body, (at) => tail(at));
       const [neck, hide] = [some(head, (_at, i) => hue(head, i, C.patch, C.patchDark)), some(body, (at, i) => !tail(at) && hue(body, i, C.patch, C.patchDark))];
       return [
-        { on: 'head', cloud: horns, root: horns.at.reduce((best, at) => (at.z > best.z ? at : best)), line: 'Horns: up from the poll, then swept back.' },
-        { on: 'head', cloud: beard, root: beard.at.reduce((best, at) => (at.y > best.y ? at : best)), line: 'A beard, under the chin.' },
-        { on: 'body', cloud: stub, root: stub.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'A short tail, held up.' },
-        ...(piebald ? [{ on: 'head' as const, cloud: neck, root: middle(neck), line: 'Dark, spreading over the white: the neck.' }, { on: 'body' as const, cloud: hide, root: middle(hide), line: 'The quarters, a shoulder.' }] : []),
+        { on: 'head', cloud: horns, root: most(horns, 'z'), line: 'Horns: up from the poll, then swept back.' },
+        { on: 'head', cloud: beard, root: most(beard, 'y'), line: 'A beard, under the chin.' },
+        { on: 'body', cloud: stub, root: most(stub, 'y', -1), line: 'A short tail, held up.' },
+        ...(piebald ? [{ on: 'head' as const, cloud: neck, root: middleOf(neck), line: 'Dark, spreading over the white: the neck.' }, { on: 'body' as const, cloud: hide, root: middleOf(hide), line: 'The quarters, a shoulder.' }] : []),
       ];
     },
     // (Without them: no horns, no beard; no tail; its coat all one colour.)
@@ -63,10 +63,8 @@ export function goatStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} hears a goat-bell, close by, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'Arms and legs thin and straighten, all four. Hands and feet split into hooves.',
-    arms: '',
     body: 'The back straightens, level; the flanks draw in, lean.',
     head: 'The neck stretches up and forward; the face narrows to a wedge.',
     done: 'A goat, where they stood.',
@@ -80,7 +78,7 @@ export function goatStagingOf(coat = 0): Staging {
     done: 'A goat, where it stood.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Goatherd's bell",
     becomes: 'A goat',
     lines: [
@@ -91,28 +89,20 @@ export function goatStagingOf(coat = 0): Staging {
       [0.72, piebald ? 'Horns. A beard. Patches.' : 'Horns. A beard. A short tail.'],
       [0.92, 'A goat, where they stood.'],
     ],
-    looseLines: [
-      [0, '{name} hears a goat-bell, somewhere.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Leaner. Horned. Bearded.'],
-    ],
-    cloud: () => ((goat) => joined([goat.body, goat.head, ...goat.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const goat = createGoat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: goat.root,
-        height: GOAT.y,
-        // A toss of its horns, up and back; a foreleg stamped, twice; its beard shaken.
-        settle(j, time) {
-          goat.head.rotation.set(-0.55 * bell(through(j, [0.06, 0.34])), Math.sin(time * 30) * 0.2 * bell(through(j, [0.68, 0.94])), 0);
-          goat.legs[3].rotation.x = j > 0.38 && j < 0.64 ? -0.5 * Math.abs(Math.sin(((j - 0.38) / 0.26) * Math.PI * 2)) : 0;
-        },
-      };
+    heard: '{name} hears a goat-bell, somewhere.',
+    loosely: 'Leaner. Horned. Bearded.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createGoat(material, coat),
+    height: GOAT.y,
+    // A toss of its horns, up and back; a foreleg stamped, twice; its beard shaken.
+    settle(goat, j, time) {
+      goat.head.rotation.set(-0.55 * bell(through(j, [0.06, 0.34])), Math.sin(time * 30) * 0.2 * bell(through(j, [0.68, 0.94])), 0);
+      goat.legs[3].rotation.x = j > 0.38 && j < 0.64 ? -0.5 * Math.abs(Math.sin(((j - 0.38) / 0.26) * Math.PI * 2)) : 0;
     },
-  };
-  return staging;
+  });
 }
 
 export const goatStaging = goatStagingOf();

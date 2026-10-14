@@ -31,3 +31,7 @@ export const band = (cloud: Cloud, [lo, hi]: Span): Cloud => {
   const [min, max] = [Math.min(...ys), Math.max(...ys)];
   return some(cloud, (at) => ((f) => f >= lo && (f < hi || hi >= 1))((at.y - min) / (max - min || 1)));
 };
+// Where a cloud's cubes are: their middle; the one furthest along an axis (`sign` -1: the least far), what's grown
+// from there (a tail from its root, horns from the poll).
+export const middleOf = (cloud: Cloud): THREE.Vector3 => new THREE.Box3().setFromPoints(cloud.at).getCenter(new THREE.Vector3());
+export const most = (cloud: Cloud, axis: 'x' | 'y' | 'z', sign: 1 | -1 = 1): THREE.Vector3 => cloud.at.reduce((best, at) => (at[axis] * sign > best[axis] * sign ? at : best));

@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { createHen } from '../../meshes/turned/chickenRig';
 import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, buildChickenBody, buildChickenHead, buildChickenLeg } from '../../meshes/turned/chickenVoxels';
 import type { Becoming } from './becoming';
-import { hued, some } from '../morph/clouds';
+import { hued, most, some } from '../morph/clouds';
 import { UNDRESSED, turningInto, type Telling } from './turning';
 import { cloudOf, type Cloud } from '../morph/voxelMorph';
 import { over, swell, type Actor } from '../actor';
@@ -86,12 +86,12 @@ export const henBecoming: Becoming = {
     const comb = some(head, (at, i) => hue(head, i, RED_, RED_DARK) && at.y > top - V * big);
     const fan = some(body, (at) => tail(at));
     return [
-      { on: 'head', cloud: comb, root: comb.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'A comb, red, in three points.' },
+      { on: 'head', cloud: comb, root: most(comb, 'y', -1), line: 'A comb, red, in three points.' },
       { on: 'head', cloud: some(head, (_at, i) => hue(head, i, YELLOW_)), line: 'A beak.' },
       { on: 'head', cloud: some(head, (at, i) => hue(head, i, RED_, RED_DARK) && at.y <= top - V * big), line: 'A wattle, under it.' },
       { on: 'head', cloud: some(head, (_at, i) => !hue(head, i, RED_, RED_DARK, YELLOW_, EYE)), line: 'Feathers: here and there, then everywhere.' },
       { on: 'body', cloud: some(body, (at) => !tail(at)), line: 'Feathers: here and there, then everywhere.' },
-      { on: 'body', cloud: fan, root: fan.at.reduce((best, at) => (at.y < best.y ? at : best)), line: 'A tail, cocked up behind.' },
+      { on: 'body', cloud: fan, root: most(fan, 'y', -1), line: 'A tail, cocked up behind.' },
     ];
   },
   parts(big, plain) {

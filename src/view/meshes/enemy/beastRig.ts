@@ -10,12 +10,11 @@
 // - on death, it rolls onto its side, then bursts into voxel cubes.
 
 import * as THREE from 'three';
-import { CreatureRig } from '../common/creatureRig';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
-import { drawnAt } from '../common/overhead';
+import { HealthBar, enemyName } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZE, buildBody, buildHead, buildLeg, buildTail } from './wolfVoxels';
 import { BEAR_BODY, BEAR_HEAD, BEAR_LEG, BEAR_PALETTE, BEAR_TAIL, LYNX_BODY, LYNX_HEAD, LYNX_LEG, LYNX_PALETTE, LYNX_TAIL, bearBody, bearHead, bearLeg, bearTail, lynxBody, lynxHead, lynxLeg, lynxTail } from './wildBeastVoxels';
 import { BOAR_BODY_GRID, BOAR_HEAD_GRID, BOAR_LEG_GRID, BOAR_PALETTE, BOAR_TAIL_GRID, buildBoarBody, buildBoarHead, buildBoarLeg, buildBoarTail } from './boarVoxels';
@@ -111,25 +110,24 @@ export function createBeastLook(spec: BeastSpec, flash: THREE.Material): BeastLo
   };
 }
 
-export class BeastRig extends CreatureRig implements EnemyRig {
+// How tall one is to the top of its back (its health bar just over it; what it bursts from).
+const beastTall = (spec: BeastSpec) => (spec.leg.size[1] + spec.body.size[1]) * V;
+
+export class BeastRig extends FoeRig {
   private readonly body = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly tail = new THREE.Group();
   private readonly legs: THREE.Group[] = [];
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar: HealthBar;
-  private readonly burst: VoxelBurst;
   private phase = 0;
   private readonly own: THREE.MeshStandardMaterial | null = null; // a stealthy one's own look (faded on its own)
   private seen = 1; // how much of a stealthy one shows (0..1)
 
   constructor(private readonly look: BeastLook) {
-    super(0);
+    super(0, new HealthBar(beastTall(look.spec) + 0.2, enemyName(look.spec), ENEMY_STATS[look.spec.kind].passive), { colors: look.spec.palette.slice(0, 5), height: beastTall(look.spec) });
     const { spec } = look;
     if (spec.stealthy) this.own = Object.assign((look.normal as THREE.MeshStandardMaterial).clone(), { transparent: true });
     const [LEG_H, BODY_H, BODY_L] = [spec.leg.size[1] * V, spec.body.size[1] * V, spec.body.size[2] * V];
-    this.bar = new HealthBar(LEG_H + BODY_H + 0.2, enemyName(spec), ENEMY_STATS[spec.kind].passive);
-    this.burst = new VoxelBurst(this.root, spec.palette.slice(0, 5), LEG_H + BODY_H);
     const part = (group: THREE.Group, geometry: THREE.BufferGeometry, parent: THREE.Object3D, x: number, y: number, z: number) => {
       const mesh = new THREE.Mesh(geometry, this.own ?? look.normal);
       group.add(mesh);
@@ -148,13 +146,9 @@ export class BeastRig extends CreatureRig implements EnemyRig {
     this.root.userData.beast = { body: this.body, trunk, head: this.head, tail: this.tail, legs: this.legs }; // (for what stages it part by part: cinema/actor.ts)
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(beast: Enemy, dt: number): void {
     const moved = this.follow(beast, dt, TURN_RATE); // turning the way it goes
-    this.bar.update(beast.hp, beast.maxHp, beast.state !== 'dead', this.facing, beast.level, beast.state === 'chase');
+    this.marked(beast);
 
     if (beast.state === 'dead') {
       this.die(beast.deadFor, dt);
@@ -251,12 +245,11 @@ export class BeastRig extends CreatureRig implements EnemyRig {
     const fall = Math.min(1, t / TOPPLE_TIME);
     this.body.rotation.z = (fall * fall * Math.PI) / 2;
     this.body.position.y = -fall * 0.08;
-    if (this.burst.play(t, dt)) this.body.visible = false;
+    if (this.bursting(t, dt)) this.body.visible = false;
   }
 
   override dispose(): void {
     super.dispose();
-    this.burst.dispose();
     this.own?.dispose();
   }
 }

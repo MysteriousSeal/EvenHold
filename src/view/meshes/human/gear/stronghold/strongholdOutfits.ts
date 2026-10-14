@@ -4,11 +4,11 @@
 // (dressStronghold: a HumanRig's own `dress` for the looks, then what's held and hung put on its joints, drawn in
 // its material and counted among its meshes, so a hit's flash and a death's hiding reach them too).
 import * as THREE from 'three';
-import type { ArmorSlot, HeldSlot } from '../../../../model/human/equipment';
-import { greedyMesh } from '../../voxel/greedyMesh';
-import { BODIES, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE } from '../bodyVoxels';
-import type { HumanRig } from '../humanRig';
-import type { CostumeLookId } from './costumes';
+import type { ArmorSlot, HeldSlot } from '../../../../../model/human/equipment';
+import { greedyMesh } from '../../../voxel/greedyMesh';
+import { BODIES, HELD_BY, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE } from '../../bodyVoxels';
+import type { HumanRig } from '../../humanRig';
+import type { CostumeLookId } from '../costumes';
 import { STRONGHOLD_BOSS_LOOKS } from './strongholdBossLooks';
 import { STRONGHOLD_HELD, type StrongholdHeldId } from './strongholdHeld';
 import { STRONGHOLD_HUNG, hungAt, type StrongholdHungId } from './strongholdHung';

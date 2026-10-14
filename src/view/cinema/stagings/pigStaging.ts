@@ -7,11 +7,12 @@
 import * as THREE from 'three';
 import { createPig } from '../../meshes/turned/pigRig';
 import { PIG_BODY, PIG_COLORS, PIG_HEAD, PIG_NECK, PIG_SNOUT_ROWS, PIG_SPOTTED, PIG_VOXEL_SIZE, pigShape } from '../../meshes/turned/pigVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { bell, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = PIG_VOXEL_SIZE;
@@ -21,8 +22,6 @@ export const PIG = new THREE.Vector3(PIG_BODY[0] * V, (PIG_NECK[1] + PIG_HEAD[1]
 
 // What of it's told from the rest: its snout (the rows at the front of its head).
 const snoutOf = (head: Cloud, big: number) => ((front) => (at: THREE.Vector3) => at.z > front - V * big * (PIG_SNOUT_ROWS - 0.5))(Math.max(...head.at.map((at) => at.z)));
-const hindmost = (cloud: Cloud) => cloud.at.reduce((best, at) => (at.z < best.z ? at : best));
-const foremost = (cloud: Cloud) => cloud.at.reduce((best, at) => (at.z > best.z ? at : best));
 
 // What it is, in one of its coats, for what has parts to become it (becoming.ts).
 export function pigBecomingOf(coat = 0): Becoming {
@@ -37,9 +36,9 @@ export function pigBecomingOf(coat = 0): Becoming {
       const snout = some(head, snoutOf(head, big));
       const tail = some(body, (_at, i) => hue(body, i, C.ear));
       return [
-        { on: 'head', cloud: snout, root: hindmost(snout), line: 'A snout: pushed out, and flat at the end. Two nostrils.' },
+        { on: 'head', cloud: snout, root: most(snout, 'z', -1), line: 'A snout: pushed out, and flat at the end. Two nostrils.' },
         { on: 'head', cloud: some(head, (_at, i) => hue(head, i, C.ear)), line: 'Ears, flopped forward over the eyes.' },
-        { on: 'body', cloud: tail, root: foremost(tail), line: 'A tail, behind: one curl.' },
+        { on: 'body', cloud: tail, root: most(tail, 'z'), line: 'A tail, behind: one curl.' },
         ...(spotted ? [{ on: 'body' as const, cloud: some(body, (_at, i) => hue(body, i, C.spot)), line: 'Spots, dark: here and there.' }] : []),
       ];
     },
@@ -61,10 +60,8 @@ export function pigStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} hears swill poured into a trough, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'Arms and legs shorten, all four, to almost nothing. Hands and feet split into trotters.',
-    arms: '',
     body: 'The back lengthens; the belly drops, near to the ground.',
     head: 'The neck goes; the head sets low into the shoulders, the face pushed forward.',
     done: 'A pig, where they stood.',
@@ -78,7 +75,7 @@ export function pigStagingOf(coat = 0): Staging {
     done: 'A pig, where it stood.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Swineherd's call",
     becomes: 'A pig',
     lines: [
@@ -89,28 +86,20 @@ export function pigStagingOf(coat = 0): Staging {
       [0.72, spotted ? 'A snout. Ears. A curl of tail. Spots.' : 'A snout. Ears. A curl of tail.'],
       [0.92, 'A pig, where they stood.'],
     ],
-    looseLines: [
-      [0, '{name} hears swill poured into a trough, somewhere.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Lower. Longer. Snouted.'],
-    ],
-    cloud: () => ((pig) => joined([pig.body, pig.head, ...pig.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const pig = createPig(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: pig.root,
-        height: PIG.y,
-        // Its snout lifted, sniffing, in little jerks; then down to the ground, shoved along it and from side to side.
-        settle(j, time) {
-          const [sniffing, down] = [bell(through(j, [0.06, 0.46])), j > 0.5 ? Math.min(1, (j - 0.5) / 0.2) : 0];
-          pig.head.rotation.set(-(0.22 + 0.06 * Math.abs(Math.sin(time * 9))) * sniffing + (0.5 + Math.sin(time * 10) * 0.08) * down * down * (3 - 2 * down), Math.sin(time * 4.3) * 0.16 * down, 0);
-        },
-      };
+    heard: '{name} hears swill poured into a trough, somewhere.',
+    loosely: 'Lower. Longer. Snouted.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createPig(material, coat),
+    height: PIG.y,
+    // Its snout lifted, sniffing, in little jerks; then down to the ground, shoved along it and from side to side.
+    settle(pig, j, time) {
+      const [sniffing, down] = [bell(through(j, [0.06, 0.46])), j > 0.5 ? Math.min(1, (j - 0.5) / 0.2) : 0];
+      pig.head.rotation.set(-(0.22 + 0.06 * Math.abs(Math.sin(time * 9))) * sniffing + (0.5 + Math.sin(time * 10) * 0.08) * down * down * (3 - 2 * down), Math.sin(time * 4.3) * 0.16 * down, 0);
     },
-  };
-  return staging;
+  });
 }
 
 export const pigStaging = pigStagingOf();

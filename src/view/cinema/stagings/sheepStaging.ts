@@ -8,11 +8,12 @@
 import * as THREE from 'three';
 import { createSheep } from '../../meshes/turned/sheepRig';
 import { SHEEP_BODY, SHEEP_COLORS, SHEEP_HEAD, SHEEP_NECK, SHEEP_VOXEL_SIZE, sheepShape } from '../../meshes/turned/sheepVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { bell, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 
 const V = SHEEP_VOXEL_SIZE;
 const C = SHEEP_COLORS;
@@ -50,10 +51,8 @@ export function sheepStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} hears a shepherd whistle, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: black ? 'Arms and legs thin, all four, to black sticks. Hands and feet split into hooves.' : 'Arms and legs thin, all four, to sticks. Hands and feet split into hooves.',
-    arms: '',
     body: 'The back lengthens; the body rounds out: bare, pink, shorn.',
     head: black ? 'The neck shortens; the face narrows, small, and goes black.' : 'The neck shortens; the face narrows, small.',
     done: 'A sheep, where they stood.',
@@ -67,7 +66,7 @@ export function sheepStagingOf(coat = 0): Staging {
     done: 'A sheep, where it stood.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Shepherd's whistle",
     becomes: 'A sheep',
     lines: [
@@ -78,29 +77,21 @@ export function sheepStagingOf(coat = 0): Staging {
       [0.72, 'Ears. Wool: here and there, then everywhere.'],
       [0.92, 'A sheep, where they stood.'],
     ],
-    looseLines: [
-      [0, '{name} hears a shepherd whistle, somewhere.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Rounder. Woollier. Thin in the leg.'],
-    ],
-    cloud: () => ((sheep) => joined([sheep.body, sheep.head, ...sheep.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const sheep = createSheep(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: sheep.root,
-        height: SHEEP.y,
-        // Its fleece shaken out, its head with it; its head lifted and stretched forward to bleat; then chewing.
-        settle(j, time) {
-          const [shaking, bleating, chewing] = [bell(through(j, [0.05, 0.3])), bell(through(j, [0.36, 0.66])), j > 0.7 ? 1 : 0];
-          sheep.body.rotation.z = Math.sin(time * 28) * 0.07 * shaking;
-          sheep.head.rotation.set(-0.4 * bleating + Math.sin(time * 8) * 0.04 * chewing, Math.sin(time * 28 + 1) * 0.2 * shaking, Math.cos(time * 8) * 0.07 * chewing);
-        },
-      };
+    heard: '{name} hears a shepherd whistle, somewhere.',
+    loosely: 'Rounder. Woollier. Thin in the leg.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createSheep(material, coat),
+    height: SHEEP.y,
+    // Its fleece shaken out, its head with it; its head lifted and stretched forward to bleat; then chewing.
+    settle(sheep, j, time) {
+      const [shaking, bleating, chewing] = [bell(through(j, [0.05, 0.3])), bell(through(j, [0.36, 0.66])), j > 0.7 ? 1 : 0];
+      sheep.body.rotation.z = Math.sin(time * 28) * 0.07 * shaking;
+      sheep.head.rotation.set(-0.4 * bleating + Math.sin(time * 8) * 0.04 * chewing, Math.sin(time * 28 + 1) * 0.2 * shaking, Math.cos(time * 8) * 0.07 * chewing);
     },
-  };
-  return staging;
+  });
 }
 
 export const sheepStaging = sheepStagingOf();

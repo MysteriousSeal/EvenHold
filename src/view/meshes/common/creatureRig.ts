@@ -1,5 +1,6 @@
-// What every creature's rig shares, wildlife (catRig, deerRig, duckRig) and
-// foes alike (beastRig: wolves, boars; ghostRig): its parts meshed round
+// What every creature's rig shares, wildlife (catRig, deerRig, duckRig), the
+// beasts people are turned into (turned/) and foes alike (enemy/foeRig.ts,
+// with their bars and bursts besides): its parts meshed round
 // their pivots, four legs set out in pairs (if it has legs), and, each frame, turning smoothly
 // toward its heading (the model's, or else the way it went), the short way
 // round, settling onto its height, and how far it went.

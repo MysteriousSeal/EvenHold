@@ -11,11 +11,10 @@
 import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
-import { CreatureRig } from '../common/creatureRig';
-import { drawnAt } from '../common/overhead';
 import { createQuadruped } from '../turned/quadruped';
 import { KIND_LOOKS } from './enemyKinds';
-import { HealthBar, VoxelBurst, type EnemyRig } from './enemyParts';
+import { HealthBar } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { HOUND_BODY, HOUND_PALETTE, HOUND_SHAPE, HOUND_VOXEL_SIZE } from './houndVoxels';
 
 const V = HOUND_VOXEL_SIZE;
@@ -37,14 +36,12 @@ export function createHoundLook(flash: THREE.Material): HoundLook {
   return { normal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), flash };
 }
 
-export class HoundRig extends CreatureRig implements EnemyRig {
+export class HoundRig extends FoeRig {
   private readonly whole: THREE.Group; // all of it (pitched and thrown forward as one)
   private readonly body: THREE.Group;
   private readonly head: THREE.Group;
   private readonly legs: THREE.Group[]; // hind left, hind right, fore left, fore right
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar: HealthBar;
-  private readonly burst: VoxelBurst;
   private phase = 0;
   private run = 0; // 0 trotting .. 1 galloping, eased
 
@@ -52,24 +49,18 @@ export class HoundRig extends CreatureRig implements EnemyRig {
     hound: Pick<Enemy, 'kind' | 'name'>,
     private readonly look: HoundLook,
   ) {
-    super(0);
+    const kinds = KIND_LOOKS as Partial<typeof KIND_LOOKS>; // (its kind's name, once its kind's among them)
+    super(0, new HealthBar(HEIGHT + 0.2, hound.name ?? kinds[hound.kind]?.name ?? 'War hound'), { colors: HOUND_PALETTE.slice(0, 5), height: HEIGHT });
     const made = createQuadruped(look.normal, HOUND_SHAPE);
     [this.whole, this.body, this.head, this.legs] = [made.root, made.body, made.head, made.legs];
     this.whole.traverse((o) => o instanceof THREE.Mesh && this.meshes.push(o));
-    const kinds = KIND_LOOKS as Partial<typeof KIND_LOOKS>; // (its kind's name, once its kind's among them)
-    this.bar = new HealthBar(HEIGHT + 0.2, hound.name ?? kinds[hound.kind]?.name ?? 'War hound');
-    this.burst = new VoxelBurst(this.root, HOUND_PALETTE.slice(0, 5), HEIGHT);
     this.root.add(this.whole, this.bar.group);
     this.root.userData.beast = { body: this.whole, trunk: this.body, head: this.head, legs: this.legs }; // (for what stages it part by part)
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(hound: Enemy, dt: number): void {
     const moved = this.follow(hound, dt, TURN_RATE);
-    this.bar.update(hound.hp, hound.maxHp, hound.state !== 'dead', this.facing, hound.level, hound.state === 'chase');
+    this.marked(hound);
     if (hound.state === 'dead') return this.die(hound.deadFor, dt);
 
     const going = moved > 1e-4;
@@ -113,11 +104,6 @@ export class HoundRig extends CreatureRig implements EnemyRig {
     this.whole.position.set(0, fall * ON_ITS_SIDE, 0);
     for (const leg of this.legs) leg.rotation.x = 0;
     this.head.rotation.set(0.2 * fall, 0, 0);
-    if (this.burst.play(t, dt)) this.whole.visible = false;
-  }
-
-  override dispose(): void {
-    super.dispose();
-    this.burst.dispose();
+    if (this.bursting(t, dt)) this.whole.visible = false;
   }
 }

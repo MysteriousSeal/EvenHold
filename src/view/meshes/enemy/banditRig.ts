@@ -11,7 +11,7 @@ import { ENEMY_STATS } from '../../../model/constants';
 import { HERO_LOOK } from '../../../model/human/humanoid';
 import type { Enemy } from '../../../model/types';
 import { HumanRig } from '../human/humanRig';
-import { dressStronghold, type StrongholdKind } from '../human/gear/strongholdOutfits';
+import { dressStronghold, type StrongholdKind } from '../human/gear/stronghold/strongholdOutfits';
 import { personMaterial } from '../human/humanParts';
 import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
@@ -36,7 +36,7 @@ export class BanditRig implements EnemyRig {
   private readonly bar: HealthBar;
   private readonly burst: VoxelBurst;
 
-  // `outfit`: one of a stronghold's kinds, dressed as it (gear/strongholdOutfits.ts: its own looks, what it holds
+  // `outfit`: one of a stronghold's kinds, dressed as it (gear/stronghold/strongholdOutfits.ts: its own looks, what it holds
   // and what hangs off it), whatever it's given to wear.
   constructor(
     bandit: Enemy,

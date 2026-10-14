@@ -18,9 +18,7 @@ import { CAVE_FOE_ID } from '../../model/caves/caveFoes';
 import { SUMMONED } from '../../model/dungeons/dungeonRecord';
 import { ERUPT_RADIUS, ERUPT_TELL, LUNGE_TELL, RUSH_HALF, RUSH_TELL } from '../../model/caves/caveMoves';
 import { INDOOR_SCALE } from '../../model/constants';
-import { EnemyViews } from '../meshes/enemy/enemyViews';
-import { LootViews } from '../meshes/loot/lootViews';
-import { CoinViews } from '../meshes/loot/coinViews';
+import { FloorLife } from '../dungeon/floorLife';
 import { glowMaterial } from '../meshes/common/glow';
 import { GlowMarks } from '../meshes/common/glowMarks';
 import { createGrid, setColor } from '../meshes/voxel/voxelShapes';
@@ -39,10 +37,7 @@ const WEB_HEIGHT = { caveSpider: 0.24, broodMother: 0.55 } as const; // a web's 
 const LUNGE_LONG = 2.4;
 const RUSH_LONG = 5;
 
-export class CaveLife {
-  private readonly enemies: EnemyViews;
-  private readonly loot: LootViews;
-  private readonly coins: CoinViews;
+export class CaveLife extends FloorLife {
   private readonly impacts: ImpactView; // earth bursting, rubble falling: chips, dust
   private readonly materials = [new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false })]; // (lit, glowing)
   private readonly made: THREE.BufferGeometry[] = [];
@@ -62,12 +57,10 @@ export class CaveLife {
   private shaking = 0;
 
   constructor(
-    private readonly scene: THREE.Scene,
+    scene: THREE.Scene,
     private readonly inside: CaveInside,
   ) {
-    this.enemies = new EnemyViews(scene, INDOOR_SCALE);
-    this.loot = new LootViews(scene, INDOOR_SCALE);
-    this.coins = new CoinViews(scene, INDOOR_SCALE);
+    super(scene);
     this.impacts = new ImpactView(scene);
     this.marks = new GlowMarks(scene);
     // A spat web: a knot of silk, strands out from it.
@@ -86,9 +79,7 @@ export class CaveLife {
     const { hero } = model;
     const cave = model.cave;
     this.time += dt;
-    this.enemies.update(model.foes, hero.x, hero.z, dt, model.focused?.id ?? null);
-    this.loot.update(model.groundHere.loot, hero.x, hero.z, dt);
-    this.coins.update(model.groundHere.coins, hero.x, hero.z, dt);
+    this.drawFloor(model, dt);
     this.flying(cave);
     this.told(cave, hero);
     this.hatching(model);

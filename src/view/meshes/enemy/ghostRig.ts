@@ -9,9 +9,9 @@ import * as THREE from 'three';
 import { ENEMY_STATS, ENEMY_CORPSE_TIME } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
-import { CreatureRig, partMesher } from '../common/creatureRig';
-import { HealthBar, enemyName, type EnemyRig } from './enemyParts';
-import { drawnAt } from '../common/overhead';
+import { partMesher } from '../common/creatureRig';
+import { HealthBar, enemyName } from './enemyParts';
+import { FoeRig } from './foeRig';
 import { GHOST_BODY, GHOST_PALETTE, GHOST_SHOULDER, GHOST_SLEEVE, GHOST_TAIL, ghostBody, ghostEyes, ghostSleeve, ghostTail } from './ghostVoxels';
 
 const V = HUMAN_VOXEL_SIZE;
@@ -47,19 +47,17 @@ export function createGhostLook(flash: THREE.Material): GhostLook {
 const ghostMaterial = () =>
   new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, transparent: true, opacity: SEEN, emissive: 0x6c8aa6, emissiveIntensity: 0.45 });
 
-export class GhostRig extends CreatureRig implements EnemyRig {
+export class GhostRig extends FoeRig {
   private readonly look: THREE.MeshStandardMaterial = ghostMaterial();
   private readonly glow: THREE.MeshBasicMaterial;
   private readonly float = new THREE.Group(); // all of it, bobbing and leaning
   private readonly tail = new THREE.Group();
   private readonly sleeves: THREE.Group[] = [];
   private readonly meshes: THREE.Mesh[] = [];
-  private readonly bar: HealthBar;
 
   constructor(enemy: Enemy, private readonly shared: GhostLook) {
-    super(enemy.id * 1.7);
+    super(enemy.id * 1.7, new HealthBar(HEIGHT + 0.14, enemyName(enemy)));
     this.glow = shared.eyeGlow.clone();
-    this.bar = new HealthBar(HEIGHT + 0.14, enemyName(enemy));
     const part = (geometry: THREE.BufferGeometry, parent: THREE.Object3D, material: THREE.Material = this.look) => {
       const m = new THREE.Mesh(geometry, material);
       parent.add(m);
@@ -83,15 +81,11 @@ export class GhostRig extends CreatureRig implements EnemyRig {
     this.root.add(this.float, this.bar.group);
   }
 
-  drawnAt(scale: number): void {
-    drawnAt(this.root, scale, this.bar.group);
-  }
-
   update(ghost: Enemy, dt: number, heroX = ghost.x, heroZ = ghost.z): void {
     const set = ghost.state === 'chase' || ghost.swingFor !== null;
     const moved = this.follow({ x: ghost.x, y: ghost.y, z: ghost.z, heading: set ? Math.atan2(heroX - ghost.x, heroZ - ghost.z) : undefined }, dt, TURN_RATE, 8);
     const speed = dt > 0 ? moved / dt : 0;
-    this.bar.update(ghost.hp, ghost.maxHp, ghost.state !== 'dead', this.facing, ghost.level);
+    this.marked(ghost, ghost.state !== 'dead', false);
     const t = this.time;
     if (ghost.state === 'dead') return this.fade(ghost.deadFor);
 

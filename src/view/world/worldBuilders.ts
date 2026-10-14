@@ -22,7 +22,7 @@ import { buildScenery3d } from '../meshes/scenery/sceneryMesh';
 import { buildCamps } from '../meshes/camp/campMesh';
 import { buildRuins } from '../meshes/ruin/ruinMesh';
 import { buildCaveMouths } from '../meshes/cave/caveMouthMesh';
-import { buildStrongholdGates } from '../stronghold/strongholdView';
+import { buildStrongholdGates } from '../meshes/stronghold/strongholdGateMesh';
 import { buildEntranceDressing } from '../meshes/entrance/entranceDressing';
 
 export type Animation = (elapsedSeconds: number) => void;

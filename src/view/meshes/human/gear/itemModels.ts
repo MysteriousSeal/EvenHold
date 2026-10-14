@@ -3,7 +3,7 @@
 
 import { ITEMS, type ArmorSlot, type EquipSlot, type ItemId } from '../../../../model/human/equipment';
 import { COSTUME_LOOKS, isCostume, type CostumeLookId } from './costumes';
-import { STRONGHOLD_LOOKS } from './strongholdOutfits';
+import { STRONGHOLD_LOOKS } from './stronghold/strongholdOutfits';
 import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';

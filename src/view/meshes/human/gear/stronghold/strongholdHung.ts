@@ -10,11 +10,11 @@
 // - a string of collars: red rings hung at the hip, their spikes bright;
 // - a ring of keys: at the hip;
 // - a pelt: a wolf's fur down the back, its hem ragged.
-import type { VoxelGrid } from '../../voxel/greedyMesh';
-import { createGrid, fillBox, setColor } from '../../voxel/voxelShapes';
-import type { BodyShape } from '../bodyVoxels';
-import { namedPalette } from './armorShell';
-import { fur } from './patterns';
+import type { VoxelGrid } from '../../../voxel/greedyMesh';
+import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
+import type { BodyShape } from '../../bodyVoxels';
+import { namedPalette } from '../armorShell';
+import { fur } from '../patterns';
 
 const kit = namedPalette({ leather: 0x6b4a33, leatherDark: 0x4a3222, flap: 0x8a6a45, brass: 0xd4b060, iron: 0xa2a8b0, horn: 0xe2d8be, hornTip: 0x3a2a20, red: 0x9c2a22, clay: 0xc4622e, stopper: 0x3a2a1e, fletch: 0xf0e8d8 });
 const furs = namedPalette({ fur: 0xcfc4ae, furMid: 0xa39884, furDark: 0x6e6456 });

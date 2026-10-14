@@ -12,11 +12,11 @@
 import * as THREE from 'three';
 import { createHorse } from '../../meshes/turned/horseRig';
 import { HORSE_BODY, HORSE_EAR_ROWS, HORSE_HEAD, HORSE_NECK, HORSE_PALETTE, HORSE_SHAPE, HORSE_VOXEL_SIZE } from '../../meshes/turned/horseVoxels';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { bell, through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
-import { UNDRESSED, turningInto, type Telling } from './turning';
-import type { Staging } from '../staging';
+import { hued, most, some } from '../morph/clouds';
+import { type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = HORSE_VOXEL_SIZE;
@@ -37,7 +37,7 @@ export const horseBecoming: Becoming = quadrupedBecoming(HORSE_SHAPE, HORSE, {
     return [
       { on: 'head', cloud: some(head, (at, i) => hue(head, i, COAT) && at.y >= from), line: 'Ears, pricked.' },
       { on: 'head', cloud: some(head, (_at, i) => hue(head, i, BLACK)), root: poll, line: 'A mane, strand by strand, down the neck; a tail, behind.' },
-      { on: 'body', cloud: tail, root: tail.at.reduce((best, at) => (at.y > best.y ? at : best)), line: 'A mane, strand by strand, down the neck; a tail, behind.' }, // (behind it, from where it's seen: said with its mane)
+      { on: 'body', cloud: tail, root: most(tail, 'y'), line: 'A mane, strand by strand, down the neck; a tail, behind.' }, // (behind it, from where it's seen: said with its mane)
       { on: 'head', cloud: some(head, (_at, i) => hue(head, i, WHITE)), root: poll, line: 'A white blaze, down the face.' },
     ];
   },
@@ -52,10 +52,8 @@ export const horseBecoming: Becoming = quadrupedBecoming(HORSE_SHAPE, HORSE, {
 
 const PERSON: Telling = {
   start: '{name} hears their name called, from a long way off, and starts.',
-  ...UNDRESSED,
-  stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+  ...ON_ALL_FOURS,
   legs: 'Arms and legs lengthen and straighten, all four; black to the knee. Hands and feet close into hooves.',
-  arms: '',
   body: 'The back deepens into a barrel.',
   head: 'The neck arches up and forward; the face grows long.',
   done: 'A horse, standing where they stood.',
@@ -69,7 +67,7 @@ const BEAST: Telling = {
   done: 'A horse, standing where it stood.',
 };
 
-export const horseStaging: Staging = {
+export const horseStaging = fourLeggedStaging({
   title: "Horse-coper's word",
   becomes: 'A horse',
   // (Of what only dwindles: nothing of it to go down on all fours, none of the horse seen till it's there.)
@@ -79,24 +77,17 @@ export const horseStaging: Staging = {
     [0.5, 'Smaller. Fainter.'],
     [0.85, 'Almost nothing left of it.'],
   ],
-  looseLines: [
-    [0, '{name} hears something call it, from a long way off.'],
-    [0.08, 'It comes apart, from the ground up.'],
-    [0.4, 'Every piece of it finds a new place.'],
-    [0.72, 'Taller. Longer. Hooved.'],
-  ],
-  cloud: () => ((horse) => joined([horse.body, horse.head, ...horse.legs], V))(quadrupedClouds(HORSE_SHAPE, 1)),
-  direct: turningInto(horseBecoming, { person: PERSON, beast: BEAST }),
-  target() {
-    const horse = createHorse(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
-    return {
-      root: horse.root,
-      height: HORSE.y,
-      // Its mane shaken out; a foreleg stamped, twice; a toss of its head.
-      settle(j, time) {
-        horse.head.rotation.set(-0.45 * bell(through(j, [0.66, 0.96])), Math.sin(time * 26) * 0.3 * bell(through(j, [0.06, 0.32])), Math.sin(time * 26 + 1) * 0.12 * bell(through(j, [0.06, 0.32])));
-        horse.legs[3].rotation.x = j > 0.36 && j < 0.62 ? -0.5 * Math.abs(Math.sin(((j - 0.36) / 0.26) * Math.PI * 2)) : 0;
-      },
-    };
+  heard: '{name} hears something call it, from a long way off.',
+  loosely: 'Taller. Longer. Hooved.',
+  shape: HORSE_SHAPE,
+  becoming: horseBecoming,
+  person: PERSON,
+  beast: BEAST,
+  make: (material) => createHorse(material),
+  height: HORSE.y,
+  // Its mane shaken out; a foreleg stamped, twice; a toss of its head.
+  settle(horse, j, time) {
+    horse.head.rotation.set(-0.45 * bell(through(j, [0.66, 0.96])), Math.sin(time * 26) * 0.3 * bell(through(j, [0.06, 0.32])), Math.sin(time * 26 + 1) * 0.12 * bell(through(j, [0.06, 0.32])));
+    horse.legs[3].rotation.x = j > 0.36 && j < 0.62 ? -0.5 * Math.abs(Math.sin(((j - 0.36) / 0.26) * Math.PI * 2)) : 0;
   },
-};
+});

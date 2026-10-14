@@ -13,12 +13,12 @@
 //   wrist; the satchel's strap behind;
 // - a runner, blue: a blue band round the brow, its ends loose behind; a sleeveless vest open down the front, arms
 //   bare; a blue sash; short breeches, the knees bare; feet bound in linen.
-import type { ArmorSlot } from '../../../../model/human/equipment';
-import { namedPalette, type Painter } from './armorShell';
-import type { CostumeLookId } from './costumes';
-import type { ItemModel } from './itemModel';
-import { mod } from './patterns';
-import { M, domed, edgeOf, onFace, riveted, within } from './items/headShape';
+import type { ArmorSlot } from '../../../../../model/human/equipment';
+import { namedPalette, type Painter } from '../armorShell';
+import type { CostumeLookId } from '../costumes';
+import type { ItemModel } from '../itemModel';
+import { mod } from '../patterns';
+import { M, domed, edgeOf, onFace, riveted, within } from '../items/headShape';
 
 export type StrongholdLook = { slot: ArmorSlot; model: ItemModel };
 // A strap across the chest and the back, from the right shoulder to the left hip.

@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { greedyMesh } from '../meshes/voxel/greedyMesh';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { flicker } from '../meshes/common/fire';
-import { isFloor, inFullView } from '../../model/crypts/cryptLayout';
+import { inFullView, isFloor } from '../../model/dungeons/floorPlan';
 import { FACINGS } from '../../model/map/grid';
 import type { CryptInside } from '../../model/crypts/crypts';
 import type { CryptProp } from '../../model/crypts/cryptProps';

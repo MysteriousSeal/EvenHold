@@ -1,4 +1,4 @@
-// More of what's in a bandit stronghold, in voxels (strongholdPropVoxels.ts the table of them all, and the rest),
+// What furnishes a bandit stronghold, in voxels (strongholdPropVoxels.ts the table of them all, and its stores),
 // and the few tools they're all painted with. Each is built facing local +Z, centred on its tiles, its foot at y 0,
 // in the stronghold's one palette (strongholdLook.ts):
 // - a brazier: an iron basket on three splayed legs, coals in it, flames over them (its light);

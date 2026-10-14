@@ -10,11 +10,12 @@ import * as THREE from 'three';
 import { createToad, hopping, swollen } from '../../meshes/turned/toadRig';
 import { TOAD_COLORS, TOAD_FACE_EYES, TOAD_VOXEL_SIZE, toadShape } from '../../meshes/turned/toadVoxels';
 import { quadrupedParts } from '../../meshes/turned/quadruped';
-import { quadrupedBecoming, quadrupedClouds, type Becoming } from './becoming';
+import { quadrupedBecoming, type Becoming } from './becoming';
 import { through } from '../easing';
-import { hued, joined, some } from '../morph/clouds';
+import { hued, most, some } from '../morph/clouds';
 import type { Staging } from '../staging';
-import { UNDRESSED, turningInto, type Telling } from './turning';
+import { ON_ALL_FOURS, fourLeggedStaging } from './fourLegged';
+import { type Telling } from './turning';
 import type { Cloud } from '../morph/voxelMorph';
 
 const V = TOAD_VOXEL_SIZE;
@@ -47,7 +48,7 @@ export function toadBecomingOf(coat = 0): Becoming {
       return [
         { on: 'head', cloud: some(head, (_at, i) => hue(head, i, C.wart)), line: 'Warts: one, then another.' },
         { on: 'head', cloud: eyes, root: face(big)[0].clone().lerp(face(big)[1], 0.5), line: 'The eyes go up the face, and stop on top of the head.' },
-        { on: 'head', cloud: throat, root: throat.at.reduce((best, at) => (at.z < best.z ? at : best)), line: 'The throat swells out, pale, under the jaw.' },
+        { on: 'head', cloud: throat, root: most(throat, 'z', -1), line: 'The throat swells out, pale, under the jaw.' },
         { on: 'body', cloud: some(body, (_at, i) => hue(body, i, C.wart, C.bump)), line: 'More warts, all down the back.' }, // (last: its head's seen close till what's on that has come)
       ];
     },
@@ -69,10 +70,8 @@ export function toadStagingOf(coat = 0): Staging {
 
   const PERSON: Telling = {
     start: '{name} feels the damp come up out of the ground, and starts.',
-    ...UNDRESSED,
-    stance: 'They go down on all fours, unsteady: the back level, the hands on the ground.',
+    ...ON_ALL_FOURS,
     legs: 'The arms shorten. The legs fold up, long, along the sides. Fingers and toes spread.',
-    arms: '',
     body: 'The body squats down, broad and low; no waist; no neck to speak of.',
     head: 'The head flattens. The mouth goes from one side of it to the other.',
     done: 'A toad as big as they were. And then smaller. Much smaller.',
@@ -85,7 +84,7 @@ export function toadStagingOf(coat = 0): Staging {
     done: 'A toad as big as it was. And then smaller. Much smaller.',
   };
 
-  const staging: Staging = {
+  return fourLeggedStaging({
     title: "Fen-wife's kiss",
     becomes: 'A toad',
     lines: [
@@ -96,29 +95,21 @@ export function toadStagingOf(coat = 0): Staging {
       [0.72, 'Warts. The eyes, up on top. A pale throat.'],
       [0.92, 'A toad as big as a man. And then smaller. Much smaller.'],
     ],
-    looseLines: [
-      [0, '{name} feels the damp come up out of the ground.'],
-      [0.08, 'It comes apart, from the ground up.'],
-      [0.4, 'Every piece of it finds a new place.'],
-      [0.72, 'Smaller. Squatter. Warted.'],
-    ],
-    cloud: () => ((toad) => joined([toad.body, toad.head, ...toad.legs], V))(quadrupedClouds(shape, 1)),
-    direct: turningInto(becoming, { person: PERSON, beast: BEAST }),
-    target() {
-      const toad = createToad(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), coat);
-      return {
-        root: toad.root,
-        height: TOAD.y,
-        // Its throat out and in, three times; then one hop, where it sits; its throat again.
-        settle(j, time) {
-          const hop = through(j, [0.5, 0.72]);
-          hopping(toad, hop >= 1 ? 0 : hop, TOAD.y * 0.9);
-          swollen(toad, j < 0.45 ? Math.abs(Math.sin(through(j, [0.04, 0.45]) * Math.PI * 3)) : j > 0.78 ? Math.max(0, Math.sin(time * 5.5)) * 0.7 : 0);
-        },
-      };
+    heard: '{name} feels the damp come up out of the ground.',
+    loosely: 'Smaller. Squatter. Warted.',
+    shape,
+    becoming,
+    person: PERSON,
+    beast: BEAST,
+    make: (material) => createToad(material, coat),
+    height: TOAD.y,
+    // Its throat out and in, three times; then one hop, where it sits; its throat again.
+    settle(toad, j, time) {
+      const hop = through(j, [0.5, 0.72]);
+      hopping(toad, hop >= 1 ? 0 : hop, TOAD.y * 0.9);
+      swollen(toad, j < 0.45 ? Math.abs(Math.sin(through(j, [0.04, 0.45]) * Math.PI * 3)) : j > 0.78 ? Math.max(0, Math.sin(time * 5.5)) * 0.7 : 0);
     },
-  };
-  return staging;
+  });
 }
 
 export const toadStaging = toadStagingOf();
