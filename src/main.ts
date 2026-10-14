@@ -97,6 +97,9 @@ async function boot(): Promise<void> {
   const seed = choice.seed;
   keepSessionSeed(seed);
   (document.getElementById('version-label') as HTMLDivElement).textContent = `EvenHold v${__GAME_VERSION__}`; // (package.json's, with the seed)
+  // The seed, the place and the frame rate under it: the developer's, not a player's (the world's seed is on the pause
+  // menu's card).
+  if (!import.meta.env.DEV) for (const id of ['seed-label', 'position-label', 'fps-label']) (document.getElementById(id) as HTMLDivElement).hidden = true;
   const positionLabel = document.getElementById('position-label') as HTMLDivElement;
   (document.getElementById('seed-label') as HTMLDivElement).textContent = `seed: ${seed}`;
 
