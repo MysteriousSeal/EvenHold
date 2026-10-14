@@ -9,7 +9,7 @@
 // - ribcagePauldrons (ossuary): a half ribcage over each shoulder, the ribs curving down the arm in rows with black
 //   gaps between, wired at the top. Bone e0d4b4 / b8a986 / 8e7f62, gaps socket 2a2220, wire 6e747c.
 // - flayersMantle (flayer): a short mantle of cured hide patches in three tones, big black cross-stitches along the
-//   seams, a fringe of teeth on the lower edge. Hide c89a80 / dcb8a0 / 9a6e58, raw seams 9a5a4a, stitch 2a1c18, tooth efe6cc.
+//   seams, a fringe of teeth on the lower edge. Hide a8844e / c4a46a / 6e5232, raw seams 7a4a32, stitch 2a1c18, tooth efe6cc.
 // - palmersCape (palmer): a short fawn shoulder cape, a red cross on the back (the shoulders show its arms), a scallop
 //   shell sewn on each shoulder's top. Fawn b8a27e, wool 8a7a5e, cross 9a2a2a, shell f0e4cc.
 // - sunwardPauldrons (sunward, epic): big rounded pauldrons, ivory enamel framed in gold, a gold sun on azure on each,
@@ -84,7 +84,7 @@ const flayersMantle: ItemModel = {
       const { c } = flayer;
       if (!top) return mod(x + z, 2) === 0 ? c.tooth : c.blood; // the teeth, strung on a bloodied thong
       if (mod(x - z, 3) === 0) return c.stitch; // the stitches, bold across it
-      return mod(x + z, 2) === 0 ? c.hideDark : c.raw; // (its hides the darkest of the set's, cured, not like skin)
+      return [c.hide, c.hidePale, c.hideDark][mod(x + z * 2, 3)]; // the patches
     },
   },
 };
