@@ -22,6 +22,7 @@ import { CHILL_FOR } from '../crypts/frostBreath';
 import { isWorldFoe } from '../enemies/foeIds';
 import { reeling } from '../enemies/enemies';
 import { SHRUG_FLASH, flinches } from '../enemies/poise';
+import { phaseFloor } from '../enemies/bossPhases';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -66,8 +67,10 @@ export function landBlow(fight: Fight): void {
 // at zero it dies, and leaves what it leaves. Whether it flinched (or died).
 export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): boolean {
   const { hero } = fight;
-  const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
-  target.hp -= damage;
+  const floor = fight.oneHitKills ? -Infinity : phaseFloor(target); // (a boss held at its next turn: bossPhases.ts)
+  const was = target.hp;
+  target.hp = Math.max(floor, target.hp - (fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard));
+  const damage = was - target.hp;
   leech(hero, damage); // (their gear's: a share of it healed)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
   // Its blow lost (a flash), if the hit makes it flinch: by its poise, or caught open (reeling, parried; or struck just

@@ -5,6 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { STAGES, fight } from './support/fightCurve';
 import { blowsToFlinch, flinches } from '../src/model/enemies/poise';
 import { makeEnemy } from '../src/model/enemies/enemies';
+import { BOSS_PHASES, phaseFloor } from '../src/model/enemies/bossPhases';
+import { CAPTAIN, GAOLER, HOUNDMASTER, QUARTERMASTER } from '../src/model/strongholds/strongholdBosses';
+import { KING } from '../src/model/strongholds/strongholdKing';
+import { BROOD_AT } from '../src/model/caves/caveFoes';
+import { strike } from '../src/model/hero/fighting';
+import { fresh } from './support/testWorld';
 
 const stage = (level: number) => STAGES.find((s) => s.level === level)!;
 
@@ -55,5 +61,22 @@ describe('the curve', () => {
       const r = fight(stage(12), kind, 12, 'average');
       expect(r.won && r.t >= 3 && r.lost >= 5, `${kind}: ${JSON.stringify({ won: r.won, t: r.t, lost: r.lost })}`).toBe(true);
     }
+  });
+});
+
+describe("a boss's turns", () => {
+  it('are where each boss turns (its own shares); no blow takes a boss past the next, held there till it has turned; a burst skips none', () => {
+    expect([BOSS_PHASES.houndmaster, BOSS_PHASES.quartermaster, BOSS_PHASES.gaoler, BOSS_PHASES.captain, BOSS_PHASES.banditKing, BOSS_PHASES.broodMother]).toEqual([HOUNDMASTER.under, QUARTERMASTER.under, GAOLER.under, CAPTAIN.under, KING.under, BROOD_AT]);
+    const model = fresh();
+    const king = { ...makeEnemy(9100, 'banditKing', model.hero.x, model.hero.z + 0.5, model.hero.x, model.hero.z, 10), state: 'chase' as const };
+    const turns = (BOSS_PHASES.banditKing ?? []).map((share) => Math.floor(king.maxHp * share));
+    strike(model, king, king.maxHp, false); // (a blow of his whole health)
+    expect(king.hp).toBe(turns[0]);
+    strike(model, king, king.maxHp, false);
+    expect(king.hp).toBe(turns[1]);
+    strike(model, king, king.maxHp, false);
+    expect(king.state).toBe('dead');
+    const wolf = makeEnemy(9101, 'wolf', 0, 0);
+    expect(phaseFloor(wolf)).toBe(-Infinity);
   });
 });
