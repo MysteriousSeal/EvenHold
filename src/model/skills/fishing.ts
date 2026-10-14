@@ -42,6 +42,9 @@ export const CATCHES: readonly Catch[] = [
   { item: 'frostTorc', needs: 225, in: 'deep', weight: 0.2, window: 0.8 },
 ];
 const EARLY_WEIGHT = 1;
+// The fish of them (the rest found in the water): raw, for the pot, and sold at their worth to a pedlar or a herbalist.
+export const FISH: readonly LootId[] = ['smallFry', 'riverTrout', 'lakePerch', 'pike'];
+export const isFish = (item: string): item is LootId => (FISH as readonly string[]).includes(item);
 // How often a catch bites for a hand at `level`, against the rest (0: not for them yet).
 export const weightOf = (fish: Catch, level: number): number =>
   level >= fish.needs ? (fish.fewer && level >= fish.fewer[0] ? fish.fewer[1] : fish.weight) : fish.early !== undefined && level >= fish.early ? EARLY_WEIGHT : 0;
