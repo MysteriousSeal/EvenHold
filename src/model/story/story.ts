@@ -99,6 +99,7 @@ export class Story {
   debug = false; // a cheat: Q beside someone lists every quest of their calling, to play again; the journal finishes any
   private forced = new Map<string, number | null>(); // those set by hand (the cheat's), by key: the villager put in the giver's part (their number; null: the village's own), kept through the world's changes and in the save
   private freed = new Set<string>(); // and those let off what they follow
+  private staked = new Set<string>(); // those whose giver has handed over what it's done with (its `stake`): never again
   private slept = new Set<string>(); // those whose night has passed already, in the telling (not again as they're handed in)
   private state = new Map<string, 'taken' | 'done'>();
   private untracked = new Set<string>(); // those taken but kept off the screen's tracker (set in the journal)
@@ -340,6 +341,12 @@ export class Story {
     this.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp });
     room ? this.untracked.delete(key) : this.untracked.add(key);
     const { hero } = this.host;
+    const stake = i.quest.stake;
+    if (stake && !this.staked.has(key)) {
+      this.staked.add(key);
+      if ('copper' in stake) hero.money += stake.copper;
+      else for (let n = 0; n < stake.count; n++) addToBag(hero.bag, stake.item);
+    }
     this.host.report({ kind: 'quest', text: `Quest taken: ${i.quest.name}`, done: false, x: hero.x, y: hero.y, z: hero.z });
     return true;
   }
@@ -459,19 +466,20 @@ export class Story {
     return [...this.state].filter(([, s]) => s === 'done').map(([key]) => ({ id: key, name: STORY_QUESTS[idOf(key)]?.name ?? key }));
   }
 
-  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[] } {
+  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[] } {
     return {
       states: Object.fromEntries([...this.state].map(([key, s]) => [key, s === 'taken' && this.untracked.has(key) ? 'untracked' : s])), // (untracked: taken, kept off the tracker)
       counted: Object.fromEntries(this.counted),
       kept: Object.fromEntries(this.kept),
       forced: Object.fromEntries(this.forced), // (the cheat's: what was set by hand, and let off what it follows)
       freed: [...this.freed],
+      staked: [...this.staked],
     };
   }
 
   // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
   load(data: unknown): void {
-    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown } & Record<string, unknown>;
+    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown } & Record<string, unknown>;
     const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
     const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
     this.state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken']));
@@ -481,6 +489,7 @@ export class Story {
     const named = (key: unknown): key is string => typeof key === 'string' && idOf(key) in STORY_QUESTS;
     this.forced = new Map(Object.entries(saved.forced ?? {}).filter(([key]) => named(key)).map(([key, id]) => [key, typeof id === 'number' ? id : null]));
     this.freed = new Set(Array.isArray(saved.freed) ? saved.freed.filter(named) : []);
+    this.staked = new Set(Array.isArray(saved.staked) ? saved.staked.filter(named) : [...this.state.keys()].filter((key) => this.state.get(key) === 'taken')); // (an older save's: those under way had what they'd have been given)
     this.world = null; // (set afresh, with those)
   }
 }

@@ -37,6 +37,7 @@ describe('the quests people give, as written', () => {
       if (q.needs && 'count' in q.needs) expect(q.needs.count, q.id).toBeGreaterThan(0);
       if (q.gift && 'gear' in q.gift) expect(ITEMS[q.gift.gear], `${q.id} gives`).toBeDefined();
       else if (q.gift) expect(LOOT[q.gift.item], `${q.id} gives`).toBeDefined();
+      if (q.stake && 'item' in q.stake) expect(LOOT[q.stake.item], `${q.id} hands over`).toBeDefined();
       expect(q.copper >= 0 && q.xpShare > 0, q.id).toBe(true);
     }
   });

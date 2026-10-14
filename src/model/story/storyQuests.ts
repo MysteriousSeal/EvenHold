@@ -63,6 +63,7 @@ export interface StoryQuest {
   copper: number; // at a first-level village: more, the further out (story.ts)
   xpShare: number; // of a level's experience, at the village's level
   gift?: Gift;
+  stake?: { copper: number } | { item: LootId; count: number }; // what the giver hands over as it's taken, to do it with (the silver for a well; potions for a fight): once, however often it's taken up again
   sex?: Build; // whoever gives it, where the words have them a man or a woman ("my wife", "my husband"): offered only by one (story.ts)
   night?: boolean; // handed in, the night's spent with whoever takes it: all health and energy back, and up in the morning (offered only by someone of the other sex than the hero's: story.ts)
 }

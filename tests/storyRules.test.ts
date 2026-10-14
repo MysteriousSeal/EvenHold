@@ -13,6 +13,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { ghostsIn } from '../src/model/ruins/haunting';
 import type { LootId } from '../src/model/loot/loot';
 import { COMMON_QUESTS, RARE_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
+import { restore, snapshot } from '../src/model/save';
 import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const world = () => everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
@@ -228,5 +229,30 @@ describe('a quest under way, its village off the maps', () => {
     const task = (id: string) => model.story.taken.find((t) => t.id === id)!.task;
     expect(task('wordToTheNextInn@99999')).toBe('Tell Wenna, at the inn in Brockholt, about the kegs and the magistrate');
     expect(task('wolvesOnTheTrail@99999')).toBe('Slay 3 wolves, then tell Osric the wheel is coming'); // (the carter it's handed in to, not the smith who gave it)
+  });
+});
+
+describe('a quest whose giver hands over what it is done with', () => {
+  it('gives it as it is taken, once: not again when let go and taken up afresh, nor after a save', () => {
+    const model = fresh();
+    const { story, hero } = model;
+    for (const id of ['wordToTheInn', 'spokesForTheWheel']) {
+      story.accept(id);
+      for (let i = 0; i < 3; i++) addToBag(hero.bag, 'birchLog');
+      story.handIn(id);
+    }
+    const potions = () => hero.bag.minorHealthPotion ?? 0;
+    const before = potions();
+    story.accept('wolvesOnTheTrail');
+    expect(potions()).toBe(before + 2); // (the smith's, for the story's first fight)
+    story.abandon('wolvesOnTheTrail');
+    story.accept('wolvesOnTheTrail');
+    const again = fresh();
+    restore(again, snapshot(model));
+    again.story.abandon('wolvesOnTheTrail');
+    again.story.accept('wolvesOnTheTrail');
+    expect([potions(), again.hero.bag.minorHealthPotion ?? 0]).toEqual([before + 2, before + 2]);
+    expect(STORY_QUESTS.aSilverForMaren.stake).toEqual({ copper: 100 }); // (the silver for her well: hers)
+    expect(STORY_QUESTS.silverToTheWell.stake).toEqual({ copper: 100 });
   });
 });

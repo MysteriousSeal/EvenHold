@@ -179,9 +179,10 @@ export const WATCH_QUESTS: StoryQuest[] = [
     receiver: 'herbalist',
     follows: 'whatTheyWerePaidIn',
     needs: { kind: 'do', what: 'wish', count: 1 },
+    stake: { copper: 100 }, // (their silver, not the hero's)
     offer: () => [
       'You tossed a coin in the well for her once, when nobody else would. Do it again, with their money this time. Go to the well and throw silver in, in the middle of the day, where the men in grey can watch you do it.',
-      'Do not wish for anything. It is not that kind of coin. Just let the whole village hear it hit the water.',
+      'Here. Their silver, a coin of it. Do not wish for anything. It is not that kind of coin. Just let the whole village hear it hit the water.',
     ],
     accept: "I'll throw it in.",
     decline: 'Later.',
