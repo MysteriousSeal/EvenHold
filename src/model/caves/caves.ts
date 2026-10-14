@@ -154,7 +154,8 @@ export function caveInside(seed: number, entrance: Entrance): CaveInside {
     if (!cave) throw new Error('no cave there');
     const plan = planCave(seed, cave.mouth);
     const seal = nestSeal(plan) ?? [];
-    inside = { cave, plan, props: furnishCave(seed, cave.mouth, plan), room: { width: plan.width, depth: plan.depth, door: plan.door, floor: 'earth', wall: 'rock' }, exit: caveExit(plan), seal, sealKeys: new Set(seal.map((t) => cellKey(t.x, t.z))), sealed: false };
+    const props = furnishCave(seed, cave.mouth, plan);
+    inside = { cave, plan, props, room: { width: plan.width, depth: plan.depth, door: plan.door, floor: 'earth', wall: 'rock' }, exit: caveExit(plan, props), seal, sealKeys: new Set(seal.map((t) => cellKey(t.x, t.z))), sealed: false };
     insides.set(entrance, inside);
   }
   return inside;

@@ -113,8 +113,9 @@ describe('a cave\'s burrow', () => {
         expect(isFloor(plan, p.x, p.z)).toBe(true);
         if (p.solid) expect(Math.hypot(p.x - plan.door, p.z - (plan.depth - 1)) > 4).toBe(true);
       }
-      const exit = caveExit(plan);
+      const exit = caveExit(plan, props);
       expect(isFloor(plan, exit.spot.x, exit.spot.z)).toBe(true);
+      expect(floorReached(plan, solid).has(`${exit.spot.x},${exit.spot.z}`)).toBe(true); // (stood on: no egg sac there, nor cut off)
       expect(isFloor(plan, exit.rock.x, exit.rock.z)).toBe(false);
       expect(Math.hypot(exit.spot.x - nest.x, exit.spot.z - nest.z)).toBeLessThan(nest.r * 1.5 + 1);
     }
@@ -149,7 +150,7 @@ describe('a cave\'s beasts\' posts', () => {
       const props = furnishCave(seed, mouth, plan);
       const seal = nestSeal(plan)!;
       const sealKeys = new Set(seal.map((t) => `${t.x},${t.z}`));
-      const inside = { cave: { mouth, level: 4 }, plan, props, exit: caveExit(plan), seal, sealKeys, sealed: true } as unknown as Parameters<typeof cavePosts>[1];
+      const inside = { cave: { mouth, level: 4 }, plan, props, exit: caveExit(plan, props), seal, sealKeys, sealed: true } as unknown as Parameters<typeof cavePosts>[1];
       const posts = cavePosts(seed, inside);
       expect(cavePosts(seed, inside)).toEqual(posts);
       expect(posts.length).toBeGreaterThan(8);
