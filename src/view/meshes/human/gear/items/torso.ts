@@ -2,6 +2,25 @@
 // chest (x -1..7, z -1..4; 4 is the front) and each arm's sleeve, rows 2-5
 // plus 6 over the shoulder (x -1..2, z -1..2; the side toward the body
 // stays open, so a sleeve's flank is always its outer side).
+//
+// The new torso pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - headsmansApron (headsman): a stiff oxblood leather apron from collarbone to below the belt over a bare black-hide
+//   jerkin, a dark stain spreading down from the middle, crude pale stitches at the neck strap; bare arms below short
+//   black sleeves. Oxblood 5a1a1a, stain 3a0e10, black 1c1a1c / leather 3e2a22, thread b8a986, iron buckle 5a5e66.
+// - barrowHauberk (barrow): a long mail hauberk gone to rust, patches of it red-brown, others still grey and pitted, a
+//   verdigris bronze collar and a grave-gold hem. Rust 8a4a22 / 5e2e16, pitted 7d7a72, verdigris 4e7a64, hem a89048, mould 3e4a32.
+// - cinderRobe (cinder): an ash-grey robe to the knees, belted with rope, soot rising from the hem and blackening the
+//   cuffs, the bone-white sigil on the chest, ember specks in the soot. Ash 6a6460 / 8a847e, soot 2a2826 / 1a1918,
+//   sigil d8ccaa, ember e0602a / glow ffb040.
+// - watchBrigandine (watch): teal cloth over riveted plates, brass rivets in pairs, a sand stripe down the front as the
+//   tabard has, steel plates at the shoulders over leather sleeves. Teal 2f9c9a / 217c7a, sand efdcb8, brass d4b060,
+//   steel b4bac2, leather 5e3f28.
+// - sunwardCuirass (sunward, legendary): a fluted cuirass, ivory enamel between gold ridges, a great gold sun of eight
+//   rays on azure on the breast, a ruby at its heart; gold-edged tassets at the waist, azure sleeves. Gold d4b060 /
+//   f0d080 / a8862e, ivory f4f0e6, azure 3060c0 / 1e3e8a, ruby b02838.
+// - velvetDoublet (velvet): a burgundy velvet doublet buttoned with pearls, slashed sleeves showing gold beneath, an
+//   ermine collar, black on one side against burgundy on the other (parti-colour). Velvet 6e1a2a / 4e1220 / 8a2a3a,
+//   black 1e1a1e, ermine f0ece0 with flecks 1c1a1c, gold d4b060, pearl f6f2ea.
 
 import type { TORSO_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
@@ -209,4 +228,10 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   linenShirt,
   travelCloak,
   brigandine,
+  headsmansApron: studdedJerkin, // STAND-IN: stiff oxblood apron collar to belt, a stain spreading down it, black jerkin, short black sleeves
+  barrowHauberk: chainMail, // STAND-IN: long rusted hauberk, rust patches and pitted grey, verdigris collar, grave-gold hem
+  cinderRobe: gambeson, // STAND-IN: ash-grey robe, rope belt, soot rising from the hem, bone-white flame sigil on the chest, ember specks
+  watchBrigandine: brigandine, // STAND-IN: teal brigandine, paired brass rivets, a sand stripe down the front, steel at the shoulders
+  sunwardCuirass: breastplate, // STAND-IN: fluted ivory-and-gold cuirass, great gold sun on azure on the breast, ruby heart, azure sleeves
+  velvetDoublet: tabard, // STAND-IN: burgundy-and-black velvet doublet, pearl buttons, slashed sleeves showing gold, ermine collar
 };

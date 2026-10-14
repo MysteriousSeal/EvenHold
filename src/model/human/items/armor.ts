@@ -64,6 +64,13 @@ export const TORSO_ITEMS = slotItems('torso', {
   studdedJerkin: { name: 'Studded jerkin', wornBy: { bouncer: 1 }, armor: 5, stats: { strength: 1, stamina: 2 } }, // an inn's bouncer's
   travelCloak: { name: 'Travel cloak', wornBy: { bandit: 1, pedlar: 2, pilgrim: 3 }, armor: 2, stats: { agility: 1, endurance: 2 } },
   brigandine: { name: 'Brigandine', value: 200, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, armor: 7, stats: { agility: 1, stamina: 2 } },
+  // The sets' (sets.ts): the watch's brigandine at the smithy and on the roads' guards; the rest found.
+  headsmansApron: { name: "Headsman's apron", set: 'headsman', level: 6, rarity: 'uncommon', value: 120, droppedBy: { bruiser: 1, sawbones: 2 }, armor: 4, stats: { strength: 3 } },
+  barrowHauberk: { name: 'Barrow hauberk', set: 'barrow', level: 4, value: 180, droppedBy: { draugr: 2 }, armor: 8, stats: { stamina: 2 } },
+  cinderRobe: { name: 'Cinder robe', set: 'cinder', level: 8, rarity: 'uncommon', value: 160, droppedBy: { firebrand: 2 }, armor: 3, stats: { agility: 1, endurance: 4 } },
+  watchBrigandine: { name: "Watchman's brigandine", set: 'watch', value: 220, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 7, stats: { strength: 1, stamina: 2 } },
+  sunwardCuirass: { name: 'Sunward cuirass', set: 'sunward', level: 16, rarity: 'legendary', value: 600, droppedBy: { cryptLord: 1 }, armor: 10, stats: { strength: 2, stamina: 3 } },
+  velvetDoublet: { name: 'Velvet doublet', set: 'velvet', level: 5, rarity: 'uncommon', value: 200, droppedBy: { banditChief: 1 }, armor: 2, stats: { agility: 2, endurance: 3 } },
 });
 
 export const HANDS_ITEMS = slotItems('hands', {
