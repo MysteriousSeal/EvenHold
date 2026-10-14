@@ -281,3 +281,22 @@ describe("cooking's page", () => {
     expect(page.querySelector('.book-why')?.textContent).toContain('wants a hearth');
   });
 });
+
+describe('tuning', () => {
+  it("cooked meat and fish heal more than the inn's like (a bear steak over her roast leg), each Well fed a few minutes after; a stew's longer", () => {
+    expect(MEALS.bearSteak.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
+    expect(MEALS.roastPike.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
+    for (const id of ['roastedFry', 'roastBoar', 'wolfSkewer', 'searedLynx', 'bearSteak', 'grilledTrout', 'saltedPerch', 'roastPike'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 4 * 60 });
+    expect(MEALS.boarStew.fed!.seconds).toBeGreaterThan(4 * 60);
+    expect(KINDLED_BURNS).toBe(8 * 60); // (time enough for a batch)
+  });
+
+  it("keeps a whole feast's half hour through a save (no meal's blessing outlasts what a save allows)", () => {
+    const model = kitchen();
+    const longest = Math.max(...MEAL_IDS.map((id) => MEALS[id].fed?.seconds ?? 0));
+    model.hero.blessings = [{ kind: 'feasted', left: longest }];
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.hero.blessings?.[0].left).toBe(longest);
+  });
+});
