@@ -255,16 +255,16 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
       return d === 2 ? [c.ivory, c.gold] : [c.ivory]; // its rays out across the field
     }, palette);
   })(),
-  // The blackbanner's: a tall pavise of black boards, a raised spine down it, blackened iron along its top and foot,
-  // and nothing bright but the one white band across it high up.
+  // The blackbanner's: a tall pavise of black boards, a raised spine down it, an iron rim round it, and nothing
+  // bright but the one white band across its middle, standing out over the rest.
   blackbannerPavise: (() => {
     const { palette, c } = namedPalette(SET_PALETTES.blackbanner);
     return shield(7, 12, (x, y) => {
       if (y === 11 && (x === 0 || x === 6)) return [];
       const board = mod(x, 2) === 0 ? c.cloth : c.clothLight;
-      if (y === 0 || y === 11 || (y === 10 && (x === 0 || x === 6))) return [board, c.iron];
-      if (y === 7 || y === 8) return [board, c.band];
-      return x === 3 ? [board, c.ironLight] : [board];
+      if (y === 5 || y === 6) return [board, c.band, c.band]; // (raised over all else)
+      if (y === 0 || y === 11 || x === 0 || x === 6 || (y === 10 && (x === 1 || x === 5))) return [board, c.ironLight]; // its rim
+      return x === 3 ? [board, c.iron] : [board];
     }, palette);
   })(),
 };
