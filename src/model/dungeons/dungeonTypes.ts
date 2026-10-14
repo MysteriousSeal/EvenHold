@@ -46,6 +46,7 @@ export interface DungeonRun {
   readonly exitOpen: { x: number; z: number } | null; // where to stand for its way out (its boss slain), or null
   readonly chest: { x: number; z: number; open: boolean } | null; // the boss's, once slain
   chestInReach(hero: { x: number; z: number }): boolean;
+  chestBlocks(x: number, z: number, r: number): boolean; // whether its chest stands in a walker's way (half-width r)
   openChest(): void;
   free(x: number, z: number, r: number): boolean; // whether a walker of half-width r could stand there
   standing(foe: Enemy): Enemy; // a foe set on the floor where it is

@@ -150,6 +150,11 @@ describe('a cave\'s beasts', () => {
     model.cave!.openChest();
     expect(hoard.open).toBe(true);
     expect(model.groundHere.loot.length).toBe(lying + 1);
+    // Her hoard stands in the way: walked at, the hero stops at it, not through it.
+    Object.assign(model.hero, { x: hoard.x, z: hoard.z + 1.2 });
+    for (let t = 0; t < 1; t += FRAME) model.update(0, -1, FRAME);
+    expect(model.hero.z - hoard.z).toBeGreaterThan(0.4);
+    expect(model.cave!.chestInReach(model.hero)).toBe(false); // (opened)
     // The way out: the crack, open; there, the door's the way back up to the hills, outside the cave's mouth.
     const exit = model.cave!.exitOpen!;
     Object.assign(model.hero, { x: exit.x, z: exit.z });

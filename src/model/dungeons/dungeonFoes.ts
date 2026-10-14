@@ -16,6 +16,8 @@ export interface DungeonFoesSpec {
   drop: { x: number; z: number }; // where what's in it lands, off its chest (the gear one side, the coins the other)
 }
 
+const CHEST_HALF = { x: 0.3, z: 0.2 }; // a chest's (or a hoard's) half-width across and half-depth, room tiles
+
 export abstract class DungeonFoes implements DungeonRun {
   abstract readonly foes: Enemy[];
   abstract readonly director: EnemyDirector;
@@ -85,6 +87,21 @@ export abstract class DungeonFoes implements DungeonRun {
   // Its boss's chest, if the hero's at it and it's not opened yet.
   chestInReach(hero: { x: number; z: number }): boolean {
     return !!this.chest && !this.chest.open && Math.hypot(hero.x - this.chest.x, hero.z - this.chest.z) < this.spec.chestReach;
+  }
+
+  // Whether its chest stands in the way of a walker of half-width r at (x, z): solid, once the hero's first clear of it
+  // (it may come to be where they stand: never walled in by it).
+  private chestSolid = false;
+  chestBlocks(x: number, z: number, r: number): boolean {
+    const chest = this.chest;
+    if (!chest) return false;
+    const over = (px: number, pz: number) => Math.abs(px - chest.x) < r + CHEST_HALF.x && Math.abs(pz - chest.z) < r + CHEST_HALF.z;
+    if (!this.chestSolid) {
+      const hero = this.director.quarry;
+      if (over(hero.x, hero.z)) return false;
+      this.chestSolid = true;
+    }
+    return over(x, z);
   }
 
   // Opens it: what it holds, out on the floor before it.

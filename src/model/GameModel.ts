@@ -52,7 +52,7 @@ import { type Crypt } from './crypts/crypts';
 import { CryptFoes } from './crypts/cryptFoes';
 import { type Cave } from './caves/caves';
 import { CaveRun } from './caves/caveFoes';
-import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/dungeons';
+import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare, dungeonWalls } from './dungeons/dungeons';
 import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
@@ -389,7 +389,7 @@ export class GameModel {
     this.yard = null;
     const { room, furniture } = layoutOf(this.seed, entrance);
     const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
-    this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonBlocks(this.seed, entrance), exitAt: () => this.below?.run.exitOpen ?? null }) };
+    this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(this.seed, entrance), () => this.below?.run), exitAt: () => this.below?.run.exitOpen ?? null }) };
     if (place) this.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
     this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: this.floors.of(place.key) };
     this.outdoors.seated = null;
