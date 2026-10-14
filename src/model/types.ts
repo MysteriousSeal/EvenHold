@@ -80,6 +80,7 @@ export type GameEvent =
   | { kind: 'jobRank'; job: string; rank: string } // risen a rank in a job (jobs/jobs.ts)
   | { kind: 'skillUp'; skill: string; level: number } // a skill risen a level (skills/skills.ts)
   | { kind: 'felled'; x: number; z: number } // a tree chopped down, for good (skills/lumber.ts)
+  | { kind: 'fished'; item: BagItem | null; x: number; z: number; dropped?: boolean } // a bite hooked and landed, or let get away (null), at the bobber (skills/fishing.ts); `dropped`: the bag full, at the hero's feet
   | { kind: 'salvaged'; item: string; gives: Array<[string, number]> } // a piece broken down at a salvage bench (skills/salvage.ts): what it left
   | { kind: 'mending' } // lain down hurt in a bed: rest mends them (hero/heroStats.ts recover), and they're told so
   | { kind: 'crafted'; item: BagItem } // something made, into the bag (skills/woodworking.ts)

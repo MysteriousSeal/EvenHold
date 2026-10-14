@@ -2,7 +2,7 @@
 // (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
 // (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
-// woodworking by making things; the others not yet. As in WoW, how likely a try raises it is by how hard the thing
+// woodworking by making things, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try raises it is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never.
 
 export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
@@ -97,12 +97,13 @@ export const SKILLS: Record<SkillId, Skill> = {
     name: 'Fishing',
     kind: 'secondary',
     verb: 'fish',
+    practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
     about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger.',
     unlocks: [
       { at: 1, what: 'Small fry from any shore' },
-      { at: 75, what: 'River trout and lake perch' },
-      { at: 150, what: 'Pike in the deep water' },
-      { at: 225, what: 'Rare catches, and what the water hides' },
+      { at: 75, what: "River trout in a lake's narrows, lake perch in its open water; bites come quicker each tier on" },
+      { at: 150, what: 'Pike, where the line lies far from any bank' },
+      { at: 225, what: 'What the water hides: a lost locket, an old coin, a torc in the deep' },
     ],
   },
 };
