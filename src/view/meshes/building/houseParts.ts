@@ -61,16 +61,19 @@ export function wallsOf(b: Box): { front: Wall; back: Wall; left: Wall; right: W
   };
 }
 
-// Glass recessed one voxel behind a 5x5 frame ring, divided into four panes
-// by a cross; a sill below. Timber windows add shutters and, on the front
-// and back walls, a planter of flowers.
+// A 5x5 frame ring, its glass parted by a mullion into two tall lights; a
+// sill below. The glass sits flush with the frame, not set back behind it,
+// so the high camera sees all of it (and all of it glows at night). Timber
+// windows add shutters and, on the front and back walls, a planter of
+// flowers.
 export function window(grid: VoxelGrid, wall: Wall, u: number, y: number, stoneWall: boolean): void {
   const frame = stoneWall ? C.stoneLight : C.timber;
   for (let du = -2; du <= 2; du++) {
     for (let dy = -2; dy <= 2; dy++) {
       const ring = Math.max(Math.abs(du), Math.abs(dy)) === 2;
-      put(grid, onWall(wall, u + du, y + dy, 0), ring ? frame : 0);
-      if (!ring) put(grid, onWall(wall, u + du, y + dy, 1), du === 0 || dy === 0 ? frame : C.glass);
+      const light = du === 0 ? frame : C.glass;
+      put(grid, onWall(wall, u + du, y + dy, 0), ring ? frame : light);
+      if (!ring) put(grid, onWall(wall, u + du, y + dy, 1), light);
     }
   }
   for (let du = -2; du <= 2; du++) put(grid, onWall(wall, u + du, y - 2, -1), stoneWall ? C.stoneLight : C.timberLight);
