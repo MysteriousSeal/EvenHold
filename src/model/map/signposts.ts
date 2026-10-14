@@ -11,7 +11,7 @@ import type { Tiles } from './tiles';
 
 const FOLLOWED = 4000; // tiles of paving followed out along an arm, at most, to a square
 export const SIGN_CORNER = 0.38; // how far off its tile's middle a signpost stands (across, and along: on the grass, at a corner)
-const SIGN_HALF = 0.06; // its post's girth, walked round (two voxels square, and the stones at its foot)
+const SIGN_HALF = 0.08; // its post's girth, walked round (two voxels square, and the stones at its foot; a voxel off its corner's mark, on the -x and -z sides)
 const SIGN_EDGE = 2; // tiles in from its area's edges a post must stand to be walked round (nearer, what's past the edge may not be made: its post found only once it is)
 
 export interface SignArm {
