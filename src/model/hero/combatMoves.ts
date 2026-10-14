@@ -37,6 +37,7 @@ const KEEN: ReadonlySet<ItemId> = new Set(['buckler', 'parryingDagger']);
 export const STAGGER = 0.9; // seconds a parried foe reels (its blow and any told move lost)
 const RIPOSTE = 1.5; // seconds the hero has to strike it, critically
 export const RIPOSTE_FACTOR = 2; // that blow's harm, times
+export const PUNISH = 0.5; // seconds after a roll that a blow catches any foe open (flinching it, whatever its poise: enemies/poise.ts)
 
 // How much of a blow the guard takes off, by what's in the off hand: bare-handed (or a torch, a book) half;
 // a buckler more; a shield most; a great wall of one, all.
@@ -56,6 +57,7 @@ export class CombatMoves {
   private riposte: { foe: Enemy; left: number } | null = null; // a foe just parried, open to a critical blow
   private blow: { t: number; landed: boolean } | null = null; // a blow under way: seconds into it, whether it's landed (once)
   private wait = 0; // seconds before breath refills
+  private sinceRoll = PUNISH; // seconds since the last roll ended
 
   constructor(private readonly hero: Hero) {}
 
@@ -112,6 +114,11 @@ export class CombatMoves {
     return !!this.roll && this.roll.t < ROLL_SAFE;
   }
 
+  // Whether a blow now catches a foe open (rolling, or just rolled: a punish).
+  get punishing(): boolean {
+    return !!this.roll || this.sinceRoll < PUNISH;
+  }
+
   // How far through the roll they are, 0..1, or null.
   get rollProgress(): number | null {
     return this.roll ? Math.min(1, this.roll.t / ROLL_TIME) : null;
@@ -133,6 +140,7 @@ export class CombatMoves {
     if (this.guard !== null) this.guard += dt;
     this.sinceRaised += dt;
     if (this.riposte && (this.riposte.left -= dt) <= 0) this.riposte = null;
+    this.sinceRoll += dt;
     const roll = this.roll;
     if (!roll) return;
     const at = (t: number) => 1 - (1 - Math.min(1, t / ROLL_TIME)) ** 2; // (fast, easing out)
@@ -140,7 +148,7 @@ export class CombatMoves {
     roll.t += dt;
     const steps = Math.max(1, Math.ceil(step / 0.2));
     if (step > 1e-9) for (let i = 0; i < steps; i++) slide((roll.dx * step) / steps, (roll.dz * step) / steps); // (none at its very end)
-    if (roll.t >= ROLL_TIME) this.roll = null;
+    if (roll.t >= ROLL_TIME) [this.roll, this.sinceRoll] = [null, 0];
   }
 
   // A blow of `damage` aimed at the hero (by `by`, if someone): rolled through (none), parried (none; the foe

@@ -20,6 +20,8 @@ import type { QuestBook } from '../quests/questBook';
 import type { DungeonHooks } from '../dungeons/dungeonTypes';
 import { CHILL_FOR } from '../crypts/frostBreath';
 import { isWorldFoe } from '../enemies/foeIds';
+import { reeling } from '../enemies/enemies';
+import { SHRUG_FLASH, flinches } from '../enemies/poise';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
@@ -29,7 +31,8 @@ export interface Fight {
   clear(a: { x: number; z: number }, b: { x: number; z: number }): boolean; // whether nothing solid stands between (a palisade, a wall: no blow through it)
   readonly godMode: boolean;
   readonly oneHitKills: boolean; // (a dev cheat: every blow of the hero's fells what it lands on)
-  readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn'>; // the hero's roll and guard (combatMoves.ts)
+  readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn' | 'punishing'>; // the hero's roll and guard (combatMoves.ts)
+  readonly minutes: number; // seconds of play (a foe's poise counts its blows by them: enemies/poise.ts)
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
   readonly story?: { onKill(enemy: Enemy): void }; // (the quests people give: the foes they ask slain, counted)
@@ -67,8 +70,10 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
   target.hp -= damage;
   leech(hero, damage); // (their gear's: a share of it healed)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
-  target.hurtFor = Math.max(target.hurtFor, HIT_FLASH); // (one reeling, parried, still reels)
-  target.swingFor = null; // a hit interrupts its own blow
+  // Its blow lost (a flash), if the hit makes it flinch: by its poise, or caught open (reeling, parried; or struck just
+  // after the hero's roll); else it shrugs it off (a little flash) and its blow comes on (enemies/poise.ts).
+  if (flinches(target, fight.minutes, reeling(target) || fight.moves.punishing)) [target.hurtFor, target.swingFor] = [Math.max(target.hurtFor, HIT_FLASH), null]; // (one reeling, parried, still reels)
+  else target.hurtFor = Math.max(target.hurtFor, SHRUG_FLASH);
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
