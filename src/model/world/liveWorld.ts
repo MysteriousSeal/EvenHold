@@ -49,6 +49,7 @@ export interface WorldHost {
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
 
+const TRAVELLER_HALF = 0.14; // a guard's footprint off the road (as the hero's)
 const REGION_IDS = 2 ** 20; // ids in each region's block, of villagers, animals and travellers
 
 // What stays known of a region once made.
@@ -306,6 +307,7 @@ export class LiveWorld {
     const groundY = (x: number, z: number) => this.groundY(x, z);
     const band = new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids);
     band.stones = () => this.host.chickens?.statues?.() ?? [];
+    band.blocked = (x, z) => this.obstacles.isBlocked(x, z, TRAVELLER_HALF);
     return band;
   }
 

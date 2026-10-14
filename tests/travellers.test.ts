@@ -276,7 +276,9 @@ describe('travellers and the foes of the wilds', () => {
     void [wx, wz];
   });
 
-  const wolfBy = (model: GameModel, t: Traveller, dx = 1.5): Enemy => {
+  // (on whichever side of the road it'd stand: not in a wall or a tree, where no foe is)
+  const wolfBy = (model: GameModel, t: Traveller, away = 1.5): Enemy => {
+    const dx = model.isBlocked(t.x + away, t.z, 0.2) ? -away : away;
     const wolf = makeEnemy(5_000_000 + model.enemies.length, 'wolf', t.x + dx, t.z, t.x + dx, t.z, 1);
     model.enemies.push(wolf);
     return wolf;
@@ -296,6 +298,18 @@ describe('travellers and the foes of the wilds', () => {
     expect(t.off).toBeNull(); // back on the road
     const at = onRoadSide(model.travellers.roads[t.road], t.along, t.way);
     expect(Math.hypot(t.x - at.x, t.z - at.z)).toBeLessThan(0.15);
+  });
+
+  it('a guard after a foe goes round what\'s in the way, never through it (a wall, water, a tree)', () => {
+    const { model, t } = alone('guard');
+    watching(model, t);
+    const wolf = wolfBy(model, t, 3);
+    const [wx, wz] = [Math.round((t.x + wolf.x) / 2), Math.round((t.z + wolf.z) / 2)];
+    for (let i = -1; i <= 1; i++) model.world.obstacles.addSolid(wx + (wx === Math.round(t.x) ? i : 0), wz + (wx === Math.round(t.x) ? 0 : i)); // (a wall between them)
+    for (let s = 0; s < 6; s += FRAME) {
+      model.update(0, 0, FRAME);
+      if (t.off) expect(model.isBlocked(t.x, t.z, 0.13), `in a wall at ${t.x},${t.z}`).toBe(false);
+    }
   });
 
   it('a foe of the world\'s own a guard slays stays slain (in the save too)', () => {

@@ -87,12 +87,15 @@ export class TravellerFights {
     if (d < 0.1) return void (guard.off = null);
     const step = Math.min(WALK * 1.5 * dt, d);
     guard.facing = turnToward(guard.facing, Math.atan2(dx, dz), dt);
-    this.move(guard, (dx / d) * step, (dz / d) * step);
+    if (!this.move(guard, (dx / d) * step, (dz / d) * step)) this.move(guard, (dx / d) * step, (dz / d) * step, true); // (hemmed in: through, rather than off the road for good)
   }
 
-  private move(t: Traveller, dx: number, dz: number): void {
-    t.x += dx;
-    t.z += dz;
+  // A step, axis by axis (sliding along what's in the way, never into it: unless `through`); whether they went.
+  private move(t: Traveller, dx: number, dz: number, through = false): boolean {
+    const [x0, z0] = [t.x, t.z];
+    if (through || !this.travellers.blocked(t.x + dx, t.z)) t.x += dx;
+    if (through || !this.travellers.blocked(t.x, t.z + dz)) t.z += dz;
     t.y = this.groundY(t.x, t.z);
+    return t.x !== x0 || t.z !== z0;
   }
 }
