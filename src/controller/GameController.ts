@@ -42,6 +42,8 @@ function uncappedScheduler(): (callback: (now: number) => void) => void {
   };
 }
 
+const PRESS_KEPT = 0.2; // seconds a blow or roll pressed too soon is kept, to go as soon as it may
+
 export class GameController {
   private readonly input = new KeyboardInput();
   private lastTime = 0;
@@ -138,10 +140,12 @@ export class GameController {
     this.view.render();
   }
   timeScale = 1; // a dev cheat: the game running this many times as fast
+  private held = { attack: 0, roll: 0 }; // seconds a blow or a roll pressed too soon (mid-blow, mid-roll) is still kept to go
 
   private step(dt: number): void {
     if (this.paused) return;
-    if (this.input.consumeAttack()) this.model.startAttack();
+    if (this.input.consumeAttack()) this.held.attack = PRESS_KEPT;
+    if (this.held.attack > 0) this.held.attack = this.model.startAttack() ? 0 : this.held.attack - dt; // (pressed just before the last ends: it follows on)
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
     if (turn && !this.model.yard) {
       if (!this.model.inside || this.model.dungeon) this.model.cycleFocus(turn === 'back');
@@ -190,7 +194,8 @@ export class GameController {
     const action = this.input.consumeAction();
     if (action !== null) this.model.useAction(action);
     // Shift: a roll the way they're going (standing, forward); Q held: the guard up.
-    if (this.input.consumeRoll() && !this.model.work.held) this.model.roll(dirX, dirZ); // (not while held where they stand: below)
+    if (this.input.consumeRoll()) this.held.roll = PRESS_KEPT;
+    if (this.held.roll > 0) this.held.roll = !this.model.work.held && this.model.roll(dirX, dirZ) ? 0 : this.held.roll - dt; // (not while held where they stand: below)
     this.model.raiseGuard(this.input.guarding);
     this.model.update(dirX, dirZ, dt);
     const come = this.model.work.arrived(); // (someone let into their room, at work: in, the door shut, their word)

@@ -163,6 +163,26 @@ describe('the keys: the rest', () => {
     expect(model.moves.guard).toBeNull();
   });
 
+  it('Space pressed just before a blow ends: the next follows on as it does; pressed long before, lost', () => {
+    const { model, step } = play();
+    tap('Space');
+    step();
+    const blow = () => model.moves.blowProgress;
+    while ((blow() ?? 1) < 0.75) step(); // (most of the way through)
+    tap('Space'); // (too soon for another)
+    let followed = false;
+    for (let i = 0; i < 6 && !followed; i++) [step(), (followed = (blow() ?? 1) < 0.3)];
+    expect(followed).toBe(true);
+    step(40);
+    tap('Space');
+    step();
+    tap('Space'); // (straight after: a blow's whole length too soon)
+    step(40);
+    while (blow() !== null) step();
+    step(3);
+    expect(blow()).toBeNull(); // (not one more)
+  });
+
   it('1 to 8: what\'s in that slot of the action bar, had from the bag', () => {
     const { model, step } = play();
     model.hero.bag.ale = 2;
