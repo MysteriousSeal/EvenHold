@@ -89,6 +89,7 @@ export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 export interface WoodworkingHost {
   readonly hero: Hero;
   readonly lumber: { readonly chopping: unknown; stop(): void };
+  readonly fishing: { readonly line: unknown; stop(): void }; // (a line out: reeled in to make something; cast, the making stopped)
   readonly work: { readonly shift: unknown };
   report(event: GameEvent): void;
 }
@@ -121,7 +122,7 @@ export class Woodworking {
 
   start(id: RecipeId, count = 1): boolean {
     if (this.host.work.shift || this.canMake(id) === 0 || count < 1 || !this.roomFor(id)) return false; // (a full bag: nothing made to be lost)
-    this.host.lumber.stop();
+    [this.host.lumber.stop(), this.host.fishing.stop()];
     const left = Math.min(count, this.canMake(id));
     this.making = { recipe: id, left, of: left, t: 0 };
     return true;
@@ -136,11 +137,11 @@ export class Woodworking {
     return this.making ? Math.min(1, this.making.t / RECIPES[this.making.recipe].seconds) : null;
   }
 
-  // A moment of it: stopped by walking off, chopping, going to work; else on, one made each recipe's seconds.
+  // A moment of it: stopped by walking off, chopping, a line cast, going to work; else on, one made each recipe's seconds.
   update(dt: number, moving: boolean): void {
     const making = this.making;
     if (!making) return;
-    if (moving || this.host.lumber.chopping || this.host.work.shift) return this.stop();
+    if (moving || this.host.lumber.chopping || this.host.fishing.line || this.host.work.shift) return this.stop();
     if ((making.t += dt) < RECIPES[making.recipe].seconds) return;
     making.t = 0;
     if (!this.makeOne(making.recipe) || --making.left <= 0) this.stop();
