@@ -85,7 +85,7 @@ export const SKILLS: Record<SkillId, Skill> = {
     name: 'Cooking',
     kind: 'secondary',
     verb: 'cook',
-    practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle of two logs. E by it opens your recipes.',
+    practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',
     about: "Turn what's caught and hunted into meals that heal more than anything sold, and keep the hero going for a while after.",
     unlocks: [
       { at: 1, what: 'Roast boar and small fry over any fire: Well fed a few minutes after' },
