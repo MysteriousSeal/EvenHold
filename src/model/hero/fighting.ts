@@ -4,6 +4,7 @@
 // bowman's arrow, landing on the hero: first met by their roll or guard
 // (combatMoves.ts), then dodged or taken (combat.ts).
 
+import { butcher } from '../loot/ingredients';
 import { leech } from './gearEffects';
 import { rollGearDrop } from '../loot/gearDrops';
 import type { CombatMoves, Guarded } from './combatMoves';
@@ -79,6 +80,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
     const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);
+    butcher(ENEMY_STATS[target.kind].family, target.id).forEach((meat, i) => fight.dropLoot(meat, target.x - 0.2 + 0.15 * i, target.z + 0.2)); // (a beast's meat, its own roll: loot/ingredients.ts)
     const piece = rollGearDrop(target, dropFactor(hero)); // (gear: people and the dead only, at its level, loot/gearDrops.ts)
     if (piece) fight.dropLoot(piece, target.x + 0.2, target.z - 0.2);
     const amount = coinsFound(hero, coinDrop(target));

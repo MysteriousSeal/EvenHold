@@ -1,7 +1,8 @@
 // Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
 // fells, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
-import type { LootEntry } from './lootEntry';
+import { hashUnit } from '../../util/random';
+import type { LootEntry, LootSource } from './lootEntry';
 
 export const INGREDIENTS = {
   // From boars: a raw haunch, the likeliest thing a boar leaves.
@@ -46,3 +47,14 @@ export const INGREDIENTS = {
 
 export type IngredientId = keyof typeof INGREDIENTS;
 export const isIngredient = (item: string): item is IngredientId => item in INGREDIENTS;
+
+// A beast slain is butchered besides whatever it drops (loot.ts rollDrop): its meat, on a roll of its own, as likely as
+// a cook needs it (a boar's and a bear's more often than not), and now and then a bear's honeycomb. Each by the
+// beast's id, so the same kill leaves the same.
+export const BUTCHERED: Partial<Record<LootSource, ReadonlyArray<[IngredientId, number]>>> = {
+  boar: [['rawBoarMeat', 0.6]],
+  beast: [['rawWolfMeat', 0.4]], // (wolves, and a stronghold's war hounds)
+  bear: [['rawBearMeat', 0.6], ['honeycomb', 0.25]],
+  lynx: [['leanLynxMeat', 0.5]],
+};
+export const butcher = (source: LootSource, enemyId: number): IngredientId[] => (BUTCHERED[source] ?? []).filter(([, chance], i) => hashUnit(enemyId, 0, 81 + i) < chance).map(([item]) => item);
