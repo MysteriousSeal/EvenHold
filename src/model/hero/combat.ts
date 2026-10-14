@@ -8,7 +8,7 @@
 import { ATTACK_REACH, ENEMY_STATS } from '../constants';
 import type { Enemy, Hero } from '../types';
 import { blowOf, critChanceOf, dodgeChanceOf, throughArmor } from './attributes';
-import { blowDamage, hitTaken } from './blessing';
+import { blowDamage, hitTaken, spared } from './blessing';
 
 const FRONT = Math.cos((70 * Math.PI) / 180); // a blow reaches this far to either side of the hero's facing
 
@@ -36,8 +36,9 @@ export function heroBlow(hero: Hero, roll: number): { damage: number; crit: bool
   return { damage: blowDamage(hero, blowOf(hero)) * (crit ? 2 : 1), crit };
 }
 
-// What a foe's blow of `damage` does to them, `roll` deciding a dodge: nothing then, else what gets through their armour.
-export function blowTaken(hero: Hero, damage: number, roll: number): { dodged: boolean; damage: number } {
+// What a foe's blow of `damage` (a foe of `foeLevel`) does to them, `roll` deciding a dodge: nothing then, else what
+// gets through their armour and blessings.
+export function blowTaken(hero: Hero, damage: number, roll: number, foeLevel = hero.level): { dodged: boolean; damage: number } {
   if (roll < dodgeChanceOf(hero)) return { dodged: true, damage: 0 };
-  return { dodged: false, damage: throughArmor(hero, hitTaken(hero, damage)) };
+  return { dodged: false, damage: throughArmor(hero, hitTaken(hero, damage), foeLevel, spared(hero)) };
 }

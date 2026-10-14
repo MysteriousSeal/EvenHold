@@ -169,7 +169,7 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
   const guard = fight.moves.struck(damage, by);
   if (guard.guarded !== 'taken') fight.report({ kind: 'guard', outcome: guard.guarded, x: hero.x, y: hero.y, z: hero.z });
   if (guard.damage <= 0) return guard.guarded;
-  const blow = blowTaken(hero, guard.damage, fight.random());
+  const blow = blowTaken(hero, guard.damage, fight.random(), by?.level ?? hero.level); // (an arrow's: as of their own level)
   if (blow.dodged) {
     fight.report({ kind: 'dodge', x: hero.x, y: hero.y, z: hero.z });
     return guard.guarded;

@@ -12,7 +12,7 @@ import { MEALS, MEAL_IDS } from '../src/model/loot/meals';
 import { PROVISIONS, PROVISION_IDS, givesText } from '../src/model/loot/provisions';
 import { SKILLS, skillOf } from '../src/model/skills/skills';
 import { eatOrDrink } from '../src/model/hero/bag';
-import { blowDamage, hitTaken, mending, tiring, tossCoin } from '../src/model/hero/blessing';
+import { blowDamage, hitTaken, mending, spared, tiring, tossCoin } from '../src/model/hero/blessing';
 import { maxHpOf } from '../src/model/hero/attributes';
 import { recover } from '../src/model/hero/heroStats';
 import { MEAL_SECONDS } from '../src/model/loot/provisions';
@@ -202,12 +202,12 @@ describe('meals', () => {
     expect(mending(hero)).toBeGreaterThan(0);
     recover(hero, 10);
     expect(hero.hp).toBeCloseTo(1 + maxHpOf(hero) * mending(hero) * 10, 5);
-    expect([blowDamage(hero, 5), hitTaken(hero, 5), tiring(hero)]).toEqual([5, 5, 1]);
+    expect([blowDamage(hero, 5), hitTaken(hero, 5), spared(hero), tiring(hero)]).toEqual([5, 5, 0, 1]);
     hero.blessings = [{ kind: 'fortified', left: 60 }];
-    expect([blowDamage(hero, 5), hitTaken(hero, 5), mending(hero)]).toEqual([5, 4, 0]);
+    expect([blowDamage(hero, 5), spared(hero), mending(hero)]).toEqual([5, 0.15, 0]);
     expect(tiring(hero)).toBeLessThan(1);
     hero.blessings = [{ kind: 'feasted', left: 60 }];
-    expect([blowDamage(hero, 5), hitTaken(hero, 5)]).toEqual([6, 4]);
+    expect([blowDamage(hero, 5), spared(hero)]).toEqual([6, 0.15]);
     expect(mending(hero)).toBeGreaterThan(0);
   });
 

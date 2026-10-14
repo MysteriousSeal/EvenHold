@@ -7,7 +7,8 @@
 //   damage): a hundredth each a point, at most CHANCE_CAP.
 // - Stamina: more health, 2 a point.
 // - Endurance: more energy, 5 a point, and spent slower.
-// - Armour: a point less from each blow taken for every 5 (never under 1).
+// - Armour: a share off each blow taken, armour / (armour + ARMOR_EASE + ARMOR_EASE_PER_LEVEL a level of the foe's)
+//   (the stronger the foe, the less it takes off), a blessing's share with it, SPARED_CAP at most (never under 1).
 // Each piece's armour and stats grow with its level, and its rarity adds lines (human/items/gear.ts): more of a stat
 // or armour, or a special one: crit and dodge (on Agility's, under the same cap), health back over time, pace, life
 // on hit (gearAffixes).
@@ -25,7 +26,9 @@ const BASE_ENERGY = 100;
 const ENERGY_PER_ENDURANCE = 5;
 const CHANCE_PER_AGILITY = 0.01;
 const CHANCE_CAP = 0.4;
-const ARMOR_PER_DAMAGE = 5;
+const ARMOR_EASE = 26; // (a smith's kit, some 30 of it, takes some 35% off a level-5 foe's blows)
+const ARMOR_EASE_PER_LEVEL = 6;
+export const SPARED_CAP = 0.6; // the most of a blow armour and blessings together take off
 
 type Wearing = Pick<Hero, 'level' | 'equipment' | 'trained'>;
 
@@ -75,8 +78,13 @@ const chance = (hero: Wearing, more: number) => Math.min(CHANCE_CAP, statsOf(her
 export const dodgeChanceOf = (hero: Wearing): number => chance(hero, gearAffixes(hero).dodge);
 export const critChanceOf = (hero: Wearing): number => chance(hero, gearAffixes(hero).crit);
 
-// A blow of `damage` as it lands through their armour.
-export const throughArmor = (hero: Pick<Hero, 'equipment'>, damage: number): number => Math.max(1, damage - Math.floor(armorOf(hero) / ARMOR_PER_DAMAGE));
+// The share of a blow from a foe of `foeLevel` their armour takes off.
+export const armorShare = (hero: Pick<Hero, 'equipment'>, foeLevel: number): number => armorOf(hero) / (armorOf(hero) + ARMOR_EASE + ARMOR_EASE_PER_LEVEL * foeLevel);
+
+// A blow of `damage` from a foe of `foeLevel` as it lands through their armour, and `more` off (a blessing's share),
+// SPARED_CAP off at most, never under 1.
+export const throughArmor = (hero: Pick<Hero, 'equipment'>, damage: number, foeLevel: number, more = 0): number =>
+  Math.max(1, Math.round(damage * (1 - Math.min(SPARED_CAP, armorShare(hero, foeLevel) + more))));
 
 // Health and energy no more than their most (after gear came off, or points were had back).
 export function fitToMost(hero: Hero): void {
