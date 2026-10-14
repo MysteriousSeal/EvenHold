@@ -5,7 +5,8 @@
 // real time passes (every RESTOCK_EVERY), even between visits. What the hero
 // last sold can be bought back at what they got for it (saved too).
 
-import { canCarry } from '../hero/bagSlots';
+import { bagRoom, canCarry } from '../hero/bagSlots';
+import { slotsUsed, stacksOf } from '../hero/bagStacks';
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
 
@@ -103,7 +104,8 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
 export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' | 'full' {
   const sale = shop.buyback?.[index];
   if (!sale) return 'none';
-  if (!canCarry(hero, sale.id)) return 'full';
+  const have = hero.bag[sale.id] ?? 0;
+  if (!canCarry(hero, sale.id) || slotsUsed(hero.bag) + stacksOf(sale.id, have + sale.count) - stacksOf(sale.id, have) > bagRoom(hero)) return 'full'; // (room for the whole stack: junk, a slot to twenty)
   const cost = sale.price * sale.count;
   if (hero.money < cost) return 'too poor';
   hero.money -= cost;
