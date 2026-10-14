@@ -19,7 +19,7 @@ import { personMaterial } from '../human/humanParts';
 import { BODIES, BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
+import { HealthBar, VoxelBurst, enemyName, type EnemyRig, flashing } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
@@ -272,7 +272,7 @@ export class UndeadRig implements EnemyRig {
     if (this.nocked) this.nocked.visible = drawn !== null;
     if (this.bow) this.bow.rotation.set(drawn !== null ? Math.PI / 2 : 0, 0, 0); // (held upright, out in front while drawing)
     const raging = skeleton.kind === 'cryptLord' && skeleton.hp < skeleton.maxHp * RAGE;
-    this.rig.setMaterial(skeleton.hurtFor > 0 ? this.look.flash : raging ? this.look.rage : this.look.normal);
+    this.rig.setMaterial(flashing(skeleton) ? this.look.flash : raging ? this.look.rage : this.look.normal);
   }
 
   dispose(): void {

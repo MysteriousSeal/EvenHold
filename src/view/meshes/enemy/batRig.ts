@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh } from '../voxel/greedyMesh';
-import { HealthBar, enemyName } from './enemyParts';
+import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { BAT_BODY, BAT_GLOW, BAT_PALETTE, BAT_SHOULDER, BAT_VOXEL as V, BAT_WING, batBody, batWing } from './batVoxels';
 
@@ -82,7 +82,7 @@ export class BatRig extends FoeRig {
     this.fly.rotation.set(Math.min(0.5, speed * 0.15), 0, Math.sin(t * 3.1) * 0.12);
     for (const w of this.wings) w.group.rotation.z = w.side * (gliding ? 0.08 : beat * 0.85 + 0.1);
     if (bat.swingFor !== null) this.swoop(bat.swingFor / ENEMY_STATS.caveBat.swing);
-    const material = bat.hurtFor > 0 ? this.look.flash : this.look.normal;
+    const material = flashing(bat) ? this.look.flash : this.look.normal;
     for (const m of this.lit) m.material = material;
   }
 

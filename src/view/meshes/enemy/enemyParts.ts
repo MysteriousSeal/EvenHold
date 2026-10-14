@@ -5,7 +5,7 @@
 
 import { KIND_LOOKS } from './enemyKinds';
 import * as THREE from 'three';
-import { ENEMY_CORPSE_TIME } from '../../../model/constants';
+import { ENEMY_CORPSE_TIME, HIT_FLASH } from '../../../model/constants';
 import { CAMERA_YAW } from '../../constants';
 import type { Enemy } from '../../../model/types';
 import { difficulty, type Difficulty } from '../../../model/enemies/enemyLevels';
@@ -54,6 +54,9 @@ function bossMark(): THREE.SpriteMaterial {
 }
 
 // What each kind's called (over its head, in the target panel: enemyKinds.ts), unless it has a name of its own (a crypt's lord).
+// Whether a foe's drawn flashing: struck, a moment; reeling past that (parried), blinking, so a stagger reads apart from a hit.
+export const flashing = (enemy: Pick<Enemy, 'hurtFor'>): boolean => enemy.hurtFor > 0 && (enemy.hurtFor <= HIT_FLASH || Math.floor(enemy.hurtFor * 8) % 2 === 0);
+
 export const enemyName = (enemy: Pick<Enemy, 'kind' | 'name'>): string => enemy.name ?? KIND_LOOKS[enemy.kind].name;
 
 // What every foe's rig does (enemyViews.ts): its root in the scene, drawn at a size (its bar and name kept at

@@ -10,7 +10,7 @@ import { ENEMY_STATS, ENEMY_CORPSE_TIME } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
 import { partMesher } from '../common/creatureRig';
-import { HealthBar, enemyName } from './enemyParts';
+import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { GHOST_BODY, GHOST_PALETTE, GHOST_SHOULDER, GHOST_SLEEVE, GHOST_TAIL, ghostBody, ghostEyes, ghostSleeve, ghostTail } from './ghostVoxels';
 
@@ -103,7 +103,7 @@ export class GhostRig extends FoeRig {
     });
     if (ghost.swingFor !== null) this.rake(ghost.swingFor / ENEMY_STATS.ghost.swing);
     this.glow.opacity = 0.85 + 0.15 * Math.sin(t * 5);
-    const material = ghost.hurtFor > 0 ? this.shared.flash : this.look;
+    const material = flashing(ghost) ? this.shared.flash : this.look;
     for (const m of this.meshes) m.material = material;
   }
 

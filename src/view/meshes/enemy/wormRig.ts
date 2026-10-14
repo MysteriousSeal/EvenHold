@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, enemyName } from './enemyParts';
+import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { MOUND, RING_LONG, WORM_HEAD, WORM_PALETTE, WORM_RINGS, WORM_VOXEL as V, wormHead, wormMound, wormRing } from './wormVoxels';
 
@@ -85,7 +85,7 @@ export class WormRig extends FoeRig {
       reach += key(-0.1, 0.24);
     }
     this.arc(tall, reach, t, this.up);
-    const material = worm.hurtFor > 0 ? this.look.flash : this.look.normal;
+    const material = flashing(worm) ? this.look.flash : this.look.normal;
     for (const m of this.lit) m.material = material;
   }
 

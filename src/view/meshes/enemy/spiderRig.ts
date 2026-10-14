@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, enemyName } from './enemyParts';
+import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { SPIDER_GLOW, SPIDER_VOXEL as V, type SpiderSpec } from './spiderVoxels';
 import { LUNGE_TELL } from '../../../model/caves/caveMoves';
@@ -147,7 +147,7 @@ export class SpiderRig extends FoeRig {
 
     if (spider.told) this.told(spider);
     else if (spider.swingFor !== null) this.bite(spider.swingFor / ENEMY_STATS[spider.kind].swing);
-    const material = spider.hurtFor > 0 ? this.look.flash : this.look.normal;
+    const material = flashing(spider) ? this.look.flash : this.look.normal;
     for (const m of this.lit) m.material = material;
   }
 

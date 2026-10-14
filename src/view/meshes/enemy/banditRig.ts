@@ -14,7 +14,7 @@ import { HumanRig } from '../human/humanRig';
 import { dressStronghold, type StrongholdKind } from '../human/gear/stronghold/strongholdOutfits';
 import { personMaterial } from '../human/humanParts';
 import { BODY_HEIGHT, HUMAN_VOXEL_SIZE } from '../human/bodyVoxels';
-import { HealthBar, VoxelBurst, enemyName, type EnemyRig } from './enemyParts';
+import { HealthBar, VoxelBurst, enemyName, type EnemyRig, flashing } from './enemyParts';
 import { drawnAt } from '../common/overhead';
 
 const HEIGHT = BODY_HEIGHT * HUMAN_VOXEL_SIZE;
@@ -77,7 +77,7 @@ export class BanditRig implements EnemyRig {
     // (A told move, model/enemies/toldMoves.ts: their arm drawn back and held, till it lands.)
     const swing = bandit.swingFor !== null ? bandit.swingFor / ENEMY_STATS[bandit.kind].swing : bandit.told ? Math.min(WOUND_UP, (bandit.windUp ?? 0) * 0.6) : null;
     this.rig.update(bandit.x, bandit.y, bandit.z, dt, swing);
-    this.rig.setMaterial(bandit.hurtFor > 0 ? this.look.flash : this.look.normal);
+    this.rig.setMaterial(flashing(bandit) ? this.look.flash : this.look.normal);
   }
 
   dispose(): void {

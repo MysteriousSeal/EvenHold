@@ -13,7 +13,7 @@ import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy } from '../../../model/types';
 import { createQuadruped } from '../turned/quadruped';
 import { KIND_LOOKS } from './enemyKinds';
-import { HealthBar } from './enemyParts';
+import { HealthBar, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { HOUND_BODY, HOUND_PALETTE, HOUND_SHAPE, HOUND_VOXEL_SIZE } from './houndVoxels';
 
@@ -81,7 +81,7 @@ export class HoundRig extends FoeRig {
 
     const swing = (ENEMY_STATS as Partial<typeof ENEMY_STATS>)[hound.kind]?.swing ?? SWING;
     if (hound.swingFor !== null) this.lunge(Math.min(1, hound.swingFor / swing));
-    const material = hound.hurtFor > 0 ? this.look.flash : this.look.normal;
+    const material = flashing(hound) ? this.look.flash : this.look.normal;
     for (const mesh of this.meshes) mesh.material = material;
   }
 
