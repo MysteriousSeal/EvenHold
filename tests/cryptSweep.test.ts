@@ -6,7 +6,8 @@
 // nothing overlapping, everything where it belongs (cryptLayout.ts, cryptProps.ts).
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../src/util/random';
-import { inFullView, isFloor, planCrypt, type CryptPlan } from '../src/model/crypts/cryptLayout';
+import { planCrypt, type CryptPlan } from '../src/model/crypts/cryptLayout';
+import { inFullView, isFloor } from '../src/model/dungeons/floorPlan';
 import { furnishCrypt, type CryptProp } from '../src/model/crypts/cryptProps';
 import { FACINGS } from '../src/model/map/grid';
 import { floorReached, rockJoined } from './support/cryptChecks';

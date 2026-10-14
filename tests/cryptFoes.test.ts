@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { cryptInside } from '../src/model/crypts/crypts';
-import { isFloor, planCrypt } from '../src/model/crypts/cryptLayout';
+import { planCrypt } from '../src/model/crypts/cryptLayout';
+import { isFloor } from '../src/model/dungeons/floorPlan';
 import { furnishCrypt } from '../src/model/crypts/cryptProps';
 import { CRYPT_FOE_ID, CryptFoes, guardPosts } from '../src/model/crypts/cryptFoes';
 import { mulberry32 } from '../src/util/random';

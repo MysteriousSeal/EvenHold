@@ -1,6 +1,7 @@
 // What the crypt tests look at in a crypt's plan (model/crypts/cryptLayout.ts).
 import { cellKey, flood } from '../../src/model/map/grid';
-import { isFloor, type CryptPlan } from '../../src/model/crypts/cryptLayout';
+import { type CryptPlan } from '../../src/model/crypts/cryptLayout';
+import { isFloor } from '../../src/model/dungeons/floorPlan';
 import type { CryptProp } from '../../src/model/crypts/cryptProps';
 import type { FloorPlan } from '../../src/model/dungeons/floorPlan';
 
