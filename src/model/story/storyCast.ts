@@ -82,7 +82,10 @@ export const castKey = (host: CastHost): string => {
   return `${v.length}|${n.length}|${host.scenery.length}|${host.ruins.length}|${host.camps.length}|${host.caves.length}|${ends}|${n.length ? `${n[0].id},${n[n.length - 1].id}` : ''}`;
 };
 
-export function castOf(host: CastHost): { first: Setting | null; firstRuin: Ruin | null; villages: Setting[] } {
+// (`home`: the first village, kept since its line was taken up: where it stands (on the maps, or none till it is); 'nearest':
+// an older save's, the line under way before the trail was looked to, the one nearest the start as it was then.)
+export type Home = Point | 'nearest' | null;
+export function castOf(host: CastHost, kept: Home = null): { first: Setting | null; firstRuin: Ruin | null; villages: Setting[] } {
   const spawn = spawnOf(host.size);
   const folk = new Map<Village, Npc[]>();
   for (const n of host.npcs) folk.set(n.village, [...(folk.get(n.village) ?? []), n]);
@@ -108,8 +111,8 @@ export function castOf(host: CastHost): { first: Setting | null; firstRuin: Ruin
   // The first village's: the one the trail from the start leads to (the carter's "this trail leads to…"; a streamed
   // world's start on the corner of four regions, the trail made in one of them, not always to the nearest), else the one
   // nearest the start; with the carter by his wagon and the ruin nearest the start.
-  const lead = spawnTrailEnd(host.trails, spawn);
-  const home = (lead && nearest(villages, (s) => s.village, lead)) ?? nearest(villages, (s) => s.village, spawn);
+  const lead = kept === null && spawnTrailEnd(host.trails, spawn);
+  const home = kept && kept !== 'nearest' ? nearest(villages, (s) => s.village, kept, 1) : (lead && nearest(villages, (s) => s.village, lead)) || nearest(villages, (s) => s.village, spawn);
   const carter = carterOf(host);
   const firstRuin = nearest(host.ruins, middle, spawn);
   const first = home && carter && home.who.barmaid ? { ...home, key: 'first', level: 1, who: { ...home.who, carter }, place: { ...home.place, ruin: firstRuin ? middle(firstRuin) : undefined } } : null;

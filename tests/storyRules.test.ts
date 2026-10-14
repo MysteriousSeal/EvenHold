@@ -4,7 +4,6 @@
 // from one kind of place is asked only where there's one near, and pointed to; one whose giver speaks as a man or a
 // woman is offered only by one; one under way whose village is off the maps still told by its own names.
 import { describe, expect, it } from 'vitest';
-import type { GameModel } from '../src/model/GameModel';
 import { dungeonAt } from '../src/model/dungeons/dungeons';
 import { BOSS_POST } from '../src/model/dungeons/dungeonRecord';
 import { addToBag } from '../src/model/hero/bag';
@@ -14,6 +13,9 @@ import { ghostsIn } from '../src/model/ruins/haunting';
 import type { LootId } from '../src/model/loot/loot';
 import { COMMON_QUESTS, RARE_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
 import { restore, snapshot } from '../src/model/save';
+import { GameModel } from '../src/model/GameModel';
+import { spawnOf } from '../src/model/map/grid';
+import { STREAMED_SIZE } from '../src/model/worldgen/regions';
 import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const world = () => everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
@@ -255,4 +257,26 @@ describe('a quest whose giver hands over what it is done with', () => {
     expect(STORY_QUESTS.aSilverForMaren.stake).toEqual({ copper: 100 }); // (the silver for her well: hers)
     expect(STORY_QUESTS.silverToTheWell.stake).toEqual({ copper: 100 });
   });
+});
+
+describe('the first village, its line under way', () => {
+  it('stays where the line was taken up: kept in the save; an older save, with no village kept, where it was then (the nearest the start)', () => {
+    const model = new GameModel(7, STREAMED_SIZE); // (its trail from the start leads past the nearest village)
+    const spawn = spawnOf(model.size);
+    const nearestVillage = [...model.villages].sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z))[0];
+    const trailed = model.story.people!.village;
+    expect(trailed).not.toBe(nearestVillage);
+    model.story.accept('wordToTheInn');
+    const saved = model.story.save();
+    expect(saved.home).toEqual({ x: trailed.x, z: trailed.z });
+    // An older save, the line under way and no village kept: the nearest the start, its people with it.
+    model.story.load({ states: { 'wordToTheInn@first': 'done', 'spokesForTheWheel@first': 'taken' } });
+    expect(model.story.people!.village).toBe(nearestVillage);
+    expect(model.story.people!.barmaid.village).toBe(nearestVillage);
+    expect(model.story.stateOf('spokesForTheWheel')).toBe('taken');
+    expect(model.story.save().home).toBeUndefined(); // (and so saved again: read as it was, the next time too)
+    // As saved: where it was kept.
+    model.story.load(saved);
+    expect(model.story.people!.village).toBe(trailed);
+  }, 120_000);
 });

@@ -22,7 +22,7 @@ import { hashUnit, mulberry32 } from '../../util/random';
 import type { Pace, PaceVoice } from '../jobs/room/pace';
 import type { Carter } from './carter';
 import { RARE_QUESTS, STORY_QUESTS } from './quests/catalog';
-import { isTraveller, partsOf, type CastHost, type Point, type Setting, type Who } from './storyCast';
+import { isTraveller, partsOf, type CastHost, type Home, type Point, type Setting, type Who } from './storyCast';
 import { alreadyDone } from './storyAlready';
 import { restock, type RestockHost } from './storyRestock';
 import { goalOf, innOf } from './storyGoals';
@@ -106,6 +106,7 @@ export class Story {
   private counted = new Map<string, number>(); // what's been done toward each taken one (foes slain; a place reached, a thing done: 1)
   private kept = new Map<string, Kept>(); // each taken one's people and village, for when they're off the maps
   private world: QuestSet | null = null;
+  private home: Home = null; // the first village, once its line's taken up: kept, and in the save (storyCast.ts castOf)
   private haunted = -Infinity; // the game's minute what the quests ask for was last looked to (storyRestock.ts)
 
   constructor(private readonly host: StoryHost) {}
@@ -113,7 +114,7 @@ export class Story {
   // Every quest as it's set in the world that's on the maps, and whose they are (found again only as the world changes).
   private get set(): QuestSet {
     if (sameWorld(this.world, this.host)) return this.world;
-    this.world = settle(this.host);
+    this.world = settle(this.host, this.home);
     resettle(this.world, new Map([...this.forced].map(([key, id]) => [key, this.host.npcs.find((n) => n.id === id)])), [...this.state].filter(([, s]) => s === 'taken').map(([key]) => key), STORY_QUESTS); // (those set by hand, and an older save's)
     return this.world;
   }
@@ -337,6 +338,7 @@ export class Story {
     const room = this.host.quests?.trackRoom ?? true; // (tracked, if there's room)
     const t = this.told(i, from);
     this.state.set(key, 'taken');
+    if (i.quest.scope === 'first' && i.at && (this.home === null || this.home === 'nearest')) this.home = { x: i.at.village.x, z: i.at.village.z }; // (its line under way: there for good)
     this.counted.delete(key);
     this.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp });
     room ? this.untracked.delete(key) : this.untracked.add(key);
@@ -466,7 +468,7 @@ export class Story {
     return [...this.state].filter(([, s]) => s === 'done').map(([key]) => ({ id: key, name: STORY_QUESTS[idOf(key)]?.name ?? key }));
   }
 
-  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[] } {
+  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point } {
     return {
       states: Object.fromEntries([...this.state].map(([key, s]) => [key, s === 'taken' && this.untracked.has(key) ? 'untracked' : s])), // (untracked: taken, kept off the tracker)
       counted: Object.fromEntries(this.counted),
@@ -474,12 +476,13 @@ export class Story {
       forced: Object.fromEntries(this.forced), // (the cheat's: what was set by hand, and let off what it follows)
       freed: [...this.freed],
       staked: [...this.staked],
+      ...(this.home && this.home !== 'nearest' ? { home: this.home } : {}),
     };
   }
 
   // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
   load(data: unknown): void {
-    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown } & Record<string, unknown>;
+    const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown; home?: { x?: unknown; z?: unknown } } & Record<string, unknown>;
     const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
     const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
     this.state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken']));
@@ -490,6 +493,7 @@ export class Story {
     this.forced = new Map(Object.entries(saved.forced ?? {}).filter(([key]) => named(key)).map(([key, id]) => [key, typeof id === 'number' ? id : null]));
     this.freed = new Set(Array.isArray(saved.freed) ? saved.freed.filter(named) : []);
     this.staked = new Set(Array.isArray(saved.staked) ? saved.staked.filter(named) : [...this.state.keys()].filter((key) => this.state.get(key) === 'taken')); // (an older save's: those under way had what they'd have been given)
+    this.home = saved.home && typeof saved.home.x === 'number' && typeof saved.home.z === 'number' ? { x: saved.home.x, z: saved.home.z } : [...this.state.keys()].some((key) => key.endsWith('@first')) ? 'nearest' : null; // (an older save's line under way: where it was)
     this.world = null; // (set afresh, with those)
   }
 }
