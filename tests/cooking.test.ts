@@ -109,6 +109,19 @@ describe('cooking', () => {
     expect(KINDLED_BURNS).toBeGreaterThan(60);
   });
 
+  it('kindles it on open ground: on a shore, facing the lake, behind or beside them, not in the water', () => {
+    const model = kitchen(1, { birchLog: KINDLE_LOGS });
+    let shore: { x: number; z: number } | undefined;
+    for (let x = 2; x < TEST_MAP_SIZE.width - 2 && !shore; x++) for (let z = 2; z < TEST_MAP_SIZE.depth - 2 && !shore; z++) if (model.isOpenTile(x, z) && model.tiles.lake(x + 1, z)) shore = { x, z };
+    model.teleport(shore!.x, shore!.z);
+    model.hero.facing = Math.PI / 2; // (toward +x: the water)
+    expect(model.cooking.kindle()).toBe(true);
+    const { x, z } = model.cooking.kindled!;
+    expect(model.tiles.lake(Math.round(x), Math.round(z))).toBe(false);
+    expect(model.isOpenTile(Math.round(x), Math.round(z))).toBe(true);
+    expect(model.cooking.fireInReach?.kind).toBe('campfire');
+  });
+
   it('wants a hearth for the stews, pies and feasts; a campfire does for roasts and fish', () => {
     const model = kitchen(300, { rawBoarMeat: 4, salt: 2 });
     byACampfire(model);

@@ -89,6 +89,7 @@ export interface CookingHost {
   readonly woodworking: { stop(): void };
   readonly fishing: { readonly line: unknown; stop(): void }; // (a line out: reeled in to cook; cast, the cooking stopped)
   readonly work: { readonly shift: unknown };
+  isOpenTile(x: number, z: number): boolean; // (ground a fire may be lit on: no water, nothing standing there)
   report(event: GameEvent): void;
 }
 
@@ -193,8 +194,12 @@ export class Cooking {
     if (inside || this.host.yard || this.host.work.shift) return this.host.report({ kind: 'poor', text: 'Kindle a fire outdoors' }), false;
     if (!this.canKindle) return this.host.report({ kind: 'poor', text: `Firewood, or ${KINDLE_LOGS} logs, to kindle a fire` }), false;
     if (!takeFromBag(hero.bag, 'firewood')) for (let i = 0; i < KINDLE_LOGS; i++) takeFromBag(hero.bag, LOGS.find((log) => (hero.bag[log] ?? 0) > 0)!);
-    const ahead = 0.8; // a little before them, not under their feet
-    this.kindled = { x: hero.x + Math.sin(hero.facing) * ahead, z: hero.z + Math.cos(hero.facing) * ahead, left: KINDLED_BURNS };
+    // A little before them, not under their feet; on open ground (a shore's fisher facing the lake: behind them, or
+    // beside; nowhere about: at their feet).
+    const ahead = 0.8;
+    const spots = [0, Math.PI, Math.PI / 2, -Math.PI / 2].map((turn) => ({ x: hero.x + Math.sin(hero.facing + turn) * ahead, z: hero.z + Math.cos(hero.facing + turn) * ahead }));
+    const { x, z } = spots.find((p) => this.host.isOpenTile(Math.round(p.x), Math.round(p.z))) ?? hero;
+    this.kindled = { x, z, left: KINDLED_BURNS };
     return true;
   }
 
