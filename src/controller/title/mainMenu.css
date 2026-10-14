@@ -135,6 +135,8 @@
    bronze shield), the chosen one gilded and glowing, a gold bar down its side; dashed slots for the places left.
    (Its binding, the controls' codex's and the creation panels': view/ui/gilded.css.) */
 .title-list { position: absolute; right: 3vw; top: 13vh; width: 316px; max-height: 70vh; padding: 16px 14px 14px; }
+/* Narrower, short of what's in the middle (the signboard, Enter World: 170 px either side of it). */
+@media (max-width: 1100px) and (min-width: 761px) { .title-list { width: min(316px, calc(47vw - 198px)); } }
 
 .title-card, .title-slot {
   position: relative;
