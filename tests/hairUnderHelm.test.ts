@@ -26,9 +26,9 @@ const voxels = (grid: VoxelGrid) => {
 };
 
 describe('hair under head pieces', () => {
-  it('open behind: the cap, bandana, straw hat, kettle hat, nasal cap, circlets, crown, horned and winged helms; shut: the rest', () => {
+  it('open behind: the cap, bandana, straw hat, palmer hat, kettle hat, nasal cap, circlets, crown, horned and winged helms; shut: the rest', () => {
     const open = HEAD_ITEMS.filter(hairShowsUnder).sort();
-    expect(open).toEqual(['circlet', 'elvenCirclet', 'hornedHelm', 'kettleHat', 'leatherCap', 'nasalCap', 'redBandana', 'royalCrown', 'strawHat', 'wingedHelm']);
+    expect(open).toEqual(['circlet', 'elvenCirclet', 'hornedHelm', 'kettleHat', 'leatherCap', 'nasalCap', 'palmerHat', 'redBandana', 'royalCrown', 'strawHat', 'wingedHelm']);
     for (const shut of ['greatHelm', 'bascinet', 'barbute', 'sallet', 'mailCoif', 'maskedHood', 'huntersHood', 'linenCoif'] as ItemId[]) expect(hairShowsUnder(shut), shut).toBe(false);
   });
 
