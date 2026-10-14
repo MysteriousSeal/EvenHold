@@ -96,6 +96,10 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     fillBox(g, 1, 3, 1, 2, 3, 2, 4); // its tie
     fillBox(g, 1, 4, 1, 2, 4, 2, 3); // the flour, white at the top
   }),
+  // Sold by pedlars: a bundle of firewood, short split sticks, pale where split, bark on their backs, tied twice with twine.
+  firewood: model([0xc8a070, 0x8a5a34, 0x6a4428, 0xd8c8a0], [6, 3, 3], (g) =>
+    fillBox(g, 0, 0, 0, 5, 2, 2, (x, y, z) => ((y === 2 || y === 0) && (z === 0 || z === 2) && (x === 0 || x === 5) ? 0 : x === 1 || x === 4 ? 4 : (x === 0 || x === 5) ? 1 : (y + z) % 2 === 0 ? 2 : 3)),
+  ),
   // Logs (from the trees a lumberjack fells): a round length each, its bark round it, its cut end's grain showing.
   birchLog: log([0xe8e4da, 0x2a2826, 0xf0dcb0, 0xd8b880], (x, y, z) => (x * 3 + y * 5 + z * 7) % 6 === 0), // black dashes on white
   pineLog: log([0x8a4a2a, 0xffc040, 0xe8b870, 0xc8904a], (x, y, z) => x === 4 && y === 3 && z === 1), // a bead of resin
