@@ -19,6 +19,7 @@ import type { LEGS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { mail, mod } from '../patterns';
+import { SET_PALETTES } from '../setPalettes';
 
 // Wool hose dyed with woad, held up by a belt with a brass buckle.
 const hose = namedPalette({ wool: 0x5a7196, shade: 0x485c7c, belt: 0x5e3f28, buckle: 0xd4b060 });
@@ -134,6 +135,94 @@ const linenTrousers: ItemModel = {
   },
 };
 
+// Barrow: rusted cuisses with knee cops, bright pitted steel showing through
+// the rust, a band of verdigris round their upper edge; rotten mail at the
+// hips under a verdigris strap with a grave-gold buckle.
+const barrow = namedPalette({ ...SET_PALETTES.barrow });
+const rusted = (x: number, y: number, z: number) => (mod(x * 3 + y * 5 + z * 2, 4) === 0 ? barrow.c.pitted : barrow.c.rust);
+const barrowGreaves: ItemModel = {
+  palette: barrow.palette,
+  worn: {
+    torso: ({ x, y, z, front, center }) => {
+      const { c } = barrow;
+      if (y === 1) return front && center ? c.graveGold : c.verdigris;
+      return mail(x, y, z, c.rustDark, c.mould);
+    },
+    leg: ({ x, y, z, flank, back }) => {
+      const { c } = barrow;
+      if (y === 4) return back ? c.mould : c.verdigris; // the green-gold edge
+      if (z === 3 && !flank && y === 3) return x === 1 ? c.pitted : c.rustLight; // the knee cop
+      return back || flank ? (mod(y + z, 3) === 0 ? c.pitted : c.rustDark) : rusted(x, y, z);
+    },
+  },
+};
+
+// The flayer's: tight leggings of hide in patches of three tones, black
+// cross-stitches down the outside seam, a raw-hide belt with a bone toggle.
+const flayer = namedPalette({ ...SET_PALETTES.flayer });
+const patch = (a: number, b: number) => [flayer.c.hideDark, flayer.c.raw, flayer.c.hide, flayer.c.hideDark][mod(Math.floor(a / 2) * 2 + Math.floor(b / 2) * 3 + (a > 2 ? 1 : 0), 4)];
+const flayedLeggings: ItemModel = {
+  palette: flayer.palette,
+  worn: {
+    torso: ({ x, y, z, front, flank, center }) => {
+      const { c } = flayer;
+      if (y === 1) return front && center ? c.tooth : c.raw;
+      return patch(flank ? z : x, y + (flank ? 1 : 0));
+    },
+    leg: ({ x, y, z, flank }) => {
+      const { c } = flayer;
+      if (flank && (x === -1 || x === 3) && z === 1) return mod(y, 2) === 0 ? c.stitch : c.hidePale; // the seam
+      if (z === 3 && !flank && y === 3) return mod(x, 2) === 0 ? c.stitch : c.hidePale; // cross-stitched over the knee
+      return patch(flank ? z : x, y);
+    },
+  },
+};
+
+// The watch's: steel cuisses and bright knee cops on the front of the thigh
+// over teal hose, a sand stripe down the outside, brass rivets in a pair; a
+// leather belt with a brass buckle.
+const watch = namedPalette({ ...SET_PALETTES.watch });
+const watchCuisses: ItemModel = {
+  palette: watch.palette,
+  worn: {
+    torso: ({ y, front, flank, center }) => {
+      const { c } = watch;
+      if (y === 1) return front && center ? c.brass : c.leather;
+      return flank ? c.tealDark : c.teal;
+    },
+    leg: ({ x, y, z, flank, back }) => {
+      const { c } = watch;
+      if (z === 3 && !flank) {
+        if (y === 3) return c.steelLight; // the knee cop
+        return y === 4 && (x === 0 || x === 2) ? c.brass : c.steel;
+      }
+      if (flank && (x === -1 || x === 3)) return z === 1 ? c.sand : z >= 2 ? c.steelDark : c.tealDark; // the outside: stripe, the cuisse's edge
+      return back ? c.tealDark : c.teal;
+    },
+  },
+};
+
+// Blackbanner: black trews bound under the knee with blackened iron rings,
+// and the one white thing, a sash round the hips knotted on the right, its
+// ends hanging down that thigh.
+const banner = namedPalette({ ...SET_PALETTES.blackbanner });
+const blackbannerTrews: ItemModel = {
+  palette: banner.palette,
+  worn: {
+    torso: ({ x, y, flank }) => {
+      const { c } = banner;
+      if (y === 1) return c.band;
+      return flank && x < 0 ? c.band : flank ? c.clothLight : c.cloth; // the knot
+    },
+    leg: ({ x, y, z, flank }) => {
+      const { c } = banner;
+      if (y === 3) return mod(x + z, 3) === 0 ? c.ironLight : c.iron; // the ring
+      if (flank && x === -1 && z === 1 && y === 4) return c.band; // the sash's end
+      return flank ? (mod(z, 2) === 0 ? c.clothLight : c.cloth) : y === 2 && mod(x, 2) === 0 ? c.clothLight : c.cloth; // folds bagging under the ring
+    },
+  },
+};
+
 export const LEGS_MODELS: Record<keyof typeof LEGS_ITEMS, ItemModel> = {
   woolHose,
   beltedTrousers: trousers(0x4a3b2e, 0x3b2f25, 0x2e2622, 0xb89a5a),
@@ -145,9 +234,9 @@ export const LEGS_MODELS: Record<keyof typeof LEGS_ITEMS, ItemModel> = {
   stripedHose,
   paddedChausses,
   linenTrousers,
-  barrowGreaves: plateGreaves, // STAND-IN: rusted plate cuisses and knee cops over rotten mail, verdigris strap, grave-gold buckle
-  flayedLeggings: leatherBreeches, // STAND-IN: tight cured-hide patchwork leggings, black cross-stitched seams, raw-hide belt, bone toggle
-  watchCuisses: mailChausses, // STAND-IN: steel cuisses and knee cops over teal hose, a sand stripe down the outside, brass buckle
+  barrowGreaves,
+  flayedLeggings,
+  watchCuisses,
   particolouredHose: stripedHose, // STAND-IN: one leg burgundy, one black, slashed at the thigh to show gold, gold-braided belt
-  blackbannerTrews: trousers(0x26242a, 0x3a3840, 0xe8e2d4, 0x3e4046), // STAND-IN: baggy black trews, iron rings at the knee, white sash knotted at the hip
+  blackbannerTrews,
 };
