@@ -2,6 +2,18 @@
 // rows 0-1, x -1..7, z -1..4 with 4 the front; row 1 is where a belt sits)
 // and each leg's rows 2-4 (x -1..3, z -1..3 with 3 the front of the shin;
 // the side toward the other leg stays open).
+//
+// The new leg pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - barrowGreaves (barrow): rusted plate cuisses and knee cops over rotten mail at the hips, a verdigris strap with a
+//   grave-gold buckle. Rust 8a4a22 / 5e2e16 / a8642e, pitted 7d7a72, verdigris 4e7a64, buckle a89048, mould 3e4a32.
+// - flayedLeggings (flayer): tight leggings of cured hide patches, three tones, black cross-stitches down the outside
+//   seam, a belt of raw hide with a bone toggle. Hide c89a80 / dcb8a0 / 9a6e58, raw 9a5a4a, stitch 2a1c18, toggle efe6cc.
+// - watchCuisses (watch): steel cuisses and knee cops over teal hose, a sand stripe down the outside, a leather belt with
+//   a brass buckle. Steel b4bac2 / d2d6dc / 7d838c, teal 2f9c9a / 217c7a, sand efdcb8, leather 5e3f28, brass d4b060.
+// - particolouredHose (velvet): hose burgundy on one leg and black on the other, slashed at the thigh showing gold, a
+//   gold-braided belt. Velvet 6e1a2a / 4e1220, black 1e1a1e, gold d4b060.
+// - blackbannerTrews (blackbanner): baggy black trews bound at the knee with blackened iron rings, a white sash knotted
+//   at the hip, its ends hanging. Cloth 26242a / 3a3840, iron 3e4046, band e8e2d4.
 
 import type { LEGS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
@@ -133,4 +145,9 @@ export const LEGS_MODELS: Record<keyof typeof LEGS_ITEMS, ItemModel> = {
   stripedHose,
   paddedChausses,
   linenTrousers,
+  barrowGreaves: plateGreaves, // STAND-IN: rusted plate cuisses and knee cops over rotten mail, verdigris strap, grave-gold buckle
+  flayedLeggings: leatherBreeches, // STAND-IN: tight cured-hide patchwork leggings, black cross-stitched seams, raw-hide belt, bone toggle
+  watchCuisses: mailChausses, // STAND-IN: steel cuisses and knee cops over teal hose, a sand stripe down the outside, brass buckle
+  particolouredHose: stripedHose, // STAND-IN: one leg burgundy, one black, slashed at the thigh to show gold, gold-braided belt
+  blackbannerTrews: trousers(0x26242a, 0x3a3840, 0xe8e2d4, 0x3e4046), // STAND-IN: baggy black trews, iron rings at the knee, white sash knotted at the hip
 };

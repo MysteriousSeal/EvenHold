@@ -104,6 +104,12 @@ export const LEGS_ITEMS = slotItems('legs', {
   stripedHose: { name: 'Striped hose', armor: 1, stats: { agility: 1 } },
   paddedChausses: { name: 'Padded chausses', wornBy: { guard: 1 }, armor: 3, stats: { stamina: 1 } },
   linenTrousers: { name: 'Linen trousers', wornBy: { pedlar: 2 }, armor: 1, stats: { endurance: 1 } },
+  // The sets' (sets.ts).
+  barrowGreaves: { name: 'Barrow greaves', set: 'barrow', level: 4, value: 140, droppedBy: { draugr: 2, skeleton: 1 }, armor: 5, stats: { stamina: 2 } },
+  flayedLeggings: { name: 'Flayed-leather leggings', set: 'flayer', value: 60, wornBy: { bandit: 1 }, droppedBy: { sawbones: 1 }, armor: 3, stats: { agility: 2 } },
+  watchCuisses: { name: "Watchman's cuisses", set: 'watch', value: 160, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 5, stats: { strength: 1, stamina: 1 } },
+  particolouredHose: { name: 'Particoloured hose', set: 'velvet', level: 5, rarity: 'uncommon', value: 110, droppedBy: { banditChief: 1 }, armor: 1, stats: { agility: 2, endurance: 2 } },
+  blackbannerTrews: { name: 'Blackbanner trews', set: 'blackbanner', level: 5, value: 70, droppedBy: { bruiser: 1, crossbowman: 1, runner: 1 }, armor: 3, stats: { stamina: 2 } },
 });
 
 export const FEET_ITEMS = slotItems('feet', {
