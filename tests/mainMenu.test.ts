@@ -122,6 +122,7 @@ describe('the main menu', () => {
     expect(line('Guard').querySelector('small')?.textContent).toBe('raise it as a blow lands: parry');
     expect(line('Zoom').querySelector('.keycap-mouse.wheel')).not.toBeNull();
     expect(CONTROLS).toContainEqual(['Guard (raise it as a blow lands: parry)', 'Hold Q']); // (the pause menu's, as text)
+    for (const key of ['C', 'B', 'L', 'K', 'P', 'F or G']) expect(CONTROLS.map(([, keys]) => keys)).toContain(key); // (every window's key, the toolbar's; the inn's)
     click('Back');
     expect(shown()).toBe('Aleyn');
   });

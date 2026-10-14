@@ -23,6 +23,7 @@ export const CONTROL_GROUPS: ReadonlyArray<{ name: string; controls: readonly Co
       { what: 'Move', keys: 'W A S D, or the arrows', marks: [{ cluster: 'wasd' }, word('or'), { cluster: 'arrows' }] },
       { what: 'Roll', note: 'untouchable a moment', keys: 'Shift', marks: [cap('Shift')] },
       { what: 'Pick up, talk, sit, open, go in', keys: 'E', marks: [cap('E')] },
+      { what: 'At the inn', note: 'sat at the bar: an ale, a pie; by the barmaid: a room', keys: 'F or G', marks: [cap('F'), word('or'), cap('G')] },
       { what: 'Zoom', keys: 'Mouse wheel', marks: [{ mouse: 'wheel' }] },
     ],
   },
@@ -41,8 +42,9 @@ export const CONTROL_GROUPS: ReadonlyArray<{ name: string; controls: readonly Co
       { what: 'Hero sheet', keys: 'C', marks: [cap('C')] },
       { what: 'Bag', keys: 'B', marks: [cap('B')] },
       { what: 'Quest journal', keys: 'L', marks: [cap('L')] },
+      { what: 'Skills', keys: 'K', marks: [cap('K')] },
       { what: 'Spend points', keys: 'P', marks: [cap('P')] },
-      { what: 'Pause', keys: 'Escape', marks: [cap('Esc')] },
+      { what: 'Pause', note: 'or shut the window on top', keys: 'Escape', marks: [cap('Esc')] },
     ],
   },
 ];
