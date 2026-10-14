@@ -74,6 +74,7 @@ export const EERIE_QUESTS: StoryQuest[] = [
     id: 'herLocket',
     name: 'Her locket',
     giver: 'villagerA',
+    sex: 'male', // (his wife)
     receiver: 'villagerA',
     share: 0.2,
     needs: { kind: 'bring', item: 'fadedLocket', count: 1 },

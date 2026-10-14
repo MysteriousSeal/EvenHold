@@ -1,7 +1,8 @@
 // Rules the quests people give keep (model/story/), each found wanting once: what a quest asks, done before it was
 // ever taken (its camp cleared, its boss slain), still finishes it; someone with a trade, owed a hand-in the bag has no
 // room for, still shows their wares; a quest that follows another is only where that one is; what's to be brought
-// from one kind of place is asked only where there's one near, and pointed to.
+// from one kind of place is asked only where there's one near, and pointed to; one whose giver speaks as a man or a
+// woman is offered only by one.
 import { describe, expect, it } from 'vitest';
 import type { GameModel } from '../src/model/GameModel';
 import { dungeonAt } from '../src/model/dungeons/dungeons';
@@ -184,6 +185,22 @@ describe('where quests are set', () => {
     const where = (id: string) => story.keysOf(id).map((key) => key.split('@')[1]);
     for (const quest of [...COMMON_QUESTS, ...RARE_QUESTS]) if (quest.follows) for (const village of where(quest.id)) expect(where(quest.follows), `${quest.id} after ${quest.follows}`).toContain(village);
     expect(where('supperForTwo').length).toBeGreaterThan(3);
+  });
+
+  it("offers one whose giver speaks as a man or a woman (\"my wife\", \"my husband\") only from one", () => {
+    const model = world();
+    const { story } = model;
+    const seen = { offered: 0, locked: 0 };
+    for (const who of model.npcs.filter((n) => n.role === 'villager')) {
+      for (const q of story.questsOf(who)) {
+        const sex = STORY_QUESTS[q.id].sex;
+        if (!sex || !q.set) continue;
+        expect(q.state, `${q.key}: ${who.look.build}`).toBe(who.look.build === sex ? 'offered' : 'locked');
+        seen[q.state as 'offered' | 'locked']++;
+      }
+    }
+    expect(seen.offered).toBeGreaterThan(0);
+    expect(seen.locked).toBeGreaterThan(0);
   });
 
   it('asks for what one kind of place gives only where there is one near, and points there', () => {

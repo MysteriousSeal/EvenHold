@@ -30,6 +30,7 @@ export const BAWDY_QUESTS: StoryQuest[] = [
     id: 'aHusbandsEvenings',
     name: "A husband's evenings",
     giver: 'villagerA',
+    sex: 'female', // (her husband)
     receiver: 'barmaid',
     share: 0.6,
     offer: (t) => [

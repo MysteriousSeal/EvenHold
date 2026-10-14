@@ -287,6 +287,7 @@ export const VILLAGE_QUESTS: StoryQuest[] = [
     id: 'aCoinForLuck',
     name: 'A coin for luck',
     giver: 'villagerB',
+    sex: 'male', // (his wife, in labour)
     receiver: 'villagerB',
     share: 0.5,
     needs: { kind: 'do', what: 'wish', count: 1 },
