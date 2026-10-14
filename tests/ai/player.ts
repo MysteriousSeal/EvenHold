@@ -242,7 +242,11 @@ export class Player {
         if (went && !model.inside?.below) count(tally.doors, found.door.type === 'house' && isHerbalistHome(found.door) ? 'herbalist' : found.door.type);
         return went;
       }
+      case 'fish':
+      case 'fishing':
+        return model.fishing.use();
       case 'cannotChop':
+      case 'cannotFish':
         return tally.wasted++, true;
     }
   }
