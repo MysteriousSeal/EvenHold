@@ -4,6 +4,23 @@
 // sits half a voxel clear of a glove and of the armor at the hips. Long
 // shafts held in the middle sit a voxel outside the hand, so what runs back
 // past the fist clears the hips.
+//
+// The new weapons (each a STAND-IN below till it's drawn, in metal's colours; drawn, each its set's: setPalettes.ts):
+// - headsmansAxe (headsman): a long two-handed haft, a broad bearded head with a straight edge (a headsman's, not a
+//   woodsman's), black-iron with a bright edge, the haft wound in black leather, a dark stain on the bit. Iron 5a5e66 /
+//   7d838c, edge c3c9d1, haft 3e2a22, wrap 1c1a1c, stain 3a0e10.
+// - barrowBlade (barrow): a broad old sword, its blade pitted rust with notches bitten out of the edge, a verdigris
+//   bronze guard and a grave-gold pommel. Rust 8a4a22 / 5e2e16, pitted 7d7a72, verdigris 4e7a64, pommel a89048.
+// - flensingKnife (flayer): a short curved skinning knife, a wide belly to the blade, a bone grip bound in raw hide,
+//   dark at the edge. Blade c3c9d1 / 8d939c, blood 5a1818, grip tooth efe6cc, binding 9a5a4a.
+// - pilgrimsStaff (palmer): a tall plain staff, a gourd bottle tied below the top with a red cord, a scallop shell
+//   hung under it, an iron foot. Wood 8a6a42, gourd c89a4a, cord 9a2a2a, shell f0e4cc.
+// - watchGlaive (watch): a long ash pole, a broad single-edged glaive blade with a back spike, a teal tassel and brass
+//   collar where blade meets pole. Steel b4bac2 / d2d6dc, teal 2f9c9a, brass d4b060, pole 7a5a3a.
+// - courtSword (velvet): a slim sword with a swept gold hilt (a ring guard and curling quillons), a pearl pommel, a
+//   burgundy grip. Blade d2d6dc, gold d4b060, pearl f6f2ea, grip 6e1a2a.
+// - blackbannerFalchion (blackbanner): a short heavy falchion, the blade widening to a clipped point, blackened all but
+//   the edge, a plain iron cross and a white cloth knotted on the grip. Iron 3e4046 / 5a5e66, edge c3c9d1, band e8e2d4.
 
 import type { MAIN_HAND_ITEMS } from '../../../../../model/human/items/held';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
@@ -121,4 +138,23 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
   spear: pole(26, (z) => (z >= 23 ? (z === 25 ? c.edge : c.steel) : z === 22 ? c.dark : 0), 6.5),
   // A long staff shod with iron at both ends, wrapped where it's held.
   quarterstaff: pole(24, (z) => (z === 0 || z === 23 ? c.dark : z >= 10 && z <= 13 ? c.grip : 0), 11.5),
+  // STAND-IN: long black-wrapped haft, broad bearded straight-edged headsman's bit, black iron, bright edge, a stain
+  headsmansAxe: hafted(13, 7, 3, (y, z) => (z >= 8 ? (y === 0 ? c.edge : y <= 4 ? c.dark : y === 5 ? c.steel : 0) : 0)),
+  // STAND-IN: broad old sword pitted with rust, notched edge, verdigris bronze guard, grave-gold pommel
+  barrowBlade: sword(10, { pommel: c.brass, grip: c.grip, guard: c.dark, guardTips: c.dark, blade: c.edge, tip: c.dark }),
+  // STAND-IN: short curved skinning knife, wide-bellied blade, bone grip bound in raw hide
+  flensingKnife: held(() => {
+    const grid = createGrid([3, 1, 7]);
+    fillBox(grid, 1, 0, 0, 1, 0, 2, c.woodLight);
+    fillBox(grid, 1, 0, 3, 1, 0, 6, (_x, _y, z) => (z === 6 ? c.edge : c.steel));
+    return grid;
+  }, [1.5, 0.25, 0.5]),
+  // STAND-IN: tall plain staff, a gourd tied below the top with red cord, a scallop shell hung under it, iron foot
+  pilgrimsStaff: pole(24, (z) => (z === 0 ? c.dark : z >= 19 && z <= 20 ? c.woodLight : z >= 10 && z <= 13 ? c.grip : 0), 11.5),
+  // STAND-IN: long ash pole, broad glaive blade with a back spike, teal tassel and brass collar
+  watchGlaive: pole(26, (z) => (z >= 22 ? (z === 25 ? c.edge : c.steel) : z === 21 ? c.brass : 0), 6.5),
+  // STAND-IN: slim sword, swept gold hilt with ring guard and curling quillons, pearl pommel, burgundy grip
+  courtSword: sword(12, { pommel: c.steel, grip: c.grip, guard: c.brass, guardTips: c.brass, blade: c.steel, tip: c.edge }),
+  // STAND-IN: short heavy falchion widening to a clipped point, blackened but the edge, white cloth on the grip
+  blackbannerFalchion: sword(8, { pommel: c.dark, grip: c.grip, guard: c.dark, guardTips: c.dark, blade: c.dark, tip: c.edge }),
 };

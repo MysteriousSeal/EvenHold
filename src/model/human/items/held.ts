@@ -22,6 +22,15 @@ export const MAIN_HAND_ITEMS = slotItems('mainHand', {
   spear: { type: 'spear', name: 'Spear', value: 70, soldBy: { smith: 2 }, wornBy: { bandit: 1, guard: 1 }, stats: { strength: 2, agility: 2 } },
   quarterstaff: { type: 'staff', name: 'Quarterstaff', wornBy: { pilgrim: 1 }, stats: { agility: 1, endurance: 2 } },
   bandedCudgel: { type: 'club', name: 'Iron-banded cudgel', wornBy: { bouncer: 1 }, stats: { strength: 3 } }, // an inn's bouncer's, at his belt
+  // The sets' (sets.ts): the watch's glaive at the smithy and in the guards' hands, a pilgrim's staff, a flayer's knife
+  // on a bandit now and then; the rest found.
+  headsmansAxe: { type: 'axe', name: "Headsman's axe", set: 'headsman', level: 6, rarity: 'uncommon', value: 240, droppedBy: { sawbones: 1, bruiser: 1 }, stats: { strength: 5, stamina: 1 } },
+  barrowBlade: { type: 'sword', name: 'Barrow blade', set: 'barrow', level: 4, value: 130, droppedBy: { draugr: 2, skeleton: 1 }, stats: { strength: 3, endurance: 1 } },
+  flensingKnife: { type: 'dagger', name: 'Flensing knife', set: 'flayer', value: 50, wornBy: { bandit: 1 }, droppedBy: { sawbones: 1 }, stats: { agility: 3, strength: 1 } },
+  pilgrimsStaff: { type: 'staff', name: "Pilgrim's staff", set: 'palmer', wornBy: { pilgrim: 2 }, stats: { agility: 1, endurance: 3 } },
+  watchGlaive: { type: 'spear', name: "Watchman's glaive", set: 'watch', value: 170, soldBy: { smith: 1 }, wornBy: { guard: 1 }, stats: { strength: 3, agility: 2 } },
+  courtSword: { type: 'sword', name: 'Court sword', set: 'velvet', level: 5, rarity: 'uncommon', value: 260, droppedBy: { banditChief: 1 }, stats: { agility: 3, strength: 2 } },
+  blackbannerFalchion: { type: 'sword', name: 'Blackbanner falchion', set: 'blackbanner', level: 5, value: 140, droppedBy: { bruiser: 1, runner: 1, crossbowman: 1 }, stats: { strength: 4 } },
 } satisfies Record<string, ItemEntry & { type: WeaponType }>);
 
 export const OFF_HAND_ITEMS = slotItems('offHand', {
