@@ -146,31 +146,30 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
   spear: pole(26, (z) => (z >= 23 ? (z === 25 ? c.edge : c.steel) : z === 22 ? c.dark : 0), 6.5),
   // A long staff shod with iron at both ends, wrapped where it's held.
   quarterstaff: pole(24, (z) => (z === 0 || z === 23 ? c.dark : z >= 10 && z <= 13 ? c.grip : 0), 11.5),
-  headsmansAxe: own({ iron: headsman.iron, ironLight: headsman.ironLight, edge: 0xc3c9d1, haft: headsman.leather, wrap: headsman.black, wrapLight: headsman.blackLight, stain: headsman.stain }, [0.5, 3.25, 1.5], (c) => {
+  headsmansAxe: own({ iron: headsman.iron, ironLight: headsman.ironLight, edge: 0xc3c9d1, haft: headsman.leather, wrap: headsman.black, wrapLight: headsman.blackLight, stain: headsman.stain }, [0.5, 4.25, 1.5], (c) => {
     // A headsman's: a long haft wound in black leather for two hands, a broad bit of black iron hung below it, its
     // straight bright edge bearded back toward the hands, a dark stain run down it.
-    const grid = createGrid([1, 5, 14]);
+    const grid = createGrid([1, 6, 14]);
     const head = (y: number, z: number) => {
       if (y === 0) return z >= 7 ? c.edge : 0;
-      if (y === 1 || y === 2) return z >= 7 + y && z <= 14 - y ? (z === 11 ? c.stain : c.iron) : 0;
-      if (y === 3) return z >= 10 ? c.iron : 0; // the eye round the haft, and its end
+      if (y <= 3) return z >= 6 + y && z <= 12 + (y === 1 ? 1 : 0) ? (z === 11 && y >= 2 ? c.stain : y === 1 ? c.ironLight : c.iron) : 0;
+      if (y === 4) return z >= 10 ? c.iron : 0; // the eye round the haft, and its end
       return z >= 10 && z <= 12 ? c.ironLight : 0;
     };
-    fillBox(grid, 0, 0, 0, 0, 4, 13, (_x, y, z) => head(y, z) || (y === 3 ? (z <= 5 ? (mod(z, 2) ? c.wrap : c.wrapLight) : c.haft) : 0));
+    fillBox(grid, 0, 0, 0, 0, 5, 13, (_x, y, z) => head(y, z) || (y === 4 ? (z <= 5 ? (mod(z, 2) ? c.wrap : c.wrapLight) : c.haft) : 0));
     return grid;
   }),
-  barrowBlade: own({ rust: barrow.rust, rustDark: barrow.rustDark, rustLight: barrow.rustLight, pitted: barrow.pitted, verdigris: barrow.verdigris, verdigrisLight: barrow.verdigrisLight, gold: barrow.graveGold, mould: barrow.mould }, [1.5, 0.25, 2.5], (c) => {
-    // Out of a barrow: a broad old sword, its blade rust pitted through to the steel, notches bitten out of both
-    // edges and its point broken off, a verdigris guard, a grave-gold pommel, the grip's leather gone to mould.
+  barrowBlade: own({ rust: barrow.rust, rustDark: barrow.rustDark, pitted: barrow.pitted, steel: 0xc3c9d1, verdigrisLight: barrow.verdigrisLight, gold: barrow.graveGold, mould: barrow.mould }, [1.5, 0.25, 2.5], (c) => {
+    // Out of a barrow: a broad old sword, two patches of rust down its pitted middle, its edges still bright but
+    // notched, its point broken off; a grave-gold guard and pommel gone green at the ends, the grip's leather mould.
     const grid = createGrid([3, 1, 18]);
     setColor(grid, 1, 0, 0, c.gold);
     fillBox(grid, 1, 0, 1, 1, 0, 4, c.mould);
-    fillBox(grid, 0, 0, 5, 2, 0, 5, (x) => (x === 1 ? c.verdigris : c.verdigrisLight));
-    const rusted = (x: number, z: number) => mod(z * 3 + x * 5, 7) < 2; // (patches of it, the steel pitted between)
+    fillBox(grid, 0, 0, 5, 2, 0, 5, (x) => (x === 1 ? c.gold : c.verdigrisLight)); // (grave-gold gone green at its ends)
     fillBox(grid, 0, 0, 6, 2, 0, 17, (x, _y, z) => {
       if (x !== 1 && (z > 12 || (x === 0 && z === 8) || (x === 2 && z === 10))) return 0; // (its edges notched, narrowing to the point)
-      if (z === 17) return c.rustDark; // (broken off)
-      return rusted(x, z) ? (x === 1 ? c.rustDark : c.rust) : c.pitted;
+      if (x !== 1) return c.steel; // (its edges, still bright)
+      return z === 7 || z === 10 ? c.rustDark : z === 8 || z === 11 ? c.rust : c.pitted; // (two patches of rust down its middle)
     });
     return grid;
   }),
