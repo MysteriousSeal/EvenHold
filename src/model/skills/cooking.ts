@@ -111,7 +111,7 @@ export class Cooking {
     if (inside) {
       if (inside.below || inside.walls) return null; // (upstairs, or underground)
       const hearth = inside.furniture.find((f) => f.kind === 'hearth' && beforeHearth(f, hero));
-      return hearth ? { kind: 'hearth', x: hearth.x, z: hearth.z } : null;
+      return hearth ? { kind: 'hearth', x: hearth.x + (hearth.w - 1) / 2, z: hearth.z } : null; // (its middle)
     }
     if (this.host.yard) return null;
     const near = (x: number, z: number) => Math.hypot(x - hero.x, z - hero.z) <= FIRE_REACH;
@@ -144,11 +144,14 @@ export class Cooking {
   }
 
   // `count` of a recipe begun (Infinity: all the makings make); whether it was (known, by a fire it'll do over, the
-  // makings for one, room for it). Chopping and woodworking stop for it; at work, nothing's begun.
+  // makings for one, room for it), the hero turned to the fire. Chopping and woodworking stop for it; at work, nothing's
+// begun.
   start(id: CookRecipeId, count = 1): boolean {
     if (this.host.work.shift || this.canMake(id) === 0 || count < 1 || !this.roomFor(id) || !this.byFireFor(id)) return false;
     this.host.lumber.stop();
     this.host.woodworking.stop();
+    const fire = this.fireInReach!;
+    this.host.hero.facing = Math.atan2(fire.x - this.host.hero.x, fire.z - this.host.hero.z);
     const left = Math.min(count, this.canMake(id));
     this.making = { recipe: id, left, of: left, t: 0 };
     return true;
