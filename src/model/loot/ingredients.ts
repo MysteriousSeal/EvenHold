@@ -1,7 +1,8 @@
-// Ingredients: raw food for cooking (none yet), dropped by foes, and the logs a lumberjack fells; till they're of
-// use, only good for selling. Each says who drops it and how often, as junk does (the logs: no one).
+// Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
+// fells, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
-import type { LootEntry } from './lootEntry';
+import { hashUnit } from '../../util/random';
+import type { LootEntry, LootSource } from './lootEntry';
 
 export const INGREDIENTS = {
   // From boars: a raw haunch, the likeliest thing a boar leaves.
@@ -18,6 +19,13 @@ export const INGREDIENTS = {
   riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
   lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
   pike: { name: 'Pike', value: 14, droppedBy: {} },
+  // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and
+  // feasts (skills/cooking.ts).
+  salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
+  flour: { name: 'Flour', value: 4, droppedBy: {} }, // a small sack of it, milled in the valley
+  // Sold by pedlars on the road (travellers/pedlarShop.ts): a bundle of firewood, to kindle a campfire with and cook over
+  // (skills/cooking.ts), for whoever hasn't an axe.
+  firewood: { name: 'Bundle of firewood', value: 3, droppedBy: {} },
   // From the trees a lumberjack fells (skills/lumber.ts), not from foes: logs, a birch's, a pine's, an oak's.
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous
@@ -42,3 +50,14 @@ export const INGREDIENTS = {
 
 export type IngredientId = keyof typeof INGREDIENTS;
 export const isIngredient = (item: string): item is IngredientId => item in INGREDIENTS;
+
+// A beast slain is butchered besides whatever it drops (loot.ts rollDrop): its meat, on a roll of its own, as likely as
+// a cook needs it (a boar's and a bear's more often than not), and now and then a bear's honeycomb. Each by the
+// beast's id, so the same kill leaves the same.
+export const BUTCHERED: Partial<Record<LootSource, ReadonlyArray<[IngredientId, number]>>> = {
+  boar: [['rawBoarMeat', 0.6]],
+  beast: [['rawWolfMeat', 0.4]], // (wolves, and a stronghold's war hounds)
+  bear: [['rawBearMeat', 0.6], ['honeycomb', 0.25]],
+  lynx: [['leanLynxMeat', 0.5]],
+};
+export const butcher = (source: LootSource, enemyId: number): IngredientId[] => (BUTCHERED[source] ?? []).filter(([, chance], i) => hashUnit(enemyId, 0, 81 + i) < chance).map(([item]) => item);

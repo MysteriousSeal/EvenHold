@@ -83,6 +83,23 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   riverTrout: fish([0x5a6a3a, 0xd08a8a, 0xf0e4d0, 0x4a5a30, 0x1a1a1a], 7),
   lakePerch: fish([0x4a6a2a, 0xc8b048, 0xf0e0b0, 0xc84a2a, 0x1a1a1a], 7),
   pike: fish([0x3a5a2a, 0x7a9a4a, 0xe8e0c0, 0x2a4020, 0x1a1a1a], 9),
+  // Bought from the barmaid: salt, a twist of linen tied at the neck, grey grains heaped at its mouth; flour, a small
+  // burlap sack, tied, white at the top where it's open.
+  salt: model([0xe8e0cc, 0xc8bca0, 0xb8b8b4, 0xe8e8e4, 0x8a6a4a], [3, 4, 3], (g) => {
+    fillBox(g, 0, 0, 0, 2, 1, 2, (x, y, z) => ((x === 0 || x === 2) && (z === 0 || z === 2) && y === 1 ? 0 : y === 0 ? 2 : 1)); // the twist
+    setColor(g, 1, 2, 1, 5); // tied
+    setColor(g, 1, 3, 1, 3); // the salt heaped at its mouth
+    setColor(g, 0, 2, 1, 4);
+  }),
+  flour: model([0xc8a878, 0xa88858, 0xf4f0e8, 0x7a5a3a], [4, 5, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 2, 3, (x, y, z) => ((x === 0 || x === 3) && (z === 0 || z === 3) ? 0 : y === 0 ? 2 : (x + y + z) % 4 === 0 ? 2 : 1)); // the sack
+    fillBox(g, 1, 3, 1, 2, 3, 2, 4); // its tie
+    fillBox(g, 1, 4, 1, 2, 4, 2, 3); // the flour, white at the top
+  }),
+  // Sold by pedlars: a bundle of firewood, short split sticks, pale where split, bark on their backs, tied twice with twine.
+  firewood: model([0xc8a070, 0x8a5a34, 0x6a4428, 0xd8c8a0], [6, 3, 3], (g) =>
+    fillBox(g, 0, 0, 0, 5, 2, 2, (x, y, z) => ((y === 2 || y === 0) && (z === 0 || z === 2) && (x === 0 || x === 5) ? 0 : x === 1 || x === 4 ? 4 : (x === 0 || x === 5) ? 1 : (y + z) % 2 === 0 ? 2 : 3)),
+  ),
   // Logs (from the trees a lumberjack fells): a round length each, its bark round it, its cut end's grain showing.
   birchLog: log([0xe8e4da, 0x2a2826, 0xf0dcb0, 0xd8b880], (x, y, z) => (x * 3 + y * 5 + z * 7) % 6 === 0), // black dashes on white
   pineLog: log([0x8a4a2a, 0xffc040, 0xe8b870, 0xc8904a], (x, y, z) => x === 4 && y === 3 && z === 1), // a bead of resin

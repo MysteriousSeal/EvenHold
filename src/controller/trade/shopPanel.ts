@@ -5,8 +5,8 @@ import type { BagItem } from '../../model/hero/bag';
 
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
-import { buy, buyPrice, cupboardWords, sell, sellPrice, shopAt, innWants, type InnWant } from '../../model/inn/tavernShop';
-import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type ProvisionId } from '../../model/loot/provisions';
+import { INN_PANTRY, buy, buyPrice, cupboardWords, isPantry, sell, sellPrice, shopAt, innWants, type InnWant, type PantryId } from '../../model/inn/tavernShop';
+import { PROVISIONS, PROVISION_IDS, givesText, isProvision, type InnProvisionId, type ProvisionId } from '../../model/loot/provisions';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 import { doorNumber } from '../../model/interiors/interiors';
@@ -55,7 +55,11 @@ const LINES: TradeLines = {
 };
 // What she says of each of her wares when the hero buys one (one of
 // several, at random).
-const ABOUT: Record<ProvisionId, readonly string[]> = {
+// Her kitchen's salt and flour, for a cook: what she says of them, sold.
+const PANTRY_ABOUT: Record<PantryId, string> = { salt: 'Coarse grey salt from the coast, twisted up in linen.', flour: 'A small sack of flour, milled in the valley.' };
+const ABOUT: Record<InnProvisionId | PantryId, readonly string[]> = {
+  salt: ['Off my own shelf. Cooking for yourself, are you?', "Don't tell the cook I sold you that."],
+  flour: ["Mind you don't sneeze over it.", "Baking, is it? Bring me a slice when it's done."],
   bread: [
     'Fresh from the oven this morning, still soft.',
     'Tear it while it steams. That smell alone is worth the copper.',
@@ -146,20 +150,20 @@ export function createShopPanel(model: GameModel, hooks: { bag?: TradeBag }): { 
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => PROVISION_IDS,
+    wares: () => [...PROVISION_IDS, ...INN_PANTRY],
     wanted: (id): id is BagItem => isProvision(id) || innWants(id),
-    price: (id, selling) => (selling ? sellPrice(id as ProvisionId | InnWant) : buyPrice(id as ProvisionId)),
+    price: (id, selling) => (selling ? sellPrice(id as ProvisionId | InnWant) : buyPrice(id as ProvisionId | PantryId)),
     trade: (id, selling) => {
-      const result = selling ? sell(shop(), model.hero, id) : buy(shop(), model.hero, id as ProvisionId);
+      const result = selling ? sell(shop(), model.hero, id) : buy(shop(), model.hero, id as ProvisionId | PantryId);
       return result === 'she is short' ? 'short' : result;
     },
     lines: LINES,
     note: () => cupboardWords(shop()),
-    about: (id) => pick(ABOUT[id as ProvisionId]),
+    about: (id) => pick(ABOUT[id as InnProvisionId | PantryId] ?? ['That one? Nicely done, whoever made it.']),
     offered: (name) => `A ${name.toLowerCase()}? I could use that.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
-    blurb: (id) => PROVISIONS[id as ProvisionId].about,
-    facts: (id) => [toned('kind', PROVISIONS[id as ProvisionId].drink ? 'Drink' : 'Food'), toned('stat', givesText(id as ProvisionId))],
+    blurb: (id) => (isPantry(id) ? PANTRY_ABOUT[id] : PROVISIONS[id as ProvisionId].about),
+    facts: (id) => (isPantry(id) ? [toned('kind', 'Crafting material'), toned('stat', 'For cooking: stews, pies and feasts')] : [toned('kind', PROVISIONS[id as ProvisionId].drink ? 'Drink' : 'Food'), toned('stat', givesText(id as ProvisionId))]),
   });
 }

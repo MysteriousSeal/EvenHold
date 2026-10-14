@@ -440,7 +440,7 @@ export const ACTIVITIES: Activity[] = [
     serves: { craft: 1, coin: 0.4, growth: 0.3 },
     traits: { industrious: 0.8, cautious: 0.2 },
     options: (p) => {
-      const best = bestRecipe(p.model);
+      const best = bestRecipe(p.model) as keyof typeof RECIPES | null; // (woodworking's)
       const targets = best ? [{ label: `making ${RECIPES[best].name}s`, at: null, data: best }] : [];
       // And a bedroll, once it can be made and none's carried: the thing itself wanted, not the practice.
       if (best !== 'bedroll' && !(p.model.hero.bag.bedroll ?? 0) && p.model.woodworking.canMake('bedroll') > 0) targets.push({ label: 'making a bedroll', at: null, data: 'bedroll' });

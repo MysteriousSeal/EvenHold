@@ -303,6 +303,19 @@ describe('in the game', () => {
     expect([!!model.woodworking.making, !!model.fishing.line]).toEqual([true, false]);
   });
 
+  it('stops the cooking when cast, and is reeled in when cooking is begun, by a campfire on the shore', () => {
+    const model = atALake();
+    Object.assign(model.hero.bag, { fishingRod: 1, birchLog: 2, smallFry: 10 });
+    expect(model.cooking.kindle()).toBe(true);
+    expect(model.cooking.start('roastedFry', 5)).toBe(true);
+    expect(model.fishing.use()).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.cooking.making, !!model.fishing.line]).toEqual([false, true]);
+    expect(model.cooking.start('roastedFry', 5)).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.cooking.making, !!model.fishing.line]).toEqual([true, false]);
+  });
+
   it('is sold at its worth, to a pedlar or a herbalist, the bag saying so', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const shop = pedlarShopAt(new Map(), model.seed, { id: 1 });

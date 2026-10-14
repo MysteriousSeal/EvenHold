@@ -48,9 +48,9 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     offered: (name) => `${name}? I know just the buyer.`,
     junk: (_name, paid) => pick(JUNK).replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name.toLowerCase()).replace('{paid}', paid),
-    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isPotion(id) ? POTIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : id === 'fishingRod' ? 'Kept in your bag, it lets you fish: E on a lake shore, facing the water.' : 'From the bottom of a pedlar\'s pack.'),
+    blurb: (id) => (isProvision(id) ? PROVISIONS[id].about : isPotion(id) ? POTIONS[id].about : isBagItem(id) ? 'Fitted to your bag (B), it holds that much more.' : id === 'fishingRod' ? 'Kept in your bag, it lets you fish: E on a lake shore, facing the water.' : id === 'firewood' ? 'Split and dry, tied with twine. Enough for one fire.' : 'From the bottom of a pedlar\'s pack.'),
     facts: (id) =>
-      isProvision(id) ? [toned('kind', PROVISIONS[id].drink ? 'Drink' : 'Food'), toned('stat', givesText(id))] : isPotion(id) ? [toned('kind', 'Potion'), toned('stat', potionText(id))] : isBagItem(id) ? [toned('kind', 'Bag'), toned('stat', `+${ROOM_PER_BAG} bag slots`)] : id === 'fishingRod' ? [toned('kind', 'Tool'), toned('stat', 'For Fishing')] : [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
+      id === 'firewood' ? [toned('kind', 'Crafting material'), toned('stat', 'Kindles a campfire to cook over')] : isProvision(id) ? [toned('kind', PROVISIONS[id].drink ? 'Drink' : 'Food'), toned('stat', givesText(id))] : isPotion(id) ? [toned('kind', 'Potion'), toned('stat', potionText(id))] : isBagItem(id) ? [toned('kind', 'Bag'), toned('stat', `+${ROOM_PER_BAG} bag slots`)] : id === 'fishingRod' ? [toned('kind', 'Tool'), toned('stat', 'For Fishing')] : [toned('kind', SLOT_NAMES[ITEMS[id as ItemId].slot]), ...gearLines(id as ItemId), ...againstWorn(id as ItemId, model.hero.equipment)],
   });
   return {
     ...panel,

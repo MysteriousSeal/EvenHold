@@ -5,8 +5,8 @@
 // a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the carter by his wagon; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
 // (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench; a
-// well; a door upstairs; the stairs; a door; and, with nothing else, a tree that can't be chopped yet, a shore with no
-// rod to fish it (told why).
+// fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; and, with nothing else, a tree that
+// can't be chopped yet, a shore with no rod to fish it (told why).
 // `skip`: kinds to pass over (the game's E, tried and come to nothing: a full bag's loot, a seat taken: the next).
 import type { GameModel } from '../GameModel';
 import type { Entrance } from '../interiors/interiors';
@@ -18,6 +18,7 @@ import { talkingTo } from '../npcs/talk';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
 import type { FishAction } from '../skills/fishing';
+import type { Fire } from '../skills/cooking';
 import type { Carter } from '../story/carter';
 import { travellerInReach } from '../travellers/travellerTalk';
 import type { Traveller } from '../travellers/travellers';
@@ -38,6 +39,7 @@ export type Interaction =
   | { kind: 'traveller'; traveller: Traveller }
   | { kind: 'board'; board: number }
   | { kind: 'bench'; bench: Furniture }
+  | { kind: 'fire'; fire: Fire }
   | { kind: 'well'; village: number }
   | { kind: 'hallDoor'; door: Furniture }
   | { kind: 'stairs'; down: boolean }
@@ -94,6 +96,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield board !== null ? { kind: 'board', board } : null;
   const bench = model.salvage.benchInReach;
   yield bench ? { kind: 'bench', bench } : null;
+  const fire = model.cooking.fireInReach;
+  yield fire ? { kind: 'fire', fire } : null;
   const well = model.wellInReach;
   yield well !== null ? { kind: 'well', village: well } : null;
   const hallDoor = inside?.below ? doorAt(inside, hero) : null;

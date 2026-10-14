@@ -59,6 +59,8 @@ import { BAG_IDS } from '../../model/loot/bags';
 import { POTION_IDS } from '../../model/loot/potions';
 import { JUNK_ITEMS } from '../../model/loot/junk';
 import { PROVISION_IDS } from '../../model/loot/provisions';
+import { MEAL_IDS } from '../../model/loot/meals';
+import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../model/skills/cooking';
 import { addToBag, type BagItem } from '../../model/hero/bag';
 import { JUNK_STACK, slotsUsed } from '../../model/hero/bagStacks';
 import { bagRoom } from '../../model/hero/bagSlots';
@@ -384,6 +386,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
             { icon: lootIcon('fishingRod'), title: 'A fishing rod', detail: 'To fish from a lake shore (E facing the water)', run: () => (give(['fishingRod']), 'A fishing rod, in the bag.') },
             { icon: lootIcon('greaterHealthPotion'), title: 'Every potion', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
             { icon: lootIcon('bread'), title: 'Every food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
+            { icon: lootIcon('huntersFeast'), title: 'Every meal', detail: "Three of each a cook makes", run: () => (give(MEAL_IDS.flatMap((id) => [id, id, id])), 'Meals, in the bag.') },
+            { icon: lootIcon('rawBoarMeat'), title: "A cook's larder", detail: 'Ten of every making, two logs for a fire', run: () => (give([...new Set(COOK_RECIPE_IDS.flatMap((id) => Object.keys(COOK_RECIPES[id].from) as LootId[]))].flatMap((id) => Array<LootId>(10).fill(id)).concat(['birchLog', 'birchLog'])), 'Makings for every recipe, in the bag.') },
             {
               icon: lootIcon('wolfFang'),
               title: 'Fill the bag with junk',

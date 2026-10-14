@@ -4,7 +4,7 @@ import { DROP_CHANCE, LOOT, LOOT_IDS, LOOT_QUALITY, PICKUP_RANGE, rollDrop, type
 import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
-import { PROVISIONS } from '../src/model/loot/provisions';
+import { PROVISIONS, PROVISION_IDS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
 import { eatOrDrink, kindOf } from '../src/model/hero/bag';
 import { recover } from '../src/model/hero/heroStats';
@@ -96,7 +96,7 @@ describe('food and drink from the bag', () => {
 
   it('food gives back its share of their most health, drink of their most energy (each only that), over a few seconds', () => {
     const { hero } = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
-    for (const id of Object.keys(PROVISIONS) as Array<keyof typeof PROVISIONS>) {
+    for (const id of PROVISION_IDS) { // (the inn's: a cook's meals, with energy and a blessing after, in cooking.test.ts)
       Object.assign(hero, { hp: 1, energy: 1, bag: { [id]: 1 }, eating: null });
       expect(eatOrDrink(hero, id)).toBe(true);
       expect(hero.bag[id] ?? 0).toBe(0);

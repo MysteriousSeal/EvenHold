@@ -1,4 +1,4 @@
-import type { Blessing } from './hero/blessing';
+import type { Blessing, BlessingKind } from './hero/blessing';
 import type { BagId } from './loot/bags';
 import type { Road } from './worldgen/roads';
 import type { MapSize } from './map/grid';
@@ -16,13 +16,15 @@ import type { JobId, JobRecord } from './jobs/jobs';
 import type { SkillId, SkillRecord } from './skills/skills';
 
 // Something eaten or drunk over a while (heroStats.ts recover): the health and energy it gives back in all, the
-// seconds left of it and in all; `item`, what it is (from the bag).
+// seconds left of it and in all; `item`, what it is (from the bag); `fed`, a cook's meal's blessing once it's eaten
+// through (loot/meals.ts).
 export interface Meal {
   heal: number;
   energy?: number;
   left: number;
   seconds: number;
   item?: BagItem;
+  fed?: { kind: BlessingKind; seconds: number };
 }
 
 // The hero is a humanoid: a look, and what they wear (naked at first).
