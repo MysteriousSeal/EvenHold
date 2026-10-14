@@ -139,12 +139,9 @@ export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void
   const [dx, dz] = [knock.dx * step, knock.dz * step];
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.2));
   for (let i = 0; i < steps; i++) fight.push(dx / steps, dz / steps);
-  const p = Math.min(1, knock.t / KNOCK_TIME);
-  fight.hero.y = Math.sin(Math.PI * p) * KNOCK_HOP; // (thrown up, landing)
-  if (knock.t >= KNOCK_TIME) {
-    fight.hero.knock = undefined;
-    fight.hero.y = 0;
-  }
+  const lift = (t: number) => Math.sin(Math.PI * Math.min(1, t / KNOCK_TIME)) * KNOCK_HOP;
+  fight.hero.y += lift(knock.t) - lift(knock.t - dt); // (thrown up, landing: over the ground they're on, a hill's or a crypt's floor)
+  if (knock.t >= KNOCK_TIME) fight.hero.knock = undefined;
 }
 
 // A foe's blow lands if the hero is still within its reach (a step back in time dodges it).

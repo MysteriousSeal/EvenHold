@@ -288,8 +288,8 @@ export class GameModel {
     this.keepFocus();
     stepWildlife(this.nearWildlife.near(this.hero), this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
-    // go still finishes instead of freezing mid-air.
-    if (!this.outdoors.seated) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
+    // go still finishes instead of freezing mid-air. (Not while a knock throws them: its own hop, fighting.ts.)
+    if (!this.outdoors.seated && !this.hero.knock) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).

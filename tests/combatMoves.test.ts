@@ -111,6 +111,26 @@ describe('the roll', () => {
   });
 });
 
+describe('a knock', () => {
+  it('throws them up off the ground they stand on (a hill too, never sunk into it), and lands them back on it', () => {
+    const model = fresh();
+    const { x, z } = model.hero;
+    let spot: [number, number] | undefined;
+    for (let dx = -60; dx < 60 && !spot; dx++) for (let dz = -60; dz < 60 && !spot; dz++) {
+      const [sx, sz] = [Math.round(x) + dx, Math.round(z) + dz];
+      const y = model.getGroundY(sx, sz);
+      if (y > 0.3 && model.isOpenTile(sx, sz) && [1, 2].every((k) => model.getGroundY(sx + k, sz) === y && model.isOpenTile(sx + k, sz))) spot = [sx, sz];
+    }
+    model.teleport(spot![0], spot![1]);
+    model.hero.knock = { dx: 0.5, dz: 0, t: 0 };
+    const over: number[] = [];
+    for (let i = 0; i < 40; i++) [run(model, 1 / 60), over.push(model.hero.y - model.getGroundY(model.hero.x, model.hero.z))];
+    expect(Math.min(...over)).toBeGreaterThan(-0.01);
+    expect(Math.max(...over)).toBeGreaterThan(0.1);
+    expect(over.at(-1)).toBeCloseTo(0, 5);
+  });
+});
+
 describe('the guard', () => {
   it('raised just as a blow lands: parried, no harm, the foe staggered and the next blow on it twice as hard', () => {
     const model = fresh();
