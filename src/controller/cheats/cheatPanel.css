@@ -5,7 +5,7 @@
    (and the World tab's facts) across them all, room above it and a little
    below its rule; a slimmer header and tab bar. Above the action bar (no
    dragging onto it from here), and never taller than the screen. */
-.menu-backdrop:has(> .menu[aria-label='Cheats']) { z-index: 30; padding: 16px; }
+.menu-backdrop:has(> .menu[aria-label='Cheats']) { z-index: 30 !important; padding: 16px; } /* (over the layer the windows' stack gives it: menu.ts) */
 .menu[aria-label='Cheats'] { width: min(960px, 100%); max-height: calc(100vh - 32px); }
 .menu[aria-label='Cheats'] .menu-header { padding: 8px 16px 12px; }
 .menu[aria-label='Cheats'] .menu-title { font-size: 22px; }
