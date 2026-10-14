@@ -1,12 +1,12 @@
 // Voxel medieval houses at the world's 0.04 voxel scale (25 voxels = one
 // tile). Each wall is built in depth layers so the relief reads at
 // gameplay distance: plaster sits one voxel back, the timber frame stands
-// proud of it, window glass is recessed behind its frame, sills, planters
+// proud of it, window glass sits flush in its frame, sills, planters
 // and lanterns project outward. Door faces -Z; the roof ridge runs along X.
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { C, TRIMS } from './housePalette';
+import { C, ROOF_SETS, TRIMS } from './housePalette';
 import { FOUNDATION_TOP, MID, braces, door, masonry, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
 import { chimneyAt, chimneyOf, yard } from './houseYard';
 
@@ -22,6 +22,7 @@ export interface HouseLayout {
   offsetX?: number; // shifts the house along X (to make room for a lean-to)
   leanTo?: boolean; // open woodshed against the +X wall
   porch?: boolean; // little timber porch roof over the door
+  dormer?: boolean; // a gabled window bay rising from the front wall through the roof
 }
 
 export const HOUSE_LAYOUTS: readonly HouseLayout[] = [
@@ -30,10 +31,30 @@ export const HOUSE_LAYOUTS: readonly HouseLayout[] = [
   { width: 15, depth: 15, wallHeight: 21, roofHeight: 13, groundHeight: 10 }, // townhouse, jettied upper floor
   { width: 17, depth: 15, wallHeight: 10, roofHeight: 12, stone: true }, // stone cottage
   { width: 13, depth: 13, wallHeight: 25, roofHeight: 11, groundHeight: 12 }, // tower house
-  { width: 21, depth: 13, wallHeight: 8, roofHeight: 15 }, // hall house: low walls, steep roof
+  { width: 21, depth: 13, wallHeight: 8, roofHeight: 15, dormer: true }, // hall house: low walls, steep roof
   { width: 15, depth: 15, wallHeight: 11, roofHeight: 11, offsetX: -3, leanTo: true }, // cottage with a woodshed
   { width: 19, depth: 15, wallHeight: 12, roofHeight: 12, porch: true, stone: true }, // stone house with a porch
 ];
+
+// A wall dormer over the front window at `u`: a half-timbered bay nine
+// voxels wide standing on the front wall's top beam, its own window (and
+// window box) in its face, under a little gable of the house's roof whose
+// ridge runs back into the main one. The main eave keeps only its lowest
+// course across the dormer's foot.
+function dormer(grid: VoxelGrid, b: Box, u: number, roofIndex: number): void {
+  const shades = ROOF_SETS[roofIndex];
+  const bay: Box = { x0: u - 4, x1: u + 4, z0: b.z0, z1: MID - 1, y0: b.y1 + 1, y1: b.y1 + 9 };
+  fillBox(grid, bay.x0, b.y1 + 2, b.z0 - 2, bay.x1, bay.y1, b.z0 - 1, 0);
+  timberStorey(grid, bay);
+  window(grid, wallsOf(bay).front, u, b.y1 + 6, false);
+  const peak = (dx: number) => bay.y1 + 1 + Math.round((5 - dx) * 0.6);
+  for (let dx = 0; dx <= 5; dx++) {
+    for (const x of dx === 0 ? [u] : [u - dx, u + dx]) {
+      fillBox(grid, x, peak(dx) - 1, b.z0 - 1, x, peak(dx), bay.z1, dx === 5 ? shades.dark : dx % 2 === 0 ? shades.base : shades.light);
+      if (dx < 4) fillBox(grid, x, bay.y1 + 1, bay.z0, x, peak(dx) - 2, bay.z1, x === u ? C.timber : C.plaster);
+    }
+  }
+}
 
 // A small timber porch over the door: two posts and a stepped plank roof.
 function porch(grid: VoxelGrid, b: Box, doorU: number): void {
@@ -129,6 +150,7 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, trim = 
   if (layout.leanTo) leanTo(grid, upper);
 
   const ridge = roof(grid, upper, layout.roofHeight, roofIndex);
+  if (layout.dormer) dormer(grid, upper, cx + 5, roofIndex);
   chimneyAt(grid, upper, ridge, chimneyOf(trim));
   yard(grid, twoStorey ? ground : upper, upper, doorU, twoStorey, trim);
   paintTrim(grid, TRIMS[trim]);
