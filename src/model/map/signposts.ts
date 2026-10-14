@@ -6,10 +6,13 @@
 import { REACH } from '../worldgen/roads';
 import type { Village } from '../types';
 import { NEIGHBORS_4 } from './grid';
+import type { Obstacles } from './obstacles';
 import type { Tiles } from './tiles';
 
 const FOLLOWED = 4000; // tiles of paving followed out along an arm, at most, to a square
 export const SIGN_CORNER = 0.38; // how far off its tile's middle a signpost stands (across, and along: on the grass, at a corner)
+const SIGN_HALF = 0.06; // its post's girth, walked round (two voxels square, and the stones at its foot)
+const SIGN_EDGE = 2; // tiles in from its area's edges a post must stand to be walked round (nearer, what's past the edge may not be made: its post found only once it is)
 
 export interface SignArm {
   dir: number; // the way it points (NEIGHBORS_4: +x, -x, +z, -z)
@@ -98,4 +101,12 @@ export function signpostsIn(tiles: Tiles, villages: readonly Village[], area: { 
     }
   }
   return out;
+}
+
+// The signposts on `area` (a region of a streamed world, as it's made: its own tiles and villages), each a thin post
+// walked round at its corner of its junction (low: it hides no one). Those right by its edges left out (whether
+// they're there at all hangs on the tiles past it, not made with it).
+export function addSignpostObstacles(obstacles: Obstacles, tiles: Tiles, villages: readonly Village[], area: { x0: number; z0: number; x1: number; z1: number }): void {
+  const inner = { x0: area.x0 + SIGN_EDGE, z0: area.z0 + SIGN_EDGE, x1: area.x1 - SIGN_EDGE, z1: area.z1 - SIGN_EDGE };
+  for (const { x, z, corner } of signpostsIn(tiles, villages, inner)) obstacles.addProp(x, z, SIGN_HALF, true, SIGN_HALF, true, corner[0] * SIGN_CORNER, corner[1] * SIGN_CORNER);
 }

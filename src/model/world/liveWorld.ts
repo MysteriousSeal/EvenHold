@@ -16,6 +16,7 @@ import { onPaving } from '../map/roads';
 import { Obstacles, type ObstaclePage } from '../map/obstacles';
 import { RegionTiles, TilePatch, type Tiles } from '../map/tiles';
 import { addWorldObstacles } from '../map/blockers';
+import { addSignpostObstacles } from '../map/signposts';
 import { solidCells } from '../worldgen/world';
 import { REGION, type RegionLand } from '../worldgen/regions';
 import type { Road } from '../worldgen/roads';
@@ -361,6 +362,7 @@ export class LiveWorld {
     const stood = new Set([...enemies, ...wildlife].map((e) => cellKey(Math.round(e.x), Math.round(e.z))));
     const strongholds = placeStrongholds({ seed, size, tiles, villages, ruins, camps, caves, isOpenTile, stoodOn: (x, z) => stood.has(cellKey(x, z)) }, area);
     addStrongholdObstacles(obstacles, strongholds);
+    addSignpostObstacles(obstacles, tiles, villages, area); // (the signposts at the roads' junctions: last, on the paving, so nothing else is moved)
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
     const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, entrances };
     this.learn(index, known);
