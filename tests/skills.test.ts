@@ -16,7 +16,10 @@ describe('skills', () => {
   it('are lumberjacking and woodworking (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
     expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
     expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary', 'secondary']);
-    for (const id of ['cooking', 'fishing'] as const) expect(SKILLS[id].unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+    expect(SKILLS.cooking.unlocks.map((u) => u.at)).toEqual(SKILL_TIERS.map((t) => t.from));
+    const fishing = SKILLS.fishing.unlocks.map((u) => u.at); // (practised: every tier's start, and a lucky catch between)
+    expect(fishing).toEqual(expect.arrayContaining(SKILL_TIERS.map((t) => t.from)));
+    expect(fishing).toEqual([...fishing].sort((a, b) => a - b));
     expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
     expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
   });
