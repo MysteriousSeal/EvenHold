@@ -19,16 +19,16 @@ const overEye = (x: number, y: number) => (y === 5 || y === 6) && (within(x, 3) 
 // low point over the crown; crude pale stitches up its seam from brow to
 // nape, and an old stain running down the front.
 const headsman = namedPalette({ ...SET_PALETTES.headsman });
-const stained = (x: number, y: number) => x >= M + 1 && x <= M + 2 + mod(y, 2) && y <= 9 - mod(x, 2) && !(y === 5 || y === 6); // (down past the eyes, not into them)
+const stained = (x: number, y: number) => x >= M + 1 && x <= M + 1 + mod(y, 2) && y <= 3; // (small, under the eyes)
 const headsmansHood: ItemModel = {
   palette: headsman.palette,
   headgear: (cell) => {
     const { x, y, z, d, top, back, flank } = cell;
     const { c } = headsman;
     const face = onFace(cell);
-    const seam = x === M && (top || face || back);
+    const seam = x === M && (top || (face && y >= 8) || back);
     if (d === 1) {
-      if (face && (overEye(x, y) || (y === 4 && x === M - 3) || (y === 7 && x === M + 2))) return 0; // the eye holes, ragged
+      if (face && (y === 5 || y === 6) && within(x, 4) && !within(x, 1) && !(y === 6 && (x === M - 4 || x === M + 4))) return 0; // the eye holes, ragged at their outer corners
       if (seam) return mod(top ? z : y, 2) === 0 ? c.thread : c.blackLight; // the stitches, up the seam
       if (face && stained(x, y)) return y <= 3 ? c.stain : c.oxblood;
       if (flank) return mod(z, 4) === 1 ? c.blackLight : c.black; // its folds
@@ -56,8 +56,8 @@ const barrowHelm: ItemModel = {
     const edge = edgeOf(cell, 8, 6);
     const frame = (top && (x === M || z === M)) || (!top && (face || back ? x === M : z === M)); // the bands from the rim up over the crown
     const plate = mod(x * 5 + y * 3 + z * 7, 17) === 0 ? c.pitted : mod(x + y + z, 2) === 0 && mod(x * 3 + z, 5) < 2 ? c.rustLight : c.rust; // (patches of it lighter, bright steel pitted through)
-    const nasal = face && within(x, 1) && y >= 3 && y < edge;
-    if (nasal) return d === 1 ? (x === M ? c.verdigrisLight : c.verdigris) : d === 2 && x === M ? c.verdigrisLight : 0;
+    const nasal = face && within(x, 1) && y >= 4 && y < edge; // (down to the nose's tip)
+    if (nasal) return d === 1 ? (x === M ? c.pitted : c.rustDark) : d === 2 && x === M && y >= 5 ? c.pitted : 0;
     if (y < edge) return d === 1 && !face && (back ? true : y >= 2) ? mail(x, y, z, c.rust, c.rustDark) : d === 2 && back && y <= 3 && within(x, 4) ? mail(x, y, z, c.rustDark, c.mould) : 0; // the mail, its curtain thick behind
     if (d === 1) return frame ? (mod(top ? z + x : y, 3) === 0 ? c.pitted : c.verdigris) : y === edge ? c.graveGold : plate;
     if (d > 2) return 0;
@@ -150,7 +150,7 @@ const palmerHat: ItemModel = {
 };
 
 // The Sunward armet: a close helm of ivory enamel framed in gold, its visor
-// a fluted gold beak with a dark sight over it, a gold sun of eight rays on
+// a fluted beak with a gilt ridge and a dark sight over it, a gold sun of eight rays on
 // azure on the brow (a ruby at its heart), a low gold crest from brow to
 // nape, gold pivots at the visor's hinges.
 const sunward = namedPalette({ ...SET_PALETTES.sunward });
@@ -168,16 +168,16 @@ const sunwardArmet: ItemModel = {
     const { c } = sunward;
     const face = onFace(cell);
     if (face) {
-      const beak = within(x, 1) && y >= 1 && y <= 4 ? 3 : within(x, 3) && y >= 1 && y <= 5 ? 2 : 1; // how far the visor stands out here
+      const beak = within(x, 1) && y >= 2 && y <= 4 ? 2 : 1; // how far the visor stands out here (a short point, over the face alone)
       if (d > beak) {
         if (d === 2 && y >= 8 && y <= 10 && within(x, 2)) return sun(x, y); // the sun, raised
         return 0;
       }
       if (d === 1 && y === 6 && x >= 1 && x <= L - 1) return c.azureDark; // the sight
       if (d === 1 && y >= 7) return within(x, 2) && y <= 11 ? c.azure : y === 7 ? c.gold : c.ivory; // the brow, the sun's field
-      if (d === beak && beak > 1) return mod(x, 2) === 0 ? c.goldLight : c.ivory; // the beak, fluted
-      if (d === 1 && y <= 5 && !within(x, 3)) return x === 0 || x === L ? c.gold : c.ivory; // its cheeks, edged
-      return y === 1 ? c.gold : mod(x, 2) === 0 ? c.gold : c.ivoryShade;
+      if (d === 2) return x === M ? c.goldLight : c.ivory; // the beak, its ridge gilt
+      if (y <= 1 || x === 0 || x === L) return c.gold; // the visor's edge
+      return x === M ? c.gold : mod(x, 2) === 0 ? c.ivoryShade : c.ivory; // fluted
     }
     if (d === 1) {
       if (y === 0) return c.gold; // the rim
