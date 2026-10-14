@@ -11,6 +11,7 @@ import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../loo
 import { INGREDIENTS } from '../loot/ingredients';
 import type { Hero } from '../types';
 import { buyFrom, openShop, refill, sellTo, type Shop, type Usual } from '../shops/shopStock';
+import { PEDLAR_KEY } from '../travellers/travellers';
 
 export { RESTOCK_EVERY, restockIn, type Shop } from '../shops/shopStock';
 
@@ -28,11 +29,11 @@ export function shopAt(shops: Map<number, Shop>, seed: number, inn: number, now 
 
 // Every barmaid back to her usual wares and purse at once (a cheat); those
 // not yet visited start that way anyway (the smiths' shops, kept alongside,
-// left be). Returns how many were restocked.
+// left be, and the pedlars' with their bread and ale). Returns how many were restocked.
 export function restockAll(shops: Map<number, Shop>, seed: number, now = Date.now()): number {
   let n = 0;
   for (const [inn, shop] of shops) {
-    if (!Object.keys(shop.stock).some(isProvision)) continue; // a smith's
+    if (inn >= PEDLAR_KEY || !Object.keys(shop.stock).some(isProvision)) continue; // a smith's (or a pedlar's, a herbalist's: kept past the doors' numbers)
     refill(shop, usual(seed, inn), now);
     n++;
   }

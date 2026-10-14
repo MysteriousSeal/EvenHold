@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BUYBACK, RESTOCK_EVERY, buyBack, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
 import { restockAll, shopAt } from '../src/model/inn/tavernShop';
+import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
 import { SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -124,7 +125,10 @@ describe("the smith's shop", () => {
     expect(Object.keys(forge.stock).every((id) => id in ITEMS)).toBe(true);
     forge.money = 1;
     tavern.money = 1;
+    const pack = pedlarShopAt(model.shops, model.seed, { id: 3 }); // (a pedlar's, bread and ale in it too)
+    const packed = { ...pack.stock };
     expect(restockAll(model.shops, model.seed)).toBe(1); // the inn's only
+    expect(pack.stock).toEqual(packed);
     expect(forge.money).toBe(1);
     expect(tavern.money).toBeGreaterThan(1);
     const again = new GameModel(model.seed, TEST_MAP_SIZE);
