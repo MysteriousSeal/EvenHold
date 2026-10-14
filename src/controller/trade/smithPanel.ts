@@ -7,7 +7,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
 import { baseOf, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
-import { buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopIn } from '../../model/smithy/smithShop';
+import { buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithSellsTo, smithShopIn } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
@@ -81,7 +81,7 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => Object.keys(shop().stock).filter(isGear), // (his forged pieces, at his village's level)
+    wares: () => (Object.keys(shop().stock).filter(isGear) as GearKey[]).filter((id) => smithSellsTo(model.hero, id)), // (his forged pieces, at his village's level; his heaviest, only once the hero's proven: smithAsks)
     wanted: smithBuys,
     price: (id, selling) => (selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey)),
     trade: (id, selling) => {

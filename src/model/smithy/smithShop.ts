@@ -58,7 +58,19 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
 export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half
 
+// The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
+// a tower shield, a great helm, mail, a breastplate) only to a hand that's shown it can carry it, not to a green one
+// fresh from the road with a fat purse (a whole kit of plate at the first village, and nothing could touch them).
+export function smithAsks(key: GearKey): number {
+  const worth = ITEMS[baseOf(key)].value ?? 0;
+  return worth >= 240 ? 7 : worth >= 200 ? 5 : worth >= 150 ? 3 : 1;
+}
+
+// Whether he'll sell it to `hero`, as far as he's concerned (not what's in stock).
+export const smithSellsTo = (hero: Pick<Hero, 'level'>, key: GearKey): boolean => hero.level >= smithAsks(key);
+
 export function buyGear(shop: Shop, hero: Hero, id: GearKey): 'bought' | 'sold out' | 'too poor' | 'full' {
+  if (!smithSellsTo(hero, id)) return 'sold out'; // (not for them, yet: off his wall)
   return buyFrom(shop, hero, id, gearPrice(id));
 }
 

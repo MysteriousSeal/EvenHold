@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn } from '../src/model/smithy/smithShop';
+import { baseOf, isGear, type GearKey } from '../src/model/human/items/gear';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
 import { INN_PANTRY, sellPrice } from '../src/model/inn/tavernShop';
@@ -36,6 +37,7 @@ function trading(type: 'smithy' | 'inn') {
     if (!enterNearest(model, type, new Set())) continue;
     const keeper = model.npcs.find((n) => n.role === (type === 'smithy' ? 'smith' : 'barkeep') && n.where === model.inside!.entrance);
     if (!keeper) continue;
+    if (type === 'smithy') model.hero.level = 7; // (proven: every piece of his on his wall, smithAsks)
     const bag = createInventoryPanel(model);
     const hooks = { bag };
     const panel = type === 'smithy' ? createSmithPanel(model, hooks) : createShopPanel(model, hooks);
@@ -45,6 +47,8 @@ function trading(type: 'smithy' | 'inn') {
   throw new Error(`no ${type}`);
 }
 
+// His wares as his wall shows them, by their keys (forged at a level: smithShop.ts).
+const onWall = (shop: { stock: object }) => (Object.keys(shop.stock) as GearKey[]).filter(isGear);
 const menus = () => Array.from(document.querySelectorAll<HTMLElement>('.menu'));
 const shopEl = () => menus().find((m) => m.querySelector('.shop-talk'))!;
 const bagEl = () => menus().find((m) => m.getAttribute('aria-label') === 'Bag')!;
@@ -93,12 +97,13 @@ describe("the smith's window", () => {
     const { model, keeper, panel, shop } = trading('smithy');
     model.hero.money = 100_000;
     panel.open(keeper);
-    const id = SMITH_WARES[0] as ItemId;
+    const key = onWall(shop())[0]; // (forged at his level: its key, of the base shown)
+    const id = baseOf(key);
     hover(rows()[0]);
     const text = tooltips().map((t) => t.textContent).join(' ');
     expect(text).toContain('Forged here, by the smith.');
     expect(text).toContain(SLOT_NAMES[ITEMS[id].slot]); // (what it goes on, under its name)
-    expect(text).toContain((shop().stock[id] ?? 0) > 0 ? `${shop().stock[id]} in stock` : 'Sold out');
+    expect(text).toContain((shop().stock[key] ?? 0) > 0 ? `${shop().stock[key]} in stock` : 'Sold out');
     expect(text).toContain('Right-click to buy one');
   });
 
@@ -129,8 +134,8 @@ describe("the smith's window", () => {
     model.hero.money = 100_000;
     panel.open(keeper);
     turn('Next').click();
-    const at = SMITH_WARES.slice(PAGE).findIndex((id) => (shop().stock[id] ?? 0) > 0);
-    const id = SMITH_WARES[PAGE + at] as ItemId;
+    const at = onWall(shop()).slice(PAGE).findIndex((key) => (shop().stock[key] ?? 0) > 0);
+    const id = onWall(shop())[PAGE + at];
     const [stock, money] = [shop().stock[id]!, shop().money];
     rightClick(rows()[at]);
     expect(model.hero.bag[id]).toBe(1);
