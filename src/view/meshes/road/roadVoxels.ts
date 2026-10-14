@@ -2,7 +2,10 @@
 // voxels span exactly one tile. Palette first, then shape:
 // - Road tiles: a dirt band two voxels thick (the cross of center + arms
 //   toward connected neighbors), two wheel ruts carved a voxel deeper and
-//   darker, a few raised pebbles, and edges that fray into the grass.
+//   darker, a few raised pebbles, edges that fray into the grass, and a
+//   ragged crown of grass between the ruts, where no wheel or hoof wears it;
+//   near a village, set with sandstone setts instead (as its square is),
+//   fewer the further out, till the road's bare dirt.
 // - Where the road runs onto a neighbor one tier lower, it steps down the
 //   drop as a short dirt staircase built out over the lower tile, instead
 //   of ending at the cliff edge above it.
@@ -34,12 +37,24 @@ export const ROAD_PALETTE = [
   0x8f7048, // 3 dirt, darker edge / speck
   0x7a5f40, // 4 rut floor
   0xcbbfa7, // 5 pebble
+  0x7f9a45, // 6 crown grass
+  0x98b354, // 7 crown grass, a blade lit
+  0xcdb088, // 8 sett
+  0xdcc39b, // 9 sett, pale
+  0xb89a70, // 10 sett, deep
 ];
 const DIRT = 1;
 const DIRT_LIGHT = 2;
 const DIRT_DARK = 3;
 const RUT_FLOOR = 4;
 const PEBBLE = 5;
+const CROWN = 6;
+const CROWN_LIT = 7;
+const CROWN_CHANCE = [0.32, 0.1]; // of the crown's middle voxels grown over; of those either side of it
+const BLADE_CHANCE = 0.35; // of those, a blade standing up
+const SETTS = [8, 9, 10];
+export const SETT_LEVELS = 4; // how set a tile is, 0 (bare dirt) to 3 (most of it), near a village
+const SETT_CHANCE = [0, 0.3, 0.6, 0.85]; // of its setts' places, by level, a sett laid there
 
 // Arms in NEIGHBORS_4 order (+x, -x, +z, -z), as bits of a connection mask.
 const [EAST, WEST, SOUTH, NORTH] = [0, 1, 2, 3];
@@ -127,13 +142,13 @@ export function roadTileOffset(drops: number): { side: number; below: number } {
 
 // `drops` has a bit set (NEIGHBORS_4 order, like `mask`) per connected
 // neighbor one tier lower.
-export function buildRoadTile(mask: number, variant: number, drops = 0): VoxelGrid {
+export function buildRoadTile(mask: number, variant: number, drops = 0, setts = 0): VoxelGrid {
   const { side, below } = roadTileOffset(drops);
   const grid = createGrid([N + 2 * side, ROAD_TILE_GRID[1] + below, N + 2 * side]);
   // Tile-local coordinates: (0, 0, 0) is the tile's corner voxel on its top surface.
   const set = (i: number, j: number, k: number, color: number) => setColor(grid, i + side, j + below, k + side, color);
   const get = (i: number, j: number, k: number) => colorAt(grid, i + side, j + below, k + side);
-  const rng = mulberry32(0x70ad + mask * 131 + variant * 7919);
+  const rng = mulberry32(0x70ad + mask * 131 + variant * 7919 + setts * 104729);
 
   // Dirt band, two voxels thick, with a light sprinkle of lighter/darker specks.
   for (let i = 0; i < N; i++) {
@@ -174,6 +189,36 @@ export function buildRoadTile(mask: number, variant: number, drops = 0): VoxelGr
     if (i < 0 || k < 0 || i >= N || k >= N) continue;
     set(i, 1, k, 0);
     set(i, 0, k, RUT_FLOOR);
+  }
+
+  // The crown: grass grown back between the ruts down each arm (not where carts turn, at a junction's middle).
+  for (let arm = 0; arm < 4; arm++) {
+    if (!has(mask, arm)) continue;
+    if (setts > 0) break; // (a road near a village worn bare, or set)
+    const from = isJunction(mask) || !has(mask, OPPOSITE[arm]) ? HALF_BAND : 0;
+    for (let along = from; along <= MID; along++) {
+      for (let lateral = -1; lateral <= 1; lateral++) {
+        if (rng() >= CROWN_CHANCE[Math.abs(lateral)]) continue;
+        const [i, k] = armVoxel(arm, along, lateral);
+        set(i, 1, k, CROWN);
+        if (rng() < BLADE_CHANCE) set(i, 2, k, CROWN_LIT);
+      }
+    }
+  }
+
+  // Setts near a village: two voxels square on a three-voxel grid (the dirt between them their joints), each laid by
+  // chance; the ruts worn through them.
+  if (setts > 0) {
+    for (let i = 0; i < N; i += 3) {
+      for (let k = 0; k < N; k += 3) {
+        if (rng() >= SETT_CHANCE[setts]) continue;
+        const color = SETTS[Math.floor(rng() * SETTS.length)];
+        for (const [di, dk] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+          const [si, sk] = [i + di, k + dk];
+          if (si < N && sk < N && inBand(mask, si, sk) && get(si, 1, sk) !== 0) set(si, 1, sk, color);
+        }
+      }
+    }
   }
 
   // A few pebbles sitting on the dirt (not in the ruts).

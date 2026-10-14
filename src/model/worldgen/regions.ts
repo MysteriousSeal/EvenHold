@@ -9,7 +9,9 @@
 // - all on it (villages, their roads and fields, ruins, camps, trees, bushes) made as a small world of its own (the
 //   classic pipeline: world.ts), from its own seed: villages kept clear of its edges by half their spacing and room
 //   for their lanes, ruins and camps by a few tiles, so nothing ever straddles two; forests, meadows and every tree's
-//   and bush's look sampled where they are, so they run on across borders.
+//   and bush's look sampled where they are, so they run on across borders;
+// - and last, a road from each of its borders' crossings in to its own (borderRoads.ts), each crossing found the same
+//   from either side (crossingsOf), so the land's roads run on from region to region.
 // Then moved to where it is on the world's map (everything in world tiles; its tiles a TilePatch).
 
 import { createNoise2D } from 'simplex-noise';
@@ -24,6 +26,7 @@ import { generateHeightMap } from './terrain';
 import { generateVillages } from './villages';
 import { generateSpawnTrail } from './trails';
 import { linkVillages, type Road } from './roads';
+import { STRAIGHT_IN, roadsToBorders } from './borderRoads';
 import { generateFields } from './fields';
 import { createForestDensity, generateTrees } from './trees';
 import { createMeadowDensity } from './meadows';
@@ -38,6 +41,8 @@ const VILLAGE_MARGIN = 24; // tiles its villages keep in from its edges (half th
 const PLACE_MARGIN = 8; // and its ruins and camps
 const LOW_AROUND = 18; // of the 25 tiles round a low tile, at least so many low too, for it to flood (no puddles)
 const SPAWN_DRY = 48; // tiles round where the hero sets out never flooded (never an islet to start on)
+const CROSSING_IN = 96; // tiles a border's crossing keeps from its ends (the corners, where four regions meet)
+const CROSSING_SLIDE = 64; // tiles either way from its chosen spot it may slide, to dry ground on both sides
 
 // One region of a streamed world: where it is (its first tile), its tiles, and all on it, in world tiles. Its roads'
 // `from` and `to` are its own villages', by index.
@@ -101,6 +106,38 @@ export function regionGround(seed: number, x0: number, z0: number, width: number
   return { heightMap: crop(h), lakeMap: crop(lake) };
 }
 
+// Where the road crosses the border along `line` (between its tiles line - 1 and line, across x or across z), on its
+// run of `length` tiles from `from`: how far along it, or null (water all along there). Dry ground straight across
+// it, as far either side as its roads run straight in; its ground made just for those tiles, as each region's own is
+// (so the same from either side).
+export function crossingOn(seed: number, across: 'x' | 'z', line: number, from: number, length: number, size: MapSize): number | null {
+  const span = length - 2 * CROSSING_IN;
+  if (span <= 0) return null;
+  const deep = STRAIGHT_IN + 1; // (tiles either side)
+  const { lakeMap } = across === 'x' ? regionGround(seed, line - deep, from, 2 * deep, length, size) : regionGround(seed, from, line - deep, length, 2 * deep, size);
+  const dry = (at: number) => {
+    for (let i = 0; i < 2 * deep; i++) if (across === 'x' ? lakeMap[i][at] : lakeMap[at][i]) return false;
+    return true;
+  };
+  const chosen = CROSSING_IN + (hashCell(line, from, seed ^ (across === 'x' ? 0x5eed : 0xb0de)) % span);
+  for (let step = 0; step <= CROSSING_SLIDE; step++) {
+    for (const at of [chosen + step, chosen - step]) if (at >= 0 && at < length && dry(at)) return at;
+  }
+  return null;
+}
+
+// Its side of each of its borders' crossings (those within the world), on its own maps.
+export function crossingsOf(seed: number, rx: number, rz: number, width: number, depth: number, size: MapSize): Array<[number, number]> {
+  const [x0, z0] = [rx * REGION, rz * REGION];
+  const out: Array<[number, number]> = [];
+  const add = (at: number | null, tile: (at: number) => [number, number]) => at !== null && out.push(tile(at));
+  if (x0 > 0) add(crossingOn(seed, 'x', x0, z0, depth, size), (at) => [0, at]);
+  if (x0 + width < size.width) add(crossingOn(seed, 'x', x0 + width, z0, depth, size), (at) => [width - 1, at]);
+  if (z0 > 0) add(crossingOn(seed, 'z', z0, x0, width, size), (at) => [at, 0]);
+  if (z0 + depth < size.depth) add(crossingOn(seed, 'z', z0 + depth, x0, width, size), (at) => [at, depth - 1]);
+  return out;
+}
+
 // One smoothing pass, every tile from the last pass's ground (so each depends only on those round it): within a tier
 // of each of its four neighbours, else halfway between the two most apart.
 function smoothedOnce(map: number[][]): number[][] {
@@ -155,6 +192,10 @@ export function generateRegionLand(seed: number, rx: number, rz: number, size: M
   const grown = generateTrees(heightMap, lakeMap, surfaceMap, solid, rng, forestAt, spawn.x, spawn.z, origin);
   const trees = grown.filter((t) => !cleared.has(cellKey(Math.round(t.x), Math.round(t.z))));
   const bushes = generateBushes(heightMap, lakeMap, surfaceMap, solid, grown, createMeadowDensity(seed), spawn.x, spawn.z, origin).filter((b) => !cleared.has(cellKey(b.x, b.z)));
+  // The roads on into the next regions, last (all before as it ever was): what stood on them felled.
+  const onward = roadsToBorders(grid, villages, roads, crossingsOf(seed, rx, rz, width, depth, size), (x, z) => cleared.has(cellKey(x, z)));
+  const onWays = new Set(onward.flatMap((way) => way.map(([x, z]) => cellKey(x, z))));
+  const offWays = <T extends { x: number; z: number }>(things: T[]) => (onWays.size === 0 ? things : things.filter((t) => !onWays.has(cellKey(Math.round(t.x), Math.round(t.z)))));
 
   const at = <T extends { x: number; z: number }>(o: T): T => ({ ...o, x: o.x + x0, z: o.z + z0 });
   const tile = ([x, z]: readonly [number, number]): [number, number] => [x + x0, z + z0];
@@ -164,7 +205,7 @@ export function generateRegionLand(seed: number, rx: number, rz: number, size: M
     x0,
     z0,
     tiles: TilePatch.fromMaps(size, x0, z0, { heightMap, lakeMap, surfaceMap }),
-    trails: trail ? [trail.map(tile)] : [],
+    trails: [...(trail ? [trail] : []), ...onward].map((way) => way.map(tile)),
     roads: roads.map((r) => ({ ...r, route: r.route.map(tile) })),
     villages: villages.map(at),
     houses: houses.map(at),
@@ -172,7 +213,7 @@ export function generateRegionLand(seed: number, rx: number, rz: number, size: M
     fields: fields.map((f) => ({ ...f, x0: f.x0 + x0, z0: f.z0 + z0, gate: tile(f.gate), corner: tile(f.corner) })),
     ruins: ruins.map((r) => ({ ...at(r), way: at(r.way), pieces: r.pieces.map(at) })),
     camps: camps.map((c) => ({ ...at(c), way: at(c.way), pieces: c.pieces.map(at) })),
-    trees: trees.map(at),
-    bushes: bushes.map(at),
+    trees: offWays(trees).map(at),
+    bushes: offWays(bushes).map(at),
   };
 }

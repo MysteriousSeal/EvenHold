@@ -113,6 +113,21 @@ describe('a road\'s tiles', () => {
 
   const rut = (cells: Array<[number, number]>, i: number, k: number) => cells.some(([a, b]) => a === i && b === k);
 
+  it('out in the wilds grass grows between the ruts; near a village, setts laid there and none', () => {
+    const colours = (grid: ReturnType<typeof buildRoadTile>) => {
+      const seen = new Set<number>();
+      for (let i = 0; i < 25; i++) for (let k = 0; k < 25; k++) for (let j = 0; j < 3; j++) seen.add(colorAt(grid, i, j, k));
+      return seen;
+    };
+    const [CROWN, SETT] = [6, 8]; // (the palette's, stored one up)
+    const wild = colours(buildRoadTile(E | W, 0));
+    expect(wild.has(CROWN + 1)).toBe(true);
+    expect([8, 9, 10].some((c) => wild.has(c + 1))).toBe(false);
+    const set = colours(buildRoadTile(E | W, 0, 0, 3));
+    expect(set.has(CROWN + 1)).toBe(false);
+    expect([SETT, SETT + 1, SETT + 2].some((c) => set.has(c + 1))).toBe(true);
+  });
+
   it('a crossroads: every arm\'s ruts join their neighbours\' at the four corners of the middle, none crossing', () => {
     const cells = ruts(E | W | N | S);
     for (const [i, k] of [[9, 9], [15, 9], [9, 15], [15, 15]]) expect(rut(cells, i, k), `corner ${i},${k}`).toBe(true);

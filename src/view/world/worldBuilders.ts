@@ -10,6 +10,7 @@ import { buildHouses } from '../meshes/building/houseMesh';
 import { buildBuildings } from '../meshes/building/buildingMesh';
 import { buildWells } from '../meshes/well/wellMesh';
 import { buildRoads } from '../meshes/road/roadMesh';
+import { buildSignposts } from '../meshes/road/signpostMesh';
 import { buildPlazas } from '../meshes/plaza/plazaMesh';
 import { buildLanterns } from '../meshes/plaza/lanternMesh';
 import { buildBenches } from '../meshes/plaza/benchMesh';
@@ -36,6 +37,7 @@ export const WORLD_BUILDERS: readonly WorldBuilder[] = [
   { label: 'Laying the ground', build: buildTerrain },
   { label: 'Filling the lakes', build: buildWater },
   { label: 'Treading the roads', build: buildRoads },
+  { label: 'Raising the signposts', build: buildSignposts },
   { label: 'Paving the squares', build: buildPlazas },
   { label: 'Sowing the fields', build: buildFields },
   { label: 'Growing the meadows', build: buildGroundCover },
