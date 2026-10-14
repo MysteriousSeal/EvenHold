@@ -82,9 +82,9 @@ const flayersMantle: ItemModel = {
   worn: {
     arm: ({ x, z, top }) => {
       const { c } = flayer;
-      if (!top) return mod(x + z, 2) === 0 ? c.tooth : c.raw; // the teeth, strung on a raw seam
-      if (mod(x + z, 4) === 1) return c.stitch; // the stitches
-      return [c.hide, c.hidePale, c.hideDark][mod(x + z * 2, 3)];
+      if (!top) return mod(x + z, 2) === 0 ? c.tooth : c.blood; // the teeth, strung on a bloodied thong
+      if (mod(x - z, 3) === 0) return c.stitch; // the stitches, bold across it
+      return mod(x + z, 2) === 0 ? c.hideDark : c.raw; // (its hides the darkest of the set's, cured, not like skin)
     },
   },
 };
@@ -96,10 +96,10 @@ const palmersCape: ItemModel = {
   palette: palmer.palette,
   worn: {
     arm: (cell) => {
-      const { x, y, z, top, back } = cell;
+      const { x, top, back } = cell;
       const { c } = palmer;
-      if (back && y === 5) return c.cross; // the cross's arm
-      if (top && !rim(cell)) return z === 1 ? c.shell : x === 0 ? c.shellShade : c.fawn; // the shell
+      if (back) return c.cross; // the cross's arm, across the back
+      if (top && !rim(cell)) return mod(x, 2) === 0 ? c.shell : c.shellShade; // the shell, ribbed
       return top ? c.fawn : c.wool;
     },
   },
