@@ -120,7 +120,7 @@ export function snapshot(model: GameModel): SaveData {
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
       skills: structuredClone(hero.skills ?? {}), // (their level in each skill: skills/skills.ts)
-      money: hero.money,
+      money: hero.money + (model.work.shift?.earned ?? 0), // (at work: what the shift's earned so far, as if left now: not lost with it)
       level: hero.level,
       xp: hero.xp,
       statPoints: hero.statPoints,
