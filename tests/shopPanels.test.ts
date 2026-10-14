@@ -8,7 +8,7 @@ import { enterNearest } from '../src/model/cheats';
 import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn } from '../src/model/smithy/smithShop';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
-import { sellPrice } from '../src/model/inn/tavernShop';
+import { INN_PANTRY, sellPrice } from '../src/model/inn/tavernShop';
 import { ITEMS, SLOT_NAMES, type ItemId } from '../src/model/human/equipment';
 import type { Npc } from '../src/model/npcs/npcs';
 import { createSmithPanel } from '../src/controller/trade/smithPanel';
@@ -191,9 +191,9 @@ describe("the barmaid's window", () => {
   it('shows her few wares on one page, with no pager; nothing sold back yet, an empty list two rows high', () => {
     const { keeper, panel } = trading('inn');
     panel.open(keeper);
-    expect(PROVISION_IDS.length).toBeLessThanOrEqual(PAGE);
+    expect(PROVISION_IDS.length + INN_PANTRY.length).toBeLessThanOrEqual(PAGE);
     expect(pager()).toBeNull();
-    expect(shown().filter(Boolean)).toEqual(PROVISION_IDS.map((id) => `loot:${id}`));
+    expect(shown().filter(Boolean)).toEqual([...PROVISION_IDS, ...INN_PANTRY].map((id) => `loot:${id}`)); // (and her kitchen's salt and flour, for a cook)
     tab('Buyback');
     expect(shown()).toEqual(Array(PAGES.buyback).fill(null)); // its slots all there, empty
   });
