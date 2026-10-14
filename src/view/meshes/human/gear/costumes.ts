@@ -243,14 +243,16 @@ export const costumeFor = (job: JobId, build: Build): Partial<Record<ArmorSlot, 
 
 // What the hero's seen in at work (the job's costume, cut for them), wherever they're drawn: in the world, close up in
 // a talk, on their sheet; null off work (their own gear). A pleasure worker, the room's door shut behind them (the
-// shift begun): nothing at all, till it's over (`workLook`: nor their braies).
-type AtWork = { work: { shift: { job: JobId; begun?: boolean } | null } };
+// shift begun): nothing at all, till it's over (`workLook`: nor their braies). `seenBare` (a cheat): the same, and
+// what's worn stays worn.
+type AtWork = { work: { shift: { job: JobId; begun?: boolean } | null }; seenBare?: boolean };
 const stripped = (model: AtWork): boolean => model.work.shift?.job === 'innCompanion' && !!model.work.shift.begun;
 export function workCostume(model: AtWork & { hero: { look: { build: Build } } }): Partial<Record<ArmorSlot, CostumeLookId>> | null {
+  if (model.seenBare) return {};
   const shift = model.work.shift;
   if (!shift) return null;
   return stripped(model) ? {} : costumeFor(shift.job, model.hero.look.build);
 }
 
-// The body they're drawn with: their own; stripped (above), its unclothed twin (unclothed.ts).
-export const workLook = (model: AtWork & { hero: { look: BodyLook } }): BodyLook => (stripped(model) ? unclothed(model.hero.look) : model.hero.look);
+// The body they're drawn with: their own; stripped, or seen bare, its unclothed twin (unclothed.ts).
+export const workLook = (model: AtWork & { hero: { look: BodyLook } }): BodyLook => (model.seenBare || stripped(model) ? unclothed(model.hero.look) : model.hero.look);

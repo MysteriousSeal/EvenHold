@@ -143,6 +143,7 @@ export class GameModel {
   noclip = false;
   godMode = false;
   oneHitKills = false;
+  seenBare = false; // drawn with nothing on (a cheat). What's worn stays worn, and still counts.
   readonly moves: CombatMoves; // the hero's roll, guard and breath (combatMoves.ts)
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 

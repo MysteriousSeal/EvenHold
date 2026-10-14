@@ -2,7 +2,7 @@
 // look is in the catalog, nor can be worn, carried, sold or dropped; each piece fits both builds, on the parts its
 // slot covers; and a body dressed in it wears it over nothing of its own gear, which stays on the hero, untouched.
 import { describe, expect, it } from 'vitest';
-import { COSTUMES, COSTUME_LOOKS, isCostume } from '../src/view/meshes/human/gear/costumes';
+import { COSTUMES, COSTUME_LOOKS, isCostume, workCostume, workLook } from '../src/view/meshes/human/gear/costumes';
 import { lookSlot, wornGrid } from '../src/view/meshes/human/gear/itemModels';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { isGear } from '../src/model/human/items/gear';
@@ -43,5 +43,19 @@ describe("a job's costume", () => {
     expect(model.hero.equipment).toEqual(kept);
     rig.wear(model.hero.equipment); // (off work: their gear again)
     expect(rig.meshes.length).toBe(geared);
+  });
+
+  it('seen bare draws nothing on, and leaves what they wear where it is', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    model.hero.equipment = { torso: 'chainMail', mainHand: 'armingSword' };
+    const kept = { ...model.hero.equipment };
+    model.seenBare = true;
+    expect(workLook(model).unclothed).toBe(true);
+    expect(workCostume(model)).toEqual({});
+    expect(model.hero.equipment).toEqual(kept);
+    model.seenBare = false;
+    expect(workLook(model).unclothed).toBeUndefined();
+    expect(workCostume(model)).toBeNull();
+    expect(model.hero.equipment).toEqual(kept);
   });
 });

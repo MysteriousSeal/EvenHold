@@ -69,11 +69,11 @@ export const BODIES: Record<Build, BodyShape> = {
   female: {
     grid: {
       leg: [3, 7, 4], // slimmer, the foot forward
-      torso: [7, 9, 6], // narrower and shallower; the bust in its two front layers
+      torso: [9, 9, 6], // hips a voxel wider each side; the bust stands out from the chest wall
       arm: [2, 9, 2], // thin
       head: [11, 11, 11],
     },
-    pivot: { torso: [3.5, 0, 2], head: [5.5, 0, 5.5], arm: [1, 9, 1], leg: [1.5, 7, 1.5] },
+    pivot: { torso: [4.5, 0, 2], head: [5.5, 0, 5.5], arm: [1, 9, 1], leg: [1.5, 7, 1.5] }, // torso: the middle of the wider hips; the back stays where it was
     joints: {
       torso: { part: 'torso', side: 'center', at: [0, 7, 0] },
       head: { part: 'head', side: 'center', at: [0, 16, 0] },
@@ -217,19 +217,23 @@ export function buildTorso(build: Build = 'male', unclothed = false): VoxelGrid 
   const skin = (x: number, z: number) => (x === 0 || x === w - 1 || z === 0 ? C.skinShade : C.skin); // shaded at the sides and back
   const cloth = (x: number, y: number, z: number, front: number) => (x === 0 || x === w - 1 || z === 0 ? C.clothShade : y === 2 && z === front ? C.clothLight : C.cloth);
   if (build === 'female') {
-    const front = d - 3; // her front; the bust stands two further
-    fillBox(grid, 0, 0, 0, w - 1, 2, front, (x, y, z) => (z === front && x === mid && y === 0 ? C.clothShade : cloth(x, y, z, front))); // hips
-    fillBox(grid, 1, 3, 0, w - 2, 3, front, (x, _y, z) => (unclothed ? (x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin) : C.cord)); // the waist, tied
+    const front = 3; // the chest wall. The bust stands out in front of it; the hips are the widest of her.
+    fillBox(grid, 0, 0, 0, w - 1, 1, front, (x, y, z) => (z === front && x === mid && y === 0 ? C.clothShade : cloth(x, y, z, front))); // hips, a voxel wider each side
+    fillBox(grid, 1, 2, 0, w - 2, 2, front, (x, y, z) => cloth(x, y, z, front)); // rounding up toward the waist
+    fillBox(grid, 2, 3, 0, w - 3, 3, front, (x, _y, z) => (unclothed ? (x === 2 || x === w - 3 || z === 0 ? C.skinShade : C.skin) : C.cord)); // the waist, a voxel narrower each side
     fillBox(grid, 1, 4, 0, w - 2, 4, front, (x, _y, z) => (z === front && x === mid ? C.skinDeep : x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin)); // midriff, the navel
-    fillBox(grid, 0, 5, 0, w - 1, 5, front, (x, _y, z) => skin(x, z)); // ribs
-    fillBox(grid, 0, 6, 0, w - 1, 7, front, (x, y, z) => (x === 0 || x === w - 1 || z === 0 ? C.clothShade : y === 7 ? C.clothLight : C.cloth)); // the band
-    // Her bust, in the band (unclothed: skin, by the palette): a breast each side of the middle, two voxels wide and
-    // three high, a voxel out; and its lower two rows a voxel further (fuller below, sloping in above).
-    for (const x0 of [1, w - 3]) {
-      fillBox(grid, x0, 5, front + 1, x0 + 1, 7, front + 1, (_x, y) => (y === 7 ? C.clothLight : y === 5 ? C.clothShade : C.cloth));
-      fillBox(grid, x0, 5, front + 2, x0 + 1, 6, front + 2, (_x, y) => (y === 6 ? C.clothLight : C.cloth));
+    fillBox(grid, 1, 5, 0, w - 2, 5, front, (x, _y, z) => (x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin)); // ribs, in from the hips
+    fillBox(grid, 1, 6, 0, w - 2, 7, front, (x, y, z) => (x === 1 || x === w - 2 || z === 0 ? C.clothShade : y === 7 ? C.clothLight : C.cloth)); // the band
+    // Her bust (unclothed: skin, by the palette). Each breast is three wide where it meets the chest, fuller along
+    // the bottom, the top and the outer corners sloping back, and the front a step smaller: two wide, two high.
+    for (const x0 of [1, 5]) {
+      const outer = x0 === 1 ? x0 : x0 + 2;
+      fillBox(grid, x0, 4, front + 1, x0 + 2, 5, front + 1, (x, y) => (y === 4 || x === outer ? C.clothShade : C.cloth)); // against the chest
+      fillBox(grid, x0 + 1, 6, front + 1, x0 + 1, 6, front + 1, () => C.clothLight); // the top, only the middle
+      const tip = x0 === 1 ? x0 + 1 : x0; // left x 2-3, right x 5-6: the front, in from the outer edge
+      fillBox(grid, tip, 4, front + 2, tip + 1, 5, front + 2, (_x, y) => (y === 4 ? C.clothShade : C.clothLight));
     }
-    fillBox(grid, 0, 8, 0, w - 1, 8, front, (x, _y, z) => (z === front && x > 0 && x < w - 1 ? C.skinLight : skin(x, z))); // shoulders, collarbones
+    fillBox(grid, 1, 8, 0, w - 2, 8, front, (x, _y, z) => (z === front && x > 1 && x < w - 2 ? C.skinLight : x === 1 || x === w - 2 || z === 0 ? C.skinShade : C.skin)); // shoulders, no wider than before
     return grid;
   }
   const front = d - 1;

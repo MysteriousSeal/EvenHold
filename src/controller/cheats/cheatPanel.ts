@@ -335,6 +335,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
           ]),
           ...group('Outfits', [
             { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
+            { icon: ICON.undress, title: 'Seen bare', detail: "Nothing on, to look at. What's worn stays worn, and still counts", ...toggle(() => model.seenBare, (on) => (model.seenBare = on), 'Seen with nothing on.', 'Dressed, as worn.') },
             { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
             { icon: ICON.starterSet, title: 'Gear of each rarity', detail: 'A piece of each, at your level, into the bag', run: () => (give(RARITIES.map((rarity, i) => gearKey({ item: STARTER_SET[i % STARTER_SET.length], level: model.hero.level, rarity, roll: Math.floor(Math.random() * 1000) }))), 'Five pieces, common to legendary, in the bag.') },
             { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
