@@ -85,6 +85,12 @@ export const HANDS_ITEMS = slotItems('hands', {
   leatherBracers: { name: 'Leather bracers', wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1 } },
   silkGloves: { name: 'Silk gloves', stats: { agility: 1 } },
   studdedBracers: { name: 'Studded bracers', wornBy: { bouncer: 1 }, armor: 2, stats: { strength: 1 } }, // an inn's bouncer's
+  // The sets' (sets.ts).
+  headsmansGloves: { name: "Headsman's gloves", set: 'headsman', level: 6, rarity: 'uncommon', value: 90, droppedBy: { bruiser: 1, sawbones: 1 }, armor: 2, stats: { strength: 2 } },
+  knucklebones: { name: 'Knucklebone gauntlets', set: 'ossuary', level: 8, rarity: 'uncommon', value: 120, droppedBy: { skeleton: 1, skeletonArcher: 1 }, armor: 2, stats: { strength: 2, agility: 1 } },
+  cinderWraps: { name: 'Cinder wraps', set: 'cinder', level: 8, rarity: 'uncommon', value: 80, droppedBy: { firebrand: 2 }, armor: 1, stats: { agility: 2, endurance: 1 } },
+  watchVambraces: { name: "Watchman's vambraces", set: 'watch', value: 90, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 3, stats: { stamina: 1 } },
+  sunwardGauntlets: { name: 'Sunward gauntlets', set: 'sunward', level: 14, rarity: 'epic', value: 360, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 3, stats: { strength: 3 } },
 });
 
 export const LEGS_ITEMS = slotItems('legs', {

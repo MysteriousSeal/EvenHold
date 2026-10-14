@@ -1,6 +1,18 @@
 // How everything worn on the hands looks. Hand shells cover each arm's rows
 // -1 to 1 (-1 under the fist, 1 the wrist; x -1..2, z -1..2 with 2 the
 // front; the side toward the body stays open).
+//
+// The new hand pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - headsmansGloves (headsman): long black leather gauntlet gloves, a wide flared cuff, the palms and fingers darkened
+//   with old stains. Black 1c1a1c / 2e2a2c, stain 3a0e10, cuff stitched in thread b8a986.
+// - knucklebones (ossuary): finger bones wired along the back of each finger over a leather glove, a row of knucklebones
+//   across the knuckles, a bone wrist ring. Bone e0d4b4 / b8a986, glove socket 2a2220, wire 6e747c.
+// - cinderWraps (cinder): ash-grey cloth wound round palm and wrist, the fingertips bare and sooted black, a faint ember
+//   glow between the windings. Ash 6a6460 / 8a847e, soot 2a2826, ember e0602a.
+// - watchVambraces (watch): leather gloves under steel vambraces, a teal cloth band at the wrist with two brass rivets.
+//   Steel b4bac2 / d2d6dc, leather 5e3f28, teal 2f9c9a, brass d4b060.
+// - sunwardGauntlets (sunward, epic): articulated gilded gauntlets, the cuffs ivory enamel with a small sun on azure on
+//   the back of each hand, gold knuckle plates. Gold d4b060 / f0d080 / a8862e, ivory f4f0e6, azure 3060c0.
 
 import type { HANDS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
@@ -72,4 +84,9 @@ export const HANDS_MODELS: Record<keyof typeof HANDS_ITEMS, ItemModel> = {
   leatherBracers,
   studdedBracers,
   silkGloves: gloves(0xf0ece0, 0x3dbdb8),
+  headsmansGloves: gloves(0x1c1a1c, 0x2e2a2c), // STAND-IN: long black gauntlet gloves, wide flared stitched cuff, stained palms
+  knucklebones: gloves(0xe0d4b4, 0x2a2220), // STAND-IN: finger bones wired along each finger over dark leather, knucklebones across, bone wrist ring
+  cinderWraps: handWraps, // STAND-IN: ash-grey cloth wound round palm and wrist, sooted bare fingertips, ember glow between windings
+  watchVambraces: gauntlets, // STAND-IN: leather gloves under steel vambraces, teal wrist band with two brass rivets
+  sunwardGauntlets: gloves(0xd4b060, 0xf4f0e6), // STAND-IN: articulated gilded gauntlets, ivory cuffs, a small sun on azure on each hand's back
 };
