@@ -16,7 +16,6 @@ import { el } from '../ui/dom';
 import { BREATH } from '../../model/hero/combatMoves';
 
 const PORTRAIT_SIZE = 84;
-const BAR_WIDTH = 280; // px, as hud.css's bars (the breath bar's, rested)
 
 
 // Returns the function to call each frame.
@@ -70,7 +69,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement, moves: { breath: 
     hp.fill.style.width = `${(health / max) * 100}%`;
     hp.label.textContent = `${health} / ${max}`;
     breath.fill.style.width = `${(winded / moves.most) * 100}%`;
-    breath.node.style.width = `${(BAR_WIDTH * moves.most) / BREATH}px`; // (shorter, tired)
+    breath.node.style.width = `${(100 * moves.most) / BREATH}%`; // (of the bars' width, hud.css's: shorter, tired)
     breath.node.classList.toggle('empty', winded <= 0);
     const most = maxEnergyOf(hero);
     energy.fill.style.width = `${(awake / most) * 100}%`;
