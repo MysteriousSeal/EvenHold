@@ -44,6 +44,7 @@ export const ROUTINE: readonly NpcStop[] = ['home', 'square', 'inn', 'square'];
 export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'field'];
 const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
 const FIELD_NEAR = 15; // tiles from the village's middle
+const START_NEAR = 600; // tiles from where the hero sets out, the nearest village's herbalist always a woman (spawnNpcs)
 
 export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist';
 
@@ -145,8 +146,10 @@ export function randomName(build: Build): string {
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two
 // barmaids in every inn, starting at work.
-// (`firstId`: the first of their ids: a streamed world's region's block.)
-export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0): Npc[] {
+// (`firstId`: the first of their ids: a streamed world's region's block. `start`: where the hero sets out, the
+// herbalist of the village nearest it, within START_NEAR, always a woman: the opening line's, the burned woman's
+// granddaughter, story/quests/firstQuests.ts.)
+export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0, start?: Point): Npc[] {
   // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
   // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number): T | null => {
@@ -158,9 +161,9 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     }
     return best;
   };
-  const person = (own: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point): Npc => {
+  const person = (own: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point, woman = false): Npc => {
     const id = firstId + own;
-    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, woman ? 1 : role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
     return {
       id,
       name: nameAt(at.x, at.z, seed, look.build),
@@ -237,11 +240,13 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   });
   // A herbalist in each village, at home in their house (herbalistHomes: theirs alone), in a green hood: potions to
   // sell (herbalist/herbalistShop.ts). Last, so every other villager keeps their id.
+  const first = start && nearest(villages, start.x, start.z);
+  const opening = first && Math.hypot(first.x - start.x, first.z - start.z) <= START_NEAR ? first : null;
   const herbalists = villages.flatMap((village, i) => {
     const home = herbalistHomes[i];
     if (!home) return [];
     const inn = nearest(inns, village.x, village.z);
-    const npc = person(doors + inns.length * 3 + smithies.length + i, 'herbalist', home, inn, village, { x: home.x - 0.3, z: home.z + 0.2 });
+    const npc = person(doors + inns.length * 3 + smithies.length + i, 'herbalist', home, inn, village, { x: home.x - 0.3, z: home.z + 0.2 }, village === opening);
     npc.equipment = { head: 'huntersHood', torso: 'linenShirt' };
     return [npc];
   });

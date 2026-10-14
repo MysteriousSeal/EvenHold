@@ -354,7 +354,7 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
+    const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawn).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
     // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
     // stands on (so all else is as it ever was), where no foe or animal was put.

@@ -38,6 +38,8 @@ describe('the quests people give', () => {
       expect(cast, `seed ${model.seed}`).not.toBeNull();
       expect(cast!.barmaid.role).toBe('barkeep');
       expect(cast!.barmaid.home).toBe(cast!.inn);
+      const herbalist = model.npcs.find((n) => n.role === 'herbalist' && n.village === cast!.village);
+      expect(herbalist?.look.build, `seed ${model.seed}: the opening line's herbalist, the burned woman's granddaughter`).toBe('female');
       expect(model.story.markOf(cast!.carter)).toBe('offer');
       expect(model.story.stateOf(quest.id)).toBe('offered');
       const asking = model.story.asking;
