@@ -1,7 +1,7 @@
 // Cooking's page of the skill's window (skillWindow.ts): the recipe book (recipeBook.ts) with cooking's recipes
 // (model/skills/cooking.ts), each meal told as food (what it heals, its blessing after), cooked only by a fire (said
 // so, picked, when there's none, or a campfire where it wants a hearth); over it, the fire the hero stands by, or a
-// button to kindle one of two logs.
+// button to kindle one (of a bundle of firewood, or two logs).
 
 import type { GameModel } from '../../model/GameModel';
 import { COOK_GROUPS, COOK_RECIPES, COOK_RECIPE_IDS, KINDLE_LOGS, type CookRecipeId } from '../../model/skills/cooking';
@@ -26,8 +26,6 @@ export const COOKING: Craft = {
   empty: 'Nothing you can cook with what’s in your bag. Hunt, fish, or untick the filter to see every recipe.',
 };
 
-const LOGS = ['birchLog', 'pineLog', 'oakLog'] as const;
-
 // The line over the book: the fire they're by (and how long a kindled one has left), or none, and a button to kindle
 // one outdoors (with the logs for it).
 function fireLine(model: GameModel, redraw: () => void): HTMLElement {
@@ -38,9 +36,8 @@ function fireLine(model: GameModel, redraw: () => void): HTMLElement {
     const said = fire.kind === 'hearth' ? 'By a hearth: everything can be cooked here.' : own ? `By your campfire (${Math.ceil(cooking.kindled!.left / 60)} min left): roasts and fish.` : 'By a campfire: roasts and fish.';
     return el('p', 'cook-fire lit', said);
   }
-  const logs = LOGS.reduce((n, log) => n + (hero.bag[log] ?? 0), 0);
-  const kindle = el('button', 'book-craft quiet', `Kindle a campfire (${KINDLE_LOGS} logs)`);
-  kindle.disabled = !!model.inside || logs < KINDLE_LOGS;
+  const kindle = el('button', 'book-craft quiet', (hero.bag.firewood ?? 0) > 0 ? 'Kindle a campfire (firewood)' : `Kindle a campfire (${KINDLE_LOGS} logs)`);
+  kindle.disabled = !!model.inside || !cooking.canKindle;
   kindle.addEventListener('click', () => [cooking.kindle(), redraw()]);
   return el('p', 'cook-fire', model.inside ? 'No fire here: find the hearth.' : 'No fire here.', ...(model.inside ? [] : [kindle]));
 }
