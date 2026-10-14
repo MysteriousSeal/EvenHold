@@ -16,6 +16,7 @@ import { blowDamage, hitTaken, mending, tiring, tossCoin } from '../src/model/he
 import { maxHpOf } from '../src/model/hero/attributes';
 import { recover } from '../src/model/hero/heroStats';
 import { MEAL_SECONDS } from '../src/model/loot/provisions';
+import { bagRoom } from '../src/model/hero/bagSlots';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -46,6 +47,15 @@ function byACampfire(model: GameModel): void {
 }
 
 describe('cooking', () => {
+  it("roasts the last of the fry in a full bag: their slot is the meal's", () => {
+    const model = kitchen(1, { smallFry: 2 });
+    byACampfire(model);
+    for (let i = 0; Object.keys(model.hero.bag).length < bagRoom(model.hero); i++) model.hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (every other slot a dagger)
+    expect(model.cooking.start('roastedFry')).toBe(true);
+    run(model, COOK_RECIPES.roastedFry.seconds + 0.2);
+    expect([model.hero.bag.smallFry, model.hero.bag.roastedFry]).toEqual([undefined, 1]);
+  });
+
   it('has a recipe for every meal, in the order of the skill they want, from 1 to near the top; the four fish among them', () => {
     expect(COOK_RECIPE_IDS.slice().sort()).toEqual(MEAL_IDS.slice().sort());
     const needs = COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs);
@@ -220,6 +230,30 @@ describe('meals', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.hero.blessings?.[0].kind).toBe('feasted');
     expect(again.hero.blessings?.[0].left).toBeCloseTo(99, 0);
+  });
+
+  it('a meal half eaten is kept in a save as it was (neither lost nor given back whole), and a campfire lit burns on', () => {
+    const model = kitchen(1, { huntersFeast: 1 });
+    byACampfire(model);
+    model.hero.hp = 1;
+    expect(eatOrDrink(model.hero, 'huntersFeast')).toBe(true);
+    run(model, 5);
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.hero.bag.huntersFeast).toBeUndefined();
+    expect(again.hero.eating).toMatchObject({ item: 'huntersFeast', fed: { kind: 'feasted' } });
+    expect(again.hero.eating!.left).toBeCloseTo(model.hero.eating!.left, 1);
+    expect(again.cooking.kindled).toEqual(model.cooking.kindled);
+    expect(again.cooking.fireInReach?.kind).toBe('campfire');
+    run(again, MEAL_SECONDS);
+    expect([again.hero.eating, again.hero.blessings?.some((b) => b.kind === 'feasted')]).toEqual([null, true]);
+    // Damaged: neither.
+    const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+    Object.assign(data, { kindled: { x: 'a', z: 1, left: 9 } });
+    Object.assign(data.hero, { eating: { item: 'rock', heal: 5, left: 3 } });
+    const broken = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(broken, data);
+    expect([broken.cooking.kindled, broken.hero.eating]).toEqual([null, null]);
   });
 });
 

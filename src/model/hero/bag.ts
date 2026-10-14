@@ -66,6 +66,17 @@ export function eatOrDrink(hero: Hero, item: BagItem): boolean {
   return true;
 }
 
+// A meal from the bag half eaten, as a save keeps it (so a reload neither loses it nor gives it back whole): sound,
+// what's left of it; else none. Its blessing, as its food gives (never the save's word).
+export function readMeal(hero: Hero, saved: unknown): Hero['eating'] {
+  const m = (saved && typeof saved === 'object' ? saved : {}) as Record<string, unknown>;
+  const n = (v: unknown, most: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(most, Math.max(0, v)) : NaN);
+  const [heal, energy, left] = [n(m.heal, maxHpOf(hero)), n(m.energy ?? 0, maxEnergyOf(hero)), n(m.left, MEAL_SECONDS)];
+  if (typeof m.item !== 'string' || !isProvision(m.item) || ![heal, energy, left].every(Number.isFinite) || left <= 0) return null;
+  const { fed } = PROVISIONS[m.item];
+  return { heal, energy, left, seconds: MEAL_SECONDS, item: m.item, ...(fed && { fed }) };
+}
+
 // Drinks one of potion `item` from the hero's bag, at once (standing, mid-fight): its share of their most health or
 // energy back; then none for POTION_COOLDOWN seconds (heroStats.ts recover counts it down); whether they did (a
 // potion, carried, none drunk too lately).
