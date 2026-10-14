@@ -7,7 +7,7 @@
 // lake perch in its open water; from 150 pike where the bobber lies far from any bank (the deep); from 225, now and
 // then, what the water hides (a locket, an old coin; a torc in the deep). The skill rises as they land them, the surer
 // the harder the catch is for them (skills.ts difficulty; a pike never grey), with a little of the hero's own
-// experience. Nothing of it is kept: a line out isn't saved.
+// experience; and now and then (HUGE) a huge trout, perch or pike, worth three, off the hook the quicker. Nothing of it is kept: a line out isn't saved.
 
 import { NEIGHBORS_4 } from '../map/grid';
 import type { LootId } from '../loot/loot';
@@ -42,6 +42,8 @@ export const CATCHES: readonly Catch[] = [
   { item: 'frostTorc', needs: 225, in: 'deep', weight: 0.2, window: 0.8 },
 ];
 const EARLY_WEIGHT = 1;
+export const HUGE = { chance: 0.02, worth: 3, quicker: 0.15 }; // now and then a huge one (a trout, a perch, a pike): as much as so many, off the hook quicker
+const HUGE_KINDS: readonly LootId[] = ['riverTrout', 'lakePerch', 'pike'];
 // The fish of them (the rest found in the water): raw, for the pot, and sold at their worth to a pedlar or a herbalist.
 export const FISH: readonly LootId[] = ['smallFry', 'riverTrout', 'lakePerch', 'pike'];
 export const isFish = (item: string): item is LootId => (FISH as readonly string[]).includes(item);
@@ -92,6 +94,7 @@ export interface Line {
   wait: number; // seconds till the bite, waiting
   caught?: LootId; // what's biting, and then being landed
   window?: number; // seconds its bite lasts
+  huge?: boolean; // a huge one (HUGE)
 }
 
 // The water at (x, z): whether it's the narrows, the deep.
@@ -216,7 +219,8 @@ export class Fishing {
   // A bite: what it is, by the water and their skill (so a big one's off quicker: its own moment to hook it in).
   private bite(line: Line): void {
     const fish = pickCatch(line.spot, skillOf(this.host.hero, SKILL).level, this.rng());
-    Object.assign(line, { phase: 'bite', t: 0, caught: fish.item, window: fish.window });
+    const huge = HUGE_KINDS.includes(fish.item) && this.rng() < HUGE.chance;
+    Object.assign(line, { phase: 'bite', t: 0, caught: fish.item, window: fish.window - (huge ? HUGE.quicker : 0), huge });
   }
 
   // A bite hooked: landed into the bag (full: at their feet), the skill maybe risen (by what it is: a lucky one, before
@@ -226,10 +230,12 @@ export class Fishing {
     const level = skillOf(hero, SKILL).level;
     const fish = CATCHES.find((c) => c.item === line.caught) ?? pickCatch(line.spot, level, this.rng());
     const dropped = !canCarry(hero, fish.item);
-    if (dropped) this.host.dropLoot(fish.item, hero.x, hero.z);
-    else addToBag(hero.bag, fish.item);
+    for (let n = 0; n < (line.huge ? HUGE.worth : 1); n++) {
+      if (dropped) this.host.dropLoot(fish.item, hero.x + n * 0.15, hero.z);
+      else addToBag(hero.bag, fish.item); // (a huge one: as good as so many, for the pot or the purse)
+    }
     Object.assign(line, { phase: 'landed', t: 0, caught: fish.item });
-    this.host.report({ kind: 'fished', item: fish.item, x: line.spot.x, z: line.spot.z, dropped });
+    this.host.report({ kind: 'fished', item: fish.item, x: line.spot.x, z: line.spot.z, dropped, ...(line.huge && { huge: true }) });
     gainXp(hero, HERO_XP);
     practise(hero, SKILL, fish.needs, this.rng(), this.host.report, riseOf(fish, level).chance);
   }
