@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { setAction } from '../src/model/hero/actionBar';
+import { makeEnemy } from '../src/model/enemies/enemies';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
@@ -181,6 +182,24 @@ describe('the keys: the rest', () => {
     while (blow() !== null) step();
     step(3);
     expect(blow()).toBeNull(); // (not one more)
+  });
+
+  it('a critical blow landing holds the world still a moment, then on it goes', () => {
+    const { model, step } = play();
+    model.enemies.length = 0;
+    model.hero.trained.agility = 40; // (a critical blow each time the roll's low)
+    model.random = () => 0;
+    const wolf = { ...makeEnemy(990, 'wolf', model.hero.x + Math.sin(model.hero.facing) * 0.6, model.hero.z + Math.cos(model.hero.facing) * 0.6), hp: 50, maxHp: 50 };
+    model.enemies.push(wolf);
+    model.enemiesFrozen = true;
+    tap('Space');
+    for (let i = 0; i < 20 && wolf.hp === 50; i++) step();
+    expect(wolf.hp).toBeLessThan(50);
+    const at = model.minutes;
+    step();
+    expect(model.minutes).toBe(at); // (held)
+    step(3);
+    expect(model.minutes).toBeGreaterThan(at);
   });
 
   it('1 to 8: what\'s in that slot of the action bar, had from the bag', () => {

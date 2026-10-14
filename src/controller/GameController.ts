@@ -43,6 +43,7 @@ function uncappedScheduler(): (callback: (now: number) => void) => void {
 }
 
 const PRESS_KEPT = 0.2; // seconds a blow or roll pressed too soon is kept, to go as soon as it may
+const HELD_STILL = { parry: 0.09, crit: 0.05 }; // seconds the world holds still on a parry, a critical blow (felt landing)
 
 export class GameController {
   private readonly input = new KeyboardInput();
@@ -141,9 +142,11 @@ export class GameController {
   }
   timeScale = 1; // a dev cheat: the game running this many times as fast
   private held = { attack: 0, roll: 0 }; // seconds a blow or a roll pressed too soon (mid-blow, mid-roll) is still kept to go
+  private still = 0; // seconds the world's held still yet (a parry, a critical blow, landing: what's pressed meanwhile waits)
 
   private step(dt: number): void {
     if (this.paused) return;
+    if (this.still > 0) return void (this.still -= dt);
     if (this.input.consumeAttack()) this.held.attack = PRESS_KEPT;
     if (this.held.attack > 0) this.held.attack = this.model.startAttack() ? 0 : this.held.attack - dt; // (pressed just before the last ends: it follows on)
     const turn = this.input.consumeFocus(); // Tab: the next foe in sight (Shift: back), where foes are (outdoors, or a crypt)
@@ -200,7 +203,11 @@ export class GameController {
     this.model.update(dirX, dirZ, dt);
     const come = this.model.work.arrived(); // (someone let into their room, at work: in, the door shut, their word)
     if (come) this.onMeet(come.who, come.talk);
-    for (const event of this.model.takeEvents()) this.onEvent(event);
+    for (const event of this.model.takeEvents()) {
+      if (event.kind === 'guard' && event.outcome === 'parried') this.still = Math.max(this.still, HELD_STILL.parry);
+      else if (event.kind === 'hit' && event.on !== 'hero' && event.crit) this.still = Math.max(this.still, HELD_STILL.crit);
+      this.onEvent(event);
+    }
     this.view.update(dt);
   }
   // What E does, done: whether anything came of it (not: the next thing in reach, if any).
