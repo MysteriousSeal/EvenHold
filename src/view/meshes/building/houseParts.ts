@@ -76,7 +76,8 @@ export function window(grid: VoxelGrid, wall: Wall, u: number, y: number, stoneW
   for (let du = -2; du <= 2; du++) put(grid, onWall(wall, u + du, y - 2, -1), stoneWall ? C.stoneLight : C.timberLight);
   if (stoneWall) return;
 
-  for (const side of [-3, 3]) for (let dy = -1; dy <= 1; dy++) put(grid, onWall(wall, u + side, y + dy, 0), C.door);
+  // Shutters the full height of the frame, in the house's paint (its trim).
+  for (const side of [-3, 3]) for (let dy = -2; dy <= 2; dy++) put(grid, onWall(wall, u + side, y + dy, 0), C.shutter);
   if (wall.axis === 'z') {
     const flowers = [C.flowerRed, C.leaf, C.flowerYellow, C.leaf, C.flowerPurple];
     for (let du = -2; du <= 2; du++) {
@@ -87,7 +88,7 @@ export function window(grid: VoxelGrid, wall: Wall, u: number, y: number, stoneW
   }
 }
 
-// Plank door (alternating board shades) recessed behind its jambs, with two
+// Plank door (in the house's paint) recessed behind its jambs, with two
 // iron straps and a handle, a lintel, a stone step, and a lantern on an
 // iron bracket to its left.
 export function door(grid: VoxelGrid, wall: Wall, u: number, stoneWall: boolean): void {
@@ -100,7 +101,7 @@ export function door(grid: VoxelGrid, wall: Wall, u: number, stoneWall: boolean)
     for (let du = -1; du <= 1; du++) {
       put(grid, onWall(wall, u + du, y, 0), 0);
       const strap = y === bottom + 2 || y === bottom + 5;
-      put(grid, onWall(wall, u + du, y, 1), strap ? C.iron : du === 0 ? C.doorDark : C.door);
+      put(grid, onWall(wall, u + du, y, 1), strap ? C.iron : C.doorPaint);
     }
   }
   for (let du = -3; du <= 3; du++) put(grid, onWall(wall, u + du, top + 1, 0), stoneWall ? C.stoneLight : C.timberLight);

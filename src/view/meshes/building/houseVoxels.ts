@@ -6,7 +6,7 @@
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { C } from './housePalette';
+import { C, TRIMS } from './housePalette';
 import { FOUNDATION_TOP, MID, braces, chimney, door, masonry, onWall, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
 
 export const HOUSE_VOXEL_SIZE = 0.04;
@@ -90,7 +90,7 @@ function props(grid: VoxelGrid, ground: Box, upper: Box, doorU: number, twoStore
   }
 }
 
-export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelGrid {
+export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, trim = 0): VoxelGrid {
   const grid = createGrid(HOUSE_GRID);
   const hw = (layout.width - 1) / 2;
   const hd = (layout.depth - 1) / 2;
@@ -163,5 +163,13 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelG
   const ridge = roof(grid, upper, layout.roofHeight, roofIndex);
   chimney(grid, upper, ridge);
   props(grid, twoStorey ? ground : upper, upper, doorU, twoStorey);
+  paintTrim(grid, TRIMS[trim]);
   return grid;
+}
+
+// Lays a trim's paint over the placeholder shutter, door and limewash colors.
+function paintTrim(grid: VoxelGrid, paint: ReadonlyMap<number, number>): void {
+  if (paint.size === 0) return;
+  const { cells } = grid;
+  for (let i = 0; i < cells.length; i++) cells[i] = paint.get(cells[i]) ?? cells[i];
 }
