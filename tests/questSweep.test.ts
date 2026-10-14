@@ -32,6 +32,7 @@ describe('every notice board in every test world', () => {
           if (q.kind === 'kill' ? (q.level <= GENTLE ? q.count < 4 || q.count > 5 : q.count < 6 || q.count > 8) : q.count < 4 || q.count > 6) problems.push(`${at}: asks ${q.count}`);
           if (q.kind === 'collect' && !QUEST_ITEMS_OF[q.foe].includes(q.item as QuestItemId)) problems.push(`${at}: wants what its foe doesn't carry`);
           if (!(q.copper > 0 && q.xp > 0 && q.level >= 1)) problems.push(`${at}: pays nothing`);
+          if (q.copper > 250 * (1 + 0.25 * (q.level - 1))) problems.push(`${at}: pays ${q.copper}, more than a few inn shifts' worth at level ${q.level}`);
         }
       }
       expect(problems).toEqual([]);

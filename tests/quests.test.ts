@@ -223,4 +223,15 @@ describe('quest levels', () => {
     const byDistance = [...model.villages].sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z));
     expect(zoneLevel(spawn, byDistance[byDistance.length - 1])).toBeGreaterThan(zoneLevel(spawn, byDistance[0]));
   });
+
+  it("pay about an inn shift's worth or a few, a quarter more a level: not a fortune for a gathering farther out", () => {
+    const model = new GameModel(TEST_SEEDS[0], { width: 512, depth: 512 });
+    const quests = model.villages.flatMap((_, b) => model.quests.offersAt(b)).filter((q) => !innWants(q.item));
+    expect(Math.max(...quests.map((q) => q.level))).toBeGreaterThan(1);
+    for (const q of quests) {
+      const scale = 1 + 0.25 * (q.level - 1);
+      expect(q.copper, `${q.key} at level ${q.level}`).toBeGreaterThanOrEqual(70 * scale);
+      expect(q.copper, `${q.key} at level ${q.level}`).toBeLessThanOrEqual(250 * scale);
+    }
+  });
 });

@@ -56,6 +56,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     const { icon, facts, fact } = detailParts(questIcon(q)(72), 'menu-detail-facts quest-facts');
     const spot = boardSpot(model, q.board) ?? q; // (the board's: always known while it's read)
     fact('Where', [innWants(q.item) ? 'The inn, in the village' : `${inMeters(Math.hypot(q.x - spot.x, q.z - spot.z))} ${q.where.replace(/ of the village$/, '')}`]);
+    if (q.kind === 'collect' && q.dropChance > 0) fact('Foes', [`About ${Math.ceil(q.count / q.dropChance)} to slay`]); // (what's wanted drops now and then: how many it takes, as a rule)
     questFacts(fact, q, model.hero.level, quests.xpFor(q));
     if (taken) fact('Progress', [done ? 'Done' : questProgress(q, have).text]);
     pane.append(icon, line('menu-detail-name', questTitle(q)), line('menu-detail-about', `“${notice(q, model.seed)}”`), facts);
