@@ -7,7 +7,8 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { C, TRIMS } from './housePalette';
-import { FOUNDATION_TOP, MID, braces, chimney, door, masonry, onWall, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
+import { FOUNDATION_TOP, MID, braces, door, masonry, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
+import { chimneyAt, chimneyOf, yard } from './houseYard';
 
 export const HOUSE_VOXEL_SIZE = 0.04;
 export const HOUSE_GRID: [number, number, number] = [25, 44, 25];
@@ -54,39 +55,6 @@ function leanTo(grid: VoxelGrid, b: Box): void {
   }
   for (let y = 0; y <= 4; y++) {
     fillBox(grid, x0, y, b.z0 + 3, x1 - 2, y, b.z1 - 3, (_x, _y, z) => (z === b.z0 + 3 || z === b.z1 - 3 ? C.endGrain : C.bark));
-  }
-}
-
-// Props around the house, each inside the tile: a banded barrel by the
-// door, firewood stacked at the back (pale cut ends), and on a two-storey
-// house a shop sign hanging from an iron bracket.
-function props(grid: VoxelGrid, ground: Box, upper: Box, doorU: number, twoStorey: boolean): void {
-  const bx = doorU + 5;
-  const bz = ground.z0 - 3;
-  for (let y = 0; y <= 2; y++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dz = -1; dz <= 1; dz++) {
-        if (Math.abs(dx) + Math.abs(dz) === 2) continue; // rounded: no corners
-        put(grid, [bx + dx, y, bz + dz], y === 1 ? C.iron : C.barrel);
-      }
-    }
-  }
-
-  const logStart = ground.x0 + 2;
-  const logEnd = ground.x0 + 6;
-  for (const [z, y] of [
-    [ground.z1 + 2, 0],
-    [ground.z1 + 3, 0],
-    [ground.z1 + 2, 1],
-  ]) {
-    for (let x = logStart; x <= logEnd; x++) put(grid, [x, y, z], x === logStart || x === logEnd ? C.endGrain : C.bark);
-  }
-
-  if (twoStorey) {
-    const front = wallsOf(upper).front;
-    const u = upper.x1 - 2;
-    for (let d = -1; d >= -4; d--) put(grid, onWall(front, u, upper.y0 + 4, d), C.iron);
-    fillBox(grid, u, upper.y0 + 1, upper.z0 - 4, u, upper.y0 + 3, upper.z0 - 2, C.sign);
   }
 }
 
@@ -161,8 +129,8 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, trim = 
   if (layout.leanTo) leanTo(grid, upper);
 
   const ridge = roof(grid, upper, layout.roofHeight, roofIndex);
-  chimney(grid, upper, ridge);
-  props(grid, twoStorey ? ground : upper, upper, doorU, twoStorey);
+  chimneyAt(grid, upper, ridge, chimneyOf(trim));
+  yard(grid, twoStorey ? ground : upper, upper, doorU, twoStorey, trim);
   paintTrim(grid, TRIMS[trim]);
   return grid;
 }
