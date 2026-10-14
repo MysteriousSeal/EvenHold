@@ -1,6 +1,6 @@
 // What the hero does with their hands, outdoors (GameModel's, by these): the loot nearest them in reach, picked up into
 // the bag (the bag full: left where it lies, told so; a quest's thing, counted for it); a thing dropped from the bag
-// on the ground just ahead of them (nothing's dropped indoors, nor in the furniture yard); what's worn taken off and
+// on the ground just ahead of them (nothing's dropped indoors but down a dungeon, nor in the furniture yard); what's worn taken off and
 // dropped so, straight from them (a full bag no bar); and the coins near them, scooped into their purse as they pass.
 
 import type { EquipSlot } from '../human/equipment';
@@ -42,7 +42,7 @@ export function pickUp(m: Hands): BagItem | null {
 // Takes one `item` out of the hero's bag and puts it on the ground just in front of them; returns whether they had
 // one. `slot`: the bag's slot it's from (one off that very stack, if it's one of several).
 export function dropFromBag(m: Hands, item: BagItem, slot?: number): boolean {
-  if (m.inside || m.yard) return false; // nothing's dropped indoors, or in the furniture yard
+  if ((m.inside && !m.dungeon) || m.yard) return false; // nothing's dropped indoors (a dungeon's floor aside: kept, dungeons/dungeonFloors.ts), or in the furniture yard
   const room = bagRoom(m.hero);
   if (slot !== undefined && bagStacks(m.hero.bag, m.hero.bagOrder, m.hero.bagCounts, room).layout[slot] !== item) return false; // (that slot holds something else: nothing taken, to be lost)
   if (!(slot === undefined ? takeFromBag(m.hero.bag, item) : takeFromSlot(m.hero, slot, room) === item)) return false;
@@ -50,10 +50,10 @@ export function dropFromBag(m: Hands, item: BagItem, slot?: number): boolean {
 }
 
 // Takes off what's worn in `slot` and puts it straight on the ground in front of the hero (never through the bag: a
-// full one no bar); nothing dropped indoors or in the furniture yard, where it stays worn.
+// full one no bar); nothing dropped indoors (but down a dungeon) or in the furniture yard, where it stays worn.
 export function dropEquipped(m: Hands, slot: EquipSlot): boolean {
   const item = m.hero.equipment[slot];
-  if (!item || m.inside || m.yard) return false;
+  if (!item || (m.inside && !m.dungeon) || m.yard) return false;
   delete m.hero.equipment[slot];
   fitToMost(m.hero); // (less Stamina, less Endurance)
   return dropAhead(m, item);
