@@ -24,6 +24,8 @@ const ENTRIES = {
   stoneLight: 0xa4a097,
   door: HOUSE_DOOR_COLOR,
   doorDark: 0x46301c,
+  shutter: HOUSE_DOOR_COLOR, // a house's shutters and door boards: painted by its trim (TRIMS below)
+  doorPaint: HOUSE_DOOR_COLOR,
   glass: HOUSE_WINDOW_COLOR, // glowing windows and lanterns
   iron: IRON_COLOR,
   flowerRed: 0xc4413a,
@@ -70,18 +72,47 @@ export const HOUSE_PALETTE: number[] = [...Object.values(ENTRIES)];
 // Palette index + 1 for each named color.
 export const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<Entry, number>;
 
+const shadeOf = (hex: number, factor: number) => {
+  const r = Math.min(255, Math.round(((hex >> 16) & 255) * factor));
+  const g = Math.min(255, Math.round(((hex >> 8) & 255) * factor));
+  const b = Math.min(255, Math.round((hex & 255) * factor));
+  return (r << 16) | (g << 8) | b;
+};
+
 // Roofs: one set of [base, light, dark, highlight] per roof color (clay
 // tile, slate, straw thatch), appended after the named entries.
 export const ROOF_SETS: Array<{ base: number; light: number; dark: number; highlight: number }> = HOUSE_ROOF_COLORS.map((hex) => {
-  const shade = (factor: number) => {
-    const r = Math.min(255, Math.round(((hex >> 16) & 255) * factor));
-    const g = Math.min(255, Math.round(((hex >> 8) & 255) * factor));
-    const b = Math.min(255, Math.round((hex & 255) * factor));
-    return (r << 16) | (g << 8) | b;
-  };
+  const shade = (factor: number) => shadeOf(hex, factor);
   const start = HOUSE_PALETTE.length;
   HOUSE_PALETTE.push(hex, shade(1.15), shade(0.8), shade(1.3));
   return { base: start + 1, light: start + 2, dark: start + 3, highlight: start + 4 };
+});
+
+export const THATCH_ROOF = 2; // the straw set: laid as thatch, not shingles (houseParts.ts roof)
+
+// A house's trim, picked by its hash (houseMesh.ts): the paint on its
+// shutters and door, and the tint of its limewash. Each is laid over the
+// placeholder entries above once the house is built (paintTrim), so the
+// parts stay one design; the inn and the smithy keep the placeholders' oak.
+const TRIM_COLORS: ReadonlyArray<{ shutter: number; door: number; plaster: number }> = [
+  { shutter: HOUSE_DOOR_COLOR, door: HOUSE_DOOR_COLOR, plaster: HOUSE_PLASTER_COLOR }, // bare oak, white limewash
+  { shutter: 0x5f8c58, door: 0x4d7348, plaster: HOUSE_PLASTER_COLOR }, // sage green
+  { shutter: 0x4f739a, door: 0x435f80, plaster: 0xebd3a0 }, // cornflower blue on ochre
+  { shutter: 0x9c4235, door: 0x7e3529, plaster: 0xecd5c4 }, // oxblood on rose
+  { shutter: 0xc79b3c, door: 0x5a3a22, plaster: 0xdfdcd0 }, // mustard on grey-white
+];
+
+// Each trim as a recoloring: placeholder index -> its own palette index.
+export const TRIMS: ReadonlyArray<ReadonlyMap<number, number>> = TRIM_COLORS.map((trim, i) => {
+  if (i === 0) return new Map();
+  const add = (hex: number) => HOUSE_PALETTE.push(hex); // (the new length: its index + 1)
+  return new Map([
+    [C.shutter, add(trim.shutter)],
+    [C.doorPaint, add(trim.door)],
+    [C.plaster, add(trim.plaster)],
+    [C.plasterShade, add(shadeOf(trim.plaster, 0.91))],
+    [C.plasterWarm, add(shadeOf(trim.plaster, 1.04))],
+  ]);
 });
 
 // Colors meshed with the emissive (glowing) material.

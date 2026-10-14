@@ -1,13 +1,14 @@
 // Voxel medieval houses at the world's 0.04 voxel scale (25 voxels = one
 // tile). Each wall is built in depth layers so the relief reads at
 // gameplay distance: plaster sits one voxel back, the timber frame stands
-// proud of it, window glass is recessed behind its frame, sills, planters
+// proud of it, window glass sits flush in its frame, sills, planters
 // and lanterns project outward. Door faces -Z; the roof ridge runs along X.
 
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { C } from './housePalette';
-import { FOUNDATION_TOP, MID, braces, chimney, door, masonry, onWall, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
+import { C, ROOF_SETS, TRIMS } from './housePalette';
+import { FOUNDATION_TOP, MID, braces, door, masonry, put, roof, timberStorey, wallsOf, window, type Box } from './houseParts';
+import { chimneyAt, chimneyOf, yard } from './houseYard';
 
 export const HOUSE_VOXEL_SIZE = 0.04;
 export const HOUSE_GRID: [number, number, number] = [25, 44, 25];
@@ -21,6 +22,7 @@ export interface HouseLayout {
   offsetX?: number; // shifts the house along X (to make room for a lean-to)
   leanTo?: boolean; // open woodshed against the +X wall
   porch?: boolean; // little timber porch roof over the door
+  dormer?: boolean; // a gabled window bay rising from the front wall through the roof
 }
 
 export const HOUSE_LAYOUTS: readonly HouseLayout[] = [
@@ -29,10 +31,46 @@ export const HOUSE_LAYOUTS: readonly HouseLayout[] = [
   { width: 15, depth: 15, wallHeight: 21, roofHeight: 13, groundHeight: 10 }, // townhouse, jettied upper floor
   { width: 17, depth: 15, wallHeight: 10, roofHeight: 12, stone: true }, // stone cottage
   { width: 13, depth: 13, wallHeight: 25, roofHeight: 11, groundHeight: 12 }, // tower house
-  { width: 21, depth: 13, wallHeight: 8, roofHeight: 15 }, // hall house: low walls, steep roof
+  { width: 21, depth: 13, wallHeight: 8, roofHeight: 15, dormer: true }, // hall house: low walls, steep roof
   { width: 15, depth: 15, wallHeight: 11, roofHeight: 11, offsetX: -3, leanTo: true }, // cottage with a woodshed
   { width: 19, depth: 15, wallHeight: 12, roofHeight: 12, porch: true, stone: true }, // stone house with a porch
 ];
+
+// A wall dormer over the front window at `u`: a half-timbered bay nine
+// voxels wide standing on the front wall's top beam, its own window (and
+// window box) in its face, under a little gable of the house's roof whose
+// ridge runs back into the main one. The main eave keeps only its lowest
+// course across the dormer's foot.
+function dormer(grid: VoxelGrid, b: Box, u: number, roofIndex: number): void {
+  const shades = ROOF_SETS[roofIndex];
+  const bay: Box = { x0: u - 4, x1: u + 4, z0: b.z0, z1: MID - 1, y0: b.y1 + 1, y1: b.y1 + 9 };
+  fillBox(grid, bay.x0, b.y1 + 2, b.z0 - 2, bay.x1, bay.y1, b.z0 - 1, 0);
+  timberStorey(grid, bay);
+  window(grid, wallsOf(bay).front, u, b.y1 + 6, false);
+  const peak = (dx: number) => bay.y1 + 1 + Math.round((5 - dx) * 0.6);
+  for (let dx = 0; dx <= 5; dx++) {
+    for (const x of dx === 0 ? [u] : [u - dx, u + dx]) {
+      fillBox(grid, x, peak(dx) - 1, b.z0 - 1, x, peak(dx), bay.z1, dx === 5 ? shades.dark : dx % 2 === 0 ? shades.base : shades.light);
+      if (dx < 4) fillBox(grid, x, bay.y1 + 1, bay.z0, x, peak(dx) - 2, bay.z1, x === u ? C.timber : C.plaster);
+    }
+  }
+}
+
+// Quoins: alternating long and short dressed stones up each corner of a stone storey.
+function quoins(grid: VoxelGrid, b: Box): void {
+  for (let y = b.y0; y <= b.y1; y++) {
+    const long = ((y - b.y0) >> 1) % 2 === 0;
+    for (const [x, z, dx, dz] of [
+      [b.x0, b.z0, 1, 1],
+      [b.x1, b.z0, -1, 1],
+      [b.x0, b.z1, 1, -1],
+      [b.x1, b.z1, -1, -1],
+    ]) {
+      put(grid, [x, y, z], C.stoneLight);
+      put(grid, long ? [x + dx, y, z] : [x, y, z + dz], C.stoneLight);
+    }
+  }
+}
 
 // A small timber porch over the door: two posts and a stepped plank roof.
 function porch(grid: VoxelGrid, b: Box, doorU: number): void {
@@ -57,40 +95,7 @@ function leanTo(grid: VoxelGrid, b: Box): void {
   }
 }
 
-// Props around the house, each inside the tile: a banded barrel by the
-// door, firewood stacked at the back (pale cut ends), and on a two-storey
-// house a shop sign hanging from an iron bracket.
-function props(grid: VoxelGrid, ground: Box, upper: Box, doorU: number, twoStorey: boolean): void {
-  const bx = doorU + 5;
-  const bz = ground.z0 - 3;
-  for (let y = 0; y <= 2; y++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dz = -1; dz <= 1; dz++) {
-        if (Math.abs(dx) + Math.abs(dz) === 2) continue; // rounded: no corners
-        put(grid, [bx + dx, y, bz + dz], y === 1 ? C.iron : C.barrel);
-      }
-    }
-  }
-
-  const logStart = ground.x0 + 2;
-  const logEnd = ground.x0 + 6;
-  for (const [z, y] of [
-    [ground.z1 + 2, 0],
-    [ground.z1 + 3, 0],
-    [ground.z1 + 2, 1],
-  ]) {
-    for (let x = logStart; x <= logEnd; x++) put(grid, [x, y, z], x === logStart || x === logEnd ? C.endGrain : C.bark);
-  }
-
-  if (twoStorey) {
-    const front = wallsOf(upper).front;
-    const u = upper.x1 - 2;
-    for (let d = -1; d >= -4; d--) put(grid, onWall(front, u, upper.y0 + 4, d), C.iron);
-    fillBox(grid, u, upper.y0 + 1, upper.z0 - 4, u, upper.y0 + 3, upper.z0 - 2, C.sign);
-  }
-}
-
-export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelGrid {
+export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, trim = 0): VoxelGrid {
   const grid = createGrid(HOUSE_GRID);
   const hw = (layout.width - 1) / 2;
   const hd = (layout.depth - 1) / 2;
@@ -112,23 +117,14 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelG
   if (twoStorey) {
     const groundTop = ground.y0 + layout.groundHeight! - 1;
     fillBox(grid, ground.x0, ground.y0, ground.z0, ground.x1, groundTop, ground.z1, masonry);
-    // Quoins: alternating long/short dressed stones up each corner.
-    for (let y = ground.y0; y <= groundTop; y++) {
-      const long = ((y - ground.y0) >> 1) % 2 === 0;
-      for (const [x, z, dx, dz] of [
-        [ground.x0, ground.z0, 1, 1],
-        [ground.x1, ground.z0, -1, 1],
-        [ground.x0, ground.z1, 1, -1],
-        [ground.x1, ground.z1, -1, -1],
-      ]) {
-        put(grid, [x, y, z], C.stoneLight);
-        put(grid, long ? [x + dx, y, z] : [x, y, z + dz], C.stoneLight);
-      }
-    }
+    quoins(grid, { ...ground, y1: groundTop });
     // Jettied upper floor: its frame overhangs the stone by a voxel.
     upper = { x0: ground.x0 - 1, x1: ground.x1 + 1, z0: ground.z0 - 1, z1: ground.z1 + 1, y0: groundTop + 1, y1: ground.y1 };
   }
-  if (layout.stone) fillBox(grid, upper.x0, upper.y0, upper.z0, upper.x1, upper.y1, upper.z1, masonry);
+  if (layout.stone) {
+    fillBox(grid, upper.x0, upper.y0, upper.z0, upper.x1, upper.y1, upper.z1, masonry);
+    quoins(grid, upper);
+  }
   else timberStorey(grid, upper);
 
   const doorU = twoStorey ? cx : cx - 4;
@@ -161,7 +157,16 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number): VoxelG
   if (layout.leanTo) leanTo(grid, upper);
 
   const ridge = roof(grid, upper, layout.roofHeight, roofIndex);
-  chimney(grid, upper, ridge);
-  props(grid, twoStorey ? ground : upper, upper, doorU, twoStorey);
+  if (layout.dormer) dormer(grid, upper, cx + 5, roofIndex);
+  chimneyAt(grid, upper, ridge, chimneyOf(trim));
+  yard(grid, twoStorey ? ground : upper, upper, doorU, twoStorey, trim);
+  paintTrim(grid, TRIMS[trim]);
   return grid;
+}
+
+// Lays a trim's paint over the placeholder shutter, door and limewash colors.
+function paintTrim(grid: VoxelGrid, paint: ReadonlyMap<number, number>): void {
+  if (paint.size === 0) return;
+  const { cells } = grid;
+  for (let i = 0; i < cells.length; i++) cells[i] = paint.get(cells[i]) ?? cells[i];
 }

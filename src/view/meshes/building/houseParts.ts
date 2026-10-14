@@ -8,7 +8,7 @@
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { fillBox, setColor, voxelLine } from '../voxel/voxelShapes';
 import { hashUnit } from '../../../util/random';
-import { C, ROOF_SETS } from './housePalette';
+import { C, ROOF_SETS, THATCH_ROOF } from './housePalette';
 
 export const MID = 12;
 export const FOUNDATION_TOP = 1; // plinth occupies y 0..1
@@ -61,22 +61,26 @@ export function wallsOf(b: Box): { front: Wall; back: Wall; left: Wall; right: W
   };
 }
 
-// Glass recessed one voxel behind a 5x5 frame ring, divided into four panes
-// by a cross; a sill below. Timber windows add shutters and, on the front
-// and back walls, a planter of flowers.
+// A 5x5 frame ring, its glass parted by a mullion into two tall lights; a
+// sill below. The glass sits flush with the frame, not set back behind it,
+// so the high camera sees all of it (and all of it glows at night). Timber
+// windows add shutters and, on the front and back walls, a planter of
+// flowers.
 export function window(grid: VoxelGrid, wall: Wall, u: number, y: number, stoneWall: boolean): void {
   const frame = stoneWall ? C.stoneLight : C.timber;
   for (let du = -2; du <= 2; du++) {
     for (let dy = -2; dy <= 2; dy++) {
       const ring = Math.max(Math.abs(du), Math.abs(dy)) === 2;
-      put(grid, onWall(wall, u + du, y + dy, 0), ring ? frame : 0);
-      if (!ring) put(grid, onWall(wall, u + du, y + dy, 1), du === 0 || dy === 0 ? frame : C.glass);
+      const light = du === 0 ? frame : C.glass;
+      put(grid, onWall(wall, u + du, y + dy, 0), ring ? frame : light);
+      if (!ring) put(grid, onWall(wall, u + du, y + dy, 1), light);
     }
   }
   for (let du = -2; du <= 2; du++) put(grid, onWall(wall, u + du, y - 2, -1), stoneWall ? C.stoneLight : C.timberLight);
   if (stoneWall) return;
 
-  for (const side of [-3, 3]) for (let dy = -1; dy <= 1; dy++) put(grid, onWall(wall, u + side, y + dy, 0), C.door);
+  // Shutters the full height of the frame, in the house's paint (its trim).
+  for (const side of [-3, 3]) for (let dy = -2; dy <= 2; dy++) put(grid, onWall(wall, u + side, y + dy, 0), C.shutter);
   if (wall.axis === 'z') {
     const flowers = [C.flowerRed, C.leaf, C.flowerYellow, C.leaf, C.flowerPurple];
     for (let du = -2; du <= 2; du++) {
@@ -87,7 +91,7 @@ export function window(grid: VoxelGrid, wall: Wall, u: number, y: number, stoneW
   }
 }
 
-// Plank door (alternating board shades) recessed behind its jambs, with two
+// Plank door (in the house's paint) recessed behind its jambs, with two
 // iron straps and a handle, a lintel, a stone step, and a lantern on an
 // iron bracket to its left.
 export function door(grid: VoxelGrid, wall: Wall, u: number, stoneWall: boolean): void {
@@ -100,7 +104,7 @@ export function door(grid: VoxelGrid, wall: Wall, u: number, stoneWall: boolean)
     for (let du = -1; du <= 1; du++) {
       put(grid, onWall(wall, u + du, y, 0), 0);
       const strap = y === bottom + 2 || y === bottom + 5;
-      put(grid, onWall(wall, u + du, y, 1), strap ? C.iron : du === 0 ? C.doorDark : C.door);
+      put(grid, onWall(wall, u + du, y, 1), strap ? C.iron : C.doorPaint);
     }
   }
   for (let du = -3; du <= 3; du++) put(grid, onWall(wall, u + du, top + 1, 0), stoneWall ? C.stoneLight : C.timberLight);
@@ -156,40 +160,74 @@ export function timberStorey(grid: VoxelGrid, b: Box): void {
 // gable ends by two. Each course is cut into 3-voxel shingles, staggered
 // course to course, each with its own shade (courses still alternate
 // lighter and darker every two steps); the eave is dark, the ridge capped
-// light, and moss creeps up from the eaves. The attic under it is plaster, with a king post
+// light, and moss creeps up from the eaves. The straw roof is thatch instead
+// (thatchColor), half-hipped: the top of each gable swept back at the
+// roof's own pitch. The attic under it is plaster, with a king post
 // and raking struts on each gable face.
 export function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: number): number {
   const shades = ROOF_SETS[roofIndex];
+  const thatched = roofIndex === THATCH_ROOF;
   const halfSpan = (b.z1 - b.z0) / 2;
   const ridge = b.y1 + roofHeight;
-  const rowTop = (dz: number) => ridge - Math.round((dz * roofHeight) / (halfSpan + 1));
   const lastRow = halfSpan + 2;
+  // The eave's last course rests on the wall-top beam rather than hanging
+  // below it, so from the high camera the door and windows under it show.
+  const pitch = (roofHeight - 1) / lastRow;
+  const rowTop = (dz: number) => ridge - Math.round(dz * pitch);
+  const reach = thatched ? 1 : 2; // past the gable ends
+  const thick = thatched ? 3 : 2;
+  const ends = [b.x0 - reach, b.x1 + reach];
+  // The hip: from a little over half the roof's height, the top falls toward each end.
+  const hipBase = b.y1 + Math.ceil(roofHeight * 0.55);
+  const topAt = (x: number, dz: number) => {
+    if (!thatched) return rowTop(dz);
+    return Math.min(rowTop(dz), hipBase + Math.round(Math.min(x - ends[0], ends[1] - x) * pitch));
+  };
 
-  for (let dz = 0; dz <= lastRow; dz++) {
-    const top = rowTop(dz);
-    for (const side of [-1, 1]) {
-      const z = MID + side * dz;
-      fillBox(grid, b.x0 - 2, top - 1, z, b.x1 + 2, top, z, (x) => {
-        if (dz === lastRow) return shades.dark;
-        if (dz === 0) return shades.highlight; // ridge cap
-        const shingle = Math.floor((x + dz * 2) / 3);
-        const h = hashUnit(shingle, dz, side);
-        const moss = hashUnit(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
-        if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
-        const light = Math.floor(dz / 2) % 2 === 1;
-        return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;
-      });
-      if (dz <= halfSpan) fillBox(grid, b.x0 + 1, b.y1 + 1, z, b.x1 - 1, top - 2, z, C.plaster);
-    }
-  }
-
+  // The gable faces' timbers first, so the roof's courses close over them.
   for (const x of [b.x0, b.x1]) {
-    fillBox(grid, x, b.y1 + 1, MID, x, ridge - 2, MID, C.timber);
+    fillBox(grid, x, b.y1 + 1, MID, x, Math.min(ridge - 2, topAt(x, 0) - thick), MID, C.timber);
     for (const side of [-1, 1]) {
       voxelLine(grid, [x, b.y1 + 1, MID + side * (halfSpan - 2)], [x, b.y1 + Math.floor(roofHeight / 2), MID], C.timber);
     }
   }
+
+  for (let dz = 0; dz <= lastRow; dz++) {
+    for (const side of [-1, 1]) {
+      const z = MID + side * dz;
+      for (let x = ends[0]; x <= ends[1]; x++) {
+        const top = topAt(x, dz);
+        fillBox(grid, x, top - thick + 1, z, x, top, z, (_x, y) => {
+          if (thatched) return thatchColor(shades, x, y, dz, side, lastRow);
+          if (dz === lastRow) return shades.dark;
+          if (dz === 0) return shades.highlight; // ridge cap
+          const shingle = Math.floor((x + dz * 2) / 3);
+          const h = hashUnit(shingle, dz, side);
+          const moss = hashUnit(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
+          if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
+          const light = Math.floor(dz / 2) % 2 === 1;
+          return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;
+        });
+        if (dz <= halfSpan && x > b.x0 && x < b.x1) fillBox(grid, x, b.y1 + 1, z, x, top - thick, z, C.plaster);
+        // A thatch's ridge: a roll of straw bound down by crossed hazel spars, along the unhipped length.
+        if (thatched && dz <= 1 && top === rowTop(dz)) put(grid, [x, top + 1, z], (x + dz) % 4 === 0 ? shades.highlight : shades.dark);
+      }
+    }
+  }
   return ridge;
+}
+
+// Straw laid in courses: strands two voxels wide rather than shingles (so
+// the speckle stays cheap to mesh and quiet from afar), every third course
+// a little paler, the cut eave darker and ragged, a little moss low
+// down where it stays damp.
+function thatchColor(shades: (typeof ROOF_SETS)[number], x: number, y: number, dz: number, side: number, lastRow: number): number {
+  const h = hashUnit(x >> 1, y * 31 + dz, side);
+  if (dz === lastRow) return h < 0.45 ? shades.dark : shades.base;
+  if (dz >= lastRow - 2 && hashUnit(x >> 1, dz, side + 7) < 0.12) return C.roofMoss;
+  if (h < 0.08) return shades.dark;
+  if (h < 0.22) return shades.highlight;
+  return dz % 3 === 1 ? shades.light : shades.base;
 }
 
 export function chimney(grid: VoxelGrid, b: Box, ridge: number): void {

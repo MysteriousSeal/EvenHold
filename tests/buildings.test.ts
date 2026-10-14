@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { buildHouseGeometry } from '../src/view/meshes/building/houseMesh';
 import { buildHouseVoxels, HOUSE_LAYOUTS } from '../src/view/meshes/building/houseVoxels';
-import { C, ROOF_SETS } from '../src/view/meshes/building/housePalette';
+import { C, ROOF_SETS, TRIMS } from '../src/view/meshes/building/housePalette';
 import { voxelIndex } from '../src/view/meshes/voxel/greedyMesh';
 import { buildWellGeometry } from '../src/view/meshes/well/wellMesh';
 import { buildBuildingGeometry } from '../src/view/meshes/building/buildingMesh';
@@ -48,13 +48,30 @@ describe('voxel houses', () => {
     for (let i = 0; i < main.getAttribute('position').count; i++) expect(isGlass(main, i)).toBe(false);
   });
 
+  it.each(HOUSE_LAYOUTS.map((_, i) => i))('layout %i: every trim (its chimney and yard too) stays inside its tile', (layout) => {
+    for (let trim = 0; trim < TRIMS.length; trim++) {
+      const geometry = buildHouseGeometry(layout, 0, false, trim);
+      expect(horizontalExtent(geometry), `trim ${trim}`).toBeLessThanOrEqual(CELL_HALF + EPSILON);
+    }
+  });
+
+  it('a painted trim recolors the shutters and door, and leaves no placeholder behind', () => {
+    const colors = (trim: number) => new Set(buildHouseVoxels(HOUSE_LAYOUTS[0], 0, trim).cells);
+    expect(colors(0).has(C.shutter)).toBe(true);
+    for (let trim = 1; trim < TRIMS.length; trim++) {
+      const used = colors(trim);
+      for (const placeholder of [C.shutter, C.doorPaint, C.plaster]) expect(used.has(placeholder), `trim ${trim}`).toBe(false);
+      expect(used.has(TRIMS[trim].get(C.shutter)!)).toBe(true);
+    }
+  });
+
   it.each(HOUSE_LAYOUTS.map((l, i) => [i, l] as const))('layout %i: its door is on the front (-Z) wall', (index, layout) => {
     const grid = buildHouseVoxels(layout, 0);
     const [sx, sy, sz] = grid.size;
     let doorZ = Infinity;
     for (let z = 0; z < sz; z++) {
       for (let y = 0; y < sy; y++) {
-        for (let x = 0; x < sx; x++) if (grid.cells[voxelIndex(grid, x, y, z)] === C.doorDark) doorZ = Math.min(doorZ, z);
+        for (let x = 0; x < sx; x++) if (grid.cells[voxelIndex(grid, x, y, z)] === C.doorPaint) doorZ = Math.min(doorZ, z);
       }
     }
     expect(doorZ, `layout ${index}`).toBeLessThan(sz / 2);
