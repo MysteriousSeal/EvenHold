@@ -8,7 +8,7 @@ import { butcher } from '../loot/ingredients';
 import { leech } from './gearEffects';
 import { rollGearDrop } from '../loot/gearDrops';
 import type { CombatMoves, Guarded } from './combatMoves';
-import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
+import { ATTACK_KNOCKBACK, ENEMY_STATS, HIT_FLASH } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
@@ -66,7 +66,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
   target.hp -= damage;
   leech(hero, damage); // (their gear's: a share of it healed)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
-  target.hurtFor = 0.25;
+  target.hurtFor = Math.max(target.hurtFor, HIT_FLASH); // (one reeling, parried, still reels)
   target.swingFor = null; // a hit interrupts its own blow
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it

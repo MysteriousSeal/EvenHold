@@ -93,6 +93,7 @@ export const ATTACK_REACH = 0.85; // how far a blow lands in front of the hero
 export const ATTACK_STRIKE = 0.5; // point of the blow (0..1) where it lands
 export const ATTACK_KNOCKBACK = 0.35;
 export const ATTACK_DURATION = 0.42; // seconds for one blow, wind-up to recovery
+export const HIT_FLASH = 0.25; // seconds a foe flashes, struck (its hurtFor; any more, it's reeling: enemies.ts)
 export const HOP_DURATION = 0.18; // seconds to hop between terrain tiers
 export const HOP_HEIGHT = 0.12; // extra height at the top of the hop arc
 export const MAX_TIER = 4; // highest terrain tier; tiers are integers 0..MAX_TIER

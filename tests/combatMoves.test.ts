@@ -6,9 +6,10 @@
 // with no breath left; and the keys (Shift alone a roll, Q held the guard).
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BREATH, COST, RIPOSTE_FACTOR, ROLL_REACH, ROLL_SAFE, ROLL_TIME, STAGGER, TIRED_BREATH, guardOf } from '../src/model/hero/combatMoves';
+import { BREATH, COST, PARRY_AGAIN, RIPOSTE_FACTOR, ROLL_REACH, ROLL_SAFE, ROLL_TIME, STAGGER, TIRED_BREATH, guardOf } from '../src/model/hero/combatMoves';
 import { dungeonHooks, heroStruck, landBlow } from '../src/model/hero/fighting';
 import { makeEnemy } from '../src/model/enemies/enemies';
+import { HIT_FLASH } from '../src/model/constants';
 import { TIRED } from '../src/model/hero/heroStats';
 import { KeyboardInput } from '../src/controller/KeyboardInput';
 import type { GameEvent } from '../src/model/types';
@@ -108,7 +109,7 @@ describe('the guard', () => {
     heroStruck(model, 8, wolf);
     expect(model.hero.hp).toBe(hp);
     expect(guarded(model)).toEqual(['parried']);
-    expect(wolf.hurtFor).toBe(STAGGER);
+    expect(wolf.hurtFor).toBe(HIT_FLASH + STAGGER);
     model.focus(wolf.id);
     const plain = makeEnemy(902, 'wolf', 0, 0);
     expect(model.moves.riposteOn(plain)).toBe(1);
@@ -119,6 +120,38 @@ describe('the guard', () => {
     wolf.hp = before;
     landBlow(model);
     expect(ripost).toBeGreaterThanOrEqual((before - wolf.hp) * RIPOSTE_FACTOR - 1);
+  });
+
+  it('a foe parried reels: no blow of its own begun till it\'s steady (not one at once, as its lost blow\'s ended)', () => {
+    const model = fresh();
+    const bandit = { ...makeEnemy(905, 'bandit', model.hero.x, model.hero.z + 0.55), state: 'chase' as const };
+    model.enemies.push(bandit);
+    for (let t = 0; t < 3 && (bandit.swingFor ?? 0) < 0.3; t += 1 / 60) run(model, 1 / 60); // (just before its blow lands)
+    model.raiseGuard(true);
+    run(model, 0.15);
+    expect(guarded(model)).toEqual(['parried']);
+    model.raiseGuard(false);
+    let steady = 0;
+    while (bandit.swingFor === null && steady < 3) [run(model, 1 / 60), (steady += 1 / 60)];
+    expect(steady).toBeGreaterThanOrEqual(STAGGER - 0.1); // (from just after the parry)
+  });
+
+  it('raised again straight after the last raise (Q mashed): blocks, never a parry; after a moment down, a parry again', () => {
+    const model = fresh();
+    const met = () => {
+      heroStruck(model, 2, makeEnemy(907, 'bandit', model.hero.x, model.hero.z + 0.5));
+      return guarded(model)[0];
+    };
+    model.raiseGuard(true);
+    run(model, 0.1);
+    model.raiseGuard(false);
+    run(model, 0.1);
+    model.raiseGuard(true); // (straight up again)
+    expect(met()).toBe('blocked');
+    model.raiseGuard(false);
+    run(model, PARRY_AGAIN);
+    model.raiseGuard(true);
+    expect(met()).toBe('parried');
   });
 
   it('held past the parry: the blow cut by what\'s in the off hand, breath spent; out of breath, broken', () => {

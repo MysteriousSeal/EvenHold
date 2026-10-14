@@ -7,6 +7,7 @@
 // it's lost (unless `staunch`). One foe, one move at a time (`busy`: another's).
 
 import type { Enemy, Hero } from '../types';
+import { reeling } from './enemies';
 
 export interface Told {
   foe: Enemy;
@@ -55,7 +56,7 @@ export class ToldMoves {
       const wait = Math.max(0, (this.waits.get(foe) ?? move.first) - dt);
       this.waits.set(foe, wait);
       const d = Math.hypot(hero.x - foe.x, hero.z - foe.z);
-      if (wait > 0 || this.doing(foe) || busy(foe) || foe.state !== 'chase' || foe.swingFor !== null || d > move.near || d < (move.far ?? 1e-6)) continue;
+      if (wait > 0 || this.doing(foe) || busy(foe) || foe.state !== 'chase' || foe.swingFor !== null || reeling(foe) || d > move.near || d < (move.far ?? 1e-6)) continue;
       this.moves.push({ foe, x: foe.x, z: foe.z, dx: (hero.x - foe.x) / d, dz: (hero.z - foe.z) / d, tx: hero.x, tz: hero.z, t: 0 });
       this.waits.set(foe, move.every);
     }

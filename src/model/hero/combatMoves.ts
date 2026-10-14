@@ -2,7 +2,7 @@
 // them a few tiles, untouchable for most of it, out of a foe's marked
 // ground; a guard (hold Q) that cuts the blows it takes, and, raised just as
 // one lands, parries it: no harm, the foe staggered, its next blow from the
-// hero a critical one. Each spends Breath, a short-term bar under health:
+// hero a critical one (raised again straight after, it only blocks: no parrying all by mashing Q). Each spends Breath, a short-term bar under health:
 // a blow, a roll, a blow blocked, each takes some; it refills a moment after,
 // slower behind a raised guard; tired (energy low: heroStats.ts), it holds
 // less and refills slower. Short of a blow's or a roll's breath, neither;
@@ -12,7 +12,7 @@ import { baseOf } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
 import { TIRED } from './heroStats';
-import { ATTACK_DURATION, ATTACK_STRIKE } from '../constants';
+import { ATTACK_DURATION, ATTACK_STRIKE, HIT_FLASH } from '../constants';
 
 export const BREATH = 100; // the most, rested
 export const TIRED_BREATH = 60; // the most, tired
@@ -31,6 +31,7 @@ export const ROLL_SAFE = 0.32; // seconds of it nothing touches the hero
 export const ROLL_REACH = 1; // tiles it carries them
 
 export const PARRY = 0.18; // seconds after the guard's raised that a blow landing is parried
+export const PARRY_AGAIN = 0.6; // seconds after one raise before another may parry (Q mashed: blocks, not a parry each time)
 const KEEN_PARRY = 0.3; // with what's made for it: a buckler, a parrying dagger
 const KEEN: ReadonlySet<ItemId> = new Set(['buckler', 'parryingDagger']);
 export const STAGGER = 0.9; // seconds a parried foe reels (its blow and any told move lost)
@@ -50,6 +51,8 @@ export class CombatMoves {
   breath = BREATH;
   roll: { dx: number; dz: number; t: number } | null = null; // under way: its way (a unit vector), seconds into it
   guard: number | null = null; // raised: seconds since; else null
+  private keen = true; // whether the guard as raised may parry (not raised again straight after the last)
+  private sinceRaised = PARRY_AGAIN; // seconds since the guard was last raised
   private riposte: { foe: Enemy; left: number } | null = null; // a foe just parried, open to a critical blow
   private blow: { t: number; landed: boolean } | null = null; // a blow under way: seconds into it, whether it's landed (once)
   private wait = 0; // seconds before breath refills
@@ -99,7 +102,7 @@ export class CombatMoves {
   raise(on: boolean): void {
     if (!on || this.roll || this.blow) this.guard = null;
     else {
-      this.guard ??= 0;
+      if (this.guard === null) [this.guard, this.keen, this.sinceRaised] = [0, this.sinceRaised >= PARRY_AGAIN, 0];
       this.hero.eating = null; // (and to guard)
     }
   }
@@ -128,6 +131,7 @@ export class CombatMoves {
     else this.breath += REFILL * (this.hero.energy < TIRED ? TIRED_REFILL : 1) * (this.guard !== null ? GUARD_REFILL : 1) * dt;
     this.breath = Math.min(this.most, this.breath);
     if (this.guard !== null) this.guard += dt;
+    this.sinceRaised += dt;
     if (this.riposte && (this.riposte.left -= dt) <= 0) this.riposte = null;
     const roll = this.roll;
     if (!roll) return;
@@ -146,9 +150,9 @@ export class CombatMoves {
     if (this.untouchable) return { damage: 0, guarded: 'rolled' };
     if (this.guard === null) return { damage, guarded: 'taken' };
     const offHand = this.hero.equipment.offHand && baseOf(this.hero.equipment.offHand); // (what it is: a buckler, a dagger)
-    if (this.guard <= parryWindow(offHand)) {
+    if (this.keen && this.guard <= parryWindow(offHand)) {
       if (by) {
-        Object.assign(by, { swingFor: null, hurtFor: STAGGER }); // (reeling: its blow, and any move it was telling, lost)
+        Object.assign(by, { swingFor: null, hurtFor: HIT_FLASH + STAGGER }); // (reeling, past its flash: its blow, and any move it was telling, lost; no other begun: enemies.ts)
         this.riposte = { foe: by, left: RIPOSTE };
       }
       return { damage: 0, guarded: 'parried' };

@@ -7,7 +7,7 @@
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { DUNGEON_FAMILIES, DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
+import { HIT_FLASH, DUNGEON_FAMILIES, DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { CHIEF_OUTFIT, chiefLevel, chiefName, chiefSpot } from '../camps/campChief';
@@ -186,6 +186,8 @@ export interface EnemyActions {
 }
 
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
+// Whether it's reeling (parried: hero/combatMoves.ts), its hurtFor past a hit's flash.
+export const reeling = (enemy: Enemy): boolean => enemy.hurtFor > HIT_FLASH;
 
 export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?: Blessing[] }, dt: number, actions: EnemyActions): void {
   const { steer, sees } = actions;
@@ -209,6 +211,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     }
     return; // committed to the blow
   }
+  if (reeling(enemy)) return; // (parried, staggered: it stands, no blow begun till it's steady)
 
   // It notices the hero in sight range with nothing solid in between, or
   // close enough to hear whatever's in the way.
