@@ -22,7 +22,7 @@ import { SLOT_NAMES } from '../../model/human/equipment';
 import { canWear, gearName, rarityOf, slotOfGear, type GearKey } from '../../model/human/items/gear';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
-import { sellValue } from '../../model/shops/sellValue';
+import { saleOf } from '../../model/shops/sellValue';
 import { againstWorn, gearLines } from './gearLines';
 import { createMenu, toned, type LineTone, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
@@ -49,9 +49,9 @@ const playing = (line: MenuLine, ...tones: LineTone[]) => typeof line !== 'strin
 // `at`: the bag's slot it's in (what's dropped from it, off that very stack).
 function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number): MenuSlot {
   const base = baseSlot(model, item, count, at);
-  const value = sellValue(item);
+  const sale = saleOf(item);
   const lines = base.lines ?? [];
-  const slot = value === null ? base : { ...base, lines: [...lines.filter((l) => !playing(l, 'hint')), toned('price', `Sells for ${coinWords(value)}`), ...lines.filter((l) => playing(l, 'hint'))] }; // (its price before its hints: those last)
+  const slot = sale === null ? base : { ...base, lines: [...lines.filter((l) => !playing(l, 'hint')), toned('price', `Sells for ${coinWords(sale.price)} to ${sale.to}`), ...lines.filter((l) => playing(l, 'hint'))] }; // (its price and buyer before its hints: those last)
   if (!seller) return slot;
   if (!seller.wants(item)) return { ...slot, dim: true, lines: [...(slot.lines ?? []), toned('loss', 'Not bought here')] };
   // Trading: right-click (or drag onto the shop) sells it, instead of what it'd do.
