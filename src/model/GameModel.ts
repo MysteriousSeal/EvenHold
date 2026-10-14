@@ -129,9 +129,9 @@ export class GameModel {
   readonly welcome = new VillageWelcome(() => this); // (a village come into: its name told)
   readonly work = new Work(this); // (a job's shift, under way: jobs/work.ts)
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
-  readonly woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
+  readonly woodworking: Woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
-  readonly cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
+  readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
