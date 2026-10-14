@@ -213,4 +213,3 @@ function openIslands(floor: Uint8Array, width: number, depth: number): void {
 }
 
 // Its floor, and its rock always in view: any dungeon's (dungeons/floorPlan.ts).
-export { inFullView, isFloor } from '../dungeons/floorPlan';

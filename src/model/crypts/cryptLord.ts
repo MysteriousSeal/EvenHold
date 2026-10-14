@@ -14,7 +14,7 @@ import { rollHoard, type Hoard } from '../loot/hoard';
 import type { Enemy } from '../types';
 import { cellKey } from '../map/grid';
 import { makeEnemy } from '../enemies/enemies';
-import { isFloor } from './cryptLayout';
+import { isFloor } from '../dungeons/floorPlan';
 import type { Told, ToldMove } from '../enemies/toldMoves';
 import { CRYPT_NAMES } from './cryptNames';
 import type { CryptInside } from './crypts';

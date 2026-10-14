@@ -9,7 +9,8 @@
 
 import { hashCell, mulberry32 } from '../../util/random';
 import { FACINGS, NEIGHBORS_4, cellKey, flood } from '../map/grid';
-import { isFloor, inFullView, type CryptPlan, type Rect } from './cryptLayout';
+import { type CryptPlan, type Rect } from './cryptLayout';
+import { inFullView, isFloor } from '../dungeons/floorPlan';
 import { oneOf } from '../../util/random';
 
 export type CryptPropKind = 'sconce' | 'niche' | 'cobweb' | 'skeleton' | 'slumped' | 'bones' | 'stones' | 'sarcophagus' | 'urns' | 'candles' | 'rubble' | 'dais' | 'greatSarcophagus';

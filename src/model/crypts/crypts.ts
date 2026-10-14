@@ -15,7 +15,8 @@ import type { Entrance, Room } from '../interiors/interiors';
 import type { Ruin, RuinPiece } from '../ruins/ruins';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { cryptName } from './cryptNames';
-import { isFloor, planCrypt, type CryptPlan } from './cryptLayout';
+import { planCrypt, type CryptPlan } from './cryptLayout';
+import { isFloor } from '../dungeons/floorPlan';
 import { furnishCrypt, type CryptProp } from './cryptProps';
 import type { Tiles } from '../map/tiles';
 

@@ -136,14 +136,13 @@ export class GameModel {
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
-  // Dev cheats: movement speed factor (1 = normal); walking through
-  // everything; god mode (enemies' blows don't hurt); every blow of the
-  // hero's a kill; enemies standing still (enemiesFrozen, below).
+  // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
+  // a kill; drawn with nothing on (what's worn stays worn, and counts); enemies standing still (enemiesFrozen, below).
   speedMultiplier = 1;
   noclip = false;
   godMode = false;
   oneHitKills = false;
-  seenBare = false; // drawn with nothing on (a cheat). What's worn stays worn, and still counts.
+  seenBare = false;
   readonly moves: CombatMoves; // the hero's roll, guard and breath (combatMoves.ts)
   random: () => number = Math.random; // the rolls of chance in a fight: a dodge, a critical blow (tests set their own)
 
