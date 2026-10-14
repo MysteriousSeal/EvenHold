@@ -61,8 +61,8 @@ export const groupOf = (item: BagItem): BagGroup => (isLootItem(item) ? GROUP_OF
 // at another).
 export function eatOrDrink(hero: Hero, item: BagItem): boolean {
   if (!isProvision(item) || hero.eating || !takeFromBag(hero.bag, item)) return false;
-  const { heal = 0, energy = 0 } = PROVISIONS[item];
-  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: MEAL_SECONDS, seconds: MEAL_SECONDS, item };
+  const { heal = 0, energy = 0, fed } = PROVISIONS[item];
+  hero.eating = { heal: heal * maxHpOf(hero), energy: energy * maxEnergyOf(hero), left: MEAL_SECONDS, seconds: MEAL_SECONDS, item, ...(fed && { fed }) }; // (a cook's meal: its blessing once eaten through)
   return true;
 }
 

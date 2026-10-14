@@ -2,11 +2,13 @@
 // sells, and buys back. She has only so much of each, and only so much
 // money: it grows when the hero buys, shrinks when she buys from them. Her
 // wares and purse start from the seed and slowly come back toward that as
-// real time passes (five minutes at a time), even between visits.
+// real time passes (five minutes at a time), even between visits. From her
+// kitchen too, for a cook (skills/cooking.ts): salt and flour (INN_PANTRY).
 
 import { hashUnit } from '../../util/random';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { PROVISIONS, PROVISION_IDS, isProvision, type ProvisionId } from '../loot/provisions';
+import { INGREDIENTS } from '../loot/ingredients';
 import type { Hero } from '../types';
 import { buyFrom, openShop, refill, sellTo, type Shop, type Usual } from '../shops/shopStock';
 
@@ -15,7 +17,7 @@ export { RESTOCK_EVERY, restockIn, type Shop } from '../shops/shopStock';
 // What she starts with, and restocks toward: a few silver, a few of each.
 function usual(seed: number, inn: number): Usual {
   const roll = (salt: number) => hashUnit(inn, seed % 1_000_003, salt);
-  const stock = Object.fromEntries(PROVISION_IDS.map((id, i) => [id, 2 + Math.floor(roll(100 + i) * 5)]));
+  const stock = Object.fromEntries([...PROVISION_IDS.map((id, i) => [id, 2 + Math.floor(roll(100 + i) * 5)]), ...INN_PANTRY.map((id, i) => [id, 5 + Math.floor(roll(120 + i) * 6)])]);
   return { money: Math.round((2 + roll(99) * 3) * COPPER_PER_SILVER), stock };
 }
 
@@ -37,7 +39,12 @@ export function restockAll(shops: Map<number, Shop>, seed: number, now = Date.no
   return n;
 }
 
-export const buyPrice = (id: ProvisionId): number => PROVISIONS[id].value;
+// Her kitchen's salt and flour, sold to a cook (not bought back: she's plenty).
+export const INN_PANTRY = ['salt', 'flour'] as const;
+export type PantryId = (typeof INN_PANTRY)[number];
+export const isPantry = (id: string): id is PantryId => (INN_PANTRY as readonly string[]).includes(id);
+
+export const buyPrice = (id: ProvisionId | PantryId): number => (isPantry(id) ? INGREDIENTS[id].value : PROVISIONS[id].value);
 
 // What the inn pays for a woodworker's cups (skills/woodworking.ts), a standing price well over the junk one: the
 // bar's tankards break, the kitchen's bowls crack, and she wants them. Those sold stock her cupboard (the shop's
@@ -60,7 +67,7 @@ export function cupboardWords(shop: Shop): string {
 export const sellPrice = (id: ProvisionId | InnWant): number => (innWants(id) ? INN_WANTS[id].pays : Math.max(1, Math.floor(PROVISIONS[id].value / 2))); // she buys food at half
 
 // The hero buys one of `id`: why not, if they can't (she's none, they're short).
-export function buy(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' | 'full' {
+export function buy(shop: Shop, hero: Hero, id: ProvisionId | PantryId): 'bought' | 'sold out' | 'too poor' | 'full' {
   return buyFrom(shop, hero, id, buyPrice(id));
 }
 
