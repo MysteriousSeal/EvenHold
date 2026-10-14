@@ -72,6 +72,17 @@ export function buy(shop: Shop, hero: Hero, id: ProvisionId | PantryId): 'bought
   return buyFrom(shop, hero, id, buyPrice(id));
 }
 
+// The hero buys one of `id` to have there and then, at the bar (not carried off: no room in the bag wanted): why not, if not.
+export function buyToHave(shop: Shop, hero: Hero, id: ProvisionId): 'bought' | 'sold out' | 'too poor' {
+  const price = buyPrice(id);
+  if (!(shop.stock[id] ?? 0)) return 'sold out';
+  if (hero.money < price) return 'too poor';
+  hero.money -= price;
+  shop.money += price;
+  shop.stock[id]! -= 1;
+  return 'bought';
+}
+
 // The hero sells her one of `id` (food and drink, and a woodworker's cups): why not, if not.
 export function sell(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'she is short' {
   if (!isProvision(id) && !innWants(id)) return 'not wanted';
