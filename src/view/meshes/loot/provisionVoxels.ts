@@ -4,13 +4,13 @@
 // a long low loaf, a sloping wedge, a round apple, a meaty bulb on a bone, a
 // flat pie, a tankard crowned with foam, a pot-bellied jug, a tall slim bottle.
 
-import type { PROVISIONS } from '../../../model/loot/provisions';
+import type { InnProvisionId } from '../../../model/loot/provisions';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
 // A disc (a square with its corners cut) `size` across at height y, painted by `color`.
-function disc(g: VoxelGrid, x0: number, y: number, z0: number, size: number, color: (x: number, z: number) => number): void {
+export function disc(g: VoxelGrid, x0: number, y: number, z0: number, size: number, color: (x: number, z: number) => number): void {
   for (let x = 0; x < size; x++) {
     for (let z = 0; z < size; z++) {
       const corner = (x === 0 || x === size - 1) && (z === 0 || z === size - 1);
@@ -19,7 +19,7 @@ function disc(g: VoxelGrid, x0: number, y: number, z0: number, size: number, col
   }
 }
 
-export const PROVISION_MODELS: Record<keyof typeof PROVISIONS, LootModel> = {
+export const PROVISION_MODELS: Record<InnProvisionId, LootModel> = {
   // A long crusty loaf, rising to a lighter top scored across twice.
   bread: model([0xc98a3c, 0xa86a28, 0xe8b46a, 0xf2dcae], [6, 3, 4], (g) => {
     fillBox(g, 0, 0, 0, 5, 0, 3, 2);

@@ -12,6 +12,7 @@ import type { ProvisionId } from '../../../model/loot/provisions';
 export type InHand = Drink | ProvisionId;
 import { greedyMesh } from '../voxel/greedyMesh';
 import { PROVISION_MODELS, WINE_GLASS_MODEL } from '../loot/provisionVoxels';
+import { LOOT_MODELS } from '../loot/lootModels';
 import { HUMAN_VOXEL_SIZE } from './bodyVoxels';
 
 const V = HUMAN_VOXEL_SIZE;
@@ -71,7 +72,7 @@ export class CupInHand {
   private showing: InHand = 'ale'; // the cup in hand
   private showTankard(drink: InHand = 'ale'): void {
     if (!this.cups[drink]) {
-      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : PROVISION_MODELS[drink]; // (wine in a glass)
+      const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : LOOT_MODELS[drink]; // (wine in a glass)
       const grid = model.build();
       const size = V * TANKARD_SCALE;
       this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));
