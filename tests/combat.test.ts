@@ -112,3 +112,26 @@ describe("what a foe's blow does to the hero", () => {
     expect(blowTaken(hero, 1, 0.99).damage).toBe(1);
   });
 });
+
+describe('a palisade between them', () => {
+  it("stops the hero's blow and the foe's alike: neither through it, a bandit in its camp and the hero outside", () => {
+    const model = fresh();
+    model.random = () => 0.999;
+    const camp = model.camps[0];
+    model.enemies.length = 0;
+    // A tile off the middle of a side (not the way in, there): a bandit pressed to the palisade inside, the hero against it outside.
+    const along = ([dx, dz]: number[], d: number) => ({ x: camp.x + dx * d + (dz ? 1 : 0), z: camp.z + dz * d + (dx ? 1 : 0) });
+    const side = [[1, 0], [-1, 0], [0, 1], [0, -1]].find((s) => !model.clear(along(s, 2.3), along(s, 2.75)))!;
+    const [dx, dz] = side;
+    const at = (d: number) => along(side, d);
+    const bandit = { ...makeEnemy(901, 'bandit', at(2.3).x, at(2.3).z, camp.x, camp.z), state: 'chase' as const };
+    model.enemies.push(bandit);
+    model.teleport(at(2.75).x, at(2.75).z);
+    model.hero.facing = Math.atan2(-dx, -dz);
+    expect(Math.hypot(bandit.x - model.hero.x, bandit.z - model.hero.z)).toBeLessThan(ATTACK_REACH);
+    expect(blowTarget(model.hero, model.enemies, null, model.clear)).toBeNull();
+    const hp = model.hero.hp;
+    for (let i = 0; i < 300; i++) model.update(0, 0, 1 / 60);
+    expect(model.hero.hp).toBe(hp);
+  });
+});

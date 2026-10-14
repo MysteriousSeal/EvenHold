@@ -337,6 +337,7 @@ export class GameModel {
   get dungeon(): DungeonRun | null { return this.below?.run ?? null; }
   get crypt(): CryptFoes | null { return this.below?.run instanceof CryptFoes ? this.below.run : null; }
   get cave(): CaveRun | null { return this.below?.run instanceof CaveRun ? this.below.run : null; }
+  clear = (a: { x: number; z: number }, b: { x: number; z: number }): boolean => (this.below?.run.director ?? this.director).inView(a, b); // (nothing solid between: hero/fighting.ts)
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];

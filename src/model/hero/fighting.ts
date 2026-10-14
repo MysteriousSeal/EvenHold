@@ -26,6 +26,7 @@ export interface Fight {
   readonly hero: Hero;
   readonly foes: readonly Enemy[]; // the foes about (the world's, or a crypt's guards)
   readonly focused: Enemy | null;
+  clear(a: { x: number; z: number }, b: { x: number; z: number }): boolean; // whether nothing solid stands between (a palisade, a wall: no blow through it)
   readonly godMode: boolean;
   readonly oneHitKills: boolean; // (a dev cheat: every blow of the hero's fells what it lands on)
   readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn'>; // the hero's roll and guard (combatMoves.ts)
@@ -47,7 +48,7 @@ export interface Fight {
 // brief flash. At zero it dies, and leaves what it leaves.
 export function landBlow(fight: Fight): void {
   const { hero } = fight;
-  const hit = blowTarget(hero, fight.foes, fight.focused);
+  const hit = blowTarget(hero, fight.foes, fight.focused, fight.clear);
   if (!hit) return;
   const { target, distance } = hit;
   const blow = heroBlow(hero, fight.random());
@@ -144,10 +145,10 @@ export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void
   if (knock.t >= KNOCK_TIME) fight.hero.knock = undefined;
 }
 
-// A foe's blow lands if the hero is still within its reach (a step back in time dodges it).
+// A foe's blow lands if the hero is still within its reach (a step back in time dodges it), nothing solid between.
 // A ghost's touch is cold: chilled a moment, if it lands.
 export function foeStrikes(fight: Fight, enemy: Enemy): void {
-  if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+  if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25 || !fight.clear(enemy, fight.hero)) return;
   const hp = fight.hero.hp;
   heroStruck(fight, enemy.damage, enemy);
   if (enemy.kind === 'ghost' && fight.hero.hp < hp) chill(fight, GHOST_CHILL);

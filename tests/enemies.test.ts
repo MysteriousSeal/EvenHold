@@ -153,7 +153,7 @@ describe('bandits', () => {
     const model = fresh();
     const bandit = nearest(model, 'bandit');
     model.enemies.splice(0, model.enemies.length, bandit); // blows land on the nearest; keep just this one
-    model.teleport(Math.round(bandit.x) - 1, Math.round(bandit.z));
+    model.teleport(Math.round(bandit.x) + Math.sign(bandit.homeX - bandit.x), Math.round(bandit.z)); // (beside it, on its camp's side of the palisade: no blow through that)
     bandit.swingFor = 0.1;
     swing(model, bandit);
     expect(bandit.hp).toBe(bandit.maxHp - 1);
