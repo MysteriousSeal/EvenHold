@@ -94,8 +94,8 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
             ['Speed', `${HERO_SPEED} a second`, ['Tiles walked in a second (slower when tired)']],
             ['Points', String(hero.statPoints), [`To spend on your stats, in the level-up window (P)`, `${counted(POINTS_PER_LEVEL, 'point')} more with each level`]],
             ...STATS.map((s): [string, string, string[]] => [STAT_NAMES[s], gear[s] ? `${stats[s]} (+${gear[s]})` : String(stats[s]), [STAT_DOES[s], soFrom(s)]]),
-            ['Dodge', percent(dodgeChanceOf(hero)), ['The chance an enemy\'s blow misses you', 'More with Agility (at most 40%)']],
-            ['Critical', percent(critChanceOf(hero)), ['The chance a blow of yours does double damage', 'More with Agility (at most 40%)']],
+            ['Dodge', percent(dodgeChanceOf(hero)), ['The chance an enemy\'s blow misses you', 'More with Agility (at most 25%)']],
+            ['Critical', percent(critChanceOf(hero)), ['The chance a blow of yours does double damage', 'More with Agility (at most 25%)']],
           ];
         },
         // Points to spend: a button to the level-up window.

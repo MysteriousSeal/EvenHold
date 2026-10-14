@@ -48,8 +48,11 @@ export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, ma
   Object.assign(e, { kind, level, maxHp: p.maxHp, hp: p.maxHp, damage: p.damage, xp: p.xp, x: h.x + 1.2, z: h.z, homeX: h.x + 1.2, homeZ: h.z, state: 'chase', cooldown: 0, swingFor: null });
   const st = ENEMY_STATS[kind];
   const hp0 = h.hp; let t = 0, burst = 0, rest = 0;
+  let fell = false; // (a fall heals them and sends them off: told by it, not by their health)
+  m.fall = () => void (fell = true);
+  let low = h.hp; // (the least health they had)
   m.takeEvents();
-  while (t < maxT && e.state !== 'dead' && h.hp > 0) {
+  while (t < maxT && e.state !== 'dead' && !fell) {
     const dx = e.x - h.x, dz = e.z - h.z, d = Math.max(1e-6, Math.hypot(dx, dz));
     let mx = 0, mz = 0;
     const landing = e.swingFor !== null ? st.swing * ENEMY_STRIKE - e.swingFor : 99;
@@ -67,7 +70,8 @@ export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, ma
     }
     h.facing = Math.atan2(dx, dz);
     m.update(mx, mz, F); t += F;
+    low = Math.min(low, h.hp);
     m.takeEvents();
   }
-  return { won: e.state === 'dead', died: h.hp <= 0, t, lost: hp0 - h.hp, hp0, foeHp: p.maxHp, foeDmg: p.damage, sheet };
+  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0, foeHp: p.maxHp, foeDmg: p.damage, sheet };
 }

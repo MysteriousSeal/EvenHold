@@ -56,15 +56,15 @@ export function landBlow(fight: Fight): void {
   const { target, distance } = hit;
   const blow = heroBlow(hero, fight.random());
   const riposte = fight.moves.riposteOn(target); // (a foe just parried: harder, and a critical)
-  strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1);
+  if (!strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1)) return; // (shrugged off: it stands its ground, its blow coming on)
   const d = Math.max(distance, 1e-6);
   const push = ATTACK_KNOCKBACK * ENEMY_STATS[target.kind].shove; // (a heavy one hardly moved)
   fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
 }
 
 // Harm of the hero's doing landed on a foe (a blow's, a spell's: spells/casting.ts): off its health, a brief flash;
-// at zero it dies, and leaves what it leaves.
-export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): void {
+// at zero it dies, and leaves what it leaves. Whether it flinched (or died).
+export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): boolean {
   const { hero } = fight;
   const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
   target.hp -= damage;
@@ -72,7 +72,8 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
   // Its blow lost (a flash), if the hit makes it flinch: by its poise, or caught open (reeling, parried; or struck just
   // after the hero's roll); else it shrugs it off (a little flash) and its blow comes on (enemies/poise.ts).
-  if (flinches(target, fight.minutes, reeling(target) || fight.moves.punishing)) [target.hurtFor, target.swingFor] = [Math.max(target.hurtFor, HIT_FLASH), null]; // (one reeling, parried, still reels)
+  const flinched = flinches(target, fight.minutes, reeling(target) || fight.moves.punishing);
+  if (flinched) [target.hurtFor, target.swingFor] = [Math.max(target.hurtFor, HIT_FLASH), null]; // (one reeling, parried, still reels)
   else target.hurtFor = Math.max(target.hurtFor, SHRUG_FLASH);
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
@@ -92,6 +93,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }
+  return flinched || target.state === 'dead';
 }
 
 // What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking
