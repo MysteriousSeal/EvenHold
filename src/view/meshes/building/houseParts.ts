@@ -161,7 +161,8 @@ export function timberStorey(grid: VoxelGrid, b: Box): void {
 // course to course, each with its own shade (courses still alternate
 // lighter and darker every two steps); the eave is dark, the ridge capped
 // light, and moss creeps up from the eaves. The straw roof is thatch instead
-// (thatchColor). The attic under it is plaster, with a king post
+// (thatchColor), half-hipped: the top of each gable swept back at the
+// roof's own pitch. The attic under it is plaster, with a king post
 // and raking struts on each gable face.
 export function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: number): number {
   const shades = ROOF_SETS[roofIndex];
@@ -171,35 +172,46 @@ export function roof(grid: VoxelGrid, b: Box, roofHeight: number, roofIndex: num
   const lastRow = halfSpan + 2;
   // The eave's last course rests on the wall-top beam rather than hanging
   // below it, so from the high camera the door and windows under it show.
-  const rowTop = (dz: number) => ridge - Math.round((dz * (roofHeight - 1)) / lastRow);
+  const pitch = (roofHeight - 1) / lastRow;
+  const rowTop = (dz: number) => ridge - Math.round(dz * pitch);
   const reach = thatched ? 1 : 2; // past the gable ends
   const thick = thatched ? 3 : 2;
+  const ends = [b.x0 - reach, b.x1 + reach];
+  // The hip: from a little over half the roof's height, the top falls toward each end.
+  const hipBase = b.y1 + Math.ceil(roofHeight * 0.55);
+  const topAt = (x: number, dz: number) => {
+    if (!thatched) return rowTop(dz);
+    return Math.min(rowTop(dz), hipBase + Math.round(Math.min(x - ends[0], ends[1] - x) * pitch));
+  };
 
-  for (let dz = 0; dz <= lastRow; dz++) {
-    const top = rowTop(dz);
+  // The gable faces' timbers first, so the roof's courses close over them.
+  for (const x of [b.x0, b.x1]) {
+    fillBox(grid, x, b.y1 + 1, MID, x, Math.min(ridge - 2, topAt(x, 0) - thick), MID, C.timber);
     for (const side of [-1, 1]) {
-      const z = MID + side * dz;
-      fillBox(grid, b.x0 - reach, top - thick + 1, z, b.x1 + reach, top, z, (x, y) => {
-        if (thatched) return thatchColor(shades, x, y, dz, side, lastRow);
-        if (dz === lastRow) return shades.dark;
-        if (dz === 0) return shades.highlight; // ridge cap
-        const shingle = Math.floor((x + dz * 2) / 3);
-        const h = hashUnit(shingle, dz, side);
-        const moss = hashUnit(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
-        if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
-        const light = Math.floor(dz / 2) % 2 === 1;
-        return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;
-      });
-      if (dz <= halfSpan) fillBox(grid, b.x0 + 1, b.y1 + 1, z, b.x1 - 1, top - thick, z, C.plaster);
-      // A thatch's ridge: a roll of straw bound down by crossed hazel spars.
-      if (thatched && dz <= 1) fillBox(grid, b.x0 - reach, top + 1, z, b.x1 + reach, top + 1, z, (x) => ((x + dz) % 4 === 0 ? shades.highlight : shades.dark));
+      voxelLine(grid, [x, b.y1 + 1, MID + side * (halfSpan - 2)], [x, b.y1 + Math.floor(roofHeight / 2), MID], C.timber);
     }
   }
 
-  for (const x of [b.x0, b.x1]) {
-    fillBox(grid, x, b.y1 + 1, MID, x, ridge - 2, MID, C.timber);
+  for (let dz = 0; dz <= lastRow; dz++) {
     for (const side of [-1, 1]) {
-      voxelLine(grid, [x, b.y1 + 1, MID + side * (halfSpan - 2)], [x, b.y1 + Math.floor(roofHeight / 2), MID], C.timber);
+      const z = MID + side * dz;
+      for (let x = ends[0]; x <= ends[1]; x++) {
+        const top = topAt(x, dz);
+        fillBox(grid, x, top - thick + 1, z, x, top, z, (_x, y) => {
+          if (thatched) return thatchColor(shades, x, y, dz, side, lastRow);
+          if (dz === lastRow) return shades.dark;
+          if (dz === 0) return shades.highlight; // ridge cap
+          const shingle = Math.floor((x + dz * 2) / 3);
+          const h = hashUnit(shingle, dz, side);
+          const moss = hashUnit(x, dz, side + 7) < 0.35 * Math.max(0, (dz - lastRow + 4) / 4);
+          if (moss) return h < 0.5 ? C.roofMoss : C.roofMossLight;
+          const light = Math.floor(dz / 2) % 2 === 1;
+          return h < 0.15 ? shades.dark : h < 0.3 ? shades.highlight : light ? shades.light : shades.base;
+        });
+        if (dz <= halfSpan && x > b.x0 && x < b.x1) fillBox(grid, x, b.y1 + 1, z, x, top - thick, z, C.plaster);
+        // A thatch's ridge: a roll of straw bound down by crossed hazel spars, along the unhipped length.
+        if (thatched && dz <= 1 && top === rowTop(dz)) put(grid, [x, top + 1, z], (x + dz) % 4 === 0 ? shades.highlight : shades.dark);
+      }
     }
   }
   return ridge;
