@@ -24,12 +24,13 @@ export const HEAD_ITEMS = slotItems('head', {
   boneHelm: { name: 'Bone helm', value: 150, armor: 4, stats: { strength: 2, stamina: 1 } },
   dragonHelm: { name: 'Dragonscale helm', value: 360, armor: 7, stats: { strength: 2, stamina: 3 } },
   royalCrown: { name: "Old king's crown", value: 400, armor: 1, stats: { strength: 2, stamina: 2, endurance: 2 }, openBack: true },
-  // The sets' (sets.ts): a gaol's, the barrows', the crypts' bone-wrights', the fire-cult's, the pilgrims', and a lost order's.
+  // The sets' (sets.ts): a gaol's, the barrows', the crypts' bone-wrights', the fire-cult's, the pilgrims' (and the crypts'
+  // dead's, pilgrims once, who died on the road), and a lost order's (in kings' tombs only).
   headsmansHood: { name: "Headsman's hood", set: 'headsman', level: 6, rarity: 'uncommon', value: 120, droppedBy: { bruiser: 2, sawbones: 2 }, armor: 3, stats: { strength: 3 } },
   barrowHelm: { name: 'Barrow helm', set: 'barrow', level: 4, value: 110, droppedBy: { draugr: 3, skeleton: 1, cryptLord: 1 }, armor: 5, stats: { stamina: 2, endurance: 1 } },
   ossuaryMask: { name: 'Ossuary mask', set: 'ossuary', level: 8, rarity: 'uncommon', value: 170, droppedBy: { skeleton: 1, skeletonArcher: 1, cryptLord: 2 }, armor: 3, stats: { strength: 2, endurance: 2 } },
   cinderCowl: { name: 'Cinder cowl', set: 'cinder', level: 8, rarity: 'uncommon', value: 130, droppedBy: { firebrand: 3 }, armor: 2, stats: { agility: 2, endurance: 2 } },
-  palmerHat: { name: "Palmer's hat", set: 'palmer', wornBy: { pilgrim: 3 }, armor: 1, stats: { endurance: 2 }, openBack: true },
+  palmerHat: { name: "Palmer's hat", set: 'palmer', wornBy: { pilgrim: 3 }, droppedBy: { skeleton: 1, draugr: 1 }, armor: 1, stats: { endurance: 2 }, openBack: true },
   sunwardArmet: { name: 'Sunward armet', set: 'sunward', level: 15, rarity: 'legendary', value: 520, droppedBy: { cryptLord: 1 }, armor: 7, stats: { strength: 2, stamina: 3 } },
 });
 
@@ -45,11 +46,11 @@ export const SHOULDERS_ITEMS = slotItems('shoulders', {
   goldEpaulettes: { name: 'Gold epaulettes', armor: 1, stats: { strength: 1, endurance: 1 } },
   ropeWraps: { name: 'Rope wraps', wornBy: { bandit: 1 }, stats: { agility: 1 } },
   // The sets' (sets.ts).
-  barrowSpaulders: { name: 'Rusted spaulders', set: 'barrow', level: 4, value: 80, droppedBy: { draugr: 2, skeleton: 1 }, armor: 4, stats: { stamina: 1 } },
+  barrowSpaulders: { name: 'Barrow spaulders', set: 'barrow', level: 4, value: 80, droppedBy: { draugr: 2, skeleton: 1 }, armor: 4, stats: { stamina: 1 } },
   ribcagePauldrons: { name: 'Ribcage pauldrons', set: 'ossuary', level: 8, rarity: 'uncommon', value: 140, droppedBy: { skeleton: 1, cryptLord: 1 }, armor: 3, stats: { strength: 2 } },
   flayersMantle: { name: "Flayer's mantle", set: 'flayer', value: 50, wornBy: { bandit: 1 }, droppedBy: { banditChief: 1 }, armor: 2, stats: { strength: 1, endurance: 1 } },
-  palmersCape: { name: "Palmer's cape", set: 'palmer', wornBy: { pilgrim: 2 }, armor: 1, stats: { endurance: 2 } },
-  sunwardPauldrons: { name: 'Sunward pauldrons', set: 'sunward', level: 14, rarity: 'epic', value: 380, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 5, stats: { strength: 1, stamina: 1 } },
+  palmersCape: { name: "Palmer's cape", set: 'palmer', wornBy: { pilgrim: 2 }, droppedBy: { skeleton: 1, draugr: 1 }, armor: 1, stats: { endurance: 2 } },
+  sunwardPauldrons: { name: 'Sunward pauldrons', set: 'sunward', level: 14, rarity: 'epic', value: 380, droppedBy: { cryptLord: 1 }, armor: 5, stats: { strength: 1, stamina: 1 } },
 });
 
 export const TORSO_ITEMS = slotItems('torso', {
@@ -90,7 +91,7 @@ export const HANDS_ITEMS = slotItems('hands', {
   knucklebones: { name: 'Knucklebone gauntlets', set: 'ossuary', level: 8, rarity: 'uncommon', value: 120, droppedBy: { skeleton: 1, skeletonArcher: 1 }, armor: 2, stats: { strength: 2, agility: 1 } },
   cinderWraps: { name: 'Cinder wraps', set: 'cinder', level: 8, rarity: 'uncommon', value: 80, droppedBy: { firebrand: 2 }, armor: 1, stats: { agility: 2, endurance: 1 } },
   watchVambraces: { name: "Watchman's vambraces", set: 'watch', value: 90, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 3, stats: { stamina: 1 } },
-  sunwardGauntlets: { name: 'Sunward gauntlets', set: 'sunward', level: 14, rarity: 'epic', value: 360, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 3, stats: { strength: 3 } },
+  sunwardGauntlets: { name: 'Sunward gauntlets', set: 'sunward', level: 14, rarity: 'epic', value: 360, droppedBy: { cryptLord: 1 }, armor: 3, stats: { strength: 3 } },
 });
 
 export const LEGS_ITEMS = slotItems('legs', {
@@ -128,6 +129,6 @@ export const FEET_ITEMS = slotItems('feet', {
   headsmansBoots: { name: "Headsman's boots", set: 'headsman', level: 6, rarity: 'uncommon', value: 80, droppedBy: { bruiser: 1 }, armor: 3, stats: { strength: 1 } },
   flayersBoots: { name: "Flayer's boots", set: 'flayer', value: 40, wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1, endurance: 1 } },
   ashSandals: { name: 'Ash-walker sandals', set: 'cinder', level: 8, rarity: 'uncommon', value: 70, droppedBy: { firebrand: 1 }, armor: 1, stats: { agility: 2, endurance: 1 } },
-  sunwardSabatons: { name: 'Sunward sabatons', set: 'sunward', level: 14, rarity: 'epic', value: 340, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 4, stats: { stamina: 2 } },
+  sunwardSabatons: { name: 'Sunward sabatons', set: 'sunward', level: 14, rarity: 'epic', value: 340, droppedBy: { cryptLord: 1 }, armor: 4, stats: { stamina: 2 } },
   poulaines: { name: 'Poulaines', set: 'velvet', level: 5, rarity: 'uncommon', value: 120, droppedBy: { banditChief: 1 }, stats: { agility: 3 } },
 });

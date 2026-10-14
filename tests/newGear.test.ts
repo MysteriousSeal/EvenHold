@@ -66,6 +66,26 @@ describe('the fifty new pieces', () => {
     }
   });
 
+  it('each to be had by the hero, not only seen: sold, or left by a foe (its own, or what a bandit wore)', () => {
+    for (const id of ALL) {
+      const { soldBy, droppedBy, wornBy } = ITEMS[id];
+      expect(Boolean(soldBy) || Boolean(droppedBy) || Boolean(wornBy?.bandit), id).toBe(true);
+    }
+  });
+
+  it("Sunward plate only in kings' tombs: no foe but a crypt lord favours it", () => {
+    for (const id of ALL.filter((id) => ITEMS[id].set === 'sunward')) expect(Object.keys(ITEMS[id].droppedBy ?? {}), id).toEqual(['cryptLord']);
+  });
+
+  it("a camp chief's chest holds stolen gear worth having, its own kind of piece no less", () => {
+    for (const level of [1, 3, 6, 10]) {
+      for (let i = 0; i < 300; i++) {
+        const { item } = rollHoard(i, i * 11, 7717, level, { worth: 60, base: 25, spread: 15, keeper: 'banditChief' });
+        expect(ITEMS[gearOf(item).item].value ?? 0, gearOf(item).item).toBeGreaterThanOrEqual(60);
+      }
+    }
+  });
+
   it('every piece a foe favours does fall from that kind of foe, deep enough in', () => {
     const kinds = [...new Set(ALL.flatMap((id) => Object.keys(ITEMS[id].droppedBy ?? {})))] as EnemyKind[];
     for (const kind of kinds) {

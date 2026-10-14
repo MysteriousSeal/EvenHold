@@ -17,7 +17,7 @@ export interface Hoard {
 export function rollHoard(x: number, z: number, salt: number, level: number, { worth, base, spread, keeper }: { worth: number; base: number; spread: number; keeper?: EnemyKind }): Hoard {
   const rng = mulberry32(hashCell(x, z, salt));
   const fine = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= worth && foundAt(id, level));
-  const own = keeper ? favouredBy(keeper, level) : [];
+  const own = keeper ? favouredBy(keeper, level).filter(([id]) => (ITEMS[id].value ?? 0) >= worth) : []; // (worth the chest as well)
   const [item, coins] = [oneOf(fine, rng()), base * level + Math.floor(rng() * spread * level)];
   return { item: rollGear(own.length && rng() < 0.5 ? weighted(own, rng()) : item, level, rng, 2, 'rare'), coins };
 }
