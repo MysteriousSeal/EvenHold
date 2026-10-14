@@ -20,10 +20,11 @@ export const SET_PALETTES = {
   // sinew and wire. Motif: rows of small bones (ribs, knuckles, teeth) laid
   // side by side; one skull face where a piece has a front.
   ossuary: { bone: 0xe0d4b4, boneShade: 0xb8a986, boneDark: 0x8e7f62, socket: 0x2a2220, sinew: 0x7a2a22, wire: 0x6e747c, candle: 0xf0c060 },
-  // The flayer's: pale cured hide in uneven patches, raw-pink at the seams,
-  // dried blood, black stitches. Motif: patchwork of hide in two or three
-  // tones, big cross-stitches across it; a bone toggle or tooth here and there.
-  flayer: { hide: 0xc89a80, hidePale: 0xdcb8a0, hideDark: 0x9a6e58, raw: 0x9a5a4a, blood: 0x5a1818, stitch: 0x2a1c18, tooth: 0xefe6cc },
+  // The flayer's: cured hide, tanned yellow-brown (never a skin's tone: at a
+  // distance it would read as bare legs), in uneven patches, darker at the
+  // seams, dried blood, black stitches. Motif: patchwork of hide in two or
+  // three tones, big cross-stitches across it; a bone toggle or tooth here and there.
+  flayer: { hide: 0xa8844e, hidePale: 0xc4a46a, hideDark: 0x6e5232, raw: 0x7a4a32, blood: 0x5a1818, stitch: 0x2a1c18, tooth: 0xefe6cc },
   // Cinder: ash-grey wool, soot black, an ember glow in the cracks. Motif:
   // soot rising from the hem and darkening upward; a bone-white sigil (a ring
   // with a flame in it) on the chest or the brow; ember specks.
