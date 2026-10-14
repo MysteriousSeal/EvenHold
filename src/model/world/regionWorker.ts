@@ -1,6 +1,7 @@
 // A worker making a streamed world's regions off the game's thread (worldStreamer.ts: what the game asks for; the
 // controller's WorkerSource posts here and takes what's made): each asked for made and peopled (LiveWorld.build) and
-// handed back, its bulk (its tiles' bytes, its ground's blocks) handed over, not copied.
+// handed back, its bulk (its tiles' bytes, its ground's blocks) handed over, not copied; one it couldn't make, said so
+// (to be made on the game's thread instead).
 
 import { buildRegion } from './worldStreamer';
 import type { RegionBuilt } from './liveWorld';
@@ -13,6 +14,13 @@ export interface RegionAsk {
   rz: number;
 }
 
+// A region the worker couldn't make.
+export interface RegionFailed {
+  failed: string; // why
+  rx: number;
+  rz: number;
+}
+
 // The buffers of a region made, handed over with it (its tiles' and its ground's blocks').
 const bulkOf = (built: RegionBuilt): ArrayBuffer[] => {
   const { heights, lakes, surfaces } = built.tiles;
@@ -20,8 +28,14 @@ const bulkOf = (built: RegionBuilt): ArrayBuffer[] => {
   return [heights, lakes, surfaces, solid, prop, low, round, fenced].map((a) => a.buffer as ArrayBuffer);
 };
 
-const scope = self as unknown as { onmessage: ((e: MessageEvent<RegionAsk>) => void) | null; postMessage(message: unknown, transfer: Transferable[]): void };
+const scope = self as unknown as { onmessage: ((e: MessageEvent<RegionAsk>) => void) | null; postMessage(message: unknown, transfer?: Transferable[]): void };
 scope.onmessage = ({ data }) => {
-  const built = buildRegion(data.seed, data.size, data.rx, data.rz);
+  let built: RegionBuilt;
+  try {
+    built = buildRegion(data.seed, data.size, data.rx, data.rz);
+  } catch (e) {
+    const failed: RegionFailed = { failed: String(e), rx: data.rx, rz: data.rz };
+    return scope.postMessage(failed);
+  }
   scope.postMessage(built, bulkOf(built));
 };
