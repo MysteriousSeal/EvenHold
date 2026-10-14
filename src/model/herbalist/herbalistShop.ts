@@ -2,7 +2,7 @@
 // nearest their village's middle, and trades from there: E by them): every
 // potion (loot/potions.ts), the minor ones by the handful, a greater one now
 // and then; and they buy potions back, and the raw ingredients they brew
-// with (loot/ingredients.ts). Kept by their id (HERBALIST_KEY on), in the
+// with (loot/ingredients.ts: from the wild, not logs, planks or scrap). Kept by their id (HERBALIST_KEY on), in the
 // save with the rest.
 
 import { LOOT } from '../loot/loot';
@@ -20,8 +20,13 @@ const USUAL: Record<'minor' | 'lesser' | 'greater', number> = { minor: 4, lesser
 
 export const HERBALIST_WARES: readonly BagItem[] = POTION_IDS;
 
-// What they'll buy: potions, and ingredients.
-export const herbalistBuys = (id: string): id is BagItem => isPotion(id) || isIngredient(id);
+// The ingredients they'll buy: what's had from the wild (a beast's meat, a catch, a bear's honeycomb, a pine's resin,
+// an ancient oak's heartwood), not what's felled, worked or salvaged (logs, planks, scrap: a crafter's, kept for their
+// work), nor what the shops sell (salt, flour, firewood).
+const WILD: ReadonlySet<string> = new Set(['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'honeycomb', 'leanLynxMeat', 'smallFry', 'riverTrout', 'lakePerch', 'pike', 'pineResin', 'heartwood']);
+
+// What they'll buy: potions, and ingredients from the wild.
+export const herbalistBuys = (id: string): id is BagItem => isPotion(id) || (isIngredient(id) && WILD.has(id));
 
 // What a potion costs here, or a potion or an ingredient fetches (an ingredient its worth).
 export const herbalistPrice = (id: BagItem, selling: boolean): number => (isPotion(id) ? potionPrice(id, selling) : LOOT[id as keyof typeof LOOT].value);
