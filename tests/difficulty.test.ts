@@ -14,7 +14,11 @@ describe('poise', () => {
     expect([flinches(wolf, 0, false), flinches(wolf, 0.1, false)]).toEqual([true, true]);
     expect([flinches(boar, 0, false), flinches(boar, 1, false), flinches(boar, 1.2, false), flinches(boar, 5, false)]).toEqual([false, true, false, false]); // (the third: counting afresh; the fourth: long after)
     expect([flinches(draugr, 0, false), flinches(draugr, 0.2, false), flinches(draugr, 0.4, false), flinches(draugr, 0.6, true)]).toEqual([false, false, false, true]);
-    expect([blowsToFlinch('cryptLord'), blowsToFlinch('banditKing'), blowsToFlinch('bandit')]).toEqual([Infinity, Infinity, 1]);
+    expect([blowsToFlinch('cryptLord'), blowsToFlinch('banditKing'), blowsToFlinch('bandit'), blowsToFlinch('wolf')]).toEqual([Infinity, Infinity, 2, 1]);
+  });
+
+  it('a bandit, held down on, still lands its blows at their level (the second blow only flinches it)', { timeout: 300_000 }, () => {
+    for (const level of [5, 8, 12]) expect(fight(stage(level), 'bandit', level, 'masher').lost, `L${level}`).toBeGreaterThan(0);
   });
 
   it('a hero holding the attack down never beats a boar, a camp chief or a draugr unhurt', { timeout: 300_000 }, () => {

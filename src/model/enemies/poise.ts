@@ -1,12 +1,12 @@
-// How a foe takes a blow (its poise): whether it's knocked out of its own. The light (a wolf, a bandit, a bat, a lynx,
-// a runner, the bowmen) by every blow; the steadier (a boar, a bruiser, a skeleton, a ghost, a worm) by the second
+// How a foe takes a blow (its poise): whether it's knocked out of its own. The light (a wolf, a bat, a lynx,
+// a runner, the bowmen) by every blow; the steadier (a bandit, a boar, a bruiser, a skeleton, a ghost, a worm) by the second
 // within POISE_WINDOW of the first; the heavy (a bear, a chief, a draugr, every boss) never by a plain blow, only
 // caught open: parried (reeling, hero/combatMoves.ts), or struck just after the hero's roll. Not flinching, it
 // barely flashes (SHRUG_FLASH: too little to lose a told move by) and its blow comes on.
 import { isBoss } from './enemyLevels';
 import type { Enemy, EnemyKind } from '../types';
 
-const STEADY: Partial<Record<EnemyKind, number>> = { boar: 2, bruiser: 2, skeleton: 2, ghost: 2, caveWorm: 2, bear: Infinity, banditChief: Infinity, draugr: Infinity }; // blows to flinch it (none said: 1; a boss: never)
+const STEADY: Partial<Record<EnemyKind, number>> = { bandit: 2, boar: 2, bruiser: 2, skeleton: 2, ghost: 2, caveWorm: 2, bear: Infinity, banditChief: Infinity, draugr: Infinity }; // blows to flinch it (none said: 1; a boss: never)
 const POISE_WINDOW = 1.5; // seconds after a blow that the next counts toward flinching it (longer: its poise back)
 export const SHRUG_FLASH = 0.15; // seconds a foe that shrugs a blow off flashes (under a told move's 0.2: not lost by it)
 
