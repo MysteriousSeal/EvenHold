@@ -2,7 +2,7 @@ import { INN_WANTS, innWants } from '../src/model/inn/tavernShop';
 import type { QuestItemId } from '../src/model/quests/questItems';
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { OFFERS, questTitle, type QuestFoe } from '../src/model/quests/quests';
+import { GENTLE, OFFERS, questTitle, type QuestFoe } from '../src/model/quests/quests';
 import { FIRST_MOB_ID } from '../src/model/quests/questBook';
 import { QUEST_ITEMS_OF } from '../src/model/quests/questItems';
 import { LOOT, LOOT_IDS, rollDrop, type LootSource } from '../src/model/loot/loot';
@@ -29,7 +29,7 @@ describe('every notice board in every test world', () => {
           }
           if (!model.isOpenTile(q.x, q.z)) problems.push(`${at}: its foes gather on no open ground`);
           if (Math.hypot(q.x - village.x, q.z - village.z) < NEAR - 1) problems.push(`${at}: its foes gather in the village`);
-          if (q.kind === 'kill' ? q.count < 6 || q.count > 8 : q.count < 4 || q.count > 6) problems.push(`${at}: asks ${q.count}`);
+          if (q.kind === 'kill' ? (q.level <= GENTLE ? q.count < 4 || q.count > 5 : q.count < 6 || q.count > 8) : q.count < 4 || q.count > 6) problems.push(`${at}: asks ${q.count}`);
           if (q.kind === 'collect' && !QUEST_ITEMS_OF[q.foe].includes(q.item as QuestItemId)) problems.push(`${at}: wants what its foe doesn't carry`);
           if (!(q.copper > 0 && q.xp > 0 && q.level >= 1)) problems.push(`${at}: pays nothing`);
         }

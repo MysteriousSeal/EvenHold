@@ -4,9 +4,9 @@ import { GameModel } from '../src/model/GameModel';
 import { spawnOf } from '../src/model/map/grid';
 import { zoneLevel } from '../src/model/enemies/enemyLevels';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
+import { GENTLE, MAX_ACTIVE, MAX_PER_BOARD, OFFERS, questAt, questProgress } from '../src/model/quests/quests';
 import { noticeBoards } from '../src/model/quests/noticeBoards';
-import { RESPAWN_EVERY, REINFORCE_IN } from '../src/model/quests/questBook';
+import { RESPAWN_EVERY, REINFORCE_GENTLY, REINFORCE_IN } from '../src/model/quests/questBook';
 import { TEST_MAP_SIZE, TEST_SEEDS, fresh, eachSeed } from './support/testWorld';
 
 const marked = (model: GameModel, key: string) => model.enemies.filter((e) => e.quest === key && e.state !== 'dead');
@@ -28,7 +28,7 @@ describe('quests', () => {
     expect(fresh().quests.offersAt(0)).toEqual(offers);
     for (const q of offers) {
       if (innWants(q.item)) continue; // (an inn's order: innTrade.test.ts)
-      const [least, most] = q.kind === 'kill' ? [6, 8] : [4, 6];
+      const [least, most] = q.kind === 'kill' ? (q.level <= GENTLE ? [4, 5] : [6, 8]) : [4, 6]; // (a kill quest near the start: fewer)
       expect(q.count).toBeGreaterThanOrEqual(least);
       expect(q.count).toBeLessThanOrEqual(most);
       expect(q.copper).toBeGreaterThan(0);
@@ -84,7 +84,13 @@ describe('quests', () => {
     expect(model.slain.size).toBe(0); // a quest's foes aren't the world's
     // Two left to slay, three about (one slain of the four kept up): the next comes in soon after the kill, from a
     // way off the spot, walking in to it (not sprung on the hero).
-    model.quests.update(REINFORCE_IN + 1); // (the kill's own frames may have run some of it down already)
+    // (A board near the start: a breath more before it.)
+    const wait = quest.level <= GENTLE ? REINFORCE_GENTLY : REINFORCE_IN;
+    if (wait > REINFORCE_IN) {
+      model.quests.update(REINFORCE_IN + 0.5);
+      expect(marked(model, quest.key)).toHaveLength(3);
+    }
+    model.quests.update(wait + 1); // (the kill's own frames may have run some of it down already)
     const come = marked(model, quest.key);
     expect(come).toHaveLength(4);
     const far = come.filter((e) => Math.hypot(e.x - quest.x, e.z - quest.z) > 4);

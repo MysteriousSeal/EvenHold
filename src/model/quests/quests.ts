@@ -15,6 +15,7 @@ import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 import { INN_WANTS, innWants, type InnWant } from '../inn/tavernShop';
 
+export const GENTLE = 2; // a board's level this low or under (the villages near the start): a kill quest asks fewer, and gives a longer breath between them (questBook.ts)
 export const OFFERS = 6; // quests a board has, for good
 export const MAX_ACTIVE = 10; // quests the hero can have taken at once (the journal holds ten)
 export const MAX_PER_BOARD = 3; // of them, from any one board
@@ -133,7 +134,7 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   }
   const where = `${DIRECTIONS[Math.round(((angle / (Math.PI * 2)) * 8) % 8) % 8]} of the village`; // north is -z
   const level = zoneLevel(spawnOf(world.size), village); // (the village's: for better paid work, farther villages)
-  const count = kind === 'kill' ? 6 + Math.floor(roll(3) * 3) : 4 + Math.floor(roll(3) * 3); // slay 6 to 8, bring 4 to 6
+  const count = kind === 'kill' ? (level <= GENTLE ? 4 + Math.floor(roll(3) * 2) : 6 + Math.floor(roll(3) * 3)) : 4 + Math.floor(roll(3) * 3); // slay 6 to 8 (4 or 5 near the start), bring 4 to 6
   // What to bring: one of the foe's four, turned round per board so its notices ask for different things.
   const turn = Math.floor(hashUnit(board * 131, world.seed % 1_000_003, 250) * 4);
   const item: QuestItemId | null = kind === 'collect' ? QUEST_ITEMS_OF[foe][(turn + n) % 4] : null;

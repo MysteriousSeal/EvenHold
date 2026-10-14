@@ -16,7 +16,7 @@ import { dropFactor, xpGained } from '../hero/blessing';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { isQuestItem } from './questItems';
 import { noticeBoards, type BoardWorld } from './noticeBoards';
-import { OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, boardNumber, questAt, questProgress, type Quest, type QuestWorld } from './quests';
+import { GENTLE, OFFERS, MAX_ACTIVE, MAX_PER_BOARD, MAX_TRACKED, boardNumber, questAt, questProgress, type Quest, type QuestWorld } from './quests';
 
 export const RESPAWN_EVERY = 60; // seconds before a slain marked foe is back
 const READ_FROM = [0.3, 0.8]; // how far out in front of a board (tiles) the hero can read it: right up against it
@@ -25,6 +25,7 @@ const PACK = 2; // foes gathered for each still asked for
 const MOST_ABOUT = 4; // and so many about at once, at most (sixteen round a spot, for eight to slay, fell every player who came)
 const SPREAD = 2.5; // tiles round the spot a pack gathers in
 export const REINFORCE_IN = 5; // seconds after one's slain before the next comes in, while there are more to slay (the quest done in one go)
+export const REINFORCE_GENTLY = 8; // and on a board near the start (quests.ts GENTLE): a breath more for a fresh hero
 const FROM_AFAR: [number, number] = [5, 8]; // tiles off the spot it comes in from (out of sight, walking in), not sprung on the hero
 export const FIRST_MOB_ID = 1_000_000; // marked foes' ids, clear of the world's own
 
@@ -220,7 +221,7 @@ export class QuestBook {
   // One of the pack slain: the next comes in soon (while the quest wants more about), from a way off.
   private reinforce(taken: TakenQuest): void {
     taken.engaged = true;
-    taken.respawnIn = Math.min(taken.respawnIn, REINFORCE_IN);
+    taken.respawnIn = Math.min(taken.respawnIn, taken.quest.level <= GENTLE ? REINFORCE_GENTLY : REINFORCE_IN);
   }
 
   // Something picked up: if a quest wants it, how far along that is now:
