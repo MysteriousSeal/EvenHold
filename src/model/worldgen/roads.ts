@@ -15,11 +15,11 @@ import type { Village } from '../types';
 import { findTrail, paveTrail, plazaCells, type TrailGrid } from './trails';
 
 export const MAX_LINK = 220; // tiles between two villages, at most, for a road between them
-const GREED = 1.5; // each tile still to go counted as so much, searching toward the other village (over 1: quicker, a touch less the cheapest)
+export const GREED = 1.5; // each tile still to go counted as so much, searching toward the other village (over 1: quicker, a touch less the cheapest)
 const SECOND_TRIES = 3; // nearest villages tried for a second road (one cut off by water: not searched for long)
 export const MIN_ROADS = 2; // roads out of each village, at least (where it has neighbours in reach)
-const MARGIN = 40; // tiles round the two villages a road's search may stray
-const REACH = VILLAGE_OUTER_RADIUS + LANE_LENGTH_MAX + 2; // tiles from a village's well its lanes may run (and jog)
+export const MARGIN = 40; // tiles round the two villages a road's search may stray
+export const REACH = VILLAGE_OUTER_RADIUS + LANE_LENGTH_MAX + 2; // tiles from a village's well its lanes may run (and jog)
 
 export interface Road {
   from: number; // its villages, by index
@@ -76,7 +76,7 @@ export function linkVillages(trailGrid: TrailGrid, villages: readonly Village[])
 
 // A village's own paving: its square and the dirt lanes leaving it (path or square, joined to the square, within its
 // reach), its well left out.
-function villageTiles(grid: TrailGrid, v: Village): Array<[number, number]> {
+export function villageTiles(grid: TrailGrid, v: Village): Array<[number, number]> {
   const paved = (x: number, z: number) => grid.surfaceMap[x]?.[z] === 'path' || grid.surfaceMap[x]?.[z] === 'plaza';
   const seen = new Set<string>();
   const tiles: Array<[number, number]> = [];
