@@ -77,6 +77,17 @@ describe('the fifty new pieces', () => {
     for (const id of ALL.filter((id) => ITEMS[id].set === 'sunward')) expect(Object.keys(ITEMS[id].droppedBy ?? {}), id).toEqual(['cryptLord']);
   });
 
+  it("a set's pieces only in the chests of their own keepers: no Sunward plate in a brood mother's hoard, nor any set's in a chest kept by no one", () => {
+    for (const level of [6, 10, 16, 20]) {
+      for (let i = 0; i < 300; i++) {
+        for (const keeper of ['broodMother', 'cryptLord', 'banditChief', undefined] as const) {
+          const id = gearOf(rollHoard(i, i * 13, 9137, level, { worth: 100, base: 60, spread: 40, keeper }).item).item;
+          if (ITEMS[id].set) expect(keeper && ITEMS[id].droppedBy?.[keeper], `${id} in ${keeper ?? "no one"}'s chest`).toBeTruthy();
+        }
+      }
+    }
+  });
+
   it("a camp chief's chest holds stolen gear worth having, its own kind of piece no less", () => {
     for (const level of [1, 3, 6, 10]) {
       for (let i = 0; i < 300; i++) {
