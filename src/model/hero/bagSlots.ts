@@ -20,6 +20,18 @@ export const bagRoom = (hero: Pick<Hero, 'bags'>): number => BAG_ROOM + hero.bag
 // Whether one more `item` would go in: onto a stack of it with room, always; a stack of its own, if there's a slot free.
 export const canCarry = (hero: Pick<Hero, 'bag' | 'bags'>, item: BagItem): boolean => !needsNewStack(item, hero.bag[item] ?? 0) || slotsUsed(hero.bag) < bagRoom(hero);
 
+// Whether everything in `gives` would go in once what's in `takes` (each how many) is out: the last of a thing taken
+// leaves its slot for what's made of it (a full bag's last log sawn into a plank).
+export function canSwap(hero: Pick<Hero, 'bag' | 'bags'>, takes: Partial<Record<BagItem, number>>, gives: readonly BagItem[]): boolean {
+  const bag = { ...hero.bag };
+  for (const [item, n] of Object.entries(takes) as Array<[BagItem, number]>) for (let i = 0; i < n; i++) takeFromBag(bag, item);
+  for (const item of gives) {
+    if (!canCarry({ bag, bags: hero.bags }, item)) return false;
+    addToBag(bag, item);
+  }
+  return true;
+}
+
 // Fits a bag from the bag into socket `socket` (the first free, if not said); whether it did (a bag carried, the
 // socket free).
 export function fitBag(hero: Hero, item: BagItem, socket = hero.bags.indexOf(null)): boolean {

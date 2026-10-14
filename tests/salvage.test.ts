@@ -12,7 +12,8 @@ import { BREAK_SECONDS, makeOf, salvageOf } from '../src/model/skills/salvage';
 import { castOf } from '../src/controller/skills/castOf';
 import { LOOT } from '../src/model/loot/loot';
 import { ITEMS } from '../src/model/human/equipment';
-import { canCarry } from '../src/model/hero/bagSlots';
+import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
+import { slotsUsed } from '../src/model/hero/bagStacks';
 import { skillOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
@@ -104,7 +105,7 @@ describe('breaking gear down', () => {
     expect(model.takeEvents().some((e) => e.kind === 'salvaged')).toBe(true);
     expect(model.salvage.start('bentSpoon' as never)).toBe('none');
     // A full bag (of other things): no starting, nothing of what it leaves to be lost.
-    hero.bag.armingSword = 1;
+    hero.bag.armingSword = 2; // (two: the last's slot would be the scrap's)
     delete hero.bag.ironScrap; // (a stack of it would always take one more)
     for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (canCarry(hero, 'ironScrap')) hero.bag[id as keyof typeof hero.bag] = 1; // (filled with one of everything)
     expect(canCarry(hero, 'ironScrap')).toBe(false);
@@ -119,6 +120,21 @@ describe('breaking gear down', () => {
     skillOf(hero, 'salvaging').level = 100;
     expect(breakNow(model, rare)).toBe('started');
     expect([hero.bag.silverFilings, hero.bag.gemShard, hero.bag.cutGem]).toEqual([2, 1, 1]);
+  });
+
+  it('never overfills the bag: a piece that leaves three new things, one slot free, isn\'t begun; the last of a piece leaves its slot', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    skillOf(hero, 'salvaging').level = 100;
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 }); // (filings, a shard, a cut gem)
+    hero.bag[rare] = 2;
+    for (let i = 0; slotsUsed(hero.bag) < bagRoom(hero) - 1; i++) hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (one slot left)
+    expect(model.salvage.start(rare)).toBe('full');
+    hero.bag[rare] = 1; // (the last: its slot and the free one, two of the three)
+    expect(model.salvage.start(rare)).toBe('full');
+    delete hero.bag['dagger@2c0' as never];
+    expect(breakNow(model, rare)).toBe('started');
+    expect(slotsUsed(hero.bag)).toBe(bagRoom(hero));
   });
 
   it('has a window: the gear carried in cases as the bag\'s, the one picked told of, and a button that sets it on the bench', () => {

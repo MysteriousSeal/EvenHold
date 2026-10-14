@@ -9,7 +9,7 @@
 import { hashUnit } from '../../util/random';
 import type { BagItem } from '../hero/bag';
 import { addToBag, takeFromBag } from '../hero/bag';
-import { canCarry } from '../hero/bagSlots';
+import { canSwap } from '../hero/bagSlots';
 import { gainXp } from '../hero/heroStats';
 import { gearKey, type Rarity } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
@@ -115,10 +115,11 @@ export class Woodworking {
 
   // `count` of a recipe begun (Infinity: all the materials make); whether it was (known, and the materials for one).
   // Chopping and cooking stop for it; at work, nothing's begun.
-  // Whether what `id` makes would go in the bag (a stack of it with room, or a slot free).
+  // Whether what `id` makes would go in the bag (a stack of it with room, or a slot free: the last of its materials'
+  // among them).
   roomFor(id: RecipeId): boolean {
     const makes = RECIPES[id].makes;
-    return canCarry(this.host.hero, typeof makes === 'string' ? makes : makes.item);
+    return canSwap(this.host.hero, RECIPES[id].from, [typeof makes === 'string' ? makes : makes.item]);
   }
 
   start(id: RecipeId, count = 1): boolean {
@@ -158,7 +159,7 @@ export class Woodworking {
     this.made++;
     const roll = (salt: number) => hashUnit(this.made, level, salt);
     const item: BagItem = typeof recipe.makes === 'string' ? recipe.makes : gearKey({ ...recipe.makes, roll: Math.floor(roll(502) * 1000) });
-    if (!canCarry(hero, item)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
+    if (!canSwap(hero, recipe.from, [item])) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     for (const [material, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, material as LootId);
     addToBag(hero.bag, item);
     gainXp(hero, HERO_XP);

@@ -10,7 +10,7 @@
 
 import { hashUnit } from '../../util/random';
 import { addToBag, takeFromBag } from '../hero/bag';
-import { canCarry } from '../hero/bagSlots';
+import { canSwap } from '../hero/bagSlots';
 import { gainXp } from '../hero/heroStats';
 import type { Camp } from '../camps/camps';
 import type { Furniture } from '../interiors/furniture';
@@ -140,9 +140,9 @@ export class Cooking {
     return Math.min(...Object.entries(COOK_RECIPES[id].from).map(([item, n]) => Math.floor((bag[item as LootId] ?? 0) / n!)));
   }
 
-  // Whether the meal would go in the bag (a stack of it with room, or a slot free).
+  // Whether the meal would go in the bag (a stack of it with room, or a slot free: the last of its makings' among them).
   roomFor(id: CookRecipeId): boolean {
-    return canCarry(this.host.hero, COOK_RECIPES[id].makes);
+    return canSwap(this.host.hero, COOK_RECIPES[id].from, [COOK_RECIPES[id].makes]);
   }
 
   // `count` of a recipe begun (Infinity: all the makings make); whether it was (known, by a fire it'll do over, the
@@ -162,6 +162,17 @@ export class Cooking {
 
   stop(): void {
     this.making = null;
+  }
+
+  // The campfire they've lit, for a save (none: null); and back from one, while it has a while left to burn (a damaged
+  // one's: none).
+  saved(): Kindled | null {
+    return this.kindled && { ...this.kindled };
+  }
+  restore(saved: unknown): void {
+    const k = (saved && typeof saved === 'object' ? saved : {}) as Partial<Record<keyof Kindled, unknown>>;
+    const sound = [k.x, k.z, k.left].every((v) => typeof v === 'number' && Number.isFinite(v)) && (k.left as number) > 0;
+    this.kindled = sound ? { x: k.x as number, z: k.z as number, left: Math.min(KINDLED_BURNS, k.left as number) } : null;
   }
 
   // How far through the one under way (0..1), cooking; else null (its bar).
@@ -205,7 +216,7 @@ export class Cooking {
     const recipe = COOK_RECIPES[id];
     const { hero } = this.host;
     if (this.canMake(id) === 0) return false;
-    if (!canCarry(hero, recipe.makes)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
+    if (!this.roomFor(id)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     this.made++;
     for (const [making, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, making as LootId);
     addToBag(hero.bag, recipe.makes);

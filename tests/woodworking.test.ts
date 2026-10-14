@@ -116,10 +116,19 @@ describe('woodworking', () => {
     run(full, RECIPES.woodenSword.seconds + 0.05);
     expect([full.hero.bag.birchPlank, full.woodworking.making]).toEqual([2, null]);
     for (const key of ['dagger@2c0', 'dagger@3c0', 'dagger@4c0', 'hatchet']) delete full.hero.bag[key as never]; // (over-full by three, with the hatchet: four freed, one slot to spare)
-    full.hero.bag.birchPlank = 4; // (planks for two: the first made into the slot freed, the second finding the bag full)
+    full.hero.bag.birchPlank = 6; // (planks for three: the first made into the slot freed, the second finding the bag full)
     expect(full.woodworking.start('woodenSword', 5)).toBe(true); // (a slot freed: made till the bag fills again, then told)
     run(full, RECIPES.woodenSword.seconds * 2 + 0.1);
     expect(full.takeEvents()).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
+  });
+
+  it("saws the last log in a full bag into a plank: the log's slot is the plank's", () => {
+    const model = workshop(1, { birchLog: 1 });
+    for (let i = 0; Object.keys(model.hero.bag).length < bagRoom(model.hero); i++) model.hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (every other slot a dagger)
+    expect(canCarry(model.hero, 'birchPlank')).toBe(false);
+    expect(model.woodworking.start('birchPlank')).toBe(true);
+    run(model, RECIPES.birchPlank.seconds + 0.05);
+    expect([model.hero.bag.birchLog, model.hero.bag.birchPlank]).toEqual([undefined, 1]);
   });
 
   it('rises as its recipes are hard for them: orange always, grey never', () => {
