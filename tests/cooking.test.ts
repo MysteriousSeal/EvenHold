@@ -300,3 +300,16 @@ describe('tuning', () => {
     expect(again.hero.blessings?.[0].left).toBe(longest);
   });
 });
+
+describe('butchered', () => {
+  it("a beast slain leaves its meat on a roll of its own, about as often as told; a bear's honeycomb now and then; no one else's", async () => {
+    const { butcher } = await import('../src/model/loot/ingredients');
+    const share = (source: Parameters<typeof butcher>[0], item: string) => Array.from({ length: 2000 }, (_, id) => butcher(source, id)).filter((got) => got.includes(item as never)).length / 2000;
+    expect(share('boar', 'rawBoarMeat')).toBeCloseTo(0.6, 1);
+    expect(share('bear', 'rawBearMeat')).toBeCloseTo(0.6, 1);
+    expect(share('bear', 'honeycomb')).toBeCloseTo(0.25, 1);
+    expect(share('beast', 'rawWolfMeat')).toBeCloseTo(0.4, 1);
+    expect(share('lynx', 'leanLynxMeat')).toBeCloseTo(0.5, 1);
+    expect(butcher('undead', 3)).toEqual([]);
+  });
+});
