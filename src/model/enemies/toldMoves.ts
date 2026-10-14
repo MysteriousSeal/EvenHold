@@ -36,7 +36,7 @@ export interface ToldMove {
 
 export class ToldMoves {
   readonly moves: Told[] = [];
-  private readonly waits = new Map<Enemy, number>();
+  private readonly waits = new WeakMap<Enemy, number>(); // (each foe's wait before it may again: gone with the foe, a region streamed away)
 
   constructor(
     private readonly move: ToldMove,
