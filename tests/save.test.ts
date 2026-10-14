@@ -127,3 +127,12 @@ describe('saving', () => {
     expect([again.groundHere.loot.map((l) => l.item), again.groundHere.coins.length]).toEqual([['cutGem'], 0]);
   });
 });
+
+it("reads a damaged save's bag without a record's own workings taken for things carried", () => {
+  const model = fresh();
+  const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+  Object.assign(data.hero, { bag: { toString: 3, constructor: 1, bread: 2 }, equipment: { head: 'valueOf' } });
+  const again = fresh();
+  restore(again, data);
+  expect([Object.keys(again.hero.bag), again.hero.equipment]).toEqual([['bread'], {}]);
+});

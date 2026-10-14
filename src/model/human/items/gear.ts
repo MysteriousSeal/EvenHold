@@ -52,7 +52,7 @@ export interface GearSpecs {
 const KEY = /^([a-zA-Z]+)@(\d+)([curel])(\d+)$/;
 const parsed = new Map<string, Gear>();
 
-export const isGear = (key: string): key is GearKey => key in ITEMS || (KEY.test(key) && (key.split('@')[0] as string) in ITEMS);
+export const isGear = (key: string): key is GearKey => Object.hasOwn(ITEMS, key) || (KEY.test(key) && Object.hasOwn(ITEMS, key.split('@')[0])); // (own: never a record's `toString`)
 
 // What a key holds (a plain id: level 1, common).
 export function gearOf(key: GearKey): Gear {

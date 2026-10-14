@@ -215,7 +215,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   // Only things the game still knows (a save may be older than a change to
   // them), worn in the slot they go in, carried in whole numbers.
-  const known = (item: string): item is BagItem => item in LOOT || isGear(item); // (gear plain, or as found: its level and rarity)
+  const known = (item: string): item is BagItem => Object.hasOwn(LOOT, item) || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
   const equipment = readEquipment(saved.equipment);
   Object.assign(hero, {
