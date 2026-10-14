@@ -218,9 +218,10 @@ async function boot(): Promise<void> {
       },
     },
   });
-  // The action bar, bottom centre: shortcuts to food and drink in the bag (keys 1 to 8: GameController).
+  // The action bar, bottom centre: shortcuts to food and drink in the bag (keys 1 to 8: GameController); clicked, used
+  // as its keys are, not while the game's held still.
   const { hero: me } = model;
-  const updateActionBar = createActionBar(me, { use: (i) => model.useAction(i), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) });
+  const updateActionBar = createActionBar(me, { use: (i) => void (controller.paused || model.useAction(i)), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) });
   const updateToolbar = createToolbar([
     { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
     { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
