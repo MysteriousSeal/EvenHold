@@ -5,8 +5,8 @@
 // the parrying dagger points forward like the main hand's blades. Grips
 // follow the rules in itemModel.ts.
 //
-// The new off-hand pieces (each a STAND-IN below till it's drawn, in the kit's colours; drawn, each its set's:
-// setPalettes.ts; a shield keeps to shield() and its 7 wide):
+// The sets' off-hand pieces, each in its set's colours (setPalettes.ts; a shield keeps to shield() and its 7 wide),
+// drawn from these notes:
 // - ossuaryWard (ossuary): a kite of bone, ribs laid side by side across it, wired, a skull boss in its middle with
 //   black sockets. Bone e0d4b4 / b8a986 / 8e7f62, socket 2a2220, wire 6e747c.
 // - smokingCenser (cinder): a black-iron censer swung on a short chain from the fist, pierced all round, ember light in
@@ -23,6 +23,7 @@ import type { OFF_HAND_ITEMS } from '../../../../../model/human/items/held';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
+import { SET_PALETTES } from '../setPalettes';
 import { mod } from '../patterns';
 
 const kit = namedPalette({
@@ -54,9 +55,9 @@ const { c } = kit;
 // board, then what's raised on it: a rim, a band, a boss), none outside its
 // outline. Held with its middle a voxel in from the hand and its back well
 // ahead of it, its grip on quarter voxels (itemModel.ts `fine`).
-function shield(w: number, h: number, layers: (x: number, y: number) => number[]): ItemModel {
+function shield(w: number, h: number, layers: (x: number, y: number) => number[], palette = kit.palette): ItemModel {
   return {
-    palette: kit.palette,
+    palette,
     held: {
       build: () => {
         const grid = createGrid([w, h, 4]);
@@ -188,46 +189,82 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
       grip: [1.5, 1.75, -3],
     },
   },
-  // STAND-IN: a kite of bone, ribs laid side by side, wired, a skull boss with black sockets
-  ossuaryWard: shield(7, 11, (x, y) => {
-    const half = y >= 3 ? 3 : y;
-    if (Math.abs(x - 3) > half) return [];
-    return x === 3 && y >= 5 && y <= 7 ? [c.sand, c.pages] : [mod(y, 2) === 0 ? c.sand : c.pages];
-  }),
-  // STAND-IN: a pierced black-iron censer on a short chain, ember light in its holes, a wisp of smoke above
-  smokingCenser: {
-    palette: kit.palette,
-    held: {
-      build: () => {
-        const grid = createGrid([3, 9, 1]);
-        fillBox(grid, 1, 0, 0, 1, 5, 0, c.iron);
-        fillBox(grid, 0, 6, 0, 2, 7, 0, (x, y) => (x === 1 && y === 6 ? c.flame : c.iron));
-        setColor(grid, 1, 8, 0, c.boss);
-        return grid;
+  // A kite of old bone, ribs laid across it standing out from the boards, wired down its sides, a skull for its boss,
+  // its sockets black.
+  ossuaryWard: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.ossuary);
+    return shield(7, 11, (x, y) => {
+      const half = y >= 6 ? 3 : y >> 1; // (its long point, narrowing to the foot)
+      if (Math.abs(x - 3) > half || (y === 10 && (x === 0 || x === 6))) return [];
+      const skull: Record<number, string> = { 8: '.###.', 7: '.###.', 6: '.o#o.', 5: '.#o#.', 4: '..=..' };
+      const s = skull[y]?.[x - 1];
+      if (s && s !== '.') return s === 'o' ? [c.boneDark, c.socket] : [c.boneDark, c.bone, s === '=' ? c.boneShade : c.bone];
+      if (mod(y, 2) === 1) return Math.abs(x - 3) === half - 1 ? [c.boneDark, c.wire] : [c.boneDark]; // (wired between the ribs)
+      return [c.boneDark, Math.abs(x - 3) === half ? c.boneShade : c.bone];
+    }, palette);
+  })(),
+  // A black-iron censer hung from the fist on a short chain, pierced all round with its embers glowing through, a
+  // wisp of ash-grey smoke rising off its lid (held as the torch is, ahead of the hand).
+  smokingCenser: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.cinder);
+    return {
+      palette,
+      held: {
+        build: () => {
+          const grid = createGrid([3, 5, 3]);
+          fillBox(grid, 0, 0, 0, 2, 1, 2, (x, y, z) => (y === 1 && (x === 1) !== (z === 1) ? (mod(x + z, 2) ? c.glow : c.ember) : c.soot)); // (pierced)
+          fillBox(grid, 0, 2, 0, 2, 2, 2, (x, _y, z) => (x === 1 || z === 1 ? c.sootDeep : 0)); // its lid
+          fillBox(grid, 1, 3, 1, 1, 4, 1, (_x, y) => (y === 4 ? c.sootDeep : c.ash)); // the chain, its ring in the fist
+          setColor(grid, 2, 3, 2, c.ashLight); // the smoke
+          setColor(grid, 1, 4, 2, c.ashLight);
+          return grid;
+        },
+        grip: [1.5, 4.25, -3] as [number, number, number],
       },
-      grip: [1.5, 3.75, -3],
-    },
-  },
-  // STAND-IN: a teal heater, the watch's sand tower on it, steel rim, brass studs at the corners
-  watchShield: shield(7, 11, (x, y) => {
-    const half = y >= 3 ? 3 : y;
-    if (Math.abs(x - 3) > half) return [];
-    if (Math.abs(x - 3) === half || y === 10) return [c.teal, c.steel];
-    return x >= 2 && x <= 4 && y >= 4 && y <= 8 ? [c.teal, c.sand] : [c.teal];
-  }),
-  // STAND-IN: round gilded shield, ivory field, a great gold sun of eight rays on azure in two layers, ruby heart, fluted rim
-  sunwardAegis: shield(7, 7, (x, y) => {
-    if (!disc7.on(x, y)) return [];
-    if (disc7.rim(x, y)) return [c.gold, c.gold];
-    const d = disc7.from(x, y);
-    if (d < 0.5) return [c.pages, c.gold, c.red];
-    return x === 3 || y === 3 || Math.abs(x - 3) === Math.abs(y - 3) ? [c.pages, c.gold] : [c.pages];
-  }),
-  // STAND-IN: tall black pavise, raised spine, a white band across it high up, blackened iron top and foot
-  blackbannerPavise: shield(7, 12, (x, y) => {
-    if (y === 11 && (x === 0 || x === 6)) return [];
-    if (y === 0 || y === 11) return [c.iron, c.iron];
-    if (y === 8) return [c.pages];
-    return x === 3 ? [c.spine, c.spine] : [c.spine];
-  }),
+    };
+  })(),
+  // The watch's: a heater in teal, steel rimmed, a brass stud at each top corner, the watch's sand tower raised on it,
+  // crenellated, its door dark.
+  watchShield: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.watch);
+    return shield(7, 11, (x, y) => {
+      const half = y >= 3 ? 3 : y;
+      if (Math.abs(x - 3) > half) return [];
+      const field = mod(x, 2) === 0 ? c.tealDark : c.teal;
+      if (y === 10 && (x === 0 || x === 6)) return [field, c.brass];
+      if (Math.abs(x - 3) === half || y === 10) return [field, c.steel];
+      const tower: Record<number, string> = { 8: '#.#', 7: '###', 6: '###', 5: '###', 4: '#.#' };
+      const t = tower[y]?.[x - 2];
+      if (t === '#') return [field, c.sand];
+      if (t === '.' && y === 4) return [c.tealDark]; // its door
+      return [field];
+    }, palette);
+  })(),
+  // Sunward's: a round shield, a fluted gold rim round an ivory field, a gold sun on azure standing out in two layers,
+  // its eight rays reaching out to the rim, a ruby at its heart.
+  sunwardAegis: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.sunward);
+    return shield(7, 7, (x, y) => {
+      if (!disc7.on(x, y)) return [];
+      const d = disc7.from(x, y);
+      const diagonal = Math.abs(x - 3) === Math.abs(y - 3);
+      if (d < 0.5) return [c.azure, c.gold, c.goldLight, c.ruby];
+      if (d < 1.2) return [c.azure, c.gold, c.goldLight];
+      if (d < 1.5) return [c.azure]; // (the azure behind it, between its arms)
+      if (disc7.rim(x, y)) return diagonal ? [c.goldDark, c.goldLight, c.goldLight] : [c.goldDark, mod(x + y, 2) ? c.gold : c.goldLight]; // (the diagonal rays out over it)
+      return d === 2 ? [c.ivory, c.gold] : [c.ivory]; // its rays out across the field
+    }, palette);
+  })(),
+  // The blackbanner's: a tall pavise of black boards, a raised spine down it, blackened iron along its top and foot,
+  // and nothing bright but the one white band across it high up.
+  blackbannerPavise: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.blackbanner);
+    return shield(7, 12, (x, y) => {
+      if (y === 11 && (x === 0 || x === 6)) return [];
+      const board = mod(x, 2) === 0 ? c.cloth : c.clothLight;
+      if (y === 0 || y === 11 || (y === 10 && (x === 0 || x === 6))) return [board, c.iron];
+      if (y === 7 || y === 8) return [board, c.band];
+      return x === 3 ? [board, c.ironLight] : [board];
+    }, palette);
+  })(),
 };
