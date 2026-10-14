@@ -54,7 +54,7 @@ describe('voxel houses', () => {
     let doorZ = Infinity;
     for (let z = 0; z < sz; z++) {
       for (let y = 0; y < sy; y++) {
-        for (let x = 0; x < sx; x++) if (grid.cells[voxelIndex(grid, x, y, z)] === C.doorDark) doorZ = Math.min(doorZ, z);
+        for (let x = 0; x < sx; x++) if (grid.cells[voxelIndex(grid, x, y, z)] === C.doorPaint) doorZ = Math.min(doorZ, z);
       }
     }
     expect(doorZ, `layout ${index}`).toBeLessThan(sz / 2);
