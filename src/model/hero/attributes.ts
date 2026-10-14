@@ -1,7 +1,7 @@
 // What the hero's stats (statKinds.ts) come to, and what they do. Each
 // starts at 0, and is what points they've spent on it (training.ts), plus
 // what their gear adds (each item's `stats`); armour is only gear's. Health
-// grows with each level too (2 a level). A level-1 hero with nothing on is as they always were:
+// grows with each level too (2 a level, from 14). With nothing on and no points spent:
 // - Strength: harder blows, a point more damage for every 3.
 // - Agility: a chance to dodge a blow, and to land a critical one (double
 //   damage): a hundredth each a point, at most CHANCE_CAP.
@@ -21,7 +21,7 @@ import { STATS, type Stat } from './statKinds';
 const STRENGTH_PER_DAMAGE = 3;
 const HP_PER_STAMINA = 2;
 const HP_PER_LEVEL = 2;
-const BASE_HP = 10;
+const BASE_HP = 14; // (10 was a fresh hero two bites of a lynx from falling, with no way to heal on the road)
 const BASE_ENERGY = 100;
 const ENERGY_PER_ENDURANCE = 5;
 const CHANCE_PER_AGILITY = 0.01;

@@ -30,9 +30,8 @@ describe('poise', () => {
 });
 
 describe('the curve', () => {
-  it('level 1: a lynx or a bear met near the start is beaten by a player who steps back or parries, the hero still standing (held down, a bear fells them)', { timeout: 300_000 }, () => {
-    expect(fight(stage(1), 'bear', 1, 'masher').died).toBe(true);
-    for (const kind of ['lynx', 'bear'] as const) for (const style of ['average', 'parrier'] as const) {
+  it('level 1: a lynx or a bear is beaten however played, the hero still standing', { timeout: 300_000 }, () => {
+    for (const kind of ['lynx', 'bear'] as const) for (const style of ['masher', 'average', 'parrier'] as const) {
       const r = fight(stage(1), kind, 1, style);
       expect([r.won, r.died], `${kind} ${style}: ${JSON.stringify({ t: r.t, lost: r.lost })}`).toEqual([true, false]);
     }
