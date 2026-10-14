@@ -58,7 +58,7 @@ export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, ma
     const landing = e.swingFor !== null ? st.swing * ENEMY_STRIKE - e.swingFor : 99;
     const reach = 0.75 + st.radius;
     if (style === 'parrier') {
-      if (landing < 0.12 && landing > -0.01) m.raiseGuard(true); else { m.raiseGuard(false); if (d < reach) m.startAttack(); }
+      if (landing < 0.12 && landing > -0.01) m.raiseGuard(true); else { m.raiseGuard(false); if (d < reach && e.swingFor === null) m.startAttack(); } // (never a blow begun into its wind-up: the guard's wanted)
       if (d > reach - 0.1) { mx = dx / d; mz = dz / d; }
     } else if (style === 'average') {
       // three blows, then a step back and a breather (0.8 s), as most players fight

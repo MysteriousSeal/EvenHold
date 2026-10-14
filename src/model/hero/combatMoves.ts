@@ -12,7 +12,7 @@ import { baseOf } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
 import { TIRED } from './heroStats';
-import { ATTACK_DURATION, ATTACK_STRIKE, HIT_FLASH } from '../constants';
+import { ATTACK_DURATION, ATTACK_STRIKE, ENEMY_STATS, HIT_FLASH } from '../constants';
 
 export const BREATH = 100; // the most, rested
 export const TIRED_BREATH = 60; // the most, tired
@@ -160,7 +160,7 @@ export class CombatMoves {
     const offHand = this.hero.equipment.offHand && baseOf(this.hero.equipment.offHand); // (what it is: a buckler, a dagger)
     if (this.keen && this.guard <= parryWindow(offHand)) {
       if (by) {
-        Object.assign(by, { swingFor: null, hurtFor: HIT_FLASH + STAGGER }); // (reeling, past its flash: its blow, and any move it was telling, lost; no other begun: enemies.ts)
+        Object.assign(by, { swingFor: null, hurtFor: HIT_FLASH + STAGGER, cooldown: ENEMY_STATS[by.kind].cooldown }); // (reeling, past its flash: its blow, and any move it was telling, lost; no other begun: enemies.ts; nor another the moment it's steady, its wait between them begun)
         this.riposte = { foe: by, left: RIPOSTE };
       }
       return { damage: 0, guarded: 'parried' };

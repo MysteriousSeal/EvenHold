@@ -37,6 +37,11 @@ describe('the curve', () => {
     }
   });
 
+  it('level 3: the first crypt lord beaten by a player who steps back, and unhurt by one who parries (each parry a moment\'s peace: it reels, then waits its turn)', { timeout: 300_000 }, () => {
+    const [average, parrier] = [fight(stage(3), 'cryptLord', 3, 'average'), fight(stage(3), 'cryptLord', 3, 'parrier')];
+    expect([average.won, parrier.won, parrier.lost]).toEqual([true, true, 0]);
+  });
+
   it('level 5: a crypt lord of their level a fight of 15 to 30 seconds; held down, the attack loses it', { timeout: 300_000 }, () => {
     expect(fight(stage(5), 'cryptLord', 5, 'masher').died).toBe(true);
     for (const style of ['average', 'parrier'] as const) {
