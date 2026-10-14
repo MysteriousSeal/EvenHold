@@ -5,7 +5,7 @@
 // walking off or the fire burnt out. The meals (loot/meals.ts): eaten from the bag, healing more than the inn's food,
 // and from the stews on, eaten through, a blessing a while (hero/blessing.ts), one at a time, kept in a save. The
 // cooking page of the skills window (controller/skills/cookBook.ts).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { COOK_RECIPES, COOK_RECIPE_IDS, KINDLED_BURNS, KINDLE_LOGS } from '../src/model/skills/cooking';
 import { MEALS, MEAL_IDS } from '../src/model/loot/meals';
@@ -18,6 +18,10 @@ import { recover } from '../src/model/hero/heroStats';
 import { MEAL_SECONDS } from '../src/model/loot/provisions';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+
+vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
+const { cookBook } = await import('../src/controller/skills/cookBook');
+const { newBook } = await import('../src/controller/skills/recipeBook');
 
 // A model, its hero at `level` in cooking with `bag` in their bag.
 function kitchen(level = 1, bag: Record<string, number> = {}) {
@@ -241,5 +245,39 @@ describe('the cook', () => {
     model.cooking.start('roastBoar');
     const { x, z } = model.cooking.kindled!;
     expect(model.hero.facing).toBeCloseTo(Math.atan2(x - model.hero.x, z - model.hero.z), 5);
+  });
+});
+
+describe("cooking's page", () => {
+  it('lists the recipes under roasts, fish, stews, pies and feasts, the meal told as food with its blessing', () => {
+    const model = kitchen(100, { rawBoarMeat: 2, salt: 1 });
+    const page = cookBook(model, { picked: 'boarStew', canOnly: false, count: 1 }, () => {});
+    expect(Array.from(page.querySelectorAll('.book-group')).map((g) => g.textContent)).toEqual(['Roasts', 'Fish', 'Stews', 'Pies', 'Feasts']);
+    expect(page.querySelectorAll('.book-row')).toHaveLength(COOK_RECIPE_IDS.length);
+    const detail = page.querySelector('.book-detail')!;
+    expect(detail.querySelector('.book-kind')?.textContent).toBe('Food · Heals 40% over 15 seconds, then Well fed for 15 minutes');
+    expect(detail.querySelector('.book-needs')?.textContent).toContain('Requires Cooking 100');
+  });
+
+  it('says there is no fire, its Cook buttons off, and kindles one of two logs; a campfire will not do for a stew', () => {
+    const model = kitchen(100, { rawBoarMeat: 2, salt: 1, birchLog: 2 });
+    const state = newBook();
+    state.picked = 'roastBoar';
+    let page = cookBook(model, state, () => {});
+    expect(page.querySelector('.book-why')?.textContent).toContain('Stand by a fire');
+    expect(page.querySelector<HTMLButtonElement>('.book-actions .book-craft')!.disabled).toBe(true);
+    const kindle = page.querySelector<HTMLButtonElement>('.cook-fire button')!;
+    expect(kindle.textContent).toBe('Kindle a campfire (2 logs)');
+    kindle.click();
+    expect(model.cooking.kindled).not.toBeNull();
+    page = cookBook(model, state, () => {});
+    expect(page.querySelector('.cook-fire')?.textContent).toContain('By your campfire');
+    const cook = page.querySelector<HTMLButtonElement>('.book-actions .book-craft')!;
+    expect([cook.disabled, cook.textContent]).toEqual([false, 'Cook']);
+    cook.click();
+    expect(model.cooking.making).toMatchObject({ recipe: 'roastBoar', left: 1 });
+    model.cooking.stop();
+    page = cookBook(model, { picked: 'boarStew', canOnly: false, count: 1 }, () => {});
+    expect(page.querySelector('.book-why')?.textContent).toContain('wants a hearth');
   });
 });
