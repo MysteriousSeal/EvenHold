@@ -63,9 +63,7 @@ import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
-import { Lumber } from './skills/lumber';
-import { Woodworking } from './skills/woodworking';
-import { Salvage } from './skills/salvage';
+import { Cooking, Lumber, Salvage, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
@@ -133,6 +131,7 @@ export class GameModel {
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
   readonly woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
+  readonly cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
@@ -260,7 +259,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
     this.chickens.update(dt); // (whoever's been turned into one: spells/turned.ts)
-    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making: on, or stopped by walking off)
+    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking: on, or stopped by walking off)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
@@ -461,7 +460,6 @@ export class GameModel {
     this.events = [];
     return events;
   }
-
 
   // The notice board the hero's at (outdoors), by its village's index; else null.
   get boardInReach(): number | null {

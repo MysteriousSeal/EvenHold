@@ -2,7 +2,7 @@
 // (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
 // (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
-// woodworking by making things; the others not yet. As in WoW, how likely a try raises it is by how hard the thing
+// woodworking by making things, cooking by cooking; the others not yet. As in WoW, how likely a try raises it is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never.
 
 export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
@@ -85,12 +85,15 @@ export const SKILLS: Record<SkillId, Skill> = {
     name: 'Cooking',
     kind: 'secondary',
     verb: 'cook',
-    about: "Turn what's caught and gathered into meals that heal more and keep the hero going longer than raw food.",
+    practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle of two logs. E by it opens your recipes.',
+    about: "Turn what's caught and hunted into meals that heal more than anything sold, and keep the hero going for a while after.",
     unlocks: [
-      { at: 1, what: 'Roast meat and fish over a campfire' },
-      { at: 75, what: 'Hearty stews at an inn’s hearth' },
-      { at: 150, what: 'Pies and pastries that fortify' },
-      { at: 225, what: 'Feasts to share before a hard fight' },
+      { at: 1, what: 'Roast boar and small fry over any fire' },
+      { at: 25, what: 'Wolf skewers, seared lynx, bear steaks' },
+      { at: 75, what: 'Grilled trout and salt-baked perch' },
+      { at: 100, what: 'Stews at a hearth: Well fed after, mending as you go' },
+      { at: 150, what: 'Roast pike; pies at a hearth: Fortified after' },
+      { at: 225, what: 'Feasts before a hard fight: Feasted after' },
     ],
   },
   fishing: {
