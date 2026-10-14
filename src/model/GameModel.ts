@@ -391,6 +391,7 @@ export class GameModel {
     const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
     this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(this.seed, entrance), () => this.below?.run), exitAt: () => this.below?.run.exitOpen ?? null }) };
     if (place) this.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
+    if (place && this.clearedShare(entrance) === 1) this.events.push({ kind: 'banner', title: place.name, line: `Level ${place.level} · cleared: its foes slain for good` }); // (told over its arrival: none here to rise again, dungeons/dungeonRecord.ts)
     this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: this.floors.of(place.key) };
     this.outdoors.seated = null;
     if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall

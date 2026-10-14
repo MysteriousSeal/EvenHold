@@ -1,6 +1,6 @@
 // Every dungeon of every test world (a crypt, a cave, a stronghold), all its foes slain: its boss's chest and its
 // way out at the far end come to on foot from the way in, round its rock, what stands solid in it and the chest
-// itself (the hero's own walls: model.inside.walls), not merely there on the plan.
+// itself (the hero's own walls: model.inside.walls), not merely there on the plan; and gone into again, told it's cleared.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { HERO_RADIUS, INDOOR_SCALE } from '../src/model/constants';
@@ -51,8 +51,18 @@ describe('every dungeon, cleared', () => {
         const chest = run.chest!;
         expect(spots.some((s) => run.chestInReach(s)), `${entrance.type}'s chest at ${chest.x},${chest.z}`).toBe(true);
         expect(spots.some((s) => atWayOut(model.inside!, s)), `${entrance.type}'s way out at ${JSON.stringify(run.exitOpen)}`).toBe(true);
+        // Out and back in: told it's cleared as they come down (none of its foes about to rise again); not before.
+        model.useDoor();
+        model.takeEvents();
+        model.useDoor();
+        expect(model.foes.filter((f) => f.state !== 'dead')).toEqual([]);
+        expect(model.takeEvents().filter((e) => e.kind === 'banner').map((e) => e.kind === 'banner' && e.line)).toEqual([expect.stringMatching(/cleared/)]);
         model.teleport(entrance.x, entrance.z);
       }
+      const untouched = new GameModel(seed, TEST_MAP_SIZE);
+      untouched.teleport(places[0].entrance.x, places[0].entrance.z);
+      untouched.useDoor();
+      expect(untouched.takeEvents().some((e) => e.kind === 'banner')).toBe(false); // (not yet cleared: only its name)
     });
   }
 });
