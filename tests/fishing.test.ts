@@ -3,7 +3,7 @@
 // the water (a lake's narrows, its open water, the deep) and the skill; the skill rises with what's landed. The
 // prompt by the water says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
-import { BITE_WINDOW, CATCHES, Fishing, catchesAt, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
+import { CATCHES, weightOf, Fishing, catchesAt, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
 import { SKILLS, skillOf } from '../src/model/skills/skills';
 import { freshHero } from '../src/model/hero/heroStats';
 import { LOOT_IDS } from '../src/model/loot/loot';
@@ -100,11 +100,21 @@ describe('a line', () => {
     expect(fishing.line?.phase).toBe('waiting');
   });
 
+  it('knows what bites as it bites, and lands that very catch', () => {
+    const { fishing, hero } = onShore(undefined, true, () => 0.99);
+    skillOf(hero, 'fishing').level = 150;
+    fishing.use();
+    toBite(fishing);
+    expect(fishing.line).toMatchObject({ caught: 'pike', window: CATCHES.find((c) => c.item === 'pike')!.window });
+    fishing.use();
+    expect(hero.bag.pike).toBe(1);
+  });
+
   it('gets away if the bite is not hooked in time, told so, and the line is cast again', () => {
     const { fishing, hero, events } = onShore();
     fishing.use();
     toBite(fishing);
-    run(fishing, BITE_WINDOW + 0.1);
+    run(fishing, fishing.line!.window! + 0.1);
     expect(hero.bag.smallFry).toBeUndefined();
     expect(events).toContainEqual(expect.objectContaining({ kind: 'fished', item: null }));
     expect(fishing.line?.phase).toBe('waiting');
@@ -156,7 +166,27 @@ describe('what bites', () => {
   it('is trout in the narrows and perch in open water from 75', () => {
     expect(items(NARROWS, 75)).toEqual(['smallFry', 'riverTrout']);
     expect(items(OPEN, 75)).toEqual(['smallFry', 'lakePerch']);
-    expect(items(NARROWS, 74)).toEqual(['smallFry']);
+    expect(items(NARROWS, 39)).toEqual(['smallFry']);
+  });
+
+  it('is, from 40, a lucky trout or perch now and then (a fifth of the bites at most), orange to learn from', () => {
+    const trout = CATCHES.find((c) => c.item === 'riverTrout')!;
+    expect(items(NARROWS, 40)).toEqual(['smallFry', 'riverTrout']);
+    expect(weightOf(trout, 40) / (weightOf(trout, 40) + weightOf(CATCHES[0], 40))).toBeLessThanOrEqual(0.25);
+    expect(riseOf(trout, 40).chance).toBe(1);
+  });
+
+  it('thins the small fry once trout and perch are theirs, and fills the deep with pike', () => {
+    const [fry, pike] = [CATCHES.find((c) => c.item === 'smallFry')!, CATCHES.find((c) => c.item === 'pike')!];
+    expect(weightOf(fry, 75)).toBeLessThan(weightOf(fry, 74));
+    expect(weightOf(pike, 150)).toBeGreaterThan(weightOf(fry, 150));
+  });
+
+  it('gives each catch its own moment to hook it: the bigger, the quicker it is off', () => {
+    const windowOf = (item: string) => CATCHES.find((c) => c.item === item)!.window;
+    expect(windowOf('smallFry')).toBeGreaterThan(windowOf('riverTrout'));
+    expect(windowOf('riverTrout')).toBeGreaterThan(windowOf('pike'));
+    expect(windowOf('pike')).toBeGreaterThanOrEqual(0.7); // (still in reach of a quick hand)
   });
 
   it('is pike in the deep from 150, nowhere else', () => {
