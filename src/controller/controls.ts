@@ -41,9 +41,9 @@ export const CONTROL_GROUPS: ReadonlyArray<{ name: string; controls: readonly Co
     controls: [
       { what: 'Hero sheet', keys: 'C', marks: [cap('C')] },
       { what: 'Bag', keys: 'B', marks: [cap('B')] },
-      { what: 'Quest journal', keys: 'L', marks: [cap('L')] },
+      { what: 'Journal', note: 'your quests', keys: 'L', marks: [cap('L')] },
       { what: 'Skills', keys: 'K', marks: [cap('K')] },
-      { what: 'Spend points', keys: 'P', marks: [cap('P')] },
+      { what: 'Level up', note: 'your points to spend', keys: 'P', marks: [cap('P')] },
       { what: 'Pause', note: 'or shut the window on top', keys: 'Escape', marks: [cap('Esc')] },
     ],
   },
