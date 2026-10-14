@@ -79,7 +79,8 @@ export class GameController {
     this.onTraveller = options.onTraveller ?? (() => {});
     this.onWork = options.onWork ?? (() => {});
     this.onMeet = options.onMeet ?? (() => {});
-    // Clicking an enemy focuses it, anyone else picks them out; clicking open ground, or Escape, lets go.
+    // Clicking an enemy focuses it, anyone else picks them out; clicking open ground, or Escape, lets go (Escape: as the
+    // pause menu's let it, main.ts, before it opens).
     view.canvas.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || this.paused || model.yard) return;
       const foe = !model.inside || model.dungeon ? view.pickEnemy(event.clientX, event.clientY, model.foes) : null; // (the world's foes, or a crypt's guards)

@@ -1,4 +1,4 @@
-// The pause menu, on Escape when no other window is open (or the toolbar):
+// The pause menu, on Escape when no other window is open and no one's in focus (or the toolbar):
 // the game stands still behind it, dimmed. Bound like the title's panels
 // (view/ui/gilded.css): on the left the hero, framed (their portrait, name,
 // level, day and world); beside them "Paused" between gold rules, then
@@ -36,6 +36,7 @@ export interface PauseHooks {
   mainMenu(): void; // saves, and back to the title
   walls: { full(): boolean; toggle(): void }; // the inner walls option (full height, or cut low)
   hero(): PauseHero; // who's playing, for the card
+  letGo?(): boolean; // Escape over the game: a foe focused, or someone picked out, let go of first (true: one was)
 }
 
 const PORTRAIT = 112; // px
@@ -205,7 +206,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       if (!api.isOpen) {
         if (event.code !== 'Escape' || anyMenuOpen()) return; // (Escape opens it only when nothing else is open)
         event.stopImmediatePropagation();
-        if (!event.repeat) api.open();
+        if (!event.repeat && !hooks.letGo?.()) api.open(); // (nor while there's a foe in focus: that let go of first)
         return;
       }
       event.stopImmediatePropagation();

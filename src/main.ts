@@ -208,6 +208,7 @@ async function boot(): Promise<void> {
       keepSessionSeed(null); // (this tab's world let go: the reload shows the main menu)
       window.location.reload();
     },
+    letGo: () => (model.focused || model.chosen.person ? (model.focus(null), model.select(null), true) : false),
     hero: () => ({ name: model.hero.name, level: model.hero.level, day: clockAt(model.minutes).day, seed: model.seed, look: model.hero.look, equipment: model.hero.equipment }),
     walls: {
       full: () => model.fullWalls,
