@@ -18,13 +18,13 @@ import { BarShift, type BarAction } from './barShift';
 import { RoomShift, type Client, type RoomHost } from './room/roomShift';
 import type { Talk } from '../story/story';
 
-const HERO_XP = 4; // the hero's own experience, an order served (work's a way up too)
+const HERO_XP = 1; // the hero's own experience, an order served (work's a way up too, but a slow one: waiting tables doesn't make a swordsman)
 // Where one stands to read an inn's notice board (hung on a wall, in a tile against it): before it, no more than
 // ALONG either way of its middle, between OUT[0] and OUT[1] out from its wall.
 const ALONG = 0.55;
 const OUT: [number, number] = [0.25, 1.35];
 export const CUPBOARD_OUT = 6; // the inn's own tankards out for a barkeep's shift, at most
-export const BONUS = 1; // copper an order, the shift worked to its end with no one walked out
+export const BONUS = 2; // copper an order, the shift worked to its end with no one walked out (a clean shift paid near twice a sloppy one)
 
 export interface WorkHost extends RoomHost {
   readonly hero: Hero;
