@@ -26,6 +26,7 @@ import type { TORSO_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mail, mod } from '../patterns';
+import { SET_PALETTES } from '../setPalettes';
 
 // A gambeson: padded linen quilted in vertical channels, laced up the
 // front, a leather-trimmed hem, and padded sleeves up over the shoulders.
@@ -216,6 +217,48 @@ const brigandine: ItemModel = {
   },
 };
 
+// The headsman's: a stiff oxblood apron from the collarbone down over a black
+// jerkin, a stain running down its middle and spreading at the hem, its neck
+// strap stitched in pale thread, tied at the back; short black sleeves.
+const headsman = namedPalette({ ...SET_PALETTES.headsman });
+const headsmansApron: ItemModel = {
+  palette: headsman.palette,
+  worn: {
+    torso: ({ x, y, front, back, flank }) => {
+      const { c } = headsman;
+      if (front && x >= 1 && x <= 5) {
+        if (y >= 4 && (x === 1 || x === 5)) return y === 4 ? c.thread : c.black; // the bib's top corners stitched to its strap
+        if (x === 3 || (y === 2 && x >= 2 && x <= 4)) return c.stain;
+        return c.oxblood;
+      }
+      if ((back || flank) && y === 3) return c.leather; // the apron's ties round the back
+      return flank ? c.blackLight : c.black;
+    },
+    arm: ({ y, flank }) => (y < 5 ? 0 : flank ? headsman.c.blackLight : headsman.c.black), // short sleeves, bare arms
+  },
+};
+
+// Barrow: a long mail hauberk rusted through in patches, pitted grey between,
+// a verdigris collar and a grave-gold hem and cuffs.
+const barrow = namedPalette({ ...SET_PALETTES.barrow });
+const barrowMail = (x: number, y: number, z: number) => {
+  const { c } = barrow;
+  const pitted = mod(Math.floor(x / 2) * 3 + Math.floor(y / 2) * 2 + Math.floor(z / 2) * 5, 4) === 0; // a patch still steel
+  return pitted ? mail(x, y, z, c.pitted, c.rustDark) : mail(x, y, z, c.rust, c.rustDark);
+};
+const barrowHauberk: ItemModel = {
+  palette: barrow.palette,
+  worn: {
+    torso: ({ x, y, z }) => {
+      const { c } = barrow;
+      if (y === 2) return x < 0 || x > 6 ? c.mould : c.graveGold; // the hem, gone green at the sides
+      if (y === 5) return mod(x + z, 2) === 0 ? c.verdigris : c.verdigrisLight; // the bronze collar
+      return barrowMail(x, y, z);
+    },
+    arm: ({ x, y, z }) => (y === 2 ? barrow.c.graveGold : barrowMail(x, y, z)),
+  },
+};
+
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
@@ -228,8 +271,8 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   linenShirt,
   travelCloak,
   brigandine,
-  headsmansApron: studdedJerkin, // STAND-IN: stiff oxblood apron collar to belt, a stain spreading down it, black jerkin, short black sleeves
-  barrowHauberk: chainMail, // STAND-IN: long rusted hauberk, rust patches and pitted grey, verdigris collar, grave-gold hem
+  headsmansApron,
+  barrowHauberk,
   cinderRobe: gambeson, // STAND-IN: ash-grey robe, rope belt, soot rising from the hem, bone-white flame sigil on the chest, ember specks
   watchBrigandine: brigandine, // STAND-IN: teal brigandine, paired brass rivets, a sand stripe down the front, steel at the shoulders
   sunwardCuirass: breastplate, // STAND-IN: fluted ivory-and-gold cuirass, great gold sun on azure on the breast, ruby heart, azure sleeves
