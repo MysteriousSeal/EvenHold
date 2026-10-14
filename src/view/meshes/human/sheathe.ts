@@ -46,6 +46,11 @@ export const STOWED: Record<keyof typeof MAIN_HAND_ITEMS | keyof typeof OFF_HAND
   parryingDagger: 'rightHip',
   torch: 'hand',
   tome: 'hand',
+  ossuaryWard: 'shield',
+  smokingCenser: 'hand',
+  watchShield: 'shield',
+  sunwardAegis: 'shield',
+  blackbannerPavise: 'shield',
 };
 
 const V = HUMAN_VOXEL_SIZE;

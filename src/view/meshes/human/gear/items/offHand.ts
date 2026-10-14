@@ -4,6 +4,20 @@
 // voxel in toward the body;
 // the parrying dagger points forward like the main hand's blades. Grips
 // follow the rules in itemModel.ts.
+//
+// The new off-hand pieces (each a STAND-IN below till it's drawn, in the kit's colours; drawn, each its set's:
+// setPalettes.ts; a shield keeps to shield() and its 7 wide):
+// - ossuaryWard (ossuary): a kite of bone, ribs laid side by side across it, wired, a skull boss in its middle with
+//   black sockets. Bone e0d4b4 / b8a986 / 8e7f62, socket 2a2220, wire 6e747c.
+// - smokingCenser (cinder): a black-iron censer swung on a short chain from the fist, pierced all round, ember light in
+//   the holes, a wisp of ash-grey smoke above (carried as the torch is). Soot 2a2826, ember e0602a / glow ffb040, smoke 8a847e.
+// - watchShield (watch): a heater in teal, a sand tower (the watch's badge) on it, a steel rim and brass studs at the
+//   corners. Teal 2f9c9a / 217c7a, sand efdcb8, steel b4bac2, brass d4b060.
+// - sunwardAegis (sunward, legendary): a round gilded shield, ivory enamel field, a great gold sun of eight rays on azure
+//   standing out in two layers of relief, a ruby at its heart, a fluted gold rim. Gold d4b060 / f0d080 / a8862e, ivory
+//   f4f0e6, azure 3060c0, ruby b02838.
+// - blackbannerPavise (blackbanner): a tall black pavise, a raised spine, a white band across it high up, blackened iron
+//   along its top and foot. Cloth 26242a / 3a3840, band e8e2d4, iron 3e4046.
 
 import type { OFF_HAND_ITEMS } from '../../../../../model/human/items/held';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
@@ -174,4 +188,46 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
       grip: [1.5, 1.75, -3],
     },
   },
+  // STAND-IN: a kite of bone, ribs laid side by side, wired, a skull boss with black sockets
+  ossuaryWard: shield(7, 11, (x, y) => {
+    const half = y >= 3 ? 3 : y;
+    if (Math.abs(x - 3) > half) return [];
+    return x === 3 && y >= 5 && y <= 7 ? [c.sand, c.pages] : [mod(y, 2) === 0 ? c.sand : c.pages];
+  }),
+  // STAND-IN: a pierced black-iron censer on a short chain, ember light in its holes, a wisp of smoke above
+  smokingCenser: {
+    palette: kit.palette,
+    held: {
+      build: () => {
+        const grid = createGrid([3, 9, 1]);
+        fillBox(grid, 1, 0, 0, 1, 5, 0, c.iron);
+        fillBox(grid, 0, 6, 0, 2, 7, 0, (x, y) => (x === 1 && y === 6 ? c.flame : c.iron));
+        setColor(grid, 1, 8, 0, c.boss);
+        return grid;
+      },
+      grip: [1.5, 3.75, -3],
+    },
+  },
+  // STAND-IN: a teal heater, the watch's sand tower on it, steel rim, brass studs at the corners
+  watchShield: shield(7, 11, (x, y) => {
+    const half = y >= 3 ? 3 : y;
+    if (Math.abs(x - 3) > half) return [];
+    if (Math.abs(x - 3) === half || y === 10) return [c.teal, c.steel];
+    return x >= 2 && x <= 4 && y >= 4 && y <= 8 ? [c.teal, c.sand] : [c.teal];
+  }),
+  // STAND-IN: round gilded shield, ivory field, a great gold sun of eight rays on azure in two layers, ruby heart, fluted rim
+  sunwardAegis: shield(7, 7, (x, y) => {
+    if (!disc7.on(x, y)) return [];
+    if (disc7.rim(x, y)) return [c.gold, c.gold];
+    const d = disc7.from(x, y);
+    if (d < 0.5) return [c.pages, c.gold, c.red];
+    return x === 3 || y === 3 || Math.abs(x - 3) === Math.abs(y - 3) ? [c.pages, c.gold] : [c.pages];
+  }),
+  // STAND-IN: tall black pavise, raised spine, a white band across it high up, blackened iron top and foot
+  blackbannerPavise: shield(7, 12, (x, y) => {
+    if (y === 11 && (x === 0 || x === 6)) return [];
+    if (y === 0 || y === 11) return [c.iron, c.iron];
+    if (y === 8) return [c.pages];
+    return x === 3 ? [c.spine, c.spine] : [c.spine];
+  }),
 };
