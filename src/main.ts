@@ -169,9 +169,17 @@ async function boot(): Promise<void> {
   const shop = createShopPanel(model, { bag });
   const forge = createSmithPanel(model, { bag });
   const pack = createPedlarPanel(model, { bag }); // a pedlar's, on the road
-  const jobs = createJobPanel(model, { setPaused: (paused) => (controller.paused = paused) }); // the work to be had: an inn's server's
+  // What holds the game still (a window, a talk, the night, a scene played), each let go of in its own time: it goes
+  // on once none does (the level up shut over the notice board: still the board's).
+  const holding = new Set<unknown>();
+  const holdStill = (why: unknown) => (still: boolean) => {
+    if (still) holding.add(why);
+    else holding.delete(why);
+    controller.paused = holding.size > 0;
+  };
+  const jobs = createJobPanel(model, { setPaused: holdStill('jobs') }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
-  const board = createQuestBoardPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const board = createQuestBoardPanel(model, { setPaused: holdStill('board') });
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
@@ -183,14 +191,14 @@ async function boot(): Promise<void> {
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
   };
-  const talk = createTalkPanel(model, { setPaused: (paused) => (controller.paused = paused), trade, redraw: (dt) => controller.redraw(dt) }); // a word with someone who has a quest (story/talkPanel.ts)
+  const talk = createTalkPanel(model, { setPaused: holdStill('talk'), trade, redraw: (dt) => controller.redraw(dt) }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
   const journal = createJournal(model);
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
-  const levelUp = createLevelUpPanel(model, { setPaused: (paused) => (controller.paused = paused) });
+  const levelUp = createLevelUpPanel(model, { setPaused: holdStill('levelUp') });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
   const pause = createPauseMenu({
-    setPaused: (paused) => (controller.paused = paused),
+    setPaused: holdStill('pause'),
     redraw: () => {
       view.update(0); // (the room rebuilt, walls changed) while the game stands still
       view.render();
@@ -340,10 +348,10 @@ async function boot(): Promise<void> {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(
         () => {
-          controller.paused = true; // (the night passing, unseen)
+          holdStill('night')(true); // (the night passing, unseen)
           sleepTillMorning(model);
         },
-        () => (controller.paused = false), // (seen again, the morning, as it fades back in)
+        () => holdStill('night')(false), // (seen again, the morning, as it fades back in)
       );
     },
     onEvent: (event) => {
@@ -390,12 +398,14 @@ async function boot(): Promise<void> {
         // Someone's sex changed: the game stood still, it played full screen (view/cinema/stagings/swapStaging.ts), then on.
         const { who, before } = event;
         const now = 'kind' in who ? who.human! : who;
-        controller.paused = true;
-        playTransformation(standing(before, true).root, before.name ?? enemyName(who as never), swapStaging(before, now, 'kind' in who ? enemyName(who) : 'road' in who ? who.name : titleOf(who)), () => (controller.paused = false));
+        const scene = holdStill(event); // (its own: two in a frame, each held till it's over)
+        scene(true);
+        playTransformation(standing(before, true).root, before.name ?? enemyName(who as never), swapStaging(before, now, 'kind' in who ? enemyName(who) : 'road' in who ? who.name : titleOf(who)), () => scene(false));
       } else if (event.kind === 'transformed') {
         // Someone turned into something: the game stood still, its turning played full screen (view/cinema/), then on.
-        controller.paused = true;
-        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingFor(event.into, { coat: event.coat, tree: event.tree, stood: () => view.standIn(event.who) }), () => (controller.paused = false)); // (cinema/staging.ts: in their coat, as their tree, of them as they stood)
+        const scene = holdStill(event);
+        scene(true);
+        playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingFor(event.into, { coat: event.coat, tree: event.tree, stood: () => view.standIn(event.who) }), () => scene(false)); // (cinema/staging.ts: in their coat, as their tree, of them as they stood)
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
