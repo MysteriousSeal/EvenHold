@@ -1,8 +1,9 @@
 // The quests people gave (model/story/story.ts), in the journal's list with the boards' (quests/journal.ts): those
 // under way first of all (what's to do, who to), those done last; one under way with a button to abandon it (asked
-// twice: then it's on offer again from whoever gave it).
+// twice: then it's on offer again from whoever gave it; one of the road's, from anyone of their calling met there).
 import '../quests/questPanels.css';
 import type { GameModel } from '../../model/GameModel';
+import { STORY_QUESTS } from '../../model/story/story';
 import type { StoryQuestId } from '../../model/story/storyQuests';
 import { line } from '../../view/ui/dom';
 import type { MenuSlot } from '../../view/ui/menu';
@@ -55,7 +56,7 @@ export function storyJournal(model: GameModel, redraw: () => void, full: string)
           badgeTone: q.ready ? 'ready' : 'progress',
           check: { on: q.tracked, locked: !q.tracked && !room(), label: q.tracked ? 'Tracked on screen: click to untrack' : !room() ? full : 'Click to track on screen', toggle: () => toggle(q.id) },
         };
-        about.set(slot, { name: q.name, text: q.task, said: `${q.ready && q.toName ? `Speak to ${q.toName} to finish it.` : `${q.have} of ${q.of} so far.`} Abandoned, ${q.fromName} will offer it again.`, id: q.id });
+        about.set(slot, { name: q.name, text: q.task, said: `${q.ready && q.toName ? `Speak to ${q.toName} to finish it.` : `${q.have} of ${q.of} so far.`} Abandoned, ${q.id.endsWith('@road') ? `any ${STORY_QUESTS[q.id.split('@')[0]].giver} on the road will offer it again` : `${q.fromName} will offer it again`}.`, id: q.id });
         return slot;
       }),
     done: () =>
