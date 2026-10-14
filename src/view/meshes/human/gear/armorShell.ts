@@ -56,6 +56,7 @@ export interface ShellCell {
   flank: boolean; // beside it, left or right
   top: boolean; // over it
   center: boolean; // in the part's middle column (on the torso: under the chin, the buckle's place)
+  side: Side; // which limb it's on (a parti-coloured pair of hose: one leg each colour); the torso's, 'center'
 }
 
 // Picks a shell voxel's color (a palette index + 1), or 0 to leave it open.
@@ -100,7 +101,7 @@ export function buildShell(part: BodyPart, band: [number, number], side: Side, p
       for (let x = -1; x <= sx; x++) {
         if (x === inner || colorAt(body, x, y, z) || !touches(x, y, z)) continue;
         const lx = legacy(x, sx, ox);
-        const color = paint({ x: lx, y: ly, z: legacy(z, sz, oz), front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy, center: x * 2 === sx - 1 });
+        const color = paint({ x: lx, y: ly, z: legacy(z, sz, oz), front: z >= sz, back: z < 0, flank: x < 0 || x >= sx, top: y >= sy, center: x * 2 === sx - 1, side });
         if (color) setColor(grid, x + 1, y + 1, z + 1, color);
       }
     }
