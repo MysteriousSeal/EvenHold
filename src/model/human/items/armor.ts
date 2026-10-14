@@ -44,6 +44,12 @@ export const SHOULDERS_ITEMS = slotItems('shoulders', {
   studdedPauldrons: { name: 'Studded pauldrons', value: 70, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, armor: 3, stats: { agility: 1, stamina: 1 } },
   goldEpaulettes: { name: 'Gold epaulettes', armor: 1, stats: { strength: 1, endurance: 1 } },
   ropeWraps: { name: 'Rope wraps', wornBy: { bandit: 1 }, stats: { agility: 1 } },
+  // The sets' (sets.ts).
+  barrowSpaulders: { name: 'Rusted spaulders', set: 'barrow', level: 4, value: 80, droppedBy: { draugr: 2, skeleton: 1 }, armor: 4, stats: { stamina: 1 } },
+  ribcagePauldrons: { name: 'Ribcage pauldrons', set: 'ossuary', level: 8, rarity: 'uncommon', value: 140, droppedBy: { skeleton: 1, cryptLord: 1 }, armor: 3, stats: { strength: 2 } },
+  flayersMantle: { name: "Flayer's mantle", set: 'flayer', value: 50, wornBy: { bandit: 1 }, droppedBy: { banditChief: 1 }, armor: 2, stats: { strength: 1, endurance: 1 } },
+  palmersCape: { name: "Palmer's cape", set: 'palmer', wornBy: { pilgrim: 2 }, armor: 1, stats: { endurance: 2 } },
+  sunwardPauldrons: { name: 'Sunward pauldrons', set: 'sunward', level: 14, rarity: 'epic', value: 380, droppedBy: { cryptLord: 1, broodMother: 1 }, armor: 5, stats: { strength: 1, stamina: 1 } },
 });
 
 export const TORSO_ITEMS = slotItems('torso', {
