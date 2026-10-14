@@ -191,6 +191,7 @@ export class CryptFoes extends DungeonFoes {
     this.director.update(dt);
     this.lord?.update();
     this.wakeLord(hero);
+    this.stillTomb(hero);
     const told = [this.frost, this.cleaves, this.slams, this.sweeps, this.charges, this.eruptions, this.barrages];
     for (const moves of told) moves.update(this.foes, hero, dt, (foe) => told.some((other) => other !== moves && other.doing(foe))); // (one at a time)
     if (this.lord && this.lord.enemy.state === 'dead' && !this.chest) this.chest = { ...lordSpot(this.inside), open: false }; // his chest, where he rose
@@ -206,6 +207,19 @@ export class CryptFoes extends DungeonFoes {
     if (hero.x < great.x0 - 0.5 || hero.x > great.x1 + 0.5 || hero.z < great.z0 - 0.5 || hero.z > great.z1 + 0.5) return;
     Object.assign(lord, { state: 'chase', lastSeen: { x: hero.x, z: hero.z }, lostFor: 0, target: null });
   }
+
+  // The hero come into the great hall before its lord's risen: told why he lies still, and how far they've got (once,
+  // till they've left the hall), as a cave's silk and a stronghold's gate are.
+  private stillTomb(hero: Hero): void {
+    const great = this.plan.places.find((p) => p.kind === 'great');
+    const inHall = !!great && hero.x >= great.x0 - 0.5 && hero.x <= great.x1 + 0.5 && hero.z >= great.z0 - 0.5 && hero.z <= great.z1 + 0.5;
+    if (inHall && !this.toldTomb && !this.lord && !this.slain.has(LORD_POST)) {
+      const share = Math.round(clearedShare(this.slain, this.posts) * 100);
+      this.hooks.report({ kind: 'banner', title: 'The great tomb lies still', line: `Its lord rises once ${Math.round(RISES_AT * 100)}% of the crypt is cleared · ${share}% cleared` });
+    }
+    this.toldTomb = inHall;
+  }
+  private toldTomb = false;
 
   // The lord's souls loosed: three in a fan from him, toward the hero.
   private loosesSouls(lord: Enemy, m: Told): void {

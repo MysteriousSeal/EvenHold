@@ -251,6 +251,23 @@ describe('a crypt\'s lord', () => {
     expect(lord.state).toBe('chase');
   });
 
+  it('lies still in his tomb till he rises: the hero come into his great hall before then told why, and how far they are, once each time', () => {
+    const model = new GameModel(2, MID);
+    const crypt = goDown(model);
+    clearTo(model, 0.3);
+    for (const f of model.foes) f.state = 'dead'; // (none about to get in the way: not slain for good)
+    const great = cryptInside(model.seed, crypt.entrance).plan.places.find((p) => p.kind === 'great')!;
+    const [outside, inside] = [{ x: great.x0 - 3, z: (great.z0 + great.z1) / 2 }, { x: great.x0 + 1, z: (great.z0 + great.z1) / 2 }];
+    const told = () => model.takeEvents().filter((e) => e.kind === 'banner');
+    model.takeEvents();
+    for (const at of [inside, inside, outside, inside]) [Object.assign(model.hero, at), model.crypt!.update(FRAME)];
+    const share = Math.round(model.crypt!.share * 100);
+    expect(told()).toEqual([1, 2].map(() => ({ kind: 'banner', title: 'The great tomb lies still', line: `Its lord rises once ${Math.round(RISES_AT * 100)}% of the crypt is cleared · ${share}% cleared` })));
+    clearTo(model, RISES_AT);
+    for (const at of [outside, inside]) [Object.assign(model.hero, at), model.crypt!.update(FRAME)];
+    expect(told()).toEqual([]); // (risen: nothing to tell)
+  });
+
   it('opens a way out at the far end of his hall once slain: a door in its back wall right behind his tomb, floor before it; through it, out of the crypt', () => {
     let behind = 0; // (right behind the great tomb, centred on it)
     for (let i = 0; i < 50; i++) {
