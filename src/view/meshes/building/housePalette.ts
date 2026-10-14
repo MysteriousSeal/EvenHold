@@ -88,6 +88,8 @@ export const ROOF_SETS: Array<{ base: number; light: number; dark: number; highl
   return { base: start + 1, light: start + 2, dark: start + 3, highlight: start + 4 };
 });
 
+export const THATCH_ROOF = 2; // the straw set: laid as thatch, not shingles (houseParts.ts roof)
+
 // A house's trim, picked by its hash (houseMesh.ts): the paint on its
 // shutters and door, and the tint of its limewash. Each is laid over the
 // placeholder entries above once the house is built (paintTrim), so the
