@@ -56,6 +56,22 @@ function dormer(grid: VoxelGrid, b: Box, u: number, roofIndex: number): void {
   }
 }
 
+// Quoins: alternating long and short dressed stones up each corner of a stone storey.
+function quoins(grid: VoxelGrid, b: Box): void {
+  for (let y = b.y0; y <= b.y1; y++) {
+    const long = ((y - b.y0) >> 1) % 2 === 0;
+    for (const [x, z, dx, dz] of [
+      [b.x0, b.z0, 1, 1],
+      [b.x1, b.z0, -1, 1],
+      [b.x0, b.z1, 1, -1],
+      [b.x1, b.z1, -1, -1],
+    ]) {
+      put(grid, [x, y, z], C.stoneLight);
+      put(grid, long ? [x + dx, y, z] : [x, y, z + dz], C.stoneLight);
+    }
+  }
+}
+
 // A small timber porch over the door: two posts and a stepped plank roof.
 function porch(grid: VoxelGrid, b: Box, doorU: number): void {
   for (const x of [doorU - 3, doorU + 3]) fillBox(grid, x, FOUNDATION_TOP + 1, b.z0 - 3, x, FOUNDATION_TOP + 9, b.z0 - 3, C.timber);
@@ -101,23 +117,14 @@ export function buildHouseVoxels(layout: HouseLayout, roofIndex: number, trim = 
   if (twoStorey) {
     const groundTop = ground.y0 + layout.groundHeight! - 1;
     fillBox(grid, ground.x0, ground.y0, ground.z0, ground.x1, groundTop, ground.z1, masonry);
-    // Quoins: alternating long/short dressed stones up each corner.
-    for (let y = ground.y0; y <= groundTop; y++) {
-      const long = ((y - ground.y0) >> 1) % 2 === 0;
-      for (const [x, z, dx, dz] of [
-        [ground.x0, ground.z0, 1, 1],
-        [ground.x1, ground.z0, -1, 1],
-        [ground.x0, ground.z1, 1, -1],
-        [ground.x1, ground.z1, -1, -1],
-      ]) {
-        put(grid, [x, y, z], C.stoneLight);
-        put(grid, long ? [x + dx, y, z] : [x, y, z + dz], C.stoneLight);
-      }
-    }
+    quoins(grid, { ...ground, y1: groundTop });
     // Jettied upper floor: its frame overhangs the stone by a voxel.
     upper = { x0: ground.x0 - 1, x1: ground.x1 + 1, z0: ground.z0 - 1, z1: ground.z1 + 1, y0: groundTop + 1, y1: ground.y1 };
   }
-  if (layout.stone) fillBox(grid, upper.x0, upper.y0, upper.z0, upper.x1, upper.y1, upper.z1, masonry);
+  if (layout.stone) {
+    fillBox(grid, upper.x0, upper.y0, upper.z0, upper.x1, upper.y1, upper.z1, masonry);
+    quoins(grid, upper);
+  }
   else timberStorey(grid, upper);
 
   const doorU = twoStorey ? cx : cx - 4;
