@@ -28,15 +28,12 @@ import { oneOf } from '../../../util/random';
 import type { JobRank } from '../jobs';
 import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Temper, type Tone } from './roomLines';
 import { BOUNCER, GIVES_IN, TROUBLE } from './roomTrouble';
-import type { Trouble } from './roomLines';
 import { Shift } from '../shift';
-import { paceOf, type PaceVoice } from './pace';
-import { HOUR, STREAK, goodOf, risingOf } from './roomHour';
+import { hourOf, PLEASED } from './hourTalk';
 import { Visit } from './roomVisit';
 
 export const PRICE = 22; // copper a client, at the first rank (a table's order: 2)
 const TIP = 14; // and up to so much besides, from one pleased, by how well their pace was kept (pace.ts)
-const PLEASED = 0.55; // of the hour's pace kept: pleased (their own word going, and a tip)
 const GREAT = 0.85; // and a very good hour: learnt from twice over
 const TIRES: [number, number] = [1.3, 0.7]; // times the energy it costs: the pace not kept at all, kept throughout
 const SWAYED = 0.3; // how much likelier one who's trouble pays, pressed, for an hour kept throughout
@@ -160,9 +157,7 @@ export class RoomShift extends Shift {
   // What `client` says there (`of`: at the door, as it shuts, after): their temper's, a man's or a woman's with it;
   // one who's trouble: that trouble's own.
   private line(client: Client, of: 'knocks' | 'inside' | 'after', salt: number): string {
-    const temper = TEMPERS[client.temper];
-    const pool = client.kind === 'plain' ? [...temper[of], ...temper[client.look.build][of]] : TROUBLE[client.kind][of];
-    return oneOf(pool, this.roll(this.seen, salt))!;
+    return saidLine(client, of, this.roll(this.seen, salt));
   }
 
   // The one at the door, and what they say: let in (the tone the hero takes: warm, plain, teasing), or turned away.
@@ -209,28 +204,8 @@ export class RoomShift extends Shift {
   // The talk of one let in: their word as the door shuts; then the hour, played (their pace, the easier kept for a
   // tone to their taste); then, by how it went, what they say as they go and what the hero may do.
   private letIn(client: Client, tone: Tone): Talk {
-    const plain = client.kind === 'plain';
-    const taste = !plain ? 'plain' : TEMPERS[client.temper].likes === tone ? 'liked' : 'disliked';
-    const who = plain ? client.temper : (client.kind as Trouble);
-    return {
-      speaker: client.name,
-      lines: [this.line(client, 'inside', 72)],
-      pace: { pace: paceOf(who, taste), with: client.name, voice: this.voice(client, who), bare: true, done: (score) => this.after(client, tone, Math.min(1, Math.max(0, score))) },
-      answers: [],
-    };
-  }
-
-  // What they say during the hour, as it goes (roomHour.ts): their temper's (or their trouble's), a man's or a
-  // woman's with it.
-  private voice(client: Client, who: Temper | Trouble): PaceVoice {
     const pick = (lines: readonly string[], salt: number) => oneOf(lines, this.roll(this.seen, salt))!;
-    const sex = client.look.build;
-    return {
-      rising: (level) => pick(risingOf(who, sex, level), 90 + level),
-      badly: () => pick(HOUR[who].badly, 95),
-      streak: () => pick(STREAK, 96),
-      finish: (score) => pick(score >= PLEASED ? goodOf(who, sex) : HOUR[who].poor, 97),
-    };
+    return hourOf(client, tone, this.line(client, 'inside', 72), pick, (score) => this.after(client, tone, Math.min(1, Math.max(0, score))));
   }
 
   // The hour over, `score` how well their pace was kept: the time and the energy it took (less, well kept), then what
@@ -311,10 +286,22 @@ export class RoomShift extends Shift {
   private newClient(): Client {
     const n = ++this.seen;
     const [x, z] = [this.inn.x * 31 + n * 7, this.inn.z * 17 + n * 13 + Math.floor(this.host.minutes)];
-    const trouble = this.roll(n, 78) < TROUBLED;
-    const kind: ClientKind = trouble ? oneOf(['skinflint', 'rough', 'soldier'] as const, this.roll(n, 79))! : 'plain';
-    const look = lookAt(x, z, this.seed, this.host.hero.look.build === 'male' ? 1 : 0);
-    const { mainHand: _blade, offHand: _shield, head: _hat, ...clothes } = pickOutfit(kind === 'soldier' ? 'guard' : kind === 'rough' ? 'bandit' : 'pedlar', x, z); // (bare-headed, nothing in hand)
-    return { name: nameAt(x, z, this.seed, look.build), look, equipment: clothes, kind, temper: oneOf(TEMPER_IDS, this.roll(n, 83))!, waits: WAITS };
+    return clientOf(this.host.hero.look.build, x, z, this.seed, (salt) => this.roll(n, salt));
   }
+}
+
+// What a client says, from their temper (a plain one) or their trouble. `roll` in 0..1.
+export function saidLine(client: Client, of: 'knocks' | 'inside' | 'after', roll: number): string {
+  const temper = TEMPERS[client.temper];
+  const pool = client.kind === 'plain' ? [...temper[of], ...temper[client.look.build][of]] : TROUBLE[client.kind][of];
+  return oneOf(pool, roll)!;
+}
+
+// A client, as one who knocks is made: the other sex than the hero, dressed for what they are, bare-headed, nothing in hand.
+export function clientOf(heroBuild: Hero['look']['build'], x: number, z: number, seed: number, roll: (salt: number) => number): Client {
+  const trouble = roll(78) < TROUBLED;
+  const kind: ClientKind = trouble ? oneOf(['skinflint', 'rough', 'soldier'] as const, roll(79))! : 'plain';
+  const look = lookAt(x, z, seed, heroBuild === 'male' ? 1 : 0);
+  const { mainHand: _blade, offHand: _shield, head: _hat, ...clothes } = pickOutfit(kind === 'soldier' ? 'guard' : kind === 'rough' ? 'bandit' : 'pedlar', x, z);
+  return { name: nameAt(x, z, seed, look.build), look, equipment: clothes, kind, temper: oneOf(TEMPER_IDS, roll(83))!, waits: WAITS };
 }

@@ -14,6 +14,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Talk, Who } from '../../model/story/story';
 import { coinParts } from '../../view/ui/coins';
 import { el, line } from '../../view/ui/dom';
+import { CoupleStage } from '../../view/ui/coupleStage';
 import { FigureStage } from '../../view/ui/figureStage';
 import { playPace } from './paceGame';
 import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
@@ -71,6 +72,13 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     }
   };
   let stages: { hero: FigureStage | null; other: FigureStage | null } | null = null;
+  let couple: CoupleStage | null = null; // the two of them, during a bare hour (coupleStage.ts)
+  const dropCouple = () => {
+    couple?.dispose();
+    couple = null;
+    scene.querySelector('.talk-couple')?.remove();
+    scene.classList.remove('coupled');
+  };
 
   const still = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const lineNow = () => talk?.lines[at] ?? '';
@@ -165,14 +173,28 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
   };
 
   // A game of pace, played in the dark once the last line's said: the game over the black, the two of them stood
-  // either side as they are in the talk (nothing else shown); then light again, and what's said next, by how it went.
+  // either side as they are in the talk. A bare hour (a pleasure worker's): the two of them instead on hands and
+  // feet, one behind the other, over the dark. Then light again, and what's said next, by how it went.
   const play = (pace: NonNullable<Talk['pace']>) =>
     intoDark('', (out) => {
       scene.classList.add('playing');
       const other = speaking;
-      if (pace.bare && other) stages?.other?.show(unclothed(other.look), {}, {}); // (whoever it's with: nothing on, while it's played)
+      if (pace.bare && other) {
+        stages?.other?.show(unclothed(other.look), {}, {}); // (whoever it's with: nothing on, if the pose can't be drawn)
+        try {
+          const made = new CoupleStage();
+          made.show(unclothed(workLook(model)), unclothed(other.look));
+          couple = made;
+          scene.append(el('div', 'talk-couple', couple.canvas));
+          scene.classList.add('coupled');
+        } catch {
+          couple?.dispose();
+          couple = null; // (no WebGL: the two portraits either side carry it)
+        }
+      }
       const over = (score: number) => {
         game = null;
+        dropCouple();
         scene.classList.remove('playing');
         if (pace.bare && other) stages?.other?.show(other.look, other.equipment); // (dressed again, for what they say after)
         [talk, at, answering] = [pace.done(score), 0, false];
@@ -209,7 +231,13 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     event.stopImmediatePropagation(); // (the game's keys: none while they talk)
     event.preventDefault();
     if (event.repeat) return;
-    if (game) return event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE' ? game.press() : undefined; // (the game's: a press on the beat)
+    if (game) {
+      // Space is the beat, and the only thing that moves the two of them: one thrust, in and back. F turns them over.
+      if (event.code === 'Space') couple?.thrust();
+      if (event.code === 'KeyF') couple?.turn();
+      if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') game.press();
+      return;
+    }
     if (dark) return;
     if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
@@ -238,6 +266,7 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     window.clearTimeout(nightfall);
     game?.stop();
     game = null;
+    dropCouple();
     scene.classList.remove('playing');
     dark = woken = false;
     night.classList.remove('on');
@@ -277,10 +306,12 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       const render = () => {
         if (!isOpen) return;
         const now = performance.now();
-        if (woken) hooks.redraw?.(Math.min(0.05, (now - last) / 1000));
+        const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
+        if (woken) hooks.redraw?.(dt);
         stages?.hero?.render();
         stages?.other?.render();
+        couple?.render(dt);
         frame = requestAnimationFrame(render);
       };
       render();

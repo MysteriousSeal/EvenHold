@@ -404,7 +404,12 @@ async function boot(): Promise<void> {
 
   // Dev-only tools, loaded on demand so production builds don't include them.
   if (import.meta.env.DEV) {
-    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(model, { get scale() { return controller.timeScale; }, set scale(n) { controller.timeScale = n; } }, (who, quest) => void talk.open(who, quest)));
+    void import('./controller/cheats/cheatPanel').then(({ createCheatPanel }) => createCheatPanel(
+      model,
+      { get scale() { return controller.timeScale; }, set scale(n) { controller.timeScale = n; } },
+      (who, quest) => void talk.open(who, quest),
+      (who, told) => talk.show(who, told),
+    ));
   }
 }
 

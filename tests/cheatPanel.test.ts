@@ -4,6 +4,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { createCheatPanel } from '../src/controller/cheats/cheatPanel';
+import { hourCheat } from '../src/controller/cheats/roomCheats';
+import { PACES } from '../src/model/jobs/room/pace';
 import { slotsUsed } from '../src/model/hero/bagStacks';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import { BAG_IDS } from '../src/model/loot/bags';
@@ -51,6 +53,22 @@ describe('the cheat menu', () => {
     row('Make tired').click();
     expect(model.hero.energy).toBe(TIRED - 1);
     expect(tiredPace(model.hero)).toBeLessThan(1);
+  });
+
+  it('plays the pleasure hour through the same talk the job uses', () => {
+    open('World');
+    const shown: Array<{ bare?: boolean; periods: readonly number[]; with: string; build: string }> = [];
+    const action = hourCheat(model, (who, told) => {
+      shown.push({ bare: told.pace?.bare, periods: told.pace!.pace.periods, with: told.pace!.with, build: who.look.build });
+      return true;
+    }, () => {});
+    expect(row('Play the hour').textContent).toContain('pace');
+    action.run();
+    const hour = shown[0];
+    expect(hour.bare).toBe(true);
+    expect(hour.with.length).toBeGreaterThan(0);
+    expect(hour.build).not.toBe(model.hero.look.build); // (a client: the other sex, as one who knocks)
+    expect(Object.values(PACES)).toContain(hour.periods); // (that temper's own pace, the one the job plays)
   });
 
   it('one-hit kills: toggled on, a blow fells a foe at full health (a draugr, the toughest); off, it doesn\'t', () => {

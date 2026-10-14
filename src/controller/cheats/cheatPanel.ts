@@ -15,6 +15,7 @@ import type { Who } from '../../model/story/story';
 import { createQuestDebug } from './questDebug';
 import { charmActions } from './charmCheats';
 import { strongholdAction } from './strongholdCheats';
+import { hourCheat } from './roomCheats';
 import { SPELL_ICONS } from '../../view/ui/spellIcons';
 import {
   nextCamp,
@@ -98,7 +99,7 @@ const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind, string, string]> = [
 const NEARBY = 15; // tiles, for "nearby foes"
 
 // `time`: the game's speed (a multiple of real time), to read and set.
-export function createCheatPanel(model: GameModel, time: { scale: number }, talk: (who: Who, quest: string) => void = () => {}): void {
+export function createCheatPanel(model: GameModel, time: { scale: number }, talk: (who: Who, quest: string) => void = () => {}, play: Parameters<typeof hourCheat>[1] = () => false): void {
   createQuestDebug(model, talk); // (Q beside someone, with the quests' debugging on)
   const here = (): Tile => ({ x: model.hero.x, z: model.hero.z });
   // Teleports there and closes the menu, so the new place is seen at once.
@@ -459,7 +460,8 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
                 return said;
               },
             },
-                    ]),
+            hourCheat(model, play, () => menu.close()),
+          ]),
         ],
         facts: () => worldFacts(model, NEARBY),
       },

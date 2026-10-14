@@ -2,7 +2,7 @@
 // it is; a track a marker crosses once a beat, its middle marked (the band that's well kept, and round it what's
 // nearly); a pip for each beat, filled as it's kept, half for nearly, struck through for missed; how pleased they
 // are so far, as a bar; over the track, what they say as it goes (the more pleased, the pace lost, a last word).
-// Space, Enter, E or a click as the marker crosses the middle. Nothing else is shown. Over, a
+// Space, Enter, E or a click as the marker crosses the middle. F turns the two of them over. Over, a
 // word on how it went, then `done` with its score (0 to 1).
 import { PaceRun, PaceSaid, type Pace, type PaceVoice } from '../../model/jobs/room/pace';
 import { el } from '../../view/ui/dom';
@@ -21,7 +21,7 @@ export function playPace(into: HTMLElement, pace: Pace, withName: string, done: 
   const track = el('div', 'pace-track', near, good, marker);
   const pips = pace.periods.map(() => el('i', 'pace-pip'));
   const fill = el('i');
-  const said = el('p', 'pace-said', 'Press Space as the marker crosses the middle.');
+  const said = el('p', 'pace-said', 'Press Space as the marker crosses the middle. F turns them over.');
   const root = el('div', 'pace', el('p', 'pace-who', withName), words, track, el('div', 'pace-pips', ...pips), el('div', 'pace-bar', fill), said);
   into.append(root);
 
