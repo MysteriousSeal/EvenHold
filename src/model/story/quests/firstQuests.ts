@@ -29,7 +29,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Tell ${t.barmaid}, at the inn in ${t.village}, that the wagon is down`,
     handIn: () => ["His wagon has broken down? That's the third one this year. They found the last carter in spring, when the snow melted. Parts of him.", "He's lucky you stopped. Most people walk past. Here, this is for your trouble."],
     thanks: 'Glad to help.',
-    copper: 25,
+    copper: 40,
     xpShare: 0.3,
   },
   {
@@ -54,7 +54,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Bring 3 birch logs to ${t.smith}, the smith in ${t.village}`,
     handIn: (t) => [`Three birch logs, cleanly cut. Good. I'll make the spokes and mend ${t.carter}'s wheel properly.`, "Here's your pay. And thank you for not asking why my hands shake."],
     thanks: 'Good luck with the wheel.',
-    copper: 40,
+    copper: 60,
     xpShare: 0.4,
   },
   {
@@ -79,7 +79,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Slay 3 wolves, then tell ${t.carter} the wheel is coming`,
     handIn: () => ["You killed three wolves? Good. They've had a taste for people ever since the crown started leaving hanged men at the crossroads.", "And my wheel is on its way. Here, take this. It's all the coin I have on me."],
     thanks: 'Safe travels.',
-    copper: 60,
+    copper: 90,
     xpShare: 0.6,
   },
   {
