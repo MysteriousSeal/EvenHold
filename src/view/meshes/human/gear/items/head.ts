@@ -25,6 +25,7 @@ import type { ItemModel } from '../itemModel';
 import { mail, mod, weave } from '../patterns';
 import { L, M, cornered, domed, edgeOf, onFace, riveted, within } from './headShape';
 import { HELM_MODELS } from './helms';
+import { SET_HELM_MODELS } from './setHelms';
 
 
 // A leather cap: a crown of four panels, seams raised over it, down to the
@@ -232,10 +233,5 @@ export const HEAD_MODELS: Record<keyof typeof HEAD_ITEMS, ItemModel> = {
   huntersHood,
   circlet,
   ...HELM_MODELS,
-  headsmansHood: maskedHood, // STAND-IN: close black executioner's hood, ragged eye holes, pale stitches, a stain down the front
-  barrowHelm: greatHelm, // STAND-IN: rusted four-plate spangenhelm, broad nasal, rusted mail curtain behind, verdigris frame
-  ossuaryMask: HELM_MODELS.boneHelm, // STAND-IN: a skull worn as a face, wired jaw, a crown of finger bones, red sinew band
-  cinderCowl: huntersHood, // STAND-IN: deep ash-grey cowl, soot half-mask, bone-white flame sigil on the brow, ember specks
-  palmerHat: strawHat, // STAND-IN: broad fawn felt hat, brim turned up in front, a scallop shell pinned on it
-  sunwardArmet: HELM_MODELS.sallet, // STAND-IN: gilded ivory-enamelled armet, fluted visor, gold sun on azure at the brow, low crest
+  ...SET_HELM_MODELS,
 };
