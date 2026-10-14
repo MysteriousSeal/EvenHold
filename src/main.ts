@@ -377,6 +377,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
       else if (event.kind === 'felled') floatingText.spawn({ x: event.x, y: model.getGroundY(event.x, event.z) + 1.2, z: event.z }, ['Timber!'], '#f2e6c8');
+      else if (event.kind === 'fished') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [event.item ? `+ ${nameOf(event.item)}${event.dropped ? ' · bag full, at your feet' : ''}` : 'It got away'], event.item ? QUALITY_INK[qualityOf(event.item)] : '#9aa4ac'); // (landed: what, in its quality's colour; or lost)
       else if (event.kind === 'swapped') {
         // Someone's sex changed: the game stood still, it played full screen (view/cinema/stagings/swapStaging.ts), then on.
         const { who, before } = event;
