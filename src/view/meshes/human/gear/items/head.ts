@@ -3,6 +3,21 @@
 // voxels (its measures: headShape.ts). `d` is how many layers out a voxel
 // is: 1 lies against the head, 2 and 3 stand out in relief (a rim, a ridge,
 // a nose guard, a brim, a hood's folds).
+//
+// The new head pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - headsmansHood (headsman): a close black hood to the shoulders, two ragged eye holes and nothing else of the face;
+//   pale crude stitches up the crown seam, a dark stain down the front. Black 1c1a1c / 2e2a2c, thread b8a986, stain 3a0e10.
+// - barrowHelm (barrow): a rusted spangenhelm, four plates on a riveted frame, a broad nasal and a curtain of rusted mail
+//   behind; verdigris on the bronze frame. Rust 8a4a22 / 5e2e16, pitted 7d7a72, frame verdigris 4e7a64, rim grave-gold a89048.
+// - ossuaryMask (ossuary): a skull's face worn over the face (the jaw wired on, sockets black), a crown of finger bones
+//   standing round the brow, a band of red sinew behind. Bone e0d4b4 / b8a986, socket 2a2220, sinew 7a2a22.
+// - cinderCowl (cinder): a deep ash-grey cowl, its point hanging back, the face in shadow but for a soot-black half-mask
+//   over mouth and nose; the bone-white sigil on the brow, ember specks along the hem. Ash 6a6460, soot 2a2826, sigil d8ccaa, ember e0602a.
+// - palmerHat (palmer): a broad felt hat, its brim turned up in front and a scallop shell pinned on the turn, a cord
+//   under the crown. Open behind. Wool 8a7a5e / 6a5c44, shell f0e4cc, cord 5e4630.
+// - sunwardArmet (sunward, legendary): a close armet, its visor a fluted beak, ivory enamel on the skull with gold
+//   borders, a gold sun of eight rays on the brow on azure, a low gold crest from brow to nape. Gold d4b060 / f0d080,
+//   ivory f4f0e6, azure 3060c0, ruby b02838 at the sun's heart.
 
 import type { HEAD_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
@@ -217,4 +232,10 @@ export const HEAD_MODELS: Record<keyof typeof HEAD_ITEMS, ItemModel> = {
   huntersHood,
   circlet,
   ...HELM_MODELS,
+  headsmansHood: maskedHood, // STAND-IN: close black executioner's hood, ragged eye holes, pale stitches, a stain down the front
+  barrowHelm: greatHelm, // STAND-IN: rusted four-plate spangenhelm, broad nasal, rusted mail curtain behind, verdigris frame
+  ossuaryMask: HELM_MODELS.boneHelm, // STAND-IN: a skull worn as a face, wired jaw, a crown of finger bones, red sinew band
+  cinderCowl: huntersHood, // STAND-IN: deep ash-grey cowl, soot half-mask, bone-white flame sigil on the brow, ember specks
+  palmerHat: strawHat, // STAND-IN: broad fawn felt hat, brim turned up in front, a scallop shell pinned on it
+  sunwardArmet: HELM_MODELS.sallet, // STAND-IN: gilded ivory-enamelled armet, fluted visor, gold sun on azure at the brow, low crest
 };

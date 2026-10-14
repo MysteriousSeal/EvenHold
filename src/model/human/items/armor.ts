@@ -24,6 +24,13 @@ export const HEAD_ITEMS = slotItems('head', {
   boneHelm: { name: 'Bone helm', value: 150, armor: 4, stats: { strength: 2, stamina: 1 } },
   dragonHelm: { name: 'Dragonscale helm', value: 360, armor: 7, stats: { strength: 2, stamina: 3 } },
   royalCrown: { name: "Old king's crown", value: 400, armor: 1, stats: { strength: 2, stamina: 2, endurance: 2 }, openBack: true },
+  // The sets' (sets.ts): a gaol's, the barrows', the crypts' bone-wrights', the fire-cult's, the pilgrims', and a lost order's.
+  headsmansHood: { name: "Headsman's hood", set: 'headsman', level: 6, rarity: 'uncommon', value: 120, droppedBy: { bruiser: 2, sawbones: 2 }, armor: 3, stats: { strength: 3 } },
+  barrowHelm: { name: 'Barrow helm', set: 'barrow', level: 4, value: 110, droppedBy: { draugr: 3, skeleton: 1, cryptLord: 1 }, armor: 5, stats: { stamina: 2, endurance: 1 } },
+  ossuaryMask: { name: 'Ossuary mask', set: 'ossuary', level: 8, rarity: 'uncommon', value: 170, droppedBy: { skeleton: 1, skeletonArcher: 1, cryptLord: 2 }, armor: 3, stats: { strength: 2, endurance: 2 } },
+  cinderCowl: { name: 'Cinder cowl', set: 'cinder', level: 8, rarity: 'uncommon', value: 130, droppedBy: { firebrand: 3 }, armor: 2, stats: { agility: 2, endurance: 2 } },
+  palmerHat: { name: "Palmer's hat", set: 'palmer', wornBy: { pilgrim: 3 }, armor: 1, stats: { endurance: 2 }, openBack: true },
+  sunwardArmet: { name: 'Sunward armet', set: 'sunward', level: 15, rarity: 'legendary', value: 520, droppedBy: { cryptLord: 1 }, armor: 7, stats: { strength: 2, stamina: 3 } },
 });
 
 export const SHOULDERS_ITEMS = slotItems('shoulders', {
