@@ -119,8 +119,8 @@ function gateAt(world: StrongholdWorld, x: number, z: number, from: number, inMa
 }
 
 // Whether COUNTRY open tiles can be walked to from `from` (round the gatehouse to be: `built`), step by step: the
-// ground before a gate is open country, never a pocket no one could come to.
-function inOpenCountry(world: StrongholdWorld, from: { x: number; z: number }, built: ReadonlySet<string>, inMap: (x: number, z: number) => boolean): boolean {
+// ground before a gate is open country, never a pocket no one could come to (a cave's mouth too: caves.ts).
+export function inOpenCountry(world: Pick<StrongholdWorld, 'isOpenTile'>, from: { x: number; z: number }, built: ReadonlySet<string>, inMap: (x: number, z: number) => boolean): boolean {
   const seen = new Set<string>([cellKey(from.x, from.z)]);
   const todo = [from];
   while (todo.length > 0 && seen.size < COUNTRY) {
