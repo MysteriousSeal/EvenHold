@@ -93,12 +93,11 @@ const trophyCord: ItemModel = {
   jewel: {
     build: () => {
       const { c } = flayer;
-      const grid = createGrid([11, 7, 1]);
-      fillBox(grid, 1, 4, 0, 9, 6, 0, (x, y) => (x === 1 || x === 9 || y === 6 || y === 4 ? c.stitch : 0)); // the thong
-      for (const x of [0, 10]) setColor(grid, x, 4, 0, c.stitch); // its ends, knotted past the last tooth
-      for (const x of [2, 8]) fillBox(grid, x, 2, 0, x, 3, 0, c.tooth); // teeth
-      for (const x of [3, 7]) fillBox(grid, x, 1, 0, x, 3, 0, (_, y) => (y === 2 ? c.hideDark : c.hidePale)); // finger bones, a knuckle in each
-      fillBox(grid, 4, 0, 0, 6, 3, 0, (x, y) => (x === 5 && y === 2 ? c.blood : y === 0 && x !== 5 ? 0 : c.raw)); // the scrap of hide
+      const grid = createGrid([13, 13, 1]);
+      fillBox(grid, 0, 4, 0, 12, 12, 0, (x, y) => (x === 0 || x === 12 || y === 12 || y === 4 ? c.stitch : 0)); // the thong, a thin loop
+      for (const x of [1, 11]) fillBox(grid, x, 2, 0, x, 3, 0, c.tooth); // teeth
+      for (const x of [3, 9]) fillBox(grid, x, 1, 0, x, 3, 0, (_, y) => (y === 2 ? c.hideDark : c.hidePale)); // finger bones, a knuckle in each
+      fillBox(grid, 5, 0, 0, 7, 3, 0, (x, y) => (x === 6 && y === 2 ? c.blood : y === 0 && x !== 6 ? 0 : c.raw)); // the scrap of hide
       return grid;
     },
   },
@@ -163,20 +162,21 @@ const emberRing: ItemModel = {
   },
 };
 
-// The velvet court's ducal signet: a heavy gold band, a broad bezel framing
-// a burgundy enamel face with a gold crest, a pearl either side of it.
+// The velvet court's ducal signet: a heavy gold band, a broad bezel, its
+// face on top burgundy enamel between gold rims with a gold crest, a pearl
+// either side of it.
 const velvet = namedPalette({ ...SET_PALETTES.velvet });
 const ducalSignet: ItemModel = {
   palette: velvet.palette,
   jewel: {
     build: () => {
       const { c } = velvet;
-      const grid = createGrid([7, 10, 2]);
-      fillBox(grid, 1, 0, 0, 5, 4, 1, (x, y) => (x === 1 || x === 5 || y <= 1 || y === 4 ? c.gold : 0)); // the band, heavy below
-      const face = (x: number, y: number) => x >= 2 && x <= 4 && y >= 6 && y <= 8;
-      fillBox(grid, 1, 5, 0, 5, 9, 1, (x, y, z) => (z === 1 && face(x, y) ? (x === 3 && y === 7 ? c.gold : c.velvet) : c.gold)); // the bezel, its face, the crest
-      setColor(grid, 0, 7, 1, c.pearl);
-      setColor(grid, 6, 7, 1, c.pearl);
+      const grid = createGrid([7, 7, 3]);
+      fillBox(grid, 1, 0, 0, 5, 4, 2, (x, y) => (x === 1 || x === 5 || y <= 1 || y === 4 ? c.gold : 0)); // the band, heavy below
+      fillBox(grid, 1, 5, 0, 5, 5, 2, c.gold); // the bezel,
+      fillBox(grid, 1, 6, 0, 5, 6, 2, (x, _, z) => (x === 1 || x === 5 ? c.gold : x === 3 && z === 1 ? c.gold : c.velvet)); // its face on top, the crest in it
+      setColor(grid, 0, 5, 1, c.pearl);
+      setColor(grid, 6, 5, 1, c.pearl);
       return grid;
     },
   },
