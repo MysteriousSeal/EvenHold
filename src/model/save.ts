@@ -293,8 +293,9 @@ export function restore(model: GameModel, data: SaveData): void {
     if (Math.hypot(change.x - enemy.homeX, change.z - enemy.homeZ) > FOE_AT_MOST_FROM_HOME) continue;
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
   }
-  for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.dropLoot(item, x, z);
-  for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.dropCoins(amount, x, z);
+  // (What lies outdoors, outdoors: a hero saved down in a dungeon is there already, its floor not the world's.)
+  for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
+  for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
   for (const { inn, money, stock, restockedAt, buyback } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
