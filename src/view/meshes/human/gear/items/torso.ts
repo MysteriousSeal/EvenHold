@@ -259,6 +259,51 @@ const barrowHauberk: ItemModel = {
   },
 };
 
+// Cinder: an ash-grey robe belted with a rope, soot rising from below with
+// embers in it, the bone-white sigil (a ring, a flame in it) on the chest,
+// the cuffs burnt black.
+const cinder = namedPalette({ ...SET_PALETTES.cinder });
+const cinderRobe: ItemModel = {
+  palette: cinder.palette,
+  worn: {
+    torso: ({ x, y, z, front }) => {
+      const { c } = cinder;
+      if (y === 2) return mod(x + 2 * z, 4) === 0 ? c.ember : c.soot;
+      if (y === 3) return mod(x + z, 2) === 0 ? c.sigil : c.ashLight; // the rope, pale and twisted
+      if (front && y === 4 && x >= 2 && x <= 4) return x === 3 ? c.glow : c.sigil; // the ring's sides, the flame between
+      if (front && y === 5 && x === 3) return c.sigil; // its top
+      return c.ash;
+    },
+    arm: ({ y, z, flank }) => {
+      const { c } = cinder;
+      if (y === 2) return c.sootDeep;
+      if (y === 3 && flank && z === 0) return c.ember; // a spark caught above the cuff
+      return flank ? c.ash : c.ashLight;
+    },
+  },
+};
+
+// The watch's: teal cloth over riveted plates, brass rivets in pairs either
+// side of the tabard's sand stripe, steel over the shoulders, leather sleeves.
+const watch = namedPalette({ ...SET_PALETTES.watch });
+const watchBrigandine: ItemModel = {
+  palette: watch.palette,
+  worn: {
+    torso: ({ x, y, front, back }) => {
+      const { c } = watch;
+      if ((front || back) && y === 4 && mod(x, 2) === 0 && x !== 3) return c.brass; // a pair each side of the stripe
+      if (front && x === 3) return c.sand;
+      return y === 2 || !front ? c.tealDark : c.teal;
+    },
+    arm: ({ y, top, flank }) => {
+      const { c } = watch;
+      if (top) return c.steelLight;
+      if (y >= 5) return flank ? c.steelDark : c.steel;
+      return c.leather;
+    },
+  },
+};
+
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
@@ -273,8 +318,8 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   brigandine,
   headsmansApron,
   barrowHauberk,
-  cinderRobe: gambeson, // STAND-IN: ash-grey robe, rope belt, soot rising from the hem, bone-white flame sigil on the chest, ember specks
-  watchBrigandine: brigandine, // STAND-IN: teal brigandine, paired brass rivets, a sand stripe down the front, steel at the shoulders
+  cinderRobe,
+  watchBrigandine,
   sunwardCuirass: breastplate, // STAND-IN: fluted ivory-and-gold cuirass, great gold sun on azure on the breast, ruby heart, azure sleeves
   velvetDoublet: tabard, // STAND-IN: burgundy-and-black velvet doublet, pearl buttons, slashed sleeves showing gold, ermine collar
 };
