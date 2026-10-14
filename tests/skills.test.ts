@@ -10,6 +10,8 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE } from './support/testWorld';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../src/model/skills/cooking';
+import { salvageOf } from '../src/model/skills/salvage';
+import { gearKey } from '../src/model/human/items/gear';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
 const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
@@ -38,6 +40,12 @@ describe('skills', () => {
         expect(row.at === n || new RegExp(`\\b${n}\\b`).test(row.what), `${skill}: a recipe at ${n}`).toBe(true);
       }
     }
+  });
+
+  it("salvaging's level 75 reaches common gear up to level 27, as it says, and no further", () => {
+    expect(SKILLS.salvaging.unlocks.find((u) => u.at === 75)?.what).toBe('Common gear up to level 27');
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 27, rarity: 'common', roll: 0 })).needs).toBeLessThanOrEqual(75);
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 28, rarity: 'common', roll: 0 })).needs).toBeGreaterThan(75);
   });
 
   it("start at 1 for every hero: an apprentice's", () => {

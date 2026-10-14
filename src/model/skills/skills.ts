@@ -77,7 +77,7 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 9, what: 'Uncommon pieces' },
       { at: 21, what: 'Rare pieces: a tempered ingot or a cut gem from each' },
       { at: 61, what: 'Epic pieces: two finer things from each' },
-      { at: 75, what: 'Common gear of level 27 and over' },
+      { at: 75, what: 'Common gear up to level 27' },
       { at: 121, what: 'Legendary pieces: three' },
       { at: 225, what: 'The finest gear there is, broken down to the last rivet' },
     ],
