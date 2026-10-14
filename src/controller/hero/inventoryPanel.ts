@@ -17,7 +17,7 @@ import type { GameModel } from '../../model/GameModel';
 import { BAG_GROUPS, groupOf, isLootItem, kindOf, type BagItem } from '../../model/hero/bag';
 import { bagStacks, moveSlot, sortedBag } from '../../model/hero/bagStacks';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
-import { isBagItem, type BagId } from '../../model/loot/bags';
+import { isBagItem, roomOf, type BagId } from '../../model/loot/bags';
 import { SLOT_NAMES } from '../../model/human/equipment';
 import { canWear, gearName, rarityOf, slotOfGear, type GearKey } from '../../model/human/items/gear';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
@@ -76,14 +76,14 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
         : isProvision(item)
         ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it, or drag it onto the action bar`)]
         : isBagItem(item)
-          ? [toned('kind', kindOf(item)), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
+          ? [toned('kind', kindOf(item)), toned('stat', `+${roomOf(item)} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
           : [toned('kind', kindOf(item))],
       alt: isPotion(item)
         ? () => (model.drinkPotion(item) ? `You drink the ${LOOT[item].name}.` : (model.hero.potionCooldown ?? 0) > 0 ? `Not yet: another potion in ${Math.ceil(model.hero.potionCooldown!)} s.` : '')
         : isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : model.hero.eating ? 'Finish what you have first.' : '')
         : isBagItem(item)
-          ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${ROOM_PER_BAG} more slots.` : 'Every bag socket is taken.')
+          ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${roomOf(item)} more slots.` : 'Every bag socket is taken.')
           : undefined,
       dragOut: (over) => {
         const action = over?.closest<HTMLElement>('.action-slot'); // onto the action bar: food or drink there, a shortcut to it
@@ -119,7 +119,7 @@ function socketSlot(model: GameModel, socket: number, fitted: BagId, slotsFrom: 
     icon: bagIcon(fitted),
     title: LOOT[fitted].name,
     tone: 'bag',
-    lines: [toned('kind', 'Bag · fitted'), toned('stat', `+${ROOM_PER_BAG} bag slots`), toned('hint', 'Right-click (or drag it down into the bag) to take it off')],
+    lines: [toned('kind', 'Bag · fitted'), toned('stat', `+${roomOf(fitted)} bag slots`), toned('hint', 'Right-click (or drag it down into the bag) to take it off')],
     alt: off,
     move: (to) => void (to >= slotsFrom && off()),
   };

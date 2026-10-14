@@ -268,6 +268,17 @@ describe('trading, the WoW way', () => {
     hover(inBag('loot:alphaFang')); // a quest item
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
   });
+
+  it("tells a bag's own room in its tooltip: a woodworker's heartwood pack ten slots, a sack six", () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: { heartwoodPack: 1, roughSack: 1 } });
+    bag.menu.open();
+    hover(inBag('loot:heartwoodPack'));
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain('+10 bag slots');
+    hover(inBag('loot:roughSack'));
+    expect(tooltips().map((t) => t.textContent).join(' ')).toContain('+6 bag slots');
+  });
 });
 
 describe('selling junk', () => {
