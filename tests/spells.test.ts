@@ -72,9 +72,12 @@ describe('a charm cast', () => {
     expect(waitOf(hero, 'hex')).toBe(0);
   });
 
-  it('is cast at the focused foe if in range, else at the nearest ahead; at no one behind them or too far', () => {
+  it('is cast at the focused foe if in range, else at the nearest ahead; at no one behind them or too far, nor under the ground', () => {
     const { model, hero, foe } = facing(3);
     expect(castTarget(model, 'hex')).toEqual({ foe });
+    foe.buried = true; // (a cave's worm, burrowed)
+    expect(castTarget(model, 'hex')).toBeNull();
+    foe.buried = false;
     foe.z = hero.z - 3; // (behind them)
     expect(castTarget(model, 'hex')).toBeNull();
     model.focus(foe.id); // (focused: wherever it stands, in range)

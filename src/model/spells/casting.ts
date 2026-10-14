@@ -44,7 +44,7 @@ export function castTarget(caster: Pick<Caster, 'hero' | 'foes' | 'focused' | 'c
     return person ? (far(person) <= range ? { person } : null) : SPELLS[id].needsTarget ? null : { self: true };
   }
   const ahead = (e: Enemy) => ((e.x - hero.x) * Math.sin(hero.facing) + (e.z - hero.z) * Math.cos(hero.facing)) / Math.max(far(e), 1e-6) >= AHEAD;
-  const foe = caster.foes.filter((e) => e.state !== 'dead' && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
+  const foe = caster.foes.filter((e) => e.state !== 'dead' && !e.buried && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
   return foe ? { foe } : null;
 }
 
