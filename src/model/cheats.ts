@@ -10,6 +10,7 @@ import { VILLAGE_OUTER_RADIUS } from './constants';
 import type { GameModel } from './GameModel';
 import { NEIGHBORS_4, spawnOf } from './map/grid';
 import { makeEnemy } from './enemies/enemies';
+import { isWorldFoe } from './enemies/foeIds';
 import { CRYPT_FOE_ID } from './crypts/cryptFoes';
 import { AWARD_POST, SUMMONED } from './crypts/cryptLord';
 import type { EnemyKind, Village } from './types';
@@ -159,13 +160,16 @@ export function resetCrypts(model: GameModel): void {
   for (const slain of model.cryptsCleared.values()) for (const post of [...slain]) if (post !== AWARD_POST) slain.delete(post); // (the points their bosses gave kept: once a dungeon, ever)
 }
 
-// Kills every living enemy within `radius` tiles (the world's, or a crypt's guards, down in one); returns how many.
+// Kills every living enemy within `radius` tiles (the world's, or a crypt's guards, down in one), kept slain as any
+// slain are; returns how many.
 export function slayNearby(model: GameModel, radius = 15): number {
   let slain = 0;
   for (const enemy of model.foes) {
     if (enemy.state === 'dead' || distance(enemy, model.hero) > radius) continue;
     enemy.hp = 0;
     enemy.state = 'dead';
+    if (isWorldFoe(enemy.id)) model.slain.add(enemy.id);
+    model.slayGuard(enemy); // (down in a dungeon: slain for good, as a blow would; its boss risen, its chest, its way out)
     slain++;
   }
   return slain;
