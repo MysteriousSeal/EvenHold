@@ -139,7 +139,7 @@ const palmerHat: ItemModel = {
     if (front && d >= 2 && within(x, 5)) {
       // The turned-up brim, the shell pinned on it.
       if (d === 2) return y === 9 ? c.woolDark : 0;
-      const shell = within(x, y - 10) && y >= 10 ? (y === 10 ? c.shellShade : mod(x, 2) === 0 ? c.shell : c.shellShade) : 0; // (its fan widening up from the hinge, ribbed)
+      const shell = within(x, y - 10) && y >= 10 && y <= 12 ? (y === 10 ? c.shellShade : mod(x, 2) === 0 ? c.shell : c.shellShade) : 0; // (its fan widening up from the hinge, ribbed)
       if (shell) return shell;
       return y <= 12 - (within(x, 3) ? 0 : 1) ? (y === 9 ? c.woolDark : felt(x, y)) : 0;
     }
