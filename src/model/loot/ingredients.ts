@@ -13,6 +13,11 @@ export const INGREDIENTS = {
   honeycomb: { name: 'Honeycomb', value: 9, droppedBy: { bear: 2 } },
   // From lynxes: a lean cut.
   leanLynxMeat: { name: 'Lean lynx meat', value: 6, droppedBy: { lynx: 3 } },
+  // Caught from a shore (skills/fishing.ts), not from foes: small fry from anywhere, trout and perch, pike in the deep.
+  smallFry: { name: 'Small fry', value: 2, droppedBy: {} },
+  riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
+  lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
+  pike: { name: 'Pike', value: 14, droppedBy: {} },
   // From the trees a lumberjack fells (skills/lumber.ts), not from foes: logs, a birch's, a pine's, an oak's.
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous

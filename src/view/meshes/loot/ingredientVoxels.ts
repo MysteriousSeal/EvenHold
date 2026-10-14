@@ -23,6 +23,21 @@ const log = (palette: number[], marked: (x: number, y: number, z: number) => boo
 const plank = (palette: number[]): LootModel =>
   model(palette, [8, 1, 3], (g) => fillBox(g, 0, 0, 0, 7, 0, 2, (x, _y, z) => (x === 0 || x === 7 ? 3 : z === 1 && x % 3 !== 0 ? 2 : 1)));
 
+// A fish lying on its side along x, `long` voxels: its back 1, its flank 2, its belly 3, its fins and tail 4, its eye 5;
+// the head to a point at x 0, the tail forked at the far end.
+const fish = (palette: number[], long: number): LootModel =>
+  model(palette, [long, 3, 3], (g) => {
+    const tail = long - 1;
+    fillBox(g, 1, 0, 1, tail - 2, 2, 1, (_x, y) => (y === 2 ? 1 : y === 1 ? 2 : 3)); // its body, back to belly
+    fillBox(g, 2, 1, 0, tail - 3, 1, 2, 2); // fuller amidships
+    setColor(g, 0, 1, 1, 2); // its snout
+    setColor(g, 1, 1, 0, 5); // an eye
+    setColor(g, 1, 1, 2, 5);
+    setColor(g, tail - 1, 1, 1, 4); // the wrist of the tail
+    fillBox(g, tail, 0, 1, tail, 2, 1, (_x, y) => (y === 1 ? 0 : 4)); // the tail, forked
+    if (long > 6) setColor(g, Math.floor(long / 2), 2, 1, 4); // a fin on its back, the bigger ones
+  });
+
 export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   // A rounded lump of red meat, darker underneath, streaked with fat; a rim of
   // fat round the cut end, and the bone out of it, knobbed at the tip.
@@ -62,6 +77,12 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     fillBox(g, 1, 1, 0, 4, 1, 2, (x, _y, z) => (z === 1 && x % 2 === 1 ? 3 : 1));
     fillBox(g, 6, 0, 0, 6, 1, 2, (_x, y, z) => (y === 1 && z === 1 ? 5 : 4)); // its fur, spotted
   }),
+  // Fish (caught from a shore): small fry, silver and slight; a trout, olive with a pink flank; a perch, green-gold
+  // with dark fins; a pike, long and mottled green.
+  smallFry: fish([0x8a96a0, 0xc8d2da, 0xeef2f4, 0x6a7680, 0x1a1a1a], 5),
+  riverTrout: fish([0x5a6a3a, 0xd08a8a, 0xf0e4d0, 0x4a5a30, 0x1a1a1a], 7),
+  lakePerch: fish([0x4a6a2a, 0xc8b048, 0xf0e0b0, 0xc84a2a, 0x1a1a1a], 7),
+  pike: fish([0x3a5a2a, 0x7a9a4a, 0xe8e0c0, 0x2a4020, 0x1a1a1a], 9),
   // Logs (from the trees a lumberjack fells): a round length each, its bark round it, its cut end's grain showing.
   birchLog: log([0xe8e4da, 0x2a2826, 0xf0dcb0, 0xd8b880], (x, y, z) => (x * 3 + y * 5 + z * 7) % 6 === 0), // black dashes on white
   pineLog: log([0x8a4a2a, 0xffc040, 0xe8b870, 0xc8904a], (x, y, z) => x === 4 && y === 3 && z === 1), // a bead of resin
