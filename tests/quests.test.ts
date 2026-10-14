@@ -35,6 +35,7 @@ describe('quests', () => {
       expect(q.xp).toBeGreaterThan(0);
       expect(q.where).toMatch(/of the village$/);
       expect(q.kind === 'collect').toBe(q.item !== null);
+      if (q.kind === 'collect') expect(q.dropChance, 'a gathering: seven to ten slain for four to six things, not nine to fourteen').toBe(0.6);
     }
   });
 

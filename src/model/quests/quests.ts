@@ -15,6 +15,7 @@ import type { Village } from '../types';
 import { PLURALS, QUEST_ITEMS_OF, type QuestItemId } from './questItems';
 import { INN_WANTS, innWants, type InnWant } from '../inn/tavernShop';
 
+const PAID_DROP = 0.45; // the share of a gathering's foes it's paid as dropping what's wanted (its pay as when they dropped it less: they drop it now at `dropChance`)
 const PER_LEVEL = 0.25; // more coin, a level of the board's over the first
 export const GENTLE = 2; // a board's level this low or under (the villages near the start): a kill quest asks fewer, and gives a longer breath between them (questBook.ts)
 export const OFFERS = 6; // quests a board has, for good
@@ -139,10 +140,10 @@ export function questAt(world: QuestWorld, board: number, n: number): Quest {
   // What to bring: one of the foe's four, turned round per board so its notices ask for different things.
   const turn = Math.floor(hashUnit(board * 131, world.seed % 1_000_003, 250) * 4);
   const item: QuestItemId | null = kind === 'collect' ? QUEST_ITEMS_OF[foe][(turn + n) % 4] : null;
-  const dropChance = 0.45;
+  const dropChance = 0.6;
   // Rewards: more for tougher foes and places, and for fetching (more to slay on average).
   const perFoe = enemyPower(foe, level).xp;
-  const foes = kind === 'kill' ? count : Math.ceil(count / dropChance);
+  const foes = kind === 'kill' ? count : Math.ceil(count / PAID_DROP); // (a gathering: paid as so many slain as it once took)
   const xp = Math.round(perFoe * foes * 1.5);
   const copper = Math.round((FOES[foe].pay * foes + COPPER_PER_SILVER * 0.4) * (1 + PER_LEVEL * (level - 1))); // (a quarter more a level over the first, as the quests people give: story/story.ts)
   return { key: `${board}:${n}`, board, kind, foe, count, item, dropChance, x, z, where, level, copper, xp };
