@@ -25,12 +25,30 @@ export function furnish(seed: number, entrance: Entrance, room: Room): Furniture
   return plan.items.map((piece) => (!seatOf(piece) || canSitOn(piece, plan.items, room) ? piece : { ...piece, kind: 'barrel', facing: undefined }));
 }
 
-// Whether the hero can stand somewhere in the room within reach of `seat` to sit on it.
+// Whether the hero can stand somewhere in the room within reach of `seat` to sit on it, on floor walked to from the door
+// (not a pocket the rest of the furniture shuts off).
 function canSitOn(seat: Furniture, furniture: readonly Furniture[], room: Room): boolean {
   const r = HERO_RADIUS * INDOOR_SCALE;
-  const stands = (x: number, z: number) => x >= -0.5 + r && x <= room.width - 0.5 - r && z >= -0.5 + r && z <= room.depth - 0.5 - r && !bumpsFurniture(furniture, x, z, r);
+  const reached = fromTheDoor(furniture, room);
+  const stands = (x: number, z: number) => x >= -0.5 + r && x <= room.width - 0.5 - r && z >= -0.5 + r && z <= room.depth - 0.5 - r && !bumpsFurniture(furniture, x, z, r) && reached.has(`${Math.round(x)},${Math.round(z)}`);
   for (let x = seat.x - 1; x <= seat.x + seat.w; x += 0.1) {
     for (let z = seat.z - 1; z <= seat.z + seat.d; z += 0.1) if (distanceTo(seat, x, z) <= SIT_RANGE && stands(x, z)) return true;
   }
   return false;
+}
+
+// The room's floor tiles walked to from the doorway, round whatever solid stands on the rest.
+export function fromTheDoor(furniture: readonly Furniture[], room: Room): Set<string> {
+  const taken = new Set<string>();
+  for (const f of furniture) if (f.solid) for (let x = f.x; x < f.x + f.w; x++) for (let z = f.z; z < f.z + f.d; z++) taken.add(`${x},${z}`);
+  const seen = new Set<string>();
+  const todo: Array<[number, number]> = [[room.door, room.depth - 1]];
+  while (todo.length > 0) {
+    const [x, z] = todo.pop()!;
+    const k = `${x},${z}`;
+    if (x < 0 || z < 0 || x >= room.width || z >= room.depth || seen.has(k) || taken.has(k)) continue;
+    seen.add(k);
+    todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+  }
+  return seen;
 }

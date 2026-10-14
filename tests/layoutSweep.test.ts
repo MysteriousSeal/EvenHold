@@ -75,8 +75,8 @@ describe('every room in the test worlds', () => {
     }
   });
 
-  it('has no floor walled off from the door (the smithy, the inn)', () => {
-    for (const { seed, entrance, room, furniture } of rooms.filter((r) => r.entrance.type !== 'house')) {
+  it('has no floor walled off from the door (a home, the smithy, the inn): its bed and every seat walked to', () => {
+    for (const { seed, entrance, room, furniture } of rooms) {
       expect(walledIn(room, tilesOf(furniture).taken), `${entrance.type} (seed ${seed})`).toEqual([]);
     }
   });

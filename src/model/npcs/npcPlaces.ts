@@ -79,7 +79,8 @@ export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds:
   const { room, furniture } = layoutOf(world.seed, npc.where!);
   const free = roomFree(world.seed, npc.where!);
   const tiles: Point[] = [];
-  for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth - 1; z++) if (free(x, z)) tiles.push({ x, z });
+  const reached = walkedTo(room, free);
+  for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth - 1; z++) if (reached.has(`${x},${z}`)) tiles.push({ x, z }); // (not a pocket the furniture shuts off: no way there)
   const atInn = npc.where !== npc.home; // at the inn: always a seat, if there's one free
   if (atInn || at === 'bed' || roll(npc, 30) < SIT_CHANCE) {
     const fits = (seat: Seat) => (at === 'bed' ? seat.lying : !at || seat.piece.kind === (at === 'table' ? 'chair' : 'barStool')); // (`at`: a chair at a table only, a stool at the bar, or a bed)
@@ -103,4 +104,18 @@ export function settle(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seconds:
   const spot = oneOf(tiles, roll(npc, 32)) ?? doorTile(world.seed, npc.where!);
   const counter = atInn ? furniture.find((f) => f.kind === 'counter') : undefined;
   return [{ kind: 'go', to: spot, ...(counter && { faceToward: { x: counter.x, z: spot.z } }) }, { kind: 'wait', for: seconds }];
+}
+
+// The tiles of a room `free` to stand on that are walked to from its doorway.
+function walkedTo(room: { width: number; depth: number; door: number }, free: (x: number, z: number) => boolean): Set<string> {
+  const seen = new Set<string>();
+  const todo: Array<[number, number]> = [[room.door, room.depth - 1]];
+  while (todo.length > 0) {
+    const [x, z] = todo.pop()!;
+    const k = `${x},${z}`;
+    if (x < 0 || z < 0 || x >= room.width || z >= room.depth || seen.has(k) || !free(x, z)) continue;
+    seen.add(k);
+    todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+  }
+  return seen;
 }
