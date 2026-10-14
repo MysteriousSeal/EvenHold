@@ -381,6 +381,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
               run: () => (give([...STARTER_SET, ...BANDIT_OUTFIT]), 'Gear, in the bag.'),
             },
             { icon: lootIcon('roughSack'), title: 'Every bag', detail: 'One of each, to fit to the sockets', run: () => (give(BAG_IDS), 'One of every bag, in the bag.') },
+            { icon: lootIcon('fishingRod'), title: 'A fishing rod', detail: 'To fish from a lake shore (E facing the water)', run: () => (give(['fishingRod']), 'A fishing rod, in the bag.') },
             { icon: lootIcon('greaterHealthPotion'), title: 'Every potion', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
             { icon: lootIcon('bread'), title: 'Every food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
             {
