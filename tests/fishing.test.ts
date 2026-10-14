@@ -290,6 +290,19 @@ describe('in the game', () => {
     expect(model.fishing.line).toBeNull();
   });
 
+  it('stops a making under way when cast, and is reeled in when one is begun', () => {
+    const model = atALake();
+    model.hero.bag.fishingRod = 1;
+    model.hero.bag.birchLog = 5;
+    expect(model.woodworking.start('birchPlank', 5)).toBe(true);
+    expect(model.fishing.use()).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.woodworking.making, !!model.fishing.line]).toEqual([false, true]);
+    expect(model.woodworking.start('birchPlank', 5)).toBe(true);
+    model.update(0, 0, 0.1);
+    expect([!!model.woodworking.making, !!model.fishing.line]).toEqual([true, false]);
+  });
+
   it('is sold at its worth, to a pedlar or a herbalist, the bag saying so', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const shop = pedlarShopAt(new Map(), model.seed, { id: 1 });
