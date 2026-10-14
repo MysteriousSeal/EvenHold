@@ -141,6 +141,12 @@
 .target-hud.passive .hero-hud-hp i { background: #e0b830; } /* a passive foe's, as over its head */
 .target-hud.person .hero-hud-hp i { background: #5aa84a; } /* someone picked out, no foe: their health in a friendly green */
 .target-hud-name {
+  width: 0; /* (no wider than the bar under it, however long the name: cut short, the rest after an ellipsis) */
+  min-width: 100%;
+  padding: 1px 1px 2px; /* (room for its outline) */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 16px;
   font-weight: 700;
   color: #fff;
