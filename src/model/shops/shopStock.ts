@@ -33,7 +33,7 @@ export interface Usual {
 }
 
 export const RESTOCK_EVERY = 5 * 60_000; // ms: every five minutes, one more of each it's short of
-const PURSE_DRIFT = 0.1; // of the way back to the usual purse, each restock
+const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an emptied one three quarters back in half an hour: a fisher, a cook selling all day not turned away)
 
 // The shop at door `key`, made from its usual on first visit, restocked up to now.
 export function openShop(shops: Map<number, Shop>, key: number, usual: Usual, now = Date.now()): Shop {
