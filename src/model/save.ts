@@ -12,7 +12,8 @@ import type { SavedFloors } from './dungeons/dungeonFloors';
 import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
-import { readSpells } from './spells/spells';
+import { readSpellWait, readSpells } from './spells/spells';
+import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
@@ -75,6 +76,8 @@ export interface SaveData {
     lastInn?: number | null; // the last inn they entered (where they wake after a fall)
     blessings?: Blessing[]; // a well's, and how long it has left
     eating?: unknown; // a meal from the bag, half eaten (hero/bag.ts readMeal)
+    potionCooldown?: number; // seconds before another potion (older saves: none)
+    spellWait?: unknown; // seconds before each charm may be cast again (spells/spells.ts readSpellWait)
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
   foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
@@ -137,6 +140,8 @@ export function snapshot(model: GameModel): SaveData {
       lastInn: door(model.lastInn),
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
       eating: hero.eating ? { ...hero.eating } : null,
+      potionCooldown: hero.potionCooldown ?? 0,
+      spellWait: { ...hero.spellWait },
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
     foes: foesOf(model),
@@ -227,7 +232,8 @@ export function restore(model: GameModel, data: SaveData): void {
     bags: readSockets(saved.bags), // (older saves: none fitted)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
-    spellWait: {},
+    spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
+    potionCooldown: typeof saved.potionCooldown === 'number' && Number.isFinite(saved.potionCooldown) ? Math.min(POTION_COOLDOWN, Math.max(0, saved.potionCooldown)) : 0,
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],

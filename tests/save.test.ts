@@ -136,3 +136,18 @@ it("reads a damaged save's bag without a record's own workings taken for things 
   restore(again, data);
   expect([Object.keys(again.hero.bag), again.hero.equipment]).toEqual([['bread'], {}]);
 });
+
+it("keeps the potion's and the charms' waits through a save (a reload no way round them); a damaged one's, none, or no longer than its own", () => {
+  const model = fresh();
+  model.hero.potionCooldown = 12.5;
+  model.hero.spellWait = { hex: 3, mend: 7 } as never;
+  const again = reload(model);
+  expect(again.hero.potionCooldown).toBe(12.5);
+  expect(again.hero.spellWait).toEqual(model.hero.spellWait);
+  const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+  Object.assign(data.hero, { potionCooldown: 'soon', spellWait: { hex: 1e9, nonsense: 4 } });
+  const broken = fresh();
+  restore(broken, data);
+  expect(broken.hero.potionCooldown).toBe(0);
+  expect(broken.hero.spellWait).toEqual({ hex: 6 }); // (no longer than its cooldown)
+});
