@@ -3,7 +3,7 @@
 // and each leg's rows 2-4 (x -1..3, z -1..3 with 3 the front of the shin;
 // the side toward the other leg stays open).
 //
-// The new leg pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// The new leg pieces (each its set's colours: setPalettes.ts):
 // - barrowGreaves (barrow): rusted plate cuisses and knee cops over rotten mail at the hips, a verdigris strap with a
 //   grave-gold buckle. Rust 8a4a22 / 5e2e16 / a8642e, pitted 7d7a72, verdigris 4e7a64, buckle a89048, mould 3e4a32.
 // - flayedLeggings (flayer): tight leggings of cured hide patches, three tones, black cross-stitches down the outside
@@ -223,6 +223,29 @@ const blackbannerTrews: ItemModel = {
   },
 };
 
+// The velvet court's parti-coloured hose: the right leg burgundy, the left
+// black, each slashed up the thigh to show gold beneath, under a braided
+// gold belt.
+const velvet = namedPalette({ ...SET_PALETTES.velvet });
+const particolouredHose: ItemModel = {
+  palette: velvet.palette,
+  worn: {
+    torso: ({ x, y, z, flank }) => {
+      const { c } = velvet;
+      if (y === 1) return mod(x + z, 2) === 0 ? c.gold : c.velvetDark; // the braid
+      if (x < 3) return flank ? c.velvetDark : c.velvet; // (the right is -X)
+      return c.black;
+    },
+    leg: ({ x, y, z, flank, side }) => {
+      const { c } = velvet;
+      const slash = y >= 3 && ((z === 3 && !flank && x === 1) || (flank && z === 1));
+      if (slash) return c.gold;
+      if (side === 'right') return flank ? c.velvetDark : c.velvet;
+      return c.black;
+    },
+  },
+};
+
 export const LEGS_MODELS: Record<keyof typeof LEGS_ITEMS, ItemModel> = {
   woolHose,
   beltedTrousers: trousers(0x4a3b2e, 0x3b2f25, 0x2e2622, 0xb89a5a),
@@ -237,6 +260,6 @@ export const LEGS_MODELS: Record<keyof typeof LEGS_ITEMS, ItemModel> = {
   barrowGreaves,
   flayedLeggings,
   watchCuisses,
-  particolouredHose: stripedHose, // STAND-IN: one leg burgundy, one black, slashed at the thigh to show gold, gold-braided belt
+  particolouredHose,
   blackbannerTrews,
 };
