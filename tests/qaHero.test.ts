@@ -120,9 +120,14 @@ describe('the hero\'s setbacks', () => {
     model.enterRoom(inn);
     model.useDoor();
     model.hero.money = 0;
+    model.roll(1, 0);
+    model.hero.knock = { dx: 3, dz: 0, t: 0 }; // (felled mid-roll, by a blow that knocked them)
     model.fall();
     expect(model.hero.money).toBe(0);
     expect(model.inside?.entrance).toBe(inn);
+    const woke = { x: model.hero.x, z: model.hero.z };
+    model.update(0, 0, 0.5);
+    expect([model.hero.x, model.hero.z, model.hero.knock, model.moves.roll]).toEqual([woke.x, woke.z, undefined, null]); // (nothing carrying them on, waking)
   });
 
   it('a collapse (out of energy): in the nearest inn, lying on its rug before the fire, some energy back', () => {

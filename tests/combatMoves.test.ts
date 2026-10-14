@@ -97,6 +97,18 @@ describe('the roll', () => {
     expect(chilled(true)).toBe(false);
     expect(chilled(false)).toBe(true);
   });
+
+  it('a knocking blow (a bear\'s slam) rolled through or parried: not knocked; taken: knocked; felled by it: not knocked on waking', () => {
+    const knocked = (meet: 'roll' | 'parry' | 'take' | 'fall') => {
+      const model = fresh();
+      if (meet === 'roll') model.roll(1, 0);
+      if (meet === 'parry') model.raiseGuard(true);
+      if (meet === 'fall') model.hero.hp = 1;
+      dungeonHooks(model).blow(makeEnemy(906, 'bear', model.hero.x, model.hero.z + 1), 5, { dx: 0, dz: -1 });
+      return model.hero.knock !== undefined;
+    };
+    expect([knocked('roll'), knocked('parry'), knocked('take'), knocked('fall')]).toEqual([false, false, true, false]);
+  });
 });
 
 describe('the guard', () => {

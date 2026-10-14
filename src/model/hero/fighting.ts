@@ -95,16 +95,13 @@ export function dungeonHooks(fight: Fight): DungeonHooks {
     strike: (enemy) => foeStrikes(fight, enemy),
     arrow: (arrow) => heroStruck(fight, arrow.damage, null),
     blow: (by, damage, knock) => {
-      heroStruck(fight, damage, by);
-      if (knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
+      if (reached(heroStruck(fight, damage, by)) && knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
     },
     frost: (draugr) => {
-      const met = heroStruck(fight, 1, draugr);
-      if (met !== 'rolled' && met !== 'parried') chill(fight, CHILL_FOR); // (rolled through or parried: not chilled)
+      if (reached(heroStruck(fight, 1, draugr))) chill(fight, CHILL_FOR);
     },
     web: (spider) => {
-      const met = heroStruck(fight, 1, spider);
-      if (met !== 'rolled' && met !== 'parried') {
+      if (reached(heroStruck(fight, 1, spider))) {
         makeWebbed(fight.hero, WEB_FOR); // (rolled through or parried: not caught)
         fight.report({ kind: 'webbed' });
       }
@@ -114,6 +111,10 @@ export function dungeonHooks(fight: Fight): DungeonHooks {
     dropCoins: (amount, x, z) => fight.dropCoins(amount, x, z),
   };
 }
+
+// Whether what a blow brings with it (a knock, frost, a web) reaches the hero: not rolled through nor parried, nor
+// felled by it (awake at an inn by then, out of its way).
+const reached = (met: Guarded | 'fallen'): boolean => met !== 'rolled' && met !== 'parried' && met !== 'fallen';
 
 const GHOST_CHILL = 2.5; // seconds a ghost's touch chills the hero
 const WEB_FOR = 2.4; // seconds a spider's web clings
@@ -157,8 +158,8 @@ export function foeStrikes(fight: Fight, enemy: Enemy): void {
 
 // The hero struck for `damage` (by `by`, if it's someone to turn to): rolled through, parried or blocked
 // (combatMoves.ts), told; then dodged maybe (Agility), else hurt; out of health, fallen (hero/setbacks.ts).
-// How it was met.
-export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guarded {
+// How it was met (or that it felled them).
+export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guarded | 'fallen' {
   const { hero } = fight;
   if (!fight.focused && by) fight.focus(by.id); // whoever hits first gets the hero's attention
   if (fight.godMode) return 'taken';
@@ -172,6 +173,7 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
   }
   fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z });
   hero.eating = null; // (a meal from the bag interrupted: the rest lost)
-  if (hurt(hero, blow.damage)) fight.fall();
-  return guard.guarded;
+  if (!hurt(hero, blow.damage)) return guard.guarded;
+  fight.fall();
+  return 'fallen';
 }
