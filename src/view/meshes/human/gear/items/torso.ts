@@ -3,7 +3,7 @@
 // plus 6 over the shoulder (x -1..2, z -1..2; the side toward the body
 // stays open, so a sleeve's flank is always its outer side).
 //
-// The new torso pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// The new torso pieces, as each was drawn (its set's colours: setPalettes.ts):
 // - headsmansApron (headsman): a stiff oxblood leather apron from collarbone to below the belt over a bare black-hide
 //   jerkin, a dark stain spreading down from the middle, crude pale stitches at the neck strap; bare arms below short
 //   black sleeves. Oxblood 5a1a1a, stain 3a0e10, black 1c1a1c / leather 3e2a22, thread b8a986, iron buckle 5a5e66.
@@ -304,6 +304,57 @@ const watchBrigandine: ItemModel = {
   },
 };
 
+// Sunward's showpiece: a fluted cuirass, ivory enamel between gold ridges, a
+// gold sun of eight rays on azure on the breast round a ruby, tassets
+// banded gold and ivory at the waist, azure sleeves under gold pauldrons.
+const sunward = namedPalette({ ...SET_PALETTES.sunward });
+const sunwardCuirass: ItemModel = {
+  palette: sunward.palette,
+  worn: {
+    torso: ({ x, y, front, flank }) => {
+      const { c } = sunward;
+      if (y === 2) return flank ? c.goldDark : mod(x, 2) === 0 ? c.gold : c.ivory; // the tassets
+      if (flank) return c.ivoryShade;
+      if (!front) return mod(x, 2) === 1 ? c.gold : c.ivory; // the flutes
+      if (x <= 0 || x >= 6) return c.ivory;
+      if (x === 1 || x === 5) return c.gold; // the sun's border
+      if (x === 3 && y === 4) return c.ruby;
+      return x === 3 || y === 4 ? c.goldLight : c.azure; // its rays straight and slanting, azure between
+    },
+    arm: ({ y, flank, top }) => {
+      const { c } = sunward;
+      if (top) return c.goldLight;
+      if (y >= 5 || y === 2) return c.gold; // pauldron and cuff
+      return flank ? c.azureDark : c.azure;
+    },
+  },
+};
+
+// The velvet court's: a doublet parti-coloured burgundy and black down the
+// middle, a row of pearl buttons between, gold braid at the hem, an ermine
+// collar and cuffs, puffed shoulders and sleeves slashed to the gold beneath.
+const velvet = namedPalette({ ...SET_PALETTES.velvet });
+const ermine = (x: number, z: number) => (mod(x + 2 * z, 3) === 1 ? velvet.c.fleck : velvet.c.ermine);
+const velvetDoublet: ItemModel = {
+  palette: velvet.palette,
+  worn: {
+    torso: ({ x, y, z, front, flank }) => {
+      const { c } = velvet;
+      if (y === 5) return ermine(x, z);
+      if (y === 2) return c.gold;
+      if (front && x === 3) return y === 4 ? c.pearl : c.velvetDark; // a pearl button, the placket under it
+      if (x < 3) return flank ? c.velvetDark : c.velvet;
+      return c.black;
+    },
+    arm: ({ x, y, z, top }) => {
+      const { c } = velvet;
+      if (y === 2) return ermine(x, z);
+      if (top || y >= 5) return c.velvetLight; // puffed at the shoulder
+      return mod(x + z, 2) === 0 ? c.gold : c.velvet; // the slashes
+    },
+  },
+};
+
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
@@ -320,6 +371,6 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   barrowHauberk,
   cinderRobe,
   watchBrigandine,
-  sunwardCuirass: breastplate, // STAND-IN: fluted ivory-and-gold cuirass, great gold sun on azure on the breast, ruby heart, azure sleeves
-  velvetDoublet: tabard, // STAND-IN: burgundy-and-black velvet doublet, pearl buttons, slashed sleeves showing gold, ermine collar
+  sunwardCuirass,
+  velvetDoublet,
 };
