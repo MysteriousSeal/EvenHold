@@ -1,6 +1,6 @@
 // The hero fishing (model/skills/fishing.ts): the rod in their right hand, held out over the water, its line down to a
 // bobber on the water's face. Waiting, the bobber rides the ripples and the line sags; a bite, it's pulled under, again
-// and again, the line drawn taut and the rod tip dipping; hooked, the rod's raised, a ring of splash where it was, and
+// and again (a pike harder), the line drawn taut and the rod tip dipping; hooked, the rod's raised, a ring of splash where it was, and
 // the catch comes up out of the water on the line's end (its own loot model, swinging), to the hand. Gone with the line.
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
@@ -26,6 +26,7 @@ const TILT: Record<'waiting' | 'bite' | 'landed', number> = { waiting: -0.55, bi
 const SAG: Record<'waiting' | 'bite' | 'landed', number> = { waiting: 0.18, bite: 0.02, landed: 0.01 }; // how far the line hangs below straight, at its middle
 const POINTS = 12; // along the line
 const SPLASH = 0.6; // seconds a splash ring spreads and fades
+const BIG = new Set<LootId>(['pike']); // what drags the bobber down harder
 
 function buildRod() {
   const g = createGrid(ROD);
@@ -98,7 +99,7 @@ export class FishingView {
     this.landed = phase === 'landed' ? (line.caught ?? null) : null;
     const end = new THREE.Vector3(x, SURFACE_Y, z);
     if (phase === 'waiting') end.y += Math.sin(elapsed * 2.2 + x) * 0.012; // (the ripples)
-    else if (phase === 'bite') end.y -= 0.05 + Math.abs(Math.sin(elapsed * 9)) * 0.06; // (pulled under, and again)
+    else if (phase === 'bite') end.y -= (0.05 + Math.abs(Math.sin(elapsed * (line.caught === 'pike' ? 13 : 9))) * 0.06) * (BIG.has(line.caught!) ? 1.8 : 1); // (pulled under, and again: a big one harder and quicker, felt before it's seen)
     else end.lerp(this.tip, Math.min(1, line.t / 0.9) * 0.85).setY(end.y - 0.12); // (up out of the water, toward the hand)
     this.bobber.visible = phase !== 'landed';
     this.bobber.position.copy(end);
