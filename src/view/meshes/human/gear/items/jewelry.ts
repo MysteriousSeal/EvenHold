@@ -3,6 +3,18 @@
 // Amulets stand upright, facing +Z: a square chain loop and a pendant
 // hanging below. Rings stand upright too: a band two voxels deep with a
 // raised setting on top, and a stone in it if they have one.
+//
+// The new pieces (each a STAND-IN below till it's drawn; its set's colours: setPalettes.ts):
+// - barrowTorc (barrow): an open torc of twisted grave-gold, green with verdigris in the twists, its two ends knobbed.
+//   Grave-gold a89048, verdigris 4e7a64 / 6e9a80.
+// - trophyCord (flayer): a dark thong strung with teeth and finger bones, a dried scrap of hide in the middle. Thong
+//   2a1c18, tooth efe6cc, bone dcb8a0, hide 9a5a4a.
+// - scallopShell (palmer): a cream scallop shell, ribbed in fans, on a red cord. Shell f0e4cc / d8c4a0, cord 9a2a2a.
+// - fingerboneRing (ossuary): a ring of three finger bones wired end to end, a knucklebone for its setting. Bone e0d4b4
+//   / b8a986, wire 6e747c.
+// - emberRing (cinder): a soot-black iron band, an ember-red stone that glows at its heart. Soot 2a2826, ember e0602a, glow ffb040.
+// - ducalSignet (velvet): a heavy gold signet, a burgundy enamel face with a gold crest on it, a pearl either side.
+//   Gold d4b060, enamel 6e1a2a, pearl f6f2ea.
 
 import type { NECK_ITEMS, RING_ITEMS } from '../../../../../model/human/items/jewelry';
 import { createGrid, fillBox, setColor } from '../../../voxel/voxelShapes';
@@ -71,4 +83,10 @@ export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_
   sapphireRing: ring(0xc8ced6, 0x2a4ac0),
   signetRing: ring(0xd4b060, 0xa8862e),
   twistedWire: ring(0xb87333, 0xd8a860),
+  barrowTorc: amulet(0xa89048, 0xa89048, 0x4e7a64, 5, 1), // STAND-IN: open torc of twisted grave-gold, verdigris in the twists, knobbed ends
+  trophyCord: amulet(0x2a1c18, 0xefe6cc, 0x9a5a4a, 1, 3), // STAND-IN: dark thong strung with teeth and finger bones, a dried scrap of hide
+  scallopShell: amulet(0x9a2a2a, 0xf0e4cc, 0xd8c4a0), // STAND-IN: cream ribbed scallop shell on a red cord
+  fingerboneRing: ring(0xe0d4b4, 0xb8a986), // STAND-IN: three finger bones wired end to end, a knucklebone setting
+  emberRing: ring(0x2a2826, 0xe0602a), // STAND-IN: soot-black iron band, an ember-red stone glowing at its heart
+  ducalSignet: ring(0xd4b060, 0x6e1a2a), // STAND-IN: heavy gold signet, burgundy enamel face with a gold crest, a pearl either side
 };
