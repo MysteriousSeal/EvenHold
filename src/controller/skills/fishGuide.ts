@@ -1,12 +1,13 @@
 // Fishing's guide (model/skills/fishing.ts), in the skill's own window (skillWindow.ts), as the lumberjack's trees are
 // (woodGuide.ts): on the left, what bites (small fry to what the water hides), each in the colour of how much it'd
 // still teach, the level it wants, the best to learn from starred; on the right, the one picked: what it wants of the
-// skill and how much it'd teach, where it bites, how often of the bites there, how long a bite's wait is for the hero;
+// skill and how much it'd teach, where it bites, how often of the bites there, how long a bite's wait is for the hero,
+// how quick it's off the hook, whether one bites now and then before its level;
 // whether they've a rod in the bag (and where one's had); how it's done.
 
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { BITE_WINDOW, CATCHES, catchesAt, riseOf, type Catch, type Waters } from '../../model/skills/fishing';
+import { CATCHES, catchesAt, riseOf, weightOf, type Catch, type Waters } from '../../model/skills/fishing';
 import type { LootId } from '../../model/loot/loot';
 import { skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
@@ -42,7 +43,8 @@ export function fishGuide(model: GameModel, state: { picked: LootId | null }, re
   function detail(fish: Catch): HTMLElement {
     const needs = needsLine('Fishing', fish.needs, level, riseOf(fish, level));
     const there = catchesAt(SPOT[fish.in], Math.max(level, fish.needs)); // (what else bites there, at their level or, beyond them yet, at its)
-    const share = fish.weight / there.reduce((sum, f) => sum + f.weight, 0);
+    const at = Math.max(level, fish.needs);
+    const share = weightOf(fish, at) / there.reduce((sum, f) => sum + weightOf(f, at), 0);
     const [least, most] = model.fishing.waitSeconds;
     const facts = el(
       'dl',
@@ -54,7 +56,8 @@ export function fishGuide(model: GameModel, state: { picked: LootId | null }, re
       el('dt', undefined, 'Wait for a bite'),
       el('dd', undefined, `${Math.round(least)}–${Math.round(most)} seconds`),
       el('dt', undefined, 'To hook it'),
-      el('dd', undefined, `${BITE_WINDOW} seconds, once it bites`),
+      el('dd', undefined, `${fish.window} seconds, once it bites`),
+      ...(fish.early !== undefined ? [el('dt', undefined, 'A lucky one'), el('dd', undefined, `Now and then from Fishing ${fish.early}, before it's yours`)] : []),
     );
     const rod = model.fishing.rod;
     return el(
