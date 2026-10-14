@@ -181,14 +181,15 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       const other = speaking;
       if (pace.bare && other) {
         stages?.other?.show(unclothed(other.look), {}, {}); // (whoever it's with: nothing on, if the pose can't be drawn)
+        let made: CoupleStage | null = null;
         try {
-          const made = new CoupleStage();
-          made.show(unclothed(workLook(model)), unclothed(other.look));
+          made = new CoupleStage();
+          made.show(workLook(model), other.look); // (each with nothing on: the stage's own to see to)
           couple = made;
           scene.append(el('div', 'talk-couple', couple.canvas));
           scene.classList.add('coupled');
         } catch {
-          couple?.dispose();
+          made?.dispose(); // (made, but not to be drawn: let go)
           couple = null; // (no WebGL: the two portraits either side carry it)
         }
       }
