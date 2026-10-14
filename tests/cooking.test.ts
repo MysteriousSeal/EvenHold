@@ -29,11 +29,11 @@ function kitchen(level = 1, bag: Record<string, number> = {}) {
 const run = (model: GameModel, seconds: number, dirX = 0) => {
   for (let t = 0; t < seconds; t += 0.1) model.update(dirX, 0, 0.1);
 };
-// Into the first inn, stood before its hearth.
+// Into the first inn, stood right before its hearth.
 function byTheHearth(model: GameModel): void {
   model.enterRoom(model.entrances.find((e) => e.type === 'inn')!);
   const hearth = model.inside!.furniture.find((f) => f.kind === 'hearth')!;
-  Object.assign(model.hero, { x: hearth.x + hearth.w / 2 - 0.5, z: hearth.z + 1.2 });
+  Object.assign(model.hero, { x: hearth.x + hearth.w / 2 - 0.5, z: hearth.z + 0.8 });
 }
 // A campfire kindled before them, of logs given them.
 function byACampfire(model: GameModel): void {
@@ -216,5 +216,19 @@ describe('meals', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.hero.blessings?.[0].kind).toBe('feasted');
     expect(again.hero.blessings?.[0].left).toBeCloseTo(99, 0);
+  });
+});
+
+describe('by a fire', () => {
+  it("E there opens cooking's recipes (before the hearth, and by a kindled campfire); the bar over the hero says what's cooking", async () => {
+    const { interactionOf } = await import('../src/model/hero/interaction');
+    const { castOf } = await import('../src/controller/skills/castOf');
+    const model = kitchen(1, { rawBoarMeat: 2 });
+    byACampfire(model);
+    expect(interactionOf(model, new Set(['traveller', 'talk']))?.kind).toBe('fire'); // (whoever's passing by at the start, passed over)
+    byTheHearth(model);
+    expect(interactionOf(model)?.kind).toBe('fire');
+    model.cooking.start('roastBoar', 2);
+    expect(castOf(model)?.label).toBe('Roast boar · 2 to cook');
   });
 });
