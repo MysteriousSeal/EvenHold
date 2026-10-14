@@ -40,7 +40,7 @@ describe.each(ITEM_IDS.map((id) => [id]))('%s', (id: ItemId) => {
     expect(gearSellPrice(id)).toBeLessThanOrEqual(gearPrice(id));
     if (item.soldBy?.smith) expect(item.value).toBeGreaterThan(0);
     expect(smithBuys(id)).toBe(!isJewelrySlot(item.slot));
-    expect(sellValue(id)).toBe(smithBuys(id) ? gearSellPrice(id) : null);
+    expect(sellValue(id)).toBe(gearSellPrice(id)); // (to the smith, or jewellery to a pedlar)
   });
 });
 
