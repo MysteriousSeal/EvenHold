@@ -29,6 +29,13 @@ export const STOWED: Record<keyof typeof MAIN_HAND_ITEMS | keyof typeof OFF_HAND
   warHammer: 'back',
   spear: 'back',
   quarterstaff: 'back',
+  headsmansAxe: 'back',
+  barrowBlade: 'leftHip',
+  flensingKnife: 'leftHip',
+  pilgrimsStaff: 'back',
+  watchGlaive: 'back',
+  courtSword: 'leftHip',
+  blackbannerFalchion: 'leftHip',
   plankShield: 'shield',
   buckler: 'shield',
   heaterShield: 'shield',
@@ -39,6 +46,11 @@ export const STOWED: Record<keyof typeof MAIN_HAND_ITEMS | keyof typeof OFF_HAND
   parryingDagger: 'rightHip',
   torch: 'hand',
   tome: 'hand',
+  ossuaryWard: 'shield',
+  smokingCenser: 'hand',
+  watchShield: 'shield',
+  sunwardAegis: 'shield',
+  blackbannerPavise: 'shield',
 };
 
 const V = HUMAN_VOXEL_SIZE;

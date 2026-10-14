@@ -2,11 +2,31 @@
 // chest (x -1..7, z -1..4; 4 is the front) and each arm's sleeve, rows 2-5
 // plus 6 over the shoulder (x -1..2, z -1..2; the side toward the body
 // stays open, so a sleeve's flank is always its outer side).
+//
+// The new torso pieces, as each was drawn (its set's colours: setPalettes.ts):
+// - headsmansApron (headsman): a stiff oxblood leather apron from collarbone to below the belt over a bare black-hide
+//   jerkin, a dark stain spreading down from the middle, crude pale stitches at the neck strap; bare arms below short
+//   black sleeves. Oxblood 5a1a1a, stain 3a0e10, black 1c1a1c / leather 3e2a22, thread b8a986, iron buckle 5a5e66.
+// - barrowHauberk (barrow): a long mail hauberk gone to rust, patches of it red-brown, others still grey and pitted, a
+//   verdigris bronze collar and a grave-gold hem. Rust 8a4a22 / 5e2e16, pitted 7d7a72, verdigris 4e7a64, hem a89048, mould 3e4a32.
+// - cinderRobe (cinder): an ash-grey robe to the knees, belted with rope, soot rising from the hem and blackening the
+//   cuffs, the bone-white sigil on the chest, ember specks in the soot. Ash 6a6460 / 8a847e, soot 2a2826 / 1a1918,
+//   sigil d8ccaa, ember e0602a / glow ffb040.
+// - watchBrigandine (watch): teal cloth over riveted plates, brass rivets in pairs, a sand stripe down the front as the
+//   tabard has, steel plates at the shoulders over leather sleeves. Teal 2f9c9a / 217c7a, sand efdcb8, brass d4b060,
+//   steel b4bac2, leather 5e3f28.
+// - sunwardCuirass (sunward, legendary): a fluted cuirass, ivory enamel between gold ridges, a great gold sun of eight
+//   rays on azure on the breast, a ruby at its heart; gold-edged tassets at the waist, azure sleeves. Gold d4b060 /
+//   f0d080 / a8862e, ivory f4f0e6, azure 3060c0 / 1e3e8a, ruby b02838.
+// - velvetDoublet (velvet): a burgundy velvet doublet buttoned with pearls, slashed sleeves showing gold beneath, an
+//   ermine collar, black on one side against burgundy on the other (parti-colour). Velvet 6e1a2a / 4e1220 / 8a2a3a,
+//   black 1e1a1e, ermine f0ece0 with flecks 1c1a1c, gold d4b060, pearl f6f2ea.
 
 import type { TORSO_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mail, mod } from '../patterns';
+import { SET_PALETTES } from '../setPalettes';
 
 // A gambeson: padded linen quilted in vertical channels, laced up the
 // front, a leather-trimmed hem, and padded sleeves up over the shoulders.
@@ -197,6 +217,145 @@ const brigandine: ItemModel = {
   },
 };
 
+// The headsman's: a stiff oxblood apron from the collarbone down over a black
+// jerkin, a stain running down its middle and spreading at the hem, its neck
+// strap stitched in pale thread, tied at the back; short black sleeves.
+const headsman = namedPalette({ ...SET_PALETTES.headsman });
+const headsmansApron: ItemModel = {
+  palette: headsman.palette,
+  worn: {
+    torso: ({ x, y, front, back, flank }) => {
+      const { c } = headsman;
+      if (front && x >= 1 && x <= 5) {
+        if (y >= 4 && (x === 1 || x === 5)) return y === 4 ? c.thread : c.black; // the bib's top corners stitched to its strap
+        if (x === 3 || (y === 2 && x >= 2 && x <= 4)) return c.stain;
+        return c.oxblood;
+      }
+      if ((back || flank) && y === 3) return c.leather; // the apron's ties round the back
+      return flank ? c.blackLight : c.black;
+    },
+    arm: ({ y, flank }) => (y < 5 ? 0 : flank ? headsman.c.blackLight : headsman.c.black), // short sleeves, bare arms
+  },
+};
+
+// Barrow: a long mail hauberk rusted through in patches, pitted grey between,
+// a verdigris collar and a grave-gold hem and cuffs.
+const barrow = namedPalette({ ...SET_PALETTES.barrow });
+const barrowMail = (x: number, y: number, z: number) => {
+  const { c } = barrow;
+  const pitted = mod(Math.floor(x / 2) * 3 + Math.floor(y / 2) * 2 + Math.floor(z / 2) * 5, 4) === 0; // a patch still steel
+  return pitted ? mail(x, y, z, c.pitted, c.rustDark) : mail(x, y, z, c.rust, c.rustDark);
+};
+const barrowHauberk: ItemModel = {
+  palette: barrow.palette,
+  worn: {
+    torso: ({ x, y, z }) => {
+      const { c } = barrow;
+      if (y === 2) return x < 0 || x > 6 ? c.mould : c.graveGold; // the hem, gone green at the sides
+      if (y === 5) return mod(x + z, 2) === 0 ? c.verdigris : c.verdigrisLight; // the bronze collar
+      return barrowMail(x, y, z);
+    },
+    arm: ({ x, y, z }) => (y === 2 ? barrow.c.graveGold : barrowMail(x, y, z)),
+  },
+};
+
+// Cinder: an ash-grey robe belted with a rope, soot rising from below with
+// embers in it, the bone-white sigil (a ring, a flame in it) on the chest,
+// the cuffs burnt black.
+const cinder = namedPalette({ ...SET_PALETTES.cinder });
+const cinderRobe: ItemModel = {
+  palette: cinder.palette,
+  worn: {
+    torso: ({ x, y, z, front }) => {
+      const { c } = cinder;
+      if (y === 2) return mod(x + 2 * z, 4) === 0 ? c.ember : c.soot;
+      if (y === 3) return mod(x + z, 2) === 0 ? c.sigil : c.ashLight; // the rope, pale and twisted
+      if (front && y === 4 && x >= 2 && x <= 4) return x === 3 ? c.glow : c.sigil; // the ring's sides, the flame between
+      if (front && y === 5 && x === 3) return c.sigil; // its top
+      return c.ash;
+    },
+    arm: ({ y, z, flank }) => {
+      const { c } = cinder;
+      if (y === 2) return c.sootDeep;
+      if (y === 3 && flank && z === 0) return c.ember; // a spark caught above the cuff
+      return flank ? c.ash : c.ashLight;
+    },
+  },
+};
+
+// The watch's: teal cloth over riveted plates, brass rivets in pairs either
+// side of the tabard's sand stripe, steel over the shoulders, leather sleeves.
+const watch = namedPalette({ ...SET_PALETTES.watch });
+const watchBrigandine: ItemModel = {
+  palette: watch.palette,
+  worn: {
+    torso: ({ x, y, front, back }) => {
+      const { c } = watch;
+      if ((front || back) && y === 4 && mod(x, 2) === 0 && x !== 3) return c.brass; // a pair each side of the stripe
+      if (front && x === 3) return c.sand;
+      return y === 2 || !front ? c.tealDark : c.teal;
+    },
+    arm: ({ y, top, flank }) => {
+      const { c } = watch;
+      if (top) return c.steelLight;
+      if (y >= 5) return flank ? c.steelDark : c.steel;
+      return c.leather;
+    },
+  },
+};
+
+// Sunward's showpiece: a fluted cuirass, ivory enamel between gold ridges, a
+// gold sun of eight rays on azure on the breast round a ruby, tassets
+// banded gold and ivory at the waist, azure sleeves under gold pauldrons.
+const sunward = namedPalette({ ...SET_PALETTES.sunward });
+const sunwardCuirass: ItemModel = {
+  palette: sunward.palette,
+  worn: {
+    torso: ({ x, y, front, flank }) => {
+      const { c } = sunward;
+      if (y === 2) return flank ? c.goldDark : mod(x, 2) === 0 ? c.gold : c.ivory; // the tassets
+      if (flank) return c.ivoryShade;
+      if (!front) return mod(x, 2) === 1 ? c.gold : c.ivory; // the flutes
+      if (x <= 0 || x >= 6) return c.ivory;
+      if (x === 1 || x === 5) return c.gold; // the sun's border
+      if (x === 3 && y === 4) return c.ruby;
+      return x === 3 || y === 4 ? c.goldLight : c.azure; // its rays straight and slanting, azure between
+    },
+    arm: ({ y, flank, top }) => {
+      const { c } = sunward;
+      if (top) return c.goldLight;
+      if (y >= 5 || y === 2) return c.gold; // pauldron and cuff
+      return flank ? c.azureDark : c.azure;
+    },
+  },
+};
+
+// The velvet court's: a doublet parti-coloured burgundy and black down the
+// middle, sleeves and all, a pearl button between, gold braid at the hem, an
+// ermine collar and cuffs, puffed shoulders, sleeves slashed to the gold.
+const velvet = namedPalette({ ...SET_PALETTES.velvet });
+const ermine = (x: number, z: number) => (mod(x + 2 * z, 3) === 1 ? velvet.c.fleck : velvet.c.ermine);
+const velvetDoublet: ItemModel = {
+  palette: velvet.palette,
+  worn: {
+    torso: ({ x, y, z, front, flank }) => {
+      const { c } = velvet;
+      if (y === 5) return ermine(x, z);
+      if (y === 2) return c.gold;
+      if (front && x === 3) return y === 4 ? c.pearl : c.velvetDark; // a pearl button, the placket under it
+      if (x < 3) return flank ? c.velvetDark : c.velvet;
+      return c.black;
+    },
+    arm: ({ x, y, z, top, side }) => {
+      const { c } = velvet;
+      const burgundy = side === 'right'; // the sleeve on the doublet's burgundy half (-X); the other black
+      if (y === 2) return ermine(x, z);
+      if (top || y >= 5) return burgundy ? c.velvetLight : c.black; // puffed at the shoulder
+      return mod(x + z, 2) === 0 ? c.gold : burgundy ? c.velvet : c.black; // the slashes
+    },
+  },
+};
+
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
@@ -209,4 +368,10 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   linenShirt,
   travelCloak,
   brigandine,
+  headsmansApron,
+  barrowHauberk,
+  cinderRobe,
+  watchBrigandine,
+  sunwardCuirass,
+  velvetDoublet,
 };

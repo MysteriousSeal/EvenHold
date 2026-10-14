@@ -56,8 +56,8 @@ describe('head pieces', () => {
     }
   });
 
-  it('twenty of them, every helm to be had: sold, worn by someone, or worth a crypt lord\'s hoard', () => {
-    expect(HEADS).toHaveLength(20);
+  it('twenty-six of them, every helm to be had: sold, worn by someone, or worth a crypt lord\'s hoard', () => {
+    expect(HEADS).toHaveLength(26);
     for (const item of HEADS) {
       const { soldBy, wornBy, value = 0 } = HEAD_ITEMS[item] as { soldBy?: object; wornBy?: object; value?: number };
       if (item === 'circlet' || item === 'leatherCap') continue; // (the old ones the hero may start with or find)

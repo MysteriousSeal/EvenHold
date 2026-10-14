@@ -2,12 +2,13 @@
 // chiefs, skeletons, draugr; beasts carry none). A bandit's one of what it wore, the rest any piece. Now and then,
 // its rarity rolled as any; a chief's always, and luckier (uncommon at the least); a boss's always, rare at the least
 // (a crypt's lord, the brood mother: their chests besides, loot/hoard.ts). A stronghold's bandits as any bandit, its
-// bruisers a little likelier; its bosses leave a piece of their own instead (strongholds/strongholdLoot.ts). The same
-// for a foe every time.
+// bruisers a little likelier; its bosses leave a piece of their own instead (strongholds/strongholdLoot.ts). Half the
+// time a foe with pieces of its own (items' `droppedBy`: the crypts' dead their barrow gear, a firebrand its cult's)
+// leaves one of those instead, of those found at its level. The same for a foe every time.
 
 import type { Enemy, EnemyKind } from '../types';
-import { ITEM_IDS, type ItemId } from '../human/equipment';
-import { baseOf, rollGear, type GearKey, type Rarity } from '../human/items/gear';
+import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
+import { baseOf, foundAt, rollGear, type GearKey, type Rarity } from '../human/items/gear';
 import { hashCell, hashUnit, mulberry32, oneOf } from '../../util/random';
 
 interface Drops {
@@ -37,6 +38,28 @@ export function rollGearDrop(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'human
   if (!drops || hashUnit(enemy.id, 0, 91) >= drops.chance * factor) return null;
   const rng = mulberry32(hashCell(enemy.id, enemy.level, 92));
   const worn = Object.values(enemy.human?.equipment ?? {}).filter((k): k is GearKey => !!k);
-  const item: ItemId = worn.length ? baseOf(oneOf(worn, rng())) : oneOf(ITEM_IDS, rng());
+  const own = favouredBy(enemy.kind, enemy.level);
+  const item: ItemId =
+    own.length && rng() < FAVOURED ? weighted(own, rng()) : worn.length ? baseOf(oneOf(worn, rng())) : oneOf(ITEM_IDS.filter((id) => foundAt(id, enemy.level)), rng());
   return rollGear(item, enemy.level, rng, drops.luck, drops.least);
+}
+
+const FAVOURED = 0.5; // how often a foe with pieces of its own leaves one of those
+
+// Whether a foe of `kind` ever leaves gear, slain.
+export const dropsGear = (kind: EnemyKind): boolean => !!DROPS[kind];
+
+// The pieces a foe of `kind` (or a hoard's keeper) favours, of those found at `level`, with their weights.
+export function favouredBy(kind: EnemyKind, level: number): Array<[ItemId, number]> {
+  return ITEM_IDS.flatMap((id): Array<[ItemId, number]> => {
+    const weight = ITEMS[id].droppedBy?.[kind];
+    return weight && foundAt(id, level) ? [[id, weight]] : [];
+  });
+}
+
+// One of `options`, by weight (`u`: 0..1).
+export function weighted(options: Array<[ItemId, number]>, u: number): ItemId {
+  let left = u * options.reduce((sum, [, w]) => sum + w, 0);
+  for (const [id, w] of options) if ((left -= w) < 0) return id;
+  return options[options.length - 1][0];
 }

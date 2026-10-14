@@ -2,11 +2,24 @@
 // 0-1: the foot and the ankle (x -1..3; z -1..4, where 4 is in front of the
 // toes and z 3 on row 1 is over them; the side toward the other foot stays
 // open). Nothing goes under the sole.
+//
+// The new foot pieces (each its set's colours: setPalettes.ts):
+// - headsmansBoots (headsman): heavy black boots to the ankle, iron toe caps, a strap and dull iron buckle across the
+//   instep. Black 1c1a1c / leather 3e2a22, iron 5a5e66 / 7d838c.
+// - flayersBoots (flayer): hide boots in patches, cross-stitched, the cuff turned down showing raw hide, a tooth on a
+//   thong at the ankle. Hide a8844e / 6e5232, raw 7a4a32, stitch 2a1c18, tooth efe6cc.
+// - ashSandals (cinder): sooted soles under ash-grey cloth bindings wound up the ankle, toes bare and black with ash, an
+//   ember speck or two. Ash 6a6460 / 8a847e, soot 2a2826, ember e0602a.
+// - sunwardSabatons (sunward, epic): pointed gilded sabatons of overlapping lames, ivory enamel on the instep with a
+//   small gold sun, gold toe. Gold d4b060 / f0d080 / a8862e, ivory f4f0e6, azure 3060c0.
+// - poulaines (velvet): long-toed velvet shoes, the toe running a voxel past the foot, black and burgundy, a gold buckle
+//   and an ermine cuff. Velvet 6e1a2a / 4e1220, black 1e1a1e, gold d4b060, ermine f0ece0.
 
 import type { FEET_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette, type ShellCell } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mod } from '../patterns';
+import { SET_PALETTES } from '../setPalettes';
 
 // The ankle ring (row 1, behind the toes), as opposed to the foot itself.
 const ankle = ({ y, z }: ShellCell) => y === 1 && z <= 2;
@@ -119,6 +132,92 @@ const ironCapBoots: ItemModel = {
   },
 };
 
+// The headsman's: heavy black boots, iron toe caps, a leather strap over the
+// instep with a dull iron buckle, a pale stitch round the cuff.
+const headsman = namedPalette({ ...SET_PALETTES.headsman });
+const headsmansBoots: ItemModel = {
+  palette: headsman.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = headsman;
+      if (cell.front) return cell.y === 0 ? c.iron : c.black; // the toe cap
+      if (cell.y === 1 && cell.z === 3) return cell.x === 1 ? c.ironLight : c.leather; // the strap and its buckle
+      if (ankle(cell)) return mod(cell.x + cell.z, 2) === 0 ? c.thread : c.blackLight;
+      return cell.flank && cell.z === 3 ? c.leather : c.black;
+    },
+  },
+};
+
+// The flayer's: hide boots in patches, a black cross-stitch down the side,
+// the cuff turned down to raw hide, a tooth on a thong at the outside ankle.
+const flayer = namedPalette({ ...SET_PALETTES.flayer });
+const flayersBoots: ItemModel = {
+  palette: flayer.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = flayer;
+      const { x, z, flank } = cell;
+      if (ankle(cell)) return flank && (x === -1 || x === 3) && z === 1 ? c.tooth : c.raw; // the cuff, the tooth on the outside
+      if (flank && z === 2) return c.stitch;
+      if (cell.front) return x === 1 ? c.stitch : c.hideDark;
+      return mod(Math.floor(z / 2) + (flank ? 1 : x), 2) === 0 ? c.hide : c.hideDark;
+    },
+  },
+};
+
+// Cinder: soles sooted black, ash-grey bindings wound round the ankle and
+// once over the foot and up its sides, the bare toes smudged black with
+// ash, an ember in the soot.
+const cinder = namedPalette({ ...SET_PALETTES.cinder });
+const ashSandals: ItemModel = {
+  palette: cinder.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = cinder;
+      if (ankle(cell)) return mod(cell.x + cell.z, 2) === 0 ? c.ash : c.ashLight; // wound round
+      if (cell.front) return mod(cell.x, 2) === 0 ? c.soot : 0; // ashen toes
+      if (cell.y === 1 && cell.z === 3) return c.ash; // over the foot
+      if (cell.y === 0 && cell.flank) return cell.z === 0 ? c.ember : mod(cell.z, 2) === 1 ? c.sootDeep : 0; // the sole's straps
+      return 0;
+    },
+  },
+};
+
+// Sunward: gilded sabatons of lames, the toe ridged to a point, an ivory
+// enamelled instep with a small gold sun on azure in its middle.
+const sun = namedPalette({ ...SET_PALETTES.sunward });
+const sunwardSabatons: ItemModel = {
+  palette: sun.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = sun;
+      const { x, y, z } = cell;
+      if (cell.front) return x === 1 ? c.goldLight : c.goldDark; // the ridge
+      if (y === 1 && z === 3) return x === 1 ? c.gold : c.azure; // the sun on the instep
+      if (ankle(cell)) return cell.flank || cell.back ? c.ivoryShade : c.ivory;
+      return mod(z, 2) === 0 ? c.gold : c.goldDark; // the lames
+    },
+  },
+};
+
+// The velvet court's poulaines: burgundy velvet, black over the instep, the
+// long toe pointed with a gold tip, a gold buckle at the side, an ermine cuff.
+const velvet = namedPalette({ ...SET_PALETTES.velvet });
+const poulaines: ItemModel = {
+  palette: velvet.palette,
+  worn: {
+    leg: (cell) => {
+      const { c } = velvet;
+      const { x, y, z } = cell;
+      if (cell.front) return y === 0 && x === 1 ? c.gold : y === 0 ? c.velvet : c.black; // the toe, its gold tip
+      if (ankle(cell)) return mod(x + z, 3) === 0 ? c.fleck : c.ermine;
+      if (z === 3) return c.black;
+      if (cell.flank && y === 0 && z === 1) return c.gold; // the buckle
+      return cell.flank ? c.velvetDark : c.velvet;
+    },
+  },
+};
+
 export const FEET_MODELS: Record<keyof typeof FEET_ITEMS, ItemModel> = {
   leatherBoots,
   blackBoots,
@@ -131,4 +230,9 @@ export const FEET_MODELS: Record<keyof typeof FEET_ITEMS, ItemModel> = {
   feltSlippers: shoes(0x6a8a5a, 0x557048, 0xe8dcc0),
   hobnailBoots,
   ironCapBoots,
+  headsmansBoots,
+  flayersBoots,
+  ashSandals,
+  sunwardSabatons,
+  poulaines,
 };

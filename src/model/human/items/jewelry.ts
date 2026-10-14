@@ -17,6 +17,10 @@ export const NECK_ITEMS = slotItems('neck', {
   pearlStrand: { name: 'Pearl strand', stats: { agility: 1, endurance: 1 } },
   runeStone: { name: 'Rune stone', stats: { endurance: 3 } },
   goldChain: { name: 'Gold chain', stats: { strength: 1, endurance: 2 } },
+  // The sets' (sets.ts): a scallop shell from a pedlar, a pilgrim's badge; grave-gold off the draugr; a bandit's trophies.
+  barrowTorc: { name: 'Barrow torc', set: 'barrow', level: 4, rarity: 'rare', value: 130, droppedBy: { draugr: 1, cryptLord: 1 }, stats: { strength: 2, stamina: 1 } },
+  trophyCord: { name: 'Trophy cord', set: 'flayer', wornBy: { bandit: 1 }, droppedBy: { banditChief: 1 }, stats: { strength: 2, agility: 1 } },
+  scallopShell: { name: 'Scallop shell', set: 'palmer', value: 20, soldBy: { pedlar: 2 }, wornBy: { pilgrim: 2 }, stats: { endurance: 2 } },
 });
 
 export const RING_ITEMS = slotItems('ring', {
@@ -31,4 +35,8 @@ export const RING_ITEMS = slotItems('ring', {
   sapphireRing: { name: 'Sapphire ring', stats: { agility: 1, endurance: 2 } },
   signetRing: { name: 'Signet ring', stats: { strength: 1, stamina: 1 } },
   twistedWire: { name: 'Twisted wire ring', value: 18, soldBy: { pedlar: 2 }, stats: { agility: 1 } },
+  // The sets' (sets.ts).
+  fingerboneRing: { name: 'Fingerbone ring', set: 'ossuary', level: 8, rarity: 'uncommon', value: 60, droppedBy: { skeleton: 1, skeletonArcher: 1 }, stats: { agility: 1, endurance: 1 } },
+  emberRing: { name: 'Ember ring', set: 'cinder', level: 8, rarity: 'rare', value: 120, droppedBy: { firebrand: 1 }, stats: { strength: 1, endurance: 2 } },
+  ducalSignet: { name: 'Ducal signet', set: 'velvet', level: 5, rarity: 'rare', value: 180, droppedBy: { banditChief: 1 }, stats: { strength: 1, stamina: 1, endurance: 1 } },
 });

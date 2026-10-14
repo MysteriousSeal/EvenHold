@@ -4,6 +4,9 @@
 
 import type { EquipSlot } from '../equipment';
 import type { Stat } from '../../hero/statKinds';
+import type { EnemyKind } from '../../types';
+import type { Rarity } from './gear';
+import type { GearSet } from './sets';
 
 // Kinds of people who dress themselves from the item catalog (bandits at random;
 // the inns' bouncers always in their own studded leathers).
@@ -24,6 +27,14 @@ export interface ItemEntry {
   // Worn by the hero: how much it shields them (armour, off each blow taken), and what it adds to their stats.
   armor?: number;
   stats?: Partial<Record<Stat, number>>;
+  // Found no lower than this level, and no plainer than this rarity (gear.ts rollGear): a showpiece of a crypt lord's
+  // hoard is never a level 2 common thing. None: level 1, common (as anything worn in the world).
+  level?: number;
+  rarity?: Rarity;
+  // The foes who leave it, slain, as a weight against their others (loot/gearDrops.ts: half the time one of theirs, if
+  // any's of their level), and whose hoards hold it (loot/hoard.ts: its keeper's kind).
+  droppedBy?: Partial<Record<EnemyKind, number>>;
+  set?: GearSet; // the set it's one of (sets.ts): its pieces look of a piece together
   openBack?: boolean; // worn on the head, open behind: the hair hanging below it shows (long hair, braids, tails)
 }
 
