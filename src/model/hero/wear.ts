@@ -2,11 +2,13 @@
 // shield too) by every one that hurts them, everything worn a good deal more by a fall (setbacks.ts). Each piece's
 // wear (0 to BROKEN) kept by the piece (its key: one of a kind worn, its wear its own); badly worn (WORN), told once;
 // broken, told, and it gives nothing (no armour, no stats: attributes.ts) till a smith mends it, for coin, the more
-// the dearer the piece and the more it's worn (smithy panel: Mend). Jewellery never wears. Kept in the save.
+// the dearer the piece and the more it's worn (smithy panel: Mend), and Tempered a while after (hero/blessing.ts: wearing
+// the slower meanwhile). Jewellery never wears. Kept in the save.
 
 import { ARMOR_SLOTS, HELD_SLOTS, ITEMS, type EquipSlot } from '../human/equipment';
 import { baseOf, gearName, gearWorth, isGear, type GearKey } from '../human/items/gear';
 import type { GameEvent, Hero } from '../types';
+import { isTempered, temper, type Blessing } from './blessing';
 
 export const BROKEN = 100;
 export const WORN = 75; // badly worn from here: told
@@ -15,8 +17,9 @@ const HARM = 0.12; // a point of harm taken, on each piece worn against blows
 const FALL = 12; // a fall, on everything that wears
 const MEND_SHARE = 0.35; // of what a piece costs at a smith, mending it from broken (less, less worn)
 const NO_PRICE = 20; // copper, what a piece no smith sells is priced at (smithy/smithShop.ts gearPrice's)
+export const TEMPERED_WEAR = 0.5; // times the wear, Tempered
 
-type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag'] };
+type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag']; blessings?: Blessing[] };
 const GUARDING: readonly EquipSlot[] = [...ARMOR_SLOTS, 'offHand'];
 const WEARING: readonly EquipSlot[] = [...ARMOR_SLOTS, ...HELD_SLOTS];
 
@@ -27,6 +30,7 @@ export const brokenKey = (hero: Wearer): string => (hero.wear ? Object.values(he
 
 // The pieces in `slots` worn down by `by`; told as one goes badly worn, or breaks.
 function wearDown(hero: Wearer, slots: readonly EquipSlot[], by: number, report: (e: GameEvent) => void): void {
+  if (isTempered(hero)) by *= TEMPERED_WEAR;
   for (const slot of slots) {
     const key = hero.equipment[slot];
     if (!key || !isGear(key)) continue;
@@ -57,13 +61,14 @@ export function mendBill(hero: Wearer): { pieces: Array<{ key: GearKey; wear: nu
   return { pieces, total: pieces.reduce((n, p) => n + p.cost, 0) };
 }
 
-// Everything they wear mended, paid for: 'mended', 'none' (nothing worn), 'too poor'.
+// Everything they wear mended, paid for, and Tempered: 'mended', 'none' (nothing worn), 'too poor'.
 export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' | 'too poor' {
   const { pieces, total } = mendBill(hero);
   if (!pieces.length) return 'none';
   if (hero.money < total) return 'too poor';
   hero.money -= total;
   for (const { key } of pieces) delete hero.wear![key];
+  temper(hero);
   return 'mended';
 }
 
