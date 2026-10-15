@@ -1,7 +1,7 @@
 // Gear worn down by use (hero/wear.ts): a weapon by blows landed, armour by harm taken, all of it by a fall; broken,
 // it gives nothing till a smith mends it, for coin; kept in the save.
 import { describe, expect, it } from 'vitest';
-import { BROKEN, TEMPERED_WEAR, mendAll, mendBill, mendCost, readWear, wearOf, wearOnBlow, wearOnFall, wearOnHarm, wearText } from '../src/model/hero/wear';
+import { BROKEN, TEMPERED_WEAR, TEMPER_FLOOR, mendAll, mendBill, mendCost, readWear, wearOf, wearOnBlow, wearOnFall, wearOnHarm, wearText } from '../src/model/hero/wear';
 import { armorOf, gearStats } from '../src/model/hero/attributes';
 import { BLESSINGS, TEMPERED_TIME, blessAll, spared, tickBlessing, tossCoin } from '../src/model/hero/blessing';
 import { restore, snapshot } from '../src/model/save';
@@ -75,7 +75,11 @@ describe('gear wears', () => {
     hero.money = 10_000;
     expect(mendAll(hero)).toBe('none');
     expect(hero.blessings ?? []).toEqual([]);
-    hero.wear = { brigandine: 30 };
+    hero.wear = { brigandine: 3 }; // (a scratch: a copper or two)
+    expect(mendAll(hero)).toBe('mended');
+    expect(hero.blessings ?? []).toEqual([]); // (not Tempered for a copper: the bill short of a tenth of what they wear's worth)
+    hero.wear = { brigandine: 60 };
+    expect(mendBill(hero).total).toBeGreaterThanOrEqual(Math.ceil((150 + 200) * TEMPER_FLOOR));
     expect(mendAll(hero)).toBe('mended');
     expect(hero.blessings).toEqual([{ kind: 'tempered', left: TEMPERED_TIME }]);
     expect(BLESSINGS.tempered.name).toBe('Tempered');
@@ -86,6 +90,7 @@ describe('gear wears', () => {
     tossCoin(hero, 0);
     expect(hero.blessings!.map((b) => b.kind)).toContain('tempered');
     tickBlessing(hero, 60);
+    hero.wear = { brigandine: 60 };
     mendAll(hero);
     expect(hero.blessings!.filter((b) => b.kind === 'tempered')).toEqual([{ kind: 'tempered', left: TEMPERED_TIME }]);
     tickBlessing(hero, TEMPERED_TIME);
