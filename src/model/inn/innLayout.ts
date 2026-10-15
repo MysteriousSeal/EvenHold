@@ -44,9 +44,10 @@ export function furnishInn(plan: Planner, room: Room): void {
   const gapTo = (o: Furniture, x: number, z: number) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
   const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
     items.every((o) => !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
-  // (None just inside the door: a little open floor to walk in on, three tiles deep straight ahead of it, two to
-  // either side.)
-  const byDoor = (x: number, z: number) => Math.abs(x - room.door) <= 1 ? room.depth - 1 - z < 3 : Math.max(Math.abs(x - room.door), room.depth - 1 - z) < 2;
+  // (None just inside the door: a little open floor to walk in on, three tiles deep straight ahead of it (two, in a
+  // shallow room), two to either side.)
+  const ahead = room.depth >= 9 ? 3 : 2;
+  const byDoor = (x: number, z: number) => Math.abs(x - room.door) <= 1 ? room.depth - 1 - z < ahead : Math.max(Math.abs(x - room.door), room.depth - 1 - z) < 2;
   const floor: Array<[number, number]> = [];
   for (let x = 1; x < room.width; x++) for (let z = 1; z < room.depth - 1; z++) if (!byDoor(x, z)) floor.push([x, z]);
   // As many as fit, up to ten; and at least three: if the room's too
@@ -96,5 +97,11 @@ export function furnishInn(plan: Planner, room: Room): void {
   place('wallLantern', 1, 1, 'left', [[0, room.depth - 2]], false);
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+  // Barrels stood in the room's free corners on the right, two at the front, one at the back (stores, not a bare
+  // corner), clear of everything else (and of the floor before the notice board, where it's read from).
+  for (const [x, z] of [[room.width - 1, room.depth - 1], [room.width - 2, room.depth - 1], [room.width - 1, 0]]) {
+    if (z === 0 && board?.x === x) continue;
+    if (items.every((o) => !o.solid || Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1)) >= 2)) place('barrel', 1, 1, 'none', [[x, z]], false);
+  }
   fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
 }
