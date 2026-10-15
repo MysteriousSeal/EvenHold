@@ -14,7 +14,7 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
 import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
 import { createCoverScatter, type GroundCover, type ScatterItem, type WildItem } from './groundCoverScatter';
-import { groundTint } from '../terrain/biomeGround';
+import { groundTint, patchAt } from '../terrain/biomeGround';
 import type { WildKind } from './biomeCover';
 import {
   FERN_GRID, FERN_SHAPES, HEATHER_GRID, HEATHER_SHAPES, MUSHROOM_GRID, MUSHROOM_SHAPES, REED_GRID, REED_SHAPES, STONE_GRID, STONE_SHAPES, WILD_PALETTE,
@@ -109,7 +109,7 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
   const grassMaterial = plain();
   const windTime = addWindSway(grassMaterial, GRASS_WIND);
   const grassTint = (item: ScatterItem) =>
-    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT).multiply(groundTint(item.country ?? 'meadow', item.tier));
+    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT).multiply(groundTint(item.country ?? 'meadow', item.tier, patchAt(item.country ?? 'meadow', Math.round(item.x), Math.round(item.z))));
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).sprigs,

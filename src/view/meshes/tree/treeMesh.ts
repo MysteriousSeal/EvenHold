@@ -16,6 +16,7 @@ import { voxelLayer } from '../voxel/voxelInstances';
 import { gradeOf } from '../../../model/skills/lumber';
 import { bucketByChunk } from '../../world/chunkLayer';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
+import { createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
 
 export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
@@ -59,6 +60,13 @@ function stumpGeometry(kind: TreeKind): THREE.BufferGeometry {
 }
 
 const ANCIENT_TINT = new THREE.Color(0.62, 0.7, 0.66); // an ancient tree's, over its own: darker, its green deeper
+// By the country it stands in (model/scenery/biomes.ts): the deep woods' canopy dark, the hills' pines cooler, the
+// marsh's paler; over its own tint (an instance's colour: no draw more).
+const COUNTRY_TINT: Partial<Record<Biome, THREE.Color>> = {
+  forest: new THREE.Color(0.74, 0.84, 0.76),
+  hills: new THREE.Color(0.9, 0.95, 0.98),
+  marsh: new THREE.Color(1.04, 1.06, 0.94),
+};
 const SHAKE = 0.3; // seconds a tree shakes, chopped at
 const SHAKE_TILT = 0.06; // radians it sways at most
 
@@ -68,7 +76,13 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const stumpMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
   const windTime = addWindSway(material, TREE_WIND);
   // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
-  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree) });
+  const biomes = createBiomes(model.seed, model.tiles);
+  const tintOf = (tree: Tree) => {
+    const tint = gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
+    const country = COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];
+    return country ? tint.multiply(country) : tint;
+  };
+  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: tintOf(tree) });
   const chunks = bucketByChunk(model.trees, (tree) => tree);
   const { lumber } = model;
   // Where each tree drawn went (its mesh, its instance, its matrix), to shake it, or take it away felled.

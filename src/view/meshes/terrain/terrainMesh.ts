@@ -6,7 +6,7 @@ import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
 import { TERRAIN_COLORS } from '../../constants';
 import { addVoxelGround } from './voxelGround';
 import { createBiomes } from '../../../model/scenery/biomes';
-import { groundTint } from './biomeGround';
+import { groundTint, patchAt } from './biomeGround';
 
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
 
@@ -65,7 +65,8 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
         const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
         cells.forEach((cell, i) => {
           mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, tier * TILE_HEIGHT - columnHeight / 2, cell.z));
-          mesh.setColorAt(i, groundTint(biomes.at(cell.x, cell.z), tier));
+          const country = biomes.at(cell.x, cell.z);
+          mesh.setColorAt(i, groundTint(country, tier, patchAt(country, cell.x, cell.z)));
         });
         return mesh;
       });
