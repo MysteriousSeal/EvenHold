@@ -1,0 +1,260 @@
+// The second arc in Greyminster, the cathedral town (saintQuests.ts before it): whoever vouches for the hero there,
+// by the bouncer's secret (his sister, Sister Agnes, if he was told on; Captain Grey, who knew that cudgel; Gil the
+// pardoner, who's anybody's friend for silver), and an old pilgrim if the hero once threw his coin in a well; Gil's
+// relics; the carter in the bishop's cells, who told the truth and was locked up for it; the captain's cat; the
+// bishop's leg, and what he knows; the stair under the altar, down into the Undercroft, where something has been
+// answering the prayers; and the bishop's bargain (the arc's choice: the false saint shown up, or his gold kept
+// quiet). Then the carter taken home, and the herbalist's last word (theirs, or none).
+import type { StoryQuest } from '../storyQuests';
+
+const saint = (q: Omit<StoryQuest, 'scope' | 'where'>): StoryQuest => ({ scope: 'saint', where: 'town', ...q });
+const VOUCHED: Record<string, string> = {
+  truth: "You are the one my brother wrote about. He has not written to me in thirty years, and then a letter comes, three lines, his spelling no better. 'Somebody from our village is coming. Let them in. They told the truth when I could not.'",
+  mercy: "Captain Grey asked me to look out for you. He says you carry a cudgel he knew once, on a man he rode with, who kept a secret of his. The captain does not ask favours. I am not sure I like it.",
+  purse: 'Gil the pardoner says you are a friend of his. Gil says that of everybody who has ever given him money, so I will make up my own mind.',
+};
+const SEEN: Record<string, string> = {
+  free: "There is a warrant with your name on it, from a village on the north road. A witch lost a chain. I have not acted on it. Yet. You understand. The cat.",
+  handed: 'You handed us the woman on the road. Very proper. I have written you down in the other book. The good one.',
+  left: 'You walked past a chained woman and did not look back. Most people do. It is what makes my work possible.',
+};
+const exposed = (t: { chose?(id: string): string | undefined }) => t.chose?.('theSaintsBargain') === 'expose';
+
+export const SAINT_TOWN_QUESTS: StoryQuest[] = [
+  saint({
+    id: 'whoVouchesForYou',
+    name: 'Bread for the hospice',
+    giver: 'sister',
+    receiver: 'sister',
+    follows: 'onToGreyminster',
+    needs: { kind: 'bring', item: 'bread', count: 3 },
+    offer: (t) => [
+      VOUCHED[t.chose?.('theDoorman') ?? ''] ?? 'You have come up the road from the hill villages. Everybody has, this year.',
+      ...(t.did?.('aCoinAtTheWell') ? ['And an old man in my hospice, a pilgrim with ruined feet, says a stranger once threw his coin in a well for him. He described you very well. He said you had kind eyes. I do not see it, but he is nearly blind.'] : []),
+      'I keep the pilgrims\' hospice. Two hundred souls on straw and more every day, all come to be healed by a saint\'s finger. Bring me bread for them, three loaves. Then we can talk about what I have seen.',
+    ],
+    accept: "I'll bring bread.",
+    decline: 'Not now.',
+    waiting: () => ['Three loaves of bread, for the pilgrims in the hospice.'],
+    after: () => ['Bread goes further than prayers in here. I have stopped saying that out loud.'],
+    task: (t) => `Bring 3 loaves of bread to ${t.giver}, for the pilgrims' hospice`,
+    handIn: () => [
+      'Bless you. Sit. I will tell you something I have not told the bishop.',
+      'They are healed. Not some of them. Most of them. They kiss the glass over the finger and go white, as if somebody had put a cold hand on the back of their neck, and they get up and walk. I have nursed the sick for twenty years and I have never seen anything like it.',
+      'And afterwards they never pray again. Not one of them. They go home well, and they never pray again. I do not know what that means. I am frightened to know.',
+    ],
+    thanks: 'Something is answering.',
+    copper: 150,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'toenailsOfTheSaint',
+    name: 'Toenails of the saint',
+    giver: 'pardoner',
+    receiver: 'pardoner',
+    follows: 'whoVouchesForYou',
+    needs: { kind: 'bring', item: 'boneCharm', count: 3 },
+    offer: () => [
+      'Relics! Saint Aldous\'s toenails, five clippings to the pouch! A thread of the rope that martyred him! He was burned? Strangled. Burned and strangled. It was a long day for him.',
+      "I'm out of toenails. Business is good. You look like somebody who goes down holes in hills. The dead down there wear little charms of carved bone. Bring me three and I'll make you a partner. A silent partner. Very silent.",
+    ],
+    accept: 'Three bone charms.',
+    decline: "That's disgusting.",
+    waiting: () => ["Three bone charms off the dead. Any crypt will do. The saints aren't fussy, and the pilgrims are less fussy than the saints."],
+    after: () => ["Business is very good. I'm thinking of having a saint of my own. Saint Gil, patron of honest men. It'd be a quiet feast day."],
+    task: (t) => `Bring 3 bone charms from the dead of a crypt to ${t.giver}`,
+    handIn: () => [
+      "Lovely. That one's a toe. That one's a knuckle of the blessed hand. That one I don't know, but it'll be holy by the time I've finished with it.",
+      "Do you want to know something funny? They work. I sold a toenail of Saint Aldous to a woman with a goitre the size of a hen's egg, and it went down overnight. It was a bit of a goat. I've stopped laughing about it. I'm a liar, friend. I'm not used to being right.",
+    ],
+    thanks: 'Everything works here.',
+    copper: 140,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'theCarterInTheCells',
+    name: 'The carter in the cells',
+    giver: 'deacon',
+    receiver: 'prisoner',
+    follows: 'toenailsOfTheSaint',
+    offer: (t) => [
+      'You are from the carter\'s village, I think. Sister Agnes talks. Everybody talks in Greyminster. It is the bells: they make people want to be heard.',
+      `${t.receiver} is in His Grace's cells. He insists that the blessed relic is a deacon's finger, and he shouts it through the grating at the pilgrims. It is bad for trade. Go down and talk him into a quieter frame of mind, and His Grace will be grateful. His Grace's gratitude has a weight to it, in coin.`,
+    ],
+    accept: "I'll talk to him.",
+    decline: 'Not for you.',
+    waiting: (t) => [`Go down to the cells and talk to ${t.receiver}. Calm him.`],
+    after: () => ['He is quieter. Thank you. His Grace will remember it, which is not always a good thing.'],
+    task: (t) => `Talk to ${t.receiver}, in the bishop's cells`,
+    handIn: () => [
+      'You! You came. Look at me. Thirty years a coward, I find my courage at the bottom of a jug, and they lock me in a hole for it.',
+      "Listen. I told them. I told the deacon to his face that it's a finger from our crypt. And he smiled. He knew. The bishop knows. Nobody cares what it is, because it works.",
+      'The first night here they carried a boy with a burned arm past my grating, on the way to the altar. I heard him come back. He was laughing. And under the floor, under all of it, I heard something else laugh with him. Something big, and very old, and very pleased.',
+      "Don't calm me down. Find out what's under the floor.",
+    ],
+    thanks: "I'll find out.",
+    copper: 150,
+    xpShare: 0.6,
+  }),
+  saint({
+    id: 'theCaptainsCat',
+    name: "The captain's cat",
+    giver: 'captain',
+    receiver: 'captain',
+    follows: 'theCarterInTheCells',
+    needs: { kind: 'bring', item: 'smallFry', count: 2 },
+    offer: () => [
+      "Good day. Captain Wystan Grey, of His Grace's witch-finders. I know who you are, and where you have been, and I think what you have been doing. We will speak of it another time. Today I have a small difficulty.",
+      'There is a cat in my hall. A black cat. It has been there since Tuesday. My men will not go in, because they are fools, and I will not go in, because I am not. Cats are what they become, you see. Every woman I have ever burned, there was a cat on the roof the next morning, watching me.',
+      'Two small fish, laid at the door, and it will come out. I cannot handle fish myself. The eyes.',
+    ],
+    accept: 'Two fish. Fine.',
+    decline: 'Keep your cat.',
+    waiting: () => ['Two small fish, at my hall door. Please. Quickly.'],
+    after: (t) => [SEEN[t.chose?.('smokeOnTheRoad') ?? ''] ?? 'Good day. Mind how you go.'],
+    task: () => "Bring 2 small fry, to lure the cat out of the witch-finders' hall",
+    handIn: () => [
+      'Ah. It came out. It looked at me as it went. I believe it knew me. Thank you.',
+      'Let me give you some advice in return, as one careful person to another. People who go asking what is under the Minster tend to be found to have been witches all along. It is remarkable how often. I would hate to write your name down. I have very neat writing.',
+    ],
+    thanks: "I'll remember.",
+    copper: 120,
+    xpShare: 0.4,
+  }),
+  saint({
+    id: 'theBishopsLeg',
+    name: "The bishop's leg",
+    giver: 'bishop',
+    receiver: 'bishop',
+    follows: 'theCaptainsCat',
+    needs: { kind: 'bring', item: 'wine', count: 3 },
+    offer: () => [
+      "Come in, come in, don't stand there letting the draught at my leg. Gout. The physician says no wine, no meat, and no nieces. I have three nieces. They are a great comfort to me.",
+      "Fetch me three bottles of wine. Not the Minster's, the deacon counts it. Bring it under your coat, there's a good pilgrim, and we'll talk about your carter like sensible people.",
+    ],
+    accept: 'Three wines.',
+    decline: 'Drink water.',
+    waiting: () => ['Three wines, under your coat. The deacon must not see.'],
+    after: () => ["Still in Greyminster? Good. I like somebody who can carry wine without spilling it, or talking."],
+    task: (t) => `Smuggle 3 wines to ${t.giver}, for his leg`,
+    handIn: () => [
+      "Ahh. That's the stuff. Sit. Not there, that's the nieces' chair.",
+      "Yes, I know it's a knuckle. I'm not a fool. I've been in this trade forty years. I have bought three heads of Saint Hollin, and a fourth that was a calf. A relic is what people need it to be.",
+      "But this one works. Do you understand what that means? The Minster was half empty a year ago. Now they sleep in the nave. They pay for candles, they pay for blessings, they pay to sleep near the glass. If something is answering their prayers, I have no intention of asking it to stop.",
+    ],
+    thanks: "And if it's something bad?",
+    copper: 180,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'theStairUnderTheAltar',
+    name: 'The stair under the altar',
+    giver: 'sister',
+    receiver: 'sister',
+    follows: 'theBishopsLeg',
+    needs: { kind: 'do', what: 'reliquary', count: 1 },
+    offer: () => [
+      'There is a stair under the high altar. I sweep the altar steps every morning, and I can feel the cold coming up through the stone. Saint Hollin is down there, in the Undercroft. Four hundred years, they say, and never rotted.',
+      'I have had the key for twenty years and never used it. I was afraid of what I would find, and afraid I would find nothing. Take it. Go down. If something is answering, I want to know what I have been thanking.',
+    ],
+    accept: 'Give me the key.',
+    decline: 'Not yet.',
+    waiting: () => ['Go down the stair under the high altar, into the Undercroft. Find what is answering the prayers.'],
+    after: () => ['I still pray. I am just more careful about the address.'],
+    task: () => 'Go down into the Undercroft, under the Minster, and find what answers',
+    handIn: () => [
+      'You are as white as milk. Sit down. Tell me.',
+      '...Saint Hollin. Gilded, you say, and sitting up, with the prayers going into it like water down a drain. And the healing was the bait, and the praying stops because it eats the praying. And whatever it was, it is broken now.',
+      'I prayed to that every morning for twenty years. Well. God made the cat as well as the mouse. I have work to do. The sick will still be sick tomorrow, and now nobody is going to heal them but me.',
+    ],
+    thanks: "You'll manage.",
+    copper: 300,
+    xpShare: 1.2,
+    gift: { gear: 'smokingCenser', least: 'rare' },
+  }),
+  saint({
+    id: 'theSaintsBargain',
+    name: "The saint's bargain",
+    giver: 'deacon',
+    receiver: 'bishop',
+    follows: 'theStairUnderTheAltar',
+    offer: () => ["His Grace would like a word. Now, if you please. He has had a purse made up, which is a thing I have never seen him do for anybody who was not a niece."],
+    accept: "I'll see him.",
+    decline: 'Let him wait.',
+    waiting: () => ['His Grace is waiting. With a purse.'],
+    after: (t) => (exposed(t) ? ['They have put him in the stocks on the square, leg and all. I take him water at noon. Somebody has to keep the books.'] : ['His Grace is very pleased with you. So am I. Do come again, when we have another saint.']),
+    task: (t) => `See ${t.receiver}, who has had a purse made up`,
+    handIn: () => [
+      'Sit. I know what you did down there. The whole Minster felt it go. The candles all leaned one way, and three hundred pilgrims were sick at once. Very bad for the floor.',
+      "So. The miracles have stopped, I expect. But the pilgrims don't know that. They'll go on coming for years, on the strength of what they've seen. The finger stays on the altar. The carter goes home, quietly. The captain goes on with his work, which keeps the villages respectful.",
+      "Or you go out on the steps and tell the town that their saint is a knuckle, and the thing that healed them was eating their prayers. They'll believe you. They'll burn something. Possibly me. Here is the purse. It's heavy. Choose.",
+    ],
+    thanks: 'I see.', // (unsaid: a choice)
+    choice: [
+      {
+        key: 'expose',
+        label: 'Out on the steps. Tell them all.',
+        later: { quest: 'theLastWord', gift: { gear: 'sunwardAegis', least: 'epic' } },
+        said: () => ['...Then help me up, at least. This leg. No? No. I did not suppose you would.'],
+      },
+      {
+        key: 'gold',
+        label: 'Take the purse. Say nothing.',
+        copper: 800,
+        said: () => ["Sensible. The world's run by sensible people, you know. That's why it's like this."],
+      },
+    ],
+    copper: 200,
+    xpShare: 1,
+  }),
+  saint({
+    id: 'theRoadHome',
+    name: 'The road home',
+    giver: 'prisoner',
+    follows: 'theSaintsBargain',
+    needs: { kind: 'reach', place: 'home', within: 25 },
+    offer: (t) => [
+      exposed(t)
+        ? "They broke the doors of the cells this morning. The whole town, with the bishop's own chairs on fire behind them. Somebody had the decency to unlock me before they burned the place."
+        : "The deacon let me out this morning. He gave me a pie for the road. He said His Grace had been told I was a good, quiet man now, by somebody he trusts. I wonder who that was.",
+      "Take me home. The horses will be at the miller's. And I want to see her face.",
+    ],
+    accept: "Let's go home.",
+    decline: 'Not yet.',
+    waiting: () => ['Take me home, to the village. I know the road. You walk in front.'],
+    after: () => ['Home. Go on ahead. I want to come up the trail on my own.'],
+    task: (t) => `Take ${t.giver} home`,
+    handIn: () => [],
+    thanks: '',
+    copper: 200,
+    xpShare: 0.8,
+  }),
+  {
+    id: 'theLastWord',
+    name: 'The last word',
+    scope: 'saint',
+    where: 'home',
+    giver: 'herbalist',
+    follows: 'theRoadHome',
+    offer: (t) =>
+      exposed(t)
+        ? [
+            'He came in at my door and sat down at my table as if he had done it every day for thirty years. I gave him soup. He cried into it. Then he told me the rest.',
+            'A bishop in the stocks, and the witch-finders gone over the hills like sheep. And the thing that healed them was eating their prayers. Oh, that is good. That is even better than the finger.',
+            'Come here. There is a place called EvenHold. My grandmother used to talk of it: where the road goes when it runs out of villages. Nobody I know has been. Go and find it, and come back and tell me.',
+          ]
+        : [
+            'He told me. All of it. He thinks you were clever. He would.',
+            'I know what was in that purse, and I know whose work it pays for. I will sell to you. I will not speak to you again.',
+          ],
+    accept: "I'm home.",
+    decline: 'Not now.',
+    waiting: () => [],
+    after: (t) => (exposed(t) ? ['EvenHold. At the end of the road. Go on, then.'] : ['Pay, and go.']),
+    task: () => 'Hear what the herbalist has to say',
+    handIn: () => [],
+    thanks: '',
+    copper: 300,
+    xpShare: 1,
+  },
+];

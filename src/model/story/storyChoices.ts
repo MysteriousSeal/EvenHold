@@ -2,7 +2,7 @@
 // way of it its own answer, its own word after, and its own reward (coin, a gift); what was chosen kept (and in the
 // save), so what's said later can turn on it (Told `chose`), and a later quest pay a reward one way earned (`later`).
 
-import type { Gift, StoryQuest, StoryQuestId, Told } from './storyQuests';
+import type { Gift, StoryQuest, StoryQuestId, StoryRole, Told } from './storyQuests';
 import type { Talk } from './story';
 
 export interface Choice {
@@ -12,6 +12,7 @@ export interface Choice {
   copper?: number; // paid on top (at a first-level village; more, the further out, as the quest's own)
   gift?: Gift; // given on top
   later?: { quest: StoryQuestId; gift: Gift }; // a later quest's handing in, the richer for it
+  gone?: StoryRole; // whoever plays that part taken away for good, after it (the men in grey's: story.ts)
 }
 
 // The hero's answers as a quest's handed in: its thanks; or, a choice, each way of it (the first lit), and a way to
