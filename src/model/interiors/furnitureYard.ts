@@ -59,6 +59,8 @@ function against(kind: FurnitureKind): Furniture['wall'] {
     case 'anvil':
     case 'coal':
     case 'scrapHeap':
+    case 'bladeCrate':
+    case 'wheelRim':
     case 'armchair':
     case 'bench':
     case 'grindstone':

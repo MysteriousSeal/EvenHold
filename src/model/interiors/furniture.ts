@@ -44,6 +44,8 @@ export const FURNITURE_KINDS = [
   'coal',
   'barStock', // a bundle of iron bars, stood in a corner
   'scrapHeap', // old iron waiting by the salvage bench
+  'bladeCrate', // new blades, hilts up, by the smith's counter
+  'wheelRim', // a cartwheel's iron tyre, stood against a wall
   // A herbalist's own (herbalist/herbalistLayout.ts)
   'cauldron', // before the hearth, on its embers
   'herbCounter', // where they trade, by the door
@@ -85,6 +87,7 @@ export interface Furniture {
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
   leather?: boolean; // a chair: its cushion leather, not red cloth (an inn's: its red kept for the hearth)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
+  side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
 

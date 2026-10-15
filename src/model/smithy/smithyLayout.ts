@@ -33,7 +33,8 @@ export function furnishSmithy(plan: Planner, room: Room): void {
     // The quench trough along the back wall on the forge's right, the bellows on its left (the other way round if there's no room).
     const right = room2(forge.x + 2) && (room1(forge.x - 1) || !(room2(forge.x - 2) && room1(forge.x + 2))); // (right, unless only the left leaves the bellows room)
     before(place('trough', 2, 1, 'back', right ? [[forge.x + forge.w, 0]] : [[forge.x - 2, 0]], false, true)); // against the wall
-    place('bellows', 1, 1, 'back', right ? [[forge.x - 1, 0], [forge.x + forge.w, 0]] : [[forge.x + forge.w, 0], [forge.x - 1, 0]], false, true);
+    const bellows = place('bellows', 1, 1, 'back', right ? [[forge.x - 1, 0], [forge.x + forge.w, 0]] : [[forge.x + forge.w, 0], [forge.x - 1, 0]], false, true);
+    if (bellows) bellows.side = bellows.x < forge.x ? 1 : -1;
     // The row before the forge kept free (to work the fire, and see it);
     // the anvil and the grindstone side by side across it from the fire,
     // or else wherever two tiles side by side are free, nearest it (the
@@ -123,6 +124,10 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   place('barStock', 1, 1, 'back', corners, false);
   const bench = items.find((f) => f.kind === 'salvageBench');
   if (bench) place('scrapHeap', 1, 1, 'none', [[bench.x + 1, bench.z], [bench.x - 1, bench.z], [bench.x, bench.z - 1]], false);
+  // In the front of the room: a crate of new blades at an end of his counter, and a cartwheel's tyre stood against the
+  // right wall.
+  if (counter) place('bladeCrate', 1, 1, 'none', [[counter.x + counter.w, counter.z], [counter.x - 1, counter.z]], false);
+  place('wheelRim', 1, 1, 'none', down(room.width - 1).filter(([, z]) => z >= 1 && z < room.depth - 1).reverse(), false);
   place('barrel', 1, 1, 'none', [[room.width - 1, room.depth - 1], [0, room.depth - 1], [room.width - 1, 0], ...down(room.width - 1).reverse()], false);
   // No floor walled in: a stand shutting a tile off from the door is taken
   // away; any other such tile (a corner, boxed in) gets a barrel, clutter
