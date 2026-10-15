@@ -97,4 +97,15 @@ export function furnishSmithy(plan: Planner, room: Room): void {
     }
     fillPocket(px, pz);
   }
+  // A lantern by his wares, so they catch the eye away from the fire: on the back wall beside a wall of weapons, else on
+  // the left wall toward the door, else wherever on those walls it hangs free (never over the fire or the trough, nor
+  // over a stand or the rack).
+  const under = (wall: Furniture['wall'], x: number, z: number) => items.some((f) => (f.kind === 'armorStand' || f.kind === 'rack') && f.wall === wall && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
+  const wares = items.filter((f) => f.kind === 'weaponWall').flatMap((f) => [f.x - 1, f.x + 1]);
+  const back = along(0).filter(([x]) => !byFire(x) && !overTrough(x) && !under('back', x, 0));
+  const left = down(0).filter(([, z]) => !under('left', 0, z)).reverse(); // (toward the door first)
+  place('wallLantern', 1, 1, 'back', back.filter(([x]) => wares.includes(x)), false) ??
+    place('wallLantern', 1, 1, 'left', left.filter(([, z]) => z >= room.depth - 3), false) ??
+    place('wallLantern', 1, 1, 'back', back, false) ??
+    place('wallLantern', 1, 1, 'left', left, false);
 }
