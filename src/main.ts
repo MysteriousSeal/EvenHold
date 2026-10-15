@@ -4,6 +4,7 @@ import type { Who } from './model/story/story';
 import { hasPox } from './model/hero/blessing';
 import { poxTalk } from './model/hero/pox';
 import { interactionOf } from './model/hero/interaction';
+import { stationPrompt } from './controller/hero/stationPrompts';
 import { createTalkPanel } from './controller/story/talkPanel';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
@@ -273,12 +274,13 @@ async function boot(): Promise<void> {
   ]);
   // What E does right now: pick up loot in reach, else sit or lie down (or get up), else go through a door.
   const DOOR_NAMES = { house: 'Enter house', inn: 'Enter the inn', smithy: 'Enter the smithy' } as const;
-  const CHEST_PROMPTS = { chest: 'Open the chest', hoard: 'Tear open the hoard', locked: 'Locked · the chief has the key' } as const;
   const promptTarget = (): PromptTarget | null => {
     const { hero } = model;
     const seated = model.seated;
     const found = interactionOf(model); // (what E would do: model/hero/interaction.ts)
     if (!found) return null;
+    const station = stationPrompt(model, found); // (a chest, the strongbox, the bench, the anvil, a cauldron, a fire, a well: controller/hero/stationPrompts.ts)
+    if (station) return station;
     if (!model.work.shift && seated?.seat.piece.kind === 'barStool' && bar.busy && (found.kind !== 'talk' || found.npc.role === 'barkeep')) return null; // she's seeing to the order: no talking to her, and E waits (a word with the patron beside, still)
     const overHero = (label: string, up = 1.05) => ({ label, x: hero.x, y: hero.y + up, z: hero.z });
     const asking = (who: Who): boolean => ['offer', 'ready'].includes(model.story.markOf(who) ?? '') || ('role' in who && who.role === 'herbalist' && hasPox(model.hero)); // (a quest to give, or to take in: a word first, whatever their trade)
@@ -304,10 +306,6 @@ async function boot(): Promise<void> {
         return herbPrompt(model); // (pick it, stop; or not, and why)
       case 'loot':
         return lootTarget(found.loot);
-      case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
-        return { label: CHEST_PROMPTS[found.chest.what], x: found.chest.x, y: found.chest.y, z: found.chest.z };
-      case 'strongbox': // (the inn's, or the let room's chest: the one stash)
-        return { label: 'Open your strongbox', x: found.box.x, y: 0.7, z: found.box.z };
       case 'home': // (in a cottage: its notice, a spot to build on, the trophy wall)
         return homePrompt(model, found.action);
       case 'carter':
@@ -326,16 +324,6 @@ async function boot(): Promise<void> {
         const spot = boardSpot(model, found.board);
         return spot ? { label: 'Read the notice board', x: spot.x, y: hero.y + 1.05, z: spot.z } : null;
       }
-      case 'bench':
-        return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
-      case 'anvil':
-        return { label: 'Forge', x: found.anvil.x, y: 0.9, z: found.anvil.z };
-      case 'cauldron':
-        return { label: 'Brew', x: found.cauldron.x, y: 0.9, z: found.cauldron.z };
-      case 'fire': // (a hearth: over its middle; a campfire, over it)
-        return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
-      case 'well':
-        return { label: 'Toss a silver coin', x: model.villages[found.village].x, y: hero.y + 0.8, z: model.villages[found.village].z };
       case 'hallDoor':
         return overHero(quitsAt(model.work, found.door) ? 'End your shift' : found.door.open ? 'Close door' : 'Open door'); // (a locked one too: tried, it's found locked)
       case 'stairs':
@@ -349,6 +337,7 @@ async function boot(): Promise<void> {
         return { label, x: door.x, y: hero.y + 0.75, z: door.z };
       }
     }
+    return null; // (the rest: stationPrompt's, above)
   };
   const onFrame = () => {
     countFrame();
