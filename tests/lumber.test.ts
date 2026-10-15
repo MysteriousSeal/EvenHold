@@ -150,6 +150,7 @@ describe('chopping', () => {
     for (const level of [125, 200, 299]) expect(riseOf('oak', level)).toBe(RISE[2]);
     expect(riseOf('pine', 125)).toBe(RISE[3]); // (the rest: grey as ever)
     expect(riseOf('ancientPine', 125)).toBe(RISE[0]);
+    for (const level of [225, 299]) expect([riseOf('ancientPine', level), riseOf('ancientOak', level)]).toEqual([RISE[2], RISE[2]]); // (nor any tree harder than the oak: an ancient pine never teaching less than it)
     // Oaks chopped at by a hand at 125, one after another: the skill rises, in time.
     const { model } = byATree('oak');
     const skill = skillOf(model.hero, 'lumberjacking');
