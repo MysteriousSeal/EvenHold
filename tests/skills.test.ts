@@ -5,7 +5,7 @@
 // of: its tier over its name, the road of its tiers with where the hero stands, what it opens, how it's raised.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, raiseSkill, readSkills, skillOf, tierOf } from '../src/model/skills/skills';
+import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, practise, raiseSkill, readSkills, skillOf, stepsOf, tierOf } from '../src/model/skills/skills';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE } from './support/testWorld';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
@@ -71,6 +71,21 @@ describe('skills', () => {
     expect(skillOf(hero, 'cooking').level).toBe(1); // (the others let be)
   });
 
+  it('rise a level only after so many tries that taught (its tier\'s steps), told then; a grey try teaches nothing', () => {
+    const hero = new GameModel(1, TEST_MAP_SIZE).hero;
+    const events: unknown[] = [];
+    const steps = stepsOf('lumberjacking', 1);
+    expect(steps).toBe(SKILLS.lumberjacking.steps[0]);
+    for (let i = 1; i < steps; i++) expect(practise(hero, 'lumberjacking', 1, 0, (e) => events.push(e))).toBe(0);
+    expect([skillOf(hero, 'lumberjacking'), events]).toEqual([{ level: 1, toward: steps - 1 }, []]);
+    expect(practise(hero, 'lumberjacking', 1, 0.99, (e) => events.push(e))).toBe(1); // (an orange try: always teaches)
+    expect(skillOf(hero, 'lumberjacking')).toEqual({ level: 2 });
+    expect(events).toEqual([{ kind: 'skillUp', skill: 'Lumberjacking', level: 2 }]);
+    skillOf(hero, 'cooking').level = 200;
+    expect([practise(hero, 'cooking', 1, 0, () => {}), skillOf(hero, 'cooking').toward]).toEqual([0, undefined]); // (grey)
+    for (const id of SKILL_IDS) for (const n of SKILLS[id].steps) expect(n).toBeGreaterThanOrEqual(1);
+  });
+
   it("are kept in the save; an older save's none (each at 1), a broken one's made sound", () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     raiseSkill(model.hero, 'cooking', 80);
@@ -80,6 +95,7 @@ describe('skills', () => {
     expect(readSkills(undefined)).toEqual({});
     expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 } });
     expect(readSkills({ cooking: { level: 'x' } })).toEqual({});
+    expect(readSkills({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5, toward: 99 }, cooking: { level: 5, toward: -1 } })).toEqual({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5 }, cooking: { level: 5 } }); // (tries toward the next: kept, if sound)
   });
 });
 
@@ -107,7 +123,7 @@ describe('the skills window', () => {
     panel.menu.close();
   });
 
-  it('says what they are at just now: chopping a tree, making something', () => {
+  it('says what they are at just now: chopping a tree, making something, breaking a piece down', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const tree = model.trees.find((t) => t.kind === 'birch')!;
     model.lumber.chopping = { tree, t: 0 };
@@ -120,6 +136,9 @@ describe('the skills window', () => {
     panel.menu.open();
     expect(cardsOf()[1].querySelector('.skill-card-status.live')?.textContent).toBe('Crafting Birch plank · 1 of 3');
     panel.menu.close();
+    model.woodworking.stop();
+    model.salvage.breaking = { key: 'armingSword', t: 0 }; // (and breaking a piece down at the bench)
+    expect(statusOf(model, 'salvaging')).toBe('Breaking down Arming sword');
   });
 
   it("opens a skill's own window, clicked: where they stand across the top (their title, level, ruler, what's next), what it offers under it", () => {

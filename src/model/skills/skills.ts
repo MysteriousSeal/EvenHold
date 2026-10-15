@@ -2,8 +2,10 @@
 // (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
 // (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
-// woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try raises it is by how hard the thing
-// is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never.
+// woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
+// is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never; and a level
+// wants so many tries that taught (its skill's STEPS at its tier: the quicker a try, the more), so a tier's an hour or
+// so of the trade, the whole of it three to five.
 
 export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
 
@@ -14,6 +16,7 @@ export interface Skill {
   verb: string; // what's done to raise it ("cook", "fish")
   about: string; // what it is, in a line
   unlocks: ReadonlyArray<{ at: number; what: string }>; // what each level reached opens (from its tier's start)
+  steps: readonly [number, number, number, number]; // tries that taught, a level, at each tier (a chop's a few seconds, a meal's makings a hunt)
 }
 
 export interface SkillTier {
@@ -33,6 +36,7 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
+    steps: [10, 10, 11, 12],
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
@@ -50,6 +54,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   woodworking: {
     name: 'Woodworking',
+    steps: [3, 3, 3, 3],
     kind: 'main',
     verb: 'work wood',
     practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
@@ -68,6 +73,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   salvaging: {
     name: 'Salvaging',
+    steps: [1, 1, 1, 1],
     kind: 'secondary',
     practice: 'Break gear down at the salvage bench in a smithy (the workbench with the vice, out on his floor).',
     verb: 'salvage',
@@ -84,6 +90,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   cooking: {
     name: 'Cooking',
+    steps: [2, 2, 2, 2],
     kind: 'secondary',
     verb: 'cook',
     practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',
@@ -99,6 +106,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
+    steps: [6, 6, 6, 6],
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
@@ -115,9 +123,10 @@ export const SKILLS: Record<SkillId, Skill> = {
 
 export const SKILL_IDS = Object.keys(SKILLS) as SkillId[];
 
-// The hero's level in a skill.
+// The hero's level in a skill, and the tries toward the next that have taught (none yet: none).
 export interface SkillRecord {
   level: number;
+  toward?: number;
 }
 
 type Skilled = { skills?: Partial<Record<SkillId, SkillRecord>> };
@@ -136,11 +145,15 @@ export function tierOf(level: number): { tier: SkillTier; index: number; toward:
   return { tier, index, toward: Math.min(1, (level - tier.from) / (tier.to - tier.from)) };
 }
 
-// A skill raised `by` levels (to SKILL_MAX at most): the levels it rose by (0 at the top).
+// How many tries that taught a level of `skill` wants, at `level` (its tier's).
+export const stepsOf = (skill: SkillId, level: number): number => SKILLS[skill].steps[tierOf(level).index];
+
+// A skill raised `by` levels (to SKILL_MAX at most), what was toward the next let go: the levels it rose by (0 at the top).
 export function raiseSkill(hero: Skilled, skill: SkillId, by = 1): number {
   const record = skillOf(hero, skill);
   const before = record.level;
   record.level = Math.min(SKILL_MAX, before + Math.max(0, Math.floor(by)));
+  if (record.level > before) delete record.toward;
   return record.level - before;
 }
 
@@ -154,22 +167,30 @@ export const RISE: ReadonlyArray<{ within: number; chance: number; color: string
 ];
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
 
-// A try at something wanting `needs` (a tree felled at, a thing made): the skill raised, as its difficulty allows
-// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), told; the levels it rose by.
+// A try at something wanting `needs` (a tree felled at, a thing made): whether it taught, as its difficulty allows
+// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level; enough of
+// them (stepsOf), the skill raised, told; the levels it rose by.
 export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number): number {
-  const level = skillOf(hero, skill).level;
-  if (roll >= (chance ?? difficulty(needs, level).chance) || raiseSkill(hero, skill) === 0) return 0;
+  const record = skillOf(hero, skill);
+  const level = record.level;
+  if (level >= SKILL_MAX || roll >= (chance ?? difficulty(needs, level).chance)) return 0;
+  record.toward = (record.toward ?? 0) + 1;
+  if (record.toward < stepsOf(skill, level) || raiseSkill(hero, skill) === 0) return 0;
   report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
   return 1;
 }
 
-// A save's skills, as far as they're sound (an older save's: none, each at 1 when asked for).
+// A save's skills, as far as they're sound (an older save's: none, each at 1 when asked for; its tries toward the
+// next, none).
 export function readSkills(saved: unknown): Partial<Record<SkillId, SkillRecord>> {
   const out: Partial<Record<SkillId, SkillRecord>> = {};
   if (!saved || typeof saved !== 'object') return out;
   for (const skill of SKILL_IDS) {
     const level = (saved as Record<string, Partial<SkillRecord> | undefined>)[skill]?.level;
-    if (typeof level === 'number' && Number.isFinite(level)) out[skill] = { level: Math.min(SKILL_MAX, Math.max(1, Math.floor(level))) };
+    if (typeof level !== 'number' || !Number.isFinite(level)) continue;
+    const record: SkillRecord = (out[skill] = { level: Math.min(SKILL_MAX, Math.max(1, Math.floor(level))) });
+    const toward = (saved as Record<string, Partial<SkillRecord> | undefined>)[skill]?.toward; // (an older save's: none)
+    if (typeof toward === 'number' && toward >= 1 && toward < stepsOf(skill, record.level)) record.toward = Math.floor(toward);
   }
   return out;
 }
