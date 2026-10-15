@@ -3,11 +3,12 @@ import { readRenderOptions } from '../src/view/render/renderOptions';
 
 describe('render options', () => {
   it('defaults to 1x resolution with every effect on', () => {
-    expect(readRenderOptions('')).toEqual({ pixelRatio: 1, post: true, bloom: true, shafts: true, msaa: 4, uncapped: false });
+    expect(readRenderOptions('')).toEqual({ sky: {}, pixelRatio: 1, post: true, bloom: true, shafts: true, msaa: 4, uncapped: false });
   });
 
   it('reads switches and combines them', () => {
     expect(readRenderOptions('?seed=42&pr=2&nobloom&noshafts&msaa=0')).toEqual({
+      sky: {},
       pixelRatio: 2,
       post: true,
       bloom: false,
@@ -24,5 +25,11 @@ describe('render options', () => {
     expect(readRenderOptions('?pr=abc').pixelRatio).toBe(1);
     expect(readRenderOptions('?pr=').pixelRatio).toBe(1);
     expect(readRenderOptions('?msaa=3').msaa).toBe(4);
+  });
+
+  it('forces the sky for a look at it, ignoring what it doesn\'t know', () => {
+    expect(readRenderOptions('?hour=18.5&season=autumn&weather=rain').sky).toEqual({ hour: 18.5, season: 'autumn', weather: 'rain' });
+    expect(readRenderOptions('?hour=24&season=monsoon&weather=hail').sky).toEqual({});
+    expect(readRenderOptions('?hour=0').sky).toEqual({ hour: 0 });
   });
 });
