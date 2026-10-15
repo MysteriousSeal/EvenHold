@@ -34,6 +34,11 @@ describe('the small life by the water, and the rabbits', () => {
       const [x, z] = [Math.floor(c.x), Math.floor(c.z)];
       expect([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => lake(x + dx, z + dz))).toBe(true);
     }
+    expect(of('heron').length).toBeGreaterThan(0);
+    for (const c of of('heron')) {
+      expect(lake(c.x, c.z)).toBe(true); // (in the shallows, a step off the bank)
+      expect([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => !lake(c.x + dx, c.z + dz))).toBe(true);
+    }
     for (const c of of('fish')) for (const [dx, dz] of [[0, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]]) expect(lake(c.x + dx, c.z + dz)).toBe(true);
   });
 
@@ -81,7 +86,7 @@ describe('the small life, by country and weather', () => {
 });
 
 describe('songbirds on the fences', () => {
-  it('sit on a stretch of a field\'s fence, at most one to a post, the same every time', () => {
+  it('sit on a stretch of a field\'s fence (crows, a sown field\'s), at most one to a post, the same every time', () => {
     const perched = TEST_SEEDS.flatMap((seed) => perchesOn(FIELD, seed));
     expect(perched.length).toBeGreaterThan(0);
     const edges = fenceEdges(FIELD);
@@ -91,6 +96,7 @@ describe('songbirds on the fences', () => {
     }
     for (const seed of TEST_SEEDS) {
       const birds = perchesOn(FIELD, seed);
+      for (const b of birds) expect(b.kind).toBe(stockOf(FIELD, seed) === null ? 'crow' : 'bird'); // (crows on a sown field's fence, songbirds on a pasture's)
       expect(perchesOn(FIELD, seed)).toEqual(birds);
       expect(new Set(birds.map((b) => `${b.x},${b.z}`)).size).toBe(birds.length);
     }
