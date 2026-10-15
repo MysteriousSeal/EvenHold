@@ -29,7 +29,7 @@ function span(kind: FurnitureKind): [number, number] {
     case 'counter':
       return [4, 1];
     case 'trophyWall':
-      return [3, 1];
+      return [4, 1];
     case 'hearth':
     case 'bed':
     case 'roomBed':

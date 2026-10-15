@@ -6,7 +6,7 @@
 import type { EnemyKind, GameEvent, Hero } from '../types';
 import type { BountyKind } from '../quests/bountyNames';
 
-export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt' | 'finderHat';
+export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt' | 'finderHat' | 'deaconHand';
 export type Trophies = Partial<Record<TrophyId, number>>; // how many of each taken
 
 export const TROPHIES: Record<TrophyId, { name: string }> = {
@@ -20,9 +20,10 @@ export const TROPHIES: Record<TrophyId, { name: string }> = {
   lynxPelt: { name: "A lynx's pelt" },
   wolfPelt: { name: "A pack leader's pelt" },
   finderHat: { name: "A witch-finder's hat" },
+  deaconHand: { name: "The Gilded Deacon's gilt hand" },
 };
 export const TROPHY_IDS = Object.keys(TROPHIES) as TrophyId[];
-export const WALL_PEGS = 10; // trophies a wall holds (two rows of five)
+export const WALL_PEGS = 14; // trophies a wall holds (two rows of seven)
 
 // Each boss's (and captain's, and a witch-finder's), by the kind of foe it is. (By name: a witch-finder's kind is the
 // roads' own, v0.9, known once they're in.)
@@ -35,6 +36,7 @@ const OFF: Partial<Record<EnemyKind | 'witchFinder', TrophyId>> = {
   gaoler: 'captainBlade',
   captain: 'captainBlade',
   witchFinder: 'finderHat',
+  // (The reliquary's named champions, by their kinds: 'kind': 'captainBlade', or a trophy of their own.)
 };
 export const trophyOff = (kind: EnemyKind): TrophyId | null => OFF[kind as keyof typeof OFF] ?? null;
 
@@ -52,9 +54,10 @@ export function takeTrophy(host: { hero: Hero; report(event: GameEvent): void },
   host.report({ kind: 'homestead', text: n === 1 ? `Trophy: ${TROPHIES[id].name.toLowerCase()}` : `Trophy: ${TROPHIES[id].name.toLowerCase()} (${n})` });
 }
 
-// A foe slain (GameModel's report): a boss's or a captain's trophy taken.
+// A foe slain (GameModel's report): a boss's or a captain's trophy taken; the reliquary cleared (the story's word for
+// the Gilded Deacon's fall, v0.9's cathedral: by name, known once it's in), his.
 export function onSlain(host: { hero: Hero; report(event: GameEvent): void }, event: GameEvent): void {
-  const id = event.kind === 'slain' ? trophyOff(event.on) : null;
+  const id = event.kind === 'slain' ? trophyOff(event.on) : event.kind === 'cleared' && (event.place as string | undefined) === 'reliquary' ? 'deaconHand' : null;
   if (id) takeTrophy(host, id);
 }
 

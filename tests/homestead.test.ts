@@ -149,7 +149,11 @@ describe('a cottage of your own', () => {
     use(model);
     expect(piece(model, 'trophyWall').hung).toEqual(['lordSkull', 'broodFangs']);
     expect(homeAction(model)?.kind).toBe('trophies');
-    expect(hungOf(Object.fromEntries(TROPHY_IDS.map((id) => [id, 1])))).toHaveLength(Math.min(WALL_PEGS, TROPHY_IDS.length));
+    expect(hungOf(Object.fromEntries(TROPHY_IDS.map((id) => [id, 1])))).toHaveLength(TROPHY_IDS.length); // (room for every kind)
+    expect(WALL_PEGS).toBeGreaterThanOrEqual(TROPHY_IDS.length);
+    model.report({ kind: 'cleared', name: 'The Reliquary', place: 'reliquary' as 'crypt' }); // (the story's word for the Gilded Deacon's fall: v0.9's cathedral)
+    model.report({ kind: 'cleared', name: 'A crypt', place: 'crypt' });
+    expect(model.hero.trophies?.deaconHand).toBe(1);
   });
 
   it('is kept in a save, and an older save has none', () => {

@@ -154,6 +154,19 @@ const PAINT: Record<TrophyId, (at: Cell) => void> = {
     at(6, 3, 6, 6, 4, 6, IRON_LIGHT); // the buckle
     at(5, 6, 5, 5, 7, 5, SOOT_LIGHT); // the felt's shade
   },
+  // The Gilded Deacon's hand: a hand of bone dipped in gold, raised in blessing (two fingers up), a fat red ring on
+  // it, gold flaking off its knuckles.
+  deaconHand: (at) => {
+    at(4, 1, 2, 8, 2, 4, BRASS_DARK); // the wrist, on its cushion
+    at(4, 3, 2, 8, 6, 4, BRASS); // the palm
+    at(4, 7, 3, 4, 9, 3, BRASS); // the two fingers raised
+    at(6, 7, 3, 6, 10, 3, BRASS);
+    at(7, 7, 4, 8, 7, 4, BRASS_DARK); // the others folded down
+    at(3, 4, 4, 3, 5, 4, BRASS); // the thumb
+    at(6, 5, 5, 6, 5, 5, RED); // the ring
+    at(5, 6, 5, 5, 6, 5, BONE); // the gold flaked off a knuckle
+    at(2, 0, 2, 10, 0, 5, RED_DARK); // a red velvet cushion under it
+  },
   // A pack leader's pelt: grey, darker down the back, the head with its ears up and its muzzle down.
   wolfPelt: (at) => {
     at(4, 2, 2, 8, 7, 2, STONE);

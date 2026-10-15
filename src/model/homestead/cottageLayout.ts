@@ -18,7 +18,7 @@ const PLACES: Partial<Record<UpgradeId, Omit<Furniture, 'solid'>>> = {
   hearth: { kind: 'hearth', x: 2, z: 0, w: 2, d: 1, wall: 'back' },
   cauldron: { kind: 'cauldron', x: 4, z: 0, w: 1, d: 1, wall: 'back' },
   chest: { kind: 'homeChest', x: 6, z: 0, w: 1, d: 1, wall: 'back' },
-  trophies: { kind: 'trophyWall', x: 0, z: 2, w: 1, d: 3, wall: 'left' },
+  trophies: { kind: 'trophyWall', x: 0, z: 2, w: 1, d: 4, wall: 'left' },
 };
 const FLAT: ReadonlySet<Furniture['kind']> = new Set(['trophyWall', 'cottageSpot', 'saleNotice', 'rug']); // (hung on a wall, or on the floor: nothing to bump)
 

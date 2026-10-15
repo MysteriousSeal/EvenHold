@@ -10,7 +10,7 @@ import { CELL_H, CELL_W, paintTrophy } from './trophyVoxels';
 export type HomesteadKind = 'homeChest' | 'trophyWall' | 'cottageSpot' | 'saleNotice';
 
 const ROWS = [8 + CELL_H + 2, 8]; // the trophy wall's rows' bottoms (top row first: filled first)
-const PEGS = 5; // to a row
+const PEGS = 7; // to a row
 const GAP = 1; // between the plaques
 const RAIL = 1; // voxels out from the wall the rails stand
 const CHALK = LINEN;
