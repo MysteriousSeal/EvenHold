@@ -38,6 +38,7 @@ import { say } from './model/npcs/speech';
 import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
 import { createStallPanel } from './controller/trade/stallPanel';
+import { townSite } from './model/town/townSite';
 import { WORD_HOLD } from './model/travellers/travellers';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { quitsAt } from './model/jobs/room/roomShift';
@@ -212,7 +213,7 @@ async function boot(): Promise<void> {
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
   const trade = (who: Who): void => {
     if (!('role' in who)) return;
-    if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
+    if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts, townSite(model.seed, model.size)))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
     else if (who.role === 'monger') stalls.open(who);
