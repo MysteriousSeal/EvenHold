@@ -66,8 +66,13 @@ const smooth = (a: number, b: number, x: number): number => {
   return t * t * (3 - 2 * t);
 };
 
+// The first day's first spells clear, whatever the seed (a new game's first screens a bright spring morning): till
+// four in the afternoon, easing into the day's own weather after.
+export const CLEAR_SPELLS = 4;
+
 // The weather of spell `n` (counted from the clock's start), and which way its wind blows.
 function spell(seed: number, n: number): { kind: WeatherKind; angle: number } {
+  if (n < CLEAR_SPELLS) return { kind: 'clear', angle: PREVAILING }; // (and any before the clock's start, it eases from)
   const odds = Object.entries(ODDS[seasonAt(n * WEATHER_HOURS * 60)]) as [WeatherKind, number][];
   let roll = hashUnit(n, seed, 0x5e7) * odds.reduce((sum, [, w]) => sum + w, 0);
   const kind = odds.find(([, w]) => (roll -= w) < 0)?.[0] ?? 'clear';
