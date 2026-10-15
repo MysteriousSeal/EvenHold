@@ -201,7 +201,7 @@ export class GameModel {
 
   // How far through the current attack the hero is, 0..1, or null.
   get attackProgress(): number | null {
-    return this.moves.blowProgress ?? this.lumber.swing ?? this.mining.swing; // (chopping a tree, striking a rock: the axe or the pick swung)
+    return this.moves.blowProgress ?? this.lumber.swing ?? this.mining.swing ?? this.smithing.swing ?? this.salvage.swing; // (chopping a tree, striking a rock: the axe or the pick swung; at the anvil or the bench, the hammer)
   }
 
   // Moves the hero straight to (x, z), standing on the ground there

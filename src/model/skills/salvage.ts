@@ -132,6 +132,7 @@ export function salvageOf(key: Salvageable, skill = Infinity): Salvaged {
 
 export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'busy' | 'full';
 export const BREAK_SECONDS = 1.6; // a piece takes so long at the bench (the bar over the hero: controller/skills/castOf.ts)
+export const HAMMER_BLOW = 0.8; // seconds a blow of the hammer, at the bench or the anvil (the hero's arm swinging it: GameModel.attackProgress)
 
 export const BENCH_ALONG = 0.6; // tiles either way along the bench's front the hero may stand
 export const BENCH_OUT: [number, number] = [0.5, 1.6]; // and how far out from its tile (the tile before it)
@@ -139,6 +140,10 @@ export const BENCH_OUT: [number, number] = [0.5, 1.6]; // and how far out from i
 export interface SalvageHost {
   readonly hero: Hero;
   readonly inside: { entrance: Entrance; furniture: readonly Furniture[]; below?: Entrance } | null;
+  readonly lumber: { readonly chopping: unknown; stop(): void };
+  readonly woodworking: { readonly making: unknown; stop(): void };
+  readonly smithing: { readonly making: unknown; stop(): void };
+  readonly cooking: { readonly making: unknown; stop(): void };
   report(event: GameEvent): void;
   random(): number;
 }
@@ -181,22 +186,33 @@ export class Salvage {
   }
 
   // `count` of `key` set on the bench, one after another (Infinity: all carried), to be broken down (update: a while
-  // each, then done); or why not.
+  // each, then done); or why not. The hero turns to the bench; chopping, woodworking, smithing and cooking stop for it.
   start(key: Salvageable, count = 1): SalvageOutcome {
     if (this.breaking) return 'busy';
-    if (this.benchInReach === null) return 'no bench';
+    const bench = this.benchInReach;
+    if (bench === null) return 'no bench';
     if (!this.carried(key) || !isSalvageable(key)) return 'none';
     if (!this.roomFor(key, this.salvaged(key).gives)) return 'full'; // (a full bag: what it leaves would be lost)
+    const { hero, lumber, woodworking, smithing, cooking } = this.host;
+    [lumber.stop(), woodworking.stop(), smithing.stop(), cooking.stop()];
+    hero.facing = Math.atan2(bench.x - hero.x, bench.z - hero.z); // (facing it)
     this.breaking = { key, t: 0, left: Math.max(1, Math.min(count, this.carried(key))) - 1 };
     return 'started';
   }
 
-  // A moment of it: stopped if they've walked off (or from the bench); done once its time's up: the piece gone, its
-  // scrap into the bag, the skill practised, told; the next of them begun, if asked (none left, or no room: stopped).
+  // How far through a blow of the hammer the hero is (0..1), breaking a piece down; else null (their arm swinging it).
+  get swing(): number | null {
+    return this.breaking ? (this.breaking.t % HAMMER_BLOW) / HAMMER_BLOW : null;
+  }
+
+  // A moment of it: stopped if they've walked off (or from the bench), or taken up chopping or making something;
+  // done once its time's up: the piece gone, its scrap into the bag, the skill practised, told; the next of them
+  // begun, if asked (none left: stopped; no room for it: stopped, told).
   update(dt: number, moving: boolean): void {
     const breaking = this.breaking;
     if (!breaking) return;
-    if (moving || this.benchInReach === null || !this.carried(breaking.key)) return this.stop();
+    const { lumber, woodworking, smithing, cooking } = this.host;
+    if (moving || this.benchInReach === null || !this.carried(breaking.key) || lumber.chopping || woodworking.making || smithing.making || cooking.making) return this.stop();
     if ((breaking.t += dt) < BREAK_SECONDS) return;
     this.stop();
     const { hero } = this.host;
@@ -207,7 +223,9 @@ export class Salvage {
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
     for (let i = 0; i < salvaged.tries; i++) practise(hero, 'salvaging', needs, this.host.random(), (e) => this.host.report(e), teachChance(salvaged, skillOf(hero, 'salvaging').level)); // (each its own roll, at the skill as it's risen)
-    if (breaking.left > 0 && this.carried(breaking.key) && this.roomFor(breaking.key, this.salvaged(breaking.key).gives)) this.breaking = { key: breaking.key, t: 0, left: breaking.left - 1 };
+    if (breaking.left <= 0 || !this.carried(breaking.key)) return;
+    if (!this.roomFor(breaking.key, this.salvaged(breaking.key).gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (the next would leave more than there's room for: a finer thing, the hand now skilled enough)
+    this.breaking = { key: breaking.key, t: 0, left: breaking.left - 1 };
   }
 
   stop(): void {
