@@ -2,8 +2,9 @@
 // along +Z from the end in the hand. Grips follow the rules in itemModel.ts;
 // blades have their crossguard at z 5 with the grip at 2.5, so the guard
 // sits half a voxel clear of a glove and of the armor at the hips. Long
-// shafts held in the middle sit a voxel outside the hand, so what runs back
-// past the fist clears the hips.
+// shafts (a spear, a staff, a glaive) are held low, near their foot, as a
+// blade is by its grip, a voxel outside the hand: only a hand's breadth runs
+// back past the fist, clear of the legs as they stride.
 //
 // The sets' weapons, each in its set's colours (setPalettes.ts), drawn from these notes:
 // - headsmansAxe (headsman): a long two-handed haft, a broad bearded head with a straight edge (a headsman's, not a
@@ -66,7 +67,7 @@ function hafted(length: number, rows: number, haftRow: number, head: (y: number,
   }, [0.5, haftRow + 0.25, 1.5]);
 }
 
-// A long pole held in the middle, a voxel outside the hand.
+// A long pole held low, a voxel outside the hand (`grip`: how far up it from its foot).
 function pole(length: number, end: (z: number) => number, grip: number) {
   return held(() => {
     const grid = createGrid([1, 1, length]);
@@ -143,9 +144,9 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
     return cross ? (x === 1 && y === 1 ? c.dark : c.steel) : 0;
   }),
   // An ash shaft with an iron head.
-  spear: pole(26, (z) => (z >= 23 ? (z === 25 ? c.edge : c.steel) : z === 22 ? c.dark : 0), 6.5),
-  // A long staff shod with iron at both ends, wrapped where it's held.
-  quarterstaff: pole(24, (z) => (z === 0 || z === 23 ? c.dark : z >= 10 && z <= 13 ? c.grip : 0), 11.5),
+  spear: pole(26, (z) => (z >= 23 ? (z === 25 ? c.edge : c.steel) : z === 22 ? c.dark : 0), 2.5),
+  // A long staff shod with iron at both ends, wrapped where it's held, low.
+  quarterstaff: pole(24, (z) => (z === 0 || z === 23 ? c.dark : z >= 1 && z <= 4 ? c.grip : 0), 2.5),
   headsmansAxe: own({ iron: headsman.iron, ironLight: headsman.ironLight, edge: 0xc3c9d1, haft: headsman.leather, wrap: headsman.black, wrapLight: headsman.blackLight, stain: headsman.stain }, [0.5, 4.25, 1.5], (c) => {
     // A headsman's: a long haft wound in black leather for two hands, a broad bit of black iron hung below it, its
     // straight bright edge bearded back toward the hands, a dark stain run down it.
@@ -183,9 +184,9 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
     setColor(grid, 0, 2, 7, c.bladeDark);
     return grid;
   }),
-  pilgrimsStaff: own({ wood: 0x8a6a42, foot: palmer.leather, cord: palmer.cross, gourd: palmer.gourd, gourdShade: 0xa87a36, shell: palmer.shell, shellShade: palmer.shellShade }, [1.5, 3.25, 11.5], (c) => {
+  pilgrimsStaff: own({ wood: 0x8a6a42, foot: palmer.leather, cord: palmer.cross, gourd: palmer.gourd, gourdShade: 0xa87a36, shell: palmer.shell, shellShade: palmer.shellShade }, [1.5, 3.25, 2.5], (c) => {
     // A palmer's: a tall plain staff, shod at its foot, a gourd bottle tied on below its top with red cord, a
-    // scallop shell hung beneath it. (Held in the middle, a voxel outside the hand, as the quarterstaff.)
+    // scallop shell hung beneath it. (Held low, a voxel outside the hand, as the quarterstaff.)
     const grid = createGrid([1, 4, 24]);
     fillBox(grid, 0, 3, 0, 0, 3, 23, (_x, _y, z) => (z === 0 ? c.foot : z === 20 || z === 16 ? c.cord : c.wood));
     setColor(grid, 0, 2, 20, c.gourd); // its neck
@@ -194,7 +195,7 @@ export const MAIN_HAND_MODELS: Record<keyof typeof MAIN_HAND_ITEMS, ItemModel> =
     fillBox(grid, 0, 0, 15, 0, 1, 17, (_x, y, z) => (y === 1 ? (z === 16 ? c.shellShade : c.shell) : z === 16 ? c.shell : 0));
     return grid;
   }),
-  watchGlaive: own({ pole: 0x7a5a3a, steel: watch.steel, steelLight: watch.steelLight, steelDark: watch.steelDark, brass: watch.brass, teal: watch.teal, tealDark: watch.tealDark }, [1.5, 2.25, 6.5], (c) => {
+  watchGlaive: own({ pole: 0x7a5a3a, steel: watch.steel, steelLight: watch.steelLight, steelDark: watch.steelDark, brass: watch.brass, teal: watch.teal, tealDark: watch.tealDark }, [1.5, 2.25, 2.5], (c) => {
     // The watch's: an ash pole, a brass collar where it meets a broad single-edged blade bellied below, a spike
     // off its back, a teal tassel hung from the collar.
     const grid = createGrid([1, 5, 27]);

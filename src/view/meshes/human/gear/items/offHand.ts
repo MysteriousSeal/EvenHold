@@ -54,8 +54,11 @@ const { c } = kit;
 // face in relief: `layers(x, y)` gives its colours from the back out (the
 // board, then what's raised on it: a rim, a band, a boss), none outside its
 // outline. Held with its middle a voxel in from the hand and its back well
-// ahead of it, its grip on quarter voxels (itemModel.ts `fine`).
-function shield(w: number, h: number, layers: (x: number, y: number) => number[], palette = kit.palette): ItemModel {
+// ahead of it, its grip on quarter voxels (itemModel.ts `fine`): at its
+// middle, or a great one (`standing`: a tower shield, a pavise) low, its foot
+// a quarter voxel off the ground and its top at the shoulder (the hand hangs
+// 7.5 up: bodyVoxels.ts).
+function shield(w: number, h: number, layers: (x: number, y: number) => number[], palette = kit.palette, standing = false): ItemModel {
   return {
     palette,
     held: {
@@ -64,7 +67,7 @@ function shield(w: number, h: number, layers: (x: number, y: number) => number[]
         for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) layers(x, y).forEach((color, z) => color && setColor(grid, x, y, z, color));
         return grid;
       },
-      grip: [w / 2 + 1.25, h / 2 - 0.25, -4.75],
+      grip: [w / 2 + 1.25, standing ? 7.25 : h / 2 - 0.25, -4.75],
       fine: true,
     },
   };
@@ -108,23 +111,24 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
     if (x === 3 && (y === 6 || y === 7)) return [field, c.gold, y === 6 ? c.gold : 0];
     return [field];
   }),
-  // A great wall of planks, its top corners rounded, three iron bands
-  // riveted across it standing proud, a boss in its middle.
-  towerShield: shield(7, 13, (x, y) => {
-    if (y === 12 && (x === 0 || x === 6)) return [];
+  // A great wall of planks from the ground to the shoulder, wider than the
+  // body, its top corners rounded, three iron bands riveted across it
+  // standing proud, a boss in its middle.
+  towerShield: shield(9, 16, (x, y) => {
+    if (y === 15 && (x === 0 || x === 8)) return [];
     const planks = mod(x, 2) === 0 ? c.plankDark : c.plank;
-    if (y === 1 || y === 6 || y === 11) return [planks, x === 1 || x === 5 ? c.boss : c.iron];
-    if (y >= 5 && y <= 7 && x >= 2 && x <= 4) return [planks, c.iron, x === 3 && y === 6 ? c.boss : 0];
+    if (y === 1 || y === 8 || y === 14) return [planks, x === 1 || x === 7 ? c.boss : c.iron];
+    if (y >= 7 && y <= 9 && x >= 3 && x <= 5) return [planks, c.iron, x === 4 && y === 8 ? c.boss : 0];
     return [planks];
-  }),
-  // A tall pavise in red and sand stripes, a raised spine down its middle,
-  // its top rounded, iron along its top and foot.
-  pavise: shield(7, 12, (x, y) => {
-    if (y === 11 && (x === 0 || x === 6)) return [];
+  }, kit.palette, true),
+  // A great pavise from the ground to the shoulder in red and sand stripes, a
+  // raised spine down its middle, its top rounded, iron along its top and foot.
+  pavise: shield(9, 16, (x, y) => {
+    if (y === 15 && (x === 0 || x === 8)) return [];
     const stripe = mod(x, 2) === 0 ? c.red : c.sand;
-    if (y === 0 || y === 11 || (y === 10 && (x === 0 || x === 6))) return [stripe, c.iron];
-    return x === 3 ? [stripe, c.red] : [stripe];
-  }),
+    if (y === 0 || y === 15 || (y === 14 && (x === 0 || x === 8))) return [stripe, c.iron];
+    return x === 4 ? [stripe, c.red] : [stripe];
+  }, kit.palette, true),
   // A round shield rimmed in dark wood, a sun raised on its sand field, its
   // rays reaching out, its heart gold.
   crestShield: shield(7, 7, (x, y) => {
@@ -259,12 +263,12 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
   // bright but the one white band across its middle, standing out over the rest.
   blackbannerPavise: (() => {
     const { palette, c } = namedPalette(SET_PALETTES.blackbanner);
-    return shield(7, 12, (x, y) => {
-      if (y === 11 && (x === 0 || x === 6)) return [];
+    return shield(9, 16, (x, y) => {
+      if (y === 15 && (x === 0 || x === 8)) return [];
       const board = mod(x, 2) === 0 ? c.cloth : c.clothLight;
-      if (y === 5 || y === 6) return [board, c.band, c.band]; // (raised over all else)
-      if (y === 0 || y === 11 || x === 0 || x === 6 || (y === 10 && (x === 1 || x === 5))) return [board, c.ironLight]; // its rim
-      return x === 3 ? [board, c.iron] : [board];
-    }, palette);
+      if (y === 9 || y === 10) return [board, c.band, c.band]; // (raised over all else)
+      if (y === 0 || y === 15 || x === 0 || x === 8 || (y === 14 && (x === 1 || x === 7))) return [board, c.ironLight]; // its rim
+      return x === 4 ? [board, c.iron] : [board];
+    }, palette, true);
   })(),
 };
