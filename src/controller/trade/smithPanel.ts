@@ -12,7 +12,9 @@ import type { ToolId } from '../../model/loot/tools';
 import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, pickPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal, smithTakesPick, smithTakesWood, woodPrice } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
-import { mendAll, mendBill } from '../../model/hero/wear';
+import { BROKEN, WORN, mendAll, mendBill, wearOf } from '../../model/hero/wear';
+import { WOODWORKS } from '../../model/shops/shopStock';
+import type { Hero } from '../../model/types';
 import { coinWords } from '../../view/ui/coins';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
@@ -31,6 +33,30 @@ const LINES: TradeLines = {
   'too poor': ["That's not enough coin. Iron's dear.", "Come back when your purse is heavier.", "I don't give credit, friend."],
   short: ["I can't pay for that right now.", "My purse is empty. Come back after I've sold a few blades.", 'Not today. The ore merchant took the rest.'],
 };
+
+// His word on what the hero sells him, by what it is ({it}: its name): gear (or LINES.sold), the metal for his forge,
+// what's found in the wood, a woodworker's make (at an eighth: shopStock.ts WOODWORKS), a pickaxe; and worn gear.
+const OFFERED = {
+  gear: ["{it}? I'll give you what the iron's worth.", "{it}. Someone's work, not mine. I'll take it."],
+  metal: ['{it}. Good, that goes straight in the fire.', "{it}? Always need more of that. Here.", "{it}. Saves me a trip to the ore merchant."],
+  wood: ['{it}? Good for a haft or a handle. Half what it fetches, mind.', "{it}. The wood's no use to my fire, but the joiner's a friend."],
+  woodwork: ["Wood? I work iron, friend. An eighth of its worth, and that's kind.", "A {it}. Kindling, to me. A few coppers.", "Whittled, is it? I'll take it for the stove."],
+  pick: ['A pickaxe. Some miner will be glad of it.', "{it}. I'll put a new edge on it and sell it on."],
+  worn: ["{it}? Battered half to death. I'll beat it straight.", "Look at the state of this {it}. You fight with it, or dig with it?"],
+};
+// What he says when he's bought enough of a kind just now (shopStock.ts WANTS).
+const ENOUGH = ["I've plenty of those already. Come back in a few days.", "No more {it}s, I've nowhere to hang them.", "Another {it}? I've enough. I'm a smith, not a magpie."];
+// What he says of the hero's own gear on greeting them, now and then: a worn piece of it, what's his own make, or
+// their empty hands.
+const ON_GEAR = {
+  worn: ["That {it} of yours has seen better days. I can mend it.", "Is that a {it} or a saw? Let me have a look at it.", "Your {it}'s in a sorry state. Coin, and I'll fix it."],
+  broken: ["Your {it}'s broken, you know. It's doing you no good like that.", "Broken {it}, swinging it about like it's whole. Give it here."],
+  his: ["That {it}'s smith's work. Treating you well?", "Good {it}, that. Someone knew what they were doing."],
+  bare: ["Out there with empty hands? Let's fix that.", "No blade on you? You're braver than you look."],
+};
+
+// His word on a pickaxe just bought.
+const PICK_BOUGHT = ["Mind your toes with it.", 'Find me some good ore, and bring it here.', "It'll bite rock. Don't use it on doors."];
 
 // His word on gear he's just mended.
 const MENDED = ["There. Good as the day it was forged.", 'Straightened, riveted, sharpened. Try not to do that again.', "Took some hammering, that. It'll hold.", 'New straps, a fresh edge. Off you go.', "You've been busy. All mended."];
@@ -96,15 +122,20 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
       return result === 'he is short' ? 'short' : result;
     },
     lines: LINES,
-    about: (id) => pick((isGear(id) && ABOUT[slotOfGear(id)]) || LINES.hello),
-    offered: (name) => `${name}? I'll give you what the iron's worth.`,
+    about: (id) => pick((isGear(id) && ABOUT[slotOfGear(id)]) || (smithTakesPick(id) ? PICK_BOUGHT : LINES.bought)),
+    offered: (name, id) => {
+      const kind = smithTakesMetal(id) ? 'metal' : smithTakesWood(id) ? 'wood' : smithTakesPick(id) ? 'pick' : isGear(id) && WOODWORKS.has(baseOf(id)) ? 'woodwork' : wearOf(model.hero, id) >= WORN ? 'worn' : 'gear';
+      return pick(kind === 'gear' ? [...OFFERED.gear, ...LINES.sold] : OFFERED[kind]).replace('{it}', kind === 'woodwork' || kind === 'worn' ? name.toLowerCase() : name);
+    },
+    enough: (name) => pick(ENOUGH).replace('{it}', name.toLowerCase()),
+    greeting: () => onGear(model.hero),
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     service: () => {
       const { pieces, total } = mendBill(model.hero);
       return {
         label: pieces.length ? `Mend · ${coinWords(total)}` : 'Mend',
-        tip: pieces.length ? `Mend all you wear: ${pieces.map((p) => `${gearName(p.key)} (${Math.floor(p.wear)}% worn)`).join(', ')}` : 'Nothing you wear needs mending',
+        tip: pieces.length ? `Mend all you wear or carry: ${pieces.map((p) => `${gearName(p.key)} (${p.wear >= BROKEN ? 'broken' : `${Math.floor(p.wear)}% worn`}, ${coinWords(p.cost)})`).join(', ')}${model.hero.money < total ? " · you haven't the coin" : ''}` : 'Nothing you wear or carry needs mending',
         can: pieces.length > 0 && model.hero.money >= total,
         act: () => {
           const done = mendAll(model.hero);
@@ -112,7 +143,19 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
         },
       };
     },
-    blurb: (id) => smithTakesPick(id) ? 'A miner\'s pickaxe: in your bag, E by a rock of the wilds to mine its vein.' : (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
+    blurb: (id) => smithTakesPick(id) ? 'A miner\'s pickaxe: in your bag, E by a rock of the wilds to mine its vein.' : (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: bought off someone passing through.'),
     facts: (id) => smithTakesPick(id) ? [toned('kind', 'Tool')] : [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
   });
+}
+
+// Half the time, a word on what the hero wears (their worst-worn piece, broken or badly worn; what's his trade's make;
+// their bare hands), else none: his plain greeting.
+function onGear(hero: Hero): string | null {
+  if (Math.random() < 0.5) return null;
+  const worst = mendBill(hero).pieces.filter((p) => Object.values(hero.equipment).includes(p.key)).sort((a, b) => b.wear - a.wear)[0];
+  const say = (lines: readonly string[], key: GearKey) => pick(lines).replace('{it}', gearName(key).toLowerCase());
+  if (worst && worst.wear >= WORN) return say(worst.wear >= BROKEN ? ON_GEAR.broken : ON_GEAR.worn, worst.key);
+  if (!hero.equipment.mainHand) return pick(ON_GEAR.bare);
+  const his = Object.values(hero.equipment).filter((k): k is GearKey => !!k && isGear(k) && !!ITEMS[baseOf(k)].soldBy?.smith);
+  return his.length ? say(ON_GEAR.his, his[Math.floor(Math.random() * his.length)]) : null;
 }
