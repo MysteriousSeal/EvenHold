@@ -14,7 +14,7 @@ export const BOUNTY_NAMES = {
   crimes: {
     outlaw: ["who took the miller's daughter's teeth", 'who burned the tithe barn with the tithe in it', "who robbed the priest and wore his cassock to the ale-house", 'who hanged a reeve with his own chain', 'who sold the same cow to three farms', "who knifed a pedlar for his boots and they didn't fit", 'who stole the bell from the chapel, clapper and all', "who drank the abbot's cellar dry and set the rest alight"],
     beast: ['that took two shepherds and a mule', "that broke into the church and ate the bell-rope", 'that has been at the sheepfolds every new moon', "that left the charcoal-burner in three places", "that no hound will follow"],
-    pack: ['that run the sheep off the hills every night', 'that took a child from the lane at dusk', "that have the carrier's horses spooked past using", 'that dug up the churchyard'],
+    pack: ['whose pack runs the sheep off the hills every night', 'whose pack took a child from the lane at dusk', "whose pack has the carrier's horses spooked past using", 'whose pack dug up the churchyard'],
   },
 } as const;
 

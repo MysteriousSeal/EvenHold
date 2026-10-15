@@ -7,7 +7,7 @@
 export type KeyAction =
   | 'up' | 'down' | 'left' | 'right' | 'roll' | 'use' | 'ale' | 'pie'
   | 'attack' | 'guard' | 'focus' | `bar${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
-  | 'sheet' | 'bag' | 'journal' | 'skills' | 'levelUp';
+  | 'sheet' | 'bag' | 'journal' | 'skills' | 'levelUp' | 'map';
 
 export const DEFAULT_KEYS: Readonly<Record<KeyAction, readonly string[]>> = {
   up: ['KeyW', 'ArrowUp'],
@@ -34,6 +34,7 @@ export const DEFAULT_KEYS: Readonly<Record<KeyAction, readonly string[]>> = {
   journal: ['KeyL'],
   skills: ['KeyK'],
   levelUp: ['KeyP'],
+  map: ['KeyM'],
 };
 export const KEY_ACTIONS = Object.keys(DEFAULT_KEYS) as KeyAction[];
 export const BAR_ACTIONS = KEY_ACTIONS.filter((a) => a.startsWith('bar')) as Array<`bar${number}` & KeyAction>;

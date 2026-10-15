@@ -62,6 +62,7 @@ export function controlGroups(): ReadonlyArray<{ name: string; controls: readonl
         one('Journal', 'journal', 'your quests'),
         one('Skills', 'skills'),
         one('Level up', 'levelUp', 'your points to spend'),
+        one('Map', 'map', 'the land you have walked'),
         { what: 'Pause', note: 'or shut the window on top', keys: 'Escape', marks: [cap('Esc')] },
       ],
     },
@@ -76,5 +77,5 @@ export const controlsText = (): ReadonlyArray<readonly [string, string]> =>
 export const REBINDABLE: ReadonlyArray<{ name: string; keys: ReadonlyArray<readonly [KeyAction, string]> }> = [
   { name: 'Getting about', keys: [['up', 'Up'], ['down', 'Down'], ['left', 'Left'], ['right', 'Right'], ['roll', 'Roll'], ['use', 'Pick up, talk, open'], ['ale', 'An ale (at the bar)'], ['pie', 'A pie, a room, sleep']] },
   { name: 'Fighting', keys: [['attack', 'Strike'], ['guard', 'Guard (held)'], ['focus', 'Focus the next foe'], ...([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n) => [`bar${n}`, `Action bar ${n}`] as const)] },
-  { name: 'Windows', keys: [['sheet', 'Hero sheet'], ['bag', 'Bag'], ['journal', 'Journal'], ['skills', 'Skills'], ['levelUp', 'Level up']] },
+  { name: 'Windows', keys: [['sheet', 'Hero sheet'], ['bag', 'Bag'], ['journal', 'Journal'], ['skills', 'Skills'], ['levelUp', 'Level up'], ['map', 'Map']] },
 ];

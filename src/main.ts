@@ -83,6 +83,10 @@ import { counted } from './view/ui/words';
 import { keepWorld, loadWorld } from './controller/storage/worldCache';
 import { generateWorld } from './model/worldgen/world';
 import { WorkerSource } from './controller/world/workerSource';
+import { ChartWorkers } from './controller/world/chartWorkers';
+import { SyncCharts } from './model/atlas/atlas';
+import { createMapWindow } from './controller/atlas/mapWindow';
+import { createMinimap } from './view/hud/minimap';
 import { STREAMED_SIZE } from './model/worldgen/regions';
 import { capitalize } from './util/text';
 import { BAR_ACTIONS, label as keyName } from './controller/keyBindings';
@@ -122,6 +126,7 @@ async function boot(): Promise<void> {
   }
   const world = streamed ? undefined : (kept ?? generateWorld(seed, size));
   const model = new GameModel(seed, size, world, streamed ? new WorkerSource(seed, size) : undefined);
+  if (streamed) model.atlas.chartsFrom(new ChartWorkers(seed, size, new SyncCharts(model))); // (the map's charts, off the game's thread)
   // This world's saved game, if it was played before; else a new hero: the one made on the main menu, or any look
   // with a name to match.
   if (!loadGame(model)) {
@@ -205,6 +210,8 @@ async function boot(): Promise<void> {
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: holdStill('levelUp') });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
+  const minimap = createMinimap(model); // (the corner map; M, the whole map)
+  createMapWindow(model, { setPaused: holdStill('map'), minimap });
   const pause = createPauseMenu({
     setPaused: holdStill('pause'),
     redraw: () => {
@@ -328,6 +335,7 @@ async function boot(): Promise<void> {
     herbs.update();
     pack.update();
     journal.update();
+    minimap.update();
     salvage.update(); // (a piece on the bench: its bar)
     skills.update();
     sheet.update();

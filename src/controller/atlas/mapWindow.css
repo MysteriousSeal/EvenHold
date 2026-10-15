@@ -1,0 +1,48 @@
+/* The map window (mapWindow.ts): wide, the parchment map edged in ink with a burnt edge, the name of what's under
+   the pointer along its bottom, the key to its marks and its buttons under it. */
+.menu.map-menu { width: min(940px, 100%); }
+.map-window { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: min(580px, calc(100vh - 230px));
+  background: #ecdcb4;
+  box-shadow: 0 0 0 2px #2e1f14, inset 0 0 36px rgba(122, 74, 32, 0.45);
+  cursor: grab;
+  touch-action: none;
+}
+.map-canvas:active { cursor: grabbing; }
+.map-named {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #2e1f14;
+  background: rgba(248, 236, 212, 0.9);
+  box-shadow: 0 0 0 2px #2e1f14;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.map-named:empty { display: none; }
+.map-foot { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #7a5a3c; }
+.map-key { flex: 1; }
+.map-key .pin { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 8px; border-radius: 50%; box-shadow: 0 0 0 1.5px #2e1f14; vertical-align: -1px; }
+.map-key .pin:first-child { margin-left: 0; }
+.map-key .quest { background: #e8b030; }
+.map-key .bounty { background: #b02a24; }
+.map-key .story { background: #3dbdb8; }
+.map-key .board { background: #ffd98a; }
+.map-button {
+  padding: 5px 12px;
+  font: 600 14px 'Fredoka', system-ui, sans-serif;
+  color: #2e1f14;
+  background: #f8ecd4;
+  border: 2px solid #2e1f14;
+  box-shadow: 0 2px 0 #2e1f14;
+  cursor: pointer;
+}
+.map-button:hover { background: #ffd98a; }
+.map-button:active { transform: translateY(2px); box-shadow: none; }
