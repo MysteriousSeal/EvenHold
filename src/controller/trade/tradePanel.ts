@@ -42,11 +42,11 @@ export interface Trade {
   note?(): string | null; // a line at the foot of their window, if there's one to say (the inn's cupboard)
   service?(): { label: string; tip: string; can: boolean; act(): string } | null; // a button of theirs beside Sell junk (the smith's Mend: its label, a tip, whether it can be done, and done: their word)
   about(id: BagItem): string; // their word on one of their wares, just bought
+  greet?(): string | null; // their word on opening, if they've one of their own just now (else one of their hellos)
   offered(name: string, id: BagItem): string; // their word on what the hero's just sold them
   enough?(name: string, wait: string): string; // and on what they've bought enough of for now (shopStock.ts WANTS; none: ENOUGH), till they'll want another ("4 minutes")
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
   boughtBack(name: string, paid: string): string; // and on the hero buying back what they'd sold (its name, "3 wolf fangs"), for what
-  greeting?(): string | null; // a word of their own on opening, now and then, before their usual hello (none: hello)
   blurb(id: BagItem): string; // what it is
   facts(id: BagItem): MenuLine[]; // lines on what it is and does ("Armour 4"; what wearing it would change), besides its price and count
 }
@@ -276,7 +276,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
-      says = trade.greeting?.() ?? pick(trade.lines.hello);
+      says = trade.greet?.() ?? pick(trade.lines.hello);
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open(0); // on Buy, whichever tab it was left on
     },

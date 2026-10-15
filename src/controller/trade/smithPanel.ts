@@ -141,7 +141,7 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
       return pick(kind === 'gear' ? [...OFFERED.gear, ...LINES.sold] : OFFERED[kind]).replace('{it}', kind === 'woodwork' || kind === 'worn' ? name.toLowerCase() : name);
     },
     enough: (name, wait) => pick(ENOUGH).replace('{it}', name.toLowerCase()).replace('{them}', plural(name.toLowerCase())).replace('{wait}', wait),
-    greeting: () => onGear(model.hero),
+    greet: () => onGear(model.hero),
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
     service: () => {
