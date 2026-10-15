@@ -56,6 +56,8 @@ const SPLASH_FOR = 0.9; // seconds a ring of foam lasts
 const FROG = 1.7; // a frog drawn this much bigger than its voxels (true to size, it'd be lost in the grass)
 const BIRD = 1.3; // a songbird, likewise (five voxels across, at the least)
 const BUTTERFLY = 1.6;
+const RABBIT = 1.5; // (about a third of a tile long)
+const RABBIT_UP = 0.17; // its middle over the ground, drawn that big
 
 const [at, turn, size, euler] = [new THREE.Vector3(), new THREE.Quaternion(), new THREE.Vector3(), new THREE.Euler(0, 0, 0, 'YXZ')];
 function pose(m: Moment, x: number, y: number, z: number, pitch: number, yaw: number, sx = 1, sy = 1, sz = 1): true {
@@ -145,13 +147,13 @@ export function rabbit(c: Creature, m: Moment, fits: (x: number, z: number) => b
       c.fled = 99; // (gone, and stays gone till the hero's away)
       return false;
     }
-    return pose(m, x, m.ground(x, z) + Math.abs(Math.sin(f * Math.PI * 4)) * 0.1, z, -0.15, Math.atan2(c.away!.x, c.away!.z) + Math.cos(f * 7) * 0.4);
+    return pose(m, x, m.ground(x, z) + RABBIT_UP + Math.abs(Math.sin(f * Math.PI * 4)) * 0.1, z, -0.15, Math.atan2(c.away!.x, c.away!.z) + Math.cos(f * 7) * 0.4, RABBIT, RABBIT, RABBIT);
   }
   const yaw = Math.atan2(now.x - was.x, now.z - was.z) || c.seed * 6;
-  if (Math.hypot(m.hero.x - c.x, m.hero.z - c.z) < FREEZE) return pose(m, now.x, m.ground(now.x, now.z), now.z, -0.15, yaw); // (frozen, sat up)
+  if (Math.hypot(m.hero.x - c.x, m.hero.z - c.z) < FREEZE) return pose(m, now.x, m.ground(now.x, now.z) + RABBIT_UP, now.z, -0.15, yaw, RABBIT, RABBIT, RABBIT); // (frozen, sat up)
   const hopUp = going < 1 ? Math.abs(Math.sin(going * Math.PI * 2)) * 0.08 : 0;
   const nibble = u > 0.4 && u < 0.75 ? 0.25 + Math.sin(t * 9) * 0.05 : 0; // its head down to the grass
-  return pose(m, here.x, m.ground(here.x, here.z) + hopUp, here.z, nibble, yaw);
+  return pose(m, here.x, m.ground(here.x, here.z) + RABBIT_UP + hopUp, here.z, nibble, yaw, RABBIT, RABBIT, RABBIT);
 }
 
 export function dragonfly(c: Creature, m: Moment): boolean {
