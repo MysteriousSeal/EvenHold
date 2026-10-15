@@ -1,7 +1,8 @@
-// Livestock: a village's beasts out in its fields, grazing among the crops
-// inside the fence (never out of it, the gate being only the hero's way in):
-// a flock of sheep, a few cows, pigs rooting, or hens scratching about; most
-// fields have some, of one kind. Each goes about on its own: a few steps
+// Livestock: a village's beasts out in a field of its kept as a pasture (no
+// crop in it: view/meshes/field/fieldMesh.ts), grazing inside the fence
+// (never out of it, the gate being only the hero's way in): a flock of
+// sheep, a few cows, pigs rooting, or hens scratching about; some fields
+// are, most are sown, each pasture's beasts of one kind. Each goes about on its own: a few steps
 // somewhere else in the field, then stood a while, its head down to graze
 // (or to peck). They mind the hero only when they're right by them: then
 // they shy off a little way (still inside), and settle again.
@@ -36,7 +37,7 @@ const KINDS: Record<LivestockKind, { herd: [number, number]; coats: number; walk
   pig: { herd: [2, 2], coats: 3, walk: 0.3, shy: 1.2, margin: 0.3, rest: [4, 7] },
   hen: { herd: [3, 4], coats: 1, walk: 0.45, shy: 1.6, margin: 0.15, rest: [1.5, 3] },
 };
-const STOCKED = 0.65; // of the fields that have any
+const STOCKED = 0.4; // of the fields kept as pastures
 const MIX: LivestockKind[] = ['sheep', 'sheep', 'cow', 'pig', 'hen', 'hen'];
 const SHY_PACE = 1.6; // its pace shied off, times its walk
 const SHY_BY = 1.1; // tiles: the hero this near sends it off

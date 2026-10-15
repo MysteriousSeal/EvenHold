@@ -1,4 +1,5 @@
-// Crop fields (see fieldVoxels.ts): wheat tiles swaying in the wind (and parting around the hero), a
+// Crop fields (see fieldVoxels.ts): wheat tiles swaying in the wind (and parting around the hero; none in a
+// field kept as a pasture, its livestock grazing it: model/wildlife/livestock.ts), a
 // hay-and-tools corner tile, and fence segments along each field's border
 // with a gap at the gate. Every model is meshed once and instanced per map
 // chunk. Crops are walkable; the fences block (see GameModel).
@@ -8,6 +9,7 @@ import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { fenceEdges } from '../../../model/worldgen/fields';
+import { stockOf } from '../../../model/wildlife/livestock';
 import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
@@ -54,9 +56,11 @@ export function buildFields(scene: WorldSink, model: GameModel): (elapsedSeconds
   for (const field of model.fields) {
     const y = field.groundTier * TILE_HEIGHT;
     const turn = field.rowsAlongX ? 0 : 1;
+    const pasture = stockOf(field, model.seed) !== null;
     for (let x = field.x0; x < field.x0 + field.width; x++) {
       for (let z = field.z0; z < field.z0 + field.depth; z++) {
         const isCorner = x === field.corner[0] && z === field.corner[1];
+        if (pasture && !isCorner) continue;
         const wheat = `wheat:${hashCell(x, z, 33) % WHEAT_VARIANTS}`;
         crops.push({ x, z, y, model: isCorner ? 'corner' : wheat, quarterTurns: isCorner ? hashCell(x, z, 34) & 3 : turn });
       }
