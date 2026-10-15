@@ -4,7 +4,7 @@
 // what hangs on its walls (antlers, a shield, lanterns, a notice board). Its
 // stairs and the floor above are upstairsVoxels.ts'.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, goblet, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, goblet, tankard, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
 
 export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
@@ -17,7 +17,7 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   counter: (box, len) => {
     box(1, 1, 9, len - 2, 2, 16, WOOD_DARK); // kick plinth
     box(1, 3, 8, len - 2, 11, 16, (u, y, v) => (v === 16 && (u % 10 === 0 || y === 3 || y === 11) ? WOOD_DARK : WOOD)); // panels, framed
-    box(0, 12, 7, len - 1, 13, 18, (_u, y, v) => (y === 12 ? WOOD_DARK : v === 18 ? WOOD_LIGHT : WOOD)); // the top
+    box(0, 12, 7, len - 1, 13, 18, (_u, y) => (y === 12 ? WOOD_DARK : WOOD_LIGHT)); // the top, worn pale: the brightest wood in the room
     box(1, 4, 18, len - 2, 4, 18, BRASS); // foot rail
     for (let u = 4; u < len - 2; u += 12) box(u, 3, 17, u, 3, 17, BRASS_DARK); // its brackets
   },
@@ -25,22 +25,27 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   // eight-sided body of staves (v along its length), two iron hoops, the
   // front end in lighter wood with a dark rim and a brass tap. Short, so
   // it reaches only 0.6 of its tile out (the barmaid pours beside its tap).
+  // Another on top of it, waiting its turn (no tap yet), set back a little:
+  // the bar's end seen across the room.
   keg: (box) => {
     for (const v of [3, 9]) box(5, 1, v, 19, 2, v + 1, WOOD_DARK); // the cradle's two chocks
     const cu = 12;
-    const cy = 9; // the keg's axis
     const r = 6;
-    for (let du = -r; du <= r; du++) {
-      for (let dy = -r; dy <= r; dy++) {
-        if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
-        const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
-        box(cu + du, cy + dy, 1, cu + du, cy + dy, 12, (_u, _y, v) => {
-          if (v === 12) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
-          if (v === 3 || v === 10) return IRON; // hoops
-          return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
-        });
+    const barrel = (cy: number, front: number) => {
+      for (let du = -r; du <= r; du++) {
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
+          const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
+          box(cu + du, cy + dy, 1, cu + du, cy + dy, front, (_u, _y, v) => {
+            if (v === front) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
+            if (v === 3 || v === front - 2) return IRON; // hoops
+            return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
+          });
+        }
       }
-    }
+    };
+    barrel(9, 12); // (its axis 9 up)
+    barrel(21, 10); // the one on top, resting in the groove between it and the wall
     box(11, 6, 13, 13, 8, 13, BRASS); // the tap
     box(12, 4, 14, 12, 6, 14, BRASS); // its spout, pointing down
   },
@@ -121,6 +126,12 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(30, 17, 0, len - 4, 17, 1, WOOD); // and its rail
     box(31, 13, 0, len - 5, 13, 3, WOOD); // its shelf
     for (const u of [32, 37, 42]) box(u, 14, 1, u + 2, 16, 3, (_u, y) => (y === 15 ? IRON : WOOD_LIGHT)); // mugs, upside down to dry
+    // Up on the wall over its far end, a peg rail, a tankard hung upside down from each peg, its handle out.
+    box(27, 26, 0, len - 2, 26, 0, WOOD_DARK); // the rail
+    for (let u = 28; u + 3 < len - 1; u += 6) {
+      box(u + 1, 25, 1, u + 1, 26, 1, WOOD_DARK); // its peg
+      tankard((u0, y0, v0, u1, y1, v1, color) => box(u0, 45 - y1, v0, u1, 45 - y0, v1, typeof color === 'number' ? color : (uu, y, vv) => color(uu, 45 - y, vv)), u, 21, 1, false); // (turned over: its foot at the peg)
+    }
     box(10, 0, 2, 16, 5, 7, (_u, y) => (y === 1 || y === 4 ? IRON : WOOD)); // the bucket beneath
     box(11, 5, 3, 15, 5, 6, WATER); // water in it
   },
