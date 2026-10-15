@@ -56,6 +56,7 @@ import { WildMovesView } from './meshes/enemy/wildMovesView';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { FrostOnHero } from './meshes/human/frostOnHero';
+import { HeroSilhouette } from './meshes/human/heroSilhouette';
 import type { BodyLook } from '../model/human/humanoid';
 
 // One named chunk of world building, run by the loader between repaints.
@@ -82,6 +83,7 @@ export class GameView {
   // Chilled (a draugr's frost): an icy sheen over all of them, pale blue and a little aglow; and frost drifting round them.
   private readonly heroFrost = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xb8e2ff, roughness: 0.35, emissive: 0x2a6a90, emissiveIntensity: 0.45 });
   private readonly frost = new FrostOnHero();
+  private readonly silhouette = new HeroSilhouette(); // (outdoors: their shape through a tree's crown, a roof)
   private readonly world: ChunkStreamer;
   private readonly regions: WorldRegions | null; // a streamed world's, drawn region by region as they're made
   private readonly enemies: EnemyViews;
@@ -322,6 +324,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
+    this.silhouette.update(this.hero, !room && !yard); // (indoors, the walls in the way turn see-through instead)
     if (!room) [this.workMarks.clear(), this.cupboard.clear()]; // (out of the room: its marks gone, her shelves too)
     if (yard) {
       this.followHero(hero, 0, dt);
