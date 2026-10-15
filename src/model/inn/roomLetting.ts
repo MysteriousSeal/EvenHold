@@ -175,11 +175,13 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
 // Whether the night's for sleeping at `minutes` (from when rooms are let till eight in the morning).
 export const sleepingHours = (minutes: number): boolean => between(minutes, LET_FROM, WAKE_AT);
 
-// The bed in the room let to the hero, if they're by it (or lying in it), it's theirs and it's the night: to sleep in.
+// The bed in the room let to the hero, if they're by it (or lying in it), it's theirs and it's the night (or by day,
+// it's theirs through the night to come: bribed for, say; not the morning it's to be left): to sleep in, till morning.
 export function letBed(model: { inside: Inside | null; seated: Seated; seatInReach: Seat | null; minutes: number }): Seat | null {
   const inside = model.inside;
   const seat = model.seated?.seat ?? model.seatInReach;
-  if (!inside?.below || !seat?.lying || !lets.has(inside.below) || !sleepingHours(model.minutes)) return null;
+  const until = inside?.below ? lets.get(inside.below) : undefined;
+  if (!inside || until === undefined || !seat?.lying || !(sleepingHours(model.minutes) || until >= nightsEnd(model.minutes))) return null;
   return inLetRoom(inside, seat.piece) ? seat : null;
 }
 
