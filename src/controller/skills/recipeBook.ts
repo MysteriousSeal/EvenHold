@@ -11,9 +11,9 @@ import type { GameModel } from '../../model/GameModel';
 import { nameOf, qualityOf } from '../../model/hero/bag';
 import { LOOT, type LootId } from '../../model/loot/loot';
 import { gearKey } from '../../model/human/items/gear';
-import { difficulty, skillOf } from '../../model/skills/skills';
+import { RISE, difficulty, skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
-import { RECIPES, RECIPE_GROUPS, RECIPE_IDS } from '../../model/skills/woodworking';
+import { RECIPES, RECIPE_GROUPS, RECIPE_IDS, woodRise, type RecipeId } from '../../model/skills/woodworking';
 import type { ItemId } from '../../model/human/equipment';
 import type { Rarity } from '../../model/human/items/gear';
 import { bagIcon } from '../../view/ui/itemIcons';
@@ -57,6 +57,7 @@ export interface Craft {
   crafter(model: GameModel): Crafter;
   kind(id: string): string; // what a material or goods made is, under its name
   notHere?(model: GameModel, id: string): string; // why it can't be made where the hero stands ('': it can)
+  rise?(id: string, level: number): (typeof RISE)[number]; // how much it'd teach, where it isn't its difficulty's (a material, lasting)
   verb: string; // "Craft", "Cook"
   empty: string; // nothing to make with what's in the bag
 }
@@ -67,6 +68,7 @@ export const WOODWORKING: Craft = {
   ids: RECIPE_IDS,
   groups: RECIPE_GROUPS,
   crafter: (model) => model.woodworking,
+  rise: (id, level) => woodRise(id as RecipeId, level),
   kind: (id) => (RECIPES[id as keyof typeof RECIPES].group === 'Goods' ? `Trade good · sells for ${LOOT[RECIPES[id as keyof typeof RECIPES].makes as LootId].value} copper` : 'Crafting material'),
   verb: 'Craft',
   empty: 'Nothing you can make with what’s in your bag. Fell some trees, or untick the filter to see every recipe.',
@@ -82,8 +84,9 @@ const makesOf = (craft: Craft, id: string) => {
 export function bestRecipe(model: GameModel, craft: Craft = WOODWORKING): string | null {
   const level = skillOf(model.hero, craft.skill).level;
   const needs = (id: string) => craft.recipes[id].needs;
-  const can = craft.ids.filter((id) => craft.crafter(model).canMake(id) > 0 && difficulty(needs(id), level).chance > 0);
-  return can.sort((a, b) => difficulty(needs(b), level).chance - difficulty(needs(a), level).chance || needs(b) - needs(a))[0] ?? null;
+  const chance = (id: string) => (craft.rise?.(id, level) ?? difficulty(needs(id), level)).chance;
+  const can = craft.ids.filter((id) => craft.crafter(model).canMake(id) > 0 && chance(id) > 0);
+  return can.sort((a, b) => chance(b) - chance(a) || needs(b) - needs(a))[0] ?? null;
 }
 
 export function recipeBook(model: GameModel, state: BookState, redraw: () => void, craft: Craft = WOODWORKING): HTMLElement {
@@ -114,7 +117,7 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     const recipe = recipes[id];
     const can = crafter.canMake(id);
     const count = crafter.knows(id) ? (can > 0 ? String(can) : '') : String(recipe.needs); // (how many now; not reached: the level it wants)
-    const button = bookRow({ id, kind: 'recipe', name: recipe.name, needs: recipe.needs, level, picked: id === state.picked, best: id === best, count, onPick: () => [(state.picked = id), (state.count = 1), redraw()] });
+    const button = bookRow({ id, kind: 'recipe', name: recipe.name, needs: recipe.needs, level, picked: id === state.picked, best: id === best, count, rise: craft.rise?.(id, level), onPick: () => [(state.picked = id), (state.count = 1), redraw()] });
     if (crafter.making?.recipe === id) button.classList.add('making');
     return button;
   }
@@ -128,7 +131,7 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
     const title = el('h3', 'book-title', gear ? `${recipe.name}` : nameOf(item));
     title.style.color = gear ? QUALITY_INK[qualityOf(item)] : '';
     const kind = gear ? gearLines(item as never).map((l, i) => el('span', i === 0 ? 'book-kind' : 'book-stat', lineText(l))) : [el('span', 'book-kind', LOOT[item as LootId] && craft.kind(id))];
-    const needs = needsLine(craft.name, recipe.needs, level);
+    const needs = needsLine(craft.name, recipe.needs, level, craft.rise?.(id, level));
     const materials = el('ul', 'book-materials');
     for (const [material, n] of Object.entries(recipe.from)) {
       const have = model.hero.bag[material as LootId] ?? 0;
