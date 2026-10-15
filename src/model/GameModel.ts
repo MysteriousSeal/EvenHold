@@ -62,7 +62,7 @@ import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
-import { Cooking, Fishing, Lumber, Salvage, Woodworking } from './skills/trades';
+import { Cooking, Fishing, Lumber, Salvage, Smithing, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
@@ -129,6 +129,7 @@ export class GameModel {
   readonly work = new Work(this); // (a job's shift, under way: jobs/work.ts)
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
   readonly woodworking: Woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
+  readonly smithing: Smithing = new Smithing(this); // (metal worked at a smithy's anvil: skills/smithing.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
@@ -259,7 +260,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
     this.chickens.update(dt); // (whoever's been turned into one: spells/turned.ts)
-    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
+    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.

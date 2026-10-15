@@ -40,6 +40,7 @@ export type Interaction =
   | { kind: 'traveller'; traveller: Traveller }
   | { kind: 'board'; board: number }
   | { kind: 'bench'; bench: Furniture }
+  | { kind: 'anvil'; anvil: Furniture }
   | { kind: 'fire'; fire: Fire }
   | { kind: 'well'; village: number }
   | { kind: 'hallDoor'; door: Furniture }
@@ -97,6 +98,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield board !== null ? { kind: 'board', board } : null;
   const bench = model.salvage.benchInReach;
   yield bench ? { kind: 'bench', bench } : null;
+  const anvil = model.smithing.anvilInReach;
+  yield anvil ? { kind: 'anvil', anvil } : null;
   const fire = model.cooking.fireInReach;
   yield fire ? { kind: 'fire', fire } : null;
   const well = model.wellInReach;

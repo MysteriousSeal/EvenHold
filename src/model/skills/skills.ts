@@ -7,7 +7,7 @@
 // wants so many tries that taught (its skill's STEPS at its tier: the quicker a try, the more), so a tier's an hour or
 // so of the trade, the whole of it three to five.
 
-export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'smithing' | 'salvaging' | 'cooking' | 'fishing';
 
 export interface Skill {
   name: string;
@@ -69,6 +69,25 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 150, what: 'Plank shields; varnish from resin at 160, a varnished casket at 170, a broad axe at 180, an oak cask at 185, a heater shield at 190' },
       { at: 200, what: 'A varnished quarterstaff; an oak war club at 210, a pavise at 215' },
       { at: 225, what: 'An oak chest; a heartwood amulet at 230, a banded tower shield at 235, an oak war staff at 245, a heartwood pack at 255, a heavy cudgel at 260, an oak buckler at 265, an oak pavise at 275, a heartwood tower shield at 285' },
+    ],
+  },
+  smithing: {
+    name: 'Smithing',
+    steps: [7, 6, 3, 2],
+    kind: 'main',
+    verb: 'smith',
+    practice: "Work metal at a smithy's anvil: smelt ore into ingots, and forge fittings, tools, arms and armour. E before the anvil opens your recipes.",
+    about: "Smelt the ore a miner digs, and the scrap the salvage bench leaves, into ingots, and beat them into nails and bands for the woodworker, picks for the miner, and the smith's own wares.",
+    unlocks: [
+      { at: 1, what: 'Copper ingots from ore, iron ones from salvaged scrap; copper rivets at 10, a copper pickaxe at 15, a dagger at 20, a copper ring at 25' },
+      { at: 30, what: 'A hatchet; a nasal cap at 40' },
+      { at: 50, what: 'Iron ingots from ore; nails at 55, a short sword at 60, an iron pickaxe at 70' },
+      { at: 75, what: 'Iron bands, for a woodworker\'s banded pieces; mail mittens at 80, a mace at 95' },
+      { at: 100, what: 'Silver ingots, from ore or filings; a mail coif at 110, silver fittings at 120, a silver ring at 125, an arming sword at 130, chain mail at 145' },
+      { at: 150, what: 'Steel ingots, of three iron or a tempered one; a steel pickaxe at 160, gauntlets at 170' },
+      { at: 180, what: 'Gold ingots; a war hammer at 185, a gold ring at 190, a bascinet at 200, gilded fittings at 210, a breastplate at 215' },
+      { at: 225, what: 'Star-iron ingots; a gold chain at 230, a great helm at 235, a star-iron pickaxe at 240, plate greaves at 250, a signet ring at 255, a tower shield at 265' },
+      { at: 280, what: 'A star-iron blade; a star-iron breastplate at 295, the finest there is' },
     ],
   },
   salvaging: {

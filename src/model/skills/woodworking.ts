@@ -3,7 +3,7 @@
 // going to work stops it), as many as asked for, or all the materials in the bag allow. Each made takes its materials
 // from the bag and puts what it makes in it (no room: it stops, told so). Recipes are known as the skill reaches
 // them, from planks sawn from logs, through bowls, tankards, caskets and chests to sell, to wooden weapons and
-// shields (iron-banded, with salvaged scrap, from the journeyman's on); the finest varnished, or of ancient
+// shields (iron-banded, with salvaged scrap from the journeyman's on, and a smith's nails and bands: smithing.ts); the finest varnished, or of ancient
 // heartwood, better made (higher, rarer). Each made raises the skill as its difficulty
 // allows (skills.ts: orange always … grey never), and gives some of the hero's own experience.
 
@@ -101,18 +101,18 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   varnishedCasket: { name: 'Varnished casket', group: 'Goods', needs: 170, from: { oakPlank: 2, varnish: 1 }, makes: 'varnishedCasket', seconds: 5 },
   broadAxe: { name: 'Broad axe', group: 'Tools', needs: 180, from: { oakPlank: 2, temperedIngot: 1, leatherStrip: 1 }, makes: { item: 'broadAxe', level: 22, rarity: 'uncommon' }, seconds: 6 },
   oakCask: { name: 'Oak cask', group: 'Goods', needs: 185, from: { oakPlank: 3 }, makes: 'oakCask', seconds: 5.5 }, // (an inn's: for its ale)
-  heaterShield: { name: 'Heater shield', group: 'Shields', needs: 190, from: { oakPlank: 3, varnish: 1, ironScrap: 2 }, makes: { item: 'heaterShield', level: 21, rarity: 'uncommon' }, seconds: 6 },
+  heaterShield: { name: 'Heater shield', group: 'Shields', needs: 190, from: { oakPlank: 3, varnish: 1, ironNails: 2 }, makes: { item: 'heaterShield', level: 21, rarity: 'uncommon' }, seconds: 6 },
   varnishedStaff: { name: 'Varnished quarterstaff', group: 'Weapons', needs: 200, from: { oakPlank: 3, varnish: 1 }, makes: { item: 'quarterstaff', level: 22, rarity: 'uncommon' }, seconds: 5.5 },
   oakWarClub: { name: 'Oak war club', group: 'Weapons', needs: 210, from: { oakPlank: 3 }, makes: { item: 'club', level: 24, rarity: 'uncommon' }, seconds: 6 },
   pavise: { name: 'Pavise', group: 'Shields', needs: 215, from: { oakPlank: 4, varnish: 1, leatherStrip: 2, temperedIngot: 1 }, makes: { item: 'pavise', level: 25, rarity: 'uncommon' }, seconds: 6.5 },
   oakChest: { name: 'Oak chest', group: 'Goods', needs: 225, from: { oakPlank: 3, varnish: 1 }, makes: 'oakChest', seconds: 6.5 },
   heartwoodAmulet: { name: 'Heartwood amulet', group: 'Trinkets', needs: 230, from: { heartwood: 1, cutGem: 1, varnish: 1 }, makes: { item: 'heartwoodAmulet', level: 27, rarity: 'rare' }, seconds: 6 },
-  bandedTowerShield: { name: 'Banded tower shield', group: 'Shields', needs: 235, from: { oakPlank: 3, ironScrap: 4 }, makes: { item: 'towerShield', level: 27, rarity: 'uncommon' }, seconds: 6.5 },
+  bandedTowerShield: { name: 'Banded tower shield', group: 'Shields', needs: 235, from: { oakPlank: 3, ironBands: 2 }, makes: { item: 'towerShield', level: 27, rarity: 'uncommon' }, seconds: 6.5 },
   oakWarStaff: { name: 'Oak war staff', group: 'Weapons', needs: 245, from: { oakPlank: 2 }, makes: { item: 'quarterstaff', level: 28, rarity: 'uncommon' }, seconds: 6.5 },
   heartwoodPack: { name: 'Heartwood pack', group: 'Packs', needs: 255, from: { heartwood: 2, oakPlank: 2, leatherStrip: 4 }, makes: 'heartwoodPack', seconds: 7 },
   heavyCudgel: { name: 'Heavy cudgel', group: 'Weapons', needs: 260, from: { oakPlank: 3, ironScrap: 3, leatherStrip: 1 }, makes: { item: 'bandedCudgel', level: 30, rarity: 'uncommon' }, seconds: 7 },
   oakBuckler: { name: 'Oak buckler', group: 'Shields', needs: 265, from: { oakPlank: 2 }, makes: { item: 'buckler', level: 30, rarity: 'uncommon' }, seconds: 7 },
-  oakPavise: { name: 'Oak pavise', group: 'Shields', needs: 275, from: { oakPlank: 4, varnish: 1, ironScrap: 3 }, makes: { item: 'pavise', level: 31, rarity: 'uncommon' }, seconds: 7.5 },
+  oakPavise: { name: 'Oak pavise', group: 'Shields', needs: 275, from: { oakPlank: 4, varnish: 1, ironBands: 2 }, makes: { item: 'pavise', level: 31, rarity: 'uncommon' }, seconds: 7.5 },
   heartwoodTowerShield: { name: 'Heartwood tower shield', group: 'Shields', needs: 285, from: { heartwood: 2, oakPlank: 3, varnish: 1 }, makes: { item: 'towerShield', level: 33, rarity: 'rare' }, seconds: 8 },
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];

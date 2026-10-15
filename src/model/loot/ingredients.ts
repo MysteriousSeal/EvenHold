@@ -46,6 +46,25 @@ export const INGREDIENTS = {
   gemShard: { name: 'Gem shard', value: 20, droppedBy: {} },
   temperedIngot: { name: 'Tempered ingot', value: 40, droppedBy: {} },
   cutGem: { name: 'Cut gem', value: 60, droppedBy: {} },
+  // Dug by a miner (none dig yet: their ids here for the smith's smelting, skills/smithing.ts), two to an ingot.
+  copperOre: { name: 'Copper ore', value: 2, droppedBy: {} },
+  ironOre: { name: 'Iron ore', value: 3, droppedBy: {} },
+  silverOre: { name: 'Silver ore', value: 6, droppedBy: {} },
+  goldOre: { name: 'Gold ore', value: 10, droppedBy: {} },
+  starIronOre: { name: 'Star-iron ore', value: 16, droppedBy: {} },
+  // Smelted and forged by a smith at a smithy's anvil (skills/smithing.ts): ingots of the ores and the salvage bench's
+  // scrap, and the fittings beaten from them, for a woodworker's banded pieces and a smith's own.
+  copperIngot: { name: 'Copper ingot', value: 5, droppedBy: {} },
+  ironIngot: { name: 'Iron ingot', value: 8, droppedBy: {} },
+  steelIngot: { name: 'Steel ingot', value: 18, droppedBy: {} },
+  silverIngot: { name: 'Silver ingot', value: 14, droppedBy: {} },
+  goldIngot: { name: 'Gold ingot', value: 24, droppedBy: {} },
+  starIronIngot: { name: 'Star-iron ingot', value: 40, droppedBy: {} },
+  copperRivets: { name: 'Copper rivets', value: 3, droppedBy: {} },
+  ironNails: { name: 'Iron nails', value: 4, droppedBy: {} },
+  ironBands: { name: 'Iron bands', value: 10, droppedBy: {} },
+  silverFittings: { name: 'Silver fittings', value: 16, droppedBy: {} },
+  gildedFittings: { name: 'Gilded fittings', value: 40, droppedBy: {} },
 } satisfies Record<string, LootEntry>;
 
 export type IngredientId = keyof typeof INGREDIENTS;

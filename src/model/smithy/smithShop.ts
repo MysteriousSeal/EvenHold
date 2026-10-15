@@ -25,9 +25,10 @@ export const SMITH_WARES: ItemId[] = ITEM_IDS.filter((id) => (ITEMS[id].soldBy?.
 export const smithBuys = (id: string): id is GearKey => isGear(id) && !JEWELRY.has(slotOfGear(id));
 
 // The metal salvaged from gear (skills/salvage.ts) he'll take for the forge, at half its worth.
-const METAL: ReadonlySet<string> = new Set(['ironScrap', 'temperedIngot']);
-export const smithTakesMetal = (id: string): id is 'ironScrap' | 'temperedIngot' => METAL.has(id);
-export const metalPrice = (id: 'ironScrap' | 'temperedIngot'): number => Math.floor(LOOT[id].value / 2);
+const METAL: ReadonlySet<string> = new Set(['ironScrap', 'temperedIngot', 'copperIngot', 'ironIngot', 'steelIngot', 'silverIngot', 'goldIngot', 'starIronIngot']); // (and a smith's ingots: skills/smithing.ts)
+type Metal = 'ironScrap' | 'temperedIngot' | 'copperIngot' | 'ironIngot' | 'steelIngot' | 'silverIngot' | 'goldIngot' | 'starIronIngot';
+export const smithTakesMetal = (id: string): id is Metal => METAL.has(id);
+export const metalPrice = (id: Metal): number => Math.floor(LOOT[id].value / 2);
 
 // What he starts with, and restocks toward: his usual few of each (now and
 // then one short, from the seed), and a purse of several silver.
