@@ -38,7 +38,7 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
     fillBox(g, 0, 0, 0, 7, 2, 4, 1); // its body
     fillBox(g, 0, 3, 0, 7, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 2)); // the lid, its top rounded
     for (const x of [1, 6]) fillBox(g, x, 0, 0, x, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 3)); // its iron bands
-    fillBox(g, 3, 2, 0, 4, 3, 0, 4); // the lock
+    fillBox(g, 3, 2, 4, 4, 3, 4, 4); // the lock, on its front (+Z: the face the camera sees)
   }),
   carvedTankard: model([0x9a6a3e, 0x4a4a52, 0x5a3a20, 0x7a5432], [5, 6, 4], (g) => {
     fillBox(g, 0, 0, 0, 3, 4, 3, (_x, y) => (y === 1 || y === 3 ? 2 : 1)); // its staves, banded

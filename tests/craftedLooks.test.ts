@@ -7,6 +7,7 @@ import { ITEM_MODELS } from '../src/view/meshes/human/gear/itemModels';
 import { bandFor } from '../src/view/meshes/human/gear/armorShell';
 import { BODIES, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE } from '../src/view/meshes/human/bodyVoxels';
 import { MEAL_MODELS } from '../src/view/meshes/loot/mealVoxels';
+import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
 import { CupInHand } from '../src/view/meshes/human/cupInHand';
 import { colorAt } from '../src/view/meshes/voxel/voxelShapes';
 
@@ -59,6 +60,15 @@ describe('icons that read', () => {
       const used = new Set(grid.cells.filter(Boolean));
       expect(used.size, id).toBeGreaterThanOrEqual(4); // (mail or steel, and leather, and brass)
     }
+  });
+
+  it.each([['varnishedCasket', 0xd4b060], ['oakChest', 0xd0a040]] as const)("%s: its brass hasp or lock on its front (+Z, the face the camera sees), none on its back", (id, brass) => {
+    const { build, palette } = LOOT_MODELS[id];
+    const grid = build();
+    const [sx, sy, sz] = grid.size;
+    const on = (z: number) => Array.from({ length: sy }, (_, y) => colorAt(grid, sx >> 1, y, z)).some((c) => c && palette[c - 1] === brass); // (its middle: the hasp's place, not a corner's)
+    expect(on(sz - 1)).toBe(true);
+    expect(on(0)).toBe(false);
   });
 
   it('every fish dish its own: no two of them the same size and colours', () => {
