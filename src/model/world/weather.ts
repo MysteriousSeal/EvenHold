@@ -3,7 +3,7 @@
 // WEATHER_HOURS, chosen by a roll of its own (the season's odds), and eases into the next over TURN_HOURS; mist
 // gathers in the early morning, and over lakes. Only how things look: nothing in the game goes by it.
 
-import { hourAt, seasonAt, yearAt, type Season } from '../clock';
+import { DAY_MINUTES, hourAt, SEASON_DAYS, SEASONS, seasonAt, yearAt, type Season } from '../clock';
 import { hashUnit } from '../../util/random';
 import type { Tiles } from '../map/tiles';
 
@@ -132,6 +132,27 @@ export interface Sky {
   daylight: Daylight;
 }
 
-export function skyAt(seed: number, minutes: number): Sky {
-  return { season: seasonAt(minutes), year: yearAt(minutes), weather: weatherAt(seed, minutes), daylight: daylightAt(minutes) };
+// The sky as forced for a look at it (a developer's: ?hour=18&season=autumn&weather=rain), any of them.
+export interface SkyForcing {
+  hour?: number;
+  season?: Season;
+  weather?: WeatherKind;
+}
+
+export const WEATHER_KINDS = Object.keys(LOOKS) as WeatherKind[];
+
+export function skyAt(seed: number, minutes: number, force: SkyForcing = {}): Sky {
+  const at = forcedMinutes(minutes, force);
+  const weather = weatherAt(seed, at);
+  return { season: seasonAt(at), year: yearAt(at), weather: force.weather ? { ...weather, ...LOOKS[force.weather], kind: force.weather } : weather, daylight: daylightAt(at) };
+}
+
+// `minutes` moved to the forced hour of its day, and to the same day of the forced season's week (this year's).
+export function forcedMinutes(minutes: number, force: SkyForcing): number {
+  let day = Math.floor(minutes / DAY_MINUTES);
+  if (force.season) {
+    const week = Math.floor(day / SEASON_DAYS);
+    day = (week - (((week % 4) + 4) % 4) + SEASONS.indexOf(force.season)) * SEASON_DAYS + (((day % SEASON_DAYS) + SEASON_DAYS) % SEASON_DAYS);
+  }
+  return day * DAY_MINUTES + (force.hour !== undefined ? force.hour * 60 : minutes - Math.floor(minutes / DAY_MINUTES) * DAY_MINUTES);
 }
