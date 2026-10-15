@@ -53,6 +53,7 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   broodMother: () => voxelIcon('target:broodMother', () => ({ grid: BROOD_MOTHER.head.build(), palette: BROOD_MOTHER.palette }), PORTRAIT_SIZE),
   caveBat: () => voxelIcon('target:caveBat', () => ({ grid: batBody(), palette: BAT_PALETTE }), PORTRAIT_SIZE),
   caveWorm: () => voxelIcon('target:caveWorm', () => ({ grid: wormHead(), palette: WORM_PALETTE }), PORTRAIT_SIZE),
+  witchFinder: (enemy) => humanPortrait(enemy), // (his tall hat)
   // A stronghold's (model/strongholds/): its men a bandit's bust as dressed, its hounds a wolf's head, till they've portraits of their own.
   bruiser: (enemy) => humanPortrait(enemy),
   crossbowman: (enemy) => humanPortrait(enemy),

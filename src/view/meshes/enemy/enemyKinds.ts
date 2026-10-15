@@ -37,6 +37,7 @@ export const KIND_LOOKS: Record<EnemyKind, KindLook> = {
   firebrand: { name: 'Firebrand', size: 1, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
   sawbones: { name: 'Sawbones', size: 1, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
   runner: { name: 'Runner', size: 0.95, aura: 15, textHeight: 0.4 }, // (a bandit's look, for now)
+  witchFinder: { name: 'Witch-finder', size: 1, aura: 16, textHeight: 0.45 }, // (the bishop's man, in his grey coat and tall hat)
   warHound: { name: 'War hound', size: 1.15, aura: 20, textHeight: 0.4 }, // (a wolf's look, for now)
   houndmaster: { name: 'The houndmaster', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)
   quartermaster: { name: 'The quartermaster', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)

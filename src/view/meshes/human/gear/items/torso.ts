@@ -27,6 +27,7 @@ import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { drawn, fur, mail, mod } from '../patterns';
 import { SET_PALETTES } from '../setPalettes';
+import { FINDER_TORSO } from './finderGear';
 
 // A gambeson: padded linen quilted in vertical channels, laced up the
 // front, a leather-trimmed hem, and padded sleeves up over the shoulders.
@@ -377,4 +378,5 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   watchBrigandine,
   sunwardCuirass,
   velvetDoublet,
+  ...FINDER_TORSO,
 };
