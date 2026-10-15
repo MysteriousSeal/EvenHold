@@ -289,7 +289,7 @@ describe('by a fire', () => {
     const { castOf } = await import('../src/controller/skills/castOf');
     const model = kitchen(1, { rawBoarMeat: 2 });
     byACampfire(model);
-    expect(interactionOf(model, new Set(['traveller', 'talk']))?.kind).toBe('fire'); // (whoever's passing by at the start, passed over)
+    expect(interactionOf(model, new Set(['traveller', 'talk', 'carter']))?.kind).toBe('fire'); // (whoever's passing by at the start, passed over)
     byTheHearth(model);
     expect(interactionOf(model)?.kind).toBe('fire');
     model.cooking.start('roastBoar', 2);
