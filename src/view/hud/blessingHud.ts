@@ -15,7 +15,8 @@ import { voxelIcon } from '../ui/voxelIcon';
 import { armModel, bookModel, bootModel, eyeModel, featherModel, heartModel, poxModel, snowflakeModel, webModel } from './blessingVoxels';
 import type { MenuIcon } from '../ui/menu';
 
-// Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin;
+// Each blessing's picture: a winged boot, a flexed arm, a book, a feather, a heart and an eye (blessingVoxels.ts), a shield, a gold coin,
+// a smith's Tempered a sword;
 // and the banes: a fall's Weary, the heart greyed; the pox, the heart gone sick and spotted; a draugr's frost, Chilled, a
 // snowflake; a spider's web, Webbed, a cobweb.
 const ICONS: Record<BlessingKind, MenuIcon> = {
@@ -34,6 +35,7 @@ const ICONS: Record<BlessingKind, MenuIcon> = {
   fortified: lootIcon('huntersPie'),
   feasted: lootIcon('huntersFeast'),
   rested: (size) => voxelIcon('blessing:rested', featherModel, size), // (a night in an inn's bed: a feather, from its pillow)
+  tempered: gearIcon('armingSword'), // (a smith's mending: a blade fresh from his anvil)
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger
     coin.className = 'blessing-coin';

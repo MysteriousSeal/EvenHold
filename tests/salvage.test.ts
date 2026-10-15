@@ -8,8 +8,9 @@ import { fresh } from './support/testWorld';
 import { TEST_SEEDS, TEST_MAP_SIZE } from './support/testWorld';
 import { GameModel } from '../src/model/GameModel';
 import { restore, snapshot } from '../src/model/save';
-import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gear';
-import { BREAK_SECONDS, FINER_AT, FOUND_TRIES, PER_LEVEL, TOO_HARD, isSalvageable, makeOf, salvageOf, teachChance } from '../src/model/skills/salvage';
+import { betterThanWorn, foundAt, gearKey, gearPower, type Rarity } from '../src/model/human/items/gear';
+import { gearSellPrice } from '../src/model/smithy/smithShop';
+import { BREAK_SECONDS, FINER_AT, SCRAP_MOST, FOUND_TRIES, PER_LEVEL, TOO_HARD, isSalvageable, makeOf, salvageOf, teachChance } from '../src/model/skills/salvage';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { castOf } from '../src/controller/skills/castOf';
 import { LOOT } from '../src/model/loot/loot';
@@ -18,6 +19,8 @@ import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
 import { RISE, SKILL_TIERS, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
+
+const RARITY_ODDS: Record<Rarity, number> = { common: 0.6, uncommon: 0.26, rare: 0.1, epic: 0.035, legendary: 0.005 }; // (gear.ts rollRarity's)
 
 describe('what gear is made of, and leaves', () => {
   it('knows iron from leather, cloth, silver and wood', () => {
@@ -29,13 +32,50 @@ describe('what gear is made of, and leaves', () => {
   });
 
   it('leaves one scrap, one more every six levels, a gem shard off a stone, and a finer thing from a rare piece (from the skill its rarity wants); asks a level by its own and its rarity', () => {
-    expect(salvageOf('armingSword')).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]], tries: FOUND_TRIES.common });
-    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3], ['temperedIngot', 1]], tries: FOUND_TRIES.rare });
-    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]], tries: FOUND_TRIES.epic });
-    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic - 1)).toMatchObject({ gives: [['silverFilings', 2], ['gemShard', 1]], finerAt: FINER_AT.epic }); // (too green a hand: its scrap alone)
-    expect(salvageOf('quarterstaff').gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
-    expect(salvageOf(gearKey({ item: 'club', level: 9, rarity: 'common', roll: 0 })).gives).toEqual([['pinePlank', 2]]); // (a drop's: not as a recipe makes it)
-    expect(salvageOf(gearKey({ item: 'plankShield', level: 17, rarity: 'common', roll: 0 })).gives).toEqual([['oakPlank', 3]]);
+    expect(salvageOf('armingSword', 1)).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]], tries: FOUND_TRIES.common });
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }), 1)).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3]], finerAt: FINER_AT.rare, tries: FOUND_TRIES.rare }); // (too green a hand: its scrap alone)
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }), FINER_AT.rare).gives.map(([item]) => item)).toContain('temperedIngot');
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), 1)).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1]], finerAt: FINER_AT.epic, tries: FOUND_TRIES.epic });
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic).gives).toContainEqual(['cutGem', 2]); // (two from an epic)
+    expect(salvageOf('quarterstaff', 1).gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
+    expect(salvageOf(gearKey({ item: 'club', level: 9, rarity: 'common', roll: 0 }), 1).gives).toEqual([['pinePlank', 2]]); // (a drop's: not as a recipe makes it)
+    expect(salvageOf(gearKey({ item: 'plankShield', level: 17, rarity: 'common', roll: 0 }), 1).gives).toEqual([['oakPlank', 3]]);
+  });
+
+  it("leaves a skilled hand more of its scrap, a master's near what the piece fetches whole, never as much; their own make, no more", () => {
+    const worth = (gives: Array<[string, number]>) => gives.reduce((c, [item, n]) => c + n * LOOT[item as keyof typeof LOOT].value, 0);
+    const sword = gearKey({ item: 'armingSword', level: 13, rarity: 'common', roll: 0 });
+    const got = [1, 100, 200, 300].map((skill) => worth(salvageOf(sword, skill).gives));
+    expect(salvageOf(sword, 1).gives).toEqual([['ironScrap', 3]]);
+    for (let i = 1; i < got.length; i++) expect(got[i]).toBeGreaterThan(got[i - 1]); // (more at each)
+    expect(salvageOf(sword, 300).gives).toEqual([['ironScrap', 3 * SCRAP_MOST], ['gemShard', 6]]); // (its scrap four times over, the rest in stones: 168c of 210c sold whole)
+    // Never more of the finer things than a rare piece's own (a tempered ingot's a steel ingot at the forge: no mint of them).
+    for (const [item, level, rarity] of [['chainMail', 20, 'rare'], ['greatHelm', 28, 'rare'], ['armingSword', 15, 'uncommon'], ['shortSword', 8, 'common']] as const)
+      for (const skill of [100, 200, 300]) {
+        const finer = salvageOf(gearKey({ item, level, rarity, roll: 0 }), skill).gives.filter(([it]) => it === 'temperedIngot' || it === 'cutGem');
+        expect(finer.reduce((n, [, k]) => n + k, 0), `${item} ${rarity} @${skill}`).toBeLessThanOrEqual(rarity === 'rare' ? 1 : 0);
+      }
+    const ring = gearKey({ item: 'rubyRing', level: 7, rarity: 'common', roll: 1 });
+    expect(salvageOf(ring, 300).gives).toEqual(salvageOf(ring, 1).gives); // (its silver and stone worth more than it sells for already: no more)
+    // A bag of what's found, levels 1 to 20, as its rarities fall: a master's broken down near it sold whole, under.
+    let [sold, master, green] = [0, 0, 0];
+    for (let level = 1; level <= 20; level++)
+      for (const item of Object.keys(ITEMS) as Array<keyof typeof ITEMS>) {
+        if (!foundAt(item, level)) continue;
+        for (const [rarity, odds] of Object.entries(RARITY_ODDS) as Array<[Rarity, number]>) {
+          const key = gearKey({ item, level, rarity, roll: 0 });
+          const gives = salvageOf(key, 300).gives;
+          const finer = worth(gives.filter(([item]) => item === 'temperedIngot' || item === 'cutGem'));
+          expect(worth(gives), key).toBeLessThan(Math.max(gearSellPrice(key), worth(salvageOf(key, 1).gives) + finer + 1)); // (each piece: under it whole, or its scrap no more than a green hand's)
+          [sold, master, green] = [sold + odds * gearSellPrice(key), master + odds * worth(salvageOf(key, 300).gives), green + odds * worth(salvageOf(key, 1).gives)];
+        }
+      }
+    expect(green / sold).toBeLessThan(0.12);
+    expect(master / sold).toBeGreaterThan(0.7);
+    expect(master / sold).toBeLessThan(0.9);
+    // Their own make: as a green hand's (no ladder).
+    const warClub = gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 });
+    expect(salvageOf(warClub, 300, true).gives).toEqual(salvageOf(warClub, 1, true).gives);
   });
 
   it("falls in its tiers on the gear a hero meets: levels 1 to 7 an apprentice's, 8 to 13 a journeyman's, 14 to 19 an expert's, 20 on an artisan's", () => {

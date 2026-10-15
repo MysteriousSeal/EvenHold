@@ -23,11 +23,12 @@ import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcRole, type NpcStep } from '.
 import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
 import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, settle, squareSpot } from './npcPlaces';
-import { easeOffHero, heroOn, place, walk, walkAlong } from './npcWalk';
+import { easeOffHero, heroOn, pastHero, place, walk, walkAlong } from './npcWalk';
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
+import { inTurn, say } from './speech';
 
 // Whether a table chair's patron is tied to it (waiting on an order, or having it): not up and off till then. (Here,
 // not with the inn's shifts that read it too: jobs/innShift.ts imports this file's routine, and a shift its class.)
@@ -58,6 +59,10 @@ const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at ni
 // Their day by the clock: abed from late at night till dawn; of an evening, the inn the likelier and the fields left.
 const NIGHT: [number, number] = [23, 6];
 const EVENING: [number, number] = [18, 23];
+// The hero standing in a doorway: a villager waits on them so long, then comes past, by their leave (put down in the
+// doorway, they ease off the hero: npcWalk.ts easeOffHero; the hero's never pushed).
+const DOORWAY_WAIT = 2; // seconds
+const BY_YOUR_LEAVE = ['By your leave.', 'Pardon me.', 'Coming through.', "Shift, would you? I live here."];
 const within = (hour: number, [from, till]: [number, number]) => (from <= till ? hour >= from && hour < till : hour >= from || hour < till);
 
 
@@ -161,6 +166,13 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
 // Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).
 const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled };
 
+// A villager waiting on the hero in a doorway: whether they've waited long enough to come past (said so, as they do).
+function waitedOnHero(npc: Npc, dt: number): boolean {
+  if ((npc.waited += dt) < DOORWAY_WAIT) return false;
+  say(npc, inTurn(npc, BY_YOUR_LEAVE));
+  return true;
+}
+
 function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt: number): void {
   npc.moving = false;
   if (seen && easeOffHero(npc, world, dt)) return;
@@ -185,19 +197,21 @@ function act(npc: Npc, npcs: readonly Npc[], world: NpcWorld, seen: boolean, dt:
       return;
     case 'enter': {
       const inside = doorTile(world.seed, step.entrance);
-      if (heroOn(world, step.entrance, inside.x, inside.z)) return; // the hero's in the doorway: wait
+      if (heroOn(world, step.entrance, inside.x, inside.z) && !waitedOnHero(npc, dt)) return; // the hero's in the doorway: wait, a moment
       npc.where = step.entrance;
       place(npc, world, inside);
       npc.facing = Math.PI; // into the room
+      if (heroOn(world, step.entrance, inside.x, inside.z)) pastHero(npc, world); // (come past them)
       done();
       return;
     }
     case 'exit': {
       const door = npc.where!;
-      if (heroOn(world, null, door.x, door.z)) return; // the hero's outside the door: wait
+      if (heroOn(world, null, door.x, door.z) && !waitedOnHero(npc, dt)) return; // the hero's outside the door: wait, a moment
       npc.where = null;
       place(npc, world, door);
       npc.facing = Math.atan2(door.outX, door.outZ);
+      if (heroOn(world, null, door.x, door.z)) pastHero(npc, world);
       done();
       return;
     }

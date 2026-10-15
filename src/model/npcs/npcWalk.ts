@@ -57,6 +57,15 @@ export function easeOffHero(npc: Npc, world: NpcWorld, dt: number): boolean {
   return stepAway(npc, world, ux, uz, Math.min(reach - d, EASE_SPEED * dt));
 }
 
+// A villager come through a doorway the hero stands in (npcRoutine.ts): put down just past them, the way they face (on
+// into the room, or out into the street), if there's room; else where they are, to ease off them.
+export function pastHero(npc: Npc, world: NpcWorld): void {
+  const reach = (NPC_RADIUS + HERO_RADIUS) * (npc.where ? INDOOR_SCALE : 1) + BARELY;
+  const at = { x: world.hero.x + Math.sin(npc.facing) * reach, z: world.hero.z + Math.cos(npc.facing) * reach };
+  const free = npc.where ? roomFree(world.seed, npc.where, npc.role !== 'villager') : (x: number, z: number) => !world.isBlocked(x, z, NPC_RADIUS);
+  if (free(at.x, at.z)) place(npc, world, at);
+}
+
 // A villager the hero walks into (all but touching them, ahead of them) makes way:
 // steps off from them, as easing off, so the hero's never held up by
 // someone stood still. `dirX, dirZ`: the way the hero's pressing.

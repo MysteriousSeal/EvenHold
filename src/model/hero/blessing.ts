@@ -4,12 +4,13 @@
 // another toss rerolls it, the half hour afresh (a cheat can grant all).
 // And a cook's meals' (loot/meals.ts), eaten through: Well fed, Fortified, Feasted, one at a time, beside a well's.
 // And a night in an inn's room, paid for (inn/roomLetting.ts sleepTillMorning): Well rested, a few hours after.
+// And gear mended at a smith's (hero/wear.ts mendAll): Tempered, a while after.
 
 import type { GameEvent, Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
-export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed' | 'fed' | 'fortified' | 'feasted' | 'rested';
+export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed' | 'fed' | 'fortified' | 'feasted' | 'rested' | 'tempered';
 export interface Blessing {
   kind: BlessingKind;
   left: number; // seconds of it left
@@ -32,10 +33,11 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 15% less damage, and you tire a third slower.' }, // (a cook's pie)
   feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 15% less, and your health comes back slowly.' }, // (a cook's feast)
   rested: { name: 'Well rested', about: 'A night in a proper bed: your breath comes back a quarter faster, and you tire a quarter slower.' }, // (no well's: a night in an inn's room, inn/roomLetting.ts)
+  tempered: { name: 'Tempered', about: 'Your gear fresh from the smith: hits on you deal 10% less damage, and it wears half as fast.' }, // (no well's: a smith's mending, hero/wear.ts)
 };
 const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed', 'poxed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
 const FOOD: ReadonlySet<BlessingKind> = new Set(['fed', 'fortified', 'feasted']); // a meal's: no well's either, and kept through one
-const SLEPT: ReadonlySet<BlessingKind> = new Set(['rested']); // a night's: no well's either, and kept through one, and through a meal
+const SLEPT: ReadonlySet<BlessingKind> = new Set(['rested', 'tempered']); // a night's, a smith's: no well's either, and kept through one, and through a meal
 const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k) && !FOOD.has(k) && !SLEPT.has(k)); // the wells'
 const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 const WEB_PACE = 0.4; // and webbed (both: slower still)
@@ -49,7 +51,7 @@ export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1) * (on(he
 export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) + (on(hero, 'feasted') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
 export const hitTaken = (hero: Hero, damage: number) => damage + (on(hero, 'weary') ? 1 : 0); // (Weary: a point more)
 const SPARED = 0.15; // of each blow, Tough skin's; a pie's or a feast's
-export const spared = (hero: Hero) => (on(hero, 'tough') ? SPARED : 0) + (on(hero, 'fortified') || on(hero, 'feasted') ? SPARED : 0); // (a share off, with armour's: attributes.ts throughArmor, under its cap)
+export const spared = (hero: Hero) => (on(hero, 'tough') ? SPARED : 0) + (on(hero, 'fortified') || on(hero, 'feasted') ? SPARED : 0) + (on(hero, 'tempered') ? TEMPERED_SPARED : 0); // (a share off, with armour's: attributes.ts throughArmor, under its cap)
 export const coinsFound = (hero: Hero, copper: number) => (on(hero, 'lucky') ? Math.round(copper * 1.5) : copper);
 export const xpGained = (hero: Hero, xp: number) => (on(hero, 'wise') ? Math.round(xp * 1.25) : xp);
 export const noticeFactor = (who: { blessings?: Blessing[] }) => (on(who, 'quiet') ? 0.5 : 1); // on foes' sight and hearing
@@ -105,6 +107,15 @@ const RESTED_BREATH = 1.25; // breath refilled, times
 export const breathFactor = (hero: { blessings?: Blessing[] }): number => (on(hero, 'rested') ? RESTED_BREATH : 1); // (hero/combatMoves.ts)
 export function wellRested(hero: Hero): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'rested'), { kind: 'rested', left: RESTED_TIME }];
+}
+
+// Gear mended at a smith's (hero/wear.ts mendAll): Tempered for a while of play (afresh, if already): hits on the hero
+// a little the softer, and their gear wearing the slower. Worth the walk before a dungeon; never wanted to get by.
+export const TEMPERED_TIME = 20 * 60; // seconds of play
+const TEMPERED_SPARED = 0.1; // of each blow
+export const isTempered = (hero: { blessings?: Blessing[] }): boolean => on(hero, 'tempered');
+export function temper(hero: { blessings?: Blessing[] }): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'tempered'), { kind: 'tempered', left: TEMPERED_TIME }];
 }
 
 // Whether it's a bane (Weary, Chilled, Webbed, the pox), not a gift.

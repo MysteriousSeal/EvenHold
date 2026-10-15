@@ -1,8 +1,9 @@
 // Gear worn down by use (hero/wear.ts): a weapon by blows landed, armour by harm taken, all of it by a fall; broken,
 // it gives nothing till a smith mends it, for coin; kept in the save.
 import { describe, expect, it } from 'vitest';
-import { BROKEN, mendAll, mendBill, mendCost, readWear, wearOf, wearOnBlow, wearOnFall, wearOnHarm, wearText } from '../src/model/hero/wear';
+import { BROKEN, TEMPERED_WEAR, mendAll, mendBill, mendCost, readWear, wearOf, wearOnBlow, wearOnFall, wearOnHarm, wearText } from '../src/model/hero/wear';
 import { armorOf, gearStats } from '../src/model/hero/attributes';
+import { BLESSINGS, TEMPERED_TIME, blessAll, spared, tickBlessing, tossCoin } from '../src/model/hero/blessing';
 import { restore, snapshot } from '../src/model/save';
 import type { GameEvent } from '../src/model/types';
 import { fresh } from './support/testWorld';
@@ -66,5 +67,43 @@ describe('gear wears', () => {
     restore(again, saved);
     expect(again.hero.wear).toEqual({ armingSword: 42 });
     expect(readWear({ armingSword: 500, nothing: 3, dagger: -1, mace: 'x' })).toEqual({ armingSword: BROKEN });
+  });
+
+  it('freshly mended, Tempered a while: hits on them a tenth less, their gear wearing half as fast; nothing mended, nothing', () => {
+    const { hero } = fresh();
+    Object.assign(hero.equipment, { mainHand: 'armingSword', torso: 'brigandine' });
+    hero.money = 10_000;
+    expect(mendAll(hero)).toBe('none');
+    expect(hero.blessings ?? []).toEqual([]);
+    hero.wear = { brigandine: 30 };
+    expect(mendAll(hero)).toBe('mended');
+    expect(hero.blessings).toEqual([{ kind: 'tempered', left: TEMPERED_TIME }]);
+    expect(BLESSINGS.tempered.name).toBe('Tempered');
+    expect(spared(hero)).toBeCloseTo(0.1);
+    wearOnFall(hero, () => {});
+    expect(wearOf(hero, 'armingSword')).toBeCloseTo(12 * TEMPERED_WEAR);
+    // A well's blessing tossed for: Tempered kept beside it; mended again, afresh.
+    tossCoin(hero, 0);
+    expect(hero.blessings!.map((b) => b.kind)).toContain('tempered');
+    tickBlessing(hero, 60);
+    mendAll(hero);
+    expect(hero.blessings!.filter((b) => b.kind === 'tempered')).toEqual([{ kind: 'tempered', left: TEMPERED_TIME }]);
+    tickBlessing(hero, TEMPERED_TIME);
+    expect(spared(hero)).toBe(0);
+    blessAll(hero);
+    expect(hero.blessings!.map((b) => b.kind)).not.toContain('tempered'); // (no well's)
+  });
+
+  it('Tempered kept in the save, its time left; an older save, without it, loads untempered', () => {
+    const model = fresh();
+    model.hero.blessings = [{ kind: 'tempered', left: 600 }];
+    const again = fresh();
+    restore(again, snapshot(model));
+    expect(again.hero.blessings).toEqual([{ kind: 'tempered', left: 600 }]);
+    const old = snapshot(fresh()) as { hero: { blessings?: unknown } };
+    delete old.hero.blessings;
+    const older = fresh();
+    restore(older, old as never);
+    expect(older.hero.blessings).toEqual([]);
   });
 });

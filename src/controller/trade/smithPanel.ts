@@ -13,6 +13,7 @@ import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, pickPrice, sellGear,
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { BROKEN, WORN, mendAll, mendBill, wearOf } from '../../model/hero/wear';
+import { BLESSINGS, TEMPERED_TIME } from '../../model/hero/blessing';
 import { WOODWORKS } from '../../model/shops/shopStock';
 import type { Hero } from '../../model/types';
 import { coinWords } from '../../view/ui/coins';
@@ -148,7 +149,7 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
       const { pieces, total } = mendBill(model.hero);
       return {
         label: pieces.length ? `Mend · ${coinWords(total)}` : 'Mend',
-        tip: pieces.length ? `Mend all you wear or carry: ${pieces.map((p) => `${gearName(p.key)} (${p.wear >= BROKEN ? 'broken' : `${Math.floor(p.wear)}% worn`}, ${coinWords(p.cost)})`).join(', ')}${model.hero.money < total ? " · you haven't the coin" : ''}` : 'Nothing you wear or carry needs mending',
+        tip: pieces.length ? `Mend all you wear or carry: ${pieces.map((p) => `${gearName(p.key)} (${p.wear >= BROKEN ? 'broken' : `${Math.floor(p.wear)}% worn`}, ${coinWords(p.cost)})`).join(', ')} · then ${BLESSINGS.tempered.name} for ${TEMPERED_TIME / 60} minutes (hits on you 10% softer, your gear wearing half as fast)${model.hero.money < total ? " · you haven't the coin" : ''}` : 'Nothing you wear or carry needs mending',
         can: pieces.length > 0 && model.hero.money >= total,
         act: () => {
           const done = mendAll(model.hero);
