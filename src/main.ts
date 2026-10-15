@@ -206,7 +206,9 @@ async function boot(): Promise<void> {
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: holdStill('levelUp') });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
+  const sound = startSound(import.meta.env.BASE_URL); // (heard from the first key or click: view/audio/)
   const pause = createPauseMenu({
+    volumes: { get: () => sound.sound.volumes, set: (v) => sound.sound.setVolumes(v) }, // (its steppers: soundSettings.ts)
     setPaused: holdStill('pause'),
     redraw: () => {
       view.update(0); // (the room rebuilt, walls changed) while the game stands still
@@ -307,7 +309,6 @@ async function boot(): Promise<void> {
       }
     }
   };
-  const sound = startSound(import.meta.env.BASE_URL); // (heard from the first key or click: view/audio/)
   const onFrame = () => {
     countFrame();
     sound.update(model); // (the places' ambience, the hero's steps)

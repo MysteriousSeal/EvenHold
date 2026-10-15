@@ -20,6 +20,7 @@ import { stepZoom, zoomLevel } from '../view/render/zoom';
 import { controlsCodex } from './controlsCodex';
 import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
+import { volumeSteppers, type VolumeHooks } from './soundSettings';
 import '../view/ui/gilded.css';
 import './pauseMenu.css';
 
@@ -39,6 +40,7 @@ export interface PauseHooks {
   walls: { full(): boolean; toggle(): void }; // the inner walls option (full height, or cut low)
   hero(): PauseHero; // who's playing, for the card
   letGo?(): boolean; // Escape over the game: a foe focused, or someone picked out, let go of first (true: one was)
+  volumes?: VolumeHooks; // the sound's (soundSettings.ts): stepped beside the other settings
 }
 
 const PORTRAIT = 112; // px
@@ -56,6 +58,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
   let waiting: KeyAction | null = null; // (Keys: the one waiting for its new key)
   let lit = 0; // the item chosen (keys)
   let items: Array<{ node: HTMLElement; act(): void; step?(by: 1 | -1): void }> = [];
+  const returnTo = { controls: 3, keys: 4 }; // (where Controls and Keys sit among the items: come back to from them)
 
   const button = (className: string, label: string, detail: string | null, act: () => void) => {
     const b = el('button', `pause-item ${className}`);
@@ -124,7 +127,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       const screen = keysScreen(
         waiting,
         (action) => ((waiting = waiting === action ? null : action), draw()),
-        () => ((showing = 'main'), (waiting = null), (lit = 4), draw()),
+        () => ((showing = 'main'), (waiting = null), (lit = returnTo.keys), draw()),
         draw,
       );
       main.classList.add('controls');
@@ -156,20 +159,23 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         hooks.walls.toggle();
         changed();
       });
+      const sound = hooks.volumes ? volumeSteppers(hooks.volumes, stepper, draw) : []; // (Volume, Effects, Ambience)
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
-      settings.append(zoom.node, walls.node);
+      settings.append(zoom.node, walls.node, ...sound.map((s) => s.node));
       main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
         zoom,
         walls,
+        ...sound,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },
         { node: menu, act: () => menu.click() },
       ];
+      [returnTo.controls, returnTo.keys] = [items.findIndex((i) => i.node === controls), items.findIndex((i) => i.node === keys)];
     }
     stage.replaceChildren(heroCard(), main);
     choose(Math.min(lit, items.length - 1));
@@ -235,7 +241,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       const item = items[lit];
       if (event.code === 'Escape') {
         if (showing !== 'main') {
-          [lit, showing] = [showing === 'keys' ? 4 : 3, 'main'];
+          [lit, showing] = [showing === 'keys' ? returnTo.keys : returnTo.controls, 'main'];
           draw();
         } else api.close();
       } else if (event.code === 'ArrowDown') choose(lit + 1);
