@@ -73,6 +73,24 @@ describe('a stroke at work', () => {
   });
 });
 
+describe('the bag', () => {
+  it('a potion drunk, a drink had, food eaten: told, from the action bar or the bag; nothing when it was not', () => {
+    const model = fresh();
+    model.hero.hp = 1;
+    Object.assign(model.hero.bag, { minorHealthPotion: 2, bread: 1, ale: 1 });
+    model.hero.actionBar[0] = 'minorHealthPotion';
+    expect(model.useAction(0)).toBe(true);
+    expect(model.takeEvents()).toContainEqual({ kind: 'consumed', drink: true });
+    model.useAction(0); // (the potion's wait not yet over: refused)
+    expect(kinds(model)).not.toContain('consumed');
+    expect(model.consume('bread')).toBe(true);
+    expect(model.takeEvents()).toContainEqual({ kind: 'consumed', drink: false });
+    model.hero.eating = null;
+    expect(model.consume('ale')).toBe(true);
+    expect(model.takeEvents()).toContainEqual({ kind: 'consumed', drink: true });
+  });
+});
+
 describe('fishing', () => {
   it('a line cast is told', () => {
     const hero = Object.assign(freshHero({ x: -1, z: 10 }), { facing: Math.PI / 2 });

@@ -107,6 +107,7 @@ export type GameEvent =
   | { kind: 'fallen' } // the hero felled (hero/fighting.ts; what comes of it: hero/setbacks.ts)
   | { kind: 'stroke'; tool: 'axe' | 'pick' | 'hammer' | 'bench' } // a tool's stroke landing, at work (skills/strokes.ts)
   | { kind: 'castLine' } // a fishing line cast (skills/fishing.ts)
+  | { kind: 'consumed'; drink: boolean } // something had from the bag or the action bar: a potion or a drink, or food (hero/heroActs.ts)
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
 

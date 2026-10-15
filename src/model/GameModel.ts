@@ -64,7 +64,7 @@ import { Cooking, Fishing, Lumber, Mining, Salvage, Smithing, Woodworking } from
 import { wakeWith } from './story/nights';
 import { Strokes, swinging } from './skills/strokes';
 import { Story } from './story/story';
-import { startAttack, useAction } from './hero/heroActs';
+import { consumed, startAttack, useAction } from './hero/heroActs';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
 
@@ -372,8 +372,8 @@ export class GameModel {
   }
 
   // Eats or drinks one of `item` from the bag, for the health it gives back (hero/bag.ts); returns whether they did.
-  consume = (item: BagItem): boolean => eatOrDrink(this.hero, item);
-  drinkPotion = (item: BagItem): boolean => drinkPotion(this.hero, item);
+  consume = (item: BagItem): boolean => eatOrDrink(this.hero, item) && consumed(this, item);
+  drinkPotion = (item: BagItem): boolean => drinkPotion(this.hero, item) && consumed(this, item);
 
   // The village well the hero's beside (outdoors), by its village's index; else null.
   get wellInReach(): number | null {
