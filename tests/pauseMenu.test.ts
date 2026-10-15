@@ -226,7 +226,7 @@ describe('the pause menu: the rest', () => {
 describe('the sound', () => {
   it('Volume, Effects, Ambience among the settings: stepped ← → a tenth, shown at once', () => {
     open().open();
-    for (let i = 0; i < 3; i++) press('ArrowDown');
+    for (let i = 0; i < 20 && litName() !== 'Volume'; i++) press('ArrowDown'); // (past whatever settings come before)
     expect(litName()).toBe('Volume');
     press('ArrowRight');
     expect(volumes.master).toBe(0.9);
