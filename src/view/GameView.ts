@@ -59,6 +59,7 @@ import { armsSheathed } from '../model/interiors/indoors';
 import { FrostOnHero } from './meshes/human/frostOnHero';
 import { HeroSilhouette } from './meshes/human/heroSilhouette';
 import { HeroBeacon } from './meshes/human/heroBeacon';
+import { HeroRim } from './meshes/human/heroRim';
 import type { BodyLook } from '../model/human/humanoid';
 import type { GameEvent } from '../model/types';
 import { BloodBursts } from './meshes/common/bloodBursts';
@@ -82,7 +83,8 @@ export class GameView {
   private readonly camera: THREE.OrthographicCamera;
   private hero: HumanRig; // dressed from the model's equipment every frame (rebuilt if their look changes)
   private eaten = false; // the hero eating from their bag, last frame
-  private readonly heroLook = personMaterial();
+  private readonly rim = new HeroRim(); // (the hero's own edge light, by the hour: their shape kept off the ground at dusk)
+  private readonly heroLook = this.rim.dress(personMaterial());
   // A red glow while the hero's just been hit, like the enemies' flash.
   private readonly heroFlash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0xff2a1a, emissiveIntensity: 0.9 });
   // Chilled (a draugr's frost): an icy sheen over all of them, pale blue and a little aglow; and frost drifting round them.
@@ -335,6 +337,7 @@ export class GameView {
     this.hero.update(hero.x, hero.y, hero.z, dt, model.attackProgress, hero.facing, seated ? (seated.lying ? 'lie' : 'sit') : hero.eating ? 'sit' : 'stand'); // (eating from the bag: sat on the ground)
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
+    this.rim.update(!room && !yard);
     this.silhouette.update(this.hero, !room && !yard); // (indoors, the walls in the way turn see-through instead)
     this.beacon.update(this.elapsed, home, hero, room ? INDOOR_SCALE : 1);
     if (!room) [this.workMarks.clear(), this.cupboard.clear()]; // (out of the room: its marks gone, her shelves too)
