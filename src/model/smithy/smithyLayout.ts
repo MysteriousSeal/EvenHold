@@ -121,7 +121,7 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   // His bar stock stood in a corner (the back wall's, else along it, else the right wall's); the scrap heaped beside
   // the salvage bench.
   const corners: Array<[number, number]> = [[room.width - 1, 0], [0, 0], ...along(0).filter(([x]) => !byFire(x)), ...down(room.width - 1)];
-  place('barStock', 1, 1, 'back', corners, false);
+  place('barStock', 1, 1, 'none', corners, false); // (standing free: low, its wall still free to hang over)
   const bench = items.find((f) => f.kind === 'salvageBench');
   if (bench) place('scrapHeap', 1, 1, 'none', [[bench.x + 1, bench.z], [bench.x - 1, bench.z], [bench.x, bench.z - 1]], false);
   // In the front of the room: a crate of new blades at an end of his counter, and a cartwheel's tyre stood against the
@@ -154,4 +154,14 @@ export function furnishSmithy(plan: Planner, room: Room): void {
     place('wallLantern', 1, 1, 'left', left.filter(([, z]) => z >= room.depth - 3), false) ??
     place('wallLantern', 1, 1, 'back', back, false) ??
     place('wallLantern', 1, 1, 'left', left, false);
+  // At least one stretch of back or left wall left free (spells/hung.ts: a painting hangs there): else the lantern
+  // taken down, then a stand off the wall.
+  const covered = (x: number, z: number) => items.some((f) => f.wall !== 'none' && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
+  const wallFree = () => along(0).some(([x]) => !covered(x, 0)) || down(0).some(([, z]) => !covered(0, z));
+  for (const kind of ['wallLantern', 'armorStand'] as const) {
+    const piece = items.find((f) => f.kind === kind && f.wall !== 'none');
+    if (wallFree() || !piece || (kind === 'armorStand' && items.filter((f) => f.kind === 'armorStand').length < 2)) continue;
+    items.splice(items.indexOf(piece), 1);
+    if (piece.solid) taken.delete(key(piece.x, piece.z));
+  }
 }
