@@ -62,14 +62,16 @@ const WEATHER_FRAGMENT = /* glsl */ `
   // rimed cells on the tops; snow by drifts a tile at a time (the high ground's first), each drift's edge ragged
   // cell by cell, the whole land's only after a deep fall (a trodden road thin and darker, its line kept).
   vec2 snowCell = floor(vStylizeWorld.xz / 0.04);
-  float cellRoll = fract(sin(dot(snowCell, vec2(12.9898, 78.233))) * 43758.5453);
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.91, 0.925, 0.94), facingUp * step(cellRoll, uFrost * 1.35)); // (0xe8ecf0)
+  vec3 cellHash = fract(vec3(snowCell.xyx) * 0.1031); // (a hash steady at any distance from the origin; sin's isn't)
+  cellHash += dot(cellHash, cellHash.yzx + 33.33);
+  float cellRoll = fract((cellHash.x + cellHash.y) * cellHash.z);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.91, 0.925, 0.94), facingUp * step(0.001, uFrost) * step(cellRoll, uFrost * 1.35)); // (0xe8ecf0)
   vec2 drift = floor(vStylizeWorld.xz + 0.5) / 5.0; // (a tile's: they're centred on whole numbers)
   vec2 driftCell = floor(drift);
   vec2 driftEase = smoothstep(0.0, 1.0, fract(drift));
   float driftAt = mix(mix(fract(sin(dot(driftCell, vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(driftCell + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453), driftEase.x),
     mix(fract(sin(dot(driftCell + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(driftCell + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453), driftEase.x), driftEase.y);
-  float lying = step(driftAt + (cellRoll - 0.5) * 0.3, uSnow * 1.3 + vStylizeWorld.y * 0.1 - 0.15);
+  float lying = step(0.001, uSnow) * step(driftAt + (cellRoll - 0.5) * 0.3, uSnow * 1.3 + vStylizeWorld.y * 0.1 * min(1.0, uSnow * 4.0) - 0.15); // (none at all with none fallen)
   #ifdef STYLIZE_TRODDEN
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.6, 0.6), facingUp * lying * 0.45);
   #else
