@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_STATS } from '../src/model/constants';
 import { DROP_CHANCE, LOOT, LOOT_IDS, LOOT_QUALITY, PICKUP_RANGE, rollDrop, type LootSource } from '../src/model/loot/loot';
 import { LOOT_MODELS } from '../src/view/meshes/loot/lootModels';
-import { INGREDIENTS } from '../src/model/loot/ingredients';
+import { INGREDIENTS, butcher } from '../src/model/loot/ingredients';
 import { JUNK_ITEMS } from '../src/model/loot/junk';
 import { PROVISIONS, PROVISION_IDS } from '../src/model/loot/provisions';
 import { GameModel } from '../src/model/GameModel';
@@ -73,15 +73,14 @@ describe('picking up loot', () => {
   });
 
   it('a slain enemy may leave loot where it fell', () => {
-    // Find a wolf whose id rolls a drop, and kill it.
+    // Find a wolf whose id rolls a drop, and kill it (its meat, butchered besides, apart: cooking.test's).
     const model = fresh();
     model.godMode = true;
     const wolf = model.enemies.find((e) => e.kind === 'wolf' && rollDrop('beast', e.id) !== null)!;
     model.enemies.splice(0, model.enemies.length, wolf);
     slay(model, wolf);
-    expect(model.loot).toHaveLength(1);
-    expect(model.loot[0].item).toBe(rollDrop('beast', wolf.id));
-    expect(Math.hypot(model.loot[0].x - wolf.x, model.loot[0].z - wolf.z)).toBeLessThan(0.5);
+    expect(model.loot.map((l) => l.item).sort()).toEqual([rollDrop('beast', wolf.id), ...butcher('beast', wolf.id)].sort());
+    for (const l of model.loot) expect(Math.hypot(l.x - wolf.x, l.z - wolf.z)).toBeLessThan(0.75); // (where it fell; its meat a little aside)
   });
 
   it('drops one item from the bag just in front of the hero', () => {
