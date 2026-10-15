@@ -39,6 +39,10 @@ export const TREE_PALETTE = [
   0x90bf55, // 26 birch leaves, light
   0xadd46a, // 27 birch leaves, sunlit
   0xcde487, // 28 birch leaves, highlight
+  0x1c3a22, // 29 deep-wood canopy, deep shadow (grandOakVoxels.ts)
+  0x2f5a2e, // 30 deep-wood canopy, shadow
+  0x3f6a32, // 31 deep-wood canopy, mid
+  0x4f7d3a, // 32 deep-wood canopy, highlight
 ];
 const BARK = 1;
 const BARK_DARK = 2;
@@ -48,6 +52,7 @@ export const BIRCH_BARK = 20;
 export const BIRCH_BARK_SHADE = 21;
 export const BIRCH_MARK = 22;
 export const BIRCH_BANDS = [23, 24, 25, 26, 27, 28];
+export const GRAND_BANDS = [29, 30, 30, 31, 31, 32];
 const LEAF_DITHER = 0.2;
 export const PINE_BANDS = [9, 10, 11, 12, 13, 14, 15];
 export const PINE_TIP = 16;

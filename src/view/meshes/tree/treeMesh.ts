@@ -2,7 +2,9 @@
 // once, then instanced per map chunk, so only trees near the camera are
 // drawn. Rotated in quarter turns only, so voxels stay on the tile grid.
 // A tree chopped at shakes at each chop; felled (model/skills/lumber.ts),
-// it's gone, a stump in its place.
+// it's gone, a stump in its place. An oak in the deep woods (model/scenery/biomes.ts)
+// is drawn as the woods' own grand oak (grandOakVoxels.ts): still an oak to chop.
+// The pines are evergreen: the season's tint passes them by (common/nature.ts).
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -16,7 +18,11 @@ import { voxelLayer } from '../voxel/voxelInstances';
 import { gradeOf } from '../../../model/skills/lumber';
 import { bucketByChunk } from '../../world/chunkLayer';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
+import { createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
+import { GRAND_GRID, GRAND_SHAPES, grandOak } from './grandOakVoxels';
+import { createFallingLeaves } from './fallingLeaves';
+import { bareBoughs } from './boughVoxels';
 
 export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
@@ -33,10 +39,28 @@ function treeTint(tree: Tree): THREE.Color {
   return new THREE.Color(brightness * (1 + warmth), brightness, brightness * (1 - warmth));
 }
 
-export function buildTreeGeometry(kind: TreeKind, shape: number): THREE.BufferGeometry {
-  const [sx, , sz] = TREE_GRID;
+// A broadleaf tree's model carries its bare boughs too (boughVoxels.ts: inside its leaves, seen in winter when they've
+// fallen), in the one geometry; a pine's is its own.
+export function buildTreeGeometry(kind: TreeKind, shape: number, grand = false): THREE.BufferGeometry {
+  const [sx, , sz] = grand ? GRAND_GRID : TREE_GRID;
   const origin = new THREE.Vector3((-sx * TREE_VOXEL_SIZE) / 2, -SINK, (-sz * TREE_VOXEL_SIZE) / 2);
-  return greedyMesh(buildTreeVoxels(kind, shape), TREE_PALETTE, TREE_VOXEL_SIZE, origin);
+  const grid = grand ? grandOak(shape % GRAND_SHAPES) : buildTreeVoxels(kind, shape);
+  const leafy = greedyMesh(grid, TREE_PALETTE, TREE_VOXEL_SIZE, origin);
+  if (kind === 'pine') return leafy;
+  return joined(leafy, greedyMesh(bareBoughs(grid, shape * 7 + (grand ? 3 : 0)), TREE_PALETTE, TREE_VOXEL_SIZE, origin));
+}
+
+// Two meshes' triangles as one (the mesher's are unindexed: position, normal, colour).
+function joined(a: THREE.BufferGeometry, b: THREE.BufferGeometry): THREE.BufferGeometry {
+  const out = new THREE.BufferGeometry();
+  for (const name of ['position', 'normal', 'color']) {
+    const [x, y] = [a.getAttribute(name).array as Float32Array, b.getAttribute(name).array as Float32Array];
+    const both = new Float32Array(x.length + y.length);
+    both.set(x);
+    both.set(y, x.length);
+    out.setAttribute(name, new THREE.Float32BufferAttribute(both, 3));
+  }
+  return out;
 }
 
 // A stump, where a tree's been felled (model/skills/lumber.ts): its trunk cut low (as wide as it, 3 voxels), in its
@@ -59,16 +83,36 @@ function stumpGeometry(kind: TreeKind): THREE.BufferGeometry {
 }
 
 const ANCIENT_TINT = new THREE.Color(0.62, 0.7, 0.66); // an ancient tree's, over its own: darker, its green deeper
+// By the country it stands in (model/scenery/biomes.ts): the deep woods' birches darker under the canopy, the hills'
+// trees cooler, the marsh's paler; over its own tint (an instance's colour: no draw more). (The deep woods' oaks are
+// their own model: grandOakVoxels.ts.)
+const COUNTRY_TINT: Partial<Record<Biome, THREE.Color>> = {
+  forest: new THREE.Color(0.66, 0.78, 0.68),
+  hills: new THREE.Color(0.9, 0.95, 0.98),
+  marsh: new THREE.Color(1.04, 1.06, 0.94),
+};
 const SHAKE = 0.3; // seconds a tree shakes, chopped at
 const SHAKE_TILT = 0.06; // radians it sways at most
 
 // Returns the per-frame wind animation (and the chopped trees': a shake at each chop; felled, gone, a stump left).
 export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  const pineMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const stumpMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
-  const windTime = addWindSway(material, TREE_WIND);
+  const windTime = addWindSway(material, { ...TREE_WIND, broadleaf: true });
+  const pineTime = addWindSway(pineMaterial, { ...TREE_WIND, evergreen: true });
+  const materialOf = (tree: Tree) => (tree.kind === 'pine' ? pineMaterial : material);
   // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
-  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree) });
+  const biomes = createBiomes(model.seed, model.tiles);
+  const tintOf = (tree: Tree) => {
+    const tint = gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
+    const country = tree.kind === 'pine' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest' ? undefined : COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];
+    return country ? tint.multiply(country) : tint;
+  };
+  const grand = (tree: Tree) => tree.kind === 'oak' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest';
+  const modelKey = (tree: Tree) => (grand(tree) ? `grand:${tree.shape % GRAND_SHAPES}` : `${tree.kind}:${tree.shape}`);
+  const geometry = (tree: Tree) => buildTreeGeometry(tree.kind, tree.shape, grand(tree));
+  const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: tintOf(tree) });
   const chunks = bucketByChunk(model.trees, (tree) => tree);
   const { lumber } = model;
   // Where each tree drawn went (its mesh, its instance, its matrix), to shake it, or take it away felled.
@@ -79,7 +123,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
     drawn.set(tree, { mesh, i, base });
   };
   const standing = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && !lumber.felled(tree));
-  scene.layer(voxelLayer(() => chunks.keys(), standing, (tree) => `${tree.kind}:${tree.shape}`, (tree) => buildTreeGeometry(tree.kind, tree.shape), at, material, placed));
+  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind !== 'pine'), modelKey, geometry, at, material, placed));
+  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind === 'pine'), modelKey, geometry, at, pineMaterial, placed));
   const fallen = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && lumber.felled(tree));
   scene.layer(voxelLayer(() => chunks.keys(), fallen, (tree) => `stump:${tree.kind}`, (tree) => stumpGeometry(tree.kind), (tree) => ({ ...at(tree), tint: undefined }), stumpMaterial));
 
@@ -98,6 +143,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   // (A world drawn a region at a time: each region's own, the once. view/world/worldRegions.ts `holds`.)
   const holds = (model as { holds?: (x: number, z: number) => boolean }).holds;
   const mine = () => (holds ? model.chickens.trees.filter((tree) => holds(tree.x, tree.z)) : model.chickens.trees);
+  const leaves = createFallingLeaves(); // (autumn's, round the hero: this region's, while they're on it)
+  scene.add(leaves.mesh);
   const plant = () => {
     for (const [tree, { mesh }] of planted) if (!model.chickens.trees.includes(tree)) [mesh.removeFromParent(), planted.delete(tree)]; // (another game taken up)
     for (const tree of mine()) {
@@ -108,7 +155,7 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
       const place = at(tree);
       const where = new THREE.Matrix4().compose(new THREE.Vector3(place.x, place.y, place.z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (place.quarterTurns * Math.PI) / 2), new THREE.Vector3(1, 1, 1));
       // (Standing: one of an instanced mesh, as the land's own are: the wind's sway goes by its instance's place.)
-      const mesh = felled ? new THREE.Mesh(stumpGeometry(tree.kind), stumpMaterial) : new THREE.InstancedMesh(buildTreeGeometry(tree.kind, tree.shape), material, 1);
+      const mesh = felled ? new THREE.Mesh(stumpGeometry(tree.kind), stumpMaterial) : new THREE.InstancedMesh(geometry(tree), materialOf(tree), 1);
       if (mesh instanceof THREE.InstancedMesh) [mesh.setMatrixAt(0, where), mesh.setColorAt(0, place.tint ?? new THREE.Color(1, 1, 1)), (mesh.frustumCulled = false)];
       else mesh.applyMatrix4(where);
       scene.add(mesh);
@@ -117,6 +164,9 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   };
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
+    pineTime.value = elapsedSeconds;
+    const { hero } = model;
+    leaves.update(elapsedSeconds, hero.x, hero.y, hero.z, !holds || holds(hero.x, hero.z));
     if (planted.size !== mine().length || lumber.version !== seen) plant();
     const now = lumber.chopping?.tree;
     if (now && drawn.has(now)) last = now;

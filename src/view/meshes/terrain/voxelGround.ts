@@ -11,9 +11,10 @@
 // world space, so it never repeats from tile to tile and needs no texture.
 //
 // A fragment shader patch (like the wind sway, the stylizer chains after it),
-// with its own program cache key.
+// with its own program cache key. The season's tint (common/nature.ts) over it.
 
 import * as THREE from 'three';
+import { natureUniforms } from '../common/nature';
 
 const VOXEL = 0.04;
 
@@ -58,6 +59,7 @@ vec3 groundShade(vec3 base) {
 // Patches a tile-top material to shade its grass voxel by voxel.
 export function addVoxelGround(material: THREE.MeshStandardMaterial): void {
   material.onBeforeCompile = (shader) => {
+    shader.uniforms.uSeasonTint = natureUniforms.uSeasonTint;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;').replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
@@ -68,8 +70,8 @@ export function addVoxelGround(material: THREE.MeshStandardMaterial): void {
       vGroundXZ = (modelMatrix * groundWorld).xz;`,
     );
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec2 vGroundXZ;\n${GROUND_FRAGMENT}`)
-      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = groundShade(diffuseColor.rgb);');
+      .replace('#include <common>', `#include <common>\nvarying vec2 vGroundXZ;\nuniform vec3 uSeasonTint;\n${GROUND_FRAGMENT}`)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = groundShade(diffuseColor.rgb) * uSeasonTint;');
   };
   material.customProgramCacheKey = () => 'voxelGround';
 }

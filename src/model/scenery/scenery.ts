@@ -6,6 +6,8 @@
 // camps, where the hero sets out and where a foe stands. Each blocks the way
 // (a log and a cairn low enough to see over); the grass keeps off them.
 // And one thing more, by where the hero sets out: a broken-down wagon, its carter stood beside it (story/carter.ts).
+// The country's own landmarks (dead trees on the heath and in the marsh, willows by the water, granite tors on the hills)
+// are placed last of all, after every other thing on the land: biomeScenery.ts.
 
 import { hashUnit } from '../../util/random';
 import { VILLAGE_OUTER_RADIUS, LANE_LENGTH_MAX } from '../constants';
@@ -17,7 +19,7 @@ import type { Camp } from '../camps/camps';
 import { createForestDensity } from '../worldgen/trees';
 import type { Tiles } from '../map/tiles';
 
-export type SceneryKind = 'boulder' | 'outcrop' | 'log' | 'cairn' | 'wall' | 'menhir' | 'wagon';
+export type SceneryKind = 'boulder' | 'outcrop' | 'log' | 'cairn' | 'wall' | 'menhir' | 'wagon' | 'snag' | 'willow' | 'tor';
 
 export interface Scenery {
   kind: SceneryKind;
@@ -54,8 +56,10 @@ const FOE_CLEAR = 2;
 // What each blocks: the rounded ones (ROUND) a disc round their middle as wide as their stone (a boulder's reaching 0.4 at
 // most, a cairn's 0.36, a standing stone's 0.2, an outcrop's 0.82 from its middle: sceneryVoxels.ts), met as close from
 // any side (an outcrop's one disc over its four tiles); a log or a wall a box, along it.
-const HALF = { boulder: 0.36, outcrop: 0.76, log: 0.5, cairn: 0.32, wall: 0.5, menhir: 0.2, wagon: 0.5 } as const;
-const ROUND: ReadonlySet<SceneryKind> = new Set(['boulder', 'outcrop', 'cairn', 'menhir']);
+// A dead tree and a willow block their trunk only (sceneryVoxels.ts: 5 voxels a side round its middle, a willow's 7); a
+// tor as an outcrop does.
+const HALF = { boulder: 0.36, outcrop: 0.76, log: 0.5, cairn: 0.32, wall: 0.5, menhir: 0.2, wagon: 0.5, snag: 0.12, willow: 0.16, tor: 0.76 } as const;
+const ROUND: ReadonlySet<SceneryKind> = new Set(['boulder', 'outcrop', 'cairn', 'menhir', 'snag', 'willow', 'tor']);
 const ACROSS: Partial<Record<SceneryKind, number>> = { wall: 0.16, log: 0.23, wagon: 0.4 }; // and across a log or a wall: they're narrow (sceneryVoxels.ts: a wall 7 voxels thick, a log 11 across)
 const LOW: ReadonlySet<SceneryKind> = new Set(['log', 'cairn', 'wagon']); // low enough to see over
 const WAGON_FROM = 2.4; // tiles from the start, at least, the wagon's middle stands (not on top of the hero)

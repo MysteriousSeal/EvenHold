@@ -47,7 +47,7 @@ export const FLOWER_HEIGHTS = 2; // stem-length variants
 export const PEBBLE_GRID: [number, number, number] = [8, 3, 8];
 export const PEBBLE_SHAPES = 6; // the upper half are mossy
 export const SPRIG_GRID: [number, number, number] = [5, 2, 5];
-export const SPRIG_SHAPES = 6;
+export const SPRIG_SHAPES = 4; // (too small to tell more apart: each a draw a chunk)
 
 export function buildSprig(shape: number): VoxelGrid {
   const grid = createGrid(SPRIG_GRID);
