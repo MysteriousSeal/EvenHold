@@ -102,6 +102,10 @@ const AFFIX_LINE: Record<Affix, (level: number, tier: number) => number> = {
   leech: (_level, tier) => 0.02 + 0.01 * (tier - 2),
 };
 const SPECIAL_ODDS = 0.35; // an extra line's chance of being a special one (rare and up)
+// A set's piece rolls its crit and dodge at half: a whole set worn (the Sunward's, at the top of the loot) would
+// otherwise reach their caps a tier early (hero/attributes.ts), and play easier at 16 than at 12.
+const SET_EDGE = 0.5;
+const edged = (kind: string, amount: number, inSet: boolean): number => (inSet && (kind === 'crit' || kind === 'dodge') ? amount * SET_EDGE : amount);
 
 const specsMade = new Map<string, GearSpecs>();
 
@@ -132,14 +136,14 @@ export function gearSpecs(key: GearKey): GearSpecs {
   const tier = tierOf(rarity);
   const taken = new Set<string>();
   const fixed = namedOf(item, roll)?.lines; // (a named piece's: listed, not rolled)
-  for (const kind of fixed ?? []) add(kind, kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier), true);
+  for (const kind of fixed ?? []) add(kind, kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : edged(kind, AFFIX_LINE[kind as Affix](level, tier), !!entry.set), true);
   for (let i = 0; i < (fixed ? 0 : tier); i++) {
     const pick = (salt: number) => hashUnit(roll, i, 9100 + salt);
     const special = tier >= 2 && pick(1) < SPECIAL_ODDS;
     const pool = (special ? [...AFFIXES] : [...STATS, 'armor' as const]).filter((k) => !taken.has(k));
     const kind = oneOf(pool, pick(2)) ?? STATS.find((s) => !taken.has(s))!;
     taken.add(kind);
-    const amount = kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : AFFIX_LINE[kind as Affix](level, tier);
+    const amount = kind === 'armor' ? ARMOR_LINE(level, tier) : isStat(kind) ? STAT_LINE(level, tier) : edged(kind, AFFIX_LINE[kind as Affix](level, tier), !!entry.set);
     add(kind, amount, true);
   }
   specsMade.set(key, specs);
