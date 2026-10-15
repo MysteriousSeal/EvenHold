@@ -237,11 +237,12 @@ const FLOCK_FOR = 16; // seconds it takes to cross
 const FLOCK_HIGH = 3.5; // world units over the ground
 
 // The flock going over now, if one is (by day, at most one in FLOCK_EVERY seconds, most often not): each bird of it
-// in its V, put where `each` takes it. `seed`: the world's.
-export function flock(m: Moment, seed: number, each: () => void): void {
+// in its V, put where `each` takes it. `seed`: the world's; `out`: the share of the birds that are about (none at
+// night or in the rain, fewer in winter), the chance of a flock going over with it.
+export function flock(m: Moment, seed: number, out: number, each: () => void): void {
   const k = Math.floor(m.time / FLOCK_EVERY);
   const into = m.time - k * FLOCK_EVERY;
-  if (into > FLOCK_FOR || hashUnit(k, 1, seed) > 0.5) return;
+  if (into > FLOCK_FOR || hashUnit(k, 1, seed) > 0.5 * out) return;
   const heading = hashUnit(k, 2, seed) * Math.PI * 2;
   const [dx, dz] = [Math.sin(heading), Math.cos(heading)];
   const along = (into / FLOCK_FOR - 0.5) * 40; // (from well off one side of the hero to well off the other)
