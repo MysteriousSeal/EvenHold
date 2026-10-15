@@ -8,7 +8,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import { POTIONS, isPotion, potionText } from '../../model/loot/potions';
 import { LOOT } from '../../model/loot/loot';
-import { HERBALIST_WARES, buyFromHerbalist, herbalistBuys, herbalistPrice, herbalistShopAt, sellToHerbalist } from '../../model/herbalist/herbalistShop';
+import { HERBALIST_WARES, buyFromHerbalist, herbalistBuys, isCavePart, wantsPart, herbalistPrice, herbalistShopAt, sellToHerbalist } from '../../model/herbalist/herbalistShop';
 import { kindOf, type BagItem } from '../../model/hero/bag';
 import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import { isFish } from '../../model/skills/fishing';
@@ -28,7 +28,7 @@ const LINES: TradeLines = {
   ],
   bought: ['Drink it when you need it, not before.', 'Cork it tight, it keeps a month.', "That one's good. My grandmother's way."],
   sold: ["I'll find a use for that.", 'Into the pot, then. Here.', "Good, I was running low."],
-  'sold out': ["None left. Give me a few days over the cauldron.", "Sold the last one. They go quick."],
+  'sold out': ["None left. The next batch is on the fire; it won't be long.", "Sold the last one. They go quick."],
   'too poor': ["Herbs aren't free, I'm afraid.", 'Come back when your purse is fuller.'],
   short: ["I can't pay that just now.", "My purse is near empty. After market day, maybe."],
 };
@@ -48,6 +48,7 @@ export function herbalistGreets(hero: Hero, roll = Math.random()): string | null
 export function herbalistTakes(name: string, id: BagItem, roll = Math.random()): string {
   if (isPotion(id)) return oneOf(["One of mine, back unopened? Didn't need it after all. Lucky you.", "Back on the shelf it goes. I don't pay what I sell it for, mind.", 'Still corked. Good.'], roll);
   if (isFish(id)) return oneOf([`${name}? The oil's good for salves. Here.`, "Scales and all. I'll render it down for the ointments.", 'Fish oil for the burns. Good.'], roll);
+  if (isCavePart(id)) return oneOf([`${name}? Not many bring me those. Here, and more than the tanner would give.`, "Careful with that. Good, good. I'll dry it by the fire.", "From the caves? You're braver than you look."], roll);
   if ((id as string) === 'honeycomb') return 'Honeycomb! The wax for salves, the honey to hide the bitter ones.';
   return oneOf([`${name}? The fat's good for ointments.`, "I'll render it. Good fat makes a good salve.", `${name}? I can brew with that.`], roll);
 }
@@ -56,7 +57,7 @@ export function herbalistTakes(name: string, id: BagItem, roll = Math.random()):
 const SHUT = ["It's the middle of the night. Come back at dawn, unless you're dying.", "Are you dying? No? Then come back at dawn.", "The cauldron's cold and so am I. Dawn."];
 
 // What they buy, said at the foot of their window.
-const BUYS = "Buys back potions at half, and what's had from the wild: raw meat, honeycomb, any fish. Not wood or scrap.";
+const BUYS = "Buys back potions at half; what's had from the wild (raw meat, honeycomb, any fish); spider silk, venom glands and bat wings, over the odds. Not wood or scrap.";
 
 const ABOUT = ['Not on an empty stomach.', 'You\'ll feel it in a breath or two.', "Don't tell the priest I make these."];
 const JUNK = ["Bones and scraps? I can grind some of it. {paid}.", 'Hm. {paid}, and take the smell with you.'];
@@ -69,7 +70,7 @@ export function createHerbalistPanel(model: GameModel, hooks: { bag?: TradeBag }
     title: 'Herbs & potions',
     shop,
     wares: () => [...HERBALIST_WARES],
-    wanted: herbalistBuys,
+    wanted: (id): id is BagItem => herbalistBuys(id) && wantsPart(shop(), id), // (a cave part past what they want: junk to them, as to anyone)
     price: herbalistPrice,
     trade: (id, selling) => (selling ? sellToHerbalist(shop(), model.hero, id) : buyFromHerbalist(shop(), model.hero, id)),
     lines: LINES,
