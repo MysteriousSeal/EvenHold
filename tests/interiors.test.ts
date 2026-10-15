@@ -114,6 +114,7 @@ describe('interiors', () => {
     const house = model.entrances.find((e) => e.type === 'house')!;
     model.teleport(house.x, house.z);
     model.useDoor();
+    for (const n of model.folk) if (n.home === house) n.where = null; // (its owner out: else turned out of their bed, hero/setbacks.ts)
     const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
     const lieDown = () => {
       model.hero.x = bed.x + 0.8;
@@ -134,6 +135,7 @@ describe('interiors', () => {
     const house = model.entrances.find((e) => e.type === 'house')!;
     model.teleport(house.x, house.z);
     model.useDoor();
+    for (const n of model.folk) if (n.home === house) n.where = null; // (its owner out: else turned out of their bed, hero/setbacks.ts)
     const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
     model.hero.x = bed.x + 0.8; // by its open side
     model.hero.z = bed.z + 0.5;
