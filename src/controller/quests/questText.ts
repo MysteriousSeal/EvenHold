@@ -46,6 +46,7 @@ const WANTED: Record<QuestItemId, readonly string[]> = {
   boarHide: ['The cobbler needs thick hides for boots that last a winter.', 'Boar hide makes the best jerkins. Bring some, and the tanner will be grateful.'],
   bristleTuft: ['Bristles for brushes: the painter has worn his down to the wood.', "The broom-maker swears by boar bristle. Bring tufts, as many as you can."],
   wildTruffle: ["The boars root up truffles in the woods. Beat them to it, or take them off them.", "The innkeeper pays well for truffles. Follow the boars' snouts."],
+  grislySack: ['Proof that the wanted are dead. The reeve will look inside, briefly.', 'Bring back the sack. Do not open it on the way.'],
   greatTusk: ['The carver wants great tusks, the big curved ones, for his finest work.', 'A great tusk over the hearth brings luck, the old folk say. Bring a few.'],
 };
 
