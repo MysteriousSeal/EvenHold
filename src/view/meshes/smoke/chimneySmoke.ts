@@ -32,6 +32,8 @@ const PUFFS = 7; // to a chimney
 const LIT = 0.75; // of the houses with their hearth lit
 // A hearth's smoke and a forge's: how long a puff lasts (seconds), how it rises and leans, its colours fresh and thin.
 const HEARTH = { lifetime: 4, draft: { rise: 1.8, lean: 1.6, size: 0.35 } as Draft, fresh: new THREE.Color(0xe8e4dc), thin: new THREE.Color(0xc8c4bc) };
+// A herbalist's: as a hearth's, but tinged green-grey, off whatever's on the boil (a cue to their hut from afar).
+const HERBS = { ...HEARTH, fresh: new THREE.Color(0xc8d4bc), thin: new THREE.Color(0xa8b4a0) };
 const FORGE = { lifetime: 3.2, draft: { rise: 1.4, lean: 1.2, size: 0.3 } as Draft, fresh: new THREE.Color(0x6a6560), thin: new THREE.Color(0xc8c4bc) };
 const MOONLIT = new THREE.Color(0x9aa0b0); // (at night: still to be seen against the moonlit land)
 const FORGE_MOUTH = new THREE.Vector3(SMITHY_SMOKE_ORIGIN[0] + 0.5, SMITHY_SMOKE_ORIGIN[1] + 1, SMITHY_SMOKE_ORIGIN[2] + 0.5).multiplyScalar(HOUSE_VOXEL_SIZE).add(originOf(SMITHY_GRID));
@@ -55,7 +57,7 @@ function mouthOf(grid: VoxelGrid, color: number): THREE.Vector3 | null {
 export class ChimneySmoke {
   private readonly mesh: THREE.InstancedMesh;
   private readonly mouths = new Map<string, THREE.Vector3 | null>(); // each look's chimney mouth, from its middle
-  private chimneys: Array<{ at: THREE.Vector3; phase: number; forge: boolean }> = [];
+  private chimneys: Array<{ at: THREE.Vector3; phase: number; way: typeof HEARTH }> = [];
   private heroTile = '';
   private known = -1; // the houses there were, when last looked over
   private herbalists = new Set<House>();
@@ -88,8 +90,7 @@ export class ChimneySmoke {
     const madeUp = (hour > 5 && hour < 9) || (hour > 17 && hour < 21) ? 1.2 : 1; // (fires made up)
     const night = nightAt(hour);
     let i = 0;
-    for (const { at, phase, forge } of this.chimneys) {
-      const way = forge ? FORGE : HEARTH;
+    for (const { at, phase, way } of this.chimneys) {
       for (let p = 0; p < PUFFS; p++) {
         // Puffs evenly staggered in time, each chimney on its own phase, each a little bigger or smaller than the last.
         const life = this.time / way.lifetime + p / PUFFS + phase;
@@ -114,21 +115,21 @@ export class ChimneySmoke {
     [this.heroTile, this.known] = [tile, houses.length];
     const close = (x: number, z: number) => Math.abs(x - hero.x) < REACH && Math.abs(z - hero.z) < REACH;
     const lit = (x: number, z: number) => hashUnit(x, z, seed + 401) < LIT;
-    const out: Array<{ at: THREE.Vector3; phase: number; forge: boolean }> = [];
-    const put = (x: number, z: number, turns: number, mouth: THREE.Vector3, forge = false) => {
+    const out: Array<{ at: THREE.Vector3; phase: number; way: typeof HEARTH }> = [];
+    const put = (x: number, z: number, turns: number, mouth: THREE.Vector3, way = HEARTH) => {
       const at = mouth.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (turns * Math.PI) / 2).add(new THREE.Vector3(x, this.model.getGroundY(x, z), z));
-      if (out.length < MOST) out.push({ at, phase: hashUnit(x, z, seed + 402), forge });
+      if (out.length < MOST) out.push({ at, phase: hashUnit(x, z, seed + 402), way });
     };
-    const add = (x: number, z: number, turns: number, look: string, build: () => VoxelGrid, color: number) => {
+    const add = (x: number, z: number, turns: number, look: string, build: () => VoxelGrid, color: number, way = HEARTH) => {
       if (!this.mouths.has(look)) this.mouths.set(look, mouthOf(build(), color));
       const mouth = this.mouths.get(look);
-      if (mouth) put(x, z, turns, mouth);
+      if (mouth) put(x, z, turns, mouth, way);
     };
-    for (const b of buildings) if (b.kind === 'smithy' && close(b.x, b.z)) put(b.x, b.z, b.quarterTurns, FORGE_MOUTH, true); // (the forges first: never left out)
+    for (const b of buildings) if (b.kind === 'smithy' && close(b.x, b.z)) put(b.x, b.z, b.quarterTurns, FORGE_MOUTH, FORGE); // (the forges first: never left out)
     for (const house of houses) {
       if (!close(house.x, house.z) || !lit(house.x, house.z)) continue;
       const turns = ((Math.round(house.rotationY / (Math.PI / 2)) % 4) + 4) % 4;
-      if (this.herbalists.has(house)) add(house.x, house.z, turns, 'herbalist', buildHermitHut, C.soot);
+      if (this.herbalists.has(house)) add(house.x, house.z, turns, 'herbalist', buildHermitHut, C.soot, HERBS);
       else {
         const { layout, roof, trim } = looks(house);
         add(house.x, house.z, turns, `${layout}:${trim}`, () => buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, trim), C.clayPot);

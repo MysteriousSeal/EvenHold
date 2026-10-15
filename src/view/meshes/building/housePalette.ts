@@ -61,9 +61,25 @@ const ENTRIES = {
   herbDry: 0xb89a4a,
   mud: 0x8a7356, // its daubed walls
   mudDark: 0x6e5a42,
-  thatch: 0x9a8048, // its shaggy thatch
-  thatchDark: 0x6e5a32,
-  thatchLight: 0xb89a58,
+  thatch: 0x7d7448, // its shaggy thatch, old and weathered: greyer, greener than the village's straw
+  thatchDark: 0x5a5236,
+  thatchLight: 0x948a5a,
+  hutMoss: 0x5e7a3e, // moss on it, and the sod along its ridge
+  hutMossLight: 0x7a9450,
+  sod: 0x4d6e34, // (and foxgloves' leaves)
+  wattle: 0x7a5a36, // its garden's woven fence: its rails woven of two, its posts darker
+  wattleLight: 0x8a6a40,
+  wattleDark: 0x5e4428,
+  twine: 0xb89a58,
+  soil: 0x4a3a28, // its raised beds
+  lavender: 0x8a6aa0,
+  foxglove: 0xb0508a,
+  marigold: 0xe0a030,
+  toadstool: 0xb8302a, // the fairy ring by it
+  toadstoolSpot: 0xe8dcc8,
+  toadstoolStem: 0xe0d8c8,
+  bottle: 0x3e8a4a, // the green bottle hung for its sign (darker than the brew)
+  brew: 0x8aff6a, // the brew in its cauldron outside (bright, not lit: the glow's one warm colour would turn it yellow)
 } as const;
 
 type Entry = keyof typeof ENTRIES;

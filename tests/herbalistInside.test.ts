@@ -57,13 +57,14 @@ describe("a herbalist's house inside", () => {
     const { room, furniture } = layoutOf(m.seed, h.home);
     const grid = buildRoomVoxels(room, furniture);
     const used = new Set(grid.cells);
-    for (const hex of [0x7a6248, 0x8a7356]) expect(used.has(ROOM_PALETTE.indexOf(hex) + 1), hex.toString(16)).toBe(true); // (earth, daub)
+    for (const hex of [0x5a4a36, 0x8a7356]) expect(used.has(ROOM_PALETTE.indexOf(hex) + 1), hex.toString(16)).toBe(true); // (earth, daub)
     // In relief, as the crypts are: rushes standing up off the floor, a voxel up; plants hung high on the walls.
     const [sx, sy] = grid.size;
-    const rush = ROOM_PALETTE.indexOf(0xb89a58) + 1;
+    const rush = ROOM_PALETTE.indexOf(0x8a7a52) + 1;
     const layer = (y: number) => grid.cells.filter((c, i) => Math.floor(i / sx) % sy === y && c === rush).length;
     expect(layer(1)).toBeGreaterThan(0);
-    const high = grid.cells.filter((c, i) => Math.floor(i / sx) % sy >= 26 && c === rush).length; // (the ties, up under the beam)
+    const twine = ROOM_PALETTE.indexOf(0xb89a58) + 1;
+    const high = grid.cells.filter((c, i) => Math.floor(i / sx) % sy >= 26 && c === twine).length; // (the ties, up under the beam)
     expect(high).toBeGreaterThan(0);
   });
 

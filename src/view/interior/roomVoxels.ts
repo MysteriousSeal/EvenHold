@@ -11,7 +11,7 @@
 
 import type { Room } from '../../model/interiors/interiors';
 import type { Furniture } from '../../model/interiors/furniture';
-import { BREAD, FURNITURE_PALETTE, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM_LIGHT, WOOD_DARK } from './furniturePalette';
+import { BERRY, CAP_SPOT, FURNITURE_PALETTE, HERB_DEEP, HERB_GOLD, HERB_LAVENDER, HERB_SAGE, MOSS, MOSS_DARK, TWINE, WOOD_DARK } from './furniturePalette';
 import { paintFurniture } from './furnitureVoxels';
 import { hallRunner } from './upstairsVoxels';
 import { smithyFloor, smithySoot, smithyWall } from './smithyShell';
@@ -61,9 +61,9 @@ const FLOOR_COLORS = [
 ];
 // A herbalist's room, as rustic as their hut outside: packed earth and rushes, mud daub.
 const RUSTIC_COLORS = [
-  0x7a6248, // 38 earth
-  0x6a543c, // 39 earth, darker
-  0xb89a58, // 40 rush, dried
+  0x5a4a36, // 38 earth (dark: the room's one plane, its furniture lifting off it)
+  0x4e4030, // 39 earth, darker
+  0x8a7a52, // 40 rush, dried (low against the earth: strewn, not loud)
   0x8a7356, // 41 daub
   0x6e5a42, // 42 daub, darker
 ];
@@ -87,8 +87,10 @@ const [OAK, OAK_DARK, OAK_LIGHT, OAK_SEAM] = TAVERN_COLORS.map((_, i) => ROOM_PA
 function floorColor(style: Room['floor'], x: number, z: number): number {
   if (style === 'tavern') return tavernFloor(x, z);
   if (style === 'earth') {
-    // Packed earth, darker in patches, rushes strewn over it here and there in short strands.
-    const rush = hash(Math.floor(x / 3), z) % 23 === 0 || hash(x, Math.floor(z / 3)) % 29 === 0;
+    // Packed earth, darker in patches, a few rushes strewn over it in short strands: more within a tile of the walls
+    // (swept there), sparse out on the floor where they walk.
+    const k = x < TILE || z < TILE ? 2 : 6;
+    const rush = hash(Math.floor(x / 3), z) % (23 * k) === 0 || hash(x, Math.floor(z / 3)) % (29 * k) === 0;
     return rush ? RUSH : hash(Math.floor(x / 4), Math.floor(z / 4)) % 3 === 0 ? EARTH_DARK : EARTH;
   }
   if (style === 'flagstones') {
@@ -267,33 +269,43 @@ function daubRelief(fill: Fill, w: number, d: number): void {
       else if (r === 'in') fill(WALL - 1, y, u, WALL - 1, y, u, 0);
     }
   }
-  // Dried plants hung high on both walls, from pegs under the beam, upside down, a bunch every so often: green, sage,
-  // dried gold, lavender; tied, a peg, tapering down, standing off the daub.
-  const leaves = [MOSS, MOSS_LIGHT, BREAD, PLUM_LIGHT, MOSS_DARK];
-  const bunch = (u: number, i: number, at: (u: number, y: number, out: number) => [number, number, number]) => {
-    const top = HIGH - 3;
-    const leaf = leaves[(i * 3 + hash(u, 5)) % leaves.length];
+  // Dried plants hung high on both walls, from pegs under the beam, crowded as a drying loft: a bunch every few voxels,
+  // upside down, of varied lengths (sage, deep green, dried gold, lavender); tied, a peg, tapering down, standing off
+  // the daub. On each wall a braid of garlic and a string of chillies among them.
+  const leaves = [HERB_SAGE, HERB_DEEP, HERB_GOLD, HERB_LAVENDER, MOSS];
+  const top = HIGH - 3;
+  const hang = (u: number, i: number, at: (u: number, y: number, out: number) => [number, number, number]) => {
     const put = (du: number, y: number, out: number, c: number) => {
       const [x, yy, z] = at(u + du, y, out);
       fill(x, yy, z, x, yy, z, c);
     };
     put(0, top, 1, WOOD_DARK); // the peg
-    put(0, top - 1, 1, RUSH); // the tie
-    for (let y = top - 2; y >= top - 6; y--) {
-      const half = y >= top - 4 ? 1 : 0; // (wide at the top, tapering)
+    if (i % 6 === 2 || i % 6 === 5) { // a braid of garlic, or a string of chillies: twine, the bulbs or pods either side
+      const garlic = i % 6 === 2;
+      for (let y = top - 1; y >= top - 10; y--) {
+        put(0, y, 1, TWINE);
+        if (garlic ? y % 2 === 0 : true) put(y % 2 ? -1 : 1, y, garlic ? 2 : 1, garlic ? CAP_SPOT : BERRY);
+      }
+      return;
+    }
+    const leaf = leaves[(i * 3 + hash(u, 5)) % leaves.length];
+    const long = 5 + (hash(u, 7) % 4); // (five to eight long)
+    put(0, top - 1, 1, TWINE); // the tie
+    for (let y = top - 2; y >= top - 1 - long; y--) {
+      const half = y >= top - long + 1 ? 1 : 0; // (wide at the top, tapering)
       for (let du = -half; du <= half; du++) put(du, y, 1 + (du === 0 && y < top - 3 ? 1 : 0), (du + y) % 3 === 0 ? MOSS_DARK : leaf);
     }
   };
-  for (let u = WALL + 6, i = 0; u < WALL + w - 4; u += 9 + (hash(u, 2) % 4), i++) bunch(u, i, (uu, y, out) => [uu, y, WALL - 1 + out]); // the far wall
-  for (let u = WALL + 6, i = 0; u < WALL + d - 4; u += 9 + (hash(u, 3) % 4), i++) bunch(u, i + 1, (uu, y, out) => [WALL - 1 + out, y, uu]); // the left wall
+  for (let u = WALL + 4, i = 0; u < WALL + w - 3; u += 4 + (hash(u, 2) % 3), i++) hang(u, i, (uu, y, out) => [uu, y, WALL - 1 + out]); // the far wall
+  for (let u = WALL + 4, i = 0; u < WALL + d - 3; u += 4 + (hash(u, 3) % 3), i++) hang(u, i + 3, (uu, y, out) => [WALL - 1 + out, y, uu]); // the left wall
 }
 
-// A herbalist's floor in relief: the strewn rushes and a pebble or two standing up off the packed earth.
+// A herbalist's floor in relief: half the strewn rushes and a pebble or two standing up off the packed earth.
 function earthRelief(fill: Fill, w: number, d: number): void {
   for (let x = 0; x < w; x++) {
     for (let z = 0; z < d; z++) {
       const c = floorColor('earth', x, z);
-      if (c === RUSH) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, RUSH);
+      if (c === RUSH && hash(Math.floor(x / 3), Math.floor(z / 3) + 7) % 2 === 0) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, RUSH);
       else if (hash(x * 3 + 1, z * 5 + 2) % 211 === 0) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, 11); // a pebble
     }
   }
