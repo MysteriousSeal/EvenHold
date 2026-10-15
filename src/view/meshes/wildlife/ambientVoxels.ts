@@ -37,10 +37,12 @@ export function birdGrid() {
 export const PALETTE = [0xffffff, 0x2a2420, 0xe6d2b0, 0x1a1614]; // (white: tinted per instance; dark; buff; darkest)
 export const BIRD_PALETTE = [0x8a6a4a, 0x2a2420, 0xe6d2b0, 0x1a1614];
 
-// A rabbit sat up, facing +Z: a round haunch, its head forward, two long ears up, a white scut behind.
+// A rabbit sat up, facing +Z: a round haunch, its back darker, its head forward, two long ears up, and its white scut
+// behind and over its rump, to be seen from any side (it's how a rabbit's spotted in the grass).
 export function rabbitGrid() {
-  const g = createGrid([4, 8, 9]);
+  const g = createGrid([4, 9, 9]);
   fillBox(g, 0, 0, 1, 3, 3, 4, 1); // haunch
+  fillBox(g, 0, 3, 1, 3, 3, 4, 2); // its back, darker
   fillBox(g, 0, 1, 4, 3, 3, 6, 1); // chest
   fillBox(g, 1, 0, 5, 2, 0, 6, 3); // forepaws, pale
   fillBox(g, 0, 3, 6, 3, 5, 8, 1); // head
@@ -48,14 +50,15 @@ export function rabbitGrid() {
   setColor(g, 3, 4, 7, 4);
   setColor(g, 1, 3, 8, 5); // nose
   setColor(g, 2, 3, 8, 5);
-  fillBox(g, 0, 6, 6, 0, 7, 6, 2); // ears, darker-tipped
-  fillBox(g, 3, 6, 6, 3, 7, 6, 2);
-  setColor(g, 0, 7, 6, 4);
-  setColor(g, 3, 7, 6, 4);
-  fillBox(g, 1, 2, 0, 2, 3, 0, 3); // scut
+  fillBox(g, 0, 6, 6, 0, 8, 6, 2); // ears, three tall, dark-tipped
+  fillBox(g, 3, 6, 6, 3, 8, 6, 2);
+  setColor(g, 0, 8, 6, 4);
+  setColor(g, 3, 8, 6, 4);
+  fillBox(g, 1, 2, 0, 2, 4, 0, 3); // scut, behind
+  fillBox(g, 1, 4, 1, 2, 4, 1, 3); // and over its rump
   return g;
 }
-export const RABBIT_PALETTE = [0x9a7a5a, 0x7a5e44, 0xf1eee4, 0x2a2420, 0xc89a90]; // (brown, darker, white, dark, a pink nose)
+export const RABBIT_PALETTE = [0xb08a64, 0x8a6a4a, 0xf1eee4, 0x2a2420, 0xc89a90]; // (a light fawn, to stand off the dry grass) // (brown, darker, white, dark, a pink nose)
 
 // A frog squat on the bank, facing +Z: wide and low, its eyes bulging on top, its hind legs folded at its sides.
 export function frogGrid() {
