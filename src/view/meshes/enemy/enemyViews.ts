@@ -24,6 +24,10 @@ import { KIND_LOOKS } from './enemyKinds';
 
 const MARKER_MOST = KIND_LOOKS.draugr.size; // the focus brackets, at their biggest (a draugr's, the lord's)
 const sizeOf = (kind: EnemyKind) => KIND_LOOKS[kind].size; // how big each kind's drawn, over the rest (enemyKinds.ts)
+// A champion of the deep (model/champions/): drawn bigger than its kind, a pale ring rimmed in blood-red at its feet.
+const CHAMPION_SIZE = 1.2;
+const CHAMPION_RING = [0xe8e4ee, 0x6a1018];
+const drawnSize = (enemy: Enemy) => sizeOf(enemy.kind) * (enemy.champion ? CHAMPION_SIZE : 1);
 
 export class EnemyViews {
   // One hit flash for everyone: vertex colors under a red glow.
@@ -75,7 +79,7 @@ export class EnemyViews {
   private readonly rigs = new Nearby<Enemy, EnemyRig>(
     (enemy) => {
       const rig = this.rigOf[enemy.kind](enemy);
-      rig.drawnAt(this.scale * sizeOf(enemy.kind)); // (its bar and name at their own size)
+      rig.drawnAt(this.scale * drawnSize(enemy)); // (its bar and name at their own size)
       this.scene.add(rig.root);
       return rig;
     },
@@ -122,13 +126,13 @@ export class EnemyViews {
     this.marker.visible = !!target;
     if (target) {
       this.marker.position.set(target.x, target.y + 0.012, target.z);
-      this.marker.scale.setScalar(this.scale * Math.min(MARKER_MOST, sizeOf(target.kind))); // (round a big one's feet; the lord's as a draugr's)
+      this.marker.scale.setScalar(this.scale * Math.min(MARKER_MOST, drawnSize(target))); // (round a big one's feet; the lord's as a draugr's)
     }
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       if (rig instanceof BanditRig && enemy.human && rig.body !== enemy.human.look) return this.rigs.forget(enemy.id);
       rig.update(enemy, dt, heroX, heroZ);
       this.ink.update(Silhouettes.meshesOf(rig.root), this.scale === 1 && (enemy.state === 'chase' || enemy === target)); // (the world's, not a dungeon's floor)
-      this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
+      this.markQuest(enemy, (marked(enemy) || !!enemy.champion) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {
       if (seen.has(id)) continue;
@@ -137,7 +141,7 @@ export class EnemyViews {
     }
   }
 
-  // An amber aura glowing under a foe's feet while `on` (a wolf's wider, as it's longer).
+  // An amber aura glowing under a foe's feet while `on` (a wolf's wider, as it's longer); a champion's its own ring, always.
   private markQuest(enemy: Enemy, on: boolean): void {
     let mark = this.questMarks.get(enemy.id);
     if (!on) {
@@ -146,7 +150,7 @@ export class EnemyViews {
       return;
     }
     if (!mark) {
-      mark = questAura(KIND_LOOKS[enemy.kind].aura);
+      mark = enemy.champion ? questAura(Math.round(KIND_LOOKS[enemy.kind].aura * CHAMPION_SIZE), CHAMPION_RING) : questAura(KIND_LOOKS[enemy.kind].aura);
       mark.scale.setScalar(this.scale);
       this.questMarks.set(enemy.id, mark);
       this.scene.add(mark);
