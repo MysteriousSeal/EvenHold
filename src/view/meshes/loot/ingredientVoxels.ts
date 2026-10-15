@@ -241,6 +241,7 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   // gleam 3; star-iron's a fleck of light 4 in the dark); fittings, each its own shape: rivets in a little heap, nails
   // laid side by side, a hoop of band iron, a silver corner bracket, a gilded one set with a red stone.
   copperIngot: ingot([0x8a4a22, 0xc8703a, 0xf0a070]),
+  bronzeIngot: ingot([0x7a5420, 0xb0803a, 0xe0b868]),
   ironIngot: ingot([0x4a4e56, 0x6e747e, 0xa8b0ba]),
   steelIngot: ingot([0x56667a, 0x8a9cae, 0xdce6f0]),
   silverIngot: ingot([0x8a8e98, 0xc8ccd4, 0xf4f6fa]),
