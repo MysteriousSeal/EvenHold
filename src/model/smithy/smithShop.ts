@@ -9,6 +9,7 @@ import { LOOT } from '../loot/loot';
 import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { mendCost, wearGone } from '../hero/wear';
+import { isCrafted } from '../skills/salvage';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey } from '../human/items/gear';
 import type { Hero } from '../types';
@@ -85,12 +86,14 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 }
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
-const WOODWORK_SHARE = 8; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
-// What he pays for a piece: half its worth (an eighth, a woodworker's), less what mending it would cost him if it's
-// worn (`hero`'s: hero/wear.ts), never under what it's worth for its bits.
-export function gearSellPrice(key: GearKey, hero?: Parameters<typeof mendCost>[0]): number {
+const WOODWORK_SHARE = 8; // of its worth he pays for a woodworker's make of the hero's (a stave, a plank shield, a spear): a smith's no use for wood
+// What he pays for a piece: half its worth (an eighth, one the hero made of wood: skills/salvage.ts isCrafted; one
+// found, or his own forging, half), less what mending it would cost him if it's worn (`hero`'s: hero/wear.ts), never
+// under what it's worth for its bits. (No `hero`: as found, whole.)
+export function gearSellPrice(key: GearKey, hero?: Hero): number {
   const base = ITEMS[baseOf(key)].value;
-  const price = gearWorth(key, base ? Math.floor(base / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP);
+  const made = !!hero && WOODWORKS.has(baseOf(key)) && isCrafted(hero, key);
+  const price = gearWorth(key, base ? Math.floor(base / (made ? WOODWORK_SHARE : 2)) : SCRAP);
   return hero ? Math.min(price, Math.max(gearWorth(key, SCRAP), price - mendCost(hero, key))) : price;
 }
 

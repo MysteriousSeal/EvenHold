@@ -7,6 +7,7 @@
 import { ARMOR_SLOTS, HELD_SLOTS, ITEMS, type EquipSlot } from '../human/equipment';
 import { baseOf, gearName, gearWorth, isGear, type GearKey } from '../human/items/gear';
 import type { GameEvent, Hero } from '../types';
+import { isCrafted, unmarkCrafted } from '../skills/salvage';
 
 export const BROKEN = 100;
 export const WORN = 75; // badly worn from here: told
@@ -71,6 +72,17 @@ export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' |
 export function wearGone(hero: Wearer, key: string): void {
   if (hero.wear?.[key] === undefined || (hero.bag?.[key as keyof Hero['bag']] ?? 0) > 0 || Object.values(hero.equipment).includes(key as GearKey)) return;
   delete hero.wear[key];
+}
+
+// A piece gone from the hero for good (sold: shops/shopStock.ts): one of their own make let go of, as the one gone
+// (skills/salvage.ts), and its wear, the last of it gone (wearGone); what went, to come back with it if it's bought
+// back. (Not dropped: picked up again, it's theirs as it was.)
+export function parted(hero: Hero, key: string): { crafted: boolean; wear?: number } {
+  const crafted = isCrafted(hero, key);
+  unmarkCrafted(hero, key);
+  const wear = hero.wear?.[key];
+  wearGone(hero, key);
+  return { crafted, ...(wear !== undefined && hero.wear?.[key] === undefined && { wear }) };
 }
 
 // A piece's wear as its tooltip tells it: nothing unworn; "Worn 40%"; badly worn; broken.

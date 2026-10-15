@@ -6,6 +6,7 @@ import { buyGear, gearPrice, gearSellPrice, sellGear, smithAsks, smithShopIn } f
 import { gearKey, isGear, levelOf, type GearKey } from '../src/model/human/items/gear';
 import { RESTOCK_EVERY, buyBack } from '../src/model/shops/shopStock';
 import { mendBill, mendCost, wearOf } from '../src/model/hero/wear';
+import { isCrafted } from '../src/model/skills/salvage';
 
 const atSmith = () => {
   const model = fresh();
@@ -130,5 +131,25 @@ describe('trading with the smith', () => {
     expect(wearOf(model.hero, 'mailCoif')).toBe(0); // (gone from the hero)
     expect(buyBack(shop, model.hero, 0)).toBe('bought');
     expect(wearOf(model.hero, 'mailCoif')).toBe(60);
+  });
+
+  it("pays an eighth for a wooden piece the hero made, half for one found or his own forging; the mark of their make sold with it, and back with it bought back", () => {
+    const model = atSmith();
+    const { hero } = model;
+    const spear = gearKey({ item: 'spear', level: 15, rarity: 'common', roll: 0 }); // (a woodworker's make, and his)
+    expect(gearSellPrice(spear, hero)).toBeGreaterThan(gearPrice(spear) / 3); // found: half
+    hero.bag[spear] = 1;
+    hero.crafted = { [spear]: 1 };
+    const made = gearSellPrice(spear, hero);
+    expect(made).toBeLessThan(gearPrice(spear) / 6); // made: an eighth
+    expect(gearSellPrice(gearKey({ item: 'pavise', level: 3, rarity: 'common', roll: 9 }), hero)).toBeGreaterThan(gearPrice(gearKey({ item: 'pavise', level: 3, rarity: 'common', roll: 9 })) / 3); // (his own: half)
+    const shop = smithShopIn(model);
+    shop.money = 100_000;
+    hero.money = 100_000;
+    expect(sellGear(shop, hero, spear)).toBe('sold');
+    expect(hero.money).toBe(100_000 + made);
+    expect(isCrafted(hero, spear)).toBe(false); // (gone with it: a spear found later, found)
+    expect(buyBack(shop, hero, 0)).toBe('bought');
+    expect(isCrafted(hero, spear)).toBe(true);
   });
 });
