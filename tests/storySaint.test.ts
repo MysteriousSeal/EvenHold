@@ -90,6 +90,7 @@ function toTheStair(model: GameModel, witch: RegExp): { home: { x: number; z: nu
   expect(story.talk(pardoner)!.lines.join(' ')).toMatch(/goat/);
   say(story.talk(pardoner));
   say(story.talk(of(model, 'deacon')));
+  expect(of(model, 'prisoner').name).toBe(story.saint.carterName); // (the cells' man: the carter, by his name)
   expect(story.talk(of(model, 'prisoner'))!.lines.join(' ')).toMatch(/under the floor/i);
   say(story.talk(of(model, 'prisoner')));
   const captain = of(model, 'captain');

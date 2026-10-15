@@ -60,6 +60,8 @@ export class Story {
     const { town } = this.world.saint;
     if (town) this.l.town = { x: town.village.x, z: town.village.z }; // (Greyminster, seen: kept)
     this.l.carter ??= (this.world.first?.who.carter as Carter | undefined)?.name ?? null;
+    const held = this.world.saint.town?.who.prisoner;
+    if (held && this.l.carter) held.name = this.l.carter; // (the man in the bishop's cells: the carter, by his own name)
     resettle(this.world, new Map([...this.l.forced].map(([key, id]) => [key, this.host.npcs.find((n) => n.id === id)])), [...this.l.state].filter(([, s]) => s === 'taken').map(([key]) => key), STORY_QUESTS); // (those set by hand, and an older save's)
     return this.world;
   }
