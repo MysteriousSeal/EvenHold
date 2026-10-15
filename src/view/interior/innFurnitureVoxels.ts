@@ -9,7 +9,7 @@ import type { Furniture } from '../../model/interiors/furniture';
 
 const [SLATE, CHALK] = [SOOT, LINEN]; // (the slate's near-black, its chalk: the palette's nearest)
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks' | 'washstand';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -308,6 +308,20 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     sack(7, 1, 12, 9);
     sack(8, 11, 5, 6); // the one on top
     box(17, 1, 13, 20, 1, 16, (u, _y, v) => ((u + v) % 2 === 0 ? BREAD : 0)); // grain spilt
+  },
+  // A washstand, its back to the wall: on four legs with a shelf below, a
+  // clay basin of water sunk in its top, a jug beside it, a towel hung over
+  // its front, a cake of soap.
+  washstand: (box) => {
+    for (const [u, v] of [[5, 2], [19, 2], [5, 13], [19, 13]]) box(u, 1, v, u + 1, 9, v + 1, WOOD_DARK); // legs
+    box(5, 4, 2, 20, 4, 14, WOOD); // the shelf below
+    box(4, 10, 1, 21, 11, 15, (_u, y, v) => (y === 11 && v === 15 ? WOOD_LIGHT : WOOD)); // the top
+    box(6, 12, 4, 13, 13, 11, (u, y, v) => (u === 6 || u === 13 || v === 4 || v === 11 ? (y === 13 ? CLAY : CLAY_DARK) : y === 12 ? WATER : 0)); // the basin
+    box(15, 12, 4, 17, 17, 6, (_u, y) => (y === 15 ? CLAY_DARK : CLAY)); // the jug, banded
+    box(18, 15, 5, 18, 16, 5, CLAY_DARK); // its handle
+    box(8, 5, 16, 12, 11, 16, (u) => (u === 10 ? BONE : LINEN)); // a towel over the front
+    box(16, 12, 9, 17, 12, 10, BONE); // soap
+    box(9, 5, 6, 12, 7, 9, (_u, y) => (y === 7 ? IRON_LIGHT : WOOD_LIGHT)); // a pail on the shelf
   },
   // A lantern on an iron bracket, glowing (its light is added in roomView.ts):
   // an iron frame round bright panes, a hot band across the middle of each, under a
