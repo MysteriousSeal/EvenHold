@@ -40,7 +40,7 @@ export class CauldronEffects {
   private readonly lit: THREE.Object3D[] = []; // (the candle's flame and light, the glints: taken away again)
   private glints: THREE.Mesh | null = null;
   private readonly candles: Array<{ light: THREE.PointLight; full: number }> = [];
-  private readonly foot = new THREE.PointLight(0x6aff5a, 1.2, 1.1, 1.4); // (no shadow: lighting the floor round the pot's foot, its own shadow)
+  private readonly foot = new THREE.PointLight(0x6aff5a, 0.6, 1.1, 1.4); // (no shadow: lighting the floor round the pot's foot, its own shadow)
 
   // `brew`: the middle of its surface (none, nothing). `room` and its `furniture`: for the candle and the glass.
   constructor(
@@ -62,7 +62,7 @@ export class CauldronEffects {
       this.light.shadow.camera.near = 0.05;
       this.light.shadow.camera.far = 5;
       scene.add(this.light);
-      this.foot.position.copy(brew).setY(0.2);
+      this.foot.position.copy(brew).setY(0.05).add(new THREE.Vector3(0, 0, 0.15)); // (out front of the pot, low: on the stones, not its embers)
       scene.add(this.foot);
     }
     // Their candles, lit: each its flame, a warm light round it.
