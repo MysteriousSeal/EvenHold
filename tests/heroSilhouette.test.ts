@@ -40,7 +40,7 @@ describe("a foe's silhouette", () => {
     const inked = (scene: THREE.Scene) => {
       const copies: THREE.Object3D[] = [];
       scene.traverse((o) => o.renderOrder === 1 && copies.push(o));
-      return copies.length > 0 && copies.every((c) => c.visible);
+      return copies.some((c) => c.visible); // (in one ink or another: a tell's flares)
     };
     for (const [scale, state, focused, seen] of [[1, 'chase', null, true], [1, 'wander', null, false], [1, 'wander', wolf.id, true], [INDOOR_SCALE, 'chase', null, false]] as const) {
       const scene = new THREE.Scene();
