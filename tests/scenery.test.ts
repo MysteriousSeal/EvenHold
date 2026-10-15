@@ -16,6 +16,8 @@ import { nextLife, nextMeadow, nextScenery } from '../src/model/cheats';
 import { BLOOMS, meadowPatches } from '../src/model/scenery/meadowPatches';
 import { LIFE_CELL, lifeIn, lifeOut } from '../src/model/scenery/ambientSpots';
 import { mapsOf } from './support/testWorld';
+import { weatherAt } from '../src/model/world/weather';
+import { DAY_MINUTES } from '../src/model/clock';
 
 const MID = { width: 512, depth: 512 };
 const worlds = new Map<number, ReturnType<typeof generateWorld>>();
@@ -160,8 +162,10 @@ describe('the small life round the hero', () => {
 
   it('at night: fireflies, no butterflies or birds on the ground', () => {
     const counts = [0, 0, 0];
+    let night = at(23); // (a dry one: in the rain they're under cover)
+    while (weatherAt(1, night).rain > 0 || weatherAt(1, night + 60).rain > 0) night += DAY_MINUTES;
     for (let i = 0; i < 20; i++) {
-      const { counts: c } = life(at(23) + i * 3); // (a few moments: each firefly glows and dims)
+      const { counts: c } = life(night + i * 3); // (a few moments: each firefly glows and dims)
       counts[0] = Math.max(counts[0], c[0]);
       counts[2] = Math.max(counts[2], c[2]);
     }
