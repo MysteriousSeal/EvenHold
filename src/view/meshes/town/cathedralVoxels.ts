@@ -60,12 +60,26 @@ const lancet = (u: number, y: number, half: number, spring: number, apex: number
 export function buildCathedralVoxels(): VoxelGrid {
   const grid = createGrid(CATHEDRAL_GRID);
   fillBox(grid, 0, 0, 0, W - 1, 0, APSE - 1, T.limeDark); // (its floor, under all)
+  solid(grid);
   naveAndApse(grid);
   aisles(grid);
   buttresses(grid);
   front(grid);
   tower(grid);
   return grid;
+}
+
+// Its body filled in under its roofs (never seen within: no faces inside its walls and roofs to mesh and draw), what's
+// laid on it after cutting its windows and doors into its skin.
+function solid(grid: VoxelGrid): void {
+  for (let x = 0; x < W; x++) {
+    for (let z = 0; z < D; z++) {
+      const span = spanAt(x, z);
+      const u = Math.abs(across(x));
+      const top = span <= NAVE ? naveRoofAt(span) - 2 : z < APSE - 2 && u > NAVE && u < AISLE - 2 ? aisleRoofAt(u) - 2 : 0;
+      if (top > 0) fillBox(grid, x, 1, z, x, top, z, T.mortar);
+    }
+  }
 }
 
 // The nave's walls and the apse's, one curve, and the roof over both; the clerestory's lancets in each bay, the
