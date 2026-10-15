@@ -39,8 +39,9 @@ export interface TakenStory {
 }
 
 // A quest under way's people and village, by name, and where its village is: for when they're off the maps. (`village`,
-// `next`, `camp`: since saves of 2026-10; an older save's, unsaid.)
-export type Kept = { to: string; from: string; x: number; z: number; village?: string; next?: string; camp?: string };
+// `next`, `camp`: since saves of 2026-10; an older save's, unsaid. `goal`: the place it asks to be reached, kept for
+// when its own setting's off the maps: the second arc's, whose roads run from one place to the next.)
+export type Kept = { to: string; from: string; x: number; z: number; village?: string; next?: string; camp?: string; goal?: Point };
 
 export interface StoryHost extends CastHost, RestockHost {
   readonly hero: Hero;
@@ -53,6 +54,9 @@ export interface StoryHost extends CastHost, RestockHost {
   readonly lumber?: { axe: boolean }; // whether they've an axe to chop with (what's said of it)
   report(event: GameEvent): void;
   wakeWith?(who: Npc): void; // a night spent with them: woken in their place, beside them (nights.ts)
+  takeAway?(who: Npc): void; // someone taken away for good (by the men in grey: a choice's `gone`, storyChoices.ts)
+  cathedralTown?(): Point | null; // where Greyminster stands, off the maps too (the cathedral town's own reckoning)
+  readonly heat?: { raise(where: Point, amount: number, why: string): void; calm(where: Point, amount: number): void }; // the witch-finders' heat on the hero, by village (roads/heat.ts): a choice's `heat`
 }
 
 // A quest of someone's, as the cheat's list tells it (controller/cheats/questDebug.ts).

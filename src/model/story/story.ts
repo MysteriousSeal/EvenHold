@@ -15,7 +15,7 @@ import { rollGear } from '../human/items/gear';
 import { sleepTillMorning } from '../inn/roomLetting';
 import { afterDark } from './nights';
 import type { Entrance } from '../interiors/interiors';
-import { LOOT } from '../loot/loot';
+import { LOOT, type LootId } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
 import type { Enemy, GameEvent } from '../types';
@@ -32,14 +32,16 @@ import { keyOf, resettle, sameWorld, settle, type Instance, type QuestSet } from
 import { questsOf, replay } from './storyDebug';
 import { loadLedger, saveLedger, type Ledger, type SavedStory } from './storySave';
 import { idOf, keyed, type DebugQuest, type StoryHost, type StoryMark, type TakenStory, type Talk } from './storyTypes';
+import { keyBefore, saintOf, type SaintState } from './saint/saintState';
 
 export { STORY_QUESTS } from './quests/catalog';
 export type { Who } from './storyCast';
 export type { DebugQuest, StoryHost, StoryMark, TakenStory, Talk } from './storyTypes';
+export type { SaintState } from './saint/saintState';
 
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
-const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar');
+const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar' || who.role === 'witch');
 
 export class Story {
   debug = false; // a cheat: Q beside someone lists every quest of their calling, to play again; the journal finishes any
@@ -54,7 +56,12 @@ export class Story {
   // Every quest as it's set in the world that's on the maps, and whose they are (found again only as the world changes).
   private get set(): QuestSet {
     if (sameWorld(this.world, this.host)) return this.world;
-    this.world = settle(this.host, this.l.home);
+    this.world = settle(this.host, this.l.home, { road: this.l.road, town: this.l.town ?? this.host.cathedralTown?.() ?? null }); // (the second arc's places, as kept)
+    const { town } = this.world.saint;
+    if (town) this.l.town = { x: town.village.x, z: town.village.z }; // (Greyminster, seen: kept)
+    this.l.carter ??= (this.world.first?.who.carter as Carter | undefined)?.name ?? null;
+    const held = this.world.saint.town?.who.prisoner;
+    if (held && this.l.carter) held.name = this.l.carter; // (the man in the bishop's cells: the carter, by his own name)
     resettle(this.world, new Map([...this.l.forced].map(([key, id]) => [key, this.host.npcs.find((n) => n.id === id)])), [...this.l.state].filter(([, s]) => s === 'taken').map(([key]) => key), STORY_QUESTS); // (those set by hand, and an older save's)
     return this.world;
   }
@@ -81,7 +88,7 @@ export class Story {
     const from = at ? name(quest.giver, 'someone') : (giver?.name ?? 'a traveller');
     return {
       village: at?.names.village ?? 'the road', giver: from, receiver: name(quest.receiver, from), next: at?.names.next ?? 'the next village',
-      barmaid: name('barmaid', 'the barmaid'), smith: name('smith', 'the smith'), carter: name('carter', 'the carter'), camp: at?.names.camp ?? 'the camp', axe: this.host.lumber?.axe ?? false, chose: this.choices.of,
+      barmaid: name('barmaid', 'the barmaid'), smith: name('smith', 'the smith'), carter: name('carter', 'the carter'), camp: at?.names.camp ?? 'the camp', axe: this.host.lumber?.axe ?? false, chose: this.choices.of, did: this.did,
     };
   }
 
@@ -97,13 +104,16 @@ export class Story {
     if (i.quest.night && !this.l.freed.has(key) && i.at?.who[i.quest.giver]?.look.build === this.host.hero.look.build) return 'locked';
     // (One whose giver speaks as a man, or a woman: offered only by one.)
     if (i.quest.sex && !this.l.freed.has(key) && i.at && i.at.who[i.quest.giver]?.look.build !== i.quest.sex) return 'locked';
-    const before = i.quest.follows && keyOf(i.quest.follows, i.at);
+    const saint = i.quest.scope === 'saint';
+    const before = i.quest.follows && (saint ? keyBefore(i.quest.follows, this.l.state, this.set.all) : keyOf(i.quest.follows, i.at)); // (the second arc's: the one before set in another place)
     if (!before || this.l.state.get(before) === 'done' || this.l.freed.has(key)) return 'offered';
-    return this.set.all.has(before) || i.quest.scope === 'first' ? 'locked' : 'offered'; // (a village's: the one before not set there, never in the way; the opening line's: always in its order)
+    return this.set.all.has(before) || i.quest.scope === 'first' || saint ? 'locked' : 'offered'; // (a village's: the one before not set there, never in the way; the opening line's, the second arc's: always in their order)
   }
 
+  // (The second arc's: the hero's own, where that's more: it starts at home, after the first village's line.)
   private level(key: string): number {
-    return this.set.all.get(key)?.at?.level ?? this.host.hero.level;
+    const at = this.set.all.get(key)?.at?.level ?? this.host.hero.level;
+    return STORY_QUESTS[idOf(key)]?.scope === 'saint' ? Math.max(at, this.host.hero.level) : at;
   }
 
   // What a quest pays: coin and experience by its village's level (the road's: the hero's own), and its gift, named.
@@ -123,6 +133,14 @@ export class Story {
     const of = needs.kind === 'reach' ? 1 : needs.count;
     const have = needs.kind === 'bring' ? (this.host.hero.bag[needs.item] ?? 0) : (this.l.counted.get(key) ?? 0);
     return { have: Math.min(of, have), of };
+  }
+
+  // What the quests under way still want brought (loot/dropMercy.ts: the odds of it climbing, kill on kill).
+  wantedItems(): LootId[] {
+    return [...this.l.state].flatMap(([key, state]) => {
+      const needs = STORY_QUESTS[idOf(key)]?.needs;
+      return state === 'taken' && needs?.kind === 'bring' && this.progress(key).have < needs.count ? [needs.item] : [];
+    });
   }
 
   ready = (id: string): boolean => this.progress(id).have >= this.progress(id).of;
@@ -145,9 +163,11 @@ export class Story {
     this.count((q) => q.needs?.kind === 'slay' && q.needs.foe === enemy.kind, enemy);
   }
 
-  // What the game tells of (GameModel.report): a bandit camp cleared, a shift worked to its end, a wish at a well.
+  // What the game tells of (GameModel.report): a bandit camp cleared, a shift worked to its end, a wish at a well, the
+  // bishop's ossuary under the Minster cleared (the Gilded Deacon fallen: the reliquary's to tell).
   onEvent(event: GameEvent): void {
-    const what = event.kind === 'cleared' && event.place === 'camp' ? 'clearCamp' : event.kind === 'shift' && !event.early ? 'shift' : event.kind === 'blessing' ? 'wish' : null;
+    const cleared = event.kind === 'cleared' ? (event.place as string | undefined) : undefined;
+    const what = cleared === 'camp' ? 'clearCamp' : cleared === 'reliquary' ? 'reliquary' : event.kind === 'shift' && !event.early ? 'shift' : event.kind === 'blessing' ? 'wish' : null;
     if (what) this.count((q) => q.needs?.kind === 'do' && q.needs.what === what);
   }
 
@@ -159,7 +179,7 @@ export class Story {
     this.raise();
     this.count((q, key) => {
       const at = this.set.all.get(key)?.at ?? null;
-      const place = q.needs?.kind === 'reach' ? at?.place[q.needs.place] : undefined;
+      const place = q.needs?.kind === 'reach' ? (at?.place[q.needs.place] ?? this.l.kept.get(key)?.goal) : undefined; // (its place off the maps: as kept)
       return (!!place && q.needs?.kind === 'reach' && Math.hypot(place.x - hero.x, place.z - hero.z) <= q.needs.within) || alreadyDone(this.host, q, at);
     });
   }
@@ -176,6 +196,7 @@ export class Story {
   // The mark over `who`'s head, if any: a quest ready to hand in to them (a gold "?"), else one of theirs to give (a
   // "!"), else one they wait on (a grey "?").
   markOf(who: Who): StoryMark | null {
+    if (this.shuns(who)) return null;
     let mark: StoryMark | null = null;
     for (const i of this.of(who)) {
       const [state, { gives, takes }] = [this.stateOf(i.key), this.part(i, who)];
@@ -202,7 +223,7 @@ export class Story {
 
   // The carter, near enough for a word (outdoors, by his wagon).
   get carterInReach(): Carter | null {
-    const carter = this.host.inside ? null : (this.set.first?.who.carter as Carter | undefined);
+    const carter = this.host.inside || this.saint.carterGone ? null : (this.set.first?.who.carter as Carter | undefined); // (gone up the road: the second arc)
     return carter && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= REACH ? carter : null;
   }
 
@@ -225,6 +246,7 @@ export class Story {
     const mine = this.of(who).filter((i) => !only || i.key === only).map((i) => ({ i, state: this.stateOf(i.key), ...this.part(i, who) }));
     if (mine.length === 0) return null;
     const speaker = who.name;
+    if (this.shuns(who)) return word ? { speaker, lines: ['Pay, and go.'], answers: [] } : null; // (her trade, and not a word)
     const about = (i: Instance, state: 'offered' | 'handIn') => ({ name: i.quest.name, task: i.quest.task(this.told(i, who)), ...this.pays(i.key), state });
     const handIn = mine.find((m) => m.state === 'taken' && m.takes && this.ready(m.i.key));
     if (handIn) {
@@ -233,7 +255,8 @@ export class Story {
       if (handIn.i.quest.night && !afterDark(this.host.minutes)) return notYet('Not now, in broad daylight. Come back after dark.'); // (a night's quest: not a whole day slept away, nights.ts)
       return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: choiceAnswers(handIn.i.quest, this.told(handIn.i, who), speaker, (choice) => this.handIn(handIn.i.key, choice)) };
     }
-    const offer = mine.find((m) => m.state === 'offered' && m.gives);
+    const offers = mine.filter((m) => m.state === 'offered' && m.gives);
+    const offer = offers.find((m) => m.i.quest.scope === 'first' || m.i.quest.scope === 'saint') ?? offers[0]; // (a line's, over their village's own)
     if (offer) {
       const { quest } = offer.i;
       const trade = hasTrade(who) ? [{ label: 'Show me your wares.', trade: true, pick: () => {} }] : [];
@@ -274,7 +297,9 @@ export class Story {
     this.l.state.set(key, 'taken');
     if (i.quest.scope === 'first' && i.at && (this.l.home === null || this.l.home === 'nearest')) this.l.home = { x: i.at.village.x, z: i.at.village.z }; // (its line under way: there for good)
     this.l.counted.delete(key);
-    this.l.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp });
+    const goal = i.quest.needs?.kind === 'reach' ? i.at?.place[i.quest.needs.place] : undefined;
+    this.l.kept.set(key, { to: i.quest.receiver ? t.receiver : '', from: t.giver, x: i.at?.village.x ?? this.host.hero.x, z: i.at?.village.z ?? this.host.hero.z, village: t.village, next: t.next, camp: t.camp, ...(goal ? { goal } : {}) });
+    if (i.quest.needs?.kind === 'reach' && i.quest.needs.place === 'onward' && goal) this.l.road = goal; // (the witch's village, sent there: kept)
     room ? this.l.untracked.delete(key) : this.l.untracked.add(key);
     const { hero } = this.host;
     const stake = i.quest.stake;
@@ -284,6 +309,7 @@ export class Story {
       else for (let n = 0; n < stake.count; n++) addToBag(hero.bag, stake.item);
     }
     this.host.report({ kind: 'quest', text: `Quest taken: ${i.quest.name}`, done: false, x: hero.x, y: hero.y, z: hero.z });
+    if (!i.quest.needs && !i.quest.receiver) this.handIn(key); // (nothing asked, no one to go back to: done as it's heard)
     return true;
   }
 
@@ -328,6 +354,7 @@ export class Story {
     if (quest.needs?.kind === 'bring') for (let i = 0; i < quest.needs.count; i++) takeFromBag(hero.bag, quest.needs.item);
     const give = (gift: Gift | null | undefined) => gift && ('gear' in gift ? addToBag(hero.bag, rollGear(gift.gear, this.level(key), mulberry32(Math.round(hashUnit(key.length, copper, this.host.seed) * 1e9)), 1, gift.least) as BagItem) : Array.from({ length: gift.count }, () => addToBag(hero.bag, gift.item)));
     if (choice) this.choices.take(idOf(key), choice.key);
+    const gone = choice?.gone && this.set.all.get(key)?.at?.who[choice.gone]; // (taken away for good, after it's said)
     for (const gift of [quest.gift, choice?.gift, this.choices.laterFor(idOf(key), (at) => STORY_QUESTS[at]?.choice)]) give(gift);
     const more = Math.round((choice?.copper ?? 0) * (1 + PER_LEVEL * (this.level(key) - 1)));
     this.l.state.set(key, 'done');
@@ -338,6 +365,9 @@ export class Story {
     this.slept.delete(key);
     this.host.report({ kind: 'coins', amount: copper + more });
     this.host.report({ kind: 'quest', text: `${quest.name}: done`, done: true, x: hero.x, y: hero.y, z: hero.z });
+    if (gone && 'home' in gone) this.host.takeAway?.(gone);
+    const where = this.set.all.get(key)?.at?.village ?? hero;
+    if (choice?.heat) choice.heat > 0 ? this.host.heat?.raise(where, choice.heat, `${quest.name}: ${choice.label}`) : this.host.heat?.calm(where, -choice.heat);
     return true;
   }
 
@@ -354,7 +384,7 @@ export class Story {
       const back = quest.receiver && !to ? { x: kept.x, z: kept.z } : null; // (whoever takes it in off the maps: back to their village)
       return {
         id: key, name: quest.name, task: quest.task({ ...told, giver: kept.from, receiver: kept.to || kept.from }), ready, tracked: !this.l.untracked.has(key), ...this.progress(key),
-        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (goalOf(this.host, quest, i?.at ?? null) ?? back), within: ready ? null : innOf(this.host, quest, i?.at ?? null),
+        to, toName: kept.to, fromName: kept.from, door: to && 'where' in to ? to.where : null, goal: ready ? back : (goalOf(this.host, quest, i?.at ?? null) ?? kept.goal ?? back), within: ready ? null : innOf(this.host, quest, i?.at ?? null),
       };
     });
   }
@@ -379,6 +409,20 @@ export class Story {
     else this.l.counted.set(key, of);
     if (!quest.receiver) return this.handIn(key);
     return this.ready(key);
+  }
+
+  // Whether `who` won't speak to the hero again: the first village's herbalist, the bishop's gold taken (the second
+  // arc's end, quests/saintQuestsTown.ts): she sells, and says nothing.
+  private shuns(who: Who): boolean {
+    return who === this.set.first?.who.herbalist && this.did('theLastWord') && this.saint.ending === 'kept';
+  }
+
+  // Whether a quest's been done, wherever it was set.
+  did = (id: string): boolean => [...this.l.state].some(([key, s]) => s === 'done' && idOf(key) === id);
+
+  // How the second arc stands, for the rest of the game (saint/saintState.ts).
+  get saint(): SaintState {
+    return saintOf(this.l.state, this.choices.of, this.l.town, this.l.carter);
   }
 
   // Those done, for the journal.

@@ -12,7 +12,7 @@ import { anyMenuOpen, createMenu, type MenuSlot } from '../../view/ui/menu';
 import { storyIcon } from '../story/storyJournal';
 
 const REACH = 2.6; // tiles: whoever's this near, the nearest
-const KIND: Record<DebugQuest['scope'], string> = { first: 'Main line', village: 'Most villages', road: 'On the road' };
+const KIND: Record<DebugQuest['scope'], string> = { first: 'Main line', village: 'Most villages', road: 'On the road', saint: "The Bishop's Saint" };
 
 // Whoever the hero stands beside: of those where they are (indoors: that building's; outdoors: the carter, the
 // villagers about, those on the road), the nearest.

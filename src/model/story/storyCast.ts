@@ -21,8 +21,9 @@ export type Who = Carter | Npc | Traveller;
 export type Point = { x: number; z: number };
 
 export const isTraveller = (who: Who): who is Traveller => 'road' in who;
-// The keepers' parts, by their trade.
-const KEEPERS = { barmaid: 'barkeep', smith: 'smith', herbalist: 'herbalist', bouncer: 'bouncer' } as const satisfies Partial<Record<StoryRole, Npc['role']>>;
+// The keepers' parts, by their trade (the hedge-witch's; Greyminster's people, by the calling the cathedral town gives
+// them: saint/saintSet.ts).
+const KEEPERS = { barmaid: 'barkeep', smith: 'smith', herbalist: 'herbalist', bouncer: 'bouncer', witch: 'witch', bishop: 'bishop', deacon: 'deacon', captain: 'captain', sister: 'sister', pardoner: 'pardoner', prisoner: 'prisoner' } as const satisfies Partial<Record<StoryRole, string>>;
 // The parts `who` may play in a quest: the carter's, a keeper's own, either villager's, on the road their calling's.
 export function partsOf(who: Who): StoryRole[] {
   if (isTraveller(who)) return [who.role as StoryRole];
@@ -89,7 +90,7 @@ export function castOf(host: CastHost, kept: Home = null): { first: Setting | nu
   const spawn = spawnOf(host.size);
   const folk = new Map<Village, Npc[]>();
   for (const n of host.npcs) folk.set(n.village, [...(folk.get(n.village) ?? []), n]);
-  const keeper = (v: Village, role: Npc['role']) => folk.get(v)?.find((n) => n.role === role);
+  const keeper = (v: Village, role: string) => folk.get(v)?.find((n) => n.role === role);
   const villages = host.villages.map((village): Setting => {
     const mine = folk.get(village) ?? [];
     const villagers = mine.filter((n) => n.role === 'villager').sort((a, b) => a.id - b.id);

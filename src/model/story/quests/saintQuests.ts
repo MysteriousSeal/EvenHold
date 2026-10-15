@@ -1,0 +1,179 @@
+// The second arc, "The Bishop's Saint" (scope 'saint': saint/saintSet.ts sets each by its `where`), once the first
+// village's line is done ("The long road": the carter gone up the road with a deacon's finger in a silk bag, for a
+// saint's relic). At home, the empty wagon: his horses bring it back without him; the inn full of pilgrims, all
+// walking one way, to a saint who heals; the road out. On the road, the witch's village: its hedge-witch chained in
+// her own cottage by the men in grey (the arc's first choice: her chain broken, the bounty taken, or walked away
+// from); and what the carter said there, with nine ales in him. Then Greyminster (saintQuestsTown.ts).
+import type { StoryQuest } from '../storyQuests';
+
+const saint = (q: Omit<StoryQuest, 'scope'>): StoryQuest => ({ scope: 'saint', ...q });
+const WITCH = { free: "They're turning the village over for her. They won't find her. Nobody is looking very hard.", handed: 'You took their two silver. I watched the cart go. I hope you are pleased with yourself.', left: "The cart came at dawn. She didn't scream. I thought she would scream." } as Record<string, string>;
+
+export const SAINT_ROAD_QUESTS: StoryQuest[] = [
+  saint({
+    id: 'theEmptyWagon',
+    name: 'The empty wagon',
+    where: 'home',
+    giver: 'herbalist',
+    receiver: 'herbalist',
+    follows: 'theLongRoad',
+    needs: { kind: 'reach', place: 'wagon', within: 3 },
+    offer: () => [
+      'His horses came back last night. Both of them, still in the traces, pulling an empty wagon. They stopped where they always stop, by the start of the trail, where it broke its wheel all those years ago.',
+      'No carter. No men in grey. No silk bag. Go and look at it before the children strip it. You knew him. Tell me what is missing.',
+    ],
+    accept: "I'll look.",
+    decline: 'Not now.',
+    waiting: () => ["Go and look at the carter's wagon, where it stands by the start of the trail. Tell me what is missing."],
+    after: () => ['The miller has taken the horses. He says he is only minding them. He has been minding my hens for nine years.'],
+    task: () => "Look over the carter's empty wagon, by the start of the trail",
+    handIn: () => [
+      'His whip is still in its socket? He would not leave his whip. He talked to that whip more than he talked to his wife, when she was alive.',
+      'And grey wool caught on the tailboard. So they had him off the seat themselves, and sent the horses home to tell us. That is the men in grey being polite.',
+    ],
+    thanks: 'Then where is he?',
+    copper: 120,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'everyPilgrimOneWay',
+    name: 'Every pilgrim one way',
+    where: 'home',
+    giver: 'barmaid',
+    receiver: 'barmaid',
+    follows: 'theEmptyWagon',
+    needs: { kind: 'do', what: 'shift', count: 1 },
+    offer: () => [
+      'Pilgrims. Every night this week my tables are full of pilgrims, and every one of them walking the same way. To Greyminster, to the Minster, to kiss a new saint. Saint Aldous, they call him. Our Father Aldous.',
+      'Work a shift for me. They tip badly and they pray before they drink, but they talk. Listen to what they say about the miracles, then come and tell me. I cannot stop laughing long enough to listen.',
+    ],
+    accept: "I'll work, and listen.",
+    decline: 'Not tonight.',
+    waiting: () => ['Work a shift at the inn, among the pilgrims, and listen to what they say of the saint.'],
+    after: () => ['A pilgrim tried to buy the stool the carter used to sit on. I sold it to him. Two silver. I will buy another stool.'],
+    task: () => 'Work a shift at the inn, and listen to the pilgrims',
+    handIn: () => [
+      "Well? A lame man in Greyminster threw away his crutch and danced, after kissing the saint's finger. A blind girl saw her mother's face. The bishop's dog stopped biting.",
+      "On a deacon's knuckle that you dug out of a crypt. Either God has a filthy sense of humour, or something else is doing the healing. I know which one I would put money on.",
+    ],
+    thanks: 'Something else.',
+    copper: 100,
+    xpShare: 0.4,
+  }),
+  saint({
+    id: 'theRoadOut',
+    name: 'The road out',
+    where: 'home',
+    giver: 'herbalist',
+    follows: 'everyPilgrimOneWay',
+    needs: { kind: 'reach', place: 'onward', within: 25 },
+    offer: (t) => [
+      `A tinker came through from ${t.next}. The men in grey are there now. They have taken the hedge-witch, chained her in her own cottage, and they are waiting for a cart to carry her to Greyminster.`,
+      'That is the road the carter took. Go after him. If he is alive, he went through there, and somebody saw him. And if they are burning women along that road, I want to know how many.',
+    ],
+    accept: "I'll go.",
+    decline: 'Not yet.',
+    waiting: (t) => [`Go to ${t.next}, on the road to Greyminster. They have taken the hedge-witch there.`],
+    after: () => ['Go carefully. I have sat by one burned woman\'s grave. I am too old to start on another.'],
+    task: (t) => `Go to ${t.next}, on the road to Greyminster`,
+    handIn: () => [],
+    thanks: '',
+    copper: 150,
+    xpShare: 0.6,
+  }),
+  saint({
+    id: 'smokeOnTheRoad',
+    name: 'Chained to her own hearth',
+    where: 'road',
+    giver: 'villagerA',
+    receiver: 'witch',
+    follows: 'theRoadOut',
+    offer: (t) => [
+      `You came up the road? Then you passed them, the men in grey. They came into ${t.village} three days ago, very polite, and asked who sold the charms here. Somebody told them.`,
+      `They have chained ${t.receiver} to her own hearth, and one of them sits at her door all day with his hood up. The cart comes for her at the end of the week. Go and see her. Nobody else will. We are all ashamed, and being ashamed takes up the whole day.`,
+    ],
+    accept: "I'll see her.",
+    decline: 'Not my business.',
+    waiting: (t) => [`Go and see ${t.receiver}, in her cottage at the edge of the village. The one with the man in grey at the door.`],
+    after: (t) => [WITCH[t.chose?.('smokeOnTheRoad') ?? ''] ?? 'They have gone quiet, the men in grey. That is worse.'],
+    task: (t) => `See ${t.receiver}, chained in her cottage`,
+    handIn: () => [
+      'Another one come to look at the witch? Look, then. Chained to my own hearth like a pot. The man at the door has gone to the inn for his dinner. He takes his time over it. He is frightened of me, which is the only sensible thing about him.',
+      "You've the look of somebody who's been taught a charm or two. So you know what they'll do to me in Greyminster, and that I've done nothing but set bones, and sell girls something for the morning after.",
+      "The chain's old. A good kick would have the staple out of the wall. Or you can call him back from his dinner: there's a price on me, two silver. It used to be five. I'm getting old. Or you can walk out and let it happen. Everybody else has.",
+    ],
+    thanks: 'I see.', // (unsaid: a choice)
+    choice: [
+      {
+        key: 'free',
+        label: 'Kick the staple out. Hide.',
+        gift: { item: 'hexScroll', count: 1 },
+        heat: 3, // (a witch's chain broken: wanted)
+        said: () => ["Well. There's no going back for you now, mind. They write everything down. I'll lie low. They never search the same house twice: they think it's beneath them.", "Here. It's not much. If they come for you, use it on the one at the front."],
+      },
+      {
+        key: 'handed',
+        label: 'Call the guard. Two silver is two silver.',
+        copper: 200,
+        gone: 'witch',
+        heat: -2, // (one of theirs, now)
+        said: () => ['Two silver. I hope it keeps you warm. It will not, but I hope it.'],
+      },
+      {
+        key: 'left',
+        label: 'Leave her to it.',
+        gone: 'witch',
+        said: () => ["Go on, then. You won't be the first."],
+      },
+    ],
+    copper: 120,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'whatTheCarterSaid',
+    name: 'What the carter said',
+    where: 'road',
+    giver: 'villagerB',
+    receiver: 'villagerB',
+    follows: 'smokeOnTheRoad',
+    needs: { kind: 'bring', item: 'ale', count: 1 },
+    offer: (t) => [
+      ...(WITCH[t.chose?.('smokeOnTheRoad') ?? ''] ? [WITCH[t.chose!('smokeOnTheRoad')!]] : []),
+      "You're asking after the carter? A heavy man, from the hill villages, with a box in silk on the seat beside him? He came through. Get me a drink and I'll tell you. The inn's been dry since the men in grey moved in. They drink like monks.",
+    ],
+    accept: "I'll fetch a drink.",
+    decline: 'Later.',
+    waiting: () => ["Bring me an ale, and I'll tell you about the carter."],
+    after: () => ["I've been thinking about your carter's finger. Do you think my nan's teeth would sell? She had a fine set. Still has, in a jar."],
+    task: (t) => `Bring an ale to ${t.giver}, for word of the carter`,
+    handIn: () => [
+      'Ah. Right. Your carter. The first night he was quiet, and sober, and he sat with his hands round that box as if it was a baby.',
+      "The second night somebody bought him a drink. Then another. Then he stood up on the bench and told the whole inn that the blessed relic of Saint Aldous was a deacon's finger out of a hole in a hill, and he'd had it fetched himself.",
+      'The men in grey put a sack over his head, very gently, and took him off to Greyminster with the box. They said he was overcome. He was. He was overcome by the truth, and about nine ales.',
+    ],
+    thanks: "Then he's in Greyminster.",
+    copper: 130,
+    xpShare: 0.5,
+  }),
+  saint({
+    id: 'onToGreyminster',
+    name: 'On to Greyminster',
+    where: 'road',
+    giver: 'villagerB',
+    follows: 'whatTheCarterSaid',
+    needs: { kind: 'reach', place: 'minster', within: 10 },
+    offer: () => [
+      'Greyminster is a long way up the road. You will know it. You can see the Minster from a day off, and smell the town from half a day.',
+      "If you pass a witch on a cart on the way, don't look at her. They write down who looks.",
+    ],
+    accept: "I'm going.",
+    decline: 'Not yet.',
+    waiting: () => ['Go up the road to Greyminster, to the Minster of Saint Hollin.'],
+    after: () => ["Still here? The road's that way. Everybody's on it."],
+    task: () => "Go up the road to Greyminster, to the Minster's door",
+    handIn: () => [],
+    thanks: '',
+    copper: 160,
+    xpShare: 0.6,
+  }),
+];

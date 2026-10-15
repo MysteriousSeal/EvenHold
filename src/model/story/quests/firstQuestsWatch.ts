@@ -231,7 +231,10 @@ export const WATCH_QUESTS: StoryQuest[] = [
     accept: "I'll tell her.",
     decline: 'Say it yourself.',
     waiting: (t) => [`Go to ${t.receiver}, the herbalist. Tell her what is in the bishop's silk bag. And tell her the carter is sorry.`],
-    after: () => ['The road is long, and I know every stone of it. For the first time I do not mind which way it goes.'],
+    after: (t) =>
+      t.did?.('theRoadHome') // (home again, the second arc over: quests/saintQuestsTown.ts)
+        ? ["I've had the wheel mended. Thirty years it stood broken, and I had it mended in an afternoon. I'm not going anywhere in it. I just like to know I could."]
+        : ['The road is long, and I know every stone of it. For the first time I do not mind which way it goes.'],
     task: (t) => `Tell ${t.receiver} what the bishop was sent, and that the carter is sorry`,
     handIn: () => [
       "A deacon's finger. In gold, in the cathedral, with a bishop on his knees to it. Oh, that is good. That is the best thing I have heard in my life. Wait. Let me stop laughing.",

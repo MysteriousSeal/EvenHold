@@ -4,10 +4,10 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
-import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
+import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS, SAINT_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
 import type { StoryQuest, StoryRole, Told } from '../src/model/story/storyQuests';
 
-const all = [...FIRST_QUESTS, ...COMMON_QUESTS, ...RARE_QUESTS, ...ROAD_QUESTS];
+const all = [...FIRST_QUESTS, ...COMMON_QUESTS, ...RARE_QUESTS, ...ROAD_QUESTS, ...SAINT_QUESTS];
 const told: Told = { village: 'Rookwick', giver: 'Ada', receiver: 'Bram', next: 'Thornby', barmaid: 'Cwen', smith: 'Osric', carter: 'Dunn', camp: "Red Hugh's camp", axe: true };
 const ON_THE_ROAD: StoryRole[] = ['pedlar', 'pilgrim', 'guard'];
 const said = (q: StoryQuest): string[] => [...q.offer(told), ...q.offer({ ...told, axe: false }), ...q.waiting(told), ...(q.pending?.(told) ?? []), ...q.after(told), ...q.handIn(told)];
@@ -15,18 +15,20 @@ const said = (q: StoryQuest): string[] => [...q.offer(told), ...q.offer({ ...tol
 describe('the quests people give, as written', () => {
   it('are each of a name of their own, in the list of their kind', () => {
     expect(Object.keys(STORY_QUESTS).length).toBe(all.length);
-    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length]).toEqual([30, 22, 30, 3]);
+    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length, SAINT_QUESTS.length]).toEqual([30, 22, 30, 3, 15]);
     expect(FIRST_QUESTS.every((q) => q.scope === 'first')).toBe(true);
     expect([...COMMON_QUESTS, ...RARE_QUESTS].every((q) => q.scope === 'village' && !ON_THE_ROAD.includes(q.giver) && q.giver !== 'carter')).toBe(true);
     expect(ROAD_QUESTS.every((q) => q.scope === 'road' && ON_THE_ROAD.includes(q.giver) && !q.receiver)).toBe(true);
+    expect(SAINT_QUESTS.every((q) => q.scope === 'saint' && !!q.where)).toBe(true);
   });
 
   it('follow only one of their own kind; the rare ones are rare', () => {
     for (const q of all) {
-      if (q.follows) expect(STORY_QUESTS[q.follows]?.scope, `${q.id} after ${q.follows}`).toBe(q.scope);
+      if (q.follows) expect(STORY_QUESTS[q.follows]?.scope, `${q.id} after ${q.follows}`).toBe(q.id === 'theEmptyWagon' ? 'first' : q.scope); // (the second arc: after the first line's end)
       if (q.share !== undefined) expect(q.share > 0 && q.share <= 1, q.id).toBe(true);
     }
-    expect(FIRST_QUESTS.slice(1).every((q, i) => q.follows === FIRST_QUESTS[i].id)).toBe(true); // (one line, in order)
+    for (const line of [FIRST_QUESTS, SAINT_QUESTS]) expect(line.slice(1).every((q, i) => q.follows === line[i].id)).toBe(true); // (one line each, in order)
+    expect(SAINT_QUESTS[0].follows).toBe(FIRST_QUESTS.at(-1)!.id);
     for (const q of RARE_QUESTS) expect(q.follows ? (q.share ?? 0) <= 0.35 : q.share! <= 0.35, q.id).toBe(true);
     expect(COMMON_QUESTS.every((q) => !q.follows || COMMON_QUESTS.some((c) => c.id === q.follows))).toBe(true); // (never waiting on a rare one)
   });

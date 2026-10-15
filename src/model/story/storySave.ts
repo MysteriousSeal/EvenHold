@@ -12,9 +12,12 @@ export interface Ledger {
   counted: Map<string, number>; // what's been done toward each taken one (foes slain; a place reached, a thing done: 1)
   kept: Map<string, Kept>; // each taken one's people and village, for when they're off the maps
   home: Home; // the first village, once its line's taken up: kept, and in the save (storyCast.ts castOf)
+  road: Point | null; // the second arc's witch's village, once the hero's sent there; Greyminster, once seen; the
+  town: Point | null; // carter's name, once he's been met (saint/saintSet.ts; all in the save, an older save's: none)
+  carter: string | null;
 }
 
-export type SavedStory = { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point; choices: Record<string, string> };
+export type SavedStory = { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point; road?: Point; town?: Point; carter?: string; choices: Record<string, string> };
 
 export function saveLedger(l: Ledger, choices: Record<string, string>): SavedStory {
   return {
@@ -26,12 +29,20 @@ export function saveLedger(l: Ledger, choices: Record<string, string>): SavedSto
     freed: [...l.freed],
     staked: [...l.staked],
     ...(l.home && l.home !== 'nearest' ? { home: l.home } : {}),
+    ...(l.road ? { road: l.road } : {}),
+    ...(l.town ? { town: l.town } : {}),
+    ...(l.carter ? { carter: l.carter } : {}),
   };
 }
 
+const spot = (p: unknown): Point | null => {
+  const { x, z } = (p ?? {}) as { x?: unknown; z?: unknown };
+  return typeof x === 'number' && typeof z === 'number' ? { x, z } : null;
+};
+
 // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
 export function loadLedger(data: unknown): Ledger {
-  const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown; home?: { x?: unknown; z?: unknown } } & Record<string, unknown>;
+  const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown; home?: { x?: unknown; z?: unknown }; road?: unknown; town?: unknown; carter?: unknown } & Record<string, unknown>;
   const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
   const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
   const state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken'] as const));
@@ -44,6 +55,9 @@ export function loadLedger(data: unknown): Ledger {
     forced: new Map(Object.entries(saved.forced ?? {}).filter(([key]) => named(key)).map(([key, id]) => [key, typeof id === 'number' ? id : null])),
     freed: new Set(Array.isArray(saved.freed) ? saved.freed.filter(named) : []),
     staked: new Set(Array.isArray(saved.staked) ? saved.staked.filter(named) : [...state.keys()].filter((key) => state.get(key) === 'taken')), // (an older save's: those under way had what they'd have been given)
-    home: saved.home && typeof saved.home.x === 'number' && typeof saved.home.z === 'number' ? { x: saved.home.x, z: saved.home.z } : [...state.keys()].some((key) => key.endsWith('@first')) ? 'nearest' : null, // (an older save's line under way: where it was)
+    home: spot(saved.home) ?? ([...state.keys()].some((key) => key.endsWith('@first')) ? 'nearest' : null), // (an older save's line under way: where it was)
+    road: spot(saved.road),
+    town: spot(saved.town),
+    carter: typeof saved.carter === 'string' ? saved.carter : null,
   };
 }
