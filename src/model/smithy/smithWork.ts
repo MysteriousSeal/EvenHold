@@ -10,7 +10,7 @@ import { layoutOf } from '../interiors/indoors';
 import { START_MINUTES, between } from '../clock';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { NpcWorld } from '../npcs/npcRoutine';
-import { TOWARD_BACK, keeperCalled, keeperSteps, type KeeperDay } from '../npcs/keeperWork';
+import { TOWARD_BACK, TOWARD_DOOR, keeperCalled, keeperSteps, type KeeperDay } from '../npcs/keeperWork';
 
 // His day (npcs/keeperWork.ts): his counter, his round, and the spot he stands on to work at a piece (the tile
 // before it, kept free for him), facing the back wall (the forge, and what stands before it).
@@ -26,7 +26,9 @@ const SMITH: KeeperDay = {
   spot: (piece) =>
     piece.kind === 'forge'
       ? { x: piece.x + (piece.w - 1) / 2, z: piece.z + 1, face: TOWARD_BACK } // before the fire, in the row kept free there
-      : { x: piece.x, z: piece.z + piece.d, face: TOWARD_BACK },
+      : piece.kind === 'anvil'
+        ? { x: piece.x, z: piece.z - 1, face: TOWARD_DOOR } // behind it (the tile kept free there: smithyLayout.ts), across it from the hero at its front
+        : { x: piece.x, z: piece.z + piece.d, face: TOWARD_BACK },
   near: 1.2, // (at its front: not the hero just come in at the door, a step from it, nor at work at his anvil)
 };
 // His day while the hero stands at his anvil (to forge at it themselves: skills/smithing.ts): his work there left
@@ -58,5 +60,7 @@ export const smithCalled = (npc: Npc, world: NpcWorld): boolean => !smithAsleep(
 
 // Whether a smith is hammering at his anvil (sparks), or quenching at his trough (steam), right now.
 export function smithWorking(npc: Npc, at: Furniture): boolean {
-  return npc.role === 'smith' && npc.working && Math.hypot(npc.x - at.x, npc.z - (at.z + at.d)) < 0.6;
+  if (npc.role !== 'smith' || !npc.working) return false;
+  const spot = SMITH.spot(at);
+  return Math.hypot(npc.x - spot.x, npc.z - spot.z) < 0.6;
 }
