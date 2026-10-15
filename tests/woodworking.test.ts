@@ -57,6 +57,34 @@ describe('woodworking', () => {
     for (const id of RECIPE_IDS) expect(Object.keys(RECIPES[id].from).length).toBeGreaterThan(0);
   });
 
+  it('has something orange at every level (no gap past 25), and in every tier something to sell and something to wield', () => {
+    const needs = RECIPE_IDS.map((id) => RECIPES[id].needs);
+    for (let i = 1; i < needs.length; i++) expect(needs[i] - needs[i - 1]).toBeLessThanOrEqual(25);
+    expect(300 - needs.at(-1)!).toBeLessThanOrEqual(25);
+    for (const [from, to] of [[1, 75], [75, 150], [150, 225], [225, 300]]) {
+      const tier = RECIPE_IDS.filter((id) => RECIPES[id].needs >= from && RECIPES[id].needs < to);
+      expect(tier.some((id) => typeof RECIPES[id].makes !== 'string' && ['Weapons', 'Shields'].includes(RECIPES[id].group))).toBe(true);
+      expect(tier.some((id) => RECIPES[id].group === 'Goods' && LOOT[RECIPES[id].makes as keyof typeof LOOT].value > 0)).toBe(true);
+    }
+    // (none finer than the smith's own, uncommon, but of heartwood)
+    for (const id of RECIPE_IDS) {
+      const makes = RECIPES[id].makes;
+      if (typeof makes !== 'string' && !['common', 'uncommon'].includes(makes.rarity)) expect(RECIPES[id].from.heartwood).toBeGreaterThan(0);
+    }
+  });
+
+  it('asks room for a piece of gear as its own stack, not on a plain one of its kind', () => {
+    const model = fresh();
+    const { hero } = model;
+    hero.bag.birchPlank = 2;
+    hero.bag.woodenSword = 1;
+    for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (canCarry(hero, 'birchLog')) hero.bag[id as keyof typeof hero.bag] = (hero.bag[id as keyof typeof hero.bag] ?? 0) + 1; // (full)
+    hero.bag.birchPlank = 4;
+    skillOf(hero, 'woodworking').level = 10;
+    expect(model.woodworking.roomFor('woodenSword')).toBe(false);
+    expect(model.woodworking.start('woodenSword')).toBe(false);
+  });
+
   it('knows a recipe once the skill reaches it; makes as many as the bag allows', () => {
     const model = workshop(1, { birchLog: 3, pineLog: 5 });
     expect(model.woodworking.knows('birchPlank')).toBe(true);
