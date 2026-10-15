@@ -1,8 +1,8 @@
 // The skills window (K, or its tile on the toolbar): the hero's skills (model/skills/skills.ts) as cards, the main
 // ones (lumberjacking, woodworking) over the secondary (cooking, fishing): each its icon, its name, their level, their
 // tier and how far to the next, its ruler (skillRuler.ts); and what they're at in it just now (chopping a tree, making
-// something), else how it's practised. A card clicked (or Enter) opens the skill's own window (skillWindow.ts). A small
-// window in the corner: the game goes on while it's open.
+// something), else how it's practised. A card clicked (or Enter) opens the skill's own window (skillWindow.ts). A second
+// tab, the charms the hero knows (charmTab.ts). A small window in the corner: the game goes on while it's open.
 
 import { keyOf } from '../keyBindings';
 import './skills.css';
@@ -20,6 +20,7 @@ import { nameOf } from '../../model/hero/bag';
 import { SMITH_RECIPES } from '../../model/skills/smithing';
 import { createSkillWindow } from './skillWindow';
 import { skillRuler } from './skillRuler';
+import { charmsTab } from './charmTab';
 
 // What the hero's at in a skill just now, if anything ("Chopping a pine · 2 chops left", "Mining iron · 3 strikes left", "Cooking Roast boar · 1 of 3").
 export function statusOf(model: GameModel, id: SkillId): string | null {
@@ -74,7 +75,7 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; window: Retur
     return el('div', 'skill-cards', ...group('main', 'Main skills'), ...group('secondary', 'Secondary skills'));
   };
 
-  const menu = createMenu({ title: 'Skills', toggleKey: () => keyOf('skills'), keyHints: false, modal: false, place: 'bottom-right', tabs: [{ name: 'Skills', header: cards }] });
+  const menu = createMenu({ title: 'Skills', toggleKey: () => keyOf('skills'), keyHints: false, modal: false, place: 'bottom-right', tabs: [{ name: 'Skills', header: cards }, charmsTab(model)] }); // (and the charms known: put back on the bar from there)
 
   // Kept up with while open: redrawn when a level moves, or what they're at changes; the skill's own window, its own way.
   let seen = '';
