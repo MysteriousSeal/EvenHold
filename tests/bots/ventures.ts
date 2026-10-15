@@ -195,7 +195,7 @@ export class BotVentures extends BotSteps {
       if (!shift) return 'fail';
       if (!model.work.shift) {
         // Over: paid all at once, just what it earned (and a clean shift's bonus).
-        const bonus = shift.walkedOut === 0 && shift.served > 0 ? BONUS * shift.served : 0;
+        const bonus = shift.walkedOut === 0 && shift.served > 0 ? Math.round(BONUS * shift.served * shift.rate) : 0; // (more at a higher rank, jobs/work.ts)
         if (hero.money !== money + shift.earned + bonus) this.report('shift paid wrong', `${hero.money - money} for ${shift.earned} earned and ${bonus} bonus`);
         this.stats.orders += shift.served;
         return 'ok';
