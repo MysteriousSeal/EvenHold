@@ -268,7 +268,8 @@ function serveTables(barkeep: Npc, orders: BarOrder[]): NpcStep[] {
 }
 
 // The server, the hero behind the bar (jobs/barShift.ts): a table's drinks taken up at the counter's end, carried to
-// it, and set down before them (`then`); the first of them in her hand on the way.
+// it, and set down before them (`then`); the first of them in her hand on the way. (Or whoever waits on the hero sat
+// at a table: their order carried to them, the barkeep too, `serving` the while: not to be called away.)
 export function serveTable(server: Npc, table: Furniture, drink: Drink, then: () => void, seed: number): void {
   const { room, furniture } = layoutOf(seed, server.home);
   const counter = furniture.find((f) => f.kind === 'counter');
@@ -281,9 +282,29 @@ export function serveTable(server: Npc, table: Furniture, drink: Drink, then: ()
     { kind: 'go', to: spot, faceToward: table },
     { kind: 'hand', then: () => ((server.carrying = false), then()) },
     { kind: 'wait', for: LINGER },
+    { kind: 'hand', then: () => (server.serving = false) },
   ];
-  Object.assign(server, { path: null, waited: 0, working: false });
+  Object.assign(server, { path: null, waited: 0, working: false, serving: true });
 }
+
+// The hero sat at `table`, calling for something: `waiter` (the server, else the barkeep) comes over to them, leaving
+// what she was at, and takes the order there (`taken`); then about her rounds again.
+export function comeToTable(waiter: Npc, table: Furniture, taken: () => void, seed: number): void {
+  const { room, furniture } = layoutOf(seed, waiter.home);
+  const spot = beside(table, furniture, room) ?? { x: waiter.x, z: waiter.z };
+  upFromHerChair(waiter);
+  waiter.steps = [
+    { kind: 'go', to: spot, faceToward: table },
+    { kind: 'wait', for: TAKE_ORDER / 2 },
+    { kind: 'hand', then: () => (waiter.serving = false) },
+    { kind: 'hand', then: taken }, // (her rounds next: the order in the queue, the barkeep's to pour)
+  ];
+  Object.assign(waiter, { path: null, waited: 0, working: false, carrying: false, serving: true });
+}
+
+// Where the orders for the tables are set down by the barkeep (the counter's end, where the server takes them up),
+// as a stool's row would be: half a tile short of its end.
+export const passStool = (counter: Furniture): Furniture => ({ ...counter, kind: 'barStool', z: counter.z + counter.d - 0.5 });
 
 // An ale for whoever's sat on `stool`, now, ahead of any queue (the barkeep
 // leaves what she was doing): `then` once it's handed over.

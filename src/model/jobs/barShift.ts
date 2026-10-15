@@ -340,7 +340,7 @@ export class BarShift extends Shift {
       case 'gather':
         if (action.z !== null) {
           const mug = takeMug(this.inn, action.z);
-          if (mug) this.held.push({ kind: 'empty', drink: mug.drink === 'wine' ? 'wine' : 'ale' });
+          if (mug && mug.drink !== 'pie') this.held.push({ kind: 'empty', drink: mug.drink }); // (a pie's plate: off to the kitchen, no cup of the bar's)
         } else for (const drink of this.passEmpties.splice(0, action.empties)) this.held.push({ kind: 'empty', drink });
         return 0;
       case 'pour':
@@ -370,7 +370,7 @@ export class BarShift extends Shift {
     const held = mine.sort((a, b) => GRADE_WORTH[b.grade] - GRADE_WORTH[a.grade])[0];
     this.held.splice(this.held.indexOf(held), 1);
     const left = takeMug(this.inn, want.order.stool.z); // (the cup before them: up, out of the way)
-    if (left && !left.full) this.held.push({ kind: 'empty', drink: left.drink === 'wine' ? 'wine' : 'ale' });
+    if (left && !left.full && left.drink !== 'pie') this.held.push({ kind: 'empty', drink: left.drink }); // (a plate: to the kitchen)
     const queue = ordersAt(this.inn);
     queue.splice(queue.indexOf(want.order), 1);
     this.wants.delete(want.order);
