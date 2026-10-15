@@ -117,6 +117,12 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   // Coal on the back wall, else the free spot nearest the forge.
   const nearForge = inside().sort(([ax, az], [bx, bz]) => (forge ? Math.hypot(ax - forge.x, az) - Math.hypot(bx - forge.x, bz) : 0));
   if (!place('coal', 1, 1, 'none', [[room.width - 1, 0], ...along(0)])) place('coal', 1, 1, 'none', nearForge, false);
+  // His bar stock stood in a corner (the back wall's, else along it, else the right wall's); the scrap heaped beside
+  // the salvage bench.
+  const corners: Array<[number, number]> = [[room.width - 1, 0], [0, 0], ...along(0).filter(([x]) => !byFire(x)), ...down(room.width - 1)];
+  place('barStock', 1, 1, 'back', corners, false);
+  const bench = items.find((f) => f.kind === 'salvageBench');
+  if (bench) place('scrapHeap', 1, 1, 'none', [[bench.x + 1, bench.z], [bench.x - 1, bench.z], [bench.x, bench.z - 1]], false);
   place('barrel', 1, 1, 'none', [[room.width - 1, room.depth - 1], [0, room.depth - 1], [room.width - 1, 0], ...down(room.width - 1).reverse()], false);
   // No floor walled in: a stand shutting a tile off from the door is taken
   // away; any other such tile (a corner, boxed in) gets a barrel, clutter
