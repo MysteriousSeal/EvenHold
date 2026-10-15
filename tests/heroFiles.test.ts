@@ -40,6 +40,12 @@ describe('a hero as a file', () => {
     expect('error' in readHeroFile(JSON.stringify(snapshot(model)))).toBe(false); // (a bare save, as the browser keeps it)
   });
 
+  it("is read back from a world of a negative seed (one a player can type)", () => {
+    const read = readHeroFile(heroFile({ ...snapshot(played()), seed: -4 }, '0.8.0').text);
+    if ('error' in read) throw new Error(read.error);
+    expect(read.seed).toBe(-4);
+  });
+
   it('refuses what is not one, saying why, and never throws', () => {
     const good = JSON.parse(heroFile(snapshot(played()), '0.8.0').text);
     const changed = (f: (file: any) => void) => {
@@ -51,7 +57,7 @@ describe('a hero as a file', () => {
       undefined, 42, '', 'x'.repeat(9 * 1024 * 1024), '{nope', '[]', 'null', '"text"',
       changed((f) => (f.save = [])),
       changed((f) => (f.save.seed = 'one')),
-      changed((f) => (f.save.seed = -4)),
+      changed((f) => (f.save.seed = 2 ** 31)), // (past any seed a world's made of)
       changed((f) => (f.save.seed = 1.5)),
       changed((f) => (f.save.size = { width: 1e9, depth: 1e9 })),
       changed((f) => (f.save.size = { width: 0, depth: 96 })),

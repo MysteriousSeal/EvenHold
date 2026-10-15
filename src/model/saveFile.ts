@@ -6,6 +6,7 @@
 
 import { parseSave, type SaveData } from './save';
 import { STREAMED_SIZE } from './worldgen/regions';
+import { isSeed } from '../util/seed';
 
 export const HERO_FILE = 'evenhold-hero'; // the wrapper's word for what it is
 export const FILE_MOST = 8 * 1024 * 1024; // characters: no save comes near it
@@ -36,7 +37,7 @@ export function readHeroFile(text: unknown): ReadHero {
   const save = (wrapper.kind === HERO_FILE ? wrapper.save : wrapper) as Record<string, unknown> | undefined; // (a bare save, as the browser keeps it, taken too)
   if (!save || typeof save !== 'object' || Array.isArray(save)) return { error: "That isn't an EvenHold hero file." };
   const seed = save.seed;
-  if (typeof seed !== 'number' || !Number.isSafeInteger(seed) || seed < 0) return { error: "That hero's world can't be found (its seed is broken)." };
+  if (!isSeed(seed)) return { error: "That hero's world can't be found (its seed is broken)." };
   const size = save.size as Record<string, unknown> | undefined;
   const side = (n: unknown) => Number.isInteger(n) && (n as number) >= SIDE.least && (n as number) <= SIDE.most;
   if (size !== undefined && (!size || typeof size !== 'object' || !side(size.width) || !side(size.depth))) return { error: "That hero's world is no size the game can make." };

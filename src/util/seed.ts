@@ -20,8 +20,10 @@ const SEED_MAX = 2 ** 31 - 1;
 function plainSeed(text: string): number | null {
   if (!/^[+-]?\d+$/.test(text)) return null;
   const n = Number(text);
-  return n >= SEED_MIN && n <= SEED_MAX ? n || 0 : null;
+  return isSeed(n) ? n || 0 : null;
 }
+// Whether `n` is a seed a world can be of (plainSeed's: a hero file's, from a world of a negative one too).
+export const isSeed = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= SEED_MIN && (n as number) <= SEED_MAX;
 
 // The world being played in this tab, kept for it alone (sessionStorage): a reload goes back into it; the main
 // menu forgets it. Storage unavailable: none kept.
