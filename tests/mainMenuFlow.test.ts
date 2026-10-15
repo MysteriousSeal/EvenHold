@@ -109,10 +109,16 @@ describe('the main menu: the roster', () => {
     expect(document.querySelector('.gilded-head small')?.textContent).toBe(`2 / ${MAX_WORLDS}`);
   });
 
-  it('a slot for every place left: all of them with no hero, none when full', () => {
+  it('one slot for a new hero while there is room: no roster at all with no hero, none when full', () => {
     void showMainMenu(hooks);
-    expect(document.querySelectorAll('.title-slot')).toHaveLength(MAX_WORLDS);
+    expect(document.querySelector('.title-list')).toBeNull(); // (Create Hero alone)
     expect(button('Create Hero')).toBeDefined();
+    document.body.innerHTML = '<div id="loading" class="title"><h1>EvenHold</h1></div>';
+    keep(100, 'Ann', 1);
+    void showMainMenu(hooks);
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
+    expect(document.querySelector('.title-slot b')?.textContent).toBe('New hero');
+    localStorage.clear();
     document.body.innerHTML = '<div id="loading" class="title"><h1>EvenHold</h1></div>';
     for (let i = 0; i < MAX_WORLDS; i++) keep(100 + i, `Hero${i}`, i);
     void showMainMenu(hooks);
@@ -163,7 +169,7 @@ describe('the main menu: letting a hero go', () => {
     button('Forget Cuth?')!.click();
     expect(names()).toEqual(['Ann', 'Bede']);
     expect(chosen()).toBe('Ann');
-    expect(document.querySelectorAll('.title-slot')).toHaveLength(MAX_WORLDS - 2);
+    expect(document.querySelectorAll('.title-slot')).toHaveLength(1);
   });
 
   it('the last one let go: the empty roster, Create Hero, no Delete', () => {
@@ -171,7 +177,7 @@ describe('the main menu: letting a hero go', () => {
     void showMainMenu(hooks);
     button('Delete hero')!.click();
     button('Forget Ann?')!.click();
-    expect(cards()).toHaveLength(0);
+    expect(document.querySelector('.title-list')).toBeNull();
     expect(document.querySelector('.title-enter')?.textContent).toBe('Create Hero');
     expect(button('Delete hero')).toBeUndefined();
     expect(localStorage.getItem('evenhold.save.1')).toBeNull();

@@ -188,7 +188,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
           stage.append(figure, el('div', 'title-hero-name', hero.name), el('div', 'title-hero-line', `Level ${hero.level} · day ${hero.day}`));
         } else if (!hero) stage.append(el('div', 'title-hero-line', 'No hero yet: create one to begin.'));
         // The roster: each hero (their bust, name, day and world, their level on a shield), the chosen one gilded;
-        // then a slot for each place left (a new hero), eight in all.
+        // then one slot for a new hero while there's room (none at all with no hero: Create Hero says it).
         const list = el('div', 'title-list gilded');
         const head = el('div', 'gilded-head');
         head.append(el('span', '', 'Your heroes'), el('small', '', `${worlds.length} / ${MAX_WORLDS}`));
@@ -205,10 +205,10 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
           card.addEventListener('dblclick', () => play(w.seed));
           list.append(card);
         });
-        for (let i = worlds.length; i < MAX_WORLDS; i++) {
+        if (worlds.length < MAX_WORLDS) {
           const slot = el('button', 'title-slot');
           const who = el('span', 'title-who');
-          who.append(el('b', '', 'Empty slot'), el('small', '', 'Create a new hero'));
+          who.append(el('b', '', 'New hero'), el('small', '', 'Begin another tale'));
           slot.append(el('span', 'title-portrait', '+'), who);
           slot.addEventListener('click', () => go('create'));
           list.append(slot);
@@ -229,7 +229,7 @@ export function showMainMenu(hooks: MainMenuHooks, saying = oneOf(SAYINGS, Math.
             }),
           );
         }
-        screen.replaceChildren(stage, enter, list, left, right);
+        screen.replaceChildren(stage, enter, ...(worlds.length ? [list] : []), left, right);
         enter.focus();
         return;
       }
