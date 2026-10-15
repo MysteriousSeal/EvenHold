@@ -29,18 +29,18 @@ const MEAL_TABLE = {
   fishStew: { name: "Fisherman's stew", value: 22, heal: 0.5, fed: { kind: 'fed', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Trout and perch in a salty broth, as the boatmen make it.' },
   honeyBear: { name: 'Honey-glazed bear', value: 30, heal: 0.6, fed: { kind: 'fed', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Bear meat glazed with the honey it was after, sticky and sweet.' },
   // An expert's: pike over any fire; pies and a honey cake at a hearth, Fortified after.
-  roastPike: { name: 'Roast pike', value: 30, heal: 0.7, fed: SNACK, droppedBy: {}, about: 'A long fish, long roasted, its flesh white and firm.' },
-  huntersPie: { name: "Hunter's pie", value: 38, heal: 0.5, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Boar and lynx under a thick crust. Sits in you like a stone, in a good way.' },
-  graylingPie: { name: 'Grayling pie', value: 32, heal: 0.55, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Grayling, smelling of thyme as they do, under a salted crust.' },
-  searedChar: { name: 'Seared char', value: 28, heal: 0.65, fed: SNACK, droppedBy: {}, about: 'Its pink flesh seared quick on a hot stone.' },
-  pikePie: { name: 'Pike pie', value: 44, heal: 0.6, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Flaked pike baked in pastry, the old river folk dish.' },
-  honeyCake: { name: 'Honey cake', value: 40, heal: 0.25, energy: 0.5, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Dense, golden and dripping. One slice and you could walk all day.' },
+  roastPike: { name: 'Roast pike', value: 24, heal: 0.7, fed: SNACK, droppedBy: {}, about: 'A long fish, long roasted, its flesh white and firm.' },
+  huntersPie: { name: "Hunter's pie", value: 30, heal: 0.5, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Boar and lynx under a thick crust. Sits in you like a stone, in a good way.' },
+  graylingPie: { name: 'Grayling pie', value: 26, heal: 0.55, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Grayling, smelling of thyme as they do, under a salted crust.' },
+  searedChar: { name: 'Seared char', value: 22, heal: 0.65, fed: SNACK, droppedBy: {}, about: 'Its pink flesh seared quick on a hot stone.' },
+  pikePie: { name: 'Pike pie', value: 34, heal: 0.6, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Flaked pike baked in pastry, the old river folk dish.' },
+  honeyCake: { name: 'Honey cake', value: 32, heal: 0.25, energy: 0.5, fed: { kind: 'fortified', seconds: 20 * MINUTES }, droppedBy: {}, about: 'Dense, golden and dripping. One slice and you could walk all day.' },
   // An artisan's: feasts at a hearth, before a hard fight, Feasted after.
-  huntersFeast: { name: "Hunter's feast", value: 80, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'A board heaped with every beast of the wild, roasted. Enough for a war band.' },
-  riverFeast: { name: 'River feast', value: 90, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every fish of the river on one platter, with fresh bread to mop it up.' },
-  smokedSturgeon: { name: 'Smoked sturgeon', value: 36, heal: 0.8, fed: { kind: 'fed', seconds: 20 * MINUTES }, droppedBy: {}, about: 'A side of the great fish, smoked through and carved thin.' },
-  anglersFeast: { name: "Angler's feast", value: 92, heal: 1, energy: 0.3, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every great fish of the deep and the narrows on one board, and bread for it.' },
-  lordsFeast: { name: "Lord's feast", value: 110, heal: 1, energy: 0.5, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Bear roasted whole in honey, and the bread to go with it. Fit for a lord.' },
+  huntersFeast: { name: "Hunter's feast", value: 60, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'A board heaped with every beast of the wild, roasted. Enough for a war band.' },
+  riverFeast: { name: 'River feast', value: 70, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every fish of the river on one platter, with fresh bread to mop it up.' },
+  smokedSturgeon: { name: 'Smoked sturgeon', value: 28, heal: 0.8, fed: { kind: 'fed', seconds: 20 * MINUTES }, droppedBy: {}, about: 'A side of the great fish, smoked through and carved thin.' },
+  anglersFeast: { name: "Angler's feast", value: 70, heal: 1, energy: 0.3, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every great fish of the deep and the narrows on one board, and bread for it.' },
+  lordsFeast: { name: "Lord's feast", value: 90, heal: 1, energy: 0.5, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Bear roasted whole in honey, and the bread to go with it. Fit for a lord.' },
 } satisfies Record<string, Provision>;
 
 export type MealId = keyof typeof MEAL_TABLE;

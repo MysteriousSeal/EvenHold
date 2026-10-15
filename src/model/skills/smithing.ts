@@ -1,7 +1,7 @@
 // Smithing (skills.ts): metal worked at a smithy's anvil (smithy/smithyLayout.ts: E before it opens the recipes), as
 // woodworking's wood is (woodworking.ts): a recipe picked, made one at a time (a few seconds each, a bar filling;
 // walking off, or from the anvil, stops it), as many as asked or the bag allows, each taking its materials and putting
-// what it makes in the bag. Ore a miner digs (skills/mining.ts) smelted two to an ingot, as its veins are reached (copper
+// what it makes in the bag. Ore a miner digs (skills/mining.ts) smelted an ingot of each, as its veins are reached (copper
 // and tin for bronze, iron, silver, gold, star-iron; and the salvage bench's scrap, three, before them; a tempered
 // ingot is steel already); ingots beaten into fittings (rivets, nails, bands; silver and gilded ones) for a
 // woodworker's banded pieces and the smith's own, picks for the miner, and the smith's own wares, as gear at a level and
@@ -42,7 +42,7 @@ const gear = (item: ItemId, level: number, rarity: Rarity = 'common') => ({ item
 
 // The recipes, in the order of the skill they want.
 export const SMITH_RECIPES = {
-  copperIngot: { name: 'Copper ingot', group: 'Smelting', needs: 1, from: { copperOre: 2 }, makes: 'copperIngot', seconds: 3 },
+  copperIngot: { name: 'Copper ingot', group: 'Smelting', needs: 1, from: { copperOre: 1 }, makes: 'copperIngot', seconds: 3 },
   scrapIron: { name: 'Iron ingot, of scrap', group: 'Smelting', needs: 1, from: { ironScrap: 3 }, makes: 'ironIngot', seconds: 3.5 }, // (the salvage bench's, before a miner's reaches iron)
   copperRivets: { name: 'Copper rivets', group: 'Fittings', needs: 10, from: { copperIngot: 1 }, makes: 'copperRivets', seconds: 3 },
   copperPick: { name: 'Copper pickaxe', group: 'Tools', needs: 15, from: { copperIngot: 2, birchPlank: 1 }, makes: 'copperPick', seconds: 4 },
@@ -58,28 +58,28 @@ export const SMITH_RECIPES = {
   ironBands: { name: 'Iron bands', group: 'Fittings', needs: 75, from: { ironIngot: 1, ironNails: 1 }, makes: 'ironBands', seconds: 3.5 },
   mailMittens: { name: 'Mail mittens', group: 'Armour', needs: 80, from: { ironIngot: 2, copperRivets: 2 }, makes: gear('mailMittens', 11), seconds: 5 },
   ironPick: { name: 'Iron pickaxe', group: 'Tools', needs: 85, from: { ironIngot: 2, pinePlank: 1 }, makes: 'ironPick', seconds: 5 },
-  ironIngot: { name: 'Iron ingot', group: 'Smelting', needs: 90, from: { ironOre: 2 }, makes: 'ironIngot', seconds: 3 },
+  ironIngot: { name: 'Iron ingot', group: 'Smelting', needs: 90, from: { ironOre: 1 }, makes: 'ironIngot', seconds: 3 },
   mace: { name: 'Mace', group: 'Weapons', needs: 95, from: { ironIngot: 3 }, makes: gear('mace', 12), seconds: 5.5 },
   filingsSilver: { name: 'Silver ingot, of filings', group: 'Smelting', needs: 100, from: { silverFilings: 3 }, makes: 'silverIngot', seconds: 3.5 }, // (the salvage bench's, before a miner's reaches silver)
   mailCoif: { name: 'Mail coif', group: 'Armour', needs: 110, from: { ironIngot: 3, copperRivets: 2 }, makes: gear('mailCoif', 14), seconds: 5.5 },
   silverFittings: { name: 'Silver fittings', group: 'Fittings', needs: 120, from: { silverIngot: 1 }, makes: 'silverFittings', seconds: 3.5 },
   silverRing: { name: 'Silver ring', group: 'Trinkets', needs: 125, from: { silverIngot: 1, silverFittings: 1 }, makes: gear('silverRing', 14), seconds: 4.5 },
   armingSword: { name: 'Arming sword', group: 'Weapons', needs: 130, from: { ironIngot: 3, leatherStrip: 1 }, makes: gear('armingSword', 15), seconds: 6 },
-  silverIngot: { name: 'Silver ingot', group: 'Smelting', needs: 140, from: { silverOre: 2 }, makes: 'silverIngot', seconds: 3.5 },
+  silverIngot: { name: 'Silver ingot', group: 'Smelting', needs: 140, from: { silverOre: 1 }, makes: 'silverIngot', seconds: 3.5 },
   chainMail: { name: 'Chain mail', group: 'Armour', needs: 145, from: { ironIngot: 5, copperRivets: 3 }, makes: gear('chainMail', 17), seconds: 7 },
   steelIngot: { name: 'Steel ingot', group: 'Smelting', needs: 150, from: { ironIngot: 3 }, makes: 'steelIngot', seconds: 4 },
   temperedSteel: { name: 'Steel ingot, of a tempered one', group: 'Smelting', needs: 150, from: { temperedIngot: 1 }, makes: 'steelIngot', seconds: 3 },
   steelPick: { name: 'Steel pickaxe', group: 'Tools', needs: 160, from: { steelIngot: 2, oakPlank: 1 }, makes: 'steelPick', seconds: 5.5 },
   gauntlets: { name: 'Gauntlets', group: 'Armour', needs: 170, from: { steelIngot: 2, leatherStrip: 1 }, makes: gear('gauntlets', 20), seconds: 6 },
   warHammer: { name: 'War hammer', group: 'Weapons', needs: 185, from: { steelIngot: 3, oakPlank: 1 }, makes: gear('warHammer', 22, 'uncommon'), seconds: 6.5 },
-  goldIngot: { name: 'Gold ingot', group: 'Smelting', needs: 190, from: { goldOre: 2 }, makes: 'goldIngot', seconds: 4 },
+  goldIngot: { name: 'Gold ingot', group: 'Smelting', needs: 190, from: { goldOre: 1 }, makes: 'goldIngot', seconds: 4 },
   goldRing: { name: 'Gold ring', group: 'Trinkets', needs: 195, from: { goldIngot: 1 }, makes: gear('goldRing', 21, 'uncommon'), seconds: 5 },
   bascinet: { name: 'Bascinet', group: 'Armour', needs: 200, from: { steelIngot: 3, ironBands: 1 }, makes: gear('bascinet', 23, 'uncommon'), seconds: 6.5 },
   gildedFittings: { name: 'Gilded fittings', group: 'Fittings', needs: 210, from: { goldIngot: 1, silverIngot: 1 }, makes: 'gildedFittings', seconds: 4.5 },
   breastplate: { name: 'Breastplate', group: 'Armour', needs: 215, from: { steelIngot: 5, leatherStrip: 2 }, makes: gear('breastplate', 25, 'uncommon'), seconds: 7.5 },
   goldChain: { name: 'Gold chain', group: 'Trinkets', needs: 230, from: { goldIngot: 2, gildedFittings: 1 }, makes: gear('goldChain', 26, 'uncommon'), seconds: 6 },
   greatHelm: { name: 'Great helm', group: 'Armour', needs: 235, from: { steelIngot: 4, ironBands: 1 }, makes: gear('greatHelm', 27, 'uncommon'), seconds: 7 },
-  starIronIngot: { name: 'Star-iron ingot', group: 'Smelting', needs: 240, from: { starIronOre: 2 }, makes: 'starIronIngot', seconds: 5 },
+  starIronIngot: { name: 'Star-iron ingot', group: 'Smelting', needs: 240, from: { starIronOre: 1 }, makes: 'starIronIngot', seconds: 5 },
   plateGreaves: { name: 'Plate greaves', group: 'Armour', needs: 245, from: { steelIngot: 4, gildedFittings: 1 }, makes: gear('plateGreaves', 28, 'uncommon'), seconds: 7 },
   starIronPick: { name: 'Star-iron pickaxe', group: 'Tools', needs: 250, from: { starIronIngot: 2, oakPlank: 1 }, makes: 'starIronPick', seconds: 6 },
   signetRing: { name: 'Signet ring', group: 'Trinkets', needs: 255, from: { goldIngot: 1, gildedFittings: 1, gemShard: 1 }, makes: gear('signetRing', 28, 'uncommon'), seconds: 6 },
