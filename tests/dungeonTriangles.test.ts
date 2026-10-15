@@ -10,6 +10,7 @@ import type { Entrance } from '../src/model/interiors/interiors';
 import { TEST_MAP_SIZE, TEST_SEEDS, regionCrypt } from './support/testWorld';
 import { greedyMesh } from '../src/view/meshes/voxel/greedyMesh';
 import { seenFaces } from '../src/view/dungeon/dungeonScene';
+import { registerReliquary } from '../src/model/reliquary/reliquary';
 
 const nothing: unknown = new Proxy(() => nothing, { get: (_t, key) => (key === 'measureText' ? () => ({ width: 10, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }) : nothing), set: () => true, apply: () => nothing });
 HTMLCanvasElement.prototype.getContext = (() => nothing) as unknown as HTMLCanvasElement['getContext'];
@@ -52,6 +53,16 @@ describe("a dungeon's cost to draw", () => {
     expect(costs.crypt.calls).toBeLessThanOrEqual(68);
     expect(costs.cave.calls).toBeLessThanOrEqual(61);
     expect(costs.stronghold.calls).toBeLessThanOrEqual(82);
+  });
+
+  it('stays within its budget in the reliquary under the cathedral, its walls lined with bone', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const entrance: Entrance = { type: 'reliquary', x: model.hero.x, z: model.hero.z + 0.3, outX: 0, outZ: 1 };
+    registerReliquary(entrance, { x: 0, z: 0 });
+    model.entrances.push(entrance);
+    const reliquary = inside(model, entrance);
+    expect(reliquary.triangles).toBeLessThan(800_000); // (659K, in 49 calls)
+    expect(reliquary.calls).toBeLessThanOrEqual(52);
   });
 
   it('draws only the faces the camera can see (it looks down from +x +z), turned as a piece is', () => {
