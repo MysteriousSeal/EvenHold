@@ -1,7 +1,7 @@
 // The first hour's tips: a line or two, once each, the moment each thing first matters (no wall of words at the
 // start): hurt, with nothing that heals on its own; tired, and what brings energy back; out of breath in a fight; a
 // foe closing in, and the guard; a piece badly worn, and the smith; knocked down, and waking at the inn; food in the
-// bag; the bag full; the first inn, its bar and its beds; the first smithy, and the trades. Which have been shown,
+// bag; the bag full; the first inn, its bar and its beds; the first smithy, and the trades; an empty cottage; a trophy. Which have been shown,
 // and whether they're wanted at all (the pause menu's Tips switch), kept in the browser.
 // (The carter's first quests teach the same in passing: model/story/quests/firstQuests.ts.)
 
@@ -16,6 +16,8 @@ import { isProvision } from '../../model/loot/provisions';
 import { gearName, isGear } from '../../model/human/items/gear';
 import { SKILL_IDS } from '../../model/skills/skills';
 import type { KeyAction } from '../keyBindings';
+import { COTTAGE_PRICE, QUESTS_KNOWN, isCottage } from '../../model/homestead/cottage';
+import { COPPER_PER_SILVER } from '../../model/hero/money';
 
 export interface Tip {
   id: string;
@@ -90,6 +92,18 @@ export const TIPS: readonly Tip[] = [
     title: 'Trades',
     due: (m) => m.inside?.entrance.type === 'smithy',
     text: (key) => `The smith sells, buys and mends. His anvil and the salvage bench are yours too: one of ${SKILL_IDS.length} trades (${key('skills')}).`,
+  },
+  {
+    id: 'cottage',
+    title: 'An empty cottage',
+    due: (m) => !!m.inside && !m.inside.below && isCottage(m.inside.entrance) && !m.hero.cottage,
+    text: () => `Yours for ${COTTAGE_PRICE / COPPER_PER_SILVER} silver once the village knows you (${QUESTS_KNOWN} of its board's quests done). Then build in it: a bed, a chest, a hearth, a trophy wall.`,
+  },
+  {
+    id: 'trophy',
+    title: 'A trophy',
+    due: (m) => Object.keys(m.hero.trophies ?? {}).length > 0,
+    text: () => 'Bosses, captains and bounties each leave you a trophy. Hang them on the trophy wall of a cottage of your own.',
   },
 ];
 
