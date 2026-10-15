@@ -49,16 +49,17 @@ const LOOKS: Record<WeatherKind, Look> = {
 
 // Each season's odds of each weather.
 const ODDS: Record<Season, Partial<Record<WeatherKind, number>>> = {
-  spring: { clear: 3, overcast: 2, rain: 3, fog: 1, windy: 1 },
-  summer: { clear: 6, overcast: 1, rain: 1, fog: 0.5, windy: 1 },
-  autumn: { clear: 2, overcast: 3, rain: 3, fog: 2, windy: 2 },
-  winter: { clear: 2, overcast: 3, snow: 3, fog: 2, windy: 1, rain: 0.5 },
+  spring: { clear: 45, overcast: 20, windy: 12, rain: 17, fog: 6 },
+  summer: { clear: 55, overcast: 18, windy: 12, rain: 12, fog: 3 },
+  autumn: { clear: 30, overcast: 25, windy: 8, rain: 25, fog: 12 },
+  winter: { clear: 30, overcast: 25, windy: 5, snow: 25, fog: 12, rain: 3 },
 };
 
 // How misty each season's mornings are, at the most.
 const MORNING_MIST: Record<Season, number> = { spring: 0.5, summer: 0.3, autumn: 0.7, winter: 0.5 };
 
-const PREVAILING = Math.atan2(0.6, 1); // the wind's usual way (the plants' old one: meshes/common/wind.ts)
+const PREVAILING = Math.atan2(-0.6, 1); // the wind's usual way: across the screen (smoke folds into its own column blown down it)
+const VEERS = 1.2; // how far it may turn from that, a spell to the next (radians, all told)
 
 const smooth = (a: number, b: number, x: number): number => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -70,7 +71,7 @@ function spell(seed: number, n: number): { kind: WeatherKind; angle: number } {
   const odds = Object.entries(ODDS[seasonAt(n * WEATHER_HOURS * 60)]) as [WeatherKind, number][];
   let roll = hashUnit(n, seed, 0x5e7) * odds.reduce((sum, [, w]) => sum + w, 0);
   const kind = odds.find(([, w]) => (roll -= w) < 0)?.[0] ?? 'clear';
-  return { kind, angle: PREVAILING + (hashUnit(n, seed, 0x3d1) - 0.5) * 2 };
+  return { kind, angle: PREVAILING + (hashUnit(n, seed, 0x3d1) - 0.5) * VEERS };
 }
 
 // The weather at `minutes` in the world of `seed`.
@@ -96,10 +97,11 @@ function gustAt(seed: number, minutes: number): number {
   return Math.max(0, wave) ** 2;
 }
 
-// The daylight at `minutes`: the days longest in summer (16 hours), shortest in winter (10), noon at one.
+// The daylight at `minutes`: the days longest at midsummer (16 hours: summer's start), shortest at midwinter (10:
+// winter's), spring's and autumn's first days thirteen hours long (the sun up by half past six); noon at one.
 export function daylightAt(minutes: number): Daylight {
   const hour = hourAt(minutes);
-  const length = 13 + 3 * Math.cos(((yearAt(minutes) - 1.5) / 4) * Math.PI * 2);
+  const length = 13 + 3 * Math.cos(((yearAt(minutes) - 1) / 4) * Math.PI * 2);
   const [rise, set] = [NOON - length / 2, NOON + length / 2];
   // Through the day, the arc's sine; through the night, a dip below the horizon to midnight's lowest.
   const up = hour >= rise && hour <= set;
