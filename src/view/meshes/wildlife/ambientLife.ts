@@ -15,6 +15,7 @@
 // weather has its say (common/weatherNow.ts): in the rain the birds and the
 // butterflies are under cover, and the frogs out, day or night.
 
+import { createBiomes } from '../../../model/scenery/biomes';
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import { LIFE_CELL, lifeIn, lifeOut, perchesOn, type LifeKind, type LifeSpot, type LifeWorld } from '../../../model/scenery/ambientSpots';
@@ -60,7 +61,7 @@ export class AmbientLife {
   private readonly color = new THREE.Color();
   private fields: { of: number; by: Map<string, Field[]> } = { of: -1, by: new Map() }; // the fields by patch (their perched birds')
   private readonly moment: Moment;
-  private readonly life: LifeWorld; // where the life's placed (its `biomes`, what country each tile is: flora's createBiomes(seed, tiles), model/scenery/biomes.ts, once it's here)
+  private readonly life: LifeWorld; // where the life's placed (its `biomes`, what country each tile is: model/scenery/biomes.ts)
   private readonly livestock: LivestockViews;
   private readonly smoke: HouseSmoke;
   private time = 0;
@@ -95,7 +96,7 @@ export class AmbientLife {
       heron: mesh(heronGrid(), HERON_PALETTE, lit, MOST.heron),
       splash: mesh(splashGrid(), [0xffffff], foam, MOST.splash),
     };
-    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z) };
+    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z), biomes: createBiomes(model.seed, model.tiles) };
     this.livestock = new LivestockViews(scene, model);
     this.smoke = new HouseSmoke(scene, model);
     this.moment = { time: 0, dt: 0, hour: 0, hero: { x: 0, z: 0 }, ground: (x, z) => model.getGroundY(x, z), matrix: new THREE.Matrix4(), splash: (x, z, age) => this.splash(x, z, age) };
