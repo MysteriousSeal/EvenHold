@@ -9,6 +9,7 @@
 // 0..depth-1 along z, the door in the +Z wall, facing the camera.
 
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
+import { isWitchHome } from '../witch/witchHomes';
 import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Building, House } from '../types';
 
@@ -68,6 +69,7 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
 };
 // A herbalist's house (herbalist/herbalistHomes.ts): shop, workroom and home, just big enough for all their pieces,
 // each reachable (herbalistLayout.ts; tests/herbalistInside.test.ts tries every door): no emptier.
+// A hedge-witch's (witch/witchHomes.ts) the same: her pieces are a herbalist's, but for the shelf of potions.
 const HERBALIST_SIZE = { width: [7, 7] as [number, number], depth: [6, 6] as [number, number] };
 const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
 // (The inn's limewashed always: its darker floor and pools of light read against pale walls. Two of them, so a room's
@@ -81,7 +83,7 @@ export function roomFor(seed: number, entrance: Entrance): Room {
   const roll = ([lo, hi]: [number, number]) => lo + Math.floor(rng() * (hi - lo + 1));
   const pick = <T>(options: T[]) => oneOf(options, rng());
   const type = entrance.type as BuildingType;
-  const size = type === 'house' && isHerbalistHome(entrance) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom)
+  const size = type === 'house' && (isHerbalistHome(entrance) || isWitchHome(entrance)) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom; a hedge-witch's, as much for hers)
   const width = roll(size.width);
   const depth = roll(size.depth);
   const middle = Math.floor(width / 2);

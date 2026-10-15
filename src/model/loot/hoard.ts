@@ -6,19 +6,22 @@
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { foundAt, rollGear, type GearKey } from '../human/items/gear';
 import type { EnemyKind } from '../types';
-import { hashCell, mulberry32, oneOf } from '../../util/random';
+import { hashCell, hashUnit, mulberry32, oneOf } from '../../util/random';
+import { charmIn, type ScrollId } from './scrolls';
 import { favouredBy, weighted } from './gearDrops';
 
 export interface Hoard {
   item: GearKey;
   coins: number;
+  charm?: ScrollId;
 }
 
-export function rollHoard(x: number, z: number, salt: number, level: number, { worth, base, spread, keeper }: { worth: number; base: number; spread: number; keeper?: EnemyKind }): Hoard {
+export function rollHoard(x: number, z: number, salt: number, level: number, { worth, base, spread, keeper, dark }: { worth: number; base: number; spread: number; keeper?: EnemyKind; dark?: boolean }): Hoard {
   const rng = mulberry32(hashCell(x, z, salt));
   const kept = (id: ItemId) => !ITEMS[id].set || (!!keeper && !!ITEMS[id].droppedBy?.[keeper]); // (a set's pieces only in its own keepers' chests)
   const fine = ITEM_IDS.filter((id) => (ITEMS[id].value ?? 0) >= worth && foundAt(id, level) && kept(id));
   const own = keeper ? favouredBy(keeper, level).filter(([id]) => (ITEMS[id].value ?? 0) >= worth) : []; // (worth the chest as well)
   const [item, coins] = [oneOf(fine, rng()), base * level + Math.floor(rng() * spread * level)];
-  return { item: rollGear(own.length && rng() < 0.5 ? weighted(own, rng()) : item, level, rng, 2, 'rare'), coins };
+  const charm = dark ? charmIn(hashUnit(x, z, salt + 31), hashUnit(x, z, salt + 37)) : null;
+  return { item: rollGear(own.length && rng() < 0.5 ? weighted(own, rng()) : item, level, rng, 2, 'rare'), coins, ...(charm && { charm }) };
 }

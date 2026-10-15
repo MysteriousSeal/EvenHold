@@ -19,6 +19,9 @@ import { BAG_GROUPS, groupOf, isLootItem, kindOf, potionRefused, type BagItem } 
 import { bagStacks, moveSlot, sortedBag } from '../../model/hero/bagStacks';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, roomOf, type BagId } from '../../model/loot/bags';
+import { SCROLL_ABOUT, SCROLL_SPELL, isScroll } from '../../model/loot/scrolls';
+import { readScroll } from '../../model/spells/charmLore';
+import { SPELLS, knows, spellText } from '../../model/spells/spells';
 import { SLOT_NAMES } from '../../model/human/equipment';
 import { canWear, gearName, rarityOf, slotOfGear, type GearKey } from '../../model/human/items/gear';
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
@@ -82,14 +85,18 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
         ? [toned('kind', kindOf(item)), toned('stat', givesText(item)), toned('hint', `Right-click to ${PROVISIONS[item].drink ? 'drink' : 'eat'} it, or drag it onto the action bar`)]
         : isBagItem(item)
           ? [toned('kind', kindOf(item)), toned('stat', `+${roomOf(item)} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
-          : [toned('kind', kindOf(item))],
+          : isScroll(item)
+            ? [toned('kind', kindOf(item)), toned('stat', `${SPELLS[SCROLL_SPELL[item]].name}: ${spellText(SCROLL_SPELL[item])}`), toned('flavor', SCROLL_ABOUT[item]), toned('hint', knows(model.hero, SCROLL_SPELL[item]) ? 'You know this charm already' : 'Right-click to read it and learn the charm')]
+            : [toned('kind', kindOf(item))],
       alt: isPotion(item)
         ? () => (potionRefused(model.hero, item) ?? (model.drinkPotion(item) ? `You drink the ${LOOT[item].name}.` : ''))
         : isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : model.hero.eating ? 'Finish what you have first.' : '')
         : isBagItem(item)
           ? () => (fitBag(model.hero, item) ? `The ${LOOT[item].name} is fitted: ${roomOf(item)} more slots.` : 'Every bag socket is taken.')
-          : undefined,
+          : isScroll(item)
+            ? () => readScroll(model.hero, item) ?? ''
+            : undefined,
       dragOut: (over) => {
         const action = over?.closest<HTMLElement>('.action-slot'); // onto the action bar: food or drink there, a shortcut to it
         if (action) setAction(model.hero, Number(action.dataset.slot), item);

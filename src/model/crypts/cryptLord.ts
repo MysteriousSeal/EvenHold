@@ -59,7 +59,7 @@ export function lordSpot(inside: CryptInside): { x: number; z: number } {
 
 // What his chest holds: a fine piece of gear (of what's worth the most, picked by the crypt), and coins.
 export const chestHoard = (inside: CryptInside, seed: number): Hoard =>
-  rollHoard(inside.crypt.ruin.x, inside.crypt.ruin.z, seed + 9091, inside.crypt.level, { worth: 100, base: 60, spread: 40, keeper: 'cryptLord' });
+  rollHoard(inside.crypt.ruin.x, inside.crypt.ruin.z, seed + 9091, inside.crypt.level, { worth: 100, base: 60, spread: 40, keeper: 'cryptLord', dark: true });
 
 // His slam, for a crypt's foes to do (toldMoves.ts): round where he stands, never lost to a blow.
 export const SLAM: ToldMove = {

@@ -19,6 +19,9 @@ import { voxelIndex, type VoxelGrid } from '../voxel/greedyMesh';
 import { C } from '../building/housePalette';
 import { HOUSE_LAYOUTS, HOUSE_VOXEL_SIZE, buildHouseVoxels } from '../building/houseVoxels';
 import { buildHermitHut } from '../building/herbalistHouse';
+import { buildWitchHut } from '../building/witchHouse';
+import { isWitchHome } from '../../../model/witch/witchHomes';
+import type { Entrance } from '../../../model/interiors/interiors';
 import { buildInnVoxels } from '../building/innVoxels';
 import { SMITHY_GRID, SMITHY_SMOKE_ORIGIN } from '../building/smithyVoxels';
 import { looks } from '../building/houseMesh';
@@ -34,6 +37,8 @@ const LIT = 0.75; // of the houses with their hearth lit
 const HEARTH = { lifetime: 4, draft: { rise: 1.8, lean: 1.6, size: 0.35 } as Draft, fresh: new THREE.Color(0xe8e4dc), thin: new THREE.Color(0xc8c4bc) };
 // A herbalist's: as a hearth's, but tinged green-grey, off whatever's on the boil (a cue to their hut from afar).
 const HERBS = { ...HEARTH, fresh: new THREE.Color(0xc8d4bc), thin: new THREE.Color(0xa8b4a0) };
+// A hedge-witch's: darker, a bruised violet-grey, and always lit (whatever she's boiling, she's always boiling it).
+const WITCH = { ...HEARTH, fresh: new THREE.Color(0x8a7a92), thin: new THREE.Color(0xa49aac) };
 const FORGE = { lifetime: 3.2, draft: { rise: 1.4, lean: 1.2, size: 0.3 } as Draft, fresh: new THREE.Color(0x6a6560), thin: new THREE.Color(0xc8c4bc) };
 const MOONLIT = new THREE.Color(0x9aa0b0); // (at night: still to be seen against the moonlit land)
 const FORGE_MOUTH = new THREE.Vector3(SMITHY_SMOKE_ORIGIN[0] + 0.5, SMITHY_SMOKE_ORIGIN[1] + 1, SMITHY_SMOKE_ORIGIN[2] + 0.5).multiplyScalar(HOUSE_VOXEL_SIZE).add(originOf(SMITHY_GRID));
@@ -61,6 +66,7 @@ export class ChimneySmoke {
   private heroTile = '';
   private known = -1; // the houses there were, when last looked over
   private herbalists = new Set<House>();
+  private witches = new Set<House>();
   private time = 0;
   private readonly matrix = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
@@ -111,7 +117,7 @@ export class ChimneySmoke {
     const tile = `${Math.round(hero.x)},${Math.round(hero.z)}`;
     const { houses, buildings, seed } = this.model;
     if (tile === this.heroTile && houses.length === this.known) return;
-    if (houses.length !== this.known) this.herbalists = this.herbalistHuts();
+    if (houses.length !== this.known) [this.herbalists, this.witches] = [this.huts(isHerbalistHome), this.huts(isWitchHome)];
     [this.heroTile, this.known] = [tile, houses.length];
     const close = (x: number, z: number) => Math.abs(x - hero.x) < REACH && Math.abs(z - hero.z) < REACH;
     const lit = (x: number, z: number) => hashUnit(x, z, seed + 401) < LIT;
@@ -127,9 +133,10 @@ export class ChimneySmoke {
     };
     for (const b of buildings) if (b.kind === 'smithy' && close(b.x, b.z)) put(b.x, b.z, b.quarterTurns, FORGE_MOUTH, FORGE); // (the forges first: never left out)
     for (const house of houses) {
-      if (!close(house.x, house.z) || !lit(house.x, house.z)) continue;
+      if (!close(house.x, house.z) || (!lit(house.x, house.z) && !this.witches.has(house))) continue;
       const turns = ((Math.round(house.rotationY / (Math.PI / 2)) % 4) + 4) % 4;
-      if (this.herbalists.has(house)) add(house.x, house.z, turns, 'herbalist', buildHermitHut, C.soot, HERBS);
+      if (this.witches.has(house)) add(house.x, house.z, turns, 'witch', buildWitchHut, C.soot, WITCH);
+      else if (this.herbalists.has(house)) add(house.x, house.z, turns, 'herbalist', buildHermitHut, C.soot, HERBS);
       else {
         const { layout, roof, trim } = looks(house);
         add(house.x, house.z, turns, `${layout}:${trim}`, () => buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, trim), C.clayPot);
@@ -139,11 +146,11 @@ export class ChimneySmoke {
     this.chimneys = out;
   }
 
-  // The herbalists' huts: the houses their doors are by.
-  private herbalistHuts(): Set<House> {
+  // The herbalists' huts (or the hedge-witches' cottages): the houses their doors are by.
+  private huts(isHome: (e: Entrance) => boolean): Set<House> {
     const huts = new Set<House>();
     for (const e of this.model.entrances) {
-      if (!isHerbalistHome(e)) continue;
+      if (!isHome(e)) continue;
       const house = this.model.houses.find((h) => Math.abs(h.x - e.x) <= 1 && Math.abs(h.z - e.z) <= 1);
       if (house) huts.add(house);
     }

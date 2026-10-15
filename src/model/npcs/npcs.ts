@@ -9,6 +9,7 @@
 
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { markHerbalistHome } from '../herbalist/herbalistHomes';
+import { hasWitch, markWitchHome, witchHomeIn } from '../witch/witchHomes';
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit, pickAt } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
@@ -44,13 +45,14 @@ export const ROUTINE: readonly NpcStop[] = ['home', 'square', 'inn', 'square'];
 export const FARMER_ROUTINE: readonly NpcStop[] = ['home', 'field', 'inn', 'field'];
 const FARMER_CHANCE = 0.4; // of a villager with a field near their village working it
 const FIELD_NEAR = 15; // tiles from the village's middle
+const WHITE_HAIR = 7; // (a hedge-witch's: humanoid.ts HAIR_COLOR_COUNT's last)
 const START_NEAR = 600; // tiles from where the hero sets out, the nearest village's herbalist always a woman (spawnNpcs)
 
-export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist';
+export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist' | 'witch';
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)". A man in a woman's trade, or she
 // in his (a charm's doing: spells/swaps.ts), called as he or she is: a barman, a waiter.
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist' };
+const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', witch: 'Hedge-witch' };
 const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter' };
 export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'>): string {
   const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role];
@@ -194,14 +196,31 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const inns = entrances.filter((e) => e.type === 'inn');
   const doors = entrances.filter((e) => !goesUnder(e)).length; // (the buildings': staff ids count on from them, dungeons or not)
   const fieldCenters = fields.map((f) => ({ f, x: f.x0 + f.width / 2, z: f.z0 + f.depth / 2 })); // (once, not for every house)
+  // The field villager `id` of `village` works, if they're a farmer: the nearest its village, if near, now and then.
+  const fieldOf = (id: number, village: Village): Field | null => {
+    const field = nearest(fieldCenters, village.x, village.z);
+    return field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE ? field.f : null;
+  };
   // The herbalists' houses: in each village, the house nearest its middle, theirs alone (no villager lives there).
   const houses = entrances.filter((e) => e.type === 'house');
   const herbalistHomes = villages.map((village) => {
     const home = nearest(houses, village.x, village.z);
     return home && nearest(villages, home.x, home.z) === village ? home : null;
   });
-  const shops = new Set(herbalistHomes);
+  const shops = new Set<Entrance | null>(herbalistHomes);
   for (const home of herbalistHomes) if (home) markHerbalistHome(home); // (furnished as theirs: herbalist/herbalistLayout.ts)
+  // The hedge-witches' cottages: in about one village in three, its house farthest from its middle (witch/witchHomes.ts),
+  // hers alone; never the house of either villager the story gives the village's quests to (story/storyCast.ts: the
+  // first of them, and the first after who works a field, else the second), so no save's quests lose their people.
+  // (Each house's village found once, only where there's a witch to house.)
+  const ofVillage = villages.some((v) => hasWitch(seed, v)) ? houses.map((h) => nearest(villages, h.x, h.z)) : [];
+  const witchHomes = villages.map((village) => {
+    const own = houses.flatMap((h, k) => (ofVillage[k] === village && !shops.has(h) ? [k] : []));
+    const [first, ...rest] = own;
+    const storied = new Set([first, rest.find((k) => fieldOf(k, village)) ?? rest[0]].map((k) => houses[k]));
+    return witchHomeIn(seed, village, own.map((k) => houses[k]), (h) => storied.has(h));
+  });
+  for (const home of witchHomes) if (home) (shops.add(home), markWitchHome(home)); // (furnished as hers: witch/witchLayout.ts)
   const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);
@@ -212,8 +231,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
       // Some work the field nearest their village, if there's one near.
-      const field = nearest(fieldCenters, village.x, village.z);
-      if (field && Math.hypot(field.x - village.x, field.z - village.z) < FIELD_NEAR && hashUnit(id, seed % 1_000_003, 76) < FARMER_CHANCE) npc.field = field.f;
+      npc.field = fieldOf(id, village);
       return [npc];
     });
   const innVillages = inns.map((inn) => nearest(villages, inn.x, inn.z)); // (each inn's: its barmaids' and its bouncer's)
@@ -257,7 +275,18 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     npc.equipment = { head: 'huntersHood', torso: 'linenShirt' };
     return [npc];
   });
-  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists];
+  // A hedge-witch in her cottage, where there's one (witchHomes): her white hair loose, a shawl and a patched tunic, a
+  // charm at her neck; charms to teach (witch/witchTeaching.ts). After the herbalists, so everyone else keeps their id.
+  const witches = villages.flatMap((village, i) => {
+    const home = witchHomes[i];
+    if (!home) return [];
+    const inn = nearest(inns, village.x, village.z);
+    const npc = person(doors + inns.length * 3 + smithies.length + villages.length + i, 'witch', home, inn, village, { x: home.x - 0.3, z: home.z + 0.2 }, true);
+    npc.look = { ...npc.look, hair: WHITE_HAIR, hairStyle: hashUnit(npc.id, seed % 1_000_003, 78) < 0.5 ? 'long' : 'waves', expression: 'sly' };
+    npc.equipment = { torso: 'patchedTunic', shoulders: 'woolShawl', neck: 'woodenCharm' };
+    return [npc];
+  });
+  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists, ...witches];
 }
 
 // Whether a step of a walker of half-width r from `from` to (x, z), in

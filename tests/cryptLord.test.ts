@@ -18,6 +18,7 @@ import { DAIS_TOP, exitDoor, furnishCrypt } from '../src/model/crypts/cryptProps
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { resetCrypts } from '../src/model/cheats';
 import { FRAME } from './support/testWorld';
+import { isScroll } from '../src/model/loot/scrolls';
 import { BURST, cryptProp } from '../src/view/crypt/cryptVoxels';
 import { tombBurst } from '../src/view/crypt/cryptLife';
 
@@ -152,7 +153,9 @@ describe('a crypt\'s lord', () => {
     const [loot, money] = [model.groundHere.loot.length, model.hero.money];
     model.crypt!.openChest();
     expect(model.crypt!.chestInReach(model.hero)).toBe(false);
-    expect(model.groundHere.loot.length).toBe(loot + 1);
+    const out = model.groundHere.loot.slice(loot); // (its gear, and now and then a charm written down: loot/scrolls.ts)
+    expect(out.filter((l) => !isScroll(l.item))).toHaveLength(1);
+    expect(out.length).toBeLessThanOrEqual(2);
     model.update(0, 0, FRAME);
     expect(model.hero.money - money + model.groundHere.coins.length).toBeGreaterThan(0);
     // In a save: slain, his chest opened; he rises no more.

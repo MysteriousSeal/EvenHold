@@ -8,6 +8,8 @@ import { createTalkPanel } from './controller/story/talkPanel';
 import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
+import { isWitchHome } from './model/witch/witchHomes';
+import { witchTalk } from './model/witch/witchTeaching';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { CLASSIC_MOST, GameModel } from './model/GameModel';
 import { wakeVillagers } from './model/npcs/npcRoutine';
@@ -203,6 +205,7 @@ async function boot(): Promise<void> {
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
+    else if (who.role === 'witch') talk.show(who, witchTalk(model, who)); // (her lessons, asked across her counter)
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
   };
@@ -310,7 +313,7 @@ async function boot(): Promise<void> {
         const { door } = found;
         if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
         const place = goesUnder(door) ? dungeonAt(door) : null;
-        const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
+        const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
         return { label, x: door.x, y: hero.y + 0.75, z: door.z };
       }
     }

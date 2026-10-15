@@ -99,6 +99,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
 
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const herbalists = new Set<Entrance>(); // and the herbalists' houses
+  const witches = new Set<Entrance>(); // the hedge-witches' cottages
   const travellerRow = (role: 'pedlar' | 'pilgrim' | 'guard', title: string, detail: string, icon: MenuIcon): MenuAction => ({
     icon,
     title,
@@ -154,6 +155,16 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
                 if (!visitHerbalist(model, herbalists)) return 'There\'s no herbalist in this world.';
                 menu.close();
                 return 'At the herbalist\'s.';
+              },
+            },
+            {
+              icon: lootIcon('moonGrimoire'),
+              title: 'Inside a hedge-witch\'s',
+              detail: 'The nearest hedge-witch\'s cottage (about one village in three), her charms to teach',
+              run: () => {
+                if (!visitHerbalist(model, witches, 'witch')) return 'There\'s no hedge-witch in this world.';
+                menu.close();
+                return 'At the hedge-witch\'s.';
               },
             },
           ]),

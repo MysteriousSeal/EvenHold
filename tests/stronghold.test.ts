@@ -14,6 +14,7 @@
 // postern: the way out. (The seam its foes' ways go behind:
 // strongholdMoves.test.ts.)
 import { describe, expect, it } from 'vitest';
+import { isScroll } from '../src/model/loot/scrolls';
 import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { CAVE_REGION } from '../src/model/caves/caves';
@@ -435,7 +436,9 @@ describe('a stronghold, gone into', () => {
     const lying = model.groundHere.loot.length;
     runOf(model).openChest();
     expect(chest.open).toBe(true);
-    expect(model.groundHere.loot.length).toBe(lying + 1);
+    const out = model.groundHere.loot.slice(lying); // (the piece of gear, and now and then a charm written down: loot/scrolls.ts)
+    expect(out.filter((l) => !isScroll(l.item))).toHaveLength(1);
+    expect(out.length).toBeLessThanOrEqual(2);
     const exit = runOf(model).exitOpen!;
     expect(exit).toEqual(strongholdExit(plan).spot);
     Object.assign(model.hero, { x: exit.x, z: exit.z });

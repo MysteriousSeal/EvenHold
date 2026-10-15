@@ -117,7 +117,7 @@ export const strongholdFoeCount = (seed: number, inside: StrongholdInside): numb
 
 // What the king's chest holds: his own axe, found nowhere else (strongholdLoot.ts), and coins by the stronghold's level.
 export const strongholdHoard = (inside: StrongholdInside, seed: number): Hoard =>
-  ({ ...rollHoard(inside.stronghold.gate.x, inside.stronghold.gate.z, seed + 5519, inside.stronghold.level, { worth: 150, base: 90, spread: 60 }), item: bossPiece('banditKing', inside.stronghold.level)! });
+  ({ ...rollHoard(inside.stronghold.gate.x, inside.stronghold.gate.z, seed + 5519, inside.stronghold.level, { worth: 150, base: 90, spread: 60, dark: true }), item: bossPiece('banditKing', inside.stronghold.level)! });
 
 export class StrongholdRun extends DungeonFoes {
   readonly foes: Enemy[];

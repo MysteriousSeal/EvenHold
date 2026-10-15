@@ -272,11 +272,11 @@ export function nextLife(model: GameModel, from: Tile, kind: LifeKind, visited: 
   return nearestOpenTile(model, { x: Math.round(spot.x) + 5, z: Math.round(spot.z) + 5 });
 }
 
-// Into the house of the nearest herbalist not yet visited (the tour round again once all have been); whether there
-// was one.
-export function visitHerbalist(model: GameModel, visited: Set<Entrance>): boolean {
+// Into the house of the nearest herbalist (or hedge-witch) not yet visited (the tour round again once all have been);
+// whether there was one.
+export function visitHerbalist(model: GameModel, visited: Set<Entrance>, role: 'herbalist' | 'witch' = 'herbalist'): boolean {
   if (model.inside) model.useDoor();
-  const homes = [...new Set(model.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home))];
+  const homes = [...new Set(model.npcs.filter((n) => n.role === role).map((n) => n.home))];
   if (homes.length === 0) return false;
   if (homes.every((h) => visited.has(h))) visited.clear();
   const next = homes.filter((h) => !visited.has(h)).reduce((best, h) => (distance(h, model.hero) < distance(best, model.hero) ? h : best));

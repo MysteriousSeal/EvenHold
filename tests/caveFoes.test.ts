@@ -10,6 +10,7 @@
 // to the daylight open: the way out. The slain stay slain (out and back in, and
 // in a save). And its beasts drop their own spoils (drawn: caveView.test.ts).
 import { describe, expect, it } from 'vitest';
+import { isScroll } from '../src/model/loot/scrolls';
 import { GameModel } from '../src/model/GameModel';
 import { caveInside } from '../src/model/caves/caves';
 import { CAVE_FOE_ID, TEARS_AT } from '../src/model/caves/caveFoes';
@@ -154,7 +155,9 @@ describe('a cave\'s beasts', () => {
     const lying = model.groundHere.loot.length;
     model.cave!.openChest();
     expect(hoard.open).toBe(true);
-    expect(model.groundHere.loot.length).toBe(lying + 1);
+    const out = model.groundHere.loot.slice(lying); // (the piece of gear, and now and then a charm written down: loot/scrolls.ts)
+    expect(out.filter((l) => !isScroll(l.item))).toHaveLength(1);
+    expect(out.length).toBeLessThanOrEqual(2);
     // Her hoard stands in the way: walked at, the hero stops at it, not through it.
     Object.assign(model.hero, { x: hoard.x, z: hoard.z + 1.2 });
     for (let t = 0; t < 1; t += FRAME) model.update(0, -1, FRAME);

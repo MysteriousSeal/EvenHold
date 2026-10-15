@@ -104,14 +104,15 @@ export abstract class DungeonFoes implements DungeonRun {
     return over(x, z);
   }
 
-  // Opens it: what it holds, out on the floor before it.
+  // Opens it: what it holds, out on the floor before it (a charm written down, if there's one, between).
   openChest(): void {
     if (!this.chest || this.chest.open) return;
     this.chest.open = true;
     this.slain.add(CHEST_POST);
-    const { item, coins } = this.hoard();
+    const { item, coins, charm } = this.hoard();
     const { x, z } = this.spec.drop;
     this.hooks.dropLoot(item, this.chest.x + x, this.chest.z + z);
     this.hooks.dropCoins(coins, this.chest.x - x, this.chest.z + z);
+    if (charm) this.hooks.dropLoot(charm, this.chest.x, this.chest.z + z * 1.6);
   }
 }

@@ -26,6 +26,7 @@ import { between, benchSeat, doorTile, fieldSpot, heroOnPiece, patrons, roll, se
 import { easeOffHero, heroOn, pastHero, place, walk, walkAlong } from './npcWalk';
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
+import { witchCalled, witchSteps } from '../witch/witchWork';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
 import { inTurn, say } from './speech';
@@ -161,10 +162,11 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   smith: (npc, _npcs, world) => smithSteps(npc, world),
   bouncer: (npc, _npcs, world) => bouncerSteps(npc, world.seed),
   herbalist: (npc, _npcs, world) => herbalistSteps(npc, world), // (at home, at work among their pots and herbs, always)
+  witch: (npc, _npcs, world) => witchSteps(npc, world), // (likewise, among hers)
 };
 
 // Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).
-const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled };
+const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled, witch: witchCalled };
 
 // A villager waiting on the hero in a doorway: whether they've waited long enough to come past (said so, as they do).
 function waitedOnHero(npc: Npc, dt: number): boolean {
