@@ -55,6 +55,12 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
       setColor(g, x, 0, 2, 4);
     }
   }),
+  // A fry cake: a flat golden patty, its edge browner, silver flecks of the fry in its top.
+  fryCake: model([0xd8a858, 0x9a6a30, 0xb8c0c8], [5, 2, 5], (g) => {
+    lump(g, 0, 0, 0, 5, 2, 5, (x, z) => (x * 3 + z) % 4 === 1, [1, 2, 3]);
+  }),
+  // Fry chowder: a wooden bowl of pale broth, the little fish and a green fleck of herb in it.
+  fryChowder: bowl([0x9a6a3a, 0x6a4628, 0xe8dcb0, 0xb8c0c8, 0x5a8a3a], (x, z) => ((x * 2 + z) % 3 === 0 ? 4 : x === 1 && z === 3 ? 5 : 0)),
   // Roast boar: a round haunch, crackling brown, a spit run through it and out both ends.
   roastBoar: model([0x9a5a2a, 0x6a3a1a, 0x4a2412, 0xc89058, 0x8a8a90], [8, 4, 5], (g) => {
     lump(g, 1, 0, 0, 6, 4, 5, (x, z) => (x + z) % 3 === 0);
