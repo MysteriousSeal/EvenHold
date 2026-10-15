@@ -109,7 +109,7 @@ describe("the hero's own order at the bar", () => {
     expect(bar.busy).toBe(false);
   });
 
-  it("isn't had if they got up between its being set down and picked up: left on the bar, unpaid", () => {
+  it("isn't had if they got up between its being set down and picked up: left on the bar, unpaid, till she clears it", () => {
     const { model, inn, furniture } = inTheInn();
     const [first, second] = furniture.filter((f) => f.kind === 'barStool');
     const bar = createBar(model, view);
@@ -121,7 +121,10 @@ describe("the hero's own order at the bar", () => {
     bar.update();
     timers.splice(0).forEach((f) => f());
     expect([model.hero.drinking ?? null, model.hero.money, bar.busy]).toEqual([null, 100, false]);
-  });
+    expect(mugsAt(inn)).toMatchObject([{ z: first.z, full: true }]);
+    for (let t = 0; t < 90 && mugsAt(inn).length > 0; t += 0.1) model.update(0, 0, 0.1);
+    expect(mugsAt(inn)).toEqual([]); // (cleared away by her, a few rounds on: not left standing for good)
+  }, 60_000);
 });
 
 describe('the server, sat by the fire', () => {
