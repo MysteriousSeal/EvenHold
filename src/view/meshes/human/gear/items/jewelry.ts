@@ -143,6 +143,24 @@ const scallopShell: ItemModel = {
   },
 };
 
+// The Reliquary's: a saint's finger in a little gilt capsule on a red cord, a crystal down its front showing the
+// bone, a gilt cap at either end.
+const reliquary = namedPalette({ ...SET_PALETTES.reliquary });
+const saintsFinger: ItemModel = {
+  palette: reliquary.palette,
+  jewel: {
+    build: () => {
+      const { c } = reliquary;
+      const grid = createGrid([5, 9, 2]);
+      fillBox(grid, 0, 6, 0, 4, 8, 0, (x, y) => (x === 0 || x === 4 || y === 8 ? c.silk : 0)); // the cord
+      fillBox(grid, 1, 5, 0, 3, 5, 1, c.giltLight); // its cap
+      fillBox(grid, 1, 1, 0, 3, 4, 1, (x, y, z) => (z === 1 && x === 2 ? (y === 1 ? c.gilt : c.crystal) : x === 2 && z === 0 ? c.bone : c.gilt)); // the capsule, the finger in it
+      fillBox(grid, 1, 0, 0, 3, 0, 1, c.giltDark); // its foot
+      return grid;
+    },
+  },
+};
+
 // The ossuary's ring: three finger bones wired end to end round the finger,
 // their knuckles swelling at the joins, a knucklebone set on top.
 const ossuary = namedPalette({ ...SET_PALETTES.ossuary });
@@ -226,6 +244,7 @@ export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_
   signetRing: ring(0xd4b060, 0xa8862e),
   twistedWire: ring(0xb87333, 0xd8a860),
   barrowTorc,
+  saintsFinger,
   trophyCord,
   scallopShell,
   fingerboneRing,

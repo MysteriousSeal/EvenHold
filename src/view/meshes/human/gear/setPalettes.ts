@@ -45,6 +45,9 @@ export const SET_PALETTES = {
   // braid, a pearl. Motif: slashed sleeves and hose showing gold beneath;
   // ermine trim at collar and cuffs; parti-colour (burgundy against black).
   velvet: { velvet: 0x6e1a2a, velvetDark: 0x4e1220, velvetLight: 0x8a2a3a, black: 0x1e1a1e, ermine: 0xf0ece0, fleck: 0x1c1a1c, gold: 0xd4b060, pearl: 0xf6f2ea },
+  // Reliquary: gilt in three tones, old bone, red silk and its folds, rock crystal. Motif: gilt bands framing red
+  // silk; a crystal window with a bone behind it, where a piece has a middle.
+  reliquary: { gilt: 0xd8a838, giltLight: 0xf2d070, giltDark: 0x9a6e1e, bone: 0xe4d8bc, boneShade: 0xb8aa88, silk: 0x9a1c24, silkDark: 0x5e1018, crystal: 0xcfe8f0 },
   // Blackbanner: black-dyed cloth, blackened iron, a white band. Motif: a
   // single white band across (a sash, the pavise's stripe), iron rims dark
   // and plain, nothing bright but that band.

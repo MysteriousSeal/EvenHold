@@ -149,6 +149,22 @@ const sunwardGauntlets: ItemModel = {
   },
 };
 
+// The Reliquary's: arm-reliquaries for gauntlets, gilt, a crystal window on the back of each hand, a bone behind
+// it, red silk at the cuff.
+const reliquary = namedPalette({ ...SET_PALETTES.reliquary });
+const reliquaryGauntlets: ItemModel = {
+  palette: reliquary.palette,
+  worn: {
+    arm: ({ x, y, z, flank }) => {
+      const { c } = reliquary;
+      if (y === 1) return flank ? c.silkDark : c.silk; // the cuff
+      if (y === -1) return mod(x + z, 2) === 0 ? c.gilt : c.giltDark; // the fingers
+      if (flank) return z === 0 ? c.bone : c.crystal; // the window, the bone behind
+      return c.gilt;
+    },
+  },
+};
+
 export const HANDS_MODELS: Record<keyof typeof HANDS_ITEMS, ItemModel> = {
   ridingGloves: gloves(0x3a2e26, 0x4c3c30),
   workGloves: gloves(0xb08a5a, 0x8a6a42),
@@ -166,4 +182,5 @@ export const HANDS_MODELS: Record<keyof typeof HANDS_ITEMS, ItemModel> = {
   cinderWraps,
   watchVambraces,
   sunwardGauntlets,
+  reliquaryGauntlets,
 };

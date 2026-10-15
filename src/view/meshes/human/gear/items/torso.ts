@@ -18,6 +18,9 @@
 // - sunwardCuirass (sunward, legendary): a fluted cuirass, ivory enamel between gold ridges, a great gold sun of eight
 //   rays on azure on the breast, a ruby at its heart; gold-edged tassets at the waist, azure sleeves. Gold d4b060 /
 //   f0d080 / a8862e, ivory f4f0e6, azure 3060c0 / 1e3e8a, ruby b02838.
+// - reliquaryDalmatic (reliquary, legendary): a deacon's dalmatic of red silk, two gilt bands down the front and one
+//   across the chest, a crystal window where they cross with a bone behind it, a gilt hem; silk sleeves, gilt cuffs.
+//   Gilt d8a838 / f2d070 / 9a6e1e, silk 9a1c24 / 5e1018, bone e4d8bc, crystal cfe8f0.
 // - velvetDoublet (velvet): a burgundy velvet doublet buttoned with pearls, slashed sleeves showing gold beneath, an
 //   ermine collar, black on one side against burgundy on the other (parti-colour). Velvet 6e1a2a / 4e1220 / 8a2a3a,
 //   black 1e1a1e, ermine f0ece0 with flecks 1c1a1c, gold d4b060, pearl f6f2ea.
@@ -359,6 +362,28 @@ const velvetDoublet: ItemModel = {
   },
 };
 
+// The Reliquary's: a red silk dalmatic, gilt bands framing it, a relic behind crystal on the breast.
+const reliquary = namedPalette({ ...SET_PALETTES.reliquary });
+const reliquaryDalmatic: ItemModel = {
+  palette: reliquary.palette,
+  worn: {
+    torso: ({ x, y, front, back, flank }) => {
+      const { c } = reliquary;
+      if (y === 2) return mod(x, 2) === 0 ? c.giltDark : c.gilt; // the hem
+      if (front && x === 3 && y === 5) return c.bone; // the relic, behind
+      if (front && x === 3 && (y === 4 || y === 6)) return c.crystal; // its window
+      if ((front || back) && (x === 1 || x === 5)) return back ? c.giltDark : c.gilt; // the bands down it
+      if (front && y === 6) return c.giltLight; // and across
+      return flank ? c.silkDark : c.silk;
+    },
+    arm: ({ y, flank }) => {
+      const { c } = reliquary;
+      if (y === 2) return c.gilt; // the cuff
+      return flank ? c.silkDark : c.silk;
+    },
+  },
+};
+
 export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   gambeson,
   leatherVest,
@@ -377,4 +402,5 @@ export const TORSO_MODELS: Record<keyof typeof TORSO_ITEMS, ItemModel> = {
   watchBrigandine,
   sunwardCuirass,
   velvetDoublet,
+  reliquaryDalmatic,
 };
