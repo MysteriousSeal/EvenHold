@@ -35,7 +35,7 @@ export const TIPS: readonly Tip[] = [
     id: 'fallen',
     title: 'Knocked down',
     due: (m) => !!m.hero.blessings?.some((b) => b.kind === 'weary' && b.left > WEARY_TIME - 3),
-    text: () => 'You woke at an inn, Weary for a while: your blows land softer. A fall in a fight also costs some coin and wears your gear.',
+    text: () => 'You woke at an inn, Weary a while. Fell in a fight? Half your coin lies where you fell, under a shaft of gold light: fetch it before you fall again.',
   },
   {
     id: 'hurt',
