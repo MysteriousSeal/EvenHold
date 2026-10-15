@@ -4,7 +4,7 @@
 import type { Furniture } from '../../model/interiors/furniture';
 import { BRASS, BRASS_DARK, COAL, EMBER, INDIGO, INDIGO_DARK, IRON, IRON_LIGHT, LINEN, PALE_STONE, PARCHMENT, RED, RED_DARK, SOOT, STONE, STONE_DARK, WOOD, WOOD_DARK, WOOD_LIGHT, type Box } from './furniturePalette';
 
-type CathedralKind = 'altar' | 'pillar' | 'pew' | 'candleStand' | 'lectern' | 'reliquaryStair';
+type CathedralKind = 'altar' | 'pillar' | 'pew' | 'candleStand' | 'lectern' | 'reliquaryStair' | 'cellBars';
 
 // Dressed stone, in blocks: pale, a darker one now and then.
 const dressed = (u: number, y: number, v: number) => ((Math.floor((u + v + (Math.floor(y / 4) % 2) * 3) / 6) + Math.floor(y / 4)) % 5 === 0 ? STONE : PALE_STONE);
@@ -101,5 +101,11 @@ export const CATHEDRAL_PAINTERS: Record<CathedralKind, (box: Box, len: number, d
     box(len - 5, 35, dep - 4, len - 1, 35, dep, IRON);
     box(len - 4, 36, dep - 3, len - 2, 38, dep - 1, EMBER);
     box(len - 5, 39, dep - 4, len - 1, 39, dep, IRON);
+  },
+  // A cell's bars: iron uprights floor to beam on its tile, a crossbar low and high, a beam over them.
+  cellBars: (box) => {
+    for (let u = 1; u < 25; u += 4) for (let v = 1; v < 25; v += 4) if (u === 1 || u === 21 || v === 1 || v === 21) box(u, 0, v, u, 34, v, IRON);
+    for (const y of [6, 26]) box(1, y, 1, 21, y, 21, (u, _y, v) => (u === 1 || u === 21 || v === 1 || v === 21 ? IRON_LIGHT : 0));
+    box(0, 35, 0, 24, 36, 24, (u, _y, v) => (u < 2 || u > 22 || v < 2 || v > 22 ? WOOD_DARK : 0));
   },
 };
