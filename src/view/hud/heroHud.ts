@@ -60,10 +60,11 @@ export function createHeroHud(hero: Hero, parent: HTMLElement, moves: { breath: 
     const health = Math.floor(hero.hp);
     const awake = Math.ceil(hero.energy);
     const winded = Math.round(moves.breath);
-    const state = `${health}/${max}/${awake}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}/${hero.statPoints > 0}/${maxEnergyOf(hero)}/${winded}/${moves.most}`;
+    const state = `${health}/${max}/${awake}/${hero.level}/${hero.xp}/${hero.hurtFor > 0}/${hero.statPoints > 0}/${maxEnergyOf(hero)}/${winded}/${moves.most}/${!!hero.draught}`;
     if (state === shown) return;
     shown = state;
     root.classList.toggle('hurt', hero.hurtFor > 0);
+    root.classList.toggle('mending', !!hero.draught); // (a potion's heal over time: the bar aglow while it runs)
     level.textContent = String(hero.level);
     level.classList.toggle('points', hero.statPoints > 0); // points to spend: a mark on it
     hp.fill.style.width = `${(health / max) * 100}%`;
