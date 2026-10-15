@@ -3,8 +3,8 @@
 //   dark are the woods that are there);
 // - marsh: low, wet ground (the two lowest tiers) where a damp noise runs high, and the low banks by the lakes;
 // - hills: the high ground (from the tier the pines take over), rocky where a rough noise says so;
-// - heath: a moor of heather and gorse, on dry ground off the low land;
-// - meadow: all the rest (the land as it ever was).
+// - heath: a moor of heather and gorse, on dry ground off the low land, and the highest tier's open tops;
+// - meadow: all the rest, open grassland.
 // Purely the land's look and what grows on it that no one walks into (and the odd rock or dead tree placed last of
 // all: scenery.ts placeBiomeScenery): from the seed's own noises, never the world's rng, so every map keeps its trees,
 // villages, roads and lakes. Edges ragged by a roll a tile, never a straight line. Made the same for any part of the
@@ -13,7 +13,7 @@
 import { createNoise2D } from 'simplex-noise';
 import { hashUnit, mulberry32 } from '../../util/random';
 import { createForestDensity } from '../worldgen/trees';
-import { TREE_CHANCE } from '../constants';
+import { MAX_TIER, TREE_CHANCE } from '../constants';
 import type { Tiles } from '../map/tiles';
 
 export const BIOMES = ['meadow', 'forest', 'heath', 'marsh', 'hills'] as const;
@@ -24,7 +24,7 @@ const DRY_SALT = 0x297a2d39;
 const ROUGH_SALT = 0x1b873593;
 const DAMP_SCALE = 60; // tiles: how wide the wet and dry stretches run
 const ROUGH_SCALE = 34;
-const RAGGED = 0.06; // a tile's own roll, added to the noises: the edges ragged
+const RAGGED = 0.15; // a tile's own roll, added to the noises: the edges a dithered strip a few tiles wide
 const FOREST_CHANCE = 0.5; // a tree's chance deep in a forest (worldgen/trees.ts: not changed there, its source is the world cache's fingerprint)
 const DEEP_WOODS = 0.5; // of the way from open country's tree chance to a forest's: the deep woods from here
 const MARSH_DAMP = -0.05; // the damp noise over this, on low ground: marsh
@@ -61,7 +61,7 @@ export function createBiomes(seed: number, tiles: Tiles): BiomeMap {
         if (wet > MARSH_DAMP || (wet > BANK_DAMP && byLake(x, z))) return 'marsh';
       }
       if (tier >= HIGH_TIER && rough(x / ROUGH_SCALE, z / ROUGH_SCALE) + jitter > HILLS_ROUGH) return 'hills';
-      if (tier > LOW_TIER && dry(x / DAMP_SCALE, z / DAMP_SCALE) + jitter > HEATH_DRY) return 'heath';
+      if (tier >= MAX_TIER || (tier > LOW_TIER && dry(x / DAMP_SCALE, z / DAMP_SCALE) + jitter > HEATH_DRY)) return 'heath';
       return 'meadow';
     },
   };
