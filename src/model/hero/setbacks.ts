@@ -1,13 +1,14 @@
 // The hero's setbacks, each waking them at an inn, Weary a while (blessing.ts):
 // out of energy, they collapse, and wake in the nearest inn lying on the floor
 // before its hearth (on its bear rug), a little of their energy back and more
-// coming while they lie there (E to get up); out of health, they fall, a share
-// of their coin lost, and wake in the last inn they entered (or at spawn,
-// before any), healed. A bed in someone else's house (a villager's, the herbalist's) isn't theirs to rest in: its
+// coming while they lie there (E to get up); out of health, they fall, half
+// their coin dropped where they fell (purse.ts: theirs again, walked back to), and wake in the last inn they entered
+// (or at spawn, before any), healed. A bed in someone else's house (a villager's, the herbalist's) isn't theirs to rest in: its
 // owner home, found in it, turns them out; away, it rests them only as a bedroll would (and no Well rested: an inn's
 // room, paid for, gives that).
 
 import { wearOnFall } from './wear';
+import { dropPurse } from './purse';
 import type { GameModel } from '../GameModel';
 import { recover } from './heroStats';
 import { maxEnergyOf, maxHpOf } from './attributes';
@@ -114,14 +115,12 @@ function collapseIfSpent(model: GameModel): boolean {
   return true;
 }
 
-const FALL_TOLL = 0.1; // of their coins, lost in a fall (a quarter before: more than a player made, falling to the start's bandits)
-const FALL_TOLL_MOST = 100; // copper, at most
-
-// Fallen (out of health): a share of their coins lost, they wake in the last inn
-// they entered (or at spawn, before any), healed but Weary; the foes lose interest.
+// Fallen (out of health): half their coin dropped in a purse where they fell (purse.ts: the last one, if still lying
+// there, lost), they wake in the last inn they entered (or at spawn, before any), healed but Weary; the foes lose
+// interest. (A tenth was lost for good before, a hundred copper at most.)
 export function fall(model: GameModel): void {
   const { hero } = model;
-  hero.money -= Math.min(FALL_TOLL_MOST, Math.floor(hero.money * FALL_TOLL));
+  dropPurse(model);
   wearOnFall(hero, (e) => model.report(e)); // (everything they wear knocked about: hero/wear.ts)
   makeWeary(hero);
   [hero.knock, hero.y, model.moves.roll, model.moves.guard] = [undefined, 0, null, null]; // (no knock nor roll still carrying them, waking)

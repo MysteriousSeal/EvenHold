@@ -19,6 +19,7 @@ import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
 import { readStash } from './hero/stash';
+import { readPurse } from './hero/purse';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
 import { readMeal, type BagItem } from './hero/bag';
@@ -90,6 +91,7 @@ export interface SaveData {
   foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
   loot: Array<{ item: BagItem; x: number; z: number }>;
   coins: Array<{ amount: number; x: number; z: number }>;
+  purse?: unknown; // the coin dropped in their last fall, where it lies (hero/purse.ts; older saves: none)
   floors?: SavedFloors; // what lies on each dungeon's floor, by its key (dungeons/dungeonFloors.ts)
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
@@ -166,6 +168,7 @@ export function snapshot(model: GameModel): SaveData {
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
     coins: model.coins.map(({ amount, x, z }) => ({ amount, x, z })),
+    purse: model.purse && { ...model.purse },
     floors: model.floors.save(), // what lies on each dungeon's floor
     chickens: model.chickens.save(),
     swaps: model.swaps.save(),
@@ -323,6 +326,7 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
   for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
+  model.purse = readPurse(data.purse); // (an older save's: none dropped)
   for (const { inn, money, stock, restockedAt, buyback, bought } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
