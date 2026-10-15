@@ -17,7 +17,9 @@ import { baseOf, isGear, levelOf, rarityOf, type GearKey, type Rarity } from '..
 import type { IngredientId } from '../loot/ingredients';
 import type { JUNK_ITEMS } from '../loot/junk';
 import { LOOT } from '../loot/loot';
-import { practise, skillOf } from './skills';
+import { RISE, difficulty, practise, skillOf } from './skills';
+import { RECIPES } from './woodworking';
+import { SMITH_RECIPES } from './smithing';
 
 export type Make = 'iron' | 'leather' | 'cloth' | 'silver' | 'wood';
 export const MAKE_NAMES: Record<Make, string> = { iron: 'Iron', leather: 'Leather', cloth: 'Cloth', silver: 'Silver', wood: 'Wood' };
@@ -72,6 +74,34 @@ export interface Salvaged {
   needs: number; // the skill level it asks (what it teaches by)
   gives: Array<[IngredientId, number]>;
   finerAt?: number; // the skill its finer things want, held back for less
+  made?: boolean; // a piece as a woodworker or a smith makes it (the hero's own, likely): less back, less taught
+}
+
+export const TOO_HARD = 50; // past the skill by more than this, a piece teaches nothing (broken down all the same)
+// A piece as a recipe makes it, of woodworking's or smithing's (its item at that level and rarity): what breaking it
+// down leaves can't be more than went into it, nor can making and breaking them be a ladder up the skill. (Made the
+// first time it's asked: the recipes import this file's neighbours.)
+let madeUses: Map<string, number> | null = null; // each piece as a recipe makes it: the fewest materials that go into one
+const madeFrom = (item: string, level: number, rarity: Rarity): number | null => {
+  if (!madeUses) {
+    madeUses = new Map();
+    for (const r of [...Object.values(RECIPES), ...Object.values(SMITH_RECIPES)] as Array<{ from: Partial<Record<string, number>>; makes: unknown }>) {
+      if (typeof r.makes !== 'object' || r.makes === null) continue;
+      const m = r.makes as { item: string; level: number; rarity: Rarity };
+      const key = `${m.item}@${m.level}${m.rarity}`;
+      const used = Object.values(r.from).reduce((n: number, k) => n + (k ?? 0), 0);
+      madeUses.set(key, Math.min(madeUses.get(key) ?? Infinity, used));
+    }
+  }
+  return madeUses.get(`${item}@${level}${rarity}`) ?? null;
+};
+
+// How likely breaking a piece down teaches a hand at `skill` (skills.ts difficulty): nothing from one too hard to
+// learn from (TOO_HARD past it), green at the most from one as a recipe makes it.
+export function teachChance(salvaged: Salvaged, skill: number): number {
+  if (salvaged.needs > skill + TOO_HARD) return 0;
+  const chance = difficulty(salvaged.needs, skill).chance;
+  return salvaged.made ? Math.min(chance, RISE[2].chance) : chance;
 }
 
 // What breaking `key` down gives a hand at `skill` (none said: a master's), and the skill it asks: more of its scrap
@@ -85,11 +115,13 @@ export function salvageOf(key: Salvageable, skill = Infinity): Salvaged {
   const base = baseOf(key);
   const make = makeOf(base);
   const [level, rarity] = [levelOf(key), rarityOf(key)];
-  const gives: Array<[IngredientId, number]> = [[scrapOf(make, level), 1 + Math.floor(level / 6)]];
-  if (make === 'silver' && GEMMED.test(base)) gives.push(['gemShard', 1]);
-  const finerAt = RARE_EXTRA[rarity] ? FINER_AT[rarity] : undefined;
+  const used = madeFrom(base, level, rarity); // (as a recipe makes it: what went into it)
+  const scrap = 1 + Math.floor(level / 6);
+  const gives: Array<[IngredientId, number]> = [[scrapOf(make, level), used === null ? scrap : Math.max(1, Math.min(Math.floor(scrap / 2), used - 1))]]; // (one made: half, and less than went in)
+  if (make === 'silver' && GEMMED.test(base) && used === null) gives.push(['gemShard', 1]);
+  const finerAt = RARE_EXTRA[rarity] && used === null ? FINER_AT[rarity] : undefined;
   if (finerAt !== undefined && skill >= finerAt) gives.push([FINER_OF[make], RARE_EXTRA[rarity]]);
-  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}) }; // (a level 1 piece from the start; a level 10, the artisan's)
+  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 10, the artisan's)
 }
 
 export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'busy' | 'full';
@@ -162,12 +194,14 @@ export class Salvage {
     if ((breaking.t += dt) < BREAK_SECONDS) return;
     this.stop();
     const { hero } = this.host;
-    const { needs, gives } = this.salvaged(breaking.key);
+    const level = skillOf(hero, 'salvaging').level;
+    const salvaged = this.salvaged(breaking.key);
+    const { needs, gives } = salvaged;
     if (!this.roomFor(breaking.key, gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (filled meanwhile: the piece kept)
     takeFromBag(hero.bag, breaking.key);
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
-    practise(hero, 'salvaging', needs, this.host.random(), (e) => this.host.report(e));
+    practise(hero, 'salvaging', needs, this.host.random(), (e) => this.host.report(e), teachChance(salvaged, level));
     if (breaking.left > 0 && this.carried(breaking.key) && this.roomFor(breaking.key, this.salvaged(breaking.key).gives)) this.breaking = { key: breaking.key, t: 0, left: breaking.left - 1 };
   }
 
