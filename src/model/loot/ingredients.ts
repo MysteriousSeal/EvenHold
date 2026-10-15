@@ -65,6 +65,7 @@ export const INGREDIENTS = {
   // Smelted and forged by a smith at a smithy's anvil (skills/smithing.ts): ingots of the ores and the salvage bench's
   // scrap, and the fittings beaten from them, for a woodworker's banded pieces and a smith's own.
   copperIngot: { name: 'Copper ingot', value: 5, droppedBy: {} },
+  bronzeIngot: { name: 'Bronze ingot', value: 6, droppedBy: {} },
   ironIngot: { name: 'Iron ingot', value: 8, droppedBy: {} },
   steelIngot: { name: 'Steel ingot', value: 18, droppedBy: {} },
   silverIngot: { name: 'Silver ingot', value: 14, droppedBy: {} },
