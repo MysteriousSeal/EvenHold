@@ -2,9 +2,9 @@
 // building on a house's tile, read from afar by its shape: small and black, under a steep thatch rotten near black
 // that leans as it rises, like a hat pushed over, a crow on its ridge; tarred boards over a stone footing, a crooked
 // stone chimney leaning off its left end; a low plank door under a cow's skull, a horseshoe nailed over it upside
-// down, a small lit window; bones and blue witch-bottles hung from the eaves; a broom by the door; a garden of nettles
-// and henbane behind a fence of crooked sticks, a skull on the gatepost. Faces -Z,
-// in the houses' grid and palette (houseVoxels.ts, housePalette.ts).
+// down; a small lit window on every side but the chimney's (seen at night whichever way it's come at); bones and blue
+// witch-bottles hung from the eaves; a broom by the door; a garden of nettles and henbane behind a fence of crooked
+// sticks, a skull on the gatepost. Faces -Z, in the houses' grid and palette (houseVoxels.ts, housePalette.ts).
 
 import { hashUnit } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -97,6 +97,9 @@ export function buildWitchHut(): VoxelGrid {
   put(grid, [DOOR, DOOR_TOP, Z0 - 1], C.iron);
   // A small window, front right: two by two of lit glass in a crooked frame, a voxel lower one side.
   for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 2; dx++) put(grid, [WINDOW_X + dx, 6 + dy - (dx === 2 ? 1 : 0), Z0], dx >= 0 && dx <= 1 && dy >= 0 && dy <= 1 ? C.glass : C.timber);
+  // And one in the back wall, and one in the right end, the same: her cottage lit at night from whichever way it's come at.
+  for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 2; dx++) put(grid, [X0 + 4 + dx, 6 + dy - (dx === -1 ? 1 : 0), Z1], dx >= 0 && dx <= 1 && dy >= 0 && dy <= 1 ? C.glass : C.timber);
+  for (let dy = -1; dy <= 2; dy++) for (let dz = -1; dz <= 2; dz++) put(grid, [X1, 6 + dy - (dz === 2 ? 1 : 0), Math.round(MID_Z) + dz], dz >= 0 && dz <= 1 && dy >= 0 && dy <= 1 ? C.glass : C.timber);
   // The broom, leant by the door on the left: its handle up the wall, its bristles on the ground.
   for (let y = 2; y <= 7; y++) put(grid, [DOOR - 4, y, Z0 - 1], C.bark);
   fillBox(grid, DOOR - 5, 0, Z0 - 1, DOOR - 3, 1, Z0 - 1, (x, y) => (y === 1 && x !== DOOR - 4 ? 0 : C.hayDark));
