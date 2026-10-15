@@ -11,6 +11,7 @@ import { solidCells } from '../src/model/worldgen/world';
 import { entrancesOf, roomFor, type Entrance } from '../src/model/interiors/interiors';
 import { furnish } from '../src/model/interiors/furnish';
 import { BISHOP, NAVE, RELIQUARY_STAIR } from '../src/model/cathedral/cathedralLayout';
+import { chartOfLand } from '../src/model/atlas/chart';
 import { MAX_TIER } from '../src/model/constants';
 import { cellKey, spawnOf } from '../src/model/map/grid';
 import { REACH as LANES } from '../src/model/worldgen/roads';
@@ -97,6 +98,7 @@ describe('the cathedral town', () => {
         for (const door of doors) expect(seen.has(cellKey(Math.round(door.x), Math.round(door.z))), `${seed}: ${door.type} at ${door.x},${door.z}`).toBe(true);
         for (const s of town.stalls) expect(seen.has(cellKey(s.x + s.front[0], s.z + s.front[1]))).toBe(true);
       }
+      expect(chartOfLand(seed, STREAMED_SIZE, land).villages.filter((v) => v.town)).toEqual([{ x: site.x, z: site.z, town: true }]); // (marked on the map as the cathedral town)
       const ways = [...land.roads.map((r) => r.route), ...land.trails];
       const gates = GATES.map(([gx, gz]) => cellKey(site.x + gx, site.z + gz));
       expect(ways.some((route) => route.some(([x, z]) => gates.includes(cellKey(x, z))))).toBe(true);
