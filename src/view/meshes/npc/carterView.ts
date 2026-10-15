@@ -20,7 +20,7 @@ export class CarterView {
   constructor(private readonly scene: THREE.Object3D, private readonly material: THREE.Material) {}
 
   update(model: GameModel, dt: number, time = 0, talking = false): void {
-    const carter = model.inside ? null : carterOf(model);
+    const carter = model.inside || model.story.saint.carterGone ? null : carterOf(model); // (gone up the road, the second arc: till he's brought home)
     const { hero } = model;
     const far = carter ? Math.hypot(carter.x - hero.x, carter.z - hero.z) : Infinity;
     if (!carter || far > SEEN) return this.clear();
