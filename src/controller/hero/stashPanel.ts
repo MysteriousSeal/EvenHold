@@ -1,7 +1,7 @@
 // The hero's strongbox (E at an inn's strongbox, or the let room's chest: model/hero/stash.ts), in the shared menu: its
 // STASH_SLOTS slots, a stack to each, with how many of them are taken. The bag opens beside it: right-click a stack
 // there (or drag it onto this window) to put it in; right-click one here (or drag it onto the bag) to take it out. Two
-// buttons put all the junk, or all the crafting materials, in at once. Modeless, in the middle of the screen: walk off
+// buttons put all the junk, or all the crafting materials, in at once. Modeless, on the left (the bag on the right): walk off
 // from the strongbox and it shuts (the bag too, unless it was open already).
 import './stashPanel.css';
 import type { GameModel } from '../../model/GameModel';
@@ -80,7 +80,7 @@ export function createStashPanel(model: GameModel, hooks: { bag?: StashBag }): {
     title: 'Strongbox',
     keyHints: false,
     modal: false,
-    place: 'center',
+    place: 'left', // (beside the bag, at the bottom right: neither over the other)
     onOpenChange: (open) => {
       said = '';
       const { bag } = hooks;

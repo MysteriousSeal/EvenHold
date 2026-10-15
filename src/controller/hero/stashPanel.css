@@ -1,6 +1,6 @@
 /* The strongbox (stashPanel.ts), over menu.css's look: ten slots across, six rows, as small as the bag's; under them
    its two buttons, how full it is, and what was last put away or taken out. */
-.menu[aria-label='Strongbox'] { width: min(500px, 100%); }
+.menu-backdrop.place-left .menu[aria-label='Strongbox'] { width: min(520px, 100%); } /* (over the left side's narrower width) */
 .menu[aria-label='Strongbox'] .menu-slot { min-width: 42px; }
 .menu[aria-label='Strongbox'] .menu-slot canvas { transform: scale(0.82); }
 .menu[aria-label='Strongbox'] .menu-grid { gap: 4px; }
