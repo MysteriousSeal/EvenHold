@@ -82,6 +82,20 @@ export function stepNpcs(npcs: readonly Npc[], world: NpcWorld, dt: number): voi
   }
 }
 
+// A world come into (a new game, or a saved one gone on with): its villagers already about their day, as though it had
+// gone on unseen a while (they arrive at once), not all at home only now stepping out of their doors.
+const WAKE_TIME = 20; // seconds of their round, gone by
+const WAKE_STEP = 0.5;
+
+export function wakeVillagers(npcs: readonly Npc[], world: NpcWorld): void {
+  const folk = npcs.filter((n) => n.role === 'villager' && !n.led);
+  for (const npc of folk) {
+    // (Up and out from the first: their lie-in at home let go, and a round that would begin at home begun past it.)
+    if (npc.where === npc.home) npc.steps = [];
+    if ((npc.field ? FARMER_ROUTINE : ROUTINE)[npc.stop % ROUTINE.length] === 'home') npc.stop++;
+  }
+  for (let t = 0; t < WAKE_TIME; t += WAKE_STEP) for (const npc of folk) act(npc, npcs, world, false, WAKE_STEP);
+}
 
 // The steps for the next stop of the routine.
 // The inn is only now and then, and never past full: otherwise that stop's
