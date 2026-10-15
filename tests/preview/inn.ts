@@ -48,10 +48,11 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(W, H);
 document.body.appendChild(renderer.domElement);
 const a = W / H;
-const camera = new THREE.OrthographicCamera(-FRUSTUM_SIZE * a, FRUSTUM_SIZE * a, FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 100);
+const F = FRUSTUM_SIZE / 2; // per side, as the game's (render/camera.ts resizeCamera)
+const camera = new THREE.OrthographicCamera(-F * a, F * a, F, -F, 0.1, 100);
 const mode = q.get('view') ?? 'game';
 const at = new THREE.Vector3(Number(q.get('x') ?? (mode === 'game' ? room.door : room.width / 2 - 0.5)), 0, Number(q.get('z') ?? (mode === 'game' ? room.depth - 1.5 : room.depth / 2 - 0.5)));
-camera.zoom = mode === 'close' ? Number(q.get('zoom') ?? 3) : mode === 'room' ? 1.1 : 1.35;
+camera.zoom = mode === 'close' ? Number(q.get('zoom') ?? 2) : mode === 'room' ? 0.55 : 1.35; // (game: INDOOR_ZOOM)
 camera.position.copy(at).add(CAMERA_OFFSET);
 camera.lookAt(at);
 camera.updateProjectionMatrix();

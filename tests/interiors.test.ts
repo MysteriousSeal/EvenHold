@@ -91,7 +91,7 @@ describe('interiors', () => {
       counts.push(tables);
       if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(5);
       // Its lanterns spread along the back wall, never two side by side.
-      const lanterns = items.filter((i) => i.kind === 'wallLantern').map((i) => i.x).sort((a, b) => a - b);
+      const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back').map((i) => i.x).sort((a, b) => a - b);
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
