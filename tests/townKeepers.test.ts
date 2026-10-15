@@ -11,6 +11,8 @@ import { titleOf } from '../src/model/npcs/npcs';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { addToBag } from '../src/model/hero/bag';
 import { villagerInReach } from '../src/model/npcs/chat';
+import { bearing, travellerSays } from '../src/model/travellers/travellerTalk';
+import { spawnTravellers } from '../src/model/travellers/travellers';
 
 const SEED = 3;
 const site = townSite(SEED, STREAMED_SIZE)!;
@@ -88,4 +90,24 @@ describe('the stalls\' keepers', () => {
     expect(stallShopAt(again.shops, again.seed, stall).stock).toEqual(left);
     expect(mongers(again)).toHaveLength(model.towns[0].stalls.length);
   }, 180_000);
+});
+
+describe('pilgrims on the roads to it', () => {
+  it('walk the roads into the town, more of them than anywhere else, and every pilgrim tells the way to it', () => {
+    const model = inTown();
+    const town = model.villages.findIndex((v) => v.town);
+    const index = model.world.indexAt(site.x, site.z);
+    const known = model.world.contents(index)!;
+    const holy = new Set(known.roads.flatMap((r, i) => (known.villages[r.from]?.town || known.villages[r.to]?.town ? [i] : [])));
+    expect(town).toBeGreaterThanOrEqual(0);
+    expect(holy.size).toBeGreaterThan(0);
+    const into = model.travellers.list.filter((t) => t.role === 'pilgrim' && model.world.indexAt(Math.floor(t.x), Math.floor(t.z)) === index && holy.has(t.road)); // (the town's region's band)
+    expect(into.length).toBeGreaterThanOrEqual(holy.size);
+    const plain = spawnTravellers(SEED, known.roads, site).filter((t) => holy.has(t.road) && t.role === 'pilgrim').length;
+    const busy = spawnTravellers(SEED, known.roads, site, 0, holy).filter((t) => holy.has(t.road) && t.role === 'pilgrim').length;
+    expect(busy).toBeGreaterThan(plain);
+    const pilgrim = { ...into[0], x: site.x + 300, z: site.z };
+    travellerSays(pilgrim, []);
+    expect(travellerSays(pilgrim, [], site)).toContain(`to the ${bearing(pilgrim, site)}`);
+  }, 120_000);
 });

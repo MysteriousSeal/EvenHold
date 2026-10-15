@@ -359,7 +359,7 @@ describe('a word with a traveller', () => {
     expect(heard.every((line, i) => i === 0 || line !== heard[i - 1])).toBe(true);
   });
 
-  it('a pilgrim tells of the nearest crypt (which way, its name, not its level), every other time; else a word of the road', () => {
+  it('a pilgrim tells of the nearest crypt (which way, its name, not its level), in turn with the cathedral town (none in a classic world) and a word of the road', () => {
     const model = shared();
     const pilgrim = model.travellers.list.find((x) => x.role === 'pilgrim')!;
     const nearest = [...model.crypts].sort((a, b) => Math.hypot(a.middle.x - pilgrim.x, a.middle.z - pilgrim.z) - Math.hypot(b.middle.x - pilgrim.x, b.middle.z - pilgrim.z))[0];
