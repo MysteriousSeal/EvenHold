@@ -1,5 +1,6 @@
 // Taken by the witch-finders (questioning.ts, patrols.ts): never burnt, but a day in the stocks on the nearest
-// village's square and a fine to the bishop's poor box. The hero, put out on the square by its well, the clock
+// village's square and a fine to the bishop's poor box. The hero, sat in the square's stocks (stocks.ts: held there,
+// seen, till the talk's over; a square with none, put out on it by its well), the clock
 // on to the evening of the next day (at least half a day on: let out at dusk), the fine taken (all their purse
 // holds, if it holds less), what's heard of them wiped clean (paid for), the hunts called off. Healed (fed on
 // what was thrown), Weary. Told as a talk with a night in it (the talk panel's black: "A day in the stocks").
@@ -10,6 +11,8 @@ import { villageName } from '../villages/villageNames';
 import type { Talk } from '../story/storyTypes';
 import type { GameModel } from '../GameModel';
 import type { Village } from '../types';
+import { sitDown } from '../interiors/indoors';
+import { villageStocks } from './stocks';
 
 const FINE = 40; // copper, and FINE_LEVEL more a level of the hero's
 const FINE_LEVEL = 20;
@@ -42,8 +45,13 @@ export function serve(model: GameModel, arrest: Arrest): void {
   model.heat.calmAll();
   [hero.knock, hero.y, model.moves.roll, model.moves.guard] = [undefined, 0, null, null];
   const village = arrest.village ?? model.heat.nearest(hero);
-  const spot = village ? squareSpot(model, village) : hero;
+  const stocks = village ? villageStocks(model, village) : null;
+  const spot = stocks ? { x: stocks.x + stocks.front[0] * 0.75, z: stocks.z + stocks.front[1] * 0.75 } : village ? squareSpot(model, village) : hero; // (before the stocks, to stand up onto)
   model.teleport(spot.x, spot.z); // (out of doors, whatever they'd got into)
+  if (stocks) {
+    sitDown(model.outdoors, hero, stocks.seat); // (held in them, seen so, till the talk's over: roads.ts)
+    model.roads.held = true;
+  }
   model.minutes = letOutAt(model.minutes);
   hero.hp = maxHpOf(hero);
   makeWeary(hero);

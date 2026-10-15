@@ -22,6 +22,7 @@ export class Roads {
   private told: { who: Speaker; talk: Talk } | null = null; // to be shown (an arrest)
   private asking: object | null = null; // the party whose word's been shown
   arrest: Arrest | null = null; // under way: served in the stocks' black, or the next frame after
+  held = false; // sat in the stocks (arrest.ts), till the next frame out in the world: then up, let out
 
   constructor(private readonly model: GameModel) {
     this.patrols = new Patrols(model);
@@ -34,6 +35,11 @@ export class Roads {
       if (!this.arrest.served) serve(this.model, this.arrest);
       this.arrest = null;
       this.told = null;
+      return; // (seen held in them a frame, at the least)
+    }
+    if (this.held) {
+      this.held = false;
+      if (this.model.outdoors.seated) this.model.sitOrStand(); // (up, before the stocks)
     }
     this.model.heat.update();
     this.patrols.update(dt);
