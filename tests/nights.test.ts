@@ -7,7 +7,7 @@ import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { letUntil } from '../src/model/inn/roomLetting';
 import type { Npc, NpcRole } from '../src/model/npcs/npcs';
 import { walkAlong } from '../src/model/npcs/npcWalk';
-import { everyKindOfWorld } from './support/testWorld';
+import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const DAY = 24 * 60;
 
@@ -74,6 +74,30 @@ describe('a quest that ends in a night together', () => {
     expect(story.stateOf(supper)).toBe('taken');
     expect(story.replay('supperForTwo', herbalist)).toBe(supper);
     expect(story.stateOf(supper)).toBe('offered');
+  });
+});
+
+describe('a night quest handed in at night', () => {
+  it.each([
+    ['herbalist', 'supperForTwo'],
+    ['smith', 'aDrinkAfterHours'],
+  ] as const)('the %s abed (past eleven) still takes it in, by a word: only their shop is shut', (role, quest) => {
+    const model = fresh();
+    const { story } = model;
+    const who = model.npcs.find((n) => n.role === role)!;
+    const key = story.replay(quest, who)!;
+    story.talk(who, key)!.answers[0].pick();
+    expect(story.finish(key)).toBe(true);
+    model.enterRoom(who.home);
+    model.minutes = Math.floor(model.minutes / DAY) * DAY + 23 * 60 + 30;
+    for (let t = 0; t < 20; t += 1 / 10) model.update(0, 0, 1 / 10);
+    if (role === 'herbalist') expect(who.seat?.lying).toBe(true); // (abed)
+    const talk = story.talk(who)!; // (what E says first: their word on the quest, before any trade)
+    expect(talk.quest).toMatchObject({ state: 'handIn' });
+    talk.night!();
+    talk.answers[0].pick();
+    expect(story.stateOf(key)).toBe('done');
+    expect(model.minutes % DAY).toBe(8 * 60);
   });
 });
 
