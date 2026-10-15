@@ -102,6 +102,11 @@ export type GameEvent =
   | { kind: 'chilled' } // the hero caught in a draugr's frost breath
   | { kind: 'webbed' } // the hero caught in a cave spider's web
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
+  | { kind: 'swing'; roll?: boolean } // the hero's blow begun (hero/heroActs.ts), or a roll (GameModel): its whoosh (view/audio/)
+  | { kind: 'slain'; on: EnemyKind; x: number; y: number; z: number } // a foe killed, where it falls (hero/fighting.ts)
+  | { kind: 'fallen' } // the hero felled (hero/fighting.ts; what comes of it: hero/setbacks.ts)
+  | { kind: 'stroke'; tool: 'axe' | 'pick' | 'hammer' | 'bench' } // a tool's stroke landing, at work (skills/strokes.ts)
+  | { kind: 'castLine' } // a fishing line cast (skills/fishing.ts)
   | { kind: 'say'; speaker: { x: number; z: number }; where: object | null; text: string }; // someone speaking (npcs/speech.ts), in a room (its door) or outdoors
 export type EnemyState = 'wander' | 'chase' | 'dead';
 

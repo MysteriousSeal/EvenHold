@@ -10,6 +10,7 @@ import { useAction as useSlot } from './actionBar';
 // (an inn); whether it did. Turned to face the focused enemy if it's close by.
 export function startAttack(m: GameModel): boolean {
   if (m.seated || armsSheathed(m.inside) || !m.moves.startBlow()) return false;
+  m.report({ kind: 'swing' }); // (its whoosh)
   const focus = m.focused;
   if (focus && focus.state !== 'dead' && Math.hypot(focus.x - m.hero.x, focus.z - m.hero.z) <= FOCUS_TURN_RANGE) {
     m.hero.facing = Math.atan2(focus.x - m.hero.x, focus.z - m.hero.z);

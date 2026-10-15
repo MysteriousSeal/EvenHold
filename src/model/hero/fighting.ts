@@ -102,6 +102,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean,
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
+    fight.report({ kind: 'slain', on: target.kind, x: target.x, y: target.y, z: target.z });
     if (isWorldFoe(target.id)) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
     fight.slayGuard(target);
     gainXp(hero, xpGained(hero, xpAgainst(target.xp, target.level, hero.level))); // less, the weaker the foe
@@ -204,6 +205,7 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
   wearOnHarm(hero, blow.damage, fight.report); // (what they wear against blows, worn by it)
   hero.eating = null; // (a meal from the bag interrupted: the rest lost)
   if (!hurt(hero, blow.damage)) return guard.guarded;
+  fight.report({ kind: 'fallen' });
   fight.fall();
   return 'fallen';
 }
