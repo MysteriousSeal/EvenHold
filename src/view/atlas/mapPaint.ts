@@ -12,6 +12,7 @@ import type { MapPin, Place } from '../../model/atlas/atlas';
 import { villageName } from '../../model/villages/villageNames';
 import { difficulty, zoneLevel, type Difficulty } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
+import { atRim, compass, screenFacing, toMap, toScreen, TURN } from './mapView';
 
 // Where the map's looking: the tile at its middle, and how many pixels a tile.
 export interface MapLook {
@@ -128,6 +129,7 @@ function shore(chart: Chart, i: number, k: number): boolean {
 
 export interface MapPaint {
   names: boolean; // villages' and places' names written
+  namePx?: number; // the villages' names' size (12; the corner map's, smaller)
   pins: readonly MapPin[];
   places: readonly Place[];
 }
@@ -136,12 +138,12 @@ export interface MapPaint {
 export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: MapLook, width: number, height: number, paint: MapPaint): void {
   const { atlas } = model;
   const { scale } = look;
-  const sx = (x: number) => (x - look.x) * scale + width / 2;
-  const sz = (z: number) => (z - look.z) * scale + height / 2;
+  const at = (x: number, z: number) => toScreen(look, width, height, x, z); // (turned as the game's camera: mapView.ts)
   ctx.fillStyle = VELLUM;
   ctx.fillRect(0, 0, width, height);
-  const [x0, x1] = [look.x - width / 2 / scale, look.x + width / 2 / scale];
-  const [z0, z1] = [look.z - height / 2 / scale, look.z + height / 2 / scale];
+  const reach = Math.hypot(width, height) / 2 / scale; // (the land in view, turned: all within this of the middle)
+  const [x0, x1] = [look.x - reach, look.x + reach];
+  const [z0, z1] = [look.z - reach, look.z + reach];
   const charts: Chart[] = [];
   // The chunks' washes in view laid side by side a pixel a cell (one picture: drawn smooth, no seam between them), then
   // drawn over the map at its scale.
@@ -161,7 +163,11 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     }
   }
   ctx.imageSmoothingEnabled = scale < 3; // (soft as a wash; close up, its cells)
-  ctx.drawImage(sheet, sx(c0 * CHUNK), sz(d0 * CHUNK), sheet.width * CHART_CELL * scale, sheet.height * CHART_CELL * scale);
+  ctx.save();
+  ctx.translate(...at(c0 * CHUNK, d0 * CHUNK));
+  ctx.rotate(TURN);
+  ctx.drawImage(sheet, 0, 0, sheet.width * CHART_CELL * scale, sheet.height * CHART_CELL * scale);
+  ctx.restore();
   const seen = (x: number, z: number) => atlas.fog.seen(x, z);
   // The roads, where they've been seen.
   ctx.strokeStyle = ROAD;
@@ -173,8 +179,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       for (let i = 2; i < way.length; i += 2) {
         const [ax, az, bx, bz] = [way[i - 2], way[i - 1], way[i], way[i + 1]];
         if (!seen(ax, az) || !seen(bx, bz)) continue;
-        ctx.moveTo(sx(ax + 0.5), sz(az + 0.5));
-        ctx.lineTo(sx(bx + 0.5), sz(bz + 0.5));
+        ctx.moveTo(...at(ax + 0.5, az + 0.5));
+        ctx.lineTo(...at(bx + 0.5, bz + 0.5));
       }
     }
   }
@@ -197,14 +203,17 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   // The marks first: the villages seen (a house), the places come upon (struck through once cleared), the pins' heads.
   const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
   for (const v of villages) {
-    const [x, y] = [sx(v.x + 0.5), sz(v.z + 0.5)];
+    const [x, y] = at(v.x + 0.5, v.z + 0.5);
     if (v.town) cathedral(ctx, x, y);
     else house(ctx, x, y);
     take(x - 7, y - (v.town ? 20 : 8), x + 7, y + 5);
   }
-  const places = paint.places.filter((p) => sx(p.x) > -20 && sz(p.z) > -20 && sx(p.x) < width + 20 && sz(p.z) < height + 20);
+  const places = paint.places.filter((p) => {
+    const [x, y] = at(p.x, p.z);
+    return x > -20 && y > -20 && x < width + 20 && y < height + 20;
+  });
   for (const place of places) {
-    const [x, y] = [sx(place.x + 0.5), sz(place.z + 0.5)];
+    const [x, y] = at(place.x + 0.5, place.z + 0.5);
     glyph(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
     if (!place.cleared) continue;
     ctx.strokeStyle = '#b02a24';
@@ -215,7 +224,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     ctx.stroke();
   }
   for (const pin of paint.pins) {
-    const [x, y] = [sx(pin.x + 0.5), sz(pin.z + 0.5)];
+    const [x, y] = at(pin.x + 0.5, pin.z + 0.5);
     take(x - 6, y - 18, x + 6, y);
   }
   // Then the names, under their marks: the villages' (and their levels, in how dangerous they are to the hero), nearest
@@ -225,18 +234,23 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     const middle = (p: { x: number; z: number }) => Math.hypot(p.x - look.x, p.z - look.z);
     for (const v of [...villages].sort((a, b) => middle(a) - middle(b))) {
       const [name, level] = [`${villageName(v, model.seed)} · `, zoneLevel(spawn, v)];
-      ctx.font = font(12);
+      const px = paint.namePx ?? 12;
+      ctx.font = font(px);
       const [wide, all] = [ctx.measureText(name).width, ctx.measureText(`${name}${level}`).width];
-      const x = sx(v.x + 0.5);
-      const y = [18, -12].map((dy) => sz(v.z + 0.5) + dy).find((y) => free(x - all / 2 - 2, y - 11, x + all / 2 + 2, y + 3)); // (under its house, else over it)
+      const [x, vy] = at(v.x + 0.5, v.z + 0.5);
+      const y = [6 + px, -12].map((dy) => vy + dy).find((y) => free(x - all / 2 - 2, y - px + 1, x + all / 2 + 2, y + 3)); // (under its house, else over it)
       if (y === undefined) continue;
-      take(x - all / 2 - 2, y - 11, x + all / 2 + 2, y + 3);
-      label(name, x - all / 2 + wide / 2, y, 12);
-      label(String(level), x - all / 2 + wide + ctx.measureText(String(level)).width / 2, y, 12, DANGER_INK[difficulty(level, model.hero.level)]);
+      take(x - all / 2 - 2, y - px + 1, x + all / 2 + 2, y + 3);
+      label(name, x - all / 2 + wide / 2, y, px);
+      label(String(level), x - all / 2 + wide + ctx.measureText(String(level)).width / 2, y, px, DANGER_INK[difficulty(level, model.hero.level)]);
     }
-    for (const place of places) take(sx(place.x + 0.5) - 8, sz(place.z + 0.5) - 9, sx(place.x + 0.5) + 8, sz(place.z + 0.5) + 7);
+    for (const place of places) {
+      const [x, y] = at(place.x + 0.5, place.z + 0.5);
+      take(x - 8, y - 9, x + 8, y + 7);
+    }
     for (const place of scale >= 2.5 ? places : []) {
-      const [x, y] = [sx(place.x + 0.5), sz(place.z + 0.5) + 17];
+      const [x, py] = at(place.x + 0.5, place.z + 0.5);
+      const y = py + 17;
       ctx.font = font(11);
       const half = ctx.measureText(place.name).width / 2 + 2;
       if (!free(x - half, y - 10, x + half, y + 3)) continue;
@@ -244,8 +258,9 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       label(place.name, x, y, 11);
     }
   }
-  for (const pin of paint.pins) drawPin(ctx, pin, sx(pin.x + 0.5), sz(pin.z + 0.5), width, height);
-  hero(ctx, sx(model.inside?.entrance.x ?? model.hero.x), sz(model.inside?.entrance.z ?? model.hero.z), model.hero.facing);
+  for (const pin of paint.pins) drawPin(ctx, pin, ...atRim(...at(pin.x + 0.5, pin.z + 0.5), width, height));
+  hero(ctx, ...at(model.inside?.entrance.x ?? model.hero.x, model.inside?.entrance.z ?? model.hero.z), screenFacing(model.hero.facing));
+  compass(ctx, width - 16, 30, INK);
 }
 
 // A village: a little house, its roof red-brown.
@@ -333,9 +348,8 @@ function glyph(ctx: CanvasRenderingContext2D, kind: Place['kind'], x: number, y:
   }
 }
 
-// A pin: a coloured head on a short stem; one off the map's edge, held at the edge.
-function drawPin(ctx: CanvasRenderingContext2D, pin: MapPin, x: number, y: number, width: number, height: number): void {
-  const [px, py] = [Math.min(width - 8, Math.max(8, x)), Math.min(height - 4, Math.max(16, y))];
+// A pin: a coloured head on a short stem (one off the map's edge already held at the edge: mapView.ts atRim).
+function drawPin(ctx: CanvasRenderingContext2D, pin: MapPin, px: number, py: number): void {
   ctx.strokeStyle = INK;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -355,7 +369,7 @@ function drawPin(ctx: CanvasRenderingContext2D, pin: MapPin, x: number, y: numbe
 
 // The hero: a red arrowhead pointing the way they face.
 function hero(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number): void {
-  const [dx, dy] = [Math.sin(facing), Math.cos(facing)]; // (x across, z down)
+  const [dx, dy] = [Math.sin(facing), Math.cos(facing)]; // (on the screen: x across, y down)
   const point = (along: number, aside: number) => [x + dx * along - dy * aside, y + dy * along + dx * aside] as const;
   ctx.fillStyle = '#c8321e';
   ctx.strokeStyle = INK;
@@ -372,11 +386,13 @@ function hero(ctx: CanvasRenderingContext2D, x: number, y: number, facing: numbe
 
 // What's under (x, y) on the map as drawn: the nearest pin, place or village within reach, in words.
 export function nameAt(model: GameModel, look: MapLook, width: number, height: number, paint: MapPaint, x: number, y: number): string | null {
-  const tx = (x - width / 2) / look.scale + look.x;
-  const tz = (y - height / 2) / look.scale + look.z;
+  const [tx, tz] = toMap(look, width, height, x, y);
   const reach = 12 / look.scale;
   const near = (p: { x: number; z: number }) => Math.hypot(p.x + 0.5 - tx, p.z + 0.5 - tz) <= reach;
-  const pin = paint.pins.find((p) => Math.hypot(p.x + 0.5 - tx, p.z + 0.5 - tz + 12 / look.scale) <= reach);
+  const pin = paint.pins.find((p) => {
+    const [px, py] = toScreen(look, width, height, p.x + 0.5, p.z + 0.5);
+    return Math.hypot(px - x, py - 12 - y) <= 12; // (its head, drawn over it on the screen)
+  });
   if (pin) return pin.label;
   const place = paint.places.find(near);
   if (place) return `${place.name} · level ${place.level}${place.cleared ? ' · cleared' : ''}`;

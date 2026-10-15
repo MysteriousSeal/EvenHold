@@ -147,6 +147,16 @@ export class Atlas {
     return this.charts.get(n) ?? null;
   }
 
+  // Chunk (cx, cz) charted now, on the game's thread, if no chart's come for it yet (the corner map's own, as a game
+  // starts: never blank while the workers chart it).
+  chartNow(cx: number, cz: number): void {
+    const n = this.fog.chunkOf(cx, cz);
+    if (this.chart(cx, cz) || this.charts.has(n) || cx < 0 || cz < 0 || cx * CHUNK >= this.host.size.width || cz * CHUNK >= this.host.size.depth) return;
+    const now = new SyncCharts(this.host);
+    now.request(cx, cz);
+    for (const chart of now.ready()) this.charts.set(this.fog.chunkOf(chart.cx, chart.cz), chart);
+  }
+
   // Those charted since last asked, kept.
   private take(): void {
     for (const chart of this.source?.ready() ?? []) this.charts.set(this.fog.chunkOf(chart.cx, chart.cz), chart);
