@@ -57,7 +57,8 @@ export const skyUniforms = {
   uWindGust: { value: 0 }, // 0..1, a gust now
   uSeason: { value: new THREE.Vector4(1, 0, 0, 0) }, // how much it's each season (spring, summer, autumn, winter), summing to 1: blended over a season's last day
   uDaylight: { value: 1 }, // 0..1, the day's light
-  uSnow: { value: 0 }, // 0..1, frost and snow on what faces up
+  uSnow: { value: 0 }, // 0..1, the snow lying: in drifts first (the high ground's), all over after a deep fall
+  uFrost: { value: 0 }, // 0..1, a light rime on what faces up (a clear winter's morning)
   uWet: { value: 0 }, // 0..1, the rain's darkening
   uNight: { value: 0 }, // 0..1
   uMist: { value: 0 }, // 0..1, extra low mist (a lake's, the morning's) over the hollows
