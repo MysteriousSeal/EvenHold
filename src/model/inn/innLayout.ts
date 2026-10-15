@@ -83,11 +83,13 @@ export function furnishInn(plan: Planner, room: Room): void {
     for (let j = i + 1; j < wall.length; j++) for (let k = j + 1; k < wall.length; k++) if (gap([wall[i], wall[j], wall[k]]) > gap(lanterns)) lanterns = [wall[i], wall[j], wall[k]];
   }
   for (const x of lanterns) place('wallLantern', 1, 1, 'back', [[x, 0]], false, true);
-  // The bar lit too, by two lanterns on its wall (over the washstand or the end of the bar, not behind the tall
-  // shelves), the way up by one on the wall beside the stairs' foot.
-  const shelved = (z: number) => items.some((o) => o.wall === 'left' && o.kind === 'bottleShelf' && z >= o.z && z < o.z + o.d);
-  const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 1 && !shelved(z));
-  for (const z of barWall.length > 1 ? [barWall[0], barWall[barWall.length - 1]] : barWall) place('wallLantern', 1, 1, 'left', [[0, z]], false);
+  // The bar lit too: a lantern on the back wall over the counter's end, and one on its own wall past the washstand
+  // and shelves (none over them: it'd hang in the basin, or behind the bottles); the way up by one on the wall beside
+  // the stairs' foot.
+  place('wallLantern', 1, 1, 'back', [[1, 0]], false);
+  const backed = (z: number) => items.some((o) => o.wall === 'left' && o.kind !== 'wallLantern' && o.x === 0 && z >= o.z && z < o.z + o.d);
+  const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 2 && !backed(z));
+  if (barWall.length > 0) place('wallLantern', 1, 1, 'left', [[0, barWall[barWall.length - 1]]], false);
   place('wallLantern', 1, 1, 'left', [[0, room.depth - 2]], false);
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
