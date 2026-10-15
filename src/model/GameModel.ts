@@ -13,6 +13,7 @@ import { TilePatch, type Tiles } from './map/tiles';
 import { bumpsEnemy } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import type { TravellerCrowd } from './travellers/travellerCrowd';
+import { townSite } from './town/townSite';
 import { LiveWorld } from './world/liveWorld';
 import { SyncSource, WorldStreamer, type RegionSource } from './world/worldStreamer';
 import { type Scenery } from './scenery/scenery';
@@ -361,6 +362,7 @@ export class GameModel {
   get seatInReach(): Seat | null { return seatInReach(this); }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
+  cathedralTown = (): { x: number; z: number } | null => townSite(this.seed, this.size); // (Greyminster's well, off the maps too: town/townSite.ts; a classic world's none)
   haunt = (ruin: Ruin, count: number): number => raiseGhosts(this, ruin, count); // (a ruin's ghosts risen again, for a quest that asks them slain: ruins/haunting.ts)
   campEmpty = (camp: Camp): boolean => this.campLife.empty(camp); // (asked by the quests people give: a camp cleared before it was asked)
   wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)

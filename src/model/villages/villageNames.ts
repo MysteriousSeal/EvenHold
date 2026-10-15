@@ -32,7 +32,10 @@ const QUALIFIED = 0.2; // of villages, a word before their name
 // "den": "Edden").
 const joined = (stem: string, tail: string): string => (stem.at(-1) === tail[0] && stem.at(-2) === tail[0] ? stem + tail.slice(1) : stem + tail);
 
-export function villageName(village: { x: number; z: number }, seed: number): string {
+export const TOWN_NAME = 'Greyminster'; // the cathedral town's (town/townLand.ts), every world's: the story's own (story/quests/saintQuestsTown.ts)
+
+export function villageName(village: { x: number; z: number; town?: true }, seed: number): string {
+  if (village.town) return TOWN_NAME;
   const { stems, tails, qualifiers } = VILLAGE_NAMES;
   const pick = pickAt(village.x, village.z, seed * 151);
   const stem = pick(stems, 701);
