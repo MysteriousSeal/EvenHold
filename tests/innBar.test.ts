@@ -10,6 +10,9 @@ import { callBarkeep, ordersAt, placeOrder } from '../src/model/inn/barOrders';
 import { mugsAt, setMug } from '../src/model/inn/barMugs';
 import { BarShift } from '../src/model/jobs/barShift';
 import { JOBS } from '../src/model/jobs/jobs';
+import { payRate } from '../src/model/jobs/shift';
+import { LINE } from '../src/model/jobs/pour';
+import type { Npc } from '../src/model/npcs/npcs';
 import { AISLE_X, serveTable } from '../src/model/inn/innStaff';
 import type { InnShift } from '../src/model/jobs/innShift';
 import { distanceTo, seatOf, type Furniture } from '../src/model/interiors/furniture';
@@ -293,5 +296,30 @@ describe('a pie plate left on the bar, behind the bar at work', () => {
     shift.use(row);
     expect([mugsAt(inn), shift.held]).toEqual([[], []]);
     shift.release();
+  });
+});
+
+describe("a shift's pay, the hero's level", () => {
+  it('keeps up with them as a quest does: the first level as ever, a quarter more a level over it, the bonus too', () => {
+    expect([payRate(1), payRate(3), payRate(5)]).toEqual([1, 1.5, 2]);
+    const paidAt = (level: number) => {
+      const { model, inn, furniture } = inTheInn();
+      model.hero.level = level;
+      const stool = furniture.find((f) => f.kind === 'barStool')!;
+      expect(model.work.start(inn, 'innBarkeep')).toBe(true);
+      const shift = model.work.shift as BarShift;
+      const npc = { id: 77, name: 'P', where: inn, home: null, x: stool.x, z: stool.z, seat: { piece: stool }, awaiting: false, drinking: null, waited: 0, steps: [], role: 'villager', stop: 1, salt: 0 } as unknown as Npc;
+      placeOrder(inn, { stool, by: npc, drink: 'ale', served: () => {} });
+      shift.update([npc], 0.1, shift.stations.tap);
+      shift.use(shift.stations.tap);
+      while (shift.pour && shift.pour.fill < LINE) shift.update([npc], 1 / 60, shift.stations.tap);
+      shift.use(shift.stations.tap);
+      const handed = shift.use({ x: AISLE_X, z: stool.z })!;
+      return { handed, rate: shift.rate };
+    };
+    const [first, third] = [paidAt(1), paidAt(3)];
+    expect(first.rate).toBe(1);
+    expect(third.rate).toBe(1.5);
+    expect(third.handed).toBe(Math.round(first.handed * 1.5));
   });
 });
