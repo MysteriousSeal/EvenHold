@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { GameEvent } from '../../../model/types';
+import { lifeShare } from '../../render/graphics';
 
 type Hit = Extract<GameEvent, { kind: 'hit' }>;
 type Shed = 'blood' | 'bone' | 'ichor' | 'frost' | 'mote';
@@ -78,7 +79,7 @@ export class BloodBursts {
   burst(parent: THREE.Object3D, hit: Hit, scale: number): void {
     const shed = shedOf(hit.on);
     const floats = shed === 'mote';
-    const count = dropsFor(hit);
+    const count = Math.max(2, Math.round(dropsFor(hit) * lifeShare())); // (fewer at a lower graphics setting, never none)
     // The way the blow went (from whoever struck it to who it struck); none known (an arrow's), any way.
     const [dx, dz] = hit.from ? [hit.x - hit.from.x, hit.z - hit.from.z] : [0, 0];
     const len = Math.hypot(dx, dz);
