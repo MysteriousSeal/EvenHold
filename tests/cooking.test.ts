@@ -10,7 +10,7 @@ import { GameModel } from '../src/model/GameModel';
 import { COOK_RECIPES, COOK_RECIPE_IDS, KINDLED_BURNS, KINDLE_LOGS } from '../src/model/skills/cooking';
 import { MEALS, MEAL_IDS } from '../src/model/loot/meals';
 import { PROVISIONS, PROVISION_IDS, givesText } from '../src/model/loot/provisions';
-import { SKILLS, skillOf } from '../src/model/skills/skills';
+import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { eatOrDrink } from '../src/model/hero/bag';
 import { blowDamage, hitTaken, mending, spared, tiring, tossCoin } from '../src/model/hero/blessing';
 import { maxHpOf } from '../src/model/hero/attributes';
@@ -136,6 +136,7 @@ describe('cooking', () => {
   it('cooks one: its makings out of the bag, the meal in, the skill up (orange), some experience; told', () => {
     const model = kitchen(1, { rawBoarMeat: 2 });
     byTheHearth(model);
+    skillOf(model.hero, 'cooking').toward = stepsOf('cooking', 1) - 1; // (a meal short of the next level)
     const xp = model.hero.xp;
     expect(model.cooking.start('roastBoar')).toBe(true);
     expect(model.cooking.progress).toBe(0);

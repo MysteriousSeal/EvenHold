@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { ANCIENT, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
-import { RISE, difficulty, skillOf } from '../src/model/skills/skills';
+import { RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import type { Tree } from '../src/model/types';
@@ -68,6 +68,7 @@ describe('woodworking', () => {
 
   it('makes one: its materials out of the bag, what it makes in, the skill up (orange), some experience; told', () => {
     const model = workshop(1, { birchLog: 2 });
+    skillOf(model.hero, 'woodworking').toward = stepsOf('woodworking', 1) - 1; // (a make short of the next level)
     const xp = model.hero.xp;
     expect(model.woodworking.start('birchPlank')).toBe(true);
     run(model, RECIPES.birchPlank.seconds + 0.05);
