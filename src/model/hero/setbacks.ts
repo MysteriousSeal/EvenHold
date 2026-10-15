@@ -17,6 +17,7 @@ import { sitDown, standUp, type Seated } from '../interiors/indoors';
 import type { Npc } from '../npcs/npcs';
 import { inTurn, say } from '../npcs/speech';
 import { herbalistAbed } from '../herbalist/herbalistWork';
+import { witchAbed } from '../witch/witchWork';
 import { makeWeary } from './blessing';
 import { spawnOf } from '../map/grid';
 
@@ -74,7 +75,7 @@ function ownedBed(model: GameModel): { seated: NonNullable<Seated>; owner: Npc |
   const inside = model.inside;
   const seated = inside?.seated;
   if (!inside || inside.below || !seated?.seat.lying || seated.seat.piece.kind !== 'bed') return null; // (an inn's beds upstairs: its rooms')
-  return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance && (n.role !== 'herbalist' || herbalistAbed(model.minutes))) ?? null };
+  return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance && (n.role === 'herbalist' ? herbalistAbed(model.minutes) : n.role !== 'witch' || witchAbed(model.minutes))) ?? null };
 }
 
 // The owner's word, and the hero up out of their bed.

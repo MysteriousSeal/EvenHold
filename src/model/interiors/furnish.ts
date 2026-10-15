@@ -15,10 +15,13 @@ import { furnishInn } from '../inn/innLayout';
 import { furnishSmithy } from '../smithy/smithyLayout';
 import { furnishHerbalist } from '../herbalist/herbalistLayout';
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
+import { furnishWitch } from '../witch/witchLayout';
+import { isWitchHome } from '../witch/witchHomes';
 
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
   const plan = roomPlanner(seed, entrance, room);
   if (entrance.type === 'house' && isHerbalistHome(entrance)) furnishHerbalist(plan, room, seed, entrance); // (a herbalist's: their shop)
+  else if (entrance.type === 'house' && isWitchHome(entrance)) furnishWitch(plan, room, seed, entrance); // (a hedge-witch's: her cottage)
   else if (entrance.type === 'house') furnishHouse(plan, room, seed, entrance);
   else if (entrance.type === 'inn') furnishInn(plan, room);
   else furnishSmithy(plan, room);

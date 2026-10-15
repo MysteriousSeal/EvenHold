@@ -31,7 +31,7 @@ describe("a herbalist's house inside", () => {
       expect(bed && [bed.x, bed.z, bed.wall], 'the bed: in the back corner, its head to the back wall').toEqual([0, 0, 'left']);
     }
     const m = worlds[0];
-    const homes = new Set(m.npcs.filter((n) => n.role === 'herbalist').map((n) => n.home));
+    const homes = new Set(m.npcs.filter((n) => n.role === 'herbalist' || n.role === 'witch').map((n) => n.home)); // (a hedge-witch's: her own, of a herbalist's pieces)
     for (const house of m.entrances.filter((e) => e.type === 'house' && !homes.has(e)).slice(0, 20)) {
       const { room, furniture } = layoutOf(m.seed, house);
       expect(furniture.some((f) => HERBALIST_KINDS.includes(f.kind))).toBe(false);
