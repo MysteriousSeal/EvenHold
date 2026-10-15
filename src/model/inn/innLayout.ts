@@ -43,8 +43,10 @@ export function furnishInn(plan: Planner, room: Room): void {
   // up to their own table, so two back to back between tables still leave
   // a walkway.
   const gapTo = (o: Furniture, x: number, z: number) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
+  // The hearth corner (its rug and armchairs) kept a ring of open floor: a table three from it, its chairs not up against it.
+  const hearthside = (o: Furniture) => o.kind === 'bearRug' || o.kind === 'armchair';
   const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
-    items.every((o) => !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
+    items.every((o) => hearthside(o) ? gapTo(o, x, z) >= 3 : !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
   // (None just inside the door: a little open floor to walk in on, three tiles deep straight ahead of it (two, in a
   // shallow room), two to either side.)
   const ahead = room.depth >= 9 ? 3 : 2;
@@ -98,8 +100,15 @@ export function furnishInn(plan: Planner, room: Room): void {
   const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 2 && z <= room.depth - 4 && !backed(z)); // (two tiles clear of the stairs' one: not a pair)
   if (barWall.length > 0) place('wallLantern', 1, 1, 'left', [[0, barWall[barWall.length - 1]]], false);
   place('wallLantern', 1, 1, 'left', [[0, room.depth - 2]], false);
-  place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
-  place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
+  // The antlers and the shield each in the barest run of the wall left (furthest from what's hung there, and the fire).
+  for (const kind of ['antlers', 'wallShield'] as const) {
+    const hung = items.filter((o) => o.wall === 'back' && (o.kind === 'hearth' || ['wallLantern', 'noticeBoard', 'menuSlate', 'antlers', 'wallShield'].includes(o.kind)));
+    const bare = (x: number) => Math.min(99, ...hung.map((o) => (x < o.x ? o.x - x : x >= o.x + o.w ? x - (o.x + o.w - 1) : 0)));
+    const spots = along(0).filter(([x]) => x >= 3 && bare(x) > 0);
+    shuffle(spots, rng);
+    spots.sort((a, b) => bare(b[0]) - bare(a[0]));
+    place(kind, 1, 1, 'back', spots, false);
+  }
   // Stores in the room's free corners on the right, at the front and the back (not a bare corner), clear of everything
   // else but each other (and of the floor before the notice board, where it's read from).
   // (Sacks of grain in the front one, the barrels beside them.)
