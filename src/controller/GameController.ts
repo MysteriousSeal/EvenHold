@@ -64,12 +64,12 @@ export class GameController {
   private readonly onSleep: () => void;
   private readonly onTraveller: (t: Traveller) => void;
   private readonly onWork: (inn: Entrance) => void;
-  private readonly onMeet: (who: Client, talk: Talk) => void;
+  private readonly onMeet: (who: Pick<Client, 'name' | 'look' | 'equipment'>, talk: Talk) => void;
 
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem, count: number) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onSmith?: () => void; onStash?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem, count: number) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Pick<Client, 'name' | 'look' | 'equipment'>, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onSmith?: () => void; onStash?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -207,7 +207,7 @@ export class GameController {
     if (this.held.roll > 0) this.held.roll = !this.model.work.held && this.model.roll(dirX, dirZ) ? 0 : this.held.roll - dt; // (not while held where they stand: below)
     this.model.raiseGuard(this.input.guarding);
     this.model.update(dirX, dirZ, dt);
-    const come = this.model.work.arrived(); // (someone let into their room, at work: in, the door shut, their word)
+    const come = this.model.work.arrived() ?? this.model.roads.arrived(); // (someone let into their room, at work: in, the door shut, their word; the witch-finders come up for one)
     if (come) this.onMeet(come.who, come.talk);
     for (const event of this.model.takeEvents()) {
       if (event.kind === 'guard' && event.outcome === 'parried') this.still = Math.max(this.still, HIT_STOP.parry);
