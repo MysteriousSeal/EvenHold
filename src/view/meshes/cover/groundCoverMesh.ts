@@ -13,7 +13,13 @@ import { TERRAIN_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
 import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
-import { createCoverScatter, type GroundCover, type ScatterItem } from './groundCoverScatter';
+import { createCoverScatter, type GroundCover, type ScatterItem, type WildItem } from './groundCoverScatter';
+import { groundTint } from '../terrain/biomeGround';
+import type { WildKind } from './biomeCover';
+import {
+  FERN_GRID, FERN_SHAPES, HEATHER_GRID, HEATHER_SHAPES, MUSHROOM_GRID, MUSHROOM_SHAPES, REED_GRID, REED_SHAPES, STONE_GRID, STONE_SHAPES, WILD_PALETTE,
+  buildFern, buildHeather, buildMushrooms, buildReeds, buildStone,
+} from './wildVoxels';
 import {
   COVER_PALETTE,
   COVER_VOXEL_SIZE,
@@ -41,6 +47,18 @@ const TUFT_HEIGHT_MAX = TUFT_SIZES[TUFT_SIZES.length - 1] * COVER_VOXEL_SIZE;
 const SINK = 0.01; // bases slightly below the grass, so no gap shows
 const GRASS_WIND = { height: TUFT_HEIGHT_MAX, strength: 0.049, speed: 1.6 };
 const BLOOM_WIND = { height: BLOOM_GRID[1] * COVER_VOXEL_SIZE, strength: 0.04, speed: 1.4 };
+const FROND_WIND = { height: FERN_GRID[1] * COVER_VOXEL_SIZE, strength: 0.03, speed: 1.3 }; // ferns and heather: a little
+const REED_WIND = { height: REED_GRID[1] * COVER_VOXEL_SIZE, strength: 0.07, speed: 1.7, flutter: 0.003 }; // reeds: tall and whippy
+
+// The country's own plants (wildVoxels.ts): each kind's grid, its shapes, its maker, and whether it sways (and how).
+const WILD: Record<WildKind, { grid: [number, number, number]; shapes: number; build: (shape: number) => ReturnType<typeof buildFern>; sway: 'frond' | 'reed' | null }> = {
+  fern: { grid: FERN_GRID, shapes: FERN_SHAPES, build: buildFern, sway: 'frond' },
+  heather: { grid: HEATHER_GRID, shapes: HEATHER_SHAPES, build: buildHeather, sway: 'frond' },
+  reed: { grid: REED_GRID, shapes: REED_SHAPES, build: buildReeds, sway: 'reed' },
+  mushroom: { grid: MUSHROOM_GRID, shapes: MUSHROOM_SHAPES, build: buildMushrooms, sway: null },
+  stone: { grid: STONE_GRID, shapes: STONE_SHAPES, build: buildStone, sway: null },
+};
+const wildShape = (w: WildItem) => w.variant % WILD[w.kind].shapes;
 
 function geometry(grid: ReturnType<typeof buildTuft>, size: [number, number, number]): THREE.BufferGeometry {
   // Centered on its spot in X/Z, standing on the ground in Y.
@@ -91,7 +109,7 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
   const grassMaterial = plain();
   const windTime = addWindSway(grassMaterial, GRASS_WIND);
   const grassTint = (item: ScatterItem) =>
-    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT);
+    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT).multiply(groundTint(item.country ?? 'meadow', item.tier));
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).sprigs,
@@ -136,8 +154,31 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     plain(),
   ));
 
+  // The country's own plants: those that sway (ferns and heather a little, reeds more), and those that don't.
+  const frondMaterial = plain();
+  const reedMaterial = plain();
+  const frondTime = addWindSway(frondMaterial, FROND_WIND);
+  const reedTime = addWindSway(reedMaterial, REED_WIND);
+  const stillMaterial = plain();
+  const sways = { frond: frondMaterial, reed: reedMaterial };
+  for (const [way, material] of [...Object.entries(sways), ['still', stillMaterial] as const]) {
+    scene.layer(voxelLayer(
+      keys,
+      (key) => coverIn(key).wild.filter((w) => (WILD[w.kind].sway ?? 'still') === way),
+      (w) => `wild:${w.kind}:${wildShape(w)}`,
+      (w) => {
+        const [sx, , sz] = WILD[w.kind].grid;
+        return greedyMesh(WILD[w.kind].build(wildShape(w)), WILD_PALETTE, COVER_VOXEL_SIZE, new THREE.Vector3((-sx * COVER_VOXEL_SIZE) / 2, -SINK, (-sz * COVER_VOXEL_SIZE) / 2));
+      },
+      (w) => place(w),
+      material,
+    ));
+  }
+
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
     bloomTime.value = elapsedSeconds;
+    frondTime.value = elapsedSeconds;
+    reedTime.value = elapsedSeconds;
   };
 }

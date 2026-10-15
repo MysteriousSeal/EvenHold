@@ -11,12 +11,13 @@ import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { hashCell, mulberry32 } from '../../../util/random';
 import { meadowPatches } from '../../../model/scenery/meadowPatches';
 import { sceneryTiles } from '../../../model/scenery/scenery';
+import { createBiomes, type Biome } from '../../../model/scenery/biomes';
+import { BIOME_COVER, type WildKind } from './biomeCover';
 
 const MAX_CLUMPS_PER_TILE = 5;
 const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
 const CLUMP_SCALE_CENTER = 1.2; // clump size in the lushest part
 const FLOWER_CHANCE = 0.05;
-const PEBBLE_CHANCE = 0.04;
 const MAX_BLOOMS = 6; // flowers a tile, in the thick of a patch
 const STRAY = 0.12; // of a patch's flowers, another kind among them
 const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few)
@@ -24,6 +25,7 @@ const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
 const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
 const ROAD_CLEARANCE = 0.04; // keep lining grass this far off the dirt
+const WILD_SALT = 41; // the country's own plants roll from a stream of their own (all else rolled as it ever was)
 
 export interface ScatterItem {
   x: number;
@@ -33,6 +35,11 @@ export interface ScatterItem {
   rotation: number;
   scale: number;
   variant: number; // item-specific: tuft shade, flower color, pebble shade index
+  country?: Biome; // the kind of country it grows in (model/scenery/biomes.ts): its grass's colour (none: meadow)
+}
+
+export interface WildItem extends ScatterItem {
+  kind: WildKind; // what it is (biomeCover.ts): ferns, mushrooms, heather, reeds, a stone
 }
 
 export interface GroundCover {
@@ -41,6 +48,7 @@ export interface GroundCover {
   flowers: ScatterItem[];
   pebbles: ScatterItem[];
   blooms: ScatterItem[]; // the meadow patches' wildflowers: variant, the kind (BLOOM_KINDS' index)
+  wild: WildItem[]; // the country's own plants and stones (biomeCover.ts)
 }
 
 // Grass, flowers and pebbles go on plain grass only: never water, village
@@ -78,8 +86,9 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
   const [solid, hasTree] = [at(solidAt), at(treeAt)];
   const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)
   const [bloomPatch, patchKind] = [patches.strength, patches.kind];
+  const biomes = createBiomes(model.seed, model.tiles);
   return (x0, z0, x1, z1) => {
-  const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [], blooms: [] };
+  const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [], blooms: [], wild: [] };
 
   for (let x = x0; x < x1; x++) {
     for (let z = z0; z < z1; z++) {
@@ -90,6 +99,8 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       const rng = mulberry32(hashCell(x, z, SCATTER_SALT));
       const tier = model.tiles.height(x, z);
       const y = tier * TILE_HEIGHT;
+      const country = biomes.at(x, z);
+      const grows = BIOME_COVER[country];
       const item = (ox: number, oz: number, scale: number, variant: number): ScatterItem => ({
         x: x + ox,
         y,
@@ -98,6 +109,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         rotation: rng() * Math.PI * 2,
         scale,
         variant,
+        country,
       });
       const offset = () => (rng() - 0.5) * SCATTER_SPREAD;
 
@@ -115,7 +127,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       // Lush meadows get up to MAX_CLUMPS_PER_TILE, their edges a stray
       // clump or two, bare ground none.
       const density = meadowDensity(x, z);
-      const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE + rng() * 0.99);
+      const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass + rng() * 0.99);
       // Clumps also grow with the meadow: small at the thin edges, largest
       // in the lush centers, so patches read as mounds rather than dots.
       const meadowScale = CLUMP_SCALE_EDGE + (CLUMP_SCALE_CENTER - CLUMP_SCALE_EDGE) * density;
@@ -134,7 +146,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
           cover.flowers.push(item(cx + (rng() - 0.5) * 0.16, cz + (rng() - 0.5) * 0.16, 0.85 + rng() * 0.3, color));
         }
       }
-      if (!treeHere && rng() < PEBBLE_CHANCE) {
+      if (!treeHere && rng() < grows.pebbles) {
         const count = rng() < 0.3 ? 2 : 1;
         for (let i = 0; i < count; i++) cover.pebbles.push(item(offset(), offset(), 0.025 + rng() * 0.025, Math.floor(rng() * 3)));
       }
@@ -147,6 +159,17 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         const kind = patchKind(x, z);
         const count = Math.floor(patch * MAX_BLOOMS + rng() * 0.99);
         for (let i = 0; i < count; i++) cover.blooms.push(item(offset(), offset(), 1, rng() < STRAY ? Math.floor(rng() * 7) : kind));
+      }
+      // The country's own plants (none in a meadow), from a stream of their own: off the tree's foot (but ferns).
+      if (grows.wild.length === 0) continue;
+      const roll = mulberry32(hashCell(x, z, WILD_SALT));
+      for (const { kind, chance, most } of grows.wild) {
+        if (roll() >= chance || (treeHere && kind !== 'fern')) continue;
+        const count = 1 + Math.floor(roll() * most);
+        for (let i = 0; i < count; i++) {
+          const [ox, oz] = [(roll() - 0.5) * SCATTER_SPREAD, (roll() - 0.5) * SCATTER_SPREAD];
+          cover.wild.push({ x: x + ox, y, z: z + oz, tier, rotation: roll() * Math.PI * 2, scale: 1, variant: Math.floor(roll() * 8), country, kind });
+        }
       }
     }
   }
