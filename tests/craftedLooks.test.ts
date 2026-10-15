@@ -54,8 +54,8 @@ describe('icons that read', () => {
     expect(colorAt(grid, 3, 3, 0)).toBe(0); // (open in the middle)
   });
 
-  it('chain mail and plate greaves: an icon model of their own, more than a grey shell', () => {
-    for (const id of ['chainMail', 'plateGreaves'] as const) {
+  it('chain mail, plate greaves, bronze spaulders: an icon model of their own, more than a bare shell', () => {
+    for (const id of ['chainMail', 'plateGreaves', 'bronzeSpaulders'] as const) {
       const grid = ITEM_MODELS[id].icon!.build();
       const used = new Set(grid.cells.filter(Boolean));
       expect(used.size, id).toBeGreaterThanOrEqual(4); // (mail or steel, and leather, and brass)

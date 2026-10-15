@@ -19,6 +19,7 @@ import type { SHOULDERS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette, type ShellCell } from '../armorShell';
 import type { ItemModel } from '../itemModel';
 import { fur, mail, mod } from '../patterns';
+import { createGrid, fillBox } from '../../../voxel/voxelShapes';
 import { SET_PALETTES } from '../setPalettes';
 
 // A pauldron: `cap` over the top, `face` down the sides, an `edge` along the bottom row.
@@ -38,17 +39,32 @@ const rings = namedPalette({ ring: 0x8d939c, gap: 0x6a7078 });
 const shawl = namedPalette({ wool: 0x8e4a5e, fringe: 0xd8b8a0 });
 const rope = namedPalette({ rope: 0xb89a6a, dark: 0x9a7e52 });
 const gold = namedPalette({ gold: 0xd4b060, dark: 0xa8862e, cloth: 0x2f9c9a });
-const bronze = namedPalette({ light: 0xe2a24a, bronze: 0xb86e2c, dark: 0x6e3e18, rivet: 0xf4d07a });
+const bronze = namedPalette({ light: 0xe2a24a, bronze: 0xb86e2c, dark: 0x6e3e18, rivet: 0xf4d07a, strap: 0x5e3f28 });
 
 // The sets' (their colours: setPalettes.ts). `rim`: a voxel at the cap's edge, over the arm's front, back or outer side.
 const rim = ({ top, front, back, flank }: ShellCell) => top && (front || back || flank);
 
 // Bronze spaulders: deep (a row further down the arm, out from under a hat's
 // brim, seen from behind), warm bronze bright on the cap, rivets down the
-// outer side, a dark rolled edge at the foot.
+// outer side, a dark rolled edge at the foot. Its icon: the pair, stepped
+// domes on a leather strap across the back, as they sit on the shoulders
+// (the shells alone, two loose slabs).
 const bronzeSpaulders: ItemModel = {
   palette: bronze.palette,
   deep: true,
+  icon: {
+    build: () => {
+      const { c } = bronze;
+      const grid = createGrid([16, 6, 7]);
+      for (const x of [0, 10]) {
+        fillBox(grid, x, 0, 0, x + 5, 3, 6, (vx, y, z) => (y === 0 ? c.dark : (vx === x || vx === x + 5) && mod(y + z, 2) === 0 ? c.rivet : c.bronze));
+        fillBox(grid, x + 1, 4, 1, x + 4, 4, 5, c.bronze);
+        fillBox(grid, x + 2, 5, 2, x + 3, 5, 4, c.light);
+      }
+      fillBox(grid, 6, 3, 1, 9, 4, 2, c.strap);
+      return grid;
+    },
+  },
   worn: {
     arm: ({ x, y, z, top, flank }) => {
       const { c } = bronze;
