@@ -54,7 +54,7 @@ export function createMinimap(model: GameModel): { update(): void; on: boolean; 
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       const at = model.inside?.entrance ?? model.hero;
       model.atlas.chartNow(Math.floor(at.x / CHUNK), Math.floor(at.z / CHUNK));
-      paintMap(ctx, model, { x: at.x, z: at.z, scale: SCALE }, SIZE, SIZE, { names: true, namePx: 9, pins: mapPins(model), places: model.atlas.places() });
+      paintMap(ctx, model, { x: at.x, z: at.z, scale: SCALE }, SIZE, SIZE, { names: true, namePx: 9, mark: 0.6, pins: mapPins(model), places: model.atlas.places() });
     },
   };
   return api;

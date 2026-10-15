@@ -71,7 +71,7 @@ export const offerMark = (): THREE.Mesh => markMesh(buildQuestMark(), MARK_GRID)
 // theirs under way, not ready yet), a gold "?" (ready to hand in to them); one shown at a time, bobbing.
 const GREY_PALETTE = [0xb9b4a8, 0xe2ded2, 0x7d786e];
 export type HeadMark = StoryMark; // (the model's own: story/story.ts)
-const MARK_OVER = 0.14; // over the name it hangs above
+const MARK_OVER = 0.18; // over the name it hangs above (clear of its top: overhead.ts HEAD_LABEL)
 export class HeadMarks {
   readonly group = new THREE.Group();
   private readonly marks: Record<HeadMark, THREE.Mesh> = {
