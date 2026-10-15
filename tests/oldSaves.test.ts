@@ -10,6 +10,7 @@ import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot, type SaveData } from '../src/model/save';
 import { doorNumber } from '../src/model/interiors/interiors';
 import { isCrafted } from '../src/model/skills/salvage';
+import { skillOf } from '../src/model/skills/skills';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 const VERSIONS = ['0.7.0', '0.6.0'];
@@ -60,12 +61,14 @@ describe.each(VERSIONS)('a save from %s', (version) => {
     expect(model.lumber.saved()).toEqual(old.trees);
   });
 
-  it('takes what is new since as an older save should be: its gear found, nothing in the strongbox, no purse dropped', () => {
+  it('takes what is new since as an older save should be: its gear found, nothing in the strongbox, no purse dropped, no herbs picked, alchemy at 1', () => {
     const model = load();
     expect(old.hero.crafted).toBeUndefined(); // (0.7.0 had no crafted mark)
     expect(isCrafted(model.hero, 'leatherCap')).toBe(false);
     expect(model.hero.stash).toEqual({});
     expect(model.purse).toBeNull();
+    expect(model.herbs.saved()).toEqual({ picked: {}, at: {} }); // (0.9's alchemy: skills/herbalism.ts)
+    expect(skillOf(model.hero, 'alchemy')).toEqual({ level: 1 });
   });
 
   it('plays on, and saves and loads again the same', () => {

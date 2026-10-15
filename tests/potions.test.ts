@@ -7,11 +7,11 @@ import { GameModel } from '../src/model/GameModel';
 import { drinkPotion, potionRefused } from '../src/model/hero/bag';
 import { recover } from '../src/model/hero/heroStats';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
-import { POTIONS, POTION_COOLDOWN, POTION_IDS, potionText } from '../src/model/loot/potions';
+import { POTIONS, POTION_COOLDOWN, POTION_IDS, SHOP_POTIONS, potionText } from '../src/model/loot/potions';
 import { LOOT_QUALITY } from '../src/model/loot/loot';
 import { setAction, useAction, readActionBar } from '../src/model/hero/actionBar';
 import { PEDLAR_WARES, pedlarBuys } from '../src/model/travellers/pedlarShop';
-import { buyFromHerbalist, herbalistBuys, herbalistShopAt, sellToHerbalist } from '../src/model/herbalist/herbalistShop';
+import { HERBALIST_WARES, buyFromHerbalist, herbalistBuys, herbalistShopAt, sellToHerbalist } from '../src/model/herbalist/herbalistShop';
 import { visitHerbalist } from '../src/model/cheats';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { heroStruck } from '../src/model/hero/fighting';
@@ -21,8 +21,9 @@ import { eatOrDrink } from '../src/model/hero/bag';
 const fresh = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
 
 describe('potions', () => {
-  it('six, of their own quality; each says what it gives', () => {
-    expect(POTION_IDS).toHaveLength(6);
+  it('six sold everywhere and an alchemist\'s brews, of their own quality; each says what it gives', () => {
+    expect(SHOP_POTIONS).toHaveLength(6);
+    expect(POTION_IDS).toEqual(expect.arrayContaining([...SHOP_POTIONS]));
     for (const id of POTION_IDS) expect(LOOT_QUALITY[id]).toBe('potion');
     expect(potionText('minorHealthPotion')).toBe('Restores 25% health at once');
     expect(potionText('greaterEnergyPotion')).toBe('Restores 70% energy at once');
@@ -74,9 +75,9 @@ describe('potions', () => {
     expect(readActionBar(['greaterEnergyPotion'])[0]).toBe('greaterEnergyPotion');
   });
 
-  it('pedlars carry them, and buy them back', () => {
+  it('pedlars carry the six (not the brews), and buy any back', () => {
     for (const id of POTION_IDS) {
-      expect(PEDLAR_WARES).toContain(id);
+      expect(PEDLAR_WARES.includes(id)).toBe(SHOP_POTIONS.includes(id));
       expect(pedlarBuys(id)).toBe(true);
     }
   });
@@ -99,7 +100,7 @@ describe('herbalists', () => {
     const model = fresh();
     const herbalist = model.npcs.find((n) => n.role === 'herbalist')!;
     const shop = herbalistShopAt(model.shops, model.seed, herbalist);
-    for (const id of POTION_IDS) expect(shop.stock[id] ?? 0).toBeGreaterThan(0);
+    for (const id of HERBALIST_WARES) expect(shop.stock[id] ?? 0, id).toBeGreaterThan(0); // (the brews too: shown as the hero levels)
     model.hero.money = 1000;
     expect(buyFromHerbalist(shop, model.hero, 'minorHealthPotion')).toBe('bought');
     expect(model.hero.bag.minorHealthPotion).toBe(1);
