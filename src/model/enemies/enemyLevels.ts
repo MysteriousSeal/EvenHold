@@ -13,6 +13,11 @@ const LEVEL_DISTANCE = 50; // tiles from spawn per level
 const HP_PER_LEVEL = 0.2; // +20% of the base per level
 const HP_PER_LEVEL_SQUARED = 0.02; // and 2% times the levels up squared
 const DAMAGE_PER_LEVEL = 0.15;
+// The heavy that no plain blow staggers (enemies/poise.ts), the fights between a dungeon's bosses: more health the
+// higher they are, HEAVY_MORE a level more, HEAVY_MOST at most (none at level 1: a fresh hero's foes as ever).
+const HEAVY: ReadonlySet<EnemyKind> = new Set(['draugr', 'bear', 'banditChief', 'bruiser']);
+const HEAVY_MORE = 0.04;
+const HEAVY_MOST = 0.3;
 const DAMAGE_PER_LEVEL_SQUARED = 0.02;
 const XP_PER_LEVEL = 0.25;
 
@@ -34,7 +39,7 @@ export function enemyPower(kind: EnemyKind, level: number): { maxHp: number; dam
   const stats = ENEMY_STATS[kind];
   const up = level - 1;
   return {
-    maxHp: Math.round(stats.hp * (1 + up * HP_PER_LEVEL + up * up * HP_PER_LEVEL_SQUARED)),
+    maxHp: Math.round(stats.hp * (1 + up * HP_PER_LEVEL + up * up * HP_PER_LEVEL_SQUARED) * (HEAVY.has(kind) ? 1 + Math.min(HEAVY_MOST, up * HEAVY_MORE) : 1)),
     damage: Math.max(1, Math.round(stats.damage * (1 + up * DAMAGE_PER_LEVEL + up * up * DAMAGE_PER_LEVEL_SQUARED))),
     xp: Math.round(stats.xp * (1 + up * XP_PER_LEVEL)),
   };
