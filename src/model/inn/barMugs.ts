@@ -1,7 +1,7 @@
 // The drinks on an inn's bar, one to a stool's row: a full tankard before
 // whoever's sat there drinking (a villager, or the hero), or a glass of
 // wine, and the empty cup they leave. Empty ones stay till the barkeep clears them, a few of her
-// rounds on (innStaff.ts). Kept per inn while the world runs (not saved:
+// rounds on (innStaff.ts); so does a full one left standing. Kept per inn while the world runs (not saved:
 // a fresh bar on a reload).
 
 import type { Entrance } from '../interiors/interiors';
@@ -37,9 +37,10 @@ export function takeMug(inn: Entrance, z: number): BarMug | null {
   return at >= 0 ? mugs.splice(at, 1)[0] : null;
 }
 
-// One of her rounds gone by: an empty mug ready to clear, if any (the one waited longest).
+// One of her rounds gone by: a mug ready to clear, if any (the one waited longest). An empty one; or a full one
+// left standing (never picked up: whoever it was for got up first), as no one's picks one up more than a moment on.
 export function roundOnBar(inn: Entrance): BarMug | null {
-  const empties = mugsAt(inn).filter((m) => !m.full);
-  for (const m of empties) m.wait--;
-  return empties.filter((m) => m.wait <= 0).sort((a, b) => a.wait - b.wait)[0] ?? null;
+  const mugs = mugsAt(inn);
+  for (const m of mugs) m.wait--;
+  return mugs.filter((m) => m.wait <= 0).sort((a, b) => a.wait - b.wait)[0] ?? null;
 }
