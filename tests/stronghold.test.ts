@@ -307,7 +307,7 @@ describe('a stronghold, gone into', () => {
       const kinds = new Set(model.foes.map((f) => f.kind));
       for (const kind of [...BOSSES, 'bruiser', 'crossbowman', 'warHound'] as const) expect(kinds.has(kind), `seed ${seed}: ${kind}`).toBe(true);
       expect(PACK.filter((k) => kinds.has(k)).length).toBeGreaterThanOrEqual(5);
-      expect(model.foes.every((f) => f.id >= STRONGHOLD_FOE_ID && f.level === stronghold.level + (f.kind === 'banditKing' ? 1 : 0))).toBe(true);
+      expect(model.foes.every((f) => f.id >= STRONGHOLD_FOE_ID && f.level === stronghold.level + (f.kind === 'banditKing' || f.champion ? 1 : 0))).toBe(true); // (the king, and a champion if there's one, a level over)
       expect(model.foes.every((f) => (f.kind === 'warHound') === (f.human === null))).toBe(true);
       expect(model.foes.find((f) => f.kind === 'banditKing')!.name).toMatch(/, the bandit king$/);
       expect(model.clearedShare(stronghold.entrance)).toBe(0);
@@ -370,9 +370,9 @@ describe('a stronghold, gone into', () => {
     for (const seed of TEST_SEEDS) {
       const model = fresh(seed);
       const stronghold = goIn(model);
-      const all = model.foes.length;
+      const all = model.foes.filter((f) => !f.champion).length; // (a champion, if there's one, none of its posts: model/champions/)
       const bosses = WINGS.map((wing) => bossOf(model, WING_BOSS[wing]));
-      for (const f of [...model.foes.filter((f) => PACK.includes(f.kind)).slice(0, 5), bosses[0], bosses[2]]) fell(model, f);
+      for (const f of [...model.foes.filter((f) => PACK.includes(f.kind) && !f.champion).slice(0, 5), bosses[0], bosses[2]]) fell(model, f);
       const share = model.clearedShare(stronghold.entrance);
       expect(share).toBeCloseTo(7 / all, 10);
       const load = () => {
@@ -382,7 +382,7 @@ describe('a stronghold, gone into', () => {
       };
       const half = load();
       expect(half.dungeon).toBeInstanceOf(StrongholdRun);
-      expect(half.foes).toHaveLength(all - 7);
+      expect(half.foes.filter((f) => !f.champion)).toHaveLength(all - 7);
       expect(half.clearedShare(half.strongholds[0].entrance)).toBe(share);
       expect(runOf(half).gateShut).toBe(true);
       expect(runOf(half).wingsLeft).toEqual([WINGS[1], WINGS[3]]);
@@ -402,7 +402,7 @@ describe('a stronghold, gone into', () => {
       resetCrypts(model);
       expect(model.inside).toBeNull();
       goIn(model);
-      expect(model.foes).toHaveLength(all);
+      expect(model.foes.filter((f) => !f.champion)).toHaveLength(all);
       expect(runOf(model).gateShut).toBe(true);
     }
   });
