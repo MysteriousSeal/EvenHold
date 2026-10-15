@@ -56,6 +56,7 @@ const SEASON_TINTS: Record<Season, [number, number, number]> = {
   autumn: [1.25, 0.97, 0.72],
   winter: [1.05, 1.0, 1.08],
 };
+const SNOW_WHITE = new THREE.Color(0xf4f2ee);
 const FROST = 0.3; // a clear winter morning's rime, at its thickest (the land's colour kept under it)
 const SNOW_HOURS = 10; // how long lying snow takes to melt away, after the fall
 const SNOW_SETTLES = 0.35; // how much lies after an hour's fall (in drifts: a deep cover after three)
@@ -118,6 +119,12 @@ export class SkyView {
     hemi.intensity = light.fill * (1 + 0.18 * weather.cloud);
     sun.color.setHex(light.sun);
     sun.intensity = light.strength * (1 - 0.6 * weather.cloud) * (1 - 0.4 * fog);
+    // Snow in the sun the whitest thing there is: its colour set against the light's (a warm day's cream taken out),
+    // left to the light's own blue-grey under cloud and at night.
+    const lit = this.from.copy(hemi.color).multiplyScalar(hemi.intensity).add(this.to.copy(sun.color).multiplyScalar(sun.intensity * 0.8));
+    const balance = (1 - night) * (1 - 0.6 * weather.cloud);
+    const grey = (lit.r + lit.g + lit.b) / 3;
+    skyUniforms.uSnowWhite.value.setRGB(1 + (grey / lit.r - 1) * balance, 1 + (grey / lit.g - 1) * balance, 1 + (grey / lit.b - 1) * balance).multiply(SNOW_WHITE).multiplyScalar(1 + 0.85 * balance); // (brighter than an albedo of one: it must outshine the sunlit grass)
 
     // The sun round the sky from rising to setting, high at noon, low (its bands long) at dawn and dusk; the moon's
     // own way at night.

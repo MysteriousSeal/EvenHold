@@ -58,25 +58,28 @@ const WEATHER_FRAGMENT = /* glsl */ `
   #ifndef STYLIZE_WATER
   float facingUp = smoothstep(0.55, 0.9, dot(normal, uViewUp));
   diffuseColor.rgb *= 1.0 - uWet * 0.18 * (0.4 + 0.6 * facingUp);
-  // Frost: a light rime on the tops, their colour kept under it. Lying snow: in drifts, the high ground's first, the
-  // whole land's only after a deep fall (a trodden road thin and darker, its line kept).
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.91, 0.925, 0.94), facingUp * uFrost); // (0xe8ecf0)
-  vec2 drift = vStylizeWorld.xz / 5.0;
+  // Frost and lying snow, stepped in voxels (0.04 a side, as the land's drawn), never feathered: frost a speckle of
+  // rimed cells on the tops; snow by drifts a tile at a time (the high ground's first), each drift's edge ragged
+  // cell by cell, the whole land's only after a deep fall (a trodden road thin and darker, its line kept).
+  vec2 snowCell = floor(vStylizeWorld.xz / 0.04);
+  float cellRoll = fract(sin(dot(snowCell, vec2(12.9898, 78.233))) * 43758.5453);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.91, 0.925, 0.94), facingUp * step(cellRoll, uFrost * 1.35)); // (0xe8ecf0)
+  vec2 drift = floor(vStylizeWorld.xz + 0.5) / 5.0; // (a tile's: they're centred on whole numbers)
   vec2 driftCell = floor(drift);
   vec2 driftEase = smoothstep(0.0, 1.0, fract(drift));
   float driftAt = mix(mix(fract(sin(dot(driftCell, vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(driftCell + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453), driftEase.x),
     mix(fract(sin(dot(driftCell + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(driftCell + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453), driftEase.x), driftEase.y);
-  float lying = smoothstep(driftAt - 0.08, driftAt + 0.08, uSnow * 1.25 + vStylizeWorld.y * 0.1 - 0.15);
+  float lying = step(driftAt + (cellRoll - 0.5) * 0.3, uSnow * 1.3 + vStylizeWorld.y * 0.1 - 0.15);
   #ifdef STYLIZE_TRODDEN
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.6, 0.6), facingUp * lying * 0.45);
   #else
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.957, 0.949, 0.933), facingUp * lying); // (0xf4f2ee)
+    diffuseColor.rgb = mix(diffuseColor.rgb, uSnowWhite, step(0.5, facingUp) * lying); // (0xf4f2ee in the day's light: skyView.ts)
   #endif
   #endif
   float nightGrey = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
   diffuseColor.rgb = mix(diffuseColor.rgb, nightGrey * vec3(0.78, 0.92, 1.3), uNight * 0.45);
 }`;
-const WEATHER_UNIFORMS = 'uniform float uSnow;\nuniform float uFrost;\nuniform float uWet;\nuniform float uNight;\nuniform vec3 uViewUp;';
+const WEATHER_UNIFORMS = 'uniform float uSnow;\nuniform vec3 uSnowWhite;\nuniform float uFrost;\nuniform float uWet;\nuniform float uNight;\nuniform vec3 uViewUp;';
 
 if (!LIGHTS_CHUNK.includes('float cel')) throw new Error('stylize: Three.js lighting chunk changed; update the cel patch');
 
@@ -120,7 +123,7 @@ function patch(material: THREE.MeshStandardMaterial, focusY: { value: number }, 
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
     Object.assign(shader.uniforms, { uFocusY: focusY, uMist: skyUniforms.uMist });
-    if (weather) Object.assign(shader.uniforms, { uSnow: skyUniforms.uSnow, uFrost: skyUniforms.uFrost, uWet: skyUniforms.uWet, uNight: skyUniforms.uNight, uViewUp: viewUp });
+    if (weather) Object.assign(shader.uniforms, { uSnow: skyUniforms.uSnow, uSnowWhite: skyUniforms.uSnowWhite, uFrost: skyUniforms.uFrost, uWet: skyUniforms.uWet, uNight: skyUniforms.uNight, uViewUp: viewUp });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vStylizeWorld;')
       .replace('#include <fog_vertex>', WORLD_HEIGHT_VERTEX);

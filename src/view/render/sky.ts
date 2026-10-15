@@ -58,6 +58,7 @@ export const skyUniforms = {
   uSeason: { value: new THREE.Vector4(1, 0, 0, 0) }, // how much it's each season (spring, summer, autumn, winter), summing to 1: blended over a season's last day
   uDaylight: { value: 1 }, // 0..1, the day's light
   uSnow: { value: 0 }, // 0..1, the snow lying: in drifts first (the high ground's), all over after a deep fall
+  uSnowWhite: { value: new THREE.Color(1, 1, 1) }, // lying snow's colour, before it's lit (set against the light, so it reads white)
   uFrost: { value: 0 }, // 0..1, a light rime on what faces up (a clear winter's morning)
   uWet: { value: 0 }, // 0..1, the rain's darkening
   uNight: { value: 0 }, // 0..1
