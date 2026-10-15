@@ -1,14 +1,15 @@
 // A herbalist's hut (npcs.ts: one a village, theirs alone), its own building
 // on a house's tile: a long low house, as the village's are, but rustic:
 // rough fieldstone to the knee and mud daub above it between crooked posts,
-// roots and moss at its foot; a thick shaggy thatch over a gable, sagging
-// low over the walls, mossy on its back slope, ragged at the eaves and the
-// gable ends, a crooked stone chimney through it; a rough plank door under a
-// stone lintel (the thatch lifted over it, a lantern by it) and a small
-// window with herbs in it, both facing -Z; herbs
-// drying under the front eave, a signpost with a leaf over a flask, clay
-// pots of herbs by the door, and a little cauldron on its embers outside. In
-// the houses' grid and palette (houseVoxels.ts, housePalette.ts).
+// moss clumped at its foot; a thick shaggy thatch, old and greyed, over a
+// gable, sagging low over the walls, mossy on its back slope, ragged at the
+// eaves and the gable ends, a sod ridge along its top, a crooked stone
+// chimney through it; a rough plank door under a stone lintel and a small
+// lit window, the thatch lifted over both, facing -Z; herbs drying under
+// the front eave, clay pots of herbs by the door; a front garden fenced in
+// wattle (raised beds, stepping stones, a cauldron on its embers, a sign of
+// a green bottle hung by the gate), and a fairy ring by its side. In the
+// houses' grid and palette (houseVoxels.ts, housePalette.ts).
 
 import { hashUnit } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -27,6 +28,7 @@ const KNEE = 3; // fieldstone up to here, daub above
 const OVERHANG = 3; // the thatch's reach past the walls, front and back (it sags low there)
 const GABLE = 2; // and past the gable ends
 const DOOR_TOP = 7;
+const WINDOW_X = 17;
 const MID_Z = (Z0 + Z1) / 2;
 
 export function buildHermitHut(): VoxelGrid {
@@ -57,14 +59,16 @@ export function buildHermitHut(): VoxelGrid {
     post(X0, z, -1, 0);
     post(X1, z, 1, 0);
   }
-  // Moss creeping along its foot, thick and unbroken but for a root here and there, and up the stones a little.
-  for (let x = X0 - 1; x <= X1 + 1; x++) {
-    for (let z = Z0 - 1; z <= Z1 + 1; z++) {
-      if (x >= X0 && x <= X1 && z >= Z0 && z <= Z1) continue;
-      if (z === Z0 - 1 && Math.abs(x - 12) <= 2) continue; // (the doorstep clear)
-      const r = roll(x, 0, z, 2);
-      if (r < 0.7) put(grid, [x, 0, z], r < 0.08 ? C.bark : r < 0.4 ? C.roofMoss : C.roofMossLight);
-      if (r < 0.25) put(grid, [x, 1, z], C.roofMoss);
+  // Moss gathered at its foot in a few clumps (at a back corner, by its side, at the front corner), a root in each.
+  for (const [mx, mz] of [[X0 - 1, Z1 + 1], [X1 + 1, Z0 + 6], [X0 - 1, Z0]]) {
+    for (let x = mx - 2; x <= mx + 2; x++) {
+      for (let z = mz - 2; z <= mz + 2; z++) {
+        const outside = x < X0 || x > X1 || z < Z0 || z > Z1;
+        const r = roll(x, 0, z, 2);
+        if (!outside || Math.hypot(x - mx, z - mz) > 2.2 || r < 0.2) continue;
+        put(grid, [x, 0, z], r < 0.3 ? C.bark : r < 0.6 ? C.roofMoss : C.hutMossLight);
+        if (r > 0.75) put(grid, [x, 1, z], C.hutMoss);
+      }
     }
   }
   // The thatch: a gable along x, thick, sagging low over the front and back (its eaves a voxel lower at the very
@@ -82,18 +86,23 @@ export function buildHermitHut(): VoxelGrid {
         const r = roll(x, y, z, 3);
         const back = z > MID_Z && k <= 3;
         const overDoor = z < Z0 - 1 && k <= 1 && Math.abs(x - 12) <= 2; // (lifted over the door, an eyebrow in the thatch, so it shows)
-        if (overDoor) continue;
+        const overWindow = z < Z0 - 1 && k === 0 && Math.abs(x - WINDOW_X) <= 2; // (and over the window, a voxel)
+        if (overDoor || overWindow) continue;
         // Its straw in strands running down the slope (a shade for each run of it along the ridge, now and then a
         // tuft of its own), a darker cap bound along the ridge, its eaves' cut edge lighter.
         const strand = roll(x >> 1, 0, z > MID_Z ? 1 : 0, 6);
         const straw = r < 0.12 ? C.thatchDark : strand < 0.3 ? C.thatchDark : strand < 0.55 ? C.thatchLight : C.thatch;
         const ridge = k >= Math.ceil(half) - 1;
-        put(grid, [x, y, z], ridge ? C.thatchDark : back && r < 0.32 ? (r < 0.16 ? C.roofMoss : C.roofMossLight) : k === 0 ? C.thatchLight : straw);
-        if (k === 0 && dz > reach - 1.2 && r < 0.5 && Math.abs(x - 12) > 3) put(grid, [x, y - 1, z], C.thatchDark); // (sagging at the eaves, tufts hanging)
+        put(grid, [x, y, z], ridge ? C.thatchDark : back && r < 0.32 ? (r < 0.16 ? C.hutMoss : C.hutMossLight) : k === 0 ? C.thatchLight : straw);
+        if (k === 0 && dz > reach - 1.2 && r < 0.5 && Math.abs(x - 12) > 3 && (z > MID_Z || Math.abs(x - WINDOW_X) > 3)) put(grid, [x, y - 1, z], C.thatchDark); // (sagging at the eaves, tufts hanging)
       }
     }
   }
   const apex = WALL_TOP + 1 + Math.ceil(half);
+  // A sod ridge laid along its top, two voxels high, mossy.
+  for (let x = X0 - GABLE + 1; x <= X1 + GABLE - 1; x++) {
+    for (let y = apex; y <= apex + 1; y++) for (const z of [Math.floor(MID_Z), Math.ceil(MID_Z)]) put(grid, [x, y, z], roll(x, y, z, 8) < 0.5 ? C.sod : C.hutMoss);
+  }
   // The chimney: rough stone up out of the thatch at the back, leaning over a voxel near its top, soot at its mouth.
   for (let y = WALL_TOP + 1; y <= apex + 3; y++) {
     const lean = y > apex ? 1 : 0;
@@ -107,13 +116,9 @@ export function buildHermitHut(): VoxelGrid {
   fillBox(grid, 11, 0, Z0 - 1, 13, 0, Z0 - 1, C.stoneLight);
   for (const y of [2, 6]) fillBox(grid, 11, y, Z0 - 1, 12, y, Z0 - 1, C.iron); // its strap hinges
   for (let y = 1; y <= DOOR_TOP; y++) for (const x of [10, 14]) put(grid, [x, y, Z0 - 1], C.timber); // its rough jambs, standing proud
-  put(grid, [15, 6, Z0 - 1], C.iron); // a lantern by it, hung from a hook: lit at night
-  put(grid, [15, 5, Z0 - 1], C.glass);
-  // A small window, front right: lit glass in a timber frame, a cross of herbs in it.
-  const wx = 17;
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) put(grid, [wx + dx, 5 + dy, Z0], dx === 0 || dy === 0 ? (dx === 0 && dy === 0 ? C.herbFresh : C.glass) : C.timber);
-  }
+  // A small window, front right: three by three of lit glass in a rough timber frame, a sill under it.
+  const wx = WINDOW_X;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) put(grid, [wx + dx, 6 + dy, Z0], Math.abs(dx) < 2 && Math.abs(dy) < 2 ? C.glass : C.timber);
   fillBox(grid, wx - 2, 3, Z0 - 1, wx + 2, 3, Z0 - 1, C.timber); // its sill
 
   // Herbs drying under the front eave: bundles hung from the thatch every few voxels (clear of the door and window).
@@ -125,15 +130,7 @@ export function buildHermitHut(): VoxelGrid {
     put(grid, [x, WALL_TOP - 2, z], herb);
   });
 
-  // The signpost, before the door on the left, facing the path: a post, an arm, a board hung from it framed in timber,
-  // a sprig of green over a red flask painted on it, bold enough to read from the road.
-  const sx = MID - 5;
-  const sz = 1;
-  fillBox(grid, sx - 4, 0, sz, sx - 4, 9, sz, C.timber);
-  fillBox(grid, sx - 4, 9, sz, sx + 3, 9, sz, C.timber);
-  const board = ['TSSLLST', 'TSLLSST', 'TSSRSST', 'TSRRRST', 'TTTTTTT'];
-  board.forEach((row, i) => [...row].forEach((k, j) => put(grid, [sx - 3 + j, 8 - i, sz], k === 'T' ? C.timber : k === 'L' ? C.herbFresh : k === 'R' ? C.flowerRed : C.sign)));
-
+  garden(grid, roll);
   // Clay pots of herbs by the door, on the left.
   for (const [x, flower] of [[MID - 3, true], [MID - 5, false]] as const) {
     const z = Z0 - 1;
@@ -141,16 +138,63 @@ export function buildHermitHut(): VoxelGrid {
     put(grid, [x, 2, z], C.leaf);
     put(grid, [x, 3, z], flower ? C.flowerPurple : C.herbFresh);
   }
-
-  // The cauldron, out front on the right: black iron, round, on three stones over glowing embers, its green brew
-  // filling its mouth.
-  const [cx, cz] = [MID + 7, 2];
-  for (const [dx, dz] of [[-2, -2], [2, -2], [0, 2]]) put(grid, [cx + dx, 0, cz + dz], C.stoneDark);
-  fillBox(grid, cx - 1, 0, cz - 1, cx + 1, 0, cz + 1, C.ember);
-  for (let y = 1; y <= 3; y++) {
-    const r = y === 1 ? 1.5 : 2.3;
-    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dz) <= r) put(grid, [cx + dx, y, cz + dz], y === 3 && Math.hypot(dx, dz) < 1.5 ? C.herbFresh : y === 1 ? C.soot : C.iron);
+  // A fairy ring of toadstools by its side, toward the back: red caps spotted pale on pale stems (its uncanny note).
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2;
+    const [x, z] = [Math.round(22.5 + Math.cos(a) * 1.6), Math.round(16 + Math.sin(a) * 2)];
+    put(grid, [x, 0, z], C.toadstoolStem);
+    put(grid, [x, 1, z], k % 2 ? C.toadstool : C.toadstoolSpot);
   }
 
   return grid;
+}
+
+// The front garden, in the strip before the door (z 0 to 4): a low wattle fence round it, open at the path; stepping
+// stones out from the door; a raised bed either side, edged in wattle, rows of herbs in them (lavender, sage,
+// foxgloves, marigolds); the cauldron on its embers, its brew bright green; and the sign by the gate, a crooked post and
+// arm, a green bottle hung from it beside a bunch of herbs.
+function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: number) => number): void {
+  const gate = (x: number) => x >= 10 && x <= 14;
+  // The fence: posts every three, two woven rails between, round the front and up the sides to the walls.
+  const fence = (x: number, z: number, i: number) => {
+    if (i % 3 === 0) fillBox(grid, x, 0, z, x, 3, z, C.wattleDark);
+    else for (let y = 1; y <= 2; y++) put(grid, [x, y, z], (i + y) % 2 ? C.wattle : C.wattleDark);
+  };
+  for (let x = 0; x <= 24; x++) if (!gate(x)) fence(x, 0, x);
+  for (let z = 1; z < Z0; z++) {
+    fence(0, z, z);
+    fence(24, z, z);
+  }
+  // The stepping stones, from the doorstep out to the gate.
+  for (const [x, z] of [[11, 3], [12, 1]]) fillBox(grid, x, 0, z, x + 1, 0, z + 1, C.stoneLight);
+  // The raised beds: edged, soil, a row of herbs along each (a hash for their heights).
+  const bed = (x0: number, x1: number, rows: Array<[number, number]>) => {
+    fillBox(grid, x0, 0, 1, x1, 1, 4, (x, _y, z) => (x === x0 || x === x1 || z === 1 || z === 4 ? C.wattleDark : C.soil));
+    rows.forEach(([flower, leaf], i) => {
+      const z = 2 + i;
+      for (let x = x0 + 1; x < x1; x++) {
+        const spike = flower === C.foxglove && x % 2 === 0; // (a foxglove's spike every other voxel, leaves between)
+        const tall = spike ? 4 : 2 + Math.floor(roll(x, 2, z, 9) * 2);
+        for (let y = 2; y < 2 + tall; y++) put(grid, [x, y, z], (spike && y > 3) || (!spike && flower !== C.foxglove && y === 1 + tall) ? flower : leaf);
+      }
+    });
+  };
+  bed(1, 7, [[C.lavender, C.herbSage], [C.foxglove, C.sod]]);
+  bed(20, 23, [[C.marigold, C.leaf], [C.herbSage, C.herbSage]]);
+  // The cauldron, by the right bed: black iron, round, on three stones over glowing embers, its brew bright green.
+  const [cx, cz] = [16, 2];
+  for (const [dx, dz] of [[-2, -1], [2, -1], [0, 2]]) put(grid, [cx + dx, 0, cz + dz], C.stoneDark);
+  fillBox(grid, cx - 1, 0, cz - 1, cx + 1, 0, cz + 1, C.ember);
+  for (let y = 1; y <= 3; y++) {
+    const r = y === 1 ? 1.5 : 2.3;
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dz) <= r && cz + dz >= 1) put(grid, [cx + dx, y, cz + dz], y === 3 && Math.hypot(dx, dz) < 1.5 ? C.brew : y === 1 ? C.soot : C.iron);
+  }
+  // The sign by the gate: a crooked post (a voxel over, halfway up), an arm out over the path, a green bottle hung
+  // from it on a cord, a bunch of herbs beside it.
+  for (let y = 0; y <= 10; y++) put(grid, [y > 5 ? 8 : 9, y, 1], C.timber);
+  put(grid, [8, 5, 1], C.timber); // (its crook)
+  fillBox(grid, 8, 10, 1, 13, 10, 1, C.sign);
+  put(grid, [11, 9, 1], C.bark); // the cord
+  fillBox(grid, 11, 6, 1, 12, 8, 2, (x, y, z) => (y === 8 && (x === 12 || z === 2) ? 0 : C.bottle)); // the bottle, its neck up
+  for (let y = 7; y <= 9; y++) put(grid, [13, y, 1], y === 9 ? C.bark : C.herbDry);
 }
