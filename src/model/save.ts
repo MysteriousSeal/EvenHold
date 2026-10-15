@@ -20,7 +20,7 @@ import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
-import { readMeal, type BagItem } from './hero/bag';
+import { readDraught, readMeal, type BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
 import { POINTS_PER_LEVEL, untrained } from './hero/training';
 import { STATS, type Stat } from './hero/statKinds';
@@ -82,6 +82,7 @@ export interface SaveData {
     blessings?: Blessing[]; // a well's, and how long it has left
     eating?: unknown; // a meal from the bag, half eaten (hero/bag.ts readMeal)
     potionCooldown?: number; // seconds before another potion (older saves: none)
+    draught?: unknown; // a potion's heal over time, part way (hero/bag.ts readDraught; older saves: none)
     spellWait?: unknown; // seconds before each charm may be cast again (spells/spells.ts readSpellWait)
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
@@ -149,6 +150,7 @@ export function snapshot(model: GameModel): SaveData {
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
       eating: hero.eating ? { ...hero.eating } : null,
       potionCooldown: hero.potionCooldown ?? 0,
+      draught: hero.draught ? { ...hero.draught } : null,
       wear: { ...hero.wear }, // (how worn each piece is: hero/wear.ts)
       crafted: { ...hero.crafted }, // (the gear they made: skills/salvage.ts)
       spellWait: { ...hero.spellWait },
@@ -263,6 +265,7 @@ export function restore(model: GameModel, data: SaveData): void {
   });
   hero.hp = Math.min(maxHpOf(hero), Math.max(1, saved.hp));
   hero.eating = readMeal(hero, saved.eating); // (an older save's: none)
+  hero.draught = readDraught(hero, saved.draught); // (likewise)
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? doorAt(saved.lastInn) : null;
   model.fullWalls = data.fullWalls === true;

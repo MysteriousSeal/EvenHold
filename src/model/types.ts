@@ -54,6 +54,7 @@ export interface Hero extends Humanoid {
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
   eating?: Meal | null;
+  draught?: Meal | null; // a health potion's heal over the seconds after it (bag.ts drinkPotion): standing, through blows
   spells?: SpellId[]; // the charms they know (spells/spells.ts): none, till taught
   spellWait?: Partial<Record<SpellId, number>>; // seconds before each may be cast again
   wear?: Record<string, number>; // how worn each piece of gear is, by its key (hero/wear.ts; none: unworn)

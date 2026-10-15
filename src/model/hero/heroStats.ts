@@ -91,6 +91,7 @@ export function recover(hero: Hero, dt: number, asleep = false, sitting = false,
   coolSpells(hero, dt);
   hero.drinking = restoring(hero, hero.drinking, dt);
   hero.eating = restoring(hero, hero.eating, dt);
+  hero.draught = restoring(hero, hero.draught, dt); // (a potion's, over the seconds after it)
 }
 
 function restoring(hero: Hero, meal: Meal | null | undefined, dt: number): Meal | null | undefined {
