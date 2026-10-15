@@ -8,7 +8,7 @@ import { fresh } from './support/testWorld';
 import { TEST_SEEDS, TEST_MAP_SIZE } from './support/testWorld';
 import { GameModel } from '../src/model/GameModel';
 import { betterThanWorn, gearKey, gearPower } from '../src/model/human/items/gear';
-import { BREAK_SECONDS, FINER_AT, PER_LEVEL, TOO_HARD, isSalvageable, makeOf, salvageOf, teachChance } from '../src/model/skills/salvage';
+import { BREAK_SECONDS, FINER_AT, FOUND_TRIES, PER_LEVEL, TOO_HARD, isSalvageable, makeOf, salvageOf, teachChance } from '../src/model/skills/salvage';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { castOf } from '../src/controller/skills/castOf';
 import { LOOT } from '../src/model/loot/loot';
@@ -28,9 +28,9 @@ describe('what gear is made of, and leaves', () => {
   });
 
   it('leaves one scrap, one more every six levels, a gem shard off a stone, and a finer thing from a rare piece (from the skill its rarity wants); asks a level by its own and its rarity', () => {
-    expect(salvageOf('armingSword')).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]] });
-    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3], ['temperedIngot', 1]] });
-    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]] });
+    expect(salvageOf('armingSword')).toEqual({ make: 'iron', needs: 1, gives: [['ironScrap', 1]], tries: FOUND_TRIES.common });
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }))).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3], ['temperedIngot', 1]], tries: FOUND_TRIES.rare });
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }))).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1], ['cutGem', 2]], tries: FOUND_TRIES.epic });
     expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic - 1)).toMatchObject({ gives: [['silverFilings', 2], ['gemShard', 1]], finerAt: FINER_AT.epic }); // (too green a hand: its scrap alone)
     expect(salvageOf('quarterstaff').gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
     expect(salvageOf(gearKey({ item: 'club', level: 9, rarity: 'common', roll: 0 })).gives).toEqual([['pinePlank', 2]]); // (a drop's: not as a recipe makes it)
@@ -54,7 +54,7 @@ describe('what gear is made of, and leaves', () => {
   it("makes a woodworker's or a smith's own piece no ladder: green at most, half its scrap, less than went into it, no finer thing", () => {
     const warClub = gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 }); // (woodworking's oak war club: three oak planks)
     const made = salvageOf(warClub, 300);
-    expect(made.made).toBe(true);
+    expect([made.made, made.tries]).toEqual([true, 1]); // (one try: no ladder)
     expect(made.gives).toEqual([['oakPlank', 2]]);
     expect(teachChance(made, made.needs - 10)).toBe(RISE[2].chance); // (orange for anyone else's: green for this)
     const shield = salvageOf(gearKey({ item: 'towerShield', level: 33, rarity: 'rare', roll: 1 }), 300); // (the heartwood tower shield: rare, but made)
@@ -70,7 +70,7 @@ describe('what gear is made of, and leaves', () => {
   });
 
   it('breaks down the junk with iron, leather, linen or silver in it, an apprentice\'s; not what has none', () => {
-    expect(salvageOf('rustyBuckle')).toEqual({ make: 'iron', needs: 12, gives: [['ironScrap', 1]] });
+    expect(salvageOf('rustyBuckle')).toEqual({ make: 'iron', needs: 12, gives: [['ironScrap', 1]], tries: 1 });
     expect(salvageOf('tornPouch').gives).toEqual([['leatherStrip', 1]]);
     expect(salvageOf('runestone').gives).toEqual([['gemShard', 1]]);
     expect(salvageOf('frostTorc').needs).toBeLessThanOrEqual(60);
@@ -145,7 +145,7 @@ describe('breaking gear down', () => {
     Object.assign(hero, { x: bench.x, z: bench.z + 1 });
     expect(breakNow(model, 'armingSword')).toBe('started');
     expect([hero.bag.armingSword, hero.bag.ironScrap]).toEqual([1, 1]);
-    expect(skillOf(hero, 'salvaging').level).toBe(2);
+    expect(skillOf(hero, 'salvaging').level).toBe(1 + FOUND_TRIES.common); // (a piece found: several tries, each its own roll)
     expect(model.takeEvents().some((e) => e.kind === 'salvaged')).toBe(true);
     expect(model.salvage.start('bentSpoon' as never)).toBe('none');
     // A full bag (of other things): no starting, nothing of what it leaves to be lost.
