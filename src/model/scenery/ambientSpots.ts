@@ -3,8 +3,10 @@
 // ground (LIFE_CELL tiles a side): butterflies over a meadow, a little flock
 // of songbirds on open grass, fireflies, rabbits; on a lake's shore,
 // dragonflies and frogs; out on open water, fish (now and then leaping);
-// each where on open, natural ground (or water), and its own roll. A field's
-// fence has a songbird or two perched on it (perchesOn). And when they're
+// a heron standing in the shallows, here and there; each where on open,
+// natural ground (or water), and its own roll. A field's fence has a bird
+// or two perched on it (perchesOn): crows on a sown field's, songbirds on a
+// pasture's. And when they're
 // out: the butterflies, the birds, the rabbits and the dragonflies by day
 // (the birds from dawn), the fireflies from dusk through the night, the
 // frogs from evening till morning, the fish always. Kept here so what's
@@ -17,9 +19,10 @@ import type { Tiles } from '../map/tiles';
 import type { Field } from '../types';
 import { fenceEdges } from '../worldgen/fields';
 import { NEIGHBORS_4 } from '../map/grid';
+import { stockOf } from '../wildlife/livestock';
 
 export const LIFE_CELL = 6; // tiles a side of each patch of ground
-export type LifeKind = 'butterfly' | 'bird' | 'firefly' | 'rabbit' | 'dragonfly' | 'frog' | 'fish';
+export type LifeKind = 'butterfly' | 'bird' | 'firefly' | 'rabbit' | 'dragonfly' | 'frog' | 'fish' | 'crow' | 'heron';
 
 export interface LifeSpot {
   kind: LifeKind;
@@ -54,10 +57,12 @@ const OUT: Record<LifeKind, [number, number]> = {
   dragonfly: [8.5, 18.5],
   frog: [17, 8],
   fish: [0, 24],
+  crow: [5.5, 20],
+  heron: [5, 21],
 };
 
 // The hour each comes out at its best (for the cheats: noon for the day's, ten at night for the fireflies and frogs).
-export const LIFE_HOUR: Record<LifeKind, number> = { butterfly: 12, bird: 12, firefly: 22, rabbit: 12, dragonfly: 12, frog: 22, fish: 12 };
+export const LIFE_HOUR: Record<LifeKind, number> = { butterfly: 12, bird: 12, firefly: 22, rabbit: 12, dragonfly: 12, frog: 22, fish: 12, crow: 12, heron: 12 };
 
 // What lives in patch (cx, cz).
 export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = createMeadowDensity(world.seed)): LifeSpot[] {
@@ -102,6 +107,9 @@ export function lifeIn(world: LifeWorld, cx: number, cz: number, meadow = create
   const marsh = biomes && ((x: number, z: number) => biomes.at(x, z) === 'marsh');
   if (roll(51) < 0.5) near('dragonfly', 1 + Math.floor(roll(52) * 2), 53, shore, marsh);
   if (roll(61) < 0.55) near('frog', 2 + Math.floor(roll(62) * 3), 63, shore, marsh);
+  // A heron: in the shallows, a step off the bank (the marsh's, rather).
+  const shallows = (x: number, z: number) => wet(world, x, z) && NEIGHBORS_4.some(([dx, dz]) => onLand(world, x + dx, z + dz));
+  if (roll(91) < 0.18) near('heron', 1, 93, shallows, marsh && ((x, z) => NEIGHBORS_4.some(([dx, dz]) => marsh(x + dx, z + dz))));
   if (roll(71) < 0.45) near('fish', 1 + Math.floor(roll(72) * 2), 73, (x, z) => NEIGHBORS_8.every(([dx, dz]) => wet(world, x + dx, z + dz)));
   return out;
 }
@@ -110,16 +118,17 @@ const NEIGHBORS_8 = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], 
 const wet = (world: LifeWorld, x: number, z: number) => world.tiles.has(x, z) && world.tiles.lake(x, z);
 const onLand = (world: LifeWorld, x: number, z: number) => world.tiles.has(x, z) && !world.tiles.lake(x, z) && world.tiles.surface(x, z) === 'natural' && world.isOpenTile(x, z);
 
-// The songbirds perched on a field's fence (none on most): each on the middle post of a stretch of it, on the
-// tile's edge (x, z: just inside it).
+// The birds perched on a field's fence (none on most): crows on a sown field's, songbirds on a pasture's; each on the
+// middle post of a stretch of it, on the tile's edge (x, z: just inside it).
 export function perchesOn(field: Field, seed: number): LifeSpot[] {
   const roll = (salt: number) => hashUnit(field.x0, field.z0, seed + salt);
   if (roll(81) > 0.45) return [];
   const edges = fenceEdges(field);
+  const kind: LifeKind = stockOf(field, seed) === null ? 'crow' : 'bird';
   const count = 1 + Math.floor(roll(82) * 3);
   return Array.from({ length: count }, (_, i) => {
     const { x, z, side } = edges[Math.floor(hashUnit(i, field.x0, seed + 83) * edges.length)];
     const [dx, dz] = NEIGHBORS_4[side];
-    return { kind: 'bird' as const, x: x + dx * 0.46, z: z + dz * 0.46, seed: hashUnit(i, field.z0, seed + 84), perch: true };
+    return { kind, x: x + dx * 0.46, z: z + dz * 0.46, seed: hashUnit(i, field.z0, seed + 84), perch: true };
   }).filter((b, i, all) => all.findIndex((o) => o.x === b.x && o.z === b.z) === i); // (one to a post)
 }
