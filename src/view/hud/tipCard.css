@@ -30,4 +30,16 @@
   cursor: pointer;
 }
 .tip-close:hover { color: #ffd98a; }
+/* (ui-detail) A key the tip names, as a key cap inline (the action bar's .action-key: hud.css). */
+.tip-key {
+  display: inline-block;
+  min-width: 14px;
+  padding: 2px 4px;
+  font: 700 12px/1 'Fredoka', system-ui, sans-serif;
+  text-align: center;
+  color: #f8ecd4;
+  background: #2e1f14;
+  border: 2px solid #f8ecd4;
+  vertical-align: 1px;
+}
 @media (prefers-reduced-motion: reduce) { .tip-card { transition: none; } }

@@ -28,7 +28,7 @@ import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
 import { createPlaceBar } from './view/hud/placeBar';
-import { createTipCard } from './view/hud/tipCard';
+import { createTipCard, keyMark } from './view/hud/tipCard';
 import { FirstTips } from './controller/tips/firstTips';
 import { anyMenuOpen } from './view/ui/menu';
 import { dungeonAt } from './model/dungeons/dungeons';
@@ -394,7 +394,7 @@ async function boot(): Promise<void> {
     }
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     const tip = controller.paused || anyMenuOpen() ? null : tips.next((now - lastFrame) / 1000);
-    if (tip) tipCard.show({ title: tip.title, text: tip.text(keyName, model) });
+    if (tip) tipCard.show({ title: tip.title, text: tip.text((action) => keyMark(keyName(action)), model) });
     tipCard.update((now - lastFrame) / 1000);
     lastFrame = now;
   };

@@ -10,6 +10,7 @@ import { FirstTips, TIPS, reloadTips, setTipsOn, tipsOn } from '../src/controlle
 import { TIRED } from '../src/model/hero/heroStats';
 import { liveOn } from '../src/model/hero/setbacks';
 import { maxHpOf } from '../src/model/hero/attributes';
+import { createTipCard, keyMark } from '../src/view/hud/tipCard';
 import { WORN } from '../src/model/hero/wear';
 import { BAG_ROOM } from '../src/model/hero/bagSlots';
 import { label } from '../src/controller/keyBindings';
@@ -112,5 +113,16 @@ describe('the first hour\'s tips', () => {
       expect(text).not.toContain('undefined');
     }
     expect(new Set(TIPS.map((t) => t.id)).size).toBe(TIPS.length);
+  });
+});
+
+describe('tip card key caps', () => {
+  it('shows each key a tip names as a key cap, the words around it plain', () => {
+    const card = createTipCard();
+    const foe = TIPS.find((t) => t.id === 'guard')!;
+    card.show({ title: foe.title, text: foe.text((a) => keyMark(a === 'guard' ? 'Q' : 'Shift'), null as unknown as GameModel) }); // (this tip reads no model)
+    const caps = Array.from(document.querySelectorAll('.tip-text kbd.tip-key'), (k) => k.textContent);
+    expect(caps).toEqual(['Q', 'Shift']);
+    expect(document.querySelector('.tip-text')!.textContent).toMatch(/^Hold Q to raise your guard/);
   });
 });
