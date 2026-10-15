@@ -49,15 +49,27 @@ export const FURNITURE_PALETTE = [
   0x74406e, // 54 plum
   0x522c50, // 55 plum, shadow
   0x965e90, // 56 plum, light
-  // The smithy's (smithyVoxels.ts): its quench water dark with scale, glinting; iron glowing from the fire.
-  0x2c403e, // 57 quench water
-  0x5a7a74, // 58 quench water, glinting
+  // The smithy's (smithyVoxels.ts, smithyShell.ts): its quench water dark, catching the light at its rim; iron glowing
+  // from the fire; cinders, mill scale and soot; a bright edge on worked iron; its own cold stone and flags.
+  0x26343a, // 57 quench water
+  0x4a5e66, // 58 quench water, its rim catching the light
   0xff5a1e, // 59 hot iron
+  0x8a4a22, // 60 cinder (and a rim lit from below by the fire)
+  0x3c3f45, // 61 mill scale (iron, dark)
+  0x3a3633, // 62 soot, lighter
+  0xb4bac2, // 63 iron, its worn edge
+  0x6a6660, // 64 smithy stone
+  0x56524d, // 65 smithy stone, dark
+  0x34312e, // 66 smithy mortar
+  0x4f4b47, // 67 smithy flagstone
+  0x45423e, // 68 smithy flagstone, dark
+  0x2c2a28, // 69 smithy flagstone mortar
+  0x2a2624, // 70 soot plume
 ];
 export const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, WATER, COAL, STONE, STONE_DARK] = FURNITURE_PALETTE.map((_, i) => 14 + i);
 export const [RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK] =
   FURNITURE_PALETTE.slice(16, 34).map((_, i) => 30 + i);
-export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT, QUENCH, QUENCH_LIGHT, HOT_IRON] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
+export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT, QUENCH, QUENCH_LIGHT, HOT_IRON, CINDER, SCALE, SOOT_LIGHT, IRON_EDGE, SMITHY_STONE, SMITHY_STONE_DARK, SMITHY_MORTAR, SMITHY_FLAG, SMITHY_FLAG_DARK, SMITHY_FLAG_MORTAR, PLUME] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
 
 // A tankard standing at (u, y, v): a wooden body with iron hoops and a
 // handle on its side; full, a white head of foam on top; empty, open at the
