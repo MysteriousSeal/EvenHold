@@ -17,13 +17,12 @@
 // as one piece, like the wind, and its voxels don't warp) leans away and
 // sinks, the tops most.
 //
-// The weather and the season have their say (nature.ts): the wind's strength
-// scales every sway, and the season's tint colours every leaf and blade.
+// The weather has its say (nature.ts, the skies' uniforms): the wind's
+// strength scales every sway, and it blows the way the weather's wind does.
 
 import * as THREE from 'three';
 import { natureUniforms } from './nature';
 
-const WIND_DIRECTION = new THREE.Vector2(1, 0.6).normalize();
 const WIND_WAVELENGTH = 0.3; // phase change per world unit
 
 export interface WindOptions {
@@ -48,7 +47,7 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
     shader.uniforms.uWindTime = time;
     shader.uniforms.uWindPusher = pusher;
     shader.uniforms.uWindStrength = natureUniforms.uWindStrength;
-    shader.uniforms.uSeasonTint = natureUniforms.uSeasonTint;
+    shader.uniforms.uWindDir = natureUniforms.uWindDir;
     const push = options.push
       ? `vec2 pushAway = (modelMatrix * vec4(windOrigin.x, 0.0, windOrigin.y, 1.0)).xz - uWindPusher;
         float pushDistance = length(pushAway);
@@ -57,24 +56,21 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         transformed += transpose(mat3(instanceMatrix)) * vec3(pushDir.x, -0.5, pushDir.y) * pushAmount * windBend;`
       : '';
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uWindTime;\nuniform vec2 uWindPusher;\nuniform float uWindStrength;')
+      .replace('#include <common>', '#include <common>\nuniform float uWindTime;\nuniform vec2 uWindPusher;\nuniform float uWindStrength;\nuniform vec2 uWindDir;')
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
         vec2 windOrigin = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
-        float windPhase = dot(windOrigin, vec2(1.0, 0.7)) * ${f(WIND_WAVELENGTH)} - uWindTime * ${f(options.speed)};
+        float windPhase = dot(windOrigin, uWindDir) * 1.22 * ${f(WIND_WAVELENGTH)} - uWindTime * ${f(options.speed)};
         float windBend = pow(clamp(position.y / ${f(options.height)}, 0.0, 1.0), 2.0);
         float windAmount = (sin(windPhase) * 0.7 + sin(windPhase * 2.3 + 1.7) * 0.3) * ${f(options.strength)}
           + sin(uWindTime * 4.7 + dot(position, vec3(9.0, 5.0, 7.0))) * ${f(options.flutter ?? 0)};
         windAmount *= uWindStrength;
         // World wind direction in the instance's own (rotated) frame.
-        vec3 windDir = transpose(mat3(instanceMatrix)) * vec3(${f(WIND_DIRECTION.x)}, 0.0, ${f(WIND_DIRECTION.y)});
+        vec3 windDir = transpose(mat3(instanceMatrix)) * vec3(uWindDir.x, 0.0, uWindDir.y);
         transformed += windDir * windAmount * windBend;
         ${push}`,
       );
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uSeasonTint;')
-      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= uSeasonTint;');
   };
   material.customProgramCacheKey = () =>
     `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}:${options.push?.radius ?? 0}:${options.push?.strength ?? 0}`;
