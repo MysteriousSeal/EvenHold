@@ -28,7 +28,6 @@ export function furnishCathedral(plan: Planner, room: Room): void {
   };
   const middle = room.door;
   put('altar', middle - 1, 0, 3, 1, 'back');
-  put('rug', middle - 2, 1, 5, 2); // (the sanctuary's carpet, before the altar)
   for (const x of [middle - 2, middle + 2]) put('candleStand', x, 0, 1, 1, 'back');
   put('lectern', middle + 1, 3);
   for (const x of PILLARS_X) for (const z of PILLARS_Z) put('pillar', x, z);
