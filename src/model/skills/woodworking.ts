@@ -94,7 +94,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   pinePack: { name: 'Pine pack', group: 'Packs', needs: 110, from: { pinePlank: 5, leatherStrip: 3 }, makes: 'pinePack', seconds: 5.5 },
   bandedCudgel: { name: 'Iron-banded cudgel', group: 'Weapons', needs: 120, from: { oakPlank: 3, ironScrap: 2 }, makes: { item: 'bandedCudgel', level: 14, rarity: 'common' }, seconds: 5 },
   carvedTankard: { name: 'Carved tankard', group: 'Goods', needs: 125, from: { oakPlank: 3 }, makes: 'carvedTankard', seconds: 4.5 },
-  carvedPendant: { name: 'Carved pendant', group: 'Trinkets', needs: 130, from: { oakPlank: 2, gemShard: 1, silverFilings: 1 }, makes: { item: 'carvedPendant', level: 15, rarity: 'uncommon' }, seconds: 4.5 },
+  carvedPendant: { name: 'Carved pendant', group: 'Trinkets', needs: 130, from: { oakPlank: 2, gemShard: 1, silverFittings: 1 }, makes: { item: 'carvedPendant', level: 15, rarity: 'uncommon' }, seconds: 4.5 },
   spear: { name: 'Spear', group: 'Weapons', needs: 140, from: { pinePlank: 2, oakPlank: 2, ironScrap: 2 }, makes: { item: 'spear', level: 15, rarity: 'common' }, seconds: 5 },
   plankShield: { name: 'Plank shield', group: 'Shields', needs: 150, from: { oakPlank: 3, pinePlank: 1 }, makes: { item: 'plankShield', level: 16, rarity: 'common' }, seconds: 5 },
   varnish: { name: 'Varnish', group: 'Materials', needs: 160, from: { pineResin: 1 }, makes: 'varnish', seconds: 2.5 },
