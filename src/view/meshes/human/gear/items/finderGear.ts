@@ -2,18 +2,17 @@
 // before their colours: a tall hat where a guard has a kettle hat and a pilgrim a wide brim, and a long grey coat
 // with a white falling band at the throat and white cuffs (the one bright thing about them, by day and by torchlight).
 // Palette first, a few greys and the one white:
-// - findersHat: a capotain, its crown tall and a little narrower at the top, a stiff narrow brim; charcoal felt
+// - findersHat: a capotain, its crown tall and a little narrower at the top, a stiff narrow brim pulled low over the brows; charcoal felt
 //   3c3b40 / 4c4b52 (its crown the two rows a hat may stand over the head), its brim's edge 2a292e, a black band 1c1b1f with a pewter buckle a8acb0 at the front.
 // - findersCoat: grey wool 6e6e6c over mail, darker down the sides 565654, a black leather belt 2e2620 with a pewter
 //   buckle, pewter buttons down the front, the white band e8e4d6 at the throat, white cuffs, the sleeves' outsides
 //   shaded.
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
-import { mod } from '../patterns';
 import { L, onFace, within } from './headShape';
 
 const hat = namedPalette({ felt: 0x3c3b40, light: 0x4c4b52, edge: 0x2a292e, band: 0x1c1b1f, buckle: 0xa8acb0 });
-const BRIM = 9; // the brim's row (over the brows)
+const BRIM = 8; // the brim's row: low over the brows, the eyes in its shadow
 const findersHat: ItemModel = {
   palette: hat.palette,
   headgear: (cell) => {
@@ -21,12 +20,13 @@ const findersHat: ItemModel = {
     const { c } = hat;
     if (y < BRIM) return 0;
     if (y === BRIM) return d === 1 ? c.felt : d === 2 ? c.edge : 0; // the brim, stiff and narrow, all round
-    if (!top) return d === 1 ? (y === BRIM + 1 ? (onFace(cell) && within(x, 0) ? c.buckle : c.band) : c.felt) : 0; // the crown's foot, its band and buckle
-    // Over the head: the crown standing up two rows (as high as a hat goes), a voxel in at the top (a capotain's taper), flat-topped.
+    if (!top) return d === 1 ? (y === BRIM + 1 ? (onFace(cell) && within(x, 0) ? c.buckle : c.band) : c.felt) : 0; // the crown's foot, its band and buckle, then felt
+    // Over the head: the crown standing up two rows (as high as a hat goes), two voxels in at the top (a capotain's
+    // taper), flat-topped.
     if (d > 2) return 0;
-    const inset = d === 2 ? 1 : 0;
+    const inset = d === 2 ? 2 : 0;
     if (x < inset || x > L - inset || z < inset || z > L - inset) return 0;
-    return mod(x + z + d, 5) === 0 ? c.light : c.felt;
+    return d === 2 && (x === inset || x === L - inset || z === inset || z === L - inset) ? c.light : c.felt; // (its top's edge caught by the light)
   },
 };
 
