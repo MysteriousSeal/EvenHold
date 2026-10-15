@@ -8,8 +8,8 @@ import { glowMaterial } from '../common/glow';
 import { EdgeLight } from '../common/edgeLight';
 
 export const FOE_NIGHT = {
-  edge: 0.5, // the moonlit edge's strength at full night (of the light added at the silhouette)
-  rain: 0.25, // more, in the rain's dark
+  edge: 0.32, // the moonlit edge's strength at full night (of the light added at the silhouette)
+  rain: 0.12, // more, in the rain's dark
   color: 0xb4c8ff,
   glint: 0.85, // the eyeshine's at full night
   glintColor: 0xe6f2a0,
