@@ -290,3 +290,54 @@ describe('a sharp at the inn', () => {
     expect(again.dice.away).toEqual({});
   });
 });
+
+describe('a villager at the table', () => {
+  // The nearest inn by day (no sharp), a villager sat at a table, the hero at another chair of it.
+  function acrossFromAVillager() {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    enterNearest(model, 'inn', new Set());
+    model.minutes = DAY_MINUTES + 13 * 60;
+    const inn = model.inside!.entrance;
+    const { furniture } = model.inside!;
+    const table = furniture.find((f) => f.kind === 'tavernTable')!;
+    const [theirs, mine] = furniture.filter((c) => c.kind === 'chair' && tableOf(furniture, c) === table);
+    const npc = model.npcs.find((n) => n.role === 'villager' && n.inn === inn)!;
+    const seat = seatOf(theirs)!;
+    Object.assign(npc, { where: inn, x: seat.x, z: seat.z, y: seat.y, seat, stood: { x: theirs.x, z: theirs.z }, steps: [{ kind: 'sit', seat, for: 9999 }] });
+    model.inside!.seated = { seat: seatOf(mine)!, from: { x: mine.x, z: mine.z } };
+    return { model, npc };
+  }
+
+  it('plays honest dice, and once wrongly accused will not play the hero again tonight', () => {
+    const { model, npc } = acrossFromAVillager();
+    expect(model.folk.includes(npc)).toBe(true);
+    expect(model.dice.across(model.folk)).toBe(npc);
+    const at = model.dice.play(npc)!;
+    expect(at.sitting.sharp).toBe(null);
+    model.hero.money = 100;
+    startGame(at.sitting, model.hero, 7, at.sitting.stakes[0], Math.random);
+    expect(at.sitting.game!.loaded).toBe(null);
+    expect(cryFoul(at.sitting, model.hero)!.caught).toBe(false);
+    model.dice.rise();
+    expect(npc.dicing).toBe(false);
+    expect(model.dice.across(model.folk)).toBe(null); // (not again tonight)
+  });
+
+  it('kept in their seat while the game goes on, let go after', () => {
+    const { model, npc } = acrossFromAVillager();
+    npc.steps = [{ kind: 'sit', seat: npc.seat!, for: 0.1 }];
+    model.dice.play(npc);
+    for (let i = 0; i < 20; i++) model.update(0, 0, 0.1);
+    expect(npc.seat).not.toBe(null);
+    model.dice.rise();
+    for (let i = 0; i < 20; i++) model.update(0, 0, 0.1);
+    expect(npc.seat).toBe(null);
+  });
+
+  it('nobody across, no dice', () => {
+    const { model, npc } = acrossFromAVillager();
+    npc.seat = null;
+    npc.where = null;
+    expect(model.dice.across(model.folk)).toBe(null);
+  });
+});
