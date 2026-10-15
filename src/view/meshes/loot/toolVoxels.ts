@@ -2,7 +2,8 @@
 // with two leather straps, its inner side a paler linen showing at the ends; a fishing rod, a long thin shaft of
 // pale ash with a cork grip and a dark butt cap, a brass reel slung under it, red whipping at the tip; pickaxes, a
 // long haft and a head across its end, pointed both ways (the smith's copper, a forged iron one's dark grey, steel's
-// bright, star-iron's blue-black and glittering).
+// bright, star-iron's blue-black and glittering); a brewer's kit, a little copper pot with a spout, strapped to a
+// folded leather roll.
 import type { ToolId } from '../../../model/loot/tools';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
@@ -43,4 +44,13 @@ export const TOOL_MODELS: Record<ToolId, LootModel> = {
   ironPick: pickaxe([0x8a5a35, 0x3e2a1a, 0x4a4a54, 0xb8bcc4, 0xc89a3a]),
   steelPick: pickaxe([0x7a5034, 0x2e2018, 0x9aa0a8, 0xf0f2f4, 0x3a3a40]),
   starIronPick: pickaxe([0x6e2a1a, 0x2a1a12, 0x2a3048, 0xa8d0f0, 0xc8d0dc], true),
+  // The leather roll 1 (its fold 2), the copper pot 3 (lit 4) on it, its spout and the strap 5.
+  brewersKit: model([0x7a4a2a, 0x5a3420, 0xb8733a, 0xe0a070, 0x3a2a1a], [7, 4, 5], (g) => {
+    fillBox(g, 0, 0, 0, 6, 0, 4, (x) => (x === 3 ? 2 : 1));
+    fillBox(g, 1, 1, 1, 4, 2, 3, (x, y, z) => ((x === 1 || x === 4) && (z === 1 || z === 3) ? 0 : y === 2 && x === 2 ? 4 : 3));
+    fillBox(g, 2, 3, 2, 3, 3, 2, 3); // its neck
+    setColor(g, 5, 2, 2, 3); // the spout
+    setColor(g, 6, 2, 2, 4);
+    fillBox(g, 0, 1, 2, 0, 1, 2, 5); // the strap's buckle end
+  }),
 };

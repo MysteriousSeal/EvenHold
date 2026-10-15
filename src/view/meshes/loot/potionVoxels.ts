@@ -47,6 +47,18 @@ function flask(tier: Tier, [deep, mid, pale, glow]: [number, number, number, num
 const RED: [number, number, number, number] = [0x8e1c24, 0xc8323a, 0xf0606a, 0xffb0a8];
 const BLUE: [number, number, number, number] = [0x1c3e8e, 0x3264c8, 0x6a9cf0, 0xb8e0ff];
 
+// A pot of salve (the pox's): a squat glazed pot 1 (lit 2), its salve 3 under a cloth 4 tied with twine 5.
+const salvePot = (): LootModel =>
+  model([0x7a5a3a, 0xa8805a, 0xe0d4a8, 0xe8e0cc, 0xb89a68], [5, 4, 5], (g) => {
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 5; x++) for (let z = 0; z < 5; z++) if (!((x === 0 || x === 4) && (z === 0 || z === 4))) setColor(g, x, y, z, y === 2 && (x === 0 || z === 4) ? 5 : y === 1 && x === 1 ? 2 : 1);
+    for (let x = 1; x < 4; x++) for (let z = 1; z < 4; z++) setColor(g, x, 3, z, x === 2 && z === 2 ? 3 : 4);
+  });
+
+const GREEN: [number, number, number, number] = [0x1e5a2a, 0x3a8a3e, 0x7ac46a, 0xc8f0a8];
+const MUD: [number, number, number, number] = [0x4a3a1e, 0x6e5a2e, 0x9a8448, 0xd8c890];
+const DEEP_RED: [number, number, number, number] = [0x5e0e18, 0x9a1a2a, 0xe0404e, 0xffd090];
+const DEEP_BLUE: [number, number, number, number] = [0x101e5e, 0x203a9a, 0x5a7ae0, 0xd0f0ff];
+
 export const POTION_MODELS: Record<PotionId, LootModel> = {
   minorHealthPotion: flask('minor', RED),
   lesserHealthPotion: flask('lesser', RED),
@@ -54,4 +66,17 @@ export const POTION_MODELS: Record<PotionId, LootModel> = {
   minorEnergyPotion: flask('minor', BLUE),
   lesserEnergyPotion: flask('lesser', BLUE),
   greaterEnergyPotion: flask('greater', BLUE),
+  // An alchemist's (loot/potions.ts): the superior ones the greater's flask, deeper and glowing gold; the cures green
+  // and mud-brown, the pox's a pot of salve; each draught its blessing's colour; the philtre a little pink one.
+  superiorHealthPotion: flask('greater', DEEP_RED),
+  superiorEnergyPotion: flask('greater', DEEP_BLUE),
+  antidote: flask('lesser', GREEN),
+  purge: flask('minor', MUD),
+  poxSalve: salvePot(),
+  swiftDraught: flask('lesser', [0x8a7a10, 0xc8b42a, 0xf0e06a, 0xfff6b0]),
+  shadowDraught: flask('lesser', [0x1e1428, 0x3a2a4e, 0x5e4a78, 0x9a8ab8]),
+  oxDraught: flask('lesser', [0x8a3a0e, 0xc8641e, 0xf0964a, 0xffd0a0]),
+  barkDraught: flask('lesser', [0x4a3e30, 0x6e6250, 0x9a8e78, 0xd0c8b0]),
+  hawkDraught: flask('lesser', [0x8a6010, 0xd49a20, 0xf8d060, 0xfff0c0]),
+  lovePhiltre: flask('minor', [0xa83a6a, 0xe0609a, 0xf8a0c8, 0xffe0f0]),
 };
