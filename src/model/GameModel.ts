@@ -4,10 +4,9 @@
 
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
-import { HERO_SPEED, INDOOR_HERO_SPEED, HERO_RADIUS, FOCUS_TURN_RANGE, ENEMY_ACTIVE_RADIUS } from './constants';
+import { HERO_SPEED, HERO_RADIUS, ENEMY_ACTIVE_RADIUS } from './constants';
 import { Nearby } from '../util/nearby';
 import { DEFAULT_MAP_SIZE, spawnOf, wholeMap, type Area, type MapSize } from './map/grid';
-import { maxHpOf } from './hero/attributes';
 import type { World, Building, Bush, Enemy, Field, GameEvent, Hero, Tree, House, Village } from './types';
 import { TilePatch, type Tiles } from './map/tiles';
 import { bumpsEnemy } from './enemies/enemies';
@@ -32,9 +31,9 @@ import { stepWildlife, type Wildlife } from './wildlife/wildlife';
 import { generateWorld } from './worldgen/world';
 import { type Entrance } from './interiors/interiors';
 import type { Seat } from './interiors/furniture';
-import { armsSheathed, doorInReach, layoutOf, seatInReach, sitDown, standUp, walkInside, type Inside, type Seated } from './interiors/indoors';
-import { stepYard, toggleYard, type YardStay } from './interiors/furnitureYard';
-import { benchSeatInReach, squareBenches } from './worldgen/benches';
+import { armsSheathed, doorInReach, walkInside, type Inside, type Seated } from './interiors/indoors';
+import { stepYard, type YardStay } from './interiors/furnitureYard';
+import { enterRoom, moveInside, seatInReach, sitOrStand, teleport, toggleFurnitureYard, useDoor } from './interiors/goingIn';
 import { bumpsNpc, type Npc } from './npcs/npcs';
 import { stepNpcs } from './npcs/npcRoutine';
 import { makeWay } from './npcs/npcWalk';
@@ -43,7 +42,7 @@ import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } 
 import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
-import { fall, intoBed, lieOnBedroll, liveOn } from './hero/setbacks';
+import { fall, lieOnBedroll, liveOn } from './hero/setbacks';
 import { type Ruin } from './ruins/ruins';
 import { raiseGhosts } from './ruins/haunting';
 import { checkOut } from './inn/roomLetting';
@@ -51,8 +50,8 @@ import { type Crypt } from './crypts/crypts';
 import { CryptFoes } from './crypts/cryptFoes';
 import { type Cave } from './caves/caves';
 import { CaveRun } from './caves/caveFoes';
-import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare, dungeonWalls } from './dungeons/dungeons';
-import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
+import { dungeonShare } from './dungeons/dungeons';
+import type { DungeonRun } from './dungeons/dungeonTypes';
 import { dungeonHooks, faceGuarded, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
@@ -64,11 +63,9 @@ import { type Camp } from './camps/camps';
 import { Cooking, Fishing, Lumber, Mining, Salvage, Smithing, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
 import { Story } from './story/story';
-import { useAction } from './hero/actionBar';
-import { castSpell } from './spells/casting';
+import { startAttack, useAction } from './hero/heroActs';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
-import { SPELLS, isSpellKey, spellOf } from './spells/spells';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -114,14 +111,14 @@ export class GameModel {
   // The enemy the hero has focused (clicked, or the first to hit them since
   // focus last cleared), shown in the HUD; null when none.
   private readonly focusOn = new Focus(() => this.foes); // (the foe the hero's focused on: hero/focus.ts)
-  private below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot
+  below: { key: string; run: DungeonRun; ground: Ground } | null = null; // down in a dungeon (dungeons/): its foes, and its floor's loot (set going in and out: interiors/goingIn.ts)
   readonly cryptsCleared = new Map<string, Set<number>>(); // each dungeon's foes slain for good, by post, by its key (saved: a crypt's, a cave's)
 
   private readonly obstacles: Obstacles;
   readonly world: LiveWorld; // the world as it's played: its tiles, what blocks the way, everything in it (world/liveWorld.ts)
   private readonly streamer: WorldStreamer | null; // a streamed world's: its regions kept made round the hero
   private readonly director: EnemyDirector;
-  private hop: Hop | null = null;
+  hop: Hop | null = null; // (a hop under way; let go going in and out: interiors/goingIn.ts)
   readonly wild: WildMoves; // the wild beasts' told moves (enemies/wildMoves.ts)
   readonly campLife = new CampLife(() => this); // (a camp's gate come up to, its last foe slain, its chest)
   readonly welcome = new VillageWelcome(() => this); // (a village come into: its name told)
@@ -188,45 +185,27 @@ export class GameModel {
     return this.world.groundY(x, z);
   }
 
-  // Starts a blow (combatMoves.ts) unless one's under way, they're rolling or out of breath, or arms are put away
-  // (an inn); whether it did. Turned to face the focused enemy if it's close by.
-  startAttack(): boolean {
-    if (this.seated || armsSheathed(this.inside) || !this.moves.startBlow()) return false;
-    const focus = this.focused;
-    if (focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= FOCUS_TURN_RANGE) {
-      this.hero.facing = Math.atan2(focus.x - this.hero.x, focus.z - this.hero.z);
-    }
-    return true;
-  }
+  // Starts a blow, turned to the foe focused; a slot of the action bar used (hero/heroActs.ts). Whether it did.
+  startAttack(): boolean { return startAttack(this); }
+  useAction(i: number): boolean { return useAction(this, i); }
 
   // How far through the current attack the hero is, 0..1, or null.
   get attackProgress(): number | null {
     return this.moves.blowProgress ?? this.lumber.swing ?? this.mining.swing ?? this.smithing.swing ?? this.salvage.swing; // (chopping a tree, striking a rock: the axe or the pick swung; at the anvil or the bench, the hammer)
   }
 
-  // Moves the hero straight to (x, z), standing on the ground there
-  // (outdoors, leaving any room they were in, a dungeon's too: its run over, its foes no more about).
-  teleport(x: number, z: number): void {
-    this.inside = null;
-    this.below = null;
-    this.yard = null;
-    this.outdoors.seated = null;
-    this.streamer?.prime({ x, z }); // (a streamed world's ground there made first, if it isn't)
-    this.hero.x = x;
-    this.hero.z = z;
-    this.hero.y = this.getGroundY(x, z);
-    this.hop = null;
-  }
+  // Moves the hero straight to (x, z), outdoors; through the door in reach, in or out; in through a door; sat down, or
+  // up (interiors/goingIn.ts).
+  teleport(x: number, z: number): void { teleport(this, x, z); }
+  useDoor(): boolean { return useDoor(this); }
+  enterRoom(entrance: Entrance): void { enterRoom(this, entrance); }
+  sitOrStand(): boolean { return sitOrStand(this); }
 
   // A streamed world's regions round (x, z) made now, if they aren't (a save's spot, a quest's board, before they're needed).
   makeAround = (x: number, z: number): void => this.streamer?.prime({ x, z });
 
   // Dev cheat: the flat grass yard, or back to where the hero was.
-  toggleFurnitureYard(): string {
-    this.hop = null;
-    this.focusOn.focus(null);
-    return toggleYard(this);
-  }
+  toggleFurnitureYard(): string { return toggleFurnitureYard(this); }
 
   // Whether a walker of half-width r can't stand at (x, z) (wildlife walk by it).
   isBlocked(x: number, z: number, r: number): boolean {
@@ -239,13 +218,8 @@ export class GameModel {
     return this.obstacles.isOpenTile(x, z);
   }
 
-  get enemiesFrozen(): boolean {
-    return this.director.frozen;
-  }
-
-  set enemiesFrozen(frozen: boolean) {
-    this.director.frozen = frozen;
-  }
+  get enemiesFrozen(): boolean { return this.director.frozen; }
+  set enemiesFrozen(frozen: boolean) { this.director.frozen = frozen; }
 
   // Advances the hero one frame. dirX/dirZ: world-space input direction
   // (not necessarily normalized, zero when idle); dt: seconds.
@@ -263,7 +237,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
-      if (!this.moves.roll) this.moveInside(dirX, dirZ, dt);
+      if (!this.moves.roll) moveInside(this, dirX, dirZ, dt);
       faceGuarded(this);
       this.moves.update(dt, this.push, this.below ? this.land : null); // (breath, the guard, a roll carrying them, a blow landing: none to hit but in a crypt)
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
@@ -314,9 +288,9 @@ export class GameModel {
   }
 
   // How fast the hero goes, as a share of their speed: the cheat's, their load's, tired, guarded.
-  private get pace(): number { return this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * gearPace(this.hero) * (this.moves.guard !== null ? GUARD_PACE : 1); }
+  get pace(): number { return this.speedMultiplier * walkFactor(this.hero) * tiredPace(this.hero) * gearPace(this.hero) * (this.moves.guard !== null ? GUARD_PACE : 1); }
   // Where blows can be met (not sat, not in an inn with arms sheathed, not in the furniture yard).
-  private get canFight(): boolean { return !this.seated && !armsSheathed(this.inside) && !this.yard; }
+  get canFight(): boolean { return !this.seated && !armsSheathed(this.inside) && !this.yard; }
 
   // Shift: a roll along (dirX, dirZ) (combatMoves.ts); whether they did.
   roll(dirX: number, dirZ: number): boolean {
@@ -365,95 +339,21 @@ export class GameModel {
   // The door the hero can use right now (indoors.ts), or null.
   get doorInReach(): Entrance | null { return this.yard ? null : doorInReach(this.inside, this.entrances, this.hero); }
 
-  // Goes through the door in reach: in, onto the room's floor just inside
-  // it; or out, onto the spot outside it, facing away. Returns whether it did.
-  useDoor(): boolean {
-    const entrance = this.work.shift ? null : this.doorInReach; // (at work: no leaving, the shift's to be ended at the notice board)
-    if (!entrance) return false;
-    const { hero } = this;
-    this.hop = null;
-    if (this.inside) {
-      this.inside = null;
-      this.below = null;
-      hero.x = entrance.x;
-      hero.z = entrance.z;
-      hero.y = this.getGroundY(hero.x, hero.z);
-      hero.facing = Math.atan2(entrance.outX, entrance.outZ);
-      return true;
-    }
-    this.enterRoom(entrance);
-    return true;
-  }
-
-  // In through a building's door, onto the floor just inside it, facing in.
-  enterRoom(entrance: Entrance): void {
-    this.yard = null;
-    const { room, furniture } = layoutOf(this.seed, entrance);
-    const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
-    this.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(this.seed, entrance), () => this.below?.run), exitAt: () => this.below?.run.exitOpen ?? null }) };
-    if (place) this.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
-    if (place && this.clearedShare(entrance) === 1) this.events.push({ kind: 'banner', title: place.name, line: `Level ${place.level} · cleared: its foes slain for good` }); // (told over its arrival: none here to rise again, dungeons/dungeonRecord.ts)
-    this.below = place && { key: place.key, run: dungeonRun(this.seed, entrance, this.cleared(place.key), this.hero, dungeonHooks(this)), ground: this.floors.of(place.key) };
-    this.outdoors.seated = null;
-    if (entrance.type === 'inn') this.lastInn = entrance; // to wake in, after a fall
-    this.focusOn.focus(null);
-    this.hop = null;
-    Object.assign(this.hero, { x: room.door, z: room.depth - 1, y: 0, facing: Math.PI }); // into the room (-Z)
-  }
-
-  // Indoors: the hero walks the room's floor (getting up first if seated);
-  // out only through the door, with E (useDoor).
-  private moveInside(dirX: number, dirZ: number, dt: number): void {
-    const inside = this.inside!;
-    if (Math.hypot(dirX, dirZ) < 1e-6) return;
-    standUp(inside, this.hero);
-    const bumps = (x: number, z: number, r: number) => bumpsNpc(this.folk, inside.entrance, this.hero, x, z, r) || (!!this.below && bumpsEnemy(this.below.run.foes, this.hero, x, z, r));
-    walkInside(inside, this.hero, dirX, dirZ, INDOOR_HERO_SPEED * this.pace * dt, bumps); // (out only with E at the door)
-  }
-
   // Where the hero sits (indoors, or on a bench outdoors), or null standing.
   get seated(): Seated {
     return (this.inside ?? this.outdoors).seated;
   }
 
   // The free seat the hero could sit on right now (in the room, or a bench's), or null (seated).
-  get seatInReach(): Seat | null {
-    if (this.yard) return null;
-    const taken = (piece: Seat['piece']) => this.folk.some((n) => n.seat?.piece === piece); // (those round about: the world's every villager gone through for each seat, each frame, cost a frame indoors)
-    if (this.inside) return seatInReach(this.inside, this.hero, taken);
-    return this.outdoors.seated ? null : benchSeatInReach(squareBenches(this), this.hero, (seat) => taken(seat.piece)); // the squares' benches
-  }
-
-  // Sits down on the seat in reach, or gets up if seated; returns whether either happened.
-  // Off the action bar (hero/actionBar.ts): a bedroll, lain down on; a spell, cast (spells/casting.ts); else food, drink or a potion, had. Whether it did anything.
-  useAction(i: number): boolean {
-    const item = this.hero.actionBar[i];
-    if (item === 'bedroll') return this.lieDown();
-    // (A charm that harms no one, where arms are sheathed: cast all the same, in an inn, at its barkeep.)
-    if (item && isSpellKey(item)) return (this.canFight || (!this.seated && !this.yard && !SPELLS[spellOf(item)].harm)) && castSpell(this, spellOf(item)) === 'cast';
-    return useAction(this.hero, i, (why) => this.report({ kind: 'poor', text: why })); // (a potion not to be drunk just now: told why, as from the bag)
-  }
+  get seatInReach(): Seat | null { return seatInReach(this); }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
   haunt = (ruin: Ruin, count: number): number => raiseGhosts(this, ruin, count); // (a ruin's ghosts risen again, for a quest that asks them slain: ruins/haunting.ts)
   campEmpty = (camp: Camp): boolean => this.campLife.empty(camp); // (asked by the quests people give: a camp cleared before it was asked)
   wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)
 
-  sitOrStand(): boolean {
-    if (this.work.shift && !this.seated) return false; // (at work: no sitting down)
-    const at = this.inside ?? this.outdoors;
-    if (at.seated) {
-      standUp(at, this.hero, this.inside ? 0 : this.getGroundY(at.seated.from.x, at.seated.from.z));
-      return true;
-    }
-    const seat = this.seatInReach;
-    if (seat) sitDown(at, this.hero, seat);
-    if (seat?.lying && (intoBed(this), this.seated) && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (someone else's bed, its owner home: turned out of it, hero/setbacks.ts; else, hurt: told it mends)
-    return !!seat;
-  }
-
   // What's happened since takeEvents() was last asked (for floating text).
-  private events: GameEvent[] = [];
+  events: GameEvent[] = [];
   private seenLevel: number | null = null; // the hero's level when events were last taken (null: not yet: whatever it is, it's not news)
   takeEvents(): GameEvent[] {
     if (this.seenLevel !== null && this.hero.level > this.seenLevel) this.events.push({ kind: 'levelUp', level: this.hero.level, points: this.hero.statPoints });
