@@ -120,6 +120,14 @@ describe('picking herbs', () => {
     expect(model.herbs.growing(patch.x, patch.z, 0.5)).toEqual([]); // (gone, till it's back)
   });
 
+  it('a patch that teaches nothing now points to the nearest that does', () => {
+    const { model, patch } = byAPatch();
+    skillOf(model.hero, 'alchemy').level = HERBS[patch.herb].needs + 80; // (grey)
+    const better = model.herbs.teachingNear;
+    expect(herbPrompt(model)?.label).toMatch(better ? new RegExp(`teaches you nothing now; ${LOOT[better.herb].name.toLowerCase()} does, \\d+ paces? [a-z-]+$`) : /teaches you nothing now$/);
+    if (better) expect(difficulty(HERBS[better.herb].needs, skillOf(model.hero, 'alchemy').level).chance).toBeGreaterThan(0);
+  });
+
   it("wants the skill to know it: told why not, a hand at it already", () => {
     const { model, patch } = byAPatch();
     if (HERBS[patch.herb].needs === 1) return void expect(model.herbs.action?.kind).toBe('pick'); // (anyone knows the first)
@@ -266,10 +274,20 @@ describe("the brews", () => {
 
 describe('pacing', () => {
   // An hour of it, as a hand that keeps to what teaches plays it: walking to the next patch of a herb that still teaches
-  // them (a third of the patches about), picking it bare, brewing what's picked; each try at about the yellow's odds and
-  // better (0.8). The steps of each tier, against the hour or so of every trade's (skills.ts).
+  // them (the share of the patches growing one, about the year and the land, at the tier's middle: the later herbs
+  // rarer), picking it bare, brewing what's picked; each try at about the yellow's odds and better (0.8). The steps of
+  // each tier, against the hour or so of every trade's (skills.ts).
+  const weight = (id: (typeof HERB_IDS)[number]) => 1 / (1 + HERBS[id].needs / 100); // (as herbalism.ts herbOf)
+  const teachingShare = (level: number) => {
+    const shares = BIOMES.flatMap((b) => SEASONS.map((s) => herbsIn(b, s))).map((herbs) => {
+      const all = herbs.reduce((n, id) => n + weight(id), 0);
+      return all ? herbs.filter((id) => HERBS[id].needs <= level && difficulty(HERBS[id].needs, level).chance > 0).reduce((n, id) => n + weight(id), 0) / all : 0;
+    });
+    return shares.reduce((a, b) => a + b, 0) / shares.length;
+  };
   const hoursAt = (tier: number) => {
-    const walk = SITE / Math.sqrt(0.55 / 3) / HERO_SPEED; // seconds to the next useful patch
+    const middle = (SKILL_TIERS[tier].from + SKILL_TIERS[tier].to) / 2;
+    const walk = SITE / Math.sqrt(0.55 * teachingShare(middle)) / HERO_SPEED; // seconds to the next patch that teaches
     const pulls = 3; // a patch's, about
     const recipes = BREW_RECIPE_IDS.filter((id) => BREW_RECIPES[id].needs >= SKILL_TIERS[tier].from - 75 && BREW_RECIPES[id].needs < SKILL_TIERS[tier].to);
     const herbsABrew = recipes.reduce((n, id) => n + Object.values(BREW_RECIPES[id as BrewRecipeId].from).reduce((a, b) => a + b!, 0), 0) / recipes.length;
@@ -282,7 +300,7 @@ describe('pacing', () => {
 
   it('an hour or so a tier, the whole of it three to five', () => {
     const hours = SKILL_TIERS.map((_, i) => hoursAt(i));
-    for (const h of hours) [expect(h).toBeGreaterThan(0.7), expect(h).toBeLessThan(1.6)];
+    for (const h of hours) [expect(h).toBeGreaterThan(0.6), expect(h).toBeLessThan(1.6)]; // (a rough model: pacer's alchemyPace test, after the merge, the finer one)
     const all = hours.reduce((a, b) => a + b, 0);
     expect(all).toBeGreaterThan(3);
     expect(all).toBeLessThan(5);

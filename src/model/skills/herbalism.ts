@@ -31,6 +31,7 @@ export const REGROW = 24 * 60; // game minutes (a day) till a patch picked bare 
 const SECOND_HERB: [number, number] = [100, 0.4]; // from this level a second herb now and then, the chance growing to this at the top
 const HERO_XP = 2; // the hero's own experience, a herb picked
 const SALT = 1301;
+const SEEK = 30; // tiles round the hero a patch that'd teach them is looked for (the prompt's hint)
 
 // A patch of herbs: the tile it's on, and its key (by where it lies).
 export interface Patch {
@@ -139,6 +140,21 @@ export class Herbalism {
       if (d > PATCH_REACH) continue;
       const rank = d + (HERBS[p.herb].needs > level ? PATCH_REACH : 0);
       if (rank < near) [best, near] = [p, rank];
+    }
+    return best;
+  }
+
+  // The nearest patch round the hero (within SEEK) of a herb they know that still teaches them, if any (the prompt's
+  // hint, by one that teaches nothing now).
+  get teachingNear(): (Patch & { herb: HerbId }) | null {
+    const { hero } = this.host;
+    const level = skillOf(hero, SKILL).level;
+    const teaches = (id: HerbId) => HERBS[id].needs <= level && difficulty(HERBS[id].needs, level).chance > 0;
+    let best: (Patch & { herb: HerbId }) | null = null;
+    let near = SEEK;
+    for (const p of this.growing(hero.x, hero.z, SEEK)) {
+      const d = Math.hypot(p.x - hero.x, p.z - hero.z);
+      if (d < near && d > PATCH_REACH && teaches(p.herb)) [best, near] = [p, d];
     }
     return best;
   }

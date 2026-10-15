@@ -165,7 +165,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   alchemy: {
     name: 'Alchemy',
-    steps: [9, 9, 9, 10], // (a herb picked a try, a brew two: the picking most of its hours, as a miner's digging)
+    steps: [10, 7, 6, 5], // (a herb picked a try, a brew two: the picking most of its hours, as a miner's digging; fewer later, its rarer herbs a longer walk)
     kind: 'main',
     verb: 'brew',
     practice: "Pick herbs in the wilds (E by one: each in its own country and season), and brew them at a cauldron (a herbalist's, your own) or, with a brewer's kit, by any fire.",
