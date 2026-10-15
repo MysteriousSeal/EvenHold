@@ -31,7 +31,7 @@ export interface Wood {
   needs: number;
   chops: [number, number];
   find?: { item: LootId; from: number; chance: number }; // now and then a chop, from that level
-  lasting?: boolean; // never grey: green at the least, however practised the hand (the oak: so there's always a tree to learn from, the ancient ones few)
+  lasting?: boolean; // never grey: green at the least, however practised the hand (the oak: so there's always a tree to learn from, the ancient ones few); nor any tree harder than it
 }
 export const WOOD: Record<Grade, Wood> = {
   birch: { name: 'birch', log: 'birchLog', logs: 1, needs: 1, chops: [2, 3] },
@@ -43,10 +43,11 @@ export const WOOD: Record<Grade, Wood> = {
 export const ANCIENT = 1 / 12; // of the pines and oaks, grown ancient
 const SECOND_LOG: [number, number] = [100, 0.5]; // from this level a second log now and then, the chance growing to this at the top
 // How hard a grade of tree is for a hand at `level`, and how likely a chop at it teaches (skills.ts RISE): a lasting
-// one's never less than green.
+// one's never less than green, nor any harder than it (an ancient pine never teaching less than an oak).
 export const riseOf = (grade: Grade, level: number) => {
   const rise = difficulty(WOOD[grade].needs, level);
-  return WOOD[grade].lasting && rise.chance === 0 ? RISE[2] : rise;
+  const lasts = Object.values(WOOD).some((w) => w.lasting && w.needs <= WOOD[grade].needs);
+  return lasts && rise.chance === 0 ? RISE[2] : rise;
 };
 // A tree's grade (its kind's, or an ancient one's).
 export const gradeOf = (tree: Tree, seed: number): Grade => (tree.kind !== 'birch' && hashUnit(tree.x, tree.z, seed + 404) < ANCIENT ? (tree.kind === 'pine' ? 'ancientPine' : 'ancientOak') : tree.kind);
