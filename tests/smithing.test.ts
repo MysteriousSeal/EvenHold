@@ -100,4 +100,43 @@ describe('smithing', () => {
     expect(away.querySelector<HTMLButtonElement>('.book-craft')!.disabled).toBe(true);
     expect(away.textContent).toContain('anvil');
   });
+
+  it("tells, in the book, of a piece the hero isn't of the level to wear yet", () => {
+    const { model } = atTheAnvil(60, { ironIngot: 2 });
+    model.hero.level = 3;
+    const book = recipeBook(model, { ...newBook(), picked: 'shortSword' }, () => {}, SMITHING);
+    expect(book.textContent).toContain('Requires level 8');
+  });
+});
+
+describe('the hero at work at the anvil and the bench', () => {
+  it('faces the anvil and swings a hammer at it, a blow at a time, while forging; none when not', () => {
+    const { model, anvil } = atTheAnvil(1, { copperOre: 4 });
+    model.hero.facing = 0; // (away from it: it's at -z)
+    expect(model.attackProgress).toBeNull();
+    expect(model.smithing.start('copperIngot', 4)).toBe(true);
+    expect(model.hero.facing).toBeCloseTo(Math.atan2(anvil.x - model.hero.x, anvil.z - model.hero.z));
+    run(model, 0.3);
+    expect(model.smithing.swing).not.toBeNull();
+    expect(model.attackProgress).toBe(model.smithing.swing);
+    model.smithing.stop();
+    expect([model.smithing.swing, model.attackProgress]).toEqual([null, null]);
+  });
+
+  it('does one thing at a time: the bench and the anvil, or a plank made from the bag, stop one another', () => {
+    const { model } = atTheAnvil(1, { copperOre: 4, rustyBuckle: 4, birchLog: 2 });
+    const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench')!;
+    const salvage = model.salvage as unknown as { benchInReach: unknown };
+    Object.defineProperty(salvage, 'benchInReach', { get: () => bench }); // (as though the two stood side by side)
+    expect(model.salvage.start('rustyBuckle', Infinity)).toBe('started');
+    expect(model.smithing.start('copperIngot', 4)).toBe(true);
+    run(model, 0.2);
+    expect([model.salvage.breaking, !!model.smithing.making]).toEqual([null, true]);
+    expect(model.salvage.start('rustyBuckle', Infinity)).toBe('started');
+    run(model, 0.2);
+    expect([!!model.salvage.breaking, model.smithing.making]).toEqual([true, null]);
+    expect(model.woodworking.start('birchPlank')).toBe(true); // (a plank, anywhere: the bench left)
+    run(model, 0.2);
+    expect([model.salvage.breaking, !!model.woodworking.making]).toEqual([null, true]);
+  });
 });

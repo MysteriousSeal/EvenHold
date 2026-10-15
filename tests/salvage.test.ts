@@ -15,7 +15,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { ITEMS } from '../src/model/human/equipment';
 import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { RISE, SKILL_TIERS, difficulty, skillOf } from '../src/model/skills/skills';
+import { RISE, SKILL_TIERS, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { createSalvagePanel } from '../src/controller/skills/salvagePanel';
 
 describe('what gear is made of, and leaves', () => {
@@ -188,6 +188,23 @@ describe('breaking gear down', () => {
     expect(hero.bag.rustyBuckle).toBe(2);
   });
 
+  it('tells, over the hero, how many more are to go; and why it stopped, the bag filled before the rest', () => {
+    const { model } = atTheBench();
+    const { hero } = model;
+    model.random = () => 0;
+    skillOf(hero, 'salvaging').level = FINER_AT.rare - 1;
+    hero.skills!.salvaging!.toward = stepsOf('salvaging', FINER_AT.rare - 1) - 1; // (the first broken down: the hand skilled enough for a cut gem from the next)
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 }); // (filings and a shard; then a cut gem besides, a slot of its own)
+    hero.bag[rare] = 3;
+    for (let i = 0; slotsUsed(hero.bag) < bagRoom(hero) - 2; i++) hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (two slots free: the first's two, none for the next's gem)
+    expect(model.salvage.start(rare, Infinity)).toBe('started');
+    expect(castOf(model)?.label).toBe('Breaking down Ruby ring · 3 to go');
+    model.takeEvents();
+    for (let t = 0; t < BREAK_SECONDS + 0.1; t += 1 / 30) model.update(0, 0, 1 / 30);
+    expect([model.salvage.breaking, hero.bag[rare]]).toEqual([null, 2]);
+    expect(model.takeEvents()).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
+  });
+
   it('never overfills the bag: a piece that leaves three new things, one slot free, isn\'t begun; the last of a piece leaves its slot', () => {
     const { model } = atTheBench();
     const { hero } = model;
@@ -225,6 +242,14 @@ describe('breaking gear down', () => {
     for (let t = 0; t < BREAK_SECONDS + 0.1 && model.salvage.breaking; t += 1 / 30) [model.update(0, 0, 1 / 30), panel.update()];
     expect(model.hero.bag.ironScrap).toBe(1);
     expect(model.hero.bag.armingSword).toBe(1);
+    model.hero.bag.armingSword = 3;
+    panel.menu.refresh();
+    window.querySelector<HTMLButtonElement>('.salvage-all')!.click(); // (the rest, one after another; and a button to stop them)
+    window.querySelector<HTMLButtonElement>('.salvage-sure')?.click();
+    panel.update();
+    expect(model.salvage.breaking?.key).toBe('armingSword');
+    window.querySelector<HTMLButtonElement>('.salvage-stop')!.click();
+    expect([model.salvage.breaking, model.hero.bag.armingSword]).toEqual([null, 3]);
     panel.menu.close();
   });
 
@@ -248,6 +273,26 @@ describe('breaking gear down', () => {
     window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
     window.querySelector<HTMLButtonElement>('.salvage-sure')!.click();
     expect(model.salvage.breaking?.key).toBe('armingSword');
+    panel.menu.close();
+  });
+
+  it('asks first before the last axe carried for felling trees (none wielded), though a sword in hand is better', () => {
+    const { model } = atTheBench();
+    model.hero.equipment.mainHand = gearKey({ item: 'armingSword', level: 20, rarity: 'rare', roll: 0 });
+    expect([betterThanWorn('hatchet', model.hero), model.lumber.axeKey]).toEqual([false, 'hatchet']);
+    const panel = createSalvagePanel(model);
+    panel.open();
+    const window = Array.from(document.querySelectorAll('.menu[aria-label="Salvage bench"]')).at(-1)!;
+    window.querySelector<HTMLElement>('.menu-slot')!.click();
+    window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
+    expect(model.salvage.breaking).toBeNull();
+    expect(window.querySelector('.salvage-warn')?.textContent).toContain('fell trees');
+    window.querySelector<HTMLButtonElement>('.salvage-keep')!.click();
+    model.hero.bag[gearKey({ item: 'hatchet', level: 9, rarity: 'common', roll: 0 })] = 1; // (another axe besides: not asked)
+    panel.menu.refresh();
+    window.querySelector<HTMLElement>('.menu-slot')!.click();
+    window.querySelector<HTMLButtonElement>('.salvage-go')!.click();
+    expect(model.salvage.breaking?.key).toBe('hatchet');
     panel.menu.close();
   });
 });
