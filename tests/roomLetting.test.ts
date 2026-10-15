@@ -188,6 +188,22 @@ describe('a room at the inn', () => {
     }
   });
 
+  it('let after midnight: told so, not "tomorrow"', () => {
+    for (const hour of [0.5, 3, 5.5]) {
+      const model = atTheInn(hour);
+      model.hero.money = ROOM_PRICE;
+      takeSpeech();
+      expect(rentRoom(model, barmaidHere(model)!)).toBe('let');
+      expect(LINES.late).toContain(said()[0]);
+    }
+    expect([...LINES.late].every((l) => !l.includes('tomorrow'))).toBe(true);
+    const evening = atTheInn(20);
+    evening.hero.money = ROOM_PRICE;
+    takeSpeech();
+    rentRoom(evening, barmaidHere(evening)!);
+    expect(LINES.let).toContain(said()[0]);
+  });
+
   it('bribed for by day: its bed slept in at once, till the next morning', () => {
     const model = atTheInn(12);
     model.hero.money = ROOM_PRICE + BRIBE;

@@ -20,7 +20,7 @@ import { PACES, paceOf } from '../src/model/jobs/room/pace';
 import { FLAT, LET_IN, TEMPERS, TEMPER_IDS, THANKS, TURN_AWAY, type Tone } from '../src/model/jobs/room/roomLines';
 import { TROUBLE } from '../src/model/jobs/room/roomTrouble';
 import type { Pace } from '../src/model/jobs/room/pace';
-import { PRICE, RoomShift } from '../src/model/jobs/room/roomShift';
+import { PRICE, RoomShift, quitsAt } from '../src/model/jobs/room/roomShift';
 import type { Talk } from '../src/model/story/story';
 import { closeUpFigure } from '../src/view/meshes/human/figureMesh';
 import { C, bodyPalette, buildTorso } from '../src/view/meshes/human/bodyVoxels';
@@ -386,6 +386,31 @@ describe('a shift in a room, someone let in', () => {
       met.talk.answers.at(-1)!.pick(); // (turned away)
     }
     expect(new Set(heard).size).toBe(heard.length);
+  });
+});
+
+describe('a shift in a room, ended from it', () => {
+  it('ends at its door, no one at it nor in: as at the board, the door unlocked, the hero let out', () => {
+    const { model, shift } = atWork();
+    const door = letDoor(model.inside!.furniture)!;
+    model.update(0, 0, 0.25);
+    expect([shift.begun, door.locked]).toEqual([true, true]);
+    Object.assign(model.hero, doorway(door, -0.45)); // (at it, inside)
+    const found = interactionOf(model);
+    expect(found).toMatchObject({ kind: 'hallDoor', door });
+    expect(quitsAt(model.work, door)).toBe(true);
+    until(model, () => shift.client);
+    expect(quitsAt(model.work, door)).toBe(false); // (someone knocking: answered first)
+    model.work.meet()!.talk.answers.at(-1)!.pick(); // (turned away)
+    expect(quitsAt(model.work, door)).toBe(true);
+    model.takeEvents();
+    model.work.end(true); // (E there: GameController.ts)
+    expect(useHallDoor(model)).toBe(true);
+    expect(model.work.shift).toBeNull();
+    expect(model.takeEvents().find((e) => e.kind === 'shift')).toMatchObject({ early: true });
+    for (let t = 0; t < 1; t += 0.25) model.update(0, 0, 0.25);
+    expect(inLetRoom(model.inside!, { x: Math.round(model.hero.x), z: Math.round(model.hero.z) })).toBe(false); // (shown out, the room not theirs)
+    expect(door.locked).toBe(true);
   });
 });
 
