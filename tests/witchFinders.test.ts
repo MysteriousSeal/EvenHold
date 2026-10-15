@@ -11,6 +11,9 @@ import { DAY_MINUTES, hourAt } from '../src/model/clock';
 import { MOST, SEIZE, WANTED } from '../src/model/roads/heat';
 import { PARTY, type Party, type Saint } from '../src/model/roads/patrols';
 import { FOUGHT, RAN, fineFor } from '../src/model/roads/arrest';
+import { squareStocks, villageStocks } from '../src/model/roads/stocks';
+import { villageBenches } from '../src/model/worldgen/benches';
+import { TEST_SEEDS, testModel } from './support/testWorld';
 import { bribeFor, lieChance } from '../src/model/roads/questioning';
 import { foeStrikes } from '../src/model/hero/fighting';
 import { PITCH_TELL } from '../src/model/enemies/wildMoves';
@@ -188,9 +191,15 @@ describe('a word with them', () => {
     expect(hourAt(model.minutes)).toBe(18);
     const village = model.heat.nearest(model.hero)!;
     expect(Math.hypot(model.hero.x - village.x, model.hero.z - village.z)).toBeLessThan(13);
+    const held = villageStocks(model, village)!;
+    expect(model.seated?.seat).toBe(held.seat); // (sat in the square's stocks, seen so while the talk goes on)
+    expect([model.hero.x, model.hero.z]).toEqual([held.seat.x, held.seat.z]);
     expect(model.heat.known(model.hero)).toBe(0);
     stocks.answers[0].pick(); // (served once: nothing more taken)
     expect(model.hero.money).toBe(1000 - fineFor(model.hero.level));
+    step(model, 0.1); // (the talk over: let out, stood up before them)
+    expect(model.seated).toBeNull();
+    expect(model.isBlocked(model.hero.x, model.hero.z, 0.1)).toBe(false);
   });
 
   it('wanted on sight: no lie to tell', () => {
@@ -324,6 +333,25 @@ describe('the story\'s saint (arc 2, as the story keeps it)', () => {
     expect(model.roads.arrived()).toBeNull();
     model.heat.raise(party.members[0], 1);
     expect(stopped(model).lines[0]).toMatch(/Hold there/);
+  });
+});
+
+describe('the stocks', () => {
+  it('on every square with room, at its edge facing the well, not beside a bench, solid', () => {
+    let squares = 0;
+    for (const seed of TEST_SEEDS) {
+      const model = testModel(seed);
+      for (const v of model.villages) {
+        const stocks = villageStocks(model, v);
+        if (!stocks) continue;
+        squares++;
+        expect(squareStocks(model)).toContain(stocks);
+        expect(Math.hypot(stocks.x + stocks.front[0] - v.x, stocks.z + stocks.front[1] - v.z)).toBeLessThan(Math.hypot(v.x - stocks.x, v.z - stocks.z)); // (facing in)
+        for (const b of villageBenches(model, v)) expect(Math.max(Math.abs(b.x - stocks.x), Math.abs(b.z - stocks.z))).toBeGreaterThan(1);
+        expect(model.isBlocked(stocks.x, stocks.z, 0.1)).toBe(true);
+      }
+    }
+    expect(squares).toBeGreaterThan(TEST_SEEDS.length / 2);
   });
 });
 
