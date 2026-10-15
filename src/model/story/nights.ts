@@ -11,6 +11,7 @@ import { stairsOf, upstairsInside } from '../interiors/upstairs';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { Hero } from '../types';
 import { far } from './storyCast';
+import { between } from '../clock';
 
 export interface NightHost {
   readonly hero: Hero;
@@ -20,6 +21,10 @@ export interface NightHost {
   readonly minutes: number;
   enterRoom(entrance: Entrance): void;
 }
+
+// Whether it's late enough for a night's quest to be handed in (its night spent: on to the morning), from the evening till
+// before dawn (by day: come back after dark, story.ts; not a whole day slept away).
+export const afterDark = (minutes: number): boolean => between(minutes, 18, 6);
 
 const LINGER = 0.6; // seconds they stay by the hero once the talk's over (the game's held while it's told), before their day takes them
 const BEDS: ReadonlySet<Furniture['kind']> = new Set<Furniture['kind']>(['bed', 'roomBed', 'doubleBed']);
