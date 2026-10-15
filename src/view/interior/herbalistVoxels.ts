@@ -35,6 +35,15 @@ import {
   MOSS_LIGHT,
   PLUM_LIGHT,
   INDIGO_LIGHT,
+  BREW,
+  BREW_GLOW,
+  PALE_STONE,
+  TWINE,
+  BERRY,
+  HERB_DEEP,
+  HERB_SAGE,
+  HERB_GOLD,
+  HERB_LAVENDER,
   type Box,
 } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
@@ -48,12 +57,12 @@ function flask(box: Box, u: number, y: number, v: number, glass: number): void {
   box(u + 1, y + 4, v + 1, u + 1, y + 4, v + 1, WOOD_DARK); // the cork
 }
 
-// A bundle of herbs hung upside down from (u, y, v) to dry: a twine tie, the stems bound under it, then the heads
-// of `leaf` spreading out below, two voxels deep, seven long.
-function bundle(box: Box, u: number, y: number, v: number, leaf: number): void {
-  box(u, y, v, u, y, v + 1, BREAD); // the tie
+// A bundle of herbs hung upside down from (u, y, v) to dry, `long` voxels in all: a twine tie, the stems bound under
+// it, then the heads of `leaf` spreading out below, two voxels deep.
+function bundle(box: Box, u: number, y: number, v: number, leaf: number, long = 7): void {
+  box(u, y, v, u, y, v + 1, TWINE); // the tie
   box(u, y - 2, v, u, y - 1, v + 1, MOSS_DARK); // the stems
-  box(u - 1, y - 6, v, u + 1, y - 3, v + 1, (uu, yy) => ((yy === y - 3 || yy === y - 6) && uu !== u ? 0 : leaf)); // the heads
+  box(u - 1, y - long + 1, v, u + 1, y - 3, v + 1, (uu, yy) => ((yy === y - 3 || yy === y - long + 1) && uu !== u ? 0 : leaf)); // the heads
 }
 
 // A round woven basket on the floor, its middle at (u, v): wicker in a checker of two tones, rounded at the corners,
@@ -78,16 +87,19 @@ function basket(box: Box, u: number, v: number): void {
 
 export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // A black iron cauldron, round-bellied, on three stubby legs over a bed of
-  // embers ringed by three hearthstones: soot low on its belly, the iron
-  // catching the light on its near side, a thick lip, a bright green brew
-  // seething in it (froth, a bubble or two), a ladle leaning on the rim.
+  // embers: soot-black all over, a band of bare iron under its lip catching
+  // the light, a green brew glowing in it (brightest at its heart, scum at
+  // its edge, a bubble or two), a ladle leaning on the rim; a ring of pale
+  // stones laid round it on the floor (her one uncanny mark), and her stool
+  // in the corner, to sit and stir from.
   cauldron: (box) => {
     const c = 12;
     const at = (r: number) => (u: number, v: number) => Math.hypot(u - c, v - c) <= r + 0.3;
     const near = (u: number, v: number) => u + v - 2 * c; // (toward the camera: its lit side)
-    for (const a of [0.6, 2.7, 4.8]) { // the hearthstones, flat, peeping out from under it
-      const [u, v] = [Math.round(c + Math.cos(a) * 9), Math.round(c + Math.sin(a) * 9)];
-      box(u - 2, 1, v - 2, u + 2, 2, v + 2, (uu, yy, vv) => (Math.hypot(uu - u, vv - v) > 2.2 || (yy === 2 && Math.hypot(uu - u, vv - v) > 1.5) ? 0 : yy === 2 ? STONE : STONE_DARK));
+    for (let k = 0; k < 7; k++) { // the ring of pale stones (round from the stool's corner)
+      const a = 2.36 + ((k + 1) * Math.PI * 2) / 8;
+      const [u, v] = [Math.round(c + Math.cos(a) * 10.5), Math.round(c + Math.sin(a) * 10.5)];
+      box(u, 1, v, u + 1, 1, v + 1, PALE_STONE);
     }
     box(c - 6, 1, c - 6, c + 6, 1, c + 6, (u, _y, v) => (at(6)(u, v) ? ((u * 5 + v * 3) % 7 === 0 ? FIRE : (u + v * 2) % 5 === 0 ? COAL : EMBER) : 0)); // the embers
     for (const a of [1.2, 3.3, 5.4]) { // its legs
@@ -98,17 +110,20 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     belly.forEach((r, i) => box(c - r, 4 + i, c - r, c + r, 4 + i, c + r, (u, _y, v) => {
       if (!at(r)(u, v)) return 0;
       if (i < 2) return COAL; // (sooted from the fire)
-      const lit = near(u, v) > r + 2; // (the near side's curve, catching the light)
-      return lit && (i === 4 || i === 5) ? IRON_LIGHT : lit || i >= 6 ? IRON : SOOT;
+      return i === 6 && near(u, v) > 0 ? IRON : SOOT; // (bare iron under the lip, on its lit side)
     }));
     const top = 4 + belly.length; // the brew's level, and its rim's
     box(c - 8, top, c - 8, c + 8, top, c + 8, (u, _y, v) => {
       if (!at(8)(u, v)) return 0;
-      if (!at(6)(u, v)) return near(u, v) > 6 ? IRON_LIGHT : IRON; // the lip
-      return (u * 3 + v * 5) % 11 === 0 ? LINEN : (u + v) % 4 === 0 || Math.abs(u - v) === 3 ? MOSS_LIGHT : GLASS_GREEN; // the brew, frothing
+      if (!at(6)(u, v)) return near(u, v) > 6 ? IRON : SOOT; // the lip
+      const r = Math.hypot(u - c, v - c);
+      return r < 2.6 || (r < 4 && (u * 3 + v) % 4 === 0) ? BREW_GLOW : r > 5 && (u + v) % 2 === 0 ? MOSS_LIGHT : BREW; // the brew, scum at its edge
     });
-    for (const [u, v] of [[c - 2, c + 1], [c + 2, c - 2], [c, c + 3]]) box(u, top + 1, v, u, top + 1, v, MOSS_LIGHT); // bubbles, rising
+    for (const [u, v] of [[c - 1, c + 1], [c + 2, c - 1], [c - 2, c - 3]]) box(u, top + 1, v, u, top + 1, v, BREW_GLOW); // bubbles, rising
     for (let k = 0; k < 7; k++) box(c - 2 - k, top - 2 + k, c - 2 - (k >> 1), c - 2 - k, top - 2 + k, c - 2 - (k >> 1), WOOD_DARK); // the ladle's handle, leaning on the rim
+    // Her stool, three-legged, in the near corner.
+    for (const [u, v] of [[0, 19], [5, 19], [2, 24]]) box(u, 1, v, u, 8, v, WOOD_DARK);
+    box(0, 9, 19, 5, 9, 24, (u, _y, v) => ((u === 0 || u === 5) && (v === 19 || v === 24) ? 0 : WOOD_DARK));
   },
   // Two tiles of oak, its front toward the door: on it a stone mortar and
   // its pestle, three flasks (red, blue, green), the herbal open, a brass
@@ -117,8 +132,8 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     box(1, 1, 7, len - 2, 2, 19, WOOD_DARK); // plinth
     box(2, 3, 8, len - 3, 12, 18, (u, y, v) => (v === 18 && (u % 12 === 2 || y === 7) ? WOOD_DARK : WOOD)); // body, panelled
     box(0, 13, 6, len - 1, 14, 20, (_u, y, v) => (y === 13 ? WOOD_DARK : v === 20 ? WOOD_LIGHT : WOOD)); // the top, its edge lit
-    box(5, 15, 11, 10, 17, 16, (u, y, v) => ((u === 5 || u === 10) && (v === 11 || v === 16) ? 0 : y > 15 && u > 5 && u < 10 && v > 11 && v < 16 ? (y === 16 ? MOSS : 0) : y === 17 ? STONE : STONE_DARK)); // the mortar, round, herbs in it
-    box(8, 16, 13, 10, 21, 13, WOOD_LIGHT); // the pestle, standing in it
+    box(5, 15, 11, 10, 17, 16, (u, y, v) => ((u === 5 || u === 10) && (v === 11 || v === 16) ? 0 : y > 15 && u > 5 && u < 10 && v > 11 && v < 16 ? (y === 16 ? MOSS_DARK : 0) : y === 17 ? STONE : STONE_DARK)); // the mortar, round, its rim lighter, herbs ground in it
+    for (let k = 0; k <= 5; k++) box(8 + (k >> 1), 16 + k, 13, 8 + (k >> 1), 16 + k, 13, WOOD_LIGHT); // the pestle, leaning out of it
     flask(box, 15, 15, 12, RED);
     flask(box, 19, 15, 14, INDIGO_LIGHT);
     flask(box, 23, 15, 12, GLASS_GREEN);
@@ -190,17 +205,18 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     box(46, on + 1, 15, 46, on + 2, 15, LINEN); // a drip, run down to the dish
     box(44, on + 6, 14, 44, on + 6, 14, EMBER);
   },
-  // Against the wall: two uprights and two poles across them, crowded
-  // with bundles of herbs hanging to dry (green, sage, gold, lavender, rose
-  // hips), a basket of dried leaves below.
+  // Against the wall, shallow: two thin uprights and two poles across them,
+  // crowded with bundles of herbs hung out in front of the poles to dry
+  // (deep green, sage, gold, lavender, rose hips), a basket of dried leaves
+  // in under it.
   dryingRack: (box, len) => {
-    for (const u of [2, len - 4]) box(u, 1, 2, u + 1, 36, 3, WOOD_DARK); // the uprights
-    const leaves = [MOSS, BREAD, PLUM_LIGHT, MOSS_LIGHT, RED_LIGHT, BREAD, MOSS_DARK];
-    for (const [y, start] of [[35, 6], [24, 8]] as const) {
-      box(1, y, 3, len - 2, y, 4, WOOD); // a pole
-      for (let u = start, i = 0; u < len - 5; u += 4, i++) bundle(box, u, y - 1, 3, leaves[(i * 3 + y) % leaves.length]);
+    for (const u of [2, len - 3]) box(u, 1, 2, u, 36, 3, WOOD_DARK); // the uprights
+    const leaves = [HERB_DEEP, HERB_GOLD, HERB_LAVENDER, HERB_SAGE, BERRY, HERB_GOLD, MOSS];
+    for (const [y, start] of [[35, 5], [24, 6]] as const) {
+      box(1, y, 3, len - 2, y, 3, WOOD); // a pole
+      for (let u = start, i = 0; u < len - 4; u += 3, i++) bundle(box, u, y, 4, leaves[(i * 3 + y) % leaves.length], 5 + ((u * 7 + y) % 4));
     }
-    basket(box, 14, 10); // a basket of dried leaves below
+    basket(box, 14, 8); // a basket of dried leaves, in under it
   },
   // A shelf of their potions against the wall: three boards, flasks on
   // each (red, blue, green, amber), a clay jar or two.

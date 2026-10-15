@@ -12,11 +12,11 @@ const BUBBLE_LIFE = 0.7;
 const STEAM_EVERY = 0.5; // and between wisps
 const STEAM_LIFE = 1.6;
 const SPREAD = 0.18; // tiles from the brew's middle a bubble rises
-const GLOW = 2.2; // the brew's light: a green pool round the cauldron, the room's second light after the fire
+const GLOW = 2.8; // the brew's light: a green pool round the cauldron, on the floor and on her, the room's key light
 
 export class CauldronEffects {
   private readonly bits: Bits<'bubble' | 'steam'>;
-  private readonly light = new THREE.PointLight(0x7ad86a, GLOW, 2.6, 1.4);
+  private readonly light = new THREE.PointLight(0x6aff5a, GLOW, 4, 1.4);
   private nextBubble = 0;
   private nextSteam = 0;
 
@@ -27,10 +27,16 @@ export class CauldronEffects {
   ) {
     this.bits = new Bits(scene, 0.04, {
       bubble: { material: new THREE.MeshBasicMaterial({ color: 0x8ae070, toneMapped: false }), size: (t) => 0.6 + t * 0.9 }, // (swelling till it's gone)
-      steam: { material: new THREE.MeshBasicMaterial({ color: 0xc8e8c0, transparent: true, opacity: 0.3, depthWrite: false, toneMapped: false }), size: (t) => 0.5 + Math.sin(t * Math.PI) * 1.2 }, // (spreading, then thinning away)
+      steam: { material: new THREE.MeshBasicMaterial({ color: 0xc8e8c0, transparent: true, opacity: 0.35, depthWrite: false, toneMapped: false }), size: (t) => 0.5 + Math.sin(t * Math.PI) * 1.2 }, // (spreading, then thinning away)
     });
     if (brew) {
-      this.light.position.copy(brew).add(new THREE.Vector3(0, 0.3, 0));
+      this.light.position.copy(brew).add(new THREE.Vector3(0, 0.7, 0)); // (high: the pot's own shadow round its foot kept small)
+      this.light.castShadow = true; // (the room's things casting green shadows away from it)
+      this.light.shadow.mapSize.set(512, 512);
+      this.light.shadow.bias = -0.004;
+      this.light.shadow.normalBias = 0.02;
+      this.light.shadow.camera.near = 0.05;
+      this.light.shadow.camera.far = 5;
       scene.add(this.light);
     }
   }
@@ -38,7 +44,7 @@ export class CauldronEffects {
   update(dt: number, time: number): void {
     const { brew } = this;
     if (!brew) return;
-    this.light.intensity = GLOW * (1 + Math.sin(time * 5.3) * 0.12 + Math.sin(time * 11.7) * 0.06);
+    this.light.intensity = GLOW + Math.sin(time * 5.3) * 0.23 + Math.sin(time * 11.7) * 0.12;
     if ((this.nextBubble -= dt) <= 0) {
       this.nextBubble = BUBBLE_EVERY * (0.5 + Math.random());
       const [a, r] = [Math.random() * Math.PI * 2, Math.sqrt(Math.random()) * SPREAD];

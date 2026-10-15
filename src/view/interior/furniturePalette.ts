@@ -1,6 +1,36 @@
 // The palette furniture is painted in (its colors come after the room's own,
 // roomVoxels.ts ROOM_PALETTE), and what every piece's painter shares.
 
+// A herbalist's own (herbalistVoxels.ts): peat, moss and green glass. Her brew glowing, the pale stones ringing it;
+// roots, mushrooms, sacking, birch twigs, rowan berries, garlic and chillies; her herbs; her glass; her patched blanket.
+const HERBAL_COLORS = [
+  0x8aff6a, // brew, its glowing heart
+  0x3e9a3a, // brew
+  0xb8b0a0, // pale stone
+  0x8a6a48, // root
+  0xc8b088, // root, light
+  0xa8402a, // toadstool cap
+  0xe8dcc8, // toadstool's spots, garlic
+  0xc89a5a, // mushroom cap
+  0x9a8458, // sacking
+  0x7a6844, // sacking, shade
+  0xd8d0c0, // birch bark
+  0x3a3430, // birch's marks
+  0xc83a2a, // rowan berries, chillies
+  0x5aa86a, // glass, green
+  0xc88a2a, // glass, amber
+  0x3a5aa8, // glass, cobalt
+  0xb04a5a, // glass, rose
+  0x5e5a3a, // blanket
+  0x7a6a48, // blanket's patch
+  0x4a5a3a, // blanket's other patch
+  0xb89a58, // plait, twine
+  0x4d6e34, // herb, deep green
+  0x8aa878, // herb, sage
+  0xb08f48, // herb, dried gold
+  0x8a6aa0, // herb, lavender
+];
+
 // Colors, after the room's own (roomVoxels.ts ROOM_PALETTE): palette index + 1.
 export const FURNITURE_PALETTE = [
   0x8a5a35, // 14 wood
@@ -49,11 +79,15 @@ export const FURNITURE_PALETTE = [
   0x74406e, // 54 plum
   0x522c50, // 55 plum, shadow
   0x965e90, // 56 plum, light
+  ...HERBAL_COLORS,
 ];
 export const [WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, FIRE, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, WATER, COAL, STONE, STONE_DARK] = FURNITURE_PALETTE.map((_, i) => 14 + i);
 export const [RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK] =
   FURNITURE_PALETTE.slice(16, 34).map((_, i) => 30 + i);
 export const [INDIGO, INDIGO_DARK, INDIGO_LIGHT, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM, PLUM_DARK, PLUM_LIGHT] = FURNITURE_PALETTE.slice(34).map((_, i) => 48 + i);
+// (A herbalist's, found by color: wherever in the palette they fall.)
+export const [BREW_GLOW, BREW, PALE_STONE, ROOT, ROOT_LIGHT, CAP_RED, CAP_SPOT, CAP_TAN, SACKING, SACKING_DARK, BIRCH, BIRCH_MARK, BERRY, HERB_GLASS_GREEN, HERB_GLASS_AMBER, HERB_GLASS_COBALT, HERB_GLASS_ROSE, BLANKET, BLANKET_PATCH, BLANKET_PATCH_DARK, TWINE, HERB_DEEP, HERB_SAGE, HERB_GOLD, HERB_LAVENDER] =
+  HERBAL_COLORS.map((c) => 14 + FURNITURE_PALETTE.indexOf(c));
 
 // A tankard standing at (u, y, v): a wooden body with iron hoops and a
 // handle on its side; full, a white head of foam on top; empty, open at the
