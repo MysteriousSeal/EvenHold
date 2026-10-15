@@ -367,7 +367,7 @@ export class LiveWorld {
     const strongholds = placeStrongholds({ seed, size, tiles, villages, ruins, camps, caves, isOpenTile, stoodOn: (x, z) => stood.has(cellKey(x, z)) }, area);
     addStrongholdObstacles(obstacles, strongholds);
     addSignpostObstacles(obstacles, tiles, villages, area); // (the signposts at the roads' junctions: last, on the paving, so nothing else is moved)
-    const wilds = placeBiomeScenery({ seed, tiles, villages, hero: spawn, stood: [...enemies, ...wildlife], scenery, isOpenTile }, area); // the country's own landmarks: after all else, so nothing is moved
+    const wilds = placeBiomeScenery({ seed, tiles, villages, ruins, camps, hero: spawn, stood: [...enemies, ...wildlife], scenery, isOpenTile }, area); // the country's own landmarks: after all else, so nothing is moved
     addSceneryObstacles(obstacles, wilds);
     scenery.push(...wilds);
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)

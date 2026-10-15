@@ -26,6 +26,8 @@ export interface BiomeSceneryWorld {
   villages: readonly Village[];
   hero: { x: number; z: number };
   stood: ReadonlyArray<{ x: number; z: number }>; // the foes and the animals
+  ruins: ReadonlyArray<{ x: number; z: number; w: number; d: number }>;
+  camps: ReadonlyArray<{ x: number; z: number }>;
   scenery: readonly Scenery[]; // what's set down already
   isOpenTile(x: number, z: number): boolean; // nothing on it (all placed before: obstacles.ts)
 }
@@ -42,7 +44,8 @@ export function placeBiomeScenery(world: BiomeSceneryWorld, area: Area): Scenery
   const { seed, tiles } = world;
   const biomes = createBiomes(seed, tiles);
   const taken = new Set(world.scenery.flatMap((s) => sceneryTiles(s).map(([x, z]) => `${x},${z}`)));
-  // The ground kept clear (round the villages, where the hero sets out, round each foe and animal), marked once, by tile.
+  // The ground kept clear (round the villages, the ruins, the camps, where the hero sets out, each foe and animal),
+  // marked once, by tile.
   const [width, depth] = [area.x1 - area.x0, area.z1 - area.z0];
   const kept = new Uint8Array(width * depth);
   const keep = (p: { x: number; z: number }, r: number) => {
@@ -52,6 +55,8 @@ export function placeBiomeScenery(world: BiomeSceneryWorld, area: Area): Scenery
   for (const v of world.villages) keep(v, VILLAGE_CLEAR);
   keep(world.hero, SPAWN_CLEAR);
   for (const p of world.stood) keep(p, STOOD_CLEAR + 1);
+  for (const r of world.ruins) for (let x = r.x - 2; x <= r.x + r.w + 1; x++) for (let z = r.z - 2; z <= r.z + r.d + 1; z++) keep({ x, z }, 0); // (as scenery.ts keeps them)
+  for (const c of world.camps) keep(c, 5);
   const clear = (x: number, z: number, w: number, d: number) => {
     for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if (kept[(i - area.x0) * depth + (k - area.z0)]) return false;
     return true;
