@@ -22,6 +22,7 @@ import { createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
 import { GRAND_GRID, GRAND_SHAPES, grandOak } from './grandOakVoxels';
 import { createFallingLeaves } from './fallingLeaves';
+import { bareBoughs } from './boughVoxels';
 
 export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
@@ -38,10 +39,28 @@ function treeTint(tree: Tree): THREE.Color {
   return new THREE.Color(brightness * (1 + warmth), brightness, brightness * (1 - warmth));
 }
 
+// A broadleaf tree's model carries its bare boughs too (boughVoxels.ts: inside its leaves, seen in winter when they've
+// fallen), in the one geometry; a pine's is its own.
 export function buildTreeGeometry(kind: TreeKind, shape: number, grand = false): THREE.BufferGeometry {
   const [sx, , sz] = grand ? GRAND_GRID : TREE_GRID;
   const origin = new THREE.Vector3((-sx * TREE_VOXEL_SIZE) / 2, -SINK, (-sz * TREE_VOXEL_SIZE) / 2);
-  return greedyMesh(grand ? grandOak(shape % GRAND_SHAPES) : buildTreeVoxels(kind, shape), TREE_PALETTE, TREE_VOXEL_SIZE, origin);
+  const grid = grand ? grandOak(shape % GRAND_SHAPES) : buildTreeVoxels(kind, shape);
+  const leafy = greedyMesh(grid, TREE_PALETTE, TREE_VOXEL_SIZE, origin);
+  if (kind === 'pine') return leafy;
+  return joined(leafy, greedyMesh(bareBoughs(grid, shape * 7 + (grand ? 3 : 0)), TREE_PALETTE, TREE_VOXEL_SIZE, origin));
+}
+
+// Two meshes' triangles as one (the mesher's are unindexed: position, normal, colour).
+function joined(a: THREE.BufferGeometry, b: THREE.BufferGeometry): THREE.BufferGeometry {
+  const out = new THREE.BufferGeometry();
+  for (const name of ['position', 'normal', 'color']) {
+    const [x, y] = [a.getAttribute(name).array as Float32Array, b.getAttribute(name).array as Float32Array];
+    const both = new Float32Array(x.length + y.length);
+    both.set(x);
+    both.set(y, x.length);
+    out.setAttribute(name, new THREE.Float32BufferAttribute(both, 3));
+  }
+  return out;
 }
 
 // A stump, where a tree's been felled (model/skills/lumber.ts): its trunk cut low (as wide as it, 3 voxels), in its
