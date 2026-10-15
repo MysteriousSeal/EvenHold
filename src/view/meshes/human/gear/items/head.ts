@@ -110,8 +110,9 @@ const nasalCap: ItemModel = {
 };
 
 // A close white linen coif over the hair, the ears and the cheeks, framing
-// the face with a raised hem, a seam over the crown, tied with a bow at
-// each side.
+// the face with a hem lying flat (nothing standing out round it: in a small
+// portrait the face shows, not a white box), a seam over the crown, tied
+// with a bow at each side.
 const coif = namedPalette({ linen: 0xece2c8, shade: 0xd6c9a8, deep: 0xbcae8c, tie: 0x8a6a45 });
 const linenCoif: ItemModel = {
   palette: coif.palette,
@@ -119,11 +120,9 @@ const linenCoif: ItemModel = {
     const { x, y, z, d, top, front, flank } = cell;
     const { c } = coif;
     if (y < 1 || d > 2) return 0;
-    if (onFace(cell)) return y >= 9 ? (d === 1 ? c.linen : y === 9 ? c.shade : 0) : 0; // over the brow, its hem standing out
-    if (d === 1) return top ? (x === M ? c.shade : c.linen) : flank && y <= 3 && !front ? c.shade : c.linen;
-    if (front) return c.shade; // the hem round the face
-    if (flank && y <= 2 && z >= 7 && z <= 8) return c.tie; // the bows
-    return top && x === M && z >= 0 && z <= L ? c.deep : 0; // the seam
+    if (onFace(cell)) return y === L && d === 1 ? c.shade : 0; // the brow open to the top row, its hem
+    if (d === 1) return top ? (x === M && z >= 0 && z <= L ? c.deep : c.linen) : front ? c.shade : flank && y <= 3 ? c.shade : c.linen; // (the seam, the hem round the face)
+    return flank && !front && y <= 2 && z >= 7 && z <= 8 ? c.tie : 0; // the bows
   },
 };
 

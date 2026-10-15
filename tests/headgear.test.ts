@@ -83,3 +83,14 @@ describe('the head\'s measures (headShape.ts)', () => {
     expect([0, 1, 2, 3].map((x) => riveted(cell(x, 5, -1), 9, 1))).toEqual([1, 9, 1, 1]);
   });
 });
+
+describe('the linen coif (head.ts)', () => {
+  // A cell `d` out at (x, y, z) of the head's cube (past 10 or below 0: round it).
+  const at = (x: number, y: number, z: number, d = 1) => ITEM_MODELS.linenCoif.headgear!({ x, y, z, d, front: z > 10, back: z < 0, flank: x < 0 || x > 10, top: y > 10 });
+  it('slim round the face, so a small portrait shows one: the brow open up to the crown, nothing standing out at its sides', () => {
+    for (let x = 0; x <= 10; x++) for (let y = 1; y <= 9; y++) expect(at(x, y, 11), `face ${x},${y}`).toBe(0);
+    for (let y = 0; y <= 10; y++) expect(at(-2, y, 12, 2), `corner ${y}`).toBe(0);
+    expect(at(5, 11, 5, 2), 'no ridge over the crown').toBe(0);
+    expect(at(5, 10, 11)).not.toBe(0); // (still over the hair, the brow's top row)
+  });
+});
