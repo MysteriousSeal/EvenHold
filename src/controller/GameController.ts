@@ -17,7 +17,7 @@ import type { GameView } from '../view/GameView';
 import { KeyboardInput } from './KeyboardInput';
 import { stepZoom } from '../view/render/zoom';
 import { doorNumber } from '../model/interiors/interiors';
-import type { Client } from '../model/jobs/room/roomShift';
+import { quitsAt, type Client } from '../model/jobs/room/roomShift';
 import type { Talk } from '../model/story/story';
 import type { Entrance } from '../model/interiors/interiors';
 
@@ -254,6 +254,7 @@ export class GameController {
       case 'well':
         return model.tossCoin(), true;
       case 'hallDoor':
+        if (quitsAt(model.work, found.door)) model.work.end(true); // (at work in the room, no one about: the shift ended, the door unlocked)
         return useHallDoor(model);
       case 'stairs':
         return takeStairs(model);

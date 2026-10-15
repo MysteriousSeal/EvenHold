@@ -3,7 +3,9 @@
 // before its hearth (on its bear rug), a little of their energy back and more
 // coming while they lie there (E to get up); out of health, they fall, a share
 // of their coin lost, and wake in the last inn they entered (or at spawn,
-// before any), healed.
+// before any), healed. A bed in someone else's house (a villager's, the herbalist's) isn't theirs to rest in: its
+// owner home, found in it, turns them out; away, it rests them only as a bedroll would (and no Well rested: an inn's
+// room, paid for, gives that).
 
 import { wearOnFall } from './wear';
 import type { GameModel } from '../GameModel';
@@ -11,7 +13,9 @@ import { recover } from './heroStats';
 import { maxEnergyOf, maxHpOf } from './attributes';
 import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { bumpsFurniture, type Furniture } from '../interiors/furniture';
-import { sitDown } from '../interiors/indoors';
+import { sitDown, standUp, type Seated } from '../interiors/indoors';
+import type { Npc } from '../npcs/npcs';
+import { inTurn, say } from '../npcs/speech';
 import { makeWeary } from './blessing';
 import { spawnOf } from '../map/grid';
 
@@ -37,9 +41,50 @@ export function lieOnBedroll(model: GameModel): boolean {
 // The hero's timers and energy over `dt` (recover: lying down, it comes
 // back; sat down, it's kept), then collapsing if it's run out; returns whether they did.
 export function liveOn(model: GameModel, dt: number): boolean {
+  const owned = ownedBed(model);
+  if (owned) {
+    const was = ownerSeen.get(owned.seated);
+    ownerSeen.set(owned.seated, !!owned.owner);
+    if (owned.owner && was === false) turnOut(model, owned.owner); // (home, and found them in it)
+  }
   const seat = (model.inside ? model.inside.seated : model.outdoors.seated)?.seat;
-  recover(model.hero, dt, !!seat?.lying, !!seat && !seat.lying, seat?.piece.kind === 'bedroll' ? BEDROLL_REST : 1); // (on a bedroll, on the ground: slower)
+  recover(model.hero, dt, !!seat?.lying, !!seat && !seat.lying, seat?.piece.kind === 'bedroll' || owned ? BEDROLL_REST : 1); // (on a bedroll, on the ground, or in another's bed: slower)
   return collapseIfSpent(model);
+}
+
+// What the owner of a bed says, finding the hero in it.
+export const NOT_YOURS: readonly string[] = [
+  'Oi! Out of my bed!',
+  "That's my bed you're in. Out, before I fetch a stick.",
+  'Who the hell are you? Get out of my bed!',
+  "I don't care how tired you are. Out!",
+  'Pay for a room at the inn like everyone else. Out of my bed.',
+  "You've got some nerve. Up, and out of it.",
+];
+
+// Each lying in someone else's bed, whether its owner was home when last looked (the hero laid there with them home,
+// a night of a quest's: their guest, not turned out).
+const ownerSeen = new WeakMap<NonNullable<Seated>, boolean>();
+
+// The hero lying in a bed in someone else's house: how they lie, and its owner, if home.
+function ownedBed(model: GameModel): { seated: NonNullable<Seated>; owner: Npc | null } | null {
+  const inside = model.inside;
+  const seated = inside?.seated;
+  if (!inside || inside.below || !seated?.seat.lying || seated.seat.piece.kind !== 'bed') return null; // (an inn's beds upstairs: its rooms')
+  return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance) ?? null };
+}
+
+// The owner's word, and the hero up out of their bed.
+function turnOut(model: GameModel, owner: Npc): void {
+  say(owner, inTurn(owner, NOT_YOURS));
+  standUp(model.inside!, model.hero);
+}
+
+// The hero just lain down (GameModel sitOrStand): in someone else's bed, its owner home, turned out at once.
+export function intoBed(model: GameModel): void {
+  const owned = ownedBed(model);
+  if (owned?.owner) turnOut(model, owned.owner);
+  else if (owned) ownerSeen.set(owned.seated, false);
 }
 
 // Collapses the hero if their energy's run out (not while asleep in a bed); returns whether they did.

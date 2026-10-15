@@ -3,12 +3,13 @@
 // only while playing, and kept in a save). One at a time from a well:
 // another toss rerolls it, the half hour afresh (a cheat can grant all).
 // And a cook's meals' (loot/meals.ts), eaten through: Well fed, Fortified, Feasted, one at a time, beside a well's.
+// And a night in an inn's room, paid for (inn/roomLetting.ts sleepTillMorning): Well rested, a few hours after.
 
 import type { GameEvent, Hero, Village } from '../types';
 import { COPPER_PER_SILVER } from './money';
 import { maxHpOf } from './attributes';
 
-export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed' | 'fed' | 'fortified' | 'feasted';
+export type BlessingKind = 'swift' | 'strong' | 'tough' | 'lucky' | 'wise' | 'quiet' | 'second' | 'keen' | 'weary' | 'chilled' | 'webbed' | 'poxed' | 'fed' | 'fortified' | 'feasted' | 'rested';
 export interface Blessing {
   kind: BlessingKind;
   left: number; // seconds of it left
@@ -30,10 +31,12 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   fed: { name: 'Well fed', about: 'A hot stew in you: your health comes back slowly as you go.' }, // (no well's: a cook's stew, eaten through: loot/meals.ts)
   fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 15% less damage, and you tire a third slower.' }, // (a cook's pie)
   feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 15% less, and your health comes back slowly.' }, // (a cook's feast)
+  rested: { name: 'Well rested', about: 'A night in a proper bed: your breath comes back a quarter faster, and you tire a quarter slower.' }, // (no well's: a night in an inn's room, inn/roomLetting.ts)
 };
 const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed', 'poxed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
 const FOOD: ReadonlySet<BlessingKind> = new Set(['fed', 'fortified', 'feasted']); // a meal's: no well's either, and kept through one
-const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k) && !FOOD.has(k)); // the wells'
+const SLEPT: ReadonlySet<BlessingKind> = new Set(['rested']); // a night's: no well's either, and kept through one, and through a meal
+const BLESSING_KINDS = (Object.keys(BLESSINGS) as BlessingKind[]).filter((k) => !BANES.has(k) && !FOOD.has(k) && !SLEPT.has(k)); // the wells'
 const CHILL_PACE = 0.55; // how fast the hero walks, chilled
 const WEB_PACE = 0.4; // and webbed (both: slower still)
 export const WEARY_TIME = 5 * 60; // seconds of play Weary after a fall (or collapsing, out of energy)
@@ -76,7 +79,7 @@ export function makeWebbed(hero: Hero, seconds: number): void {
 export const POX_TIME = 4 * 60 * 60; // seconds of play it lasts, left alone
 const POX_DRAIN = 1.5; // energy spent, times
 export const hasPox = (hero: { blessings?: Blessing[] }): boolean => on(hero, 'poxed');
-export const tiring = (hero: { blessings?: Blessing[] }): number => (on(hero, 'poxed') ? POX_DRAIN : 1) * (on(hero, 'fortified') ? FORTIFIED_DRAIN : 1); // on the energy spent up and about
+export const tiring = (hero: { blessings?: Blessing[] }): number => (on(hero, 'poxed') ? POX_DRAIN : 1) * (on(hero, 'fortified') ? FORTIFIED_DRAIN : 1) * (on(hero, 'rested') ? RESTED_DRAIN : 1); // on the energy spent up and about
 export function givePox(hero: Hero): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'poxed'), { kind: 'poxed', left: POX_TIME }];
 }
@@ -93,6 +96,16 @@ export function feed(hero: Hero, kind: BlessingKind, seconds: number): void {
   hero.blessings = [...(hero.blessings ?? []).filter((b) => !FOOD.has(b.kind)), { kind, left: seconds }];
 }
 export const mending = (hero: { blessings?: Blessing[] }): number => (on(hero, 'fed') || on(hero, 'feasted') ? FED_MEND : 0);
+
+// A night in an inn's room, paid for: Well rested for a few hours of the clock after waking (afresh, if already): breath
+// back the faster, and tiring the slower.
+export const RESTED_TIME = 4 * 60; // seconds of play (four hours on the game's clock)
+const RESTED_DRAIN = 0.75; // energy spent, times
+const RESTED_BREATH = 1.25; // breath refilled, times
+export const breathFactor = (hero: { blessings?: Blessing[] }): number => (on(hero, 'rested') ? RESTED_BREATH : 1); // (hero/combatMoves.ts)
+export function wellRested(hero: Hero): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => b.kind !== 'rested'), { kind: 'rested', left: RESTED_TIME }];
+}
 
 // Whether it's a bane (Weary, Chilled, Webbed, the pox), not a gift.
 export const isBane = (kind: BlessingKind): boolean => BANES.has(kind);
@@ -121,7 +134,7 @@ export function tossCoin(hero: Hero, roll: number): BlessingKind | null {
   if (hero.money < WELL_TOSS) return null;
   hero.money -= WELL_TOSS;
   const kind = BLESSING_KINDS[Math.min(BLESSING_KINDS.length - 1, Math.floor(roll * BLESSING_KINDS.length))];
-  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind) || FOOD.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, a meal's, stay)
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind) || FOOD.has(b.kind) || SLEPT.has(b.kind)), { kind, left: BLESSING_TIME }]; // the well's is the only one (a fall's Weary, a draugr's chill, a meal's, a night's, stay)
   return kind;
 }
 

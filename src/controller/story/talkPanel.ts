@@ -245,7 +245,9 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
       // Out by the answer that commits to nothing (the one marked the way out; else the first unlit), if there is one,
-      // and on to whatever it leads to; with none to give, just out.
+      // and on to whatever it leads to; with none to give, just out. A game of pace still to be played: no way out of
+      // it (a client let in and left stood there, their hour never had: model/jobs/room/roomShift.ts).
+      if (talk!.pace) return;
       const marked = talk!.answers.findIndex((a) => a.out);
       const way = marked >= 0 ? marked : talk!.answers.findIndex((a) => !a.primary && !a.trade);
       if (talk!.answers.length === 0) close();

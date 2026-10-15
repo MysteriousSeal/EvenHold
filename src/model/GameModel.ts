@@ -44,7 +44,7 @@ import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } 
 import { QuestBook } from './quests/questBook';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
-import { fall, lieOnBedroll, liveOn } from './hero/setbacks';
+import { fall, intoBed, lieOnBedroll, liveOn } from './hero/setbacks';
 import { type Ruin } from './ruins/ruins';
 import { raiseGhosts } from './ruins/haunting';
 import { checkOut } from './inn/roomLetting';
@@ -448,7 +448,8 @@ export class GameModel {
     }
     const seat = this.seatInReach;
     if (seat) sitDown(at, this.hero, seat);
-    if (seat?.lying && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (hurt, and a bed: told it mends)
+    if (seat?.lying) intoBed(this); // (someone else's, its owner home: turned out of it: hero/setbacks.ts)
+    if (seat?.lying && this.seated && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (hurt, and a bed: told it mends)
     return !!seat;
   }
 

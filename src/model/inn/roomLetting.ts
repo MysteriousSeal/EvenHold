@@ -5,15 +5,17 @@
 // Out of hours, already let, or not enough coin: she says so. Kept in the
 // save. Its bed slept in at night (G, by it): all health and energy back, up
 // at eight the next morning. A night let, asked again (G): kept the week, for
-// WEEK_PRICE (seven nights for five's), till ten the seventh morning on. Out
-// of hours, a little more slipped her (BRIBE): a room all the same, at once.
+// WEEK_PRICE (seven more nights for five's), offered only with a night left
+// in it. Out of hours, a little more slipped her (BRIBE): a room all the
+// same, at once, till ten the morning after the night to come.
 
 import type { GameEvent, Hero } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import { middleOf, type Furniture } from '../interiors/furniture';
-import type { Inside, Seated } from '../interiors/indoors';
+import { standUp, type Inside, type Seated } from '../interiors/indoors';
 import type { Seat } from '../interiors/furniture';
 import { maxEnergyOf, maxHpOf } from '../hero/attributes';
+import { wellRested } from '../hero/blessing';
 import type { Npc } from '../npcs/npcs';
 import { inTurn, say } from '../npcs/speech';
 import { talkingTo } from '../npcs/talk';
@@ -23,13 +25,14 @@ import { doorway, roomsOff } from '../interiors/upstairs';
 export const ROOM_PRICE = 120; // copper, a night (a shift's wage, about: a bed's worth paying for)
 export const WEEK_PRICE = ROOM_PRICE * 5; // copper, the week (two nights' free)
 const WEEK = 7 * 24 * 60; // minutes
+const LAST_NIGHT = 28 * 60; // minutes: a let with no more than this left has a night in it at most (bribed at six in the morning, till ten the next)
 export const BRIBE = 60; // copper slipped her for a room out of hours, on top of its price
 const LET_FROM = 16; // the hour rooms are let from
 const LET_TILL = 6; // and till
 const CHECK_OUT = 10; // the hour the next morning a room's to be left
 const WAKE_AT = 8; // the hour slept till
 
-// What she says: rooms not let yet (out of hours), one let already, one let just now; a different line each time.
+// What she says: rooms not let yet (out of hours), one let already, one let just now (after midnight: `late`); a different line each time.
 export const LINES = {
   closed: [
     'Rooms are let from four in the afternoon. Come back later.',
@@ -52,7 +55,7 @@ export const LINES = {
     "Yours for the week, then. I'll tell the maid to leave your things be.",
     'A week it is. Same room, first door along the back. Nobody goes in but you.',
     "Seven nights. You're practically one of the family now.",
-    "Done. The room's yours till ten, a week from now.",
+    "Done. Seven more nights, and the room's yours.",
   ],
   bribed: [
     "...Fine. Up you go, and you never paid me extra.",
@@ -72,6 +75,12 @@ export const LINES = {
     "It's yours till ten. Up the stairs, first door along the back.",
     'Sleep well. First door along the back upstairs, and out by ten.',
     "The quiet one's yours: first door along the back. Till ten in the morning.",
+  ],
+  late: [
+    "Bit late for it, love. First door along the back upstairs, and out by ten.",
+    "Couldn't sleep, or couldn't find your way home? First door along the back. Out by ten.",
+    "Half the night's gone, but the bed's the same. First door on the back hall, till ten this morning.",
+    "Quietly up the stairs, mind: they're all asleep. First door along the back, till ten.",
   ],
 } as const;
 const line = (lines: readonly string[]): string => inTurn(lines, lines); // (each of her lists in turn: npcs/speech.ts)
@@ -95,6 +104,12 @@ export const lettingHours = (minutes: number): boolean => between(minutes, LET_F
 
 // The next ten in the morning after `minutes`.
 export const checkOutAfter = (minutes: number): number => nextHour(minutes, CHECK_OUT);
+
+// The morning a night's let ends, let at `minutes`: the ten after the night that's on (or by day, the one to come).
+const nightsEnd = (minutes: number): number => checkOutAfter(lettingHours(minutes) ? minutes : nextHour(minutes, LET_FROM));
+
+// The nights still to be slept in the room let at `inn`, at `minutes` (the one that's on, or to come, with them).
+export const nightsLeft = (inn: Entrance, minutes: number): number => Math.max(0, Math.round(((lets.get(inn) ?? 0) - nightsEnd(minutes)) / (24 * 60)) + 1);
 
 // The room let: its door, the first along the hallway's back (a small room, a single bed in it).
 export function letDoor(furniture: readonly Furniture[]): Furniture | null {
@@ -137,12 +152,13 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   if (lets.has(inn)) {
     if (!weekToKeep(inn, model.minutes)) return say(barmaid, line(LINES.weekly)), 'taken';
     if (model.hero.money < WEEK_PRICE) {
+      say(barmaid, line(LINES.taken)); // (where it is, at least)
       model.report({ kind: 'poor', text: 'Not enough coin to keep the room the week' });
       return 'poor';
     }
     model.hero.money -= WEEK_PRICE;
     if (purse) purse.money += WEEK_PRICE;
-    letRoom(inn, checkOutAfter(model.minutes + WEEK - 24 * 60));
+    letRoom(inn, lets.get(inn)! + WEEK); // (seven more nights, on from the morning it was to be left)
     say(barmaid, line(LINES.week));
     return 'let';
   }
@@ -158,49 +174,57 @@ export function rentRoom(model: { hero: Hero; minutes: number; inside: Inside | 
   }
   model.hero.money -= price;
   if (purse) purse.money += price; // (hers, the inn's)
-  letRoom(inn, checkOutAfter(model.minutes));
-  say(barmaid, line(early ? LINES.bribed : LINES.let));
+  letRoom(inn, nightsEnd(model.minutes)); // (bribed by day: through the night to come, not till ten this morning)
+  say(barmaid, line(early ? LINES.bribed : between(model.minutes, 0, LET_TILL) ? LINES.late : LINES.let)); // (after midnight: not "tomorrow")
   return 'let';
 }
 
 // Whether the night's for sleeping at `minutes` (from when rooms are let till eight in the morning).
 export const sleepingHours = (minutes: number): boolean => between(minutes, LET_FROM, WAKE_AT);
 
-// The bed in the room let to the hero, if they're by it (or lying in it), it's theirs and it's the night: to sleep in.
+// The bed in the room let to the hero, if they're by it (or lying in it), it's theirs and it's the night (or by day,
+// it's theirs through the night to come: bribed for, say; not the morning it's to be left): to sleep in, till morning.
 export function letBed(model: { inside: Inside | null; seated: Seated; seatInReach: Seat | null; minutes: number }): Seat | null {
   const inside = model.inside;
   const seat = model.seated?.seat ?? model.seatInReach;
-  if (!inside?.below || !seat?.lying || !lets.has(inside.below) || !sleepingHours(model.minutes)) return null;
+  const until = inside?.below ? lets.get(inside.below) : undefined;
+  if (!inside || until === undefined || !seat?.lying || !(sleepingHours(model.minutes) || until >= nightsEnd(model.minutes))) return null;
   return inLetRoom(inside, seat.piece) ? seat : null;
 }
 
-// Whether the room let at `inn` could still be kept the week (let for less than six more days).
-export const weekToKeep = (inn: Entrance, minutes: number): boolean => (lets.get(inn) ?? Infinity) - minutes < WEEK - 24 * 60;
+// Whether the room let at `inn` could be kept the week: a night left in its let at most (a night's, or a week's last),
+// so that one kept the week isn't offered it again every day.
+export const weekToKeep = (inn: Entrance, minutes: number): boolean => (lets.get(inn) ?? Infinity) - minutes <= LAST_NIGHT;
 
 // What G does at the inn, if anything: stood by the barmaid, asks her for a room (`taken`: one's let already;
 // `week`: and it could be kept the week; `bribe`: none let, out of hours, so a little more slipped her); by the let
 // room's bed (or lying in it) at night, sleeps. Its prompt's words with it.
-export type RoomAction = { kind: 'rent'; barmaid: Npc; taken: boolean; week: boolean; bribe?: boolean } | { kind: 'sleep' };
+// `nights`: those left in the room let, if it is.
+export type RoomAction = { kind: 'rent'; barmaid: Npc; taken: boolean; week: boolean; bribe?: boolean; nights?: number } | { kind: 'sleep' };
 export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonly Npc[]; hero: Hero; work?: { shift: unknown } }): RoomAction | null {
   if (model.work?.shift) return null; // (at work: no room to be had, no bed to sleep in, till the shift's over)
   const talker = model.seated ? null : talkingTo(model.folk, model.inside, model.hero); // (of the villagers round about)
   if (talker?.role === 'barkeep') {
     const taken = !!model.inside && lets.has(model.inside.entrance);
-    return { kind: 'rent', barmaid: talker, taken, week: taken && weekToKeep(model.inside!.entrance, model.minutes), bribe: !taken && !lettingHours(model.minutes) };
+    const inn = model.inside!.entrance;
+    return { kind: 'rent', barmaid: talker, taken, week: taken && weekToKeep(inn, model.minutes), bribe: !taken && !lettingHours(model.minutes), ...(taken && { nights: nightsLeft(inn, model.minutes) }) };
   }
   return letBed(model) ? { kind: 'sleep' } : null;
 }
 export const roomActionLabel = (action: RoomAction): string =>
-  action.kind === 'sleep' ? 'Sleep till morning' : action.bribe ? `Slip her coin for a room now · ${ROOM_PRICE + BRIBE} copper` : action.week ? `Keep the room the week · ${WEEK_PRICE} copper` : action.taken ? 'Your room is upstairs' : `Rent a room · ${ROOM_PRICE} copper`;
+  action.kind === 'sleep' ? 'Sleep till morning' : action.bribe ? `Slip her coin for a room now · ${ROOM_PRICE + BRIBE} copper` : action.week ? `Keep the room the week · ${WEEK_PRICE} copper` : action.taken ? `Your room is upstairs · ${action.nights === 1 ? 'a night' : `${action.nights ?? 0} nights`} left` : `Rent a room · ${ROOM_PRICE} copper`;
 
-// A night's sleep in the let room's bed (lain in): all their health and energy back, and up at eight in the morning.
+// A night's sleep in the let room's bed (lain in; or a quest's night): all their health and energy back, up at eight in
+// the morning, and Well rested a few hours after (hero/blessing.ts).
 export function sleepTillMorning(model: { hero: Hero; minutes: number }): void {
   model.minutes = nextHour(model.minutes, WAKE_AT);
   model.hero.hp = maxHpOf(model.hero);
   model.hero.energy = maxEnergyOf(model.hero);
+  wellRested(model.hero);
 }
 
-// Rooms whose time is up let go: their doors locked again; the hero, upstairs in one, shown out to the hallway before it.
+// Rooms whose time is up let go: their doors locked again; the hero, upstairs in one, shown out to the hallway before it
+// (up out of its bed first, if lying in it: else they'd get up back behind the locked door).
 export function checkOut(model: { minutes: number; inside: Inside | null; hero: Hero }, inns: readonly Entrance[]): void {
   for (const inn of letNow) {
     const until = lets.get(inn);
@@ -213,6 +237,7 @@ export function checkOut(model: { minutes: number; inside: Inside | null; hero: 
     if (!door) continue;
     door.locked = true;
     door.open = false;
+    if (inside!.seated && inLetRoom(inside!, inside!.seated.seat.piece)) standUp(inside!, model.hero);
     if (inLetRoom(inside!, { x: Math.round(model.hero.x), z: Math.round(model.hero.z) })) Object.assign(model.hero, doorway(door, 0.5)); // (in it: out before its door)
   }
 }
