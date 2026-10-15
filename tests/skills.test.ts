@@ -84,6 +84,8 @@ describe('skills', () => {
     skillOf(hero, 'cooking').level = 200;
     expect([practise(hero, 'cooking', 1, 0, () => {}), skillOf(hero, 'cooking').toward]).toEqual([0, undefined]); // (grey)
     for (const id of SKILL_IDS) for (const n of SKILLS[id].steps) expect(n).toBeGreaterThanOrEqual(1);
+    skillOf(hero, 'fishing').level = 1; // (a try worth more: so many toward the next, at once)
+    expect([practise(hero, 'fishing', 1, 0, () => {}, undefined, 2), skillOf(hero, 'fishing').toward]).toEqual([0, 2]);
   });
 
   it("are kept in the save; an older save's none (each at 1), a broken one's made sound", () => {

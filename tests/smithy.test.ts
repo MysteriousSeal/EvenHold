@@ -5,7 +5,9 @@ import { layoutOf } from '../src/model/interiors/indoors';
 import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
 import { pedlarBuys, pedlarPrice } from '../src/model/travellers/pedlarShop';
-import { saleOf } from '../src/model/shops/sellValue';
+import { isJunk, saleOf } from '../src/model/shops/sellValue';
+import { WANTS, openShop, sellTo, type Shop } from '../src/model/shops/shopStock';
+import { gearKey } from '../src/model/human/items/gear';
 import { SMITH_WARES, UNDER_COUNTER, smithAsks, smithPriceFor, smithSellsTo, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { talkingTo } from '../src/model/npcs/talk';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -23,6 +25,21 @@ function atTheSmithy(): GameModel {
 }
 
 describe('the smithy', () => {
+  it("pays little for what a woodworker could make (a sixth of its worth), and takes only so many wooden arms of any shape; a woodworker's wares not junk, but a pedlar's and the inn's", () => {
+    const made = gearKey({ item: 'broadAxe', level: 22, rarity: 'uncommon', roll: 0 }); // (a woodworker's)
+    const sword = gearKey({ item: 'armingSword', level: 25, rarity: 'uncommon', roll: 0 });
+    expect(gearSellPrice(made)).toBeLessThan(gearPrice(made) / 5);
+    expect(gearSellPrice(sword)).toBeGreaterThan(gearPrice(sword) / 3); // (his own trade: at half)
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const shop: Shop = openShop(new Map(), 1, { money: 99999, stock: {} }, 0);
+    Object.assign(model.hero.bag, { [made]: 1, quarterstaff: 1, plankShield: 1 });
+    expect([sellTo(shop, model.hero, made, 1), sellTo(shop, model.hero, 'quarterstaff', 1)]).toEqual(['sold', 'sold']);
+    expect(WANTS.gear).toBe(2);
+    expect(sellTo(shop, model.hero, 'plankShield', 1)).toBe('not wanted'); // (wooden arms: one kind, whatever their shape)
+    expect([isJunk('woodenBowl'), saleOf('woodenBowl')?.to, saleOf('woodenBowl')?.price]).toEqual([false, 'the inn (a pedlar for less)', 8]);
+    expect([pedlarBuys('carvedTankard'), pedlarPrice('carvedTankard', true)]).toEqual([true, LOOT.carvedTankard.value]);
+  });
+
   it('has a smith in every smithy, and his counter, forge, anvil, bellows, trough, grindstone, armour stand and weapons on show', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const smithies = model.entrances.filter((e) => e.type === 'smithy');
