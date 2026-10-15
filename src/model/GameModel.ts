@@ -431,7 +431,7 @@ export class GameModel {
     if (item === 'bedroll') return this.lieDown();
     // (A charm that harms no one, where arms are sheathed: cast all the same, in an inn, at its barkeep.)
     if (item && isSpellKey(item)) return (this.canFight || (!this.seated && !this.yard && !SPELLS[spellOf(item)].harm)) && castSpell(this, spellOf(item)) === 'cast';
-    return useAction(this.hero, i);
+    return useAction(this.hero, i, (why) => this.report({ kind: 'poor', text: why })); // (a potion not to be drunk just now: told why, as from the bag)
   }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)

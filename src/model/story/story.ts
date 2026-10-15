@@ -13,6 +13,7 @@ import { gainXp, xpToNext } from '../hero/heroStats';
 import { ITEMS } from '../human/equipment';
 import { rollGear } from '../human/items/gear';
 import { sleepTillMorning } from '../inn/roomLetting';
+import { afterDark } from './nights';
 import type { Entrance } from '../interiors/interiors';
 import { LOOT } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
@@ -172,10 +173,9 @@ export class Story {
   pays(id: string): { copper: number; xp: number; gift: string } {
     const key = keyed(id);
     const quest = STORY_QUESTS[idOf(key)];
-    const level = this.level(key);
     const gift = quest.gift;
     const given = !gift ? '' : 'gear' in gift ? `${/^[aeiou]/.test(gift.least) ? 'an' : 'a'} ${gift.least} ${ITEMS[gift.gear].name.toLowerCase()}` : `${gift.count} × ${LOOT[gift.item].name}`;
-    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (level - 1))), xp: Math.round(xpToNext(Math.max(1, level)) * quest.xpShare), gift: [given, quest.night ? "a night's rest" : ''].filter(Boolean).join(' and ') };
+    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (this.level(key) - 1))), xp: Math.round(xpToNext(Math.max(1, this.level(key))) * quest.xpShare), gift: [given, quest.night ? "a night's rest" : ''].filter(Boolean).join(' and ') };
   }
 
   // How far along what a taken quest asks is: what's carried of what's to be brought; else what's been counted.
@@ -227,8 +227,7 @@ export class Story {
     });
   }
 
-  // What the quests under way send the hero for, kept there to be had (storyRestock.ts): looked to every couple of
-  // seconds.
+  // What the quests under way send the hero for, kept there to be had (storyRestock.ts): looked to every couple of seconds.
   private raise(): void {
     const { host } = this;
     if (host.minutes - this.haunted < 2) return;
@@ -284,16 +283,17 @@ export class Story {
 
   // What `who` has to say now, and what the hero may answer; null: nothing of the story's (their own trade or word).
   // First a quest ready to hand in to them; then one of theirs to offer (someone with a trade: their wares too, an
-  // answer away); then, from those with no trade to get on with, what they wait on, or say of the last of theirs done.
-  talk(who: Who, only?: string): Talk | null {
+  // answer away); then, from those with no trade to get on with (or `word`: theirs asked for, their window's greeting), what they wait on, or say of the last of theirs done.
+  talk(who: Who, only?: string, word = false): Talk | null {
     const mine = this.of(who).filter((i) => !only || i.key === only).map((i) => ({ i, state: this.stateOf(i.key), ...this.part(i, who) }));
     if (mine.length === 0) return null;
     const speaker = who.name;
     const about = (i: Instance, state: 'offered' | 'handIn') => ({ name: i.quest.name, task: i.quest.task(this.told(i, who)), ...this.pays(i.key), state });
     const handIn = mine.find((m) => m.state === 'taken' && m.takes && this.ready(m.i.key));
     if (handIn) {
-      const full = !this.roomFor(handIn.i.quest.gift);
-      if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: hasTrade(who) ? [{ label: 'Show me your wares.', primary: true, trade: true, pick: () => {} }, { label: 'Later.', pick: () => {} }] : [] }; // (someone with a trade: their wares still to be had, to make that room)
+      const notYet = (line: string): Talk => ({ speaker, lines: [line], answers: hasTrade(who) ? [{ label: 'Show me your wares.', primary: true, trade: true, pick: () => {} }, { label: 'Later.', pick: () => {} }] : [] }); // (someone with a trade: their wares still to be had, to make that room)
+      if (!this.roomFor(handIn.i.quest.gift)) return notYet("Your bag's full. Make room, and you'll have what I owe you.");
+      if (handIn.i.quest.night && !afterDark(this.host.minutes)) return notYet('Not now, in broad daylight. Come back after dark.'); // (a night's quest: not a whole day slept away, nights.ts)
       return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: choiceAnswers(handIn.i.quest, this.told(handIn.i, who), speaker, (choice) => this.handIn(handIn.i.key, choice)) };
     }
     const offer = mine.find((m) => m.state === 'offered' && m.gives);
@@ -302,7 +302,7 @@ export class Story {
       const trade = hasTrade(who) ? [{ label: 'Show me your wares.', trade: true, pick: () => {} }] : [];
       return { speaker, lines: quest.offer(this.told(offer.i, who)), quest: about(offer.i, 'offered'), answers: [{ label: quest.accept, primary: true, pick: () => void this.accept(offer.i.key, who) }, { label: quest.decline, pick: () => {} }, ...trade] };
     }
-    if (hasTrade(who)) return null; // (their trade, then)
+    if (hasTrade(who) && !word) return null; // (their trade, then)
     const awaited = mine.find((m) => m.state === 'taken' && m.takes);
     if (awaited) return { speaker, lines: (awaited.i.quest.pending ?? awaited.i.quest.waiting)(this.told(awaited.i, who)), answers: [] };
     const given = mine.find((m) => m.state === 'taken' && m.gives);

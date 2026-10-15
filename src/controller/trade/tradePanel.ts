@@ -13,6 +13,7 @@ import { el } from '../../view/ui/dom';
 import './shopPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
+import type { Who } from '../../model/story/storyCast';
 import { nameOf, qualityOf, type BagItem } from '../../model/hero/bag';
 import { BUYBACK, buyBack, restockIn, sellTo, wantsMore, type Sale, type Shop } from '../../model/shops/shopStock';
 import { isJunk, sellValue } from '../../model/shops/sellValue';
@@ -92,6 +93,13 @@ function purses(name: string, shop: Shop, hero: number): HTMLElement {
   row.append(purse(name, shop.money), purse('You', hero));
   return row;
 }
+
+// What a keeper has to say of the story on opening their window, if anything (what they're waiting on from the hero,
+// or of the last of theirs done: story.ts), as a quest's word, not their wares'.
+const storyWord = (model: GameModel, keeper: Keeper): string | null => {
+  const told = model.story.talk(keeper as Who, undefined, true);
+  return told && !told.quest && told.lines.length > 0 ? told.lines.join(' ') : null;
+};
 
 export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, trade: Trade): { open(keeper: Keeper): void; update(): void; menu: Menu } {
   const shop = () => trade.shop();
@@ -216,8 +224,9 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     enough: (id) => (trade.wanted(id) && !wantsMore(shop(), id) ? `${keeper?.name ?? 'They'} has enough of these for now · more wanted in ${clock(restockIn(shop()))}` : null),
     price: (id) => (isJunk(id) && !trade.wanted(id) ? sellValue(id)! : trade.price(id, true)), // (what they want of the junk: at their own price)
     sell: (id) => {
+      const asJunk = isJunk(id) && !trade.wanted(id); // (junk they've a use for: their own word on it, as on their trade's)
       const result = sellOne(id);
-      const word = result === 'sold' ? (isJunk(id) ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id), id)) : result === 'not wanted' ? (trade.enough?.(nameOf(id), waitWords()) ?? pick(ENOUGH).replace('{wait}', waitWords())) : undefined;
+      const word = result === 'sold' ? (asJunk ? trade.junk(nameOf(id).toLowerCase(), coinWords(sellValue(id)!)) : trade.offered(nameOf(id), id)) : result === 'not wanted' ? (trade.enough?.(nameOf(id), waitWords()) ?? pick(ENOUGH).replace('{wait}', waitWords())) : undefined;
       answer(result, word);
     },
   };
@@ -276,7 +285,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
       if (menu.isOpen && keeper === npc) return; // already trading with them
       keeper = npc;
       for (const page of pages) page.at = 0;
-      says = trade.greet?.() ?? pick(trade.lines.hello);
+      says = storyWord(model, npc) ?? trade.greet?.() ?? pick(trade.lines.hello); // (the story first: not lost to a remark of theirs)
       menu.setTitle(`${npc.name}'s ${trade.title.toLowerCase()}`);
       menu.open(0); // on Buy, whichever tab it was left on
     },

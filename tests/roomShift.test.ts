@@ -12,6 +12,7 @@ import { recover } from '../src/model/hero/heroStats';
 import { interactionOf } from '../src/model/hero/interaction';
 import { standUp } from '../src/model/interiors/indoors';
 import { SALVE, poxTalk } from '../src/model/hero/pox';
+import { herbalistShopAt } from '../src/model/herbalist/herbalistShop';
 import { inLetRoom, letDoor, letUntil, setLet } from '../src/model/inn/roomLetting';
 import { restore, snapshot } from '../src/model/save';
 import { doorway, stairsOf, useHallDoor } from '../src/model/interiors/upstairs';
@@ -444,7 +445,8 @@ describe('the pox', () => {
   it('tires the hero faster, and is ended by a herbalist\'s salve, paid for', () => {
     const model = fresh();
     const { hero } = model;
-    const herbalist = { name: 'Edda' };
+    const herbalist = model.npcs.find((n) => n.role === 'herbalist')!;
+    const purse = () => herbalistShopAt(model.shops, model.seed, herbalist).money;
     expect(poxTalk(model, herbalist)).toBeNull();
     const spent = () => {
       hero.energy = maxEnergyOf(hero);
@@ -460,12 +462,17 @@ describe('the pox', () => {
     hero.money = SALVE - 1;
     const poor = poxTalk(model, herbalist)!;
     expect(poor.answers.map((a) => a.label)).toEqual([`Pay ${SALVE} copper for the salve.`, 'Later.', 'Show me your wares.']);
-    expect((poor.answers[0].pick() as Talk).lines[0]).toMatch(/coin/);
+    const short = poor.answers[0].pick() as Talk;
+    expect(short.lines[0]).toMatch(/1 copper short/);
+    expect(short.answers.map((a) => a.label)).toEqual(['Later.', 'Show me your wares.']); // (her wares still to hand)
     expect(hasPox(hero)).toBe(true);
-    // Paid: gone.
+    // Paid: gone, the coin in her purse; her wares, and whatever else she has to say, still an answer away.
     hero.money = SALVE + 5;
-    expect((poxTalk(model, herbalist)!.answers[0].pick() as Talk).answers).toEqual([]);
+    const before = purse();
+    const paid = poxTalk(model, herbalist)!.answers[0].pick() as Talk;
+    expect(paid.answers.map((a) => [a.label, !!a.trade])).toEqual([['Thank you.', false], ['Show me your wares.', true]]);
     expect(hero.money).toBe(5);
+    expect(purse()).toBe(before + SALVE);
     expect(hasPox(hero)).toBe(false);
     expect(spent()).toBeCloseTo(well, 5);
     givePox(hero);
@@ -473,12 +480,15 @@ describe('the pox', () => {
     expect(poxTalk(model, herbalist)).toBeNull();
     // Whatever else she has to say comes after: the salve left for later, on to it.
     givePox(hero);
-    const quest: Talk = { speaker: 'Edda', lines: ['I need three cuts of boar.'], answers: [] };
+    const quest: Talk = { speaker: herbalist.name, lines: ['I need three cuts of boar.'], answers: [] };
     const first = poxTalk(model, herbalist, () => quest)!;
     expect(first.lines[0]).toMatch(/pox/);
     const later = first.answers.find((a) => a.out)!;
     expect(later.label).toBe('Later.');
     expect(later.pick()).toBe(quest);
     expect(poxTalk(model, herbalist, () => null)!.answers.find((a) => a.out)!.pick()).toBeUndefined();
+    // And after the salve's bought: on to it (a quest to hand in not lost to the salve).
+    hero.money = SALVE;
+    expect((poxTalk(model, herbalist, () => quest)!.answers[0].pick() as Talk).answers.find((a) => a.out)!.pick()).toBe(quest);
   });
 });

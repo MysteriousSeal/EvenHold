@@ -4,7 +4,7 @@
 // a house of their village), who buy potions and ingredients back.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { drinkPotion } from '../src/model/hero/bag';
+import { drinkPotion, potionRefused } from '../src/model/hero/bag';
 import { recover } from '../src/model/hero/heroStats';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { POTIONS, POTION_COOLDOWN, POTION_IDS, potionText } from '../src/model/loot/potions';
@@ -37,6 +37,28 @@ describe('potions', () => {
     expect(drinkPotion(hero, 'minorEnergyPotion')).toBe(true);
     expect(hero.energy).toBeCloseTo(Math.min(maxEnergyOf(hero), 1 + 0.25 * maxEnergyOf(hero)), 5);
     expect(drinkPotion(hero, 'bread')).toBe(false); // (not a potion)
+  });
+
+  it('not drunk for nothing: at full health a red one, at full energy a blue one, kept; told why, from the bag or the bar', () => {
+    const model = fresh();
+    const { hero } = model;
+    Object.assign(hero, { hp: maxHpOf(hero), energy: 1, bag: { minorHealthPotion: 1, minorEnergyPotion: 1 } });
+    expect(potionRefused(hero, 'minorHealthPotion')).toBe("You're already at full health.");
+    expect(drinkPotion(hero, 'minorHealthPotion')).toBe(false);
+    expect([hero.bag.minorHealthPotion, hero.potionCooldown ?? 0]).toEqual([1, 0]); // (kept, and no wait begun)
+    setAction(hero, 0, 'minorHealthPotion');
+    model.takeEvents();
+    expect(model.useAction(0)).toBe(false);
+    expect(model.takeEvents().some((e) => e.kind === 'poor' && e.text === "You're already at full health.")).toBe(true);
+    expect(potionRefused(hero, 'minorEnergyPotion')).toBeNull();
+    expect(drinkPotion(hero, 'minorEnergyPotion')).toBe(true);
+    hero.hp = 1;
+    expect(potionRefused(hero, 'minorHealthPotion')).toMatch(/^Not yet: another potion in 30 s/);
+    expect(model.useAction(0)).toBe(false);
+    expect(model.takeEvents().some((e) => e.kind === 'poor' && /Not yet/.test(e.text))).toBe(true);
+    hero.energy = maxEnergyOf(hero);
+    hero.potionCooldown = 0;
+    expect(potionRefused({ ...hero, bag: { minorEnergyPotion: 1 } }, 'minorEnergyPotion')).toBe('Your energy is already full.');
   });
 
   it('on the action bar, used from it; kept in the save\'s reading', () => {

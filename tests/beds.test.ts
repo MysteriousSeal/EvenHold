@@ -16,12 +16,13 @@ import type { Npc } from '../src/model/npcs/npcs';
 // In a house of the world with its owner, stood by its bed: the owner (home, or away), and the bed.
 function inAHouse(model: GameModel, home: boolean): { owner: Npc; bed: Furniture } {
   for (const house of model.entrances.filter((e) => e.type === 'house')) {
-    const owner = model.folk.find((n) => n.home === house);
+    const owner = model.folk.find((n) => n.home === house && n.role === 'villager'); // (a herbalist's: theirs only at night, herbalistTrade.test.ts)
     if (!owner) continue;
     model.enterRoom(house);
     const bed = model.inside!.furniture.find((f) => f.kind === 'bed');
     if (!bed) continue;
     owner.where = home ? house : null;
+    owner.steps = [{ kind: 'wait', for: 60 }]; // (held where they're put: not off on their round from nowhere)
     const { width, depth } = model.inside!.room;
     for (let x = 0; x < width; x += 0.25) for (let z = 0; z < depth; z += 0.25) {
       Object.assign(model.hero, { x, z });

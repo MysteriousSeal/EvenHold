@@ -77,11 +77,21 @@ export function readMeal(hero: Hero, saved: unknown): Hero['eating'] {
   return { heal, energy, left, seconds: MEAL_SECONDS, item: m.item, ...(fed && { fed }) };
 }
 
+// Why potion `item` can't be drunk just now, if it can't: one drunk too lately, or nothing for it to give back (their
+// health, or energy, full already: not wasted); null, it can (or it's none of theirs to drink).
+export function potionRefused(hero: Hero, item: BagItem): string | null {
+  if (!isPotion(item)) return null;
+  if ((hero.potionCooldown ?? 0) > 0) return `Not yet: another potion in ${Math.ceil(hero.potionCooldown!)} s.`;
+  const { heal = 0, energy = 0 } = POTIONS[item] as Potion;
+  const full = (heal <= 0 || hero.hp >= maxHpOf(hero)) && (energy <= 0 || hero.energy >= maxEnergyOf(hero));
+  return full ? (heal > 0 ? "You're already at full health." : 'Your energy is already full.') : null;
+}
+
 // Drinks one of potion `item` from the hero's bag, at once (standing, mid-fight): its share of their most health or
 // energy back; then none for POTION_COOLDOWN seconds (heroStats.ts recover counts it down); whether they did (a
-// potion, carried, none drunk too lately).
+// potion, carried, none drunk too lately, and something for it to give back: potionRefused).
 export function drinkPotion(hero: Hero, item: BagItem): boolean {
-  if (!isPotion(item) || (hero.potionCooldown ?? 0) > 0 || !takeFromBag(hero.bag, item)) return false;
+  if (!isPotion(item) || potionRefused(hero, item) || !takeFromBag(hero.bag, item)) return false;
   const { heal = 0, energy = 0 } = POTIONS[item] as Potion;
   hero.hp = Math.min(maxHpOf(hero), hero.hp + heal * maxHpOf(hero));
   hero.energy = Math.min(maxEnergyOf(hero), hero.energy + energy * maxEnergyOf(hero));

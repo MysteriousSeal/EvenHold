@@ -189,10 +189,13 @@ describe('the quests people give', () => {
     story.accept(supper);
     addToBag(hero.bag, 'meatPie');
     Object.assign(hero, { hp: 1, energy: 0 });
+    // By day, not yet: come back after dark (nights.ts afterDark: not a whole day slept away).
+    const herbalist = story.asking.find((a) => a.mark === 'ready')!.who;
+    expect(story.talk(herbalist)!.lines[0]).toMatch(/after dark/);
+    model.minutes = Math.floor(model.minutes / (24 * 60)) * 24 * 60 + 21 * 60;
     const before = model.minutes;
     // Told: the night passes as the screen's black (the talk's `night`), the clock at eight as it lifts; not again
     // as it's handed in.
-    const herbalist = story.asking.find((a) => a.mark === 'ready')!.who;
     const talk = story.talk(herbalist)!;
     expect(talk.quest?.name).toBe('Supper for two');
     talk.night!();

@@ -10,7 +10,7 @@ import { isProvision, type ProvisionId } from '../loot/provisions';
 import { isPotion, type PotionId } from '../loot/potions';
 import { isSpellKey, type SpellKey } from '../spells/spells';
 import type { Hero } from '../types';
-import { drinkPotion, eatOrDrink } from './bag';
+import { drinkPotion, eatOrDrink, potionRefused } from './bag';
 
 export const ACTION_SLOTS = 8;
 export type ActionBar = Array<ProvisionId | PotionId | ToolId | SpellKey | null>;
@@ -39,8 +39,11 @@ export function clearAction(hero: Pick<Hero, 'actionBar'>, i: number): void {
 
 // Uses slot `i`: one of what it points at eaten or drunk from the bag (a potion at once); whether it was (something
 // there, carried, and they're not still at another meal, or the potions' wait not over).
-export function useAction(hero: Hero, i: number): boolean {
+// (`refused`: told why a potion can't be drunk just now, if it can't: bag.ts potionRefused.)
+export function useAction(hero: Hero, i: number, refused?: (why: string) => void): boolean {
   const item = hero.actionBar[i];
+  const why = item && isPotion(item) ? potionRefused(hero, item) : null;
+  if (why) return refused?.(why), false;
   return !!item && !isTool(item) && !isSpellKey(item) && (isPotion(item) ? drinkPotion(hero, item) : eatOrDrink(hero, item)); // (a tool: the game's to use, GameModel.useAction)
 }
 

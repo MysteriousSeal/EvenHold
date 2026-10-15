@@ -16,10 +16,10 @@ export const POTIONS = {
   minorHealthPotion: { name: 'Minor health potion', value: 20, heal: 0.25, droppedBy: {}, about: 'A small flask of something red and bitter.' },
   lesserHealthPotion: { name: 'Lesser health potion', value: 50, heal: 0.45, droppedBy: {}, about: 'Red as a robin, warm going down.' },
   greaterHealthPotion: { name: 'Greater health potion', value: 120, heal: 0.7, droppedBy: {}, about: 'It glows a little, and so will you.' },
-  minorEnergyPotion: { name: 'Minor energy potion', value: 20, energy: 0.25, droppedBy: {}, about: 'Blue, fizzing, and strong enough.' },
-  lesserEnergyPotion: { name: 'Lesser energy potion', value: 50, energy: 0.45, droppedBy: {}, about: 'Like a night\'s sleep in a mouthful.' },
-  greaterEnergyPotion: { name: 'Greater energy potion', value: 120, energy: 0.7, droppedBy: {}, about: 'The herbalist won\'t say what\'s in it.' },
-} satisfies Record<string, Potion>;
+  minorEnergyPotion: { name: 'Minor energy potion', value: 11, energy: 0.25, droppedBy: {}, about: 'Blue, fizzing, and strong enough.' },
+  lesserEnergyPotion: { name: 'Lesser energy potion', value: 20, energy: 0.45, droppedBy: {}, about: 'Like a night\'s sleep in a mouthful.' },
+  greaterEnergyPotion: { name: 'Greater energy potion', value: 31, energy: 0.7, droppedBy: {}, about: 'The herbalist won\'t say what\'s in it.' },
+} satisfies Record<string, Potion>; // (energy's cheaper than health: about 0.44 copper a share point, half again an ale's, 0.3, for a flask on the road)
 
 export type PotionId = keyof typeof POTIONS;
 export const POTION_IDS = Object.keys(POTIONS) as PotionId[];
