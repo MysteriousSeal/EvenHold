@@ -15,7 +15,7 @@ import { POTIONS, POTION_COOLDOWN, isPotion, potionText } from '../../model/loot
 import { setAction } from '../../model/hero/actionBar';
 import { coinParts, coinWords } from '../../view/ui/coins';
 import type { GameModel } from '../../model/GameModel';
-import { BAG_GROUPS, groupOf, isLootItem, kindOf, type BagItem } from '../../model/hero/bag';
+import { BAG_GROUPS, groupOf, isLootItem, kindOf, potionRefused, type BagItem } from '../../model/hero/bag';
 import { bagStacks, moveSlot, sortedBag } from '../../model/hero/bagStacks';
 import { BAG_SOCKETS, ROOM_PER_BAG, bagRoom, fitBag, unfitBag } from '../../model/hero/bagSlots';
 import { isBagItem, roomOf, type BagId } from '../../model/loot/bags';
@@ -80,7 +80,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
           ? [toned('kind', kindOf(item)), toned('stat', `+${roomOf(item)} bag slots`), toned('hint', 'Drag onto a bag socket (or right-click) to fit it')]
           : [toned('kind', kindOf(item))],
       alt: isPotion(item)
-        ? () => (model.drinkPotion(item) ? `You drink the ${LOOT[item].name}.` : (model.hero.potionCooldown ?? 0) > 0 ? `Not yet: another potion in ${Math.ceil(model.hero.potionCooldown!)} s.` : '')
+        ? () => (potionRefused(model.hero, item) ?? (model.drinkPotion(item) ? `You drink the ${LOOT[item].name}.` : ''))
         : isProvision(item)
         ? () => (model.consume(item) ? `You ${PROVISIONS[item].drink ? 'drink' : 'eat'} the ${LOOT[item].name}.` : model.hero.eating ? 'Finish what you have first.' : '')
         : isBagItem(item)
