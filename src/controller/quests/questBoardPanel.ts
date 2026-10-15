@@ -3,6 +3,8 @@
 // dangerous, the reward) with the button to take it on, or to hand it in
 // once done; the quests taken counted over it all, the hero's purse under.
 // A window in the middle of the screen; the game waits while it's open.
+// Its second tab, Wagons: the carrier's rides from here to every village been to before (model/villages/wagons.ts),
+// each its fare and hours on the road; one chosen, Ride there pays and sets the hero down on that village's square.
 
 import { innWants } from '../../model/inn/tavernShop';
 import './questPanels.css';
@@ -17,8 +19,17 @@ import { line } from '../../view/ui/dom';
 import { zoneLevel } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
 import { capitalize } from '../../util/text';
+import { ridesFrom, takeRide, type Ride } from '../../model/villages/wagons';
+import { voxelIcon, type VoxelModel } from '../../view/ui/voxelIcon';
+import { SCENERY_PALETTE, buildScenery } from '../../view/meshes/scenery/sceneryVoxels';
+import { clockAt } from '../../model/clock';
+import { coinWords } from '../../view/ui/coins';
+import type { MenuIcon } from '../../view/ui/menu';
 
-export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void }): { open(board: number): void; menu: Menu } {
+const wagonIcon: MenuIcon = (size) => voxelIcon('scenery:wagon', (): VoxelModel => ({ grid: buildScenery('wagon', 0), palette: SCENERY_PALETTE }), size);
+
+// `ride`: a wagon taken (to `to`), `go` setting them down there (the screen faded over it, the hours on the road).
+export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(paused: boolean): void; ride?(to: string, go: () => void): void }): { open(board: number): void; menu: Menu } {
   const { quests } = model;
   const shown = new WeakMap<MenuSlot, Quest>();
   let board = 0;
@@ -117,6 +128,44 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
     return row;
   };
 
+  // The wagons from here.
+  const here = () => boardSpot(model, board) ?? model.hero;
+  const rides = () => ridesFrom(model.welcome.stops, here());
+  const rideShown = new WeakMap<MenuSlot, Ride>();
+  let rideSaid = '';
+  const rideSlot = (ride: Ride): MenuSlot => {
+    const slot: MenuSlot = { key: ride.key, icon: wagonIcon, title: ride.name, note: `Level ${ride.level} · ${ride.hours} ${ride.hours === 1 ? 'hour' : 'hours'} on the road`, tag: coinParts(ride.fare), warn: model.hero.money < ride.fare };
+    rideShown.set(slot, ride);
+    return slot;
+  };
+  const rideDetail = (slot: MenuSlot | null) => {
+    const pane = document.createElement('div');
+    const ride = slot && rideShown.get(slot);
+    if (!ride) {
+      pane.append(line('menu-detail-hint', rides().length ? 'Pick a village to ride to.' : "The carrier only goes where you've been. Walk to another village first, and its wagon will take you back and forth."));
+      return pane;
+    }
+    const { icon, facts, fact } = detailParts(wagonIcon(72), 'menu-detail-facts quest-facts');
+    fact('Fare', [coinWords(ride.fare)]);
+    fact('On the road', [`${ride.hours} ${ride.hours === 1 ? 'hour' : 'hours'}`]);
+    fact('Arrive', [`Day ${clockAt(model.minutes + ride.hours * 60).day}, ${clockAt(model.minutes + ride.hours * 60).time}`]);
+    fact('Its level', [String(ride.level)]);
+    const go = document.createElement('button');
+    go.className = 'menu-detail-button';
+    go.textContent = 'Ride there';
+    go.classList.toggle('unavailable', model.hero.money < ride.fare);
+    go.addEventListener('click', () => {
+      if (model.hero.money < ride.fare) return void [(rideSaid = 'The carrier wants his fare first.'), menu.refresh()];
+      const from = here();
+      const take = () => void takeRide(model, model.welcome.stops, from, ride.key);
+      menu.close();
+      if (hooks.ride) hooks.ride(ride.name, take);
+      else take();
+    });
+    pane.append(icon, line('menu-detail-name', `To ${ride.name}`), line('menu-detail-about', '“Room on the back, between the sacks. Mind the bumps.”'), facts, line('menu-detail-said', rideSaid), go);
+    return pane;
+  };
+
   const menu = createMenu({
     title: 'Notice board',
     keyHints: false,
@@ -150,13 +199,25 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
           return row;
         },
       },
+      {
+        name: 'Wagons',
+        slots: () => ({ cells: rides().map(rideSlot), columns: 1, rows: true }),
+        detail: rideDetail,
+        header: () => line('quest-board-lead', 'The carrier\'s wagon goes to any village you have been to. Pay the fare, and sit out the hours on the road.'),
+        footer: () => {
+          const row = document.createElement('div');
+          row.className = 'menu-purse';
+          row.append(...coinParts(model.hero.money, true));
+          return row;
+        },
+      },
     ],
   });
   return {
     menu,
     open(at) {
       board = at;
-      said = '';
+      [said, rideSaid] = ['', ''];
       menu.open();
     },
   };

@@ -5,7 +5,7 @@
 // shape, a drawn mouse (its button lit, or its wheel). Styles in
 // controlsCodex.css; the panel round it is the caller's.
 
-import { CONTROL_GROUPS, type KeyMark } from './controls';
+import { controlGroups, type KeyMark } from './controls';
 import { el } from '../view/ui/dom';
 import './controlsCodex.css';
 
@@ -26,7 +26,7 @@ function mark(m: KeyMark): HTMLElement {
 
 export function controlsCodex(): HTMLElement {
   const groups = el('div', 'codex');
-  for (const group of CONTROL_GROUPS) {
+  for (const group of controlGroups()) {
     const section = el('section', 'codex-group');
     section.append(el('h3', '', group.name));
     for (const c of group.controls) {

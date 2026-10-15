@@ -4,6 +4,7 @@
 // something), else how it's practised. A card clicked (or Enter) opens the skill's own window (skillWindow.ts). A small
 // window in the corner: the game goes on while it's open.
 
+import { keyOf } from '../keyBindings';
 import './skills.css';
 import type { GameModel } from '../../model/GameModel';
 import { SKILLS, SKILL_IDS, SKILL_TIERS, skillOf, tierOf, type SkillId } from '../../model/skills/skills';
@@ -61,7 +62,7 @@ export function createSkillsPanel(model: GameModel): { menu: Menu; window: Retur
     return el('div', 'skill-cards', ...group('main', 'Main skills'), ...group('secondary', 'Secondary skills'));
   };
 
-  const menu = createMenu({ title: 'Skills', toggleKey: 'KeyK', keyHints: false, modal: false, place: 'bottom-right', tabs: [{ name: 'Skills', header: cards }] });
+  const menu = createMenu({ title: 'Skills', toggleKey: () => keyOf('skills'), keyHints: false, modal: false, place: 'bottom-right', tabs: [{ name: 'Skills', header: cards }] });
 
   // Kept up with while open: redrawn when a level moves, or what they're at changes; the skill's own window, its own way.
   let seen = '';

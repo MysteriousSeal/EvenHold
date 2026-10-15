@@ -126,7 +126,26 @@
 .pause-back { align-self: flex-start; width: auto; margin-top: 10px; padding: 6px 16px; border-color: rgba(232, 194, 122, 0.35); }
 .pause-foot { margin: 8px 2px 0; font-size: 11.5px; letter-spacing: 0.04em; color: #8f7a5c; text-align: center; }
 
+/* Keys: the rebindable keys in three groups side by side (scrolled if the screen's short), each row what it does and
+   its keycap on the right; the one waiting for its new key lit lantern-bright, "Press a key…" in its cap's place. */
+.pause-keys-screen { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.pause-keys-note { margin: 0 2px 4px; font-size: 12.5px; color: #c8b088; }
+.pause-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 14px; overflow-y: auto; max-height: calc(100vh - 230px); padding-right: 4px; }
+.pause-keys-group h3 { margin: 4px 0 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.pause-key { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px 6px 10px; }
+.pause-key b { font-size: 13.5px; font-weight: 600; }
+.pause-key-caps { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.pause-key-caps small { font-size: 11px; }
+.pause-key.waiting { background: rgba(255, 196, 110, 0.28); border-color: #ffd98a; }
+.pause-key-wait { font-size: 12px; font-weight: 700; color: #ffe3a0; animation: pause-key-blink 1s steps(2) infinite; }
+@keyframes pause-key-blink { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .pause-key-wait { animation: none; } }
+.pause-keys-foot { display: flex; gap: 8px; }
+.pause-keys-foot .pause-back { margin-top: 6px; }
+
+@media (max-width: 900px) { .pause-keys { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
+  .pause-keys { grid-template-columns: 1fr; }
   .pause { flex-direction: column; overflow-y: auto; }
   .pause-hero { width: auto; flex-direction: row; justify-content: center; padding: 12px; }
   .pause-portrait { width: 72px; height: 72px; margin: 0; }

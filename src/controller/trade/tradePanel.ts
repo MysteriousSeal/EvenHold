@@ -40,6 +40,7 @@ export interface Trade {
   trade(id: BagItem, selling: boolean): 'bought' | 'sold' | 'sold out' | 'too poor' | 'short' | 'none' | 'not wanted' | 'full';
   lines: TradeLines;
   note?(): string | null; // a line at the foot of their window, if there's one to say (the inn's cupboard)
+  service?(): { label: string; tip: string; can: boolean; act(): string } | null; // a button of theirs beside Sell junk (the smith's Mend: its label, a tip, whether it can be done, and done: their word)
   about(id: BagItem): string; // their word on one of their wares, just bought
   offered(name: string): string; // their word on what the hero's just sold them
   junk(name: string | null, paid: string): string; // and on junk sold them: one thing (its name), or a whole lot at once (null), and what they paid ("5 copper")
@@ -123,6 +124,14 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
     junk.disabled = !(Object.keys(model.hero.bag) as BagItem[]).some(isJunk);
     junk.addEventListener('click', sellJunk);
     bar.append(junk);
+    const service = trade.service?.();
+    if (service) {
+      const button = el('button', 'menu-button shop-junk', service.label);
+      button.title = service.tip;
+      button.disabled = !service.can;
+      button.addEventListener('click', () => answer('', service.act()));
+      bar.append(button);
+    }
     box.append(bar);
     const note = trade.note?.();
     if (note) box.append(el('p', 'shop-note', note));

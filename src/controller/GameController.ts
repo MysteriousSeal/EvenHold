@@ -9,6 +9,7 @@ import type { Traveller } from '../model/travellers/travellers';
 import { shopAt } from '../model/inn/tavernShop';
 import { atTheBar, barmaidHere, type BarMenuItem } from './trade/barOrder';
 import type { BagItem } from '../model/hero/bag';
+import { gather } from '../model/hero/hands';
 import type { GameModel } from '../model/GameModel';
 import type { GameEvent } from '../model/types';
 import type { Npc } from '../model/npcs/npcs';
@@ -50,7 +51,7 @@ export class GameController {
   private lastTime = 0;
   private readonly schedule: (callback: (now: number) => void) => void;
   private readonly onFrame: () => void;
-  private readonly onPickUp: (item: BagItem) => void;
+  private readonly onPickUp: (item: BagItem, count: number) => void;
   private readonly onEvent: (event: GameEvent) => void;
   private readonly onTalk: (npc: Npc) => void;
   private readonly onRead: (board: number) => void;
@@ -66,7 +67,7 @@ export class GameController {
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem, count: number) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -163,7 +164,7 @@ export class GameController {
       if (barmaid) this.onOrder(barmaid, wanted);
     } else if (wanted === 'pie') {
       const action = roomAction(this.model); // (by the barmaid: a room; by its bed at night: sleep)
-      if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(this.model.inside!.entrance)));
+      if (action?.kind === 'rent') rentRoom(this.model, action.barmaid, shopAt(this.model.shops, this.model.seed, doorNumber(this.model.inside!.entrance)), action.bribe);
       else if (action?.kind === 'sleep') this.onSleep();
     }
     // E: the first thing there to be done, in the one order everything reads it by (model/hero/interaction.ts); one
@@ -224,9 +225,9 @@ export class GameController {
       case 'stopChop':
         return model.lumber.stop(), true;
       case 'loot': {
-        const item = model.pickUp();
-        if (item) this.onPickUp(item);
-        return !!item;
+        const got = gather(model); // (its like lying near, with it)
+        if (got) this.onPickUp(got.item, got.count);
+        return !!got;
       }
       case 'chest':
         return found.chest.open(), true;

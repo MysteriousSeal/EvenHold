@@ -4,6 +4,7 @@
 // tracker) and to abandon it (a second click to be sure). A side panel:
 // the game goes on while it's open, and it keeps up with the hunt.
 
+import { keyOf } from '../keyBindings';
 import './questPanels.css';
 import { storyJournal } from '../story/storyJournal';
 import { journalButtons } from './journalButtons';
@@ -104,7 +105,7 @@ export function createJournal(model: GameModel): { menu: Menu; update(): void } 
   const story = storyJournal(model, () => menu.refresh(), FULL); // (the quests people gave: in the list with the boards')
   const menu = createMenu({
     title: 'Journal',
-    toggleKey: 'KeyL',
+    toggleKey: () => keyOf('journal'),
     keyHints: false,
     modal: false,
     place: 'left',

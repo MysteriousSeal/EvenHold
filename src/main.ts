@@ -83,6 +83,8 @@ import { generateWorld } from './model/worldgen/world';
 import { WorkerSource } from './controller/world/workerSource';
 import { STREAMED_SIZE } from './model/worldgen/regions';
 import { capitalize } from './util/text';
+import { BAR_ACTIONS, label as keyName } from './controller/keyBindings';
+import { chat } from './model/npcs/chat';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -147,10 +149,10 @@ async function boot(): Promise<void> {
   const placeBanner = createPlaceBanner();
   const updatePlaceBar = createPlaceBar();
   const updateTarget = createTargetHud(hudTop);
-  const lootPrompt = createLootPrompt();
-  const orderPrompt = createLootPrompt('F'); // sat at the bar: an ale, over the hero's head
-  const piePrompt = createLootPrompt('G', false, orderPrompt); // and a meat pie, stacked over it
-  const rentPrompt = createLootPrompt('G', false, lootPrompt); // stood by the barmaid: a room, stacked over her E; by the let room's bed: sleep
+  const lootPrompt = createLootPrompt(() => keyName('use'));
+  const orderPrompt = createLootPrompt(() => keyName('ale')); // sat at the bar: an ale, over the hero's head
+  const piePrompt = createLootPrompt(() => keyName('pie'), false, orderPrompt); // and a meat pie, stacked over it
+  const rentPrompt = createLootPrompt(() => keyName('pie'), false, lootPrompt); // stood by the barmaid: a room, stacked over her E; by the let room's bed: sleep
   const sleepFade = createSleepFade();
   const drinkTimer = createDrinkTimer();
   const bar = createBar(
@@ -182,7 +184,7 @@ async function boot(): Promise<void> {
   };
   const jobs = createJobPanel(model, { setPaused: holdStill('jobs') }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
-  const board = createQuestBoardPanel(model, { setPaused: holdStill('board') });
+  const board = createQuestBoardPanel(model, { setPaused: holdStill('board'), ride: (to, go) => sleepFade(go, () => {}, `On the road to ${to}…`) });
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
   // pedlar's pack, a bouncer's or a traveller's line; a villager's: none.
@@ -224,13 +226,13 @@ async function boot(): Promise<void> {
   // The action bar, bottom centre: shortcuts to food and drink in the bag (keys 1 to 8: GameController); clicked, used
   // as its keys are, not while the game's held still.
   const { hero: me } = model;
-  const updateActionBar = createActionBar(me, { use: (i) => void (controller.paused || model.useAction(i)), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) });
+  const updateActionBar = createActionBar(me, { use: (i) => void (controller.paused || model.useAction(i)), swap: (a, b) => swapActions(me, a, b), clear: (i) => clearAction(me, i) }, (i) => keyName(BAR_ACTIONS[i]));
   const updateToolbar = createToolbar([
-    { label: 'Hero', key: 'C', icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
-    { label: 'Bag', key: 'B', icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
-    { label: 'Journal', key: 'L', icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
-    { label: 'Skills', key: 'K', icon: skillsIcon, isOpen: () => skills.menu.isOpen, toggle: () => skills.menu.toggle() },
-    { label: 'Level up', key: 'P', icon: levelUpIcon, isOpen: () => levelUp.menu.isOpen, toggle: () => levelUp.menu.toggle(), marked: () => model.hero.statPoints > 0 },
+    { label: 'Hero', key: () => keyName('sheet'), icon: heroBustIcon(model.hero.look), isOpen: () => sheet.menu.isOpen, toggle: () => sheet.menu.toggle() },
+    { label: 'Bag', key: () => keyName('bag'), icon: bagToolIcon, isOpen: () => bag.menu.isOpen, toggle: () => bag.menu.toggle() },
+    { label: 'Journal', key: () => keyName('journal'), icon: journalIcon, isOpen: () => journal.menu.isOpen, toggle: () => journal.menu.toggle() },
+    { label: 'Skills', key: () => keyName('skills'), icon: skillsIcon, isOpen: () => skills.menu.isOpen, toggle: () => skills.menu.toggle() },
+    { label: 'Level up', key: () => keyName('levelUp'), icon: levelUpIcon, isOpen: () => levelUp.menu.isOpen, toggle: () => levelUp.menu.toggle(), marked: () => model.hero.statPoints > 0 },
     { label: 'Pause', key: 'Esc', icon: pauseIcon, isOpen: () => pause.isOpen, toggle: () => pause.toggle() },
   ]);
   // What E does right now: pick up loot in reach, else sit or lie down (or get up), else go through a door.
@@ -328,7 +330,7 @@ async function boot(): Promise<void> {
     castBar(castOf(model), model.hero, (x, y, z) => view.toScreen(x, y, z));
     pourMeter.update(model.work.shift instanceof BarShift ? model.work.shift : null, model.hero, (x, y, z) => view.toScreen(x, y, z));
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
-    rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
+    rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken && !action.week, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
     // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
     const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
@@ -346,9 +348,9 @@ async function boot(): Promise<void> {
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
     lastFrame = now;
   };
-  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
+  const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
     // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
-    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(
@@ -381,13 +383,13 @@ async function boot(): Promise<void> {
       else if (event.kind === 'unbarred') placeBanner('The gate is open', 'The great hall lies beyond');
       else if (event.kind === 'banner') placeBanner(event.title, event.line);
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ' · +1 point to spend (P)' : ''}`);
-      else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, ['+1 point to spend (P)'], '#5ae0d8');
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ` · +1 point to spend (${keyName('levelUp')})` : ''}`);
+      else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`+1 point to spend (${keyName('levelUp')})`], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, model.inside ? 1.35 : 0.8, event.text); // said in the hero's room: a bubble over them
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
-      else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (P)`], '#5ae0d8');
+      else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (${keyName('levelUp')})`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
       else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)
       else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.tally} · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);

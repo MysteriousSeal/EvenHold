@@ -20,6 +20,7 @@ import { playPace } from './paceGame';
 import { workCostume, workLook } from '../../view/meshes/human/gear/costumes';
 import { unclothed } from '../../view/meshes/human/unclothed';
 import { trackMenu, type Menu } from '../../view/ui/menu';
+import { isKey } from '../keyBindings';
 
 const WRITE_EVERY = 16; // ms a letter, written out
 const PORTRAIT: [number, number] = [300, 420];
@@ -236,11 +237,11 @@ export function createTalkPanel(model: GameModel, hooks: { setPaused(paused: boo
       // Space is the beat, and the only thing that moves the two of them: one thrust, in and back. F turns them over.
       if (event.code === 'Space') couple?.thrust();
       if (event.code === 'KeyF') couple?.turn();
-      if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') game.press();
+      if (event.code === 'Space' || event.code === 'Enter' || isKey('use', event.code)) game.press();
       return;
     }
     if (dark) return;
-    if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyE') return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
+    if (event.code === 'Space' || event.code === 'Enter' || isKey('use', event.code)) return answering ? (event.code === 'Enter' ? pick(Math.max(0, talk!.answers.findIndex((a) => a.primary))) : undefined) : advance();
     if (event.code.startsWith('Digit') && answering) return pick(Number(event.code.slice(5)) - 1);
     if (event.code === 'Escape') {
       // Out by the answer that commits to nothing (the one marked the way out; else the first unlit), if there is one,

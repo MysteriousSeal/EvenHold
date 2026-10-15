@@ -6,6 +6,7 @@
 // the plan. Under it all, every point spent can be had back to spend again,
 // for coin by their level (training.ts), on a second click to be sure. The game waits while it's open.
 
+import { keyOf } from '../keyBindings';
 import './levelUpPanel.css';
 import type { GameModel } from '../../model/GameModel';
 import { blowOf, critChanceOf, dodgeChanceOf, maxEnergyOf, maxHpOf, statsOf } from '../../model/hero/attributes';
@@ -109,7 +110,7 @@ export function createLevelUpPanel(model: GameModel, hooks: { setPaused(paused: 
 
   const menu = createMenu({
     title: 'Level up',
-    toggleKey: 'KeyP',
+    toggleKey: () => keyOf('levelUp'),
     keyHints: false,
     onOpenChange: (open) => {
       hooks.setPaused(open);

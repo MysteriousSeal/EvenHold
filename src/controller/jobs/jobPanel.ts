@@ -5,6 +5,7 @@
 // (serving the tables, tending the bar) as a strip across the top, the notice the one picked (at work, the one
 // they're at). A window in the middle of the screen; the game waits while it's open.
 
+import { label as keyName } from '../keyBindings';
 import { doorNumber } from '../../model/interiors/interiors';
 import './jobPanel.css';
 import type { GameModel } from '../../model/GameModel';
@@ -143,7 +144,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
       );
     }
     const key = (cap: string, does: string) => el('span', 'job-key', el('kbd', undefined, cap), does);
-    const keys = el('div', 'job-keys', key('E', KEYS[job]));
+    const keys = el('div', 'job-keys', key(keyName('use'), KEYS[job]));
     foot.append(terms, keys, button);
     button.addEventListener('click', () => {
       if (shift) {

@@ -4,7 +4,7 @@
 // level, day and world); beside them "Paused" between gold rules, then
 // Resume (gold), the settings in place (the zoom stepped ‹ ›, the inner
 // walls switched Low | Full), the controls (controlsCodex.ts, Back to
-// return), and back to the main menu (a new hero, or this one's world
+// return), the keys rebound (keysScreen.ts), and back to the main menu (a new hero, or this one's world
 // left be, there). Arrows choose, Enter acts (← → on a setting
 // change it), Escape resumes (or comes back from the controls); the mouse
 // works too, and a click outside resumes. The game saves itself
@@ -18,6 +18,8 @@ import { voxelIcon } from '../view/ui/voxelIcon';
 import { humanBust } from '../view/meshes/human/humanFigure';
 import { stepZoom, zoomLevel } from '../view/render/zoom';
 import { controlsCodex } from './controlsCodex';
+import { keysScreen } from './keysScreen';
+import { rebind, type KeyAction } from './keyBindings';
 import '../view/ui/gilded.css';
 import './pauseMenu.css';
 
@@ -50,7 +52,8 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
   backdrop.append(stage);
   document.body.append(backdrop);
 
-  let showing: 'main' | 'controls' = 'main';
+  let showing: 'main' | 'controls' | 'keys' = 'main';
+  let waiting: KeyAction | null = null; // (Keys: the one waiting for its new key)
   let lit = 0; // the item chosen (keys)
   let items: Array<{ node: HTMLElement; act(): void; step?(by: 1 | -1): void }> = [];
 
@@ -117,7 +120,17 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
 
   const draw = () => {
     const main = el('section', 'pause-main gilded');
-    if (showing === 'controls') {
+    if (showing === 'keys') {
+      const screen = keysScreen(
+        waiting,
+        (action) => ((waiting = waiting === action ? null : action), draw()),
+        () => ((showing = 'main'), (waiting = null), (lit = 4), draw()),
+        draw,
+      );
+      main.classList.add('controls');
+      main.append(screen.node);
+      items = screen.items;
+    } else if (showing === 'controls') {
       const head = el('div', 'gilded-head');
       head.append(el('span', '', 'Controls'));
       const back = button('pause-back', 'Back', null, () => ((showing = 'main'), draw()));
@@ -144,15 +157,17 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         changed();
       });
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
+      const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
       settings.append(zoom.node, walls.node);
-      main.append(title, resume, settings, controls, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
+      main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
         zoom,
         walls,
         { node: controls, act: () => controls.click() },
+        { node: keys, act: () => keys.click() },
         { node: menu, act: () => menu.click() },
       ];
     }
@@ -178,7 +193,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       return !backdrop.hidden;
     },
     open() {
-      [showing, lit] = ['main', 0];
+      [showing, lit, waiting] = ['main', 0, null];
       backdrop.hidden = false;
       trackMenu(api, true);
       hooks.setPaused(true);
@@ -212,10 +227,15 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       event.stopImmediatePropagation();
       event.preventDefault();
       if (event.repeat && !event.code.startsWith('Arrow')) return;
+      if (waiting) {
+        // (the key pressed: the new one; Escape: left as it was; a key never rebound: still waiting)
+        if (event.code === 'Escape' || rebind(waiting, event.code)) waiting = null;
+        return draw();
+      }
       const item = items[lit];
       if (event.code === 'Escape') {
-        if (showing === 'controls') {
-          showing = 'main';
+        if (showing !== 'main') {
+          [lit, showing] = [showing === 'keys' ? 4 : 3, 'main'];
           draw();
         } else api.close();
       } else if (event.code === 'ArrowDown') choose(lit + 1);

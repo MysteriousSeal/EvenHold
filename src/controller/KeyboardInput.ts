@@ -1,26 +1,12 @@
 import type { BarMenuItem } from './trade/barOrder';
+import { BAR_ACTIONS, actionOf, type KeyAction } from './keyBindings';
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 
-const KEY_BINDINGS: Readonly<Record<string, Direction>> = {
-  KeyW: 'up',
-  ArrowUp: 'up',
-  KeyS: 'down',
-  ArrowDown: 'down',
-  KeyA: 'left',
-  ArrowLeft: 'left',
-  KeyD: 'right',
-  ArrowRight: 'right',
-};
+const MOVES: Partial<Record<KeyAction, Direction>> = { up: 'up', down: 'down', left: 'left', right: 'right' };
+const ORDERS: Partial<Record<KeyAction, BarMenuItem>> = { ale: 'ale', pie: 'pie' }; // at the bar: order an ale, or a pie
 
-const ATTACK_KEY = 'Space';
-const PICKUP_KEY = 'KeyE';
-const FOCUS_KEY = 'Tab'; // the next foe (Shift: back)
-const ROLL_KEYS = ['ShiftLeft', 'ShiftRight']; // a roll, as Shift's pressed
-const GUARD_KEY = 'KeyQ'; // held: the guard raised
-const ACTION_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']; // the action bar's slots (hero/actionBar.ts)
-const ORDER_KEYS: Record<string, BarMenuItem> = { KeyF: 'ale', KeyG: 'pie' }; // at the bar: order an ale, or a pie
-
+// The game's keys (keyBindings.ts: the player's own, or the defaults), each what it asks of the hero.
 export class KeyboardInput {
   private readonly pressed = new Set<Direction>();
   private attackRequested = false;
@@ -76,7 +62,7 @@ export class KeyboardInput {
     return requested;
   }
 
-  // Which way to turn the focus, once per press of Tab ('back' with Shift); else null.
+  // Which way to turn the focus, once per press of its key ('back' with Shift); else null.
   consumeFocus(): 'next' | 'back' | null {
     const requested = this.focusRequested;
     this.focusRequested = null;
@@ -91,39 +77,42 @@ export class KeyboardInput {
   }
 
   private onKey(e: KeyboardEvent, isDown: boolean): void {
-    if (ROLL_KEYS.includes(e.code)) {
-      if (isDown && !e.repeat) this.rollRequested = true;
+    const action = actionOf(e.code);
+    if (!action) return;
+    const press = isDown && !e.repeat;
+    const direction = MOVES[action];
+    if (direction) {
+      if (isDown) this.pressed.add(direction);
+      else this.pressed.delete(direction);
       return;
     }
-    if (ACTION_KEYS.includes(e.code)) {
-      if (isDown && !e.repeat) this.actionRequested = ACTION_KEYS.indexOf(e.code);
+    if (action.startsWith('bar')) {
+      if (press) this.actionRequested = BAR_ACTIONS.indexOf(action as (typeof BAR_ACTIONS)[number]);
       return;
     }
-    if (e.code === GUARD_KEY) {
-      this.guardHeld = isDown;
+    const order = ORDERS[action];
+    if (order) {
+      if (press) this.orderRequested = order;
       return;
     }
-    if (e.code in ORDER_KEYS) {
-      if (isDown && !e.repeat) this.orderRequested = ORDER_KEYS[e.code];
-      return;
+    switch (action) {
+      case 'roll':
+        if (press) this.rollRequested = true;
+        return;
+      case 'guard':
+        this.guardHeld = isDown;
+        return;
+      case 'use':
+        if (press) this.pickupRequested = true;
+        return;
+      case 'focus':
+        e.preventDefault(); // (never off to the page's buttons)
+        if (press) this.focusRequested = e.shiftKey ? 'back' : 'next';
+        return;
+      case 'attack':
+        e.preventDefault(); // no page scroll, no re-clicking a focused button
+        if (press) this.attackRequested = true;
+        return;
     }
-    if (e.code === PICKUP_KEY) {
-      if (isDown && !e.repeat) this.pickupRequested = true;
-      return;
-    }
-    if (e.code === FOCUS_KEY) {
-      e.preventDefault(); // (never off to the page's buttons)
-      if (isDown && !e.repeat) this.focusRequested = e.shiftKey ? 'back' : 'next';
-      return;
-    }
-    if (e.code === ATTACK_KEY) {
-      e.preventDefault(); // no page scroll, no re-clicking a focused button
-      if (isDown && !e.repeat) this.attackRequested = true;
-      return;
-    }
-    const direction = KEY_BINDINGS[e.code];
-    if (!direction) return;
-    if (isDown) this.pressed.add(direction);
-    else this.pressed.delete(direction);
   }
 }

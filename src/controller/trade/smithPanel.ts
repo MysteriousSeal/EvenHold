@@ -7,10 +7,12 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import type { BagItem } from '../../model/hero/bag';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
-import { baseOf, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
-import { buyGear, gearPrice, gearSellPrice, metalPrice, sellGear, smithBuys, smithSellsTo, smithShopIn, smithTakesMetal } from '../../model/smithy/smithShop';
+import { baseOf, gearName, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
+import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
+import { mendAll, mendBill } from '../../model/hero/wear';
+import { coinWords } from '../../view/ui/coins';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.
@@ -28,6 +30,9 @@ const LINES: TradeLines = {
   'too poor': ["That's not enough coin. Iron's dear.", "Come back when your purse is heavier.", "I don't give credit, friend."],
   short: ["I can't pay for that right now.", "My purse is empty. Come back after I've sold a few blades.", 'Not today. The ore merchant took the rest.'],
 };
+
+// His word on gear he's just mended.
+const MENDED = ["There. Good as the day it was forged.", 'Straightened, riveted, sharpened. Try not to do that again.', "Took some hammering, that. It'll hold.", 'New straps, a fresh edge. Off you go.', "You've been busy. All mended."];
 
 // His word on what's just been bought, by what it's worn on.
 const ABOUT: Partial<Record<EquipSlot, readonly string[]>> = {
@@ -82,9 +87,9 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => (Object.keys(shop().stock).filter(isGear) as GearKey[]).filter((id) => smithSellsTo(model.hero, id)), // (his forged pieces, at his village's level; his heaviest, only once the hero's proven: smithAsks)
+    wares: () => (Object.keys(shop().stock).filter(isGear) as GearKey[]).sort((a, b) => Number(smithSellsTo(model.hero, b)) - Number(smithSellsTo(model.hero, a))), // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks)
     wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id), // (gear, and the iron salvaged from it)
-    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey)),
+    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
     trade: (id, selling) => {
       const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey);
       return result === 'he is short' ? 'short' : result;
@@ -94,7 +99,19 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     offered: (name) => `${name}? I'll give you what the iron's worth.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
-    blurb: (id) => (ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
+    service: () => {
+      const { pieces, total } = mendBill(model.hero);
+      return {
+        label: pieces.length ? `Mend · ${coinWords(total)}` : 'Mend',
+        tip: pieces.length ? `Mend all you wear: ${pieces.map((p) => `${gearName(p.key)} (${Math.floor(p.wear)}% worn)`).join(', ')}` : 'Nothing you wear needs mending',
+        can: pieces.length > 0 && model.hero.money >= total,
+        act: () => {
+          const done = mendAll(model.hero);
+          return done === 'mended' ? pick(MENDED) : done === 'too poor' ? pick(LINES['too poor']) : "There's nothing on you that needs my hammer.";
+        },
+      };
+    },
+    blurb: (id) => (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
     facts: (id) => [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
   });
 }

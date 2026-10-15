@@ -5,6 +5,7 @@
 // energy, the four stats (with what gear adds), armour, and what they come
 // to in a fight. It sits on the left, under the HUD, and the game plays on around it.
 
+import { keyOf } from '../keyBindings';
 import type { GameModel } from '../../model/GameModel';
 import { HERO_SPEED } from '../../model/constants';
 import { SLOT_NAMES, type EquipSlot } from '../../model/human/equipment';
@@ -14,7 +15,7 @@ import { SPARED_CAP, armorShare, armorOf, blowOf, critChanceOf, dodgeChanceOf, g
 import { STATS, STAT_NAMES, type Stat } from '../../model/hero/statKinds';
 import { POINTS_PER_LEVEL } from '../../model/hero/training';
 
-import { gearLines } from './gearLines';
+import { gearLines, wearLines } from './gearLines';
 import { STAT_DOES } from './statText';
 import { gearIcon, slotPlaceholder } from '../../view/ui/itemIcons';
 import { createMenu, toned, type DollSlot, type Menu } from '../../view/ui/menu';
@@ -45,7 +46,7 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
             icon: gearIcon(item),
             title: gearName(item),
             tone: rarityOf(item), // (its name and frame in its rarity's colour)
-            lines: [toned('kind', `${SLOT_NAMES[which]} · worn`), ...gearLines(item), toned('hint', 'Drag into your bag, or onto the ground')],
+            lines: [toned('kind', `${SLOT_NAMES[which]} · worn`), ...gearLines(item), ...wearLines(model.hero, item), toned('hint', 'Drag into your bag, or onto the ground')],
             // Onto another window (the bag): into the bag. Onto the world: on the ground.
             fits: which,
             dragOut: (over) => void (over?.closest('.menu') ? model.unequip(which) : model.dropEquipped(which)),
@@ -55,7 +56,7 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
   };
   const menu = createMenu({
     title: 'Hero',
-    toggleKey: 'KeyC',
+    toggleKey: () => keyOf('sheet'),
     keyHints: false,
     modal: false,
     place: 'left',

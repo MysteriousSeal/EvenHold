@@ -4,8 +4,11 @@
 // instead would change ("+2 Armour" in green, "−1 Agility" in red).
 
 import { SLOT_NAMES, type Equipment } from '../../model/human/equipment';
-import { AFFIXES, RARITY_NAMES, canWear, gearName, gearOf, gearSpecs, noSpecs, slotOfGear, type Affix, type GearKey, type GearSpecs, type SpecLine } from '../../model/human/items/gear';
+import { AFFIXES, RARITY_NAMES, canWear, gearName, gearOf, gearSpecs, noSpecs, slotOfGear, weaponTypeOf, type Affix, type GearKey, type GearSpecs, type SpecLine } from '../../model/human/items/gear';
 import { STATS, STAT_NAMES, isStat } from '../../model/hero/statKinds';
+import { profileText } from '../../model/hero/weaponProfiles';
+import { wearText } from '../../model/hero/wear';
+import type { Hero } from '../../model/types';
 import { toned, type MenuLine } from '../../view/ui/menu';
 
 const percent = (n: number) => `${Math.round(n * 100)}%`;
@@ -19,16 +22,25 @@ const AFFIX_TEXT: Record<Affix, (n: number) => string> = {
 export const specText = ({ kind, amount }: Pick<SpecLine, 'kind' | 'amount'>): string =>
   kind === 'armor' ? `Armour ${amount}` : isStat(kind) ? `+${amount} ${STAT_NAMES[kind]}` : AFFIX_TEXT[kind](amount);
 
-// Its lines: its level and rarity, its own, its rarity's (`heroLevel` given: whether they're under its level).
+// Its lines: its level and rarity, how it fights (a weapon: quick, long…), its own, its rarity's (`heroLevel` given:
+// whether they're under its level).
 export function gearLines(key: GearKey, heroLevel?: number): MenuLine[] {
   const { level, rarity } = gearOf(key);
   const { lines } = gearSpecs(key);
+  const type = weaponTypeOf(key);
   return [
     toned('kind', `Level ${level} · ${RARITY_NAMES[rarity]}`),
+    ...(type ? [toned('extra', profileText(type))] : []),
     ...lines.filter((l) => !l.extra).map((l) => toned('stat', specText(l))),
     ...lines.filter((l) => l.extra).map((l) => toned('extra', specText(l))),
     ...(heroLevel !== undefined && !canWear(key, heroLevel) ? [toned('loss', `Requires level ${level}`)] : []),
   ];
+}
+
+// How worn their piece is, if at all ("Worn 40%"; broken, in red).
+export function wearLines(hero: Pick<Hero, 'equipment' | 'wear'>, key: GearKey): MenuLine[] {
+  const wear = wearText(hero, key);
+  return wear ? [toned(wear.bad ? 'loss' : 'flavor', wear.text)] : [];
 }
 
 // What a piece is worth, all told, to weigh one against another: its armour, each point it adds to a stat worth

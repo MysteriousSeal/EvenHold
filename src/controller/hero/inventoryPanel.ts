@@ -10,6 +10,7 @@
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 // A button by the purse tidies it (bagStacks.ts: sortedBag).
+import { keyOf } from '../keyBindings';
 import { POTIONS, POTION_COOLDOWN, isPotion, potionText } from '../../model/loot/potions';
 import { setAction } from '../../model/hero/actionBar';
 import { coinParts, coinWords } from '../../view/ui/coins';
@@ -23,7 +24,7 @@ import { canWear, gearName, rarityOf, slotOfGear, type GearKey } from '../../mod
 import { LOOT, LOOT_QUALITY } from '../../model/loot/loot';
 import { PROVISIONS, givesText, isProvision } from '../../model/loot/provisions';
 import { saleOf } from '../../model/shops/sellValue';
-import { againstWorn, gearLines } from './gearLines';
+import { againstWorn, gearLines, wearLines } from './gearLines';
 import { createMenu, toned, type LineTone, type Menu, type MenuLine, type MenuSlot } from '../../view/ui/menu';
 import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
@@ -101,7 +102,7 @@ function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): 
     title: gearName(gear),
     tone: rarityOf(gear), // (its name and frame in its rarity's colour)
     warn: !wearable, // (under its level: shown red)
-    lines: [toned('kind', SLOT_NAMES[slot]), ...gearLines(gear, model.hero.level), ...againstWorn(gear, model.hero.equipment), toned('hint', wearable ? `Drag onto your hero's ${SLOT_NAMES[slot].toLowerCase()} slot to wear it` : 'Too high a level to wear yet')],
+    lines: [toned('kind', SLOT_NAMES[slot]), ...gearLines(gear, model.hero.level), ...wearLines(model.hero, gear), ...againstWorn(gear, model.hero.equipment), toned('hint', wearable ? `Drag onto your hero's ${SLOT_NAMES[slot].toLowerCase()} slot to wear it` : 'Too high a level to wear yet')],
     fits: slot,
     // Only its own slot on the hero sheet takes it; the world, the ground.
     dragOut: (over) => {
@@ -156,7 +157,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
   let seller: Seller | null = null;
   const menu = createMenu({
     title: 'Bag',
-    toggleKey: 'KeyB',
+    toggleKey: () => keyOf('bag'),
     keyHints: false,
     modal: false,
     tabs: [
