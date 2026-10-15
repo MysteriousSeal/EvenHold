@@ -30,7 +30,7 @@ describe.each(keepers)('the $role', ({ role, counter: kind, enter }) => {
     }
     expect(spots.size, 'round their work').toBeGreaterThan(1);
     [model.hero.x, model.hero.z] = [counter.x + 0.5, counter.z + 1];
-    for (let t = 0; t < 5; t += 1 / 30) model.update(0, 0, 1 / 30); // (their work put down at once: there in a few steps)
+    for (let t = 0; t < 8; t += 1 / 30) model.update(0, 0, 1 / 30); // (their work put down at once: there in a few steps, from across the room)
     expect(keeper.z).toBeLessThan(counter.z);
     const [x, z] = [keeper.x, keeper.z];
     for (let t = 0; t < 2; t += 1 / 30) model.update(0, 0, 1 / 30);

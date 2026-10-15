@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { layoutOf } from '../src/model/interiors/indoors';
+import { distanceTo } from '../src/model/interiors/furniture';
 import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
 import { pedlarBuys, pedlarPrice } from '../src/model/travellers/pedlarShop';
@@ -57,7 +58,8 @@ describe('the smithy', () => {
       expect(trough.z === 0 && (trough.x === forge.x + forge.w || trough.x === forge.x - 2)).toBe(true); // along the back wall, by the forge
       const stands = furniture.filter((f) => f.kind === 'armorStand');
       expect(stands.length).toBeGreaterThanOrEqual(2); // armour on stands, against the walls, in suits of their own
-      expect(stands.every((f) => f.wall !== 'none')).toBe(true);
+      const counter = furniture.find((f) => f.kind === 'smithCounter')!;
+      expect(stands.every((f) => f.wall !== 'none' || distanceTo(counter, f.x, f.z) < 2)).toBe(true); // (or, the walls full, out by the counter)
       expect(new Set(stands.map((f) => f.suit)).size).toBe(stands.length);
       expect(furniture.every((f) => f.x > room.door || f.x + f.w <= room.door || f.z + f.d <= room.depth - 1 || !f.solid)).toBe(true); // the way in clear
     }

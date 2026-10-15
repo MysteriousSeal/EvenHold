@@ -3,7 +3,7 @@ import { goesUnder } from '../src/model/dungeons/dungeonTypes';
 import { GameModel } from '../src/model/GameModel';
 import { furnish } from '../src/model/interiors/furnish';
 import { roomFor, type BuildingType, type Entrance, type Room } from '../src/model/interiors/interiors';
-import type { Furniture, FurnitureKind } from '../src/model/interiors/furniture';
+import { distanceTo, type Furniture, type FurnitureKind } from '../src/model/interiors/furniture';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { upstairsInside } from '../src/model/interiors/upstairs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -78,6 +78,35 @@ describe('every room in the test worlds', () => {
   it('has no floor walled off from the door (a home, the smithy, the inn): its bed and every seat walked to', () => {
     for (const { seed, entrance, room, furniture } of rooms) {
       expect(walledIn(room, tilesOf(furniture).taken), `${entrance.type} (seed ${seed})`).toEqual([]);
+    }
+  });
+
+  it('gives every smithy its work in reach: a free tile before its forge, anvil, grindstone and bench walked to from the door, the smith his own behind the anvil and his counter, all of it (and the door) out of his counter\'s reach', () => {
+    const smithies = rooms.filter((r) => r.entrance.type === 'smithy');
+    expect(smithies.length).toBeGreaterThan(0);
+    for (const { seed, room, furniture } of smithies) {
+      const { taken } = tilesOf(furniture);
+      const seen = new Set<string>();
+      const todo: Array<[number, number]> = [[room.door, room.depth - 1]];
+      while (todo.length > 0) {
+        const [x, z] = todo.pop()!;
+        const k = `${x},${z}`;
+        if (x < 0 || z < 0 || x >= room.width || z >= room.depth || seen.has(k) || taken.has(k)) continue;
+        seen.add(k);
+        todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+      }
+      const counter = furniture.find((f) => f.kind === 'smithCounter')!;
+      const behindCounter = (x: number, z: number) => z === counter.z - 1 && x >= counter.x && x < counter.x + counter.w;
+      for (const f of furniture.filter((p) => ['forge', 'anvil', 'grindstone', 'salvageBench'].includes(p.kind))) {
+        const front = f.kind === 'forge' ? [f.x, 1] : [f.x, f.z + f.d];
+        const at = `smithy (seed ${seed}) ${f.kind} at ${f.x},${f.z}`;
+        expect(seen.has(front.join(',')), `${at}: its front walked to`).toBe(true);
+        expect(behindCounter(front[0], front[1]), `${at}: its front behind the counter`).toBe(false);
+        if (f.kind === 'anvil' || f.kind === 'salvageBench') expect(distanceTo(counter, front[0], front[1]), `${at}: its front by the counter`).toBeGreaterThanOrEqual(2.5);
+        if (f.kind === 'anvil') expect(seen.has(`${f.x},${f.z - 1}`), `${at}: the smith's tile behind it`).toBe(true);
+      }
+      expect(distanceTo(counter, room.door, room.depth - 1), `smithy (seed ${seed}): the counter by the door`).toBeGreaterThanOrEqual(2.5);
+      for (let x = counter.x; x < counter.x + counter.w; x++) expect(seen.has(`${x},${counter.z - 1}`), `smithy (seed ${seed}): the smith's row behind his counter walked to`).toBe(true);
     }
   });
 
