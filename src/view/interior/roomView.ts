@@ -141,8 +141,9 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // Warm light from above, a hearth glow from the back corner. The inn's lit lower, by night: pools of light at its
   // fire, its lanterns and the candles on its tables, the floor between them darker.
   const inn = room.floor === 'tavern';
-  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
-  const sun = new THREE.DirectionalLight(0xffd7a0, inn ? 0.6 : 1.4);
+  const herbalist = room.floor === 'earth'; // (a herbalist's: dim and smoky, lit by the cauldron's green first, the hearth second)
+  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : herbalist ? new THREE.HemisphereLight(0xb8c4a0, 0x2a2216, 0.55) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
+  const sun = herbalist ? new THREE.DirectionalLight(0xd8c8a0, 0.45) : new THREE.DirectionalLight(0xffd7a0, inn ? 0.6 : 1.4);
   sun.position.set(room.width * 0.6, 6, room.depth * 0.8);
   sun.target.position.set(room.width / 2, 0, room.depth / 2);
   scene.add(sun, sun.target);
@@ -150,8 +151,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const spot = fireOf(furniture);
   // Its light casts real shadows: set just in front of the opening (so the
   // stonework doesn't block it), shadows fan out from the fire and flicker with it.
-  const GLOW = inn ? 10 : 4.5; // (the inn's fire its brightest light: the eye goes there first)
-  const glow = new THREE.PointLight(0xff9a4a, GLOW, inn ? 11 : 8, 1.4);
+  const GLOW = inn ? 10 : herbalist ? 2.6 : 4.5; // (the inn's fire its brightest light: the eye goes there first)
+  const glow = new THREE.PointLight(herbalist ? 0xff8a3a : 0xff9a4a, GLOW, inn ? 11 : herbalist ? 6 : 8, 1.4);
   glow.position.set(spot?.x ?? 0.3, 0.38, (spot?.z ?? 0.3) + 0.5);
   glow.castShadow = true;
   glow.shadow.mapSize.set(1024, 1024);
