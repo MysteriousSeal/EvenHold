@@ -110,6 +110,20 @@ describe('smithing', () => {
 });
 
 describe('the hero at work at the anvil and the bench', () => {
+  it('has E go to the anvil or the bench stood before, not to the smith beside them; a step off, to him', () => {
+    const { model, anvil } = atTheAnvil();
+    const smith = model.folk.find((n) => n.role === 'smith' && n.where === model.inside!.entrance)!;
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z }); // (at his round, or behind his counter, within a word)
+    expect(interactionOf(model)?.kind).toBe('anvil');
+    const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench')!;
+    Object.assign(model.hero, { x: bench.x, z: bench.z + 1 });
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z });
+    expect(interactionOf(model)?.kind).toBe('bench');
+    Object.assign(model.hero, { x: anvil.x + 3, z: anvil.z + 3 });
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z });
+    expect(interactionOf(model)?.kind).toBe('talk');
+  });
+
   it('faces the anvil and swings a hammer at it, a blow at a time, while forging; none when not', () => {
     const { model, anvil } = atTheAnvil(1, { copperOre: 4 });
     model.hero.facing = 0; // (away from it: it's at -z)
