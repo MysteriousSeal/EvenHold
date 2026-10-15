@@ -253,6 +253,13 @@ export class LiveWorld {
     this.known.set(index, known);
     for (const k of KNOWN) appendAll(this[k] as unknown[], known[k]);
     for (const door of known.entrances) this.doors.set(doorNumber(door), door);
+    for (const minster of known.entrances.filter((d) => d.type === 'cathedral')) {
+      // (the way down to the bishop's ossuary, by the stair in the Minster's aisle: reliquary/reliquary.ts; a quarter
+      // tile in from the Minster's door, for a number of its own: a save made down there comes back down there)
+      const down: Entrance = { type: 'reliquary', x: minster.x + 0.25, z: minster.z, outX: minster.outX, outZ: minster.outZ };
+      registerReliquary(down, { x: minster.x, z: minster.z }, { stair: { of: minster, x: RELIQUARY_STAIR[0] + 0.5, z: RELIQUARY_STAIR[1] + 0.5 } });
+      this.doors.set(doorNumber(down), down);
+    }
     for (const v of known.villages) {
       const n = this.streamed ? villageNumber(v, this.size.depth) : this.villageNumbers.size;
       this.villageNumbers.set(v, n);
@@ -366,11 +373,6 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    for (const minster of doors.filter((d) => d.type === 'cathedral')) {
-      // (the way down to the bishop's ossuary, by the stair in the Minster's aisle: reliquary/reliquary.ts)
-      const down: Entrance = { type: 'reliquary', x: minster.x, z: minster.z, outX: minster.outX, outZ: minster.outZ };
-      registerReliquary(down, { x: minster.x, z: minster.z }, { stair: { of: minster, x: RELIQUARY_STAIR[0] + 0.5, z: RELIQUARY_STAIR[1] + 0.5 } });
-    }
     const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawnTrailEnd(trails, spawn) ?? spawn, towns.flatMap((t) => t.stalls)).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
     // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
