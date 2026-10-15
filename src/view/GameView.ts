@@ -4,12 +4,10 @@
 
 import { isFoe, type Being } from '../model/spells/beings';
 import { isProvision } from '../model/loot/provisions';
-import { mugsAt } from '../model/inn/barMugs';
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
 import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
-import { smithWorking } from '../model/smithy/smithWork';
 import type { Drink, Npc } from '../model/npcs/npcs';
 import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
@@ -33,6 +31,9 @@ import { WildlifeViews } from './meshes/wildlife/wildlifeViews';
 import { NpcViews } from './meshes/npc/npcViews';
 import { WorkMarks } from './meshes/inn/workMarks';
 import { Cupboard } from './interior/cupboard';
+import { IndoorScenes } from './interior/indoorScenes';
+import { warmUpAll, warmUpLate } from './render/warmUp';
+import { pickNearest, toScreen } from './render/screenPick';
 import { BedrollView } from './meshes/scenery/bedrollMesh';
 import { FishingView } from './meshes/water/fishingLine';
 import { PickInHand } from './meshes/mining/pickInHand';
@@ -53,13 +54,8 @@ import { EntranceLife } from './meshes/entrance/entranceLife';
 import { WildMovesView } from './meshes/enemy/wildMovesView';
 import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
-import { buildRoomScene, type IndoorScene } from './interior/roomView';
-import { buildDungeonScene, type DungeonLife } from './dungeon/dungeonViews';
 import { FrostOnHero } from './meshes/human/frostOnHero';
-import { buildFurnitureYard } from './interior/furnitureYard';
 import type { BodyLook } from '../model/human/humanoid';
-import type { Entrance } from '../model/interiors/interiors';
-import { InnShift } from '../model/jobs/innShift';
 
 // One named chunk of world building, run by the loader between repaints.
 export interface BuildStep {
@@ -74,8 +70,6 @@ export interface RenderStats {
 }
 
 const INDOOR_ZOOM = 1.35; // the camera, closer indoors
-const PICK_RADIUS = 40; // pixels around an enemy that count as clicking it
-const PASS_MOST = 7; // at work, the cups at the counter's end drawn, at most (the rest under them)
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -96,6 +90,7 @@ export class GameView {
   private readonly npcs = new NpcViews();
   private readonly workMarks = new WorkMarks(); // (at work: over the patrons, the counter's end)
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
+  private readonly indoors = new IndoorScenes(); // (the room the hero's in, a dungeon's floor, the furniture yard: interior/indoorScenes.ts)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private fishing: FishingView | null = null; // (the hero's rod, line and bobber, a line out)
   private readonly pickInHand = new PickInHand(); // (the hero's pickaxe, in hand while they mine)
@@ -198,10 +193,7 @@ export class GameView {
   private prepare(materials: THREE.Material[]): void {
     if (!this.stylizer || materials.length === 0) return; // (before the start: finish() does it, for all)
     this.stylizer.patch(materials, true); // (the world's: they take the weather)
-    const warmUp = new THREE.Scene();
-    const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
-    for (const material of materials) warmUp.add(new THREE.InstancedMesh(box, material, 1));
-    void this.renderer.compileAsync(warmUp, this.camera, this.scene).finally(() => box.dispose()); // (with the world's lights and fog: its programs)
+    warmUpLate(this.renderer, this.camera, this.scene, materials); // (render/warmUp.ts)
   }
 
   // After every build step: applies the stylized look (it patches every
@@ -213,24 +205,7 @@ export class GameView {
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
     window.addEventListener('resize', () => this.resize());
-
-    // Compile every world material now, including those of chunks not
-    // loaded yet, in both instance variants (with and without per-instance
-    // color), so walking into new land never stalls on a shader compile.
-    const warmUp = new THREE.Group();
-    const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
-    for (const material of materials) {
-      warmUp.add(new THREE.InstancedMesh(box, material, 1));
-      const tinted = new THREE.InstancedMesh(box, material, 1);
-      tinted.setColorAt(0, new THREE.Color(1, 1, 1));
-      warmUp.add(tinted);
-    }
-    warmUp.position.copy(this.camera.position); // in view, so nothing culls it
-    this.scene.add(warmUp);
-    await this.renderer.compileAsync(this.scene, this.camera);
-    this.scene.remove(warmUp);
-    warmUp.traverse((o) => (o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).dispose());
-    box.dispose();
+    await warmUpAll(this.renderer, this.camera, this.scene, materials); // (every shader, before the first frame: render/warmUp.ts)
   }
 
   // The living enemy drawn nearest to a point on screen (a click), within
@@ -246,16 +221,7 @@ export class GameView {
   }
 
   private pick<T extends { x: number; y: number; z: number }>(clientX: number, clientY: number, among: readonly T[], within: THREE.Object3D): T | null {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const at = new THREE.Vector3();
-    let best: T | null = null;
-    let bestDistance = PICK_RADIUS;
-    for (const one of among) {
-      within.localToWorld(at.set(one.x, one.y + 0.18, one.z)).project(this.camera);
-      const d = Math.hypot(rect.left + ((at.x + 1) / 2) * rect.width - clientX, rect.top + ((1 - at.y) / 2) * rect.height - clientY);
-      if (d < bestDistance) [best, bestDistance] = [one, d];
-    }
-    return best;
+    return pickNearest(this.renderer.domElement, this.camera, clientX, clientY, among, within); // (render/screenPick.ts)
   }
 
   // A figure of someone on their own, as they stand, facing +Z, nowhere yet (to be staged: cinema/transformCinema.ts).
@@ -269,9 +235,7 @@ export class GameView {
 
   // Where a point in the world is on screen, in page pixels.
   toScreen(x: number, y: number, z: number): { x: number; y: number } {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const at = new THREE.Vector3(x, y, z).project(this.camera);
-    return { x: rect.left + ((at.x + 1) / 2) * rect.width, y: rect.top + ((1 - at.y) / 2) * rect.height };
+    return toScreen(this.renderer.domElement, this.camera, x, y, z);
   }
 
   // The hero drinks (an ale ordered at the bar), sip after sip over `seconds`, or eats (a pie); or stops, leaving the rest.
@@ -310,8 +274,8 @@ export class GameView {
     if (this.frost.group.parent !== this.hero.root) this.hero.root.add(this.frost.group); // (on whichever rig is theirs)
     this.frost.update(chilled, dt);
     // Indoors, the hero is moved into the room's scene; back out, into the world's.
-    const yard = this.yardScene(model);
-    const room = yard ? null : this.roomScene(model);
+    const yard = this.indoors.yardScene(model);
+    const room = yard ? null : this.indoors.roomScene(model, this.elapsed);
     const home = yard ?? room ?? this.scene;
     this.hammerInHand.update(model, this.hero); // (at the anvil or the bench: in hand)
     // Whoever the hero's picked out (hero/selection.ts): the brackets at their feet, as a focused foe's.
@@ -353,11 +317,11 @@ export class GameView {
     }
     this.npcs.update(model.folk, model.inside?.entrance ?? null, hero, home, dt, this.prompted, !!model.work.shift, (npc) => model.story.markOf(npc), this.elapsed); // (the villager the prompt's about: their name gives way to it)
     if (room) {
-      this.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
+      this.indoors.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.cupboard.update(model, room);
       this.workMarks.update(model, room, this.elapsed, (x, y, z) => this.toScreen(x, y, z)); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
       this.followHero(hero, 0, dt);
-      const rumble = this.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
+      const rumble = this.indoors.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
       return; // the world outside stands still
     }
@@ -406,66 +370,18 @@ export class GameView {
     this.camera.lookAt(hero.x, this.cameraY, hero.z);
   }
 
-  // The scene of the room the hero's in, built when they step in, or null outdoors.
-  // The one before is freed when they leave it (or go straight into another).
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it
-
-  private room: ({ entrance: Entrance; fullWalls: boolean; life: DungeonLife | null } & IndoorScene) | null = null;
-  private yardView: ReturnType<typeof buildFurnitureYard> | null = null;
-  // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
-  private yardScene(model: GameModel): THREE.Scene | null {
-    if (!model.yard) {
-      this.yardView?.dispose();
-      this.yardView = null;
-      return null;
-    }
-    if (this.room) {
-      this.room.dispose();
-      this.room.life?.dispose();
-      this.room = null;
-    }
-    if (!this.yardView) this.yardView = buildFurnitureYard(model.yard.furniture);
-    return this.yardView.scene;
-  }
-
-  private roomScene(model: GameModel): THREE.Scene | null {
-    const inside = model.inside;
-    if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls)) { // left, or the walls option changed
-      this.room.dispose();
-      this.room.life?.dispose();
-      this.room = null;
-    }
-    if (!inside) return null;
-    if (!this.room) {
-      // A dungeon's its own (a crypt's, a cave's: dungeon/dungeonViews.ts); a building's room built from its room and furniture (upstairs: no door).
-      const below = buildDungeonScene(model.seed, inside.entrance);
-      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...(below ?? { ...buildRoomScene(inside.room, inside.furniture, !inside.below), life: null }) };
-    }
-    this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
-    const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
-    const [anvil, trough] = [at('anvil'), at('trough')];
-    const smiths = model.folk.filter((n) => n.role === 'smith' && n.where === inside.entrance);
-    this.room.forge?.(!!anvil && (!!model.smithing.making || smiths.some((n) => smithWorking(n, anvil))), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam (the hero forging too)
-    this.room.update(this.elapsed);
-    // The drinks on the bar, as they are; at work, what's at the counter's end (a little apart: the orders ready, the
-    // tables' drinks poured and the empties brought back), the empties on the tables.
-    const shift = model.work.shift?.inn === inside.entrance ? model.work.shift : null;
-    const pass = (shift && 'passMugs' in shift ? shift.passMugs : []).slice(0, PASS_MOST).map((mug, i) => ({ ...mug, z: shift!.barEndZ - i * 0.24 }));
-    this.room.showMugs?.([...mugsAt(inside.entrance), ...pass]);
-    this.room.showTableMugs?.(shift instanceof InnShift ? shift.empties : []);
-    return this.room.scene;
-  }
 
   render(): void {
     // The player's zoom (zoom.ts) outdoors; indoors, always the room's own.
-    const zoom = this.room ? INDOOR_ZOOM : zoomLevel().zoom;
+    const zoom = this.indoors.room ? INDOOR_ZOOM : zoomLevel().zoom;
     if (this.camera.zoom !== zoom) {
       this.camera.zoom = zoom;
       this.camera.updateProjectionMatrix();
     }
     this.renderer.info.reset();
-    if (this.yardView) this.renderer.render(this.yardView.scene, this.camera); // the furniture yard: flat grass, no world
-    else if (this.room) this.renderer.render(this.room.scene, this.camera); // indoors: just the room
+    if (this.indoors.yardView) this.renderer.render(this.indoors.yardView.scene, this.camera); // the furniture yard: flat grass, no world
+    else if (this.indoors.room) this.renderer.render(this.indoors.room.scene, this.camera); // indoors: just the room
     else if (this.post) this.post.render(this.elapsed);
     else this.renderer.render(this.scene, this.camera);
   }
