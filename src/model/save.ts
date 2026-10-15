@@ -13,6 +13,7 @@ import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
 import { readWear } from './hero/wear';
+import { readCrafted } from './skills/salvage';
 import { readStops, savedStops } from './villages/wagons';
 import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
@@ -61,6 +62,7 @@ export interface SaveData {
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
+    crafted?: Record<string, number>; // the gear they made themselves (skills/salvage.ts; older saves: none)
     jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
     skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts; older saves: none)
     bagCounts?: number[]; // how many in each slot (older saves: none, packed)
@@ -148,6 +150,7 @@ export function snapshot(model: GameModel): SaveData {
       eating: hero.eating ? { ...hero.eating } : null,
       potionCooldown: hero.potionCooldown ?? 0,
       wear: { ...hero.wear }, // (how worn each piece is: hero/wear.ts)
+      crafted: { ...hero.crafted }, // (the gear they made: skills/salvage.ts)
       spellWait: { ...hero.spellWait },
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
@@ -244,6 +247,7 @@ export function restore(model: GameModel, data: SaveData): void {
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
     wear: readWear(saved.wear), // (older saves: all unworn)
+    crafted: readCrafted(saved.crafted), // (older saves: none, all found)
     potionCooldown: typeof saved.potionCooldown === 'number' && Number.isFinite(saved.potionCooldown) ? Math.min(POTION_COOLDOWN, Math.max(0, saved.potionCooldown)) : 0,
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)

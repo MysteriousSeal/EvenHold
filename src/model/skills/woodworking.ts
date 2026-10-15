@@ -16,6 +16,7 @@ import { gearKey, type Rarity } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
+import { markCrafted } from './salvage';
 import { RISE, difficulty, practise, skillOf } from './skills';
 
 const SKILL = 'woodworking';
@@ -207,6 +208,7 @@ export class Woodworking {
     if (!canSwap(hero, recipe.from, [item])) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     for (const [material, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, material as LootId);
     addToBag(hero.bag, item);
+    markCrafted(hero, item); // (a piece of gear: their own, at the salvage bench)
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item });
     practise(hero, SKILL, recipe.needs, roll(501), this.host.report, woodRise(id, level).chance);

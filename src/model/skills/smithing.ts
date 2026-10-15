@@ -19,7 +19,7 @@ import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
-import { HAMMER_BLOW, beforeBench } from './salvage';
+import { HAMMER_BLOW, beforeBench, markCrafted } from './salvage';
 import { practise, skillOf } from './skills';
 import { materialRise } from './woodworking';
 
@@ -186,6 +186,7 @@ export class Smithing {
     if (!canSwap(hero, recipe.from, [item])) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     for (const [material, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, material as LootId);
     addToBag(hero.bag, item);
+    markCrafted(hero, item); // (a piece of gear: their own, at the salvage bench)
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item });
     practise(hero, SKILL, recipe.needs, roll(701), this.host.report, smithRise(id, level).chance);
