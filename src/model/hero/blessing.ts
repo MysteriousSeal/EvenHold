@@ -149,6 +149,12 @@ export function tossCoin(hero: Hero, roll: number): BlessingKind | null {
   return kind;
 }
 
+// A draught drunk (loot/potions.ts gives): its blessing for `seconds`, in place of a well's, as a toss gives one (a
+// fall's Weary, a draugr's chill, a meal's, a night's, stay).
+export function quaff(hero: Hero, kind: BlessingKind, seconds: number): void {
+  hero.blessings = [...(hero.blessings ?? []).filter((b) => BANES.has(b.kind) || FOOD.has(b.kind) || SLEPT.has(b.kind)), { kind, left: seconds }];
+}
+
 // A silver coin tossed into the well in reach, if there's one: its blessing (told), or none (no well, or no silver: told so).
 export function tossInWell(at: { wellInReach: unknown; hero: Hero; report(event: GameEvent): void }, roll: number): BlessingKind | null {
   const kind = at.wellInReach === null ? null : tossCoin(at.hero, roll);

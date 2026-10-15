@@ -4,7 +4,7 @@
 // In order: at work (a shift), the work's own thing in reach, else the inn's notice board, and nothing else; chopping
 // a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the inn's strongbox (or the let room's chest); the carter by his wagon; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
-// (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench; a
+// (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench, its anvil; a cauldron to brew at; a
 // fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; any villager, for a word; and, with nothing else, a tree that
 // can't be chopped yet, a shore with no rod to fish it (told why).
 // `skip`: kinds to pass over (the game's E, tried and come to nothing: a full bag's loot, a seat taken: the next).
@@ -21,6 +21,7 @@ import { villagerInReach } from '../npcs/chat';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
 import type { MineAction } from '../skills/mining';
+import type { PickAction } from '../skills/herbalism';
 import type { FishAction } from '../skills/fishing';
 import type { Fire } from '../skills/cooking';
 import type { Carter } from '../story/carter';
@@ -32,6 +33,7 @@ export type Interaction =
   | { kind: 'jobBoard'; inn: Entrance } // an inn's notice board: its work (at work: the shift, to check or end)
   | { kind: 'stopChop' }
   | { kind: 'stopMine' }
+  | { kind: 'stopPick' }
   | { kind: 'fishing' } // a line out: a bite hooked, or reeled in (skills/fishing.ts)
   | { kind: 'loot'; loot: GroundLoot }
   | { kind: 'chest'; chest: NonNullable<ReturnType<typeof chestInReach>> }
@@ -39,6 +41,7 @@ export type Interaction =
   | { kind: 'carter'; carter: Carter }
   | { kind: 'chop'; action: ChopAction }
   | { kind: 'mine'; action: MineAction }
+  | { kind: 'pick'; action: PickAction }
   | { kind: 'fish'; action: FishAction }
   | { kind: 'talk'; npc: Npc; fromStool: boolean }
   | { kind: 'stand'; seat: Seat }
@@ -47,6 +50,7 @@ export type Interaction =
   | { kind: 'board'; board: number }
   | { kind: 'bench'; bench: Furniture }
   | { kind: 'anvil'; anvil: Furniture }
+  | { kind: 'cauldron'; cauldron: Furniture }
   | { kind: 'fire'; fire: Fire }
   | { kind: 'well'; village: number }
   | { kind: 'hallDoor'; door: Furniture }
@@ -54,7 +58,8 @@ export type Interaction =
   | { kind: 'door'; door: Entrance; leaving: boolean }
   | { kind: 'cannotChop'; action: ChopAction }
   | { kind: 'cannotFish'; action: FishAction }
-  | { kind: 'cannotMine'; action: MineAction };
+  | { kind: 'cannotMine'; action: MineAction }
+  | { kind: 'cannotPick'; action: PickAction };
 export type InteractionKind = Interaction['kind'];
 
 export function interactionOf(model: GameModel, skip?: ReadonlySet<InteractionKind>): Interaction | null {
@@ -80,6 +85,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   }
   if (lumber.chopping) return void (yield { kind: 'stopChop' });
   if (model.mining.striking) return void (yield { kind: 'stopMine' });
+  if (model.herbs.picking) return void (yield { kind: 'stopPick' });
   if (fishing.line) return void (yield { kind: 'fishing' });
   const loot = model.lootInReach;
   yield loot ? { kind: 'loot', loot } : null;
@@ -96,12 +102,16 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield mine?.kind === 'mine' ? { kind: 'mine', action: mine } : null;
   const fish = fishing.action;
   yield fish?.kind === 'fish' ? { kind: 'fish', action: fish } : null;
+  const herb = model.herbs.action;
+  yield herb?.kind === 'pick' ? { kind: 'pick', action: herb } : null;
   // Stood before a smithy's salvage bench or anvil: to work at it, before a word with the smith passing or behind his
   // counter (within a word of either in most smithies; a step off, he's spoken to).
   const bench = model.salvage.benchInReach;
   yield bench ? { kind: 'bench', bench } : null;
   const anvil = model.smithing.anvilInReach;
   yield anvil ? { kind: 'anvil', anvil } : null;
+  const cauldron = model.alchemy.cauldronInReach; // (a herbalist's, the hero's own: to brew at, before a word with whoever stirs it)
+  yield cauldron ? { kind: 'cauldron', cauldron } : null;
   const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
   const atTheBar = seated?.seat.piece.kind === 'barStool';
@@ -132,4 +142,5 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield chop?.kind === 'cannot' ? { kind: 'cannotChop', action: chop } : null;
   yield fish?.kind === 'cannot' ? { kind: 'cannotFish', action: fish } : null;
   yield mine?.kind === 'cannot' ? { kind: 'cannotMine', action: mine } : null;
+  yield herb?.kind === 'cannot' ? { kind: 'cannotPick', action: herb } : null;
 }

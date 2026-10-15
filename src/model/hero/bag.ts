@@ -8,6 +8,7 @@ import { MEAL_SECONDS, PROVISIONS, isProvision } from '../loot/provisions';
 import { POTIONS, POTION_COOLDOWN, isPotion, type Potion } from '../loot/potions';
 import type { Hero } from '../types';
 import { maxEnergyOf, maxHpOf } from './attributes';
+import { isFood, quaff } from './blessing';
 
 export type BagItem = LootId | GearKey;
 // How an item's name is colored: loot has its quality; gear its rarity (items/gear.ts).
@@ -92,19 +93,22 @@ export function readDraught(hero: Hero, saved: unknown): Hero['draught'] {
 }
 
 // Why potion `item` can't be drunk just now, if it can't: one drunk too lately, or nothing for it to give back (their
-// health, or energy, full already: not wasted); null, it can (or it's none of theirs to drink).
+// health, or energy, full already; a cure with nothing to cure: not wasted; a love-philtre, never); null, it can (or it's none of theirs to drink).
 export function potionRefused(hero: Hero, item: BagItem): string | null {
   if (!isPotion(item)) return null;
   if ((hero.potionCooldown ?? 0) > 0) return `Not yet: another potion in ${Math.ceil(hero.potionCooldown!)} s.`;
-  const { heal = 0, energy = 0 } = POTIONS[item] as Potion;
+  const { heal = 0, energy = 0, cures, gives, sweat } = POTIONS[item] as Potion;
+  if (sweat) return "It'd only make you sweat. Sell it to someone lovelorn.";
+  if (gives) return null; // (a draught: always something to give)
+  if (cures) return cures.some((kind) => hero.blessings?.some((b) => b.kind === kind)) ? null : 'Nothing on you for it to cure.';
   const full = (heal <= 0 || hero.hp >= maxHpOf(hero)) && (energy <= 0 || hero.energy >= maxEnergyOf(hero));
   return full ? (heal > 0 ? "You're already at full health." : 'Your energy is already full.') : null;
 }
 
 // Drinks one of potion `item` from the hero's bag, at once (standing, mid-fight): its share of their most health or
 // energy back, and a lesser's or a greater's more over the seconds after (hero.draught, heroStats.ts recover: with
-// what was left of one still mending, if any); then none for POTION_COOLDOWN seconds (recover counts it down);
-// whether they did (a potion, carried, none drunk too lately, and something for it to give back: potionRefused).
+// what was left of one still mending, if any); a brew's bane seen off, or its blessing given; then none for
+// POTION_COOLDOWN seconds (recover counts it down); whether they did (a potion, carried, none drunk too lately, and something for it to give back: potionRefused).
 export function drinkPotion(hero: Hero, item: BagItem): boolean {
   if (!isPotion(item) || potionRefused(hero, item) || !takeFromBag(hero.bag, item)) return false;
   const { heal = 0, energy = 0, mend = 0, mendFor = 0 } = POTIONS[item] as Potion;
@@ -114,6 +118,9 @@ export function drinkPotion(hero: Hero, item: BagItem): boolean {
     hero.draught = { heal: mend * maxHpOf(hero) + was, left: mendFor, seconds: mendFor, item };
   }
   hero.energy = Math.min(maxEnergyOf(hero), hero.energy + energy * maxEnergyOf(hero));
+  const { cures, empties, gives, lasts = 0 } = POTIONS[item] as Potion; // (a brew's: a bane seen off, a blessing given)
+  if (cures) hero.blessings = (hero.blessings ?? []).filter((b) => !cures.includes(b.kind) && !(empties && isFood(b.kind)));
+  if (gives) quaff(hero, gives, lasts);
   hero.potionCooldown = POTION_COOLDOWN;
   return true;
 }
