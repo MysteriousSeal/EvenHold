@@ -50,6 +50,7 @@ const REQUIRED: Record<BuildingType, FurnitureKind[]> = {
   house: ['bed'],
   inn: ['counter', 'keg', 'stairs', 'hearth', 'barStool', 'tavernTable'],
   smithy: ['forge', 'bellows', 'anvil', 'grindstone', 'trough', 'smithCounter', 'rack', 'coal', 'barrel', 'armorStand', 'weaponWall', 'toolBoard'],
+  cathedral: ['altar', 'pillar', 'pew', 'candleStand', 'lectern', 'reliquaryStair', 'doubleBed'], // (none in a test world: cathedralTown.test.ts)
 };
 
 describe('every room in the test worlds', () => {
