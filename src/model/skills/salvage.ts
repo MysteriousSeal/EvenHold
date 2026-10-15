@@ -33,6 +33,10 @@ const RARE_EXTRA: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, ep
 export const PER_LEVEL = 12; // the skill a piece asks, a level of its own past the first (a tier every six or so)
 const RARE_NEEDS: Record<Rarity, number> = { common: 0, uncommon: 25, rare: 50, epic: 100, legendary: 150 }; // and its rarity, more
 export const FINER_AT: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 50, epic: 100, legendary: 150 }; // the skill its finer things want (less: its scrap alone)
+// How many tries a piece found (not one as a recipe makes it, nor junk) is worth, by its rarity, each with its own
+// roll: past the junk, a fighter's drops are what teach, a few an hour, so each teaches as much as a crafter's
+// handful of their own.
+export const FOUND_TRIES: Record<Rarity, number> = { common: 10, uncommon: 12, rare: 16, epic: 20, legendary: 24 };
 const GEMMED = /ruby|sapphire|jade|amber|pearl|lakeStone|runeStone|signet/;
 const IRON = /mail|plate|iron|gauntlet|sabaton|greatHelm|kettle|bascinet|barbute|sallet|breastplate|brigandine|hobnail|torc|nasalCap|hornedHelm|wingedHelm|dragonHelm|boneHelm|bronze/i;
 const LEATHER = /leather|studded|fur|hide|boots|bracers|breeches|vest|ridingGloves|workGloves|fingerlessGloves|jerkin|clogs|belted|huntersHood|maskedHood/i;
@@ -76,6 +80,7 @@ export interface Salvaged {
   gives: Array<[IngredientId, number]>;
   finerAt?: number; // the skill its finer things want, held back for less
   made?: boolean; // a piece as a woodworker or a smith makes it (the hero's own, likely): less back, less taught
+  tries: number; // what breaking it down is worth, in tries at the skill (a piece found, several)
 }
 
 export const TOO_HARD = 100; // past the skill by more than this, a piece teaches nothing (broken down all the same)
@@ -111,7 +116,7 @@ export function teachChance(salvaged: Salvaged, skill: number): number {
 export function salvageOf(key: Salvageable, skill = Infinity): Salvaged {
   if (isSalvageJunk(key)) {
     const [make, scrap] = JUNK_SALVAGE[key] as [Make, IngredientId];
-    return { make, needs: Math.min(JUNK_MOST, Math.max(1, LOOT[key].value * 3)), gives: [[scrap, 1]] };
+    return { make, needs: Math.min(JUNK_MOST, Math.max(1, LOOT[key].value * 3)), gives: [[scrap, 1]], tries: 1 };
   }
   const base = baseOf(key);
   const make = makeOf(base);
@@ -122,7 +127,7 @@ export function salvageOf(key: Salvageable, skill = Infinity): Salvaged {
   if (make === 'silver' && GEMMED.test(base) && used === null) gives.push(['gemShard', 1]);
   const finerAt = RARE_EXTRA[rarity] && used === null ? FINER_AT[rarity] : undefined;
   if (finerAt !== undefined && skill >= finerAt) gives.push([FINER_OF[make], RARE_EXTRA[rarity]]);
-  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 20, the artisan's)
+  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, tries: used === null ? FOUND_TRIES[rarity] : 1, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 20, the artisan's)
 }
 
 export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'busy' | 'full';
@@ -195,14 +200,13 @@ export class Salvage {
     if ((breaking.t += dt) < BREAK_SECONDS) return;
     this.stop();
     const { hero } = this.host;
-    const level = skillOf(hero, 'salvaging').level;
     const salvaged = this.salvaged(breaking.key);
     const { needs, gives } = salvaged;
     if (!this.roomFor(breaking.key, gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (filled meanwhile: the piece kept)
     takeFromBag(hero.bag, breaking.key);
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
-    practise(hero, 'salvaging', needs, this.host.random(), (e) => this.host.report(e), teachChance(salvaged, level));
+    for (let i = 0; i < salvaged.tries; i++) practise(hero, 'salvaging', needs, this.host.random(), (e) => this.host.report(e), teachChance(salvaged, skillOf(hero, 'salvaging').level)); // (each its own roll, at the skill as it's risen)
     if (breaking.left > 0 && this.carried(breaking.key) && this.roomFor(breaking.key, this.salvaged(breaking.key).gives)) this.breaking = { key: breaking.key, t: 0, left: breaking.left - 1 };
   }
 

@@ -40,7 +40,7 @@ export interface CookRecipe {
 
 // The recipes, in the order of the skill they want: plain roasts first, the fish as they're caught (small fry from
 // the start, in a cake with bought flour and a chowder with salt; roach from 40, trout and perch from 75, eel and bream
-// from 110, grayling, char and pike from 150, sturgeon from 250), then a
+// from 110, grayling, char and pike from 150, salmon from 240, sturgeon from 250), then a
 // hearth's stews, pies and feasts. Meat's a hunt's worth, not a shore's afternoon: a cut to a dish, and a roast of it
 // Well fed twice a fish's while (loot/meals.ts).
 export const COOK_RECIPES: Record<CookRecipeId, CookRecipe> = {

@@ -106,7 +106,7 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
     fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
     cookedFish(g, 0, 1, 0, 7);
   }),
-  // Grilled salmon: a thick pink steak on its board.
+  // Grilled salmon: a long pink salmon, grill-marked, on a plank.
   grilledSalmon: model([0x8a4a3a, 0xf09a7a, 0xffd8c0, 0x6a3a2a, 0x1a1a1a, 0x4a2018, 0xa87a4a, 0x8a6038], [8, 4, 4], (g) => {
     fillBox(g, 0, 0, 0, 7, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
     cookedFish(g, 0, 1, 0, 8);

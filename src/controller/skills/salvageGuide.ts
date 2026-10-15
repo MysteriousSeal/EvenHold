@@ -36,7 +36,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'A rare piece'),
     el('dd', undefined, `${MAKES[picked].finer} besides (two from an epic, three from a legendary), from Salvaging ${FINER_AT.rare} (an epic's ${FINER_AT.epic}, a legendary's ${FINER_AT.legendary})`),
     el('dt', undefined, 'Teaches'),
-    el('dd', undefined, `Any piece can be broken down. What it teaches goes by its level: ${PER_LEVEL} of Salvaging a level past the first, more for a finer one (levels 1 to 7 an apprentice's, 8 to 13 a journeyman's, 14 to 19 an expert's, 20 on an artisan's); old iron, leather, linen and silver foes leave, an apprentice's. A piece more than ${TOO_HARD} past your skill teaches nothing yet; one as a woodworker or a smith makes it teaches little, and leaves half its scrap`),
+    el('dd', undefined, `Any piece can be broken down. What it teaches goes by its level: ${PER_LEVEL} of Salvaging a level past the first, more for a finer one (levels 1 to 7 an apprentice's, 8 to 13 a journeyman's, 14 to 19 an expert's, 20 on an artisan's); old iron, leather, linen and silver foes leave, an apprentice's. A piece more than ${TOO_HARD} past your skill teaches nothing yet; one as a woodworker or a smith makes it teaches little, and leaves half its scrap; one found on a foe teaches as several tries, the finer the more`),
   );
   const detail = el(
     'div',
