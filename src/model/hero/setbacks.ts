@@ -16,6 +16,7 @@ import { bumpsFurniture, type Furniture } from '../interiors/furniture';
 import { sitDown, standUp, type Seated } from '../interiors/indoors';
 import type { Npc } from '../npcs/npcs';
 import { inTurn, say } from '../npcs/speech';
+import { herbalistAbed } from '../herbalist/herbalistWork';
 import { makeWeary } from './blessing';
 import { spawnOf } from '../map/grid';
 
@@ -67,12 +68,13 @@ export const NOT_YOURS: readonly string[] = [
 // a night of a quest's: their guest, not turned out).
 const ownerSeen = new WeakMap<NonNullable<Seated>, boolean>();
 
-// The hero lying in a bed in someone else's house: how they lie, and its owner, if home.
+// The hero lying in a bed in someone else's house: how they lie, and its owner, if home (a herbalist, always home:
+// only once it's their bedtime, herbalist/herbalistWork.ts; at their work all day, as good as away).
 function ownedBed(model: GameModel): { seated: NonNullable<Seated>; owner: Npc | null } | null {
   const inside = model.inside;
   const seated = inside?.seated;
   if (!inside || inside.below || !seated?.seat.lying || seated.seat.piece.kind !== 'bed') return null; // (an inn's beds upstairs: its rooms')
-  return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance) ?? null };
+  return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance && (n.role !== 'herbalist' || herbalistAbed(model.minutes))) ?? null };
 }
 
 // The owner's word, and the hero up out of their bed.
