@@ -4,6 +4,7 @@
 // how it's done (steps, by the bot's toolkit: p.go for what the bots already do, or its own). To add an activity
 // to the game: one entry here, and the player will weigh it with the rest.
 
+import { herbalistAbed } from '../../../src/model/herbalist/herbalistWork';
 import type { Entrance } from '../../../src/model/interiors/interiors';
 import { bumpsFurniture } from '../../../src/model/interiors/furniture';
 import type { Who } from '../../../src/model/story/story';
@@ -340,7 +341,7 @@ export const ACTIVITIES: Activity[] = [
     traits: { cautious: 0.5, curious: 0.2 },
     options: (p) => {
       const h = nearest(p, p.model.npcs.filter((n) => n.role === 'herbalist' && n.where === n.home && p.known.doors.has(n.home)), (n) => n.home, 250);
-      return h && p.model.hero.money >= 20 ? [{ label: "the herbalist's", at: h.home, data: h }] : [];
+      return h && p.model.hero.money >= 20 && !herbalistAbed(p.model.minutes) ? [{ label: "the herbalist's", at: h.home, data: h }] : []; // (not at night: abed, their shop shut)
     },
     steps: (p, t) => p.herbalistVisit(t.data as Npc),
   },

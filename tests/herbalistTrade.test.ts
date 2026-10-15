@@ -16,6 +16,7 @@ import { NOT_YOURS } from '../src/model/hero/setbacks';
 import { takeSpeech } from '../src/model/npcs/speech';
 import type { GameModel } from '../src/model/GameModel';
 import { herbalistAbed } from '../src/model/herbalist/herbalistWork';
+import { talkPrompt } from '../src/model/npcs/talk';
 import { SALVE, poxTalk } from '../src/model/hero/pox';
 import { givePox, hasPox } from '../src/model/hero/blessing';
 import type { Talk } from '../src/model/story/story';
@@ -200,9 +201,12 @@ describe("a herbalist's bed and night", () => {
     for (let t = 0; t < 20; t += 1 / 30) model.update(0, 0, 1 / 30);
     expect(herbalist.seat?.piece).toBe(bed);
     expect(herbalistAbed(model.minutes)).toBe(true);
+    expect(talkPrompt(herbalist)).toBe(`Wake ${herbalist.name}`);
+    expect(talkPrompt(herbalist, true)).toBe(`Wake ${herbalist.name}`);
     model.minutes = 7 * 60 + 24 * 60;
     for (let t = 0; t < 90; t += 1 / 10) model.update(0, 0, 1 / 10);
     expect(herbalist.seat ?? null).toBeNull(); // (up, at their work)
+    expect(talkPrompt(herbalist)).toBe(`Trade with ${herbalist.name}`);
   });
 
   it('woken for the pox at night, sells the salve all the same; their wares wait for the morning', () => {

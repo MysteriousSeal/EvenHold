@@ -16,6 +16,8 @@ import type { Camp } from '../../src/model/camps/camps';
 import { TRAVELLER_TALK_RANGE, travellerInReach, travellerSays } from '../../src/model/travellers/travellerTalk';
 import type { Traveller } from '../../src/model/travellers/travellers';
 import { buyFromPedlar, pedlarPrice, pedlarShopAt } from '../../src/model/travellers/pedlarShop';
+import { isPotion } from '../../src/model/loot/potions';
+import { herbalistAbed } from '../../src/model/herbalist/herbalistWork';
 import { buyFromHerbalist, herbalistPrice, herbalistShopAt } from '../../src/model/herbalist/herbalistShop';
 import type { BagItem } from '../../src/model/hero/bag';
 import { BotSteps, type Step } from './botSteps';
@@ -315,8 +317,10 @@ export class BotVentures extends BotSteps {
   // To a village's herbalist, at home: something off their shelves.
   protected herbalistVisit(herbalist: Npc): Step[] {
     const shopping: Step = () => {
+      if (herbalistAbed(this.model.minutes)) return 'ok'; // (abed: their shop shut till dawn)
       const shop = herbalistShopAt(this.model.shops, this.model.seed, herbalist);
-      this.buyOne(shop, (id) => herbalistPrice(id, false), (id) => buyFromHerbalist(shop, this.model.hero, id), 'herbalist');
+      const shelves = { stock: Object.fromEntries(Object.entries(shop.stock).filter(([id]) => isPotion(id))) }; // (their potions: what's sold them goes in the pot)
+      this.buyOne(shelves, (id) => herbalistPrice(id, false), (id) => buyFromHerbalist(shop, this.model.hero, id), 'herbalist');
       this.stats.herbalists++;
       return 'ok';
     };
