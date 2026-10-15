@@ -229,10 +229,12 @@ export class Story {
     return carter && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= REACH ? carter : null;
   }
 
-  // The carter with a quest for the hero (his !), near enough to call them over: E's before a tree or a rock.
+  // The carter with a quest for the hero, or one to hand in (his gold ! or ?), near enough to call them over: E's
+  // before a tree or a rock.
   get carterCalling(): Carter | null {
     const carter = this.host.inside || this.saint.carterGone ? null : (this.set.first?.who.carter as Carter | undefined);
-    return carter && this.markOf(carter) && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= CALLS ? carter : null;
+    const mark = carter && this.markOf(carter);
+    return carter && mark && mark !== 'waiting' && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= CALLS ? carter : null;
   }
 
   // A villager with something of the story's to say, near enough for a word (those with a trade or a post: npcs/talk.ts).

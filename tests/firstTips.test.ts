@@ -16,9 +16,15 @@ import { BAG_ROOM } from '../src/model/hero/bagSlots';
 import { label } from '../src/controller/keyBindings';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
-const fresh = () => {
+const start = () => {
   const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
   model.enemies.length = 0; // (no foe about: only what each test sets)
+  return model;
+};
+const fresh = () => {
+  const model = start();
+  const { carter } = model.story.people!;
+  model.teleport(carter.x - 8, carter.z + 8); // (out of the carter's call: only what each test sets)
   return model;
 };
 const shown = (tips: FirstTips, seconds = 0) => tips.next(seconds)?.id ?? null;
@@ -30,7 +36,21 @@ beforeEach(() => {
 afterEach(() => localStorage.clear());
 
 describe('the first hour\'s tips', () => {
-  it('none at the start; hurt, then (a while after) tired, each once, kept as seen', () => {
+  it("at the start, only where to go: the carter, his ! over him; not once he's been spoken to", () => {
+    const model = start();
+    const tips = new FirstTips(model);
+    const tip = tips.next(1)!;
+    expect(tip.id).toBe('carter');
+    expect(tip.text(label, model)).toContain('!');
+    expect(tip.text(label, model).length).toBeLessThan(120); // (a line)
+    localStorage.clear();
+    reloadTips();
+    const spoken = start();
+    spoken.story.talk(spoken.story.people!.carter)!.answers.find((a) => a.primary)!.pick(); // (his quest taken)
+    expect(shown(new FirstTips(spoken), 1)).not.toBe('carter');
+  });
+
+  it('none away from the carter; hurt, then (a while after) tired, each once, kept as seen', () => {
     const model = fresh();
     const tips = new FirstTips(model);
     expect(shown(tips, 1)).toBeNull();
