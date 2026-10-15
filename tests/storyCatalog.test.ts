@@ -33,6 +33,11 @@ describe('the quests people give, as written', () => {
     expect(COMMON_QUESTS.every((q) => !q.follows || COMMON_QUESTS.some((c) => c.id === q.follows))).toBe(true); // (never waiting on a rare one)
   });
 
+  it("keep the carter's wheel as it went: broken the day the hero came, mended in the first line, never years ago", () => {
+    const lines = all.flatMap((q) => [...said(q), ...q.after({ ...told, did: () => true })]);
+    expect(lines.filter((line) => /wheel/i.test(line) && /those years|thirty years|stood broken/i.test(line))).toEqual([]);
+  });
+
   it('ask for, and give, things there are', () => {
     for (const q of all) {
       if (q.needs?.kind === 'bring') expect(LOOT[q.needs.item], `${q.id} asks`).toBeDefined();

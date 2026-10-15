@@ -233,7 +233,7 @@ export const WATCH_QUESTS: StoryQuest[] = [
     waiting: (t) => [`Go to ${t.receiver}, the herbalist. Tell her what is in the bishop's silk bag. And tell her the carter is sorry.`],
     after: (t) =>
       t.did?.('theRoadHome') // (home again, the second arc over: quests/saintQuestsTown.ts)
-        ? ["I've had the wheel mended. Thirty years it stood broken, and I had it mended in an afternoon. I'm not going anywhere in it. I just like to know I could."]
+        ? ["I drove past the old ruin today. Thirty years I've taken the long road round it, an hour out of my way, every time. Today I went straight by. The horses never even noticed."]
         : ['The road is long, and I know every stone of it. For the first time I do not mind which way it goes.'],
     task: (t) => `Tell ${t.receiver} what the bishop was sent, and that the carter is sorry`,
     handIn: () => [

@@ -20,7 +20,7 @@ export const SAINT_ROAD_QUESTS: StoryQuest[] = [
     follows: 'theLongRoad',
     needs: { kind: 'reach', place: 'wagon', within: 3 },
     offer: () => [
-      'His horses came back last night. Both of them, still in the traces, pulling an empty wagon. They stopped where they always stop, by the start of the trail, where it broke its wheel all those years ago.',
+      'His horses came back last night. Both of them, still in the traces, pulling an empty wagon. They stopped where they always stop, by the start of the trail, where it broke its wheel the day you met him.',
       'No carter. No men in grey. No silk bag. Go and look at it before the children strip it. You knew him. Tell me what is missing.',
     ],
     accept: "I'll look.",
