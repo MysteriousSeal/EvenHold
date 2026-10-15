@@ -9,6 +9,7 @@ import { KIND_LOOKS } from './view/meshes/enemy/enemyKinds';
 import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { isWitchHome } from './model/witch/witchHomes';
+import { cottageDoor, homePrompt } from './controller/homestead/homePrompt';
 import { witchTalk } from './model/witch/witchTeaching';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { CLASSIC_MOST, GameModel } from './model/GameModel';
@@ -301,6 +302,8 @@ async function boot(): Promise<void> {
         return { label: CHEST_PROMPTS[found.chest.what], x: found.chest.x, y: found.chest.y, z: found.chest.z };
       case 'strongbox': // (the inn's, or the let room's chest: the one stash)
         return { label: 'Open your strongbox', x: found.box.x, y: 0.7, z: found.box.z };
+      case 'home': // (in a cottage: its notice, a spot to build on, the trophy wall)
+        return homePrompt(model, found.action);
       case 'carter':
         return { label: `Talk to ${found.carter.name}`, x: found.carter.x, y: model.getGroundY(found.carter.x, found.carter.z) + 1.1, z: found.carter.z };
       case 'talk':
@@ -336,7 +339,7 @@ async function boot(): Promise<void> {
         if (model.inside && door !== model.inside.entrance) return { label: `Go down into ${dungeonAt(door)?.name ?? 'the dark'}`, x: hero.x, y: 0.75, z: hero.z }; // (a stair down from the room: the Minster's)
         if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
         const place = goesUnder(door) ? dungeonAt(door) : null;
-        const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
+        const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : cottageDoor(model, door) ?? DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
         return { label, x: door.x, y: hero.y + 0.75, z: door.z };
       }
     }
@@ -440,6 +443,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'say') {
         if ((model.inside?.entrance ?? null) === event.where) floatingText.speak(event.speaker, model.inside ? 1.35 : 0.8, event.text); // said in the hero's room: a bubble over them
       } else if (event.kind === 'poor') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#e8805a');
+      else if (event.kind === 'homestead') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [event.text], '#ffd35a'); // (a trophy taken, something built at home)
       else if (event.kind === 'levelUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`Level ${event.level}! · ${counted(event.points, 'point')} to spend (${keyName('levelUp')})`], '#5ae0d8');
       else if (event.kind === 'dodge') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, ['Dodge'], '#f8ecd4');
       else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)

@@ -2,7 +2,8 @@
 // any), opened at the strongbox downstairs or the chest in the room they've let (interiors: stashInReach). It holds
 // STASH_SLOTS slots: junk JUNK_STACK to a slot, anything else STASH_STACK (materials by the fifty); quest items stay
 // in the bag, where their quests look for them. Things go in and out a stack at a time, as far as there's room on
-// the other side; and all the junk, or all the materials, in at once. (A cottage's chest, one day, opens the same.)
+// the other side; and all the junk, or all the materials, in at once. (The chest in the hero's own cottage opens the
+// same: homestead/cottage.ts.)
 
 import type { Hero } from '../types';
 import { addToBag, groupOf, isLootItem, takeFromBag, type Bag, type BagGroup, type BagItem } from './bag';
@@ -83,10 +84,10 @@ export function readStash(saved: unknown): Bag {
 const REACH = 0.6; // room tiles from the strongbox (or the let room's chest) to open it
 
 // The strongbox the hero stands at, if any: an inn's downstairs, or the chest in the room let upstairs (only theirs
-// to be in: inn/roomLetting.ts); not at work.
+// to be in: inn/roomLetting.ts), or the chest in their own cottage (only there: homestead/cottageLayout.ts); not at work.
 export function strongboxInReach(model: { inside: Inside | null; hero: { x: number; z: number }; work: { shift: unknown } }): Furniture | null {
   const { inside, hero } = model;
-  if (!inside || inside.entrance.type !== 'inn' || model.work.shift) return null;
-  const kind = inside.below ? 'chest' : 'strongbox';
+  if (!inside || (inside.entrance.type !== 'inn' && inside.entrance.type !== 'house') || model.work.shift) return null;
+  const kind = inside.entrance.type === 'house' ? 'homeChest' : inside.below ? 'chest' : 'strongbox';
   return inside.furniture.find((f) => f.kind === kind && distanceTo(f, hero.x, hero.z) <= REACH) ?? null;
 }

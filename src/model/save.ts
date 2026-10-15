@@ -19,6 +19,8 @@ import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
 import { readStash } from './hero/stash';
+import { readCottage } from './homestead/cottage';
+import { readTrophies } from './homestead/trophies';
 import { readPurse } from './hero/purse';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
@@ -62,6 +64,8 @@ export interface SaveData {
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
     stash?: Partial<Record<BagItem, number>>; // what's in the inns' strongbox (hero/stash.ts; older saves: none)
+    cottage?: unknown; // the cottage they've bought, what's built in it (homestead/cottage.ts; older saves: none)
+    trophies?: unknown; // the trophies taken, for its wall (homestead/trophies.ts; older saves: none)
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
@@ -140,6 +144,8 @@ export function snapshot(model: GameModel): SaveData {
       bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
       stash: { ...hero.stash }, // (the inns' strongbox: hero/stash.ts)
+      cottage: hero.cottage ? { door: hero.cottage.door, built: [...hero.cottage.built] } : null, // (homestead/cottage.ts)
+      trophies: { ...hero.trophies },
       actionBar: [...hero.actionBar],
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
@@ -264,6 +270,8 @@ export function restore(model: GameModel, data: SaveData): void {
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
     stash: readStash(saved.stash), // (older saves: nothing kept)
+    cottage: readCottage(saved.cottage), // (older saves: none bought)
+    trophies: readTrophies(saved.trophies), // (older saves: none taken)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)

@@ -73,6 +73,7 @@ import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
 import { Heat } from './roads/heat';
 import { Roads } from './roads/roads';
+import { onSlain } from './homestead/trophies';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -336,7 +337,7 @@ export class GameModel {
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
-  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event), this.heat.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
+  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event), this.heat.onEvent(event), onSlain(this, event)]; // (and what the quests people give ask for, counted: story/story.ts; a boss's trophy taken: homestead/trophies.ts)
   get lootSalt(): number | null { return this.below?.salt ?? null; } // (a dungeon's foes' drops: the dungeon, the time down)
   mercy = (source: LootSource, dropped: LootId | null, rolled: number): LootId | null => this.dropMercy.roll(source, this.story.wantedItems(), dropped, rolled);
   private readonly dropMercy = new DropMercy();

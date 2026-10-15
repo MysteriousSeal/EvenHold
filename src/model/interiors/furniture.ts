@@ -4,6 +4,8 @@
 
 import { hashCell } from '../../util/random';
 import type { Entrance } from './interiors';
+import type { UpgradeId } from '../homestead/cottage';
+import type { TrophyId } from '../homestead/trophies';
 
 // Every kind of furniture: add one here and it's part of the game, and of
 // the furniture yard (the dev cheat, furnitureYard.ts).
@@ -67,6 +69,11 @@ export const FURNITURE_KINDS = [
   'sacks', // a pile of grain sacks, a corner's stores
   'washstand', // upstairs, in the room let: a basin and a jug on a stand
   'strongbox', // the guests' strongbox, by the right-hand wall (hero/stash.ts)
+  // The hero's own cottage's (homestead/cottageLayout.ts)
+  'homeChest', // their chest: the strongbox's store, at home (hero/stash.ts)
+  'trophyWall', // boards along a wall, their trophies hung on them (homestead/trophies.ts)
+  'cottageSpot', // where something's still to be built, chalked out on the floor (its `upgrade`)
+  'saleNotice', // the reeve's notice on the wall of a cottage for sale
 ] as const;
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
@@ -89,6 +96,8 @@ export interface Furniture {
   leather?: boolean; // a chair: its cushion leather, not red cloth (an inn's: its red kept for the hearth)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
   side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it)
+  upgrade?: UpgradeId; // a cottage's spot: what's to be built there (homestead/cottage.ts)
+  hung?: readonly TrophyId[]; // a trophy wall: what's hung on it, in order (homestead/trophies.ts)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
 
@@ -111,6 +120,7 @@ const SLIM: Partial<Record<FurnitureKind, [number, number]>> = {
   dryingRack: [0, 0.62], // (its basket and all)
   herbCounter: [0.24, 0.84], // (standing free, as the smith's)
   herbTable: [0.12, 0.88],
+  homeChest: [0, 0.8], // (as deep as it's drawn)
   sink: [0, 0.42], // slim against the wall, like the shelves // on its side, reaching 0.6 of its tile out (tap and all)
 };
 

@@ -9,7 +9,8 @@
 
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { markHerbalistHome } from '../herbalist/herbalistHomes';
-import { hasWitch, markWitchHome, witchHomeIn } from '../witch/witchHomes';
+import { markWitchHome, witchHomeIn } from '../witch/witchHomes';
+import { cottageIn, markCottage } from '../homestead/cottage';
 import { INDOOR_SCALE } from '../constants';
 import { hashUnit, pickAt } from '../../util/random';
 import { pickOutfit } from '../human/equipment';
@@ -212,15 +213,27 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   // The hedge-witches' cottages: in about one village in three, its house farthest from its middle (witch/witchHomes.ts),
   // hers alone; never the house of either villager the story gives the village's quests to (story/storyCast.ts: the
   // first of them, and the first after who works a field, else the second), so no save's quests lose their people.
-  // (Each house's village found once, only where there's a witch to house.)
-  const ofVillage = villages.some((v) => hasWitch(seed, v)) ? houses.map((h) => nearest(villages, h.x, h.z)) : [];
+  // (Each house's village found once.)
+  const ofVillage = houses.map((h) => nearest(villages, h.x, h.z));
+  const storied = new Map<Village, Set<Entrance>>(); // (each village's two the story gives its quests to)
   const witchHomes = villages.map((village) => {
     const own = houses.flatMap((h, k) => (ofVillage[k] === village && !shops.has(h) ? [k] : []));
     const [first, ...rest] = own;
-    const storied = new Set([first, rest.find((k) => fieldOf(k, village)) ?? rest[0]].map((k) => houses[k]));
-    return witchHomeIn(seed, village, own.map((k) => houses[k]), (h) => storied.has(h));
+    storied.set(village, new Set([first, rest.find((k) => fieldOf(k, village)) ?? rest[0]].map((k) => houses[k])));
+    return witchHomeIn(seed, village, own.map((k) => houses[k]), (h) => storied.get(village)!.has(h));
   });
   for (const home of witchHomes) if (home) (shops.add(home), markWitchHome(home)); // (furnished as hers: witch/witchLayout.ts)
+  // A cottage for sale in each village of a few houses (homestead/cottage.ts), empty: never the story's people's, nor the
+  // house its smith would lodge in (the nearest his smithy), so that no one's quests, nor his nights, move.
+  const lodged = new Set(entrances.filter((e) => e.type === 'smithy').map((smithy) => {
+    const village = nearest(villages, smithy.x, smithy.z);
+    return nearest(houses.filter((h, k) => !shops.has(h) && ofVillage[k] === village), smithy.x, smithy.z);
+  }));
+  for (const village of villages) {
+    const own = houses.filter((h, k) => ofVillage[k] === village && !shops.has(h));
+    const cottage = cottageIn(seed, village, own, (h) => storied.get(village)!.has(h) || lodged.has(h));
+    if (cottage) (shops.add(cottage), markCottage(cottage)); // (no one lives there: the hero's to buy)
+  }
   const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);

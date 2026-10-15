@@ -21,6 +21,7 @@ import { quitsAt, type Client } from '../model/jobs/room/roomShift';
 import type { Talk } from '../model/story/story';
 import type { Entrance } from '../model/interiors/interiors';
 import { HIT_STOP, hitFeel } from './hitFeel';
+import { useHome } from '../model/homestead/home';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 const MAX_STEP = 1 / 30; // the longest step the game takes at once (a sped-up frame is several)
@@ -247,6 +248,8 @@ export class GameController {
         return found.chest.open(), true;
       case 'strongbox':
         return this.onStash(), true;
+      case 'home':
+        return useHome(model, found.action);
       case 'carter':
         return this.onCarter(found.carter), true;
       case 'chop':

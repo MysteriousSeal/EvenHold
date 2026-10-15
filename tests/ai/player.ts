@@ -239,6 +239,7 @@ export class Player {
         return false; // (no cooking for the player yet)
       case 'anvil':
         return false; // (no smithing for the player yet)
+      case 'home':
       case 'strongbox':
         return false; // (no stash for the player yet)
       case 'well':

@@ -11,6 +11,8 @@ import type { ActionBar } from './hero/actionBar';
 import type { ChampionId } from './champions/champions';
 import type { Wielded } from './hero/weaponProfiles';
 import type { SpellId } from './spells/spells';
+import type { Cottage } from './homestead/cottage';
+import type { Trophies } from './homestead/trophies';
 import type { Being } from './spells/beings';
 import type { Hung } from './spells/hung';
 import type { Into } from './spells/turned';
@@ -49,6 +51,8 @@ export interface Hero extends Humanoid {
   bagCounts: number[]; // how many in each of those slots (a junk stack's own: bag.ts bagStacks; none, packed)
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
   stash?: Bag; // what they keep in the inns' strongbox, one store at every inn (hero/stash.ts): none, till they put something in
+  cottage?: Cottage | null; // the cottage they've bought, and what's been built in it (homestead/cottage.ts): none, till they buy one
+  trophies?: Trophies; // the trophies they've taken, for their cottage's wall (homestead/trophies.ts): none, till the first
   actionBar: ActionBar; // shortcuts to food and drink in the bag, keys 1 to 8 (hero/actionBar.ts)
   jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts): none, till they work
   skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts): each at 1 till raised
@@ -108,6 +112,7 @@ export type GameEvent =
   | { kind: 'chilled' } // the hero caught in a draugr's frost breath
   | { kind: 'webbed' } // the hero caught in a cave spider's web
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
+  | { kind: 'homestead'; text: string } // their cottage: bought, something built in it, a trophy taken for its wall (homestead/)
   | { kind: 'swing'; roll?: boolean } // the hero's blow begun (hero/heroActs.ts), or a roll (GameModel): its whoosh (view/audio/)
   | { kind: 'slain'; on: EnemyKind; x: number; y: number; z: number; champion?: ChampionId } // a foe killed, where it falls (hero/fighting.ts); a champion of the deep's, which
   | { kind: 'fallen' } // the hero felled (hero/fighting.ts; what comes of it: hero/setbacks.ts)

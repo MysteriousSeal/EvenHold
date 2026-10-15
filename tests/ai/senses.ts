@@ -80,7 +80,8 @@ export function prompt(model: GameModel): Prompt {
     case 'cannotPick':
     case 'cauldron':
     case 'strongbox':
-      return 'none'; // (a fire to cook at, a rock to mine, herbs to pick, a cauldron, the inn's strongbox: nothing the player does yet, and its prompts kept as they were trained)
+    case 'home':
+      return 'none'; // (a fire to cook at, a rock to mine, herbs to pick, a cauldron, the inn's strongbox, a cottage's: nothing the player does yet, and its prompts kept as they were trained)
     default:
       return found.kind;
   }
