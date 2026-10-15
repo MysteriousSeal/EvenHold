@@ -12,6 +12,7 @@ import { middleOf, type Furniture } from '../interiors/furniture';
 import type { Npc } from '../npcs/npcs';
 import type { GameEvent, Hero } from '../types';
 import { gainXp } from '../hero/heroStats';
+import { payRate } from './shift';
 import { JOBS, rankIn, recordOf, type JobId } from './jobs';
 import { InnShift, type Order, type ShiftAction } from './innShift';
 import { BarShift, type BarAction } from './barShift';
@@ -57,6 +58,7 @@ export class Work {
     if (this.shift || this.host.inside?.entrance !== inn) return false;
     const { rank } = rankIn(job, recordOf(this.host.hero, job).xp);
     this.shift = job === 'innBarkeep' ? new BarShift(inn, rank, this.host.seed) : job === 'innCompanion' ? new RoomShift(inn, rank, this.host.seed, this.host) : new InnShift(inn, rank, this.host.seed);
+    this.shift.rate = payRate(this.host.hero.level); // (the inn's pay keeping up with the hero, as a quest's does)
     if (this.shift instanceof RoomShift) return (this.shift.onServed = (great) => this.served(great)), true; // (no one's work taken over: the room's their own)
     if (this.shift instanceof BarShift) {
       // The inn's own tankards (sold to her: inn/tavernShop.ts INN_WANTS) out on the shelves, so many at most: the shift
@@ -144,7 +146,7 @@ export class Work {
     this.shift = null;
     shift.release(this.host.folk);
     const record = recordOf(this.host.hero, shift.job);
-    const bonus = !early && shift.walkedOut === 0 && shift.served > 0 ? BONUS * shift.served : 0;
+    const bonus = !early && shift.walkedOut === 0 && shift.served > 0 ? Math.round(BONUS * shift.served * shift.rate) : 0;
     const pay = shift.earned + bonus;
     if (pay > 0) {
       this.host.hero.money += pay;

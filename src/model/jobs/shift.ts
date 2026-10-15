@@ -17,6 +17,9 @@ import type { JobId, JobRank } from './jobs';
 
 export const SHIFT = 150; // seconds a shift lasts (two and a half hours on the game's clock)
 export const WAGE = 1; // copper an order (a shift a fallback: a third of a good hour's adventuring, not more; the tips and a clean shift's bonus, most of it)
+export const PER_LEVEL = 0.25; // more pay, a level of the hero's over the first (as the quests people give: story/story.ts)
+// What a shift's pay comes to, times, for a hero of `level` (the first's as it is).
+export const payRate = (level: number): number => 1 + PER_LEVEL * Math.max(0, level - 1);
 export const REACH = 1.4; // room tiles: by a patron, a table, or the counter's end, near enough for E
 const STAY: [number, number] = [40, 90]; // seconds those drawn in by the busy hour stay sat
 const WALKS = ["Forget it. I'll drink elsewhere.", 'Too slow by half!', "I've waited long enough.", 'Never mind!', 'Forget it.'];
@@ -27,6 +30,7 @@ export abstract class Shift {
   walkedOut = 0;
   earned = 0;
   tips = 0;
+  rate = 1; // its pay, times (the hero's level: payRate; set as it's begun)
   private rolls = 0;
   private readonly rush = { table: 0, bar: 0 }; // seconds before the next comes in, for each
   protected readonly furniture: readonly Furniture[]; // the inn's
@@ -63,6 +67,14 @@ export abstract class Shift {
   abstract get carrying(): Drink | null;
   // How the shift went, beyond what's served and walked out, for its end ("4 tables cleared").
   abstract get tally(): string;
+
+  // `copper` earned (a wage, a tip, an empty taken back), at the shift's rate: what it came to.
+  protected earn(copper: number, tip = 0): number {
+    const paid = Math.round(copper * this.rate);
+    this.earned += paid;
+    this.tips += Math.round(tip * this.rate);
+    return paid;
+  }
 
   // A patron who's had enough: up and off, their stay over (`speak`: a word as they go).
   protected walkOut(npc: Npc, speak = true): void {

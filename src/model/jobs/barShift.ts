@@ -387,9 +387,7 @@ export class BarShift extends Shift {
     const tip = Math.max(held.grade === 'thin' ? 0 : 1, Math.round(TIP * GRADE_WORTH[held.grade] * Math.max(0, patience) * this.rank.tips * run * (held.drink === 'wine' ? WINE_TIP : 1)));
     this.served++;
     if (held.grade === 'perfect') this.perfect++;
-    this.earned += WAGE + tip;
-    this.tips += tip;
-    return WAGE + tip;
+    return this.earn(WAGE + tip, tip);
   }
 
   // The shift let go of: the stools' orders left for the barkeep (back at it), the server's hands empty.

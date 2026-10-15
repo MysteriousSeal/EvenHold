@@ -220,8 +220,7 @@ export class InnShift extends Shift {
           want.state = 'carried';
           this.tray.push({ kind: 'order', want });
         }
-        this.earned += returned * CLEARED;
-        return returned * CLEARED;
+        return this.earn(returned * CLEARED);
       }
     }
   }
@@ -251,12 +250,11 @@ export class InnShift extends Shift {
     this.wants.delete(want.npc);
     const tip = Math.max(TIP_FLOOR, Math.round(TIP * (want.patience / want.of) * this.rank.tips));
     this.served++;
-    this.earned += WAGE + tip;
-    this.tips += tip;
+    const paid = this.earn(WAGE + tip, tip);
     want.npc.awaiting = false;
     want.npc.drinking = { left: ALE_SECONDS, seconds: ALE_SECONDS, drink: want.order };
     say(want.npc, oneOf(THANKS, this.roll(want.npc, 5)));
-    return WAGE + tip;
+    return paid;
   }
 
   // The shift let go of: those still waiting no longer held to their seats, their orders out of the queue, the
