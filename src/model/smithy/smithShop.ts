@@ -69,7 +69,7 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 }
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
-const WOODWORK_SHARE = 6; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
+const WOODWORK_SHARE = 8; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
 export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP); // he buys at half
 
 // The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
