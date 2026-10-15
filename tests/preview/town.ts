@@ -19,6 +19,7 @@ if (q.get('inside')) {
   model.enterRoom(door);
   [model.hero.x, model.hero.z] = (q.get('inside') === '1' ? '5,12' : q.get('inside')!).split(',').map(Number);
 }
+for (let t = 0, warm = Number(q.get('warm') ?? 0); t < warm; t += 0.2) model.update(0, 0, 0.2); // (warm=seconds: its people about their day first)
 const canvas = document.getElementById('app') as HTMLCanvasElement;
 canvas.width = innerWidth;
 canvas.height = innerHeight;
