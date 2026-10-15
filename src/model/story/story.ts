@@ -116,13 +116,14 @@ export class Story {
     return STORY_QUESTS[idOf(key)]?.scope === 'saint' ? Math.max(at, this.host.hero.level) : at;
   }
 
-  // What a quest pays: coin and experience by its village's level (the road's: the hero's own), and its gift, named.
+  // What a quest pays: coin and experience by its village's level (the road's: the hero's own; its experience never
+  // past two levels over the hero's, so a far village's errands can't raise a stranger), and its gift, named.
   pays(id: string): { copper: number; xp: number; gift: string } {
     const key = keyed(id);
     const quest = STORY_QUESTS[idOf(key)];
     const gift = quest.gift;
     const given = !gift ? '' : 'gear' in gift ? `${/^[aeiou]/.test(gift.least) ? 'an' : 'a'} ${gift.least} ${ITEMS[gift.gear].name.toLowerCase()}` : `${gift.count} × ${LOOT[gift.item].name}`;
-    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (this.level(key) - 1))), xp: Math.round(xpToNext(Math.max(1, this.level(key))) * quest.xpShare), gift: [given, quest.night ? "a night's rest" : ''].filter(Boolean).join(' and ') };
+    return { copper: Math.round(quest.copper * (1 + PER_LEVEL * (this.level(key) - 1))), xp: Math.round(xpToNext(Math.max(1, Math.min(this.level(key), this.host.hero.level + 2))) * quest.xpShare), gift: [given, quest.night ? "a night's rest" : ''].filter(Boolean).join(' and ') };
   }
 
   // How far along what a taken quest asks is: what's carried of what's to be brought; else what's been counted.

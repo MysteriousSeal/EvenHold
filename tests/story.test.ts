@@ -9,6 +9,7 @@ import type { GameModel } from '../src/model/GameModel';
 import { STORY_QUESTS, type Who } from '../src/model/story/story';
 import { RARE_QUESTS } from '../src/model/story/quests/catalog';
 import { addToBag } from '../src/model/hero/bag';
+import { xpToNext } from '../src/model/hero/heroStats';
 import { interactionOf } from '../src/model/hero/interaction';
 import type { Enemy } from '../src/model/types';
 import type { Npc } from '../src/model/npcs/npcs';
@@ -268,6 +269,12 @@ describe('the quests people give', () => {
     // Further out pays more: the same quest, a village of a higher level.
     const paid = firewood.map((key) => story.pays(key).copper);
     expect(Math.max(...paid)).toBeGreaterThan(Math.min(...paid));
+    // …but its experience never past two levels over the hero's: a far village's errands can't raise a stranger.
+    const xpAt = (level: number) => ((hero.level = level), Math.max(...firewood.map((key) => story.pays(key).xp)));
+    const [low, high] = [xpAt(1), xpAt(40)];
+    expect(low).toBeLessThan(high);
+    expect(low).toBeLessThanOrEqual(Math.round(xpToNext(3) * Math.max(...firewood.map((key) => STORY_QUESTS[key.split('@')[0]].xpShare)))); // (a level-1 hero: paid as at level 3 at most)
+    hero.level = 1;
     // A thing done: a shift worked to its end, told by the game, counts for the barmaid's.
     const shift = story.keysOf('shortHanded')[0];
     expect(shift).toBeDefined();
