@@ -41,6 +41,8 @@ const KEPT = 1024; // blocks kept (the oldest let go)
 // its middle 2.5) only keeps a marsh off the heights and the hills off the lowest ground.
 const GROVES = 0.3; // the trees' density round a tile (0..1, its 3 x 3 GROVE apart) over this: forest
 const GROVE = 4;
+const THICKET = 0.55; // or the trees' own density right there (0..1) over this, in a grove (THICKET_GROVE): the woods win
+const THICKET_GROVE = 0.22;
 const WOODLAND = 0.55; // or the woodland noise over this
 const MARSH_LOW = 2; // marsh only on low ground (its own height, in tiers, under this: the lowest two)
 const LAKE_BAND = 0.1; // where the lake noise is within this of flooding (the world's threshold): the band by the water
@@ -134,7 +136,7 @@ function country(seed: number): BiomeMap {
       // The ground's own height where the tile reads (as the terrain's: worldgen/terrain.ts), and its lake noise.
       const own = ((ground(sx / NOISE_SCALE, sz / NOISE_SCALE) + ground(sx / (NOISE_SCALE / 3), sz / (NOISE_SCALE / 3)) * 0.3 + 1.3) / 2.6) * 5;
       if (own < MARSH_LOW && ground(sx / LAKE_NOISE_SCALE + 500, sz / LAKE_NOISE_SCALE + 500) > lakeThreshold - LAKE_BAND - wet * DAMP_WIDENS) return 'marsh';
-      if (thick > GROVES || wild > WOODLAND) return 'forest';
+      if (thick > GROVES || (thick > THICKET_GROVE && woods(sx, sz) > THICKET) || wild > WOODLAND) return 'forest';
       if (rocky > HILLS_ROUGH && high > HILLS_LOWEST) return 'hills';
       if (dried > HEATH_DRY) return 'heath';
       return 'meadow';

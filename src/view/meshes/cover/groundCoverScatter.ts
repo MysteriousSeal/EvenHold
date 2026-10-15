@@ -108,6 +108,9 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       const country = biomes.at(x, z);
       const grows = BIOME_COVER[country];
       // A stretch of low shore with its reeds (the moor's and the hills' have none).
+      // A drift of the country's own (heather on the moor), the grass none under it.
+      const drifting = (drift: number) => hashUnit(Math.floor(x / 3), Math.floor(z / 3), model.seed + 0xd1f) < drift;
+      const inDrift = grows.wild.some((g) => g.drift !== undefined && drifting(g.drift));
       const shore = country !== 'heath' && country !== 'hills' && hashUnit(Math.floor(x / 3), Math.floor(z / 3), model.seed + 0x5e0) < SHORE_BEDS
         && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => model.tiles.has(x + dx, z + dz) && model.tiles.lake(x + dx, z + dz));
       const item = (ox: number, oz: number, scale: number, variant: number): ScatterItem => ({
@@ -136,7 +139,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       // Lush meadows get up to MAX_CLUMPS_PER_TILE, their edges a stray
       // clump or two, bare ground none.
       const density = meadowDensity(x, z);
-      const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass * (shore ? SHORE_GRASS : 1) + rng() * 0.99);
+      const clumps = inDrift ? 0 : Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass * (shore ? SHORE_GRASS : 1) + rng() * 0.99);
       // Clumps also grow with the meadow: small at the thin edges, largest
       // in the lush centers, so patches read as mounds rather than dots.
       const meadowScale = (CLUMP_SCALE_EDGE + (CLUMP_SCALE_CENTER - CLUMP_SCALE_EDGE) * density) * (grows.short ?? 1);
@@ -178,8 +181,8 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         const count = SHORE_REEDS.least + Math.floor(roll() * (SHORE_REEDS.most - SHORE_REEDS.least + 1));
         for (let i = 0; i < count; i++) cover.wild.push({ x: x + (roll() - 0.5) * SCATTER_SPREAD, y, z: z + (roll() - 0.5) * SCATTER_SPREAD, tier, rotation: roll() * Math.PI * 2, scale: 1, variant: Math.floor(roll() * 8), country, kind: 'reed' });
       }
-      for (const { kind, chance, most, least = 1 } of grows.wild) {
-        if (roll() >= chance || (treeHere && kind !== 'fern')) continue;
+      for (const { kind, chance, most, least = 1, drift } of grows.wild) {
+        if (roll() >= chance || (treeHere && kind !== 'fern') || (drift !== undefined && !drifting(drift))) continue;
         const count = least + Math.floor(roll() * (most - least + 1));
         for (let i = 0; i < count; i++) {
           const [ox, oz] = [(roll() - 0.5) * SCATTER_SPREAD, (roll() - 0.5) * SCATTER_SPREAD];

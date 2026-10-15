@@ -1,7 +1,7 @@
 // What grows in each kind of country (model/scenery/biomes.ts), at the ground cover's 0.04 voxel scale, palette first:
-// - ferns (the woods): fronds arching out from a crown, lighter to their tips; bracken (the heath): the same, rust-red;
+// - ferns (the woods): fronds arching out from a crown, lighter to their tips; bracken (the heath): the same, brown;
 // - mushrooms (the woods): a clutch of brown caps, a red toadstool spotted white;
-// - heather (the heath): a low cushion of olive twigs, purple bells over its top;
+// - heather (the heath): a small low cushion of dark mauve bells, lighter on top;
 // - reeds (the marsh): bulrushes with their brown heads among plain reeds leaning, a yellow flag;
 // - stones (the hills): a flat slab sunk in the turf, lichen and moss on it;
 // - leaf litter (the woods): a low drift of fallen leaves, a voxel deep, between the trees;
@@ -18,9 +18,9 @@ const ENTRIES = {
   frondLight: 0x67a248,
   frondTip: 0x86b85a,
   frondDark: 0x2c5a28,
-  bracken: 0xa8692e,
-  brackenLight: 0xc4843e,
-  brackenDark: 0x7a4a22,
+  bracken: 0x8a5a2e, // a summer's brown (the season's tint turns it orange in autumn: common/nature.ts)
+  brackenLight: 0x9a6a36,
+  brackenDark: 0x6a4a2a,
   stalk: 0xe6dcc2,
   capBrown: 0x9a6a3e,
   capBrownLight: 0xb8854e,
@@ -58,7 +58,7 @@ export const FERN_GRID: [number, number, number] = [13, 8, 13];
 export const FERN_SHAPES = 1; // (its quarter turns tell one from another)
 export const MUSHROOM_GRID: [number, number, number] = [6, 6, 6];
 export const MUSHROOM_SHAPES = 2;
-export const HEATHER_GRID: [number, number, number] = [7, 3, 7];
+export const HEATHER_GRID: [number, number, number] = [5, 2, 5];
 export const HEATHER_SHAPES = 1;
 export const REED_GRID: [number, number, number] = [7, 18, 7];
 export const REED_SHAPES = 2; // bulrushes among reeds, a yellow flag
@@ -129,13 +129,12 @@ export function buildMushrooms(shape: number): VoxelGrid {
 // A low cushion: olive twigs, a domed top of purple bells.
 export function buildHeather(shape: number): VoxelGrid {
   const g = createGrid(HEATHER_GRID);
-  // Low and few-sided (cheap: it's strewn thick): a dark foot of twigs, a broad purple layer over it, a lighter crown.
+  // Small and low (under 20 voxels: it's strewn in drifts): the dark mauve, its top lighter.
   const disc = (y: number, r: number, color: number) => {
-    for (let x = 0; x < 7; x++) for (let z = 0; z < 7; z++) if ((x - 3) ** 2 + (z - 3) ** 2 <= r * r) setColor(g, x, y, z, color);
+    for (let x = 0; x < 5; x++) for (let z = 0; z < 5; z++) if ((x - 2) ** 2 + (z - 2) ** 2 <= r * r) setColor(g, x, y, z, color);
   };
-  disc(0, 2.3 + shape * 0.3, C.twigDark);
-  disc(1, 3.1, C.heather);
-  disc(2, 1.6, C.heatherLight);
+  disc(0, 2.1 + shape * 0.2, C.heather);
+  disc(1, 1.1, C.heatherLight);
   return g;
 }
 
