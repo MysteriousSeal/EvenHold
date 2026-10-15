@@ -1,16 +1,19 @@
 // The sky over the world outside, each frame: the light of the hour (a rosy dawn, the golden hour, a violet dusk, a
 // blue moonlit night), dulled and greyed by cloud, closed in by fog and mist, rain and snow falling round the hero,
-// the season's colours on the land, all from the model's sky (model/world/weather.ts). It sets the lights, the fog,
-// the light shafts and the shared sky (sky.ts) others read; it adds nothing to draw but the rain and the snow (a draw
-// each, only while they fall). Indoors and underground it's the world outside's, unseen (rooms are lit their own).
+// the season's tint and the wind on the plants (meshes/common/nature.ts), all from the model's sky
+// (model/world/weather.ts). It sets the lights, the fog, the light shafts and the bloom, and the shared sky (sky.ts)
+// others read; it adds nothing to draw but the rain and the snow (a draw each, only while they fall). Indoors and
+// underground it's the world outside's, unseen (rooms are lit their own).
 //
-// The night's kept light enough to see by (foes and paths read at any hour): a moon, and a blue sky glow.
+// The night's kept light enough to see by (foes and paths read at any hour): a moon, and a blue sky glow, the land a
+// third of its day's brightness or more; windows, lanterns and fires glow brighter.
 
 import * as THREE from 'three';
-import { dampAt, skyAt, weatherAt } from '../../model/world/weather';
-import { SEASONS } from '../../model/clock';
+import { dampAt, skyAt, weatherAt, type SkyForcing } from '../../model/world/weather';
+import { SEASONS, type Season } from '../../model/clock';
 import type { GameModel } from '../../model/GameModel';
 import { FOG_FAR, FOG_NEAR, SHAFT_COLOR, SUN_DIRECTION } from '../constants';
+import { setSeasonTint, setWindStrength } from '../meshes/common/nature';
 import type { Lights } from './lighting';
 import type { PostProcessing } from './postprocessing';
 import { Precipitation } from './rainView';
@@ -18,7 +21,7 @@ import { sky, skyUniforms } from './sky';
 import { viewUp } from './stylize';
 
 // The light at a point of the day: the sky's glow and the ground's bounce (the hemisphere), the sun's (or moon's)
-// colour and strength, and the fog's (the horizon's, and the background).
+// colour and strength, and the fog's (the horizon's, and the background). The art direction's keys (world-design).
 interface Light {
   sky: number;
   ground: number;
@@ -28,36 +31,31 @@ interface Light {
   fog: number;
 }
 const DAY: Light = { sky: 0xffe2c4, ground: 0x8a6442, fill: 0.95, sun: 0xffeccc, strength: 1.0, fog: 0xf2c9a8 };
-const DAWN: Light = { sky: 0xffc4c8, ground: 0x7d5060, fill: 0.88, sun: 0xffb4a0, strength: 1.0, fog: 0xf0b4b8 };
-const GOLDEN: Light = { sky: 0xffc08a, ground: 0x8a4e2c, fill: 0.9, sun: 0xffa040, strength: 1.3, fog: 0xf6aa72 };
-const DUSK: Light = { sky: 0xc89cc0, ground: 0x4e3a52, fill: 0.78, sun: 0xff8a6a, strength: 0.55, fog: 0xa886a8 };
-const NIGHT: Light = { sky: 0x7088c8, ground: 0x2c3448, fill: 0.68, sun: 0xa8bfff, strength: 0.45, fog: 0x28344f };
+const DAWN: Light = { sky: 0xf2c4c8, ground: 0x7d5060, fill: 0.9, sun: 0xffb98a, strength: 1.0, fog: 0xe8c8d0 };
+const GOLDEN: Light = { sky: 0xffc89a, ground: 0x8a4e2c, fill: 0.9, sun: 0xffa860, strength: 1.3, fog: 0xf0a878 };
+const DUSK: Light = { sky: 0x8a7aa8, ground: 0x4e3a52, fill: 0.95, sun: 0xd06a5a, strength: 0.55, fog: 0x7a6a98 };
+// (The night's sky glow lighter than the art's 0x3a4a78, the same blue: the land kept at a third of its day's light.)
+const NIGHT: Light = { sky: 0x7088c8, ground: 0x2c3448, fill: 0.68, sun: 0x8aa0d8, strength: 0.4, fog: 0x2a3458 };
 const OVERCAST_SKY = 0xc4c8cc; // cloud greys the sky's glow (darker at night: by the light's own brightness)
 const FOG_GREY = 0xd6dad8; // the colour of a thick fog by day
 const WINTER_AIR = 0xdfe6ee; // the winter's colder haze
 
 const MOON_DIRECTION = new THREE.Vector3(8, 30, 18).normalize();
 const SUN_TURN = 1.2; // radians the sun swings round from rising to setting
+const SHAFTS = 0.6; // the shafts at their strongest (against the old, all-day ones)
 
-// Each season's colours for greens (taken at their own lightness: grass and leaves keep their light and shade), how
-// far they're turned, and the frost on what faces up.
-const SEASON_LOOKS = {
-  spring: { tint: 0x9ad45c, tint2: 0xb2dc66, amount: 0.35, frost: 0 },
-  summer: { tint: 0xffffff, tint2: 0xffffff, amount: 0, frost: 0 },
-  autumn: { tint: 0xb8a640, tint2: 0xc89a3c, amount: 0.6, frost: 0 }, // (the land's ochre; the trees' reds are flora's)
-  winter: { tint: 0x9aa898, tint2: 0xa8b2a6, amount: 0.6, frost: 0.22 },
+// Each season's tint on the plants and the ground's grass (flora's: a multiplier), and the frost on what faces up.
+const SEASON_LOOKS: Record<Season, { tint: [number, number, number]; frost: number }> = {
+  spring: { tint: [0.98, 1.07, 0.94], frost: 0 },
+  summer: { tint: [1, 1, 1], frost: 0 },
+  autumn: { tint: [1.25, 0.97, 0.72], frost: 0 },
+  winter: { tint: [1.05, 1.0, 1.08], frost: 0.22 },
 };
-const SEASON_TURN = 6 / 7; // how far through a season its colours start turning to the next's (its last day)
+const SEASON_TURN = 6 / 7; // how far through a season it starts turning to the next (its last day)
 
 const smooth = (a: number, b: number, x: number): number => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
-};
-
-// A colour as a tint taken at a lightness of one (its own shade divided out).
-const asTint = (hex: number, into: THREE.Color): THREE.Color => {
-  into.setHex(hex);
-  return into.multiplyScalar(1 / Math.max(0.05, into.r * 0.299 + into.g * 0.587 + into.b * 0.114));
 };
 
 export class SkyView {
@@ -68,14 +66,13 @@ export class SkyView {
   private readonly shaftColor = new THREE.Color();
   private readonly sunDirection = new THREE.Vector3();
   private readonly focus = new THREE.Vector3();
-  private readonly tintA = new THREE.Color();
-  private readonly tintB = new THREE.Color();
 
   constructor(
     private readonly scene: THREE.Scene,
     private readonly lights: Lights,
     private readonly camera: THREE.Camera,
     pixelRatio: number,
+    private readonly force: SkyForcing = {}, // (a developer's look at a sky: renderOptions.ts)
   ) {
     this.precipitation = new Precipitation(scene, pixelRatio);
   }
@@ -83,7 +80,7 @@ export class SkyView {
   // Each frame (indoors too: the world outside's sky kept, for whoever reads it); `ruin`: how far into an old ruin's
   // mist the hero is (no sun's shafts there).
   update(model: GameModel, elapsed: number, post: PostProcessing | null, ruin: number): void {
-    const { weather, daylight, season, year } = skyAt(model.seed, model.minutes);
+    const { weather, daylight, season, year } = skyAt(model.seed, model.minutes, this.force);
     const { hero } = model;
     sky.outdoors = !model.inside && !model.yard;
     // Mist over lakes, at dawn, in the evening and through the night.
@@ -97,14 +94,16 @@ export class SkyView {
     const light = this.mixLight(DAY, daylight.rising ? DAWN : GOLDEN, daylight.golden);
     this.mixInto(light, daylight.rising ? DAWN : DUSK, twilight * 0.85);
     this.mixInto(light, NIGHT, daylight.night);
+    // Cloud: the sky's glow greyed (some 15% of the colour gone), the sun dimmed, everything a little darker.
     const { sky: hemi, sun } = this.lights;
     hemi.color.copy(this.from.setHex(light.sky).lerp(this.to.setHex(OVERCAST_SKY).multiplyScalar(0.35 + 0.65 * daylight.light), weather.cloud * 0.6));
     hemi.groundColor.setHex(light.ground);
     hemi.intensity = light.fill * (1 + 0.12 * weather.cloud);
     sun.color.setHex(light.sun);
-    sun.intensity = light.strength * (1 - 0.7 * weather.cloud) * (1 - 0.4 * fog);
+    sun.intensity = light.strength * (1 - 0.5 * weather.cloud) * (1 - 0.4 * fog);
 
-    // The sun round the sky from rising to setting, higher at noon; the moon's own way at night.
+    // The sun round the sky from rising to setting, high at noon, low (its bands long) at dawn and dusk; the moon's
+    // own way at night.
     const turn = Math.atan2(SUN_DIRECTION.z, SUN_DIRECTION.x) + (daylight.arc - 0.5) * SUN_TURN;
     const rise = 0.45 + (Math.asin(SUN_DIRECTION.y) - 0.45) * smooth(0, 0.8, daylight.sun);
     this.sunDirection.set(Math.cos(turn) * Math.cos(rise), Math.sin(rise), Math.sin(turn) * Math.cos(rise)).lerp(MOON_DIRECTION, daylight.night).normalize();
@@ -126,18 +125,20 @@ export class SkyView {
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(fogColor);
     skyUniforms.uMist.value = fog;
 
-    // The light shafts: a clear sun's alone, its colour.
+    // The light shafts: a clear low sun's alone (the morning's, the golden hour's), none at noon, under cloud or at night.
+    const low = smooth(0, 0.12, daylight.sun) * (1 - smooth(0.55, 0.8, daylight.sun));
     this.shaftColor.setHex(SHAFT_COLOR).lerp(this.to.setHex(light.sun), daylight.golden * 0.7);
-    post?.setShafts((1 - ruin) * (1 - weather.cloud) * (1 - fog) * smooth(0, 0.2, daylight.sun), this.shaftColor);
+    post?.setShafts(SHAFTS * low * (1 - ruin) * (1 - weather.cloud) * (1 - fog), this.shaftColor);
     post?.setSun(this.sunDirection);
+    post?.setBloom(1 + 0.6 * daylight.night);
 
-    // The wind, for the plants (and the smoke).
-    skyUniforms.uWindStrength.value = 0.6 + wind * 0.8;
+    // The wind and the season, for the plants (flora's), the smoke and the creatures (sky.ts).
+    setWindStrength(Math.min(2.5, 0.6 + wind * 1.1));
     skyUniforms.uWindDir.value.set(weather.windX, weather.windZ);
     skyUniforms.uWindGust.value = weather.gust;
     skyUniforms.uNight.value = daylight.night;
-
-    this.seasonColours(year, model.seed, model.minutes);
+    skyUniforms.uDaylight.value = daylight.light;
+    this.seasonLooks(year, model.seed, model.minutes);
     viewUp.value.set(0, 1, 0).transformDirection(this.camera.matrixWorldInverse);
 
     this.focus.set(hero.x, model.inside ? hero.y : model.getGroundY(hero.x, hero.z), hero.z);
@@ -145,23 +146,26 @@ export class SkyView {
     this.precipitation.update(weather.rain * shown, weather.snow * shown, { x: weather.windX, z: weather.windZ, strength: wind }, this.focus, elapsed, brightness);
   }
 
-  // The season's tints, turning to the next's over a season's last day; frost in winter, and snow lying a while
-  // after it's fallen (as the wet does after the rain).
-  private seasonColours(year: number, seed: number, minutes: number): void {
+  // The season's weights and tint, turning to the next's over a season's last day; frost in winter, and snow lying a
+  // while after it's fallen (as the wet does after the rain).
+  private seasonLooks(year: number, seed: number, minutes: number): void {
     const index = Math.floor(year);
     const turn = smooth(SEASON_TURN, 1, year - index);
     const [now, next] = [SEASON_LOOKS[SEASONS[index]], SEASON_LOOKS[SEASONS[(index + 1) % 4]]];
-    skyUniforms.uSeasonTint.value.copy(asTint(now.tint, this.tintA)).lerp(asTint(next.tint, this.tintB), turn);
-    skyUniforms.uSeasonTint2.value.copy(asTint(now.tint2, this.tintA)).lerp(asTint(next.tint2, this.tintB), turn);
-    skyUniforms.uSeasonAmount.value = now.amount + (next.amount - now.amount) * turn;
+    const weights = [0, 0, 0, 0];
+    weights[index] = 1 - turn;
+    weights[(index + 1) % 4] += turn;
+    skyUniforms.uSeason.value.fromArray(weights);
+    setSeasonTint(...(now.tint.map((c, i) => c + (next.tint[i] - c) * turn) as [number, number, number]));
     let [lying, wet] = [0, 0];
+    const then = this.force.weather ? () => ({ snow: this.force.weather === 'snow' ? 1 : 0, rain: this.force.weather === 'rain' ? 1 : 0 }) : (hours: number) => weatherAt(seed, minutes - hours * 60);
     for (let hours = 0; hours < 6; hours++) {
-      const then = weatherAt(seed, minutes - hours * 60);
-      lying = Math.max(lying, then.snow * (1 - hours / 8));
-      if (hours < 3) wet = Math.max(wet, then.rain * (1 - hours / 3.5));
+      const was = then(hours);
+      lying = Math.max(lying, was.snow * (1 - hours / 8));
+      if (hours < 3) wet = Math.max(wet, was.rain * (1 - hours / 3.5));
     }
-    const winter = now.frost + (next.frost - now.frost) * turn;
-    skyUniforms.uSnowCover.value = Math.min(0.85, winter + lying * 0.7);
+    const frost = now.frost + (next.frost - now.frost) * turn;
+    skyUniforms.uSnow.value = Math.min(0.85, frost + lying * 0.7);
     skyUniforms.uWet.value = wet;
   }
 

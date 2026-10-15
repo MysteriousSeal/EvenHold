@@ -68,6 +68,8 @@ const LightShaftShader = {
 export class PostProcessing {
   private readonly composer: EffectComposer;
   private readonly shafts: ShaderPass;
+  private readonly bloom: UnrealBloomPass | null;
+  private readonly shaftsWanted: boolean; // (not with ?noshafts)
   private readonly right = new THREE.Vector3();
   private readonly up = new THREE.Vector3();
 
@@ -83,12 +85,11 @@ export class PostProcessing {
     this.composer.addPass(new RenderPass(scene, camera));
 
     this.shafts = new ShaderPass(LightShaftShader);
-    this.shafts.enabled = options.shafts;
+    this.shaftsWanted = this.shafts.enabled = options.shafts;
     this.composer.addPass(this.shafts);
 
-    if (options.bloom) {
-      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD));
-    }
+    this.bloom = options.bloom ? new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD) : null;
+    if (this.bloom) this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
     // The camera never rotates, so its screen axes are fixed.
@@ -109,10 +110,17 @@ export class PostProcessing {
     this.shafts.uniforms.uViewSize.value.set(this.camera.right - this.camera.left, this.camera.top - this.camera.bottom);
   }
 
-  // How much of the light shafts shows (0..1), and their colour (the sun's, warmer low down).
+  // How much of the light shafts shows (0..1), and their colour (the sun's, warmer low down). None: the pass skipped
+  // (a whole screen's work saved, most of the day).
   setShafts(strength: number, color?: THREE.Color): void {
     this.shafts.uniforms.uStrength.value = strength;
+    this.shafts.enabled = this.shaftsWanted && strength > 0.005;
     if (color) this.shafts.uniforms.uColor.value.copy(color);
+  }
+
+  // How strongly bright things glow, against the day's (1): more at night (windows, lanterns, fires).
+  setBloom(strength: number): void {
+    if (this.bloom) this.bloom.strength = BLOOM_STRENGTH * strength;
   }
 
   render(elapsedSeconds: number): void {

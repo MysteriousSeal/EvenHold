@@ -6,8 +6,9 @@
 // - `skyUniforms`: the same as shader uniforms, to hand a material's shader as they are (shader.uniforms.uWindDir =
 //   skyUniforms.uWindDir): they change in place, so a material given them once follows the sky with no more work.
 //
-// The world's materials (stylize.ts) already take the season's colours on their greens, frost and snow on their tops
-// in winter, and a darkening in the rain; a material that shouldn't (its own season, say) sets userData.noSeason.
+// The season's tint on the plants and the ground, and how hard they sway, are the plants' own uniforms
+// (meshes/common/nature.ts), set from here each frame. The world's materials (stylize.ts) take frost and snow on their
+// tops in winter, a darkening in the rain, the moon's blue at night.
 
 import * as THREE from 'three';
 import type { DayPart, WeatherKind } from '../../model/world/weather';
@@ -52,13 +53,11 @@ export const sky: SkyNow = {
 };
 
 export const skyUniforms = {
-  uWindStrength: { value: 1 }, // the sway's strength against a calm day's (1): ~0.6 still, ~2 in a gale's gust
   uWindDir: { value: new THREE.Vector2(0.857, 0.514) }, // which way it blows (world x, z), a unit vector
   uWindGust: { value: 0 }, // 0..1, a gust now
-  uSeasonTint: { value: new THREE.Color(1, 1, 1) }, // the season's colour for leaves and grass (white: summer's own)
-  uSeasonTint2: { value: new THREE.Color(1, 1, 1) }, // its second, patch by patch (autumn's reds among its golds)
-  uSeasonAmount: { value: 0 }, // 0..1, how far greens are turned to it
-  uSnowCover: { value: 0 }, // 0..1, frost and snow on what faces up
+  uSeason: { value: new THREE.Vector4(1, 0, 0, 0) }, // how much it's each season (spring, summer, autumn, winter), summing to 1: blended over a season's last day
+  uDaylight: { value: 1 }, // 0..1, the day's light
+  uSnow: { value: 0 }, // 0..1, frost and snow on what faces up
   uWet: { value: 0 }, // 0..1, the rain's darkening
   uNight: { value: 0 }, // 0..1
   uMist: { value: 0 }, // 0..1, extra low mist (a lake's, the morning's) over the hollows

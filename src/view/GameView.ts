@@ -152,7 +152,7 @@ export class GameView {
     this.camera = createCamera();
     this.movementAxes = computeMovementAxes();
 
-    this.sky = new SkyView(this.scene, addLights(this.scene), this.camera, this.pixelRatio);
+    this.sky = new SkyView(this.scene, addLights(this.scene), this.camera, this.pixelRatio, options.sky);
     this.hero = new HumanRig(model.hero.look, this.heroLook);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
@@ -193,7 +193,7 @@ export class GameView {
   // the frame where the browser can (their programs mostly made already: the same shaders as every region's).
   private prepare(materials: THREE.Material[]): void {
     if (!this.stylizer || materials.length === 0) return; // (before the start: finish() does it, for all)
-    this.stylizer.patch(materials, true); // (the world's: they take the seasons)
+    this.stylizer.patch(materials, true); // (the world's: they take the weather)
     const warmUp = new THREE.Scene();
     const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
     for (const material of materials) warmUp.add(new THREE.InstancedMesh(box, material, 1));
