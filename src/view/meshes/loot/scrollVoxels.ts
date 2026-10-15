@@ -2,11 +2,11 @@
 // at a glance: the hex, a strip of hide rolled up, its tail unrolled and the words burnt dark into it, a red smear;
 // the mending verse, a leaf of vellum folded into a packet, brown writing on it, a blob of red wax; the Moon-turn's
 // grimoire, a little black book, thick, its page edges pale, a silver crescent on its cover and a rusted clasp.
-import type { ScrollId } from '../../../model/loot/scrolls';
+import { SCROLL_IDS, type ScrollId } from '../../../model/loot/scrolls';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
 
-export const SCROLL_MODELS: Record<ScrollId, LootModel> = {
+const LOOKS: Partial<Record<ScrollId, LootModel>> = {
   // Hide 1, its shade 2, burnt words 3, the smear 4, the twine 5.
   hexScroll: model([0xa87a4e, 0x6e4c30, 0x2a1a12, 0x7a1a1a, 0xc8b088], [10, 3, 7], (g) => {
     fillBox(g, 0, 0, 0, 9, 2, 2, (_x, y, z) => ((y === 0 || y === 2) && (z === 0 || z === 2) ? 0 : y === 1 && z === 1 ? 2 : 1)); // the roll, its corners cut round
@@ -31,3 +31,6 @@ export const SCROLL_MODELS: Record<ScrollId, LootModel> = {
     for (const [x, z] of [[3, 2], [3, 3], [3, 4], [4, 1], [4, 5], [5, 1], [5, 5]]) setColor(g, x, 2, z, 5); // the crescent on its cover
   }),
 };
+
+// Every charm written down's look: its own, else the hex's (a plain strip rolled up), till it's given one.
+export const SCROLL_MODELS = Object.fromEntries(SCROLL_IDS.map((id) => [id, LOOKS[id] ?? LOOKS.hexScroll!])) as Record<ScrollId, LootModel>;

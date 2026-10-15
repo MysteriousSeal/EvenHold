@@ -7,28 +7,25 @@
 import type { LootEntry } from './lootEntry';
 import type { SpellId } from '../spells/spells';
 
-export const SCROLL_ITEMS = {
-  hexScroll: { name: 'Scrawled hex', value: 0, droppedBy: {} }, // a strip of hide, the words burnt into it
-  mendScroll: { name: 'Mending verse', value: 0, droppedBy: {} }, // a leaf of vellum, folded small
-  moonGrimoire: { name: 'Moon-turn grimoire', value: 0, droppedBy: {} }, // a little black book, its clasp rusted
-} satisfies Record<string, LootEntry>;
+// Each charm written down, a line each (one more found in the dark: a line here; its look, scrollVoxels.ts, else a
+// plain scroll's): its name, the charm in it, what it says in the bag, and how often it's found (of the others).
+const SCROLLS = {
+  hexScroll: { name: 'Scrawled hex', spell: 'hex', weight: 4, about: 'A strip of hide with three words burnt into it, and a smear of something that was never ink.' },
+  mendScroll: { name: 'Mending verse', spell: 'mend', weight: 4, about: 'A leaf of vellum folded small, a verse on it in a cramped brown hand. It smells of camphor.' },
+  moonGrimoire: { name: 'Moon-turn grimoire', spell: 'swap', weight: 2, about: 'A little black book, its clasp rusted shut till you force it. Half the pages are drawings no one should have made.' }, // (the rarest)
+} satisfies Record<string, { name: string; spell: SpellId; weight: number; about: string }>;
 
-export type ScrollId = keyof typeof SCROLL_ITEMS;
-export const SCROLL_IDS = Object.keys(SCROLL_ITEMS) as ScrollId[];
-export const isScroll = (item: string): item is ScrollId => item in SCROLL_ITEMS;
+export type ScrollId = keyof typeof SCROLLS;
+export const SCROLL_IDS = Object.keys(SCROLLS) as ScrollId[];
+export const isScroll = (item: string): item is ScrollId => item in SCROLLS;
+const each = <T>(of: (id: ScrollId) => T) => Object.fromEntries(SCROLL_IDS.map((id) => [id, of(id)])) as Record<ScrollId, T>;
 
-// The charm each holds.
-export const SCROLL_SPELL: Record<ScrollId, SpellId> = { hexScroll: 'hex', mendScroll: 'mend', moonGrimoire: 'swap' };
-
-// What each says, in the bag.
-export const SCROLL_ABOUT: Record<ScrollId, string> = {
-  hexScroll: 'A strip of hide with three words burnt into it, and a smear of something that was never ink.',
-  mendScroll: 'A leaf of vellum folded small, a verse on it in a cramped brown hand. It smells of camphor.',
-  moonGrimoire: 'A little black book, its clasp rusted shut till you force it. Half the pages are drawings no one should have made.',
-};
+export const SCROLL_ITEMS: Record<ScrollId, LootEntry> = each((id) => ({ name: SCROLLS[id].name, value: 0, droppedBy: {} }));
+export const SCROLL_SPELL: Record<ScrollId, SpellId> = each((id) => SCROLLS[id].spell); // the charm each holds
+export const SCROLL_ABOUT: Record<ScrollId, string> = each((id) => SCROLLS[id].about); // what each says, in the bag
 
 const FIND_CHANCE = 0.25; // of a hoard in the dark holding one
-const WEIGHTS: ReadonlyArray<[ScrollId, number]> = [['hexScroll', 4], ['mendScroll', 4], ['moonGrimoire', 2]]; // (the Moon-turn the rarest)
+const WEIGHTS: ReadonlyArray<[ScrollId, number]> = SCROLL_IDS.map((id) => [id, SCROLLS[id].weight]);
 
 // The scroll in a hoard, if any, by two rolls (0..1, from where it is: hoard.ts), the same every time: whether
 // there's one, and which.
