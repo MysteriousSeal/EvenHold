@@ -5,7 +5,8 @@ import { restockAll, shopAt } from '../src/model/inn/tavernShop';
 import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { SMITH_PICK, SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { WOODWORKS } from '../src/model/shops/shopStock';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -134,7 +135,7 @@ describe("the smith's shop", () => {
     expect(SMITH_WARES.length).toBeGreaterThan(20);
     for (const id of SMITH_WARES) {
       expect(gearPrice(id)).toBe(ITEMS[id].value);
-      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / 2));
+      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / (WOODWORKS.has(id) ? 8 : 2))); // (a woodworker's make: an eighth)
     }
     const plain = ITEM_IDS.find((id) => !ITEMS[id].value && smithBuys(id))!;
     expect(gearSellPrice(plain)).toBeLessThan(gearSellPrice('breastplate'));
@@ -158,7 +159,7 @@ describe("the smith's shop", () => {
     const tavern = shopAt(model.shops, model.seed, inn);
     const forge = smithShopAt(model.shops, model.seed, smithy);
     expect(Object.keys(tavern.stock)).toContain('ale');
-    expect(Object.keys(forge.stock).every((id) => id in ITEMS)).toBe(true);
+    expect(Object.keys(forge.stock).every((id) => id in ITEMS || id === SMITH_PICK)).toBe(true); // (his gear, and a pickaxe)
     forge.money = 1;
     tavern.money = 1;
     const pack = pedlarShopAt(model.shops, model.seed, { id: 3 }); // (a pedlar's, bread and ale in it too)

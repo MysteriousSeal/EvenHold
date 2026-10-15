@@ -158,7 +158,7 @@ describe('cooking', () => {
   it('has a dish of every fish caught, the salmon grilled at 240', () => {
     for (const fish of ['smallFry', 'roach', 'riverTrout', 'lakePerch', 'eel', 'bream', 'grayling', 'char', 'pike', 'salmon', 'sturgeon']) expect(COOK_RECIPE_IDS.some((id) => fish in COOK_RECIPES[id].from), fish).toBe(true);
     expect(COOK_RECIPES.grilledSalmon).toMatchObject({ needs: 240, from: { salmon: 1, salt: 1 }, makes: 'grilledSalmon' });
-    expect(MEALS.grilledSalmon.value).toBe(32);
+    expect(MEALS.grilledSalmon.value).toBe(26); // (under the smoked sturgeon, a harder fish's)
   });
 
   it('knows a recipe only once the skill reaches it', () => {
