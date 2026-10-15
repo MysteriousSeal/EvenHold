@@ -31,6 +31,7 @@ import { STATS, type Stat } from './hero/statKinds';
 import type { Equipment } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxEnergyOf, maxHpOf } from './hero/attributes';
+import { xpToNext } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
@@ -243,6 +244,17 @@ export function parseSave(raw: string | null, seed: number): SaveData | null {
 const records = <T>(list: unknown): T[] => (Array.isArray(list) ? list.filter((r): r is T => !!r && typeof r === 'object') : []);
 const finite = (...values: unknown[]) => values.every((v) => typeof v === 'number' && Number.isFinite(v));
 
+export const MAX_LEVEL = 999; // a saved hero's at most (a hero file's past it: at it)
+export const MAX_MONEY = 1e12; // copper (likewise)
+
+// The open tile nearest (x, z), ring by ring out (none near: there).
+function openNear(model: GameModel, x: number, z: number): [number, number] {
+  for (let r = 1; r <= 64; r++) {
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === r && model.isOpenTile(x + dx, z + dz)) return [x + dx, z + dz];
+  }
+  return [x, z];
+}
+
 // Puts a saved game back into a freshly made model of the same world (whatever's broken in it let go, never the save).
 export function restore(model: GameModel, data: SaveData): void {
   const { hero } = model;
@@ -264,6 +276,7 @@ export function restore(model: GameModel, data: SaveData): void {
   const known = (item: string): item is BagItem => Object.hasOwn(LOOT, item) || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
   const equipment = readEquipment(saved.equipment);
+  const level = Math.min(MAX_LEVEL, Math.max(1, Math.floor(saved.level)));
   Object.assign(hero, {
     name: saved.name,
     look: readLook(saved.look),
@@ -283,9 +296,9 @@ export function restore(model: GameModel, data: SaveData): void {
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
-    money: Math.max(0, Math.floor(saved.money)),
-    level: Math.max(1, Math.floor(saved.level)),
-    xp: Math.max(0, saved.xp),
+    money: Math.min(MAX_MONEY, Math.max(0, Math.floor(saved.money))), // (a hero file's huge number: as much as a hero could have)
+    level,
+    xp: Math.min(xpToNext(level) - 1, Math.max(0, saved.xp)), // (short of the next level: more, and the next gained never ends)
     ...pointsOf(saved, records<{ slain: unknown }>(data.crypts).filter((d) => Array.isArray(d.slain) && d.slain.includes(AWARD_POST)).length),
     facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
@@ -323,8 +336,10 @@ export function restore(model: GameModel, data: SaveData): void {
     if (saved.upstairs && stairs) model.inside = upstairsInside(building, room, stairs, model.seed, model.fullWalls); // on the floor above
     else model.enterRoom(building); // (as going in: a crypt's walls with it)
     if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0, facing: Number.isFinite(saved.facing) ? saved.facing : hero.facing }); // (lost: at the door, as they came in; facing as they were, not as going in turned them)
-  } else if (placed) {
-    model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
+  } else if (placed || (saved.inside !== null && data.version !== 1)) {
+    const at = saved.inside !== null ? doorPlace(saved.inside) : saved; // (indoors in a building since let go, the town stood in its place: outside where its door was)
+    model.teleport(Math.min(model.size.width - 1, Math.max(0, at.x)), Math.min(model.size.depth - 1, Math.max(0, at.z)));
+    if (!model.isOpenTile(Math.round(hero.x), Math.round(hero.z))) model.teleport(...openNear(model, Math.round(hero.x), Math.round(hero.z))); // (where a wall since stands, the town's say: beside it)
   } // (lost outdoors: where they set out)
   // Foes: the slain gone, the hurt and the wandered where they were; but only
   // if the world's foes are those the save knew (the game since changed how
@@ -362,6 +377,10 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   model.bounties.load(data.bounties);
+  // (Taken at the board of a village since let go, the town stood in its place: let go too, but told.)
+  const boards = [...records<{ key: unknown }>(data.quests?.taken), ...records<{ key: unknown }>((data.bounties as { taken?: unknown })?.taken)].map(({ key }) => Number(String(key).split(':')[0]));
+  const lost = model.streamed ? boards.filter((board) => Number.isInteger(board) && board >= 0 && !model.villageOf(board)).length : 0;
+  if (lost) model.report({ kind: 'banner', title: lost === 1 ? 'A task let go' : `${lost} tasks let go`, line: 'Taken at a village the cathedral town now stands in place of' });
   model.heat.load(data.heat);
   model.roads.load(data.roads);
   model.dice.load(data.dice);
