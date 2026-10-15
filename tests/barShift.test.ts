@@ -110,7 +110,7 @@ describe('a pour', () => {
 });
 
 describe('the stools', () => {
-  it("a patron's order is handed across the bar to them: set down before them, a wage and a tip, the better the pour the more", () => {
+  it("a patron's order is handed across the bar to them: set down before them, a wage and a tip, the better the pour the more (a thin one, none)", () => {
     const { inn, stool, shift } = behindTheBar();
     const patron = patronOn(inn, stool);
     run(shift, [patron], 0.1);
@@ -130,7 +130,7 @@ describe('the stools', () => {
     const other = patronOn(again.inn, again.stool, 78);
     run(again.shift, [other], 0.1);
     poured(again.shift, [...again.shift.wants.values()][0].drink, 0.4, [other]);
-    expect(again.shift.use(row)!).toBeLessThan(paid);
+    expect(again.shift.use(row)!).toBe(WAGE); // (the wage, and no tip at all)
   });
 
   it('a patron kept waiting too long gets up and goes, their order out of the queue', () => {

@@ -6,6 +6,8 @@ import { GameModel } from '../src/model/GameModel';
 import { createBar, type BarView } from '../src/controller/trade/barOrder';
 import { ordersAt } from '../src/model/inn/barOrders';
 import { mugsAt } from '../src/model/inn/barMugs';
+import { serveTable } from '../src/model/inn/innStaff';
+import type { InnShift } from '../src/model/jobs/innShift';
 import { seatOf, type Furniture } from '../src/model/interiors/furniture';
 import type { Entrance } from '../src/model/interiors/interiors';
 import { TEST_MAP_SIZE } from './support/testWorld';
@@ -56,6 +58,23 @@ describe("the hero's own order at the bar", () => {
   const view: BarView = { heroDrinks: () => {}, heroStopsDrinking: () => {}, speak: () => {}, countdown: () => {} };
   const barmaidOf = (model: GameModel, inn: Entrance) => model.folk.find((n) => n.role === 'barkeep' && n.where === inn)!;
 
+  it('has her greet them as they sit down at her bar, once a stool (not again while sat)', () => {
+    const { model, furniture } = inTheInn();
+    const [first, second] = furniture.filter((f) => f.kind === 'barStool');
+    const said: string[] = [];
+    const bar = createBar(model, { ...view, speak: (_, text) => said.push(text) });
+    bar.update();
+    expect(said).toEqual([]);
+    sitOn(model, first);
+    bar.update();
+    bar.update();
+    expect(said).toHaveLength(1);
+    sitOn(model, second);
+    bar.update();
+    expect(said).toHaveLength(2);
+    expect(said.join(' ')).not.toContain('{name}');
+  });
+
   it("is called off when they get up still waiting: out of her queue, never handed over on another stool, nothing paid", () => {
     const { model, inn, furniture } = inTheInn();
     const [first, second] = furniture.filter((f) => f.kind === 'barStool');
@@ -102,5 +121,35 @@ describe("the hero's own order at the bar", () => {
     bar.update();
     timers.splice(0).forEach((f) => f());
     expect([model.hero.drinking ?? null, model.hero.money, bar.busy]).toEqual([null, 100, false]);
+  });
+});
+
+describe('the server, sat by the fire', () => {
+  it("is up from her chair before carrying a table's drinks over (not walking the room sat)", () => {
+    const { model, inn, furniture } = inTheInn();
+    const server = model.npcs.find((n) => n.role === 'server' && n.home === inn)!;
+    model.work.start(inn, 'innServer');
+    for (let t = 0; t < 20 && !server.seat; t += 0.1) model.update(0, 0, 0.1);
+    expect(server.seat).toBeTruthy(); // (her break)
+    model.work.end(true);
+    serveTable(server, furniture.find((f) => f.kind === 'tavernTable')!, 'ale', () => {}, model.seed);
+    expect([server.seat, server.y]).toEqual([null, 0]);
+  });
+});
+
+describe("the tables' orders with the barkeep, the shift over", () => {
+  it("are out of her queue, the one at its front too: not poured after for no one", () => {
+    const { model, inn, furniture } = inTheInn();
+    const chair = furniture.find((f) => f.kind === 'chair')!;
+    const patron = model.npcs.find((n) => n.role === 'villager' && n.inn === inn)!;
+    Object.assign(patron, { where: inn, x: chair.x + 1, z: chair.z, steps: [{ kind: 'sit', seat: seatOf(chair)!, for: 60 }], path: null, waited: 0 });
+    model.update(0, 0, 0.1);
+    expect(model.work.start(inn, 'innServer')).toBe(true);
+    const shift = model.work.shift as InnShift;
+    for (let t = 0; t < 15 && shift.wants.get(patron)?.state !== 'calling'; t += 0.1) shift.update(model.folk, 0.1);
+    shift.use({ x: patron.x + 0.5, z: patron.z }, model.folk); // (their order taken: to her)
+    expect(ordersAt(inn)).toHaveLength(1);
+    model.work.end(true);
+    expect(ordersAt(inn)).toEqual([]);
   });
 });
