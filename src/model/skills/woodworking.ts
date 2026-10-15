@@ -113,15 +113,15 @@ export class Woodworking {
     return Math.min(...Object.entries(RECIPES[id].from).map(([item, n]) => Math.floor((bag[item as LootId] ?? 0) / n!)));
   }
 
-  // `count` of a recipe begun (Infinity: all the materials make); whether it was (known, and the materials for one).
-  // Chopping and cooking stop for it; at work, nothing's begun.
   // Whether what `id` makes would go in the bag (a stack of it with room, or a slot free: the last of its materials'
-  // among them).
+  // among them; a piece of gear, a stack of its own: never on a plain one's).
   roomFor(id: RecipeId): boolean {
     const makes = RECIPES[id].makes;
-    return canSwap(this.host.hero, RECIPES[id].from, [typeof makes === 'string' ? makes : makes.item]);
+    return canSwap(this.host.hero, RECIPES[id].from, [typeof makes === 'string' ? makes : gearKey({ ...makes, roll: 0 })]);
   }
 
+  // `count` of a recipe begun (Infinity: all the materials make); whether it was (known, the materials for one, room
+  // for it). Chopping, a line out and cooking stop for it; at work, nothing's begun.
   start(id: RecipeId, count = 1): boolean {
     if (this.host.work.shift || this.canMake(id) === 0 || count < 1 || !this.roomFor(id)) return false; // (a full bag: nothing made to be lost)
     [this.host.lumber.stop(), this.host.fishing.stop(), this.host.cooking.stop()];

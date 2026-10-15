@@ -1,7 +1,7 @@
 // Salvaging (skills.ts): a piece of gear broken down at the salvage bench in a smithy (smithy/smithyLayout.ts: E
 // before it opens the window, controller/skills/salvagePanel.ts) into what it's made of: iron scrap from blades and mail,
 // leather strips from hide, linen from padding and cloth, silver filings (and a gem shard, where there's a stone) from
-// jewellery, oak planks from wooden arms. The better the piece, the more; a rare one leaves something finer besides
+// jewellery, planks from wooden arms (of the wood its level's: birch, pine, oak). The better the piece, the more; a rare one leaves something finer besides
 // (a tempered ingot, a cut gem). Each piece asks a level of the skill, by its own level and rarity, and practises it.
 import type { Hero } from '../types';
 import type { GameEvent } from '../types';
@@ -18,6 +18,9 @@ export type Make = 'iron' | 'leather' | 'cloth' | 'silver' | 'wood';
 export const MAKE_NAMES: Record<Make, string> = { iron: 'Iron', leather: 'Leather', cloth: 'Cloth', silver: 'Silver', wood: 'Wood' };
 export const SCRAP_OF: Record<Make, IngredientId> = { iron: 'ironScrap', leather: 'leatherStrip', cloth: 'linenScrap', silver: 'silverFilings', wood: 'oakPlank' }; // what each leaves
 export const FINER_OF: Record<Make, IngredientId> = { iron: 'temperedIngot', leather: 'temperedIngot', cloth: 'temperedIngot', wood: 'temperedIngot', silver: 'cutGem' }; // and the rare besides
+const PLANKS: ReadonlyArray<[number, IngredientId]> = [[5, 'birchPlank'], [12, 'pinePlank'], [Infinity, 'oakPlank']]; // a wooden piece's, by its level at most (a birch sword never an oak plank)
+// What a piece of `make` at `level` leaves.
+export const scrapOf = (make: Make, level: number): IngredientId => (make === 'wood' ? PLANKS.find(([most]) => level <= most)![1] : SCRAP_OF[make]);
 const RARE_EXTRA: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 };
 const RARE_NEEDS: Record<Rarity, number> = { common: 0, uncommon: 8, rare: 20, epic: 60, legendary: 120 };
 const GEMMED = /ruby|sapphire|jade|amber|pearl|lakeStone|runeStone|signet/;
@@ -47,7 +50,7 @@ export function salvageOf(key: GearKey): Salvaged {
   const base = baseOf(key);
   const make = makeOf(base);
   const [level, rarity] = [levelOf(key), rarityOf(key)];
-  const gives: Array<[IngredientId, number]> = [[SCRAP_OF[make], 1 + Math.floor(level / 6)]];
+  const gives: Array<[IngredientId, number]> = [[scrapOf(make, level), 1 + Math.floor(level / 6)]];
   if (make === 'silver' && GEMMED.test(base)) gives.push(['gemShard', 1]);
   if (RARE_EXTRA[rarity]) gives.push([FINER_OF[make], RARE_EXTRA[rarity]]);
   return { make, needs: Math.max(1, level * 3 - 8) + RARE_NEEDS[rarity], gives }; // (the first levels' gear from the start; a piece of level 20, at 52)
