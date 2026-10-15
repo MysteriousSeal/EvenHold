@@ -37,6 +37,7 @@ import { travellerPrompt, travellerSays } from './model/travellers/travellerTalk
 import { say } from './model/npcs/speech';
 import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
+import { createStallPanel } from './controller/trade/stallPanel';
 import { WORD_HOLD } from './model/travellers/travellers';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { quitsAt } from './model/jobs/room/roomShift';
@@ -204,6 +205,7 @@ async function boot(): Promise<void> {
   };
   const jobs = createJobPanel(model, { setPaused: holdStill('jobs') }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
+  const stalls = createStallPanel(model, { bag }); // the cathedral town's stalls' keepers'
   const board = createQuestBoardPanel(model, { setPaused: holdStill('board'), ride: (to, go) => sleepFade(go, () => {}, `On the road to ${to}…`) });
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
@@ -213,6 +215,7 @@ async function boot(): Promise<void> {
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
+    else if (who.role === 'monger') stalls.open(who);
     else if (who.role === 'witch') talk.show(who, witchTalk(model, who)); // (her lessons, asked across her counter)
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
@@ -353,6 +356,7 @@ async function boot(): Promise<void> {
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
     herbs.update();
+    stalls.update();
     pack.update();
     stash.update(); // (walked off from the strongbox: it shuts)
     journal.update();
