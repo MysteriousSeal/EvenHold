@@ -13,3 +13,6 @@
 }
 .minimap[hidden] { display: none; }
 .minimap canvas { display: block; width: 150px; height: 150px; box-shadow: inset 0 0 18px rgba(122, 74, 32, 0.45); }
+
+/* [ui-layout] The corner map up, the blessings under the clock two to a row (more below), clear of it to their left. */
+body:has(.minimap:not([hidden])) .blessing-hud { max-width: calc(2 * 58px + 22px); }

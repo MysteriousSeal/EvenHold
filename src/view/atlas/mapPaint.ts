@@ -140,6 +140,7 @@ function shore(chart: Chart, i: number, k: number): boolean {
 export interface MapPaint {
   names: boolean; // villages' and places' names written
   namePx?: number; // the villages' names' size (12; the corner map's, smaller)
+  mark?: number; // the marks' and pins' size (1; the corner map's, smaller, a place's drawn whole within its frame or not at all)
   pins: readonly MapPin[];
   places: readonly Place[];
 }
@@ -212,31 +213,41 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     ctx.fillText(text, x, y);
   };
   // The marks first: the villages seen (a house), the places come upon (struck through once cleared), the pins' heads.
+  const m = paint.mark ?? 1;
+  const sized = (x: number, y: number, draw: (x: number, y: number) => void) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(m, m);
+    draw(0, 0);
+    ctx.restore();
+  };
   const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
   for (const v of villages) {
     const [x, y] = at(v.x + 0.5, v.z + 0.5);
-    if (v.town) cathedral(ctx, x, y);
-    else house(ctx, x, y);
-    take(x - 7, y - (v.town ? 20 : 8), x + 7, y + 5);
+    sized(x, y, (x, y) => (v.town ? cathedral : house)(ctx, x, y));
+    take(x - 7 * m, y - (v.town ? 20 : 8) * m, x + 7 * m, y + 5 * m);
   }
+  const rim = paint.mark ? 10 * m : -20; // (the corner map's whole within its frame; the map's, cut by its edge)
   const places = paint.places.filter((p) => {
-    const [x, y] = at(p.x, p.z);
-    return x > -20 && y > -20 && x < width + 20 && y < height + 20;
+    const [x, y] = at(p.x + 0.5, p.z + 0.5);
+    return x > rim && y > rim && x < width - rim && y < height - rim;
   });
   for (const place of places) {
     const [x, y] = at(place.x + 0.5, place.z + 0.5);
-    glyph(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
-    if (!place.cleared) continue;
-    ctx.strokeStyle = '#b02a24';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x - 8, y + 6);
-    ctx.lineTo(x + 8, y - 8);
-    ctx.stroke();
+    sized(x, y, (x, y) => {
+      glyph(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
+      if (!place.cleared) return;
+      ctx.strokeStyle = '#b02a24';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y + 6);
+      ctx.lineTo(x + 8, y - 8);
+      ctx.stroke();
+    });
   }
   for (const pin of paint.pins) {
     const [x, y] = at(pin.x + 0.5, pin.z + 0.5);
-    take(x - 6, y - 18, x + 6, y);
+    take(x - 6 * m, y - 18 * m, x + 6 * m, y);
   }
   // Then the names, under their marks: the villages' (and their levels, in how dangerous they are to the hero), nearest
   // the middle first; close up, the places'.
@@ -257,7 +268,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     }
     for (const place of places) {
       const [x, y] = at(place.x + 0.5, place.z + 0.5);
-      take(x - 8, y - 9, x + 8, y + 7);
+      take(x - 8 * m, y - 9 * m, x + 8 * m, y + 7 * m);
     }
     for (const place of scale >= 2.5 ? places : []) {
       const [x, py] = at(place.x + 0.5, place.z + 0.5);
@@ -269,7 +280,10 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       label(place.name, x, y, 11);
     }
   }
-  for (const pin of paint.pins) drawPin(ctx, pin, ...atRim(...at(pin.x + 0.5, pin.z + 0.5), width, height));
+  for (const pin of paint.pins) {
+    const [x, y] = atRim(...at(pin.x + 0.5, pin.z + 0.5), width, height);
+    sized(x, y, (x, y) => drawPin(ctx, pin, x, y));
+  }
   hero(ctx, ...at(model.inside?.entrance.x ?? model.hero.x, model.inside?.entrance.z ?? model.hero.z), screenFacing(model.hero.facing));
   compass(ctx, width - 16, 30, INK);
 }
