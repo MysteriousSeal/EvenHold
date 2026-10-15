@@ -154,7 +154,7 @@ export class Story {
   }
 
   // What the game tells of (GameModel.report): a bandit camp cleared, a shift worked to its end, a wish at a well, the
-  // Undercroft under the Minster cleared (its saint fallen: the reliquary's to tell).
+  // bishop's ossuary under the Minster cleared (the Gilded Deacon fallen: the reliquary's to tell).
   onEvent(event: GameEvent): void {
     const cleared = event.kind === 'cleared' ? (event.place as string | undefined) : undefined;
     const what = cleared === 'camp' ? 'clearCamp' : cleared === 'reliquary' ? 'reliquary' : event.kind === 'shift' && !event.early ? 'shift' : event.kind === 'blessing' ? 'wish' : null;

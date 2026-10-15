@@ -111,7 +111,7 @@ function toTheStair(model: GameModel, witch: RegExp): { home: { x: number; z: nu
 function toTheEnd(model: GameModel, bargain: RegExp, home: { x: number; z: number }): Talk {
   const { story } = model;
   const sister = of(model, 'sister');
-  model.report({ kind: 'cleared', name: 'the Undercroft', place: 'reliquary' } as unknown as GameEvent); // (its saint fallen: the Undercroft's to tell)
+  model.report({ kind: 'cleared', name: "the bishop's ossuary", place: 'reliquary' } as unknown as GameEvent); // (the Gilded Deacon fallen: the reliquary's to tell)
   expect(story.markOf(sister)).toBe('ready');
   say(story.talk(sister));
   say(story.talk(of(model, 'deacon')));

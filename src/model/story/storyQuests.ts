@@ -30,7 +30,7 @@ export type Objective =
   | { kind: 'bring'; item: LootId; count: number } // carried, and given over as it's handed in
   | { kind: 'slay'; foe: EnemyKind; count: number } // slain since it was taken, anywhere
   | { kind: 'reach'; place: StoryPlace; within: number } // come within so many tiles of
-  | { kind: 'do'; what: 'clearCamp' | 'shift' | 'wish' | 'reliquary'; count: number }; // a bandit camp cleared, a shift worked at an inn, a coin tossed in a well, the Undercroft under the Minster cleared (its saint fallen)
+  | { kind: 'do'; what: 'clearCamp' | 'shift' | 'wish' | 'reliquary'; count: number }; // a bandit camp cleared, a shift worked at an inn, a coin tossed in a well, the bishop's ossuary under the Minster cleared (the Gilded Deacon fallen)
 
 // A thing given besides the coin: so many of something, or a piece of gear made at the village's level.
 export type Gift = { item: LootId; count: number } | { gear: ItemId; least: Rarity };
