@@ -104,6 +104,7 @@ export function staffSteps(npc: Npc, npcs: readonly Npc[], seed: number): NpcSte
   return steps;
 }
 
+const pouredTables = new WeakSet<Npc>(); // barkeeps whose last trip was the tables' (a stool's next, if one waits)
 function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   npc.stop++;
   const { room, furniture } = layoutOf(seed, npc.home);
@@ -116,11 +117,13 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   upFromHerChair(npc);
   if (npc.role === 'barkeep') {
     // An order waiting: the tables' first (the hero serving them, stood waiting at the counter's end: all poured in
-    // one trip), then the stools', first come, first served.
+    // one trip), then the stools', first come, first served; a trip for the tables and a stool's in turn, while both
+    // wait (the stools never left dry by the tables' coming on and on).
     const tables = ordersAt(npc.home).filter((o) => o.batch);
-    if (tables.length > 0) return serveTables(npc, tables);
-    const order = ordersAt(npc.home)[0];
-    if (order) return serve(npc, order, furniture.find((f) => f.kind === 'bottleShelf'));
+    const stool = ordersAt(npc.home).find((o) => !o.batch);
+    if (tables.length > 0 && !(stool && pouredTables.has(npc))) return pouredTables.add(npc), serveTables(npc, tables);
+    pouredTables.delete(npc);
+    if (stool) return serve(npc, stool, furniture.find((f) => f.kind === 'bottleShelf'));
     npc.serving = false;
     // An empty mug left a while: over to take it, and to the sink to wash it.
     const mug = roundOnBar(npc.home);
