@@ -1,5 +1,5 @@
 // A look at the cathedral town in the game's own view, to capture headless (npx vite, then /tests/preview/town.html?
-// seed=&at=dx,dz (from its well)&hour=&zoom=&inside=1 (in the cathedral, at=x,z on its floor)): a streamed world, the
+// seed=&at=dx,dz (from its well)&hour=&zoom=&inside=1|x,z (in the cathedral, on its floor)&frames=): a streamed world, the
 // hero stood there, the clock at that hour. window.done once drawn; window.stats its draw calls and triangles.
 import { GameModel } from '../../src/model/GameModel';
 import { STREAMED_SIZE } from '../../src/model/worldgen/regions';
@@ -28,7 +28,7 @@ await view.finish();
 const zoom = Number(q.get('zoom') ?? 0);
 const camera = (view as unknown as { camera: { zoom: number; updateProjectionMatrix(): void } }).camera;
 if (zoom) Object.defineProperty(camera, 'zoom', { get: () => zoom, set: () => camera.updateProjectionMatrix() }); // (past the game's own farthest: a look from afar)
-for (let i = 0; i < 90; i++) {
+for (let i = 0, frames = Number(q.get('frames') ?? 20); i < frames; i++) {
   view.update(1 / 30);
   view.render();
   await new Promise((r) => setTimeout(r, 0));
