@@ -72,12 +72,16 @@ export function smithAsks(key: GearKey): number {
   return worth >= 240 ? 7 : worth >= 200 ? 5 : worth >= 150 ? 3 : 1;
 }
 
-// Whether he'll sell it to `hero`, as far as he's concerned (not what's in stock).
+// Whether he'll sell it to `hero` openly, as far as he's concerned (not what's in stock).
 export const smithSellsTo = (hero: Pick<Hero, 'level'>, key: GearKey): boolean => hero.level >= smithAsks(key);
 
+// What he'd want for it from `hero`: its price; or, not for them yet, from under the counter, UNDER_COUNTER times it
+// (a bribe: he'll sell it all the same).
+export const UNDER_COUNTER = 2.5;
+export const smithPriceFor = (hero: Pick<Hero, 'level'>, key: GearKey): number => (smithSellsTo(hero, key) ? gearPrice(key) : Math.ceil(gearPrice(key) * UNDER_COUNTER));
+
 export function buyGear(shop: Shop, hero: Hero, id: GearKey): 'bought' | 'sold out' | 'too poor' | 'full' {
-  if (!smithSellsTo(hero, id)) return 'sold out'; // (not for them, yet: off his wall)
-  return buyFrom(shop, hero, id, gearPrice(id));
+  return buyFrom(shop, hero, id, smithPriceFor(hero, id));
 }
 
 export function sellGear(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'he is short' {

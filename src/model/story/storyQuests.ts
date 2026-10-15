@@ -12,6 +12,7 @@ import type { LootId } from '../loot/loot';
 import type { ItemId } from '../human/items';
 import type { Rarity } from '../human/items/gear';
 import type { Build } from '../human/humanoid';
+import type { Choice } from './storyChoices';
 
 export type StoryQuestId = string;
 // Who's who, by the village a quest is set in: its keepers; two of its villagers; the barmaid of the village nearest
@@ -39,6 +40,7 @@ export interface Told {
   carter: string; // (the first village's)
   camp: string; // the bandit camp nearest it, by name
   axe: boolean; // whether the hero has an axe to chop with (in hand or in the pack), as they speak
+  chose?(id: StoryQuestId): string | undefined; // the way the hero took at a quest that was a choice (storyChoices.ts), if they took one
 }
 
 export interface StoryQuest {
@@ -66,6 +68,7 @@ export interface StoryQuest {
   stake?: { copper: number } | { item: LootId; count: number }; // what the giver hands over as it's taken, to do it with (the silver for a well; potions for a fight): once, however often it's taken up again
   sex?: Build; // whoever gives it, where the words have them a man or a woman ("my wife", "my husband"): offered only by one (story.ts)
   night?: boolean; // handed in, the night's spent with whoever takes it: all health and energy back, and up in the morning (offered only by someone of the other sex than the hero's: story.ts)
+  choice?: Choice[]; // its handing in a choice: each way its own answer, its word after and reward (storyChoices.ts); `thanks` unsaid
 }
 
 // A village's quest, with what most of them share said once.

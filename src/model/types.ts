@@ -55,6 +55,7 @@ export interface Hero extends Humanoid {
   eating?: Meal | null;
   spells?: SpellId[]; // the charms they know (spells/spells.ts): none, till taught
   spellWait?: Partial<Record<SpellId, number>>; // seconds before each may be cast again
+  wear?: Record<string, number>; // how worn each piece of gear is, by its key (hero/wear.ts; none: unworn)
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 

@@ -5,6 +5,7 @@
 // of their coin lost, and wake in the last inn they entered (or at spawn,
 // before any), healed.
 
+import { wearOnFall } from './wear';
 import type { GameModel } from '../GameModel';
 import { recover } from './heroStats';
 import { maxEnergyOf, maxHpOf } from './attributes';
@@ -73,6 +74,7 @@ const FALL_TOLL_MOST = 100; // copper, at most
 export function fall(model: GameModel): void {
   const { hero } = model;
   hero.money -= Math.min(FALL_TOLL_MOST, Math.floor(hero.money * FALL_TOLL));
+  wearOnFall(hero, (e) => model.report(e)); // (everything they wear knocked about: hero/wear.ts)
   makeWeary(hero);
   [hero.knock, hero.y, model.moves.roll, model.moves.guard] = [undefined, 0, null, null]; // (no knock nor roll still carrying them, waking)
   const spawn = spawnOf(model.size);

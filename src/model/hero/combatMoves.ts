@@ -1,4 +1,4 @@
-// The hero's moves in a fight: the blow (Space), landing partway through; a roll (Shift) that carries
+// The hero's moves in a fight: the blow (Space), landing partway through (as long as the weapon's: weaponProfiles.ts); a roll (Shift) that carries
 // them a few tiles, untouchable for most of it, out of a foe's marked
 // ground; a guard (hold Q), toward the foe focused, that cuts the blows it takes from before them (not behind), and, raised just as
 // one lands, parries it: no harm, the foe staggered, its next blow from the
@@ -12,6 +12,7 @@ import { baseOf } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
 import { TIRED } from './heroStats';
+import { profileOf } from './weaponProfiles';
 import { ATTACK_DURATION, ATTACK_STRIKE, ENEMY_STATS, HIT_FLASH } from '../constants';
 
 export const BREATH = 100; // the most, rested
@@ -20,7 +21,7 @@ const REFILL = 45; // a second, once it's begun refilling
 const TIRED_REFILL = 0.5; // (how much slower, tired)
 const GUARD_REFILL = 0.35; // (and behind a raised guard)
 const PAUSE = 0.6; // seconds after it's spent before it refills
-export const COST = { blow: 12, roll: 28 };
+export const COST = { blow: 12, roll: 28 }; // (a blow's: a sword's; each kind of weapon its own, weaponProfiles.ts)
 const BLOCK_COST = 8; // a blow blocked: this, and 1.5 a point of its harm
 const BLOCK_COST_PER = 1.5;
 
@@ -55,7 +56,7 @@ export class CombatMoves {
   private keen = true; // whether the guard as raised may parry (not raised again straight after the last)
   private sinceRaised = PARRY_AGAIN; // seconds since the guard was last raised
   private riposte: { foe: Enemy; left: number } | null = null; // a foe just parried, open to a critical blow
-  private blow: { t: number; landed: boolean } | null = null; // a blow under way: seconds into it, whether it's landed (once)
+  private blow: { t: number; time: number; landed: boolean } | null = null; // a blow under way: seconds into it, its length (the weapon's), whether it's landed (once)
   private wait = 0; // seconds before breath refills
   private sinceRoll = PUNISH; // seconds since the last roll ended
 
@@ -74,10 +75,11 @@ export class CombatMoves {
     return true;
   }
 
-  // Starts a blow (not mid-blow or mid-roll, breath to spend), the guard lowered; whether it did.
+  // Starts a blow (not mid-blow or mid-roll, breath to spend: the weapon's), the guard lowered; whether it did.
   startBlow(): boolean {
-    if (this.blow || this.roll || !this.spend(COST.blow)) return false;
-    this.blow = { t: 0, landed: false };
+    const weapon = profileOf(this.hero);
+    if (this.blow || this.roll || !this.spend(weapon.breath)) return false;
+    this.blow = { t: 0, time: ATTACK_DURATION * weapon.time, landed: false };
     this.guard = null;
     this.hero.eating = null; // (up to strike: a meal from the bag left)
     return true;
@@ -85,7 +87,7 @@ export class CombatMoves {
 
   // How far through the blow they are, 0..1, or null.
   get blowProgress(): number | null {
-    return this.blow ? Math.min(1, this.blow.t / ATTACK_DURATION) : null;
+    return this.blow ? Math.min(1, this.blow.t / this.blow.time) : null;
   }
 
   // Rolls along (dirX, dirZ) (still: forward, the way they face); whether they did (not mid-blow or mid-roll,
@@ -131,8 +133,8 @@ export class CombatMoves {
     const blow = this.blow;
     if (blow) {
       blow.t += dt;
-      if (!blow.landed && blow.t >= ATTACK_STRIKE * ATTACK_DURATION) [blow.landed] = [true, land?.()];
-      if (blow.t >= ATTACK_DURATION) this.blow = null;
+      if (!blow.landed && blow.t >= ATTACK_STRIKE * blow.time) [blow.landed] = [true, land?.()];
+      if (blow.t >= blow.time) this.blow = null;
     }
     if (this.wait > 0) this.wait = Math.max(0, this.wait - dt);
     else this.breath += REFILL * (this.hero.energy < TIRED ? TIRED_REFILL : 1) * (this.guard !== null ? GUARD_REFILL : 1) * dt;

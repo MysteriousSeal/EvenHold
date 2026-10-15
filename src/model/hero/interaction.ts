@@ -5,7 +5,7 @@
 // a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the carter by his wagon; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
 // (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench; a
-// fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; and, with nothing else, a tree that
+// fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; any villager, for a word; and, with nothing else, a tree that
 // can't be chopped yet, a shore with no rod to fish it (told why).
 // `skip`: kinds to pass over (the game's E, tried and come to nothing: a full bag's loot, a seat taken: the next).
 import type { GameModel } from '../GameModel';
@@ -15,6 +15,7 @@ import { doorAt, stairsInReach } from '../interiors/upstairs';
 import { chestInReach } from '../loot/chests';
 import type { GroundLoot } from '../loot/loot';
 import { talkingTo } from '../npcs/talk';
+import { villagerInReach } from '../npcs/chat';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
 import type { FishAction } from '../skills/fishing';
@@ -105,6 +106,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield inside && stairsInReach(inside, hero) ? { kind: 'stairs', down: !!inside.below } : null;
   const door = model.doorInReach;
   yield door ? { kind: 'door', door, leaving: !!inside } : null;
+  const chatter = seated ? null : villagerInReach(model); // (any villager, for a word: npcs/chat.ts; after everything else, no door nor seat lost to one passing)
+  yield chatter ? { kind: 'talk', npc: chatter, fromStool: false } : null;
   yield chop?.kind === 'cannot' ? { kind: 'cannotChop', action: chop } : null;
   yield fish?.kind === 'cannot' ? { kind: 'cannotFish', action: fish } : null;
 }

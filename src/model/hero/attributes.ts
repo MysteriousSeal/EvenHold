@@ -13,6 +13,7 @@
 // or armour, or a special one: crit and dodge (on Agility's, under the same cap), health back over time, pace, life
 // on hit (gearAffixes).
 
+import { brokenKey, isBroken } from './wear';
 import { HERO_DAMAGE } from '../constants';
 import { AFFIXES, gearSpecs, noSpecs, type Affix, type GearSpecs } from '../human/items/gear';
 import type { Hero } from '../types';
@@ -37,14 +38,15 @@ export const maxHpAt = (level: number): number => BASE_HP + HP_PER_LEVEL * (leve
 
 // What all they wear gives, added up once for what they wear (asked each frame: their pace, their health back),
 // again only once that changes. (Not to be changed by those asking.)
+// A broken piece gives nothing (hero/wear.ts).
 const worn = new WeakMap<Hero['equipment'], { pieces: string; specs: GearSpecs }>();
-function wornSpecs(hero: Pick<Hero, 'equipment'>): GearSpecs {
-  const pieces = Object.values(hero.equipment).join('|');
+function wornSpecs(hero: Pick<Hero, 'equipment'> & { wear?: Hero['wear'] }): GearSpecs {
+  const pieces = `${Object.values(hero.equipment).join('|')}/${brokenKey(hero)}`;
   const kept = worn.get(hero.equipment);
   if (kept?.pieces === pieces) return kept.specs;
   const specs = noSpecs();
   for (const item of Object.values(hero.equipment)) {
-    if (!item) continue;
+    if (!item || isBroken(hero, item)) continue;
     const g = gearSpecs(item);
     specs.armor += g.armor;
     for (const s of STATS) specs.stats[s] += g.stats[s];

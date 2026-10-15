@@ -28,15 +28,29 @@ export interface Hands {
 // The loot nearest the hero within reach to pick up (outdoors, or down a dungeon), or null.
 export const lootInReach = (m: Hands): GroundLoot | null => ((m.inside && !m.dungeon) || m.yard ? null : m.groundHere.nearest(m.hero.x, m.hero.z));
 
+const GATHER = 2.5; // tiles round the hero the like of what's picked up is gathered with it (a felled tree's logs, at once)
+
 // Picks up the loot in reach into the hero's bag; returns what it was, or null.
-export function pickUp(m: Hands): BagItem | null {
+export const pickUp = (m: Hands): BagItem | null => gather(m)?.item ?? null;
+
+// Picks up the loot in reach and every other of the same lying near (the nearest first), as many as the bag takes;
+// returns what and how many, or null (nothing in reach; the bag full for even the one: left where it lies, told so).
+export function gather(m: Hands): { item: BagItem; count: number } | null {
   const loot = lootInReach(m);
   if (!loot) return null;
-  if (!canCarry(m.hero, loot.item)) return (m.report({ kind: 'poor', text: 'Your bag is full' }), null); // (left where it lies)
-  m.groundHere.take(loot);
-  addToBag(m.hero.bag, loot.item);
-  m.quests.onPickUp(loot.item);
-  return loot.item;
+  if (!canCarry(m.hero, loot.item)) return (m.report({ kind: 'poor', text: 'Your bag is full' }), null);
+  const { hero } = m;
+  const d = (other: GroundLoot) => Math.hypot(other.x - hero.x, other.z - hero.z);
+  const alike = m.groundHere.loot.filter((other) => other !== loot && other.item === loot.item && d(other) <= GATHER).sort((a, b) => d(a) - d(b));
+  let count = 0;
+  for (const one of [loot, ...alike]) {
+    if (!canCarry(hero, one.item)) break; // (the bag full: the rest left where they lie)
+    m.groundHere.take(one);
+    addToBag(hero.bag, one.item);
+    m.quests.onPickUp(one.item);
+    count++;
+  }
+  return { item: loot.item, count };
 }
 
 // Takes one `item` out of the hero's bag and puts it on the ground just in front of them; returns whether they had

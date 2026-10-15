@@ -12,6 +12,8 @@ import type { SavedFloors } from './dungeons/dungeonFloors';
 import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
+import { readWear } from './hero/wear';
+import { readStops, savedStops } from './villages/wagons';
 import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
@@ -58,6 +60,7 @@ export interface SaveData {
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
+    wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
     jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts; older saves: none)
     skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts; older saves: none)
     bagCounts?: number[]; // how many in each slot (older saves: none, packed)
@@ -91,6 +94,7 @@ export interface SaveData {
   lets?: Array<{ inn: number; until: number }>;
   travellers?: ReturnType<Travellers['save']>; // those on the roads: where each is, which way, their health; those to set out again // the rooms let at the inns, till when (game minutes)
   fullWalls?: boolean; // the option: rooms' inner walls full height
+  stops?: unknown[]; // the villages been to, the wagons' stops (villages/wagons.ts; older saves: none)
   swaps?: unknown; // those whose sex a charm's changed, by kind and number (spells/swaps.ts)
   chickens?: unknown; // whoever's been turned into one, for good: the hens, and the villagers lost (spells/turned.ts)
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:', a stronghold's gate, 'stronghold:'; by post)
@@ -141,6 +145,7 @@ export function snapshot(model: GameModel): SaveData {
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
       eating: hero.eating ? { ...hero.eating } : null,
       potionCooldown: hero.potionCooldown ?? 0,
+      wear: { ...hero.wear }, // (how worn each piece is: hero/wear.ts)
       spellWait: { ...hero.spellWait },
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
@@ -164,6 +169,7 @@ export function snapshot(model: GameModel): SaveData {
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
+    stops: savedStops(model.welcome.stops),
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     trees: model.lumber.saved(), // the trees chopped at, felled for good
     kindled: model.cooking.saved(), // the campfire lit, and its firewood with it
@@ -233,6 +239,7 @@ export function restore(model: GameModel, data: SaveData): void {
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
+    wear: readWear(saved.wear), // (older saves: all unworn)
     potionCooldown: typeof saved.potionCooldown === 'number' && Number.isFinite(saved.potionCooldown) ? Math.min(POTION_COOLDOWN, Math.max(0, saved.potionCooldown)) : 0,
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
@@ -251,6 +258,7 @@ export function restore(model: GameModel, data: SaveData): void {
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? doorAt(saved.lastInn) : null;
   model.fullWalls = data.fullWalls === true;
+  model.welcome.stops = readStops(data.stops);
   for (const { inn, open } of records<{ inn: unknown; open: unknown }>(data.doors)) {
     const building = typeof inn === 'number' ? doorAt(inn) : null;
     if (building && Array.isArray(open)) setOpenDoors(building, open.filter((k) => typeof k === 'string'));

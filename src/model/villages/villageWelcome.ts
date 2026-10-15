@@ -9,6 +9,8 @@ import { zoneLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
 import type { Building, GameEvent, House, Village } from '../types';
 import { Arrival } from '../world/arrival';
+import { boardFor } from '../quests/noticeBoards';
+import { stopBy, stopKey, type Stop } from './wagons';
 
 const ENTER = 12; // tiles from its well: come into it
 const LEAVE = 16; // tiles from it: gone out of it (farther than ENTER, so its edge isn't told over and over)
@@ -25,6 +27,7 @@ type Here = { village: Village; name: string; level: number }; // (its name and 
 
 export class VillageWelcome {
   private readonly arrival = new Arrival<Here>((here) => here.village, LEAVE);
+  stops = new Map<string, Stop>(); // the villages been to, as the wagons go to them (wagons.ts; kept in the save)
 
   constructor(private readonly world: () => VillageWorld) {} // (asked when it's needed: the world made by then)
 
@@ -38,7 +41,10 @@ export class VillageWelcome {
       }
       return nearest && { village: nearest, name: villageName(nearest, world.seed), level: zoneLevel(spawnOf(world.size), nearest) };
     });
-    if (here) report({ kind: 'village', name: here.name, level: here.level });
+    if (!here) return;
+    report({ kind: 'village', name: here.name, level: here.level });
+    const key = stopKey(here.village);
+    if (!this.stops.has(key)) this.stops.set(key, { name: here.name, level: here.level, ...stopBy(boardFor(this.world(), here.village)) });
   }
 
   // The village the hero's in (it, its name and level), or null.

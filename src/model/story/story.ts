@@ -27,6 +27,7 @@ import { alreadyDone } from './storyAlready';
 import { restock, type RestockHost } from './storyRestock';
 import { goalOf, innOf } from './storyGoals';
 import type { Gift, StoryQuest, Told } from './storyQuests';
+import { Choices, choiceAnswers, type Choice } from './storyChoices';
 import { keyOf, lacks, place, resettle, sameWorld, settingFor, settle, type Instance, type QuestSet } from './storySet';
 
 export { STORY_QUESTS } from './quests/catalog';
@@ -108,6 +109,7 @@ export class Story {
   private world: QuestSet | null = null;
   private home: Home = null; // the first village, once its line's taken up: kept, and in the save (storyCast.ts castOf)
   private haunted = -Infinity; // the game's minute what the quests ask for was last looked to (storyRestock.ts)
+  readonly choices = new Choices(); // the ways the hero took where the story left it to them (storyChoices.ts; in the save)
 
   constructor(private readonly host: StoryHost) {}
 
@@ -141,7 +143,7 @@ export class Story {
     const from = at ? name(quest.giver, 'someone') : (giver?.name ?? 'a traveller');
     return {
       village: at?.names.village ?? 'the road', giver: from, receiver: name(quest.receiver, from), next: at?.names.next ?? 'the next village',
-      barmaid: name('barmaid', 'the barmaid'), smith: name('smith', 'the smith'), carter: name('carter', 'the carter'), camp: at?.names.camp ?? 'the camp', axe: this.host.lumber?.axe ?? false,
+      barmaid: name('barmaid', 'the barmaid'), smith: name('smith', 'the smith'), carter: name('carter', 'the carter'), camp: at?.names.camp ?? 'the camp', axe: this.host.lumber?.axe ?? false, chose: this.choices.of,
     };
   }
 
@@ -186,10 +188,7 @@ export class Story {
     return { have: Math.min(of, have), of };
   }
 
-  ready(id: string): boolean {
-    const { have, of } = this.progress(id);
-    return have >= of;
-  }
+  ready = (id: string): boolean => this.progress(id).have >= this.progress(id).of;
 
   // Something done toward the taken quests it counts for: told (as the boards' are); one with no one to go back to,
   // all it asks done: finished, and paid.
@@ -295,7 +294,7 @@ export class Story {
     if (handIn) {
       const full = !this.roomFor(handIn.i.quest.gift);
       if (full) return { speaker, lines: ["Your bag's full. Make room, and you'll have what I owe you."], answers: hasTrade(who) ? [{ label: 'Show me your wares.', primary: true, trade: true, pick: () => {} }, { label: 'Later.', pick: () => {} }] : [] }; // (someone with a trade: their wares still to be had, to make that room)
-      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: [{ label: handIn.i.quest.thanks, primary: true, pick: () => void this.handIn(handIn.i.key) }] };
+      return { speaker, lines: handIn.i.quest.handIn(this.told(handIn.i, who)), quest: about(handIn.i, 'handIn'), night: handIn.i.quest.night ? () => this.sleep(handIn.i.key) : undefined, answers: choiceAnswers(handIn.i.quest, this.told(handIn.i, who), speaker, (choice) => this.handIn(handIn.i.key, choice)) };
     }
     const offer = mine.find((m) => m.state === 'offered' && m.gives);
     if (offer) {
@@ -313,9 +312,7 @@ export class Story {
   }
 
   // Those under way and tracked on screen: how many.
-  get trackedCount(): number {
-    return [...this.state].filter(([key, s]) => s === 'taken' && !this.untracked.has(key)).length;
-  }
+  get trackedCount(): number { return [...this.state].filter(([key, s]) => s === 'taken' && !this.untracked.has(key)).length; }
 
   isTracked(id: string): boolean {
     return this.stateOf(id) === 'taken' && !this.untracked.has(keyed(id));
@@ -384,24 +381,25 @@ export class Story {
   }
 
   // Handed in (or, with no one to hand it to, done): what was to be brought given over, paid (coin, experience, its
-  // gift), and done for good.
-  handIn(id: string): boolean {
+  // gift; a way chosen, its own on top; a way chosen before, what it earned here), and done for good.
+  handIn(id: string, choice?: Choice): boolean {
     const key = keyed(id);
     const quest = STORY_QUESTS[idOf(key)];
     if (!quest || this.state.get(key) !== 'taken' || !this.ready(key) || !this.roomFor(quest.gift)) return false;
     const { hero } = this.host;
     const { copper, xp } = this.pays(key);
     if (quest.needs?.kind === 'bring') for (let i = 0; i < quest.needs.count; i++) takeFromBag(hero.bag, quest.needs.item);
-    const gift = quest.gift;
-    if (gift && 'gear' in gift) addToBag(hero.bag, rollGear(gift.gear, this.level(key), mulberry32(Math.round(hashUnit(key.length, copper, this.host.seed) * 1e9)), 1, gift.least) as BagItem);
-    else if (gift) for (let i = 0; i < gift.count; i++) addToBag(hero.bag, gift.item);
+    const give = (gift: Gift | null | undefined) => gift && ('gear' in gift ? addToBag(hero.bag, rollGear(gift.gear, this.level(key), mulberry32(Math.round(hashUnit(key.length, copper, this.host.seed) * 1e9)), 1, gift.least) as BagItem) : Array.from({ length: gift.count }, () => addToBag(hero.bag, gift.item)));
+    if (choice) this.choices.take(idOf(key), choice.key);
+    for (const gift of [quest.gift, choice?.gift, this.choices.laterFor(idOf(key), (at) => STORY_QUESTS[at]?.choice)]) give(gift);
+    const more = Math.round((choice?.copper ?? 0) * (1 + PER_LEVEL * (this.level(key) - 1)));
     this.state.set(key, 'done');
     for (const kept of [this.untracked, this.counted, this.kept]) kept.delete(key);
-    hero.money += copper;
+    hero.money += copper + more;
     gainXp(hero, xp);
     if (quest.night) this.sleep(key);
     this.slept.delete(key);
-    this.host.report({ kind: 'coins', amount: copper });
+    this.host.report({ kind: 'coins', amount: copper + more });
     this.host.report({ kind: 'quest', text: `${quest.name}: done`, done: true, x: hero.x, y: hero.y, z: hero.z });
     return true;
   }
@@ -468,8 +466,9 @@ export class Story {
     return [...this.state].filter(([, s]) => s === 'done').map(([key]) => ({ id: key, name: STORY_QUESTS[idOf(key)]?.name ?? key }));
   }
 
-  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point } {
+  save(): { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point; choices: Record<string, string> } {
     return {
+      choices: this.choices.saved(),
       states: Object.fromEntries([...this.state].map(([key, s]) => [key, s === 'taken' && this.untracked.has(key) ? 'untracked' : s])), // (untracked: taken, kept off the tracker)
       counted: Object.fromEntries(this.counted),
       kept: Object.fromEntries(this.kept),
@@ -494,6 +493,7 @@ export class Story {
     this.freed = new Set(Array.isArray(saved.freed) ? saved.freed.filter(named) : []);
     this.staked = new Set(Array.isArray(saved.staked) ? saved.staked.filter(named) : [...this.state.keys()].filter((key) => this.state.get(key) === 'taken')); // (an older save's: those under way had what they'd have been given)
     this.home = saved.home && typeof saved.home.x === 'number' && typeof saved.home.z === 'number' ? { x: saved.home.x, z: saved.home.z } : [...this.state.keys()].some((key) => key.endsWith('@first')) ? 'nearest' : null; // (an older save's line under way: where it was)
+    this.choices.load(saved.choices, (id) => id in STORY_QUESTS);
     this.world = null; // (set afresh, with those)
   }
 }

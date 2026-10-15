@@ -3,7 +3,8 @@
 // seeing. Then what was done there: the woman burned in the chapel yard was the herbalist's grandmother; the things
 // that walk over her are the priests who burned her; the bouncer held their horses, and knows where the order was
 // written down; the book is in a strongbox in the bandits' camp; the smith opens it; it names the priest, who lies
-// in honour under his own chapel, and does not lie still.
+// in honour under his own chapel, and does not lie still. The bouncer owns to more (he fetched the oil) and begs
+// the hero to keep it from her: the line's first choice, each way told again after, by him and by her as the book's read.
 // What comes after him, each following the last: firstQuestsWake.ts (what the village does with it), then
 // firstQuestsWatch.ts (what that costs). One line, in order: FIRST_QUESTS.
 import type { StoryQuest } from '../storyQuests';
@@ -167,13 +168,38 @@ const OPENING: StoryQuest[] = [
     accept: "I'll ask him.",
     decline: 'Not my place.',
     waiting: (t) => [`Go to ${t.receiver}, the bouncer at the inn. Ask him who gave the order to burn my grandmother.`],
-    after: () => ["So he told you. He kept quiet for thirty years, and then he told a stranger. I don't know whether to thank him or spit on him."],
+    after: (t) =>
+      t.chose?.('theDoorman') === 'truth'
+        ? ['So he fetched the oil. You told me, and he let you. I hated him for a night. Now I only feel tired. Thank you for not sparing me.']
+        : ["So he told you. He kept quiet for thirty years, and then he told a stranger. I don't know whether to thank him or spit on him."],
     task: (t) => `Ask ${t.receiver}, on the door of the inn, who gave the order`,
     handIn: (t) => [
       "So the herbalist sent you. I've guarded this door for thirty years so I would never have to knock on hers.",
       `I was fourteen. I held the horses and listened to her scream. The order to burn her came on paper, with a seal. The old reeve kept it in his record book, locked in a strongbox. Bandits killed him two winters ago and took that strongbox to ${t.camp}.`,
+      "There's more, and it's worse. The kindling was wet. They sent me running for lamp oil, and I brought it. I was fourteen and I ran.",
+      "She can't know that. Here. Thirty years of door money. Tell her I only held the horses, and it's yours.",
     ],
     thanks: 'You were only a boy.',
+    choice: [
+      {
+        key: 'purse',
+        label: 'Take his purse, and keep quiet.',
+        copper: 150,
+        said: () => ["...Good. Good. Then we never spoke of the oil. Count it if you like. It's all there."],
+      },
+      {
+        key: 'mercy',
+        label: 'Keep your money. Your secret is safe.',
+        gift: { gear: 'bandedCudgel', least: 'uncommon' },
+        said: () => ["You'd keep it for nothing? Then take this, at least. It's kept this door for thirty years. Let it keep you."],
+      },
+      {
+        key: 'truth',
+        label: 'She deserves the truth. I will tell her.',
+        later: { quest: 'readToHer', gift: { gear: 'silverLocket', least: 'rare' } },
+        said: () => ["Then tell her. I'm too old to go on hiding behind a door. Just... tell her I was sorry. Every day."],
+      },
+    ],
     copper: 60,
     xpShare: 0.4,
   },
@@ -186,6 +212,11 @@ const OPENING: StoryQuest[] = [
     follows: 'theDoorman',
     needs: { kind: 'reach', place: 'camp', within: 12 },
     offer: (t) => [
+      ...({
+        purse: ["You've my money and my silence. Now earn them."],
+        mercy: ["I owe you, and I don't forget a debt. So listen well."],
+        truth: ["You told her. She came to the door and looked at me, and didn't say a word. I'd have done the same as you. Still. The book."],
+      }[t.chose?.('theDoorman') ?? ''] ?? []),
       `If the reeve's book still exists, it's in the bandit chief's chest at ${t.camp}. Don't attack yet. Go close enough to see the camp, then come back and tell me what you saw.`,
       "Don't try to be a hero. I've seen what those bandits do to heroes. It takes days.",
     ],
@@ -261,9 +292,14 @@ const OPENING: StoryQuest[] = [
     waiting: (t) => [`Take the reeve's book to ${t.receiver}, the herbalist. She can read it.`],
     after: () => ['The herbalist read the page out loud in the village square. Nobody moved. Then somebody threw a stone at the chapel door, and soon everybody was throwing them.'],
     task: (t) => `Take the reeve's book to ${t.receiver}, the herbalist`,
-    handIn: () => [
+    handIn: (t) => [
       "Listen to what it says. 'Paid to four men, for the burning of the woman Maren, who would not be silent. By order of Father Aldous.'",
       "My grandmother was carrying Father Aldous's child, and she said so in front of the whole village. So he had her burned. And he is buried with honour, under his own chapel.",
+      ...(t.chose?.('theDoorman') === 'truth'
+        ? ["'And a half-penny to the reeve's boy, for the oil.' I knew that already, because you told me when he wouldn't. This was hers. Maren's locket. I want you to have it."]
+        : t.chose?.('theDoorman')
+          ? ["'And a half-penny to the reeve's boy, for the oil.' The reeve's boy. The bouncer.", "You asked him. You must have known. ...No. Don't answer that. I don't want to hate you as well."]
+          : []),
     ],
     thanks: 'Not for much longer.',
     copper: 60,

@@ -15,12 +15,13 @@ export const blowsToFlinch = (kind: EnemyKind): number => (isBoss(kind) ? Infini
 const taken = new WeakMap<Enemy, { blows: number; at: number }>(); // (each foe's blows lately: gone with the foe)
 
 // A blow landed on `foe` at `now` (seconds of play): whether it flinches (its own blow lost); `open`: caught open,
-// whatever its poise (parried, punished after a roll).
-export function flinches(foe: Enemy, now: number, open: boolean): boolean {
+// whatever its poise (parried, punished after a roll); `weight`: the blows it counts as (a hammer's two, a dagger's
+// half: hero/weaponProfiles.ts), a light foe flinching at any.
+export function flinches(foe: Enemy, now: number, open: boolean, weight = 1): boolean {
   const need = blowsToFlinch(foe.kind);
   if (open || need <= 1) return true;
   const last = taken.get(foe);
-  const blows = (last && now - last.at <= POISE_WINDOW ? last.blows : 0) + 1;
+  const blows = (last && now - last.at <= POISE_WINDOW ? last.blows : 0) + weight;
   const flinched = blows >= need;
   taken.set(foe, { blows: flinched ? 0 : blows, at: now });
   return flinched;
