@@ -19,6 +19,19 @@ describe('the map of the land walked', () => {
     expect(fog.chunksSeen().length).toBe(6);
   });
 
+  it('knows the bounds of all that has been seen (the map opens fitted to them)', () => {
+    const fog = new Fog(STREAMED_SIZE);
+    expect(fog.bounds()).toBeNull();
+    fog.reveal(8300, 8300);
+    fog.reveal(9000, 8250);
+    const box = fog.bounds()!;
+    expect(box.x0).toBeLessThanOrEqual(8300 - SIGHT + CELL);
+    expect(box.x0).toBeGreaterThan(8300 - SIGHT - CELL);
+    expect(box.x1).toBeGreaterThanOrEqual(9000 + SIGHT - CELL);
+    expect(box.x1).toBeLessThan(9000 + SIGHT + CELL);
+    expect(box.z1).toBeLessThan(8300 + SIGHT + CELL);
+  });
+
   it('keeps the land seen through a save, small', () => {
     const fog = new Fog(STREAMED_SIZE);
     for (let x = 8000; x < 9000; x += 20) fog.walk(x, 8100);

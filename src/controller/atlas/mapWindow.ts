@@ -12,6 +12,8 @@ import { keyOf } from '../keyBindings';
 
 const [LEAST, MOST] = [0.25, 6]; // pixels a tile, drawn out and in
 const OPENED_AT = 1.5;
+const [FIT_LEAST, FIT_MOST] = [0.5, 4]; // as it opens, drawn to fit all that's been seen: no farther out, nor closer in (past 4, a fresh hero's land a few blocks)
+const FIT_MARGIN = 0.85; // of the window the land seen fills, fitted
 
 export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void } }): { menu: Menu } {
   const look: MapLook = { x: 0, z: 0, scale: OPENED_AT };
@@ -58,6 +60,18 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     const at = model.inside?.entrance ?? model.hero;
     [look.x, look.z] = [at.x, at.z];
   };
+  // Opened: all that's been seen fitted to the window (a fresh hero's few steps drawn close, a long road's whole length
+  // drawn out), the hero at the middle if the land seen fits round them, else its middle.
+  const fit = () => {
+    centre();
+    const seen = model.atlas.fog.bounds();
+    if (!seen) return;
+    const { width, height } = size();
+    const span = (x0: number, x1: number, at: number) => 2 * Math.max(at - x0, x1 - at);
+    const round = (x0: number, x1: number, at: number, room: number) => (span(x0, x1, at) <= room ? at : (x0 + x1) / 2);
+    look.scale = Math.min(FIT_MOST, Math.max(FIT_LEAST, FIT_MARGIN * Math.min(width / span(seen.x0, seen.x1, look.x), height / span(seen.z0, seen.z1, look.z))));
+    [look.x, look.z] = [round(seen.x0, seen.x1, look.x, width / look.scale), round(seen.z0, seen.z1, look.z, height / look.scale)];
+  };
   middle.addEventListener('click', centre);
   corner.addEventListener('click', () => void [hooks.minimap.toggle(), cornerText()]);
 
@@ -95,7 +109,7 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     onOpenChange: (open) => {
       hooks.setPaused(open);
       wrap.closest('.menu')?.classList.add('map-menu');
-      if (open) [centre(), cornerText(), (named.textContent = '')];
+      if (open) [fit(), cornerText(), (named.textContent = '')];
       if (open && !frame) frame = requestAnimationFrame(loop);
     },
     tabs: [{ name: 'Map', header: () => wrap }],

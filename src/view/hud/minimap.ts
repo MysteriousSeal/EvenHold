@@ -9,7 +9,7 @@ import { mapPins } from '../../model/atlas/mapPins';
 import { paintMap } from '../atlas/mapPaint';
 
 const SIZE = 150; // CSS pixels a side
-const SCALE = 1.1; // pixels a tile
+const SCALE = 1.5; // pixels a tile (some 100 tiles across: a fresh hero's land seen, most of it)
 const EVERY = 100; // milliseconds between drawings
 const STORE = 'evenhold.minimap';
 
