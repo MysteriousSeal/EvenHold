@@ -178,12 +178,13 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   // A tavern table laid for a meal: two pewter plates, a loaf and a roast, a tankard and a mug, a candle.
   // Each laid its own way (by where it stands, the same every visit), round a
   // candle: a meal (a loaf and a roast on plates, a tankard and a mug), a game
-  // of dice (two tankards, the dice, the stakes in coin), or wine (a clay jug,
-  // two goblets, a bowl of stew).
+  // of dice (two tankards, the dice, the stakes in coin), wine (a clay jug,
+  // two goblets, a bowl of stew), a tankard knocked over in its spill, or next
+  // to bare (a mug left, the candle burnt down to a stub).
   tavernTable: (box, _len, _dep, item) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
     box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
-    const laid = ((Math.imul(item.x, 73856093) ^ Math.imul(item.z, 19349663)) >>> 0) % 3;
+    const laid = ((Math.imul(item.x, 73856093) ^ Math.imul(item.z, 19349663)) >>> 0) % 5;
     if (laid === 0) {
       for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
       box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
@@ -198,6 +199,21 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
       }
       box(17, 11, 6, 19, 12, 8, (_u, y) => (y === 11 ? BRASS_DARK : BRASS)); // the stakes, stacked
       box(4, 11, 15, 5, 11, 16, BRASS); // and a few loose
+    } else if (laid === 3) {
+      box(14, 11, 4, 17, 13, 6, (u) => (u === 14 || u === 16 ? IRON : WOOD_LIGHT)); // a tankard on its side,
+      box(15, 11, 7, 15, 12, 7, IRON); // its handle up
+      box(18, 11, 3, 21, 11, 7, (u, _y, v) => (u === 21 || v === 3 || v === 7 ? 0 : GLASS_AMBER)); // the ale run out of it,
+      box(19, 11, 7, 20, 11, 8, GLASS_AMBER);
+      box(22, 9, 5, 22, 10, 5, GLASS_AMBER); // dripping off the edge
+      drink(box, 4, 11, 16, 0); // across from it, a full one
+      box(4, 11, 4, 9, 11, 9, IRON_LIGHT); // and a plate of crumbs
+      box(6, 12, 6, 6, 12, 6, BREAD);
+    } else if (laid === 4) {
+      drink(box, 16, 11, 15, 1); // a mug left behind
+      box(11, 11, 11, 12, 12, 12, LINEN); // the candle, burnt down to a stub,
+      box(13, 11, 11, 13, 11, 12, LINEN); // run over the table
+      box(11, 13, 11, 11, 13, 11, EMBER);
+      return;
     } else {
       box(4, 11, 15, 7, 16, 18, (u, y, v) => (y === 16 && u > 4 && u < 7 && v > 15 && v < 18 ? CLAY_DARK : y === 14 ? CLAY_DARK : CLAY)); // a jug, banded, its mouth dark
       box(8, 13, 16, 8, 15, 17, CLAY_DARK); // its handle
