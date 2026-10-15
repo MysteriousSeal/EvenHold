@@ -6,7 +6,8 @@
 // last sold can be bought back at what they got for it (saved too). A trade's
 // goods (what's gathered, cooked or made: skills/*) it buys only while it has
 // fewer than it wants of each kind (WANTS), selling one of each on every
-// restock: so many a while, not a cartload at once.
+// restock: so many a while, not a cartload at once. A piece of gear sold goes with its wear (hero/wear.ts), back with
+// it if it's bought back; bought off the shelf, it's no longer to buy back too.
 
 import { bagRoom, canCarry } from '../hero/bagSlots';
 import { slotsUsed, stacksOf } from '../hero/bagStacks';
@@ -31,6 +32,7 @@ export interface Sale {
   id: BagItem;
   price: number;
   count: number;
+  wear?: number; // a piece of gear's, worn when sold (the last of it the hero had: hero/wear.ts)
 }
 
 export const BUYBACK = 12;
@@ -112,6 +114,11 @@ export function buyFrom(shop: Shop, hero: Hero, id: BagItem, price: number): 'bo
   shop.money += price;
   shop.stock[id] = (shop.stock[id] ?? 0) - 1;
   addToBag(hero.bag, id);
+  // Fewer left on the shelf than the hero's sold here to buy back: what they've bought was one of those (not to be
+  // had twice), off the latest sale.
+  let over = (shop.buyback ?? []).filter((s) => s.id === id).reduce((n, s) => n + s.count, 0) - shop.stock[id];
+  for (const sale of shop.buyback ?? []) if (over > 0 && sale.id === id) [sale.count, over] = [sale.count - Math.min(over, sale.count), over - Math.min(over, sale.count)];
+  if (shop.buyback) shop.buyback = shop.buyback.filter((s) => s.count > 0);
   return 'bought';
 }
 
@@ -121,6 +128,8 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   if (!wantsMore(shop, id)) return 'not wanted';
   if (shop.money < price) return 'short';
   takeFromBag(hero.bag, id);
+  const wear = (hero.bag[id] ?? 0) > 0 || Object.values(hero.equipment).includes(id as never) ? undefined : hero.wear?.[id]; // (the last of it they had: its wear goes with it)
+  if (wear !== undefined) delete hero.wear![id];
   hero.money += price;
   shop.money -= price;
   shop.stock[id] = (shop.stock[id] ?? 0) + 1;
@@ -128,8 +137,8 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
   if (kind !== null) (shop.bought ??= {})[kind] = (shop.bought[kind] ?? 0) + 1;
   // Stacked with the same thing sold at the same price (junk sold a handful at a time), to the front.
   const sales = shop.buyback ?? [];
-  const same = sales.find((s) => s.id === id && s.price === price);
-  shop.buyback = [same ? { ...same, count: same.count + 1 } : { id, price, count: 1 }, ...sales.filter((s) => s !== same)].slice(0, BUYBACK);
+  const same = sales.find((s) => s.id === id && s.price === price && s.wear === wear);
+  shop.buyback = [same ? { ...same, count: same.count + 1 } : { id, price, count: 1, ...(wear !== undefined && { wear }) }, ...sales.filter((s) => s !== same)].slice(0, BUYBACK);
   return 'sold';
 }
 
@@ -148,5 +157,6 @@ export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none
   if (kind !== null && shop.bought?.[kind]) shop.bought[kind] = Math.max(0, shop.bought[kind] - sale.count); // (back with the hero: room for them again)
   shop.buyback!.splice(index, 1);
   for (let i = 0; i < sale.count; i++) addToBag(hero.bag, sale.id);
+  if (sale.wear !== undefined) (hero.wear ??= {})[sale.id] = sale.wear; // (as worn as it went)
   return 'bought';
 }
