@@ -247,5 +247,15 @@ describe('the prompt over a rock', () => {
     model.mining.use();
     expect(minePrompt(model)?.label).toMatch(/^Stop mining · \d+ strikes? left$/);
     expect(minePrompt(byARock(null).model)).toMatchObject({ label: 'Needs a pickaxe', muted: true });
+    // A copper or tin vein, to a master: grey (iron and richer never are).
+    const worlds = [1, 2, 3].map((seed) => new GameModel(seed, TEST_MAP_SIZE));
+    const at = worlds.flatMap((m) => m.scenery.filter(isRock).map((r) => ({ m, r }))).find(({ m, r }) => ['copper', 'tin'].includes(m.mining.veinOf(r)))!;
+    const middle = middleOf(at.r);
+    Object.assign(at.m.hero, { x: middle.x + (at.r.kind === 'outcrop' ? 1.3 : 0.95), z: middle.z });
+    at.m.hero.bag.copperPick = 1;
+    skillOf(at.m.hero, 'mining').level = 299;
+    expect(minePrompt(at.m)?.label).toMatch(/ · teaches you nothing now$/);
+    skillOf(at.m.hero, 'mining').level = 10;
+    expect(minePrompt(at.m)?.label).not.toMatch(/teaches you nothing/);
   });
 });
