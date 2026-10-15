@@ -112,13 +112,15 @@ export class SkyView {
     const [, , autumn, winter] = skyUniforms.uSeason.value.toArray();
     light.sun = this.from.setHex(light.sun).lerp(this.to.setHex(WINTER_SUN), winter * 0.7 * (1 - night)).lerp(this.to.setHex(AUTUMN_SUN), autumn * 0.5 * (1 - night) * (1 - daylight.golden)).getHex();
     light.sky = this.from.setHex(light.sky).lerp(this.to.setHex(WINTER_SKY), winter * 0.35 * (1 - night)).getHex();
-    // Cloud: the sky's glow greyed, the sun dimmed to some 40%, the light flatter (more of it the sky's).
+    // Cloud: the sky's glow greyed, the sun dimmed, the light flatter (more of it the sky's).
     const { sky: hemi, sun } = this.lights;
     hemi.color.copy(this.from.setHex(light.sky).lerp(this.to.setHex(OVERCAST_SKY).multiplyScalar(0.35 + 0.65 * daylight.light), weather.cloud * 0.75));
     hemi.groundColor.setHex(light.ground);
-    hemi.intensity = light.fill * (1 + 0.18 * weather.cloud);
+    // (The sun kept to some 45% under cloud, 30% in rain or fog: its bands still tell the tops from the sides, the
+    // land's height read in any weather.)
+    hemi.intensity = light.fill * (1 + 0.08 * weather.cloud);
     sun.color.setHex(light.sun);
-    sun.intensity = light.strength * (1 - 0.6 * weather.cloud) * (1 - 0.4 * fog);
+    sun.intensity = light.strength * (1 - 0.55 * weather.cloud) * (1 - 0.3 * Math.max(fog, weather.rain));
     // Snow in the sun the whitest thing there is: its colour set against the light's (a warm day's cream taken out),
     // left to the light's own blue-grey under cloud and at night.
     const lit = this.from.copy(hemi.color).multiplyScalar(hemi.intensity).add(this.to.copy(sun.color).multiplyScalar(sun.intensity * 0.8));
