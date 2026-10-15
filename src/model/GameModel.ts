@@ -63,7 +63,7 @@ import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
-import { Cooking, Fishing, Lumber, Mining, Salvage, Smithing, Woodworking } from './skills/trades';
+import { Alchemy, Cooking, Fishing, Herbalism, Lumber, Mining, Salvage, Smithing, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
 import { Strokes, swinging } from './skills/strokes';
 import { Story } from './story/story';
@@ -137,6 +137,7 @@ export class GameModel {
   private readonly strokes = new Strokes();
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
+  readonly herbs: Herbalism = new Herbalism(this); readonly alchemy: Alchemy = new Alchemy(this); // (herbs picked in their season, brewed at a cauldron: skills/herbalism.ts, alchemy.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
@@ -243,7 +244,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
     this.chickens.update(dt); // (whoever's been turned into one: spells/turned.ts)
-    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.mining.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
+    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.mining.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.herbs.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.alchemy.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing, picking, brewing: on, or stopped by walking off)
     this.strokes.update(swinging(this), this.report); // (each stroke of the axe, the pick, the hammer, told: skills/strokes.ts)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {

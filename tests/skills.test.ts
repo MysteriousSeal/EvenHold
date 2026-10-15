@@ -11,6 +11,8 @@ import { TEST_MAP_SIZE } from './support/testWorld';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../src/model/skills/cooking';
 import { SMITH_RECIPES, SMITH_RECIPE_IDS } from '../src/model/skills/smithing';
+import { BREW_RECIPES, BREW_RECIPE_IDS } from '../src/model/skills/alchemy';
+import { HERBS, HERB_IDS } from '../src/model/loot/herbs';
 import { salvageOf } from '../src/model/skills/salvage';
 import { gearKey } from '../src/model/human/items/gear';
 
@@ -18,9 +20,9 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
-  it('are lumberjacking, woodworking, smithing and mining (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
-    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'smithing', 'salvaging', 'cooking', 'fishing', 'mining']);
-    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'main', 'secondary', 'secondary', 'secondary', 'main']);
+  it('are lumberjacking, woodworking, smithing, mining and alchemy (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
+    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'smithing', 'salvaging', 'cooking', 'fishing', 'mining', 'alchemy']);
+    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'main', 'secondary', 'secondary', 'secondary', 'main', 'main']);
     const fishing = SKILLS.fishing.unlocks.map((u) => u.at); // (practised: every tier's start, and a lucky catch between)
     expect(fishing).toEqual(expect.arrayContaining(SKILL_TIERS.map((t) => t.from)));
     expect(fishing).toEqual([...fishing].sort((a, b) => a - b));
@@ -33,7 +35,8 @@ describe('skills', () => {
   });
 
   it('promise nothing before its level: every recipe at a row of its own, or named with its level in the row before', () => {
-    for (const [skill, needs] of [['woodworking', RECIPE_IDS.map((id) => RECIPES[id].needs)], ['cooking', COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs)], ['smithing', SMITH_RECIPE_IDS.map((id) => SMITH_RECIPES[id].needs)]] as const) {
+    const alchemy = [...BREW_RECIPE_IDS.map((id) => BREW_RECIPES[id].needs), ...HERB_IDS.map((id) => HERBS[id].needs)]; // (its brews and its herbs alike)
+    for (const [skill, needs] of [['woodworking', RECIPE_IDS.map((id) => RECIPES[id].needs)], ['cooking', COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs)], ['smithing', SMITH_RECIPE_IDS.map((id) => SMITH_RECIPES[id].needs)], ['alchemy', alchemy]] as const) {
       const rows = SKILLS[skill].unlocks;
       for (const row of rows) expect(needs, `${skill} ${row.at}`).toContain(row.at); // (a row's level: a recipe's)
       for (const n of needs) {
@@ -99,7 +102,7 @@ describe('skills', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), 1)!);
     expect([skillOf(again.hero, 'cooking').level, skillOf(again.hero, 'fishing').level]).toEqual([81, 1]);
     expect(readSkills(undefined)).toEqual({});
-    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 }, alchemy: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 }, smithing: { level: 5 } }); // (a skill not had, none)
+    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 }, alchemy: { level: 5 }, brewing: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 }, smithing: { level: 5 }, alchemy: { level: 5 } }); // (a skill not had, none)
     expect(readSkills({ cooking: { level: 'x' } })).toEqual({});
     expect(readSkills({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5, toward: 99 }, cooking: { level: 5, toward: -1 } })).toEqual({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5 }, cooking: { level: 5 } }); // (tries toward the next: kept, if sound)
   });
@@ -119,12 +122,12 @@ describe('the skills window', () => {
     const panel = createSkillsPanel(model);
     panel.menu.open();
     const cards = cardsOf();
-    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'smithing', 'mining', 'salvaging', 'cooking', 'fishing']);
+    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'smithing', 'mining', 'alchemy', 'salvaging', 'cooking', 'fishing']);
     expect(Array.from(all('.skill-cards').at(-1)!.querySelectorAll('.skill-cards-group')).map((g) => g.textContent)).toEqual(['Main skills', 'Secondary skills']);
     expect(cards[0].querySelector('.skill-card-level')?.textContent).toBe('100');
     expect(cards[0].querySelector('.skill-card-tier')?.textContent).toBe('Journeyman · 50 to Expert');
     expect(cards[0].querySelector('.skill-rule.slim')).toBeTruthy();
-    expect([cards[5].classList.contains('idle'), cards[5].querySelector('.skill-card-status')?.textContent]).toEqual([false, 'Open to see what it offers']); // (fishing: practicable, nothing under way)
+    expect([cards[7].classList.contains('idle'), cards[7].querySelector('.skill-card-status')?.textContent]).toEqual([false, 'Open to see what it offers']); // (fishing: practicable, nothing under way)
     expect(panel.window.menu.isOpen).toBe(false);
     panel.menu.close();
   });
@@ -173,12 +176,15 @@ describe('the skills window', () => {
     expect(all('.book-group').at(-1)?.textContent).toBe('Veins'); // (mining: its guide, the veins)
     expect(q('.book-detail .book-title').textContent).toBe('Copper');
     cardsOf()[4].click();
+    expect(all('.book-group').slice(-5).map((g) => g.textContent)).toEqual(['Healing', 'Vigour', 'Cures', 'Draughts', 'Oddities']); // (alchemy: its brews)
+    expect(q('.cook-fire').textContent).toContain('No still here');
+    cardsOf()[5].click();
     expect(all('.book-row .book-name').slice(-5).map((r) => r.textContent)).toEqual(['Iron', 'Leather', 'Cloth', 'Silver', 'Wood']); // (salvaging: its guide, what gear is made of)
     expect(q('.book-detail .book-title').textContent).toBe('Iron');
-    cardsOf()[5].click();
+    cardsOf()[6].click();
     expect(all('.book-group').slice(-5).map((g) => g.textContent)).toEqual(['Roasts', 'Fish', 'Stews', 'Pies', 'Feasts']); // (cooking: its recipes)
     expect(q('.cook-fire').textContent).toContain('No fire here');
-    cardsOf()[6].click();
+    cardsOf()[7].click();
     expect(document.querySelector('.skill-notyet')).toBeNull(); // (fishing: its guide, what bites)
     expect(all('.book-row .book-name').map((r) => r.textContent)).toContain('Small fry');
     panel.window.menu.close();

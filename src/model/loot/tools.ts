@@ -3,7 +3,8 @@
 // does, slower, with the foes still about. And a fishing rod, which pedlars sell (travellers/pedlarShop.ts): in the bag,
 // E by a lake's shore casts it (skills/fishing.ts). And pickaxes: the smith's copper one, and the better ones forged at
 // an anvil (skills/smithing: iron, steel, star-iron, each quicker: skills/mining.ts PICK_BONUS); in the bag, E by a
-// veined rock strikes it, with the best of them carried.
+// veined rock strikes it, with the best of them carried. And a brewer's kit, which the herbalists sell: in the bag, any
+// fire will do to brew by (skills/alchemy.ts), a little slower than at a cauldron.
 import type { LootEntry } from './lootEntry';
 
 export const TOOL_ITEMS = {
@@ -13,6 +14,7 @@ export const TOOL_ITEMS = {
   ironPick: { name: 'Iron pickaxe', value: 60, droppedBy: {} },
   steelPick: { name: 'Steel pickaxe', value: 90, droppedBy: {} },
   starIronPick: { name: 'Star-iron pickaxe', value: 120, droppedBy: {} },
+  brewersKit: { name: "Brewer's kit", value: 60, droppedBy: {} }, // (the alchemist's: sold by the herbalists)
 } satisfies Record<string, LootEntry>;
 
 export type ToolId = keyof typeof TOOL_ITEMS;

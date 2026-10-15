@@ -1,8 +1,9 @@
 // Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
-// fells, the ore a miner strikes, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
+// fells, the ore a miner strikes, the herbs an alchemist picks, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
 import { hashUnit } from '../../util/random';
 import type { LootEntry, LootSource } from './lootEntry';
+import { HERB_ITEMS } from './herbs';
 
 export const INGREDIENTS = {
   // From boars: a raw haunch, the likeliest thing a boar leaves.
@@ -77,6 +78,8 @@ export const INGREDIENTS = {
   ironBands: { name: 'Iron bands', value: 10, droppedBy: {} },
   silverFittings: { name: 'Silver fittings', value: 16, droppedBy: {} },
   gildedFittings: { name: 'Gilded fittings', value: 40, droppedBy: {} },
+  // Picked in the wilds by an alchemist (skills/herbalism.ts), each in its country and season: herbs.ts.
+  ...HERB_ITEMS,
 } satisfies Record<string, LootEntry>;
 
 export type IngredientId = keyof typeof INGREDIENTS;

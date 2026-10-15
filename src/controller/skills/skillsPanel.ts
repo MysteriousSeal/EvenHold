@@ -18,6 +18,7 @@ import { el } from '../../view/ui/dom';
 import { counted } from '../../view/ui/words';
 import { nameOf } from '../../model/hero/bag';
 import { SMITH_RECIPES } from '../../model/skills/smithing';
+import { BREW_RECIPES } from '../../model/skills/alchemy';
 import { createSkillWindow } from './skillWindow';
 import { skillRuler } from './skillRuler';
 import { charmsTab } from './charmTab';
@@ -36,6 +37,10 @@ export function statusOf(model: GameModel, id: SkillId): string | null {
   if (id === 'salvaging' && breaking) return `Breaking down ${nameOf(breaking.key)}`;
   const striking = model.mining.striking;
   if (id === 'mining' && striking) return `Mining ${VEINS[model.mining.veinOf(striking.rock)].name} · ${counted(model.mining.left(striking.rock), 'strike')} left`;
+  const brewing = model.alchemy.making;
+  if (id === 'alchemy' && brewing) return `Brewing ${BREW_RECIPES[brewing.recipe].name} · ${brewing.of - brewing.left + 1} of ${brewing.of}`;
+  const picking = model.herbs.picking;
+  if (id === 'alchemy' && picking) return `Picking ${nameOf(picking.herb).toLowerCase()} · ${counted(model.herbs.left(picking.patch), 'herb')} left`;
   const line = model.fishing.line;
   if (id === 'fishing' && line) return line.phase === 'bite' ? 'A bite! Hook it (E)' : `Fishing ${line.spot.deep ? 'the deep' : line.spot.narrows ? "a lake's narrows" : 'open water'} · waiting for a bite`;
   return null;

@@ -7,3 +7,5 @@ export { Salvage } from './salvage';
 export { Cooking } from './cooking';
 export { Fishing } from './fishing';
 export { Mining } from './mining';
+export { Alchemy } from './alchemy';
+export { Herbalism } from './herbalism';

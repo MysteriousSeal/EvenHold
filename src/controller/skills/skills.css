@@ -89,6 +89,7 @@
 .cook-fire { display: flex; align-items: center; gap: 12px; margin: 0; padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-soft); border-bottom: 2px dashed var(--line); }
 .cook-fire.lit { color: var(--clay); }
 .cook-fire .book-craft { margin-left: auto; }
+.alchemy-halves { display: flex; gap: 8px; margin: 0; padding: 8px 14px 0; } /* (alchemy: Brewing, Herbs) */
 
 /* Under it: a list, and the one picked told of beside it. */
 .book { flex: 1; display: grid; grid-template-columns: 290px 1fr; min-height: 0; }

@@ -1,5 +1,6 @@
 // The skills' icons (model/skills/skills.ts; the skills window: controller/skills/skillsPanel.ts), small voxel models
-// as the toolbar's are (itemIcons.ts): an anvil, a cooking pot, a rod with a fish on the line, a pickaxe on a seamed rock; and the window's own tile on the
+// as the toolbar's are (itemIcons.ts): an anvil, a cooking pot, a rod with a fish on the line, a pickaxe on a seamed rock,
+// a flask of green brew with a sprig beside it; and the window's own tile on the
 // toolbar, a ladle and a rod crossed.
 
 import type { SkillId } from '../../model/skills/skills';
@@ -159,7 +160,29 @@ const miningIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, smithing: smithingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon, mining: miningIcon };
+// A round-bellied flask of green brew (glass 1, the brew 2, its glow 3, the cork 4), a sprig of herb beside it (stem 5,
+// leaf 6, a purple flower 7).
+const alchemyIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:alchemy',
+    () => {
+      const grid = createGrid([12, 12, 6]);
+      for (let y = 0; y < 6; y++) {
+        const r = [2, 3, 3, 3, 2, 1][y];
+        fillBox(grid, 4 - r, y, 3 - Math.min(r, 2), 4 + r, y, 2 + Math.min(r, 2), (x, _y, z) => (y >= 4 ? 1 : x === 4 + r || z === 5 ? 1 : y === 2 && x === 3 ? 3 : 2)); // the belly: glass round the brew
+      }
+      fillBox(grid, 4, 6, 2, 4, 8, 3, 1); // the neck
+      fillBox(grid, 4, 9, 2, 4, 9, 3, 4); // the cork
+      fillBox(grid, 9, 0, 3, 9, 6, 3, 5); // the sprig's stem
+      for (const [x, y] of [[8, 2], [10, 3], [8, 4], [10, 5]]) fillBox(grid, x, y, 3, x, y, 3, 6); // its leaves
+      fillBox(grid, 9, 7, 3, 9, 9, 3, 7); // its flower, a spike
+      fillBox(grid, 8, 8, 3, 10, 8, 3, 7);
+      return { grid, palette: [0xd8eef0, 0x3a9a3e, 0xa8f088, 0x8a5a35, 0x4e7a32, 0x6e9c44, 0x9a5ac8], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { alchemy: alchemyIcon, lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, smithing: smithingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon, mining: miningIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish

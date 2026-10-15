@@ -2,12 +2,13 @@
 // (lumberjacking and mining, gathering: lumber.ts, mining.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
 // (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping, mining by
-// striking ore, woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
+// striking ore, woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts), alchemy
+// by picking herbs and brewing (herbalism.ts, alchemy.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never; and a level
 // wants so many tries that taught (its skill's STEPS at its tier: the quicker a try, the more), so a tier's an hour or
 // so of the trade, the whole of it three to five.
 
-export type SkillId = 'lumberjacking' | 'woodworking' | 'smithing' | 'salvaging' | 'cooking' | 'fishing' | 'mining';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'smithing' | 'salvaging' | 'cooking' | 'fishing' | 'mining' | 'alchemy';
 
 export interface Skill {
   name: string;
@@ -160,6 +161,24 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 140, what: 'Mine silver, and now and then a gem shard with it' },
       { at: 190, what: 'Mine gold' },
       { at: 240, what: 'Mine star-iron, in the rocks of the high ground' },
+    ],
+  },
+  alchemy: {
+    name: 'Alchemy',
+    steps: [10, 7, 6, 5], // (a herb picked a try, a brew two: the picking most of its hours, as a miner's digging; fewer later, its rarer herbs a longer walk)
+    kind: 'main',
+    verb: 'brew',
+    practice: "Pick herbs in the wilds (E by one: each in its own country and season), and brew them at a cauldron (a herbalist's, your own) or, with a brewer's kit, by any fire.",
+    about: "Pick the herbs of the meadows, woods, moors, hills and marshes as the seasons bring them up, and brew them with the caves' silk, venom and wings into potions, cures and draughts.",
+    unlocks: [
+      { at: 1, what: 'Pick chamomile and rosehips; a minor health potion of either' },
+      { at: 25, what: 'Pick nettles; a minor energy potion; an antidote of a venom gland at 40' },
+      { at: 60, what: 'Pick yarrow and mistletoe; a purge; a love-philtre at 65' },
+      { at: 75, what: 'A lesser health potion; pick marsh woundwort at 90, a lesser energy potion at 90' },
+      { at: 100, what: "A draught of swiftness, of a bat's wing; a second herb now and then, the likelier the better you are; pick lavender and snowdrops at 120, a pox salve at 120, a shadow draught at 130" },
+      { at: 150, what: 'Pick comfrey; a greater health potion, bound with spider silk; pick fly agaric and foxglove at 160, a greater energy potion at 165, an ox draught at 175' },
+      { at: 190, what: 'Pick hellebore; a bark-skin draught at 200' },
+      { at: 230, what: 'Pick mandrake and wolfsbane; a superior health potion at 240, a superior energy potion at 255, a hawk-eye draught at 270' },
     ],
   },
 };

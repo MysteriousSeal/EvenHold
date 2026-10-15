@@ -14,7 +14,7 @@ import { isGear, slotOfGear, type GearKey } from '../human/items/gear';
 import { isProvision, type ProvisionId } from '../loot/provisions';
 import { INGREDIENTS } from '../loot/ingredients';
 import { BAG_IDS, BAG_ITEMS, isBagItem } from '../loot/bags';
-import { POTION_IDS, isPotion, potionPrice } from '../loot/potions';
+import { SHOP_POTIONS, isPotion, potionPrice } from '../loot/potions';
 import { TOOL_ITEMS } from '../loot/tools';
 import { LOOT } from '../loot/loot';
 import { isFish } from '../skills/fishing';
@@ -29,7 +29,7 @@ import { PEDLAR_KEY, type Traveller } from './travellers';
 
 const FOOD: readonly ProvisionId[] = ['bread', 'apple', 'cheese', 'ale'];
 export const PEDLAR_TRINKETS: readonly ItemId[] = ITEM_IDS.filter((id) => (ITEMS[id].soldBy?.pedlar ?? 0) > 0);
-export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, 'firewood', ...POTION_IDS, ...PEDLAR_TRINKETS, ...BAG_IDS, 'fishingRod']; // (and bags: hero/bagSlots.ts; a rod, for the angler)
+export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, 'firewood', ...SHOP_POTIONS, ...PEDLAR_TRINKETS, ...BAG_IDS, 'fishingRod']; // (and bags: hero/bagSlots.ts; a rod, for the angler)
 
 // What they'll buy: food and drink, and trinkets (what goes round a neck or on a finger).
 // (And the silver and stones salvaged from gear, skills/salvage.ts, as they buy trinkets: at half their worth.)
@@ -52,7 +52,7 @@ export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Tra
   FOOD.forEach((id, i) => (stock[id] = 1 + Math.floor(roll(10 + i) * 3)));
   stock.firewood = 3 + Math.floor(roll(20) * 4); // (a few bundles)
   PEDLAR_TRINKETS.forEach((id, i) => (stock[id] = roll(30 + i) < 0.6 ? ITEMS[id].soldBy!.pedlar! : 0));
-  POTION_IDS.forEach((id, i) => (stock[id] = roll(40 + i) < (id.startsWith('greater') ? 0.15 : 0.6) ? 1 + Math.floor(roll(45 + i) * 2) : 0)); // (a potion or two, a greater one rarely)
+  SHOP_POTIONS.forEach((id, i) => (stock[id] = roll(40 + i) < (id.startsWith('greater') ? 0.15 : 0.6) ? 1 + Math.floor(roll(45 + i) * 2) : 0)); // (a potion or two, a greater one rarely)
   BAG_IDS.forEach((id, i) => (stock[id] = roll(50 + i) < 0.5 - i * 0.08 ? 1 : 0)); // (a bag or two, the finer ones rarer)
   stock.fishingRod = 1; // (every pedlar has a rod)
   return openShop(shops, PEDLAR_KEY + t.id, { money: Math.round((1 + roll(99) * 2) * COPPER_PER_SILVER), stock }, now);

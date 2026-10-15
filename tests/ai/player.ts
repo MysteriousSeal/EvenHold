@@ -211,6 +211,8 @@ export class Player {
         return model.lumber.stop(), true;
       case 'stopMine':
         return model.mining.stop(), true;
+      case 'stopPick':
+        return model.herbs.stop(), true;
       case 'loot':
         return !!model.pickUp();
       case 'chest':
@@ -255,9 +257,14 @@ export class Player {
         return model.fishing.use();
       case 'mine':
         return model.mining.use();
+      case 'pick':
+        return model.herbs.use();
+      case 'cauldron':
+        return false; // (no brewing for the player yet)
       case 'cannotChop':
       case 'cannotFish':
       case 'cannotMine':
+      case 'cannotPick':
         return tally.wasted++, true;
     }
   }

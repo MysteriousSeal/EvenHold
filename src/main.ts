@@ -65,6 +65,7 @@ import { enemyName } from './view/meshes/enemy/enemyParts';
 import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
 import { minePrompt } from './controller/skills/minePrompt';
+import { herbPrompt } from './controller/skills/herbPrompt';
 import { fishPrompt } from './controller/skills/fishPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
@@ -289,6 +290,10 @@ async function boot(): Promise<void> {
       case 'mine':
       case 'cannotMine':
         return minePrompt(model); // (strike it, stop; or not, and why)
+      case 'stopPick':
+      case 'pick':
+      case 'cannotPick':
+        return herbPrompt(model); // (pick it, stop; or not, and why)
       case 'loot':
         return lootTarget(found.loot);
       case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
@@ -315,6 +320,8 @@ async function boot(): Promise<void> {
         return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
       case 'anvil':
         return { label: 'Forge', x: found.anvil.x, y: 0.9, z: found.anvil.z };
+      case 'cauldron':
+        return { label: 'Brew', x: found.cauldron.x, y: 0.9, z: found.cauldron.z };
       case 'fire': // (a hearth: over its middle; a campfire, over it)
         return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
       case 'well':
@@ -391,7 +398,7 @@ async function boot(): Promise<void> {
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
     // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
-    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, npc.seat?.piece.kind === 'barStool' && model.seated?.seat.piece.kind === 'barStool' ? withRound(model, chat(model, npc)) : chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onSmith: () => skills.window.open('smithing'), onStash: () => stash.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, npc.seat?.piece.kind === 'barStool' && model.seated?.seat.piece.kind === 'barStool' ? withRound(model, chat(model, npc)) : chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onSmith: () => skills.window.open('smithing'), onBrew: () => skills.window.open('alchemy'), onStash: () => stash.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

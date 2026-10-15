@@ -8,6 +8,7 @@ import type { IngredientId } from '../../../model/loot/ingredients';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { model, type LootModel } from './lootModel';
+import { HERB_MODELS } from './herbVoxels';
 
 // A log: bark 1, a mark on it 2 (dashes, furrows, resin: by `marked`), its end grain 3, its heart 4.
 const log = (palette: number[], marked: (x: number, y: number, z: number) => boolean): LootModel =>
@@ -283,4 +284,5 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     for (const [x, z] of [[2, 0], [0, 2]]) setColor(g, x, 1, z, 3);
     setColor(g, 0, 1, 0, 4); // a red stone at its corner
   }),
+  ...HERB_MODELS, // (an alchemist's herbs: herbVoxels.ts)
 };
