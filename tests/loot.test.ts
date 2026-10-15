@@ -14,7 +14,7 @@ import { ITEM_IDS } from '../src/model/human/equipment';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { QUEST_ITEMS } from '../src/model/quests/questItems';
-import { fresh, slay } from './support/testWorld';
+import { fresh, regionCrypt, slay } from './support/testWorld';
 
 const drops = (source: LootSource) => Array.from({ length: 400 }, (_, id) => rollDrop(source, id));
 
@@ -85,6 +85,24 @@ describe('picking up loot', () => {
     expect(model.dropFromBag('wolfFang')).toBe(true);
     expect(model.hero.bag).toEqual({ hatchet: 1 });
     expect(model.dropFromBag('wolfFang')).toBe(false);
+  });
+
+  it("drops down a dungeon too, onto its floor (kept there), to make room; never in a building's rooms", () => {
+    const model = fresh();
+    model.hero.bag.wolfFang = 1;
+    model.hero.equipment.head = 'leatherCap';
+    const crypt = regionCrypt(model);
+    model.teleport(crypt.entrance.x, crypt.entrance.z);
+    model.useDoor();
+    expect(model.dungeon).not.toBeNull();
+    expect([model.dropFromBag('wolfFang'), model.dropEquipped('head')]).toEqual([true, true]);
+    expect(model.groundHere.loot.map((l) => l.item).sort()).toEqual(['leatherCap', 'wolfFang']);
+    expect(model.ground.loot).toEqual([]); // (not the world's)
+    expect(model.pickUp()).not.toBeNull(); // (back up again)
+    const inn = fresh();
+    inn.hero.bag.wolfFang = 1;
+    inn.enterRoom(inn.entrances.find((e) => e.type === 'inn')!);
+    expect(inn.dropFromBag('wolfFang')).toBe(false);
   });
 });
 

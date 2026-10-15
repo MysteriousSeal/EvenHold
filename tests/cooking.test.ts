@@ -16,6 +16,7 @@ import { blowDamage, hitTaken, mending, spared, tiring, tossCoin } from '../src/
 import { maxHpOf } from '../src/model/hero/attributes';
 import { recover } from '../src/model/hero/heroStats';
 import { MEAL_SECONDS } from '../src/model/loot/provisions';
+import { bagRoom } from '../src/model/hero/bagSlots';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -46,6 +47,15 @@ function byACampfire(model: GameModel): void {
 }
 
 describe('cooking', () => {
+  it("roasts the last of the fry in a full bag: their slot is the meal's", () => {
+    const model = kitchen(1, { smallFry: 2 });
+    byACampfire(model);
+    for (let i = 0; Object.keys(model.hero.bag).length < bagRoom(model.hero); i++) model.hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (every other slot a dagger)
+    expect(model.cooking.start('roastedFry')).toBe(true);
+    run(model, COOK_RECIPES.roastedFry.seconds + 0.2);
+    expect([model.hero.bag.smallFry, model.hero.bag.roastedFry]).toEqual([undefined, 1]);
+  });
+
   it('has a recipe for every meal, in the order of the skill they want, from 1 to near the top; the four fish among them', () => {
     expect(COOK_RECIPE_IDS.slice().sort()).toEqual(MEAL_IDS.slice().sort());
     const needs = COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs);
@@ -97,6 +107,19 @@ describe('cooking', () => {
     expect(model.cooking.kindle()).toBe(false); // (indoors: a hearth's there for it)
     expect(model.hero.bag.oakLog).toBe(2);
     expect(KINDLED_BURNS).toBeGreaterThan(60);
+  });
+
+  it('kindles it on open ground: on a shore, facing the lake, behind or beside them, not in the water', () => {
+    const model = kitchen(1, { birchLog: KINDLE_LOGS });
+    let shore: { x: number; z: number } | undefined;
+    for (let x = 2; x < TEST_MAP_SIZE.width - 2 && !shore; x++) for (let z = 2; z < TEST_MAP_SIZE.depth - 2 && !shore; z++) if (model.isOpenTile(x, z) && model.tiles.lake(x + 1, z)) shore = { x, z };
+    model.teleport(shore!.x, shore!.z);
+    model.hero.facing = Math.PI / 2; // (toward +x: the water)
+    expect(model.cooking.kindle()).toBe(true);
+    const { x, z } = model.cooking.kindled!;
+    expect(model.tiles.lake(Math.round(x), Math.round(z))).toBe(false);
+    expect(model.isOpenTile(Math.round(x), Math.round(z))).toBe(true);
+    expect(model.cooking.fireInReach?.kind).toBe('campfire');
   });
 
   it('wants a hearth for the stews, pies and feasts; a campfire does for roasts and fish', () => {
@@ -220,6 +243,30 @@ describe('meals', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     expect(again.hero.blessings?.[0].kind).toBe('feasted');
     expect(again.hero.blessings?.[0].left).toBeCloseTo(99, 0);
+  });
+
+  it('a meal half eaten is kept in a save as it was (neither lost nor given back whole), and a campfire lit burns on', () => {
+    const model = kitchen(1, { huntersFeast: 1 });
+    byACampfire(model);
+    model.hero.hp = 1;
+    expect(eatOrDrink(model.hero, 'huntersFeast')).toBe(true);
+    run(model, 5);
+    const again = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.hero.bag.huntersFeast).toBeUndefined();
+    expect(again.hero.eating).toMatchObject({ item: 'huntersFeast', fed: { kind: 'feasted' } });
+    expect(again.hero.eating!.left).toBeCloseTo(model.hero.eating!.left, 1);
+    expect(again.cooking.kindled).toEqual(model.cooking.kindled);
+    expect(again.cooking.fireInReach?.kind).toBe('campfire');
+    run(again, MEAL_SECONDS);
+    expect([again.hero.eating, again.hero.blessings?.some((b) => b.kind === 'feasted')]).toEqual([null, true]);
+    // Damaged: neither.
+    const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+    Object.assign(data, { kindled: { x: 'a', z: 1, left: 9 } });
+    Object.assign(data.hero, { eating: { item: 'rock', heal: 5, left: 3 } });
+    const broken = new GameModel(model.seed, TEST_MAP_SIZE);
+    restore(broken, data);
+    expect([broken.cooking.kindled, broken.hero.eating]).toEqual([null, null]);
   });
 });
 

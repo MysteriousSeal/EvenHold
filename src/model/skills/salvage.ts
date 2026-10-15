@@ -8,7 +8,7 @@ import type { GameEvent } from '../types';
 import type { Entrance } from '../interiors/interiors';
 import type { Furniture } from '../interiors/furniture';
 import { addToBag, takeFromBag } from '../hero/bag';
-import { canCarry } from '../hero/bagSlots';
+import { canSwap } from '../hero/bagSlots';
 import { ITEMS, type ItemId } from '../human/items';
 import { baseOf, isGear, levelOf, rarityOf, type GearKey, type Rarity } from '../human/items/gear';
 import type { IngredientId } from '../loot/ingredients';
@@ -106,7 +106,7 @@ export class Salvage {
     if (!this.carried(key)) return 'none';
     const { needs, gives } = salvageOf(key);
     if ((hero.skills?.salvaging?.level ?? 1) < needs) return 'skill';
-    if (!gives.every(([item]) => canCarry(hero, item))) return 'full'; // (a full bag: what it leaves would be lost; the piece broken down goes too, but its slot's not counted on)
+    if (!this.roomFor(key, gives)) return 'full'; // (a full bag: what it leaves would be lost)
     this.breaking = { key, t: 0 };
     return 'started';
   }
@@ -121,6 +121,7 @@ export class Salvage {
     this.stop();
     const { hero } = this.host;
     const { needs, gives } = salvageOf(breaking.key);
+    if (!this.roomFor(breaking.key, gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (filled meanwhile: the piece kept)
     takeFromBag(hero.bag, breaking.key);
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
@@ -129,5 +130,11 @@ export class Salvage {
 
   stop(): void {
     this.breaking = null;
+  }
+
+  // Whether all `key` leaves would go in once it's out of the bag (each of its scraps a slot of its own, if new; the
+  // piece's own slot freed, its last).
+  private roomFor(key: GearKey, gives: Salvaged['gives']): boolean {
+    return canSwap(this.host.hero, { [key]: 1 }, gives.flatMap(([item, n]) => Array.from({ length: n }, () => item)));
   }
 }

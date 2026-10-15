@@ -10,7 +10,7 @@
 
 import { hashUnit } from '../../util/random';
 import { addToBag, takeFromBag } from '../hero/bag';
-import { canCarry } from '../hero/bagSlots';
+import { canSwap } from '../hero/bagSlots';
 import { gainXp } from '../hero/heroStats';
 import type { Camp } from '../camps/camps';
 import type { Furniture } from '../interiors/furniture';
@@ -89,6 +89,7 @@ export interface CookingHost {
   readonly woodworking: { stop(): void };
   readonly fishing: { readonly line: unknown; stop(): void }; // (a line out: reeled in to cook; cast, the cooking stopped)
   readonly work: { readonly shift: unknown };
+  isOpenTile(x: number, z: number): boolean; // (ground a fire may be lit on: no water, nothing standing there)
   report(event: GameEvent): void;
 }
 
@@ -140,9 +141,9 @@ export class Cooking {
     return Math.min(...Object.entries(COOK_RECIPES[id].from).map(([item, n]) => Math.floor((bag[item as LootId] ?? 0) / n!)));
   }
 
-  // Whether the meal would go in the bag (a stack of it with room, or a slot free).
+  // Whether the meal would go in the bag (a stack of it with room, or a slot free: the last of its makings' among them).
   roomFor(id: CookRecipeId): boolean {
-    return canCarry(this.host.hero, COOK_RECIPES[id].makes);
+    return canSwap(this.host.hero, COOK_RECIPES[id].from, [COOK_RECIPES[id].makes]);
   }
 
   // `count` of a recipe begun (Infinity: all the makings make); whether it was (known, by a fire it'll do over, the
@@ -164,6 +165,17 @@ export class Cooking {
     this.making = null;
   }
 
+  // The campfire they've lit, for a save (none: null); and back from one, while it has a while left to burn (a damaged
+  // one's: none).
+  saved(): Kindled | null {
+    return this.kindled && { ...this.kindled };
+  }
+  restore(saved: unknown): void {
+    const k = (saved && typeof saved === 'object' ? saved : {}) as Partial<Record<keyof Kindled, unknown>>;
+    const sound = [k.x, k.z, k.left].every((v) => typeof v === 'number' && Number.isFinite(v)) && (k.left as number) > 0;
+    this.kindled = sound ? { x: k.x as number, z: k.z as number, left: Math.min(KINDLED_BURNS, k.left as number) } : null;
+  }
+
   // How far through the one under way (0..1), cooking; else null (its bar).
   get progress(): number | null {
     return this.making ? Math.min(1, this.making.t / COOK_RECIPES[this.making.recipe].seconds) : null;
@@ -182,8 +194,12 @@ export class Cooking {
     if (inside || this.host.yard || this.host.work.shift) return this.host.report({ kind: 'poor', text: 'Kindle a fire outdoors' }), false;
     if (!this.canKindle) return this.host.report({ kind: 'poor', text: `Firewood, or ${KINDLE_LOGS} logs, to kindle a fire` }), false;
     if (!takeFromBag(hero.bag, 'firewood')) for (let i = 0; i < KINDLE_LOGS; i++) takeFromBag(hero.bag, LOGS.find((log) => (hero.bag[log] ?? 0) > 0)!);
-    const ahead = 0.8; // a little before them, not under their feet
-    this.kindled = { x: hero.x + Math.sin(hero.facing) * ahead, z: hero.z + Math.cos(hero.facing) * ahead, left: KINDLED_BURNS };
+    // A little before them, not under their feet; on open ground (a shore's fisher facing the lake: behind them, or
+    // beside; nowhere about: at their feet).
+    const ahead = 0.8;
+    const spots = [0, Math.PI, Math.PI / 2, -Math.PI / 2].map((turn) => ({ x: hero.x + Math.sin(hero.facing + turn) * ahead, z: hero.z + Math.cos(hero.facing + turn) * ahead }));
+    const { x, z } = spots.find((p) => this.host.isOpenTile(Math.round(p.x), Math.round(p.z))) ?? hero;
+    this.kindled = { x, z, left: KINDLED_BURNS };
     return true;
   }
 
@@ -205,7 +221,7 @@ export class Cooking {
     const recipe = COOK_RECIPES[id];
     const { hero } = this.host;
     if (this.canMake(id) === 0) return false;
-    if (!canCarry(hero, recipe.makes)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
+    if (!this.roomFor(id)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }), false;
     this.made++;
     for (const [making, n] of Object.entries(recipe.from)) for (let i = 0; i < n!; i++) takeFromBag(hero.bag, making as LootId);
     addToBag(hero.bag, recipe.makes);

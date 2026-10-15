@@ -8,6 +8,10 @@ import { GameModel } from '../src/model/GameModel';
 import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, raiseSkill, readSkills, skillOf, tierOf } from '../src/model/skills/skills';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE } from './support/testWorld';
+import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
+import { COOK_RECIPES, COOK_RECIPE_IDS } from '../src/model/skills/cooking';
+import { salvageOf } from '../src/model/skills/salvage';
+import { gearKey } from '../src/model/human/items/gear';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
 const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
@@ -25,6 +29,23 @@ describe('skills', () => {
     expect(SKILLS.cooking.practice).toBeDefined(); // (by a fire)
     expect(SKILLS.lumberjacking.unlocks[0].at).toBe(1); // (from the start)
     expect(SKILLS.lumberjacking.practice).toBeDefined(); // (it can be raised: chopping)
+  });
+
+  it('promise nothing before its level: every recipe at a row of its own, or named with its level in the row before', () => {
+    for (const [skill, needs] of [['woodworking', RECIPE_IDS.map((id) => RECIPES[id].needs)], ['cooking', COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs)]] as const) {
+      const rows = SKILLS[skill].unlocks;
+      for (const row of rows) expect(needs, `${skill} ${row.at}`).toContain(row.at); // (a row's level: a recipe's)
+      for (const n of needs) {
+        const row = rows.filter((r) => r.at <= n).at(-1)!;
+        expect(row.at === n || new RegExp(`\\b${n}\\b`).test(row.what), `${skill}: a recipe at ${n}`).toBe(true);
+      }
+    }
+  });
+
+  it("salvaging's level 75 reaches common gear up to level 27, as it says, and no further", () => {
+    expect(SKILLS.salvaging.unlocks.find((u) => u.at === 75)?.what).toBe('Common gear up to level 27');
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 27, rarity: 'common', roll: 0 })).needs).toBeLessThanOrEqual(75);
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 28, rarity: 'common', roll: 0 })).needs).toBeGreaterThan(75);
   });
 
   it("start at 1 for every hero: an apprentice's", () => {

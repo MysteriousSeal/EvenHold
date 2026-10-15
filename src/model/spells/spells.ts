@@ -73,3 +73,13 @@ export function spellText(id: SpellId): string {
 }
 // A save's known spells, as far as they're sound (an older save's: none).
 export const readSpells = (saved: unknown): SpellId[] => (Array.isArray(saved) ? SPELL_IDS.filter((id) => saved.includes(id)) : []);
+// A save's spells' waits, as far as they're sound (each no longer than its own cooldown; an older save's: none).
+export function readSpellWait(saved: unknown): Partial<Record<SpellId, number>> {
+  const out: Partial<Record<SpellId, number>> = {};
+  if (!saved || typeof saved !== 'object') return out;
+  for (const id of SPELL_IDS) {
+    const left = (saved as Record<string, unknown>)[id];
+    if (typeof left === 'number' && Number.isFinite(left) && left > 0) out[id] = Math.min(SPELLS[id].cooldown, left);
+  }
+  return out;
+}

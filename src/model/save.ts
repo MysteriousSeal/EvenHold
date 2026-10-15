@@ -12,11 +12,12 @@ import type { SavedFloors } from './dungeons/dungeonFloors';
 import { AWARD_POST } from './dungeons/dungeonRecord';
 import { isGear, slotOfGear } from './human/items/gear';
 import { readActionBar } from './hero/actionBar';
-import { readSpells } from './spells/spells';
+import { readSpellWait, readSpells } from './spells/spells';
+import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
-import type { BagItem } from './hero/bag';
+import { readMeal, type BagItem } from './hero/bag';
 import { BUYBACK } from './shops/shopStock';
 import { POINTS_PER_LEVEL, untrained } from './hero/training';
 import { STATS, type Stat } from './hero/statKinds';
@@ -74,6 +75,9 @@ export interface SaveData {
     upstairs?: boolean; // on its upper floor
     lastInn?: number | null; // the last inn they entered (where they wake after a fall)
     blessings?: Blessing[]; // a well's, and how long it has left
+    eating?: unknown; // a meal from the bag, half eaten (hero/bag.ts readMeal)
+    potionCooldown?: number; // seconds before another potion (older saves: none)
+    spellWait?: unknown; // seconds before each charm may be cast again (spells/spells.ts readSpellWait)
   };
   enemies: { gone: number[]; changed: Array<{ id: number; x: number; z: number; hp: number }> };
   foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
@@ -92,6 +96,7 @@ export interface SaveData {
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:', a stronghold's gate, 'stronghold:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
+  kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
 }
 
@@ -134,6 +139,9 @@ export function snapshot(model: GameModel): SaveData {
       upstairs: !!indoors?.below,
       lastInn: door(model.lastInn),
       blessings: (hero.blessings ?? []).map((b) => ({ ...b })),
+      eating: hero.eating ? { ...hero.eating } : null,
+      potionCooldown: hero.potionCooldown ?? 0,
+      spellWait: { ...hero.spellWait },
     },
     // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
     foes: foesOf(model),
@@ -158,6 +166,7 @@ export function snapshot(model: GameModel): SaveData {
     fullWalls: model.fullWalls,
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     trees: model.lumber.saved(), // the trees chopped at, felled for good
+    kindled: model.cooking.saved(), // the campfire lit, and its firewood with it
     story: model.story.save(),
     doors: model.entrances.map((e) => ({ inn: doorNumber(e), open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
     travellers: model.travellers.save(),
@@ -211,9 +220,9 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   // Only things the game still knows (a save may be older than a change to
   // them), worn in the slot they go in, carried in whole numbers.
-  const known = (item: string): item is BagItem => item in LOOT || isGear(item); // (gear plain, or as found: its level and rarity)
+  const known = (item: string): item is BagItem => Object.hasOwn(LOOT, item) || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
-  const equipment = Object.fromEntries(Object.entries(saved.equipment ?? {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot));
+  const equipment = readEquipment(saved.equipment);
   Object.assign(hero, {
     name: saved.name,
     look: readLook(saved.look),
@@ -223,7 +232,8 @@ export function restore(model: GameModel, data: SaveData): void {
     bags: readSockets(saved.bags), // (older saves: none fitted)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
-    spellWait: {},
+    spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
+    potionCooldown: typeof saved.potionCooldown === 'number' && Number.isFinite(saved.potionCooldown) ? Math.min(POTION_COOLDOWN, Math.max(0, saved.potionCooldown)) : 0,
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
@@ -237,6 +247,7 @@ export function restore(model: GameModel, data: SaveData): void {
       .map((b) => ({ kind: b.kind, left: Math.min(b.kind === 'weary' ? WEARY_TIME : b.kind === 'poxed' ? POX_TIME : BLESSING_TIME, b.left) })), // (each no longer than its kind lasts: the pox for hours)
   });
   hero.hp = Math.min(maxHpOf(hero), Math.max(1, saved.hp));
+  hero.eating = readMeal(hero, saved.eating); // (an older save's: none)
   if (typeof saved.energy === 'number' && Number.isFinite(saved.energy)) hero.energy = Math.min(maxEnergyOf(hero), Math.max(0, saved.energy));
   model.lastInn = typeof saved.lastInn === 'number' ? doorAt(saved.lastInn) : null;
   model.fullWalls = data.fullWalls === true;
@@ -251,6 +262,7 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { crypt, slain } of records<{ crypt: unknown; slain: unknown }>(data.crypts)) {
     if (typeof crypt === 'string' && Array.isArray(slain)) for (const post of slain) if (Number.isInteger(post)) model.cleared(crypt).add(post);
   }
+  model.cooking.restore(data.kindled); // (an older save's: none lit)
   model.lumber.restore(data.trees); // (the felled out of the way; an older save's: none)
   model.story.load(data.story); // (an older save's: nothing taken yet)
   // Where they were: a position saved lost (not a number: never written so now, but an older save's may be) costs only
@@ -287,8 +299,9 @@ export function restore(model: GameModel, data: SaveData): void {
     if (Math.hypot(change.x - enemy.homeX, change.z - enemy.homeZ) > FOE_AT_MOST_FROM_HOME) continue;
     Object.assign(enemy, { x: change.x, z: change.z, hp: Math.min(enemy.maxHp, change.hp), y: model.getGroundY(change.x, change.z) });
   }
-  for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.dropLoot(item, x, z);
-  for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.dropCoins(amount, x, z);
+  // (What lies outdoors, outdoors: a hero saved down in a dungeon is there already, its floor not the world's.)
+  for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
+  for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
   for (const { inn, money, stock, restockedAt, buyback } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
@@ -313,8 +326,13 @@ export function restore(model: GameModel, data: SaveData): void {
   }
 }
 
+// What a save has worn, as far as it's sound: gear the game knows, each in the slot it goes in.
+export function readEquipment(saved: unknown): Equipment {
+  return Object.fromEntries(Object.entries(saved && typeof saved === 'object' ? saved : {}).filter(([slot, item]) => typeof item === 'string' && isGear(item) && slotOfGear(item) === slot)) as Equipment;
+}
+
 // A saved look, as far as it's sound (each part: one there is, else the hero's own to begin with).
-function readLook(saved: unknown): BodyLook {
+export function readLook(saved: unknown): BodyLook {
   const look = (saved && typeof saved === 'object' ? saved : {}) as Partial<Record<keyof BodyLook, unknown>>;
   const index = (v: unknown, count: number, fallback: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < count ? (v as number) : fallback);
   return {

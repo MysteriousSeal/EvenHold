@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { clockAt, timeOfDay } from '../src/model/clock';
-import { fresh } from './support/testWorld';
+import { fresh, regionCrypt } from './support/testWorld';
 
 // Saved, stored as text and read back into a new game of the same world.
 const reload = (model: GameModel) => {
@@ -111,4 +111,43 @@ describe('saving', () => {
     expect(reload(model).minutes).toBe(model.minutes);
     expect([5, 6, 10, 11, 16, 17, 20, 21, 0].map((h) => timeOfDay(h * 60))).toEqual(['night', 'morning', 'morning', 'day', 'day', 'evening', 'evening', 'night', 'night']);
   });
+
+  it('keeps what lies outdoors outdoors, saved down in a dungeon (not set on its floor), and the floor its own', () => {
+    const model = fresh();
+    model.dropLoot('bentSpoon', model.hero.x + 1, model.hero.z);
+    model.dropCoins(7, model.hero.x + 1, model.hero.z);
+    const crypt = regionCrypt(model);
+    model.teleport(crypt.entrance.x, crypt.entrance.z);
+    model.useDoor();
+    expect(model.dungeon).not.toBeNull();
+    model.dropLoot('cutGem', model.hero.x, model.hero.z);
+    const again = reload(model);
+    expect(again.dungeon).not.toBeNull();
+    expect([again.ground.loot.map((l) => l.item), again.ground.coins.map((c) => c.amount)]).toEqual([['bentSpoon'], [7]]);
+    expect([again.groundHere.loot.map((l) => l.item), again.groundHere.coins.length]).toEqual([['cutGem'], 0]);
+  });
+});
+
+it("reads a damaged save's bag without a record's own workings taken for things carried", () => {
+  const model = fresh();
+  const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+  Object.assign(data.hero, { bag: { toString: 3, constructor: 1, bread: 2 }, equipment: { head: 'valueOf' } });
+  const again = fresh();
+  restore(again, data);
+  expect([Object.keys(again.hero.bag), again.hero.equipment]).toEqual([['bread'], {}]);
+});
+
+it("keeps the potion's and the charms' waits through a save (a reload no way round them); a damaged one's, none, or no longer than its own", () => {
+  const model = fresh();
+  model.hero.potionCooldown = 12.5;
+  model.hero.spellWait = { hex: 3, mend: 7 } as never;
+  const again = reload(model);
+  expect(again.hero.potionCooldown).toBe(12.5);
+  expect(again.hero.spellWait).toEqual(model.hero.spellWait);
+  const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+  Object.assign(data.hero, { potionCooldown: 'soon', spellWait: { hex: 1e9, nonsense: 4 } });
+  const broken = fresh();
+  restore(broken, data);
+  expect(broken.hero.potionCooldown).toBe(0);
+  expect(broken.hero.spellWait).toEqual({ hex: 6 }); // (no longer than its cooldown)
 });
