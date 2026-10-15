@@ -61,6 +61,7 @@ export const FURNITURE_KINDS = [
   'wallLantern',
   'menuSlate', // what's poured, chalked on a slate by the bar
   'sacks', // a pile of grain sacks, a corner's stores
+  'washstand', // upstairs, in the room let: a basin and a jug on a stand
 ] as const;
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
