@@ -24,7 +24,7 @@ export type Policy = 'optimal' | 'casual' | 'hinted';
 // A choice open at a level: what a try costs (seconds), how much it teaches (the chance a try's taught, times its
 // worth), how often the casual hand meets it (its weight: a tree's share of the wood), and whether it's the one the
 // trade's hints point to (starred).
-interface Option {
+export interface Option {
   seconds: number;
   teaches: number;
   weight: number;
@@ -145,9 +145,9 @@ function fishSeconds(item: LootId): number {
 // about what questing pays at the matching level (bot runs at mid levels: quests ~750 an hour, looting ~1,370).
 // Faster levelling mustn't lift any activity past its band: nothing here prices anything.
 export const BANDS: ReadonlyArray<[number, number]> = [[60, 120], [150, 250], [250, 400], [400, 700]]; // Apprentice, Journeyman, Expert, Artisan
-const coinSeconds = (level: number) => 3600 / ((BANDS[tierOf(level).index][0] + BANDS[tierOf(level).index][1]) / 2); // (a coin, in the hero's time, at the band's middle)
+export const coinSeconds = (level: number) => 3600 / ((BANDS[tierOf(level).index][0] + BANDS[tierOf(level).index][1]) / 2); // (a coin, in the hero's time, at the band's middle)
 const HUNTED: readonly LootId[] = ['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'leanLynxMeat', 'honeycomb'];
-const HUNT_SECONDS = 40; // a beast found and killed, a cut of it (ASSUMED)
+export const HUNT_SECONDS = 40; // a beast found and killed, a cut of it (ASSUMED)
 // The casual hand makes what's at hand: a thing wanting something dear (a minute or more of the hero's time for one
 // of it: a cut gem, a tempered ingot, a burl) made less often than the rest, RARE as often (ASSUMED).
 const DEAR = 60;
