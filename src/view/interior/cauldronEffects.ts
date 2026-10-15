@@ -3,8 +3,10 @@
 // of steam drifting up; a strong green light over it, flickering. Small unlit
 // cubes, pooled (common/bits.ts), each living a moment, as the smithy's sparks
 // and steam are (smithyEffects.ts). And the rest of their room's own light:
-// the candle on their worktable lit, and their glass (the flasks and jars on
-// the shelf, the counter and the worktable) glinting in the dark.
+// the candles on their worktable and their counter lit (the counter's a warm
+// pool of its own, where they trade), a low green glow round the cauldron's
+// foot, and their glass (the flasks and jars on the shelf, the counter and
+// the worktable) glinting in the dark.
 
 import * as THREE from 'three';
 import { Bits } from '../meshes/common/bits';
@@ -21,18 +23,24 @@ const STEAM_EVERY = 0.5; // and between wisps
 const STEAM_LIFE = 1.6;
 const SPREAD = 0.18; // tiles from the brew's middle a bubble rises
 const GLOW = 2.8; // the brew's light: a green pool round the cauldron, on the floor and on her, the room's key light
-const CANDLE = { u: 45, y: 19, v: 15 }; // the worktable's candle: its flame's foot, in its piece's voxels (herbalistVoxels.ts)
+// Their candles: each one's flame's foot, in its piece's voxels (herbalistVoxels.ts), and its light.
+const CANDLES: ReadonlyArray<{ kind: Furniture['kind']; u: number; y: number; v: number; strength: number; reach: number }> = [
+  { kind: 'herbTable', u: 45, y: 19, v: 15, strength: 0.8, reach: 2 },
+  { kind: 'herbCounter', u: 27, y: 18, v: 17, strength: 1.1, reach: 3 },
+];
 const GLASS = new Set([HERB_GLASS_GREEN, HERB_GLASS_AMBER, HERB_GLASS_COBALT, HERB_GLASS_ROSE]);
 const GLASSY: ReadonlyArray<Furniture['kind']> = ['potionShelf', 'herbCounter', 'herbTable'];
 
 export class CauldronEffects {
   private readonly bits: Bits<'bubble' | 'steam'>;
-  private readonly light = new THREE.PointLight(0x6aff5a, GLOW, 4, 1.4);
+  private readonly light = new THREE.PointLight(0x6aff5a, GLOW, 3.2, 1.4);
   private nextBubble = 0;
   private nextSteam = 0;
   private readonly flames = new CandleFlames(ROOM_PALETTE, ROOM_VOXEL);
   private readonly lit: THREE.Object3D[] = []; // (the candle's flame and light, the glints: taken away again)
   private glints: THREE.Mesh | null = null;
+  private readonly candles: Array<{ light: THREE.PointLight; full: number }> = [];
+  private readonly foot = new THREE.PointLight(0x6aff5a, 1.2, 1.1, 1.4); // (no shadow: lighting the floor round the pot's foot, its own shadow)
 
   // `brew`: the middle of its surface (none, nothing). `room` and its `furniture`: for the candle and the glass.
   constructor(
@@ -54,15 +62,19 @@ export class CauldronEffects {
       this.light.shadow.camera.near = 0.05;
       this.light.shadow.camera.far = 5;
       scene.add(this.light);
+      this.foot.position.copy(brew).setY(0.2);
+      scene.add(this.foot);
     }
-    // The worktable's candle, lit: its flame, a small warm light round it.
-    const table = furniture.find((f) => f.kind === 'herbTable');
-    if (table) {
-      const [x, z] = [table.x - 0.5 + CANDLE.u / 25, table.z - 0.5 + CANDLE.v / 25];
-      const light = new THREE.PointLight(0xffb060, 0.8, 2, 1.6);
-      light.position.set(x, (CANDLE.y + 2) * ROOM_VOXEL, z);
+    // Their candles, lit: each its flame, a warm light round it.
+    for (const c of CANDLES) {
+      const piece = furniture.find((f) => f.kind === c.kind);
+      if (!piece) continue;
+      const [x, z] = [piece.x - 0.5 + c.u / 25, piece.z - 0.5 + c.v / 25];
+      const light = new THREE.PointLight(0xffb060, c.strength, c.reach, 1.5);
+      light.position.set(x, (c.y + 2) * ROOM_VOXEL, z);
       scene.add(light);
-      this.lit.push(this.flames.add(scene, x, CANDLE.y * ROOM_VOXEL, z), light);
+      this.candles.push({ light, full: c.strength });
+      this.lit.push(this.flames.add(scene, x, c.y * ROOM_VOXEL, z), light);
     }
     // Their glass glinting: its voxels meshed again over the room's, unlit, at a little over half their brightness.
     const glassy = furniture.filter((f) => GLASSY.includes(f.kind));
@@ -79,6 +91,7 @@ export class CauldronEffects {
 
   update(dt: number, time: number): void {
     this.flames.update(time);
+    this.candles.forEach((c, i) => (c.light.intensity = c.full * (1 + Math.sin(time * 9.1 + i * 2) * 0.08 + Math.sin(time * 23.3 + i) * 0.05)));
     const { brew } = this;
     if (!brew) return;
     this.light.intensity = GLOW + Math.sin(time * 5.3) * 0.23 + Math.sin(time * 11.7) * 0.12;
@@ -105,7 +118,8 @@ export class CauldronEffects {
     }
     this.flames.dispose();
     this.bits.dispose();
-    this.scene.remove(this.light);
+    this.scene.remove(this.light, this.foot);
+    this.foot.dispose();
     this.light.dispose();
   }
 }

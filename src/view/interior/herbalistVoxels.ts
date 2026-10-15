@@ -98,7 +98,7 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
   // A black iron cauldron, round-bellied, on three stubby legs over a bed of
   // embers: soot-black all over, a band of bare iron under its lip catching
   // the light, a green brew glowing in it (brightest at its heart, scum at
-  // its edge, a bubble or two), a ladle leaning on the rim; a ring of pale
+  // its edge; its bubbles: cauldronEffects.ts), a ladle leaning on the rim; a ring of pale
   // stones laid round it on the floor (her one uncanny mark), clay pots and
   // birch twigs in its back corners by the hearth, and her stool in the
   // front one, to sit and stir from.
@@ -129,8 +129,7 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
       const r = Math.hypot(u - c, v - c);
       return r < 2.6 || (r < 4 && (u * 3 + v) % 4 === 0) ? BREW_GLOW : r > 5 && (u + v) % 2 === 0 ? MOSS_LIGHT : BREW; // the brew, scum at its edge
     });
-    for (const [u, v] of [[c - 1, c + 1], [c + 2, c - 1], [c - 2, c - 3]]) box(u, top + 1, v, u, top + 1, v, BREW_GLOW); // bubbles, rising
-    for (let k = 0; k < 7; k++) box(c - 2 - k, top - 2 + k, c - 2 - (k >> 1), c - 2 - k, top - 2 + k, c - 2 - (k >> 1), WOOD_DARK); // the ladle's handle, leaning on the rim
+    for (let k = 3; k < 7; k++) box(c - 2 - k, top - 2 + k, c - 2 - (k >> 1), c - 2 - k, top - 2 + k, c - 2 - (k >> 1), WOOD_DARK); // the ladle's handle, leaning out over the rim
     // Clay pots stacked in the corner by the hearth, the top one upside down; a bundle of birch twigs, tied, leaning in
     // the other.
     for (const [y0, y1, r] of [[1, 4, 2.4], [5, 7, 1.9], [8, 9, 1.4]] as const) {
@@ -144,8 +143,8 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     box(0, 9, 19, 5, 9, 24, (u, _y, v) => ((u === 0 || u === 5) && (v === 19 || v === 24) ? 0 : WOOD_DARK));
   },
   // Two tiles of oak, its front toward the door: on it a stone mortar and
-  // its pestle, three flasks (red, blue, green), the herbal open, a brass
-  // balance, a bunch of herbs.
+  // its pestle, three flasks (rose, cobalt, green), a squat candle, the herbal open,
+  // a brass balance, a bunch of herbs.
   herbCounter: (box, len) => {
     box(1, 1, 7, len - 2, 2, 19, WOOD_DARK); // plinth
     box(2, 3, 8, len - 3, 12, 18, (u, y, v) => (v === 18 && (u % 12 === 2 || y === 7) ? WOOD_DARK : WOOD)); // body, panelled
@@ -155,6 +154,8 @@ export const HERBALIST_PAINTERS: Record<HerbalistKind, (box: Box, len: number, d
     flask(box, 15, 15, 12, HERB_GLASS_ROSE);
     flask(box, 19, 15, 14, HERB_GLASS_COBALT);
     flask(box, 23, 15, 12, HERB_GLASS_GREEN);
+    box(25, 15, 15, 28, 15, 18, CLAY_DARK); // a squat candle on a dish, lit (its flame: cauldronEffects.ts)
+    box(26, 16, 16, 27, 17, 17, LINEN);
     box(29, 15, 10, 40, 15, 17, (u, _y, v) => (u === 34 || u === 35 ? CLAY_DARK : (v === 12 || v === 14 || v === 16) && u !== 29 && u !== 40 ? INK : PARCHMENT)); // the herbal, open
     // A brass balance to weigh out the herbs: its foot, its post, its beam, a pan hung at each end, a pinch in one.
     box(44, 15, 13, 46, 15, 15, BRASS_DARK);
