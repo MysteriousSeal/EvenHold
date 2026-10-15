@@ -117,12 +117,12 @@ describe('woodworking', () => {
   });
 
   it('makes gear at the recipe\'s level and rarity', () => {
-    const model = workshop(285, { heartwood: 2, oakPlank: 3, varnish: 1 });
+    const model = workshop(285, { heartwood: 1, oakBurl: 1, oakPlank: 3, varnish: 1 });
     model.woodworking.start('heartwoodTowerShield');
     run(model, RECIPES.heartwoodTowerShield.seconds + 0.05);
     const made = Object.keys(model.hero.bag).find((k) => k.startsWith('towerShield'))!;
     expect(gearOf(made as never)).toMatchObject({ item: 'towerShield', level: 33, rarity: 'rare' });
-    expect([model.hero.bag.heartwood, model.hero.bag.oakPlank, model.hero.bag.varnish]).toEqual([undefined, undefined, undefined]); // (all used)
+    expect([model.hero.bag.heartwood, model.hero.bag.oakBurl, model.hero.bag.oakPlank, model.hero.bag.varnish]).toEqual([undefined, undefined, undefined, undefined]); // (all used)
   });
 
   it('makes all the bag allows, one after another, then stops', () => {
@@ -210,7 +210,7 @@ describe('the recipe book', () => {
     craft.click();
     expect(model.woodworking.making).toMatchObject({ recipe: 'birchPlank', left: 2, of: 2 });
     // A gear recipe: its level, rarity and what it gives.
-    const crafter = workshop(285, { heartwood: 2, oakPlank: 3, varnish: 1 });
+    const crafter = workshop(285, { heartwood: 1, oakBurl: 1, oakPlank: 3, varnish: 1 });
     const gear = recipeBook(crafter, { picked: 'heartwoodTowerShield', canOnly: false, count: 1 }, redraw).querySelector('.book-detail')!;
     expect(gear.textContent).toContain('Level 33 · Rare');
   });
