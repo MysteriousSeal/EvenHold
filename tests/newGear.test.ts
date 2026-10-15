@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { EQUIP_SLOTS, ITEMS, ITEM_IDS, gearOf as wearersGear, isHeldSlot, type EquipSlot, type ItemId, type Wearer } from '../src/model/human/equipment';
-import { RARITIES, gearOf, rollGear, tierOf } from '../src/model/human/items/gear';
+import { RARITIES, gearKey, gearOf, gearSpecs, rollGear, tierOf } from '../src/model/human/items/gear';
 import { GEAR_SETS, type GearSet } from '../src/model/human/items/sets';
 import { dropsGear, rollGearDrop } from '../src/model/loot/gearDrops';
 import { rollHoard } from '../src/model/loot/hoard';
@@ -183,5 +183,19 @@ describe('the sets', () => {
       const linked = pieces.every((a) => pieces.some((b) => b !== a && sources(a).some((s) => sources(b).includes(s))));
       expect(shared.length > 0 || linked, set).toBe(true);
     }
+  });
+
+  it("rolls a set piece's crit and dodge at half, its other lines as any piece's (a whole set never at their caps a tier early)", () => {
+    const plain = ITEM_IDS.find((id) => ITEMS[id].slot === 'torso' && !ITEMS[id].set)!;
+    let seen = 0;
+    for (let roll = 0; roll < 400; roll++) {
+      const [set, other] = (['sunwardCuirass', plain] as ItemId[]).map((item) => gearSpecs(gearKey({ item, level: 16, rarity: 'legendary', roll })));
+      for (const a of ['crit', 'dodge'] as const) {
+        expect(set.affixes[a]).toBeCloseTo(other.affixes[a] / 2, 6);
+        if (other.affixes[a] > 0) seen++;
+      }
+      for (const a of ['regen', 'speed', 'leech'] as const) expect(set.affixes[a]).toBe(other.affixes[a]);
+    }
+    expect(seen).toBeGreaterThan(20); // (rolled often enough to count)
   });
 });
