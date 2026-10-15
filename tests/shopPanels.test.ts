@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn } from '../src/model/smithy/smithShop';
+import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn, SMITH_PICK } from '../src/model/smithy/smithShop';
 import { baseOf, isGear, type GearKey } from '../src/model/human/items/gear';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
@@ -110,7 +110,7 @@ describe("the smith's window", () => {
   it('turns the pages: the next wares, a last page filled out to a whole one, and back to the first when opened again', () => {
     const { keeper, panel } = trading('smithy');
     panel.open(keeper);
-    const wares = [...SMITH_WARES.map((id) => `item:${id}`), 'loot:copperPick']; // (his forged pieces, and a pickaxe on every smith's shelf)
+    const wares = [...SMITH_WARES.map((id) => `item:${id}`), `loot:${SMITH_PICK}`]; // (his forged pieces, and his pickaxe last)
     const pages = Math.ceil(wares.length / PAGE);
     expect(turn('Previous').disabled).toBe(true);
     for (let p = 1; p < pages; p++) turn('Next').click();
