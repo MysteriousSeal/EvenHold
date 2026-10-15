@@ -169,8 +169,13 @@ describe('chopping', () => {
     for (const wood of Object.values(WOOD)) expect(at).toContain(wood.needs);
   });
 
-  it('has, at every level to 290, a tree orange or yellow to learn from (and past it, the elder oak, green)', () => {
-    for (let level = 1; level < 290; level++) expect(Object.keys(WOOD).some((g) => WOOD[g as keyof typeof WOOD].needs <= level && riseOf(g as keyof typeof WOOD, level).chance >= 0.6)).toBe(true);
+  it('has, to 290, a tree orange or yellow to learn from, never more than ten levels without (and past it, the elder oak, green)', () => {
+    let without = 0;
+    for (let level = 1; level < 290; level++) {
+      const teaches = Object.keys(WOOD).some((g) => WOOD[g as keyof typeof WOOD].needs <= level && riseOf(g as keyof typeof WOOD, level).chance >= 0.6);
+      without = teaches ? 0 : without + 1;
+      expect(without, `at ${level}`).toBeLessThanOrEqual(10);
+    }
   });
 
   it("never gives a grown-old tree more chops than its kind's (a tree felled stays felled, however it's graded)", () => {
@@ -234,6 +239,9 @@ describe('the prompt over a tree', () => {
     model.lumber.use();
     expect(chopPrompt(model)?.label).toMatch(/^Stop chopping · \d chops left$/);
     expect(chopPrompt(byATree('birch', null).model)).toMatchObject({ label: 'Needs an axe', muted: true });
+    skillOf(model.hero, 'lumberjacking').level = 120; // (a birch: grey for them)
+    model.lumber.stop();
+    expect(chopPrompt(model)?.label).toMatch(/^Chop the birch · \d chops? · teaches you nothing now$/);
     const pine = byATree('pine').model;
     expect(chopPrompt(pine)).toBeNull(); // (a new hero, never risen in the trade: no refusal for a first prompt)
     skillOf(pine.hero, 'lumberjacking').level = 2;

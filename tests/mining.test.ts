@@ -15,12 +15,12 @@ import { interactionOf } from '../src/model/hero/interaction';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 // A model, the hero stood by a rock (a pickaxe in the bag, unless told not), skilled enough for its vein; and the rock.
-function byARock(pick: string | null = 'pickaxe', seed = 2) {
+function byARock(pick: string | null = 'copperPick', seed = 2) {
   const model = new GameModel(seed, TEST_MAP_SIZE);
   const rock = model.scenery.find((s): s is Rock => isRock(s) && s.kind === 'boulder')!;
   const m = middleOf(rock);
   Object.assign(model.hero, { x: m.x + 0.95, z: m.z });
-  if (pick) model.hero.bag[pick as 'pickaxe'] = 1;
+  if (pick) model.hero.bag[pick as 'copperPick'] = 1;
   skillOf(model.hero, 'mining').level = VEINS[model.mining.veinOf(rock)].needs;
   return { model, rock };
 }
@@ -58,7 +58,7 @@ describe('the veins', () => {
       expect(LOOT_IDS).toContain(ore.ore);
       for (const find of ore.finds ?? []) expect(LOOT_IDS).toContain(find.item);
     }
-    for (const pick of ['pickaxe', 'ironPickaxe', 'starIronPickaxe']) expect(LOOT_IDS).toContain(pick);
+    for (const pick of ['copperPick', 'ironPick', 'steelPick', 'starIronPick']) expect(LOOT_IDS).toContain(pick);
   });
 
   it('teach the surer the harder they are: orange or yellow at every level to 290, iron and harder never grey', () => {
@@ -153,11 +153,15 @@ describe('mining', () => {
     skillOf(model.hero, 'mining').level = 160;
     expect(model.mining.strikeSeconds).toBeLessThan(first);
     const plain = model.mining.strikeSeconds;
-    model.hero.bag.ironPickaxe = 1;
-    expect(model.mining.pickKey).toBe('ironPickaxe');
-    expect(PICK_BONUS.ironPickaxe?.swings).toBe(-1);
+    model.hero.bag.ironPick = 1;
+    expect(model.mining.pickKey).toBe('ironPick');
+    expect(PICK_BONUS.ironPick?.swings).toBe(-1);
     expect(model.mining.strikeSeconds).toBeLessThan(plain);
-    expect(model.mining.secondOreChance(99)).toBe(0);
+    const iron = model.mining.strikeSeconds;
+    model.hero.bag.starIronPick = 1;
+    expect(model.mining.pickKey).toBe('starIronPick');
+    expect(model.mining.strikeSeconds).toBeLessThan(iron);
+    expect(model.mining.secondOreChance(99)).toBe(PICK_BONUS.starIronPick?.secondOre); // (the star-iron pick's own, from the start)
     expect(model.mining.secondOreChance(300)).toBeGreaterThan(0.4);
   });
 });

@@ -13,7 +13,7 @@ import { fresh } from './support/testWorld';
 describe("fishing's guide", () => {
   it('lists every catch, the best to learn from starred, and tells of the one picked', () => {
     const model = fresh();
-    skillOf(model.hero, 'fishing').level = 160;
+    skillOf(model.hero, 'fishing').level = 155;
     const state = { picked: null };
     const page = fishGuide(model, state, () => {});
     const rows = Array.from(page.querySelectorAll<HTMLElement>('.book-row'));

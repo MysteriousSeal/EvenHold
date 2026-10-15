@@ -3,7 +3,7 @@
 // the water (a lake's narrows, its open water, the deep) and the skill; the skill rises with what's landed. The
 // prompt by the water says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
-import { CATCHES, weightOf, Fishing, catchesAt, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
+import { CATCHES, weightOf, Fishing, catchesAt, isFish, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
 import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { freshHero } from '../src/model/hero/heroStats';
 import { LOOT_IDS } from '../src/model/loot/loot';
@@ -219,11 +219,22 @@ describe('what bites', () => {
     expect(riseOf(trout, 55).chance).toBe(1);
   });
 
-  it('is eels in the narrows from 110, char in open water from 200, sturgeon in the deep from 250', () => {
+  it('is bream in open water from 110 (and the deep), grayling in the narrows from 160, an orange or yellow fish in every water through the middle tiers', () => {
+    expect(items(OPEN, 110)).toContain('bream');
+    expect(items(DEEP, 110)).toContain('bream');
+    expect(items(NARROWS, 110)).not.toContain('bream');
+    expect(items(NARROWS, 160)).toContain('grayling');
+    expect(items(OPEN, 160)).not.toContain('grayling');
+    const yellow = (spot: typeof OPEN, level: number) => catchesAt(spot, level).some((c) => isFish(c.item) && riseOf(c, level).chance >= 0.6);
+    for (let level = 75; level < 160; level++) for (const spot of [OPEN, NARROWS, DEEP]) expect(yellow(spot, level), `${level}`).toBe(true);
+    for (let level = 160; level < 210; level++) expect(yellow(NARROWS, level), `${level}`).toBe(true);
+  });
+
+  it('is eels in the narrows from 110, char in open water from 180, sturgeon in the deep from 250', () => {
     expect(items(NARROWS, 110)).toContain('eel');
     expect(items(OPEN, 110)).not.toContain('eel');
-    expect(items(OPEN, 200)).toContain('char');
-    expect(items(NARROWS, 200)).not.toContain('char'); // (the deep's open water too, as the perch's)
+    expect(items(OPEN, 180)).toContain('char');
+    expect(items(NARROWS, 180)).not.toContain('char'); // (the deep's open water too, as the perch's)
     expect(items(DEEP, 250)).toContain('sturgeon');
     expect(items(NARROWS, 250)).not.toContain('sturgeon');
   });
@@ -318,6 +329,9 @@ describe('in the game', () => {
     model.hero.bag.fishingRod = 1;
     expect(interactionOf(model)?.kind).toBe('fish');
     expect(fishPrompt(model)?.label).toBe('Fish');
+    skillOf(model.hero, 'fishing').level = 299;
+    if (catchesAt(model.fishing.action!.spot, 299).every((c) => !isFish(c.item) || riseOf(c, 299).chance === 0)) expect(fishPrompt(model)?.label).toBe('Fish · teaches you nothing now');
+    else expect(fishPrompt(model)?.label).toBe('Fish'); // (a lasting fish here: always something to learn)
   });
 
   it('runs a line through the model: a bite, hooked, landed; walking off stops it', () => {
