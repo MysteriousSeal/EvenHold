@@ -8,7 +8,7 @@ import type { Npc } from '../../model/npcs/npcs';
 import type { BagItem } from '../../model/hero/bag';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
 import { baseOf, gearName, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
-import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal } from '../../model/smithy/smithShop';
+import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal, smithTakesWood, woodPrice } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { mendAll, mendBill } from '../../model/hero/wear';
@@ -88,8 +88,8 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     title: 'Wares',
     shop,
     wares: () => (Object.keys(shop().stock).filter(isGear) as GearKey[]).sort((a, b) => Number(smithSellsTo(model.hero, b)) - Number(smithSellsTo(model.hero, a))), // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks)
-    wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id), // (gear, and the iron salvaged from it)
-    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
+    wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id) || smithTakesWood(id), // (gear, the iron salvaged from it, what's found in the wood)
+    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
     trade: (id, selling) => {
       const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey);
       return result === 'he is short' ? 'short' : result;
