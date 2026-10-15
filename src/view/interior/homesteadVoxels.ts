@@ -1,5 +1,5 @@
 // The hero's cottage's own pieces (model/homestead/cottageLayout.ts): their chest, bound in iron with a brass lock (the
-// strongbox's store, at home); the trophy wall, two rows of pegs along the left wall, each trophy on its plaque
+// strongbox's store, at home); the trophy wall, three rows of pegs along the left wall, each trophy on its plaque
 // (trophyVoxels.ts) and a bare peg where there's none yet; a spot still to be built, chalked out (on the floor, or the
 // wall); and, a cottage for sale, the reeve's notice nailed to the back wall under its red seal.
 
@@ -9,7 +9,7 @@ import { CELL_H, CELL_W, paintTrophy } from './trophyVoxels';
 
 export type HomesteadKind = 'homeChest' | 'trophyWall' | 'cottageSpot' | 'saleNotice';
 
-const ROWS = [8 + CELL_H + 2, 8]; // the trophy wall's rows' bottoms (top row first: filled first)
+const ROWS = [1 + (CELL_H + 1) * 2, 1 + CELL_H + 1, 1]; // the trophy wall's rows' bottoms, a rail under each but the lowest (top row first: filled first)
 const PEGS = 7; // to a row
 const GAP = 1; // between the plaques
 const RAIL = 1; // voxels out from the wall the rails stand
@@ -51,10 +51,10 @@ export const HOMESTEAD_PAINTERS: Record<HomesteadKind, (box: Box, len: number, d
     box(11, 10, 21, 13, 11, 21, IRON); // the hasp over it
     box(11, 13, 11, 13, 13, 13, WOOD_DARK); // the mark burnt in the lid
   },
-  // Two rails along the wall, a plaque to each peg: what's hung on them (`hung`, in order), and a bare iron peg for
+  // Rails along the wall, a plaque to each peg: what's hung on them (`hung`, in order), and a bare iron peg for
   // each still to be filled.
   trophyWall: (box, len, _dep, item) => {
-    for (const y of ROWS) {
+    for (const y of ROWS.filter((y) => y > 1)) {
       box(2, y - 1, 0, len - 3, y - 1, RAIL, WOOD_DARK); // the rail under the row
       box(2, y - 1, RAIL, len - 3, y - 1, RAIL, WOOD_LIGHT);
     }

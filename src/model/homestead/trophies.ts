@@ -1,12 +1,13 @@
-// Trophies over the hearth: from the bosses, the strongholds' captains, the witch-finders and the bounties' targets, one taken off each as
-// it falls (or, a bounty's, as its target does), counted, and hung on the trophy wall of the hero's cottage once it has
-// one (cottage.ts: each kind once, in TROPHY_IDS' order; how each looks: view/interior/trophyVoxels.ts). No bonus:
+// Trophies over the hearth: from the bosses, the strongholds' captains, the reliquary's champions, the witch-finders
+// and the bounties' targets, one taken off each as it falls (or, a bounty's, as its target does), counted, and hung on
+// the trophy wall of the hero's cottage once it has one (cottage.ts: each kind once, in TROPHY_IDS' order; how each looks: view/interior/trophyVoxels.ts). No bonus:
 // they're to be looked at, and shown off. Kept in the save.
 
 import type { EnemyKind, GameEvent, Hero } from '../types';
 import type { BountyKind } from '../quests/bountyNames';
 
-export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt' | 'finderHat' | 'deaconHand';
+export type TrophyId = 'lordSkull' | 'broodFangs' | 'kingCrown' | 'captainBlade' | 'outlawPoster' | 'bearHead' | 'boarHead' | 'lynxPelt' | 'wolfPelt' | 'finderHat' | 'monstrance'
+  | 'brannocAxe' | 'ysoldeSkull' | 'godricNoose' | 'weepingEye' | 'gulletJaw' | 'shroudSilk' | 'hobPot' | 'watGauntlet' | 'megCrossbow';
 export type Trophies = Partial<Record<TrophyId, number>>; // how many of each taken
 
 export const TROPHIES: Record<TrophyId, { name: string }> = {
@@ -20,14 +21,24 @@ export const TROPHIES: Record<TrophyId, { name: string }> = {
   lynxPelt: { name: "A lynx's pelt" },
   wolfPelt: { name: "A pack leader's pelt" },
   finderHat: { name: "A witch-finder's hat" },
-  deaconHand: { name: "The Gilded Deacon's gilt hand" },
+  monstrance: { name: "The Gilded Deacon's monstrance, empty" }, // (the finger fell out of it)
+  // The reliquary's named champions' (v0.9: champions/champions.ts)
+  brannocAxe: { name: "Brannoc the Unburied's grave-rusted axe" },
+  ysoldeSkull: { name: "Ysolde of the Nails' skull" },
+  godricNoose: { name: "Godric Twice-Hanged's noose" },
+  weepingEye: { name: "The Weeping's silk-wrapped eye" },
+  gulletJaw: { name: "Gullet's jaw of hooked teeth" },
+  shroudSilk: { name: "Shroud's shroud of silk" },
+  hobPot: { name: "Hob's cracked fire-pot" },
+  watGauntlet: { name: "Wat Ninefingers' gauntlet" },
+  megCrossbow: { name: "Meg of the Gibbet's crossbow" },
 };
 export const TROPHY_IDS = Object.keys(TROPHIES) as TrophyId[];
-export const WALL_PEGS = 14; // trophies a wall holds (two rows of seven)
+export const WALL_PEGS = 21; // trophies a wall holds (three rows of seven)
 
 // Each boss's (and captain's, and a witch-finder's), by the kind of foe it is. (By name: a witch-finder's kind is the
 // roads' own, v0.9, known once they're in.)
-const OFF: Partial<Record<EnemyKind | 'witchFinder', TrophyId>> = {
+const OFF: Partial<Record<EnemyKind | 'witchFinder' | 'gildedDeacon', TrophyId>> = {
   cryptLord: 'lordSkull',
   broodMother: 'broodFangs',
   banditKing: 'kingCrown',
@@ -36,8 +47,10 @@ const OFF: Partial<Record<EnemyKind | 'witchFinder', TrophyId>> = {
   gaoler: 'captainBlade',
   captain: 'captainBlade',
   witchFinder: 'finderHat',
-  // (The reliquary's named champions, by their kinds: 'kind': 'captainBlade', or a trophy of their own.)
+  gildedDeacon: 'monstrance',
 };
+// The reliquary's champions', by which champion (each an ordinary kind of foe: the slain event says which).
+const CHAMPIONS: Record<string, TrophyId> = { brannoc: 'brannocAxe', ysolde: 'ysoldeSkull', godric: 'godricNoose', weeping: 'weepingEye', gullet: 'gulletJaw', shroud: 'shroudSilk', hob: 'hobPot', wat: 'watGauntlet', meg: 'megCrossbow' };
 export const trophyOff = (kind: EnemyKind): TrophyId | null => OFF[kind as keyof typeof OFF] ?? null;
 
 // A bounty target's, by its poster's kind and its kind of foe.
@@ -54,10 +67,12 @@ export function takeTrophy(host: { hero: Hero; report(event: GameEvent): void },
   host.report({ kind: 'homestead', text: n === 1 ? `Trophy: ${TROPHIES[id].name.toLowerCase()}` : `Trophy: ${TROPHIES[id].name.toLowerCase()} (${n})` });
 }
 
-// A foe slain (GameModel's report): a boss's or a captain's trophy taken; the reliquary cleared (the story's word for
-// the Gilded Deacon's fall, v0.9's cathedral: by name, known once it's in), his.
+// A foe slain (GameModel's report): a boss's, a captain's or a champion's trophy taken. (A witch-finder, the Gilded
+// Deacon and the champions are v0.9's roads' and reliquary's: by name, known once they're in.)
 export function onSlain(host: { hero: Hero; report(event: GameEvent): void }, event: GameEvent): void {
-  const id = event.kind === 'slain' ? trophyOff(event.on) : event.kind === 'cleared' && (event.place as string | undefined) === 'reliquary' ? 'deaconHand' : null;
+  if (event.kind !== 'slain') return;
+  const champion = (event as { champion?: string }).champion;
+  const id = (champion && Object.hasOwn(CHAMPIONS, champion) ? CHAMPIONS[champion] : null) ?? trophyOff(event.on);
   if (id) takeTrophy(host, id);
 }
 

@@ -151,9 +151,9 @@ describe('a cottage of your own', () => {
     expect(homeAction(model)?.kind).toBe('trophies');
     expect(hungOf(Object.fromEntries(TROPHY_IDS.map((id) => [id, 1])))).toHaveLength(TROPHY_IDS.length); // (room for every kind)
     expect(WALL_PEGS).toBeGreaterThanOrEqual(TROPHY_IDS.length);
-    model.report({ kind: 'cleared', name: 'The Reliquary', place: 'reliquary' as 'crypt' }); // (the story's word for the Gilded Deacon's fall: v0.9's cathedral)
-    model.report({ kind: 'cleared', name: 'A crypt', place: 'crypt' });
-    expect(model.hero.trophies?.deaconHand).toBe(1);
+    model.report({ kind: 'slain', on: 'gildedDeacon' as 'cryptLord', x: 0, y: 0, z: 0 }); // (the reliquary's boss, and a champion: v0.9's)
+    model.report({ kind: 'slain', on: 'draugr', champion: 'brannoc', x: 0, y: 0, z: 0 } as Parameters<typeof model.report>[0]);
+    expect(model.hero.trophies).toMatchObject({ monstrance: 1, brannocAxe: 1 });
   });
 
   it('is kept in a save, and an older save has none', () => {
