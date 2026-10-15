@@ -93,6 +93,7 @@ export class GameModel {
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly caves: Cave[]; // in the hills (caves/caves.ts)
   readonly strongholds: LiveWorld['strongholds']; // the bandits' old forts, few and far (strongholds/strongholds.ts)
+  readonly towns: LiveWorld['towns']; // the cathedral town, once its region's made (town/townLand.ts: one to a world)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly floors = new DungeonFloors(); // (and on each dungeon's floor, kept: dungeons/dungeonFloors.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
@@ -167,7 +168,7 @@ export class GameModel {
     this.streamer = world ? null : new WorldStreamer(this.world, regions ?? new SyncSource(seed, size));
     this.streamer?.prime(spawn); // (the regions round where the hero sets out, made before they're seen)
     ({ tiles: this.tiles, obstacles: this.obstacles, trails: this.trails, villages: this.villages, houses: this.houses, buildings: this.buildings, fields: this.fields } = this.world);
-    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, strongholds: this.strongholds, scenery: this.scenery } = this.world);
+    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, strongholds: this.strongholds, towns: this.towns, scenery: this.scenery } = this.world);
     ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));

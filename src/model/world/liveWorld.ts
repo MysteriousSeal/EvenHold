@@ -36,6 +36,8 @@ import { doorNumber, entrancesOf, type Entrance } from '../interiors/interiors';
 import { spawnNpcs, type Npc } from '../npcs/npcs';
 import { spawnTrailEnd } from '../story/storyCast';
 import { villageNumber } from '../villages/villageNumber';
+import { townSolids, type Town } from '../town/townLand';
+import { onTown } from '../town/townSite';
 
 // What the world's life needs of the game: whose world, the hero (where they are, to walk among), the ground's height
 // where they stand, the foes slain for good, and the trees felled for good.
@@ -67,6 +69,7 @@ export interface Known {
   crypts: Crypt[];
   caves: Cave[];
   strongholds: Stronghold[];
+  towns: Town[]; // the cathedral town, on its one region (town/townLand.ts)
   entrances: Entrance[];
 }
 
@@ -80,7 +83,7 @@ export interface Alive {
   npcs: Npc[];
 }
 
-const KNOWN = ['trails', 'villages', 'houses', 'buildings', 'fields', 'ruins', 'camps', 'crypts', 'caves', 'strongholds', 'entrances'] as const;
+const KNOWN = ['trails', 'villages', 'houses', 'buildings', 'fields', 'ruins', 'camps', 'crypts', 'caves', 'strongholds', 'towns', 'entrances'] as const;
 const ALIVE = ['trees', 'bushes', 'scenery', 'enemies', 'wildlife', 'npcs'] as const;
 
 // A region made and peopled (off the game's thread: LiveWorld.build), to be adopted by the game's world.
@@ -107,6 +110,7 @@ export class LiveWorld {
   readonly crypts: Crypt[] = [];
   readonly caves: Cave[] = [];
   readonly strongholds: Stronghold[] = [];
+  readonly towns: Town[] = [];
   readonly entrances: Entrance[] = []; // every door that can be gone through (its buildings', then its dungeons' ways in, region by region)
   readonly trees: Tree[] = [];
   readonly bushes: Bush[] = [];
@@ -338,9 +342,9 @@ export class LiveWorld {
     const { size, tiles, obstacles } = this;
     const area: Area = classic ? { x0: 0, z0: 0, x1: size.width, z1: size.depth } : { x0: land.x0, z0: land.z0, x1: Math.min(size.width, land.x0 + this.regionSize), z1: Math.min(size.depth, land.z0 + this.regionSize) };
     const spawn = spawnOf(size);
-    const isOpenTile = (x: number, z: number) => obstacles.isOpenTile(x, z);
-    const { trails, roads, villages, houses, buildings, fields, ruins, camps } = land;
-    for (const key of solidCells({ villages, houses, buildings })) {
+    const { trails, roads, villages, houses, buildings, fields, ruins, camps, towns = [] } = land;
+    const isOpenTile = (x: number, z: number) => obstacles.isOpenTile(x, z) && !towns.some((t) => onTown(t, x, z)); // (nothing wild on the town's hill)
+    for (const key of [...solidCells({ villages, houses, buildings }), ...towns.flatMap(townSolids)]) {
       const [x, z] = key.split(',').map(Number);
       obstacles.addSolid(x, z);
     }
@@ -359,7 +363,7 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawnTrailEnd(trails, spawn) ?? spawn).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
+    const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawnTrailEnd(trails, spawn) ?? spawn, towns.flatMap((t) => t.stalls)).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
     // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
     // stands on (so all else is as it ever was), where no foe or animal was put.
@@ -371,7 +375,7 @@ export class LiveWorld {
     addSceneryObstacles(obstacles, wilds);
     scenery.push(...wilds);
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
-    const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, entrances };
+    const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, towns, entrances };
     this.learn(index, known);
     this.live(index, { trees: land.trees, bushes: land.bushes, scenery, enemies, wildlife, npcs }, withTravellers ? this.travellersOf(index, known) : null);
   }
