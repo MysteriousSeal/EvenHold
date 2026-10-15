@@ -20,6 +20,7 @@ import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
 import { beforeBench } from './salvage';
 import { practise, skillOf } from './skills';
+import { materialRise } from './woodworking';
 
 const SKILL = 'smithing';
 const HERO_XP = 2; // the hero's own experience, a thing made
@@ -85,6 +86,7 @@ export const SMITH_RECIPES = {
 export type SmithRecipeId = keyof typeof SMITH_RECIPES;
 export const SMITH_RECIPE_IDS = Object.keys(SMITH_RECIPES) as SmithRecipeId[];
 const recipeOf = (id: SmithRecipeId): SmithRecipe => SMITH_RECIPES[id];
+export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, 'Smelting', id, level); // (an ingot lasting, as a plank does)
 
 export interface SmithingHost {
   readonly hero: Hero;
@@ -172,7 +174,7 @@ export class Smithing {
     addToBag(hero.bag, item);
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item });
-    practise(hero, SKILL, recipe.needs, roll(701), this.host.report);
+    practise(hero, SKILL, recipe.needs, roll(701), this.host.report, smithRise(id, level).chance);
     return true;
   }
 }

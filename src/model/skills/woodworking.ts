@@ -16,7 +16,7 @@ import { gearKey, type Rarity } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { LootId } from '../loot/loot';
 import type { GameEvent, Hero } from '../types';
-import { practise, skillOf } from './skills';
+import { RISE, difficulty, practise, skillOf } from './skills';
 
 const SKILL = 'woodworking';
 const HERO_XP = 2; // the hero's own experience, a thing made
@@ -117,6 +117,20 @@ export const RECIPES: Record<RecipeId, Recipe> = {
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
+// How hard a recipe is for a hand at `level` (skills.ts difficulty), a material's (`materials`: planks, varnish; a
+// smith's ingots) lasting as lumber's oak does: never grey, but green, while anything made of it is still orange or
+// yellow (planks sawn on the way teach a little, not nothing).
+type Rise = (typeof RISE)[number];
+export function materialRise(recipes: Readonly<Record<string, { needs: number; from: Partial<Record<string, number>>; makes: unknown; group: string }>>, materials: string, id: string, level: number): Rise {
+  const recipe = recipes[id];
+  const rise = difficulty(recipe.needs, level);
+  if (recipe.group !== materials || rise.chance > 0 || typeof recipe.makes !== 'string') return rise;
+  const made = recipe.makes;
+  const users = Object.values(recipes).filter((r) => level >= r.needs && made in r.from);
+  return users.some((r) => difficulty(r.needs, level).chance >= RISE[1].chance) ? RISE[2] : rise;
+}
+export const woodRise = (id: RecipeId, level: number): Rise => materialRise(RECIPES, 'Materials', id, level);
+
 export interface WoodworkingHost {
   readonly hero: Hero;
   readonly lumber: { readonly chopping: unknown; stop(): void };
@@ -195,7 +209,7 @@ export class Woodworking {
     addToBag(hero.bag, item);
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item });
-    practise(hero, SKILL, recipe.needs, roll(501), this.host.report);
+    practise(hero, SKILL, recipe.needs, roll(501), this.host.report, woodRise(id, level).chance);
     return true;
   }
 }
