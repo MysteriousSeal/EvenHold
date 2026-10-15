@@ -5,7 +5,8 @@
 // real time passes (every RESTOCK_EVERY), even between visits. What the hero
 // last sold can be bought back at what they got for it (saved too).
 
-import { canCarry } from '../hero/bagSlots';
+import { bagRoom, canCarry } from '../hero/bagSlots';
+import { slotsUsed, stacksOf } from '../hero/bagStacks';
 import { addToBag, takeFromBag, type BagItem } from '../hero/bag';
 import type { Hero } from '../types';
 
@@ -32,7 +33,7 @@ export interface Usual {
 }
 
 export const RESTOCK_EVERY = 5 * 60_000; // ms: every five minutes, one more of each it's short of
-const PURSE_DRIFT = 0.1; // of the way back to the usual purse, each restock
+const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an emptied one three quarters back in half an hour: a fisher, a cook selling all day not turned away)
 
 // The shop at door `key`, made from its usual on first visit, restocked up to now.
 export function openShop(shops: Map<number, Shop>, key: number, usual: Usual, now = Date.now()): Shop {
@@ -103,7 +104,8 @@ export function sellTo(shop: Shop, hero: Hero, id: BagItem, price: number): 'sol
 export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none' | 'too poor' | 'full' {
   const sale = shop.buyback?.[index];
   if (!sale) return 'none';
-  if (!canCarry(hero, sale.id)) return 'full';
+  const have = hero.bag[sale.id] ?? 0;
+  if (!canCarry(hero, sale.id) || slotsUsed(hero.bag) + stacksOf(sale.id, have + sale.count) - stacksOf(sale.id, have) > bagRoom(hero)) return 'full'; // (room for the whole stack: junk, a slot to twenty)
   const cost = sale.price * sale.count;
   if (hero.money < cost) return 'too poor';
   hero.money -= cost;

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BUYBACK, RESTOCK_EVERY, buyBack, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
 import { restockAll, shopAt } from '../src/model/inn/tavernShop';
+import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
+import { bagRoom } from '../src/model/hero/bagSlots';
+import { slotsUsed } from '../src/model/hero/bagStacks';
 import { SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -80,6 +83,20 @@ describe('a shop', () => {
     expect([h.money, h.bag.wolfFang, shop.stock.wolfFang, shop.buyback!.length]).toEqual([0, 3, 0, 1]);
   });
 
+  it('buys a stack back only with room in the bag for all of it (junk twenty to a slot), never overfilling it', () => {
+    const h = hero();
+    const shop: Shop = { money: 1_000, stock: {}, restockedAt: 0 };
+    h.bag.wolfFang = 25;
+    for (let i = 0; i < 25; i++) sellTo(shop, h, 'wolfFang', 1);
+    for (let i = 0; slotsUsed(h.bag) < bagRoom(h) - 1; i++) h.bag[`junk${i}` as 'ale'] = 1; // (one slot left: the 25 want two)
+    h.money = 100;
+    expect(buyBack(shop, h, 0)).toBe('full');
+    expect([h.money, h.bag.wolfFang ?? 0]).toEqual([100, 0]);
+    delete h.bag['junk0' as 'ale'];
+    expect(buyBack(shop, h, 0)).toBe('bought');
+    expect(slotsUsed(h.bag)).toBe(bagRoom(h));
+  });
+
   it('keeps what can be bought back in a save, dropping what the game no longer knows', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const shop = smithShopAt(model.shops, model.seed, 0);
@@ -124,7 +141,10 @@ describe("the smith's shop", () => {
     expect(Object.keys(forge.stock).every((id) => id in ITEMS)).toBe(true);
     forge.money = 1;
     tavern.money = 1;
+    const pack = pedlarShopAt(model.shops, model.seed, { id: 3 }); // (a pedlar's, bread and ale in it too)
+    const packed = { ...pack.stock };
     expect(restockAll(model.shops, model.seed)).toBe(1); // the inn's only
+    expect(pack.stock).toEqual(packed);
     expect(forge.money).toBe(1);
     expect(tavern.money).toBeGreaterThan(1);
     const again = new GameModel(model.seed, TEST_MAP_SIZE);

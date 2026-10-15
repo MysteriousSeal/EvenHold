@@ -7,12 +7,11 @@
 // for both: the same steps, their own words.
 
 import type { GameModel } from '../../model/GameModel';
-import { buy, buyPrice, restockIn, shopAt, type Shop } from '../../model/inn/tavernShop';
+import { buyPrice, buyToHave, restockIn, shopAt, type Shop } from '../../model/inn/tavernShop';
 import type { Npc } from '../../model/npcs/npcs';
 import type { Entrance } from '../../model/interiors/interiors';
 import { setMug, takeMug } from '../../model/inn/barMugs';
 import { callBarkeep, ordersAhead, placeOrder } from '../../model/inn/barOrders';
-import { takeFromBag } from '../../model/hero/bag';
 import { startDrinking } from '../../model/hero/heroStats';
 import type { ProvisionId } from '../../model/loot/provisions';
 
@@ -138,10 +137,9 @@ export function callFor(model: GameModel, what: BarMenuItem = 'ale'): { said: st
 export function serveOrder(model: GameModel, what: BarMenuItem = 'ale'): { said: string; drank: boolean } {
   const shop = shopHere(model);
   const { item, soldOut, tooPoor, served, gives, seconds } = MENU[what];
-  const result = buy(shop, model.hero, item);
+  const result = buyToHave(shop, model.hero, item); // (not carried off: had there, its good coming back as it goes; no room in the bag wanted)
   if (result === 'sold out') return { said: soldOut(clock(restockIn(shop))), drank: false };
   if (result === 'too poor') return { said: pick(tooPoor), drank: false };
-  takeFromBag(model.hero.bag, item); // not carried off: had there, its good coming back as it goes
   startDrinking(model.hero, seconds, gives(model.hero));
   return { said: pick(served), drank: true };
 }

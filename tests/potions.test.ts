@@ -80,6 +80,7 @@ describe('herbalists', () => {
     expect(model.hero.bag.minorHealthPotion).toBe(1);
     expect(herbalistBuys('rawWolfMeat')).toBe(true);
     expect(herbalistBuys('wolfFang')).toBe(false);
+    for (const crafted of ['oakLog', 'oakPlank', 'ironScrap', 'cutGem', 'salt', 'flour', 'firewood']) expect(herbalistBuys(crafted), crafted).toBe(false); // (a lumberjack's logs no gold mine; nor the shops' own wares sold back)
     model.hero.bag.rawWolfMeat = 1;
     expect(sellToHerbalist(shop, model.hero, 'rawWolfMeat')).toBe('sold');
   });

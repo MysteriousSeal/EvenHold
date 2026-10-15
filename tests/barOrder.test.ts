@@ -16,6 +16,8 @@ import { INDOOR_SCALE } from '../src/model/constants';
 import { NPC_RADIUS } from '../src/model/npcs/npcs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 import { doorNumber } from '../src/model/interiors/interiors';
+import { bagRoom, canCarry } from '../src/model/hero/bagSlots';
+import { slotsUsed } from '../src/model/hero/bagStacks';
 
 // In the nearest inn, as if sat at the bar.
 const atTheInn = () => {
@@ -52,6 +54,21 @@ describe('a meat pie at the bar', () => {
     expect(callFor(model, 'pie')).toMatchObject({ coming: false, said: expect.stringContaining('Not a pie left') });
     expect(serveOrder(model, 'pie').drank).toBe(false);
     expect(orderLabel(model, 'ale').soldOut).toBe(false); // the ale's still to be had
+  });
+
+  it('is paid for, from her stock, however full the hero\'s bag: never had for nothing, nor one carried taken instead', () => {
+    const model = atTheInn();
+    const shop = shopAt(model.shops, model.seed, doorNumber(model.inside!.entrance));
+    for (let i = 0; slotsUsed(model.hero.bag) < bagRoom(model.hero); i++) model.hero.bag[`junk${i}` as 'meatPie'] = 1; // (every slot taken)
+    expect(canCarry(model.hero, 'meatPie')).toBe(false);
+    const [stock, ales] = [shop.stock.ale!, shop.stock.meatPie!];
+    model.hero.money = 100;
+    expect(serveOrder(model, 'pie').drank).toBe(true);
+    expect([shop.stock.meatPie, model.hero.money]).toEqual([ales - 1, 100 - buyPrice('meatPie')]);
+    model.hero.drinking = null;
+    model.hero.bag.ale = 1; // (one of her ales carried: not the one had at the bar)
+    expect(serveOrder(model, 'ale').drank).toBe(true);
+    expect([shop.stock.ale, model.hero.money, model.hero.bag.ale]).toEqual([stock - 1, 100 - buyPrice('meatPie') - buyPrice('ale'), 1]);
   });
 
   it('is on the same menu as the ale, each with its own words', () => {

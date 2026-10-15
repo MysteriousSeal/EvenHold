@@ -1,13 +1,13 @@
 // A home's furniture (furnish.ts): a hearth, a bed (into the back corner if
 // it can, its open side kept free), a table with chairs, a chest, a shelf,
-// barrels and a rug.
+// barrels and a rug; no floor walled off from the door.
 
 import type { Entrance, Room } from './interiors';
 import { clothFor } from './furniture';
 import type { Planner } from './roomPlanner';
 
 export function furnishHouse(plan: Planner, room: Room, seed: number, entrance: Entrance): void {
-  const { rng, kept, key, place, along, down, inside, chairs } = plan;
+  const { rng, kept, key, place, along, down, inside, chairs, openWalledIn } = plan;
   // The bed first, into the back corner if it can, else along the left
   // wall; then the tiles along its open side and at its ends are kept free.
   const bedSpots = down(0).filter(([, z]) => z > 0);
@@ -27,4 +27,7 @@ export function furnishHouse(plan: Planner, room: Room, seed: number, entrance: 
   place('chest', 1, 1, 'back', along(0));
   if (rng() < 0.7) place('shelf', 1, 1, 'back', along(0));
   for (let n = 1 + Math.floor(rng() * 2); n > 0; n--) place('barrel', 1, 1, 'none', [[room.width - 1, 0], [0, room.depth - 1], [room.width - 1, room.depth - 1], ...along(0)]);
+  // Nothing walled off from the door (the bed's side, a corner): the barrels and chairs closing it off taken away.
+  openWalledIn('barrel');
+  openWalledIn('chair');
 }

@@ -30,10 +30,12 @@ export const PEDLAR_TRINKETS: readonly ItemId[] = ITEM_IDS.filter((id) => (ITEMS
 export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, 'firewood', ...POTION_IDS, ...PEDLAR_TRINKETS, ...BAG_IDS, 'fishingRod']; // (and bags: hero/bagSlots.ts; a rod, for the angler)
 
 // What they'll buy: food and drink, and trinkets (what goes round a neck or on a finger).
-export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || id === 'fishingRod' || isFish(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
+// (And the silver and stones salvaged from gear, skills/salvage.ts, as they buy trinkets: at half their worth.)
+const FINERY: ReadonlySet<string> = new Set(['silverFilings', 'gemShard', 'cutGem']);
+export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || id === 'fishingRod' || isFish(id) || FINERY.has(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
 
 export const pedlarPrice = (id: BagItem, selling: boolean): number =>
-  id === 'firewood' ? INGREDIENTS.firewood.value : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : id === 'fishingRod' ? (selling ? Math.floor(TOOL_ITEMS.fishingRod.value / 2) : TOOL_ITEMS.fishingRod.value) : isFish(id) ? LOOT[id].value : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
+  id === 'firewood' ? INGREDIENTS.firewood.value : FINERY.has(id) ? Math.floor(LOOT[id as keyof typeof LOOT].value / (selling ? 2 : 1)) : isProvision(id) ? (selling ? sellPrice(id) : buyPrice(id)) : isPotion(id) ? potionPrice(id, selling) : isBagItem(id) ? (selling ? Math.floor(BAG_ITEMS[id].value / 2) : BAG_ITEMS[id].value) : id === 'fishingRod' ? (selling ? Math.floor(TOOL_ITEMS.fishingRod.value / 2) : TOOL_ITEMS.fishingRod.value) : isFish(id) ? LOOT[id].value : selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
 
 // The pack of the pedlar `t`, made the first time it's opened.
 export function pedlarShopAt(shops: Map<number, Shop>, seed: number, t: Pick<Traveller, 'id'>, now = Date.now()): Shop {

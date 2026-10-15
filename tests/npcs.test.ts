@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { nameAt, randomName, spawnNpcs } from '../src/model/npcs/npcs';
+import { visitInn } from '../src/model/npcs/npcRoutine';
+import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { randomLook } from '../src/model/human/humanoid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -187,6 +189,43 @@ describe('villagers', () => {
     }
     expect(worked).toBe(true);
     expect(model.npcs.filter((n) => n.field).length).toBeLessThan(model.npcs.filter((n) => n.role === 'villager').length); // some, not all
+  });
+
+  it('keep the clock: abed at night, the fields and the square left at dusk, up again in the morning', () => {
+    const model = withVillage();
+    const village = model.npcs[0].village;
+    const folk = model.npcs.filter((n) => n.role === 'villager' && n.village === village);
+    model.teleport(village.x + 0.5, village.z + 0.5); // on the square, watching
+    model.minutes = 23 * 60; // eleven at night
+    for (let t = 0; t < 180; t += 0.1) model.update(0, 0, 0.1); // till two
+    expect(folk.filter((n) => n.where !== n.home).map((n) => n.name)).toEqual([]); // every one at home
+    expect(folk.filter((n) => n.seat?.lying).length).toBeGreaterThan(folk.length / 2); // most of them abed
+    model.minutes = 19 * 60; // an evening
+    for (const n of folk) n.steps = [];
+    let [worked, most] = [false, 0];
+    for (let t = 0; t < 120; t += 0.1) {
+      model.update(0, 0, 0.1);
+      if (folk.some((n) => n.working)) worked = true;
+      most = Math.max(most, folk.filter((n) => n.where === n.inn).length);
+    }
+    expect(worked).toBe(false); // no one out in the fields after dusk
+    expect(most).toBeGreaterThanOrEqual(Math.min(4, folk.length / 2)); // the inn the place to be
+    model.minutes = 9 * 60; // the morning
+    for (let t = 0; t < 400; t += 0.1) model.update(0, 0, 0.1);
+    expect(folk.some((n) => n.where === null)).toBe(true); // up and about
+  });
+
+  it('called to the inn from their bed (a busy hour), get up beside it, not off from on top of it', () => {
+    const model = withVillage();
+    const npc = model.npcs.find((n) => n.role === 'villager' && n.inn)!;
+    model.minutes = 2 * 60; // the night
+    npc.steps = [];
+    for (let t = 0; t < 60 && !npc.seat?.lying; t += 0.1) model.update(0, 0, 0.1);
+    expect(npc.seat?.lying).toBe(true);
+    const stood = { ...npc.stood! };
+    visitInn(npc, npc.inn!, model.seed, 30);
+    expect([npc.seat, npc.x, npc.z, npc.y]).toEqual([null, stood.x, stood.z, 0]);
+    expect(bumpsFurniture(layoutOf(model.seed, npc.home).furniture, npc.x, npc.z, 0.05)).toBe(false);
   });
 
   it('give the hero a new random look and name each game: men and women, no two alike', () => {

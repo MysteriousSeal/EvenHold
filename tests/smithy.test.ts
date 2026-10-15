@@ -3,7 +3,10 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { layoutOf } from '../src/model/interiors/indoors';
 import { ITEMS } from '../src/model/human/equipment';
-import { SMITH_WARES, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { LOOT } from '../src/model/loot/loot';
+import { pedlarBuys, pedlarPrice } from '../src/model/travellers/pedlarShop';
+import { saleOf } from '../src/model/shops/sellValue';
+import { SMITH_WARES, smithAsks, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { talkingTo } from '../src/model/npcs/talk';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -63,6 +66,32 @@ describe('the smithy', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
     const kept = smithShopAt(again.shops, again.seed, again.entrances.indexOf(again.inside!.entrance));
     expect(kept.stock[ware]).toBe(shop.stock[ware]);
+  });
+
+  it("keeps his heaviest work for a hero who's proven: a breastplate not to a green one, whatever their purse", () => {
+    const model = atTheSmithy();
+    const shop = smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    Object.assign(model.hero, { level: 1, money: 100_000 });
+    shop.stock.breastplate = 1;
+    expect(smithAsks('breastplate')).toBe(7);
+    expect(buyGear(shop, model.hero, 'breastplate')).toBe('sold out');
+    expect(model.hero.money).toBe(100_000);
+    expect(smithAsks('dagger')).toBe(1);
+    model.hero.level = 7;
+    expect(buyGear(shop, model.hero, 'breastplate')).toBe('bought');
+  });
+
+  it('takes the iron salvaged from gear at half its worth; a pedlar the silver and stones; logs and leather, no one', () => {
+    const model = atTheSmithy();
+    const shop = smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
+    Object.assign(model.hero, { money: 0, bag: { ironScrap: 1, temperedIngot: 1, leatherStrip: 1 } });
+    expect(sellGear(shop, model.hero, 'temperedIngot')).toBe('sold');
+    expect(sellGear(shop, model.hero, 'ironScrap')).toBe('sold');
+    expect(model.hero.money).toBe(LOOT.temperedIngot.value / 2 + LOOT.ironScrap.value / 2);
+    expect(sellGear(shop, model.hero, 'leatherStrip')).toBe('not wanted');
+    expect([pedlarBuys('cutGem'), pedlarPrice('cutGem', true)]).toEqual([true, LOOT.cutGem.value / 2]);
+    for (const id of ['oakLog', 'oakPlank', 'leatherStrip', 'linenScrap'] as const) expect(saleOf(id), id).toBeNull();
+    expect(saleOf('ironScrap')).toEqual({ price: LOOT.ironScrap.value / 2, to: 'a smith' });
   });
 
   it('comes to his counter when the hero is by it, to trade (E)', () => {

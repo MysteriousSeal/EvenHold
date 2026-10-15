@@ -242,6 +242,17 @@ describe('at work', () => {
     expect(roomAction(model)?.kind).toBe('rent');
   });
 
+  it("keeps what a shift's earned so far with a save made at work (the page shut mid-shift), as if left then", () => {
+    const { model, inn } = atTheInn();
+    model.hero.money = 10;
+    model.work.start(inn);
+    model.work.shift!.earned = 17;
+    const again = new GameModel(1, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), 1)!);
+    expect(again.hero.money).toBe(27);
+    expect(model.hero.money).toBe(10); // (still owed, here: paid at its end)
+  });
+
   it("keeps the hero's record in each job with their save", () => {
     const { model } = atTheInn();
     Object.assign(recordOf(model.hero, 'innServer'), { xp: 42, shifts: 3, served: 40, best: 17, earned: 512 });
