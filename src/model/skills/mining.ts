@@ -65,7 +65,8 @@ export const rockKey = (rock: { x: number; z: number }): string => `${rock.x},${
 export const middleOf = (rock: Rock): { x: number; z: number } => ({ x: rock.x + (rock.w - 1) / 2, z: rock.z + (rock.d - 1) / 2 });
 
 // Whether a rock lies on the hills or the moor, where star-iron's found. A seam: the high ground (HIGH and up) stands in for
-// the hills and the moor of the land's biomes (scenery/biomes.ts, flora's: 'hills', 'moor') till they're in.
+// the land's biomes till they're in (scenery/biomes.ts: createBiomes(seed).at(x, z) is 'hills' or 'heath', the moor; the
+// pure one, not the view's aroundVillages).
 export const upland = (tiles: { height(x: number, z: number): number }, rock: Rock): boolean => tiles.height(rock.x, rock.z) >= HIGH;
 
 // A rock's vein, by where it lies.
