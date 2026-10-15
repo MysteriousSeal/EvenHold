@@ -16,9 +16,7 @@ import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 export const PLAZA_VOXEL_SIZE = 0.04;
 const TILE = 25; // voxels per tile
 export const PLAZA_RADIUS = VILLAGE_OUTER_RADIUS; // tiles from the well to the square's edge
-const SIZE = (2 * PLAZA_RADIUS + 1) * TILE;
-const CENTER = Math.floor(SIZE / 2);
-export const PLAZA_GRID: [number, number, number] = [SIZE, 4, SIZE];
+export const PLAZA_GRID: [number, number, number] = [(2 * PLAZA_RADIUS + 1) * TILE, 4, (2 * PLAZA_RADIUS + 1) * TILE]; // (a village's)
 
 export const PLAZA_PALETTE = [
   0xd8b98a, // 1 sandstone
@@ -49,10 +47,13 @@ interface Stone {
   top: number; // highest voxel layer (1 normally, 2 raised, 0 sunk, -1 missing)
 }
 
-export function buildPlaza(kindAt: (dx: number, dz: number) => TileKind, seed: number): VoxelGrid {
-  const grid = createGrid(PLAZA_GRID);
+// (`radius`: the square's, a village's; the cathedral town's the wider: town/townPlan.ts SQUARE.)
+export function buildPlaza(kindAt: (dx: number, dz: number) => TileKind, seed: number, radius = PLAZA_RADIUS): VoxelGrid {
+  const SIZE = (2 * radius + 1) * TILE;
+  const CENTER = Math.floor(SIZE / 2);
+  const grid = createGrid([SIZE, PLAZA_GRID[1], SIZE]);
   const rng = mulberry32(seed);
-  const tileOf = (v: number) => Math.floor(v / TILE) - PLAZA_RADIUS;
+  const tileOf = (v: number) => Math.floor(v / TILE) - radius;
   const paved = (i: number, k: number) => kindAt(tileOf(i), tileOf(k)) === 'plaza';
 
   // Distance (in voxels) to the nearest square edge that faces grass, and

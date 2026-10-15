@@ -228,6 +228,9 @@ export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_
   barrowTorc,
   trophyCord,
   scallopShell,
+  pilgrimAmpulla: amulet(0x9a2a2a, 0x8a8e94, 0xb8bcc2, 3, 4), // (a lead flask on a red cord)
+  saintsKnuckle: amulet(0xb8bec6, 0xc8ced6, 0xe6d8b4, 3, 3), // (a bone in a silver case)
+  martyrsThorn: amulet(0xd4b060, 0xd4b060, 0x3a2a1c, 3, 4), // (a black thorn under crystal, in gold)
   fingerboneRing,
   emberRing,
   ducalSignet,
