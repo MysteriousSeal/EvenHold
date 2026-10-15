@@ -127,8 +127,8 @@ describe("a pedlar's word", () => {
   it("the news of the road: the cathedral's once the long road's been taken, never before", () => {
     const before = Array.from({ length: 20 }, (_, n) => pedlarNews(false, n)).join(' ');
     const after = Array.from({ length: 20 }, (_, n) => pedlarNews(true, n)).join(' ');
-    expect(before).not.toMatch(/grey|saint's finger|bishop|cathedral's been/);
-    expect(after).toMatch(/men in grey/i);
+    expect(before).not.toMatch(/grey|Greyminster|Aldous|bishop/i);
+    expect(after).toMatch(/men in grey|greycoats/i);
     expect(after).toMatch(/saint/);
   });
 });

@@ -1,7 +1,7 @@
 // What a pedlar has to say (their window: controller/trade/pedlarPanel.ts): a word on the hero as they come up (camped
 // for the night, hurt, their bag full, bones in it to sell, a trinket of theirs worn, a light purse); the news of the
 // road, at the foot of their window (once the carter's gone up the cathedral road with his box, "The long road" done:
-// the men in grey on the roads, the new saint's miracles, the relic trade; before, the road's own); and a rumour to
+// the greycoats on the roads, Saint Aldous's miracles at Greyminster, the relic trade; before, the road's own); and a rumour to
 // buy, a place on the road inked on the hero's map (atlas.ts hear), one a while (RUMOUR_EVERY, as a shop restocks).
 
 import type { Hero } from '../types';
@@ -53,13 +53,14 @@ const ROAD = [
   'An innkeeper two villages back waters her ale. I will not say which. It was all of them.',
 ];
 const CATHEDRAL = [
-  'Men in grey stopped me at the ford. Turned out my whole cart looking for poppets. Took two candles and a ham.',
-  "They say the new saint's finger cured a blind cooper at the cathedral. Cured him of his savings, more like.",
-  "Bones are dear this year. Every crypt from here to the cathedral's been dug.",
+  'Greycoats stopped me at the ford. Turned out my whole cart looking for poppets. Took two candles and a ham.',
+  "Everyone's walking to Greyminster. They say Saint Aldous's finger healed a blind cooper. Healed him of his savings, more like.",
+  "Bones are dear this year. Every crypt from here to Greyminster's been dug.",
   'A woman sat a day in the stocks for selling love charms. The men in grey bought three first.',
-  "A pilgrim wept the whole road to the cathedral. Said she'd felt something there. Who am I to say she didn't?",
-  "The bishop's men are buying up relics. They pay in blessings. I take coin.",
-  'Keep your charms in your boot when the men in grey ride by. They ask questions with their fists.',
+  "A pilgrim wept the whole road to the Minster. Said she'd felt something there. Who am I to say she didn't?",
+  "Bishop Osric's men are buying up relics. They pay in blessings. I take coin.",
+  "There's a pardoner in Greyminster, Gil, selling Saint Aldous's toenails. Nine feet, that saint had, by Gil's count.",
+  'Keep your charms in your boot when the greycoats ride by. Captain Grey asks his questions with his fists.',
 ];
 export const pedlarNews = (arcTwo: boolean, n: number): string => {
   const lines = arcTwo ? [...CATHEDRAL, ...ROAD.slice(0, 2)] : ROAD;
