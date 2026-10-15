@@ -128,11 +128,10 @@ export class GameModel {
   readonly work = new Work(this); // (a job's shift, under way: jobs/work.ts)
   readonly lumber = new Lumber(this); // (trees chopped, felled for good: skills/lumber.ts)
   readonly woodworking: Woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
-  readonly smithing: Smithing = new Smithing(this); // (metal worked at a smithy's anvil: skills/smithing.ts)
+  readonly smithing: Smithing = new Smithing(this); readonly mining = new Mining(this); // (metal worked at a smithy's anvil; rocks struck, their veins back a day after: skills/smithing.ts, mining.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
-  readonly mining = new Mining(this); // (rocks struck, their veins worked out for good: skills/mining.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
