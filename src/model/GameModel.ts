@@ -54,7 +54,7 @@ import { type Cave } from './caves/caves';
 import { CaveRun } from './caves/caveFoes';
 import { dungeonAt, dungeonBlocks, dungeonRun, dungeonShare } from './dungeons/dungeons';
 import { goesUnder, type DungeonRun } from './dungeons/dungeonTypes';
-import { dungeonHooks, foeStrikes, knockedOn, landBlow } from './hero/fighting';
+import { dungeonHooks, faceGuarded, foeStrikes, knockedOn, landBlow } from './hero/fighting';
 import { WildMoves } from './enemies/wildMoves';
 import { CampLife } from './camps/campLife';
 import { VillageWelcome } from './villages/villageWelcome';
@@ -264,7 +264,7 @@ export class GameModel {
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       if (!this.moves.roll) this.moveInside(dirX, dirZ, dt);
-      this.faceGuarded();
+      faceGuarded(this);
       this.moves.update(dt, this.push, this.below ? this.land : null); // (breath, the guard, a roll carrying them, a blow landing: none to hit but in a crypt)
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
@@ -279,7 +279,7 @@ export class GameModel {
     }
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
-    this.faceGuarded();
+    faceGuarded(this);
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
@@ -296,12 +296,6 @@ export class GameModel {
 
   // The villagers round the hero (where they are on the map: a building, if in one).
   get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; return v && v.where === this.inside?.entrance ? [...near, v] : near; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts)
-
-  // Behind a raised guard, turned to the foe focused if it's close by, wherever they step (a guard holds only before them).
-  private faceGuarded(): void {
-    const focus = this.focused;
-    if (this.moves.guard !== null && focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= FOCUS_TURN_RANGE) this.hero.facing = Math.atan2(focus.x - this.hero.x, focus.z - this.hero.z);
-  }
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);

@@ -8,7 +8,7 @@ import { butcher } from '../loot/ingredients';
 import { leech } from './gearEffects';
 import { rollGearDrop } from '../loot/gearDrops';
 import type { CombatMoves, Guarded } from './combatMoves';
-import { ATTACK_KNOCKBACK, ENEMY_STATS, HIT_FLASH } from '../constants';
+import { ATTACK_KNOCKBACK, ENEMY_STATS, FOCUS_TURN_RANGE, HIT_FLASH } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
@@ -50,6 +50,12 @@ export interface Fight {
 
 // The blow lands on the foe in reach: off its health, a shove away, and a
 // brief flash. At zero it dies, and leaves what it leaves.
+// Behind a raised guard, turned to the foe focused if it's close by, wherever they step (a guard holds only before them).
+export function faceGuarded(model: { readonly hero: Hero; readonly moves: CombatMoves; readonly focused: Enemy | null }): void {
+  const focus = model.focused;
+  if (model.moves.guard !== null && focus && focus.state !== 'dead' && Math.hypot(focus.x - model.hero.x, focus.z - model.hero.z) <= FOCUS_TURN_RANGE) model.hero.facing = Math.atan2(focus.x - model.hero.x, focus.z - model.hero.z);
+}
+
 export function landBlow(fight: Fight): void {
   const { hero } = fight;
   const hit = blowTarget(hero, fight.foes, fight.focused, fight.clear);
