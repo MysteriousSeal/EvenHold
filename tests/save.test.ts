@@ -163,3 +163,9 @@ it('reads a hero file\'s huge level, experience and money as no more than a hero
   expect(loaded.hero.money).toBeLessThanOrEqual(MAX_MONEY);
   expect(gainXp(loaded.hero, 5)).toBeLessThanOrEqual(1);
 });
+
+it("keeps a sold piece of the hero's own make their own make, to buy back after a reload", () => {
+  const model = fresh();
+  model.shops.set(7, { money: 100, stock: {}, restockedAt: 0, buyback: [{ id: 'wolfFang', price: 3, count: 1, crafted: true }, { id: 'ale', price: 1, count: 1 }] });
+  expect(reload(model).shops.get(7)!.buyback).toEqual([{ id: 'wolfFang', price: 3, count: 1, crafted: true }, { id: 'ale', price: 1, count: 1 }]);
+});
