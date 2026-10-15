@@ -1,7 +1,8 @@
 // The roads' people, built with the game's own rigs, to capture headless (npx vite, then
 // /tests/preview/roads.html?zoom=1|3&night=1): a party of three witch-finders (model/roads/patrols.ts) on a dirt road
 // beside a guard and a pilgrim, and one turned on the hero (a foe, in what he wore); the night's dead behind them, a
-// draugr and two skeletons (model/roads/nightDead.ts). `night`: the light dimmed, as after dark. window.done once drawn.
+// draugr and two skeletons (model/roads/nightDead.ts). `night`: the light dimmed, as after dark. `stocks`: instead, a
+// square's stocks (model/roads/stocks.ts) with the hero sat in them, a day's sentence. window.done once drawn.
 import * as THREE from 'three';
 import { makeEnemy } from '../../src/model/enemies/enemies';
 import { makeTraveller } from '../../src/model/travellers/travellers';
@@ -10,6 +11,11 @@ import { addLights } from '../../src/view/render/lighting';
 import { EnemyViews } from '../../src/view/meshes/enemy/enemyViews';
 import { TravellerViews } from '../../src/view/meshes/npc/travellerViews';
 import type { Road } from '../../src/model/worldgen/roads';
+import { greedyMesh } from '../../src/view/meshes/voxel/greedyMesh';
+import { STOCKS_GRID, STOCKS_PALETTE, STOCKS_VOXEL_SIZE, buildStocks } from '../../src/view/meshes/plaza/stocksVoxels';
+import { HumanRig } from '../../src/view/meshes/human/humanRig';
+import { personMaterial } from '../../src/view/meshes/human/humanParts';
+import { HERO_LOOK } from '../../src/model/human/humanoid';
 
 const q = new URLSearchParams(location.search);
 const night = q.get('night') === '1';
@@ -35,14 +41,22 @@ const people = [
   makeTraveller(21, 'pilgrim', 0, 4.6, 1, roads, 7, spawn, null),
 ];
 const views = new TravellerViews(scene);
-views.update(people, { x: 0, z: 0 }, 0);
+if (q.get('stocks') === '1') {
+  // The stocks facing +z (toward the camera's left), the hero sat in them: as roads/stocks.ts seats them.
+  const origin = new THREE.Vector3((-STOCKS_GRID[0] * STOCKS_VOXEL_SIZE) / 2, 0, (-STOCKS_GRID[2] * STOCKS_VOXEL_SIZE) / 2);
+  scene.add(new THREE.Mesh(greedyMesh(buildStocks(), STOCKS_PALETTE, STOCKS_VOXEL_SIZE, origin), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 })));
+  const hero = new HumanRig(HERO_LOOK, personMaterial());
+  hero.wear({ torso: 'gambeson', legs: 'woolHose', feet: 'leatherBoots' } as never);
+  scene.add(hero.root);
+  for (let i = 0; i < 30; i++) hero.update(0, 0.16, -0.14, 0.1, null, 0, 'sit'); // (settled into it)
+} else views.update(people, { x: 0, z: 0 }, 0);
 
 // A finder turned on the hero (a foe in what he wore), and the night's dead behind, off the road.
 const [finder] = people;
 const foe = { ...makeEnemy(1, 'witchFinder', 1.5, 1.6, 1.5, 1.6, 6), human: { look: finder.look, equipment: finder.equipment }, state: 'chase' as const };
 const dead = [makeEnemy(2, 'draugr', -1.5, -1.8, -1.5, -1.8, 5), makeEnemy(3, 'skeleton', -0.6, -2.1, -0.6, -2.1, 4), makeEnemy(4, 'skeleton', -2.4, -2.2, -2.4, -2.2, 4)];
 const foes = new EnemyViews(scene);
-foes.update([foe, ...dead], 0, 0, 0);
+if (q.get('stocks') !== '1') foes.update([foe, ...dead], 0, 0, 0);
 
 const W = 1280, H = 800;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
