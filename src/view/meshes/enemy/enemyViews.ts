@@ -2,6 +2,7 @@
 // bandit's, a skeleton's or a ghost's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
+import { FOE_INK, Silhouettes } from '../human/heroSilhouette';
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
@@ -81,6 +82,7 @@ export class EnemyViews {
     (rig) => rig.dispose(),
   );
   private readonly marker = focusMarker();
+  private readonly ink = new Silhouettes(FOE_INK); // (outdoors, those coming for the hero or focused: seen through a crown)
   private readonly questMarks = new Map<number, THREE.Mesh>(); // the amber aura under each marked foe
   private time = 0;
 
@@ -125,6 +127,7 @@ export class EnemyViews {
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       if (rig instanceof BanditRig && enemy.human && rig.body !== enemy.human.look) return this.rigs.forget(enemy.id);
       rig.update(enemy, dt, heroX, heroZ);
+      this.ink.update(Silhouettes.meshesOf(rig.root), this.scale === 1 && (enemy.state === 'chase' || enemy === target)); // (the world's, not a dungeon's floor)
       this.markQuest(enemy, marked(enemy) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {
