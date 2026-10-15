@@ -59,7 +59,7 @@ export class AmbientLife {
   private readonly color = new THREE.Color();
   private fields: { of: number; by: Map<string, Field[]> } = { of: -1, by: new Map() }; // the fields by patch (their perched birds')
   private readonly moment: Moment;
-  private readonly life: LifeWorld; // where the life's placed (with what country it is, once that's known: ambientSpots.ts)
+  private readonly life: LifeWorld; // where the life's placed (its `biomes`, what country each tile is: flora's createBiomes(seed, tiles), model/scenery/biomes.ts, once it's here)
   private readonly livestock: LivestockViews;
   private readonly smoke: HouseSmoke;
   private time = 0;
