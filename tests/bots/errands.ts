@@ -9,7 +9,7 @@ import { resetCost, resetPoints } from '../../src/model/hero/training';
 import { sellValue, isJunk } from '../../src/model/shops/sellValue';
 import { sellTo, type Shop } from '../../src/model/shops/shopStock';
 import { buy, shopAt, INN_WANTS, sell } from '../../src/model/inn/tavernShop';
-import { buyGear, gearPrice, smithShopIn } from '../../src/model/smithy/smithShop';
+import { buyGear, smithPriceFor, smithShopIn } from '../../src/model/smithy/smithShop';
 import { doorNumber } from '../../src/model/interiors/interiors';
 import type { BotStats } from './bot';
 import type { Balance } from './balance';
@@ -123,12 +123,13 @@ export class Errands {
     const { hero } = this.model;
     const shop = smithShopIn(this.model); // (as the game keeps it: by its door's number, forged at his village's level)
     this.sellJunk(shop);
-    const want = (Object.keys(shop.stock) as GearKey[]).filter((key) => isGear(key) && (shop.stock[key] ?? 0) > 0 && gearPrice(key) <= hero.money && better(key, hero));
+    const price = (key: GearKey) => smithPriceFor(hero, key); // (as he charges: dearer under the counter, above the hero's level)
+    const want = (Object.keys(shop.stock) as GearKey[]).filter((key) => isGear(key) && (shop.stock[key] ?? 0) > 0 && price(key) <= hero.money && better(key, hero));
     const best = want.sort((a, b) => power(b) - power(a))[0];
     if (best) {
       const money = hero.money;
-      if (this.counted('gear', () => buyGear(shop, hero, best)) !== 'bought') this.report('smith would not sell', `${best} at ${gearPrice(best)}, hero has ${money}`);
-      else if (hero.money !== money - gearPrice(best)) this.report('smith charged wrong', `${best}: ${money - hero.money} for ${gearPrice(best)}`);
+      if (this.counted('gear', () => buyGear(shop, hero, best)) !== 'bought') this.report('smith would not sell', `${best} at ${price(best)}, hero has ${money}`);
+      else if (hero.money !== money - price(best)) this.report('smith charged wrong', `${best}: ${money - hero.money} for ${price(best)}`);
       else this.stats.trades++;
     }
   }

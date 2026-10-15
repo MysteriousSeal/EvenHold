@@ -1,7 +1,8 @@
 // What a pedlar has to say (their window: controller/trade/pedlarPanel.ts): a word on the hero as they come up (camped
 // for the night, hurt, their bag full, bones in it to sell, a trinket of theirs worn, a light purse); the news of the
 // road, at the foot of their window (once the carter's gone up the cathedral road with his box, "The long road" done:
-// the greycoats on the roads, Saint Aldous's miracles at Greyminster, the relic trade; before, the road's own); and a rumour to
+// the greycoats on the roads, Saint Aldous's miracles at Greyminster, the relic trade, and the act's own word, the ending's
+// at the last; before, the road's own); and a rumour to
 // buy, a place on the road inked on the hero's map (atlas.ts hear), one a while (RUMOUR_EVERY, as a shop restocks).
 
 import type { Hero } from '../types';
@@ -17,6 +18,7 @@ import type { Entrance } from '../interiors/interiors';
 import { dungeonAt } from '../dungeons/dungeons';
 import type { Camp as BanditCamp } from '../camps/camps';
 import { bearing } from './travellerTalk';
+import type { SaintState } from '../story/saint/saintState';
 
 export const RUMOUR_PRICE = 15; // copper: a place on the map
 const RUMOUR_REACH = 400; // tiles from the pedlar a place they've heard of lies at most
@@ -62,8 +64,20 @@ const CATHEDRAL = [
   "There's a pardoner in Greyminster, Gil, selling Saint Aldous's toenails. Nine feet, that saint had, by Gil's count.",
   'Keep your charms in your boot when the greycoats ride by. Captain Grey asks his questions with his fists.',
 ];
-export const pedlarNews = (arcTwo: boolean, n: number): string => {
-  const lines = arcTwo ? [...CATHEDRAL, ...ROAD.slice(0, 2)] : ROAD;
+// The act's own word (story/saint/saintState.ts: the empty wagon, the road of fires, Greyminster), and the ending's.
+const BY_ACT: Record<1 | 2 | 3, string> = {
+  1: "Pilgrims all walking to Greyminster, the roads thick with them. The new saint heals, they say. Heals what, I ask.",
+  2: 'The greycoats are chaining hedge-witches along the north road. Whole villages watching, and none saying a word.',
+  3: "There's a man in the bishop's cells shouting the saint's a knuckle. A pig's knuckle. They'll not let him shout long.",
+};
+const ENDED = {
+  exposed: "Heard the news? They put the bishop in the stocks! I threw a turnip. Everyone threw a turnip.",
+  kept: 'The miracles stopped, but the pilgrims still come. Faith is a stubborn mule, friend.',
+};
+export const pedlarNews = (saint: Pick<SaintState, 'act' | 'ending'>, n: number): string => {
+  const { act, ending } = saint;
+  const word = act === 0 ? null : act === 4 ? (ending ? ENDED[ending] : null) : BY_ACT[act];
+  const lines = act === 0 ? ROAD : [...(word ? [word] : []), ...CATHEDRAL, ...ROAD.slice(0, 2)];
   return lines[((n % lines.length) + lines.length) % lines.length];
 };
 
