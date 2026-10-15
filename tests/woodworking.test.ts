@@ -10,7 +10,7 @@ import { canCarry } from '../src/model/hero/bagSlots';
 import { fresh } from './support/testWorld';
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
+import { RECIPES, RECIPE_IDS, woodRise } from '../src/model/skills/woodworking';
 import { ANCIENT, ELDER, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
 import { RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
@@ -71,6 +71,13 @@ describe('woodworking', () => {
       const makes = RECIPES[id].makes;
       if (typeof makes !== 'string' && !['common', 'uncommon'].includes(makes.rarity)) expect(RECIPES[id].from.heartwood).toBeGreaterThan(0);
     }
+  });
+
+  it('keeps a material teaching (green, never grey) while what it makes is still orange or yellow; grey once nothing is', () => {
+    expect(difficulty(RECIPES.oakPlank.needs, 200).chance).toBe(0); // (by its own: grey from 175)
+    expect(woodRise('oakPlank', 200)).toBe(RISE[2]); // (the varnished staff, at 200, orange: oak planks still teach a little)
+    expect(woodRise('birchPlank', 200)).toBe(RISE[3]); // (nothing of birch near it: grey)
+    expect(woodRise('oakWarStaff', 245)).toBe(difficulty(245, 245)); // (not a material: its own)
   });
 
   it('asks room for a piece of gear as its own stack, not on a plain one of its kind', () => {
