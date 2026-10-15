@@ -17,7 +17,8 @@ import {
 } from '../src/view/meshes/cover/wildVoxels';
 import { buildScenery, sceneryGrid } from '../src/view/meshes/scenery/sceneryVoxels';
 import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxels';
-import { groundTint } from '../src/view/meshes/terrain/biomeGround';
+import { groundTint, patchAt } from '../src/view/meshes/terrain/biomeGround';
+import * as THREE from 'three';
 import { TERRAIN_COLORS } from '../src/view/constants';
 import { TREE_CHANCE } from '../src/model/constants';
 
@@ -133,11 +134,14 @@ describe('what grows on the ground', () => {
 });
 
 describe('the ground\'s colour and the bushes\' looks', () => {
-  it('a meadow\'s as it ever was; every other country\'s its own', () => {
-    for (let tier = 0; tier < TERRAIN_COLORS.length; tier++) {
-      expect(groundTint('meadow', tier).toArray()).toEqual([1, 1, 1]);
-      for (const kind of BIOMES.filter((b) => b !== 'meadow')) expect(groundTint(kind, tier).toArray()).not.toEqual([1, 1, 1]);
-    }
+  it('each country\'s its own, a step darker each tier down; the woods\' litter and the marsh\'s mud in patches', () => {
+    const hex = (kind: Biome, tier: number, patch = -1) => groundTint(kind, tier, patch).clone().multiply(new THREE.Color(TERRAIN_COLORS[tier])).getHex();
+    for (let tier = 0; tier < TERRAIN_COLORS.length; tier++) expect(new Set(BIOMES.map((kind) => hex(kind, tier))).size).toBe(BIOMES.length);
+    for (const kind of BIOMES) expect(groundTint(kind, 0).clone().multiply(new THREE.Color(TERRAIN_COLORS[0])).getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(groundTint(kind, 4).clone().multiply(new THREE.Color(TERRAIN_COLORS[4])).getHSL({ h: 0, s: 0, l: 0 }).l);
+    const patched = (kind: Biome) => Array.from({ length: 4000 }, (_, i) => patchAt(kind, i % 64, Math.floor(i / 64))).filter((p) => p >= 0).length;
+    expect(patched("forest")).toBeGreaterThan(100);
+    expect(patched("marsh")).toBeGreaterThan(40);
+    expect(patched('meadow')).toBe(0);
   });
 
   it('gorse starred yellow, bramble with its blackberries; the bushes\' own kinds as they were', () => {
