@@ -11,52 +11,14 @@ import './menu.css';
 import './menuDetail.css';
 import { closeCross } from './closeCross';
 import { dragSlot } from './slotDrag';
-import { lineText, type DollSlot, type Menu, type MenuLine, type MenuOptions, type MenuSlot, type MenuSlots } from './menuTypes';
+import { type DollSlot, type Menu, type MenuLine, type MenuOptions, type MenuSlot, type MenuSlots } from './menuTypes';
 import { el } from './dom';
+import { anyMenuOpen, openMenus, overWindows, raise, sink, stack } from './menuStack';
+import { placeTip as placeTipBeside, slotFace } from './menuSlot';
+export { anyMenuOpen, trackMenu } from './menuStack';
 export type { DollSlot, LineTone, Menu, MenuAction, MenuIcon, MenuLine, MenuOptions, MenuSlot, MenuSlots, MenuTab } from './menuTypes';
 export { lineText, toned } from './menuTypes';
 
-
-// Menus open right now, most recent last.
-const openMenus: object[] = []; // (the menus made here, and windows built their own way: counted, never called)
-const overWindows: object[] = []; // (of them, those built their own way: over the whole game, every key theirs)
-
-// The windows open, by focus: the one opened or clicked last on top, each a layer over the one before it, from
-// LOWEST up to HIGHEST (under the action bar, 25: food dragged onto it from the bag; tooltips and what's dragged, 30
-// and over, over every window). More windows than layers: the furthest back share the lowest.
-const stack: HTMLElement[] = [];
-const [LOWEST, HIGHEST] = [20, 24];
-function layer(): void {
-  const n = stack.length;
-  stack.forEach((backdrop, i) => (backdrop.style.zIndex = String(Math.max(LOWEST, HIGHEST - (n - 1 - i)))));
-}
-// A window brought to the front (opened, or clicked).
-function raise(backdrop: HTMLElement): void {
-  const at = stack.indexOf(backdrop);
-  if (at === stack.length - 1 && at >= 0) return;
-  if (at >= 0) stack.splice(at, 1);
-  stack.push(backdrop);
-  layer();
-}
-function sink(backdrop: HTMLElement): void {
-  const at = stack.indexOf(backdrop);
-  if (at >= 0) [stack.splice(at, 1), layer()];
-}
-
-export function anyMenuOpen(): boolean {
-  return openMenus.length > 0;
-}
-
-// A window built its own way (the pause menu, the talk scene), counted among those open: so Escape opens it only when nothing else
-// is, and the game knows a window's up.
-// While one's up, no menu here hears a key (B, P, Escape): they're all its own.
-export function trackMenu(menu: object, open: boolean): void {
-  for (const list of [openMenus, overWindows]) {
-    const at = list.indexOf(menu);
-    if (open && at < 0) list.push(menu);
-    if (!open && at >= 0) list.splice(at, 1);
-  }
-}
 
 export function createMenu(options: MenuOptions): Menu {
   const modal = options.modal !== false;
@@ -91,8 +53,7 @@ export function createMenu(options: MenuOptions): Menu {
   let rows: HTMLButtonElement[] = [];
   let grid: { buttons: HTMLButtonElement[]; cells: Array<MenuSlot | null>; columns: number; selected: number } | null = null;
   let keepChosen: { key: string | undefined; at: number; lit: boolean } | null = null; // (redrawing: the slot chosen before)
-  // A slot's tooltip, beside it (outside the panel, so nothing clips it), kept EDGE px inside the window.
-  const EDGE = 8;
+  // A slot's tooltip, beside it (outside the panel, so nothing clips it), kept inside the window.
   const tooltip = el('div', 'menu-tooltip');
   tooltip.hidden = true;
   document.body.append(tooltip);
@@ -114,29 +75,9 @@ export function createMenu(options: MenuOptions): Menu {
     else preview?.hide();
   }
 
-  // The tooltip beside `anchor`: a title (in its tone), and lines under it; on the right, else the left if there's no room.
+  // The tooltip beside `anchor` (menuSlot.ts).
   function placeTip(anchor: HTMLElement, text: string, lines: MenuLine[], tone?: string): void {
-    const title = el('b', undefined, text);
-    if (tone) title.dataset.tone = tone;
-    // Each line in its part's look; a rule before a new part (the header over what wearing it would change, the
-    // price, the hints).
-    let last: string | undefined;
-    const line = (l: MenuLine) => {
-      const small = el('small', undefined, lineText(l));
-      const tone = typeof l === 'string' ? undefined : l.tone;
-      if (tone) small.dataset.tone = tone;
-      if (tone !== last && (tone === 'head' || tone === 'hint' || tone === 'price')) small.classList.add('ruled');
-      last = tone;
-      return small;
-    };
-    tooltip.replaceChildren(title, ...lines.map(line));
-    tooltip.hidden = false;
-    const at = anchor.getBoundingClientRect();
-    const [width, height] = [tooltip.offsetWidth, tooltip.offsetHeight];
-    const left = Math.max(EDGE, at.right + 8 + width <= window.innerWidth - EDGE ? at.right + 8 : at.left - 8 - width);
-    // Level with the slot's top, raised as far as it must be to end on screen (never past its top).
-    const top = Math.max(EDGE, Math.min(at.top, window.innerHeight - EDGE - height));
-    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    placeTipBeside(tooltip, anchor, text, lines, tone);
   }
 
   function hideTip(): void {
@@ -148,39 +89,7 @@ export function createMenu(options: MenuOptions): Menu {
   // A slot button: its icon and count, its tooltip on hover, and dragging if the slot allows it.
   function slotButton(cell: MenuSlot | null, iconSize: number, onHover: () => void, row = false): HTMLButtonElement {
     const button = el('button', cell ? `menu-slot${cell.dim ? ' dim' : ''}${cell.warn ? ' warn' : ''}` : 'menu-slot empty');
-    if (cell) {
-      if (cell.tone) button.dataset.tone = cell.tone; // (gear's rarity: its frame tinted, menu.css)
-      if (cell.key) button.dataset.key = cell.key; // (who it is, on the page too)
-      button.append(cell.icon(iconSize));
-      if (row && cell.check) {
-        const { on, label, locked, toggle } = cell.check;
-        const box = el('span', `menu-slot-check${on ? ' on' : ''}${locked ? ' locked' : ''}`);
-        box.setAttribute('role', 'checkbox');
-        box.setAttribute('aria-checked', String(on));
-        box.title = label;
-        box.addEventListener('click', (event) => {
-          event.stopPropagation(); // just the box: the row isn't chosen for it
-          toggle();
-          api.refresh();
-        });
-        button.prepend(box);
-      }
-      if (row) {
-        const text = el('span', 'menu-slot-text');
-        const title = el('b', 'menu-slot-title', cell.title);
-        if (cell.tone) title.dataset.tone = cell.tone;
-        text.append(title);
-        if (cell.note) text.append(el('span', 'menu-slot-note', cell.note));
-        button.append(text);
-      }
-      if (cell.count && cell.count > 1) button.append(el('span', 'menu-slot-count', String(cell.count)));
-      if (cell.badge) button.append(el('span', cell.badgeTone ? `menu-slot-badge pill ${cell.badgeTone}` : 'menu-slot-badge', cell.badge));
-      if (cell.tag) {
-        const tag = el('span', 'menu-slot-tag');
-        tag.append(...cell.tag);
-        button.append(tag);
-      }
-    }
+    if (cell) slotFace(button, cell, iconSize, row, () => api.refresh()); // (its icon, count, title, box, badge, tag: menuSlot.ts)
     button.addEventListener('mouseenter', onHover);
     const act = (action: (() => string | void) | undefined) => {
       if (!action) return;
