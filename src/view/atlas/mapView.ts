@@ -18,6 +18,29 @@ export function along(scale: number, dx: number, dy: number): [number, number] {
   return [(dx * COS + dy * SIN) / scale, (dy * COS - dx * SIN) / scale];
 }
 
+const [FIT_LEAST, FIT_MOST] = [0.5, 4]; // as it opens, drawn to fit all that's been seen: no farther out, nor closer in (past 4, a fresh hero's land a few blocks)
+const FIT_MARGIN = 0.9; // of the window the land seen fills, fitted
+
+// `look` drawn to fit the cells seen (their corners, CELL tiles a side) on a `width` by `height` map: the land seen as it
+// lies turned, not the box round it (a fresh hero's round of land, the box's corners turned out, came out a third
+// smaller); `look` kept at the middle if the land seen fits round it, else the land's middle (each way across).
+export function fitLook(look: MapLook, cells: Iterable<[number, number]>, cell: number, width: number, height: number): void {
+  const at = { ...look, scale: 1 };
+  let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity]; // (kept as it goes: a long road's thousands of cells)
+  for (const [x, z] of cells) {
+    for (const [ox, oz] of [[0, 0], [cell, 0], [0, cell], [cell, cell]]) {
+      const [sx, sy] = toScreen(at, 0, 0, x + ox, z + oz);
+      [x0, x1, y0, y1] = [Math.min(x0, sx), Math.max(x1, sx), Math.min(y0, sy), Math.max(y1, sy)];
+    }
+  }
+  if (x0 === Infinity) return;
+  const around = (lo: number, hi: number) => 2 * Math.max(-lo, hi);
+  look.scale = Math.min(FIT_MOST, Math.max(FIT_LEAST, FIT_MARGIN * Math.min(width / around(x0, x1), height / around(y0, y1))));
+  const round = (lo: number, hi: number, room: number) => (around(lo, hi) * look.scale <= room ? 0 : (lo + hi) / 2);
+  const [dx, dz] = along(1, round(x0, x1, width), round(y0, y1, height));
+  [look.x, look.z] = [look.x + dx, look.z + dz];
+}
+
 // The tile under pixel (sx, sy).
 export function toMap(look: MapLook, width: number, height: number, sx: number, sy: number): [number, number] {
   const [dx, dz] = along(look.scale, sx - width / 2, sy - height / 2);

@@ -7,14 +7,13 @@ import './mapWindow.css';
 import type { GameModel } from '../../model/GameModel';
 import { mapPins } from '../../model/atlas/mapPins';
 import { nameAt, paintMap, type MapLook, type MapPaint } from '../../view/atlas/mapPaint';
-import { along, toScreen } from '../../view/atlas/mapView';
+import { along, fitLook } from '../../view/atlas/mapView';
+import { CELL } from '../../model/atlas/fog';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { keyOf } from '../keyBindings';
 
 const [LEAST, MOST] = [0.25, 6]; // pixels a tile, drawn out and in
 const OPENED_AT = 1.5;
-const [FIT_LEAST, FIT_MOST] = [0.5, 4]; // as it opens, drawn to fit all that's been seen: no farther out, nor closer in (past 4, a fresh hero's land a few blocks)
-const FIT_MARGIN = 0.85; // of the window the land seen fills, fitted
 
 export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void; click: (() => void) | null } }): { menu: Menu } {
   const look: MapLook = { x: 0, z: 0, scale: OPENED_AT };
@@ -62,20 +61,11 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     [look.x, look.z] = [at.x, at.z];
   };
   // Opened: all that's been seen fitted to the window (a fresh hero's few steps drawn close, a long road's whole length
-  // drawn out), the hero at the middle if the land seen fits round them, else its middle (each way across the screen,
-  // the map turned as the game's view: mapView.ts).
+  // drawn out), the hero at the middle if it fits round them (mapView.ts fitLook).
   const fit = () => {
     centre();
-    const seen = model.atlas.fog.bounds();
-    if (!seen) return;
     const { width, height } = size();
-    const corners = [[seen.x0, seen.z0], [seen.x1, seen.z0], [seen.x0, seen.z1], [seen.x1, seen.z1]].map(([x, z]) => toScreen({ ...look, scale: 1 }, 0, 0, x, z));
-    const [xs, ys] = [corners.map(([x]) => x), corners.map(([, y]) => y)];
-    const span = (ds: number[]) => 2 * Math.max(...ds.map(Math.abs));
-    look.scale = Math.min(FIT_MOST, Math.max(FIT_LEAST, FIT_MARGIN * Math.min(width / span(xs), height / span(ys))));
-    const round = (ds: number[], room: number) => (span(ds) * look.scale <= room ? 0 : (Math.min(...ds) + Math.max(...ds)) / 2);
-    const [dx, dz] = along(1, round(xs, width), round(ys, height));
-    [look.x, look.z] = [look.x + dx, look.z + dz];
+    fitLook(look, model.atlas.fog.cellsSeen(), CELL, width, height);
   };
   middle.addEventListener('click', centre);
   corner.addEventListener('click', () => void [hooks.minimap.toggle(), cornerText()]);

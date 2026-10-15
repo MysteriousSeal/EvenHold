@@ -47,17 +47,18 @@ export class Fog {
     return [...this.chunks.keys()].map((n) => [Math.floor(n / this.across), n % this.across]);
   }
 
+  // Every cell seen, as the tile at its corner (x, z): CELL tiles a side.
+  *cellsSeen(): Generator<[number, number]> {
+    for (const [cx, cz] of this.chunksSeen()) {
+      const bits = this.chunks.get(this.chunkOf(cx, cz))!;
+      for (let i = 0; i < CELLS * CELLS; i++) if (bits[i >> 3] & (1 << (i & 7))) yield [cx * CHUNK + Math.floor(i / CELLS) * CELL, cz * CHUNK + (i % CELLS) * CELL];
+    }
+  }
+
   // The tiles all that's been seen lies within (x0..x1, z0..z1), or null (none).
   bounds(): { x0: number; z0: number; x1: number; z1: number } | null {
     let box: { x0: number; z0: number; x1: number; z1: number } | null = null;
-    for (const [cx, cz] of this.chunksSeen()) {
-      const bits = this.chunks.get(this.chunkOf(cx, cz))!;
-      for (let i = 0; i < CELLS * CELLS; i++) {
-        if (!(bits[i >> 3] & (1 << (i & 7)))) continue;
-        const [x, z] = [cx * CHUNK + Math.floor(i / CELLS) * CELL, cz * CHUNK + (i % CELLS) * CELL];
-        box = box ? { x0: Math.min(box.x0, x), z0: Math.min(box.z0, z), x1: Math.max(box.x1, x + CELL), z1: Math.max(box.z1, z + CELL) } : { x0: x, z0: z, x1: x + CELL, z1: z + CELL };
-      }
-    }
+    for (const [x, z] of this.cellsSeen()) box = box ? { x0: Math.min(box.x0, x), z0: Math.min(box.z0, z), x1: Math.max(box.x1, x + CELL), z1: Math.max(box.z1, z + CELL) } : { x0: x, z0: z, x1: x + CELL, z1: z + CELL };
     return box;
   }
 
