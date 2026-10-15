@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createPauseMenu, type PauseHero } from '../src/controller/pauseMenu';
 import { anyMenuOpen, createMenu, type Menu } from '../src/view/ui/menu';
 import { ZOOM_LEVELS, stepZoom, zoomLevel } from '../src/view/render/zoom';
+import { graphics, setGraphics } from '../src/view/render/graphics';
 import { HERO_LOOK } from '../src/model/human/humanoid';
 import { actionOf } from '../src/controller/keyBindings';
 
@@ -177,6 +178,45 @@ describe('the pause menu: the settings, changed in place', () => {
   });
 });
 
+describe('the pause menu: the graphics', () => {
+  it('the quality stepped Low, Medium, High (‹ › stopping at the ends, Enter round), the brightness by a tenth; each drawn at once, kept', () => {
+    setGraphics({ quality: 'high', brightness: 1 });
+    open().open();
+    const value = (name: string) => row(name).querySelector('.pause-value')?.textContent;
+    const arrow = (name: string, i: 0 | 1) => row(name).querySelectorAll<HTMLButtonElement>('.pause-arrow')[i].click();
+    expect(value('Graphics')).toBe('High');
+    arrow('Graphics', 1);
+    expect(graphics().quality).toBe('high'); // (no higher)
+    arrow('Graphics', 0);
+    expect([graphics().quality, value('Graphics')]).toEqual(['medium', 'Medium']);
+    arrow('Graphics', 0);
+    arrow('Graphics', 0);
+    expect(graphics().quality).toBe('low');
+    while (litName() !== 'Graphics') press('ArrowDown');
+    press('Enter');
+    expect(graphics().quality).toBe('medium');
+    press('ArrowDown');
+    expect(litName()).toBe('Brightness');
+    press('ArrowRight');
+    expect([graphics().brightness, value('Brightness')]).toEqual([1.1, '110%']);
+    for (let i = 0; i < 20; i++) press('ArrowLeft');
+    expect(graphics().brightness).toBe(0.7); // (the least)
+    expect(JSON.parse(localStorage.getItem('evenhold.graphics')!)).toEqual({ quality: 'medium', brightness: 0.7 });
+    expect(calls.filter((c) => c === 'redraw').length).toBeGreaterThanOrEqual(6);
+    setGraphics({ quality: 'high', brightness: 1 });
+  });
+
+  it('back from the keys or the controls, that row lit again', () => {
+    menu.open();
+    row('Keys').click();
+    press('Escape');
+    expect(litName()).toBe('Keys');
+    row('Controls').click();
+    row('Back').click();
+    expect(litName()).toBe('Controls');
+  });
+});
+
 describe('the pause menu: the rest', () => {
   it('the controls, the codex; Escape (or Back) back to the menu, not out of it', () => {
     menu.open();
@@ -217,6 +257,6 @@ describe('the pause menu: the rest', () => {
 
   it('no new game here (a new hero is made from the main menu)', () => {
     menu.open();
-    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Controls', 'Keys', 'Main menu']);
+    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Controls', 'Keys', 'Main menu']);
   });
 });

@@ -3,7 +3,7 @@
 // (view/ui/gilded.css): on the left the hero, framed (their portrait, name,
 // level, day and world); beside them "Paused" between gold rules, then
 // Resume (gold), the settings in place (the zoom stepped ‹ ›, the inner
-// walls switched Low | Full), the controls (controlsCodex.ts, Back to
+// walls switched Low | Full, the graphics' quality and brightness stepped: view/render/graphics.ts), the controls (controlsCodex.ts, Back to
 // return), the keys rebound (keysScreen.ts), and back to the main menu (a new hero, or this one's world
 // left be, there). Arrows choose, Enter acts (← → on a setting
 // change it), Escape resumes (or comes back from the controls); the mouse
@@ -17,6 +17,7 @@ import { el } from '../view/ui/dom';
 import { voxelIcon } from '../view/ui/voxelIcon';
 import { humanBust } from '../view/meshes/human/humanFigure';
 import { stepZoom, zoomLevel } from '../view/render/zoom';
+import { QUALITY_NAMES, graphics, stepBrightness, stepQuality } from '../view/render/graphics';
 import { controlsCodex } from './controlsCodex';
 import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
@@ -55,6 +56,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
   let showing: 'main' | 'controls' | 'keys' = 'main';
   let waiting: KeyAction | null = null; // (Keys: the one waiting for its new key)
   let lit = 0; // the item chosen (keys)
+  let back: 'controls' | 'keys' | null = null; // (come back from the controls or the keys: that row lit again)
   let items: Array<{ node: HTMLElement; act(): void; step?(by: 1 | -1): void }> = [];
 
   const button = (className: string, label: string, detail: string | null, act: () => void) => {
@@ -124,7 +126,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       const screen = keysScreen(
         waiting,
         (action) => ((waiting = waiting === action ? null : action), draw()),
-        () => ((showing = 'main'), (waiting = null), (lit = 4), draw()),
+        () => ((showing = 'main'), (waiting = null), (back = 'keys'), draw()),
         draw,
       );
       main.classList.add('controls');
@@ -133,10 +135,10 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
     } else if (showing === 'controls') {
       const head = el('div', 'gilded-head');
       head.append(el('span', '', 'Controls'));
-      const back = button('pause-back', 'Back', null, () => ((showing = 'main'), draw()));
+      const done = button('pause-back', 'Back', null, () => ((showing = 'main'), (back = 'controls'), draw()));
       main.classList.add('controls');
-      main.append(head, controlsCodex(), back);
-      items = [{ node: back, act: () => back.click() }];
+      main.append(head, controlsCodex(), done);
+      items = [{ node: done, act: () => done.click() }];
     } else {
       const title = el('h2', 'pause-title', 'Paused');
       const resume = button('pause-resume', 'Resume', null, () => api.close());
@@ -156,23 +158,40 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         hooks.walls.toggle();
         changed();
       });
+      // The graphics: the quality (Low, Medium, High), and the brightness, a tenth at a time.
+      const quality = stepper(
+        'Graphics',
+        () => QUALITY_NAMES[graphics().quality],
+        (by) => (stepQuality(by), changed()),
+        () => (stepQuality(1, true), changed()),
+      );
+      const brightness = stepper(
+        'Brightness',
+        () => `${Math.round(graphics().brightness * 100)}%`,
+        (by) => (stepBrightness(by), changed()),
+        () => (stepBrightness(1, true), changed()),
+      );
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
-      settings.append(zoom.node, walls.node);
+      settings.append(zoom.node, walls.node, quality.node, brightness.node);
       main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
         zoom,
         walls,
+        quality,
+        brightness,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },
         { node: menu, act: () => menu.click() },
       ];
     }
     stage.replaceChildren(heroCard(), main);
-    choose(Math.min(lit, items.length - 1));
+    if (back && showing === 'main') lit = items.findIndex((item) => item.node.textContent?.startsWith(back === 'keys' ? 'Keys' : 'Controls'));
+    back = null;
+    choose(Math.min(Math.max(lit, 0), items.length - 1));
   };
 
   const choose = (i: number) => {
@@ -235,7 +254,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       const item = items[lit];
       if (event.code === 'Escape') {
         if (showing !== 'main') {
-          [lit, showing] = [showing === 'keys' ? 4 : 3, 'main'];
+          [back, showing] = [showing, 'main'];
           draw();
         } else api.close();
       } else if (event.code === 'ArrowDown') choose(lit + 1);
