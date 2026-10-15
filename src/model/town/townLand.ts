@@ -12,7 +12,7 @@ import type { Building, BuildingKind, House, Surface, Village } from '../types';
 import { GATES, PLATEAU, SQUARE, WALL, townPlan, type StallKind, type WallPiece } from './townPlan';
 import { REACH, type TownSite } from './townSite';
 
-const LET_GO = REACH + LANES + 2; // tiles (each way) from its well a village's well may not be: its lanes and houses off its slope
+const letGo = (): number => REACH + LANES + 2; // tiles (each way) from its well a village's well may not be: its lanes and houses off its slope (worked out when asked: an import loop through the roads may not have them yet as this loads)
 
 // The town as it stands, in world tiles: its well, its hilltop's tier, its walls and stalls.
 export interface Town {
@@ -41,7 +41,7 @@ export function raiseTown(seed: number, site: TownSite, land: Land): Town {
   const { heightMap, lakeMap, surfaceMap } = land;
   const tier = MAX_TIER;
   // The villages too near, let go, and all of theirs.
-  const gone = land.villages.filter((v) => chebyshev(v, site.x, site.z) <= LET_GO);
+  const gone = land.villages.filter((v) => chebyshev(v, site.x, site.z) <= letGo());
   const theirs = (p: { x: number; z: number }) => gone.some((v) => chebyshev(v, p.x, p.z) <= LANES);
   for (const v of gone) {
     for (let x = v.x - LANES; x <= v.x + LANES; x++) for (let z = v.z - LANES; z <= v.z + LANES; z++) if (surfaceMap[x]?.[z] === 'path' || surfaceMap[x]?.[z] === 'plaza') surfaceMap[x][z] = 'natural';
