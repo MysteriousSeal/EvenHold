@@ -18,14 +18,22 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
       return x === 0 || x === 5 || z === 0 || z === 5 ? 2 : x >= 2 && x <= 3 && z >= 2 && z <= 3 ? 3 : 0; // the rim; the hollow, its floor dark
     });
   }),
-  // A varnished oak casket, glossy, its lid a shade darker and rounded, an iron hasp at its front; a heartwood chest,
-  // deep red, banded in iron, a brass lock.
+  // A varnished oak casket, glossy, its lid a shade darker and rounded, an iron hasp at its front; an oak cask, its
+  // staves bellied, two iron hoops, a bung; an oak chest, varnished dark, banded in iron, a brass lock.
   varnishedCasket: model([0xb0703a, 0x7a4422, 0x4a4a52], [6, 4, 4], (g) => {
     fillBox(g, 0, 0, 0, 5, 1, 3, 1); // its box
     fillBox(g, 0, 2, 0, 5, 3, 3, (x, y, z) => (y === 3 && (z === 0 || z === 3) ? 0 : y === 3 && (x === 0 || x === 5) ? 0 : 2)); // the lid, its top rounded
     fillBox(g, 2, 1, 0, 3, 2, 0, 3); // the hasp
   }),
-  heartwoodChest: model([0x8a2e22, 0x5e1c16, 0x3a3a42, 0xd0a040], [8, 5, 5], (g) => {
+  oakCask: model([0x8a5a30, 0x4a4a52, 0x3a2414], [5, 6, 5], (g) => {
+    fillBox(g, 0, 0, 0, 4, 5, 4, (x, y, z) => {
+      const rim = (x === 0 || x === 4) && (z === 0 || z === 4); // (round)
+      if (rim || ((y === 0 || y === 5) && (x === 0 || x === 4 || z === 0 || z === 4))) return 0; // (bellied: its ends narrower)
+      return y === 1 || y === 4 ? 2 : 1; // its hoops
+    });
+    fillBox(g, 2, 3, 0, 2, 3, 0, 3); // the bung
+  }),
+  oakChest: model([0x7a4a26, 0x55301a, 0x3a3a42, 0xd0a040], [8, 5, 5], (g) => {
     fillBox(g, 0, 0, 0, 7, 2, 4, 1); // its body
     fillBox(g, 0, 3, 0, 7, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 2)); // the lid, its top rounded
     for (const x of [1, 6]) fillBox(g, x, 0, 0, x, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 3)); // its iron bands
