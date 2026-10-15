@@ -19,7 +19,7 @@ const MEND_SHARE = 0.35; // of what a piece costs at a smith, mending it from br
 const NO_PRICE = 20; // copper, what a piece no smith sells is priced at (smithy/smithShop.ts gearPrice's)
 export const TEMPERED_WEAR = 0.5; // times the wear, Tempered
 
-type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag']; blessings?: Blessing[] };
+type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag']; stash?: Hero['bag']; blessings?: Blessing[] };
 const GUARDING: readonly EquipSlot[] = [...ARMOR_SLOTS, 'offHand'];
 const WEARING: readonly EquipSlot[] = [...ARMOR_SLOTS, ...HELD_SLOTS];
 
@@ -74,7 +74,7 @@ export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' |
 
 // A piece's wear forgotten once the hero holds none of it (sold, given up): one like it got again comes whole.
 export function wearGone(hero: Wearer, key: string): void {
-  if (hero.wear?.[key] === undefined || (hero.bag?.[key as keyof Hero['bag']] ?? 0) > 0 || Object.values(hero.equipment).includes(key as GearKey)) return;
+  if (hero.wear?.[key] === undefined || (hero.bag?.[key as keyof Hero['bag']] ?? 0) > 0 || (hero.stash?.[key as keyof Hero['bag']] ?? 0) > 0 || Object.values(hero.equipment).includes(key as GearKey)) return;
   delete hero.wear[key];
 }
 

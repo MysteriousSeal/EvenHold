@@ -9,7 +9,7 @@ import type { Furniture } from '../../model/interiors/furniture';
 
 const [SLATE, CHALK] = [SOOT, LINEN]; // (the slate's near-black, its chalk: the palette's nearest)
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks' | 'washstand';
+export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks' | 'washstand' | 'strongbox';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -322,6 +322,21 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(8, 5, 16, 12, 11, 16, (u) => (u === 10 ? BONE : LINEN)); // a towel over the front
     box(16, 12, 9, 17, 12, 10, BONE); // soap
     box(9, 5, 6, 12, 7, 9, (_u, y) => (y === 7 ? IRON_LIGHT : WOOD_LIGHT)); // a pail on the shelf
+  },
+  // The strongbox the inn keeps for its guests (hero/stash.ts): lower, wider and darker than a room's chest, so the two
+  // are told apart across the room. A squat box of near-black oak planks on four iron feet, a flat lid with a pale
+  // iron rim, three heavy straps wrapped over it and down the front, studded with rivets, iron corner caps, and a
+  // great hasp on its front with a brass padlock hanging from it.
+  strongbox: (box) => {
+    const strap = (u: number) => u === 4 || u === 5 || u === 12 || u === 13 || u === 20 || u === 21;
+    for (const [u, v] of [[2, 6], [22, 6], [2, 20], [22, 20]]) box(u, 1, v, u, 1, v, IRON); // feet
+    box(2, 2, 6, 22, 9, 20, (u, y, v) => (strap(u) ? ((y + v) % 3 === 0 ? IRON_LIGHT : IRON) : y % 3 === 2 ? SOOT : WOOD_DARK)); // body, in planks, the straps riveted
+    box(2, 10, 6, 22, 11, 20, (u, y, v) => (y === 11 && (u === 2 || u === 22 || v === 6 || v === 20) ? IRON_LIGHT : strap(u) ? IRON : WOOD_DARK)); // the lid, rimmed
+    for (const [u, v] of [[2, 6], [22, 6], [2, 20], [22, 20]]) box(u, 2, v, u, 11, v, IRON); // corner caps
+    box(10, 6, 21, 15, 10, 21, IRON); // the hasp plate
+    box(12, 7, 21, 13, 11, 21, IRON_LIGHT); // its staple
+    box(11, 3, 22, 14, 6, 22, (u, y) => (u === 12 && y === 4 ? SOOT : BRASS)); // the padlock, its keyhole
+    box(12, 7, 22, 13, 7, 22, BRASS_DARK); // its shackle
   },
   // A lantern on an iron bracket, glowing (its light is added in roomView.ts):
   // an iron frame round bright panes, a hot band across the middle of each, under a

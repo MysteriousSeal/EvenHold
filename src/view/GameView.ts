@@ -41,6 +41,7 @@ import { PickInHand } from './meshes/mining/pickInHand';
 import { HammerInHand } from './meshes/smithing/hammerInHand';
 import { workCostume, workLook } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
+import { PurseView } from './meshes/loot/purseView';
 import { zoomLevel } from './render/zoom';
 import { LootViews } from './meshes/loot/lootViews';
 import { CampFires } from './meshes/camp/campFires';
@@ -108,6 +109,7 @@ export class GameView {
   private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
   private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room
   private carter: CarterView | null = null; // (the man by his wagon, at the start)
+  private purse: PurseView | null = null; // (the hero's purse where they last fell: hero/purse.ts)
   private readonly ambient: AmbientLife; // butterflies, songbirds, fireflies round the hero
   private readonly entrances: EntranceLife;
   private readonly wildMoves: WildMovesView; // a bear's slam and charge, a lynx's pounce, told on the ground // what marks the dungeons' ways in near the hero: bats, crows, wisps, glows, fires
@@ -357,6 +359,7 @@ export class GameView {
     this.wildlife.update(model.wildlife, hero.x, hero.z, dt);
     this.loot.update(model.loot, hero.x, hero.z, dt);
     this.coins.update(model.coins, hero.x, hero.z, dt);
+    (this.purse ??= new PurseView(this.scene)).update(model.purse, null, (x, z) => model.getGroundY(x, z), dt); // (their purse, where they fell)
     this.campFires.update(model, this.elapsed);
     this.kindledFire.update(model, this.elapsed);
     this.campChests.update(model);

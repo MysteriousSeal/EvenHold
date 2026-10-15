@@ -5,7 +5,7 @@
 // Resume (gold), the settings in place (the zoom stepped ‹ ›, the inner
 // walls switched Low | Full, the graphics' quality and brightness stepped: view/render/graphics.ts; the first
 // hour's tips Off | On: tips/firstTips.ts), the controls (controlsCodex.ts, Back to
-// return), the keys rebound (keysScreen.ts), and back to the main menu (a new hero, or this one's world
+// return), the keys rebound (keysScreen.ts), the hero kept safe (storage/heroFiles.ts: a file, the backups), and back to the main menu (a new hero, or this one's world
 // left be, there). Arrows choose, Enter acts (← → on a setting
 // change it), Escape resumes (or comes back from the controls); the mouse
 // works too, and a click outside resumes. The game saves itself
@@ -24,6 +24,7 @@ import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
 import { setTipsOn, tipsOn } from './tips/firstTips';
 import { volumeSteppers, type VolumeHooks } from './soundSettings';
+import { freshHeroScreen, heroScreen, type HeroFiles } from './storage/heroFiles';
 import '../view/ui/gilded.css';
 import './pauseMenu.css';
 
@@ -42,6 +43,7 @@ export interface PauseHooks {
   mainMenu(): void; // saves, and back to the title
   walls: { full(): boolean; toggle(): void }; // the inner walls option (full height, or cut low)
   hero(): PauseHero; // who's playing, for the card
+  files?: HeroFiles; // the hero exported, imported, put back from a backup (storage/heroFiles.ts)
   letGo?(): boolean; // Escape over the game: a foe focused, or someone picked out, let go of first (true: one was)
   volumes?: VolumeHooks; // the sound's (soundSettings.ts): stepped beside the other settings
 }
@@ -57,10 +59,10 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
   backdrop.append(stage);
   document.body.append(backdrop);
 
-  let showing: 'main' | 'controls' | 'keys' = 'main';
+  let showing: 'main' | 'controls' | 'keys' | 'hero' = 'main';
   let waiting: KeyAction | null = null; // (Keys: the one waiting for its new key)
   let lit = 0; // the item chosen (keys)
-  let back: 'controls' | 'keys' | null = null; // (come back from the controls or the keys: that row lit again)
+  let back: 'controls' | 'keys' | 'hero' | null = null; // (come back from the controls, the keys or the hero's files: that row lit again)
   let items: Array<{ node: HTMLElement; act(): void; step?(by: 1 | -1): void }> = [];
 
   const button = (className: string, label: string, detail: string | null, act: () => void) => {
@@ -136,6 +138,11 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       main.classList.add('controls');
       main.append(screen.node);
       items = screen.items;
+    } else if (showing === 'hero' && hooks.files) {
+      const screen = heroScreen(hooks.files, () => ((showing = 'main'), (back = 'hero'), draw()), draw);
+      main.classList.add('controls');
+      main.append(screen.node);
+      items = screen.items;
     } else if (showing === 'controls') {
       const head = el('div', 'gilded-head');
       head.append(el('span', '', 'Controls'));
@@ -179,10 +186,11 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
       const sound = hooks.volumes ? volumeSteppers(hooks.volumes, stepper, draw) : []; // (Volume, Effects, Ambience)
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
+      const hero = button('', 'Your hero', 'Export, import, or go back to a backup', () => ((showing = 'hero'), (lit = 0), freshHeroScreen(), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
       settings.append(zoom.node, walls.node, quality.node, brightness.node, ...sound.map((s) => s.node), tips.node);
-      main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
+      main.append(title, resume, settings, controls, keys, ...(hooks.files ? [hero] : []), menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
         zoom,
@@ -193,11 +201,12 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         tips,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },
+        ...(hooks.files ? [{ node: hero, act: () => hero.click() }] : []),
         { node: menu, act: () => menu.click() },
       ];
     }
     stage.replaceChildren(heroCard(), main);
-    if (back && showing === 'main') lit = items.findIndex((item) => item.node.textContent?.startsWith(back === 'keys' ? 'Keys' : 'Controls'));
+    if (back && showing === 'main') lit = items.findIndex((item) => item.node.textContent?.startsWith(back === 'keys' ? 'Keys' : back === 'hero' ? 'Your hero' : 'Controls'));
     back = null;
     choose(Math.min(Math.max(lit, 0), items.length - 1));
   };

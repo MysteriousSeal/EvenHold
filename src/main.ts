@@ -20,6 +20,7 @@ import { showMainMenu } from './controller/title/mainMenu';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
 import { forgetWorld, loadGame, savedSize, savedWorlds, startAutoSave } from './controller/storage/saveGame';
+import { heroFiles } from './controller/storage/heroFiles';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
@@ -45,6 +46,7 @@ import { createTargetHud } from './view/hud/targetHud';
 import { QUALITY_INK, createLootPrompt, lootTarget, type PromptTarget } from './view/hud/lootPrompt';
 import { coinText, createFloatingText } from './view/hud/floatingText';
 import { createInventoryPanel } from './controller/hero/inventoryPanel';
+import { createStashPanel } from './controller/hero/stashPanel';
 import { createShopPanel } from './controller/trade/shopPanel';
 import { createLevelUpPanel } from './controller/hero/levelUpPanel';
 import { createSmithPanel } from './controller/trade/smithPanel';
@@ -186,6 +188,7 @@ async function boot(): Promise<void> {
   const shop = createShopPanel(model, { bag });
   const forge = createSmithPanel(model, { bag });
   const pack = createPedlarPanel(model, { bag }); // a pedlar's, on the road
+  const stash = createStashPanel(model, { bag }); // the inns' strongbox (model/hero/stash.ts)
   // What holds the game still (a window, a talk, the night, a scene played), each let go of in its own time: it goes
   // on once none does (the level up shut over the notice board: still the board's).
   const holding = new Set<unknown>();
@@ -228,6 +231,7 @@ async function boot(): Promise<void> {
       keepSessionSeed(null); // (this tab's world let go: the reload shows the main menu)
       window.location.reload();
     },
+    files: heroFiles(model, () => autoSave, (to) => [keepSessionSeed(to), window.location.reload()], __GAME_VERSION__), // (a file's hero, or a backup, played at once)
     letGo: () => (model.focused || model.chosen.person ? (model.focus(null), model.select(null), true) : false),
     hero: () => ({ name: model.hero.name, level: model.hero.level, day: clockAt(model.minutes).day, seed: model.seed, look: model.hero.look, equipment: model.hero.equipment }),
     walls: {
@@ -281,6 +285,8 @@ async function boot(): Promise<void> {
         return lootTarget(found.loot);
       case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
         return { label: CHEST_PROMPTS[found.chest.what], x: found.chest.x, y: found.chest.y, z: found.chest.z };
+      case 'strongbox': // (the inn's, or the let room's chest: the one stash)
+        return { label: 'Open your strongbox', x: found.box.x, y: 0.7, z: found.box.z };
       case 'carter':
         return { label: `Talk to ${found.carter.name}`, x: found.carter.x, y: model.getGroundY(found.carter.x, found.carter.z) + 1.1, z: found.carter.z };
       case 'talk':
@@ -340,6 +346,7 @@ async function boot(): Promise<void> {
     forge.update();
     herbs.update();
     pack.update();
+    stash.update(); // (walked off from the strongbox: it shuts)
     journal.update();
     salvage.update(); // (a piece on the bench: its bar)
     skills.update();
@@ -375,7 +382,7 @@ async function boot(): Promise<void> {
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
     // (A word with a herbalist: the pox first, if the hero has it; then her quests, her wares.)
-    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, npc.seat?.piece.kind === 'barStool' && model.seated?.seat.piece.kind === 'barStool' ? withRound(model, chat(model, npc)) : chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onSmith: () => skills.window.open('smithing'), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
+    onTalk: (npc) => (npc.role === 'herbalist' && talk.show(npc, poxTalk(model, npc, () => model.story.talk(npc)))) || talk.open(npc) || (npc.role === 'villager' && talk.show(npc, npc.seat?.piece.kind === 'barStool' && model.seated?.seat.piece.kind === 'barStool' ? withRound(model, chat(model, npc)) : chat(model, npc))) || trade(npc), onMeet: (who, told) => void talk.show(who, told), onRead: (at) => board.open(at), onSalvage: () => salvage.open(), onCook: () => skills.window.open('cooking'), onSmith: () => skills.window.open('smithing'), onStash: () => stash.open(), onWork: (inn) => jobs.open(inn), onOrder: (barmaid, what) => bar.order(barmaid, what),
     onSleep: () => {
       if (!model.seated) model.sitOrStand(); // (into the bed)
       sleepFade(

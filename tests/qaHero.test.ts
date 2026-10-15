@@ -97,16 +97,16 @@ describe('the hero\'s gear', () => {
 });
 
 describe('the hero\'s setbacks', () => {
-  it('a fall: a tenth of their coin lost (a hundred at most), healed, Weary, at spawn before any inn; chasers lose interest', () => {
+  it('a fall: half their coin dropped where they fell (hero/purse.ts), healed, Weary, at spawn before any inn; chasers lose interest', () => {
     const model = fresh();
     Object.assign(model.hero, { money: 103, hp: 1 });
     const chaser = model.enemies[0];
     chaser.state = 'chase';
     model.fall();
-    expect(model.hero.money).toBe(103 - Math.floor(103 * 0.1));
+    expect([model.hero.money, model.purse?.amount]).toEqual([103 - 51, 51]);
     model.hero.money = 5000;
     model.fall();
-    expect(model.hero.money).toBe(4900); // (capped)
+    expect([model.hero.money, model.purse?.amount]).toEqual([2500, 2500]); // (no cap: all of it to be won back)
     expect(model.hero.hp).toBe(maxHpOf(model.hero));
     expect(model.hero.blessings?.some((b) => b.kind === 'weary')).toBe(true);
     const spawn = spawnOf(model.size);

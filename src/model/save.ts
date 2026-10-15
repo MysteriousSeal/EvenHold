@@ -18,6 +18,8 @@ import { readStops, savedStops } from './villages/wagons';
 import { readSpellWait, readSpells } from './spells/spells';
 import { POTION_COOLDOWN } from './loot/potions';
 import { readSockets } from './hero/bagSlots';
+import { readStash } from './hero/stash';
+import { readPurse } from './hero/purse';
 import type { Travellers } from './travellers/travellers';
 import type { GameModel } from './GameModel';
 import { readDraught, readMeal, type BagItem } from './hero/bag';
@@ -59,6 +61,7 @@ export interface SaveData {
     bag: Partial<Record<BagItem, number>>;
     bagOrder?: Array<BagItem | null>; // where each thing sits in it
     bags?: Array<string | null>; // the bags fitted to it (hero/bagSlots.ts)
+    stash?: Partial<Record<BagItem, number>>; // what's in the inns' strongbox (hero/stash.ts; older saves: none)
     spells?: string[]; // the charms it knows (spells/spells.ts)
     actionBar?: Array<string | null>; // its action bar's shortcuts (hero/actionBar.ts)
     wear?: Record<string, number>; // how worn each piece of gear is (hero/wear.ts; older saves: none)
@@ -89,6 +92,7 @@ export interface SaveData {
   foes?: string; // the world's foes as the seed spawns them (foesOf): the enemies' ids are only good in a world with the same
   loot: Array<{ item: BagItem; x: number; z: number }>;
   coins: Array<{ amount: number; x: number; z: number }>;
+  purse?: unknown; // the coin dropped in their last fall, where it lies (hero/purse.ts; older saves: none)
   floors?: SavedFloors; // what lies on each dungeon's floor, by its key (dungeons/dungeonFloors.ts)
   npcs: Array<{ id: number; inside: number | null; x: number; z: number; stop: number }>;
   shops?: Array<{ inn: number } & Shop>; // each inn's barmaid's purse and wares
@@ -130,6 +134,7 @@ export function snapshot(model: GameModel): SaveData {
       bagOrder: [...hero.bagOrder],
       bagCounts: [...hero.bagCounts],
       bags: [...hero.bags],
+      stash: { ...hero.stash }, // (the inns' strongbox: hero/stash.ts)
       actionBar: [...hero.actionBar],
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
@@ -155,16 +160,19 @@ export function snapshot(model: GameModel): SaveData {
       crafted: { ...hero.crafted }, // (the gear they made: skills/salvage.ts)
       spellWait: { ...hero.spellWait },
     },
-    // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
+    // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt (and where). Those only
+    // wandered aren't: back home on a load, as a region made afresh has them (every foe of every region passed has
+    // wandered: kept, they swelled a save to most of a megabyte). An older save's wanderers, still read.
     foes: foesOf(model),
     enemies: {
       gone: [...model.slain],
       changed: model.enemies
-        .filter((e) => isWorldFoe(e.id) && e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05))
+        .filter((e) => isWorldFoe(e.id) && e.state !== 'dead' && e.hp < e.maxHp)
         .map((e) => ({ id: e.id, x: round(e.x), z: round(e.z), hp: e.hp })),
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
     coins: model.coins.map(({ amount, x, z }) => ({ amount, x, z })),
+    purse: model.purse && { ...model.purse },
     floors: model.floors.save(), // what lies on each dungeon's floor
     chickens: model.chickens.save(),
     swaps: model.swaps.save(),
@@ -245,6 +253,7 @@ export function restore(model: GameModel, data: SaveData): void {
     bag,
     bagOrder: Array.isArray(saved.bagOrder) ? saved.bagOrder.slice(0, MAX_BAG_SLOTS).map((item) => (typeof item === 'string' && known(item) ? item : null)) : [],
     bags: readSockets(saved.bags), // (older saves: none fitted)
+    stash: readStash(saved.stash), // (older saves: nothing kept)
     actionBar: readActionBar(saved.actionBar), // (older saves: all empty)
     spells: readSpells(saved.spells), // (older saves: none)
     spellWait: readSpellWait(saved.spellWait), // (older saves: none waiting)
@@ -293,7 +302,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const stairs = furniture.find((f) => f.kind === 'stairs');
     if (saved.upstairs && stairs) model.inside = upstairsInside(building, room, stairs, model.seed, model.fullWalls); // on the floor above
     else model.enterRoom(building); // (as going in: a crypt's walls with it)
-    if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0 }); // (lost: at the door, as they came in)
+    if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0, facing: Number.isFinite(saved.facing) ? saved.facing : hero.facing }); // (lost: at the door, as they came in; facing as they were, not as going in turned them)
   } else if (placed) {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
   } // (lost outdoors: where they set out)
@@ -322,6 +331,7 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
   for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
+  model.purse = readPurse(data.purse); // (an older save's: none dropped)
   for (const { inn, money, stock, restockedAt, buyback, bought } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).

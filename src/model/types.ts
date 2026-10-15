@@ -47,6 +47,7 @@ export interface Hero extends Humanoid {
   bagOrder: Array<BagItem | null>; // where each thing sits in the bag, slot by slot (bag.ts bagStacks)
   bagCounts: number[]; // how many in each of those slots (a junk stack's own: bag.ts bagStacks; none, packed)
   bags: Array<BagId | null>; // the bags fitted to it, a socket each (hero/bagSlots.ts): six more slots each
+  stash?: Bag; // what they keep in the inns' strongbox, one store at every inn (hero/stash.ts): none, till they put something in
   actionBar: ActionBar; // shortcuts to food and drink in the bag, keys 1 to 8 (hero/actionBar.ts)
   jobs?: Partial<Record<JobId, JobRecord>>; // their record in each job taken up (jobs/jobs.ts): none, till they work
   skills?: Partial<Record<SkillId, SkillRecord>>; // their level in each skill (skills/skills.ts): each at 1 till raised

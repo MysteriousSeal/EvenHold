@@ -2,6 +2,7 @@
 // generated world and everyone in it, and runs each frame: the hero's movement and blows, the enemies (enemyDirector.ts),
 // travellers on the roads, wildlife, the hero's focus and health, their trades. What blocks movement and sight is kept in obstacles.ts.
 
+import { reclaimPurse, type Purse } from './hero/purse';
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
 import { HERO_SPEED, HERO_RADIUS, ENEMY_ACTIVE_RADIUS } from './constants';
@@ -97,6 +98,7 @@ export class GameModel {
   readonly slain = new Set<number>(); // foes killed, by id (a saved world is made again without them)
   readonly shops = new Map<number, Shop>(); // each inn's, by its door's index (inn/tavernShop.ts)
   lastInn: Entrance | null = null; // the last inn entered, where the hero wakes after a fall
+  purse: Purse | null = null; // half their coin, dropped where they last fell, till they walk back to it (hero/purse.ts)
   minutes = START_MINUTES; // the game's clock (clock.ts): a minute to each second played
   fullWalls = false; // the pause menu's option: rooms' inner walls full height, else cut low (upstairs.ts innerWalls)
   readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
@@ -333,7 +335,7 @@ export class GameModel {
   pickUp = (): BagItem | null => hands.pickUp(this);
   dropFromBag = (item: BagItem, slot?: number): boolean => hands.dropFromBag(this, item, slot);
   dropEquipped = (slot: EquipSlot): boolean => hands.dropEquipped(this, slot);
-  private scoopCoins = (): void => hands.scoopCoins(this);
+  private scoopCoins = (): void => void [hands.scoopCoins(this), reclaimPurse(this)]; // (and their purse, walked over)
 
   // Gear taken off into the bag, or worn from it (hero/wearing.ts); each returns whether it was.
   unequip = (slot: EquipSlot): boolean => takeOff(this.hero, slot);

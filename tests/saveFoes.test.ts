@@ -1,4 +1,4 @@
-// A save's foes put back where they were (save.ts restore): the hurt and the wandered as they stood; but one the save
+// A save's foes put back where they were (save.ts restore): the hurt as they stood (and an older save's wandered: none are saved now, tests/saveSize.test.ts); but one the save
 // has farther from home than any leash lets a foe go is another world's foe of that number (the world since made
 // afresh, its camps elsewhere), and is left as the seed makes it. (Such bandits, set down far off, walked home past
 // their leash: never noticing the hero, healed whole at every blow.)

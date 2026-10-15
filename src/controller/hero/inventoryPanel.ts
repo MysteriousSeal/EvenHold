@@ -9,7 +9,8 @@
 // While trading (a shop's window open beside it), right-clicking what the
 // keeper would buy, or dragging it onto their window, sells it; what they
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
-// A button by the purse tidies it (bagStacks.ts: sortedBag).
+// A button by the purse tidies it (bagStacks.ts: sortedBag). At the inn's strongbox (its window open beside it:
+// stashPanel.ts), right-clicking a stack, or dragging it onto the strongbox, puts it away.
 import { keyOf } from '../keyBindings';
 import { POTIONS, POTION_COOLDOWN, isPotion, potionText } from '../../model/loot/potions';
 import { setAction } from '../../model/hero/actionBar';
@@ -33,6 +34,8 @@ import { bagIcon, bagItemPreview } from '../../view/ui/itemIcons';
 import { voxelIcon } from '../../view/ui/voxelIcon';
 import { BAG_MODELS } from '../../view/meshes/loot/bagVoxels';
 import './inventoryPanel.css';
+import { ontoStash, type Storer } from './stashPanel';
+import { stashable } from '../../model/hero/stash';
 
 const COLUMNS = 14; // (wide and low: with every bag on, eight across ran off the bottom of the screen)
 const SOCKET_ROW = BAG_SOCKETS; // the sockets, the first row; the bag's own slots from there (on a row of their own: the separator spans the grid)
@@ -52,8 +55,9 @@ const ontoShop = (over: Element | null) => !!over?.closest('.menu')?.querySelect
 const playing = (line: MenuLine, ...tones: LineTone[]) => typeof line !== 'string' && tones.includes(line.tone);
 
 // `at`: the bag's slot it's in (what's dropped from it, off that very stack).
-function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number): MenuSlot {
+function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller | null, at?: number, storer: Storer | null = null): MenuSlot {
   const base = baseSlot(model, item, count, at);
+  if (storer) return stored(base, item, count, storer);
   const sale = saleOf(item);
   const lines = base.lines ?? [];
   const slot = sale === null ? base : { ...base, lines: [...lines.filter((l) => !playing(l, 'hint')), toned('price', `Sells for ${coinWords(sale.price)} to ${sale.to}`), ...lines.filter((l) => playing(l, 'hint'))] }; // (its price and buyer before its hints: those last)
@@ -70,6 +74,15 @@ function slotFor(model: GameModel, item: BagItem, count: number, seller: Seller 
     alt: () => seller.sell(item),
     dragOut: (over) => (ontoShop(over) ? seller.sell(item) : dragOut?.(over)),
   };
+}
+
+// At the strongbox: right-click (or drag onto its window) puts the stack away, instead of what it'd do (a quest's
+// things kept on the hero: said so).
+function stored(slot: MenuSlot, item: BagItem, count: number, storer: Storer): MenuSlot {
+  const lines = (slot.lines ?? []).filter((line) => !playing(line, 'hint', 'price'));
+  if (!stashable(item)) return { ...slot, dim: true, lines: [...lines, toned('loss', 'Quest items stay in your bag')] };
+  const dragOut = slot.dragOut;
+  return { ...slot, lines: [...lines, toned('hint', 'Right-click (or drag it onto the strongbox) to put it away')], alt: () => storer.put(item, count), dragOut: (over) => (ontoStash(over) ? storer.put(item, count) : dragOut?.(over)) };
 }
 
 function baseSlot(model: GameModel, item: BagItem, count: number, at?: number): MenuSlot {
@@ -164,8 +177,10 @@ function footer(money: number, tidy: () => void): HTMLElement {
 // Returns the bag's menu, and the function to call each frame (it redraws
 // the bag when what's in it changed).
 // `trade(seller)`: a shop opened beside it (null: closed).
-export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void; trade(seller: Seller | null): void } {
+// `store(storer)`: the strongbox opened beside it (null: shut).
+export function createInventoryPanel(model: GameModel): { menu: Menu; update(): void; trade(seller: Seller | null): void; store(storer: Storer | null): void } {
   let seller: Seller | null = null;
+  let storer: Storer | null = null;
   const menu = createMenu({
     title: 'Bag',
     toggleKey: () => keyOf('bag'),
@@ -195,7 +210,7 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           }
           const cells = at.map((i): MenuSlot => {
             const item = layout[i]!;
-            const slot = slotFor(model, item, counts[i], seller, i);
+            const slot = slotFor(model, item, counts[i], seller, i, storer);
             slot.preview = bagItemPreview(item); // (hovered: a window with it turning, over its tooltip)
             // Onto another of its group's slots: swapped with it; a bag onto a free socket (on top): fitted there.
             slot.move = (to) => {
@@ -228,5 +243,9 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
     seller = next;
     menu.refresh();
   };
-  return { menu, update, trade };
+  const store = (next: Storer | null) => {
+    storer = next;
+    menu.refresh();
+  };
+  return { menu, update, trade, store };
 }

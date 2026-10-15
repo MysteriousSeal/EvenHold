@@ -2,15 +2,16 @@
 // (a washstand, bottle shelves, the counter, stools facing it, a keg behind
 // it), the stairs up in the front corner, the hearth corner (a bear rug,
 // armchairs), tavern tables with chairs filling the floor, and what hangs on
-// the back wall.
+// the back wall; and the guests' strongbox by the right-hand wall, before the tables.
 
 import type { Room } from '../interiors/interiors';
 import { type Furniture } from '../interiors/furniture';
 import type { Planner } from '../interiors/roomPlanner';
 import { shuffle } from '../../util/random';
+import { flood } from '../map/grid';
 
 export function furnishInn(plan: Planner, room: Room): void {
-  const { rng, items, place, fits, along, chairs, openWalledIn, fillWalledIn } = plan;
+  const { rng, items, place, fits, along, chairs, openWalledIn, fillWalledIn, taken, kept, key } = plan;
   // The bar, along the left wall: a washstand and shelves of bottles against it, the
   // counter just in front of them, and stools facing it.
   const barEnd = Math.min(room.depth - 3, 5);
@@ -36,6 +37,23 @@ export function furnishInn(plan: Planner, room: Room): void {
       const chair = place('armchair', 1, 1, 'none', [[x, 1], [by, 2]], false);
       if (chair) chair.facing = chair.x === x ? [way, 0] : [0, -1]; // (beside it, turned to the other across the bear's head)
     }
+  }
+  // The guests' strongbox (hero/stash.ts) against the right-hand wall, nearest the back (clear of the floor the board's
+  // read from), its padlock turned to the front of the room (where it's seen from), the floor before it kept free to stand on (placed in turn, nothing rolled for it).
+  const reached = () => flood([[room.door, room.depth - 1]], (x, z) => x >= 0 && z >= 0 && x < room.width && z < room.depth && !taken.has(key(x, z))).size; // (the floor walked to from the door)
+  for (let z = 2; z < room.depth - 2; z++) {
+    if (!fits(room.width - 2, z, 1, 1)) continue;
+    const was = reached();
+    const box = place('strongbox', 1, 1, 'none', [[room.width - 1, z]], false);
+    if (!box) continue;
+    if (reached() < was - 1) { // (a corner shut off behind it, by the hearth's armchairs: further along)
+      items.splice(items.indexOf(box), 1);
+      taken.delete(key(box.x, box.z));
+      continue;
+    }
+    box.facing = [0, 1];
+    kept.add(key(room.width - 2, z));
+    break;
   }
   // Tavern tables, laid for a meal, with chairs round them, filling the
   // floor (out to the right-hand wall): each three tiles from the next
@@ -119,4 +137,5 @@ export function furnishInn(plan: Planner, room: Room): void {
     if (items.every((o) => !o.solid || near(o) >= 2 || (['sacks', 'barrel'].includes(o.kind) && near(o) >= 1))) place(kind, 1, 1, 'none', [[x, z]], false);
   }
   fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
+
 }
