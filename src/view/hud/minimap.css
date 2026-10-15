@@ -1,5 +1,5 @@
 /* The corner map (minimap.ts): to the clock's left, its top level with it, the parchment in an ink frame on a sand
-   mount, its N over the middle of its top edge. */
+   mount; clicked, the whole map. */
 .minimap {
   position: fixed;
   top: 16px;
@@ -9,18 +9,7 @@
   padding: 4px;
   background: #efdcb8;
   box-shadow: 0 0 0 3px #2e1f14, 4px 4px 0 3px rgba(24, 12, 4, 0.35);
-  pointer-events: none;
+  cursor: pointer;
 }
 .minimap[hidden] { display: none; }
 .minimap canvas { display: block; width: 150px; height: 150px; box-shadow: inset 0 0 18px rgba(122, 74, 32, 0.45); }
-.minimap b {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0 5px;
-  font: 700 12px 'Fredoka', system-ui, sans-serif;
-  color: #f8ecd4;
-  background: #a4502f;
-  box-shadow: 0 0 0 2px #2e1f14;
-}

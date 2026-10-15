@@ -7,6 +7,7 @@ import './mapWindow.css';
 import type { GameModel } from '../../model/GameModel';
 import { mapPins } from '../../model/atlas/mapPins';
 import { nameAt, paintMap, type MapLook, type MapPaint } from '../../view/atlas/mapPaint';
+import { along, toScreen } from '../../view/atlas/mapView';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { keyOf } from '../keyBindings';
 
@@ -15,7 +16,7 @@ const OPENED_AT = 1.5;
 const [FIT_LEAST, FIT_MOST] = [0.5, 4]; // as it opens, drawn to fit all that's been seen: no farther out, nor closer in (past 4, a fresh hero's land a few blocks)
 const FIT_MARGIN = 0.85; // of the window the land seen fills, fitted
 
-export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void } }): { menu: Menu } {
+export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boolean): void; minimap: { on: boolean; toggle(): void; click: (() => void) | null } }): { menu: Menu } {
   const look: MapLook = { x: 0, z: 0, scale: OPENED_AT };
   const wrap = document.createElement('div');
   wrap.className = 'map-window';
@@ -61,16 +62,20 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     [look.x, look.z] = [at.x, at.z];
   };
   // Opened: all that's been seen fitted to the window (a fresh hero's few steps drawn close, a long road's whole length
-  // drawn out), the hero at the middle if the land seen fits round them, else its middle.
+  // drawn out), the hero at the middle if the land seen fits round them, else its middle (each way across the screen,
+  // the map turned as the game's view: mapView.ts).
   const fit = () => {
     centre();
     const seen = model.atlas.fog.bounds();
     if (!seen) return;
     const { width, height } = size();
-    const span = (x0: number, x1: number, at: number) => 2 * Math.max(at - x0, x1 - at);
-    const round = (x0: number, x1: number, at: number, room: number) => (span(x0, x1, at) <= room ? at : (x0 + x1) / 2);
-    look.scale = Math.min(FIT_MOST, Math.max(FIT_LEAST, FIT_MARGIN * Math.min(width / span(seen.x0, seen.x1, look.x), height / span(seen.z0, seen.z1, look.z))));
-    [look.x, look.z] = [round(seen.x0, seen.x1, look.x, width / look.scale), round(seen.z0, seen.z1, look.z, height / look.scale)];
+    const corners = [[seen.x0, seen.z0], [seen.x1, seen.z0], [seen.x0, seen.z1], [seen.x1, seen.z1]].map(([x, z]) => toScreen({ ...look, scale: 1 }, 0, 0, x, z));
+    const [xs, ys] = [corners.map(([x]) => x), corners.map(([, y]) => y)];
+    const span = (ds: number[]) => 2 * Math.max(...ds.map(Math.abs));
+    look.scale = Math.min(FIT_MOST, Math.max(FIT_LEAST, FIT_MARGIN * Math.min(width / span(xs), height / span(ys))));
+    const round = (ds: number[], room: number) => (span(ds) * look.scale <= room ? 0 : (Math.min(...ds) + Math.max(...ds)) / 2);
+    const [dx, dz] = along(1, round(xs, width), round(ys, height));
+    [look.x, look.z] = [look.x + dx, look.z + dz];
   };
   middle.addEventListener('click', centre);
   corner.addEventListener('click', () => void [hooks.minimap.toggle(), cornerText()]);
@@ -82,8 +87,8 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
   });
   canvas.addEventListener('pointermove', (e) => {
     if (drag) {
-      look.x -= (e.clientX - drag.x) / look.scale;
-      look.z -= (e.clientY - drag.y) / look.scale;
+      const [dx, dz] = along(look.scale, e.clientX - drag.x, e.clientY - drag.y);
+      [look.x, look.z] = [look.x - dx, look.z - dz];
       drag = { x: e.clientX, y: e.clientY };
     }
     const box = canvas.getBoundingClientRect();
@@ -97,9 +102,11 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     // (in toward the pointer: the tile under it stays under it)
     const box = canvas.getBoundingClientRect();
     const [px, py] = [e.clientX - box.left - box.width / 2, e.clientY - box.top - box.height / 2];
-    const [tx, tz] = [look.x + px / look.scale, look.z + py / look.scale];
+    const [ax, az] = along(look.scale, px, py);
+    const [tx, tz] = [look.x + ax, look.z + az];
     look.scale = Math.min(MOST, Math.max(LEAST, look.scale * (e.deltaY < 0 ? 1.2 : 1 / 1.2)));
-    [look.x, look.z] = [tx - px / look.scale, tz - py / look.scale];
+    const [bx, bz] = along(look.scale, px, py);
+    [look.x, look.z] = [tx - bx, tz - bz];
   }, { passive: false });
 
   const menu = createMenu({
@@ -114,5 +121,6 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     },
     tabs: [{ name: 'Map', header: () => wrap }],
   });
+  hooks.minimap.click = () => menu.open(); // (the corner map, clicked)
   return { menu };
 }
