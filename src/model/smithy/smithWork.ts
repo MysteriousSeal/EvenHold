@@ -1,10 +1,13 @@
-// The smith, always at work in his smithy (npcs.ts spawns him, npcRoutine.ts
+// The smith, at work in his smithy by day (npcs.ts spawns him, npcRoutine.ts
 // runs his steps like anyone's): round from the forge to the anvil (hammering
 // what's hot, sparks flying), the trough (quenching it) and the grindstone;
 // and while the hero's by his counter, behind it, to trade (E: smithShop.ts).
+// Of a night, as villagers keep, his work put down and the shop shut, abed (a
+// bed of his, if he has one), or resting where he can.
 
 import type { Furniture } from '../interiors/furniture';
 import { layoutOf } from '../interiors/indoors';
+import { START_MINUTES, between } from '../clock';
 import type { Npc, NpcStep } from '../npcs/npcs';
 import type { NpcWorld } from '../npcs/npcRoutine';
 import { TOWARD_BACK, keeperCalled, keeperSteps, type KeeperDay } from '../npcs/keeperWork';
@@ -44,9 +47,14 @@ const toAnvil = (npc: Npc, world: NpcWorld): boolean => {
   return !!spot && (npc.steps.some((s) => s.kind === 'go' && Math.hypot(s.to.x - spot.x, s.to.z - spot.z) < 0.1) || (npc.steps[0]?.kind === 'work' && Math.hypot(npc.x - spot.x, npc.z - spot.z) < 0.6));
 };
 
+// Whether it's his night (villagers' hours: npcRoutine.ts NIGHT): the forge cold, the shop shut.
+const NIGHT = { from: 23, till: 6 };
+const NIGHT_REST = 90; // seconds abed at a time (an hour and a half), then a look at the clock
+export const smithAsleep = (minutes: number): boolean => between(minutes, NIGHT.from, NIGHT.till);
+
 // His next steps, for as long as the smithy stands.
-export const smithSteps = (npc: Npc, world: NpcWorld): NpcStep[] => keeperSteps(npc, world, dayOf(npc, world));
-export const smithCalled = (npc: Npc, world: NpcWorld): boolean => keeperCalled(npc, world, SMITH) || toAnvil(npc, world); // (the hero at his counter: his work put down; at his anvil: his work there)
+export const smithSteps = (npc: Npc, world: NpcWorld): NpcStep[] => (smithAsleep(world.minutes ?? START_MINUTES) ? [{ kind: 'settle', for: NIGHT_REST, at: 'bed' }] : keeperSteps(npc, world, dayOf(npc, world)));
+export const smithCalled = (npc: Npc, world: NpcWorld): boolean => !smithAsleep(world.minutes ?? START_MINUTES) && (keeperCalled(npc, world, SMITH) || toAnvil(npc, world)); // (the hero at his counter: his work put down; at his anvil: his work there)
 
 // Whether a smith is hammering at his anvil (sparks), or quenching at his trough (steam), right now.
 export function smithWorking(npc: Npc, at: Furniture): boolean {
