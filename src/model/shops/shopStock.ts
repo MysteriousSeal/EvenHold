@@ -44,7 +44,7 @@ const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an
 
 // A trade's goods a shop buys only so many of at a time: a woodworker's cups and chests, and any piece of gear (by its
 // kind: so many swords, whatever their level), what's gathered and worked (ingredients, loot/ingredients.ts) and meals.
-const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard']);
+const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard', 'varnishedCasket', 'oakChest']);
 export const WANTS = { goods: 5, gear: 3 }; // of each kind
 const kindOf = (id: string): string | null => (isGear(id) ? baseOf(id) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
 
