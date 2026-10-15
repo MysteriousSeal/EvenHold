@@ -1,15 +1,141 @@
 // The smithy's own furniture in voxels (see furnitureVoxels.ts for how
-// pieces are painted): where the smith trades (a stout counter, a ledger and
-// a scale on it), what he works with (bellows by the forge, a grindstone, a
-// board of tools), and what he sells, on show (a wall of weapons, a suit of
-// armour on a stand). The forge, anvil, trough and rack are furnitureVoxels.ts'.
+// pieces are painted): the forge and what stands round it (its bellows, the
+// quench trough, the anvil, a heap of coal, a grindstone), where the smith
+// trades (a stout counter, a ledger and a scale on it), what he works with (a
+// board of tools, the salvage bench), and what he sells, on show (a rack and
+// a wall of weapons, suits of armour on stands). The soot and scale on the
+// floor round them are the room's (smithyShell.ts).
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS, BRASS_DARK, FUR_DARK, CLAY, CLAY_DARK, RED, RED_DARK, PARCHMENT, INK, COAL, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, IRON, IRON_LIGHT, STONE, STONE_DARK, BRASS, BRASS_DARK, FUR_DARK, CLAY, CLAY_DARK, RED, RED_DARK, PARCHMENT, INK, COAL, SOOT, FIRE, EMBER, QUENCH, QUENCH_LIGHT, HOT_IRON, CINDER, SOOT_LIGHT, IRON_EDGE, SMITHY_STONE, SMITHY_STONE_DARK, SMITHY_MORTAR, SCALE, FUR as RUST, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
+import { hashUnit } from '../../util/random';
 
-export type SmithyKind = 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
+export type SmithyKind = 'forge' | 'anvil' | 'trough' | 'rack' | 'coal' | 'barStock' | 'scrapHeap' | 'smithCounter' | 'bellows' | 'weaponWall' | 'armorStand' | 'grindstone' | 'toolBoard' | 'salvageBench';
+
+// Water standing in a vessel over u0..u1, v0..v1 at height y: dark, its rim a voxel lighter where it meets the sides.
+const water = (box: Box, u0: number, v0: number, u1: number, v1: number, y: number) => box(u0, y, v0, u1, y, v1, (u, _y, v) => (u === u0 || u === u1 || v === v0 || v === v1 ? QUENCH_LIGHT : QUENCH));
+
+// A horseshoe hung flat on a wall at (u, y), v out from it: five wide, six high, its opening up (to hold its luck).
+export const horseshoe = (box: Box, u: number, y: number, v: number) => {
+  box(u + 1, y, v, u + 3, y, v, IRON); // its toe,
+  for (const side of [u, u + 4]) box(side, y + 1, v, side, y + 5, v, (_u, yy) => (yy === y + 5 ? IRON_LIGHT : IRON)); // its branches, their heels worn bright
+};
 
 export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
+  // The forge, the room's heart, on the back wall: its hearth laid in the
+  // room's cold stone (joints staggered, heat-stained above the mouth), its
+  // firebox mouth hot all through, its front ledge the brightest stone in the
+  // room; a bed of coals on top white-hot at its heart and black at its rim
+  // (the fire burns there: fireOf), a bar of stock in it glowing at its
+  // buried end and out over the ledge, the tongs left beside it; over it all
+  // a stepped hood black with soot on two iron posts, its rim lit from below,
+  // and a sooted flue up the wall.
+  forge: (box, len) => {
+    const mid = (len - 1) / 2;
+    const m = Math.floor(mid); // (in whole voxels)
+    box(1, 1, 0, len - 2, 10, 16, (u, y, v) => {
+      const course = Math.floor(y / 3);
+      if (y % 3 === 1 || (u + course * 4) % 8 === 0) return SMITHY_MORTAR; // the joints
+      if (v === 16 && y >= 7 && Math.abs(u - mid) < 12 - (10 - y) * 2) return SOOT; // stained above the mouth
+      return (Math.floor((u + course * 4) / 8) + course) % 3 === 0 ? SMITHY_STONE_DARK : SMITHY_STONE;
+    });
+    box(0, 11, 0, len - 1, 11, 17, (_u, _y, v) => (v >= 14 ? STONE : v === 13 ? STONE_DARK : SMITHY_STONE_DARK)); // its top, the front ledge lit
+    box(18, 3, 13, len - 19, 8, 17, 0); // the firebox mouth,
+    box(18, 3, 13, len - 19, 8, 13, (u, y) => (y === 8 ? FIRE : hashUnit(u, y, 9) < 0.3 ? FIRE : EMBER)); // hot at its back,
+    box(18, 2, 14, len - 19, 2, 17, (u, _y, v) => (hashUnit(u, v, 8) < 0.35 ? EMBER : FIRE)); // and on its floor
+    box(8, 12, 3, len - 9, 12, 12, (u, _y, v) => {
+      const heat = 1 - Math.hypot((u - mid) / 17, (v - 7.5) / 5.5) + (hashUnit(u, v, 3) - 0.5) * 0.35; // hottest at the heart
+      return u === 8 || u === len - 9 || v === 3 || v === 12 || heat < 0.2 ? COAL : heat < 0.55 ? FIRE : EMBER;
+    }); // the bed of coals
+    box(m - 3, 13, 6, m + 3, 13, 9, (u, _y, v) => (hashUnit(u, v, 5) < 0.6 ? EMBER : FIRE)); // heaped at its heart
+    for (let v = 6; v <= 15; v++) {
+      const y = v <= 11 ? 13 : 12; // (out over the ledge, lower)
+      box(m + 5, y, v, m + 6, y + 1, v, v <= 8 ? EMBER : v <= 11 ? HOT_IRON : IRON); // the bar: buried, glowing, cooling
+    }
+    for (const u of [m - 7, m - 4]) box(u, 12, 13, u, 12, 17, IRON); // the tongs on the ledge: their arms,
+    box(m - 6, 12, 14, m - 5, 12, 14, IRON_LIGHT); // their pivot
+    for (const u of [5, len - 7]) box(u, 12, 13, u + 1, 19, 14, IRON); // the hood's posts
+    for (let y = 20; y <= 24; y++) {
+      const inset = Math.floor((y - 20) * 1.5);
+      const front = 14 - inset * 2;
+      box(4 + inset, y, 0, len - 5 - inset, y, front, (u, yy, v) => (yy === 20 ? (v >= 13 ? CINDER : IRON) : (u + yy * 4) % 9 === 0 ? SOOT_LIGHT : SOOT)); // the hood, stepped in, on its rim
+    }
+    box(17, 25, 0, len - 18, 33, 6, (u, y) => (y === 33 ? SOOT_LIGHT : (u + Math.floor(y / 3) * 4) % 8 === 0 || y % 3 === 0 ? SOOT_LIGHT : SOOT)); // the flue, coursed
+  },
+
+  // An anvil on a stump: the stump banded in iron, its top ringed; a narrow
+  // iron waist, a broad face (its working top lit, catching the forge), a
+  // horn stepping to a bright point on one side, a square heel on the other,
+  // the hardy hole in it; a hammer laid on the face, and a little slack tub
+  // of water, banded, against the stump's side.
+  anvil: (box) => {
+    box(8, 1, 8, 16, 6, 16, (u, y, v) => (y === 3 ? IRON : y === 6 ? ((u + v) % 3 === 0 ? WOOD_DARK : WOOD_LIGHT) : WOOD_DARK)); // the stump
+    box(10, 7, 10, 14, 8, 14, IRON); // the waist
+    box(6, 9, 9, 19, 11, 15, (_u, y) => (y === 11 ? IRON_LIGHT : IRON)); // the face
+    box(3, 10, 10, 5, 11, 14, (_u, y) => (y === 11 ? IRON_LIGHT : IRON)); // the horn,
+    box(1, 10, 11, 2, 10, 13, IRON_EDGE); // to its point
+    box(20, 9, 10, 21, 11, 14, IRON); // the heel
+    box(17, 11, 12, 17, 11, 12, COAL); // the hardy hole
+    box(9, 12, 10, 12, 13, 11, (_u, y) => (y === 13 ? IRON_LIGHT : IRON)); // a hammer on the face: its head,
+    box(13, 12, 10, 20, 12, 10, WOOD_DARK); // its handle
+    box(17, 1, 17, 22, 7, 22, (u, y, v) => (y === 2 || y === 6 ? IRON : u === 17 || u === 22 || v === 17 || v === 22 || y === 1 ? WOOD : 0)); // the slack tub,
+    water(box, 18, 18, 21, 21, 5); // its water
+  },
+
+  // The quench trough: heavy planks on a dark foot, bound in iron all
+  // round, a lit rim, dark water standing inside (its edge catching the
+  // light), a ladle hung over the side.
+  trough: (box, len, _dep, item) => {
+    const back = item.wall === 'back' ? -5 : 0; // against the back wall: drawn right up to it
+    const b: Box = (u0, y0, v0, u1, y1, v1, color) => box(u0, y0, v0 + back, u1, y1, v1 + back, typeof color === 'number' ? color : (u, y, v) => color(u, y, v - back));
+    b(2, 1, 5, len - 3, 1, 19, WOOD_DARK); // the foot
+    b(2, 2, 5, len - 3, 9, 19, (u, y) => (u % 16 === 8 || y === 4 ? IRON : WOOD)); // the sides, banded
+    b(2, 9, 5, len - 3, 9, 19, WOOD_LIGHT); // the rim
+    b(4, 2, 7, len - 5, 9, 17, 0); // hollow,
+    b(4, 2, 7, len - 5, 6, 17, QUENCH); // full of water,
+    water(b, 4, 7, len - 5, 17, 7); // its top
+    b(len - 10, 10, 9, len - 10, 10, 19, WOOD_LIGHT); // the ladle's handle, over the rim,
+    b(len - 11, 7, 10, len - 9, 9, 12, IRON); // its cup in the water
+  },
+
+  // A weapon rack against the wall: two posts, a slotted base and a lit top
+  // rail, swords and spears standing in it by turns, leaning on the rail.
+  rack: (box, len) => {
+    box(2, 1, 2, len - 3, 2, 9, (u) => (u % 8 === 0 ? SOOT : WOOD_DARK)); // the base, slotted
+    for (const u of [2, len - 3]) box(u, 1, 2, u + 1, 18, 4, WOOD_DARK); // the posts
+    box(2, 18, 2, len - 3, 19, 4, (_u, y) => (y === 19 ? WOOD_LIGHT : WOOD)); // the rail
+    for (let i = 0, u = 8; u < len - 6; u += 8, i++) {
+      if (i % 2 === 0) {
+        box(u, 3, 5, u, 13, 5, IRON_LIGHT); // a sword: its blade,
+        box(u - 1, 14, 5, u + 1, 14, 5, BRASS); // guard,
+        box(u, 15, 4, u, 17, 4, WOOD_DARK); // grip, against the rail
+      } else {
+        box(u, 3, 5, u, 17, 4, WOOD); // a spear: its shaft,
+        box(u, 20, 3, u, 22, 3, IRON_LIGHT); // its point, over the rail
+      }
+    }
+    box(3, 31, 0, len - 4, 31, 1, WOOD_DARK); // over it, a peg rail of horseshoes for sale
+    for (let u = 5; u + 4 < len - 4; u += 10) horseshoe(box, u, 24, 1);
+  },
+
+  // A heap of coal, stepping up to a peak, its lumps catching the light
+  // here and there, a shovel stuck in it.
+  coal: (box) => {
+    const layers: Array<[number, number]> = [[3, 2], [6, 4], [9, 5], [11, 6]]; // [inset, top] of each step
+    let from = 1;
+    for (const [inset, top] of layers) {
+      box(inset, from, inset, 24 - inset, top, 24 - inset, (u, y, v) => {
+        if ((u === inset || u === 24 - inset) && (v === inset || v === 24 - inset)) return 0;
+        const n = hashUnit(u * 3 + y, v, 8);
+        return n < 0.08 ? IRON : n < 0.4 ? SOOT : COAL; // glinting lumps
+      });
+      from = top + 1;
+    }
+    box(16, 4, 11, 18, 5, 13, IRON); // the shovel's blade, in the heap,
+    box(17, 6, 12, 17, 15, 12, WOOD); // its handle
+    box(16, 16, 12, 18, 16, 12, WOOD_DARK); // its grip
+  },
+
   // Two tiles of oak, its front (+v, toward the door) banded in iron under a
   // lit top; on it an open ledger and a brass scale.
   smithCounter: (box, len) => {
@@ -34,6 +160,49 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
     box(4, 9, 2, 20, 9, 10, WOOD); // the upper board
     box(10, 10, 8, 14, 10, 15, WOOD_LIGHT); // its handle
     box(11, 4, 14, 13, 5, 18, IRON); // the nozzle
+    // Over it, on the wall by the fire, a rail of the tools he works it with: three tongs and two hammers hung.
+    box(1, 25, 0, 23, 25, 2, WOOD_DARK);
+    for (const u of [3, 8, 13]) {
+      for (const arm of [u, u + 2]) box(arm, 15, 3, arm, 24, 3, IRON); // a pair of tongs: its arms,
+      box(u, 20, 3, u + 2, 20, 3, IRON_LIGHT); // their rivet,
+      box(u + 1, 14, 3, u + 1, 14, 3, IRON_LIGHT); // their jaws met
+    }
+    for (const u of [18, 21]) {
+      box(u, 18, 3, u, 24, 3, WOOD_DARK); // a hammer: its handle,
+      box(u - 1, 16, 3, u + 1, 17, 4, (_u, y) => (y === 17 ? IRON_LIGHT : IRON)); // its head
+    }
+  },
+  // A bundle of iron bars, stock for the forge, stood on end in a corner, leaning back against the wall, bound with a
+  // leather strap: their sides dark with scale, their cut ends bright.
+  barStock: (box) => {
+    for (let i = 0; i < 7; i++) {
+      const u = 6 + i * 2 + (i % 2);
+      const top = 18 + ((i * 5) % 4);
+      for (let y = 1; y <= top; y++) {
+        const v = 7 - Math.floor((y * 4) / top) + (i % 3 === 0 ? 1 : 0); // (leaning in toward the wall as it rises)
+        box(u, y, v, u + 1, y, v + 1, y === top ? IRON_EDGE : SCALE);
+      }
+    }
+    box(6, 11, 4, 20, 12, 7, (u, _y, v) => (v === 7 || u === 6 || u === 20 ? CLAY_DARK : 0)); // the strap round them
+  },
+  // A heap of scrap waiting by the salvage bench: rusted iron stepped up to a peak, a broken blade sticking up from
+  // it, a dented helm, a horseshoe, a bar or two.
+  scrapHeap: (box) => {
+    const layers: Array<[number, number]> = [[4, 2], [7, 4], [10, 6]]; // [inset, top] of each step
+    let from = 1;
+    for (const [inset, top] of layers) {
+      box(inset, from, inset + 2, 24 - inset, top, 22 - inset, (u, y, v) => {
+        const n = hashUnit(u * 3 + y, v, 11);
+        return n < 0.35 ? CLAY_DARK : n < 0.6 ? RUST : n < 0.85 ? SCALE : IRON;
+      });
+      from = top + 1;
+    }
+    box(9, 7, 11, 9, 14, 11, (_u, y) => (y === 14 ? IRON_EDGE : IRON_LIGHT)); // a blade, snapped,
+    box(8, 7, 11, 10, 7, 11, BRASS_DARK); // its guard in the heap
+    box(13, 7, 12, 17, 9, 15, (_u, y) => (y === 9 ? IRON_LIGHT : IRON)); // a helm, dented
+    box(14, 10, 13, 16, 10, 14, IRON);
+    box(5, 3, 18, 15, 3, 19, SCALE); // a bar, along its foot
+    horseshoe(box, 17, 1, 20); // a horseshoe, propped
   },
   // Hung on a wall: a dark board with a sword, an axe and a spear pegged to it.
   weaponWall: (box) => {
@@ -100,7 +269,7 @@ export const SMITHY_PAINTERS: Record<SmithyKind, (box: Box, len: number, dep: nu
   // A stone wheel on an axle between two posts, over a little trough of
   // water, a crank to one side and a pedal at its foot.
   grindstone: (box) => {
-    box(8, 1, 8, 16, 3, 16, (u, y, v) => (y === 3 && u > 8 && u < 16 && v > 8 && v < 16 ? WATER : WOOD_DARK)); // the trough
+    box(8, 1, 8, 16, 3, 16, (u, y, v) => (y === 3 && u > 8 && u < 16 && v > 8 && v < 16 ? (u === 9 || u === 15 || v === 9 || v === 15 ? QUENCH_LIGHT : QUENCH) : WOOD_DARK)); // the trough
     for (const u of [5, 18]) box(u, 1, 10, u + 1, 12, 14, WOOD); // the posts
     box(5, 10, 12, 20, 10, 12, IRON); // the axle
     for (let y = 4; y <= 16; y++) {

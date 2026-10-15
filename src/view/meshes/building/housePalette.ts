@@ -47,6 +47,7 @@ const ENTRIES = {
   anvil: 0x4a4a52,
   anvilLight: 0x70707a,
   quench: 0x2a9aac,
+  quenchDark: 0x26343a, // a smith's quench water
   hay: 0xd9b95a,
   hayDark: 0xb89440,
   pewter: 0xb8bcc2,

@@ -140,9 +140,12 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   let lastTime: number | null = null;
   // Warm light from above, a hearth glow from the back corner. The inn's lit lower, by night: pools of light at its
   // fire, its lanterns and the candles on its tables, the floor between them darker.
+  // The smithy's a cold, sooty shell with one hot heart: a dim blue-grey daylight from the door's side, the forge
+  // the one bright pool (the anvil in it), the walls reddening near it, the corners falling off into the dark.
   const inn = room.floor === 'tavern';
-  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
-  const sun = new THREE.DirectionalLight(0xffd7a0, inn ? 0.6 : 1.4);
+  const smithyRoom = furniture.some((f) => f.kind === 'forge');
+  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : smithyRoom ? new THREE.HemisphereLight(0x8a96aa, 0x1a1410, 0.7) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
+  const sun = new THREE.DirectionalLight(smithyRoom ? 0xbcc8d8 : 0xffd7a0, inn ? 0.6 : smithyRoom ? 0.5 : 1.4);
   sun.position.set(room.width * 0.6, 6, room.depth * 0.8);
   sun.target.position.set(room.width / 2, 0, room.depth / 2);
   scene.add(sun, sun.target);
@@ -150,9 +153,16 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const spot = fireOf(furniture);
   // Its light casts real shadows: set just in front of the opening (so the
   // stonework doesn't block it), shadows fan out from the fire and flicker with it.
-  const GLOW = inn ? 10 : 4.5; // (the inn's fire its brightest light: the eye goes there first)
-  const glow = new THREE.PointLight(0xff9a4a, GLOW, inn ? 11 : 8, 1.4);
-  glow.position.set(spot?.x ?? 0.3, 0.38, (spot?.z ?? 0.3) + 0.5);
+  const GLOW = inn ? 10 : smithyRoom ? 14 : 4.5; // (the inn's fire its brightest light, and the forge: the eye goes there first)
+  const glow = new THREE.PointLight(smithyRoom ? 0xff7a2c : 0xff9a4a, GLOW, inn ? 11 : smithyRoom ? 9 : 8, smithyRoom ? 1.5 : 1.4);
+  glow.position.set(spot?.x ?? 0.3, smithyRoom ? 0.32 : 0.38, (spot?.z ?? 0.3) + (smithyRoom ? 0.6 : 0.5));
+  // The forge's coal bed, lighting the hood's underside (no shadow of its own).
+  const COALS = 3;
+  const coals = smithyRoom && spot ? new THREE.PointLight(0xffa040, COALS, 2.5, 1.6) : null;
+  if (coals && spot) {
+    coals.position.set(spot.x, spot.y + 0.25, spot.z + 0.1);
+    scene.add(coals);
+  }
   glow.castShadow = true;
   glow.shadow.mapSize.set(1024, 1024);
   glow.shadow.bias = -0.004;
@@ -277,6 +287,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       flames.update(time);
       fire?.update(time);
       glow.intensity = GLOW * flicker(time);
+      if (coals) coals.intensity = COALS * flicker(time * 1.3, 2);
     },
     dispose() {
       geometry.dispose();
@@ -292,7 +303,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();
       material.dispose();
-      for (const light of [glow, ...lanterns.map((l) => l.light), ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
+      for (const light of [glow, ...(coals ? [coals] : []), ...lanterns.map((l) => l.light), ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
       fire?.dispose();
     },
   };

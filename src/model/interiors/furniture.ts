@@ -42,6 +42,8 @@ export const FURNITURE_KINDS = [
   'trough',
   'rack',
   'coal',
+  'barStock', // a bundle of iron bars, stood in a corner
+  'scrapHeap', // old iron waiting by the salvage bench
   // A herbalist's own (herbalist/herbalistLayout.ts)
   'cauldron', // before the hearth, on its embers
   'herbCounter', // where they trade, by the door

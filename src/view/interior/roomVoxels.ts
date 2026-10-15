@@ -14,6 +14,7 @@ import type { Furniture } from '../../model/interiors/furniture';
 import { BREAD, FURNITURE_PALETTE, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM_LIGHT, WOOD_DARK } from './furniturePalette';
 import { paintFurniture } from './furnitureVoxels';
 import { hallRunner } from './upstairsVoxels';
+import { smithyFloor, smithySoot, smithyWall } from './smithyShell';
 import { HALL } from '../../model/interiors/upstairs';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
@@ -192,14 +193,19 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     fillBox(grid, x0, y0 + below, z0, x1, y1 + below, z1, typeof c === 'number' ? c : (x, y, z) => c(x, y - below, z));
   const x0 = WALL;
   const z0 = WALL;
+  // (A smithy's its own shell, smithyShell.ts: cold, sooty stone round its forge.)
+  const smithy = furniture.some((f) => f.kind === 'forge');
+  const floorAt = (x: number, z: number) => (smithy ? smithyFloor(x, z) : floorColor(room.floor, x, z));
+  const wallAt = (u: number, y: number) => (smithy ? smithyWall(u, y, HIGH) : wallColor(room.wall, u, y));
   // The floor, one voxel thick, at y 0.
-  fill(x0, 0, z0, x0 + w - 1, 0, z0 + d - 1, (x, _y, z) => floorColor(room.floor, x - x0, z - z0));
+  fill(x0, 0, z0, x0 + w - 1, 0, z0 + d - 1, (x, _y, z) => floorAt(x - x0, z - z0));
   // Back walls, full height: along -Z (the far one) and -X (the left one).
-  fill(0, 0, 0, w + WALL * 2 - 1, HIGH, WALL - 1, (x, y) => wallColor(room.wall, x, y));
-  fill(0, 0, 0, WALL - 1, HIGH, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
+  fill(0, 0, 0, w + WALL * 2 - 1, HIGH, WALL - 1, (x, y) => wallAt(x, y));
+  fill(0, 0, 0, WALL - 1, HIGH, d + WALL * 2 - 1, (_x, y, z) => wallAt(z, y));
   // Near walls, cut low: +X, and +Z with the doorway.
-  fill(x0 + w, 0, 0, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (_x, y, z) => wallColor(room.wall, z, y));
-  fill(0, 0, z0 + d, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (x, y) => wallColor(room.wall, x, y));
+  fill(x0 + w, 0, 0, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (_x, y, z) => wallAt(z, y));
+  fill(0, 0, z0 + d, w + WALL * 2 - 1, LOW, d + WALL * 2 - 1, (x, y) => wallAt(x, y));
+  if (smithy) smithySoot(fill, furniture, x0, z0, w, d, HIGH);
   if (door) {
     const doorX = x0 + room.door * TILE;
     fill(doorX + 2, 1, z0 + d, doorX + TILE - 3, LOW, d + WALL * 2 - 1, 0); // the doorway
@@ -219,6 +225,11 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     fill(leaf.x0, 1, leaf.z0, leaf.x1, DOOR_HEIGHT, leaf.z1, (x) => ((x - leaf.x0) % 5 === 0 ? DOOR : DOOR_LIGHT)); // planks, shut
     for (const y of [5, DOOR_HEIGHT - 4]) fill(leaf.x0, y, leaf.z1 + 1, leaf.x0 + 8, y, leaf.z1 + 1, IRON); // hinges
     fill(leaf.x1 - 4, 12, leaf.z1 + 1, leaf.x1 - 3, 13, leaf.z1 + 1, IRON); // ring handle
+    if (smithy) {
+      const mid = Math.floor((leaf.x0 + leaf.x1) / 2) - 2;
+      fill(mid + 1, 19, leaf.z1 + 1, mid + 3, 19, leaf.z1 + 1, IRON); // a horseshoe nailed up on the smith's door, its opening up
+      for (const x of [mid, mid + 4]) fill(x, 20, leaf.z1 + 1, x, 24, leaf.z1 + 1, IRON);
+    }
     fill(doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
