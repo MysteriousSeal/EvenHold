@@ -4,7 +4,7 @@
 // they strike, the surer the harder the vein; walking off stops them. Kept in the save; the prompt says what E would do.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { PICK_BONUS, STAR_IRON, VEINS, isRock, middleOf, riseOf, strikesIn, upland, veinOf, type Rock } from '../src/model/skills/mining';
+import { PICK_BONUS, REGROW, STAR_IRON, VEINS, isRock, middleOf, riseOf, strikesIn, upland, veinOf, type Rock } from '../src/model/skills/mining';
 import { RISE, SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -12,6 +12,8 @@ import { minePrompt } from '../src/controller/skills/minePrompt';
 import { castOf } from '../src/controller/skills/castOf';
 import { statusOf } from '../src/controller/skills/skillsPanel';
 import { interactionOf } from '../src/model/hero/interaction';
+import { buyGear, pickPrice, sellGear, smithShopAt } from '../src/model/smithy/smithShop';
+import { TOOL_ITEMS } from '../src/model/loot/tools';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 // A model, the hero stood by a rock (a pickaxe in the bag, unless told not), skilled enough for its vein; and the rock.
@@ -45,11 +47,11 @@ describe('the veins', () => {
     expect(worlds[0].scenery.filter((s) => !isRock(s)).every((s) => s.kind !== 'boulder' && s.kind !== 'outcrop')).toBe(true);
   });
 
-  it('give a boulder 4 to 6 strikes, an outcrop 8 to 12', () => {
+  it('give a boulder 12 to 18 strikes, an outcrop 24 to 36', () => {
     for (const { model, rock } of rocks) {
       const n = strikesIn(rock, model.seed);
-      expect(n).toBeGreaterThanOrEqual(rock.kind === 'boulder' ? 4 : 8);
-      expect(n).toBeLessThanOrEqual(rock.kind === 'boulder' ? 6 : 12);
+      expect(n).toBeGreaterThanOrEqual(rock.kind === 'boulder' ? 12 : 24);
+      expect(n).toBeLessThanOrEqual(rock.kind === 'boulder' ? 18 : 36);
     }
   });
 
@@ -114,7 +116,7 @@ describe('mining', () => {
     expect(model.mining.striking).not.toBeNull();
     expect(interactionOf(model)?.kind).toBe('stopMine');
     expect(model.attackProgress).not.toBeNull(); // (the pick swung)
-    expect(castOf(model)?.label).toMatch(/^\d strikes? left$/);
+    expect(castOf(model)?.label).toMatch(/^\d+ strikes? left$/);
     expect(statusOf(model, 'mining')).toMatch(/^Mining [a-z-]+ · \d+ strikes? left$/);
   });
 
@@ -122,7 +124,7 @@ describe('mining', () => {
     const { model, rock } = byARock();
     const strikes = strikesIn(rock, model.seed);
     model.mining.use();
-    run(model, model.mining.strikeSeconds * strikes + 0.5);
+    run(model, (model.mining.strikeSeconds + 0.1) * strikes + 0.5); // (a tick over, each strike)
     expect(model.mining.workedOut(rock)).toBe(true);
     expect(model.mining.striking).toBeNull();
     expect(model.scenery).toContain(rock);
@@ -170,7 +172,7 @@ describe('mined rocks', () => {
   it('are kept so in the save: a worked-out one worked out, a part-mined one still part-mined', () => {
     const { model, rock } = byARock();
     model.mining.use();
-    run(model, model.mining.strikeSeconds * strikesIn(rock, model.seed) + 0.5);
+    run(model, (model.mining.strikeSeconds + 0.1) * strikesIn(rock, model.seed) + 0.5);
     const other = model.scenery.find((s): s is Rock => isRock(s) && s !== rock)!;
     model.mining.mined.set(`${other.x},${other.z}`, 1);
     const again = new GameModel(2, TEST_MAP_SIZE);
@@ -184,7 +186,56 @@ describe('mined rocks', () => {
     model.mining.restore(undefined);
     expect(model.mining.saved()).toEqual({});
     model.mining.restore({ '3,4': 2, nonsense: 4, '5,6': -1, '7,8': 'x', '9,10': 99, '1.5,2': 1 });
-    expect(model.mining.saved()).toEqual({ '3,4': 2, '9,10': 12 });
+    expect(model.mining.saved()).toEqual({ '3,4': 2, '9,10': 36 });
+    expect(model.mining.savedTimes()).toEqual({ '3,4': model.minutes, '9,10': model.minutes }); // (none saved: from now)
+    model.mining.restore({ '3,4': 2, '5,6': 1 }, { '3,4': model.minutes - 100, '5,6': 'soon' });
+    expect(model.mining.savedTimes()).toEqual({ '3,4': model.minutes - 100, '5,6': model.minutes });
+  });
+
+  it('come back whole a day after they were last struck at, the vein drawn again', () => {
+    const { model, rock } = byARock();
+    model.mining.use();
+    run(model, (model.mining.strikeSeconds + 0.1) * strikesIn(rock, model.seed) + 0.5);
+    expect(model.mining.workedOut(rock)).toBe(true);
+    const version = model.mining.version;
+    model.minutes += REGROW - 30; // (the run's last few seconds a few minutes on the clock already)
+    run(model, 0.1);
+    expect(model.mining.workedOut(rock)).toBe(true);
+    model.minutes += 30;
+    run(model, 0.1);
+    expect(model.mining.workedOut(rock)).toBe(false);
+    expect(model.mining.left(rock)).toBe(strikesIn(rock, model.seed));
+    expect(model.mining.version).toBeGreaterThan(version);
+    expect(model.mining.saved()).toEqual({});
+  });
+
+  it("an older save's worked-out rocks (counts alone) come back a day after it's loaded", () => {
+    const { model, rock } = byARock();
+    const data = JSON.parse(JSON.stringify(snapshot(model)));
+    data.rocks = { [`${rock.x},${rock.z}`]: strikesIn(rock, model.seed) };
+    delete data.rocksStruck;
+    const again = new GameModel(2, TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(data), 2)!);
+    const there = again.scenery.find((s): s is Rock => isRock(s) && s.x === rock.x && s.z === rock.z)!;
+    expect(again.mining.workedOut(there)).toBe(true);
+    again.minutes += REGROW;
+    run(again, 0.1);
+    expect(again.mining.workedOut(there)).toBe(false);
+  });
+});
+
+describe("the smith's pickaxe", () => {
+  it('is on every smith\'s shelf, at its worth; any pickaxe bought back at half', () => {
+    const shop = smithShopAt(new Map(), 2, 0);
+    expect(shop.stock.copperPick).toBe(1);
+    expect(pickPrice('copperPick', false)).toBe(TOOL_ITEMS.copperPick.value);
+    expect(pickPrice('starIronPick', true)).toBe(Math.floor(TOOL_ITEMS.starIronPick.value / 2));
+    const { model } = byARock(null);
+    model.hero.money = 1000;
+    expect(buyGear(shop, model.hero, 'copperPick')).toBe('bought');
+    expect(model.hero.bag.copperPick).toBe(1);
+    expect(model.mining.pick).toBe(true);
+    expect(sellGear(shop, model.hero, 'copperPick')).toBe('sold');
   });
 });
 
