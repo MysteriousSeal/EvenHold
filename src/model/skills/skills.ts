@@ -172,13 +172,14 @@ export const RISE: ReadonlyArray<{ within: number; chance: number; color: string
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
 
 // A try at something wanting `needs` (a tree felled at, a thing made): whether it taught, as its difficulty allows
-// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level; enough of
-// them (stepsOf), the skill raised, told; the levels it rose by.
-export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number): number {
+// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level (`worth`
+// tries' worth: a dish of a hunt's meat, dear to come by, more than one of fish); enough of them (stepsOf), the skill
+// raised, told; the levels it rose by.
+export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number, worth = 1): number {
   const record = skillOf(hero, skill);
   const level = record.level;
   if (level >= SKILL_MAX || roll >= (chance ?? difficulty(needs, level).chance)) return 0;
-  record.toward = (record.toward ?? 0) + 1;
+  record.toward = (record.toward ?? 0) + Math.max(1, Math.floor(worth));
   if (record.toward < stepsOf(skill, level) || raiseSkill(hero, skill) === 0) return 0;
   report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
   return 1;
