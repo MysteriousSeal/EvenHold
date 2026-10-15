@@ -56,6 +56,13 @@ describe('the curve', () => {
     }
   });
 
+  it('levels 1, 3 and 5: the brood mother of their level beaten by a player who steps back, at a cost, and unhurt by one who parries', { timeout: 300_000 }, () => {
+    for (const level of [1, 3, 5]) {
+      const [average, parrier] = [fight(stage(level), 'broodMother', level, 'average'), fight(stage(level), 'broodMother', level, 'parrier')];
+      expect([average.won, average.lost > 0, parrier.won, parrier.lost], `L${level}: ${JSON.stringify({ t: average.t, lost: average.lost, of: average.hp0 })}`).toEqual([true, true, true, 0]);
+    }
+  });
+
   it('level 12, in good gear: the steadier foes of their level still a fight of seconds, and still biting', { timeout: 300_000 }, () => {
     for (const kind of ['bear', 'draugr', 'banditChief', 'bruiser'] as const) {
       const r = fight(stage(12), kind, 12, 'average');
