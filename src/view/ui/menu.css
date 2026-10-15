@@ -414,6 +414,7 @@
 .menu-tooltip b[data-tone='quest'] { color: #ffc94a; }
 .menu-tooltip b[data-tone='bag'] { color: #9ad0a0; }
 .menu-tooltip b[data-tone='potion'] { color: #e690e0; }
+.menu-tooltip b[data-tone='charm'] { color: #9ee0c8; }
 .menu-tooltip b[data-tone='uncommon'] { color: #5ed65e; }
 .menu-tooltip b[data-tone='rare'] { color: #4aa0ff; }
 .menu-tooltip b[data-tone='epic'] { color: #b45cff; }
