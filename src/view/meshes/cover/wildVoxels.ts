@@ -3,7 +3,8 @@
 // - mushrooms (the woods): a clutch of brown caps, a red toadstool spotted white;
 // - heather (the heath): a low cushion of olive twigs, purple bells over its top;
 // - reeds (the marsh): bulrushes with their brown heads among plain reeds leaning, a yellow flag;
-// - stones (the hills): a flat slab sunk in the turf, lichen and moss on it.
+// - stones (the hills): a flat slab sunk in the turf, lichen and moss on it;
+// - leaf litter (the woods): a low drift of fallen leaves, a voxel deep, between the trees.
 // Straight, grid-aligned voxels only; silhouette first, seen from the game's camera. Few shapes of each: every shape is
 // a draw a chunk (each instanced).
 
@@ -12,26 +13,26 @@ import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
 const ENTRIES = {
-  frond: 0x3f7a34,
-  frondLight: 0x5d9c42,
+  frond: 0x4f8a3a,
+  frondLight: 0x67a248,
   frondTip: 0x86b85a,
   frondDark: 0x2c5a28,
   stalk: 0xe6dcc2,
-  capBrown: 0x8a5a36,
-  capBrownLight: 0xb27c4a,
-  capRed: 0xc23a2c,
+  capBrown: 0x9a6a3e,
+  capBrownLight: 0xb8854e,
+  capRed: 0xc4392e,
   capRedDeep: 0x962a22,
   spot: 0xf4ecdc,
   twig: 0x5c5a34,
   twigDark: 0x45432a,
-  heather: 0x86587e, // muted: a moor's, not a garden's
-  heatherLight: 0xa27a9a,
-  heatherDeep: 0x664462,
+  heather: 0x8e5a8a, // muted: a moor's, not a garden's
+  heatherLight: 0xa86fa0,
+  heatherDeep: 0x6e4470,
   reed: 0x5e8a40,
   reedLight: 0x7ea24e,
-  reedDry: 0xa8a462,
-  rush: 0x6a4128, // a bulrush's head
-  rushDark: 0x4e2e1c,
+  reedDry: 0x8a7a3e, // a bulrush's stalk
+  rush: 0x5a3a22, // its head
+  rushDark: 0x45291a,
   flag: 0xe8c43c, // a yellow flag's petals
   flagDeep: 0xc89a24,
   stone: 0x9d968a,
@@ -39,6 +40,9 @@ const ENTRIES = {
   stoneDark: 0x7b766c,
   moss: 0x78913f,
   lichen: 0xd6d08a,
+  litter: 0x6e5a3a,
+  litterLight: 0x8a6e45,
+  litterDark: 0x564630,
 } as const;
 export const WILD_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
@@ -53,6 +57,8 @@ export const REED_GRID: [number, number, number] = [7, 18, 7];
 export const REED_SHAPES = 2; // bulrushes among reeds, a yellow flag
 export const STONE_GRID: [number, number, number] = [14, 4, 12];
 export const STONE_SHAPES = 1;
+export const LITTER_GRID: [number, number, number] = [12, 1, 10];
+export const LITTER_SHAPES = 1;
 
 const put = (g: VoxelGrid, x: number, y: number, z: number, c: number) => {
   const [sx, sy, sz] = g.size;
@@ -166,6 +172,19 @@ export function buildStone(shape: number): VoxelGrid {
       const top = y === high - 1;
       setColor(g, x, y, z, top && r < 0.18 ? C.moss : top && r > 0.94 ? C.lichen : top ? (r < 0.6 ? C.stoneLight : C.stone) : C.stoneDark);
     }
+  }
+  return g;
+}
+
+// A low drift of fallen leaves, a voxel deep: an uneven blot, browns in three tones.
+export function buildLitter(shape: number): VoxelGrid {
+  const g = createGrid(LITTER_GRID);
+  const rng = mulberry32(0x1ea5 + shape * 211);
+  for (let x = 0; x < 12; x++) for (let z = 0; z < 10; z++) {
+    const d = ((x - 5.5) / 5.5) ** 2 + ((z - 4.5) / 4.5) ** 2;
+    if (d > 0.9 || rng() < 0.3 + d * 0.4) continue;
+    const r = rng();
+    setColor(g, x, 0, z, r < 0.25 ? C.litterLight : r < 0.45 ? C.litterDark : C.litter);
   }
   return g;
 }

@@ -18,8 +18,11 @@ const MAX_CLUMPS_PER_TILE = 5;
 const CLUMP_SCALE_EDGE = 0.6; // clump size at the thin edge of a meadow
 const CLUMP_SCALE_CENTER = 1.2; // clump size in the lushest part
 const FLOWER_CHANCE = 0.05;
-const MAX_BLOOMS = 6; // flowers a tile, in the thick of a patch
-const STRAY = 0.12; // of a patch's flowers, another kind among them
+const MAX_BLOOMS = 7; // stems in a drift of wildflowers, at most
+const DRIFT_LEAST = 3; // and at least
+const DRIFT_CHANCE = 0.15; // a patch tile's chance of a drift at the patch's edge (up to all, in its middle)
+const DRIFT_SPREAD = 0.3; // tiles across a drift
+const STRAY = 0.08; // of a patch's drifts, one of another kind among them
 const SPRIGS_PER_TILE = 2; // on all plain grass, meadow or not (each ~40 triangles, so kept few)
 const SCATTER_SPREAD = 0.8; // offsets stay within the middle 80% of the tile
 const SCATTER_SALT = 2;
@@ -152,13 +155,15 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       }
       // Rolled last, so every tuft, flower and pebble keeps its place.
       for (let i = 0; i < SPRIGS_PER_TILE; i++) cover.sprigs.push(item(offset(), offset(), 1, rng() < 0.5 ? 0 : 1));
-      // A meadow patch of wildflowers, where its own noise is high: thick in the middle, thinning to its edges, one kind
-      // of flower to a stretch of country (and the odd one of another kind among them). Rolled after all the rest.
+      // A meadow patch of wildflowers, where its own noise is high, one kind of flower to a stretch of country: in drifts,
+      // a tight clump of a few stems of one kind to a tile here and there (the more of them the thicker the patch), the
+      // ground between them clear. Rolled after all the rest.
       const patch = bloomPatch(x, z);
-      if (!treeHere && patch > 0) {
-        const kind = patchKind(x, z);
-        const count = Math.floor(patch * MAX_BLOOMS + rng() * 0.99);
-        for (let i = 0; i < count; i++) cover.blooms.push(item(offset(), offset(), 1, rng() < STRAY ? Math.floor(rng() * 7) : kind));
+      if (!treeHere && patch > 0 && rng() < DRIFT_CHANCE + patch * (1 - DRIFT_CHANCE)) {
+        const kind = rng() < STRAY ? Math.floor(rng() * 7) : patchKind(x, z);
+        const [cx, cz] = [(rng() - 0.5) * (SCATTER_SPREAD - DRIFT_SPREAD), (rng() - 0.5) * (SCATTER_SPREAD - DRIFT_SPREAD)]; // (all on its tile)
+        const count = DRIFT_LEAST + Math.floor(rng() * (MAX_BLOOMS - DRIFT_LEAST + 1));
+        for (let i = 0; i < count; i++) cover.blooms.push(item(cx + (rng() - 0.5) * DRIFT_SPREAD, cz + (rng() - 0.5) * DRIFT_SPREAD, 1, kind));
       }
       // The country's own plants (none in a meadow), from a stream of their own: off the tree's foot (but ferns).
       if (grows.wild.length === 0) continue;

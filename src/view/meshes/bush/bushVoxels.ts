@@ -28,8 +28,8 @@ export const BUSH_PALETTE = [
   0xf3eee2, // 9 white blossom
   0xea9bb8, // 10 pink blossom
   0xffd35c, // 11 blossom heart
-  0xf2c63a, // 12 gorse flower
-  0xd9a22a, // 13 gorse flower, deep
+  0xd9b23a, // 12 gorse flower
+  0xb8902a, // 13 gorse flower, deep
   0x2e1c32, // 14 blackberry
   0x6a3a6e, // 15 blackberry, lit
 ];

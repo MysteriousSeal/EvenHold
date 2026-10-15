@@ -1,53 +1,75 @@
 // The ground's colour by the kind of country (model/scenery/biomes.ts), world-design's palette: each country its own
-// green (the woods dark and mossy, the moor ochre-olive, the marsh a damp olive, the hills stony), a step darker each
-// tier down; and here and there, in clumps of tiles, the woods' leaf litter and moss, the marsh's mud. Handed out as a
-// multiplier on each tile's own colour (TERRAIN_COLORS: its instance's colour, no draw more), and on the grass growing
-// on it, so tufts sit in their ground. Colour by the tile, never by the voxel (the greedy mesh, no shimmer).
+// green, differing from its neighbours mostly in hue (the woods a deeper green, the moor olive, the marsh a wet green,
+// the hills stony), a step darker each tier down; blended over the few tiles either side of a border (each tile's the
+// weighted mean of the countries round it), so the land shades from one to the next, never a patchwork; and mud only
+// right at the marsh's water. Handed out as a multiplier on each tile's own colour (TERRAIN_COLORS: its instance's
+// colour, no draw more), and on the grass growing on it, so tufts sit in their ground. Colour by the tile, never by
+// the voxel (the greedy mesh, no shimmer).
 
 import * as THREE from 'three';
 import { TERRAIN_COLORS } from '../../constants';
-import { hashUnit } from '../../../util/random';
-import type { Biome } from '../../../model/scenery/biomes';
+import { BIOMES, type Biome, type BiomeMap } from '../../../model/scenery/biomes';
+import type { Tiles } from '../../../model/map/tiles';
 
 const GROUND: Record<Biome, number> = {
-  meadow: 0x78b553,
-  forest: 0x3f6b35,
-  heath: 0x9a9a5c, // the moor
-  marsh: 0x5e7a48,
-  hills: 0x8c8a6a,
+  meadow: 0x6fae4f,
+  forest: 0x4f8a42,
+  heath: 0x8ea35c, // the moor: olive-green (its heather its colour)
+  marsh: 0x5f8a4a,
+  hills: 0x8f957a, // rocky
 };
-// Patches of other ground, in clumps (a clump of tiles a CLUMP a side, most of its tiles), by the country.
-const PATCHES: Partial<Record<Biome, Array<{ color: number; chance: number }>>> = {
-  forest: [{ color: 0x7a5a36, chance: 0.08 }, { color: 0x5f8a3e, chance: 0.1 }], // leaf litter, moss
-  marsh: [{ color: 0x5a4a36, chance: 0.1 }], // mud
-};
-const CLUMP = 3;
-const PATCH_STRENGTH = 0.5; // of the way from the country's ground to its patch's: a hint, never a ploughed field
-const TIER_STEP = [0.86, 0.92, 0.97, 1.02, 1.06]; // the lower, the darker
+const MUD = 0x5a5038; // a marsh tile at the water's edge
+const TIER_STEP = [0.9, 0.95, 1, 1.04, 1.07]; // the lower, the darker
+// The countries read round a tile, and how much each counts: the 5x5 round it, the nearer the more (a border shades
+// over some five tiles).
+const FALLOFF = [1, 2, 3, 2, 1];
+const ROUND: ReadonlyArray<[number, number, number]> = FALLOFF.flatMap((wx, i) => FALLOFF.map((wz, k): [number, number, number] => [i - 2, k - 2, wx * wz]));
+const WEIGHT = ROUND.reduce((sum, [, , w]) => sum + w, 0);
+const BLOCK = 16; // tiles a side of each block of countries kept
+const KEPT = 512; // blocks kept (the oldest let go)
 
-// The patch at tile (x, z) of `biome`, if any: its index in PATCHES' list (-1: the country's own ground).
-export function patchAt(biome: Biome, x: number, z: number): number {
-  const patches = PATCHES[biome];
-  if (!patches || hashUnit(x, z, 0x6d0) > 0.6) return -1;
-  let roll = hashUnit(Math.floor(x / CLUMP), Math.floor(z / CLUMP), 0x6d1);
-  for (let i = 0; i < patches.length; i++) {
-    if (roll < patches[i].chance) return i;
-    roll -= patches[i].chance;
-  }
-  return -1;
-}
+const colours = BIOMES.map((b) => new THREE.Color(GROUND[b]));
+const mud = new THREE.Color(MUD);
+const bases = TERRAIN_COLORS.map((c) => new THREE.Color(c));
 
-// The multiplier on tier `tier`'s green for `biome` (and its patch: patchAt), made once each.
-const made = new Map<string, THREE.Color>();
-export function groundTint(biome: Biome, tier: number, patch = -1): THREE.Color {
-  const key = `${biome}:${tier}:${patch}`;
-  let tint = made.get(key);
-  if (!tint) {
-    const base = new THREE.Color(TERRAIN_COLORS[tier % TERRAIN_COLORS.length]);
-    const ground = new THREE.Color(GROUND[biome]);
-    const to = (patch >= 0 ? ground.lerp(new THREE.Color(PATCHES[biome]![patch].color), PATCH_STRENGTH) : ground).multiplyScalar(TIER_STEP[Math.min(tier, TIER_STEP.length - 1)]);
-    tint = new THREE.Color(to.r / base.r, to.g / base.g, to.b / base.b);
-    made.set(key, tint);
-  }
-  return tint;
+export type GroundColours = (x: number, z: number, tier: number) => THREE.Color;
+
+// The multiplier on tile (x, z)'s own colour (its tier's, TERRAIN_COLORS), its country's ground blended with those round
+// it. The colour handed back is reused from call to call: copy it to keep it.
+export function createGroundColours(biomes: BiomeMap, tiles: Tiles): GroundColours {
+  const blocks = new Map<string, Uint8Array>();
+  const countryAt = (x: number, z: number): number => {
+    const [bx, bz] = [Math.floor(x / BLOCK), Math.floor(z / BLOCK)];
+    const key = `${bx},${bz}`;
+    let block = blocks.get(key);
+    if (!block) {
+      block = new Uint8Array(BLOCK * BLOCK);
+      for (let i = 0; i < BLOCK; i++) for (let k = 0; k < BLOCK; k++) block[i * BLOCK + k] = BIOMES.indexOf(biomes.at(bx * BLOCK + i, bz * BLOCK + k));
+      if (blocks.size >= KEPT) blocks.delete(blocks.keys().next().value!);
+      blocks.set(key, block);
+    }
+    return block[(x - bx * BLOCK) * BLOCK + (z - bz * BLOCK)];
+  };
+  const byWater = (x: number, z: number) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (tiles.has(x + dx, z + dz) && tiles.lake(x + dx, z + dz)) return true;
+    return false;
+  };
+  const out = new THREE.Color();
+  return (x, z, tier) => {
+    const own = countryAt(x, z);
+    if (BIOMES[own] === 'marsh' && byWater(x, z)) out.copy(mud);
+    else {
+      out.setRGB(0, 0, 0);
+      for (const [dx, dz, weight] of ROUND) {
+        const c = colours[countryAt(x + dx, z + dz)];
+        out.r += c.r * weight;
+        out.g += c.g * weight;
+        out.b += c.b * weight;
+      }
+      out.multiplyScalar(1 / WEIGHT);
+    }
+    const base = bases[tier % bases.length];
+    const step = TIER_STEP[Math.min(tier, TIER_STEP.length - 1)];
+    return out.setRGB((out.r * step) / base.r, (out.g * step) / base.g, (out.b * step) / base.b);
+  };
 }

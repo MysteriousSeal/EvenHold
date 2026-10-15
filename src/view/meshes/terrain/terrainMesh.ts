@@ -6,7 +6,7 @@ import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
 import { TERRAIN_COLORS } from '../../constants';
 import { addVoxelGround } from './voxelGround';
 import { createBiomes } from '../../../model/scenery/biomes';
-import { groundTint, patchAt } from './biomeGround';
+import { createGroundColours } from './biomeGround';
 
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
 
@@ -22,7 +22,7 @@ function tileMaterial(tier: number): THREE.Material[] {
   return materials;
 }
 
-// Land tiles, grouped by tier, each group instanced per chunk, each tile coloured by its country (biomeGround.ts). Lakes are
+// Land tiles, grouped by tier, each group instanced per chunk, each tile coloured by its country, blended at its borders (biomeGround.ts). Lakes are
 // drawn by water/waterMesh.ts; roads and village squares are voxel tiles
 // laid on top by roadMesh.ts.
 export function buildTerrain(scene: WorldSink, model: GameModel): void {
@@ -39,7 +39,7 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
     return entry;
   };
   for (let tier = 0; tier <= MAX_TIER; tier++) tierOf(tier); // so every material is known up front
-  const biomes = createBiomes(model.seed, model.tiles);
+  const ground = createGroundColours(createBiomes(model.seed, model.tiles), model.tiles);
 
   scene.layer({
     materials: [...tiers.values()].flatMap((t) => t.material),
@@ -65,8 +65,7 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
         const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
         cells.forEach((cell, i) => {
           mesh.setMatrixAt(i, matrix.makeTranslation(cell.x, tier * TILE_HEIGHT - columnHeight / 2, cell.z));
-          const country = biomes.at(cell.x, cell.z);
-          mesh.setColorAt(i, groundTint(country, tier, patchAt(country, cell.x, cell.z)));
+          mesh.setColorAt(i, ground(cell.x, cell.z, tier));
         });
         return mesh;
       });
