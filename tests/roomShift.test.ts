@@ -335,6 +335,60 @@ describe('a shift in a room, the hero taken out of it', () => {
   });
 });
 
+describe('a shift in a room, someone let in', () => {
+  // Whoever's at the door let in (`warm`), till they've come in and have their say: it.
+  const letInNow = (model: GameModel, shift: RoomShift): Talk => {
+    until(model, () => shift.client);
+    model.work.meet()!.talk.answers[0].pick();
+    for (let t = 0; t < 10; t += 0.1) {
+      model.update(0, 0, 0.1);
+      const come = model.work.arrived();
+      if (come) return come.talk;
+    }
+    throw new Error('the one let in never came');
+  };
+
+  it('is not up on them halfway: the one let in has their hour, the shift over once they are gone', () => {
+    const { model, shift } = atWork();
+    until(model, () => shift.client);
+    shift.left = 0.3; // (as good as up)
+    const inside = letInNow(model, shift);
+    expect(model.work.shift).toBe(shift);
+    inside.pace!.done(0.8).answers[0].pick();
+    seeOut(shift);
+    expect(shift.left).toBeGreaterThan(0); // (held while they were in)
+    until(model, () => !model.work.shift, 1);
+    expect(model.work.shift).toBeNull();
+  });
+
+  it('leaves no one stood in the room for good: their say left off (the talk closed on them), E takes it up again', () => {
+    const { model, shift } = atWork();
+    const inside = letInNow(model, shift);
+    for (let t = 0; t < 5; t += 0.25) model.update(0, 0, 0.25);
+    expect(shift.visitor).not.toBeNull();
+    expect(interactionOf(model)?.kind).toBe('work');
+    expect(model.work.meet()!.talk).toBe(inside); // (their hour, from the start)
+    const after = inside.pace!.done(0.8);
+    expect(model.work.meet()!.talk).toBe(after); // (and their word going, left off too)
+    after.answers[0].pick();
+    expect(model.work.action).toBeNull(); // (on their way)
+    seeOut(shift);
+    expect(shift.visitor).toBeNull();
+  });
+
+  it('has no one say what another said that shift, while there is anything else to say', () => {
+    const { model, shift } = atWork();
+    const heard: string[] = [];
+    for (let n = 0; n < 8; n++) {
+      until(model, () => shift.client);
+      const met = model.work.meet()!;
+      heard.push(met.talk.lines[0]);
+      met.talk.answers.at(-1)!.pick(); // (turned away)
+    }
+    expect(new Set(heard).size).toBe(heard.length);
+  });
+});
+
 describe('a shift in a room, and the save', () => {
   it("leaves no room let for nothing: saved as it was let before (not at all: its time up)", () => {
     const { model, shift } = atWork();

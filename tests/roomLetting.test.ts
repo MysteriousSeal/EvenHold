@@ -5,7 +5,7 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { roomsOff, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { BRIBE, LINES, ROOM_PRICE, WEEK_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
+import { BRIBE, LINES, ROOM_PRICE, WEEK_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letRoomBed, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { barmaidHere } from '../src/controller/trade/barOrder';
 import { takeSpeech } from '../src/model/npcs/speech';
@@ -140,11 +140,11 @@ describe('a room at the inn', () => {
     expect(roomActionLabel(again)).toBe(`Keep the room the week · ${WEEK_PRICE} copper`);
     model.hero.money = WEEK_PRICE;
     const until = letUntil(model.inside!.entrance)!;
-    expect(rentRoom(model, barmaid)).toBe('let'); // (kept the week: paid, six days on)
-    expect([model.hero.money, letUntil(model.inside!.entrance)! - until]).toEqual([0, 6 * 24 * 60]);
+    expect(rentRoom(model, barmaid)).toBe('let'); // (kept the week: paid, seven more nights on from the night's)
+    expect([model.hero.money, letUntil(model.inside!.entrance)! - until]).toEqual([0, 7 * 24 * 60]);
     const week = roomAction(model)!;
     expect(week).toMatchObject({ kind: 'rent', taken: true, week: false });
-    expect(roomActionLabel(week)).toBe('Your room is upstairs');
+    expect(roomActionLabel(week)).toBe('Your room is upstairs · 8 nights left'); // (tonight's, and seven more)
     expect(rentRoom(model, barmaid)).toBe('taken');
     expect(roomActionLabel({ kind: 'sleep' })).toBe('Sleep till morning');
     // Her lines: asked out of hours over and over, each said in turn.
@@ -153,5 +153,60 @@ describe('a room at the inn', () => {
     const heard = Array.from({ length: LINES.closed.length * 2 }, () => (rentRoom(late, barmaidHere(late)!), said()[0]));
     expect(new Set(heard).size).toBe(LINES.closed.length);
     expect(heard.every((t, i) => i === 0 || t !== heard[i - 1])).toBe(true);
+  });
+
+  it('kept the week: not offered it again day after day, only on its last night; too poor for it, told where the room is', () => {
+    const model = atTheInn(20);
+    model.hero.money = ROOM_PRICE + WEEK_PRICE;
+    const barmaid = barmaidHere(model)!;
+    Object.assign(model.hero, { x: barmaid.x + 0.5, z: barmaid.z });
+    rentRoom(model, barmaid);
+    rentRoom(model, barmaid);
+    const until = letUntil(model.inside!.entrance)!;
+    for (let day = 1; day < 7; day++) {
+      model.minutes += 24 * H; // (the evenings after)
+      expect(roomAction(model), `day ${day}`).toMatchObject({ kind: 'rent', taken: true, week: false, nights: 8 - day });
+    }
+    model.minutes += 24 * H; // (its last night: on again for another)
+    expect(until - model.minutes).toBeLessThan(24 * H);
+    expect(roomAction(model)).toMatchObject({ kind: 'rent', taken: true, week: true, nights: 1 });
+    takeSpeech();
+    expect(rentRoom(model, barmaid)).toBe('poor');
+    expect(LINES.taken).toContain(said()[0]);
+    expect(letUntil(model.inside!.entrance)).toBe(until);
+  });
+
+  it('slipped coin by day: the room through the night to come, till ten the morning after', () => {
+    for (const hour of [6.5, 9, 15]) {
+      const model = atTheInn(hour);
+      model.hero.money = ROOM_PRICE + BRIBE;
+      const barmaid = barmaidHere(model)!;
+      Object.assign(model.hero, { x: barmaid.x + 0.5, z: barmaid.z });
+      expect(rentRoom(model, barmaid, undefined, true)).toBe('let');
+      expect(letUntil(model.inside!.entrance)).toBe(4 * 24 * H + 10 * H); // (day three's: ten on day four)
+      expect(roomAction(model)).toMatchObject({ taken: true, week: true }); // (a night left in it: to be kept the week)
+    }
+  });
+
+  it('let go while the hero lies in its bed: up out of it and shown out, not left to get up behind the locked door', () => {
+    const model = atTheInn(21);
+    model.hero.money = 500;
+    rentRoom(model, barmaidHere(model)!);
+    upstairs(model);
+    const door = letDoor(model.inside!.furniture)!;
+    door.open = true;
+    const bed = letRoomBed(model.inside!)!.bed!;
+    for (const [dx, dz] of [[1, 0], [1, 1], [0, 1], [1, -1], [-1, 0]]) {
+      Object.assign(model.hero, { x: bed.x + dx * 0.6, z: bed.z + 0.5 + dz * 0.6 });
+      if (model.seatInReach?.piece === bed) break;
+    }
+    expect(model.sitOrStand()).toBe(true);
+    sleepTillMorning(model); // (up at eight; lain in till past ten)
+    model.minutes = checkOutAfter(model.minutes) - 0.5;
+    model.update(0, 0, 1);
+    expect(model.seated).toBeNull();
+    expect([door.locked, model.hero.z < door.z - 0.4]).toEqual([true, true]);
+    model.sitOrStand(); // (nothing to get up from: still out)
+    expect(model.hero.z).toBeLessThan(door.z - 0.4);
   });
 });
