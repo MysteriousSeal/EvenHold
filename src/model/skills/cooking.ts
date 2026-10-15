@@ -39,12 +39,16 @@ export interface CookRecipe {
 }
 
 // The recipes, in the order of the skill they want: plain roasts first, the fish as they're caught (small fry from
-// the start, trout and perch from 75, pike from 150), then a hearth's stews, pies and feasts.
+// the start, in a cake with bought flour and a chowder with salt; trout and perch from 75, pike from 150), then a
+// hearth's stews, pies and feasts. Meat's a hunt's worth, not a shore's afternoon: a cut to a dish, and a roast of it
+// Well fed twice a fish's while (loot/meals.ts).
 export const COOK_RECIPES: Record<CookRecipeId, CookRecipe> = {
   roastedFry: { name: 'Roasted small fry', group: 'Fish', needs: 1, from: { smallFry: 2 }, makes: 'roastedFry', seconds: 2 },
   roastBoar: { name: 'Roast boar', group: 'Roasts', needs: 1, from: { rawBoarMeat: 1 }, makes: 'roastBoar', seconds: 2.5 },
-  wolfSkewer: { name: 'Wolf skewer', group: 'Roasts', needs: 25, from: { rawWolfMeat: 2 }, makes: 'wolfSkewer', seconds: 2.5 },
+  fryCake: { name: 'Fry cake', group: 'Fish', needs: 15, from: { smallFry: 2, flour: 1 }, makes: 'fryCake', seconds: 3 },
+  wolfSkewer: { name: 'Wolf skewer', group: 'Roasts', needs: 25, from: { rawWolfMeat: 1 }, makes: 'wolfSkewer', seconds: 2.5 },
   searedLynx: { name: 'Seared lynx', group: 'Roasts', needs: 45, from: { leanLynxMeat: 1 }, makes: 'searedLynx', seconds: 2.5 },
+  fryChowder: { name: 'Fry chowder', group: 'Fish', needs: 55, from: { smallFry: 3, salt: 1 }, makes: 'fryChowder', seconds: 3.5 },
   bearSteak: { name: 'Bear steak', group: 'Roasts', needs: 60, from: { rawBearMeat: 1 }, makes: 'bearSteak', seconds: 3 },
   grilledTrout: { name: 'Grilled trout', group: 'Fish', needs: 75, from: { riverTrout: 1 }, makes: 'grilledTrout', seconds: 3 },
   saltedPerch: { name: 'Salt-baked perch', group: 'Fish', needs: 90, from: { lakePerch: 1, salt: 1 }, makes: 'saltedPerch', seconds: 3 },
@@ -54,10 +58,10 @@ export const COOK_RECIPES: Record<CookRecipeId, CookRecipe> = {
   roastPike: { name: 'Roast pike', group: 'Fish', needs: 150, from: { pike: 1, salt: 1 }, makes: 'roastPike', seconds: 3.5 },
   huntersPie: { name: "Hunter's pie", group: 'Pies', needs: 160, from: { rawBoarMeat: 1, leanLynxMeat: 1, flour: 1 }, makes: 'huntersPie', seconds: 4.5, hearth: true },
   pikePie: { name: 'Pike pie', group: 'Pies', needs: 180, from: { pike: 1, flour: 1, salt: 1 }, makes: 'pikePie', seconds: 4.5, hearth: true },
-  honeyCake: { name: 'Honey cake', group: 'Pies', needs: 200, from: { honeycomb: 2, flour: 1 }, makes: 'honeyCake', seconds: 4.5, hearth: true },
+  honeyCake: { name: 'Honey cake', group: 'Pies', needs: 200, from: { honeycomb: 1, flour: 1 }, makes: 'honeyCake', seconds: 4.5, hearth: true },
   huntersFeast: { name: "Hunter's feast", group: 'Feasts', needs: 225, from: { rawBearMeat: 1, rawBoarMeat: 1, leanLynxMeat: 1, rawWolfMeat: 1, salt: 1 }, makes: 'huntersFeast', seconds: 6, hearth: true },
   riverFeast: { name: 'River feast', group: 'Feasts', needs: 250, from: { pike: 1, riverTrout: 1, lakePerch: 1, smallFry: 2, flour: 1 }, makes: 'riverFeast', seconds: 6, hearth: true },
-  lordsFeast: { name: "Lord's feast", group: 'Feasts', needs: 275, from: { rawBearMeat: 2, honeycomb: 2, flour: 2, salt: 1 }, makes: 'lordsFeast', seconds: 7, hearth: true },
+  lordsFeast: { name: "Lord's feast", group: 'Feasts', needs: 275, from: { rawBearMeat: 2, honeycomb: 1, flour: 2, salt: 1 }, makes: 'lordsFeast', seconds: 7, hearth: true },
 };
 export const COOK_RECIPE_IDS = Object.keys(COOK_RECIPES) as CookRecipeId[];
 

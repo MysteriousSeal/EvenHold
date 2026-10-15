@@ -1,21 +1,24 @@
 // Meals: what a cook makes (skills/cooking.ts) of the meat beasts drop, the fish caught from a shore and what the
 // barmaid sells (salt, flour): food, eaten from the bag as the inn's is (provisions.ts, hero/bag.ts eatOrDrink), sat
 // down a while, for more of their health back than anything she sells; nobody sells them, nothing drops them, but the
-// inn and pedlars buy them, as they do food. Eaten through, a blessing for a while (hero/blessing.ts): a roast's or a
-// fish's Well fed a few minutes, a stew's longer, a pie's Fortified, a feast's Feasted. Each made by the cook alone; who eats it, the hero.
+// inn and pedlars buy them, as they do food. Eaten through, a blessing for a while (hero/blessing.ts): a fish's Well
+// fed a few minutes, a roast of meat's twice that, a stew's longer, a pie's Fortified, a feast's Feasted. Each made by the cook alone; who eats it, the hero.
 
 import type { Provision } from './provisions';
 
 const MINUTES = 60;
-const SNACK = { kind: 'fed', seconds: 4 * MINUTES } as const; // a roast's or a fish's: Well fed a little while (a stew's, longer)
+const SNACK = { kind: 'fed', seconds: 4 * MINUTES } as const; // a fish's: Well fed a little while (a stew's, longer)
+const ROAST = { kind: 'fed', seconds: 8 * MINUTES } as const; // a roast of meat's: twice a fish's (the hunt's worth it)
 
 const MEAL_TABLE = {
-  // Over any fire (an apprentice's): meat and small fish roasted plain.
+  // Over any fire (an apprentice's): meat and small fish roasted plain; small fry in a cake, and a chowder.
   roastedFry: { name: 'Roasted small fry', value: 4, heal: 0.3, fed: SNACK, droppedBy: {}, about: 'A handful of little fish, crisp from the fire, eaten bones and all.' },
-  roastBoar: { name: 'Roast boar', value: 10, heal: 0.45, fed: SNACK, droppedBy: {}, about: 'A haunch turned over the flames till the fat spits.' },
-  wolfSkewer: { name: 'Wolf skewer', value: 9, heal: 0.45, fed: SNACK, droppedBy: {}, about: 'Stringy, smoky, and better than it has any right to be.' },
-  searedLynx: { name: 'Seared lynx', value: 12, heal: 0.5, fed: SNACK, droppedBy: {}, about: 'Lean and dark, seared hot and quick.' },
-  bearSteak: { name: 'Bear steak', value: 16, heal: 0.6, fed: SNACK, droppedBy: {}, about: 'A slab as thick as your hand, charred at the edges.' },
+  fryCake: { name: 'Fry cake', value: 6, heal: 0.35, fed: SNACK, droppedBy: {}, about: 'Small fry mashed with flour and fried flat, crisp at the edges.' },
+  fryChowder: { name: 'Fry chowder', value: 11, heal: 0.4, fed: { kind: 'fed', seconds: 10 * MINUTES }, droppedBy: {}, about: 'A thin, salty broth of little fish, as the ferrymen make it.' },
+  roastBoar: { name: 'Roast boar', value: 10, heal: 0.45, fed: ROAST, droppedBy: {}, about: 'A haunch turned over the flames till the fat spits.' },
+  wolfSkewer: { name: 'Wolf skewer', value: 9, heal: 0.45, fed: ROAST, droppedBy: {}, about: 'Stringy, smoky, and better than it has any right to be.' },
+  searedLynx: { name: 'Seared lynx', value: 12, heal: 0.5, fed: ROAST, droppedBy: {}, about: 'Lean and dark, seared hot and quick.' },
+  bearSteak: { name: 'Bear steak', value: 16, heal: 0.6, fed: ROAST, droppedBy: {}, about: 'A slab as thick as your hand, charred at the edges.' },
   // A journeyman's: the better fish over any fire; stews at a hearth, Well fed after.
   grilledTrout: { name: 'Grilled trout', value: 14, heal: 0.55, fed: SNACK, droppedBy: {}, about: 'Split and laid on the coals, its skin blistered gold.' },
   saltedPerch: { name: 'Salt-baked perch', value: 15, heal: 0.55, fed: SNACK, droppedBy: {}, about: 'Baked in a crust of salt, cracked open steaming.' },
