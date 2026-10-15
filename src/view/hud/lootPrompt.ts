@@ -16,6 +16,7 @@ export interface PromptTarget {
   quality?: string;
   muted?: boolean; // there, but not to be done now (e.g. sold out): shown faded
   npc?: Npc; // the villager it's about (talking to them): their name gives way to it
+  names?: { x: number; y: number; z: number }[]; // villagers' names shown by it (a keeper at a door): kept off them
   x: number;
   y: number;
   z: number;
@@ -35,6 +36,8 @@ export const QUALITY_INK: Record<Quality, string> = { junk: '#b4b0a8', ingredien
 // The prompt for loot on the ground: its name, in its quality's color.
 const STACK_GAP = 8; // px between prompts stacked one over another
 const FLOOR = 180; // px from the top a prompt ends at least (its top under the row of the hero's and the foe's frames, hud.css)
+const NAME_CLEAR = 16; // px a prompt's foot keeps over a name it would cover (half a name's height, a gap)
+const NAME_WIDE = 40; // px either side of a name's middle it's taken to reach
 
 export function lootTarget(loot: GroundLoot): PromptTarget {
   const level = isLootItem(loot.item) ? 1 : levelOf(loot.item); // (gear found: its level beside its name)
@@ -65,7 +68,12 @@ export function createLootPrompt(key: string | (() => string) = 'E', under = fal
       prompt.classList.toggle('muted', !!target.muted);
       const at = toScreen(target.x, target.y, target.z);
       const lift = over && !over.element.hidden ? over.element.offsetHeight + STACK_GAP : 0;
-      const y = under ? at.y : Math.max(at.y, FLOOR); // (something up under the HUD: its prompt below it, never over the bars)
+      let y = under ? at.y : Math.max(at.y, FLOOR); // (something up under the HUD: its prompt below it, never over the bars)
+      // A name it would cover (the smith's, by the smithy's door), the lowest first: lifted clear above it, both read.
+      for (const spot of (target.names ?? []).map((n) => toScreen(n.x, n.y, n.z)).sort((a, b) => b.y - a.y)) {
+        const covers = Math.abs(spot.x - at.x) < prompt.offsetWidth / 2 + NAME_WIDE && spot.y > y - prompt.offsetHeight - NAME_CLEAR && spot.y < y + NAME_CLEAR;
+        if (covers && !under) y = spot.y - NAME_CLEAR;
+      }
       prompt.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(y - lift)}px) translate(-50%, ${under ? '8px' : '-100%'})`;
     },
   };

@@ -65,7 +65,8 @@ import { playTransformation } from './view/cinema/transformCinema';
 import { stagingFor } from './view/cinema/staging';
 import { swapStaging } from './view/cinema/stagings/swapStaging';
 import { standing } from './view/cinema/stagings/undress';
-import { titleOf } from './model/npcs/npcs';
+import { NPC_NEAR, titleOf } from './model/npcs/npcs';
+import { HEAD_LABEL } from './view/meshes/common/overhead';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
@@ -334,7 +335,8 @@ async function boot(): Promise<void> {
         if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
         const place = goesUnder(door) ? dungeonAt(door) : null;
         const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : cottageDoor(model, door) ?? DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
-        return { label, x: door.x, y: hero.y + 0.75, z: door.z };
+        const names = model.folk.filter((npc) => !npc.where && Math.hypot(npc.x - hero.x, npc.z - hero.z) < NPC_NEAR).map((npc) => ({ x: npc.x, y: npc.y + HEAD_LABEL.y, z: npc.z })); // (a keeper by the door: the prompt kept off their name)
+        return { label, x: door.x, y: hero.y + 0.75, z: door.z, names };
       }
     }
     return null; // (the rest: stationPrompt's, above)
