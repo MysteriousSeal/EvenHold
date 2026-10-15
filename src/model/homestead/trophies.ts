@@ -23,15 +23,15 @@ export const TROPHIES: Record<TrophyId, { name: string }> = {
   finderHat: { name: "A witch-finder's hat" },
   monstrance: { name: "The Gilded Deacon's monstrance, empty" }, // (the finger fell out of it)
   // The reliquary's named champions' (v0.9: champions/champions.ts)
-  brannocAxe: { name: "Brannoc the Unburied's grave-rusted axe" },
-  ysoldeSkull: { name: "Ysolde of the Nails' skull" },
-  godricNoose: { name: "Godric Twice-Hanged's noose" },
-  weepingEye: { name: "The Weeping's silk-wrapped eye" },
-  gulletJaw: { name: "Gullet's jaw of hooked teeth" },
-  shroudSilk: { name: "Shroud's shroud of silk" },
-  hobPot: { name: "Hob's cracked fire-pot" },
-  watGauntlet: { name: "Wat Ninefingers' gauntlet" },
-  megCrossbow: { name: "Meg of the Gibbet's crossbow" },
+  brannocAxe: { name: "Old Brannoc the Unburied's grave-rusted axe" },
+  ysoldeSkull: { name: "Sister Ysolde of the Nails' skull" },
+  godricNoose: { name: "Ser Godric Twice-Hanged's noose" },
+  weepingEye: { name: "The Weeping Spider's silk-wrapped eye" },
+  gulletJaw: { name: "Old Gullet the Bottomless's jaw of hooked teeth" },
+  shroudSilk: { name: "Grandmother Shroud's shroud of silk" },
+  hobPot: { name: "Gutless Hob's cracked fire-pot" },
+  watGauntlet: { name: "Big Wat Ninefingers' gauntlet" },
+  megCrossbow: { name: "Long Meg of the Gibbet's crossbow" },
 };
 export const TROPHY_IDS = Object.keys(TROPHIES) as TrophyId[];
 export const WALL_PEGS = 21; // trophies a wall holds (three rows of seven)
