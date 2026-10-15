@@ -66,6 +66,7 @@ export interface Npc extends Humanoid {
   role: NpcRole;
   hp?: number; // their health, short of whole (hero/selection.ts healthOf: whole, unsaid)
   home: Entrance; // their house's door (a barmaid's, the inn's)
+  house?: Entrance; // where they sleep, if not at home: the smith's, a house of his village's (smithy/smithWork.ts)
   inn: Entrance | null; // their village's
   village: Village;
   field: Field | null; // the one they work, a farmer's (null for everyone else)
@@ -222,11 +223,17 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const id = doors + i * 2;
     return (['barkeep', 'server'] as const).map((role, k) => person(id + k, role, inn, inn, village, { x: inn.x + 0.3 * (k + 1), z: inn.z - 0.2 }));
   });
-  // A smith in each smithy, always at work in it.
+  // A smith in each smithy, at work in it by day; of a night, abed in the house of his village's nearest it (a
+  // villager's, not a herbalist's).
   const smithies = entrances.filter((e) => e.type === 'smithy');
+  const lodgings = houses.filter((h) => !shops.has(h));
   const smiths = smithies.flatMap((smithy, i) => {
     const village = nearest(villages, smithy.x, smithy.z);
-    return village ? [person(doors + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 })] : [];
+    if (!village) return [];
+    const smith = person(doors + inns.length * 2 + i, 'smith', smithy, null, village, { x: smithy.x + 0.3, z: smithy.z - 0.2 });
+    const house = nearest(lodgings.filter((h) => nearest(villages, h.x, h.z) === village), smithy.x, smithy.z);
+    if (house) smith.house = house;
+    return [smith];
   });
   // A bouncer in each inn, in his studded leathers, his hair cropped or shaved.
   const bouncers = inns.flatMap((inn, i) => {
