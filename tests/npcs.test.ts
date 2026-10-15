@@ -261,6 +261,33 @@ describe('villagers', () => {
     expect(npc.where).toBe(door);
   });
 
+  it("a hero who stays in a doorway: a villager waits a moment, then by their leave comes past, easing off them; the hero not moved", () => {
+    const model = withVillage();
+    const npc = model.npcs.find((n) => n.role === 'villager')!;
+    for (const n of model.npcs) n.steps = [{ kind: 'wait', for: 1000 }];
+    const door = npc.home;
+    // Coming in, the hero just inside the door.
+    model.teleport(door.x, door.z);
+    model.useDoor();
+    const [hx, hz] = [model.hero.x, model.hero.z];
+    model.takeEvents();
+    Object.assign(npc, { where: null, x: door.x, z: door.z, steps: [{ kind: 'enter', entrance: door }, { kind: 'wait', for: 1000 }] });
+    for (let t = 0; t < 1; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(npc.where).toBeNull(); // (a moment's wait first)
+    for (let t = 0; t < 3; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(npc.where).toBe(door);
+    expect(model.takeEvents().some((e) => e.kind === 'say' && e.speaker === npc)).toBe(true); // (by your leave)
+    expect([model.hero.x, model.hero.z]).toEqual([hx, hz]);
+    expect(Math.hypot(npc.x - hx, npc.z - hz)).toBeGreaterThan(0.2); // (off the hero, not in them)
+    // Going out, the hero outside the door.
+    model.useDoor();
+    Object.assign(model.hero, { x: door.x, z: door.z });
+    Object.assign(npc, { steps: [{ kind: 'exit' }, { kind: 'wait', for: 1000 }], path: null, waited: 0 });
+    for (let t = 0; t < 4; t += 1 / 60) model.update(0, 0, 1 / 60);
+    expect(npc.where).toBeNull();
+    expect(Math.hypot(npc.x - model.hero.x, npc.z - model.hero.z)).toBeGreaterThan(0.2);
+  });
+
   it("don't wait on the hero: standing by the well, no one's held up for long", () => {
     const model = new GameModel(TEST_SEEDS[2], TEST_MAP_SIZE);
     const v = model.villages[0];
