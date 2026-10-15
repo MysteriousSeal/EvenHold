@@ -60,9 +60,9 @@ const FLOOR_COLORS = [
 ];
 // A herbalist's room, as rustic as their hut outside: packed earth and rushes, mud daub.
 const RUSTIC_COLORS = [
-  0x7a6248, // 38 earth
-  0x6a543c, // 39 earth, darker
-  0xb89a58, // 40 rush, dried
+  0x5a4a36, // 38 earth (dark: the room's one plane, its furniture lifting off it)
+  0x4e4030, // 39 earth, darker
+  0x8a7a52, // 40 rush, dried (low against the earth: strewn, not loud)
   0x8a7356, // 41 daub
   0x6e5a42, // 42 daub, darker
 ];
@@ -86,8 +86,10 @@ const [OAK, OAK_DARK, OAK_LIGHT, OAK_SEAM] = TAVERN_COLORS.map((_, i) => ROOM_PA
 function floorColor(style: Room['floor'], x: number, z: number): number {
   if (style === 'tavern') return tavernFloor(x, z);
   if (style === 'earth') {
-    // Packed earth, darker in patches, rushes strewn over it here and there in short strands.
-    const rush = hash(Math.floor(x / 3), z) % 23 === 0 || hash(x, Math.floor(z / 3)) % 29 === 0;
+    // Packed earth, darker in patches, rushes strewn over it here and there in short strands: thicker within a tile of
+    // the walls (swept there), sparse out on the floor where she walks.
+    const k = x < TILE || z < TILE ? 1 : 3;
+    const rush = hash(Math.floor(x / 3), z) % (23 * k) === 0 || hash(x, Math.floor(z / 3)) % (29 * k) === 0;
     return rush ? RUSH : hash(Math.floor(x / 4), Math.floor(z / 4)) % 3 === 0 ? EARTH_DARK : EARTH;
   }
   if (style === 'flagstones') {
@@ -277,12 +279,12 @@ function daubRelief(fill: Fill, w: number, d: number): void {
   for (let u = WALL + 6, i = 0; u < WALL + d - 4; u += 9 + (hash(u, 3) % 4), i++) bunch(u, i + 1, (uu, y, out) => [WALL - 1 + out, y, uu]); // the left wall
 }
 
-// A herbalist's floor in relief: the strewn rushes and a pebble or two standing up off the packed earth.
+// A herbalist's floor in relief: half the strewn rushes and a pebble or two standing up off the packed earth.
 function earthRelief(fill: Fill, w: number, d: number): void {
   for (let x = 0; x < w; x++) {
     for (let z = 0; z < d; z++) {
       const c = floorColor('earth', x, z);
-      if (c === RUSH) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, RUSH);
+      if (c === RUSH && hash(Math.floor(x / 3), Math.floor(z / 3) + 7) % 2 === 0) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, RUSH);
       else if (hash(x * 3 + 1, z * 5 + 2) % 211 === 0) fill(WALL + x, 1, WALL + z, WALL + x, 1, WALL + z, 11); // a pebble
     }
   }
