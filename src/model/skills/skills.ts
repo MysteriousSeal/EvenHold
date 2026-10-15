@@ -54,7 +54,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   woodworking: {
     name: 'Woodworking',
-    steps: [7, 5, 3, 2], // (its first tiers' planks cheap and quick; its last's oak, varnish and heartwood a while to come by)
+    steps: [4, 4, 4, 4], // (its planks and varnish teaching a little while what's made of them teaches: a try costs alike at every tier)
     kind: 'main',
     verb: 'work wood',
     practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
@@ -109,7 +109,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   cooking: {
     name: 'Cooking',
-    steps: [3, 3, 2, 1], // (an artisan's feast: a hunt's makings)
+    steps: [4, 4, 3, 1], // (an artisan's feast: a hunt's makings)
     kind: 'secondary',
     verb: 'cook',
     practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',
