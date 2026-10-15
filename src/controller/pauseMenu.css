@@ -143,6 +143,22 @@
 .pause-keys-foot { display: flex; gap: 8px; }
 .pause-keys-foot .pause-back { margin-top: 6px; }
 
+/* A laptop's screen (800 tall or so): everything closer together, each row's few words beside its name, so the whole
+   menu fits without scrolling. */
+@media (max-height: 900px) {
+  .pause-main { padding: 12px 16px 10px; gap: 3px; }
+  .pause-title { margin: 0 0 6px; font-size: 30px; }
+  .pause-resume { margin-bottom: 4px; padding: 7px 12px 9px; }
+  .pause-resume b { font-size: 19px; }
+  .pause-settings { margin: 0 0 4px; padding: 3px; gap: 0; }
+  .pause-setting { padding: 3px 8px 3px 10px; }
+  .pause-value { padding: 2px 4px; }
+  .pause-option { padding: 2px 10px; }
+  .pause-main > .pause-item:not(.pause-resume):not(.pause-back) { flex-direction: row; align-items: baseline; gap: 10px; padding: 5px 12px 6px; }
+  .pause-main > .pause-item b { flex: none; white-space: nowrap; }
+  .pause-foot { margin-top: 4px; }
+}
+
 @media (max-width: 900px) { .pause-keys { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .pause-keys { grid-template-columns: 1fr; }
