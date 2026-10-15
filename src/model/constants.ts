@@ -66,7 +66,7 @@ export const ENEMY_STATS = {
   quartermaster: { family: 'humanoid', passive: false, hp: 42, damage: 3, xp: 190, coins: 36, radius: 0.18, walk: 0.8, run: 2.1, sight: 7, giveUp: 16, wander: 0, stop: 0.7, swing: 0.9, cooldown: 1.4, rest: [3, 3], shove: 0.35, loot: 2 },
   gaoler: { family: 'humanoid', passive: false, hp: 50, damage: 4, xp: 200, coins: 30, radius: 0.19, walk: 0.75, run: 1.9, sight: 7, giveUp: 16, wander: 0, stop: 0.75, swing: 1.0, cooldown: 1.5, rest: [3, 3], shove: 0.25, loot: 2 },
   captain: { family: 'humanoid', passive: false, hp: 38, damage: 3, xp: 200, coins: 32, radius: 0.17, walk: 0.9, run: 2.5, sight: 7, giveUp: 16, wander: 0, stop: 0.65, swing: 0.7, cooldown: 1.1, rest: [3, 3], shove: 0.3, loot: 2 },
-  banditKing: { family: 'humanoid', passive: false, hp: 85, damage: 4, xp: 340, coins: 80, radius: 0.2, walk: 0.8, run: 2.1, sight: 9, giveUp: 20, wander: 0, stop: 0.75, swing: 0.95, cooldown: 1.3, rest: [3, 3], shove: 0.2, loot: 2.5 },
+  banditKing: { family: 'humanoid', passive: false, hp: 70, damage: 4, xp: 340, coins: 80, radius: 0.2, walk: 0.8, run: 2.1, sight: 9, giveUp: 20, wander: 0, stop: 0.75, swing: 0.95, cooldown: 1.3, rest: [3, 3], shove: 0.2, loot: 2.5 },
   skeletonArcher: { family: 'undead', passive: false, hp: 3, damage: 2, xp: 22, coins: 5, radius: 0.14, walk: 0.4, run: 1.9, sight: 7, giveUp: 12, wander: 2.5, stop: 4.5, swing: 1.0, cooldown: 1.4, rest: [4, 4], shove: 1, loot: 1 },
 } as const;
 export const ENEMY_ACTIVE_RADIUS = 40; // only enemies this close to the hero think
