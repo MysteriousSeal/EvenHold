@@ -42,6 +42,7 @@ import type { Shop } from './inn/tavernShop';
 import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
 import { QuestBook } from './quests/questBook';
 import { Bounties } from './quests/bounties';
+import { DiceHall } from './inn/diceHall';
 import { Atlas } from './atlas/atlas';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
@@ -138,6 +139,7 @@ export class GameModel {
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
+  readonly dice = new DiceHall(() => this); // (the dice at the inns' tables, tonight's sharps: inn/diceHall.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
   // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
@@ -281,7 +283,7 @@ export class GameModel {
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).
-  get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; return v && v.where === this.inside?.entrance ? [...near, v] : near; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts)
+  get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; const folk = v && v.where === this.inside?.entrance ? [...near, v] : near; const sharp = this.dice.sharpIn(this.inside, folk); return sharp ? [...folk, sharp] : folk; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts; tonight's dice sharp, at an inn: inn/diceHall.ts)
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);

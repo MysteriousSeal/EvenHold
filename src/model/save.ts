@@ -107,6 +107,7 @@ export interface SaveData {
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:', a stronghold's gate, 'stronghold:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
   bounties?: unknown; // the wanted posters handed in, and those taken (quests/bounties.ts; older saves: none)
+  dice?: unknown; // the dice sharps caught out, and when they're back (inn/diceHall.ts; older saves: none)
   atlas?: unknown; // the land seen and the places come upon (atlas/atlas.ts; older saves: the land round the hero and the villages been to)
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
@@ -141,7 +142,7 @@ export function snapshot(model: GameModel): SaveData {
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
       skills: structuredClone(hero.skills ?? {}), // (their level in each skill: skills/skills.ts)
-      money: hero.money + (model.work.shift?.earned ?? 0), // (at work: what the shift's earned so far, as if left now: not lost with it)
+      money: hero.money + (model.work.shift?.earned ?? 0) + model.dice.held, // (at work: what the shift's earned so far, as if left now: not lost with it; a stake on the dice table, back in their purse)
       level: hero.level,
       xp: hero.xp,
       statPoints: hero.statPoints,
@@ -185,6 +186,7 @@ export function snapshot(model: GameModel): SaveData {
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })), ...(shop.bought && { bought: { ...shop.bought } }) })),
     quests: model.quests.save(),
     bounties: model.bounties.save(),
+    dice: model.dice.save(),
     atlas: model.atlas.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
@@ -346,6 +348,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   model.bounties.load(data.bounties);
+  model.dice.load(data.dice);
   model.atlas.load(data.atlas, [model.inside?.entrance ?? model.hero, ...model.welcome.stops.values()]); // (after the hero's placed: where they are, outdoors)
   if (data.travellers) model.travellers.load(data.travellers);
   model.chickens.load(data.chickens); // (before the villagers' day: those lost are gone)
