@@ -5,6 +5,7 @@ import { CHART_CELL as C, CHART_CELLS, groundOf } from '../src/model/atlas/chart
 import { mapPins } from '../src/model/atlas/mapPins';
 import { fresh } from './support/testWorld';
 import { STREAMED_SIZE } from '../src/model/worldgen/regions';
+import { washColour } from '../src/view/atlas/mapPaint';
 
 describe('the map of the land walked', () => {
   it('sees the land round the hero as they walk, and only that', () => {
@@ -80,5 +81,17 @@ describe('the map of the land walked', () => {
     const pins = mapPins(model);
     expect(pins.some((p) => p.kind === 'quest')).toBe(true);
     expect(pins).toContainEqual({ kind: 'purse', x: 3, z: 4, label: 'Your purse' });
+  });
+});
+
+describe('the map washed as the land looks', () => {
+  it('colours each ground from the game\'s own (under a parchment tint): the heath olive, the woods darker, the water blue', () => {
+    const [heath, meadow, forest, water] = (['heath', 'meadow', 'forest', 'water'] as const).map((g) => washColour(g, 2));
+    expect(heath[1], 'the heath olive, not pink').toBeGreaterThanOrEqual(heath[0]);
+    expect(heath[2]).toBeLessThan(heath[1] - 30);
+    expect(meadow[1]).toBeGreaterThan(meadow[0]);
+    expect(forest.reduce((a, b) => a + b), 'the woods darker than the meadow').toBeLessThan(meadow.reduce((a, b) => a + b) - 60);
+    expect(water[2], 'the water blue').toBeGreaterThan(water[0] + 40);
+    expect(washColour('hills', 6).reduce((a, b) => a + b), 'higher, paler').toBeGreaterThan(washColour('hills', 1).reduce((a, b) => a + b));
   });
 });

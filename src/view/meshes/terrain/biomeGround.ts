@@ -12,7 +12,7 @@ import { BIOMES, type Biome, type BiomeMap } from '../../../model/scenery/biomes
 import { hashUnit } from '../../../util/random';
 import type { Tiles } from '../../../model/map/tiles';
 
-const GROUND: Record<Biome, number> = {
+export const GROUND: Record<Biome, number> = { // (the map washes its country in these too: view/atlas/mapPaint.ts)
   meadow: 0x7cbd58, // sunny: home (main's mid greens, on screen)
   forest: 0x4f8a42,
   heath: 0x9aa25e, // the moor: a lighter, yellower olive than the meadow, clear of the roads' brown (its heather its colour)
