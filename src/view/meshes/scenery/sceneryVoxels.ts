@@ -43,9 +43,9 @@ const ENTRIES = {
   dead: 0x9a8f80, // a dead tree's bare wood, weathered silver
   deadLight: 0xbcb2a0,
   deadDark: 0x6a6054,
-  willow: 0x8aae5c, // silvery, lighter than the oaks'
-  willowLight: 0xb6d07e,
-  willowDark: 0x5c7c42,
+  willow: 0x7fa35a,
+  willowLight: 0x98b86a,
+  willowDark: 0x5f8a3e,
   willowBark: 0x5a4a38,
 } as const;
 export const SCENERY_PALETTE: number[] = Object.values(ENTRIES);
@@ -321,62 +321,70 @@ function snag(v: number): VoxelGrid {
   return g;
 }
 
-// A weeping willow: a stout leaning trunk, a broad crown, and its fronds hanging from the crown's rim in curtains nearly
-// to the ground, gaps between them; lighter where the sun's on them, darker within.
+// A weeping willow: a stout trunk bare for a third of its height, forking into a domed crown, and its fronds hanging
+// from all round the crown in curtains of single strands, gaps between them, drawn in toward the trunk as they fall
+// and ending raggedly, well short of the ground; two greens, lighter up top.
 function willow(v: number): VoxelGrid {
   const g = createGrid(sceneryGrid('willow'));
   const m = Math.floor(WILLOW / 2);
   const lean = v % 2 ? 1 : -1;
-  for (let y = 0; y < 26; y++) {
-    const o = Math.round((y / 26) * 3 * lean);
-    const r = y < 3 ? 3 : 2;
-    for (let dx = -r; dx < r; dx++) for (let dz = -r; dz < r; dz++) setColor(g, m + dx + o, y, m + dz, (dx + y) % 4 === 0 ? C.barkDark : C.willowBark);
+  const top = 20; // the trunk's height (of the willow's 60)
+  for (let y = 0; y <= top; y++) {
+    const o = y > top / 2 ? lean : 0;
+    const r = y < 2 ? 3 : 2;
+    for (let dx = -r; dx < r; dx++) for (let dz = -r; dz < r; dz++) setColor(g, m + dx + o, y, m + dz, y < 2 || (dx + y) % 5 === 0 ? C.barkDark : C.willowBark);
   }
-  const [cx, cy, cz] = [m + 3 * lean, 34, m];
-  const [rx, ry] = [13 + (v % 2) * 2, 10];
-  // The crown: a flattened dome, roughened.
-  for (let x = 0; x < WILLOW; x++) for (let z = 0; z < WILLOW; z++) for (let y = cy - ry; y < cy + ry + 2; y++) {
-    const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 + ((z - cz) / rx) ** 2;
-    if (d > 1 - n(x, Math.floor(y / 2), z, 111 + v) * 0.2) continue;
-    setColor(g, x, y, z, y > cy + 3 ? C.willowLight : y > cy - 2 ? C.willow : C.willowDark);
+  for (const [dx, dz] of [[1, 1], [-1, 1], [0, -1]]) voxelLine(g, [m + lean, top, m], [m + lean + dx * 6, top + 8, m + dz * 6], C.willowBark); // its forks
+  const [cx, cy, cz] = [m + lean, 33, m];
+  const [rx, ry] = [13 + (v % 2), 10];
+  // The crown: a dome (its underside cut flat-ish, where the fronds hang from).
+  for (let x = 0; x < WILLOW; x++) for (let z = 0; z < WILLOW; z++) for (let y = cy - 4; y < cy + ry; y++) {
+    const d = ((x - cx) / rx) ** 2 + (Math.max(0, y - cy) / ry) ** 2 + ((z - cz) / rx) ** 2;
+    if (d > 1 - n(x, Math.floor(y / 2), z, 111 + v) * 0.12) continue;
+    setColor(g, x, y, z, y > cy + 4 ? C.willowLight : y > cy - 2 ? C.willow : C.willowDark);
   }
-  // The fronds: from the crown's underside out by its rim, hanging in strands (two wide), long and short, wide gaps
-  // between (the trunk seen through them).
-  for (let x = 0; x < WILLOW; x += 3) for (let z = 0; z < WILLOW; z += 3) {
+  // The fronds: single strands from under the crown's outer part, every other voxel round it, some skipped (the gaps),
+  // stepping a voxel in toward the trunk every so often as they fall, each its own length (a ragged hem).
+  for (let x = 0; x < WILLOW; x += 2) for (let z = (x / 2) % 2; z < WILLOW; z += 2) {
     const d = Math.hypot((x - cx) / rx, (z - cz) / rx);
-    if (d < 0.7 || d > 1.05 || n(x, 0, z, 113 + v) < 0.5) continue;
-    let top = cy;
-    while (top > 0 && colorAt(g, x, top - 1, z) !== 0) top--;
-    const bottom = Math.max(5, top - 8 - Math.floor(n(x, 1, z, 114) * 16));
-    for (let y = bottom; y < top; y++) for (const [dx, dz] of [[0, 0], [1, 0]]) {
-      if (x + dx >= WILLOW || z + dz >= WILLOW) continue;
-      setColor(g, x + dx, y, z + dz, y === bottom ? C.willowLight : (y + x) % 3 === 0 ? C.willowDark : C.willow);
+    if (d < 0.55 || d > 0.98 || n(x, 0, z, 113 + v) < 0.35) continue;
+    const length = 10 + Math.floor(n(x, 1, z, 114 + v) * 14);
+    const [ix, iz] = [Math.sign(cx - x), Math.sign(cz - z)];
+    const colour = n(x, 2, z, 115) < 0.5 ? C.willow : C.willowDark;
+    for (let k = 0; k < length; k++) {
+      const inward = Math.floor(k / 9);
+      setColor(g, x + ix * inward, cy - 5 - k, z + iz * inward, colour);
     }
   }
   return g;
 }
 
-// A granite tor: rounded blocks piled up, each set back on the one below, cracked along its courses, lichen and a
-// little moss on its shelves.
+// A granite tor: a pile of rounded slabs like stacked pillows, each of its own width, set off the one below and the
+// whole leaning, the top one overhanging; loose boulders tumbled at its foot; lichen and a little moss on the shelves.
 function tor(v: number): VoxelGrid {
   const g = createGrid(sceneryGrid('tor'));
-  // Two piles side by side, the taller one's blocks each set off the last (never stepped round a middle).
-  const blocks: Array<[number, number, number, number, number, number]> = [
-    [18, 22, 13, 10, 12, 0],
-    [36, 30, 10, 7, 11, 0],
-    [14 + v, 18, 9, 8, 8, 10],
-    [21, 25 - v, 7, 7, 6, 18],
-    [37, 33, 7, 5, 7, 7],
+  const lean = v % 2 ? 1 : -1;
+  // Each slab: its middle (x, z), half-widths, height; laid on the one before.
+  const slabs: Array<[number, number, number, number, number]> = [
+    [24, 26, 15, 12, 8],
+    [20 + 3 * lean, 23, 9, 12, 7],
+    [27 + 5 * lean, 21 - v, 10, 7, 6],
+    [24 + 8 * lean, 25, 13, 8, 5], // the top: wider than the one under it, thrown out further (its overhang)
   ];
-  blocks.slice(0, 4 + (v % 2)).forEach(([cx, cz, rx, ry, rz, y0], i) => {
-    // A rounded box rather than an egg: granite weathers square.
-    for (let x = 0; x < 2 * T; x++) for (let z = 0; z < 2 * T; z++) for (let y = y0; y < y0 + ry; y++) {
-      const [ax, az, ay] = [Math.abs(x - cx) / rx, Math.abs(z - cz) / rz, (y - y0) / ry];
-      if (ax ** 4 + az ** 4 > 1 - ay ** 6 * 0.6 - n(x, y, z, 121 + i) * 0.08) continue;
-      const crack = y === y0 + ry - 3 && n(x, 0, z, 122 + i) < 0.5;
-      setColor(g, x, y, z, crack ? C.stoneDeep : stoneAt(x, y, z, y0 + ry, y === y0 + ry - 1 && n(x, y, z, 123) < 0.3, 124 + v));
+  let y0 = 0;
+  slabs.slice(0, 3 + (v % 2)).forEach(([cx, cz, rx, rz, high], i) => {
+    for (let x = 0; x < 2 * T; x++) for (let z = 0; z < 2 * T; z++) for (let y = y0; y < y0 + high; y++) {
+      const t = (y - y0) / (high - 1); // 0 at its foot, 1 at its top: rounded at both, a pillow's
+      const squeeze = 1 - 0.35 * (2 * t - 1) ** 4;
+      const [ax, az] = [Math.abs(x - cx) / (rx * squeeze), Math.abs(z - cz) / (rz * squeeze)];
+      if (ax ** 3 + az ** 3 > 1 - n(x, y, z, 121 + i) * 0.1) continue;
+      const seam = y === y0 && n(x, 0, z, 122 + i) < 0.6; // (the dark between two slabs)
+      setColor(g, x, y, z, seam && i > 0 ? C.stoneDeep : stoneAt(x, y, z, y0 + high, y === y0 + high - 1 && n(x, y, z, 123) < 0.25, 124 + v));
     }
+    y0 += high - 1;
   });
+  // Loose boulders at its foot.
+  for (const [bx, bz, r] of [[8, 40, 4], [42, 12, 3], [40, 41, 3]]) lump(g, bx + v, bz, r, r * 0.9, r, 0, 131 + bx);
   foot(g, 125 + v);
   return g;
 }
