@@ -19,7 +19,7 @@ describe('the seasons', () => {
 
 describe('the daylight', () => {
   it('rises in the morning and sets in the evening, golden low down, the moon out at night', () => {
-    const at = (h: number) => daylightAt(3 * DAY_MINUTES + h * H); // (mid-spring: some thirteen hours of day)
+    const at = (h: number) => daylightAt(h * H); // (spring's first day: thirteen hours of it, the sun up at half past six)
     expect(at(13).light).toBe(1);
     expect(at(13).part).toBe('day');
     expect(at(1).night).toBe(1);
@@ -32,9 +32,10 @@ describe('the daylight', () => {
   });
 
   it('is longest in summer and shortest in winter', () => {
-    const lit = (week: number) => Array.from({ length: 96 }, (_, q) => daylightAt(week * WEEK + 3.5 * DAY_MINUTES + q * 15).sun > 0).filter(Boolean).length / 4;
-    expect(lit(1)).toBeCloseTo(16, 0); // midsummer's week
-    expect(lit(3)).toBeCloseTo(10, 0);
+    const lit = (week: number) => Array.from({ length: 96 }, (_, q) => daylightAt(week * WEEK + q * 15).sun > 0).filter(Boolean).length / 4;
+    expect(lit(1)).toBeCloseTo(16, 0); // midsummer: summer's first day
+    expect(lit(3)).toBeCloseTo(10, 0); // midwinter
+    expect(Math.abs(lit(0) - 13)).toBeLessThanOrEqual(0.75); // spring's first day (lengthening through it)
     expect(lit(0)).toBeGreaterThan(lit(3));
   });
 });
