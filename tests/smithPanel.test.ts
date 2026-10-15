@@ -7,6 +7,7 @@ import { enterNearest } from '../src/model/cheats';
 import { smithShopIn } from '../src/model/smithy/smithShop';
 import { WANTS } from '../src/model/shops/shopStock';
 import type { Npc } from '../src/model/npcs/npcs';
+import { SMITH_RECIPES, nextToLearn } from '../src/model/skills/smithing';
 import { createSmithPanel } from '../src/controller/trade/smithPanel';
 import { createInventoryPanel } from '../src/controller/hero/inventoryPanel';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -143,5 +144,17 @@ describe("the smith's window", () => {
     rightClick(inBag('item:mailCoif'));
     expect(says()).toMatch(/Battered/);
     random.mockRestore();
+  });
+
+  it("tells a hero who's taken up smithing, now and then, what'd teach them next", () => {
+    const { model, keeper, panel } = trading();
+    model.hero.equipment.mainHand = 'mace';
+    model.hero.skills = { ...model.hero.skills, smithing: { level: 1 } };
+    const next = nextToLearn(model.hero)!;
+    expect(next).not.toBeNull();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    panel.open(keeper);
+    random.mockRestore();
+    expect(says().toLowerCase()).toContain(SMITH_RECIPES[next].name.toLowerCase());
   });
 });

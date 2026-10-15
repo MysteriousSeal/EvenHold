@@ -18,6 +18,7 @@ import type { Hero } from '../../model/types';
 import { coinWords } from '../../view/ui/coins';
 import { plural } from '../../view/ui/words';
 import { smithAsleep } from '../../model/smithy/smithWork';
+import { SMITH_RECIPES, nextToLearn } from '../../model/skills/smithing';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.
@@ -56,6 +57,8 @@ const ON_GEAR = {
   broken: ["Your {it}'s broken, you know. It's doing you no good like that.", "Broken {it}, swinging it about like it's whole. Give it here."],
   his: ["That {it}'s smith's work. Treating you well?", "Good {it}, that. Someone knew what they were doing."],
   bare: ["Out there with empty hands? Let's fix that.", "No blade on you? You're braver than you look."],
+  // (a hand at smithing themselves: the next of its recipes that'd still teach them, skills/smithing.ts nextToLearn)
+  learn: ["Been at the anvil yourself, I hear. Try {it}. There's still a lesson in that.", "Want to get better at the hammer? Make {it}. You'll learn something.", "Your own smithing? {it}'s what'd teach you now. Mind your fingers."],
 };
 
 // His word, the shop shut for the night.
@@ -170,13 +173,16 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
   };
 }
 
-// Half the time, a word on what the hero wears (their worst-worn piece, broken or badly worn; what's his trade's make;
-// their bare hands), else none: his plain greeting.
+// Half the time, a word on what the hero wears (their worst-worn piece, broken or badly worn), or to one who's taken
+// up smithing, on what'd teach them now (half the time); or on what's his trade's make, or their bare hands; else
+// none: his plain greeting.
 function onGear(hero: Hero): string | null {
   if (Math.random() < 0.5) return null;
   const worst = mendBill(hero).pieces.filter((p) => Object.values(hero.equipment).includes(p.key)).sort((a, b) => b.wear - a.wear)[0];
   const say = (lines: readonly string[], key: GearKey) => pick(lines).replace('{it}', gearName(key).toLowerCase());
   if (worst && worst.wear >= WORN) return say(worst.wear >= BROKEN ? ON_GEAR.broken : ON_GEAR.worn, worst.key);
+  const next = hero.skills?.smithing ? nextToLearn(hero) : null;
+  if (next && Math.random() >= 0.5) return pick(ON_GEAR.learn).replace('{it}', SMITH_RECIPES[next].name.toLowerCase()).replace(/^([a-z])/, (c) => c.toUpperCase());
   if (!hero.equipment.mainHand) return pick(ON_GEAR.bare);
   const his = Object.values(hero.equipment).filter((k): k is GearKey => !!k && isGear(k) && !!ITEMS[baseOf(k)].soldBy?.smith);
   return his.length ? say(ON_GEAR.his, his[Math.floor(Math.random() * his.length)]) : null;
