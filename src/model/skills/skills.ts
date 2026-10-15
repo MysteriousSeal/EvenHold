@@ -127,7 +127,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   mining: {
     name: 'Mining',
-    steps: [8, 8, 8, 8],
+    steps: [9, 9, 9, 10],
     kind: 'main',
     verb: 'mine',
     practice: 'Strike the veins in the rocks of the wilds with a pickaxe in your bag (the smith sells them): E by a rock.',
