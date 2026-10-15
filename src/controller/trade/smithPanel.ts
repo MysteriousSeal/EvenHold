@@ -7,7 +7,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
 import type { BagItem } from '../../model/hero/bag';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
-import { baseOf, gearName, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
+import { baseOf, gearName, isGear, levelOf, slotOfGear, type GearKey } from '../../model/human/items/gear';
 import type { ToolId } from '../../model/loot/tools';
 import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, pickPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal, smithTakesPick, smithTakesWood, woodPrice } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
@@ -109,12 +109,15 @@ const JUNK_LOT = [
   "More scrap than a battlefield. Here.",
 ];
 
+// The level a ware's forged at (a pickaxe: none).
+const forging = (id: string): number => (isGear(id) ? levelOf(id) : 0);
+
 export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(smith: Npc): void; update(): void; menu: Menu } {
   const shop = () => smithShopIn(model); // (his village's level: what he forges is at it)
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => (Object.keys(shop().stock).filter((id) => isGear(id) || smithTakesPick(id)) as Array<GearKey | ToolId>).sort((a, b) => Number(smithTakesPick(b) || smithSellsTo(model.hero, b)) - Number(smithTakesPick(a) || smithSellsTo(model.hero, a))), // (and his pickaxe) // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks)
+    wares: () => (Object.keys(shop().stock).filter((id) => isGear(id) || smithTakesPick(id)) as Array<GearKey | ToolId>).sort((a, b) => Number(smithTakesPick(b) || smithSellsTo(model.hero, b)) - Number(smithTakesPick(a) || smithSellsTo(model.hero, a)) || forging(b) - forging(a)), // (and his pickaxe) // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks; his latest forging, for the hero grown past his village, first)
     wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id) || smithTakesWood(id) || smithTakesPick(id), // (gear, the iron salvaged from it, what's found in the wood, a pickaxe)
     price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, selling) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
     trade: (id, selling) => {
