@@ -32,6 +32,7 @@ import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
 import { WORD_HOLD } from './model/travellers/travellers';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
+import { quitsAt } from './model/jobs/room/roomShift';
 import { createSleepFade } from './view/hud/sleepFade';
 import { createClockHud } from './view/hud/clockHud';
 import { createTargetHud } from './view/hud/targetHud';
@@ -285,7 +286,7 @@ async function boot(): Promise<void> {
       case 'well':
         return { label: 'Toss a silver coin', x: model.villages[found.village].x, y: hero.y + 0.8, z: model.villages[found.village].z };
       case 'hallDoor':
-        return overHero(found.door.open ? 'Close door' : 'Open door'); // (a locked one too: tried, it's found locked)
+        return overHero(quitsAt(model.work, found.door) ? 'End your shift' : found.door.open ? 'Close door' : 'Open door'); // (a locked one too: tried, it's found locked)
       case 'stairs':
         return overHero(found.down ? 'Go downstairs' : 'Go upstairs');
       case 'door': {
