@@ -17,8 +17,10 @@
 // as one piece, like the wind, and its voxels don't warp) leans away and
 // sinks, the tops most.
 //
-// The weather has its say (nature.ts, the skies' uniforms): the wind's
-// strength scales every sway, and it blows the way the weather's wind does.
+// The weather and the season have their say (nature.ts, the skies' to set):
+// the wind's strength scales every sway, it blows the way the weather's wind
+// does, and the season's tint colours every leaf and blade (but an
+// evergreen's: `evergreen`).
 
 import * as THREE from 'three';
 import { natureUniforms } from './nature';
@@ -31,6 +33,7 @@ export interface WindOptions {
   speed: number; // radians per second
   flutter?: number; // extra fast, small jitter (leaves), world units
   push?: { radius: number; strength: number }; // parts around the hero: world units
+  evergreen?: boolean; // keeps its own colour whatever the season (the pines)
 }
 
 // Where the hero stands (x, z), shared by every material that parts around them.
@@ -48,6 +51,7 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
     shader.uniforms.uWindPusher = pusher;
     shader.uniforms.uWindStrength = natureUniforms.uWindStrength;
     shader.uniforms.uWindDir = natureUniforms.uWindDir;
+    shader.uniforms.uSeasonTint = natureUniforms.uSeasonTint;
     const push = options.push
       ? `vec2 pushAway = (modelMatrix * vec4(windOrigin.x, 0.0, windOrigin.y, 1.0)).xz - uWindPusher;
         float pushDistance = length(pushAway);
@@ -71,8 +75,13 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         transformed += windDir * windAmount * windBend;
         ${push}`,
       );
+    if (!options.evergreen) {
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 uSeasonTint;')
+        .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= uSeasonTint;');
+    }
   };
   material.customProgramCacheKey = () =>
-    `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}:${options.push?.radius ?? 0}:${options.push?.strength ?? 0}`;
+    `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}:${options.push?.radius ?? 0}:${options.push?.strength ?? 0}:${options.evergreen ? 1 : 0}`;
   return time;
 }
