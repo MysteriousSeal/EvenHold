@@ -13,6 +13,9 @@ import { addToBag } from '../src/model/hero/bag';
 import { villagerInReach } from '../src/model/npcs/chat';
 import { bearing, travellerSays } from '../src/model/travellers/travellerTalk';
 import { spawnTravellers } from '../src/model/travellers/travellers';
+import { villageName } from '../src/model/villages/villageNames';
+import { callingWord } from '../src/model/town/townCallings';
+import { CELL, LECTERN } from '../src/model/cathedral/cathedralLayout';
 
 const SEED = 3;
 const site = townSite(SEED, STREAMED_SIZE)!;
@@ -23,15 +26,15 @@ const inTown = () => {
   made.teleport(site.x, site.z + 3);
   return made;
 };
-const mongers = (model: GameModel) => model.npcs.filter((n) => n.role === 'monger');
+const mongers = (model: GameModel) => model.npcs.filter((n) => n.stall); // (the pardoner among them)
 
 describe('the stalls\' keepers', () => {
   it('keep each stall, titled by their trade, living in the town', () => {
     const model = inTown();
     const town = model.towns[0];
-    expect(mongers(model).map((n) => n.stall)).toEqual(town.stalls);
+    expect(model.npcs.filter((n) => n.stall).map((n) => n.stall)).toEqual(town.stalls); // (the pardoner keeping one)
     for (const npc of mongers(model)) {
-      expect(titleOf(npc)).toMatch(/\((Relic-monger|Vintner|Clothier|Apothecary)\)$/);
+      expect(titleOf(npc)).toMatch(/\((Relic-monger|Vintner|Clothier|Apothecary|Pardoner)\)$/);
       expect(npc.village).toEqual(expect.objectContaining({ town: true }));
       expect(Math.max(Math.abs(npc.home.x - site.x), Math.abs(npc.home.z - site.z))).toBeLessThan(18);
     }
@@ -130,4 +133,31 @@ describe('pilgrims on the roads to it', () => {
     travellerSays(pilgrim, []);
     expect(travellerSays(pilgrim, [], site)).toContain(`to the ${bearing(pilgrim, site)}`);
   }, 120_000);
+});
+
+describe("Greyminster's people", () => {
+  it('are there, one of each calling the story gives a part to, at their places by day and by night', () => {
+    const model = inTown();
+    const of = (role: string) => model.npcs.filter((n) => n.role === role);
+    for (const role of ['bishop', 'deacon', 'sister', 'captain', 'prisoner', 'pardoner']) expect(of(role), role).toHaveLength(1);
+    expect(of('pardoner')[0].stall?.kind).toBe('relics');
+    expect(of('sister')[0].look.build).toBe('female');
+    expect(model.villages.find((v) => v.town)).toBeDefined();
+    expect(villageName(model.villages.find((v) => v.town)!, model.seed)).toBe('Greyminster');
+    expect(model.cathedralTown()).toEqual(site);
+    model.teleport(site.x, site.z - 6);
+    model.minutes = 10 * 60;
+    for (let t = 0; t < 120; t += 0.2) model.update(0, 0, 0.2);
+    const [bishop, deacon, prisoner, captain] = ['bishop', 'deacon', 'prisoner', 'captain'].map((r) => of(r)[0]);
+    for (const npc of [bishop, deacon, prisoner]) expect(npc.where?.type, npc.role).toBe('cathedral');
+    expect(Math.hypot(bishop.x - (LECTERN[0] - 1), bishop.z - 1.6)).toBeLessThan(0.3);
+    expect([prisoner.x, prisoner.z]).toEqual(CELL);
+    expect(captain.where).toBeNull();
+    expect(Math.abs(captain.z - (site.z + 16))).toBeLessThan(0.5);
+    for (const npc of [bishop, deacon, prisoner, captain, of('sister')[0]]) expect(callingWord(npc).length).toBeGreaterThan(0);
+    model.minutes = 23 * 60;
+    for (let t = 0; t < 200; t += 0.2) model.update(0, 0, 0.2);
+    expect(bishop.seat?.piece.kind).toBe('doubleBed');
+    expect(captain.where).toBe(captain.home);
+  }, 180_000);
 });

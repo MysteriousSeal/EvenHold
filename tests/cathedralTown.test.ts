@@ -11,7 +11,7 @@ import { solidCells } from '../src/model/worldgen/world';
 import { entrancesOf, roomFor, type Entrance } from '../src/model/interiors/interiors';
 import { furnish } from '../src/model/interiors/furnish';
 import { seatOf } from '../src/model/interiors/furniture';
-import { BISHOP, NAVE, RELIQUARY_STAIR } from '../src/model/cathedral/cathedralLayout';
+import { BISHOP, CELL, NAVE, RELIQUARY_STAIR } from '../src/model/cathedral/cathedralLayout';
 import { chartOfLand } from '../src/model/atlas/chart';
 import { MAX_TIER } from '../src/model/constants';
 import { cellKey, spawnOf } from '../src/model/map/grid';
@@ -123,7 +123,7 @@ describe('the cathedral within', () => {
     expect(at('doubleBed')[0].x).toBeGreaterThanOrEqual(BISHOP.x0);
   });
 
-  it('has nothing on top of anything, and every tile walked to from the door (the bishop\'s through his)', () => {
+  it('has nothing on top of anything, and every tile walked to from the door (the bishop\'s through his; but the cell, barred)', () => {
     const taken = new Set<string>();
     for (const p of pieces.filter((f) => f.solid && f.kind !== 'hallDoor')) {
       for (let x = p.x; x < p.x + p.w; x++) for (let z = p.z; z < p.z + p.d; z++) {
@@ -140,7 +140,7 @@ describe('the cathedral within', () => {
       todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
     }
     const inner = pieces.filter((f) => f.kind === 'hallWall'); // (a screen stands at its tile's edge: its tile's floor is the aisle's)
-    for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth; z++) if (!taken.has(`${x},${z}`)) expect(seen.has(`${x},${z}`), `${x},${z}`).toBe(true);
+    for (let x = 0; x < room.width; x++) for (let z = 0; z < room.depth; z++) if (!taken.has(`${x},${z}`)) expect(seen.has(`${x},${z}`), `${x},${z}`).toBe(x !== CELL[0] || z !== CELL[1]);
     expect(inner.length).toBeGreaterThan(0);
   });
 });
