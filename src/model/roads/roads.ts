@@ -31,10 +31,9 @@ export class Roads {
 
   // Each frame out in the world: an arrest still owed served first.
   update(dt: number): void {
-    if (this.arrest) {
+    if (this.arrest && !this.told) { // (not till it's been handed over to be told: `arrived`)
       if (!this.arrest.served) serve(this.model, this.arrest);
       this.arrest = null;
-      this.told = null;
       return; // (seen held in them a frame, at the least)
     }
     if (this.held) {
@@ -84,7 +83,7 @@ export class Roads {
     return true;
   }
 
-  // Fallen while the witch-finders were after them: taken to the stocks, not an inn (whether they were).
+  // Felled by a witch-finder: taken to the stocks, not an inn (whether they were).
   takenFallen(): boolean {
     const hunt = this.patrols.hunts[0];
     if (!hunt || this.patrols.scattered) return false;

@@ -49,7 +49,7 @@ export interface Fight {
   dropLoot(item: BagItem, x: number, z: number): void;
   dropCoins(amount: number, x: number, z: number): void;
   slayGuard(enemy: Enemy): void; // a crypt's guard slain, for good
-  fall(): void;
+  fall(by?: Enemy | null): void; // (`by`: whoever felled them, if anyone)
   seized?(enemy: Enemy): boolean; // a witch-finder's blow, taking hold of them, not hurting (roads/roads.ts): whether it was
 }
 
@@ -214,6 +214,6 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
   hero.eating = null; // (a meal from the bag interrupted: the rest lost)
   if (!hurt(hero, blow.damage)) return guard.guarded;
   fight.report({ kind: 'fallen' });
-  fight.fall();
+  fight.fall(by);
   return 'fallen';
 }

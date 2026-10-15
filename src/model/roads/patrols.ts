@@ -25,7 +25,7 @@ import { SEIZE, SUSPECT, WANTED } from './heat';
 export const PARTY = 3; // witch-finders to a party, at the least
 const MOST_MORE = 3; // more to a party for the blood on the hero's hands, at most
 const FINDER_ID = 2 ** 46; // the finders' ids on the road: past any band's (each region's block, 2 ** 20 of them)
-export const HUNTER_ID = 2 ** 47; // and as foes: past any quest's, short of a streamed world's own (enemies/foeIds.ts)
+export const HUNTER_ID = 2 ** 47 + 2 ** 46; // and as foes: past the bounties' targets (quests/bounties.ts, from 2 ** 47), short of a streamed world's own (enemies/foeIds.ts)
 const BASE = 0.2; // the chance of a party on a road, anywhere
 const ARC_TWO = 0.25; // more, once arc 2's begun (the long road walked)
 const CATHEDRAL = 0.45; // more, near the cathedral (fading over CATHEDRAL_REACH)

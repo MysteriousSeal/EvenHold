@@ -16,6 +16,7 @@ import { HERO_RADIUS, INDOOR_SCALE } from '../constants';
 import { bumpsFurniture, type Furniture } from '../interiors/furniture';
 import { sitDown, standUp, type Seated } from '../interiors/indoors';
 import type { Npc } from '../npcs/npcs';
+import type { Enemy } from '../types';
 import { inTurn, say } from '../npcs/speech';
 import { herbalistAbed } from '../herbalist/herbalistWork';
 import { witchAbed } from '../witch/witchWork';
@@ -119,9 +120,9 @@ function collapseIfSpent(model: GameModel): boolean {
 // Fallen (out of health): half their coin dropped in a purse where they fell (purse.ts: the last one, if still lying
 // there, lost), they wake in the last inn they entered (or at spawn, before any), healed but Weary; the foes lose
 // interest. (A tenth was lost for good before, a hundred copper at most.)
-export function fall(model: GameModel): void {
+export function fall(model: GameModel, by?: Enemy | null): void {
   const { hero } = model;
-  if (model.roads.takenFallen()) return; // (felled with the witch-finders after them: to the stocks, roads/arrest.ts)
+  if (by?.kind === 'witchFinder' && model.roads.takenFallen()) return; // (felled by the witch-finders: to the stocks, roads/arrest.ts)
   dropPurse(model);
   wearOnFall(hero, (e) => model.report(e)); // (everything they wear knocked about: hero/wear.ts)
   makeWeary(hero);

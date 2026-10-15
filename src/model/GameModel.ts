@@ -413,5 +413,5 @@ export class GameModel {
   private keepFocus = (): void => void [this.focusOn.keep(this.hero), this.chosen.keep(this)];
 
   // Out of health: fallen, waking at an inn (hero/setbacks.ts).
-  fall = (): void => fall(this);
+  fall = (by?: Enemy | null): void => fall(this, by);
 }

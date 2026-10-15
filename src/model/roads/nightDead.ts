@@ -27,7 +27,7 @@ const WALK = 0.35; // tiles a second they go along the road
 const WALK_SPAN = 40; // tiles each way along it from where they rose
 const DRAUGR_FROM = 4; // the level a draugr walks with them from
 const SAINT_REACH = 300; // tiles from the cathedral: a second band, once arc 2's begun
-const NIGHT_ID = 2 ** 47 + 2 ** 40; // their ids: past the witch-finders' (patrols.ts), short of a streamed world's own
+const NIGHT_ID = 2 ** 47 + 2 ** 46 + 2 ** 44; // their ids: past the witch-finders' (patrols.ts), short of a streamed world's own
 const RANK = 0.7; // tiles between them, walking
 const LOOK = 1; // seconds between looks for crypts near enough to rise from
 
