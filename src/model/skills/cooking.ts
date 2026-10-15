@@ -65,6 +65,12 @@ export const COOK_RECIPES: Record<CookRecipeId, CookRecipe> = {
 };
 export const COOK_RECIPE_IDS = Object.keys(COOK_RECIPES) as CookRecipeId[];
 
+// What a dish teaches, in tries (skills.ts practise's worth): one of a hunt's meat or honeycomb, dear to come by (a
+// beast to find and kill for each), HUNTED_WORTH; a shore's or a shop's, one.
+const HUNTED: ReadonlySet<LootId> = new Set(['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'leanLynxMeat', 'honeycomb']);
+export const HUNTED_WORTH = 3;
+export const huntedWorth = (id: CookRecipeId): number => (Object.keys(COOK_RECIPES[id].from).some((item) => HUNTED.has(item as LootId)) ? HUNTED_WORTH : 1);
+
 // A fire to cook at: a hearth indoors, or a campfire (a camp's, or one kindled).
 export interface Fire {
   kind: 'hearth' | 'campfire';
@@ -231,7 +237,7 @@ export class Cooking {
     addToBag(hero.bag, recipe.makes);
     gainXp(hero, HERO_XP);
     this.host.report({ kind: 'crafted', item: recipe.makes });
-    practise(hero, SKILL, recipe.needs, hashUnit(this.made, skillOf(hero, SKILL).level, 601), this.host.report);
+    practise(hero, SKILL, recipe.needs, hashUnit(this.made, skillOf(hero, SKILL).level, 601), this.host.report, undefined, huntedWorth(id));
     return true;
   }
 }
