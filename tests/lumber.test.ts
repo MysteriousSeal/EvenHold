@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { REACH, WOOD, chopsIn, riseOf, woodOf } from '../src/model/skills/lumber';
-import { RISE, difficulty } from '../src/model/skills/skills';
+import { RISE, difficulty, stepsOf } from '../src/model/skills/skills';
 import { MAIN_HAND_ITEMS } from '../src/model/human/items/held';
 import { gearKey, weaponTypeOf } from '../src/model/human/items/gear';
 import { SKILLS, skillOf } from '../src/model/skills/skills';
@@ -100,6 +100,7 @@ describe('chopping', () => {
   it('goes on on its own: a log on the ground at every chop, the skill up (orange: surely), some of the hero\'s own experience', () => {
     const { model, tree } = byATree();
     const xp = model.hero.xp;
+    skillOf(model.hero, 'lumberjacking').toward = stepsOf('lumberjacking', 1) - 1; // (a chop short of the next level)
     expect(model.lumber.use()).toBe(true);
     run(model, model.lumber.chopSeconds + 0.05);
     expect(model.lumber.cut.get(`${tree.x},${tree.z}`)).toBe(1);
@@ -154,7 +155,7 @@ describe('chopping', () => {
     // Oaks chopped at by a hand at 125, one after another: the skill rises, in time.
     const { model } = byATree('oak');
     const skill = skillOf(model.hero, 'lumberjacking');
-    skill.level = 125;
+    Object.assign(skill, { level: 125, toward: stepsOf('lumberjacking', 125) - 1 }); // (a chop short of the next level)
     for (const oak of model.trees.filter((t) => woodOf(t, model.seed) === WOOD.oak).slice(0, 12)) {
       Object.assign(model.hero, { x: oak.x + 0.7, z: oak.z });
       if (model.lumber.use()) run(model, 30);

@@ -4,7 +4,7 @@
 // prompt by the water says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
 import { CATCHES, weightOf, Fishing, catchesAt, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
-import { SKILLS, skillOf } from '../src/model/skills/skills';
+import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { freshHero } from '../src/model/hero/heroStats';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { nearestLakeShore } from '../src/model/cheats';
@@ -258,6 +258,7 @@ describe('the skill', () => {
     expect(SKILLS.fishing.practice).toBeTruthy();
     const { fishing, hero, events } = onShore(undefined, true, () => 0); // (every roll the likeliest: orange always rises)
     const xp = hero.xp;
+    skillOf(hero, 'fishing').toward = stepsOf('fishing', 1) - 1; // (a catch short of the next level)
     fishing.use();
     toBite(fishing);
     fishing.use();
