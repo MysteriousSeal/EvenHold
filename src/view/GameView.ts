@@ -58,6 +58,7 @@ import { travellerInReach } from '../model/travellers/travellerTalk';
 import { armsSheathed } from '../model/interiors/indoors';
 import { FrostOnHero } from './meshes/human/frostOnHero';
 import { HeroSilhouette } from './meshes/human/heroSilhouette';
+import { HeroBeacon } from './meshes/human/heroBeacon';
 import type { BodyLook } from '../model/human/humanoid';
 import type { GameEvent } from '../model/types';
 import { BloodBursts } from './meshes/common/bloodBursts';
@@ -88,6 +89,7 @@ export class GameView {
   private readonly heroFrost = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xb8e2ff, roughness: 0.35, emissive: 0x2a6a90, emissiveIntensity: 0.45 });
   private readonly frost = new FrostOnHero();
   private readonly silhouette = new HeroSilhouette(); // (outdoors: their shape through a tree's crown, a roof)
+  private readonly beacon = new HeroBeacon(); // (brackets at their feet, the game's first seconds)
   private readonly world: ChunkStreamer;
   private readonly regions: WorldRegions | null; // a streamed world's, drawn region by region as they're made
   private readonly enemies: EnemyViews;
@@ -334,6 +336,7 @@ export class GameView {
     for (const mesh of this.hero.meshes) mesh.castShadow = !!room; // in the firelight indoors
     this.hero.shaded = !room; // outdoors, the shade on the ground under them
     this.silhouette.update(this.hero, !room && !yard); // (indoors, the walls in the way turn see-through instead)
+    this.beacon.update(this.elapsed, home, hero, room ? INDOOR_SCALE : 1);
     if (!room) [this.workMarks.clear(), this.cupboard.clear()]; // (out of the room: its marks gone, her shelves too)
     if (yard) {
       this.followHero(hero, 0, dt);
