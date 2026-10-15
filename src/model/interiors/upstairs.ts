@@ -160,6 +160,7 @@ function hallway(room: Room, stairs: Furniture): Furniture[] {
   // The room let (the first along the back: inn/roomLetting.ts letDoor), deep enough: a chest at its bed's foot, along
   // the same wall, and a rug beside the bed (walked over: its door's way in left clear).
   if (mid - 3 >= HALL) beds.push({ kind: 'chest', x: HALL, z: mid - 3, w: 1, d: 1, wall: 'left', solid: true }, { kind: 'rug', x: HALL + 1, z: mid - 3, w: 1, d: 2, wall: 'none', solid: false });
+  if (mid - 1 >= HALL) beds.push({ kind: 'washstand', x: HALL + 2, z: mid - 1, w: 1, d: 1, wall: 'none', solid: true, facing: [0, -1] }); // (and a washstand in its front corner, by the nightstand)
   // The two bigger rooms are only so when wide enough for the lot (a double, a
   // wardrobe, a tub); else a single bed there too, like the others.
   const bigWide = big + 3 < room.width; // the biggest room, four tiles or more
