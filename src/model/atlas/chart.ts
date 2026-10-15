@@ -25,7 +25,7 @@ export interface Chart {
   cz: number;
   cells: Uint8Array; // CHART_CELLS x CHART_CELLS, by x then z: each its ground (low four bits) and height (high four)
   ways: number[][]; // its roads and trails, each its tiles' x, z in turn
-  villages: Array<{ x: number; z: number }>;
+  villages: Array<{ x: number; z: number; town?: true }>; // (`town`: the cathedral town, town/townLand.ts)
   ruins: Array<{ x: number; z: number; w: number; d: number }>;
   camps: Array<{ x: number; z: number }>;
 }
@@ -36,7 +36,7 @@ export interface ChartLand {
   tiles: Tiles;
   trails: ReadonlyArray<ReadonlyArray<readonly [number, number]>>;
   roads: ReadonlyArray<{ route: ReadonlyArray<readonly [number, number]> }>;
-  villages: ReadonlyArray<{ x: number; z: number }>;
+  villages: ReadonlyArray<{ x: number; z: number; town?: true }>;
   ruins: ReadonlyArray<{ x: number; z: number; w: number; d: number }>;
   camps: ReadonlyArray<{ x: number; z: number }>;
 }
@@ -78,7 +78,7 @@ export function chartOf(seed: number, size: MapSize, cx: number, cz: number, lan
     cz,
     cells,
     ways,
-    villages: land.villages.filter((v) => on(v.x, v.z)).map(({ x, z }) => ({ x, z })),
+    villages: land.villages.filter((v) => on(v.x, v.z)).map(({ x, z, town }) => ({ x, z, ...(town && { town }) })),
     ruins: land.ruins.filter((r) => on(r.x, r.z)).map(({ x, z, w, d }) => ({ x, z, w, d })),
     camps: land.camps.filter((c) => on(c.x, c.z)).map(({ x, z }) => ({ x, z })),
   };
