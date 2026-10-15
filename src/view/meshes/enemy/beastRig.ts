@@ -15,6 +15,7 @@ import type { Enemy, EnemyKind } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
+import { glintMaterial } from './foeNight';
 import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZE, buildBody, buildHead, buildLeg, buildTail } from './wolfVoxels';
 import { BEAR_BODY, BEAR_HEAD, BEAR_LEG, BEAR_PALETTE, BEAR_TAIL, LYNX_BODY, LYNX_HEAD, LYNX_LEG, LYNX_PALETTE, LYNX_TAIL, bearBody, bearHead, bearLeg, bearTail, lynxBody, lynxHead, lynxLeg, lynxTail } from './wildBeastVoxels';
 import { BOAR_BODY_GRID, BOAR_HEAD_GRID, BOAR_LEG_GRID, BOAR_PALETTE, BOAR_TAIL_GRID, buildBoarBody, buildBoarHead, buildBoarLeg, buildBoarTail } from './boarVoxels';
@@ -37,6 +38,7 @@ export interface BeastSpec {
   leg: Part;
   tail: Part;
   headDrop: number; // voxels below the body's top that the head sits at
+  eye: number; // its eyes' colour (in its palette): what glints at night (foeNight.ts)
   stealthy?: boolean; // faded nearly to nothing while it lurks (a lynx), solid once it's after the hero or hurt
   legsAt: Array<[number, number]>; // front right, front left, back right, back left (voxels, its right is -X)
 }
@@ -49,6 +51,7 @@ export const WOLF_SPEC: BeastSpec = {
   leg: { grid: buildLeg, size: LEG_GRID },
   tail: { grid: buildTail, size: TAIL_GRID },
   headDrop: 3,
+  eye: 0xf2b63c,
   legsAt: [[-2, 5], [2, 5], [-2, -5], [2, -5]],
 };
 
@@ -60,6 +63,7 @@ export const BOAR_SPEC: BeastSpec = {
   leg: { grid: buildBoarLeg, size: BOAR_LEG_GRID },
   tail: { grid: buildBoarTail, size: BOAR_TAIL_GRID },
   headDrop: 5, // carried low
+  eye: 0x120e0e,
   legsAt: [[-2.5, 4], [2.5, 4], [-2.5, -4], [2.5, -4]],
 };
 
@@ -71,6 +75,7 @@ export const BEAR_SPEC: BeastSpec = {
   leg: { grid: bearLeg, size: BEAR_LEG },
   tail: { grid: bearTail, size: BEAR_TAIL },
   headDrop: 7, // carried low, before its hump
+  eye: 0x140e0c,
   legsAt: [[-3.5, 5.5], [3.5, 5.5], [-3.5, -5.5], [3.5, -5.5]],
 };
 
@@ -82,6 +87,7 @@ export const LYNX_SPEC: BeastSpec = {
   leg: { grid: lynxLeg, size: LYNX_LEG },
   tail: { grid: lynxTail, size: LYNX_TAIL },
   headDrop: 2, // held high, watching
+  eye: 0xd8c040,
   legsAt: [[-2, 4.5], [2, 4.5], [-2, -4.5], [2, -4.5]],
   stealthy: true,
 };
@@ -90,20 +96,24 @@ export interface BeastLook {
   spec: BeastSpec;
   normal: THREE.Material;
   flash: THREE.Material;
-  geometry: { body: THREE.BufferGeometry; head: THREE.BufferGeometry; leg: THREE.BufferGeometry; tail: THREE.BufferGeometry };
+  glint: THREE.MeshBasicMaterial; // its eyes' at night (foeNight.ts sets how bright)
+  geometry: { body: THREE.BufferGeometry; head: THREE.BufferGeometry; eyes: THREE.BufferGeometry; leg: THREE.BufferGeometry; tail: THREE.BufferGeometry };
 }
 
 // Materials and meshed parts shared by every beast of a kind on screen.
 export function createBeastLook(spec: BeastSpec, flash: THREE.Material): BeastLook {
-  const mesh = (part: Part, pivot: Grid3) => greedyMesh(part.grid(), spec.palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V));
+  const mesh = (part: Part, pivot: Grid3, include?: (color: number) => boolean) => greedyMesh(part.grid(), spec.palette, V, new THREE.Vector3(-pivot[0] * V, -pivot[1] * V, -pivot[2] * V), include);
   const { body, head, leg, tail } = spec;
+  const eye = spec.palette.indexOf(spec.eye) + 1;
   return {
     spec,
     normal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
     flash,
+    glint: glintMaterial(),
     geometry: {
       body: mesh(body, [body.size[0] / 2, 0, body.size[2] / 2]),
       head: mesh(head, [head.size[0] / 2, 0, 0]),
+      eyes: mesh(head, [head.size[0] / 2, 0, 0], (color) => color === eye), // (its eyes' faces alone)
       leg: mesh(leg, [leg.size[0] / 2, leg.size[1], leg.size[2] / 2]),
       tail: mesh(tail, [tail.size[0] / 2, tail.size[1] / 2, tail.size[2]]),
     },
@@ -122,6 +132,7 @@ export class BeastRig extends FoeRig {
   private phase = 0;
   private readonly own: THREE.MeshStandardMaterial | null = null; // a stealthy one's own look (faded on its own)
   private seen = 1; // how much of a stealthy one shows (0..1)
+  private readonly glint: THREE.Mesh; // its eyes' shine at night
 
   constructor(private readonly look: BeastLook) {
     super(0, new HealthBar(beastTall(look.spec) + 0.2, enemyName(look.spec), ENEMY_STATS[look.spec.kind].passive), { colors: look.spec.palette.slice(0, 5), height: beastTall(look.spec) });
@@ -138,6 +149,9 @@ export class BeastRig extends FoeRig {
     };
     const trunk = part(new THREE.Group(), look.geometry.body, this.body, 0, LEG_H, 0);
     part(this.head, look.geometry.head, this.body, 0, LEG_H + BODY_H - spec.headDrop * V, BODY_L / 2 - V);
+    this.glint = new THREE.Mesh(look.geometry.eyes, look.glint);
+    this.glint.name = 'glint'; // (no silhouette of its own: heroSilhouette.ts)
+    this.head.add(this.glint);
     part(this.tail, look.geometry.tail, this.body, 0, LEG_H + BODY_H - V, -BODY_L / 2);
     for (const [x, z] of spec.legsAt) {
       this.legs.push(part(new THREE.Group(), look.geometry.leg, this.body, x * V, LEG_H, z * V));
@@ -150,6 +164,7 @@ export class BeastRig extends FoeRig {
     const moved = this.follow(beast, dt, TURN_RATE); // turning the way it goes
     this.marked(beast);
 
+    this.glint.visible = beast.state !== 'dead' && this.seen > 0.6; // (none from the dead, nor from a lynx lurking)
     if (beast.state === 'dead') {
       this.die(beast.deadFor, dt);
       return;
