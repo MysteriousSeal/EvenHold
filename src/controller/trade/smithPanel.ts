@@ -16,6 +16,7 @@ import { BROKEN, WORN, mendAll, mendBill, wearOf } from '../../model/hero/wear';
 import { WOODWORKS } from '../../model/shops/shopStock';
 import type { Hero } from '../../model/types';
 import { coinWords } from '../../view/ui/coins';
+import { smithAsleep } from '../../model/smithy/smithWork';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
 // What he says: a greeting when the window opens, and his answer to each trade.
@@ -54,6 +55,9 @@ const ON_GEAR = {
   his: ["That {it}'s smith's work. Treating you well?", "Good {it}, that. Someone knew what they were doing."],
   bare: ["Out there with empty hands? Let's fix that.", "No blade on you? You're braver than you look."],
 };
+
+// His word, the shop shut for the night.
+const SHUT = ["Forge is cold. Come back in the morning.", "We're shut. Forge is cold, and so am I. Morning.", "It's the middle of the night. Forge is cold. Come back in the morning."];
 
 // His word on a pickaxe just bought.
 const PICK_BOUGHT = ["Mind your toes with it.", 'Find me some good ore, and bring it here.', "It'll bite rock. Don't use it on doors."];
@@ -114,12 +118,12 @@ const forging = (id: string): number => (isGear(id) ? levelOf(id) : 0);
 
 export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): { open(smith: Npc): void; update(): void; menu: Menu } {
   const shop = () => smithShopIn(model); // (his village's level: what he forges is at it)
-  return createTradePanel(model, hooks, {
+  const panel = createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
     wares: () => (Object.keys(shop().stock).filter((id) => isGear(id) || smithTakesPick(id)) as Array<GearKey | ToolId>).sort((a, b) => Number(smithTakesPick(b) || smithSellsTo(model.hero, b)) - Number(smithTakesPick(a) || smithSellsTo(model.hero, a)) || forging(b) - forging(a)), // (and his pickaxe) // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks; his latest forging, for the hero grown past his village, first)
     wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id) || smithTakesWood(id) || smithTakesPick(id), // (gear, the iron salvaged from it, what's found in the wood, a pickaxe)
-    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, selling) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
+    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, selling) : selling ? gearSellPrice(id as GearKey, model.hero) : smithPriceFor(model.hero, id as GearKey)),
     trade: (id, selling) => {
       const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey | ToolId);
       return result === 'he is short' ? 'short' : result;
@@ -149,6 +153,18 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     blurb: (id) => smithTakesPick(id) ? 'A miner\'s pickaxe: in your bag, E by a rock of the wilds to mine its vein.' : (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: bought off someone passing through.'),
     facts: (id) => smithTakesPick(id) ? [toned('kind', 'Tool')] : [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
   });
+  return {
+    ...panel,
+    // Of a night (smithy/smithWork.ts), the shop shut: his word, and no window.
+    open(smith) {
+      if (smithAsleep(model.minutes)) return model.report({ kind: 'say', speaker: smith, where: smith.where, text: pick(SHUT) });
+      panel.open(smith);
+    },
+    update() {
+      if (panel.menu.isOpen && smithAsleep(model.minutes)) panel.menu.close(); // (night fallen, trading)
+      panel.update();
+    },
+  };
 }
 
 // Half the time, a word on what the hero wears (their worst-worn piece, broken or badly worn; what's his trade's make;

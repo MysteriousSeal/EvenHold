@@ -92,4 +92,19 @@ describe("the smith's window", () => {
     expect(says()).toMatch(/hands|blade/);
     random.mockRestore();
   });
+
+  it("at night opens no window: the forge is cold, he says, come back in the morning", () => {
+    const { model, keeper, panel } = trading();
+    model.minutes = 2 * 60;
+    model.takeEvents();
+    panel.open(keeper);
+    expect(panel.menu.isOpen).toBe(false);
+    expect(model.takeEvents().some((e) => e.kind === 'say' && /Forge is cold/.test(e.text))).toBe(true);
+    model.minutes = 10 * 60;
+    panel.open(keeper);
+    expect(panel.menu.isOpen).toBe(true);
+    model.minutes = 23 * 60 + 1; // (night falls, trading)
+    panel.update();
+    expect(panel.menu.isOpen).toBe(false);
+  });
 });
