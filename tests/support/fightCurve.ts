@@ -10,6 +10,7 @@ import { gainXp } from '../../src/model/hero/heroStats';
 import { gearKey, slotOfGear } from '../../src/model/human/items/gear';
 import { armorOf, maxHpOf, blowOf, critChanceOf, dodgeChanceOf } from '../../src/model/hero/attributes';
 import type { Enemy, EnemyKind } from '../../src/model/types';
+import { mulberry32 } from '../../src/util/random';
 
 const F = 1 / 60;
 type Piece = [string, number, string]; // item, level, rarity
@@ -38,7 +39,18 @@ export function heroAt(m: GameModel, s: Stage) {
   return { hp: h.hp, armour: armorOf(h), blow: blowOf(h), crit: critChanceOf(h), dodge: dodgeChanceOf(h) };
 }
 
+// Each fight's rolls (crits, dodges, the foe's) seeded: the same fight every run, a bound never missed by luck.
 export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, maxT = 300, make?: (foe: Enemy) => void) {
+  const random = Math.random;
+  Math.random = mulberry32(level * 7919 + kind.length);
+  try {
+    return fought(s, kind, level, style, maxT, make);
+  } finally {
+    Math.random = random;
+  }
+}
+
+function fought(s: Stage, kind: EnemyKind, level: number, style: Style, maxT: number, make?: (foe: Enemy) => void) {
   const m = new GameModel(1, TEST_MAP_SIZE);
   const sheet = heroAt(m, s);
   const h = m.hero;
