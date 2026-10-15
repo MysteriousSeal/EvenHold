@@ -56,3 +56,15 @@ describe('a hero saved against a tree', () => {
     expect([again.hero.x, again.hero.z]).toEqual([at.x, at.z]);
   });
 });
+
+describe('a save made in the furniture yard', () => {
+  it('keeps the villagers near where the hero came from', () => {
+    const model = new GameModel(SEED, STREAMED_SIZE);
+    const village = model.villages.reduce((a, b) => (Math.hypot(b.x - model.hero.x, b.z - model.hero.z) < Math.hypot(a.x - model.hero.x, a.z - model.hero.z) ? b : a));
+    model.teleport(village.x, village.z);
+    const npc = model.npcs.find((n) => n.village === village && model.story.markOf(n) === null)!; // (none that something hangs on: kept anyway)
+    npc.x = village.x + 1; // (about their day: changed from the seed's)
+    model.toggleFurnitureYard();
+    expect(snapshot(model).npcs.map((n) => n.id)).toContain(npc.id);
+  });
+});

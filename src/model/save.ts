@@ -131,7 +131,7 @@ const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a t
 const NPCS_KEPT = 160; // tiles from the hero a villager's village may be for where they are to be saved
 
 export function snapshot(model: GameModel): SaveData {
-  const near = model.inside?.entrance ?? model.hero; // (where the hero is, out of doors)
+  const near = model.yard ? (model.yard.back.inside?.entrance ?? model.yard.back) : (model.inside?.entrance ?? model.hero); // (where the hero is, out of doors; in the yard, where they came from)
   const { hero } = model;
   const door = (entrance: GameModel['entrances'][number] | null | undefined) => (entrance ? doorNumber(entrance) : null);
   const indoors = model.yard ? model.yard.back.inside : model.inside; // a save from the yard keeps where they came from
