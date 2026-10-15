@@ -38,6 +38,7 @@ const MEAL_TABLE = {
   // An artisan's: feasts at a hearth, before a hard fight, Feasted after.
   huntersFeast: { name: "Hunter's feast", value: 60, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'A board heaped with every beast of the wild, roasted. Enough for a war band.' },
   riverFeast: { name: 'River feast', value: 70, heal: 1, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every fish of the river on one platter, with fresh bread to mop it up.' },
+  grilledSalmon: { name: 'Grilled salmon', value: 32, heal: 0.75, fed: { kind: 'fed', seconds: 15 * MINUTES }, droppedBy: {}, about: 'A thick pink steak of salmon, grilled over the coals.' },
   smokedSturgeon: { name: 'Smoked sturgeon', value: 28, heal: 0.8, fed: { kind: 'fed', seconds: 20 * MINUTES }, droppedBy: {}, about: 'A side of the great fish, smoked through and carved thin.' },
   anglersFeast: { name: "Angler's feast", value: 70, heal: 1, energy: 0.3, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Every great fish of the deep and the narrows on one board, and bread for it.' },
   lordsFeast: { name: "Lord's feast", value: 90, heal: 1, energy: 0.5, fed: { kind: 'feasted', seconds: 30 * MINUTES }, droppedBy: {}, about: 'Bear roasted whole in honey, and the bread to go with it. Fit for a lord.' },

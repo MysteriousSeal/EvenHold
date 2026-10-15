@@ -120,7 +120,7 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 75, what: 'Grilled trout; salt-baked perch at 90' },
       { at: 100, what: "Stews at a hearth: Well fed after, mending as you go (smoked eel at 110, a fisherman's stew at 115, baked bream at 120, honey-glazed bear at 130)" },
       { at: 150, what: 'Roast pike; pies at a hearth from 160 (a grayling pie at 165, a pike pie at 180, a honey cake at 200): Fortified after; seared char at 185' },
-      { at: 225, what: "Feasts before a hard fight: Feasted after (a river feast at 250, smoked sturgeon at 260, a lord's at 275, an angler's at 290)" },
+      { at: 225, what: "Feasts before a hard fight: Feasted after (grilled salmon at 240, a river feast at 250, smoked sturgeon at 260, a lord's at 275, an angler's at 290)" },
     ],
   },
   fishing: {
