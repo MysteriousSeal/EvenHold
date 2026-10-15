@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { parseSave, restore, snapshot } from '../src/model/save';
+import { MAX_LEVEL, MAX_MONEY, parseSave, restore, snapshot } from '../src/model/save';
+import { gainXp, xpToNext } from '../src/model/hero/heroStats';
 import { clockAt, timeOfDay } from '../src/model/clock';
 import { fresh, regionCrypt } from './support/testWorld';
 
@@ -150,4 +151,15 @@ it("keeps the potion's and the charms' waits through a save (a reload no way rou
   restore(broken, data);
   expect(broken.hero.potionCooldown).toBe(0);
   expect(broken.hero.spellWait).toEqual({ hex: 6 }); // (no longer than its cooldown)
+});
+
+it('reads a hero file\'s huge level, experience and money as no more than a hero could have (the next experience gained ends)', () => {
+  const data = snapshot(fresh());
+  Object.assign(data.hero, { level: 1e300, xp: 1e300, money: 1e300 });
+  const loaded = fresh();
+  restore(loaded, parseSave(JSON.stringify(data), loaded.seed)!);
+  expect(loaded.hero.level).toBeLessThanOrEqual(MAX_LEVEL);
+  expect(loaded.hero.xp).toBeLessThan(xpToNext(loaded.hero.level));
+  expect(loaded.hero.money).toBeLessThanOrEqual(MAX_MONEY);
+  expect(gainXp(loaded.hero, 5)).toBeLessThanOrEqual(1);
 });

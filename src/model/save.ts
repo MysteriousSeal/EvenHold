@@ -31,6 +31,7 @@ import { STATS, type Stat } from './hero/statKinds';
 import type { Equipment } from './human/equipment';
 import { LOOT } from './loot/loot';
 import { maxEnergyOf, maxHpOf } from './hero/attributes';
+import { xpToNext } from './hero/heroStats';
 import type { BodyLook } from './human/humanoid';
 import { layoutOf } from './interiors/indoors';
 import { openDoorsAt, setOpenDoors, upstairsInside } from './interiors/upstairs';
@@ -243,6 +244,9 @@ export function parseSave(raw: string | null, seed: number): SaveData | null {
 const records = <T>(list: unknown): T[] => (Array.isArray(list) ? list.filter((r): r is T => !!r && typeof r === 'object') : []);
 const finite = (...values: unknown[]) => values.every((v) => typeof v === 'number' && Number.isFinite(v));
 
+export const MAX_LEVEL = 999; // a saved hero's at most (a hero file's past it: at it)
+export const MAX_MONEY = 1e12; // copper (likewise)
+
 // The open tile nearest (x, z), ring by ring out (none near: there).
 function openNear(model: GameModel, x: number, z: number): [number, number] {
   for (let r = 1; r <= 64; r++) {
@@ -272,6 +276,7 @@ export function restore(model: GameModel, data: SaveData): void {
   const known = (item: string): item is BagItem => Object.hasOwn(LOOT, item) || isGear(item); // (gear plain, or as found: its level and rarity)
   const bag = Object.fromEntries(Object.entries(saved.bag ?? {}).filter(([item, n]) => known(item) && Number.isInteger(n) && (n as number) > 0));
   const equipment = readEquipment(saved.equipment);
+  const level = Math.min(MAX_LEVEL, Math.max(1, Math.floor(saved.level)));
   Object.assign(hero, {
     name: saved.name,
     look: readLook(saved.look),
@@ -291,9 +296,9 @@ export function restore(model: GameModel, data: SaveData): void {
     jobs: readJobs(saved.jobs), // (older saves: none)
     skills: readSkills(saved.skills), // (older saves: none)
     bagCounts: Array.isArray(saved.bagCounts) ? saved.bagCounts.slice(0, MAX_BAG_SLOTS).map((n) => (Number.isInteger(n) && n > 0 ? n : 0)) : [],
-    money: Math.max(0, Math.floor(saved.money)),
-    level: Math.max(1, Math.floor(saved.level)),
-    xp: Math.max(0, saved.xp),
+    money: Math.min(MAX_MONEY, Math.max(0, Math.floor(saved.money))), // (a hero file's huge number: as much as a hero could have)
+    level,
+    xp: Math.min(xpToNext(level) - 1, Math.max(0, saved.xp)), // (short of the next level: more, and the next gained never ends)
     ...pointsOf(saved, records<{ slain: unknown }>(data.crypts).filter((d) => Array.isArray(d.slain) && d.slain.includes(AWARD_POST)).length),
     facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
