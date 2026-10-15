@@ -97,6 +97,8 @@ describe('the smithy', () => {
     for (const id of ['oakPlank', 'leatherStrip', 'linenScrap'] as const) expect(saleOf(id), id).toBeNull();
     expect(saleOf('oakLog')).toEqual({ price: LOOT.oakLog.value, to: 'a pedlar' }); // (a lumberjack's, for firewood)
     expect(saleOf('ironScrap')).toEqual({ price: LOOT.ironScrap.value / 2, to: 'a smith' });
+    model.hero.bag.heartwood = 1; // (what's found in the wood: for his hafts, at half)
+    expect([saleOf('heartwood'), sellGear(shop, model.hero, 'heartwood')]).toEqual([{ price: LOOT.heartwood.value / 2, to: 'a smith or a pedlar' }, 'sold']);
   });
 
   it('comes to his counter when the hero is by it, to trade (E)', () => {
