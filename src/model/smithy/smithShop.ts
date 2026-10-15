@@ -10,7 +10,7 @@ import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { wearGone } from '../hero/wear';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
-import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
+import { baseOf, gearKey, gearOf, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
 import type { BagItem } from '../hero/bag';
 import { WOODWORKS, buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
@@ -87,11 +87,12 @@ export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(k
 const WOODWORK_SHARE = 8; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
 export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP); // he buys at half
 
-// The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
+// The hero's level he asks before he'll sell a piece, by its worth (at its rarity's, whatever its level: an uncommon
+// pair of gauntlets dear as mail is kept back as mail is): plain gear to anyone; his heavy work (a war hammer,
 // a tower shield, a great helm, mail, a breastplate) only to a hand that's shown it can carry it, not to a green one
 // fresh from the road with a fat purse (a whole kit of plate at the first village, and nothing could touch them).
 export function smithAsks(key: GearKey): number {
-  const worth = ITEMS[baseOf(key)].value ?? 0;
+  const worth = gearWorth(gearKey({ ...gearOf(key), level: 1 }), ITEMS[baseOf(key)].value ?? 0);
   return worth >= 240 ? 7 : worth >= 200 ? 5 : worth >= 150 ? 3 : 1;
 }
 

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { TEST_MAP_SIZE, fresh } from './support/testWorld';
-import { buyGear, sellGear, smithShopIn } from '../src/model/smithy/smithShop';
+import { buyGear, gearPrice, sellGear, smithAsks, smithShopIn } from '../src/model/smithy/smithShop';
 import { gearKey, isGear, levelOf, type GearKey } from '../src/model/human/items/gear';
 import { RESTOCK_EVERY, buyBack } from '../src/model/shops/shopStock';
 import { mendBill, wearOf } from '../src/model/hero/wear';
@@ -72,5 +72,12 @@ describe('trading with the smith', () => {
     model.hero.bag.mace = 1;
     model.hero.wear = { mace: 100 };
     expect(mendBill(model.hero).pieces.map((p) => p.key)).toEqual(['mace']);
+  });
+
+  it("keeps back a piece as dear as his heavy work, uncommon, as he keeps that back: by its worth, not its kind's", () => {
+    const uncommon = gearKey({ item: 'gauntlets', level: 1, rarity: 'uncommon', roll: 58 });
+    expect(gearPrice(uncommon)).toBeGreaterThanOrEqual(gearPrice('chainMail'));
+    expect(smithAsks(uncommon)).toBeGreaterThanOrEqual(smithAsks('chainMail'));
+    expect(smithAsks(gearKey({ item: 'dagger', level: 9, rarity: 'common', roll: 1 }))).toBe(1); // (a dagger of any level, a dagger)
   });
 });
