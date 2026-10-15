@@ -144,7 +144,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // the one bright pool (the anvil in it), the walls reddening near it, the corners falling off into the dark.
   const inn = room.floor === 'tavern';
   const smithyRoom = furniture.some((f) => f.kind === 'forge');
-  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : smithyRoom ? new THREE.HemisphereLight(0x8a96aa, 0x1a1410, 0.7) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
+  scene.add(inn ? new THREE.HemisphereLight(0xffdcb0, 0x2a1c10, 1.1) : smithyRoom ? new THREE.HemisphereLight(0x8a96aa, 0x1a1410, 0.8) : new THREE.HemisphereLight(0xffe6c0, 0x3a2616, 1.3));
   const sun = new THREE.DirectionalLight(smithyRoom ? 0xbcc8d8 : 0xffd7a0, inn ? 0.6 : smithyRoom ? 0.5 : 1.4);
   sun.position.set(room.width * 0.6, 6, room.depth * 0.8);
   sun.target.position.set(room.width / 2, 0, room.depth / 2);
@@ -158,10 +158,16 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   glow.position.set(spot?.x ?? 0.3, smithyRoom ? 0.32 : 0.38, (spot?.z ?? 0.3) + (smithyRoom ? 0.6 : 0.5));
   // The forge's coal bed, lighting the hood's underside (no shadow of its own).
   const COALS = 3;
-  const coals = smithyRoom && spot ? new THREE.PointLight(0xffa040, COALS, 2.5, 1.6) : null;
+  const coals = smithyRoom && spot ? new THREE.PointLight(0xffa040, COALS, 0.7, 1.6) : null; // (no shadow: reaching the hood's underside, never the flue over it)
   if (coals && spot) {
-    coals.position.set(spot.x, spot.y + 0.25, spot.z + 0.1);
+    coals.position.set(spot.x, spot.y + 0.15, spot.z + 0.1);
     scene.add(coals);
+  }
+  // And daylight in at its door, the cool half of the room, where he trades (no shadow of its own).
+  const doorLight = smithyRoom ? new THREE.PointLight(0xbcc8d8, 1.2, 3.5, 1.6) : null;
+  if (doorLight) {
+    doorLight.position.set(room.door, 0.9, room.depth - 1.3);
+    scene.add(doorLight);
   }
   glow.castShadow = true;
   glow.shadow.mapSize.set(1024, 1024);
@@ -303,7 +309,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();
       material.dispose();
-      for (const light of [glow, ...(coals ? [coals] : []), ...lanterns.map((l) => l.light), ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
+      for (const light of [glow, ...(coals ? [coals] : []), ...(doorLight ? [doorLight] : []), ...lanterns.map((l) => l.light), ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
       fire?.dispose();
     },
   };
