@@ -12,7 +12,7 @@ import type { Furniture, FurnitureKind } from './furniture';
 
 const RUGS: FurnitureKind[] = ['rug', 'bearRug'];
 // Hung on a wall, above everything on the floor: they take no floor tiles.
-const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard'];
+const WALL_HUNG: FurnitureKind[] = ['antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard', 'menuSlate'];
 
 export type Planner = ReturnType<typeof roomPlanner>;
 

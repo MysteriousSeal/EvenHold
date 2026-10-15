@@ -93,17 +93,20 @@ export function furnishInn(plan: Planner, room: Room): void {
   // and shelves (none over them: it'd hang in the basin, or behind the bottles); the way up by one on the wall beside
   // the stairs' foot.
   place('wallLantern', 1, 1, 'back', [[1, 0]], false);
+  place('menuSlate', 1, 1, 'back', [[2, 0]], false); // and beside it, what's poured, chalked up
   const backed = (z: number) => items.some((o) => o.wall === 'left' && o.kind !== 'wallLantern' && o.x === 0 && z >= o.z && z < o.z + o.d);
   const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 2 && z <= room.depth - 4 && !backed(z)); // (two tiles clear of the stairs' one: not a pair)
   if (barWall.length > 0) place('wallLantern', 1, 1, 'left', [[0, barWall[barWall.length - 1]]], false);
   place('wallLantern', 1, 1, 'left', [[0, room.depth - 2]], false);
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
-  // Barrels stood in the room's free corners on the right, two at the front, one at the back (stores, not a bare
-  // corner), clear of everything else (and of the floor before the notice board, where it's read from).
-  for (const [x, z] of [[room.width - 1, room.depth - 1], [room.width - 2, room.depth - 1], [room.width - 1, 0]]) {
+  // Stores in the room's free corners on the right, at the front and the back (not a bare corner), clear of everything
+  // else but each other (and of the floor before the notice board, where it's read from).
+  // (Sacks of grain in the front one, the barrels beside them.)
+  for (const [kind, x, z] of [['sacks', room.width - 1, room.depth - 1], ['barrel', room.width - 2, room.depth - 1], ['barrel', room.width - 1, room.depth - 2], ['barrel', room.width - 1, 0]] as const) {
     if (z === 0 && board?.x === x) continue;
-    if (items.every((o) => !o.solid || Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1)) >= 2)) place('barrel', 1, 1, 'none', [[x, z]], false);
+    const near = (o: Furniture) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
+    if (items.every((o) => !o.solid || near(o) >= 2 || (['sacks', 'barrel'].includes(o.kind) && near(o) >= 1))) place(kind, 1, 1, 'none', [[x, z]], false);
   }
   fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
 }
