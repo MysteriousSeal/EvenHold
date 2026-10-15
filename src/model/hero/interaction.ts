@@ -2,7 +2,7 @@
 // (controller/GameController.ts: it does it), the prompt over it (main.ts: it words it) and whatever else plays by
 // the keys (tests/ai/senses.ts) all read it here, so none can tell it differently from another.
 // In order: at work (a shift), the work's own thing in reach, else the inn's notice board, and nothing else; chopping
-// a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the inn's strongbox (or the let room's chest, or a cottage's); in a cottage, its notice, a spot to build on, its trophy wall; the carter by his wagon; a tree to chop; a lake's shore, to fish from;
+// a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the inn's strongbox (or the let room's chest, or a cottage's); in a cottage, its notice, a spot to build on, its trophy wall; the carter by his wagon (his ! over him: from a few steps); a villager with a quest for them; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
 // (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench, its anvil; a cauldron to brew at; a
 // fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; any villager, for a word; and, with nothing else, a tree that
@@ -98,8 +98,10 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield box ? { kind: 'strongbox', box } : null;
   const home = inside ? homeAction(model) : null;
   yield home ? { kind: 'home', action: home } : null;
-  const carter = model.story.carterInReach;
+  const carter = model.story.carterInReach ?? model.story.carterCalling; // (his ! over him: called over from a few steps)
   yield carter ? { kind: 'carter', carter } : null;
+  const asker = inside ? null : model.story.askerInReach; // (a villager's ! beside the hero, out of doors: before a tree, a rock, a fish)
+  yield asker ? { kind: 'talk', npc: asker, fromStool: false } : null;
   const chop = lumber.action;
   yield chop?.kind === 'chop' ? { kind: 'chop', action: chop } : null;
   const mine = model.mining.action;

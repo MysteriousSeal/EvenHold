@@ -1,5 +1,5 @@
 // The first hour's tips: a line or two, once each, the moment each thing first matters (no wall of words at the
-// start): hurt, with nothing that heals on its own; tired, and what brings energy back; out of breath in a fight; a
+// start, only where to go: the carter, his ! over him, a few steps off): hurt, with nothing that heals on its own; tired, and what brings energy back; out of breath in a fight; a
 // foe closing in, and the guard; a piece badly worn, and the smith; knocked down, and waking at the inn; food in the
 // bag; the bag full; the first inn, its bar and its beds; the first smithy, and the trades; an empty cottage; a trophy. Which have been shown,
 // and whether they're wanted at all (the pause menu's Tips switch), kept in the browser.
@@ -105,6 +105,12 @@ export const TIPS: readonly Tip[] = [
     title: 'A trophy',
     due: (m) => Object.keys(m.hero.trophies ?? {}).length > 0,
     text: () => 'Bosses, captains and bounties each leave you a trophy. Hang them on the trophy wall of a cottage of your own.',
+  },
+  {
+    id: 'carter',
+    title: 'Someone needs a hand',
+    due: (m) => !!m.story.carterCalling && m.story.markOf(m.story.carterCalling) === 'offer', // (at the start: his ! over him, a few steps off; not once he's spoken to)
+    text: (key) => `The man by the broken wagon needs help. Walk up to the gold ! over him and press ${key('use')}.`,
   },
 ];
 
