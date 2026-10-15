@@ -3,6 +3,91 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.9.0] - 2026-10-15
+
+The Bishop's Saint: the road away from home. The first village's story goes
+on to a cathedral town, a false saint and the bishop's witch-finders, with a
+dungeon under the Minster, a new trade, a home of your own and dice at the
+inn.
+
+### The Bishop's Saint
+
+- **A second story, in three acts,** once "The long road" is done:
+  - the carter's wagon comes home without him;
+  - a hedge-witch chained to her own hearth, to free, hand in or leave;
+  - **Greyminster**, the cathedral town, with Bishop Osric, Deacon Prosper,
+    Sister Agnes, Captain Grey of the witch-finders and Gil the pardoner;
+  - the bishop's bargain at the end: expose him, or take his gold.
+
+  What you chose in the first village decides who vouches for you there.
+- **Greyminster.** A walled town on a hill, one to a world, about as far out
+  as a level-12 village. It has the tallest building in the game, the
+  Minster, with a pilgrims' inn, stalls of relics, wine and cloth, and
+  pilgrims on the roads who point the way.
+- **The bishop's ossuary.** A dungeon under the Minster, down Sister
+  Agnes's stair:
+  - a nave of stacked skulls, and monks praying in the walls to mend the dead;
+  - gilded saints that get up off their plinths;
+  - a sealed old door that doesn't open, not yet;
+  - Deacon Edric, the Gilded Deacon, who loses a reliquary at each turn of
+    his fight.
+
+  He drops the new Reliquary set.
+- **Named champions.** About one dungeon in three holds one of nine named
+  champions, Old Brannoc the Unburied and Long Meg of the Gibbet among
+  them. Each has a trait of its own and always drops something good.
+
+### The roads by night
+
+- **Witch-finders.** The bishop's men in grey walk the roads in threes. Turn
+  people into things and word spreads: talk of witchcraft, then wanted, then
+  seized on sight. When they stop you, you can lie, bribe, run or fight.
+  Caught, it's a day in the village stocks and a fine, never burning.
+- **The dead walk at night.** From ten at night to dawn, a band of the dead
+  rises on the road by each crypt near you.
+
+### A life of your own
+
+- **A cottage.** One empty cottage in every village of five houses or more,
+  yours once the village knows you, for 50 silver. Build it up piece by
+  piece:
+  - a bed to wake Well rested;
+  - a chest that opens your strongbox;
+  - a hearth to cook at;
+  - a cauldron to brew at;
+  - a trophy wall.
+- **Trophies.** Lords, the brood mother, the bandit king, the Gilded Deacon,
+  champions, witch-finders and bounty targets each leave a trophy for your
+  wall.
+- **Alchemy, the eighth trade.** Herbs grow by country and season. Brew
+  potions and salves at a cauldron, the herbalist's or your own. The
+  herbalist now sells stronger brews as you rise, and brews to order from
+  your herbs.
+- **Dice at the inn.** Play Hazard (**H**) at an inn's table for small
+  stakes. Some nights a sharp turns up with loaded dice: catch them at it
+  and win back what they took.
+- **The pedlar.** A mule and cart, a camp by the road at night with a fire
+  to cook at, news of the road, and a rumour that marks a place on your
+  map.
+
+### Fairer and clearer
+
+- **Every trade levels closer to its best pace** for a player who doesn't
+  play it perfectly. Off-colour tries teach more often. A tree, rock or
+  shore that teaches you nothing now says where one that does is, and the
+  recipe star marks the recipe that teaches most for what it costs.
+- **Easier to see:**
+  - your hero stands out at dusk and on the first morning;
+  - foes and their warnings show at night and under trees;
+  - Low and Medium graphics now draw less out of doors.
+- **Fixed:**
+  - a quest could be impossible because a dungeon's foes dropped the same
+    things every visit. Drops now vary, and a quest's item turns up sooner
+    the longer you hunt for it;
+  - far villages' errands raised a low-level hero too fast. Their experience
+    is now capped near your level;
+  - villagers wait a moment, then step past you in a doorway.
+
 ## [0.8.0] - 2026-10-15
 
 Weight and a foothold: blows that land and a world you can hear, a map of

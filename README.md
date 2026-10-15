@@ -72,7 +72,7 @@ bandits' strongholds.
   ten sets are scattered across the land, each among its own foes: the
   headsman's, the barrow's, the Sunward plate of kings' tombs, and more.
 - **Skills.** Lumberjacking, mining, woodworking, smithing, salvaging,
-  fishing and cooking, each from 1 to 300 over a few hours: chop the trees
+  fishing, cooking and alchemy, each from 1 to 300 over a few hours: chop the trees
   and dig the ore, make what the inn and the road need, forge your own
   weapons and armour, break old gear down for its iron, catch a sturgeon,
   and roast it over a campfire of your own.
@@ -85,6 +85,14 @@ bandits' strongholds.
   in a thatched hut near the middle, a cauldron bubbling by the hearth:
   health and energy potions to buy, and they'll take your raw ingredients
   and what you bring up from the caves.
+- **Greyminster.** Far out, a walled cathedral town on a hill, where the
+  first village's story leads: a bishop, a false saint, his witch-finders on
+  the roads, and the bishop's ossuary under the Minster.
+- **A home of your own.** Buy an empty cottage in a village that knows you,
+  build it up (a bed, a hearth, a cauldron, a chest, a trophy wall), and
+  hang your trophies.
+- **Dice at the inn.** Hazard at an inn's table for small stakes; mind the
+  sharps.
 - **Wells.** Toss in a silver coin and you may walk away blessed.
 
 <!-- More shots: the inn, a crypt, a cave, the ruins in the mist.
@@ -112,6 +120,7 @@ bandits' strongholds.
 | Quest journal | **L** |
 | Skills (and your charms) | **K** |
 | Map | **M** |
+| Dice, at an inn's table | **H** |
 | At the bar: an ale, a pie | **F**, **G** |
 | By the barmaid: rent a room · by its bed at night: sleep | **G** |
 | Zoom | **Mouse wheel** |
