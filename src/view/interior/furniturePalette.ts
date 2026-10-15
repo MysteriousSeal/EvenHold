@@ -9,7 +9,7 @@ const HERBAL_COLORS = [
   0xb8b0a0, // pale stone
   0x8a6a48, // root
   0xc8b088, // root, light
-  0xa8402a, // toadstool cap
+  0xc04a30, // toadstool cap
   0xe8dcc8, // toadstool's spots, garlic
   0xc89a5a, // mushroom cap
   0x9a8458, // sacking
