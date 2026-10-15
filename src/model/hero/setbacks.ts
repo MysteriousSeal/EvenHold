@@ -21,6 +21,7 @@ import { herbalistAbed } from '../herbalist/herbalistWork';
 import { witchAbed } from '../witch/witchWork';
 import { makeWeary } from './blessing';
 import { spawnOf } from '../map/grid';
+import { ownsHere } from '../homestead/cottage';
 
 const WAKE_ENERGY = 0.3; // of their most energy: what they wake with
 const FLOOR = 0.06; // lying on the rug, just over the floor
@@ -75,7 +76,7 @@ const ownerSeen = new WeakMap<NonNullable<Seated>, boolean>();
 function ownedBed(model: GameModel): { seated: NonNullable<Seated>; owner: Npc | null } | null {
   const inside = model.inside;
   const seated = inside?.seated;
-  if (!inside || inside.below || !seated?.seat.lying || seated.seat.piece.kind !== 'bed') return null; // (an inn's beds upstairs: its rooms')
+  if (!inside || inside.below || !seated?.seat.lying || seated.seat.piece.kind !== 'bed' || ownsHere(model.hero, inside.entrance)) return null; // (an inn's beds upstairs: its rooms'; the hero's own, at home)
   return { seated, owner: model.folk.find((n) => n.home === inside.entrance && n.where === inside.entrance && (n.role === 'herbalist' ? herbalistAbed(model.minutes) : n.role !== 'witch' || witchAbed(model.minutes))) ?? null };
 }
 

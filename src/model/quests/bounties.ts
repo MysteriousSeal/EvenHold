@@ -20,6 +20,7 @@ import { boardVillage, type QuestWorld } from './quests';
 import type { QuestItemId } from './questItems';
 import { bountyName, type BountyKind } from './bountyNames';
 import type { QuestHost } from './questBook';
+import { bountyTrophy, takeTrophy } from '../homestead/trophies';
 
 export const POSTERS = 2; // up on each board at once
 export const WEEK = 7 * 24 * 60; // game minutes a poster's up
@@ -157,6 +158,7 @@ export class Bounties {
     const taken = this.taken.find((t) => !t.slain && t.ids[0] === enemy.id);
     if (!taken) return null;
     taken.slain = true;
+    takeTrophy(this.host, bountyTrophy(taken.poster.kind, taken.poster.foe)); // (for the hero's cottage wall: homestead/trophies.ts)
     const village = boardVillage(this.host, taken.poster.board);
     this.host.report({ kind: 'banner', title: `${taken.poster.name} is dead`, line: village ? 'Take the sack back to the notice board it was posted on' : 'Take the sack back to the board' });
     return TROPHY;

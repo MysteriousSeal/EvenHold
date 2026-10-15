@@ -7,6 +7,7 @@ import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { randomLook } from '../src/model/human/humanoid';
 import { spawnOf } from '../src/model/map/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { isCottage } from '../src/model/homestead/cottage';
 
 // The first test world (made one at a time, till one has) with a village of a few houses and its inn.
 const firstWith = (has: (m: GameModel) => boolean) => {
@@ -21,7 +22,7 @@ const withVillage = () => firstWith((m) => m.houses.length > 2 && m.buildings.so
 describe('villagers', () => {
   it('live one to a house, each in their own (a village\'s herbalist in theirs alone), named, naked, the same for a seed', () => {
     const model = withVillage();
-    const homes = model.entrances.filter((e) => e.type === 'house');
+    const homes = model.entrances.filter((e) => e.type === 'house' && !isCottage(e)); // (a village's empty cottage, for sale: no one's, homestead/cottage.ts)
     const villagers = model.npcs.filter((n) => n.role === 'villager');
     const herbalists = model.npcs.filter((n) => n.role === 'herbalist');
     expect(villagers.length + herbalists.length).toBe(homes.length);

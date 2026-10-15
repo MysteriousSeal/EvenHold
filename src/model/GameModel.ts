@@ -70,6 +70,7 @@ import { Story } from './story/story';
 import { consumed, startAttack, useAction } from './hero/heroActs';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
+import { onSlain } from './homestead/trophies';
 
 export const CLASSIC_MOST = 4096; // tiles a side, at most, of a world made whole (larger: streamed)
 
@@ -329,7 +330,7 @@ export class GameModel {
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];
-  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event)]; // (and what the quests people give ask for, counted: story/story.ts)
+  report = (event: GameEvent): void => void [this.events.push(event), this.story.onEvent(event), onSlain(this, event)]; // (and what the quests people give ask for, counted: story/story.ts; a boss's trophy taken: homestead/trophies.ts)
   slayGuard = (enemy: Enemy): void => void this.events.push(...(this.below?.run.slay(enemy, this.hero) ?? [])); // (its run's: what's told of it)
   // How much of a dungeon is cleared (0..1): its foes slain and its boss, of all of them (by its way in).
   clearedShare = (entrance: Entrance): number => dungeonShare(this.seed, entrance, this.cleared);

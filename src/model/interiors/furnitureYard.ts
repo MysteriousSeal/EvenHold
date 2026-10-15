@@ -7,6 +7,7 @@
 import type { Hero } from '../types';
 import type { Inside, Seated } from './indoors';
 import { bumpsFurniture, FURNITURE_KINDS, type Furniture, type FurnitureKind } from './furniture';
+import { TROPHY_IDS } from '../homestead/trophies';
 import { HERO_RADIUS } from '../constants';
 
 export const YARD_SIZE = 256; // tiles on a side; the pieces only use one corner
@@ -27,6 +28,8 @@ function span(kind: FurnitureKind): [number, number] {
       return [1, 2];
     case 'counter':
       return [4, 1];
+    case 'trophyWall':
+      return [3, 1];
     case 'hearth':
     case 'bed':
     case 'roomBed':
@@ -78,7 +81,7 @@ function against(kind: FurnitureKind): Furniture['wall'] {
   }
 }
 
-const WALK_THROUGH = new Set<FurnitureKind>(['rug', 'bearRug', 'framedPicture', 'antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard', 'menuSlate']);
+const WALK_THROUGH = new Set<FurnitureKind>(['trophyWall', 'cottageSpot', 'saleNotice', 'rug', 'bearRug', 'framedPicture', 'antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard', 'menuSlate']);
 
 // The copies of a kind that look different (every other kind: just the one).
 const blankets = [0, 1, 2, 3].map((cloth) => ({ cloth }));
@@ -90,6 +93,8 @@ const COPIES: Partial<Record<FurnitureKind, Array<Partial<Furniture>>>> = {
   hallDoor: [{ open: false }, { open: true }],
   hallWall: [{ tall: false }, { tall: true }],
   framedPicture: [{ tall: true }],
+  trophyWall: [{ hung: TROPHY_IDS }], // (every trophy there is, hung)
+  cottageSpot: [{ upgrade: 'bed' }, { upgrade: 'trophies' }],
 };
 const copies = (kind: FurnitureKind): Array<Partial<Furniture>> => COPIES[kind] ?? [{}];
 

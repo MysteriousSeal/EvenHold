@@ -76,7 +76,8 @@ export function prompt(model: GameModel): Prompt {
     case 'stopMine':
     case 'cannotMine':
     case 'strongbox':
-      return 'none'; // (a fire to cook at, a rock to mine, the inn's strongbox: nothing the player does yet, and its prompts kept as they were trained)
+    case 'home':
+      return 'none'; // (a fire to cook at, a rock to mine, the inn's strongbox, a cottage's: nothing the player does yet, and its prompts kept as they were trained)
     default:
       return found.kind;
   }

@@ -21,6 +21,7 @@ import { inTurn, say } from '../npcs/speech';
 import { talkingTo } from '../npcs/talk';
 import { between, nextHour } from '../clock';
 import { doorway, roomsOff } from '../interiors/upstairs';
+import { homeBed } from '../homestead/cottage';
 
 export const ROOM_PRICE = 120; // copper, a night (a shift's wage, about: a bed's worth paying for)
 export const WEEK_PRICE = ROOM_PRICE * 5; // copper, the week (two nights' free)
@@ -209,12 +210,12 @@ export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonl
     const inn = model.inside!.entrance;
     return { kind: 'rent', barmaid: talker, taken, week: taken && weekToKeep(inn, model.minutes), bribe: !taken && !lettingHours(model.minutes), ...(taken && { nights: nightsLeft(inn, model.minutes) }) };
   }
-  return letBed(model) ? { kind: 'sleep' } : null;
+  return letBed(model) || homeBed(model, sleepingHours(model.minutes)) ? { kind: 'sleep' } : null; // (or their own bed, at home: homestead/cottage.ts)
 }
 export const roomActionLabel = (action: RoomAction): string =>
   action.kind === 'sleep' ? 'Sleep till morning' : action.bribe ? `Slip her coin for a room now · ${ROOM_PRICE + BRIBE} copper` : action.week ? `Keep the room the week · ${WEEK_PRICE} copper` : action.taken ? `Your room is upstairs · ${action.nights === 1 ? 'a night' : `${action.nights ?? 0} nights`} left` : `Rent a room · ${ROOM_PRICE} copper`;
 
-// A night's sleep in the let room's bed (lain in; or a quest's night): all their health and energy back, up at eight in
+// A night's sleep in the let room's bed (lain in; their own, at home; or a quest's night): all their health and energy back, up at eight in
 // the morning, and Well rested a few hours after (hero/blessing.ts).
 export function sleepTillMorning(model: { hero: Hero; minutes: number }): void {
   model.minutes = nextHour(model.minutes, WAKE_AT);

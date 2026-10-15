@@ -10,6 +10,8 @@
 
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
 import { isWitchHome } from '../witch/witchHomes';
+import { isCottage } from '../homestead/cottage';
+import { COTTAGE_SIZE } from '../homestead/cottageLayout';
 import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Building, House } from '../types';
 
@@ -83,11 +85,12 @@ export function roomFor(seed: number, entrance: Entrance): Room {
   const roll = ([lo, hi]: [number, number]) => lo + Math.floor(rng() * (hi - lo + 1));
   const pick = <T>(options: T[]) => oneOf(options, rng());
   const type = entrance.type as BuildingType;
-  const size = type === 'house' && (isHerbalistHome(entrance) || isWitchHome(entrance)) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom; a hedge-witch's, as much for hers)
+  const cottage = type === 'house' && isCottage(entrance); // (a cottage to be had: always the one room, cottageLayout.ts)
+  const size = cottage ? COTTAGE_SIZE : type === 'house' && (isHerbalistHome(entrance) || isWitchHome(entrance)) ? HERBALIST_SIZE : SIZES[type]; // (a herbalist's: room for their shop and workroom; a hedge-witch's, as much for hers)
   const width = roll(size.width);
   const depth = roll(size.depth);
   const middle = Math.floor(width / 2);
-  const door = width >= 7 ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle;
+  const door = width >= 7 && !cottage ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle;
   const herbalist = size === HERBALIST_SIZE;
   return { width, depth, door, floor: herbalist ? 'earth' : pick(FLOORS[type]), wall: herbalist ? 'daub' : pick(WALLS[type]) }; // (a herbalist's as rustic inside as out)
 }

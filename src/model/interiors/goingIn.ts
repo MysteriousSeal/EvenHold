@@ -12,6 +12,7 @@ import { benchSeatInReach, squareBenches } from '../worldgen/benches';
 import type { GameModel } from '../GameModel';
 import type { Seat } from './furniture';
 import { toggleYard } from './furnitureYard';
+import { homeFurniture } from '../homestead/home';
 import type { Entrance } from './interiors';
 import { layoutOf, seatInReach as roomSeatInReach, sitDown, standUp, walkInside } from './indoors';
 
@@ -59,7 +60,8 @@ export function useDoor(m: GameModel): boolean {
 // In through a building's door, onto the floor just inside it, facing in.
 export function enterRoom(m: GameModel, entrance: Entrance): void {
   m.yard = null;
-  const { room, furniture } = layoutOf(m.seed, entrance);
+  const { room, furniture: laid } = layoutOf(m.seed, entrance);
+  const furniture = homeFurniture(m, entrance) ?? laid; // (the hero's own cottage: as built, homestead/home.ts)
   const place = goesUnder(entrance) ? dungeonAt(entrance) : null; // (down into a dungeon: its own floor for what its foes leave)
   m.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(m.seed, entrance), () => m.below?.run), exitAt: () => m.below?.run.exitOpen ?? null }) };
   if (place) m.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)

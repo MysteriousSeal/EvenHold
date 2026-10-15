@@ -17,8 +17,11 @@ import { furnishHerbalist } from '../herbalist/herbalistLayout';
 import { isHerbalistHome } from '../herbalist/herbalistHomes';
 import { furnishWitch } from '../witch/witchLayout';
 import { isWitchHome } from '../witch/witchHomes';
+import { isCottage } from '../homestead/cottage';
+import { forSale } from '../homestead/cottageLayout';
 
 export function furnish(seed: number, entrance: Entrance, room: Room): Furniture[] {
+  if (entrance.type === 'house' && isCottage(entrance)) return forSale(); // (a cottage to be had: the hero's, laid out by what's built, interiors/goingIn.ts)
   const plan = roomPlanner(seed, entrance, room);
   if (entrance.type === 'house' && isHerbalistHome(entrance)) furnishHerbalist(plan, room, seed, entrance); // (a herbalist's: their shop)
   else if (entrance.type === 'house' && isWitchHome(entrance)) furnishWitch(plan, room, seed, entrance); // (a hedge-witch's: her cottage)
