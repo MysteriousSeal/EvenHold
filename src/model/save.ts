@@ -337,7 +337,8 @@ export function restore(model: GameModel, data: SaveData): void {
     else model.enterRoom(building); // (as going in: a crypt's walls with it)
     if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0, facing: Number.isFinite(saved.facing) ? saved.facing : hero.facing }); // (lost: at the door, as they came in; facing as they were, not as going in turned them)
   } else if (placed || (saved.inside !== null && data.version !== 1)) {
-    const at = saved.inside !== null ? doorPlace(saved.inside) : saved; // (indoors in a building since let go, the town stood in its place: outside where its door was)
+    const door = saved.inside !== null ? doorPlace(saved.inside) : saved; // (indoors in a building since let go, the town stood in its place: outside where its door was)
+    const at = Number.isFinite(door.x) && Number.isFinite(door.z) ? door : { x: hero.x, z: hero.z }; // (its number broken: where they set out)
     model.teleport(Math.min(model.size.width - 1, Math.max(0, at.x)), Math.min(model.size.depth - 1, Math.max(0, at.z)));
     if (!model.isOpenTile(Math.round(hero.x), Math.round(hero.z))) model.teleport(...openNear(model, Math.round(hero.x), Math.round(hero.z))); // (where a wall since stands, the town's say: beside it)
   } // (lost outdoors: where they set out)
