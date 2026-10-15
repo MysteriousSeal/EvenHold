@@ -6,12 +6,15 @@ the game; the ambience loops have their ends crossfaded so they repeat without a
 
 | Pack | Author | Source | Licence | Used for |
 |---|---|---|---|---|
-| Impact Sounds | Kenney | https://kenney.nl/assets/impact-sounds | CC0 | hits (flesh, armour), crits, hurt, parry, block, guard broken, a body falling, chop, felled, mining, anvil, salvage bench, footsteps (grass, stone, wood, snow) |
-| RPG Audio | Kenney | https://kenney.nl/assets/rpg-audio | CC0 | roll (cloth), coins, window open and close (book), locked latch, doors, chop, footsteps (dirt) |
+| Impact Sounds | Kenney | https://kenney.nl/assets/impact-sounds | CC0 | hits (flesh, armour), crits, hurt, parry, block, guard broken, a body falling, chop, felled, mining, anvil, salvage bench and what it leaves, footsteps (grass, stone, wood, snow) |
+| RPG Audio | Kenney | https://kenney.nl/assets/rpg-audio | CC0 | something made (into the bag), roll (cloth), coins, window open and close (book), locked latch, doors, chop, footsteps (dirt) |
 | Interface Sounds | Kenney | https://kenney.nl/assets/interface-sounds | CC0 | window open and close, error |
 | Music Jingles | Kenney | https://kenney.nl/assets/music-jingles | CC0 | skill up, level up, quest done (pizzicato) |
 | Swishes Sound Pack | artisticdude | https://opengameart.org/content/swishes-sound-pack | CC0 | swing, dodge |
-| 80 CC0 RPG SFX | rubberduck | https://opengameart.org/content/80-cc0-rpg-sfx | CC0 | coins |
+| 80 CC0 RPG SFX | rubberduck | https://opengameart.org/content/80-cc0-rpg-sfx | CC0 | coins, a charm cast, a web, the brood hatching |
+| 100 CC0 SFX | rubberduck | https://opengameart.org/content/100-cc0-sfx | CC0 | the gong for the big moments (pitched down), bells (a well's blessing, mending), glass (frost) |
+| Liquid Bottle Drink Set | qubodup | https://opengameart.org/content/liquid-bottle-drink-set | CC0 | a potion or a drink gulped |
+| 7 Eating Crunches | starninjas | https://opengameart.org/content/7-eating-crunches | CC0 | food eaten |
 | 6 Short Water Splashes | qubodup | https://opengameart.org/content/6-short-water-splashes | CC0 | fishing: cast, catch, got away |
 | Boiling Water Loops | TinyWorlds | https://opengameart.org/content/boiling-water-loops | CC0 | cooking |
 | Ambient Bird Sounds | isaiah658 | https://opengameart.org/content/ambient-bird-sounds | CC0 | birds by day |

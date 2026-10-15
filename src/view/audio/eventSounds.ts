@@ -1,6 +1,7 @@
 // What's heard of what the model tells (its GameEvents): a blow's whoosh, its landing (on flesh, or on armour and
-// bone), a parry's ring, a foe falling; the coin, a skill risen, a level gained, something not to be had; each stroke
-// at work, a line cast and what came of it. Most events are seen only (a banner, words over a head): none.
+// bone), a parry's ring, a foe falling, a bane caught; a gong for the big moments (a lord risen, a gate unbarred); the
+// coin, a skill risen, a level gained, something not to be had; a potion or a drink gulped, food eaten, a charm cast;
+// each stroke at work, a line cast and what came of it, a thing made. What's only seen (a village's name): none.
 
 import type { EnemyKind, GameEvent } from '../../model/types';
 import type { SoundId } from './soundBank';
@@ -38,6 +39,25 @@ export function soundsFor(event: GameEvent): Cue[] {
     case 'felled': return [{ id: 'felled' }];
     case 'castLine': return [{ id: 'castLine' }];
     case 'fished': return [{ id: event.item ? 'catch' : 'lost' }];
+    case 'crafted': return [{ id: 'crafted' }];
+    case 'salvaged': return [{ id: 'salvaged' }];
+    case 'consumed': return [{ id: event.drink ? 'drink' : 'eat' }];
+    case 'cast': return [{ id: event.mended === undefined ? 'cast' : 'mend' }];
+    case 'chilled': return [{ id: 'frost' }];
+    case 'webbed': return [{ id: 'web' }];
+    case 'brood': return [{ id: 'hatch' }];
+    case 'rises':
+    case 'stirs':
+    case 'torn':
+    case 'unbarred': return [{ id: 'sting' }];
+    case 'arrive':
+    case 'campGate': return [{ id: 'sting', gain: 0.45 }]; // (somewhere dangerous come into: softer)
+    case 'barred':
+    case 'walled': return [{ id: 'locked' }];
+    case 'blessing': return [{ id: 'blessing' }];
+    case 'point': return [{ id: 'skillUp' }];
+    case 'mending': return [{ id: 'mend', gain: 0.6 }];
+    case 'shift': return [{ id: 'quest' }];
     default: return [];
   }
 }

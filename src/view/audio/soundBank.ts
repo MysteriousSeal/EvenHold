@@ -27,6 +27,16 @@ export const SOUNDS = {
   broken: fx(1, 0.8),
   slain: fx(3, 0.7),
   fallen: fx(1, 0.9, 0),
+  frost: fx(2, 0.5), // (caught in a draugr's breath)
+  web: fx(2, 0.55), // (in a spider's web)
+  hatch: fx(2, 0.6), // (the brood's eggs)
+  sting: fx(2, 0.7, 0.03), // (a gong: a boss risen, a nest torn open, a gate unbarred, a dungeon come into)
+  // the bag, charms
+  drink: fx(2, 0.55),
+  eat: fx(3, 0.45),
+  cast: fx(2, 0.5),
+  mend: fx(1, 0.4, 0.03),
+  blessing: fx(1, 0.5, 0),
   // windows, coin, being told
   open: fx(2, 0.35),
   close: fx(2, 0.3),
@@ -43,6 +53,8 @@ export const SOUNDS = {
   mine: fx(3, 0.55),
   anvil: fx(3, 0.5, 0.04),
   bench: fx(2, 0.5),
+  crafted: fx(1, 0.5), // (something made, into the bag)
+  salvaged: fx(2, 0.45), // (a piece broken down: its bits)
   castLine: fx(1, 0.5, 0.1),
   catch: fx(1, 0.6),
   lost: fx(1, 0.45),

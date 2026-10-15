@@ -49,6 +49,16 @@ describe('what the model tells, heard', () => {
     expect(ids({ kind: 'fished', item: null, x: 0, z: 0 })).toEqual(['lost']);
   });
 
+  it('the bag, charms, banes and the big moments', () => {
+    expect(ids({ kind: 'consumed', drink: true })).toEqual(['drink']);
+    expect(ids({ kind: 'consumed', drink: false })).toEqual(['eat']);
+    expect(ids({ kind: 'cast', spell: 'x' as never, ...at })).toEqual(['cast']);
+    expect(ids({ kind: 'cast', spell: 'x' as never, mended: 3, ...at })).toEqual(['mend']);
+    expect([ids({ kind: 'chilled' }), ids({ kind: 'webbed' }), ids({ kind: 'brood' })]).toEqual([['frost'], ['web'], ['hatch']]);
+    for (const event of [{ kind: 'rises', name: 'L' }, { kind: 'stirs', name: 'M' }, { kind: 'torn' }, { kind: 'unbarred' }] as GameEvent[]) expect(ids(event)).toEqual(['sting']);
+    expect(ids({ kind: 'crafted', item: 'bread' as never })).toEqual(['crafted']);
+  });
+
   it('what is only seen: nothing', () => {
     expect(ids({ kind: 'village', name: 'Ash', level: 1 })).toEqual([]);
     expect(ids({ kind: 'say', speaker: { x: 0, z: 0 }, where: null, text: 'Ho' })).toEqual([]);
