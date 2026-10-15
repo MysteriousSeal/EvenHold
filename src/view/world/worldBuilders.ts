@@ -20,6 +20,7 @@ import { buildGroundCover } from '../meshes/cover/groundCoverMesh';
 import { buildBushes } from '../meshes/bush/bushMesh';
 import { buildWater } from '../meshes/water/waterMesh';
 import { buildScenery3d } from '../meshes/scenery/sceneryMesh';
+import { buildVeins } from '../meshes/mining/veinMesh';
 import { buildCamps } from '../meshes/camp/campMesh';
 import { buildRuins } from '../meshes/ruin/ruinMesh';
 import { buildCaveMouths } from '../meshes/cave/caveMouthMesh';
@@ -55,4 +56,5 @@ export const WORLD_BUILDERS: readonly WorldBuilder[] = [
   { label: 'Raising the strongholds', build: buildStrongholdGates },
   { label: 'Lighting the old braziers', build: buildEntranceDressing },
   { label: 'Setting the old stones', build: buildScenery3d },
+  { label: 'Seaming the rocks with ore', build: buildVeins },
 ];

@@ -24,6 +24,20 @@ const log = (palette: number[], marked: (x: number, y: number, z: number) => boo
 const plank = (palette: number[]): LootModel =>
   model(palette, [8, 1, 3], (g) => fillBox(g, 0, 0, 0, 7, 0, 2, (x, _y, z) => (x === 0 || x === 7 ? 3 : z === 1 && x % 3 !== 0 ? 2 : 1)));
 
+// A lump of ore: a rough block of its rock (stone 1, its underside 2), corners knocked off, its ore 3 showing through
+// in flecks and a seam across the top, a glint 4 or two of it catching the light.
+const ore = (palette: number[]): LootModel =>
+  model(palette, [5, 3, 4], (g) => {
+    fillBox(g, 0, 0, 0, 4, 2, 3, (x, y, z) => {
+      const edge = (x === 0 || x === 4) && (z === 0 || z === 3);
+      if (edge && y !== 1) return 0; // (rough: its corners off)
+      if (y === 2 && (x === 0 || x === 4 || z === 0 || z === 3) && (x + z) % 2 === 0) return 0;
+      if (y === 2 && z === 1 + (x % 2)) return x === 2 ? 4 : 3; // the seam across its top, a glint in it
+      if ((x * 5 + y * 3 + z * 7) % 6 === 0) return 3; // flecks of it in the sides
+      return y === 0 ? 2 : 1;
+    });
+  });
+
 // A fish lying on its side along x, `long` voxels: its back 1, its flank 2, its belly 3, its fins and tail 4, its eye 5;
 // the head to a point at x 0, the tail forked at the far end; `marks`, any of its own over that (spots, scutes).
 const fish = (palette: number[], long: number, marks?: (g: VoxelGrid) => void): LootModel =>
@@ -87,8 +101,16 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   riverTrout: fish([0x5a6a3a, 0xd08a8a, 0xf0e4d0, 0x4a5a30, 0x1a1a1a], 7),
   lakePerch: fish([0x4a6a2a, 0xc8b048, 0xf0e0b0, 0xc84a2a, 0x1a1a1a], 7),
   pike: fish([0x3a5a2a, 0x7a9a4a, 0xe8e0c0, 0x2a4020, 0x1a1a1a], 9),
-  char: fish([0x34463e, 0x6a7a68, 0xe0562a, 0xc84a2a, 0x1a1a1a, 0xf0e8c8], 8, (g) => {
-    for (const x of [2, 4, 6]) setColor(g, x, 2, 1, 6); // pale spots along its back
+  // A bream, deep and flat, bronze-gold, its fins dark; a grayling, silver-grey, its long sail of a back fin purple-red.
+  bream: fish([0x6a5a2a, 0xc0a050, 0xe8d8a0, 0x3a3222, 0x1a1a1a], 7, (g) => {
+    for (const x of [2, 3, 4]) setColor(g, x, 2, 1, 4); // its back's long fin
+  }),
+  grayling: fish([0x5a646e, 0xa8b4bc, 0xe8ecee, 0x8a3a5a, 0x1a1a1a, 0x2a2e34], 8, (g) => {
+    for (let x = 2; x <= 5; x++) setColor(g, x, 2, 1, 4); // the sail along its back
+    for (const [x, z] of [[2, 0], [3, 2]]) setColor(g, x, 1, z, 6); // dark specks on its flanks
+  }),
+  char: fish([0x3e5248, 0x6a7a68, 0xe0562a, 0xc84a2a, 0x1a1a1a, 0xf0e8c8], 8, (g) => {
+    for (const [x, z] of [[2, 1], [5, 1]]) setColor(g, x, 2, z, 6); // pale spots on its back and flanks
     setColor(g, 3, 1, 0, 6);
     setColor(g, 5, 1, 2, 6);
   }),
@@ -98,7 +120,7 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   }),
   // An eel: long and thin, dark olive above and yellowish below, a low fin running the length of its back, the head
   // a little broader, the tail to a point (no fork).
-  eel: model([0x3e3a22, 0x6a6436, 0xc8b860, 0x2a2818, 0x1a1a1a], [11, 3, 3], (g) => {
+  eel: model([0x6a6236, 0x8a8248, 0xd8c870, 0x4e4828, 0x1a1a1a], [11, 3, 3], (g) => {
     fillBox(g, 1, 0, 1, 9, 1, 1, (_x, y) => (y === 1 ? 1 : 3)); // its body, back over belly
     fillBox(g, 3, 2, 1, 9, 2, 1, 4); // the fin along its back
     fillBox(g, 1, 0, 0, 2, 1, 2, (_x, y, z) => (z !== 1 && y === 1 ? 5 : z !== 1 ? 0 : y === 1 ? 2 : 3)); // the head, eyes either side
@@ -138,12 +160,19 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   ),
   // An elder oak's burl: a knotted lump of grey bark, a fleck of lichen on it, sawn off flat on one side to show its
   // grain swirled round three dark knots.
-  oakBurl: model([0x5e564a, 0x40382f, 0xa8b07a, 0xc89058, 0x8a5a30, 0x3a2414], [4, 4, 5], (g) => {
-    fillBox(g, 0, 0, 0, 2, 3, 4, (x, y, z) => ((y === 0 || y === 3) && (z === 0 || z === 4) ? 0 : x === 0 && (y === 3 || z === 0 || z === 4) ? 0 : y === 0 ? 2 : (x + y * 2 + z) % 7 === 0 ? 3 : 1)); // the lump, rounded
-    setColor(g, 1, 3, 2, 3); // lichen atop
-    fillBox(g, 3, 0, 0, 3, 3, 4, (_x, y, z) => ((y === 0 || y === 3) && (z === 0 || z === 4) ? 0 : y === 0 || y === 3 || z === 0 || z === 4 ? 1 : (y * 3 + z * 2) % 4 === 0 ? 5 : 4)); // the sawn face
-    for (const [y, z] of [[1, 1], [2, 3], [1, 3]]) setColor(g, 3, y, z, 6); // its knots
+  oakBurl: model([0x5e564a, 0x40382f, 0xa8b07a, 0xc89058, 0x8a5a30, 0x3a2414], [6, 3, 5], (g) => {
+    fillBox(g, 0, 0, 0, 5, 1, 4, (x, y, z) => ((x === 0 || x === 5) && (z === 0 || z === 4) ? 0 : y === 0 ? 2 : (x * 2 + z) % 5 === 0 ? 3 : 1)); // the lump of bark, rounded, lichen on it
+    fillBox(g, 1, 2, 1, 4, 2, 3, (x, _y, z) => ((x + z * 2) % 3 === 0 ? 5 : 4)); // sawn flat atop: its grain swirled
+    for (const [x, z] of [[1, 1], [3, 2], [4, 3]]) setColor(g, x, 2, z, 6); // round three dark knots
   }),
+  // Struck from the veins (mining.ts): copper, orange in green-stained stone; tin, black grains in grey; iron, rust-red;
+  // silver, bright flecks; gold, yellow in white quartz; star-iron, blue-black stone glittering pale blue.
+  copperOre: ore([0x8a8a78, 0x5e5e50, 0xc8743a, 0x6ab89a]),
+  tinOre: ore([0x7a766e, 0x4e4a44, 0x2a2a30, 0xd0d4d8]),
+  ironOre: ore([0x8a7466, 0x5e4a3e, 0xa8482a, 0xd8885a]),
+  silverOre: ore([0x86868a, 0x5a5a5e, 0xc8ccd4, 0xffffff]),
+  goldOre: ore([0xe4e0d6, 0xb0aa9e, 0xe0b030, 0xfff0a0]),
+  starIronOre: ore([0x2e3244, 0x1a1c28, 0x4a6aa8, 0xc8e8ff]),
   // Worked: planks (a birch's cream, a pine's amber, an oak's tan); a stoppered clay pot of varnish, amber at its lip.
   birchPlank: plank([0xf0e2c0, 0xd8c498, 0xc8b080]),
   pinePlank: plank([0xe0a868, 0xc08848, 0xa87038]),
