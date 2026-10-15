@@ -10,6 +10,7 @@ import { zoneLevel } from '../src/model/enemies/enemyLevels';
 import { solidCells } from '../src/model/worldgen/world';
 import { entrancesOf, roomFor, type Entrance } from '../src/model/interiors/interiors';
 import { furnish } from '../src/model/interiors/furnish';
+import { seatOf } from '../src/model/interiors/furniture';
 import { BISHOP, NAVE, RELIQUARY_STAIR } from '../src/model/cathedral/cathedralLayout';
 import { chartOfLand } from '../src/model/atlas/chart';
 import { MAX_TIER } from '../src/model/constants';
@@ -116,7 +117,8 @@ describe('the cathedral within', () => {
     expect([room.width, room.door]).toEqual([NAVE, Math.floor(NAVE / 2)]);
     expect(at('altar')).toEqual([expect.objectContaining({ x: room.door - 1, z: 0, w: 3 })]);
     expect(at('reliquaryStair')).toEqual([expect.objectContaining({ x: RELIQUARY_STAIR[0], z: RELIQUARY_STAIR[1], w: 2, d: 2 })]);
-    expect(at('pew').length).toBe(8);
+    expect(at('pew').length).toBe(16); // (a seat a tile, two to each side of each row: every one sat on, none made a barrel: furnish.ts)
+    for (const pew of at('pew')) expect(seatOf(pew)).toEqual(expect.objectContaining({ facing: Math.PI, lying: false })); // (facing the altar)
     expect(at('hallDoor')).toEqual([expect.objectContaining({ open: true })]); // (walked through: bumpsFurniture)
     expect(at('doubleBed')[0].x).toBeGreaterThanOrEqual(BISHOP.x0);
   });

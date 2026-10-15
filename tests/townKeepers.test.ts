@@ -92,6 +92,26 @@ describe('the stalls\' keepers', () => {
   }, 180_000);
 });
 
+describe('the townsfolk', () => {
+  it('go to the cathedral now and then by day, instead of the inn, and sit in its pews', () => {
+    const model = inTown();
+    model.teleport(site.x, site.z + 3);
+    const folk = model.npcs.filter((n) => n.role === 'villager' && n.village.town);
+    expect(folk.every((n) => n.church?.type === 'cathedral')).toBe(true);
+    expect(model.npcs.filter((n) => n.role === 'villager' && !n.village.town).some((n) => n.church)).toBe(false);
+    model.minutes = 9 * 60;
+    let seen = 0;
+    let pews = 0;
+    for (let t = 0; t < 600; t += 0.2) {
+      model.update(0, 0, 0.2);
+      seen = Math.max(seen, folk.filter((n) => n.where?.type === 'cathedral').length);
+      pews = Math.max(pews, folk.filter((n) => n.seat?.piece.kind === 'pew').length);
+    }
+    expect(seen).toBeGreaterThan(0);
+    expect(pews).toBeGreaterThan(0);
+  }, 180_000);
+});
+
 describe('pilgrims on the roads to it', () => {
   it('walk the roads into the town, more of them than anywhere else, and every pilgrim tells the way to it', () => {
     const model = inTown();
