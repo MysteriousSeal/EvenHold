@@ -5,7 +5,12 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { atOrderSeat, createBar, orderLabel, tableHere, type BarView } from '../src/controller/trade/barOrder';
-import { buyPrice } from '../src/model/inn/tavernShop';
+import { buyPrice, shopAt } from '../src/model/inn/tavernShop';
+import { buyRound, withRound } from '../src/model/inn/barRound';
+import { chat } from '../src/model/npcs/chat';
+import { interactionOf } from '../src/model/hero/interaction';
+import { doorNumber } from '../src/model/interiors/interiors';
+import type { Talk } from '../src/model/story/story';
 import { callBarkeep, ordersAt, placeOrder } from '../src/model/inn/barOrders';
 import { mugsAt, setMug } from '../src/model/inn/barMugs';
 import { BarShift } from '../src/model/jobs/barShift';
@@ -16,7 +21,7 @@ import type { Npc } from '../src/model/npcs/npcs';
 import { AISLE_X, serveTable } from '../src/model/inn/innStaff';
 import type { InnShift } from '../src/model/jobs/innShift';
 import { distanceTo, seatOf, type Furniture } from '../src/model/interiors/furniture';
-import type { Entrance } from '../src/model/interiors/interiors';
+import { type Entrance } from '../src/model/interiors/interiors';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 // A model with the hero in an inn, its bar's queue and mugs cleared.
@@ -322,4 +327,69 @@ describe("a shift's pay, the hero's level", () => {
     expect(third.rate).toBe(1.5);
     expect(third.handed).toBe(Math.round(first.handed * 1.5));
   });
+});
+
+describe('sat at the bar, the patron beside', () => {
+  // The hero on the first stool, a villager on the next, the barmaid down the far end of the bar (or across from them).
+  function besideThem(across = false) {
+    const world = inTheInn();
+    const [mine, theirs] = world.furniture.filter((f) => f.kind === 'barStool').sort((a, b) => a.z - b.z);
+    const patron = world.model.npcs.find((n) => n.role === 'villager' && n.inn === world.inn)!;
+    const seat = seatOf(theirs)!;
+    Object.assign(patron, { where: world.inn, x: seat.x, z: seat.z, seat, stood: { x: seat.x + 1, z: seat.z }, steps: [{ kind: 'sit', seat, for: 999 }], awaiting: false, drinking: null, pickup: 0 });
+    sitOn(world.model, mine);
+    const barmaid = barmaidOf(world.model, world.inn);
+    Object.assign(barmaid, { x: AISLE_X, z: across ? mine.z : mine.z + 1.5, steps: [{ kind: 'wait', for: 999 }] }); // (in reach, but along the bar; or right across)
+    return { ...world, patron, barmaid };
+  }
+
+  it("is talked to with E, the barmaid down the bar; she's first when she's right across", () => {
+    const away = besideThem();
+    expect(interactionOf(away.model)).toMatchObject({ kind: 'talk', npc: away.patron, fromStool: true });
+    const near = besideThem(true);
+    expect(interactionOf(near.model)).toMatchObject({ kind: 'talk', npc: near.barmaid, fromStool: true });
+  });
+
+  it("can be bought a round, with everyone at the bar: an ale's price each, paid to her; each orders, a cheer; the day's first, a little experience", () => {
+    const { model, inn, patron } = besideThem();
+    const shop = shopAt(model.shops, model.seed, doorNumber(inn));
+    model.hero.money = 100;
+    const [money, xp, ale] = [shop.money, model.hero.xp, shop.stock.ale!];
+    const talk = withRound(model, chat(model, patron));
+    const round = talk.answers[0];
+    expect(round.label).toBe(`Buy a round for the bar · ${buyPrice('ale')} copper`); // (one at the bar: theirs)
+    model.takeEvents();
+    const after = round.pick() as Talk;
+    expect(after.answers.some((a) => a.label.startsWith('Buy a round'))).toBe(false);
+    expect([model.hero.money, shop.money, shop.stock.ale]).toEqual([100 - buyPrice('ale'), money + buyPrice('ale'), ale - 1]);
+    expect(ordersAt(inn).some((o) => o.by === patron)).toBe(true);
+    expect(model.takeEvents().filter((e) => e.kind === 'say').length).toBeGreaterThanOrEqual(2); // (her call, their cheer)
+    expect(model.hero.xp).toBeGreaterThan(xp);
+    const once = model.hero.xp;
+    ordersAt(inn).splice(0);
+    patron.awaiting = false;
+    expect(buyRound(model)).toBe('bought');
+    expect(model.hero.xp).toBe(once); // (once a day)
+    model.hero.money = 0;
+    expect(buyRound(model)).toBe('too poor');
+  });
+});
+
+describe('the stools, the hero serving the tables', () => {
+  it("are served in good time still, however the tables' orders keep coming (one trip for the tables, then theirs)", () => {
+    const { model, inn, furniture } = inTheInn();
+    const [stool] = furniture.filter((f) => f.kind === 'barStool');
+    const counter = furniture.find((f) => f.kind === 'counter')!;
+    const barkeep = barmaidOf(model, inn);
+    let served = -1;
+    let t = 0;
+    placeOrder(inn, { stool, by: null, drink: 'ale', served: () => (served = t) });
+    callBarkeep(barkeep);
+    for (; t < 90 && served < 0; t += 0.1) {
+      if (Math.round(t * 10) % 50 === 0) placeOrder(inn, { stool: { ...counter, kind: 'barStool', z: counter.z + counter.d - 0.5 }, by: null, drink: 'ale', batch: true, served: () => {} }); // (a table's order taken, every 5 s)
+      model.update(0, 0, 0.1);
+    }
+    expect(served).toBeGreaterThanOrEqual(0);
+    expect(served).toBeLessThan(25);
+  }, 60_000);
 });
