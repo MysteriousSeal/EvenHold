@@ -1,11 +1,12 @@
 // The smithy's shop, kept by its smith: the weapons, shields and armour he
 // forges (items marked `soldBy: { smith }`, at their value), and any gear of
 // that kind bought back (at half its value; cloth and leather he's no use
-// for, cheap), and the iron salvaged from gear, and what a lumberjack finds in the wood (resin, heartwood, a burl: for hafts and handles), each at half its worth, a few at a time. His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
+// for, cheap), and the iron salvaged from gear, and what a lumberjack finds in the wood (resin, heartwood, a burl: for hafts and handles), each at half its worth, a few at a time; and a miner's pickaxe, one on his shelf. His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
 // piece in three uncommon, the same each visit; what's found sells for its level and rarity (human/items/gear.ts).
 
 import { hashUnit } from '../../util/random';
 import { LOOT } from '../loot/loot';
+import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
@@ -36,12 +37,20 @@ const FOUND_WOOD: ReadonlySet<string> = new Set(['pineResin', 'heartwood', 'oakB
 export const smithTakesWood = (id: string): boolean => FOUND_WOOD.has(id) && id in LOOT;
 export const woodPrice = (id: string): number => Math.floor((LOOT[id as keyof typeof LOOT]?.value ?? 0) / 2);
 
+// The miner's pickaxe (skills/mining.ts): his copper one, one on his shelf, at its worth; any pickaxe bought back at
+// half, as a pedlar buys back a rod.
+export const SMITH_PICK = 'copperPick' satisfies ToolId;
+const PICKS: ReadonlySet<string> = new Set(['copperPick', 'ironPick', 'steelPick', 'starIronPick']);
+export const smithTakesPick = (id: string): id is ToolId => PICKS.has(id) && id in TOOL_ITEMS;
+export const pickPrice = (id: ToolId, selling: boolean): number => (selling ? Math.floor(TOOL_ITEMS[id].value / 2) : TOOL_ITEMS[id].value);
+
 // What he starts with, and restocks toward: his usual few of each (now and
 // then one short, from the seed), and a purse of several silver.
 function usual(seed: number, smithy: number, level?: number): Usual {
   const roll = (salt: number) => hashUnit(smithy, seed % 1_000_003, salt);
   const forged = (id: ItemId, i: number): GearKey => (level === undefined ? id : gearKey({ item: id, level, rarity: roll(300 + i) < 0.33 ? 'uncommon' : 'common', roll: Math.floor(roll(400 + i) * 1000) }));
-  const stock = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), Math.max(0, ITEMS[id].soldBy!.smith! - (roll(200 + i) < 0.3 ? 1 : 0))]));
+  const stock: Usual['stock'] = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), Math.max(0, ITEMS[id].soldBy!.smith! - (roll(200 + i) < 0.3 ? 1 : 0))]));
+  stock[SMITH_PICK] = 1; // (every smith has a pickaxe)
   return { money: Math.round((6 + roll(199) * 6) * COPPER_PER_SILVER), stock };
 }
 
@@ -88,12 +97,12 @@ export const smithSellsTo = (hero: Pick<Hero, 'level'>, key: GearKey): boolean =
 export const UNDER_COUNTER = 2.5;
 export const smithPriceFor = (hero: Pick<Hero, 'level'>, key: GearKey): number => (smithSellsTo(hero, key) ? gearPrice(key) : Math.ceil(gearPrice(key) * UNDER_COUNTER));
 
-export function buyGear(shop: Shop, hero: Hero, id: GearKey): 'bought' | 'sold out' | 'too poor' | 'full' {
-  return buyFrom(shop, hero, id, smithPriceFor(hero, id));
+export function buyGear(shop: Shop, hero: Hero, id: GearKey | ToolId): 'bought' | 'sold out' | 'too poor' | 'full' {
+  return buyFrom(shop, hero, id, smithTakesPick(id) ? pickPrice(id, false) : smithPriceFor(hero, id as GearKey));
 }
 
 export function sellGear(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'he is short' {
-  if (!smithBuys(id) && !smithTakesMetal(id) && !smithTakesWood(id)) return 'not wanted';
-  const done = sellTo(shop, hero, id as BagItem, smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : gearSellPrice(id as GearKey));
+  if (!smithBuys(id) && !smithTakesMetal(id) && !smithTakesWood(id) && !smithTakesPick(id)) return 'not wanted';
+  const done = sellTo(shop, hero, id as BagItem, smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, true) : gearSellPrice(id as GearKey));
   return done === 'short' ? 'he is short' : done;
 }
