@@ -14,10 +14,10 @@ import { LOOT_MODELS } from '../meshes/loot/lootModels';
 import type { MenuIcon } from './menu';
 import { voxelIcon, type VoxelModel } from './voxelIcon';
 
-// Gear as it sits when worn or held; jewelry, its own little model.
+// Gear as it sits when worn or held; jewelry, or a piece whose shell alone doesn't read, its own little model.
 const gearModel = (item: ItemId) => (): VoxelModel => {
-  const jewel = ITEM_MODELS[item].jewel;
-  return jewel ? { grid: jewel.build(), palette: ITEM_MODELS[item].palette } : humanFigure(null, { [ITEMS[item].slot]: item });
+  const own = ITEM_MODELS[item].icon ?? ITEM_MODELS[item].jewel;
+  return own ? { grid: own.build(), palette: ITEM_MODELS[item].palette } : humanFigure(null, { [ITEMS[item].slot]: item });
 };
 const lootModel = (item: LootId) => (): VoxelModel => ({ grid: LOOT_MODELS[item].build(), palette: LOOT_MODELS[item].palette });
 

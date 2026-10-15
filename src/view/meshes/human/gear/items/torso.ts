@@ -25,7 +25,7 @@
 import type { TORSO_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
-import { fur, mail, mod } from '../patterns';
+import { drawn, fur, mail, mod } from '../patterns';
 import { SET_PALETTES } from '../setPalettes';
 
 // A gambeson: padded linen quilted in vertical channels, laced up the
@@ -129,10 +129,13 @@ const furJerkin: ItemModel = {
   },
 };
 
-// A hauberk of riveted rings, sleeves to the wrist, a leather hem.
-const rings = namedPalette({ ring: 0x8d939c, gap: 0x6a7078, hem: 0x5e3f28 });
+// A hauberk of riveted rings, sleeves to the wrist, a leather hem. Its icon: the hauberk laid out flat, its sleeves wide,
+// leather at the collar, cuffs and hem, belted with a brass buckle (the shell alone, a grey lump).
+const rings = namedPalette({ ring: 0x8d939c, gap: 0x6a7078, hem: 0x5e3f28, buckle: 0xd4b060 });
+const HAUBERK = ['...mmm.mmm...', 'mmmmmhhhmmmmm', 'mmmmmmmmmmmmm', 'hmmmmmmmmmmmh', '...mmmmmmm...', '...mmmmmmm...', '...hhhbhhh...', '...mmmmmmm...', '...mmmmmmm...', '..mmmmmmmmm..', '..mmmmmmmmm..', '..hhhhhhhhh..'];
 const chainMail: ItemModel = {
   palette: rings.palette,
+  icon: { build: () => drawn(HAUBERK, 1, { m: (x, y) => mail(x, y, 0, rings.c.ring, rings.c.gap), h: rings.c.hem, b: rings.c.buckle }, true) },
   worn: {
     torso: ({ x, y, z }) => (y === 2 ? rings.c.hem : mail(x, y, z, rings.c.ring, rings.c.gap)),
     arm: ({ x, y, z }) => mail(x, y, z, rings.c.ring, rings.c.gap),

@@ -45,15 +45,10 @@ function cookedFish(g: VoxelGrid, x0: number, y0: number, z0: number, long: numb
 const board = (g: VoxelGrid, w: number, d: number, plank = 1, grain = 2) => fillBox(g, 0, 0, 0, w - 1, 0, d - 1, (x, _y, z) => (z % 2 === 1 && x % 3 === 0 ? grain : plank));
 
 export const MEAL_MODELS: Record<MealId, LootModel> = {
-  // Roasted small fry: three little fish strung by their heads on a green stick, browned, tails down.
-  roastedFry: model([0x8a6a3a, 0xc8a060, 0xe8d0a0, 0x6a4a2a, 0x1a1a1a, 0x5a7a2a], [7, 4, 3], (g) => {
-    fillBox(g, 0, 3, 1, 6, 3, 1, 6); // the stick
-    for (const x of [1, 3, 5]) {
-      fillBox(g, x, 1, 1, x, 2, 1, (_x, y) => (y === 2 ? 1 : 2)); // a fish, its head to the stick
-      setColor(g, x, 2, 0, 5); // its eye
-      setColor(g, x, 0, 0, 4); // its tail, forked
-      setColor(g, x, 0, 2, 4);
-    }
+  // Roasted small fry: three little fish laid side by side on a broad green leaf, browned, their tails to the back.
+  roastedFry: model([0x8a6a3a, 0xc8a060, 0xe8d0a0, 0x6a4a2a, 0x1a1a1a, 0x4e7a2a, 0x6a9a3a, 0x3a5a1e], [8, 2, 6], (g) => {
+    fillBox(g, 0, 0, 0, 7, 0, 5, (x, _y, z) => ((x === 0 || x === 7) && (z <= 1 || z >= 4) ? 0 : z === 3 ? 7 : (x + z) % 5 === 0 ? 8 : 6)); // the leaf, its vein lighter
+    for (const x of [1, 3, 5]) fillBox(g, x, 1, 1, x, 1, 4, (_x, _y, z) => (z === 1 ? 4 : z === 4 ? 1 : z === 3 ? 2 : 3)); // a fish: its tail, belly, flank, head
   }),
   // A fry cake: a flat golden patty, its edge browner, silver flecks of the fry in its top.
   fryCake: model([0xd8a858, 0x9a6a30, 0xb8c0c8], [5, 2, 5], (g) => {
@@ -85,10 +80,10 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
     lump(g, 0, 0, 0, 6, 2, 5, (x, z) => (x + z) % 2 === 0);
     fillBox(g, 5, 1, 1, 5, 1, 3, 4); // the fat along one edge
   }),
-  // Fried roach: a little roach fried golden, its fins red still, on a scrap of plank.
-  friedRoach: model([0x7a5a2a, 0xc8964a, 0xf0d8a0, 0xb04a2a, 0x1a1a1a, 0x3a2412, 0xa87a4a, 0x8a6038], [6, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 5, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
-    cookedFish(g, 0, 1, 0, 6);
+  // Fried roach: a little roach fried golden, its fins red still, on a round cream clay plate.
+  friedRoach: model([0x9a6a2a, 0xd8a048, 0xf0d8a0, 0xb04a2a, 0x1a1a1a, 0x7a4a1a, 0xe8e0d0, 0xc8bca8], [8, 4, 5], (g) => {
+    fillBox(g, 0, 0, 0, 7, 0, 4, (x, _y, z) => ((x === 0 || x === 7) && (z === 0 || z === 4) ? 0 : x === 0 || x === 7 || z === 0 || z === 4 ? 8 : 7)); // the plate, its rim darker
+    cookedFish(g, 1, 1, 1, 6);
   }),
   // Smoked eel: a long dark eel run through on a stick, smoked near black.
   smokedEel: model([0x3a2a18, 0x6a4a28, 0x9a7a4a, 0x2a1a10, 0x1a1a1a, 0x1a120a, 0x8a8a90], [12, 3, 3], (g) => {
@@ -96,36 +91,48 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
     setColor(g, 0, 1, 1, 7);
     setColor(g, 11, 1, 1, 7);
   }),
-  // Baked bream: a broad bream, floured and baked pale gold, on a plank.
-  bakedBream: model([0x8a6a3a, 0xd8a868, 0xf4e4c0, 0x6a5028, 0x1a1a1a, 0x4a3018, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
-    cookedFish(g, 0, 1, 0, 7);
+  // Baked bream: a broad bream, floured and baked pale gold, in a terracotta baking dish, its rim round it.
+  bakedBream: model([0xb07a3a, 0xd8a868, 0xf4e4c0, 0x8a5a28, 0x1a1a1a, 0x6a4018, 0xa8502a, 0x7a3a1e], [9, 4, 5], (g) => {
+    fillBox(g, 0, 0, 0, 8, 0, 4, (x, _y, z) => ((x === 0 || x === 8) && (z === 0 || z === 4) ? 0 : 8)); // the dish
+    fillBox(g, 0, 1, 0, 8, 1, 4, (x, _y, z) => ((x === 0 || x === 8) !== (z === 0 || z === 4) ? 7 : 0)); // its rim, the corners round
+    cookedFish(g, 1, 1, 1, 7);
   }),
-  // Seared char: pink-orange flesh seared dark across, on a plank.
-  searedChar: model([0x8a4a3a, 0xe08a6a, 0xf8d0b8, 0x6a3a2a, 0x1a1a1a, 0x4a2018, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
-    cookedFish(g, 0, 1, 0, 7);
+  // Seared char: pink-orange, seared dark across, in a black iron skillet, its long handle out to the side.
+  searedChar: model([0x9a4a32, 0xe0805a, 0xf8d0b8, 0x6a3a2a, 0x1a1a1a, 0x3a1810, 0x34343a, 0x55555e], [10, 3, 6], (g) => {
+    disc(g, 0, 0, 0, 6, () => 7); // the pan
+    for (let x = 0; x < 6; x++) for (let z = 0; z < 6; z++) if ((x === 0 || x === 5 || z === 0 || z === 5) && !((x === 0 || x === 5) && (z === 0 || z === 5))) setColor(g, x, 1, z, 8); // its rim
+    fillBox(g, 6, 1, 2, 9, 1, 3, (x) => (x === 9 ? 8 : 7)); // its handle
+    cookedFish(g, 0, 1, 2, 5);
   }),
-  // Grilled salmon: a long pink salmon, grill-marked, on a plank.
-  grilledSalmon: model([0x8a4a3a, 0xf09a7a, 0xffd8c0, 0x6a3a2a, 0x1a1a1a, 0x4a2018, 0xa87a4a, 0x8a6038], [8, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 7, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
-    cookedFish(g, 0, 1, 0, 8);
+  // Grilled salmon: a thick steak of it, deep pink with pale lines of fat, its silver skin at one end, grill-marked, on a
+  // plank with a sprig of herbs.
+  grilledSalmon: model([0xf08a5a, 0xffd8c0, 0x7a808a, 0x5a2a18, 0xa87a4a, 0x8a6038, 0x5a8a2a], [7, 3, 5], (g) => {
+    board(g, 7, 5, 5, 6);
+    fillBox(g, 1, 1, 0, 5, 2, 3, (x, y) => (x === 1 ? 3 : y === 2 && x % 2 === 0 ? 4 : (x + y) % 2 === 0 ? 2 : 1)); // the steak
+    fillBox(g, 4, 1, 4, 6, 1, 4, 7); // the herbs
   }),
   // Smoked sturgeon: the great grey fish, smoked gold, along a long board.
   smokedSturgeon: model([0x5a5440, 0xa8945a, 0xe8d8b0, 0x3a3a2a, 0x1a1a1a, 0x2a2418, 0x9a6a3a, 0x7a5028], [10, 4, 4], (g) => {
     fillBox(g, 0, 0, 0, 9, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
     cookedFish(g, 0, 1, 0, 10);
   }),
-  // Grilled trout: a trout split and browned, lying on a plank.
-  grilledTrout: model([0x7a5a2a, 0xc88a5a, 0xf0d8b0, 0x5a4020, 0x1a1a1a, 0x3a2412, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7)); // the plank
+  // Grilled trout: a trout split and browned, its olive back speckled dark and its flank pink, on a plank with a sprig
+  // of herbs.
+  grilledTrout: model([0x5e6a3a, 0xd8907a, 0xf0d8b0, 0x4a4a28, 0x1a1a1a, 0x3a2412, 0xa87a4a, 0x8a6038, 0x5a8a2a], [7, 4, 5], (g) => {
+    fillBox(g, 0, 0, 0, 6, 0, 4, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7)); // the plank
     cookedFish(g, 0, 1, 0, 7);
+    for (const x of [2, 4]) setColor(g, x, 3, 1, 6); // its speckles
+    fillBox(g, 2, 1, 4, 4, 1, 4, 9); // the herbs
   }),
-  // Salt-baked perch: a fish-shaped crust of white salt, cracked open along its back to the pink flesh, its tail out.
-  saltedPerch: model([0xf0ece4, 0xd8d0c4, 0xe89a7a, 0xc84a2a, 0xb8b0a4], [7, 3, 4], (g) => {
-    fillBox(g, 0, 0, 0, 5, 1, 3, (x, y, z) => ((x === 0 || x === 5) && (z === 0 || z === 3) ? 0 : y === 0 ? 2 : (x + z) % 4 === 0 ? 5 : 1)); // the crust
-    fillBox(g, 1, 2, 1, 4, 2, 2, (x, _y, z) => (z === 1 && x > 1 ? 3 : 1)); // its top, cracked open, the flesh showing
-    fillBox(g, 6, 0, 1, 6, 1, 2, 4); // the tail out of the crust
+  // Salt-baked perch: a fish-shaped crust of white salt on a dark slate, cracked open along its back to the pink
+  // flesh, the perch's red spines standing up out of it, its eye and its red tail out.
+  saltedPerch: model([0xf0ece4, 0xd8d0c4, 0xe89a7a, 0xd8482a, 0xb8b0a4, 0x3e4248, 0x565c64, 0x1a1a1a], [9, 5, 6], (g) => {
+    fillBox(g, 0, 0, 0, 8, 0, 5, (x, _y, z) => ((x === 0 || x === 8) && (z === 0 || z === 5) ? 0 : (x + z) % 4 === 0 ? 7 : 6)); // the slate
+    fillBox(g, 1, 1, 1, 6, 2, 4, (x, y, z) => ((x === 1 || x === 6) && (z === 1 || z === 4) ? 0 : y === 1 ? 2 : (x + z) % 4 === 0 ? 5 : 1)); // the crust
+    fillBox(g, 2, 3, 2, 5, 3, 3, (x, _y, z) => (z === 2 && x > 2 ? 3 : 1)); // its top, cracked open, the flesh showing
+    for (const x of [3, 4, 5]) setColor(g, x, 4, 2, 4); // its spines
+    setColor(g, 2, 2, 4, 8); // its eye
+    fillBox(g, 7, 1, 2, 7, 2, 3, 4); // the tail out of the crust
   }),
   // Honey-glazed bear: a glossy joint on a pale plate, honey pooled round it and running down.
   honeyBear: model([0xe8e0d0, 0xc8bca8, 0xa8541e, 0xd88a2a, 0xffc850, 0x6a2a10], [6, 4, 6], (g) => {
