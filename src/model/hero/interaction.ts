@@ -2,7 +2,7 @@
 // (controller/GameController.ts: it does it), the prompt over it (main.ts: it words it) and whatever else plays by
 // the keys (tests/ai/senses.ts) all read it here, so none can tell it differently from another.
 // In order: at work (a shift), the work's own thing in reach, else the inn's notice board, and nothing else; chopping
-// a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the carter by his wagon; a tree to chop; a lake's shore, to fish from;
+// a tree, stopping; a line out, hooking a bite (or reeling in); loot in reach; an inn's notice board (its work); a chest; the inn's strongbox (or the let room's chest); the carter by his wagon; a tree to chop; a lake's shore, to fish from;
 // sat on a bar stool by the barmaid, a word with her; sat, standing up; a seat in reach, sitting; someone to talk to
 // (not at the way out: out first); a traveller on the road; a village's notice board; the smithy's salvage bench; a
 // fire to cook at (skills/cooking.ts); a well; a door upstairs; the stairs; a door; any villager, for a word; and, with nothing else, a tree that
@@ -13,6 +13,7 @@ import type { Entrance } from '../interiors/interiors';
 import type { Furniture, Seat } from '../interiors/furniture';
 import { doorAt, stairsInReach } from '../interiors/upstairs';
 import { chestInReach } from '../loot/chests';
+import { strongboxInReach } from './stash';
 import type { GroundLoot } from '../loot/loot';
 import { talkingTo } from '../npcs/talk';
 import { acrossTheBar, patronBeside } from '../inn/barPatrons';
@@ -34,6 +35,7 @@ export type Interaction =
   | { kind: 'fishing' } // a line out: a bite hooked, or reeled in (skills/fishing.ts)
   | { kind: 'loot'; loot: GroundLoot }
   | { kind: 'chest'; chest: NonNullable<ReturnType<typeof chestInReach>> }
+  | { kind: 'strongbox'; box: Furniture } // the inn's strongbox, or the let room's chest: the hero's stash (hero/stash.ts)
   | { kind: 'carter'; carter: Carter }
   | { kind: 'chop'; action: ChopAction }
   | { kind: 'mine'; action: MineAction }
@@ -84,6 +86,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield notice();
   const chest = chestInReach(model);
   yield chest ? { kind: 'chest', chest } : null;
+  const box = strongboxInReach(model);
+  yield box ? { kind: 'strongbox', box } : null;
   const carter = model.story.carterInReach;
   yield carter ? { kind: 'carter', carter } : null;
   const chop = lumber.action;
