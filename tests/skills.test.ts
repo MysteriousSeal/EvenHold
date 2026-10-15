@@ -123,7 +123,7 @@ describe('the skills window', () => {
     panel.menu.close();
   });
 
-  it('says what they are at just now: chopping a tree, making something', () => {
+  it('says what they are at just now: chopping a tree, making something, breaking a piece down', () => {
     const model = new GameModel(1, TEST_MAP_SIZE);
     const tree = model.trees.find((t) => t.kind === 'birch')!;
     model.lumber.chopping = { tree, t: 0 };
@@ -136,6 +136,9 @@ describe('the skills window', () => {
     panel.menu.open();
     expect(cardsOf()[1].querySelector('.skill-card-status.live')?.textContent).toBe('Crafting Birch plank · 1 of 3');
     panel.menu.close();
+    model.woodworking.stop();
+    model.salvage.breaking = { key: 'armingSword', t: 0 }; // (and breaking a piece down at the bench)
+    expect(statusOf(model, 'salvaging')).toBe('Breaking down Arming sword');
   });
 
   it("opens a skill's own window, clicked: where they stand across the top (their title, level, ruler, what's next), what it offers under it", () => {
