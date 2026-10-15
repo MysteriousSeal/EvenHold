@@ -2,7 +2,7 @@
 // buy; potions and raw ingredients the hero has, to sell them, said at the
 // foot of the window (the window: tradePanel.ts; their shop:
 // herbalist/herbalistShop.ts). They greet a hero hurt, spent, or without a
-// potion to their name with a word on it.
+// potion to their name with a word on it. Abed at night, they don't trade.
 
 import type { GameModel } from '../../model/GameModel';
 import type { Npc } from '../../model/npcs/npcs';
@@ -14,6 +14,8 @@ import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import { isFish } from '../../model/skills/fishing';
 import type { Hero } from '../../model/types';
 import { oneOf } from '../../util/random';
+import { herbalistAbed } from '../../model/herbalist/herbalistWork';
+import { say } from '../../model/npcs/speech';
 import { toned, type Menu } from '../../view/ui/menu';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
@@ -50,6 +52,9 @@ export function herbalistTakes(name: string, id: BagItem, roll = Math.random()):
   return oneOf([`${name}? The fat's good for ointments.`, "I'll render it. Good fat makes a good salve.", `${name}? I can brew with that.`], roll);
 }
 
+// What they say, woken at night for their wares (the pox's another matter: hero/pox.ts).
+const SHUT = ["It's the middle of the night. Come back at dawn, unless you're dying.", "Are you dying? No? Then come back at dawn.", "The cauldron's cold and so am I. Dawn."];
+
 // What they buy, said at the foot of their window.
 const BUYS = "Buys back potions at half, and what's had from the wild: raw meat, honeycomb, any fish. Not wood or scrap.";
 
@@ -80,8 +85,17 @@ export function createHerbalistPanel(model: GameModel, hooks: { bag?: TradeBag }
   return {
     ...panel,
     open(npc) {
+      if (herbalistAbed(model.minutes)) return say(npc, pick(SHUT)); // (abed: no trade till dawn)
       herbalist = npc;
       panel.open(npc);
+    },
+    // Each frame: as any trade's (walked off: shut); and at their bedtime, shut, their word on it.
+    update() {
+      if (panel.menu.isOpen && herbalist && herbalistAbed(model.minutes)) {
+        panel.menu.close();
+        say(herbalist, "That's enough for today. I'm off to bed. Let yourself out.");
+      }
+      panel.update();
     },
   };
 }
