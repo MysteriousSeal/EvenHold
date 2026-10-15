@@ -57,10 +57,11 @@ export function mendCost(hero: Wearer, key: string): number {
   return Math.max(1, Math.ceil(worth(key as GearKey) * MEND_SHARE * (wear / BROKEN)));
 }
 
-// Whether a mending bill of `total` leaves them Tempered: past TEMPER_FLOOR of what they wear's worth.
+// Whether a mending bill of `total` leaves them Tempered: past TEMPER_FLOOR of what they wear's worth and the bill mends
+// (a piece carried counts; never for under a copper).
 export function mendTempers(hero: Wearer, total: number): boolean {
-  const worn = Object.values(hero.equipment).filter((k): k is GearKey => !!k && isGear(k));
-  return total >= Math.ceil(worn.reduce((n, k) => n + worth(k), 0) * TEMPER_FLOOR);
+  const held = new Set([...Object.values(hero.equipment), ...mendBill(hero).pieces.map((p) => p.key)].filter((k): k is GearKey => !!k && isGear(k)));
+  return total >= Math.max(1, Math.ceil([...held].reduce((n, k) => n + worth(k), 0) * TEMPER_FLOOR));
 }
 
 // What they wear (or carry, taken off worn) that's worn at all, each with its mending's cost; all of it.
@@ -75,9 +76,10 @@ export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' |
   const { pieces, total } = mendBill(hero);
   if (!pieces.length) return 'none';
   if (hero.money < total) return 'too poor';
+  const tempers = mendTempers(hero, total); // (before the wear's gone off the bill)
   hero.money -= total;
   for (const { key } of pieces) delete hero.wear![key];
-  if (mendTempers(hero, total)) temper(hero);
+  if (tempers) temper(hero);
   return 'mended';
 }
 
