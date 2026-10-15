@@ -44,8 +44,8 @@ describe('what gear is made of, and leaves', () => {
   });
 
   it("counts a piece found as many tries, the finer the more (a fighter's few drops carry the skill); junk and a crafter's own, one", () => {
-    expect(FOUND_TRIES).toEqual({ common: 10, uncommon: 12, rare: 16, epic: 20, legendary: 24 });
-    expect(salvageOf(gearKey({ item: 'mace', level: 9, rarity: 'rare', roll: 3 })).tries).toBe(16);
+    expect(FOUND_TRIES).toEqual({ common: 15, uncommon: 18, rare: 24, epic: 30, legendary: 36 });
+    expect(salvageOf(gearKey({ item: 'mace', level: 9, rarity: 'rare', roll: 3 })).tries).toBe(24);
     expect([salvageOf('rustyBuckle').tries, salvageOf(gearKey({ item: 'club', level: 24, rarity: 'uncommon', roll: 7 })).tries]).toEqual([1, 1]);
   });
 
