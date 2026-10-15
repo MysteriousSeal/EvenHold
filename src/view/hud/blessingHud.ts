@@ -32,6 +32,7 @@ const ICONS: Record<BlessingKind, MenuIcon> = {
   fed: lootIcon('boarStew'), // (a cook's meals: a stew, a pie, a feast)
   fortified: lootIcon('huntersPie'),
   feasted: lootIcon('huntersFeast'),
+  rested: (size) => voxelIcon('blessing:rested', featherModel, size), // (a night in an inn's bed: a feather, from its pillow)
   lucky: () => {
     const coin = document.createElement('canvas'); // a gold coin, as the purse draws them, larger
     coin.className = 'blessing-coin';
