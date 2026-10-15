@@ -43,10 +43,11 @@ export function furnishInn(plan: Planner, room: Room): void {
   // up to their own table, so two back to back between tables still leave
   // a walkway.
   const gapTo = (o: Furniture, x: number, z: number) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
-  // The hearth corner (its rug and armchairs) kept a ring of open floor: a table three from it, its chairs not up against it.
+  // The hearth corner (its rug and armchairs) kept a ring of open floor: no table up against it (two from it, a tile between).
+  const HEARTH_RING = 2;
   const hearthside = (o: Furniture) => o.kind === 'bearRug' || o.kind === 'armchair';
   const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
-    items.every((o) => hearthside(o) ? gapTo(o, x, z) >= 3 : !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
+    items.every((o) => hearthside(o) ? gapTo(o, x, z) >= HEARTH_RING : !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
   // (None just inside the door: a little open floor to walk in on, three tiles deep straight ahead of it (two, in a
   // shallow room), two to either side.)
   const ahead = room.depth >= 9 ? 3 : 2;

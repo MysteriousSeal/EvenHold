@@ -95,10 +95,10 @@ describe('interiors', () => {
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
-    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(4.4); // (strewn at random: 4.7, but bunched; now with open floor inside the door and round the hearth)
+    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5); // (strewn at random: 4.7, but bunched; now with open floor inside the door and round the hearth)
   });
 
-  it('keeps a ring of open floor round an inn\'s hearth corner: no table, nor its chairs, up against its rug or armchairs', async () => {
+  it('keeps open floor round an inn\'s hearth corner: no table up against its rug or armchairs', async () => {
     const { furnish } = await import('../src/model/interiors/furnish');
     const gap = (a: Furniture, b: Furniture) => Math.max(a.x - (b.x + b.w - 1), b.x - (a.x + a.w - 1), a.z - (b.z + b.d - 1), b.z - (a.z + a.d - 1));
     let corners = 0;
@@ -108,7 +108,7 @@ describe('interiors', () => {
       const items = furnish(n, entrance, roomFor(n, entrance));
       const corner = items.filter((i) => i.kind === 'bearRug' || i.kind === 'armchair');
       if (corner.length > 0) corners++;
-      for (const t of items.filter((i) => i.kind === 'tavernTable' || i.kind === 'chair')) {
+      for (const t of items.filter((i) => i.kind === 'tavernTable')) {
         for (const c of corner) expect(gap(t, c), `seed ${n}, the inn at ${entrance.x},${entrance.z}: the ${t.kind} at ${t.x},${t.z} by the ${c.kind}`).toBeGreaterThanOrEqual(2);
       }
     }
