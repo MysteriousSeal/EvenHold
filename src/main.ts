@@ -425,7 +425,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'unbarred') placeBanner('The gate is open', 'The great hall lies beyond');
       else if (event.kind === 'banner') placeBanner(event.title, event.line);
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ` · +1 point to spend (${keyName('levelUp')})` : ''}`);
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : event.place === 'reliquary' ? 'Reliquary cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ` · +1 point to spend (${keyName('levelUp')})` : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`+1 point to spend (${keyName('levelUp')})`], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {

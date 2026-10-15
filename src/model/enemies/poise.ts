@@ -7,7 +7,7 @@
 import { isBoss } from './enemyLevels';
 import type { Enemy, EnemyKind } from '../types';
 
-const STEADY: Partial<Record<EnemyKind, number>> = { bandit: 2, boar: 2, bruiser: 2, skeleton: 2, ghost: 2, caveWorm: 2, bear: Infinity, banditChief: Infinity, draugr: Infinity }; // blows to flinch it (none said: 1; a boss: never)
+const STEADY: Partial<Record<EnemyKind, number>> = { bandit: 2, boar: 2, bruiser: 2, skeleton: 2, ghost: 2, caveWorm: 2, bear: Infinity, banditChief: Infinity, draugr: Infinity, gildedSaint: 3 }; // blows to flinch it (none said: 1; a boss: never)
 const POISE_WINDOW = 1.5; // seconds after a blow that the next counts toward flinching it (longer: its poise back)
 export const SHRUG_FLASH = 0.15; // seconds a foe that shrugs a blow off flashes (under a told move's 0.2: not lost by it)
 

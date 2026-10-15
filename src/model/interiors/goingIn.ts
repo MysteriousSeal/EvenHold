@@ -5,7 +5,7 @@ import { bumpsEnemy } from '../enemies/enemies';
 import { maxHpOf } from '../hero/attributes';
 import { intoBed } from '../hero/setbacks';
 import { bumpsNpc } from '../npcs/npcs';
-import { dungeonAt, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
+import { dungeonAt, dungeonBarred, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { dungeonHooks } from '../hero/fighting';
 import { benchSeatInReach, squareBenches } from '../worldgen/benches';
@@ -52,6 +52,8 @@ export function useDoor(m: GameModel): boolean {
     hero.facing = Math.atan2(entrance.outX, entrance.outZ);
     return true;
   }
+  const barred = dungeonBarred(entrance); // (a way down barred: told why, not gone down)
+  if (barred) return m.events.push({ kind: 'banner', ...barred }), false;
   enterRoom(m, entrance);
   return true;
 }

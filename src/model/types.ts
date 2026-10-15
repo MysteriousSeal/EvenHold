@@ -64,7 +64,9 @@ export interface Hero extends Humanoid {
   potionCooldown?: number; // seconds before another potion may be drunk (bag.ts drinkPotion) // food or drink from the bag (`item`), sat on the ground, restoring as it goes (bag.ts eatOrDrink); getting up (a step, a blow struck, a roll, the guard) or a blow taken stops it
 }
 
-export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother' | 'bear' | 'lynx' | StrongholdFoe; // (a bandit chief: each camp's own, its elite; bears and lynxes: the wilds' own, fiercer than wolves; skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
+export type EnemyKind = 'wolf' | 'bandit' | 'banditChief' | 'boar' | 'skeleton' | 'skeletonArcher' | 'draugr' | 'cryptLord' | 'ghost' | 'caveSpider' | 'caveBat' | 'caveWorm' | 'hatchling' | 'broodMother' | 'bear' | 'lynx' | ReliquaryFoe | StrongholdFoe; // (a bandit chief: each camp's own, its elite; bears and lynxes: the wilds' own, fiercer than wolves; skeletons and draugr: the crypts' guards; the lord: a crypt's own dead, risen; ghosts: haunting the old ruins; spiders, bats, worms and the brood mother with her hatchlings: the caves' beasts)
+// The reliquary's own, under the cathedral (reliquary/): its praying monks, its gilded saints, its boss.
+export type ReliquaryFoe = 'unquietBrother' | 'gildedSaint' | 'gildedDeacon';
 // A bandit stronghold's own (strongholds/strongholdFoes.ts): its packs (a bruiser in front, a crossbowman, a firebrand, a sawbones, a runner, the kennels' war hounds), its four wings' bosses, and its king.
 export type StrongholdFoe = 'bruiser' | 'crossbowman' | 'firebrand' | 'sawbones' | 'runner' | 'warHound' | 'houndmaster' | 'quartermaster' | 'gaoler' | 'captain' | 'banditKing';
 
@@ -92,7 +94,7 @@ export type GameEvent =
   | { kind: 'salvaged'; item: string; gives: Array<[string, number]> } // a piece broken down at a salvage bench (skills/salvage.ts): what it left
   | { kind: 'mending' } // lain down hurt in a bed: rest mends them (hero/heroStats.ts recover), and they're told so
   | { kind: 'crafted'; item: BagItem } // something made, into the bag (skills/woodworking.ts)
-  | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' | 'stronghold' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
+  | { kind: 'cleared'; name: string; point?: boolean; place?: 'crypt' | 'cave' | 'camp' | 'stronghold' | 'reliquary' } // a dungeon's last foe slain (its boss), a bandit camp's (its chief and his bandits); `point`: a point to spend given for it; `place`: a cave's, a camp's (else a crypt's)
   | { kind: 'point'; why: string } // a point to spend given (a crypt's lord slain, the first time)
   | { kind: 'rises'; name: string } // a crypt's lord, risen
   | { kind: 'stirs'; name: string } // a cave's brood mother, stirring on her silk (the hero come into her nest)
@@ -144,7 +146,7 @@ export interface Enemy {
   human: Humanoid | null; // body look and equipment, for humanoid kinds (bandits)
   name?: string; // its own name, if it has one (a crypt's lord), over its kind's
   windUp?: number | null; // seconds into a told move (a crypt lord's slam, a draugr's breath or cleave), else null
-  told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | 'web' | 'lunge' | 'erupt' | 'volley' | 'brood' | 'shot' | 'firebomb' | 'mend' | 'whistle' | 'rally' | 'smash' | null; // which (the last six: a stronghold's, strongholds/strongholdMoves.ts)
+  told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | 'web' | 'lunge' | 'erupt' | 'volley' | 'brood' | 'shot' | 'firebomb' | 'mend' | 'whistle' | 'rally' | 'smash' | 'prayer' | null; // which (the six before the last: a stronghold's, strongholds/strongholdMoves.ts; a prayer: an Unquiet Brother's, reliquary/)
   buried?: boolean; // underground (a cave worm, burrowing: caves/caveFoes.ts): not to be seen, struck or bumped into
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
   champion?: ChampionId; // a dungeon's named champion (champions/champions.ts): its name its own, its trait, its poise and drop the better

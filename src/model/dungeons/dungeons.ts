@@ -8,10 +8,11 @@ import type { Hero } from '../types';
 import { CRYPT_DUNGEON } from '../crypts/cryptDungeon';
 import { CAVE_DUNGEON } from '../caves/caveDungeon';
 import { STRONGHOLD_DUNGEON } from '../strongholds/strongholdDungeon';
+import { RELIQUARY_DUNGEON } from '../reliquary/reliquary';
 import { clearedShare } from './dungeonRecord';
 import { goesUnder, type DungeonHooks, type DungeonKind, type DungeonPlace, type DungeonRun, type Underground } from './dungeonTypes';
 
-const KINDS: Record<Underground, DungeonKind> = { crypt: CRYPT_DUNGEON, cave: CAVE_DUNGEON, stronghold: STRONGHOLD_DUNGEON };
+const KINDS: Record<Underground, DungeonKind> = { crypt: CRYPT_DUNGEON, cave: CAVE_DUNGEON, stronghold: STRONGHOLD_DUNGEON, reliquary: RELIQUARY_DUNGEON };
 const kindOf = (entrance: Entrance): DungeonKind => {
   if (!goesUnder(entrance)) throw new Error(`no dungeon down a ${entrance.type}'s door`);
   return KINDS[entrance.type as Underground];
@@ -19,6 +20,9 @@ const kindOf = (entrance: Entrance): DungeonKind => {
 
 // Who the dungeon down this way in is (its name, level, key), or null (not a dungeon's, or not placed).
 export const dungeonAt = (entrance: Entrance): DungeonPlace | null => (goesUnder(entrance) ? kindOf(entrance).place(entrance) : null);
+
+// What's told at its way in while it's barred, or null: open (any but the reliquary's, always).
+export const dungeonBarred = (entrance: Entrance) => (goesUnder(entrance) ? kindOf(entrance).barred?.(entrance) ?? null : null);
 
 // What the game needs of it to go down: its room, its rock, how many foes to clear.
 export const dungeonRoom = (seed: number, entrance: Entrance) => kindOf(entrance).room(seed, entrance);

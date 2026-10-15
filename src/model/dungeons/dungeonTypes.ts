@@ -11,8 +11,8 @@ import type { BagItem } from '../hero/bag';
 import type { Entrance, EntranceType, Room } from '../interiors/interiors';
 import type { EnemyDirector } from '../enemies/enemyDirector';
 
-export type Underground = Extract<EntranceType, 'crypt' | 'cave' | 'stronghold'>;
-export const UNDERGROUND: ReadonlySet<EntranceType> = new Set<Underground>(['crypt', 'cave', 'stronghold']);
+export type Underground = Extract<EntranceType, 'crypt' | 'cave' | 'stronghold' | 'reliquary'>;
+export const UNDERGROUND: ReadonlySet<EntranceType> = new Set<Underground>(['crypt', 'cave', 'stronghold', 'reliquary']);
 // Whether a way in leads down into a dungeon (not into a building).
 export const goesUnder = (entrance: Entrance): boolean => UNDERGROUND.has(entrance.type);
 
@@ -59,4 +59,5 @@ export interface DungeonKind {
   blocks(seed: number, entrance: Entrance): (x: number, z: number, r: number) => boolean; // rock, and what stands solid
   foeCount(seed: number, entrance: Entrance): number; // its posts, all told (the boss besides)
   run(seed: number, entrance: Entrance, slain: Set<number>, hero: Hero, hooks: DungeonHooks): DungeonRun;
+  barred?(entrance: Entrance): { title: string; line: string } | null; // what's told at its way in while it's barred (the reliquary's, till the story opens it), or null
 }
