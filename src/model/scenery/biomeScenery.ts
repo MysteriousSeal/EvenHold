@@ -42,7 +42,20 @@ export function placeBiomeScenery(world: BiomeSceneryWorld, area: Area): Scenery
   const { seed, tiles } = world;
   const biomes = createBiomes(seed, tiles);
   const taken = new Set(world.scenery.flatMap((s) => sceneryTiles(s).map(([x, z]) => `${x},${z}`)));
-  const near = (x: number, z: number, list: ReadonlyArray<{ x: number; z: number }>, r: number) => list.some((p) => Math.abs(p.x - x) <= r && Math.abs(p.z - z) <= r);
+  // The ground kept clear (round the villages, where the hero sets out, round each foe and animal), marked once, by tile.
+  const [width, depth] = [area.x1 - area.x0, area.z1 - area.z0];
+  const kept = new Uint8Array(width * depth);
+  const keep = (p: { x: number; z: number }, r: number) => {
+    const [cx, cz] = [Math.round(p.x) - area.x0, Math.round(p.z) - area.z0];
+    for (let i = Math.max(0, cx - r); i <= Math.min(width - 1, cx + r); i++) for (let k = Math.max(0, cz - r); k <= Math.min(depth - 1, cz + r); k++) kept[i * depth + k] = 1;
+  };
+  for (const v of world.villages) keep(v, VILLAGE_CLEAR);
+  keep(world.hero, SPAWN_CLEAR);
+  for (const p of world.stood) keep(p, STOOD_CLEAR + 1);
+  const clear = (x: number, z: number, w: number, d: number) => {
+    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) if (kept[(i - area.x0) * depth + (k - area.z0)]) return false;
+    return true;
+  };
   const open = (x: number, z: number) => tiles.has(x, z) && inArea(area, x, z) && world.isOpenTile(x, z) && tiles.surface(x, z) === 'natural';
     // Its footprint open and level, a tile round it no other piece's and on natural ground (never against a road, a
   // field or a wall; a tree beside it is no matter, the woods stand thin).
@@ -65,8 +78,7 @@ export function placeBiomeScenery(world: BiomeSceneryWorld, area: Area): Scenery
       const kind = kindFor(biomes.at(x, z), hashUnit(gx, gz, seed + 534));
       if (!kind) continue;
       const [w, d] = kind === 'tor' || kind === 'outcrop' ? [2, 2] : [1, 1];
-      if (Math.hypot(x - world.hero.x, z - world.hero.z) < SPAWN_CLEAR || near(x, z, world.villages, VILLAGE_CLEAR) || near(x, z, world.stood, STOOD_CLEAR + w)) continue;
-      if (!fits(x, z, w, d)) continue;
+      if (!fits(x, z, w, d) || !clear(x, z, w, d)) continue;
       const piece: Scenery = { kind, x, z, w, d, quarterTurns: Math.floor(hashUnit(x, z, seed + 535) * 4), variant: Math.floor(hashUnit(gx, gz, seed + 536) * 4) };
       for (const [i, k] of sceneryTiles(piece)) taken.add(`${i},${k}`);
       out.push(piece);
