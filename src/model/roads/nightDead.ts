@@ -2,8 +2,9 @@
 // rises on the nearest road (out of the hero's sight) and walks it, slowly, up and down a stretch of it (WALK_SPAN
 // each way), skeletons and, past the first levels, a draugr among them (the drowned and the barrow-wights). In fours,
 // a level under the land's own foes (a risk, not a wall); what they leave as any of their kind does (old silver,
-// grave gear). After arc 2's begun, the false saint's "miracles" call more: a second band at every crypt within
-// SAINT_REACH of the cathedral. Each crypt's band rises once a night (cut down, it stays down till the next). Dawn
+// grave gear). From Greyminster's act (story/: `saint.act` 3, the Gilded Deacon under the Minster calling them) till
+// the story's end, a second band at every crypt within SAINT_REACH of the cathedral (with no story's saint to read:
+// once arc 2's begun). Each crypt's band rises once a night (cut down, it stays down till the next). Dawn
 // sends them back: those still walking sink into the ground, gone. Never kept in a save but which crypts' bands are
 // spent tonight.
 import { enemyLevel, zoneLevel } from '../enemies/enemyLevels';
@@ -69,7 +70,10 @@ export class NightDead {
   // The bands that would walk tonight round the hero: each crypt near enough's (and its second, near the cathedral).
   private wanted(): string[] {
     const { model } = this;
-    const cathedral = model.roads.patrols.arcTwo ? model.roads.patrols.cathedralAt() : null;
+    const { patrols } = model.roads;
+    const saint = patrols.saint;
+    const calling = saint ? saint.act >= 3 && !saint.ending : patrols.arcTwo; // (the Gilded Deacon under the Minster, calling them: from Greyminster's act till he's slain)
+    const cathedral = calling ? patrols.cathedralAt() : null;
     const keys: string[] = [];
     for (const crypt of model.crypts) {
       if (Math.hypot(crypt.middle.x - model.hero.x, crypt.middle.z - model.hero.z) > REACH) continue;

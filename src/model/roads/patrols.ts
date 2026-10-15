@@ -45,6 +45,15 @@ export const FOLLOW = 1.2; // tiles one follows another by (travellers.ts)
 
 export type HuntMode = 'seize' | 'fight';
 
+// What the roads read of arc 2 (story/: `model.story.saint`, the story's to keep): its act (0 not begun, 1 at home,
+// 2 the witch's village, 3 Greyminster, 4 over), what became of the chained witch, how it ended, Greyminster's spot.
+export interface Saint {
+  act: number;
+  witch: 'freed' | 'handed' | 'left' | null;
+  ending: 'exposed' | 'kept' | null;
+  town: { x: number; z: number } | null;
+}
+
 export interface Party {
   key: string; // its band's and its road's
   band: Travellers;
@@ -73,14 +82,27 @@ export class Patrols {
 
   constructor(private readonly model: GameModel) {}
 
-  // Whether arc 2's begun: the carter's long road walked (story/quests/firstQuestsWatch.ts).
-  get arcTwo(): boolean {
-    return this.model.story.stateOf('theLongRoad') === 'done';
+  // How arc 2 stands (story/: the bishop's saint), if the story keeps it.
+  get saint(): Saint | null {
+    return (this.model.story as { saint?: Saint }).saint ?? null;
   }
 
-  // Where the cathedral town is, of the villages known: a stand-in (the cathedral's own, once it's in) for the one
-  // whose level is nearest 12, among those of level 9 and up.
+  // Whether arc 2's begun: its first act (the story's), else the carter's long road walked (story/quests/firstQuestsWatch.ts).
+  get arcTwo(): boolean {
+    const saint = this.saint;
+    return saint ? saint.act >= 1 : this.model.story.stateOf('theLongRoad') === 'done';
+  }
+
+  // Whether the witch-finders have scattered: the false saint exposed (none on the roads, nobody taken, after).
+  get scattered(): boolean {
+    return this.saint?.ending === 'exposed';
+  }
+
+  // Where the cathedral town is: Greyminster, as the story knows it; else, of the villages known, a stand-in for the
+  // one whose level is nearest 12, among those of level 9 and up.
   cathedralAt(): { x: number; z: number } | null {
+    const town = this.saint?.town;
+    if (town) return town;
     const spawn = spawnOf(this.model.size);
     let best: { x: number; z: number } | null = null;
     let off = Infinity;
@@ -93,6 +115,7 @@ export class Patrols {
 
   // The chance of a party on a road whose middle is at `at`.
   chanceAt(at: { x: number; z: number }, cathedral = this.cathedralAt()): number {
+    if (this.scattered) return 0;
     const near = cathedral ? Math.max(0, 1 - Math.hypot(at.x - cathedral.x, at.z - cathedral.z) / CATHEDRAL_REACH) : 0;
     const hunted = this.model.heat.known(at) >= SEIZE ? HUNTED : 0;
     return Math.min(MOST_CHANCE, BASE + (this.arcTwo ? ARC_TWO : 0) + CATHEDRAL * near + hunted);
@@ -178,7 +201,8 @@ export class Patrols {
     if (party.going) return this.goBack(party, dt);
     if (!party.coming) {
       const near = !far(leader, hero, SPOT);
-      if (near && !model.inside && !model.outdoors.seated && model.minutes - party.asked >= ASKED_AGAIN && model.heat.known(leader) >= SUSPECT) {
+      const heard = model.heat.known(leader);
+      if (near && !this.scattered && !model.inside && !model.outdoors.seated && model.minutes - party.asked >= ASKED_AGAIN && heard >= (this.saint?.witch === 'handed' ? WANTED : SUSPECT)) { // (a hero who handed a witch in: a nod for a little heard of)
         party.coming = true;
         for (const t of party.members) t.off = { x: t.x, z: t.z };
       }

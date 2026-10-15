@@ -72,7 +72,7 @@ export class Roads {
 
   // A witch-finder's blow landing on a hero they're out to seize: taken hold of (whether it was).
   seized(foe: Enemy): boolean {
-    if (!this.patrols.seizing(foe)) return false;
+    if (!this.patrols.seizing(foe) || this.patrols.scattered) return false;
     const hunt = this.patrols.hunts.find((h) => h.foes.includes(foe))!;
     this.take(hunt.party.members[0], RAN, 'caught');
     return true;
@@ -81,7 +81,7 @@ export class Roads {
   // Fallen while the witch-finders were after them: taken to the stocks, not an inn (whether they were).
   takenFallen(): boolean {
     const hunt = this.patrols.hunts[0];
-    if (!hunt) return false;
+    if (!hunt || this.patrols.scattered) return false;
     this.take(hunt.party.members[0], FOUGHT, 'felled');
     return true;
   }

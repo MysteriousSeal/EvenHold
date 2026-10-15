@@ -70,7 +70,7 @@ export function arrestTalk(model: GameModel, arrest: Arrest, speaker: string, ho
     speaker,
     lines: [
       opening,
-      `By the bishop's writ: a day in the stocks at ${where}, and ${arrest.fine} copper to the poor box. Nobody burns. Not this time.`,
+      `By Captain Grey's warrant, under His Grace's seal: a day in the stocks at ${where}, and ${arrest.fine} copper to the poor box. Nobody burns. Not this time.`,
       `The beadle: "Time's up. That's ${Math.min(model.hero.money, arrest.fine)} copper had of you, and good riddance. Go and wash, you smell of turnip."`,
     ],
     night: () => serve(model, arrest),

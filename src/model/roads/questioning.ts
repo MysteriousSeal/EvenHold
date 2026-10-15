@@ -26,7 +26,7 @@ export const lieChance = (heat: number): number => Math.max(0.1, Math.min(0.95, 
 export const bribeFor = (heat: number, level: number, caught = false): number => Math.round((BRIBE * Math.max(1, heat) + BRIBE_LEVEL * level) * (caught ? CAUGHT_BRIBE : 1));
 const odds = (p: number): string => (p >= 0.8 ? 'likely' : p >= 0.55 ? 'a fair chance' : p >= 0.35 ? 'chancy' : 'hardly');
 
-const NODS = ['Bless you, traveller. Keep from the old craft.', 'The Saint keeps the road. Mostly.', 'Nothing to see. Unless you saw a witch.', 'Move along. Pray a little.'];
+const NODS = ['Bless you, traveller. Keep from the old craft.', 'Saint Aldous keeps the road. Mostly.', "Captain Grey's compliments. Move along.", 'Seen a witch? A black cat? No? Good.'];
 
 // What a word with `t` comes to: a party's questions, or (heard nothing, or none of a party) a nod in passing (null).
 export function questioning(model: GameModel, t: Traveller): Talk | null {
@@ -51,8 +51,8 @@ function asked(model: GameModel, party: Party, heat: number): Talk {
   const lie = lieChance(heat);
   const bribe = bribeFor(heat, hero.level);
   const lines = heat >= WANTED
-    ? ["Hold there. In the bishop's name.", `They say in ${where} a stranger turned a decent man into livestock. They say a lot in ${where}. Turn out your pack.`]
-    : ['A word, friend. Any charms about you? Feathers, grave dust, little bones?', `There's talk of the old craft round ${where}. Only talk, I'm sure.`];
+    ? ["Hold there. In His Grace's name, and Captain Grey's.", `They say in ${where} a stranger turned a decent man into livestock. They say a lot in ${where}. Turn out your pack.`]
+    : ['A word, friend. Any charms about you? Feathers, grave dust, little bones?', `There's talk of the old craft round ${where}. Only talk, I'm sure. The captain likes to hear it all the same.`];
   return {
     speaker: leader.name,
     lines,
@@ -74,7 +74,7 @@ function caught(model: GameModel, party: Party, heat: number, onSight: boolean):
   return {
     speaker: leader.name,
     lines: onSight
-      ? ["That's the one. Take hold of them.", `You're for the stocks. A day of it, and ${arrest.fine} copper. Thank the bishop it isn't the stake.`]
+      ? ["That's the one. The captain's warrant has your face on it. Very neat writing, his.", `You're for the stocks. A day of it, and ${arrest.fine} copper. Thank the bishop it isn't the stake.`]
       : ['Liar. It is all over your face.', `You'll come with us. A day in the stocks, and ${arrest.fine} copper to the poor box.`],
     answers: [
       { label: 'Go quietly', primary: true, pick: () => (model.roads.patrols.letGo(party), arrestTalk(model, arrest, leader.name, 'quietly')) },
