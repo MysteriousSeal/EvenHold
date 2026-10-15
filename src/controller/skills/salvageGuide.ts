@@ -3,7 +3,7 @@
 // the one picked: its scrap, what gear is of it, what a rare piece leaves besides, the ask; and where the bench is.
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { FINER_AT, FINER_OF, MAKE_NAMES, PER_LEVEL, SCRAP_OF, TOO_HARD, salvageOf, type Make } from '../../model/skills/salvage';
+import { FINER_AT, FINER_OF, MAKE_NAMES, PER_LEVEL, SCRAP_MOST, SCRAP_OF, TOO_HARD, salvageOf, type Make } from '../../model/skills/salvage';
 import { skillOf } from '../../model/skills/skills';
 import { el } from '../../view/ui/dom';
 import { bagIcon } from '../../view/ui/itemIcons';
@@ -32,7 +32,7 @@ export function salvageGuide(model: GameModel, state: { picked: Make | null }, r
     el('dt', undefined, 'Gear of it'),
     el('dd', undefined, MAKES[picked].gear),
     el('dt', undefined, 'Leaves'),
-    el('dd', undefined, `${picked === 'wood' ? 'Planks (birch to level 5, pine to 12, oak above)' : nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece`),
+    el('dd', undefined, `${picked === 'wood' ? 'Planks (birch to level 5, pine to 12, oak above)' : nameOf(SCRAP_OF[picked])}: one, and one more every six levels of the piece; the more skilled your hand, more (to ${SCRAP_MOST} times over) and its finer thing besides, a master's near what the piece sells for whole`),
     el('dt', undefined, 'A rare piece'),
     el('dd', undefined, `${MAKES[picked].finer} besides (two from an epic, three from a legendary), from Salvaging ${FINER_AT.rare} (an epic's ${FINER_AT.epic}, a legendary's ${FINER_AT.legendary})`),
     el('dt', undefined, 'Teaches'),
