@@ -240,6 +240,7 @@ export class Salvage {
     if (!this.roomFor(breaking.key, gives)) return this.host.report({ kind: 'poor', text: 'Your bag is full' }); // (filled meanwhile: the piece kept)
     takeFromBag(hero.bag, breaking.key);
     if (salvaged.made) unmarkCrafted(hero, breaking.key); // (one of their own, gone)
+    if (!this.carried(breaking.key) && !Object.values(hero.equipment).includes(breaking.key as never)) delete hero.wear?.[breaking.key]; // (the last of it gone: its wear with it, a like one found later unworn; as hero/wear.ts wearGone)
     for (const [item, n] of gives) for (let i = 0; i < n; i++) addToBag(hero.bag, item);
     this.host.report({ kind: 'salvaged', item: breaking.key, gives });
     let gained = 0;
