@@ -11,7 +11,7 @@ import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
 import type { BagItem } from '../hero/bag';
-import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
+import { WOODWORKS, buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
 import { doorNumber, type Entrance } from '../interiors/interiors';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
@@ -69,7 +69,8 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 }
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
-export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half
+const WOODWORK_SHARE = 6; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
+export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP); // he buys at half
 
 // The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
 // a tower shield, a great helm, mail, a breastplate) only to a hand that's shown it can carry it, not to a green one

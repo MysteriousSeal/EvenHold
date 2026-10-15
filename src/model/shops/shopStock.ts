@@ -15,6 +15,8 @@ import type { Hero } from '../types';
 import { isIngredient } from '../loot/ingredients';
 import { isMeal } from '../loot/meals';
 import { baseOf, isGear } from '../human/items/gear';
+import type { ItemId } from '../human/equipment';
+import { RECIPES } from '../skills/woodworking';
 
 export interface Shop {
   money: number; // copper in the keeper's purse
@@ -47,7 +49,10 @@ const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an
 // and what an angler's line brings up (skills/fishing.ts: a locket, old silver, a torc).
 const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard', 'varnishedCasket', 'oakCask', 'oakChest', 'fadedLocket', 'oldSilver', 'frostTorc']);
 export const WANTS = { goods: 5, gear: 2 }; // of each kind
-const kindOf = (id: string): string | null => (isGear(id) ? baseOf(id) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
+// What a woodworker makes of gear (skills/woodworking.ts: staves, clubs, shields), one kind among them all: a shop has
+// only so much use for wooden arms, whatever their shape.
+export const WOODWORKS: ReadonlySet<ItemId> = new Set(Object.values(RECIPES).flatMap((r) => (typeof r.makes === 'string' ? [] : [r.makes.item])));
+const kindOf = (id: string): string | null => (isGear(id) ? (WOODWORKS.has(baseOf(id)) ? 'woodworks' : baseOf(id)) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
 
 // Whether the shop would take another `id` (a trade's goods: while it's bought fewer than it wants of its kind).
 export function wantsMore(shop: Shop, id: BagItem): boolean {
