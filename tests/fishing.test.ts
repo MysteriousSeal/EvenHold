@@ -204,17 +204,38 @@ describe('what bites', () => {
     for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 1)).toEqual(['smallFry']);
   });
 
-  it('is trout in the narrows and perch in open water from 75', () => {
-    expect(items(NARROWS, 75)).toEqual(['smallFry', 'riverTrout']);
-    expect(items(OPEN, 75)).toEqual(['smallFry', 'lakePerch']);
+  it('is roach anywhere from 40; trout in the narrows and perch in open water from 75', () => {
     expect(items(NARROWS, 39)).toEqual(['smallFry']);
+    for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 40)).toEqual(['smallFry', 'roach']);
+    expect(items(NARROWS, 75)).toEqual(['smallFry', 'roach', 'riverTrout']);
+    expect(items(OPEN, 75)).toEqual(['smallFry', 'roach', 'lakePerch']);
   });
 
-  it('is, from 40, a lucky trout or perch now and then (a fifth of the bites at most), orange to learn from', () => {
+  it('is, from 55, a lucky trout or perch now and then (a seventh of the bites at most), orange to learn from', () => {
     const trout = CATCHES.find((c) => c.item === 'riverTrout')!;
-    expect(items(NARROWS, 40)).toEqual(['smallFry', 'riverTrout']);
-    expect(weightOf(trout, 40) / (weightOf(trout, 40) + weightOf(CATCHES[0], 40))).toBeLessThanOrEqual(0.25);
-    expect(riseOf(trout, 40).chance).toBe(1);
+    expect(items(NARROWS, 54)).toEqual(['smallFry', 'roach']);
+    expect(items(NARROWS, 55)).toEqual(['smallFry', 'roach', 'riverTrout']);
+    expect(weightOf(trout, 55) / catchesAt(NARROWS, 55).reduce((sum, c) => sum + weightOf(c, 55), 0)).toBeLessThanOrEqual(1 / 7);
+    expect(riseOf(trout, 55).chance).toBe(1);
+  });
+
+  it('is eels in the narrows from 110, char in open water from 200, sturgeon in the deep from 250', () => {
+    expect(items(NARROWS, 110)).toContain('eel');
+    expect(items(OPEN, 110)).not.toContain('eel');
+    expect(items(OPEN, 200)).toContain('char');
+    expect(items(NARROWS, 200)).not.toContain('char'); // (the deep's open water too, as the perch's)
+    expect(items(DEEP, 250)).toContain('sturgeon');
+    expect(items(NARROWS, 250)).not.toContain('sturgeon');
+  });
+
+  it('has, in every water, a catch never grey: nowhere a fisher is left with nothing to learn', () => {
+    for (const spot of [OPEN, NARROWS, DEEP]) {
+      for (let level = 1; level <= 300; level++) expect(catchesAt(spot, level).some((c) => riseOf(c, level).chance > 0)).toBe(true);
+    }
+  });
+
+  it('has, every 25 levels, a catch orange or yellow to learn from', () => {
+    for (let level = 1; level < 300; level++) expect(CATCHES.some((c) => c.needs <= level && riseOf(c, level).chance >= 0.6)).toBe(true);
   });
 
   it('thins the small fry once trout and perch are theirs, and fills the deep with pike', () => {

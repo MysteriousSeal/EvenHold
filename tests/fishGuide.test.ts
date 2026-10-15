@@ -32,7 +32,7 @@ describe("fishing's guide", () => {
       const best = bestCatch(level);
       if (best) expect(isFish(best.item)).toBe(true);
     }
-    expect(bestCatch(230)?.item).toBe('pike');
+    expect(bestCatch(230)?.item).toBe('char');
   });
 
   it("shows, a line out, what they're at; a bite, the bar to hook it in", () => {

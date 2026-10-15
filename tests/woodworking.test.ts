@@ -11,7 +11,7 @@ import { fresh } from './support/testWorld';
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
-import { ANCIENT, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
+import { ANCIENT, ELDER, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
 import { RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { bagRoom } from '../src/model/hero/bagSlots';
@@ -224,17 +224,18 @@ describe('the one being made', () => {
 describe('the wood guide', () => {
   it('lists the trees, the best to learn from starred; tells of the one picked (chops, logs, finds, the axe)', () => {
     const model = workshop(1);
-    skillOf(model.hero, 'lumberjacking').level = 130;
+    skillOf(model.hero, 'lumberjacking').level = 160;
     delete model.hero.bag.hatchet; // (a new hero's, in the pack: none to hand, for the line)
     const guide = woodGuide(model, { picked: null }, () => {});
-    expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak']);
-    expect(bestGrade(130)).toBe('ancientPine');
+    expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak', 'elderOak']);
+    expect(bestGrade(160)).toBe('ancientPine');
     expect(guide.querySelector('[data-grade="ancientPine"] .book-best')).toBeTruthy();
     expect(guide.querySelector('[data-grade="ancientOak"]')?.classList.contains('locked')).toBe(true);
     const detail = guide.querySelector('.book-detail')!;
     expect(detail.querySelector('.book-title')?.textContent).toBe('Ancient pine');
     expect(detail.textContent).toContain('2 Pine logs');
-    expect(detail.textContent).toContain('Pine resin: 25% a chop, from 150');
+    expect(detail.textContent).toContain('Pine resin: 25% a chop');
+    expect(woodGuide(model, { picked: 'elderOak' }, () => {}).querySelector('.book-detail')?.textContent).toContain('Oak burl: 4% a chop, from 240');
     expect(detail.querySelector('.book-tool')?.textContent).toContain('You need an axe');
   });
 });
@@ -244,14 +245,19 @@ describe('lumberjacking past its first tiers', () => {
   // A pine or oak of the grade asked for.
   const of = (grade: string) => model.trees.find((t) => gradeOf(t, model.seed) === grade) as Tree;
 
-  it('has ancient pines and oaks, about one in twelve, wanting a master, two logs a chop, still 2 to 5 chops', () => {
+  it('has ancient pines and oaks, about one in six, and elder oaks, wanting a master, two logs a chop, still 2 to 5 chops', () => {
     const olds = model.trees.filter((t) => t.kind !== 'birch');
     const share = olds.filter((t) => gradeOf(t, model.seed).startsWith('ancient')).length / olds.length;
     expect(share).toBeGreaterThan(ANCIENT * 0.6);
     expect(share).toBeLessThan(ANCIENT * 1.4);
+    const oaks = model.trees.filter((t) => t.kind === 'oak');
+    const elder = oaks.filter((t) => gradeOf(t, model.seed) === 'elderOak').length / oaks.length;
+    expect(elder).toBeGreaterThan(ELDER * 0.5);
+    expect(elder).toBeLessThan(ELDER * 1.5);
+    expect(model.trees.some((t) => t.kind === 'pine' && gradeOf(t, model.seed) === 'elderOak')).toBe(false);
     expect(model.trees.some((t) => t.kind === 'birch' && gradeOf(t, model.seed) !== 'birch')).toBe(false);
-    expect([WOOD.ancientPine.needs, WOOD.ancientOak.needs, WOOD.ancientPine.logs, WOOD.ancientOak.logs]).toEqual([125, 175, 2, 2]);
-    for (const grade of ['ancientPine', 'ancientOak']) expect(chopsIn(of(grade), model.seed)).toBeLessThanOrEqual(5);
+    expect([WOOD.ancientPine.needs, WOOD.ancientOak.needs, WOOD.ancientPine.logs, WOOD.ancientOak.logs]).toEqual([140, 190, 2, 2]);
+    for (const grade of ['ancientPine', 'ancientOak', 'elderOak']) expect(chopsIn(of(grade), model.seed)).toBeLessThanOrEqual(5);
     expect(woodOf(of('ancientOak'), model.seed).name).toBe('ancient oak');
   });
 
@@ -268,11 +274,11 @@ describe('lumberjacking past its first tiers', () => {
   }
 
   it('gives two logs a chop from an ancient tree; a second now and then only from 100; finds past their levels', () => {
-    const ancient = felled('ancientOak', 175);
+    const ancient = felled('ancientOak', 190);
     expect(ancient.items.filter((i) => i === 'oakLog').length).toBeGreaterThanOrEqual(ancient.chops * 2);
     const plain = felled('birch', 60);
     expect(plain.items.filter((i) => i === 'birchLog')).toHaveLength(plain.chops); // (no second log under 100)
-    expect(felled('pine', 120).items).not.toContain('pineResin'); // (none under 150)
+    expect(felled('pine', 90).items).not.toContain('pineResin'); // (none under 100)
     let found = 0;
     for (let level = 280; level <= 300 && found === 0; level++) found += felled('ancientOak', level).items.filter((i) => i === 'heartwood').length;
     expect(found).toBeGreaterThan(0);

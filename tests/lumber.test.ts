@@ -147,20 +147,34 @@ describe('chopping', () => {
   });
 
   it('never has the oak go grey: green at the least, so there is always a tree to learn from, to the top', () => {
-    expect(riseOf('oak', 60)).toBe(RISE[0]);
-    for (const level of [125, 200, 299]) expect(riseOf('oak', level)).toBe(RISE[2]);
+    expect(riseOf('oak', 100)).toBe(RISE[0]);
+    for (const level of [170, 200, 299]) expect(riseOf('oak', level)).toBe(RISE[2]);
     expect(riseOf('pine', 125)).toBe(RISE[3]); // (the rest: grey as ever)
-    expect(riseOf('ancientPine', 125)).toBe(RISE[0]);
-    for (const level of [225, 299]) expect([riseOf('ancientPine', level), riseOf('ancientOak', level)]).toEqual([RISE[2], RISE[2]]); // (nor any tree harder than the oak: an ancient pine never teaching less than it)
-    // Oaks chopped at by a hand at 125, one after another: the skill rises, in time.
+    expect(riseOf('ancientPine', 140)).toBe(RISE[0]);
+    for (const level of [270, 299]) expect([riseOf('ancientPine', level), riseOf('ancientOak', level)]).toEqual([RISE[2], RISE[2]]);
+    expect(riseOf('elderOak', 299)).toBe(RISE[2]); // (nor any tree harder than the oak: an ancient pine never teaching less than it)
+    // Oaks chopped at by a hand at 170, one after another: the skill rises, in time.
     const { model } = byATree('oak');
     const skill = skillOf(model.hero, 'lumberjacking');
-    Object.assign(skill, { level: 125, toward: stepsOf('lumberjacking', 125) - 1 }); // (a chop short of the next level)
+    Object.assign(skill, { level: 170, toward: stepsOf('lumberjacking', 170) - 1 }); // (a chop short of the next level)
     for (const oak of model.trees.filter((t) => woodOf(t, model.seed) === WOOD.oak).slice(0, 12)) {
       Object.assign(model.hero, { x: oak.x + 0.7, z: oak.z });
       if (model.lumber.use()) run(model, 30);
     }
-    expect(skill.level).toBeGreaterThan(125);
+    expect(skill.level).toBeGreaterThan(170);
+  });
+
+  it('has, at every level to 290, a tree orange or yellow to learn from (and past it, the elder oak, green)', () => {
+    for (let level = 1; level < 290; level++) expect(Object.keys(WOOD).some((g) => WOOD[g as keyof typeof WOOD].needs <= level && riseOf(g as keyof typeof WOOD, level).chance >= 0.6)).toBe(true);
+  });
+
+  it("never gives a grown-old tree more chops than its kind's (a tree felled stays felled, however it's graded)", () => {
+    const kindOf = { birch: 'birch', pine: 'pine', oak: 'oak', ancientPine: 'pine', ancientOak: 'oak', elderOak: 'oak' } as const;
+    for (const [grade, wood] of Object.entries(WOOD)) {
+      const kind = WOOD[kindOf[grade as keyof typeof kindOf]];
+      expect(wood.chops[1]).toBeLessThanOrEqual(kind.chops[1]);
+      expect(wood.chops[0]).toBeLessThanOrEqual(kind.chops[0]);
+    }
   });
 
   it('swings the hero\'s axe while at it (their arms drawn so)', () => {
