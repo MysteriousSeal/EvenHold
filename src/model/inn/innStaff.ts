@@ -113,7 +113,7 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const off = onShift(npc.home) === (npc.role === 'barkeep' ? 'innBarkeep' : 'innServer'); // (the hero has her work)
   if (off) return offHerFeet(npc, npcs, furniture, room);
   npc.resting = false; // (back at it: her word again, next time)
-  if (npc.seat) Object.assign(npc, { x: npc.stood?.x ?? npc.x, z: npc.stood?.z ?? npc.z, y: 0, seat: null, stood: null }); // (up from her chair by the fire, stood beside it again: not 'sat' still, wherever she walks)
+  upFromHerChair(npc);
   if (npc.role === 'barkeep') {
     // An order waiting: first come, first served.
     const order = ordersAt(npc.home)[0];
@@ -143,6 +143,11 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   const spot = table && beside(table, furniture, room);
   if (spot) steps.push({ kind: 'go', to: spot, faceToward: table }, { kind: 'wait', for: between(npc, TABLE_WAIT, 6) });
   return steps;
+}
+
+// Up from her chair by the fire, stood beside it again: not 'sat' still, wherever she walks.
+function upFromHerChair(npc: Npc): void {
+  if (npc.seat) Object.assign(npc, { x: npc.stood?.x ?? npc.x, z: npc.stood?.z ?? npc.z, y: 0, seat: null, stood: null });
 }
 
 // A barmaid's break, the hero at her work (the tables, or the bar): sat by the fire (an armchair before it, else the
@@ -267,6 +272,7 @@ export function serveTable(server: Npc, table: Furniture, drink: Drink, then: ()
   const counter = furniture.find((f) => f.kind === 'counter');
   const pickup = counter ? pickupAt(counter) : { x: server.x, z: server.z };
   const spot = beside(table, furniture, room) ?? pickup;
+  upFromHerChair(server); // (still by the fire from a break, the hero's shift at the tables just over)
   server.steps = [
     { kind: 'go', to: pickup, face: Math.PI },
     { kind: 'hand', then: () => (server.carrying = drink) },

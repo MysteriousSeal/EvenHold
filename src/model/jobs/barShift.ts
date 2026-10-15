@@ -380,11 +380,11 @@ export class BarShift extends Shift {
   }
 
   // One handed over (or set down for a table): served, a wage and its tip (the better the pour, the shorter the
-  // wait, the longer the run it was in).
+  // wait, the longer the run it was in; a copper at least, but for a thin one: none).
   private paid(held: Held, patience: number): number {
     if (held.kind !== 'drink') return 0;
     const run = 1 + STREAK_TIP * Math.min(STREAK_MOST, Math.max(0, held.streak - 1));
-    const tip = Math.max(1, Math.round(TIP * GRADE_WORTH[held.grade] * Math.max(0, patience) * this.rank.tips * run * (held.drink === 'wine' ? WINE_TIP : 1)));
+    const tip = Math.max(held.grade === 'thin' ? 0 : 1, Math.round(TIP * GRADE_WORTH[held.grade] * Math.max(0, patience) * this.rank.tips * run * (held.drink === 'wine' ? WINE_TIP : 1)));
     this.served++;
     if (held.grade === 'perfect') this.perfect++;
     this.earned += WAGE + tip;

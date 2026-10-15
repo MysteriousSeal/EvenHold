@@ -147,7 +147,7 @@ export class InnShift extends Shift {
     for (const npc of this.callIn.keys()) if (!patrons.includes(npc)) this.callIn.delete(npc);
   }
 
-  // A want let go of (walked out, or the shift over): off the tray, out of the barkeep's queue if she's not on it yet,
+  // A want let go of (walked out, or the shift over): off the tray, out of the barkeep's queue (not poured after for no one),
   // the patron no longer held to their seat.
   private drop(want: Want): void {
     this.wants.delete(want.npc);
@@ -156,7 +156,7 @@ export class InnShift extends Shift {
     if (carried >= 0) this.tray.splice(carried, 1);
     const queue = ordersAt(this.inn);
     const queued = want.bar ? queue.indexOf(want.bar) : -1;
-    if (queued > 0) queue.splice(queued, 1); // (the front one she's seeing to: let be, it comes to nothing)
+    if (queued >= 0) queue.splice(queued, 1); // (the one she's pouring already, if it is: let go of, set down for no one)
   }
 
   // A patron done with what they were brought: its empty left on their table, and up for another, a while on.
