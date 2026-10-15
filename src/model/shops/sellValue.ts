@@ -15,7 +15,7 @@ import { isBagItem } from '../loot/bags';
 import { isGear, slotOfGear } from '../human/items/gear';
 import { isJewelrySlot } from '../human/equipment';
 import { innWants, sellPrice } from '../inn/tavernShop';
-import { gearSellPrice, metalPrice, smithBuys, smithTakesMetal, smithTakesWood, woodPrice } from '../smithy/smithShop';
+import { gearSellPrice, metalPrice, pickPrice, smithBuys, smithTakesMetal, smithTakesPick, smithTakesWood, woodPrice } from '../smithy/smithShop';
 import { herbalistBuys, herbalistPrice } from '../herbalist/herbalistShop';
 import { WARES, pedlarBuys, pedlarPrice } from '../travellers/pedlarShop';
 import { isFish } from '../skills/fishing';
@@ -31,6 +31,7 @@ export function saleOf(item: BagItem): { price: number; to: string } | null {
   if (smithBuys(item)) return { price: gearSellPrice(item), to: 'a smith' };
   if (smithTakesMetal(item)) return { price: metalPrice(item), to: 'a smith' };
   if (smithTakesWood(item)) return { price: woodPrice(item), to: 'a smith or a pedlar' };
+  if (smithTakesPick(item)) return { price: pickPrice(item, true), to: 'a smith' };
   if (isFish(item)) return { price: LOOT[item].value, to: 'a pedlar or a herbalist' };
   if (isPotion(item)) return { price: potionPrice(item, true), to: 'a herbalist or a pedlar' };
   if (herbalistBuys(item)) return { price: herbalistPrice(item, true), to: 'a herbalist' };

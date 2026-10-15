@@ -2,7 +2,7 @@
 // each rock's vein a few streaks of its ore standing a voxel proud of its stone, running aslant across its sides and top,
 // a glint here and there (copper's orange and verdigris, tin's black grains, iron's rust, silver's and gold's bright
 // flecks, star-iron's pale blue in blue-black). Each kind of rock, look and vein meshed once, instanced by the world's
-// chunks as the rocks are; a vein worked out, its streaks gone (the rock stays).
+// chunks as the rocks are; a vein worked out, its streaks gone (the rock stays), and back with it a day on.
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -53,12 +53,17 @@ export function buildVeins(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.25 });
   const rocks = model.scenery.filter(isRock);
   const chunks = bucketByChunk(rocks, middleOf);
-  const drawn = new Map<Rock, { mesh: THREE.InstancedMesh; i: number }>();
-  const veined = (key: string) => (chunks.get(key) ?? []).filter((rock) => !mining.workedOut(rock));
+  const drawn = new Map<Rock, { mesh: THREE.InstancedMesh; i: number; base: THREE.Matrix4 }>();
+  const gone = new THREE.Matrix4().makeScale(0, 0, 0);
+  const show = (rock: Rock) => {
+    const it = drawn.get(rock)!;
+    it.mesh.setMatrixAt(it.i, mining.workedOut(rock) ? gone : it.base); // (worked out: its vein gone, till it's back)
+    it.mesh.instanceMatrix.needsUpdate = true;
+  };
   scene.layer(
     voxelLayer(
       () => chunks.keys(),
-      veined,
+      (key) => chunks.get(key) ?? [],
       (rock) => `vein:${rock.kind}:${rock.variant}:${mining.veinOf(rock)}`,
       (rock) => {
         const [sx, , sz] = sceneryGrid(rock.kind);
@@ -66,19 +71,18 @@ export function buildVeins(scene: WorldSink, model: GameModel): (elapsedSeconds:
       },
       (rock) => ({ ...middleOf(rock), y: model.tiles.height(rock.x, rock.z) * TILE_HEIGHT, quarterTurns: rock.quarterTurns }),
       material,
-      (rock, mesh, i) => drawn.set(rock, { mesh, i }),
+      (rock, mesh, i) => {
+        const base = new THREE.Matrix4();
+        mesh.getMatrixAt(i, base);
+        drawn.set(rock, { mesh, i, base });
+        show(rock);
+      },
     ),
   );
   let seen = mining.version;
-  const gone = new THREE.Matrix4().makeScale(0, 0, 0);
   return () => {
     if (mining.version === seen) return;
     seen = mining.version;
-    for (const [rock, { mesh, i }] of drawn) {
-      if (!mining.workedOut(rock)) continue;
-      mesh.setMatrixAt(i, gone); // (worked out: its vein gone)
-      mesh.instanceMatrix.needsUpdate = true;
-      drawn.delete(rock);
-    }
+    for (const rock of drawn.keys()) show(rock);
   };
 }
