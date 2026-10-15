@@ -115,9 +115,11 @@ function rounds(npc: Npc, npcs: readonly Npc[], seed: number): NpcStep[] {
   npc.resting = false; // (back at it: her word again, next time)
   upFromHerChair(npc);
   if (npc.role === 'barkeep') {
-    // An order waiting: first come, first served.
+    // An order waiting: the tables' first (the hero serving them, stood waiting at the counter's end: all poured in
+    // one trip), then the stools', first come, first served.
+    const tables = ordersAt(npc.home).filter((o) => o.batch);
+    if (tables.length > 0) return serveTables(npc, tables);
     const order = ordersAt(npc.home)[0];
-    if (order?.batch) return serveTables(npc, ordersAt(npc.home).filter((o) => o.batch));
     if (order) return serve(npc, order, furniture.find((f) => f.kind === 'bottleShelf'));
     npc.serving = false;
     // An empty mug left a while: over to take it, and to the sink to wash it.

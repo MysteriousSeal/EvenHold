@@ -75,9 +75,9 @@ export abstract class Shift {
     return hashUnit(typeof npc === 'number' ? npc : npc.id, ++this.rolls, salt);
   }
 
-  // The busy hour: every `every` seconds (a while either way) one of the village (of this inn's, not here already)
-  // comes in for a seat (`at`: a chair at a table, or a stool at the bar), while one's free and fewer than `most` are
-  // sat there or on their way.
+  // The busy hour: every `every` seconds (a while either way) one of the village (of this inn's, not here already, nor
+  // abed or off to it: a night shift's a quiet one) comes in for a seat (`at`: a chair at a table, or a stool at the
+  // bar), while one's free and fewer than `most` are sat there or on their way.
   protected drawIn(npcs: readonly Npc[], dt: number, at: 'table' | 'bar', every: [number, number], most: number): void {
     if ((this.rush[at] -= dt) > 0) return;
     this.rush[at] = every[0] + hashUnit(++this.rolls, this.seed, 61) * (every[1] - every[0]);
@@ -85,7 +85,8 @@ export abstract class Shift {
     const seats = this.furniture.filter((f) => f.kind === kind).length;
     const coming = (n: Npc) => n.steps.some((s) => s.kind === 'settle' && s.at === at) || (n.where === this.inn && n.seat?.piece.kind === kind);
     if (npcs.filter(coming).length >= Math.min(most, seats)) return;
-    const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n));
+    const abed = (n: Npc) => !!n.seat?.lying || n.steps.some((s) => (s.kind === 'settle' && s.at === 'bed') || (s.kind === 'sit' && !!s.seat.lying)); // (the night's: not got up for it)
+    const free = npcs.filter((n) => n.role === 'villager' && n.inn === this.inn && n.where !== this.inn && !coming(n) && !abed(n));
     const who = oneOf(free, hashUnit(this.rolls, this.seed, 62));
     if (who) visitInn(who, this.inn, this.seed, STAY[0] + hashUnit(who.id, this.rolls, 63) * (STAY[1] - STAY[0]), at);
   }
