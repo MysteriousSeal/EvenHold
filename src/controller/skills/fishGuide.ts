@@ -7,7 +7,7 @@
 
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { CATCHES, catchesAt, riseOf, weightOf, type Catch, type Waters } from '../../model/skills/fishing';
+import { CATCHES, catchesAt, isFish, riseOf, weightOf, type Catch, type Waters } from '../../model/skills/fishing';
 import type { LootId } from '../../model/loot/loot';
 import { skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
@@ -23,9 +23,10 @@ const WHERE: Record<Waters, string> = {
 // A spot of that water (to weigh a catch against the rest that bite there).
 const SPOT: Record<Waters, { narrows: boolean; deep: boolean }> = { any: { narrows: false, deep: false }, narrows: { narrows: true, deep: false }, open: { narrows: false, deep: false }, deep: { narrows: false, deep: true } };
 
-// The best catch to learn from now: the hardest they can land that still teaches; none, if none.
+// The best catch to learn from now: the hardest fish they can land that still teaches (not what the water hides: rare,
+// and no one fishes for it); none, if none.
 export function bestCatch(level: number): Catch | null {
-  return [...CATCHES].reverse().find((fish) => fish.needs <= level && riseOf(fish, level).chance > 0) ?? null;
+  return [...CATCHES].reverse().find((fish) => isFish(fish.item) && fish.needs <= level && riseOf(fish, level).chance > 0) ?? null;
 }
 
 export function fishGuide(model: GameModel, state: { picked: LootId | null }, redraw: () => void): HTMLElement {

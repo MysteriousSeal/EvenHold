@@ -3,10 +3,10 @@
 // learn from starred; the one picked told of (where it bites, the wait, the rod), and how it's done. And while a line's
 // out, the skills list says so; a bite, the bar over the hero runs (castOf.ts).
 import { describe, expect, it } from 'vitest';
-import { fishGuide } from '../src/controller/skills/fishGuide';
+import { bestCatch, fishGuide } from '../src/controller/skills/fishGuide';
 import { statusOf } from '../src/controller/skills/skillsPanel';
 import { castOf } from '../src/controller/skills/castOf';
-import { CATCHES } from '../src/model/skills/fishing';
+import { CATCHES, isFish } from '../src/model/skills/fishing';
 import { skillOf } from '../src/model/skills/skills';
 import { fresh } from './support/testWorld';
 
@@ -25,6 +25,14 @@ describe("fishing's guide", () => {
     expect(page.querySelector('.book-tool.short')?.textContent).toContain('pedlar');
     model.hero.bag.fishingRod = 1;
     expect(fishGuide(model, state, () => {}).querySelector('.book-tool.had')).toBeTruthy();
+  });
+
+  it("stars a fish, never what the water hides (rare, and not fished for)", () => {
+    for (let level = 1; level <= 300; level++) {
+      const best = bestCatch(level);
+      if (best) expect(isFish(best.item)).toBe(true);
+    }
+    expect(bestCatch(230)?.item).toBe('pike');
   });
 
   it("shows, a line out, what they're at; a bite, the bar to hook it in", () => {
