@@ -90,7 +90,7 @@ export const SMITH_RECIPES = {
 export type SmithRecipeId = keyof typeof SMITH_RECIPES;
 export const SMITH_RECIPE_IDS = Object.keys(SMITH_RECIPES) as SmithRecipeId[];
 const recipeOf = (id: SmithRecipeId): SmithRecipe => SMITH_RECIPES[id];
-export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, 'Smelting', id, level); // (an ingot lasting, as a plank does)
+export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, ['Smelting', 'Fittings'], id, level); // (an ingot or a fitting green while what's made of it teaches, as a plank is)
 
 export interface SmithingHost {
   readonly hero: Hero;

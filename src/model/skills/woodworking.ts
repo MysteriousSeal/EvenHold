@@ -117,19 +117,19 @@ export const RECIPES: Record<RecipeId, Recipe> = {
 };
 export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
-// How hard a recipe is for a hand at `level` (skills.ts difficulty), a material's (`materials`: planks, varnish; a
-// smith's ingots) lasting as lumber's oak does: never grey, but green, while anything made of it is still orange or
-// yellow (planks sawn on the way teach a little, not nothing).
+// How hard a recipe is for a hand at `level` (skills.ts difficulty); a material's (in `materials`: planks, varnish; a
+// smith's ingots and fittings) green, no more and no less, while anything made of it is still orange or yellow (known
+// yet or not), and grey once nothing is: sawing planks or smelting ingots on the way teaches a little, never the
+// whole trade.
 type Rise = (typeof RISE)[number];
-export function materialRise(recipes: Readonly<Record<string, { needs: number; from: Partial<Record<string, number>>; makes: unknown; group: string }>>, materials: string, id: string, level: number): Rise {
+export function materialRise(recipes: Readonly<Record<string, { needs: number; from: Partial<Record<string, number>>; makes: unknown; group: string }>>, materials: readonly string[], id: string, level: number): Rise {
   const recipe = recipes[id];
-  const rise = difficulty(recipe.needs, level);
-  if (recipe.group !== materials || rise.chance > 0 || typeof recipe.makes !== 'string') return rise;
+  if (!materials.includes(recipe.group) || typeof recipe.makes !== 'string') return difficulty(recipe.needs, level);
   const made = recipe.makes;
-  const users = Object.values(recipes).filter((r) => level >= r.needs && made in r.from);
-  return users.some((r) => difficulty(r.needs, level).chance >= RISE[1].chance) ? RISE[2] : rise;
+  const users = Object.values(recipes).filter((r) => made in r.from);
+  return users.some((r) => difficulty(r.needs, level).chance >= RISE[1].chance) ? RISE[2] : RISE[3];
 }
-export const woodRise = (id: RecipeId, level: number): Rise => materialRise(RECIPES, 'Materials', id, level);
+export const woodRise = (id: RecipeId, level: number): Rise => materialRise(RECIPES, ['Materials'], id, level);
 
 export interface WoodworkingHost {
   readonly hero: Hero;

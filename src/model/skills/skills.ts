@@ -73,7 +73,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   smithing: {
     name: 'Smithing',
-    steps: [7, 6, 3, 2],
+    steps: [7, 5, 3, 2],
     kind: 'main',
     verb: 'smith',
     practice: "Work metal at a smithy's anvil: smelt ore into ingots, and forge fittings, tools, arms and armour. E before the anvil opens your recipes.",
