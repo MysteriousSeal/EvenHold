@@ -39,6 +39,7 @@ import {
 } from '../../model/cheats';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
+import { WALL } from '../../model/town/townPlan';
 import { TIRED, gainXp, xpToNext } from '../../model/hero/heroStats';
 import { maxEnergyOf } from '../../model/hero/attributes';
 import { maxHpOf } from '../../model/hero/attributes';
@@ -79,6 +80,13 @@ const SIGHTS_LIFE: ReadonlyArray<readonly [LifeKind & keyof typeof ICON, string,
   ['firefly', 'Next fireflies', 'Glowing in the dark (at night: the hour set if need be)'],
 ];
 const NEARBY = 15; // tiles, for "nearby foes"
+
+// Where Go to > Greyminster sets the hero: on the road just outside the cathedral town's gate (its [0, WALL]:
+// town/townPlan.ts GATES); null, a classic world's none.
+export function greyminsterGate(model: Pick<GameModel, 'cathedralTown'>): Tile | null {
+  const town = model.cathedralTown();
+  return town && { x: town.x, z: town.z + WALL + 2 };
+}
 
 // `time`: the game's speed (a multiple of real time), to read and set.
 export function createCheatPanel(model: GameModel, time: { scale: number }, talk: (who: Who, quest: string) => void = () => {}, play: Parameters<typeof hourCheat>[1] = () => false): void {
@@ -144,6 +152,7 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
                 return travel(village && villageEntrance(model, village, here()), `village ${visited.size} of ${model.villages.length}`);
               },
             },
+            { icon: ICON.village, title: 'Greyminster', detail: 'The cathedral town, outside its gate', run: () => travel(greyminsterGate(model), 'Greyminster') },
             insideRow('house', ICON.village),
             insideRow('inn', lootIcon('ale')),
             insideRow('smithy', itemIcon('shortSword')),

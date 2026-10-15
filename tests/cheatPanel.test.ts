@@ -3,7 +3,7 @@
 // every tab's rows in groups under a header, and the bag's cheats.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { createCheatPanel } from '../src/controller/cheats/cheatPanel';
+import { createCheatPanel, greyminsterGate } from '../src/controller/cheats/cheatPanel';
 import { hourCheat } from '../src/controller/cheats/roomCheats';
 import { PACES } from '../src/model/jobs/room/pace';
 import { slotsUsed } from '../src/model/hero/bagStacks';
@@ -13,6 +13,8 @@ import { TIRED, tiredPace } from '../src/model/hero/heroStats';
 import { landBlow, type Fight } from '../src/model/hero/fighting';
 import { makeEnemy } from '../src/model/enemies/enemies';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { STREAMED_SIZE } from '../src/model/worldgen/regions';
+import { WALL } from '../src/model/town/townPlan';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
 
@@ -85,5 +87,14 @@ describe('the cheat menu', () => {
     expect(blowOn()).toBe('dead');
     row('One-hit kills').click();
     expect(model.oneHitKills).toBe(false);
+  });
+});
+
+describe("the cheat menu's Greyminster", () => {
+  it('on the road outside its gate in a streamed world; none in a classic one', () => {
+    const model = new GameModel(7, STREAMED_SIZE);
+    const town = model.cathedralTown()!;
+    expect(greyminsterGate(model)).toEqual({ x: town.x, z: town.z + WALL + 2 });
+    expect(greyminsterGate(new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE))).toBe(null);
   });
 });
