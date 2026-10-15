@@ -3,7 +3,8 @@
 // saint's relic). At home, the empty wagon: his horses bring it back without him; the inn full of pilgrims, all
 // walking one way, to a saint who heals; the road out. On the road, the witch's village: its hedge-witch chained in
 // her own cottage by the men in grey (the arc's first choice: her chain broken, the bounty taken, or walked away
-// from); and what the carter said there, with nine ales in him. Then Greyminster (saintQuestsTown.ts).
+// from); and what the carter said there, with nine ales in him. Then Greyminster (saintQuestsTown.ts); or, in a world
+// with none (a classic one's), the road run out: the arc closed there, on a line.
 import type { StoryQuest } from '../storyQuests';
 
 const saint = (q: Omit<StoryQuest, 'scope'>): StoryQuest => ({ scope: 'saint', ...q });
@@ -175,5 +176,26 @@ export const SAINT_ROAD_QUESTS: StoryQuest[] = [
     thanks: '',
     copper: 160,
     xpShare: 0.6,
+  }),
+  saint({
+    id: 'theRoadRunsOut',
+    name: 'The road runs out',
+    where: 'road',
+    giver: 'villagerB',
+    follows: 'whatTheCarterSaid',
+    unless: 'minster', // (no Greyminster in this world: the arc ends here, done as it's heard)
+    offer: () => [
+      "Greyminster? That's a month up the road, past every gibbet the men in grey have put up, and they've been busy. You'd not get there on those legs. And if you did, you'd not walk back.",
+      "Your carter's had it. Drink to him, if you can find a drink. Maybe in another life you go after him. In this one, go home, keep your head down, and don't tell anyone what's in a saint's box.",
+    ],
+    accept: 'Another life, then.',
+    decline: 'Not yet.',
+    waiting: () => [],
+    after: () => ["Still here? Nobody comes back from Greyminster. Not carters, not witches, not fingers."],
+    task: () => 'Hear the last of the carter',
+    handIn: () => [],
+    thanks: '',
+    copper: 0,
+    xpShare: 0.3,
   }),
 ];

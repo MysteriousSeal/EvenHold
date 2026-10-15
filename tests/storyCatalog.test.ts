@@ -15,7 +15,7 @@ const said = (q: StoryQuest): string[] => [...q.offer(told), ...q.offer({ ...tol
 describe('the quests people give, as written', () => {
   it('are each of a name of their own, in the list of their kind', () => {
     expect(Object.keys(STORY_QUESTS).length).toBe(all.length);
-    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length, SAINT_QUESTS.length]).toEqual([30, 22, 30, 3, 15]);
+    expect([FIRST_QUESTS.length, COMMON_QUESTS.length, RARE_QUESTS.length, ROAD_QUESTS.length, SAINT_QUESTS.length]).toEqual([30, 22, 30, 3, 16]);
     expect(FIRST_QUESTS.every((q) => q.scope === 'first')).toBe(true);
     expect([...COMMON_QUESTS, ...RARE_QUESTS].every((q) => q.scope === 'village' && !ON_THE_ROAD.includes(q.giver) && q.giver !== 'carter')).toBe(true);
     expect(ROAD_QUESTS.every((q) => q.scope === 'road' && ON_THE_ROAD.includes(q.giver) && !q.receiver)).toBe(true);
@@ -27,7 +27,7 @@ describe('the quests people give, as written', () => {
       if (q.follows) expect(STORY_QUESTS[q.follows]?.scope, `${q.id} after ${q.follows}`).toBe(q.id === 'theEmptyWagon' ? 'first' : q.scope); // (the second arc: after the first line's end)
       if (q.share !== undefined) expect(q.share > 0 && q.share <= 1, q.id).toBe(true);
     }
-    for (const line of [FIRST_QUESTS, SAINT_QUESTS]) expect(line.slice(1).every((q, i) => q.follows === line[i].id)).toBe(true); // (one line each, in order)
+    for (const line of [FIRST_QUESTS, SAINT_QUESTS.filter((q) => !q.unless)]) expect(line.slice(1).every((q, i) => q.follows === line[i].id)).toBe(true); // (one line each, in order; the second arc's close where there's no Greyminster, off it)
     expect(SAINT_QUESTS[0].follows).toBe(FIRST_QUESTS.at(-1)!.id);
     for (const q of RARE_QUESTS) expect(q.follows ? (q.share ?? 0) <= 0.35 : q.share! <= 0.35, q.id).toBe(true);
     expect(COMMON_QUESTS.every((q) => !q.follows || COMMON_QUESTS.some((c) => c.id === q.follows))).toBe(true); // (never waiting on a rare one)

@@ -48,7 +48,7 @@ export const keyOf = (id: string, at: Setting | null | undefined): string => `${
 export function lacks(quest: StoryQuest, at: Setting | null): string | null {
   if (!at) return null;
   const place = placeOf(quest);
-  return !at.who[quest.giver] ? `no ${quest.giver} here` : quest.receiver && !at.who[quest.receiver] ? `no ${quest.receiver} here` : place && !at.place[place] ? `no ${place} near` : null;
+  return !at.who[quest.giver] ? `no ${quest.giver} here` : quest.receiver && !at.who[quest.receiver] ? `no ${quest.receiver} here` : place && !at.place[place] ? `no ${place} near` : quest.unless && at.place[quest.unless] ? `a ${quest.unless} near` : null;
 }
 
 // A quest set there: kept by its key, and by whoever gives it and whoever takes it in.
