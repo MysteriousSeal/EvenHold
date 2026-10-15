@@ -10,6 +10,7 @@ import { LOOT } from '../src/model/loot/loot';
 import { POTIONS } from '../src/model/loot/potions';
 import { PROVISIONS } from '../src/model/loot/provisions';
 import { WANTS } from '../src/model/shops/shopStock';
+import { isJunk, saleOf, sellValue } from '../src/model/shops/sellValue';
 import { restore, snapshot } from '../src/model/save';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { NOT_YOURS } from '../src/model/hero/setbacks';
@@ -95,6 +96,14 @@ describe("a herbalist's cave parts and prices", () => {
     expect(model.hero.money).toBe(WANTS.goods * 12);
     // A restock on, room for another.
     expect(wantsPart(herbalistShopAt(model.shops, model.seed, atHerbalist(model).herbalist, shop.restockedAt + 5 * 60_000), 'venomGland')).toBe(true);
+  });
+
+  it("the bag's tooltip sends them to a herbalist, at their price; anyone else still pays junk's", () => {
+    for (const id of ['spiderSilk', 'venomGland', 'batWing'] as const) {
+      expect(saleOf(id), id).toEqual({ price: herbalistPrice(id, true), to: 'a herbalist (anyone, as junk, for less)' });
+      expect([isJunk(id), sellValue(id)], id).toEqual([true, LOOT[id].value]); // (what a junk buyer pays: tradePanel)
+    }
+    expect(saleOf('rustyBuckle')).toEqual({ price: LOOT.rustyBuckle.value, to: 'anyone' }); // (real junk, as it was)
   });
 
   it('energy at most half again what an ale costs, a share point; health left as it was', () => {
