@@ -1,20 +1,21 @@
 // The map drawn (the M window: controller/atlas/mapWindow.ts; the corner map: view/hud/minimap.ts), as a parchment
 // map is inked: blank vellum where the hero's never been; where they have, the country washed in (meadow, woods,
 // heath, marsh, hills, water, fields: model/atlas/chart.ts), the higher ground paler; the roads in red-brown ink; each
-// village a little house and its name; the places come upon (a crypt's cross, a cave's arch, a stronghold's tower, a
-// camp's tent), struck through once cleared; pins for what's to be done; the hero a red arrowhead. Each chunk's wash
+// village a little house and its name; the ruins and the landmarks seen; the places come upon (a crypt's cross, a cave's
+// arch, a stronghold's tower, a camp's tent: mapMarks.ts), struck through once cleared; pins for what's to be done; the hero a red arrowhead. Each chunk's wash
 // painted once (a pixel a cell) and kept, painted again only once more of it's been seen or its chart's come.
 
 import type { GameModel } from '../../model/GameModel';
 import { CHART_CELL, CHART_CELLS, groundOf, heightOf, type Chart, type Ground } from '../../model/atlas/chart';
 import { CELL, CHUNK } from '../../model/atlas/fog';
-import type { MapPin, Place } from '../../model/atlas/atlas';
+import type { Landmark, MapPin, Place } from '../../model/atlas/atlas';
 import { villageName } from '../../model/villages/villageNames';
 import { difficulty, zoneLevel, type Difficulty } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
 import { atRim, compass, screenFacing, toMap, toScreen, TURN } from './mapView';
 import { GROUND } from '../meshes/terrain/biomeGround';
 import { inkLand } from './mapInk';
+import { drawMark, MARK_NAME } from './mapMarks';
 
 // Where the map's looking: the tile at its middle, and how many pixels a tile.
 export interface MapLook {
@@ -143,6 +144,7 @@ export interface MapPaint {
   mark?: number; // the marks' and pins' size (1; the corner map's, smaller, a place's drawn whole within its frame or not at all)
   pins: readonly MapPin[];
   places: readonly Place[];
+  landmarks?: readonly Landmark[]; // (the map's; the corner map's too small for them)
 }
 
 // The map as `look` sees it, on `ctx` (its canvas `width` by `height` CSS pixels, already scaled to the screen).
@@ -212,7 +214,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     ctx.fillStyle = ink;
     ctx.fillText(text, x, y);
   };
-  // The marks first: the villages seen (a house), the places come upon (struck through once cleared), the pins' heads.
+  // The marks first: the ruins and landmarks seen, the villages (a house), the places come upon (struck through once
+  // cleared), the pins' heads.
   const m = paint.mark ?? 1;
   const sized = (x: number, y: number, draw: (x: number, y: number) => void) => {
     ctx.save();
@@ -221,10 +224,21 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     draw(0, 0);
     ctx.restore();
   };
+  for (const r of charts.flatMap((chart) => chart.ruins.filter((r) => seen(r.x, r.z)))) {
+    const [x, y] = at(r.x + r.w / 2, r.z + r.d / 2);
+    sized(x, y, (x, y) => drawMark(ctx, 'ruin', x, y));
+    take(x - 8 * m, y - 7 * m, x + 8 * m, y + 5 * m);
+  }
+  for (const l of paint.landmarks ?? []) {
+    const [x, y] = at(l.x + 0.5, l.z + 0.5);
+    if (x < -10 || y < -10 || x > width + 10 || y > height + 10) continue;
+    drawMark(ctx, l.kind, x, y);
+    take(x - 7, y - 7, x + 7, y + 6);
+  }
   const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
   for (const v of villages) {
     const [x, y] = at(v.x + 0.5, v.z + 0.5);
-    sized(x, y, (x, y) => (v.town ? cathedral : house)(ctx, x, y));
+    sized(x, y, (x, y) => drawMark(ctx, v.town ? 'town' : 'village', x, y));
     take(x - 7 * m, y - (v.town ? 20 : 8) * m, x + 7 * m, y + 5 * m);
   }
   const rim = paint.mark ? 10 * m : -20; // (the corner map's whole within its frame; the map's, cut by its edge)
@@ -235,7 +249,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   for (const place of places) {
     const [x, y] = at(place.x + 0.5, place.z + 0.5);
     sized(x, y, (x, y) => {
-      glyph(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
+      drawMark(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
       if (!place.cleared) return;
       ctx.strokeStyle = '#b02a24';
       ctx.lineWidth = 2;
@@ -250,7 +264,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     take(x - 6 * m, y - 18 * m, x + 6 * m, y);
   }
   // Then the names, under their marks: the villages' (and their levels, in how dangerous they are to the hero), nearest
-  // the middle first; close up, the places'.
+  // the middle first; drawn in a little, the places'.
   if (paint.names) {
     const spawn = spawnOf(model.size);
     const middle = (p: { x: number; z: number }) => Math.hypot(p.x - look.x, p.z - look.z);
@@ -270,7 +284,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       const [x, y] = at(place.x + 0.5, place.z + 0.5);
       take(x - 8 * m, y - 9 * m, x + 8 * m, y + 7 * m);
     }
-    for (const place of scale >= 2.5 ? places : []) {
+    for (const place of scale >= 2 ? places : []) {
       const [x, py] = at(place.x + 0.5, place.z + 0.5);
       const y = py + 17;
       ctx.font = font(11);
@@ -286,91 +300,6 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   }
   hero(ctx, ...at(model.inside?.entrance.x ?? model.hero.x, model.inside?.entrance.z ?? model.hero.z), screenFacing(model.hero.facing));
   compass(ctx, width - 16, 30, INK);
-}
-
-// A village: a little house, its roof red-brown.
-// The cathedral town's mark: a church with a tall spire and a cross, inside a ring of wall.
-function cathedral(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 1.5;
-  ctx.fillStyle = 'rgba(164, 80, 47, 0.25)';
-  ctx.beginPath();
-  ctx.rect(x - 11, y - 6, 22, 13);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#f2e6c8';
-  ctx.beginPath();
-  ctx.rect(x - 7, y - 2, 14, 7);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#4f5868';
-  ctx.beginPath();
-  ctx.moveTo(x - 3, y - 2);
-  ctx.lineTo(x, y - 17);
-  ctx.lineTo(x + 3, y - 2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x, y - 17);
-  ctx.lineTo(x, y - 22);
-  ctx.moveTo(x - 2, y - 20);
-  ctx.lineTo(x + 2, y - 20);
-  ctx.stroke();
-}
-
-function house(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-  ctx.fillStyle = '#f2e6c8';
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.rect(x - 5, y - 2, 10, 7);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#a4502f';
-  ctx.beginPath();
-  ctx.moveTo(x - 7, y - 1);
-  ctx.lineTo(x, y - 8);
-  ctx.lineTo(x + 7, y - 1);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
-// A place's mark, in ink: a crypt's cross, a cave's arch, a stronghold's tower, a camp's tent.
-function glyph(ctx: CanvasRenderingContext2D, kind: Place['kind'], x: number, y: number): void {
-  ctx.strokeStyle = INK;
-  ctx.fillStyle = '#5a4632';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (kind === 'crypt') {
-    ctx.moveTo(x, y - 8);
-    ctx.lineTo(x, y + 7);
-    ctx.moveTo(x - 5, y - 3);
-    ctx.lineTo(x + 5, y - 3);
-    ctx.stroke();
-  } else if (kind === 'cave') {
-    ctx.moveTo(x - 8, y + 6);
-    ctx.quadraticCurveTo(x, y - 14, x + 8, y + 6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  } else if (kind === 'stronghold') {
-    ctx.rect(x - 5, y - 6, 10, 12);
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    for (const dx of [-5, -1, 3]) ctx.rect(x + dx, y - 9, 2, 3);
-    ctx.fill();
-  } else {
-    ctx.moveTo(x - 7, y + 5);
-    ctx.lineTo(x, y - 7);
-    ctx.lineTo(x + 7, y + 5);
-    ctx.closePath();
-    ctx.fillStyle = '#c8a070';
-    ctx.fill();
-    ctx.stroke();
-  }
 }
 
 // A pin: a coloured head on a short stem (one off the map's edge already held at the edge: mapView.ts atRim).
@@ -425,7 +354,10 @@ export function nameAt(model: GameModel, look: MapLook, width: number, height: n
     for (let cz = Math.floor((tz - reach) / CHUNK); cz <= Math.floor((tz + reach) / CHUNK); cz++) {
       const v = model.atlas.chart(cx, cz)?.villages.find((v) => near(v) && model.atlas.fog.seen(v.x, v.z));
       if (v) return `${villageName(v, model.seed)} · level ${zoneLevel(spawnOf(model.size), v)}`;
+      const ruin = model.atlas.chart(cx, cz)?.ruins.find((r) => Math.hypot(r.x + r.w / 2 - tx, r.z + r.d / 2 - tz) <= reach && model.atlas.fog.seen(r.x, r.z));
+      if (ruin) return MARK_NAME.ruin;
     }
   }
-  return null;
+  const landmark = paint.landmarks?.find(near);
+  return landmark ? MARK_NAME[landmark.kind] : null;
 }

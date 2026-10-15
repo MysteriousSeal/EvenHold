@@ -67,6 +67,30 @@ describe('the map of the land walked', () => {
     expect(third.atlas.fog.seen(third.hero.x, third.hero.z), 'round the hero').toBe(true);
   });
 
+  it('marks the landmarks come within sight of (a ring of stones once, not each stone), kept through a save', () => {
+    const model = fresh();
+    model.scenery.push(
+      { kind: 'menhir', x: 40, z: 40, w: 1, d: 1, quarterTurns: 0, variant: 0 },
+      { kind: 'menhir', x: 44, z: 41, w: 1, d: 1, quarterTurns: 0, variant: 0 },
+      { kind: 'tor', x: 50, z: 30, w: 2, d: 2, quarterTurns: 0, variant: 0 },
+      { kind: 'boulder', x: 52, z: 30, w: 1, d: 1, quarterTurns: 0, variant: 0 },
+    );
+    model.atlas.hear(45, 40);
+    const marks = model.atlas.landmarks();
+    const by = (l: { x: number; z: number }) => Math.abs(l.x - 45) < 12 && Math.abs(l.z - 36) < 12; // (the small world has its own about)
+    expect(marks.filter((l) => l.kind === 'menhir' && by(l))).toHaveLength(1);
+    expect(marks.filter((l) => l.kind === 'tor' && by(l))).toEqual([{ kind: 'tor', x: 51, z: 31 }]);
+    expect(marks.some((l) => (l.kind as string) === 'boulder'), 'a rock no landmark').toBe(false);
+    const again = fresh();
+    restore(again, parseSave(JSON.stringify(snapshot(model)), model.seed)!);
+    expect(again.atlas.landmarks()).toEqual(marks);
+    const older = JSON.parse(JSON.stringify(snapshot(model)));
+    delete older.atlas.landmarks;
+    const third = fresh();
+    restore(third, parseSave(JSON.stringify(older), model.seed)!);
+    expect(third.atlas.landmarks(), 'a save from before them: none yet').toEqual([]);
+  });
+
   it('charts a chunk from the world (its water, its villages, its roads), and pins the quests taken', () => {
     const model = fresh();
     const chart = model.atlas.chart(0, 0)!;

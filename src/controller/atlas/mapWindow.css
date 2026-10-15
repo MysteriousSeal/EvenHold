@@ -5,7 +5,7 @@
 .map-canvas {
   display: block;
   width: 100%;
-  height: min(580px, calc(100vh - 230px));
+  height: min(580px, calc(100vh - 270px)); /* (room under it for the key's rows, above the action bar) */
   background: #ecdcb4;
   box-shadow: 0 0 0 2px #2e1f14, inset 0 0 36px rgba(122, 74, 32, 0.45);
   cursor: grab;
@@ -29,6 +29,8 @@
 .map-named:empty { display: none; }
 .map-foot { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #7a5a3c; }
 .map-key { flex: 1; }
+.map-key-marks { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-bottom: 3px; }
+.map-key-marks span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .map-key .pin { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 8px; border-radius: 50%; box-shadow: 0 0 0 1.5px #2e1f14; vertical-align: -1px; }
 .map-key .pin:first-child { margin-left: 0; }
 .map-key .quest { background: #e8b030; }

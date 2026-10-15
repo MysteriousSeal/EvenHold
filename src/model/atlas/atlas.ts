@@ -2,7 +2,8 @@
 // seed made there, charted a chunk at a time and kept for the game (chart.ts: asked of a ChartSource, a worker's in the
 // game), and the places come upon out in the wilds (a crypt, a cave, a stronghold, a bandit camp: within sight of
 // them once), each struck through once cleared (its boss slain; a camp's crew). Others' marks are put on it by name
-// (marks: a purse dropped where the hero fell, say). Saved: the fog, and the places found.
+// (marks: a purse dropped where the hero fell, say), and the landmarks come within sight of (a ring of standing
+// stones, a tor, a great dead tree: to find the way by). Saved: the fog, the places found, the landmarks.
 
 import type { MapSize } from '../map/grid';
 import type { Tiles } from '../map/tiles';
@@ -17,6 +18,16 @@ import { chartOf, chartOfLand, type Chart, type ChartLand } from './chart';
 import { CHUNK, Fog, SIGHT } from './fog';
 
 export type PlaceKind = 'crypt' | 'cave' | 'stronghold' | 'camp';
+export type LandmarkKind = 'menhir' | 'tor' | 'snag';
+const LANDMARKS: readonly string[] = ['menhir', 'tor', 'snag']; // (a ring of standing stones, a granite tor, a great dead tree: model/scenery)
+const ONE_LANDMARK = 12; // tiles: those of a kind closer than this one mark (a ring's stones; a few tors together)
+
+// A landmark come within sight of: what, and where (its middle tile).
+export interface Landmark {
+  kind: LandmarkKind;
+  x: number;
+  z: number;
+}
 
 // A place come upon: what, where, its name and level, its key (a dungeon's record's, dungeons.ts; a camp's, by where
 // it stands), and whether it's been cleared.
@@ -56,6 +67,7 @@ export interface AtlasHost {
   readonly caves: ReadonlyArray<{ entrance: Entrance }>;
   readonly strongholds: ReadonlyArray<{ entrance: Entrance }>;
   readonly camps: readonly Camp[];
+  readonly scenery: ReadonlyArray<{ kind: string; x: number; z: number; w: number; d: number }>;
   readonly cryptsCleared: ReadonlyMap<string, ReadonlySet<number>>;
   campEmpty(camp: Camp): boolean;
 }
@@ -86,6 +98,7 @@ export class Atlas {
   private readonly asked = new Set<number>();
   private readonly found = new Map<string, Place>(); // by key
   private readonly camps = new Map<string, Camp>(); // the camps found, this game (to look at their crew)
+  private readonly seenMarks: Landmark[] = []; // the landmarks come within sight of
   private source: ChartSource | null = null;
 
   constructor(private readonly host: AtlasHost) {
@@ -123,6 +136,17 @@ export class Atlas {
       this.camps.set(key, camp);
       if (!this.found.has(key)) this.found.set(key, { kind: 'camp', x: camp.x, z: camp.z, name: campName(camp, this.host.seed), level: campLevel(camp, this.host.size), key, cleared: false });
     }
+    for (const piece of this.host.scenery) {
+      if (!LANDMARKS.includes(piece.kind)) continue;
+      const [lx, lz] = [Math.floor(piece.x + piece.w / 2), Math.floor(piece.z + piece.d / 2)];
+      if (!near({ x: lx, z: lz }) || this.seenMarks.some((l) => l.kind === piece.kind && Math.abs(l.x - lx) < ONE_LANDMARK && Math.abs(l.z - lz) < ONE_LANDMARK)) continue;
+      this.seenMarks.push({ kind: piece.kind as LandmarkKind, x: lx, z: lz });
+    }
+  }
+
+  // The landmarks come within sight of.
+  landmarks(): readonly Landmark[] {
+    return this.seenMarks;
   }
 
   // The places come upon, each cleared or not as it stands now (a dungeon's boss slain; a camp's crew, where it's made).
@@ -167,16 +191,20 @@ export class Atlas {
     return [...this.marks.values()].flatMap((marks) => [...marks()]);
   }
 
-  // For saving: the land seen, the places found.
-  save(): { seen: Record<string, string>; places: Place[] } {
-    return { seen: this.fog.save(), places: [...this.found.values()].map((p) => ({ ...p })) };
+  // For saving: the land seen, the places found, the landmarks (each its kind, x, z: there may be hundreds).
+  save(): { seen: Record<string, string>; places: Place[]; landmarks: Array<[LandmarkKind, number, number]> } {
+    return { seen: this.fog.save(), places: [...this.found.values()].map((p) => ({ ...p })), landmarks: this.seenMarks.map((l) => [l.kind, l.x, l.z]) };
   }
 
   // Back from a save. One from before the map (none seen): the land seen round each of `around` (where the hero is,
   // the villages been to).
   load(saved: unknown, around: ReadonlyArray<{ x: number; z: number }> = []): void {
-    const data = (saved && typeof saved === 'object' ? saved : {}) as { seen?: unknown; places?: unknown };
+    const data = (saved && typeof saved === 'object' ? saved : {}) as { seen?: unknown; places?: unknown; landmarks?: unknown };
     this.found.clear();
+    this.seenMarks.length = 0; // (a save from before them: none yet)
+    for (const l of Array.isArray(data.landmarks) ? data.landmarks : []) {
+      if (Array.isArray(l) && LANDMARKS.includes(l[0]) && Number.isFinite(l[1]) && Number.isFinite(l[2])) this.seenMarks.push({ kind: l[0], x: l[1], z: l[2] });
+    }
     const kinds: readonly unknown[] = ['crypt', 'cave', 'stronghold', 'camp'];
     for (const p of Array.isArray(data.places) ? data.places : []) {
       if (!p || typeof p !== 'object' || !kinds.includes(p.kind) || typeof p.key !== 'string' || typeof p.name !== 'string' || ![p.x, p.z, p.level].every(Number.isFinite)) continue;
