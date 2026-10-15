@@ -74,6 +74,14 @@ export const FURNITURE_KINDS = [
   'trophyWall', // boards along a wall, their trophies hung on them (homestead/trophies.ts)
   'cottageSpot', // where something's still to be built, chalked out on the floor (its `upgrade`)
   'saleNotice', // the reeve's notice on the wall of a cottage for sale
+  // The cathedral's own (cathedral/cathedralLayout.ts)
+  'altar', // the high altar, its retable gilded
+  'pillar', // the nave's
+  'pew', // two to a row, facing the altar
+  'candleStand', // votive candles on an iron stand
+  'lectern',
+  'reliquaryStair', // the way down to the reliquary, behind a grille (reliquary/)
+  'cellBars', // iron bars, floor to beam: a cell's (its prisoner's: town/townCallings.ts)
 ] as const;
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
@@ -95,7 +103,7 @@ export interface Furniture {
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
   leather?: boolean; // a chair: its cushion leather, not red cloth (an inn's: its red kept for the hearth)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
-  side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it)
+  side?: -1 | 1; // a bellows: the way along its wall its forge is (its nozzle into it); a pew: the end of its row it's at
   upgrade?: UpgradeId; // a cottage's spot: what's to be built there (homestead/cottage.ts)
   hung?: readonly TrophyId[]; // a trophy wall: what's hung on it, in order (homestead/trophies.ts)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
@@ -203,6 +211,7 @@ const SEATS: Partial<Record<FurnitureKind, { height: number; forward: number }>>
   chair: { height: 0.36, forward: 0.26 }, // forward enough that the head clears the chair's back
   armchair: { height: 0.32, forward: -0.05 }, // back against its backrest
   barStool: { height: 0.56, forward: 0.26 },
+  pew: { height: 0.34, forward: 0.12 }, // (the cathedral's: a seat a tile, cathedral/cathedralLayout.ts)
 };
 
 const OFF_WALL = 0.2; // tiles upstairs beds are drawn out from the wall they stand against (off its thickness)

@@ -227,6 +227,12 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     scene.add(light);
     return light;
   });
+  // The cathedral's candles (cathedralFurnitureVoxels.ts), lit: a warm pool round each stand, and round the altar's pair.
+  for (const f of furniture.filter((p) => p.kind === 'candleStand' || p.kind === 'altar')) {
+    const light = new THREE.PointLight(0xffb060, f.kind === 'altar' ? 1.4 : 1, f.kind === 'altar' ? 3.2 : 2.4, 1.6);
+    light.position.set(f.x + (f.w - 1) / 2, 0.9, f.z + (f.wall === 'back' ? 0.1 : 0));
+    scene.add(light);
+  }
   // The smithy at work: sparks off the anvil, steam off the trough (as the smith hammers, or quenches).
   const anvil = furniture.find((f) => f.kind === 'anvil');
   const trough = furniture.find((f) => f.kind === 'trough');

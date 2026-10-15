@@ -14,8 +14,9 @@ import { isCottage } from '../homestead/cottage';
 import { COTTAGE_SIZE } from '../homestead/cottageLayout';
 import { hashCell, mulberry32, oneOf } from '../../util/random';
 import type { Building, House } from '../types';
+import { CATHEDRAL_BACK, CATHEDRAL_FRONT } from '../town/townPlan';
 
-export type BuildingType = 'house' | 'inn' | 'smithy';
+export type BuildingType = 'house' | 'inn' | 'smithy' | 'cathedral';
 export type EntranceType = BuildingType | 'crypt' | 'cave' | 'stronghold' | 'reliquary'; // (a dungeon's way in, dungeons/: a crypt's stairs down in a ruin, crypts/crypts.ts; a cave's mouth in a hillside, caves/caves.ts; a bandit stronghold's gate, strongholds/strongholds.ts; the cathedral town's door down to its reliquary, reliquary/reliquary.ts)
 
 export interface Entrance {
@@ -38,6 +39,7 @@ export interface Room {
 }
 
 const DOOR_REACH = 0.62; // from a building's middle to just outside its door
+const CATHEDRAL_REACH = (CATHEDRAL_FRONT - CATHEDRAL_BACK + 1) / 2 + DOOR_REACH - 0.5; // (its middle half its length back from its front)
 export const ENTER_RANGE = 0.5; // how close to the door spot the hero must be
 
 // The way out of a door on a building turned by `rotationY` (its local -Z).
@@ -55,7 +57,8 @@ export const doorPlace = (n: number): { x: number; z: number } => ({ x: Math.flo
 export function entrancesOf(houses: readonly House[], buildings: readonly Building[]): Entrance[] {
   const at = (type: BuildingType, x: number, z: number, rotationY: number): Entrance => {
     const [outX, outZ] = outward(rotationY);
-    return { type, x: x + outX * DOOR_REACH, z: z + outZ * DOOR_REACH, outX, outZ };
+    const reach = type === 'cathedral' ? CATHEDRAL_REACH : DOOR_REACH;
+    return { type, x: x + outX * reach, z: z + outZ * reach, outX, outZ };
   };
   return [
     ...houses.map((h) => at('house', h.x, h.z, h.rotationY)),
@@ -68,15 +71,16 @@ const SIZES: Record<BuildingType, { width: [number, number]; depth: [number, num
   house: { width: [5, 8], depth: [4, 6] },
   inn: { width: [11, 13], depth: [8, 10] }, // roomy: a bar, a hearth corner and the tables
   smithy: { width: [7, 9], depth: [6, 7] },
+  cathedral: { width: [11, 11], depth: [17, 17] }, // its nave, its aisles either side, the altar at its far end (cathedral/cathedralLayout.ts)
 };
 // A herbalist's house (herbalist/herbalistHomes.ts): shop, workroom and home, just big enough for all their pieces,
 // each reachable (herbalistLayout.ts; tests/herbalistInside.test.ts tries every door): no emptier.
 // A hedge-witch's (witch/witchHomes.ts) the same: her pieces are a herbalist's, but for the shelf of potions.
 const HERBALIST_SIZE = { width: [7, 7] as [number, number], depth: [6, 6] as [number, number] };
-const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'] };
+const FLOORS: Record<BuildingType, FloorStyle[]> = { house: ['planks', 'boards', 'flagstones'], inn: ['tavern'], smithy: ['flagstones'], cathedral: ['flagstones'] };
 // (The inn's limewashed always: its darker floor and pools of light read against pale walls. Two of them, so a room's
 // rolls stay as they were.)
-const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['plaster', 'plaster'], smithy: ['stone'] };
+const WALLS: Record<BuildingType, WallStyle[]> = { house: ['plaster', 'timber', 'stone'], inn: ['plaster', 'plaster'], smithy: ['stone'], cathedral: ['stone'] };
 
 // The room behind a building's door: the same for a given seed and door, always.
 // (Never a crypt's: those are their own, crypts/crypts.ts.)
@@ -90,7 +94,7 @@ export function roomFor(seed: number, entrance: Entrance): Room {
   const width = roll(size.width);
   const depth = roll(size.depth);
   const middle = Math.floor(width / 2);
-  const door = width >= 7 && !cottage ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle;
+  const door = width >= 7 && !cottage && type !== 'cathedral' ? middle + (rng() < 0.5 ? -1 : 1) * Math.floor(rng() * 2) : middle; // (the cathedral's great door on its nave's line)
   const herbalist = size === HERBALIST_SIZE;
   return { width, depth, door, floor: herbalist ? 'earth' : pick(FLOORS[type]), wall: herbalist ? 'daub' : pick(WALLS[type]) }; // (a herbalist's as rustic inside as out)
 }

@@ -88,7 +88,7 @@ export const HANDS_ITEMS = slotItems('hands', {
   furMittens: { name: 'Fur mittens', armor: 1, stats: { endurance: 1 } },
   embroideredGloves: { name: 'Embroidered gloves', armor: 1, stats: { endurance: 1 } },
   leatherBracers: { name: 'Leather bracers', wornBy: { bandit: 1 }, armor: 2, stats: { agility: 1 } },
-  silkGloves: { name: 'Silk gloves', stats: { agility: 1 } },
+  silkGloves: { name: 'Silk gloves', value: 60, soldBy: { clothier: 2 }, stats: { agility: 1 } }, // (a clothier's, in the cathedral town: town/stallShop.ts)
   studdedBracers: { name: 'Studded bracers', wornBy: { bouncer: 1 }, armor: 2, stats: { strength: 1 } }, // an inn's bouncer's
   // The sets' (sets.ts).
   headsmansGloves: { name: "Headsman's gloves", set: 'headsman', level: 6, rarity: 'uncommon', value: 90, droppedBy: { bruiser: 1, sawbones: 1 }, armor: 2, stats: { strength: 2 } },

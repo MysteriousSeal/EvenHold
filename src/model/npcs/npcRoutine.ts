@@ -27,6 +27,8 @@ import { easeOffHero, heroOn, pastHero, place, walk, walkAlong } from './npcWalk
 import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import { witchCalled, witchSteps } from '../witch/witchWork';
+import { mongerSteps } from '../town/stallKeepers';
+import { callingSteps } from '../town/townCallings';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
 import { inTurn, say } from './speech';
@@ -54,6 +56,7 @@ const BENCH_CHANCE = 0.5; // of sitting on a bench, for the second spot on the s
 const BEFORE_BENCH = 0.62; // how far in front of a bench's seat one stands to sit down
 const INN_CHANCE = 0.25; // of going, when the routine comes to the inn
 const INN_CAP = 4; // villagers at an inn at once, at most (its barmaids aside)
+const CHURCH_CHANCE = 0.35; // of the cathedral town's folk going to the cathedral instead, by day, when the routine comes to the inn
 const EVENING_INN_CHANCE = 0.6; // of going, of an evening
 const EVENING_INN_CAP = 7; // villagers at an inn at once, of an evening: the place full
 const NIGHT_TIME: [number, number] = [90, 150]; // seconds abed at a time, at night (an hour and a half or more)
@@ -112,7 +115,8 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
   const [night, evening] = [within(hour, NIGHT), within(hour, EVENING)];
   let stop = night ? 'home' : routine[npc.stop % routine.length];
   if (evening && stop !== 'home') stop = 'inn'; // (of an evening, the inn in mind: the fields left, the square passed by, if it's full)
-  if (stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= (evening ? EVENING_INN_CAP : INN_CAP))) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
+  const church = stop === 'inn' && !evening && !!npc.church && roll(npc, 41) < CHURCH_CHANCE; // (a townsman's: a while in a pew)
+  if (!church && stop === 'inn' && (roll(npc, 13) >= (evening ? EVENING_INN_CHANCE : INN_CHANCE) || !npc.inn || patrons(npcs, npc.inn) >= (evening ? EVENING_INN_CAP : INN_CAP))) stop = roll(npc, 14) < 0.5 || evening ? 'home' : 'square';
   npc.stop++;
   const steps: NpcStep[] = [];
   const leave = () => {
@@ -134,7 +138,7 @@ function plan(npc: Npc, npcs: readonly Npc[], world: NpcWorld): NpcStep[] {
     else steps.push({ kind: 'go', to: squareSpot(npc, world, 1) }, { kind: 'wait', for: between(npc, SQUARE_WAIT, 11) });
     return steps;
   }
-  const building = stop === 'inn' && npc.inn ? npc.inn : npc.home;
+  const building = church ? npc.church! : stop === 'inn' && npc.inn ? npc.inn : npc.home;
   if (npc.where !== building) {
     leave();
     steps.push({ kind: 'go', to: building }, { kind: 'enter', entrance: building });
@@ -155,7 +159,7 @@ export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number,
 }
 
 // What each kind of villager does next, when done with what they were doing.
-const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]> = {
+const ROUTINES = {
   villager: plan,
   barkeep: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
   server: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
@@ -163,7 +167,10 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   bouncer: (npc, _npcs, world) => bouncerSteps(npc, world.seed),
   herbalist: (npc, _npcs, world) => herbalistSteps(npc, world), // (at home, at work among their pots and herbs, always)
   witch: (npc, _npcs, world) => witchSteps(npc, world), // (likewise, among hers)
-};
+  monger: (npc, _npcs, world) => mongerSteps(npc, world), // (at their stall by day, the cathedral town's)
+  pardoner: (npc, _npcs, world) => mongerSteps(npc, world), // (at his, likewise)
+  ...Object.fromEntries((['bishop', 'deacon', 'sister', 'captain', 'prisoner'] as const).map((c) => [c, (npc: Npc, _npcs: readonly Npc[], world: NpcWorld) => callingSteps(npc, world)])), // (Greyminster's people, about their callings)
+} as Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]>;
 
 // Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).
 const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled, witch: witchCalled };

@@ -5,6 +5,7 @@
 // flat pie, a tankard crowned with foam, a pot-bellied jug, a tall slim bottle.
 
 import type { InnProvisionId } from '../../../model/loot/provisions';
+import type { VintageId } from '../../../model/loot/vintages';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { fillBox, setColor } from '../voxel/voxelShapes';
 import { model, type LootModel } from './lootModel';
@@ -74,6 +75,21 @@ export const PROVISION_MODELS: Record<InnProvisionId, LootModel> = {
     fillBox(g, 0, 0, 0, 2, 4, 2, (x, y, z) => (y === 2 && z === 2 ? 4 : x === 0 && z === 2 ? 3 : x === 2 ? 2 : 1));
     fillBox(g, 1, 5, 1, 1, 6, 1, 1); // the neck
     setColor(g, 1, 7, 1, 5); // the wax seal
+  }),
+};
+
+// The vintner's (vintages.ts): hippocras in a squat stoneware flagon, stoppered; the bishop's reserve in a tall dark
+// bottle, its neck wrapped in gold foil.
+export const VINTAGE_MODELS: Record<VintageId, LootModel> = {
+  hippocras: model([0xb8865a, 0x8e6440, 0xd8a878, 0x5a3a22], [4, 6, 4], (g) => {
+    for (const y of [0, 1, 2, 3]) disc(g, 0, y, 0, 4, (x, z) => (x === 0 ? 3 : z === 3 ? 2 : 1));
+    fillBox(g, 1, 4, 1, 2, 4, 2, 2); // the shoulder
+    fillBox(g, 1, 5, 1, 1, 5, 1, 4); // the stopper
+  }),
+  bishopsReserve: model([0x2a1a24, 0x1a0e16, 0x4a2a3a, 0xd8b048, 0xa8822a], [3, 9, 3], (g) => {
+    fillBox(g, 0, 0, 0, 2, 4, 2, (x, _y, z) => (x === 0 && z === 2 ? 3 : x === 2 ? 2 : 1));
+    fillBox(g, 1, 5, 1, 1, 7, 1, (_x, y) => (y === 5 ? 1 : 4)); // the neck, foiled
+    setColor(g, 1, 8, 1, 5);
   }),
 };
 

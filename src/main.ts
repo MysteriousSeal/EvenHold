@@ -38,6 +38,8 @@ import { travellerPrompt, travellerSays } from './model/travellers/travellerTalk
 import { say } from './model/npcs/speech';
 import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
+import { createTownTrade } from './controller/trade/townTrade';
+import { townSite } from './model/town/townSite';
 import { WORD_HOLD } from './model/travellers/travellers';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { quitsAt } from './model/jobs/room/roomShift';
@@ -208,6 +210,7 @@ async function boot(): Promise<void> {
   };
   const jobs = createJobPanel(model, { setPaused: holdStill('jobs') }); // the work to be had: an inn's server's
   const herbs = createHerbalistPanel(model, { bag }); // a village herbalist's, at home
+  const town = createTownTrade(model, { bag }); // Greyminster's stalls' keepers' and its callings' words
   const board = createQuestBoardPanel(model, { setPaused: holdStill('board'), ride: (to, go) => sleepFade(go, () => {}, `On the road to ${to}…`) });
   const salvage = createSalvagePanel(model);
   // Someone's own trade or word, with nothing of the story's to say (or asked for it, in a talk): a keeper's wares, a
@@ -215,12 +218,13 @@ async function boot(): Promise<void> {
   const trade = (who: Who): void => {
     if (!('role' in who)) return;
     if ('road' in who && who.role === 'finder') return void ((told) => told && talk.show(who, told))(model.roads.talkTo(who)); // (the bishop's men: their questions, roads/questioning.ts)
-    if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts))));
+    if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts, townSite(model.seed, model.size)))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
     else if (who.role === 'witch') talk.show(who, witchTalk(model, who)); // (her lessons, asked across her counter)
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
+    else town.trade(who);
   };
   const talk = createTalkPanel(model, { setPaused: holdStill('talk'), trade, redraw: (dt) => controller.redraw(dt) }); // a word with someone who has a quest (story/talkPanel.ts)
   const updateQuests = createQuestTracker(model);
@@ -367,6 +371,7 @@ async function boot(): Promise<void> {
     shop.update(); // (walked away from the keeper: the shop shuts)
     forge.update();
     herbs.update();
+    town.update();
     pack.update();
     stash.update(); // (walked off from the strongbox: it shuts)
     journal.update();

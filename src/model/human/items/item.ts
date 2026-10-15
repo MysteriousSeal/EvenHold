@@ -12,7 +12,7 @@ import type { GearSet } from './sets';
 // the inns' bouncers always in their own studded leathers).
 export type Wearer = 'bandit' | 'bouncer' | 'pedlar' | 'pilgrim' | 'guard' | 'finder'; // (the last four: travellers on the roads, travellers/travellers.ts; a finder, the bishop's man in grey)
 // Those who sell items: the smith (weapons, shields, armour: smithy/smithShop.ts).
-export type Merchant = 'smith' | 'pedlar'; // (a pedlar: trinkets, carried along the roads: travellers/pedlarShop.ts)
+export type Merchant = 'smith' | 'pedlar' | 'relics' | 'clothier'; // (a pedlar: trinkets, carried along the roads: travellers/pedlarShop.ts; a relic-monger and a clothier: the cathedral town's stalls, town/stallShop.ts)
 
 export interface ItemEntry {
   name: string;

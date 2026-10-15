@@ -13,6 +13,7 @@ import { TilePatch, type Tiles } from './map/tiles';
 import { bumpsEnemy } from './enemies/enemies';
 import { EnemyDirector } from './enemies/enemyDirector';
 import type { TravellerCrowd } from './travellers/travellerCrowd';
+import { townSite } from './town/townSite';
 import { LiveWorld } from './world/liveWorld';
 import { SyncSource, WorldStreamer, type RegionSource } from './world/worldStreamer';
 import { type Scenery } from './scenery/scenery';
@@ -98,6 +99,7 @@ export class GameModel {
   readonly crypts: Crypt[]; // under them (crypts/crypts.ts)
   readonly caves: Cave[]; // in the hills (caves/caves.ts)
   readonly strongholds: LiveWorld['strongholds']; // the bandits' old forts, few and far (strongholds/strongholds.ts)
+  readonly towns: LiveWorld['towns']; // the cathedral town, once its region's made (town/townLand.ts: one to a world)
   readonly ground = new Ground((x, z) => this.getGroundY(x, z)); // loot and coins lying about (loot/ground.ts)
   readonly floors = new DungeonFloors(); // (and on each dungeon's floor, kept: dungeons/dungeonFloors.ts)
   readonly loot = this.ground.loot; // on the ground, until picked up
@@ -176,7 +178,7 @@ export class GameModel {
     this.streamer = world ? null : new WorldStreamer(this.world, regions ?? new SyncSource(seed, size));
     this.streamer?.prime(spawn); // (the regions round where the hero sets out, made before they're seen)
     ({ tiles: this.tiles, obstacles: this.obstacles, trails: this.trails, villages: this.villages, houses: this.houses, buildings: this.buildings, fields: this.fields } = this.world);
-    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, strongholds: this.strongholds, scenery: this.scenery } = this.world);
+    ({ trees: this.trees, bushes: this.bushes, ruins: this.ruins, camps: this.camps, crypts: this.crypts, caves: this.caves, strongholds: this.strongholds, towns: this.towns, scenery: this.scenery } = this.world);
     ({ enemies: this.enemies, travellers: this.travellers, wildlife: this.wildlife, entrances: this.entrances, npcs: this.npcs } = this.world);
     this.hero.y = this.getGroundY(this.hero.x, this.hero.z);
     this.director = new EnemyDirector(this.enemies, this.hero, this.obstacles, this.size, (x, z) => this.getGroundY(x, z), (e) => foeStrikes(this, e));
@@ -375,6 +377,7 @@ export class GameModel {
   get seatInReach(): Seat | null { return seatInReach(this); }
 
   lieDown = (): boolean => lieOnBedroll(this); // (the bedroll unrolled where they stand, and lain on: hero/setbacks.ts)
+  cathedralTown = (): { x: number; z: number } | null => townSite(this.seed, this.size); // (Greyminster's well, off the maps too: town/townSite.ts; a classic world's none)
   haunt = (ruin: Ruin, count: number): number => raiseGhosts(this, ruin, count); // (a ruin's ghosts risen again, for a quest that asks them slain: ruins/haunting.ts)
   campEmpty = (camp: Camp): boolean => this.campLife.empty(camp); // (asked by the quests people give: a camp cleared before it was asked)
   wakeWith = (who: Npc): void => void wakeWith(this, who); // (a night spent with them: woken in their place, story/nights.ts)

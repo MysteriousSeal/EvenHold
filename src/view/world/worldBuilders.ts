@@ -8,6 +8,7 @@ import { buildTerrain } from '../meshes/terrain/terrainMesh';
 import { buildTrees } from '../meshes/tree/treeMesh';
 import { buildHouses } from '../meshes/building/houseMesh';
 import { buildBuildings } from '../meshes/building/buildingMesh';
+import { buildTown } from '../meshes/town/townMesh';
 import { buildWells } from '../meshes/well/wellMesh';
 import { buildRoads } from '../meshes/road/roadMesh';
 import { buildSignposts } from '../meshes/road/signpostMesh';
@@ -47,6 +48,7 @@ export const WORLD_BUILDERS: readonly WorldBuilder[] = [
   { label: 'Tending the bushes', build: buildBushes },
   { label: 'Building the houses', build: buildHouses },
   { label: 'Raising the inn and the forge', build: buildBuildings },
+  { label: 'Raising the cathedral', build: buildTown },
   { label: 'Digging the wells', build: buildWells },
   { label: 'Lighting the lanterns', build: buildLanterns },
   { label: 'Pinning up the notices', build: buildNoticeBoards },

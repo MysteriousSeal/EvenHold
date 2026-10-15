@@ -21,6 +21,7 @@ import {
 } from '../constants';
 import { NEIGHBORS_4, cellKey, inBounds, sizeOf, type MapSize } from '../map/grid';
 import { shuffle } from '../../util/random';
+import { SQUARE as TOWN_SQUARE } from '../town/townPlan';
 import type { Building, BuildingKind, House, Surface, Village } from '../types';
 
 interface Offset {
@@ -288,12 +289,13 @@ export function generateVillages(
 }
 
 // The square's lantern posts: one on each corner tile (always free, since
-// no building stands on a diagonal of the square).
+// no building stands on a diagonal of the square; the cathedral town's on its wider square's).
 export function squareLanterns(village: Village): Array<[number, number]> {
+  const r = village.town ? TOWN_SQUARE : R;
   return [
-    [village.x - R, village.z - R],
-    [village.x + R, village.z - R],
-    [village.x - R, village.z + R],
-    [village.x + R, village.z + R],
+    [village.x - r, village.z - r],
+    [village.x + r, village.z - r],
+    [village.x - r, village.z + r],
+    [village.x + r, village.z + r],
   ];
 }

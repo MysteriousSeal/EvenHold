@@ -10,6 +10,8 @@
 //   classic pipeline: world.ts), from its own seed: villages kept clear of its edges by half their spacing and room
 //   for their lanes, ruins and camps by a few tiles, so nothing ever straddles two; forests, meadows and every tree's
 //   and bush's look sampled where they are, so they run on across borders;
+// - the cathedral town, on the one region that has it (town/townSite.ts), raised on its own hill after the villages
+//   are placed (town/townLand.ts: those too near it let go, every other as it ever was);
 // - and last, a road from each of its borders' crossings in to its own (borderRoads.ts), each crossing found the same
 //   from either side (crossingsOf), so the land's roads run on from region to region.
 // Then moved to where it is on the world's map (everything in world tiles; its tiles a TilePatch).
@@ -32,6 +34,8 @@ import { createForestDensity, generateTrees } from './trees';
 import { createMeadowDensity } from './meadows';
 import { generateBushes } from './bushes';
 import { solidCells } from './world';
+import { townOnRegion, REACH as TOWN_REACH } from '../town/townSite';
+import { raiseTown, townSolids, type Town } from '../town/townLand';
 
 export const REGION = 512; // tiles a side
 export const STREAMED_SIZE: MapSize = { width: 16384, depth: 16384 };
@@ -62,6 +66,7 @@ export interface RegionLand {
   camps: Camp[];
   trees: Tree[];
   bushes: Bush[];
+  towns?: Town[]; // the cathedral town, if it's this region's (none: a classic world's)
 }
 
 const regionSeed = (seed: number, rx: number, rz: number): number => hashCell(rx * 7919 + 13, rz * 104729 + 7, seed);
@@ -169,12 +174,16 @@ export function generateRegionLand(seed: number, rx: number, rz: number, size: M
   const atSpawn = spawn.x >= 0 && spawn.z >= 0 && spawn.x < width && spawn.z < depth;
 
   const { villages, houses, buildings } = generateVillages(heightMap, lakeMap, surfaceMap, rng, spawn.x, spawn.z, VILLAGE_MARGIN);
+  const site = townOnRegion(seed, size, rx, rz);
+  const town = site && raiseTown(seed, { x: site.x - x0, z: site.z - z0 }, { heightMap, lakeMap, surfaceMap, villages, houses, buildings });
   const solid = solidCells({ houses, buildings, villages });
+  if (town) for (const key of townSolids(town)) solid.add(key);
   const grid = { heightMap, lakeMap, surfaceMap, solidCells: solid };
   const trail = atSpawn ? generateSpawnTrail(grid, villages, spawn.x, spawn.z) : null;
   const roads = linkVillages(grid, villages);
-  const fields = generateFields(heightMap, lakeMap, surfaceMap, solid, villages);
+  const fields = generateFields(heightMap, lakeMap, surfaceMap, solid, town ? villages.filter((v) => !v.town) : villages); // (no crops inside the town's walls)
   const cleared = new Set<string>();
+  if (town) for (let x = town.x - TOWN_REACH; x <= town.x + TOWN_REACH; x++) for (let z = town.z - TOWN_REACH; z <= town.z + TOWN_REACH; z++) cleared.add(cellKey(x, z)); // (no ruin, camp, tree nor bush on it)
   const inside = (x: number, z: number) => x >= PLACE_MARGIN && z >= PLACE_MARGIN && x < width - PLACE_MARGIN && z < depth - PLACE_MARGIN;
   const isOpenTile = (x: number, z: number) => inside(x, z) && !lakeMap[x][z] && !solid.has(cellKey(x, z)) && !cleared.has(cellKey(x, z));
   const tiles = mapsAsTiles({ heightMap, lakeMap, surfaceMap });
@@ -215,5 +224,6 @@ export function generateRegionLand(seed: number, rx: number, rz: number, size: M
     camps: camps.map((c) => ({ ...at(c), way: at(c.way), pieces: c.pieces.map(at) })),
     trees: offWays(trees).map(at),
     bushes: offWays(bushes).map(at),
+    towns: town ? [{ ...at(town), walls: town.walls.map(at), stalls: town.stalls.map(at) }] : [],
   };
 }

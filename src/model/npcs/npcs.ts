@@ -19,6 +19,8 @@ import type { Entrance } from '../interiors/interiors';
 import type { Seat } from '../interiors/furniture';
 import type { Point } from '../map/obstacles';
 import type { Field, Village } from '../types';
+import { STALL_TITLES, type Stall } from '../town/stallKeepers';
+import { CALLING_TITLES, callingsOf, type Calling } from '../town/townCallings';
 
 export const NPC_RADIUS = 0.14; // as wide as the hero
 export const NPC_NEAR = 2.2; // how close the hero comes to see a villager's name
@@ -49,14 +51,16 @@ const FIELD_NEAR = 15; // tiles from the village's middle
 const WHITE_HAIR = 7; // (a hedge-witch's: humanoid.ts HAIR_COLOR_COUNT's last)
 const START_NEAR = 600; // tiles from where the hero sets out, the nearest village's herbalist always a woman (spawnNpcs)
 
-export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist' | 'witch';
+// (A monger: a stall's keeper, the cathedral town's: town/stallKeepers.ts; the pardoner keeps one too. The rest, Greyminster's people by
+// their calling: town/townCallings.ts.)
+export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 'herbalist' | 'witch' | 'monger' | 'pardoner' | Calling;
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)". A man in a woman's trade, or she
 // in his (a charm's doing: spells/swaps.ts), called as he or she is: a barman, a waiter.
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', witch: 'Hedge-witch' };
+const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', witch: 'Hedge-witch', monger: null, ...CALLING_TITLES };
 const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter' };
-export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'>): string {
-  const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role];
+export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'> & { stall?: Stall }): string {
+  const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role] || (npc.stall && STALL_TITLES[npc.stall.kind]);
   return title ? `${npc.name} (${title})` : npc.name;
 }
 
@@ -96,6 +100,8 @@ export interface Npc extends Humanoid {
   drinks?: number; // drinks had this time at the bar
   dicing?: boolean; // at the dice with the hero, sat at a table (inn/diceHall.ts): not up till it's done
   salt: number; // their own, from the seed: their routine's rolls (npcRoutine.ts)
+  stall?: Stall; // a monger's, the stall they keep (town/stallKeepers.ts)
+  church?: Entrance; // the cathedral, a townsman's (npcRoutine.ts: now and then, there instead of the inn)
   led?: boolean; // moved by something else than a routine of their own (someone only passing through: a client let into the hero's room, jobs/roomShift.ts): the rounds leave them be
 }
 
@@ -147,6 +153,17 @@ export function randomName(build: Build): string {
   return nameAt(roll(), roll(), Math.floor(roll()), build);
 }
 
+// What each of Greyminster's callings wears (town/townCallings.ts): the bishop and his deacon in vestments as near as the
+// wardrobe has (velvet for His Grace), the sister in her shawl and coif, the captain of the witch-finders in his grey
+// brigandine, the prisoner in the shirt he was taken in.
+const CALLING_DRESS: Record<Calling, Npc['equipment']> = {
+  bishop: { torso: 'velvetDoublet', neck: 'goldChain' },
+  deacon: { torso: 'travelCloak', neck: 'woodenCharm' },
+  sister: { head: 'linenCoif', shoulders: 'woolShawl', torso: 'linenShirt' },
+  captain: { torso: 'watchBrigandine', head: 'kettleHat' },
+  prisoner: { torso: 'linenShirt', legs: 'linenTrousers' },
+};
+
 // One villager for every house, living in the village it stands in (the
 // nearest), going to that village's inn; each starts at home, at a point
 // of the routine of their own, so a village isn't all in step. Then two
@@ -154,7 +171,7 @@ export function randomName(build: Build): string {
 // (`firstId`: the first of their ids: a streamed world's region's block. `start`: where the opening line's village is
 // (the end of the trail from where the hero sets out, else where they set out: story/storyCast.ts), the herbalist of
 // the village nearest it, within START_NEAR, always a woman: the burned woman's granddaughter, story/quests/firstQuests.ts.)
-export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0, start?: Point): Npc[] {
+export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0, start?: Point, stalls: readonly Stall[] = []): Npc[] {
   // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
   // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.
   const nearest = <T extends { x: number; z: number }>(list: readonly T[], x: number, z: number): T | null => {
@@ -235,6 +252,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const cottage = cottageIn(seed, village, own, (h) => storied.get(village)!.has(h) || lodged.has(h));
     if (cottage) (shops.add(cottage), markCottage(cottage)); // (no one lives there: the hero's to buy)
   }
+  const churches = entrances.filter((e) => e.type === 'cathedral');
   const villagers = houses
     .flatMap((home, id) => {
       const village = nearest(villages, home.x, home.z);
@@ -244,8 +262,9 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
       // At home to begin with, a while, then on from a point of the routine of their own.
       npc.stop = Math.floor(hashUnit(id, seed % 1_000_003, 75) * ROUTINE.length);
       npc.steps = [{ kind: 'settle', for: 5 + hashUnit(Math.round(home.x * 10), Math.round(home.z * 10), seed * 131 + 73) * 40 }];
-      // Some work the field nearest their village, if there's one near.
+      // Some work the field nearest their village, if there's one near; the cathedral town's folk go to their cathedral.
       npc.field = fieldOf(id, village);
+      if (village.town) npc.church = nearest(churches, village.x, village.z) ?? undefined;
       return [npc];
     });
   const innVillages = inns.map((inn) => nearest(villages, inn.x, inn.z)); // (each inn's: its barmaids' and its bouncer's)
@@ -300,7 +319,28 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     npc.equipment = { torso: 'patchedTunic', shoulders: 'woolShawl', neck: 'woodenCharm' };
     return [npc];
   });
-  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists, ...witches];
+  // A keeper at each of the cathedral town's stalls (town/stallKeepers.ts), at home in the house nearest it (its
+  // villager's too), in an apron: their wares to sell (town/stallShop.ts). Last, so everyone else keeps their id.
+  // (The first relic stall's, the pardoner: the story's Gil, story/quests/saintQuestsTown.ts.)
+  const firstRelics = stalls.findIndex((stall) => stall.kind === 'relics');
+  const mongers = stalls.flatMap((stall, i) => {
+    const home = nearest(houses, stall.x, stall.z);
+    const village = nearest(villages, stall.x, stall.z);
+    if (!home || !village) return [];
+    const npc = person(doors + inns.length * 3 + smithies.length + villages.length * 2 + i, i === firstRelics ? 'pardoner' : 'monger', home, nearest(inns, village.x, village.z), village, stall);
+    npc.stall = stall;
+    npc.equipment = i === firstRelics ? { torso: 'travelCloak', neck: 'scallopShell' } : { torso: 'linenShirt', legs: 'linenTrousers' };
+    return [npc];
+  });
+  // And Greyminster's people by their calling (town/townCallings.ts), in the town with the Minster. Last of all.
+  const minster = entrances.find((e) => e.type === 'cathedral');
+  const town = minster && nearest(villages, minster.x, minster.z);
+  const callings = !minster || !town ? [] : callingsOf(town, minster, houses.filter((h) => nearest(villages, h.x, h.z) === town), nearest(inns, town.x, town.z)).map(({ calling, home, at, woman }, i) => {
+    const npc = person(doors + inns.length * 3 + smithies.length + villages.length * 2 + stalls.length + i, calling, home, nearest(inns, town.x, town.z), town, at, woman);
+    npc.equipment = CALLING_DRESS[calling];
+    return npc;
+  });
+  return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists, ...witches, ...mongers, ...callings];
 }
 
 // Whether a step of a walker of half-width r from `from` to (x, z), in

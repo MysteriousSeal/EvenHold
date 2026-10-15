@@ -41,7 +41,7 @@ describe('the fifty-five new pieces', () => {
     for (const slot of EQUIP_SLOTS) for (const id of NEW[slot]) expect(ITEMS[id]?.slot, id).toBe(slot);
     for (const slot of EQUIP_SLOTS.filter((s) => s !== 'neck' && s !== 'ring')) expect(NEW[slot].length, slot).toBeGreaterThanOrEqual(5);
     expect(NEW.neck.length + NEW.ring.length).toBeGreaterThanOrEqual(5);
-    expect(OLD).toHaveLength(122); // (the old ones, and the witch-finders' hat and coat since: model/roads/patrols.ts)
+    expect(OLD).toHaveLength(125); // (the old ones, the witch-finders' hat and coat since: model/roads/patrols.ts, and the cathedral town's relic-mongers' three: human/items/jewelry.ts)
   });
 
   it('each drawn: a model to wear or hold, or a jewel for the bag', () => {

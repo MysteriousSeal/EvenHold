@@ -7,6 +7,7 @@
 import type { LootEntry } from './lootEntry';
 import type { BlessingKind } from '../hero/blessing';
 import { MEALS, type MealId } from './meals';
+import { VINTAGES, type VintageId } from './vintages';
 
 export interface Provision extends LootEntry {
   heal?: number; // food: the share of their most health it gives back (0..1)
@@ -30,8 +31,8 @@ const PROVISION_TABLE = {
 } satisfies Record<string, Provision>;
 
 export type InnProvisionId = keyof typeof PROVISION_TABLE; // the barmaid's
-export type ProvisionId = InnProvisionId | MealId;
-export const PROVISIONS: Record<ProvisionId, Provision> = { ...PROVISION_TABLE, ...MEALS };
+export type ProvisionId = InnProvisionId | MealId | VintageId; // (and the cathedral town's vintner's: vintages.ts)
+export const PROVISIONS: Record<ProvisionId, Provision> = { ...PROVISION_TABLE, ...MEALS, ...VINTAGES };
 export const PROVISION_IDS = Object.keys(PROVISION_TABLE) as InnProvisionId[];
 export const isProvision = (item: string): item is ProvisionId => item in PROVISIONS;
 

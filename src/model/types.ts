@@ -182,8 +182,9 @@ export interface House {
 
 // The inn and the blacksmith: two tiles long, standing on the square's
 // outer ring with their door (local -Z) facing the well and their long side
-// (local X) along the square's edge.
-export type BuildingKind = 'inn' | 'smithy';
+// (local X) along the square's edge. And the cathedral town's cathedral
+// (town/townPlan.ts): its tiles all of its footprint, its great door its front's middle.
+export type BuildingKind = 'inn' | 'smithy' | 'cathedral';
 
 export interface Building {
   kind: BuildingKind;
@@ -210,6 +211,7 @@ export interface Village {
   x: number;
   z: number;
   groundTier: number;
+  town?: true; // the cathedral town (town/townLand.ts: one to a world), walled, its square the wider
 }
 
 // What covers a dry tile's top. Water is tracked separately in lakeMap.

@@ -198,8 +198,9 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
   for (const v of villages) {
     const [x, y] = [sx(v.x + 0.5), sz(v.z + 0.5)];
-    house(ctx, x, y);
-    take(x - 7, y - 8, x + 7, y + 5);
+    if (v.town) cathedral(ctx, x, y);
+    else house(ctx, x, y);
+    take(x - 7, y - (v.town ? 20 : 8), x + 7, y + 5);
   }
   const places = paint.places.filter((p) => sx(p.x) > -20 && sz(p.z) > -20 && sx(p.x) < width + 20 && sz(p.z) < height + 20);
   for (const place of places) {
@@ -248,6 +249,36 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
 }
 
 // A village: a little house, its roof red-brown.
+// The cathedral town's mark: a church with a tall spire and a cross, inside a ring of wall.
+function cathedral(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = 'rgba(164, 80, 47, 0.25)';
+  ctx.beginPath();
+  ctx.rect(x - 11, y - 6, 22, 13);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#f2e6c8';
+  ctx.beginPath();
+  ctx.rect(x - 7, y - 2, 14, 7);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#4f5868';
+  ctx.beginPath();
+  ctx.moveTo(x - 3, y - 2);
+  ctx.lineTo(x, y - 17);
+  ctx.lineTo(x + 3, y - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y - 17);
+  ctx.lineTo(x, y - 22);
+  ctx.moveTo(x - 2, y - 20);
+  ctx.lineTo(x + 2, y - 20);
+  ctx.stroke();
+}
+
 function house(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.fillStyle = '#f2e6c8';
   ctx.strokeStyle = INK;
