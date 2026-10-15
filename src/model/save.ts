@@ -297,7 +297,7 @@ export function restore(model: GameModel, data: SaveData): void {
     const stairs = furniture.find((f) => f.kind === 'stairs');
     if (saved.upstairs && stairs) model.inside = upstairsInside(building, room, stairs, model.seed, model.fullWalls); // on the floor above
     else model.enterRoom(building); // (as going in: a crypt's walls with it)
-    if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0 }); // (lost: at the door, as they came in)
+    if (placed) Object.assign(hero, { x: saved.x, z: saved.z, y: 0, facing: Number.isFinite(saved.facing) ? saved.facing : hero.facing }); // (lost: at the door, as they came in; facing as they were, not as going in turned them)
   } else if (placed) {
     model.teleport(Math.min(model.size.width - 1, Math.max(0, saved.x)), Math.min(model.size.depth - 1, Math.max(0, saved.z)));
   } // (lost outdoors: where they set out)
