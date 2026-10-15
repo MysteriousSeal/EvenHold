@@ -17,6 +17,7 @@ import { showMainMenu } from './controller/title/mainMenu';
 import { randomLook } from './model/human/humanoid';
 import { randomName } from './model/npcs/npcs';
 import { forgetWorld, loadGame, savedSize, savedWorlds, startAutoSave } from './controller/storage/saveGame';
+import { heroFiles } from './controller/storage/heroFiles';
 import { createFpsCounter } from './view/hud/fpsCounter';
 import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
@@ -218,6 +219,7 @@ async function boot(): Promise<void> {
       keepSessionSeed(null); // (this tab's world let go: the reload shows the main menu)
       window.location.reload();
     },
+    files: heroFiles(model, () => autoSave, (to) => [keepSessionSeed(to), window.location.reload()], __GAME_VERSION__), // (a file's hero, or a backup, played at once)
     letGo: () => (model.focused || model.chosen.person ? (model.focus(null), model.select(null), true) : false),
     hero: () => ({ name: model.hero.name, level: model.hero.level, day: clockAt(model.minutes).day, seed: model.seed, look: model.hero.look, equipment: model.hero.equipment }),
     walls: {

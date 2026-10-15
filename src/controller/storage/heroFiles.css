@@ -1,0 +1,8 @@
+/* The pause menu's "Your hero" (heroFiles.ts), over pauseMenu.css's rows: Export and Import, then the backups under
+   their own heading, each a row (one asked about lit clay), what was last said, and Back. */
+.pause-hero-files { display: flex; flex-direction: column; gap: 6px; }
+.pause-backups { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.pause-backups h3 { margin: 0 0 2px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #a8916f; }
+.pause-backups-none { margin: 0; font-size: 13px; color: #a8916f; }
+.pause-item.asking b { color: #f08a5c; }
+.pause-files-said { margin: 6px 0 0; font-size: 13px; font-style: italic; color: #ffd98a; overflow-wrap: anywhere; }
