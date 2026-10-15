@@ -36,7 +36,7 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
-    steps: [12, 9, 8, 6], // (the ancient and elder trees, fewer: a walk between)
+    steps: [11, 11, 10, 9], // (the ancient and elder trees, fewer: a walk between)
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
@@ -106,7 +106,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
-    steps: [4, 4, 4, 5], // (what teaches, half what bites)
+    steps: [5, 3, 4, 4], // (what teaches, half what bites)
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
