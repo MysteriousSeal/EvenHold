@@ -13,7 +13,7 @@ import { dampAt, skyAt, weatherAt, type SkyForcing } from '../../model/world/wea
 import { SEASONS, type Season } from '../../model/clock';
 import type { GameModel } from '../../model/GameModel';
 import { FOG_FAR, FOG_NEAR, SHAFT_COLOR, SUN_DIRECTION } from '../constants';
-import { setSeasonTint, setSnow, setWindDirection, setWindStrength } from '../meshes/common/nature';
+import { setSeasonTint, setSeasonWeights, setSnow, setWindDirection, setWindStrength } from '../meshes/common/nature';
 import type { Lights } from './lighting';
 import type { PostProcessing } from './postprocessing';
 import { Precipitation } from './rainView';
@@ -71,6 +71,7 @@ export class SkyView {
   private readonly shaftColor = new THREE.Color();
   private readonly sunDirection = new THREE.Vector3();
   private readonly focus = new THREE.Vector3();
+  private lying = { minute: NaN, snow: 0, wet: 0 }; // (the snow and the wet left by the hours before: worked out once a game minute)
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -171,14 +172,20 @@ export class SkyView {
     weights[index] = 1 - turn;
     weights[(index + 1) % 4] += turn;
     skyUniforms.uSeason.value.fromArray(weights);
+    setSeasonWeights(weights[0], weights[1], weights[2], weights[3]);
     setSeasonTint(...(now.tint.map((c, i) => c + (next.tint[i] - c) * turn) as [number, number, number]));
-    let [lying, wet] = [0, 0];
-    const then = this.force.weather ? () => ({ snow: this.force.weather === 'snow' ? 1 : 0, rain: this.force.weather === 'rain' ? 1 : 0 }) : (hours: number) => weatherAt(seed, minutes - hours * 60);
-    for (let hours = 0; hours < 6; hours++) {
-      const was = then(hours);
-      lying = Math.max(lying, was.snow * (1 - hours / 8));
-      if (hours < 3) wet = Math.max(wet, was.rain * (1 - hours / 3.5));
+    const minute = Math.floor(minutes);
+    if (minute !== this.lying.minute) {
+      let [snow, wet] = [0, 0];
+      const then = this.force.weather ? () => ({ snow: this.force.weather === 'snow' ? 1 : 0, rain: this.force.weather === 'rain' ? 1 : 0 }) : (hours: number) => weatherAt(seed, minute - hours * 60);
+      for (let hours = 0; hours < 6; hours++) {
+        const was = then(hours);
+        snow = Math.max(snow, was.snow * (1 - hours / 8));
+        if (hours < 3) wet = Math.max(wet, was.rain * (1 - hours / 3.5));
+      }
+      this.lying = { minute, snow, wet };
     }
+    const { snow: lying, wet } = this.lying;
     const frost = now.frost + (next.frost - now.frost) * turn;
     skyUniforms.uSnow.value = Math.min(0.85, frost + lying * 0.7);
     skyUniforms.uWet.value = wet;
