@@ -15,7 +15,7 @@ import { rollGear } from '../human/items/gear';
 import { sleepTillMorning } from '../inn/roomLetting';
 import { afterDark } from './nights';
 import type { Entrance } from '../interiors/interiors';
-import { LOOT } from '../loot/loot';
+import { LOOT, type LootId } from '../loot/loot';
 import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
 import type { Enemy, GameEvent } from '../types';
@@ -131,6 +131,14 @@ export class Story {
     const of = needs.kind === 'reach' ? 1 : needs.count;
     const have = needs.kind === 'bring' ? (this.host.hero.bag[needs.item] ?? 0) : (this.l.counted.get(key) ?? 0);
     return { have: Math.min(of, have), of };
+  }
+
+  // What the quests under way still want brought (loot/dropMercy.ts: the odds of it climbing, kill on kill).
+  wantedItems(): LootId[] {
+    return [...this.l.state].flatMap(([key, state]) => {
+      const needs = STORY_QUESTS[idOf(key)]?.needs;
+      return state === 'taken' && needs?.kind === 'bring' && this.progress(key).have < needs.count ? [needs.item] : [];
+    });
   }
 
   ready = (id: string): boolean => this.progress(id).have >= this.progress(id).of;
