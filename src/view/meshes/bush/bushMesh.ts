@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import type { Bush } from '../../../model/types';
-import { createBiomes, type BiomeMap } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes, type BiomeMap } from '../../../model/scenery/biomes';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { addWindSway } from '../common/wind';
 import { greedyMesh } from '../voxel/greedyMesh';
@@ -39,7 +39,7 @@ export function buildBushGeometry(kind: BushLook, shape: number): THREE.BufferGe
 export function buildBushes(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const windTime = addWindSway(material, { ...BUSH_WIND, broadleaf: true });
-  const biomes = createBiomes(model.seed, model.tiles);
+  const biomes = aroundVillages(createBiomes(model.seed), model.villages);
   const looks = new Map(model.bushes.map((bush) => [bush, bushLook(bush, biomes)]));
   addVoxelInstances(
     scene,

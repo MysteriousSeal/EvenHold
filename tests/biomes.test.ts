@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { generateWorld } from '../src/model/worldgen/world';
 import { mapsAsTiles } from '../src/model/map/tiles';
-import { BIOMES, createBiomes, type Biome } from '../src/model/scenery/biomes';
+import { createForestDensity } from '../src/model/worldgen/trees';
+import { BIOMES, aroundVillages, createBiomes, type Biome } from '../src/model/scenery/biomes';
 import { sceneryTiles } from '../src/model/scenery/scenery';
 import { createCoverScatter } from '../src/view/meshes/cover/groundCoverScatter';
 import { BIOME_COVER } from '../src/view/meshes/cover/biomeCover';
@@ -42,6 +43,14 @@ describe('kinds of country', () => {
     }
   });
 
+  it('the woods where the trees grow thicker', () => {
+    const forest = createForestDensity(7);
+    const [woods, open]: number[][] = [[], []];
+    for (let x = 0; x < MID.width; x += 2) for (let z = 0; z < MID.depth; z += 2) (biomes.at(x, z) === 'forest' ? woods : open).push(forest(x, z));
+    const mean = (list: number[]) => list.reduce((a, b) => a + b, 0) / list.length;
+    expect(mean(woods)).toBeGreaterThan(mean(open) * 1.25);
+  });
+
   it('the marsh on lower ground, the hills on higher', () => {
     const tiers = new Map<Biome, number[]>(BIOMES.map((b) => [b, []]));
     for (let x = 0; x < MID.width; x += 3) for (let z = 0; z < MID.depth; z += 3) {
@@ -65,7 +74,7 @@ describe('kinds of country', () => {
       }
       long += run >= 8 ? run : 0;
     }
-    expect(long / all).toBeGreaterThan(0.7);
+    expect(long / all).toBeGreaterThan(0.6); // (the woods follow the trees' groves: smaller than the rest)
     for (let w = 0; w < 6; w++) {
       const counts = new Map<Biome, number>();
       for (let x = 0; x < 64; x += 2) for (let z = 0; z < 64; z += 2) counts.set(big.at(9000 + w * 256 + x, 9000 + z), (counts.get(big.at(9000 + w * 256 + x, 9000 + z)) ?? 0) + 1);
@@ -116,7 +125,7 @@ describe('the country\'s own landmarks', () => {
 });
 
 describe('what grows on the ground', () => {
-  const biomes = createBiomes(7, model.tiles);
+  const biomes = aroundVillages(createBiomes(7), model.villages);
   const cover = createCoverScatter(model)(0, 0, MID.width, MID.depth);
 
   it('each country\'s own plants, and only there', () => {

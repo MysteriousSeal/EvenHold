@@ -18,7 +18,7 @@ import { voxelLayer } from '../voxel/voxelInstances';
 import { gradeOf } from '../../../model/skills/lumber';
 import { bucketByChunk } from '../../world/chunkLayer';
 import { createGrid, fillBox } from '../voxel/voxelShapes';
-import { createBiomes, type Biome } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
 import { GRAND_GRID, GRAND_SHAPES, grandOak } from './grandOakVoxels';
 import { createFallingLeaves } from './fallingLeaves';
@@ -103,7 +103,7 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const pineTime = addWindSway(pineMaterial, { ...TREE_WIND, evergreen: true });
   const materialOf = (tree: Tree) => (tree.kind === 'pine' ? pineMaterial : material);
   // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
-  const biomes = createBiomes(model.seed, model.tiles);
+  const biomes = aroundVillages(createBiomes(model.seed), model.villages);
   const tintOf = (tree: Tree) => {
     const tint = gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
     const country = tree.kind === 'pine' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest' ? undefined : COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];

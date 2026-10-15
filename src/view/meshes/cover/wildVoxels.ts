@@ -11,7 +11,7 @@
 
 import { hashUnit, mulberry32 } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
-import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
+import { createGrid, setColor } from '../voxel/voxelShapes';
 
 const ENTRIES = {
   frond: 0x4f8a3a,
@@ -58,7 +58,7 @@ export const FERN_GRID: [number, number, number] = [13, 8, 13];
 export const FERN_SHAPES = 1; // (its quarter turns tell one from another)
 export const MUSHROOM_GRID: [number, number, number] = [6, 6, 6];
 export const MUSHROOM_SHAPES = 2;
-export const HEATHER_GRID: [number, number, number] = [10, 6, 10];
+export const HEATHER_GRID: [number, number, number] = [7, 3, 7];
 export const HEATHER_SHAPES = 1;
 export const REED_GRID: [number, number, number] = [7, 18, 7];
 export const REED_SHAPES = 2; // bulrushes among reeds, a yellow flag
@@ -76,15 +76,16 @@ const put = (g: VoxelGrid, x: number, y: number, z: number, c: number) => {
 };
 
 // Fronds out from the middle, each rising to its middle and drooping to its tip.
+// Bracken's fronds go out the four straight ways only (fewer faces: it's strewn over the moor).
 export function buildFern(shape: number, bracken = false): VoxelGrid {
   const g = createGrid(FERN_GRID);
   const [frond, light, tip, dark] = bracken ? [C.bracken, C.brackenLight, C.brackenLight, C.brackenDark] : [C.frond, C.frondLight, C.frondTip, C.frondDark];
   const rng = mulberry32(0xfe40 + shape * 131);
   const m = 6;
   const ways = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-  const fronds = 5 + shape;
+  const fronds = bracken ? 4 : 5 + shape;
   for (let f = 0; f < fronds; f++) {
-    const [dx, dz] = ways[(f * 3 + shape) % ways.length];
+    const [dx, dz] = bracken ? ways[f] : ways[(f * 3 + shape) % ways.length];
     const long = (dx && dz ? 4 : 5) + Math.floor(rng() * 2);
     for (let i = 0; i <= long; i++) {
       const y = Math.round(1 + Math.sin((i / long) * Math.PI * 0.85) * 4 + (i === 0 ? -1 : 0));
@@ -128,21 +129,13 @@ export function buildMushrooms(shape: number): VoxelGrid {
 // A low cushion: olive twigs, a domed top of purple bells.
 export function buildHeather(shape: number): VoxelGrid {
   const g = createGrid(HEATHER_GRID);
-  const rng = mulberry32(0x4ea7 + shape * 977);
-  const [cx, cz] = [4.5 + (shape === 1 ? 0.5 : 0), 4.5];
-  const [rx, rz, ry] = [3.6 + shape * 0.4, 3.4, 3.2 + (shape === 2 ? 1 : 0)];
-  for (let x = 0; x < 10; x++) for (let z = 0; z < 10; z++) for (let y = 0; y < 6; y++) {
-    const d = ((x - cx) / rx) ** 2 + ((z - cz) / rz) ** 2 + (y / ry) ** 2;
-    if (d > 1 - rng() * 0.18) continue;
-    setColor(g, x, y, z, y === 0 ? C.twigDark : C.twig);
-  }
-  // Its top voxels, the bells: purple, lighter and deeper in patches (by 2 x 2: they merge).
-  for (let x = 0; x < 10; x++) for (let z = 0; z < 10; z++) for (let y = 5; y >= 1; y--) {
-    if (colorAt(g, x, y, z) === 0) continue;
-    const r = hashOf(x >> 1, z >> 1, shape + 23);
-    if (r < 0.9) setColor(g, x, y, z, r < 0.2 ? C.heatherLight : r < 0.35 ? C.heatherDeep : C.heather);
-    break;
-  }
+  // Low and few-sided (cheap: it's strewn thick): a dark foot of twigs, a broad purple layer over it, a lighter crown.
+  const disc = (y: number, r: number, color: number) => {
+    for (let x = 0; x < 7; x++) for (let z = 0; z < 7; z++) if ((x - 3) ** 2 + (z - 3) ** 2 <= r * r) setColor(g, x, y, z, color);
+  };
+  disc(0, 2.3 + shape * 0.3, C.twigDark);
+  disc(1, 3.1, C.heather);
+  disc(2, 1.6, C.heatherLight);
   return g;
 }
 

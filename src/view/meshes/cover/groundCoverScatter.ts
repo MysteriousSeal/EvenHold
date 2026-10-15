@@ -8,10 +8,10 @@ import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { onRoadBand, roadConnections } from '../../../model/map/roads';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
-import { hashCell, mulberry32 } from '../../../util/random';
+import { hashCell, hashUnit, mulberry32 } from '../../../util/random';
 import { meadowPatches } from '../../../model/scenery/meadowPatches';
 import { sceneryTiles } from '../../../model/scenery/scenery';
-import { createBiomes, type Biome } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { BIOME_COVER, type WildKind } from './biomeCover';
 
 const MAX_CLUMPS_PER_TILE = 5;
@@ -29,7 +29,9 @@ const SCATTER_SALT = 2;
 const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
 const ROAD_CLEARANCE = 0.04; // keep lining grass this far off the dirt
 const WILD_SALT = 41; // the country's own plants roll from a stream of their own (all else rolled as it ever was)
-const SHORE_REEDS = { chance: 0.6, least: 2, most: 4 }; // a bed of reeds on a low shore (a tile beside the water)
+const SHORE_REEDS = { chance: 0.7, least: 1, most: 3 }; // a clump of reeds on a low shore (a tile beside the water)
+const SHORE_BEDS = 0.35; // of the shore, in stretches of a few tiles, so much has its reeds (clumps, not a hedge)
+const SHORE_GRASS = 0.4; // and the grass under them thinned to this
 
 export interface ScatterItem {
   x: number;
@@ -90,7 +92,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
   const [solid, hasTree] = [at(solidAt), at(treeAt)];
   const patches = meadowPatches(model.seed); // (the meadow patches of wildflowers: model/scenery/meadowPatches.ts)
   const [bloomPatch, patchKind] = [patches.strength, patches.kind];
-  const biomes = createBiomes(model.seed, model.tiles);
+  const biomes = aroundVillages(createBiomes(model.seed), model.villages);
   return (x0, z0, x1, z1) => {
   const cover: GroundCover = { tufts: [], sprigs: [], flowers: [], pebbles: [], blooms: [], wild: [] };
 
@@ -105,6 +107,9 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       const y = tier * TILE_HEIGHT;
       const country = biomes.at(x, z);
       const grows = BIOME_COVER[country];
+      // A stretch of low shore with its reeds (the moor's and the hills' have none).
+      const shore = country !== 'heath' && country !== 'hills' && hashUnit(Math.floor(x / 3), Math.floor(z / 3), model.seed + 0x5e0) < SHORE_BEDS
+        && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => model.tiles.has(x + dx, z + dz) && model.tiles.lake(x + dx, z + dz));
       const item = (ox: number, oz: number, scale: number, variant: number): ScatterItem => ({
         x: x + ox,
         y,
@@ -131,7 +136,7 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
       // Lush meadows get up to MAX_CLUMPS_PER_TILE, their edges a stray
       // clump or two, bare ground none.
       const density = meadowDensity(x, z);
-      const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass + rng() * 0.99);
+      const clumps = Math.floor(density * MAX_CLUMPS_PER_TILE * grows.grass * (shore ? SHORE_GRASS : 1) + rng() * 0.99);
       // Clumps also grow with the meadow: small at the thin edges, largest
       // in the lush centers, so patches read as mounds rather than dots.
       const meadowScale = (CLUMP_SCALE_EDGE + (CLUMP_SCALE_CENTER - CLUMP_SCALE_EDGE) * density) * (grows.short ?? 1);
@@ -167,9 +172,8 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         for (let i = 0; i < count; i++) cover.blooms.push(item(cx + (rng() - 0.5) * DRIFT_SPREAD, cz + (rng() - 0.5) * DRIFT_SPREAD, 1, kind));
       }
       // The country's own plants (none in a meadow), from a stream of their own: off the tree's foot (but ferns); and a
-      // bed of reeds on a low shore, whatever the country (but the moor's and the hills').
+      // clump of reeds on a stretch of low shore, whatever the country (but the moor's and the hills').
       const roll = mulberry32(hashCell(x, z, WILD_SALT));
-      const shore = country !== 'heath' && country !== 'hills' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => model.tiles.has(x + dx, z + dz) && model.tiles.lake(x + dx, z + dz));
       if (shore && !treeHere && roll() < SHORE_REEDS.chance) {
         const count = SHORE_REEDS.least + Math.floor(roll() * (SHORE_REEDS.most - SHORE_REEDS.least + 1));
         for (let i = 0; i < count; i++) cover.wild.push({ x: x + (roll() - 0.5) * SCATTER_SPREAD, y, z: z + (roll() - 0.5) * SCATTER_SPREAD, tier, rotation: roll() * Math.PI * 2, scale: 1, variant: Math.floor(roll() * 8), country, kind: 'reed' });

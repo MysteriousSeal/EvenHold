@@ -15,7 +15,7 @@ import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
 import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
 import { createCoverScatter, type GroundCover, type ScatterItem, type WildItem } from './groundCoverScatter';
 import { createGroundColours } from '../terrain/biomeGround';
-import { createBiomes } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes } from '../../../model/scenery/biomes';
 import type { WildKind } from './biomeCover';
 import {
   FERN_GRID, FERN_SHAPES, HEATHER_GRID, HEATHER_SHAPES, LITTER_GRID, LITTER_SHAPES, THISTLE_GRID, THISTLE_SHAPES, MUSHROOM_GRID, MUSHROOM_SHAPES, REED_GRID, REED_SHAPES, STONE_GRID, STONE_SHAPES, WILD_PALETTE,
@@ -119,7 +119,7 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
 
   const grassMaterial = plain();
   const windTime = addWindSway(grassMaterial, { ...GRASS_WIND, snowShrink: true, waves: true });
-  const ground = createGroundColours(createBiomes(model.seed, model.tiles), model.tiles);
+  const ground = createGroundColours(aroundVillages(createBiomes(model.seed), model.villages), model.tiles);
   const grassTint = (item: ScatterItem) =>
     new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT).multiply(ground(Math.round(item.x), Math.round(item.z), item.tier));
   scene.layer(voxelLayer(
