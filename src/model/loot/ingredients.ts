@@ -1,5 +1,5 @@
 // Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
-// fells, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
+// fells, the ore a miner strikes, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
 import { hashUnit } from '../../util/random';
 import type { LootEntry, LootSource } from './lootEntry';
@@ -39,6 +39,14 @@ export const INGREDIENTS = {
   pineResin: { name: 'Pine resin', value: 6, droppedBy: {} },
   heartwood: { name: 'Heartwood', value: 24, droppedBy: {} },
   oakBurl: { name: 'Oak burl', value: 30, droppedBy: {} }, // a knotted swelling off an elder oak's trunk, its grain swirled
+  // Struck from the veins in the rocks of the wilds (skills/mining.ts), for the smith: copper, tin, iron, silver, gold,
+  // and star-iron from the high ground.
+  copperOre: { name: 'Copper ore', value: 2, droppedBy: {} },
+  tinOre: { name: 'Tin ore', value: 2, droppedBy: {} },
+  ironOre: { name: 'Iron ore', value: 3, droppedBy: {} },
+  silverOre: { name: 'Silver ore', value: 6, droppedBy: {} },
+  goldOre: { name: 'Gold ore', value: 10, droppedBy: {} },
+  starIronOre: { name: 'Star-iron ore', value: 16, droppedBy: {} },
   // Worked by a woodworker (woodworking.ts): planks from the logs, varnish from the resin.
   birchPlank: { name: 'Birch plank', value: 3, droppedBy: {} },
   pinePlank: { name: 'Pine plank', value: 5, droppedBy: {} },

@@ -1,13 +1,13 @@
 // The hero's skills, learnt by doing (as a crafter's or a gatherer's trade, apart from the fighting): the main ones
-// (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
+// (lumberjacking and mining, gathering: lumber.ts, mining.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
-// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
-// woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
+// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping, mining by
+// striking ore, woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never; and a level
 // wants so many tries that taught (its skill's STEPS at its tier: the quicker a try, the more), so a tier's an hour or
 // so of the trade, the whole of it three to five.
 
-export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'salvaging' | 'cooking' | 'fishing' | 'mining';
 
 export interface Skill {
   name: string;
@@ -121,6 +121,24 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 200, what: 'Char in open water' },
       { at: 225, what: 'What the water hides: a lost locket, an old coin, a torc in the deep' },
       { at: 250, what: 'Sturgeon in the deep' },
+    ],
+  },
+  mining: {
+    name: 'Mining',
+    steps: [13, 13, 14, 16],
+    kind: 'main',
+    verb: 'mine',
+    practice: 'Strike the veins in the rocks of the wilds with a pickaxe in your bag (the smith sells them): E by a rock.',
+    about: 'Break ore out of the veins that seam the boulders and outcrops of the wilds, for the smith. Richer veins want a practised hand.',
+    unlocks: [
+      { at: 1, what: 'Mine copper' },
+      { at: 40, what: 'Mine tin' },
+      { at: 75, what: 'Strike quicker: a swing fewer each tier on' },
+      { at: 90, what: 'Mine iron' },
+      { at: 100, what: 'A second lump of ore now and then, the likelier the better you are' },
+      { at: 140, what: 'Mine silver, and now and then a gem shard with it' },
+      { at: 190, what: 'Mine gold' },
+      { at: 240, what: 'Mine star-iron, in the rocks of the high ground' },
     ],
   },
 };
