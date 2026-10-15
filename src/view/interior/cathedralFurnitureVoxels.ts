@@ -54,13 +54,17 @@ export const CATHEDRAL_PAINTERS: Record<CathedralKind, (box: Box, len: number, d
     box(6, 34, 6, 18, 36, 18, PALE_STONE);
     box(4, 37, 4, 20, 38, 20, STONE_DARK);
   },
-  // A pew: a long oak seat on solid ends, its back high on the door's side, a kneeler along the floor before it.
-  pew: (box, len) => {
-    for (const u of [0, len - 2]) box(u, 0, 3, u + 1, 20, 17, (_u, y, v) => (y === 20 || v === 17 ? WOOD_LIGHT : WOOD_DARK));
-    box(2, 8, 5, len - 3, 9, 15, (_u, y, v) => (v === 5 ? WOOD_LIGHT : y === 9 ? WOOD : WOOD_DARK));
-    box(2, 10, 15, len - 3, 19, 17, (u, y) => (y === 19 ? WOOD_LIGHT : u % 12 === 6 ? WOOD_DARK : WOOD));
-    box(2, 2, 0, len - 3, 3, 3, (_u, y) => (y === 3 ? RED : RED_DARK)); // (the kneeler, cushioned)
-    box(2, 0, 1, len - 3, 1, 2, WOOD_DARK);
+  // A pew, a seat of its row (drawn facing the altar, its back at v = 0): an oak seat, its back high behind it, a
+  // cushioned kneeler along the floor before it; a solid end board where it ends its row (`side`, as it faces: -1 its
+  // left, 1 its right).
+  pew: (box, len, _dep, item) => {
+    const ends = item.side === undefined ? [] : [item.side < 0 ? len - 2 : 0];
+    for (const u of ends) box(u, 0, 0, u + 1, 20, 18, (_u, y, v) => (y === 20 || v === 0 ? WOOD_LIGHT : WOOD_DARK));
+    box(0, 0, 0, len - 1, 19, 2, (u, y) => (y === 19 ? WOOD_LIGHT : u % 12 === 6 ? WOOD_DARK : WOOD)); // (its back)
+    box(0, 8, 3, len - 1, 9, 13, (_u, y, v) => (v === 13 ? WOOD_LIGHT : y === 9 ? WOOD : WOOD_DARK)); // (its seat)
+    box(0, 0, 12, len - 1, 7, 12, WOOD_DARK);
+    box(0, 2, 18, len - 1, 3, 22, (_u, y) => (y === 3 ? RED : RED_DARK)); // (the kneeler, cushioned)
+    box(0, 0, 19, len - 1, 1, 21, WOOD_DARK);
   },
   // Votive candles: an iron stand, a tray of them burning on it, a box for the offerings at its foot.
   candleStand: (box) => {
