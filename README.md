@@ -5,10 +5,11 @@ ruins lie under the mist, and below them the dead keep their crypts. In the
 hills, things older than the kingdom have dug their burrows. Somebody has to
 go down there.*
 
-EvenHold is a small isometric adventure in a hand-built voxel world: wander a
-medieval countryside, take work from the village notice boards, fight what
-lives in the wilds, and go down into the crypts beneath the old ruins and the
-caves in the hills.
+EvenHold is an isometric adventure in a hand-built voxel world, for adults:
+wander a medieval countryside that goes on as far as you walk, hear out the
+people in its villages, learn a trade, fight what lives in the wilds, and go
+down into the crypts beneath the old ruins, the caves in the hills and the
+bandits' strongholds.
 
 <!-- A hero shot here makes the biggest difference: drop it in docs/screenshots/ and uncomment.
 ![EvenHold](docs/screenshots/hero.png)
@@ -17,15 +18,26 @@ caves in the hills.
 ## What awaits you
 
 - **A living countryside.** Villages with their inns, smithies and wells,
-  roads and fields between them, forests and meadows beyond. Villagers go
-  about their day, and the clock turns from morning to night.
-- **The roads.** Roads join the villages, with pedlars, pilgrims and guards
-  walking them. Stop a pedlar to trade, or ask a pilgrim the way to the
-  nearest crypt.
+  roads and fields between them, forests and meadows beyond. The land goes
+  on as far as you walk, and every village has a name and a level: the
+  farther out, the more dangerous, and the better the pay. Villagers keep
+  the clock (the fields by day, the inn of an evening, abed at night), and
+  any of them will stop for a word: news of a camp or a crypt nearby, word
+  of work, gossip about their village.
+- **The roads.** Roads join the villages, with signposts where they meet,
+  and pedlars, pilgrims and guards walking them. Stop a pedlar to trade, or
+  ask a pilgrim the way to the nearest crypt. Each village's notice board
+  has a wagon to any village you've already been to, for a fare.
+- **People and their stories.** A gold **!** over someone means they have
+  something to ask of you. Talks play out a line at a time, with your
+  answers to choose from. Begin with the carter by his broken-down wagon,
+  where you set out: his errand leads to what was done in the chapel yard
+  thirty years ago, and to choices that are yours to make.
 - **The wilds.** Wolf packs in the woods, boars rooting in the undergrowth
   (leave them be and they'll leave you be), and bandits in their palisaded
   camps. Mossy boulders, fallen logs and old standing stones, meadows of
-  wildflowers, butterflies by day and fireflies by night.
+  wildflowers, butterflies by day and fireflies by night. Brown bears in the
+  deep forest, lynxes at its edges, but none near where you start.
 - **The ruins.** Crumbling keeps and chapels, lost in a mist that rolls in
   thick at night. Something still drifts between their stones.
 - **The crypts.** Beneath each ruin, a crypt of its own: its passages
@@ -36,13 +48,24 @@ caves in the hills.
   mouth, spiders spit webs from the dark, and worms burst up out of the
   ground beneath you. Clear enough of a cave and the webs over its nest
   tear: the brood mother is waiting.
+- **The bandits.** Stockaded camps, each with a name, a chief and the key to
+  his chest. Far out, the bandit strongholds: a gatehouse in the rock, four
+  wings each held by one of the king's captains, and the bandit king behind
+  the inner gate.
 - **The inn.** Sit at the bar for an ale or a hot pie, buy and sell with the
-  barmaid, and in the evening ask her for a room for the night. Mind the
-  bouncer: swords stay sheathed in here.
-- **The smithy.** Arms and armour to buy, and the smith will take your old
-  gear off your hands. The finest helms aren't for sale: a winged helm, a
-  dragonscale helm or an old king's crown waits in a crypt lord's hoard, or
-  wrapped in silk in a brood mother's.
+  barmaid, and in the evening ask her for a room for the night or the week.
+  Its notice board has work: serving tables, tending the bar, or work
+  upstairs. Mind the bouncer: swords stay sheathed in here.
+- **The smithy.** Arms and armour to buy, rising with your level; the smith
+  takes your old gear off your hands, and mends what you wear. Every weapon
+  fights its own way (quick daggers, parrying swords, sweeping axes,
+  reaching spears, staggering hammers). Gear has a level and a rarity, and
+  ten sets are scattered across the land, each among its own foes: the
+  headsman's, the barrow's, the Sunward plate of kings' tombs, and more.
+- **Skills.** Lumberjacking, woodworking, salvaging, fishing and cooking,
+  each from 1 to 300: chop the trees, make what the inn and the road need,
+  break old gear down for its iron, catch a pike, and roast it over a
+  campfire of your own.
 - **Quests.** The notice board in every village square has work for those
   who'll take it.
 - **The herbalist.** In every village, a green-hooded herbalist keeps shop
@@ -73,10 +96,13 @@ caves in the hills.
 | Hero sheet | **C** |
 | Spend points | **P** |
 | Quest journal | **L** |
+| Skills | **K** |
 | At the bar: an ale, a pie | **F**, **G** |
 | By the barmaid: rent a room · by its bed at night: sleep | **G** |
 | Zoom | **Mouse wheel** |
 | Pause | **Escape** |
+
+Every key can be changed in the pause menu, under **Keys**.
 
 ## Staying alive
 
@@ -95,6 +121,9 @@ caves in the hills.
 - **Weigh your gear.** Hover a piece of gear in your bag or a shop and it
   tells you what wearing it instead would change: green for gains, red for
   losses, and how much better or worse it is all told.
+- **Look after it.** Your weapon dulls with every blow and your armour wears
+  with every hit, and a fall knocks it all about. Broken gear gives nothing
+  until a smith mends it.
 - **Levels bring points.** Spend them (**P**) on Strength, Agility, Stamina
   or Endurance, and gear adds its own on top. Slaying a crypt's lord or a
   cave's brood mother is worth a point of its own.
@@ -107,6 +136,10 @@ caves in the hills.
 - **Mind your breath.** Blows, rolls and blocked blows spend it, the thin
   green bar under your health. Raise your guard (**Q**) just as a blow lands
   to parry it: the foe reels, and your next blow on it lands twice as hard.
+  The guard holds only in front of you.
+- **Don't just hold the attack down.** Wolves and bandits flinch at your
+  blows, sturdier foes only now and then, and bears, chiefs and bosses
+  only when you parry them or catch them just after a roll.
 
 ## Your heroes
 
