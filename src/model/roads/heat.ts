@@ -21,7 +21,7 @@ const TURNED_PERSON = 3; // someone turned (a villager, a traveller): the worst 
 const TURNED_FOE = 1; // a foe turned: witchcraft all the same
 const SWAPPED = 2; // a charm that changes someone's sex
 // What's told as the heat crosses each mark, somewhere.
-const MARKS: ReadonlyArray<[number, string, string]> = [
+export const HEAT_MARKS: ReadonlyArray<[number, string, string]> = [
   [SUSPECT, 'Talk of witchcraft', 'The men in grey will want a word'],
   [WANTED, 'Wanted by the witch-finders', 'A lie will hardly pass them now'],
   [SEIZE, 'To be seized on sight', "The bishop's men will take you to the stocks"],
@@ -65,7 +65,7 @@ export class Heat {
     const n = this.host.boardOf(village);
     const was = this.by.get(n) ?? 0;
     const now = Math.max(0, Math.min(MOST, was + amount));
-    const mark = MARKS.find(([at]) => was < at && now >= at && !MARKS.some(([higher]) => higher > at && now >= higher));
+    const mark = HEAT_MARKS.find(([at]) => was < at && now >= at && !HEAT_MARKS.some(([higher]) => higher > at && now >= higher));
     if (mark) this.host.report?.({ kind: 'banner', title: mark[1], line: mark[2] });
     if (now > 0) this.by.set(n, now);
     else this.by.delete(n);

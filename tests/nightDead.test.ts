@@ -101,7 +101,7 @@ describe('the Gilded Deacon calling them (the story\'s act 3)', () => {
   it('a second band near Greyminster from act 3 till the story ends', () => {
     for (const [act, ending, bands] of [[2, null, 1], [3, null, 2], [4, 'exposed', 1]] as const) {
       const model = night();
-      Object.assign(model.story, { saint: { act, witch: null, ending, town: { x: model.crypts[0].middle.x, z: model.crypts[0].middle.z } } });
+      Object.defineProperty(model.story, 'saint', { value: { act, witch: null, ending, town: { x: model.crypts[0].middle.x, z: model.crypts[0].middle.z } }, configurable: true }); // (the story's state, stood in)
       model.update(0, 0, 0.05);
       expect(model.roads.night.bands.length, `act ${act}`).toBe(bands);
     }

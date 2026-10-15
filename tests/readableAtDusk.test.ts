@@ -136,7 +136,7 @@ describe('told moves under the trees', () => {
   it("a bear's slam ring is drawn through what hides it too, a little fainter", () => {
     const scene = new THREE.Scene();
     const none = { moves: [] };
-    const moves = { slams: { moves: [{ x: 3, z: 4, t: 0.5 }] }, charges: none, pounces: none } as unknown as WildMoves;
+    const moves = { slams: { moves: [{ x: 3, z: 4, t: 0.5 }] }, charges: none, pounces: none, pitches: none } as unknown as WildMoves;
     new WildMovesView(scene).update(moves, () => 0, 0.1, true);
     const ring = scene.children.find((o) => o.visible) as THREE.Mesh;
     const hidden = ring.children[0] as THREE.Mesh;

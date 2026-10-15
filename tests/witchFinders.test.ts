@@ -306,7 +306,7 @@ describe('running and fighting', () => {
 });
 
 describe('the story\'s saint (arc 2, as the story keeps it)', () => {
-  const saint = (model: GameModel, state: Partial<Saint>) => Object.assign(model.story, { saint: { act: 1, witch: null, ending: null, town: null, ...state } });
+  const saint = (model: GameModel, state: Partial<Saint>) => Object.defineProperty(model.story, 'saint', { value: { act: 1, witch: null, ending: null, town: null, ...state }, configurable: true }); // (the story's state, stood in)
 
   it('arc 2 begun from its first act; Greyminster where the story says it is', () => {
     const model = fresh();

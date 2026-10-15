@@ -25,7 +25,11 @@ function world(chose = 'truth', extra: Record<string, string> = {}): GameModel {
   const home = model.story.people!.village;
   const far = model.villages.filter((v) => Math.hypot(v.x - home.x, v.z - home.z) > 500 && !model.npcs.some((n) => n.village === v && n.role === 'witch'))[0];
   const villager = model.npcs.find((n) => n.village === far && n.role === 'villager')!;
-  TOWN.forEach((role, k) => model.npcs.push({ ...villager, id: 900_000 + k, role: role as Npc['role'], name: NAMES[role] }));
+  // (Greyminster's own people where the town's been made; else stood in by hand, the town where they stand.)
+  if (!model.npcs.some((n) => n.role === 'bishop')) {
+    Object.assign(model, { cathedralTown: () => null });
+    TOWN.forEach((role, k) => model.npcs.push({ ...villager, id: 900_000 + k, role: role as Npc['role'], name: NAMES[role] }));
+  }
   return model;
 }
 
@@ -136,7 +140,7 @@ describe("the second arc: the bishop's saint", () => {
     const model = world('truth', { aCoinAtTheWell: 'done' });
     const { story } = model;
     const raised: Array<[number, string]> = [];
-    Object.assign(model, { heat: { raise: (_: unknown, n: number, why: string) => void raised.push([n, why]), calm: () => {} } }); // (the roads' witch-finders' heat, roads/heat.ts)
+    Object.assign(model, { heat: { raise: (_: unknown, n: number, why: string) => void raised.push([n, why]), calm: () => {}, onEvent: () => {} } }); // (the roads' witch-finders' heat, roads/heat.ts)
     const { home } = toTheStair(model, /Kick the staple/);
     expect(story.saint.witch).toBe('freed');
     expect(raised).toEqual([[3, 'Chained to her own hearth: Kick the staple out. Hide.']]);

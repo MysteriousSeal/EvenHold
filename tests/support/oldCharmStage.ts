@@ -9,6 +9,7 @@ import { makeEnemy } from '../../src/model/enemies/enemies';
 import { castSpell, type CastResult } from '../../src/model/spells/casting';
 import { learn, type SpellId } from '../../src/model/spells/spells';
 import type { Enemy, EnemyKind, GameEvent } from '../../src/model/types';
+import { HEAT_MARKS } from '../../src/model/roads/heat';
 import { pickOut, scene, type Scene, type Where } from './charmStage';
 import { TEST_MAP_SIZE } from './testWorld';
 
@@ -35,8 +36,11 @@ export function settled(seed: number, where: Where): Scene | null {
 }
 
 // What's been told, in a word each (a banner: its line with it).
-export const words = (told: readonly GameEvent[]): string[] => told.map((e) => (e.kind === 'banner' ? `banner: ${e.line}` : e.kind));
-export const banners = (told: readonly GameEvent[]): string[] => told.flatMap((e) => (e.kind === 'banner' ? [e.line] : []));
+// (The witch-finders' heat told as it rises, roads/heat.ts: theirs, not the charm's own, so left out here.)
+const HEAT_TITLES = new Set(HEAT_MARKS.map(([, title]) => title));
+const ours = (told: readonly GameEvent[]) => told.filter((e) => !(e.kind === 'banner' && HEAT_TITLES.has(e.title)));
+export const words = (told: readonly GameEvent[]): string[] => ours(told).map((e) => (e.kind === 'banner' ? `banner: ${e.line}` : e.kind));
+export const banners = (told: readonly GameEvent[]): string[] => ours(told).flatMap((e) => (e.kind === 'banner' ? [e.line] : []));
 
 // A foe of the test's own (one of the world's, by its number), hale, stood at (x, z).
 export function foeAt(model: GameModel, x: number, z: number, kind: EnemyKind = 'wolf', id = 900): Enemy {

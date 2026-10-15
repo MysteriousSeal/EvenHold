@@ -171,6 +171,8 @@ const CALLING_DRESS: Record<Calling, Npc['equipment']> = {
 // (`firstId`: the first of their ids: a streamed world's region's block. `start`: where the opening line's village is
 // (the end of the trail from where the hero sets out, else where they set out: story/storyCast.ts), the herbalist of
 // the village nearest it, within START_NEAR, always a woman: the burned woman's granddaughter, story/quests/firstQuests.ts.)
+// Greyminster's people as the story names them (story/quests/saintQuests*.ts).
+const STORY_NAMES = { bishop: 'Osric', deacon: 'Prosper', sister: 'Agnes', captain: 'Wystan Grey', pardoner: 'Gil' } as const;
 export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages: readonly Village[], fields: readonly Field[] = [], firstId = 0, start?: Point, stalls: readonly Stall[] = []): Npc[] {
   // The nearest of `list` to (x, z): by squared distance (the same order, far cheaper over thousands of
   // houses), an exact tie settled by Math.hypot as it always was (whose rounding picks between them), so every world keeps its villagers.
@@ -330,6 +332,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
     const npc = person(doors + inns.length * 3 + smithies.length + villages.length * 2 + i, i === firstRelics ? 'pardoner' : 'monger', home, nearest(inns, village.x, village.z), village, stall);
     npc.stall = stall;
     npc.equipment = i === firstRelics ? { torso: 'travelCloak', neck: 'scallopShell' } : { torso: 'linenShirt', legs: 'linenTrousers' };
+    if (i === firstRelics) npc.name = STORY_NAMES.pardoner;
     return [npc];
   });
   // And Greyminster's people by their calling (town/townCallings.ts), in the town with the Minster. Last of all.
@@ -338,6 +341,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   const callings = !minster || !town ? [] : callingsOf(town, minster, houses.filter((h) => nearest(villages, h.x, h.z) === town), nearest(inns, town.x, town.z)).map(({ calling, home, at, woman }, i) => {
     const npc = person(doors + inns.length * 3 + smithies.length + villages.length * 2 + stalls.length + i, calling, home, nearest(inns, town.x, town.z), town, at, woman);
     npc.equipment = CALLING_DRESS[calling];
+    if (calling in STORY_NAMES) npc.name = STORY_NAMES[calling as keyof typeof STORY_NAMES]; // (the story's own: story/quests/saintQuestsTown.ts; the prisoner the story names, the carter)
     return npc;
   });
   return [...villagers, ...staff, ...smiths, ...bouncers, ...herbalists, ...witches, ...mongers, ...callings];

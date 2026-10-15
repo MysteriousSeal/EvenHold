@@ -7,6 +7,7 @@ import { distanceTo, type Furniture, type FurnitureKind } from '../src/model/int
 import { layoutOf } from '../src/model/interiors/indoors';
 import { upstairsInside } from '../src/model/interiors/upstairs';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
+import { isCottage } from '../src/model/homestead/cottage';
 
 // Every building's room across the test worlds, furnished.
 const rooms: Array<{ seed: number; entrance: Entrance; room: Room; furniture: Furniture[] }> = TEST_SEEDS.flatMap((seed) => {
@@ -61,6 +62,7 @@ describe('every room in the test worlds', () => {
   it('is furnished the same every time, with all its kind of building needs', () => {
     for (const { seed, entrance, room, furniture } of rooms) {
       expect(furnish(seed, entrance, room)).toEqual(furniture);
+      if (isCottage(entrance)) continue; // (a cottage for sale or the hero's: its bed and all built only as they buy them, homestead/cottage.ts)
       for (const kind of REQUIRED[entrance.type as BuildingType]) expect(furniture.some((f) => f.kind === kind), `${entrance.type} (seed ${seed}) without a ${kind}`).toBe(true);
     }
   });
