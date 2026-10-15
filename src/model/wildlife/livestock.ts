@@ -32,15 +32,16 @@ export interface Beast {
 
 // Each kind: how many to a field (at least, plus up to), its coats, its pace and how far it keeps from the fence.
 const KINDS: Record<LivestockKind, { herd: [number, number]; coats: number; walk: number; shy: number; margin: number; rest: [number, number] }> = {
-  sheep: { herd: [3, 4], coats: 2, walk: 0.35, shy: 1.4, margin: 0.3, rest: [4, 8] },
-  cow: { herd: [1, 2], coats: 3, walk: 0.25, shy: 1.0, margin: 0.4, rest: [6, 10] },
-  pig: { herd: [2, 2], coats: 3, walk: 0.3, shy: 1.2, margin: 0.3, rest: [4, 7] },
+  sheep: { herd: [3, 4], coats: 2, walk: 0.35, shy: 1.4, margin: 0.42, rest: [4, 8] },
+  cow: { herd: [1, 2], coats: 3, walk: 0.25, shy: 1.0, margin: 0.55, rest: [6, 10] },
+  pig: { herd: [2, 2], coats: 3, walk: 0.3, shy: 1.2, margin: 0.4, rest: [4, 7] },
   hen: { herd: [3, 4], coats: 1, walk: 0.45, shy: 1.6, margin: 0.15, rest: [1.5, 3] },
 };
 const STOCKED = 0.4; // of the fields kept as pastures
 const MIX: LivestockKind[] = ['sheep', 'sheep', 'cow', 'pig', 'hen', 'hen'];
 const SHY_PACE = 1.6; // its pace shied off, times its walk
 const SHY_BY = 1.1; // tiles: the hero this near sends it off
+const TROUGH_ROOM = 0.42; // tiles from the trough's middle they keep (drinking at its sides)
 
 const fieldRoll = (field: Field, seed: number, salt: number) => hashUnit(field.x0 * 31 + field.z0, field.width * 7 + field.depth, seed + salt);
 
@@ -49,11 +50,19 @@ export function stockOf(field: Field, seed: number): LivestockKind | null {
   return fieldRoll(field, seed, 1) < STOCKED ? oneOf(MIX, fieldRoll(field, seed, 2)) : null;
 }
 
-// Whether (x, z) is inside the field, far enough off its fence (`margin`), and off its hay corner.
+// A pasture's trough: on the tile beside its hay corner, along the field's longer side.
+export function troughOf(field: Field): [number, number] {
+  const [cx, cz] = field.corner;
+  return field.width >= field.depth ? [cx + (cx === field.x0 ? 1 : -1), cz] : [cx, cz + (cz === field.z0 ? 1 : -1)];
+}
+
+// Whether (x, z) is inside the field, far enough off its fence (`margin`), and off its hay corner and its trough.
 export function inPasture(field: Field, x: number, z: number, margin = 0.3): boolean {
   const [x0, z0, x1, z1] = [field.x0 - 0.5 + margin, field.z0 - 0.5 + margin, field.x0 + field.width - 0.5 - margin, field.z0 + field.depth - 0.5 - margin];
   if (x < x0 || z < z0 || x > x1 || z > z1) return false;
-  return Math.round(x) !== field.corner[0] || Math.round(z) !== field.corner[1];
+  const [tx, tz] = troughOf(field);
+  const offHay = Math.round(x) !== field.corner[0] || Math.round(z) !== field.corner[1];
+  return offHay && Math.hypot(x - tx, z - tz) > TROUGH_ROOM;
 }
 
 // The field's beasts (none, most often for a few), each somewhere in it.
