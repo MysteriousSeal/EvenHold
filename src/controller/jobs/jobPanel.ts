@@ -138,7 +138,7 @@ export function createJobPanel(model: GameModel, hooks: { setPaused(paused: bool
       );
     } else {
       terms.append(
-        term('A shift', [hours(SHIFT).replace(' hours', ''), el('em', undefined, 'hours')], 'on the clock'),
+        term('A shift', [hours(SHIFT).replace(' hours', ''), el('em', undefined, 'hours')], job === 'innCompanion' ? "on the clock, and each client's time besides" : 'on the clock'), // (a client's hour: model/jobs/room/roomShift.ts MINUTES)
         job === 'innCompanion' ? term('Pay', [...coinParts(Math.round(PRICE * rank.tips)), el('em', undefined, 'a client')], 'and a tip · paid when the shift ends') : term('Pay', [...coinParts(WAGE), el('em', undefined, 'an order')], 'and a tip · paid when the shift ends'),
         term('Clean shift', [`+${BONUS}`, el('em', undefined, 'each')], 'if no one walks out'),
       );
