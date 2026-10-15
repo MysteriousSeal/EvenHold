@@ -11,7 +11,7 @@ import { BAND, DAWN, RISE, deadHours, nightOf } from '../src/model/roads/nightDe
 import { enemyLevel } from '../src/model/enemies/enemyLevels';
 import { spawnOf } from '../src/model/map/grid';
 
-const dead = (model: GameModel) => model.enemies.filter((e) => e.id >= 2 ** 47 + 2 ** 40);
+const dead = (model: GameModel) => model.enemies.filter((e) => e.id >= 2 ** 47 + 2 ** 46 + 2 ** 44); // (the night's dead's ids: roads/nightDead.ts)
 const at = (day: number, hour: number) => day * DAY_MINUTES + hour * 60;
 
 // A world at night (seed 1: its crypt by its one road), the hero far enough from the road for them to rise unseen.

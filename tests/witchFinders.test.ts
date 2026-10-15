@@ -9,7 +9,9 @@ import type { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { DAY_MINUTES, hourAt } from '../src/model/clock';
 import { MOST, SEIZE, WANTED } from '../src/model/roads/heat';
-import { PARTY, type Party, type Saint } from '../src/model/roads/patrols';
+import { HUNTER_ID, PARTY, type Party, type Saint } from '../src/model/roads/patrols';
+import { BOUNTY_FOE_ID } from '../src/model/quests/bounties';
+import { makeEnemy } from '../src/model/enemies/enemies';
 import { FOUGHT, RAN, fineFor } from '../src/model/roads/arrest';
 import { squareStocks, villageStocks } from '../src/model/roads/stocks';
 import { villageBenches } from '../src/model/worldgen/benches';
@@ -272,7 +274,7 @@ describe('running and fighting', () => {
     near(model, party, 5, 1);
     model.hero.money = 1000;
     pick(stopped(model), 'Fight');
-    model.fall();
+    model.fall(model.roads.patrols.hunts[0].foes[0]);
     expect(model.purse).toBeNull();
     const told = model.roads.arrived()!;
     expect(told.talk.lines[0]).toMatch(/Still breathing/);
@@ -352,6 +354,45 @@ describe('the stocks', () => {
       }
     }
     expect(squares).toBeGreaterThan(TEST_SEEDS.length / 2);
+  });
+});
+
+describe('found in play (playtester)', () => {
+  it('a witch-finder turned foe never shares an id with a bounty\'s target', () => {
+    const { model, party } = withParty();
+    near(model, party, 5, 1);
+    pick(stopped(model), 'Fight');
+    for (const e of model.roads.patrols.hunts[0].foes) {
+      expect(e.id).toBeGreaterThanOrEqual(HUNTER_ID);
+      expect(e.id - BOUNTY_FOE_ID).toBeGreaterThanOrEqual(2 ** 46); // (past the bounties' whole block)
+    }
+  });
+
+  it('seized: the arrest is told before it is served, not served unseen the same frame', () => {
+    const { model, party } = withParty();
+    near(model, party, 5, 2);
+    pick(stopped(model), 'Run');
+    const [foe] = model.roads.patrols.hunts[0].foes;
+    Object.assign(foe, { x: model.hero.x + 0.4, z: model.hero.z });
+    foeStrikes(model, foe);
+    const where = { x: model.hero.x, z: model.hero.z };
+    model.update(0, 0, 1 / 30);
+    expect(Math.hypot(model.hero.x - where.x, model.hero.z - where.z)).toBeLessThan(1); // (not yet taken off)
+    const told = model.roads.arrived();
+    expect(told?.talk.lines[0]).toMatch(/Got you/);
+    model.update(0, 0, 1 / 30); // (the talk shut without its black: served now)
+    expect(model.roads.arrest).toBeNull();
+    expect(model.seated).not.toBeNull();
+  });
+
+  it('felled by something else while a party is after them: a fall as ever, the purse dropped', () => {
+    const { model, party } = withParty();
+    near(model, party, 5, 2);
+    model.hero.money = 1000;
+    pick(stopped(model), 'Run');
+    model.fall(makeEnemy(900, 'wolf', model.hero.x, model.hero.z));
+    expect(model.purse).not.toBeNull();
+    expect(model.roads.arrived()).toBeNull();
   });
 });
 
