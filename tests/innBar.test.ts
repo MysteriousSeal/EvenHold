@@ -156,3 +156,16 @@ describe("the tables' orders with the barkeep, the shift over", () => {
     expect(ordersAt(inn)).toEqual([]);
   });
 });
+
+describe('the tables, the hero serving them', () => {
+  it("never take the server's order: on her break in a chair by the fire, she's no patron", () => {
+    const { model, inn, furniture } = inTheInn();
+    const chair = furniture.find((f) => f.kind === 'chair')!;
+    const server = model.npcs.find((n) => n.role === 'server' && n.home === inn)!;
+    expect(model.work.start(inn, 'innServer')).toBe(true);
+    Object.assign(server, { x: chair.x, z: chair.z, seat: seatOf(chair), stood: { x: chair.x + 1, z: chair.z }, steps: [{ kind: 'wait', for: 999 }] }); // (the armchair taken: a chair, then)
+    const shift = model.work.shift as InnShift;
+    for (let t = 0; t < 20; t += 0.1) shift.update([server], 0.1);
+    expect([shift.wants.has(server), !!server.awaiting]).toEqual([false, false]);
+  });
+});
