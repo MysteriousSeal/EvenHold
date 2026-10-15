@@ -56,6 +56,7 @@ export interface StoryHost extends CastHost, RestockHost {
   wakeWith?(who: Npc): void; // a night spent with them: woken in their place, beside them (nights.ts)
   takeAway?(who: Npc): void; // someone taken away for good (by the men in grey: a choice's `gone`, storyChoices.ts)
   cathedralTown?(): Point | null; // where Greyminster stands, off the maps too (the cathedral town's own reckoning)
+  readonly heat?: { raise(where: Point, amount: number, why: string): void; calm(where: Point, amount: number): void }; // the witch-finders' heat on the hero, by village (roads/heat.ts): a choice's `heat`
 }
 
 // A quest of someone's, as the cheat's list tells it (controller/cheats/questDebug.ts).

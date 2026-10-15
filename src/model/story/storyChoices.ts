@@ -13,6 +13,7 @@ export interface Choice {
   gift?: Gift; // given on top
   later?: { quest: StoryQuestId; gift: Gift }; // a later quest's handing in, the richer for it
   gone?: StoryRole; // whoever plays that part taken away for good, after it (the men in grey's: story.ts)
+  heat?: number; // the witch-finders' heat on the hero, raised (or, less than nothing, calmed) where it's handed in
 }
 
 // The hero's answers as a quest's handed in: its thanks; or, a choice, each way of it (the first lit), and a way to

@@ -3,7 +3,7 @@
 // pardoner, who's anybody's friend for silver), and an old pilgrim if the hero once threw his coin in a well; Gil's
 // relics; the carter in the bishop's cells, who told the truth and was locked up for it; the captain's cat; the
 // bishop's leg, and what he knows; the stair under the altar, down into the Undercroft, where something has been
-// answering the prayers; and the bishop's bargain (the arc's choice: the false saint shown up, or his gold kept
+// answering the prayers (the Gilded Deacon: the finger's own deacon, built back out of the vault's relics); and the bishop's bargain (the arc's choice: the false saint shown up, or his gold kept
 // quiet). Then the carter taken home, and the herbalist's last word (theirs, or none).
 import type { StoryQuest } from '../storyQuests';
 
@@ -164,7 +164,8 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
     task: () => 'Go down into the Undercroft, under the Minster, and find what answers',
     handIn: () => [
       'You are as white as milk. Sit down. Tell me.',
-      '...Saint Hollin. Gilded, you say, and sitting up, with the prayers going into it like water down a drain. And the healing was the bait, and the praying stops because it eats the praying. And whatever it was, it is broken now.',
+      '...A deacon. The finger\'s own deacon, come looking for the rest of himself, and built back out of every saint\'s bone in the vault. Saint Hollin\'s too. Gilded, you say, with the prayers going into him like water down a drain.',
+      'And the healing was the bait, and the praying stops because he eats the praying. And whatever he was, he is broken now.',
       'I prayed to that every morning for twenty years. Well. God made the cat as well as the mouse. I have work to do. The sick will still be sick tomorrow, and now nobody is going to heal them but me.',
     ],
     thanks: "You'll manage.",
@@ -201,6 +202,7 @@ export const SAINT_TOWN_QUESTS: StoryQuest[] = [
         key: 'gold',
         label: 'Take the purse. Say nothing.',
         copper: 600,
+        heat: -3, // (in the bishop's pay)
         said: () => ["Sensible. The world's run by sensible people, you know. That's why it's like this."],
       },
     ],

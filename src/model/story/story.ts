@@ -356,6 +356,8 @@ export class Story {
     this.host.report({ kind: 'coins', amount: copper + more });
     this.host.report({ kind: 'quest', text: `${quest.name}: done`, done: true, x: hero.x, y: hero.y, z: hero.z });
     if (gone && 'home' in gone) this.host.takeAway?.(gone);
+    const where = this.set.all.get(key)?.at?.village ?? hero;
+    if (choice?.heat) choice.heat > 0 ? this.host.heat?.raise(where, choice.heat, `${quest.name}: ${choice.label}`) : this.host.heat?.calm(where, -choice.heat);
     return true;
   }
 

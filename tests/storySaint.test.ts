@@ -134,8 +134,11 @@ describe("the second arc: the bishop's saint", () => {
   it('is played from the end of the first line to the saint shown up: the witch freed, the town told, the herbalist pointing on to EvenHold', () => {
     const model = world('truth', { aCoinAtTheWell: 'done' });
     const { story } = model;
+    const raised: Array<[number, string]> = [];
+    Object.assign(model, { heat: { raise: (_: unknown, n: number, why: string) => void raised.push([n, why]), calm: () => {} } }); // (the roads' witch-finders' heat, roads/heat.ts)
     const { home } = toTheStair(model, /Kick the staple/);
     expect(story.saint.witch).toBe('freed');
+    expect(raised).toEqual([[3, 'Chained to her own hearth: Kick the staple out. Hide.']]);
     expect(model.npcs.some((n) => n.role === 'witch' && story.keysOf('smokeOnTheRoad').length > 0)).toBe(true); // (she lies low: still there)
     const money = model.hero.money;
     const last = toTheEnd(model, /Out on the steps/, home);

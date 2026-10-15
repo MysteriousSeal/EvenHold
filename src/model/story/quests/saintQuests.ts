@@ -108,6 +108,7 @@ export const SAINT_ROAD_QUESTS: StoryQuest[] = [
         key: 'free',
         label: 'Kick the staple out. Hide.',
         gift: { item: 'hexScroll', count: 1 },
+        heat: 3, // (a witch's chain broken: wanted)
         said: () => ["Well. There's no going back for you now, mind. They write everything down. I'll lie low. They never search the same house twice: they think it's beneath them.", "Here. It's not much. If they come for you, use it on the one at the front."],
       },
       {
@@ -115,6 +116,7 @@ export const SAINT_ROAD_QUESTS: StoryQuest[] = [
         label: 'Call the guard. Two silver is two silver.',
         copper: 200,
         gone: 'witch',
+        heat: -2, // (one of theirs, now)
         said: () => ['Two silver. I hope it keeps you warm. It will not, but I hope it.'],
       },
       {
