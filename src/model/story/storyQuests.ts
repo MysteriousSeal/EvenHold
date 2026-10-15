@@ -60,6 +60,7 @@ export interface StoryQuest {
   follows?: StoryQuestId; // on offer only once this one's done (in the same village)
   needs?: Objective;
   near?: StoryPlace; // where what's to be brought is found, if it's one kind of place: set only in villages with one near, and pointed to
+  unless?: StoryPlace; // set only where that place isn't (the second arc's close in a world with no Greyminster: a classic one's)
   offer(t: Told): string[]; // the giver, offering it
   accept: string; // the hero's two answers
   decline: string;

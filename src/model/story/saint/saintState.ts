@@ -6,7 +6,7 @@ import type { Point } from '../storyCast';
 import { idOf } from '../storyTypes';
 
 export interface SaintState {
-  act: 0 | 1 | 2 | 3 | 4; // not begun; the empty wagon (home); the road of fires (the witch's village); Greyminster; over (the bargain struck)
+  act: 0 | 1 | 2 | 3 | 4; // not begun; the empty wagon (home); the road of fires (the witch's village); Greyminster; over (the bargain struck, or the road run out: no Greyminster)
   witch: 'freed' | 'handed' | 'left' | null; // what the hero did for the witch chained to her hearth
   ending: 'exposed' | 'kept' | null; // the false saint shown up (the bishop broken, the witch-finders scattered), or his gold taken and the secret kept
   open: boolean; // the stair under the altar, down into the bishop's ossuary: the sister's key given
@@ -23,7 +23,7 @@ const ENDING = { expose: 'exposed', gold: 'kept' } as const;
 export function saintOf(state: ReadonlyMap<string, 'taken' | 'done'>, chose: (id: string) => string | undefined, town: Point | null, carter: string | null): SaintState {
   const stands = (id: string) => [...state].find(([key]) => idOf(key) === id)?.[1];
   const done = (id: string) => stands(id) === 'done';
-  const act = !done('theLongRoad') ? 0 : !done('theRoadOut') ? 1 : !done('onToGreyminster') ? 2 : !done('theSaintsBargain') ? 3 : 4;
+  const act = !done('theLongRoad') ? 0 : !done('theRoadOut') ? 1 : !done('onToGreyminster') ? (done('theRoadRunsOut') ? 4 : 2) : !done('theSaintsBargain') ? 3 : 4;
   return {
     act,
     witch: WITCH[chose('smokeOnTheRoad') as keyof typeof WITCH] ?? null,
