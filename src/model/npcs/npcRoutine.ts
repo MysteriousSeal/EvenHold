@@ -19,7 +19,6 @@ import type { Village } from '../types';
 import type { Inside, Seated } from '../interiors/indoors';
 import type { BenchWorld } from '../worldgen/benches';
 import { atBar, busyAtBar, sitAtBar } from '../inn/barPatrons';
-import { busyAtTable } from '../jobs/innShift';
 import { FARMER_ROUTINE, ROUTINE, type Npc, type NpcRole, type NpcStep } from './npcs';
 import { staffSteps } from '../inn/innStaff';
 import { bouncerSteps } from '../inn/bouncer';
@@ -29,6 +28,10 @@ import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
+
+// Whether a table chair's patron is tied to it (waiting on an order, or having it): not up and off till then. (Here,
+// not with the inn's shifts that read it too: jobs/innShift.ts imports this file's routine, and a shift its class.)
+export const busyAtTable = (npc: Npc): boolean => !!npc.awaiting || !!npc.drinking;
 
 export interface NpcWorld extends BenchWorld {
   seed: number;

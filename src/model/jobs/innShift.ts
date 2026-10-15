@@ -267,5 +267,5 @@ export class InnShift extends Shift {
   }
 }
 
-// Whether a table chair's patron is tied to it (waiting on an order, or having it): not up and off till then.
-export const busyAtTable = (npc: Npc): boolean => !!npc.awaiting || !!npc.drinking;
+// Whether a table chair's patron is tied to it (npcs/npcRoutine.ts, where it's said: no cycle through it).
+export { busyAtTable } from '../npcs/npcRoutine';
