@@ -89,13 +89,13 @@ describe('interiors', () => {
       const items = furnish(n + 1, entrance, room);
       const tables = items.filter((i) => i.kind === 'tavernTable').length;
       counts.push(tables);
-      if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(5);
+      if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(4);
       // Its lanterns spread along the back wall (past the bar's own), never two side by side.
       const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back' && i.x >= 3).map((i) => i.x).sort((a, b) => a - b);
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
-    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5.25); // (strewn at random: 4.7; the floor just inside the door kept open)
+    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(4.4); // (strewn at random: 4.7, but bunched; now with open floor inside the door and round the hearth)
   });
 
   it('lets the hero past a chair behind its back, but not through it', async () => {
