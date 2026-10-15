@@ -26,14 +26,15 @@ export function furnishInn(plan: Planner, room: Room): void {
   // In the front corner past the bar, the stairs up: two long, out from the left wall into the
   // room, climbing from the room toward the wall (the floor above's stairwell in the same corner).
   place('stairs', 2, 1, 'none', [[0, room.depth - 1]]);
-  // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs either side of it facing the
-  // fire (the pelt between them seen), or on its back half if there's no room.
+  // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs flanking the fire either side
+  // of the bear's head, turned to each other across it (the pelt between them seen), or on its back half facing the
+  // fire if there's no room.
   const hearth = place('hearth', 2, 1, 'back', along(0).filter(([x]) => x >= 5 && x <= room.width - 3));
   if (hearth) {
     place('bearRug', 2, 2, 'none', [[hearth.x, 1]]);
-    for (const [x, by] of [[hearth.x - 1, hearth.x], [hearth.x + 2, hearth.x + 1]]) {
-      const chair = place('armchair', 1, 1, 'none', [[x, 2], [by, 2]], false);
-      if (chair) chair.facing = [0, -1];
+    for (const [x, by, way] of [[hearth.x - 1, hearth.x, 1], [hearth.x + 2, hearth.x + 1, -1]]) {
+      const chair = place('armchair', 1, 1, 'none', [[x, 1], [by, 2]], false);
+      if (chair) chair.facing = chair.x === x ? [way, 0] : [0, -1]; // (beside it, turned to the other across the bear's head)
     }
   }
   // Tavern tables, laid for a meal, with chairs round them, filling the
@@ -78,7 +79,8 @@ export function furnishInn(plan: Planner, room: Room): void {
   // none on the chimney breast; over the door's column too, hung high in no one's way), not bunched at one end; then
   // antlers and a shield where there's room left.
   const overFire = (x: number) => !!hearth && x >= hearth.x && x < hearth.x + hearth.w;
-  const board = place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3 && !overFire(x))); // (never over the fire: room before it to read it)
+  const blocked = (x: number) => items.some((o) => o.solid && o.z <= 1 && x >= o.x && x < o.x + o.w); // (something stood before it: an armchair by the fire)
+  const board = place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3 && !overFire(x) && !blocked(x))); // (never over the fire: room before it to read it)
   const wall = along(0).filter(([x]) => x >= 3 && !overFire(x) && x !== board?.x).map(([x]) => x);
   shuffle(wall, rng); // (among sets as far apart, a rolled one)
   let lanterns: number[] = wall.slice(0, 3);
@@ -92,7 +94,7 @@ export function furnishInn(plan: Planner, room: Room): void {
   // the stairs' foot.
   place('wallLantern', 1, 1, 'back', [[1, 0]], false);
   const backed = (z: number) => items.some((o) => o.wall === 'left' && o.kind !== 'wallLantern' && o.x === 0 && z >= o.z && z < o.z + o.d);
-  const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 2 && !backed(z));
+  const barWall = [...Array(barEnd + 1).keys()].filter((z) => z >= 2 && z <= room.depth - 4 && !backed(z)); // (two tiles clear of the stairs' one: not a pair)
   if (barWall.length > 0) place('wallLantern', 1, 1, 'left', [[0, barWall[barWall.length - 1]]], false);
   place('wallLantern', 1, 1, 'left', [[0, room.depth - 2]], false);
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
