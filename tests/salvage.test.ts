@@ -37,18 +37,18 @@ describe('what gear is made of, and leaves', () => {
     expect(salvageOf(gearKey({ item: 'plankShield', level: 17, rarity: 'common', roll: 0 })).gives).toEqual([['oakPlank', 3]]);
   });
 
-  it("falls in its tiers on the gear a hero meets: levels 1 to 3 an apprentice's, 4 to 6 a journeyman's, 7 to 9 an expert's, 10 on an artisan's", () => {
+  it("falls in its tiers on the gear a hero meets: levels 1 to 7 an apprentice's, 8 to 13 a journeyman's, 14 to 19 an expert's, 20 on an artisan's", () => {
     const tierAt = (level: number) => SKILL_TIERS.findIndex((t) => salvageOf(gearKey({ item: 'dagger', level, rarity: 'common', roll: 0 })).needs < t.to);
-    expect([1, 3, 4, 6, 7, 9, 10, 12].map(tierAt)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
-    expect(difficulty(salvageOf(gearKey({ item: 'dagger', level: 12, rarity: 'common', roll: 0 })).needs, 299).chance).toBeGreaterThan(0); // (something teaches to the top)
+    expect([1, 7, 8, 13, 14, 19, 20, 25].map(tierAt)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    expect(difficulty(salvageOf(gearKey({ item: 'dagger', level: 26, rarity: 'common', roll: 0 })).needs, 299).chance).toBeGreaterThan(0); // (something teaches to the top)
   });
 
   it('teaches nothing from a piece too hard to learn from (more than TOO_HARD past the skill), broken down all the same', () => {
-    const club = salvageOf(gearKey({ item: 'mace', level: 13, rarity: 'common', roll: 0 }), 1);
+    const club = salvageOf(gearKey({ item: 'mace', level: 26, rarity: 'common', roll: 0 }), 1);
     expect(club.needs).toBe(300);
     expect(teachChance(club, 1)).toBe(0);
     expect(teachChance(club, 300 - TOO_HARD)).toBe(1); // (within reach: orange, always)
-    expect(club.gives).toEqual([['ironScrap', 3]]);
+    expect(club.gives).toEqual([['ironScrap', 5]]);
   });
 
   it("makes a woodworker's or a smith's own piece no ladder: green at most, half its scrap, less than went into it, no finer thing", () => {
