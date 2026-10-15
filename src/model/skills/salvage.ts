@@ -36,7 +36,7 @@ export const FINER_AT: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 
 // How many tries a piece found (not one as a recipe makes it, nor junk) is worth, by its rarity, each with its own
 // roll: past the junk, a fighter's drops are what teach, a few an hour, so each teaches as much as a crafter's
 // handful of their own.
-export const FOUND_TRIES: Record<Rarity, number> = { common: 5, uncommon: 6, rare: 8, epic: 10, legendary: 12 };
+export const FOUND_TRIES: Record<Rarity, number> = { common: 10, uncommon: 12, rare: 16, epic: 20, legendary: 24 };
 const GEMMED = /ruby|sapphire|jade|amber|pearl|lakeStone|runeStone|signet/;
 const IRON = /mail|plate|iron|gauntlet|sabaton|greatHelm|kettle|bascinet|barbute|sallet|breastplate|brigandine|hobnail|torc|nasalCap|hornedHelm|wingedHelm|dragonHelm|boneHelm|bronze/i;
 const LEATHER = /leather|studded|fur|hide|boots|bracers|breeches|vest|ridingGloves|workGloves|fingerlessGloves|jerkin|clogs|belted|huntersHood|maskedHood/i;
