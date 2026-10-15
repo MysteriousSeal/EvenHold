@@ -9,7 +9,7 @@ import type { GameModel } from '../src/model/GameModel';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { DAY_MINUTES, hourAt } from '../src/model/clock';
 import { MOST, SEIZE, WANTED } from '../src/model/roads/heat';
-import { PARTY, type Party } from '../src/model/roads/patrols';
+import { PARTY, type Party, type Saint } from '../src/model/roads/patrols';
 import { FOUGHT, RAN, fineFor } from '../src/model/roads/arrest';
 import { bribeFor, lieChance } from '../src/model/roads/questioning';
 import { foeStrikes } from '../src/model/hero/fighting';
@@ -293,3 +293,37 @@ describe('running and fighting', () => {
     }
   });
 });
+
+describe('the story\'s saint (arc 2, as the story keeps it)', () => {
+  const saint = (model: GameModel, state: Partial<Saint>) => Object.assign(model.story, { saint: { act: 1, witch: null, ending: null, town: null, ...state } });
+
+  it('arc 2 begun from its first act; Greyminster where the story says it is', () => {
+    const model = fresh();
+    saint(model, { act: 0 });
+    expect(model.roads.patrols.arcTwo).toBe(false);
+    saint(model, { act: 1, town: { x: 5, z: 6 } });
+    expect(model.roads.patrols.arcTwo).toBe(true);
+    expect(model.roads.patrols.cathedralAt()).toEqual({ x: 5, z: 6 });
+  });
+
+  it('the false saint exposed: the witch-finders scatter, none on the roads, nobody stopped or taken', () => {
+    const { model, party } = withParty();
+    saint(model, { ending: 'exposed' });
+    expect(model.roads.patrols.chanceAt(model.hero)).toBe(0);
+    near(model, party, 4, WANTED);
+    step(model, 3);
+    expect(model.roads.arrived()).toBeNull();
+    expect(model.roads.takenFallen()).toBe(false);
+  });
+
+  it('a witch handed in: a nod for a little heard of, a word still once they want the hero', () => {
+    const { model, party } = withParty();
+    saint(model, { witch: 'handed' });
+    near(model, party, 5, 2);
+    step(model, 4);
+    expect(model.roads.arrived()).toBeNull();
+    model.heat.raise(party.members[0], 1);
+    expect(stopped(model).lines[0]).toMatch(/Hold there/);
+  });
+});
+
