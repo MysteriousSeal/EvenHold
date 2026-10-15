@@ -1,6 +1,7 @@
 // Voxel houses, a model for each (layout, roof color), lit and instanced as
 // every building is (litBuildings.ts); they stand on the village cobbles, not the grass under them. A
-// herbalist's, a hut of their own on its tile (herbalistHouse.ts): stone and daub under a shaggy thatch.
+// herbalist's, a hut of their own on its tile (herbalistHouse.ts): stone and daub under a shaggy thatch; a hedge-witch's,
+// a crooked black cottage (witchHouse.ts).
 
 import * as THREE from 'three';
 import type { WorldSink } from '../../world/chunkLayer';
@@ -12,6 +13,8 @@ import { ROOF_SETS, TRIMS } from './housePalette';
 import { HOUSE_LAYOUTS, buildHouseVoxels } from './houseVoxels';
 import { buildHermitHut } from './herbalistHouse';
 import { isHerbalistHome } from '../../../model/herbalist/herbalistHomes';
+import { buildWitchHut } from './witchHouse';
+import { isWitchHome } from '../../../model/witch/witchHomes';
 import { addLitBuildings, meshLit } from './litBuildings';
 
 // A house's look comes from a hash of its grid position rather than being
@@ -30,13 +33,14 @@ export function buildHouseGeometry(layout: number, roof: number, glowing: boolea
 export function buildHouses(scene: WorldSink, model: GameModel): void {
   // The herbalists' huts (their homes' doors are the houses', in order: interiors.ts entrancesOf), a building of their own.
   const herbalists = new Set(model.houses.filter((_house, i) => isHerbalistHome(model.entrances[i])));
+  const witches = new Set(model.houses.filter((_house, i) => isWitchHome(model.entrances[i]))); // (and the hedge-witches' cottages: witchHouse.ts)
   const key = (house: House) => {
     const { layout, roof, trim } = looks(house);
-    return herbalists.has(house) ? 'herbalist' : `${layout}:${roof}:${trim}`; // (every herbalist's hut the same)
+    return herbalists.has(house) ? 'herbalist' : witches.has(house) ? 'witch' : `${layout}:${roof}:${trim}`; // (every herbalist's hut the same, every witch's)
   };
   const build = (house: House) => {
     const { layout, roof, trim } = looks(house);
-    return herbalists.has(house) ? buildHermitHut() : buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, trim);
+    return herbalists.has(house) ? buildHermitHut() : witches.has(house) ? buildWitchHut() : buildHouseVoxels(HOUSE_LAYOUTS[layout], roof, trim);
   };
   // Doors face local -Z; house rotations are always multiples of 90 degrees.
   const place = (house: House): VoxelPlacement => ({

@@ -81,6 +81,17 @@ const ENTRIES = {
   bottle: 0x3e8a4a, // the green bottle hung for its sign (darker than the brew)
   brew: 0x8aff6a, // the brew in its cauldron outside (bright, not lit: the glow's one warm colour would turn it yellow)
   brewDeep: 0x3e9a3a,
+  tar: 0x2e2a28, // a hedge-witch's cottage (witchHouse.ts): its tarred boards, two shades a board
+  tarLight: 0x47403a,
+  blackThatch: 0x4a4532, // its thatch, rotten near black
+  blackThatchDark: 0x332f22,
+  bone: 0xdcd2b4, // the skulls and bones she hangs about it
+  boneDark: 0x9e9478,
+  witchGlass: 0x3a5aa8, // the witch-bottles hung under its eaves
+  crow: 0x1c1a20, // the crow on its ridge
+  beak: 0xc8a040,
+  nettle: 0x3e5a2a, // her garden: nettles, henbane
+  henbane: 0xc8c070,
 } as const;
 
 type Entry = keyof typeof ENTRIES;
