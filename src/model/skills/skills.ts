@@ -121,6 +121,7 @@ export const SKILLS: Record<SkillId, Skill> = {
       { at: 160, what: 'Grayling in the narrows' },
       { at: 180, what: 'Char in open water' },
       { at: 225, what: 'What the water hides: a lost locket, an old coin, a torc in the deep' },
+      { at: 240, what: 'Salmon in any water' },
       { at: 250, what: 'Sturgeon in the deep' },
     ],
   },
