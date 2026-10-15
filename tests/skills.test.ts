@@ -42,10 +42,13 @@ describe('skills', () => {
     }
   });
 
-  it("salvaging's level 75 reaches common gear up to level 27, as it says, and no further", () => {
-    expect(SKILLS.salvaging.unlocks.find((u) => u.at === 75)?.what).toBe('Common gear up to level 27');
-    expect(salvageOf(gearKey({ item: 'armingSword', level: 27, rarity: 'common', roll: 0 })).needs).toBeLessThanOrEqual(75);
-    expect(salvageOf(gearKey({ item: 'armingSword', level: 28, rarity: 'common', roll: 0 })).needs).toBeGreaterThan(75);
+  it("salvaging's tiers fall on the gear its rows say: levels 4 to 6 a journeyman's, 7 to 9 an expert's, 10 on an artisan's", () => {
+    const needs = (level: number) => salvageOf(gearKey({ item: 'armingSword', level, rarity: 'common', roll: 0 })).needs;
+    for (const [at, from, to] of [[75, 4, 6], [150, 7, 9], [225, 10, Infinity]] as const) {
+      expect(SKILLS.salvaging.unlocks.some((u) => u.at === at && u.what.includes(`${from} `))).toBe(true);
+      expect(needs(from)).toBeGreaterThanOrEqual(at); // (its first teaches from the tier's start)
+      if (to !== Infinity) expect(needs(to)).toBeLessThan(at + 75);
+    }
   });
 
   it("start at 1 for every hero: an apprentice's", () => {
