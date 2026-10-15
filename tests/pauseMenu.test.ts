@@ -246,7 +246,10 @@ describe('the pause menu: the rest', () => {
     expect([strike(), row('Pick up, talk, open').querySelector('kbd')?.textContent]).toEqual(['E', 'Space']); // (swapped)
     expect(actionOf('KeyE')).toBe('attack');
     row('Every key as it came').click();
+    expect(strike()).toBe('E'); // (asked once first)
+    row('Reset every key? Click again').click();
     expect(strike()).toBe('Space');
+    expect(row('Every key as it came').classList.contains('danger')).toBe(true);
     press('Escape');
     expect(document.querySelector('.pause-title')?.textContent).toBe('Paused');
   });

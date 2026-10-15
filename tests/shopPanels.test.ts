@@ -326,6 +326,17 @@ describe('the bag', () => {
     expect(keys.slice(4, 8)).toEqual(['item:nasalCap', 'loot:bread', 'loot:wolfFang', null]); // (no empty cells by the sockets)
   });
 
+  it('says so when empty, and where things go; with something in it, not', () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const bag = createInventoryPanel(model);
+    Object.assign(model.hero, { bag: {}, bagOrder: [], bagCounts: [] });
+    bag.menu.open();
+    expect(bagEl().querySelector('.bag-empty:not([hidden])')?.textContent).toMatch(/^Empty\. What you pick up goes here/);
+    model.hero.bag = { wolfFang: 1 };
+    bag.update();
+    expect(bagEl().querySelector('.bag-empty:not([hidden])')).toBeNull();
+  });
+
   it('a slot hovered is lit, its tooltip shown; left, neither (none lit on opening)', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const bag = createInventoryPanel(model);

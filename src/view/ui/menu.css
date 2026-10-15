@@ -490,3 +490,11 @@
 .menu-slot.drop-hint { border-color: var(--lantern); box-shadow: 0 0 0 3px rgba(255, 217, 138, 0.7), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-ok { border-color: #3f9a4a; box-shadow: 0 0 0 3px rgba(63, 154, 74, 0.55), inset 0 -4px 0 var(--sand-dark); }
 .menu-slot.drop-bad { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.5), inset 0 -4px 0 var(--sand-dark); }
+/* (ui-scale) A big screen (1080p): every window 1.2x, as the HUD (hud.css --hud-scale), grown from where it sits, kept
+   on screen; the left's under the grown HUD; the middle's 150px off left: it, the left's and the bag fit side by side. */
+:root { --ui-scale: 1; } .menu-backdrop.place-left .menu { transform-origin: 0 0; }
+.menu { scale: var(--ui-scale); max-height: calc((100vh - 48px) / var(--ui-scale)); }
+.menu-backdrop.place-bottom-right .menu { transform-origin: 100% 100%; max-height: calc((100vh - 100px) / var(--ui-scale)); }
+@media (min-width: 1700px) and (min-height: 1000px) { :root { --ui-scale: 1.2; }
+  .menu-backdrop.place-left { padding-top: 177px; } .menu-backdrop.place-left .menu { max-height: calc((100vh - 193px) / 1.2); }
+  .menu-backdrop.place-center { padding-right: 324px; } }

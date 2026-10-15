@@ -11,7 +11,7 @@
 // wouldn't is greyed out. Away from shops, each thing says what it'd fetch.
 // A button by the purse tidies it (bagStacks.ts: sortedBag). At the inn's strongbox (its window open beside it:
 // stashPanel.ts), right-clicking a stack, or dragging it onto the strongbox, puts it away.
-import { keyOf } from '../keyBindings';
+import { keyLabel, keyOf } from '../keyBindings';
 import { POTIONS, POTION_COOLDOWN, isPotion, potionText } from '../../model/loot/potions';
 import { setAction } from '../../model/hero/actionBar';
 import { coinParts, coinWords } from '../../view/ui/coins';
@@ -223,6 +223,14 @@ export function createInventoryPanel(model: GameModel): { menu: Menu; update(): 
           const free = Math.max(0, room - at.length);
           if (free) sections.push({ title: '', from: SOCKET_ROW + at.length }); // (a line, then the free slots)
           return { cells: [...top, ...cells, ...Array.from({ length: free }, () => null)], columns: COLUMNS, sections };
+        },
+        header: () => {
+          // (nothing in it: what it's for, over the empty rows)
+          const hint = document.createElement('p');
+          hint.className = 'bag-empty';
+          hint.textContent = `Empty. What you pick up goes here; drag gear onto the hero sheet (${keyLabel(keyOf('sheet'))}) to wear it.`;
+          hint.hidden = Object.values(model.hero.bag).some((n) => (n ?? 0) > 0);
+          return hint;
         },
         footer: () =>
           footer(model.hero.money, () => {

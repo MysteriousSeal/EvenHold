@@ -142,6 +142,10 @@
 @media (prefers-reduced-motion: reduce) { .pause-key-wait { animation: none; } }
 .pause-keys-foot { display: flex; gap: 8px; }
 .pause-keys-foot .pause-back { margin-top: 6px; }
+/* Every key as it came: off on the right, in the title's Delete hero red (it undoes every rebinding). */
+.pause-keys-foot .pause-back.danger { margin-left: auto; background: rgba(200, 54, 42, 0.16); border-color: rgba(217, 138, 122, 0.55); }
+.pause-keys-foot .pause-back.danger b { color: #f0a090; }
+.pause-keys-foot .pause-back.danger.lit { background: rgba(200, 54, 42, 0.3); box-shadow: inset 3px 0 0 #f0a090; }
 
 /* A laptop's screen (800 tall or so): everything closer together, each row's few words beside its name, so the whole
    menu fits without scrolling. */
