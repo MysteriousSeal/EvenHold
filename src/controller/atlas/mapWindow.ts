@@ -9,6 +9,7 @@ import { mapPins } from '../../model/atlas/mapPins';
 import { nameAt, paintMap, type MapLook, type MapPaint } from '../../view/atlas/mapPaint';
 import { along, fitLook } from '../../view/atlas/mapView';
 import { CELL } from '../../model/atlas/fog';
+import { markIcon, MARK_NAME, type MarkKind } from '../../view/atlas/mapMarks';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { keyOf } from '../keyBindings';
 
@@ -27,7 +28,17 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
   foot.className = 'map-foot';
   const key = document.createElement('div');
   key.className = 'map-key';
-  key.innerHTML = '<i class="pin quest"></i>Quest <i class="pin bounty"></i>Bounty <i class="pin story"></i>Errand <i class="pin board"></i>Hand in · struck through: cleared';
+  const pinsKey = document.createElement('div');
+  pinsKey.innerHTML = '<i class="pin quest"></i>Quest <i class="pin bounty"></i>Bounty <i class="pin story"></i>Errand <i class="pin board"></i>Hand in · struck through: cleared';
+  const marksKey = document.createElement('div'); // (the marks for what stands on the land, as the map draws them)
+  marksKey.className = 'map-key-marks';
+  const kinds: MarkKind[] = ['village', 'town', 'crypt', 'cave', 'stronghold', 'camp', 'ruin', 'menhir', 'tor', 'snag'];
+  for (const kind of kinds) {
+    const item = document.createElement('span');
+    item.append(markIcon(kind), MARK_NAME[kind]);
+    marksKey.append(item);
+  }
+  key.append(marksKey, pinsKey);
   const middle = document.createElement('button');
   middle.className = 'map-button';
   middle.textContent = 'Find me';
@@ -48,7 +59,7 @@ export function createMapWindow(model: GameModel, hooks: { setPaused(paused: boo
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    paint = { names: look.scale >= 0.5, pins: mapPins(model), places: model.atlas.places() };
+    paint = { names: look.scale >= 0.5, pins: mapPins(model), places: model.atlas.places(), landmarks: model.atlas.landmarks() };
     paintMap(ctx, model, look, width, height, paint);
   };
   // Drawn while it's open (charts come in from the worker as it's looked at).
