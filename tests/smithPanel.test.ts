@@ -38,6 +38,8 @@ const bagEl = () => menus().find((m) => m.getAttribute('aria-label') === 'Bag')!
 const says = () => shopEl().querySelector('.shop-talk-says')!.textContent!;
 const rightClick = (el: Element) => el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 const inBag = (key: string) => Array.from(bagEl().querySelectorAll<HTMLElement>('.menu-slot')).find((s) => s.querySelector('canvas')?.dataset.key === key)!;
+const hover = (el: Element) => el.dispatchEvent(new MouseEvent('mouseenter'));
+const tooltips = () => Array.from(document.querySelectorAll<HTMLElement>('.menu-tooltip')).filter((t) => !t.hidden);
 const mend = () => Array.from(shopEl().querySelectorAll<HTMLButtonElement>('.shop-junk')).find((b) => b.textContent!.startsWith('Mend'))!;
 
 beforeEach(() => document.body.replaceChildren());
@@ -54,6 +56,25 @@ describe("the smith's window", () => {
     expect(model.hero.bag.mace).toBe(1);
     expect(says()).not.toBe(before);
     expect(says()).toMatch(/enough|plenty|more/i);
+    expect(says()).not.toMatch(/days|a while/); // (the real wait, or none)
+    expect(inBag('item:mace').classList.contains('dim')).toBe(true); // (the bag tells it before he does)
+    hover(inBag('item:mace'));
+    const tip = tooltips().map((t) => t.textContent).join(' ');
+    expect(tip).not.toContain('Right-click to sell');
+    expect(tip).toMatch(/enough of these for now · more wanted in \d+:\d\d/);
+  });
+
+  it("names more than one of a thing rightly: no hobnail bootss", () => {
+    const { model, keeper, panel, shop } = trading();
+    model.hero.bag.hobnailBoots = WANTS.gear + 1;
+    shop().money = 100_000;
+    panel.open(keeper);
+    for (let i = 0; i < WANTS.gear; i++) rightClick(inBag('item:hobnailBoots'));
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.5); // ("No more {them}…")
+    rightClick(inBag('item:hobnailBoots'));
+    random.mockRestore();
+    expect(says()).toMatch(/hobnail boots/i);
+    expect(says()).not.toMatch(/bootss/);
   });
 
   it("doesn't call wood iron: what he says of resin, or a wooden stave, is his word on wood", () => {

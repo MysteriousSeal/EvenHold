@@ -16,6 +16,7 @@ import { BROKEN, WORN, mendAll, mendBill, wearOf } from '../../model/hero/wear';
 import { WOODWORKS } from '../../model/shops/shopStock';
 import type { Hero } from '../../model/types';
 import { coinWords } from '../../view/ui/coins';
+import { plural } from '../../view/ui/words';
 import { smithAsleep } from '../../model/smithy/smithWork';
 import { createTradePanel, pick, type TradeBag, type TradeLines } from './tradePanel';
 
@@ -25,7 +26,7 @@ const LINES: TradeLines = {
     "Mind the sparks. What d'you need?",
     'Steel, is it? You came to the right forge.',
     "Everything on that wall I made with these hands. Have a look.",
-    "Back for more? Something's always on the anvil.",
+    "Something's always on the anvil. Have a look.",
     "Speak up, the hammer's loud. What'll it be?",
   ],
   bought: ['Wear it well.', "That'll outlast you, if you're careful.", 'Good steel, that. Treat it right.', 'Come back when it needs an edge.'],
@@ -46,7 +47,8 @@ const OFFERED = {
   worn: ["{it}? Battered half to death. I'll beat it straight.", "Look at the state of this {it}. You fight with it, or dig with it?"],
 };
 // What he says when he's bought enough of a kind just now (shopStock.ts WANTS).
-const ENOUGH = ["I've plenty of those already. Come back in a few days.", "No more {it}s, I've nowhere to hang them.", "Another {it}? I've enough. I'm a smith, not a magpie."];
+// ({it}: what, {them}: more than one of it, {wait}: till he'll take another, "4 minutes")
+const ENOUGH = ["I've plenty of those already. Come back in {wait}.", "No more {them}, I've nowhere to hang them.", "Another {it}? I've enough. I'm a smith, not a magpie."];
 // What he says of the hero's own gear on greeting them, now and then: a worn piece of it, what's his own make, or
 // their empty hands.
 const ON_GEAR = {
@@ -134,7 +136,7 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
       const kind = smithTakesMetal(id) ? 'metal' : smithTakesWood(id) ? 'wood' : smithTakesPick(id) ? 'pick' : isGear(id) && WOODWORKS.has(baseOf(id)) ? 'woodwork' : wearOf(model.hero, id) >= WORN ? 'worn' : 'gear';
       return pick(kind === 'gear' ? [...OFFERED.gear, ...LINES.sold] : OFFERED[kind]).replace('{it}', kind === 'woodwork' || kind === 'worn' ? name.toLowerCase() : name);
     },
-    enough: (name) => pick(ENOUGH).replace('{it}', name.toLowerCase()),
+    enough: (name, wait) => pick(ENOUGH).replace('{it}', name.toLowerCase()).replace('{them}', plural(name.toLowerCase())).replace('{wait}', wait),
     greeting: () => onGear(model.hero),
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
