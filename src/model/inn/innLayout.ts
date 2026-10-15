@@ -26,14 +26,13 @@ export function furnishInn(plan: Planner, room: Room): void {
   // In the front corner past the bar, the stairs up: two long, out from the left wall into the
   // room, climbing from the room toward the wall (the floor above's stairwell in the same corner).
   place('stairs', 2, 1, 'none', [[0, room.depth - 1]]);
-  // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs facing it.
+  // The hearth corner: the fire on the back wall, a bear rug before it, two armchairs either side of it facing the
+  // fire (the pelt between them seen), or on its back half if there's no room.
   const hearth = place('hearth', 2, 1, 'back', along(0).filter(([x]) => x >= 5 && x <= room.width - 3));
   if (hearth) {
-    // The rug before the fire, and the two armchairs side by side on it,
-    // a tile back from the hearth, facing the fire.
     place('bearRug', 2, 2, 'none', [[hearth.x, 1]]);
-    for (const x of [hearth.x, hearth.x + 1]) {
-      const chair = place('armchair', 1, 1, 'none', [[x, 2]]);
+    for (const [x, by] of [[hearth.x - 1, hearth.x], [hearth.x + 2, hearth.x + 1]]) {
+      const chair = place('armchair', 1, 1, 'none', [[x, 2], [by, 2]], false);
       if (chair) chair.facing = [0, -1];
     }
   }
