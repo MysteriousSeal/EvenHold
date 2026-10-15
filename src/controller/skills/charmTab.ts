@@ -5,7 +5,7 @@ import type { GameModel } from '../../model/GameModel';
 import { setAction } from '../../model/hero/actionBar';
 import { grantCharm } from '../../model/spells/charmLore';
 import { AIM_WORDS, SPELLS, SPELL_IDS, knows, spellKey, spellText, type SpellId } from '../../model/spells/spells';
-import { line } from '../../view/ui/dom';
+import { el, line } from '../../view/ui/dom';
 import { toned, type MenuSlot, type MenuTab } from '../../view/ui/menuTypes';
 import { SPELL_ICONS } from '../../view/ui/spellIcons';
 
@@ -31,6 +31,7 @@ export function charmRow(model: Pick<GameModel, 'hero'>, id: SpellId): MenuSlot 
 
 export const charmsTab = (model: Pick<GameModel, 'hero'>): MenuTab => ({
   name: 'Charms',
-  header: () => line('quest-board-lead', SPELL_IDS.some((id) => knows(model.hero, id)) ? LEAD : NONE),
+  // (none known: the word centred under a charm's icon, at the top of a window kept as tall as the Skills tab's: skills.css)
+  header: () => (SPELL_IDS.some((id) => knows(model.hero, id)) ? line('quest-board-lead charms-lead', LEAD) : el('div', 'charms-none', SPELL_ICONS.hex(40), el('p', undefined, NONE))),
   slots: () => ({ cells: SPELL_IDS.filter((id) => knows(model.hero, id)).map((id) => charmRow(model, id)), columns: 1, rows: true }),
 });

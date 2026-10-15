@@ -23,7 +23,11 @@
 .skill-rule.slim .skill-rule-tier.here { border-width: 2px; }
 
 /* --- The skills list (K): a card a skill --- */
-.menu:has(.skill-cards) { width: min(380px, calc(100vw - 32px)); }
+/* One height on both tabs (the Skills tab's, held to the corner's room), so a switch doesn't move the tabs under the pointer. */
+.menu:is(:has(.skill-cards), :has(.charms-lead), :has(.charms-none)) { width: min(380px, calc(100vw - 32px)); height: min(720px, calc(100vh - 100px)); }
+.charms-none { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px 0; text-align: center; }
+.charms-none canvas { opacity: 0.55; }
+.charms-none p { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
 .skill-cards { display: flex; flex-direction: column; gap: 5px; padding-bottom: 2px; }
 .skill-cards-group { margin-top: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 .skill-card {
