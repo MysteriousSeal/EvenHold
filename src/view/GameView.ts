@@ -7,10 +7,10 @@ import { isProvision } from '../model/loot/provisions';
 import * as THREE from 'three';
 import type { GameModel } from '../model/GameModel';
 import type { Enemy } from '../model/types';
-import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING } from './constants';
+import { CAMERA_OFFSET, CAMERA_Y_SMOOTHING, INDOOR_ZOOM } from './constants';
 import type { Drink, Npc } from '../model/npcs/npcs';
 import { INDOOR_SCALE } from '../model/constants';
-import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
+import { createCamera, computeMovementAxes, resizeCamera, roomAim } from './render/camera';
 import type { MovementAxes } from './render/camera';
 import { addLights } from './render/lighting';
 import { SkyView } from './render/skyView';
@@ -68,8 +68,6 @@ export interface RenderStats {
   triangles: number;
   pixelRatio: number;
 }
-
-const INDOOR_ZOOM = 1.35; // the camera, closer indoors
 
 export class GameView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -320,7 +318,7 @@ export class GameView {
       this.indoors.room?.life?.update(model, dt); // (a dungeon's foes, what they loose, what they leave)
       this.cupboard.update(model, room);
       this.workMarks.update(model, room, this.elapsed, (x, y, z) => this.toScreen(x, y, z)); // (at work: the patrons waiting, the orders ready; off it, the notice board's "!")
-      this.followHero(hero, 0, dt);
+      this.followHero(this.indoors.room?.life || !model.inside ? hero : roomAim(model.inside.room, model.inside.furniture, hero), 0, dt); // (a building's room: framed toward its fire; a dungeon's floor, on the hero)
       const rumble = this.indoors.room?.life?.rumble ?? 0; // (the floor shaking: the camera with it)
       if (rumble > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * rumble, (Math.random() - 0.5) * 0.05 * rumble, (Math.random() - 0.5) * 0.08 * rumble));
       return; // the world outside stands still
