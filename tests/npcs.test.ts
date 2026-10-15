@@ -5,6 +5,7 @@ import { nameAt, randomName, spawnNpcs } from '../src/model/npcs/npcs';
 import { visitInn } from '../src/model/npcs/npcRoutine';
 import { bumpsFurniture } from '../src/model/interiors/furniture';
 import { randomLook } from '../src/model/human/humanoid';
+import { spawnOf } from '../src/model/map/grid';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 // The first test world (made one at a time, till one has) with a village of a few houses and its inn.
@@ -37,7 +38,7 @@ describe('villagers', () => {
   it('are the world seed\'s own: the same houses on another seed hold other people', () => {
     const model = withVillage();
     const other = spawnNpcs(model.seed + 1, model.entrances, model.villages);
-    const same = spawnNpcs(model.seed, model.entrances, model.villages);
+    const same = spawnNpcs(model.seed, model.entrances, model.villages, [], 0, spawnOf(model.size)); // (the start: its village's herbalist a woman)
     expect(same.map((n) => [n.name, n.look, n.salt])).toEqual(model.npcs.map((n) => [n.name, n.look, n.salt]));
     const renamed = other.filter((n, i) => n.name !== model.npcs[i].name).length;
     expect(renamed).toBeGreaterThan(model.npcs.length / 2);

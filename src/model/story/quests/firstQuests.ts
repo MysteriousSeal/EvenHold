@@ -29,7 +29,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Tell ${t.barmaid}, at the inn in ${t.village}, that the wagon is down`,
     handIn: () => ["His wagon has broken down? That's the third one this year. They found the last carter in spring, when the snow melted. Parts of him.", "He's lucky you stopped. Most people walk past. Here, this is for your trouble."],
     thanks: 'Glad to help.',
-    copper: 25,
+    copper: 40,
     xpShare: 0.3,
   },
   {
@@ -54,7 +54,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Bring 3 birch logs to ${t.smith}, the smith in ${t.village}`,
     handIn: (t) => [`Three birch logs, cleanly cut. Good. I'll make the spokes and mend ${t.carter}'s wheel properly.`, "Here's your pay. And thank you for not asking why my hands shake."],
     thanks: 'Good luck with the wheel.',
-    copper: 40,
+    copper: 60,
     xpShare: 0.4,
   },
   {
@@ -65,9 +65,11 @@ const OPENING: StoryQuest[] = [
     receiver: 'carter',
     follows: 'spokesForTheWheel',
     needs: { kind: 'slay', foe: 'wolf', count: 3 },
+    stake: { item: 'minorHealthPotion', count: 2 }, // (the story's first fight, at the first level: something to live through it with)
     offer: (t) => [
       "My son will carry the wheel out to the wagon. He is ten years old, and the trail is full of wolves. They've grown bold from eating what the bandits leave in the ditches.",
       `Kill three wolves and the rest will keep away from him. Then go and tell ${t.carter} his wheel is on its way.`,
+      "Take these two potions. I bought them for my boy, in case. You'll need them more than he will.",
     ],
     accept: "I'll see to the wolves.",
     decline: 'Not today.',
@@ -77,7 +79,7 @@ const OPENING: StoryQuest[] = [
     task: (t) => `Slay 3 wolves, then tell ${t.carter} the wheel is coming`,
     handIn: () => ["You killed three wolves? Good. They've had a taste for people ever since the crown started leaving hanged men at the crossroads.", "And my wheel is on its way. Here, take this. It's all the coin I have on me."],
     thanks: 'Safe travels.',
-    copper: 60,
+    copper: 90,
     xpShare: 0.6,
   },
   {
@@ -275,16 +277,17 @@ const OPENING: StoryQuest[] = [
     receiver: 'herbalist',
     follows: 'readToHer',
     needs: { kind: 'do', what: 'wish', count: 1 },
+    stake: { copper: 100 }, // (the silver for the well: hers, not a toll on the hero)
     offer: () => [
       'Before we deal with Father Aldous, do one thing for me. Toss a silver coin into the village well and make a wish for my grandmother. Nobody ever has. People say a burned witch gets no wishes.',
-      'I would do it myself, but the villagers would see me, and I have to go on living here. They are afraid of you. They will let you do it.',
+      'I would do it myself, but the villagers would see me, and I have to go on living here. They are afraid of you. They will let you do it. Here is the silver.',
     ],
     accept: "I'll toss it for her.",
     decline: 'In a while.',
     waiting: () => ['Toss a silver coin into the well, for my grandmother Maren.'],
     after: () => ['Somebody has been leaving flowers at the well for my grandmother. Nobody will say who.'],
     task: () => 'Toss a silver coin in the well, for Maren',
-    handIn: () => ['You made a wish for her, in front of everyone?', "Good. Let them all see it. Here's your silver back, and more. Now, let's talk about Father Aldous, and where he is buried."],
+    handIn: () => ['You made a wish for her, in front of everyone?', "Good. Let them all see it. Here, this is for your trouble. Now, let's talk about Father Aldous, and where he is buried."],
     thanks: 'They all saw.',
     copper: 150,
     xpShare: 0.3,

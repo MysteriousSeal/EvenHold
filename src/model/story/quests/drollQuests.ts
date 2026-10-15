@@ -91,6 +91,7 @@ export const DROLL_QUESTS: StoryQuest[] = [
     id: 'theWeddingNobodyRemembers',
     name: 'The wedding nobody remembers',
     giver: 'villagerA',
+    sex: 'male', // (the goat's husband)
     receiver: 'nextBarmaid',
     share: 0.25,
     offer: (t) => [

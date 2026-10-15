@@ -1,9 +1,9 @@
 // Rules the quests people give keep (model/story/), each found wanting once: what a quest asks, done before it was
 // ever taken (its camp cleared, its boss slain), still finishes it; someone with a trade, owed a hand-in the bag has no
 // room for, still shows their wares; a quest that follows another is only where that one is; what's to be brought
-// from one kind of place is asked only where there's one near, and pointed to.
+// from one kind of place is asked only where there's one near, and pointed to; one whose giver speaks as a man or a
+// woman is offered only by one; one under way whose village is off the maps still told by its own names.
 import { describe, expect, it } from 'vitest';
-import type { GameModel } from '../src/model/GameModel';
 import { dungeonAt } from '../src/model/dungeons/dungeons';
 import { BOSS_POST } from '../src/model/dungeons/dungeonRecord';
 import { addToBag } from '../src/model/hero/bag';
@@ -12,7 +12,11 @@ import { LOOT } from '../src/model/loot/loot';
 import { ghostsIn } from '../src/model/ruins/haunting';
 import type { LootId } from '../src/model/loot/loot';
 import { COMMON_QUESTS, RARE_QUESTS, STORY_QUESTS } from '../src/model/story/quests/catalog';
-import { everyKindOfWorld } from './support/testWorld';
+import { restore, snapshot } from '../src/model/save';
+import { GameModel } from '../src/model/GameModel';
+import { spawnOf } from '../src/model/map/grid';
+import { STREAMED_SIZE } from '../src/model/worldgen/regions';
+import { everyKindOfWorld, fresh } from './support/testWorld';
 
 const world = () => everyKindOfWorld().at(-1)!; // (a full-size world: many villages)
 // A quest of `role`'s in some village, taken (by the cheat's replay, whatever it follows).
@@ -186,6 +190,22 @@ describe('where quests are set', () => {
     expect(where('supperForTwo').length).toBeGreaterThan(3);
   });
 
+  it("offers one whose giver speaks as a man or a woman (\"my wife\", \"my husband\") only from one", () => {
+    const model = world();
+    const { story } = model;
+    const seen = { offered: 0, locked: 0 };
+    for (const who of model.npcs.filter((n) => n.role === 'villager')) {
+      for (const q of story.questsOf(who)) {
+        const sex = STORY_QUESTS[q.id].sex;
+        if (!sex || !q.set) continue;
+        expect(q.state, `${q.key}: ${who.look.build}`).toBe(who.look.build === sex ? 'offered' : 'locked');
+        seen[q.state as 'offered' | 'locked']++;
+      }
+    }
+    expect(seen.offered).toBeGreaterThan(0);
+    expect(seen.locked).toBeGreaterThan(0);
+  });
+
   it('asks for what one kind of place gives only where there is one near, and points there', () => {
     const model = world();
     const { story } = model;
@@ -198,4 +218,65 @@ describe('where quests are set', () => {
       expect(story.taken.find((t) => t.id === key)?.goal, id).not.toBeNull();
     }
   });
+});
+
+describe('a quest under way, its village off the maps', () => {
+  it('is told by the names it was taken with: its village, the next, whoever takes it in in the part named', () => {
+    const model = fresh();
+    const far = { x: 5000, z: 5000 };
+    model.story.load({
+      states: { 'wordToTheNextInn@99999': 'taken', 'wolvesOnTheTrail@99999': 'taken' },
+      kept: { 'wordToTheNextInn@99999': { to: 'Wenna', from: 'Adawen', ...far, village: 'Ashby', next: 'Brockholt', camp: "Red Ned's" }, 'wolvesOnTheTrail@99999': { to: 'Osric', from: 'Thoby', ...far } },
+    });
+    const task = (id: string) => model.story.taken.find((t) => t.id === id)!.task;
+    expect(task('wordToTheNextInn@99999')).toBe('Tell Wenna, at the inn in Brockholt, about the kegs and the magistrate');
+    expect(task('wolvesOnTheTrail@99999')).toBe('Slay 3 wolves, then tell Osric the wheel is coming'); // (the carter it's handed in to, not the smith who gave it)
+  });
+});
+
+describe('a quest whose giver hands over what it is done with', () => {
+  it('gives it as it is taken, once: not again when let go and taken up afresh, nor after a save', () => {
+    const model = fresh();
+    const { story, hero } = model;
+    for (const id of ['wordToTheInn', 'spokesForTheWheel']) {
+      story.accept(id);
+      for (let i = 0; i < 3; i++) addToBag(hero.bag, 'birchLog');
+      story.handIn(id);
+    }
+    const potions = () => hero.bag.minorHealthPotion ?? 0;
+    const before = potions();
+    story.accept('wolvesOnTheTrail');
+    expect(potions()).toBe(before + 2); // (the smith's, for the story's first fight)
+    story.abandon('wolvesOnTheTrail');
+    story.accept('wolvesOnTheTrail');
+    const again = fresh();
+    restore(again, snapshot(model));
+    again.story.abandon('wolvesOnTheTrail');
+    again.story.accept('wolvesOnTheTrail');
+    expect([potions(), again.hero.bag.minorHealthPotion ?? 0]).toEqual([before + 2, before + 2]);
+    expect(STORY_QUESTS.aSilverForMaren.stake).toEqual({ copper: 100 }); // (the silver for her well: hers)
+    expect(STORY_QUESTS.silverToTheWell.stake).toEqual({ copper: 100 });
+  });
+});
+
+describe('the first village, its line under way', () => {
+  it('stays where the line was taken up: kept in the save; an older save, with no village kept, where it was then (the nearest the start)', () => {
+    const model = new GameModel(7, STREAMED_SIZE); // (its trail from the start leads past the nearest village)
+    const spawn = spawnOf(model.size);
+    const nearestVillage = [...model.villages].sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z))[0];
+    const trailed = model.story.people!.village;
+    expect(trailed).not.toBe(nearestVillage);
+    model.story.accept('wordToTheInn');
+    const saved = model.story.save();
+    expect(saved.home).toEqual({ x: trailed.x, z: trailed.z });
+    // An older save, the line under way and no village kept: the nearest the start, its people with it.
+    model.story.load({ states: { 'wordToTheInn@first': 'done', 'spokesForTheWheel@first': 'taken' } });
+    expect(model.story.people!.village).toBe(nearestVillage);
+    expect(model.story.people!.barmaid.village).toBe(nearestVillage);
+    expect(model.story.stateOf('spokesForTheWheel')).toBe('taken');
+    expect(model.story.save().home).toBeUndefined(); // (and so saved again: read as it was, the next time too)
+    // As saved: where it was kept.
+    model.story.load(saved);
+    expect(model.story.people!.village).toBe(trailed);
+  }, 120_000);
 });

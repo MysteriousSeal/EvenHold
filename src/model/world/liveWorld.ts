@@ -32,6 +32,7 @@ import { TravellerCrowd } from '../travellers/travellerCrowd';
 import { spawnWildlife, type Wildlife } from '../wildlife/wildlife';
 import { doorNumber, entrancesOf, type Entrance } from '../interiors/interiors';
 import { spawnNpcs, type Npc } from '../npcs/npcs';
+import { spawnTrailEnd } from '../story/storyCast';
 import { villageNumber } from '../villages/villageNumber';
 
 // What the world's life needs of the game: whose world, the hero (where they are, to walk among), the ground's height
@@ -354,7 +355,7 @@ export class LiveWorld {
     const getGroundY = (x: number, z: number) => this.groundY(x, z);
     const wildlife = spawnWildlife({ seed, size, tiles, villages, camps, trees: land.trees, houses, buildings, isOpenTile, isBlocked, getGroundY }, area, ids);
     const doors = entrancesOf(houses, buildings);
-    const npcs = spawnNpcs(seed, doors, villages, fields, ids).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
+    const npcs = spawnNpcs(seed, doors, villages, fields, ids, spawnTrailEnd(trails, spawn) ?? spawn).filter((n) => !this.host.chickens?.lost.has(n.id)); // the villagers, one to a house (but those lost for good)
     this.host.swaps?.remade([...npcs, ...enemies]);
     // A stronghold's gatehouse in each wide stretch of the wilds that has the ground for one: last of all, on ground nothing
     // stands on (so all else is as it ever was), where no foe or animal was put.

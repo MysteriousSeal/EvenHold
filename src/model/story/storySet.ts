@@ -7,7 +7,7 @@ import type { Ruin } from '../ruins/ruins';
 import type { EnemyKind } from '../types';
 import { hashUnit } from '../../util/random';
 import { COMMON_QUESTS, FIRST_QUESTS, RARE_QUESTS, ROAD_QUESTS } from './quests/catalog';
-import { castKey, castOf, isTraveller, type CastHost, type Setting, type Who } from './storyCast';
+import { castKey, castOf, isTraveller, type CastHost, type Home, type Setting, type Who } from './storyCast';
 import type { Objective, StoryPlace, StoryQuest } from './storyQuests';
 
 export interface Instance {
@@ -81,8 +81,8 @@ export function resettle(set: QuestSet, forced: ReadonlyMap<string, Who | undefi
   }
 }
 
-export function settle(host: CastHost): QuestSet {
-  const { first, firstRuin, villages } = castOf(host);
+export function settle(host: CastHost, home: Home = null): QuestSet {
+  const { first, firstRuin, villages } = castOf(host, home);
   const all = new Map<string, Instance>();
   const by = new Map<object, Instance[]>();
   const add = (quest: StoryQuest, at: Setting | null) => void (lacks(quest, at) ?? place({ all, by }, quest, at)); // (its people, its place: all there)

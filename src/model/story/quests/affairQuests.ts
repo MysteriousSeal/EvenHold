@@ -12,7 +12,7 @@ export const AFFAIR_QUESTS: StoryQuest[] = [
     share: 0.25,
     offer: (t) => [
       "I'm getting married tomorrow. Neither of us has ever been to bed with anyone, and nobody has told us what to do. My mother just said to close my eyes and pray.",
-      `${t.receiver}, who runs the inn, knows everything about it. I'm too embarrassed to ask. Go and ask ${t.receiver} for advice for my wedding night, then tell me what was said.`,
+      `${t.receiver}, who runs the inn, knows everything about it. I'm too embarrassed to ask. Go and ask ${t.receiver} for advice for my wedding night, and to come round and tell us before tomorrow.`,
     ],
     accept: "I'll ask for you.",
     decline: 'Ask somebody else.',
@@ -20,10 +20,10 @@ export const AFFAIR_QUESTS: StoryQuest[] = [
     after: () => ['The wedding night went well. It went wrong twice first, and we laughed, just as the innkeeper said we would.'],
     task: (t) => `Ask ${t.receiver}, at the inn in ${t.village}, for wedding-night advice for ${t.giver}`,
     handIn: () => [
-      "Advice for a wedding night? Tell them this. Go slowly. Have one drink, not five. Ask each other what feels good. And when it goes wrong, laugh, because it will go wrong.",
-      "That's more than anyone ever told me. Here, take this bottle of wine to them from me. And this coin is for you, for asking with a straight face.",
+      "Advice for a wedding night? I'll go round tonight and tell them this. Go slowly. Have one drink, not five. Ask each other what feels good. And when it goes wrong, laugh, because it will go wrong.",
+      "That's more than anyone ever told me. Here, this bottle of wine and this coin are for you, for asking with a straight face.",
     ],
-    thanks: "I'll pass it on.",
+    thanks: 'Be gentle with them.',
     copper: 35,
     xpShare: 0.3,
     gift: { item: 'wine', count: 1 },
