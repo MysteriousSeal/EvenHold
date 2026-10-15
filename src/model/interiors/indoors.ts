@@ -10,6 +10,7 @@ import { ENTER_RANGE, roomFor, type Entrance, type Room } from './interiors';
 import { SIT_RANGE, bumpsFurniture, distanceTo, seatOf, type Furniture, type Seat } from './furniture';
 import { furnish } from './furnish';
 import { Nearby } from '../../util/nearby';
+import { stairDown } from '../reliquary/reliquary';
 
 
 // Where the hero is while indoors: the building's door and its room (the
@@ -180,6 +181,8 @@ export function atWayOut(inside: Pick<Inside, 'exitAt'>, hero: { x: number; z: n
 export function doorInReach(inside: Inside | null, entrances: readonly Entrance[], hero: Hero): Entrance | null {
   if (inside) {
     if (atWayOut(inside, hero)) return inside.entrance; // (a crypt's way out, at the far end, once its lord's slain)
+    const down = stairDown(inside.entrance, hero); // (a stair down from the room: the Minster's, into the reliquary)
+    if (down) return down;
     const wide = goesUnder(inside.entrance) ? 1 : 0; // (a dungeon's way up two tiles wide: door and door + 1)
     const x = hero.x - inside.room.door;
     return !inside.below && x > -0.6 && x < 0.6 + wide && hero.z > inside.room.depth - 1.4 ? inside.entrance : null;

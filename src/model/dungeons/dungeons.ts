@@ -22,7 +22,7 @@ const kindOf = (entrance: Entrance): DungeonKind => {
 export const dungeonAt = (entrance: Entrance): DungeonPlace | null => (goesUnder(entrance) ? kindOf(entrance).place(entrance) : null);
 
 // What's told at its way in while it's barred, or null: open (any but the reliquary's, always).
-export const dungeonBarred = (entrance: Entrance) => (goesUnder(entrance) ? kindOf(entrance).barred?.(entrance) ?? null : null);
+export const dungeonBarred = (entrance: Entrance, game: { story?: unknown }) => (goesUnder(entrance) ? kindOf(entrance).barred?.(entrance, game) ?? null : null);
 
 // What the game needs of it to go down: its room, its rock, how many foes to clear.
 export const dungeonRoom = (seed: number, entrance: Entrance) => kindOf(entrance).room(seed, entrance);

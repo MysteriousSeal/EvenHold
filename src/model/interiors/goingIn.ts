@@ -8,6 +8,7 @@ import { bumpsNpc } from '../npcs/npcs';
 import { dungeonAt, dungeonBarred, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
 import { goesUnder } from '../dungeons/dungeonTypes';
 import { hashCell } from '../../util/random';
+import { STAIR_REACH, stairUp } from '../reliquary/reliquary';
 import { dungeonHooks } from '../hero/fighting';
 import { benchSeatInReach, squareBenches } from '../worldgen/benches';
 import type { GameModel } from '../GameModel';
@@ -44,6 +45,13 @@ export function useDoor(m: GameModel): boolean {
   if (!entrance) return false;
   const { hero } = m;
   m.hop = null;
+  if (m.inside && entrance !== m.inside.entrance) return goDown(m, entrance); // (a stair down from the room: the Minster's)
+  const up = m.inside && stairUp(entrance);
+  if (up) {
+    enterRoom(m, up.of); // (back up the stair it came down, into the room it's in)
+    Object.assign(hero, { x: up.x, z: up.z + STAIR_REACH - 0.2, facing: 0 });
+    return true;
+  }
   if (m.inside) {
     m.inside = null;
     m.below = null;
@@ -53,7 +61,12 @@ export function useDoor(m: GameModel): boolean {
     hero.facing = Math.atan2(entrance.outX, entrance.outZ);
     return true;
   }
-  const barred = dungeonBarred(entrance); // (a way down barred: told why, not gone down)
+  return goDown(m, entrance);
+}
+
+// In through a door, or down a way down: unless it's barred (told why, not gone down).
+function goDown(m: GameModel, entrance: Entrance): boolean {
+  const barred = dungeonBarred(entrance, m);
   if (barred) return m.events.push({ kind: 'banner', ...barred }), false;
   enterRoom(m, entrance);
   return true;

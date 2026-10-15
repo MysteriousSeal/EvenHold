@@ -325,6 +325,7 @@ async function boot(): Promise<void> {
         return overHero(found.down ? 'Go downstairs' : 'Go upstairs');
       case 'door': {
         const { door } = found;
+        if (model.inside && door !== model.inside.entrance) return { label: `Go down into ${dungeonAt(door)?.name ?? 'the dark'}`, x: hero.x, y: 0.75, z: hero.z }; // (a stair down from the room: the Minster's)
         if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
         const place = goesUnder(door) ? dungeonAt(door) : null;
         const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];

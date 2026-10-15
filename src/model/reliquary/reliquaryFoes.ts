@@ -28,7 +28,7 @@ import {
 } from './reliquaryMoves';
 
 export const RELIQUARY_FOE_ID = 6_000_000; // its dead's ids: this plus their post's number (clear of the world's, the quests', the other dungeons')
-export const DEACON = 'The Gilded Deacon';
+export const DEACON = 'Deacon Edric, the Gilded Deacon'; // (Father Aldous's deacon, from the first crypt: his finger the carter carried)
 const SAINT_WAKES = 2.4; // tiles from a saint on its plinth the hero wakes it
 const ARROW = { speed: 7, hit: 0.22, range: 10 }; // a bowman's arrow (as a crypt's)
 const SOUL = { speed: 2.6, turn: 1.3, hit: 0.28, life: 4.5 }; // one of his souls (as a crypt lord's)
@@ -43,13 +43,13 @@ const TOLD: Record<ReliquaryPlace, string> = {
   eastChapel: 'A saint on its plinth, gilt to the knuckles',
   walk: 'They pray in the walls: cut them down before they\'re done',
   gallery: 'Four saints, and every one of them listening',
-  oldDoor: 'Older than the cathedral, older than the bishops. It does not open',
+  oldDoor: 'Older than the Minster, older than the bishops. A tower in a ring. It does not open. Not yet.',
   sanctum: 'His shrine: every relic in the vault, heaped up',
 };
 const TURNS: ReadonlyArray<[title: string, line: string]> = [
   ['The bone casket breaks off his back', 'What was in it gets up'],
   ["The saint's arm breaks away", 'His souls come loose'],
-  ['The finger falls from its monstrance', 'Only the deacon now, and raging'],
+  ['The finger falls from its monstrance', 'Only the deacon now, and he is angry.'],
 ];
 
 // Where its dead stand, and what each is: its plan's letters, in the map's order (their posts' numbers).

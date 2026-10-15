@@ -109,7 +109,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean,
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
-    fight.report({ kind: 'slain', on: target.kind, x: target.x, y: target.y, z: target.z });
+    fight.report({ kind: 'slain', on: target.kind, x: target.x, y: target.y, z: target.z, ...(target.champion && { champion: target.champion }) });
     if (isWorldFoe(target.id)) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
     fight.slayGuard(target);
     gainXp(hero, xpGained(hero, xpAgainst(target.xp, target.level, hero.level))); // less, the weaker the foe

@@ -59,5 +59,5 @@ export interface DungeonKind {
   blocks(seed: number, entrance: Entrance): (x: number, z: number, r: number) => boolean; // rock, and what stands solid
   foeCount(seed: number, entrance: Entrance): number; // its posts, all told (the boss besides)
   run(seed: number, entrance: Entrance, slain: Set<number>, hero: Hero, hooks: DungeonHooks): DungeonRun;
-  barred?(entrance: Entrance): { title: string; line: string } | null; // what's told at its way in while it's barred (the reliquary's, till the story opens it), or null
+  barred?(entrance: Entrance, game: { story?: unknown }): { title: string; line: string } | null; // what's told at its way in while it's barred (the reliquary's, till the story opens it), or null
 }

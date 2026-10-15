@@ -109,7 +109,7 @@ export type GameEvent =
   | { kind: 'webbed' } // the hero caught in a cave spider's web
   | { kind: 'poor'; text: string } // something the hero couldn't pay for
   | { kind: 'swing'; roll?: boolean } // the hero's blow begun (hero/heroActs.ts), or a roll (GameModel): its whoosh (view/audio/)
-  | { kind: 'slain'; on: EnemyKind; x: number; y: number; z: number } // a foe killed, where it falls (hero/fighting.ts)
+  | { kind: 'slain'; on: EnemyKind; x: number; y: number; z: number; champion?: ChampionId } // a foe killed, where it falls (hero/fighting.ts); a champion of the deep's, which
   | { kind: 'fallen' } // the hero felled (hero/fighting.ts; what comes of it: hero/setbacks.ts)
   | { kind: 'stroke'; tool: 'axe' | 'pick' | 'hammer' | 'bench' } // a tool's stroke landing, at work (skills/strokes.ts)
   | { kind: 'castLine' } // a fishing line cast (skills/fishing.ts)
