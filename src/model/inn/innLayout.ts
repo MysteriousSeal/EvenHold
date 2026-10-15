@@ -69,6 +69,7 @@ export function furnishInn(plan: Planner, room: Room): void {
   // No chairs walling off a corner (past the bar's end, say: where the server
   // fetches from, and the stairs): the ones in the way left out.
   openWalledIn('chair');
+  for (const chair of items) if (chair.kind === 'chair') chair.leather = true; // (red only at the hearth: its armchairs)
   // On the back wall, over the room (the left wall by the door kept clear): the notice board first (not over the
   // hearth: read from before it), then three lanterns spread along it (the three of the free spots furthest apart,
   // none on the chimney breast; over the door's column too, hung high in no one's way), not bunched at one end; then

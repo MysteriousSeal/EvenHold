@@ -78,6 +78,7 @@ export interface Furniture {
   locked?: boolean; // and locked: it won't open (the inn's rooms: upstairs.ts)
   tried?: number; // how many times it's been tried, locked (each a rattle: roomView.ts)
   cloth?: number; // a bed: its blanket's colour, of four (clothFor)
+  leather?: boolean; // a chair: its cushion leather, not red cloth (an inn's: its red kept for the hearth)
   suit?: number; // an armour stand: the suit on it, of four (chain, plate, studded leather, brigandine)
   tall?: boolean; // an inner wall (hallWall, hallDoor): full height (the walls option), else low; a picture on one: hung on its face
 }
