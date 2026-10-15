@@ -66,6 +66,10 @@ export class EnemyViews {
     gaoler: (enemy) => new BanditRig(enemy, this.banditLook, 'gaoler'),
     captain: (enemy) => new BanditRig(enemy, this.banditLook, 'captain'),
     banditKing: (enemy) => new BanditRig(enemy, this.banditLook, 'banditKing'),
+    // The reliquary's (model/reliquary/): the skeleton's body dressed (reliquaryVoxels.ts).
+    unquietBrother: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    gildedSaint: (enemy) => new UndeadRig(enemy, this.undeadLook),
+    gildedDeacon: (enemy) => new UndeadRig(enemy, this.undeadLook),
   };
   private readonly spiderLook: SpiderLook = createSpiderLook(CAVE_SPIDER, this.flash);
   private readonly hatchlingLook: SpiderLook = createSpiderLook(HATCHLING, this.flash);

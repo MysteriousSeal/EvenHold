@@ -1,6 +1,6 @@
 // A dungeon's scene and what moves in it, by its kind (model/dungeons/): a
 // crypt's (crypt/cryptView.ts, cryptLife.ts), a cave's (cave/caveView.ts,
-// caveLife.ts), a stronghold's (stronghold/strongholdView.ts); null for any
+// caveLife.ts), a stronghold's (stronghold/strongholdView.ts), the reliquary's (reliquary/); null for any
 // other way in (a building's room).
 
 import type { GameModel } from '../../model/GameModel';
@@ -14,6 +14,9 @@ import { buildCaveScene } from '../cave/caveView';
 import { CaveLife } from '../cave/caveLife';
 import { strongholdInside } from '../../model/strongholds/strongholds';
 import { StrongholdLife, buildStrongholdScene } from '../stronghold/strongholdView';
+import { reliquaryInside } from '../../model/reliquary/reliquary';
+import { buildReliquaryScene } from '../reliquary/reliquaryView';
+import { ReliquaryLife } from '../reliquary/reliquaryLife';
 
 // What moves in a dungeon's scene: drawn each frame from the model; how hard its floor's shaking (the camera's to shake by).
 export interface DungeonLife {
@@ -39,6 +42,11 @@ export function buildDungeonScene(seed: number, entrance: Entrance): DungeonScen
     const inside = strongholdInside(seed, entrance);
     const built = buildStrongholdScene(inside);
     return { ...built, life: new StrongholdLife(built.scene, inside) };
+  }
+  if (entrance.type === 'reliquary') {
+    const inside = reliquaryInside(entrance);
+    const built = buildReliquaryScene(inside);
+    return { ...built, life: new ReliquaryLife(built.scene, inside) };
   }
   return null;
 }

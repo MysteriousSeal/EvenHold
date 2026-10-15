@@ -12,7 +12,7 @@ export interface Cue {
 }
 
 // Foes a blow rings off: in mail and plate, or bare bone.
-const ARMOURED: ReadonlySet<EnemyKind> = new Set<EnemyKind>(['banditChief', 'skeleton', 'skeletonArcher', 'draugr', 'cryptLord', 'bruiser', 'houndmaster', 'quartermaster', 'gaoler', 'captain', 'banditKing']);
+const ARMOURED: ReadonlySet<EnemyKind> = new Set<EnemyKind>(['banditChief', 'skeleton', 'skeletonArcher', 'draugr', 'cryptLord', 'bruiser', 'houndmaster', 'quartermaster', 'gaoler', 'captain', 'banditKing', 'unquietBrother', 'gildedSaint', 'gildedDeacon']);
 
 const STROKES = { axe: 'chop', pick: 'mine', hammer: 'anvil', bench: 'bench' } as const;
 const GUARDS = { rolled: null, parried: 'parry', blocked: 'block', broken: 'broken' } as const; // (rolled through: the roll's own whoosh, heard already)

@@ -23,6 +23,7 @@ import { enemyName } from '../meshes/enemy/enemyParts';
 import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from '../meshes/enemy/spiderVoxels';
 import { BAT_PALETTE, batBody } from '../meshes/enemy/batVoxels';
 import { WORM_PALETTE, wormHead } from '../meshes/enemy/wormVoxels';
+import { RELIQUARY_FOE_PALETTE, reliquaryHead } from '../meshes/enemy/reliquaryVoxels';
 
 const PORTRAIT_SIZE = 84; // as the hero's
 
@@ -66,6 +67,9 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   gaoler: (enemy) => humanPortrait(enemy),
   captain: (enemy) => humanPortrait(enemy),
   banditKing: (enemy) => humanPortrait(enemy),
+  unquietBrother: () => voxelIcon('target:unquietBrother', () => ({ grid: reliquaryHead('brother'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
+  gildedSaint: () => voxelIcon('target:gildedSaint', () => ({ grid: reliquaryHead('saint'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
+  gildedDeacon: () => voxelIcon('target:gildedDeacon', () => ({ grid: reliquaryHead('deacon'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 
