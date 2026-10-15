@@ -7,6 +7,10 @@ import { GameView } from '../../src/view/GameView';
 import { readRenderOptions } from '../../src/view/render/renderOptions';
 import { setGraphics, type Quality } from '../../src/view/render/graphics';
 import { wakeVillagers } from '../../src/model/npcs/npcRoutine';
+import { createTipCard } from '../../src/view/hud/tipCard';
+import { createPauseMenu } from '../../src/controller/pauseMenu';
+import { TIPS } from '../../src/controller/tips/firstTips';
+import { label } from '../../src/controller/keyBindings';
 
 const q = new URLSearchParams(location.search);
 const seed = Number(q.get('seed') ?? 1);
@@ -66,6 +70,16 @@ try {
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel); // (waits for the frame to be drawn)
       }
       return { ...stats, ms: +((performance.now() - start) / frames).toFixed(1) };
+    },
+    // A tip's card, as the game shows it (`id`: TIPS'), and the pause menu open over the frame.
+    tip(id: string) {
+      const tip = TIPS.find((t) => t.id === id)!;
+      (this.card ??= createTipCard()).show({ title: tip.title, text: tip.text(label, model) });
+    },
+    card: null as ReturnType<typeof createTipCard> | null,
+    pause() {
+      const hero = model.hero;
+      createPauseMenu({ setPaused() {}, redraw: () => view.render(), mainMenu() {}, walls: { full: () => model.fullWalls, toggle() {} }, hero: () => ({ name: hero.name, level: hero.level, day: 1, seed, look: hero.look, equipment: hero.equipment }) }).open();
     },
     shot: () => (view.render(), view.canvas.toDataURL('image/png')),
   };
