@@ -50,10 +50,12 @@ vStylizeWorld = (modelMatrix * stylizeWorld).xyz;`;
 
 // The rain, the snow and the night on a world material's colour, before it's lit: darker wet, the tops most; frost
 // and snow on what faces up (the normal's view-space, so up is too: uViewUp); the land's colours drained to the
-// moon's blue at night (people keep theirs: they stand out in the dark).
+// moon's blue at night (people keep theirs: they stand out in the dark). The lakes take none of the wet, the frost or
+// the snow (water's water, any weather), only the night.
 const WEATHER_FRAGMENT = /* glsl */ `
 #include <normal_fragment_maps>
 {
+  #ifndef STYLIZE_WATER
   float facingUp = smoothstep(0.55, 0.9, dot(normal, uViewUp));
   diffuseColor.rgb *= 1.0 - uWet * 0.18 * (0.4 + 0.6 * facingUp);
   // Frost: a light rime on the tops, their colour kept under it. Lying snow: in drifts, the high ground's first, the
@@ -69,6 +71,7 @@ const WEATHER_FRAGMENT = /* glsl */ `
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.6, 0.6), facingUp * lying * 0.45);
   #else
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.957, 0.949, 0.933), facingUp * lying); // (0xf4f2ee)
+  #endif
   #endif
   float nightGrey = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
   diffuseColor.rgb = mix(diffuseColor.rgb, nightGrey * vec3(0.78, 0.92, 1.3), uNight * 0.45);
@@ -125,11 +128,11 @@ function patch(material: THREE.MeshStandardMaterial, focusY: { value: number }, 
       .replace('#include <common>', `#include <common>\nvarying vec3 vStylizeWorld;\nuniform float uFocusY;\nuniform float uMist;${weather ? `\n${WEATHER_UNIFORMS}` : ''}`)
       .replace('#include <lights_physical_pars_fragment>', LIGHTS_CHUNK)
       .replace('#include <fog_fragment>', FOG_FRAGMENT);
-    if (weather) shader.fragmentShader = `${material.userData.trodden ? '#define STYLIZE_TRODDEN\n' : ''}${shader.fragmentShader.replace('#include <normal_fragment_maps>', WEATHER_FRAGMENT)}`;
+    if (weather) shader.fragmentShader = `${material.userData.trodden ? '#define STYLIZE_TRODDEN\n' : ''}${material.userData.water ? '#define STYLIZE_WATER\n' : ''}${shader.fragmentShader.replace('#include <normal_fragment_maps>', WEATHER_FRAGMENT)}`;
   };
   // Without this, every patched material would share one program (the key
   // defaults to onBeforeCompile's source, identical for all wrappers), and
   // the grass would lose its wind sway or other materials would gain it.
-  material.customProgramCacheKey = () => `${previousKey}|stylize${weather ? `+weather${material.userData.trodden ? '+trodden' : ''}` : ''}`;
+  material.customProgramCacheKey = () => `${previousKey}|stylize${weather ? `+weather${material.userData.trodden ? '+trodden' : ''}${material.userData.water ? '+water' : ''}` : ''}`;
   material.needsUpdate = true;
 }

@@ -94,6 +94,7 @@ const color = (hex: number) => ({ value: new THREE.Color(hex) });
 // (Its shore by `area`'s texture: where it is and how big, a uniform, so every region's water is the one program.)
 function waterMaterial(shore: THREE.DataTexture, area: Area, time: { value: number }): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+  material.userData.water = true; // (no snow lies on it, no frost: render/stylize.ts)
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, {
       uTime: time,
