@@ -478,6 +478,10 @@
 .action-slot.busy canvas { opacity: 0.5; }
 .action-key { position: absolute; top: -7px; left: -7px; min-width: 20px; height: 20px; display: grid; place-items: center; font: 700 12px/1 'Fredoka', system-ui, sans-serif; color: #f8ecd4; background: #2e1f14; border: 2px solid #f8ecd4; }
 .action-slot .menu-slot-count:empty { display: none; }
+/* (ui-detail) An empty slot quiet: a soft solid edge, not dashed (still 2px, so the tiles stay in line), and its key
+   cap faded till something's in it. */
+.action-slot.empty { border-style: solid; border-color: rgba(46, 31, 20, 0.35); }
+.action-slot.empty .action-key { opacity: 0.55; }
 /* A potion's wait, its seconds over the dimmed flask. */
 .action-cool { position: absolute; inset: 0; display: grid; place-items: center; font: 700 18px/1 'Fredoka', system-ui, sans-serif; color: #f8ecd4; text-shadow: 1px 1px 0 #2e1f14, -1px -1px 0 #2e1f14, 1px -1px 0 #2e1f14, -1px 1px 0 #2e1f14; pointer-events: none; }
 .action-cool:empty { display: none; }
