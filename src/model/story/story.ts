@@ -41,7 +41,7 @@ export type { SaintState } from './saint/saintState';
 
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
-const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar' || who.role === 'witch');
+const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar' || who.role === 'witch' || (who.role as string) === 'pardoner'); // (Greyminster's pardoner: his relic stall, the cathedral town's)
 
 export class Story {
   debug = false; // a cheat: Q beside someone lists every quest of their calling, to play again; the journal finishes any
