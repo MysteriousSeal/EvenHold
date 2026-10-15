@@ -9,6 +9,7 @@ import { Sound, loadBuffer } from '../src/view/audio/sound';
 import { USUAL_VOLUMES, loadVolumes, saveVolumes } from '../src/view/audio/volumes';
 import { groundOf, loopLevels } from '../src/view/audio/ambience';
 import type { GameEvent } from '../src/model/types';
+import { stepVolume, volumeSteppers, volumeWords } from '../src/controller/soundSettings';
 
 const ids = (event: GameEvent) => soundsFor(event).map((c) => c.id);
 const at = { x: 1, y: 0, z: 2 };
@@ -161,5 +162,27 @@ describe('the ambience', () => {
     expect(groundOf({ hero, inside: null, tiles: tiles('path') }, 0)).toBe('stepDirt');
     expect(groundOf({ hero, inside: null, tiles: tiles('natural') }, 0)).toBe('stepGrass');
     expect(groundOf({ hero, inside: null, tiles: tiles('natural') }, 0.8)).toBe('stepSnow');
+  });
+});
+
+describe('the volume settings (the pause menu)', () => {
+  it('step a tenth at a time, held to 0..100%; Enter goes round to Off past full', () => {
+    const v = { master: 0.8, effects: 1, ambience: 0 };
+    expect(stepVolume(v, 'master', 1).master).toBe(0.9);
+    expect(stepVolume(v, 'effects', 1).effects).toBe(1);
+    expect(stepVolume(v, 'ambience', -1).ambience).toBe(0);
+    expect(stepVolume(v, 'effects', 1, true).effects).toBe(0);
+    expect([volumeWords(0.8), volumeWords(0)]).toEqual(['80%', 'Off']);
+  });
+
+  it('one stepper each, changing the sound (and so kept) and redrawn', () => {
+    let kept = { ...USUAL_VOLUMES };
+    let redrawn = 0;
+    const rows = volumeSteppers({ get: () => kept, set: (v) => void (kept = v) }, (name, value, step, cycle) => ({ name, value, step, cycle }), () => redrawn++);
+    expect(rows.map((r) => [r.name, r.value()])).toEqual([['Volume', '80%'], ['Effects', '100%'], ['Ambience', '70%']]);
+    rows[2].step(-1);
+    rows[0].cycle();
+    expect(kept).toEqual({ master: 0.9, effects: 1, ambience: 0.6 });
+    expect(redrawn).toBe(2);
   });
 });
