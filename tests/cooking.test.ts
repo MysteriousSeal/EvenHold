@@ -7,7 +7,7 @@
 // cooking page of the skills window (controller/skills/cookBook.ts).
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { COOK_RECIPES, COOK_RECIPE_IDS, HUNTED_WORTH, KINDLED_BURNS, KINDLE_LOGS, huntedWorth } from '../src/model/skills/cooking';
+import { COOK_RECIPES, COOK_RECIPE_IDS, HUNTED_WORTH, KINDLED_BURNS, KINDLE_LOGS, dishWorth } from '../src/model/skills/cooking';
 import { MEALS, MEAL_IDS } from '../src/model/loot/meals';
 import { PROVISIONS, PROVISION_IDS, givesText } from '../src/model/loot/provisions';
 import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
@@ -150,9 +150,10 @@ describe('cooking', () => {
     expect(events).toContainEqual({ kind: 'skillUp', skill: 'Cooking', level: 2 });
   });
 
-  it("counts a dish of a hunt's meat or honeycomb as more tries than a fish's (dear to come by)", () => {
-    expect([huntedWorth('roastBoar'), huntedWorth('wolfSkewer'), huntedWorth('honeyCake'), huntedWorth('huntersFeast')]).toEqual([HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH]);
-    expect([huntedWorth('roastedFry'), huntedWorth('pikePie'), huntedWorth('riverFeast')]).toEqual([1, 1, 1]);
+  it("counts a dish of a hunt's meat or honeycomb as more tries than a fish's (dear to come by), and one of several bigger fish as one for each", () => {
+    expect([dishWorth('roastBoar'), dishWorth('wolfSkewer'), dishWorth('honeyCake'), dishWorth('huntersFeast')]).toEqual([HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH]);
+    expect([dishWorth('roastedFry'), dishWorth('fryChowder'), dishWorth('pikePie')]).toEqual([1, 1, 1]); // (the fry and roach: a moment's catch)
+    expect([dishWorth('fishStew'), dishWorth('bakedBream'), dishWorth('riverFeast'), dishWorth('anglersFeast')]).toEqual([2, 2, 3, 4]);
   });
 
   it('has a dish of every fish caught, the salmon grilled at 240', () => {

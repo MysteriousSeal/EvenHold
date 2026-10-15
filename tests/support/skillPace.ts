@@ -13,10 +13,10 @@ import { Lumber, WOOD, riseOf as woodRiseOf, type Grade } from '../../src/model/
 import { Mining, VEINS, riseOf as veinRise, type Vein } from '../../src/model/skills/mining';
 import { RECIPES, woodRise } from '../../src/model/skills/woodworking';
 import { SMITH_RECIPES, smithRise } from '../../src/model/skills/smithing';
-import { COOK_RECIPES, huntedWorth } from '../../src/model/skills/cooking';
+import { COOK_RECIPES, dishWorth } from '../../src/model/skills/cooking';
 import { FOUND_TRIES, PER_LEVEL, TOO_HARD } from '../../src/model/skills/salvage';
 import { bestToLearn } from '../../src/model/skills/learn';
-import { SKILL_MAX, difficulty, stepsOf, type SkillId } from '../../src/model/skills/skills';
+import { SKILL_MAX, difficulty, stepsOf, tierOf, type SkillId } from '../../src/model/skills/skills';
 import { LOOT } from '../../src/model/loot/loot';
 import type { LootId } from '../../src/model/loot/loot';
 
@@ -29,6 +29,7 @@ interface Option {
   teaches: number;
   weight: number;
   starred?: boolean;
+  id?: string; // (a recipe's)
 }
 export const HEEDED = 1 / 3; // of the casual hand's time, on the starred recipe (ASSUMED)
 
@@ -137,8 +138,14 @@ function fishSeconds(item: LootId): number {
 // --- Crafting: a recipe's own seconds and its materials'. What the hero gathers costs its gathering (a log a chop
 // and a little walk; an ore a strike and a little more; a fish its casts; the finds of the ancient and elder trees,
 // their chops over how often they're found); what's made, its making (and, made in the same trade, what that teaches
-// too); the rest (bought, hunted or salvaged) its coin's worth of the hero's time, COIN_SECONDS a coin (ASSUMED).
-const COIN_SECONDS = 3;
+// too); the rest (bought, hunted or salvaged) its coin's worth of the hero's time, at what a trade earns an hour at
+// the hand's tier (BANDS).
+//
+// The economy's bands (set in the 0.7 skills pass, written here since): copper an hour a trade earns, by its tier,
+// about what questing pays at the matching level (bot runs at mid levels: quests ~750 an hour, looting ~1,370).
+// Faster levelling mustn't lift any activity past its band: nothing here prices anything.
+export const BANDS: ReadonlyArray<[number, number]> = [[60, 120], [150, 250], [250, 400], [400, 700]]; // Apprentice, Journeyman, Expert, Artisan
+const coinSeconds = (level: number) => 3600 / ((BANDS[tierOf(level).index][0] + BANDS[tierOf(level).index][1]) / 2); // (a coin, in the hero's time, at the band's middle)
 const HUNTED: readonly LootId[] = ['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'leanLynxMeat', 'honeycomb'];
 const HUNT_SECONDS = 40; // a beast found and killed, a cut of it (ASSUMED)
 // The casual hand makes what's at hand: a thing wanting something dear (a minute or more of the hero's time for one
@@ -172,7 +179,7 @@ function material(skill: SkillId, item: LootId, level: number, depth: number): {
   if (HUNTED.includes(item)) return { seconds: HUNT_SECONDS, teaches: 0 };
   if (CATCHES.some((c) => c.item === item)) return { seconds: fishSeconds(item), teaches: 0 };
   const ways = depth < 4 ? BOOKS.flatMap((b) => Object.keys(b.book).filter((id) => b.book[id].makes === item && (b.skill !== skill || b.book[id].needs <= level))) : [];
-  if (!ways.length) return { seconds: LOOT[item].value * COIN_SECONDS, teaches: 0 }; // (none of the hero's trades makes it, yet)
+  if (!ways.length) return { seconds: LOOT[item].value * coinSeconds(level), teaches: 0 }; // (none of the hero's trades makes it, yet)
   return ways.map((id) => made(skill, id, level, depth)).reduce((best, w) => (w.seconds < best.seconds ? w : best));
 }
 
@@ -183,18 +190,18 @@ export function craftOptions(skill: 'woodworking' | 'smithing', level: number, p
   const star = bestToLearn(book, MATERIAL_GROUPS, level, (id) => rise(id, level));
   return (policy === 'optimal' || !things.length ? teaching : things).map((id) => {
     const one = made(skill, id, level);
-    return { ...one, weight: (dearIn(book[id].from, skill, level) ? RARE : 1) / one.seconds, starred: id === star }; // (their time spread evenly)
+    return { ...one, weight: (dearIn(book[id].from, skill, level) ? RARE : 1) / one.seconds, starred: id === star, id }; // (their time spread evenly)
   });
 }
 
 export function cookingOptions(level: number): Option[] {
   const chance = (id: string) => difficulty(COOK_RECIPES[id as keyof typeof COOK_RECIPES].needs, level).chance;
-  const star = bestToLearn(COOK_RECIPES, [], level, chance);
+  const star = bestToLearn(COOK_RECIPES, [], level, chance, (id) => dishWorth(id as never));
   return Object.entries(COOK_RECIPES)
     .filter(([id, r]) => r.needs <= level && chance(id) > 0)
     .map(([id, r]) => {
       const seconds = r.seconds + Object.entries(r.from).reduce((s, [item, n]) => s + n! * material('cooking', item as LootId, level, 0).seconds, 0);
-      return { seconds, teaches: chance(id) * huntedWorth(id as never), weight: (dearIn(r.from, 'cooking', level) ? RARE : 1) / seconds, starred: id === star };
+      return { seconds, teaches: chance(id) * dishWorth(id as never), weight: (dearIn(r.from, 'cooking', level) ? RARE : 1) / seconds, starred: id === star, id };
     });
 }
 

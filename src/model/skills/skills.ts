@@ -109,7 +109,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   cooking: {
     name: 'Cooking',
-    steps: [4, 4, 3, 1], // (an artisan's feast: a hunt's makings)
+    steps: [4, 5, 3, 1], // (an artisan's feast: a hunt's makings)
     kind: 'secondary',
     verb: 'cook',
     practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',

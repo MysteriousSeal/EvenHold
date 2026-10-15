@@ -59,6 +59,7 @@ export interface Craft {
   kind(id: string): string; // what a material or goods made is, under its name
   notHere?(model: GameModel, id: string): string; // why it can't be made where the hero stands ('': it can)
   rise?(id: string, level: number): (typeof RISE)[number]; // how much it'd teach, where it isn't its difficulty's (a material, lasting)
+  worth?(id: string): number; // what a try's worth, where it's more than one (a dish of a hunt's meat)
   verb: string; // "Craft", "Cook"
   empty: string; // nothing to make with what's in the bag
 }
@@ -85,7 +86,7 @@ const makesOf = (craft: Craft, id: string) => {
 const MATERIALS = ['Materials', 'Smelting', 'Fittings']; // (a woodworker's planks and varnish, a smith's ingots and fittings)
 export function bestRecipe(model: GameModel, craft: Craft = WOODWORKING): string | null {
   const level = skillOf(model.hero, craft.skill).level;
-  return bestToLearn(craft.recipes, MATERIALS, level, (id) => (craft.rise?.(id, level) ?? difficulty(craft.recipes[id].needs, level)).chance);
+  return bestToLearn(craft.recipes, MATERIALS, level, (id) => (craft.rise?.(id, level) ?? difficulty(craft.recipes[id].needs, level)).chance, craft.worth);
 }
 
 export function recipeBook(model: GameModel, state: BookState, redraw: () => void, craft: Craft = WOODWORKING): HTMLElement {

@@ -4,7 +4,7 @@
 // button to kindle one (of a bundle of firewood, or two logs).
 
 import type { GameModel } from '../../model/GameModel';
-import { COOK_GROUPS, COOK_RECIPES, COOK_RECIPE_IDS, KINDLE_LOGS, type CookRecipeId } from '../../model/skills/cooking';
+import { COOK_GROUPS, COOK_RECIPES, COOK_RECIPE_IDS, KINDLE_LOGS, dishWorth, type CookRecipeId } from '../../model/skills/cooking';
 import { givesText } from '../../model/loot/provisions';
 import { el } from '../../view/ui/dom';
 import { recipeBook, type BookState, type Craft } from './recipeBook';
@@ -17,6 +17,7 @@ export const COOKING: Craft = {
   groups: COOK_GROUPS,
   crafter: (model) => model.cooking,
   kind: (id) => `Food · ${givesText(id as CookRecipeId)}`,
+  worth: (id) => dishWorth(id as CookRecipeId), // (a dish of a hunt's meat teaches as much as so many)
   notHere: (model, id) => {
     const fire = model.cooking.fireInReach;
     if (!fire) return 'Stand by a fire to cook: a camp’s, a hearth indoors, or one you kindle.';

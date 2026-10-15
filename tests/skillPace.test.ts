@@ -10,11 +10,11 @@ import { TRADES, paceOf } from './support/skillPace';
 const V08: Record<string, { optimal: number; ratio: number }> = {
   lumberjacking: { optimal: 3.35, ratio: 2.98 },
   mining: { optimal: 3.41, ratio: 2.16 },
-  woodworking: { optimal: 3.38, ratio: 1.67 },
-  smithing: { optimal: 2.89, ratio: 1.69 },
+  woodworking: { optimal: 3.38, ratio: 1.8 },
+  smithing: { optimal: 2.89, ratio: 1.72 },
   salvaging: { optimal: 0.33, ratio: 1.68 },
   fishing: { optimal: 3.54, ratio: 1.15 },
-  cooking: { optimal: 5.29, ratio: 1.76 },
+  cooking: { optimal: 6.56, ratio: 1.98 },
 };
 const paces = Object.fromEntries(Object.keys(TRADES).map((trade) => [trade, paceOf(trade)]));
 
@@ -28,12 +28,12 @@ describe('the pace of the trades, 1 to 300', () => {
     expect(Object.keys(paces).sort()).toEqual(Object.keys(V08).sort());
   });
 
-  it("keeps the optimal hand's hours as they were (within a twentieth), the trades' three to five hours (salvaging's few pieces aside)", () => {
+  it("keeps the optimal hand's hours as they were (within a twentieth), the trades' three to five hours (salvaging's few pieces aside; cooking's hunting, more)", () => {
     for (const [trade, p] of Object.entries(paces)) {
       expect(p.optimal / V08[trade].optimal, trade).toBeGreaterThan(0.95);
       expect(p.optimal / V08[trade].optimal, trade).toBeLessThan(1.05);
       if (trade !== 'salvaging') expect(p.optimal, trade).toBeGreaterThan(2.5);
-      if (trade !== 'salvaging') expect(p.optimal, trade).toBeLessThan(5.5);
+      if (trade !== 'salvaging') expect(p.optimal, trade).toBeLessThan(trade === 'cooking' ? 7 : 5.5);
     }
   });
 

@@ -120,7 +120,7 @@ describe('what smithing would teach next', () => {
     expect(nextToLearn(model.hero)).toBe('copperIngot'); // (what's in the bag doesn't change what teaches best)
     skillOf(model.hero, 'smithing').level = 60;
     const id = nextToLearn(model.hero)!;
-    const each = (r: SmithRecipeId) => costOf(SMITH_RECIPES[r].from) / smithRise(r, 60).chance;
+    const each = (r: SmithRecipeId) => costOf(SMITH_RECIPES, r, 60) / smithRise(r, 60).chance;
     const things = SMITH_RECIPE_IDS.filter((r) => SMITH_RECIPES[r].needs <= 60 && smithRise(r, 60).chance > 0 && !['Smelting', 'Fittings'].includes(SMITH_RECIPES[r].group));
     expect(things).toContain(id);
     expect(each(id)).toBe(Math.min(...things.map(each)));
