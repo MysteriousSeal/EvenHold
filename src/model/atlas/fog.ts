@@ -1,11 +1,11 @@
 // The land the hero's seen (the map's fog of war, atlas.ts): the world in cells of CELL tiles a side, each seen or not,
 // kept by chunk (CHUNK tiles a side: a streamed world's region's) as a bit a cell, only the chunks with any seen. As
-// they walk, the cells within SIGHT of them are seen. Saved small: each chunk's bits as text (base64, 512 bytes a
-// chunk), by its number.
+// they walk, the cells within SIGHT of them are seen. Saved small: each chunk's bits run-length packed (seen land
+// comes in runs: a chunk walked through some hundreds of bytes, not its 2048) as text (base64), by its number.
 
 import type { MapSize } from '../map/grid';
 
-export const CELL = 8; // tiles a side of a cell of the fog
+export const CELL = 4; // tiles a side of a cell of the fog
 export const CHUNK = 512; // tiles a side of a chunk (a streamed world's region: worldgen/regions.ts REGION)
 export const CELLS = CHUNK / CELL; // cells a side of a chunk
 export const SIGHT = 40; // tiles round the hero they've seen
@@ -100,7 +100,7 @@ export class Fog {
   // For saving: each chunk seen, its bits as text, by its number.
   save(): Record<string, string> {
     const out: Record<string, string> = {};
-    for (const [n, bits] of this.chunks) out[n] = toBase64(bits);
+    for (const [n, bits] of this.chunks) out[n] = toBase64(packed(bits));
     return out;
   }
 
@@ -113,7 +113,8 @@ export class Fog {
     for (const [key, text] of Object.entries(saved)) {
       const n = Number(key);
       if (!Number.isInteger(n) || n < 0 || n > most || typeof text !== 'string') continue;
-      const bits = fromBase64(text);
+      const bytes = fromBase64(text);
+      const bits = bytes && unpacked(bytes);
       if (bits?.length !== BYTES) continue;
       this.chunks.set(n, bits);
       this.versions.set(n, (this.versions.get(n) ?? 0) + 1);
@@ -137,4 +138,27 @@ function fromBase64(text: string): Uint8Array | null {
   } catch {
     return null;
   }
+}
+
+// Bytes as runs: each a count (1 to 255) and the byte repeated so many times.
+function packed(bytes: Uint8Array): Uint8Array {
+  const out: number[] = [];
+  for (let i = 0; i < bytes.length; ) {
+    let run = 1;
+    while (run < 255 && i + run < bytes.length && bytes[i + run] === bytes[i]) run++;
+    out.push(run, bytes[i]);
+    i += run;
+  }
+  return Uint8Array.from(out);
+}
+
+// And back (null: not runs: an odd length, a run of none).
+function unpacked(runs: Uint8Array): Uint8Array | null {
+  if (runs.length % 2 !== 0) return null;
+  const out: number[] = [];
+  for (let i = 0; i < runs.length; i += 2) {
+    if (runs[i] === 0 || out.length + runs[i] > BYTES) return null;
+    for (let k = 0; k < runs[i]; k++) out.push(runs[i + 1]);
+  }
+  return Uint8Array.from(out);
 }

@@ -10,7 +10,7 @@ import type { MapSize } from '../map/grid';
 import type { RegionLand } from '../worldgen/regions';
 import { CHUNK } from './fog';
 
-export const CHART_CELL = 4; // tiles a side of a cell of the chart
+export const CHART_CELL = 2; // tiles a side of a cell of the chart
 export const CHART_CELLS = CHUNK / CHART_CELL; // cells a side of a chunk's chart
 const WAY_STEP = 3; // a road's tiles kept, one in so many (and its last): its line's bends
 

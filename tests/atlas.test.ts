@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Fog, SIGHT, CELL } from '../src/model/atlas/fog';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { CHART_CELLS, groundOf } from '../src/model/atlas/chart';
+import { CHART_CELL as C, CHART_CELLS, groundOf } from '../src/model/atlas/chart';
 import { mapPins } from '../src/model/atlas/mapPins';
 import { fresh } from './support/testWorld';
 import { STREAMED_SIZE } from '../src/model/worldgen/regions';
@@ -36,7 +36,8 @@ describe('the map of the land walked', () => {
     const fog = new Fog(STREAMED_SIZE);
     for (let x = 8000; x < 9000; x += 20) fog.walk(x, 8100);
     const saved = JSON.parse(JSON.stringify(fog.save()));
-    expect(JSON.stringify(saved).length, 'some 700 characters a chunk').toBeLessThan(4 * 700);
+    expect(Object.keys(saved)).toHaveLength(3);
+    expect(JSON.stringify(saved).length, 'some 1000 characters a chunk walked through (its 2048 bytes in runs)').toBeLessThan(3 * 1100);
     const again = new Fog(STREAMED_SIZE);
     expect(again.load(saved)).toBe(true);
     for (let x = 7900; x < 9100; x += 4) for (let z = 8000; z < 8200; z += 4) expect(again.seen(x, z)).toBe(fog.seen(x, z));
@@ -68,9 +69,9 @@ describe('the map of the land walked', () => {
     expect(chart.cells.length).toBe(CHART_CELLS * CHART_CELLS);
     expect(chart.villages.length).toBe(model.villages.length);
     expect(chart.ways.length).toBeGreaterThan(0);
-    const lake = [...Array(96)].flatMap((_, x) => [...Array(96)].map((__, z) => [x, z])).find(([x, z]) => model.tiles.lake(x, z) && model.tiles.lake(x + 3, z + 3) && model.tiles.lake(x, z + 3) && model.tiles.lake(x + 3, z) && x % 4 === 0 && z % 4 === 0);
-    if (lake) expect(groundOf(chart.cells[(lake[0] / 4) * CHART_CELLS + lake[1] / 4])).toBe('water');
-    expect(groundOf(chart.cells[(200 / 4) * CHART_CELLS]), 'off the map').toBe('none');
+    const lake = [...Array(96)].flatMap((_, x) => [...Array(96)].map((__, z) => [x, z])).find(([x, z]) => x % C === 0 && z % C === 0 && [0, C - 1].every((a) => [0, C - 1].every((b) => model.tiles.lake(x + a, z + b))));
+    if (lake) expect(groundOf(chart.cells[(lake[0] / C) * CHART_CELLS + lake[1] / C])).toBe('water');
+    expect(groundOf(chart.cells[(200 / C) * CHART_CELLS]), 'off the map').toBe('none');
     model.quests.accept(model.quests.offersAt(0)[0]);
     model.atlas.marks.set('purse', () => [{ kind: 'purse', x: 3, z: 4, label: 'Your purse' }]);
     const pins = mapPins(model);

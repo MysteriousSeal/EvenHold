@@ -94,7 +94,7 @@ function washOf(model: GameModel, cx: number, cz: number, chart: Chart | null): 
   return canvas;
 }
 
-// A cell's ground as washed in: water, fields and a square as they are; the country, the kind most of the 3 x 3 round
+// A cell's ground as washed in: water, fields and a square as they are; the country, the kind most of the 5 x 5 round
 // it are (the country's borders are dithered tile by tile: inked, they'd speckle).
 const COUNTRY: readonly Ground[] = ['meadow', 'forest', 'heath', 'marsh', 'hills'];
 const tally = new Uint8Array(16);
@@ -103,8 +103,8 @@ function settled(chart: Chart, i: number, k: number): Ground {
   if (!COUNTRY.includes(own)) return own;
   tally.fill(0);
   let [best, most] = [own, 0];
-  for (let a = Math.max(0, i - 1); a <= Math.min(CHART_CELLS - 1, i + 1); a++) {
-    for (let b = Math.max(0, k - 1); b <= Math.min(CHART_CELLS - 1, k + 1); b++) {
+  for (let a = Math.max(0, i - 2); a <= Math.min(CHART_CELLS - 1, i + 2); a++) {
+    for (let b = Math.max(0, k - 2); b <= Math.min(CHART_CELLS - 1, k + 2); b++) {
       const cell = chart.cells[a * CHART_CELLS + b];
       const g = groundOf(cell);
       if (!COUNTRY.includes(g)) continue;
@@ -180,6 +180,11 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
   }
   ctx.stroke();
   const font = (px: number, weight = 600) => `${weight} ${px}px 'Fredoka', system-ui, sans-serif`;
+  // What's drawn where (marks, then names as they're written): a name that would cross any is left out, so none is
+  // written over another, a mark or a pin.
+  const taken: Array<[number, number, number, number]> = [];
+  const take = (x0: number, y0: number, x1: number, y1: number) => taken.push([x0, y0, x1, y1]);
+  const free = (x0: number, y0: number, x1: number, y1: number) => !taken.some(([a, b, c, d]) => x0 < c && x1 > a && y0 < d && y1 > b);
   const label = (text: string, x: number, y: number, px: number, ink = NAME) => {
     ctx.font = font(px);
     ctx.textAlign = 'center';
@@ -189,35 +194,54 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
     ctx.fillStyle = ink;
     ctx.fillText(text, x, y);
   };
-  // The villages seen: a house, its name (and level) under it.
-  const spawn = spawnOf(model.size);
-  for (const chart of charts) {
-    for (const v of chart.villages) {
-      if (!seen(v.x, v.z)) continue;
-      const [x, y] = [sx(v.x + 0.5), sz(v.z + 0.5)];
-      house(ctx, x, y);
-      if (!paint.names) continue;
+  // The marks first: the villages seen (a house), the places come upon (struck through once cleared), the pins' heads.
+  const villages = charts.flatMap((chart) => chart.villages.filter((v) => seen(v.x, v.z)));
+  for (const v of villages) {
+    const [x, y] = [sx(v.x + 0.5), sz(v.z + 0.5)];
+    house(ctx, x, y);
+    take(x - 7, y - 8, x + 7, y + 5);
+  }
+  const places = paint.places.filter((p) => sx(p.x) > -20 && sz(p.z) > -20 && sx(p.x) < width + 20 && sz(p.z) < height + 20);
+  for (const place of places) {
+    const [x, y] = [sx(place.x + 0.5), sz(place.z + 0.5)];
+    glyph(ctx, place.kind, x, y); // (not kept from the villages' names: one may run over it, a place's may not)
+    if (!place.cleared) continue;
+    ctx.strokeStyle = '#b02a24';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 8, y + 6);
+    ctx.lineTo(x + 8, y - 8);
+    ctx.stroke();
+  }
+  for (const pin of paint.pins) {
+    const [x, y] = [sx(pin.x + 0.5), sz(pin.z + 0.5)];
+    take(x - 6, y - 18, x + 6, y);
+  }
+  // Then the names, under their marks: the villages' (and their levels, in how dangerous they are to the hero), nearest
+  // the middle first; close up, the places'.
+  if (paint.names) {
+    const spawn = spawnOf(model.size);
+    const middle = (p: { x: number; z: number }) => Math.hypot(p.x - look.x, p.z - look.z);
+    for (const v of [...villages].sort((a, b) => middle(a) - middle(b))) {
       const [name, level] = [`${villageName(v, model.seed)} · `, zoneLevel(spawn, v)];
       ctx.font = font(12);
       const [wide, all] = [ctx.measureText(name).width, ctx.measureText(`${name}${level}`).width];
-      label(name, x - all / 2 + wide / 2, y + 18, 12);
-      label(String(level), x - all / 2 + wide + ctx.measureText(String(level)).width / 2, y + 18, 12, DANGER_INK[difficulty(level, model.hero.level)]); // (its level, in how dangerous it is to them)
+      const x = sx(v.x + 0.5);
+      const y = [18, -12].map((dy) => sz(v.z + 0.5) + dy).find((y) => free(x - all / 2 - 2, y - 11, x + all / 2 + 2, y + 3)); // (under its house, else over it)
+      if (y === undefined) continue;
+      take(x - all / 2 - 2, y - 11, x + all / 2 + 2, y + 3);
+      label(name, x - all / 2 + wide / 2, y, 12);
+      label(String(level), x - all / 2 + wide + ctx.measureText(String(level)).width / 2, y, 12, DANGER_INK[difficulty(level, model.hero.level)]);
     }
-  }
-  // The places come upon.
-  for (const place of paint.places) {
-    const [x, y] = [sx(place.x + 0.5), sz(place.z + 0.5)];
-    if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
-    glyph(ctx, place.kind, x, y);
-    if (place.cleared) {
-      ctx.strokeStyle = '#b02a24';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x - 8, y + 6);
-      ctx.lineTo(x + 8, y - 8);
-      ctx.stroke();
+    for (const place of places) take(sx(place.x + 0.5) - 8, sz(place.z + 0.5) - 9, sx(place.x + 0.5) + 8, sz(place.z + 0.5) + 7);
+    for (const place of scale >= 2.5 ? places : []) {
+      const [x, y] = [sx(place.x + 0.5), sz(place.z + 0.5) + 17];
+      ctx.font = font(11);
+      const half = ctx.measureText(place.name).width / 2 + 2;
+      if (!free(x - half, y - 10, x + half, y + 3)) continue;
+      take(x - half, y - 10, x + half, y + 3);
+      label(place.name, x, y, 11);
     }
-    if (paint.names && scale >= 2.5) label(place.name, x, y + 17, 11); // (close up: the villages' names first)
   }
   for (const pin of paint.pins) drawPin(ctx, pin, sx(pin.x + 0.5), sz(pin.z + 0.5), width, height);
   hero(ctx, sx(model.inside?.entrance.x ?? model.hero.x), sz(model.inside?.entrance.z ?? model.hero.z), model.hero.facing);
