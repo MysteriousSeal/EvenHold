@@ -1,5 +1,5 @@
 // A gathering skill's guide (lumberjacking: model/skills/lumber.ts), in the skill's own window (skillWindow.ts): on the
-// left, the trees it fells (birch to ancient oak), each in the colour of how much it'd still teach, the level it
+// left, the trees it fells (birch to elder oak), each in the colour of how much it'd still teach, the level it
 // wants, the best to learn from starred; on the right, the one picked: its log, what it wants of the skill and how
 // much it'd teach, how many chops it takes, logs a chop, what's found in it now and then, the hero's own chance of a
 // second log; whether they've an axe to hand (in hand or in the pack; and where one's had); where to find that kind of tree.
@@ -18,8 +18,9 @@ const WHERE: Record<Grade, string> = {
   birch: 'Slender white trunks, in every wood.',
   pine: 'Tall dark spires, thick on the hills.',
   oak: 'Broad, low crowns, all over the lowlands.',
-  ancientPine: 'One pine in a dozen, grown old: a darker crown among its kind.',
-  ancientOak: 'One oak in a dozen, grown old: a darker crown among its kind.',
+  ancientPine: 'One pine in six, grown old: a darker crown among its kind.',
+  ancientOak: 'One oak in six, grown old: a darker crown among its kind.',
+  elderOak: 'One oak in ten, older than any: a hoary, silvered crown.',
 };
 
 // The best tree to learn from now: the hardest they can fell that still teaches; none, if none.
@@ -54,7 +55,7 @@ export function woodGuide(model: GameModel, state: { picked: Grade | null }, red
       el('dd', undefined, `${wood.logs} ${nameOf(wood.log)}${wood.logs > 1 ? 's' : ''}`),
       el('dt', undefined, 'A second log'),
       el('dd', undefined, second > 0 ? `${Math.round(second * 100)}% a chop` : 'From Lumberjacking 100'),
-      ...(wood.find ? [el('dt', undefined, 'Found now and then'), el('dd', undefined, `${nameOf(wood.find.item)}: ${Math.round(wood.find.chance * 100)}% a chop${level < wood.find.from ? `, from ${wood.find.from}` : ''}`)] : []),
+      ...(wood.finds?.length ? [el('dt', undefined, 'Found now and then'), ...wood.finds.map((find) => el('dd', undefined, `${nameOf(find.item)}: ${Math.round(find.chance * 100)}% a chop${level < find.from ? `, from ${find.from}` : ''}`))] : []),
     );
     const axe = model.lumber.axe;
     return el(

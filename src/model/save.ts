@@ -102,6 +102,7 @@ export interface SaveData {
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
+  rocks?: Record<string, number>; // the rocks struck at, by where they lie: the strikes taken (all of them: worked out for good; skills/mining.ts)
 }
 
 const MAX_BAG_SLOTS = 256; // a saved bag order longer than any bag is cut there
@@ -165,13 +166,14 @@ export function snapshot(model: GameModel): SaveData {
     npcs: model.npcs
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
-    shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })) })),
+    shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })), ...(shop.bought && { bought: { ...shop.bought } }) })),
     quests: model.quests.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
     stops: savedStops(model.welcome.stops),
     crypts: [...model.cryptsCleared].map(([crypt, slain]) => ({ crypt, slain: [...slain] })), // each crypt's guards slain for good
     trees: model.lumber.saved(), // the trees chopped at, felled for good
+    rocks: model.mining.saved(), // the rocks struck at, their veins worked out
     kindled: model.cooking.saved(), // the campfire lit, and its firewood with it
     story: model.story.save(),
     doors: model.entrances.map((e) => ({ inn: doorNumber(e), open: openDoorsAt(e) })).filter((d) => d.open.length > 0),
@@ -272,6 +274,7 @@ export function restore(model: GameModel, data: SaveData): void {
   }
   model.cooking.restore(data.kindled); // (an older save's: none lit)
   model.lumber.restore(data.trees); // (the felled out of the way; an older save's: none)
+  model.mining.restore(data.rocks); // (an older save's: none struck)
   model.story.load(data.story); // (an older save's: nothing taken yet)
   // Where they were: a position saved lost (not a number: never written so now, but an older save's may be) costs only
   // the spot, never the save: the hero's put somewhere sound instead.
@@ -311,12 +314,12 @@ export function restore(model: GameModel, data: SaveData): void {
   for (const { item, x, z } of records<SaveData['loot'][number]>(data.loot)) if (typeof item === 'string' && known(item) && finite(x, z)) model.ground.drop(item, x, z);
   for (const { amount, x, z } of records<SaveData['coins'][number]>(data.coins)) if (Number.isInteger(amount) && amount > 0 && finite(x, z)) model.ground.dropCoins(amount, x, z);
   model.floors.load(data.floors, known); // (an older save's: none)
-  for (const { inn, money, stock, restockedAt, buyback } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
+  for (const { inn, money, stock, restockedAt, buyback, bought } of records<NonNullable<SaveData['shops']>[number]>(data.shops)) {
     if (typeof inn !== 'number' || typeof money !== 'number' || typeof restockedAt !== 'number') continue;
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
     // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
     const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
-    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })) }); // (older saves: one of each)
+    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), bought: Object.fromEntries(Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0)) as Record<string, number> }); // (older saves: one of each; none bought)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);

@@ -6,6 +6,7 @@
 
 import type { IngredientId } from '../../../model/loot/ingredients';
 import { fillBox, setColor } from '../voxel/voxelShapes';
+import type { VoxelGrid } from '../voxel/greedyMesh';
 import { model, type LootModel } from './lootModel';
 
 // A log: bark 1, a mark on it 2 (dashes, furrows, resin: by `marked`), its end grain 3, its heart 4.
@@ -23,9 +24,23 @@ const log = (palette: number[], marked: (x: number, y: number, z: number) => boo
 const plank = (palette: number[]): LootModel =>
   model(palette, [8, 1, 3], (g) => fillBox(g, 0, 0, 0, 7, 0, 2, (x, _y, z) => (x === 0 || x === 7 ? 3 : z === 1 && x % 3 !== 0 ? 2 : 1)));
 
+// A lump of ore: a rough block of its rock (stone 1, its underside 2), corners knocked off, its ore 3 showing through
+// in flecks and a seam across the top, a glint 4 or two of it catching the light.
+const ore = (palette: number[]): LootModel =>
+  model(palette, [5, 3, 4], (g) => {
+    fillBox(g, 0, 0, 0, 4, 2, 3, (x, y, z) => {
+      const edge = (x === 0 || x === 4) && (z === 0 || z === 3);
+      if (edge && y !== 1) return 0; // (rough: its corners off)
+      if (y === 2 && (x === 0 || x === 4 || z === 0 || z === 3) && (x + z) % 2 === 0) return 0;
+      if (y === 2 && z === 1 + (x % 2)) return x === 2 ? 4 : 3; // the seam across its top, a glint in it
+      if ((x * 5 + y * 3 + z * 7) % 6 === 0) return 3; // flecks of it in the sides
+      return y === 0 ? 2 : 1;
+    });
+  });
+
 // A fish lying on its side along x, `long` voxels: its back 1, its flank 2, its belly 3, its fins and tail 4, its eye 5;
-// the head to a point at x 0, the tail forked at the far end.
-const fish = (palette: number[], long: number): LootModel =>
+// the head to a point at x 0, the tail forked at the far end; `marks`, any of its own over that (spots, scutes).
+const fish = (palette: number[], long: number, marks?: (g: VoxelGrid) => void): LootModel =>
   model(palette, [long, 3, 3], (g) => {
     const tail = long - 1;
     fillBox(g, 1, 0, 1, tail - 2, 2, 1, (_x, y) => (y === 2 ? 1 : y === 1 ? 2 : 3)); // its body, back to belly
@@ -36,16 +51,7 @@ const fish = (palette: number[], long: number): LootModel =>
     setColor(g, tail - 1, 1, 1, 4); // the wrist of the tail
     fillBox(g, tail, 0, 1, tail, 2, 1, (_x, y) => (y === 1 ? 0 : 4)); // the tail, forked
     if (long > 6) setColor(g, Math.floor(long / 2), 2, 1, 4); // a fin on its back, the bigger ones
-  });
-
-// A lump of ore: rough grey rock (its shadow 1, its face 2), its corners knocked off unevenly, flecked with its metal
-// (its vein 3, a glint 4).
-const ore = ([vein, glint]: [number, number]): LootModel =>
-  model([0x4a4846, 0x6e6a66, vein, glint], [5, 3, 4], (g) => {
-    fillBox(g, 0, 0, 0, 4, 1, 3, (x, y, z) => ((x === 0 || x === 4) && (z === 0 || z === 3) && y === 1 ? 0 : y === 0 ? 1 : 2));
-    fillBox(g, 1, 2, 1, 3, 2, 2, (x, _y, z) => (x === 3 && z === 2 ? 0 : 2)); // its crown, knocked off at a corner
-    for (const [x, y, z] of [[1, 1, 0], [3, 2, 1], [4, 1, 2], [2, 1, 3]]) setColor(g, x, y, z, 3); // the vein, showing
-    setColor(g, 2, 2, 1, 4); // a glint of it
+    marks?.(g);
   });
 
 // An ingot: a bar six long, its top a step in all round (its shadow 1 below, its body 2, a gleam 3 along its top;
@@ -97,12 +103,40 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     fillBox(g, 1, 1, 0, 4, 1, 2, (x, _y, z) => (z === 1 && x % 2 === 1 ? 3 : 1));
     fillBox(g, 6, 0, 0, 6, 1, 2, (_x, y, z) => (y === 1 && z === 1 ? 5 : 4)); // its fur, spotted
   }),
-  // Fish (caught from a shore): small fry, silver and slight; a trout, olive with a pink flank; a perch, green-gold
-  // with dark fins; a pike, long and mottled green.
+  // Fish (caught from a shore): small fry, silver and slight; a roach, blue-silver, its fins and eye red; a trout, olive
+  // with a pink flank; a perch, green-gold with dark fins; a pike, long and mottled green; a char, its back dark and
+  // pale-spotted, its belly red; a sturgeon, longest, grey-brown, a row of pale bony plates down its back.
   smallFry: fish([0x8a96a0, 0xc8d2da, 0xeef2f4, 0x6a7680, 0x1a1a1a], 5),
+  roach: fish([0x5a6e86, 0xc0ccd8, 0xeef2f4, 0xc83a2a, 0xa01a1a], 6),
   riverTrout: fish([0x5a6a3a, 0xd08a8a, 0xf0e4d0, 0x4a5a30, 0x1a1a1a], 7),
   lakePerch: fish([0x4a6a2a, 0xc8b048, 0xf0e0b0, 0xc84a2a, 0x1a1a1a], 7),
   pike: fish([0x3a5a2a, 0x7a9a4a, 0xe8e0c0, 0x2a4020, 0x1a1a1a], 9),
+  // A bream, deep and flat, bronze-gold, its fins dark; a grayling, silver-grey, its long sail of a back fin purple-red.
+  bream: fish([0x6a5a2a, 0xc0a050, 0xe8d8a0, 0x3a3222, 0x1a1a1a], 7, (g) => {
+    for (const x of [2, 3, 4]) setColor(g, x, 2, 1, 4); // its back's long fin
+  }),
+  grayling: fish([0x5a646e, 0xa8b4bc, 0xe8ecee, 0x8a3a5a, 0x1a1a1a, 0x2a2e34], 8, (g) => {
+    for (let x = 2; x <= 5; x++) setColor(g, x, 2, 1, 4); // the sail along its back
+    for (const [x, z] of [[2, 0], [3, 2]]) setColor(g, x, 1, z, 6); // dark specks on its flanks
+  }),
+  char: fish([0x3e5248, 0x6a7a68, 0xe0562a, 0xc84a2a, 0x1a1a1a, 0xf0e8c8], 8, (g) => {
+    for (const [x, z] of [[2, 1], [5, 1]]) setColor(g, x, 2, z, 6); // pale spots on its back and flanks
+    setColor(g, 3, 1, 0, 6);
+    setColor(g, 5, 1, 2, 6);
+  }),
+  sturgeon: fish([0x5a564a, 0x8a8470, 0xd8d0b8, 0x3e3a32, 0x1a1a1a, 0xe8e0c8], 11, (g) => {
+    for (let x = 2; x <= 8; x += 2) setColor(g, x, 2, 1, 6); // its bony plates, down the back
+    setColor(g, 0, 0, 1, 4); // the barbels under its long snout
+  }),
+  // An eel: long and thin, dark olive above and yellowish below, a low fin running the length of its back, the head
+  // a little broader, the tail to a point (no fork).
+  eel: model([0x6a6236, 0x8a8248, 0xd8c870, 0x4e4828, 0x1a1a1a], [11, 3, 3], (g) => {
+    fillBox(g, 1, 0, 1, 9, 1, 1, (_x, y) => (y === 1 ? 1 : 3)); // its body, back over belly
+    fillBox(g, 3, 2, 1, 9, 2, 1, 4); // the fin along its back
+    fillBox(g, 1, 0, 0, 2, 1, 2, (_x, y, z) => (z !== 1 && y === 1 ? 5 : z !== 1 ? 0 : y === 1 ? 2 : 3)); // the head, eyes either side
+    setColor(g, 0, 0, 1, 2); // its snout
+    setColor(g, 10, 1, 1, 4); // the tail, to a point
+  }),
   // Bought from the barmaid: salt, a twist of linen tied at the neck, grey grains heaped at its mouth; flour, a small
   // burlap sack, tied, white at the top where it's open.
   salt: model([0xe8e0cc, 0xc8bca0, 0xb8b8b4, 0xe8e8e4, 0x8a6a4a], [3, 4, 3], (g) => {
@@ -134,6 +168,21 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   heartwood: model([0x6e2a1a, 0x521e12, 0xa0482a], [5, 4, 4], (g) =>
     fillBox(g, 0, 0, 0, 4, 3, 3, (x, y, z) => (x === 4 ? (Math.max(Math.abs(y - 1.5), Math.abs(z - 1.5)) > 1 ? 1 : (Math.round(Math.max(Math.abs(y - 1.5), Math.abs(z - 1.5))) % 2 === 0 ? 3 : 1)) : y === 0 ? 2 : 1)),
   ),
+  // An elder oak's burl: a knotted lump of grey bark, a fleck of lichen on it, sawn off flat on one side to show its
+  // grain swirled round three dark knots.
+  oakBurl: model([0x5e564a, 0x40382f, 0xa8b07a, 0xc89058, 0x8a5a30, 0x3a2414], [6, 3, 5], (g) => {
+    fillBox(g, 0, 0, 0, 5, 1, 4, (x, y, z) => ((x === 0 || x === 5) && (z === 0 || z === 4) ? 0 : y === 0 ? 2 : (x * 2 + z) % 5 === 0 ? 3 : 1)); // the lump of bark, rounded, lichen on it
+    fillBox(g, 1, 2, 1, 4, 2, 3, (x, _y, z) => ((x + z * 2) % 3 === 0 ? 5 : 4)); // sawn flat atop: its grain swirled
+    for (const [x, z] of [[1, 1], [3, 2], [4, 3]]) setColor(g, x, 2, z, 6); // round three dark knots
+  }),
+  // Struck from the veins (mining.ts): copper, orange in green-stained stone; tin, black grains in grey; iron, rust-red;
+  // silver, bright flecks; gold, yellow in white quartz; star-iron, blue-black stone glittering pale blue.
+  copperOre: ore([0x8a8a78, 0x5e5e50, 0xc8743a, 0x6ab89a]),
+  tinOre: ore([0x7a766e, 0x4e4a44, 0x2a2a30, 0xd0d4d8]),
+  ironOre: ore([0x8a7466, 0x5e4a3e, 0xa8482a, 0xd8885a]),
+  silverOre: ore([0x86868a, 0x5a5a5e, 0xc8ccd4, 0xffffff]),
+  goldOre: ore([0xe4e0d6, 0xb0aa9e, 0xe0b030, 0xfff0a0]),
+  starIronOre: ore([0x2e3244, 0x1a1c28, 0x4a6aa8, 0xc8e8ff]),
   // Worked: planks (a birch's cream, a pine's amber, an oak's tan); a stoppered clay pot of varnish, amber at its lip.
   birchPlank: plank([0xf0e2c0, 0xd8c498, 0xc8b080]),
   pinePlank: plank([0xe0a868, 0xc08848, 0xa87038]),
@@ -188,14 +237,9 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     for (const [x, z] of [[0, 1], [1, 0], [2, 1], [1, 2]]) setColor(g, x, 1, z, 2);
     setColor(g, 1, 2, 1, 3);
   }),
-  // A miner's ore, for the smith: rough rock flecked with its metal. A smith's (skills/smithing.ts): ingots, each a bar narrower on top, its metal's ramp (its shadow 1, its body 2, a
+  // A smith's (skills/smithing.ts): ingots, each a bar narrower on top, its metal's ramp (its shadow 1, its body 2, a
   // gleam 3; star-iron's a fleck of light 4 in the dark); fittings, each its own shape: rivets in a little heap, nails
   // laid side by side, a hoop of band iron, a silver corner bracket, a gilded one set with a red stone.
-  copperOre: ore([0xc8703a, 0xf0a070]),
-  ironOre: ore([0x9a4a28, 0xc8784a]),
-  silverOre: ore([0xc8ccd4, 0xf4f6fa]),
-  goldOre: ore([0xd8a830, 0xffe080]),
-  starIronOre: ore([0x3a4878, 0x9ab8ff]),
   copperIngot: ingot([0x8a4a22, 0xc8703a, 0xf0a070]),
   ironIngot: ingot([0x4a4e56, 0x6e747e, 0xa8b0ba]),
   steelIngot: ingot([0x56667a, 0x8a9cae, 0xdce6f0]),

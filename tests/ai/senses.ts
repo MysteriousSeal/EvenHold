@@ -72,7 +72,10 @@ export function prompt(model: GameModel): Prompt {
     case 'door':
       return found.leaving ? 'leave' : goesUnder(found.door) ? 'dungeon' : 'door';
     case 'fire':
-      return 'none'; // (a fire to cook at: nothing the player does yet, and its prompts kept as they were trained)
+    case 'mine':
+    case 'stopMine':
+    case 'cannotMine':
+      return 'none'; // (a fire to cook at, a rock to mine: nothing the player does yet, and its prompts kept as they were trained)
     default:
       return found.kind;
   }

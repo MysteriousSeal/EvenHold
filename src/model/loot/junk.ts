@@ -7,9 +7,9 @@ import type { LootEntry } from './lootEntry';
 
 export const JUNK_ITEMS = {
   // Made by a woodworker (skills/woodworking.ts), to sell: dropped by no one.
-  woodenBowl: { name: 'Wooden bowl', value: 9, droppedBy: {} },
-  carvedTankard: { name: 'Carved tankard', value: 30, droppedBy: {} },
-  varnishedCasket: { name: 'Varnished casket', value: 15, droppedBy: {} }, // (an expert's: oak, varnished, for a merchant's letters)
+  woodenBowl: { name: 'Wooden bowl', value: 1, droppedBy: {} },
+  carvedTankard: { name: 'Carved tankard', value: 4, droppedBy: {} },
+  varnishedCasket: { name: 'Varnished casket', value: 10, droppedBy: {} }, // (an expert's: oak, varnished, for a merchant's letters)
   oakCask: { name: 'Oak cask', value: 12, droppedBy: {} }, // (an expert's: staves of oak, for an inn's ale)
   oakChest: { name: 'Oak chest', value: 30, droppedBy: {} }, // (an artisan's: oak, varnished, for a lord's plate)
   // Someone turned into one (spells/turned.ts: the poppet-maker's stitch), lying where they stood: dropped by no one.
@@ -32,13 +32,13 @@ export const JUNK_ITEMS = {
   oldArrowhead: { name: 'Old arrowhead', value: 3, droppedBy: { undead: 3 } },
   boneCharm: { name: 'Bone charm', value: 7, droppedBy: { undead: 2, draugr: 1 } },
   // From ghosts: keepsakes of the dead, what bound them there.
-  fadedLocket: { name: 'Faded locket', value: 9, droppedBy: { ghost: 2 } },
+  fadedLocket: { name: 'Faded locket', value: 4, droppedBy: { ghost: 2 } },
   graveCandle: { name: 'Grave candle', value: 4, droppedBy: { ghost: 3 } },
   tatteredShroud: { name: 'Tattered shroud', value: 6, droppedBy: { ghost: 3 } },
   // From draugr: what the old warriors were laid to rest with, worth far more.
-  frostTorc: { name: 'Frost-rimed torc', value: 30, droppedBy: { draugr: 2 } },
+  frostTorc: { name: 'Frost-rimed torc', value: 15, droppedBy: { draugr: 2 } },
   runestone: { name: "Draugr's runestone", value: 20, droppedBy: { draugr: 3 } },
-  oldSilver: { name: 'Old silver coin', value: 14, droppedBy: { draugr: 3 } },
+  oldSilver: { name: 'Old silver coin', value: 7, droppedBy: { draugr: 3 } },
   // From bears and lynxes: claws and pelts, good to the tanner.
   bearClaw: { name: 'Bear claw', value: 7, droppedBy: { bear: 3 } },
   bearPelt: { name: 'Thick bear pelt', value: 14, droppedBy: { bear: 2 } },

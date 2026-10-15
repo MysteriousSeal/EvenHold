@@ -1,5 +1,5 @@
 // Ingredients: raw food for cooking (skills/cooking.ts), dropped by foes, caught or bought; and the logs a lumberjack
-// fells, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
+// fells, the ore a miner strikes, and what's worked or salvaged. Each says who drops it and how often, as junk does (the rest: no one).
 
 import { hashUnit } from '../../util/random';
 import type { LootEntry, LootSource } from './lootEntry';
@@ -14,11 +14,18 @@ export const INGREDIENTS = {
   honeycomb: { name: 'Honeycomb', value: 9, droppedBy: { bear: 2 } },
   // From lynxes: a lean cut.
   leanLynxMeat: { name: 'Lean lynx meat', value: 6, droppedBy: { lynx: 3 } },
-  // Caught from a shore (skills/fishing.ts), not from foes: small fry from anywhere, trout and perch, pike in the deep.
+  // Caught from a shore (skills/fishing.ts), not from foes: small fry and roach from anywhere, trout, eels and grayling
+  // in the narrows, perch, bream and char in open water, pike and sturgeon in the deep.
   smallFry: { name: 'Small fry', value: 2, droppedBy: {} },
-  riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
-  lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
-  pike: { name: 'Pike', value: 14, droppedBy: {} },
+  roach: { name: 'Roach', value: 3, droppedBy: {} },
+  riverTrout: { name: 'River trout', value: 5, droppedBy: {} },
+  lakePerch: { name: 'Lake perch', value: 5, droppedBy: {} },
+  eel: { name: 'Eel', value: 7, droppedBy: {} },
+  bream: { name: 'Bream', value: 4, droppedBy: {} },
+  pike: { name: 'Pike', value: 9, droppedBy: {} },
+  grayling: { name: 'Grayling', value: 9, droppedBy: {} },
+  char: { name: 'Char', value: 11, droppedBy: {} },
+  sturgeon: { name: 'Sturgeon', value: 15, droppedBy: {} },
   // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and
   // feasts (skills/cooking.ts).
   salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
@@ -30,9 +37,18 @@ export const INGREDIENTS = {
   birchLog: { name: 'Birch log', value: 2, droppedBy: {} }, // pale, light, quick to burn
   pineLog: { name: 'Pine log', value: 3, droppedBy: {} }, // straight and resinous
   oakLog: { name: 'Oak log', value: 5, droppedBy: {} }, // heavy, hard, the best of them
-  // Found as they chop (lumber.ts): a pine's resin, an ancient oak's heartwood.
+  // Found as they chop (lumber.ts): a pine's resin, an ancient or elder oak's heartwood, an elder oak's burl.
   pineResin: { name: 'Pine resin', value: 6, droppedBy: {} },
   heartwood: { name: 'Heartwood', value: 24, droppedBy: {} },
+  oakBurl: { name: 'Oak burl', value: 30, droppedBy: {} }, // a knotted swelling off an elder oak's trunk, its grain swirled
+  // Struck from the veins in the rocks of the wilds (skills/mining.ts), for the smith: copper, tin, iron, silver, gold,
+  // and star-iron from the high ground.
+  copperOre: { name: 'Copper ore', value: 2, droppedBy: {} },
+  tinOre: { name: 'Tin ore', value: 2, droppedBy: {} },
+  ironOre: { name: 'Iron ore', value: 3, droppedBy: {} },
+  silverOre: { name: 'Silver ore', value: 6, droppedBy: {} },
+  goldOre: { name: 'Gold ore', value: 10, droppedBy: {} },
+  starIronOre: { name: 'Star-iron ore', value: 16, droppedBy: {} },
   // Worked by a woodworker (woodworking.ts): planks from the logs, varnish from the resin.
   birchPlank: { name: 'Birch plank', value: 3, droppedBy: {} },
   pinePlank: { name: 'Pine plank', value: 5, droppedBy: {} },
@@ -46,12 +62,6 @@ export const INGREDIENTS = {
   gemShard: { name: 'Gem shard', value: 20, droppedBy: {} },
   temperedIngot: { name: 'Tempered ingot', value: 40, droppedBy: {} },
   cutGem: { name: 'Cut gem', value: 60, droppedBy: {} },
-  // Dug by a miner (none dig yet: their ids here for the smith's smelting, skills/smithing.ts), two to an ingot.
-  copperOre: { name: 'Copper ore', value: 2, droppedBy: {} },
-  ironOre: { name: 'Iron ore', value: 3, droppedBy: {} },
-  silverOre: { name: 'Silver ore', value: 6, droppedBy: {} },
-  goldOre: { name: 'Gold ore', value: 10, droppedBy: {} },
-  starIronOre: { name: 'Star-iron ore', value: 16, droppedBy: {} },
   // Smelted and forged by a smith at a smithy's anvil (skills/smithing.ts): ingots of the ores and the salvage bench's
   // scrap, and the fittings beaten from them, for a woodworker's banded pieces and a smith's own.
   copperIngot: { name: 'Copper ingot', value: 5, droppedBy: {} },

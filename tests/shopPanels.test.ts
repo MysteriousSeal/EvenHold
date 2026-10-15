@@ -264,7 +264,7 @@ describe('trading, the WoW way', () => {
   it('tells in every bag tooltip what a thing would fetch, away from any shop; what no one buys, nothing', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const bag = createInventoryPanel(model);
-    Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1, rawBoarMeat: 1, oakLog: 1 } });
+    Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1, rawBoarMeat: 1, oakPlank: 1 } });
     bag.menu.open();
     hover(inBag('loot:bread'));
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${sellPrice('bread')} copper`);
@@ -274,7 +274,7 @@ describe('trading, the WoW way', () => {
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
     hover(inBag('loot:rawBoarMeat')); // (and to whom: not only junk, food and the smith's)
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${LOOT.rawBoarMeat.value} copper to a herbalist`);
-    hover(inBag('loot:oakLog')); // a crafter's
+    hover(inBag('loot:oakPlank')); // a crafter's
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
   });
 

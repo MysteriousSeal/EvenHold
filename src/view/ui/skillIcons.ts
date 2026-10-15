@@ -1,5 +1,5 @@
 // The skills' icons (model/skills/skills.ts; the skills window: controller/skills/skillsPanel.ts), small voxel models
-// as the toolbar's are (itemIcons.ts): an anvil, a cooking pot, a rod with a fish on the line; and the window's own tile on the
+// as the toolbar's are (itemIcons.ts): an anvil, a cooking pot, a rod with a fish on the line, a pickaxe on a seamed rock; and the window's own tile on the
 // toolbar, a ladle and a rod crossed.
 
 import type { SkillId } from '../../model/skills/skills';
@@ -140,7 +140,26 @@ const smithingIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, smithing: smithingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon };
+// A pickaxe leaning on a lump of grey rock, its head across the top of its haft, a seam of copper in the rock below.
+const miningIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:mining',
+    () => {
+      // Stone 1, its shade 2, copper 3, its glint 4, the haft 5, the head 6, its edge 7.
+      const grid = createGrid([12, 12, 4]);
+      fillBox(grid, 0, 0, 0, 7, 0, 3, 2); // the rock: its foot in shade,
+      fillBox(grid, 0, 1, 0, 7, 3, 3, (x, y, z) => ((x === 0 || x === 7) && (y === 3 || z === 0 || z === 3) ? 0 : 1)); // its body, rounded,
+      fillBox(grid, 2, 4, 1, 5, 4, 2, 1); // its top
+      for (const [x, y] of [[2, 2], [3, 1], [4, 2], [5, 3], [6, 2]]) fillBox(grid, x, y, 3, x, y, 3, 3); // the seam across its face
+      fillBox(grid, 4, 2, 3, 4, 2, 3, 4); // a glint in it
+      for (let i = 0; i <= 7; i++) fillBox(grid, 10 - i, 1 + i, 1, Math.min(11, 11 - i), 1 + i, 1, 5); // the haft, leaning up, a step at a time
+      for (const [x, y, c] of [[1, 6, 7], [2, 7, 6], [3, 8, 6], [4, 9, 6], [5, 10, 6], [6, 11, 7]] as const) fillBox(grid, x, y, 1, x + 1, y, 1, c); // the head, across its top, its points lit
+      return { grid, palette: [0x9d968a, 0x6a655c, 0xc8743a, 0xf0b070, WOOD, IRON, IRON_LIGHT], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, smithing: smithingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon, mining: miningIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish

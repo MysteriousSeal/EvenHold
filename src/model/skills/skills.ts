@@ -1,13 +1,13 @@
 // The hero's skills, learnt by doing (as a crafter's or a gatherer's trade, apart from the fighting): the main ones
-// (lumberjacking, gathering: lumber.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
+// (lumberjacking and mining, gathering: lumber.ts, mining.ts; woodworking, making: woodworking.ts), and the secondary (cooking, fishing). Each a level from 1 to SKILL_MAX, climbed through its tiers (an apprentice's to an artisan's),
 // each tier opening what's told of it (UNLOCKS). Every hero has them all from the start, at 1, and keeps them
-// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping,
-// woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
+// (saved). Practice raises them, a level at a time (raiseSkill), told when it does: lumberjacking by chopping, mining by
+// striking ore, woodworking by making things, cooking by cooking, fishing by landing what bites (fishing.ts); the others not yet. As in WoW, how likely a try teaches is by how hard the thing
 // is for them (difficulty: its level against theirs), orange always, then yellow, green, and grey never; and a level
 // wants so many tries that taught (its skill's STEPS at its tier: the quicker a try, the more), so a tier's an hour or
 // so of the trade, the whole of it three to five.
 
-export type SkillId = 'lumberjacking' | 'woodworking' | 'smithing' | 'salvaging' | 'cooking' | 'fishing';
+export type SkillId = 'lumberjacking' | 'woodworking' | 'smithing' | 'salvaging' | 'cooking' | 'fishing' | 'mining';
 
 export interface Skill {
   name: string;
@@ -36,25 +36,25 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
-    steps: [10, 10, 11, 12],
+    steps: [11, 11, 10, 9], // (the ancient and elder trees, fewer: a walk between)
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
     about: 'Fell the trees of the wilds for their wood, a log knocked loose at every chop. Harder woods want a practised hand.',
     unlocks: [
       { at: 1, what: 'Fell birches' },
-      { at: 25, what: 'Fell pines' },
-      { at: 50, what: 'Fell oaks' },
+      { at: 30, what: 'Fell pines' },
       { at: 75, what: 'Chop quicker: a swing fewer each tier on' },
-      { at: 100, what: 'A second log now and then, the likelier the better you are' },
-      { at: 125, what: 'Fell ancient pines: two logs a chop' },
-      { at: 150, what: 'Find resin in the pines' },
-      { at: 175, what: 'Fell ancient oaks: two logs a chop, and their heartwood' },
+      { at: 90, what: 'Fell oaks' },
+      { at: 100, what: 'A second log now and then, the likelier the better you are; resin in the pines' },
+      { at: 140, what: 'Fell ancient pines: two logs a chop, rich in resin' },
+      { at: 190, what: 'Fell ancient oaks: two logs a chop, and their heartwood' },
+      { at: 240, what: 'Fell elder oaks: heartwood oftener, and now and then a burl' },
     ],
   },
   woodworking: {
     name: 'Woodworking',
-    steps: [3, 3, 3, 3],
+    steps: [7, 5, 3, 2], // (its first tiers' planks cheap and quick; its last's oak, varnish and heartwood a while to come by)
     kind: 'main',
     verb: 'work wood',
     practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
@@ -108,7 +108,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   cooking: {
     name: 'Cooking',
-    steps: [2, 2, 2, 2],
+    steps: [3, 3, 2, 1], // (an artisan's feast: a hunt's makings)
     kind: 'secondary',
     verb: 'cook',
     practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',
@@ -124,17 +124,40 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
-    steps: [6, 6, 6, 6],
+    steps: [5, 3, 4, 4], // (what teaches, half what bites)
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
-    about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger.',
+    about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger. Every water has something to teach, however practised you are.',
     unlocks: [
       { at: 1, what: 'Small fry from any shore' },
-      { at: 40, what: 'Now and then a lucky trout or perch' },
+      { at: 40, what: 'Roach from any shore' },
+      { at: 55, what: 'Now and then a lucky trout or perch' },
       { at: 75, what: "River trout in a lake's narrows, lake perch in its open water; bites come quicker each tier on" },
+      { at: 110, what: 'Eels in the narrows, bream in open water' },
       { at: 150, what: 'Pike, where the line lies far from any bank' },
+      { at: 160, what: 'Grayling in the narrows' },
+      { at: 180, what: 'Char in open water' },
       { at: 225, what: 'What the water hides: a lost locket, an old coin, a torc in the deep' },
+      { at: 250, what: 'Sturgeon in the deep' },
+    ],
+  },
+  mining: {
+    name: 'Mining',
+    steps: [11, 11, 10, 9],
+    kind: 'main',
+    verb: 'mine',
+    practice: 'Strike the veins in the rocks of the wilds with a pickaxe in your bag (the smith sells them): E by a rock.',
+    about: 'Break ore out of the veins that seam the boulders and outcrops of the wilds, for the smith. Richer veins want a practised hand.',
+    unlocks: [
+      { at: 1, what: 'Mine copper' },
+      { at: 40, what: 'Mine tin' },
+      { at: 75, what: 'Strike quicker: a swing fewer each tier on' },
+      { at: 90, what: 'Mine iron' },
+      { at: 100, what: 'A second lump of ore now and then, the likelier the better you are' },
+      { at: 140, what: 'Mine silver, and now and then a gem shard with it' },
+      { at: 190, what: 'Mine gold' },
+      { at: 240, what: 'Mine star-iron, in the rocks of the high ground' },
     ],
   },
 };
@@ -186,13 +209,14 @@ export const RISE: ReadonlyArray<{ within: number; chance: number; color: string
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
 
 // A try at something wanting `needs` (a tree felled at, a thing made): whether it taught, as its difficulty allows
-// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level; enough of
-// them (stepsOf), the skill raised, told; the levels it rose by.
-export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number): number {
+// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level (`worth`
+// tries' worth: a dish of a hunt's meat, dear to come by, more than one of fish); enough of them (stepsOf), the skill
+// raised, told; the levels it rose by.
+export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number, worth = 1): number {
   const record = skillOf(hero, skill);
   const level = record.level;
   if (level >= SKILL_MAX || roll >= (chance ?? difficulty(needs, level).chance)) return 0;
-  record.toward = (record.toward ?? 0) + 1;
+  record.toward = (record.toward ?? 0) + Math.max(1, Math.floor(worth));
   if (record.toward < stepsOf(skill, level) || raiseSkill(hero, skill) === 0) return 0;
   report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
   return 1;

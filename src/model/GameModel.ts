@@ -1,7 +1,6 @@
-// Model: owns game state and rules. No rendering, no input handling. World generation lives in worldgen/; this class
-// holds the generated world and everyone in it, and runs each frame: the hero's movement and blows, the enemies
-// (enemyDirector.ts), travellers on the roads, wildlife, the hero's focus and health. What blocks movement and sight is
-// kept in obstacles.ts.
+// Model: owns game state and rules. No rendering, no input handling. World generation lives in worldgen/; this class holds the
+// generated world and everyone in it, and runs each frame: the hero's movement and blows, the enemies (enemyDirector.ts),
+// travellers on the roads, wildlife, the hero's focus and health, their trades. What blocks movement and sight is kept in obstacles.ts.
 
 import { CombatMoves, GUARD_PACE } from './hero/combatMoves';
 import { stepOutdoors } from './hero/walkOutdoors';
@@ -62,7 +61,7 @@ import { Work } from './jobs/work';
 import { Focus, cycleFocus as turnFocus } from './hero/focus';
 import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
-import { Cooking, Fishing, Lumber, Salvage, Smithing, Woodworking } from './skills/trades';
+import { Cooking, Fishing, Lumber, Mining, Salvage, Smithing, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
 import { Story } from './story/story';
 import { useAction } from './hero/actionBar';
@@ -133,6 +132,7 @@ export class GameModel {
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
+  readonly mining = new Mining(this); // (rocks struck, their veins worked out for good: skills/mining.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
@@ -202,7 +202,7 @@ export class GameModel {
 
   // How far through the current attack the hero is, 0..1, or null.
   get attackProgress(): number | null {
-    return this.moves.blowProgress ?? this.lumber.swing; // (chopping a tree: the axe swung)
+    return this.moves.blowProgress ?? this.lumber.swing ?? this.mining.swing; // (chopping a tree, striking a rock: the axe or the pick swung)
   }
 
   // Moves the hero straight to (x, z), standing on the ground there
@@ -260,7 +260,7 @@ export class GameModel {
     if (Math.hypot(dirX, dirZ) > 1e-6) this.hero.eating = null; // (up off the ground: a meal from the bag left)
     this.work.update(dt); // (at work: its shift on, or over once they've left)
     this.chickens.update(dt); // (whoever's been turned into one: spells/turned.ts)
-    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
+    [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.mining.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.

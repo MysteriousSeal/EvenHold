@@ -1,6 +1,6 @@
-// The cast under way, for the bar over the hero (view/hud/castBar.ts): chopping a tree (how many chops it has left),
-// or making or cooking something (what, and how many more), a bite on the line (its moment, to hook it in), and how far
-// toward the next; none, nothing under way.
+// The cast under way, for the bar over the hero (view/hud/castBar.ts): chopping a tree or striking a rock (how many chops
+// or strikes it has left), or making or cooking something (what, and how many more), a bite on the line (its moment, to
+// hook it in), and how far toward the next; none, nothing under way.
 
 import type { GameModel } from '../../model/GameModel';
 import { RECIPES } from '../../model/skills/woodworking';
@@ -12,6 +12,8 @@ import { counted } from '../../view/ui/words';
 export function castOf(model: GameModel): { progress: number; label: string } | null {
   const { lumber, woodworking, salvage, cooking } = model;
   if (lumber.chopping) return { progress: lumber.progress ?? 0, label: `${counted(lumber.left(lumber.chopping.tree), 'chop')} left` };
+  const { mining } = model;
+  if (mining.striking) return { progress: mining.progress ?? 0, label: `${counted(mining.left(mining.striking.rock), 'strike')} left` };
   const making = woodworking.making;
   if (making) return { progress: woodworking.progress ?? 0, label: making.left > 1 ? `${RECIPES[making.recipe].name} · ${making.left} to make` : RECIPES[making.recipe].name };
   const forging = model.smithing.making;

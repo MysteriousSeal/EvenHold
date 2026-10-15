@@ -11,6 +11,7 @@ import { SKILLS, SKILL_IDS, SKILL_TIERS, skillOf, tierOf, type SkillId } from '.
 import { RECIPES } from '../../model/skills/woodworking';
 import { COOK_RECIPES } from '../../model/skills/cooking';
 import { woodOf } from '../../model/skills/lumber';
+import { VEINS } from '../../model/skills/mining';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { SKILL_ICONS } from '../../view/ui/skillIcons';
 import { el } from '../../view/ui/dom';
@@ -20,7 +21,7 @@ import { SMITH_RECIPES } from '../../model/skills/smithing';
 import { createSkillWindow } from './skillWindow';
 import { skillRuler } from './skillRuler';
 
-// What the hero's at in a skill just now, if anything ("Chopping a pine · 2 chops left", "Cooking Roast boar · 1 of 3").
+// What the hero's at in a skill just now, if anything ("Chopping a pine · 2 chops left", "Mining iron · 3 strikes left", "Cooking Roast boar · 1 of 3").
 export function statusOf(model: GameModel, id: SkillId): string | null {
   const { lumber, woodworking } = model;
   if (id === 'lumberjacking' && lumber.chopping) return `Chopping ${woodOf(lumber.chopping.tree, model.seed).name} · ${counted(lumber.left(lumber.chopping.tree), 'chop')} left`;
@@ -32,6 +33,8 @@ export function statusOf(model: GameModel, id: SkillId): string | null {
   if (id === 'cooking' && cooked) return `Cooking ${COOK_RECIPES[cooked.recipe].name} · ${cooked.of - cooked.left + 1} of ${cooked.of}`;
   const breaking = model.salvage.breaking;
   if (id === 'salvaging' && breaking) return `Breaking down ${nameOf(breaking.key)}`;
+  const striking = model.mining.striking;
+  if (id === 'mining' && striking) return `Mining ${VEINS[model.mining.veinOf(striking.rock)].name} · ${counted(model.mining.left(striking.rock), 'strike')} left`;
   const line = model.fishing.line;
   if (id === 'fishing' && line) return line.phase === 'bite' ? 'A bite! Hook it (E)' : `Fishing ${line.spot.deep ? 'the deep' : line.spot.narrows ? "a lake's narrows" : 'open water'} · waiting for a bite`;
   return null;

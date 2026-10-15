@@ -7,6 +7,7 @@
 
 import { LOOT } from '../loot/loot';
 import { isIngredient } from '../loot/ingredients';
+import { isFish } from '../skills/fishing';
 import { POTION_IDS, isPotion, potionPrice, type PotionId } from '../loot/potions';
 import { buyFrom, openShop, sellTo, type Shop } from '../shops/shopStock';
 import type { BagItem } from '../hero/bag';
@@ -20,13 +21,13 @@ const USUAL: Record<'minor' | 'lesser' | 'greater', number> = { minor: 4, lesser
 
 export const HERBALIST_WARES: readonly BagItem[] = POTION_IDS;
 
-// The ingredients they'll buy: what's had from the wild (a beast's meat, a catch, a bear's honeycomb, a pine's resin,
-// an ancient oak's heartwood), not what's felled, worked or salvaged (logs, planks, scrap: a crafter's, kept for their
+// The ingredients they'll buy: what's had from the wild (a beast's meat, a catch, a bear's honeycomb), not what's
+// felled, found in the wood, worked or salvaged (logs, resin, heartwood, planks, scrap: a crafter's, kept for their
 // work), nor what the shops sell (salt, flour, firewood).
-const WILD: ReadonlySet<string> = new Set(['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'honeycomb', 'leanLynxMeat', 'smallFry', 'riverTrout', 'lakePerch', 'pike', 'pineResin', 'heartwood']);
+const WILD: ReadonlySet<string> = new Set(['rawBoarMeat', 'rawWolfMeat', 'rawBearMeat', 'honeycomb', 'leanLynxMeat']); // (and any fish)
 
 // What they'll buy: potions, and ingredients from the wild.
-export const herbalistBuys = (id: string): id is BagItem => isPotion(id) || (isIngredient(id) && WILD.has(id));
+export const herbalistBuys = (id: string): id is BagItem => isPotion(id) || (isIngredient(id) && (WILD.has(id) || isFish(id)));
 
 // What a potion costs here, or a potion or an ingredient fetches (an ingredient its worth).
 export const herbalistPrice = (id: BagItem, selling: boolean): number => (isPotion(id) ? potionPrice(id, selling) : LOOT[id as keyof typeof LOOT].value);

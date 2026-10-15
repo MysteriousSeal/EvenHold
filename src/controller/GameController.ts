@@ -226,6 +226,8 @@ export class GameController {
         return this.onWork(found.inn), true;
       case 'stopChop':
         return model.lumber.stop(), true;
+      case 'stopMine':
+        return model.mining.stop(), true;
       case 'loot': {
         const got = gather(model); // (its like lying near, with it)
         if (got) this.onPickUp(got.item, got.count);
@@ -237,6 +239,8 @@ export class GameController {
         return this.onCarter(found.carter), true;
       case 'chop':
         return model.lumber.use();
+      case 'mine':
+        return model.mining.use();
       case 'fish':
       case 'fishing':
         return model.fishing.use(); // (cast; a bite hooked, or reeled in)
@@ -265,6 +269,7 @@ export class GameController {
         return model.useDoor();
       case 'cannotChop':
       case 'cannotFish':
+      case 'cannotMine':
         return true; // (nothing to do: the prompt says why)
     }
   }

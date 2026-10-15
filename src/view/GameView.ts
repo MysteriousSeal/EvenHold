@@ -34,6 +34,7 @@ import { WorkMarks } from './meshes/inn/workMarks';
 import { Cupboard } from './interior/cupboard';
 import { BedrollView } from './meshes/scenery/bedrollMesh';
 import { FishingView } from './meshes/water/fishingLine';
+import { PickInHand } from './meshes/mining/pickInHand';
 import { workCostume, workLook } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
@@ -95,6 +96,7 @@ export class GameView {
   private readonly cupboard = new Cupboard(); // (an inn's tankards, sold her, on her shelves)
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private fishing: FishingView | null = null; // (the hero's rod, line and bobber, a line out)
+  private readonly pickInHand = new PickInHand(); // (the hero's pickaxe, in hand while they mine)
   private readonly travellers: TravellerViews; // on the roads
   private readonly chickens = new TurnedViews((being) => this.standIn(being)); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
@@ -330,7 +332,7 @@ export class GameView {
     this.hero.combat(model.moves.rollProgress, model.moves.guard !== null); // (a roll, the guard up)
     // Eating from the bag, sat down: their weapons out of sight, what's eaten in hand, to the mouth now and then.
     const meal = hero.eating;
-    this.hero.hideHeld(!!meal || !!model.fishing.line); // (and fishing: the rod in hand instead)
+    this.hero.hideHeld(!!meal || !!model.fishing.line || !!model.mining.striking); // (and fishing, mining: the rod or the pick in hand instead)
     if (meal?.item && isProvision(meal.item)) this.hero.sipping({ left: meal.left, seconds: meal.seconds, drink: meal.item });
     else if (this.eaten) this.hero.stopDrinking();
     else this.hero.hold(model.work.carrying ?? false); // (at work: the first order on the tray, in hand)
@@ -373,6 +375,7 @@ export class GameView {
     this.wildMoves.update(model.wild, (x, z) => model.getGroundY(x, z), dt, true);
     (this.bedroll ??= new BedrollView(this.scene)).update(model);
     (this.fishing ??= new FishingView(this.scene)).update(model, this.hero, dt, this.elapsed);
+    this.pickInHand.update(model, this.hero);
     this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y
