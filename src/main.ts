@@ -39,6 +39,7 @@ import { createPedlarPanel } from './controller/trade/pedlarPanel';
 import { createHerbalistPanel } from './controller/trade/herbalistPanel';
 import { createStallPanel } from './controller/trade/stallPanel';
 import { townSite } from './model/town/townSite';
+import { callingWord, isCalling } from './model/town/townCallings';
 import { WORD_HOLD } from './model/travellers/travellers';
 import { roomAction, roomActionLabel, sleepTillMorning } from './model/inn/roomLetting';
 import { quitsAt } from './model/jobs/room/roomShift';
@@ -216,7 +217,8 @@ async function boot(): Promise<void> {
     if ('road' in who) return void (who.role === 'pedlar' ? pack.open(who) : (model.travellers.hold(who, WORD_HOLD), say(who, travellerSays(who, model.crypts, townSite(model.seed, model.size)))));
     if (who.role === 'smith') forge.open(who);
     else if (who.role === 'herbalist') herbs.open(who);
-    else if (who.role === 'monger') stalls.open(who);
+    else if (who.role === 'monger' || who.role === 'pardoner') stalls.open(who);
+    else if (isCalling(who.role)) say(who, callingWord(who)); // (Greyminster's people: town/townCallings.ts)
     else if (who.role === 'witch') talk.show(who, witchTalk(model, who)); // (her lessons, asked across her counter)
     else if (who.role === 'bouncer') bouncerSpeaks(who);
     else if (who.role === 'barkeep' && !bar.busy) shop.open(who);
