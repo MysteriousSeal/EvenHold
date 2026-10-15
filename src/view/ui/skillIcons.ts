@@ -1,5 +1,5 @@
 // The skills' icons (model/skills/skills.ts; the skills window: controller/skills/skillsPanel.ts), small voxel models
-// as the toolbar's are (itemIcons.ts): a cooking pot, a rod with a fish on the line; and the window's own tile on the
+// as the toolbar's are (itemIcons.ts): an anvil, a cooking pot, a rod with a fish on the line; and the window's own tile on the
 // toolbar, a ladle and a rod crossed.
 
 import type { SkillId } from '../../model/skills/skills';
@@ -116,7 +116,31 @@ const salvagingIcon: MenuIcon = (size) =>
     size,
   );
 
-export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon };
+// An anvil on its stump, its waist pinched and its horn out to one side, a bar glowing orange on its face and a
+// hammer laid across beside it.
+const smithingIcon: MenuIcon = (size) =>
+  voxelIcon(
+    'skill:smithing',
+    () => {
+      // The stump 1, iron 2, the face's bright edge 3, the hammer's haft 4, the glowing bar 5, its hot end 6.
+      const grid = createGrid([14, 11, 8]);
+      fillBox(grid, 3, 0, 1, 9, 2, 6, 1); // the stump
+      fillBox(grid, 3, 3, 2, 9, 3, 5, 2); // the anvil's foot
+      fillBox(grid, 5, 4, 3, 7, 5, 4, 2); // its waist, pinched
+      fillBox(grid, 2, 6, 2, 10, 7, 5, 2); // its body
+      fillBox(grid, 11, 7, 3, 13, 7, 4, (x) => (x === 13 ? 0 : 2)); // the horn, tapering out
+      fillBox(grid, 11, 6, 3, 11, 6, 4, 2);
+      fillBox(grid, 2, 8, 2, 10, 8, 5, 3); // the face, bright
+      fillBox(grid, 3, 9, 3, 7, 9, 3, 5); // the bar on it, glowing
+      fillBox(grid, 7, 9, 3, 7, 9, 3, 6);
+      fillBox(grid, 3, 9, 5, 9, 9, 5, 4); // the hammer's haft, across the face
+      fillBox(grid, 9, 9, 4, 10, 10, 6, 2); // its head
+      return { grid, palette: [0x7a5432, 0x3a3e46, 0x9aa2ae, 0x8a5a35, 0xe8701e, 0xffd060], alpha: 1 };
+    },
+    size,
+  );
+
+export const SKILL_ICONS: Record<SkillId, MenuIcon> = { lumberjacking: lumberjackingIcon, woodworking: woodworkingIcon, smithing: smithingIcon, salvaging: salvagingIcon, cooking: cookingIcon, fishing: fishingIcon };
 
 // The skills window's tile on the toolbar: a fish in a frying pan, lying flat as on a table, the trades (caught,
 // then cooked) at a glance. The pan round in iron, its rim raised dark, its handle in wood out to the front; the fish

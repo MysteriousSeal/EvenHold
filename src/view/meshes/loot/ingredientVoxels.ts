@@ -38,6 +38,26 @@ const fish = (palette: number[], long: number): LootModel =>
     if (long > 6) setColor(g, Math.floor(long / 2), 2, 1, 4); // a fin on its back, the bigger ones
   });
 
+// A lump of ore: rough grey rock (its shadow 1, its face 2), its corners knocked off unevenly, flecked with its metal
+// (its vein 3, a glint 4).
+const ore = ([vein, glint]: [number, number]): LootModel =>
+  model([0x4a4846, 0x6e6a66, vein, glint], [5, 3, 4], (g) => {
+    fillBox(g, 0, 0, 0, 4, 1, 3, (x, y, z) => ((x === 0 || x === 4) && (z === 0 || z === 3) && y === 1 ? 0 : y === 0 ? 1 : 2));
+    fillBox(g, 1, 2, 1, 3, 2, 2, (x, _y, z) => (x === 3 && z === 2 ? 0 : 2)); // its crown, knocked off at a corner
+    for (const [x, y, z] of [[1, 1, 0], [3, 2, 1], [4, 1, 2], [2, 1, 3]]) setColor(g, x, y, z, 3); // the vein, showing
+    setColor(g, 2, 2, 1, 4); // a glint of it
+  });
+
+// An ingot: a bar six long, its top a step in all round (its shadow 1 below, its body 2, a gleam 3 along its top;
+// `starred`, a fleck of light 4 on it).
+const ingot = (palette: number[], starred = false): LootModel =>
+  model(palette, [6, 2, 3], (g) => {
+    fillBox(g, 0, 0, 0, 5, 0, 2, 1);
+    fillBox(g, 1, 1, 0, 4, 1, 2, 2);
+    fillBox(g, 2, 1, 1, 3, 1, 1, 3);
+    if (starred) setColor(g, 3, 1, 0, 4);
+  });
+
 export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
   // A rounded lump of red meat, darker underneath, streaked with fat; a rim of
   // fat round the cut end, and the bone out of it, knobbed at the tip.
@@ -167,5 +187,51 @@ export const INGREDIENT_MODELS: Record<IngredientId, LootModel> = {
     fillBox(g, 1, 2, 1, 1, 2, 1, 2);
     for (const [x, z] of [[0, 1], [1, 0], [2, 1], [1, 2]]) setColor(g, x, 1, z, 2);
     setColor(g, 1, 2, 1, 3);
+  }),
+  // A miner's ore, for the smith: rough rock flecked with its metal. A smith's (skills/smithing.ts): ingots, each a bar narrower on top, its metal's ramp (its shadow 1, its body 2, a
+  // gleam 3; star-iron's a fleck of light 4 in the dark); fittings, each its own shape: rivets in a little heap, nails
+  // laid side by side, a hoop of band iron, a silver corner bracket, a gilded one set with a red stone.
+  copperOre: ore([0xc8703a, 0xf0a070]),
+  ironOre: ore([0x9a4a28, 0xc8784a]),
+  silverOre: ore([0xc8ccd4, 0xf4f6fa]),
+  goldOre: ore([0xd8a830, 0xffe080]),
+  starIronOre: ore([0x3a4878, 0x9ab8ff]),
+  copperIngot: ingot([0x8a4a22, 0xc8703a, 0xf0a070]),
+  ironIngot: ingot([0x4a4e56, 0x6e747e, 0xa8b0ba]),
+  steelIngot: ingot([0x56667a, 0x8a9cae, 0xdce6f0]),
+  silverIngot: ingot([0x8a8e98, 0xc8ccd4, 0xf4f6fa]),
+  goldIngot: ingot([0x9a6a10, 0xd8a830, 0xffe080]),
+  starIronIngot: ingot([0x1e2440, 0x3a4878, 0x7a90d0, 0xe8f0ff], true),
+  copperRivets: model([0x8a4a22, 0xc8703a, 0xf0a070], [5, 2, 4], (g) => {
+    for (const [x, z] of [[0, 0], [2, 1], [4, 0], [1, 3], [3, 3]]) setColor(g, x, 0, z, 2); // the rivets, scattered
+    for (const [x, z] of [[2, 1], [1, 3]]) setColor(g, x, 1, z, 3); // two lying atop, catching the light
+    setColor(g, 3, 0, 2, 1);
+  }),
+  ironNails: model([0x3a3e46, 0x6e747e, 0xa8b0ba], [6, 2, 5], (g) => {
+    for (const z of [0, 2, 4]) {
+      fillBox(g, 0, 0, z, 4, 0, z, 2); // a nail's shank
+      setColor(g, 5, 0, z, 1); // its point
+      setColor(g, 0, 1, z, 3); // its head
+    }
+  }),
+  ironBands: model([0x3a3e46, 0x5a606a, 0x8a929c], [6, 2, 6], (g) => {
+    fillBox(g, 0, 0, 0, 5, 1, 5, (x, y, z) => {
+      const edge = x === 0 || x === 5 || z === 0 || z === 5;
+      const corner = (x === 0 || x === 5) && (z === 0 || z === 5);
+      return edge && !corner ? (y === 1 ? 3 : 2) : 0; // a hoop, round, its upper edge lighter
+    });
+    setColor(g, 0, 0, 2, 1); // its rivet, darker
+  }),
+  silverFittings: model([0x6a6e78, 0xc8ccd4, 0xf4f6fa], [4, 2, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 0, 0, 2); // a corner bracket, two arms
+    fillBox(g, 0, 0, 1, 0, 0, 3, 2);
+    for (const [x, z] of [[2, 0], [0, 2]]) setColor(g, x, 1, z, 3); // its pins
+    setColor(g, 0, 1, 0, 1);
+  }),
+  gildedFittings: model([0x9a6a10, 0xd8a830, 0xffe080, 0xb02a3c], [4, 2, 4], (g) => {
+    fillBox(g, 0, 0, 0, 3, 0, 0, 2);
+    fillBox(g, 0, 0, 1, 0, 0, 3, 2);
+    for (const [x, z] of [[2, 0], [0, 2]]) setColor(g, x, 1, z, 3);
+    setColor(g, 0, 1, 0, 4); // a red stone at its corner
   }),
 };
