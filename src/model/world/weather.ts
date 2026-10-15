@@ -121,7 +121,7 @@ export function dampAt(tiles: Tiles, x: number, z: number): number {
   let wet = 0;
   for (let i = 0; i < 9; i++) {
     const [dx, dz] = [((i % 3) - 1) * 6, (Math.floor(i / 3) - 1) * 6];
-    if (tiles.lake(Math.floor(x + dx), Math.floor(z + dz))) wet++;
+    if (tiles.lake(Math.round(x + dx), Math.round(z + dz))) wet++;
   }
   return wet / 9;
 }
