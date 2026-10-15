@@ -13,6 +13,8 @@ import type { Room } from '../../model/interiors/interiors';
 import type { Furniture } from '../../model/interiors/furniture';
 import { BREAD, FURNITURE_PALETTE, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM_LIGHT, WOOD_DARK } from './furniturePalette';
 import { paintFurniture } from './furnitureVoxels';
+import { hallRunner } from './upstairsVoxels';
+import { HALL } from '../../model/interiors/upstairs';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
@@ -214,6 +216,11 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     fill(doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
+  }
+  // Upstairs, a runner down the hallway (from the stairwell on), under whatever stands on it.
+  const stairwell = furniture.find((f) => f.kind === 'stairwell');
+  if (stairwell && furniture.some((f) => f.kind === 'hallWall')) {
+    fill(x0, 1, z0, x0 + w - 1, 1, z0 + d - 1, (x, _y, z) => hallRunner(x - x0, z - z0, HALL * TILE, stairwell.z * TILE, w) ?? 0);
   }
   if (room.wall === 'daub') daubRelief(fill, w, d);
   if (room.floor === 'earth') earthRelief(fill, w, d);
