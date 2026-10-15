@@ -73,6 +73,8 @@ export class RoomShift extends Shift {
   onServed: (great: boolean) => void = () => {}; // (work.ts: what a client seen to earns the hero, besides the coin; `great`: a very good hour)
   private readonly visit = new Visit(); // the client let in, as they're seen in the room (roomVisit.ts)
   private word: { who: Client; talk: Talk } | null = null; // what the one come in has to say, once they're in (taken up: `arrived`)
+  private told: Talk | null = null; // what the one let in is in the middle of (the hour, then their word going): told again, E, if it was left off
+  private readonly heard = new Set<string>(); // the lines said this shift: none said twice while there's another
   private next = GAP[0]; // seconds in the room before the next knocks
   private seen = 0;
   readonly letBefore: number | null; // till when the room was let already, as the shift began (the hero's own night there)
@@ -108,7 +110,7 @@ export class RoomShift extends Shift {
       if (!this.inRoom || !door || door.open) return; // (not till they're in, the door shut)
       [this.begun, door.locked] = [true, true]; // (fast, till the shift's over)
     }
-    this.left = Math.max(0, this.left - dt);
+    if (!this.visit.figure) this.left = Math.max(0, this.left - dt); // (not with someone in: the shift's not up on them halfway)
     const { hero } = this.host;
     // Out of the room, however that came about (collapsed, out of energy, and carried down to the hearth): the shift's
     // over there and then (its door's fast behind them: there'd be no getting back in to finish it).
@@ -127,8 +129,15 @@ export class RoomShift extends Shift {
     this.host.report({ kind: 'poor', text: 'A knock at your door' });
   }
 
+  // Someone at the door; or one let in, stood there, whose say was left off (the talk closed on them): taken up again.
   actionAt(): { kind: 'client'; client: Client } | null {
-    return this.client && !this.visit.figure && this.inRoom ? { kind: 'client', client: this.client } : null; // (at the door still: not one let in)
+    if (!this.client || !this.inRoom) return null;
+    return !this.visit.figure || this.leftOff ? { kind: 'client', client: this.client } : null;
+  }
+
+  // Whether the one let in stands there with their say not had out (their hour, or their word after it).
+  private get leftOff(): boolean {
+    return this.visit.there && !this.word && !!this.told;
   }
 
   // (E at the door is a word with whoever's there: `meet`, told as a talk; nothing done there and then.)
@@ -157,13 +166,24 @@ export class RoomShift extends Shift {
   // What `client` says there (`of`: at the door, as it shuts, after): their temper's, a man's or a woman's with it;
   // one who's trouble: that trouble's own.
   private line(client: Client, of: 'knocks' | 'inside' | 'after', salt: number): string {
-    return saidLine(client, of, this.roll(this.seen, salt));
+    return this.unheard(linesOf(client, of), salt);
+  }
+
+  // One of `lines` not said yet this shift (all said: any of them, afresh), by the dice for `salt`.
+  private unheard(lines: readonly string[], salt: number): string {
+    const fresh = lines.filter((l) => !this.heard.has(l));
+    if (fresh.length === 0) for (const l of lines) this.heard.delete(l);
+    const left = fresh.length > 0 ? fresh : lines;
+    const said = oneOf(left, this.roll(this.seen, salt))!;
+    this.heard.add(said);
+    return said;
   }
 
   // The one at the door, and what they say: let in (the tone the hero takes: warm, plain, teasing), or turned away.
   meet(): { who: Client; talk: Talk } | null {
     const client = this.actionAt()?.client;
     if (!client) return null;
+    if (this.leftOff) return { who: client, talk: this.told! };
     const tones: Tone[] = ['warm', 'plain', 'tease'];
     const talk: Talk = {
       speaker: client.name,
@@ -187,7 +207,7 @@ export class RoomShift extends Shift {
   // door to come by (the hero not upstairs), it's said at once.
   private comeIn(client: Client, tone: Tone): Talk | void {
     const [door, inside] = [this.door, this.host.inside as Inside | null];
-    const told = this.letIn(client, tone);
+    const told = (this.told = this.letIn(client, tone));
     if (!door || !inside) return told;
     this.visit.come(inside, door, this.host.hero, client, this.inn, this.host.npcs?.find((n) => n.home === this.inn)?.village, -1 - this.seen);
     this.word = { who: client, talk: told };
@@ -204,7 +224,7 @@ export class RoomShift extends Shift {
   // The talk of one let in: their word as the door shuts; then the hour, played (their pace, the easier kept for a
   // tone to their taste); then, by how it went, what they say as they go and what the hero may do.
   private letIn(client: Client, tone: Tone): Talk {
-    const pick = (lines: readonly string[], salt: number) => oneOf(lines, this.roll(this.seen, salt))!;
+    const pick = (lines: readonly string[], salt: number) => this.unheard(lines, salt);
     return hourOf(client, tone, this.line(client, 'inside', 72), pick, (score) => this.after(client, tone, Math.min(1, Math.max(0, score))));
   }
 
@@ -218,17 +238,17 @@ export class RoomShift extends Shift {
     const pleased = plain && score >= PLEASED;
     const great = score >= GREAT;
     const bouncer = this.host.npcs?.some((n) => n.role === 'bouncer' && n.home === this.inn);
-    return {
+    return (this.told = {
       speaker: client.name,
-      lines: [plain && !pleased ? oneOf(FLAT, this.roll(this.seen, 73))! : this.line(client, 'after', 73)],
+      lines: [plain && !pleased ? this.unheard(FLAT, 73) : this.line(client, 'after', 73)],
       answers: plain
         ? [{ label: THANKS[tone], primary: true, pick: () => this.paid(price + (pleased ? Math.round(score * TIP * this.rank.tips) : 0), great) }]
         : [
             { label: 'Pay what you owe me.', primary: true, pick: () => this.insist(client, price, score) },
-            ...(bouncer ? [{ label: 'Call the bouncer.', pick: (): Talk => (this.paid(Math.round(price * (1 - CUT)), great), this.says(client, oneOf(BOUNCER, this.roll(this.seen, 80))!)) }] : []),
+            ...(bouncer ? [{ label: 'Call the bouncer.', pick: (): Talk => (this.paid(Math.round(price * (1 - CUT)), great), this.says(client, this.unheard(BOUNCER, 80))) }] : []),
             { label: 'Let it go.', out: true, pick: () => (client.kind === 'skinflint' ? this.paid(Math.round(price / 2), great) : void [this.unpaid++, this.gone()]) },
           ],
-    };
+    });
   }
 
   // Insisted with: it works the more the higher the hero's level, and the better the hour was; failing, a skinflint pays his half all the same,
@@ -236,14 +256,14 @@ export class RoomShift extends Shift {
   private insist(client: Client, price: number, score: number): Talk {
     const { hero } = this.host;
     const kind = client.kind as Exclude<ClientKind, 'plain'>;
-    if (this.roll(this.seen, 75) < Math.min(0.95, 0.35 + 0.04 * hero.level + SWAYED * score)) return this.paid(price, score >= GREAT), this.says(client, oneOf(GIVES_IN, this.roll(this.seen, 81))!);
+    if (this.roll(this.seen, 75) < Math.min(0.95, 0.35 + 0.04 * hero.level + SWAYED * score)) return this.paid(price, score >= GREAT), this.says(client, this.unheard(GIVES_IN, 81));
     if (kind === 'skinflint') this.paid(Math.round(price / 2), false);
     else {
       hero.hp = Math.max(1, hero.hp - BLOW * maxHpOf(hero));
       hero.hurtFor = 0.3;
       [this.unpaid++, this.gone()];
     }
-    return this.says(client, oneOf(TROUBLE[kind].holds, this.roll(this.seen, 82))!);
+    return this.says(client, this.unheard(TROUBLE[kind].holds, 82));
   }
 
   private says(client: Client, line: string): Talk {
@@ -274,7 +294,7 @@ export class RoomShift extends Shift {
   }
 
   private gone(): void {
-    this.client = null;
+    [this.client, this.told] = [null, null];
     this.next = GAP[0] + this.roll(this.seen, 77) * (GAP[1] - GAP[0]);
     // One who came in goes as they came, by the door (roomVisit.ts).
     const [door, inside] = [this.door, this.host.inside as Inside | null];
@@ -290,12 +310,14 @@ export class RoomShift extends Shift {
   }
 }
 
-// What a client says, from their temper (a plain one) or their trouble. `roll` in 0..1.
-export function saidLine(client: Client, of: 'knocks' | 'inside' | 'after', roll: number): string {
+// What a client may say, from their temper (a plain one) or their trouble.
+export function linesOf(client: Client, of: 'knocks' | 'inside' | 'after'): readonly string[] {
   const temper = TEMPERS[client.temper];
-  const pool = client.kind === 'plain' ? [...temper[of], ...temper[client.look.build][of]] : TROUBLE[client.kind][of];
-  return oneOf(pool, roll)!;
+  return client.kind === 'plain' ? [...temper[of], ...temper[client.look.build][of]] : TROUBLE[client.kind][of];
 }
+
+// One of them, by `roll` in 0..1.
+export const saidLine = (client: Client, of: 'knocks' | 'inside' | 'after', roll: number): string => oneOf(linesOf(client, of), roll)!;
 
 // A client, as one who knocks is made: the other sex than the hero, dressed for what they are, bare-headed, nothing in hand.
 export function clientOf(heroBuild: Hero['look']['build'], x: number, z: number, seed: number, roll: (salt: number) => number): Client {
