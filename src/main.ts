@@ -23,6 +23,9 @@ import { createHeroHud } from './view/hud/heroHud';
 import { createBlessingHud } from './view/hud/blessingHud';
 import { createPlaceBanner } from './view/hud/placeBanner';
 import { createPlaceBar } from './view/hud/placeBar';
+import { createTipCard } from './view/hud/tipCard';
+import { FirstTips } from './controller/tips/firstTips';
+import { anyMenuOpen } from './view/ui/menu';
 import { dungeonAt } from './model/dungeons/dungeons';
 import { goesUnder } from './model/dungeons/dungeonTypes';
 import { TEARS_AT } from './model/caves/caveFoes';
@@ -153,6 +156,7 @@ async function boot(): Promise<void> {
   const updateClock = createClockHud();
   const placeBanner = createPlaceBanner();
   const updatePlaceBar = createPlaceBar();
+  const [tips, tipCard] = [new FirstTips(model), createTipCard()]; // (the first hour's, once each, as each first matters)
   const updateTarget = createTargetHud(hudTop);
   const lootPrompt = createLootPrompt(() => keyName('use'));
   const orderPrompt = createLootPrompt(() => keyName('ale')); // sat at the bar: an ale, over the hero's head
@@ -357,6 +361,9 @@ async function boot(): Promise<void> {
       floatingText.clear(); // a room's places aren't the world's
     }
     floatingText.update((x, y, z) => view.toScreen(x, y, z), (now - lastFrame) / 1000);
+    const tip = controller.paused || anyMenuOpen() ? null : tips.next((now - lastFrame) / 1000);
+    if (tip) tipCard.show({ title: tip.title, text: tip.text(keyName, model) });
+    tipCard.update((now - lastFrame) / 1000);
     lastFrame = now;
   };
   const controller = new GameController(model, view, { uncapped: options.uncapped, onFrame, onPickUp: (item, count) => floatingText.spawn({ x: model.hero.x, y: model.hero.y + (model.inside ? 0.95 : 0.6) + 0.2, z: model.hero.z }, [`+ ${count > 1 ? `${count} ` : ''}${nameOf(item)} (${kindOf(item)})`], QUALITY_INK[qualityOf(item)]), onTraveller: (t) => talk.open(t) || trade(t), onCarter: (carter) => void talk.open(carter),
