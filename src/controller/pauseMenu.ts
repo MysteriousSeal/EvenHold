@@ -23,6 +23,7 @@ import { controlsCodex } from './controlsCodex';
 import { keysScreen } from './keysScreen';
 import { rebind, type KeyAction } from './keyBindings';
 import { setTipsOn, tipsOn } from './tips/firstTips';
+import { volumeSteppers, type VolumeHooks } from './soundSettings';
 import '../view/ui/gilded.css';
 import './pauseMenu.css';
 
@@ -42,6 +43,7 @@ export interface PauseHooks {
   walls: { full(): boolean; toggle(): void }; // the inner walls option (full height, or cut low)
   hero(): PauseHero; // who's playing, for the card
   letGo?(): boolean; // Escape over the game: a foe focused, or someone picked out, let go of first (true: one was)
+  volumes?: VolumeHooks; // the sound's (soundSettings.ts): stepped beside the other settings
 }
 
 const PORTRAIT = 112; // px
@@ -174,11 +176,12 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         () => (stepBrightness(1, true), changed()),
       );
       const tips = toggle('Tips', tipsOn, ['Off', 'On'], () => (setTipsOn(!tipsOn()), draw()));
+      const sound = hooks.volumes ? volumeSteppers(hooks.volumes, stepper, draw) : []; // (Volume, Effects, Ambience)
       const controls = button('', 'Controls', 'Every key, and what it does', () => ((showing = 'controls'), (lit = 0), draw()));
       const keys = button('', 'Keys', 'Put any action on the key you like', () => ((showing = 'keys'), (lit = 0), draw()));
       const menu = button('', 'Main menu', 'This world saved: another hero, another world', () => hooks.mainMenu());
       const settings = el('div', 'pause-settings');
-      settings.append(zoom.node, walls.node, quality.node, brightness.node, tips.node);
+      settings.append(zoom.node, walls.node, quality.node, brightness.node, ...sound.map((s) => s.node), tips.node);
       main.append(title, resume, settings, controls, keys, menu, el('p', 'pause-foot', 'Esc to resume · Your progress saves itself'));
       items = [
         { node: resume, act: () => resume.click() },
@@ -186,6 +189,7 @@ export function createPauseMenu(hooks: PauseHooks): Menu {
         walls,
         quality,
         brightness,
+        ...sound,
         tips,
         { node: controls, act: () => controls.click() },
         { node: keys, act: () => keys.click() },

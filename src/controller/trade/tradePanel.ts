@@ -26,6 +26,7 @@ import { humanBust } from '../../view/meshes/human/humanFigure';
 import type { Seller } from '../hero/inventoryPanel';
 import { line } from '../../view/ui/dom';
 import { counted, plural } from '../../view/ui/words';
+import { uiCue } from '../../view/audio/uiCue';
 import { oneOf } from '../../util/random';
 
 // What a trade's keeper says, by occasion: on opening, and answering each trade.
@@ -107,6 +108,7 @@ export function createTradePanel(model: GameModel, hooks: { bag?: TradeBag }, tr
   let says = ''; // what they're saying: a greeting, or an answer to a trade
   // The keeper answers a trade (or a word of their own), and the window's redrawn with it.
   const answer = (result: string, word?: string) => {
+    if (result !== 'none') uiCue(result === 'bought' || result === 'sold' ? 'coin' : 'error'); // (coin changing hands, or not)
     says = word ?? (result === 'full' ? pick(BAG_FULL) : result in trade.lines ? pick(trade.lines[result as keyof TradeLines]) : says);
     menu.refresh();
   };

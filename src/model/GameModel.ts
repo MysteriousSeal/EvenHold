@@ -62,8 +62,9 @@ import { Selection, type Person } from './hero/selection';
 import { type Camp } from './camps/camps';
 import { Cooking, Fishing, Lumber, Mining, Salvage, Smithing, Woodworking } from './skills/trades';
 import { wakeWith } from './story/nights';
+import { Strokes, swinging } from './skills/strokes';
 import { Story } from './story/story';
-import { startAttack, useAction } from './hero/heroActs';
+import { consumed, startAttack, useAction } from './hero/heroActs';
 import { Chickens } from './spells/turned';
 import { Swaps } from './spells/swaps';
 
@@ -127,6 +128,7 @@ export class GameModel {
   readonly woodworking: Woodworking = new Woodworking(this); // (things made from the wood: skills/woodworking.ts)
   readonly smithing: Smithing = new Smithing(this); readonly mining = new Mining(this); // (metal worked at a smithy's anvil; rocks struck, their veins back a day after: skills/smithing.ts, mining.ts)
   readonly salvage = new Salvage(this); // (gear broken down at a village's bench: skills/salvage.ts)
+  private readonly strokes = new Strokes();
   readonly fishing = new Fishing(this); // (a line out from a lake's shore: skills/fishing.ts)
   readonly cooking: Cooking = new Cooking(this); // (meals cooked by a fire: skills/cooking.ts)
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
@@ -234,6 +236,7 @@ export class GameModel {
     this.work.update(dt); // (at work: its shift on, or over once they've left)
     this.chickens.update(dt); // (whoever's been turned into one: spells/turned.ts)
     [this.lumber.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.woodworking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.smithing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.salvage.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.cooking.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.fishing.update(dt, Math.hypot(dirX, dirZ) > 1e-6), this.mining.update(dt, Math.hypot(dirX, dirZ) > 1e-6)]; // (chopping, making, cooking, fishing: on, or stopped by walking off)
+    this.strokes.update(swinging(this), this.report); // (each stroke of the axe, the pick, the hammer, told: skills/strokes.ts)
     if (Math.hypot(dirX, dirZ) > 1e-6 && !this.seated) makeWay(this.folk, this, dirX, dirZ, dt); // (folk stood in the way step aside)
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
@@ -294,7 +297,7 @@ export class GameModel {
 
   // Shift: a roll along (dirX, dirZ) (combatMoves.ts); whether they did.
   roll(dirX: number, dirZ: number): boolean {
-    return this.canFight && this.moves.startRoll(dirX, dirZ, this.hero.facing);
+    return this.canFight && this.moves.startRoll(dirX, dirZ, this.hero.facing) && (this.report({ kind: 'swing', roll: true }), true);
   }
 
   // Q held: the guard raised (lowered where blows aren't met).
@@ -369,8 +372,8 @@ export class GameModel {
   }
 
   // Eats or drinks one of `item` from the bag, for the health it gives back (hero/bag.ts); returns whether they did.
-  consume = (item: BagItem): boolean => eatOrDrink(this.hero, item);
-  drinkPotion = (item: BagItem): boolean => drinkPotion(this.hero, item);
+  consume = (item: BagItem): boolean => eatOrDrink(this.hero, item) && consumed(this, item);
+  drinkPotion = (item: BagItem): boolean => drinkPotion(this.hero, item) && consumed(this, item);
 
   // The village well the hero's beside (outdoors), by its village's index; else null.
   get wellInReach(): number | null {

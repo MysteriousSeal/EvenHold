@@ -24,6 +24,7 @@ let calls: string[] = [];
 let fullWalls = false;
 let focused = false; // (a foe in focus: Escape lets go of it first)
 let hero: PauseHero;
+let volumes = { master: 0.8, effects: 1, ambience: 0.7 };
 const menu = createPauseMenu({
   setPaused: (p) => calls.push(`paused:${p}`),
   redraw: () => calls.push('redraw'),
@@ -31,6 +32,7 @@ const menu = createPauseMenu({
   walls: { full: () => fullWalls, toggle: () => (fullWalls = !fullWalls) },
   hero: () => hero,
   letGo: () => (focused ? ((focused = false), true) : false),
+  volumes: { get: () => volumes, set: (v) => void (volumes = v) },
 });
 const open = () => menu;
 let others: Menu[] = [];
@@ -257,6 +259,31 @@ describe('the pause menu: the rest', () => {
 
   it('no new game here (a new hero is made from the main menu)', () => {
     menu.open();
-    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Tips', 'Controls', 'Keys', 'Main menu']);
+    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Graphics', 'Brightness', 'Volume', 'Effects', 'Ambience', 'Tips', 'Controls', 'Keys', 'Main menu']);
+  });
+});
+
+describe('the sound', () => {
+  it('Volume, Effects, Ambience among the settings: stepped ← → a tenth, shown at once', () => {
+    open().open();
+    for (let i = 0; i < 5; i++) press('ArrowDown'); // (past the graphics and the brightness)
+    expect(litName()).toBe('Volume');
+    press('ArrowRight');
+    expect(volumes.master).toBe(0.9);
+    expect(row('Volume').querySelector('.pause-value')?.textContent).toBe('90%');
+    press('ArrowDown');
+    press('ArrowLeft');
+    expect(row('Effects').querySelector('.pause-value')?.textContent).toBe('90%');
+    expect(row('Ambience').querySelector('.pause-value')?.textContent).toBe('70%');
+  });
+
+  it('back from the controls or the keys, on them still (past the sound\'s rows)', () => {
+    open().open();
+    row('Keys').click();
+    press('Escape');
+    expect(litName()).toBe('Keys');
+    row('Controls').click();
+    press('Escape');
+    expect(litName()).toBe('Controls');
   });
 });

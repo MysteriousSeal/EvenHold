@@ -92,6 +92,7 @@ import { capitalize } from './util/text';
 import { BAR_ACTIONS, label as keyName } from './controller/keyBindings';
 import { chat } from './model/npcs/chat';
 import { withRound } from './model/inn/barRound';
+import { startSound } from './view/audio/gameSound';
 
 // Boots in steps, letting the browser repaint the loading screen between
 // each, so the page appears instantly and shows progress instead of
@@ -211,7 +212,9 @@ async function boot(): Promise<void> {
   const skills = createSkillsPanel(model); // (K: the hero's skills, cooking and fishing)
   const levelUp = createLevelUpPanel(model, { setPaused: holdStill('levelUp') });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
+  const sound = startSound(import.meta.env.BASE_URL); // (heard from the first key or click: view/audio/)
   const pause = createPauseMenu({
+    volumes: { get: () => sound.sound.volumes, set: (v) => sound.sound.setVolumes(v) }, // (its steppers: soundSettings.ts)
     setPaused: holdStill('pause'),
     redraw: () => {
       view.update(0); // (the room rebuilt, walls changed) while the game stands still
@@ -314,6 +317,7 @@ async function boot(): Promise<void> {
   };
   const onFrame = () => {
     countFrame();
+    sound.update(model); // (the places' ambience, the hero's steps)
     // Where the hero is on the map: their tile (indoors, the building's door's), and the room they're in.
     const at = model.inside ? model.inside.below ?? model.inside.entrance : model.hero;
     const where = `x: ${Math.round(at.x)} · z: ${Math.round(at.z)}${model.inside ? ` · in the ${model.inside.entrance.type}${model.inside.below ? ', upstairs' : ''}` : ''}`;
@@ -380,6 +384,7 @@ async function boot(): Promise<void> {
       );
     },
     onEvent: (event) => {
+      sound.onEvent(event); // (what's heard of it: view/audio/eventSounds.ts)
       // Floating text, as in FarHold: coins looted in gold over the hero's
       // head; a blow's damage in white over the enemy, or in red over the
       // hero ("-3"); a quest's progress in amber (turquoise once done). Over their heads, higher indoors where the hero's drawn bigger.
@@ -433,6 +438,7 @@ async function boot(): Promise<void> {
         playTransformation(view.standIn(event.who), 'kind' in event.who ? enemyName(event.who) : event.who.name, stagingFor(event.into, { coat: event.coat, tree: event.tree, stood: () => view.standIn(event.who) }), () => scene(false)); // (cinema/staging.ts: in their coat, as their tree, of them as they stood)
       }
       else if (event.kind === 'cast') floatingText.spawn({ x: event.x, y: event.y + 0.75, z: event.z }, [event.mended === undefined ? SPELLS[event.spell].name : `${SPELLS[event.spell].name}${event.mended ? ` +${event.mended}` : ''}`], event.mended === undefined ? '#b98af0' : '#8ad48a'); // (a spell landing: its name over whoever it's cast at, in violet; a mending in green, with what it gave back)
+      else if (event.kind !== 'hit') return; // (the rest heard only: a swing, a foe slain, a stroke at work)
       else if (event.crit) floatingText.spawn({ x: event.x, y: event.y + (event.on === 'hero' ? 0.4 : KIND_LOOKS[event.on].textHeight) + 0.1, z: event.z }, [`${event.amount}!`], '#ffc94a'); // a critical blow, in amber
       else if (event.on === 'hero') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [`-${event.amount}`], '#ff6a5a');
       else floatingText.spawn({ x: event.x + (Math.random() - 0.5) * 0.2, y: event.y + KIND_LOOKS[event.on].textHeight, z: event.z }, [`${event.amount}`], '#ffffff');

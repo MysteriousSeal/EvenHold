@@ -1,5 +1,7 @@
 // The windows open (menu.ts's, and those built their own way), and which is on top: each a layer over the one before.
 
+import { uiCue } from '../audio/uiCue';
+
 // Menus open right now, most recent last.
 export const openMenus: object[] = []; // (the menus made here, and windows built their own way: counted, never called)
 export const overWindows: object[] = []; // (of them, those built their own way: over the whole game, every key theirs)
@@ -34,6 +36,7 @@ export function anyMenuOpen(): boolean {
 // is, and the game knows a window's up.
 // While one's up, no menu here hears a key (B, P, Escape): they're all its own.
 export function trackMenu(menu: object, open: boolean): void {
+  if (openMenus.includes(menu) !== open) uiCue(open ? 'open' : 'close');
   for (const list of [openMenus, overWindows]) {
     const at = list.indexOf(menu);
     if (open && at < 0) list.push(menu);

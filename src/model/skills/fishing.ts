@@ -229,6 +229,7 @@ export class Fishing {
   private cast(spot: Spot): void {
     const [least, most] = this.waitSeconds;
     this.line = { spot, phase: 'waiting', t: 0, wait: least + this.rng() * (most - least) };
+    this.host.report({ kind: 'castLine' });
   }
 
   // A bite: what it is, by the water and their skill (so a big one's off quicker: its own moment to hook it in).
