@@ -43,12 +43,13 @@ export function lootTarget(loot: GroundLoot): PromptTarget {
 
 // `key`: the key it's for; `under`: shown just below the E prompt (a second thing to do there);
 // `over`: another prompt it's stacked on, just above it on screen (a gap between), when that one shows.
-export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): LootPrompt {
+export function createLootPrompt(key: string | (() => string) = 'E', under = false, over?: LootPrompt): LootPrompt {
   const prompt = document.createElement('div');
   prompt.className = 'loot-prompt';
   prompt.hidden = true;
-  prompt.innerHTML = `<span class="loot-name"></span><span class="loot-key">${key}</span>`;
+  prompt.innerHTML = `<span class="loot-name"></span><span class="loot-key"></span>`;
   const name = prompt.querySelector('.loot-name') as HTMLElement;
+  const cap = prompt.querySelector('.loot-key') as HTMLElement;
   document.body.append(prompt);
 
   return {
@@ -56,6 +57,8 @@ export function createLootPrompt(key = 'E', under = false, over?: LootPrompt): L
     update(target, toScreen) {
       prompt.hidden = !target;
       if (!target) return;
+      const text = typeof key === 'function' ? key() : key;
+      if (cap.textContent !== text) cap.textContent = text;
       if (name.textContent !== target.label) name.textContent = target.label;
       if (target.quality) name.dataset.quality = target.quality;
       else delete name.dataset.quality;

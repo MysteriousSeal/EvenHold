@@ -8,7 +8,7 @@ import type { MenuIcon } from '../ui/menu';
 
 export interface ToolbarButton {
   label: string;
-  key: string; // shown in the corner, e.g. 'C'
+  key: string | (() => string); // shown in the corner, e.g. 'C' (or what gives it: the player's own)
   icon: MenuIcon;
   isOpen(): boolean;
   toggle(): void;
@@ -28,18 +28,20 @@ export function createToolbar(buttons: ToolbarButton[]): () => void {
     tip.textContent = button.label;
     const key = document.createElement('span');
     key.className = 'toolbar-key';
-    key.textContent = button.key;
     tile.append(button.icon(40), key, tip);
     tile.addEventListener('click', () => button.toggle());
     // Keep the click off the game (no focusing the enemy behind the button).
     tile.addEventListener('pointerdown', (event) => event.stopPropagation());
     bar.append(tile);
-    return tile;
+    return { tile, key };
   });
   document.body.append(bar);
   return () =>
     buttons.forEach((button, i) => {
-      tiles[i].classList.toggle('open', button.isOpen());
-      tiles[i].classList.toggle('marked', !!button.marked?.());
+      const { tile, key } = tiles[i];
+      const text = typeof button.key === 'function' ? button.key() : button.key;
+      if (key.textContent !== text) key.textContent = text;
+      tile.classList.toggle('open', button.isOpen());
+      tile.classList.toggle('marked', !!button.marked?.());
     });
 }

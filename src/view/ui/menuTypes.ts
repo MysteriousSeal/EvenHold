@@ -94,7 +94,7 @@ export interface MenuTab {
 export interface MenuOptions {
   title: string;
   tabs: MenuTab[];
-  toggleKey?: string; // a key code that opens and closes this menu
+  toggleKey?: string | (() => string); // a key code that opens and closes this menu (or what gives it: the player's own)
   // With Escape as its toggle key (a pause menu), it only opens when no other
   // menu is open: Escape closes those first.
   keyHints?: boolean; // the line of key hints along the bottom (default: shown)

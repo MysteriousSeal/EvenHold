@@ -27,8 +27,9 @@ export interface ActionBarHooks {
   clear(slot: number): void;
 }
 
-// Returns the function to call each frame (it keeps each tile in step with the bar and the bag).
-export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
+// Returns the function to call each frame (it keeps each tile in step with the bar and the bag). `keyOf`: the key
+// printed on a slot's corner (the player's own; 1 to 8 unless told).
+export function createActionBar(hero: Hero, hooks: ActionBarHooks, keyOf: (slot: number) => string = (i) => String(i + 1)): () => void {
   const bar = document.createElement('div');
   bar.className = 'action-bar';
   const tiles = Array.from({ length: ACTION_SLOTS }, (_, i) => {
@@ -37,7 +38,6 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
     tile.dataset.slot = String(i);
     const key = document.createElement('span');
     key.className = 'action-key';
-    key.textContent = String(i + 1);
     const count = document.createElement('span');
     count.className = 'menu-slot-count'; // (the bag's square chip)
     const tip = document.createElement('span');
@@ -61,12 +61,14 @@ export function createActionBar(hero: Hero, hooks: ActionBarHooks): () => void {
       window.addEventListener('pointerup', up);
     });
     bar.append(tile);
-    return { tile, count, cool, tip, shown: '' };
+    return { tile, key, count, cool, tip, shown: '' };
   });
   document.body.append(bar);
 
   return () => {
     for (const [i, t] of tiles.entries()) {
+      const label = keyOf(i);
+      if (t.key.textContent !== label) t.key.textContent = label;
       const item = hero.actionBar[i];
       // A spell (spells.ts): its icon; greyed while it waits, its seconds counting down on it; nothing carried to count.
       if (item && isSpellKey(item)) {

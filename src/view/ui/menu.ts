@@ -448,9 +448,10 @@ export function createMenu(options: MenuOptions): Menu {
     (event) => {
       if (overWindows.length) return; // (the pause menu, a talk, a scene played: theirs)
       // Escape as a toggle key opens only when nothing else is open.
-      const escapeMenu = options.toggleKey === 'Escape';
+      const toggleKey = typeof options.toggleKey === 'function' ? options.toggleKey() : options.toggleKey;
+      const escapeMenu = toggleKey === 'Escape';
       if (escapeMenu && !api.isOpen && anyMenuOpen()) return;
-      if (options.toggleKey && event.code === options.toggleKey) {
+      if (toggleKey && event.code === toggleKey) {
         event.stopImmediatePropagation();
         if (!event.repeat) api.toggle();
         return;

@@ -8,16 +8,19 @@ const FADE = 0.9; // seconds to fade out, and back in
 const DARK = 1.4; // seconds held dark
 
 // `whileDark`: once it's dark (the night passing); `done`: as it starts fading back in.
-export function createSleepFade(): (whileDark: () => void, done: () => void) => void {
+// `text`: what's said while dark (a night's sleep, unless told: a ride on a wagon).
+export function createSleepFade(): (whileDark: () => void, done: () => void, text?: string) => void {
   const veil = document.createElement('div');
   veil.className = 'sleep-fade';
   veil.innerHTML = '<span>You sleep till morning…</span>';
   veil.style.transitionDuration = `${FADE}s`; // (hud.css: the rest of its look)
   document.body.append(veil);
   let busy = false;
-  return (whileDark, done) => {
+  const said = veil.querySelector('span')!;
+  return (whileDark, done, text = 'You sleep till morning…') => {
     if (busy) return;
     busy = true;
+    said.textContent = text;
     trackMenu(veil, true);
     veil.classList.add('dark');
     window.setTimeout(() => {
