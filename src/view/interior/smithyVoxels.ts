@@ -19,7 +19,7 @@ function soot(box: Box, u0: number, v0: number, u1: number, v1: number, cu: numb
     for (let v = v0; v <= v1; v++) {
       const patch = hashUnit(u >> 1, v >> 1, salt); // (in twos: a stain, not grit)
       const near = 1 - Math.hypot(u - cu, v - cv) / r; // 1 at the middle, 0 at the edge
-      if (patch < near * 0.9) box(u, 0, v, u, 0, v, hashUnit(u, v, salt + 1) < 0.04 ? (near > 0.5 ? COAL : IRON) : SOOT);
+      if (patch < near * 0.65) box(u, 0, v, u, 0, v, hashUnit(u, v, salt + 1) < 0.04 ? (near > 0.5 ? COAL : IRON) : SOOT);
     }
   }
 }
