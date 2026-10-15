@@ -50,6 +50,7 @@ export const SHOULDERS_ITEMS = slotItems('shoulders', {
   ribcagePauldrons: { name: 'Ribcage pauldrons', set: 'ossuary', level: 8, rarity: 'uncommon', value: 140, droppedBy: { skeleton: 1, cryptLord: 1 }, armor: 3, stats: { strength: 2 } },
   flayersMantle: { name: "Flayer's mantle", set: 'flayer', value: 50, wornBy: { bandit: 1 }, droppedBy: { banditChief: 1 }, armor: 2, stats: { strength: 1, endurance: 1 } },
   palmersCape: { name: "Palmer's cape", set: 'palmer', wornBy: { pilgrim: 2 }, droppedBy: { skeleton: 1, draugr: 1 }, armor: 1, stats: { endurance: 2 } },
+  reliquaryPauldrons: { name: 'Reliquary pauldrons', set: 'reliquary', level: 14, rarity: 'epic', value: 360, droppedBy: { gildedDeacon: 2, gildedSaint: 1 }, armor: 4, stats: { strength: 1, endurance: 1 } },
   sunwardPauldrons: { name: 'Sunward pauldrons', set: 'sunward', level: 14, rarity: 'epic', value: 380, droppedBy: { cryptLord: 1 }, armor: 5, stats: { strength: 1, stamina: 1 } },
 });
 
@@ -71,6 +72,7 @@ export const TORSO_ITEMS = slotItems('torso', {
   cinderRobe: { name: 'Cinder robe', set: 'cinder', level: 8, rarity: 'uncommon', value: 160, droppedBy: { firebrand: 2 }, armor: 3, stats: { agility: 1, endurance: 4 } },
   watchBrigandine: { name: "Watchman's brigandine", set: 'watch', value: 220, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 7, stats: { strength: 1, stamina: 2 } },
   sunwardCuirass: { name: 'Sunward cuirass', set: 'sunward', level: 16, rarity: 'legendary', value: 600, droppedBy: { cryptLord: 1 }, armor: 10, stats: { strength: 2, stamina: 3 } },
+  reliquaryDalmatic: { name: 'Reliquary dalmatic', set: 'reliquary', level: 15, rarity: 'legendary', value: 580, droppedBy: { gildedDeacon: 2, gildedSaint: 1 }, armor: 8, stats: { strength: 1, stamina: 3, endurance: 2 } },
   velvetDoublet: { name: 'Velvet doublet', set: 'velvet', level: 5, rarity: 'uncommon', value: 200, droppedBy: { banditChief: 1 }, armor: 2, stats: { agility: 2, endurance: 3 } },
 });
 
@@ -91,6 +93,7 @@ export const HANDS_ITEMS = slotItems('hands', {
   knucklebones: { name: 'Knucklebone gauntlets', set: 'ossuary', level: 8, rarity: 'uncommon', value: 120, droppedBy: { skeleton: 1, skeletonArcher: 1 }, armor: 2, stats: { strength: 2, agility: 1 } },
   cinderWraps: { name: 'Cinder wraps', set: 'cinder', level: 8, rarity: 'uncommon', value: 80, droppedBy: { firebrand: 2 }, armor: 1, stats: { agility: 2, endurance: 1 } },
   watchVambraces: { name: "Watchman's vambraces", set: 'watch', value: 90, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 3, stats: { stamina: 1 } },
+  reliquaryGauntlets: { name: 'Reliquary gauntlets', set: 'reliquary', level: 14, rarity: 'epic', value: 340, droppedBy: { gildedDeacon: 2, gildedSaint: 1 }, armor: 3, stats: { strength: 2 } },
   sunwardGauntlets: { name: 'Sunward gauntlets', set: 'sunward', level: 14, rarity: 'epic', value: 360, droppedBy: { cryptLord: 1 }, armor: 3, stats: { strength: 3 } },
 });
 

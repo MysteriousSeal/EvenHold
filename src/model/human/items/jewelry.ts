@@ -18,6 +18,7 @@ export const NECK_ITEMS = slotItems('neck', {
   runeStone: { name: 'Rune stone', stats: { endurance: 3 } },
   goldChain: { name: 'Gold chain', stats: { strength: 1, endurance: 2 } },
   // The sets' (sets.ts): a scallop shell from a pedlar, a pilgrim's badge; grave-gold off the draugr; a bandit's trophies.
+  saintsFinger: { name: "Saint's finger", set: 'reliquary', level: 13, rarity: 'epic', value: 320, droppedBy: { gildedDeacon: 2, gildedSaint: 1 }, stats: { stamina: 2, endurance: 2 } },
   barrowTorc: { name: 'Barrow torc', set: 'barrow', level: 4, rarity: 'rare', value: 130, droppedBy: { draugr: 1, cryptLord: 1 }, stats: { strength: 2, stamina: 1 } },
   trophyCord: { name: 'Trophy cord', set: 'flayer', wornBy: { bandit: 1 }, droppedBy: { banditChief: 1 }, stats: { strength: 2, agility: 1 } },
   scallopShell: { name: 'Scallop shell', set: 'palmer', value: 20, soldBy: { pedlar: 2 }, wornBy: { pilgrim: 2 }, stats: { endurance: 2 } },

@@ -49,5 +49,6 @@ export const OFF_HAND_ITEMS = slotItems('offHand', {
   smokingCenser: { name: 'Smoking censer', set: 'cinder', level: 8, rarity: 'uncommon', value: 110, droppedBy: { firebrand: 2 }, stats: { agility: 1, endurance: 3 } },
   watchShield: { name: "Watchman's shield", set: 'watch', value: 120, soldBy: { smith: 1 }, wornBy: { guard: 1 }, armor: 4, stats: { stamina: 2 } },
   sunwardAegis: { name: 'Sunward aegis', set: 'sunward', level: 16, rarity: 'legendary', value: 560, droppedBy: { cryptLord: 1 }, armor: 6, stats: { strength: 1, stamina: 3 } },
+  reliquaryTriptych: { name: 'Reliquary triptych', set: 'reliquary', level: 16, rarity: 'legendary', value: 560, droppedBy: { gildedDeacon: 2, gildedSaint: 1 }, armor: 6, stats: { stamina: 2, endurance: 2 } },
   blackbannerPavise: { name: 'Blackbanner pavise', set: 'blackbanner', level: 5, value: 150, droppedBy: { crossbowman: 2 }, armor: 5, stats: { stamina: 2 } },
 });

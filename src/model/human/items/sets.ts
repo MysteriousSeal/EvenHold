@@ -12,6 +12,7 @@ export const GEAR_SETS = {
   watch: { name: "The Watch's", tale: "EvenHold's own, forged at the smithy for the roads' guards: teal, steel and brass." },
   sunward: { name: 'Sunward', tale: "A lost order's harness, gilded and white-enamelled, a sun on every plate: kings' tombs keep it." },
   velvet: { name: 'Velvet court', tale: "A noble's finery, taken on the road by the bandits' chiefs: velvet, ermine, gold." },
+  reliquary: { name: 'Reliquary', tale: "What the Gilded Deacon was rebuilt from, and his saints with him: gilt, bone and red silk, a relic behind every window." },
   blackbanner: { name: 'Blackbanner', tale: "The strongholds' soldiers' kit: black cloth, blackened iron, a pavise to shoot from." },
 } as const;
 
