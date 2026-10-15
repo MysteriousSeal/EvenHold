@@ -28,6 +28,7 @@ import { smithCalled, smithSteps } from '../smithy/smithWork';
 import { herbalistCalled, herbalistSteps } from '../herbalist/herbalistWork';
 import { witchCalled, witchSteps } from '../witch/witchWork';
 import { mongerSteps } from '../town/stallKeepers';
+import { callingSteps } from '../town/townCallings';
 import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
 import { inTurn, say } from './speech';
@@ -158,7 +159,7 @@ export function visitInn(npc: Npc, inn: Entrance, seed: number, seconds: number,
 }
 
 // What each kind of villager does next, when done with what they were doing.
-const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]> = {
+const ROUTINES = {
   villager: plan,
   barkeep: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
   server: (npc, npcs, world) => staffSteps(npc, npcs, world.seed),
@@ -167,7 +168,9 @@ const ROUTINES: Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld
   herbalist: (npc, _npcs, world) => herbalistSteps(npc, world), // (at home, at work among their pots and herbs, always)
   witch: (npc, _npcs, world) => witchSteps(npc, world), // (likewise, among hers)
   monger: (npc, _npcs, world) => mongerSteps(npc, world), // (at their stall by day, the cathedral town's)
-};
+  pardoner: (npc, _npcs, world) => mongerSteps(npc, world), // (at his, likewise)
+  ...Object.fromEntries((['bishop', 'deacon', 'sister', 'captain', 'prisoner'] as const).map((c) => [c, (npc: Npc, _npcs: readonly Npc[], world: NpcWorld) => callingSteps(npc, world)])), // (Greyminster's people, about their callings)
+} as Record<NpcRole, (npc: Npc, npcs: readonly Npc[], world: NpcWorld) => NpcStep[]>;
 
 // Who puts down their work, the hero come to them (a keeper at their counter: keeperWork.ts).
 const CALLED: Partial<Record<NpcRole, (npc: Npc, world: NpcWorld) => boolean>> = { smith: smithCalled, herbalist: herbalistCalled, witch: witchCalled };

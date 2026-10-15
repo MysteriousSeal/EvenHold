@@ -21,7 +21,7 @@ import type { Crypt } from '../crypts/crypts';
 import type { Cave } from '../caves/caves';
 import type { Entrance } from '../interiors/interiors';
 import type { Hero } from '../types';
-import type { Npc } from './npcs';
+import type { NpcRole, Npc } from './npcs';
 
 export const CHAT_REACH = 1.7; // tiles from a villager, for a word
 export const CHAT_TIP = 5; // copper pressed on them for something more exact
@@ -47,13 +47,16 @@ export function villagerInReach(world: Pick<ChatWorld, 'folk' | 'inside' | 'hero
   const { hero, inside } = world;
   let [best, near]: [Npc | null, number] = [null, CHAT_REACH];
   for (const n of world.folk) {
-    if ((n.role !== 'villager' && n.role !== 'monger') || n.led || n.where !== (inside?.entrance ?? null)) continue; // (a monger: across their stall, their trade)
-    const d = Math.hypot(n.x - hero.x, n.z - hero.z) - (n.role === 'monger' ? ACROSS_STALL : 0);
+    if (!OUT_AND_ABOUT.has(n.role) || n.led || n.where !== (inside?.entrance ?? null)) continue;
+    const d = Math.hypot(n.x - hero.x, n.z - hero.z) - (n.stall ? ACROSS_STALL : 0);
     if (d < near) [best, near] = [n, d];
   }
   return best;
 }
 const ACROSS_STALL = 0.5; // tiles a stall's keeper is the nearer, across their counter (before anyone passing behind the hero)
+// Who's spoken to out and about (or in their own house): villagers, the cathedral town's stall keepers (their trade:
+// town/stallKeepers.ts) and its captain at his gate, the sister in her hospice (town/townCallings.ts).
+const OUT_AND_ABOUT: ReadonlySet<NpcRole> = new Set(['villager', 'monger', 'pardoner', 'captain', 'sister']);
 
 type Manner = 'warm' | 'gruff' | 'gossip';
 const mannerOf = (npc: Npc): Manner => (['warm', 'gruff', 'gossip'] as const)[Math.floor(npc.salt * 3) % 3];

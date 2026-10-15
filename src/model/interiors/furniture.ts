@@ -74,6 +74,7 @@ export const FURNITURE_KINDS = [
   'candleStand', // votive candles on an iron stand
   'lectern',
   'reliquaryStair', // the way down to the reliquary, behind a grille (reliquary/)
+  'cellBars', // iron bars, floor to beam: a cell's (its prisoner's: town/townCallings.ts)
 ] as const;
 
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
