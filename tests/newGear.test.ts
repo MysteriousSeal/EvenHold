@@ -1,4 +1,4 @@
-// The fifty new pieces of gear (the sets': model/human/items/sets.ts): each in
+// The fifty-five new pieces of gear (the sets': model/human/items/sets.ts; the Reliquary's five in v0.9): each in
 // its slot, each drawn (a stand-in at least), each to be had somewhere, none
 // stronger or dearer than the old ones of its slot allow, and every set's
 // pieces of one set, on different slots, in one palette.
@@ -19,14 +19,14 @@ import type { EnemyKind } from '../src/model/types';
 
 const NEW: Record<EquipSlot, ItemId[]> = {
   head: ['headsmansHood', 'barrowHelm', 'ossuaryMask', 'cinderCowl', 'palmerHat', 'sunwardArmet'],
-  shoulders: ['barrowSpaulders', 'ribcagePauldrons', 'flayersMantle', 'palmersCape', 'sunwardPauldrons'],
-  torso: ['headsmansApron', 'barrowHauberk', 'cinderRobe', 'watchBrigandine', 'sunwardCuirass', 'velvetDoublet'],
-  hands: ['headsmansGloves', 'knucklebones', 'cinderWraps', 'watchVambraces', 'sunwardGauntlets'],
+  shoulders: ['barrowSpaulders', 'ribcagePauldrons', 'flayersMantle', 'palmersCape', 'sunwardPauldrons', 'reliquaryPauldrons'],
+  torso: ['headsmansApron', 'barrowHauberk', 'cinderRobe', 'watchBrigandine', 'sunwardCuirass', 'velvetDoublet', 'reliquaryDalmatic'],
+  hands: ['headsmansGloves', 'knucklebones', 'cinderWraps', 'watchVambraces', 'sunwardGauntlets', 'reliquaryGauntlets'],
   legs: ['barrowGreaves', 'flayedLeggings', 'watchCuisses', 'particolouredHose', 'blackbannerTrews'],
   feet: ['headsmansBoots', 'flayersBoots', 'ashSandals', 'sunwardSabatons', 'poulaines'],
   mainHand: ['headsmansAxe', 'barrowBlade', 'flensingKnife', 'pilgrimsStaff', 'watchGlaive', 'courtSword', 'blackbannerFalchion'],
-  offHand: ['ossuaryWard', 'smokingCenser', 'watchShield', 'sunwardAegis', 'blackbannerPavise'],
-  neck: ['barrowTorc', 'trophyCord', 'scallopShell'],
+  offHand: ['ossuaryWard', 'smokingCenser', 'watchShield', 'sunwardAegis', 'blackbannerPavise', 'reliquaryTriptych'],
+  neck: ['barrowTorc', 'trophyCord', 'scallopShell', 'saintsFinger'],
   ring: ['fingerboneRing', 'emberRing', 'ducalSignet'],
 };
 const ALL = Object.values(NEW).flat();
@@ -34,10 +34,10 @@ const OLD = ITEM_IDS.filter((id) => !ALL.includes(id));
 const power = (id: ItemId) => (ITEMS[id].armor ?? 0) + Object.values(ITEMS[id].stats ?? {}).reduce((a, b) => a + b, 0);
 const WEARERS: Wearer[] = ['bandit', 'bouncer', 'pedlar', 'pilgrim', 'guard'];
 
-describe('the fifty new pieces', () => {
-  it('fifty, each in its own slot, every slot given its share (five or so; jewellery six between neck and ring)', () => {
-    expect(ALL).toHaveLength(50);
-    expect(new Set(ALL).size).toBe(50);
+describe('the fifty-five new pieces', () => {
+  it('fifty-five, each in its own slot, every slot given its share (five or so; jewellery six between neck and ring)', () => {
+    expect(ALL).toHaveLength(55);
+    expect(new Set(ALL).size).toBe(55);
     for (const slot of EQUIP_SLOTS) for (const id of NEW[slot]) expect(ITEMS[id]?.slot, id).toBe(slot);
     for (const slot of EQUIP_SLOTS.filter((s) => s !== 'neck' && s !== 'ring')) expect(NEW[slot].length, slot).toBeGreaterThanOrEqual(5);
     expect(NEW.neck.length + NEW.ring.length).toBeGreaterThanOrEqual(5);
@@ -153,6 +153,12 @@ describe('the fifty new pieces', () => {
     }
   });
 
+  it("the Gilded Deacon's hoard holds the Reliquary's pieces now and then, and his saints leave them; no one else's", () => {
+    const items = Array.from({ length: 400 }, (_, i) => gearOf(rollHoard(i, i * 7, 7717, 15, { worth: 150, base: 90, spread: 60, keeper: 'gildedDeacon' }).item).item);
+    expect(items.some((id) => ITEMS[id].set === 'reliquary')).toBe(true);
+    for (const id of ALL.filter((id) => ITEMS[id].set === 'reliquary')) expect(Object.keys(ITEMS[id].droppedBy ?? {}).sort(), id).toEqual(['gildedDeacon', 'gildedSaint']);
+  });
+
   it("a deep crypt lord's hoard holds Sunward plate now and then", () => {
     const items = Array.from({ length: 400 }, (_, i) => gearOf(rollHoard(i, i * 7, 9091, 16, { worth: 100, base: 60, spread: 40, keeper: 'cryptLord' }).item).item);
     expect(items.some((id) => ITEMS[id].set === 'sunward')).toBe(true);
@@ -163,8 +169,8 @@ describe('the fifty new pieces', () => {
 describe('the sets', () => {
   const sets = Object.keys(GEAR_SETS) as GearSet[];
 
-  it('ten, every new piece in one, each of three pieces or more on as many slots, in its own palette', () => {
-    expect(sets).toHaveLength(10);
+  it('eleven, every new piece in one, each of three pieces or more on as many slots, in its own palette', () => {
+    expect(sets).toHaveLength(11);
     for (const id of ALL) expect(sets, id).toContain(ITEMS[id].set);
     for (const set of sets) {
       const pieces = ALL.filter((id) => ITEMS[id].set === set);
