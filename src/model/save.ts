@@ -128,7 +128,10 @@ const MAX_BAG_SLOTS = 256; // a saved bag order longer than any bag is cut there
 const round = (v: number) => Math.round(v * 100) / 100; // to a hundredth of a tile: plenty, and a smaller save
 
 // The game as it stands, to save.
+const NPCS_KEPT = 160; // tiles from the hero a villager's village may be for where they are to be saved
+
 export function snapshot(model: GameModel): SaveData {
+  const near = model.inside?.entrance ?? model.hero; // (where the hero is, out of doors)
   const { hero } = model;
   const door = (entrance: GameModel['entrances'][number] | null | undefined) => (entrance ? doorNumber(entrance) : null);
   const indoors = model.yard ? model.yard.back.inside : model.inside; // a save from the yard keeps where they came from
@@ -189,9 +192,12 @@ export function snapshot(model: GameModel): SaveData {
     floors: model.floors.save(), // what lies on each dungeon's floor
     chickens: model.chickens.save(),
     swaps: model.swaps.save(),
-    // Only villagers who've done something (the rest are as the seed made them, at home).
+    // Only villagers who've done something (the rest are as the seed made them, at home), and of those only the ones
+    // near enough to be seen or that something hangs on (led, at the dice, a quest's mark): the far ones start their
+    // day from home on load, as a region made afresh has them (else every loaded region's villagers, saved: the save grows).
     npcs: model.npcs
       .filter((n) => n.where !== n.home || n.x !== 0 || n.z !== 0)
+      .filter((n) => Math.hypot(n.village.x - near.x, n.village.z - near.z) <= NPCS_KEPT || n.led || n.dicing || model.story.markOf(n) !== null)
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })), ...(shop.bought && { bought: { ...shop.bought } }) })),
     quests: model.quests.save(),

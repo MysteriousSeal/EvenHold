@@ -24,7 +24,8 @@ describe("a streamed world's save", () => {
     if (process.env.ROAM) console.log(Object.entries(data).map(([k, v]) => `${k} ${kb(v)}`).join(', '));
     console.log(`roamed ${kb(data)} KB (enemies.changed ${kb(data.enemies.changed)} KB, ${data.enemies.changed.length} foes; gone ${data.enemies.gone.length})`);
     expect(kb(data.enemies.changed)).toBeLessThan(8);
-    expect(kb(data)).toBeLessThan(250); // (the villagers of the regions round the hero, where they are in their day, most of it)
+    expect(kb(data.npcs)).toBeLessThan(60); // (only the villagers near the hero, where they are in their day: save.ts NPCS_KEPT)
+    expect(kb(data)).toBeLessThan(150);
     // An older save, its every wanderer kept: still read (each where it was), saved small after.
     const old = { ...data, enemies: { ...data.enemies, changed: model.enemies.filter((e) => e.state !== 'dead').map((e) => ({ id: e.id, x: Math.round((e.homeX + 1) * 100) / 100, z: e.homeZ, hp: e.maxHp })) } };
     expect(old.enemies.changed.length).toBeGreaterThan(100);
