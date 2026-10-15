@@ -233,6 +233,8 @@ export class Player {
         return opened(this.open('salvage'));
       case 'fire':
         return false; // (no cooking for the player yet)
+      case 'anvil':
+        return false; // (no smithing for the player yet)
       case 'well':
         return model.tossCoin() && tally.wishes++, true;
       case 'hallDoor':

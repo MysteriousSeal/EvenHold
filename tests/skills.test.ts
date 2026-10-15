@@ -10,6 +10,7 @@ import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE } from './support/testWorld';
 import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
 import { COOK_RECIPES, COOK_RECIPE_IDS } from '../src/model/skills/cooking';
+import { SMITH_RECIPES, SMITH_RECIPE_IDS } from '../src/model/skills/smithing';
 import { salvageOf } from '../src/model/skills/salvage';
 import { gearKey } from '../src/model/human/items/gear';
 
@@ -17,9 +18,9 @@ vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createEle
 const { createSkillsPanel, statusOf } = await import('../src/controller/skills/skillsPanel');
 
 describe('skills', () => {
-  it('are lumberjacking and woodworking (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
-    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
-    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'secondary', 'secondary', 'secondary']);
+  it('are lumberjacking, woodworking and smithing (main skills), salvaging, cooking and fishing (secondary), each with what it opens', () => {
+    expect(SKILL_IDS).toEqual(['lumberjacking', 'woodworking', 'smithing', 'salvaging', 'cooking', 'fishing']);
+    expect(SKILL_IDS.map((id) => SKILLS[id].kind)).toEqual(['main', 'main', 'main', 'secondary', 'secondary', 'secondary']);
     const fishing = SKILLS.fishing.unlocks.map((u) => u.at); // (practised: every tier's start, and a lucky catch between)
     expect(fishing).toEqual(expect.arrayContaining(SKILL_TIERS.map((t) => t.from)));
     expect(fishing).toEqual([...fishing].sort((a, b) => a - b));
@@ -32,7 +33,7 @@ describe('skills', () => {
   });
 
   it('promise nothing before its level: every recipe at a row of its own, or named with its level in the row before', () => {
-    for (const [skill, needs] of [['woodworking', RECIPE_IDS.map((id) => RECIPES[id].needs)], ['cooking', COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs)]] as const) {
+    for (const [skill, needs] of [['woodworking', RECIPE_IDS.map((id) => RECIPES[id].needs)], ['cooking', COOK_RECIPE_IDS.map((id) => COOK_RECIPES[id].needs)], ['smithing', SMITH_RECIPE_IDS.map((id) => SMITH_RECIPES[id].needs)]] as const) {
       const rows = SKILLS[skill].unlocks;
       for (const row of rows) expect(needs, `${skill} ${row.at}`).toContain(row.at); // (a row's level: a recipe's)
       for (const n of needs) {
@@ -96,7 +97,7 @@ describe('skills', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), 1)!);
     expect([skillOf(again.hero, 'cooking').level, skillOf(again.hero, 'fishing').level]).toEqual([81, 1]);
     expect(readSkills(undefined)).toEqual({});
-    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 } });
+    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 }, mining: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 }, smithing: { level: 5 } }); // (a skill not had, none)
     expect(readSkills({ cooking: { level: 'x' } })).toEqual({});
     expect(readSkills({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5, toward: 99 }, cooking: { level: 5, toward: -1 } })).toEqual({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5 }, cooking: { level: 5 } }); // (tries toward the next: kept, if sound)
   });
@@ -116,7 +117,7 @@ describe('the skills window', () => {
     const panel = createSkillsPanel(model);
     panel.menu.open();
     const cards = cardsOf();
-    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'salvaging', 'cooking', 'fishing']);
+    expect(cards.map((c) => c.dataset.skill)).toEqual(['lumberjacking', 'woodworking', 'smithing', 'salvaging', 'cooking', 'fishing']);
     expect(Array.from(all('.skill-cards').at(-1)!.querySelectorAll('.skill-cards-group')).map((g) => g.textContent)).toEqual(['Main skills', 'Secondary skills']);
     expect(cards[0].querySelector('.skill-card-level')?.textContent).toBe('100');
     expect(cards[0].querySelector('.skill-card-tier')?.textContent).toBe('Journeyman · 50 to Expert');
@@ -165,12 +166,14 @@ describe('the skills window', () => {
     all('.book-row').at(-1)!.click();
     expect(list().scrollTop).toBe(120);
     cardsOf()[2].click();
+    expect(all('.book-group').slice(-7).map((g) => g.textContent)).toEqual(['Smelting', 'Fittings', 'Tools', 'Weapons', 'Armour', 'Shields', 'Trinkets']); // (smithing: its recipes)
+    cardsOf()[3].click();
     expect(all('.book-row .book-name').slice(-5).map((r) => r.textContent)).toEqual(['Iron', 'Leather', 'Cloth', 'Silver', 'Wood']); // (salvaging: its guide, what gear is made of)
     expect(q('.book-detail .book-title').textContent).toBe('Iron');
-    cardsOf()[3].click();
+    cardsOf()[4].click();
     expect(all('.book-group').slice(-5).map((g) => g.textContent)).toEqual(['Roasts', 'Fish', 'Stews', 'Pies', 'Feasts']); // (cooking: its recipes)
     expect(q('.cook-fire').textContent).toContain('No fire here');
-    cardsOf()[4].click();
+    cardsOf()[5].click();
     expect(document.querySelector('.skill-notyet')).toBeNull(); // (fishing: its guide, what bites)
     expect(all('.book-row .book-name').map((r) => r.textContent)).toContain('Small fry');
     panel.window.menu.close();
