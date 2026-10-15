@@ -55,7 +55,7 @@ export function createPedlarPanel(model: GameModel, hooks: { bag?: TradeBag }): 
     lines: LINES,
     about: () => pick(ABOUT),
     greet: () => pedlarGreets(model.hero, !!pedlar?.camp),
-    note: () => `News of the road: “${pedlarNews(model.story.stateOf('theLongRoad') === 'done', news)}”`,
+    note: () => `News of the road: “${pedlarNews(model.story.saint, news)}”`,
     service: () => {
       const here = pedlar!;
       const can = rumourToSell(shop()) && !!rumourOf(model, here) && model.hero.money >= RUMOUR_PRICE;

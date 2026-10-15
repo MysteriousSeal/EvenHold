@@ -124,12 +124,22 @@ describe("a pedlar's word", () => {
     expect(pedlarGreets(hero, false, 0.9)).toBe(null); // (not every time)
   });
 
+  // All a pedlar has to tell at an act of the second arc (and its ending).
+  const told = (act: 0 | 1 | 2 | 3 | 4, ending: 'exposed' | 'kept' | null = null) => Array.from({ length: 20 }, (_, n) => pedlarNews({ act, ending }, n)).join(' ');
+
   it("the news of the road: the cathedral's once the long road's been taken, never before", () => {
-    const before = Array.from({ length: 20 }, (_, n) => pedlarNews(false, n)).join(' ');
-    const after = Array.from({ length: 20 }, (_, n) => pedlarNews(true, n)).join(' ');
-    expect(before).not.toMatch(/grey|Greyminster|Aldous|bishop/i);
-    expect(after).toMatch(/men in grey|greycoats/i);
-    expect(after).toMatch(/saint/);
+    expect(told(0)).not.toMatch(/grey|Greyminster|Aldous|bishop/i);
+    expect(told(1)).toMatch(/men in grey|greycoats/i);
+    expect(told(1)).toMatch(/saint/);
+  });
+
+  it('the news act by act: the pilgrims, the witches chained, the man in the cells; at the last, how it ended', () => {
+    expect(told(1)).toMatch(/new saint heals/);
+    expect(told(2)).toMatch(/chaining hedge-witches/);
+    expect(told(3)).toMatch(/shouting the saint's a knuckle/);
+    expect(told(4, 'exposed')).toMatch(/bishop in the stocks/);
+    expect(told(4, 'kept')).toMatch(/miracles stopped, but the pilgrims still come/);
+    expect(told(2)).not.toMatch(/new saint heals|knuckle|stocks!/);
   });
 });
 
