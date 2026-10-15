@@ -55,9 +55,9 @@ export const isIngredient = (item: string): item is IngredientId => item in INGR
 // a cook needs it (a boar's and a bear's more often than not), and now and then a bear's honeycomb. Each by the
 // beast's id, so the same kill leaves the same.
 export const BUTCHERED: Partial<Record<LootSource, ReadonlyArray<[IngredientId, number]>>> = {
-  boar: [['rawBoarMeat', 0.7]],
-  beast: [['rawWolfMeat', 0.6]], // (wolves, and a stronghold's war hounds)
-  bear: [['rawBearMeat', 0.7], ['honeycomb', 0.4]],
-  lynx: [['leanLynxMeat', 0.6]],
+  boar: [['rawBoarMeat', 0.9]],
+  beast: [['rawWolfMeat', 0.75]], // (wolves, and a stronghold's war hounds)
+  bear: [['rawBearMeat', 0.9], ['honeycomb', 0.4]],
+  lynx: [['leanLynxMeat', 0.8]],
 };
 export const butcher = (source: LootSource, enemyId: number): IngredientId[] => (BUTCHERED[source] ?? []).filter(([, chance], i) => hashUnit(enemyId, 0, 81 + i) < chance).map(([item]) => item);

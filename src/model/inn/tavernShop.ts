@@ -47,13 +47,14 @@ export const isPantry = (id: string): id is PantryId => (INN_PANTRY as readonly 
 
 export const buyPrice = (id: ProvisionId | PantryId): number => (isPantry(id) ? INGREDIENTS[id].value : PROVISIONS[id].value);
 
-// What the inn pays for a woodworker's cups (skills/woodworking.ts), a standing price well over the junk one: the
+// What the inn pays for a woodworker's cups and casks (skills/woodworking.ts), a standing price well over the junk one: the
 // bar's tankards break, the kitchen's bowls crack, and she wants them. Those sold stock her cupboard (the shop's
 // stock): a barkeep's shift there begins with the more clean cups (jobs/work.ts).
 // And her orders on the village's board (quests/quests.ts): so many at a time.
 export const INN_WANTS = {
   carvedTankard: { pays: 45, plural: 'carved tankards', order: [2, 4] },
   woodenBowl: { pays: 14, plural: 'wooden bowls', order: [3, 6] },
+  oakCask: { pays: 30, plural: 'oak casks', order: [1, 2] }, // (for her ale)
 } as const;
 export type InnWant = keyof typeof INN_WANTS;
 export const innWants = (id: string | null): id is InnWant => id !== null && id in INN_WANTS;
