@@ -5,6 +5,7 @@
 import { ENEMY_STATS } from '../constants';
 import { hashUnit } from '../../util/random';
 import type { Enemy } from '../types';
+import { CHAMPION_COINS } from '../champions/champions';
 
 export const COPPER_PER_SILVER = 100;
 export const SILVER_PER_GOLD = 100;
@@ -40,6 +41,6 @@ export function coins(copper: number): { gold: number; silver: number; copper: n
 // What a slain foe drops, in copper: always a few coins, more from tougher
 // foes, and by kind (constants.ts ENEMY_STATS coins: bandits carry a purse).
 export function coinDrop(enemy: Enemy): number {
-  const per = ENEMY_STATS[enemy.kind].coins;
+  const per = ENEMY_STATS[enemy.kind].coins * (enemy.champion ? CHAMPION_COINS : 1); // (a champion's purse the fuller)
   return Math.max(1, Math.round((1 + hashUnit(enemy.id, 0, 92) * 2) * per * enemy.level));
 }

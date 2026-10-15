@@ -160,6 +160,8 @@ export class CaveRun extends DungeonFoes {
     };
     const size = { width: inside.plan.width, depth: inside.plan.depth };
     this.director = new EnemyDirector(this.foes, hero, ground, size, () => 0, (e) => this.bite(e), true);
+    const champion = this.crown('cave', inside.cave.entrance, inside.cave.level, posts); // (its champion, if it has one: dungeonFoes.ts)
+    if (champion?.kind === 'caveWorm') champion.buried = true;
   }
 
   private get nest(): Hollow {
@@ -177,6 +179,7 @@ export class CaveRun extends DungeonFoes {
     this.tear(hero);
     this.wakeMother(hero);
     this.director.update(dt);
+    this.runChampion();
     for (const [worm, up] of this.surfaced) Object.assign(worm, { x: up.x, z: up.z }); // (up, it's rooted in its hole: turning, striking, not going)
     this.flit(dt);
     const moves = [this.spits, this.lunges, this.eruptions, this.volleys, this.rushes];

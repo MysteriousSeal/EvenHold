@@ -2,7 +2,8 @@
 // a runner, the bowmen) by every blow; the steadier (a bandit, a boar, a bruiser, a skeleton, a ghost, a worm) by the second
 // within POISE_WINDOW of the first; the heavy (a bear, a chief, a draugr, every boss) never by a plain blow, only
 // caught open: parried (reeling, hero/combatMoves.ts), or struck just after the hero's roll. Not flinching, it
-// barely flashes (SHRUG_FLASH: too little to lose a told move by) and its blow comes on.
+// barely flashes (SHRUG_FLASH: too little to lose a told move by) and its blow comes on. A champion (champions/) takes
+// a blow more than its kind to flinch.
 import { isBoss } from './enemyLevels';
 import type { Enemy, EnemyKind } from '../types';
 
@@ -18,7 +19,7 @@ const taken = new WeakMap<Enemy, { blows: number; at: number }>(); // (each foe'
 // whatever its poise (parried, punished after a roll); `weight`: the blows it counts as (a hammer's two, a dagger's
 // half: hero/weaponProfiles.ts), a light foe flinching at any.
 export function flinches(foe: Enemy, now: number, open: boolean, weight = 1): boolean {
-  const need = blowsToFlinch(foe.kind);
+  const need = blowsToFlinch(foe.kind) + (foe.champion ? 1 : 0); // (a champion: a blow more)
   if (open || need <= 1) return true;
   const last = taken.get(foe);
   const blows = (last && now - last.at <= POISE_WINDOW ? last.blows : 0) + weight;

@@ -14,8 +14,9 @@ export const BOSS_PHASES: Partial<Record<EnemyKind, readonly number[]>> = {
   broodMother: [2 / 3, 1 / 3],
 };
 
-// The least health a blow may leave `foe` with: the next of its turns under it (none: none).
+// The least health a blow may leave `foe` with: the next of its turns under it (its own, a champion's: else its
+// kind's; none: none).
 export function phaseFloor(foe: Enemy): number {
-  const next = (BOSS_PHASES[foe.kind] ?? []).find((share) => foe.hp > foe.maxHp * share);
-  return next === undefined ? -Infinity : Math.floor(foe.maxHp * next); // (whole points, at or under it: the turn taken)
+  const next = (foe.phases ?? BOSS_PHASES[foe.kind] ?? []).find((share) => foe.hp > foe.maxHp * share);
+  return next === undefined ? -Infinity : Math.max(1, Math.floor(foe.maxHp * next)); // (whole points, at or under it: the turn taken; never nothing)
 }

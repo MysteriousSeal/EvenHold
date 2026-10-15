@@ -8,6 +8,7 @@ import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
+import type { ChampionId } from './champions/champions';
 import type { Wielded } from './hero/weaponProfiles';
 import type { SpellId } from './spells/spells';
 import type { Being } from './spells/beings';
@@ -146,6 +147,8 @@ export interface Enemy {
   told?: 'slam' | 'breath' | 'cleave' | 'sweep' | 'charge' | 'eruption' | 'barrage' | 'web' | 'lunge' | 'erupt' | 'volley' | 'brood' | 'shot' | 'firebomb' | 'mend' | 'whistle' | 'rally' | 'smash' | null; // which (the last six: a stronghold's, strongholds/strongholdMoves.ts)
   buried?: boolean; // underground (a cave worm, burrowing: caves/caveFoes.ts): not to be seen, struck or bumped into
   quest?: string; // the quest it was gathered for (quests/questBook.ts), by key
+  champion?: ChampionId; // a dungeon's named champion (champions/champions.ts): its name its own, its trait, its poise and drop the better
+  phases?: readonly number[]; // where its fight turns, over its kind's (a champion's: enemies/bossPhases.ts)
 }
 
 // A 5x5 bandit camp around a campfire on (x, z), its layout turned by
