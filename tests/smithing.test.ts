@@ -4,7 +4,8 @@
 // their level); made only before the anvil; the skill up as its difficulty allows; the smith buys the ingots back.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { SMITH_RECIPES, SMITH_RECIPE_IDS, smithRise } from '../src/model/skills/smithing';
+import { SMITH_RECIPES, SMITH_RECIPE_IDS, nextToLearn, smithRise } from '../src/model/skills/smithing';
+import { isCrafted } from '../src/model/skills/salvage';
 import { RISE, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { ITEMS } from '../src/model/human/equipment';
@@ -99,5 +100,79 @@ describe('smithing', () => {
     const away = book();
     expect(away.querySelector<HTMLButtonElement>('.book-craft')!.disabled).toBe(true);
     expect(away.textContent).toContain('anvil');
+  });
+
+  it("tells, in the book, of a piece the hero isn't of the level to wear yet", () => {
+    const { model } = atTheAnvil(60, { ironIngot: 2 });
+    model.hero.level = 3;
+    const book = recipeBook(model, { ...newBook(), picked: 'shortSword' }, () => {}, SMITHING);
+    expect(book.textContent).toContain('Requires level 8');
+  });
+});
+
+describe('what smithing would teach next', () => {
+  it('names a recipe reached that still teaches, the likeliest to; of those as likely, one the bag would make first', () => {
+    const { model } = atTheAnvil(1);
+    expect(nextToLearn(model.hero)).toBe('copperIngot');
+    model.hero.bag.ironScrap = 3;
+    expect(nextToLearn(model.hero)).toBe('scrapIron'); // (as likely, and the bag would make it)
+    skillOf(model.hero, 'smithing').level = 60;
+    const id = nextToLearn(model.hero)!;
+    expect(SMITH_RECIPES[id].needs).toBeLessThanOrEqual(60);
+    expect(smithRise(id, 60).chance).toBe(Math.max(...SMITH_RECIPE_IDS.filter((r) => SMITH_RECIPES[r].needs <= 60).map((r) => smithRise(r, 60).chance)));
+  });
+
+  it('marks the gear the hero crafts as their own, for whoever asks (the bench, a buyer); a found piece, not', () => {
+    const { model } = atTheAnvil(20, { copperIngot: 2 });
+    expect(model.smithing.start('dagger')).toBe(true);
+    run(model, SMITH_RECIPES.dagger.seconds + 0.05);
+    const made = Object.keys(model.hero.bag).find((k) => k.startsWith('dagger@4'))!;
+    expect([isCrafted(model.hero, made), isCrafted(model.hero, 'dagger@4c999')]).toEqual([true, false]);
+  });
+});
+
+describe('the hero at work at the anvil and the bench', () => {
+  it('has E go to the anvil or the bench stood before, not to the smith beside them; a step off, to him', () => {
+    const { model, anvil } = atTheAnvil();
+    const smith = model.folk.find((n) => n.role === 'smith' && n.where === model.inside!.entrance)!;
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z }); // (at his round, or behind his counter, within a word)
+    expect(interactionOf(model)?.kind).toBe('anvil');
+    const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench')!;
+    Object.assign(model.hero, { x: bench.x, z: bench.z + 1 });
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z });
+    expect(interactionOf(model)?.kind).toBe('bench');
+    Object.assign(model.hero, { x: anvil.x + 3, z: anvil.z + 3 });
+    Object.assign(smith, { x: model.hero.x + 1, z: model.hero.z });
+    expect(interactionOf(model)?.kind).toBe('talk');
+  });
+
+  it('faces the anvil and swings a hammer at it, a blow at a time, while forging; none when not', () => {
+    const { model, anvil } = atTheAnvil(1, { copperOre: 4 });
+    model.hero.facing = 0; // (away from it: it's at -z)
+    expect(model.attackProgress).toBeNull();
+    expect(model.smithing.start('copperIngot', 4)).toBe(true);
+    expect(model.hero.facing).toBeCloseTo(Math.atan2(anvil.x - model.hero.x, anvil.z - model.hero.z));
+    run(model, 0.3);
+    expect(model.smithing.swing).not.toBeNull();
+    expect(model.attackProgress).toBe(model.smithing.swing);
+    model.smithing.stop();
+    expect([model.smithing.swing, model.attackProgress]).toEqual([null, null]);
+  });
+
+  it('does one thing at a time: the bench and the anvil, or a plank made from the bag, stop one another', () => {
+    const { model } = atTheAnvil(1, { copperOre: 4, rustyBuckle: 4, birchLog: 2 });
+    const bench = model.inside!.furniture.find((f) => f.kind === 'salvageBench')!;
+    const salvage = model.salvage as unknown as { benchInReach: unknown };
+    Object.defineProperty(salvage, 'benchInReach', { get: () => bench }); // (as though the two stood side by side)
+    expect(model.salvage.start('rustyBuckle', Infinity)).toBe('started');
+    expect(model.smithing.start('copperIngot', 4)).toBe(true);
+    run(model, 0.2);
+    expect([model.salvage.breaking, !!model.smithing.making]).toEqual([null, true]);
+    expect(model.salvage.start('rustyBuckle', Infinity)).toBe('started');
+    run(model, 0.2);
+    expect([!!model.salvage.breaking, model.smithing.making]).toEqual([true, null]);
+    expect(model.woodworking.start('birchPlank')).toBe(true); // (a plank, anywhere: the bench left)
+    run(model, 0.2);
+    expect([model.salvage.breaking, !!model.woodworking.making]).toEqual([null, true]);
   });
 });

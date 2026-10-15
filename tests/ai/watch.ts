@@ -24,7 +24,7 @@ const AFTER = 2; // seconds a life's end stays on screen
 const ARROWS = ['·', '↓', '↘', '→', '↗', '↑', '↖', '←', '↙'];
 const WHAT_E_DOES: Record<Prompt, string> = {
   none: '', work: 'Work', stopChop: 'Stop chopping', loot: 'Pick up', jobBoard: 'Read the notice board', chest: 'Open the chest', chop: 'Chop', barmaidFromStool: 'Talk to the barmaid', standUp: 'Stand up', getUp: 'Get up', sit: 'Sit', lie: 'Lie down',
-  barmaid: 'Talk to the barmaid', smith: 'Trade with the smith', herbalist: 'Trade with the herbalist', bouncer: 'Talk to the bouncer', pedlar: "See the pedlar's wares", traveller: 'A word with the traveller', board: 'Read the notice board', bench: 'Break down gear', anvil: 'Work metal', well: 'Toss a silver coin',
+  barmaid: 'Talk to the barmaid', smith: 'Trade with the smith', herbalist: 'Trade with the herbalist', bouncer: 'Talk to the bouncer', pedlar: "See the pedlar's wares", traveller: 'A word with the traveller', board: 'Read the notice board', bench: 'Break down gear', anvil: 'Forge', well: 'Toss a silver coin',
   hallDoor: 'Open the door', stairs: 'Take the stairs', leave: 'Leave', door: 'Go in', dungeon: 'Go down', cannotChop: "Can't chop this yet", carter: 'Talk to the carter', fishing: 'Hook it, or reel in', fish: 'Fish', cannotFish: 'No rod to fish with',
 };
 

@@ -36,6 +36,7 @@ import { Cupboard } from './interior/cupboard';
 import { BedrollView } from './meshes/scenery/bedrollMesh';
 import { FishingView } from './meshes/water/fishingLine';
 import { PickInHand } from './meshes/mining/pickInHand';
+import { HammerInHand } from './meshes/smithing/hammerInHand';
 import { workCostume, workLook } from './meshes/human/gear/costumes';
 import { CoinViews } from './meshes/loot/coinViews';
 import { zoomLevel } from './render/zoom';
@@ -98,6 +99,7 @@ export class GameView {
   private bedroll: BedrollView | null = null; // (the hero's, under them as they lie outdoors)
   private fishing: FishingView | null = null; // (the hero's rod, line and bobber, a line out)
   private readonly pickInHand = new PickInHand(); // (the hero's pickaxe, in hand while they mine)
+  private readonly hammerInHand = new HammerInHand(); // (and a smith's hammer, at the anvil or the salvage bench)
   private readonly travellers: TravellerViews; // on the roads
   private readonly chickens = new TurnedViews((being) => this.standIn(being)); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
@@ -311,6 +313,7 @@ export class GameView {
     const yard = this.yardScene(model);
     const room = yard ? null : this.roomScene(model);
     const home = yard ?? room ?? this.scene;
+    this.hammerInHand.update(model, this.hero); // (at the anvil or the bench: in hand)
     // Whoever the hero's picked out (hero/selection.ts): the brackets at their feet, as a focused foe's.
     this.peopleIn = home;
     this.chickens.update(model.chickens.here, home, room ? INDOOR_SCALE : 1, dt, this.smoke); // (whoever's been turned into one, if they're here)
@@ -335,7 +338,7 @@ export class GameView {
     this.hero.combat(model.moves.rollProgress, model.moves.guard !== null); // (a roll, the guard up)
     // Eating from the bag, sat down: their weapons out of sight, what's eaten in hand, to the mouth now and then.
     const meal = hero.eating;
-    this.hero.hideHeld(!!meal || !!model.fishing.line || !!model.mining.striking); // (and fishing, mining: the rod or the pick in hand instead)
+    this.hero.hideHeld(!!meal || !!model.fishing.line || !!model.mining.striking || !!model.smithing.making || !!model.salvage.breaking); // (and fishing, mining, at the anvil or the bench: the rod, the pick or the hammer in hand instead)
     if (meal?.item && isProvision(meal.item)) this.hero.sipping({ left: meal.left, seconds: meal.seconds, drink: meal.item });
     else if (this.eaten) this.hero.stopDrinking();
     else this.hero.hold(model.work.carrying ?? false); // (at work: the first order on the tray, in hand)
@@ -442,7 +445,7 @@ export class GameView {
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);
     const [anvil, trough] = [at('anvil'), at('trough')];
     const smiths = model.folk.filter((n) => n.role === 'smith' && n.where === inside.entrance);
-    this.room.forge?.(!!anvil && smiths.some((n) => smithWorking(n, anvil)), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam
+    this.room.forge?.(!!anvil && (!!model.smithing.making || smiths.some((n) => smithWorking(n, anvil))), !!trough && smiths.some((n) => smithWorking(n, trough))); // sparks, steam (the hero forging too)
     this.room.update(this.elapsed);
     // The drinks on the bar, as they are; at work, what's at the counter's end (a little apart: the orders ready, the
     // tables' drinks poured and the empties brought back), the empties on the tables.

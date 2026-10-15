@@ -288,7 +288,7 @@ async function boot(): Promise<void> {
       case 'bench':
         return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
       case 'anvil':
-        return { label: 'Work metal', x: found.anvil.x, y: 0.9, z: found.anvil.z };
+        return { label: 'Forge', x: found.anvil.x, y: 0.9, z: found.anvil.z };
       case 'fire': // (a hearth: over its middle; a campfire, over it)
         return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
       case 'well':
@@ -403,7 +403,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'guard') floatingText.spawn({ x: event.x, y: event.y + head, z: event.z }, [GUARD_WORDS[event.outcome][0]], GUARD_WORDS[event.outcome][1]); // (a roll through it, a parry, a block, the guard broken)
       else if (event.kind === 'shift') placeBanner(event.early ? 'Shift left early' : 'Shift over', `${event.served} served · ${event.walkedOut} walked out · ${event.tally} · ${event.earned} copper${event.bonus ? ` (${event.bonus} for a clean shift)` : ''}`, 4500);
       else if (event.kind === 'jobRank') placeBanner(event.rank, `A step up in ${event.job.toLowerCase()}`);
-      else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [`${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them)
+      else if (event.kind === 'skillUp') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.3, z: hero.z }, [event.gained && event.gained > 1 ? `+${event.gained} ${event.skill} · ${event.level}` : `${event.skill} ${event.level}`], '#ffd35a'); // (a skill risen: its new level, over them; several at once, how many)
       else if (event.kind === 'crafted') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${nameOf(event.item)}`], QUALITY_INK[qualityOf(event.item)]); // (made: what, in its quality's colour)
       else if (event.kind === 'salvaged') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.15, z: hero.z }, [`+ ${givesWords(event.gives)}`], '#c8d0d8');
       else if (event.kind === 'mending') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['Resting mends'], '#8ad48a');
