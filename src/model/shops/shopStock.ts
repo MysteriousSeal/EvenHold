@@ -175,7 +175,7 @@ export function buyBack(shop: Shop, hero: Hero, index: number): 'bought' | 'none
   if (kind !== null && shop.bought?.[kind]) shop.bought[kind] = Math.max(0, shop.bought[kind] - sale.count); // (back with the hero: room for them again)
   shop.buyback!.splice(index, 1);
   for (let i = 0; i < sale.count; i++) addToBag(hero.bag, sale.id);
-  if (sale.wear !== undefined) (hero.wear ??= {})[sale.id] = sale.wear; // (as worn as it went)
+  if (sale.wear !== undefined) (hero.wear ??= {})[sale.id] = Math.max(hero.wear[sale.id] ?? 0, sale.wear); // (as worn as it went, or as one like it still held: no mending for nothing)
   if (sale.crafted) for (let i = 0; i < sale.count; i++) markCrafted(hero, sale.id); // (their own make still)
   return 'bought';
 }
