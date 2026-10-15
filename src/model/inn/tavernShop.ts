@@ -52,8 +52,8 @@ export const buyPrice = (id: ProvisionId | PantryId): number => (isPantry(id) ? 
 // stock): a barkeep's shift there begins with the more clean cups (jobs/work.ts).
 // And her orders on the village's board (quests/quests.ts): so many at a time.
 export const INN_WANTS = {
-  carvedTankard: { pays: 45, plural: 'carved tankards', order: [2, 4] },
-  woodenBowl: { pays: 14, plural: 'wooden bowls', order: [3, 6] },
+  carvedTankard: { pays: 24, plural: 'carved tankards', order: [2, 4] },
+  woodenBowl: { pays: 8, plural: 'wooden bowls', order: [3, 6] },
 } as const;
 export type InnWant = keyof typeof INN_WANTS;
 export const innWants = (id: string | null): id is InnWant => id !== null && id in INN_WANTS;

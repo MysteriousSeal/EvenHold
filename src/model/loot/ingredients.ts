@@ -16,9 +16,9 @@ export const INGREDIENTS = {
   leanLynxMeat: { name: 'Lean lynx meat', value: 6, droppedBy: { lynx: 3 } },
   // Caught from a shore (skills/fishing.ts), not from foes: small fry from anywhere, trout and perch, pike in the deep.
   smallFry: { name: 'Small fry', value: 2, droppedBy: {} },
-  riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
-  lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
-  pike: { name: 'Pike', value: 14, droppedBy: {} },
+  riverTrout: { name: 'River trout', value: 5, droppedBy: {} },
+  lakePerch: { name: 'Lake perch', value: 5, droppedBy: {} },
+  pike: { name: 'Pike', value: 9, droppedBy: {} },
   // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and
   // feasts (skills/cooking.ts).
   salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
