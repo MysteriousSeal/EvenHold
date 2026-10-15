@@ -1,13 +1,13 @@
 // The salvage bench's window (E before the smithy's bench: skills/salvage.ts): the gear carried, and the junk with
 // something in it, a case each, with what breaking it down would leave and the skill level it asks (in the colour of
-// how much it'd teach); the one chosen told of on the right, and the buttons to break it down, one or all of them. A window in the middle of the screen, modeless: the game goes on, the bench works, and it shuts as the
+// how much it'd teach); the one chosen told of on the right, and the buttons to break it down, one or all of them (and to stop). A window in the middle of the screen, modeless: the game goes on, the bench works, and it shuts as the
 // hero walks off. And the skill window's page
 // on Salvaging (salvageGuide): what each kind of gear leaves, and where the benches stand.
 import '../quests/questPanels.css';
 import './skills.css';
 import type { GameModel } from '../../model/GameModel';
 import { nameOf } from '../../model/hero/bag';
-import { isGear, levelOf, rarityOf, RARITY_NAMES } from '../../model/human/items/gear';
+import { isGear, levelOf, rarityOf, weaponTypeOf, RARITY_NAMES } from '../../model/human/items/gear';
 import { LOOT } from '../../model/loot/loot';
 import { MAKE_NAMES, TOO_HARD, salvageOf, teachChance, type Salvaged, type Salvageable, type SalvageOutcome } from '../../model/skills/salvage';
 import { betterThanWorn } from '../../model/human/items/gear';
@@ -44,9 +44,18 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
   let said = '';
   let saidFor = '';
   let drawnFor: string | null = null; // what the detail was last drawn breaking, and how many more (redrawn as each begins and ends)
-  let confirming: { key: Salvageable; count: number } | null = null; // a piece better than what's worn: asked before it's broken down
+  let confirming: { key: Salvageable; count: number; why: string } | null = null; // a piece better than what's worn, or the last axe: asked before it's broken down
 
   const carried = (key: Salvageable) => model.hero.bag[key as keyof typeof model.hero.bag] ?? 0;
+  const isAxe = (key: string | undefined) => !!key && isGear(key) && weaponTypeOf(key) === 'axe';
+  // Why breaking `count` of `key` down is asked first, if it is: a piece better than what's worn in its slot; the last
+  // axe to fell trees with (none wielded, no other carried: model/skills/lumber.ts).
+  const askWhy = (key: Salvageable, count: number): string => {
+    if (!isGear(key)) return '';
+    if (betterThanWorn(key, model.hero)) return `This ${nameOf(key).toLowerCase()} is better than what you wear. Break it down anyway?`;
+    const otherAxe = isAxe(model.hero.equipment.mainHand) || Object.keys(model.hero.bag).some((k) => k !== key && isAxe(k) && carried(k as Salvageable) > 0);
+    return isAxe(key) && count >= carried(key) && !otherAxe ? "This is the last axe you carry: without one you can't fell trees. Break it down anyway?" : '';
+  };
   const slotOf = (key: Salvageable): MenuSlot => {
     const level = skillOf(model.hero, 'salvaging').level;
     const salvaged = salvageOf(key, level);
@@ -91,21 +100,26 @@ export function createSalvagePanel(model: GameModel): { open(): void; update(): 
     pane.append(line('menu-detail-name', nameOf(key)), icon, facts);
     if (confirming?.key === key) {
       const count = confirming.count;
-      // Better than what's worn in its slot: asked first.
+      // Better than what's worn in its slot, or the last axe: asked first.
       const yes = el('button', 'menu-detail-button salvage-go salvage-sure', 'Break it down anyway') as HTMLButtonElement;
       yes.addEventListener('click', () => go(count));
       const no = el('button', 'menu-detail-button salvage-keep', 'Keep it') as HTMLButtonElement;
       no.addEventListener('click', () => [(confirming = null), menu.refresh()]);
-      pane.append(line('menu-detail-said salvage-warn', `This ${nameOf(key).toLowerCase()} is better than what you wear. Break it down anyway?`), yes, no);
+      pane.append(line('menu-detail-said salvage-warn', confirming.why), yes, no);
     } else {
       const button = el('button', 'menu-detail-button salvage-go', breaking ? 'Breaking down…' : 'Break down') as HTMLButtonElement;
-      const ask = (count: number) => (isGear(key) && betterThanWorn(key, model.hero) ? [(confirming = { key, count }), menu.refresh()] : go(count));
+      const ask = (count: number) => {
+        const why = askWhy(key, count);
+        return why ? [(confirming = { key, count, why }), menu.refresh()] : go(count);
+      };
       button.disabled = !!model.salvage.breaking;
       button.addEventListener('click', () => ask(1));
       const all = el('button', 'menu-detail-button salvage-all', `Break all (${carried(key)})`) as HTMLButtonElement;
       all.disabled = !!model.salvage.breaking;
       all.addEventListener('click', () => ask(Infinity));
-      pane.append(button, ...(carried(key) > 1 ? [all] : []), ...(breaking ? [bar] : []), ...(said ? [line('menu-detail-said', said)] : []));
+      const stop = el('button', 'menu-detail-button salvage-stop', 'Stop') as HTMLButtonElement;
+      stop.addEventListener('click', () => [model.salvage.stop(), menu.refresh()]);
+      pane.append(button, ...(carried(key) > 1 ? [all] : []), ...(breaking ? [bar, stop] : []), ...(said ? [line('menu-detail-said', said)] : []));
     }
     return pane;
   };
