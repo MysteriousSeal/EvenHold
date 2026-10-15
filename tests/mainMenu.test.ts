@@ -10,7 +10,7 @@ import { GameModel } from '../src/model/GameModel';
 import { snapshot } from '../src/model/save';
 import { MAX_WORLDS, forgetWorld, savedWorlds, startAutoSave } from '../src/controller/storage/saveGame';
 import { showMainMenu } from '../src/controller/title/mainMenu';
-import { CONTROLS } from '../src/controller/controls';
+import { controlsText } from '../src/controller/controls';
 import { LOOK_TRAITS } from '../src/model/human/lookTraits';
 import { SKIN_TONE_COUNT, STYLES_OF } from '../src/model/human/humanoid';
 import { seedFrom } from '../src/util/seed';
@@ -132,8 +132,8 @@ describe('the main menu', () => {
     expect(line('Strike').querySelector('.keycap.wide')?.textContent).toBe('Space');
     expect(line('Guard').querySelector('small')?.textContent).toBe('raise it as a blow lands: parry');
     expect(line('Zoom').querySelector('.keycap-mouse.wheel')).not.toBeNull();
-    expect(CONTROLS).toContainEqual(['Guard (raise it as a blow lands: parry)', 'Hold Q']); // (the pause menu's, as text)
-    for (const key of ['C', 'B', 'L', 'K', 'P', 'F or G']) expect(CONTROLS.map(([, keys]) => keys)).toContain(key); // (every window's key, the toolbar's; the inn's)
+    expect(controlsText()).toContainEqual(['Guard (raise it as a blow lands: parry)', 'Hold Q']); // (the pause menu's, as text)
+    for (const key of ['C', 'B', 'L', 'K', 'P', 'F or G']) expect(controlsText().map(([, keys]) => keys)).toContain(key); // (every window's key, the toolbar's; the inn's)
     click('Back');
     expect(shown()).toBe('Aleyn');
   });

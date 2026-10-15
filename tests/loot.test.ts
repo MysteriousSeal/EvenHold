@@ -9,6 +9,7 @@ import { GameModel } from '../src/model/GameModel';
 import { eatOrDrink, kindOf } from '../src/model/hero/bag';
 import { recover } from '../src/model/hero/heroStats';
 import { heroStruck } from '../src/model/hero/fighting';
+import { gather } from '../src/model/hero/hands';
 import { MEAL_SECONDS, givesText } from '../src/model/loot/provisions';
 import { ITEM_IDS } from '../src/model/human/equipment';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
@@ -58,6 +59,17 @@ describe('picking up loot', () => {
     expect(model.pickUp()).toBe('bentSpoon');
     expect(model.hero.bag).toEqual({ hatchet: 1, bentSpoon: 1 }); // (the hatchet: theirs from the start)
     expect(model.loot.map((l) => l.item)).toEqual(['wolfFang']);
+  });
+
+  it('gathers the like of what is picked up lying near (a felled tree\'s logs at once), not other things nor far ones', () => {
+    const model = fresh();
+    const { x, z } = model.hero;
+    for (const [dx, dz] of [[0.3, 0], [1.4, 0.5], [-1.2, 1.6], [4, 0]]) model.dropLoot('oakLog', x + dx, z + dz);
+    model.dropLoot('wolfFang', x - 0.5, z);
+    const got = gather(model);
+    expect(got).toEqual({ item: 'oakLog', count: 3 });
+    expect(model.hero.bag.oakLog).toBe(3);
+    expect(model.loot.map((l) => l.item).sort()).toEqual(['oakLog', 'wolfFang']); // (the far log, and the fang)
   });
 
   it('a slain enemy may leave loot where it fell', () => {

@@ -34,7 +34,7 @@ describe('a doll', () => {
     expect(lying(model)).toHaveLength(2);
     const used = slotsUsed(hero.bag);
     Object.assign(hero, { x: who.x, z: who.z });
-    expect([model.pickUp(), model.pickUp(), model.pickUp()]).toEqual(['doll', 'doll', null]);
+    expect([model.pickUp(), model.pickUp()]).toEqual(['doll', null]); // (the two side by side, gathered at once: hero/hands.ts)
     expect([hero.bag.doll, slotsUsed(hero.bag) - used, lying(model).length]).toEqual([2, 1, 0]); // (one stack of the two)
     expect([stacksOf('doll', JUNK_STACK), stacksOf('doll', JUNK_STACK + 1)]).toEqual([1, 2]);
     // Kept in a save, in the bag.

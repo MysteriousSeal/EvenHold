@@ -30,6 +30,7 @@ describe('breath', () => {
   it('a blow spends it; it refills a moment after; short of a blow\'s worth, no blow (nor a roll short of a roll\'s)', () => {
     const model = fresh();
     expect(model.moves.breath).toBe(BREATH);
+    model.hero.equipment.mainHand = 'armingSword'; // (a sword's blow: COST.blow)
     expect(model.startAttack()).toBe(true);
     expect(model.moves.breath).toBe(BREATH - COST.blow);
     run(model, 2);

@@ -6,7 +6,7 @@ import { ITEMS } from '../src/model/human/equipment';
 import { LOOT } from '../src/model/loot/loot';
 import { pedlarBuys, pedlarPrice } from '../src/model/travellers/pedlarShop';
 import { saleOf } from '../src/model/shops/sellValue';
-import { SMITH_WARES, smithAsks, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { SMITH_WARES, UNDER_COUNTER, smithAsks, smithPriceFor, smithSellsTo, buyGear, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
 import { talkingTo } from '../src/model/npcs/talk';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -68,17 +68,21 @@ describe('the smithy', () => {
     expect(kept.stock[ware]).toBe(shop.stock[ware]);
   });
 
-  it("keeps his heaviest work for a hero who's proven: a breastplate not to a green one, whatever their purse", () => {
+  it("keeps his heaviest work for a hero who's proven: to a green one, a breastplate only under the counter, at a bribe's price", () => {
     const model = atTheSmithy();
     const shop = smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
     Object.assign(model.hero, { level: 1, money: 100_000 });
-    shop.stock.breastplate = 1;
+    shop.stock.breastplate = 2;
     expect(smithAsks('breastplate')).toBe(7);
-    expect(buyGear(shop, model.hero, 'breastplate')).toBe('sold out');
-    expect(model.hero.money).toBe(100_000);
+    expect(smithSellsTo(model.hero, 'breastplate')).toBe(false);
+    expect(smithPriceFor(model.hero, 'breastplate')).toBe(Math.ceil(gearPrice('breastplate') * UNDER_COUNTER));
+    expect(buyGear(shop, model.hero, 'breastplate')).toBe('bought');
+    expect(model.hero.money).toBe(100_000 - Math.ceil(gearPrice('breastplate') * UNDER_COUNTER));
     expect(smithAsks('dagger')).toBe(1);
     model.hero.level = 7;
+    const money = model.hero.money;
     expect(buyGear(shop, model.hero, 'breastplate')).toBe('bought');
+    expect(money - model.hero.money).toBe(gearPrice('breastplate')); // (proven: its price)
   });
 
   it('takes the iron salvaged from gear at half its worth; a pedlar the silver and stones; logs and leather, no one', () => {

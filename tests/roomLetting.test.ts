@@ -5,7 +5,7 @@ import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
 import { roomsOff, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { LINES, ROOM_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
+import { BRIBE, LINES, ROOM_PRICE, WEEK_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { barmaidHere } from '../src/controller/trade/barOrder';
 import { takeSpeech } from '../src/model/npcs/speech';
@@ -44,6 +44,18 @@ describe('a room at the inn', () => {
     expect(letUntil(model.inside!.entrance)).toBeNull();
   });
 
+  it('out of hours, a little more slipped her: a room all the same, at once', () => {
+    const model = atTheInn(12);
+    model.hero.money = ROOM_PRICE + BRIBE;
+    const barmaid = barmaidHere(model)!;
+    Object.assign(model.hero, { x: barmaid.x + 0.5, z: barmaid.z });
+    const asked = roomAction(model)!;
+    expect(asked).toMatchObject({ kind: 'rent', taken: false, bribe: true });
+    expect(roomActionLabel(asked)).toBe(`Slip her coin for a room now · ${ROOM_PRICE + BRIBE} copper`);
+    expect(rentRoom(model, barmaid, undefined, true)).toBe('let');
+    expect(model.hero.money).toBe(0);
+  });
+
   it('too poor, none let', () => {
     const model = atTheInn(20);
     model.hero.money = ROOM_PRICE - 1;
@@ -58,7 +70,7 @@ describe('a room at the inn', () => {
     const purse = { money: 0 };
     expect(rentRoom(model, barmaidHere(model)!, purse)).toBe('let');
     expect([model.hero.money, purse.money]).toEqual([500 - ROOM_PRICE, ROOM_PRICE]);
-    expect(rentRoom(model, barmaidHere(model)!, purse)).toBe('taken'); // (once)
+    expect(rentRoom(model, barmaidHere(model)!, purse)).toBe('poor'); // (asked again: the week, too dear for what's left)
     expect(model.hero.money).toBe(500 - ROOM_PRICE);
     upstairs(model);
     const door = letDoor(model.inside!.furniture)!;
@@ -124,8 +136,16 @@ describe('a room at the inn', () => {
     expect(roomActionLabel(asked)).toBe(`Rent a room · ${ROOM_PRICE} copper`);
     rentRoom(model, barmaid);
     const again = roomAction(model)!;
-    expect(again).toMatchObject({ kind: 'rent', taken: true });
-    expect(roomActionLabel(again)).toBe('Your room is upstairs');
+    expect(again).toMatchObject({ kind: 'rent', taken: true, week: true });
+    expect(roomActionLabel(again)).toBe(`Keep the room the week · ${WEEK_PRICE} copper`);
+    model.hero.money = WEEK_PRICE;
+    const until = letUntil(model.inside!.entrance)!;
+    expect(rentRoom(model, barmaid)).toBe('let'); // (kept the week: paid, six days on)
+    expect([model.hero.money, letUntil(model.inside!.entrance)! - until]).toEqual([0, 6 * 24 * 60]);
+    const week = roomAction(model)!;
+    expect(week).toMatchObject({ kind: 'rent', taken: true, week: false });
+    expect(roomActionLabel(week)).toBe('Your room is upstairs');
+    expect(rentRoom(model, barmaid)).toBe('taken');
     expect(roomActionLabel({ kind: 'sleep' })).toBe('Sleep till morning');
     // Her lines: asked out of hours over and over, each said in turn.
     const late = atTheInn(12);

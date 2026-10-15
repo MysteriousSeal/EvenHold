@@ -10,6 +10,7 @@ import { createPauseMenu, type PauseHero } from '../src/controller/pauseMenu';
 import { anyMenuOpen, createMenu, type Menu } from '../src/view/ui/menu';
 import { ZOOM_LEVELS, stepZoom, zoomLevel } from '../src/view/render/zoom';
 import { HERO_LOOK } from '../src/model/human/humanoid';
+import { actionOf } from '../src/controller/keyBindings';
 
 const press = (code: string, repeat = false) => window.dispatchEvent(new KeyboardEvent('keydown', { code, repeat, bubbles: true, cancelable: true }));
 const lit = () => document.querySelector('.pause-item.lit');
@@ -189,6 +190,25 @@ describe('the pause menu: the rest', () => {
     expect(document.querySelector('.pause-title')).not.toBeNull();
   });
 
+  it('keys: one chosen waits for its new key, Escape leaves it be; the next pressed is its own; all back as they came', () => {
+    menu.open();
+    row('Keys').click();
+    const strike = () => row('Strike').querySelector('kbd')?.textContent;
+    expect(strike()).toBe('Space');
+    row('Strike').click();
+    expect(row('Strike').textContent).toContain('Press a key');
+    press('Escape');
+    expect([menu.isOpen, strike()]).toEqual([true, 'Space']); // (still on Keys, nothing changed)
+    row('Strike').click();
+    press('KeyE');
+    expect([strike(), row('Pick up, talk, open').querySelector('kbd')?.textContent]).toEqual(['E', 'Space']); // (swapped)
+    expect(actionOf('KeyE')).toBe('attack');
+    row('Every key as it came').click();
+    expect(strike()).toBe('Space');
+    press('Escape');
+    expect(document.querySelector('.pause-title')?.textContent).toBe('Paused');
+  });
+
   it('the main menu, at once', () => {
     open().open();
     row('Main menu').click();
@@ -197,6 +217,6 @@ describe('the pause menu: the rest', () => {
 
   it('no new game here (a new hero is made from the main menu)', () => {
     menu.open();
-    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Controls', 'Main menu']);
+    expect(Array.from(document.querySelectorAll('.pause-item b')).map((b) => b.textContent)).toEqual(['Resume', 'Zoom', 'Inner walls', 'Controls', 'Keys', 'Main menu']);
   });
 });
