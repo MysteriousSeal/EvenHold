@@ -25,6 +25,8 @@
 /* − and +, Clear, Confirm and Reset points: .menu-buttons (menu.css), sized here. */
 .levelup-step, .levelup-button { font-weight: 700; font-size: 16px; background: var(--sand); }
 .levelup-step { width: 36px; height: 32px; padding: 0; }
+/* Nothing to spend (+) or nothing planned (−): flat and faint, sunk where they'd be pressed, plainly not to be clicked. */
+.levelup-step:disabled { opacity: 0.3; background: transparent; box-shadow: none; transform: translateY(2px); }
 
 .levelup-effects {
   display: grid;
