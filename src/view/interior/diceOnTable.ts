@@ -46,7 +46,7 @@ export class DiceOnTable {
     const t = 1 - this.tumbling / TUMBLE; // 0 thrown, 1 at rest
     this.dice.forEach((die, i) => {
       const side = i === 0 ? -0.06 : 0.06;
-      const rest = new THREE.Vector3(side, DIE_HALF, 0.04 + i * 0.03);
+      const rest = new THREE.Vector3(side, DIE_HALF, 0.13 + i * 0.03); // (the hero's side of the table: clear of what's laid in its middle)
       if (this.tumbling > 0) {
         const from = new THREE.Vector3(side * 0.4, 0.12, -0.16);
         die.position.lerpVectors(from, rest, t);
@@ -59,7 +59,7 @@ export class DiceOnTable {
     });
     // The cup: stood by the one across, waiting; thrown, on its side behind the dice.
     const thrown = casts.length > 0;
-    this.cup.position.set(0.1, thrown ? 0.05 : 0, -0.17);
+    this.cup.position.set(0.14, thrown ? 0.05 : 0, -0.15);
     this.cup.rotation.set(thrown ? Math.PI / 2 : 0, 0, thrown ? 0.4 : 0);
   }
 }
