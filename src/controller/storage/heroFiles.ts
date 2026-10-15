@@ -5,7 +5,7 @@
 // is asked twice (the button says what it'll do; again, it's done). Styles in heroFiles.css.
 
 import type { GameModel } from '../../model/GameModel';
-import { snapshot } from '../../model/save';
+import { parseSave, snapshot } from '../../model/save';
 import { heroFile, readHeroFile } from '../../model/saveFile';
 import { el } from '../../view/ui/dom';
 import { backupsOf, keepBackup, type Backup } from './backups';
@@ -16,7 +16,7 @@ export interface HeroFiles {
   exportHero(): string; // downloads the file; what's said of it
   importHero(text: string, sure: boolean): { said: string; ask?: string }; // `ask`: to be sure first (replacing a save)
   backups(): Backup[];
-  restore(backup: Backup): void;
+  restore(backup: Backup): string; // what's said of it
 }
 
 // What the screen does, for this game: `autoSave` (stopped before the page is left for another save), `play(seed)`
@@ -54,8 +54,11 @@ export function heroFiles(model: GameModel, autoSave: () => AutoSave, play: (see
     },
     backups: () => backupsOf(model.seed),
     restore(backup) {
+      if (!parseSave(backup.raw, model.seed)) return 'That backup is damaged: it can’t be put back.'; // (read whole only now: backups.ts)
       keepBackup(model.seed, JSON.stringify(snapshot(model))); // (as it stands now: a step back can be stepped back from)
-      if (keepSave(model.seed, backup.raw)) leaveFor(model.seed);
+      if (!keepSave(model.seed, backup.raw)) return 'There was no room to put it back.';
+      leaveFor(model.seed);
+      return 'Going back…';
     },
   };
 }
@@ -106,7 +109,7 @@ export function heroScreen(files: HeroFiles, back: () => void, redraw: () => voi
   for (const backup of backups) {
     const sure = state.asking?.backup === backup.at;
     const b = row(sure ? 'Put it back: are you sure?' : when(backup.at), `Day ${backup.day} · Level ${backup.level}${sure ? ' · this hero goes back to then' : ''}`, () => {
-      if (sure) return files.restore(backup);
+      if (sure) return say(files.restore(backup));
       state.asking = { label: '', act: () => {}, backup: backup.at };
       redraw();
     }, sure ? 'pause-backup asking' : 'pause-backup');

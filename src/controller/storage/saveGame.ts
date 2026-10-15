@@ -10,7 +10,7 @@ import type { MapSize } from '../../model/map/grid';
 import { START_MINUTES, clockAt } from '../../model/clock';
 import type { BodyLook } from '../../model/human/humanoid';
 import type { Equipment } from '../../model/human/equipment';
-import { BACKUP_EVERY, forgetBackups, keepBackup } from './backups';
+import { BACKUP_EVERY, forgetBackups, forgetOtherBackups, keepBackup } from './backups';
 
 const EVERY = 5_000; // milliseconds between saves while playing
 const PREFIX = 'evenhold.save.';
@@ -128,8 +128,13 @@ export function startAutoSave(model: GameModel): AutoSave {
       try {
         localStorage.setItem(keyOf(model.seed), raw);
       } catch {
-        forgetBackups(model.seed); // (full: the save before its backups)
-        localStorage.setItem(keyOf(model.seed), raw);
+        forgetOtherBackups(model.seed); // (full: the save before any backups, the other worlds' first)
+        try {
+          localStorage.setItem(keyOf(model.seed), raw);
+        } catch {
+          forgetBackups(model.seed);
+          localStorage.setItem(keyOf(model.seed), raw);
+        }
       }
       localStorage.setItem(playedKey(model.seed), String(Date.now()));
       if (Date.now() - backedUp >= BACKUP_EVERY) [keepBackup(model.seed, raw), (backedUp = Date.now())];

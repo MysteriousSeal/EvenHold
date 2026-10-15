@@ -3,7 +3,7 @@
 // and read back whole; a file from anywhere read with care (anything unsound refused with a word why, never thrown,
 // nothing kept); the last three saves of a world kept behind the scenes, the newest first, one taken as the game
 // opens; a backup or a file's hero put in place of the save, the save it replaces backed up first.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { HERO_FILE, heroFile, readHeroFile } from '../src/model/saveFile';
 import { parseSave, restore, snapshot } from '../src/model/save';
@@ -97,10 +97,37 @@ describe('backups', () => {
     expect(kept.map((b) => [b.at, JSON.parse(b.raw).hero.money])).toEqual([[5000, 5], [4000, 4], [3000, 3]]);
     expect(kept.length).toBe(BACKUPS);
     expect(kept[0]).toMatchObject({ level: 4, day: 1 });
-    localStorage.setItem(`evenhold.backups.${SEED}`, JSON.stringify([{ at: 1, raw: 'no' }, 'x', { at: 2, raw: saveText(model) }]));
+    localStorage.setItem(`evenhold.backups.${SEED}`, JSON.stringify([{ at: 1, raw: 'no' }, 'x', { at: 2, level: 4, day: 1, raw: saveText(model) }, { at: 3, level: 'x', day: 1, raw: '' }]));
     expect(backupsOf(SEED).map((b) => b.at)).toEqual([2]); // (what can't be read, left out)
     forgetWorld(SEED);
     expect(backupsOf(SEED)).toEqual([]);
+  });
+
+  it("full storage: the other worlds' backups let go first, then its own oldest; a damaged one is never put back", () => {
+    const model = played();
+    const raw = saveText(model, 5);
+    const quota = raw.length * 4.5; // (room, in characters, for about four saves)
+    const setItem = localStorage.setItem.bind(localStorage);
+    const stored = () => Array.from({ length: localStorage.length }, (_, i) => localStorage.getItem(localStorage.key(i)!)!.length).reduce((a, b) => a + b, 0);
+    const full = vi.spyOn(localStorage, 'setItem').mockImplementation((key: string, value: string) => {
+      const was = localStorage.getItem(key)?.length ?? 0;
+      if (stored() - was + value.length > quota) throw new DOMException('full', 'QuotaExceededError');
+      setItem(key, value);
+    });
+    try {
+      for (let money = 1; money <= 2; money++) keepBackup(77, JSON.stringify({ ...JSON.parse(saveText(model, money)), seed: 77 }), money);
+      expect(backupsOf(77).length).toBe(2);
+      for (let money = 1; money <= 3; money++) keepBackup(SEED, saveText(model, money), money);
+      expect(backupsOf(77)).toEqual([]); // (the other world's, let go for this one's)
+      expect(backupsOf(SEED).map((b) => JSON.parse(b.raw).hero.money)).toEqual([3, 2, 1]);
+      keepBackup(SEED, saveText(model, 4), 4);
+      expect(backupsOf(SEED).length).toBeGreaterThan(0);
+      expect(backupsOf(SEED)[0].at).toBe(4);
+    } finally {
+      full.mockRestore();
+    }
+    const files = heroFiles(model, () => ({ save() {}, forget() {}, stop() {} }), () => {}, '0.8.0');
+    expect(files.restore({ at: 1, level: 1, day: 1, raw: '{broken' })).toMatch(/damaged/);
   });
 
   it('takes one as the game opens: the save as it stood before', () => {
