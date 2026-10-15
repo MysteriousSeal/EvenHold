@@ -20,7 +20,7 @@ import type { Npc } from '../npcs/npcs';
 import type { Ruin } from '../ruins/ruins';
 import type { Enemy, GameEvent } from '../types';
 import { hashUnit, mulberry32 } from '../../util/random';
-import type { Carter } from './carter';
+import { carterDress, type Carter } from './carter';
 import { STORY_QUESTS } from './quests/catalog';
 import { isTraveller, type Setting, type Who } from './storyCast';
 import { alreadyDone } from './storyAlready';
@@ -59,9 +59,12 @@ export class Story {
     this.world = settle(this.host, this.l.home, { road: this.l.road, town: this.l.town ?? this.host.cathedralTown?.() ?? null }); // (the second arc's places, as kept)
     const { town } = this.world.saint;
     if (town) this.l.town = { x: town.village.x, z: town.village.z }; // (Greyminster, seen: kept)
-    this.l.carter ??= (this.world.first?.who.carter as Carter | undefined)?.name ?? null;
+    const carter = this.world.first?.who.carter as Carter | undefined;
+    this.l.carter ??= carter?.name ?? null;
+    this.l.carterAt ??= carter ? { x: carter.x, z: carter.z } : null;
     const held = this.world.saint.town?.who.prisoner;
     if (held && this.l.carter) held.name = this.l.carter; // (the man in the bishop's cells: the carter, by his own name)
+    if (held && this.l.carterAt) Object.assign(held, carterDress(this.l.carterAt, this.host.seed)); // (his face, the clothes he drove in)
     resettle(this.world, new Map([...this.l.forced].map(([key, id]) => [key, this.host.npcs.find((n) => n.id === id)])), [...this.l.state].filter(([, s]) => s === 'taken').map(([key]) => key), STORY_QUESTS); // (those set by hand, and an older save's)
     return this.world;
   }

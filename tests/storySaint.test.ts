@@ -52,7 +52,7 @@ function toTheStair(model: GameModel, witch: RegExp): { home: { x: number; z: nu
   expect(story.markOf(herbalist)).toBe('offer');
   say(story.talk(herbalist));
   expect(story.stateOf(id(model, 'theEmptyWagon'))).toBe('taken');
-  const wagon = story.people!.carter.wagon;
+  const { wagon, look, equipment } = story.people!.carter;
   go(model, wagon);
   expect(story.talk(herbalist)!.lines.join(' ')).toMatch(/whip/);
   say(story.talk(herbalist));
@@ -95,6 +95,7 @@ function toTheStair(model: GameModel, witch: RegExp): { home: { x: number; z: nu
   say(story.talk(pardoner));
   say(story.talk(of(model, 'deacon')));
   expect(of(model, 'prisoner').name).toBe(story.saint.carterName); // (the cells' man: the carter, by his name)
+  expect([of(model, 'prisoner').look, of(model, 'prisoner').equipment]).toEqual([look, equipment]); // (and his face, and the clothes he drove in)
   expect(story.talk(of(model, 'prisoner'))!.lines.join(' ')).toMatch(/under the floor/i);
   say(story.talk(of(model, 'prisoner')));
   const captain = of(model, 'captain');

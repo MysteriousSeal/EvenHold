@@ -143,6 +143,7 @@ describe("Greyminster's people", () => {
     for (const role of ['bishop', 'deacon', 'sister', 'captain', 'prisoner', 'pardoner']) expect(of(role), role).toHaveLength(1);
     expect(of('pardoner')[0].stall?.kind).toBe('relics');
     expect(of('sister')[0].look.build).toBe('female');
+    for (const role of ['bishop', 'deacon', 'captain', 'pardoner']) expect(of(role)[0].look.build, role).toBe('male'); // (His Grace, his deacon, the captain, Gil: men)
     expect(model.villages.find((v) => v.town)).toBeDefined();
     expect(villageName(model.villages.find((v) => v.town)!, model.seed)).toBe('Greyminster');
     expect(model.cathedralTown()).toEqual(site);

@@ -190,7 +190,7 @@ export function spawnNpcs(seed: number, entrances: readonly Entrance[], villages
   };
   const person = (own: number, role: NpcRole, home: Entrance, inn: Entrance | null, village: Village, at: Point, woman = false): Npc => {
     const id = firstId + own;
-    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, woman ? 1 : role === 'villager' || role === 'herbalist' ? 0.5 : role === 'smith' || role === 'bouncer' ? 0 : 1); // about half the village's folk women (and herbalists); the inn's barmaids always, the smith and the bouncer never
+    const look = lookAt(Math.round(at.x * 10), Math.round(at.z * 10), seed, woman ? 1 : role === 'villager' || role === 'herbalist' || role === 'monger' ? 0.5 : role === 'barkeep' || role === 'server' ? 1 : 0); // about half the village's folk women (and herbalists, and the stalls' keepers); the inn's barmaids always, the rest never (the smith, the bouncer, Gil, Greyminster's men)
     return {
       id,
       name: nameAt(at.x, at.z, seed, look.build),

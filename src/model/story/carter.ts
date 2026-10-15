@@ -26,8 +26,14 @@ export function carterOf(model: { seed: number; scenery: readonly Scenery[] }): 
   if (kept && kept.count === model.scenery.length) return kept.carter;
   const wagon = model.scenery.find((s) => s.kind === 'wagon');
   const at = wagon && carterTile(wagon);
-  const look = at && lookAt(at.x * 10, at.z * 10, model.seed, 0); // (a man)
-  const carter: Carter | null = wagon && at && look ? { name: nameAt(at.x, at.z, model.seed, look.build), look, equipment: outfit(CLOTHES), x: at.x, z: at.z, wagon: { x: wagon.x + 0.5, z: wagon.z } } : null;
+  const dress = at && carterDress(at, model.seed);
+  const carter: Carter | null = wagon && at && dress ? { name: nameAt(at.x, at.z, model.seed, dress.look.build), ...dress, x: at.x, z: at.z, wagon: { x: wagon.x + 0.5, z: wagon.z } } : null;
   known.set(model.scenery, { count: model.scenery.length, carter });
   return carter;
+}
+
+// The carter's face and clothes, stood at `at` (his tile by the wagon): the same man wherever he's met again (the
+// bishop's cells: story.ts, his tile kept in the save).
+export function carterDress(at: { x: number; z: number }, seed: number): { look: BodyLook; equipment: Equipment } {
+  return { look: lookAt(at.x * 10, at.z * 10, seed, 0), equipment: outfit(CLOTHES) }; // (a man)
 }

@@ -15,9 +15,10 @@ export interface Ledger {
   road: Point | null; // the second arc's witch's village, once the hero's sent there; Greyminster, once seen; the
   town: Point | null; // carter's name, once he's been met (saint/saintSet.ts; all in the save, an older save's: none)
   carter: string | null;
+  carterAt: Point | null; // (and his tile by the wagon: his face and clothes in the cells, the wagon off the maps)
 }
 
-export type SavedStory = { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point; road?: Point; town?: Point; carter?: string; choices: Record<string, string> };
+export type SavedStory = { states: Record<string, 'taken' | 'untracked' | 'done'>; counted: Record<string, number>; kept: Record<string, Kept>; forced: Record<string, number | null>; freed: string[]; staked: string[]; home?: Point; road?: Point; town?: Point; carter?: string; carterAt?: Point; choices: Record<string, string> };
 
 export function saveLedger(l: Ledger, choices: Record<string, string>): SavedStory {
   return {
@@ -32,6 +33,7 @@ export function saveLedger(l: Ledger, choices: Record<string, string>): SavedSto
     ...(l.road ? { road: l.road } : {}),
     ...(l.town ? { town: l.town } : {}),
     ...(l.carter ? { carter: l.carter } : {}),
+    ...(l.carterAt ? { carterAt: l.carterAt } : {}),
   };
 }
 
@@ -42,7 +44,7 @@ const spot = (p: unknown): Point | null => {
 
 // (`data`: as saved; an older save's: its states alone, by their bare names: the first village's.)
 export function loadLedger(data: unknown): Ledger {
-  const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown; home?: { x?: unknown; z?: unknown }; road?: unknown; town?: unknown; carter?: unknown } & Record<string, unknown>;
+  const saved = (data ?? {}) as { states?: Record<string, unknown>; counted?: Record<string, unknown>; kept?: Record<string, Kept>; forced?: Record<string, unknown>; freed?: unknown; staked?: unknown; home?: { x?: unknown; z?: unknown }; road?: unknown; town?: unknown; carter?: unknown; carterAt?: unknown } & Record<string, unknown>;
   const states = (saved.states && typeof saved.states === 'object' ? saved.states : saved) as Record<string, unknown>;
   const known = Object.entries(states).filter((e): e is [string, 'taken' | 'untracked' | 'done'] => idOf(e[0]) in STORY_QUESTS && (e[1] === 'taken' || e[1] === 'untracked' || e[1] === 'done'));
   const state = new Map(known.map(([id, s]) => [keyed(id), s === 'done' ? 'done' : 'taken'] as const));
@@ -59,5 +61,6 @@ export function loadLedger(data: unknown): Ledger {
     road: spot(saved.road),
     town: spot(saved.town),
     carter: typeof saved.carter === 'string' ? saved.carter : null,
+    carterAt: spot(saved.carterAt),
   };
 }
