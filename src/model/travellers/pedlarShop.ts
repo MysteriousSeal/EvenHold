@@ -36,7 +36,7 @@ export const PEDLAR_WARES: readonly BagItem[] = [...FOOD, 'firewood', ...POTION_
 const FINERY: ReadonlySet<string> = new Set(['silverFilings', 'gemShard', 'cutGem']);
 // (And logs, for firewood to sell on, at their worth; and a pine's resin, an ancient oak's heartwood, at half.)
 const LOGS: ReadonlySet<string> = new Set(['birchLog', 'pineLog', 'oakLog']);
-const FOUND: ReadonlySet<string> = new Set(['pineResin', 'heartwood']);
+const FOUND: ReadonlySet<string> = new Set(['pineResin', 'heartwood', 'oakBurl']);
 export const pedlarBuys = (id: string): id is BagItem => isProvision(id) || isPotion(id) || isBagItem(id) || id === 'fishingRod' || isFish(id) || FINERY.has(id) || LOGS.has(id) || FOUND.has(id) || (isGear(id) && isJewelrySlot(slotOfGear(id)));
 
 export const pedlarPrice = (id: BagItem, selling: boolean): number =>
