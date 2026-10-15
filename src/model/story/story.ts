@@ -40,6 +40,7 @@ export type { DebugQuest, StoryHost, StoryMark, TakenStory, Talk } from './story
 export type { SaintState } from './saint/saintState';
 
 const REACH = 1.7; // tiles from the carter, or a villager, for a word
+const CALLS = 6; // tiles: the carter, his ! over him, calls the hero over from this far (the start: a few steps off him)
 const PER_LEVEL = 0.25; // more coin, a level of the village's over the first
 const hasTrade = (who: Who): boolean => 'role' in who && (who.role === 'barkeep' || who.role === 'smith' || who.role === 'herbalist' || who.role === 'pedlar' || who.role === 'witch' || (who.role as string) === 'pardoner'); // (Greyminster's pardoner: his relic stall, the cathedral town's)
 
@@ -226,6 +227,12 @@ export class Story {
   get carterInReach(): Carter | null {
     const carter = this.host.inside || this.saint.carterGone ? null : (this.set.first?.who.carter as Carter | undefined); // (gone up the road: the second arc)
     return carter && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= REACH ? carter : null;
+  }
+
+  // The carter with a quest for the hero (his !), near enough to call them over: E's before a tree or a rock.
+  get carterCalling(): Carter | null {
+    const carter = this.host.inside || this.saint.carterGone ? null : (this.set.first?.who.carter as Carter | undefined);
+    return carter && this.markOf(carter) && Math.hypot(carter.x - this.host.hero.x, carter.z - this.host.hero.z) <= CALLS ? carter : null;
   }
 
   // A villager with something of the story's to say, near enough for a word (those with a trade or a post: npcs/talk.ts).

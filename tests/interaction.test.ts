@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { interactionOf } from '../src/model/hero/interaction';
 import { fresh } from './support/testWorld';
 import { enterNearest } from '../src/model/cheats';
+import { GameModel } from '../src/model/GameModel';
+import { STREAMED_SIZE } from '../src/model/worldgen/regions';
 
 describe('what E does', () => {
   it('is nothing with nothing in reach, and the carter by his wagon', () => {
@@ -54,4 +56,19 @@ describe('what E does', () => {
     expect(interactionOf(model, new Set(['work', 'jobBoard']))).toBeNull();
     model.work.end(true);
   });
+  it("is the carter at the very start, his ! calling, not the tree beside the hero; and a villager's ! before a tree", () => {
+    const model = new GameModel(1, STREAMED_SIZE); // (the real start: the carter a few steps off, a tree in reach)
+    const { carter } = model.story.people!;
+    expect(model.story.markOf(carter)).toBe('offer');
+    expect(interactionOf(model)).toMatchObject({ kind: 'carter', carter });
+    const asker = model.folk.find((n) => n.role === 'villager' && model.story.markOf(n) === 'offer')!;
+    model.teleport(asker.village.x + 4, asker.village.z + 4); // (to their village: its folk about)
+    model.update(0, 0, 1 / 30);
+    const { x, z } = model.hero;
+    const near = [...model.trees].sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+    near.find((tree) => (model.teleport(tree.x + 0.9, tree.z), model.lumber.action?.kind === 'chop')); // (one their hatchet can fell)
+    expect(interactionOf(model, new Set(['loot', 'chest', 'stand', 'sit']))?.kind).toBe('chop');
+    Object.assign(asker, { where: null, x: model.hero.x + 0.6, z: model.hero.z + 0.6, steps: [{ kind: 'wait', for: 999 }] }); // (out of doors, beside the hero)
+    expect(interactionOf(model, new Set(['loot', 'chest', 'stand', 'sit']))).toMatchObject({ kind: 'talk', npc: asker });
+  }, 60000);
 });
