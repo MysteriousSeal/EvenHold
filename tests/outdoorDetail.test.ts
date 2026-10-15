@@ -49,24 +49,24 @@ describe('a layer of small things', () => {
   it('is thinned at a lower quality (the same ones kept each time), and none past its reach; all at High', () => {
     const { layer, mesh, objects } = built(200, { small: true });
     setGraphics({ quality: 'high' });
-    layer.fit!(objects, 40);
+    layer.fit!(objects, 40, 0, 0);
     expect([mesh.count, mesh.visible]).toEqual([200, true]);
     setGraphics({ quality: 'low' });
-    layer.fit!(objects, 3);
+    layer.fit!(objects, 3, 0, 0);
     expect(mesh.count).toBe(Math.ceil(200 * PRESETS.low.flora));
     const kept = order(mesh, mesh.count);
     setGraphics({ quality: 'medium' });
-    layer.fit!(objects, 3);
+    layer.fit!(objects, 3, 0, 0);
     expect(mesh.count).toBe(Math.ceil(200 * PRESETS.medium.flora));
     expect(order(mesh, kept.length)).toEqual(kept); // (Medium's: Low's and more)
-    layer.fit!(objects, PRESETS.medium.propReach + 1);
+    layer.fit!(objects, PRESETS.medium.propReach + 1, 0, 0);
     expect([mesh.count, mesh.visible]).toEqual([0, false]);
   });
 
   it('kept ones spread over the chunk, not bunched (thinned in a shuffled order)', () => {
     const { layer, mesh, objects } = built(200, { small: true });
     setGraphics({ quality: 'low' });
-    layer.fit!(objects, 0);
+    layer.fit!(objects, 0, 0, 0);
     const xs = order(mesh, mesh.count);
     expect(Math.min(...xs)).toBeLessThan(0.5);
     expect(Math.max(...xs)).toBeGreaterThan(3);
@@ -86,18 +86,35 @@ describe('the trees far off', () => {
     }
   });
 
-  it('swap model by distance at Low and Medium; never at High', () => {
+  it('far from the hero at Low and Medium drawn by a second, simpler mesh, each kept as it was (one felled stays gone)', () => {
     const farTree = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-    const { layer, mesh, objects, near } = built(5, { far: () => farTree });
+    const items = Array.from({ length: 20 }, (_, i) => ({ x: i, z: 0 }));
+    const where = new Map<{ x: number }, [THREE.InstancedMesh, number]>();
+    const layer = voxelLayer(() => ['0,0'], () => items, () => 'tree', () => new THREE.BoxGeometry(0.1, 0.1, 0.1), (it) => ({ ...it, y: 0, quarterTurns: 0 }), new THREE.MeshStandardMaterial(), (it, mesh, i) => where.set(it, [mesh, i]), { far: () => farTree });
+    const objects = layer.build('0,0');
+    const mesh = objects[0] as THREE.InstancedMesh;
+    const xOf = (item: { x: number }) => {
+      const [m, i] = where.get(item)!;
+      return new THREE.Matrix4().fromArray(m.instanceMatrix.array, i * 16).elements[12];
+    };
+    const [m3, i3] = where.get(items[3])!;
+    m3.setMatrixAt(i3, new THREE.Matrix4().makeScale(0, 0, 0)); // (felled)
+    const [m15, i15] = where.get(items[15])!;
+    m15.setMatrixAt(i15, new THREE.Matrix4().makeScale(0, 0, 0));
     setGraphics({ quality: 'low' });
-    layer.fit!(objects, PRESETS.low.treeFar + 1);
-    expect(mesh.geometry).toBe(farTree);
-    expect(mesh.count).toBe(5); // (every tree still there)
-    layer.fit!(objects, PRESETS.low.treeFar - 1);
-    expect(mesh.geometry).toBe(near);
+    layer.fit!(objects, 0, 0, 0);
+    const far = mesh.children[0] as THREE.InstancedMesh;
+    const reach = PRESETS.low.treeFar;
+    expect(far.geometry).toBe(farTree);
+    expect([mesh.count, far.count]).toEqual([reach + 1, 20 - reach - 1]);
+    for (const item of items) expect(where.get(item)![0]).toBe(item.x > reach ? far : mesh);
+    for (const item of items.filter((it) => it.x !== 3 && it.x !== 15)) expect(xOf(item)).toBe(item.x); // (each where it stands)
+    expect([xOf(items[3]), xOf(items[15])]).toEqual([0, 0]); // (the felled, still gone, near or far)
     setGraphics({ quality: 'high' });
-    layer.fit!(objects, 100);
-    expect(mesh.geometry).toBe(near);
+    layer.fit!(objects, 0, 0, 0);
+    expect([mesh.count, far.count]).toEqual([20, 0]);
+    expect(xOf(items[15])).toBe(0);
+    expect(xOf(items[16])).toBe(16);
   });
 
   it('half the detail: each 2x2x2 block one voxel, where most of it is', () => {
