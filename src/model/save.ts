@@ -158,12 +158,14 @@ export function snapshot(model: GameModel): SaveData {
       crafted: { ...hero.crafted }, // (the gear they made: skills/salvage.ts)
       spellWait: { ...hero.spellWait },
     },
-    // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt or wandered.
+    // Which foes the world has is the seed's: what's saved is who's been slain, and who's hurt (and where). Those only
+    // wandered aren't: back home on a load, as a region made afresh has them (every foe of every region passed has
+    // wandered: kept, they swelled a save to most of a megabyte). An older save's wanderers, still read.
     foes: foesOf(model),
     enemies: {
       gone: [...model.slain],
       changed: model.enemies
-        .filter((e) => isWorldFoe(e.id) && e.state !== 'dead' && (e.hp < e.maxHp || Math.hypot(e.x - e.homeX, e.z - e.homeZ) > 0.05))
+        .filter((e) => isWorldFoe(e.id) && e.state !== 'dead' && e.hp < e.maxHp)
         .map((e) => ({ id: e.id, x: round(e.x), z: round(e.z), hp: e.hp })),
     },
     loot: model.loot.map(({ item, x, z }) => ({ item, x, z })),
