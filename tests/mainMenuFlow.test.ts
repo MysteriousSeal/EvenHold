@@ -112,6 +112,7 @@ describe('the main menu: the roster', () => {
   it('one slot for a new hero while there is room: no roster at all with no hero, none when full', () => {
     void showMainMenu(hooks);
     expect(document.querySelector('.title-list')).toBeNull(); // (Create Hero alone)
+    expect(document.querySelector('.title-hero-line.plate')?.textContent).toBe('No hero yet: create one to begin.'); // (on a plate, read over the scene)
     expect(button('Create Hero')).toBeDefined();
     document.body.innerHTML = '<div id="loading" class="title"><h1>EvenHold</h1></div>';
     keep(100, 'Ann', 1);
