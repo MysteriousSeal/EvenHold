@@ -86,10 +86,10 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
     box(7, 28, 8, 7, 28, 8, EMBER); // its flame
     box(41, 24, 9, 42, 26, 10, LINEN); // another, burnt lower
     box(41, 27, 9, 41, 27, 9, EMBER);
-    // Bunches of herbs hung to dry from the mantel's front edge, over the jambs (out of the flames), tied in linen.
-    for (const u of [4, 8, 39, 43]) {
-      box(u, 20, 12, u + 1, 20, 13, LINEN);
-      box(u, 16, 12, u + 1, 19, 13, (_u, y, v) => ((y + v) % 2 === 0 ? MOSS_DARK : MOSS));
+    // Four bunches of herbs hung to dry along the mantel's front edge, each tied at its top.
+    for (const u of [5, 17, 29, 41]) {
+      box(u, 20, 12, u + 2, 20, 13, MOSS_DARK); // the tie
+      box(u, 15, 12, u + 2, 19, 13, (uu, y) => (y === 15 && uu !== u + 1 ? 0 : (uu + y) % 3 === 0 ? MOSS_DARK : MOSS)); // the bunch, narrowing to its tips
     }
     box(19, 24, 5, 23, 27, 9, RED); // clay pot
     box(20, 28, 6, 22, 28, 8, WOOD_DARK); // its lid

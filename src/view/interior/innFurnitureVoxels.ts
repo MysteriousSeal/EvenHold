@@ -131,6 +131,7 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     for (let u = 28; u + 3 < len - 1; u += 6) {
       box(u + 1, 25, 1, u + 1, 26, 1, WOOD_DARK); // its peg
       tankard((u0, y0, v0, u1, y1, v1, color) => box(u0, 45 - y1, v0, u1, 45 - y0, v1, typeof color === 'number' ? color : (uu, y, vv) => color(uu, 45 - y, vv)), u, 21, 1, false); // (turned over: its foot at the peg)
+      box(u, 21, 1, u + 2, 21, 3, IRON_LIGHT); // its rim, catching the light
     }
     box(10, 0, 2, 16, 5, 7, (_u, y) => (y === 1 || y === 4 ? IRON : WOOD)); // the bucket beneath
     box(11, 5, 3, 15, 5, 6, WATER); // water in it

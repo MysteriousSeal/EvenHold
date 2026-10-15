@@ -150,7 +150,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   const spot = fireOf(furniture);
   // Its light casts real shadows: set just in front of the opening (so the
   // stonework doesn't block it), shadows fan out from the fire and flicker with it.
-  const GLOW = inn ? 8 : 4.5;
+  const GLOW = inn ? 10 : 4.5; // (the inn's fire its brightest light: the eye goes there first)
   const glow = new THREE.PointLight(0xff9a4a, GLOW, inn ? 11 : 8, 1.4);
   glow.position.set(spot?.x ?? 0.3, 0.38, (spot?.z ?? 0.3) + 0.5);
   glow.castShadow = true;
@@ -170,8 +170,10 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   // (at a lower resolution than the fire's), each light just out in front of
   // its lantern's glass so the lantern itself doesn't block it.
   const LANTERN = inn ? 2.6 : 1.8;
+  // (The inn's over the counter's back end dimmer: by the kegs, it'd outshine the fire.)
+  const strength = (f: Furniture) => (inn && f.wall === 'back' && f.x <= 1 ? 1.8 : LANTERN);
   const lanterns = lamps.map((f) => {
-      const light = new THREE.PointLight(0xffc070, LANTERN, inn ? 5 : 4, 1.5);
+      const light = new THREE.PointLight(0xffc070, strength(f), inn ? 5 : 4, 1.5);
       const out = 0.42; // off the wall, past the lantern
       light.position.set(f.wall === 'left' ? f.x - 0.5 + out : f.x, 0.62, f.wall === 'left' ? f.z : f.z - 0.5 + out);
       light.castShadow = true;
@@ -186,7 +188,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       const behind = 0.1;
       back.position.set(f.wall === 'left' ? f.x - 0.5 + behind : f.x, 0.72, f.wall === 'left' ? f.z : f.z - 0.5 + behind);
       scene.add(light, back);
-      return light;
+      return { light, full: strength(f) };
     });
   // The candles on the nightstands, lit: a small warm light just over each
   // flame (no shadows of its own), flickering faster than a lantern.
@@ -265,7 +267,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       smithy.update(dt, forging.hammering, forging.quenching);
       cauldron.update(dt, time);
       lastTime = time;
-      lanterns.forEach((light, i) => (light.intensity = LANTERN * flicker(time * 0.7, i * 5)));
+      lanterns.forEach(({ light, full }, i) => (light.intensity = full * flicker(time * 0.7, i * 5)));
       tableCandles.forEach((light, i) => (light.intensity = flicker(time * 1.3, i * 11 + 5)));
       candles.forEach(({ light, flame, stand }, i) => {
         const seen = contents?.seenOf(stand) ?? 1; // (in a room shut away: dark)
@@ -290,7 +292,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       curtain.dispose();
       for (const g of Object.values(mugShapes)) g.dispose();
       material.dispose();
-      for (const light of [glow, ...lanterns, ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
+      for (const light of [glow, ...lanterns.map((l) => l.light), ...tableCandles, ...candles.map((c) => c.light)]) light.dispose(); // their shadow maps
       fire?.dispose();
     },
   };
