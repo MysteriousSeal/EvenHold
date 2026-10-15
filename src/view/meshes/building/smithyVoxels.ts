@@ -12,7 +12,7 @@
 
 import { hashUnit } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
-import { createGrid, fillBox } from '../voxel/voxelShapes';
+import { colorAt, createGrid, fillBox } from '../voxel/voxelShapes';
 import { C, ROOF_SETS } from './housePalette';
 import { FOUNDATION_TOP, door, masonry, put, roof, wallsOf, window, type Box } from './houseParts';
 
@@ -21,7 +21,7 @@ const ROOF = 1; // slate
 const YARD_X = [26, 48];
 const ROOF_FRONT = 11; // the lean-to's front posts (its roof from a row before them to the back)
 // Top of the forge chimney, in voxels: where the smoke comes out.
-export const SMITHY_SMOKE_ORIGIN: [number, number, number] = [30, 34, 12];
+export const SMITHY_SMOKE_ORIGIN: [number, number, number] = [30, 34, 11];
 
 export function buildSmithyVoxels(): VoxelGrid {
   const grid = createGrid(SMITHY_GRID);
@@ -38,6 +38,12 @@ export function buildSmithyVoxels(): VoxelGrid {
   roof(grid, shop, 11, ROOF);
 
   fillBox(grid, 6, 11, shop.z0, 12, 12, shop.z0, (x, y) => (hashUnit(x, y + 7) < (y === 11 ? 0.8 : 0.45) ? C.soot : masonry(x, y, shop.z0))); // soot over the door
+  // Its stone sooted along its top courses, the smoke of years (the rest left as it was).
+  const stone = new Set([C.stone, C.stoneDark, C.stoneLight]);
+  fillBox(grid, shop.x0, shop.y1 - 2, shop.z0, shop.x1, shop.y1, shop.z1, (x, y, z) => {
+    const c = colorAt(grid, x, y, z);
+    return stone.has(c) && hashUnit(x + z * 3, y, 9) < 0.35 + (y - shop.y1 + 2) * 0.25 ? C.soot : c;
+  });
 
   yard(grid);
   forge(grid);
@@ -59,9 +65,9 @@ function yard(grid: VoxelGrid): void {
   const [x0, x1] = YARD_X;
   fillBox(grid, x0, 0, 0, x1 + 1, 0, 21, (x, _y, z) => {
     const n = hashUnit(x, z);
-    const fire = Math.hypot(x - 30, z - 6); // (from before the forge's mouth)
-    if (fire < 3.5 && hashUnit(x, z, 3) < 0.25) return C.ember; // cinders, glowing
-    const sooty = fire < 5 || Math.hypot(x - 38, z - 6) < 4; // (before the forge; round the anvil)
+    const fire = Math.hypot(x - 30, z - 3); // (from the forge's mouth, out)
+    if (fire >= 1.5 && fire < 4 && hashUnit(x, z, 3) < 0.25) return C.ember; // cinders spilt from it, glowing
+    const sooty = fire < 5 || Math.hypot(x - 37, z - 2) < 4; // (before the forge; round the anvil)
     return n < 0.07 ? C.stone : n < 0.12 ? C.stoneDark : n < (sooty ? 0.45 : 0.2) ? C.soot : n < 0.23 ? C.iron : n < 0.55 ? C.earthDark : C.earth;
   });
   fillBox(grid, x0, 1, 19, x1, roofAt(19) - 1, 19, (x, y) => (y % 4 === 0 ? C.timber : x % 2 === 0 ? C.door : C.doorDark));
@@ -75,38 +81,36 @@ function yard(grid: VoxelGrid): void {
   }
 }
 
-// The stone hearth at the roof's edge: its bed of coals open to the sky,
-// glowing, its mouth glowing out at the street, a sooted hood at its back,
-// and the chimney rising from it through the roof, its courses blackening
-// as they climb to a black cap.
+// The stone hearth before the roof's edge: its bed of coals open to the
+// sky, a full rectangle white-hot at its heart, its mouth glowing out at the
+// street, a sooted hood at its back, and the chimney rising from it through
+// the roof, its courses blackening as they climb to a black cap.
 function forge(grid: VoxelGrid): void {
   const [sx, sy, sz] = SMITHY_SMOKE_ORIGIN;
-  fillBox(grid, 27, 1, 8, 33, 5, 13, masonry);
-  fillBox(grid, 28, 5, 9, 32, 5, 12, (x, _y, z) => {
-    const n = hashUnit(x, z);
-    return n < 0.35 ? C.emberHot : n < 0.85 ? C.ember : C.coal;
-  });
-  fillBox(grid, 29, 1, 8, 31, 2, 8, (_x, y) => (y === 1 ? C.emberHot : C.ember)); // its mouth, glowing
-  fillBox(grid, 28, 3, 8, 32, 3, 8, C.soot); // sooted over it
-  fillBox(grid, 27, 9, 12, 33, 12, 13, masonry); // the hood,
-  fillBox(grid, 27, 9, 11, 33, 9, 11, C.soot); // its sooty lip
+  fillBox(grid, 27, 1, 4, 33, 5, 10, masonry);
+  fillBox(grid, 28, 5, 5, 32, 5, 8, (x, _y, z) => (x === 28 || x === 32 || z === 5 || z === 8 ? C.ember : C.emberHot)); // the coals: an ember ring round a white-hot heart
+  fillBox(grid, 29, 1, 4, 31, 2, 4, (_x, y) => (y === 1 ? C.emberHot : C.ember)); // its mouth, glowing
+  fillBox(grid, 28, 3, 4, 32, 3, 4, C.soot); // sooted over it
+  fillBox(grid, 27, 9, 9, 33, 12, 10, masonry); // the hood,
+  fillBox(grid, 27, 9, 9, 33, 9, 9, C.soot); // its sooty lip
   fillBox(grid, sx - 2, 13, sz - 2, sx + 2, sy - 1, sz + 1, (x, y, z) => (y >= sy - 7 + (hashUnit(x * 3 + z, 1) < 0.5 ? 0 : 2) || (y >= sy - 10 && hashUnit(x * 3 + z, y) < 0.15) ? C.soot : masonry(x, y, z))); // the stack, black over its top courses, streaked below
   fillBox(grid, sx - 3, sy, sz - 3, sx + 3, sy, sz + 2, C.coal); // its cap, black
   fillBox(grid, sx - 1, sy, sz - 1, sx + 1, sy, sz, C.soot); // its flue
 }
 
-// Out in the open: an anvil on a tree stump, a hammer left on it, a quench
-// barrel beside it (its water dark), and bar stock on two chocks; under the
-// roof, a heap of scrap (old bars, a rusted blade) waiting.
+// Out in the open: an anvil on a tree stump in the yard's open corner (clear
+// of the forge's mouth, seen from the street), a hammer left on it, a quench
+// barrel (its water dark), and bar stock on two chocks; under the roof, a
+// heap of scrap (old bars, a rusted blade) waiting.
 function anvil(grid: VoxelGrid): void {
-  fillBox(grid, 37, 1, 5, 39, 3, 7, C.bark);
-  fillBox(grid, 37, 4, 6, 39, 4, 6, C.anvil); // waist
-  fillBox(grid, 35, 5, 5, 41, 6, 7, (_x, y) => (y === 6 ? C.anvilLight : C.anvil)); // face
-  fillBox(grid, 42, 6, 6, 42, 6, 6, C.anvil); // horn
-  put(grid, [36, 7, 6], C.iron); // hammer left on the anvil
-  put(grid, [37, 7, 6], C.timberLight);
-  for (let y = 1; y <= 4; y++) fillBox(grid, 44, y, 6, 46, y, 8, y === 2 ? C.iron : C.barrel);
-  fillBox(grid, 45, 4, 7, 45, 4, 7, C.quenchDark);
+  fillBox(grid, 36, 1, 1, 38, 3, 3, C.bark);
+  fillBox(grid, 36, 4, 2, 38, 4, 2, C.anvil); // waist
+  fillBox(grid, 34, 5, 1, 40, 6, 3, (_x, y) => (y === 6 ? C.anvilLight : C.anvil)); // face
+  fillBox(grid, 41, 6, 2, 41, 6, 2, C.anvil); // horn
+  put(grid, [35, 7, 2], C.iron); // hammer left on the anvil
+  put(grid, [36, 7, 2], C.timberLight);
+  for (let y = 1; y <= 4; y++) fillBox(grid, 36, y, 6, 38, y, 8, y === 2 ? C.iron : C.barrel);
+  fillBox(grid, 37, 4, 7, 37, 4, 7, C.quenchDark);
   for (const x of [43, 46]) fillBox(grid, x, 1, 1, x, 1, 3, C.timber); // the chocks,
   fillBox(grid, 42, 2, 1, 47, 2, 3, (x, _y, z) => (z === 2 ? C.earthDark : x === 42 || x === 47 ? C.anvilLight : C.anvil)); // the bars on them, their ends bright
   fillBox(grid, 34, 1, 13, 37, 1, 16, (x, _y, z) => ((x + z) % 3 === 0 ? C.clayPot : C.iron)); // the scrap: bars, rusting,
@@ -142,27 +146,21 @@ function backWall(grid: VoxelGrid): void {
   for (const [inset, y] of layers) fillBox(grid, 27 + inset, y, 20, 36 - inset, y, 23 - inset, (x, _y, z) => (hashUnit(x, z, y) < 0.25 ? C.soot : C.coal)); // coal, heaped
 }
 
-// The sign, to be known from across the square: a wrought-iron bracket
-// reaching out toward the street off a post at the yard's front, an iron
-// anvil hung from it on two chains (solid, two thick, its face lit, seen
-// from along the lane either way), and a horseshoe hung under that.
+// The sign, to be known from across the square: an iron anvil, broadside
+// to the street, hung at head height on two chains from a short wrought
+// bracket off the lean-to's front corner post, a horseshoe under it. A
+// silhouette: a full lit top, a horn tapering to a point at one end, a
+// square heel at the other, the waist notched in over a broad foot.
 function sign(grid: VoxelGrid): void {
   const x = YARD_X[1];
-  const [z0, z1] = [1, 7]; // the anvil, along z
-  fillBox(grid, x, 1, z1 + 1, x, 17, z1 + 1, C.timber); // the post
-  fillBox(grid, x, 17, z0, x, 17, z1 + 1, C.iron); // the bracket,
-  put(grid, [x, 16, z1], C.iron); // braced
-  put(grid, [x, 15, z1 - 1], C.iron);
-  put(grid, [x, 17, z0 - 1], C.iron); // curled at its end
-  for (const z of [z0 + 1, z1 - 1]) fillBox(grid, x, 15, z, x, 16, z, C.iron); // its chains
-  const y0 = 11; // the anvil, four high
-  for (const sx of [x - 1, x]) {
-    fillBox(grid, sx, y0, z0 + 2, sx, y0, z1 - 1, C.anvil); // its foot,
-    fillBox(grid, sx, y0 + 1, z0 + 3, sx, y0 + 1, z1 - 2, C.anvil); // waist,
-    fillBox(grid, sx, y0 + 2, z0 + 1, sx, y0 + 2, z1, C.anvil); // face,
-    fillBox(grid, sx, y0 + 3, z0, sx, y0 + 3, z1, C.anvilLight); // lit on top, the horn out to one end
-  }
-  fillBox(grid, x, y0 - 2, 4, x, y0 - 1, 4, C.iron); // a chain under it,
-  fillBox(grid, x, y0 - 8, 3, x, y0 - 8, 5, C.iron); // and a horseshoe: its toe,
-  for (const z of [2, 6]) fillBox(grid, x, y0 - 7, z, x, y0 - 3, z, C.iron); // its branches
+  const z = ROOF_FRONT - 4; // the bracket's end, four out from the post
+  fillBox(grid, x, 13, z, x, 13, ROOF_FRONT, C.iron); // the bracket,
+  put(grid, [x, 12, ROOF_FRONT - 1], C.iron); // braced
+  fillBox(grid, x - 8, 13, z, x, 13, z, C.iron); // and its crossbar
+  for (const cx of [x - 7, x - 1]) put(grid, [cx, 12, z], C.iron); // its chains
+  const [x0, y0] = [x - 8, 7]; // the anvil's left end, its foot
+  const rows: Array<[number, number]> = [[1, 7], [3, 5], [2, 8], [1, 8], [0, 8]]; // [from, to] along it, foot up
+  rows.forEach(([a, b], r) => fillBox(grid, x0 + a, y0 + r, z, x0 + b, y0 + r, z, r === 4 ? C.pewter : r === 0 ? C.anvil : C.anvilLight)); // (bright iron: it stands out from the yard)
+  fillBox(grid, x0 + 2, y0 - 5, z, x0 + 6, y0 - 5, z, C.iron); // and a horseshoe under it: its toe,
+  for (const hx of [x0 + 2, x0 + 6]) fillBox(grid, hx, y0 - 4, z, hx, y0 - 1, z, C.iron); // its branches, up to the foot
 }
