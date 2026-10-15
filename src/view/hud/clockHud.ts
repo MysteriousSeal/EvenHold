@@ -1,10 +1,13 @@
 // The game's clock, top right (styles in hud.css): a small sand card, a
-// voxel sign of the time of day (its name on hover), the day and the time
+// voxel sign of the time of day (its name on hover, the season's and the
+// weather's with it: "Evening · Autumn, rain"), the day and the time
 // ("Day 3 · 14:30"), the blessings' cards under it.
 
 import { clockAt, timeOfDay, type TimeOfDay } from '../../model/clock';
 import { frontIcon, type FrontVoxels } from '../ui/frontIcon';
 import { dayModel, eveningModel, morningModel, nightModel } from './timeOfDayVoxels';
+import { sky } from '../render/sky';
+import { capitalize } from '../../util/text';
 
 const SIGNS: Record<TimeOfDay, { model: FrontVoxels; name: string }> = {
   morning: { model: morningModel, name: 'Morning' },
@@ -31,8 +34,9 @@ export function createClockHud(): (minutes: number) => void {
       part = nowPart;
       sign.querySelector('canvas')?.remove();
       sign.prepend(frontIcon(`time:${nowPart}`, SIGNS[nowPart].model, 30)); // seen straight on
-      tip.textContent = SIGNS[nowPart].name;
     }
+    const told = `${SIGNS[nowPart].name} · ${capitalize(sky.season)}, ${sky.weather}`;
+    if (tip.textContent !== told) tip.textContent = told;
     const text = `${now.day}|${now.time}`;
     if (text === shown) return;
     shown = text;

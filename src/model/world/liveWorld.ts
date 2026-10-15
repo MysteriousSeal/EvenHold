@@ -28,6 +28,7 @@ import { addStrongholdObstacles, placeStrongholds, registerStrongholds, type Str
 import { spawnEnemies } from '../enemies/enemies';
 import { regionFoeId } from '../enemies/foeIds';
 import { addSceneryObstacles, placeScenery, type Scenery } from '../scenery/scenery';
+import { placeBiomeScenery } from '../scenery/biomeScenery';
 import { Travellers, type Traveller } from '../travellers/travellers';
 import { TravellerCrowd } from '../travellers/travellerCrowd';
 import { spawnWildlife, type Wildlife } from '../wildlife/wildlife';
@@ -366,6 +367,9 @@ export class LiveWorld {
     const strongholds = placeStrongholds({ seed, size, tiles, villages, ruins, camps, caves, isOpenTile, stoodOn: (x, z) => stood.has(cellKey(x, z)) }, area);
     addStrongholdObstacles(obstacles, strongholds);
     addSignpostObstacles(obstacles, tiles, villages, area); // (the signposts at the roads' junctions: last, on the paving, so nothing else is moved)
+    const wilds = placeBiomeScenery({ seed, tiles, villages, ruins, camps, hero: spawn, stood: [...enemies, ...wildlife], scenery, isOpenTile }, area); // the country's own landmarks: after all else, so nothing is moved
+    addSceneryObstacles(obstacles, wilds);
+    scenery.push(...wilds);
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
     const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, entrances };
     this.learn(index, known);

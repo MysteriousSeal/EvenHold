@@ -87,6 +87,6 @@ export function buildRoads(scene: WorldSink, model: GameModel): void {
     (tile) => tile.model,
     (tile) => greedyMesh(tile.build(), ROAD_PALETTE, ROAD_VOXEL_SIZE, tileOrigin(tile.drops)),
     (tile) => ({ x: tile.x, y: tile.tier * TILE_HEIGHT, z: tile.z, quarterTurns: 0 }),
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }),
+    Object.assign(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), { userData: { trodden: true } }), // (snow lies thin on it: render/stylize.ts)
   ));
 }

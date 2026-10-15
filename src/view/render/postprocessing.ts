@@ -58,7 +58,7 @@ const LightShaftShader = {
       // Two incommensurate waves give irregular beam widths and gaps; a slow
       // wave along the beam breaks them into long, fading segments.
       float wave = sin(across * 6.2832 + uTime * ${SHAFT_DRIFT.toFixed(3)}) * 0.6 + sin(across * 2.63 + 1.7 - uTime * ${(SHAFT_DRIFT * 0.7).toFixed(3)}) * 0.4;
-      float beam = smoothstep(0.15, 0.85, wave);
+      float beam = smoothstep(0.5, 0.95, wave); // (narrow: a few thin beams, not bands)
       float segment = smoothstep(-0.5, 0.6, sin(along * 0.18 + across * 0.9));
       color.rgb += uColor * beam * segment * ${SHAFT_STRENGTH.toFixed(3)} * uStrength;
       gl_FragColor = color;
@@ -68,6 +68,8 @@ const LightShaftShader = {
 export class PostProcessing {
   private readonly composer: EffectComposer;
   private readonly shafts: ShaderPass;
+  private readonly bloom: UnrealBloomPass | null;
+  private readonly shaftsWanted: boolean; // (not with ?noshafts)
   private readonly right = new THREE.Vector3();
   private readonly up = new THREE.Vector3();
 
@@ -83,20 +85,23 @@ export class PostProcessing {
     this.composer.addPass(new RenderPass(scene, camera));
 
     this.shafts = new ShaderPass(LightShaftShader);
-    this.shafts.enabled = options.shafts;
+    this.shaftsWanted = this.shafts.enabled = options.shafts;
     this.composer.addPass(this.shafts);
 
-    if (options.bloom) {
-      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD));
-    }
+    this.bloom = options.bloom ? new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD) : null;
+    if (this.bloom) this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
-    // The camera never rotates, so its screen axes and the sun's on-screen
-    // direction are fixed.
+    // The camera never rotates, so its screen axes are fixed.
     camera.updateMatrixWorld();
     camera.matrixWorld.extractBasis(this.right, this.up, new THREE.Vector3());
-    const light = SUN_DIRECTION.clone().negate();
-    this.shafts.uniforms.uBeamDir.value.set(light.dot(this.right), light.dot(this.up)).normalize();
+    this.setSun(SUN_DIRECTION);
+  }
+
+  // The way toward the sun (it moves through the day: skyView.ts), its beams falling the other way on screen.
+  setSun(direction: THREE.Vector3): void {
+    const [x, y] = [-direction.dot(this.right), -direction.dot(this.up)];
+    if (Math.hypot(x, y) > 1e-4) this.shafts.uniforms.uBeamDir.value.set(x, y).normalize();
   }
 
   setSize(width: number, height: number, pixelRatio: number): void {
@@ -105,9 +110,17 @@ export class PostProcessing {
     this.shafts.uniforms.uViewSize.value.set(this.camera.right - this.camera.left, this.camera.top - this.camera.bottom);
   }
 
-  // How much of the light shafts shows (0..1).
-  setShafts(strength: number): void {
+  // How much of the light shafts shows (0..1), and their colour (the sun's, warmer low down). None: the pass skipped
+  // (a whole screen's work saved, most of the day).
+  setShafts(strength: number, color?: THREE.Color): void {
     this.shafts.uniforms.uStrength.value = strength;
+    this.shafts.enabled = this.shaftsWanted && strength > 0.005;
+    if (color) this.shafts.uniforms.uColor.value.copy(color);
+  }
+
+  // How strongly bright things glow, against the day's (1): more at night (windows, lanterns, fires).
+  setBloom(strength: number): void {
+    if (this.bloom) this.bloom.strength = BLOOM_STRENGTH * strength;
   }
 
   render(elapsedSeconds: number): void {

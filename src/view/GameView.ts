@@ -15,6 +15,7 @@ import { INDOOR_SCALE } from '../model/constants';
 import { createCamera, computeMovementAxes, resizeCamera } from './render/camera';
 import type { MovementAxes } from './render/camera';
 import { addLights } from './render/lighting';
+import { SkyView } from './render/skyView';
 import { setWindPusher } from './meshes/common/wind';
 import { HumanRig } from './meshes/human/humanRig';
 import { personMaterial } from './meshes/human/humanParts';
@@ -111,6 +112,7 @@ export class GameView {
   private readonly campChests: CampChests; // (each camp's chest, shut or thrown open)
   private readonly boardMarks: BoardMarks;
   private readonly mist: RuinMist; // low mist in the old ruins
+  private readonly sky: SkyView; // the hour's light, the weather, the season
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
@@ -150,7 +152,7 @@ export class GameView {
     this.camera = createCamera();
     this.movementAxes = computeMovementAxes();
 
-    addLights(this.scene);
+    this.sky = new SkyView(this.scene, addLights(this.scene), this.camera, this.pixelRatio, options.sky);
     this.hero = new HumanRig(model.hero.look, this.heroLook);
     this.scene.add(this.hero.root);
     this.world = new ChunkStreamer(this.scene);
@@ -191,7 +193,7 @@ export class GameView {
   // the frame where the browser can (their programs mostly made already: the same shaders as every region's).
   private prepare(materials: THREE.Material[]): void {
     if (!this.stylizer || materials.length === 0) return; // (before the start: finish() does it, for all)
-    this.stylizer.patch(materials);
+    this.stylizer.patch(materials, true); // (the world's: they take the weather)
     const warmUp = new THREE.Scene();
     const box = new THREE.BoxGeometry(0.001, 0.001, 0.001);
     for (const material of materials) warmUp.add(new THREE.InstancedMesh(box, material, 1));
@@ -203,7 +205,7 @@ export class GameView {
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
     const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, ...this.entrances.materials, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
-    this.stylizer = stylize(this.scene, materials);
+    this.stylizer = stylize(this.scene, materials, this.world.materials());
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -289,6 +291,7 @@ export class GameView {
     const { model } = this;
     this.elapsed += dt;
     for (const animate of this.animations) animate(this.elapsed);
+    this.sky.update(model, this.elapsed, this.post, this.mist.inRuin(model.hero.x, model.hero.z)); // (no sun's shafts in the ruins' mist)
     this.regions?.animate(this.elapsed);
 
     const { hero } = model;
@@ -373,7 +376,6 @@ export class GameView {
     this.wildMoves.update(model.wild, (x, z) => model.getGroundY(x, z), dt, true);
     (this.bedroll ??= new BedrollView(this.scene)).update(model);
     (this.fishing ??= new FishingView(this.scene)).update(model, this.hero, dt, this.elapsed);
-    this.post?.setShafts(1 - this.mist.inRuin(hero.x, hero.z)); // (no sun's shafts in the ruins' mist)
 
     // The camera eases toward the ground height rather than tracking hero.y
     // directly, so hops don't bounce the whole screen. Exponential decay

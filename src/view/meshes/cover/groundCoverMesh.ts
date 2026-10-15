@@ -13,7 +13,14 @@ import { TERRAIN_COLORS } from '../../constants';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { voxelLayer, type VoxelPlacement } from '../voxel/voxelInstances';
 import { chunkKeysIn, chunkTilesIn } from '../../world/chunks';
-import { createCoverScatter, type GroundCover, type ScatterItem } from './groundCoverScatter';
+import { createCoverScatter, type GroundCover, type ScatterItem, type WildItem } from './groundCoverScatter';
+import { createGroundColours } from '../terrain/biomeGround';
+import { aroundVillages, createBiomes } from '../../../model/scenery/biomes';
+import type { WildKind } from './biomeCover';
+import {
+  FERN_GRID, FERN_SHAPES, HEATHER_GRID, HEATHER_SHAPES, LITTER_GRID, LITTER_SHAPES, THISTLE_GRID, THISTLE_SHAPES, MUSHROOM_GRID, MUSHROOM_SHAPES, REED_GRID, REED_SHAPES, STONE_GRID, STONE_SHAPES, WILD_PALETTE,
+  buildFern, buildHeather, buildLitter, buildMushrooms, buildThistle, buildReeds, buildStone,
+} from './wildVoxels';
 import {
   COVER_PALETTE,
   COVER_VOXEL_SIZE,
@@ -41,6 +48,22 @@ const TUFT_HEIGHT_MAX = TUFT_SIZES[TUFT_SIZES.length - 1] * COVER_VOXEL_SIZE;
 const SINK = 0.01; // bases slightly below the grass, so no gap shows
 const GRASS_WIND = { height: TUFT_HEIGHT_MAX, strength: 0.049, speed: 1.6 };
 const BLOOM_WIND = { height: BLOOM_GRID[1] * COVER_VOXEL_SIZE, strength: 0.04, speed: 1.4 };
+const FROND_WIND = { height: FERN_GRID[1] * COVER_VOXEL_SIZE, strength: 0.03, speed: 1.3 }; // ferns and heather: a little
+const MOOR_WIND = { height: HEATHER_GRID[1] * COVER_VOXEL_SIZE, strength: 0.05, speed: 2.1 }; // heather: the moor's the windiest
+const REED_WIND = { height: REED_GRID[1] * COVER_VOXEL_SIZE, strength: 0.07, speed: 1.7, flutter: 0.003 }; // reeds: tall and whippy
+
+// The country's own plants (wildVoxels.ts): each kind's grid, its shapes, its maker, and whether it sways (and how).
+const WILD: Record<WildKind, { grid: [number, number, number]; shapes: number; build: (shape: number) => ReturnType<typeof buildFern>; sway: 'frond' | 'moor' | 'reed' | null }> = {
+  fern: { grid: FERN_GRID, shapes: FERN_SHAPES, build: buildFern, sway: 'frond' },
+  bracken: { grid: FERN_GRID, shapes: FERN_SHAPES, build: (shape) => buildFern(shape, true), sway: 'moor' },
+  heather: { grid: HEATHER_GRID, shapes: HEATHER_SHAPES, build: buildHeather, sway: 'moor' },
+  reed: { grid: REED_GRID, shapes: REED_SHAPES, build: buildReeds, sway: 'reed' },
+  mushroom: { grid: MUSHROOM_GRID, shapes: MUSHROOM_SHAPES, build: buildMushrooms, sway: null },
+  stone: { grid: STONE_GRID, shapes: STONE_SHAPES, build: buildStone, sway: null },
+  litter: { grid: LITTER_GRID, shapes: LITTER_SHAPES, build: buildLitter, sway: null },
+  thistle: { grid: THISTLE_GRID, shapes: THISTLE_SHAPES, build: buildThistle, sway: 'moor' },
+};
+const wildShape = (w: WildItem) => w.variant % WILD[w.kind].shapes;
 
 function geometry(grid: ReturnType<typeof buildTuft>, size: [number, number, number]): THREE.BufferGeometry {
   // Centered on its spot in X/Z, standing on the ground in Y.
@@ -87,11 +110,18 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
   };
   const keys = () => chunkKeysIn(model.area); // (its own part of the map: a streamed world's region)
   const plain = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
+  // What doesn't sway (flowers, pebbles, mushrooms, stones, litter) still sinks away under the snow.
+  const still = () => {
+    const material = plain();
+    addWindSway(material, { height: 1, strength: 0, speed: 0, snowShrink: true, evergreen: true }); // (no season tint: stones and caps keep their colours)
+    return material;
+  };
 
   const grassMaterial = plain();
-  const windTime = addWindSway(grassMaterial, GRASS_WIND);
+  const windTime = addWindSway(grassMaterial, { ...GRASS_WIND, snowShrink: true, waves: true });
+  const ground = createGroundColours(aroundVillages(createBiomes(model.seed), model.villages), model.tiles);
   const grassTint = (item: ScatterItem) =>
-    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT);
+    new THREE.Color(TERRAIN_COLORS[item.tier % TERRAIN_COLORS.length]).multiplyScalar(TUFT_SHADES[item.variant] * TUFT_ROOT_LIFT).multiply(ground(Math.round(item.x), Math.round(item.z), item.tier));
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).sprigs,
@@ -114,11 +144,11 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (f) => `flower:${f.variant}:${itemHash(f) % FLOWER_HEIGHTS}`,
     (f) => buildFlowerGeometry(f.variant, itemHash(f) % FLOWER_HEIGHTS),
     (f) => place(f),
-    plain(),
+    still(),
   ));
   // The meadow patches' wildflowers, swaying as the grass does (a little less: their heads are heavier).
   const bloomMaterial = plain();
-  const bloomTime = addWindSway(bloomMaterial, BLOOM_WIND);
+  const bloomTime = addWindSway(bloomMaterial, { ...BLOOM_WIND, snowShrink: true, waves: true });
   scene.layer(voxelLayer(
     keys,
     (key) => coverIn(key).blooms,
@@ -133,11 +163,37 @@ export function buildGroundCover(scene: WorldSink, model: GameModel): (elapsedSe
     (p) => `pebble:${itemHash(p) % PEBBLE_SHAPES}`,
     (p) => buildPebbleGeometry(itemHash(p) % PEBBLE_SHAPES),
     (p) => place(p),
-    plain(),
+    still(),
   ));
+
+  // The country's own plants: those that sway (ferns a little, heather and reeds more), and those that don't.
+  const frondMaterial = plain();
+  const moorMaterial = plain();
+  const reedMaterial = plain();
+  const frondTime = addWindSway(frondMaterial, { ...FROND_WIND, snowShrink: true });
+  const moorTime = addWindSway(moorMaterial, { ...MOOR_WIND, snowShrink: true });
+  const reedTime = addWindSway(reedMaterial, { ...REED_WIND, snowShrink: true });
+  const stillMaterial = still();
+  const sways = { frond: frondMaterial, moor: moorMaterial, reed: reedMaterial };
+  for (const [way, material] of [...Object.entries(sways), ['still', stillMaterial] as const]) {
+    scene.layer(voxelLayer(
+      keys,
+      (key) => coverIn(key).wild.filter((w) => (WILD[w.kind].sway ?? 'still') === way),
+      (w) => `wild:${w.kind}:${wildShape(w)}`,
+      (w) => {
+        const [sx, , sz] = WILD[w.kind].grid;
+        return greedyMesh(WILD[w.kind].build(wildShape(w)), WILD_PALETTE, COVER_VOXEL_SIZE, new THREE.Vector3((-sx * COVER_VOXEL_SIZE) / 2, -SINK, (-sz * COVER_VOXEL_SIZE) / 2));
+      },
+      (w) => place(w),
+      material,
+    ));
+  }
 
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
     bloomTime.value = elapsedSeconds;
+    frondTime.value = elapsedSeconds;
+    moorTime.value = elapsedSeconds;
+    reedTime.value = elapsedSeconds;
   };
 }

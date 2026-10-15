@@ -3,12 +3,15 @@
 // (a fawn is never without her). The first of each herd leads (a doe if
 // there is one): it wanders around home, rests, and grazes; the adults keep
 // loosely around it and each fawn close by its mother. When the hero comes
-// near, the whole herd bounds away together, and settles once the hero's gone.
+// near, they stop and watch them, heads up; nearer, the whole herd bounds
+// away together, and settles once the hero's gone. At night they lie down
+// where they are, till morning (or the hero).
 //
 // Placed from hashes, like the ducks, so the world rng is untouched; their
 // choices come from hashes of where they are, so tests are repeatable.
 
 import { hashUnit } from '../../util/random';
+import { between } from '../clock';
 import { inArea, inBounds, ownsSite, wholeMap, type Area, type MapSize } from '../map/grid';
 import type { Tree, Village } from '../types';
 import type { Camp } from '../camps/camps';
@@ -27,6 +30,7 @@ export interface DeerWorld {
   isOpenTile(x: number, z: number): boolean;
   isBlocked(x: number, z: number, r: number): boolean; // water, buildings, props, fences
   getGroundY(x: number, z: number): number;
+  minutes?: number; // the time of day (deer lie down for the night)
 }
 
 const GRID = 14; // one candidate herd per GRID x GRID tiles
@@ -38,6 +42,7 @@ const FOLLOW_CATCH_UP = 1.4; // followers can go this much faster than the leade
 const SLACK = 0.25; // a follower lets its place drift this far before walking back to it
 const WANDER = 4; // tiles from home
 const FLEE_RADIUS = 3.5; // the hero this close sends the herd off
+const WARY_RADIUS = 6.5; // and this close, they stop and watch them come
 const CALM_RADIUS = 7; // and this far lets it settle
 const FLEE_DISTANCE = 6;
 const AWAY_FROM_VILLAGES = 12; // tiles
@@ -172,5 +177,7 @@ export function stepDeerHerd(herd: Wildlife[], world: DeerWorld, hero: { x: numb
     feedChance: 0.7,
     feedLag: 2,
     salt: 60,
+    waryRadius: WARY_RADIUS,
+    abed: world.minutes !== undefined && between(world.minutes, 22, 5),
   }, hero, dt);
 }

@@ -4,8 +4,11 @@
 // lichen in pale specks; bark and heartwood for the logs, a few red-capped
 // mushrooms. Each laid out along x, a tile (25 voxels) to each of its tiles,
 // stood on its ground; silhouette first, the camera's distance in mind.
+// The country's own (model/scenery/biomeScenery.ts): a dead tree, silver-grey
+// and bare; a weeping willow, its fronds hanging in curtains; a granite tor,
+// rounded blocks piled on one another.
 
-import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
+import { colorAt, createGrid, setColor, voxelLine } from '../voxel/voxelShapes';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { hashUnit } from '../../../util/random';
 import type { SceneryKind } from '../../../model/scenery/scenery';
@@ -36,6 +39,14 @@ const ENTRIES = {
   sackDark: 0xa89468,
   crate: 0xa87c4a,
   crateDark: 0x7a5632,
+  // The country's own:
+  dead: 0x9a8f80, // a dead tree's bare wood, weathered silver
+  deadLight: 0xbcb2a0,
+  deadDark: 0x6a6054,
+  willow: 0x7fa35a,
+  willowLight: 0x98b86a,
+  willowDark: 0x5f8a3e,
+  willowBark: 0x5a4a38,
 } as const;
 export const SCENERY_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
@@ -44,9 +55,10 @@ const T = 25; // voxels to a tile
 
 // A piece's grid: its tiles along x and z, and how tall.
 export function sceneryGrid(kind: SceneryKind): [number, number, number] {
-  return { boulder: [T, 18, T], outcrop: [2 * T, 24, 2 * T], log: [2 * T, 14, T], cairn: [T, 22, T], wall: [3 * T, 16, T], menhir: [T, 42, T], wagon: [2 * T, 26, T] }[kind] as [number, number, number];
+  return { boulder: [T, 18, T], outcrop: [2 * T, 24, 2 * T], log: [2 * T, 14, T], cairn: [T, 22, T], wall: [3 * T, 16, T], menhir: [T, 42, T], wagon: [2 * T, 26, T], snag: [T + 10, 58, T + 10], willow: [WILLOW, 60, WILLOW], tor: [2 * T, 36, 2 * T] }[kind] as [number, number, number];
 }
 
+const WILLOW = 2 * T - 6; // a willow's crown, across: over its tile, and well past it
 const n = (x: number, y: number, z: number, salt: number) => hashUnit(x * 31 + z * 7, y, salt); // (a voxel's own roll)
 
 // The weathered stone's tone at (x, y, z) of a rock whose top is at `top`: moss where it faces the sky (`up`), lit near
@@ -281,5 +293,101 @@ function wagon(): VoxelGrid {
   return g;
 }
 
-const BUILD: Record<SceneryKind, (v: number) => VoxelGrid> = { boulder, outcrop, log, cairn, wall, menhir, wagon };
+// A dead tree: a bare trunk, silver-grey, tapering to a broken top, a few bare limbs reaching up from it, its bark
+// peeled in darker patches, moss at its root flare.
+function snag(v: number): VoxelGrid {
+  const g = createGrid(sceneryGrid('snag'));
+  const m = Math.floor((T + 10) / 2);
+  const high = 40 + v * 3;
+  const wood = (x: number, y: number, z: number) => (n(x, Math.floor(y / 3), z, 101 + v) < 0.2 ? C.deadDark : (x + z) % 2 && y % 5 === 0 ? C.deadLight : C.dead);
+  for (let y = 0; y < high; y++) {
+    const r = y < 3 ? 2 : y < high * 0.6 ? 1 : y < high - 3 ? 1 : 0; // (a flare at its foot; thinner up it)
+    const lean = Math.round((y / high) * (v % 2 ? 2 : -1));
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+      if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+      setColor(g, m + dx + lean, y, m + dz, y < 2 && n(dx, y, dz, 103) < 0.4 ? C.moss : wood(dx, y, dz));
+    }
+  }
+  setColor(g, m + (v % 2 ? 2 : -1), high, m, C.deadLight); // (its broken top, splintered)
+  // Bare limbs, two thick, reaching up and out, each with a twig off it.
+  const limbs: Array<[number, number, number, number]> = [[18, 1, 0, 9], [26, -1, 1, 8], [32, 0, -1, 7], [24 + v, 1, 1, 6]];
+  for (const [y0, dx, dz, long] of limbs.slice(0, 2 + (v % 3))) {
+    const from: [number, number, number] = [m, y0, m];
+    const to: [number, number, number] = [m + dx * long, y0 + long, m + (dz || (dx ? 0 : 1)) * long];
+    voxelLine(g, from, to, C.dead);
+    voxelLine(g, [from[0], from[1] + 1, from[2]], [to[0], to[1] + 1, to[2]], C.deadDark);
+    voxelLine(g, to, [to[0] + dx * 2, to[1] + 4, to[2] - dz * 2], C.deadLight);
+  }
+  return g;
+}
+
+// A weeping willow: a stout trunk bare for a third of its height, forking into a domed crown, and its fronds hanging
+// from all round the crown in curtains of single strands, gaps between them, drawn in toward the trunk as they fall
+// and ending raggedly, well short of the ground; two greens, lighter up top.
+function willow(v: number): VoxelGrid {
+  const g = createGrid(sceneryGrid('willow'));
+  const m = Math.floor(WILLOW / 2);
+  const lean = v % 2 ? 1 : -1;
+  const top = 20; // the trunk's height (of the willow's 60)
+  for (let y = 0; y <= top; y++) {
+    const o = y > top / 2 ? lean : 0;
+    const r = y < 2 ? 3 : 2;
+    for (let dx = -r; dx < r; dx++) for (let dz = -r; dz < r; dz++) setColor(g, m + dx + o, y, m + dz, y < 2 || (dx + y) % 5 === 0 ? C.barkDark : C.willowBark);
+  }
+  for (const [dx, dz] of [[1, 1], [-1, 1], [0, -1]]) voxelLine(g, [m + lean, top, m], [m + lean + dx * 6, top + 8, m + dz * 6], C.willowBark); // its forks
+  const [cx, cy, cz] = [m + lean, 33, m];
+  const [rx, ry] = [13 + (v % 2), 10];
+  // The crown: a dome (its underside cut flat-ish, where the fronds hang from).
+  for (let x = 0; x < WILLOW; x++) for (let z = 0; z < WILLOW; z++) for (let y = cy - 4; y < cy + ry; y++) {
+    const d = ((x - cx) / rx) ** 2 + (Math.max(0, y - cy) / ry) ** 2 + ((z - cz) / rx) ** 2;
+    if (d > 1 - n(x, Math.floor(y / 2), z, 111 + v) * 0.12) continue;
+    setColor(g, x, y, z, y > cy + 4 ? C.willowLight : y > cy - 2 ? C.willow : C.willowDark);
+  }
+  // The fronds: single strands from under the crown's outer part, every other voxel round it, some skipped (the gaps),
+  // stepping a voxel in toward the trunk every so often as they fall, each its own length (a ragged hem).
+  for (let x = 0; x < WILLOW; x += 2) for (let z = (x / 2) % 2; z < WILLOW; z += 2) {
+    const d = Math.hypot((x - cx) / rx, (z - cz) / rx);
+    if (d < 0.55 || d > 0.98 || n(x, 0, z, 113 + v) < 0.35) continue;
+    const length = 10 + Math.floor(n(x, 1, z, 114 + v) * 14);
+    const [ix, iz] = [Math.sign(cx - x), Math.sign(cz - z)];
+    const colour = n(x, 2, z, 115) < 0.5 ? C.willow : C.willowDark;
+    for (let k = 0; k < length; k++) {
+      const inward = Math.floor(k / 9);
+      setColor(g, x + ix * inward, cy - 5 - k, z + iz * inward, colour);
+    }
+  }
+  return g;
+}
+
+// A granite tor: a pile of rounded slabs like stacked pillows, each of its own width, set off the one below and the
+// whole leaning, the top one overhanging; loose boulders tumbled at its foot; lichen and a little moss on the shelves.
+function tor(v: number): VoxelGrid {
+  const g = createGrid(sceneryGrid('tor'));
+  const lean = v % 2 ? 1 : -1;
+  // Each slab: its middle (x, z), half-widths, height; laid on the one before.
+  const slabs: Array<[number, number, number, number, number]> = [
+    [24, 26, 15, 12, 8],
+    [20 + 3 * lean, 23, 9, 12, 7],
+    [27 + 5 * lean, 21 - v, 10, 7, 6],
+    [24 + 8 * lean, 25, 13, 8, 5], // the top: wider than the one under it, thrown out further (its overhang)
+  ];
+  let y0 = 0;
+  slabs.slice(0, 3 + (v % 2)).forEach(([cx, cz, rx, rz, high], i) => {
+    for (let x = 0; x < 2 * T; x++) for (let z = 0; z < 2 * T; z++) for (let y = y0; y < y0 + high; y++) {
+      const t = (y - y0) / (high - 1); // 0 at its foot, 1 at its top: rounded at both, a pillow's
+      const squeeze = 1 - 0.35 * (2 * t - 1) ** 4;
+      const [ax, az] = [Math.abs(x - cx) / (rx * squeeze), Math.abs(z - cz) / (rz * squeeze)];
+      if (ax ** 3 + az ** 3 > 1 - n(x, y, z, 121 + i) * 0.1) continue;
+      const seam = y === y0 && n(x, 0, z, 122 + i) < 0.6; // (the dark between two slabs)
+      setColor(g, x, y, z, seam && i > 0 ? C.stoneDeep : stoneAt(x, y, z, y0 + high, y === y0 + high - 1 && n(x, y, z, 123) < 0.25, 124 + v));
+    }
+    y0 += high - 1;
+  });
+  // Loose boulders at its foot.
+  for (const [bx, bz, r] of [[8, 40, 4], [42, 12, 3], [40, 41, 3]]) lump(g, bx + v, bz, r, r * 0.9, r, 0, 131 + bx);
+  foot(g, 125 + v);
+  return g;
+}
+
+const BUILD: Record<SceneryKind, (v: number) => VoxelGrid> = { boulder, outcrop, log, cairn, wall, menhir, wagon, snag, willow, tor };
 export const buildScenery = (kind: SceneryKind, variant: number): VoxelGrid => BUILD[kind](variant);

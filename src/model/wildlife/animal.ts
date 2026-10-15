@@ -25,6 +25,10 @@ export interface Wildlife {
   dabble: number | null; // seconds into feeding (a duck dabbling, a deer grazing), or null
   fleeing: boolean; // hurrying away from the hero
   speed: number; // how fast it moved last frame, for the wake
+  // Deer (group.ts): stood stock-still watching the hero come (not yet near
+  // enough to run); lying down for the night.
+  wary?: boolean;
+  bedded?: boolean;
   // Cats (cats.ts): what it's doing when not walking (null walking), the
   // bench seat it's on or heading up to, and how far the hero was last frame.
   pose?: CatPose | null;

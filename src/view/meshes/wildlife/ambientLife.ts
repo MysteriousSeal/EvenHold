@@ -1,46 +1,80 @@
 // The small life of the wilds, round the hero (only to be seen, nothing to
-// fight or catch): butterflies over the meadows by day, fluttering on wing
-// beats; songbirds in little flocks on the grass, hopping and pecking, off in
-// a flurry when the hero comes near (back once they've gone well away); and
-// fireflies at dusk and through the night, drifting and glowing. Where they
-// are comes from the seed, by patches of ground round the hero (made as the
-// hero comes near, let go as they're left), so they're always the same there.
-// Their tiny voxel models: ambientVoxels.ts.
+// fight or catch): butterflies over the meadows by day; songbirds in little
+// flocks on the grass, and a few sat on the fields' fences, off in a flurry
+// when the hero comes near (back once they've gone well away); fireflies at
+// dusk and through the night; rabbits, bolting from the hero; and by the
+// lakes, dragonflies over the shallows, frogs on the banks (from evening),
+// and fish leaping out on the water. Where they are comes from the seed, by
+// patches of ground round the hero (made as the hero comes near, let go as
+// they're left), so they're always the same there. Crows on the sown fields'
+// fences, a heron in the shallows, a flock over in a V now and then. How each moves:
+// ambientMoves.ts; their tiny voxel models: ambientVoxels.ts. One instanced
+// mesh a kind, drawn only as many as are out. With them, the villages'
+// livestock in their fields (livestockViews.ts) and the smoke from the
+// chimneys (smoke/chimneySmoke.ts), round the hero as they are. The
+// weather has its say (common/weatherNow.ts): in the rain the birds and the
+// butterflies are under cover, and the frogs out, day or night.
 
+import { createBiomes } from '../../../model/scenery/biomes';
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { LIFE_CELL, lifeIn, lifeOut, type LifeKind } from '../../../model/scenery/ambientSpots';
+import { LIFE_CELL, lifeIn, lifeOut, perchesOn, type LifeKind, type LifeSpot, type LifeWorld } from '../../../model/scenery/ambientSpots';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
-import { hashUnit, oneOf } from '../../../util/random';
+import { NEIGHBORS_4 } from '../../../model/map/grid';
+import { hourAt } from '../../../model/clock';
+import type { Field } from '../../../model/types';
+import { oneOf } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
-import { BIRD_PALETTE, PALETTE, birdGrid, butterflyGrid } from './ambientVoxels';
+import { BIRD_PALETTE, CROW_PALETTE, HERON_PALETTE, crowGrid, heronGrid, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
+import { weatherNow, type WeatherNow } from '../common/weatherNow';
+import { LivestockViews } from './livestockViews';
+import { ChimneySmoke } from '../smoke/chimneySmoke';
+import { bird, butterfly, dragonfly, firefly, fish, flock, frog, heron, rabbit, splash, type Creature, type Moment } from './ambientMoves';
 
 const V = 0.025; // the creatures' voxels: finer than the world's (they're small)
 const CELL = LIFE_CELL; // tiles a side of each patch of ground they're found by
 const REACH = 4; // patches out from the hero's (each way) that have their life
-const MOST = { butterfly: 48, bird: 40, firefly: 90 };
-const FLEE = 3.2; // tiles: the hero this near, the birds are off
-const BACK = 18; // tiles away the hero must go before they're back (within the patches still kept round them)
-const WINGS = [0xf0a33a, 0xf2f0e6, 0x7aa2e8]; // a butterfly's tint: orange, white, blue
-const BIRDS = [0xffffff, 0xd8b090]; // a bird's tint (plain, a warmer brown)
+const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, crow: 32, heron: 6, splash: 32 };
+const KINDS = Object.keys(MOST).filter((k) => k !== 'splash') as LifeKind[];
+const TINTS: Partial<Record<LifeKind, number[]>> = {
+  butterfly: [0xf0a33a, 0xf2f0e6, 0x7aa2e8], // orange, white, blue
+  bird: [0xffffff, 0xd8b090], // plain, a warmer brown
+  rabbit: [0xffffff, 0xc8c4c0], // brown, a greyer one
+  dragonfly: [0x2fa8b8, 0x2fa8b8, 0x4a7ee0], // teal (most), blue
+};
 
-interface Creature {
-  kind: LifeKind;
-  x: number; // its home, where it wanders round
-  z: number;
-  seed: number; // its own rolls
-  tint: number;
-  fled: number | null; // a bird: seconds since it took off, or null on the ground
-  away: { x: number; z: number } | null; // which way it flew
+// How many of `kind` are out (0 none .. 1 all), its hours (`out`), the weather and the season considered: birds and
+// butterflies under cover in the rain, frogs out in it whatever the hour; no butterflies, dragonflies or frogs in
+// winter (the frogs asleep in the mud), fewer songbirds, crows (and flocks over) and rabbits; fewer butterflies and
+// dragonflies in autumn; fireflies a summer's only.
+export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): number {
+  const season = SEASONS[w.season][kind] ?? 1;
+  if (kind === 'frog') return (out || w.rain > 0.3 ? 1 : 0) * season;
+  if (!out) return 0;
+  if ((kind === 'bird' || kind === 'crow') && (w.rain > 0.5 || w.snow > 0.3)) return 0;
+  if ((kind === 'butterfly' || kind === 'dragonfly') && (w.rain > 0.3 || w.snow > 0)) return 0;
+  if ((kind === 'dragonfly' && w.fog > 0.5) || (kind === 'firefly' && w.rain > 0.3)) return 0;
+  return season;
 }
+const SEASONS: Record<WeatherNow['season'], Partial<Record<LifeKind, number>>> = {
+  spring: { firefly: 0 },
+  summer: {},
+  autumn: { butterfly: 0.4, dragonfly: 0.3, firefly: 0 },
+  winter: { butterfly: 0, dragonfly: 0, firefly: 0, frog: 0, bird: 0.5, crow: 0.5, rabbit: 0.6 },
+};
 
 export class AmbientLife {
   private readonly meadow: (x: number, z: number) => number;
   private readonly cells = new Map<string, Creature[]>();
-  private readonly meshes: Record<Creature['kind'], THREE.InstancedMesh>;
-  private readonly matrix = new THREE.Matrix4();
+  private readonly meshes: Record<LifeKind | 'splash', THREE.InstancedMesh>;
+  private readonly counts = {} as Record<LifeKind | 'splash', number>;
   private readonly color = new THREE.Color();
+  private fields: { of: number; by: Map<string, Field[]> } = { of: -1, by: new Map() }; // the fields by patch (their perched birds')
+  private readonly moment: Moment;
+  private readonly life: LifeWorld; // where the life's placed (its `biomes`, what country each tile is: model/scenery/biomes.ts)
+  private readonly livestock: LivestockViews;
+  private readonly smoke: ChimneySmoke;
   private time = 0;
 
   constructor(
@@ -56,40 +90,84 @@ export class AmbientLife {
       scene.add(m);
       return m;
     };
-    const lit = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+    const lit = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
     const glow = new THREE.MeshBasicMaterial({ color: 0xd8ff6a, toneMapped: false });
+    const foam = new THREE.MeshBasicMaterial({ color: 0xeefaf2 });
     const speck = createGrid([1, 1, 1]);
     setColor(speck, 0, 0, 0, 1);
     this.meshes = {
-      butterfly: mesh(butterflyGrid(), PALETTE, lit(), MOST.butterfly),
-      bird: mesh(birdGrid(), BIRD_PALETTE, lit(), MOST.bird),
+      butterfly: mesh(butterflyGrid(), PALETTE, lit, MOST.butterfly),
+      bird: mesh(birdGrid(), BIRD_PALETTE, lit, MOST.bird),
       firefly: mesh(speck, [0xffffff], glow, MOST.firefly),
+      rabbit: mesh(rabbitGrid(), RABBIT_PALETTE, lit, MOST.rabbit),
+      dragonfly: mesh(dragonflyGrid(), DRAGONFLY_PALETTE, lit, MOST.dragonfly),
+      frog: mesh(frogGrid(), FROG_PALETTE, lit, MOST.frog),
+      fish: mesh(fishGrid(), FISH_PALETTE, lit, MOST.fish),
+      crow: mesh(crowGrid(), CROW_PALETTE, lit, MOST.crow),
+      heron: mesh(heronGrid(), HERON_PALETTE, lit, MOST.heron),
+      splash: mesh(splashGrid(), [0xffffff], foam, MOST.splash),
     };
+    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z), biomes: createBiomes(model.seed, model.tiles) };
+    this.livestock = new LivestockViews(scene, model);
+    this.smoke = new ChimneySmoke(scene, model);
+    this.moment = { time: 0, dt: 0, hour: 0, hero: { x: 0, z: 0 }, ground: (x, z) => model.getGroundY(x, z), matrix: new THREE.Matrix4(), splash: (x, z, age) => this.splash(x, z, age) };
   }
 
   // Each frame, out in the world: who's about round the hero, at this hour, and where each is now.
   update(dt: number, hero: { x: number; z: number }, minutes: number, outdoors: boolean): void {
     this.time += dt;
+    this.livestock.update(dt, hero);
+    this.smoke.update(dt, hero, minutes);
+    outdoors &&= !this.model.inside; // (indoors, none of them seen: none of them moved)
     for (const m of Object.values(this.meshes)) m.visible = outdoors;
     if (!outdoors) return;
     this.near(hero);
-    const counts = { butterfly: 0, bird: 0, firefly: 0 };
+    Object.assign(this.moment, { time: this.time, dt, hour: hourAt(minutes), hero });
+    for (const kind of Object.keys(this.meshes) as Array<keyof typeof this.meshes>) this.counts[kind] = 0;
+    const weather = weatherNow(this.model.seed, minutes, this.time);
+    const out = Object.fromEntries(KINDS.map((kind) => [kind, weathered(kind, lifeOut(kind, minutes), weather)])) as Record<LifeKind, number>;
+    const fits = (x: number, z: number) => this.model.isOpenTile(Math.round(x), Math.round(z)) && !this.model.tiles.lake(Math.round(x), Math.round(z));
     for (const list of this.cells.values()) {
       for (const c of list) {
-        if (!lifeOut(c.kind, minutes) && c.fled === null) continue;
-        const m = this.meshes[c.kind];
-        if (!this.place(c, hero, dt) || counts[c.kind] >= MOST[c.kind]) continue; // (every one heeding the hero, the most drawn)
-        m.setMatrixAt(counts[c.kind], this.matrix);
-        if (c.kind !== 'firefly') m.setColorAt(counts[c.kind], this.color.set(c.tint));
-        counts[c.kind]++;
+        if (c.seed >= out[c.kind] && c.fled === null) continue; // (out, or the share of them that is: by each one's own roll)
+        if (this.counts[c.kind] >= MOST[c.kind]) continue; // (the most drawn)
+        const m = this.moment;
+        const shown =
+          c.kind === 'butterfly' ? butterfly(c, m)
+          : c.kind === 'bird' || c.kind === 'crow' ? bird(c, m)
+          : c.kind === 'heron' ? heron(c, m)
+          : c.kind === 'firefly' ? firefly(c, m, V)
+          : c.kind === 'rabbit' ? rabbit(c, m, fits)
+          : c.kind === 'dragonfly' ? dragonfly(c, m)
+          : c.kind === 'frog' ? frog(c, m)
+          : fish(c, m);
+        if (shown) this.draw(c.kind, c.tint);
       }
     }
-    for (const kind of Object.keys(counts) as Array<Creature['kind']>) {
-      const m = this.meshes[kind];
-      m.count = counts[kind];
+    // A flock over now and then, by day, dry: crows' black, high up.
+    flock(this.moment, this.model.seed, out.crow, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
+    for (const [kind, m] of Object.entries(this.meshes) as Array<[keyof typeof this.meshes, THREE.InstancedMesh]>) {
+      m.count = this.counts[kind];
+      m.visible = m.count > 0; // (no draw for a kind with none out)
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
+  }
+
+  // The moment's matrix as the next of `kind` (tinted, if it's a kind that is).
+  private draw(kind: LifeKind | 'splash', tint: number): void {
+    const m = this.meshes[kind];
+    const i = this.counts[kind]++;
+    m.setMatrixAt(i, this.moment.matrix);
+    if (TINTS[kind as LifeKind]) m.setColorAt(i, this.color.set(tint));
+  }
+
+  private splash(x: number, z: number, age: number): void {
+    if (this.counts.splash >= MOST.splash) return;
+    const keep = this.moment.matrix.clone(); // (the creature's own, being made)
+    splash(this.moment, x, z, age);
+    this.draw('splash', 0);
+    this.moment.matrix.copy(keep);
   }
 
   // The patches of ground round the hero, each with its life (made as they come near, let go as they're left).
@@ -106,68 +184,41 @@ export class AmbientLife {
     for (const key of this.cells.keys()) if (!keep.has(key)) this.cells.delete(key);
   }
 
-  // What lives in patch (cx, cz) (model/scenery/ambientSpots.ts), each with its look and how it's faring.
+  // What lives in patch (cx, cz) (model/scenery/ambientSpots.ts), and on the fences of the fields that start in it,
+  // each with its look and how it's faring.
   private lifeOf(cx: number, cz: number): Creature[] {
-    return lifeIn(this.model, cx, cz, this.meadow).map((spot) => ({
+    const perched = (this.fieldsBy().get(`${cx},${cz}`) ?? []).flatMap((f) => perchesOn(f, this.model.seed));
+    return [...lifeIn(this.life, cx, cz, this.meadow), ...perched].map((spot) => ({
       ...spot,
-      tint: spot.kind === 'butterfly' ? oneOf(WINGS, spot.seed) : spot.kind === 'bird' ? oneOf(BIRDS, spot.seed) : 0,
+      tint: TINTS[spot.kind] ? oneOf(TINTS[spot.kind]!, spot.seed) : 0,
+      face: spot.kind === 'frog' ? this.toWater(spot) : undefined,
       fled: null,
       away: null,
+      from: null,
     }));
   }
 
-  // Where `c` is now (into this.matrix, its colour in this.color): whether it's to be drawn.
-  private place(c: Creature, hero: { x: number; z: number }, dt: number): boolean {
-    const t = this.time + c.seed * 100;
-    const ground = (x: number, z: number) => this.model.getGroundY(x, z);
-    if (c.kind === 'butterfly') {
-      // Wandering in loops round its home, bobbing; its wings beating (squeezed in and out).
-      const [x, z] = [c.x + Math.sin(t * 0.43) * 1.2 + Math.sin(t * 1.1) * 0.3, c.z + Math.cos(t * 0.37) * 1.1 + Math.cos(t * 0.9) * 0.3];
-      const y = ground(x, z) + 0.35 + Math.sin(t * 2.3) * 0.1 + c.seed * 0.25;
-      const beat = 0.25 + 0.75 * Math.abs(Math.sin(t * 14));
-      const heading = Math.atan2(Math.cos(t * 0.43) * 0.52, -Math.sin(t * 0.37) * 0.41);
-      this.matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, heading, 0)), new THREE.Vector3(beat, 1, 1));
-      return true;
+  // Which way the water is from a frog's bank.
+  private toWater(spot: LifeSpot): number | undefined {
+    const [x, z] = [Math.floor(spot.x), Math.floor(spot.z)];
+    const wet = NEIGHBORS_4.find(([dx, dz]) => this.model.tiles.has(x + dx, z + dz) && this.model.tiles.lake(x + dx, z + dz));
+    return wet && Math.atan2(wet[0], wet[1]);
+  }
+
+  // The fields by the patch their first corner's in (made again as more are known: a streamed world's, region by region).
+  private fieldsBy(): Map<string, Field[]> {
+    const fields = this.model.fields;
+    if (this.fields.of === fields.length) return this.fields.by;
+    const by = new Map<string, Field[]>();
+    for (const f of fields) {
+      const key = `${Math.floor(f.x0 / CELL)},${Math.floor(f.z0 / CELL)}`;
+      by.set(key, [...(by.get(key) ?? []), f]);
     }
-    if (c.kind === 'firefly') {
-      // Drifting slowly, glowing up and dimming.
-      const [x, z] = [c.x + Math.sin(t * 0.21) * 1.4, c.z + Math.cos(t * 0.17) * 1.4];
-      const y = ground(x, z) + 0.25 + c.seed * 0.7 + Math.sin(t * 0.8) * 0.15;
-      const glow = Math.max(0, Math.sin(t * 1.3 + c.seed * 9));
-      if (glow < 0.05) return false;
-      const size = 0.035 * glow + 0.015;
-      this.matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(size / V, size / V, size / V));
-      return true;
-    }
-    // A bird: on the ground hopping and pecking; the hero near, off in a flurry, up and away; back once they're gone.
-    const toHero = Math.hypot(hero.x - c.x, hero.z - c.z);
-    if (c.fled === null && toHero < FLEE) {
-      const away = Math.atan2(c.x - hero.x, c.z - hero.z) + (c.seed - 0.5) * 0.8;
-      [c.fled, c.away] = [0, { x: Math.sin(away), z: Math.cos(away) }];
-    }
-    if (c.fled !== null) {
-      c.fled += dt;
-      if (toHero > BACK) [c.fled, c.away] = [null, null]; // (back, once the hero's well away)
-      else {
-        const f = c.fled;
-        if (f > 6) return false; // (gone off out of sight)
-        const [x, z] = [c.x + c.away!.x * f * 3.2, c.z + c.away!.z * f * 3.2];
-        const y = ground(c.x, c.z) + Math.min(3, f * f * 1.4 + f * 0.6);
-        const flap = 0.85 + 0.15 * Math.sin(this.time * 30);
-        this.matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.3, Math.atan2(c.away!.x, c.away!.z), 0)), new THREE.Vector3(1.1, flap, 1));
-        return true;
-      }
-    }
-    const hop = Math.floor(t * 0.7);
-    const into = (t * 0.7) % 1;
-    const [x, z] = [c.x + (hashUnit(hop, 1, c.seed * 1e4) - 0.5) * 0.8, c.z + (hashUnit(hop, 2, c.seed * 1e4) - 0.5) * 0.8];
-    const peck = into > 0.5 && into < 0.7 ? 0.4 : 0;
-    const y = ground(x, z) + 0.06 + (into < 0.15 ? Math.sin((into / 0.15) * Math.PI) * 0.06 : 0);
-    this.matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(peck, hashUnit(hop, 3, c.seed * 1e4) * Math.PI * 2, 0)), new THREE.Vector3(1, 1, 1));
-    return true;
+    this.fields = { of: fields.length, by };
+    return by;
   }
 
   get materials(): THREE.Material[] {
-    return Object.values(this.meshes).map((m) => m.material as THREE.Material);
+    return [...new Set(Object.values(this.meshes).map((m) => m.material as THREE.Material)), ...this.livestock.materials, ...this.smoke.materials];
   }
 }
