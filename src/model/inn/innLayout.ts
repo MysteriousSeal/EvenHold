@@ -7,9 +7,10 @@
 import type { Room } from '../interiors/interiors';
 import { type Furniture } from '../interiors/furniture';
 import type { Planner } from '../interiors/roomPlanner';
+import { shuffle } from '../../util/random';
 
 export function furnishInn(plan: Planner, room: Room): void {
-  const { rng, items, place, along, chairs, openWalledIn, fillWalledIn } = plan;
+  const { rng, items, place, fits, along, chairs, openWalledIn, fillWalledIn } = plan;
   // The bar, along the left wall: a washstand and shelves of bottles against it, the
   // counter just in front of them, and stools facing it.
   const barEnd = Math.min(room.depth - 3, 5);
@@ -50,10 +51,16 @@ export function furnishInn(plan: Planner, room: Room): void {
   // small, closer (two apart), a little further toward the bar and the hearth.
   const MAX_TABLES = 10;
   let tables = 0;
+  // Packed, not strewn: each where it rules out fewest of the spots left for
+  // the rest (in a rolled order among the equals), so no table set down in
+  // the middle of the floor leaves the room half bare round it.
   for (const pass of [{ gap: 3, x: 4, z: 2, pastChairs: true }, { gap: 2, x: 5, z: 3 }, { gap: 2, x: 4, z: 2, pastChairs: true }]) {
     while (tables < MAX_TABLES && (pass.gap === 3 || tables < 3)) {
-      const spots = floor.filter(([x, z]) => x >= pass.x && z >= pass.z && clearOf(x, z, pass.gap, pass.pastChairs));
-      const table = place('tavernTable', 1, 1, 'none', spots);
+      const spots = floor.filter(([x, z]) => x >= pass.x && z >= pass.z && fits(x, z, 1, 1) && clearOf(x, z, pass.gap, pass.pastChairs));
+      shuffle(spots, rng);
+      const crowds = new Map(spots.map((s) => [s, spots.filter(([x, z]) => Math.max(Math.abs(x - s[0]), Math.abs(z - s[1])) < pass.gap).length]));
+      spots.sort((a, b) => crowds.get(a)! - crowds.get(b)!);
+      const table = place('tavernTable', 1, 1, 'none', spots, false);
       if (!table) break;
       chairs(table);
       tables++;
