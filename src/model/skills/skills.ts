@@ -99,12 +99,12 @@ export const SKILLS: Record<SkillId, Skill> = {
     verb: 'salvage',
     about: "Break down weapons, armour and jewellery you don't need at a smithy's salvage bench into what they're made of: iron scrap, leather, linen, silver and gem shards, planks. The finer the piece, the more it leaves, and a rare one leaves something finer besides.",
     unlocks: [
-      { at: 1, what: 'Any piece breaks down, and junk with iron, leather, linen or silver in it; common gear of levels 1 to 3 teaches an apprentice' },
+      { at: 1, what: 'Any piece breaks down, and junk with iron, leather, linen or silver in it; common gear of levels 1 to 7 teaches an apprentice' },
       { at: 50, what: "A rare piece's finer thing: a tempered ingot or a cut gem" },
-      { at: 75, what: 'Gear of levels 4 to 6 teaches a journeyman' },
+      { at: 75, what: 'Gear of levels 8 to 13 teaches a journeyman' },
       { at: 100, what: "An epic piece's two finer things" },
-      { at: 150, what: "A legendary's three; gear of levels 7 to 9 teaches an expert" },
-      { at: 225, what: 'Gear of level 10 on teaches an artisan' },
+      { at: 150, what: "A legendary's three; gear of levels 14 to 19 teaches an expert" },
+      { at: 225, what: 'Gear of level 20 on teaches an artisan' },
     ],
   },
   cooking: {

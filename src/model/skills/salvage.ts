@@ -5,7 +5,8 @@
 // silver in what foes leave (a rusty buckle, a torn pouch, an old coin). The better the piece, the more; a rare one
 // leaves something finer besides (a tempered ingot, a cut gem), once the hand is skilled enough for it. Any piece can
 // be broken down, at any skill: each asks a level of it by its own level and rarity (what it teaches: skills.ts
-// difficulty), the four tiers falling on the gear a hero meets (levels 1 to 3, 4 to 6, 7 to 9, 10 on), and practises it.
+// difficulty), the four tiers falling on the gear a hero meets (levels 1 to 7, 8 to 13, 14 to 19, 20 on; a finer one
+// sooner), and practises it.
 import type { Hero } from '../types';
 import type { GameEvent } from '../types';
 import type { Entrance } from '../interiors/interiors';
@@ -29,7 +30,7 @@ const PLANKS: ReadonlyArray<[number, IngredientId]> = [[5, 'birchPlank'], [12, '
 // What a piece of `make` at `level` leaves.
 export const scrapOf = (make: Make, level: number): IngredientId => (make === 'wood' ? PLANKS.find(([most]) => level <= most)![1] : SCRAP_OF[make]);
 const RARE_EXTRA: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 };
-export const PER_LEVEL = 25; // the skill a piece asks, a level of its own past the first (a tier every three)
+export const PER_LEVEL = 12; // the skill a piece asks, a level of its own past the first (a tier every six or so)
 const RARE_NEEDS: Record<Rarity, number> = { common: 0, uncommon: 25, rare: 50, epic: 100, legendary: 150 }; // and its rarity, more
 export const FINER_AT: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 50, epic: 100, legendary: 150 }; // the skill its finer things want (less: its scrap alone)
 const GEMMED = /ruby|sapphire|jade|amber|pearl|lakeStone|runeStone|signet/;
@@ -77,7 +78,7 @@ export interface Salvaged {
   made?: boolean; // a piece as a woodworker or a smith makes it (the hero's own, likely): less back, less taught
 }
 
-export const TOO_HARD = 50; // past the skill by more than this, a piece teaches nothing (broken down all the same)
+export const TOO_HARD = 100; // past the skill by more than this, a piece teaches nothing (broken down all the same)
 // A piece as a recipe makes it, of woodworking's or smithing's (its item at that level and rarity): what breaking it
 // down leaves can't be more than went into it, nor can making and breaking them be a ladder up the skill. (Made the
 // first time it's asked: the recipes import this file's neighbours.)
@@ -121,7 +122,7 @@ export function salvageOf(key: Salvageable, skill = Infinity): Salvaged {
   if (make === 'silver' && GEMMED.test(base) && used === null) gives.push(['gemShard', 1]);
   const finerAt = RARE_EXTRA[rarity] && used === null ? FINER_AT[rarity] : undefined;
   if (finerAt !== undefined && skill >= finerAt) gives.push([FINER_OF[make], RARE_EXTRA[rarity]]);
-  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 10, the artisan's)
+  return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 20, the artisan's)
 }
 
 export type SalvageOutcome = 'started' | 'no bench' | 'none' | 'busy' | 'full';
