@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BUYBACK, RESTOCK_EVERY, buyBack, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
+import { BUYBACK, RESTOCK_EVERY, WANTS, buyBack, buyFrom, openShop, restockIn, sellTo, wantsMore, type Shop } from '../src/model/shops/shopStock';
 import { restockAll, shopAt } from '../src/model/inn/tavernShop';
 import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
 import { bagRoom } from '../src/model/hero/bagSlots';
@@ -13,6 +13,26 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 const hero = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE).hero;
 
 describe('a shop', () => {
+  it("buys a trade's goods only so many of a kind at a time (a fish, a cup; gear by its kind), one sold on each restock; the rest as ever; kept in the save", () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const shops = new Map<number, Shop>();
+    const usual = { money: 5000, stock: {} };
+    const shop = openShop(shops, 7, usual, 0);
+    Object.assign(model.hero.bag, { pike: 9, wolfFang: 9, armingSword: 5 });
+    for (let i = 0; i < WANTS.goods; i++) expect(sellTo(shop, model.hero, 'pike', 9)).toBe('sold');
+    expect([sellTo(shop, model.hero, 'pike', 9), wantsMore(shop, 'pike')]).toEqual(['not wanted', false]);
+    for (let i = 0; i < 9; i++) expect(sellTo(shop, model.hero, 'wolfFang', 3)).toBe('sold'); // (a fight's junk: as many as they like)
+    for (let i = 0; i < WANTS.gear; i++) expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('sold');
+    expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('not wanted');
+    openShop(shops, 7, usual, RESTOCK_EVERY * 2); // two restocks: two of each sold on
+    expect(shop.bought).toEqual({ pike: WANTS.goods - 2, armingSword: WANTS.gear - 2 });
+    expect(sellTo(shop, model.hero, 'pike', 9)).toBe('sold');
+    model.shops.set(7, shop);
+    const again = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), TEST_SEEDS[0])!);
+    expect(again.shops.get(7)?.bought).toEqual(shop.bought);
+  });
+
   it('opens at its usual stock and purse, and comes back toward them a step each restock, never past', () => {
     const shops = new Map<number, Shop>();
     const usual = { money: 500, stock: { ale: 3 } };

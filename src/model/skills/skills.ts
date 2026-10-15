@@ -36,7 +36,7 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
-    steps: [10, 10, 11, 12],
+    steps: [13, 13, 14, 16],
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
@@ -54,7 +54,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   woodworking: {
     name: 'Woodworking',
-    steps: [3, 3, 3, 3],
+    steps: [8, 6, 5, 3], // (its first tiers' planks cheap and quick; its last's oak, varnish and heartwood a while to come by)
     kind: 'main',
     verb: 'work wood',
     practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
@@ -90,7 +90,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   cooking: {
     name: 'Cooking',
-    steps: [2, 2, 2, 2],
+    steps: [3, 3, 2, 1], // (an artisan's feast: a hunt's makings)
     kind: 'secondary',
     verb: 'cook',
     practice: 'Cook by a fire: a camp’s, a hearth indoors, or one you kindle (a pedlar’s firewood, or two logs). E by it opens your recipes.',
@@ -106,7 +106,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
-    steps: [6, 6, 6, 6],
+    steps: [5, 5, 6, 6],
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',

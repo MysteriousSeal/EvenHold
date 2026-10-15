@@ -18,12 +18,12 @@ export const INGREDIENTS = {
   // narrows, perch and char in open water, pike and sturgeon in the deep.
   smallFry: { name: 'Small fry', value: 2, droppedBy: {} },
   roach: { name: 'Roach', value: 3, droppedBy: {} },
-  riverTrout: { name: 'River trout', value: 6, droppedBy: {} },
-  lakePerch: { name: 'Lake perch', value: 6, droppedBy: {} },
-  eel: { name: 'Eel', value: 9, droppedBy: {} },
-  pike: { name: 'Pike', value: 14, droppedBy: {} },
-  char: { name: 'Char', value: 18, droppedBy: {} },
-  sturgeon: { name: 'Sturgeon', value: 26, droppedBy: {} },
+  riverTrout: { name: 'River trout', value: 5, droppedBy: {} },
+  lakePerch: { name: 'Lake perch', value: 5, droppedBy: {} },
+  eel: { name: 'Eel', value: 7, droppedBy: {} },
+  pike: { name: 'Pike', value: 9, droppedBy: {} },
+  char: { name: 'Char', value: 11, droppedBy: {} },
+  sturgeon: { name: 'Sturgeon', value: 15, droppedBy: {} },
   // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and
   // feasts (skills/cooking.ts).
   salt: { name: 'Salt', value: 3, droppedBy: {} }, // a twist of coarse grey salt
@@ -38,7 +38,7 @@ export const INGREDIENTS = {
   // Found as they chop (lumber.ts): a pine's resin, an ancient or elder oak's heartwood, an elder oak's burl.
   pineResin: { name: 'Pine resin', value: 6, droppedBy: {} },
   heartwood: { name: 'Heartwood', value: 24, droppedBy: {} },
-  oakBurl: { name: 'Oak burl', value: 60, droppedBy: {} }, // a knotted swelling off an elder oak's trunk, its grain swirled
+  oakBurl: { name: 'Oak burl', value: 30, droppedBy: {} }, // a knotted swelling off an elder oak's trunk, its grain swirled
   // Worked by a woodworker (woodworking.ts): planks from the logs, varnish from the resin.
   birchPlank: { name: 'Birch plank', value: 3, droppedBy: {} },
   pinePlank: { name: 'Pine plank', value: 5, droppedBy: {} },
