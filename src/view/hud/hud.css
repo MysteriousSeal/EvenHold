@@ -775,3 +775,17 @@ body.in-place .quest-tracker { top: calc(var(--place-bar-bottom, 210px) + 12px);
 }
 .place-bar-count.cleared span { color: #ffd96a; font-size: 18px; font-weight: 700; }
 .place-bar-count.cleared em { margin-left: 0; font-size: 14px; font-weight: 600; color: #c9b8a0; }
+
+/* [ui-layout] The HUD's scale: on a big screen (1080p and up) each of its corners drawn a fifth larger, grown from its
+   own corner (the action bar's and tip card's from their middle: their translate(-50%) about a left origin), and what
+   sits under or beside another moved by as much. (`body` before those whose own sheets may come after this one.) */
+:root { --hud-scale: 1; }
+@media (min-width: 1700px) and (min-height: 1000px) { :root { --hud-scale: 1.2; } }
+.hud-top, .quest-tracker { scale: var(--hud-scale); transform-origin: 0 0; }
+body .clock-hud, body .minimap, .blessing-hud { scale: var(--hud-scale); transform-origin: 100% 0; }
+.toolbar { scale: var(--hud-scale); transform-origin: 100% 100%; }
+body .action-bar, body .tip-card { scale: var(--hud-scale); transform-origin: 0 100%; }
+.quest-tracker { top: calc(16px + 134px * var(--hud-scale)); max-height: calc((100vh - 220px) / var(--hud-scale)); }
+.blessing-hud { top: calc(16px + 72px * var(--hud-scale)); }
+body .minimap { right: calc(22px + 200px * var(--hud-scale)); }
+body .tip-card { bottom: calc(16px + 80px * var(--hud-scale)); }
