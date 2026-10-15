@@ -69,11 +69,21 @@ export function furnishInn(plan: Planner, room: Room): void {
   // No chairs walling off a corner (past the bar's end, say: where the server
   // fetches from, and the stairs): the ones in the way left out.
   openWalledIn('chair');
-  // On the back wall, over the room: antlers, a shield, the notice board (not over the hearth: read from before it),
-  // lanterns (the left wall by the door kept clear).
+  // On the back wall, over the room (the left wall by the door kept clear): the notice board first (not over the
+  // hearth: read from before it), then three lanterns spread along it (the three of the free spots furthest apart,
+  // none on the chimney breast; over the door's column too, hung high in no one's way), not bunched at one end; then
+  // antlers and a shield where there's room left.
+  const overFire = (x: number) => !!hearth && x >= hearth.x && x < hearth.x + hearth.w;
+  const board = place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3 && !overFire(x))); // (never over the fire: room before it to read it)
+  const wall = along(0).filter(([x]) => x >= 3 && !overFire(x) && x !== board?.x).map(([x]) => x);
+  shuffle(wall, rng); // (among sets as far apart, a rolled one)
+  let lanterns: number[] = wall.slice(0, 3);
+  const gap = (xs: number[]) => Math.min(...xs.flatMap((a, i) => xs.slice(i + 1).map((b) => Math.abs(a - b))));
+  for (let i = 0; i < wall.length; i++) {
+    for (let j = i + 1; j < wall.length; j++) for (let k = j + 1; k < wall.length; k++) if (gap([wall[i], wall[j], wall[k]]) > gap(lanterns)) lanterns = [wall[i], wall[j], wall[k]];
+  }
+  for (const x of lanterns) place('wallLantern', 1, 1, 'back', [[x, 0]], false, true);
   place('antlers', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   place('wallShield', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
-  place('noticeBoard', 1, 1, 'back', along(0).filter(([x]) => x >= 3 && !(hearth && x >= hearth.x && x < hearth.x + hearth.w))); // (never over the fire: room before it to read it)
-  for (let n = 3; n > 0; n--) place('wallLantern', 1, 1, 'back', along(0).filter(([x]) => x >= 3));
   fillWalledIn(); // no floor shut off from the door (a corner, boxed in: a barrel there)
 }
