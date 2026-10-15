@@ -3,7 +3,7 @@
 // pedlar jewellery, potions, bags and a rod, a herbalist potions and what's
 // had from the wild (raw fish a pedlar too), and anyone junk, at what it's
 // worth; the smith salvaged iron, a pedlar salvaged silver and stones, and
-// logs for firewood, at half. Quest items, planks, leather and linen (a
+// resin and heartwood, at half (logs for firewood, at their worth). Quest items, planks, leather and linen (a
 // crafter's): no one.
 
 import { isLootItem, type BagItem } from '../hero/bag';

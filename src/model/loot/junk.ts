@@ -7,8 +7,8 @@ import type { LootEntry } from './lootEntry';
 
 export const JUNK_ITEMS = {
   // Made by a woodworker (skills/woodworking.ts), to sell: dropped by no one.
-  woodenBowl: { name: 'Wooden bowl', value: 3, droppedBy: {} },
-  carvedTankard: { name: 'Carved tankard', value: 10, droppedBy: {} },
+  woodenBowl: { name: 'Wooden bowl', value: 1, droppedBy: {} },
+  carvedTankard: { name: 'Carved tankard', value: 4, droppedBy: {} },
   // Someone turned into one (spells/turned.ts: the poppet-maker's stitch), lying where they stood: dropped by no one.
   doll: { name: 'Poppet', value: 15, droppedBy: {} },
   // From beasts (wolves).

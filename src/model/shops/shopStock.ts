@@ -43,9 +43,10 @@ export const RESTOCK_EVERY = 5 * 60_000; // ms: every five minutes, one more of 
 const PURSE_DRIFT = 0.2; // of the way back to the usual purse, each restock (an emptied one three quarters back in half an hour: a fisher, a cook selling all day not turned away)
 
 // A trade's goods a shop buys only so many of at a time: a woodworker's cups and chests, and any piece of gear (by its
-// kind: so many swords, whatever their level), what's gathered and worked (ingredients, loot/ingredients.ts) and meals.
-const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard', 'varnishedCasket', 'oakChest']);
-export const WANTS = { goods: 5, gear: 3 }; // of each kind
+// kind: so many swords, whatever their level), what's gathered and worked (ingredients, loot/ingredients.ts) and meals,
+// and what an angler's line brings up (skills/fishing.ts: a locket, old silver, a torc).
+const GOODS: ReadonlySet<string> = new Set(['woodenBowl', 'carvedTankard', 'varnishedCasket', 'oakChest', 'fadedLocket', 'oldSilver', 'frostTorc']);
+export const WANTS = { goods: 5, gear: 2 }; // of each kind
 const kindOf = (id: string): string | null => (isGear(id) ? baseOf(id) : isIngredient(id) || isMeal(id) || GOODS.has(id) ? id : null);
 
 // Whether the shop would take another `id` (a trade's goods: while it's bought fewer than it wants of its kind).
