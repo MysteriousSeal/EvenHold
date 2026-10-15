@@ -392,12 +392,12 @@ describe('the quests people give', () => {
     expect(q('.talk-plate').textContent).toBe(carter.name);
     expect(q('.talk-figure.right').classList.contains('speaking')).toBe(true);
     expect(q('.talk-figure.left').classList.contains('speaking')).toBe(false);
-    // His three lines: each written out at a press, the next at the next; the quest's card with the last.
-    for (let i = 0; i < 3; i++) {
+    // His lines: each written out at a press, the next at the next; the quest's card with the last.
+    for (let i = 0; i < lines.length; i++) {
       key('Space'); // (the line, whole)
       expect(q('.talk-words').textContent).toBe(lines[i]);
-      expect(q('.talk-quest').hidden).toBe(i < 2);
-      if (i < 2) key('Space');
+      expect(q('.talk-quest').hidden).toBe(i < lines.length - 1);
+      if (i < lines.length - 1) key('Space');
     }
     expect(q('.talk-quest-name').textContent).toBe(quest.name);
     expect(q('.talk-quest-mark').textContent).toBe('!');
@@ -414,8 +414,9 @@ describe('the quests people give', () => {
     expect(scene.hidden).toBe(true);
     expect(paused).toEqual([true, false]); // (the game held while they talk)
     // Her turn: the "?" on the card, one answer, clicked.
+    const hers = model.story.talk(barmaid)!.lines.length;
     expect(panel.open(barmaid)).toBe(true);
-    for (let i = 0; i < 4; i++) key('Enter'); // (her two lines, each written out then passed: her turn's done)
+    for (let i = 0; i < 2 * hers; i++) key('Enter'); // (her lines, each written out then passed: her turn's done)
     expect(q('.talk-quest-mark').textContent).toBe('?');
     (scene.querySelector('.talk-answer') as HTMLButtonElement).click();
     expect(model.story.stateOf(quest.id)).toBe('done');
