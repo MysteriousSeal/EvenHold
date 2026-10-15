@@ -12,6 +12,7 @@ import { baseOf } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import type { Enemy, Hero } from '../types';
 import { TIRED } from './heroStats';
+import { breathFactor } from './blessing';
 import { profileOf } from './weaponProfiles';
 import { ATTACK_DURATION, ATTACK_STRIKE, ENEMY_STATS, HIT_FLASH } from '../constants';
 
@@ -137,7 +138,7 @@ export class CombatMoves {
       if (blow.t >= blow.time) this.blow = null;
     }
     if (this.wait > 0) this.wait = Math.max(0, this.wait - dt);
-    else this.breath += REFILL * (this.hero.energy < TIRED ? TIRED_REFILL : 1) * (this.guard !== null ? GUARD_REFILL : 1) * dt;
+    else this.breath += REFILL * (this.hero.energy < TIRED ? TIRED_REFILL : 1) * (this.guard !== null ? GUARD_REFILL : 1) * breathFactor(this.hero) * dt; // (Well rested: faster)
     this.breath = Math.min(this.most, this.breath);
     if (this.guard !== null) this.guard += dt;
     this.sinceRaised += dt;

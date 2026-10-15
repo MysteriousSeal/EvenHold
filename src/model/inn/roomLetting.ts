@@ -15,6 +15,7 @@ import { middleOf, type Furniture } from '../interiors/furniture';
 import { standUp, type Inside, type Seated } from '../interiors/indoors';
 import type { Seat } from '../interiors/furniture';
 import { maxEnergyOf, maxHpOf } from '../hero/attributes';
+import { wellRested } from '../hero/blessing';
 import type { Npc } from '../npcs/npcs';
 import { inTurn, say } from '../npcs/speech';
 import { talkingTo } from '../npcs/talk';
@@ -213,11 +214,13 @@ export function roomAction(model: Parameters<typeof letBed>[0] & { folk: readonl
 export const roomActionLabel = (action: RoomAction): string =>
   action.kind === 'sleep' ? 'Sleep till morning' : action.bribe ? `Slip her coin for a room now · ${ROOM_PRICE + BRIBE} copper` : action.week ? `Keep the room the week · ${WEEK_PRICE} copper` : action.taken ? `Your room is upstairs · ${action.nights === 1 ? 'a night' : `${action.nights ?? 0} nights`} left` : `Rent a room · ${ROOM_PRICE} copper`;
 
-// A night's sleep in the let room's bed (lain in): all their health and energy back, and up at eight in the morning.
+// A night's sleep in the let room's bed (lain in; or a quest's night): all their health and energy back, up at eight in
+// the morning, and Well rested a few hours after (hero/blessing.ts).
 export function sleepTillMorning(model: { hero: Hero; minutes: number }): void {
   model.minutes = nextHour(model.minutes, WAKE_AT);
   model.hero.hp = maxHpOf(model.hero);
   model.hero.energy = maxEnergyOf(model.hero);
+  wellRested(model.hero);
 }
 
 // Rooms whose time is up let go: their doors locked again; the hero, upstairs in one, shown out to the hallway before it
