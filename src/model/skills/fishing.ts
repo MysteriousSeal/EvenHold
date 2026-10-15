@@ -4,10 +4,11 @@
 // too late, it gets away. Hooked, it's landed into the bag (full: at their feet, told how many, and the line reeled in), and the line cast
 // again on its own, on and on till they walk off or reel in (E while they wait). What bites is by the water and the skill: small fry
 // anywhere, and roach from 40; from 75 (a lucky one now and then from 55) river trout in a lake's narrows (its arms and inlets, the
-// nearest the world has to a river) and lake perch in its open water; from 110 eels in the narrows; from 150 pike where the bobber
-// lies far from any bank (the deep); from 200 char in the open water; from 250 sturgeon in the deep; from 225, now and then, what
+// nearest the world has to a river) and lake perch in its open water; from 110 eels in the narrows and bream in the open; from 150
+// pike where the bobber lies far from any bank (the deep); from 160 grayling in the narrows; from 180 char in the open water; from
+// 250 sturgeon in the deep; from 225, now and then, what
 // the water hides (a locket, an old coin; a torc in the deep). Each water has a catch that's never grey (an eel, a perch, a pike;
-// a char, a sturgeon), so no lake leaves a fisher with nothing to learn. The skill rises as they land them, the surer the harder the catch is
+// a grayling, a char, a sturgeon), so no lake leaves a fisher with nothing to learn. The skill rises as they land them, the surer the harder the catch is
 // for them (skills.ts difficulty), with a little of the hero's own experience; the older catches thinning as better ones come; and
 // now and then (HUGE) a huge one of the bigger fish, worth three, off the hook the quicker. Nothing of it is kept: a line out isn't saved.
 
@@ -39,9 +40,11 @@ export const CATCHES: readonly Catch[] = [
   { item: 'roach', needs: 40, in: 'any', weight: 3, window: 1.1, fewer: [110, 1] },
   { item: 'riverTrout', needs: 75, in: 'narrows', weight: 4, window: 0.95, early: 55, fewer: [200, 2] },
   { item: 'lakePerch', needs: 75, in: 'open', weight: 4, window: 0.95, early: 55, fewer: [200, 2], lasting: true },
-  { item: 'eel', needs: 110, in: 'narrows', weight: 5, window: 0.85, lasting: true },
+  { item: 'eel', needs: 110, in: 'narrows', weight: 5, window: 0.85, lasting: true, fewer: [160, 2] },
+  { item: 'bream', needs: 110, in: 'open', weight: 5, window: 0.9, fewer: [180, 2] },
   { item: 'pike', needs: 150, in: 'deep', weight: 5, window: 0.75, lasting: true, fewer: [250, 2] },
-  { item: 'char', needs: 200, in: 'open', weight: 5, window: 0.8, lasting: true },
+  { item: 'grayling', needs: 160, in: 'narrows', weight: 5, window: 0.8, lasting: true },
+  { item: 'char', needs: 180, in: 'open', weight: 5, window: 0.8, lasting: true },
   { item: 'sturgeon', needs: 250, in: 'deep', weight: 5, window: 0.65, lasting: true },
   { item: 'fadedLocket', needs: 225, in: 'any', weight: 0.25, window: 0.8 }, // (what the water hides: junk/junk.ts)
   { item: 'oldSilver', needs: 225, in: 'any', weight: 0.25, window: 0.8 },
@@ -49,9 +52,9 @@ export const CATCHES: readonly Catch[] = [
 ];
 const EARLY_WEIGHT = 1;
 export const HUGE = { chance: 0.02, worth: 3, quicker: 0.15 }; // now and then a huge one (any but the fry and roach): as much as so many, off the hook quicker
-const HUGE_KINDS: readonly LootId[] = ['riverTrout', 'lakePerch', 'eel', 'pike', 'char', 'sturgeon'];
+const HUGE_KINDS: readonly LootId[] = ['riverTrout', 'lakePerch', 'eel', 'bream', 'pike', 'grayling', 'char', 'sturgeon'];
 // The fish of them (the rest found in the water): raw, for the pot, and sold at their worth to a pedlar or a herbalist.
-export const FISH: readonly LootId[] = ['smallFry', 'roach', 'riverTrout', 'lakePerch', 'eel', 'pike', 'char', 'sturgeon'];
+export const FISH: readonly LootId[] = ['smallFry', 'roach', 'riverTrout', 'lakePerch', 'eel', 'bream', 'pike', 'grayling', 'char', 'sturgeon'];
 export const isFish = (item: string): item is LootId => (FISH as readonly string[]).includes(item);
 // How often a catch bites for a hand at `level`, against the rest (0: not for them yet).
 export const weightOf = (fish: Catch, level: number): number =>

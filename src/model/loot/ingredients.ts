@@ -14,14 +14,16 @@ export const INGREDIENTS = {
   honeycomb: { name: 'Honeycomb', value: 9, droppedBy: { bear: 2 } },
   // From lynxes: a lean cut.
   leanLynxMeat: { name: 'Lean lynx meat', value: 6, droppedBy: { lynx: 3 } },
-  // Caught from a shore (skills/fishing.ts), not from foes: small fry and roach from anywhere, trout and eels in the
-  // narrows, perch and char in open water, pike and sturgeon in the deep.
+  // Caught from a shore (skills/fishing.ts), not from foes: small fry and roach from anywhere, trout, eels and grayling
+  // in the narrows, perch, bream and char in open water, pike and sturgeon in the deep.
   smallFry: { name: 'Small fry', value: 2, droppedBy: {} },
   roach: { name: 'Roach', value: 3, droppedBy: {} },
   riverTrout: { name: 'River trout', value: 5, droppedBy: {} },
   lakePerch: { name: 'Lake perch', value: 5, droppedBy: {} },
   eel: { name: 'Eel', value: 7, droppedBy: {} },
+  bream: { name: 'Bream', value: 4, droppedBy: {} },
   pike: { name: 'Pike', value: 9, droppedBy: {} },
+  grayling: { name: 'Grayling', value: 9, droppedBy: {} },
   char: { name: 'Char', value: 11, droppedBy: {} },
   sturgeon: { name: 'Sturgeon', value: 15, droppedBy: {} },
   // Bought, not found: the inn's barmaid sells them, from her kitchen (inn/tavernShop.ts), for a cook's stews, pies and

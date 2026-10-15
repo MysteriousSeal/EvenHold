@@ -1,4 +1,4 @@
-// Mining (skills.ts): a pickaxe in the bag (loot/tools.ts: the smith's, or a better one forged), E by a rock of the wilds
+// Mining (skills.ts): a pickaxe in the bag (loot/tools.ts: the smith's copper one, or a better one forged), E by a rock of the wilds
 // (a boulder or an outcrop: scenery/scenery.ts) starts the hero striking at its vein, swing after swing, on their own; each
 // strike (a few swings) breaks a lump of ore loose onto the ground beside it, to be picked up, and the hero strikes on
 // till the vein's worked out. Every rock is seamed with a vein of its own, by where it lies (copper the commonest, gold
@@ -45,12 +45,12 @@ const HIGH = 3; // the ground's tier from which it's the high ground
 const STRIKES: Record<'boulder' | 'outcrop', [number, number]> = { boulder: [4, 6], outcrop: [8, 12] }; // least and most, by the rock
 const MOST_STRIKES = 12;
 const SECOND_ORE: [number, number] = [100, 0.5]; // from this level a second lump now and then, the chance growing to this at the top
-export const SWING = 0.9; // seconds a swing of the pick
-const SWINGS = 3; // swings a strike, at the skill's first tier
+export const SWING = 0.7; // seconds a swing of the pick
+const SWINGS = 4; // swings a strike, at the skill's first tier
 const QUICKER = 0.1; // of a strike's swings fewer, each tier on
-// What the better picks bring: a swing fewer a strike; a star-iron one, a second lump oftener.
-export const PICK_BONUS: Partial<Record<ToolId, { swings?: number; secondOre?: number }>> = { ironPickaxe: { swings: -1 }, starIronPickaxe: { swings: -1, secondOre: 0.15 } };
-const PICKS: readonly ToolId[] = ['starIronPickaxe', 'ironPickaxe', 'pickaxe']; // the best first
+// What the better picks bring: a swing fewer a strike (star-iron's two); steel and star-iron, a second lump oftener.
+export const PICK_BONUS: Partial<Record<ToolId, { swings?: number; secondOre?: number }>> = { ironPick: { swings: -1 }, steelPick: { swings: -1, secondOre: 0.1 }, starIronPick: { swings: -2, secondOre: 0.15 } };
+const PICKS: readonly ToolId[] = ['starIronPick', 'steelPick', 'ironPick', 'copperPick']; // the best first
 const REACH = { boulder: 1.2, outcrop: 1.6 }; // tiles from a rock's middle to strike at it
 const HERO_XP = 3; // the hero's own experience, a strike
 const OUT_A_LITTLE = 0.35; // tiles past the rock's side a lump falls, toward the hero
@@ -232,7 +232,7 @@ export class Mining {
   }
 
   // The chance of a second lump a strike, at `level` (none under SECOND_ORE's level, growing to its most at the top; a
-  // star-iron pick adds its own, from the start).
+  // steel or star-iron pick adds its own, from the start).
   secondOreChance(level: number): number {
     const skill = level < SECOND_ORE[0] ? 0 : ((level - SECOND_ORE[0]) / (300 - SECOND_ORE[0])) * SECOND_ORE[1];
     return Math.min(0.9, skill + (this.pickBonus.secondOre ?? 0));

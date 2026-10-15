@@ -3,7 +3,7 @@
 // at it, swing after swing, on their own; each chop (a few swings) knocks a log loose onto the ground beside it, to
 // be picked up, and the hero chops on till the tree's down. Each tree gives 2 to 5 chops (a birch fewest, an oak
 // most, each its own by where it stands), and felled it's gone for good (out of the way; a stump in its place, to be
-// seen). Walking off, or E again, stops them. The kinds want the skill (a birch anyone's, a pine at 40, an oak at 90);
+// seen). Walking off, or E again, stops them. The kinds want the skill (a birch anyone's, a pine at 30, an oak at 90);
 // the skill rises as they chop, the surer the harder the tree is for them (skills.ts difficulty: orange always,
 // yellow often, green now and then, grey never; an oak never grey), and a higher tier chops quicker. Past the first tiers, more: a second
 // log now and then (from 100, likelier the better they are), and resin in the pines; ancient trees, one pine or oak in
@@ -42,7 +42,7 @@ export interface Wood {
 }
 export const WOOD: Record<Grade, Wood> = {
   birch: { name: 'birch', log: 'birchLog', logs: 1, needs: 1, chops: [2, 3] },
-  pine: { name: 'pine', log: 'pineLog', logs: 1, needs: 40, chops: [3, 4], finds: [{ item: 'pineResin', from: 100, chance: 0.08 }] },
+  pine: { name: 'pine', log: 'pineLog', logs: 1, needs: 30, chops: [3, 4], finds: [{ item: 'pineResin', from: 100, chance: 0.08 }] },
   oak: { name: 'oak', log: 'oakLog', logs: 1, needs: 90, chops: [4, 5], lasting: true },
   ancientPine: { name: 'ancient pine', log: 'pineLog', logs: 2, needs: 140, chops: [3, 4], finds: [{ item: 'pineResin', from: 140, chance: 0.25 }] },
   ancientOak: { name: 'ancient oak', log: 'oakLog', logs: 2, needs: 190, chops: [4, 5], finds: [{ item: 'heartwood', from: 190, chance: 0.18 }] },
