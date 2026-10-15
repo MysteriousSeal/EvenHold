@@ -21,6 +21,7 @@ import { createGrid, fillBox } from '../voxel/voxelShapes';
 import { createBiomes, type Biome } from '../../../model/scenery/biomes';
 import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './treeVoxels';
 import { GRAND_GRID, GRAND_SHAPES, grandOak } from './grandOakVoxels';
+import { createFallingLeaves } from './fallingLeaves';
 
 export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
@@ -63,9 +64,11 @@ function stumpGeometry(kind: TreeKind): THREE.BufferGeometry {
 }
 
 const ANCIENT_TINT = new THREE.Color(0.62, 0.7, 0.66); // an ancient tree's, over its own: darker, its green deeper
-// By the country it stands in (model/scenery/biomes.ts): the hills' trees cooler, the marsh's paler; over its own tint
-// (an instance's colour: no draw more). (The deep woods' oaks are their own model: grandOakVoxels.ts.)
+// By the country it stands in (model/scenery/biomes.ts): the deep woods' birches darker under the canopy, the hills'
+// trees cooler, the marsh's paler; over its own tint (an instance's colour: no draw more). (The deep woods' oaks are
+// their own model: grandOakVoxels.ts.)
 const COUNTRY_TINT: Partial<Record<Biome, THREE.Color>> = {
+  forest: new THREE.Color(0.66, 0.78, 0.68),
   hills: new THREE.Color(0.9, 0.95, 0.98),
   marsh: new THREE.Color(1.04, 1.06, 0.94),
 };
@@ -77,14 +80,14 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const pineMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   const stumpMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
-  const windTime = addWindSway(material, TREE_WIND);
+  const windTime = addWindSway(material, { ...TREE_WIND, broadleaf: true });
   const pineTime = addWindSway(pineMaterial, { ...TREE_WIND, evergreen: true });
   const materialOf = (tree: Tree) => (tree.kind === 'pine' ? pineMaterial : material);
   // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
   const biomes = createBiomes(model.seed, model.tiles);
   const tintOf = (tree: Tree) => {
     const tint = gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
-    const country = COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];
+    const country = tree.kind === 'pine' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest' ? undefined : COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];
     return country ? tint.multiply(country) : tint;
   };
   const grand = (tree: Tree) => tree.kind === 'oak' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest';
@@ -121,6 +124,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   // (A world drawn a region at a time: each region's own, the once. view/world/worldRegions.ts `holds`.)
   const holds = (model as { holds?: (x: number, z: number) => boolean }).holds;
   const mine = () => (holds ? model.chickens.trees.filter((tree) => holds(tree.x, tree.z)) : model.chickens.trees);
+  const leaves = createFallingLeaves(); // (autumn's, round the hero: this region's, while they're on it)
+  scene.add(leaves.mesh);
   const plant = () => {
     for (const [tree, { mesh }] of planted) if (!model.chickens.trees.includes(tree)) [mesh.removeFromParent(), planted.delete(tree)]; // (another game taken up)
     for (const tree of mine()) {
@@ -141,6 +146,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;
     pineTime.value = elapsedSeconds;
+    const { hero } = model;
+    leaves.update(elapsedSeconds, hero.x, hero.y, hero.z, !holds || holds(hero.x, hero.z));
     if (planted.size !== mine().length || lumber.version !== seen) plant();
     const now = lumber.chopping?.tree;
     if (now && drawn.has(now)) last = now;

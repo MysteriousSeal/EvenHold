@@ -29,6 +29,7 @@ const SCATTER_SALT = 2;
 const ROAD_EDGE_CANDIDATES = 7; // tries per road tile to place a lining clump
 const ROAD_CLEARANCE = 0.04; // keep lining grass this far off the dirt
 const WILD_SALT = 41; // the country's own plants roll from a stream of their own (all else rolled as it ever was)
+const SHORE_REEDS = { chance: 0.6, least: 2, most: 4 }; // a bed of reeds on a low shore (a tile beside the water)
 
 export interface ScatterItem {
   x: number;
@@ -165,12 +166,17 @@ export function createCoverScatter(model: GameModel): (x0: number, z0: number, x
         const count = DRIFT_LEAST + Math.floor(rng() * (MAX_BLOOMS - DRIFT_LEAST + 1));
         for (let i = 0; i < count; i++) cover.blooms.push(item(cx + (rng() - 0.5) * DRIFT_SPREAD, cz + (rng() - 0.5) * DRIFT_SPREAD, 1, kind));
       }
-      // The country's own plants (none in a meadow), from a stream of their own: off the tree's foot (but ferns).
-      if (grows.wild.length === 0) continue;
+      // The country's own plants (none in a meadow), from a stream of their own: off the tree's foot (but ferns); and a
+      // bed of reeds on a low shore, whatever the country (but the moor's and the hills').
       const roll = mulberry32(hashCell(x, z, WILD_SALT));
-      for (const { kind, chance, most } of grows.wild) {
+      const shore = country !== 'heath' && country !== 'hills' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => model.tiles.has(x + dx, z + dz) && model.tiles.lake(x + dx, z + dz));
+      if (shore && !treeHere && roll() < SHORE_REEDS.chance) {
+        const count = SHORE_REEDS.least + Math.floor(roll() * (SHORE_REEDS.most - SHORE_REEDS.least + 1));
+        for (let i = 0; i < count; i++) cover.wild.push({ x: x + (roll() - 0.5) * SCATTER_SPREAD, y, z: z + (roll() - 0.5) * SCATTER_SPREAD, tier, rotation: roll() * Math.PI * 2, scale: 1, variant: Math.floor(roll() * 8), country, kind: 'reed' });
+      }
+      for (const { kind, chance, most, least = 1 } of grows.wild) {
         if (roll() >= chance || (treeHere && kind !== 'fern')) continue;
-        const count = 1 + Math.floor(roll() * most);
+        const count = least + Math.floor(roll() * (most - least + 1));
         for (let i = 0; i < count; i++) {
           const [ox, oz] = [(roll() - 0.5) * SCATTER_SPREAD, (roll() - 0.5) * SCATTER_SPREAD];
           cover.wild.push({ x: x + ox, y, z: z + oz, tier, rotation: roll() * Math.PI * 2, scale: 1, variant: Math.floor(roll() * 8), country, kind });

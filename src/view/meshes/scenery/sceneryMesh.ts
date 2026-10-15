@@ -32,7 +32,7 @@ export function buildScenery3d(scene: WorldSink, model: GameModel): (elapsedSeco
     );
   add(model.scenery.filter((s) => s.kind !== 'willow'), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
   const willows = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
-  const windTime = addWindSway(willows, WILLOW_WIND);
+  const windTime = addWindSway(willows, { ...WILLOW_WIND, broadleaf: true });
   add(model.scenery.filter((s) => s.kind === 'willow'), willows);
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;

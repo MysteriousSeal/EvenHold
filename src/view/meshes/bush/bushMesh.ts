@@ -2,7 +2,7 @@
 // once, then instanced per map chunk, so only bushes near the camera are
 // drawn. Rotated in quarter turns only, so voxels stay on the tile grid.
 // Drawn as their country has them (model/scenery/biomes.ts): on the heath a
-// leafy or flowering bush is gorse, in the woods a berry bush is bramble
+// leafy bush is gorse, a flowering one a hawthorn, in the woods a berry bush is bramble
 // (its kind itself as it was: only its look).
 
 import * as THREE from 'three';
@@ -23,7 +23,7 @@ const BUSH_WIND = { height: BUSH_GRID[1] * BUSH_VOXEL_SIZE, strength: 0.02, spee
 // How a bush is drawn, by the country it grows in.
 export function bushLook(bush: Bush, biomes: BiomeMap): BushLook {
   const country = biomes.at(bush.x, bush.z);
-  if (country === 'heath' && bush.kind !== 'berry') return 'gorse';
+  if (country === 'heath' && bush.kind !== 'berry') return bush.kind === 'flowering' ? 'thorn' : 'gorse';
   if (country === 'forest' && bush.kind === 'berry') return 'bramble';
   return bush.kind;
 }
@@ -38,7 +38,7 @@ export function buildBushGeometry(kind: BushLook, shape: number): THREE.BufferGe
 // Returns the per-frame wind animation.
 export function buildBushes(scene: WorldSink, model: GameModel): (elapsedSeconds: number) => void {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
-  const windTime = addWindSway(material, BUSH_WIND);
+  const windTime = addWindSway(material, { ...BUSH_WIND, broadleaf: true });
   const biomes = createBiomes(model.seed, model.tiles);
   const looks = new Map(model.bushes.map((bush) => [bush, bushLook(bush, biomes)]));
   addVoxelInstances(

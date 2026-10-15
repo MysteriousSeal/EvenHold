@@ -9,17 +9,20 @@
 import * as THREE from 'three';
 import { TERRAIN_COLORS } from '../../constants';
 import { BIOMES, type Biome, type BiomeMap } from '../../../model/scenery/biomes';
+import { hashUnit } from '../../../util/random';
 import type { Tiles } from '../../../model/map/tiles';
 
 const GROUND: Record<Biome, number> = {
   meadow: 0x6fae4f,
   forest: 0x4f8a42,
-  heath: 0x8ea35c, // the moor: olive-green (its heather its colour)
-  marsh: 0x5f8a4a,
+  heath: 0x8c9a58, // the moor: olive-green, clear of the roads' brown (its heather its colour)
+  marsh: 0x5f8a5a, // a touch lighter and bluer than the woods'
   hills: 0x8f957a, // rocky
 };
-const MUD = 0x5a5038; // a marsh tile at the water's edge
-const TIER_STEP = [0.9, 0.95, 1, 1.04, 1.07]; // the lower, the darker
+const MUD = 0x5a5038; // a marsh tile at the water's edge, here and there (MUD_CHANCE), half-way to it (MUD_STRENGTH)
+const MUD_CHANCE = 0.45;
+const MUD_STRENGTH = 0.55;
+const TIER_STEP = [0.9, 0.94, 0.98, 1.01, 1.03]; // the lower, the darker (the highest meadow never lime)
 // The countries read round a tile, and how much each counts: the 5x5 round it, the nearer the more (a border shades
 // over some five tiles).
 const FALLOFF = [1, 2, 3, 2, 1];
@@ -57,17 +60,15 @@ export function createGroundColours(biomes: BiomeMap, tiles: Tiles): GroundColou
   const out = new THREE.Color();
   return (x, z, tier) => {
     const own = countryAt(x, z);
-    if (BIOMES[own] === 'marsh' && byWater(x, z)) out.copy(mud);
-    else {
-      out.setRGB(0, 0, 0);
-      for (const [dx, dz, weight] of ROUND) {
-        const c = colours[countryAt(x + dx, z + dz)];
-        out.r += c.r * weight;
-        out.g += c.g * weight;
-        out.b += c.b * weight;
-      }
-      out.multiplyScalar(1 / WEIGHT);
+    out.setRGB(0, 0, 0);
+    for (const [dx, dz, weight] of ROUND) {
+      const c = colours[countryAt(x + dx, z + dz)];
+      out.r += c.r * weight;
+      out.g += c.g * weight;
+      out.b += c.b * weight;
     }
+    out.multiplyScalar(1 / WEIGHT);
+    if (BIOMES[own] === 'marsh' && hashUnit(x, z, 0x3d0) < MUD_CHANCE && byWater(x, z)) out.lerp(mud, MUD_STRENGTH);
     const base = bases[tier % bases.length];
     const step = TIER_STEP[Math.min(tier, TIER_STEP.length - 1)];
     return out.setRGB((out.r * step) / base.r, (out.g * step) / base.g, (out.b * step) / base.b);

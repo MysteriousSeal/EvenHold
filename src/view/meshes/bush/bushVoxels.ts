@@ -6,7 +6,8 @@
 // open to the sky and dark on the underside. Berry bushes carry small bunches
 // of berries; flowering bushes have blossoms with a bright heart.
 // Two looks more, by the country a bush grows in (bushMesh.ts; the bush's kind
-// itself as it was): gorse on the heath, spiky, dark, starred with yellow;
+// itself as it was): gorse on the heath, spiky, dark, starred with yellow; a
+// hawthorn there too, twiggy and dark, white with may blossom;
 // bramble in the woods, low and tangled, its blackberries ripe and not.
 
 import type { BushKind } from '../../../model/types';
@@ -41,7 +42,7 @@ const GORSE = [12, 13];
 const BLACKBERRIES = [14, 15];
 
 // What a bush is drawn as: its kind, or the look its country gives it.
-export type BushLook = BushKind | 'gorse' | 'bramble';
+export type BushLook = BushKind | 'gorse' | 'bramble' | 'thorn';
 const DITHER = 0.22;
 const SUN = SUN_DIRECTION.toArray(); // baked shading matches the scene's sun
 const FOLIAGE = 20; // temporary marker while building
@@ -73,7 +74,7 @@ export function buildBushVoxels(kind: BushLook, shape: number): VoxelGrid {
       top = Math.max(top, y);
     }
   });
-  nibble(grid, rng, kind === 'gorse' || kind === 'bramble' ? 0.24 : 0.12, 1, FOLIAGE); // (gorse spiky, bramble tangled)
+  nibble(grid, rng, kind === 'gorse' || kind === 'bramble' || kind === 'thorn' ? 0.24 : 0.12, 1, FOLIAGE); // (gorse spiky, bramble tangled, a thorn twiggy)
 
   // Accents are chosen before shading replaces the marker color: berry
   // bunches (a berry and a lit one above it) on the sides and top, blossoms
@@ -88,6 +89,7 @@ export function buildBushVoxels(kind: BushLook, shape: number): VoxelGrid {
     }
     if (kind === 'gorse' && accents() < 0.16) accented.push([x, y, z, GORSE[accents() < 0.6 ? 0 : 1]]);
     if (kind === 'bramble' && y >= 1 && accents() < 0.07) accented.push([x, y, z, accents() < 0.6 ? BLACKBERRIES[accents() < 0.5 ? 0 : 1] : BERRIES[0]]);
+    if (kind === 'thorn' && colorAt(grid, x, y + 1, z) === 0 && accents() < 0.14) accented.push([x, y, z, BLOSSOMS[0]]);
     if (kind === 'flowering' && colorAt(grid, x, y + 1, z) === 0 && accents() < 0.12) {
       accented.push([x, y, z, BLOSSOMS[accents() < 0.5 ? 0 : 1]]);
       if (y + 1 < BUSH_GRID[1] && accents() < 0.5) accented.push([x, y + 1, z, HEART]);
@@ -110,7 +112,7 @@ export function buildBushVoxels(kind: BushLook, shape: number): VoxelGrid {
     let shade = 0.6 * ny + (0.5 * (nx * SUN[0] + ny * SUN[1] + nz * SUN[2])) / len + (accents() - 0.5) * DITHER;
     if (colorAt(grid, x, y + 1, z) === 0) shade += 0.35; // open to the sky
     if (y > 0 && colorAt(grid, x, y - 1, z) === 0) shade = Math.min(shade, -0.6); // underside
-    if (kind === 'gorse' || kind === 'bramble') shade -= 0.3; // (darker leaves: gorse's needles, bramble's under the trees)
+    if (kind === 'gorse' || kind === 'bramble' || kind === 'thorn') shade -= 0.3; // (darker leaves: gorse's needles, bramble's under the trees)
     const band = Math.floor(((Math.max(-1, Math.min(1, shade)) + 1) / 2) * LEAF_BANDS.length);
     setColor(grid, x, y, z, LEAF_BANDS[Math.min(LEAF_BANDS.length - 1, band)]);
   });

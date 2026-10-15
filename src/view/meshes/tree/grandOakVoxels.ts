@@ -29,7 +29,7 @@ export function grandOak(shape: number): VoxelGrid {
   const [tx, tz] = [M + lean[0], M + lean[1]];
   // The canopy: a broad crown puff and a ring of big ones about it, close enough to merge into one roof.
   const puffs: Volume[] = [{ cx: tx, cy: top + 14, cz: tz, rx: 10, ry: 7, rz: 10 }];
-  const sides = 6 + Math.floor(rng() * 2);
+  const sides = 5 + Math.floor(rng() * 2);
   for (let i = 0; i < sides; i++) {
     const angle = (i / sides) * Math.PI * 2 + rng() * 0.5;
     const reach = 9 + rng() * 3;

@@ -1,14 +1,15 @@
 // What grows in each kind of country (model/scenery/biomes.ts), at the ground cover's 0.04 voxel scale, palette first:
-// - ferns (the woods): fronds arching out from a crown, lighter to their tips;
+// - ferns (the woods): fronds arching out from a crown, lighter to their tips; bracken (the heath): the same, rust-red;
 // - mushrooms (the woods): a clutch of brown caps, a red toadstool spotted white;
 // - heather (the heath): a low cushion of olive twigs, purple bells over its top;
 // - reeds (the marsh): bulrushes with their brown heads among plain reeds leaning, a yellow flag;
 // - stones (the hills): a flat slab sunk in the turf, lichen and moss on it;
-// - leaf litter (the woods): a low drift of fallen leaves, a voxel deep, between the trees.
+// - leaf litter (the woods): a low drift of fallen leaves, a voxel deep, between the trees;
+// - thistles (the moor, the hills): spiny leaves at the foot, a stem or two, each topped with a purple head on a green cup.
 // Straight, grid-aligned voxels only; silhouette first, seen from the game's camera. Few shapes of each: every shape is
 // a draw a chunk (each instanced).
 
-import { mulberry32 } from '../../../util/random';
+import { hashUnit, mulberry32 } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
 import { colorAt, createGrid, setColor } from '../voxel/voxelShapes';
 
@@ -17,6 +18,9 @@ const ENTRIES = {
   frondLight: 0x67a248,
   frondTip: 0x86b85a,
   frondDark: 0x2c5a28,
+  bracken: 0xa8692e,
+  brackenLight: 0xc4843e,
+  brackenDark: 0x7a4a22,
   stalk: 0xe6dcc2,
   capBrown: 0x9a6a3e,
   capBrownLight: 0xb8854e,
@@ -40,9 +44,12 @@ const ENTRIES = {
   stoneDark: 0x7b766c,
   moss: 0x78913f,
   lichen: 0xd6d08a,
-  litter: 0x6e5a3a,
-  litterLight: 0x8a6e45,
-  litterDark: 0x564630,
+  litter: 0x5e5236, // fallen leaves gone dull, close to the woods' floor
+  litterLight: 0x6e5a3a,
+  litterDark: 0x4e4630,
+  thistle: 0x8e6aa8,
+  thistleLight: 0xa888c0,
+  thistleLeaf: 0x5a7a4a,
 } as const;
 export const WILD_PALETTE: number[] = Object.values(ENTRIES);
 const C = Object.fromEntries(Object.keys(ENTRIES).map((name, i) => [name, i + 1])) as Record<keyof typeof ENTRIES, number>;
@@ -57,17 +64,21 @@ export const REED_GRID: [number, number, number] = [7, 18, 7];
 export const REED_SHAPES = 2; // bulrushes among reeds, a yellow flag
 export const STONE_GRID: [number, number, number] = [14, 4, 12];
 export const STONE_SHAPES = 1;
-export const LITTER_GRID: [number, number, number] = [12, 1, 10];
+export const LITTER_GRID: [number, number, number] = [9, 1, 8];
 export const LITTER_SHAPES = 1;
+export const THISTLE_GRID: [number, number, number] = [7, 10, 7];
+export const THISTLE_SHAPES = 2;
 
+const hashOf = (x: number, z: number, salt: number) => hashUnit(x, z, 0x57a8 + salt);
 const put = (g: VoxelGrid, x: number, y: number, z: number, c: number) => {
   const [sx, sy, sz] = g.size;
   if (x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz) setColor(g, x, y, z, c);
 };
 
 // Fronds out from the middle, each rising to its middle and drooping to its tip.
-export function buildFern(shape: number): VoxelGrid {
+export function buildFern(shape: number, bracken = false): VoxelGrid {
   const g = createGrid(FERN_GRID);
+  const [frond, light, tip, dark] = bracken ? [C.bracken, C.brackenLight, C.brackenLight, C.brackenDark] : [C.frond, C.frondLight, C.frondTip, C.frondDark];
   const rng = mulberry32(0xfe40 + shape * 131);
   const m = 6;
   const ways = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
@@ -78,13 +89,13 @@ export function buildFern(shape: number): VoxelGrid {
     for (let i = 0; i <= long; i++) {
       const y = Math.round(1 + Math.sin((i / long) * Math.PI * 0.85) * 4 + (i === 0 ? -1 : 0));
       const [x, z] = [m + dx * i, m + dz * i];
-      put(g, x, y, z, i >= long - 1 ? C.frondTip : i % 2 ? C.frondLight : C.frond);
+      put(g, x, y, z, i >= long - 1 ? tip : i % 2 ? light : frond);
       // Its leaflets either side, along it.
-      if (i > 0 && i < long - 1 && i % 2 === 0) for (const s of [-1, 1]) put(g, x + (dz ? s : 0), y, z + (dx && !dz ? s : 0), C.frondLight);
+      if (i > 0 && i < long - 1 && i % 2 === 0) for (const s of [-1, 1]) put(g, x + (dz ? s : 0), y, z + (dx && !dz ? s : 0), light);
     }
   }
-  put(g, m, 0, m, C.frondDark);
-  put(g, m, 1, m, C.frondDark);
+  put(g, m, 0, m, dark);
+  put(g, m, 1, m, dark);
   return g;
 }
 
@@ -168,7 +179,7 @@ export function buildStone(shape: number): VoxelGrid {
     if (d > 1 - rng() * 0.15) continue;
     const high = d < 0.45 ? 3 : d < 0.8 ? 2 : 1;
     for (let y = 0; y < high; y++) {
-      const r = rng();
+      const r = hashOf(x >> 1, z >> 1, shape + 11); // (its tones by 2 x 2: they merge)
       const top = y === high - 1;
       setColor(g, x, y, z, top && r < 0.18 ? C.moss : top && r > 0.94 ? C.lichen : top ? (r < 0.6 ? C.stoneLight : C.stone) : C.stoneDark);
     }
@@ -179,12 +190,26 @@ export function buildStone(shape: number): VoxelGrid {
 // A low drift of fallen leaves, a voxel deep: an uneven blot, browns in three tones.
 export function buildLitter(shape: number): VoxelGrid {
   const g = createGrid(LITTER_GRID);
-  const rng = mulberry32(0x1ea5 + shape * 211);
-  for (let x = 0; x < 12; x++) for (let z = 0; z < 10; z++) {
-    const d = ((x - 5.5) / 5.5) ** 2 + ((z - 4.5) / 4.5) ** 2;
-    if (d > 0.9 || rng() < 0.3 + d * 0.4) continue;
-    const r = rng();
+  for (let x = 0; x < 9; x++) for (let z = 0; z < 8; z++) {
+    const d = ((x - 4) / 4.5) ** 2 + ((z - 3.5) / 4) ** 2;
+    if (d > 0.9 || hashOf(x >> 1, z >> 1, shape) < 0.15 + d * 0.3) continue; // (holes, and its tones, by 2 x 2: they merge)
+    const r = hashOf(x >> 1, z >> 1, shape + 7);
     setColor(g, x, 0, z, r < 0.25 ? C.litterLight : r < 0.45 ? C.litterDark : C.litter);
+  }
+  return g;
+}
+
+// Spiny leaves at the foot, a stem or two, each topped with a purple head on a green cup.
+export function buildThistle(shape: number): VoxelGrid {
+  const g = createGrid(THISTLE_GRID);
+  for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-1, 1], [1, -1]]) put(g, 3 + dx, dx && dz ? 1 : 0, 3 + dz, C.thistleLeaf);
+  const stems: Array<[number, number, number]> = shape ? [[3, 3, 7], [5, 2, 5]] : [[3, 3, 6]];
+  for (const [x, z, high] of stems) {
+    for (let y = 0; y < high; y++) put(g, x, y, z, C.thistleLeaf);
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) put(g, x + dx, high, z + dz, C.thistleLeaf); // its cup
+    put(g, x, high, z, C.thistle);
+    put(g, x, high + 1, z, C.thistleLight);
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) put(g, x + dx, high + 1, z + dz, C.thistle);
   }
   return g;
 }
