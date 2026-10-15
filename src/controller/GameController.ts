@@ -20,6 +20,7 @@ import { doorNumber } from '../model/interiors/interiors';
 import { quitsAt, type Client } from '../model/jobs/room/roomShift';
 import type { Talk } from '../model/story/story';
 import type { Entrance } from '../model/interiors/interiors';
+import { HIT_STOP, hitFeel } from './hitFeel';
 
 const MAX_FRAME_DT = 0.1; // seconds; avoids a huge jump after the tab was backgrounded
 const MAX_STEP = 1 / 30; // the longest step the game takes at once (a sped-up frame is several)
@@ -44,7 +45,6 @@ function uncappedScheduler(): (callback: (now: number) => void) => void {
 }
 
 const PRESS_KEPT = 0.2; // seconds a blow or roll pressed too soon is kept, to go as soon as it may
-const HELD_STILL = { parry: 0.09, crit: 0.05 }; // seconds the world holds still on a parry, a critical blow (felt landing)
 
 export class GameController {
   private readonly input = new KeyboardInput();
@@ -146,7 +146,7 @@ export class GameController {
   }
   timeScale = 1; // a dev cheat: the game running this many times as fast
   private held = { attack: 0, roll: 0 }; // seconds a blow or a roll pressed too soon (mid-blow, mid-roll) is still kept to go
-  private still = 0; // seconds the world's held still yet (a parry, a critical blow, landing: what's pressed meanwhile waits)
+  private still = 0; // seconds the world's held still yet (a blow landing, a parry: hitFeel.ts; what's pressed meanwhile waits)
 
   private step(dt: number): void {
     if (this.paused) return;
@@ -208,8 +208,12 @@ export class GameController {
     const come = this.model.work.arrived(); // (someone let into their room, at work: in, the door shut, their word)
     if (come) this.onMeet(come.who, come.talk);
     for (const event of this.model.takeEvents()) {
-      if (event.kind === 'guard' && event.outcome === 'parried') this.still = Math.max(this.still, HELD_STILL.parry);
-      else if (event.kind === 'hit' && event.on !== 'hero' && event.crit) this.still = Math.max(this.still, HELD_STILL.crit);
+      if (event.kind === 'guard' && event.outcome === 'parried') this.still = Math.max(this.still, HIT_STOP.parry);
+      else if (event.kind === 'hit') {
+        const feel = hitFeel(event); // (held still a moment, the camera kicked, the blood thrown: felt landing)
+        this.still = Math.max(this.still, feel.stop);
+        this.view.struck(event, feel.shake);
+      }
       this.onEvent(event);
     }
     this.view.update(dt);

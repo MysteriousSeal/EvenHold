@@ -18,7 +18,7 @@
 import type { LEGS_ITEMS } from '../../../../../model/human/items/armor';
 import { namedPalette } from '../armorShell';
 import type { ItemModel } from '../itemModel';
-import { mail, mod } from '../patterns';
+import { drawn, mail, mod } from '../patterns';
 import { SET_PALETTES } from '../setPalettes';
 
 // Wool hose dyed with woad, held up by a belt with a brass buckle.
@@ -74,10 +74,13 @@ const mailChausses: ItemModel = {
   },
 };
 
-// Plate over the legs with bright knee cops, and a leather skirt at the hips.
+// Plate over the legs with bright knee cops, and a leather skirt at the hips. Its icon: the pair standing side by side,
+// a bright ridge down each shin, gilded under the knee cops, strapped and buckled, flared at the foot.
 const plate = namedPalette({ steel: 0xb4bac2, bright: 0xd2d6dc, dark: 0x7d838c, leather: 0x5e3f28, buckle: 0xd4b060 });
+const GREAVES = ['.s....s.', 'sbs..sbs', 'kkk..kkk', 'sbs..sbs', 'sbs..sbs', 'lkl..lkl', 'sbs..sbs', 'sbs..sbs', 'sbs..sbs', 'dsd..dsd', 'ddd..ddd'];
 const plateGreaves: ItemModel = {
   palette: plate.palette,
+  icon: { build: () => drawn(GREAVES, 2, { s: plate.c.steel, b: plate.c.bright, d: plate.c.dark, l: plate.c.leather, k: plate.c.buckle }) },
   worn: {
     torso: ({ y, front, center }) => (y === 1 ? (front && center ? plate.c.buckle : plate.c.dark) : plate.c.leather),
     leg: ({ y, z, flank }) => (z === 3 && y === 3 ? plate.c.bright : flank ? plate.c.dark : plate.c.steel),

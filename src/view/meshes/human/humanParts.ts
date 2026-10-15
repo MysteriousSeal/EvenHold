@@ -9,7 +9,7 @@ import type { BodyLook, Build } from '../../../model/human/humanoid';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
 import { BODIES, HAIR_PIECE_PIVOT, HELD_VOXEL_SIZE, HUMAN_VOXEL_SIZE, JOINTS, bodyPalette, buildBodyPart, buildHairPiece, type BodyPart, type Joint } from './bodyVoxels';
 import { fineTorso } from './unclothed';
-import { BODY_FILL, withBody, wornPad } from './gear/armorShell';
+import { BODY_FILL, withBody, wornPad, type Shouldered } from './gear/armorShell';
 import { ITEM_MODELS, lookModel, wornGrid, type LookId } from './gear/itemModels';
 import { hairUnder } from './hairUnderHelm';
 import { roundNormals } from '../voxel/roundedNormals';
@@ -102,7 +102,7 @@ export function hairUnderGeometry(look: BodyLook, item: ItemId): THREE.BufferGeo
 // A worn item's shell on one joint's part, or null if it doesn't cover it:
 // meshed around the (undrawn) body, so no faces press against the skin.
 // The shell's grid starts before the part (wornPad: one voxel, a head piece's more), so its pivot is that much further in.
-export function wornGeometry(item: LookId, joint: Joint, shouldered: boolean, build: Build): THREE.BufferGeometry | null {
+export function wornGeometry(item: LookId, joint: Joint, shouldered: Shouldered, build: Build): THREE.BufferGeometry | null {
   const { part, side } = JOINTS[joint];
   return cached(`${item}:${build}:${part}:${side}:${shouldered}`, () => {
     const grid = wornGrid(item, part, side, shouldered, build);

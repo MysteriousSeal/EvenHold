@@ -8,6 +8,7 @@ import type { Ruin } from './ruins/ruins';
 import type { Camp } from './camps/camps';
 import type { Stat } from './hero/statKinds';
 import type { ActionBar } from './hero/actionBar';
+import type { Wielded } from './hero/weaponProfiles';
 import type { SpellId } from './spells/spells';
 import type { Being } from './spells/beings';
 import type { Hung } from './spells/hung';
@@ -53,6 +54,7 @@ export interface Hero extends Humanoid {
   blessings?: Blessing[]; // a well's, for a while (blessing.ts); one, but for a cheat
   drinking?: Meal | null; // an ale at the bar, sipped a while, healing as it goes (or a pie, its energy) (heroStats.ts)
   eating?: Meal | null;
+  draught?: Meal | null; // a health potion's heal over the seconds after it (bag.ts drinkPotion): standing, through blows
   spells?: SpellId[]; // the charms they know (spells/spells.ts): none, till taught
   spellWait?: Partial<Record<SpellId, number>>; // seconds before each may be cast again
   wear?: Record<string, number>; // how worn each piece of gear is, by its key (hero/wear.ts; none: unworn)
@@ -71,7 +73,7 @@ export type GameEvent =
   | { kind: 'swapped'; who: Being; before: Humanoid & { name?: string } } // someone's sex changed by a spell, there and then: as they were (how it happens the view's to play: cinema/)
   | { kind: 'transformed'; who: Being; into: Into; coat?: number; tree?: Tree; hung?: Hung } // someone turned into something by a spell, there and then (its turning the view's to play: cinema/); `coat`: which of its kind's, if it has any; `tree`: the one they are now; `hung`: a painting's wall
   | { kind: 'cast'; spell: SpellId; x: number; y: number; z: number; mended?: number } // a spell cast, at where it lands
-  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number } // crit: a critical blow (the hero's Agility)
+  | { kind: 'hit'; on: EnemyKind | 'hero'; amount: number; crit?: boolean; x: number; y: number; z: number; killed?: boolean; riposte?: boolean; weapon?: Wielded; share?: number; from?: { x: number; z: number } } // crit: a critical blow (the hero's Agility); killed: the foe felled by it; riposte: on a foe just parried; weapon: the hero's (none: a spell's, a foe's); share: of its most health it took; from: where the blow came from (how it lands: controller/hitFeel.ts)
   | { kind: 'dodge'; x: number; y: number; z: number } // the hero dodged a blow (their Agility)
   | { kind: 'guard'; outcome: 'rolled' | 'parried' | 'blocked' | 'broken'; x: number; y: number; z: number } // a blow rolled through, parried, blocked, or breaking the guard (combatMoves.ts)
   | { kind: 'levelUp'; level: number; points: number } // the hero's levelled up: their points to spend now

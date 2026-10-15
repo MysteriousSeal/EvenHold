@@ -7,7 +7,7 @@ import { STRONGHOLD_LOOKS } from './stronghold/strongholdOutfits';
 import type { Build } from '../../../../model/human/humanoid';
 import type { VoxelGrid } from '../../voxel/greedyMesh';
 import type { BodyPart, Side } from '../bodyVoxels';
-import { bandFor, buildHeadgear, buildShell } from './armorShell';
+import { bandFor, buildHeadgear, buildShell, type Shouldered } from './armorShell';
 import type { ItemModel } from './itemModel';
 import { FEET_MODELS } from './items/feet';
 import { HANDS_MODELS } from './items/hands';
@@ -37,10 +37,13 @@ const costume = (look: CostumeLookId) => COSTUME_LOOKS[look] ?? STRONGHOLD_LOOKS
 export const lookModel = (look: LookId): ItemModel => (isCostume(look) ? costume(look).model : ITEM_MODELS[look]);
 export const lookSlot = (look: LookId): EquipSlot => (isCostume(look) ? costume(look).slot : ITEMS[look].slot);
 
+// How the shoulders are worn, by what's on them (none: not; a deep piece: 'deep').
+export const shoulderedBy = (look: LookId | undefined): Shouldered => (look ? (lookModel(look).deep ? 'deep' : true) : false);
+
 // The shell a worn item (or a costume's look) puts on one body part (on the given side), or null
 // if it doesn't cover that part, fitted to the wearer's build. `shouldered`:
 // shoulders are worn too (sleeves then leave the top of the arms to them).
-export function wornGrid(item: LookId, part: BodyPart, side: Side, shouldered = false, build: Build = 'male'): VoxelGrid | null {
+export function wornGrid(item: LookId, part: BodyPart, side: Side, shouldered: Shouldered = false, build: Build = 'male'): VoxelGrid | null {
   const { headgear, worn } = lookModel(item);
   if (part === 'head') return headgear ? buildHeadgear(headgear, build) : null; // (its grid HEAD_PAD round the head: wornPad)
   const paint = worn?.[part];

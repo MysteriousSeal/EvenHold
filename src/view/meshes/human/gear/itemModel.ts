@@ -21,6 +21,8 @@ export interface ItemModel {
   worn?: Partial<Record<BodyPart, Painter>>;
   headgear?: HeadPainter; // worn on the head: sculpted round it, in relief (armorShell.ts buildHeadgear)
   jewel?: { build(): VoxelGrid }; // jewelry: not on the body, just its own model (for icons)
+  icon?: { build(): VoxelGrid }; // its bag icon's own model, where its shell alone doesn't read (a hauberk laid out, a pair of greaves)
+  deep?: boolean; // worn on the shoulders, reaching a row further down the arm (out from under a hat's brim; the sleeves yield it: armorShell.ts bandFor)
   held?: {
     build(): VoxelGrid;
     // The point (in voxels within the grid) that sits in the middle of the hand.

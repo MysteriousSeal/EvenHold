@@ -58,6 +58,9 @@ import { armsSheathed } from '../model/interiors/indoors';
 import { FrostOnHero } from './meshes/human/frostOnHero';
 import { HeroSilhouette } from './meshes/human/heroSilhouette';
 import type { BodyLook } from '../model/human/humanoid';
+import type { GameEvent } from '../model/types';
+import { BloodBursts } from './meshes/common/bloodBursts';
+import { CameraKick } from './render/cameraKick';
 
 // One named chunk of world building, run by the loader between repaints.
 export interface BuildStep {
@@ -99,6 +102,9 @@ export class GameView {
   private readonly travellers: TravellerViews; // on the roads
   private readonly chickens = new TurnedViews((being) => this.standIn(being)); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
+  private readonly blood = new BloodBursts(); // (where blows land)
+  private readonly kick = new CameraKick(); // (and the camera, kicked by them)
+  private readonly kicked = new THREE.Vector3();
   private readonly personMark = focusMarker(); // round whoever's picked out (no foe)
   private peopleIn: THREE.Object3D = new THREE.Object3D(); // where people are drawn now: the scene, or the room
   private carter: CarterView | null = null; // (the man by his wagon, at the start)
@@ -214,7 +220,7 @@ export class GameView {
   // material in the scene, so it runs last), sets up post-processing, and
   // compiles all shaders up front so the first frames don't hitch.
   async finish(): Promise<void> {
-    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, ...this.entrances.materials, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
+    const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, ...this.entrances.materials, this.coins.material, ...this.loot.materials, this.blood.material, this.heroLook, this.heroFlash, this.heroFrost];
     this.stylizer = stylize(this.scene, materials, this.world.materials());
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
     this.applyGraphics();
@@ -296,6 +302,7 @@ export class GameView {
     this.peopleIn = home;
     this.chickens.update(model.chickens.here, home, room ? INDOOR_SCALE : 1, dt, this.smoke); // (whoever's been turned into one, if they're here)
     this.smoke.update(dt);
+    this.blood.update(dt);
     const chosen = model.chosen.person;
     this.personMark.visible = !!chosen;
     if (chosen) {
@@ -383,6 +390,14 @@ export class GameView {
     this.cameraY += (groundY - this.cameraY) * (1 - Math.exp(-CAMERA_Y_SMOOTHING * dt));
     this.camera.position.set(hero.x + CAMERA_OFFSET.x, this.cameraY + CAMERA_OFFSET.y, hero.z + CAMERA_OFFSET.z);
     this.camera.lookAt(hero.x, this.cameraY, hero.z);
+    this.camera.position.add(this.kick.offset(dt, this.kicked)); // (a blow landing: struck)
+  }
+
+  // A blow landed (a 'hit', controller/hitFeel.ts its feel): blood thrown where it did (in the room, if they're in
+  // one), and the camera kicked `shake` the way it went.
+  struck(hit: Extract<GameEvent, { kind: 'hit' }>, shake: number): void {
+    this.blood.burst(this.peopleIn, hit, this.indoors.room ? INDOOR_SCALE : 1);
+    this.kick.kick(shake, hit.from ? hit.x - hit.from.x : 0, hit.from ? hit.z - hit.from.z : 0);
   }
 
   prompted: Npc | null = null; // the villager the prompt shown is about (main.ts), whose name gives way to it

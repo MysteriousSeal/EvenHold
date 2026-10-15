@@ -18,12 +18,13 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
       return x === 0 || x === 5 || z === 0 || z === 5 ? 2 : x >= 2 && x <= 3 && z >= 2 && z <= 3 ? 3 : 0; // the rim; the hollow, its floor dark
     });
   }),
-  // A varnished oak casket, glossy, its lid a shade darker and rounded, an iron hasp at its front; an oak cask, its
+  // A varnished oak casket, honey-glossy, its lid a shade darker and rounded with a shine along it, brass at its
+  // corners and a brass hasp at its front (+Z and +X: the sides the camera sees); an oak cask, its
   // staves bellied, two iron hoops, a bung; an oak chest, varnished dark, banded in iron, a brass lock.
-  varnishedCasket: model([0xb0703a, 0x7a4422, 0x4a4a52], [6, 4, 4], (g) => {
-    fillBox(g, 0, 0, 0, 5, 1, 3, 1); // its box
-    fillBox(g, 0, 2, 0, 5, 3, 3, (x, y, z) => (y === 3 && (z === 0 || z === 3) ? 0 : y === 3 && (x === 0 || x === 5) ? 0 : 2)); // the lid, its top rounded
-    fillBox(g, 2, 1, 0, 3, 2, 0, 3); // the hasp
+  varnishedCasket: model([0xc07a3a, 0x8a4a22, 0xd4b060, 0xeab468], [7, 5, 5], (g) => {
+    fillBox(g, 0, 0, 0, 6, 2, 4, (x, y, z) => ((x === 0 || x === 6) && (z === 0 || z === 4) && y !== 1 ? 3 : 1)); // its box, brass-cornered
+    fillBox(g, 0, 3, 0, 6, 4, 4, (x, y, z) => (y === 4 && (z === 0 || z === 4 || x === 0 || x === 6) ? 0 : y === 4 && z === 2 ? 4 : 2)); // the lid, its top rounded, a shine along it
+    fillBox(g, 3, 2, 4, 3, 3, 4, 3); // the hasp
   }),
   oakCask: model([0x8a5a30, 0x4a4a52, 0x3a2414], [5, 6, 5], (g) => {
     fillBox(g, 0, 0, 0, 4, 5, 4, (x, y, z) => {
@@ -37,7 +38,7 @@ export const JUNK_MODELS: Record<keyof typeof JUNK_ITEMS, LootModel> = {
     fillBox(g, 0, 0, 0, 7, 2, 4, 1); // its body
     fillBox(g, 0, 3, 0, 7, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 2)); // the lid, its top rounded
     for (const x of [1, 6]) fillBox(g, x, 0, 0, x, 4, 4, (_x, y, z) => (y === 4 && (z === 0 || z === 4) ? 0 : 3)); // its iron bands
-    fillBox(g, 3, 2, 0, 4, 3, 0, 4); // the lock
+    fillBox(g, 3, 2, 4, 4, 3, 4, 4); // the lock, on its front (+Z: the face the camera sees)
   }),
   carvedTankard: model([0x9a6a3e, 0x4a4a52, 0x5a3a20, 0x7a5432], [5, 6, 4], (g) => {
     fillBox(g, 0, 0, 0, 3, 4, 3, (_x, y) => (y === 1 || y === 3 ? 2 : 1)); // its staves, banded

@@ -12,6 +12,7 @@ import { ATTACK_KNOCKBACK, ENEMY_STATS, FOCUS_TURN_RANGE, HIT_FLASH } from '../c
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
+import { maxHpOf } from './attributes';
 import { coinsFound, dropFactor, healOnKill, makeChilled, makeWebbed, xpGained } from './blessing';
 import { coinDrop } from './money';
 import { DROP_CHANCE, rollDrop } from '../loot/loot';
@@ -23,7 +24,7 @@ import { isWorldFoe } from '../enemies/foeIds';
 import { reeling } from '../enemies/enemies';
 import { SHRUG_FLASH, flinches } from '../enemies/poise';
 import { phaseFloor } from '../enemies/bossPhases';
-import { profileOf } from './weaponProfiles';
+import { profileOf, wieldedOf, type Wielded } from './weaponProfiles';
 import { wearOnBlow, wearOnHarm } from './wear';
 
 // Where the fight is: the game model, as the fights see it.
@@ -71,8 +72,9 @@ export function landBlow(fight: Fight): void {
   // A sweeping weapon (an axe, a staff): a second foe in its arc caught too, for its share (picked before the first's
   // shoved off, or fallen).
   const second = weapon.sweep ? blowTarget(hero, fight.foes, null, fight.clear, target) : null;
-  if (strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1, weapon.poise)) shoveOff(fight, target, distance); // (shrugged off: it stands its ground, its blow coming on)
-  if (second && weapon.sweep && strike(fight, second.target, Math.max(1, Math.round(blow.damage * weapon.sweep)), false, weapon.poise)) shoveOff(fight, second.target, second.distance);
+  const wielded = wieldedOf(hero);
+  if (strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1, weapon.poise, { weapon: wielded, riposte: riposte > 1 })) shoveOff(fight, target, distance); // (shrugged off: it stands its ground, its blow coming on)
+  if (second && weapon.sweep && strike(fight, second.target, Math.max(1, Math.round(blow.damage * weapon.sweep)), false, weapon.poise, { weapon: wielded })) shoveOff(fight, second.target, second.distance);
 }
 
 // A foe struck, shoved off (a heavy one hardly moved).
@@ -85,15 +87,16 @@ function shoveOff(fight: Fight, target: Enemy, distance: number): void {
 
 // Harm of the hero's doing landed on a foe (a blow's, a spell's: spells/casting.ts): off its health, a brief flash;
 // at zero it dies, and leaves what it leaves. Whether it flinched (or died). `poise`: the blows it counts as, toward
-// a steady foe's flinching (the weapon's: a hammer's as two).
-export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean, poise = 1): boolean {
+// a steady foe's flinching (the weapon's: a hammer's as two). `how`: a blow's weapon, and whether a riposte (told with the
+// hit, for how it lands: controller/hitFeel.ts; none, a spell's).
+export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean, poise = 1, how: { weapon?: Wielded; riposte?: boolean } = {}): boolean {
   const { hero } = fight;
   const floor = fight.oneHitKills ? -Infinity : phaseFloor(target); // (a boss held at its next turn: bossPhases.ts)
   const was = target.hp;
   target.hp = Math.max(floor, target.hp - (fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard));
   const damage = was - target.hp;
   leech(hero, damage); // (their gear's: a share of it healed)
-  fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
+  fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z, killed: target.hp <= 0, share: Math.min(1, damage / Math.max(1, target.maxHp)), from: { x: hero.x, z: hero.z }, ...how });
   // Its blow lost (a flash), if the hit makes it flinch: by its poise, or caught open (reeling, parried; or struck just
   // after the hero's roll); else it shrugs it off (a little flash) and its blow comes on (enemies/poise.ts).
   const flinched = flinches(target, fight.minutes, reeling(target) || fight.moves.punishing, poise);
@@ -200,7 +203,7 @@ export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guar
     fight.report({ kind: 'dodge', x: hero.x, y: hero.y, z: hero.z });
     return guard.guarded;
   }
-  fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z });
+  fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z, share: Math.min(1, blow.damage / Math.max(1, maxHpOf(hero))), ...(by && { from: { x: by.x, z: by.z } }) });
   wearOnHarm(hero, blow.damage, fight.report); // (what they wear against blows, worn by it)
   hero.eating = null; // (a meal from the bag interrupted: the rest lost)
   if (!hurt(hero, blow.damage)) return guard.guarded;

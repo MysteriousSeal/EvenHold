@@ -13,9 +13,11 @@ import { TEST_MAP_SIZE } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
 const { GameController } = await import('../src/controller/GameController');
+const { hitFeel } = await import('../src/controller/hitFeel');
 
 // A view as far as the keys need one: the camera facing -z, its right +x.
-const fakeView = () => ({ canvas: document.createElement('canvas'), pickEnemy: () => null, getMovementAxes: () => ({ forward: { x: 0, z: -1 }, right: { x: 1, z: 0 } }), render() {}, update() {} });
+const struck: Array<{ hit: { kind: string; weapon?: string; killed?: boolean }; shake: number }> = []; // (the blows the view's told of, landing)
+const fakeView = () => ({ canvas: document.createElement('canvas'), pickEnemy: () => null, getMovementAxes: () => ({ forward: { x: 0, z: -1 }, right: { x: 1, z: 0 } }), render() {}, update() {}, struck: (hit: never, shake: number) => void struck.push({ hit, shake }) });
 
 type Hooks = { read: number[]; work: unknown[]; picked: unknown[] };
 function play(model = new GameModel(1, TEST_MAP_SIZE)) {
@@ -199,6 +201,25 @@ describe('the keys: the rest', () => {
     step();
     expect(model.minutes).toBe(at); // (held)
     step(3);
+    expect(model.minutes).toBeGreaterThan(at);
+  });
+
+  it("a plain blow landing holds the world still too (hitFeel's stop), and the view's told of it, to kick and bleed", () => {
+    const { model, step } = play();
+    model.enemies.length = 0;
+    model.random = () => 0.99; // (no critical blow)
+    const wolf = { ...makeEnemy(991, 'wolf', model.hero.x + Math.sin(model.hero.facing) * 0.6, model.hero.z + Math.cos(model.hero.facing) * 0.6), hp: 50, maxHp: 50 };
+    model.enemies.push(wolf);
+    model.enemiesFrozen = true;
+    struck.length = 0;
+    tap('Space');
+    for (let i = 0; i < 20 && wolf.hp === 50; i++) step();
+    expect(wolf.hp).toBeLessThan(50);
+    expect(struck).toEqual([{ hit: expect.objectContaining({ kind: 'hit', weapon: 'fists', killed: false }), shake: hitFeel(struck[0].hit as never).shake }]);
+    const at = model.minutes;
+    step();
+    expect(model.minutes).toBe(at); // (held: 0.04 s, past one step of 1/30)
+    step(2);
     expect(model.minutes).toBeGreaterThan(at);
   });
 

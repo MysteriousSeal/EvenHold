@@ -43,23 +43,42 @@ function amulet(chain: number, pendant: number, accent: number, w = 3, h = 3): I
   };
 }
 
-// A ring standing up: a 5x5 band two voxels deep, open in the middle, a
-// setting on top (three wide) holding the stone, or a plain crest.
+// A ring standing up: a round hoop 7 across, a voxel thick and two deep,
+// lit on its upper left and shaded on its lower right (round, not a square
+// nut); a stone, if it has one, in a setting on top.
+const tint = (hex: number, k: number) => [16, 8, 0].reduce((n, s) => n | (Math.min(255, Math.round(((hex >> s) & 255) * k)) << s), 0);
+const HOOP = ['..###..', '.#...#.', '#.....#', '#.....#', '#.....#', '.#...#.', '..###..']; // (top row first)
 function ring(band: number, stone?: number): ItemModel {
-  const { palette, c } = namedPalette({ band, stone: stone ?? band });
+  const { palette, c } = namedPalette({ band, lit: tint(band, 1.22), shade: tint(band, 0.72), stone: stone ?? band });
   return {
     palette,
     jewel: {
       build: () => {
-        const grid = createGrid([5, 7, 2]);
-        fillBox(grid, 0, 0, 0, 4, 4, 1, (x, y) => (x === 0 || x === 4 || y === 0 || y === 4 ? c.band : 0));
-        fillBox(grid, 1, 5, 0, 3, 5, 1, c.band); // the setting
-        if (stone !== undefined) fillBox(grid, 2, 5, 1, 2, 6, 1, c.stone);
+        const grid = createGrid([7, stone === undefined ? 7 : 9, 2]);
+        fillBox(grid, 0, 0, 0, 6, 6, 1, (x, y) => (HOOP[6 - y][x] !== '#' ? 0 : y - x >= 3 ? c.lit : x - y >= 3 ? c.shade : c.band));
+        if (stone !== undefined) {
+          fillBox(grid, 2, 7, 0, 4, 7, 1, c.band); // the setting
+          fillBox(grid, 3, 7, 1, 3, 8, 1, c.stone);
+        }
         return grid;
       },
     },
   };
 }
+
+// A bentwood ring: a strip of birch bent round, its grain in two tones, bound in silver at its sides and its top.
+const birch = namedPalette({ wood: 0x9a6a3e, grain: 0x7a4e2a, silver: 0xd8dde4 });
+const bentwoodRing: ItemModel = {
+  palette: birch.palette,
+  jewel: {
+    build: () => {
+      const { c } = birch;
+      const grid = createGrid([7, 7, 2]);
+      fillBox(grid, 0, 0, 0, 6, 6, 1, (x, y) => (HOOP[6 - y][x] !== '#' ? 0 : y === 3 || (y === 6 && x === 3) ? c.silver : mod(x + y, 2) ? c.grain : c.wood));
+      return grid;
+    },
+  },
+};
 
 // The barrow's torc: a ring of twisted grave-gold open at the bottom, two
 // strands deep, verdigris in the twists, the ends knobbed.
@@ -198,7 +217,7 @@ export const JEWELRY_MODELS: Record<keyof typeof NECK_ITEMS | keyof typeof RING_
   copperRing: ring(0xb87333),
   ironBand: ring(0x7d838c),
   boneRing: ring(0xe8dcc0),
-  bentwoodRing: ring(0x9a6a3e, 0xc8ced6), // (a strip of birch bent round, bound in silver)
+  bentwoodRing,
   silverRing: ring(0xc8ced6),
   goldRing: ring(0xd4b060),
   jadeRing: ring(0xd4b060, 0x4aa86a),

@@ -2,7 +2,8 @@
 // (the barmaid bringing a drink, or clearing one away), or drunk from at the
 // bar, sip after sip (a tankard, a glass of wine; or a pie, eaten bite by
 // bite), the arm up to the lips and down to rest on the bar, until it's gone;
-// or whatever food or drink the hero has out of their bag, sat on the ground.
+// or whatever food or drink the hero has out of their bag, sat on the ground: a cook's dish held level before
+// the chest (never up under a hat's brim), resting on the lap between bites.
 
 import * as THREE from 'three';
 import type { Drink } from '../../../model/npcs/npcs';
@@ -14,6 +15,7 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { PROVISION_MODELS, WINE_GLASS_MODEL } from '../loot/provisionVoxels';
 import { LOOT_MODELS } from '../loot/lootModels';
 import { HUMAN_VOXEL_SIZE } from './bodyVoxels';
+import { isMeal } from '../../../model/loot/meals';
 
 const V = HUMAN_VOXEL_SIZE;
 const SIPS_EVERY = 2.5; // seconds from one sip to the next
@@ -21,7 +23,9 @@ const DRINK_ARM = -2.3; // the right arm's swing, the tankard at the mouth (tipp
 const TIP_MORE = 0.5; // how much further, the last sip
 const REST_ARM = -0.9; // between sips: the tankard resting on the bar before them
 const HOLD_ARM = -0.7; // the right arm's swing, carrying a tankard out before them
+const DISH = { eat: -1.25, rest: -0.7 }; // a dish's: up before the chest, below the face; down on the lap between bites
 const TANKARD_SCALE = 0.55; // the ale's loot model, drawn to fit a hand
+const DISH_SCALE = 0.7; // a cook's dish, a little bigger (held before the chest, it must read)
 
 export class CupInHand {
   private tankard: THREE.Mesh | null = null; // the cup in hand, while drinking or carrying one
@@ -74,7 +78,7 @@ export class CupInHand {
     if (!this.cups[drink]) {
       const model = drink === 'wine' ? WINE_GLASS_MODEL : drink === 'pie' ? PROVISION_MODELS.meatPie : LOOT_MODELS[drink]; // (wine in a glass)
       const grid = model.build();
-      const size = V * TANKARD_SCALE;
+      const size = V * (isMeal(drink) ? DISH_SCALE : TANKARD_SCALE);
       this.cups[drink] = greedyMesh(grid, model.palette, size, new THREE.Vector3((-grid.size[0] * size) / 2, -size * 2, (-grid.size[2] * size) / 2));
     }
     if (!this.tankard) {
@@ -94,6 +98,7 @@ export class CupInHand {
     if (!this.tankard) return;
     if (this.holding) {
       this.arm.rotation.x = HOLD_ARM; // held out before them
+      this.tankard.rotation.x = 0;
       return;
     }
     this.drinkFor -= dt;
@@ -104,9 +109,13 @@ export class CupInHand {
     const phase = (t % SIPS_EVERY) / SIPS_EVERY; // up (to 0.15), sipping (to 0.55), down (to 0.7), resting
     const ease = (a: number) => a * a * (3 - 2 * a);
     const up = phase < 0.15 ? ease(phase / 0.15) : phase < 0.55 ? 1 : phase < 0.7 ? 1 - ease((phase - 0.55) / 0.15) : 0;
-    const sipping = DRINK_ARM - TIP_MORE * emptied + (phase >= 0.15 && phase < 0.55 ? Math.sin(t * 9) * 0.06 : 0);
-    const arm = REST_ARM + (sipping - REST_ARM) * up;
+    const dish = isMeal(this.showing);
+    const bob = phase >= 0.15 && phase < 0.55 ? Math.sin(t * 9) * 0.06 : 0;
+    const sipping = dish ? DISH.eat + bob : DRINK_ARM - TIP_MORE * emptied + bob;
+    const rest = dish ? DISH.rest : REST_ARM;
+    const arm = rest + (sipping - rest) * up;
     const start = Math.min(1, t / 0.3); // from wherever the arm was, at first
     this.arm.rotation.x = this.arm.rotation.x * (1 - start) + arm * start;
+    this.tankard.rotation.x = dish ? -this.arm.rotation.x : 0; // (a dish kept level; a cup tipped to the lips)
   }
 }

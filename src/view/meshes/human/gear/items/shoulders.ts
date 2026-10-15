@@ -38,9 +38,26 @@ const rings = namedPalette({ ring: 0x8d939c, gap: 0x6a7078 });
 const shawl = namedPalette({ wool: 0x8e4a5e, fringe: 0xd8b8a0 });
 const rope = namedPalette({ rope: 0xb89a6a, dark: 0x9a7e52 });
 const gold = namedPalette({ gold: 0xd4b060, dark: 0xa8862e, cloth: 0x2f9c9a });
+const bronze = namedPalette({ light: 0xe2a24a, bronze: 0xb86e2c, dark: 0x6e3e18, rivet: 0xf4d07a });
 
 // The sets' (their colours: setPalettes.ts). `rim`: a voxel at the cap's edge, over the arm's front, back or outer side.
 const rim = ({ top, front, back, flank }: ShellCell) => top && (front || back || flank);
+
+// Bronze spaulders: deep (a row further down the arm, out from under a hat's
+// brim, seen from behind), warm bronze bright on the cap, rivets down the
+// outer side, a dark rolled edge at the foot.
+const bronzeSpaulders: ItemModel = {
+  palette: bronze.palette,
+  deep: true,
+  worn: {
+    arm: ({ x, y, z, top, flank }) => {
+      const { c } = bronze;
+      if (top) return c.light;
+      if (y === 4) return c.dark;
+      return flank && mod(x + z, 2) === 0 ? c.rivet : c.bronze;
+    },
+  },
+};
 
 // Barrow spaulders: rusted lames, the top one's outer edge rolled in
 // verdigris bronze, bright steel pitted through the rust, the lowest dark
@@ -127,7 +144,7 @@ export const SHOULDERS_MODELS: Record<keyof typeof SHOULDERS_ITEMS, ItemModel> =
   furMantle: { palette: pelt.palette, worn: { arm: ({ x, y, z }) => fur(x, y, z, [pelt.c.light, pelt.c.mid, pelt.c.dark]) } },
   quiltedPads: pauldron(0xdccba2, 0xc9b58a, 0xb39e74),
   mailMantle: { palette: rings.palette, worn: { arm: ({ x, y, z }) => mail(x, y, z, rings.c.ring, rings.c.gap) } },
-  bronzeSpaulders: pauldron(0xd8a860, 0xb07a3a, 0x8a5a28),
+  bronzeSpaulders,
   woolShawl: { palette: shawl.palette, worn: { arm: ({ y, x, z }) => (y === 5 && mod(x + z, 2) === 0 ? shawl.c.fringe : shawl.c.wool) } },
   studdedPauldrons: studded(0x6b4a33, 0x523826, 0xd4b060),
   goldEpaulettes: { palette: gold.palette, worn: { arm: ({ y, top }) => (top ? gold.c.gold : y === 5 ? gold.c.dark : gold.c.cloth) } },
