@@ -91,9 +91,10 @@ describe('the crypts\' guards', () => {
     for (const f of model.foes) if (f !== guard) f.state = 'dead'; // (him alone)
     Object.assign(model.hero, inView(model, guard, 2));
     const hp = model.hero.hp;
-    run(model, 4);
+    let low = hp; // (the least they had: felled, they'd wake healed)
+    for (let t = 0; t < 4; t += FRAME) [model.update(0, 0, FRAME), (low = Math.min(low, model.hero.hp))];
     expect(guard.state).toBe('chase');
-    expect(model.hero.hp).toBeLessThan(hp);
+    expect(low).toBeLessThan(hp);
   });
 
   it('a bowman looses an arrow that flies at the hero and strikes him; one aimed into the rock stops there', () => {

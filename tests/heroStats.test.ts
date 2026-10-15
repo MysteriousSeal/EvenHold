@@ -11,8 +11,10 @@ import type { Enemy } from '../src/model/types';
 // One enemy right beside the hero, the only one in the world.
 function alone(model: GameModel, enemy: Enemy): Enemy {
   model.enemies.splice(0, model.enemies.length, enemy);
-  enemy.x = enemy.homeX = model.hero.x + 0.5; // (living here: not led off from home)
-  enemy.z = enemy.homeZ = model.hero.z;
+  const { x, z } = model.hero;
+  const [dx, dz] = [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].find(([dx, dz]) => model.clear({ x, z }, { x: x + dx, z: z + dz }))!; // (beside them, no wall between: a door's)
+  enemy.x = enemy.homeX = x + dx; // (living here: not led off from home)
+  enemy.z = enemy.homeZ = z + dz;
   enemy.state = 'chase';
   return enemy;
 }

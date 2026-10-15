@@ -74,6 +74,7 @@ export function fall(model: GameModel): void {
   const { hero } = model;
   hero.money -= Math.min(FALL_TOLL_MOST, Math.floor(hero.money * FALL_TOLL));
   makeWeary(hero);
+  [hero.knock, hero.y, model.moves.roll, model.moves.guard] = [undefined, 0, null, null]; // (no knock nor roll still carrying them, waking)
   const spawn = spawnOf(model.size);
   if (model.lastInn) model.enterRoom(model.lastInn);
   else model.teleport(spawn.x, spawn.z);

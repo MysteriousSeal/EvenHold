@@ -3,7 +3,7 @@ import { GameModel } from '../src/model/GameModel';
 import { ENEMY_STATS } from '../src/model/constants';
 import { stepEnemy } from '../src/model/enemies/enemies';
 import { maxHpAt } from '../src/model/hero/heroStats';
-import { blessAll, BLESSING_TIME, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, noticeFactor, tickBlessing, tossCoin, walkFactor, WEARY_TIME, makeWeary, WELL_TOSS, xpGained } from '../src/model/hero/blessing';
+import { blessAll, BLESSING_TIME, blowDamage, coinsFound, dropFactor, healOnKill, hitTaken, noticeFactor, spared, tickBlessing, tossCoin, walkFactor, WEARY_TIME, makeWeary, WELL_TOSS, xpGained } from '../src/model/hero/blessing';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { fresh, eachSeed } from './support/testWorld';
 
@@ -38,7 +38,7 @@ describe("a well's blessing", () => {
     hero.blessings = [{ kind: 'strong', left: BLESSING_TIME }];
     expect(blowDamage(hero, 1)).toBe(2);
     hero.blessings = [{ kind: 'tough', left: BLESSING_TIME }];
-    expect([hitTaken(hero, 3), hitTaken(hero, 1)]).toEqual([2, 1]); // never below one
+    expect(spared(hero)).toBe(0.15); // (a share off each blow, with armour's: combat.test.ts)
     hero.blessings = [{ kind: 'lucky', left: 2 }];
     expect(coinsFound(hero, 10)).toBe(15);
     model.update(0, 0, 1);
@@ -51,7 +51,7 @@ describe("a well's blessing", () => {
     const model = fresh();
     blessAll(model.hero);
     expect(model.hero.blessings).toHaveLength(8);
-    expect([walkFactor(model.hero) > 1, blowDamage(model.hero, 1), hitTaken(model.hero, 3), coinsFound(model.hero, 10)]).toEqual([true, 2, 2, 15]);
+    expect([walkFactor(model.hero) > 1, blowDamage(model.hero, 1), spared(model.hero), coinsFound(model.hero, 10)]).toEqual([true, 2, 0.15, 15]);
     atWell(model);
     model.hero.money = WELL_TOSS;
     model.tossCoin(0);

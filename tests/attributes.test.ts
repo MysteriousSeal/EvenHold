@@ -64,8 +64,8 @@ describe("the hero's stats", () => {
     expect(maxEnergyOf(hero)).toBe(MAX_ENERGY + 15);
     expect(dodgeChanceOf(hero)).toBeCloseTo(0.01);
     expect(armorOf(hero)).toBe(8 + 2);
-    expect(throughArmor(hero, 5)).toBe(3); // 10 armour: two off
-    expect(throughArmor(hero, 2)).toBe(1); // never under 1
+    expect(throughArmor(hero, 5, 1)).toBe(4); // 10 armour: a share off (10 / 42 of it, from a level-1 foe)
+    expect(throughArmor(hero, 1, 1)).toBe(1); // never under 1
   });
 
   it('spend energy slower with more Endurance', () => {

@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { ENEMY_STATS } from '../../../model/constants';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
-import { HealthBar, enemyName } from './enemyParts';
+import { HealthBar, enemyName, flashing } from './enemyParts';
 import { FoeRig } from './foeRig';
 import { BODY_GRID, HEAD_GRID, LEG_GRID, TAIL_GRID, WOLF_PALETTE, WOLF_VOXEL_SIZE, buildBody, buildHead, buildLeg, buildTail } from './wolfVoxels';
 import { BEAR_BODY, BEAR_HEAD, BEAR_LEG, BEAR_PALETTE, BEAR_TAIL, LYNX_BODY, LYNX_HEAD, LYNX_LEG, LYNX_PALETTE, LYNX_TAIL, bearBody, bearHead, bearLeg, bearTail, lynxBody, lynxHead, lynxLeg, lynxTail } from './wildBeastVoxels';
@@ -182,7 +182,7 @@ export class BeastRig extends FoeRig {
       this.own.depthWrite = this.seen > 0.95;
       if (this.seen < 0.6) this.bar.group.visible = false; // (its name and bar over it would give it away)
     }
-    const material = beast.hurtFor > 0 ? this.look.flash : (this.own ?? this.look.normal);
+    const material = flashing(beast) ? this.look.flash : (this.own ?? this.look.normal);
     for (const mesh of this.meshes) mesh.material = material;
   }
 

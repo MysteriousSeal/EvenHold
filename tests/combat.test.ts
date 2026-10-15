@@ -96,19 +96,50 @@ describe("what a foe's blow does to the hero", () => {
     expect(blowTaken(hero, 5, 0.5).dodged).toBe(false);
   });
 
-  it.each<[ItemId[], number, number]>([
-    [['chainMail'], 5, 4], // 8 armour: 1 off
-    [['breastplate'], 5, 3], // 10: 2 off
-    [['breastplate', 'greatHelm', 'plateGreaves', 'towerShield'], 9, 4], // 28: 5 off
-    [['breastplate', 'greatHelm', 'plateGreaves', 'towerShield'], 3, 1], // never under 1
-  ])('less through armour (%j: %i becomes %i)', (items, damage, taken) => {
-    expect(blowTaken(heroWith(...items), damage, 0.99).damage).toBe(taken);
+  it.each<[ItemId[], number, number, number]>([
+    [['chainMail'], 5, 1, 4], // 8 armour: a fifth off a level-1 foe's
+    [['breastplate', 'greatHelm', 'plateGreaves', 'towerShield'], 10, 1, 5], // 28: near half off
+    [['breastplate', 'greatHelm', 'plateGreaves', 'towerShield'], 10, 10, 8], // the same from a level-10 foe: a quarter
+    [['breastplate', 'greatHelm', 'plateGreaves', 'towerShield'], 1, 1, 1], // never under 1
+  ])('a share less through armour, the less the stronger the foe (%j: %i from a level-%i foe becomes %i)', (items, damage, level, taken) => {
+    expect(blowTaken(heroWith(...items), damage, 0.99, level).damage).toBe(taken);
   });
 
-  it("a point less with the well's Tough blessing, and never under 1", () => {
+  it("15% less with the well's Tough blessing; with a feast and armour, never more than 60% off, nor under 1", () => {
     const hero = heroWith();
     hero.blessings = [{ kind: 'tough', left: 60 }];
-    expect(blowTaken(hero, 3, 0.99).damage).toBe(2);
+    expect(blowTaken(hero, 20, 0.99).damage).toBe(17);
     expect(blowTaken(hero, 1, 0.99).damage).toBe(1);
+    const walled = heroWith('breastplate', 'greatHelm', 'plateGreaves', 'towerShield');
+    walled.blessings = [{ kind: 'tough', left: 60 }, { kind: 'feasted', left: 60 }];
+    expect(blowTaken(walled, 10, 0.99, 1).damage).toBe(4); // (near half, and 30% more: 60% at most)
+  });
+
+  it("a level-6 bandit king's blow on a level-1 hero in the smith's best is not cut to 1", () => {
+    const hero = heroWith('greatHelm', 'mailMantle', 'breastplate', 'gauntlets', 'plateGreaves', 'sabatons', 'towerShield');
+    expect(blowTaken(hero, 7, 0.99, 6).damage).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('a palisade between them', () => {
+  it("stops the hero's blow and the foe's alike: neither through it, a bandit in its camp and the hero outside", () => {
+    const model = fresh();
+    model.random = () => 0.999;
+    const camp = model.camps[0];
+    model.enemies.length = 0;
+    // A tile off the middle of a side (not the way in, there): a bandit pressed to the palisade inside, the hero against it outside.
+    const along = ([dx, dz]: number[], d: number) => ({ x: camp.x + dx * d + (dz ? 1 : 0), z: camp.z + dz * d + (dx ? 1 : 0) });
+    const side = [[1, 0], [-1, 0], [0, 1], [0, -1]].find((s) => !model.clear(along(s, 2.3), along(s, 2.75)))!;
+    const [dx, dz] = side;
+    const at = (d: number) => along(side, d);
+    const bandit = { ...makeEnemy(901, 'bandit', at(2.3).x, at(2.3).z, camp.x, camp.z), state: 'chase' as const };
+    model.enemies.push(bandit);
+    model.teleport(at(2.75).x, at(2.75).z);
+    model.hero.facing = Math.atan2(-dx, -dz);
+    expect(Math.hypot(bandit.x - model.hero.x, bandit.z - model.hero.z)).toBeLessThan(ATTACK_REACH);
+    expect(blowTarget(model.hero, model.enemies, null, model.clear)).toBeNull();
+    const hp = model.hero.hp;
+    for (let i = 0; i < 300; i++) model.update(0, 0, 1 / 60);
+    expect(model.hero.hp).toBe(hp);
   });
 });

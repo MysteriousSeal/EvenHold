@@ -264,6 +264,7 @@ export class GameModel {
     if (this.inside) {
       // The world outside stands still while the hero's indoors.
       if (!this.moves.roll) this.moveInside(dirX, dirZ, dt);
+      this.faceGuarded();
       this.moves.update(dt, this.push, this.below ? this.land : null); // (breath, the guard, a roll carrying them, a blow landing: none to hit but in a crypt)
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
@@ -278,6 +279,7 @@ export class GameModel {
     }
     if (this.outdoors.seated && Math.hypot(dirX, dirZ) > 1e-6) this.sitOrStand(); // up off the bench to walk
     if (!this.outdoors.seated && !this.moves.roll) this.moveHorizontally(dirX, dirZ, dt);
+    this.faceGuarded();
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
@@ -288,12 +290,18 @@ export class GameModel {
     this.keepFocus();
     stepWildlife(this.nearWildlife.near(this.hero), this, this.hero, dt);
     // Runs even with no input, so a hop started just before the player let
-    // go still finishes instead of freezing mid-air.
-    if (!this.outdoors.seated) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
+    // go still finishes instead of freezing mid-air. (Not while a knock throws them: its own hop, fighting.ts.)
+    if (!this.outdoors.seated && !this.hero.knock) ({ hop: this.hop, y: this.hero.y } = stepHop(this.hop, this.hero.y, this.getGroundY(this.hero.x, this.hero.z), dt));
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).
   get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; return v && v.where === this.inside?.entrance ? [...near, v] : near; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts)
+
+  // Behind a raised guard, turned to the foe focused if it's close by, wherever they step (a guard holds only before them).
+  private faceGuarded(): void {
+    const focus = this.focused;
+    if (this.moves.guard !== null && focus && focus.state !== 'dead' && Math.hypot(focus.x - this.hero.x, focus.z - this.hero.z) <= FOCUS_TURN_RANGE) this.hero.facing = Math.atan2(focus.x - this.hero.x, focus.z - this.hero.z);
+  }
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);
@@ -337,6 +345,7 @@ export class GameModel {
   get dungeon(): DungeonRun | null { return this.below?.run ?? null; }
   get crypt(): CryptFoes | null { return this.below?.run instanceof CryptFoes ? this.below.run : null; }
   get cave(): CaveRun | null { return this.below?.run instanceof CaveRun ? this.below.run : null; }
+  clear = (a: { x: number; z: number }, b: { x: number; z: number }): boolean => (this.below?.run.director ?? this.director).inView(a, b); // (nothing solid between: hero/fighting.ts)
   shove = (enemy: Enemy, dx: number, dz: number): void => void (this.below?.run.director ?? this.director).move(enemy, dx, dz);
   // The hero knocked (dx, dz) indoors (a draugr's cleave), never into the walls, still facing as they were.
   push = (dx: number, dz: number, facing = this.hero.facing): void => void [this.inside ? walkInside(this.inside, this.hero, dx, dz, Math.hypot(dx, dz), () => false) : this.stepOut(dx, dz), (this.hero.facing = facing)];

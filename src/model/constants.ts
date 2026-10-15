@@ -19,7 +19,7 @@ export const ENEMY_STATS = {
   bandit: { family: 'humanoid', passive: false, hp: 5, damage: 2, xp: 20, coins: 6, radius: 0.14, walk: 0.9, run: 2.4, sight: 2.8, giveUp: 9, wander: 3, stop: 0.6, swing: 0.75, cooldown: 1.1, rest: [1.5, 2.5], shove: 1, loot: 1 },
   // A bandit chief (camps/campChief.ts): each camp's leader, a bandit as any but bigger and heavier-hitting (three
   // bandits' health, half as much again their blows), harder to knock about, a good deal more to learn from.
-  banditChief: { family: 'humanoid', passive: false, hp: 15, damage: 3, xp: 100, coins: 10, radius: 0.16, walk: 0.85, run: 2.3, sight: 3, giveUp: 10, wander: 1.5, stop: 0.65, swing: 0.8, cooldown: 1.15, rest: [2, 3], shove: 0.5, loot: 1 },
+  banditChief: { family: 'humanoid', passive: false, hp: 15, damage: 3, xp: 100, coins: 10, radius: 0.16, walk: 0.85, run: 2.3, sight: 3, giveUp: 10, wander: 1.5, stop: 0.65, swing: 0.8, cooldown: 1.15, rest: [2, 3], shove: 0.5, loot: 2 }, // (a boss in all but the name: his own loot as likely as one's)
   boar: { family: 'boar', passive: true, hp: 6, damage: 2, xp: 15, coins: 4, radius: 0.2, walk: 0.7, run: 2.8, sight: 0, giveUp: 5, wander: 3, stop: 0.6, swing: 0.6, cooldown: 1.6, rest: [1.5, 2.5], shove: 1, loot: 1 },
   // The crypts' guards (crypts/cryptFoes.ts): shambling about their posts, slow, pausing long, seeing far down the dark passages.
   // A swordsman closes in and swings; a bowman keeps his distance (`stop`), draws (`swing`) and looses an arrow.
@@ -93,6 +93,7 @@ export const ATTACK_REACH = 0.85; // how far a blow lands in front of the hero
 export const ATTACK_STRIKE = 0.5; // point of the blow (0..1) where it lands
 export const ATTACK_KNOCKBACK = 0.35;
 export const ATTACK_DURATION = 0.42; // seconds for one blow, wind-up to recovery
+export const HIT_FLASH = 0.25; // seconds a foe flashes, struck (its hurtFor; any more, it's reeling: enemies.ts)
 export const HOP_DURATION = 0.18; // seconds to hop between terrain tiers
 export const HOP_HEIGHT = 0.12; // extra height at the top of the hop arc
 export const MAX_TIER = 4; // highest terrain tier; tiers are integers 0..MAX_TIER

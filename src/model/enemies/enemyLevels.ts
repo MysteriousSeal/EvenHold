@@ -1,6 +1,8 @@
 // How tough an enemy is: its level rises with how far from spawn it lives
 // (a level every LEVEL_DISTANCE tiles, give or take one), and each level
-// adds health, damage and the experience it's worth.
+// adds health, damage and the experience it's worth: health and damage faster
+// the higher it is (as a hero's gear grows faster than their level: a level-20
+// bandit some 60 health), so an even fight stays a few blows long all the way up.
 
 import { ENEMY_STATS } from '../constants';
 import { TRIVIAL } from '../hero/heroStats';
@@ -9,7 +11,9 @@ import { hashUnit } from '../../util/random';
 
 const LEVEL_DISTANCE = 50; // tiles from spawn per level
 const HP_PER_LEVEL = 0.2; // +20% of the base per level
+const HP_PER_LEVEL_SQUARED = 0.02; // and 2% times the levels up squared
 const DAMAGE_PER_LEVEL = 0.15;
+const DAMAGE_PER_LEVEL_SQUARED = 0.02;
 const XP_PER_LEVEL = 0.25;
 
 // The level of an enemy living at (x, z), with a little spread per enemy.
@@ -30,8 +34,8 @@ export function enemyPower(kind: EnemyKind, level: number): { maxHp: number; dam
   const stats = ENEMY_STATS[kind];
   const up = level - 1;
   return {
-    maxHp: Math.round(stats.hp * (1 + up * HP_PER_LEVEL)),
-    damage: Math.max(1, Math.round(stats.damage * (1 + up * DAMAGE_PER_LEVEL))),
+    maxHp: Math.round(stats.hp * (1 + up * HP_PER_LEVEL + up * up * HP_PER_LEVEL_SQUARED)),
+    damage: Math.max(1, Math.round(stats.damage * (1 + up * DAMAGE_PER_LEVEL + up * up * DAMAGE_PER_LEVEL_SQUARED))),
     xp: Math.round(stats.xp * (1 + up * XP_PER_LEVEL)),
   };
 }

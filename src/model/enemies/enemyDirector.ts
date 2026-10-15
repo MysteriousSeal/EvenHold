@@ -81,7 +81,8 @@ export class EnemyDirector {
       enemy.hurtFor = Math.max(0, enemy.hurtFor - dt);
       if (enemy.state === 'dead') {
         enemy.deadFor += dt;
-        if (enemy.deadFor >= ENEMY_CORPSE_TIME) this.enemies.splice(this.enemies.indexOf(enemy), 1);
+        const at = enemy.deadFor >= ENEMY_CORPSE_TIME ? this.enemies.indexOf(enemy) : -1;
+        if (at >= 0) this.enemies.splice(at, 1); // (gone already, from a list kept a moment: never the last one in its place)
         continue;
       }
       enemy.pathAge += dt;

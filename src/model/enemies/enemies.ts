@@ -7,7 +7,7 @@
 // noise, not the world rng, so they don't change the world.
 
 import { noticeFactor, type Blessing } from '../hero/blessing';
-import { DUNGEON_FAMILIES, DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
+import { HIT_FLASH, DUNGEON_FAMILIES, DUNGEON_LEASH, ENEMY_HEARING, ENEMY_LEASH, ENEMY_LOSE_TIME, ENEMY_STATS, VILLAGE_OUTER_RADIUS, WAIT_DISTANCE } from '../constants';
 import type { Enemy, EnemyKind, Village } from '../types';
 import type { Camp } from '../camps/camps';
 import { CHIEF_OUTFIT, chiefLevel, chiefName, chiefSpot } from '../camps/campChief';
@@ -24,7 +24,9 @@ interface Sites {
   chance: number;
   forest: (density: number) => boolean; // which land it likes
   clearance: number; // from villages
+  fromStart?: number; // from where the hero starts, at least (none said: SPAWN_CLEARANCE)
 }
+const FIERCE_CLEARANCE = 80; // tiles from the start a bear or a lynx keeps (the first fights a fresh hero's: wolves, boars, bandits)
 // Dense enough that walking any direction meets something every so often:
 // wolf packs in the woods, fewer out on open ground, and bandit camps in the
 // countryside between villages.
@@ -32,8 +34,8 @@ export const WILD_SITES: Record<'packs' | 'meadowPacks' | 'boars' | 'bears' | 'l
   packs: { grid: 18, chance: 0.91, forest: (d) => d >= 0.2, clearance: 14 },
   meadowPacks: { grid: 32, chance: 0.455, forest: (d) => d < 0.2, clearance: 14 },
   boars: { grid: 22, chance: 0.715, forest: (d) => d >= 0.12, clearance: 12 }, // rooting about the woods
-  bears: { grid: 26, chance: 0.6, forest: (d) => d >= 0.35, clearance: 24 }, // alone, deep in the forest
-  lynxes: { grid: 22, chance: 0.6, forest: (d) => d >= 0.1 && d < 0.32, clearance: 18 }, // lurking at the forest's edges
+  bears: { grid: 26, chance: 0.6, forest: (d) => d >= 0.35, clearance: 24, fromStart: FIERCE_CLEARANCE }, // alone, deep in the forest
+  lynxes: { grid: 22, chance: 0.6, forest: (d) => d >= 0.1 && d < 0.32, clearance: 18, fromStart: FIERCE_CLEARANCE }, // lurking at the forest's edges
 };
 const SPAWN_CLEARANCE = 20;
 
@@ -135,7 +137,7 @@ export function spawnEnemies(world: EnemyWorld, area: Area = wholeMap(world.size
         const x = Math.floor(gx * sites.grid + hashUnit(gx, gz, salt + 1) * sites.grid);
         const z = Math.floor(gz * sites.grid + hashUnit(gx, gz, salt + 2) * sites.grid);
         if (!ownsSite(area, world.size, x, z) || !sites.forest(forest(x, z))) continue; // (a site's its area's whose spot falls in it)
-        if (Math.hypot(x - sx, z - sz) < SPAWN_CLEARANCE) continue;
+        if (Math.hypot(x - sx, z - sz) < (sites.fromStart ?? SPAWN_CLEARANCE)) continue;
         if (world.villages.some((v) => Math.hypot(v.x - x, v.z - z) < sites.clearance + VILLAGE_OUTER_RADIUS)) continue;
         place(x, z, hashUnit(gx, gz, salt + 3) < 0.5);
       }
@@ -186,6 +188,8 @@ export interface EnemyActions {
 }
 
 export const ENEMY_STRIKE = 0.5; // point of an enemy's swing (0..1) where the blow lands
+// Whether it's reeling (parried: hero/combatMoves.ts), its hurtFor past a hit's flash.
+export const reeling = (enemy: Enemy): boolean => enemy.hurtFor > HIT_FLASH;
 
 export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?: Blessing[] }, dt: number, actions: EnemyActions): void {
   const { steer, sees } = actions;
@@ -209,6 +213,7 @@ export function stepEnemy(enemy: Enemy, hero: { x: number; z: number; blessings?
     }
     return; // committed to the blow
   }
+  if (reeling(enemy)) return; // (parried, staggered: it stands, no blow begun till it's steady)
 
   // It notices the hero in sight range with nothing solid in between, or
   // close enough to hear whatever's in the way.

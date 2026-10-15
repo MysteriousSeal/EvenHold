@@ -10,7 +10,7 @@ import { HERO_SPEED } from '../../model/constants';
 import { SLOT_NAMES, type EquipSlot } from '../../model/human/equipment';
 import { gearName, rarityOf } from '../../model/human/items/gear';
 import { xpToNext } from '../../model/hero/heroStats';
-import { armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf } from '../../model/hero/attributes';
+import { SPARED_CAP, armorShare, armorOf, blowOf, critChanceOf, dodgeChanceOf, gearStats, maxEnergyOf, maxHpOf, statsOf } from '../../model/hero/attributes';
 import { STATS, STAT_NAMES, type Stat } from '../../model/hero/statKinds';
 import { POINTS_PER_LEVEL } from '../../model/hero/training';
 
@@ -89,13 +89,13 @@ export function createHeroSheet(model: GameModel, hooks: { levelUp?(): void } = 
             ['Experience', `${hero.xp} / ${xpToNext(hero.level)}`, [`${xpToNext(hero.level) - hero.xp} more to level ${hero.level + 1}`, 'Won by slaying foes and handing in quests']],
             ['Health', `${Math.floor(hero.hp)} / ${maxHpOf(hero)}`, ['More with Stamina', 'Never comes back by itself: eat, drink, or sleep in a bed']],
             ['Energy', `${Math.floor(hero.energy)} / ${maxEnergyOf(hero)}`, ['More with Endurance', 'Spent through the day, slept back in a bed', 'Under a quarter: tired, a slower walk']],
-            ['Armour', String(armor), [`${Math.floor(armor / 5)} less damage from each blow taken (1 for every 5), never under 1`, 'From what you wear']],
+            ['Armour', String(armor), [`${Math.round(armorShare(hero, hero.level) * 100)}% less damage from blows of foes your level (less from stronger ones), never under 1`, `With blessings, at most ${Math.round(SPARED_CAP * 100)}% off`, 'From what you wear']],
             ['Damage', `${blowOf(hero)} a blow`, ['More with Strength', 'Double on a critical blow']],
             ['Speed', `${HERO_SPEED} a second`, ['Tiles walked in a second (slower when tired)']],
             ['Points', String(hero.statPoints), [`To spend on your stats, in the level-up window (P)`, `${counted(POINTS_PER_LEVEL, 'point')} more with each level`]],
             ...STATS.map((s): [string, string, string[]] => [STAT_NAMES[s], gear[s] ? `${stats[s]} (+${gear[s]})` : String(stats[s]), [STAT_DOES[s], soFrom(s)]]),
-            ['Dodge', percent(dodgeChanceOf(hero)), ['The chance an enemy\'s blow misses you', 'More with Agility (at most 40%)']],
-            ['Critical', percent(critChanceOf(hero)), ['The chance a blow of yours does double damage', 'More with Agility (at most 40%)']],
+            ['Dodge', percent(dodgeChanceOf(hero)), ['The chance an enemy\'s blow misses you', 'More with Agility (at most 25%)']],
+            ['Critical', percent(critChanceOf(hero)), ['The chance a blow of yours does double damage', 'More with Agility (at most 25%)']],
           ];
         },
         // Points to spend: a button to the level-up window.

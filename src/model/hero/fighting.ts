@@ -8,7 +8,7 @@ import { butcher } from '../loot/ingredients';
 import { leech } from './gearEffects';
 import { rollGearDrop } from '../loot/gearDrops';
 import type { CombatMoves, Guarded } from './combatMoves';
-import { ATTACK_KNOCKBACK, ENEMY_STATS } from '../constants';
+import { ATTACK_KNOCKBACK, ENEMY_STATS, HIT_FLASH } from '../constants';
 import type { Enemy, GameEvent, Hero } from '../types';
 import { blowTaken, blowTarget, heroBlow } from './combat';
 import { gainXp, hurt, xpAgainst } from './heroStats';
@@ -20,15 +20,20 @@ import type { QuestBook } from '../quests/questBook';
 import type { DungeonHooks } from '../dungeons/dungeonTypes';
 import { CHILL_FOR } from '../crypts/frostBreath';
 import { isWorldFoe } from '../enemies/foeIds';
+import { reeling } from '../enemies/enemies';
+import { SHRUG_FLASH, flinches } from '../enemies/poise';
+import { phaseFloor } from '../enemies/bossPhases';
 
 // Where the fight is: the game model, as the fights see it.
 export interface Fight {
   readonly hero: Hero;
   readonly foes: readonly Enemy[]; // the foes about (the world's, or a crypt's guards)
   readonly focused: Enemy | null;
+  clear(a: { x: number; z: number }, b: { x: number; z: number }): boolean; // whether nothing solid stands between (a palisade, a wall: no blow through it)
   readonly godMode: boolean;
   readonly oneHitKills: boolean; // (a dev cheat: every blow of the hero's fells what it lands on)
-  readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn'>; // the hero's roll and guard (combatMoves.ts)
+  readonly moves: Pick<CombatMoves, 'struck' | 'riposteOn' | 'punishing'>; // the hero's roll and guard (combatMoves.ts)
+  readonly minutes: number; // seconds of play (a foe's poise counts its blows by them: enemies/poise.ts)
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
   readonly story?: { onKill(enemy: Enemy): void }; // (the quests people give: the foes they ask slain, counted)
@@ -47,27 +52,32 @@ export interface Fight {
 // brief flash. At zero it dies, and leaves what it leaves.
 export function landBlow(fight: Fight): void {
   const { hero } = fight;
-  const hit = blowTarget(hero, fight.foes, fight.focused);
+  const hit = blowTarget(hero, fight.foes, fight.focused, fight.clear);
   if (!hit) return;
   const { target, distance } = hit;
   const blow = heroBlow(hero, fight.random());
   const riposte = fight.moves.riposteOn(target); // (a foe just parried: harder, and a critical)
-  strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1);
+  if (!strike(fight, target, Math.round(blow.damage * riposte), blow.crit || riposte > 1)) return; // (shrugged off: it stands its ground, its blow coming on)
   const d = Math.max(distance, 1e-6);
   const push = ATTACK_KNOCKBACK * ENEMY_STATS[target.kind].shove; // (a heavy one hardly moved)
   fight.shove(target, ((target.x - hero.x) / d) * push, ((target.z - hero.z) / d) * push);
 }
 
 // Harm of the hero's doing landed on a foe (a blow's, a spell's: spells/casting.ts): off its health, a brief flash;
-// at zero it dies, and leaves what it leaves.
-export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): void {
+// at zero it dies, and leaves what it leaves. Whether it flinched (or died).
+export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean): boolean {
   const { hero } = fight;
-  const damage = fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard;
-  target.hp -= damage;
+  const floor = fight.oneHitKills ? -Infinity : phaseFloor(target); // (a boss held at its next turn: bossPhases.ts)
+  const was = target.hp;
+  target.hp = Math.max(floor, target.hp - (fight.oneHitKills ? Math.max(hard, Math.ceil(target.hp)) : hard));
+  const damage = was - target.hp;
   leech(hero, damage); // (their gear's: a share of it healed)
   fight.report({ kind: 'hit', on: target.kind, amount: damage, crit, x: target.x, y: target.y, z: target.z });
-  target.hurtFor = 0.25;
-  target.swingFor = null; // a hit interrupts its own blow
+  // Its blow lost (a flash), if the hit makes it flinch: by its poise, or caught open (reeling, parried; or struck just
+  // after the hero's roll); else it shrugs it off (a little flash) and its blow comes on (enemies/poise.ts).
+  const flinched = flinches(target, fight.minutes, reeling(target) || fight.moves.punishing);
+  if (flinched) [target.hurtFor, target.swingFor] = [Math.max(target.hurtFor, HIT_FLASH), null]; // (one reeling, parried, still reels)
+  else target.hurtFor = Math.max(target.hurtFor, SHRUG_FLASH);
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
@@ -86,6 +96,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean)
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }
+  return flinched || target.state === 'dead';
 }
 
 // What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking
@@ -95,16 +106,13 @@ export function dungeonHooks(fight: Fight): DungeonHooks {
     strike: (enemy) => foeStrikes(fight, enemy),
     arrow: (arrow) => heroStruck(fight, arrow.damage, null),
     blow: (by, damage, knock) => {
-      heroStruck(fight, damage, by);
-      if (knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
+      if (reached(heroStruck(fight, damage, by)) && knock) fight.hero.knock = { ...knock, t: 0 }; // (knocked along it, over a moment: knockedOn)
     },
     frost: (draugr) => {
-      const met = heroStruck(fight, 1, draugr);
-      if (met !== 'rolled' && met !== 'parried') chill(fight, CHILL_FOR); // (rolled through or parried: not chilled)
+      if (reached(heroStruck(fight, 1, draugr))) chill(fight, CHILL_FOR);
     },
     web: (spider) => {
-      const met = heroStruck(fight, 1, spider);
-      if (met !== 'rolled' && met !== 'parried') {
+      if (reached(heroStruck(fight, 1, spider))) {
         makeWebbed(fight.hero, WEB_FOR); // (rolled through or parried: not caught)
         fight.report({ kind: 'webbed' });
       }
@@ -114,6 +122,10 @@ export function dungeonHooks(fight: Fight): DungeonHooks {
     dropCoins: (amount, x, z) => fight.dropCoins(amount, x, z),
   };
 }
+
+// Whether what a blow brings with it (a knock, frost, a web) reaches the hero: not rolled through nor parried, nor
+// felled by it (awake at an inn by then, out of its way).
+const reached = (met: Guarded | 'fallen'): boolean => met !== 'rolled' && met !== 'parried' && met !== 'fallen';
 
 const GHOST_CHILL = 2.5; // seconds a ghost's touch chills the hero
 const WEB_FOR = 2.4; // seconds a spider's web clings
@@ -138,18 +150,15 @@ export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void
   const [dx, dz] = [knock.dx * step, knock.dz * step];
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.2));
   for (let i = 0; i < steps; i++) fight.push(dx / steps, dz / steps);
-  const p = Math.min(1, knock.t / KNOCK_TIME);
-  fight.hero.y = Math.sin(Math.PI * p) * KNOCK_HOP; // (thrown up, landing)
-  if (knock.t >= KNOCK_TIME) {
-    fight.hero.knock = undefined;
-    fight.hero.y = 0;
-  }
+  const lift = (t: number) => Math.sin(Math.PI * Math.min(1, t / KNOCK_TIME)) * KNOCK_HOP;
+  fight.hero.y += lift(knock.t) - lift(knock.t - dt); // (thrown up, landing: over the ground they're on, a hill's or a crypt's floor)
+  if (knock.t >= KNOCK_TIME) fight.hero.knock = undefined;
 }
 
-// A foe's blow lands if the hero is still within its reach (a step back in time dodges it).
+// A foe's blow lands if the hero is still within its reach (a step back in time dodges it), nothing solid between.
 // A ghost's touch is cold: chilled a moment, if it lands.
 export function foeStrikes(fight: Fight, enemy: Enemy): void {
-  if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25) return;
+  if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25 || !fight.clear(enemy, fight.hero)) return;
   const hp = fight.hero.hp;
   heroStruck(fight, enemy.damage, enemy);
   if (enemy.kind === 'ghost' && fight.hero.hp < hp) chill(fight, GHOST_CHILL);
@@ -157,21 +166,22 @@ export function foeStrikes(fight: Fight, enemy: Enemy): void {
 
 // The hero struck for `damage` (by `by`, if it's someone to turn to): rolled through, parried or blocked
 // (combatMoves.ts), told; then dodged maybe (Agility), else hurt; out of health, fallen (hero/setbacks.ts).
-// How it was met.
-export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guarded {
+// How it was met (or that it felled them).
+export function heroStruck(fight: Fight, damage: number, by: Enemy | null): Guarded | 'fallen' {
   const { hero } = fight;
   if (!fight.focused && by) fight.focus(by.id); // whoever hits first gets the hero's attention
   if (fight.godMode) return 'taken';
   const guard = fight.moves.struck(damage, by);
   if (guard.guarded !== 'taken') fight.report({ kind: 'guard', outcome: guard.guarded, x: hero.x, y: hero.y, z: hero.z });
   if (guard.damage <= 0) return guard.guarded;
-  const blow = blowTaken(hero, guard.damage, fight.random());
+  const blow = blowTaken(hero, guard.damage, fight.random(), by?.level ?? hero.level); // (an arrow's: as of their own level)
   if (blow.dodged) {
     fight.report({ kind: 'dodge', x: hero.x, y: hero.y, z: hero.z });
     return guard.guarded;
   }
   fight.report({ kind: 'hit', on: 'hero', amount: blow.damage, x: hero.x, y: hero.y, z: hero.z });
   hero.eating = null; // (a meal from the bag interrupted: the rest lost)
-  if (hurt(hero, blow.damage)) fight.fall();
-  return guard.guarded;
+  if (!hurt(hero, blow.damage)) return guard.guarded;
+  fight.fall();
+  return 'fallen';
 }

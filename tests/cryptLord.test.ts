@@ -59,7 +59,7 @@ describe('a crypt\'s lord', () => {
     const lord = lordOf(model)!;
     expect(lord).toBeDefined();
     expect(lord.level).toBe(crypt.level + 2);
-    expect(lord.maxHp).toBe(enemyPower('skeleton', lord.level).maxHp * 8);
+    expect(Math.abs(lord.maxHp - enemyPower('skeleton', lord.level).maxHp * 8)).toBeLessThanOrEqual(8); // (eight skeletons' health, but for the rounding)
     expect(lord.name).toBe(lordName(crypt.name));
     expect(model.takeEvents()).toContainEqual({ kind: 'rises', name: lord.name });
     const inside = cryptInside(model.seed, crypt.entrance);

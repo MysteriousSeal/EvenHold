@@ -72,9 +72,12 @@ describe('a charm cast', () => {
     expect(waitOf(hero, 'hex')).toBe(0);
   });
 
-  it('is cast at the focused foe if in range, else at the nearest ahead; at no one behind them or too far', () => {
+  it('is cast at the focused foe if in range, else at the nearest ahead; at no one behind them or too far, nor under the ground', () => {
     const { model, hero, foe } = facing(3);
     expect(castTarget(model, 'hex')).toEqual({ foe });
+    foe.buried = true; // (a cave's worm, burrowed)
+    expect(castTarget(model, 'hex')).toBeNull();
+    foe.buried = false;
     foe.z = hero.z - 3; // (behind them)
     expect(castTarget(model, 'hex')).toBeNull();
     model.focus(foe.id); // (focused: wherever it stands, in range)
@@ -86,7 +89,7 @@ describe('a charm cast', () => {
     expect(waitOf(hero, 'hex')).toBe(0); // (nothing spent)
   });
 
-  it('of the kind for anyone goes to whoever is picked out, foe or not; no one, to the hero themselves', () => {
+  it('of the kind for anyone goes to whoever is picked out, foe or not (a mending never to a foe); no one, to the hero themselves', () => {
     const { model, hero, foe } = facing(3, 100);
     learn(hero, 'mend');
     expect(SPELLS.hex.aim).toBe('foes');
@@ -98,13 +101,15 @@ describe('a charm cast', () => {
     expect(castSpell(model, 'mend')).toBe('cast');
     expect(hero.hp).toBe(1 + Math.round(most * SPELLS.mend.heal!));
     expect(foe.hp).toBe(100);
-    // A foe focused: its.
+    // A foe focused: never its (a mending's the hero's own still).
     hero.spellWait = {};
     model.moves.breath = 100;
     model.focus(foe.id);
     foe.hp = 10;
+    expect(castTarget(model, 'mend')).toEqual({ self: true });
     expect(castSpell(model, 'mend')).toBe('cast');
-    expect(foe.hp).toBe(10 + Math.round(foe.maxHp * SPELLS.mend.heal!));
+    expect(foe.hp).toBe(10);
+    model.focus(null);
     // Someone picked out who's no foe: theirs mended, the hero's own untouched.
     hero.spellWait = {};
     model.moves.breath = 100;

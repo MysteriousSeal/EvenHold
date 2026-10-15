@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { setAction } from '../src/model/hero/actionBar';
+import { makeEnemy } from '../src/model/enemies/enemies';
 import { TEST_MAP_SIZE } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
@@ -161,6 +162,44 @@ describe('the keys: the rest', () => {
     key('KeyQ', false);
     step();
     expect(model.moves.guard).toBeNull();
+  });
+
+  it('Space pressed just before a blow ends: the next follows on as it does; pressed long before, lost', () => {
+    const { model, step } = play();
+    tap('Space');
+    step();
+    const blow = () => model.moves.blowProgress;
+    while ((blow() ?? 1) < 0.75) step(); // (most of the way through)
+    tap('Space'); // (too soon for another)
+    let followed = false;
+    for (let i = 0; i < 6 && !followed; i++) [step(), (followed = (blow() ?? 1) < 0.3)];
+    expect(followed).toBe(true);
+    step(40);
+    tap('Space');
+    step();
+    tap('Space'); // (straight after: a blow's whole length too soon)
+    step(40);
+    while (blow() !== null) step();
+    step(3);
+    expect(blow()).toBeNull(); // (not one more)
+  });
+
+  it('a critical blow landing holds the world still a moment, then on it goes', () => {
+    const { model, step } = play();
+    model.enemies.length = 0;
+    model.hero.trained.agility = 40; // (a critical blow each time the roll's low)
+    model.random = () => 0;
+    const wolf = { ...makeEnemy(990, 'wolf', model.hero.x + Math.sin(model.hero.facing) * 0.6, model.hero.z + Math.cos(model.hero.facing) * 0.6), hp: 50, maxHp: 50 };
+    model.enemies.push(wolf);
+    model.enemiesFrozen = true;
+    tap('Space');
+    for (let i = 0; i < 20 && wolf.hp === 50; i++) step();
+    expect(wolf.hp).toBeLessThan(50);
+    const at = model.minutes;
+    step();
+    expect(model.minutes).toBe(at); // (held)
+    step(3);
+    expect(model.minutes).toBeGreaterThan(at);
   });
 
   it('1 to 8: what\'s in that slot of the action bar, had from the bag', () => {

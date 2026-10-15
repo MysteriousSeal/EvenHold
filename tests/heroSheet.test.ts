@@ -32,7 +32,7 @@ describe('the hero sheet', () => {
     expect(tip()).toContain('Harder blows');
     expect(tip()).toContain('+5 from your gear');
     fact('Armour').dispatchEvent(new MouseEvent('mouseenter'));
-    expect(tip()).toContain('less damage from each blow');
+    expect(tip()).toContain('less damage from blows');
     fact('Armour').dispatchEvent(new MouseEvent('mouseleave'));
     expect(tip()).toBe('');
   });

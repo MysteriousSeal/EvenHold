@@ -38,13 +38,13 @@ export function castTarget(caster: Pick<Caster, 'hero' | 'foes' | 'focused' | 'c
   const { hero, focused } = caster;
   const { range, aim } = SPELLS[id];
   const far = (e: { x: number; z: number }) => Math.hypot(e.x - hero.x, e.z - hero.z);
-  if (focused && focused.state !== 'dead') return far(focused) <= range ? { foe: focused } : null;
+  if (focused && focused.state !== 'dead' && !SPELLS[id].heal) return far(focused) <= range ? { foe: focused } : null; // (a mending never a foe's: it goes on to whoever's picked out, or themselves)
   if (aim === 'anyone') {
     const person = caster.chosen?.person;
     return person ? (far(person) <= range ? { person } : null) : SPELLS[id].needsTarget ? null : { self: true };
   }
   const ahead = (e: Enemy) => ((e.x - hero.x) * Math.sin(hero.facing) + (e.z - hero.z) * Math.cos(hero.facing)) / Math.max(far(e), 1e-6) >= AHEAD;
-  const foe = caster.foes.filter((e) => e.state !== 'dead' && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
+  const foe = caster.foes.filter((e) => e.state !== 'dead' && !e.buried && far(e) <= range && ahead(e)).sort((a, b) => far(a) - far(b))[0];
   return foe ? { foe } : null;
 }
 

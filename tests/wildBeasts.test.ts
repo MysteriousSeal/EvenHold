@@ -5,6 +5,7 @@
 // charges only once it's hurt; a lynx pounces from a few tiles off, biting
 // where it lands. They drop their own spoils, cooking ingredients among them;
 // and the cheats go to them, and spawn them.
+import { spawnOf } from '../src/model/map/grid';
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { makeEnemy } from '../src/model/enemies/enemies';
@@ -38,7 +39,7 @@ const run = (model: GameModel, seconds: number, until: () => boolean = () => fal
 };
 
 describe('the wilds\' fiercer beasts', () => {
-  it('live where they should: bears in deep forest, lynxes at its edges; last of all the foes (the rest keep their ids)', () => {
+  it('live where they should: bears in deep forest, lynxes at its edges, neither near where the hero starts; last of all the foes (the rest keep their ids)', () => {
     const forest = createForestDensity(world.seed);
     const bears = world.enemies.filter((e) => e.kind === 'bear');
     const lynxes = world.enemies.filter((e) => e.kind === 'lynx');
@@ -46,6 +47,8 @@ describe('the wilds\' fiercer beasts', () => {
     expect(lynxes.length).toBeGreaterThan(bears.length);
     for (const b of bears) expect(forest(b.homeX, b.homeZ)).toBeGreaterThanOrEqual(0.35);
     for (const l of lynxes) expect(forest(l.homeX, l.homeZ)).toBeLessThan(0.32);
+    const start = spawnOf(world.size);
+    for (const e of [...bears, ...lynxes]) expect(Math.hypot(e.homeX - start.x, e.homeZ - start.z)).toBeGreaterThanOrEqual(78); // (a fresh hero's first fights: wolves, boars, bandits)
     const others = world.enemies.filter((e) => e.kind !== 'bear' && e.kind !== 'lynx');
     expect(Math.min(...[...bears, ...lynxes].map((e) => e.id))).toBeGreaterThan(Math.max(...others.map((e) => e.id)));
   });

@@ -6,9 +6,10 @@
 // with no breath left; and the keys (Shift alone a roll, Q held the guard).
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BREATH, COST, RIPOSTE_FACTOR, ROLL_REACH, ROLL_SAFE, ROLL_TIME, STAGGER, TIRED_BREATH, guardOf } from '../src/model/hero/combatMoves';
+import { BREATH, COST, PARRY_AGAIN, RIPOSTE_FACTOR, ROLL_REACH, ROLL_SAFE, ROLL_TIME, STAGGER, TIRED_BREATH, guardOf } from '../src/model/hero/combatMoves';
 import { dungeonHooks, heroStruck, landBlow } from '../src/model/hero/fighting';
 import { makeEnemy } from '../src/model/enemies/enemies';
+import { HIT_FLASH } from '../src/model/constants';
 import { TIRED } from '../src/model/hero/heroStats';
 import { KeyboardInput } from '../src/controller/KeyboardInput';
 import type { GameEvent } from '../src/model/types';
@@ -96,6 +97,38 @@ describe('the roll', () => {
     expect(chilled(true)).toBe(false);
     expect(chilled(false)).toBe(true);
   });
+
+  it('a knocking blow (a bear\'s slam) rolled through or parried: not knocked; taken: knocked; felled by it: not knocked on waking', () => {
+    const knocked = (meet: 'roll' | 'parry' | 'take' | 'fall') => {
+      const model = fresh();
+      if (meet === 'roll') model.roll(1, 0);
+      if (meet === 'parry') model.raiseGuard(true);
+      if (meet === 'fall') model.hero.hp = 1;
+      dungeonHooks(model).blow(makeEnemy(906, 'bear', model.hero.x, model.hero.z + 1), 5, { dx: 0, dz: -1 });
+      return model.hero.knock !== undefined;
+    };
+    expect([knocked('roll'), knocked('parry'), knocked('take'), knocked('fall')]).toEqual([false, false, true, false]);
+  });
+});
+
+describe('a knock', () => {
+  it('throws them up off the ground they stand on (a hill too, never sunk into it), and lands them back on it', () => {
+    const model = fresh();
+    const { x, z } = model.hero;
+    let spot: [number, number] | undefined;
+    for (let dx = -60; dx < 60 && !spot; dx++) for (let dz = -60; dz < 60 && !spot; dz++) {
+      const [sx, sz] = [Math.round(x) + dx, Math.round(z) + dz];
+      const y = model.getGroundY(sx, sz);
+      if (y > 0.3 && model.isOpenTile(sx, sz) && [1, 2].every((k) => model.getGroundY(sx + k, sz) === y && model.isOpenTile(sx + k, sz))) spot = [sx, sz];
+    }
+    model.teleport(spot![0], spot![1]);
+    model.hero.knock = { dx: 0.5, dz: 0, t: 0 };
+    const over: number[] = [];
+    for (let i = 0; i < 40; i++) [run(model, 1 / 60), over.push(model.hero.y - model.getGroundY(model.hero.x, model.hero.z))];
+    expect(Math.min(...over)).toBeGreaterThan(-0.01);
+    expect(Math.max(...over)).toBeGreaterThan(0.1);
+    expect(over.at(-1)).toBeCloseTo(0, 5);
+  });
 });
 
 describe('the guard', () => {
@@ -108,7 +141,7 @@ describe('the guard', () => {
     heroStruck(model, 8, wolf);
     expect(model.hero.hp).toBe(hp);
     expect(guarded(model)).toEqual(['parried']);
-    expect(wolf.hurtFor).toBe(STAGGER);
+    expect(wolf.hurtFor).toBe(HIT_FLASH + STAGGER);
     model.focus(wolf.id);
     const plain = makeEnemy(902, 'wolf', 0, 0);
     expect(model.moves.riposteOn(plain)).toBe(1);
@@ -119,6 +152,55 @@ describe('the guard', () => {
     wolf.hp = before;
     landBlow(model);
     expect(ripost).toBeGreaterThanOrEqual((before - wolf.hp) * RIPOSTE_FACTOR - 1);
+  });
+
+  it('a foe parried reels: no blow of its own begun till it\'s steady (not one at once, as its lost blow\'s ended)', () => {
+    const model = fresh();
+    const bandit = { ...makeEnemy(905, 'bandit', model.hero.x, model.hero.z + 0.55), state: 'chase' as const };
+    model.enemies.push(bandit);
+    for (let t = 0; t < 3 && (bandit.swingFor ?? 0) < 0.3; t += 1 / 60) run(model, 1 / 60); // (just before its blow lands)
+    model.raiseGuard(true);
+    run(model, 0.15);
+    expect(guarded(model)).toEqual(['parried']);
+    model.raiseGuard(false);
+    let steady = 0;
+    while (bandit.swingFor === null && steady < 3) [run(model, 1 / 60), (steady += 1 / 60)];
+    expect(steady).toBeGreaterThanOrEqual(STAGGER - 0.1); // (from just after the parry)
+  });
+
+  it('raised again straight after the last raise (Q mashed): blocks, never a parry; after a moment down, a parry again', () => {
+    const model = fresh();
+    const met = () => {
+      heroStruck(model, 2, makeEnemy(907, 'bandit', model.hero.x, model.hero.z + 0.5));
+      return guarded(model)[0];
+    };
+    model.raiseGuard(true);
+    run(model, 0.1);
+    model.raiseGuard(false);
+    run(model, 0.1);
+    model.raiseGuard(true); // (straight up again)
+    expect(met()).toBe('blocked');
+    model.raiseGuard(false);
+    run(model, PARRY_AGAIN);
+    model.raiseGuard(true);
+    expect(met()).toBe('parried');
+  });
+
+  it('holds only before them: a blow from behind taken whole, no breath spent; raised, they keep turned to the foe focused as they step', () => {
+    const model = fresh();
+    model.hero.facing = 0; // (facing +z)
+    model.raiseGuard(true);
+    run(model, 0.5);
+    const breath = model.moves.breath;
+    heroStruck(model, 4, makeEnemy(908, 'bandit', model.hero.x, model.hero.z - 0.5)); // (from behind)
+    expect([guarded(model), model.moves.breath]).toEqual([[], breath]);
+    const wolf = makeEnemy(909, 'wolf', model.hero.x + 1, model.hero.z);
+    model.enemies.push(wolf);
+    model.focus(wolf.id);
+    model.noclip = true;
+    model.raiseGuard(true);
+    model.update(-1, 0, 0.1); // (stepping back from it)
+    expect(model.hero.facing).toBeCloseTo(Math.atan2(wolf.x - model.hero.x, wolf.z - model.hero.z), 5);
   });
 
   it('held past the parry: the blow cut by what\'s in the off hand, breath spent; out of breath, broken', () => {

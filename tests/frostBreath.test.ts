@@ -1,6 +1,6 @@
 // The crypts' draugr (model/crypts/frostBreath.ts): their frost breath, told
 // then loosed in a cone before them (stepped out of, it misses); caught, the
-// hero harmed and chilled, slowed a while; and a draugr hardly moved by a blow.
+// hero harmed and chilled, slowed a while; and a draugr not moved by a blow.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { BREATH_REACH, BREATH_TELL, CHILL_FOR, caught } from '../src/model/crypts/frostBreath';
@@ -82,17 +82,17 @@ describe('draugr', () => {
     expect(walked(true)).toBeLessThan(walked(false) * 0.7);
   });
 
-  it('are hardly moved by a blow that sends a skeleton back', () => {
+  it('are not moved by blows that send a skeleton back (its second, flinching it: enemies/poise.ts)', () => {
     const shoved = (kind: 'draugr' | 'skeleton') => {
       const { model, foe } = alone(4, kind);
       Object.assign(foe, { x: model.hero.x, z: model.hero.z - 0.45, hp: 999, maxHp: 999 });
       model.hero.facing = Math.PI;
       let push = 0;
-      landBlow({ ...model, foes: model.foes, focused: null, hero: model.hero, slain: model.slain, quests: model.quests, godMode: false, random: () => 0.5, report: () => {}, focus: () => {}, dropLoot: () => {}, dropCoins: () => {}, slayGuard: () => {}, fall: () => {}, shove: (_e, dx, dz) => (push = Math.hypot(dx, dz)) });
+      for (let blow = 0; blow < 2; blow++) landBlow({ ...model, foes: model.foes, focused: null, hero: model.hero, slain: model.slain, quests: model.quests, godMode: false, random: () => 0.5, report: () => {}, focus: () => {}, dropLoot: () => {}, dropCoins: () => {}, slayGuard: () => {}, fall: () => {}, shove: (_e, dx, dz) => (push = Math.max(push, Math.hypot(dx, dz))) });
       expect(foe.hp).toBeLessThan(999);
       return push;
     };
-    expect(shoved('draugr')).toBeLessThan(shoved('skeleton') * 0.5);
+    expect([shoved('draugr'), shoved('skeleton') > 0]).toEqual([0, true]);
   });
 
   it('leave better loot than skeletons, and more often', () => {

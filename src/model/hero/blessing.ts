@@ -17,7 +17,7 @@ export interface Blessing {
 export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = {
   swift: { name: 'Swift feet', about: 'You walk 20% faster.' },
   strong: { name: 'Strong arm', about: 'Your blows deal 1 more damage.' },
-  tough: { name: 'Tough skin', about: 'Hits on you deal 1 less damage.' },
+  tough: { name: 'Tough skin', about: 'Hits on you deal 15% less damage.' },
   lucky: { name: 'Lucky coin', about: 'Foes drop 50% more coins.' },
   wise: { name: 'Wise mind', about: 'You gain 25% more experience.' },
   quiet: { name: 'Quiet step', about: 'Foes notice you from half as far.' },
@@ -28,8 +28,8 @@ export const BLESSINGS: Record<BlessingKind, { name: string; about: string }> = 
   poxed: { name: 'The pox', about: 'Caught at work in an inn\'s room: you tire half as fast again. A herbalist has a salve for it.' }, // (no well's: a client's, jobs/roomShift.ts; a herbalist's salve ends it: hero/pox.ts)
   webbed: { name: 'Webbed', about: "A cave spider's web clings to you: you walk 60% slower." }, // (no well's: a spider's spat web, caves/caveFoes.ts)
   fed: { name: 'Well fed', about: 'A hot stew in you: your health comes back slowly as you go.' }, // (no well's: a cook's stew, eaten through: loot/meals.ts)
-  fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 1 less damage, and you tire a third slower.' }, // (a cook's pie)
-  feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 1 less, and your health comes back slowly.' }, // (a cook's feast)
+  fortified: { name: 'Fortified', about: 'A pie in you: hits on you deal 15% less damage, and you tire a third slower.' }, // (a cook's pie)
+  feasted: { name: 'Feasted', about: 'A feast in you: your blows deal 1 more damage, hits on you 15% less, and your health comes back slowly.' }, // (a cook's feast)
 };
 const BANES: ReadonlySet<BlessingKind> = new Set(['weary', 'chilled', 'webbed', 'poxed']); // a fall's mark, a draugr's frost, a spider's web: no well's, and kept through one
 const FOOD: ReadonlySet<BlessingKind> = new Set(['fed', 'fortified', 'feasted']); // a meal's: no well's either, and kept through one
@@ -44,7 +44,9 @@ const WELL_REACH = 1.15; // from the well's middle: right beside it
 const on = (who: { blessings?: Blessing[] }, kind: BlessingKind) => !!who.blessings?.some((b) => b.kind === kind);
 export const walkFactor = (hero: Hero) => (on(hero, 'swift') ? 1.2 : 1) * (on(hero, 'chilled') ? CHILL_PACE : 1) * (on(hero, 'webbed') ? WEB_PACE : 1);
 export const blowDamage = (hero: Hero, base: number) => Math.max(1, base + (on(hero, 'strong') ? 1 : 0) + (on(hero, 'feasted') ? 1 : 0) - (on(hero, 'weary') ? 1 : 0));
-export const hitTaken = (hero: Hero, damage: number) => Math.max(1, damage - (on(hero, 'tough') ? 1 : 0) - (on(hero, 'fortified') || on(hero, 'feasted') ? 1 : 0) + (on(hero, 'weary') ? 1 : 0));
+export const hitTaken = (hero: Hero, damage: number) => damage + (on(hero, 'weary') ? 1 : 0); // (Weary: a point more)
+const SPARED = 0.15; // of each blow, Tough skin's; a pie's or a feast's
+export const spared = (hero: Hero) => (on(hero, 'tough') ? SPARED : 0) + (on(hero, 'fortified') || on(hero, 'feasted') ? SPARED : 0); // (a share off, with armour's: attributes.ts throughArmor, under its cap)
 export const coinsFound = (hero: Hero, copper: number) => (on(hero, 'lucky') ? Math.round(copper * 1.5) : copper);
 export const xpGained = (hero: Hero, xp: number) => (on(hero, 'wise') ? Math.round(xp * 1.25) : xp);
 export const noticeFactor = (who: { blessings?: Blessing[] }) => (on(who, 'quiet') ? 0.5 : 1); // on foes' sight and hearing
