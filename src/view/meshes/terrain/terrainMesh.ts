@@ -5,7 +5,7 @@ import type { GameModel } from '../../../model/GameModel';
 import { MAX_TIER, TILE_HEIGHT } from '../../../model/constants';
 import { TERRAIN_COLORS } from '../../constants';
 import { addVoxelGround } from './voxelGround';
-import { createBiomes } from '../../../model/scenery/biomes';
+import { aroundVillages, createBiomes } from '../../../model/scenery/biomes';
 import { createGroundColours } from './biomeGround';
 
 const BOX_TOP_FACE = 2; // BoxGeometry material groups: +x, -x, +y, -y, +z, -z
@@ -39,7 +39,7 @@ export function buildTerrain(scene: WorldSink, model: GameModel): void {
     return entry;
   };
   for (let tier = 0; tier <= MAX_TIER; tier++) tierOf(tier); // so every material is known up front
-  const ground = createGroundColours(createBiomes(model.seed, model.tiles), model.tiles);
+  const ground = createGroundColours(aroundVillages(createBiomes(model.seed), model.villages), model.tiles);
 
   scene.layer({
     materials: [...tiers.values()].flatMap((t) => t.material),
