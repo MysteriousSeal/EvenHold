@@ -164,6 +164,11 @@ describe('chopping', () => {
     expect(skill.level).toBeGreaterThan(170);
   });
 
+  it('tells, in its unlocks, the level each tree wants', () => {
+    const at = SKILLS.lumberjacking.unlocks.map((u) => u.at);
+    for (const wood of Object.values(WOOD)) expect(at).toContain(wood.needs);
+  });
+
   it('has, at every level to 290, a tree orange or yellow to learn from (and past it, the elder oak, green)', () => {
     for (let level = 1; level < 290; level++) expect(Object.keys(WOOD).some((g) => WOOD[g as keyof typeof WOOD].needs <= level && riseOf(g as keyof typeof WOOD, level).chance >= 0.6)).toBe(true);
   });

@@ -228,6 +228,12 @@ describe('what bites', () => {
     expect(items(NARROWS, 250)).not.toContain('sturgeon');
   });
 
+  it('tells, in its unlocks, the level each catch wants, and its lucky one', () => {
+    const at = SKILLS.fishing.unlocks.map((u) => u.at);
+    for (const fish of CATCHES) expect(at).toContain(fish.needs);
+    for (const fish of CATCHES) if (fish.early !== undefined) expect(at).toContain(fish.early);
+  });
+
   it('has, in every water, a catch never grey: nowhere a fisher is left with nothing to learn', () => {
     for (const spot of [OPEN, NARROWS, DEEP]) {
       for (let level = 1; level <= 300; level++) expect(catchesAt(spot, level).some((c) => riseOf(c, level).chance > 0)).toBe(true);
