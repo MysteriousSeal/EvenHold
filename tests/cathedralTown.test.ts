@@ -73,6 +73,7 @@ describe('the cathedral town', () => {
         expect(land.tiles.surface(site.x + dx, site.z + dz)).toBe('path');
         expect(solid.has(cellKey(site.x + dx, site.z + dz))).toBe(false);
       }
+      for (const [gx, gz] of GATES) for (let i = WALL; i <= REACH; i++) expect(land.tiles.surface(site.x + Math.sign(gx) * i, site.z + Math.sign(gz) * i)).toBe('path'); // (out of each gate, down the hill)
       for (let dx = -SQUARE; dx <= SQUARE; dx++) for (let dz = -SQUARE; dz <= SQUARE; dz++) expect(land.tiles.surface(site.x + dx, site.z + dz)).toBe('plaza');
       expect(land.buildings.filter((b) => chebyshev(b, site) <= WALL).map((b) => b.kind).sort()).toEqual(['cathedral', 'inn', 'smithy']);
       expect(land.houses.filter((h) => chebyshev(h, site) < WALL).length).toBeGreaterThan(20);

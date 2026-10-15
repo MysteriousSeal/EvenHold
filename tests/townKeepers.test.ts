@@ -117,7 +117,8 @@ describe('the townsfolk', () => {
 
 describe('pilgrims on the roads to it', () => {
   it('walk the roads into the town, more of them than anywhere else, and every pilgrim tells the way to it', () => {
-    const model = inTown();
+    const model = new GameModel(SEED, STREAMED_SIZE); // (as the world's set out: none walked off yet)
+    model.teleport(site.x, site.z + 3);
     const town = model.villages.findIndex((v) => v.town);
     const index = model.world.indexAt(site.x, site.z);
     const known = model.world.contents(index)!;
