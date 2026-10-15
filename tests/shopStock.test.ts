@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { BUYBACK, RESTOCK_EVERY, buyBack, buyFrom, openShop, restockIn, sellTo, type Shop } from '../src/model/shops/shopStock';
+import { BUYBACK, RESTOCK_EVERY, WANTS, buyBack, buyFrom, openShop, restockIn, sellTo, wantsMore, type Shop } from '../src/model/shops/shopStock';
 import { restockAll, shopAt } from '../src/model/inn/tavernShop';
 import { pedlarShopAt } from '../src/model/travellers/pedlarShop';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import { slotsUsed } from '../src/model/hero/bagStacks';
-import { SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { SMITH_PICK, SMITH_WARES, gearPrice, gearSellPrice, sellGear, smithBuys, smithShopAt } from '../src/model/smithy/smithShop';
+import { WOODWORKS } from '../src/model/shops/shopStock';
 import { ITEMS, ITEM_IDS } from '../src/model/human/equipment';
 import { parseSave, restore, snapshot } from '../src/model/save';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
@@ -13,6 +14,26 @@ import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 const hero = () => new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE).hero;
 
 describe('a shop', () => {
+  it("buys a trade's goods only so many of a kind at a time (a fish, a cup; gear by its kind), one sold on each restock; the rest as ever; kept in the save", () => {
+    const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    const shops = new Map<number, Shop>();
+    const usual = { money: 5000, stock: {} };
+    const shop = openShop(shops, 7, usual, 0);
+    Object.assign(model.hero.bag, { pike: 9, wolfFang: 9, armingSword: 5 });
+    for (let i = 0; i < WANTS.goods; i++) expect(sellTo(shop, model.hero, 'pike', 9)).toBe('sold');
+    expect([sellTo(shop, model.hero, 'pike', 9), wantsMore(shop, 'pike')]).toEqual(['not wanted', false]);
+    for (let i = 0; i < 9; i++) expect(sellTo(shop, model.hero, 'wolfFang', 3)).toBe('sold'); // (a fight's junk: as many as they like)
+    for (let i = 0; i < WANTS.gear; i++) expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('sold');
+    expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('not wanted');
+    openShop(shops, 7, usual, RESTOCK_EVERY); // a restock: one of each sold on
+    expect(shop.bought).toEqual({ pike: WANTS.goods - 1, armingSword: WANTS.gear - 1 });
+    expect(sellTo(shop, model.hero, 'pike', 9)).toBe('sold');
+    model.shops.set(7, shop);
+    const again = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
+    restore(again, parseSave(JSON.stringify(snapshot(model)), TEST_SEEDS[0])!);
+    expect(again.shops.get(7)?.bought).toEqual(shop.bought);
+  });
+
   it('opens at its usual stock and purse, and comes back toward them a step each restock, never past', () => {
     const shops = new Map<number, Shop>();
     const usual = { money: 500, stock: { ale: 3 } };
@@ -114,7 +135,7 @@ describe("the smith's shop", () => {
     expect(SMITH_WARES.length).toBeGreaterThan(20);
     for (const id of SMITH_WARES) {
       expect(gearPrice(id)).toBe(ITEMS[id].value);
-      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / 2));
+      expect(gearSellPrice(id)).toBe(Math.floor(ITEMS[id].value! / (WOODWORKS.has(id) ? 8 : 2))); // (a woodworker's make: an eighth)
     }
     const plain = ITEM_IDS.find((id) => !ITEMS[id].value && smithBuys(id))!;
     expect(gearSellPrice(plain)).toBeLessThan(gearSellPrice('breastplate'));
@@ -138,7 +159,7 @@ describe("the smith's shop", () => {
     const tavern = shopAt(model.shops, model.seed, inn);
     const forge = smithShopAt(model.shops, model.seed, smithy);
     expect(Object.keys(tavern.stock)).toContain('ale');
-    expect(Object.keys(forge.stock).every((id) => id in ITEMS)).toBe(true);
+    expect(Object.keys(forge.stock).every((id) => id in ITEMS || id === SMITH_PICK)).toBe(true); // (his gear, and a pickaxe)
     forge.money = 1;
     tavern.money = 1;
     const pack = pedlarShopAt(model.shops, model.seed, { id: 3 }); // (a pedlar's, bread and ale in it too)

@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn } from '../src/model/smithy/smithShop';
+import { SMITH_WARES, gearPrice, gearSellPrice, smithShopIn, SMITH_PICK } from '../src/model/smithy/smithShop';
 import { baseOf, isGear, type GearKey } from '../src/model/human/items/gear';
 import { PROVISION_IDS } from '../src/model/loot/provisions';
 import { LOOT } from '../src/model/loot/loot';
@@ -110,10 +110,11 @@ describe("the smith's window", () => {
   it('turns the pages: the next wares, a last page filled out to a whole one, and back to the first when opened again', () => {
     const { keeper, panel } = trading('smithy');
     panel.open(keeper);
-    const pages = Math.ceil(SMITH_WARES.length / PAGE);
+    const wares = [...SMITH_WARES.map((id) => `item:${id}`), `loot:${SMITH_PICK}`]; // (his forged pieces, and his pickaxe last)
+    const pages = Math.ceil(wares.length / PAGE);
     expect(turn('Previous').disabled).toBe(true);
     for (let p = 1; p < pages; p++) turn('Next').click();
-    const last = SMITH_WARES.slice((pages - 1) * PAGE).map((id) => `item:${id}`);
+    const last = wares.slice((pages - 1) * PAGE);
     const padded = [...last];
     while (padded.length < PAGE) padded.push(null as unknown as string);
     expect(shown()).toEqual(padded); // the window keeps its size
@@ -264,7 +265,7 @@ describe('trading, the WoW way', () => {
   it('tells in every bag tooltip what a thing would fetch, away from any shop; what no one buys, nothing', () => {
     const model = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);
     const bag = createInventoryPanel(model);
-    Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1, rawBoarMeat: 1, oakLog: 1 } });
+    Object.assign(model.hero, { bag: { bread: 1, wolfFang: 1, alphaFang: 1, rawBoarMeat: 1, oakPlank: 1 } });
     bag.menu.open();
     hover(inBag('loot:bread'));
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${sellPrice('bread')} copper`);
@@ -274,7 +275,7 @@ describe('trading, the WoW way', () => {
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
     hover(inBag('loot:rawBoarMeat')); // (and to whom: not only junk, food and the smith's)
     expect(tooltips().map((t) => t.textContent).join(' ')).toContain(`Sells for ${LOOT.rawBoarMeat.value} copper to a herbalist`);
-    hover(inBag('loot:oakLog')); // a crafter's
+    hover(inBag('loot:oakPlank')); // a crafter's
     expect(tooltips().map((t) => t.textContent).join(' ')).not.toContain('Sells for');
   });
 

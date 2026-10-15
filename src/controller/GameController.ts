@@ -57,6 +57,7 @@ export class GameController {
   private readonly onRead: (board: number) => void;
   private readonly onSalvage: () => void; // (E by a village's salvage bench: its window)
   private readonly onCook: () => void; // (E by a fire: cooking's recipes)
+  private readonly onSmith: () => void; // (E at a smithy's anvil: smithing's recipes)
   private readonly onCarter: (carter: Carter) => void; // (E by the carter at the start: a word with him)
   private readonly onOrder: (npc: Npc, what: BarMenuItem) => void;
   private readonly onSleep: () => void;
@@ -67,7 +68,7 @@ export class GameController {
   constructor(
     private readonly model: GameModel,
     private readonly view: GameView,
-    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem, count: number) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
+    options: { uncapped: boolean; onFrame?: () => void; onPickUp?: (item: BagItem, count: number) => void; onEvent?: (event: GameEvent) => void; onTalk?: (npc: Npc) => void; onMeet?: (who: Client, talk: Talk) => void; onRead?: (board: number) => void; onSalvage?: () => void; onCook?: () => void; onSmith?: () => void; onCarter?: (carter: Carter) => void; onOrder?: (npc: Npc, what: BarMenuItem) => void; onSleep?: () => void; onTraveller?: (t: Traveller) => void; onWork?: (inn: Entrance) => void },
   ) {
     this.schedule = options.uncapped ? uncappedScheduler() : (callback) => requestAnimationFrame(callback);
     this.onFrame = options.onFrame ?? (() => {});
@@ -77,6 +78,7 @@ export class GameController {
     this.onRead = options.onRead ?? (() => {});
     this.onSalvage = options.onSalvage ?? (() => {});
     this.onCook = options.onCook ?? (() => {});
+    this.onSmith = options.onSmith ?? (() => {});
     this.onCarter = options.onCarter ?? (() => {});
     this.onOrder = options.onOrder ?? (() => {});
     this.onSleep = options.onSleep ?? (() => {});
@@ -224,6 +226,8 @@ export class GameController {
         return this.onWork(found.inn), true;
       case 'stopChop':
         return model.lumber.stop(), true;
+      case 'stopMine':
+        return model.mining.stop(), true;
       case 'loot': {
         const got = gather(model); // (its like lying near, with it)
         if (got) this.onPickUp(got.item, got.count);
@@ -235,6 +239,8 @@ export class GameController {
         return this.onCarter(found.carter), true;
       case 'chop':
         return model.lumber.use();
+      case 'mine':
+        return model.mining.use();
       case 'fish':
       case 'fishing':
         return model.fishing.use(); // (cast; a bite hooked, or reeled in)
@@ -251,6 +257,8 @@ export class GameController {
         return this.onSalvage(), true;
       case 'fire':
         return this.onCook(), true;
+      case 'anvil':
+        return this.onSmith(), true;
       case 'well':
         return model.tossCoin(), true;
       case 'hallDoor':
@@ -262,6 +270,7 @@ export class GameController {
         return model.useDoor();
       case 'cannotChop':
       case 'cannotFish':
+      case 'cannotMine':
         return true; // (nothing to do: the prompt says why)
     }
   }

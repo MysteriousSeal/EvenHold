@@ -77,6 +77,10 @@
 .skill-band-level { font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
 .skill-band-level b { font-size: 30px; line-height: 1; color: var(--ink); }
 .skill-band-level em { font-style: normal; font-size: 13px; }
+/* How far toward the next level: a thin bar, and in words. */
+.skill-band-step { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+.skill-band-step-bar { width: 64px; height: 6px; background: var(--sand-light); border: 1px solid var(--line); overflow: hidden; }
+.skill-band-step-bar i { display: block; height: 100%; background: var(--lantern); }
 .skill-band-rule { padding-top: 26px; min-width: 0; }
 .skill-band-next { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
 

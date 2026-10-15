@@ -26,7 +26,7 @@ const TILT: Record<'waiting' | 'bite' | 'landed', number> = { waiting: -0.55, bi
 const SAG: Record<'waiting' | 'bite' | 'landed', number> = { waiting: 0.18, bite: 0.02, landed: 0.01 }; // how far the line hangs below straight, at its middle
 const POINTS = 12; // along the line
 const SPLASH = 0.6; // seconds a splash ring spreads and fades
-const BIG = new Set<LootId>(['pike']); // what drags the bobber down harder
+const BIG = new Set<LootId>(['eel', 'pike', 'char', 'sturgeon']); // what drags the bobber down harder
 
 function buildRod() {
   const g = createGrid(ROD);

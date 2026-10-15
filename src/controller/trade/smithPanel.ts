@@ -8,7 +8,8 @@ import type { Npc } from '../../model/npcs/npcs';
 import type { BagItem } from '../../model/hero/bag';
 import { ITEMS, type EquipSlot } from '../../model/human/equipment';
 import { baseOf, gearName, isGear, slotOfGear, type GearKey } from '../../model/human/items/gear';
-import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal } from '../../model/smithy/smithShop';
+import type { ToolId } from '../../model/loot/tools';
+import { UNDER_COUNTER, buyGear, gearSellPrice, metalPrice, pickPrice, sellGear, smithAsks, smithBuys, smithPriceFor, smithSellsTo, smithShopIn, smithTakesMetal, smithTakesPick, smithTakesWood, woodPrice } from '../../model/smithy/smithShop';
 import { toned, type Menu } from '../../view/ui/menu';
 import { againstWorn, gearLines } from '../hero/gearLines';
 import { mendAll, mendBill } from '../../model/hero/wear';
@@ -87,15 +88,15 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
   return createTradePanel(model, hooks, {
     title: 'Wares',
     shop,
-    wares: () => (Object.keys(shop().stock).filter(isGear) as GearKey[]).sort((a, b) => Number(smithSellsTo(model.hero, b)) - Number(smithSellsTo(model.hero, a))), // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks)
-    wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id), // (gear, and the iron salvaged from it)
-    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
+    wares: () => (Object.keys(shop().stock).filter((id) => isGear(id) || smithTakesPick(id)) as Array<GearKey | ToolId>).sort((a, b) => Number(smithTakesPick(b) || smithSellsTo(model.hero, b)) - Number(smithTakesPick(a) || smithSellsTo(model.hero, a))), // (and his pickaxe) // (his forged pieces, at his village's level; his heaviest, till the hero's proven, under the counter, dearer: smithAsks)
+    wanted: (id): id is BagItem => smithBuys(id) || smithTakesMetal(id) || smithTakesWood(id) || smithTakesPick(id), // (gear, the iron salvaged from it, what's found in the wood, a pickaxe)
+    price: (id, selling) => (smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, selling) : selling ? gearSellPrice(id as GearKey) : smithPriceFor(model.hero, id as GearKey)),
     trade: (id, selling) => {
-      const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey);
+      const result = selling ? sellGear(shop(), model.hero, id) : buyGear(shop(), model.hero, id as GearKey | ToolId);
       return result === 'he is short' ? 'short' : result;
     },
     lines: LINES,
-    about: (id) => pick(ABOUT[slotOfGear(id as GearKey)] ?? LINES.hello),
+    about: (id) => pick((isGear(id) && ABOUT[slotOfGear(id)]) || LINES.hello),
     offered: (name) => `${name}? I'll give you what the iron's worth.`,
     junk: (name, paid) => pick(name ? JUNK_LINES : JUNK_LOT).replace('{it}', name ?? '').replace('{paid}', paid),
     boughtBack: (name, paid) => pick(BOUGHT_BACK).replace('{it}', name).replace('{paid}', paid),
@@ -111,7 +112,7 @@ export function createSmithPanel(model: GameModel, hooks: { bag?: TradeBag }): {
         },
       };
     },
-    blurb: (id) => (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
-    facts: (id) => [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
+    blurb: (id) => smithTakesPick(id) ? 'A miner\'s pickaxe: in your bag, E by a rock of the wilds to mine its vein.' : (!smithSellsTo(model.hero, id as GearKey) && shop().stock[id] !== undefined ? `Under the counter: he'd rather sell it to someone proven (level ${smithAsks(id as GearKey)}), but coin talks · ${UNDER_COUNTER}× its price` : ITEMS[baseOf(id as GearKey)].soldBy?.smith ? 'Forged here, by the smith.' : 'Not his make: he buys it for its metal.'),
+    facts: (id) => smithTakesPick(id) ? [toned('kind', 'Tool')] : [toned('kind', SLOT_NAMES[slotOfGear(id as GearKey)]), ...gearLines(id as GearKey, model.hero.level), ...againstWorn(id as GearKey, model.hero.equipment)],
   });
 }

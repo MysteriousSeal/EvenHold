@@ -37,7 +37,7 @@ const SIDE = 2 * VIEW + 1;
 const GRID_CHANNELS = 12;
 export const PATCH = 8; // tiles a side of a patch of ground, walked or not (player.ts pays for each new one)
 export const patchOf = (x: number, z: number): number => Math.floor(x / PATCH) * 4096 + Math.floor(z / PATCH);
-export const PROMPTS = ['none', 'work', 'stopChop', 'loot', 'jobBoard', 'chest', 'chop', 'barmaidFromStool', 'standUp', 'getUp', 'sit', 'lie', 'barmaid', 'smith', 'herbalist', 'bouncer', 'pedlar', 'traveller', 'board', 'bench', 'well', 'hallDoor', 'stairs', 'leave', 'door', 'dungeon', 'cannotChop', 'carter', 'fishing', 'fish', 'cannotFish'] as const;
+export const PROMPTS = ['none', 'work', 'stopChop', 'loot', 'jobBoard', 'chest', 'chop', 'barmaidFromStool', 'standUp', 'getUp', 'sit', 'lie', 'barmaid', 'smith', 'herbalist', 'bouncer', 'pedlar', 'traveller', 'board', 'bench', 'anvil', 'well', 'hallDoor', 'stairs', 'leave', 'door', 'dungeon', 'cannotChop', 'carter', 'fishing', 'fish', 'cannotFish'] as const;
 export type Prompt = (typeof PROMPTS)[number];
 const PLACES = ['outdoors', 'house', 'inn', 'smithy', 'herbalist', 'crypt', 'cave', 'upstairs', 'camp'] as const;
 const FOE_GROUPS = ['beast', 'bandit', 'undead', 'boss', 'crawler'] as const;
@@ -72,7 +72,10 @@ export function prompt(model: GameModel): Prompt {
     case 'door':
       return found.leaving ? 'leave' : goesUnder(found.door) ? 'dungeon' : 'door';
     case 'fire':
-      return 'none'; // (a fire to cook at: nothing the player does yet, and its prompts kept as they were trained)
+    case 'mine':
+    case 'stopMine':
+    case 'cannotMine':
+      return 'none'; // (a fire to cook at, a rock to mine: nothing the player does yet, and its prompts kept as they were trained)
     default:
       return found.kind;
   }

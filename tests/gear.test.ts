@@ -174,10 +174,11 @@ describe('gear dropped and sold', () => {
     const model = fresh();
     const plain = smithShopAt(new Map(), model.seed, 3);
     expect(Object.keys(plain.stock).every((k) => !k.includes('@'))).toBe(true);
+    expect(plain.stock.copperPick).toBe(1); // (and his pickaxe, for a miner: skills/mining.ts)
     const forged = smithShopAt(new Map(), model.seed, 3, Date.now(), 8);
-    const keys = Object.keys(forged.stock) as GearKey[];
+    const keys = Object.keys(forged.stock).filter(isGear) as GearKey[];
     expect(keys.every((k) => levelOf(k) === 8 && ['common', 'uncommon'].includes(rarityOf(k)))).toBe(true);
     expect(keys.some((k) => rarityOf(k) === 'uncommon')).toBe(true);
-    expect(Object.keys(smithShopAt(new Map(), model.seed, 3, Date.now(), 8).stock)).toEqual(keys); // (the same each visit)
+    expect(Object.keys(smithShopAt(new Map(), model.seed, 3, Date.now(), 8).stock).filter(isGear)).toEqual(keys); // (the same each visit)
   });
 });

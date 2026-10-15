@@ -3,12 +3,13 @@
 // at it, swing after swing, on their own; each chop (a few swings) knocks a log loose onto the ground beside it, to
 // be picked up, and the hero chops on till the tree's down. Each tree gives 2 to 5 chops (a birch fewest, an oak
 // most, each its own by where it stands), and felled it's gone for good (out of the way; a stump in its place, to be
-// seen). Walking off, or E again, stops them. The kinds want the skill (a birch anyone's, an oak a practised hand's);
+// seen). Walking off, or E again, stops them. The kinds want the skill (a birch anyone's, a pine at 30, an oak at 90);
 // the skill rises as they chop, the surer the harder the tree is for them (skills.ts difficulty: orange always,
 // yellow often, green now and then, grey never; an oak never grey), and a higher tier chops quicker. Past the first tiers, more: a second
-// log now and then (from 100, likelier the better they are); ancient trees, one pine or oak in a dozen (each by where
-// it stands, drawn darker), wanting a master's hand, two logs a chop; and finds as they chop (resin in the pines from
-// 150, heartwood in the ancient oaks), for the woodworker (woodworking.ts). What's cut is kept (saved).
+// log now and then (from 100, likelier the better they are), and resin in the pines; ancient trees, one pine or oak in
+// six (each by where it stands, drawn darker), wanting a master's hand, two logs a chop (an ancient pine rich in resin,
+// an ancient oak's heartwood); and the elder oaks, one oak in ten (drawn hoary), for an artisan: heartwood oftener, and
+// now and then a burl. All of it for the woodworker (woodworking.ts). What's cut is kept (saved).
 
 import { hashUnit } from '../../util/random';
 import { Nearby } from '../../util/nearby';
@@ -20,27 +21,35 @@ import { gainXp } from '../hero/heroStats';
 import { RISE, difficulty, practise, skillOf, tierOf } from './skills';
 
 const SKILL = 'lumberjacking';
-// The grades of tree: what each gives (its log; how many a chop; something found now and then, past a level), the
-// skill it wants, and how many chops (between these, by the tree). An ancient pine or oak is one of their kind grown
-// old (ANCIENT of them, by where each stands).
-export type Grade = 'birch' | 'pine' | 'oak' | 'ancientPine' | 'ancientOak';
+// The grades of tree: what each gives (its log; how many a chop; what's found now and then, past a level), the skill
+// it wants, and how many chops (between these, by the tree: never more than its kind's, so a tree once felled stays
+// felled however it's graded). An ancient pine or oak is one of their kind grown old (ANCIENT of them, by where each
+// stands); an elder oak, older yet (ELDER of the oaks), hoary.
+export type Grade = 'birch' | 'pine' | 'oak' | 'ancientPine' | 'ancientOak' | 'elderOak';
+export interface Find {
+  item: LootId;
+  from: number;
+  chance: number; // a chop
+}
 export interface Wood {
   name: string;
   log: LootId;
   logs: number; // a chop
   needs: number;
   chops: [number, number];
-  find?: { item: LootId; from: number; chance: number }; // now and then a chop, from that level
+  finds?: readonly Find[]; // now and then a chop, from that level
   lasting?: boolean; // never grey: green at the least, however practised the hand (the oak: so there's always a tree to learn from, the ancient ones few); nor any tree harder than it
 }
 export const WOOD: Record<Grade, Wood> = {
   birch: { name: 'birch', log: 'birchLog', logs: 1, needs: 1, chops: [2, 3] },
-  pine: { name: 'pine', log: 'pineLog', logs: 1, needs: 25, chops: [3, 4], find: { item: 'pineResin', from: 150, chance: 0.08 } },
-  oak: { name: 'oak', log: 'oakLog', logs: 1, needs: 50, chops: [4, 5], lasting: true },
-  ancientPine: { name: 'ancient pine', log: 'pineLog', logs: 2, needs: 125, chops: [4, 5], find: { item: 'pineResin', from: 150, chance: 0.25 } },
-  ancientOak: { name: 'ancient oak', log: 'oakLog', logs: 2, needs: 175, chops: [5, 5], find: { item: 'heartwood', from: 175, chance: 0.3 } },
+  pine: { name: 'pine', log: 'pineLog', logs: 1, needs: 30, chops: [3, 4], finds: [{ item: 'pineResin', from: 100, chance: 0.08 }] },
+  oak: { name: 'oak', log: 'oakLog', logs: 1, needs: 90, chops: [4, 5], lasting: true },
+  ancientPine: { name: 'ancient pine', log: 'pineLog', logs: 2, needs: 140, chops: [3, 4], finds: [{ item: 'pineResin', from: 140, chance: 0.25 }] },
+  ancientOak: { name: 'ancient oak', log: 'oakLog', logs: 2, needs: 190, chops: [4, 5], finds: [{ item: 'heartwood', from: 190, chance: 0.18 }] },
+  elderOak: { name: 'elder oak', log: 'oakLog', logs: 2, needs: 240, chops: [4, 5], finds: [{ item: 'heartwood', from: 240, chance: 0.25 }, { item: 'oakBurl', from: 240, chance: 0.04 }] },
 };
-export const ANCIENT = 1 / 12; // of the pines and oaks, grown ancient
+export const ANCIENT = 1 / 6; // of the pines and oaks (not elder), grown ancient
+export const ELDER = 1 / 10; // of the oaks, grown elder
 const SECOND_LOG: [number, number] = [100, 0.5]; // from this level a second log now and then, the chance growing to this at the top
 // How hard a grade of tree is for a hand at `level`, and how likely a chop at it teaches (skills.ts RISE): a lasting
 // one's never less than green, nor any harder than it (an ancient pine never teaching less than an oak).
@@ -49,8 +58,12 @@ export const riseOf = (grade: Grade, level: number) => {
   const lasts = Object.values(WOOD).some((w) => w.lasting && w.needs <= WOOD[grade].needs);
   return lasts && rise.chance === 0 ? RISE[2] : rise;
 };
-// A tree's grade (its kind's, or an ancient one's).
-export const gradeOf = (tree: Tree, seed: number): Grade => (tree.kind !== 'birch' && hashUnit(tree.x, tree.z, seed + 404) < ANCIENT ? (tree.kind === 'pine' ? 'ancientPine' : 'ancientOak') : tree.kind);
+// A tree's grade (its kind's, or an ancient or elder one's).
+export function gradeOf(tree: Tree, seed: number): Grade {
+  if (tree.kind === 'birch') return 'birch';
+  if (tree.kind === 'oak' && hashUnit(tree.x, tree.z, seed + 407) < ELDER) return 'elderOak';
+  return hashUnit(tree.x, tree.z, seed + 404) < ANCIENT ? (tree.kind === 'pine' ? 'ancientPine' : 'ancientOak') : tree.kind;
+}
 export const woodOf = (tree: Tree, seed: number): Wood => WOOD[gradeOf(tree, seed)];
 // How many chops a grade of tree takes, least and most.
 export const gradeChops = (grade: Grade): [number, number] => WOOD[grade].chops;
@@ -210,7 +223,7 @@ export class Lumber {
     const roll = (salt: number) => hashUnit(tree.x * 13 + cut, tree.z * 7 + level, salt);
     const second = roll(405) < this.secondLogChance(level);
     const drops: LootId[] = Array.from({ length: wood.logs + (second ? 1 : 0) }, () => wood.log);
-    if (wood.find && level >= wood.find.from && roll(406) < wood.find.chance) drops.push(wood.find.item);
+    for (const [i, find] of (wood.finds ?? []).entries()) if (level >= find.from && roll(406 + i * 11) < find.chance) drops.push(find.item);
     for (const [i, item] of drops.entries()) this.dropBeside(tree, item, cut * 5 + i);
     gainXp(hero, HERO_XP);
     practise(hero, SKILL, wood.needs, roll(403), this.host.report, riseOf(grade, level).chance);

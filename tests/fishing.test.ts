@@ -3,8 +3,8 @@
 // the water (a lake's narrows, its open water, the deep) and the skill; the skill rises with what's landed. The
 // prompt by the water says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
-import { CATCHES, weightOf, Fishing, catchesAt, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
-import { SKILLS, skillOf } from '../src/model/skills/skills';
+import { CATCHES, weightOf, Fishing, catchesAt, isFish, pickCatch, riseOf, type FishingHost } from '../src/model/skills/fishing';
+import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { freshHero } from '../src/model/hero/heroStats';
 import { LOOT_IDS } from '../src/model/loot/loot';
 import { nearestLakeShore } from '../src/model/cheats';
@@ -204,17 +204,61 @@ describe('what bites', () => {
     for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 1)).toEqual(['smallFry']);
   });
 
-  it('is trout in the narrows and perch in open water from 75', () => {
-    expect(items(NARROWS, 75)).toEqual(['smallFry', 'riverTrout']);
-    expect(items(OPEN, 75)).toEqual(['smallFry', 'lakePerch']);
+  it('is roach anywhere from 40; trout in the narrows and perch in open water from 75', () => {
     expect(items(NARROWS, 39)).toEqual(['smallFry']);
+    for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 40)).toEqual(['smallFry', 'roach']);
+    expect(items(NARROWS, 75)).toEqual(['smallFry', 'roach', 'riverTrout']);
+    expect(items(OPEN, 75)).toEqual(['smallFry', 'roach', 'lakePerch']);
   });
 
-  it('is, from 40, a lucky trout or perch now and then (a fifth of the bites at most), orange to learn from', () => {
+  it('is, from 55, a lucky trout or perch now and then (a seventh of the bites at most), orange to learn from', () => {
     const trout = CATCHES.find((c) => c.item === 'riverTrout')!;
-    expect(items(NARROWS, 40)).toEqual(['smallFry', 'riverTrout']);
-    expect(weightOf(trout, 40) / (weightOf(trout, 40) + weightOf(CATCHES[0], 40))).toBeLessThanOrEqual(0.25);
-    expect(riseOf(trout, 40).chance).toBe(1);
+    expect(items(NARROWS, 54)).toEqual(['smallFry', 'roach']);
+    expect(items(NARROWS, 55)).toEqual(['smallFry', 'roach', 'riverTrout']);
+    expect(weightOf(trout, 55) / catchesAt(NARROWS, 55).reduce((sum, c) => sum + weightOf(c, 55), 0)).toBeLessThanOrEqual(1 / 7);
+    expect(riseOf(trout, 55).chance).toBe(1);
+  });
+
+  it('is bream in open water from 110 (and the deep), grayling in the narrows from 160, an orange or yellow fish in every water through the middle tiers', () => {
+    expect(items(OPEN, 110)).toContain('bream');
+    expect(items(DEEP, 110)).toContain('bream');
+    expect(items(NARROWS, 110)).not.toContain('bream');
+    expect(items(NARROWS, 160)).toContain('grayling');
+    expect(items(OPEN, 160)).not.toContain('grayling');
+    const yellow = (spot: typeof OPEN, level: number) => catchesAt(spot, level).some((c) => isFish(c.item) && riseOf(c, level).chance >= 0.6);
+    for (let level = 75; level < 160; level++) for (const spot of [OPEN, NARROWS, DEEP]) expect(yellow(spot, level), `${level}`).toBe(true);
+    for (let level = 160; level < 210; level++) expect(yellow(NARROWS, level), `${level}`).toBe(true);
+  });
+
+  it('is salmon in any water from 240: an orange or yellow fish for an artisan, whatever the lake', () => {
+    for (const spot of [OPEN, NARROWS, DEEP]) expect(items(spot, 240)).toContain('salmon');
+    const yellow = (spot: typeof OPEN, level: number) => catchesAt(spot, level).some((c) => isFish(c.item) && riseOf(c, level).chance >= 0.6);
+    for (let level = 240; level < 290; level++) for (const spot of [OPEN, NARROWS, DEEP]) expect(yellow(spot, level), `${level}`).toBe(true);
+  });
+
+  it('is eels in the narrows from 110, char in open water from 180, sturgeon in the deep from 250', () => {
+    expect(items(NARROWS, 110)).toContain('eel');
+    expect(items(OPEN, 110)).not.toContain('eel');
+    expect(items(OPEN, 180)).toContain('char');
+    expect(items(NARROWS, 180)).not.toContain('char'); // (the deep's open water too, as the perch's)
+    expect(items(DEEP, 250)).toContain('sturgeon');
+    expect(items(NARROWS, 250)).not.toContain('sturgeon');
+  });
+
+  it('tells, in its unlocks, the level each catch wants, and its lucky one', () => {
+    const at = SKILLS.fishing.unlocks.map((u) => u.at);
+    for (const fish of CATCHES) expect(at).toContain(fish.needs);
+    for (const fish of CATCHES) if (fish.early !== undefined) expect(at).toContain(fish.early);
+  });
+
+  it('has, in every water, a catch never grey: nowhere a fisher is left with nothing to learn', () => {
+    for (const spot of [OPEN, NARROWS, DEEP]) {
+      for (let level = 1; level <= 300; level++) expect(catchesAt(spot, level).some((c) => riseOf(c, level).chance > 0)).toBe(true);
+    }
+  });
+
+  it('has, every 25 levels, a catch orange or yellow to learn from', () => {
+    for (let level = 1; level < 300; level++) expect(CATCHES.some((c) => c.needs <= level && riseOf(c, level).chance >= 0.6)).toBe(true);
   });
 
   it('thins the small fry once trout and perch are theirs, and fills the deep with pike', () => {
@@ -258,6 +302,7 @@ describe('the skill', () => {
     expect(SKILLS.fishing.practice).toBeTruthy();
     const { fishing, hero, events } = onShore(undefined, true, () => 0); // (every roll the likeliest: orange always rises)
     const xp = hero.xp;
+    skillOf(hero, 'fishing').toward = stepsOf('fishing', 1) - 1; // (a catch short of the next level)
     fishing.use();
     toBite(fishing);
     fishing.use();
@@ -290,6 +335,9 @@ describe('in the game', () => {
     model.hero.bag.fishingRod = 1;
     expect(interactionOf(model)?.kind).toBe('fish');
     expect(fishPrompt(model)?.label).toBe('Fish');
+    skillOf(model.hero, 'fishing').level = 299;
+    if (catchesAt(model.fishing.action!.spot, 299).every((c) => !isFish(c.item) || riseOf(c, 299).chance === 0)) expect(fishPrompt(model)?.label).toBe('Fish · teaches you nothing now');
+    else expect(fishPrompt(model)?.label).toBe('Fish'); // (a lasting fish here: always something to learn)
   });
 
   it('runs a line through the model: a bite, hooked, landed; walking off stops it', () => {

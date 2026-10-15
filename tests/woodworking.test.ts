@@ -10,9 +10,9 @@ import { canCarry } from '../src/model/hero/bagSlots';
 import { fresh } from './support/testWorld';
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { RECIPES, RECIPE_IDS } from '../src/model/skills/woodworking';
-import { ANCIENT, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
-import { RISE, difficulty, skillOf } from '../src/model/skills/skills';
+import { RECIPES, RECIPE_IDS, woodRise } from '../src/model/skills/woodworking';
+import { ANCIENT, ELDER, WOOD, chopsIn, gradeOf, woodOf } from '../src/model/skills/lumber';
+import { RISE, difficulty, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { bagRoom } from '../src/model/hero/bagSlots';
 import type { Tree } from '../src/model/types';
@@ -57,6 +57,42 @@ describe('woodworking', () => {
     for (const id of RECIPE_IDS) expect(Object.keys(RECIPES[id].from).length).toBeGreaterThan(0);
   });
 
+  it('has something orange at every level (no gap past 25), and in every tier something to sell and something to wield', () => {
+    const needs = RECIPE_IDS.map((id) => RECIPES[id].needs);
+    for (let i = 1; i < needs.length; i++) expect(needs[i] - needs[i - 1]).toBeLessThanOrEqual(25);
+    expect(300 - needs.at(-1)!).toBeLessThanOrEqual(25);
+    for (const [from, to] of [[1, 75], [75, 150], [150, 225], [225, 300]]) {
+      const tier = RECIPE_IDS.filter((id) => RECIPES[id].needs >= from && RECIPES[id].needs < to);
+      expect(tier.some((id) => typeof RECIPES[id].makes !== 'string' && ['Weapons', 'Shields'].includes(RECIPES[id].group))).toBe(true);
+      expect(tier.some((id) => RECIPES[id].group === 'Goods' && LOOT[RECIPES[id].makes as keyof typeof LOOT].value > 0)).toBe(true);
+    }
+    // (none finer than the smith's own, uncommon, but of heartwood)
+    for (const id of RECIPE_IDS) {
+      const makes = RECIPES[id].makes;
+      if (typeof makes !== 'string' && !['common', 'uncommon'].includes(makes.rarity)) expect(RECIPES[id].from.heartwood).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps a material teaching (green, never grey) while what it makes is still orange or yellow; grey once nothing is', () => {
+    expect(difficulty(RECIPES.oakPlank.needs, 200).chance).toBe(0); // (by its own: grey from 175)
+    expect(woodRise('oakPlank', 200)).toBe(RISE[2]); // (the varnished staff, at 200, orange: oak planks still teach a little)
+    expect(woodRise('oakPlank', 100)).toBe(RISE[2]); // (and no more, however new: green, never the ladder itself)
+    expect(woodRise('birchPlank', 200)).toBe(RISE[3]); // (nothing of birch near it: grey)
+    expect(woodRise('oakWarStaff', 245)).toBe(difficulty(245, 245)); // (not a material: its own)
+  });
+
+  it('asks room for a piece of gear as its own stack, not on a plain one of its kind', () => {
+    const model = fresh();
+    const { hero } = model;
+    hero.bag.birchPlank = 2;
+    hero.bag.woodenSword = 1;
+    for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (canCarry(hero, 'birchLog')) hero.bag[id as keyof typeof hero.bag] = (hero.bag[id as keyof typeof hero.bag] ?? 0) + 1; // (full)
+    hero.bag.birchPlank = 4;
+    skillOf(hero, 'woodworking').level = 10;
+    expect(model.woodworking.roomFor('woodenSword')).toBe(false);
+    expect(model.woodworking.start('woodenSword')).toBe(false);
+  });
+
   it('knows a recipe once the skill reaches it; makes as many as the bag allows', () => {
     const model = workshop(1, { birchLog: 3, pineLog: 5 });
     expect(model.woodworking.knows('birchPlank')).toBe(true);
@@ -67,26 +103,28 @@ describe('woodworking', () => {
   });
 
   it('makes one: its materials out of the bag, what it makes in, the skill up (orange), some experience; told', () => {
-    const model = workshop(1, { birchLog: 2 });
+    const model = workshop(10, { birchPlank: 4 });
+    skillOf(model.hero, 'woodworking').toward = stepsOf('woodworking', 10) - 1; // (a make short of the next level)
     const xp = model.hero.xp;
-    expect(model.woodworking.start('birchPlank')).toBe(true);
-    run(model, RECIPES.birchPlank.seconds + 0.05);
-    expect([model.hero.bag.birchLog, model.hero.bag.birchPlank]).toEqual([1, 1]);
-    expect(skillOf(model.hero, 'woodworking').level).toBe(2);
+    expect(model.woodworking.start('woodenSword')).toBe(true);
+    run(model, RECIPES.woodenSword.seconds + 0.05);
+    const sword = Object.keys(model.hero.bag).find((k) => k.startsWith('woodenSword'))!;
+    expect([model.hero.bag.birchPlank, model.hero.bag[sword as never]]).toEqual([1, 1]);
+    expect(skillOf(model.hero, 'woodworking').level).toBe(11);
     expect(model.hero.xp).toBeGreaterThan(xp);
     expect(model.woodworking.making).toBeNull(); // (one asked for: done)
     const events = model.takeEvents();
-    expect(events).toContainEqual({ kind: 'crafted', item: 'birchPlank' });
-    expect(events).toContainEqual({ kind: 'skillUp', skill: 'Woodworking', level: 2 });
+    expect(events).toContainEqual({ kind: 'crafted', item: sword });
+    expect(events).toContainEqual({ kind: 'skillUp', skill: 'Woodworking', level: 11 });
   });
 
   it('makes gear at the recipe\'s level and rarity', () => {
-    const model = workshop(270, { heartwood: 3, varnish: 2 });
-    model.woodworking.start('heartwoodStaff');
-    run(model, RECIPES.heartwoodStaff.seconds + 0.05);
-    const made = Object.keys(model.hero.bag).find((k) => k.startsWith('quarterstaff'))!;
-    expect(gearOf(made as never)).toMatchObject({ item: 'quarterstaff', level: 32, rarity: 'rare' });
-    expect([model.hero.bag.heartwood, model.hero.bag.varnish]).toEqual([undefined, undefined]); // (all used)
+    const model = workshop(285, { heartwood: 1, oakBurl: 1, oakPlank: 3, varnish: 1 });
+    model.woodworking.start('heartwoodTowerShield');
+    run(model, RECIPES.heartwoodTowerShield.seconds + 0.05);
+    const made = Object.keys(model.hero.bag).find((k) => k.startsWith('towerShield'))!;
+    expect(gearOf(made as never)).toMatchObject({ item: 'towerShield', level: 33, rarity: 'rare' });
+    expect([model.hero.bag.heartwood, model.hero.bag.oakBurl, model.hero.bag.oakPlank, model.hero.bag.varnish]).toEqual([undefined, undefined, undefined, undefined]); // (all used)
   });
 
   it('makes all the bag allows, one after another, then stops', () => {
@@ -116,7 +154,7 @@ describe('woodworking', () => {
     run(full, RECIPES.woodenSword.seconds + 0.05);
     expect([full.hero.bag.birchPlank, full.woodworking.making]).toEqual([2, null]);
     for (const key of ['dagger@2c0', 'dagger@3c0', 'dagger@4c0', 'hatchet']) delete full.hero.bag[key as never]; // (over-full by three, with the hatchet: four freed, one slot to spare)
-    full.hero.bag.birchPlank = 6; // (planks for three: the first made into the slot freed, the second finding the bag full)
+    full.hero.bag.birchPlank = 9; // (planks for three: the first made into the slot freed, the second finding the bag full)
     expect(full.woodworking.start('woodenSword', 5)).toBe(true); // (a slot freed: made till the bag fills again, then told)
     run(full, RECIPES.woodenSword.seconds * 2 + 0.1);
     expect(full.takeEvents()).toContainEqual({ kind: 'poor', text: 'Your bag is full' });
@@ -164,7 +202,7 @@ describe('the recipe book', () => {
     let book = recipeBook(model, state, redraw);
     const detail = book.querySelector('.book-detail')!;
     expect(detail.querySelector('.book-title')?.textContent).toBe('Birch plank');
-    expect(detail.querySelector('.book-needs')?.textContent).toBe('Requires Woodworking 1 · Always teaches');
+    expect(detail.querySelector('.book-needs')?.textContent).toBe('Requires Woodworking 1 · Rarely teaches'); // (a material: green while what's made of it teaches)
     expect(detail.querySelector('.book-materials')?.textContent).toContain('3/1');
     (detail.querySelectorAll<HTMLButtonElement>('.book-step')[1]).click(); // (one more)
     expect(state.count).toBe(2);
@@ -174,9 +212,9 @@ describe('the recipe book', () => {
     craft.click();
     expect(model.woodworking.making).toMatchObject({ recipe: 'birchPlank', left: 2, of: 2 });
     // A gear recipe: its level, rarity and what it gives.
-    const crafter = workshop(270, { heartwood: 3, varnish: 2 });
-    const gear = recipeBook(crafter, { picked: 'heartwoodStaff', canOnly: false, count: 1 }, redraw).querySelector('.book-detail')!;
-    expect(gear.textContent).toContain('Level 32 · Rare');
+    const crafter = workshop(285, { heartwood: 1, oakBurl: 1, oakPlank: 3, varnish: 1 });
+    const gear = recipeBook(crafter, { picked: 'heartwoodTowerShield', canOnly: false, count: 1 }, redraw).querySelector('.book-detail')!;
+    expect(gear.textContent).toContain('Level 33 · Rare');
   });
 
   it('filters to what can be made now, saying what to do when there\'s nothing', () => {
@@ -223,17 +261,18 @@ describe('the one being made', () => {
 describe('the wood guide', () => {
   it('lists the trees, the best to learn from starred; tells of the one picked (chops, logs, finds, the axe)', () => {
     const model = workshop(1);
-    skillOf(model.hero, 'lumberjacking').level = 130;
+    skillOf(model.hero, 'lumberjacking').level = 160;
     delete model.hero.bag.hatchet; // (a new hero's, in the pack: none to hand, for the line)
     const guide = woodGuide(model, { picked: null }, () => {});
-    expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak']);
-    expect(bestGrade(130)).toBe('ancientPine');
+    expect(Array.from(guide.querySelectorAll<HTMLElement>('.book-row')).map((r) => r.dataset.grade)).toEqual(['birch', 'pine', 'oak', 'ancientPine', 'ancientOak', 'elderOak']);
+    expect(bestGrade(160)).toBe('ancientPine');
     expect(guide.querySelector('[data-grade="ancientPine"] .book-best')).toBeTruthy();
     expect(guide.querySelector('[data-grade="ancientOak"]')?.classList.contains('locked')).toBe(true);
     const detail = guide.querySelector('.book-detail')!;
     expect(detail.querySelector('.book-title')?.textContent).toBe('Ancient pine');
     expect(detail.textContent).toContain('2 Pine logs');
-    expect(detail.textContent).toContain('Pine resin: 25% a chop, from 150');
+    expect(detail.textContent).toContain('Pine resin: 25% a chop');
+    expect(woodGuide(model, { picked: 'elderOak' }, () => {}).querySelector('.book-detail')?.textContent).toContain('Oak burl: 4% a chop, from 240');
     expect(detail.querySelector('.book-tool')?.textContent).toContain('You need an axe');
   });
 });
@@ -243,14 +282,19 @@ describe('lumberjacking past its first tiers', () => {
   // A pine or oak of the grade asked for.
   const of = (grade: string) => model.trees.find((t) => gradeOf(t, model.seed) === grade) as Tree;
 
-  it('has ancient pines and oaks, about one in twelve, wanting a master, two logs a chop, still 2 to 5 chops', () => {
+  it('has ancient pines and oaks, about one in six, and elder oaks, wanting a master, two logs a chop, still 2 to 5 chops', () => {
     const olds = model.trees.filter((t) => t.kind !== 'birch');
     const share = olds.filter((t) => gradeOf(t, model.seed).startsWith('ancient')).length / olds.length;
     expect(share).toBeGreaterThan(ANCIENT * 0.6);
     expect(share).toBeLessThan(ANCIENT * 1.4);
+    const oaks = model.trees.filter((t) => t.kind === 'oak');
+    const elder = oaks.filter((t) => gradeOf(t, model.seed) === 'elderOak').length / oaks.length;
+    expect(elder).toBeGreaterThan(ELDER * 0.5);
+    expect(elder).toBeLessThan(ELDER * 1.5);
+    expect(model.trees.some((t) => t.kind === 'pine' && gradeOf(t, model.seed) === 'elderOak')).toBe(false);
     expect(model.trees.some((t) => t.kind === 'birch' && gradeOf(t, model.seed) !== 'birch')).toBe(false);
-    expect([WOOD.ancientPine.needs, WOOD.ancientOak.needs, WOOD.ancientPine.logs, WOOD.ancientOak.logs]).toEqual([125, 175, 2, 2]);
-    for (const grade of ['ancientPine', 'ancientOak']) expect(chopsIn(of(grade), model.seed)).toBeLessThanOrEqual(5);
+    expect([WOOD.ancientPine.needs, WOOD.ancientOak.needs, WOOD.ancientPine.logs, WOOD.ancientOak.logs]).toEqual([140, 190, 2, 2]);
+    for (const grade of ['ancientPine', 'ancientOak', 'elderOak']) expect(chopsIn(of(grade), model.seed)).toBeLessThanOrEqual(5);
     expect(woodOf(of('ancientOak'), model.seed).name).toBe('ancient oak');
   });
 
@@ -267,11 +311,11 @@ describe('lumberjacking past its first tiers', () => {
   }
 
   it('gives two logs a chop from an ancient tree; a second now and then only from 100; finds past their levels', () => {
-    const ancient = felled('ancientOak', 175);
+    const ancient = felled('ancientOak', 190);
     expect(ancient.items.filter((i) => i === 'oakLog').length).toBeGreaterThanOrEqual(ancient.chops * 2);
     const plain = felled('birch', 60);
     expect(plain.items.filter((i) => i === 'birchLog')).toHaveLength(plain.chops); // (no second log under 100)
-    expect(felled('pine', 120).items).not.toContain('pineResin'); // (none under 150)
+    expect(felled('pine', 90).items).not.toContain('pineResin'); // (none under 100)
     let found = 0;
     for (let level = 280; level <= 300 && found === 0; level++) found += felled('ancientOak', level).items.filter((i) => i === 'heartwood').length;
     expect(found).toBeGreaterThan(0);

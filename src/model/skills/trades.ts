@@ -2,6 +2,8 @@
 
 export { Lumber } from './lumber';
 export { Woodworking } from './woodworking';
+export { Smithing } from './smithing';
 export { Salvage } from './salvage';
 export { Cooking } from './cooking';
 export { Fishing } from './fishing';
+export { Mining } from './mining';

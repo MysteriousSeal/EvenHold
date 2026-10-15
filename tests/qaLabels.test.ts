@@ -61,8 +61,9 @@ describe('the skill ruler', () => {
   });
 
   it('tells what a skill opens next and how far off; nothing past the last', () => {
-    expect(nextMilestone('lumberjacking', 1)).toEqual({ ...SKILLS.lumberjacking.unlocks[1], levels: 24 });
-    expect(nextMilestone('lumberjacking', 25)?.at).toBe(50); // (25 reached: the next)
+    const [, second, third] = SKILLS.lumberjacking.unlocks;
+    expect(nextMilestone('lumberjacking', 1)).toEqual({ ...second, levels: second.at - 1 });
+    expect(nextMilestone('lumberjacking', second.at)?.at).toBe(third.at); // (one reached: the next)
     expect(nextMilestone('lumberjacking', SKILL_MAX)).toBeNull();
   });
 });

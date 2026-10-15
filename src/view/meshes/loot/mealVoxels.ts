@@ -55,6 +55,12 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
       setColor(g, x, 0, 2, 4);
     }
   }),
+  // A fry cake: a flat golden patty, its edge browner, silver flecks of the fry in its top.
+  fryCake: model([0xd8a858, 0x9a6a30, 0xb8c0c8], [5, 2, 5], (g) => {
+    lump(g, 0, 0, 0, 5, 2, 5, (x, z) => (x * 3 + z) % 4 === 1, [1, 2, 3]);
+  }),
+  // Fry chowder: a wooden bowl of pale broth, the little fish and a green fleck of herb in it.
+  fryChowder: bowl([0x9a6a3a, 0x6a4628, 0xe8dcb0, 0xb8c0c8, 0x5a8a3a], (x, z) => ((x * 2 + z) % 3 === 0 ? 4 : x === 1 && z === 3 ? 5 : 0)),
   // Roast boar: a round haunch, crackling brown, a spit run through it and out both ends.
   roastBoar: model([0x9a5a2a, 0x6a3a1a, 0x4a2412, 0xc89058, 0x8a8a90], [8, 4, 5], (g) => {
     lump(g, 1, 0, 0, 6, 4, 5, (x, z) => (x + z) % 3 === 0);
@@ -78,6 +84,37 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
   bearSteak: model([0x7a3018, 0x5a2010, 0x2a120a, 0xe8c070], [6, 2, 5], (g) => {
     lump(g, 0, 0, 0, 6, 2, 5, (x, z) => (x + z) % 2 === 0);
     fillBox(g, 5, 1, 1, 5, 1, 3, 4); // the fat along one edge
+  }),
+  // Fried roach: a little roach fried golden, its fins red still, on a scrap of plank.
+  friedRoach: model([0x7a5a2a, 0xc8964a, 0xf0d8a0, 0xb04a2a, 0x1a1a1a, 0x3a2412, 0xa87a4a, 0x8a6038], [6, 4, 4], (g) => {
+    fillBox(g, 0, 0, 0, 5, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
+    cookedFish(g, 0, 1, 0, 6);
+  }),
+  // Smoked eel: a long dark eel run through on a stick, smoked near black.
+  smokedEel: model([0x3a2a18, 0x6a4a28, 0x9a7a4a, 0x2a1a10, 0x1a1a1a, 0x1a120a, 0x8a8a90], [12, 3, 3], (g) => {
+    cookedFish(g, 1, 0, 0, 10);
+    setColor(g, 0, 1, 1, 7);
+    setColor(g, 11, 1, 1, 7);
+  }),
+  // Baked bream: a broad bream, floured and baked pale gold, on a plank.
+  bakedBream: model([0x8a6a3a, 0xd8a868, 0xf4e4c0, 0x6a5028, 0x1a1a1a, 0x4a3018, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
+    fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
+    cookedFish(g, 0, 1, 0, 7);
+  }),
+  // Seared char: pink-orange flesh seared dark across, on a plank.
+  searedChar: model([0x8a4a3a, 0xe08a6a, 0xf8d0b8, 0x6a3a2a, 0x1a1a1a, 0x4a2018, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
+    fillBox(g, 0, 0, 0, 6, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
+    cookedFish(g, 0, 1, 0, 7);
+  }),
+  // Grilled salmon: a long pink salmon, grill-marked, on a plank.
+  grilledSalmon: model([0x8a4a3a, 0xf09a7a, 0xffd8c0, 0x6a3a2a, 0x1a1a1a, 0x4a2018, 0xa87a4a, 0x8a6038], [8, 4, 4], (g) => {
+    fillBox(g, 0, 0, 0, 7, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
+    cookedFish(g, 0, 1, 0, 8);
+  }),
+  // Smoked sturgeon: the great grey fish, smoked gold, along a long board.
+  smokedSturgeon: model([0x5a5440, 0xa8945a, 0xe8d8b0, 0x3a3a2a, 0x1a1a1a, 0x2a2418, 0x9a6a3a, 0x7a5028], [10, 4, 4], (g) => {
+    fillBox(g, 0, 0, 0, 9, 0, 3, (x, _y, z) => (z === 2 && x % 3 === 0 ? 8 : 7));
+    cookedFish(g, 0, 1, 0, 10);
   }),
   // Grilled trout: a trout split and browned, lying on a plank.
   grilledTrout: model([0x7a5a2a, 0xc88a5a, 0xf0d8b0, 0x5a4020, 0x1a1a1a, 0x3a2412, 0xa87a4a, 0x8a6038], [7, 4, 4], (g) => {
@@ -107,6 +144,12 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
     disc(g, 0, 0, 0, 6, () => 2);
     disc(g, 0, 1, 0, 6, (x, z) => (x === 0 || z === 0 || x === 5 || z === 5 ? ((x + z) % 2 === 0 ? 2 : 1) : 4)); // the crimped rim round the filling
     disc(g, 0, 2, 0, 6, (x, z) => (x === 0 || z === 0 || x === 5 || z === 5 ? 0 : x % 2 === 1 || z % 2 === 1 ? 3 : 0)); // the lattice
+  }),
+  // Grayling pie: a round pie, its crimped rim pale, a grey-green fish's tail out of its middle.
+  graylingPie: model([0xd8a058, 0xa87038, 0xf0c880, 0x7a8a8a], [6, 3, 6], (g) => {
+    disc(g, 0, 0, 0, 6, () => 2);
+    disc(g, 0, 1, 0, 6, (x, z) => (x === 0 || z === 0 || x === 5 || z === 5 ? ((x + z) % 2 === 0 ? 2 : 1) : 3)); // the crimped rim, the crust
+    fillBox(g, 2, 2, 2, 3, 2, 3, (x, _y, z) => (x === 2 && z === 3 ? 0 : 4)); // the tail out of it
   }),
   // Pike pie: a long oval pie, the pike's head looking out of the crust at one end and its tail at the other.
   pikePie: model([0xd09a50, 0xa87038, 0xf0c078, 0x4a6a3a, 0x1a1a1a, 0x7a9a4a], [9, 3, 5], (g) => {
@@ -138,6 +181,14 @@ export const MEAL_MODELS: Record<MealId, LootModel> = {
     cookedFish(g, 1, 1, 0, 7);
     fillBox(g, 1, 1, 4, 3, 2, 5, (x, y) => (y === 2 && x === 2 ? 3 : 9)); // the loaf
     for (const x of [5, 7]) fillBox(g, x, 1, 4, x, 1, 5, (_x, _y, z) => (z === 4 ? 2 : 4)); // small fry
+  }),
+  // Angler's feast: a long platter, a smoked sturgeon along it, an eel curled beside, a loaf to mop up.
+  anglersFeast: model([0x5a5440, 0xa8945a, 0xe8d8b0, 0x3a3a2a, 0x1a1a1a, 0x2a2418, 0xd8d0c0, 0xb0a890, 0xc98a3c, 0x3a2a18], [10, 4, 6], (g) => {
+    fillBox(g, 0, 0, 0, 9, 0, 5, (x, _y, z) => (x === 0 || z === 0 || x === 9 || z === 5 ? 8 : 7)); // the platter
+    cookedFish(g, 1, 1, 0, 8);
+    fillBox(g, 1, 1, 4, 3, 2, 5, (x, y) => (y === 2 && x === 2 ? 3 : 9)); // the loaf
+    fillBox(g, 5, 1, 4, 8, 1, 4, 10); // the eel, along
+    fillBox(g, 8, 1, 5, 8, 1, 5, 10);
   }),
   // Lord's feast: a dark board edged in gold, a whole bear roast glazed in honey dome-high, a loaf beside it.
   lordsFeast: model([0x5a3a22, 0x3a2414, 0xa8541e, 0x6a2a10, 0xffc850, 0xd4a030, 0xc98a3c, 0xf2dcae], [9, 5, 6], (g) => {

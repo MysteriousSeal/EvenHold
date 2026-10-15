@@ -19,6 +19,7 @@ import { acrossTheBar, patronBeside } from '../inn/barPatrons';
 import { villagerInReach } from '../npcs/chat';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
+import type { MineAction } from '../skills/mining';
 import type { FishAction } from '../skills/fishing';
 import type { Fire } from '../skills/cooking';
 import type { Carter } from '../story/carter';
@@ -29,11 +30,13 @@ export type Interaction =
   | { kind: 'work' } // at work: what the shift has to hand (jobs/work.ts action)
   | { kind: 'jobBoard'; inn: Entrance } // an inn's notice board: its work (at work: the shift, to check or end)
   | { kind: 'stopChop' }
+  | { kind: 'stopMine' }
   | { kind: 'fishing' } // a line out: a bite hooked, or reeled in (skills/fishing.ts)
   | { kind: 'loot'; loot: GroundLoot }
   | { kind: 'chest'; chest: NonNullable<ReturnType<typeof chestInReach>> }
   | { kind: 'carter'; carter: Carter }
   | { kind: 'chop'; action: ChopAction }
+  | { kind: 'mine'; action: MineAction }
   | { kind: 'fish'; action: FishAction }
   | { kind: 'talk'; npc: Npc; fromStool: boolean }
   | { kind: 'stand'; seat: Seat }
@@ -41,13 +44,15 @@ export type Interaction =
   | { kind: 'traveller'; traveller: Traveller }
   | { kind: 'board'; board: number }
   | { kind: 'bench'; bench: Furniture }
+  | { kind: 'anvil'; anvil: Furniture }
   | { kind: 'fire'; fire: Fire }
   | { kind: 'well'; village: number }
   | { kind: 'hallDoor'; door: Furniture }
   | { kind: 'stairs'; down: boolean }
   | { kind: 'door'; door: Entrance; leaving: boolean }
   | { kind: 'cannotChop'; action: ChopAction }
-  | { kind: 'cannotFish'; action: FishAction };
+  | { kind: 'cannotFish'; action: FishAction }
+  | { kind: 'cannotMine'; action: MineAction };
 export type InteractionKind = Interaction['kind'];
 
 export function interactionOf(model: GameModel, skip?: ReadonlySet<InteractionKind>): Interaction | null {
@@ -72,6 +77,7 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
     return; // (at work: nothing else: no doors, no seats, no talk)
   }
   if (lumber.chopping) return void (yield { kind: 'stopChop' });
+  if (model.mining.striking) return void (yield { kind: 'stopMine' });
   if (fishing.line) return void (yield { kind: 'fishing' });
   const loot = model.lootInReach;
   yield loot ? { kind: 'loot', loot } : null;
@@ -82,6 +88,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield carter ? { kind: 'carter', carter } : null;
   const chop = lumber.action;
   yield chop?.kind === 'chop' ? { kind: 'chop', action: chop } : null;
+  const mine = model.mining.action;
+  yield mine?.kind === 'mine' ? { kind: 'mine', action: mine } : null;
   const fish = fishing.action;
   yield fish?.kind === 'fish' ? { kind: 'fish', action: fish } : null;
   const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
@@ -102,6 +110,8 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield board !== null ? { kind: 'board', board } : null;
   const bench = model.salvage.benchInReach;
   yield bench ? { kind: 'bench', bench } : null;
+  const anvil = model.smithing.anvilInReach;
+  yield anvil ? { kind: 'anvil', anvil } : null;
   const fire = model.cooking.fireInReach;
   yield fire ? { kind: 'fire', fire } : null;
   const well = model.wellInReach;
@@ -115,4 +125,5 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield chatter ? { kind: 'talk', npc: chatter, fromStool: false } : null;
   yield chop?.kind === 'cannot' ? { kind: 'cannotChop', action: chop } : null;
   yield fish?.kind === 'cannot' ? { kind: 'cannotFish', action: fish } : null;
+  yield mine?.kind === 'cannot' ? { kind: 'cannotMine', action: mine } : null;
 }

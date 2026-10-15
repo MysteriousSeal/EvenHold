@@ -31,6 +31,7 @@ export function lieOnBedroll(model: GameModel): boolean {
   const { hero } = model;
   if (model.inside || model.yard || model.outdoors.seated || model.work.shift || !(hero.bag.bedroll ?? 0)) return false;
   model.lumber.stop();
+  model.mining.stop();
   model.woodworking.stop();
   const piece: Furniture = { kind: 'bedroll', x: Math.round(hero.x), z: Math.round(hero.z), w: 1, d: 1, wall: 'none', solid: false };
   sitDown(model.outdoors, hero, { piece, x: hero.x, z: hero.z, y: model.getGroundY(hero.x, hero.z) + BEDROLL_Y, facing: hero.facing, lying: true });

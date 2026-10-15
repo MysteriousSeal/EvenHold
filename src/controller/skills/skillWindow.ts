@@ -1,34 +1,48 @@
 // A skill's own window (opened from the skills list: skillsPanel.ts), in the middle of the screen, clear of the action
 // bar, titled with the skill. Across its top, where the hero stands: its icon, their title in it ("Journeyman
-// woodworker"), their level of the most there is, its ruler (skillRuler.ts: the tiers, their notch, a diamond at each
+// woodworker"), their level of the most there is (and how far toward the next: the tries that have taught), its ruler (skillRuler.ts: the tiers, their notch, a diamond at each
 // thing it opens), and what it opens next. Under it, as WoW's tradeskill window: a crafting skill's recipes
-// (recipeBook.ts), a gathering skill's trees (woodGuide.ts) or catches (fishGuide.ts), each a list and the one picked told of beside it; a skill
+// (recipeBook.ts), a gathering skill's trees (woodGuide.ts), veins (mineGuide.ts) or catches (fishGuide.ts), each a list and the one picked told of beside it; a skill
 // not yet to be practised, said so, and what it'll open. The game goes on while it's open (what's made, made as it's
 // watched).
 
 import { salvageGuide } from './salvageGuide';
 import type { GameModel } from '../../model/GameModel';
-import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, tierOf, type SkillId } from '../../model/skills/skills';
+import { SKILLS, SKILL_IDS, SKILL_MAX, SKILL_TIERS, skillOf, stepsOf, tierOf, type SkillId } from '../../model/skills/skills';
 import { createMenu, type Menu } from '../../view/ui/menu';
 import { SKILL_ICONS } from '../../view/ui/skillIcons';
 import { el } from '../../view/ui/dom';
 import { WOODWORKING, newBook, recipeBook, recipeProgress, recipeState } from './recipeBook';
 import { COOKING, cookBook, fireState } from './cookBook';
+import { SMITHING } from './smithBook';
 import { woodGuide } from './woodGuide';
 import { fishGuide } from './fishGuide';
+import { mineGuide } from './mineGuide';
 import { nextMilestone, skillRuler } from './skillRuler';
 import type { Grade } from '../../model/skills/lumber';
+import type { Vein } from '../../model/skills/mining';
 
 // What someone at a skill's called ("Journeyman woodworker").
-const CALLED: Record<SkillId, string> = { lumberjacking: 'lumberjack', woodworking: 'woodworker', salvaging: 'salvager', cooking: 'cook', fishing: 'angler' };
+const CALLED: Record<SkillId, string> = { lumberjacking: 'lumberjack', woodworking: 'woodworker', smithing: 'smith', salvaging: 'salvager', cooking: 'cook', fishing: 'angler', mining: 'miner' };
 
 export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: SkillId): void; update(): void; readonly skill: SkillId } {
   let skill: SkillId = SKILL_IDS[0];
   const book = newBook(); // (the recipe picked, the filter, how many: kept while the game's on)
   const cookPage = newBook(); // (and cooking's)
+  const smithPage = newBook(); // (and smithing's)
   const guide: { picked: Grade | null } = { picked: null };
+  const veins: { picked: Vein | null } = { picked: null }; // (the mining guide's: the vein picked)
   const catches: { picked: import('../../model/loot/loot').LootId | null } = { picked: null }; // (the fishing guide's: the catch picked)
   const scrap: { picked: import('../../model/skills/salvage').Make | null } = { picked: null }; // (the salvage guide's: the make picked)
+
+  // How far toward the next level the tries that taught have got: a thin bar, and in words ("4 of 10 toward 101").
+  const step = (id: SkillId): HTMLElement => {
+    const { level, toward = 0 } = skillOf(model.hero, id);
+    const steps = stepsOf(id, level);
+    const bar = el('span', 'skill-band-step-bar', el('i'));
+    (bar.firstChild as HTMLElement).style.width = `${(toward / steps) * 100}%`;
+    return el('span', 'skill-band-step', bar, `${toward} of ${steps} toward ${level + 1}`);
+  };
 
   // Where the hero stands in it.
   const head = (id: SkillId): HTMLElement => {
@@ -45,6 +59,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
         'skill-band-text',
         el('span', 'skill-band-title', `${tier.name} ${CALLED[id]}`),
         el('span', 'skill-band-level', el('b', undefined, String(level)), ` / ${SKILL_MAX}`, el('em', undefined, next ? ` · ${tier.to - level} to ${next.name}` : ' · Mastered')),
+        ...(level < SKILL_MAX ? [step(id)] : []),
       ),
       el('div', 'skill-band-rule', skillRuler(level), el('p', 'skill-band-next', milestone ? `Next at ${milestone.at}: ${milestone.what} · ${milestone.levels} ${milestone.levels === 1 ? 'level' : 'levels'} to go` : 'Everything it opens is yours.')),
     );
@@ -68,7 +83,7 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
 
   const body = (): HTMLElement => {
     const redraw = () => refresh();
-    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'cooking' ? cookBook(model, cookPage, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : skill === 'fishing' ? fishGuide(model, catches, redraw) : notYet(skill);
+    const content = skill === 'woodworking' ? recipeBook(model, book, redraw) : skill === 'smithing' ? recipeBook(model, smithPage, redraw, SMITHING) : skill === 'cooking' ? cookBook(model, cookPage, redraw) : skill === 'lumberjacking' ? woodGuide(model, guide, redraw) : skill === 'salvaging' ? salvageGuide(model, scrap, redraw) : skill === 'fishing' ? fishGuide(model, catches, redraw) : skill === 'mining' ? mineGuide(model, veins, redraw) : notYet(skill);
     return el('div', 'skill-detail', head(skill), content);
   };
 
@@ -78,9 +93,9 @@ export function createSkillWindow(model: GameModel): { menu: Menu; open(skill: S
   let seen = '';
   const update = () => {
     if (!menu.isOpen) return;
-    const craft = skill === 'cooking' ? COOKING : WOODWORKING;
+    const craft = skill === 'cooking' ? COOKING : skill === 'smithing' ? SMITHING : WOODWORKING;
     recipeProgress(model, document, craft);
-    const now = `${skill}|${skillOf(model.hero, skill).level}|${recipeState(model, craft)}|${model.lumber.axe}|${model.fishing.rod}${skill === 'cooking' ? `|${fireState(model)}` : ''}`;
+    const now = `${skill}|${skillOf(model.hero, skill).level}|${skillOf(model.hero, skill).toward ?? 0}|${recipeState(model, craft)}|${model.lumber.axe}|${model.mining.pick}|${model.fishing.rod}${skill === 'cooking' ? `|${fireState(model)}` : ''}`;
     if (now === seen) return;
     seen = now;
     refresh();

@@ -56,6 +56,7 @@ import { titleOf } from './model/npcs/npcs';
 import { enemyName } from './view/meshes/enemy/enemyParts';
 import { SPELLS } from './model/spells/spells';
 import { chopPrompt } from './controller/skills/chopPrompt';
+import { minePrompt } from './controller/skills/minePrompt';
 import { fishPrompt } from './controller/skills/fishPrompt';
 import { skillsIcon } from './view/ui/skillIcons';
 import { createQuestBoardPanel } from './controller/quests/questBoardPanel';
@@ -260,6 +261,10 @@ async function boot(): Promise<void> {
       case 'fish':
       case 'cannotFish':
         return fishPrompt(model); // (cast, hook the bite, reel in; or not, and why)
+      case 'stopMine':
+      case 'mine':
+      case 'cannotMine':
+        return minePrompt(model); // (strike it, stop; or not, and why)
       case 'loot':
         return lootTarget(found.loot);
       case 'chest': // (a lord's chest, a brood mother's silk-wrapped hoard, a bandit camp's: locked while its chief stands)
@@ -282,6 +287,8 @@ async function boot(): Promise<void> {
       }
       case 'bench':
         return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
+      case 'anvil':
+        return { label: 'Work metal', x: found.anvil.x, y: 0.9, z: found.anvil.z };
       case 'fire': // (a hearth: over its middle; a campfire, over it)
         return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
       case 'well':

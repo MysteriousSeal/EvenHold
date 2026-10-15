@@ -164,7 +164,7 @@ const recipeRows = (model: GameModel): Row[] => {
 const salvageRows = (model: GameModel): Row[] => {
   const { salvage, hero } = model;
   const level = skillOf(hero, 'salvaging').level;
-  return salvage.candidates.map((key: GearKey) => row(key, category(key), () => (salvage.start(key) === 'started' ? 'salvaged' : null), { better: betterThanWorn(key, hero), level: salvageOf(key).needs - level, can: level >= salvageOf(key).needs }));
+  return salvage.candidates.filter(isGear).map((key: GearKey) => row(key, category(key), () => (salvage.start(key) === 'started' ? 'salvaged' : null), { better: betterThanWorn(key, hero), level: salvageOf(key).needs - level, can: true }));
 };
 
 // The windows, each opened for what it's about: a trade's keeper, a board, a traveller.

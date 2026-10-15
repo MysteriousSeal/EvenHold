@@ -7,10 +7,10 @@
 // cooking page of the skills window (controller/skills/cookBook.ts).
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { COOK_RECIPES, COOK_RECIPE_IDS, KINDLED_BURNS, KINDLE_LOGS } from '../src/model/skills/cooking';
+import { COOK_RECIPES, COOK_RECIPE_IDS, HUNTED_WORTH, KINDLED_BURNS, KINDLE_LOGS, huntedWorth } from '../src/model/skills/cooking';
 import { MEALS, MEAL_IDS } from '../src/model/loot/meals';
 import { PROVISIONS, PROVISION_IDS, givesText } from '../src/model/loot/provisions';
-import { SKILLS, skillOf } from '../src/model/skills/skills';
+import { SKILLS, skillOf, stepsOf } from '../src/model/skills/skills';
 import { eatOrDrink } from '../src/model/hero/bag';
 import { blowDamage, hitTaken, mending, spared, tiring, tossCoin } from '../src/model/hero/blessing';
 import { maxHpOf } from '../src/model/hero/attributes';
@@ -136,6 +136,7 @@ describe('cooking', () => {
   it('cooks one: its makings out of the bag, the meal in, the skill up (orange), some experience; told', () => {
     const model = kitchen(1, { rawBoarMeat: 2 });
     byTheHearth(model);
+    skillOf(model.hero, 'cooking').toward = stepsOf('cooking', 1) - 1; // (a meal short of the next level)
     const xp = model.hero.xp;
     expect(model.cooking.start('roastBoar')).toBe(true);
     expect(model.cooking.progress).toBe(0);
@@ -147,6 +148,17 @@ describe('cooking', () => {
     const events = model.takeEvents();
     expect(events).toContainEqual({ kind: 'crafted', item: 'roastBoar' });
     expect(events).toContainEqual({ kind: 'skillUp', skill: 'Cooking', level: 2 });
+  });
+
+  it("counts a dish of a hunt's meat or honeycomb as more tries than a fish's (dear to come by)", () => {
+    expect([huntedWorth('roastBoar'), huntedWorth('wolfSkewer'), huntedWorth('honeyCake'), huntedWorth('huntersFeast')]).toEqual([HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH, HUNTED_WORTH]);
+    expect([huntedWorth('roastedFry'), huntedWorth('pikePie'), huntedWorth('riverFeast')]).toEqual([1, 1, 1]);
+  });
+
+  it('has a dish of every fish caught, the salmon grilled at 240', () => {
+    for (const fish of ['smallFry', 'roach', 'riverTrout', 'lakePerch', 'eel', 'bream', 'grayling', 'char', 'pike', 'salmon', 'sturgeon']) expect(COOK_RECIPE_IDS.some((id) => fish in COOK_RECIPES[id].from), fish).toBe(true);
+    expect(COOK_RECIPES.grilledSalmon).toMatchObject({ needs: 240, from: { salmon: 1, salt: 1 }, makes: 'grilledSalmon' });
+    expect(MEALS.grilledSalmon.value).toBe(26); // (under the smoked sturgeon, a harder fish's)
   });
 
   it('knows a recipe only once the skill reaches it', () => {
@@ -330,10 +342,11 @@ describe("cooking's page", () => {
 });
 
 describe('tuning', () => {
-  it("cooked meat and fish heal more than the inn's like (a bear steak over her roast leg), each Well fed a few minutes after; a stew's longer", () => {
+  it("cooked meat and fish heal more than the inn's like (a bear steak over her roast leg), each Well fed a few minutes after (a roast of meat twice a fish's); a stew's longer", () => {
     expect(MEALS.bearSteak.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
     expect(MEALS.roastPike.heal).toBeGreaterThan(PROVISIONS.roastLeg.heal!);
-    for (const id of ['roastedFry', 'roastBoar', 'wolfSkewer', 'searedLynx', 'bearSteak', 'grilledTrout', 'saltedPerch', 'roastPike'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 4 * 60 });
+    for (const id of ['roastedFry', 'fryCake', 'grilledTrout', 'saltedPerch', 'roastPike'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 4 * 60 });
+    for (const id of ['roastBoar', 'wolfSkewer', 'searedLynx', 'bearSteak'] as const) expect(MEALS[id].fed, id).toEqual({ kind: 'fed', seconds: 8 * 60 });
     expect(MEALS.boarStew.fed!.seconds).toBeGreaterThan(4 * 60);
     expect(KINDLED_BURNS).toBe(8 * 60); // (time enough for a batch)
   });
@@ -352,11 +365,11 @@ describe('butchered', () => {
   it("a beast slain leaves its meat on a roll of its own, about as often as told; a bear's honeycomb now and then; no one else's", async () => {
     const { butcher } = await import('../src/model/loot/ingredients');
     const share = (source: Parameters<typeof butcher>[0], item: string) => Array.from({ length: 2000 }, (_, id) => butcher(source, id)).filter((got) => got.includes(item as never)).length / 2000;
-    expect(share('boar', 'rawBoarMeat')).toBeCloseTo(0.6, 1);
-    expect(share('bear', 'rawBearMeat')).toBeCloseTo(0.6, 1);
-    expect(share('bear', 'honeycomb')).toBeCloseTo(0.25, 1);
-    expect(share('beast', 'rawWolfMeat')).toBeCloseTo(0.4, 1);
-    expect(share('lynx', 'leanLynxMeat')).toBeCloseTo(0.5, 1);
+    expect(share('boar', 'rawBoarMeat')).toBeCloseTo(0.9, 1);
+    expect(share('bear', 'rawBearMeat')).toBeCloseTo(0.9, 1);
+    expect(share('bear', 'honeycomb')).toBeCloseTo(0.4, 1);
+    expect(share('beast', 'rawWolfMeat')).toBeCloseTo(0.75, 1);
+    expect(share('lynx', 'leanLynxMeat')).toBeCloseTo(0.8, 1);
     expect(butcher('undead', 3)).toEqual([]);
   });
 });

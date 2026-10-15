@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { INN_WANTS, sell, shopAt, innWants, type InnWant, cupboardWords } from '../src/model/inn/tavernShop';
 import { Cupboard, MUGS_A_SHELF } from '../src/view/interior/cupboard';
-import { sellValue } from '../src/model/shops/sellValue';
+import { LOOT } from '../src/model/loot/loot';
 import { doorNumber } from '../src/model/interiors/interiors';
 import { CUPBOARD_OUT } from '../src/model/jobs/work';
 import { takeStock } from '../src/model/shops/shopStock';
@@ -21,7 +21,7 @@ describe("the inn's cups", () => {
     shop.money = 1000;
     model.hero.bag.carvedTankard = 2;
     const money = model.hero.money;
-    expect(INN_WANTS.carvedTankard.pays).toBeGreaterThan(sellValue('carvedTankard')!);
+    expect(INN_WANTS.carvedTankard.pays).toBeGreaterThan(LOOT.carvedTankard.value);
     expect(sell(shop, model.hero, 'carvedTankard')).toBe('sold');
     expect(model.hero.money).toBe(money + INN_WANTS.carvedTankard.pays);
     expect(shop.stock.carvedTankard).toBe(1);

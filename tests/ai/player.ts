@@ -209,6 +209,8 @@ export class Player {
         return opened(this.open('jobs', found.inn));
       case 'stopChop':
         return model.lumber.stop(), true;
+      case 'stopMine':
+        return model.mining.stop(), true;
       case 'loot':
         return !!model.pickUp();
       case 'chest':
@@ -233,6 +235,8 @@ export class Player {
         return opened(this.open('salvage'));
       case 'fire':
         return false; // (no cooking for the player yet)
+      case 'anvil':
+        return false; // (no smithing for the player yet)
       case 'well':
         return model.tossCoin() && tally.wishes++, true;
       case 'hallDoor':
@@ -247,8 +251,11 @@ export class Player {
       case 'fish':
       case 'fishing':
         return model.fishing.use();
+      case 'mine':
+        return model.mining.use();
       case 'cannotChop':
       case 'cannotFish':
+      case 'cannotMine':
         return tally.wasted++, true;
     }
   }

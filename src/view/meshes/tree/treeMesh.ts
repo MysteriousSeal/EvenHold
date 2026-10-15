@@ -91,6 +91,7 @@ const COUNTRY_TINT: Partial<Record<Biome, THREE.Color>> = {
   hills: new THREE.Color(0.9, 0.95, 0.98),
   marsh: new THREE.Color(1.04, 1.06, 0.94),
 };
+const ELDER_TINT = new THREE.Color(1.16, 0.97, 1.24); // an elder oak's, over its own: its green greyed, hoary, silvered
 const SHAKE = 0.3; // seconds a tree shakes, chopped at
 const SHAKE_TILT = 0.06; // radians it sways at most
 
@@ -102,10 +103,11 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const windTime = addWindSway(material, { ...TREE_WIND, broadleaf: true });
   const pineTime = addWindSway(pineMaterial, { ...TREE_WIND, evergreen: true });
   const materialOf = (tree: Tree) => (tree.kind === 'pine' ? pineMaterial : material);
-  // (an ancient tree, darker and deeper green: model/skills/lumber.ts, a master lumberjack's)
+  // (an ancient tree, darker and deeper green; an elder oak, hoary: model/skills/lumber.ts, a master lumberjack's)
   const biomes = aroundVillages(createBiomes(model.seed), model.villages);
   const tintOf = (tree: Tree) => {
-    const tint = gradeOf(tree, model.seed).startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
+    const grade = gradeOf(tree, model.seed);
+    const tint = grade === 'elderOak' ? treeTint(tree).multiply(ELDER_TINT) : grade.startsWith('ancient') ? treeTint(tree).multiply(ANCIENT_TINT) : treeTint(tree);
     const country = tree.kind === 'pine' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest' ? undefined : COUNTRY_TINT[biomes.at(Math.round(tree.x), Math.round(tree.z))];
     return country ? tint.multiply(country) : tint;
   };

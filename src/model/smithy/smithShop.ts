@@ -1,16 +1,18 @@
 // The smithy's shop, kept by its smith: the weapons, shields and armour he
 // forges (items marked `soldBy: { smith }`, at their value), and any gear of
 // that kind bought back (at half its value; cloth and leather he's no use
-// for, cheap), and the iron salvaged from gear (at half its worth). His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
+// for, cheap), and the iron salvaged from gear, and what a lumberjack finds in the wood (resin, heartwood, a burl: for hafts and handles), each at half its worth, a few at a time; and a miner's pickaxe, one on his shelf. His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
 // piece in three uncommon, the same each visit; what's found sells for its level and rarity (human/items/gear.ts).
 
 import { hashUnit } from '../../util/random';
 import { LOOT } from '../loot/loot';
+import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
-import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
+import type { BagItem } from '../hero/bag';
+import { WOODWORKS, buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
 import { doorNumber, type Entrance } from '../interiors/interiors';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
@@ -25,16 +27,31 @@ export const SMITH_WARES: ItemId[] = ITEM_IDS.filter((id) => (ITEMS[id].soldBy?.
 export const smithBuys = (id: string): id is GearKey => isGear(id) && !JEWELRY.has(slotOfGear(id));
 
 // The metal salvaged from gear (skills/salvage.ts) he'll take for the forge, at half its worth.
-const METAL: ReadonlySet<string> = new Set(['ironScrap', 'temperedIngot']);
-export const smithTakesMetal = (id: string): id is 'ironScrap' | 'temperedIngot' => METAL.has(id);
-export const metalPrice = (id: 'ironScrap' | 'temperedIngot'): number => Math.floor(LOOT[id].value / 2);
+const METAL: ReadonlySet<string> = new Set(['ironScrap', 'temperedIngot', 'copperIngot', 'bronzeIngot', 'ironIngot', 'steelIngot', 'silverIngot', 'goldIngot', 'starIronIngot']); // (and a smith's ingots: skills/smithing.ts)
+type Metal = 'ironScrap' | 'temperedIngot' | 'copperIngot' | 'bronzeIngot' | 'ironIngot' | 'steelIngot' | 'silverIngot' | 'goldIngot' | 'starIronIngot';
+export const smithTakesMetal = (id: string): id is Metal => METAL.has(id);
+export const metalPrice = (id: Metal): number => Math.floor(LOOT[id].value / 2);
+
+// What's found in the wood he'll take, at half its worth (skills/lumber.ts: a pine's resin, an ancient or elder oak's
+// heartwood, a burl).
+const FOUND_WOOD: ReadonlySet<string> = new Set(['pineResin', 'heartwood', 'oakBurl']);
+export const smithTakesWood = (id: string): boolean => FOUND_WOOD.has(id) && id in LOOT;
+export const woodPrice = (id: string): number => Math.floor((LOOT[id as keyof typeof LOOT]?.value ?? 0) / 2);
+
+// The miner's pickaxe (skills/mining.ts): his copper one, one on his shelf, at its worth; any pickaxe bought back at
+// half, as a pedlar buys back a rod.
+export const SMITH_PICK = 'copperPick' satisfies ToolId;
+const PICKS: ReadonlySet<string> = new Set(['copperPick', 'ironPick', 'steelPick', 'starIronPick']);
+export const smithTakesPick = (id: string): id is ToolId => PICKS.has(id) && id in TOOL_ITEMS;
+export const pickPrice = (id: ToolId, selling: boolean): number => (selling ? Math.floor(TOOL_ITEMS[id].value / 2) : TOOL_ITEMS[id].value);
 
 // What he starts with, and restocks toward: his usual few of each (now and
 // then one short, from the seed), and a purse of several silver.
 function usual(seed: number, smithy: number, level?: number): Usual {
   const roll = (salt: number) => hashUnit(smithy, seed % 1_000_003, salt);
   const forged = (id: ItemId, i: number): GearKey => (level === undefined ? id : gearKey({ item: id, level, rarity: roll(300 + i) < 0.33 ? 'uncommon' : 'common', roll: Math.floor(roll(400 + i) * 1000) }));
-  const stock = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), Math.max(0, ITEMS[id].soldBy!.smith! - (roll(200 + i) < 0.3 ? 1 : 0))]));
+  const stock: Usual['stock'] = Object.fromEntries(SMITH_WARES.map((id, i) => [forged(id, i), Math.max(0, ITEMS[id].soldBy!.smith! - (roll(200 + i) < 0.3 ? 1 : 0))]));
+  stock[SMITH_PICK] = 1; // (every smith has a pickaxe)
   return { money: Math.round((6 + roll(199) * 6) * COPPER_PER_SILVER), stock };
 }
 
@@ -62,7 +79,8 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 }
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
-export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half
+const WOODWORK_SHARE = 8; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
+export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP); // he buys at half
 
 // The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
 // a tower shield, a great helm, mail, a breastplate) only to a hand that's shown it can carry it, not to a green one
@@ -80,12 +98,12 @@ export const smithSellsTo = (hero: Pick<Hero, 'level'>, key: GearKey): boolean =
 export const UNDER_COUNTER = 2.5;
 export const smithPriceFor = (hero: Pick<Hero, 'level'>, key: GearKey): number => (smithSellsTo(hero, key) ? gearPrice(key) : Math.ceil(gearPrice(key) * UNDER_COUNTER));
 
-export function buyGear(shop: Shop, hero: Hero, id: GearKey): 'bought' | 'sold out' | 'too poor' | 'full' {
-  return buyFrom(shop, hero, id, smithPriceFor(hero, id));
+export function buyGear(shop: Shop, hero: Hero, id: GearKey | ToolId): 'bought' | 'sold out' | 'too poor' | 'full' {
+  return buyFrom(shop, hero, id, smithTakesPick(id) ? pickPrice(id, false) : smithPriceFor(hero, id as GearKey));
 }
 
 export function sellGear(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'he is short' {
-  if (!smithBuys(id) && !smithTakesMetal(id)) return 'not wanted';
-  const done = sellTo(shop, hero, id, smithTakesMetal(id) ? metalPrice(id) : gearSellPrice(id));
+  if (!smithBuys(id) && !smithTakesMetal(id) && !smithTakesWood(id) && !smithTakesPick(id)) return 'not wanted';
+  const done = sellTo(shop, hero, id as BagItem, smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : smithTakesPick(id) ? pickPrice(id, true) : gearSellPrice(id as GearKey));
   return done === 'short' ? 'he is short' : done;
 }
