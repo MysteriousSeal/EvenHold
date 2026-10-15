@@ -5,7 +5,10 @@
 // abed at night, their shop shut, the pox seen to all the same.
 import { describe, expect, it, vi } from 'vitest';
 import { fresh } from './support/testWorld';
-import { buyFromHerbalist, herbalistBuys, herbalistShopAt, sellToHerbalist } from '../src/model/herbalist/herbalistShop';
+import { buyFromHerbalist, herbalistBuys, herbalistPrice, herbalistShopAt, sellToHerbalist, wantsPart } from '../src/model/herbalist/herbalistShop';
+import { LOOT } from '../src/model/loot/loot';
+import { POTIONS } from '../src/model/loot/potions';
+import { PROVISIONS } from '../src/model/loot/provisions';
 import { WANTS } from '../src/model/shops/shopStock';
 import { restore, snapshot } from '../src/model/save';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
@@ -77,6 +80,46 @@ describe("a herbalist's trade", () => {
   });
 });
 
+describe("a herbalist's cave parts and prices", () => {
+  it('takes silk, venom glands and bat wings at half again their worth, so many at a time; past that, as junk', () => {
+    const model = fresh();
+    const { shop } = atHerbalist(model);
+    shop.money = 100_000;
+    expect(herbalistPrice('venomGland', true)).toBe(Math.round(LOOT.venomGland.value * 1.5));
+    expect(herbalistBuys('chitinShard')).toBe(false); // (the tanner's)
+    model.hero.bag = { venomGland: WANTS.goods + 1 };
+    for (let i = 0; i < WANTS.goods; i++) expect(sellToHerbalist(shop, model.hero, 'venomGland')).toBe('sold');
+    expect(wantsPart(shop, 'venomGland')).toBe(false);
+    expect(sellToHerbalist(shop, model.hero, 'venomGland')).toBe('not wanted');
+    expect(model.hero.money).toBe(WANTS.goods * 12);
+    // A restock on, room for another.
+    expect(wantsPart(herbalistShopAt(model.shops, model.seed, atHerbalist(model).herbalist, shop.restockedAt + 5 * 60_000), 'venomGland')).toBe(true);
+  });
+
+  it('energy at most half again what an ale costs, a share point; health left as it was', () => {
+    const ale = PROVISIONS.ale.value / (PROVISIONS.ale.energy! * 100);
+    for (const id of ['minorEnergyPotion', 'lesserEnergyPotion', 'greaterEnergyPotion'] as const) expect(POTIONS[id].value / (POTIONS[id].energy * 100)).toBeLessThanOrEqual(ale * 1.5);
+    expect([POTIONS.minorHealthPotion.value, POTIONS.lesserHealthPotion.value, POTIONS.greaterHealthPotion.value]).toEqual([20, 50, 120]);
+  });
+});
+
+describe("a keeper's word on the story, greeting the hero at their window", () => {
+  it("what they're waiting on, then what they say of it done (not left unsaid for their wares)", () => {
+    const model = fresh();
+    const { story, hero } = model;
+    const key = story.keysOf('meatForTheBroth')[0];
+    const herbalist = model.npcs.find((n) => n.role === 'herbalist' && story.talk(n, key))!;
+    hero.look.build = herbalist.look.build; // (no supper after it)
+    story.accept(key);
+    expect(story.talk(herbalist, key)).toBeNull(); // (their trade)
+    expect(story.talk(herbalist, key, true)!.lines.join(' ')).toMatch(/meat|boar/i);
+    expect(story.finish(key)).toBe(true);
+    expect(story.handIn(key)).toBe(true);
+    expect(story.stateOf(key)).toBe('done');
+    expect(story.talk(herbalist, key, true)!.lines.join(' ')).toMatch(/lived/);
+  });
+});
+
 describe("a herbalist's word", () => {
   it('on a hero hurt, spent, or with no potion on them (half the time); else none of their own', () => {
     const { hero } = fresh();
@@ -118,6 +161,20 @@ const said = () => takeSpeech().flatMap((e) => (e.kind === 'say' ? [e.text] : []
 const NIGHT = 23 * 60 + 30; // on the clock, day 0
 
 describe("a herbalist's bed and night", () => {
+  it('the pox told in full once a visit; after that, a short word', () => {
+    const model = fresh();
+    const { herbalist } = atHerbalist(model);
+    givePox(model.hero);
+    model.enterRoom(herbalist.home);
+    expect(poxTalk(model, herbalist)!.lines).toHaveLength(2);
+    const again = poxTalk(model, herbalist)!;
+    expect(again.lines).toEqual([`Still scratching? The salve's ${SALVE} copper, whenever you want it.`]);
+    expect(again.answers.map((a) => a.label)).toContain('Show me your wares.');
+    model.useDoor();
+    model.enterRoom(herbalist.home);
+    expect(poxTalk(model, herbalist)!.lines).toHaveLength(2); // (another visit: in full again)
+  });
+
   it('by day (at their work), rests the hero slowly, as an absent villager\'s does; at their bedtime, they turn the hero out', () => {
     const model = fresh();
     byTheirBed(model);
