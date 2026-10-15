@@ -11,9 +11,9 @@ export interface ChunkLayer {
   readonly materials: THREE.Material[];
   chunkKeys(): Iterable<string>;
   build(chunkKey: string): THREE.Object3D[];
-  // What of a chunk's built objects is drawn, the chunk `distance` tiles from the hero at the graphics quality now
-  // (render/graphics.ts: thinner far off, or none, or simpler); told again as either changes.
-  fit?(objects: THREE.Object3D[], distance: number): void;
+  // What of a chunk's built objects is drawn, the chunk `distance` tiles from the hero (at x, z) at the graphics
+  // quality now (render/graphics.ts: thinner far off, or none, or simpler); told again as either changes.
+  fit?(objects: THREE.Object3D[], distance: number, x: number, z: number): void;
   dispose?(): void; // what it made to build with (its models' geometry) let go: dropped (a streamed world's region let go)
 }
 

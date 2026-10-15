@@ -95,7 +95,7 @@ export class ChunkStreamer implements WorldSink {
     const tile = `${Math.round(x)},${Math.round(z)}`;
     if (tile !== this.fitAt) {
       this.fitAt = tile;
-      for (const [key, chunk] of this.loaded) this.fit(chunk, distanceToChunk(key, x, z));
+      for (const [key, chunk] of this.loaded) this.fit(chunk, distanceToChunk(key, x, z), x, z);
     }
     return toBuild.length;
   }
@@ -105,8 +105,8 @@ export class ChunkStreamer implements WorldSink {
     this.fitAt = '';
   }
 
-  private fit(chunk: { built: Map<ChunkLayer, THREE.Object3D[]> }, distance: number): void {
-    for (const [layer, objects] of chunk.built) layer.fit?.(objects, distance);
+  private fit(chunk: { built: Map<ChunkLayer, THREE.Object3D[]> }, distance: number, x: number, z: number): void {
+    for (const [layer, objects] of chunk.built) layer.fit?.(objects, distance, x, z);
   }
 
   // Loads every chunk near (x, z) at once (startup).
@@ -117,7 +117,7 @@ export class ChunkStreamer implements WorldSink {
   private load(key: string, x: number, z: number): void {
     const chunk = { group: new THREE.Group(), built: new Map<ChunkLayer, THREE.Object3D[]>() };
     for (const { layer } of this.layers) this.buildInto(chunk, layer, key);
-    this.fit(chunk, distanceToChunk(key, x, z));
+    this.fit(chunk, distanceToChunk(key, x, z), x, z);
     this.loaded.set(key, chunk);
     this.scene.add(chunk.group);
   }

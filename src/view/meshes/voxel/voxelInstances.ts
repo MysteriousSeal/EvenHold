@@ -5,12 +5,14 @@
 // (see world/chunkLayer.ts). What's drawn of a chunk may be cut at a lower
 // graphics quality (render/graphics.ts), by its `detail`: small things
 // thinned (each chunk's in a fixed shuffled order, the first share drawn: no
-// rebuild) and none past a reach; a model drawn at half its detail far off.
+// rebuild) and none past a reach; a model drawn at half its detail far off
+// (farInstances.ts).
 
 import * as THREE from 'three';
 import { bucketByChunk, type ChunkLayer, type WorldSink } from '../../world/chunkLayer';
 import { preset } from '../../render/graphics';
 import { hashCell } from '../../../util/random';
+import { FarInstances } from './farInstances';
 
 // How a layer's drawing may be cut at a lower quality.
 export interface Detail<T> {
@@ -79,7 +81,8 @@ export function voxelLayer<T>(
         }
         if (detail.small) group.sort((a, b) => rank(place(a)) - rank(place(b))); // (the order they're thinned in)
         const mesh = new THREE.InstancedMesh(geometry, material, group.length);
-        if (detail.small || detail.far) mesh.userData.detail = { all: group.length, near: geometry, far: detail.far && (() => farOf(key, group[0])) };
+        if (detail.small) mesh.userData.all = group.length;
+        if (detail.far) mesh.userData.far = new FarInstances(mesh, group, group.map((item) => place(item)), () => farOf(key, group[0]), placed);
         group.forEach((item, i) => {
           const at = place(item);
           quaternion.setFromAxisAngle(up, (at.quarterTurns * Math.PI) / 2);
@@ -92,14 +95,15 @@ export function voxelLayer<T>(
         return mesh;
       });
     },
-    fit(objects, distance) {
+    fit(objects, distance, x, z) {
       if (!detail.small && !detail.far) return;
       const p = preset();
       for (const mesh of objects as THREE.InstancedMesh[]) {
-        const { all, near, far } = mesh.userData.detail as { all: number; near: THREE.BufferGeometry; far?: () => THREE.BufferGeometry };
-        if (detail.small) mesh.count = distance > p.propReach ? 0 : Math.ceil(all * p.flora);
-        mesh.visible = mesh.count > 0;
-        if (far) mesh.geometry = distance > p.treeFar ? far() : near;
+        if (detail.small) {
+          mesh.count = distance > p.propReach ? 0 : Math.ceil((mesh.userData.all as number) * p.flora);
+          mesh.visible = mesh.count > 0;
+        }
+        if (detail.far) (mesh.userData.far as FarInstances<T>).fit(x, z, p.treeFar);
       }
     },
     dispose() {

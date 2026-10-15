@@ -26,8 +26,8 @@ export interface Preset {
 
 export const PRESETS: Record<Quality, Preset> = {
   high: { pixelScale: 1, post: true, bloom: true, shafts: true, msaa: 4, shadows: 'all', lampFill: true, loadRadius: 28, life: 1, flora: 1, propReach: Infinity, treeFar: Infinity },
-  medium: { pixelScale: 1, post: true, bloom: true, shafts: false, msaa: 2, shadows: 'fire', lampFill: true, loadRadius: 24, life: 0.6, flora: 0.6, propReach: 20, treeFar: 16 },
-  low: { pixelScale: 0.75, post: false, bloom: false, shafts: false, msaa: 0, shadows: 'none', lampFill: false, loadRadius: 20, life: 0.3, flora: 0.35, propReach: 14, treeFar: 8 },
+  medium: { pixelScale: 1, post: true, bloom: true, shafts: false, msaa: 2, shadows: 'fire', lampFill: true, loadRadius: 24, life: 0.6, flora: 0.6, propReach: 20, treeFar: 11 },
+  low: { pixelScale: 0.75, post: false, bloom: false, shafts: false, msaa: 0, shadows: 'none', lampFill: false, loadRadius: 20, life: 0.3, flora: 0.35, propReach: 14, treeFar: 6 },
 };
 
 export interface Graphics {
