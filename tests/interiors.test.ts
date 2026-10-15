@@ -90,8 +90,8 @@ describe('interiors', () => {
       const tables = items.filter((i) => i.kind === 'tavernTable').length;
       counts.push(tables);
       if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(5);
-      // Its lanterns spread along the back wall, never two side by side.
-      const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back').map((i) => i.x).sort((a, b) => a - b);
+      // Its lanterns spread along the back wall (past the bar's own), never two side by side.
+      const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back' && i.x >= 3).map((i) => i.x).sort((a, b) => a - b);
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
