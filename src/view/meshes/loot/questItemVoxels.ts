@@ -2,7 +2,7 @@
 // silhouette: from wolves, a pelt folded flat, an alpha's long ivory fang, a paw's
 // black claws, a bushy tawny tail; from bandits, a tin token struck with a
 // skull, a knotted red bandanna, a rolled case of lockpicks, a letter sealed in wax;
-// from boars, a folded hide, a bound tuft of bristles, a cut truffle, a great tusk.
+// from boars, a folded hide, a bound tuft of bristles, a cut truffle, a great tusk; a bounty's grisly sack.
 
 import type { QuestItemId } from '../../../model/quests/questItems';
 import { fillBox, setColor } from '../voxel/voxelShapes';
@@ -96,5 +96,14 @@ export const QUEST_MODELS: Record<QuestItemId, LootModel> = {
     fillBox(g, 4, 1, 0, 4, 2, 1, 1);
     fillBox(g, 5, 2, 0, 5, 4, 1, (_x, y) => (y === 2 ? 2 : 1)); // curving up
     fillBox(g, 6, 5, 0, 6, 6, 1, (_x, y) => (y === 6 ? 1 : 2)); // to the point
+  }),
+  // A bounty's grisly sack: a squat burlap bag, shaded on its back and sides, cinched with a dark cord under a ragged
+  // tuft, a dark red stain soaked up from its bottom front.
+  grislySack: model([0xb89a68, 0x8a7048, 0x5a3e2c, 0x7a1a16, 0xa02a20], [5, 6, 4], (g) => {
+    fillBox(g, 0, 0, 0, 4, 3, 3, (x, y, z) => (y === 0 && z === 0 ? 4 : y <= 1 && z === 0 && x > 0 && x < 4 ? (x === 2 ? 4 : 5) : x === 4 || z === 3 ? 2 : 1));
+    for (const [x, z] of [[0, 0], [4, 0], [0, 3], [4, 3]]) setColor(g, x, 3, z, 0); // its shoulders rounded
+    fillBox(g, 1, 4, 1, 3, 4, 2, 3); // the cord
+    fillBox(g, 2, 5, 1, 2, 5, 2, 1); // the tuft over it
+    setColor(g, 1, 5, 1, 2);
   }),
 };

@@ -91,6 +91,10 @@ import { counted } from './view/ui/words';
 import { keepWorld, loadWorld } from './controller/storage/worldCache';
 import { generateWorld } from './model/worldgen/world';
 import { WorkerSource } from './controller/world/workerSource';
+import { ChartWorkers } from './controller/world/chartWorkers';
+import { SyncCharts } from './model/atlas/atlas';
+import { createMapWindow } from './controller/atlas/mapWindow';
+import { createMinimap } from './view/hud/minimap';
 import { STREAMED_SIZE } from './model/worldgen/regions';
 import { capitalize } from './util/text';
 import { BAR_ACTIONS, label as keyName } from './controller/keyBindings';
@@ -131,6 +135,7 @@ async function boot(): Promise<void> {
   }
   const world = streamed ? undefined : (kept ?? generateWorld(seed, size));
   const model = new GameModel(seed, size, world, streamed ? new WorkerSource(seed, size) : undefined);
+  if (streamed) model.atlas.chartsFrom(new ChartWorkers(seed, size, new SyncCharts(model))); // (the map's charts, off the game's thread)
   // This world's saved game, if it was played before; else a new hero: the one made on the main menu, or any look
   // with a name to match.
   if (!loadGame(model)) {
@@ -219,6 +224,9 @@ async function boot(): Promise<void> {
   const levelUp = createLevelUpPanel(model, { setPaused: holdStill('levelUp') });
   const sheet = createHeroSheet(model, { levelUp: () => levelUp.menu.open() });
   const sound = startSound(import.meta.env.BASE_URL); // (heard from the first key or click: view/audio/)
+  const minimap = createMinimap(model); // (the corner map; M, the whole map)
+  createMapWindow(model, { setPaused: holdStill('map'), minimap });
+  model.atlas.marks.set('purse', () => (model.purse && model.purse.under === null ? [{ kind: 'purse', x: model.purse.x, z: model.purse.z, label: `Your purse (${model.purse.amount} copper)` }] : [])); // (a fall's purse, out of doors: on the map)
   const pause = createPauseMenu({
     volumes: { get: () => sound.sound.volumes, set: (v) => sound.sound.setVolumes(v) }, // (its steppers: soundSettings.ts)
     setPaused: holdStill('pause'),
@@ -348,6 +356,7 @@ async function boot(): Promise<void> {
     pack.update();
     stash.update(); // (walked off from the strongbox: it shuts)
     journal.update();
+    minimap.update();
     salvage.update(); // (a piece on the bench: its bar)
     skills.update();
     sheet.update();

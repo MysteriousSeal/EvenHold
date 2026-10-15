@@ -40,6 +40,7 @@ export interface Fight {
   readonly slain: Set<number>; // the world's foes killed, by id
   readonly quests: Pick<QuestBook, 'onKill'>;
   readonly story?: { onKill(enemy: Enemy): void }; // (the quests people give: the foes they ask slain, counted)
+  readonly bounties?: { onKill(enemy: Enemy): BagItem | null }; // (a bounty's target: its sack, dropped: quests/bounties.ts)
   random(): number;
   report(event: GameEvent): void;
   focus(id: number | null): void;
@@ -113,6 +114,8 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean,
     const wanted = fight.quests.onKill(target);
     fight.story?.onKill(target);
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
+    const proof = fight.bounties?.onKill(target);
+    if (proof) fight.dropLoot(proof, target.x + 0.1, target.z - 0.3);
     const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);
     butcher(ENEMY_STATS[target.kind].family, target.id).forEach((meat, i) => fight.dropLoot(meat, target.x - 0.2 + 0.15 * i, target.z + 0.2)); // (a beast's meat, its own roll: loot/ingredients.ts)

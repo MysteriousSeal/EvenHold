@@ -41,6 +41,8 @@ import { makeWay } from './npcs/npcWalk';
 import type { Shop } from './inn/tavernShop';
 import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
 import { QuestBook } from './quests/questBook';
+import { Bounties } from './quests/bounties';
+import { Atlas } from './atlas/atlas';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
 import { fall, lieOnBedroll, liveOn } from './hero/setbacks';
@@ -102,6 +104,8 @@ export class GameModel {
   minutes = START_MINUTES; // the game's clock (clock.ts): a minute to each second played
   fullWalls = false; // the pause menu's option: rooms' inner walls full height, else cut low (upstairs.ts innerWalls)
   readonly quests: QuestBook; // the notice boards' quests, and those taken (quests/)
+  readonly bounties: Bounties; // the boards' wanted posters, and those taken (quests/bounties.ts)
+  readonly atlas: Atlas; // the map of the land walked: what's been seen, the places come upon (atlas/)
   readonly entrances: Entrance[]; // every door that can be gone through
   readonly npcs: Npc[]; // the villagers, one to a house (npcs/)
   // Where the hero is while indoors (indoors.ts); null outdoors.
@@ -171,6 +175,8 @@ export class GameModel {
     this.nearNpcs = new Nearby(this.npcs, (npc) => npc.village, ENEMY_ACTIVE_RADIUS + 40); // (+40: as far from their village as a villager goes, out to a field)
     this.nearWildlife = new Nearby(this.wildlife, (animal) => animal, ENEMY_ACTIVE_RADIUS);
     this.quests = new QuestBook(this);
+    this.bounties = new Bounties(this);
+    this.atlas = new Atlas(this);
   }
 
   // A foe slain by someone else (a guard on the road): the world's, for good.
@@ -263,6 +269,7 @@ export class GameModel {
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
     this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
     this.quests.update(dt);
+    [this.bounties.update(), this.atlas.update()]; // (posters come down; the land round the hero seen)
     stepNpcs(this.folk, this, dt);
     this.scoopCoins();
     if (liveOn(this, dt)) return; // out of energy: to the nearest inn's hearth

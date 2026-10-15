@@ -20,6 +20,7 @@ export const QUEST_ITEMS = {
   bristleTuft: item('Bristle tuft'),
   wildTruffle: item('Wild truffle'), // what they root up
   greatTusk: item('Great tusk'), // not the junk "Boar tusk" (junk.ts)
+  grislySack: item('Grisly sack'), // a bounty's target's head (or what serves), for its board (bounties.ts)
 } satisfies Record<string, LootEntry>;
 
 export type QuestItemId = keyof typeof QUEST_ITEMS;
@@ -46,4 +47,5 @@ export const PLURALS: Record<QuestItemId, string> = {
   bristleTuft: 'bristle tufts',
   wildTruffle: 'wild truffles',
   greatTusk: 'great tusks',
+  grislySack: 'grisly sacks',
 };

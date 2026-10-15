@@ -106,6 +106,8 @@ export interface SaveData {
   chickens?: unknown; // whoever's been turned into one, for good: the hens, and the villagers lost (spells/turned.ts)
   crypts?: Array<{ crypt: string; slain: number[] }>; // each dungeon's foes slain for good (by its key: a crypt's ruin's corner, a cave's mouth, 'cave:', a stronghold's gate, 'stronghold:'; by post)
   quests?: ReturnType<QuestBook['save']>; // the quests handed in, and those taken
+  bounties?: unknown; // the wanted posters handed in, and those taken (quests/bounties.ts; older saves: none)
+  atlas?: unknown; // the land seen and the places come upon (atlas/atlas.ts; older saves: the land round the hero and the villages been to)
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
   trees?: Record<string, number>; // the trees chopped at, by where they stand: the chops taken (all of them: felled for good; skills/lumber.ts)
@@ -182,6 +184,8 @@ export function snapshot(model: GameModel): SaveData {
       .map((n) => ({ id: n.id, inside: door(n.where), x: round(n.stood?.x ?? n.x), z: round(n.stood?.z ?? n.z), stop: n.stop })),
     shops: [...model.shops].map(([inn, shop]) => ({ inn, money: shop.money, stock: { ...shop.stock }, restockedAt: shop.restockedAt, buyback: (shop.buyback ?? []).map((s) => ({ ...s })), ...(shop.bought && { bought: { ...shop.bought } }) })),
     quests: model.quests.save(),
+    bounties: model.bounties.save(),
+    atlas: model.atlas.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
     stops: savedStops(model.welcome.stops),
@@ -235,7 +239,7 @@ export function restore(model: GameModel, data: SaveData): void {
   // the quests they've taken), its regions as they'd have been.
   if (model.streamed) {
     const places = [saved.inside !== null ? doorPlace(saved.inside) : { x: saved.x, z: saved.z }, ...(typeof saved.lastInn === 'number' ? [doorPlace(saved.lastInn)] : [])];
-    for (const { key } of records<{ key: unknown }>(data.quests?.taken)) {
+    for (const { key } of [...records<{ key: unknown }>(data.quests?.taken), ...records<{ key: unknown }>((data.bounties as { taken?: unknown })?.taken)]) {
       const board = Number(String(key).split(':')[0]);
       if (Number.isInteger(board) && board >= 0) places.push(villagePlace(board, model.size.depth)); // (a board's number: its village's place)
     }
@@ -341,6 +345,8 @@ export function restore(model: GameModel, data: SaveData): void {
     model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count, wear }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1, ...(typeof wear === 'number' && wear > 0 && wear <= 100 && { wear }) })), ...(kinds.length && { bought: Object.fromEntries(kinds) as Record<string, number> }) }); // (older saves: one of each; none bought)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
+  model.bounties.load(data.bounties);
+  model.atlas.load(data.atlas, [model.inside?.entrance ?? model.hero, ...model.welcome.stops.values()]); // (after the hero's placed: where they are, outdoors)
   if (data.travellers) model.travellers.load(data.travellers);
   model.chickens.load(data.chickens); // (before the villagers' day: those lost are gone)
   model.swaps.load(data.swaps);

@@ -5,6 +5,7 @@
 // A window in the middle of the screen; the game waits while it's open.
 // Its second tab, Wagons: the carrier's rides from here to every village been to before (model/villages/wagons.ts),
 // each its fare and hours on the road; one chosen, Ride there pays and sets the hero down on that village's square.
+// Between them, Bounties: its wanted posters (bountyTab.ts).
 
 import { innWants } from '../../model/inn/tavernShop';
 import './questPanels.css';
@@ -25,6 +26,7 @@ import { SCENERY_PALETTE, buildScenery } from '../../view/meshes/scenery/scenery
 import { clockAt } from '../../model/clock';
 import { coinWords } from '../../view/ui/coins';
 import type { MenuIcon } from '../../view/ui/menu';
+import { bountyTab } from './bountyTab';
 
 const wagonIcon: MenuIcon = (size) => voxelIcon('scenery:wagon', (): VoxelModel => ({ grid: buildScenery('wagon', 0), palette: SCENERY_PALETTE }), size);
 
@@ -199,6 +201,7 @@ export function createQuestBoardPanel(model: GameModel, hooks: { setPaused(pause
           return row;
         },
       },
+      bountyTab(model, () => board, () => menu.refresh()),
       {
         name: 'Wagons',
         slots: () => ({ cells: rides().map(rideSlot), columns: 1, rows: true }),
