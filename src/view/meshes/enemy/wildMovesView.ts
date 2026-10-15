@@ -1,16 +1,18 @@
 // The wild beasts' told moves shown on the ground before they land
 // (model/enemies/wildMoves.ts), glowing (light added over the grass): a bear's
 // slam a ring round it, brightening and pulsing faster as it comes; its charge
-// a strip down its way; a lynx's pounce a short streak to where it'll land.
+// a strip down its way; a lynx's pounce a short streak to where it'll land; a witch-finder's pitch a disc of
+// burning amber where it'll fall, flickering.
 
 import * as THREE from 'three';
 import type { WildMoves } from '../../../model/enemies/wildMoves';
-import { CHARGE_HALF, CHARGE_LONG, CHARGE_TELL, POUNCE_LONG, POUNCE_TELL, SLAM_RADIUS, SLAM_TELL } from '../../../model/enemies/wildMoves';
+import { CHARGE_HALF, CHARGE_LONG, CHARGE_TELL, PITCH_RADIUS, PITCH_TELL, POUNCE_LONG, POUNCE_TELL, SLAM_RADIUS, SLAM_TELL } from '../../../model/enemies/wildMoves';
 import { GlowMarks } from '../common/glowMarks';
 
 
 export class WildMovesView {
   private readonly ring = new THREE.RingGeometry(0.82, 1, 40).rotateX(-Math.PI / 2);
+  private readonly disc = new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2);
   private readonly strip = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0); // (along +X from its foot)
   private readonly marks: GlowMarks;
   private time = 0;
@@ -41,6 +43,11 @@ export class WildMovesView {
         const strip = mark(this.strip, 0xffa040, 0.1 + 0.4 * (m.t / POUNCE_TELL), m.x, m.z);
         strip.rotation.y = Math.atan2(-m.dz, m.dx);
         strip.scale.set(Math.min(POUNCE_LONG, Math.hypot(m.tx - m.x, m.tz - m.z) + 0.3), 1, 0.5);
+      }
+      for (const m of moves.pitches.moves) {
+        if (m.t > PITCH_TELL) continue;
+        const k = m.t / PITCH_TELL;
+        mark(this.disc, 0xff8a1a, (0.15 + 0.5 * k) * (0.75 + 0.25 * Math.sin(this.time * 23)), m.tx, m.tz).scale.setScalar(PITCH_RADIUS);
       }
     }
     this.marks.end();
