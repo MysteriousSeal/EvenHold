@@ -90,7 +90,7 @@ describe('every inn', () => {
         const { furniture, room } = model.inside!;
         const box = furniture.find((f) => f.kind === 'strongbox');
         expect(box, `seed ${seed}, inn at ${door.x},${door.z}`).toBeTruthy();
-        expect([box!.x, box!.facing]).toEqual([room.width - 1, [-1, 0]]);
+        expect([box!.x, box!.facing]).toEqual([room.width - 1, [0, 1]]);
         expect(furniture.some((f) => f.solid && f !== box && box!.x - 1 >= f.x && box!.x - 1 < f.x + f.w && box!.z >= f.z && box!.z < f.z + f.d)).toBe(false);
         Object.assign(model.hero, { x: box!.x - 0.75, z: box!.z });
         expect(strongboxInReach(model)).toBe(box);

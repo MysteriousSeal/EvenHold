@@ -39,7 +39,7 @@ export function furnishInn(plan: Planner, room: Room): void {
     }
   }
   // The guests' strongbox (hero/stash.ts) against the right-hand wall, nearest the back (clear of the floor the board's
-  // read from), facing into the room, the floor before it kept free to stand on (placed in turn, nothing rolled for it).
+  // read from), its padlock turned to the front of the room (where it's seen from), the floor before it kept free to stand on (placed in turn, nothing rolled for it).
   const reached = () => flood([[room.door, room.depth - 1]], (x, z) => x >= 0 && z >= 0 && x < room.width && z < room.depth && !taken.has(key(x, z))).size; // (the floor walked to from the door)
   for (let z = 2; z < room.depth - 2; z++) {
     if (!fits(room.width - 2, z, 1, 1)) continue;
@@ -51,7 +51,7 @@ export function furnishInn(plan: Planner, room: Room): void {
       taken.delete(key(box.x, box.z));
       continue;
     }
-    box.facing = [-1, 0];
+    box.facing = [0, 1];
     kept.add(key(room.width - 2, z));
     break;
   }
