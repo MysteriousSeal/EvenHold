@@ -96,7 +96,7 @@ export function spawnTravellers(seed: number, roads: readonly Road[], spawn: { x
     const parties = (rng() < 0.5 ? 1 : 2) + (pilgrims ? 1 : 0);
     for (let p = 0; p < parties; p++) {
       const roll = rng();
-      const role: TravellerRole = pilgrims ? (roll < 0.1 ? 'pedlar' : roll < 0.85 ? 'pilgrim' : 'guard') : roll < 0.45 ? 'pedlar' : roll < 0.8 ? 'pilgrim' : 'guard';
+      const role: TravellerRole = pilgrims ? (p === parties - 1 || roll < 0.75 ? 'pilgrim' : roll < 0.85 ? 'pedlar' : 'guard') : roll < 0.45 ? 'pedlar' : roll < 0.8 ? 'pilgrim' : 'guard'; // (the party more, always pilgrims)
       const along = rng() * (road.route.length - 1);
       const way = rng() < 0.5 ? 1 : -1;
       const first = makeTraveller(firstId + out.length, role, r, along, way, roads, seed, spawn, null);

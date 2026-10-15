@@ -1,7 +1,7 @@
 // The cathedral town raised on its region's land (worldgen/regions.ts), after its villages are placed as they ever were
 // (so every other village is as it was): those too near it let go (their houses, buildings and lanes with them), the
 // ground under it raised to a hilltop (the highest tier, its slope down a tier a tile to the land round it, never
-// below the water: its lakes drained), its streets and square paved, its buildings and houses stood on it, and the
+// below the water: its lakes drained), its streets and square paved (and a road out of each gate, down the hill), its buildings and houses stood on it, and the
 // town itself one of the region's villages, the last (`town`: its well its square's middle, as any village's). Its
 // walls and stalls handed back, to stand on it (solid: townWalls.ts).
 
@@ -9,7 +9,7 @@ import { MAX_TIER, WATER_LEVEL } from '../constants';
 import { cellKey } from '../map/grid';
 import { REACH as LANES } from '../worldgen/roads';
 import type { Building, BuildingKind, House, Surface, Village } from '../types';
-import { PLATEAU, SQUARE, townPlan, type StallKind, type WallPiece } from './townPlan';
+import { GATES, PLATEAU, SQUARE, WALL, townPlan, type StallKind, type WallPiece } from './townPlan';
 import { REACH, type TownSite } from './townSite';
 
 const LET_GO = REACH + LANES + 2; // tiles (each way) from its well a village's well may not be: its lanes and houses off its slope
@@ -64,6 +64,7 @@ export function raiseTown(seed: number, site: TownSite, land: Land): Town {
   const at = (dx: number, dz: number): [number, number] => [site.x + dx, site.z + dz];
   for (let dx = -SQUARE; dx <= SQUARE; dx++) for (let dz = -SQUARE; dz <= SQUARE; dz++) surfaceMap[site.x + dx][site.z + dz] = 'plaza';
   for (const [dx, dz] of plan.streets) surfaceMap[site.x + dx][site.z + dz] = 'path';
+  for (const [gx, gz] of GATES) for (let i = WALL + 1; i <= REACH; i++) surfaceMap[site.x + Math.sign(gx) * i][site.z + Math.sign(gz) * i] = 'path'; // (a road out of each gate, down the hill: the roads in come up it)
   const building = (kind: BuildingKind, { tiles, door }: { tiles: Array<[number, number]>; door: [number, number] }): Building => {
     const xs = tiles.map(([dx]) => dx);
     const zs = tiles.map(([, dz]) => dz);
