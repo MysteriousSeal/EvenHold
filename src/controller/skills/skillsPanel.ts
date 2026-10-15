@@ -15,7 +15,7 @@ import { createMenu, type Menu } from '../../view/ui/menu';
 import { SKILL_ICONS } from '../../view/ui/skillIcons';
 import { el } from '../../view/ui/dom';
 import { counted } from '../../view/ui/words';
-import { gearName } from '../../model/human/items/gear';
+import { nameOf } from '../../model/hero/bag';
 import { createSkillWindow } from './skillWindow';
 import { skillRuler } from './skillRuler';
 
@@ -28,7 +28,7 @@ export function statusOf(model: GameModel, id: SkillId): string | null {
   const cooked = model.cooking.making;
   if (id === 'cooking' && cooked) return `Cooking ${COOK_RECIPES[cooked.recipe].name} · ${cooked.of - cooked.left + 1} of ${cooked.of}`;
   const breaking = model.salvage.breaking;
-  if (id === 'salvaging' && breaking) return `Breaking down ${gearName(breaking.key)}`;
+  if (id === 'salvaging' && breaking) return `Breaking down ${nameOf(breaking.key)}`;
   const line = model.fishing.line;
   if (id === 'fishing' && line) return line.phase === 'bite' ? 'A bite! Hook it (E)' : `Fishing ${line.spot.deep ? 'the deep' : line.spot.narrows ? "a lake's narrows" : 'open water'} · waiting for a bite`;
   return null;

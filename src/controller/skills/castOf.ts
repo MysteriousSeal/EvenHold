@@ -5,7 +5,7 @@
 import type { GameModel } from '../../model/GameModel';
 import { RECIPES } from '../../model/skills/woodworking';
 import { COOK_RECIPES } from '../../model/skills/cooking';
-import { gearName } from '../../model/human/items/gear';
+import { nameOf } from '../../model/hero/bag';
 import { counted } from '../../view/ui/words';
 
 export function castOf(model: GameModel): { progress: number; label: string } | null {
@@ -16,6 +16,6 @@ export function castOf(model: GameModel): { progress: number; label: string } | 
   const cooked = cooking.making;
   if (cooked) return { progress: cooking.progress ?? 0, label: cooked.left > 1 ? `${COOK_RECIPES[cooked.recipe].name} · ${cooked.left} to cook` : COOK_RECIPES[cooked.recipe].name };
   if (model.fishing.biting) return { progress: model.fishing.progress ?? 0, label: 'Bite! E to hook it' }; // (its moment running out)
-  if (salvage.breaking) return { progress: salvage.progress ?? 0, label: `Breaking down ${gearName(salvage.breaking.key)}` };
+  if (salvage.breaking) return { progress: salvage.progress ?? 0, label: `Breaking down ${nameOf(salvage.breaking.key)}` };
   return null;
 }
