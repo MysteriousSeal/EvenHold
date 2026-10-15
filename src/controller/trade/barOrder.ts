@@ -163,6 +163,17 @@ function waitLine(ahead: number, serving: boolean): string {
   return more === 0 ? 'Right after this one, love.' : `After this one and ${more === 1 ? 'one more' : `${more} more`}, love.`;
 }
 
+// Her word as the hero sits down at her bar (free to call over: not seeing to someone).
+const GREETS = [
+  "What'll it be, love? Ale's cold, pies are hot.",
+  'Sit yourself down. Ale, or a pie?',
+  'Back again, {name}? What are you having?',
+  'You look like you need a drink, {name}.',
+  'Pull up a stool, love. What can I get you?',
+  'Hungry or thirsty? Or both, by the look of you.',
+  "Don't mind the stains on the bar, love. What'll you have?",
+];
+
 const SET_DOWN_MS = 800; // the full tankard on the bar before the hero picks it up
 
 // The bar, from the order to the empty mug: F calls her over; she fetches
@@ -179,6 +190,7 @@ export function createBar(model: GameModel, view: BarView) {
   let inn: Entrance | null = null; // where it's being had
   let stool: Furniture | null = null; // and the stool it's for (its row, where it sits on the bar)
   let wasDrinking = false;
+  let sat: Furniture | null = null; // the stool the hero's on (greeted as they sit down on it)
   // Whether the hero's sat on the stool it was ordered from still.
   const onStool = () => !!stool && model.inside?.entrance === inn && model.inside.seated?.seat.piece === stool;
 
@@ -226,9 +238,13 @@ export function createBar(model: GameModel, view: BarView) {
       };
     },
 
-    // Each frame: getting up mid-drink, finishing, the countdown.
+    // Each frame: her word as they sit down, getting up mid-drink, finishing, the countdown.
     update(): void {
       const { hero } = model;
+      const seat = atTheBar(model) && !model.work.shift ? model.inside!.seated!.seat.piece : null;
+      const barmaid = seat && seat !== sat && !coming && !hero.drinking ? barmaidHere(model) : null;
+      if (barmaid && !barmaid.serving) view.speak(barmaid, pick(GREETS).replace('{name}', hero.name));
+      sat = seat;
       if (coming && !onStool()) {
         const queue = ordersAt(inn!); // got up still waiting: called off (she lets it be, if she's pouring it already)
         if (queue.includes(coming)) queue.splice(queue.indexOf(coming), 1);

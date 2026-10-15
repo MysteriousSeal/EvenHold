@@ -332,8 +332,8 @@ async function boot(): Promise<void> {
     const action = prompt && roomAction(model); // (G by the barmaid: a room, or said it's let; by its bed at night: sleep)
     rentPrompt.update(action && prompt ? { label: roomActionLabel(action), muted: action.kind === 'rent' && action.taken && !action.week, x: prompt.x, y: prompt.y, z: prompt.z } : null, (x, y, z) => view.toScreen(x, y, z));
     // Sat on a stool at the bar: F orders an ale and G a meat pie, their prompts over the hero's head.
-    // Waiting behind others: the queue shown instead; gone while she's fetching it, or it's being had.
-    const order = bar.canOrder ? orderLabel(model, 'ale') : bar.ahead > 0 ? { label: `Ordered · ${bar.ahead} ahead`, soldOut: true } : null;
+    // Ordered: how many are ahead, or that it's on its way, shown instead; gone while it's being had.
+    const order = bar.canOrder ? orderLabel(model, 'ale') : bar.busy ? { label: bar.ahead > 0 ? `Ordered · ${bar.ahead} ahead` : 'Ordered · on its way', soldOut: true } : null;
     const pie = bar.canOrder ? orderLabel(model, 'pie') : null;
     bar.update();
     const { hero } = model;
