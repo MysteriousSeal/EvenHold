@@ -11,7 +11,7 @@ import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { fenceEdges } from '../../../model/worldgen/fields';
 import { stockOf, troughOf } from '../../../model/wildlife/livestock';
-import { PASTURE_PALETTE, PASTURE_VARIANTS, buildPastureTile, buildTrough } from './pastureVoxels';
+import { PASTURE_PALETTE, PASTURE_VARIANTS, buildPastureTile, buildTroughTile } from './pastureVoxels';
 import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
@@ -46,8 +46,8 @@ interface Piece {
 const mesh = (grid: VoxelGrid) => greedyMesh(grid, FIELD_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
 
 export function buildFieldGeometry(model: string): THREE.BufferGeometry {
-  if (model === 'trough') return greedyMesh(buildTrough(), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
-  if (model.startsWith('pasture')) return greedyMesh(buildPastureTile(Number(model.split(':')[1]), model.endsWith('worn') ? 8 : 0), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
+  if (model === 'trough') return greedyMesh(buildTroughTile(), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
+  if (model.startsWith('pasture')) return greedyMesh(buildPastureTile(Number(model.split(':')[1])), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
   if (model === 'corner') return mesh(buildCornerTile());
   if (model === 'fence') return mesh(buildFenceSegment());
   return mesh(buildWheatTile(Number(model.split(':')[1])));
@@ -67,8 +67,7 @@ export function buildFields(scene: WorldSink, model: GameModel): (elapsedSeconds
         const isCorner = x === field.corner[0] && z === field.corner[1];
         if (pasture && !isCorner) {
           const at = x === trough[0] && z === trough[1];
-          crops.push({ x, z, y, model: `pasture:${hashCell(x, z, 35) % PASTURE_VARIANTS}${at ? ':worn' : ''}`, quarterTurns: hashCell(x, z, 36) & 3 });
-          if (at) crops.push({ x, z, y, model: 'trough', quarterTurns: field.width >= field.depth ? 1 : 0 });
+          crops.push(at ? { x, z, y, model: 'trough', quarterTurns: field.width >= field.depth ? 1 : 0 } : { x, z, y, model: `pasture:${hashCell(x, z, 35) % PASTURE_VARIANTS}`, quarterTurns: hashCell(x, z, 36) & 3 });
           continue;
         }
         const wheat = `wheat:${hashCell(x, z, 33) % WHEAT_VARIANTS}`;

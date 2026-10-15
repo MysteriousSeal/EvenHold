@@ -3,8 +3,8 @@
 // they're left, and every beast of them stepped and drawn each frame. They
 // wear the very voxels of the beasts people are turned into (turned/*Voxels.ts:
 // a sheep, a cow, a pig, a hen), but drawn as instances, a mesh to each part
-// of each coat (a body, a head, a hind leg, a foreleg), so a whole field of
-// them costs a few draws; walking, their legs swing in diagonal pairs and
+// of each coat (a body, a head, and its legs, all four drawn as its hind
+// leg), so a whole field of them costs three draws; walking, their legs swing in diagonal pairs and
 // they nod; stood, their heads go down to graze (a hen's, to peck) and up
 // again for a look about.
 
@@ -51,8 +51,7 @@ interface Breed {
   shape: Quadruped;
   body: THREE.InstancedMesh;
   head: THREE.InstancedMesh;
-  hind: THREE.InstancedMesh;
-  fore: THREE.InstancedMesh;
+  legs: THREE.InstancedMesh;
   count: number;
 }
 
@@ -81,7 +80,7 @@ export class LivestockViews {
   // Each frame, out in the world.
   update(dt: number, hero: { x: number; z: number }): void {
     const outdoors = !this.model.inside;
-    for (const breed of this.breeds.values()) breed.body.visible = breed.head.visible = breed.hind.visible = breed.fore.visible = false;
+    for (const breed of this.breeds.values()) breed.body.visible = breed.head.visible = breed.legs.visible = false;
     if (!outdoors) return;
     this.near(hero);
     for (const breed of this.breeds.values()) breed.count = 0;
@@ -92,8 +91,8 @@ export class LivestockViews {
       }
     }
     for (const breed of this.breeds.values()) {
-      for (const mesh of [breed.body, breed.head, breed.hind, breed.fore]) {
-        mesh.count = mesh === breed.body || mesh === breed.head ? breed.count : mesh === breed.fore && breed.shape.legs.length === 2 ? 0 : breed.count * 2;
+      for (const mesh of [breed.body, breed.head, breed.legs]) {
+        mesh.count = mesh === breed.legs ? breed.count * breed.shape.legs.length : breed.count;
         mesh.visible = breed.count > 0;
         mesh.instanceMatrix.needsUpdate = true;
       }
@@ -131,13 +130,11 @@ export class LivestockViews {
       this.scene.add(m);
       return m;
     };
-    const two = shape.legs.length === 2; // (a hen: both legs the same)
     breed = {
       shape,
       body: instanced(mesh(shape.body(), shape.palette, shape.pivots.body), 1),
       head: instanced(mesh(shape.head(), shape.palette, shape.pivots.head), 1),
-      hind: instanced(mesh(shape.leg(true), shape.palette, shape.pivots.leg), 2),
-      fore: instanced(mesh(shape.leg(false), shape.palette, shape.pivots.leg), two ? 1 : 2),
+      legs: instanced(mesh(shape.leg(true), shape.palette, shape.pivots.leg), shape.legs.length), // (fore and hind alike: one draw the fewer)
       count: 0,
     };
     this.breeds.set(key, breed);
@@ -171,8 +168,7 @@ export class LivestockViews {
     shape.legs.forEach(([lx, lz], n) => {
       const sign = two ? (n === 0 ? 1 : -1) : n === 0 || n === 3 ? 1 : -1;
       part.multiplyMatrices(root, step.makeTranslation(lx * V, shape.legHeight * V, lz * V)).multiply(turn.makeRotationX(sign * swing * gait.swing));
-      if (two || n < 2) breed.hind.setMatrixAt(i * 2 + n, part);
-      else breed.fore.setMatrixAt(i * 2 + n - 2, part);
+      breed.legs.setMatrixAt(i * shape.legs.length + n, part);
     });
   }
 

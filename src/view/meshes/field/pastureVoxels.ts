@@ -6,8 +6,8 @@
 // - Grass: a voxel of turf over the whole tile (the ground under it is the
 //   field's tilled soil), in drifts of green and worn, a bare patch or two,
 //   and a few tufts left standing where they don't like to graze.
-// - Trough: a long plank trough on two trestles, water in it, the ground
-//   round it trodden bare.
+// - Trough: a long plank trough on two trestles, water in it, the turf
+//   round it trodden bare (one model, tile and trough).
 
 import { hashUnit, smoothNoise } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -15,7 +15,7 @@ import { createGrid, fillBox, setColor } from '../voxel/voxelShapes';
 
 const N = 25;
 export const PASTURE_GRID: [number, number, number] = [N, 6, N];
-export const PASTURE_VARIANTS = 3;
+export const PASTURE_VARIANTS = 2; // (few: each is a draw of its own, in every stretch of the map with a pasture)
 export const PASTURE_PALETTE = [
   0x6fae4f, // 1 grass
   0x86bf5c, // 2 grass, sunlit
@@ -49,9 +49,9 @@ export function buildPastureTile(variant: number, bare = 0): VoxelGrid {
   return grid;
 }
 
-// A plank trough along X on two trestles, water in it.
-export function buildTrough(): VoxelGrid {
-  const grid = createGrid(PASTURE_GRID);
+// The trough's tile: the turf trodden bare round the middle, and a plank trough along X on two trestles, water in it.
+export function buildTroughTile(): VoxelGrid {
+  const grid = buildPastureTile(0, 8);
   for (const x of [6, 18]) fillBox(grid, x, 1, 10, x, 2, 14, WOOD_DARK); // trestles
   fillBox(grid, 5, 3, 10, 19, 5, 14, WOOD); // the trough
   fillBox(grid, 6, 4, 11, 18, 5, 13, WATER); // water to the brim but a voxel
