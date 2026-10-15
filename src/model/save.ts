@@ -316,7 +316,8 @@ export function restore(model: GameModel, data: SaveData): void {
     // Its wares, those the game still knows, each how many (none left of one: kept so, sold out).
     // What the hero last sold there, to buy back (a sale of something the game no longer knows, dropped).
     const sales = (Array.isArray(buyback) ? buyback : []).filter((s) => known(s?.id) && Number.isInteger(s.price) && s.price >= 0).slice(0, BUYBACK);
-    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), bought: Object.fromEntries(Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0)) as Record<string, number> }); // (older saves: one of each; none bought)
+    const kinds = Object.entries(bought && typeof bought === 'object' ? bought : {}).filter(([, n]) => Number.isInteger(n) && (n as number) > 0); // (a trade's goods bought, by kind: none, none kept)
+    model.shops.set(data.version === 1 ? shopOfVersion1(model, inn) : inn, { money, stock: Object.fromEntries(Object.entries(stock && typeof stock === 'object' ? stock : {}).filter(([id, n]) => known(id) && Number.isInteger(n) && (n as number) >= 0)), restockedAt, buyback: sales.map(({ id, price, count }) => ({ id, price, count: Number.isInteger(count) && count > 0 ? count : 1 })), ...(kinds.length && { bought: Object.fromEntries(kinds) as Record<string, number> }) }); // (older saves: one of each; none bought)
   }
   if (data.quests) model.quests.load(data.quests, model.villages.length);
   if (data.travellers) model.travellers.load(data.travellers);
