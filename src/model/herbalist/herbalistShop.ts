@@ -52,7 +52,7 @@ export function herbalistShopAt(shops: Map<number, Shop>, seed: number, npc: Pic
 }
 
 // The hero buying `id` from the herbalist, or selling it them.
-export const buyFromHerbalist = (shop: Shop, hero: Hero, id: BagItem) => buyFrom(shop, hero, id, herbalistPrice(id, false));
+export const buyFromHerbalist = (shop: Shop, hero: Hero, id: BagItem) => (isPotion(id) ? buyFrom(shop, hero, id, herbalistPrice(id, false)) : 'sold out'); // (only their potions: what's sold them, into the pot)
 export function sellToHerbalist(shop: Shop, hero: Hero, id: BagItem): ReturnType<typeof sellTo> {
   if (!herbalistBuys(id) || !wantsPart(shop, id)) return 'not wanted';
   const result = sellTo(shop, hero, id, herbalistPrice(id, true));
