@@ -21,6 +21,7 @@ import { BODY_GRID, CHICKEN_PALETTE, CHICKEN_VOXEL_SIZE, HEAD_GRID, LEG_HEIGHT, 
 
 const REACH = 26; // tiles from the hero to a field's middle, for it to be stocked
 const MOST = 40; // beasts of a coat drawn, at most
+const TURF = 0.04; // the pasture's turf, a voxel over the ground (field/pastureVoxels.ts)
 const COATS: Record<LivestockKind, number> = { sheep: 2, cow: 3, pig: 3, hen: 1 };
 // How each goes about: leg-swing radians per tile walked, how far its legs swing, its head's dip to graze, seconds
 // between one grazing and the next (and of that, its head down), and how fast its head goes down and comes up.
@@ -111,7 +112,7 @@ export class LivestockViews {
       keep.add(field);
       if (this.herds.has(field)) continue;
       const shown = herdIn(field, this.model.seed).map((beast) => ({ beast, walked: 0, lowered: 0, time: beast.n * 2.3 + field.x0 }));
-      this.herds.set(field, { y: this.model.getGroundY(mx - 0.5, mz - 0.5), shown });
+      this.herds.set(field, { y: this.model.getGroundY(mx - 0.5, mz - 0.5) + TURF, shown });
     }
     for (const field of this.herds.keys()) if (!keep.has(field)) this.herds.delete(field);
   }

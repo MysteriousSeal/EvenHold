@@ -6,8 +6,9 @@
 // - fireflies drift, glowing up and dimming;
 // - songbirds hop and peck on the grass (or sit a fence post, looking
 //   about); the hero near, off in a flurry, up and away;
-// - rabbits sit and nibble, a few hops on now and then; the hero near,
-//   they bolt, zigzagging, and are gone into the grass;
+// - rabbits sit and nibble, a few hops on now and then; the hero coming,
+//   they freeze, sat up; nearer, they bolt, zigzagging, their white scuts
+//   flashing, and are gone into the grass;
 // - dragonflies hover over the shallows, darting from spot to spot;
 // - frogs squat on the bank, croaking (their throats swelling); the hero
 //   near, they leap into the water, a ring of foam where they went in;
@@ -44,10 +45,13 @@ export interface Moment {
 }
 
 const FLEE = { bird: 3.2, rabbit: 3.5, frog: 2.2 }; // tiles: the hero this near, they're off
+const FREEZE = 5.5; // tiles: the hero this near, a rabbit sits up stock-still, watching
 const BACK = 18; // tiles away the hero must go before they're back (within the patches still kept round them)
 const POST = 0.39; // a fence post's top, over the ground (a bird sat on it: its middle)
 const SPLASH_FOR = 0.9; // seconds a ring of foam lasts
 const FROG = 1.7; // a frog drawn this much bigger than its voxels (true to size, it'd be lost in the grass)
+const BIRD = 1.3; // a songbird, likewise (five voxels across, at the least)
+const BUTTERFLY = 1.6;
 
 const [at, turn, size, euler] = [new THREE.Vector3(), new THREE.Quaternion(), new THREE.Vector3(), new THREE.Euler(0, 0, 0, 'YXZ')];
 function pose(m: Moment, x: number, y: number, z: number, pitch: number, yaw: number, sx = 1, sy = 1, sz = 1): true {
@@ -77,7 +81,7 @@ export function butterfly(c: Creature, m: Moment): boolean {
   const [x, z] = [c.x + Math.sin(t * 0.43) * 1.2 + Math.sin(t * 1.1) * 0.3, c.z + Math.cos(t * 0.37) * 1.1 + Math.cos(t * 0.9) * 0.3];
   const y = m.ground(x, z) + 0.35 + Math.sin(t * 2.3) * 0.1 + c.seed * 0.25;
   const beat = 0.25 + 0.75 * Math.abs(Math.sin(t * 14));
-  return pose(m, x, y, z, 0, Math.atan2(Math.cos(t * 0.43) * 0.52, -Math.sin(t * 0.37) * 0.41), beat);
+  return pose(m, x, y, z, 0, Math.atan2(Math.cos(t * 0.43) * 0.52, -Math.sin(t * 0.37) * 0.41), beat * BUTTERFLY, BUTTERFLY, BUTTERFLY);
 }
 
 export function firefly(c: Creature, m: Moment, voxel: number): boolean {
@@ -98,20 +102,20 @@ export function bird(c: Creature, m: Moment): boolean {
     const f = c.fled!;
     if (f > 6) return false; // (gone off out of sight)
     const flap = 0.85 + 0.15 * Math.sin(m.time * 30);
-    return pose(m, c.x + c.away!.x * f * 3.2, base + Math.min(3, f * f * 1.4 + f * 0.6), c.z + c.away!.z * f * 3.2, -0.3, Math.atan2(c.away!.x, c.away!.z), 1.1, flap);
+    return pose(m, c.x + c.away!.x * f * 3.2, base + Math.min(3, f * f * 1.4 + f * 0.6), c.z + c.away!.z * f * 3.2, -0.3, Math.atan2(c.away!.x, c.away!.z), 1.1 * BIRD, flap * BIRD, BIRD);
   }
   if (c.perch) {
     // Sat on its post, looking about now and then, a little hop round as it does.
     const look = Math.floor(t * 0.4);
     const into = (t * 0.4) % 1;
-    return pose(m, c.x, base + (into < 0.1 ? Math.sin((into / 0.1) * Math.PI) * 0.03 : 0), c.z, 0, hashUnit(look, 3, c.seed * 1e4) * Math.PI * 2);
+    return pose(m, c.x, base + (into < 0.1 ? Math.sin((into / 0.1) * Math.PI) * 0.03 : 0), c.z, 0, hashUnit(look, 3, c.seed * 1e4) * Math.PI * 2, BIRD, BIRD, BIRD);
   }
   // On the ground hopping and pecking.
   const hop = Math.floor(t * 0.7);
   const into = (t * 0.7) % 1;
   const [x, z] = [c.x + (hashUnit(hop, 1, c.seed * 1e4) - 0.5) * 0.8, c.z + (hashUnit(hop, 2, c.seed * 1e4) - 0.5) * 0.8];
-  const y = m.ground(x, z) + 0.06 + (into < 0.15 ? Math.sin((into / 0.15) * Math.PI) * 0.06 : 0);
-  return pose(m, x, y, z, into > 0.5 && into < 0.7 ? 0.4 : 0, hashUnit(hop, 3, c.seed * 1e4) * Math.PI * 2);
+  const y = m.ground(x, z) + 0.08 + (into < 0.15 ? Math.sin((into / 0.15) * Math.PI) * 0.06 : 0);
+  return pose(m, x, y, z, into > 0.5 && into < 0.7 ? 0.4 : 0, hashUnit(hop, 3, c.seed * 1e4) * Math.PI * 2, BIRD, BIRD, BIRD);
 }
 
 // A rabbit's k'th sitting place round its home (`fits`: there's ground for it there; else its home).
@@ -140,6 +144,7 @@ export function rabbit(c: Creature, m: Moment, fits: (x: number, z: number) => b
     return pose(m, x, m.ground(x, z) + Math.abs(Math.sin(f * Math.PI * 4)) * 0.1, z, -0.15, Math.atan2(c.away!.x, c.away!.z) + Math.cos(f * 7) * 0.4);
   }
   const yaw = Math.atan2(now.x - was.x, now.z - was.z) || c.seed * 6;
+  if (Math.hypot(m.hero.x - c.x, m.hero.z - c.z) < FREEZE) return pose(m, now.x, m.ground(now.x, now.z), now.z, -0.15, yaw); // (frozen, sat up)
   const hopUp = going < 1 ? Math.abs(Math.sin(going * Math.PI * 2)) * 0.08 : 0;
   const nibble = u > 0.4 && u < 0.75 ? 0.25 + Math.sin(t * 9) * 0.05 : 0; // its head down to the grass
   return pose(m, here.x, m.ground(here.x, here.z) + hopUp, here.z, nibble, yaw);

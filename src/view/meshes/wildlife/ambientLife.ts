@@ -10,11 +10,13 @@
 // ambientMoves.ts; their tiny voxel models: ambientVoxels.ts. One instanced
 // mesh a kind, drawn only as many as are out. With them, the villages'
 // livestock in their fields (livestockViews.ts) and the smoke from the
-// houses' chimneys (smoke/houseSmoke.ts), round the hero as they are.
+// houses' chimneys (smoke/houseSmoke.ts), round the hero as they are. The
+// weather has its say (common/weatherNow.ts): in the rain the birds and the
+// butterflies are under cover, and the frogs out, day or night.
 
 import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
-import { LIFE_CELL, lifeIn, lifeOut, perchesOn, type LifeKind, type LifeSpot } from '../../../model/scenery/ambientSpots';
+import { LIFE_CELL, lifeIn, lifeOut, perchesOn, type LifeKind, type LifeSpot, type LifeWorld } from '../../../model/scenery/ambientSpots';
 import { createMeadowDensity } from '../../../model/worldgen/meadows';
 import { NEIGHBORS_4 } from '../../../model/map/grid';
 import { hourAt } from '../../../model/clock';
@@ -23,6 +25,7 @@ import { oneOf } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { BIRD_PALETTE, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
+import { weatherNow, type WeatherNow } from '../common/weatherNow';
 import { LivestockViews } from './livestockViews';
 import { HouseSmoke } from '../smoke/houseSmoke';
 import { bird, butterfly, dragonfly, firefly, fish, frog, rabbit, splash, type Creature, type Moment } from './ambientMoves';
@@ -31,12 +34,22 @@ const V = 0.025; // the creatures' voxels: finer than the world's (they're small
 const CELL = LIFE_CELL; // tiles a side of each patch of ground they're found by
 const REACH = 4; // patches out from the hero's (each way) that have their life
 const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, splash: 32 };
+const KINDS = Object.keys(MOST).filter((k) => k !== 'splash') as LifeKind[];
 const TINTS: Partial<Record<LifeKind, number[]>> = {
   butterfly: [0xf0a33a, 0xf2f0e6, 0x7aa2e8], // orange, white, blue
   bird: [0xffffff, 0xd8b090], // plain, a warmer brown
   rabbit: [0xffffff, 0xc8c4c0], // brown, a greyer one
-  dragonfly: [0x3fb6c8, 0x4a7ee0, 0xc8503a], // teal, blue, red
+  dragonfly: [0x2fa8b8, 0x2fa8b8, 0x4a7ee0], // teal (most), blue
 };
+
+// Whether `kind` is out, its hours (`out`) and the weather considered.
+export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): boolean {
+  if (kind === 'frog') return out || w.rain > 0.3; // (out in the rain, whatever the hour)
+  if (kind === 'bird') return out && w.rain <= 0.5 && w.snow <= 0.3;
+  if (kind === 'butterfly' || kind === 'dragonfly') return out && w.rain <= 0.3 && w.snow === 0 && (kind === 'butterfly' || w.fog <= 0.5);
+  if (kind === 'firefly') return out && w.rain <= 0.3;
+  return out;
+}
 
 export class AmbientLife {
   private readonly meadow: (x: number, z: number) => number;
@@ -46,6 +59,7 @@ export class AmbientLife {
   private readonly color = new THREE.Color();
   private fields: { of: number; by: Map<string, Field[]> } = { of: -1, by: new Map() }; // the fields by patch (their perched birds')
   private readonly moment: Moment;
+  private readonly life: LifeWorld; // where the life's placed (with what country it is, once that's known: ambientSpots.ts)
   private readonly livestock: LivestockViews;
   private readonly smoke: HouseSmoke;
   private time = 0;
@@ -78,6 +92,7 @@ export class AmbientLife {
       fish: mesh(fishGrid(), FISH_PALETTE, lit, MOST.fish),
       splash: mesh(splashGrid(), [0xffffff], foam, MOST.splash),
     };
+    this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z) };
     this.livestock = new LivestockViews(scene, model);
     this.smoke = new HouseSmoke(scene, model);
     this.moment = { time: 0, dt: 0, hour: 0, hero: { x: 0, z: 0 }, ground: (x, z) => model.getGroundY(x, z), matrix: new THREE.Matrix4(), splash: (x, z, age) => this.splash(x, z, age) };
@@ -94,10 +109,12 @@ export class AmbientLife {
     this.near(hero);
     Object.assign(this.moment, { time: this.time, dt, hour: hourAt(minutes), hero });
     for (const kind of Object.keys(this.meshes) as Array<keyof typeof this.meshes>) this.counts[kind] = 0;
+    const weather = weatherNow(this.model.seed, minutes, this.time);
+    const out = Object.fromEntries(KINDS.map((kind) => [kind, weathered(kind, lifeOut(kind, minutes), weather)])) as Record<LifeKind, boolean>;
     const fits = (x: number, z: number) => this.model.isOpenTile(Math.round(x), Math.round(z)) && !this.model.tiles.lake(Math.round(x), Math.round(z));
     for (const list of this.cells.values()) {
       for (const c of list) {
-        if (!lifeOut(c.kind, minutes) && c.fled === null) continue;
+        if (!out[c.kind] && c.fled === null) continue;
         if (this.counts[c.kind] >= MOST[c.kind]) continue; // (the most drawn)
         const m = this.moment;
         const shown =
@@ -153,7 +170,7 @@ export class AmbientLife {
   // each with its look and how it's faring.
   private lifeOf(cx: number, cz: number): Creature[] {
     const perched = (this.fieldsBy().get(`${cx},${cz}`) ?? []).flatMap((f) => perchesOn(f, this.model.seed));
-    return [...lifeIn(this.model, cx, cz, this.meadow), ...perched].map((spot) => ({
+    return [...lifeIn(this.life, cx, cz, this.meadow), ...perched].map((spot) => ({
       ...spot,
       tint: TINTS[spot.kind] ? oneOf(TINTS[spot.kind]!, spot.seed) : 0,
       face: spot.kind === 'frog' ? this.toWater(spot) : undefined,

@@ -1,5 +1,6 @@
 // Crop fields (see fieldVoxels.ts): wheat tiles swaying in the wind (and parting around the hero; none in a
-// field kept as a pasture, its livestock grazing it: model/wildlife/livestock.ts), a
+// field kept as a pasture, its livestock grazing it: model/wildlife/livestock.ts, but grazed turf and a trough
+// beside the hay: pastureVoxels.ts), a
 // hay-and-tools corner tile, and fence segments along each field's border
 // with a gap at the gate. Every model is meshed once and instanced per map
 // chunk. Crops are walkable; the fences block (see GameModel).
@@ -9,7 +10,8 @@ import type { WorldSink } from '../../world/chunkLayer';
 import type { GameModel } from '../../../model/GameModel';
 import { TILE_HEIGHT } from '../../../model/constants';
 import { fenceEdges } from '../../../model/worldgen/fields';
-import { stockOf } from '../../../model/wildlife/livestock';
+import { stockOf, troughOf } from '../../../model/wildlife/livestock';
+import { PASTURE_PALETTE, PASTURE_VARIANTS, buildPastureTile, buildTrough } from './pastureVoxels';
 import { hashCell } from '../../../util/random';
 import { addWindSway } from '../common/wind';
 import { greedyMesh, type VoxelGrid } from '../voxel/greedyMesh';
@@ -44,6 +46,8 @@ interface Piece {
 const mesh = (grid: VoxelGrid) => greedyMesh(grid, FIELD_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
 
 export function buildFieldGeometry(model: string): THREE.BufferGeometry {
+  if (model === 'trough') return greedyMesh(buildTrough(), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
+  if (model.startsWith('pasture')) return greedyMesh(buildPastureTile(Number(model.split(':')[1]), model.endsWith('worn') ? 8 : 0), PASTURE_PALETTE, FIELD_VOXEL_SIZE, ORIGIN);
   if (model === 'corner') return mesh(buildCornerTile());
   if (model === 'fence') return mesh(buildFenceSegment());
   return mesh(buildWheatTile(Number(model.split(':')[1])));
@@ -57,10 +61,16 @@ export function buildFields(scene: WorldSink, model: GameModel): (elapsedSeconds
     const y = field.groundTier * TILE_HEIGHT;
     const turn = field.rowsAlongX ? 0 : 1;
     const pasture = stockOf(field, model.seed) !== null;
+    const trough = troughOf(field);
     for (let x = field.x0; x < field.x0 + field.width; x++) {
       for (let z = field.z0; z < field.z0 + field.depth; z++) {
         const isCorner = x === field.corner[0] && z === field.corner[1];
-        if (pasture && !isCorner) continue;
+        if (pasture && !isCorner) {
+          const at = x === trough[0] && z === trough[1];
+          crops.push({ x, z, y, model: `pasture:${hashCell(x, z, 35) % PASTURE_VARIANTS}${at ? ':worn' : ''}`, quarterTurns: hashCell(x, z, 36) & 3 });
+          if (at) crops.push({ x, z, y, model: 'trough', quarterTurns: field.width >= field.depth ? 1 : 0 });
+          continue;
+        }
         const wheat = `wheat:${hashCell(x, z, 33) % WHEAT_VARIANTS}`;
         crops.push({ x, z, y, model: isCorner ? 'corner' : wheat, quarterTurns: isCorner ? hashCell(x, z, 34) & 3 : turn });
       }
@@ -72,9 +82,10 @@ export function buildFields(scene: WorldSink, model: GameModel): (elapsedSeconds
   const wheatMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
   const windTime = addWindSway(wheatMaterial, WHEAT_WIND);
   const plain = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
-  const wheat = crops.filter((p) => p.model !== 'corner');
+  const still = (p: Piece) => p.model === 'corner' || p.model === 'trough' || p.model.startsWith('pasture'); // (no wind in them)
+  const wheat = crops.filter((p) => !still(p));
   addVoxelInstances(scene, wheat, (p) => p.model, (p) => buildFieldGeometry(p.model), place, wheatMaterial);
-  addVoxelInstances(scene, [...crops.filter((p) => p.model === 'corner'), ...fences], (p) => p.model, (p) => buildFieldGeometry(p.model), place, plain);
+  addVoxelInstances(scene, [...crops.filter(still), ...fences], (p) => p.model, (p) => buildFieldGeometry(p.model), place, plain);
 
   return (elapsedSeconds) => {
     windTime.value = elapsedSeconds;

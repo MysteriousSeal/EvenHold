@@ -55,7 +55,7 @@ export function rabbitGrid() {
   fillBox(g, 1, 2, 0, 2, 3, 0, 3); // scut
   return g;
 }
-export const RABBIT_PALETTE = [0x8c7258, 0x6e5844, 0xeee6d6, 0x2a2420, 0xc89a90]; // (brown, darker, white, dark, a pink nose)
+export const RABBIT_PALETTE = [0x9a7a5a, 0x7a5e44, 0xf1eee4, 0x2a2420, 0xc89a90]; // (brown, darker, white, dark, a pink nose)
 
 // A frog squat on the bank, facing +Z: wide and low, its eyes bulging on top, its hind legs folded at its sides.
 export function frogGrid() {
@@ -64,11 +64,13 @@ export function frogGrid() {
   fillBox(g, 0, 0, 0, 0, 0, 2, 3); // hind legs
   fillBox(g, 4, 0, 0, 4, 0, 2, 3);
   fillBox(g, 1, 0, 4, 3, 0, 4, 2); // pale throat
+  setColor(g, 1, 1, 1, 3); // dark spots on its back
+  setColor(g, 3, 1, 2, 3);
   setColor(g, 1, 2, 3, 4); // eyes
   setColor(g, 3, 2, 3, 4);
   return g;
 }
-export const FROG_PALETTE = [0x7fae3a, 0xe8e09a, 0x4e6e28, 0x1a1614]; // (a bright green, to read on the grass of the bank)
+export const FROG_PALETTE = [0x9a9440, 0xe8e0b0, 0x3a4a2a, 0x1a1614]; // (olive-yellow, dark-spotted: green would be lost on the marsh)
 
 // A dragonfly, facing +Z: a long thin body, a dark head, two pairs of pale wings spread flat (flickered by squeezing).
 export function dragonflyGrid() {
@@ -81,7 +83,7 @@ export function dragonflyGrid() {
   fillBox(g, 4, 0, 3, 5, 0, 3, 3);
   return g;
 }
-export const DRAGONFLY_PALETTE = [0xffffff, 0x1a1614, 0xdde8ee];
+export const DRAGONFLY_PALETTE = [0xffffff, 0x1a1614, 0xd8f0f0];
 
 // A fish leaping, facing +Z: silver, dark along its back, its tail split.
 export function fishGrid() {
@@ -95,7 +97,7 @@ export function fishGrid() {
   fillBox(g, 0, 2, 0, 1, 2, 0, 2);
   return g;
 }
-export const FISH_PALETTE = [0xb8c4c8, 0x4e6068, 0x1a1614];
+export const FISH_PALETTE = [0xc8d4dc, 0x6a7a84, 0x1a1614];
 
 // A ring of foam on the water, where a fish or a frog went in (spread and sunk away as it fades).
 export function splashGrid() {

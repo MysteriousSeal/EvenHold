@@ -1,7 +1,8 @@
 // Smoke from the houses' chimneys (and the inn's, and a herbalist's hut's),
 // round the hero: the hearths lit in most houses, each chimney's puffs
 // rising, swelling and thinning away, leaning off downwind and swaying with
-// its gusts (the forge's own smoke: building/smoke.ts, the same voxel puffs).
+// its gusts (puffs.ts, as the forge's own smoke: building/smoke.ts), pale,
+// greying as they thin; thicker of a morning and an evening, the fires made up.
 // Where each chimney's mouth is comes from its house's very voxels (its
 // topmost chimney pot, or the hut's sooty mouth), worked out once a look;
 // the houses near the hero are looked over as they move from tile to tile,
@@ -11,7 +12,8 @@ import * as THREE from 'three';
 import type { GameModel } from '../../../model/GameModel';
 import type { House } from '../../../model/types';
 import { isHerbalistHome } from '../../../model/herbalist/herbalistHomes';
-import { hashUnit, snapTo } from '../../../util/random';
+import { hashUnit } from '../../../util/random';
+import { hourAt } from '../../../model/clock';
 import { voxelIndex, type VoxelGrid } from '../voxel/greedyMesh';
 import { C } from '../building/housePalette';
 import { HOUSE_LAYOUTS, HOUSE_VOXEL_SIZE, buildHouseVoxels } from '../building/houseVoxels';
@@ -19,20 +21,17 @@ import { buildHermitHut } from '../building/herbalistHouse';
 import { buildInnVoxels } from '../building/innVoxels';
 import { looks } from '../building/houseMesh';
 import { originOf } from '../building/litBuildings';
-import { windNow } from './wind';
+import { weatherNow } from '../common/weatherNow';
+import { puffAt, puffGeometry, type Draft } from './puffs';
 
-const VOXEL = 0.04; // (the houses' own)
 const REACH = 22; // tiles from the hero to a chimney that's smoking
 const MOST = 48; // chimneys smoking at once, at most
 const PUFFS = 6; // to a chimney
 const LIFETIME = 5.5; // seconds from chimney to gone
-const RISE = 1.5; // world units risen over a lifetime
-const LEAN = 1.6; // world units blown downwind over a lifetime, in a full wind
+const DRAFT: Draft = { rise: 1.5, lean: 1.6, size: 0.24 };
 const LIT = 0.75; // of the houses with their hearth lit
-const SOOT = new THREE.Color(0xa8a49e);
-const HAZE = new THREE.Color(0xf2f0ea);
-
-const snap = (v: number) => snapTo(v, VOXEL);
+const FRESH = new THREE.Color(0xe8e4dc);
+const THIN = new THREE.Color(0xc8c4bc);
 
 // The middle of the top of a model's topmost voxel of `color`, from its origin (null: it has none).
 function mouthOf(grid: VoxelGrid, color: number): THREE.Vector3 | null {
@@ -63,7 +62,7 @@ export class HouseSmoke {
     scene: THREE.Object3D,
     private readonly model: GameModel,
   ) {
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }), MOST * PUFFS);
+    this.mesh = new THREE.InstancedMesh(puffGeometry(), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }), MOST * PUFFS);
     this.mesh.frustumCulled = false; // (round the hero, moved every frame)
     this.mesh.count = 0;
     this.mesh.setColorAt(0, this.color.set(0xffffff)); // (its colours made now, so its shader's the one from the start)
@@ -75,20 +74,19 @@ export class HouseSmoke {
     this.mesh.visible = !this.model.inside;
     if (!this.mesh.visible) return;
     this.near(hero);
-    const wind = windNow(this.model.seed, minutes, this.time);
+    const wind = weatherNow(this.model.seed, minutes, this.time);
+    const hour = hourAt(minutes);
+    const draft = (hour > 5 && hour < 9) || (hour > 17 && hour < 21) ? { ...DRAFT, size: DRAFT.size * 1.3 } : DRAFT; // (fires made up)
     let i = 0;
     for (const { at, phase } of this.chimneys) {
       for (let p = 0; p < PUFFS; p++) {
-        // Puffs evenly staggered in time, each chimney on its own phase; blown off downwind as they rise, swaying with the gusts.
-        const t = (((this.time / LIFETIME + p / PUFFS + phase) % 1) + 1) % 1;
-        const lean = LEAN * wind.strength * t * (0.3 + 0.7 * t);
-        const sway = Math.sin(this.time * 1.3 + phase * 20 + t * 4) * 0.06 * t;
-        this.position.set(snap(at.x + wind.x * lean - wind.z * sway), snap(at.y + RISE * t * (1 - wind.strength * 0.35)), snap(at.z + wind.z * lean + wind.x * sway));
-        // Swells as it rises, then shrinks away; whole voxels, at least one.
-        const size = Math.max(VOXEL, snap(VOXEL * (2.5 + 5 * t) * (1 - t * t * t) * (0.8 + 0.4 * hashUnit(p, Math.floor(this.time / LIFETIME + p / PUFFS + phase), 403))));
+        // Puffs evenly staggered in time, each chimney on its own phase, each a little bigger or smaller than the last.
+        const life = this.time / LIFETIME + p / PUFFS + phase;
+        const t = ((life % 1) + 1) % 1;
+        const size = puffAt(this.position, at, t, wind, this.time, phase, draft) * (0.8 + 0.4 * hashUnit(p, Math.floor(life), 403));
         this.matrix.compose(this.position, this.quaternion, this.scale.setScalar(size));
         this.mesh.setMatrixAt(i, this.matrix);
-        this.mesh.setColorAt(i++, this.color.copy(SOOT).lerp(HAZE, t));
+        this.mesh.setColorAt(i++, this.color.copy(FRESH).lerp(THIN, t));
       }
     }
     this.mesh.count = i;
