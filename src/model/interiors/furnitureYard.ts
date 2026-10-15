@@ -66,6 +66,7 @@ function against(kind: FurnitureKind): Furniture['wall'] {
     case 'stairwell':
     case 'tavernTable':
     case 'keg':
+    case 'sacks':
     case 'cauldron':
     case 'herbCounter':
     case 'herbTable':
@@ -75,7 +76,7 @@ function against(kind: FurnitureKind): Furniture['wall'] {
   }
 }
 
-const WALK_THROUGH = new Set<FurnitureKind>(['rug', 'bearRug', 'framedPicture', 'antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard']);
+const WALK_THROUGH = new Set<FurnitureKind>(['rug', 'bearRug', 'framedPicture', 'antlers', 'wallShield', 'noticeBoard', 'wallLantern', 'weaponWall', 'toolBoard', 'menuSlate']);
 
 // The copies of a kind that look different (every other kind: just the one).
 const blankets = [0, 1, 2, 3].map((cloth) => ({ cloth }));

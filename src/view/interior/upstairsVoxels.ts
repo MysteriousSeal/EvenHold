@@ -5,7 +5,7 @@
 // and its doors (their leaves meshed apart, to swing: roomView.ts); and the
 // rooms off it: beds single and double, a wardrobe, a picture, a bathtub.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, FUR_DARK, FUR_LIGHT, PARCHMENT, BRASS_DARK, WATER, MOSS, MOSS_DARK, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, RED_DARK, RED_LIGHT, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, COAL, BRASS, FUR_DARK, FUR_LIGHT, PARCHMENT, BRASS_DARK, WATER, MOSS, MOSS_DARK, type Box } from './furniturePalette';
 import { paintBed } from './bedVoxels';
 import type { Furniture } from '../../model/interiors/furniture';
 
@@ -42,6 +42,28 @@ function hallWall(box: Box, u0: number, u1: number, tall = false, from = 0): voi
   if (tall) return box(u0, from, 0, u1, WALL_TOP, 4, (u, y) => plasterWall(u, y));
   box(u0, from, 0, u1, 5, 4, (u) => (u % 25 <= 1 ? FUR_DARK : WOOD_DARK)); // boards
   box(u0, 6, 0, u1, 6, 4, WOOD_LIGHT); // the rail on top
+}
+
+// The hallway's runner, a voxel proud of the floor down its middle: an L from
+// the stairwell along the left wall and on along the back, red, its edge
+// darker, a linen line inside it and a small light diamond every tile (a
+// medallion where it turns the corner). Its colour at floor voxel (x, z), or
+// none: `hall` is the hallway's width and `stairsZ` where the stairwell starts,
+// in voxels; `w`, the floor's width.
+const RUNNER = 6; // half its width, out from the hallway's middle
+export function hallRunner(x: number, z: number, hall: number, stairsZ: number, w: number): number | null {
+  const mid = hall / 2;
+  const [down, along] = [Math.abs(x - mid) <= RUNNER && z >= mid - RUNNER && z <= stairsZ - 4, Math.abs(z - mid) <= RUNNER && x >= mid - RUNNER && x <= w - 8];
+  if (!down && !along) return null;
+  // How far in from its edge (the most of either leg's: where they cross, the outer edge only).
+  const inDown = down ? Math.min(RUNNER - Math.abs(x - mid), z - (mid - RUNNER), stairsZ - 4 - z) : -1;
+  const inAlong = along ? Math.min(RUNNER - Math.abs(z - mid), x - (mid - RUNNER), w - 8 - x) : -1;
+  const edge = Math.max(inDown, inAlong);
+  if (edge < 1) return RED_DARK;
+  if (edge === 2) return LINEN;
+  const [u, v] = down && along ? [Math.abs(x - mid), Math.abs(z - mid)] : down ? [Math.abs(x - mid), Math.abs(((z - mid) % 25 + 25) % 25 - 12)] : [Math.abs(z - mid), Math.abs(((x - mid) % 25 + 25) % 25 - 12)];
+  if (down && along) return u + v <= 2 ? LINEN : u + v <= 4 ? RED_LIGHT : RED; // the medallion
+  return u + v <= 2 ? RED_LIGHT : RED;
 }
 
 // A hallway door's leaf, on its own (from its hinge side, u 0, and its foot,

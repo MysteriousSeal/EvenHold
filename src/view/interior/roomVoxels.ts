@@ -13,6 +13,8 @@ import type { Room } from '../../model/interiors/interiors';
 import type { Furniture } from '../../model/interiors/furniture';
 import { BREAD, FURNITURE_PALETTE, MOSS, MOSS_DARK, MOSS_LIGHT, PLUM_LIGHT, WOOD_DARK } from './furniturePalette';
 import { paintFurniture } from './furnitureVoxels';
+import { hallRunner } from './upstairsVoxels';
+import { HALL } from '../../model/interiors/upstairs';
 import type { VoxelGrid } from '../meshes/voxel/greedyMesh';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
 
@@ -53,7 +55,7 @@ const FLOOR_COLORS = [
   0x8f8c84, // 33 flagstone
   0x86837b, // 34 flagstone, a shade darker
   0x7a776f, // 35 mortar
-  0xaa8456, // 36 board, a shade lighter
+  0xaa8456, // 36 board, a shade lighter (unused since the inn's own oak: kept, so the palette's order holds)
   0x6b4a2c, // 37 nail head, knot
 ];
 // A herbalist's room, as rustic as their hut outside: packed earth and rushes, mud daub.
@@ -64,12 +66,20 @@ const RUSTIC_COLORS = [
   0x8a7356, // 41 daub
   0x6e5a42, // 42 daub, darker
 ];
-export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS, ...RUSTIC_COLORS];
-const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR, BOARD_LIGHT, NAIL] = FLOOR_COLORS.map(
+// The inn's own floor: a greyed, smoke-dark oak, cooler than the furniture, so what stands on it lifts off it.
+const TAVERN_COLORS = [
+  0x806850, // oak
+  0x765e48, // oak, darker
+  0x8a7056, // oak, lighter
+  0x4e3a28, // seam, knot
+];
+export const ROOM_PALETTE = [...ROOM_COLORS, ...FURNITURE_PALETTE, ...FLOOR_COLORS, ...RUSTIC_COLORS, ...TAVERN_COLORS];
+const [BOARD, BOARD_DARK, SEAM, FLAG, FLAG_DARK, FLAG_MORTAR] = FLOOR_COLORS.map(
   (_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + 1 + i,
 );
 
 const [EARTH, EARTH_DARK, RUSH, DAUB, DAUB_DARK] = RUSTIC_COLORS.map((_, i) => ROOM_COLORS.length + FURNITURE_PALETTE.length + FLOOR_COLORS.length + 1 + i);
+const [OAK, OAK_DARK, OAK_LIGHT, OAK_SEAM] = TAVERN_COLORS.map((_, i) => ROOM_PALETTE.length - TAVERN_COLORS.length + 1 + i);
 
 // Floor color at a voxel (x, z) of the floor, by style: long boards or
 // flagstones, their seams only a shade off, so furniture stands out.
@@ -103,22 +113,20 @@ function floorColor(style: Room['floor'], x: number, z: number): number {
 // A quick integer hash, for plank lengths, knots and tones.
 const hash = (a: number, b: number) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
 
-// The inn's floor: planks five voxels wide along x in random lengths and
-// three close tones, a pair of nail heads at each plank's end, and the odd knot.
+// The inn's floor: oak planks five voxels wide along x in random lengths and
+// three close tones, dark seams between, and the odd knot.
 function tavernFloor(x: number, z: number): number {
   const row = Math.floor(z / 5);
-  if (z % 5 === 0) return SEAM;
+  if (z % 5 === 0) return OAK_SEAM;
   // Where along its row this plank starts and ends (lengths 30-70 voxels).
   let start = -(hash(row, 1) % 40);
   let plank = 0;
   for (;;) {
     const length = 30 + (hash(row, plank + 2) % 41);
     if (x < start + length) {
-      if (x === start) return SEAM; // the joint
-      const dz = z % 5;
-      if ((x === start + 2 || x === start + length - 2) && (dz === 1 || dz === 3)) return NAIL; // nail heads at each end
-      if (hash(row * 31 + plank, x) % 211 === 0) return NAIL; // a knot
-      return [BOARD, BOARD_DARK, BOARD_LIGHT][hash(row, plank) % 3];
+      if (x === start) return OAK_SEAM; // the joint
+      if (hash(row * 31 + plank, x) % 211 === 0) return OAK_SEAM; // a knot
+      return [OAK, OAK_DARK, OAK_LIGHT][hash(row, plank) % 3];
     }
     start += length;
     plank++;
@@ -214,6 +222,11 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     fill(doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
+  }
+  // Upstairs, a runner down the hallway (from the stairwell on), under whatever stands on it.
+  const stairwell = furniture.find((f) => f.kind === 'stairwell');
+  if (stairwell && furniture.some((f) => f.kind === 'hallWall')) {
+    fill(x0, 1, z0, x0 + w - 1, 1, z0 + d - 1, (x, _y, z) => hallRunner(x - x0, z - z0, HALL * TILE, stairwell.z * TILE, w) ?? 0);
   }
   if (room.wall === 'daub') daubRelief(fill, w, d);
   if (room.floor === 'earth') earthRelief(fill, w, d);

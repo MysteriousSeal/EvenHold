@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { goesUnder } from '../src/model/dungeons/dungeonTypes';
 import { GameModel } from '../src/model/GameModel';
-import { roomFor } from '../src/model/interiors/interiors';
+import { roomFor, type Entrance } from '../src/model/interiors/interiors';
 import type { Furniture } from '../src/model/interiors/furniture';
 import { FRAME, TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
@@ -78,6 +78,24 @@ describe('interiors', () => {
       }
     }
     expect(inns).toBeGreaterThan(0);
+  });
+
+  it('packs an inn\'s tables over its floor (a roomy one never left half bare), its lanterns spread', async () => {
+    const { furnish } = await import('../src/model/interiors/furnish');
+    const counts: number[] = [];
+    for (let n = 0; n < 60; n++) {
+      const entrance: Entrance = { type: 'inn', x: 40.5 + n * 3, z: 30.25, outX: 0, outZ: -1 };
+      const room = roomFor(n + 1, entrance);
+      const items = furnish(n + 1, entrance, room);
+      const tables = items.filter((i) => i.kind === 'tavernTable').length;
+      counts.push(tables);
+      if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(5);
+      // Its lanterns spread along the back wall (past the bar's own), never two side by side.
+      const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back' && i.x >= 3).map((i) => i.x).sort((a, b) => a - b);
+      expect(lanterns).toHaveLength(3);
+      for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
+    }
+    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5.25); // (strewn at random: 4.7; the floor just inside the door kept open)
   });
 
   it('lets the hero past a chair behind its back, but not through it', async () => {

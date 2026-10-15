@@ -1,13 +1,15 @@
 // The inn's own furniture in voxels (see furnitureVoxels.ts for how pieces
 // are painted): the bar (bottle shelves, the counter, stools, kegs), the
-// hearth corner's armchairs and bear rug, tavern tables laid for a meal, and
+// hearth corner's armchairs and bear rug, tavern tables (a meal, dice, wine), and
 // what hangs on its walls (antlers, a shield, lanterns, a notice board). Its
 // stairs and the floor above are upstairsVoxels.ts'.
 
-import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
+import { WOOD, WOOD_DARK, WOOD_LIGHT, RED, TEAL, LINEN, EMBER, IRON, IRON_LIGHT, SOOT, BRASS, RED_DARK, RED_LIGHT, FUR_DARK, FUR, FUR_LIGHT, BONE, BONE_DARK, CLAY, CLAY_DARK, GLASS_GREEN, GLASS_AMBER, WINE, GLASS_CLEAR, BREAD, ROAST, PARCHMENT, INK, BRASS_DARK, drink, goblet, tankard, STONE, STONE_DARK, WATER, type Box } from './furniturePalette';
 import type { Furniture } from '../../model/interiors/furniture';
 
-export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern';
+const [SLATE, CHALK] = [SOOT, LINEN]; // (the slate's near-black, its chalk: the palette's nearest)
+
+export type InnKind = 'counter' | 'keg' | 'sink' | 'armchair' | 'bearRug' | 'barStool' | 'bottleShelf' | 'tavernTable' | 'antlers' | 'wallShield' | 'noticeBoard' | 'wallLantern' | 'menuSlate' | 'sacks' | 'washstand';
 
 export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, item: Furniture) => void> = {
   // The inn's counter: a slim wooden bar (a third of a tile deep, in the
@@ -17,30 +19,44 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
   counter: (box, len) => {
     box(1, 1, 9, len - 2, 2, 16, WOOD_DARK); // kick plinth
     box(1, 3, 8, len - 2, 11, 16, (u, y, v) => (v === 16 && (u % 10 === 0 || y === 3 || y === 11) ? WOOD_DARK : WOOD)); // panels, framed
-    box(0, 12, 7, len - 1, 13, 18, (_u, y, v) => (y === 12 ? WOOD_DARK : v === 18 ? WOOD_LIGHT : WOOD)); // the top
+    box(0, 12, 7, len - 1, 13, 18, (_u, y) => (y === 12 ? WOOD_DARK : WOOD_LIGHT)); // the top, worn pale: the brightest wood in the room
     box(1, 4, 18, len - 2, 4, 18, BRASS); // foot rail
     for (let u = 4; u < len - 2; u += 12) box(u, 3, 17, u, 3, 17, BRASS_DARK); // its brackets
+    // On the top, along the barkeep's side (the customers' side kept clear for what's served): a clay jug, idle
+    // tankards, a rag, spaced along it.
+    for (let u = 18, i = 0; u + 6 < len; u += 32, i++) {
+      if (i % 3 === 0) {
+        box(u, 14, 8, u + 2, 18, 10, (_u, y) => (y === 16 ? CLAY_DARK : CLAY)); // the jug, banded
+        box(u + 3, 16, 9, u + 3, 17, 9, CLAY_DARK); // its handle
+      } else if (i % 3 === 1) tankard(box, u, 14, 8, false);
+      else box(u, 14, 8, u + 4, 14, 10, (uu) => (uu % 2 === 0 ? LINEN : BONE)); // a rag, folded
+    }
   },
   // A keg on its side on a wooden cradle, pointing out into the room: an
   // eight-sided body of staves (v along its length), two iron hoops, the
   // front end in lighter wood with a dark rim and a brass tap. Short, so
   // it reaches only 0.6 of its tile out (the barmaid pours beside its tap).
+  // Another on top of it, waiting its turn (no tap yet), set back a little:
+  // the bar's end seen across the room.
   keg: (box) => {
     for (const v of [3, 9]) box(5, 1, v, 19, 2, v + 1, WOOD_DARK); // the cradle's two chocks
     const cu = 12;
-    const cy = 9; // the keg's axis
     const r = 6;
-    for (let du = -r; du <= r; du++) {
-      for (let dy = -r; dy <= r; dy++) {
-        if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
-        const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
-        box(cu + du, cy + dy, 1, cu + du, cy + dy, 12, (_u, _y, v) => {
-          if (v === 12) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
-          if (v === 3 || v === 10) return IRON; // hoops
-          return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
-        });
+    const barrel = (cy: number, front: number) => {
+      for (let du = -r; du <= r; du++) {
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.abs(du) + Math.abs(dy) > r + Math.floor(r / 2)) continue; // eight-sided, stepped
+          const rim = Math.abs(du) + Math.abs(dy) >= r + Math.floor(r / 2) - 1 || Math.abs(du) === r || Math.abs(dy) === r;
+          box(cu + du, cy + dy, 1, cu + du, cy + dy, front, (_u, _y, v) => {
+            if (v === front) return rim ? WOOD_DARK : WOOD_LIGHT; // the front end
+            if (v === 3 || v === front - 2) return IRON; // hoops
+            return ((Math.abs(dy) >= Math.abs(du) ? du : dy) + 20) % 3 === 0 ? WOOD_DARK : WOOD; // staves
+          });
+        }
       }
-    }
+    };
+    barrel(9, 12); // (its axis 9 up)
+    barrel(21, 10); // the one on top, resting in the groove between it and the wall
     box(11, 6, 13, 13, 8, 13, BRASS); // the tap
     box(12, 4, 14, 12, 6, 14, BRASS); // its spout, pointing down
   },
@@ -89,13 +105,13 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(22, 1, 49, 27, 1, 49, BONE); // teeth, bared
   },
   // A tall stool at the bar, a footrest round its legs, pulled up to the
-  // front of its tile so it sits right at the counter.
+  // front of its tile so it sits right at the counter; its cushion worn leather.
   barStool: (box) => {
     const f = 7; // toward the bar
     for (const [u, v] of [[8, 8 + f], [15, 8 + f], [8, 15 + f], [15, 15 + f]]) box(u, 1, v, u + 1, 11, v + 1, WOOD_DARK);
     box(8, 5, 8 + f, 16, 5, 16 + f, WOOD); // footrest
     box(7, 12, 7 + f, 17, 13, 17 + f, (_u, y) => (y === 12 ? WOOD_DARK : WOOD)); // seat
-    box(8, 14, 9 + f, 16, 14, 16 + f, (u, _y, v) => (v === 16 + f ? RED_LIGHT : u === 8 || u === 16 ? RED_DARK : RED)); // cushion
+    box(8, 14, 9 + f, 16, 14, 16 + f, (u, _y, v) => (v === 16 + f ? FUR_LIGHT : u === 8 || u === 16 ? FUR_DARK : FUR)); // cushion
   },
   // Shelves of bottles behind the bar: a dark back panel in a framed case
   // under a crown moulding, three lipped shelves stocked with tall bottles
@@ -121,6 +137,13 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     box(30, 17, 0, len - 4, 17, 1, WOOD); // and its rail
     box(31, 13, 0, len - 5, 13, 3, WOOD); // its shelf
     for (const u of [32, 37, 42]) box(u, 14, 1, u + 2, 16, 3, (_u, y) => (y === 15 ? IRON : WOOD_LIGHT)); // mugs, upside down to dry
+    // Up on the wall over its far end, a peg rail, a tankard hung upside down from each peg, its handle out.
+    box(27, 26, 0, len - 2, 26, 0, WOOD_DARK); // the rail
+    for (let u = 28; u + 3 < len - 1; u += 6) {
+      box(u + 1, 25, 1, u + 1, 26, 1, WOOD_DARK); // its peg
+      tankard((u0, y0, v0, u1, y1, v1, color) => box(u0, 45 - y1, v0, u1, 45 - y0, v1, typeof color === 'number' ? color : (uu, y, vv) => color(uu, 45 - y, vv)), u, 21, 1, false); // (turned over: its foot at the peg)
+      box(u, 21, 1, u + 2, 21, 3, IRON_LIGHT); // its rim, catching the light
+    }
     box(10, 0, 2, 16, 5, 7, (_u, y) => (y === 1 || y === 4 ? IRON : WOOD)); // the bucket beneath
     box(11, 5, 3, 15, 5, 6, WATER); // water in it
   },
@@ -165,14 +188,52 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
     }
   },
   // A tavern table laid for a meal: two pewter plates, a loaf and a roast, a tankard and a mug, a candle.
-  tavernTable: (box) => {
+  // Each laid its own way (by where it stands, the same every visit), round a
+  // candle: a meal (a loaf and a roast on plates, a tankard and a mug), a game
+  // of dice (two tankards, the dice, the stakes in coin), wine (a clay jug,
+  // two goblets, a bowl of stew), a tankard knocked over in its spill, or next
+  // to bare (a mug left, the candle burnt down to a stub).
+  tavernTable: (box, _len, _dep, item) => {
     for (const [u, v] of [[3, 3], [20, 3], [3, 20], [20, 20]]) box(u, 1, v, u + 1, 8, v + 1, WOOD_DARK);
     box(1, 9, 1, 23, 10, 23, (u) => (u % 6 === 0 ? WOOD_DARK : WOOD));
-    for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
-    box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
-    box(16, 12, 16, 19, 13, 18, (_u, y) => (y === 13 ? ROAST : CLAY_DARK)); // a roast on the other,
-    box(20, 13, 17, 21, 13, 17, BONE); // its bone sticking out
-    [[17, 4], [4, 17]].forEach(([u, v], i) => drink(box, u, 11, v, i)); // a full tankard and an empty mug
+    const laid = ((Math.imul(item.x, 73856093) ^ Math.imul(item.z, 19349663)) >>> 0) % 5;
+    if (laid === 0) {
+      for (const [u, v] of [[3, 3], [15, 15]]) box(u, 11, v, u + 5, 11, v + 5, IRON_LIGHT); // plates
+      box(4, 12, 4, 7, 13, 6, (u, y) => (y === 13 && u % 2 === 1 ? BREAD : y === 13 ? WOOD_LIGHT : BREAD)); // a loaf on one, scored
+      box(16, 12, 16, 19, 13, 18, (_u, y) => (y === 13 ? ROAST : CLAY_DARK)); // a roast on the other,
+      box(20, 13, 17, 21, 13, 17, BONE); // its bone sticking out
+      [[17, 4], [4, 17]].forEach(([u, v], i) => drink(box, u, 11, v, i)); // a full tankard and an empty mug
+    } else if (laid === 1) {
+      [[4, 4], [17, 17]].forEach(([u, v]) => drink(box, u, 11, v, 0)); // a full tankard each side
+      for (const [u, v] of [[15, 5], [7, 16]]) {
+        box(u, 11, v, u + 1, 12, v + 1, BONE); // a die,
+        box(u, 12, v, u, 12, v, INK); // a pip up
+      }
+      box(17, 11, 6, 19, 12, 8, (_u, y) => (y === 11 ? BRASS_DARK : BRASS)); // the stakes, stacked
+      box(4, 11, 15, 5, 11, 16, BRASS); // and a few loose
+    } else if (laid === 3) {
+      box(14, 11, 4, 17, 13, 6, (u) => (u === 14 || u === 16 ? IRON : WOOD_LIGHT)); // a tankard on its side,
+      box(15, 11, 7, 15, 12, 7, IRON); // its handle up
+      box(18, 11, 3, 21, 11, 7, (u, _y, v) => (u === 21 || v === 3 || v === 7 ? 0 : GLASS_AMBER)); // the ale run out of it,
+      box(19, 11, 7, 20, 11, 8, GLASS_AMBER);
+      box(22, 9, 5, 22, 10, 5, GLASS_AMBER); // dripping off the edge
+      drink(box, 4, 11, 16, 0); // across from it, a full one
+      box(4, 11, 4, 9, 11, 9, IRON_LIGHT); // and a plate of crumbs
+      box(6, 12, 6, 6, 12, 6, BREAD);
+    } else if (laid === 4) {
+      drink(box, 16, 11, 15, 1); // a mug left behind
+      box(11, 11, 11, 12, 12, 12, LINEN); // the candle, burnt down to a stub,
+      box(13, 11, 11, 13, 11, 12, LINEN); // run over the table
+      box(11, 13, 11, 11, 13, 11, EMBER);
+      return;
+    } else {
+      box(4, 11, 15, 7, 16, 18, (u, y, v) => (y === 16 && u > 4 && u < 7 && v > 15 && v < 18 ? CLAY_DARK : y === 14 ? CLAY_DARK : CLAY)); // a jug, banded, its mouth dark
+      box(8, 13, 16, 8, 15, 17, CLAY_DARK); // its handle
+      goblet(box, 16, 11, 4, true);
+      goblet(box, 4, 11, 5, false);
+      box(15, 11, 15, 19, 12, 19, (u, y, v) => (u > 15 && u < 19 && v > 15 && v < 19 ? (y === 12 ? 0 : ROAST) : y === 11 ? CLAY_DARK : CLAY)); // a bowl of stew, sunk in its rim
+      box(17, 12, 16, 17, 12, 16, BREAD); // a dumpling in it
+    }
     box(11, 11, 11, 12, 15, 12, LINEN); // candle
     box(11, 16, 11, 11, 16, 11, EMBER);
   },
@@ -221,6 +282,46 @@ export const INN_PAINTERS: Record<InnKind, (box: Box, len: number, dep: number, 
       box(u, y, 2, u + 4, y + 5, 2, (_u, yy) => ((yy - y) % 2 === 1 && yy < y + 5 ? INK : PARCHMENT)); // a notice
       box(u + 2, y + 5, 3, u + 2, y + 5, 3, RED); // its pin
     }
+  },
+  // The slate by the bar, what's poured chalked on it: a dark frame, the slate,
+  // four rows of chalk in dashes (a price at each row's end), a tankard
+  // doodled in its corner.
+  menuSlate: (box) => {
+    box(4, 11, 0, 20, 23, 1, (u, y) => (u === 4 || u === 20 || y === 11 || y === 23 ? WOOD_DARK : SLATE));
+    for (const y of [20, 17, 14]) {
+      box(6, y, 2, 12, y, 2, (u) => (u % 3 === 2 ? 0 : CHALK)); // a line, in dashes
+      box(15, y, 2, 16, y, 2, CHALK); // its price
+    }
+    box(17, 13, 2, 18, 15, 2, CHALK); // a tankard doodled,
+    box(17, 16, 2, 18, 16, 2, LINEN); // its foam
+    box(19, 14, 2, 19, 14, 2, CHALK); // its handle
+  },
+  // Grain sacks piled in a corner: three below, one slumped on top, tied at
+  // the neck, a seam down each, a little spilt at the foot.
+  sacks: (box) => {
+    const sack = (u: number, y: number, v: number, h: number) => {
+      box(u, y, v, u + 7, y + h, v + 6, (uu, yy, vv) => ((uu === u || uu === u + 7) && (vv === v || vv === v + 6) ? 0 : yy === y + h ? BONE_DARK : uu === u + 4 ? BONE_DARK : BONE)); // the sack, its corners round
+      box(u + 3, y + h + 1, v + 2, u + 4, y + h + 2, v + 4, (_u, yy) => (yy === y + h + 1 ? FUR : BONE)); // its neck, tied
+    };
+    sack(3, 1, 3, 9);
+    sack(13, 1, 2, 8);
+    sack(7, 1, 12, 9);
+    sack(8, 11, 5, 6); // the one on top
+    box(17, 1, 13, 20, 1, 16, (u, _y, v) => ((u + v) % 2 === 0 ? BREAD : 0)); // grain spilt
+  },
+  // A washstand, its back to the wall: on four legs with a shelf below, a
+  // clay basin of water sunk in its top, a jug beside it, a towel hung over
+  // its front, a cake of soap.
+  washstand: (box) => {
+    for (const [u, v] of [[5, 2], [19, 2], [5, 13], [19, 13]]) box(u, 1, v, u + 1, 9, v + 1, WOOD_DARK); // legs
+    box(5, 4, 2, 20, 4, 14, WOOD); // the shelf below
+    box(4, 10, 1, 21, 11, 15, (_u, y, v) => (y === 11 && v === 15 ? WOOD_LIGHT : WOOD)); // the top
+    box(6, 12, 4, 13, 13, 11, (u, y, v) => (u === 6 || u === 13 || v === 4 || v === 11 ? (y === 13 ? CLAY : CLAY_DARK) : y === 12 ? WATER : 0)); // the basin
+    box(15, 12, 4, 17, 17, 6, (_u, y) => (y === 15 ? CLAY_DARK : CLAY)); // the jug, banded
+    box(18, 15, 5, 18, 16, 5, CLAY_DARK); // its handle
+    box(8, 5, 16, 12, 11, 16, (u) => (u === 10 ? BONE : LINEN)); // a towel over the front
+    box(16, 12, 9, 17, 12, 10, BONE); // soap
+    box(9, 5, 6, 12, 7, 9, (_u, y) => (y === 7 ? IRON_LIGHT : WOOD_LIGHT)); // a pail on the shelf
   },
   // A lantern on an iron bracket, glowing (its light is added in roomView.ts):
   // an iron frame round bright panes, a hot band across the middle of each, under a

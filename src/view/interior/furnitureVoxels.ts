@@ -27,6 +27,9 @@ import {
   RED_LIGHT,
   FUR,
   FUR_LIGHT,
+  FUR_DARK,
+  MOSS,
+  MOSS_DARK,
   CLAY,
   CLAY_DARK,
   GLASS_GREEN,
@@ -77,10 +80,17 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
     for (let u = 12; u <= 37; u++) stones(u, archTop(u) + 1, 0, u, 20, 11); // the arch
     for (let u = 12; u <= 37; u++) box(u, archTop(u) + 1, 11, u, archTop(u) + 2, 11, SOOT); // soot above the opening
     box(12, 3, 0, 37, 16, 2, SOOT); // the back of the fire
-    // Mantel, with a candle, a clay pot and a pewter plate on it.
+    // Mantel, with candles at either end, a clay pot and a pewter plate on it.
     box(1, 21, 0, 48, 23, 13, (u, y) => (y === 21 ? WOOD_DARK : u % 11 === 0 ? WOOD_DARK : WOOD));
     box(7, 24, 8, 8, 27, 9, LINEN); // candle
     box(7, 28, 8, 7, 28, 8, EMBER); // its flame
+    box(41, 24, 9, 42, 26, 10, LINEN); // another, burnt lower
+    box(41, 27, 9, 41, 27, 9, EMBER);
+    // Four bunches of herbs hung to dry along the mantel's front edge, each tied at its top.
+    for (const u of [5, 17, 29, 41]) {
+      box(u, 20, 12, u + 2, 20, 13, MOSS_DARK); // the tie
+      box(u, 15, 12, u + 2, 19, 13, (uu, y) => (y === 15 && uu !== u + 1 ? 0 : (uu + y) % 3 === 0 ? MOSS_DARK : MOSS)); // the bunch, narrowing to its tips
+    }
     box(19, 24, 5, 23, 27, 9, RED); // clay pot
     box(20, 28, 6, 22, 28, 8, WOOD_DARK); // its lid
     box(32, 24, 3, 37, 29, 3, IRON_LIGHT); // pewter plate, standing
@@ -139,12 +149,13 @@ const PAINTERS: Record<Furniture['kind'], (box: Box, len: number, dep: number, i
   },
   // A chair, its back toward v = 0 and its seat facing +v (turned toward its
   // table in paintFurniture), pulled up to the front of its tile so it sits
-  // right at the table's edge.
-  chair: (box) => {
+  // right at the table's edge. An inn's: its cushion worn leather (red's kept for its hearth).
+  chair: (box, _len, _dep, item) => {
     const f = 6; // pulled forward, toward the table
     for (const [u, v] of [[7, 7 + f], [16, 7 + f], [7, 16 + f], [16, 16 + f]]) box(u, 1, v, u + 1, 6, v + 1, WOOD_DARK); // legs
     box(6, 7, 6 + f, 17, 8, 17 + f, WOOD); // seat
-    box(7, 9, 8 + f, 16, 9, 16 + f, (u, _y, v) => (v === 16 + f ? RED_LIGHT : u === 7 || u === 16 || v === 8 + f ? RED_DARK : RED)); // a red cushion
+    const [dark, mid, light] = item.leather ? [FUR_DARK, FUR, FUR_LIGHT] : [RED_DARK, RED, RED_LIGHT];
+    box(7, 9, 8 + f, 16, 9, 16 + f, (u, _y, v) => (v === 16 + f ? light : u === 7 || u === 16 || v === 8 + f ? dark : mid)); // a cushion
     for (const u of [6, 16]) box(u, 9, 6 + f, u + 1, 20, 7 + f, WOOD_DARK); // back posts
     box(6, 14, 6 + f, 17, 15, 7 + f, WOOD); // back rails
     box(6, 19, 6 + f, 17, 20, 7 + f, WOOD);

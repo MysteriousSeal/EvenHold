@@ -59,21 +59,44 @@ export function buildInnVoxels(): VoxelGrid {
   return grid;
 }
 
-// A board hanging from an iron bracket off the upper floor's corner, in
-// the 4-voxel strip between the wall and the tile edge, with a foaming
-// tankard on both faces.
+// The inn's signs, to be known from across the square. A board hanging
+// from an iron bracket off the upper floor's corner, edge on to the street
+// (seen from either side), in the 4-voxel strip between the wall and the
+// tile edge, a foaming tankard on both faces; and a big board, nine wide,
+// hung square to the street from a long bracket off the hall's corner, out
+// over the stable's yard: iron-framed, a pewter tankard foaming over on
+// both faces, a lantern hung under the bracket's end.
 function tankardSign(grid: VoxelGrid, upper: Box): void {
   const x = upper.x1 - 2;
   const top = upper.y0 + 6;
   fillBox(grid, x, top, 0, x, top, upper.z0 - 1, C.iron); // bracket
   fillBox(grid, x, top - 1, 0, x, top - 1, 0, C.iron);
   fillBox(grid, x, top - 1, 2, x, top - 1, 2, C.iron);
-  fillBox(grid, x, top - 7, 0, x, top - 2, 2, C.sign);
+  fillBox(grid, x, top - 9, 0, x, top - 2, 2, C.sign);
   for (const sx of [x - 1, x + 1]) {
-    fillBox(grid, sx, top - 6, 0, sx, top - 4, 1, C.pewter); // mug
+    fillBox(grid, sx, top - 8, 0, sx, top - 4, 1, C.pewter); // mug
     fillBox(grid, sx, top - 3, 0, sx, top - 3, 1, C.beerFoam);
-    put(grid, [sx, top - 5, 2], C.pewter); // handle
+    put(grid, [sx, top - 6, 2], C.pewter); // handle
   }
+  // The big board, over the yard.
+  const [b0, b1] = [STABLE_X[0] + 1, STABLE_X[0] + 9]; // its ends
+  const arm = upper.y0 + 5; // the bracket, along under the eaves
+  fillBox(grid, upper.x1 + 1, arm, 1, b1 + 2, arm, 1, C.iron); // the bracket, out from the hall's corner
+  fillBox(grid, upper.x1 + 1, arm - 2, 1, upper.x1 + 1, arm - 1, 1, C.iron); // braced to the wall
+  for (const cx of [b0 + 1, b1 - 1]) put(grid, [cx, arm - 1, 1], C.iron); // its two chains
+  const [y0, y1] = [arm - 9, arm - 2];
+  fillBox(grid, b0, y0, 1, b1, y1, 1, (bx, by) => (bx === b0 || bx === b1 || by === y0 || by === y1 ? C.iron : C.sign)); // framed
+  const mid = (b0 + b1) / 2;
+  for (const z of [0, 2]) {
+    fillBox(grid, mid - 1, y0 + 2, z, mid + 1, y0 + 5, z, C.pewter); // the tankard
+    fillBox(grid, mid - 1, y0 + 6, z, mid + 1, y0 + 6, z, C.beerFoam); // its head,
+    put(grid, [mid + 2, y0 + 5, z], C.beerFoam); // foaming over
+    fillBox(grid, mid - 2, y0 + 3, z, mid - 2, y0 + 4, z, C.pewter); // its handle
+  }
+  fillBox(grid, b1 + 2, arm - 1, 1, b1 + 2, arm - 1, 1, C.iron); // the lantern, under the bracket's end
+  fillBox(grid, b1 + 1, arm - 2, 0, b1 + 3, arm - 2, 2, C.iron);
+  fillBox(grid, b1 + 2, arm - 4, 1, b1 + 2, arm - 3, 1, C.glass);
+  fillBox(grid, b1 + 1, arm - 5, 0, b1 + 3, arm - 5, 2, C.iron);
 }
 
 // Out front: a table between two benches, two barrels by the door and a
