@@ -37,45 +37,25 @@ import {
   nextScenery,
   type Tile,
 } from '../../model/cheats';
-import {
-  BANDIT_OUTFIT,
-  EQUIP_SLOTS,
-  ITEMS,
-  ITEM_IDS,
-  SLOT_NAMES,
-  STARTER_SET,
-  pickOutfit,
-  slotOf,
-  wear,
-} from '../../model/human/equipment';
 import type { Village } from '../../model/types';
 import type { Entrance } from '../../model/interiors/interiors';
 import { TIRED, gainXp, xpToNext } from '../../model/hero/heroStats';
 import { maxEnergyOf } from '../../model/hero/attributes';
 import { maxHpOf } from '../../model/hero/attributes';
 import { refundPoints } from '../../model/hero/training';
-import { LOOT_IDS, type LootId } from '../../model/loot/loot';
-import { BAG_IDS } from '../../model/loot/bags';
-import { POTION_IDS } from '../../model/loot/potions';
-import { JUNK_ITEMS } from '../../model/loot/junk';
-import { PROVISION_IDS } from '../../model/loot/provisions';
-import { MEAL_IDS } from '../../model/loot/meals';
-import { COOK_RECIPES, COOK_RECIPE_IDS } from '../../model/skills/cooking';
-import { addToBag, type BagItem } from '../../model/hero/bag';
-import { JUNK_STACK, slotsUsed } from '../../model/hero/bagStacks';
+import { slotsUsed } from '../../model/hero/bagStacks';
 import { bagRoom } from '../../model/hero/bagSlots';
 import { createMenu, type Menu, type MenuAction, type MenuIcon } from '../../view/ui/menu';
 import type { Scenery, SceneryKind } from '../../model/scenery/scenery';
 import { BLOOMS, type BloomKind } from '../../model/scenery/meadowPatches';
 import type { LifeKind } from '../../model/scenery/ambientSpots';
-import { HEROINE_LOOK, ICONS as ICON, itemIcon } from './cheatIcons';
-import { HERO_LOOK, STYLES_OF, randomLook, type HairStyle } from '../../model/human/humanoid';
-import { COPPER_PER_SILVER, SILVER_PER_GOLD } from '../../model/hero/money';
+import { ICONS as ICON, itemIcon } from './cheatIcons';
+import { group, toggle } from './cheatRows';
+import { lookActions } from './lookCheats';
+import { itemActions } from './itemCheats';
 import { blessAll } from '../../model/hero/blessing';
 import { restockAll } from '../../model/inn/tavernShop';
 import { lootIcon } from '../../view/ui/itemIcons';
-import { RARITIES, baseOf, gearKey, gearName, type GearKey } from '../../model/human/items/gear';
-import { randomName } from '../../model/npcs/npcs';
 import type { Ruin } from '../../model/ruins/ruins';
 import type { Cave } from '../../model/caves/caves';
 import type { Camp } from '../../model/camps/camps';
@@ -112,14 +92,6 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
     return `Travelled to ${where}.`;
   };
   const [seenScenery, seenMeadows, seenLife] = [new Set<Scenery>(), new Set<string>(), new Set<string>()]; // (the Sights' tours)
-  let banditDraws = 0; // for "Random bandit": a new outfit each time
-  // Replaces everything the hero wears with `items`.
-  const dress = (items: readonly GearKey[]) => {
-    for (const slot of EQUIP_SLOTS) delete model.hero.equipment[slot];
-    for (const item of items) wear(model.hero.equipment, item);
-  };
-  // Puts each of `items` in the bag (room or not: a cheat).
-  const give = (items: readonly BagItem[]) => items.forEach((item) => addToBag(model.hero.bag, item));
   const visited = new Set<Village>(); // the village tour: nearest first, no repeats
   const ruinsSeen = new Set<Ruin>(); // the ruins' tour, likewise
   const campsSeen = new Set<Camp>(); // and the camps'
@@ -127,33 +99,6 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
 
   const entered = new Set<Entrance>(); // likewise, the buildings stepped into
   const herbalists = new Set<Entrance>(); // and the herbalists' houses
-  const STYLE_NAMES: Record<HairStyle, string> = {
-    short: 'Short',
-    long: 'Long',
-    cropped: 'Cropped',
-    bald: 'Bald',
-    braid: 'Braid',
-    bun: 'Bun',
-    ponytail: 'Ponytail',
-    twinBraids: 'Twin braids',
-    crownBraid: 'Crown braid',
-    waves: 'Loose waves',
-    pigtails: 'Pigtails',
-    bob: 'Bob',
-    topknot: 'Topknot',
-    shaggy: 'Shaggy',
-    warriorTail: 'Warrior tail',
-  };
-  const toggle = (get: () => boolean, set: (on: boolean) => void, on: string, off: string): Pick<MenuAction, 'run' | 'isOn'> => ({
-    isOn: get,
-    run: () => {
-      set(!get());
-      return get() ? on : off;
-    },
-  });
-
-  // A run of rows under one header (`section` on the first).
-  const group = (section: string, actions: MenuAction[]): MenuAction[] => actions.map((a, i) => (i === 0 ? { ...a, section } : a));
   const travellerRow = (role: 'pedlar' | 'pilgrim' | 'guard', title: string, detail: string, icon: MenuIcon): MenuAction => ({
     icon,
     title,
@@ -299,122 +244,12 @@ export function createCheatPanel(model: GameModel, time: { scale: number }, talk
       {
         name: 'Appearance',
         icon: ICON.heroine,
-        actions: [
-          ...group('Body', [
-            {
-              icon: ICON.undress,
-              title: 'Random new look',
-              detail: 'Another body, face, hair and name, at random',
-              run: () => {
-                model.hero.look = randomLook();
-                model.hero.name = randomName(model.hero.look.build);
-                return `Now ${model.hero.name}.`;
-              },
-            },
-            {
-              icon: ICON.heroine,
-              title: "Woman's body",
-              detail: 'The hero as a woman (off: a man)',
-              ...toggle(
-                () => model.hero.look.build === 'female',
-                (on) => (model.hero.look = on ? { ...HEROINE_LOOK } : { ...HERO_LOOK }),
-                'The hero is a woman.',
-                'The hero is a man.',
-              ),
-            },
-            {
-              icon: ICON.heroine,
-              title: 'Next hairstyle',
-              detail: 'Each click, the next style',
-              current: () => ({ value: STYLE_NAMES[model.hero.look.hairStyle] }),
-              run: () => {
-                const styles = STYLES_OF[model.hero.look.build];
-                const next = styles[(styles.indexOf(model.hero.look.hairStyle) + 1) % styles.length];
-                model.hero.look = { ...model.hero.look, hairStyle: next };
-                return `Hair: ${STYLE_NAMES[next]}.`;
-              },
-            },
-          ]),
-          ...group('Outfits', [
-            { icon: ICON.undress, title: 'Undress', detail: 'Back to the bare body', run: () => (dress([]), 'Undressed.') },
-            { icon: ICON.undress, title: 'Seen bare', detail: "Nothing on, to look at. What's worn stays worn, and still counts", ...toggle(() => model.seenBare, (on) => (model.seenBare = on), 'Seen with nothing on.', 'Dressed, as worn.') },
-            { icon: ICON.starterSet, title: 'Starter set', detail: 'Everything the hero starts out with', run: () => (dress(STARTER_SET), 'Wearing the starter set.') },
-            { icon: ICON.starterSet, title: 'Gear of each rarity', detail: 'A piece of each, at your level, into the bag', run: () => (give(RARITIES.map((rarity, i) => gearKey({ item: STARTER_SET[i % STARTER_SET.length], level: model.hero.level, rarity, roll: Math.floor(Math.random() * 1000) }))), 'Five pieces, common to legendary, in the bag.') },
-            { icon: ICON.banditOutfit, title: 'Bandit outfit', detail: 'Hood, vest, gloves, trousers, boots, sword', run: () => (dress(BANDIT_OUTFIT), 'Wearing the bandit outfit.') },
-            { icon: ICON.bandit, title: 'Random bandit outfit', detail: 'A new mix of what bandits wear, each time', run: () => (dress(Object.values(pickOutfit('bandit', ++banditDraws, 7))), 'Dressed as a bandit.') },
-          ]),
-          // One row per slot: each use puts on the slot's next item (then nothing, then round again).
-          ...group(
-            'Each slot',
-            EQUIP_SLOTS.map((slot): MenuAction => {
-              const choices = [undefined, ...ITEM_IDS.filter((item) => slotOf(item) === slot)];
-              const worn = () => model.hero.equipment[slot];
-              return {
-                title: SLOT_NAMES[slot],
-                run: () => {
-                  const now = worn();
-                  const next = choices[(choices.indexOf(now && baseOf(now)) + 1) % choices.length];
-                  if (next) wear(model.hero.equipment, next);
-                  else delete model.hero.equipment[slot];
-                  return next ? `${ITEMS[next].name} on.` : `Nothing on the ${SLOT_NAMES[slot].toLowerCase()}.`;
-                },
-                current: () => {
-                  const item = worn();
-                  return { detail: item ? gearName(item) : 'Nothing', icon: item ? itemIcon(item) : undefined, value: `${choices.indexOf(item && baseOf(item))} of ${choices.length - 1}` };
-                },
-              };
-            }),
-          ),
-        ],
+        actions: lookActions(model), // (lookCheats.ts)
       },
       {
         name: 'Items',
         icon: lootIcon('roughSack'),
-        actions: [
-          ...group('Money', [
-            { icon: itemIcon('goldRing'), title: 'Add 1 gold', detail: 'Into the purse', run: () => ((model.hero.money += COPPER_PER_SILVER * SILVER_PER_GOLD), 'A gold coin, added.') },
-            { icon: itemIcon('silverRing'), title: 'Add 10 silver', detail: 'Into the purse', run: () => ((model.hero.money += 10 * COPPER_PER_SILVER), 'Ten silver, added.') },
-          ]),
-          ...group('Into the bag', [
-            {
-              icon: ICON.wardrobe,
-              title: 'Starter & bandit gear',
-              detail: 'Both outfits, to wear from the hero sheet',
-              run: () => (give([...STARTER_SET, ...BANDIT_OUTFIT]), 'Gear, in the bag.'),
-            },
-            { icon: lootIcon('roughSack'), title: 'Every bag', detail: 'One of each, to fit to the sockets', run: () => (give(BAG_IDS), 'One of every bag, in the bag.') },
-            { icon: lootIcon('fishingRod'), title: 'A fishing rod', detail: 'To fish from a lake shore (E facing the water)', run: () => (give(['fishingRod']), 'A fishing rod, in the bag.') },
-            { icon: lootIcon('greaterHealthPotion'), title: 'Every potion', detail: 'Three of each', run: () => (give(POTION_IDS.flatMap((id) => [id, id, id])), 'Potions, in the bag.') },
-            { icon: lootIcon('bread'), title: 'Every food & drink', detail: 'Five of each', run: () => (give(PROVISION_IDS.flatMap((id) => [id, id, id, id, id])), 'Food and drink, in the bag.') },
-            { icon: lootIcon('huntersFeast'), title: 'Every meal', detail: "Three of each a cook makes", run: () => (give(MEAL_IDS.flatMap((id) => [id, id, id])), 'Meals, in the bag.') },
-            { icon: lootIcon('rawBoarMeat'), title: "A cook's larder", detail: 'Ten of every making, two logs for a fire', run: () => (give([...new Set(COOK_RECIPE_IDS.flatMap((id) => Object.keys(COOK_RECIPES[id].from) as LootId[]))].flatMap((id) => Array<LootId>(10).fill(id)).concat(['birchLog', 'birchLog'])), 'Makings for every recipe, in the bag.') },
-            {
-              icon: lootIcon('wolfFang'),
-              title: 'Fill the bag with junk',
-              detail: 'Full stacks of junk in every free slot',
-              run: () => {
-                const junk = Object.keys(JUNK_ITEMS) as LootId[];
-                for (let i = 0; slotsUsed(model.hero.bag) < bagRoom(model.hero); i++) give(Array.from({ length: JUNK_STACK }, () => junk[i % junk.length])); // (round the junk again: another full stack each)
-                return 'The bag is full of junk.';
-              },
-            },
-            { icon: ICON.undress, title: 'Empty the bag', detail: 'Everything in it gone (fitted bags stay)', run: () => (Object.assign(model.hero, { bag: {}, bagOrder: [], bagCounts: [] }), 'The bag is empty.') },
-          ]),
-          ...group('On the ground', [
-            {
-              icon: lootIcon('rustyBuckle'),
-              title: 'Every loot item, around you',
-              detail: 'One of each kind, on the ground in a ring',
-              run: () => {
-                LOOT_IDS.forEach((item, i) => {
-                  const a = (i / LOOT_IDS.length) * Math.PI * 2;
-                  model.dropLoot(item, model.hero.x + Math.cos(a) * 1.2, model.hero.z + Math.sin(a) * 1.2);
-                });
-                return 'Loot all around.';
-              },
-            },
-          ]),
-        ],
+        actions: itemActions(model), // (itemCheats.ts)
       },
       { name: 'Charms', icon: SPELL_ICONS.swap, actions: charmActions(model) }, // (charmCheats.ts)
       {
