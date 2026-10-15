@@ -8,16 +8,16 @@ import type { Traveller, Travellers } from './travellers';
 
 export class TravellerCrowd {
   private readonly all: Traveller[] = []; // everyone on the roads made, of every band
-  private readonly bands = new Map<number, Travellers>();
+  private readonly bandMap = new Map<number, Travellers>();
   private readonly bandOf = new Map<Traveller, Travellers>();
 
   // Everyone on the roads: a classic world's band's own list (the same: changed, changed for them), else all of them.
   get list(): Traveller[] {
-    return this.bands.size === 1 ? this.only!.list : this.all;
+    return this.bandMap.size === 1 ? this.only!.list : this.all;
   }
 
   private get only(): Travellers | null {
-    return this.bands.size === 1 ? this.bands.values().next().value! : null;
+    return this.bandMap.size === 1 ? this.bandMap.values().next().value! : null;
   }
 
   // The band `t` walks with.
@@ -27,15 +27,15 @@ export class TravellerCrowd {
 
   // A region's band (`key`: its region's), on the roads with the rest; or let go.
   add(key: number, band: Travellers): void {
-    this.bands.set(key, band);
+    this.bandMap.set(key, band);
     for (const t of band.list) this.bandOf.set(t, band);
     for (const t of band.list) this.all.push(t);
   }
 
   remove(key: number): void {
-    const band = this.bands.get(key);
+    const band = this.bandMap.get(key);
     if (!band) return;
-    this.bands.delete(key);
+    this.bandMap.delete(key);
     for (const t of band.list) this.bandOf.delete(t);
     const gone = new Set(band.list);
     let kept = 0;
@@ -54,7 +54,19 @@ export class TravellerCrowd {
   }
 
   update(dt: number, enemies: readonly Enemy[] = []): void {
-    for (const band of this.bands.values()) band.update(dt, enemies);
+    for (const band of this.bandMap.values()) band.update(dt, enemies);
+  }
+
+  // Every band on the roads, by its key (its region's).
+  get bands(): ReadonlyMap<number, Travellers> {
+    return this.bandMap;
+  }
+
+  // Onto `band`'s roads (a party of witch-finders: roads/patrols.ts).
+  join(band: Travellers, t: Traveller): void {
+    band.join(t);
+    this.bandOf.set(t, band);
+    this.all.push(t); // (kept with everyone, as each band's are, the one band or many)
   }
 
   // Off the roads for good (turned into a chicken: spells/turned.ts).

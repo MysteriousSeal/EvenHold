@@ -121,6 +121,7 @@ function collapseIfSpent(model: GameModel): boolean {
 // interest. (A tenth was lost for good before, a hundred copper at most.)
 export function fall(model: GameModel): void {
   const { hero } = model;
+  if (model.roads.takenFallen()) return; // (felled with the witch-finders after them: to the stocks, roads/arrest.ts)
   dropPurse(model);
   wearOnFall(hero, (e) => model.report(e)); // (everything they wear knocked about: hero/wear.ts)
   makeWeary(hero);

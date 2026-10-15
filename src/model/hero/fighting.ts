@@ -50,6 +50,7 @@ export interface Fight {
   dropCoins(amount: number, x: number, z: number): void;
   slayGuard(enemy: Enemy): void; // a crypt's guard slain, for good
   fall(): void;
+  seized?(enemy: Enemy): boolean; // a witch-finder's blow, taking hold of them, not hurting (roads/roads.ts): whether it was
 }
 
 // The blow lands on the foe in reach: off its health, a shove away, and a
@@ -187,6 +188,7 @@ export function knockedOn(fight: Pick<Fight, 'hero' | 'push'>, dt: number): void
 // A ghost's touch is cold: chilled a moment, if it lands.
 export function foeStrikes(fight: Fight, enemy: Enemy): void {
   if (Math.hypot(enemy.x - fight.hero.x, enemy.z - fight.hero.z) > ENEMY_STATS[enemy.kind].stop + 0.25 || !fight.clear(enemy, fight.hero)) return;
+  if (fight.seized?.(enemy)) return;
   const hp = fight.hero.hp;
   heroStruck(fight, enemy.damage, enemy);
   if (enemy.kind === 'ghost' && fight.hero.hp < hp) chill(fight, GHOST_CHILL);
