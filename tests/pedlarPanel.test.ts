@@ -67,4 +67,24 @@ describe("a pedlar's window", () => {
     panel.update();
     expect(panel.menu.isOpen).toBe(false);
   });
+  it('says the news of the road at its foot, and sells a rumour by its button', () => {
+    const { model, pedlar, panel } = byPedlar();
+    model.hero.money = 100;
+    panel.open(pedlar);
+    expect(shopEl().textContent).toContain('News of the road');
+    const rumour = Array.from(shopEl().querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.startsWith('A rumour'))!;
+    expect(rumour).toBeTruthy();
+    rumour.click();
+    expect(model.hero.money).toBeLessThan(100);
+    expect(shopEl().querySelector('.shop-talk-says')!.textContent).toContain('inked it on your map');
+  });
+
+  it('shuts if the pedlar is gone from the road mid-trade (turned into something)', () => {
+    const { model, pedlar, panel } = byPedlar();
+    panel.open(pedlar);
+    model.travellers.lose(pedlar);
+    panel.update();
+    expect(panel.menu.isOpen).toBe(false);
+  });
 });
+
