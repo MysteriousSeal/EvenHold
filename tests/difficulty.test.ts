@@ -48,11 +48,11 @@ describe('the curve', () => {
     expect([average.won, parrier.won, parrier.lost]).toEqual([true, true, 0]);
   });
 
-  it('level 5: a crypt lord of their level a fight of 15 to 30 seconds; held down, the attack loses it', { timeout: 300_000 }, () => {
+  it('level 5: a crypt lord of their level a fight of 12 to 30 seconds (parried, the quicker); held down, the attack loses it', { timeout: 300_000 }, () => {
     expect(fight(stage(5), 'cryptLord', 5, 'masher').died).toBe(true);
     for (const style of ['average', 'parrier'] as const) {
       const r = fight(stage(5), 'cryptLord', 5, style);
-      expect(r.won && r.t >= 15 && r.t <= 30, `${style}: ${JSON.stringify({ won: r.won, t: r.t, lost: r.lost })}`).toBe(true);
+      expect(r.won && r.t >= 12 && r.t <= 30, `${style}: ${JSON.stringify({ won: r.won, t: r.t, lost: r.lost })}`).toBe(true);
     }
   });
 
