@@ -3,9 +3,11 @@
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { enterNearest } from '../src/model/cheats';
-import { roomsOff, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
+import { doorway, roomsOff, takeStairs, useHallDoor } from '../src/model/interiors/upstairs';
+import { standingBy, wayOver } from '../src/model/interiors/indoors';
+import { middleOf } from '../src/model/interiors/furniture';
 import { parseSave, restore, snapshot } from '../src/model/save';
-import { BRIBE, LINES, ROOM_PRICE, WEEK_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letRoomBed, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
+import { BRIBE, LINES, ROOM_PRICE, WEEK_PRICE, roomAction, roomActionLabel, checkOutAfter, letBed, letDoor, letRoomBed, letRoomTiles, letUntil, lettingHours, rentRoom, sleepTillMorning, sleepingHours } from '../src/model/inn/roomLetting';
 import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { barmaidHere } from '../src/controller/trade/barOrder';
 import { takeSpeech } from '../src/model/npcs/speech';
@@ -237,5 +239,24 @@ describe('a room at the inn', () => {
     expect([door.locked, model.hero.z < door.z - 0.4]).toEqual([true, true]);
     model.sitOrStand(); // (nothing to get up from: still out)
     expect(model.hero.z).toBeLessThan(door.z - 0.4);
+  });
+
+  it('is furnished: a chest at its bed\'s foot and a rug beside it, the way in from its door to the bed clear', () => {
+    let furnished = 0;
+    for (const seed of TEST_SEEDS) {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      enterNearest(model, 'inn', new Set());
+      upstairs(model);
+      const inside = model.inside!;
+      const tiles = letRoomTiles(inside);
+      const inIt = (f: { x: number; z: number }) => tiles.some(([x, z]) => x === f.x && z === f.z);
+      const pieces = inside.furniture.filter((f) => (f.kind === 'chest' || f.kind === 'rug') && inIt(f));
+      if (pieces.length) furnished++;
+      const { bed } = letRoomBed(inside)!;
+      const spot = standingBy(inside, middleOf(bed!), tiles)[0];
+      expect(spot, `seed ${seed}`).toBeDefined();
+      expect(wayOver(inside, doorway(letDoor(inside.furniture)!, -0.9), spot), `seed ${seed}`).not.toBeNull();
+    }
+    expect(furnished).toBeGreaterThan(0);
   });
 });
