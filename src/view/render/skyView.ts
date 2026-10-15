@@ -126,6 +126,7 @@ export class SkyView {
     const lit = this.from.copy(hemi.color).multiplyScalar(hemi.intensity).add(this.to.copy(sun.color).multiplyScalar(sun.intensity * 0.8));
     const balance = (1 - night) * (1 - 0.6 * weather.cloud);
     const grey = (lit.r + lit.g + lit.b) / 3;
+    skyUniforms.uBalance.value.setRGB(...([lit.r, lit.g, lit.b].map((c) => Math.min(1.6, Math.max(0.6, grey / c))) as [number, number, number])); // (what the hero's own light takes out: human/heroRim.ts)
     skyUniforms.uSnowWhite.value.setRGB(1 + (grey / lit.r - 1) * balance, 1 + (grey / lit.g - 1) * balance, 1 + (grey / lit.b - 1) * balance).multiply(SNOW_WHITE).multiplyScalar(1 + 0.85 * balance); // (brighter than an albedo of one: it must outshine the sunlit grass)
 
     // The sun round the sky from rising to setting, high at noon, low (its bands long) at dawn and dusk; the moon's

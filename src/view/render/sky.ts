@@ -63,4 +63,5 @@ export const skyUniforms = {
   uWet: { value: 0 }, // 0..1, the rain's darkening
   uNight: { value: 0 }, // 0..1
   uMist: { value: 0 }, // 0..1, extra low mist (a lake's, the morning's) over the hollows
+  uBalance: { value: new THREE.Color(1, 1, 1) }, // the hour's light's cast taken out (per channel: its grey over its own; a dusk's rose, a morning's gold)
 };

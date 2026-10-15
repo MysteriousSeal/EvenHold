@@ -2,7 +2,7 @@
 // (model/enemies/wildMoves.ts), glowing (light added over the grass): a bear's
 // slam a ring round it, brightening and pulsing faster as it comes; its charge
 // a strip down its way; a lynx's pounce a short streak to where it'll land; a witch-finder's pitch a disc of
-// burning amber where it'll fall, flickering.
+// burning amber where it'll fall, flickering. Under the trees, seen through their crowns (glowMarks.ts).
 
 import * as THREE from 'three';
 import type { WildMoves } from '../../../model/enemies/wildMoves';
@@ -18,7 +18,7 @@ export class WildMovesView {
   private time = 0;
 
   constructor(scene: THREE.Scene) {
-    this.marks = new GlowMarks(scene);
+    this.marks = new GlowMarks(scene, true); // (seen through the trees' crowns)
   }
 
   update(moves: WildMoves, groundY: (x: number, z: number) => number, dt: number, outdoors: boolean): void {

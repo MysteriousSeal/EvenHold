@@ -2,7 +2,9 @@
 // chunkLayer.ts): every chunk within LOAD_RADIUS tiles is built, nearest
 // first, at most `budget` chunks a frame so walking never hitches; chunks
 // beyond UNLOAD_RADIUS are dropped (their instance buffers freed; shared
-// model geometry stays cached for when the hero comes back).
+// model geometry stays cached for when the hero comes back). Each chunk's
+// layers are told how far off it is (ChunkLayer.fit: at a lower quality,
+// less drawn far off), as the hero crosses a tile, and whenever refit().
 
 import * as THREE from 'three';
 import { CHUNK_SIZE } from './chunks';
@@ -20,6 +22,7 @@ export class ChunkStreamer implements WorldSink {
   private readonly extras = new Map<unknown, THREE.Object3D[]>(); // what's added outright (never streamed), by tag
 
   loadRadius = LOAD_RADIUS;
+  private fitAt = ''; // the tile the chunks were last fitted for ('' : to do again)
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -42,6 +45,7 @@ export class ChunkStreamer implements WorldSink {
       layer: (layer) => {
         this.layers.push({ layer, tag });
         for (const [key, chunk] of this.loaded) this.buildInto(chunk, layer, key);
+        this.refit(); // (its chunks just built, at their distance)
       },
     };
   }
@@ -87,8 +91,22 @@ export class ChunkStreamer implements WorldSink {
     const wanted = chunksWithin(x, z, this.loadRadius).filter((key) => !this.loaded.has(key));
     wanted.sort((a, b) => distanceToChunk(a, x, z) - distanceToChunk(b, x, z));
     const toBuild = wanted.slice(0, budget);
-    for (const key of toBuild) this.load(key);
+    for (const key of toBuild) this.load(key, x, z);
+    const tile = `${Math.round(x)},${Math.round(z)}`;
+    if (tile !== this.fitAt) {
+      this.fitAt = tile;
+      for (const [key, chunk] of this.loaded) this.fit(chunk, distanceToChunk(key, x, z), x, z);
+    }
     return toBuild.length;
+  }
+
+  // Every chunk's layers told again what's drawn (the graphics quality changed), at the next update.
+  refit(): void {
+    this.fitAt = '';
+  }
+
+  private fit(chunk: { built: Map<ChunkLayer, THREE.Object3D[]> }, distance: number, x: number, z: number): void {
+    for (const [layer, objects] of chunk.built) layer.fit?.(objects, distance, x, z);
   }
 
   // Loads every chunk near (x, z) at once (startup).
@@ -96,9 +114,10 @@ export class ChunkStreamer implements WorldSink {
     while (this.update(x, z, 64) > 0);
   }
 
-  private load(key: string): void {
+  private load(key: string, x: number, z: number): void {
     const chunk = { group: new THREE.Group(), built: new Map<ChunkLayer, THREE.Object3D[]>() };
     for (const { layer } of this.layers) this.buildInto(chunk, layer, key);
+    this.fit(chunk, distanceToChunk(key, x, z), x, z);
     this.loaded.set(key, chunk);
     this.scene.add(chunk.group);
   }

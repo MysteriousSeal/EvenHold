@@ -2,7 +2,7 @@
 // bandit's, a skeleton's or a ghost's by kind, made as enemies come into range and dropped when
 // they leave it or vanish.
 
-import { FOE_INK, Silhouettes } from '../human/heroSilhouette';
+import { FOE_INK, Silhouettes, TELL_INK } from '../human/heroSilhouette';
 import * as THREE from 'three';
 import type { Enemy, EnemyKind } from '../../../model/types';
 import { BanditRig, createBanditLook, type BanditLook } from './banditRig';
@@ -20,6 +20,7 @@ import { BatRig, createBatLook, type BatLook } from './batRig';
 import { WormRig, createWormLook, type WormLook } from './wormRig';
 import { Nearby } from '../common/nearby';
 import { KIND_LOOKS } from './enemyKinds';
+import { FoeNight } from './foeNight';
 
 
 const MARKER_MOST = KIND_LOOKS.draugr.size; // the focus brackets, at their biggest (a draugr's, the lord's)
@@ -92,7 +93,13 @@ export class EnemyViews {
   );
   private readonly marker = focusMarker();
   private readonly ink = new Silhouettes(FOE_INK); // (outdoors, those coming for the hero or focused: seen through a crown)
+  private readonly tellInk = new Silhouettes(TELL_INK); // (the same, winding up a blow or a told move: its shape flares)
   private readonly questMarks = new Map<number, THREE.Mesh>(); // the amber aura under each marked foe
+  // (at night, outdoors: a moonlit edge round each, a beast's eyes aglint)
+  private readonly night = new FoeNight(
+    [this.wolfLook, this.boarLook, this.bearLook, this.lynxLook, this.houndLook, this.banditLook, this.undeadLook].map((l) => l.normal as THREE.MeshStandardMaterial),
+    this.beastLooks.map((l) => l.glint),
+  );
   private time = 0;
 
   // `scale`: how big they're drawn (in a room, as big as the hero is there).
@@ -117,9 +124,13 @@ export class EnemyViews {
     return rig.root;
   }
 
+  private get beastLooks(): BeastLook[] {
+    return [this.wolfLook, this.boarLook, this.bearLook, this.lynxLook];
+  }
+
   // Every lit material enemies use, so they can be styled and compiled up front.
   get materials(): THREE.Material[] {
-    return [this.wolfLook.normal, this.boarLook.normal, this.bearLook.normal, this.lynxLook.normal, this.houndLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];
+    return [...this.beastLooks.map((l) => l.glint), this.wolfLook.normal, this.boarLook.normal, this.bearLook.normal, this.lynxLook.normal, this.houndLook.normal, this.banditLook.normal, this.undeadLook.normal, this.undeadLook.rage, this.flash, ENEMY_BURST, ...[this.spiderLook, this.hatchlingLook, this.motherLook].flatMap((l) => [l.normal, l.glow]), this.batLook.normal, this.batLook.glow, this.wormLook.normal];
   }
 
   // `focused`: the id of the enemy the hero has focused, marked at its feet.
@@ -127,6 +138,7 @@ export class EnemyViews {
   update(enemies: readonly Enemy[], heroX: number, heroZ: number, dt: number, focused: number | null = null, marked: (enemy: Enemy) => boolean = () => false): void {
     this.time += dt;
     pulseAuras(this.time);
+    this.night.update(this.scale === 1); // (the world's, not a dungeon's)
     const target = focused === null ? undefined : enemies.find((e) => e.id === focused && e.state !== 'dead'); // (none focused, mostly: nothing looked through)
     this.marker.visible = !!target;
     if (target) {
@@ -136,7 +148,11 @@ export class EnemyViews {
     const seen = this.rigs.update(enemies, heroX, heroZ, (enemy, rig) => {
       if (rig instanceof BanditRig && enemy.human && rig.body !== enemy.human.look) return this.rigs.forget(enemy.id);
       rig.update(enemy, dt, heroX, heroZ);
-      this.ink.update(Silhouettes.meshesOf(rig.root), this.scale === 1 && (enemy.state === 'chase' || enemy === target)); // (the world's, not a dungeon's floor)
+      const meshes = Silhouettes.meshesOf(rig.root);
+      const inked = this.scale === 1 && (enemy.state === 'chase' || enemy === target); // (the world's, not a dungeon's floor)
+      const telling = enemy.state !== 'dead' && (!!enemy.told || enemy.swingFor !== null);
+      this.ink.update(meshes, inked && !telling);
+      this.tellInk.update(meshes, inked && telling);
       this.markQuest(enemy, (marked(enemy) || !!enemy.champion) && enemy.state !== 'dead');
     });
     for (const [id, mark] of this.questMarks) {

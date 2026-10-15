@@ -23,6 +23,7 @@ import { TREE_GRID, TREE_PALETTE, TREE_VOXEL_SIZE, buildTreeVoxels } from './tre
 import { GRAND_GRID, GRAND_SHAPES, grandOak } from './grandOakVoxels';
 import { createFallingLeaves } from './fallingLeaves';
 import { bareBoughs } from './boughVoxels';
+import { coarseGrid } from '../voxel/coarseGrid';
 
 export const SINK = 0.01; // roots slightly below the tile top, so no gap shows at the base
 const TINT_BRIGHTNESS = 0.06; // ± per-tree brightness
@@ -48,6 +49,16 @@ export function buildTreeGeometry(kind: TreeKind, shape: number, grand = false):
   const leafy = greedyMesh(grid, TREE_PALETTE, TREE_VOXEL_SIZE, origin);
   if (kind === 'pine') return leafy;
   return joined(leafy, greedyMesh(bareBoughs(grid, shape * 7 + (grand ? 3 : 0)), TREE_PALETTE, TREE_VOXEL_SIZE, origin));
+}
+
+// The same at half its detail (voxel/coarseGrid.ts), voxels twice the size: drawn far off at a lower quality.
+export function buildTreeFarGeometry(kind: TreeKind, shape: number, grand = false): THREE.BufferGeometry {
+  const [sx, , sz] = grand ? GRAND_GRID : TREE_GRID;
+  const origin = new THREE.Vector3((-sx * TREE_VOXEL_SIZE) / 2, -SINK, (-sz * TREE_VOXEL_SIZE) / 2);
+  const grid = grand ? grandOak(shape % GRAND_SHAPES) : buildTreeVoxels(kind, shape);
+  const leafy = greedyMesh(coarseGrid(grid), TREE_PALETTE, TREE_VOXEL_SIZE * 2, origin);
+  if (kind === 'pine') return leafy;
+  return joined(leafy, greedyMesh(coarseGrid(bareBoughs(grid, shape * 7 + (grand ? 3 : 0))), TREE_PALETTE, TREE_VOXEL_SIZE * 2, origin));
 }
 
 // Two meshes' triangles as one (the mesher's are unindexed: position, normal, colour).
@@ -114,6 +125,7 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
   const grand = (tree: Tree) => tree.kind === 'oak' && biomes.at(Math.round(tree.x), Math.round(tree.z)) === 'forest';
   const modelKey = (tree: Tree) => (grand(tree) ? `grand:${tree.shape % GRAND_SHAPES}` : `${tree.kind}:${tree.shape}`);
   const geometry = (tree: Tree) => buildTreeGeometry(tree.kind, tree.shape, grand(tree));
+  const far = { far: (tree: Tree) => buildTreeFarGeometry(tree.kind, tree.shape, grand(tree)) }; // (at a lower quality, far off)
   const at = (tree: Tree) => ({ x: tree.x, y: tree.groundTier * TILE_HEIGHT, z: tree.z, quarterTurns: tree.quarterTurns, tint: tintOf(tree) });
   const chunks = bucketByChunk(model.trees, (tree) => tree);
   const { lumber } = model;
@@ -125,8 +137,8 @@ export function buildTrees(scene: WorldSink, model: GameModel): (elapsedSeconds:
     drawn.set(tree, { mesh, i, base });
   };
   const standing = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && !lumber.felled(tree));
-  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind !== 'pine'), modelKey, geometry, at, material, placed));
-  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind === 'pine'), modelKey, geometry, at, pineMaterial, placed));
+  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind !== 'pine'), modelKey, geometry, at, material, placed, far));
+  scene.layer(voxelLayer(() => chunks.keys(), (key) => standing(key).filter((tree) => tree.kind === 'pine'), modelKey, geometry, at, pineMaterial, placed, far));
   const fallen = (key: string) => (chunks.get(key) ?? []).filter((tree) => !tree.planted && lumber.felled(tree));
   scene.layer(voxelLayer(() => chunks.keys(), fallen, (tree) => `stump:${tree.kind}`, (tree) => stumpGeometry(tree.kind), (tree) => ({ ...at(tree), tint: undefined }), stumpMaterial));
 

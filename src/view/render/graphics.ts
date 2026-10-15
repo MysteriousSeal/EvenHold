@@ -1,8 +1,9 @@
 // The graphics settings, the pause menu's: a quality (Low, Medium, High) and the brightness, remembered in the
 // browser like the zoom (zoom.ts). What each quality draws is its preset: the render's resolution, the screen passes
 // (postprocessing.ts), the shadows indoors (interior/roomView.ts: the fire's and every lantern's, each a cube of six
-// renders a frame), how far round the hero the land's built (world/chunkStreamer.ts), and how much of the small life
-// and the weather's drops is drawn. A change is told to whoever listens (GameView), and shows at once.
+// renders a frame), how far round the hero the land's built (world/chunkStreamer.ts), how much of the small life
+// and the weather's drops is drawn, and outdoors how thick the grass and small plants grow, how far off the small
+// things on the ground are drawn, and past how far the trees are drawn simpler (voxel/voxelInstances.ts). A change is told to whoever listens (GameView), and shows at once.
 
 export type Quality = 'low' | 'medium' | 'high';
 export const QUALITIES: readonly Quality[] = ['low', 'medium', 'high'];
@@ -18,12 +19,15 @@ export interface Preset {
   lampFill: boolean; // indoors, the soft light between each lantern and its wall
   loadRadius: number; // tiles round the hero the land's built to (the farthest zoom shows about 15)
   life: number; // the share of the small life (fireflies, birds...) and the rain's and snow's drops drawn, and the blood
+  flora: number; // the share of the grass, the flowers and the small plants drawn
+  propReach: number; // tiles round the hero the small things on the ground (plants, pebbles, stones) are drawn to
+  treeFar: number; // tiles round the hero past which trees are drawn at half their detail (voxel/coarseGrid.ts)
 }
 
 export const PRESETS: Record<Quality, Preset> = {
-  high: { pixelScale: 1, post: true, bloom: true, shafts: true, msaa: 4, shadows: 'all', lampFill: true, loadRadius: 28, life: 1 },
-  medium: { pixelScale: 1, post: true, bloom: true, shafts: false, msaa: 2, shadows: 'fire', lampFill: true, loadRadius: 24, life: 0.6 },
-  low: { pixelScale: 0.75, post: false, bloom: false, shafts: false, msaa: 0, shadows: 'none', lampFill: false, loadRadius: 20, life: 0.3 },
+  high: { pixelScale: 1, post: true, bloom: true, shafts: true, msaa: 4, shadows: 'all', lampFill: true, loadRadius: 28, life: 1, flora: 1, propReach: Infinity, treeFar: Infinity },
+  medium: { pixelScale: 1, post: true, bloom: true, shafts: false, msaa: 2, shadows: 'fire', lampFill: true, loadRadius: 24, life: 0.6, flora: 0.6, propReach: 20, treeFar: 11 },
+  low: { pixelScale: 0.75, post: false, bloom: false, shafts: false, msaa: 0, shadows: 'none', lampFill: false, loadRadius: 20, life: 0.3, flora: 0.35, propReach: 14, treeFar: 6 },
 };
 
 export interface Graphics {
