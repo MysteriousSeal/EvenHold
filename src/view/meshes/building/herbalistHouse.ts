@@ -6,10 +6,11 @@
 // eaves and the gable ends, a sod ridge along its top, a crooked stone
 // chimney through it; a rough plank door under a stone lintel and a small
 // lit window, the thatch lifted over both, facing -Z; herbs drying under
-// the front eave, clay pots of herbs by the door; a front garden fenced in
-// wattle (raised beds, stepping stones, a cauldron on its embers, a sign of
-// a green bottle hung by the gate), and a fairy ring by its side. In the
-// houses' grid and palette (houseVoxels.ts, housePalette.ts).
+// its eaves, clay pots of herbs by the door; a garden fenced in wattle
+// (raised beds, stepping stones, a cauldron on its embers, a sign of a green
+// bottle hung by the gate) round its front and a bed down its right side;
+// a fairy ring by its back corner. Its trade to be seen from every side. In
+// the houses' grid and palette (houseVoxels.ts, housePalette.ts).
 
 import { hashUnit } from '../../../util/random';
 import type { VoxelGrid } from '../voxel/greedyMesh';
@@ -59,8 +60,8 @@ export function buildHermitHut(): VoxelGrid {
     post(X0, z, -1, 0);
     post(X1, z, 1, 0);
   }
-  // Moss gathered at its foot in a few clumps (at a back corner, by its side, at the front corner), a root in each.
-  for (const [mx, mz] of [[X0 - 1, Z1 + 1], [X1 + 1, Z0 + 6], [X0 - 1, Z0]]) {
+  // Moss gathered at its foot in a few clumps (along its back, by its left side, at the front corner), a root in each.
+  for (const [mx, mz] of [[MID, Z1 + 1], [X0 - 1, Z0 + 6], [X0 - 1, Z0]]) {
     for (let x = mx - 2; x <= mx + 2; x++) {
       for (let z = mz - 2; z <= mz + 2; z++) {
         const outside = x < X0 || x > X1 || z < Z0 || z > Z1;
@@ -121,9 +122,9 @@ export function buildHermitHut(): VoxelGrid {
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) put(grid, [wx + dx, 6 + dy, Z0], Math.abs(dx) < 2 && Math.abs(dy) < 2 ? C.glass : C.timber);
   fillBox(grid, wx - 2, 3, Z0 - 1, wx + 2, 3, Z0 - 1, C.timber); // its sill
 
-  // Herbs drying under the front eave: bundles hung from the thatch every few voxels (clear of the door and window).
-  [X0 + 1, X0 + 3, X0 + 5, X1].forEach((x, i) => {
-    const z = Z0 - 2;
+  // Herbs drying under the eaves, front and back: bundles hung from the thatch (clear of the door and window).
+  const hung: Array<[number, number]> = [[X0 + 1, Z0 - 2], [X0 + 3, Z0 - 2], [X0 + 5, Z0 - 2], [X1, Z0 - 2], [X0 + 5, Z1 + 2], [X1 - 6, Z1 + 2]];
+  hung.forEach(([x, z], i) => {
     const herb = [C.herbFresh, C.herbSage, C.herbDry][i % 3];
     put(grid, [x, WALL_TOP, z], C.bark);
     put(grid, [x, WALL_TOP - 1, z], herb);
@@ -138,10 +139,10 @@ export function buildHermitHut(): VoxelGrid {
     put(grid, [x, 2, z], C.leaf);
     put(grid, [x, 3, z], flower ? C.flowerPurple : C.herbFresh);
   }
-  // A fairy ring of toadstools by its side, toward the back: red caps spotted pale on pale stems (its uncanny note).
+  // A fairy ring of toadstools at its back corner: red caps spotted pale on pale stems (its uncanny note).
   for (let k = 0; k < 5; k++) {
     const a = (k / 5) * Math.PI * 2;
-    const [x, z] = [Math.round(22.5 + Math.cos(a) * 1.6), Math.round(16 + Math.sin(a) * 2)];
+    const [x, z] = [Math.round(2 + Math.cos(a) * 1.6), Math.round(22 + Math.sin(a) * 1.8)];
     put(grid, [x, 0, z], C.toadstoolStem);
     put(grid, [x, 1, z], k % 2 ? C.toadstool : C.toadstoolSpot);
   }
@@ -149,10 +150,10 @@ export function buildHermitHut(): VoxelGrid {
   return grid;
 }
 
-// The front garden, in the strip before the door (z 0 to 4): a low wattle fence round it, open at the path; stepping
-// stones out from the door; a raised bed either side, edged in wattle, rows of herbs in them (lavender, sage,
-// foxgloves, marigolds); the cauldron on its embers, its brew bright green; and the sign by the gate, a crooked post and
-// arm, a green bottle hung from it beside a bunch of herbs.
+// The garden, in the strip before the door (z 0 to 4) and down the right side: a low wattle fence round it, open at
+// the path; stepping stones out from the door; raised beds edged in wattle, rows of herbs in them (lavender, sage,
+// foxgloves, marigolds); the cauldron on its embers, its brew bright green; and the sign by the gate, a crooked post
+// and arm, a green bottle hung from it beside a bunch of herbs.
 function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: number) => number): void {
   const gate = (x: number) => x >= 10 && x <= 14;
   // The fence: posts every three, two woven rails between, round the front and up the sides to the walls.
@@ -161,10 +162,8 @@ function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: n
     else for (let y = 1; y <= 2; y++) put(grid, [x, y, z], (i + y) % 2 ? C.wattle : C.wattleDark);
   };
   for (let x = 0; x <= 24; x++) if (!gate(x)) fence(x, 0, x);
-  for (let z = 1; z < Z0; z++) {
-    fence(0, z, z);
-    fence(24, z, z);
-  }
+  for (let z = 1; z < Z0; z++) fence(0, z, z);
+  for (let z = 1; z <= Z1 + 1; z++) fence(24, z, z); // (and on down its right side, round the bed there)
   // The stepping stones, from the doorstep out to the gate.
   for (const [x, z] of [[11, 3], [12, 1]]) fillBox(grid, x, 0, z, x + 1, 0, z + 1, C.stoneLight);
   // The raised beds: edged, soil, a row of herbs along each (a hash for their heights).
@@ -180,6 +179,12 @@ function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: n
     });
   };
   bed(1, 7, [[C.lavender, C.herbSage], [C.foxglove, C.sod]]);
+  // Down its right side, a long bed of the tallest (lavender, foxgloves), to show over the fence from that side.
+  fillBox(grid, 21, 0, Z0 + 1, 23, 1, Z1 - 1, (x, _y, z) => (x === 22 && z > Z0 + 1 && z < Z1 - 1 ? C.soil : C.wattleDark));
+  for (let z = Z0 + 2; z < Z1 - 1; z++) {
+    const spike = z % 2 === 0;
+    for (let y = 2; y <= (spike ? 5 : 3); y++) put(grid, [22, y, z], y >= (spike ? 4 : 3) ? (spike ? C.foxglove : C.lavender) : spike ? C.sod : C.herbSage);
+  }
   bed(20, 23, [[C.marigold, C.leaf], [C.herbSage, C.herbSage]]);
   // The cauldron, by the right bed: black iron, round, on three stones over glowing embers, its brew bright green.
   const [cx, cz] = [16, 2];
