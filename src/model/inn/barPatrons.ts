@@ -29,8 +29,8 @@ const pick = (lines: readonly string[], n: number) => oneOf(lines, hashUnit(n, l
 const barkeepOf = (npcs: readonly Npc[], inn: Npc['where']) => npcs.find((n) => n.role === 'barkeep' && n.home === inn);
 
 // Asks for a drink (an ale, or now and then a glass of wine): in the
-// queue, the barkeep called over if she's free.
-function order(npc: Npc, npcs: readonly Npc[], stool: Furniture): void {
+// queue, the barkeep called over if she's free. (Exported: a round bought them, inn/barRound.ts.)
+export function order(npc: Npc, npcs: readonly Npc[], stool: Furniture): void {
   const inn = npc.where!;
   npc.awaiting = true;
   const drink: Drink = hashUnit(npc.id, npc.stop * 7 + (npc.drinks ?? 0), 47) < WINE ? 'wine' : 'ale';
@@ -84,3 +84,12 @@ export function atBar(npc: Npc, npcs: readonly Npc[], stool: Furniture, dt: numb
 
 // Whether they're tied to the bar: waiting on an ale, or not done with it.
 export const busyAtBar = (npc: Npc): boolean => !!npc.awaiting || (npc.pickup ?? 0) > 0 || !!npc.drinking;
+
+// Whoever's sat on a stool next to the hero's (a row either way), for a word: the nearest; else null.
+export function patronBeside(npcs: readonly Npc[], inn: Npc['where'], hero: { x: number; z: number }): Npc | null {
+  const beside = npcs.filter((n) => n.role === 'villager' && n.where === inn && n.seat?.piece.kind === 'barStool' && Math.abs(n.z - hero.z) <= 1.6);
+  return beside.sort((a, b) => Math.abs(a.z - hero.z) - Math.abs(b.z - hero.z))[0] ?? null;
+}
+
+// Whether the barmaid's right across the bar from the hero sat at it (her word theirs before a neighbour's).
+export const acrossTheBar = (barmaid: { z: number }, hero: { z: number }): boolean => Math.abs(barmaid.z - hero.z) <= 0.6;

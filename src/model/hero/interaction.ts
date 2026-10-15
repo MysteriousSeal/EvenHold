@@ -15,6 +15,7 @@ import { doorAt, stairsInReach } from '../interiors/upstairs';
 import { chestInReach } from '../loot/chests';
 import type { GroundLoot } from '../loot/loot';
 import { talkingTo } from '../npcs/talk';
+import { acrossTheBar, patronBeside } from '../inn/barPatrons';
 import { villagerInReach } from '../npcs/chat';
 import type { Npc } from '../npcs/npcs';
 import type { ChopAction } from '../skills/lumber';
@@ -85,7 +86,11 @@ function* candidates(model: GameModel): Generator<Interaction | null> {
   yield fish?.kind === 'fish' ? { kind: 'fish', action: fish } : null;
   const talker = talkingTo(model.folk, inside, hero) ?? model.story.askerInReach; // the barmaid, the smith (of the villagers round about); else a villager with something to ask
   const seated = model.seated;
-  yield talker && seated?.seat.piece.kind === 'barStool' ? { kind: 'talk', npc: talker, fromStool: true } : null;
+  const atTheBar = seated?.seat.piece.kind === 'barStool';
+  const beside = atTheBar && inside ? patronBeside(model.folk, inside.entrance, hero) : null; // (a word with the patron next to them: npcs/chat.ts)
+  const first = !!talker && (talker.role === 'barkeep' ? acrossTheBar(talker, hero) : talker.role === 'villager'); // (before the neighbour: the barmaid right across from them, or someone with a quest to give)
+  const atBar = first || !beside ? talker : beside;
+  yield atTheBar && atBar ? { kind: 'talk', npc: atBar, fromStool: true } : null;
   yield seated ? { kind: 'stand', seat: seated.seat } : null;
   const seat = seated ? null : model.seatInReach;
   yield seat ? { kind: 'sit', seat } : null;
