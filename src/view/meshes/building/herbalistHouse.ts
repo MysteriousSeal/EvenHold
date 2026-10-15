@@ -189,16 +189,22 @@ function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: n
     for (let y = 2; y <= (spike ? 5 : 3); y++) put(grid, [22, y, z], y >= (spike ? 4 : 3) ? (spike ? C.foxglove : C.lavender) : spike ? C.sod : C.herbSage);
   }
   // The cauldron, in the left corner: black iron, round, on its legs over a bed of embers glowing out from under it (lit
-  // at night), three stones round them, its brew bright green.
+  // at night), three stones round them, its brew green, sunk in its rim.
   const [cx, cz] = [3, 3];
   for (const [dx, dz] of [[-2, -2], [2, -2], [2, 2]]) put(grid, [cx + dx, 0, cz + dz], C.stoneDark);
   fillBox(grid, cx - 2, 0, cz - 2, cx + 2, 0, cz + 2, (x, _y, z) => (Math.hypot(x - cx, z - cz) <= 2.3 && !(Math.abs(x - cx) === 2 && Math.abs(z - cz) === 2) ? C.ember : 0));
   fillBox(grid, cx - 1, 1, cz, cx + 1, 1, cz, C.ember); // (flames licking up under it)
   fillBox(grid, cx, 1, cz - 1, cx, 1, cz + 1, C.ember);
-  for (const [dx, dz] of [[-2, -1], [1, -2], [1, 2]]) put(grid, [cx + dx, 1, cz + dz], C.soot); // its legs, up off the fire
-  for (let y = 2; y <= 4; y++) {
-    const r = y === 2 ? 1.5 : 2.3;
-    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dz) <= r) put(grid, [cx + dx, y, cz + dz], y === 4 && Math.hypot(dx, dz) < 1.5 ? C.brew : y === 2 ? C.soot : C.iron);
+  for (const [dx, dz] of [[-2, -1], [1, -2], [1, 2]]) fillBox(grid, cx + dx, 1, cz + dz, cx + dx, 2, cz + dz, C.soot); // its legs, up off the fire
+  // Its belly round (no corners), sooty; its rim a ring of iron; the brew sunk a voxel inside it, brightest at its heart.
+  for (let dz = -2; dz <= 2; dz++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const r = Math.hypot(dx, dz);
+      const at = (y: number) => [cx + dx, y, cz + dz] as [number, number, number];
+      if (r <= 1) put(grid, at(2), C.soot);
+      if (r <= 2.3) put(grid, at(3), r < 1.5 ? (r === 0 ? C.brew : C.brewDeep) : C.soot);
+      if (r <= 2.3 && r >= 1.5) put(grid, at(4), C.iron);
+    }
   }
   // The sign on the gate's right: a post, a short arm out from its top, a dark green bottle hung two below it on a
   // twine, its neck up.
