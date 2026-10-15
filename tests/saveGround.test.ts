@@ -2,10 +2,12 @@
 // made (not buried at the height of the land unmade).
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { parseSave, restore, snapshot } from '../src/model/save';
+import { MAX_LEVEL, parseSave, restore, snapshot } from '../src/model/save';
+import { POINTS_PER_LEVEL } from '../src/model/hero/training';
 import { STREAMED_SIZE } from '../src/model/worldgen/regions';
 import { spawnOf } from '../src/model/map/grid';
 import { LOOT_IDS } from '../src/model/loot/loot';
+import { fresh } from './support/testWorld';
 
 const SEED = 7;
 
@@ -25,5 +27,19 @@ describe("a save's loot far off", () => {
     expect(again.getGroundY(x, z)).toBe(y);
     expect(again.ground.loot.find((l) => l.x === x)?.y).toBe(y);
     expect(again.ground.coins.find((c) => c.x === x)?.y).toBe(y);
+  });
+});
+
+describe("a hero file's level past all", () => {
+  it('gives no more stat points than the highest level earns', () => {
+    const model = fresh();
+    for (const statPoints of [undefined, 1e300]) {
+      const data = snapshot(model);
+      Object.assign(data.hero, { level: 1e300, statPoints });
+      const again = fresh();
+      restore(again, parseSave(JSON.stringify(data), again.seed)!);
+      expect(again.hero.level).toBe(MAX_LEVEL);
+      expect(again.hero.statPoints).toBe(POINTS_PER_LEVEL * (MAX_LEVEL - 1)); // (all to spend: none trained)
+    }
   });
 });

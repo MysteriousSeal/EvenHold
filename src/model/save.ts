@@ -305,7 +305,7 @@ export function restore(model: GameModel, data: SaveData): void {
     money: Math.min(MAX_MONEY, Math.max(0, Math.floor(saved.money))), // (a hero file's huge number: as much as a hero could have)
     level,
     xp: Math.min(xpToNext(level) - 1, Math.max(0, saved.xp)), // (short of the next level: more, and the next gained never ends)
-    ...pointsOf(saved, records<{ slain: unknown }>(data.crypts).filter((d) => Array.isArray(d.slain) && d.slain.includes(AWARD_POST)).length),
+    ...pointsOf(saved, level, records<{ slain: unknown }>(data.crypts).filter((d) => Array.isArray(d.slain) && d.slain.includes(AWARD_POST)).length),
     facing: Number.isFinite(saved.facing) ? saved.facing : 0,
     blessings: (Array.isArray(saved.blessings) ? saved.blessings : [])
       .filter((b) => b && b.kind in BLESSINGS && typeof b.left === 'number' && b.left > 0)
@@ -449,9 +449,10 @@ function foesOf(model: GameModel): string {
 // Never more in all than their level's earned (a save from when levels gave more): what's
 // unspent cut to fit; if even what's spent is more, every point back to spend again.
 // (`won`: those a dungeon's boss's first fall gave besides, one each: dungeons/dungeonRecord.ts AWARD_POST.)
-function pointsOf(saved: SaveData['hero'], won = 0): { statPoints: number; trained: Record<Stat, number> } {
+// (`level`: theirs as restored, a hero file's past MAX_LEVEL at it.)
+function pointsOf(saved: SaveData['hero'], level: number, won = 0): { statPoints: number; trained: Record<Stat, number> } {
   const whole = (n: unknown) => (typeof n === 'number' && Number.isInteger(n) && n >= 0 ? n : 0);
-  const earned = POINTS_PER_LEVEL * (Math.max(1, Math.floor(saved.level)) - 1) + won;
+  const earned = POINTS_PER_LEVEL * (level - 1) + won;
   if (saved.statPoints === undefined) return { statPoints: earned, trained: untrained() };
   const trained = untrained();
   for (const s of STATS) trained[s] = whole(saved.trained?.[s]);
