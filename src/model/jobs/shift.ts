@@ -90,8 +90,10 @@ export abstract class Shift {
     if (who) visitInn(who, this.inn, this.seed, STAY[0] + hashUnit(who.id, this.rolls, 63) * (STAY[1] - STAY[0]), at);
   }
 
-  // The shift let go of (its end, or the hero gone): the inn's own staff back at it (`npcs`: the folk about).
-  release(_npcs?: readonly Npc[]): void {
+  // The shift let go of (its end, or the hero gone): the inn's own staff back at it (`npcs`: the folk about); those at
+  // its tables with a drink before them done with it (only the shift counted it down: else sat there for good).
+  release(npcs: readonly Npc[] = []): void {
+    for (const npc of npcs) if (npc.where === this.inn && npc.seat?.piece.kind === 'chair' && npc.drinking) npc.drinking = null;
     shiftOver(this.inn);
   }
 }

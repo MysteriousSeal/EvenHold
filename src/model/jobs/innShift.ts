@@ -261,11 +261,11 @@ export class InnShift extends Shift {
 
   // The shift let go of: those still waiting no longer held to their seats, their orders out of the queue, the
   // tables cleared (the inn's own staff to it), the server back on her feet.
-  release(): void {
+  release(npcs: readonly Npc[] = []): void {
     for (const want of [...this.wants.values()]) this.drop(want);
     this.tray.length = 0;
     this.empties.length = 0;
-    super.release();
+    super.release(npcs);
   }
 }
 

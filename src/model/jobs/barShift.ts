@@ -397,9 +397,8 @@ export class BarShift extends Shift {
     this.pour = null;
     this.held.length = 0;
     for (const ticket of this.tickets) for (const npc of ticket.patrons) npc.awaiting = false; // (no longer held to their seats)
-    for (const npc of npcs) if (npc.where === this.inn && npc.seat?.piece.kind === 'chair' && npc.drinking) npc.drinking = null; // (done up)
     const server = npcs.find((n) => n.role === 'server' && n.home === this.inn);
     if (server) Object.assign(server, { carrying: false, steps: [], path: null });
-    super.release();
+    super.release(npcs);
   }
 }
