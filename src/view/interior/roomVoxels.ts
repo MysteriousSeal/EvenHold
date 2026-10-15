@@ -86,9 +86,9 @@ const [OAK, OAK_DARK, OAK_LIGHT, OAK_SEAM] = TAVERN_COLORS.map((_, i) => ROOM_PA
 function floorColor(style: Room['floor'], x: number, z: number): number {
   if (style === 'tavern') return tavernFloor(x, z);
   if (style === 'earth') {
-    // Packed earth, darker in patches, rushes strewn over it here and there in short strands: thicker within a tile of
-    // the walls (swept there), sparse out on the floor where she walks.
-    const k = x < TILE || z < TILE ? 1 : 3;
+    // Packed earth, darker in patches, a few rushes strewn over it in short strands: more within a tile of the walls
+    // (swept there), sparse out on the floor where they walk.
+    const k = x < TILE || z < TILE ? 2 : 6;
     const rush = hash(Math.floor(x / 3), z) % (23 * k) === 0 || hash(x, Math.floor(z / 3)) % (29 * k) === 0;
     return rush ? RUSH : hash(Math.floor(x / 4), Math.floor(z / 4)) % 3 === 0 ? EARTH_DARK : EARTH;
   }
