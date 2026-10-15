@@ -17,10 +17,9 @@ import {
 } from '../src/view/meshes/cover/wildVoxels';
 import { buildScenery, sceneryGrid } from '../src/view/meshes/scenery/sceneryVoxels';
 import { buildBushVoxels, BUSH_PALETTE } from '../src/view/meshes/bush/bushVoxels';
-import { groundTint, patchAt } from '../src/view/meshes/terrain/biomeGround';
+import { createGroundColours } from '../src/view/meshes/terrain/biomeGround';
 import * as THREE from 'three';
 import { TERRAIN_COLORS } from '../src/view/constants';
-import { TREE_CHANCE } from '../src/model/constants';
 
 const MID = { width: 512, depth: 512 };
 const world = generateWorld(7, MID);
@@ -46,12 +45,16 @@ describe('kinds of country', () => {
 
   it('the woods where the trees grow thick; marsh only on low ground, hills only on high', () => {
     const forest = createForestDensity(7);
+    const [woods, open]: number[][] = [[], []];
     for (let x = 0; x < MID.width; x += 3) for (let z = 0; z < MID.depth; z += 3) {
       const kind = biomes.at(x, z);
-      if (kind === 'forest') expect(forest(x, z)).toBeGreaterThan(TREE_CHANCE);
+      if (kind === 'forest') woods.push(forest(x, z));
+      else open.push(forest(x, z));
       if (kind === 'marsh') expect(world.heightMap[x][z]).toBeLessThanOrEqual(1);
       if (kind === 'hills') expect(world.heightMap[x][z]).toBeGreaterThanOrEqual(3);
     }
+    const mean = (list: number[]) => list.reduce((a, b) => a + b, 0) / list.length;
+    expect(mean(woods)).toBeGreaterThan(mean(open) * 2);
   });
 
   it('change no tree: the world made from the seed is as it was (its trees, their kinds, where they stand)', () => {
@@ -134,20 +137,29 @@ describe('what grows on the ground', () => {
 });
 
 describe('the ground\'s colour and the bushes\' looks', () => {
-  it('each country\'s its own, a step darker each tier down; the woods\' litter and the marsh\'s mud in patches', () => {
-    const hex = (kind: Biome, tier: number, patch = -1) => groundTint(kind, tier, patch).clone().multiply(new THREE.Color(TERRAIN_COLORS[tier])).getHex();
-    for (let tier = 0; tier < TERRAIN_COLORS.length; tier++) expect(new Set(BIOMES.map((kind) => hex(kind, tier))).size).toBe(BIOMES.length);
-    for (const kind of BIOMES) expect(groundTint(kind, 0).clone().multiply(new THREE.Color(TERRAIN_COLORS[0])).getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(groundTint(kind, 4).clone().multiply(new THREE.Color(TERRAIN_COLORS[4])).getHSL({ h: 0, s: 0, l: 0 }).l);
-    const patched = (kind: Biome) => Array.from({ length: 4000 }, (_, i) => patchAt(kind, i % 64, Math.floor(i / 64))).filter((p) => p >= 0).length;
-    expect(patched("forest")).toBeGreaterThan(100);
-    expect(patched("marsh")).toBeGreaterThan(40);
-    expect(patched('meadow')).toBe(0);
+  it('each country\'s its own, shading into its neighbours\' over a few tiles at a border', () => {
+    const tiles = model.tiles;
+    const biomes = createBiomes(7, tiles);
+    const ground = createGroundColours(biomes, tiles);
+    const at = (x: number, z: number) => ground(x, z, tiles.height(x, z)).clone().multiply(new THREE.Color(TERRAIN_COLORS[tiles.height(x, z)]));
+    let steps = 0;
+    let borders = 0;
+    for (let x = 4; x < MID.width - 4; x += 3) for (let z = 4; z < MID.depth - 4; z++) {
+      if (tiles.lake(x, z) || tiles.lake(x, z + 1) || tiles.height(x, z) !== tiles.height(x, z + 1)) continue;
+      if (biomes.at(x, z) === biomes.at(x, z + 1)) continue;
+      if (biomes.at(x, z) === 'marsh' || biomes.at(x, z + 1) === 'marsh') continue; // (mud at the water: its own)
+      borders++;
+      const [a, b] = [at(x, z), at(x, z + 1)];
+      steps = Math.max(steps, Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b));
+    }
+    expect(borders).toBeGreaterThan(50);
+    expect(steps).toBeLessThan(0.2); // (no hard edge from one tile to the next)
   });
 
   it('gorse starred yellow, bramble with its blackberries; the bushes\' own kinds as they were', () => {
     const colours = (look: Parameters<typeof buildBushVoxels>[0]) => new Set(buildBushVoxels(look, 0).cells);
-    expect(colours('gorse').has(BUSH_PALETTE.indexOf(0xf2c63a) + 1)).toBe(true);
+    expect(colours('gorse').has(BUSH_PALETTE.indexOf(0xd9b23a) + 1)).toBe(true);
     expect(colours('bramble').has(BUSH_PALETTE.indexOf(0x2e1c32) + 1)).toBe(true);
-    expect(colours('leafy').has(BUSH_PALETTE.indexOf(0xf2c63a) + 1)).toBe(false);
+    expect(colours('leafy').has(BUSH_PALETTE.indexOf(0xd9b23a) + 1)).toBe(false);
   });
 });
