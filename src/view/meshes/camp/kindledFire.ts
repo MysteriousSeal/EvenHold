@@ -13,7 +13,7 @@ const N = 9; // its grid across
 const BED_HEIGHT = 0.06; // the flames' bed, over the logs
 
 // The stones and the logs: grey stones round the edge (two tones), the logs crossed, bark 3 and their cut ends 4.
-function pit(): THREE.BufferGeometry {
+export function pit(): THREE.BufferGeometry {
   const g = createGrid([N, 2, N]);
   for (let x = 0; x < N; x++)
     for (let z = 0; z < N; z++) {

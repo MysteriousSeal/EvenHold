@@ -1,7 +1,7 @@
 // The scenes the hero's drawn in off the world's (GameView's): the room they're in, a dungeon's floor, or the grass
 // yard (a dev cheat); each built as they arrive, freed as they leave, and kept up while they're there.
 import { graphics, type Quality } from '../render/graphics';
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { GameModel } from '../../model/GameModel';
 import { mugsAt } from '../../model/inn/barMugs';
 import type { Entrance } from '../../model/interiors/interiors';
@@ -10,12 +10,15 @@ import { smithWorking } from '../../model/smithy/smithWork';
 import { buildDungeonScene, type DungeonLife } from '../dungeon/dungeonViews';
 import { buildFurnitureYard } from './furnitureYard';
 import { buildRoomScene, type IndoorScene } from './roomView';
+import { DiceOnTable } from './diceOnTable';
 
 const PASS_MOST = 7; // at work, the cups at the counter's end drawn, at most (the rest under them)
 
 export class IndoorScenes {
   room: ({ entrance: Entrance; furniture: readonly unknown[]; fullWalls: boolean; quality: Quality; life: DungeonLife | null } & IndoorScene) | null = null;
   yardView: ReturnType<typeof buildFurnitureYard> | null = null;
+  private readonly dice = new DiceOnTable(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 })); // (on an inn's table: diceOnTable.ts)
+  private last = 0; // the elapsed time of the frame before
 
   // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
   yardScene(model: GameModel): THREE.Scene | null {
@@ -60,6 +63,8 @@ export class IndoorScenes {
     const pass = (shift && 'passMugs' in shift ? shift.passMugs : []).slice(0, PASS_MOST).map((mug, i) => ({ ...mug, z: shift!.barEndZ - i * 0.24 }));
     this.room.showMugs?.([...mugsAt(inside.entrance), ...pass]);
     this.room.showTableMugs?.(shift instanceof InnShift ? shift.empties : []);
+    this.dice.update(model, this.room.scene, Math.min(0.1, Math.max(0, elapsed - this.last)));
+    this.last = elapsed;
     return this.room.scene;
   }
 }

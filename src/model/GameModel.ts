@@ -43,6 +43,7 @@ import type { Shop } from './inn/tavernShop';
 import { tickBlessing, tossInWell, walkFactor, wellInReach, type BlessingKind } from './hero/blessing';
 import { QuestBook } from './quests/questBook';
 import { Bounties } from './quests/bounties';
+import { DiceHall } from './inn/diceHall';
 import { Atlas } from './atlas/atlas';
 import { takeSpeech } from './npcs/speech';
 import { START_MINUTES } from './clock';
@@ -145,6 +146,7 @@ export class GameModel {
   readonly story = new Story(this); // (the quests people give, and how they stand: story/story.ts)
   readonly heat = new Heat(this); // (what the witch-finders have heard of the hero, by village: roads/heat.ts)
   readonly roads = new Roads(this); // (the witch-finders' patrols, the dead walking at night: roads/roads.ts)
+  readonly dice = new DiceHall(() => this); // (the dice at the inns' tables, tonight's sharps: inn/diceHall.ts)
   felled = (tree: Tree): boolean => this.lumber.felled(tree); // (the world's: a felled tree not there, nor in the way)
 
   // Dev cheats: speed factor (1 = normal); walking through everything; enemies' blows don't hurt; every blow of the hero's
@@ -261,6 +263,7 @@ export class GameModel {
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
       stepNpcs(this.folk, this, dt);
+      this.dice.update(this.folk, dt); // (a sharp thrown out, on their way to the door)
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }
@@ -274,7 +277,7 @@ export class GameModel {
     faceGuarded(this);
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
-    this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
+    this.travellers.update(dt, this.director.around(), this.minutes); // (the foes round the hero: guards fight only there; the hour: pedlars camp at night)
     this.roads.update(dt); // (the witch-finders, the night's dead)
     this.quests.update(dt);
     [this.bounties.update(), this.atlas.update()]; // (posters come down; the land round the hero seen)
@@ -289,7 +292,7 @@ export class GameModel {
   }
 
   // The villagers round the hero (where they are on the map: a building, if in one).
-  get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; return v && v.where === this.inside?.entrance ? [...near, v] : near; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts)
+  get folk(): readonly Npc[] { const [near, v] = [this.nearNpcs.near(this.inside?.entrance ?? this.hero), this.work.visitor]; const folk = v && v.where === this.inside?.entrance ? [...near, v] : near; const sharp = this.dice.sharpIn(this.inside, folk); return sharp ? [...folk, sharp] : folk; } // (and whoever's let into the hero's room, at work in one: jobs/roomShift.ts; tonight's dice sharp, at an inn: inn/diceHall.ts)
 
   // The hero's blow landing, on whoever's in reach (fighting.ts).
   private readonly land = (): void => landBlow(this);

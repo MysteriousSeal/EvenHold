@@ -3,7 +3,8 @@
 // inn its cups and casks, dearer), the smith weapons and armour, a
 // pedlar jewellery, potions, bags and a rod, a herbalist potions and what's
 // had from the wild (raw fish a pedlar too) and the caves' silk, venom and
-// bat wings (half again: junk to anyone else), and anyone junk, at what it's
+// bat wings (half again: junk to anyone else), a pedlar relics (a bone charm, a shroud: twice, to sell on to
+// pilgrims; junk to anyone else), and anyone junk, at what it's
 // worth; the smith salvaged iron, a pedlar salvaged silver and stones, and
 // resin and heartwood, at half (logs for firewood, at their worth). Quest items, planks, leather and linen (a
 // crafter's): no one.
@@ -18,7 +19,7 @@ import { isJewelrySlot } from '../human/equipment';
 import { innWants, sellPrice } from '../inn/tavernShop';
 import { gearSellPrice, metalPrice, pickPrice, smithBuys, smithTakesMetal, smithTakesPick, smithTakesWood, woodPrice } from '../smithy/smithShop';
 import { herbalistBuys, herbalistPrice, isCavePart } from '../herbalist/herbalistShop';
-import { WARES, pedlarBuys, pedlarPrice } from '../travellers/pedlarShop';
+import { WARES, isRelic, pedlarBuys, pedlarPrice } from '../travellers/pedlarShop';
 import { isFish } from '../skills/fishing';
 
 // (A woodworker's wares, travellers/pedlarShop.ts WARES: not junk, but a pedlar's and the inn's.)
@@ -27,6 +28,7 @@ export const isJunk = (item: BagItem): boolean => isLootItem(item) && LOOT_QUALI
 // What it sells for, and to whom ("a herbalist"); null if no one buys it.
 export function saleOf(item: BagItem): { price: number; to: string } | null {
   if (isCavePart(item)) return { price: herbalistPrice(item, true), to: 'a herbalist (anyone, as junk, for less)' }; // (junk, but theirs dearer)
+  if (isRelic(item)) return { price: pedlarPrice(item, true), to: 'a pedlar, as a relic (anyone, as junk, for less)' }; // (likewise: a pedlar's, for the pilgrims)
   if (isJunk(item)) return { price: LOOT[item as keyof typeof LOOT].value, to: 'anyone' };
   if (isProvision(item)) return { price: sellPrice(item), to: 'the inn or a pedlar' };
   if (WARES.has(item)) return innWants(item) ? { price: sellPrice(item), to: 'the inn (a pedlar for less)' } : { price: pedlarPrice(item, true), to: 'a pedlar' };

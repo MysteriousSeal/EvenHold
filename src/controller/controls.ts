@@ -42,6 +42,7 @@ export function controlGroups(): ReadonlyArray<{ name: string; controls: readonl
         one('Roll', 'roll', 'untouchable a moment'),
         one('Pick up, talk, sit, open, go in', 'use'),
         either('At the inn', 'ale', 'pie', 'sat at the bar: an ale, a pie; by the barmaid: a room'),
+        one('Dice', 'dice', 'sat at an inn\'s table across from someone'),
         { what: 'Zoom', keys: 'Mouse wheel', marks: [{ mouse: 'wheel' }] },
       ],
     },
@@ -75,7 +76,7 @@ export const controlsText = (): ReadonlyArray<readonly [string, string]> =>
 
 // Every key the player can rebind, grouped, each what it does (the pause menu's Keys).
 export const REBINDABLE: ReadonlyArray<{ name: string; keys: ReadonlyArray<readonly [KeyAction, string]> }> = [
-  { name: 'Getting about', keys: [['up', 'Up'], ['down', 'Down'], ['left', 'Left'], ['right', 'Right'], ['roll', 'Roll'], ['use', 'Pick up, talk, open'], ['ale', 'An ale (at the bar)'], ['pie', 'A pie, a room, sleep']] },
+  { name: 'Getting about', keys: [['up', 'Up'], ['down', 'Down'], ['left', 'Left'], ['right', 'Right'], ['roll', 'Roll'], ['use', 'Pick up, talk, open'], ['ale', 'An ale (at the bar)'], ['pie', 'A pie, a room, sleep'], ['dice', 'Dice (at an inn table)']] },
   { name: 'Fighting', keys: [['attack', 'Strike'], ['guard', 'Guard (held)'], ['focus', 'Focus the next foe'], ...([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n) => [`bar${n}`, `Action bar ${n}`] as const)] },
   { name: 'Windows', keys: [['sheet', 'Hero sheet'], ['bag', 'Bag'], ['journal', 'Journal'], ['skills', 'Skills'], ['levelUp', 'Level up'], ['map', 'Map']] },
 ];

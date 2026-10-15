@@ -110,6 +110,7 @@ export interface CookingHost {
   readonly hero: Hero;
   readonly inside: { furniture: readonly Furniture[]; below?: unknown; walls?: unknown } | null;
   readonly camps: readonly Camp[];
+  readonly travellers?: { readonly list: ReadonlyArray<{ camp?: { fire: { x: number; z: number } } | null }> }; // (a pedlar camped for the night: their fire, travellers/pedlarCamp.ts)
   readonly yard?: unknown;
   readonly lumber: { readonly chopping: unknown; stop(): void };
   readonly woodworking: { stop(): void };
@@ -134,7 +135,7 @@ export class Cooking {
   constructor(private readonly host: CookingHost) {}
 
   // The fire the hero stands by, if any: a hearth before them indoors (on a building's ground floor); outdoors, a
-  // camp's fire or their own.
+  // camp's fire, their own, or a pedlar's camped for the night.
   get fireInReach(): Fire | null {
     const { inside, hero } = this.host;
     if (inside) {
@@ -146,7 +147,9 @@ export class Cooking {
     const near = (x: number, z: number) => Math.hypot(x - hero.x, z - hero.z) <= FIRE_REACH;
     if (this.kindled && near(this.kindled.x, this.kindled.z)) return { kind: 'campfire', x: this.kindled.x, z: this.kindled.z };
     const camp = this.host.camps.find((c) => near(c.x, c.z));
-    return camp ? { kind: 'campfire', x: camp.x, z: camp.z } : null;
+    if (camp) return { kind: 'campfire', x: camp.x, z: camp.z };
+    const fire = this.host.travellers?.list.find((t) => t.camp && near(t.camp.fire.x, t.camp.fire.z))?.camp?.fire; // (a pedlar's, camped)
+    return fire ? { kind: 'campfire', x: fire.x, z: fire.z } : null;
   }
 
   // Whether the fire in reach will do for a recipe (any, or a hearth for the stews on).

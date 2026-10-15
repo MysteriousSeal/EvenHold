@@ -51,6 +51,7 @@ import { CampChests } from './meshes/camp/campChests';
 import { BoardMarks } from './meshes/quest/questMarks';
 import { RuinMist } from './meshes/ruin/ruinMist';
 import { TravellerViews } from './meshes/npc/travellerViews';
+import { PedlarTrains } from './meshes/npc/pedlarTrains';
 import { CarterView } from './meshes/npc/carterView';
 import { AmbientLife } from './meshes/wildlife/ambientLife';
 import { EntranceLife } from './meshes/entrance/entranceLife';
@@ -105,6 +106,7 @@ export class GameView {
   private readonly pickInHand = new PickInHand(); // (the hero's pickaxe, in hand while they mine)
   private readonly hammerInHand = new HammerInHand(); // (and a smith's hammer, at the anvil or the salvage bench)
   private readonly travellers: TravellerViews; // on the roads
+  private readonly trains: PedlarTrains; // (the pedlars' mules and carts, their camps)
   private readonly chickens = new TurnedViews((being) => this.standIn(being)); // the beasts people have been turned into (spells/turned.ts)
   private readonly smoke = new SmokePuffs();
   private readonly blood = new BloodBursts(); // (where blows land)
@@ -173,6 +175,7 @@ export class GameView {
     this.campChests = new CampChests(this.scene);
     this.boardMarks = new BoardMarks(this.scene, model);
     this.travellers = new TravellerViews(this.scene);
+    this.trains = new PedlarTrains(this.scene, this.travellers.material);
     this.ambient = new AmbientLife(this.scene, model);
     this.entrances = new EntranceLife(this.scene, model);
     this.wildMoves = new WildMovesView(this.scene);
@@ -358,6 +361,7 @@ export class GameView {
     this.world.update(hero.x, hero.z);
     (this.carter ??= new CarterView(this.scene, this.travellers.material)).update(model, dt, this.elapsed, !!model.story.carterInReach);
     this.travellers.update(model.travellers.list, hero, dt, travellerInReach(model.travellers.list, hero), (t) => model.story.markOf(t), this.elapsed); // (the one the prompt's over: their name gives way to it)
+    this.trains.update(model, dt, this.elapsed);
     setWindPusher(hero.x, hero.z); // crops part around them
     setBarHeroLevel(hero.level); // (the levels over foes' heads, coloured by danger to the hero)
     this.enemies.update(model.enemies, hero.x, hero.z, dt, model.focused?.id ?? null, (e) => model.quests.marked(e));

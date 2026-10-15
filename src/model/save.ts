@@ -113,6 +113,7 @@ export interface SaveData {
   bounties?: unknown; // the wanted posters handed in, and those taken (quests/bounties.ts; older saves: none)
   heat?: unknown; // what the witch-finders have heard of the hero, by village, and the blood on their hands (roads/heat.ts; older saves: nothing)
   roads?: unknown; // the night's dead: which crypts' bands are spent tonight (roads/roads.ts; older saves: none)
+  dice?: unknown; // the dice sharps caught out, and when they're back (inn/diceHall.ts; older saves: none)
   atlas?: unknown; // the land seen and the places come upon (atlas/atlas.ts; older saves: the land round the hero and the villages been to)
   story?: unknown; // (as Story.save gives it; an older save's: its states alone) // the quests people gave: taken, done (story/story.ts)
   kindled?: unknown; // the campfire the hero's lit, while it burns (skills/cooking.ts)
@@ -150,7 +151,7 @@ export function snapshot(model: GameModel): SaveData {
       spells: [...(hero.spells ?? [])],
       jobs: structuredClone(hero.jobs ?? {}), // (their record in each job: jobs/jobs.ts)
       skills: structuredClone(hero.skills ?? {}), // (their level in each skill: skills/skills.ts)
-      money: hero.money + (model.work.shift?.earned ?? 0), // (at work: what the shift's earned so far, as if left now: not lost with it)
+      money: hero.money + (model.work.shift?.earned ?? 0) + model.dice.held, // (at work: what the shift's earned so far, as if left now: not lost with it; a stake on the dice table, back in their purse)
       level: hero.level,
       xp: hero.xp,
       statPoints: hero.statPoints,
@@ -196,6 +197,7 @@ export function snapshot(model: GameModel): SaveData {
     bounties: model.bounties.save(),
     heat: model.heat.save(),
     roads: model.roads.save(),
+    dice: model.dice.save(),
     atlas: model.atlas.save(),
     minutes: Math.floor(model.minutes),
     fullWalls: model.fullWalls,
@@ -362,6 +364,7 @@ export function restore(model: GameModel, data: SaveData): void {
   model.bounties.load(data.bounties);
   model.heat.load(data.heat);
   model.roads.load(data.roads);
+  model.dice.load(data.dice);
   model.atlas.load(data.atlas, [model.inside?.entrance ?? model.hero, ...model.welcome.stops.values()]); // (after the hero's placed: where they are, outdoors)
   if (data.travellers) model.travellers.load(data.travellers);
   model.chickens.load(data.chickens); // (before the villagers' day: those lost are gone)

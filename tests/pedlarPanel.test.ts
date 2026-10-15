@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { createPedlarPanel } from '../src/controller/trade/pedlarPanel';
 import { createInventoryPanel } from '../src/controller/hero/inventoryPanel';
-import { PEDLAR_WARES, pedlarPrice, pedlarShopAt } from '../src/model/travellers/pedlarShop';
+import { pedlarPrice, pedlarShopAt, pedlarWaresOf } from '../src/model/travellers/pedlarShop';
 import { nearestTraveller } from '../src/model/cheats';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({
@@ -50,8 +50,9 @@ describe("a pedlar's window", () => {
     const { model, pedlar, panel, shop } = byPedlar();
     model.hero.money = 10_000;
     panel.open(pedlar);
-    const at = PEDLAR_WARES.findIndex((id) => (shop().stock[id] ?? 0) > 0);
-    const id = PEDLAR_WARES[at];
+    const wares = pedlarWaresOf(model.seed, pedlar);
+    const at = wares.findIndex((id) => (shop().stock[id] ?? 0) > 0);
+    const id = wares[at];
     const [stock, purse] = [shop().stock[id]!, shop().money];
     rightClick(rows()[at]);
     expect(model.hero.bag[id]).toBe(1);
@@ -67,4 +68,24 @@ describe("a pedlar's window", () => {
     panel.update();
     expect(panel.menu.isOpen).toBe(false);
   });
+  it('says the news of the road at its foot, and sells a rumour by its button', () => {
+    const { model, pedlar, panel } = byPedlar();
+    model.hero.money = 100;
+    panel.open(pedlar);
+    expect(shopEl().textContent).toContain('News of the road');
+    const rumour = Array.from(shopEl().querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.startsWith('A rumour'))!;
+    expect(rumour).toBeTruthy();
+    rumour.click();
+    expect(model.hero.money).toBeLessThan(100);
+    expect(shopEl().querySelector('.shop-talk-says')!.textContent).toContain('inked it on your map');
+  });
+
+  it('shuts if the pedlar is gone from the road mid-trade (turned into something)', () => {
+    const { model, pedlar, panel } = byPedlar();
+    panel.open(pedlar);
+    model.travellers.lose(pedlar);
+    panel.update();
+    expect(panel.menu.isOpen).toBe(false);
+  });
 });
+

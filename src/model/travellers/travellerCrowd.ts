@@ -53,8 +53,8 @@ export class TravellerCrowd {
     return this.only?.roads ?? [];
   }
 
-  update(dt: number, enemies: readonly Enemy[] = []): void {
-    for (const band of this.bandMap.values()) band.update(dt, enemies);
+  update(dt: number, enemies: readonly Enemy[] = [], minutes?: number): void {
+    for (const band of this.bands.values()) band.update(dt, enemies, minutes);
   }
 
   // Every band on the roads, by its key (its region's).

@@ -31,9 +31,9 @@ import type { Entrance } from '../interiors/interiors';
 import { START_MINUTES, hourAt } from '../clock';
 import { inTurn, say } from './speech';
 
-// Whether a table chair's patron is tied to it (waiting on an order, or having it): not up and off till then. (Here,
+// Whether a table chair's patron is tied to it (waiting on an order, or having it, or at the dice with the hero): not up and off till then. (Here,
 // not with the inn's shifts that read it too: jobs/innShift.ts imports this file's routine, and a shift its class.)
-export const busyAtTable = (npc: Npc): boolean => !!npc.awaiting || !!npc.drinking;
+export const busyAtTable = (npc: Npc): boolean => !!npc.awaiting || !!npc.drinking || !!npc.dicing;
 
 export interface NpcWorld extends BenchWorld {
   seed: number;
