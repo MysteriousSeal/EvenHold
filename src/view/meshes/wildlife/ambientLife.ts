@@ -6,7 +6,8 @@
 // lakes, dragonflies over the shallows, frogs on the banks (from evening),
 // and fish leaping out on the water. Where they are comes from the seed, by
 // patches of ground round the hero (made as the hero comes near, let go as
-// they're left), so they're always the same there. How each moves:
+// they're left), so they're always the same there. Crows on the sown fields'
+// fences, a heron in the shallows, a flock over in a V now and then. How each moves:
 // ambientMoves.ts; their tiny voxel models: ambientVoxels.ts. One instanced
 // mesh a kind, drawn only as many as are out. With them, the villages'
 // livestock in their fields (livestockViews.ts) and the smoke from the
@@ -24,16 +25,16 @@ import type { Field } from '../../../model/types';
 import { oneOf } from '../../../util/random';
 import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
-import { BIRD_PALETTE, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
+import { BIRD_PALETTE, CROW_PALETTE, HERON_PALETTE, crowGrid, heronGrid, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
 import { weatherNow, type WeatherNow } from '../common/weatherNow';
 import { LivestockViews } from './livestockViews';
 import { HouseSmoke } from '../smoke/houseSmoke';
-import { bird, butterfly, dragonfly, firefly, fish, frog, rabbit, splash, type Creature, type Moment } from './ambientMoves';
+import { bird, butterfly, dragonfly, firefly, fish, flock, frog, heron, rabbit, splash, type Creature, type Moment } from './ambientMoves';
 
 const V = 0.025; // the creatures' voxels: finer than the world's (they're small)
 const CELL = LIFE_CELL; // tiles a side of each patch of ground they're found by
 const REACH = 4; // patches out from the hero's (each way) that have their life
-const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, splash: 32 };
+const MOST: Record<LifeKind | 'splash', number> = { butterfly: 48, bird: 56, firefly: 90, rabbit: 24, dragonfly: 24, frog: 40, fish: 24, crow: 32, heron: 6, splash: 32 };
 const KINDS = Object.keys(MOST).filter((k) => k !== 'splash') as LifeKind[];
 const TINTS: Partial<Record<LifeKind, number[]>> = {
   butterfly: [0xf0a33a, 0xf2f0e6, 0x7aa2e8], // orange, white, blue
@@ -45,7 +46,7 @@ const TINTS: Partial<Record<LifeKind, number[]>> = {
 // Whether `kind` is out, its hours (`out`) and the weather considered.
 export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): boolean {
   if (kind === 'frog') return out || w.rain > 0.3; // (out in the rain, whatever the hour)
-  if (kind === 'bird') return out && w.rain <= 0.5 && w.snow <= 0.3;
+  if (kind === 'bird' || kind === 'crow') return out && w.rain <= 0.5 && w.snow <= 0.3;
   if (kind === 'butterfly' || kind === 'dragonfly') return out && w.rain <= 0.3 && w.snow === 0 && (kind === 'butterfly' || w.fog <= 0.5);
   if (kind === 'firefly') return out && w.rain <= 0.3;
   return out;
@@ -90,6 +91,8 @@ export class AmbientLife {
       dragonfly: mesh(dragonflyGrid(), DRAGONFLY_PALETTE, lit, MOST.dragonfly),
       frog: mesh(frogGrid(), FROG_PALETTE, lit, MOST.frog),
       fish: mesh(fishGrid(), FISH_PALETTE, lit, MOST.fish),
+      crow: mesh(crowGrid(), CROW_PALETTE, lit, MOST.crow),
+      heron: mesh(heronGrid(), HERON_PALETTE, lit, MOST.heron),
       splash: mesh(splashGrid(), [0xffffff], foam, MOST.splash),
     };
     this.life = { seed: model.seed, tiles: model.tiles, isOpenTile: (x, z) => model.isOpenTile(x, z) };
@@ -119,7 +122,8 @@ export class AmbientLife {
         const m = this.moment;
         const shown =
           c.kind === 'butterfly' ? butterfly(c, m)
-          : c.kind === 'bird' ? bird(c, m)
+          : c.kind === 'bird' || c.kind === 'crow' ? bird(c, m)
+          : c.kind === 'heron' ? heron(c, m)
           : c.kind === 'firefly' ? firefly(c, m, V)
           : c.kind === 'rabbit' ? rabbit(c, m, fits)
           : c.kind === 'dragonfly' ? dragonfly(c, m)
@@ -128,6 +132,8 @@ export class AmbientLife {
         if (shown) this.draw(c.kind, c.tint);
       }
     }
+    // A flock over now and then, by day, dry: crows' black, high up.
+    if (out.crow) flock(this.moment, this.model.seed, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
     for (const [kind, m] of Object.entries(this.meshes) as Array<[keyof typeof this.meshes, THREE.InstancedMesh]>) {
       m.count = this.counts[kind];
       m.visible = m.count > 0; // (no draw for a kind with none out)

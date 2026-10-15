@@ -13,7 +13,11 @@
 // - frogs squat on the bank, croaking (their throats swelling); the hero
 //   near, they leap into the water, a ring of foam where they went in;
 // - fish leap now and then out on the water (more at dawn and dusk), a ring
-//   of foam where they leave it and another where they're back in.
+//   of foam where they leave it and another where they're back in;
+// - crows sit the sown fields' fences, as the songbirds do the pastures';
+// - a heron stands in the shallows, stock-still, turning now and then, a
+//   strike at the water; the hero near, it flaps slowly off;
+// - and now and then by day a flock goes over in a V, high up.
 
 import * as THREE from 'three';
 import type { LifeKind } from '../../../model/scenery/ambientSpots';
@@ -44,7 +48,7 @@ export interface Moment {
   splash(x: number, z: number, age: number): void; // a ring of foam on the water, `age` seconds old
 }
 
-const FLEE = { bird: 3.2, rabbit: 3.5, frog: 2.2 }; // tiles: the hero this near, they're off
+const FLEE = { bird: 3.2, rabbit: 3.5, frog: 2.2, heron: 4 }; // tiles: the hero this near, they're off
 const FREEZE = 5.5; // tiles: the hero this near, a rabbit sits up stock-still, watching
 const BACK = 18; // tiles away the hero must go before they're back (within the patches still kept round them)
 const POST = 0.39; // a fence post's top, over the ground (a bird sat on it: its middle)
@@ -207,6 +211,49 @@ export function fish(c: Creature, m: Moment): boolean {
   const f = u / leap;
   const p = along(f);
   return pose(m, p.x, WATER_Y - 0.04 + Math.sin(f * Math.PI) * 0.38, p.z, (f - 0.5) * 2.4, yaw);
+}
+
+export function heron(c: Creature, m: Moment): boolean {
+  const t = m.time + c.seed * 100;
+  const stood = WATER_Y - 0.06 + 0.25; // (its middle: its legs a little under the water)
+  if (fleeing(c, m, FLEE.heron, c)) {
+    // Up and off, slow wingbeats, low over the water.
+    const f = c.fled!;
+    if (f > 8) return false;
+    const flap = 0.7 + 0.3 * Math.sin(m.time * 7);
+    return pose(m, c.x + c.away!.x * f * 1.8, stood + Math.min(2.5, f * 0.5), c.z + c.away!.z * f * 1.8, -0.2, Math.atan2(c.away!.x, c.away!.z), 1.6 * flap, 0.8, 1);
+  }
+  // Stood, turning a little now and then; a strike at the water (its head and neck down and up).
+  const turnEvery = 6 + c.seed * 4;
+  const yaw = hashUnit(Math.floor(t / turnEvery), 5, c.seed * 1e4) * Math.PI * 2;
+  const strike = t % 9 < 0.5 ? Math.sin(((t % 9) / 0.5) * Math.PI) * 0.5 : 0;
+  return pose(m, c.x, stood, c.z, strike, yaw);
+}
+
+const FLOCK_EVERY = 45; // seconds: at most one flock over in each
+const FLOCK_FOR = 16; // seconds it takes to cross
+const FLOCK_HIGH = 3.5; // world units over the ground
+
+// The flock going over now, if one is (by day, at most one in FLOCK_EVERY seconds, most often not): each bird of it
+// in its V, put where `each` takes it. `seed`: the world's.
+export function flock(m: Moment, seed: number, each: () => void): void {
+  const k = Math.floor(m.time / FLOCK_EVERY);
+  const into = m.time - k * FLOCK_EVERY;
+  if (into > FLOCK_FOR || hashUnit(k, 1, seed) > 0.5) return;
+  const heading = hashUnit(k, 2, seed) * Math.PI * 2;
+  const [dx, dz] = [Math.sin(heading), Math.cos(heading)];
+  const along = (into / FLOCK_FOR - 0.5) * 40; // (from well off one side of the hero to well off the other)
+  const side = (hashUnit(k, 3, seed) - 0.5) * 8;
+  const [lx, lz] = [m.hero.x + dx * along + dz * side, m.hero.z + dz * along - dx * side];
+  const y = m.ground(m.hero.x, m.hero.z) + FLOCK_HIGH;
+  const count = 5 + Math.floor(hashUnit(k, 4, seed) * 5);
+  for (let i = 0; i < count; i++) {
+    const [row, wing] = [Math.ceil(i / 2), i % 2 === 0 ? 1 : -1];
+    const [bx, bz] = [lx - dx * row * 0.35 + dz * wing * row * 0.3, lz - dz * row * 0.35 - dx * wing * row * 0.3];
+    const flap = 0.6 + 0.4 * Math.abs(Math.sin(m.time * 9 + i));
+    pose(m, bx, y + Math.sin(m.time * 0.8 + i) * 0.05, bz, 0, heading, 1.4 * flap, 1.2, 1.2);
+    each();
+  }
 }
 
 // A ring of foam `age` seconds old, spreading and sinking away.

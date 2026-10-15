@@ -110,3 +110,37 @@ export function splashGrid() {
   }
   return g;
 }
+
+// A crow, facing +Z: the round bird's shape drawn longer and all near-black, a heavy grey beak.
+export function crowGrid() {
+  const g = createGrid([4, 5, 8]);
+  fillBox(g, 0, 1, 1, 3, 3, 5, 1); // body
+  fillBox(g, 1, 3, 5, 2, 4, 6, 1); // head
+  setColor(g, 1, 4, 6, 3); // eyes
+  setColor(g, 2, 4, 6, 3);
+  fillBox(g, 1, 3, 7, 2, 3, 7, 2); // beak
+  fillBox(g, 1, 2, 0, 2, 2, 0, 1); // tail
+  fillBox(g, 1, 0, 3, 1, 0, 3, 3); // legs
+  fillBox(g, 2, 0, 3, 2, 0, 3, 3);
+  return g;
+}
+export const CROW_PALETTE = [0x2a2a30, 0x5a5a60, 0x121216];
+
+// A heron stood in the shallows, facing +Z: long thin legs, a grey body, a white neck in an S, a dark crest, a long
+// yellow bill (about half as tall as the hero).
+export function heronGrid() {
+  const g = createGrid([4, 20, 11]);
+  fillBox(g, 1, 0, 3, 1, 8, 3, 4); // legs
+  fillBox(g, 2, 0, 3, 2, 8, 3, 4);
+  fillBox(g, 0, 8, 1, 3, 11, 6, 1); // body
+  fillBox(g, 1, 9, 0, 2, 10, 0, 4); // tail
+  fillBox(g, 1, 12, 6, 2, 14, 6, 2); // neck, in an S
+  fillBox(g, 1, 14, 5, 2, 16, 5, 2);
+  fillBox(g, 1, 17, 6, 2, 18, 7, 2); // head
+  fillBox(g, 1, 19, 5, 2, 19, 6, 4); // crest
+  setColor(g, 1, 18, 7, 4); // eyes
+  setColor(g, 2, 18, 7, 4);
+  fillBox(g, 1, 17, 8, 2, 17, 10, 3); // bill
+  return g;
+}
+export const HERON_PALETTE = [0xb8bcc4, 0xe8e8ec, 0xd8b040, 0x3a3a44];
