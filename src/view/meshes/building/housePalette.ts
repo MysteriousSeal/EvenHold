@@ -66,8 +66,10 @@ const ENTRIES = {
   hutMoss: 0x5e7a3e, // moss on it, and the sod along its ridge
   hutMossLight: 0x7a9450,
   sod: 0x4d6e34, // (and foxgloves' leaves)
-  wattle: 0x7a5a36, // its garden's woven fence
+  wattle: 0x7a5a36, // its garden's woven fence: its rails woven of two, its posts darker
+  wattleLight: 0x8a6a40,
   wattleDark: 0x5e4428,
+  twine: 0xb89a58,
   soil: 0x4a3a28, // its raised beds
   lavender: 0x8a6aa0,
   foxglove: 0xb0508a,
@@ -75,7 +77,7 @@ const ENTRIES = {
   toadstool: 0xb8302a, // the fairy ring by it
   toadstoolSpot: 0xe8dcc8,
   toadstoolStem: 0xe0d8c8,
-  bottle: 0x5aa86a, // the green bottle hung for its sign
+  bottle: 0x3e8a4a, // the green bottle hung for its sign (darker than the brew)
   brew: 0x8aff6a, // the brew in its cauldron outside (bright, not lit: the glow's one warm colour would turn it yellow)
 } as const;
 

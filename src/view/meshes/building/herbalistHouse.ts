@@ -113,6 +113,7 @@ export function buildHermitHut(): VoxelGrid {
 
   // The door: rough planks set in the front wall, a stone lintel over it, a flat stone before it.
   for (let y = 1; y <= DOOR_TOP; y++) for (let x = 11; x <= 13; x++) put(grid, [x, y, Z0], x === 12 || (x + y) % 3 === 0 ? C.doorDark : C.door);
+  for (let y = 1; y < DOOR_TOP; y++) put(grid, [13, y, Z0], C.glass); // (ajar: the firelight at its crack, lit at night)
   fillBox(grid, 10, DOOR_TOP + 1, Z0 - 1, 14, DOOR_TOP + 1, Z0, C.stoneLight);
   fillBox(grid, 11, 0, Z0 - 1, 13, 0, Z0 - 1, C.stoneLight);
   for (const y of [2, 6]) fillBox(grid, 11, y, Z0 - 1, 12, y, Z0 - 1, C.iron); // its strap hinges
@@ -151,15 +152,16 @@ export function buildHermitHut(): VoxelGrid {
 }
 
 // The garden, in the strip before the door (z 0 to 4) and down the right side: a low wattle fence round it, open at
-// the path; stepping stones out from the door; raised beds edged in wattle, rows of herbs in them (lavender, sage,
-// foxgloves, marigolds); the cauldron on its embers, its brew bright green; and the sign by the gate, a crooked post
-// and arm, a green bottle hung from it beside a bunch of herbs.
+// the path; stepping stones out from the door; the cauldron on its embers in the left corner, its brew bright green;
+// raised beds edged in wattle, rows of herbs in them (lavender, sage, foxgloves, marigolds); and the sign by the gate,
+// a post and its arm, a dark green bottle hung from it on a twine.
 function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: number) => number): void {
   const gate = (x: number) => x >= 10 && x <= 14;
-  // The fence: posts every three, two woven rails between, round the front and up the sides to the walls.
+  // The fence: posts every three, a voxel taller than the two woven rails between, the weave lighter than the posts,
+  // round the front and up the sides to the walls.
   const fence = (x: number, z: number, i: number) => {
     if (i % 3 === 0) fillBox(grid, x, 0, z, x, 3, z, C.wattleDark);
-    else for (let y = 1; y <= 2; y++) put(grid, [x, y, z], (i + y) % 2 ? C.wattle : C.wattleDark);
+    else for (let y = 1; y <= 2; y++) put(grid, [x, y, z], (i + y) % 2 ? C.wattleLight : C.wattle);
   };
   for (let x = 0; x <= 24; x++) if (!gate(x)) fence(x, 0, x);
   for (let z = 1; z < Z0; z++) fence(0, z, z);
@@ -178,28 +180,31 @@ function garden(grid: VoxelGrid, roll: (x: number, y: number, z: number, salt: n
       }
     });
   };
-  bed(1, 7, [[C.lavender, C.herbSage], [C.foxglove, C.sod]]);
+  bed(6, 9, [[C.lavender, C.herbSage], [C.foxglove, C.sod]]);
+  bed(18, 23, [[C.marigold, C.leaf], [C.foxglove, C.sod]]);
   // Down its right side, a long bed of the tallest (lavender, foxgloves), to show over the fence from that side.
   fillBox(grid, 21, 0, Z0 + 1, 23, 1, Z1 - 1, (x, _y, z) => (x === 22 && z > Z0 + 1 && z < Z1 - 1 ? C.soil : C.wattleDark));
   for (let z = Z0 + 2; z < Z1 - 1; z++) {
     const spike = z % 2 === 0;
     for (let y = 2; y <= (spike ? 5 : 3); y++) put(grid, [22, y, z], y >= (spike ? 4 : 3) ? (spike ? C.foxglove : C.lavender) : spike ? C.sod : C.herbSage);
   }
-  bed(20, 23, [[C.marigold, C.leaf], [C.herbSage, C.herbSage]]);
-  // The cauldron, by the right bed: black iron, round, on three stones over glowing embers, its brew bright green.
-  const [cx, cz] = [16, 2];
-  for (const [dx, dz] of [[-2, -1], [2, -1], [0, 2]]) put(grid, [cx + dx, 0, cz + dz], C.stoneDark);
-  fillBox(grid, cx - 1, 0, cz - 1, cx + 1, 0, cz + 1, C.ember);
-  for (let y = 1; y <= 3; y++) {
-    const r = y === 1 ? 1.5 : 2.3;
-    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dz) <= r && cz + dz >= 1) put(grid, [cx + dx, y, cz + dz], y === 3 && Math.hypot(dx, dz) < 1.5 ? C.brew : y === 1 ? C.soot : C.iron);
+  // The cauldron, in the left corner: black iron, round, on its legs over a bed of embers glowing out from under it (lit
+  // at night), three stones round them, its brew bright green.
+  const [cx, cz] = [3, 3];
+  for (const [dx, dz] of [[-2, -2], [2, -2], [2, 2]]) put(grid, [cx + dx, 0, cz + dz], C.stoneDark);
+  fillBox(grid, cx - 2, 0, cz - 2, cx + 2, 0, cz + 2, (x, _y, z) => (Math.hypot(x - cx, z - cz) <= 2.3 && !(Math.abs(x - cx) === 2 && Math.abs(z - cz) === 2) ? C.ember : 0));
+  fillBox(grid, cx - 1, 1, cz, cx + 1, 1, cz, C.ember); // (flames licking up under it)
+  fillBox(grid, cx, 1, cz - 1, cx, 1, cz + 1, C.ember);
+  for (const [dx, dz] of [[-2, -1], [1, -2], [1, 2]]) put(grid, [cx + dx, 1, cz + dz], C.soot); // its legs, up off the fire
+  for (let y = 2; y <= 4; y++) {
+    const r = y === 2 ? 1.5 : 2.3;
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dz) <= r) put(grid, [cx + dx, y, cz + dz], y === 4 && Math.hypot(dx, dz) < 1.5 ? C.brew : y === 2 ? C.soot : C.iron);
   }
-  // The sign by the gate: a crooked post (a voxel over, halfway up), an arm out over the path, a green bottle hung
-  // from it on a cord, a bunch of herbs beside it.
-  for (let y = 0; y <= 10; y++) put(grid, [y > 5 ? 8 : 9, y, 1], C.timber);
-  put(grid, [8, 5, 1], C.timber); // (its crook)
-  fillBox(grid, 8, 10, 1, 13, 10, 1, C.sign);
-  put(grid, [11, 9, 1], C.bark); // the cord
-  fillBox(grid, 11, 6, 1, 12, 8, 2, (x, y, z) => (y === 8 && (x === 12 || z === 2) ? 0 : C.bottle)); // the bottle, its neck up
-  for (let y = 7; y <= 9; y++) put(grid, [13, y, 1], y === 9 ? C.bark : C.herbDry);
+  // The sign on the gate's right: a post, a short arm out from its top, a dark green bottle hung two below it on a
+  // twine, its neck up.
+  fillBox(grid, 15, 0, 1, 15, 8, 1, C.timber);
+  fillBox(grid, 15, 8, 1, 17, 8, 1, C.sign);
+  put(grid, [17, 7, 1], C.twine);
+  put(grid, [17, 6, 1], C.bottle); // its neck
+  fillBox(grid, 16, 3, 1, 17, 5, 2, C.bottle);
 }
