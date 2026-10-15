@@ -18,8 +18,8 @@ import { isMeal } from '../loot/meals';
 import { baseOf, isGear } from '../human/items/gear';
 import type { ItemId } from '../human/equipment';
 import { RECIPES } from '../skills/woodworking';
-import { parted } from '../hero/wear';
-import { markCrafted } from '../skills/salvage';
+import { wearGone } from '../hero/wear';
+import { isCrafted, markCrafted, unmarkCrafted } from '../skills/salvage';
 
 export interface Shop {
   money: number; // copper in the keeper's purse
@@ -97,6 +97,17 @@ function restock(shop: Shop, usual: Usual, now: number): void {
 // How long until its next restock (ms): what's sold out comes back then.
 export function restockIn(shop: Shop, now = Date.now()): number {
   return Math.max(0, shop.restockedAt + RESTOCK_EVERY - now);
+}
+
+// A piece gone from the hero for good (sold): one of their own make let go of, as the one gone (skills/salvage.ts),
+// and its wear, the last of it gone (hero/wear.ts wearGone); what went, to come back with it if it's bought
+// back. (Not dropped: picked up again, it's theirs as it was.)
+export function parted(hero: Hero, key: string): { crafted: boolean; wear?: number } {
+  const crafted = isCrafted(hero, key);
+  unmarkCrafted(hero, key);
+  const wear = hero.wear?.[key];
+  wearGone(hero, key);
+  return { crafted, ...(wear !== undefined && hero.wear?.[key] === undefined && { wear }) };
 }
 
 // The hero buys one of `id` at `price`: why not, if they can't (none left, they're short).
