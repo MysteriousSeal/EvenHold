@@ -1,5 +1,5 @@
 // Smoke from the chimneys round the hero: the houses' (the hearths lit in
-// most), the inn's, a herbalist's hut's, and the forges' (thicker, sooty,
+// most; an empty cottage's never, the hero's own once its hearth's built), the inn's, a herbalist's hut's, and the forges' (thicker, sooty,
 // quicker). Each chimney's puffs rise, swelling and thinning away, bending
 // off downwind more the higher they go and swaying with the gusts
 // (puffs.ts); pale by day, greying as they thin, a moonlit blue-grey at
@@ -21,6 +21,7 @@ import { HOUSE_LAYOUTS, HOUSE_VOXEL_SIZE, buildHouseVoxels } from '../building/h
 import { buildHermitHut } from '../building/herbalistHouse';
 import { buildWitchHut } from '../building/witchHouse';
 import { isWitchHome } from '../../../model/witch/witchHomes';
+import { hasBuilt, isCottage, ownsHere } from '../../../model/homestead/cottage';
 import type { Entrance } from '../../../model/interiors/interiors';
 import { buildInnVoxels } from '../building/innVoxels';
 import { SMITHY_GRID, SMITHY_SMOKE_ORIGIN } from '../building/smithyVoxels';
@@ -67,6 +68,7 @@ export class ChimneySmoke {
   private known = -1; // the houses there were, when last looked over
   private herbalists = new Set<House>();
   private witches = new Set<House>();
+  private cottages = new Map<House, Entrance>(); // (the empty ones, and the hero's: homestead/cottage.ts)
   private time = 0;
   private readonly matrix = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
@@ -117,10 +119,11 @@ export class ChimneySmoke {
     const tile = `${Math.round(hero.x)},${Math.round(hero.z)}`;
     const { houses, buildings, seed } = this.model;
     if (tile === this.heroTile && houses.length === this.known) return;
-    if (houses.length !== this.known) [this.herbalists, this.witches] = [this.huts(isHerbalistHome), this.huts(isWitchHome)];
+    if (houses.length !== this.known) [this.herbalists, this.witches, this.cottages] = [this.huts(isHerbalistHome), this.huts(isWitchHome), this.doorsOf(isCottage)];
     [this.heroTile, this.known] = [tile, houses.length];
     const close = (x: number, z: number) => Math.abs(x - hero.x) < REACH && Math.abs(z - hero.z) < REACH;
     const lit = (x: number, z: number) => hashUnit(x, z, seed + 401) < LIT;
+    const home = (house: House) => ownsHere(this.model.hero, this.cottages.get(house)) && hasBuilt(this.model.hero, 'hearth'); // (a cottage's: cold, but the hero's own with its hearth built, always lit)
     const out: Array<{ at: THREE.Vector3; phase: number; way: typeof HEARTH }> = [];
     const put = (x: number, z: number, turns: number, mouth: THREE.Vector3, way = HEARTH) => {
       const at = mouth.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (turns * Math.PI) / 2).add(new THREE.Vector3(x, this.model.getGroundY(x, z), z));
@@ -133,7 +136,7 @@ export class ChimneySmoke {
     };
     for (const b of buildings) if (b.kind === 'smithy' && close(b.x, b.z)) put(b.x, b.z, b.quarterTurns, FORGE_MOUTH, FORGE); // (the forges first: never left out)
     for (const house of houses) {
-      if (!close(house.x, house.z) || (!lit(house.x, house.z) && !this.witches.has(house))) continue;
+      if (!close(house.x, house.z) || (this.cottages.has(house) ? !home(house) : !lit(house.x, house.z) && !this.witches.has(house))) continue;
       const turns = ((Math.round(house.rotationY / (Math.PI / 2)) % 4) + 4) % 4;
       if (this.witches.has(house)) add(house.x, house.z, turns, 'witch', buildWitchHut, C.soot, WITCH);
       else if (this.herbalists.has(house)) add(house.x, house.z, turns, 'herbalist', buildHermitHut, C.soot, HERBS);
@@ -148,11 +151,16 @@ export class ChimneySmoke {
 
   // The herbalists' huts (or the hedge-witches' cottages): the houses their doors are by.
   private huts(isHome: (e: Entrance) => boolean): Set<House> {
-    const huts = new Set<House>();
+    return new Set(this.doorsOf(isHome).keys());
+  }
+
+  // And each one's door.
+  private doorsOf(isHome: (e: Entrance) => boolean): Map<House, Entrance> {
+    const huts = new Map<House, Entrance>();
     for (const e of this.model.entrances) {
-      if (!isHome(e)) continue;
+      if (e.type !== 'house' || !isHome(e)) continue;
       const house = this.model.houses.find((h) => Math.abs(h.x - e.x) <= 1 && Math.abs(h.z - e.z) <= 1);
-      if (house) huts.add(house);
+      if (house) huts.set(house, e);
     }
     return huts;
   }
