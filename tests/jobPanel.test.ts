@@ -36,7 +36,7 @@ describe('the work window', () => {
     expect(steps.map((s) => s.className)).toEqual(['past', 'here', 'ahead', 'ahead', 'ahead']);
     expect((steps[1].querySelector('.job-step') as HTMLElement).style.getPropertyValue('--fill')).toBe('30%'); // (6 of 20 toward Server)
     expect(q('.job-standing strong').textContent).toBe('Serving hand');
-    expect(q('.job-toward').textContent).toBe('6 of 20 served');
+    expect(q('.job-toward').textContent).toBe('6 of 20 experience');
     expect(q('.job-next').textContent).toBe('toward Server');
     // What the rank brings beside the next's: a row a perk, the next's lit where it's better.
     const table = q('.job-perk-table');
@@ -44,6 +44,7 @@ describe('the work window', () => {
     expect(Array.from(table.querySelectorAll('tbody th')).map((th) => th.textContent)).toEqual(['Tray', 'Patience', 'Tips']); // (no line: not behind the bar)
     expect(Array.from(table.querySelectorAll('tbody td.job-perk-next')).map((td) => td.classList.contains('up'))).toEqual([false, true, true]); // (the same tray; more patience, better tips)
     expect(q('.job-ledger').textContent).toContain('16 served');
+    expect(q('.job-terms').textContent).toContain('yours on average'); // (107 copper over 16 orders: their own pay an order, not the bare wage)
     expect(q('.job-picks').hidden).toBe(false); // (the tables, the bar)
     expect(all('.job-picks').at(-1)!.querySelectorAll('.job-pick')).toHaveLength(3); // (the tables, the bar, the room upstairs)
     expect(q('.job-speaker').textContent).toMatch(/^Pinned to the board at the .+ inn$/);

@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
 import { createBar, type BarView } from '../src/controller/trade/barOrder';
-import { ordersAt } from '../src/model/inn/barOrders';
+import { callBarkeep, ordersAt, placeOrder } from '../src/model/inn/barOrders';
 import { mugsAt } from '../src/model/inn/barMugs';
 import { serveTable } from '../src/model/inn/innStaff';
 import type { InnShift } from '../src/model/jobs/innShift';
@@ -168,4 +168,30 @@ describe('the tables, the hero serving them', () => {
     for (let t = 0; t < 20; t += 0.1) shift.update([server], 0.1);
     expect([shift.wants.has(server), !!server.awaiting]).toEqual([false, false]);
   });
+});
+
+describe('the busy hour', () => {
+  it("brings no one in who's abed, or off to it: a night shift's a quiet one", () => {
+    const { model, inn } = inTheInn();
+    const village = model.npcs.filter((n) => n.role === 'villager' && n.inn === inn);
+    for (const n of village) Object.assign(n, { where: n.home, seat: { piece: { kind: 'bed' }, lying: true, x: n.x, z: n.z, y: 0, facing: 0 }, steps: [{ kind: 'wait', for: 999 }] });
+    expect(model.work.start(inn, 'innServer')).toBe(true);
+    for (let t = 0; t < 60; t += 0.1) model.work.shift!.update(model.folk, 0.1, model.hero);
+    expect(village.filter((n) => n.steps.some((s) => s.kind === 'settle'))).toEqual([]);
+  });
+});
+
+describe('the barkeep, the hero serving the tables', () => {
+  it("pours the tables' orders before the stools' (the hero stood waiting at the counter's end)", () => {
+    const { model, inn, furniture } = inTheInn();
+    const [stool] = furniture.filter((f) => f.kind === 'barStool');
+    const order: string[] = [];
+    placeOrder(inn, { stool, by: null, drink: 'ale', served: () => order.push('stool') });
+    placeOrder(inn, { stool: { ...stool, z: stool.z + 1 }, by: null, drink: 'ale', batch: true, served: () => order.push('table') });
+    const barkeep = model.folk.find((n) => n.role === 'barkeep' && n.where === inn)!;
+    Object.assign(barkeep, { serving: false });
+    callBarkeep(barkeep);
+    for (let t = 0; t < 60 && order.length < 2; t += 0.1) model.update(0, 0, 0.1);
+    expect(order).toEqual(['table', 'stool']);
+  }, 60_000);
 });
