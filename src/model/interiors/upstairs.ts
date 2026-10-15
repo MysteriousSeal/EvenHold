@@ -41,11 +41,7 @@ function upstairsFurniture(stairs: Furniture, room: Room): Furniture[] {
   for (let z = stairs.z - 1; z >= 0; z -= LANTERN_EVERY) lanterns.push(lantern('left', 0, z));
   for (let z = stairs.z + stairs.d; z < room.depth; z += LANTERN_EVERY) lanterns.push(lantern('left', 0, z));
   for (let x = 1; x < room.width; x += LANTERN_EVERY) lanterns.push(lantern('back', x, 0));
-  // In the room let (the first off the back hallway), a washstand in its front corner by the nightstand, its back to
-  // the wall: the bed, the nightstand and the way in from its door left as they were.
-  const mid = HALL + Math.floor((room.depth - HALL) / 2);
-  const wash: Furniture[] = mid - 1 > HALL ? [{ kind: 'washstand', x: HALL + 2, z: mid - 1, w: 1, d: 1, wall: 'none', solid: true, facing: [0, -1] }] : [];
-  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room, stairs), ...wash];
+  return [{ ...stairs, kind: 'stairwell' }, ...lanterns, ...hallway(room, stairs)];
 }
 
 // The floor above `below` (its room, with `stairs` up to it), as the hero's

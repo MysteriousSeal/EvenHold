@@ -89,13 +89,30 @@ describe('interiors', () => {
       const items = furnish(n + 1, entrance, room);
       const tables = items.filter((i) => i.kind === 'tavernTable').length;
       counts.push(tables);
-      if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(5);
+      if (room.width >= 12 && room.depth >= 9) expect(tables).toBeGreaterThanOrEqual(4);
       // Its lanterns spread along the back wall (past the bar's own), never two side by side.
       const lanterns = items.filter((i) => i.kind === 'wallLantern' && i.wall === 'back' && i.x >= 3).map((i) => i.x).sort((a, b) => a - b);
       expect(lanterns).toHaveLength(3);
       for (let i = 1; i < lanterns.length; i++) expect(lanterns[i] - lanterns[i - 1]).toBeGreaterThanOrEqual(2);
     }
-    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(5.25); // (strewn at random: 4.7; the floor just inside the door kept open)
+    expect(counts.reduce((a, b) => a + b, 0) / counts.length).toBeGreaterThanOrEqual(4.4); // (strewn at random: 4.7, but bunched; now with open floor inside the door and round the hearth)
+  });
+
+  it('keeps a ring of open floor round an inn\'s hearth corner: no table, nor its chairs, up against its rug or armchairs', async () => {
+    const { furnish } = await import('../src/model/interiors/furnish');
+    const gap = (a: Furniture, b: Furniture) => Math.max(a.x - (b.x + b.w - 1), b.x - (a.x + a.w - 1), a.z - (b.z + b.d - 1), b.z - (a.z + a.d - 1));
+    let corners = 0;
+    const inns: Array<[number, Entrance]> = [...Array(200).keys()].map((n) => [n + 1, { type: 'inn', x: 40.5 + n * 3, z: 30.25 + n, outX: 0, outZ: -1 }]);
+    for (const seed of TEST_SEEDS) for (const e of new GameModel(seed, TEST_MAP_SIZE).entrances.filter((e) => e.type === 'inn')) inns.push([seed, e]); // (and every test world's)
+    for (const [n, entrance] of inns) {
+      const items = furnish(n, entrance, roomFor(n, entrance));
+      const corner = items.filter((i) => i.kind === 'bearRug' || i.kind === 'armchair');
+      if (corner.length > 0) corners++;
+      for (const t of items.filter((i) => i.kind === 'tavernTable' || i.kind === 'chair')) {
+        for (const c of corner) expect(gap(t, c), `seed ${n}, the inn at ${entrance.x},${entrance.z}: the ${t.kind} at ${t.x},${t.z} by the ${c.kind}`).toBeGreaterThanOrEqual(2);
+      }
+    }
+    expect(corners).toBeGreaterThan(100);
   });
 
   it('lets the hero past a chair behind its back, but not through it', async () => {
