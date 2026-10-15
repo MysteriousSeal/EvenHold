@@ -20,6 +20,7 @@ import { personMaterial } from './meshes/human/humanParts';
 import { stylize, type Stylizer } from './render/stylize';
 import { PostProcessing } from './render/postprocessing';
 import type { RenderOptions } from './render/renderOptions';
+import { graphics, onGraphics, preset } from './render/graphics';
 import { ChunkStreamer } from './world/chunkStreamer';
 import { WORLD_BUILDERS, type WorldBuilder } from './world/worldBuilders';
 import { WorldRegions } from './world/worldRegions';
@@ -113,7 +114,7 @@ export class GameView {
   private readonly movementAxes: MovementAxes;
   private stylizer: Stylizer | null = null;
   private post: PostProcessing | null = null;
-  private readonly pixelRatio: number;
+  private pixelRatio: number; // the URL's (renderOptions.ts), by the quality's (render/graphics.ts)
   // Per-frame animations (e.g. grass swaying in the wind), fed the time since start.
   private readonly animations: Array<(elapsedSeconds: number) => void> = [];
   private elapsed = 0;
@@ -138,12 +139,7 @@ export class GameView {
     // Only the firelight indoors casts shadows (roomView.ts); nothing outdoors does.
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.pixelRatio = options.pixelRatio;
-    this.renderer.setPixelRatio(this.pixelRatio);
-    // Upscaling by a whole factor (1x on a 2x screen) stays crisp, like the
-    // voxel art; a fractional one would shimmer, so it's left smooth.
-    const upscale = window.devicePixelRatio / this.pixelRatio;
-    canvas.style.imageRendering = upscale > 1 && Number.isInteger(upscale) ? 'pixelated' : 'auto';
+    this.pixelRatio = options.pixelRatio * preset().pixelScale;
 
     this.scene = new THREE.Scene();
     this.camera = createCamera();
@@ -167,6 +163,24 @@ export class GameView {
     this.entrances = new EntranceLife(this.scene, model);
     this.wildMoves = new WildMovesView(this.scene);
     this.mist = new RuinMist(this.scene, model.ruins, (x, z) => model.getGroundY(x, z));
+    this.applyGraphics();
+    onGraphics(() => this.applyGraphics());
+  }
+
+  // The graphics settings (render/graphics.ts) as they are now: the resolution, the passes, how far round the land's
+  // built, the brightness. (The shadows indoors: the room made again, interior/indoorScenes.ts.)
+  private applyGraphics(): void {
+    const [p, { options, renderer }] = [preset(), this];
+    this.pixelRatio = options.pixelRatio * p.pixelScale;
+    renderer.setPixelRatio(this.pixelRatio);
+    // Upscaling by a whole factor (1x on a 2x screen) stays crisp, like the
+    // voxel art; a fractional one would shimmer, so it's left smooth.
+    const upscale = window.devicePixelRatio / this.pixelRatio;
+    renderer.domElement.style.imageRendering = upscale > 1 && Number.isInteger(upscale) ? 'pixelated' : 'auto';
+    renderer.domElement.style.filter = graphics().brightness === 1 ? '' : `brightness(${graphics().brightness})`;
+    this.world.loadRadius = p.loadRadius;
+    this.post?.setPasses(options.bloom && p.bloom, options.shafts && p.shafts, Math.min(options.msaa, p.msaa));
+    this.resize();
   }
 
   // The world's layers, each a step the loader can report, and last the
@@ -201,7 +215,7 @@ export class GameView {
     const materials = [...this.world.materials(), ...this.enemies.materials, ...this.wildlife.materials, this.npcs.material, this.travellers.material, ...this.ambient.materials, ...this.entrances.materials, this.coins.material, ...this.loot.materials, this.heroLook, this.heroFlash, this.heroFrost];
     this.stylizer = stylize(this.scene, materials, this.world.materials());
     this.post = this.options.post ? new PostProcessing(this.renderer, this.scene, this.camera, this.options) : null;
-    this.resize();
+    this.applyGraphics();
     window.addEventListener('resize', () => this.resize());
     await warmUpAll(this.renderer, this.camera, this.scene, materials); // (every shader, before the first frame: render/warmUp.ts)
   }
@@ -380,7 +394,7 @@ export class GameView {
     this.renderer.info.reset();
     if (this.indoors.yardView) this.renderer.render(this.indoors.yardView.scene, this.camera); // the furniture yard: flat grass, no world
     else if (this.indoors.room) this.renderer.render(this.indoors.room.scene, this.camera); // indoors: just the room
-    else if (this.post) this.post.render(this.elapsed);
+    else if (this.post && preset().post) this.post.render(this.elapsed);
     else this.renderer.render(this.scene, this.camera);
   }
 

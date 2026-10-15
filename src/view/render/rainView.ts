@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { TILE_HEIGHT, WATER_LEVEL } from '../../model/constants';
+import { lifeShare } from './graphics';
 
 const SPAN = 30; // the box round the hero, across (world units): wider than the farthest zoom's view
 const HEIGHT = 13; // from a little under their feet to high above
@@ -181,7 +182,7 @@ export class Precipitation {
   }
 
   private set(fall: Fall, amount: number, slant: { x: number; z: number }, focus: THREE.Vector3, elapsed: number, opacity: number): void {
-    const drops = Math.round(fall.most * Math.min(1, amount));
+    const drops = Math.round(fall.most * Math.min(1, amount) * lifeShare()); // (fewer, at a lower quality: graphics.ts)
     fall.object.visible = drops > 0;
     if (!drops) return;
     fall.object.geometry.setDrawRange(0, drops * fall.perDrop);

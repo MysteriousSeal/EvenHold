@@ -21,6 +21,7 @@ import type { Drink } from '../../model/npcs/npcs';
 import { DOOR_LEAF, paintDoorLeaf } from './upstairsVoxels';
 import { LetMark, RoomContents, inRooms } from './roomContents';
 import { createGrid, fillBox } from '../meshes/voxel/voxelShapes';
+import { preset } from '../render/graphics';
 
 // The room's scene, what to call each frame (its fire burning), and how to
 // free it once the hero's left (it disposes only what it made: the hero, moved
@@ -170,7 +171,8 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
     doorLight.position.set(room.door, 0.9, room.depth - 1.3);
     scene.add(doorLight);
   }
-  glow.castShadow = true;
+  const { shadows, lampFill } = preset(); // (render/graphics.ts: at a lower quality, fewer cast shadows, or none)
+  glow.castShadow = shadows !== 'none';
   glow.shadow.mapSize.set(1024, 1024);
   glow.shadow.bias = -0.004;
   glow.shadow.normalBias = 0.02; // the room shadows itself: no acne on its faces
@@ -193,7 +195,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       const light = new THREE.PointLight(0xffc070, strength(f), inn ? 5 : 4, 1.5);
       const out = 0.42; // off the wall, past the lantern
       light.position.set(f.wall === 'left' ? f.x - 0.5 + out : f.x, 0.62, f.wall === 'left' ? f.z : f.z - 0.5 + out);
-      light.castShadow = true;
+      light.castShadow = shadows === 'all';
       light.shadow.mapSize.set(512, 512);
       light.shadow.bias = -0.004;
       light.shadow.normalBias = 0.02;
@@ -204,7 +206,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
       const back = new THREE.PointLight(0xffc070, 0.9, 1.4, 1.6);
       const behind = 0.1;
       back.position.set(f.wall === 'left' ? f.x - 0.5 + behind : f.x, 0.72, f.wall === 'left' ? f.z : f.z - 0.5 + behind);
-      scene.add(light, back);
+      scene.add(light, ...(lampFill ? [back] : []));
       return { light, full: strength(f) };
     });
   // The candles on the nightstands, lit: a small warm light just over each

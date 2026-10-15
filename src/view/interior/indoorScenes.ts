@@ -1,5 +1,6 @@
 // The scenes the hero's drawn in off the world's (GameView's): the room they're in, a dungeon's floor, or the grass
 // yard (a dev cheat); each built as they arrive, freed as they leave, and kept up while they're there.
+import { graphics, type Quality } from '../render/graphics';
 import type * as THREE from 'three';
 import type { GameModel } from '../../model/GameModel';
 import { mugsAt } from '../../model/inn/barMugs';
@@ -13,7 +14,7 @@ import { buildRoomScene, type IndoorScene } from './roomView';
 const PASS_MOST = 7; // at work, the cups at the counter's end drawn, at most (the rest under them)
 
 export class IndoorScenes {
-  room: ({ entrance: Entrance; fullWalls: boolean; life: DungeonLife | null } & IndoorScene) | null = null;
+  room: ({ entrance: Entrance; fullWalls: boolean; quality: Quality; life: DungeonLife | null } & IndoorScene) | null = null;
   yardView: ReturnType<typeof buildFurnitureYard> | null = null;
 
   // The grass yard (a dev cheat), built when the hero arrives and freed when they leave.
@@ -36,7 +37,7 @@ export class IndoorScenes {
   // The one before is freed when they leave it (or go straight into another).
   roomScene(model: GameModel, elapsed: number): THREE.Scene | null {
     const inside = model.inside;
-    if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls)) { // left, or the walls option changed
+    if (this.room && (this.room.entrance !== inside?.entrance || this.room.fullWalls !== model.fullWalls || this.room.quality !== graphics().quality)) { // left, or the walls option changed (or the quality: its shadows)
       this.room.dispose();
       this.room.life?.dispose();
       this.room = null;
@@ -45,7 +46,7 @@ export class IndoorScenes {
     if (!this.room) {
       // A dungeon's its own (a crypt's, a cave's: dungeon/dungeonViews.ts); a building's room built from its room and furniture (upstairs: no door).
       const below = buildDungeonScene(model.seed, inside.entrance);
-      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, ...(below ?? { ...buildRoomScene(inside.room, inside.furniture, !inside.below), life: null }) };
+      this.room = { entrance: inside.entrance, fullWalls: model.fullWalls, quality: graphics().quality, ...(below ?? { ...buildRoomScene(inside.room, inside.furniture, !inside.below), life: null }) };
     }
     this.room.seeHero(model.hero.x, model.hero.z); // (walls in their way turn see-through)
     const at = (kind: string) => inside.furniture.find((f) => f.kind === kind);

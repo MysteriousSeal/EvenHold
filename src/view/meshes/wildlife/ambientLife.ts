@@ -28,6 +28,7 @@ import { greedyMesh } from '../voxel/greedyMesh';
 import { createGrid, setColor } from '../voxel/voxelShapes';
 import { BIRD_PALETTE, CROW_PALETTE, HERON_PALETTE, crowGrid, heronGrid, DRAGONFLY_PALETTE, FISH_PALETTE, FROG_PALETTE, PALETTE, RABBIT_PALETTE, birdGrid, butterflyGrid, dragonflyGrid, fishGrid, frogGrid, rabbitGrid, splashGrid } from './ambientVoxels';
 import { weatherNow, type WeatherNow } from '../common/weatherNow';
+import { lifeShare } from '../../render/graphics';
 import { LivestockViews } from './livestockViews';
 import { ChimneySmoke } from '../smoke/chimneySmoke';
 import { bird, butterfly, dragonfly, firefly, fish, flock, frog, heron, rabbit, splash, type Creature, type Moment } from './ambientMoves';
@@ -129,8 +130,8 @@ export class AmbientLife {
     const fits = (x: number, z: number) => this.model.isOpenTile(Math.round(x), Math.round(z)) && !this.model.tiles.lake(Math.round(x), Math.round(z));
     for (const list of this.cells.values()) {
       for (const c of list) {
-        if (c.seed >= out[c.kind] && c.fled === null) continue; // (out, or the share of them that is: by each one's own roll)
-        if (this.counts[c.kind] >= MOST[c.kind]) continue; // (the most drawn)
+        if (c.seed >= out[c.kind] * lifeShare() && c.fled === null) continue; // (out, or the share of them that is: by each one's own roll; fewer at a lower quality)
+        if (this.counts[c.kind] >= MOST[c.kind] * lifeShare()) continue; // (the most drawn: fewer at a lower quality, render/graphics.ts)
         const m = this.moment;
         const shown =
           c.kind === 'butterfly' ? butterfly(c, m)
@@ -145,7 +146,7 @@ export class AmbientLife {
       }
     }
     // A flock over now and then, by day, dry: crows' black, high up.
-    flock(this.moment, this.model.seed, out.crow, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
+    flock(this.moment, this.model.seed, out.crow, () => this.counts.crow < MOST.crow * lifeShare() && this.draw('crow', 0));
     for (const [kind, m] of Object.entries(this.meshes) as Array<[keyof typeof this.meshes, THREE.InstancedMesh]>) {
       m.count = this.counts[kind];
       m.visible = m.count > 0; // (no draw for a kind with none out)
@@ -163,7 +164,7 @@ export class AmbientLife {
   }
 
   private splash(x: number, z: number, age: number): void {
-    if (this.counts.splash >= MOST.splash) return;
+    if (this.counts.splash >= MOST.splash * lifeShare()) return;
     const keep = this.moment.matrix.clone(); // (the creature's own, being made)
     splash(this.moment, x, z, age);
     this.draw('splash', 0);

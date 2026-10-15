@@ -9,7 +9,8 @@ import { CHUNK_SIZE } from './chunks';
 import type { ChunkLayer, WorldSink } from './chunkLayer';
 
 // The camera shows about 15 tiles from the hero at most (fog hides the
-// rest), so chunks load comfortably before they come into view.
+// rest), so chunks load comfortably before they come into view (nearer, at
+// a lower quality: loadRadius, render/graphics.ts).
 const LOAD_RADIUS = 28;
 const UNLOAD_RADIUS = 44;
 
@@ -17,6 +18,8 @@ export class ChunkStreamer implements WorldSink {
   private readonly layers: Array<{ layer: ChunkLayer; tag: unknown }> = [];
   private readonly loaded = new Map<string, { group: THREE.Group; built: Map<ChunkLayer, THREE.Object3D[]> }>();
   private readonly extras = new Map<unknown, THREE.Object3D[]>(); // what's added outright (never streamed), by tag
+
+  loadRadius = LOAD_RADIUS;
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -79,9 +82,9 @@ export class ChunkStreamer implements WorldSink {
   // drops far ones. Returns how many chunks it built.
   update(x: number, z: number, budget = 1): number {
     for (const [key, chunk] of this.loaded) {
-      if (distanceToChunk(key, x, z) > UNLOAD_RADIUS) this.unload(key, chunk.group);
+      if (distanceToChunk(key, x, z) > UNLOAD_RADIUS - LOAD_RADIUS + this.loadRadius) this.unload(key, chunk.group);
     }
-    const wanted = chunksWithin(x, z, LOAD_RADIUS).filter((key) => !this.loaded.has(key));
+    const wanted = chunksWithin(x, z, this.loadRadius).filter((key) => !this.loaded.has(key));
     wanted.sort((a, b) => distanceToChunk(a, x, z) - distanceToChunk(b, x, z));
     const toBuild = wanted.slice(0, budget);
     for (const key of toBuild) this.load(key);

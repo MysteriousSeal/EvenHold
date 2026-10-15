@@ -16,6 +16,7 @@ import type { Furniture } from '../../model/interiors/furniture';
 import { CandleFlames } from './candleFlame';
 import { HERB_GLASS_AMBER, HERB_GLASS_COBALT, HERB_GLASS_GREEN, HERB_GLASS_ROSE } from './furniturePalette';
 import { ROOM_ORIGIN_VOXELS, ROOM_PALETTE, ROOM_VOXEL, buildPieceVoxels } from './roomVoxels';
+import { preset } from '../render/graphics';
 
 const BUBBLE_EVERY = 0.16; // seconds between bubbles
 const BUBBLE_LIFE = 0.7;
@@ -55,7 +56,7 @@ export class CauldronEffects {
     });
     if (brew) {
       this.light.position.copy(brew).add(new THREE.Vector3(0, 0.7, 0)); // (high: the pot's own shadow round its foot kept small)
-      this.light.castShadow = true; // (the room's things casting green shadows away from it)
+      this.light.castShadow = preset().shadows === 'all'; // (the room's things casting green shadows away from it; at a lower quality, none: render/graphics.ts)
       this.light.shadow.mapSize.set(512, 512);
       this.light.shadow.bias = -0.004;
       this.light.shadow.normalBias = 0.02;

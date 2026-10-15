@@ -69,7 +69,7 @@ export class PostProcessing {
   private readonly composer: EffectComposer;
   private readonly shafts: ShaderPass;
   private readonly bloom: UnrealBloomPass | null;
-  private readonly shaftsWanted: boolean; // (not with ?noshafts)
+  private shaftsWanted: boolean; // (not with ?noshafts, nor at a lower quality: graphics.ts)
   private readonly right = new THREE.Vector3();
   private readonly up = new THREE.Vector3();
 
@@ -102,6 +102,19 @@ export class PostProcessing {
   setSun(direction: THREE.Vector3): void {
     const [x, y] = [-direction.dot(this.right), -direction.dot(this.up)];
     if (Math.hypot(x, y) > 1e-4) this.shafts.uniforms.uBeamDir.value.set(x, y).normalize();
+  }
+
+  // The passes a quality wants (graphics.ts), of those the URL left (renderOptions.ts): bloom, the shafts, and the
+  // multisampling (its targets made again at the new count).
+  setPasses(bloom: boolean, shafts: boolean, msaa: number): void {
+    if (this.bloom) this.bloom.enabled = bloom;
+    this.shaftsWanted = shafts;
+    this.shafts.enabled &&= shafts;
+    for (const target of [this.composer.renderTarget1, this.composer.renderTarget2]) {
+      if (target.samples === msaa) continue;
+      target.samples = msaa;
+      target.dispose(); // (made again, so, at its next use)
+    }
   }
 
   setSize(width: number, height: number, pixelRatio: number): void {
