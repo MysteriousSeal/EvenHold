@@ -63,7 +63,8 @@ describe("a herbalist's house inside", () => {
     const rush = ROOM_PALETTE.indexOf(0x8a7a52) + 1;
     const layer = (y: number) => grid.cells.filter((c, i) => Math.floor(i / sx) % sy === y && c === rush).length;
     expect(layer(1)).toBeGreaterThan(0);
-    const high = grid.cells.filter((c, i) => Math.floor(i / sx) % sy >= 26 && c === rush).length; // (the ties, up under the beam)
+    const twine = ROOM_PALETTE.indexOf(0xb89a58) + 1;
+    const high = grid.cells.filter((c, i) => Math.floor(i / sx) % sy >= 26 && c === twine).length; // (the ties, up under the beam)
     expect(high).toBeGreaterThan(0);
   });
 

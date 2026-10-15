@@ -216,7 +216,7 @@ export function buildRoomScene(room: Room, furniture: readonly Furniture[] = [],
   let forging = { hammering: false, quenching: false };
   // A herbalist's cauldron, bubbling (its brew's surface: herbalistVoxels.ts, 13 voxels up, its middle).
   const pot = furniture.find((f) => f.kind === 'cauldron');
-  const cauldron = new CauldronEffects(scene, pot ? new THREE.Vector3(pot.x, 13 * ROOM_VOXEL, pot.z) : null);
+  const cauldron = new CauldronEffects(scene, pot ? new THREE.Vector3(pot.x, 13 * ROOM_VOXEL, pot.z) : null, room, furniture); // (and their candle and glass)
   // The drinks on the bar (inn/barMugs.ts): a mesh each, made as needed and reused.
   const mugShapes = mugGeometries();
   const mugs: THREE.Mesh[] = [];
