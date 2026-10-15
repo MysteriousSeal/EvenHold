@@ -65,3 +65,18 @@ describe('the signposts', () => {
     expect(boardAt(west, 0)).toBe(false);
   });
 });
+
+describe('a signpost in the way', () => {
+  it('its post walked round (not through), the road beside it open', async () => {
+    const { GameModel } = await import('../src/model/GameModel');
+    const { HERO_RADIUS } = await import('../src/model/constants');
+    const { SIGN_CORNER } = await import('../src/model/map/signposts');
+    const model = new GameModel(1, { width: 512, depth: 512 });
+    const inner = posts.filter((p) => p.x > 2 && p.z > 2 && p.x < 509 && p.z < 509);
+    expect(inner.length).toBeGreaterThan(3);
+    for (const p of inner) {
+      expect(model.isBlocked(p.x + p.corner[0] * SIGN_CORNER, p.z + p.corner[1] * SIGN_CORNER, HERO_RADIUS)).toBe(true);
+      expect(model.isBlocked(p.x, p.z, HERO_RADIUS)).toBe(false);
+    }
+  }, 60_000);
+});

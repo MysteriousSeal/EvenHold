@@ -100,7 +100,9 @@ export class Lumber {
 
   // Whether a tree's been felled (gone for good).
   felled(tree: Tree): boolean {
-    return (this.cut.get(treeKey(tree)) ?? 0) >= chopsIn(tree, this.host.seed);
+    if (this.cut.size === 0) return false; // (none cut yet: asked of every tree of a region as it's made, tens of thousands)
+    const cut = this.cut.get(treeKey(tree));
+    return cut !== undefined && cut >= chopsIn(tree, this.host.seed);
   }
 
   // Chops left in a tree.

@@ -16,6 +16,7 @@ import { onPaving } from '../map/roads';
 import { Obstacles, type ObstaclePage } from '../map/obstacles';
 import { RegionTiles, TilePatch, type Tiles } from '../map/tiles';
 import { addWorldObstacles } from '../map/blockers';
+import { addSignpostObstacles } from '../map/signposts';
 import { solidCells } from '../worldgen/world';
 import { REGION, type RegionLand } from '../worldgen/regions';
 import type { Road } from '../worldgen/roads';
@@ -49,6 +50,7 @@ export interface WorldHost {
   slay(enemy: Enemy): void; // a foe slain by someone else (a guard on the road)
 }
 
+const TRAVELLER_HALF = 0.14; // a guard's footprint off the road (as the hero's)
 const REGION_IDS = 2 ** 20; // ids in each region's block, of villagers, animals and travellers
 
 // What stays known of a region once made.
@@ -306,6 +308,7 @@ export class LiveWorld {
     const groundY = (x: number, z: number) => this.groundY(x, z);
     const band = new Travellers(this.streamed ? this.host.seed + index : this.host.seed, known.roads, known.villages.length, spawnOf(this.size), this.host.hero, groundY, (e) => this.host.slay(e), ids);
     band.stones = () => this.host.chickens?.statues?.() ?? [];
+    band.blocked = (x, z) => this.obstacles.isBlocked(x, z, TRAVELLER_HALF);
     return band;
   }
 
@@ -362,6 +365,7 @@ export class LiveWorld {
     const stood = new Set([...enemies, ...wildlife].map((e) => cellKey(Math.round(e.x), Math.round(e.z))));
     const strongholds = placeStrongholds({ seed, size, tiles, villages, ruins, camps, caves, isOpenTile, stoodOn: (x, z) => stood.has(cellKey(x, z)) }, area);
     addStrongholdObstacles(obstacles, strongholds);
+    addSignpostObstacles(obstacles, tiles, villages, area); // (the signposts at the roads' junctions: last, on the paving, so nothing else is moved)
     const entrances = [...doors, ...crypts.map((c) => c.entrance), ...caves.map((c) => c.entrance), ...strongholds.map((s) => s.entrance)]; // (the dungeons' ways in, after the buildings' doors: they keep their places)
     const known: Known = { trails, roads, villages, houses, buildings, fields, ruins, camps, crypts, caves, strongholds, entrances };
     this.learn(index, known);

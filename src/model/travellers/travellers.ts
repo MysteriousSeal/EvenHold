@@ -145,6 +145,7 @@ export class Travellers {
   private byId = new Map<number, Traveller>(); // each by their id (a guard's partner found at once: no going through all of them, each a frame)
 
   stones: () => ReadonlyArray<{ x: number; z: number }> = () => []; // what stands on a road and is walked round (someone turned to stone: world/liveWorld.ts)
+  blocked: (x: number, z: number) => boolean = () => false; // what's in a guard's way off the road (trees, walls, water: the world's obstacles)
 
   constructor(
     private readonly seed: number,
