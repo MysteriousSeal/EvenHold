@@ -44,8 +44,11 @@ export function furnishInn(plan: Planner, room: Room): void {
   const gapTo = (o: Furniture, x: number, z: number) => Math.max(o.x - x, x - (o.x + o.w - 1), o.z - z, z - (o.z + o.d - 1));
   const clearOf = (x: number, z: number, gap: number, pastChairs = false) =>
     items.every((o) => !o.solid || (pastChairs && o.kind === 'chair') || gapTo(o, x, z) >= (o.kind === 'tavernTable' ? gap : Math.min(gap, 2)));
+  // (None just inside the door: a little open floor to walk in on, three tiles deep straight ahead of it, two to
+  // either side.)
+  const byDoor = (x: number, z: number) => Math.abs(x - room.door) <= 1 ? room.depth - 1 - z < 3 : Math.max(Math.abs(x - room.door), room.depth - 1 - z) < 2;
   const floor: Array<[number, number]> = [];
-  for (let x = 1; x < room.width; x++) for (let z = 1; z < room.depth - 1; z++) floor.push([x, z]);
+  for (let x = 1; x < room.width; x++) for (let z = 1; z < room.depth - 1; z++) if (!byDoor(x, z)) floor.push([x, z]);
   // As many as fit, up to ten; and at least three: if the room's too
   // small, closer (two apart), a little further toward the bar and the hearth.
   const MAX_TABLES = 10;
