@@ -23,7 +23,12 @@ bandits' strongholds.
   farther out, the more dangerous, and the better the pay. Villagers keep
   the clock (the fields by day, the inn of an evening, abed at night), and
   any of them will stop for a word: news of a camp or a crypt nearby, word
-  of work, gossip about their village.
+  of work, gossip about their village. The land changes as you go: bright
+  meadows, deep oak woods, purple moors, reedy marshes, rocky hills. The
+  seasons turn every week, from blossom to autumn colours to snow, and the
+  weather with them: rain, fog, wind, and moonlit nights. Sheep graze the
+  pastures, smoke rises from the chimneys, and herons, frogs and rabbits
+  keep out of your way.
 - **The roads.** Roads join the villages, with signposts where they meet,
   and pedlars, pilgrims and guards walking them. Stop a pedlar to trade, or
   ask a pilgrim the way to the nearest crypt. Each village's notice board
@@ -53,19 +58,22 @@ bandits' strongholds.
   wings each held by one of the king's captains, and the bandit king behind
   the inner gate.
 - **The inn.** Sit at the bar for an ale or a hot pie, buy and sell with the
-  barmaid, and in the evening ask her for a room for the night or the week.
-  Its notice board has work: serving tables, tending the bar, or work
-  upstairs. Mind the bouncer: swords stay sheathed in here.
+  barmaid, or call for one from a table. Talk to whoever's beside you, or
+  buy a round for the bar. Rent a room for the night or the week, and wake
+  well rested. Its notice board has work: serving tables, tending the bar,
+  or work upstairs, paying more as you rise. Mind the bouncer: swords stay
+  sheathed in here.
 - **The smithy.** Arms and armour to buy, rising with your level; the smith
   takes your old gear off your hands, and mends what you wear. Every weapon
   fights its own way (quick daggers, parrying swords, sweeping axes,
   reaching spears, staggering hammers). Gear has a level and a rarity, and
   ten sets are scattered across the land, each among its own foes: the
   headsman's, the barrow's, the Sunward plate of kings' tombs, and more.
-- **Skills.** Lumberjacking, woodworking, salvaging, fishing and cooking,
-  each from 1 to 300: chop the trees, make what the inn and the road need,
-  break old gear down for its iron, catch a pike, and roast it over a
-  campfire of your own.
+- **Skills.** Lumberjacking, mining, woodworking, smithing, salvaging,
+  fishing and cooking, each from 1 to 300 over a few hours: chop the trees
+  and dig the ore, make what the inn and the road need, forge your own
+  weapons and armour, break old gear down for its iron, catch a sturgeon,
+  and roast it over a campfire of your own.
 - **Quests.** The notice board in every village square has work for those
   who'll take it.
 - **The herbalist.** In every village, a green-hooded herbalist keeps shop

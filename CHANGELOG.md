@@ -3,6 +3,107 @@
 What's new in each version of EvenHold. The version you're playing is shown
 in the bottom-left corner of the screen.
 
+## [0.7.0] - 2026-10-15
+
+An inn worth stopping at, a countryside that changes with the seasons and
+the weather, and trades that take real time to master and pay what they
+should.
+
+### The inn
+
+- **Order from a table:** sat at one of the inn's tables, **F** or **G**
+  calls the server (or the barmaid) over, and your ale or pie is brought to
+  you.
+- **Company at the bar:** from a stool, talk to whoever sits beside you.
+  They'll give you the news, point you to work, gossip about their village,
+  and for a coin tell you exactly where trouble lies. Or buy a round for the
+  bar and hear them cheer.
+- The barkeep greets you as you sit, and tells you your order's on its way.
+  The bouncer has a word for the room now and then.
+- **Work pays better as you rise:** a shift's wages and tips grow with your
+  level, as quest rewards do.
+- **Upstairs:**
+  - keep your room for the week (seven nights for five), offered only on
+    your last night;
+  - or slip the barmaid a little extra for a room before four, and sleep in
+    it at once;
+  - a room shift can be ended at the room's own door.
+- **Beds have owners:** lie in a villager's bed while they're home and
+  they'll turn you out; while they're away it rests you only slowly. A night
+  in a paid room leaves you **Well rested** for a few hours: slower to tire,
+  quicker to catch your breath.
+- **The look:** plaster walls, and warm pools of light from the hearth, the
+  lanterns and a candle on every table, with shadow between. A greyed oak
+  floor, leather seats, the bar's pale counter and its rail of tankards.
+  Tables laid for a meal, a game of dice or a jug of wine. Barrels and
+  sacks, a chalk menu, a clear way in at the door and open floor round the
+  hearth. A chest, a rug and a washstand in the room you rent, a red runner
+  down the hall. Outside, a big iron-framed sign with a foaming tankard and
+  a lantern under it.
+- **Fixed:**
+  - patrons stuck at their tables after a shift;
+  - an order that followed you to another stool;
+  - full tankards left on the bar;
+  - the server ordering from herself;
+  - drinks poured for no one;
+  - tips for a botched pour;
+  - night shifts that got the village out of bed;
+  - bar stools never served while the tables were;
+  - being locked in your room at checkout;
+  - clients vanishing, or frozen in place, upstairs.
+
+### The countryside
+
+- **Five kinds of country,** each a place of its own:
+  - **meadows:** bright, with flowers in drifts;
+  - **deep forests:** big dark oaks, ferns and mushrooms;
+  - **moors:** purple heather and rust bracken;
+  - **marshes:** reeds, flags and willows by the lakes;
+  - **hills:** granite tors and boulders.
+- **Seasons,** a week of game days each: blossom in spring, autumn's reds
+  and golds turning tree by tree, bare branches in winter, frosty mornings,
+  and snow that settles on the high ground first and melts away. Lakes stay
+  open water.
+- **Weather:** clear days, overcast, rain with rings on the lakes, fog and
+  morning mist, wind, and snow in winter. A new game always starts on a
+  clear morning.
+- **The time of day shows:** a rose dawn, a warm golden hour, dusk, and a
+  moonlit night you can still see your way in, the windows glowing.
+- **Alive:**
+  - sheep, cows, pigs and hens in the village pastures;
+  - smoke from the chimneys, leaning with the wind;
+  - rabbits, frogs, herons, crows and dragonflies, fish jumping, flocks of
+    birds overhead;
+  - deer that stop to watch you, and lie down at night.
+
+  All of it shelters from the rain and thins out in winter.
+- None of it costs the game any speed.
+
+### Trades
+
+- **Every trade now takes a few hours to master** (it was minutes for some):
+  each level wants several tries that taught, shown as a bar in the skill's
+  window. Trees, catches and rocks that can no longer teach you say so.
+- **Mining (new):** the boulders and outcrops hold copper, tin, iron, silver
+  and gold, with star-iron in the high country. Buy a pickaxe from the smith.
+  A worked-out vein comes back after a day.
+- **Smithing (new),** at the smithy's anvil: smelt ingots (bronze too),
+  forge fittings, better pickaxes, weapons, armour and rings.
+- **Fishing:** roach, bream, eel, grayling, char, salmon and sturgeon, and
+  every kind of water always has something to learn from.
+- **Lumberjacking:** the trees re-spaced, and a rare hoary elder oak with a
+  burl to find.
+- **Woodworking:** new pieces at every tier (a torch, bucklers, a spear,
+  cudgels, war staffs, pavises, tower shields, a cask, a casket, a chest).
+  Planks no longer waste your time.
+- **Cooking:** a dish for every fish, up to an angler's feast. Meat dishes
+  count for more, and the barmaid sells boar meat to those who don't hunt.
+- **Salvaging:** no longer stalls. Junk can be broken down too, and the
+  bench can break a whole stack at once.
+- **Fairer money:** shops buy only a few of each made thing and sell the
+  rest on over time, and prices are set so a trade earns about what
+  questing does at its level.
+
 ## [0.6.0] - 2026-10-15
 
 A world that goes on and on, people with stories to tell, bandit
