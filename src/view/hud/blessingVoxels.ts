@@ -114,14 +114,14 @@ export const heartModel = (): VoxelModel =>
     [0xd03a3a, 0x9a2424, 0xffb0b0],
   );
 
-// A heart gone sick: a sallow green, darker down its side, red pox spots
-// blotched over it: Poxed (the pox).
+// A heart gone sick: a sallow green, darker down its side, three big red
+// pox spots blotched over it (to be seen at the HUD's size): Poxed (the pox).
 export const poxModel = (): VoxelModel =>
   fromRows(
-    ['.GGG.GGG.', 'GGSGGBGGG', 'GSGBGGGGD', 'GGGGGGBGD', '.GBGGGGD.', '..GGGBD..', '...GGD...', '....D....'],
+    ['.GGG.GGG.', 'GSSGGBBGG', 'GSGGGBBGD', 'GBBGGGGGD', '.BBGBBGD.', '..GGBBD..', '...GGD...', '....D....'],
     3,
     { G: 1, D: 2, S: 3, B: 4 },
-    [0x8aa04a, 0x56682a, 0xd0dca0, 0xc0503a],
+    [0x9ab050, 0x56682a, 0xd0dca0, 0xb8302a],
   );
 
 // A wide eye: a dark lid round it, the white, a blue iris, a black pupil
