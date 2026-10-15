@@ -20,10 +20,13 @@
 // The weather and the season have their say (nature.ts, the skies' to set):
 // the wind's strength scales every sway, it blows the way the weather's wind
 // does, and the season's tint colours every leaf and blade (but an
-// evergreen's: `evergreen`).
+// evergreen's: `evergreen`); a broadleaf tree's leaves blossom, turn, fall
+// and are gone in winter (seasonLeaves.ts); the ground cover sinks away under
+// snow (`snowShrink`).
 
 import * as THREE from 'three';
 import { natureUniforms } from './nature';
+import { LEAF_FRAGMENT, LEAF_FRAGMENT_HEAD, LEAF_VERTEX, LEAF_VERTEX_HEAD } from './seasonLeaves';
 
 const WIND_WAVELENGTH = 0.3; // phase change per world unit
 
@@ -34,6 +37,9 @@ export interface WindOptions {
   flutter?: number; // extra fast, small jitter (leaves), world units
   push?: { radius: number; strength: number }; // parts around the hero: world units
   evergreen?: boolean; // keeps its own colour whatever the season (the pines)
+  broadleaf?: boolean; // its leaves blossom, turn and fall with the seasons (seasonLeaves.ts)
+  snowShrink?: boolean; // sinks away under the snow (the ground cover)
+  waves?: boolean; // gusts roll across it in broad bands (the meadow's grass)
 }
 
 // Where the hero stands (x, z), shared by every material that parts around them.
@@ -52,6 +58,8 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
     shader.uniforms.uWindStrength = natureUniforms.uWindStrength;
     shader.uniforms.uWindDir = natureUniforms.uWindDir;
     shader.uniforms.uSeasonTint = natureUniforms.uSeasonTint;
+    shader.uniforms.uSeason = natureUniforms.uSeason;
+    shader.uniforms.uSnow = natureUniforms.uSnow;
     const push = options.push
       ? `vec2 pushAway = (modelMatrix * vec4(windOrigin.x, 0.0, windOrigin.y, 1.0)).xz - uWindPusher;
         float pushDistance = length(pushAway);
@@ -60,7 +68,7 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         transformed += transpose(mat3(instanceMatrix)) * vec3(pushDir.x, -0.5, pushDir.y) * pushAmount * windBend;`
       : '';
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uWindTime;\nuniform vec2 uWindPusher;\nuniform float uWindStrength;\nuniform vec2 uWindDir;')
+      .replace('#include <common>', `#include <common>\nuniform float uWindTime;\nuniform vec2 uWindPusher;\nuniform float uWindStrength;\nuniform vec2 uWindDir;\nuniform float uSnow;\n${options.broadleaf ? LEAF_VERTEX_HEAD : ''}`)
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
@@ -70,18 +78,21 @@ export function addWindSway(material: THREE.Material, options: WindOptions): { v
         float windAmount = (sin(windPhase) * 0.7 + sin(windPhase * 2.3 + 1.7) * 0.3) * ${f(options.strength)}
           + sin(uWindTime * 4.7 + dot(position, vec3(9.0, 5.0, 7.0))) * ${f(options.flutter ?? 0)};
         windAmount *= uWindStrength;
+        ${options.waves ? 'windAmount *= 0.75 + 0.9 * smoothstep(0.35, 1.0, sin(dot(windOrigin, uWindDir) * 0.09 - uWindTime * 0.8));' : ''}
         // World wind direction in the instance's own (rotated) frame.
         vec3 windDir = transpose(mat3(instanceMatrix)) * vec3(uWindDir.x, 0.0, uWindDir.y);
         transformed += windDir * windAmount * windBend;
-        ${push}`,
+        ${push}
+        ${options.snowShrink ? 'transformed.y *= 1.0 - smoothstep(0.15, 0.6, uSnow);' : ''}
+        ${options.broadleaf ? LEAF_VERTEX : ''}`,
       );
     if (!options.evergreen) {
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform vec3 uSeasonTint;')
-        .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= uSeasonTint;');
+        .replace('#include <common>', `#include <common>\nuniform vec3 uSeasonTint;\n${options.broadleaf ? LEAF_FRAGMENT_HEAD : ''}`)
+        .replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb *= uSeasonTint;\n${options.broadleaf ? LEAF_FRAGMENT : ''}`);
     }
   };
   material.customProgramCacheKey = () =>
-    `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}:${options.push?.radius ?? 0}:${options.push?.strength ?? 0}:${options.evergreen ? 1 : 0}`;
+    `wind:${options.height}:${options.strength}:${options.speed}:${options.flutter ?? 0}:${options.push?.radius ?? 0}:${options.push?.strength ?? 0}:${options.evergreen ? 1 : 0}:${options.broadleaf ? 1 : 0}:${options.snowShrink ? 1 : 0}:${options.waves ? 1 : 0}`;
   return time;
 }
