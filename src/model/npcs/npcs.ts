@@ -57,10 +57,13 @@ export type NpcRole = 'villager' | 'barkeep' | 'server' | 'smith' | 'bouncer' | 
 
 // What a villager is called by, after their name, if anything: "Adawen (Barmaid)". A man in a woman's trade, or she
 // in his (a charm's doing: spells/swaps.ts), called as he or she is: a barman, a waiter.
-const TITLES: Record<NpcRole, string | null> = { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', witch: 'Hedge-witch', monger: null, ...CALLING_TITLES };
+// (Made when first asked: an import loop through town/townCallings.ts may not have CALLING_TITLES yet as this loads.)
+let titles: Record<NpcRole, string | null> | null = null;
+const TITLES = (): Record<NpcRole, string | null> =>
+  (titles ??= { villager: null, barkeep: 'Barmaid', server: 'Waitress', smith: 'Blacksmith', bouncer: 'Bouncer', herbalist: 'Herbalist', witch: 'Hedge-witch', monger: null, ...CALLING_TITLES });
 const HIS: Partial<Record<NpcRole, string>> = { barkeep: 'Barman', server: 'Waiter' };
 export function titleOf(npc: Pick<Npc, 'name' | 'role' | 'look'> & { stall?: Stall }): string {
-  const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES[npc.role] || (npc.stall && STALL_TITLES[npc.stall.kind]);
+  const title = (npc.look.build === 'male' && HIS[npc.role]) || TITLES()[npc.role] || (npc.stall && STALL_TITLES[npc.stall.kind]);
   return title ? `${npc.name} (${title})` : npc.name;
 }
 
