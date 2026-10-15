@@ -36,6 +36,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement, moves: { breath: 
   name.textContent = hero.name;
   const hp = bar('hero-hud-hp');
   const breath = bar('hero-hud-breath');
+  breath.node.title = 'Breath: spent by rolls and blocks, back in a moment'; // (what the thin bar is, on hover)
   const energy = bar('hero-hud-energy');
   const xp = bar('hero-hud-xp');
   portrait.append(level, name);
@@ -72,6 +73,7 @@ export function createHeroHud(hero: Hero, parent: HTMLElement, moves: { breath: 
     breath.fill.style.width = `${(winded / moves.most) * 100}%`;
     breath.node.style.width = `${(100 * moves.most) / BREATH}%`; // (of the bars' width, hud.css's: shorter, tired)
     breath.node.classList.toggle('empty', winded <= 0);
+    breath.node.classList.toggle('full', winded >= moves.most); // (faint while full: it draws the eye once it moves)
     const most = maxEnergyOf(hero);
     energy.fill.style.width = `${(awake / most) * 100}%`;
     energy.label.textContent = `${awake} / ${most}`;
