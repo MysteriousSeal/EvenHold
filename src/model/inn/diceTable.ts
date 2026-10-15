@@ -46,6 +46,7 @@ export interface Sitting {
   stakes: number[]; // stakesAt the inn's level
   purse: number; // theirs, left to lose
   gamesLeft: number; // a villager's, before they've had enough (a sharp's: as many as the hero likes)
+  games: number; // begun this sitting
   net: number; // what the hero's won (or, below nothing, lost) off them this sitting
   game: Game | null; // the one under way, or the last
   over: 'cleaned out' | 'enough' | 'caught' | 'wronged' | null; // why they've stopped playing, once they have
@@ -57,7 +58,7 @@ type Purse = { money: number };
 export function sitDown(against: string, sharp: Sharp | null, level: number, roll: number): Sitting {
   const stakes = stakesAt(level);
   const purse = stakes[0] * (sharp ? SHARP_PURSE : Math.round(PURSE[0] + roll * (PURSE[1] - PURSE[0])));
-  return { against, sharp, stakes, purse, gamesLeft: sharp ? Infinity : Math.round(GAMES[0] + roll * (GAMES[1] - GAMES[0])), net: 0, game: null, over: null };
+  return { against, sharp, stakes, purse, gamesLeft: sharp ? Infinity : Math.round(GAMES[0] + roll * (GAMES[1] - GAMES[0])), net: 0, games: 0, game: null, over: null };
 }
 
 // Whether a game can start at `stake`: why not, if not.
@@ -75,6 +76,7 @@ export function startGame(s: Sitting, hero: Purse, main: Main, stake: number, rn
   hero.money -= stake;
   const loaded = s.sharp && rng() < SWITCH ? fullamsAgainst(main) : null;
   s.game = { main, stake, chance: null, casts: [], loaded, seen: !!loaded && rng() < TELL, result: null };
+  s.games++;
   return s.game;
 }
 

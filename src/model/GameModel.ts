@@ -256,6 +256,7 @@ export class GameModel {
       knockedOn(this, dt); // (knocked back by a blow, over a moment)
       if (this.below) [this.below.run.update(dt), this.scoopCoins(), this.keepFocus()]; // down in a crypt: its guards
       stepNpcs(this.folk, this, dt);
+      this.dice.update(this.folk, dt); // (a sharp thrown out, on their way to the door)
       liveOn(this, dt); // energy: spent, kept sat down, slept back (out of it: to the nearest inn's hearth)
       return;
     }

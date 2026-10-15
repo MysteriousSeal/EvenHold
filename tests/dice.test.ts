@@ -248,6 +248,21 @@ describe('a sharp at the inn', () => {
     expect(again.dice.knows(SHARPS.find((s) => s.key === key)!)).toBe(true);
   });
 
+  it('caught out, they swing at the hero (never a fall) and the bouncer comes over and throws them out', () => {
+    const { model, sharp } = atTheSharpsTable();
+    model.dice.play(sharp);
+    model.hero.hp = 1.05;
+    const brawl = model.dice.caughtOut(model.folk)!;
+    expect(brawl.sharp).toBe(sharp);
+    expect(model.hero.hp).toBe(1);
+    model.dice.rise();
+    for (let i = 0; i < 400 && model.folk.includes(sharp); i++) {
+      model.update(0, 0, 0.05);
+      model.dice.update(model.folk, 0.05);
+    }
+    expect(model.folk.includes(sharp)).toBe(false);
+  });
+
   it('saved mid-game: the stake on the table back in the purse', () => {
     const { model, sharp } = atTheSharpsTable();
     const at = model.dice.play(sharp)!;

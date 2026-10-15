@@ -9,18 +9,26 @@ import type { Entrance } from '../interiors/interiors';
 import { doorNumber } from '../interiors/interiors';
 import { distanceTo, seatOf, type Furniture } from '../interiors/furniture';
 import type { Inside } from '../interiors/indoors';
+import type { Hero } from '../types';
 import type { Npc } from '../npcs/npcs';
 import { doorTile } from '../npcs/npcPlaces';
 import { walk } from '../npcs/npcWalk';
 import type { NpcWorld } from '../npcs/npcRoutine';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
-import { hashUnit } from '../../util/random';
+import { hashUnit, oneOf } from '../../util/random';
+import { say } from '../npcs/speech';
+import { beside } from './innStaff';
+import { maxHpOf } from '../hero/attributes';
 import { AWAY, SHARPS, nightOf, sharpFigure, sharpOf, sharpTonight, type Sharp } from './diceSharps';
 import { sitDown, walkOut, type Sitting } from './diceTable';
+import type { Cast } from './hazard';
 
 const SHARP_ID = -9000; // a sharp's id among the folk (none of the world's: theirs, below them all)
 const AT_TABLE = 1; // tiles from a table its chairs are
+const BLOW = 0.08; // of the hero's most health: a caught sharp's swing
+const BOUNCER_WAIT = 8; // seconds: the bouncer's there by then, or the sharp's out without him
+const THROWN_OUT = ["Out. Now. And don't come back.", 'Cheats go out the door or through the window. Your pick.', "That's you finished here. Move.", 'Out, before I fold you in half.'];
 
 // What the dice need of the game.
 export interface DiceHost extends NpcWorld {
@@ -28,7 +36,7 @@ export interface DiceHost extends NpcWorld {
   size: MapSize;
   minutes: number;
   inside: Inside | null;
-  hero: NpcWorld['hero'] & { money: number };
+  hero: NpcWorld['hero'] & Hero;
 }
 
 // The table a chair's at (an inn's), if it's at one.
@@ -47,6 +55,7 @@ export class DiceHall {
   caught: Record<string, number> = {}; // how often the hero's caught each one out
   at: AtTable | null = null; // the sitting under way
   private figure: { npc: Npc; sharp: Sharp; door: number; night: number; leaving: boolean } | null = null; // tonight's sharp, where the hero is
+  private coming = 0; // seconds the bouncer has left to get to a sharp caught out
   private done = new Set<string>(); // those who've stopped playing the hero tonight (by id and night): not again till tomorrow
 
   constructor(private readonly host: () => DiceHost) {}
@@ -132,12 +141,41 @@ export class DiceHall {
     [f.npc.x, f.npc.z, f.npc.y, f.npc.seat] = [f.npc.stood!.x, f.npc.stood!.z, 0, null];
   }
 
-  // Each frame: a sharp thrown out walked to the door, and gone through it.
+  // A sharp caught out at the table (the sitting's over): they swing at the hero (a blow, never a fall), and the
+  // bouncer's over to throw them out (none, or slow to come: out all the same, BOUNCER_WAIT on). Who's there.
+  caughtOut(folk: readonly Npc[]): { sharp: Npc; bouncer: Npc | null } | null {
+    const [f, at] = [this.figure, this.at];
+    if (!f || !at || at.with !== f.npc || f.leaving) return null;
+    const { hero, inside } = this.host();
+    hero.hp = Math.max(1, hero.hp - BLOW * maxHpOf(hero));
+    hero.hurtFor = 0.3;
+    const bouncer = folk.find((n) => n.role === 'bouncer' && n.where === at.inn) ?? null;
+    const spot = inside && beside(at.table, inside.furniture, inside.room);
+    if (bouncer && spot) {
+      bouncer.steps = [{ kind: 'go', to: spot, faceToward: f.npc }, { kind: 'hand', then: () => (say(bouncer, oneOf(THROWN_OUT, Math.random())), this.throwOut()) }, { kind: 'wait', for: 2 }];
+      Object.assign(bouncer, { path: null, waited: 0 });
+    }
+    this.coming = BOUNCER_WAIT;
+    return { sharp: f.npc, bouncer };
+  }
+
+  // Each frame: the bouncer on his way (too long: they're out all the same); a sharp thrown out walked to the door,
+  // and gone through it.
   update(folk: readonly Npc[], dt: number): void {
+    if (this.coming > 0 && (this.coming -= dt) <= 0 && this.figure && !this.figure.leaving) this.throwOut();
     const f = this.figure;
     if (!f?.leaving) return;
     const world = this.host();
     if (world.inside?.entrance !== f.npc.where || walk(f.npc, folk, world, doorTile(world.seed, f.npc.where!), dt)) this.figure = null;
+  }
+
+  // The dice on a table of the room the hero's in (for the eye): the sitting's, with its game's casts; else tonight's
+  // sharp's, waiting, the cup by them.
+  onTable(inside: Inside | null): { table: Furniture; casts: readonly Cast[]; game: number } | null {
+    if (this.at && inside?.entrance === this.at.inn) return { table: this.at.table, casts: this.at.sitting.game?.casts ?? [], game: this.at.sitting.games };
+    const f = this.figure;
+    const table = f && !f.leaving && inside && f.npc.where === inside.entrance && f.npc.seat ? tableOf(inside.furniture, f.npc.seat.piece) : null;
+    return table ? { table, casts: [], game: 0 } : null;
   }
 
   // Whether the hero's caught this sharp out before (their word on sitting down, then).
