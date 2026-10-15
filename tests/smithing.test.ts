@@ -4,7 +4,8 @@
 // their level); made only before the anvil; the skill up as its difficulty allows; the smith buys the ingots back.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { SMITH_RECIPES, SMITH_RECIPE_IDS, smithRise } from '../src/model/skills/smithing';
+import { SMITH_RECIPES, SMITH_RECIPE_IDS, nextToLearn, smithRise } from '../src/model/skills/smithing';
+import { isCrafted } from '../src/model/skills/salvage';
 import { RISE, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
 import { ITEMS } from '../src/model/human/equipment';
@@ -106,6 +107,27 @@ describe('smithing', () => {
     model.hero.level = 3;
     const book = recipeBook(model, { ...newBook(), picked: 'shortSword' }, () => {}, SMITHING);
     expect(book.textContent).toContain('Requires level 8');
+  });
+});
+
+describe('what smithing would teach next', () => {
+  it('names a recipe reached that still teaches, the likeliest to; of those as likely, one the bag would make first', () => {
+    const { model } = atTheAnvil(1);
+    expect(nextToLearn(model.hero)).toBe('copperIngot');
+    model.hero.bag.ironScrap = 3;
+    expect(nextToLearn(model.hero)).toBe('scrapIron'); // (as likely, and the bag would make it)
+    skillOf(model.hero, 'smithing').level = 60;
+    const id = nextToLearn(model.hero)!;
+    expect(SMITH_RECIPES[id].needs).toBeLessThanOrEqual(60);
+    expect(smithRise(id, 60).chance).toBe(Math.max(...SMITH_RECIPE_IDS.filter((r) => SMITH_RECIPES[r].needs <= 60).map((r) => smithRise(r, 60).chance)));
+  });
+
+  it('marks the gear the hero crafts as their own, for whoever asks (the bench, a buyer); a found piece, not', () => {
+    const { model } = atTheAnvil(20, { copperIngot: 2 });
+    expect(model.smithing.start('dagger')).toBe(true);
+    run(model, SMITH_RECIPES.dagger.seconds + 0.05);
+    const made = Object.keys(model.hero.bag).find((k) => k.startsWith('dagger@4'))!;
+    expect([isCrafted(model.hero, made), isCrafted(model.hero, 'dagger@4c999')]).toEqual([true, false]);
   });
 });
 
