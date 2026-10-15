@@ -19,6 +19,7 @@ import { nameAt } from '../npcs/npcs';
 import { enemyLevel } from '../enemies/enemyLevels';
 import type { Enemy } from '../types';
 import { TravellerFights } from './travellerFights';
+import { campOf, camping, facingFire, type Camp } from './pedlarCamp';
 
 export type TravellerRole = 'pedlar' | 'pilgrim' | 'guard';
 
@@ -42,6 +43,7 @@ export interface Traveller extends Humanoid {
   off: { x: number; z: number } | null; // off the road (a guard after a foe), else on it
   leader: number | null; // a guard following another (their partner, by id), a pace behind
   lane: number; // where across the road they walk (KEEP a lane, from the middle): 1 their right (as ever), -1 the far side, LANES' others to walk round someone
+  camp?: Camp | null; // a pedlar's, made for the night (pedlarCamp.ts): where they've stopped, off the road
 }
 
 export const WALK = 0.9; // tiles a second along the road
@@ -199,20 +201,34 @@ export class Travellers {
     this.byId.delete(t.id);
   }
 
-  update(dt: number, enemies: readonly Enemy[] = []): void {
+  update(dt: number, enemies: readonly Enemy[] = [], minutes?: number): void {
     this.fights.update(dt, enemies);
+    const night = minutes !== undefined && camping(minutes); // (pedlars camp: pedlarCamp.ts)
     this.heldFor = Math.max(0, this.heldFor - dt);
     const held = this.heldFor > 0 ? this.held : null; // (the one talking with the hero: the rest walk on by)
     for (const t of this.list) {
       if (Math.abs(t.x - this.hero.x) > AWAKE || Math.abs(t.z - this.hero.z) > AWAKE) continue; // (far off: stood where they are, till the hero comes near)
       t.cooldown = Math.max(0, t.cooldown - dt);
       if (t.off) continue; // (a guard after a foe: travellerFights.ts walks them)
+      if (t.role === 'pedlar' && (night || t.camp)) this.camp(t, night, dt);
       if (t === held || (held && t.leader === held.id)) {
         t.facing = turnToward(t.facing, Math.atan2(this.hero.x - t.x, this.hero.z - t.z), dt);
         continue;
       }
-      this.walk(t, dt);
+      if (t.camp) t.facing = turnToward(t.facing, facingFire(t, t.camp), dt);
+      else this.walk(t, dt);
     }
+  }
+
+  // A pedlar's night: stopped, camp made (pedlarCamp.ts), eased over to it off the road; at dawn, camp struck, and
+  // back onto the road (eased back to their side as they walk: makeWay).
+  private camp(t: Traveller, night: boolean, dt: number): void {
+    if (!night) return void (t.camp = null);
+    const road = this.roads[t.road];
+    t.camp ??= campOf(road, t.along, t.way, this.blocked);
+    t.lane += Math.sign(t.camp.lane - t.lane) * Math.min(Math.abs(t.camp.lane - t.lane), SWAP * dt);
+    const at = onRoadSide(road, t.along, t.way, t.lane);
+    [t.x, t.z, t.y] = [at.x, at.z, this.groundY(at.x, at.z)];
   }
 
   // The traveller the hero's talking (or trading) with: stood still `seconds` more, turned to them (their partner

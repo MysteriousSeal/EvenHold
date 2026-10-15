@@ -270,7 +270,7 @@ export class GameModel {
     faceGuarded(this);
     this.moves.update(dt, this.push, this.land);
     [this.director.update(dt), this.wild.update(dt), knockedOn(this, dt), this.campLife.update(this.hero, this.report), this.welcome.update(this.hero, this.report), this.story.update()]; // (the wild beasts' told moves; a blow's knock carrying the hero; the camps; the villages)
-    this.travellers.update(dt, this.director.around()); // (the foes round the hero: guards fight only there)
+    this.travellers.update(dt, this.director.around(), this.minutes); // (the foes round the hero: guards fight only there; the hour: pedlars camp at night)
     this.quests.update(dt);
     [this.bounties.update(), this.atlas.update()]; // (posters come down; the land round the hero seen)
     stepNpcs(this.folk, this, dt);
