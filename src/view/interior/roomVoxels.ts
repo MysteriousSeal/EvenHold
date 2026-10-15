@@ -225,6 +225,11 @@ export function buildRoomVoxels(room: Room, furniture: readonly Furniture[] = []
     fill(leaf.x0, 1, leaf.z0, leaf.x1, DOOR_HEIGHT, leaf.z1, (x) => ((x - leaf.x0) % 5 === 0 ? DOOR : DOOR_LIGHT)); // planks, shut
     for (const y of [5, DOOR_HEIGHT - 4]) fill(leaf.x0, y, leaf.z1 + 1, leaf.x0 + 8, y, leaf.z1 + 1, IRON); // hinges
     fill(leaf.x1 - 4, 12, leaf.z1 + 1, leaf.x1 - 3, 13, leaf.z1 + 1, IRON); // ring handle
+    if (smithy) {
+      const mid = Math.floor((leaf.x0 + leaf.x1) / 2) - 2;
+      fill(mid + 1, 19, leaf.z1 + 1, mid + 3, 19, leaf.z1 + 1, IRON); // a horseshoe nailed up on the smith's door, its opening up
+      for (const x of [mid, mid + 4]) fill(x, 20, leaf.z1 + 1, x, 24, leaf.z1 + 1, IRON);
+    }
     fill(doorX + 3, 1, z0 + d - 12, doorX + TILE - 4, 1, z0 + d - 3, (x, _y, z) =>
       x === doorX + 3 || x === doorX + TILE - 4 || z === z0 + d - 12 || z === z0 + d - 3 ? MAT_EDGE : MAT,
     ); // doormat
