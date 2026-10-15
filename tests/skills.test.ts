@@ -99,7 +99,7 @@ describe('skills', () => {
     restore(again, parseSave(JSON.stringify(snapshot(model)), 1)!);
     expect([skillOf(again.hero, 'cooking').level, skillOf(again.hero, 'fishing').level]).toEqual([81, 1]);
     expect(readSkills(undefined)).toEqual({});
-    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 }, mining: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 }, smithing: { level: 5 } }); // (a skill not had, none)
+    expect(readSkills({ cooking: { level: 9999 }, fishing: { level: -3 }, smithing: { level: 5 }, alchemy: { level: 5 } })).toEqual({ cooking: { level: SKILL_MAX }, fishing: { level: 1 }, smithing: { level: 5 } }); // (a skill not had, none)
     expect(readSkills({ cooking: { level: 'x' } })).toEqual({});
     expect(readSkills({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5, toward: 99 }, cooking: { level: 5, toward: -1 } })).toEqual({ lumberjacking: { level: 5, toward: 3 }, fishing: { level: 5 }, cooking: { level: 5 } }); // (tries toward the next: kept, if sound)
   });
