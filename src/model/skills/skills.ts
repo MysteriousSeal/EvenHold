@@ -36,7 +36,7 @@ export const SKILL_TIERS: readonly SkillTier[] = [
 export const SKILLS: Record<SkillId, Skill> = {
   lumberjacking: {
     name: 'Lumberjacking',
-    steps: [13, 13, 14, 16],
+    steps: [11, 11, 10, 9], // (the ancient and elder trees, fewer: a walk between)
     kind: 'main',
     verb: 'chop',
     practice: 'Chop trees with an axe in hand (a hatchet, from the smith): E by a trunk.',
@@ -54,7 +54,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   woodworking: {
     name: 'Woodworking',
-    steps: [8, 6, 5, 3], // (its first tiers' planks cheap and quick; its last's oak, varnish and heartwood a while to come by)
+    steps: [7, 5, 3, 2], // (its first tiers' planks cheap and quick; its last's oak, varnish and heartwood a while to come by)
     kind: 'main',
     verb: 'work wood',
     practice: 'Make things from the logs you fell: pick a recipe below and craft it, the materials in your bag.',
@@ -106,11 +106,11 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   fishing: {
     name: 'Fishing',
-    steps: [5, 5, 6, 6],
+    steps: [5, 3, 4, 4], // (what teaches, half what bites)
     kind: 'secondary',
     verb: 'fish',
     practice: 'Fish from a lake shore with a rod in your bag (pedlars sell them): E facing the water, and E again when it bites.',
-    about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger.',
+    about: 'Cast a line from the shore of a lake or a river, and land what bites: food for the pot, and now and then something stranger. Every water has something to teach, however practised you are.',
     unlocks: [
       { at: 1, what: 'Small fry from any shore' },
       { at: 40, what: 'Roach from any shore' },
@@ -125,7 +125,7 @@ export const SKILLS: Record<SkillId, Skill> = {
   },
   mining: {
     name: 'Mining',
-    steps: [13, 13, 14, 16],
+    steps: [11, 11, 10, 9],
     kind: 'main',
     verb: 'mine',
     practice: 'Strike the veins in the rocks of the wilds with a pickaxe in your bag (the smith sells them): E by a rock.',
@@ -190,13 +190,14 @@ export const RISE: ReadonlyArray<{ within: number; chance: number; color: string
 export const difficulty = (needs: number, level: number) => RISE.find((r) => level < needs + r.within)!;
 
 // A try at something wanting `needs` (a tree felled at, a thing made): whether it taught, as its difficulty allows
-// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level; enough of
-// them (stepsOf), the skill raised, told; the levels it rose by.
-export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number): number {
+// (`roll`: 0..1, the try's own; `chance`: its own, where it isn't the difficulty's), toward the next level (`worth`
+// tries' worth: a dish of a hunt's meat, dear to come by, more than one of fish); enough of them (stepsOf), the skill
+// raised, told; the levels it rose by.
+export function practise(hero: Skilled, skill: SkillId, needs: number, roll: number, report: (event: { kind: 'skillUp'; skill: string; level: number }) => void, chance?: number, worth = 1): number {
   const record = skillOf(hero, skill);
   const level = record.level;
   if (level >= SKILL_MAX || roll >= (chance ?? difficulty(needs, level).chance)) return 0;
-  record.toward = (record.toward ?? 0) + 1;
+  record.toward = (record.toward ?? 0) + Math.max(1, Math.floor(worth));
   if (record.toward < stepsOf(skill, level) || raiseSkill(hero, skill) === 0) return 0;
   report({ kind: 'skillUp', skill: SKILLS[skill].name, level: level + 1 });
   return 1;

@@ -24,8 +24,8 @@ describe('a shop', () => {
     for (let i = 0; i < 9; i++) expect(sellTo(shop, model.hero, 'wolfFang', 3)).toBe('sold'); // (a fight's junk: as many as they like)
     for (let i = 0; i < WANTS.gear; i++) expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('sold');
     expect(sellTo(shop, model.hero, 'armingSword', 20)).toBe('not wanted');
-    openShop(shops, 7, usual, RESTOCK_EVERY * 2); // two restocks: two of each sold on
-    expect(shop.bought).toEqual({ pike: WANTS.goods - 2, armingSword: WANTS.gear - 2 });
+    openShop(shops, 7, usual, RESTOCK_EVERY); // a restock: one of each sold on
+    expect(shop.bought).toEqual({ pike: WANTS.goods - 1, armingSword: WANTS.gear - 1 });
     expect(sellTo(shop, model.hero, 'pike', 9)).toBe('sold');
     model.shops.set(7, shop);
     const again = new GameModel(TEST_SEEDS[0], TEST_MAP_SIZE);

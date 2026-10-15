@@ -1,7 +1,7 @@
 // The smithy's shop, kept by its smith: the weapons, shields and armour he
 // forges (items marked `soldBy: { smith }`, at their value), and any gear of
 // that kind bought back (at half its value; cloth and leather he's no use
-// for, cheap), and the iron salvaged from gear (at half its worth). His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
+// for, cheap), and the iron salvaged from gear, and what a lumberjack finds in the wood (resin, heartwood, a burl: for hafts and handles), each at half its worth, a few at a time. His stock and purse work as the inn's (shops/shopStock.ts). Forged at his village's level (given), a
 // piece in three uncommon, the same each visit; what's found sells for its level and rarity (human/items/gear.ts).
 
 import { hashUnit } from '../../util/random';
@@ -10,7 +10,8 @@ import { COPPER_PER_SILVER } from '../hero/money';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey, levelOf } from '../human/items/gear';
 import type { Hero } from '../types';
-import { buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
+import type { BagItem } from '../hero/bag';
+import { WOODWORKS, buyFrom, openShop, sellTo, type Shop, type Usual } from '../shops/shopStock';
 import { doorNumber, type Entrance } from '../interiors/interiors';
 import { zoneLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
@@ -28,6 +29,12 @@ export const smithBuys = (id: string): id is GearKey => isGear(id) && !JEWELRY.h
 const METAL: ReadonlySet<string> = new Set(['ironScrap', 'temperedIngot']);
 export const smithTakesMetal = (id: string): id is 'ironScrap' | 'temperedIngot' => METAL.has(id);
 export const metalPrice = (id: 'ironScrap' | 'temperedIngot'): number => Math.floor(LOOT[id].value / 2);
+
+// What's found in the wood he'll take, at half its worth (skills/lumber.ts: a pine's resin, an ancient or elder oak's
+// heartwood, a burl).
+const FOUND_WOOD: ReadonlySet<string> = new Set(['pineResin', 'heartwood', 'oakBurl']);
+export const smithTakesWood = (id: string): boolean => FOUND_WOOD.has(id) && id in LOOT;
+export const woodPrice = (id: string): number => Math.floor((LOOT[id as keyof typeof LOOT]?.value ?? 0) / 2);
 
 // What he starts with, and restocks toward: his usual few of each (now and
 // then one short, from the seed), and a purse of several silver.
@@ -62,7 +69,8 @@ export function smithShopIn(model: { shops: Map<number, Shop>; seed: number; siz
 }
 
 export const gearPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? SCRAP * 2);
-export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / 2) : SCRAP); // he buys at half
+const WOODWORK_SHARE = 6; // of its worth he pays for what a woodworker could make (a stave, a plank shield): a smith's no use for wood
+export const gearSellPrice = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ? Math.floor(ITEMS[baseOf(key)].value! / (WOODWORKS.has(baseOf(key)) ? WOODWORK_SHARE : 2)) : SCRAP); // he buys at half
 
 // The hero's level he asks before he'll sell a piece, by its worth: plain gear to anyone; his heavy work (a war hammer,
 // a tower shield, a great helm, mail, a breastplate) only to a hand that's shown it can carry it, not to a green one
@@ -85,7 +93,7 @@ export function buyGear(shop: Shop, hero: Hero, id: GearKey): 'bought' | 'sold o
 }
 
 export function sellGear(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'he is short' {
-  if (!smithBuys(id) && !smithTakesMetal(id)) return 'not wanted';
-  const done = sellTo(shop, hero, id, smithTakesMetal(id) ? metalPrice(id) : gearSellPrice(id));
+  if (!smithBuys(id) && !smithTakesMetal(id) && !smithTakesWood(id)) return 'not wanted';
+  const done = sellTo(shop, hero, id as BagItem, smithTakesMetal(id) ? metalPrice(id) : smithTakesWood(id) ? woodPrice(id) : gearSellPrice(id as GearKey));
   return done === 'short' ? 'he is short' : done;
 }

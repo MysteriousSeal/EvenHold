@@ -14,8 +14,8 @@ export const MAIN_HAND_ITEMS = slotItems('mainHand', {
   hatchet: { type: 'axe', name: 'Hatchet', value: 50, soldBy: { smith: 2 }, wornBy: { bandit: 2 }, stats: { strength: 2 } },
   battleAxe: { type: 'axe', name: 'Battle axe', value: 180, soldBy: { smith: 1 }, stats: { strength: 5 } },
   // A woodworker's (skills/woodworking.ts): a long-hafted felling axe, a chop a swing quicker; a broad axe, a second log oftener (skills/lumber.ts AXE_BONUS).
-  fellingAxe: { type: 'axe', name: 'Felling axe', value: 30, stats: { strength: 3 } },
-  broadAxe: { type: 'axe', name: 'Broad axe', value: 30, stats: { strength: 5, endurance: 1 } },
+  fellingAxe: { type: 'axe', name: 'Felling axe', value: 90, stats: { strength: 3 } },
+  broadAxe: { type: 'axe', name: 'Broad axe', value: 90, stats: { strength: 5, endurance: 1 } },
   club: { type: 'club', name: 'Knotted club', wornBy: { bandit: 2 }, stats: { strength: 2 } },
   mace: { type: 'mace', name: 'Mace', value: 120, soldBy: { smith: 1 }, wornBy: { bandit: 1 }, stats: { strength: 4 } },
   warHammer: { type: 'hammer', name: 'War hammer', value: 200, soldBy: { smith: 1 }, stats: { strength: 5, stamina: 1 } },

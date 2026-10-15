@@ -1,6 +1,7 @@
 import { maxEnergyOf } from '../src/model/hero/attributes';
 import { describe, expect, it } from 'vitest';
 import { PROVISIONS } from '../src/model/loot/provisions';
+import { INGREDIENTS } from '../src/model/loot/ingredients';
 import { GameModel } from '../src/model/GameModel';
 import { RESTOCK_EVERY, buy, buyPrice, restockAll, restockIn, sell, sellPrice, shopAt } from '../src/model/inn/tavernShop';
 import { maxHpAt } from '../src/model/hero/heroStats';
@@ -13,6 +14,16 @@ const setup = () => {
 };
 
 describe("the barmaid's shop", () => {
+  it("sells a cook who doesn't hunt a boar haunch or two, at twice its worth (one who hunts does better), and doesn't buy it back", () => {
+    const { shop, hero } = setup();
+    expect(shop.stock.rawBoarMeat).toBeGreaterThanOrEqual(2);
+    expect(shop.stock.rawBoarMeat).toBeLessThanOrEqual(3);
+    expect(buyPrice('rawBoarMeat')).toBe(INGREDIENTS.rawBoarMeat.value * 2);
+    hero.money = 100;
+    expect(buy(shop, hero, 'rawBoarMeat')).toBe('bought');
+    expect([hero.bag.rawBoarMeat, sell(shop, hero, 'rawBoarMeat')]).toEqual([1, 'not wanted']);
+  });
+
   it('sells food and drink: the price from the hero to her, one fewer in stock', () => {
     const { shop, hero } = setup();
     hero.money = 100;
