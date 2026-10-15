@@ -288,7 +288,7 @@ async function boot(): Promise<void> {
       case 'bench':
         return { label: 'Break down gear', x: found.bench.x, y: 0.75, z: found.bench.z };
       case 'anvil':
-        return { label: 'Work metal', x: found.anvil.x, y: 0.9, z: found.anvil.z };
+        return { label: 'Forge', x: found.anvil.x, y: 0.9, z: found.anvil.z };
       case 'fire': // (a hearth: over its middle; a campfire, over it)
         return { label: 'Cook', x: found.fire.x, y: found.fire.kind === 'hearth' ? 1 : model.getGroundY(found.fire.x, found.fire.z) + 0.6, z: found.fire.z };
       case 'well':
