@@ -8,7 +8,7 @@ import type { MapSize } from '../map/grid';
 export const CELL = 4; // tiles a side of a cell of the fog
 export const CHUNK = 512; // tiles a side of a chunk (a streamed world's region: worldgen/regions.ts REGION)
 export const CELLS = CHUNK / CELL; // cells a side of a chunk
-export const SIGHT = 40; // tiles round the hero they've seen
+export const SIGHT = 80; // tiles round the hero they've seen (as far as the screen shows)
 const BYTES = (CELLS * CELLS) / 8;
 
 export class Fog {

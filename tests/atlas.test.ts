@@ -5,6 +5,7 @@ import { CHART_CELL as C, CHART_CELLS, groundOf } from '../src/model/atlas/chart
 import { mapPins } from '../src/model/atlas/mapPins';
 import { fresh } from './support/testWorld';
 import { STREAMED_SIZE } from '../src/model/worldgen/regions';
+import { washColour } from '../src/view/atlas/mapPaint';
 
 describe('the map of the land walked', () => {
   it('sees the land round the hero as they walk, and only that', () => {
@@ -14,6 +15,7 @@ describe('the map of the land walked', () => {
     expect(fog.seen(8192, 8192)).toBe(true);
     expect(fog.seen(8192 + SIGHT - CELL, 8192)).toBe(true);
     expect(fog.seen(8192 + SIGHT + 2 * CELL, 8192)).toBe(false);
+    expect(fog.seen(8192 + 70, 8192) && fog.seen(8192, 8192 - 70), 'as far as the screen shows (some 70-90 tiles)').toBe(true);
     expect(fog.walk(8193, 8192), 'the same cell: nothing new looked at').toBe(false);
     fog.walk(8192 + 600, 8192); // (on into the next chunks: 8192 is a corner of four)
     expect(fog.chunksSeen().length).toBe(6);
@@ -59,7 +61,9 @@ describe('the map of the land walked', () => {
     older.stops = [{ key: '80,80', name: 'Somewhere', level: 1, x: 80, z: 80 }];
     const third = fresh();
     restore(third, parseSave(JSON.stringify(older), model.seed)!);
-    expect(third.atlas.fog.seen(10, 10), 'not walked, as far as it knows').toBe(false);
+    const known = new Fog(third.atlas.fog.size); // (the corner not walked, as far as it knows: in this small world all of it's in sight of the hero)
+    [third.hero, { x: 80, z: 80 }].forEach((at) => known.reveal(at.x, at.z));
+    expect(third.atlas.fog.save(), 'round the hero and the villages been to, no more').toEqual(known.save());
     expect(third.atlas.fog.seen(third.hero.x, third.hero.z), 'round the hero').toBe(true);
   });
 
@@ -77,5 +81,17 @@ describe('the map of the land walked', () => {
     const pins = mapPins(model);
     expect(pins.some((p) => p.kind === 'quest')).toBe(true);
     expect(pins).toContainEqual({ kind: 'purse', x: 3, z: 4, label: 'Your purse' });
+  });
+});
+
+describe('the map washed as the land looks', () => {
+  it('colours each ground from the game\'s own (under a parchment tint): the heath olive, the woods darker, the water blue', () => {
+    const [heath, meadow, forest, water] = (['heath', 'meadow', 'forest', 'water'] as const).map((g) => washColour(g, 2));
+    expect(heath[1], 'the heath olive, not pink').toBeGreaterThanOrEqual(heath[0]);
+    expect(heath[2]).toBeLessThan(heath[1] - 30);
+    expect(meadow[1]).toBeGreaterThan(meadow[0]);
+    expect(forest.reduce((a, b) => a + b), 'the woods darker than the meadow').toBeLessThan(meadow.reduce((a, b) => a + b) - 60);
+    expect(water[2], 'the water blue').toBeGreaterThan(water[0] + 40);
+    expect(washColour('hills', 6).reduce((a, b) => a + b), 'higher, paler').toBeGreaterThan(washColour('hills', 1).reduce((a, b) => a + b));
   });
 });

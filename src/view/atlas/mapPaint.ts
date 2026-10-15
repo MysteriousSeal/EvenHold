@@ -13,6 +13,8 @@ import { villageName } from '../../model/villages/villageNames';
 import { difficulty, zoneLevel, type Difficulty } from '../../model/enemies/enemyLevels';
 import { spawnOf } from '../../model/map/grid';
 import { atRim, compass, screenFacing, toMap, toScreen, TURN } from './mapView';
+import { GROUND } from '../meshes/terrain/biomeGround';
+import { inkLand } from './mapInk';
 
 // Where the map's looking: the tile at its middle, and how many pixels a tile.
 export interface MapLook {
@@ -26,18 +28,29 @@ export const VELLUM = '#ecdcb4'; // where nothing's been seen
 const ROAD = '#8a3d22';
 const NAME = '#3a2416';
 const DANGER_INK: Record<Difficulty, string> = { trivial: '#8a8478', even: NAME, tough: '#a07810', hard: '#c0581a', deadly: '#b02a24' }; // (a village's level, as the game's dangers are inked: darker, on parchment)
+// Each ground's wash: the country's the game's own ground (biomeGround.ts) under a parchment tint, the woods a shade
+// darker (their trees inked over them); the water a clear blue, inked at its shore.
+const TINT = 0.3; // of the vellum over the game's colours
+const rgbOf = (hex: number, dark = 1): [number, number, number] =>
+  [hex >> 16, (hex >> 8) & 255, hex & 255].map((c, i) => Math.round((c * (1 - TINT) + [236, 220, 180][i] * TINT) * dark)) as [number, number, number];
 const WASH: Record<Ground, [number, number, number]> = {
   none: [236, 220, 180],
-  meadow: [203, 199, 134],
-  forest: [122, 140, 84],
-  heath: [178, 150, 132],
-  marsh: [140, 158, 118],
-  hills: [184, 160, 120],
-  water: [136, 172, 170],
+  meadow: rgbOf(GROUND.meadow),
+  forest: rgbOf(GROUND.forest, 0.82),
+  heath: rgbOf(GROUND.heath),
+  marsh: rgbOf(GROUND.marsh),
+  hills: rgbOf(GROUND.hills),
+  water: rgbOf(0x5a9ad0),
   field: [218, 192, 118],
   square: [186, 136, 92],
 };
-const SHORE: [number, number, number] = [96, 136, 140]; // water at its edge
+const SHORE: [number, number, number] = [44, 78, 112]; // water at its edge: inked
+
+// A cell's wash, its ground at its height (higher, paler; the water level).
+export function washColour(ground: Ground, height: number): [number, number, number] {
+  const lift = ground === 'water' ? 1 : 0.9 + 0.05 * height;
+  return WASH[ground].map((c) => Math.min(255, Math.round(c * lift))) as [number, number, number];
+}
 const UNCHARTED: [number, number, number] = [222, 206, 166]; // seen, its chart still coming
 const PIN_INK: Record<MapPin['kind'], string> = { quest: '#e8b030', story: '#3dbdb8', bounty: '#b02a24', board: '#ffd98a', purse: '#ffd35a' };
 
@@ -80,13 +93,10 @@ function washOf(model: GameModel, cx: number, cz: number, chart: Chart | null): 
       if (!(bits[f >> 3] & (1 << (f & 7)))) continue;
       const cell = chart?.cells[i * CHART_CELLS + k] ?? 0;
       const ground = chart ? settled(chart, i, k) : 'none';
-      let rgb = chart ? WASH[ground] : UNCHARTED;
+      let rgb = chart ? washColour(ground, heightOf(cell)) : UNCHARTED;
       if (chart && ground === 'water' && shore(chart, i, k)) rgb = SHORE;
-      const lift = chart && ground !== 'water' ? 0.9 + 0.05 * heightOf(cell) : 1; // (higher, paler)
       const p = (k * CHART_CELLS + i) * 4; // (x across, z down)
-      image.data[p] = Math.min(255, rgb[0] * lift);
-      image.data[p + 1] = Math.min(255, rgb[1] * lift);
-      image.data[p + 2] = Math.min(255, rgb[2] * lift);
+      [image.data[p], image.data[p + 1], image.data[p + 2]] = rgb;
       image.data[p + 3] = 255;
     }
   }
@@ -162,16 +172,17 @@ export function paintMap(ctx: CanvasRenderingContext2D, model: GameModel, look: 
       if (wash) out.drawImage(wash, (cx - c0) * CHART_CELLS, (cz - d0) * CHART_CELLS);
     }
   }
-  ctx.imageSmoothingEnabled = scale < 3; // (soft as a wash; close up, its cells)
+  ctx.imageSmoothingEnabled = scale < 2; // (soft as a wash; close up, its cells, crisp)
   ctx.save();
   ctx.translate(...at(c0 * CHUNK, d0 * CHUNK));
   ctx.rotate(TURN);
   ctx.drawImage(sheet, 0, 0, sheet.width * CHART_CELL * scale, sheet.height * CHART_CELL * scale);
   ctx.restore();
   const seen = (x: number, z: number) => atlas.fog.seen(x, z);
+  inkLand(ctx, charts, seen, at, { x0, z0, x1, z1 }, scale); // (the woods' trees, the hills' hatching, the fields' furrows)
   // The roads, where they've been seen.
   ctx.strokeStyle = ROAD;
-  ctx.lineWidth = Math.max(1, Math.min(3, scale * 0.9));
+  ctx.lineWidth = Math.max(1.5, Math.min(4, scale * 1.2));
   ctx.lineCap = ctx.lineJoin = 'round';
   ctx.beginPath();
   for (const chart of charts) {
