@@ -336,7 +336,7 @@ describe('in the game', () => {
     expect(interactionOf(model)?.kind).toBe('fish');
     expect(fishPrompt(model)?.label).toBe('Fish');
     skillOf(model.hero, 'fishing').level = 299;
-    if (catchesAt(model.fishing.action!.spot, 299).every((c) => !isFish(c.item) || riseOf(c, 299).chance === 0)) expect(fishPrompt(model)?.label).toBe('Fish · teaches you nothing now');
+    if (catchesAt(model.fishing.action!.spot, 299).every((c) => !isFish(c.item) || riseOf(c, 299).chance === 0)) expect(fishPrompt(model)?.label).toMatch(/^Fish · teaches you nothing now; try /);
     else expect(fishPrompt(model)?.label).toBe('Fish'); // (a lasting fish here: always something to learn)
   });
 

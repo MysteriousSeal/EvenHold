@@ -254,7 +254,9 @@ describe('the prompt over a rock', () => {
     Object.assign(at.m.hero, { x: middle.x + (at.r.kind === 'outcrop' ? 1.3 : 0.95), z: middle.z });
     at.m.hero.bag.copperPick = 1;
     skillOf(at.m.hero, 'mining').level = 299;
-    expect(minePrompt(at.m)?.label).toMatch(/ · teaches you nothing now$/);
+    const near = at.m.mining.teachingNear; // (an iron vein or richer, a walk away: pointed to)
+    expect(minePrompt(at.m)?.label).toMatch(near ? new RegExp(` · teaches you nothing now; an? [a-z-]+ vein does, \\d+ paces [a-z-]+$`) : / · teaches you nothing now$/);
+    if (near) expect(VEINS[at.m.mining.veinOf(near)].needs).toBeGreaterThanOrEqual(VEINS.iron.needs);
     skillOf(at.m.hero, 'mining').level = 10;
     expect(minePrompt(at.m)?.label).not.toMatch(/teaches you nothing/);
   });

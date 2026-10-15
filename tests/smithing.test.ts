@@ -4,7 +4,8 @@
 // their level); made only before the anvil; the skill up as its difficulty allows; the smith buys the ingots back.
 import { describe, expect, it, vi } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { SMITH_RECIPES, SMITH_RECIPE_IDS, nextToLearn, smithRise } from '../src/model/skills/smithing';
+import { SMITH_RECIPES, SMITH_RECIPE_IDS, nextToLearn, smithRise, type SmithRecipeId } from '../src/model/skills/smithing';
+import { costOf } from '../src/model/skills/learn';
 import { isCrafted } from '../src/model/skills/salvage';
 import { MATERIAL_RISE, RISE, skillOf, stepsOf } from '../src/model/skills/skills';
 import { gearOf } from '../src/model/human/items/gear';
@@ -16,7 +17,7 @@ import { interactionOf } from '../src/model/hero/interaction';
 import { TEST_MAP_SIZE, TEST_SEEDS } from './support/testWorld';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
-const { recipeBook, newBook } = await import('../src/controller/skills/recipeBook');
+const { bestRecipe, recipeBook, newBook } = await import('../src/controller/skills/recipeBook');
 const { SMITHING } = await import('../src/controller/skills/smithBook');
 
 // A world with a smithy, the hero stood before its anvil, at `level` in smithing with `bag` in their bag.
@@ -112,15 +113,18 @@ describe('smithing', () => {
 });
 
 describe('what smithing would teach next', () => {
-  it('names a recipe reached that still teaches, the likeliest to; of those as likely, one the bag would make first', () => {
+  it('names a recipe reached that still teaches, the one that teaches most for what goes into it (as the window stars it)', () => {
     const { model } = atTheAnvil(1);
-    expect(nextToLearn(model.hero)).toBe('copperIngot');
+    expect(nextToLearn(model.hero)).toBe('copperIngot'); // (nothing made of an ingot reached yet: the ingots, the cheaper first)
     model.hero.bag.ironScrap = 3;
-    expect(nextToLearn(model.hero)).toBe('scrapIron'); // (as likely, and the bag would make it)
+    expect(nextToLearn(model.hero)).toBe('copperIngot'); // (what's in the bag doesn't change what teaches best)
     skillOf(model.hero, 'smithing').level = 60;
     const id = nextToLearn(model.hero)!;
-    expect(SMITH_RECIPES[id].needs).toBeLessThanOrEqual(60);
-    expect(smithRise(id, 60).chance).toBe(Math.max(...SMITH_RECIPE_IDS.filter((r) => SMITH_RECIPES[r].needs <= 60).map((r) => smithRise(r, 60).chance)));
+    const each = (r: SmithRecipeId) => costOf(SMITH_RECIPES[r].from) / smithRise(r, 60).chance;
+    const things = SMITH_RECIPE_IDS.filter((r) => SMITH_RECIPES[r].needs <= 60 && smithRise(r, 60).chance > 0 && !['Smelting', 'Fittings'].includes(SMITH_RECIPES[r].group));
+    expect(things).toContain(id);
+    expect(each(id)).toBe(Math.min(...things.map(each)));
+    expect(id).toBe(bestRecipe(model, SMITHING)); // (the smith's word and the window's star, one)
   });
 
   it('marks the gear the hero crafts as their own, for whoever asks (the bench, a buyer); a found piece, not', () => {

@@ -54,6 +54,7 @@ const QUICKER = 0.1; // of a strike's swings fewer, each tier on
 export const PICK_BONUS: Partial<Record<ToolId, { swings?: number; secondOre?: number }>> = { ironPick: { swings: -1 }, steelPick: { swings: -1, secondOre: 0.1 }, starIronPick: { swings: -2, secondOre: 0.15 } };
 const PICKS: readonly ToolId[] = ['starIronPick', 'steelPick', 'ironPick', 'copperPick']; // the best first
 const REACH = { boulder: 1.2, outcrop: 1.6 }; // tiles from a rock's middle to strike at it
+export const SEEK = 80; // tiles round the hero looked over for a vein that still teaches (a grey one's prompt points to it: rocks lie far apart)
 const HERO_XP = 3; // the hero's own experience, a strike
 const OUT_A_LITTLE = 0.35; // tiles past the rock's side a lump falls, toward the hero
 
@@ -118,6 +119,7 @@ export class Mining {
   striking: { rock: Rock; t: number } | null = null; // the rock being struck, and seconds into the strike
 
   private nearby: Nearby<Scenery> | null = null; // the rocks round the hero
+  private around: Nearby<Scenery> | null = null; // and those a walk round them (SEEK)
 
   constructor(private readonly host: MiningHost) {}
 
@@ -135,6 +137,23 @@ export class Mining {
     if (this.mined.size === 0) return false;
     const mined = this.mined.get(rockKey(rock));
     return mined !== undefined && mined >= strikesIn(rock, this.host.seed);
+  }
+
+  // The nearest rock a walk away (SEEK) whose vein they can mine and that still teaches them, not worked out, if any:
+  // where a grey one's prompt sends them.
+  get teachingNear(): Rock | null {
+    const { hero } = this.host;
+    const level = skillOf(hero, SKILL).level;
+    let best: Rock | null = null;
+    let near = SEEK;
+    for (const s of (this.around ??= new Nearby(this.host.scenery, (s) => s, SEEK, 10)).near(hero)) {
+      if (!isRock(s)) continue;
+      const d = Math.hypot(middleOf(s).x - hero.x, middleOf(s).z - hero.z);
+      if (d >= near) continue;
+      const vein = this.veinOf(s);
+      if (VEINS[vein].needs <= level && riseOf(vein, level).chance > 0 && !this.workedOut(s)) [best, near] = [s, d];
+    }
+    return best;
   }
 
   // Strikes left in a rock.
@@ -165,8 +184,9 @@ export class Mining {
     return SWING * Math.max(1, SWINGS + (this.pickBonus.swings ?? 0)) * (1 - QUICKER * index);
   }
 
-  // The rock in reach of the hero (outdoors), its vein not worked out: the nearest they're skilled enough to mine, before
-  // any nearer that's beyond them; none they can, the nearest (to be told why not).
+  // The rock in reach of the hero (outdoors), its vein not worked out: the nearest they're skilled enough to mine that
+  // still teaches them, before any nearer that teaches nothing, and that before any beyond them; none they can, the
+  // nearest (to be told why not).
   get rockInReach(): Rock | null {
     if (this.host.inside) return null;
     const { hero } = this.host;
@@ -178,7 +198,8 @@ export class Mining {
       const m = middleOf(s);
       const d = Math.hypot(m.x - hero.x, m.z - hero.z);
       if (d > REACH[s.kind]) continue;
-      const rank = d + (VEINS[this.veinOf(s)].needs > level ? REACH.outcrop : 0); // (one beyond them after any they can)
+      const vein = this.veinOf(s);
+      const rank = d + (VEINS[vein].needs > level ? 2 * REACH.outcrop : riseOf(vein, level).chance === 0 ? REACH.outcrop : 0); // (one beyond them after any they can; a grey one after any that teaches)
       if (rank < near) [best, near] = [s, rank];
     }
     return best;

@@ -22,6 +22,7 @@ import type { GameEvent, Hero } from '../types';
 import { HAMMER_BLOW, beforeBench, markCrafted } from './salvage';
 import { practise, skillOf } from './skills';
 import { materialRise } from './woodworking';
+import { bestToLearn } from './learn';
 
 const SKILL = 'smithing';
 const HERO_XP = 2; // the hero's own experience, a thing made
@@ -92,15 +93,12 @@ export const SMITH_RECIPE_IDS = Object.keys(SMITH_RECIPES) as SmithRecipeId[];
 const recipeOf = (id: SmithRecipeId): SmithRecipe => SMITH_RECIPES[id];
 export const smithRise = (id: SmithRecipeId, level: number) => materialRise(SMITH_RECIPES, ['Smelting', 'Fittings'], id, level); // (an ingot or a fitting green while what's made of it teaches, as a plank is)
 
-// What smithing would teach the hero next (the smith's word to a hand at it: smithy/smithPanel.ts): of the recipes
-// they've reached, the likeliest still to raise the skill; of those as likely, one the bag would make now, then the
-// hardest. None, if nothing they know teaches any more.
+// What smithing would teach the hero next (the smith's word to a hand at it: smithy/smithPanel.ts), as the anvil's
+// window stars it (learn.ts: of the recipes reached that still teach, the one that teaches most for what goes into
+// it). None, if nothing they know teaches any more.
 export function nextToLearn(hero: Hero): SmithRecipeId | null {
   const level = skillOf(hero, SKILL).level;
-  const chance = (id: SmithRecipeId) => smithRise(id, level).chance;
-  const can = (id: SmithRecipeId) => Object.entries(recipeOf(id).from).every(([item, n]) => (hero.bag[item as LootId] ?? 0) >= n!);
-  const teaching = SMITH_RECIPE_IDS.filter((id) => recipeOf(id).needs <= level && chance(id) > 0);
-  return teaching.sort((a, b) => chance(b) - chance(a) || Number(can(b)) - Number(can(a)) || recipeOf(b).needs - recipeOf(a).needs)[0] ?? null;
+  return bestToLearn(SMITH_RECIPES, ['Smelting', 'Fittings'], level, (id) => smithRise(id as SmithRecipeId, level).chance) as SmithRecipeId | null;
 }
 
 export interface SmithingHost {

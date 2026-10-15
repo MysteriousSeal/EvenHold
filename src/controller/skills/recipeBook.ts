@@ -13,6 +13,7 @@ import { LOOT, type LootId } from '../../model/loot/loot';
 import { gearKey } from '../../model/human/items/gear';
 import { RISE, difficulty, skillOf } from '../../model/skills/skills';
 import { bookLegend, bookRow, needsLine } from './bookParts';
+import { bestToLearn } from '../../model/skills/learn';
 import { RECIPES, RECIPE_GROUPS, RECIPE_IDS, woodRise, type RecipeId } from '../../model/skills/woodworking';
 import type { ItemId } from '../../model/human/equipment';
 import type { Rarity } from '../../model/human/items/gear';
@@ -79,14 +80,12 @@ const makesOf = (craft: Craft, id: string) => {
   return typeof m === 'string' ? m : gearKey({ ...m, roll: 0 });
 };
 
-// The best of the recipes to learn from now: of those the bag would make, the one likeliest to raise the skill (the
-// hardest, of those as likely); none, if none.
+// The best of the recipes to learn from now (model/skills/learn.ts: what teaches most for what goes into it), whether
+// the bag would make it or not (its materials told, each had of wanted); none, if nothing teaches.
+const MATERIALS = ['Materials', 'Smelting', 'Fittings']; // (a woodworker's planks and varnish, a smith's ingots and fittings)
 export function bestRecipe(model: GameModel, craft: Craft = WOODWORKING): string | null {
   const level = skillOf(model.hero, craft.skill).level;
-  const needs = (id: string) => craft.recipes[id].needs;
-  const chance = (id: string) => (craft.rise?.(id, level) ?? difficulty(needs(id), level)).chance;
-  const can = craft.ids.filter((id) => craft.crafter(model).canMake(id) > 0 && chance(id) > 0);
-  return can.sort((a, b) => chance(b) - chance(a) || needs(b) - needs(a))[0] ?? null;
+  return bestToLearn(craft.recipes, MATERIALS, level, (id) => (craft.rise?.(id, level) ?? difficulty(craft.recipes[id].needs, level)).chance);
 }
 
 export function recipeBook(model: GameModel, state: BookState, redraw: () => void, craft: Craft = WOODWORKING): HTMLElement {
@@ -160,6 +159,7 @@ export function recipeBook(model: GameModel, state: BookState, redraw: () => voi
       'book-detail',
       el('div', 'book-head', el('span', 'book-icon', bagIcon(typeof recipe.makes === 'string' ? recipe.makes : recipe.makes.item)(56)), el('div', 'book-what', title, ...kind)),
       needs,
+      ...(id === best ? [el('p', 'book-best-why', '★ The best to learn from now: it teaches you most for what goes into it.')] : []),
       el('span', 'book-label', 'Materials'),
       materials,
       el('div', 'book-actions', el('span', 'book-stepper', step(-1), count, step(1)), one, all),

@@ -74,6 +74,7 @@ const SWINGS = 3; // swings a chop, at the skill's first tier
 export const AXE_BONUS: Partial<Record<ItemId, { swings?: number; secondLog?: number }>> = { fellingAxe: { swings: -1 }, broadAxe: { swings: -1, secondLog: 0.15 } };
 const QUICKER = 0.1; // of a chop's swings fewer, each tier on
 export const REACH = 1.15; // tiles from a trunk to chop at it
+export const SEEK = 30; // tiles round the hero looked over for a tree that still teaches (a grey one's prompt points to it)
 const HERO_XP = 3; // the hero's own experience, a chop
 const OUT_A_LITTLE = 0.65; // tiles from the trunk a log falls, toward the hero
 
@@ -104,6 +105,7 @@ export class Lumber {
   chopping: { tree: Tree; t: number } | null = null; // the tree being chopped, and seconds into the chop
 
   private nearby: Nearby<Tree> | null = null; // the trees round the hero (a streamed world has a hundred thousand: only these gone over each frame)
+  private around: Nearby<Tree> | null = null; // and those a walk round them (SEEK)
 
   constructor(private readonly host: LumberHost) {}
 
@@ -145,8 +147,9 @@ export class Lumber {
     return SWING * Math.max(1, SWINGS + (this.axeBonus.swings ?? 0)) * (1 - QUICKER * index);
   }
 
-  // The tree standing in reach of the hero (outdoors): the nearest they're skilled enough to fell, before any nearer
-  // that's beyond them (a birch by a pine: the birch); none they can, the nearest (to be told why not).
+  // The tree standing in reach of the hero (outdoors): the nearest they're skilled enough to fell that still teaches
+  // them, before any nearer that teaches nothing, and that before any beyond them (a birch by a pine: the birch); none
+  // they can, the nearest (to be told why not).
   get treeInReach(): Tree | null {
     if (this.host.inside) return null;
     const { hero } = this.host;
@@ -157,8 +160,25 @@ export class Lumber {
       if (Math.abs(tree.x - hero.x) > REACH || Math.abs(tree.z - hero.z) > REACH || this.felled(tree)) continue;
       const d = Math.hypot(tree.x - hero.x, tree.z - hero.z);
       if (d > REACH) continue;
-      const rank = d + (woodOf(tree, this.host.seed).needs > level ? REACH : 0); // (one beyond them after any they can)
+      const grade = gradeOf(tree, this.host.seed);
+      const rank = d + (WOOD[grade].needs > level ? 2 * REACH : riseOf(grade, level).chance === 0 ? REACH : 0); // (one beyond them after any they can; a grey one after any that teaches)
       if (rank < near) [best, near] = [tree, rank];
+    }
+    return best;
+  }
+
+  // The nearest tree a walk away (SEEK) they can fell that still teaches them, if any: where a grey one's prompt
+  // sends them.
+  get teachingNear(): Tree | null {
+    const { hero, seed } = this.host;
+    const level = skillOf(hero, SKILL).level;
+    let best: Tree | null = null;
+    let near = SEEK;
+    for (const tree of (this.around ??= new Nearby(this.host.trees, (t) => t, SEEK, 8)).near(hero)) {
+      const d = Math.hypot(tree.x - hero.x, tree.z - hero.z);
+      if (d >= near) continue;
+      const grade = gradeOf(tree, seed);
+      if (WOOD[grade].needs <= level && riseOf(grade, level).chance > 0 && !this.felled(tree)) [best, near] = [tree, d];
     }
     return best;
   }

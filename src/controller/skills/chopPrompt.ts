@@ -1,5 +1,5 @@
 // What E would do by a tree (model/skills/lumber.ts), as the prompt over it: chop it (how many chops it has left, and
-// whether it's anything left to teach them); or
+// whether it's anything left to teach them: if not, the nearest that has, which way and how far); or
 // not, faded, and why (no axe to hand, not yet skilled enough: told once they've risen in the trade at all, so a new
 // hero's first prompt isn't a pine they can't touch); chopping, stop.
 
@@ -7,6 +7,7 @@ import type { GameModel } from '../../model/GameModel';
 import type { PromptTarget } from '../../view/hud/lootPrompt';
 import { counted } from '../../view/ui/words';
 import { gradeOf, riseOf, woodOf } from '../../model/skills/lumber';
+import { bearing } from '../../model/travellers/travellerTalk';
 import { skillOf } from '../../model/skills/skills';
 
 const OVER = 1.35; // over the trunk, under the crown
@@ -26,5 +27,10 @@ export function chopPrompt(model: GameModel): PromptTarget | null {
   if (action.kind === 'cannot') return { label: action.why === 'axe' ? 'Needs an axe' : `Needs Lumberjacking ${action.needs}`, muted: true, ...at };
   const left = lumber.left(tree);
   const grey = riseOf(gradeOf(tree, model.seed), skillOf(hero, 'lumberjacking').level).chance === 0; // (nothing more to learn from it)
-  return { label: `Chop the ${woodOf(tree, model.seed).name} · ${counted(left, 'chop')}${grey ? ' · teaches you nothing now' : ''}`, ...at };
+  const better = grey ? lumber.teachingNear : null;
+  return { label: `Chop the ${woodOf(tree, model.seed).name} · ${counted(left, 'chop')}${grey ? ` · teaches you nothing now${better ? pointTo(woodOf(better, model.seed).name, hero, better) : ''}` : ''}`, ...at };
 }
+
+// Where something that'd teach them lies, in a few words ("; a pine does, 12 paces north-east"; "; an oak does").
+export const pointTo = (what: string, from: { x: number; z: number }, to: { x: number; z: number }): string =>
+  `; ${/^[aeiou]/.test(what) ? 'an' : 'a'} ${what} does, ${counted(Math.max(1, Math.round(Math.hypot(to.x - from.x, to.z - from.z))), 'pace')} ${bearing(from, to)}`;

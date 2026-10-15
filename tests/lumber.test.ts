@@ -5,7 +5,8 @@
 // them. The prompt over a tree says what E would do, or why not.
 import { describe, expect, it } from 'vitest';
 import { GameModel } from '../src/model/GameModel';
-import { REACH, WOOD, chopsIn, riseOf, woodOf } from '../src/model/skills/lumber';
+import { REACH, SEEK, WOOD, chopsIn, gradeOf, riseOf, woodOf } from '../src/model/skills/lumber';
+import { bearing } from '../src/model/travellers/travellerTalk';
 import { RISE, difficulty, stepsOf } from '../src/model/skills/skills';
 import { MAIN_HAND_ITEMS } from '../src/model/human/items/held';
 import { gearKey, weaponTypeOf } from '../src/model/human/items/gear';
@@ -241,10 +242,37 @@ describe('the prompt over a tree', () => {
     expect(chopPrompt(byATree('birch', null).model)).toMatchObject({ label: 'Needs an axe', muted: true });
     skillOf(model.hero, 'lumberjacking').level = 120; // (a birch: grey for them)
     model.lumber.stop();
-    expect(chopPrompt(model)?.label).toMatch(/^Chop the birch · \d chops? · teaches you nothing now$/);
+    expect(chopPrompt(model)?.label).toMatch(/^Chop the birch · \d chops? · teaches you nothing now(; an? [a-z ]+ does, \d+ paces? [a-z-]+)?$/);
     const pine = byATree('pine').model;
     expect(chopPrompt(pine)).toBeNull(); // (a new hero, never risen in the trade: no refusal for a first prompt)
     skillOf(pine.hero, 'lumberjacking').level = 2;
     expect(chopPrompt(pine)).toMatchObject({ label: `Needs Lumberjacking ${WOOD.pine.needs}`, muted: true });
+  });
+
+  it("points a grey tree's chopper to the nearest one a walk away that still teaches them: what, how far, which way", () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const d = (t: Tree) => Math.hypot(t.x - model.hero.x, t.z - model.hero.z);
+    const teaches = (t: Tree) => woodOf(t, model.seed).needs <= 120 && riseOf(gradeOf(t, model.seed), 120).chance > 0; // (at 120: birches and pines grey, the oaks not)
+    const tree = model.trees.find((t) => t.kind === 'birch' && !model.trees.some((o) => teaches(o) && Math.hypot(o.x - t.x, o.z - t.z) < 4))!; // (a birch with no oak close by)
+    Object.assign(model.hero, { x: tree.x + 0.7, z: tree.z });
+    model.hero.equipment.mainHand = 'hatchet' as never;
+    skillOf(model.hero, 'lumberjacking').level = 120;
+    const nearest = model.trees.filter((t) => teaches(t) && d(t) < SEEK).sort((a, b) => d(a) - d(b))[0];
+    expect(nearest).toBeTruthy(); // (a test world's woods have oaks among the birches)
+    expect(model.lumber.teachingNear).toBe(nearest);
+    expect(chopPrompt(model)?.label).toBe(`Chop the birch · ${model.lumber.left(tree)} chops · teaches you nothing now; an ${woodOf(nearest, model.seed).name} does, ${Math.round(d(nearest))} paces ${bearing(model.hero, nearest)}`);
+    skillOf(model.hero, 'lumberjacking').level = 50; // (the birch teaches again: no pointing)
+    expect(chopPrompt(model)?.label).toBe(`Chop the birch · ${model.lumber.left(tree)} chops`);
+  });
+
+  it('offers a tree in reach that still teaches before a nearer one that teaches nothing', () => {
+    const model = new GameModel(1, TEST_MAP_SIZE);
+    const [birch, oak] = [model.trees.find((t) => t.kind === 'birch')!, model.trees.find((t) => woodOf(t, model.seed).name === 'oak')!];
+    Object.assign(birch, { x: oak.x + 1.4, z: oak.z }); // (side by side: the hero nearer the birch, both in reach)
+    Object.assign(model.hero, { x: oak.x + 0.9, z: oak.z });
+    skillOf(model.hero, 'lumberjacking').level = 120;
+    expect(model.lumber.treeInReach).toBe(oak);
+    skillOf(model.hero, 'lumberjacking').level = 50; // (both teach, the oak beyond them: the birch)
+    expect(model.lumber.treeInReach).toBe(birch);
   });
 });
