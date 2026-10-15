@@ -95,6 +95,18 @@ describe('the dead walk at night', () => {
     model.update(0, 0, 1.1); // (let go, and a look round, a second on)
     expect(model.roads.night.bands).toHaveLength(1); // (gone, and risen again: the hero's still near their crypt)
   });
+
+  it('a band cut into is spent for the night: neither a save nor walking off raises it whole again', () => {
+    const model = night();
+    model.update(0, 0, 0.05);
+    const [band] = model.roads.night.bands;
+    for (const e of band.foes.slice(0, BAND - 1)) [e.hp, e.state] = [0, 'dead']; // (three cut down, one still walking)
+    const data = parseSave(JSON.stringify(snapshot(model)), model.seed)!;
+    expect(data.roads && JSON.stringify(data.roads)).toContain(band.key); // (spent, in the save)
+    band.foes.forEach((e) => Object.assign(e, { x: e.x + 500 })); // (walked off: let go)
+    model.update(0, 0, 1.1);
+    expect(model.roads.night.bands.filter((b) => b.key === band.key)).toHaveLength(0); // (not risen whole again)
+  });
 });
 
 describe('the Gilded Deacon calling them (the story\'s act 3)', () => {

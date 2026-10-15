@@ -135,7 +135,7 @@ export class NightDead {
     this.bands.splice(this.bands.indexOf(band), 1);
     if (alive.length === 0) return;
     this.remove(alive);
-    this.spent.delete(band.key);
+    if (alive.length === band.foes.length) this.spent.delete(band.key); // (none of it cut down yet: it may rise again; once any's fallen, spent for the night)
   }
 
   // Dawn: every band still walking sinks back, gone (told, if any were near the hero).
@@ -175,7 +175,7 @@ export class NightDead {
 
   // Which crypts' bands are spent tonight, for the save.
   save(): { night: number; spent: string[] } {
-    return { night: this.night, spent: [...this.spent].filter((k) => !this.bands.some((b) => b.key === k)) }; // (those walking: risen again)
+    return { night: this.night, spent: [...this.spent].filter((k) => !this.bands.some((b) => b.key === k && b.foes.every((e) => e.state !== 'dead'))) }; // (those walking whole: risen again; one cut into, spent)
   }
 
   load(saved: unknown): void {
