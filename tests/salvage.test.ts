@@ -36,7 +36,8 @@ describe('what gear is made of, and leaves', () => {
     expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }), 1)).toEqual({ make: 'iron', needs: 12 * PER_LEVEL + 50, gives: [['ironScrap', 3]], finerAt: FINER_AT.rare, tries: FOUND_TRIES.rare }); // (too green a hand: its scrap alone)
     expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'rare', roll: 2 }), FINER_AT.rare).gives.map(([item]) => item)).toContain('temperedIngot');
     expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), 1)).toEqual({ make: 'silver', needs: 6 * PER_LEVEL + 100, gives: [['silverFilings', 2], ['gemShard', 1]], finerAt: FINER_AT.epic, tries: FOUND_TRIES.epic });
-    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic).gives).toContainEqual(['cutGem', 2]); // (two from an epic)
+    expect(salvageOf(gearKey({ item: 'armingSword', level: 13, rarity: 'epic', roll: 1 }), FINER_AT.epic).gives).toContainEqual(['temperedIngot', 2]); // (two from an epic)
+    expect(salvageOf(gearKey({ item: 'rubyRing', level: 7, rarity: 'epic', roll: 1 }), FINER_AT.epic).gives.map(([item]) => item)).not.toContain('cutGem'); // (a cheap one: no more than it fetches whole)
     expect(salvageOf('quarterstaff', 1).gives).toEqual([['birchPlank', 1]]); // (a wooden piece: the plank of its level's wood)
     expect(salvageOf(gearKey({ item: 'club', level: 9, rarity: 'common', roll: 0 }), 1).gives).toEqual([['pinePlank', 2]]); // (a drop's: not as a recipe makes it)
     expect(salvageOf(gearKey({ item: 'plankShield', level: 17, rarity: 'common', roll: 0 }), 1).gives).toEqual([['oakPlank', 3]]);
@@ -65,8 +66,7 @@ describe('what gear is made of, and leaves', () => {
         for (const [rarity, odds] of Object.entries(RARITY_ODDS) as Array<[Rarity, number]>) {
           const key = gearKey({ item, level, rarity, roll: 0 });
           const gives = salvageOf(key, 300).gives;
-          const finer = worth(gives.filter(([item]) => item === 'temperedIngot' || item === 'cutGem'));
-          expect(worth(gives), key).toBeLessThan(Math.max(gearSellPrice(key), worth(salvageOf(key, 1).gives) + finer + 1)); // (each piece: under it whole, or its scrap no more than a green hand's)
+          expect(worth(gives), key).toBeLessThanOrEqual(Math.max(gearSellPrice(key), worth(salvageOf(key, 1).gives))); // (each piece: no more than it whole, its finer things too, or its scrap no more than a green hand's)
           [sold, master, green] = [sold + odds * gearSellPrice(key), master + odds * worth(salvageOf(key, 300).gives), green + odds * worth(salvageOf(key, 1).gives)];
         }
       }
@@ -206,7 +206,7 @@ describe('breaking gear down', () => {
     expect(model.salvage.start('armingSword')).toBe('started');
     model.salvage.stop();
     for (const id of [...Object.keys(LOOT), ...Object.keys(ITEMS)]) if (id !== 'ironScrap' && id !== 'armingSword') delete hero.bag[id as keyof typeof hero.bag]; // (emptied again)
-    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 });
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'epic', roll: 4 });
     hero.bag[rare] = 2;
     expect(breakNow(model, rare)).toBe('started'); // (any piece, at any skill: too green a hand, its scrap alone)
     expect([hero.bag.silverFilings, hero.bag.gemShard, hero.bag.cutGem]).toEqual([2, 1, undefined]);
@@ -278,9 +278,9 @@ describe('breaking gear down', () => {
     const { model } = atTheBench();
     const { hero } = model;
     model.random = () => 0;
-    skillOf(hero, 'salvaging').level = FINER_AT.rare - 1;
-    hero.skills!.salvaging!.toward = stepsOf('salvaging', FINER_AT.rare - 1) - 1; // (the first broken down: the hand skilled enough for a cut gem from the next)
-    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 }); // (filings and a shard; then a cut gem besides, a slot of its own)
+    skillOf(hero, 'salvaging').level = FINER_AT.epic - 1;
+    hero.skills!.salvaging!.toward = stepsOf('salvaging', FINER_AT.epic - 1) - 1; // (the first broken down: the hand skilled enough for a cut gem from the next)
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'epic', roll: 4 }); // (filings and a shard; then a cut gem besides, a slot of its own)
     hero.bag[rare] = 3;
     for (let i = 0; slotsUsed(hero.bag) < bagRoom(hero) - 2; i++) hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (two slots free: the first's two, none for the next's gem)
     expect(model.salvage.start(rare, Infinity)).toBe('started');
@@ -295,7 +295,7 @@ describe('breaking gear down', () => {
     const { model } = atTheBench();
     const { hero } = model;
     skillOf(hero, 'salvaging').level = 100;
-    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'rare', roll: 4 }); // (filings, a shard, a cut gem)
+    const rare = gearKey({ item: 'rubyRing', level: 9, rarity: 'epic', roll: 4 }); // (filings, a shard, a cut gem)
     hero.bag[rare] = 2;
     for (let i = 0; slotsUsed(hero.bag) < bagRoom(hero) - 1; i++) hero.bag[`dagger@${i + 2}c0` as never] = 1 as never; // (one slot left)
     expect(model.salvage.start(rare)).toBe('full');

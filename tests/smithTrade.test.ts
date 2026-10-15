@@ -7,6 +7,8 @@ import { gearKey, isGear, levelOf, type GearKey } from '../src/model/human/items
 import { RESTOCK_EVERY, buyBack } from '../src/model/shops/shopStock';
 import { mendBill, mendCost, wearOf } from '../src/model/hero/wear';
 import { isCrafted } from '../src/model/skills/salvage';
+import { stallPrice } from '../src/model/town/stallShop';
+import { pedlarPrice } from '../src/model/travellers/pedlarShop';
 
 const atSmith = () => {
   const model = fresh();
@@ -54,6 +56,38 @@ describe('trading with the smith', () => {
     expect(sellGear(shop, model.hero, ware)).toBe('sold');
     expect(buyGear(shop, model.hero, ware as GearKey)).toBe('bought');
     expect(wearOf(model.hero, ware)).toBe(0);
+  });
+
+  it("one like it still held (pieces alike share their wear): a fresh one doesn't come broken, one bought back doesn't mend it", () => {
+    const model = atSmith();
+    const shop = smithShopIn(model);
+    const ware = (Object.keys(shop.stock) as string[]).find((k) => isGear(k) && (shop.stock[k as GearKey] ?? 0) > 1)! as GearKey;
+    model.hero.money = 100_000;
+    model.hero.level = 20;
+    model.hero.bag[ware] = 1;
+    model.hero.wear = { [ware]: 100 };
+    expect(buyGear(shop, model.hero, ware)).toBe('bought');
+    expect(wearOf(model.hero, ware)).toBe(0); // (a fresh one: not broken)
+    model.hero.wear = { [ware]: 10 };
+    expect(sellGear(shop, model.hero, ware)).toBe('sold');
+    model.hero.wear = { [ware]: 100 }; // (the other one, used till it broke)
+    expect(buyBack(shop, model.hero, 0)).toBe('bought');
+    expect(wearOf(model.hero, ware)).toBe(100); // (no mending for nothing)
+    model.hero.wear = {};
+    expect(sellGear(shop, model.hero, ware)).toBe('sold'); // (sold unworn)
+    model.hero.wear = { [ware]: 100 };
+    expect(buyBack(shop, model.hero, 0)).toBe('bought');
+    expect(wearOf(model.hero, ware)).toBe(100);
+  });
+
+  it('a worn piece fetches as little at a stall or from a pedlar as at the smith: its mending taken off', () => {
+    const { hero } = fresh();
+    const shirt = gearKey({ item: 'brigandine', level: 12, rarity: 'common', roll: 0 });
+    hero.bag[shirt] = 1;
+    hero.wear = { [shirt]: 90 };
+    expect(gearSellPrice(shirt, hero)).toBeLessThan(gearSellPrice(shirt));
+    expect(stallPrice(shirt, true, hero)).toBe(gearSellPrice(shirt, hero));
+    expect(pedlarPrice(shirt, true, hero)).toBe(gearSellPrice(shirt, hero));
   });
 
   it('mends what the hero carries as well as what they wear', () => {

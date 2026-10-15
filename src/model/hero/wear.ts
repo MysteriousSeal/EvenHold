@@ -18,6 +18,7 @@ const FALL = 12; // a fall, on everything that wears
 const MEND_SHARE = 0.35; // of what a piece costs at a smith, mending it from broken (less, less worn)
 const NO_PRICE = 20; // copper, what a piece no smith sells is priced at (smithy/smithShop.ts gearPrice's)
 export const TEMPERED_WEAR = 0.5; // times the wear, Tempered
+export const TEMPER_FLOOR = 0.1; // of what they wear's worth, the least mending bill that leaves them Tempered (not for a copper's scratch)
 
 type Wearer = Pick<Hero, 'equipment'> & { wear?: Record<string, number>; bag?: Hero['bag']; stash?: Hero['bag']; blessings?: Blessing[] };
 const GUARDING: readonly EquipSlot[] = [...ARMOR_SLOTS, 'offHand'];
@@ -47,11 +48,19 @@ export const wearOnBlow = (hero: Wearer, report: (e: GameEvent) => void): void =
 export const wearOnHarm = (hero: Wearer, harm: number, report: (e: GameEvent) => void): void => void (harm > 0 && wearDown(hero, GUARDING, harm * HARM, report));
 export const wearOnFall = (hero: Wearer, report: (e: GameEvent) => void): void => wearDown(hero, WEARING, FALL, report);
 
+const worth = (key: GearKey): number => gearWorth(key, ITEMS[baseOf(key)].value ?? NO_PRICE);
+
 // What mending a piece costs (none: unworn), in copper.
 export function mendCost(hero: Wearer, key: string): number {
   const wear = wearOf(hero, key);
   if (wear <= 0 || !isGear(key)) return 0;
-  return Math.max(1, Math.ceil(gearWorth(key as GearKey, ITEMS[baseOf(key as GearKey)].value ?? NO_PRICE) * MEND_SHARE * (wear / BROKEN)));
+  return Math.max(1, Math.ceil(worth(key as GearKey) * MEND_SHARE * (wear / BROKEN)));
+}
+
+// Whether a mending bill of `total` leaves them Tempered: past TEMPER_FLOOR of what they wear's worth.
+export function mendTempers(hero: Wearer, total: number): boolean {
+  const worn = Object.values(hero.equipment).filter((k): k is GearKey => !!k && isGear(k));
+  return total >= Math.ceil(worn.reduce((n, k) => n + worth(k), 0) * TEMPER_FLOOR);
 }
 
 // What they wear (or carry, taken off worn) that's worn at all, each with its mending's cost; all of it.
@@ -61,14 +70,14 @@ export function mendBill(hero: Wearer): { pieces: Array<{ key: GearKey; wear: nu
   return { pieces, total: pieces.reduce((n, p) => n + p.cost, 0) };
 }
 
-// Everything they wear mended, paid for, and Tempered: 'mended', 'none' (nothing worn), 'too poor'.
+// Everything they wear mended, paid for, and Tempered (a bill past the floor): 'mended', 'none' (nothing worn), 'too poor'.
 export function mendAll(hero: Wearer & Pick<Hero, 'money'>): 'mended' | 'none' | 'too poor' {
   const { pieces, total } = mendBill(hero);
   if (!pieces.length) return 'none';
   if (hero.money < total) return 'too poor';
   hero.money -= total;
   for (const { key } of pieces) delete hero.wear![key];
-  temper(hero);
+  if (mendTempers(hero, total)) temper(hero);
   return 'mended';
 }
 

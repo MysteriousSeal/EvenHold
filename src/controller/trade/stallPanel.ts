@@ -74,7 +74,7 @@ export function createStallPanel(model: GameModel, hooks: { bag?: TradeBag }): {
     shop,
     wares: () => stallWares(kind()).map(([id]) => id),
     wanted: (id): id is BagItem => stallBuys(kind(), id),
-    price: stallPrice,
+    price: (id, selling) => stallPrice(id, selling, model.hero),
     trade: (id, selling) => (selling ? sellAtStall(shop(), model.hero, kind(), id) : buyAtStall(shop(), model.hero, id)),
     lines,
     about: () => pick(ABOUT[kind()]),

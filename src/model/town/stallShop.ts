@@ -51,10 +51,10 @@ export function stallBuys(kind: StallKind, id: string): boolean {
 }
 
 // What `id` costs at a stall, or what the stall pays for it.
-export function stallPrice(id: BagItem, selling: boolean): number {
+export function stallPrice(id: BagItem, selling: boolean, hero?: Hero): number {
   if (isPotion(id)) return potionPrice(id, selling);
   if (isProvision(id)) return selling ? sellPrice(id) : buyPrice(id);
-  return selling ? gearSellPrice(id as GearKey) : gearPrice(id as GearKey);
+  return selling ? gearSellPrice(id as GearKey, hero) : gearPrice(id as GearKey); // (`hero`'s: worn, less, as at the smith's)
 }
 
 // The stall at (x, z)'s shop, made the first time it's opened.
@@ -66,4 +66,4 @@ export function stallShopAt(shops: Map<number, Shop>, seed: number, stall: { x: 
 
 // The hero buying `id` at the stall, or selling it there.
 export const buyAtStall = (shop: Shop, hero: Hero, id: BagItem) => buyFrom(shop, hero, id, stallPrice(id, false));
-export const sellAtStall = (shop: Shop, hero: Hero, kind: StallKind, id: BagItem) => (stallBuys(kind, id) ? sellTo(shop, hero, id, stallPrice(id, true)) : 'not wanted');
+export const sellAtStall = (shop: Shop, hero: Hero, kind: StallKind, id: BagItem) => (stallBuys(kind, id) ? sellTo(shop, hero, id, stallPrice(id, true, hero)) : 'not wanted');

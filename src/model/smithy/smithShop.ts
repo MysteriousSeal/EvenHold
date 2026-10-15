@@ -8,7 +8,7 @@ import { hashUnit } from '../../util/random';
 import { LOOT } from '../loot/loot';
 import { TOOL_ITEMS, type ToolId } from '../loot/tools';
 import { COPPER_PER_SILVER } from '../hero/money';
-import { mendCost, wearGone } from '../hero/wear';
+import { mendCost } from '../hero/wear';
 import { isCrafted } from '../skills/salvage';
 import { ITEMS, ITEM_IDS, type ItemId } from '../human/equipment';
 import { baseOf, gearKey, gearWorth, isGear, slotOfGear, type GearKey } from '../human/items/gear';
@@ -115,8 +115,9 @@ export const UNDER_COUNTER = 2.5;
 export const smithPriceFor = (hero: Pick<Hero, 'level'>, key: GearKey): number => (smithSellsTo(hero, key) ? gearPrice(key) : Math.ceil(gearPrice(key) * UNDER_COUNTER));
 
 export function buyGear(shop: Shop, hero: Hero, id: GearKey | ToolId): 'bought' | 'sold out' | 'too poor' | 'full' {
-  wearGone(hero, id); // (one like it they had, sold: this one's new)
-  return buyFrom(shop, hero, id, smithTakesPick(id) ? pickPrice(id, false) : smithPriceFor(hero, id as GearKey));
+  const done = buyFrom(shop, hero, id, smithTakesPick(id) ? pickPrice(id, false) : smithPriceFor(hero, id as GearKey));
+  if (done === 'bought' && hero.wear) delete hero.wear[id]; // (this one's new: not the wear of one like it, sold or still held; pieces alike share one wear)
+  return done;
 }
 
 export function sellGear(shop: Shop, hero: Hero, id: string): 'sold' | 'not wanted' | 'none' | 'he is short' {

@@ -152,7 +152,8 @@ export function salvageOf(key: Salvageable, skill = Infinity, crafted = false): 
   let gives: Array<[IngredientId, number]> = [[scrapOf(make, level), used === null ? scrap : Math.max(1, Math.min(Math.floor(scrap / 2), used - 1))]]; // (one made: half, and less than went in)
   if (make === 'silver' && GEMMED.test(base) && used === null) gives.push(['gemShard', 1]);
   const finerAt = RARE_EXTRA[rarity] && used === null ? FINER_AT[rarity] : undefined;
-  const finer: Array<[IngredientId, number]> = finerAt !== undefined && skill >= finerAt ? [[FINER_OF[make], RARE_EXTRA[rarity]]] : [];
+  const fits = Math.floor((gearSellPrice(key) - worthOf(gives)) / LOOT[FINER_OF[make]].value); // (no more than the piece fetches whole: a cheap rare one, fewer, or none)
+  const finer: Array<[IngredientId, number]> = finerAt !== undefined && skill >= finerAt && fits > 0 ? [[FINER_OF[make], Math.min(RARE_EXTRA[rarity], fits)]] : [];
   if (used === null) gives = skilled(key, gives, finer, skill); // (their own make: as it was, no ladder)
   gives.push(...finer);
   return { make, needs: Math.max(1, (level - 1) * PER_LEVEL) + RARE_NEEDS[rarity], gives, tries: used === null ? FOUND_TRIES[rarity] : 1, ...(finerAt !== undefined && skill < finerAt ? { finerAt } : {}), ...(used !== null ? { made: true } : {}) }; // (a level 1 piece from the start; a level 20, the artisan's)
