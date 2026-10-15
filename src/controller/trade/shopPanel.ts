@@ -55,11 +55,12 @@ const LINES: TradeLines = {
 };
 // What she says of each of her wares when the hero buys one (one of
 // several, at random).
-// Her kitchen's salt and flour, for a cook: what she says of them, sold.
-const PANTRY_ABOUT: Record<PantryId, string> = { salt: 'Coarse grey salt from the coast, twisted up in linen.', flour: 'A small sack of flour, milled in the valley.' };
+// Her kitchen's salt, flour and boar meat, for a cook: what she says of them, sold.
+const PANTRY_ABOUT: Record<PantryId, string> = { salt: 'Coarse grey salt from the coast, twisted up in linen.', flour: 'A small sack of flour, milled in the valley.', rawBoarMeat: "A boar's haunch off the kitchen's hook, for one who'd rather cook than hunt." };
 const ABOUT: Record<InnProvisionId | PantryId, readonly string[]> = {
   salt: ['Off my own shelf. Cooking for yourself, are you?', "Don't tell the cook I sold you that."],
   flour: ["Mind you don't sneeze over it.", "Baking, is it? Bring me a slice when it's done."],
+  rawBoarMeat: ["Cook paid a hunter dear for that, so you'll pay dearer.", 'Fresh this morning. Well, this week.'],
   bread: [
     'Fresh from the oven this morning, still soft.',
     'Tear it while it steams. That smell alone is worth the copper.',
