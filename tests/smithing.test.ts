@@ -72,6 +72,7 @@ describe('smithing', () => {
     expect(skillOf(hero, 'smithing').level).toBe(21);
     run(model, 0.2, 1); // (a step away: stopped)
     expect(model.smithing.making).toBeNull();
+    hero.x += 2; // (off from the anvil, whoever's passing)
     expect(model.smithing.start('dagger')).toBe(false); // (away from the anvil)
   });
 
