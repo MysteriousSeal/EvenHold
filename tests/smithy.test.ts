@@ -95,7 +95,7 @@ describe('the smithy', () => {
     expect(sellGear(shop, model.hero, 'leatherStrip')).toBe('not wanted');
     expect([pedlarBuys('cutGem'), pedlarPrice('cutGem', true)]).toEqual([true, LOOT.cutGem.value / 2]);
     for (const id of ['oakPlank', 'leatherStrip', 'linenScrap'] as const) expect(saleOf(id), id).toBeNull();
-    expect(saleOf('oakLog')).toEqual({ price: Math.floor(LOOT.oakLog.value / 2), to: 'a pedlar' }); // (a lumberjack's spare, for firewood: half, a copper at the least)
+    expect(saleOf('oakLog')).toEqual({ price: LOOT.oakLog.value, to: 'a pedlar' }); // (a lumberjack's, for firewood)
     expect(saleOf('ironScrap')).toEqual({ price: LOOT.ironScrap.value / 2, to: 'a smith' });
   });
 
