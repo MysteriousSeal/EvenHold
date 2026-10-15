@@ -84,13 +84,16 @@ describe('the small life, by country and weather', () => {
     expect(weathered('dragonfly', true, { ...dry, fog: 0.8 })).toBe(0);
   });
 
-  it('in winter no butterflies, dragonflies or frogs and fewer songbirds; fewer butterflies in autumn', () => {
+  it('in winter no butterflies, dragonflies or frogs and fewer birds; fewer insects in autumn; fireflies only in summer', () => {
     const day = { x: 1, z: 0, strength: 0.4, rain: 0, fog: 0, snow: 0 };
     for (const kind of ['butterfly', 'dragonfly', 'frog', 'firefly'] as const) expect(weathered(kind, true, { ...day, season: 'winter' }), kind).toBe(0);
     expect(weathered('bird', true, { ...day, season: 'winter' })).toBeGreaterThan(0);
     expect(weathered('bird', true, { ...day, season: 'winter' })).toBeLessThan(1);
     expect(weathered('butterfly', true, { ...day, season: 'autumn' })).toBeLessThan(weathered('butterfly', true, { ...day, season: 'summer' }));
     expect(weathered('heron', true, { ...day, season: 'winter' })).toBe(1);
+    for (const season of ['spring', 'autumn', 'winter'] as const) expect(weathered('firefly', true, { ...day, season }), season).toBe(0); // (fireflies: summer's only)
+    expect(weathered('firefly', true, { ...day, season: 'summer' })).toBe(1);
+    expect(weathered('crow', true, { ...day, season: 'winter' })).toBeLessThan(1); // (and fewer flocks over)
   });
 });
 

@@ -44,8 +44,9 @@ const TINTS: Partial<Record<LifeKind, number[]>> = {
 };
 
 // How many of `kind` are out (0 none .. 1 all), its hours (`out`), the weather and the season considered: birds and
-// butterflies under cover in the rain, frogs out in it whatever the hour; no butterflies, dragonflies, fireflies or
-// frogs in winter (the frogs asleep in the mud), fewer songbirds and rabbits; fewer butterflies and dragonflies in autumn.
+// butterflies under cover in the rain, frogs out in it whatever the hour; no butterflies, dragonflies or frogs in
+// winter (the frogs asleep in the mud), fewer songbirds, crows (and flocks over) and rabbits; fewer butterflies and
+// dragonflies in autumn; fireflies a summer's only.
 export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): number {
   const season = SEASONS[w.season][kind] ?? 1;
   if (kind === 'frog') return (out || w.rain > 0.3 ? 1 : 0) * season;
@@ -56,10 +57,10 @@ export function weathered(kind: LifeKind, out: boolean, w: WeatherNow): number {
   return season;
 }
 const SEASONS: Record<WeatherNow['season'], Partial<Record<LifeKind, number>>> = {
-  spring: {},
+  spring: { firefly: 0 },
   summer: {},
-  autumn: { butterfly: 0.4, dragonfly: 0.3 },
-  winter: { butterfly: 0, dragonfly: 0, firefly: 0, frog: 0, bird: 0.5, rabbit: 0.6 },
+  autumn: { butterfly: 0.4, dragonfly: 0.3, firefly: 0 },
+  winter: { butterfly: 0, dragonfly: 0, firefly: 0, frog: 0, bird: 0.5, crow: 0.5, rabbit: 0.6 },
 };
 
 export class AmbientLife {
@@ -143,7 +144,7 @@ export class AmbientLife {
       }
     }
     // A flock over now and then, by day, dry: crows' black, high up.
-    if (out.crow > 0) flock(this.moment, this.model.seed, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
+    flock(this.moment, this.model.seed, out.crow, () => this.counts.crow < MOST.crow && this.draw('crow', 0));
     for (const [kind, m] of Object.entries(this.meshes) as Array<[keyof typeof this.meshes, THREE.InstancedMesh]>) {
       m.count = this.counts[kind];
       m.visible = m.count > 0; // (no draw for a kind with none out)

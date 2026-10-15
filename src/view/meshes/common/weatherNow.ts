@@ -31,5 +31,5 @@ export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 export function weatherNow(seed: number, minutes: number, seconds: number): WeatherNow {
   const steady = 0.45 + 0.25 * Math.sin(minutes / 170 + (seed % 97));
   const gust = 0.15 * Math.max(0, Math.sin(seconds * 0.7) * Math.sin(seconds * 0.23 + 1));
-  return { ...DIRECTION, strength: Math.min(1, Math.max(0, steady + gust)), rain: 0, fog: 0, snow: 0, season: 'spring' };
+  return { ...DIRECTION, strength: Math.min(1, Math.max(0, steady + gust)), rain: 0, fog: 0, snow: 0, season: 'summer' }; // (summer: none of the small life kept in by it)
 }
