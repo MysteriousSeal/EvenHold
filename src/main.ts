@@ -10,6 +10,7 @@ import { dangerInk } from './view/meshes/enemy/enemyParts';
 import { isHerbalistHome } from './model/herbalist/herbalistHomes';
 import { kindOf, nameOf, qualityOf } from './model/hero/bag';
 import { CLASSIC_MOST, GameModel } from './model/GameModel';
+import { wakeVillagers } from './model/npcs/npcRoutine';
 import { GameView } from './view/GameView';
 import { GameController } from './controller/GameController';
 import { keepSessionSeed, sessionSeed, takeSeedFromUrl } from './util/seed';
@@ -128,6 +129,7 @@ async function boot(): Promise<void> {
     model.hero.look = choice.hero?.look ?? randomLook();
     model.hero.name = choice.hero?.name ?? randomName(model.hero.look.build);
   }
+  wakeVillagers(model.folk, model); // (the village about its day already: npcs/npcRoutine.ts)
   const options = readRenderOptions();
   const view = new GameView(canvas, model, options);
 
