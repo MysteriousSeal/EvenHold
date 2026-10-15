@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // Trading with a herbalist (herbalist/herbalistShop.ts, controller/trade/herbalistPanel.ts): what they won't take
 // (wood, scrap), so many of a kind at a time; their shop through a save; their word on the hero (hurt, spent, with
-// nothing to drink) and on what's sold them; and their bed, not the hero's, while they're home.
+// nothing to drink) and on what's sold them; their bed, theirs at night (by day, at their work, as good as away);
+// abed at night, their shop shut, the pox seen to all the same.
 import { describe, expect, it, vi } from 'vitest';
 import { fresh } from './support/testWorld';
 import { buyFromHerbalist, herbalistBuys, herbalistShopAt, sellToHerbalist } from '../src/model/herbalist/herbalistShop';
@@ -11,6 +12,10 @@ import { maxEnergyOf, maxHpOf } from '../src/model/hero/attributes';
 import { NOT_YOURS } from '../src/model/hero/setbacks';
 import { takeSpeech } from '../src/model/npcs/speech';
 import type { GameModel } from '../src/model/GameModel';
+import { herbalistAbed } from '../src/model/herbalist/herbalistWork';
+import { SALVE, poxTalk } from '../src/model/hero/pox';
+import { givePox, hasPox } from '../src/model/hero/blessing';
+import type { Talk } from '../src/model/story/story';
 import { herbalistGreets, herbalistTakes } from '../src/controller/trade/herbalistPanel';
 
 vi.mock('../src/view/ui/voxelIcon', () => ({ voxelIcon: () => document.createElement('canvas') }));
@@ -97,23 +102,66 @@ describe("a herbalist's word", () => {
   });
 });
 
-describe("a herbalist's bed", () => {
-  it('not the hero\'s: lain in, with them home (always), they turn the hero out', () => {
+// Into the herbalist's house, the hero stood where they'd lie down in their bed.
+function byTheirBed(model: GameModel) {
+  const { herbalist } = atHerbalist(model);
+  model.enterRoom(herbalist.home);
+  const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
+  const { width, depth } = model.inside!.room;
+  for (let x = 0; x < width; x += 0.25) for (let z = 0; z < depth; z += 0.25) {
+    Object.assign(model.hero, { x, z });
+    if (model.seatInReach?.piece === bed) return { herbalist, bed };
+  }
+  throw new Error('no way into their bed');
+}
+const said = () => takeSpeech().flatMap((e) => (e.kind === 'say' ? [e.text] : []));
+const NIGHT = 23 * 60 + 30; // on the clock, day 0
+
+describe("a herbalist's bed and night", () => {
+  it('by day (at their work), rests the hero slowly, as an absent villager\'s does; at their bedtime, they turn the hero out', () => {
     const model = fresh();
-    const { herbalist } = atHerbalist(model);
-    model.enterRoom(herbalist.home);
-    const bed = model.inside!.furniture.find((f) => f.kind === 'bed')!;
-    expect(bed).toBeTruthy();
-    const { width, depth } = model.inside!.room;
-    let found = false;
-    for (let x = 0; x < width && !found; x += 0.25) for (let z = 0; z < depth && !found; z += 0.25) {
-      Object.assign(model.hero, { x, z });
-      found = model.seatInReach?.piece === bed;
-    }
-    expect(found).toBe(true);
+    byTheirBed(model);
     takeSpeech();
     model.sitOrStand();
+    expect(model.seated?.seat.lying).toBe(true);
+    model.hero.energy = 10;
+    model.update(0, 0, 1);
+    expect(model.hero.energy - 10).toBeCloseTo(1, 1); // (a bed's 2 a second, halved)
+    expect(said()).toEqual([]);
+    model.minutes = NIGHT;
+    model.update(0, 0, 0.1);
     expect(model.seated).toBeNull();
-    expect(takeSpeech().some((e) => e.kind === 'say' && NOT_YOURS.includes(e.text))).toBe(true);
+    expect(NOT_YOURS).toContain(said()[0]);
+  });
+
+  it('at night, abed: they go to it, not to their counter for the hero; their shop shut; up to their work at dawn', () => {
+    const model = fresh();
+    const { herbalist, bed } = byTheirBed(model);
+    model.minutes = NIGHT;
+    const counter = model.inside!.furniture.find((f) => f.kind === 'herbCounter')!;
+    Object.assign(model.hero, { x: counter.x + counter.w / 2, z: counter.z + counter.d + 0.6 }); // (at their counter, as to trade)
+    for (let t = 0; t < 20; t += 1 / 30) model.update(0, 0, 1 / 30);
+    expect(herbalist.seat?.piece).toBe(bed);
+    expect(herbalistAbed(model.minutes)).toBe(true);
+    model.minutes = 7 * 60 + 24 * 60;
+    for (let t = 0; t < 90; t += 1 / 10) model.update(0, 0, 1 / 10);
+    expect(herbalist.seat ?? null).toBeNull(); // (up, at their work)
+  });
+
+  it('woken for the pox at night, sells the salve all the same; their wares wait for the morning', () => {
+    const model = fresh();
+    const { herbalist } = atHerbalist(model);
+    givePox(model.hero);
+    model.minutes = NIGHT;
+    const woken = poxTalk(model, herbalist)!;
+    expect(woken.lines[0]).toMatch(/woke me/);
+    expect(woken.answers.some((a) => a.trade)).toBe(false);
+    model.hero.money = SALVE;
+    const paid = woken.answers[0].pick() as Talk;
+    expect(hasPox(model.hero)).toBe(false);
+    expect(paid.answers.some((a) => a.trade)).toBe(false);
+    model.minutes = 9 * 60;
+    givePox(model.hero);
+    expect(poxTalk(model, herbalist)!.answers.some((a) => a.trade)).toBe(true);
   });
 });
