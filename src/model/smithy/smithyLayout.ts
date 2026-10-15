@@ -143,23 +143,39 @@ export function furnishSmithy(plan: Planner, room: Room): void {
   }
   // A lantern by his wares, so they catch the eye away from the fire: on the back wall beside a wall of weapons, else on
   // the left wall toward the door, else wherever on those walls it hangs free (never over the fire or the trough, nor
-  // over a stand or the rack).
+  // over a stand or the rack); and a stretch of back or left wall always left free besides (spells/hung.ts: a painting
+  // hangs there).
   const under = (wall: Furniture['wall'], x: number, z: number) => items.some((f) => (f.kind === 'armorStand' || f.kind === 'rack') && f.wall === wall && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
-  const wares = items.filter((f) => f.kind === 'weaponWall').flatMap((f) => [f.x - 1, f.x + 1]);
-  const back = along(0).filter(([x]) => !byFire(x) && !overTrough(x) && !under('back', x, 0));
-  const left = down(0).filter(([, z]) => !under('left', 0, z)).reverse(); // (toward the door first)
-  place('wallLantern', 1, 1, 'back', back.filter(([x]) => wares.includes(x)), false) ??
-    place('wallLantern', 1, 1, 'left', left.filter(([, z]) => z >= room.depth - 3), false) ??
-    place('wallLantern', 1, 1, 'back', back, false) ??
-    place('wallLantern', 1, 1, 'left', left, false);
-  // At least one stretch of back or left wall left free (spells/hung.ts: a painting hangs there): else the lantern
-  // taken down, then a stand off the wall.
   const covered = (x: number, z: number) => items.some((f) => f.wall !== 'none' && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
-  const wallFree = () => along(0).some(([x]) => !covered(x, 0)) || down(0).some(([, z]) => !covered(0, z));
-  for (const kind of ['wallLantern', 'armorStand'] as const) {
-    const piece = items.find((f) => f.kind === kind && f.wall !== 'none');
-    if (wallFree() || !piece || (kind === 'armorStand' && items.filter((f) => f.kind === 'armorStand').length < 2)) continue;
+  const walls = () => [...along(0), ...down(0).slice(1)];
+  const wallFree = () => walls().some(([x, z]) => !covered(x, z));
+  const hang = () => {
+    const spare = ([x, z]: [number, number]) => walls().some(([fx, fz]) => (fx !== x || fz !== z) && !covered(fx, fz)); // (another stretch still free)
+    const wares = items.filter((f) => f.kind === 'weaponWall').flatMap((f) => [f.x - 1, f.x + 1]);
+    const back = along(0).filter(([x]) => !byFire(x) && !overTrough(x) && !under('back', x, 0)).filter(spare);
+    const left = down(0).filter(([, z]) => !under('left', 0, z)).filter(spare).reverse(); // (toward the door first)
+    return (
+      place('wallLantern', 1, 1, 'back', back.filter(([x]) => wares.includes(x)), false) ??
+      place('wallLantern', 1, 1, 'left', left.filter(([, z]) => z >= room.depth - 3), false) ??
+      place('wallLantern', 1, 1, 'back', back, false) ??
+      place('wallLantern', 1, 1, 'left', left, false)
+    );
+  };
+  const takeDown = (piece: Furniture) => {
     items.splice(items.indexOf(piece), 1);
     if (piece.solid) taken.delete(key(piece.x, piece.z));
+  };
+  // No room for both: a third stand off the wall, then his second wall of weapons (the one further from the lantern),
+  // till there is; else (a cramped smithy) the lantern taken down.
+  let lantern = hang();
+  while (!lantern || !wallFree()) {
+    const onWall = items.filter((f) => f.kind === 'armorStand' && f.wall !== 'none');
+    const weapons = items.filter((f) => f.kind === 'weaponWall');
+    const far = (f: Furniture) => (lantern ? -Math.hypot(f.x - lantern.x, f.z - lantern.z) : 0);
+    const piece = (items.filter((f) => f.kind === 'armorStand').length > 2 ? onWall[0] : undefined) ?? (weapons.length > 1 ? weapons.sort((a, b) => far(a) - far(b))[0] : undefined);
+    if (!piece) break;
+    takeDown(piece);
+    lantern ??= hang();
   }
+  if (lantern && !wallFree()) takeDown(lantern);
 }

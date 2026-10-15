@@ -66,6 +66,21 @@ describe('the smithy', () => {
     }
   });
 
+  it('hangs a lantern by his wares in every smithy of every test world, a stretch of wall still free for a painting', () => {
+    for (const seed of TEST_SEEDS) {
+      const model = new GameModel(seed, TEST_MAP_SIZE);
+      for (const smithy of model.entrances.filter((e) => e.type === 'smithy')) {
+        const { room, furniture } = layoutOf(seed, smithy);
+        const said = `seed ${seed}, smithy at ${smithy.x},${smithy.z}`;
+        expect(furniture.filter((f) => f.kind === 'wallLantern' && f.wall !== 'none'), said).toHaveLength(1);
+        const covered = (x: number, z: number) => furniture.some((f) => f.wall !== 'none' && x >= f.x && x < f.x + f.w && z >= f.z && z < f.z + f.d);
+        const free = [...Array.from({ length: room.width }, (_, x) => [x, 0]), ...Array.from({ length: room.depth }, (_, z) => [0, z])].filter(([x, z]) => !covered(x, z));
+        expect(free.length, said).toBeGreaterThan(0);
+        expect(furniture.some((f) => f.kind === 'weaponWall'), said).toBe(true); // (his wares, still on show)
+      }
+    }
+  });
+
   it('sells what he forges at its value, buys gear back at half (not food, not jewellery), from a stock and purse of his own', () => {
     const model = atTheSmithy();
     const shop = smithShopAt(model.shops, model.seed, model.entrances.indexOf(model.inside!.entrance));
