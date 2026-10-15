@@ -19,7 +19,11 @@ import type { ProvisionId } from '../../model/loot/provisions';
 import { ALE_ENERGY, ALE_SECONDS, PIE_HEALS, PIE_SECONDS } from '../../model/inn/barPatrons';
 import { maxEnergyOf, maxHpOf } from '../../model/hero/attributes';
 import type { Hero } from '../../model/types';
-import { clock, pick } from './tradePanel';
+import { clock } from './tradePanel';
+import { inTurn } from '../../model/npcs/speech';
+
+// One of her lines, each list's in turn (never the same one twice running).
+const pick = (lines: readonly string[]): string => inTurn(lines, lines);
 import { doorNumber } from '../../model/interiors/interiors';
 
 // What the hero can order at the bar.
