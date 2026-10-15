@@ -1,5 +1,6 @@
 // One of a crypt's dead on screen (model/crypts/): a skeleton, a bowman, a
-// draugr or the crypt's lord, each the human rig on its own body (the
+// draugr or the crypt's lord (or the reliquary's: a Brother praying, a gilded saint, the Gilded Deacon, his
+// reliquaries breaking off him: reliquaryVoxels.ts), each the human rig on its own body (the
 // skeleton's, skeletonVoxels.ts; the lord's, lordVoxels.ts; a draugr's,
 // draugrVoxels.ts), so they walk and swing as anyone does. A swordsman's
 // short sword; a bowman's bow, drawn to the ear facing the hero, an arrow on
@@ -24,6 +25,8 @@ import { drawnAt } from '../common/overhead';
 import { SKELETON_FRAME } from './skeletonVoxels';
 import { LORD_FRAME, greatswordGeometry } from './lordVoxels';
 import { axeGeometry, draugrFrame, draugrLook, longswordGeometry } from './draugrVoxels';
+import { BROTHER_FRAME, DEACON_FRAME, DEACON_RELICS, SAINT_FRAME, processionalCrossGeometry, relicGeometry } from './reliquaryVoxels';
+import { DEACON_TURNS, PRAYER_TELL } from '../../../model/reliquary/reliquaryMoves';
 import { BREATH_TELL } from '../../../model/crypts/frostBreath';
 import { CLEAVE_TELL } from '../../../model/crypts/cleave';
 import { BARRAGE_TELL, CHARGE_TELL, ERUPTION_TELL, RAGE, SLAM_AFTER, SLAM_TELL, SWEEP_TELL } from '../../../model/crypts/cryptLord';
@@ -68,6 +71,8 @@ export interface UndeadLook {
   flash: THREE.Material;
   rage: THREE.Material; // a crypt's lord, raging: a red glow
   greatsword: THREE.BufferGeometry;
+  cross: THREE.BufferGeometry; // the Gilded Deacon's processional cross
+  relics: THREE.BufferGeometry[]; // and the reliquaries he's made of (reliquaryVoxels.ts DEACON_RELICS)
   axe: THREE.BufferGeometry; // a draugr's
   longsword: THREE.BufferGeometry; // or that
   bow: THREE.BufferGeometry;
@@ -76,7 +81,7 @@ export interface UndeadLook {
 
 export function createUndeadLook(flash: THREE.Material): UndeadLook {
   const rage = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: 0x8a1a10, emissiveIntensity: 0.6 });
-  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), axe: axeGeometry(), longsword: longswordGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
+  return { normal: personMaterial(), flash, rage, greatsword: greatswordGeometry(), cross: processionalCrossGeometry(), relics: DEACON_RELICS.map(relicGeometry), axe: axeGeometry(), longsword: longswordGeometry(), bow: bowGeometry(), arrow: arrowGeometry() };
 }
 
 // A bow, held upright: its stave curving back at the tips, the string straight between them.
@@ -108,15 +113,18 @@ export class UndeadRig implements EnemyRig {
   private readonly nocked: THREE.Mesh | null = null; // the arrow on the string, while drawing
   private toldFacing: number | null = null; // the way a draugr's cleave falls, from when it raised its axe
   private weapon: THREE.Mesh | null = null; // a long one in hand (the lord's greatsword, a draugr's axe), tilted as it's carried
+  private readonly relics: THREE.Mesh[] = []; // the Gilded Deacon's reliquaries, on him till they break off (DEACON_TURNS)
 
   constructor(
     skeleton: Enemy,
     private readonly look: UndeadLook,
   ) {
-    const lord = skeleton.kind === 'cryptLord';
+    const deacon = skeleton.kind === 'gildedDeacon';
+    const lord = skeleton.kind === 'cryptLord' || deacon;
     const draugr = skeleton.kind === 'draugr';
     const dressed = draugr ? draugrLook(skeleton.id) : null; // (each draugr its own way)
-    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, lord ? LORD_FRAME : dressed ? draugrFrame(dressed) : SKELETON_FRAME);
+    const reliquary = { unquietBrother: BROTHER_FRAME, gildedSaint: SAINT_FRAME, gildedDeacon: DEACON_FRAME }[skeleton.kind as string]; // (the reliquary's dead: reliquaryVoxels.ts)
+    this.rig = new HumanRig({ ...HERO_LOOK, hairStyle: 'bald' }, look.normal, reliquary ?? (lord ? LORD_FRAME : dressed ? draugrFrame(dressed) : SKELETON_FRAME));
     const archer = skeleton.kind === 'skeletonArcher';
     this.bar = new HealthBar(HEIGHT + (lord ? 0.2 : 0.12), enemyName(skeleton), false, isBoss(skeleton.kind));
     this.rig.root.add(this.bar.group);
@@ -132,14 +140,20 @@ export class UndeadRig implements EnemyRig {
       this.rig.meshes.push(this.bow, this.nocked);
     } else if (lord || draugr) {
       const hand = BODIES.male.hand;
-      const sword = new THREE.Mesh(lord ? look.greatsword : dressed?.sword ? look.longsword : look.axe, look.normal);
+      const sword = new THREE.Mesh(deacon ? look.cross : lord ? look.greatsword : dressed?.sword ? look.longsword : look.axe, look.normal);
       sword.position.set(hand[0] * HUMAN_VOXEL_SIZE, hand[1] * HUMAN_VOXEL_SIZE, hand[2] * HUMAN_VOXEL_SIZE);
       sword.rotation.x = -CARRY; // carried tilted up: long as it is, never down through the floor as the arm swings walking
       this.weapon = sword;
       sword.name = 'held';
       this.rig.joints.rightArm.add(sword);
       this.rig.meshes.push(sword);
-    } else this.rig.wear({ mainHand: 'shortSword' });
+    } else if (!reliquary) this.rig.wear({ mainHand: 'shortSword' }); // (a Brother, a saint: bare bones)
+    if (deacon) for (const [i, relic] of DEACON_RELICS.entries()) {
+      const mesh = new THREE.Mesh(look.relics[i], look.normal);
+      this.rig.joints[relic.joint].add(mesh);
+      this.rig.meshes.push(mesh);
+      this.relics.push(mesh);
+    }
     this.burst = new VoxelBurst(this.rig.root, this.rig.colors, HEIGHT);
   }
 
@@ -242,7 +256,15 @@ export class UndeadRig implements EnemyRig {
       this.rig.joints.head.rotation.set(-0.5 * drawn, 0, 0);
       this.rig.joints.leftArm.rotation.set(0, 0, 0.4 * drawn);
       this.rig.joints.rightArm.rotation.set(0, 0, -0.4 * drawn);
-    } else if (skeleton.windUp != null && skeleton.kind === 'cryptLord' && skeleton.told && skeleton.told !== 'slam') {
+    } else if (skeleton.windUp != null && skeleton.told === 'prayer') {
+      // A Brother praying: facing the hero, both arms raised, his hooded head thrown back; trembling as it comes.
+      this.rig.update(skeleton.x, skeleton.y, skeleton.z, dt, null, Math.atan2(heroX - skeleton.x, heroZ - skeleton.z));
+      const up = Math.min(1, skeleton.windUp / (PRAYER_TELL * 0.4));
+      const shake = Math.sin(skeleton.windUp * 40) * 0.05 * up;
+      this.rig.joints.leftArm.rotation.set(-2.6 * up + shake, 0, 0.3 * up);
+      this.rig.joints.rightArm.rotation.set(-2.6 * up - shake, 0, -0.3 * up);
+      this.rig.joints.head.rotation.set(-0.4 * up, 0, 0);
+    } else if (skeleton.windUp != null && (skeleton.kind === 'cryptLord' || skeleton.kind === 'gildedDeacon') && skeleton.told && skeleton.told !== 'slam') {
       this.lordMove(skeleton, dt, heroX, heroZ);
     } else if (skeleton.windUp != null && skeleton.told === 'cleave') {
       this.cleave(skeleton, dt, heroX, heroZ);
@@ -271,7 +293,8 @@ export class UndeadRig implements EnemyRig {
     }
     if (this.nocked) this.nocked.visible = drawn !== null;
     if (this.bow) this.bow.rotation.set(drawn !== null ? Math.PI / 2 : 0, 0, 0); // (held upright, out in front while drawing)
-    const raging = skeleton.kind === 'cryptLord' && skeleton.hp < skeleton.maxHp * RAGE;
+    this.relics.forEach((relic, i) => (relic.visible = skeleton.hp > skeleton.maxHp * DEACON_TURNS[i])); // (broken off him, turn by turn)
+    const raging = (skeleton.kind === 'cryptLord' || skeleton.kind === 'gildedDeacon') && skeleton.hp < skeleton.maxHp * RAGE;
     this.rig.setMaterial(flashing(skeleton) ? this.look.flash : raging ? this.look.rage : this.look.normal);
   }
 

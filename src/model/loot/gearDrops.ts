@@ -25,6 +25,9 @@ const DROPS: Partial<Record<EnemyKind, Drops>> = {
   draugr: { chance: 0.14, luck: 1.3 },
   cryptLord: { chance: 1, luck: 3, least: 'rare' },
   broodMother: { chance: 1, luck: 3, least: 'rare' },
+  unquietBrother: { chance: 0.1 },
+  gildedSaint: { chance: 0.3, luck: 1.6, least: 'uncommon' },
+  gildedDeacon: { chance: 1, luck: 3, least: 'epic' },
   bruiser: { chance: 0.16, luck: 1.2 },
   crossbowman: { chance: 0.12 },
   firebrand: { chance: 0.12 },
@@ -32,8 +35,14 @@ const DROPS: Partial<Record<EnemyKind, Drops>> = {
   runner: { chance: 0.08 },
 };
 
+// A champion's (champions/champions.ts): always, rare at the least, and luckier; half the time a set's piece its kind
+// leaves, if there's one at its level.
+const CHAMPION: Drops = { chance: 1, luck: 2.5, least: 'rare' };
+const CHAMPION_SET = 0.5;
+
 // The piece `enemy` leaves, slain (`factor`: the hero's luck, a blessing's), or null.
-export function rollGearDrop(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'human'>, factor = 1): GearKey | null {
+export function rollGearDrop(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'human' | 'champion' | 'homeX' | 'homeZ'>, factor = 1): GearKey | null {
+  if (enemy.champion) return championPiece(enemy);
   const drops = DROPS[enemy.kind];
   if (!drops || hashUnit(enemy.id, 0, 91) >= drops.chance * factor) return null;
   const rng = mulberry32(hashCell(enemy.id, enemy.level, 92));
@@ -45,6 +54,15 @@ export function rollGearDrop(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'human
 }
 
 const FAVOURED = 0.5; // how often a foe with pieces of its own leaves one of those
+
+// A champion's piece: of its kind's set, half the time (if there's one at its level); else any piece found there (by
+// where it stood: every dungeon's champion of one id).
+function championPiece(enemy: Pick<Enemy, 'id' | 'kind' | 'level' | 'homeX' | 'homeZ'>): GearKey {
+  const rng = mulberry32(hashCell(Math.round(enemy.homeX * 4) + enemy.id, Math.round(enemy.homeZ * 4) + enemy.level, 93));
+  const sets = favouredBy(enemy.kind, enemy.level).filter(([id]) => ITEMS[id].set);
+  const item = sets.length && rng() < CHAMPION_SET ? weighted(sets, rng()) : oneOf(ITEM_IDS.filter((id) => foundAt(id, enemy.level) && !ITEMS[id].set), rng());
+  return rollGear(item, enemy.level, rng, CHAMPION.luck, CHAMPION.least);
+}
 
 // Whether a foe of `kind` ever leaves gear, slain.
 export const dropsGear = (kind: EnemyKind): boolean => !!DROPS[kind];

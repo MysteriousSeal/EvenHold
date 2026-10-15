@@ -25,7 +25,7 @@ const RED = 0xff3020;
 const SOUL_HEIGHT = 0.42 * INDOOR_SCALE;
 
 // Marks on the floor of one shape, as many as are wanted each frame (made as needed, hidden when not).
-class Marks {
+export class Marks {
   private readonly meshes: THREE.Mesh[] = [];
   private used = 0;
   constructor(
@@ -62,8 +62,11 @@ class Marks {
   }
 }
 
-const ring = (r: number) => new THREE.RingGeometry(r - 0.1, r, 48).rotateX(-Math.PI / 2);
-const disc = (r: number) => new THREE.CircleGeometry(r, 40).rotateX(-Math.PI / 2);
+export const ring = (r: number) => new THREE.RingGeometry(r - 0.1, r, 48).rotateX(-Math.PI / 2);
+export const disc = (r: number) => new THREE.CircleGeometry(r, 40).rotateX(-Math.PI / 2);
+
+// Whose moves they are: a crypt's lord's (his crypt's run), or the Gilded Deacon's (the reliquary's: model/reliquary/).
+export type LordMoves = Pick<CryptFoes, 'slams' | 'sweeps' | 'charges' | 'eruptions' | 'barrages' | 'souls'>;
 
 export class LordMovesView {
   private readonly slamRing: Marks;
@@ -112,7 +115,7 @@ export class LordMovesView {
     scene.add(this.grit);
   }
 
-  update(crypt: CryptFoes | null, dt: number): void {
+  update(crypt: LordMoves | null, dt: number): void {
     this.time += dt;
     const marks = [this.slamRing, this.slamZone, this.sweepRing, this.sweepZone, this.strip, this.circles, this.circleEdges];
     for (const m of marks) m.begin();
@@ -228,7 +231,7 @@ export class LordMovesView {
   }
 
   // His souls: a ghostly skull each, bobbing as it drifts, facing the way it goes, a pale trail of wisps fading behind.
-  private soulsOn(crypt: CryptFoes | null, dt: number): void {
+  private soulsOn(crypt: LordMoves | null, dt: number): void {
     const souls = crypt?.souls ?? [];
     while (this.souls.length < souls.length) {
       const mesh = new THREE.Mesh(this.skull, this.soulMaterial);

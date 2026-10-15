@@ -5,8 +5,10 @@ import { bumpsEnemy } from '../enemies/enemies';
 import { maxHpOf } from '../hero/attributes';
 import { intoBed } from '../hero/setbacks';
 import { bumpsNpc } from '../npcs/npcs';
-import { dungeonAt, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
+import { dungeonAt, dungeonBarred, dungeonBlocks, dungeonRun, dungeonWalls } from '../dungeons/dungeons';
 import { goesUnder } from '../dungeons/dungeonTypes';
+import { hashCell } from '../../util/random';
+import { STAIR_REACH, stairUp } from '../reliquary/reliquary';
 import { dungeonHooks } from '../hero/fighting';
 import { benchSeatInReach, squareBenches } from '../worldgen/benches';
 import type { GameModel } from '../GameModel';
@@ -43,6 +45,13 @@ export function useDoor(m: GameModel): boolean {
   if (!entrance) return false;
   const { hero } = m;
   m.hop = null;
+  if (m.inside && entrance !== m.inside.entrance) return goDown(m, entrance); // (a stair down from the room: the Minster's)
+  const up = m.inside && stairUp(entrance);
+  if (up) {
+    enterRoom(m, up.of); // (back up the stair it came down, into the room it's in)
+    Object.assign(hero, { x: up.x, z: up.z + STAIR_REACH - 0.2, facing: 0 });
+    return true;
+  }
   if (m.inside) {
     m.inside = null;
     m.below = null;
@@ -52,6 +61,13 @@ export function useDoor(m: GameModel): boolean {
     hero.facing = Math.atan2(entrance.outX, entrance.outZ);
     return true;
   }
+  return goDown(m, entrance);
+}
+
+// In through a door, or down a way down: unless it's barred (told why, not gone down).
+function goDown(m: GameModel, entrance: Entrance): boolean {
+  const barred = dungeonBarred(entrance, m);
+  if (barred) return m.events.push({ kind: 'banner', ...barred }), false;
   enterRoom(m, entrance);
   return true;
 }
@@ -64,7 +80,7 @@ export function enterRoom(m: GameModel, entrance: Entrance): void {
   m.inside = { entrance, room, furniture, seated: null, ...(place && { walls: dungeonWalls(dungeonBlocks(m.seed, entrance), () => m.below?.run), exitAt: () => m.below?.run.exitOpen ?? null }) };
   if (place) m.events.push({ kind: 'arrive', name: place.name, level: place.level }); // (its name and level, as the hero comes down)
   if (place && m.clearedShare(entrance) === 1) m.events.push({ kind: 'banner', title: place.name, line: `Level ${place.level} · cleared: its foes slain for good` }); // (told over its arrival: none here to rise again, dungeons/dungeonRecord.ts)
-  m.below = place && { key: place.key, run: dungeonRun(m.seed, entrance, m.cleared(place.key), m.hero, dungeonHooks(m)), ground: m.floors.of(place.key) };
+  m.below = place && { key: place.key, run: dungeonRun(m.seed, entrance, m.cleared(place.key), m.hero, dungeonHooks(m)), ground: m.floors.of(place.key), salt: hashCell([...place.key].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7), Math.floor(m.minutes), m.seed) }; // (its foes' drops rolled with the dungeon and the time down: hero/fighting.ts)
   m.outdoors.seated = null;
   if (entrance.type === 'inn') m.lastInn = entrance; // to wake in, after a fall
   m.focus(null);

@@ -110,7 +110,7 @@ export class Atlas {
     for (const { entrance } of [...this.host.crypts, ...this.host.caves, ...this.host.strongholds]) {
       if (!near(entrance)) continue;
       const place = dungeonAt(entrance);
-      if (place && !this.found.has(place.key)) this.found.set(place.key, { kind: place.kind, x: Math.round(entrance.x), z: Math.round(entrance.z), name: place.name, level: place.level, key: place.key, cleared: false });
+      if (place && place.kind !== 'reliquary' && !this.found.has(place.key)) this.found.set(place.key, { kind: place.kind, x: Math.round(entrance.x), z: Math.round(entrance.z), name: place.name, level: place.level, key: place.key, cleared: false });
     }
     for (const camp of this.host.camps) {
       if (!near(camp)) continue;

@@ -160,6 +160,11 @@ export class StrongholdRun extends DungeonFoes {
     };
     this.director = new EnemyDirector(this.foes, hero, ground, { width: plan.width, depth: plan.depth }, () => 0, (foe) => void (this.moves.strike(foe) || this.hooks.strike(foe)), true);
     this.moves = makeMoves(this.fight(hero));
+    // Its champion, if it has one (dungeonFoes.ts), one of the pack it stands beside.
+    const packed = posts.filter((p) => p.post !== BOSS_POST && !WINGS.some((w) => WING_POST[w] === p.post));
+    const champion = this.crown('stronghold', stronghold.gate, stronghold.level, packed);
+    const beside = champion && packed.sort((a, b) => Math.hypot(a.x - champion.x, a.z - champion.z) - Math.hypot(b.x - champion.x, b.z - champion.z))[0];
+    if (champion && beside) this.placed.set(champion, beside);
   }
 
   // What its foes' moves are handed (strongholdMoves.ts: the seam).
@@ -196,6 +201,7 @@ export class StrongholdRun extends DungeonFoes {
     const hero = this.director.quarry;
     this.bar(hero);
     this.director.update(dt);
+    this.runChampion();
     this.moves.update(dt);
     for (const [wing, boss] of this.bosses) if (boss.state === 'dead') this.bosses.delete(wing);
     if (this.king?.state === 'dead') {

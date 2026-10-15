@@ -43,4 +43,7 @@ export const KIND_LOOKS: Record<EnemyKind, KindLook> = {
   gaoler: { name: 'The gaoler', size: 1.3, aura: 19, textHeight: 0.55 }, // (a chief's look, for now)
   captain: { name: 'The captain', size: 1.25, aura: 18, textHeight: 0.5 }, // (a chief's look, for now)
   banditKing: { name: 'The bandit king', size: 1.4, aura: 20, textHeight: 0.6 }, // (a chief's look, for now)
+  unquietBrother: { name: 'Unquiet Brother', size: 1, aura: 16, textHeight: 0.45 }, // (the reliquary's, model/reliquary/: his hood over a man)
+  gildedSaint: { name: 'Gilded saint', size: 1.1, aura: 16, textHeight: 0.45 },
+  gildedDeacon: { name: 'The Gilded Deacon', size: 1.55, aura: 23, textHeight: 0.62 }, // (over the lords: every relic in the vault)
 };

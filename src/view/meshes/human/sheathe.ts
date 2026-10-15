@@ -47,6 +47,7 @@ export const STOWED: Record<keyof typeof MAIN_HAND_ITEMS | keyof typeof OFF_HAND
   torch: 'hand',
   tome: 'hand',
   ossuaryWard: 'shield',
+  reliquaryTriptych: 'shield',
   smokingCenser: 'hand',
   watchShield: 'shield',
   sunwardAegis: 'shield',

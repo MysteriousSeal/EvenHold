@@ -1,7 +1,7 @@
 // The focused enemy's frame, beside the hero's (styles in hud.css): its
 // portrait facing the hero (a beast's head, a skull, or the bandit's own head
-// and shoulders, as dressed), its name and health. Hidden with no focus. Someone picked out who's no foe (a villager,
-// a traveller): their face and name there instead, their health (a friendly green) and level.
+// and shoulders, as dressed), its name and health (a boss's tagged so; a champion's, and its trait under it).
+// Hidden with no focus. Someone picked out who's no foe (a villager, a traveller): their face and name there instead, their health (a friendly green) and level.
 
 import type { Enemy, EnemyKind } from '../../model/types';
 import type { Person } from '../../model/hero/selection';
@@ -15,6 +15,7 @@ import { SKELETON_PALETTE, bossSkull, buildSkull } from '../meshes/enemy/skeleto
 import { LORD_PALETTE, buildCrownedSkull } from '../meshes/enemy/lordVoxels';
 import { DRAUGR_PALETTE, buildDraugrHead, draugrLook } from '../meshes/enemy/draugrVoxels';
 import { ENEMY_STATS } from '../../model/constants';
+import { CHAMPIONS } from '../../model/champions/champions';
 import { difficulty, isBoss } from '../../model/enemies/enemyLevels'; // (how dangerous a foe is: the bar over its head says so too)
 import { GHOST_PALETTE, ghostHead } from '../meshes/enemy/ghostVoxels';
 import { voxelIcon } from '../ui/voxelIcon';
@@ -22,6 +23,7 @@ import { enemyName } from '../meshes/enemy/enemyParts';
 import { BROOD_MOTHER, CAVE_SPIDER, HATCHLING } from '../meshes/enemy/spiderVoxels';
 import { BAT_PALETTE, batBody } from '../meshes/enemy/batVoxels';
 import { WORM_PALETTE, wormHead } from '../meshes/enemy/wormVoxels';
+import { RELIQUARY_FOE_PALETTE, reliquaryHead } from '../meshes/enemy/reliquaryVoxels';
 
 const PORTRAIT_SIZE = 84; // as the hero's
 
@@ -65,6 +67,9 @@ const PORTRAITS: Record<EnemyKind, (enemy: Enemy) => HTMLCanvasElement> = {
   gaoler: (enemy) => humanPortrait(enemy),
   captain: (enemy) => humanPortrait(enemy),
   banditKing: (enemy) => humanPortrait(enemy),
+  unquietBrother: () => voxelIcon('target:unquietBrother', () => ({ grid: reliquaryHead('brother'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
+  gildedSaint: () => voxelIcon('target:gildedSaint', () => ({ grid: reliquaryHead('saint'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
+  gildedDeacon: () => voxelIcon('target:gildedDeacon', () => ({ grid: reliquaryHead('deacon'), palette: RELIQUARY_FOE_PALETTE }), PORTRAIT_SIZE),
 };
 const portrait = (enemy: Enemy) => PORTRAITS[enemy.kind](enemy);
 
@@ -122,11 +127,18 @@ export function createTargetHud(parent: HTMLElement): (enemy: Enemy | null, hero
       name.textContent = enemyName(enemy);
       // A boss: a gold BOSS tag before its name, a gold skull badge on its portrait's corner.
       const boss = isBoss(enemy.kind);
-      if (boss) {
+      if (boss || enemy.champion) {
         const tag = document.createElement('span');
-        tag.className = 'target-hud-boss-tag';
-        tag.textContent = 'Boss';
+        tag.className = boss ? 'target-hud-boss-tag' : 'target-hud-boss-tag champion';
+        tag.textContent = boss ? 'Boss' : 'Champion';
         name.prepend(tag);
+      }
+      // A champion's trait, under its name (model/champions/: what its fight does).
+      if (enemy.champion) {
+        const trait = document.createElement('span');
+        trait.className = 'target-hud-trait';
+        trait.textContent = CHAMPIONS[enemy.champion].told;
+        name.append(trait);
       }
       frame.querySelector('.target-hud-boss')?.remove();
       if (boss) {

@@ -154,6 +154,22 @@ const sunwardPauldrons: ItemModel = {
   },
 };
 
+// Reliquary pauldrons: gilt caps, a crystal window on each with a bone behind it, red silk hanging under them.
+const reliquary = namedPalette({ ...SET_PALETTES.reliquary });
+const reliquaryPauldrons: ItemModel = {
+  palette: reliquary.palette,
+  worn: {
+    arm: (cell) => {
+      const { x, y, z, top, flank } = cell;
+      const { c } = reliquary;
+      if (!top) return y <= 4 ? (mod(flank ? z : x, 2) === 0 ? c.silk : c.silkDark) : c.giltDark; // silk under the cap
+      if (rim(cell)) return c.gilt;
+      if (x === 0 && z === 0) return c.bone; // the relic
+      return Math.abs(x) + Math.abs(z) === 1 ? c.crystal : c.giltLight; // its window
+    },
+  },
+};
+
 export const SHOULDERS_MODELS: Record<keyof typeof SHOULDERS_ITEMS, ItemModel> = {
   leatherPauldrons: pauldron(0x8a5a35, 0x6b4226, 0x4e2f1a),
   ironPauldrons: pauldron(0xb4bac2, 0x8d939c, 0x6e747c),
@@ -170,4 +186,5 @@ export const SHOULDERS_MODELS: Record<keyof typeof SHOULDERS_ITEMS, ItemModel> =
   flayersMantle,
   palmersCape,
   sunwardPauldrons,
+  reliquaryPauldrons,
 };

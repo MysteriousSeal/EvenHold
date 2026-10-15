@@ -332,6 +332,7 @@ async function boot(): Promise<void> {
         return overHero(found.down ? 'Go downstairs' : 'Go upstairs');
       case 'door': {
         const { door } = found;
+        if (model.inside && door !== model.inside.entrance) return { label: `Go down into ${dungeonAt(door)?.name ?? 'the dark'}`, x: hero.x, y: 0.75, z: hero.z }; // (a stair down from the room: the Minster's)
         if (model.inside) return { label: atWayOut(model.inside, hero) ? 'Take the way out' : goesUnder(model.inside.entrance) ? 'Climb out' : 'Leave', x: hero.x, y: 0.75, z: hero.z };
         const place = goesUnder(door) ? dungeonAt(door) : null;
         const label = place ? `Enter the ${place.kind} (level ${place.level}) · ${Math.round(model.clearedShare(door) * 100)}% cleared` : isHerbalistHome(door) ? "Enter the herbalist's" : isWitchHome(door) ? "Enter the hedge-witch's" : DOOR_NAMES[door.type as keyof typeof DOOR_NAMES];
@@ -432,7 +433,7 @@ async function boot(): Promise<void> {
       else if (event.kind === 'unbarred') placeBanner('The gate is open', 'The great hall lies beyond');
       else if (event.kind === 'banner') placeBanner(event.title, event.line);
       else if (event.kind === 'brood') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, ['The eggs are hatching!'], '#d8e89a');
-      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ` · +1 point to spend (${keyName('levelUp')})` : ''}`);
+      else if (event.kind === 'cleared') placeBanner(event.place === 'cave' ? 'Cave cleared' : event.place === 'camp' ? 'Camp cleared' : event.place === 'stronghold' ? 'Stronghold cleared' : event.place === 'reliquary' ? 'Reliquary cleared' : 'Crypt cleared', `${capitalize(event.name)}${event.point ? ` · +1 point to spend (${keyName('levelUp')})` : ''}`);
       else if (event.kind === 'point') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.25, z: hero.z }, [`+1 point to spend (${keyName('levelUp')})`], '#5ae0d8');
       else if (event.kind === 'blessing') floatingText.spawn({ x: hero.x, y: hero.y + head + 0.2, z: hero.z }, [`${event.name}!`], '#ffd35a');
       else if (event.kind === 'say') {

@@ -259,6 +259,21 @@ export const OFF_HAND_MODELS: Record<keyof typeof OFF_HAND_ITEMS, ItemModel> = {
       return d === 2 ? [c.ivory, c.gold] : [c.ivory]; // its rays out across the field
     }, palette);
   })(),
+  // The Reliquary's: a triptych of gilt for a shield, its gable raised, three arched windows of crystal on red silk,
+  // a bone behind each, a gilt sunburst over the middle one standing out.
+  reliquaryTriptych: (() => {
+    const { palette, c } = namedPalette(SET_PALETTES.reliquary);
+    return shield(7, 10, (x, y) => {
+      const gable = y >= 8 && Math.abs(x - 3) > 9 - y; // (cut away above its pitched top)
+      if (gable) return [];
+      if (y >= 8) return [c.gilt, y === 9 ? c.giltLight : c.giltDark]; // the gable
+      if (y === 0 || x === 0 || x === 6) return [c.giltDark, c.gilt]; // its frame
+      const window = (x === 1 || x === 3 || x === 5) && y >= 2 && y <= 6;
+      if (window) return y === 4 ? [c.silkDark, c.bone, c.crystal] : [c.silkDark, c.crystal];
+      if (y === 7) return x === 3 ? [c.silk, c.gilt, c.giltLight] : [c.silk, c.gilt];
+      return [c.silk];
+    }, palette);
+  })(),
   // The blackbanner's: a tall pavise of black boards, a raised spine down it, an iron rim round it, and nothing
   // bright but the one white band across its middle, standing out over the rest.
   blackbannerPavise: (() => {

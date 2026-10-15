@@ -6,6 +6,7 @@
 import { makeEnemy } from '../enemies/enemies';
 import { enemyLevel } from '../enemies/enemyLevels';
 import { spawnOf, type MapSize } from '../map/grid';
+import { hashCell } from '../../util/random';
 import type { Enemy } from '../types';
 import type { Ruin } from './ruins';
 
@@ -13,6 +14,8 @@ const RISEN_ID = 9_500_000; // (past the boards' quests' foes and the dungeons' 
 
 export interface HauntedWorld {
   readonly enemies: Enemy[];
+  readonly seed: number;
+  readonly minutes: number; // the game's clock (a risen ghost's drops rolled by when it rose: hero/fighting.ts)
   readonly hero: { x: number; z: number };
   readonly size: MapSize;
   isOpenTile(x: number, z: number): boolean;
@@ -37,7 +40,7 @@ export function raiseGhosts(world: HauntedWorld, ruin: Ruin, count: number): num
   let id = Math.max(RISEN_ID - 1, ...world.enemies.filter((e) => e.id >= RISEN_ID && e.id < RISEN_ID + 500_000).map((e) => e.id)) + 1;
   const risen = spots.slice(0, Math.max(0, count));
   for (const [x, z] of risen) {
-    const ghost = { ...makeEnemy(id, 'ghost', x, z, cx, cz, enemyLevel(spawnOf(world.size), cx, cz, id)), haunt };
+    const ghost = { ...makeEnemy(id, 'ghost', x, z, cx, cz, enemyLevel(spawnOf(world.size), cx, cz, id)), haunt, drops: hashCell(world.seed, Math.floor(world.minutes), id) }; // (its drops its own: the world, when it rose)
     ghost.y = world.getGroundY(x, z);
     world.enemies.push(ghost);
     id++;

@@ -23,6 +23,7 @@ import { isBoss } from '../enemies/enemyLevels';
 import { knockAway, leap, type ToldMove } from '../enemies/toldMoves';
 import type { StrongholdPart } from './strongholdMoves';
 import { BOLT, type Stage } from './strongholdStage';
+import { potsAt } from '../champions/championRun';
 
 export const SMASH_TELL = 1.0;
 export const SMASH_RADIUS = 1.35; // tiles round a bruiser his smash reaches
@@ -47,6 +48,7 @@ const AFAR: Partial<Record<EnemyKind, number>> = { crossbowman: 2.6, firebrand: 
 
 export const SMASH: ToldMove = { told: 'smash', by: 'bruiser', tell: SMASH_TELL, after: 0.5, every: 6.5, first: 2, near: 1.5, staunch: true, hits: (m, hero) => Math.hypot(hero.x - m.x, hero.z - m.z) < SMASH_RADIUS };
 export const SHOT: ToldMove = { told: 'shot', by: 'crossbowman', tell: SHOT_TELL, after: 0.35, every: 3.4, first: 1, near: 7.5, far: 1.2, hits: () => true };
+const POTS_APART = 1.3; // tiles between a champion's pots, across its throw
 export const THROW: ToldMove = { told: 'firebomb', by: 'firebrand', tell: POT_WINDUP, after: 0.3, every: 5, first: 1.5, near: 6, far: 1.6, hits: () => true };
 export const MEND: ToldMove = { told: 'mend', by: 'sawbones', tell: MEND_TELL, after: 0.3, every: 5, first: 1, near: 12, hits: () => true };
 
@@ -66,7 +68,14 @@ export class Pack implements StrongholdPart {
       unless: unseen,
       mark: (m) => ({ shape: 'strip', tone: 'shot', x: m.x, z: m.z, dx: m.dx, dz: m.dz, long: stage.reach(m.x, m.z, m.dx, m.dz, BOLT.range), half: 0.08 }),
     });
-    stage.act(THROW, (foe) => stage.lob(foe, { x: hero.x, z: hero.z, r: POT_RADIUS, by: foe, damage: stage.harm(foe, 1.2), tell: POT_FLIGHT, burn: POT_BURN }), { unless: unseen });
+    // A firebrand's pot, at the hero (a champion's three: champions/championRun.ts, either side of them across its throw).
+    stage.act(THROW, (foe, m) => {
+      const pots = potsAt(foe);
+      for (let k = 0; k < pots; k++) {
+        const across = (k - (pots - 1) / 2) * POTS_APART;
+        stage.lob(foe, { x: hero.x + m.dz * across, z: hero.z - m.dx * across, r: POT_RADIUS, by: foe, damage: stage.harm(foe, 1.2), tell: POT_FLIGHT, burn: POT_BURN });
+      }
+    }, { unless: unseen });
     stage.act(MEND, (foe) => this.mend(foe), { unless: (foe) => foe.state !== 'chase' || !this.wounded(foe) });
     // A hound's lunge, and a frenzied one's (its master enraged: strongholdBosses.ts), coming twice as often.
     for (const [every, frenzied] of [[4.5, false], [2.4, true]] as const) {

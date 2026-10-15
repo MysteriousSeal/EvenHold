@@ -15,7 +15,8 @@ import { gainXp, hurt, xpAgainst } from './heroStats';
 import { maxHpOf } from './attributes';
 import { coinsFound, dropFactor, healOnKill, makeChilled, makeWebbed, xpGained } from './blessing';
 import { coinDrop } from './money';
-import { DROP_CHANCE, rollDrop } from '../loot/loot';
+import { DROP_CHANCE, rollDrop, type LootId, type LootSource } from '../loot/loot';
+import { hashCell } from '../../util/random';
 import type { BagItem } from './bag';
 import type { QuestBook } from '../quests/questBook';
 import type { DungeonHooks } from '../dungeons/dungeonTypes';
@@ -41,6 +42,8 @@ export interface Fight {
   readonly quests: Pick<QuestBook, 'onKill'>;
   readonly story?: { onKill(enemy: Enemy): void }; // (the quests people give: the foes they ask slain, counted)
   readonly bounties?: { onKill(enemy: Enemy): BagItem | null }; // (a bounty's target: its sack, dropped: quests/bounties.ts)
+  readonly lootSalt?: number | null; // what a dungeon's foes' drops are rolled with besides their ids (the dungeon, and the time down), or null: out of doors
+  mercy?(source: LootSource, dropped: LootId | null, rolled: number): LootId | null; // what a story quest wants, left by mercy (loot/dropMercy.ts)
   random(): number;
   report(event: GameEvent): void;
   focus(id: number | null): void;
@@ -106,7 +109,7 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean,
   target.state = target.hp <= 0 ? 'dead' : 'chase';
   if (!fight.focused && target.state !== 'dead') fight.focus(target.id); // the foe struck gets the hero's attention, if none has it
   if (target.state === 'dead') {
-    fight.report({ kind: 'slain', on: target.kind, x: target.x, y: target.y, z: target.z });
+    fight.report({ kind: 'slain', on: target.kind, x: target.x, y: target.y, z: target.z, ...(target.champion && { champion: target.champion }) });
     if (isWorldFoe(target.id)) fight.slain.add(target.id); // a quest's foes (even let go) aren't the world's
     fight.slayGuard(target);
     gainXp(hero, xpGained(hero, xpAgainst(target.xp, target.level, hero.level))); // less, the weaker the foe
@@ -116,15 +119,27 @@ export function strike(fight: Fight, target: Enemy, hard: number, crit: boolean,
     if (wanted) fight.dropLoot(wanted, target.x - 0.2, target.z - 0.15);
     const proof = fight.bounties?.onKill(target);
     if (proof) fight.dropLoot(proof, target.x + 0.1, target.z - 0.3);
-    const item = rollDrop(ENEMY_STATS[target.kind].family, target.id, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
+    const family = ENEMY_STATS[target.kind].family;
+    const rolled = rollOf(target, fight);
+    const item = rollDrop(family, rolled, DROP_CHANCE * dropFactor(hero) * ENEMY_STATS[target.kind].loot); // (a draugr's more often)
     if (item) fight.dropLoot(item, target.x, target.z);
-    butcher(ENEMY_STATS[target.kind].family, target.id).forEach((meat, i) => fight.dropLoot(meat, target.x - 0.2 + 0.15 * i, target.z + 0.2)); // (a beast's meat, its own roll: loot/ingredients.ts)
-    const piece = rollGearDrop(target, dropFactor(hero)); // (gear: people and the dead only, at its level, loot/gearDrops.ts)
+    const mercy = fight.mercy?.(family, item, rolled);
+    if (mercy) fight.dropLoot(mercy, target.x - 0.15, target.z + 0.1);
+    butcher(family, rolled).forEach((meat, i) => fight.dropLoot(meat, target.x - 0.2 + 0.15 * i, target.z + 0.2)); // (a beast's meat, its own roll: loot/ingredients.ts)
+    const piece = rollGearDrop({ ...target, id: rolled }, dropFactor(hero)); // (gear: people and the dead only, at its level, loot/gearDrops.ts)
     if (piece) fight.dropLoot(piece, target.x + 0.2, target.z - 0.2);
     const amount = coinsFound(hero, coinDrop(target));
     if (amount > 0) fight.dropCoins(amount, target.x + 0.25, target.z + 0.15);
   }
   return flinched || target.state === 'dead';
+}
+
+// The number a slain foe's drops are rolled from: its id, the world's own (the same fight, the same loot); a foe made
+// for a while, its id and when (`drops`: a ruin's risen ghost's, ruins/haunting.ts); a dungeon's, its id and the
+// dungeon and the time down (`lootSalt`): its posts' numbers are the same in every dungeon, every time down.
+function rollOf(target: Enemy, fight: Pick<Fight, 'lootSalt'>): number {
+  const salt = target.drops ?? (isWorldFoe(target.id) ? null : fight.lootSalt ?? null);
+  return salt === null ? target.id : hashCell(target.id, salt, 98);
 }
 
 // What a crypt's foes do to the hero (crypts/cryptFoes.ts): their blows, arrows, told moves' blows (knocking

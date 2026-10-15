@@ -167,6 +167,7 @@ export class CryptFoes extends DungeonFoes {
     const size = { width: this.plan.width, depth: this.plan.depth };
     this.charges = new ToldMoves(chargeMove((x, z) => cryptBlocks(inside, x, z, 0.24)), (lord, m) => this.hooks.blow(lord, Math.round(lord.damage * 1.5), { dx: m.dx * CHARGE_KNOCK, dz: m.dz * CHARGE_KNOCK })); // (bowled back along it)
     this.director = new EnemyDirector(this.foes, hero, ground, size, (x, z) => floorHeight(inside.props, x, z), (e) => (e.kind === 'skeletonArcher' ? this.loose(e, hero) : this.hooks.strike(e)), true);
+    this.crown('crypt', inside.crypt.ruin, inside.crypt.level, posts); // (its champion, if it has one: dungeonFoes.ts)
   }
 
   // A foe stood on the floor where it is (up on the dais, there: cryptProps.ts floorHeight).
@@ -190,6 +191,7 @@ export class CryptFoes extends DungeonFoes {
     if (!this.lord && !this.slain.has(LORD_POST) && clearedShare(this.slain, this.posts) >= RISES_AT) this.rise();
     if (!hero.knock) hero.y = floorHeight(this.inside.props, hero.x, hero.z); // (up on the dais, as its foes are; a knock's hop its own)
     this.director.update(dt);
+    this.runChampion();
     this.lord?.update();
     this.wakeLord(hero);
     this.stillTomb(hero);

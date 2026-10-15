@@ -30,17 +30,20 @@ function markMesh(grid: VoxelGrid, size: [number, number, number], palette = MAR
 // its corners stepped in, a bright amber rim round a dimmer middle, added
 // to what's under it so the ground shows through. `size` in voxels across.
 const AURA_VOXEL = 0.04;
-const auraShapes = new Map<number, THREE.BufferGeometry>(); // built once a size
-export function questAura(size: number): THREE.Mesh {
-  let geometry = auraShapes.get(size);
-  if (!geometry) auraShapes.set(size, (geometry = auraGeometry(size)));
+const auraShapes = new Map<string, THREE.BufferGeometry>(); // built once a size (and colours)
+const QUEST_AURA = [0xffb028, 0x6a4008]; // its rim, its middle
+// (Another's colours, `palette`: a champion's, meshes/enemy/enemyViews.ts.)
+export function questAura(size: number, palette: readonly number[] = QUEST_AURA): THREE.Mesh {
+  const key = `${size}:${palette.join(',')}`;
+  let geometry = auraShapes.get(key);
+  if (!geometry) auraShapes.set(key, (geometry = auraGeometry(size, palette)));
   const mesh = new THREE.Mesh(geometry, AURA_MATERIAL);
   mesh.scale.y = 0.25; // a thin film on the ground
   mesh.renderOrder = 5;
   return mesh;
 }
 
-function auraGeometry(size: number): THREE.BufferGeometry {
+function auraGeometry(size: number, palette: readonly number[]): THREE.BufferGeometry {
   const grid = createGrid([size, 1, size]);
   const last = size - 1;
   for (let x = 0; x < size; x++) {
@@ -52,7 +55,7 @@ function auraGeometry(size: number): THREE.BufferGeometry {
     }
   }
   const half = (size * AURA_VOXEL) / 2;
-  return greedyMesh(grid, [0xffb028, 0x6a4008], AURA_VOXEL, new THREE.Vector3(-half, 0, -half));
+  return greedyMesh(grid, [...palette], AURA_VOXEL, new THREE.Vector3(-half, 0, -half));
 }
 const AURA_MATERIAL = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
 

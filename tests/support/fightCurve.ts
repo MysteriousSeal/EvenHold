@@ -9,7 +9,7 @@ import { TEST_MAP_SIZE } from './testWorld';
 import { gainXp } from '../../src/model/hero/heroStats';
 import { gearKey, slotOfGear } from '../../src/model/human/items/gear';
 import { armorOf, maxHpOf, blowOf, critChanceOf, dodgeChanceOf } from '../../src/model/hero/attributes';
-import type { EnemyKind } from '../../src/model/types';
+import type { Enemy, EnemyKind } from '../../src/model/types';
 
 const F = 1 / 60;
 type Piece = [string, number, string]; // item, level, rarity
@@ -38,7 +38,7 @@ export function heroAt(m: GameModel, s: Stage) {
   return { hp: h.hp, armour: armorOf(h), blow: blowOf(h), crit: critChanceOf(h), dodge: dodgeChanceOf(h) };
 }
 
-export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, maxT = 300) {
+export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, maxT = 300, make?: (foe: Enemy) => void) {
   const m = new GameModel(1, TEST_MAP_SIZE);
   const sheet = heroAt(m, s);
   const h = m.hero;
@@ -46,6 +46,7 @@ export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, ma
   for (const o of m.enemies) if (o !== e) { o.state = 'dead' as any; o.hp = 0; o.x = -999; }
   const p = enemyPower(kind, level);
   Object.assign(e, { kind, level, maxHp: p.maxHp, hp: p.maxHp, damage: p.damage, xp: p.xp, x: h.x + 1.2, z: h.z, homeX: h.x + 1.2, homeZ: h.z, state: 'chase', cooldown: 0, swingFor: null });
+  make?.(e); // (made otherwise: a champion's, model/champions/)
   const st = ENEMY_STATS[kind];
   const hp0 = h.hp; let t = 0, burst = 0, rest = 0;
   let fell = false; // (a fall heals them and sends them off: told by it, not by their health)
@@ -73,5 +74,5 @@ export function fight(s: Stage, kind: EnemyKind, level: number, style: Style, ma
     low = Math.min(low, h.hp);
     m.takeEvents();
   }
-  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0, foeHp: p.maxHp, foeDmg: p.damage, sheet };
+  return { won: e.state === 'dead' && !fell, died: fell, t, lost: hp0 - low, hp0, foeHp: e.maxHp, foeDmg: e.damage, sheet };
 }

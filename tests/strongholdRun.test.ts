@@ -11,7 +11,7 @@
 // trained till a blow does 4 (a level 1 hero's does 1: the fights are the
 // same, shorter). About 5 seconds a seed.
 import { describe, expect, it } from 'vitest';
-import { BOSS_POST, CHEST_POST } from '../src/model/dungeons/dungeonRecord';
+import { BOSS_POST, CHAMPION_POST, CHEST_POST } from '../src/model/dungeons/dungeonRecord';
 import { WINGS } from '../src/model/strongholds/strongholdLayout';
 import { WING_BOSS, strongholdHoard } from '../src/model/strongholds/strongholdFoes';
 import { bossPiece } from '../src/model/strongholds/strongholdLoot';
@@ -28,7 +28,8 @@ describe('a stronghold played whole by a scripted hero', () => {
       expect(model.inside?.entrance).toBe(stronghold.entrance);
       const { run } = d;
       const level = stronghold.level;
-      const posted = model.foes.length;
+      const posted = model.foes.filter((f) => !f.champion).length; // (a champion, if there's one, none of its posts: model/champions/)
+      const champion = model.foes.some((f) => f.champion);
       expect(run.gateShut).toBe(true);
 
       // The wings: everyone this side of the gate, the nearest first; those their bosses call up with them.
@@ -84,7 +85,7 @@ describe('a stronghold played whole by a scripted hero', () => {
       // Its record: every post, its boss, its chest; none of those called up.
       const slain = model.cleared(strongholdKey(stronghold));
       expect([...slain].filter((post) => post < BOSS_POST)).toHaveLength(posted - 1);
-      expect([slain.has(BOSS_POST), slain.has(CHEST_POST)]).toEqual([true, true]);
+      expect([slain.has(BOSS_POST), slain.has(CHEST_POST), slain.has(CHAMPION_POST)]).toEqual([true, true, champion]);
       // Gone into again: no one, the gate open, the chest empty, no named piece lying.
       if (model.doorInReach !== stronghold.entrance) model.teleport(stronghold.entrance.x, stronghold.entrance.z); // (a wolf's shove, out there)
       expect(model.useDoor()).toBe(true);
