@@ -448,8 +448,7 @@ export class GameModel {
     }
     const seat = this.seatInReach;
     if (seat) sitDown(at, this.hero, seat);
-    if (seat?.lying) intoBed(this); // (someone else's, its owner home: turned out of it: hero/setbacks.ts)
-    if (seat?.lying && this.seated && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (hurt, and a bed: told it mends)
+    if (seat?.lying && (intoBed(this), this.seated) && this.hero.hp < maxHpOf(this.hero)) this.report({ kind: 'mending' }); // (someone else's bed, its owner home: turned out of it, hero/setbacks.ts; else, hurt: told it mends)
     return !!seat;
   }
 

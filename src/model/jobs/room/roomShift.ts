@@ -293,7 +293,7 @@ export class RoomShift extends Shift {
   }
 
   private paid(copper: number, great: boolean): void {
-    this.earned += copper;
+    this.earn(copper); // (at the shift's rate: the hero's level, as every shift's pay)
     this.served++;
     this.onServed(great);
     this.gone();
