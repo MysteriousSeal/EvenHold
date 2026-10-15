@@ -31,7 +31,7 @@ function wallStone(x: number, y: number, z: number): number {
   const course = Math.floor(y / 3);
   const h = hashUnit(Math.floor((x + z + (course % 2) * 2) / 4), course, 29);
   if (y <= 3 && h < 0.35) return T.moss;
-  return h < 0.6 ? T.wallStone : h < 0.85 ? T.wallDark : T.wallLight;
+  return h < 0.7 ? T.wallStone : h < 0.86 ? T.wallDark : T.wallLight; // (mostly the one grey: blotchy, darker)
 }
 
 export function buildWallPiece(piece: WallPiece): VoxelGrid {
